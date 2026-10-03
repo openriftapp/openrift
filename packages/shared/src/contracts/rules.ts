@@ -92,6 +92,10 @@ export const ruleSourceResponseSchema = z.object({
   removed: z.array(rulePageEntrySchema.extend({ content: z.string() })),
 });
 
+export const ruleNumbersResponseSchema = z.object({
+  numbers: z.array(z.string()).meta({ examples: [["103.1.a", "103.1.b"]] }),
+});
+
 export const ruleVersionsListResponseSchema = z.object({
   versions: z.array(ruleVersionResponseSchema),
   languages: z.array(ruleLanguageSchema),
@@ -119,6 +123,11 @@ export const rulesContract = {
     .meta({ auth: "public", cache: "long", etag: true })
     .input(z.object({ kind: ruleKindSchema, version: z.string(), language: languageInput }))
     .output(ruleSourceResponseSchema),
+  numbers: oc
+    .route({ method: "GET", path: "/api/v1/rules/numbers", tags: ["Rules"] })
+    .meta({ auth: "public", cache: "long", etag: true })
+    .input(z.object({ kind: ruleKindSchema, version: z.string() }))
+    .output(ruleNumbersResponseSchema),
   versions: oc
     .route({ method: "GET", path: "/api/v1/rules/versions", tags: ["Rules"] })
     .meta({ auth: "public", cache: "long", etag: true })

@@ -3,6 +3,7 @@ import type {
   ruleChangesResponseSchema,
   ruleKindSchema,
   ruleLanguageSchema,
+  ruleNumbersResponseSchema,
   ruleResponseSchema,
   ruleTypeSchema,
   ruleVersionResponseSchema,
@@ -37,3 +38,5 @@ export type RulePageEntry = z.infer<typeof rulePageEntrySchema>;
 export type RulesPageResponse = z.infer<typeof rulesPageResponseSchema>;
 
 export type RuleSourceResponse = z.infer<typeof ruleSourceResponseSchema>;
+
+export type RuleNumbersResponse = z.infer<typeof ruleNumbersResponseSchema>;

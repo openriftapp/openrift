@@ -52,6 +52,14 @@ describe("splitCaption", () => {
     ]);
   });
 
+  it("splits chain references and lettered rules out of the text", () => {
+    expect(splitCaption("[[chain:c2]] per [[466.1.a.2]]")).toEqual([
+      { type: "chain", entryId: "c2" },
+      { type: "text", text: " per " },
+      { type: "rule", ref: { kind: "core", ruleNumber: "466.1.a.2" } },
+    ]);
+  });
+
   it("returns nothing for an empty caption", () => {
     expect(splitCaption("")).toEqual([]);
   });

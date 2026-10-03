@@ -1,4 +1,4 @@
-import type { BoardChainEntry, BoardDocument } from "@openrift/shared/board-state";
+import type { BoardChainEntry, BoardDocument, BoardPiece } from "@openrift/shared/board-state";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Suspense, useState } from "react";
@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import type { RulesPins } from "@/features/rules/components/board-caption-text";
 import { BoardCaptionText } from "@/features/rules/components/board-caption-text";
-import { BoardView, cardImage } from "@/features/rules/components/board-view";
+import { cardImage } from "@/features/rules/components/board-card-parts";
+import { BoardView } from "@/features/rules/components/board-view";
+import { useKnownRules } from "@/features/rules/hooks/use-known-rules";
+import { CHAIN_TYPE_LABEL, chainEntryLabel } from "@/features/rules/lib/board-labels";
 import { longestChain } from "@/features/rules/lib/board-layout";
 import { CARD_CORNER_STYLE, PLAYER_COLOR } from "@/features/rules/lib/board-style";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -28,6 +31,8 @@ export function BoardStepsPlayer({
   extra?: ReactNode;
 }) {
   const [highlightedPieceId, setHighlightedPieceId] = useState<string | null>(null);
+  const [highlightedChainId, setHighlightedChainId] = useState<string | null>(null);
+  const knownRules = useKnownRules(pins);
   const total = document.steps.length;
   const index = Math.min(activeStep, total - 1);
   const step = document.steps[index];
@@ -42,6 +47,7 @@ export function BoardStepsPlayer({
         step={step}
         viewer
         highlightedPieceId={highlightedPieceId}
+        highlightedChainId={highlightedChainId}
         className="self-start [grid-area:board]"
       />
       {total > 1 && (
@@ -94,11 +100,21 @@ export function BoardStepsPlayer({
           text={step.caption}
           pins={pins}
           pieces={step.pieces}
+          chain={step.chain}
+          knownRules={knownRules}
           onHoverPiece={setHighlightedPieceId}
+          onHoverChain={setHighlightedChainId}
           className="[grid-area:caption]"
         />
       )}
-      {chainRows > 0 && <ChainPanel chain={step.chain} rows={chainRows} />}
+      {chainRows > 0 && (
+        <ChainPanel
+          chain={step.chain}
+          pieces={step.pieces}
+          rows={chainRows}
+          highlightedId={highlightedChainId}
+        />
+      )}
       {extra === undefined ? null : <div className="[grid-area:extra]">{extra}</div>}
     </div>
   );
@@ -107,39 +123,46 @@ export function BoardStepsPlayer({
 const CHAIN_ROW_REM = 3.5;
 const CHAIN_GAP_REM = 0.375;
 
-function ChainPanel({ chain, rows }: { chain: readonly BoardChainEntry[]; rows: number }) {
+interface ChainPanelProps {
+  chain: readonly BoardChainEntry[];
+  pieces: readonly BoardPiece[];
+  rows: number;
+  highlightedId: string | null;
+}
+
+function ChainPanel(props: ChainPanelProps) {
   const hydrated = useHydrated();
-  const plain = <ChainList chain={chain} rows={rows} images={[]} />;
+  const plain = <ChainList {...props} images={new Map()} />;
   if (!hydrated) {
     return plain;
   }
   return (
     <Suspense fallback={plain}>
-      <ChainListWithArt chain={chain} rows={rows} />
+      <ChainListWithArt {...props} />
     </Suspense>
   );
 }
 
-function ChainListWithArt({ chain, rows }: { chain: readonly BoardChainEntry[]; rows: number }) {
+function ChainListWithArt(props: ChainPanelProps) {
   const catalog = useCards();
-  return (
-    <ChainList
-      chain={chain}
-      rows={rows}
-      images={chain.map((entry) => cardImage(entry.card, catalog))}
-    />
-  );
+  const images = new Map<string, string>();
+  for (const entry of props.chain) {
+    const card = entry.card ?? props.pieces.find((piece) => piece.id === entry.source)?.card;
+    const url = card ? cardImage(card, catalog) : undefined;
+    if (url !== undefined) {
+      images.set(entry.id, url);
+    }
+  }
+  return <ChainList {...props} images={images} />;
 }
 
 function ChainList({
   chain,
+  pieces,
   rows,
+  highlightedId,
   images,
-}: {
-  chain: readonly BoardChainEntry[];
-  rows: number;
-  images: readonly (string | undefined)[];
-}) {
+}: ChainPanelProps & { images: ReadonlyMap<string, string> }) {
   const top = chain.length - 1;
   return (
     <section className="flex flex-col gap-2 [grid-area:chain]">
@@ -161,22 +184,29 @@ function ChainList({
             .toReversed()
             .map(({ entry, position }) => (
               <li
-                key={position}
+                key={entry.id}
+                data-board-chain={entry.id}
                 className={cn(
                   "flex h-14 items-center gap-2 rounded-md border px-2",
                   position === top && "border-primary",
+                  highlightedId === entry.id && "ring-gilt ring-2",
                 )}
               >
                 <span
                   className="bg-card border-card-edge relative h-12 w-[2.15rem] shrink-0 overflow-hidden border"
                   style={CARD_CORNER_STYLE}
                 >
-                  {images[position] === undefined ? null : (
-                    <img src={images[position]} alt="" className="size-full object-cover" />
-                  )}
+                  {images.has(entry.id) ? (
+                    <img src={images.get(entry.id)} alt="" className="size-full object-cover" />
+                  ) : null}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                  {entry.card.name}
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-sm font-medium">
+                    {chainEntryLabel(entry, pieces)}
+                  </span>
+                  <span className="text-muted-foreground truncate text-xs">
+                    {CHAIN_TYPE_LABEL[entry.type]()} · #{position + 1}
+                  </span>
                 </span>
                 <span
                   className="flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"

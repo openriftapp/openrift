@@ -1,10 +1,12 @@
 import type {
+  BoardChainEntry,
   BoardDocument,
   BoardPiece,
   BoardPlayer,
   BoardZoneRef,
   PlayerZoneKind,
 } from "@openrift/shared/board-state";
+import { chainEntryName, isDeckZone, sameZone } from "@openrift/shared/board-state";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 
 import type { Io } from "../../../io.js";
@@ -42,23 +44,21 @@ const FELT = "#143c3e";
 const FELT_EDGE = "#0c2729";
 const FELT_LINE = "rgba(255,255,255,0.35)";
 
-export type SeatSlot =
-  | { kind: "zone"; zone: PlayerZoneKind }
-  | { kind: "stack"; stack: "runeDeck" | "deck" };
+type SeatZone = Exclude<PlayerZoneKind, "hand">;
 
-const SEAT_ORDER: readonly SeatSlot[] = [
-  { kind: "stack", stack: "runeDeck" },
-  { kind: "zone", zone: "runes" },
-  { kind: "zone", zone: "champion" },
-  { kind: "zone", zone: "legend" },
-  { kind: "zone", zone: "base" },
-  { kind: "stack", stack: "deck" },
-  { kind: "zone", zone: "trash" },
+const SEAT_ORDER: readonly SeatZone[] = [
+  "runeDeck",
+  "runes",
+  "champion",
+  "legend",
+  "base",
+  "deck",
+  "trash",
+  "banishment",
 ];
 
-const SLOT_LABEL: Record<"runeDeck" | "deck", string> = {
+const SLOT_LABEL: Partial<Record<SeatZone, string>> = {
   runeDeck: "rune deck",
-  deck: "deck",
 };
 
 export interface BoardStateImageInput {
@@ -82,9 +82,9 @@ export function seatsFor(playerCount: number): BoardSeats {
   return { top: ["B"], bottom: ["A"] };
 }
 
-export function seatSlots(document: BoardDocument): SeatSlot[] {
-  return SEAT_ORDER.filter((slot) =>
-    slot.kind === "stack" ? document.zones.deck : document.zones[slot.zone],
+export function seatSlots(document: BoardDocument): SeatZone[] {
+  return SEAT_ORDER.filter((zone) =>
+    zone === "deck" || zone === "runeDeck" ? document.zones.deck : document.zones[zone],
   );
 }
 
@@ -93,17 +93,15 @@ export function piecesIn(
   zone: BoardZoneRef,
   owners: readonly BoardPlayer[],
 ): BoardPiece[] {
-  return pieces.filter(
-    (piece) =>
-      owners.includes(piece.owner) &&
-      (piece.zone.kind === "battlefield" && zone.kind === "battlefield"
-        ? piece.zone.index === zone.index
-        : piece.zone.kind === zone.kind),
-  );
+  return pieces.filter((piece) => owners.includes(piece.owner) && sameZone(piece.zone, zone));
 }
 
 export function pieceText(piece: BoardPiece, max: number): string {
   return elideTitle(piece.card?.name ?? piece.label ?? piece.kind, max);
+}
+
+export function chainEntryText(entry: BoardChainEntry, pieces: readonly BoardPiece[]): string {
+  return chainEntryName(entry, pieces) ?? entry.type;
 }
 
 /** Numerals for pieces whose name is shared by another piece, 1-based in piece order. */
@@ -158,8 +156,11 @@ function keywordBadge(keyword: string, fontSize: number): Element {
   );
 }
 
-function pieceTile(piece: BoardPiece, pieceH: number, numeral: number | undefined): Element {
+function pieceTile(piece: BoardPiece, pieceH: number, numeral?: number): Element {
   const color = PLAYER_COLORS[piece.owner];
+  if (piece.facedown) {
+    return cardBack(pieceH, piece.highlight ? COLORS.gold : color);
+  }
   const width = Math.round(piece.exhausted ? pieceH : pieceH * PIECE_ASPECT);
   const height = Math.round(piece.exhausted ? pieceH * PIECE_ASPECT : pieceH);
   const fontSize = Math.max(8, Math.round(pieceH / 5.5));
@@ -268,21 +269,20 @@ function cardBack(pieceH: number, color: string): Element {
 }
 
 function seatSlotBox(
-  slot: SeatSlot,
+  zone: SeatZone,
   player: BoardPlayer,
   pieces: readonly BoardPiece[],
   pieceH: number,
   numerals: Map<string, number>,
 ): Element {
   const color = PLAYER_COLORS[player];
-  const isBase = slot.kind === "zone" && slot.zone === "base";
-  const label = slot.kind === "zone" ? slot.zone : SLOT_LABEL[slot.stack];
+  const held = piecesIn(pieces, { kind: zone }, [player]);
   return element(
     "div",
     {
       display: "flex",
       flexDirection: "column",
-      flexGrow: isBase ? 1 : 0,
+      flexGrow: zone === "base" ? 1 : 0,
       flexShrink: 0,
       padding: 4,
       gap: 2,
@@ -290,17 +290,17 @@ function seatSlotBox(
       border: `1px dashed ${FELT_LINE}`,
       overflow: "hidden",
     },
-    upperLabel(`${label} ${player}`),
-    slot.kind === "stack"
+    upperLabel(`${SLOT_LABEL[zone] ?? zone} ${player}`),
+    isDeckZone({ kind: zone }) && held.length === 0
       ? cardBack(pieceH, color)
-      : pieceRow(piecesIn(pieces, { kind: slot.zone }, [player]), pieceH, numerals),
+      : pieceRow(held, pieceH, numerals),
   );
 }
 
 function seatBlock(
   pieces: readonly BoardPiece[],
   player: BoardPlayer,
-  slots: readonly SeatSlot[],
+  slots: readonly SeatZone[],
   pieceH: number,
   numerals: Map<string, number>,
 ): Element {
@@ -316,7 +316,7 @@ function seatBlock(
       borderLeft: `3px solid ${PLAYER_COLORS[player]}`,
       overflow: "hidden",
     },
-    ...slots.map((slot) => seatSlotBox(slot, player, pieces, pieceH, numerals)),
+    ...slots.map((zone) => seatSlotBox(zone, player, pieces, pieceH, numerals)),
   );
 }
 
@@ -388,6 +388,7 @@ function battlefieldRow(
     { display: "flex", flexDirection: "row", flexShrink: 0, gap: GAP },
     ...document.battlefields.map((battlefield, index) => {
       const zone: BoardZoneRef = { kind: "battlefield", index };
+      const controller = document.steps[0]?.battlefields[index]?.controller ?? null;
       return element(
         "div",
         {
@@ -399,7 +400,10 @@ function battlefieldRow(
           gap: 4,
           borderRadius: 8,
           backgroundColor: "rgba(0,0,0,0.25)",
-          border: "1px solid rgba(255,255,255,0.12)",
+          border:
+            controller === null
+              ? "1px solid rgba(255,255,255,0.12)"
+              : `2px solid ${PLAYER_COLORS[controller]}`,
           overflow: "hidden",
         },
         half(seats.top, zone),
@@ -426,6 +430,9 @@ function battlefieldRow(
             },
             elideTitle(battlefield.card?.name ?? `Battlefield ${index + 1}`, 34),
           ),
+          ...piecesIn(pieces, { kind: "facedown", index }, [...seats.top, ...seats.bottom]).map(
+            (piece) => pieceTile(piece, Math.min(pieceH, frameH)),
+          ),
         ),
         half(seats.bottom, zone),
       );
@@ -438,6 +445,7 @@ function chainRow(document: BoardDocument): Child {
     return false;
   }
   const chain = document.steps[0]?.chain ?? [];
+  const pieces = document.steps[0]?.pieces ?? [];
   return element(
     "div",
     {
@@ -486,7 +494,7 @@ function chainRow(document: BoardDocument): Child {
           },
           entry.owner,
         ),
-        elideTitle(entry.card.name, 26),
+        elideTitle(chainEntryText(entry, pieces), 26),
       ),
     ),
   );

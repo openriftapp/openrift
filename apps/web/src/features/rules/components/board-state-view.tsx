@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { RuleChip, RulesPinBadges } from "@/features/rules/components/board-caption-text";
 import { BoardStepsPlayer } from "@/features/rules/components/board-steps-player";
+import { useKnownRules } from "@/features/rules/hooks/use-known-rules";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -24,6 +25,7 @@ export function BoardStateView({
   actions?: React.ReactNode;
 }) {
   const [activeStep, setActiveStep] = useState(0);
+  const knownRules = useKnownRules(boardState);
   const { document } = boardState;
   const ruleRefs = extractRuleRefs(document.steps.map((s) => s.caption).join("\n"));
 
@@ -61,6 +63,7 @@ export function BoardStateView({
                       key={`${reference.kind}:${reference.ruleNumber}`}
                       reference={reference}
                       pins={boardState}
+                      knownRules={knownRules}
                     />
                   ))}
                 </div>

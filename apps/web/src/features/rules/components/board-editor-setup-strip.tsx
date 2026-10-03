@@ -17,7 +17,9 @@ const ZONE_TOGGLES: { key: keyof BoardZoneVisibility; label: () => string }[] = 
   { key: "hand", label: m.board_states_zone_hand },
   { key: "deck", label: m.board_states_zone_deck },
   { key: "trash", label: m.board_states_zone_trash },
+  { key: "banishment", label: m.board_states_zone_banishment },
   { key: "chain", label: m.board_states_chain },
+  { key: "score", label: m.board_states_zone_score },
 ];
 
 function CountGroup({
@@ -61,6 +63,8 @@ export function BoardEditorSetupStrip() {
   const battlefieldCount = useBoardEditorStore((state) => state.document.battlefields.length);
   const zones = useBoardEditorStore((state) => state.document.zones);
   const setPlayerCount = useBoardEditorStore((state) => state.setPlayerCount);
+  const scoring = useBoardEditorStore((state) => state.document.scoring);
+  const setScoring = useBoardEditorStore((state) => state.setScoring);
   const setBattlefieldCount = useBoardEditorStore((state) => state.setBattlefieldCount);
   const setZoneVisible = useBoardEditorStore((state) => state.setZoneVisible);
   const visibleZones = ZONE_TOGGLES.filter((toggle) => zones[toggle.key]).map(
@@ -81,6 +85,30 @@ export function BoardEditorSetupStrip() {
             value={playerCount}
             onChange={setPlayerCount}
           />
+          {playerCount === 4 && (
+            <div className="flex items-center justify-between gap-3">
+              <Label>{m.board_states_editor_scoring()}</Label>
+              <ToggleGroup
+                size="sm"
+                variant="outline"
+                spacing={0}
+                value={[scoring]}
+                onValueChange={(next) => {
+                  const first = next[0];
+                  if (first === "players" || first === "teams") {
+                    setScoring(first);
+                  }
+                }}
+              >
+                <ToggleGroupItem value="players">
+                  {m.board_states_editor_scoring_players()}
+                </ToggleGroupItem>
+                <ToggleGroupItem value="teams">
+                  {m.board_states_editor_scoring_teams()}
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+          )}
           <CountGroup
             label={m.board_states_editor_battlefields()}
             counts={Array.from({ length: MAX_BATTLEFIELDS }, (_, index) => index + 1)}

@@ -1,22 +1,24 @@
 import type { BoardPiece, BoardStep } from "@openrift/shared/board-state";
-import { emptyBoardDocument } from "@openrift/shared/board-state";
+import { emptyBoardDocument, emptyBoardStep } from "@openrift/shared/board-state";
 import type { Card } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
 import {
   arrowZoneKey,
   boardWidthUnits,
+  grantedLegendSlots,
+  hasTurnState,
+  isHiddenZone,
   longestChain,
+  nextChainId,
   nextPieceId,
   occupiedZones,
   pieceKindForCardTypes,
   pieceNumerals,
   piecesAt,
-  sameZone,
+  scoreHolder,
   seatSlots,
-  grantedLegendSlots,
   seatsFor,
-  slotKey,
   zoneAcceptsMore,
   zoneCardRule,
 } from "./board-layout";
@@ -29,9 +31,11 @@ function piece(overrides: Partial<BoardPiece>): BoardPiece {
     kind: "unit",
     card: null,
     exhausted: false,
+    facedown: false,
     keywords: [],
     damage: 0,
     might: 0,
+    buffs: 0,
     highlight: false,
     ...overrides,
   };
@@ -52,16 +56,17 @@ describe("seatsFor", () => {
 });
 
 describe("seatSlots", () => {
-  it("orders the table from the rune deck out to the trash", () => {
-    const zones = { ...emptyBoardDocument().zones, deck: true, trash: true };
-    expect(seatSlots(zones).map((slot) => slotKey(slot))).toEqual([
-      "stack:runeDeck",
-      "zone:runes",
-      "zone:champion",
-      "zone:legend",
-      "zone:base",
-      "stack:deck",
-      "zone:trash",
+  it("orders the table from the rune deck out to banishment", () => {
+    const zones = { ...emptyBoardDocument().zones, deck: true, trash: true, banishment: true };
+    expect(seatSlots(zones)).toEqual([
+      "runeDeck",
+      "runes",
+      "champion",
+      "legend",
+      "base",
+      "deck",
+      "trash",
+      "banishment",
     ]);
   });
 
@@ -73,47 +78,34 @@ describe("seatSlots", () => {
       runes: false,
       hand: false,
       trash: false,
+      banishment: false,
       deck: false,
       chain: false,
+      score: true,
     };
     expect(seatSlots(zones)).toEqual([]);
   });
 
   it("never places the hand in the seat row", () => {
     const zones = { ...emptyBoardDocument().zones, hand: true };
-    expect(seatSlots(zones).map((slot) => slotKey(slot))).not.toContain("zone:hand");
-  });
-});
-
-describe("sameZone", () => {
-  it("compares battlefields by index", () => {
-    expect(sameZone({ kind: "battlefield", index: 1 }, { kind: "battlefield", index: 1 })).toBe(
-      true,
-    );
-    expect(sameZone({ kind: "battlefield", index: 0 }, { kind: "battlefield", index: 1 })).toBe(
-      false,
-    );
-  });
-
-  it("never matches a battlefield with a player zone", () => {
-    expect(sameZone({ kind: "battlefield", index: 0 }, { kind: "base" })).toBe(false);
+    expect(seatSlots(zones)).not.toContain("hand");
   });
 });
 
 describe("piecesAt", () => {
   const step: BoardStep = {
-    caption: "",
-    chain: [],
-    arrows: [],
+    ...emptyBoardStep(2),
     pieces: [
       piece({ id: "a", zone: { kind: "battlefield", index: 0 } }),
       piece({ id: "b", owner: "B", zone: { kind: "battlefield", index: 0 } }),
       piece({ id: "c", owner: "B", zone: { kind: "base" } }),
+      piece({ id: "d", zone: { kind: "facedown", index: 0 }, facedown: true }),
     ],
   };
 
   it("filters by zone", () => {
     expect(piecesAt(step, { kind: "battlefield", index: 0 }).map((p) => p.id)).toEqual(["a", "b"]);
+    expect(piecesAt(step, { kind: "facedown", index: 0 }).map((p) => p.id)).toEqual(["d"]);
   });
 
   it("filters by zone and owner", () => {
@@ -129,6 +121,53 @@ describe("arrowZoneKey", () => {
 
   it("keys player zones by kind and owner", () => {
     expect(arrowZoneKey({ kind: "base" }, "B")).toBe("base-B");
+  });
+
+  it("keys a facedown zone by battlefield alone", () => {
+    expect(arrowZoneKey({ kind: "facedown", index: 1 }, "A")).toBe("facedown-1");
+    expect(arrowZoneKey({ kind: "facedown", index: 1 }, "B")).toBe("facedown-1");
+  });
+});
+
+describe("isHiddenZone", () => {
+  it("hides both decks and the facedown zones", () => {
+    expect(isHiddenZone({ kind: "deck" })).toBe(true);
+    expect(isHiddenZone({ kind: "runeDeck" })).toBe(true);
+    expect(isHiddenZone({ kind: "facedown", index: 0 })).toBe(true);
+    expect(isHiddenZone({ kind: "banishment" })).toBe(false);
+    expect(isHiddenZone({ kind: "battlefield", index: 0 })).toBe(false);
+  });
+});
+
+describe("hasTurnState", () => {
+  it("is false only while every turn field is unset", () => {
+    expect(hasTurnState({})).toBe(false);
+    expect(hasTurnState({ phase: "main" })).toBe(true);
+  });
+});
+
+describe("scoreHolder", () => {
+  it("returns the player itself outside team scoring", () => {
+    expect(scoreHolder("C", "players")).toBe("C");
+  });
+
+  it("maps teammates onto A and B in team scoring", () => {
+    expect(scoreHolder("A", "teams")).toBe("A");
+    expect(scoreHolder("C", "teams")).toBe("A");
+    expect(scoreHolder("B", "teams")).toBe("B");
+    expect(scoreHolder("D", "teams")).toBe("B");
+  });
+});
+
+describe("nextChainId", () => {
+  it("returns the lowest unused chain id", () => {
+    expect(nextChainId([])).toBe("c1");
+    expect(
+      nextChainId([
+        { id: "c1", owner: "A", type: "spell", label: "x" },
+        { id: "c3", owner: "A", type: "spell", label: "y" },
+      ]),
+    ).toBe("c2");
   });
 });
 
@@ -195,6 +234,13 @@ describe("zoneCardRule", () => {
     expect(zoneAcceptsMore({ kind: "legend" }, 2, 1)).toBe(false);
   });
 
+  it("offers one card for a facedown zone without restricting the card", () => {
+    const rule = zoneCardRule({ kind: "facedown", index: 0 });
+    expect(rule?.cardFilter(rune)).toBe(true);
+    expect(zoneAcceptsMore({ kind: "facedown", index: 0 }, 0)).toBe(true);
+    expect(zoneAcceptsMore({ kind: "facedown", index: 0 }, 1)).toBe(false);
+  });
+
   it("leaves open zones unrestricted", () => {
     expect(zoneCardRule({ kind: "base" })).toBeNull();
     expect(zoneCardRule({ kind: "hand" })).toBeNull();
@@ -259,10 +305,14 @@ describe("pieceNumerals", () => {
 function stepWith(pieces: BoardPiece[], chainLength = 0): BoardStep {
   const card = { cardId: "019a0000-0000-7000-8000-000000000001", name: "Facebreaker" };
   return {
-    caption: "",
+    ...emptyBoardStep(2),
     pieces,
-    chain: Array.from({ length: chainLength }, () => ({ owner: "A" as const, card })),
-    arrows: [],
+    chain: Array.from({ length: chainLength }, (_, index) => ({
+      id: `c${index + 1}`,
+      owner: "A" as const,
+      type: "spell" as const,
+      card,
+    })),
   };
 }
 

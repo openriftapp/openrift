@@ -19,9 +19,11 @@ function piece(overrides: Partial<BoardPiece> & { id: string }): BoardPiece {
     kind: "unit",
     card: { cardId: "11111111-1111-1111-1111-111111111111", name: "Ashe" },
     exhausted: false,
+    facedown: false,
     keywords: [],
     damage: 0,
     might: 0,
+    buffs: 0,
     highlight: false,
     ...overrides,
   };
@@ -34,6 +36,62 @@ describe("BoardCaptionText", () => {
       "href",
       "/rules/$kind/$version",
     );
+  });
+
+  it("links a lettered sub-rule", () => {
+    render(<BoardCaptionText text="See [[466.1.a.2]]." pins={pins} pieces={[]} />);
+    expect(screen.getByRole("link", { name: "§ 466.1.a.2" })).toBeInTheDocument();
+  });
+
+  it("mutes a rule the pinned version does not have and keeps known rules linked", () => {
+    render(
+      <BoardCaptionText
+        text="[[103.2]] and [[999.9]]"
+        pins={pins}
+        pieces={[]}
+        knownRules={{ core: new Set(["103.2"]) }}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "§ 103.2" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "§ 999.9" })).toBeNull();
+    expect(screen.getByText("§ 999.9")).toHaveAttribute("title", "Not in rules 1.0");
+  });
+
+  it("keeps rules linked while the pinned rule numbers are still loading", () => {
+    render(<BoardCaptionText text="[[999.9]]" pins={pins} pieces={[]} knownRules={{}} />);
+    expect(screen.getByRole("link", { name: "§ 999.9" })).toBeInTheDocument();
+  });
+
+  it("renders a chain chip with the entry's position and reports hover", () => {
+    const onHoverChain = vi.fn();
+    render(
+      <BoardCaptionText
+        text="[[chain:c2]] resolves first"
+        pins={pins}
+        pieces={[
+          piece({
+            id: "p1",
+            card: { cardId: "11111111-1111-1111-1111-111111111111", name: "Yasuo" },
+          }),
+        ]}
+        chain={[
+          { id: "c1", owner: "A", type: "spell", label: "Hypothetical spell" },
+          { id: "c2", owner: "B", type: "triggered", source: "p1" },
+        ]}
+        onHoverChain={onHoverChain}
+      />,
+    );
+    const chip = screen.getByRole("button", { name: "Highlight Yasuo on the board" });
+    expect(chip).toHaveTextContent("Yasuo2");
+    fireEvent.mouseEnter(chip);
+    expect(onHoverChain).toHaveBeenLastCalledWith("c2");
+    fireEvent.mouseLeave(chip);
+    expect(onHoverChain).toHaveBeenLastCalledWith(null);
+  });
+
+  it("marks a reference to a missing chain entry as removed", () => {
+    render(<BoardCaptionText text="[[chain:c9]]" pins={pins} pieces={[]} chain={[]} />);
+    expect(screen.getByText("removed chain entry")).toBeInTheDocument();
   });
 
   it("renders an unpinned rule as plain text", () => {

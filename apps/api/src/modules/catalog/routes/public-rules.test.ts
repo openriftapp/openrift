@@ -327,6 +327,24 @@ describe("GET /api/v1/rules/source", () => {
   });
 });
 
+describe("GET /api/v1/rules/numbers", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("lists the English rule numbers in force at the version", async () => {
+    mockRulesRepo.listAtVersion.mockResolvedValue([
+      { ...dbRule, ruleNumber: "466.1.a" },
+      { ...dbRule, ruleNumber: "466.1.a.2" },
+    ]);
+
+    const res = await app.request("/api/v1/rules/numbers?kind=tournament&version=1.2.0");
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ numbers: ["466.1.a", "466.1.a.2"] });
+    expect(mockRulesRepo.listAtVersion).toHaveBeenCalledWith("tournament", "en", "1.2.0");
+  });
+});
+
 describe("GET /api/v1/rules/versions", () => {
   beforeEach(() => {
     vi.resetAllMocks();

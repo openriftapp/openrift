@@ -85,10 +85,12 @@ describe("parseBoardDraft", () => {
       ],
     };
     const parsed = parseBoardDraft({ ...draft(), document: v1 });
-    expect(parsed?.document.schemaVersion).toBe(2);
+    expect(parsed?.document.schemaVersion).toBe(3);
     expect(parsed?.document.steps[0]?.pieces[0]).toMatchObject({
       keywords: ["Stun"],
       might: 2,
+      facedown: false,
+      buffs: 0,
     });
   });
 

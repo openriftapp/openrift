@@ -1,9 +1,10 @@
 import type { BoardDocument, BoardPiece } from "@openrift/shared/board-state";
-import { emptyBoardDocument } from "@openrift/shared/board-state";
+import { emptyBoardDocument, emptyBoardStep } from "@openrift/shared/board-state";
 import { describe, expect, it } from "vitest";
 
 import { defaultIo } from "../../../io.js";
 import {
+  chainEntryText,
   measurePieceHeight,
   pieceNumerals,
   pieceText,
@@ -23,9 +24,11 @@ function piece(overrides: Partial<BoardPiece> = {}): BoardPiece {
     kind: "unit",
     card: null,
     exhausted: false,
+    facedown: false,
     keywords: [],
     damage: 0,
     might: 0,
+    buffs: 0,
     highlight: false,
     ...overrides,
   };
@@ -42,8 +45,10 @@ const allZones = {
   runes: true,
   hand: true,
   trash: true,
+  banishment: true,
   deck: true,
   chain: true,
+  score: true,
 };
 
 describe("seatsFor", () => {
@@ -61,12 +66,8 @@ describe("seatsFor", () => {
 });
 
 describe("seatSlots", () => {
-  const key = (slot: { kind: string; zone?: string; stack?: string }) =>
-    slot.zone ?? slot.stack ?? slot.kind;
-
   it("runs the top seat's row in the opposite direction", () => {
-    const document = doc({ zones: allZones });
-    expect(seatSlots(document).map((slot) => key(slot))).toEqual([
+    expect(seatSlots(doc({ zones: allZones }))).toEqual([
       "runeDeck",
       "runes",
       "champion",
@@ -74,14 +75,22 @@ describe("seatSlots", () => {
       "base",
       "deck",
       "trash",
+      "banishment",
     ]);
   });
 
   it("drops hidden zones and both decks, and never seats the hand", () => {
     const document = doc({
-      zones: { ...allZones, runes: false, trash: false, champion: false, deck: false },
+      zones: {
+        ...allZones,
+        runes: false,
+        trash: false,
+        champion: false,
+        deck: false,
+        banishment: false,
+      },
     });
-    expect(seatSlots(document).map((slot) => key(slot))).toEqual(["legend", "base"]);
+    expect(seatSlots(document)).toEqual(["legend", "base"]);
   });
 });
 
@@ -116,6 +125,43 @@ describe("piecesIn", () => {
 
   it("matches player zones by kind", () => {
     expect(piecesIn(pieces, { kind: "hand" }, ["A", "B"]).map((found) => found.id)).toEqual(["p4"]);
+  });
+
+  it("keeps a battlefield's facedown zone apart from the battlefield and from other facedown zones", () => {
+    const hidden = [
+      ...pieces,
+      piece({ id: "p5", zone: { kind: "facedown", index: 0 }, facedown: true }),
+      piece({ id: "p6", zone: { kind: "facedown", index: 1 }, facedown: true }),
+    ];
+    expect(
+      piecesIn(hidden, { kind: "facedown", index: 0 }, ["A"]).map((found) => found.id),
+    ).toEqual(["p5"]);
+    expect(
+      piecesIn(hidden, { kind: "battlefield", index: 0 }, ["A"]).map((found) => found.id),
+    ).toEqual(["p1"]);
+  });
+});
+
+describe("chainEntryText", () => {
+  const card = { cardId: "00000000-0000-4000-8000-000000000001", name: "Yasuo, Remorseful" };
+
+  it("prefers the label, then the card, then the source piece's card, then the type", () => {
+    const source = piece({ id: "p1", card });
+    expect(
+      chainEntryText(
+        { id: "c1", owner: "A", type: "triggered", label: "Attack trigger", source: "p1" },
+        [source],
+      ),
+    ).toBe("Attack trigger");
+    expect(chainEntryText({ id: "c1", owner: "A", type: "spell", card }, [])).toBe(
+      "Yasuo, Remorseful",
+    );
+    expect(
+      chainEntryText({ id: "c1", owner: "A", type: "triggered", source: "p1" }, [source]),
+    ).toBe("Yasuo, Remorseful");
+    expect(chainEntryText({ id: "c1", owner: "A", type: "activated", source: "p9" }, [])).toBe(
+      "activated",
+    );
   });
 });
 
@@ -153,7 +199,7 @@ describe("renderBoardStateImage", () => {
       battlefields: [{ card: { ...card, name: "Targon's Peak" } }, { card: null }],
       steps: [
         {
-          caption: "",
+          ...emptyBoardStep(2),
           pieces: [
             piece({ id: "p1", card, zone: { kind: "battlefield", index: 0 }, damage: 2 }),
             piece({
@@ -165,9 +211,18 @@ describe("renderBoardStateImage", () => {
             }),
             piece({ id: "p3", owner: "D", zone: { kind: "hand" }, exhausted: true }),
             piece({ id: "p4", card, zone: { kind: "base" }, might: 3 }),
+            piece({ id: "p5", owner: "C", zone: { kind: "facedown", index: 1 }, facedown: true }),
+            piece({ id: "p6", zone: { kind: "deck" }, facedown: true }),
+            piece({ id: "p7", owner: "B", zone: { kind: "banishment" }, card }),
           ],
-          chain: [{ owner: "C", card }],
-          arrows: [],
+          chain: [
+            { id: "c1", owner: "C", type: "spell", card },
+            { id: "c2", owner: "A", type: "triggered", source: "p4" },
+          ],
+          battlefields: [
+            { controller: "A", contested: false, scoredBy: [], encounter: null },
+            { controller: null, contested: true, scoredBy: [], encounter: "showdown" },
+          ],
         },
       ],
     });

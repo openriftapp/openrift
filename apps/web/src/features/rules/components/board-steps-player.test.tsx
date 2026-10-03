@@ -1,5 +1,5 @@
 import type { BoardDocument, BoardPiece, BoardStep } from "@openrift/shared/board-state";
-import { emptyBoardDocument } from "@openrift/shared/board-state";
+import { emptyBoardDocument, emptyBoardStep } from "@openrift/shared/board-state";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
@@ -9,6 +9,7 @@ vi.mock("@tanstack/react-router", () => ({
   createLink: (component: unknown) => component,
 }));
 vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => false }));
+vi.mock("@/features/rules/hooks/use-known-rules", () => ({ useKnownRules: () => ({}) }));
 
 const { BoardStepsPlayer } = await import("./board-steps-player");
 
@@ -37,6 +38,8 @@ function piece(overrides: Partial<BoardPiece> & { id: string }): BoardPiece {
     kind: "unit",
     card: merchant,
     exhausted: false,
+    facedown: false,
+    buffs: 0,
     keywords: [],
     damage: 0,
     might: 0,
@@ -57,7 +60,7 @@ function boardWith(steps: Partial<BoardStep>[]): BoardDocument {
       hand: true,
       chain: true,
     },
-    steps: steps.map((step) => ({ caption: "", pieces: [], chain: [], arrows: [], ...step })),
+    steps: steps.map((step) => ({ ...emptyBoardStep(2), ...step })),
   };
 }
 
@@ -90,8 +93,8 @@ describe("BoardStepsPlayer", () => {
       {},
       {
         chain: [
-          { owner: "B", card: merchant },
-          { owner: "A", card: facebreaker },
+          { id: "c1", owner: "B", type: "spell", card: merchant },
+          { id: "c2", owner: "A", type: "spell", card: facebreaker },
         ],
       },
     ]);
@@ -100,8 +103,8 @@ describe("BoardStepsPlayer", () => {
     );
     const entries = within(screen.getByRole("list")).getAllByRole("listitem");
     expect(entries.map((entry) => entry.textContent)).toEqual([
-      "FacebreakerA",
-      "Traveling MerchantB",
+      "FacebreakerSpell · #2A",
+      "Traveling MerchantSpell · #1B",
     ]);
 
     rerender(<BoardStepsPlayer document={document} pins={pins} activeStep={0} onStep={vi.fn()} />);

@@ -1,11 +1,18 @@
-import type { BoardPiece, RuleRef, RuleRefKind } from "@openrift/shared/board-state";
+import type {
+  BoardChainEntry,
+  BoardPiece,
+  BoardPlayer,
+  RuleRef,
+  RuleRefKind,
+} from "@openrift/shared/board-state";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Pressable } from "@/components/ui/pressable";
+import type { KnownRules } from "@/features/rules/hooks/use-known-rules";
 import { splitCaption } from "@/features/rules/lib/board-caption";
-import { pieceName } from "@/features/rules/lib/board-labels";
+import { chainEntryLabel, pieceName } from "@/features/rules/lib/board-labels";
 import { pieceNumerals } from "@/features/rules/lib/board-layout";
 import { PLAYER_COLOR } from "@/features/rules/lib/board-style";
 import { cn } from "@/lib/utils";
@@ -41,11 +48,33 @@ export function RulesPinBadges({ pins }: { pins: RulesPins }) {
   );
 }
 
-export function RuleChip({ reference, pins }: { reference: RuleRef; pins: RulesPins }) {
+export function ruleRefLabel(reference: RuleRef): string {
+  return `§ ${reference.kind === "tournament" ? "T " : ""}${reference.ruleNumber}`;
+}
+
+export function RuleChip({
+  reference,
+  pins,
+  knownRules,
+}: {
+  reference: RuleRef;
+  pins: RulesPins;
+  knownRules?: KnownRules;
+}) {
   const version = pinFor(pins, reference.kind);
-  const label = `§ ${reference.kind === "tournament" ? "T " : ""}${reference.ruleNumber}`;
+  const label = ruleRefLabel(reference);
   if (version === null) {
     return <span className="bg-muted rounded-md px-1.5 font-mono text-sm">{label}</span>;
+  }
+  if (knownRules?.[reference.kind]?.has(reference.ruleNumber) === false) {
+    return (
+      <span
+        className="bg-muted text-muted-foreground rounded-md px-1.5 font-mono text-sm"
+        title={m.board_states_rule_not_pinned({ version })}
+      >
+        {label}
+      </span>
+    );
   }
   return (
     <Link
@@ -60,21 +89,24 @@ export function RuleChip({ reference, pins }: { reference: RuleRef; pins: RulesP
   );
 }
 
-function CardChip({
-  piece,
+function RefChip({
+  id,
+  name,
+  owner,
   numeral,
   pinned,
   onPin,
-  onHoverPiece,
+  onHover,
 }: {
-  piece: BoardPiece;
+  id: string;
+  name: string;
+  owner: BoardPlayer;
   numeral?: number;
   pinned: boolean;
   onPin: (id: string | null) => void;
-  onHoverPiece?: (id: string | null) => void;
+  onHover?: (id: string | null) => void;
 }) {
-  const name = pieceName(piece);
-  const color = PLAYER_COLOR[piece.owner];
+  const color = PLAYER_COLOR[owner];
   return (
     <Pressable
       aria-label={m.board_states_caption_highlight_piece({ name })}
@@ -82,20 +114,20 @@ function CardChip({
       style={{ backgroundColor: color }}
       className="inline-flex items-center gap-1 rounded-md px-1.5 align-baseline text-sm font-medium text-white"
       onClick={() => {
-        const next = pinned ? null : piece.id;
+        const next = pinned ? null : id;
         onPin(next);
-        onHoverPiece?.(next);
+        onHover?.(next);
       }}
-      onMouseEnter={() => onHoverPiece?.(piece.id)}
+      onMouseEnter={() => onHover?.(id)}
       onMouseLeave={() => {
         if (!pinned) {
-          onHoverPiece?.(null);
+          onHover?.(null);
         }
       }}
-      onFocus={() => onHoverPiece?.(piece.id)}
+      onFocus={() => onHover?.(id)}
       onBlur={() => {
         if (!pinned) {
-          onHoverPiece?.(null);
+          onHover?.(null);
         }
       }}
     >
@@ -112,17 +144,31 @@ function CardChip({
   );
 }
 
+function RemovedRef({ text }: { text: string }) {
+  return (
+    <span className="bg-muted text-muted-foreground rounded-md px-1.5 text-sm line-through">
+      {text}
+    </span>
+  );
+}
+
 export function BoardCaptionText({
   text,
   pins,
   pieces,
+  chain = [],
+  knownRules,
   onHoverPiece,
+  onHoverChain,
   className,
 }: {
   text: string;
   pins: RulesPins;
   pieces: readonly BoardPiece[];
+  chain?: readonly BoardChainEntry[];
+  knownRules?: KnownRules;
   onHoverPiece?: (id: string | null) => void;
+  onHoverChain?: (id: string | null) => void;
   className?: string;
 }) {
   const [pinnedId, setPinnedId] = useState<string | null>(null);
@@ -131,31 +177,54 @@ export function BoardCaptionText({
     <p className={cn("whitespace-pre-line", className)}>
       {splitCaption(text).map((segment, index) => {
         if (segment.type === "rule") {
-          // oxlint-disable-next-line react/no-array-index-key -- segments are positional
-          return <RuleChip key={index} reference={segment.ref} pins={pins} />;
+          return (
+            <RuleChip
+              // oxlint-disable-next-line react/no-array-index-key -- segments are positional
+              key={index}
+              reference={segment.ref}
+              pins={pins}
+              knownRules={knownRules}
+            />
+          );
         }
         if (segment.type === "card") {
           const piece = pieces.find((candidate) => candidate.id === segment.pieceId);
           if (!piece) {
-            return (
-              <span
-                // oxlint-disable-next-line react/no-array-index-key -- segments are positional
-                key={index}
-                className="bg-muted text-muted-foreground rounded-md px-1.5 text-sm line-through"
-              >
-                {m.board_states_caption_removed_card()}
-              </span>
-            );
+            // oxlint-disable-next-line react/no-array-index-key -- segments are positional
+            return <RemovedRef key={index} text={m.board_states_caption_removed_card()} />;
           }
           return (
-            <CardChip
+            <RefChip
               // oxlint-disable-next-line react/no-array-index-key -- segments are positional
               key={index}
-              piece={piece}
+              id={piece.id}
+              name={pieceName(piece)}
+              owner={piece.owner}
               numeral={numerals.get(piece.id)}
               pinned={pinnedId === piece.id}
               onPin={setPinnedId}
-              onHoverPiece={onHoverPiece}
+              onHover={onHoverPiece}
+            />
+          );
+        }
+        if (segment.type === "chain") {
+          const position = chain.findIndex((entry) => entry.id === segment.entryId);
+          const entry = chain[position];
+          if (!entry) {
+            // oxlint-disable-next-line react/no-array-index-key -- segments are positional
+            return <RemovedRef key={index} text={m.board_states_caption_removed_chain()} />;
+          }
+          return (
+            <RefChip
+              // oxlint-disable-next-line react/no-array-index-key -- segments are positional
+              key={index}
+              id={`chain:${entry.id}`}
+              name={chainEntryLabel(entry, pieces)}
+              owner={entry.owner}
+              numeral={position + 1}
+              pinned={pinnedId === `chain:${entry.id}`}
+              onPin={setPinnedId}
+              onHover={(id) => onHoverChain?.(id === null ? null : entry.id)}
             />
           );
         }

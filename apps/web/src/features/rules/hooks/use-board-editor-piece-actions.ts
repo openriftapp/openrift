@@ -6,8 +6,11 @@ import { useBoardEditorStore } from "@/features/rules/stores/board-editor-store"
 export interface BoardPieceActions {
   toggleExhaust: () => void;
   toggleHighlight: () => void;
+  toggleFacedown: () => void;
   adjustDamage: (delta: number) => void;
   adjustMight: (delta: number) => void;
+  adjustBuffs: (delta: number) => void;
+  setCounter: (counter: BoardPiece["counter"]) => void;
   toggleKeyword: (keyword: string) => void;
   setLabel: (label: string) => void;
   setOwner: (owner: BoardPlayer) => void;
@@ -24,6 +27,7 @@ export function useBoardEditorPieceActions(pieces: readonly BoardPiece[]): Board
   const toggleKeyword = useBoardEditorStore((state) => state.toggleKeyword);
   const adjustDamage = useBoardEditorStore((state) => state.adjustDamage);
   const adjustMight = useBoardEditorStore((state) => state.adjustMight);
+  const adjustBuffs = useBoardEditorStore((state) => state.adjustBuffs);
   const duplicatePiece = useBoardEditorStore((state) => state.duplicatePiece);
   const removePiece = useBoardEditorStore((state) => state.removePiece);
   const primary = pieces.at(-1) ?? null;
@@ -42,8 +46,23 @@ export function useBoardEditorPieceActions(pieces: readonly BoardPiece[]): Board
       const highlight = !primary?.highlight;
       each((piece) => updatePiece(piece.id, { highlight }));
     },
+    toggleFacedown: () => {
+      const facedown = !primary?.facedown;
+      each((piece) => updatePiece(piece.id, { facedown }));
+    },
     adjustDamage: (delta) => each((piece) => adjustDamage(piece.id, delta)),
     adjustMight: (delta) => each((piece) => adjustMight(piece.id, delta)),
+    adjustBuffs: (delta) =>
+      each((piece) => {
+        if (piece.kind === "unit") {
+          adjustBuffs(piece.id, delta);
+        }
+      }),
+    setCounter: (counter) => {
+      if (primary) {
+        updatePiece(primary.id, { counter });
+      }
+    },
     toggleKeyword: (keyword) => {
       if (keyword.trim() !== "") {
         each((piece) => toggleKeyword(piece.id, keyword.trim()));

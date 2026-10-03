@@ -1,25 +1,33 @@
 import type {
   BoardArrow,
+  BoardBattlefieldState,
   BoardCardRef,
   BoardChainEntry,
   BoardDocument,
   BoardPiece,
   BoardPlayer,
+  BoardPlayerStats,
   BoardStep,
+  BoardTurn,
   BoardZoneRef,
   BoardZoneVisibility,
   PieceKind,
+  ScoringMode,
 } from "@openrift/shared/board-state";
 import {
   BOARD_PLAYERS,
+  emptyBattlefieldState,
   emptyBoardDocument,
   MAX_BATTLEFIELDS,
   MAX_BOARD_STEPS,
+  MAX_CHAIN_ENTRIES,
+  MAX_PIECE_BUFFS,
   MAX_PIECE_KEYWORDS,
+  zoneBattlefieldIndex,
 } from "@openrift/shared/board-state";
 import { create } from "zustand";
 
-import { nextPieceId } from "@/features/rules/lib/board-layout";
+import { isHiddenZone, nextChainId, nextPieceId } from "@/features/rules/lib/board-layout";
 
 const HISTORY_LIMIT = 50;
 const RECENT_LIMIT = 8;
@@ -40,6 +48,7 @@ interface BoardEditorState {
   undo: () => void;
   load: (document: BoardDocument) => void;
   setPlayerCount: (count: number) => void;
+  setScoring: (scoring: ScoringMode) => void;
   setBattlefieldCount: (count: number) => void;
   setBattlefieldCard: (index: number, card: BoardCardRef | null) => void;
   setZoneVisible: (zone: keyof BoardZoneVisibility, visible: boolean) => void;
@@ -49,6 +58,9 @@ interface BoardEditorState {
   removeStep: (index: number) => void;
   moveStep: (from: number, to: number) => void;
   setCaption: (caption: string) => void;
+  setTurn: (patch: Partial<BoardTurn>) => void;
+  setPlayerStats: (player: BoardPlayer, patch: Partial<BoardPlayerStats>) => void;
+  setBattlefieldState: (index: number, patch: Partial<BoardBattlefieldState>) => void;
 
   addPiece: (input: {
     owner: BoardPlayer;
@@ -61,6 +73,7 @@ interface BoardEditorState {
   toggleKeyword: (id: string, keyword: string) => void;
   adjustMight: (id: string, delta: number) => void;
   adjustDamage: (id: string, delta: number) => void;
+  adjustBuffs: (id: string, delta: number) => void;
   duplicatePiece: (id: string) => void;
   removePiece: (id: string) => void;
   selectPiece: (id: string | null) => void;
@@ -70,8 +83,10 @@ interface BoardEditorState {
 
   addArrow: (arrow: BoardArrow) => void;
   removeArrow: (index: number) => void;
-  addChainEntry: (entry: BoardChainEntry) => void;
-  removeChainEntry: (index: number) => void;
+  /** Returns the new entry's id, or null once the chain is full. */
+  addChainEntry: (entry: Omit<BoardChainEntry, "id">) => string | null;
+  updateChainEntry: (id: string, patch: Partial<Omit<BoardChainEntry, "id">>) => void;
+  removeChainEntry: (id: string) => void;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -86,6 +101,13 @@ function nextKeywords(keywords: string[], keyword: string): string[] {
     return keywords;
   }
   return [...keywords, keyword];
+}
+
+/** `undefined` in the patch removes the key. */
+function patched<T extends object>(value: T, patch: Partial<NoInfer<T>>): T {
+  return Object.fromEntries(
+    Object.entries({ ...value, ...patch }).filter(([, field]) => field !== undefined),
+  ) as T;
 }
 
 function pushed(state: BoardEditorState, tag: string | null = null): BoardDocument[] {
@@ -111,15 +133,66 @@ function withStep(
   };
 }
 
-function withAllSteps(state: BoardEditorState, keep: (piece: BoardPiece) => boolean): BoardStep[] {
-  return state.document.steps.map((step) => {
-    const pieces = step.pieces.filter((piece) => keep(piece));
-    const ids = new Set(pieces.map((piece) => piece.id));
-    const arrows = step.arrows.filter(
-      (arrow) => ids.has(arrow.from) && (!("piece" in arrow.to) || ids.has(arrow.to.piece)),
-    );
-    return { ...step, pieces, arrows };
+function withDocument(state: BoardEditorState, document: BoardDocument): Partial<BoardEditorState> {
+  return { document, dirty: true, history: pushed(state), historyTag: null };
+}
+
+/**
+ * Drops arrows and chain links left dangling by a removal. An ability that loses its
+ * source keeps the source card's name as its label, or goes if it has nothing else.
+ */
+function pruneStep(step: BoardStep, removed: readonly BoardPiece[] = []): BoardStep {
+  const pieceIds = new Set(step.pieces.map((piece) => piece.id));
+  const chain = step.chain.flatMap((entry): BoardChainEntry[] => {
+    if (entry.source === undefined || pieceIds.has(entry.source)) {
+      return [entry];
+    }
+    const sourceName = removed.find((piece) => piece.id === entry.source)?.card?.name;
+    const kept = patched(entry, { source: undefined, label: entry.label ?? sourceName });
+    return kept.label === undefined && kept.card === undefined ? [] : [kept];
   });
+  const chainIds = new Set(chain.map((entry) => entry.id));
+  const exists = (end: BoardArrow["to"]) =>
+    "piece" in end ? pieceIds.has(end.piece) : "chain" in end ? chainIds.has(end.chain) : true;
+  const arrows = step.arrows.filter((arrow) => exists(arrow.from) && exists(arrow.to));
+  return { ...step, chain, arrows };
+}
+
+function updatePieces(step: BoardStep, id: string, update: (piece: BoardPiece) => BoardPiece) {
+  return {
+    ...step,
+    pieces: step.pieces.map((piece) => (piece.id === id ? update(piece) : piece)),
+  };
+}
+
+function prunePlayers(step: BoardStep, players: ReadonlySet<BoardPlayer>): BoardStep {
+  const inGame = (player: BoardPlayer | undefined) =>
+    player === undefined || players.has(player) ? player : undefined;
+  const pieces = step.pieces.filter((piece) => players.has(piece.owner));
+  return pruneStep(
+    {
+      ...step,
+      pieces,
+      chain: step.chain.filter((entry) => players.has(entry.owner)),
+      turn: patched(step.turn, {
+        player: inGame(step.turn.player),
+        priority: inGame(step.turn.priority),
+        focus: inGame(step.turn.focus),
+      }),
+      players: Object.fromEntries(
+        Object.entries(step.players).filter(([player]) => players.has(player as BoardPlayer)),
+      ),
+      battlefields: step.battlefields.map((battlefield) => ({
+        ...battlefield,
+        controller:
+          battlefield.controller !== null && players.has(battlefield.controller)
+            ? battlefield.controller
+            : null,
+        scoredBy: battlefield.scoredBy.filter((player) => players.has(player)),
+      })),
+    },
+    step.pieces.filter((piece) => !players.has(piece.owner)),
+  );
 }
 
 export const useBoardEditorStore = create<BoardEditorState>()((set, get) => ({
@@ -164,17 +237,32 @@ export const useBoardEditorStore = create<BoardEditorState>()((set, get) => ({
     set((state) => {
       const playerCount = Math.min(4, Math.max(2, count));
       const players = new Set<BoardPlayer>(BOARD_PLAYERS.slice(0, playerCount));
-      const steps = withAllSteps(state, (piece) => players.has(piece.owner));
-      const trimmed = steps.map((step) => ({
-        ...step,
-        chain: step.chain.filter((entry) => players.has(entry.owner)),
-      }));
-      return {
-        document: { ...state.document, playerCount, steps: trimmed },
-        dirty: true,
-        history: pushed(state),
-        historyTag: null,
-      };
+      return withDocument(state, {
+        ...state.document,
+        playerCount,
+        scoring: playerCount === 4 ? state.document.scoring : "players",
+        steps: state.document.steps.map((step) => prunePlayers(step, players)),
+      });
+    }),
+
+  setScoring: (scoring) =>
+    set((state) => {
+      if (scoring === "teams" && state.document.playerCount !== 4) {
+        return state;
+      }
+      const steps =
+        scoring === "players"
+          ? state.document.steps
+          : state.document.steps.map((step) => ({
+              ...step,
+              players: Object.fromEntries(
+                Object.entries(step.players).map(([player, stats]) => [
+                  player,
+                  player === "C" || player === "D" ? patched(stats, { score: undefined }) : stats,
+                ]),
+              ),
+            }));
+      return withDocument(state, { ...state.document, scoring, steps });
     }),
 
   setBattlefieldCount: (count) =>
@@ -184,38 +272,40 @@ export const useBoardEditorStore = create<BoardEditorState>()((set, get) => ({
         { length: next },
         (_, index) => state.document.battlefields[index] ?? { card: null },
       );
-      const steps = withAllSteps(
-        state,
-        (piece) => piece.zone.kind !== "battlefield" || piece.zone.index < next,
-      );
-      return {
-        document: { ...state.document, battlefields, steps },
-        dirty: true,
-        history: pushed(state),
-        historyTag: null,
-      };
+      const steps = state.document.steps.map((step) => {
+        const onTable = (piece: BoardPiece) => (zoneBattlefieldIndex(piece.zone) ?? 0) < next;
+        return pruneStep(
+          {
+            ...step,
+            pieces: step.pieces.filter((piece) => onTable(piece)),
+            battlefields: Array.from(
+              { length: next },
+              (_, index) => step.battlefields[index] ?? emptyBattlefieldState(),
+            ),
+          },
+          step.pieces.filter((piece) => !onTable(piece)),
+        );
+      });
+      return withDocument(state, { ...state.document, battlefields, steps });
     }),
 
   setBattlefieldCard: (index, card) =>
-    set((state) => ({
-      document: {
+    set((state) =>
+      withDocument(state, {
         ...state.document,
         battlefields: state.document.battlefields.map((battlefield, i) =>
           i === index ? { card } : battlefield,
         ),
-      },
-      dirty: true,
-      history: pushed(state),
-      historyTag: null,
-    })),
+      }),
+    ),
 
   setZoneVisible: (zone, visible) =>
-    set((state) => ({
-      document: { ...state.document, zones: { ...state.document.zones, [zone]: visible } },
-      dirty: true,
-      history: pushed(state),
-      historyTag: null,
-    })),
+    set((state) =>
+      withDocument(state, {
+        ...state.document,
+        zones: { ...state.document.zones, [zone]: visible },
+      }),
+    ),
 
   selectStep: (index) =>
     set((state) => ({
@@ -284,6 +374,35 @@ export const useBoardEditorStore = create<BoardEditorState>()((set, get) => ({
       withStep(state, (step) => ({ ...step, caption }), `caption:${state.activeStep}`),
     ),
 
+  setTurn: (patch) =>
+    set((state) => withStep(state, (step) => ({ ...step, turn: patched(step.turn, patch) }))),
+
+  setPlayerStats: (player, patch) =>
+    set((state) =>
+      withStep(
+        state,
+        (step) => {
+          const stats = patched(step.players[player] ?? {}, patch);
+          const empty = Object.keys(stats).length === 0;
+          return {
+            ...step,
+            players: patched(step.players, { [player]: empty ? undefined : stats }),
+          };
+        },
+        `stats:${state.activeStep}:${player}:${Object.keys(patch).join(",")}`,
+      ),
+    ),
+
+  setBattlefieldState: (index, patch) =>
+    set((state) =>
+      withStep(state, (step) => ({
+        ...step,
+        battlefields: step.battlefields.map((battlefield, i) =>
+          i === index ? { ...battlefield, ...patch } : battlefield,
+        ),
+      })),
+    ),
+
   addPiece: ({ owner, zone, kind, card }) => {
     const step = get().document.steps[get().activeStep];
     const id = nextPieceId(step?.pieces ?? []);
@@ -294,9 +413,11 @@ export const useBoardEditorStore = create<BoardEditorState>()((set, get) => ({
       kind,
       card,
       exhausted: false,
+      facedown: isHiddenZone(zone),
       keywords: [],
       damage: 0,
       might: 0,
+      buffs: 0,
       highlight: false,
     };
     set((state) => ({
@@ -316,50 +437,60 @@ export const useBoardEditorStore = create<BoardEditorState>()((set, get) => ({
 
   movePiece: (id, zone, owner) =>
     set((state) =>
-      withStep(state, (step) => ({
-        ...step,
-        pieces: step.pieces.map((piece) =>
-          piece.id === id ? { ...piece, zone, owner: owner ?? piece.owner } : piece,
-        ),
-      })),
+      withStep(state, (step) =>
+        updatePieces(step, id, (piece) => ({
+          ...piece,
+          zone,
+          owner: owner ?? piece.owner,
+          facedown:
+            isHiddenZone(zone) === isHiddenZone(piece.zone) ? piece.facedown : isHiddenZone(zone),
+        })),
+      ),
     ),
 
   updatePiece: (id, patch) =>
     set((state) =>
-      withStep(state, (step) => ({
-        ...step,
-        pieces: step.pieces.map((piece) => (piece.id === id ? { ...piece, ...patch } : piece)),
-      })),
+      withStep(state, (step) => updatePieces(step, id, (piece) => patched(piece, patch))),
     ),
 
   toggleKeyword: (id, keyword) =>
     set((state) =>
-      withStep(state, (step) => ({
-        ...step,
-        pieces: step.pieces.map((piece) =>
-          piece.id === id ? { ...piece, keywords: nextKeywords(piece.keywords, keyword) } : piece,
-        ),
-      })),
+      withStep(state, (step) =>
+        updatePieces(step, id, (piece) => ({
+          ...piece,
+          keywords: nextKeywords(piece.keywords, keyword),
+        })),
+      ),
     ),
 
   adjustMight: (id, delta) =>
     set((state) =>
-      withStep(state, (step) => ({
-        ...step,
-        pieces: step.pieces.map((piece) =>
-          piece.id === id ? { ...piece, might: clamp(piece.might + delta, -99, 99) } : piece,
-        ),
-      })),
+      withStep(state, (step) =>
+        updatePieces(step, id, (piece) => ({
+          ...piece,
+          might: clamp(piece.might + delta, -99, 99),
+        })),
+      ),
     ),
 
   adjustDamage: (id, delta) =>
     set((state) =>
-      withStep(state, (step) => ({
-        ...step,
-        pieces: step.pieces.map((piece) =>
-          piece.id === id ? { ...piece, damage: clamp(piece.damage + delta, 0, 99) } : piece,
-        ),
-      })),
+      withStep(state, (step) =>
+        updatePieces(step, id, (piece) => ({
+          ...piece,
+          damage: clamp(piece.damage + delta, 0, 99),
+        })),
+      ),
+    ),
+
+  adjustBuffs: (id, delta) =>
+    set((state) =>
+      withStep(state, (step) =>
+        updatePieces(step, id, (piece) => ({
+          ...piece,
+          buffs: clamp(piece.buffs + delta, 0, MAX_PIECE_BUFFS),
+        })),
+      ),
     ),
 
   duplicatePiece: (id) => {
@@ -382,13 +513,12 @@ export const useBoardEditorStore = create<BoardEditorState>()((set, get) => ({
 
   removePiece: (id) =>
     set((state) => ({
-      ...withStep(state, (step) => ({
-        ...step,
-        pieces: step.pieces.filter((piece) => piece.id !== id),
-        arrows: step.arrows.filter(
-          (arrow) => arrow.from !== id && !("piece" in arrow.to && arrow.to.piece === id),
+      ...withStep(state, (step) =>
+        pruneStep(
+          { ...step, pieces: step.pieces.filter((piece) => piece.id !== id) },
+          step.pieces.filter((piece) => piece.id === id),
         ),
-      })),
+      ),
       selectedPieceIds: state.selectedPieceIds.filter((selected) => selected !== id),
       selectedPieceId: state.selectedPieceIds.filter((selected) => selected !== id).at(-1) ?? null,
     })),
@@ -413,9 +543,34 @@ export const useBoardEditorStore = create<BoardEditorState>()((set, get) => ({
       withStep(state, (step) => ({ ...step, arrows: step.arrows.toSpliced(index, 1) })),
     ),
 
-  addChainEntry: (entry) =>
-    set((state) => withStep(state, (step) => ({ ...step, chain: [...step.chain, entry] }))),
+  addChainEntry: (entry) => {
+    const step = get().document.steps[get().activeStep];
+    if (!step || step.chain.length >= MAX_CHAIN_ENTRIES) {
+      return null;
+    }
+    const id = nextChainId(step.chain);
+    set((state) =>
+      withStep(state, (current) => ({ ...current, chain: [...current.chain, { ...entry, id }] })),
+    );
+    return id;
+  },
 
-  removeChainEntry: (index) =>
-    set((state) => withStep(state, (step) => ({ ...step, chain: step.chain.toSpliced(index, 1) }))),
+  updateChainEntry: (id, patch) =>
+    set((state) =>
+      withStep(
+        state,
+        (step) => ({
+          ...step,
+          chain: step.chain.map((entry) => (entry.id === id ? patched(entry, patch) : entry)),
+        }),
+        `chain:${state.activeStep}:${id}:${Object.keys(patch).join(",")}`,
+      ),
+    ),
+
+  removeChainEntry: (id) =>
+    set((state) =>
+      withStep(state, (step) =>
+        pruneStep({ ...step, chain: step.chain.filter((entry) => entry.id !== id) }),
+      ),
+    ),
 }));

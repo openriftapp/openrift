@@ -309,6 +309,7 @@ const SHORTCUTS: { keys: string[]; label: () => string }[] = [
   { keys: ["⇧", "+"], label: m.board_states_editor_might },
   { keys: ["M"], label: m.board_states_editor_arrow_move },
   { keys: ["T"], label: m.board_states_editor_arrow_target },
+  { keys: ["R"], label: m.board_states_editor_arrow_recall },
   { keys: ["⌫"], label: m.board_states_editor_remove_piece },
   { keys: ["Esc"], label: m.board_states_editor_shortcut_deselect },
   { keys: ["←", "→"], label: m.board_states_editor_shortcut_step },
@@ -331,6 +332,54 @@ function ShortcutLegend() {
         </div>
       ))}
     </dl>
+  );
+}
+
+function CounterFields({ piece, actions }: { piece: BoardPiece; actions: BoardPieceActions }) {
+  const { counter } = piece;
+  return (
+    <div className="flex flex-col gap-1">
+      <Label htmlFor="board-piece-counter">{m.board_states_editor_counter()}</Label>
+      <div className="flex gap-1.5">
+        <Input
+          id="board-piece-counter"
+          type="number"
+          min={0}
+          max={99}
+          className="w-20"
+          value={counter?.value ?? ""}
+          onChange={(event) => {
+            const value = event.target.valueAsNumber;
+            actions.setCounter(
+              Number.isNaN(value)
+                ? undefined
+                : { ...counter, value: Math.min(99, Math.max(0, Math.trunc(value))) },
+            );
+          }}
+        />
+        <Input
+          aria-label={m.board_states_editor_counter_label()}
+          placeholder={m.board_states_editor_counter_label()}
+          maxLength={20}
+          disabled={counter === undefined}
+          value={counter?.label ?? ""}
+          onChange={(event) => {
+            if (counter) {
+              const label = event.target.value;
+              actions.setCounter(
+                label === "" ? { value: counter.value } : { value: counter.value, label },
+              );
+            }
+          }}
+        />
+        {counter === undefined ? null : (
+          <ChipRemoveButton
+            aria-label={m.board_states_editor_counter_clear()}
+            onClick={() => actions.setCounter(undefined)}
+          />
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -375,6 +424,7 @@ function SelectedInspector({
           />
         </Label>
       )}
+      <CounterFields piece={piece} actions={actions} />
       <ShortcutLegend />
     </RailSection>
   );

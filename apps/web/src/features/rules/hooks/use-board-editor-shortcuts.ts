@@ -1,3 +1,4 @@
+import type { ArrowKind } from "@openrift/shared/board-state";
 import { useEffect, useRef } from "react";
 
 export interface BoardEditorShortcutHandlers {
@@ -7,7 +8,7 @@ export interface BoardEditorShortcutHandlers {
   onKeyword?: () => void;
   onDamage?: (delta: number) => void;
   onMight?: (delta: number) => void;
-  onArrow?: (kind: "move" | "target") => void;
+  onArrow?: (kind: ArrowKind) => void;
   onRemove?: () => void;
   onEscape?: () => void;
   onUndo?: () => void;
@@ -98,6 +99,10 @@ export function handleBoardEditorKey(
     }
     case "t": {
       handlers.onArrow?.("target");
+      return true;
+    }
+    case "r": {
+      handlers.onArrow?.("recall");
       return true;
     }
     default: {

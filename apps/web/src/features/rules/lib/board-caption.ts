@@ -4,7 +4,8 @@ import { CAPTION_REF_PATTERN, captionRefFromMatch } from "@openrift/shared/board
 export type CaptionSegment =
   | { type: "text"; text: string }
   | { type: "rule"; ref: RuleRef }
-  | { type: "card"; pieceId: string };
+  | { type: "card"; pieceId: string }
+  | { type: "chain"; entryId: string };
 
 export function splitCaption(text: string): CaptionSegment[] {
   const segments: CaptionSegment[] = [];
@@ -18,7 +19,11 @@ export function splitCaption(text: string): CaptionSegment[] {
       segments.push({ type: "text", text: text.slice(cursor, match.index) });
     }
     segments.push(
-      ref.kind === "rule" ? { type: "rule", ref: ref.ref } : { type: "card", pieceId: ref.pieceId },
+      ref.kind === "rule"
+        ? { type: "rule", ref: ref.ref }
+        : ref.kind === "card"
+          ? { type: "card", pieceId: ref.pieceId }
+          : { type: "chain", entryId: ref.entryId },
     );
     cursor = match.index + match[0].length;
   }

@@ -1,4 +1,4 @@
-import { emptyBoardDocument } from "@openrift/shared/board-state";
+import { emptyBoardDocument, emptyBoardStep } from "@openrift/shared/board-state";
 import { describe, expect, it } from "vitest";
 
 import type { BoardState } from "../repositories/board-states.js";
@@ -54,8 +54,8 @@ describe("toPublicBoardState", () => {
   it("summarises the board with its last step's caption", () => {
     const document = emptyBoardDocument();
     const steps = [
-      { caption: "Setup.", pieces: [], chain: [], arrows: [] },
-      { caption: "The defender holds, see [[460.3]].", pieces: [], chain: [], arrows: [] },
+      { ...emptyBoardStep(2), caption: "Setup." },
+      { ...emptyBoardStep(2), caption: "The defender holds, see [[460.3]]." },
     ];
     expect(toPublicBoardState(makeRow({ document: { ...document, steps } })).summary).toBe(
       "The defender holds, see § 460.3.",

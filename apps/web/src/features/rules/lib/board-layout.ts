@@ -1,12 +1,16 @@
 import type {
+  BoardChainEntry,
   BoardPiece,
   BoardPlayer,
   BoardStep,
+  BoardTurn,
   BoardZoneRef,
   BoardZoneVisibility,
   PieceKind,
   PlayerZoneKind,
+  ScoringMode,
 } from "@openrift/shared/board-state";
+import { isDeckZone, nextBoardId, PIECE_KINDS, sameZone } from "@openrift/shared/board-state";
 import type { Card } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 
@@ -25,40 +29,58 @@ export function seatsFor(playerCount: number): BoardSeats {
   return { top: ["B"], bottom: ["A"] };
 }
 
-export type SeatSlot =
-  | { kind: "zone"; zone: PlayerZoneKind }
-  | { kind: "stack"; stack: "runeDeck" | "deck" };
+export type SeatZone = Exclude<PlayerZoneKind, "hand">;
 
-const SEAT_ORDER: readonly SeatSlot[] = [
-  { kind: "stack", stack: "runeDeck" },
-  { kind: "zone", zone: "runes" },
-  { kind: "zone", zone: "champion" },
-  { kind: "zone", zone: "legend" },
-  { kind: "zone", zone: "base" },
-  { kind: "stack", stack: "deck" },
-  { kind: "zone", zone: "trash" },
+const SEAT_ORDER: readonly SeatZone[] = [
+  "runeDeck",
+  "runes",
+  "champion",
+  "legend",
+  "base",
+  "deck",
+  "trash",
+  "banishment",
 ];
 
 /** Table order for the viewer's seat, left to right. A mirrored seat renders it rotated. */
-export function seatSlots(zones: BoardZoneVisibility): SeatSlot[] {
-  return SEAT_ORDER.filter((slot) => (slot.kind === "stack" ? zones.deck : zones[slot.zone]));
+export function seatSlots(zones: BoardZoneVisibility): SeatZone[] {
+  return SEAT_ORDER.filter((zone) =>
+    zone === "deck" || zone === "runeDeck" ? zones.deck : zones[zone],
+  );
 }
 
-export function slotKey(slot: SeatSlot): string {
-  return slot.kind === "zone" ? `zone:${slot.zone}` : `stack:${slot.stack}`;
-}
-
-export function sameZone(a: BoardZoneRef, b: BoardZoneRef): boolean {
-  if (a.kind === "battlefield" && b.kind === "battlefield") {
-    return a.index === b.index;
-  }
-  return a.kind === b.kind;
-}
-
+/** A battlefield's facedown zone is shared, so its key carries no owner. */
 export function arrowZoneKey(zone: BoardZoneRef, owner: BoardPlayer): string {
+  if (zone.kind === "facedown") {
+    return `facedown-${zone.index}`;
+  }
   return zone.kind === "battlefield"
     ? `battlefield-${zone.index}-${owner}`
     : `${zone.kind}-${owner}`;
+}
+
+/** Cards entering these zones turn facedown; cards leaving them turn face up. */
+export function isHiddenZone(zone: BoardZoneRef): boolean {
+  return zone.kind === "facedown" || isDeckZone(zone);
+}
+
+export function hasTurnState(turn: BoardTurn): boolean {
+  return Object.values(turn).some((value) => value !== undefined);
+}
+
+export function nextChainId(chain: readonly BoardChainEntry[]): string {
+  return nextBoardId(
+    "c",
+    chain.map((entry) => entry.id),
+  );
+}
+
+/** Teams sit A+C and B+D, so A and B carry the team scores. */
+export function scoreHolder(player: BoardPlayer, scoring: ScoringMode): BoardPlayer {
+  if (scoring === "players") {
+    return player;
+  }
+  return player === "A" || player === "C" ? "A" : "B";
 }
 
 export function piecesAt(step: BoardStep, zone: BoardZoneRef, owner?: BoardPlayer): BoardPiece[] {
@@ -121,6 +143,9 @@ export function zoneCardRule(zone: BoardZoneRef): ZoneCardRule | null {
         capacity: Number.POSITIVE_INFINITY,
       };
     }
+    case "facedown": {
+      return { cardFilter: () => true, kinds: PIECE_KINDS, capacity: 1 };
+    }
     default: {
       return null;
     }
@@ -174,12 +199,11 @@ export function boardWidthUnits(
       occupied.has(arrowZoneKey({ kind: zone }, owner)),
     );
   let seatUnits = 0;
-  for (const slot of seatSlots(zones)) {
-    if (slot.kind === "stack") {
+  for (const zone of seatSlots(zones)) {
+    if (zone === "deck" || zone === "runeDeck") {
       seatUnits += SLOT_UNITS.other;
-    } else if (used(slot.zone)) {
-      seatUnits +=
-        slot.zone === "runes" || slot.zone === "base" ? SLOT_UNITS[slot.zone] : SLOT_UNITS.other;
+    } else if (used(zone)) {
+      seatUnits += zone === "runes" || zone === "base" ? SLOT_UNITS[zone] : SLOT_UNITS.other;
     } else {
       seatUnits += SLOT_UNITS.empty;
     }
@@ -202,12 +226,10 @@ export function boardWidthUnits(
 }
 
 export function nextPieceId(pieces: readonly BoardPiece[]): string {
-  const used = new Set(pieces.map((piece) => piece.id));
-  let n = 1;
-  while (used.has(`p${n}`)) {
-    n++;
-  }
-  return `p${n}`;
+  return nextBoardId(
+    "p",
+    pieces.map((piece) => piece.id),
+  );
 }
 
 /** Numerals for pieces whose display name is shared by another piece in the step, 1-based in piece order. Runes are never numbered. */

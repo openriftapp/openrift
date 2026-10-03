@@ -1,7 +1,9 @@
-import type { BoardPiece } from "@openrift/shared/board-state";
+import type { ArrowKind, BoardPiece } from "@openrift/shared/board-state";
 import {
+  ChevronsUpIcon,
   CopyIcon,
   CrosshairIcon,
+  EyeOffIcon,
   MinusIcon,
   MoveRightIcon,
   PlusIcon,
@@ -9,6 +11,7 @@ import {
   SparklesIcon,
   TagIcon,
   Trash2Icon,
+  Undo2Icon,
   UsersIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -30,8 +33,6 @@ import type { BoardPieceActions } from "@/features/rules/hooks/use-board-editor-
 import { pieceName } from "@/features/rules/lib/board-labels";
 import { useCardModifierKeywords } from "@/hooks/use-keyword-styles";
 import { m } from "@/paraglide/messages.js";
-
-export type ArrowKind = "move" | "target";
 
 function MightGlyph() {
   return <img src="/images/might.svg" alt="" className="size-3.5 brightness-0 dark:invert" />;
@@ -124,20 +125,40 @@ export interface PieceMarks {
   turn: boolean;
   keywords: boolean;
   stats: boolean;
+  buffs: boolean;
+  recall: boolean;
 }
 
-/** Cards in hand or the champion slot are not in play; runes only turn; legends carry keywords but no stats. */
+const OUT_OF_PLAY = new Set<BoardPiece["zone"]["kind"]>([
+  "hand",
+  "champion",
+  "trash",
+  "banishment",
+  "deck",
+  "runeDeck",
+  "facedown",
+]);
+
+/** Cards outside base, battlefields, runes and legend are not in play; runes only turn; legends carry keywords but no stats. */
 export function pieceMarks(piece: BoardPiece): PieceMarks {
-  if (piece.zone.kind === "hand" || piece.zone.kind === "champion") {
-    return { turn: false, keywords: false, stats: false };
+  const none = { turn: false, keywords: false, stats: false, buffs: false, recall: false };
+  if (OUT_OF_PLAY.has(piece.zone.kind)) {
+    return none;
   }
   if (piece.kind === "rune") {
-    return { turn: true, keywords: false, stats: false };
+    return { ...none, turn: true };
   }
   if (piece.kind === "legend") {
-    return { turn: true, keywords: true, stats: false };
+    return { ...none, turn: true, keywords: true };
   }
-  return { turn: true, keywords: true, stats: true };
+  const unit = piece.kind === "unit";
+  return {
+    turn: true,
+    keywords: true,
+    stats: true,
+    buffs: unit,
+    recall: unit && piece.zone.kind === "battlefield",
+  };
 }
 
 function ToolbarIconButton({
@@ -285,6 +306,34 @@ export function BoardEditorPieceToolbar({
                 <span className="bg-border mx-0.5 h-5 w-px" />
               </>
             )}
+            {marks.buffs && (
+              <>
+                <ChevronsUpIcon className="size-3.5" aria-hidden />
+                <ToolbarIconButton
+                  label={m.board_states_editor_buffs_down()}
+                  variant="ghost"
+                  onClick={() => actions.adjustBuffs(-1)}
+                >
+                  <MinusIcon />
+                </ToolbarIconButton>
+                <span className="min-w-5 text-center text-sm tabular-nums">{piece.buffs}</span>
+                <ToolbarIconButton
+                  label={m.board_states_editor_buffs_up()}
+                  variant="ghost"
+                  onClick={() => actions.adjustBuffs(1)}
+                >
+                  <PlusIcon />
+                </ToolbarIconButton>
+                <span className="bg-border mx-0.5 h-5 w-px" />
+              </>
+            )}
+            <ToolbarIconButton
+              label={m.board_states_state_facedown()}
+              variant={piece.facedown ? "default" : "ghost"}
+              onClick={() => actions.toggleFacedown()}
+            >
+              <EyeOffIcon />
+            </ToolbarIconButton>
             <ToolbarIconButton
               label={m.board_states_editor_arrow_move()}
               variant="ghost"
@@ -299,6 +348,15 @@ export function BoardEditorPieceToolbar({
             >
               <CrosshairIcon />
             </ToolbarIconButton>
+            {marks.recall && (
+              <ToolbarIconButton
+                label={m.board_states_editor_arrow_recall()}
+                variant="ghost"
+                onClick={() => onArrow("recall")}
+              >
+                <Undo2Icon />
+              </ToolbarIconButton>
+            )}
             <ToolbarIconButton
               label={m.board_states_editor_remove_piece()}
               variant="ghost"
@@ -362,6 +420,10 @@ export function BoardEditorPieceMenu({
           <SparklesIcon />
           {m.board_states_state_highlight()}
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={close(actions.toggleFacedown)}>
+          <EyeOffIcon />
+          {m.board_states_state_facedown()}
+        </DropdownMenuItem>
         {marks.keywords && (
           <DropdownMenuItem onClick={close(onKeyword)}>
             <TagIcon />
@@ -389,6 +451,18 @@ export function BoardEditorPieceMenu({
             </DropdownMenuItem>
           </>
         )}
+        {marks.buffs && (
+          <>
+            <DropdownMenuItem onClick={close(() => actions.adjustBuffs(1))}>
+              <PlusIcon />
+              {m.board_states_editor_buffs_up()}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={close(() => actions.adjustBuffs(-1))}>
+              <MinusIcon />
+              {m.board_states_editor_buffs_down()}
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={close(() => onArrow("move"))}>
           <MoveRightIcon />
@@ -398,6 +472,12 @@ export function BoardEditorPieceMenu({
           <CrosshairIcon />
           {m.board_states_editor_arrow_target()}
         </DropdownMenuItem>
+        {marks.recall && (
+          <DropdownMenuItem onClick={close(() => onArrow("recall"))}>
+            <Undo2Icon />
+            {m.board_states_editor_arrow_recall()}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={close(actions.nextOwner)}>
           <UsersIcon />
           {m.board_states_editor_change_owner()}

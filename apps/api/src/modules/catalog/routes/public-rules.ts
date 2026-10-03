@@ -16,6 +16,7 @@ import type {
   RuleChangeType,
   RuleKind,
   RuleLanguage,
+  RuleNumbersResponse,
   RulePageEntry,
   RuleResponse,
   RulesListResponse,
@@ -202,6 +203,11 @@ export const rulesRouter = {
         content: row.content,
       })),
     };
+  }),
+
+  numbers: os.numbers.handler(async ({ input, context }): Promise<RuleNumbersResponse> => {
+    const rows = await context.repos.rules.listAtVersion(input.kind, "en", input.version);
+    return { numbers: rows.map((row) => row.ruleNumber) };
   }),
 
   versions: os.versions.handler(async ({ input, context }): Promise<RuleVersionsListResponse> => {

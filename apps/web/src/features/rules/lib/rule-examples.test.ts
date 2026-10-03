@@ -1,12 +1,12 @@
 import type { BoardDocument } from "@openrift/shared/board-state";
-import { emptyBoardDocument } from "@openrift/shared/board-state";
+import { emptyBoardDocument, emptyBoardStep } from "@openrift/shared/board-state";
 import type { FeaturedBoardStateResponse } from "@openrift/shared/types/api/board-state";
 import { describe, expect, it } from "vitest";
 
 import { buildRuleExamplesMap } from "./rule-examples";
 
 function captioned(caption: string): BoardDocument {
-  return { ...emptyBoardDocument(), steps: [{ caption, pieces: [], chain: [], arrows: [] }] };
+  return { ...emptyBoardDocument(), steps: [{ ...emptyBoardStep(2), caption }] };
 }
 
 function makeItem(overrides: Partial<FeaturedBoardStateResponse> = {}): FeaturedBoardStateResponse {
@@ -61,8 +61,8 @@ describe("buildRuleExamplesMap", () => {
       document: {
         ...emptyBoardDocument(),
         steps: [
-          { caption: "Step one, [[460.3]] applies.", pieces: [], chain: [], arrows: [] },
-          { caption: "Step two, still [[460.3]].", pieces: [], chain: [], arrows: [] },
+          { ...emptyBoardStep(2), caption: "Step one, [[460.3]] applies." },
+          { ...emptyBoardStep(2), caption: "Step two, still [[460.3]]." },
         ],
       },
     });
@@ -77,8 +77,8 @@ describe("buildRuleExamplesMap", () => {
       document: {
         ...emptyBoardDocument(),
         steps: [
-          { caption: "First [[200.2]].", pieces: [], chain: [], arrows: [] },
-          { caption: "Second [[300.3]].", pieces: [], chain: [], arrows: [] },
+          { ...emptyBoardStep(2), caption: "First [[200.2]]." },
+          { ...emptyBoardStep(2), caption: "Second [[300.3]]." },
         ],
       },
     });

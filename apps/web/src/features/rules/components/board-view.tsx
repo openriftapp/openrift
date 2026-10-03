@@ -1,6 +1,5 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import type {
-  BoardCardRef,
   BoardDocument,
   BoardPiece,
   BoardPlayer,
@@ -8,31 +7,48 @@ import type {
   BoardZoneRef,
   PlayerZoneKind,
 } from "@openrift/shared/board-state";
-import { BOARD_PLAYERS } from "@openrift/shared/board-state";
-import { imageUrl } from "@openrift/shared/image-url";
-import { DropletIcon } from "lucide-react";
+import { BOARD_PLAYERS, emptyBattlefieldState } from "@openrift/shared/board-state";
+import { ChevronsUpIcon, DropletIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { Suspense, useRef } from "react";
+import { Suspense, useRef, useState } from "react";
 
 import { Pressable } from "@/components/ui/pressable";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { frontImageId } from "@/features/cards/lib/card-meta";
-import type { UseCardsResult } from "@/features/cards/lib/catalog-query";
-import { ArrowOverlay, pieceLayoutSignature } from "@/features/rules/components/board-arrows";
-import { BoardChainRow } from "@/features/rules/components/board-chain-row";
+import {
+  ArrowLegend,
+  ArrowOverlay,
+  arrowLayoutSignature,
+} from "@/features/rules/components/board-arrows";
+import type {
+  PieceDragData,
+  PieceDropData,
+  ZoneDropData,
+} from "@/features/rules/components/board-card-parts";
+import {
+  ArrowHandle,
+  BattlefieldCardFrame,
+  CardBack,
+  cardImage,
+} from "@/features/rules/components/board-card-parts";
+import type { ChainInteraction } from "@/features/rules/components/board-chain";
+import { ChainRow } from "@/features/rules/components/board-chain";
+import {
+  BattlefieldStateBadges,
+  BoardSeatStats,
+  BoardTurnBar,
+} from "@/features/rules/components/board-status";
 import { EmptyZoneStrip, ZoneLabel } from "@/features/rules/components/board-zone-labels";
-import { STACK_LABEL, ZONE_LABEL, pieceName } from "@/features/rules/lib/board-labels";
-import type { SeatSlot } from "@/features/rules/lib/board-layout";
+import { pieceName, ZONE_LABEL } from "@/features/rules/lib/board-labels";
+import type { SeatZone } from "@/features/rules/lib/board-layout";
 import {
   arrowZoneKey,
   boardWidthUnits,
+  grantedLegendSlots,
   occupiedZones,
   pieceNumerals,
   piecesAt,
   seatSlots,
   seatsFor,
-  slotKey,
-  grantedLegendSlots,
   zoneAcceptsMore,
 } from "@/features/rules/lib/board-layout";
 import {
@@ -40,7 +56,6 @@ import {
   CARD_ROW_HEIGHT,
   CARD_TURNED,
   CARD_UPRIGHT,
-  LANDSCAPE_CORNER_STYLE,
   PLAYER_COLOR,
   seatInk,
   zoneEdge,
@@ -53,46 +68,19 @@ import { getLocale } from "@/paraglide/runtime.js";
 
 const UNKNOWN_KEYWORD = { color: "#707070", darkText: false };
 
-interface BoardInteraction {
+interface BoardInteraction extends ChainInteraction {
   selectedPieceId?: string | null;
   selectedPieceIds?: readonly string[];
   highlightedPieceId?: string | null;
   pieceNumerals?: boolean;
   onPieceClick?: (piece: BoardPiece, event: React.MouseEvent) => void;
   onPieceContextMenu?: (piece: BoardPiece, event: React.MouseEvent) => void;
-  onZoneClick?: (zone: BoardZoneRef, owner: BoardPlayer) => void;
+  onZoneClick?: (zone: BoardZoneRef, owner?: BoardPlayer) => void;
   /** A card is armed for placement: every zone invites a click. */
   zonesArmed?: boolean;
-  /** Requires a surrounding `DndContext`. */
-  draggable?: boolean;
-  /** Renders an arrow-drag handle on the selected piece. Requires a surrounding `DndContext`. */
-  arrowHandle?: boolean;
   renderZoneAdd?: (zone: BoardZoneRef, owner: BoardPlayer) => ReactNode;
-  renderChainAdd?: () => ReactNode;
-  onChainEntryRemove?: (index: number) => void;
   renderBattlefieldCard?: (index: number, cardName: string | null, image?: string) => ReactNode;
   renderPieceOverlay?: (piece: BoardPiece) => ReactNode;
-}
-
-export interface PieceDragData {
-  type: "board-piece";
-  pieceId: string;
-}
-
-export interface ArrowDragData {
-  type: "board-arrow";
-  from: string;
-}
-
-export interface PieceDropData {
-  type: "board-piece-target";
-  pieceId: string;
-}
-
-export interface ZoneDropData {
-  type: "board-zone";
-  zone: BoardZoneRef;
-  owner: BoardPlayer;
 }
 
 interface KeywordBadge {
@@ -103,7 +91,7 @@ interface KeywordBadge {
 
 interface BoardArt {
   pieceImages: Map<string, string>;
-  chainImages: Map<number, string>;
+  chainImages: Map<string, string>;
   battlefieldImages: Map<number, string>;
   keywords: Map<string, KeywordBadge>;
   grantedLegendSlots: Map<BoardPlayer, number>;
@@ -140,18 +128,6 @@ export function BoardView(props: BoardViewProps) {
   );
 }
 
-export function cardImage(card: BoardCardRef, catalog: UseCardsResult): string | undefined {
-  const preferred = card.printingId ? catalog.printingsById[card.printingId] : undefined;
-  const printing =
-    preferred && frontImageId(preferred) !== null
-      ? preferred
-      : catalog.printingsByCardId
-          .get(card.cardId)
-          ?.find((candidate) => frontImageId(candidate) !== null);
-  const id = frontImageId(printing);
-  return id === null ? undefined : imageUrl(id, "240w");
-}
-
 function BoardTableWithArt(props: BoardViewProps) {
   const catalog = useCards();
   const styles = useKeywordStyles();
@@ -165,11 +141,11 @@ function BoardTableWithArt(props: BoardViewProps) {
       pieceImages.set(piece.id, url);
     }
   }
-  const chainImages = new Map<number, string>();
-  for (const [index, entry] of props.step.chain.entries()) {
-    const url = cardImage(entry.card, catalog);
+  const chainImages = new Map<string, string>();
+  for (const entry of props.step.chain) {
+    const url = entry.card ? cardImage(entry.card, catalog) : pieceImages.get(entry.source ?? "");
     if (url !== undefined) {
-      chainImages.set(index, url);
+      chainImages.set(entry.id, url);
     }
   }
   const battlefieldImages = new Map<number, string>();
@@ -218,20 +194,18 @@ interface BoardTableProps extends BoardViewProps {
   art: BoardArt;
 }
 
-function BoardTable({
-  document,
-  step,
-  viewer = false,
-  className,
-  art,
-  ...interaction
-}: BoardTableProps) {
+function BoardTable({ document, step, viewer = false, className, art, ...rest }: BoardTableProps) {
+  const [hoveredSource, setHoveredSource] = useState<string | null>(null);
+  const interaction: BoardInteraction = {
+    ...rest,
+    highlightedPieceId: hoveredSource ?? rest.highlightedPieceId,
+  };
   const seats = seatsFor(document.playerCount);
   const slots = seatSlots(document.zones);
   const numerals = interaction.pieceNumerals === false ? new Map() : pieceNumerals(step.pieces);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { onChainEntryRemove } = interaction;
   const context: BoardContext = {
+    document,
     step,
     art,
     numerals,
@@ -260,29 +234,33 @@ function BoardTable({
     >
       <div className="flex min-w-0 gap-2 sm:gap-3">
         <div ref={containerRef} className="relative flex min-w-0 flex-1 flex-col gap-2 sm:gap-3">
+          <BoardTurnBar turn={step.turn} />
           {document.zones.chain && !viewer && (
-            <BoardChainRow
+            <ChainRow
               chain={step.chain}
+              pieces={step.pieces}
               images={art.chainImages}
-              onRemove={onChainEntryRemove}
-              renderAdd={interaction.renderChainAdd}
+              interaction={interaction}
+              onHoverSource={setHoveredSource}
             />
           )}
           <SeatSide players={seats.top} slots={slots} top context={context} />
           <BattlefieldRow battlefields={document.battlefields} seats={seats} context={context} />
           <SeatSide players={seats.bottom} slots={slots} context={context} />
           <ArrowOverlay
-            key={`${document.playerCount}:${document.battlefields.length}:${Object.values(document.zones).join(",")}:${pieceLayoutSignature(step.pieces)}`}
+            key={arrowLayoutSignature(document, step)}
             containerRef={containerRef}
             arrows={step.arrows}
           />
         </div>
       </div>
+      <ArrowLegend arrows={step.arrows} />
     </div>
   );
 }
 
 interface BoardContext {
+  document: BoardDocument;
   step: BoardStep;
   viewer: boolean;
   occupied: Set<string> | null;
@@ -299,12 +277,14 @@ function SeatSide({
   context,
 }: {
   players: BoardPlayer[];
-  slots: SeatSlot[];
+  slots: SeatZone[];
   /** The far seat: its hand strip sits at the table edge, above the zones. */
   top?: boolean;
   context: BoardContext;
 }) {
-  if (players.length === 0 || (slots.length === 0 && !context.zones.hand)) {
+  const { document, step } = context;
+  const hasStats = players.some((player) => step.players[player] !== undefined);
+  if (players.length === 0 || (slots.length === 0 && !context.zones.hand && !hasStats)) {
     return null;
   }
   return (
@@ -318,10 +298,16 @@ function SeatSide({
             key={player}
             className={cn("flex min-w-0 gap-1.5", top ? "flex-col-reverse" : "flex-col")}
           >
+            <BoardSeatStats
+              player={player}
+              stats={step.players}
+              scoring={document.scoring}
+              showScore={document.zones.score}
+            />
             {(slots.length > 0 || (context.viewer && context.zones.hand)) && (
               <div className="relative flex min-w-0 flex-wrap items-stretch gap-1.5">
                 {slots.map((slot) => (
-                  <SeatSlotCell key={slotKey(slot)} slot={slot} owner={player} context={context} />
+                  <SeatSlotCell key={slot} zone={slot} owner={player} context={context} />
                 ))}
                 {context.viewer && context.zones.hand && (
                   <HandStrip owner={player} context={context} />
@@ -343,52 +329,71 @@ function isOccupied(context: BoardContext, zone: BoardZoneRef, owner: BoardPlaye
 }
 
 function SeatSlotCell({
-  slot,
+  zone,
   owner,
   mirrored,
   context,
 }: {
-  slot: SeatSlot;
+  zone: SeatZone;
   owner: BoardPlayer;
   mirrored?: boolean;
   context: BoardContext;
 }) {
-  if (slot.kind === "stack") {
-    return <DeckStack stack={slot.stack} owner={owner} mirrored={mirrored} />;
+  if (zone === "deck" || zone === "runeDeck") {
+    return <DeckZone kind={zone} owner={owner} mirrored={mirrored} context={context} />;
   }
-  return <PlayerZone kind={slot.zone} owner={owner} mirrored={mirrored} context={context} />;
+  return <PlayerZone kind={zone} owner={owner} mirrored={mirrored} context={context} />;
 }
 
-function DeckStack({
-  stack,
+/** Placed cards are the known top of the deck, top card first, beside the rest of the stack. */
+function DeckZone({
+  kind,
   owner,
   mirrored,
+  context,
 }: {
-  stack: "runeDeck" | "deck";
+  kind: "deck" | "runeDeck";
   owner: BoardPlayer;
   mirrored?: boolean;
+  context: BoardContext;
 }) {
+  const zone: BoardZoneRef = { kind };
+  const count = kind === "deck" ? context.step.players[owner]?.deckCount : undefined;
   return (
-    <div className={cn("flex shrink-0 gap-1", mirrored ? "flex-row-reverse" : "flex-row")}>
-      <ZoneLabel text={STACK_LABEL[stack]()} owner={owner} mirrored={mirrored} />
-      <div
-        className={cn("bg-board-felt-edge relative min-w-0 overflow-hidden border", CARD_UPRIGHT)}
-        style={{ ...CARD_CORNER_STYLE, borderColor: zoneEdge(owner) }}
-      >
-        <img
-          src="/logo.svg"
-          alt=""
-          aria-hidden
-          className="absolute inset-0 m-auto size-10 opacity-40 brightness-0 invert"
-        />
-      </div>
-    </div>
+    <ZoneFrame
+      zone={zone}
+      owner={owner}
+      interaction={context.interaction}
+      mirrored={mirrored}
+      className="min-h-[calc(var(--board-card-w)*1.4+1.4rem)] border border-dashed"
+      style={{ borderColor: zoneEdge(owner) }}
+    >
+      <ZoneLabel text={ZONE_LABEL[kind]()} owner={owner} mirrored={mirrored} />
+      <span className="relative shrink-0 self-end">
+        <CardBack owner={owner} />
+        {count !== undefined && (
+          <span
+            className="absolute inset-x-0 bottom-1 mx-auto w-fit rounded-full bg-black/75 px-1.5 text-sm font-semibold tabular-nums"
+            title={m.board_states_stat_deck_count()}
+          >
+            {count}
+          </span>
+        )}
+      </span>
+      <PieceRow
+        pieces={piecesAt(context.step, zone, owner)}
+        mirrored={mirrored}
+        context={context}
+        trailing={context.interaction.renderZoneAdd?.(zone, owner)}
+      />
+    </ZoneFrame>
   );
 }
 
 interface ZoneFrameProps {
   zone: BoardZoneRef;
-  owner: BoardPlayer;
+  /** Absent for a battlefield's shared facedown zone. */
+  owner?: BoardPlayer;
   interaction: BoardInteraction;
   /** The seat is rotated 180°, so the label and the add button are turned back to read upright. */
   mirrored?: boolean;
@@ -407,49 +412,10 @@ function ZoneFrame(props: ZoneFrameProps) {
   return frame;
 }
 
-/** Dashed card-sized slot the editor renders as its "add here" trigger. */
-export const CARD_SLOT_CLASS = cn(
-  "flex shrink-0 items-center justify-center border border-dashed border-white/40 text-white/70 hover:border-white/80 hover:bg-white/10 hover:text-white",
-  CARD_UPRIGHT,
-);
-
-/** A non-interactive mini card for drag previews: the same face as a piece, no marks. */
-export function CardGhost({
-  name,
-  image,
-  owner,
-}: {
-  name: string;
-  image?: string;
-  owner: BoardPlayer;
-}) {
-  return (
-    <span
-      className={cn(
-        "bg-card relative block overflow-hidden border shadow-xl",
-        CARD_UPRIGHT,
-        image === undefined ? "border-2 border-dashed" : "border-card-edge",
-      )}
-      style={{
-        ...CARD_CORNER_STYLE,
-        borderColor: image === undefined ? PLAYER_COLOR[owner] : undefined,
-      }}
-    >
-      {image === undefined ? (
-        <span className="font-card text-card-foreground flex size-full items-center justify-center p-1 text-center text-xs leading-tight">
-          {name}
-        </span>
-      ) : (
-        <img src={image} alt="" aria-hidden className="size-full object-cover" />
-      )}
-    </span>
-  );
-}
-
 function DroppableZoneFrame(props: ZoneFrameProps) {
   const data: ZoneDropData = { type: "board-zone", zone: props.zone, owner: props.owner };
   const { setNodeRef, isOver } = useDroppable({
-    id: `zone:${arrowZoneKey(props.zone, props.owner)}`,
+    id: `zone:${arrowZoneKey(props.zone, props.owner ?? "A")}`,
     data,
   });
   return (
@@ -480,7 +446,7 @@ function ZoneFrameBody({
     mirrored ? "flex-row-reverse" : "flex-row",
     className,
   );
-  const zoneKey = arrowZoneKey(zone, owner);
+  const zoneKey = arrowZoneKey(zone, owner ?? "A");
   if (!interaction.onZoneClick) {
     return (
       <div className={classes} style={style} data-board-zone={zoneKey}>
@@ -670,6 +636,8 @@ function BattlefieldColumn({
 }) {
   const zone: BoardZoneRef = { kind: "battlefield", index };
   const image = context.art.battlefieldImages.get(index);
+  const state = context.step.battlefields[index] ?? emptyBattlefieldState();
+  const controller = state.controller;
   const half = (players: BoardPlayer[]) => {
     const columns = {
       gridTemplateColumns: `repeat(${Math.max(1, players.length)}, minmax(0, 1fr))`,
@@ -716,49 +684,62 @@ function BattlefieldColumn({
     );
   };
   return (
-    <div className="flex min-w-0 flex-col gap-1.5 rounded-lg bg-black/25 p-1.5 ring-1 ring-white/10">
+    <div
+      className={cn(
+        "flex min-w-0 flex-col gap-1.5 rounded-lg bg-black/25 p-1.5",
+        controller === null ? "ring-1 ring-white/10" : "ring-2",
+      )}
+      style={
+        controller === null
+          ? undefined
+          : ({ "--tw-ring-color": PLAYER_COLOR[controller] } as React.CSSProperties)
+      }
+    >
       {half(seats.top)}
-      <div className="flex justify-center">
+      <div className="relative flex items-center justify-center gap-1.5">
+        <BattlefieldStateBadges state={state} />
         {context.interaction.renderBattlefieldCard ? (
           context.interaction.renderBattlefieldCard(index, cardName, image)
         ) : (
           <BattlefieldCardFrame index={index} cardName={cardName} image={image} />
         )}
+        <FacedownZone index={index} controller={controller} seats={seats} context={context} />
       </div>
       {half(seats.bottom)}
     </div>
   );
 }
 
-export function BattlefieldCardFrame({
+/** Shown in the editor, or once it holds a card; a facedown card belongs to the battlefield. */
+function FacedownZone({
   index,
-  cardName,
-  image,
+  controller,
+  seats,
+  context,
 }: {
   index: number;
-  cardName: string | null;
-  image?: string;
+  controller: BoardPlayer | null;
+  seats: ReturnType<typeof seatsFor>;
+  context: BoardContext;
 }) {
-  const blank = image === undefined && cardName === null;
+  const zone: BoardZoneRef = { kind: "facedown", index };
+  const pieces = piecesAt(context.step, zone);
+  const adder = controller ?? seats.bottom[0] ?? "A";
+  const trailing = zoneAcceptsMore(zone, pieces.length)
+    ? context.interaction.renderZoneAdd?.(zone, adder)
+    : undefined;
+  if (pieces.length === 0 && (trailing === undefined || trailing === null)) {
+    return null;
+  }
   return (
-    <span
-      className={cn(
-        "relative flex min-w-0 items-center justify-center overflow-hidden border px-2 text-center",
-        blank
-          ? "border-white/25 bg-black/30 text-white/60"
-          : "border-card-edge bg-white/90 text-black shadow-md",
-        CARD_TURNED,
-      )}
-      style={LANDSCAPE_CORNER_STYLE}
+    <ZoneFrame
+      zone={zone}
+      interaction={context.interaction}
+      className="items-center border border-dashed border-white/40"
     >
-      {image === undefined ? (
-        <span className={cn("leading-tight", blank ? "text-xs" : "font-card font-semibold")}>
-          {cardName ?? m.board_states_battlefield({ number: index + 1 })}
-        </span>
-      ) : (
-        <img src={image} alt={cardName ?? ""} className="absolute inset-0 size-full object-cover" />
-      )}
-    </span>
+      <span className="text-2xs text-white/60 uppercase">{ZONE_LABEL.facedown()}</span>
+      <PieceRow pieces={pieces} context={context} trailing={trailing} />
+    </ZoneFrame>
   );
 }
 
@@ -852,20 +833,6 @@ function DraggablePiece({ piece, mirrored, context }: PieceProps) {
   );
 }
 
-function ArrowHandle({ pieceId }: { pieceId: string }) {
-  const data: ArrowDragData = { type: "board-arrow", from: pieceId };
-  const { setNodeRef, listeners, attributes } = useDraggable({ id: `arrow:${pieceId}`, data });
-  return (
-    <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      aria-label={m.board_states_arrow_handle()}
-      className="bg-gilt absolute top-1/2 -right-1.5 z-10 size-3 -translate-y-1/2 cursor-grab rounded-full ring-1 ring-black/50"
-    />
-  );
-}
-
 function PieceToken({ piece, mirrored, context }: PieceProps) {
   const { interaction } = context;
   const selected =
@@ -903,6 +870,11 @@ function PieceToken({ piece, mirrored, context }: PieceProps) {
           </span>
         ) : (
           <img src={image} alt="" aria-hidden className="size-full object-cover" />
+        )}
+        {piece.facedown && (
+          <span className="absolute inset-0 transition-opacity group-hover/piece:opacity-0 group-focus/piece:opacity-0">
+            <CardBack owner={piece.owner} className="size-full border-0" />
+          </span>
         )}
       </span>
       <span
@@ -942,6 +914,22 @@ function PieceToken({ piece, mirrored, context }: PieceProps) {
             {numeral}
           </span>
         )}
+        {piece.buffs > 0 && (
+          <span
+            className="bg-gilt text-2xs absolute -right-1 -bottom-1 flex items-center rounded-full px-0.5 font-semibold text-black"
+            title={m.board_states_state_buffs({ count: piece.buffs })}
+          >
+            <ChevronsUpIcon className="size-2.5" aria-hidden />
+            {piece.buffs > 1 ? piece.buffs : null}
+          </span>
+        )}
+        {piece.counter !== undefined && (
+          <span className="text-2xs absolute inset-x-0 bottom-1 mx-auto w-fit rounded-sm bg-black/80 px-1 font-semibold whitespace-nowrap text-white tabular-nums">
+            {piece.counter.label === undefined
+              ? piece.counter.value
+              : `${piece.counter.label} ${piece.counter.value}`}
+          </span>
+        )}
         {(piece.keywords.length > 0 || piece.label !== undefined) && (
           <span className="pointer-events-none absolute bottom-full left-1/2 mb-0.5 flex -translate-x-1/2 flex-col items-center gap-px">
             {piece.keywords.map((keyword) => (
@@ -960,12 +948,18 @@ function PieceToken({ piece, mirrored, context }: PieceProps) {
   const box = (
     <span
       data-board-piece={piece.id}
+      // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a facedown card reveals itself on focus for keyboard readers
+      tabIndex={piece.facedown && !interaction.onPieceClick ? 0 : undefined}
       className={cn(
-        "relative block shrink-0 transition-transform",
+        "group/piece relative block shrink-0 transition-transform",
         piece.exhausted ? CARD_TURNED : CARD_UPRIGHT,
         spotlit && "scale-105",
       )}
-      title={pieceName(piece)}
+      title={
+        piece.facedown
+          ? m.board_states_facedown_title({ name: pieceName(piece) })
+          : pieceName(piece)
+      }
     >
       {face}
       {(handle || overlay !== undefined) && (
@@ -975,7 +969,7 @@ function PieceToken({ piece, mirrored, context }: PieceProps) {
             mirrored === true && "rotate-180",
           )}
         >
-          {handle && <ArrowHandle pieceId={piece.id} />}
+          {handle && <ArrowHandle from={{ piece: piece.id }} />}
           {overlay}
         </span>
       )}

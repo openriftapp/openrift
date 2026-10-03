@@ -1,4 +1,4 @@
-import type { BoardPiece } from "@openrift/shared/board-state";
+import type { BoardChainEntry, BoardPiece } from "@openrift/shared/board-state";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -23,9 +23,11 @@ function piece(overrides: Partial<BoardPiece> & { id: string; name?: string }): 
     kind: "unit",
     card: { cardId: "11111111-1111-1111-1111-111111111111", name: name ?? "Ashe" },
     exhausted: false,
+    facedown: false,
     keywords: [],
     damage: 0,
     might: 0,
+    buffs: 0,
     highlight: false,
     ...rest,
   };
@@ -37,7 +39,10 @@ const PIECES = [
   piece({ id: "p3", name: "Poro" }),
 ];
 
-function renderEditor(pieces: readonly BoardPiece[] = PIECES) {
+function renderEditor(
+  pieces: readonly BoardPiece[] = PIECES,
+  chain: readonly BoardChainEntry[] = [],
+) {
   const onChange = vi.fn();
   function Harness() {
     const [value, setValue] = useState("");
@@ -50,6 +55,7 @@ function renderEditor(pieces: readonly BoardPiece[] = PIECES) {
           setValue(next);
         }}
         pieces={pieces}
+        chain={chain}
       />
     );
   }
@@ -98,6 +104,19 @@ describe("BoardCaptionEditor", () => {
     type(textarea, "Move @poro");
     fireEvent.click(screen.getByRole("option", { name: /Poro/u }));
     expect(onChange).toHaveBeenLastCalledWith("Move [[card:p3]]");
+  });
+
+  it("lists chain entries by name and position and inserts a chain reference", () => {
+    const { textarea, onChange } = renderEditor(PIECES, [
+      { id: "c1", owner: "B", type: "spell", label: "Hypothetical spell" },
+      { id: "c2", owner: "A", type: "triggered", source: "p3" },
+    ]);
+    type(textarea, "@poro");
+    const options = screen.getAllByRole("option");
+    expect(options).toHaveLength(2);
+    expect(options[1]).toHaveTextContent("Chain #2");
+    fireEvent.click(options[1]!);
+    expect(onChange).toHaveBeenLastCalledWith("[[chain:c2]]");
   });
 
   it("closes the list on Escape", () => {

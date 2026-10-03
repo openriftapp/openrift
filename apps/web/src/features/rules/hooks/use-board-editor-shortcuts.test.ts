@@ -62,11 +62,13 @@ describe("handleBoardEditorKey", () => {
     expect(handlers.onMight).toHaveBeenNthCalledWith(2, 1);
   });
 
-  it("starts move and target arrows", () => {
+  it("starts move, target and recall arrows", () => {
     press({ key: "m" });
     press({ key: "t" });
+    press({ key: "r" });
     expect(handlers.onArrow).toHaveBeenNthCalledWith(1, "move");
     expect(handlers.onArrow).toHaveBeenNthCalledWith(2, "target");
+    expect(handlers.onArrow).toHaveBeenNthCalledWith(3, "recall");
   });
 
   it("removes on delete and backspace", () => {

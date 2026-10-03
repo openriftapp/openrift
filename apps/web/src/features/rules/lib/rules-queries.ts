@@ -2,6 +2,7 @@ import { rulesContract } from "@openrift/shared/contracts/rules";
 import type {
   RuleKind,
   RuleLanguage,
+  RuleNumbersResponse,
   RulesPageResponse,
   RuleSourceResponse,
   RuleVersionsListResponse,
@@ -37,6 +38,15 @@ const fetchRulesSource = createServerFn({ method: "GET" })
     }),
   );
 
+const fetchRuleNumbers = createServerFn({ method: "GET" })
+  .validator((input: { kind: RuleKind; version: string }) => input)
+  .handler(({ data }): Promise<RuleNumbersResponse> =>
+    serverCache.query({
+      queryKey: ["server-cache", "rules", data.kind, data.version, "numbers"],
+      queryFn: () => apiOrpcClient(rulesContract).numbers(data),
+    }),
+  );
+
 const fetchVersions = createServerFn({ method: "GET" })
   .validator((input: { kind?: RuleKind; language: RuleLanguage }) => input)
   .handler(({ data }): Promise<RuleVersionsListResponse> =>
@@ -65,6 +75,16 @@ export function rulesSourceQueryOptions(kind: RuleKind, language: RuleLanguage, 
     queryFn: () => fetchRulesSource({ data: { kind, language, version } }),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
+  });
+}
+
+export function ruleNumbersQueryOptions(kind: RuleKind, version: string) {
+  return queryOptions({
+    queryKey: rulesKeys.numbers(kind, version),
+    queryFn: () => fetchRuleNumbers({ data: { kind, version } }),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    select: (data) => new Set(data.numbers) as ReadonlySet<string>,
   });
 }
 

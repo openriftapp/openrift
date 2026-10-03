@@ -5,6 +5,7 @@ export const rulesKeys = {
     ["rules", kind, language, version] as const,
   source: (kind: string, language: string, version: string) =>
     ["rules", kind, language, version, "source"] as const,
+  numbers: (kind: string, version: string) => ["rules", kind, version, "numbers"] as const,
 } as const;
 
 export const boardStatesKeys = {

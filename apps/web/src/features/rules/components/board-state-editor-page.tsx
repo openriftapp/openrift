@@ -1,4 +1,8 @@
-import { boardDocumentSchema, emptyBoardDocument } from "@openrift/shared/board-state";
+import {
+  boardDocumentSchema,
+  emptyBoardDocument,
+  extractRuleRefs,
+} from "@openrift/shared/board-state";
 import type { BoardStateResponse } from "@openrift/shared/types/api/board-state";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -15,6 +19,7 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ruleRefLabel } from "@/features/rules/components/board-caption-text";
 import { BoardEditorHeader } from "@/features/rules/components/board-editor-header";
 import { BoardEditorPreview } from "@/features/rules/components/board-editor-preview";
 import { BoardEditorRulesPopover } from "@/features/rules/components/board-editor-rules-popover";
@@ -26,6 +31,7 @@ import {
   useSetBoardStateShare,
   useUpdateBoardState,
 } from "@/features/rules/hooks/use-board-states";
+import { unknownRuleRefs, useKnownRules } from "@/features/rules/hooks/use-known-rules";
 import { ruleVersionsQueryOptions } from "@/features/rules/lib/rules-queries";
 import { useBoardDraftStore } from "@/features/rules/stores/board-draft-store";
 import { useBoardEditorStore } from "@/features/rules/stores/board-editor-store";
@@ -270,6 +276,12 @@ function EditorLayout({
   const [preview, setPreview] = useState(false);
   const undo = useBoardEditorStore((state) => state.undo);
   const canUndo = useBoardEditorStore((state) => state.history.length > 0);
+  const steps = useBoardEditorStore((state) => state.document.steps);
+  const knownRules = useKnownRules(meta);
+  const unknown = unknownRuleRefs(
+    extractRuleRefs(steps.map((step) => step.caption).join("\n")),
+    knownRules,
+  );
   return (
     <>
       <PageTopBarSticky width="full">
@@ -295,6 +307,13 @@ function EditorLayout({
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.full, PAGE_PADDING_NO_TOP, "flex flex-col gap-3 pt-3 pb-8")}>
         {error ? <p className="text-destructive">{error}</p> : null}
+        {unknown.length > 0 ? (
+          <p className="text-destructive">
+            {m.board_states_editor_unknown_rules({
+              rules: unknown.map((reference) => ruleRefLabel(reference)).join(", "),
+            })}
+          </p>
+        ) : null}
         {notice ? <p className="text-muted-foreground">{notice}</p> : null}
         <p className="text-muted-foreground lg:hidden">{m.board_states_editor_desktop_only()}</p>
         <div className="hidden flex-col gap-4 lg:flex">

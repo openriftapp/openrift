@@ -1,10 +1,18 @@
-import type { BoardArrow, BoardPiece } from "@openrift/shared/board-state";
+import type {
+  ArrowKind,
+  BoardArrow,
+  BoardArrowEnd,
+  BoardDocument,
+  BoardStep,
+} from "@openrift/shared/board-state";
+import { ARROW_KINDS } from "@openrift/shared/board-state";
 import { useLayoutEffect, useState } from "react";
 
+import { ARROW_KIND_LABEL } from "@/features/rules/lib/board-labels";
 import { arrowZoneKey } from "@/features/rules/lib/board-layout";
 
 interface ArrowLine {
-  kind: BoardArrow["kind"];
+  kind: ArrowKind;
   x1: number;
   y1: number;
   x2: number;
@@ -13,19 +21,39 @@ interface ArrowLine {
   cy: number;
 }
 
-/** Arrows are measured from the DOM; the overlay remounts whenever a piece changes seat, zone or footprint. */
-export function pieceLayoutSignature(pieces: readonly BoardPiece[]): string {
-  return pieces
-    .map((piece) =>
-      [
-        piece.id,
-        piece.owner,
-        piece.zone.kind,
-        piece.zone.kind === "battlefield" ? piece.zone.index : "",
-        piece.exhausted ? "x" : "",
-      ].join(":"),
-    )
-    .join("|");
+const ARROW_DASH: Record<ArrowKind, string | undefined> = {
+  move: "7 5",
+  target: undefined,
+  recall: "1 5",
+};
+
+const ARROW_HEAD: Record<ArrowKind, string> = {
+  move: "board-arrow-head",
+  target: "board-arrow-head",
+  recall: "board-arrow-head-open",
+};
+
+/**
+ * Arrows are measured from the DOM; the overlay remounts whenever anything that moves a
+ * piece, a chain entry or a zone changes: seats, zones, footprints, the turn bar and stats.
+ */
+export function arrowLayoutSignature(document: BoardDocument, step: BoardStep): string {
+  return JSON.stringify([
+    document.playerCount,
+    document.battlefields.length,
+    document.zones,
+    step.pieces.map((piece) => [
+      piece.id,
+      piece.owner,
+      piece.zone,
+      piece.exhausted,
+      piece.keywords.length,
+    ]),
+    step.chain.map((entry) => entry.id),
+    step.turn,
+    step.players,
+    step.battlefields,
+  ]);
 }
 
 function centerOf(element: Element, origin: DOMRect) {
@@ -36,16 +64,22 @@ function centerOf(element: Element, origin: DOMRect) {
   };
 }
 
+function endSelector(end: BoardArrowEnd): string {
+  if ("piece" in end) {
+    return `[data-board-piece="${end.piece}"]`;
+  }
+  if ("chain" in end) {
+    return `[data-board-chain="${end.chain}"]`;
+  }
+  return `[data-board-zone="${arrowZoneKey(end.zone, end.owner)}"]`;
+}
+
 function measureArrows(container: HTMLElement, arrows: BoardArrow[]): ArrowLine[] {
   const origin = container.getBoundingClientRect();
   const lines: ArrowLine[] = [];
   for (const arrow of arrows) {
-    const from = container.querySelector(`[data-board-piece="${arrow.from}"]`);
-    const toSelector =
-      "piece" in arrow.to
-        ? `[data-board-piece="${arrow.to.piece}"]`
-        : `[data-board-zone="${arrowZoneKey(arrow.to.zone, arrow.to.owner)}"]`;
-    const to = container.querySelector(toSelector);
+    const from = container.querySelector(endSelector(arrow.from));
+    const to = container.querySelector(endSelector(arrow.to));
     if (!from || !to) {
       continue;
     }
@@ -65,6 +99,56 @@ function measureArrows(container: HTMLElement, arrows: BoardArrow[]): ArrowLine[
     });
   }
   return lines;
+}
+
+function ArrowMarkers() {
+  return (
+    <defs>
+      <marker
+        id="board-arrow-head"
+        viewBox="0 0 10 10"
+        refX="9"
+        refY="5"
+        markerWidth="5"
+        markerHeight="5"
+        orient="auto-start-reverse"
+      >
+        <path d="M0 0L10 5L0 10z" fill="white" />
+      </marker>
+      <marker
+        id="board-arrow-head-open"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="5"
+        markerHeight="5"
+        orient="auto-start-reverse"
+      >
+        <path
+          d="M1 1L8 5L1 9"
+          fill="none"
+          stroke="white"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </marker>
+    </defs>
+  );
+}
+
+function ArrowStroke({ kind, d }: { kind: ArrowKind; d: string }) {
+  return (
+    <path
+      d={d}
+      fill="none"
+      stroke="white"
+      strokeWidth={2.5}
+      strokeLinecap="round"
+      strokeDasharray={ARROW_DASH[kind]}
+      markerEnd={`url(#${ARROW_HEAD[kind]})`}
+    />
+  );
 }
 
 export function ArrowOverlay({
@@ -93,32 +177,36 @@ export function ArrowOverlay({
   }
   return (
     <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" aria-hidden>
-      <defs>
-        <marker
-          id="board-arrow-head"
-          viewBox="0 0 10 10"
-          refX="9"
-          refY="5"
-          markerWidth="5"
-          markerHeight="5"
-          orient="auto-start-reverse"
-        >
-          <path d="M0 0L10 5L0 10z" fill="white" />
-        </marker>
-      </defs>
+      <ArrowMarkers />
       {lines.map((line, index) => (
-        <path
+        <ArrowStroke
           // oxlint-disable-next-line react/no-array-index-key -- arrows are positional
           key={index}
+          kind={line.kind}
           d={`M${line.x1} ${line.y1}Q${line.cx} ${line.cy} ${line.x2} ${line.y2}`}
-          fill="none"
-          stroke="white"
-          strokeWidth={2.5}
-          strokeLinecap="round"
-          strokeDasharray={line.kind === "move" ? "7 5" : undefined}
-          markerEnd="url(#board-arrow-head)"
         />
       ))}
     </svg>
+  );
+}
+
+/** Explains the arrow styles the step actually uses. */
+export function ArrowLegend({ arrows }: { arrows: readonly BoardArrow[] }) {
+  const kinds = ARROW_KINDS.filter((kind) => arrows.some((arrow) => arrow.kind === kind));
+  if (kinds.length === 0) {
+    return null;
+  }
+  return (
+    <div className="text-2xs mt-2 flex flex-wrap gap-3 text-white/70 uppercase">
+      {kinds.map((kind) => (
+        <span key={kind} className="flex items-center gap-1.5">
+          <svg width="28" height="10" aria-hidden className="overflow-visible">
+            <ArrowMarkers />
+            <ArrowStroke kind={kind} d="M2 5L24 5" />
+          </svg>
+          {ARROW_KIND_LABEL[kind]()}
+        </span>
+      ))}
+    </div>
   );
 }
