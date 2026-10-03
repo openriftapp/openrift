@@ -9,7 +9,7 @@ import { useBoardEditorShortcuts } from "@/features/rules/hooks/use-board-editor
 import { useBoardEditorStore } from "@/features/rules/stores/board-editor-store";
 import { m } from "@/paraglide/messages.js";
 
-export function BoardEditorPreview({ answer, pins }: { answer: string; pins: RulesPins }) {
+export function BoardEditorPreview({ pins }: { pins: RulesPins }) {
   const document = useBoardEditorStore((state) => state.document);
   const activeStep = useBoardEditorStore((state) => state.activeStep);
   const selectStep = useBoardEditorStore((state) => state.selectStep);
@@ -58,12 +58,6 @@ export function BoardEditorPreview({ answer, pins }: { answer: string; pins: Rul
           pieces={step.pieces}
           onHoverPiece={setHighlightedPieceId}
         />
-      )}
-      {answer.trim() === "" ? null : (
-        <section className="flex flex-col gap-1">
-          <h2 className="text-muted-foreground text-xs uppercase">{m.board_states_answer()}</h2>
-          <BoardCaptionText text={answer} pins={pins} pieces={step.pieces} />
-        </section>
       )}
     </div>
   );

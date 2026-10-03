@@ -79,7 +79,6 @@ function SavedEditor({ boardState }: { boardState: BoardStateResponse }) {
   const navigate = useNavigate();
   const [meta, setMeta] = useState<EditorMeta>({
     title: boardState.title,
-    answer: boardState.answer ?? "",
     coreRulesVersion: boardState.coreRulesVersion,
     tournamentRulesVersion: boardState.tournamentRulesVersion,
   });
@@ -199,13 +198,11 @@ function DraftEditor() {
     return draft
       ? {
           title: draft.title,
-          answer: draft.answer,
           coreRulesVersion: draft.coreRulesVersion,
           tournamentRulesVersion: draft.tournamentRulesVersion,
         }
       : {
           title: m.board_states_untitled(),
-          answer: "",
           coreRulesVersion: latestCore?.version ?? null,
           tournamentRulesVersion: null,
         };
@@ -273,7 +270,6 @@ function EditorLayout({
   const [preview, setPreview] = useState(false);
   const undo = useBoardEditorStore((state) => state.undo);
   const canUndo = useBoardEditorStore((state) => state.history.length > 0);
-  const firstStepPieces = useBoardEditorStore((state) => state.document.steps[0]?.pieces ?? []);
   return (
     <>
       <PageTopBarSticky width="full">
@@ -302,16 +298,9 @@ function EditorLayout({
         {notice ? <p className="text-muted-foreground">{notice}</p> : null}
         <p className="text-muted-foreground lg:hidden">{m.board_states_editor_desktop_only()}</p>
         <div className="hidden flex-col gap-4 lg:flex">
-          <BoardEditorHeader
-            title={meta.title}
-            answer={meta.answer}
-            pieces={firstStepPieces}
-            onTitle={(title) => onMeta({ ...meta, title })}
-            onAnswer={(answer) => onMeta({ ...meta, answer })}
-          />
+          <BoardEditorHeader title={meta.title} onTitle={(title) => onMeta({ ...meta, title })} />
           {preview ? (
             <BoardEditorPreview
-              answer={meta.answer}
               pins={{
                 coreRulesVersion: meta.coreRulesVersion,
                 tournamentRulesVersion: meta.tournamentRulesVersion,

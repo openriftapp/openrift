@@ -19,7 +19,6 @@ afterEach(() => {
 function draft(overrides: Partial<BoardDraft> = {}): BoardDraft {
   return {
     title: "Stunned defender",
-    answer: "",
     coreRulesVersion: "2026-07-16",
     tournamentRulesVersion: null,
     document: emptyBoardDocument(),
@@ -104,7 +103,6 @@ describe("parseBoardDraft", () => {
       parseBoardDraft({ title: "T", document: emptyBoardDocument(), coreRulesVersion: 5 }),
     ).toEqual({
       title: "T",
-      answer: "",
       coreRulesVersion: null,
       tournamentRulesVersion: null,
       document: emptyBoardDocument(),

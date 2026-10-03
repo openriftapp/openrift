@@ -21,7 +21,6 @@ export interface SharedBoardState {
 
 export interface BoardStateValues {
   title: string;
-  answer: string | null;
   coreRulesVersion: string | null;
   tournamentRulesVersion: string | null;
   document: BoardDocument;

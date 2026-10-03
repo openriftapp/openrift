@@ -51,8 +51,8 @@ export function RuleExamplesList({ ruleNumber }: { ruleNumber: string }) {
           >
             {example.title}
           </Link>
-          {example.answer ? (
-            <span className="text-muted-foreground ml-2">{example.answer}</span>
+          {example.summary ? (
+            <span className="text-muted-foreground ml-2">{example.summary}</span>
           ) : null}
         </li>
       ))}

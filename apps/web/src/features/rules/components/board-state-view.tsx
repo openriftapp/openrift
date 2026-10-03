@@ -34,9 +34,7 @@ export function BoardStateView({
   const { document } = boardState;
   const total = document.steps.length;
   const step = document.steps[Math.min(activeStep, total - 1)];
-  const ruleRefs = extractRuleRefs(
-    [boardState.answer ?? "", ...document.steps.map((s) => s.caption)].join("\n"),
-  );
+  const ruleRefs = extractRuleRefs(document.steps.map((s) => s.caption).join("\n"));
 
   return (
     <>
@@ -54,20 +52,6 @@ export function BoardStateView({
           )}
           <span>{m.board_states_byline({ owner: ownerName })}</span>
         </div>
-
-        {boardState.answer ? (
-          <div className="bg-card border-primary flex flex-col gap-1 rounded-md border p-3">
-            <span className="text-muted-foreground text-xs uppercase">
-              {m.board_states_answer()}
-            </span>
-            <BoardCaptionText
-              text={boardState.answer}
-              pins={boardState}
-              pieces={document.steps[0]?.pieces ?? []}
-              onHoverPiece={setHighlightedPieceId}
-            />
-          </div>
-        ) : null}
 
         {step ? (
           <div className="flex flex-col gap-3">

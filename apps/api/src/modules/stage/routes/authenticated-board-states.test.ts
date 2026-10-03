@@ -52,7 +52,6 @@ function dbRow(overrides: object = {}) {
     id: BOARD_ID,
     userId: USER_ID,
     title: "Stunned defender",
-    answer: null,
     coreRulesVersion: "2026-07-16",
     tournamentRulesVersion: null,
     document: emptyBoardDocument(),
@@ -109,16 +108,16 @@ describe("GET /board-states/{id}", () => {
 });
 
 describe("POST /board-states", () => {
-  it("creates a board state and stores an empty answer as null", async () => {
+  it("creates a board state", async () => {
     const { status, body } = await request("/board-states", {
       method: "POST",
-      body: createBody({ answer: "   " }),
+      body: createBody(),
     });
 
     expect(status).toBe(201);
     expect(mockBoardStatesRepo.create).toHaveBeenCalledWith(
       USER_ID,
-      expect.objectContaining({ answer: null, coreRulesVersion: "2026-07-16" }),
+      expect.objectContaining({ coreRulesVersion: "2026-07-16" }),
     );
     expect(body).toMatchObject({ id: BOARD_ID });
   });

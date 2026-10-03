@@ -8,7 +8,6 @@ const rulesVersion = z.string().trim().min(1).max(40);
 
 const boardStateFieldRules = {
   title: z.string().trim().min(1).max(200),
-  answer: z.string().max(2000),
   rulesVersion: rulesVersion.nullable(),
 };
 
@@ -17,7 +16,6 @@ const RULES_PIN_MESSAGE = "Pin at least one rules version";
 export const createBoardStateSchema = z
   .object({
     title: boardStateFieldRules.title,
-    answer: boardStateFieldRules.answer.nullish(),
     coreRulesVersion: boardStateFieldRules.rulesVersion,
     tournamentRulesVersion: boardStateFieldRules.rulesVersion,
     document: boardDocumentSchema,
@@ -29,7 +27,6 @@ export const createBoardStateSchema = z
 
 export const updateBoardStateSchema = z.object({
   title: boardStateFieldRules.title.optional(),
-  answer: boardStateFieldRules.answer.nullish(),
   coreRulesVersion: boardStateFieldRules.rulesVersion.optional(),
   tournamentRulesVersion: boardStateFieldRules.rulesVersion.optional(),
   document: boardDocumentSchema.optional(),
@@ -38,7 +35,6 @@ export const updateBoardStateSchema = z.object({
 export const boardStateResponseSchema = z.object({
   id: z.string(),
   title: z.string(),
-  answer: z.string().nullable(),
   coreRulesVersion: z.string().nullable(),
   tournamentRulesVersion: z.string().nullable(),
   document: boardDocumentSchema,

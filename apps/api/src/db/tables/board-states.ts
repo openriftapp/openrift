@@ -7,7 +7,6 @@ export interface BoardStatesTable {
   id: Generated<string>;
   userId: string;
   title: string;
-  answer: string | null;
   coreRulesVersion: string | null;
   tournamentRulesVersion: string | null;
   document: BoardDocument;

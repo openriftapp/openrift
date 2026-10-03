@@ -25,7 +25,7 @@ describe("rule-examples-store", () => {
     const { toggle, setExamplesByRule } = useRuleExamplesStore.getState();
     toggle("100.1");
     setExamplesByRule(
-      new Map([["100.1", [{ shareToken: "tok", title: "Example", answer: null }]]]),
+      new Map([["100.1", [{ shareToken: "tok", title: "Example", summary: null }]]]),
     );
     const state = useRuleExamplesStore.getState();
     expect(state.examplesByRule.get("100.1")).toHaveLength(1);

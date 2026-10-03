@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_app/board/$token")({
       siteUrl,
       title: data.boardState.title,
       description:
-        data.boardState.answer ?? `A Riftbound board state by ${data.owner.displayName}.`,
+        data.boardState.summary ?? `A Riftbound board state by ${data.owner.displayName}.`,
       path,
       ogImage: boardStateShareImageUrl(
         siteUrl,

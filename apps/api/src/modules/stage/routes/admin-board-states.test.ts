@@ -38,7 +38,6 @@ function dbRow(overrides: object = {}) {
     id: BOARD_ID,
     userId: "u1",
     title: "Stunned defender",
-    answer: null,
     coreRulesVersion: "2026-07-16",
     tournamentRulesVersion: null,
     document: emptyBoardDocument(),

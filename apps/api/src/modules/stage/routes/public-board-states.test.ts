@@ -32,7 +32,6 @@ function row(overrides: object = {}) {
     id: "board-1",
     userId: "user-1",
     title: "Stunned defender",
-    answer: null,
     coreRulesVersion: "2026-07-16",
     tournamentRulesVersion: null,
     document: emptyBoardDocument(),

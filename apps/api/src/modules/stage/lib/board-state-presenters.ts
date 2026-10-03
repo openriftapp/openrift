@@ -1,3 +1,4 @@
+import { boardStateSummary } from "@openrift/shared/board-state";
 import type { AdminBoardState } from "@openrift/shared/contracts/admin/board-states";
 import type {
   BoardStateResponse,
@@ -11,7 +12,6 @@ export function toBoardState(row: BoardState): BoardStateResponse {
   return {
     id: row.id,
     title: row.title,
-    answer: row.answer,
     coreRulesVersion: row.coreRulesVersion,
     tournamentRulesVersion: row.tournamentRulesVersion,
     document: row.document,
@@ -27,7 +27,7 @@ export function toPublicBoardState(row: BoardState): PublicBoardStateResponse {
   return {
     id: row.id,
     title: row.title,
-    answer: row.answer,
+    summary: boardStateSummary(row.document),
     coreRulesVersion: row.coreRulesVersion,
     tournamentRulesVersion: row.tournamentRulesVersion,
     document: row.document,

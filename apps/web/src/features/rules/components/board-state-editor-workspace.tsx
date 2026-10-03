@@ -89,7 +89,6 @@ function toCardRef(cardId: string, card: Card): BoardCardRef {
 
 export interface EditorMeta {
   title: string;
-  answer: string;
   coreRulesVersion: string | null;
   tournamentRulesVersion: string | null;
 }

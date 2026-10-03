@@ -14,7 +14,6 @@ function makeRow(overrides: Partial<BoardState> = {}): BoardState {
     id: "b0000000-0001-4000-a000-000000000001",
     userId: "a0000000-0001-4000-a000-000000000001",
     title: "Does a stunned unit hold the battlefield?",
-    answer: "No.",
     coreRulesVersion: "2026-07-16",
     tournamentRulesVersion: null,
     document: emptyBoardDocument(),
@@ -32,7 +31,6 @@ describe("toBoardState", () => {
     expect(toBoardState(makeRow())).toEqual({
       id: "b0000000-0001-4000-a000-000000000001",
       title: "Does a stunned unit hold the battlefield?",
-      answer: "No.",
       coreRulesVersion: "2026-07-16",
       tournamentRulesVersion: null,
       document: emptyBoardDocument(),
@@ -51,6 +49,21 @@ describe("toPublicBoardState", () => {
     expect(result).not.toHaveProperty("shareToken");
     expect(result).not.toHaveProperty("isPublic");
     expect(result).not.toHaveProperty("userId");
+  });
+
+  it("summarises the board with its last step's caption", () => {
+    const document = emptyBoardDocument();
+    const steps = [
+      { caption: "Setup.", pieces: [], chain: [], arrows: [] },
+      { caption: "The defender holds, see [[460.3]].", pieces: [], chain: [], arrows: [] },
+    ];
+    expect(toPublicBoardState(makeRow({ document: { ...document, steps } })).summary).toBe(
+      "The defender holds, see § 460.3.",
+    );
+  });
+
+  it("has no summary when the last caption is empty", () => {
+    expect(toPublicBoardState(makeRow()).summary).toBeNull();
   });
 });
 

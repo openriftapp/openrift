@@ -5,7 +5,6 @@ import type {
   BoardStateShareResponse,
 } from "@openrift/shared/types/api/board-state";
 import type { RuleKind } from "@openrift/shared/types/api/rules";
-import { trimToNull } from "@openrift/shared/utils";
 import { implement } from "@orpc/server";
 
 import { assertFound } from "../../../lib/assertions.js";
@@ -59,7 +58,6 @@ export const boardStatesRouter = {
     }
     const row = await context.repos.boardStates.create(context.userId, {
       title: input.title,
-      answer: trimToNull(input.answer ?? ""),
       coreRulesVersion: input.coreRulesVersion,
       tournamentRulesVersion: input.tournamentRulesVersion,
       document: input.document,
@@ -68,7 +66,7 @@ export const boardStatesRouter = {
   }),
 
   update: os.update.handler(async ({ input, context, errors }): Promise<BoardStateResponse> => {
-    const { id, title, answer, coreRulesVersion, tournamentRulesVersion, document } = input;
+    const { id, title, coreRulesVersion, tournamentRulesVersion, document } = input;
     const { boardStates } = context.repos;
 
     const current = await boardStates.getByIdForUser(id, context.userId);
@@ -78,9 +76,6 @@ export const boardStatesRouter = {
     const values: Partial<BoardStateValues> = {};
     if (title !== undefined) {
       values.title = title;
-    }
-    if (answer !== undefined) {
-      values.answer = trimToNull(answer ?? "");
     }
     if (coreRulesVersion !== undefined) {
       values.coreRulesVersion = coreRulesVersion;

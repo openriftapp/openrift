@@ -5,7 +5,7 @@ import { z } from "zod";
 export const publicBoardStateResponseSchema = z.object({
   id: z.string(),
   title: z.string(),
-  answer: z.string().nullable(),
+  summary: z.string().nullable(),
   coreRulesVersion: z.string().nullable(),
   tournamentRulesVersion: z.string().nullable(),
   document: boardDocumentSchema,

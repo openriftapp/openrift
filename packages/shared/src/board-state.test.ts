@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { BoardDocument, BoardPiece } from "./board-state.js";
 import {
   boardDocumentSchema,
+  boardStateSummary,
   CAPTION_REF_PATTERN,
   captionRefFromMatch,
   emptyBoardDocument,
@@ -227,5 +228,46 @@ describe("extractRuleRefs", () => {
 
   it("ignores malformed references", () => {
     expect(extractRuleRefs("[[abc]] [460.3] [[ 460 ]] [[x:1]]")).toEqual([]);
+  });
+});
+
+describe("boardStateSummary", () => {
+  function withCaptions(...captions: string[]): BoardDocument {
+    const drake = piece({
+      id: "p1",
+      card: { cardId: "019a0000-0000-7000-8000-000000000001", name: "Mountain Drake" },
+    });
+    const token = piece({ id: "p2", kind: "token" });
+    return {
+      ...emptyBoardDocument(),
+      steps: captions.map((caption) => ({
+        caption,
+        pieces: [drake, token],
+        chain: [],
+        arrows: [],
+      })),
+    };
+  }
+
+  it("uses the last step's caption", () => {
+    expect(boardStateSummary(withCaptions("Setup.", "The Drake survives."))).toBe(
+      "The Drake survives.",
+    );
+  });
+
+  it("resolves card and rule references to plain text", () => {
+    expect(
+      boardStateSummary(
+        withCaptions("[[card:p1]] and a [[card:p2]] survive, see [[460.3]] and [[t:118]]."),
+      ),
+    ).toBe("Mountain Drake and a Token survive, see § 460.3 and § T 118.");
+  });
+
+  it("drops references to pieces that are not in the last step", () => {
+    expect(boardStateSummary(withCaptions("[[card:p9]] left.\n\nDone."))).toBe("left. Done.");
+  });
+
+  it("returns null for an empty last caption", () => {
+    expect(boardStateSummary(withCaptions("Setup.", "  \n "))).toBeNull();
   });
 });

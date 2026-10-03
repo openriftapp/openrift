@@ -278,3 +278,34 @@ export function extractRuleRefs(text: string): RuleRef[] {
   }
   return refs;
 }
+
+const PIECE_KIND_NAME: Record<PieceKind, string> = {
+  unit: "Unit",
+  spell: "Spell",
+  gear: "Gear",
+  rune: "Rune",
+  legend: "Legend",
+  token: "Token",
+};
+
+export function boardStateSummary(document: BoardDocument): string | null {
+  const step = document.steps.at(-1);
+  if (!step) {
+    return null;
+  }
+  let text = "";
+  let cursor = 0;
+  for (const match of step.caption.matchAll(CAPTION_REF_PATTERN)) {
+    const ref = captionRefFromMatch(match);
+    text += step.caption.slice(cursor, match.index);
+    cursor = match.index + match[0].length;
+    if (ref?.kind === "rule") {
+      text += `§ ${ref.ref.kind === "tournament" ? "T " : ""}${ref.ref.ruleNumber}`;
+    } else if (ref?.kind === "card") {
+      const piece = step.pieces.find((candidate) => candidate.id === ref.pieceId);
+      text += piece ? (piece.card?.name ?? PIECE_KIND_NAME[piece.kind]) : "";
+    }
+  }
+  text = (text + step.caption.slice(cursor)).replaceAll(/\s+/gu, " ").trim();
+  return text === "" ? null : text;
+}

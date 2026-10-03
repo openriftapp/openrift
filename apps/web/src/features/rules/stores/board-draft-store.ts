@@ -5,7 +5,6 @@ import { persist } from "zustand/middleware";
 
 export interface BoardDraft {
   title: string;
-  answer: string;
   coreRulesVersion: string | null;
   tournamentRulesVersion: string | null;
   document: BoardDocument;
@@ -32,7 +31,6 @@ export function parseBoardDraft(value: unknown): BoardDraft | null {
   }
   return {
     title: raw.title,
-    answer: typeof raw.answer === "string" ? raw.answer : "",
     coreRulesVersion: stringOrNull(raw.coreRulesVersion),
     tournamentRulesVersion: stringOrNull(raw.tournamentRulesVersion),
     document,

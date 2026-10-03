@@ -940,7 +940,6 @@ CREATE TABLE public.board_states (
     id uuid DEFAULT uuidv7() NOT NULL,
     user_id text NOT NULL,
     title text NOT NULL,
-    answer text,
     core_rules_version text,
     tournament_rules_version text,
     document jsonb NOT NULL,
