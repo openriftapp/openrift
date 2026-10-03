@@ -4,9 +4,10 @@ import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Pressable } from "@/components/ui/pressable";
-import { PLAYER_COLOR, pieceName } from "@/features/rules/components/board-view";
 import { splitCaption } from "@/features/rules/lib/board-caption";
+import { pieceName } from "@/features/rules/lib/board-labels";
 import { pieceNumerals } from "@/features/rules/lib/board-layout";
+import { PLAYER_COLOR } from "@/features/rules/lib/board-style";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 

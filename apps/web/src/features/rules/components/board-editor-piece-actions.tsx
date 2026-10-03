@@ -26,8 +26,8 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { pieceName } from "@/features/rules/components/board-view";
 import type { BoardPieceActions } from "@/features/rules/hooks/use-board-editor-piece-actions";
+import { pieceName } from "@/features/rules/lib/board-labels";
 import { useCardModifierKeywords } from "@/hooks/use-keyword-styles";
 import { m } from "@/paraglide/messages.js";
 

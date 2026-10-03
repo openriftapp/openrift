@@ -40,19 +40,16 @@ import type {
 import {
   BattlefieldCardFrame,
   BoardView,
-  CARD_CORNER_STYLE,
   CARD_SLOT_CLASS,
   CardGhost,
   cardImage,
-  describeArrow,
-  describeZone,
-  LANDSCAPE_CORNER_STYLE,
-  pieceName,
 } from "@/features/rules/components/board-view";
 import { useBoardEditorPieceActions } from "@/features/rules/hooks/use-board-editor-piece-actions";
 import { useBoardEditorShortcuts } from "@/features/rules/hooks/use-board-editor-shortcuts";
 import type { NewPieceDragData } from "@/features/rules/lib/board-editor-drag";
+import { describeArrow, describeZone, pieceName } from "@/features/rules/lib/board-labels";
 import { pieceKindForCardTypes, sameZone, zoneCardRule } from "@/features/rules/lib/board-layout";
+import { CARD_CORNER_STYLE, LANDSCAPE_CORNER_STYLE } from "@/features/rules/lib/board-style";
 import { useBoardEditorStore } from "@/features/rules/stores/board-editor-store";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { asDragData } from "@/lib/dnd-data";

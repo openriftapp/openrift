@@ -56,6 +56,15 @@ body,
   }
 }
 
+:root {
+  --board-card-w: 5.5rem;
+}
+@media (min-width: 40rem) {
+  :root {
+    --board-card-w: 7rem;
+  }
+}
+
 /* Interior gap beside a persistent sidebar. The resolved gutters are
    variables so a sidebar column can narrow the gutter every utility below reads. */
 :root {

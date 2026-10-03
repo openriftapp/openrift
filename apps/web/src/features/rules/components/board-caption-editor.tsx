@@ -7,8 +7,9 @@ import { Pressable } from "@/components/ui/pressable";
 import { Textarea } from "@/components/ui/textarea";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { frontImageId } from "@/features/cards/lib/card-meta";
-import { PLAYER_COLOR, describeZone, pieceName } from "@/features/rules/components/board-view";
+import { describeZone, pieceName } from "@/features/rules/lib/board-labels";
 import { pieceNumerals } from "@/features/rules/lib/board-layout";
+import { PLAYER_COLOR } from "@/features/rules/lib/board-style";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 

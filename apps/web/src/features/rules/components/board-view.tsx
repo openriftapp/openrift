@@ -1,6 +1,5 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import type {
-  BoardArrow,
   BoardCardRef,
   BoardDocument,
   BoardPiece,
@@ -15,16 +14,19 @@ import { DropletIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Suspense, useRef } from "react";
 
-import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { Pressable } from "@/components/ui/pressable";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { frontImageId } from "@/features/cards/lib/card-meta";
 import type { UseCardsResult } from "@/features/cards/lib/catalog-query";
 import { ArrowOverlay, pieceLayoutSignature } from "@/features/rules/components/board-arrows";
+import { BoardChainRow } from "@/features/rules/components/board-chain-row";
+import { EmptyZoneStrip, ZoneLabel } from "@/features/rules/components/board-zone-labels";
+import { STACK_LABEL, ZONE_LABEL, pieceName } from "@/features/rules/lib/board-labels";
 import type { SeatSlot } from "@/features/rules/lib/board-layout";
 import {
   arrowZoneKey,
+  boardWidthUnits,
+  occupiedZones,
   pieceNumerals,
   piecesAt,
   seatSlots,
@@ -33,47 +35,23 @@ import {
   grantedLegendSlots,
   zoneAcceptsMore,
 } from "@/features/rules/lib/board-layout";
+import {
+  CARD_CORNER_STYLE,
+  CARD_ROW_HEIGHT,
+  CARD_TURNED,
+  CARD_UPRIGHT,
+  LANDSCAPE_CORNER_STYLE,
+  PLAYER_COLOR,
+  seatInk,
+  zoneEdge,
+} from "@/features/rules/lib/board-style";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useCardModifierKeywords, useKeywordStyles } from "@/hooks/use-keyword-styles";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { getLocale } from "@/paraglide/runtime.js";
 
-export const PLAYER_COLOR: Record<BoardPlayer, string> = {
-  A: "oklch(0.55 0.08 195)",
-  B: "oklch(0.6 0.1 75)",
-  C: "oklch(0.55 0.1 330)",
-  D: "oklch(0.55 0.1 140)",
-};
-
 const UNKNOWN_KEYWORD = { color: "#707070", darkText: false };
-
-const ZONE_LABEL: Record<PlayerZoneKind, () => string> = {
-  base: m.board_states_zone_base,
-  legend: m.board_states_zone_legend,
-  champion: m.board_states_zone_champion,
-  runes: m.board_states_zone_runes,
-  hand: m.board_states_zone_hand,
-  trash: m.board_states_zone_trash,
-};
-
-const STACK_LABEL = {
-  runeDeck: m.board_states_zone_rune_deck,
-  deck: m.board_states_zone_main_deck,
-} as const;
-
-/** Card frame, upright and on its side; the outer box keeps the rotated footprint. */
-const CARD_UPRIGHT = "h-[7.7rem] w-22 sm:h-[9.8rem] sm:w-28";
-const CARD_TURNED = "h-22 w-[7.7rem] sm:h-28 sm:w-[9.8rem]";
-/** The card browser's corner radius, so every mini card rounds in scale with its size. */
-export const CARD_CORNER_STYLE = { borderRadius: CARD_BORDER_RADIUS } as const;
-/** The same radius on a card lying sideways (battlefields). */
-export const LANDSCAPE_CORNER_STYLE = { borderRadius: "3.6% / 5%" } as const;
-
-/** Zone edges read as chalk on felt, tinted towards the seat's colour. */
-function zoneEdge(owner: BoardPlayer): string {
-  return `color-mix(in oklab, ${PLAYER_COLOR[owner]} 45%, oklch(1 0 0 / 0.5))`;
-}
 
 interface BoardInteraction {
   selectedPieceId?: string | null;
@@ -142,6 +120,7 @@ const PLAIN_ART: BoardArt = {
 interface BoardViewProps extends BoardInteraction {
   document: BoardDocument;
   step: BoardStep;
+  viewer?: boolean;
   className?: string;
 }
 
@@ -239,29 +218,56 @@ interface BoardTableProps extends BoardViewProps {
   art: BoardArt;
 }
 
-function BoardTable({ document, step, className, art, ...interaction }: BoardTableProps) {
+function BoardTable({
+  document,
+  step,
+  viewer = false,
+  className,
+  art,
+  ...interaction
+}: BoardTableProps) {
   const seats = seatsFor(document.playerCount);
   const slots = seatSlots(document.zones);
   const numerals = interaction.pieceNumerals === false ? new Map() : pieceNumerals(step.pieces);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { onChainEntryRemove } = interaction;
   const context: BoardContext = {
     step,
     art,
     numerals,
     interaction,
     zones: document.zones,
-    seatMarksOnBattlefields: slots.length === 0,
+    viewer,
+    occupied: viewer ? occupiedZones(document.steps) : null,
   };
+  const units = viewer
+    ? boardWidthUnits(document.steps, document.zones, seats, document.battlefields.length)
+    : 0;
   return (
     <div
       className={cn(
         "bg-board-felt border-board-felt-edge overflow-x-auto rounded-lg border-2 p-2 text-white sm:p-3",
+        viewer && "@container",
         className,
       )}
+      style={
+        viewer
+          ? ({
+              "--board-card-w": `clamp(5.5rem, calc((100cqi - 2rem) / ${units.toFixed(2)}), 9rem)`,
+            } as React.CSSProperties)
+          : undefined
+      }
     >
       <div className="flex min-w-0 gap-2 sm:gap-3">
         <div ref={containerRef} className="relative flex min-w-0 flex-1 flex-col gap-2 sm:gap-3">
-          {document.zones.chain && <ChainRow context={context} />}
+          {document.zones.chain && !viewer && (
+            <BoardChainRow
+              chain={step.chain}
+              images={art.chainImages}
+              onRemove={onChainEntryRemove}
+              renderAdd={interaction.renderChainAdd}
+            />
+          )}
           <SeatSide players={seats.top} slots={slots} top context={context} />
           <BattlefieldRow battlefields={document.battlefields} seats={seats} context={context} />
           <SeatSide players={seats.bottom} slots={slots} context={context} />
@@ -278,8 +284,8 @@ function BoardTable({ document, step, className, art, ...interaction }: BoardTab
 
 interface BoardContext {
   step: BoardStep;
-  /** No seat zones are shown, so the seat letters move onto the battlefield halves. */
-  seatMarksOnBattlefields: boolean;
+  viewer: boolean;
+  occupied: Set<string> | null;
   art: BoardArt;
   numerals: Map<string, number>;
   interaction: BoardInteraction;
@@ -312,16 +318,19 @@ function SeatSide({
             key={player}
             className={cn("flex min-w-0 gap-1.5", top ? "flex-col-reverse" : "flex-col")}
           >
-            {slots.length > 0 && (
+            {(slots.length > 0 || (context.viewer && context.zones.hand)) && (
               <div className="relative flex min-w-0 flex-wrap items-stretch gap-1.5">
-                <SeatMark player={player} />
-
                 {slots.map((slot) => (
                   <SeatSlotCell key={slotKey(slot)} slot={slot} owner={player} context={context} />
                 ))}
+                {context.viewer && context.zones.hand && (
+                  <HandStrip owner={player} context={context} />
+                )}
               </div>
             )}
-            {context.zones.hand && <HandStrip owner={player} context={context} />}
+            {!context.viewer && context.zones.hand && (
+              <HandStrip owner={player} context={context} />
+            )}
           </div>
         ))}
       </div>
@@ -329,17 +338,8 @@ function SeatSide({
   );
 }
 
-/** The seat's letter, faint and large, behind its zones. */
-function SeatMark({ player }: { player: BoardPlayer }) {
-  return (
-    <span
-      aria-hidden
-      className="font-heading pointer-events-none absolute inset-0 flex items-center justify-end pr-4 text-7xl font-bold select-none"
-      style={{ color: PLAYER_COLOR[player], opacity: 0.4 }}
-    >
-      {player}
-    </span>
-  );
+function isOccupied(context: BoardContext, zone: BoardZoneRef, owner: BoardPlayer): boolean {
+  return context.occupied === null || context.occupied.has(arrowZoneKey(zone, owner));
 }
 
 function SeatSlotCell({
@@ -370,7 +370,7 @@ function DeckStack({
 }) {
   return (
     <div className={cn("flex shrink-0 gap-1", mirrored ? "flex-row-reverse" : "flex-row")}>
-      <ZoneLabel text={STACK_LABEL[stack]()} mirrored={mirrored} />
+      <ZoneLabel text={STACK_LABEL[stack]()} owner={owner} mirrored={mirrored} />
       <div
         className={cn("bg-board-felt-edge relative min-w-0 overflow-hidden border", CARD_UPRIGHT)}
         style={{ ...CARD_CORNER_STYLE, borderColor: zoneEdge(owner) }}
@@ -383,19 +383,6 @@ function DeckStack({
         />
       </div>
     </div>
-  );
-}
-
-function ZoneLabel({ text, mirrored }: { text: string; mirrored?: boolean }) {
-  return (
-    <span
-      className={cn(
-        "text-2xs shrink-0 self-stretch truncate text-white/50 uppercase [writing-mode:vertical-rl]",
-        mirrored ? "text-left" : "rotate-180 text-left",
-      )}
-    >
-      {text}
-    </span>
   );
 }
 
@@ -533,6 +520,16 @@ function PlayerZone({
   context: BoardContext;
 }) {
   const zone: BoardZoneRef = { kind };
+  if (!isOccupied(context, zone, owner)) {
+    return (
+      <EmptyZoneStrip
+        zone={zone}
+        owner={owner}
+        label={ZONE_LABEL[kind]()}
+        className={cn("self-stretch", kind === "base" && "flex-1")}
+      />
+    );
+  }
   return (
     <ZoneFrame
       zone={zone}
@@ -541,14 +538,15 @@ function PlayerZone({
       mirrored={mirrored}
       fill={kind === "base"}
       className={cn(
-        "min-h-[9rem] border border-dashed sm:min-h-[11.2rem]",
-        kind === "base" && "min-w-80",
-        kind === "runes" && "min-w-[13rem] sm:min-w-[16rem]",
-        kind !== "base" && kind !== "runes" && "w-auto min-w-[7.2rem] sm:min-w-[8.8rem]",
+        "min-h-[calc(var(--board-card-w)*1.4+1.4rem)] border",
+        context.viewer ? "bg-black/15" : "border-dashed",
+        kind === "base" && "min-w-[calc(var(--board-card-w)*2.9)]",
+        kind === "runes" && "min-w-[calc(var(--board-card-w)*2.3)]",
+        kind !== "base" && kind !== "runes" && "w-auto min-w-[calc(var(--board-card-w)+1.8rem)]",
       )}
       style={{ borderColor: zoneEdge(owner) }}
     >
-      <ZoneLabel text={ZONE_LABEL[kind]()} mirrored={mirrored} />
+      <ZoneLabel text={ZONE_LABEL[kind]()} owner={owner} mirrored={mirrored} />
       <PieceRow
         pieces={piecesAt(context.step, zone, owner)}
         mirrored={mirrored}
@@ -579,6 +577,16 @@ function HandStrip({
 }) {
   const zone: BoardZoneRef = { kind: "hand" };
   const pieces = piecesAt(context.step, zone, owner);
+  if (!isOccupied(context, zone, owner)) {
+    return (
+      <EmptyZoneStrip
+        zone={zone}
+        owner={owner}
+        label={ZONE_LABEL.hand()}
+        className="flex-1 self-stretch"
+      />
+    );
+  }
   return (
     <ZoneFrame
       zone={zone}
@@ -586,10 +594,13 @@ function HandStrip({
       interaction={context.interaction}
       mirrored={mirrored}
       fill
-      className="min-h-[8rem] items-center border border-dashed"
+      className={cn(
+        "min-h-[calc(var(--board-card-w)*1.4+0.5rem)] items-center border",
+        context.viewer ? "min-w-[calc(var(--board-card-w)*2.9)] bg-black/15" : "border-dashed",
+      )}
       style={{ borderColor: zoneEdge(owner) }}
     >
-      <ZoneLabel text={ZONE_LABEL.hand()} mirrored={mirrored} />
+      <ZoneLabel text={ZONE_LABEL.hand()} owner={owner} mirrored={mirrored} />
       <div className="flex min-h-0 flex-1 flex-wrap items-end justify-center">
         {pieces.map((piece, index) => (
           <span
@@ -618,14 +629,19 @@ function BattlefieldRow({
   if (battlefields.length === 0) {
     return null;
   }
+  const players = [...seats.top, ...seats.bottom];
+  const columns = battlefields.map((_, index) =>
+    players.some((player) => isOccupied(context, { kind: "battlefield", index }, player))
+      ? "minmax(0, 1fr)"
+      : "auto",
+  );
   return (
     <div
-      className="grid grid-cols-1 gap-2 sm:[grid-template-columns:var(--battlefield-cols)] sm:gap-3"
-      style={
-        {
-          "--battlefield-cols": `repeat(${battlefields.length}, minmax(0, 1fr))`,
-        } as React.CSSProperties
-      }
+      className={cn(
+        "grid grid-cols-1 gap-2 sm:[grid-template-columns:var(--battlefield-cols)] sm:gap-3",
+        context.viewer && "sm:items-center",
+      )}
+      style={{ "--battlefield-cols": columns.join(" ") } as React.CSSProperties}
     >
       {battlefields.map((battlefield, index) => (
         <BattlefieldColumn
@@ -654,31 +670,51 @@ function BattlefieldColumn({
 }) {
   const zone: BoardZoneRef = { kind: "battlefield", index };
   const image = context.art.battlefieldImages.get(index);
-  const half = (players: BoardPlayer[]) => (
-    <div
-      className="grid h-[9rem] gap-1.5 sm:h-[11.2rem]"
-      style={{ gridTemplateColumns: `repeat(${Math.max(1, players.length)}, minmax(0, 1fr))` }}
-    >
-      {players.map((player) => (
-        <ZoneFrame
-          key={player}
-          zone={zone}
-          owner={player}
-          interaction={context.interaction}
-          fill
-          className="relative items-center justify-center border border-dashed"
-          style={{ borderColor: zoneEdge(player) }}
-        >
-          {context.seatMarksOnBattlefields && <SeatMark player={player} />}
-          <PieceRow
-            pieces={piecesAt(context.step, zone, player)}
-            context={context}
-            trailing={context.interaction.renderZoneAdd?.(zone, player)}
-          />
-        </ZoneFrame>
-      ))}
-    </div>
-  );
+  const half = (players: BoardPlayer[]) => {
+    const columns = {
+      gridTemplateColumns: `repeat(${Math.max(1, players.length)}, minmax(0, 1fr))`,
+    };
+    if (!players.some((player) => isOccupied(context, zone, player))) {
+      return (
+        <div className="grid gap-1.5" style={columns}>
+          {players.map((player) => (
+            <EmptyZoneStrip key={player} zone={zone} owner={player} />
+          ))}
+        </div>
+      );
+    }
+    return (
+      <div className={cn("grid gap-1.5", CARD_ROW_HEIGHT)} style={columns}>
+        {players.map((player) => (
+          <ZoneFrame
+            key={player}
+            zone={zone}
+            owner={player}
+            interaction={context.interaction}
+            fill
+            className={cn(
+              "relative items-center justify-center border",
+              context.viewer ? "bg-black/15" : "border-dashed",
+            )}
+            style={{ borderColor: zoneEdge(player) }}
+          >
+            <span
+              aria-hidden
+              className="text-2xs pointer-events-none absolute top-1 left-1.5 font-semibold"
+              style={{ color: seatInk(player) }}
+            >
+              {player}
+            </span>
+            <PieceRow
+              pieces={piecesAt(context.step, zone, player)}
+              context={context}
+              trailing={context.interaction.renderZoneAdd?.(zone, player)}
+            />
+          </ZoneFrame>
+        ))}
+      </div>
+    );
+  };
   return (
     <div className="flex min-w-0 flex-col gap-1.5 rounded-lg bg-black/25 p-1.5 ring-1 ring-white/10">
       {half(seats.top)}
@@ -703,21 +739,20 @@ export function BattlefieldCardFrame({
   cardName: string | null;
   image?: string;
 }) {
+  const blank = image === undefined && cardName === null;
   return (
     <span
       className={cn(
-        "border-card-edge relative flex min-w-0 items-center justify-center overflow-hidden border bg-white/90 px-2 text-center shadow-md",
+        "relative flex min-w-0 items-center justify-center overflow-hidden border px-2 text-center",
+        blank
+          ? "border-white/25 bg-black/30 text-white/60"
+          : "border-card-edge bg-white/90 text-black shadow-md",
         CARD_TURNED,
       )}
       style={LANDSCAPE_CORNER_STYLE}
     >
       {image === undefined ? (
-        <span
-          className={cn(
-            "font-card leading-tight font-semibold",
-            cardName === null ? "text-black/50" : "text-black",
-          )}
-        >
+        <span className={cn("leading-tight", blank ? "text-xs" : "font-card font-semibold")}>
           {cardName ?? m.board_states_battlefield({ number: index + 1 })}
         </span>
       ) : (
@@ -729,7 +764,9 @@ export function BattlefieldCardFrame({
 
 /** Pulls a stacked card over the previous one so the same strip of it stays visible, upright or turned. */
 function overlapMargin(previousTurned: boolean): string {
-  return previousTurned ? "-ml-[5.9rem] sm:-ml-[7.6rem]" : "-ml-[3.7rem] sm:-ml-[4.8rem]";
+  return previousTurned
+    ? "-ml-[calc(var(--board-card-w)*1.08)]"
+    : "-ml-[calc(var(--board-card-w)*0.68)]";
 }
 
 function PieceRow({
@@ -768,19 +805,6 @@ function PieceRow({
       )}
     </div>
   );
-}
-
-const PIECE_KIND_LABEL = {
-  unit: m.board_states_piece_unit,
-  spell: m.board_states_piece_spell,
-  gear: m.board_states_piece_gear,
-  rune: m.board_states_piece_rune,
-  legend: m.board_states_piece_legend,
-  token: m.board_states_piece_token,
-} as const;
-
-export function pieceName(piece: BoardPiece): string {
-  return piece.card?.name ?? PIECE_KIND_LABEL[piece.kind]();
 }
 
 interface PieceProps {
@@ -995,74 +1019,4 @@ function KeywordBadgeChip({ keyword, art }: { keyword: string; art: BoardArt }) 
       </span>
     </span>
   );
-}
-
-function ChainRow({ context }: { context: BoardContext }) {
-  const { step, art, interaction } = context;
-  return (
-    <div className="flex min-w-0 flex-col gap-1 rounded-lg bg-black/25 p-1.5 ring-1 ring-white/10">
-      <span className="text-2xs text-white/50 uppercase">
-        {m.board_states_chain()} · {m.board_states_chain_order()}
-      </span>
-      <div className="flex flex-wrap items-end gap-1.5">
-        {step.chain.map((entry, index) => (
-          <span
-            // oxlint-disable-next-line react/no-array-index-key -- chain entries are positional
-            key={index}
-            className={cn("bg-card border-card-edge relative overflow-hidden border", CARD_UPRIGHT)}
-            style={CARD_CORNER_STYLE}
-            title={entry.card.name}
-          >
-            {art.chainImages.has(index) ? (
-              <img src={art.chainImages.get(index)} alt="" className="size-full object-cover" />
-            ) : (
-              <span className="font-card text-card-foreground flex size-full items-center justify-center p-1 text-center text-xs leading-tight">
-                {entry.card.name}
-              </span>
-            )}
-            <span
-              className="text-2xs absolute right-0.5 bottom-0 font-semibold"
-              style={{
-                color: PLAYER_COLOR[entry.owner],
-                textShadow: "0 1px 2px rgb(0 0 0 / 0.85)",
-              }}
-            >
-              {entry.owner}
-            </span>
-            {interaction.onChainEntryRemove && (
-              <span className="absolute top-0.5 left-0.5 rounded-full bg-black/70 text-white">
-                <ChipRemoveButton
-                  aria-label={m.board_states_editor_remove_chain()}
-                  className="ml-0 flex size-4 items-center justify-center"
-                  onClick={() => interaction.onChainEntryRemove?.(index)}
-                />
-              </span>
-            )}
-          </span>
-        ))}
-        {interaction.renderChainAdd?.()}
-      </div>
-    </div>
-  );
-}
-
-export function describeZone(zone: BoardZoneRef, owner?: BoardPlayer): string {
-  if (zone.kind === "battlefield") {
-    return m.board_states_battlefield({ number: zone.index + 1 });
-  }
-  return owner ? `${ZONE_LABEL[zone.kind]()} ${owner}` : ZONE_LABEL[zone.kind]();
-}
-
-export function describeArrow(arrow: BoardArrow, step: BoardStep): string {
-  const nameOf = (id: string) => {
-    const piece = step.pieces.find((candidate) => candidate.id === id);
-    return piece ? `${pieceName(piece)} (${piece.owner})` : id;
-  };
-  const kind =
-    arrow.kind === "move"
-      ? m.board_states_editor_arrow_move()
-      : m.board_states_editor_arrow_target();
-  const target =
-    "piece" in arrow.to ? nameOf(arrow.to.piece) : describeZone(arrow.to.zone, arrow.to.owner);
-  return `${kind}: ${nameOf(arrow.from)} → ${target}`;
 }

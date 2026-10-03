@@ -9,8 +9,8 @@ export interface BoardEditorShortcutHandlers {
   onMight?: (delta: number) => void;
   onArrow?: (kind: "move" | "target") => void;
   onRemove?: () => void;
-  onEscape: () => void;
-  onUndo: () => void;
+  onEscape?: () => void;
+  onUndo?: () => void;
   onStep: (delta: number) => void;
 }
 
@@ -39,7 +39,7 @@ export function handleBoardEditorKey(
   }
   const modified = event.ctrlKey || event.metaKey;
   if (modified) {
-    if (event.key.toLowerCase() === "z" && !event.shiftKey && !event.altKey) {
+    if (event.key.toLowerCase() === "z" && !event.shiftKey && !event.altKey && handlers.onUndo) {
       handlers.onUndo();
       return true;
     }
@@ -48,7 +48,7 @@ export function handleBoardEditorKey(
   if (event.altKey) {
     return false;
   }
-  if (event.key === "Escape") {
+  if (event.key === "Escape" && handlers.onEscape) {
     handlers.onEscape();
     return true;
   }

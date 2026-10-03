@@ -32,10 +32,11 @@ import { PreferredPrintingThumbnail } from "@/features/cards/components/printing
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCatalogCardSearch } from "@/features/cards/hooks/use-catalog-card-search";
 import { pieceMarks } from "@/features/rules/components/board-editor-piece-actions";
-import { describeZone, PLAYER_COLOR, pieceName } from "@/features/rules/components/board-view";
 import type { BoardPieceActions } from "@/features/rules/hooks/use-board-editor-piece-actions";
 import type { NewPieceDragData } from "@/features/rules/lib/board-editor-drag";
+import { describeZone, pieceName } from "@/features/rules/lib/board-labels";
 import { pieceKindForCardTypes } from "@/features/rules/lib/board-layout";
+import { PLAYER_COLOR } from "@/features/rules/lib/board-style";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 

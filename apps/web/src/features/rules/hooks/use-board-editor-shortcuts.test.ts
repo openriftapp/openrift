@@ -92,6 +92,13 @@ describe("handleBoardEditorKey", () => {
     expect(handlers.onEscape).toHaveBeenCalledTimes(1);
   });
 
+  it("leaves escape and undo to the browser when no handler is given", () => {
+    handlers = { hasSelection: false, onStep: vi.fn() };
+    expect(press({ key: "Escape" })).toBe(false);
+    expect(press({ key: "z", ctrlKey: true })).toBe(false);
+    expect(press({ key: "ArrowRight" })).toBe(true);
+  });
+
   it("ignores piece shortcuts without a selection", () => {
     handlers.hasSelection = false;
     expect(press({ key: "e" })).toBe(false);

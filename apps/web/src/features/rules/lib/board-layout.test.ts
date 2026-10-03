@@ -5,7 +5,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   arrowZoneKey,
+  boardWidthUnits,
+  longestChain,
   nextPieceId,
+  occupiedZones,
   pieceKindForCardTypes,
   pieceNumerals,
   piecesAt,
@@ -250,5 +253,66 @@ describe("pieceNumerals", () => {
       ["p1", 1],
       ["p3", 2],
     ]);
+  });
+});
+
+function stepWith(pieces: BoardPiece[], chainLength = 0): BoardStep {
+  const card = { cardId: "019a0000-0000-7000-8000-000000000001", name: "Facebreaker" };
+  return {
+    caption: "",
+    pieces,
+    chain: Array.from({ length: chainLength }, () => ({ owner: "A" as const, card })),
+    arrows: [],
+  };
+}
+
+describe("occupiedZones", () => {
+  it("collects every zone and owner that holds a piece in any step", () => {
+    const zones = occupiedZones([
+      stepWith([piece({ id: "p1", owner: "B" })]),
+      stepWith([piece({ id: "p1", owner: "B", zone: { kind: "battlefield", index: 0 } })]),
+    ]);
+    expect([...zones].toSorted()).toEqual(["base-B", "battlefield-0-B"]);
+  });
+
+  it("is empty for a board without pieces", () => {
+    expect(occupiedZones([stepWith([])]).size).toBe(0);
+  });
+});
+
+describe("longestChain", () => {
+  it("returns the longest chain across steps", () => {
+    expect(longestChain([stepWith([], 1), stepWith([], 3), stepWith([])])).toBe(3);
+  });
+
+  it("returns 0 when no step has a chain", () => {
+    expect(longestChain([stepWith([])])).toBe(0);
+  });
+});
+
+describe("boardWidthUnits", () => {
+  const baseAndHand = {
+    ...emptyBoardDocument().zones,
+    legend: false,
+    champion: false,
+    runes: false,
+    hand: true,
+  };
+
+  it("counts zones empty in every step as labels", () => {
+    const steps = [stepWith([piece({ id: "p1", owner: "B" })])];
+    expect(boardWidthUnits(steps, baseAndHand, seatsFor(2), 0)).toBeCloseTo(3.9);
+  });
+
+  it("widens for a crowded battlefield", () => {
+    const crowd = ["p1", "p2", "p3", "p4"].map((id) =>
+      piece({ id, zone: { kind: "battlefield", index: 0 } }),
+    );
+    expect(boardWidthUnits([stepWith(crowd)], baseAndHand, seatsFor(2), 2)).toBeCloseTo(6.4);
+  });
+
+  it("doubles the seat row when two players share a side", () => {
+    const steps = [stepWith([piece({ id: "p1" }), piece({ id: "p2", zone: { kind: "hand" } })])];
+    expect(boardWidthUnits(steps, baseAndHand, seatsFor(4), 0)).toBeCloseTo(12);
   });
 });

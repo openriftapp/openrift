@@ -148,6 +148,59 @@ export function grantedLegendSlots(
   ).length;
 }
 
+export function occupiedZones(steps: readonly BoardStep[]): Set<string> {
+  return new Set(
+    steps.flatMap((step) => step.pieces.map((piece) => arrowZoneKey(piece.zone, piece.owner))),
+  );
+}
+
+export function longestChain(steps: readonly BoardStep[]): number {
+  return Math.max(0, ...steps.map((step) => step.chain.length));
+}
+
+const SLOT_UNITS = { runes: 2.4, base: 3, other: 1.3, empty: 0.9 } as const;
+const BATTLEFIELD_CARD_UNITS = 1.6;
+
+export function boardWidthUnits(
+  steps: readonly BoardStep[],
+  zones: BoardZoneVisibility,
+  seats: BoardSeats,
+  battlefieldCount: number,
+): number {
+  const occupied = occupiedZones(steps);
+  const side = Math.max(seats.top.length, seats.bottom.length);
+  const used = (zone: PlayerZoneKind) =>
+    [...seats.top, ...seats.bottom].some((owner) =>
+      occupied.has(arrowZoneKey({ kind: zone }, owner)),
+    );
+  let seatUnits = 0;
+  for (const slot of seatSlots(zones)) {
+    if (slot.kind === "stack") {
+      seatUnits += SLOT_UNITS.other;
+    } else if (used(slot.zone)) {
+      seatUnits +=
+        slot.zone === "runes" || slot.zone === "base" ? SLOT_UNITS[slot.zone] : SLOT_UNITS.other;
+    } else {
+      seatUnits += SLOT_UNITS.empty;
+    }
+  }
+  if (zones.hand) {
+    seatUnits += used("hand") ? SLOT_UNITS.base : SLOT_UNITS.empty;
+  }
+  let battlefieldUnits = 0;
+  for (let index = 0; index < battlefieldCount; index++) {
+    const zone: BoardZoneRef = { kind: "battlefield", index };
+    const crowd = Math.max(
+      0,
+      ...steps.flatMap((step) =>
+        [...seats.top, ...seats.bottom].map((owner) => piecesAt(step, zone, owner).length),
+      ),
+    );
+    battlefieldUnits += Math.max(BATTLEFIELD_CARD_UNITS, (crowd * 1.1 + 0.4) * side);
+  }
+  return Math.max(seatUnits * side, battlefieldUnits, 1);
+}
+
 export function nextPieceId(pieces: readonly BoardPiece[]): string {
   const used = new Set(pieces.map((piece) => piece.id));
   let n = 1;
