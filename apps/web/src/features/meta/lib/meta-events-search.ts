@@ -10,8 +10,6 @@ import { metaScopeSearchSchema } from "@/features/meta/lib/meta-scope";
 // `meta-events-index` reaches `lib/country`, which builds an `Intl.DisplayNames`
 // at module scope.
 
-export { META_EVENT_HOLDINGS } from "@openrift/shared/contracts/meta";
-
 export type MetaEventIndexSort = (typeof META_EVENT_INDEX_SORTS)[number];
 
 export type MetaEventIndexSortDirection = "asc" | "desc";
@@ -19,7 +17,7 @@ export type MetaEventIndexSortDirection = "asc" | "desc";
 export type MetaEventHoldings = (typeof META_EVENT_HOLDINGS)[number];
 
 /** `all` lifts the index's default of events with results; the API takes no `holds` for it. */
-export const META_EVENT_INDEX_HOLDINGS = [...META_EVENT_HOLDINGS, "all"] as const;
+const META_EVENT_INDEX_HOLDINGS = [...META_EVENT_HOLDINGS, "all"] as const;
 
 export type MetaEventIndexHoldings = (typeof META_EVENT_INDEX_HOLDINGS)[number];
 
