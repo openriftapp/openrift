@@ -1,39 +1,106 @@
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
-export async function up(db: Kysely<unknown>): Promise<void> {
-  // ── 1. Functions ──────────────────────────────────────────────────────────
+// Schema and seed rows as of 333-keyword-translations-fr-ko, generated from pg_dump of a fresh migrate.
+// One DO block because prepared statements reject multiple commands. check_function_bodies is off
+// because function bodies reference tables created later; notices would echo the whole block.
+const SCHEMA = `
+DO $baseline$ BEGIN EXECUTE $sql$
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA public;
 
-  await sql`
-    CREATE FUNCTION candidate_cards_set_norm_name() RETURNS trigger AS $$
+COMMENT ON EXTENSION pg_stat_statements IS 'track planning and execution statistics of all SQL statements executed';
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
+
+COMMENT ON EXTENSION pg_trgm IS 'text similarity measurement and index searching based on trigrams';
+
+CREATE TYPE public.marketplace_group_kind AS ENUM (
+    'basic',
+    'special'
+);
+
+CREATE TYPE public.release_precision AS ENUM (
+    'day',
+    'month',
+    'quarter',
+    'year'
+);
+
+CREATE TYPE public.set_type AS ENUM (
+    'main',
+    'supplemental'
+);
+
+CREATE FUNCTION public.assert_organization_has_owner() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+  DECLARE
+    target uuid;
+  BEGIN
+    IF TG_TABLE_NAME = 'organizations' THEN
+      target := NEW.id;
+    ELSE
+      target := COALESCE(OLD.org_id, NEW.org_id);
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM organizations o WHERE o.id = target)
+       AND NOT EXISTS (
+         SELECT 1 FROM organization_members m
+         WHERE m.org_id = target AND m.role = 'owner'
+       )
+    THEN
+      RAISE EXCEPTION 'organization % must keep at least one owner', target
+        USING ERRCODE = '23514', CONSTRAINT = 'trg_organization_members_owner_guard';
+    END IF;
+    RETURN NULL;
+  END;
+  $$;
+
+CREATE FUNCTION public.candidate_cards_set_norm_name() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
     BEGIN
-      NEW.norm_name := lower(regexp_replace(NEW.name, '[^a-zA-Z0-9]', '', 'g'));
+      NEW.norm_name := regexp_replace(lower(NEW.name), '[^[:alnum:]]', '', 'g');
       RETURN NEW;
     END;
-    $$ LANGUAGE plpgsql
-  `.execute(db);
+    $$;
 
-  await sql`
-    CREATE FUNCTION card_name_aliases_set_norm_name() RETURNS trigger AS $$
+CREATE FUNCTION public.card_name_aliases_set_norm_name() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
     BEGIN
-      -- norm_name is set directly by the application; this trigger is a safety net
-      -- in case someone inserts with a raw value that needs normalising.
+      NEW.norm_name := regexp_replace(lower(NEW.norm_name), '[^[:alnum:]]', '', 'g');
       RETURN NEW;
     END;
-    $$ LANGUAGE plpgsql
-  `.execute(db);
+    $$;
 
-  await sql`
-    CREATE FUNCTION cards_set_norm_name() RETURNS trigger AS $$
+CREATE FUNCTION public.cards_set_norm_name() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
     BEGIN
-      NEW.norm_name := lower(regexp_replace(NEW.name, '[^a-zA-Z0-9]', '', 'g'));
+      NEW.norm_name := regexp_replace(lower(NEW.name), '[^[:alnum:]]', '', 'g');
       RETURN NEW;
     END;
-    $$ LANGUAGE plpgsql
-  `.execute(db);
+    $$;
 
-  await sql`
-    CREATE FUNCTION prevent_nonempty_collection_delete() RETURNS trigger AS $$
+CREATE FUNCTION public.marketplace_product_compute_norm_name(product_name text) RETURNS text
+    LANGUAGE sql IMMUTABLE
+    AS $$
+      SELECT regexp_replace(lower(product_name), '[^[:alnum:]]', '', 'g')
+    $$;
+
+CREATE FUNCTION public.marketplace_products_set_norm_name() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      NEW.norm_name := marketplace_product_compute_norm_name(NEW.product_name);
+      RETURN NEW;
+    END;
+    $$;
+
+CREATE FUNCTION public.prevent_nonempty_collection_delete() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
     BEGIN
       -- Allow if the owning user no longer exists (user deletion cascade).
       IF NOT EXISTS (SELECT 1 FROM users WHERE id = OLD.user_id) THEN
@@ -47,1691 +114,5508 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       END IF;
       RETURN OLD;
     END;
-    $$ LANGUAGE plpgsql
-  `.execute(db);
+    $$;
 
-  await sql`
-    CREATE FUNCTION set_updated_at() RETURNS trigger AS $$
+CREATE FUNCTION public.protect_well_known() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
     BEGIN
-      NEW.updated_at := now();
+      IF TG_OP = 'DELETE' AND OLD.is_well_known THEN
+        RAISE EXCEPTION 'Cannot delete well-known row "%"', OLD.slug;
+      END IF;
+      IF TG_OP = 'UPDATE' THEN
+        IF OLD.is_well_known AND NEW.slug != OLD.slug THEN
+          RAISE EXCEPTION 'Cannot rename well-known row "%"', OLD.slug;
+        END IF;
+        IF OLD.is_well_known AND NOT NEW.is_well_known THEN
+          RAISE EXCEPTION 'Cannot unmark well-known row "%"', OLD.slug;
+        END IF;
+      END IF;
+      RETURN COALESCE(NEW, OLD);
+    END;
+    $$;
+
+CREATE FUNCTION public.protect_well_known_keyword() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF TG_OP = 'DELETE' AND OLD.is_well_known THEN
+        RAISE EXCEPTION 'Cannot delete well-known keyword "%"', OLD.name;
+      END IF;
+      IF TG_OP = 'UPDATE' THEN
+        IF OLD.is_well_known AND NEW.name != OLD.name THEN
+          RAISE EXCEPTION 'Cannot rename well-known keyword "%"', OLD.name;
+        END IF;
+        IF OLD.is_well_known AND NOT NEW.is_well_known THEN
+          RAISE EXCEPTION 'Cannot unmark well-known keyword "%"', OLD.name;
+        END IF;
+      END IF;
+      RETURN COALESCE(NEW, OLD);
+    END;
+    $$;
+
+CREATE FUNCTION public.protect_well_known_language() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF TG_OP = 'DELETE' AND OLD.is_well_known THEN
+        RAISE EXCEPTION 'Cannot delete well-known language "%"', OLD.code;
+      END IF;
+      IF TG_OP = 'UPDATE' THEN
+        IF OLD.is_well_known AND NEW.code != OLD.code THEN
+          RAISE EXCEPTION 'Cannot rename well-known language "%"', OLD.code;
+        END IF;
+        IF OLD.is_well_known AND NOT NEW.is_well_known THEN
+          RAISE EXCEPTION 'Cannot unmark well-known language "%"', OLD.code;
+        END IF;
+      END IF;
+      RETURN COALESCE(NEW, OLD);
+    END;
+    $$;
+
+CREATE FUNCTION public.rebalance_friend_group_owner() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      successor RECORD;
+    BEGIN
+      IF OLD.role <> 'owner' THEN
+        RETURN OLD;
+      END IF;
+
+      SELECT user_id INTO successor
+      FROM friend_group_members
+      WHERE group_id = OLD.group_id
+      ORDER BY (role = 'admin') DESC, joined_at ASC
+      LIMIT 1;
+
+      IF FOUND THEN
+        UPDATE friend_group_members
+           SET role = 'owner'
+         WHERE group_id = OLD.group_id AND user_id = successor.user_id;
+      ELSE
+        DELETE FROM friend_groups WHERE id = OLD.group_id;
+      END IF;
+
+      RETURN OLD;
+    END;
+    $$;
+
+CREATE FUNCTION public.rebalance_organization_owner() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+  DECLARE
+    org RECORD;
+    successor RECORD;
+  BEGIN
+    FOR org IN
+      SELECT om.org_id AS id FROM organization_members om
+      WHERE om.user_id = OLD.id AND om.role = 'owner'
+        AND NOT EXISTS (
+          SELECT 1 FROM organization_members co
+          WHERE co.org_id = om.org_id AND co.user_id <> OLD.id AND co.role = 'owner'
+        )
+    LOOP
+      SELECT user_id INTO successor
+      FROM organization_members
+      WHERE org_id = org.id AND user_id <> OLD.id
+      ORDER BY (role = 'manager') DESC, joined_at ASC
+      LIMIT 1;
+
+      IF FOUND THEN
+        UPDATE organization_members
+           SET role = 'owner'
+         WHERE org_id = org.id AND user_id = successor.user_id;
+      ELSE
+        -- The last member of an org is by invariant its last owner; the org
+        -- goes with them, as the owner-pointer CASCADE used to arrange.
+        DELETE FROM organizations WHERE id = org.id;
+      END IF;
+    END LOOP;
+    RETURN OLD;
+  END;
+  $$;
+
+CREATE FUNCTION public.recompute_printing_marker_slugs(target_printing_id uuid) RETURNS void
+    LANGUAGE sql
+    AS $$
+      UPDATE printings
+      SET marker_slugs = COALESCE(
+        (SELECT array_agg(m.slug ORDER BY m.slug)
+         FROM printing_markers pm
+         JOIN markers m ON m.id = pm.marker_id
+         WHERE pm.printing_id = target_printing_id),
+        '{}'::text[]
+      )
+      WHERE id = target_printing_id;
+    $$;
+
+CREATE FUNCTION public.set_updated_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF NEW IS DISTINCT FROM OLD THEN
+        NEW.updated_at := now();
+      END IF;
       RETURN NEW;
     END;
-    $$ LANGUAGE plpgsql
-  `.execute(db);
+    $$;
 
-  // ── 2. Tables ────────────────────────────────────────────────────────────
+CREATE FUNCTION public.set_updated_stamps() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF (to_jsonb(NEW) - 'updated_at' - 'updated_xid')
+         IS DISTINCT FROM (to_jsonb(OLD) - 'updated_at' - 'updated_xid') THEN
+        NEW.updated_at := now();
+      END IF;
+      IF (to_jsonb(NEW) - 'updated_xid') IS DISTINCT FROM (to_jsonb(OLD) - 'updated_xid') THEN
+        NEW.updated_xid := pg_current_xact_id();
+      END IF;
+      RETURN NEW;
+    END;
+    $$;
 
-  // -- users (referenced by many tables)
-  await db.schema
-    .createTable("users")
-    .addColumn("id", "text", (col) => col.primaryKey())
-    .addColumn("email", "text", (col) => col.notNull())
-    .addColumn("name", "text")
-    .addColumn("email_verified", "boolean", (col) => col.defaultTo(false).notNull())
-    .addColumn("image", "text")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .execute();
+CREATE FUNCTION public.snapshot_deleted_group_names() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      DELETE FROM card_trade_copies
+       WHERE trade_id IN (
+         SELECT id FROM card_trades
+          WHERE group_id = OLD.id AND status IN ('pending', 'reserved')
+       );
 
-  // -- accounts
-  await db.schema
-    .createTable("accounts")
-    .addColumn("id", "text", (col) => col.primaryKey())
-    .addColumn("user_id", "text", (col) => col.notNull())
-    .addColumn("account_id", "text", (col) => col.notNull())
-    .addColumn("provider_id", "text", (col) => col.notNull())
-    .addColumn("access_token", "text")
-    .addColumn("refresh_token", "text")
-    .addColumn("access_token_expires_at", "timestamptz")
-    .addColumn("refresh_token_expires_at", "timestamptz")
-    .addColumn("scope", "text")
-    .addColumn("id_token", "text")
-    .addColumn("password", "text")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .execute();
+      UPDATE card_trades
+         SET status = 'cancelled',
+             closed_at = now(),
+             expires_at = NULL,
+             last_actor_user_id = NULL
+       WHERE group_id = OLD.id
+         AND status IN ('pending', 'reserved');
 
-  // -- sessions
-  await db.schema
-    .createTable("sessions")
-    .addColumn("id", "text", (col) => col.primaryKey())
-    .addColumn("user_id", "text", (col) => col.notNull())
-    .addColumn("token", "text", (col) => col.notNull())
-    .addColumn("expires_at", "timestamptz", (col) => col.notNull())
-    .addColumn("ip_address", "text")
-    .addColumn("user_agent", "text")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .execute();
+      UPDATE card_trades
+         SET group_id = NULL, group_name = OLD.name
+       WHERE group_id = OLD.id;
 
-  // -- verifications
-  await db.schema
-    .createTable("verifications")
-    .addColumn("id", "text", (col) => col.primaryKey())
-    .addColumn("identifier", "text", (col) => col.notNull())
-    .addColumn("value", "text", (col) => col.notNull())
-    .addColumn("expires_at", "timestamptz", (col) => col.notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .execute();
+      RETURN OLD;
+    END;
+    $$;
 
-  // -- admins
-  await db.schema
-    .createTable("admins")
-    .addColumn("user_id", "text", (col) => col.primaryKey())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .execute();
+CREATE FUNCTION public.snapshot_deleted_user_names() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      display_name text := COALESCE(NULLIF(OLD.name, ''), 'Former member');
+    BEGIN
+      -- A live trade needs two people. Close the ones this account was in
+      -- before snapshotting, so no request or reservation is left waiting on
+      -- somebody who is gone, and release the copies a reservation had pinned.
+      -- This is what leaving a group already does to that member's live trades.
+      DELETE FROM card_trade_copies
+       WHERE trade_id IN (
+         SELECT id FROM card_trades
+          WHERE (giver_user_id = OLD.id OR receiver_user_id = OLD.id)
+            AND status IN ('pending', 'reserved')
+       );
 
-  // -- feature_flags
-  await db.schema
-    .createTable("feature_flags")
-    .addColumn("key", "text", (col) => col.primaryKey())
-    .addColumn("enabled", "boolean", (col) => col.defaultTo(false).notNull())
-    .addColumn("description", "text")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .execute();
+      UPDATE card_trades
+         SET status = 'cancelled',
+             closed_at = now(),
+             expires_at = NULL,
+             last_actor_user_id = NULL
+       WHERE (giver_user_id = OLD.id OR receiver_user_id = OLD.id)
+         AND status IN ('pending', 'reserved');
 
-  // -- user_feature_flags
-  await db.schema
-    .createTable("user_feature_flags")
-    .addColumn("user_id", "text", (col) => col.notNull())
-    .addColumn("flag_key", "text", (col) => col.notNull())
-    .addColumn("enabled", "boolean", (col) => col.notNull())
-    .addPrimaryKeyConstraint("user_feature_flags_pk", ["user_id", "flag_key"])
-    .execute();
+      UPDATE card_trades
+         SET giver_user_id = NULL, giver_name = display_name
+       WHERE giver_user_id = OLD.id;
 
-  // -- user_preferences
-  await db.schema
-    .createTable("user_preferences")
-    .addColumn("user_id", "text", (col) => col.primaryKey())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("data", "jsonb", (col) =>
-      col
-        .defaultTo(
-          sql`'{"showImages": true, "richEffects": true, "visibleFields": {"type": true, "price": true, "title": true, "number": true, "rarity": true}, "marketplaceOrder": ["tcgplayer", "cardmarket", "cardtrader"]}'::jsonb`,
+      UPDATE card_trades
+         SET receiver_user_id = NULL, receiver_name = display_name
+       WHERE receiver_user_id = OLD.id;
+
+      UPDATE loans
+         SET borrower_user_id = NULL, borrower_name = display_name
+       WHERE borrower_user_id = OLD.id;
+
+      RETURN OLD;
+    END;
+    $$;
+
+CREATE FUNCTION public.touch_list_on_entry_change() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      UPDATE lists SET updated_at = now()
+      WHERE id = COALESCE(NEW.list_id, OLD.list_id);
+      RETURN NULL;
+    END;
+    $$;
+
+CREATE FUNCTION public.trg_card_card_types_sync() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      affected_card_id uuid;
+      primary_slug text;
+    BEGIN
+      affected_card_id := COALESCE(NEW.card_id, OLD.card_id);
+
+      -- Card deleted in the same transaction (ON DELETE CASCADE) — nothing to check.
+      IF NOT EXISTS (SELECT 1 FROM cards WHERE id = affected_card_id) THEN
+        RETURN NULL;
+      END IF;
+
+      SELECT type_slug INTO primary_slug
+      FROM card_card_types
+      WHERE card_id = affected_card_id
+      ORDER BY position
+      LIMIT 1;
+
+      IF primary_slug IS NULL THEN
+        RAISE EXCEPTION 'card % must keep at least one card_card_types row (ADR-037)',
+          affected_card_id;
+      END IF;
+
+      UPDATE cards SET type = primary_slug
+      WHERE id = affected_card_id AND type IS DISTINCT FROM primary_slug;
+
+      RETURN NULL;
+    END;
+    $$;
+
+CREATE FUNCTION public.trg_cards_seed_card_types() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM card_card_types WHERE card_id = NEW.id) THEN
+        INSERT INTO card_card_types (card_id, type_slug, position)
+        VALUES (NEW.id, NEW.type, 0);
+      END IF;
+      RETURN NULL;
+    END;
+    $$;
+
+CREATE FUNCTION public.trg_collections_record_copy_deletions() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      INSERT INTO copy_deletions (copy_id, collection_id, user_id, group_id, deleted_at, deleted_xid)
+      SELECT cp.id, OLD.id, OLD.user_id, OLD.group_id, now(), pg_current_xact_id()
+        FROM copies cp WHERE cp.collection_id = OLD.id
+      ON CONFLICT (copy_id) DO UPDATE
+        SET collection_id = EXCLUDED.collection_id,
+            user_id = EXCLUDED.user_id,
+            group_id = EXCLUDED.group_id,
+            deleted_at = EXCLUDED.deleted_at,
+            deleted_xid = EXCLUDED.deleted_xid;
+      RETURN OLD;
+    END;
+    $$;
+
+CREATE FUNCTION public.trg_copies_record_deletion() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      owner_id text;
+      owning_group_id uuid;
+    BEGIN
+      SELECT c.user_id, c.group_id INTO owner_id, owning_group_id
+        FROM collections c WHERE c.id = OLD.collection_id;
+      IF FOUND THEN
+        INSERT INTO copy_deletions (copy_id, collection_id, user_id, group_id, deleted_at, deleted_xid)
+        VALUES (OLD.id, OLD.collection_id, owner_id, owning_group_id, now(), pg_current_xact_id())
+        ON CONFLICT (copy_id) DO UPDATE
+          SET collection_id = EXCLUDED.collection_id,
+              user_id = EXCLUDED.user_id,
+              group_id = EXCLUDED.group_id,
+              deleted_at = EXCLUDED.deleted_at,
+              deleted_xid = EXCLUDED.deleted_xid
+          WHERE copy_deletions.deleted_xid <> pg_current_xact_id();
+      ELSE
+        INSERT INTO copy_deletions (copy_id, collection_id, deleted_at, deleted_xid)
+        VALUES (OLD.id, OLD.collection_id, now(), pg_current_xact_id())
+        ON CONFLICT (copy_id) DO UPDATE
+          SET deleted_at = EXCLUDED.deleted_at,
+              deleted_xid = EXCLUDED.deleted_xid
+          WHERE copy_deletions.deleted_xid <> pg_current_xact_id();
+      END IF;
+      RETURN OLD;
+    END;
+    $$;
+
+CREATE FUNCTION public.trg_copies_record_scope_change() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      old_owner text;
+      old_group uuid;
+      new_owner text;
+      new_group uuid;
+    BEGIN
+      SELECT c.user_id, c.group_id INTO old_owner, old_group
+        FROM collections c WHERE c.id = OLD.collection_id;
+      SELECT c.user_id, c.group_id INTO new_owner, new_group
+        FROM collections c WHERE c.id = NEW.collection_id;
+      IF (old_owner, old_group) IS DISTINCT FROM (new_owner, new_group) THEN
+        INSERT INTO copy_deletions (copy_id, collection_id, user_id, group_id, deleted_at, deleted_xid)
+        VALUES (OLD.id, OLD.collection_id, old_owner, old_group, now(), pg_current_xact_id())
+        ON CONFLICT (copy_id) DO UPDATE
+          SET collection_id = EXCLUDED.collection_id,
+              user_id = EXCLUDED.user_id,
+              group_id = EXCLUDED.group_id,
+              deleted_at = EXCLUDED.deleted_at,
+              deleted_xid = EXCLUDED.deleted_xid;
+      END IF;
+      RETURN NULL;
+    END;
+    $$;
+
+CREATE FUNCTION public.trg_distribution_channels_validate() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      parent_kind text;
+      cursor_id uuid;
+      depth int := 0;
+    BEGIN
+      IF NEW.parent_id IS NOT NULL THEN
+        SELECT kind INTO parent_kind FROM distribution_channels WHERE id = NEW.parent_id;
+        IF parent_kind IS NULL THEN
+          RAISE EXCEPTION 'Parent distribution channel % not found', NEW.parent_id;
+        END IF;
+        IF parent_kind <> NEW.kind THEN
+          RAISE EXCEPTION 'Child channel kind (%) must match parent kind (%)',
+            NEW.kind, parent_kind;
+        END IF;
+
+        cursor_id := NEW.parent_id;
+        WHILE cursor_id IS NOT NULL AND depth < 32 LOOP
+          IF cursor_id = NEW.id THEN
+            RAISE EXCEPTION 'Cycle detected in distribution channel hierarchy';
+          END IF;
+          SELECT parent_id INTO cursor_id FROM distribution_channels WHERE id = cursor_id;
+          depth := depth + 1;
+        END LOOP;
+        IF depth >= 32 THEN
+          RAISE EXCEPTION 'Distribution channel hierarchy exceeds maximum depth';
+        END IF;
+
+        IF EXISTS (
+          SELECT 1 FROM printing_distribution_channels WHERE channel_id = NEW.parent_id
+        ) THEN
+          RAISE EXCEPTION 'Cannot attach child under channel % because it already has printings',
+            NEW.parent_id;
+        END IF;
+      END IF;
+
+      IF TG_OP = 'UPDATE' AND NEW.kind IS DISTINCT FROM OLD.kind THEN
+        IF EXISTS (
+          SELECT 1 FROM distribution_channels WHERE parent_id = NEW.id AND kind <> NEW.kind
+        ) THEN
+          RAISE EXCEPTION 'Cannot change kind of % because children have a different kind',
+            NEW.id;
+        END IF;
+      END IF;
+
+      RETURN NEW;
+    END;
+    $$;
+
+CREATE FUNCTION public.trg_markers_slug_change() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      affected_id uuid;
+    BEGIN
+      IF NEW.slug IS DISTINCT FROM OLD.slug THEN
+        FOR affected_id IN SELECT printing_id FROM printing_markers WHERE marker_id = NEW.id LOOP
+          PERFORM recompute_printing_marker_slugs(affected_id);
+        END LOOP;
+      END IF;
+      RETURN NEW;
+    END;
+    $$;
+
+CREATE FUNCTION public.trg_printing_distribution_channels_validate() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF EXISTS (SELECT 1 FROM distribution_channels WHERE parent_id = NEW.channel_id) THEN
+        RAISE EXCEPTION 'Channel % has children; printings can only link to leaf channels',
+          NEW.channel_id;
+      END IF;
+      RETURN NEW;
+    END;
+    $$;
+
+CREATE FUNCTION public.trg_printing_markers_sync() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF TG_OP = 'DELETE' THEN
+        PERFORM recompute_printing_marker_slugs(OLD.printing_id);
+        RETURN OLD;
+      ELSE
+        PERFORM recompute_printing_marker_slugs(NEW.printing_id);
+        RETURN NEW;
+      END IF;
+    END;
+    $$;
+
+CREATE FUNCTION public.trg_printings_set_slug() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      base text;
+      candidate text;
+      n int := 1;
+    BEGIN
+      IF NEW.slug IS NOT NULL AND NEW.slug <> '' THEN
+        RETURN NEW;
+      END IF;
+      base := trim(BOTH '-' FROM regexp_replace(
+        lower(
+          coalesce(NEW.language, '') || '-' ||
+          coalesce(NEW.short_code, '') || '-' ||
+          coalesce(NEW.finish, '') || '-' ||
+          array_to_string(coalesce(NEW.marker_slugs, '{}'), '-') || '-' ||
+          coalesce(NEW.size, '')
+        ),
+        '[^a-z0-9]+', '-', 'g'
+      ));
+      IF base = '' THEN
+        base := 'printing';
+      END IF;
+      candidate := base;
+      WHILE EXISTS (
+        SELECT 1 FROM printings WHERE card_id = NEW.card_id AND slug = candidate
+      ) LOOP
+        n := n + 1;
+        candidate := base || '-' || n;
+      END LOOP;
+      NEW.slug := candidate;
+      RETURN NEW;
+    END;
+    $$;
+
+CREATE FUNCTION public.trg_touch_deck_of_card() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      UPDATE decks SET updated_xid = pg_current_xact_id()
+        WHERE id = COALESCE(NEW.deck_id, OLD.deck_id)
+          AND updated_xid <> pg_current_xact_id();
+      RETURN NULL;
+    END;
+    $$;
+
+CREATE FUNCTION public.trg_touch_pinned_copy() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      UPDATE copies SET updated_xid = pg_current_xact_id()
+        WHERE id = COALESCE(NEW.copy_id, OLD.copy_id)
+          AND updated_xid <> pg_current_xact_id();
+      RETURN NULL;
+    END;
+    $$;
+
+CREATE TABLE public.accounts (
+    id text NOT NULL,
+    user_id text NOT NULL,
+    account_id text NOT NULL,
+    provider_id text NOT NULL,
+    access_token text,
+    refresh_token text,
+    access_token_expires_at timestamp with time zone,
+    refresh_token_expires_at timestamp with time zone,
+    scope text,
+    id_token text,
+    password text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    issuer text
+);
+
+CREATE TABLE public.admin_events (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    actor_user_id text NOT NULL,
+    action text NOT NULL,
+    entity_type text NOT NULL,
+    entity_id text,
+    entity_label text,
+    card_slug text,
+    old_values jsonb,
+    new_values jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_admin_events_new_values_shape CHECK (((new_values IS NULL) OR (jsonb_typeof(new_values) = 'object'::text))),
+    CONSTRAINT chk_admin_events_old_values_shape CHECK (((old_values IS NULL) OR (jsonb_typeof(old_values) = 'object'::text)))
+);
+
+CREATE TABLE public.admin_grants (
+    user_id text NOT NULL,
+    section text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE public.admins (
+    user_id text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE public.api_keys (
+    id text NOT NULL,
+    config_id text DEFAULT 'default'::text NOT NULL,
+    name text,
+    start text,
+    prefix text,
+    key text NOT NULL,
+    reference_id text NOT NULL,
+    refill_interval integer,
+    refill_amount integer,
+    last_refill_at timestamp with time zone,
+    enabled boolean DEFAULT true NOT NULL,
+    rate_limit_enabled boolean DEFAULT true NOT NULL,
+    rate_limit_time_window integer,
+    rate_limit_max integer,
+    request_count integer DEFAULT 0 NOT NULL,
+    remaining integer,
+    last_request timestamp with time zone,
+    expires_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    permissions text,
+    metadata text
+);
+
+CREATE TABLE public.art_variants (
+    slug text NOT NULL,
+    label text NOT NULL,
+    sort_order smallint NOT NULL,
+    is_well_known boolean DEFAULT false NOT NULL,
+    CONSTRAINT chk_art_variants_label_not_empty CHECK ((label <> ''::text)),
+    CONSTRAINT chk_art_variants_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+CREATE TABLE public.board_states (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    user_id text NOT NULL,
+    title text NOT NULL,
+    answer text,
+    core_rules_version text,
+    tournament_rules_version text,
+    document jsonb NOT NULL,
+    is_public boolean DEFAULT false NOT NULL,
+    share_token text,
+    is_featured boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_board_states_document_object CHECK ((jsonb_typeof(document) = 'object'::text)),
+    CONSTRAINT chk_board_states_rules_pinned CHECK (((core_rules_version IS NOT NULL) OR (tournament_rules_version IS NOT NULL))),
+    CONSTRAINT chk_board_states_title_not_empty CHECK ((title <> ''::text))
+);
+
+CREATE TABLE public.candidate_cards (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    provider text NOT NULL,
+    short_code text,
+    external_id text NOT NULL,
+    name text NOT NULL,
+    super_types text[] DEFAULT '{}'::text[] NOT NULL,
+    domains text[] NOT NULL,
+    might integer,
+    energy integer,
+    power integer,
+    might_bonus integer,
+    rules_text text,
+    effect_text text,
+    tags text[] DEFAULT '{}'::text[] NOT NULL,
+    extra_data jsonb,
+    checked_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    norm_name text NOT NULL,
+    submitted_by_user_id text,
+    submission_note text,
+    types text[] DEFAULT '{}'::text[] NOT NULL,
+    uploaded_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT candidate_cards_submission_note_check CHECK ((submission_note <> ''::text)),
+    CONSTRAINT chk_candidate_cards_energy_non_negative CHECK ((energy >= 0)),
+    CONSTRAINT chk_candidate_cards_extra_data_shape CHECK (((extra_data IS NULL) OR (jsonb_typeof(extra_data) = 'object'::text))),
+    CONSTRAINT chk_candidate_cards_might_bonus_non_negative CHECK ((might_bonus >= 0)),
+    CONSTRAINT chk_candidate_cards_might_non_negative CHECK ((might >= 0)),
+    CONSTRAINT chk_candidate_cards_name_not_empty CHECK ((name <> ''::text)),
+    CONSTRAINT chk_candidate_cards_no_empty_effect_text CHECK ((effect_text <> ''::text)),
+    CONSTRAINT chk_candidate_cards_no_empty_external_id CHECK ((external_id <> ''::text)),
+    CONSTRAINT chk_candidate_cards_no_empty_extra_data CHECK (((extra_data <> '{}'::jsonb) AND (extra_data <> 'null'::jsonb))),
+    CONSTRAINT chk_candidate_cards_no_empty_rules_text CHECK ((rules_text <> ''::text)),
+    CONSTRAINT chk_candidate_cards_no_empty_short_code CHECK ((short_code <> ''::text)),
+    CONSTRAINT chk_candidate_cards_power_non_negative CHECK ((power >= 0)),
+    CONSTRAINT chk_candidate_cards_provider_not_empty CHECK ((provider <> ''::text))
+);
+
+CREATE TABLE public.candidate_printings (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    candidate_card_id uuid NOT NULL,
+    short_code text NOT NULL,
+    set_id text,
+    set_name text,
+    rarity text,
+    art_variant text,
+    is_signed boolean,
+    finish text,
+    artist text,
+    public_code text,
+    printed_rules_text text,
+    printed_effect_text text,
+    flavor_text text,
+    image_url text,
+    extra_data jsonb,
+    checked_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    printing_id uuid,
+    external_id text NOT NULL,
+    language text,
+    printed_name text,
+    marker_slugs text[] DEFAULT '{}'::text[] NOT NULL,
+    size text,
+    distribution_channel_slugs text[] DEFAULT '{}'::text[] NOT NULL,
+    printed_year smallint,
+    is_overnumbered boolean,
+    uploaded_at timestamp with time zone DEFAULT now() NOT NULL,
+    image_fingerprint text,
+    image_fingerprint_url text,
+    CONSTRAINT candidate_printings_size_check CHECK ((size <> ''::text)),
+    CONSTRAINT chk_candidate_printings_extra_data_shape CHECK (((extra_data IS NULL) OR (jsonb_typeof(extra_data) = 'object'::text))),
+    CONSTRAINT chk_candidate_printings_no_empty_art_variant CHECK ((art_variant <> ''::text)),
+    CONSTRAINT chk_candidate_printings_no_empty_artist CHECK ((artist <> ''::text)),
+    CONSTRAINT chk_candidate_printings_no_empty_external_id CHECK ((external_id <> ''::text)),
+    CONSTRAINT chk_candidate_printings_no_empty_extra_data CHECK (((extra_data <> '{}'::jsonb) AND (extra_data <> 'null'::jsonb))),
+    CONSTRAINT chk_candidate_printings_no_empty_finish CHECK ((finish <> ''::text)),
+    CONSTRAINT chk_candidate_printings_no_empty_flavor_text CHECK ((flavor_text <> ''::text)),
+    CONSTRAINT chk_candidate_printings_no_empty_image_url CHECK ((image_url <> ''::text)),
+    CONSTRAINT chk_candidate_printings_no_empty_language CHECK ((language <> ''::text)),
+    CONSTRAINT chk_candidate_printings_no_empty_printed_effect_text CHECK ((printed_effect_text <> ''::text)),
+    CONSTRAINT chk_candidate_printings_no_empty_printed_name CHECK ((printed_name <> ''::text)),
+    CONSTRAINT chk_candidate_printings_no_empty_printed_rules_text CHECK ((printed_rules_text <> ''::text)),
+    CONSTRAINT chk_candidate_printings_no_empty_rarity CHECK ((rarity <> ''::text)),
+    CONSTRAINT chk_candidate_printings_no_empty_set_id CHECK ((set_id <> ''::text)),
+    CONSTRAINT chk_candidate_printings_no_empty_set_name CHECK ((set_name <> ''::text)),
+    CONSTRAINT chk_candidate_printings_public_code_not_empty CHECK ((public_code <> ''::text)),
+    CONSTRAINT chk_candidate_printings_short_code_not_empty CHECK ((short_code <> ''::text))
+);
+
+CREATE TABLE public.card_bans (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    card_id uuid NOT NULL,
+    format_id text NOT NULL,
+    banned_at date NOT NULL,
+    unbanned_at date,
+    reason text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_card_bans_dates_ordered CHECK (((unbanned_at IS NULL) OR (unbanned_at >= banned_at))),
+    CONSTRAINT chk_card_bans_reason_not_empty CHECK ((reason <> ''::text))
+);
+
+CREATE TABLE public.card_card_types (
+    card_id uuid NOT NULL,
+    type_slug text NOT NULL,
+    "position" smallint NOT NULL,
+    CONSTRAINT card_card_types_position_check CHECK (("position" >= 0))
+);
+
+CREATE TABLE public.card_custom_tags (
+    card_id uuid NOT NULL,
+    custom_tag_id uuid NOT NULL
+);
+
+CREATE TABLE public.card_domains (
+    card_id uuid NOT NULL,
+    domain_slug text NOT NULL,
+    ordinal smallint NOT NULL,
+    CONSTRAINT card_domains_ordinal_check CHECK ((ordinal >= 0))
+);
+
+CREATE TABLE public.card_errata (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    card_id uuid NOT NULL,
+    corrected_rules_text text,
+    corrected_effect_text text,
+    source text,
+    source_url text,
+    effective_date date,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    announcement_id uuid,
+    CONSTRAINT chk_card_errata_announced_has_no_note CHECK (((announcement_id IS NULL) OR ((source_url IS NULL) AND (effective_date IS NULL)))),
+    CONSTRAINT chk_card_errata_has_text CHECK (((corrected_rules_text IS NOT NULL) OR (corrected_effect_text IS NOT NULL))),
+    CONSTRAINT chk_card_errata_no_empty_corrected_effect_text CHECK ((corrected_effect_text <> ''::text)),
+    CONSTRAINT chk_card_errata_no_empty_corrected_rules_text CHECK ((corrected_rules_text <> ''::text)),
+    CONSTRAINT chk_card_errata_no_empty_source CHECK ((source <> ''::text)),
+    CONSTRAINT chk_card_errata_no_empty_source_url CHECK ((source_url <> ''::text)),
+    CONSTRAINT chk_card_errata_origin CHECK (((announcement_id IS NULL) = (source IS NOT NULL)))
+);
+
+CREATE TABLE public.card_name_aliases (
+    card_id uuid NOT NULL,
+    norm_name text NOT NULL
+);
+
+CREATE TABLE public.card_sizes (
+    slug text NOT NULL,
+    label text NOT NULL,
+    sort_order smallint NOT NULL,
+    is_well_known boolean DEFAULT false NOT NULL,
+    CONSTRAINT chk_card_sizes_label_not_empty CHECK ((label <> ''::text)),
+    CONSTRAINT chk_card_sizes_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+CREATE TABLE public.card_submissions (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    user_id text NOT NULL,
+    provider text NOT NULL,
+    external_id text NOT NULL,
+    candidate_card_id uuid,
+    kind text NOT NULL,
+    card_name text NOT NULL,
+    card_slug text,
+    note text,
+    proposed_diff jsonb DEFAULT '[]'::jsonb NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    resolution_reason text,
+    resolution_note text,
+    resolved_at timestamp with time zone,
+    resolved_by_user_id text,
+    accepted_card_id uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_card_submissions_card_name_not_empty CHECK ((card_name <> ''::text)),
+    CONSTRAINT chk_card_submissions_card_slug_not_empty CHECK ((card_slug <> ''::text)),
+    CONSTRAINT chk_card_submissions_external_id_not_empty CHECK ((external_id <> ''::text)),
+    CONSTRAINT chk_card_submissions_kind CHECK ((kind = ANY (ARRAY['new_card'::text, 'correction'::text, 'image'::text]))),
+    CONSTRAINT chk_card_submissions_note_not_empty CHECK ((note <> ''::text)),
+    CONSTRAINT chk_card_submissions_proposed_diff_shape CHECK (((proposed_diff IS NULL) OR (jsonb_typeof(proposed_diff) = 'array'::text))),
+    CONSTRAINT chk_card_submissions_provider_not_empty CHECK ((provider <> ''::text)),
+    CONSTRAINT chk_card_submissions_reason CHECK (((resolution_reason IS NULL) OR (resolution_reason = ANY (ARRAY['duplicate'::text, 'already_correct'::text, 'unverified'::text, 'not_a_card'::text, 'bad_image'::text, 'other'::text])))),
+    CONSTRAINT chk_card_submissions_resolution_note_not_empty CHECK ((resolution_note <> ''::text)),
+    CONSTRAINT chk_card_submissions_resolved_at CHECK (((status = 'pending'::text) = (resolved_at IS NULL))),
+    CONSTRAINT chk_card_submissions_status CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'already_correct'::text, 'not_applied'::text, 'rejected'::text])))
+);
+
+CREATE TABLE public.card_super_types (
+    card_id uuid NOT NULL,
+    super_type_slug text NOT NULL
+);
+
+CREATE TABLE public.card_tokens (
+    card_id uuid NOT NULL,
+    token_card_id uuid NOT NULL,
+    source text DEFAULT 'derived'::text NOT NULL,
+    CONSTRAINT chk_card_tokens_no_self CHECK ((card_id <> token_card_id)),
+    CONSTRAINT chk_card_tokens_source CHECK ((source = ANY (ARRAY['derived'::text, 'manual'::text])))
+);
+
+CREATE TABLE public.card_trade_copies (
+    trade_id uuid NOT NULL,
+    copy_id uuid NOT NULL
+);
+
+CREATE TABLE public.card_trade_requested_copies (
+    trade_id uuid NOT NULL,
+    copy_id uuid NOT NULL
+);
+
+CREATE TABLE public.card_trade_settlement_requests (
+    trade_id uuid NOT NULL,
+    user_id text NOT NULL,
+    request_id uuid NOT NULL,
+    fingerprint text NOT NULL,
+    settled_trade_id uuid NOT NULL
+);
+
+CREATE TABLE public.card_trades (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    group_id uuid,
+    giver_user_id text,
+    receiver_user_id text,
+    initiator text NOT NULL,
+    printing_id uuid NOT NULL,
+    card_id uuid NOT NULL,
+    quantity integer NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    receiver_wish_entry_id uuid,
+    last_actor_user_id text,
+    giver_sync_applied_at timestamp with time zone,
+    receiver_sync_applied_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    accepted_at timestamp with time zone,
+    completed_at timestamp with time zone,
+    closed_at timestamp with time zone,
+    expires_at timestamp with time zone,
+    request_email_sent_at timestamp with time zone,
+    reserved_email_sent_at timestamp with time zone,
+    closed_email_sent_at timestamp with time zone,
+    giver_name text,
+    receiver_name text,
+    group_name text,
+    CONSTRAINT chk_card_trades_closed_shape CHECK (((status = ANY (ARRAY['declined'::text, 'cancelled'::text, 'expired'::text])) = (closed_at IS NOT NULL))),
+    CONSTRAINT chk_card_trades_completed_shape CHECK (((status = 'completed'::text) = (completed_at IS NOT NULL))),
+    CONSTRAINT chk_card_trades_distinct_parties CHECK ((giver_user_id <> receiver_user_id)),
+    CONSTRAINT chk_card_trades_giver_name_not_empty CHECK (((giver_name IS NULL) OR (giver_name <> ''::text))),
+    CONSTRAINT chk_card_trades_giver_party_shape CHECK ((num_nonnulls(giver_user_id, giver_name) = 1)),
+    CONSTRAINT chk_card_trades_group_name_not_empty CHECK (((group_name IS NULL) OR (group_name <> ''::text))),
+    CONSTRAINT chk_card_trades_group_shape CHECK ((num_nonnulls(group_id, group_name) = 1)),
+    CONSTRAINT chk_card_trades_initiator CHECK ((initiator = ANY (ARRAY['giver'::text, 'receiver'::text]))),
+    CONSTRAINT chk_card_trades_pending_expiry CHECK (((status <> 'pending'::text) OR (expires_at IS NOT NULL))),
+    CONSTRAINT chk_card_trades_quantity CHECK ((quantity > 0)),
+    CONSTRAINT chk_card_trades_receiver_name_not_empty CHECK (((receiver_name IS NULL) OR (receiver_name <> ''::text))),
+    CONSTRAINT chk_card_trades_receiver_party_shape CHECK ((num_nonnulls(receiver_user_id, receiver_name) = 1)),
+    CONSTRAINT chk_card_trades_reserved_accepted CHECK (((status <> 'reserved'::text) OR (accepted_at IS NOT NULL))),
+    CONSTRAINT chk_card_trades_status CHECK ((status = ANY (ARRAY['pending'::text, 'reserved'::text, 'completed'::text, 'declined'::text, 'cancelled'::text, 'expired'::text])))
+);
+
+CREATE TABLE public.card_types (
+    slug text NOT NULL,
+    label text NOT NULL,
+    sort_order smallint NOT NULL,
+    is_well_known boolean DEFAULT false NOT NULL,
+    CONSTRAINT chk_card_types_label_not_empty CHECK ((label <> ''::text)),
+    CONSTRAINT chk_card_types_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+CREATE TABLE public.cardmarket_sync_state (
+    user_id text NOT NULL,
+    printing_id uuid NOT NULL,
+    condition text NOT NULL,
+    is_altered boolean NOT NULL,
+    intent_base integer DEFAULT 0 NOT NULL,
+    observed_base integer DEFAULT 0 NOT NULL,
+    unmanaged integer DEFAULT 0 NOT NULL,
+    last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_cardmarket_sync_state_counts CHECK (((intent_base >= 0) AND (observed_base >= 0) AND (unmanaged >= 0)))
+);
+
+CREATE TABLE public.cards (
+    name text NOT NULL,
+    type text NOT NULL,
+    might integer,
+    energy integer,
+    power integer,
+    might_bonus integer,
+    keywords text[] DEFAULT '{}'::text[] NOT NULL,
+    tags text[] DEFAULT '{}'::text[] NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    slug text NOT NULL,
+    id uuid DEFAULT uuidv7() NOT NULL,
+    norm_name text NOT NULL,
+    comment text,
+    max_copies_override smallint,
+    additional_legend_count smallint,
+    CONSTRAINT cards_additional_legend_count_check CHECK ((additional_legend_count > 0)),
+    CONSTRAINT cards_max_copies_override_check CHECK ((max_copies_override >= 0)),
+    CONSTRAINT chk_cards_energy_non_negative CHECK ((energy >= 0)),
+    CONSTRAINT chk_cards_might_bonus_non_negative CHECK ((might_bonus >= 0)),
+    CONSTRAINT chk_cards_might_non_negative CHECK ((might >= 0)),
+    CONSTRAINT chk_cards_name_not_empty CHECK ((name <> ''::text)),
+    CONSTRAINT chk_cards_no_empty_comment CHECK ((comment <> ''::text)),
+    CONSTRAINT chk_cards_power_non_negative CHECK ((power >= 0)),
+    CONSTRAINT chk_cards_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+CREATE TABLE public.collection_deckbuilding_prefs (
+    user_id text NOT NULL,
+    collection_id uuid NOT NULL,
+    available boolean NOT NULL
+);
+
+CREATE TABLE public.collection_events (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    user_id text NOT NULL,
+    action text NOT NULL,
+    printing_id uuid NOT NULL,
+    copy_id uuid,
+    from_collection_id uuid,
+    from_collection_name text,
+    to_collection_id uuid,
+    to_collection_name text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_collection_events_action CHECK ((action = ANY (ARRAY['added'::text, 'removed'::text, 'moved'::text]))),
+    CONSTRAINT chk_collection_events_collection_presence CHECK ((((action = 'added'::text) AND ((to_collection_id IS NOT NULL) OR (to_collection_name IS NOT NULL))) OR ((action = 'removed'::text) AND ((from_collection_id IS NOT NULL) OR (from_collection_name IS NOT NULL))) OR ((action = 'moved'::text) AND ((from_collection_id IS NOT NULL) OR (from_collection_name IS NOT NULL)) AND ((to_collection_id IS NOT NULL) OR (to_collection_name IS NOT NULL)))))
+);
+
+CREATE TABLE public.collection_sidebar_prefs (
+    user_id text NOT NULL,
+    collection_id uuid NOT NULL,
+    hidden boolean NOT NULL
+);
+
+CREATE TABLE public.collections (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    user_id text,
+    name text NOT NULL,
+    description text,
+    is_inbox boolean DEFAULT false NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    share_token text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    is_public boolean DEFAULT false NOT NULL,
+    group_id uuid,
+    purpose text,
+    CONSTRAINT chk_collections_name_not_empty CHECK ((name <> ''::text)),
+    CONSTRAINT chk_collections_no_group_inbox CHECK (((group_id IS NULL) OR (is_inbox = false))),
+    CONSTRAINT chk_collections_ownership CHECK (((((user_id IS NOT NULL))::integer + ((group_id IS NOT NULL))::integer) = 1)),
+    CONSTRAINT chk_collections_purpose_personal CHECK (((purpose IS NULL) OR (group_id IS NULL))),
+    CONSTRAINT collections_purpose_check CHECK ((purpose = 'marketplace_orders'::text))
+);
+
+CREATE TABLE public.conditions (
+    slug text NOT NULL,
+    label text NOT NULL,
+    sort_order smallint NOT NULL,
+    is_well_known boolean DEFAULT false NOT NULL,
+    CONSTRAINT chk_conditions_label_not_empty CHECK ((label <> ''::text)),
+    CONSTRAINT chk_conditions_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+CREATE TABLE public.copies (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    collection_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    printing_id uuid NOT NULL,
+    condition text,
+    grader text,
+    grade double precision,
+    notes_public text,
+    notes_private text,
+    is_altered boolean DEFAULT false NOT NULL,
+    links jsonb DEFAULT '[]'::jsonb NOT NULL,
+    updated_xid xid8 DEFAULT pg_current_xact_id() NOT NULL,
+    CONSTRAINT chk_copies_condition_or_graded CHECK (((condition IS NULL) OR (grader IS NULL))),
+    CONSTRAINT chk_copies_grade_half_steps CHECK (((grade IS NULL) OR ((grade >= (1)::double precision) AND (grade <= (10)::double precision) AND ((grade * (2)::double precision) = trunc((grade * (2)::double precision)))))),
+    CONSTRAINT chk_copies_grader_with_grade CHECK (((grader IS NULL) = (grade IS NULL))),
+    CONSTRAINT chk_copies_links_shape CHECK (((links IS NULL) OR (jsonb_typeof(links) = 'array'::text)))
+);
+
+CREATE TABLE public.copy_deletion_sweep (
+    only_row boolean DEFAULT true NOT NULL,
+    pruned_through_xid xid8 DEFAULT '0'::xid8 NOT NULL,
+    CONSTRAINT copy_deletion_sweep_only_row_check CHECK (only_row)
+);
+
+CREATE TABLE public.copy_deletions (
+    copy_id uuid NOT NULL,
+    collection_id uuid NOT NULL,
+    user_id text,
+    group_id uuid,
+    deleted_at timestamp with time zone DEFAULT now() NOT NULL,
+    deleted_xid xid8 DEFAULT pg_current_xact_id() NOT NULL
+);
+
+CREATE TABLE public.custom_tag_categories (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    slug text NOT NULL,
+    label text NOT NULL,
+    description text,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT custom_tag_categories_description_check CHECK ((description <> ''::text)),
+    CONSTRAINT custom_tag_categories_label_check CHECK ((label <> ''::text)),
+    CONSTRAINT custom_tag_categories_slug_check CHECK ((slug <> ''::text))
+);
+
+CREATE TABLE public.custom_tags (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    slug text NOT NULL,
+    label text NOT NULL,
+    description text,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    category_id uuid NOT NULL,
+    CONSTRAINT custom_tags_description_check CHECK ((description <> ''::text)),
+    CONSTRAINT custom_tags_label_check CHECK ((label <> ''::text)),
+    CONSTRAINT custom_tags_slug_check CHECK ((slug <> ''::text))
+);
+
+CREATE TABLE public.deck_cards (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    deck_id uuid NOT NULL,
+    zone text NOT NULL,
+    quantity integer DEFAULT 1 NOT NULL,
+    card_id uuid NOT NULL,
+    preferred_printing_id uuid,
+    CONSTRAINT chk_deck_cards_quantity CHECK ((quantity > 0))
+);
+
+CREATE TABLE public.deck_check_entries (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    external_id text NOT NULL,
+    submitted_at timestamp with time zone,
+    content_hash text NOT NULL,
+    checked_by text,
+    checked_at timestamp with time zone,
+    notes text,
+    change_summary jsonb,
+    withdrawn_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    player_message text,
+    allow_name_sharing boolean DEFAULT true NOT NULL,
+    allow_riot_id_sharing boolean DEFAULT true NOT NULL,
+    state text DEFAULT 'submitted'::text NOT NULL,
+    review_outcome text,
+    approved_by text,
+    approved_at timestamp with time zone,
+    unlock_requested_at timestamp with time zone,
+    pre_edit_lines jsonb,
+    allow_deck_publishing boolean DEFAULT true NOT NULL,
+    tournament_id uuid NOT NULL,
+    participant_id uuid,
+    CONSTRAINT chk_deck_check_entries_approved_shape CHECK (((state <> 'approved'::text) OR ((approved_at IS NOT NULL) AND (approved_by IS NOT NULL)))),
+    CONSTRAINT chk_deck_check_entries_change_summary_shape CHECK (((change_summary IS NULL) OR (jsonb_typeof(change_summary) = 'object'::text))),
+    CONSTRAINT chk_deck_check_entries_checked_shape CHECK (((state <> 'checked'::text) OR ((checked_at IS NOT NULL) AND (checked_by IS NOT NULL)))),
+    CONSTRAINT chk_deck_check_entries_notes CHECK (((notes IS NULL) OR (length(notes) <= 4000))),
+    CONSTRAINT chk_deck_check_entries_player_message CHECK (((player_message IS NULL) OR (length(player_message) <= 2000))),
+    CONSTRAINT chk_deck_check_entries_pre_edit_lines_shape CHECK (((pre_edit_lines IS NULL) OR (jsonb_typeof(pre_edit_lines) = 'array'::text))),
+    CONSTRAINT chk_deck_check_entries_review_outcome CHECK (((review_outcome IS NULL) OR (review_outcome = ANY (ARRAY['ok'::text, 'issue'::text])))),
+    CONSTRAINT chk_deck_check_entries_state CHECK ((state = ANY (ARRAY['editable'::text, 'submitted'::text, 'approved'::text, 'checked'::text, 'withdrawn'::text]))),
+    CONSTRAINT chk_deck_check_entries_withdrawn_shape CHECK (((state = 'withdrawn'::text) = (withdrawn_at IS NOT NULL)))
+);
+
+CREATE TABLE public.deck_check_entry_cards (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    entry_id uuid NOT NULL,
+    sort_order integer NOT NULL,
+    raw_name text NOT NULL,
+    section text NOT NULL,
+    zone text NOT NULL,
+    quantity integer NOT NULL,
+    resolved_card_id uuid,
+    resolved_printing_id uuid,
+    match_status text NOT NULL,
+    found_copies boolean[] DEFAULT '{}'::boolean[] NOT NULL,
+    CONSTRAINT chk_deck_check_entry_cards_found CHECK ((cardinality(found_copies) <= quantity)),
+    CONSTRAINT chk_deck_check_entry_cards_match CHECK ((match_status = ANY (ARRAY['matched'::text, 'ambiguous'::text, 'unmatched'::text]))),
+    CONSTRAINT chk_deck_check_entry_cards_quantity CHECK ((quantity > 0))
+);
+
+CREATE TABLE public.deck_check_keys (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    token_hash text NOT NULL,
+    token_prefix text NOT NULL,
+    label text,
+    created_by text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_used_at timestamp with time zone,
+    revoked_at timestamp with time zone,
+    host_type text NOT NULL,
+    host_user_id text,
+    host_org_id uuid,
+    CONSTRAINT chk_deck_check_keys_host CHECK ((((host_type = 'user'::text) AND (host_user_id IS NOT NULL) AND (host_org_id IS NULL)) OR ((host_type = 'organization'::text) AND (host_org_id IS NOT NULL) AND (host_user_id IS NULL)))),
+    CONSTRAINT chk_deck_check_keys_label CHECK (((label IS NULL) OR (length(label) <= 120)))
+);
+
+CREATE TABLE public.deck_folder_entries (
+    folder_id uuid NOT NULL,
+    deck_id uuid NOT NULL,
+    user_id text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE public.deck_folders (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    user_id text NOT NULL,
+    name text NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_deck_folders_name_not_empty CHECK ((name <> ''::text))
+);
+
+CREATE TABLE public.deck_formats (
+    slug text NOT NULL,
+    label text NOT NULL,
+    sort_order smallint NOT NULL,
+    is_well_known boolean DEFAULT false NOT NULL,
+    CONSTRAINT chk_deck_formats_label_not_empty CHECK ((label <> ''::text)),
+    CONSTRAINT chk_deck_formats_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+CREATE TABLE public.deck_matchup_plans (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    deck_id uuid NOT NULL,
+    opponent_card_id uuid,
+    notes text DEFAULT ''::text NOT NULL,
+    sort_order smallint DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    opponent_label text DEFAULT ''::text NOT NULL,
+    CONSTRAINT chk_deck_matchup_plans_identity CHECK (((opponent_card_id IS NOT NULL) OR (opponent_label <> ''::text))),
+    CONSTRAINT chk_deck_matchup_plans_label CHECK ((length(opponent_label) <= 120)),
+    CONSTRAINT chk_deck_matchup_plans_notes CHECK ((length(notes) <= 4000))
+);
+
+CREATE TABLE public.deck_matchup_swaps (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    plan_id uuid NOT NULL,
+    card_id uuid NOT NULL,
+    direction text NOT NULL,
+    quantity integer NOT NULL,
+    CONSTRAINT chk_deck_matchup_swaps_direction CHECK ((direction = ANY (ARRAY['in'::text, 'out'::text]))),
+    CONSTRAINT chk_deck_matchup_swaps_quantity CHECK ((quantity > 0))
+);
+
+CREATE TABLE public.deck_plans (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    deck_id uuid NOT NULL,
+    general_strategy text DEFAULT ''::text NOT NULL,
+    mulligan_split boolean DEFAULT false NOT NULL,
+    mulligan_general text DEFAULT ''::text NOT NULL,
+    mulligan_first text DEFAULT ''::text NOT NULL,
+    mulligan_second text DEFAULT ''::text NOT NULL,
+    battlefield_g1_card_id uuid,
+    battlefield_first_card_id uuid,
+    battlefield_second_card_id uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    battlefield_custom boolean DEFAULT false NOT NULL,
+    battlefield_note text DEFAULT ''::text NOT NULL,
+    CONSTRAINT chk_deck_plans_battlefield_note CHECK ((length(battlefield_note) <= 4000)),
+    CONSTRAINT chk_deck_plans_general_strategy CHECK ((length(general_strategy) <= 8000)),
+    CONSTRAINT chk_deck_plans_mulligan_first CHECK ((length(mulligan_first) <= 4000)),
+    CONSTRAINT chk_deck_plans_mulligan_general CHECK ((length(mulligan_general) <= 4000)),
+    CONSTRAINT chk_deck_plans_mulligan_second CHECK ((length(mulligan_second) <= 4000))
+);
+
+CREATE TABLE public.deck_zones (
+    slug text NOT NULL,
+    label text NOT NULL,
+    sort_order smallint NOT NULL,
+    is_well_known boolean DEFAULT false NOT NULL,
+    CONSTRAINT chk_deck_zones_label_not_empty CHECK ((label <> ''::text)),
+    CONSTRAINT chk_deck_zones_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+CREATE TABLE public.decks (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    user_id text NOT NULL,
+    name text NOT NULL,
+    description text,
+    format text NOT NULL,
+    is_public boolean DEFAULT false NOT NULL,
+    share_token text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    is_pinned boolean DEFAULT false NOT NULL,
+    archived_at timestamp with time zone,
+    format_config jsonb,
+    odds_config jsonb,
+    cover_card_id uuid,
+    cover_printing_id uuid,
+    cover_position smallint,
+    collection_id uuid,
+    links jsonb DEFAULT '[]'::jsonb NOT NULL,
+    family_id uuid,
+    predecessor_deck_id uuid,
+    is_primary boolean DEFAULT false NOT NULL,
+    is_draft boolean DEFAULT false NOT NULL,
+    updated_xid xid8 DEFAULT pg_current_xact_id() NOT NULL,
+    CONSTRAINT chk_decks_format_config_shape CHECK (((format_config IS NULL) OR (jsonb_typeof(format_config) = 'object'::text))),
+    CONSTRAINT chk_decks_links_shape CHECK (((links IS NULL) OR (jsonb_typeof(links) = 'array'::text))),
+    CONSTRAINT chk_decks_name_not_empty CHECK ((name <> ''::text)),
+    CONSTRAINT chk_decks_odds_config_shape CHECK (((odds_config IS NULL) OR (jsonb_typeof(odds_config) = 'object'::text))),
+    CONSTRAINT decks_cover_position_check CHECK (((cover_position >= 0) AND (cover_position <= 100)))
+);
+
+CREATE TABLE public.distribution_channels (
+    id uuid DEFAULT uuidv7() CONSTRAINT promo_types_id_not_null NOT NULL,
+    slug text CONSTRAINT promo_types_slug_not_null NOT NULL,
+    label text CONSTRAINT promo_types_label_not_null NOT NULL,
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT promo_types_created_at_not_null NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() CONSTRAINT promo_types_updated_at_not_null NOT NULL,
+    description text,
+    sort_order integer DEFAULT 0 CONSTRAINT promo_types_sort_order_not_null NOT NULL,
+    kind text DEFAULT 'event'::text NOT NULL,
+    parent_id uuid,
+    children_label text,
+    CONSTRAINT distribution_channels_children_label_check CHECK (((children_label IS NULL) OR (children_label <> ''::text))),
+    CONSTRAINT distribution_channels_description_check CHECK ((description <> ''::text)),
+    CONSTRAINT distribution_channels_kind_check CHECK ((kind = ANY (ARRAY['event'::text, 'product'::text]))),
+    CONSTRAINT distribution_channels_label_check CHECK ((label <> ''::text)),
+    CONSTRAINT distribution_channels_no_self_parent CHECK (((parent_id IS NULL) OR (parent_id <> id))),
+    CONSTRAINT distribution_channels_slug_check CHECK ((slug <> ''::text))
+);
+
+CREATE TABLE public.domains (
+    slug text NOT NULL,
+    label text NOT NULL,
+    sort_order smallint NOT NULL,
+    is_well_known boolean DEFAULT false NOT NULL,
+    color text,
+    CONSTRAINT chk_domains_color CHECK ((color ~ '^#[0-9a-fA-F]{6}$'::text)),
+    CONSTRAINT chk_domains_label_not_empty CHECK ((label <> ''::text)),
+    CONSTRAINT chk_domains_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+CREATE TABLE public.errata_announcements (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    name text NOT NULL,
+    published_on date NOT NULL,
+    url text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_errata_announcements_name_not_empty CHECK ((name <> ''::text)),
+    CONSTRAINT chk_errata_announcements_url_not_empty CHECK ((url <> ''::text))
+);
+
+CREATE TABLE public.feature_flags (
+    key text NOT NULL,
+    enabled boolean DEFAULT false NOT NULL,
+    description text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE public.finishes (
+    slug text NOT NULL,
+    label text NOT NULL,
+    sort_order smallint NOT NULL,
+    is_well_known boolean DEFAULT false NOT NULL,
+    CONSTRAINT chk_finishes_label_not_empty CHECK ((label <> ''::text)),
+    CONSTRAINT chk_finishes_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+CREATE TABLE public.formats (
+    id text NOT NULL,
+    name text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_formats_id_not_empty CHECK ((id <> ''::text)),
+    CONSTRAINT chk_formats_name_not_empty CHECK ((name <> ''::text))
+);
+
+CREATE TABLE public.friend_group_calendar_feeds (
+    token text NOT NULL,
+    group_id uuid NOT NULL,
+    user_id text NOT NULL,
+    kind text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_friend_group_calendar_feeds_kind CHECK ((kind = ANY (ARRAY['tournaments'::text, 'shop_events'::text]))),
+    CONSTRAINT chk_friend_group_calendar_feeds_token CHECK ((token <> ''::text))
+);
+
+CREATE TABLE public.friend_group_collection_shares (
+    group_id uuid NOT NULL,
+    collection_id uuid NOT NULL,
+    user_id text NOT NULL,
+    shared_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE public.friend_group_discord_links (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    group_id uuid NOT NULL,
+    guild_id text,
+    guild_name text,
+    code text,
+    code_expires_at timestamp with time zone,
+    created_by_user_id text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    linked_at timestamp with time zone,
+    trade_channel_ids text[] DEFAULT '{}'::text[] NOT NULL,
+    CONSTRAINT chk_fg_discord_links_linked_at CHECK (((guild_id IS NULL) = (linked_at IS NULL))),
+    CONSTRAINT chk_fg_discord_links_pending_expiry CHECK (((code IS NULL) OR (code_expires_at IS NOT NULL))),
+    CONSTRAINT chk_fg_discord_links_state CHECK (((guild_id IS NULL) <> (code IS NULL))),
+    CONSTRAINT chk_fg_discord_links_trade_channels CHECK (((guild_id IS NOT NULL) OR (cardinality(trade_channel_ids) = 0)))
+);
+
+CREATE TABLE public.friend_group_invites (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    group_id uuid NOT NULL,
+    user_id text NOT NULL,
+    direction text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_friend_group_invites_direction CHECK ((direction = ANY (ARRAY['invite'::text, 'request'::text])))
+);
+
+CREATE TABLE public.friend_group_list_shares (
+    group_id uuid NOT NULL,
+    list_id uuid NOT NULL,
+    user_id text NOT NULL,
+    shared_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE public.friend_group_member_contacts (
+    group_id uuid NOT NULL,
+    user_id text NOT NULL,
+    contact_method_id uuid NOT NULL
+);
+
+CREATE TABLE public.friend_group_members (
+    group_id uuid NOT NULL,
+    user_id text NOT NULL,
+    role text NOT NULL,
+    joined_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_friend_group_members_role CHECK ((role = ANY (ARRAY['owner'::text, 'admin'::text, 'member'::text])))
+);
+
+CREATE TABLE public.friend_group_shops (
+    group_id uuid NOT NULL,
+    uvsgames_store_id integer NOT NULL,
+    added_by_user_id text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE public.friend_groups (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    slug text NOT NULL,
+    name text NOT NULL,
+    description text,
+    code text,
+    code_rotated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    previous_slug text,
+    banner_url text,
+    banner_position smallint DEFAULT 50 NOT NULL,
+    banner_uploaded_by text,
+    banner_uploaded_at timestamp with time zone,
+    CONSTRAINT chk_friend_groups_banner_position CHECK (((banner_position >= 0) AND (banner_position <= 100))),
+    CONSTRAINT chk_friend_groups_banner_url CHECK (((banner_url IS NULL) OR (banner_url ~ '^/media/group-banners/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.webp$'::text))),
+    CONSTRAINT chk_friend_groups_description CHECK (((description IS NULL) OR (length(description) <= 500))),
+    CONSTRAINT chk_friend_groups_name CHECK (((length(name) >= 1) AND (length(name) <= 60))),
+    CONSTRAINT chk_friend_groups_previous_slug CHECK (((previous_slug IS NULL) OR (previous_slug ~ '^[a-z0-9][a-z0-9-]{2,29}$'::text))),
+    CONSTRAINT chk_friend_groups_slug CHECK ((slug ~ '^[a-z0-9][a-z0-9-]{2,29}$'::text))
+);
+
+CREATE TABLE public.graders (
+    slug text NOT NULL,
+    label text NOT NULL,
+    sort_order smallint NOT NULL,
+    is_well_known boolean DEFAULT false NOT NULL,
+    CONSTRAINT chk_graders_label_not_empty CHECK ((label <> ''::text)),
+    CONSTRAINT chk_graders_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+CREATE TABLE public.ignored_candidate_cards (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    provider text NOT NULL,
+    external_id text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_ignored_candidate_cards_external_id_not_empty CHECK ((external_id <> ''::text)),
+    CONSTRAINT chk_ignored_candidate_cards_provider_not_empty CHECK ((provider <> ''::text))
+);
+
+CREATE TABLE public.ignored_candidate_printings (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    provider text NOT NULL,
+    external_id text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    finish text,
+    CONSTRAINT chk_ignored_candidate_printings_external_id_not_empty CHECK ((external_id <> ''::text)),
+    CONSTRAINT chk_ignored_candidate_printings_no_empty_finish CHECK ((finish <> ''::text)),
+    CONSTRAINT chk_ignored_candidate_printings_provider_not_empty CHECK ((provider <> ''::text))
+);
+
+CREATE TABLE public.ignored_meta_source_events (
+    provider text NOT NULL,
+    external_id text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_ignored_meta_source_events_external_id CHECK ((external_id <> ''::text)),
+    CONSTRAINT chk_ignored_meta_source_events_provider CHECK ((provider <> ''::text))
+);
+
+CREATE TABLE public.ignored_meta_source_players (
+    provider text NOT NULL,
+    event_external_id text NOT NULL,
+    external_id text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_ignored_meta_source_players_event_external_id CHECK ((event_external_id <> ''::text)),
+    CONSTRAINT chk_ignored_meta_source_players_external_id CHECK ((external_id <> ''::text)),
+    CONSTRAINT chk_ignored_meta_source_players_provider CHECK ((provider <> ''::text))
+);
+
+CREATE TABLE public.image_files (
+    id uuid DEFAULT uuidv7() CONSTRAINT card_images_id_not_null NOT NULL,
+    original_url text,
+    rehosted_url text,
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT card_images_created_at_not_null NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() CONSTRAINT card_images_updated_at_not_null NOT NULL,
+    rotation smallint DEFAULT 0 NOT NULL,
+    needs_trim boolean DEFAULT false NOT NULL,
+    credit text,
+    quad jsonb,
+    fingerprint text,
+    CONSTRAINT chk_image_files_credit CHECK ((credit <> ''::text)),
+    CONSTRAINT chk_image_files_has_url CHECK (((original_url IS NOT NULL) OR (rehosted_url IS NOT NULL))),
+    CONSTRAINT chk_image_files_original_url CHECK ((original_url <> ''::text)),
+    CONSTRAINT chk_image_files_quad_shape CHECK (((quad IS NULL) OR (jsonb_typeof(quad) = 'array'::text))),
+    CONSTRAINT chk_image_files_rehosted_url CHECK ((rehosted_url <> ''::text)),
+    CONSTRAINT chk_image_files_rotation CHECK ((rotation = ANY (ARRAY[0, 90, 180, 270])))
+);
+
+CREATE TABLE public.job_runs (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    kind text NOT NULL,
+    trigger text NOT NULL,
+    status text NOT NULL,
+    started_at timestamp with time zone DEFAULT now() NOT NULL,
+    finished_at timestamp with time zone,
+    duration_ms integer,
+    error_message text,
+    result jsonb,
+    noop boolean,
+    CONSTRAINT chk_job_runs_duration_nonnegative CHECK (((duration_ms IS NULL) OR (duration_ms >= 0))),
+    CONSTRAINT chk_job_runs_finished_shape CHECK (((status = 'running'::text) = (finished_at IS NULL))),
+    CONSTRAINT chk_job_runs_status CHECK ((status = ANY (ARRAY['running'::text, 'succeeded'::text, 'failed'::text]))),
+    CONSTRAINT chk_job_runs_trigger CHECK ((trigger = ANY (ARRAY['cron'::text, 'admin'::text, 'api'::text])))
+);
+
+CREATE TABLE public.job_schedules (
+    kind text NOT NULL,
+    schedule text NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_job_schedules_kind CHECK ((kind <> ''::text)),
+    CONSTRAINT chk_job_schedules_schedule CHECK ((schedule <> ''::text))
+);
+
+CREATE TABLE public.keyword_translations (
+    keyword_name text NOT NULL,
+    language text NOT NULL,
+    label text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_keyword_translations_label_not_empty CHECK ((label <> ''::text))
+);
+
+CREATE TABLE public.keywords (
+    name text CONSTRAINT keyword_styles_name_not_null NOT NULL,
+    color text CONSTRAINT keyword_styles_color_not_null NOT NULL,
+    dark_text boolean DEFAULT false CONSTRAINT keyword_styles_dark_text_not_null NOT NULL,
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT keyword_styles_created_at_not_null NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() CONSTRAINT keyword_styles_updated_at_not_null NOT NULL,
+    is_well_known boolean DEFAULT false NOT NULL,
+    cost_keyword boolean DEFAULT false NOT NULL,
+    card_modifier boolean DEFAULT false NOT NULL,
+    CONSTRAINT keywords_color_check CHECK ((color ~ '^#[0-9a-fA-F]{6}$'::text)),
+    CONSTRAINT keywords_name_check CHECK ((name <> ''::text))
+);
+
+CREATE TABLE public.languages (
+    code text NOT NULL,
+    name text NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    color text,
+    is_well_known boolean DEFAULT false NOT NULL,
+    CONSTRAINT chk_languages_color CHECK ((color ~ '^#[0-9a-fA-F]{6}$'::text)),
+    CONSTRAINT languages_code_not_empty CHECK ((code <> ''::text)),
+    CONSTRAINT languages_name_not_empty CHECK ((name <> ''::text))
+);
+
+CREATE TABLE public.list_entries (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    list_id uuid NOT NULL,
+    user_id text NOT NULL,
+    card_id uuid,
+    printing_id uuid,
+    copy_id uuid,
+    quantity integer DEFAULT 1 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    kind text NOT NULL,
+    price_pref text,
+    price_absolute_cents integer,
+    trade_type text,
+    CONSTRAINT chk_list_entries_absolute_positive CHECK (((price_absolute_cents IS NULL) OR (price_absolute_cents > 0))),
+    CONSTRAINT chk_list_entries_absolute_shape CHECK (((price_pref = 'absolute'::text) = (price_absolute_cents IS NOT NULL))),
+    CONSTRAINT chk_list_entries_copy_quantity CHECK (((kind <> 'copy'::text) OR (quantity = 1))),
+    CONSTRAINT chk_list_entries_kind CHECK ((kind = ANY (ARRAY['card'::text, 'printing'::text, 'copy'::text]))),
+    CONSTRAINT chk_list_entries_kind_shape CHECK ((((kind = 'card'::text) AND (card_id IS NOT NULL) AND (printing_id IS NULL) AND (copy_id IS NULL)) OR ((kind = 'printing'::text) AND (printing_id IS NOT NULL) AND (card_id IS NULL) AND (copy_id IS NULL)) OR ((kind = 'copy'::text) AND (copy_id IS NOT NULL) AND (card_id IS NULL) AND (printing_id IS NULL)))),
+    CONSTRAINT chk_list_entries_price_pref CHECK (((price_pref IS NULL) OR (price_pref = ANY (ARRAY['cm_lowest'::text, 'tcg_lowest'::text, 'ct_zero'::text, 'absolute'::text])))),
+    CONSTRAINT chk_list_entries_quantity CHECK ((quantity > 0)),
+    CONSTRAINT chk_list_entries_trade_type CHECK (((trade_type IS NULL) OR (trade_type = ANY (ARRAY['cards'::text, 'money'::text, 'both'::text]))))
+);
+
+CREATE TABLE public.lists (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    user_id text NOT NULL,
+    name text NOT NULL,
+    intent text NOT NULL,
+    is_public boolean DEFAULT false NOT NULL,
+    share_token text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    kind text NOT NULL,
+    default_price_pref text,
+    default_price_absolute_cents integer,
+    default_trade_type text,
+    currency text,
+    sort_order integer DEFAULT 0 NOT NULL,
+    rules jsonb DEFAULT '[]'::jsonb NOT NULL,
+    rule_combine text,
+    sidebar_hidden boolean DEFAULT false NOT NULL,
+    cardmarket_sync boolean DEFAULT false NOT NULL,
+    CONSTRAINT chk_lists_cardmarket_sync_trade_only CHECK (((intent = 'trade'::text) OR (cardmarket_sync = false))),
+    CONSTRAINT chk_lists_currency CHECK (((currency IS NULL) OR (currency = ANY (ARRAY['EUR'::text, 'USD'::text])))),
+    CONSTRAINT chk_lists_default_absolute_positive CHECK (((default_price_absolute_cents IS NULL) OR (default_price_absolute_cents > 0))),
+    CONSTRAINT chk_lists_default_absolute_shape CHECK (((default_price_pref = 'absolute'::text) = (default_price_absolute_cents IS NOT NULL))),
+    CONSTRAINT chk_lists_default_price_pref CHECK (((default_price_pref IS NULL) OR (default_price_pref = ANY (ARRAY['cm_lowest'::text, 'tcg_lowest'::text, 'ct_zero'::text, 'absolute'::text])))),
+    CONSTRAINT chk_lists_default_trade_type CHECK (((default_trade_type IS NULL) OR (default_trade_type = ANY (ARRAY['cards'::text, 'money'::text, 'both'::text])))),
+    CONSTRAINT chk_lists_intent CHECK ((intent = ANY (ARRAY['wish'::text, 'trade'::text, 'organize'::text]))),
+    CONSTRAINT chk_lists_intent_kind CHECK ((((intent = 'wish'::text) AND (kind = ANY (ARRAY['card'::text, 'printing'::text]))) OR ((intent = 'trade'::text) AND (kind = 'copy'::text)) OR ((intent = 'organize'::text) AND (kind = ANY (ARRAY['card'::text, 'printing'::text, 'copy'::text]))))),
+    CONSTRAINT chk_lists_kind CHECK ((kind = ANY (ARRAY['card'::text, 'printing'::text, 'copy'::text]))),
+    CONSTRAINT chk_lists_name_not_empty CHECK ((name <> ''::text)),
+    CONSTRAINT chk_lists_prefs_only_on_trade_intents CHECK (((intent = ANY (ARRAY['wish'::text, 'trade'::text])) OR ((default_price_pref IS NULL) AND (default_price_absolute_cents IS NULL) AND (default_trade_type IS NULL) AND (currency IS NULL)))),
+    CONSTRAINT chk_lists_rules_shape CHECK (((rules IS NULL) OR (jsonb_typeof(rules) = 'array'::text))),
+    CONSTRAINT lists_rule_combine_check CHECK ((rule_combine = ANY (ARRAY['sum'::text, 'max'::text, 'protect'::text, 'count-sum'::text, 'count-max'::text])))
+);
+
+CREATE TABLE public.loan_copies (
+    loan_id uuid NOT NULL,
+    copy_id uuid NOT NULL
+);
+
+CREATE TABLE public.loans (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    lender_user_id text NOT NULL,
+    borrower_user_id text,
+    borrower_name text,
+    printing_id uuid NOT NULL,
+    card_id uuid NOT NULL,
+    quantity integer NOT NULL,
+    returned_quantity integer DEFAULT 0 NOT NULL,
+    status text DEFAULT 'active'::text NOT NULL,
+    acknowledged_at timestamp with time zone,
+    rejected_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    closed_at timestamp with time zone,
+    borrower_returned_quantity integer DEFAULT 0 NOT NULL,
+    CONSTRAINT chk_loans_ack_reject CHECK ((NOT ((acknowledged_at IS NOT NULL) AND (rejected_at IS NOT NULL)))),
+    CONSTRAINT chk_loans_borrower_name_not_empty CHECK (((borrower_name IS NULL) OR (borrower_name <> ''::text))),
+    CONSTRAINT chk_loans_borrower_returned_bounds CHECK (((borrower_returned_quantity >= 0) AND (borrower_returned_quantity <= returned_quantity))),
+    CONSTRAINT chk_loans_borrower_shape CHECK ((num_nonnulls(borrower_user_id, borrower_name) = 1)),
+    CONSTRAINT chk_loans_closed_shape CHECK (((status = 'active'::text) = (closed_at IS NULL))),
+    CONSTRAINT chk_loans_distinct_parties CHECK (((borrower_user_id IS NULL) OR (borrower_user_id <> lender_user_id))),
+    CONSTRAINT chk_loans_quantity CHECK ((quantity > 0)),
+    CONSTRAINT chk_loans_returned_bounds CHECK (((returned_quantity >= 0) AND (returned_quantity <= quantity))),
+    CONSTRAINT chk_loans_returned_complete CHECK (((status <> 'returned'::text) OR (returned_quantity = quantity))),
+    CONSTRAINT chk_loans_status CHECK ((status = ANY (ARRAY['active'::text, 'returned'::text, 'written_off'::text])))
+);
+
+CREATE TABLE public.markers (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    slug text NOT NULL,
+    label text NOT NULL,
+    description text,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT markers_description_check CHECK ((description <> ''::text)),
+    CONSTRAINT markers_label_check CHECK ((label <> ''::text)),
+    CONSTRAINT markers_slug_check CHECK ((slug <> ''::text))
+);
+
+CREATE TABLE public.marketplace_groups (
+    marketplace text NOT NULL,
+    group_id integer NOT NULL,
+    name text,
+    abbreviation text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT uuidv7() NOT NULL,
+    group_kind public.marketplace_group_kind DEFAULT 'basic'::public.marketplace_group_kind NOT NULL,
+    set_id uuid,
+    CONSTRAINT chk_marketplace_groups_marketplace CHECK ((marketplace = ANY (ARRAY['tcgplayer'::text, 'cardmarket'::text, 'cardtrader'::text, 'cardnexus'::text])))
+);
+
+CREATE TABLE public.marketplace_ignored_products (
+    marketplace text NOT NULL,
+    external_id integer NOT NULL,
+    product_name text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_marketplace_ignored_products_marketplace CHECK ((marketplace = ANY (ARRAY['tcgplayer'::text, 'cardmarket'::text, 'cardtrader'::text, 'cardnexus'::text])))
+);
+
+CREATE TABLE public.marketplace_ignored_variants (
+    marketplace_product_id uuid NOT NULL,
+    product_name text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE public.marketplace_product_card_overrides (
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT marketplace_staging_card_overrides_created_at_not_null NOT NULL,
+    card_id uuid CONSTRAINT marketplace_staging_card_overrides_card_id_not_null NOT NULL,
+    marketplace_product_id uuid CONSTRAINT marketplace_staging_card_overri_marketplace_product_id_not_null NOT NULL
+);
+
+CREATE TABLE public.marketplace_product_prices (
+    marketplace_product_id uuid NOT NULL,
+    recorded_at timestamp with time zone NOT NULL,
+    market_cents integer,
+    low_cents integer,
+    mid_cents integer,
+    high_cents integer,
+    trend_cents integer,
+    avg1_cents integer,
+    avg7_cents integer,
+    avg30_cents integer,
+    zero_low_cents integer,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_marketplace_product_prices_avg1_cents_non_negative CHECK ((avg1_cents >= 0)),
+    CONSTRAINT chk_marketplace_product_prices_avg30_cents_non_negative CHECK ((avg30_cents >= 0)),
+    CONSTRAINT chk_marketplace_product_prices_avg7_cents_non_negative CHECK ((avg7_cents >= 0)),
+    CONSTRAINT chk_marketplace_product_prices_high_cents_non_negative CHECK ((high_cents >= 0)),
+    CONSTRAINT chk_marketplace_product_prices_low_cents_non_negative CHECK ((low_cents >= 0)),
+    CONSTRAINT chk_marketplace_product_prices_market_cents_non_negative CHECK ((market_cents >= 0)),
+    CONSTRAINT chk_marketplace_product_prices_mid_cents_non_negative CHECK ((mid_cents >= 0)),
+    CONSTRAINT chk_marketplace_product_prices_trend_cents_non_negative CHECK ((trend_cents >= 0)),
+    CONSTRAINT chk_marketplace_product_prices_zero_low_cents_non_negative CHECK ((zero_low_cents >= 0))
+)
+WITH (autovacuum_analyze_scale_factor='0.02', autovacuum_analyze_threshold='5000');
+
+CREATE TABLE public.marketplace_product_variants (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    marketplace_product_id uuid NOT NULL,
+    printing_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE public.marketplace_products (
+    marketplace text NOT NULL,
+    external_id integer NOT NULL,
+    group_id integer NOT NULL,
+    product_name text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT uuidv7() NOT NULL,
+    finish text NOT NULL,
+    language text,
+    norm_name text DEFAULT ''::text NOT NULL,
+    CONSTRAINT chk_marketplace_products_external_id_positive CHECK ((external_id > 0)),
+    CONSTRAINT chk_marketplace_products_marketplace CHECK ((marketplace = ANY (ARRAY['tcgplayer'::text, 'cardmarket'::text, 'cardtrader'::text, 'cardnexus'::text]))),
+    CONSTRAINT chk_marketplace_products_product_name_not_empty CHECK ((product_name <> ''::text))
+);
+
+CREATE TABLE public.meta_credits (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    meta_event_id uuid NOT NULL,
+    user_id text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    meta_event_player_id uuid
+);
+
+CREATE TABLE public.meta_event_matches (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    meta_event_id uuid NOT NULL,
+    phase_order integer DEFAULT 0 NOT NULL,
+    round_number integer NOT NULL,
+    table_number integer,
+    is_bye boolean DEFAULT false NOT NULL,
+    is_draw boolean DEFAULT false NOT NULL,
+    player1_id uuid NOT NULL,
+    player2_id uuid,
+    winner_id uuid,
+    games_won_p1 smallint,
+    games_won_p2 smallint,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    source_match_id text,
+    source_round_id text,
+    CONSTRAINT chk_meta_event_matches_bye CHECK (((player2_id IS NULL) = is_bye)),
+    CONSTRAINT chk_meta_event_matches_phase_order CHECK ((phase_order >= 0)),
+    CONSTRAINT chk_meta_event_matches_round_number CHECK ((round_number >= 1)),
+    CONSTRAINT chk_meta_event_matches_source_match_id CHECK (((source_match_id IS NULL) OR (source_match_id <> ''::text))),
+    CONSTRAINT chk_meta_event_matches_source_round_id CHECK (((source_round_id IS NULL) OR (source_round_id <> ''::text))),
+    CONSTRAINT chk_meta_event_matches_winner CHECK (((winner_id IS NULL) OR (winner_id = player1_id) OR (winner_id = player2_id)))
+);
+
+CREATE TABLE public.meta_event_overlay_matches (
+    event_overlay_id uuid NOT NULL,
+    external_id text NOT NULL,
+    phase_order integer DEFAULT 0 NOT NULL,
+    round_number integer NOT NULL,
+    round_external_id text,
+    table_number integer,
+    is_bye boolean DEFAULT false NOT NULL,
+    is_draw boolean DEFAULT false NOT NULL,
+    player1_external_id text NOT NULL,
+    player2_external_id text,
+    winner_external_id text,
+    games_won_p1 integer,
+    games_won_p2 integer,
+    CONSTRAINT chk_meta_event_overlay_matches_bye CHECK (
+CASE
+    WHEN is_bye THEN ((player2_external_id IS NULL) AND (NOT is_draw))
+    ELSE (player2_external_id IS NOT NULL)
+END),
+    CONSTRAINT chk_meta_event_overlay_matches_external_id CHECK ((external_id <> ''::text)),
+    CONSTRAINT chk_meta_event_overlay_matches_games CHECK ((((games_won_p1 IS NULL) OR (games_won_p1 >= 0)) AND ((games_won_p2 IS NULL) OR (games_won_p2 >= 0)))),
+    CONSTRAINT chk_meta_event_overlay_matches_phase_order CHECK ((phase_order >= 0)),
+    CONSTRAINT chk_meta_event_overlay_matches_player1 CHECK ((player1_external_id <> ''::text)),
+    CONSTRAINT chk_meta_event_overlay_matches_player2 CHECK (((player2_external_id IS NULL) OR (player2_external_id <> ''::text))),
+    CONSTRAINT chk_meta_event_overlay_matches_round_external_id CHECK (((round_external_id IS NULL) OR (round_external_id <> ''::text))),
+    CONSTRAINT chk_meta_event_overlay_matches_round_number CHECK ((round_number > 0)),
+    CONSTRAINT chk_meta_event_overlay_matches_table_number CHECK (((table_number IS NULL) OR (table_number > 0))),
+    CONSTRAINT chk_meta_event_overlay_matches_winner CHECK (((winner_external_id IS NULL) OR (winner_external_id <> ''::text))),
+    CONSTRAINT chk_meta_event_overlay_matches_winner_seat CHECK (((winner_external_id IS NULL) OR (winner_external_id = player1_external_id) OR ((player2_external_id IS NOT NULL) AND (winner_external_id = player2_external_id))))
+);
+
+CREATE TABLE public.meta_event_overlay_phases (
+    event_overlay_id uuid NOT NULL,
+    phase_order integer NOT NULL,
+    name text,
+    round_type text NOT NULL,
+    round_count integer,
+    rank_required integer,
+    max_game_wins smallint,
+    CONSTRAINT chk_meta_event_overlay_phases_max_game_wins CHECK (((max_game_wins IS NULL) OR (max_game_wins > 0))),
+    CONSTRAINT chk_meta_event_overlay_phases_name CHECK (((name IS NULL) OR ((length(name) >= 1) AND (length(name) <= 120)))),
+    CONSTRAINT chk_meta_event_overlay_phases_phase_order CHECK ((phase_order >= 0)),
+    CONSTRAINT chk_meta_event_overlay_phases_rank_required CHECK (((rank_required IS NULL) OR (rank_required > 0))),
+    CONSTRAINT chk_meta_event_overlay_phases_round_count CHECK (((round_count IS NULL) OR (round_count > 0))),
+    CONSTRAINT chk_meta_event_overlay_phases_round_type CHECK ((round_type <> ''::text))
+);
+
+CREATE TABLE public.meta_event_overlays (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    meta_event_id uuid,
+    provider text,
+    external_id text,
+    name text,
+    event_date date,
+    format text,
+    player_count integer,
+    organizer text,
+    notes text,
+    tier text,
+    country text,
+    location text,
+    claimed_fields text[] NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    submitted_by_user_id text NOT NULL,
+    submission_note text,
+    accepted_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_meta_event_overlays_accepted_at CHECK (((status = 'accepted'::text) = (accepted_at IS NOT NULL))),
+    CONSTRAINT chk_meta_event_overlays_claimed_fields_known CHECK ((claimed_fields <@ ARRAY['name'::text, 'eventDate'::text, 'format'::text, 'playerCount'::text, 'organizer'::text, 'notes'::text, 'tier'::text, 'country'::text, 'location'::text])),
+    CONSTRAINT chk_meta_event_overlays_country CHECK (((country IS NULL) OR (country ~ '^[A-Z]{2}$'::text))),
+    CONSTRAINT chk_meta_event_overlays_country_claimed CHECK (((country IS NULL) OR ('country'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_overlays_event_date_claimed CHECK (((event_date IS NULL) OR ('eventDate'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_overlays_external_id CHECK (((external_id IS NULL) OR (external_id <> ''::text))),
+    CONSTRAINT chk_meta_event_overlays_format CHECK (((format IS NULL) OR (format <> ''::text))),
+    CONSTRAINT chk_meta_event_overlays_format_claimed CHECK (((format IS NULL) OR ('format'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_overlays_key_shape CHECK (((provider IS NULL) = (external_id IS NULL))),
+    CONSTRAINT chk_meta_event_overlays_location CHECK (((location IS NULL) OR ((length(location) >= 1) AND (length(location) <= 500)))),
+    CONSTRAINT chk_meta_event_overlays_location_claimed CHECK (((location IS NULL) OR ('location'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_overlays_name CHECK (((name IS NULL) OR ((length(name) >= 1) AND (length(name) <= 120)))),
+    CONSTRAINT chk_meta_event_overlays_name_claimed CHECK (((name IS NULL) OR ('name'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_overlays_notes CHECK (((notes IS NULL) OR (length(notes) <= 4000))),
+    CONSTRAINT chk_meta_event_overlays_notes_claimed CHECK (((notes IS NULL) OR ('notes'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_overlays_organizer CHECK (((organizer IS NULL) OR ((length(organizer) >= 1) AND (length(organizer) <= 120)))),
+    CONSTRAINT chk_meta_event_overlays_organizer_claimed CHECK (((organizer IS NULL) OR ('organizer'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_overlays_player_count CHECK (((player_count IS NULL) OR (player_count > 0))),
+    CONSTRAINT chk_meta_event_overlays_player_count_claimed CHECK (((player_count IS NULL) OR ('playerCount'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_overlays_provider CHECK (((provider IS NULL) OR (provider <> ''::text))),
+    CONSTRAINT chk_meta_event_overlays_status CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text]))),
+    CONSTRAINT chk_meta_event_overlays_submission_note CHECK (((submission_note IS NULL) OR (submission_note <> ''::text))),
+    CONSTRAINT chk_meta_event_overlays_tier CHECK (((tier IS NULL) OR (tier = ANY (ARRAY['premier'::text, 'competitive'::text, 'local'::text])))),
+    CONSTRAINT chk_meta_event_overlays_tier_claimed CHECK (((tier IS NULL) OR ('tier'::text = ANY (claimed_fields))))
+);
+
+CREATE TABLE public.meta_event_phases (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    meta_event_id uuid NOT NULL,
+    phase_order integer NOT NULL,
+    name text,
+    round_type text NOT NULL,
+    round_count integer,
+    rank_required integer,
+    max_game_wins smallint,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_meta_event_phases_max_game_wins CHECK (((max_game_wins IS NULL) OR (max_game_wins > 0))),
+    CONSTRAINT chk_meta_event_phases_name CHECK (((name IS NULL) OR ((length(name) >= 1) AND (length(name) <= 120)))),
+    CONSTRAINT chk_meta_event_phases_phase_order CHECK ((phase_order >= 0)),
+    CONSTRAINT chk_meta_event_phases_rank_required CHECK (((rank_required IS NULL) OR (rank_required > 0))),
+    CONSTRAINT chk_meta_event_phases_round_count CHECK (((round_count IS NULL) OR (round_count > 0))),
+    CONSTRAINT chk_meta_event_phases_round_type CHECK ((round_type <> ''::text))
+);
+
+CREATE TABLE public.meta_event_player_overlay_cards (
+    overlay_id uuid NOT NULL,
+    line_number integer NOT NULL,
+    zone text NOT NULL,
+    quantity integer NOT NULL,
+    card_name text NOT NULL,
+    card_id uuid,
+    preferred_printing_id uuid,
+    CONSTRAINT chk_meta_event_player_overlay_cards_card_name CHECK ((card_name <> ''::text)),
+    CONSTRAINT chk_meta_event_player_overlay_cards_line CHECK ((line_number >= 0)),
+    CONSTRAINT chk_meta_event_player_overlay_cards_quantity CHECK ((quantity > 0)),
+    CONSTRAINT chk_meta_event_player_overlay_cards_zone CHECK ((zone <> ''::text))
+);
+
+CREATE TABLE public.meta_event_player_overlays (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    meta_event_player_id uuid,
+    meta_event_id uuid,
+    event_overlay_id uuid,
+    player_name text,
+    rank integer,
+    rank_is_tier boolean,
+    wins smallint,
+    losses smallint,
+    draws smallint,
+    match_points integer,
+    opponent_match_win_pct double precision,
+    game_win_pct double precision,
+    opponent_game_win_pct double precision,
+    entry_status text,
+    legend_card_id uuid,
+    champion_card_id uuid,
+    list_status text,
+    claimed_fields text[] NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    submitted_by_user_id text NOT NULL,
+    submission_note text,
+    accepted_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    provider text,
+    source_player_key text,
+    CONSTRAINT chk_meta_event_player_overlays_accepted_at CHECK (((status = 'accepted'::text) = (accepted_at IS NOT NULL))),
+    CONSTRAINT chk_meta_event_player_overlays_champion_card_id_claimed CHECK (((champion_card_id IS NULL) OR ('championCardId'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_player_overlays_claimed_fields_known CHECK ((claimed_fields <@ ARRAY['playerName'::text, 'rank'::text, 'rankIsTier'::text, 'wins'::text, 'losses'::text, 'draws'::text, 'matchPoints'::text, 'opponentMatchWinPct'::text, 'gameWinPct'::text, 'opponentGameWinPct'::text, 'entryStatus'::text, 'legendCardId'::text, 'championCardId'::text, 'listStatus'::text, 'cards'::text])),
+    CONSTRAINT chk_meta_event_player_overlays_draws_claimed CHECK (((draws IS NULL) OR ('draws'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_player_overlays_entry_status CHECK (((entry_status IS NULL) OR (entry_status = ANY (ARRAY['complete'::text, 'eliminated'::text, 'dropped'::text])))),
+    CONSTRAINT chk_meta_event_player_overlays_entry_status_claimed CHECK (((entry_status IS NULL) OR ('entryStatus'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_player_overlays_game_win_pct_claimed CHECK (((game_win_pct IS NULL) OR ('gameWinPct'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_player_overlays_legend_card_id_claimed CHECK (((legend_card_id IS NULL) OR ('legendCardId'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_player_overlays_list_status CHECK (((list_status IS NULL) OR (list_status = ANY (ARRAY['none'::text, 'partial'::text, 'full'::text])))),
+    CONSTRAINT chk_meta_event_player_overlays_list_status_claimed CHECK (((list_status IS NULL) OR ('listStatus'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_player_overlays_losses_claimed CHECK (((losses IS NULL) OR ('losses'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_player_overlays_match_points CHECK (((match_points IS NULL) OR (match_points >= 0))),
+    CONSTRAINT chk_meta_event_player_overlays_match_points_claimed CHECK (((match_points IS NULL) OR ('matchPoints'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_player_overlays_opponent_game_win_pct_claimed CHECK (((opponent_game_win_pct IS NULL) OR ('opponentGameWinPct'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_player_overlays_opponent_match_win_pct_claimed CHECK (((opponent_match_win_pct IS NULL) OR ('opponentMatchWinPct'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_player_overlays_player_name CHECK (((player_name IS NULL) OR ((length(player_name) >= 1) AND (length(player_name) <= 80)))),
+    CONSTRAINT chk_meta_event_player_overlays_player_name_claimed CHECK (((player_name IS NULL) OR ('playerName'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_player_overlays_rank CHECK (((rank IS NULL) OR (rank >= 1))),
+    CONSTRAINT chk_meta_event_player_overlays_rank_claimed CHECK (((rank IS NULL) OR ('rank'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_player_overlays_rank_is_tier_claimed CHECK (((rank_is_tier IS NULL) OR ('rankIsTier'::text = ANY (claimed_fields)))),
+    CONSTRAINT chk_meta_event_player_overlays_source_key CHECK ((((provider IS NULL) = (source_player_key IS NULL)) AND ((provider IS NULL) OR ((provider <> ''::text) AND (source_player_key <> ''::text))))),
+    CONSTRAINT chk_meta_event_player_overlays_status CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text]))),
+    CONSTRAINT chk_meta_event_player_overlays_submission_note CHECK (((submission_note IS NULL) OR (submission_note <> ''::text))),
+    CONSTRAINT chk_meta_event_player_overlays_target CHECK ((num_nonnulls(meta_event_player_id, meta_event_id, event_overlay_id) = 1)),
+    CONSTRAINT chk_meta_event_player_overlays_tiebreakers CHECK ((((opponent_match_win_pct IS NULL) OR ((opponent_match_win_pct >= (0)::double precision) AND (opponent_match_win_pct <= (1)::double precision))) AND ((game_win_pct IS NULL) OR ((game_win_pct >= (0)::double precision) AND (game_win_pct <= (1)::double precision))) AND ((opponent_game_win_pct IS NULL) OR ((opponent_game_win_pct >= (0)::double precision) AND (opponent_game_win_pct <= (1)::double precision))))),
+    CONSTRAINT chk_meta_event_player_overlays_wins_claimed CHECK (((wins IS NULL) OR ('wins'::text = ANY (claimed_fields))))
+);
+
+CREATE TABLE public.meta_event_players (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    meta_event_id uuid NOT NULL,
+    rank integer NOT NULL,
+    rank_is_tier boolean DEFAULT false NOT NULL,
+    player_name text,
+    wins smallint,
+    losses smallint,
+    draws smallint,
+    legend_card_id uuid,
+    champion_card_id uuid,
+    deck_id uuid,
+    list_status text DEFAULT 'none'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    uvsgames_player_id integer,
+    match_points integer,
+    opponent_match_win_pct double precision,
+    game_win_pct double precision,
+    opponent_game_win_pct double precision,
+    entry_status text,
+    source_identity text,
+    minted_by_overlay_id uuid,
+    CONSTRAINT chk_meta_event_players_deck_status CHECK (((deck_id IS NULL) = (list_status = 'none'::text))),
+    CONSTRAINT chk_meta_event_players_entry_status CHECK (((entry_status IS NULL) OR (entry_status = ANY (ARRAY['complete'::text, 'eliminated'::text, 'dropped'::text])))),
+    CONSTRAINT chk_meta_event_players_identity CHECK (((player_name IS NOT NULL) OR (uvsgames_player_id IS NOT NULL))),
+    CONSTRAINT chk_meta_event_players_list_status CHECK ((list_status = ANY (ARRAY['none'::text, 'partial'::text, 'full'::text]))),
+    CONSTRAINT chk_meta_event_players_match_points CHECK (((match_points IS NULL) OR (match_points >= 0))),
+    CONSTRAINT chk_meta_event_players_player_name CHECK (((length(player_name) >= 1) AND (length(player_name) <= 80))),
+    CONSTRAINT chk_meta_event_players_rank CHECK ((rank >= 1)),
+    CONSTRAINT chk_meta_event_players_source_identity CHECK (((source_identity IS NULL) OR (source_identity <> ''::text))),
+    CONSTRAINT chk_meta_event_players_tiebreakers CHECK ((((opponent_match_win_pct IS NULL) OR ((opponent_match_win_pct >= (0)::double precision) AND (opponent_match_win_pct <= (1)::double precision))) AND ((game_win_pct IS NULL) OR ((game_win_pct >= (0)::double precision) AND (game_win_pct <= (1)::double precision))) AND ((opponent_game_win_pct IS NULL) OR ((opponent_game_win_pct >= (0)::double precision) AND (opponent_game_win_pct <= (1)::double precision)))))
+);
+
+CREATE TABLE public.meta_event_sources (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    meta_event_id uuid NOT NULL,
+    provider text,
+    external_id text,
+    label text NOT NULL,
+    source_url text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    priority integer DEFAULT 0 NOT NULL,
+    contributes boolean DEFAULT true NOT NULL,
+    CONSTRAINT chk_meta_event_sources_external_id CHECK (((external_id IS NULL) OR (external_id <> ''::text))),
+    CONSTRAINT chk_meta_event_sources_key_shape CHECK (((provider IS NULL) = (external_id IS NULL))),
+    CONSTRAINT chk_meta_event_sources_label CHECK (((length(label) >= 1) AND (length(label) <= 60))),
+    CONSTRAINT chk_meta_event_sources_provider CHECK (((provider IS NULL) OR (provider <> ''::text))),
+    CONSTRAINT chk_meta_event_sources_source_url CHECK (((source_url IS NULL) OR ((length(source_url) >= 1) AND (length(source_url) <= 2000))))
+);
+
+CREATE TABLE public.meta_events (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    slug text NOT NULL,
+    name text NOT NULL,
+    event_date date NOT NULL,
+    format text NOT NULL,
+    player_count integer,
+    organizer text,
+    notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    tier text DEFAULT 'local'::text NOT NULL,
+    country text,
+    location text,
+    status text DEFAULT 'complete'::text NOT NULL,
+    source_checked_at timestamp with time zone,
+    CONSTRAINT chk_meta_events_country CHECK (((country IS NULL) OR (country ~ '^[A-Z]{2}$'::text))),
+    CONSTRAINT chk_meta_events_location CHECK (((location IS NULL) OR ((length(location) >= 1) AND (length(location) <= 500)))),
+    CONSTRAINT chk_meta_events_name CHECK (((length(name) >= 1) AND (length(name) <= 120))),
+    CONSTRAINT chk_meta_events_notes CHECK (((notes IS NULL) OR (length(notes) <= 4000))),
+    CONSTRAINT chk_meta_events_organizer CHECK (((organizer IS NULL) OR ((length(organizer) >= 1) AND (length(organizer) <= 120)))),
+    CONSTRAINT chk_meta_events_player_count CHECK (((player_count IS NULL) OR (player_count > 0))),
+    CONSTRAINT chk_meta_events_slug CHECK ((slug ~ '^[a-z0-9][a-z0-9-]{2,49}$'::text)),
+    CONSTRAINT chk_meta_events_status CHECK ((status = ANY (ARRAY['upcoming'::text, 'in_progress'::text, 'complete'::text]))),
+    CONSTRAINT chk_meta_events_tier CHECK ((tier = ANY (ARRAY['premier'::text, 'competitive'::text, 'local'::text])))
+);
+
+CREATE TABLE public.meta_player_links (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    meta_event_id uuid NOT NULL,
+    provider text NOT NULL,
+    source_identity text NOT NULL,
+    meta_event_player_id uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_meta_player_links_provider CHECK ((provider <> ''::text)),
+    CONSTRAINT chk_meta_player_links_source_identity CHECK ((source_identity <> ''::text))
+);
+
+CREATE TABLE public.meta_submissions (
+    id uuid DEFAULT uuidv7() CONSTRAINT meta_deck_submissions_id_not_null NOT NULL,
+    user_id text CONSTRAINT meta_deck_submissions_user_id_not_null NOT NULL,
+    provider text CONSTRAINT meta_deck_submissions_provider_not_null NOT NULL,
+    external_id text CONSTRAINT meta_deck_submissions_external_id_not_null NOT NULL,
+    meta_event_id uuid,
+    event_name text CONSTRAINT meta_deck_submissions_event_name_not_null NOT NULL,
+    player_name text,
+    note text,
+    status text DEFAULT 'pending'::text CONSTRAINT meta_deck_submissions_status_not_null NOT NULL,
+    resolution_reason text,
+    resolution_note text,
+    resolved_at timestamp with time zone,
+    resolved_by_user_id text,
+    accepted_deck_id uuid,
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT meta_deck_submissions_created_at_not_null NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() CONSTRAINT meta_deck_submissions_updated_at_not_null NOT NULL,
+    kind text DEFAULT 'new_list'::text NOT NULL,
+    field_edits jsonb,
+    player_overlay_id uuid,
+    meta_event_player_id uuid,
+    CONSTRAINT chk_meta_submissions_event_name CHECK (((length(event_name) >= 1) AND (length(event_name) <= 120))),
+    CONSTRAINT chk_meta_submissions_external_id CHECK ((external_id <> ''::text)),
+    CONSTRAINT chk_meta_submissions_field_edits CHECK (((field_edits IS NULL) OR (jsonb_typeof(field_edits) = 'object'::text))),
+    CONSTRAINT chk_meta_submissions_field_edits_kind CHECK (((field_edits IS NULL) OR (kind = 'event_correction'::text))),
+    CONSTRAINT chk_meta_submissions_kind CHECK ((kind = ANY (ARRAY['new_list'::text, 'completion'::text, 'correction'::text, 'event_correction'::text]))),
+    CONSTRAINT chk_meta_submissions_note CHECK ((note <> ''::text)),
+    CONSTRAINT chk_meta_submissions_player_name CHECK (((player_name IS NULL) OR ((length(player_name) >= 1) AND (length(player_name) <= 80)))),
+    CONSTRAINT chk_meta_submissions_player_present CHECK (((player_name IS NULL) = (kind = 'event_correction'::text))),
+    CONSTRAINT chk_meta_submissions_provider CHECK ((provider <> ''::text)),
+    CONSTRAINT chk_meta_submissions_reason CHECK (((resolution_reason IS NULL) OR (resolution_reason = ANY (ARRAY['duplicate'::text, 'already_correct'::text, 'unverified'::text, 'incomplete_list'::text, 'not_an_event'::text])))),
+    CONSTRAINT chk_meta_submissions_resolution_note CHECK ((resolution_note <> ''::text)),
+    CONSTRAINT chk_meta_submissions_resolved_at CHECK (((status = 'pending'::text) = (resolved_at IS NULL))),
+    CONSTRAINT chk_meta_submissions_status CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'already_correct'::text, 'not_applied'::text, 'rejected'::text])))
+);
+
+CREATE TABLE public.meta_sync_settings (
+    id integer NOT NULL,
+    auto_accept_min_players integer,
+    auto_accept_notable boolean DEFAULT false NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    auto_accept_official boolean DEFAULT false NOT NULL,
+    competitive_player_floor integer DEFAULT 128 NOT NULL,
+    CONSTRAINT chk_meta_sync_settings_competitive_floor CHECK ((competitive_player_floor > 0)),
+    CONSTRAINT chk_meta_sync_settings_min_players CHECK (((auto_accept_min_players IS NULL) OR (auto_accept_min_players > 0))),
+    CONSTRAINT chk_meta_sync_settings_singleton CHECK ((id = 1))
+);
+
+CREATE MATERIALIZED VIEW public.mv_card_aggregates AS
+ SELECT id AS card_id,
+    COALESCE(( SELECT array_agg(cd.domain_slug ORDER BY cd.ordinal) AS array_agg
+           FROM public.card_domains cd
+          WHERE (cd.card_id = c.id)), '{}'::text[]) AS domains,
+    COALESCE(( SELECT array_agg(cst.super_type_slug) AS array_agg
+           FROM public.card_super_types cst
+          WHERE (cst.card_id = c.id)), '{}'::text[]) AS super_types,
+    COALESCE(( SELECT array_agg(cct.type_slug ORDER BY cct."position") AS array_agg
+           FROM public.card_card_types cct
+          WHERE (cct.card_id = c.id)), '{}'::text[]) AS types,
+    COALESCE(( SELECT array_agg(ct.token_card_id ORDER BY tc.name) AS array_agg
+           FROM (public.card_tokens ct
+             JOIN public.cards tc ON ((tc.id = ct.token_card_id)))
+          WHERE (ct.card_id = c.id)), '{}'::uuid[]) AS token_card_ids
+   FROM public.cards c
+  WITH NO DATA;
+
+CREATE MATERIALIZED VIEW public.mv_daily_printing_prices AS
+ WITH daily_sku AS (
+         SELECT DISTINCT ON (pp.marketplace_product_id, ((date_trunc('day'::text, pp.recorded_at))::date)) pp.marketplace_product_id,
+            mp.marketplace,
+            (date_trunc('day'::text, pp.recorded_at))::date AS day,
+            pp.zero_low_cents,
+            pp.low_cents,
+            pp.market_cents
+           FROM (public.marketplace_product_prices pp
+             JOIN public.marketplace_products mp ON ((mp.id = pp.marketplace_product_id)))
+          ORDER BY pp.marketplace_product_id, ((date_trunc('day'::text, pp.recorded_at))::date), (pp.zero_low_cents IS NULL), pp.recorded_at DESC
+        ), islands AS (
+         SELECT s.marketplace_product_id,
+            s.marketplace,
+            s.day,
+            s.zero_low_cents,
+            s.low_cents,
+            s.market_cents,
+            count(s.zero_low_cents) OVER (PARTITION BY s.marketplace_product_id ORDER BY s.day ROWS UNBOUNDED PRECEDING) AS zero_island
+           FROM daily_sku s
+        ), carried AS (
+         SELECT i.marketplace_product_id,
+            i.marketplace,
+            i.day,
+            i.low_cents,
+            i.market_cents,
+            first_value(i.zero_low_cents) OVER (PARTITION BY i.marketplace_product_id, i.zero_island ORDER BY i.day) AS zero_carried
+           FROM islands i
         )
-        .notNull(),
-    )
-    .addCheckConstraint("user_preferences_data_max_size", sql`length((data)::text) <= 8192`)
-    .execute();
-
-  // -- formats
-  await db.schema
-    .createTable("formats")
-    .addColumn("id", "text", (col) => col.primaryKey())
-    .addColumn("name", "text", (col) => col.notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addCheckConstraint("chk_formats_id_not_empty", sql`id <> ''`)
-    .addCheckConstraint("chk_formats_name_not_empty", sql`name <> ''`)
-    .execute();
-
-  // -- languages
-  await db.schema
-    .createTable("languages")
-    .addColumn("code", "text", (col) => col.primaryKey())
-    .addColumn("name", "text", (col) => col.notNull())
-    .addColumn("sort_order", "integer", (col) => col.defaultTo(0).notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addCheckConstraint("languages_code_not_empty", sql`code <> ''`)
-    .addCheckConstraint("languages_name_not_empty", sql`name <> ''`)
-    .execute();
-
-  // -- promo_types
-  await db.schema
-    .createTable("promo_types")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("slug", "text", (col) => col.notNull())
-    .addColumn("label", "text", (col) => col.notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addCheckConstraint("promo_types_slug_check", sql`slug <> ''`)
-    .addCheckConstraint("promo_types_label_check", sql`label <> ''`)
-    .execute();
-
-  // -- keyword_styles
-  await db.schema
-    .createTable("keyword_styles")
-    .addColumn("name", "text", (col) => col.primaryKey())
-    .addColumn("color", "text", (col) => col.notNull())
-    .addColumn("dark_text", "boolean", (col) => col.defaultTo(false).notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addCheckConstraint("keyword_styles_color_check", sql`color ~ '^#[0-9a-fA-F]{6}$'`)
-    .addCheckConstraint("keyword_styles_name_check", sql`name <> ''`)
-    .execute();
-
-  // -- site_settings
-  await db.schema
-    .createTable("site_settings")
-    .addColumn("key", "text", (col) => col.primaryKey())
-    .addColumn("value", "text", (col) => col.notNull())
-    .addColumn("scope", "text", (col) => col.defaultTo("web").notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addCheckConstraint("site_settings_key_check", sql`key <> ''`)
-    .addCheckConstraint(
-      "site_settings_scope_check",
-      sql`scope = ANY (ARRAY['web'::text, 'api'::text])`,
-    )
-    .execute();
-
-  // -- provider_settings
-  await db.schema
-    .createTable("provider_settings")
-    .addColumn("provider", "text", (col) => col.primaryKey())
-    .addColumn("sort_order", "integer", (col) => col.defaultTo(0).notNull())
-    .addColumn("is_hidden", "boolean", (col) => col.defaultTo(false).notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addCheckConstraint("provider_settings_provider_check", sql`provider <> ''`)
-    .execute();
-
-  // -- sets
-  await db.schema
-    .createTable("sets")
-    .addColumn("name", "text", (col) => col.notNull())
-    .addColumn("printed_total", "integer")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("sort_order", "integer", (col) => col.defaultTo(0).notNull())
-    .addColumn("released_at", "date")
-    .addColumn("slug", "text", (col) => col.notNull())
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).notNull())
-    .addPrimaryKeyConstraint("sets_pkey", ["id"])
-    .addCheckConstraint("chk_sets_name_not_empty", sql`name <> ''`)
-    .addCheckConstraint("chk_sets_printed_total_non_negative", sql`printed_total >= 0`)
-    .addCheckConstraint("chk_sets_slug_not_empty", sql`slug <> ''`)
-    .execute();
-
-  // -- cards
-  await db.schema
-    .createTable("cards")
-    .addColumn("name", "text", (col) => col.notNull())
-    .addColumn("type", "text", (col) => col.notNull())
-    .addColumn("super_types", sql`text[]`, (col) => col.defaultTo(sql`'{}'::text[]`).notNull())
-    .addColumn("domains", sql`text[]`, (col) => col.notNull())
-    .addColumn("might", "integer")
-    .addColumn("energy", "integer")
-    .addColumn("power", "integer")
-    .addColumn("might_bonus", "integer")
-    .addColumn("keywords", sql`text[]`, (col) => col.defaultTo(sql`'{}'::text[]`).notNull())
-    .addColumn("rules_text", "text")
-    .addColumn("effect_text", "text")
-    .addColumn("tags", sql`text[]`, (col) => col.defaultTo(sql`'{}'::text[]`).notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("slug", "text", (col) => col.notNull())
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).notNull())
-    .addColumn("norm_name", "text", (col) => col.notNull())
-    .addColumn("comment", "text")
-    .addPrimaryKeyConstraint("cards_pkey", ["id"])
-    .addCheckConstraint("chk_cards_domains_not_empty", sql`array_length(domains, 1) > 0`)
-    .addCheckConstraint(
-      "chk_cards_domains_values",
-      sql`domains <@ ARRAY['Fury'::text, 'Calm'::text, 'Mind'::text, 'Body'::text, 'Chaos'::text, 'Order'::text, 'Colorless'::text]`,
-    )
-    .addCheckConstraint("chk_cards_energy_non_negative", sql`energy >= 0`)
-    .addCheckConstraint("chk_cards_might_bonus_non_negative", sql`might_bonus >= 0`)
-    .addCheckConstraint("chk_cards_might_non_negative", sql`might >= 0`)
-    .addCheckConstraint("chk_cards_name_not_empty", sql`name <> ''`)
-    .addCheckConstraint("chk_cards_no_empty_comment", sql`comment <> ''`)
-    .addCheckConstraint("chk_cards_no_empty_effect_text", sql`effect_text <> ''`)
-    .addCheckConstraint("chk_cards_no_empty_rules_text", sql`rules_text <> ''`)
-    .addCheckConstraint("chk_cards_power_non_negative", sql`power >= 0`)
-    .addCheckConstraint("chk_cards_slug_not_empty", sql`slug <> ''`)
-    .addCheckConstraint(
-      "chk_cards_super_types_values",
-      sql`super_types <@ ARRAY['Basic'::text, 'Champion'::text, 'Signature'::text, 'Token'::text]`,
-    )
-    .addCheckConstraint(
-      "chk_cards_type",
-      sql`type = ANY (ARRAY['Legend'::text, 'Unit'::text, 'Rune'::text, 'Spell'::text, 'Gear'::text, 'Battlefield'::text, 'Other'::text])`,
-    )
-    .execute();
-
-  // -- card_name_aliases
-  await db.schema
-    .createTable("card_name_aliases")
-    .addColumn("card_id", "uuid", (col) => col.notNull())
-    .addColumn("norm_name", "text", (col) => col.primaryKey())
-    .execute();
-
-  // -- card_bans
-  await db.schema
-    .createTable("card_bans")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("card_id", "uuid", (col) => col.notNull())
-    .addColumn("format_id", "text", (col) => col.notNull())
-    .addColumn("banned_at", "date", (col) => col.notNull())
-    .addColumn("unbanned_at", "date")
-    .addColumn("reason", "text")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addCheckConstraint("chk_card_bans_reason_not_empty", sql`reason <> ''`)
-    .execute();
-
-  // -- printings
-  await db.schema
-    .createTable("printings")
-    .addColumn("short_code", "text", (col) => col.notNull())
-    .addColumn("collector_number", "integer", (col) => col.notNull())
-    .addColumn("rarity", "text", (col) => col.notNull())
-    .addColumn("art_variant", "text", (col) => col.notNull())
-    .addColumn("is_signed", "boolean", (col) => col.defaultTo(false).notNull())
-    .addColumn("finish", "text", (col) => col.notNull())
-    .addColumn("artist", "text", (col) => col.notNull())
-    .addColumn("public_code", "text", (col) => col.notNull())
-    .addColumn("printed_rules_text", "text")
-    .addColumn("printed_effect_text", "text")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("flavor_text", "text")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).notNull())
-    .addColumn("card_id", "uuid", (col) => col.notNull())
-    .addColumn("set_id", "uuid", (col) => col.notNull())
-    .addColumn("comment", "text")
-    .addColumn("promo_type_id", "uuid")
-    .addColumn("language", "text", (col) => col.defaultTo("EN").notNull())
-    .addColumn("printed_name", "text")
-    .addPrimaryKeyConstraint("printings_pkey", ["id"])
-    .addCheckConstraint(
-      "chk_printings_art_variant",
-      sql`art_variant = ANY (ARRAY['normal'::text, 'altart'::text, 'overnumbered'::text])`,
-    )
-    .addCheckConstraint("chk_printings_artist_not_empty", sql`artist <> ''`)
-    .addCheckConstraint("chk_printings_collector_number_positive", sql`collector_number > 0`)
-    .addCheckConstraint(
-      "chk_printings_finish",
-      sql`finish = ANY (ARRAY['normal'::text, 'foil'::text])`,
-    )
-    .addCheckConstraint("chk_printings_no_empty_comment", sql`comment <> ''`)
-    .addCheckConstraint("chk_printings_no_empty_flavor_text", sql`flavor_text <> ''`)
-    .addCheckConstraint(
-      "chk_printings_no_empty_printed_effect_text",
-      sql`printed_effect_text <> ''`,
-    )
-    .addCheckConstraint("chk_printings_no_empty_printed_name", sql`printed_name <> ''`)
-    .addCheckConstraint("chk_printings_no_empty_printed_rules_text", sql`printed_rules_text <> ''`)
-    .addCheckConstraint("chk_printings_public_code_not_empty", sql`public_code <> ''`)
-    .addCheckConstraint(
-      "chk_printings_rarity",
-      sql`rarity = ANY (ARRAY['Common'::text, 'Uncommon'::text, 'Rare'::text, 'Epic'::text, 'Showcase'::text])`,
-    )
-    .addCheckConstraint("chk_printings_short_code_not_empty", sql`short_code <> ''`)
-    .execute();
-
-  // -- printing_images
-  await db.schema
-    .createTable("printing_images")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("face", "text", (col) => col.defaultTo("front").notNull())
-    .addColumn("provider", "text", (col) => col.notNull())
-    .addColumn("original_url", "text")
-    .addColumn("rehosted_url", "text")
-    .addColumn("is_active", "boolean", (col) => col.defaultTo(false).notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("printing_id", "uuid", (col) => col.notNull())
-    .addCheckConstraint(
-      "chk_printing_images_face",
-      sql`face = ANY (ARRAY['front'::text, 'back'::text])`,
-    )
-    .addCheckConstraint(
-      "chk_printing_images_has_url",
-      sql`original_url IS NOT NULL OR rehosted_url IS NOT NULL`,
-    )
-    .addCheckConstraint("chk_printing_images_no_empty_original_url", sql`original_url <> ''`)
-    .addCheckConstraint("chk_printing_images_no_empty_rehosted_url", sql`rehosted_url <> ''`)
-    .addCheckConstraint("chk_printing_images_provider_not_empty", sql`provider <> ''`)
-    .execute();
-
-  // -- printing_link_overrides
-  await db.schema
-    .createTable("printing_link_overrides")
-    .addColumn("external_id", "text", (col) => col.notNull())
-    .addColumn("finish", "text", (col) => col.notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("printing_id", "uuid", (col) => col.notNull())
-    .addPrimaryKeyConstraint("printing_link_overrides_pkey", ["external_id", "finish"])
-    .addCheckConstraint("chk_plo_no_empty_external_id", sql`external_id <> ''`)
-    .execute();
-
-  // -- candidate_cards
-  await db.schema
-    .createTable("candidate_cards")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("provider", "text", (col) => col.notNull())
-    .addColumn("short_code", "text")
-    .addColumn("external_id", "text", (col) => col.notNull())
-    .addColumn("name", "text", (col) => col.notNull())
-    .addColumn("type", "text")
-    .addColumn("super_types", sql`text[]`, (col) => col.defaultTo(sql`'{}'::text[]`).notNull())
-    .addColumn("domains", sql`text[]`, (col) => col.notNull())
-    .addColumn("might", "integer")
-    .addColumn("energy", "integer")
-    .addColumn("power", "integer")
-    .addColumn("might_bonus", "integer")
-    .addColumn("rules_text", "text")
-    .addColumn("effect_text", "text")
-    .addColumn("tags", sql`text[]`, (col) => col.defaultTo(sql`'{}'::text[]`).notNull())
-    .addColumn("extra_data", "jsonb")
-    .addColumn("checked_at", "timestamptz")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("norm_name", "text", (col) => col.notNull())
-    .addCheckConstraint("chk_candidate_cards_energy_non_negative", sql`energy >= 0`)
-    .addCheckConstraint("chk_candidate_cards_might_bonus_non_negative", sql`might_bonus >= 0`)
-    .addCheckConstraint("chk_candidate_cards_might_non_negative", sql`might >= 0`)
-    .addCheckConstraint("chk_candidate_cards_name_not_empty", sql`name <> ''`)
-    .addCheckConstraint("chk_candidate_cards_no_empty_effect_text", sql`effect_text <> ''`)
-    .addCheckConstraint("chk_candidate_cards_no_empty_external_id", sql`external_id <> ''`)
-    .addCheckConstraint(
-      "chk_candidate_cards_no_empty_extra_data",
-      sql`extra_data <> '{}'::jsonb AND extra_data <> 'null'::jsonb`,
-    )
-    .addCheckConstraint("chk_candidate_cards_no_empty_rules_text", sql`rules_text <> ''`)
-    .addCheckConstraint("chk_candidate_cards_no_empty_short_code", sql`short_code <> ''`)
-    .addCheckConstraint("chk_candidate_cards_no_empty_type", sql`type <> ''`)
-    .addCheckConstraint("chk_candidate_cards_power_non_negative", sql`power >= 0`)
-    .addCheckConstraint("chk_candidate_cards_provider_not_empty", sql`provider <> ''`)
-    .execute();
-
-  // -- candidate_printings
-  await db.schema
-    .createTable("candidate_printings")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("candidate_card_id", "uuid", (col) => col.notNull())
-    .addColumn("short_code", "text", (col) => col.notNull())
-    .addColumn("set_id", "text")
-    .addColumn("set_name", "text")
-    .addColumn("collector_number", "integer")
-    .addColumn("rarity", "text")
-    .addColumn("art_variant", "text")
-    .addColumn("is_signed", "boolean")
-    .addColumn("finish", "text")
-    .addColumn("artist", "text")
-    .addColumn("public_code", "text")
-    .addColumn("printed_rules_text", "text")
-    .addColumn("printed_effect_text", "text", (col) => col.defaultTo(""))
-    .addColumn("flavor_text", "text", (col) => col.defaultTo(""))
-    .addColumn("image_url", "text")
-    .addColumn("extra_data", "jsonb")
-    .addColumn("checked_at", "timestamptz")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("printing_id", "uuid")
-    .addColumn("external_id", "text", (col) => col.notNull())
-    .addColumn("promo_type_id", "uuid")
-    .addColumn("language", "text")
-    .addColumn("printed_name", "text")
-    .addCheckConstraint(
-      "chk_candidate_printings_collector_number_positive",
-      sql`collector_number > 0`,
-    )
-    .addCheckConstraint("chk_candidate_printings_no_empty_art_variant", sql`art_variant <> ''`)
-    .addCheckConstraint("chk_candidate_printings_no_empty_artist", sql`artist <> ''`)
-    .addCheckConstraint("chk_candidate_printings_no_empty_external_id", sql`external_id <> ''`)
-    .addCheckConstraint(
-      "chk_candidate_printings_no_empty_extra_data",
-      sql`extra_data <> '{}'::jsonb AND extra_data <> 'null'::jsonb`,
-    )
-    .addCheckConstraint("chk_candidate_printings_no_empty_finish", sql`finish <> ''`)
-    .addCheckConstraint("chk_candidate_printings_no_empty_flavor_text", sql`flavor_text <> ''`)
-    .addCheckConstraint("chk_candidate_printings_no_empty_image_url", sql`image_url <> ''`)
-    .addCheckConstraint("chk_candidate_printings_no_empty_language", sql`language <> ''`)
-    .addCheckConstraint(
-      "chk_candidate_printings_no_empty_printed_effect_text",
-      sql`printed_effect_text <> ''`,
-    )
-    .addCheckConstraint("chk_candidate_printings_no_empty_printed_name", sql`printed_name <> ''`)
-    .addCheckConstraint(
-      "chk_candidate_printings_no_empty_printed_rules_text",
-      sql`printed_rules_text <> ''`,
-    )
-    .addCheckConstraint("chk_candidate_printings_no_empty_rarity", sql`rarity <> ''`)
-    .addCheckConstraint("chk_candidate_printings_no_empty_set_id", sql`set_id <> ''`)
-    .addCheckConstraint("chk_candidate_printings_no_empty_set_name", sql`set_name <> ''`)
-    .addCheckConstraint("chk_candidate_printings_public_code_not_empty", sql`public_code <> ''`)
-    .addCheckConstraint("chk_candidate_printings_short_code_not_empty", sql`short_code <> ''`)
-    .execute();
-
-  // -- ignored_candidate_cards
-  await db.schema
-    .createTable("ignored_candidate_cards")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("provider", "text", (col) => col.notNull())
-    .addColumn("external_id", "text", (col) => col.notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addCheckConstraint("chk_ignored_candidate_cards_external_id_not_empty", sql`external_id <> ''`)
-    .addCheckConstraint("chk_ignored_candidate_cards_provider_not_empty", sql`provider <> ''`)
-    .execute();
-
-  // -- ignored_candidate_printings
-  await db.schema
-    .createTable("ignored_candidate_printings")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("provider", "text", (col) => col.notNull())
-    .addColumn("external_id", "text", (col) => col.notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("finish", "text")
-    .addCheckConstraint(
-      "chk_ignored_candidate_printings_external_id_not_empty",
-      sql`external_id <> ''`,
-    )
-    .addCheckConstraint("chk_ignored_candidate_printings_no_empty_finish", sql`finish <> ''`)
-    .addCheckConstraint("chk_ignored_candidate_printings_provider_not_empty", sql`provider <> ''`)
-    .execute();
-
-  // -- collections
-  await db.schema
-    .createTable("collections")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("user_id", "text", (col) => col.notNull())
-    .addColumn("name", "text", (col) => col.notNull())
-    .addColumn("description", "text")
-    .addColumn("available_for_deckbuilding", "boolean", (col) => col.defaultTo(true).notNull())
-    .addColumn("is_inbox", "boolean", (col) => col.defaultTo(false).notNull())
-    .addColumn("sort_order", "integer", (col) => col.defaultTo(0).notNull())
-    .addColumn("share_token", "text")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addCheckConstraint("chk_collections_name_not_empty", sql`name <> ''`)
-    .execute();
-
-  // -- copies
-  await db.schema
-    .createTable("copies")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("user_id", "text", (col) => col.notNull())
-    .addColumn("collection_id", "uuid", (col) => col.notNull())
-    .addColumn("acquisition_source_id", "uuid")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("printing_id", "uuid", (col) => col.notNull())
-    .execute();
-
-  // -- collection_events
-  await db.schema
-    .createTable("collection_events")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("user_id", "text", (col) => col.notNull())
-    .addColumn("action", "text", (col) => col.notNull())
-    .addColumn("printing_id", "uuid", (col) => col.notNull())
-    .addColumn("copy_id", "uuid")
-    .addColumn("from_collection_id", "uuid")
-    .addColumn("from_collection_name", "text")
-    .addColumn("to_collection_id", "uuid")
-    .addColumn("to_collection_name", "text")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addCheckConstraint(
-      "chk_collection_events_action",
-      sql`action = ANY (ARRAY['added'::text, 'removed'::text, 'moved'::text])`,
-    )
-    .addCheckConstraint(
-      "chk_collection_events_collection_presence",
-      sql`(action = 'added' AND to_collection_id IS NOT NULL) OR (action = 'removed' AND from_collection_id IS NOT NULL) OR (action = 'moved' AND from_collection_id IS NOT NULL AND to_collection_id IS NOT NULL)`,
-    )
-    .execute();
-
-  // -- acquisition_sources
-  await db.schema
-    .createTable("acquisition_sources")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).notNull())
-    .addColumn("user_id", "text", (col) => col.notNull())
-    .addColumn("name", "text", (col) => col.notNull())
-    .addColumn("description", "text")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addPrimaryKeyConstraint("sources_pkey", ["id"])
-    .execute();
-
-  // -- decks
-  await db.schema
-    .createTable("decks")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("user_id", "text", (col) => col.notNull())
-    .addColumn("name", "text", (col) => col.notNull())
-    .addColumn("description", "text")
-    .addColumn("format", "text", (col) => col.notNull())
-    .addColumn("is_wanted", "boolean", (col) => col.defaultTo(false).notNull())
-    .addColumn("is_public", "boolean", (col) => col.defaultTo(false).notNull())
-    .addColumn("share_token", "text")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addCheckConstraint("chk_decks_name_not_empty", sql`name <> ''`)
-    .execute();
-
-  // -- deck_cards
-  await db.schema
-    .createTable("deck_cards")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("deck_id", "uuid", (col) => col.notNull())
-    .addColumn("zone", "text", (col) => col.notNull())
-    .addColumn("quantity", "integer", (col) => col.defaultTo(1).notNull())
-    .addColumn("card_id", "uuid", (col) => col.notNull())
-    .addCheckConstraint("chk_deck_cards_quantity", sql`quantity > 0`)
-    .addCheckConstraint(
-      "chk_deck_cards_zone",
-      sql`zone = ANY (ARRAY['main'::text, 'sideboard'::text, 'legend'::text, 'champion'::text, 'runes'::text, 'battlefield'::text, 'overflow'::text])`,
-    )
-    .execute();
-
-  // -- marketplace_groups
-  await db.schema
-    .createTable("marketplace_groups")
-    .addColumn("marketplace", "text", (col) => col.notNull())
-    .addColumn("group_id", "integer", (col) => col.notNull())
-    .addColumn("name", "text")
-    .addColumn("abbreviation", "text")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).notNull())
-    .addPrimaryKeyConstraint("marketplace_groups_pkey", ["id"])
-    .execute();
-
-  // -- marketplace_products
-  await db.schema
-    .createTable("marketplace_products")
-    .addColumn("marketplace", "text", (col) => col.notNull())
-    .addColumn("external_id", "integer", (col) => col.notNull())
-    .addColumn("group_id", "integer", (col) => col.notNull())
-    .addColumn("product_name", "text", (col) => col.notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).notNull())
-    .addColumn("printing_id", "uuid", (col) => col.notNull())
-    .addPrimaryKeyConstraint("marketplace_sources_pkey", ["id"])
-    .addCheckConstraint("chk_marketplace_products_external_id_positive", sql`external_id > 0`)
-    .addCheckConstraint("chk_marketplace_products_marketplace_not_empty", sql`marketplace <> ''`)
-    .addCheckConstraint("chk_marketplace_products_product_name_not_empty", sql`product_name <> ''`)
-    .execute();
-
-  // -- marketplace_ignored_products
-  await db.schema
-    .createTable("marketplace_ignored_products")
-    .addColumn("marketplace", "text", (col) => col.notNull())
-    .addColumn("external_id", "integer", (col) => col.notNull())
-    .addColumn("finish", "text", (col) => col.notNull())
-    .addColumn("product_name", "text", (col) => col.notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addPrimaryKeyConstraint("marketplace_ignored_products_pkey", [
-      "marketplace",
-      "external_id",
-      "finish",
-    ])
-    .execute();
-
-  // -- marketplace_snapshots
-  await db.schema
-    .createTable("marketplace_snapshots")
-    .addColumn("recorded_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("market_cents", "integer", (col) => col.notNull())
-    .addColumn("low_cents", "integer")
-    .addColumn("mid_cents", "integer")
-    .addColumn("high_cents", "integer")
-    .addColumn("trend_cents", "integer")
-    .addColumn("avg1_cents", "integer")
-    .addColumn("avg7_cents", "integer")
-    .addColumn("avg30_cents", "integer")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).notNull())
-    .addColumn("product_id", "uuid", (col) => col.notNull())
-    .addPrimaryKeyConstraint("marketplace_snapshots_pkey", ["id"])
-    .addCheckConstraint("chk_marketplace_snapshots_avg1_cents_non_negative", sql`avg1_cents >= 0`)
-    .addCheckConstraint("chk_marketplace_snapshots_avg30_cents_non_negative", sql`avg30_cents >= 0`)
-    .addCheckConstraint("chk_marketplace_snapshots_avg7_cents_non_negative", sql`avg7_cents >= 0`)
-    .addCheckConstraint("chk_marketplace_snapshots_high_cents_non_negative", sql`high_cents >= 0`)
-    .addCheckConstraint("chk_marketplace_snapshots_low_cents_non_negative", sql`low_cents >= 0`)
-    .addCheckConstraint(
-      "chk_marketplace_snapshots_market_cents_non_negative",
-      sql`market_cents >= 0`,
-    )
-    .addCheckConstraint("chk_marketplace_snapshots_mid_cents_non_negative", sql`mid_cents >= 0`)
-    .addCheckConstraint("chk_marketplace_snapshots_trend_cents_non_negative", sql`trend_cents >= 0`)
-    .execute();
-
-  // -- marketplace_staging
-  await db.schema
-    .createTable("marketplace_staging")
-    .addColumn("marketplace", "text", (col) => col.notNull())
-    .addColumn("external_id", "integer", (col) => col.notNull())
-    .addColumn("group_id", "integer", (col) => col.notNull())
-    .addColumn("product_name", "text", (col) => col.notNull())
-    .addColumn("finish", "text", (col) => col.notNull())
-    .addColumn("recorded_at", "timestamptz", (col) => col.notNull())
-    .addColumn("market_cents", "integer", (col) => col.notNull())
-    .addColumn("low_cents", "integer")
-    .addColumn("mid_cents", "integer")
-    .addColumn("high_cents", "integer")
-    .addColumn("trend_cents", "integer")
-    .addColumn("avg1_cents", "integer")
-    .addColumn("avg7_cents", "integer")
-    .addColumn("avg30_cents", "integer")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).notNull())
-    .addPrimaryKeyConstraint("marketplace_staging_pkey", ["id"])
-    .execute();
-
-  // -- marketplace_staging_card_overrides
-  await db.schema
-    .createTable("marketplace_staging_card_overrides")
-    .addColumn("marketplace", "text", (col) => col.notNull())
-    .addColumn("external_id", "integer", (col) => col.notNull())
-    .addColumn("finish", "text", (col) => col.notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("card_id", "uuid", (col) => col.notNull())
-    .addPrimaryKeyConstraint("marketplace_staging_card_overrides_pkey", [
-      "marketplace",
-      "external_id",
-      "finish",
-    ])
-    .execute();
-
-  // -- trade_lists
-  await db.schema
-    .createTable("trade_lists")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("user_id", "text", (col) => col.notNull())
-    .addColumn("name", "text", (col) => col.notNull())
-    .addColumn("rules", "jsonb")
-    .addColumn("share_token", "text")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .execute();
-
-  // -- trade_list_items
-  await db.schema
-    .createTable("trade_list_items")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("trade_list_id", "uuid", (col) => col.notNull())
-    .addColumn("user_id", "text", (col) => col.notNull())
-    .addColumn("copy_id", "uuid", (col) => col.notNull())
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .execute();
-
-  // -- wish_lists
-  await db.schema
-    .createTable("wish_lists")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("user_id", "text", (col) => col.notNull())
-    .addColumn("name", "text", (col) => col.notNull())
-    .addColumn("rules", "jsonb")
-    .addColumn("share_token", "text")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .execute();
-
-  // -- wish_list_items
-  await db.schema
-    .createTable("wish_list_items")
-    .addColumn("id", "uuid", (col) => col.defaultTo(sql`uuidv7()`).primaryKey())
-    .addColumn("wish_list_id", "uuid", (col) => col.notNull())
-    .addColumn("user_id", "text", (col) => col.notNull())
-    .addColumn("quantity_desired", "integer", (col) => col.defaultTo(1).notNull())
-    .addColumn("printing_id", "uuid")
-    .addColumn("card_id", "uuid")
-    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addColumn("updated_at", "timestamptz", (col) => col.defaultTo(sql`now()`).notNull())
-    .addCheckConstraint("chk_wish_list_items_quantity", sql`quantity_desired > 0`)
-    .addCheckConstraint(
-      "chk_wish_list_items_target_xor",
-      sql`(card_id IS NOT NULL) <> (printing_id IS NOT NULL)`,
-    )
-    .execute();
-
-  // ── 3. Additional unique constraints and composite PKs ───────────────────
-
-  // cards
-  await db.schema.alterTable("cards").addUniqueConstraint("cards_slug_key", ["slug"]).execute();
-
-  // users
-  await db.schema.alterTable("users").addUniqueConstraint("users_email_key", ["email"]).execute();
-
-  // collections
-  await db.schema
-    .alterTable("collections")
-    .addUniqueConstraint("collections_share_token_key", ["share_token"])
-    .execute();
-
-  await db.schema
-    .alterTable("collections")
-    .addUniqueConstraint("uq_collections_id_user", ["id", "user_id"])
-    .execute();
-
-  // copies
-  await db.schema
-    .alterTable("copies")
-    .addUniqueConstraint("uq_copies_id_user", ["id", "user_id"])
-    .execute();
-
-  // decks
-  await db.schema
-    .alterTable("decks")
-    .addUniqueConstraint("decks_share_token_key", ["share_token"])
-    .execute();
-
-  await db.schema
-    .alterTable("decks")
-    .addUniqueConstraint("uq_decks_id_user", ["id", "user_id"])
-    .execute();
-
-  // sets
-  await db.schema.alterTable("sets").addUniqueConstraint("sets_slug_key", ["slug"]).execute();
-
-  // promo_types
-  await db.schema
-    .alterTable("promo_types")
-    .addUniqueConstraint("promo_types_slug_key", ["slug"])
-    .execute();
-
-  // marketplace_groups
-  await db.schema
-    .alterTable("marketplace_groups")
-    .addUniqueConstraint("marketplace_groups_marketplace_group_id_key", ["marketplace", "group_id"])
-    .execute();
-
-  // marketplace_products
-  await db.schema
-    .alterTable("marketplace_products")
-    .addUniqueConstraint("marketplace_sources_marketplace_printing_id_key", [
-      "marketplace",
-      "printing_id",
-    ])
-    .execute();
-
-  // marketplace_snapshots
-  await db.schema
-    .alterTable("marketplace_snapshots")
-    .addUniqueConstraint("marketplace_snapshots_product_id_recorded_at_key", [
-      "product_id",
-      "recorded_at",
-    ])
-    .execute();
-
-  // marketplace_staging
-  await db.schema
-    .alterTable("marketplace_staging")
-    .addUniqueConstraint("marketplace_staging_marketplace_external_id_finish_recorded_at_", [
-      "marketplace",
-      "external_id",
-      "finish",
-      "recorded_at",
-    ])
-    .execute();
-
-  // acquisition_sources
-  await db.schema
-    .alterTable("acquisition_sources")
-    .addUniqueConstraint("uq_sources_id_user", ["id", "user_id"])
-    .execute();
-
-  // trade_lists
-  await db.schema
-    .alterTable("trade_lists")
-    .addUniqueConstraint("trade_lists_share_token_key", ["share_token"])
-    .execute();
-
-  await db.schema
-    .alterTable("trade_lists")
-    .addUniqueConstraint("uq_trade_lists_id_user", ["id", "user_id"])
-    .execute();
-
-  // trade_list_items
-  await db.schema
-    .alterTable("trade_list_items")
-    .addUniqueConstraint("uq_trade_list_items", ["trade_list_id", "copy_id"])
-    .execute();
-
-  // wish_lists
-  await db.schema
-    .alterTable("wish_lists")
-    .addUniqueConstraint("wish_lists_share_token_key", ["share_token"])
-    .execute();
-
-  await db.schema
-    .alterTable("wish_lists")
-    .addUniqueConstraint("uq_wish_lists_id_user", ["id", "user_id"])
-    .execute();
-
-  // printings — NULLS NOT DISTINCT (requires raw SQL)
-  await sql`
-    ALTER TABLE printings
-      ADD CONSTRAINT uq_printings_identity
-      UNIQUE NULLS NOT DISTINCT (card_id, short_code, finish, promo_type_id, language)
-  `.execute(db);
-
-  // printings — variant unique
-  await db.schema
-    .alterTable("printings")
-    .addUniqueConstraint("uq_printings_variant", [
-      "short_code",
-      "art_variant",
-      "is_signed",
-      "promo_type_id",
-      "rarity",
-      "finish",
-    ])
-    .execute();
-
-  // ── 4. Indexes ───────────────────────────────────────────────────────────
-
-  // Simple btree indexes (builder)
-  await db.schema.createIndex("idx_accounts_user_id").on("accounts").column("user_id").execute();
-
-  await db.schema
-    .createIndex("idx_acquisition_sources_user_id")
-    .on("acquisition_sources")
-    .column("user_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_candidate_cards_norm_name")
-    .on("candidate_cards")
-    .column("norm_name")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_candidate_printings_candidate_card")
-    .on("candidate_printings")
-    .column("candidate_card_id")
-    .execute();
-
-  await db.schema.createIndex("idx_cards_norm_name").on("cards").column("norm_name").execute();
-
-  await db.schema
-    .createIndex("idx_collection_events_copy")
-    .on("collection_events")
-    .column("copy_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_collection_events_user_created")
-    .on("collection_events")
-    .columns(["user_id", "created_at"])
-    .execute();
-
-  await db.schema
-    .createIndex("idx_collections_user_id")
-    .on("collections")
-    .column("user_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_copies_acquisition_source")
-    .on("copies")
-    .column("acquisition_source_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_copies_collection")
-    .on("copies")
-    .column("collection_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_copies_user_printing")
-    .on("copies")
-    .columns(["user_id", "printing_id"])
-    .execute();
-
-  await db.schema.createIndex("idx_deck_cards_deck").on("deck_cards").column("deck_id").execute();
-
-  await db.schema.createIndex("idx_decks_user_id").on("decks").column("user_id").execute();
-
-  await db.schema
-    .createIndex("idx_marketplace_snapshots_product_id_recorded_at")
-    .on("marketplace_snapshots")
-    .columns(["product_id", "recorded_at"])
-    .execute();
-
-  await db.schema
-    .createIndex("idx_marketplace_sources_printing_id")
-    .on("marketplace_products")
-    .column("printing_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_marketplace_staging_marketplace_group_id")
-    .on("marketplace_staging")
-    .columns(["marketplace", "group_id"])
-    .execute();
-
-  await db.schema
-    .createIndex("idx_printing_images_printing_id")
-    .on("printing_images")
-    .column("printing_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_printing_sources_printing_id")
-    .on("candidate_printings")
-    .column("printing_id")
-    .execute();
-
-  await db.schema.createIndex("idx_printings_card_id").on("printings").column("card_id").execute();
-
-  await db.schema.createIndex("idx_printings_rarity").on("printings").column("rarity").execute();
-
-  await db.schema.createIndex("idx_printings_set_id").on("printings").column("set_id").execute();
-
-  await db.schema.createIndex("idx_sessions_user_id").on("sessions").column("user_id").execute();
-
-  await db.schema
-    .createIndex("idx_trade_list_items_copy")
-    .on("trade_list_items")
-    .column("copy_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_trade_list_items_list")
-    .on("trade_list_items")
-    .column("trade_list_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_trade_lists_user_id")
-    .on("trade_lists")
-    .column("user_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_wish_list_items_list")
-    .on("wish_list_items")
-    .column("wish_list_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_wish_lists_user_id")
-    .on("wish_lists")
-    .column("user_id")
-    .execute();
-
-  // Simple unique indexes (builder)
-  await db.schema
-    .createIndex("idx_candidate_printings_card_external_id")
-    .on("candidate_printings")
-    .columns(["candidate_card_id", "external_id"])
-    .unique()
-    .execute();
-
-  await db.schema
-    .createIndex("idx_printing_images_provider")
-    .on("printing_images")
-    .columns(["printing_id", "face", "provider"])
-    .unique()
-    .execute();
-
-  await db.schema
-    .createIndex("idx_sessions_token")
-    .on("sessions")
-    .column("token")
-    .unique()
-    .execute();
-
-  await db.schema
-    .createIndex("uq_deck_cards")
-    .on("deck_cards")
-    .columns(["deck_id", "card_id", "zone"])
-    .unique()
-    .execute();
-
-  await db.schema
-    .createIndex("uq_wish_list_items_card")
-    .on("wish_list_items")
-    .columns(["wish_list_id", "card_id"])
-    .unique()
-    .execute();
-
-  await db.schema
-    .createIndex("uq_wish_list_items_printing")
-    .on("wish_list_items")
-    .columns(["wish_list_id", "printing_id"])
-    .unique()
-    .execute();
-
-  // Partial / conditional unique indexes (raw SQL)
-  await sql`
-    CREATE UNIQUE INDEX idx_candidate_cards_provider_external_id
-      ON candidate_cards (provider, external_id)
-      WHERE external_id IS NOT NULL
-  `.execute(db);
-
-  await sql`
-    CREATE UNIQUE INDEX idx_candidate_cards_provider_name_no_sid
-      ON candidate_cards (provider, name)
-      WHERE short_code IS NULL
-  `.execute(db);
-
-  await sql`
-    CREATE INDEX idx_candidate_cards_provider_short_code
-      ON candidate_cards (provider, short_code)
-      WHERE short_code IS NOT NULL
-  `.execute(db);
-
-  await sql`
-    CREATE INDEX idx_candidate_cards_unchecked
-      ON candidate_cards (checked_at)
-      WHERE checked_at IS NULL
-  `.execute(db);
-
-  await sql`
-    CREATE UNIQUE INDEX idx_ignored_candidate_cards_provider_external
-      ON ignored_candidate_cards (provider, external_id)
-  `.execute(db);
-
-  await sql`
-    CREATE UNIQUE INDEX idx_ignored_candidate_printings_provider_external_finish
-      ON ignored_candidate_printings (provider, external_id, COALESCE(finish, ''))
-  `.execute(db);
-
-  await sql`
-    CREATE UNIQUE INDEX idx_printing_images_active
-      ON printing_images (printing_id, face)
-      WHERE is_active = true
-  `.execute(db);
-
-  await sql`
-    CREATE UNIQUE INDEX uq_card_bans_active
-      ON card_bans (card_id, format_id)
-      WHERE unbanned_at IS NULL
-  `.execute(db);
-
-  await sql`
-    CREATE UNIQUE INDEX uq_collections_user_inbox
-      ON collections (user_id)
-      WHERE is_inbox = true
-  `.execute(db);
-
-  // ── 5. Triggers ──────────────────────────────────────────────────────────
-
-  await sql`
-    CREATE TRIGGER keyword_styles_set_updated_at
-      BEFORE UPDATE ON keyword_styles
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER site_settings_set_updated_at
-      BEFORE UPDATE ON site_settings
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_candidate_cards_norm_name
-      BEFORE INSERT OR UPDATE OF name ON candidate_cards
-      FOR EACH ROW EXECUTE FUNCTION candidate_cards_set_norm_name()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_cards_norm_name
-      BEFORE INSERT OR UPDATE OF name ON cards
-      FOR EACH ROW EXECUTE FUNCTION cards_set_norm_name()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_prevent_nonempty_collection_delete
-      BEFORE DELETE ON collections
-      FOR EACH ROW EXECUTE FUNCTION prevent_nonempty_collection_delete()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON accounts
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON acquisition_sources
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON admins
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON candidate_cards
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON candidate_printings
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON cards
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON collections
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON copies
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON deck_cards
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON decks
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON feature_flags
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON languages
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON marketplace_groups
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON marketplace_ignored_products
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON marketplace_products
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON marketplace_staging
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON printing_images
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON printings
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON promo_types
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON provider_settings
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON sessions
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON sets
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON trade_list_items
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON trade_lists
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON users
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON verifications
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON wish_list_items
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON wish_lists
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  await sql`
-    CREATE TRIGGER user_preferences_set_updated_at
-      BEFORE UPDATE ON user_preferences
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
-  `.execute(db);
-
-  // ── 6. Foreign keys ──────────────────────────────────────────────────────
-
-  // Simple FKs (builder)
-  await db.schema
-    .alterTable("accounts")
-    .addForeignKeyConstraint("accounts_user_id_fkey", ["user_id"], "users", ["id"])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("admins")
-    .addForeignKeyConstraint("admins_user_id_fkey", ["user_id"], "users", ["id"])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("candidate_printings")
-    .addForeignKeyConstraint(
-      "candidate_printings_candidate_card_id_fkey",
-      ["candidate_card_id"],
-      "candidate_cards",
-      ["id"],
-    )
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("card_bans")
-    .addForeignKeyConstraint("card_bans_card_id_fkey", ["card_id"], "cards", ["id"])
-    .execute();
-
-  await db.schema
-    .alterTable("card_bans")
-    .addForeignKeyConstraint("card_bans_format_id_fkey", ["format_id"], "formats", ["id"])
-    .execute();
-
-  await db.schema
-    .alterTable("card_name_aliases")
-    .addForeignKeyConstraint("card_name_aliases_card_id_fkey", ["card_id"], "cards", ["id"])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("collection_events")
-    .addForeignKeyConstraint("collection_events_printing_id_fkey", ["printing_id"], "printings", [
-      "id",
-    ])
-    .execute();
-
-  await db.schema
-    .alterTable("collection_events")
-    .addForeignKeyConstraint("collection_events_user_id_fkey", ["user_id"], "users", ["id"])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("collections")
-    .addForeignKeyConstraint("collections_user_id_fkey", ["user_id"], "users", ["id"])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("copies")
-    .addForeignKeyConstraint("copies_printing_id_fkey", ["printing_id"], "printings", ["id"])
-    .execute();
-
-  await db.schema
-    .alterTable("copies")
-    .addForeignKeyConstraint("copies_user_id_fkey", ["user_id"], "users", ["id"])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("deck_cards")
-    .addForeignKeyConstraint("deck_cards_card_id_fkey", ["card_id"], "cards", ["id"])
-    .execute();
-
-  await db.schema
-    .alterTable("deck_cards")
-    .addForeignKeyConstraint("deck_cards_deck_id_fkey", ["deck_id"], "decks", ["id"])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("decks")
-    .addForeignKeyConstraint("decks_format_fkey", ["format"], "formats", ["id"])
-    .execute();
-
-  await db.schema
-    .alterTable("decks")
-    .addForeignKeyConstraint("decks_user_id_fkey", ["user_id"], "users", ["id"])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("marketplace_snapshots")
-    .addForeignKeyConstraint(
-      "marketplace_snapshots_product_id_fkey",
-      ["product_id"],
-      "marketplace_products",
-      ["id"],
-    )
-    .execute();
-
-  await db.schema
-    .alterTable("marketplace_products")
-    .addForeignKeyConstraint(
-      "marketplace_sources_group_fkey",
-      ["marketplace", "group_id"],
-      "marketplace_groups",
-      ["marketplace", "group_id"],
-    )
-    .execute();
-
-  await db.schema
-    .alterTable("marketplace_products")
-    .addForeignKeyConstraint("marketplace_sources_printing_id_fkey", ["printing_id"], "printings", [
-      "id",
-    ])
-    .execute();
-
-  await db.schema
-    .alterTable("marketplace_staging_card_overrides")
-    .addForeignKeyConstraint(
-      "marketplace_staging_card_overrides_card_id_fkey",
-      ["card_id"],
-      "cards",
-      ["id"],
-    )
-    .execute();
-
-  await db.schema
-    .alterTable("printing_images")
-    .addForeignKeyConstraint("printing_images_printing_id_fkey", ["printing_id"], "printings", [
-      "id",
-    ])
-    .execute();
-
-  await db.schema
-    .alterTable("candidate_printings")
-    .addForeignKeyConstraint("printing_sources_printing_id_fkey", ["printing_id"], "printings", [
-      "id",
-    ])
-    .execute();
-
-  await db.schema
-    .alterTable("candidate_printings")
-    .addForeignKeyConstraint(
-      "printing_sources_promo_type_id_fkey",
-      ["promo_type_id"],
-      "promo_types",
-      ["id"],
-    )
-    .execute();
-
-  await db.schema
-    .alterTable("printings")
-    .addForeignKeyConstraint("printings_card_id_fkey", ["card_id"], "cards", ["id"])
-    .execute();
-
-  await db.schema
-    .alterTable("printings")
-    .addForeignKeyConstraint("printings_language_fk", ["language"], "languages", ["code"])
-    .execute();
-
-  await db.schema
-    .alterTable("printings")
-    .addForeignKeyConstraint("printings_promo_type_id_fkey", ["promo_type_id"], "promo_types", [
-      "id",
-    ])
-    .execute();
-
-  await db.schema
-    .alterTable("printings")
-    .addForeignKeyConstraint("printings_set_id_fkey", ["set_id"], "sets", ["id"])
-    .execute();
-
-  await db.schema
-    .alterTable("printing_link_overrides")
-    .addForeignKeyConstraint("fk_plo_printing_id", ["printing_id"], "printings", ["id"])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("sessions")
-    .addForeignKeyConstraint("sessions_user_id_fkey", ["user_id"], "users", ["id"])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("acquisition_sources")
-    .addForeignKeyConstraint("sources_user_id_fkey", ["user_id"], "users", ["id"])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("trade_lists")
-    .addForeignKeyConstraint("trade_lists_user_id_fkey", ["user_id"], "users", ["id"])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("user_feature_flags")
-    .addForeignKeyConstraint("user_feature_flags_flag_key_fkey", ["flag_key"], "feature_flags", [
-      "key",
-    ])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("user_feature_flags")
-    .addForeignKeyConstraint("user_feature_flags_user_id_fkey", ["user_id"], "users", ["id"])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("user_preferences")
-    .addForeignKeyConstraint("user_preferences_user_id_fkey", ["user_id"], "users", ["id"])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("wish_list_items")
-    .addForeignKeyConstraint("wish_list_items_card_id_fkey", ["card_id"], "cards", ["id"])
-    .execute();
-
-  await db.schema
-    .alterTable("wish_list_items")
-    .addForeignKeyConstraint("wish_list_items_printing_id_fkey", ["printing_id"], "printings", [
-      "id",
-    ])
-    .execute();
-
-  await db.schema
-    .alterTable("wish_lists")
-    .addForeignKeyConstraint("wish_lists_user_id_fkey", ["user_id"], "users", ["id"])
-    .onDelete("cascade")
-    .execute();
-
-  // Complex FKs with ON DELETE SET NULL (column) — raw SQL
-  await sql`
-    ALTER TABLE collection_events
-      ADD CONSTRAINT fk_collection_events_copy_user
-      FOREIGN KEY (copy_id, user_id) REFERENCES copies(id, user_id)
-      ON DELETE SET NULL (copy_id)
-  `.execute(db);
-
-  await sql`
-    ALTER TABLE collection_events
-      ADD CONSTRAINT fk_collection_events_from_collection_user
-      FOREIGN KEY (from_collection_id, user_id) REFERENCES collections(id, user_id)
-      ON DELETE SET NULL (from_collection_id)
-  `.execute(db);
-
-  await sql`
-    ALTER TABLE collection_events
-      ADD CONSTRAINT fk_collection_events_to_collection_user
-      FOREIGN KEY (to_collection_id, user_id) REFERENCES collections(id, user_id)
-      ON DELETE SET NULL (to_collection_id)
-  `.execute(db);
-
-  await sql`
-    ALTER TABLE copies
-      ADD CONSTRAINT fk_copies_acquisition_source_user
-      FOREIGN KEY (acquisition_source_id, user_id) REFERENCES acquisition_sources(id, user_id)
-      ON DELETE SET NULL (acquisition_source_id)
-  `.execute(db);
-
-  // Composite FK with cascade (builder works for these)
-  await db.schema
-    .alterTable("copies")
-    .addForeignKeyConstraint(
-      "fk_copies_collection_user",
-      ["collection_id", "user_id"],
-      "collections",
-      ["id", "user_id"],
-    )
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("trade_list_items")
-    .addForeignKeyConstraint("fk_trade_list_items_copy_user", ["copy_id", "user_id"], "copies", [
-      "id",
-      "user_id",
-    ])
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("trade_list_items")
-    .addForeignKeyConstraint(
-      "fk_trade_list_items_list_user",
-      ["trade_list_id", "user_id"],
-      "trade_lists",
-      ["id", "user_id"],
-    )
-    .onDelete("cascade")
-    .execute();
-
-  await db.schema
-    .alterTable("wish_list_items")
-    .addForeignKeyConstraint(
-      "fk_wish_list_items_list_user",
-      ["wish_list_id", "user_id"],
-      "wish_lists",
-      ["id", "user_id"],
-    )
-    .onDelete("cascade")
-    .execute();
-
-  // ── 7. Seed data ─────────────────────────────────────────────────────────
-
-  await sql`
-    INSERT INTO formats (id, name) VALUES
-      ('standard', 'Standard'),
-      ('freeform', 'Freeform')
-  `.execute(db);
-
-  await sql`
-    INSERT INTO languages (code, name, sort_order) VALUES
-      ('EN', 'English', 1),
-      ('FR', 'French', 2),
-      ('ZH', 'Chinese', 3)
-  `.execute(db);
-
-  await sql`
-    INSERT INTO promo_types (slug, label) VALUES
-      ('promo', 'Promo')
-  `.execute(db);
-
-  await sql`
-    INSERT INTO keyword_styles (name, color, dark_text) VALUES
-      ('Accelerate',    '#24705f', false),
-      ('Action',        '#24705f', false),
-      ('Ambush',        '#24705f', false),
-      ('Assault',       '#cd346f', false),
-      ('Backline',      '#cd346f', false),
-      ('Buff',          '#707070', false),
-      ('Deathknell',    '#95b229', true),
-      ('Deflect',       '#95b229', true),
-      ('Equip',         '#707070', false),
-      ('Ganking',       '#95b229', true),
-      ('Hidden',        '#24705f', false),
-      ('Hunt',          '#95b229', true),
-      ('Legion',        '#24705f', false),
-      ('Level',         '#95b229', true),
-      ('Mighty',        '#707070', false),
-      ('Predict',       '#707070', false),
-      ('Quick-Draw',    '#24705f', false),
-      ('Reaction',      '#24705f', false),
-      ('Repeat',        '#24705f', false),
-      ('Shield',        '#cd346f', false),
-      ('Stun',          '#707070', false),
-      ('Tank',          '#cd346f', false),
-      ('Temporary',     '#95b229', true),
-      ('Unique',        '#24705f', false),
-      ('Vision',        '#707070', false),
-      ('Weaponmaster',  '#707070', false)
-  `.execute(db);
+ SELECT mpv.printing_id,
+    d.marketplace,
+    d.day,
+    min(
+        CASE
+            WHEN (d.marketplace = 'cardtrader'::text) THEN COALESCE(d.zero_carried, d.low_cents)
+            WHEN (d.marketplace = 'cardmarket'::text) THEN COALESCE(d.low_cents, d.market_cents)
+            ELSE COALESCE(d.market_cents, d.low_cents)
+        END) AS headline_cents
+   FROM (carried d
+     JOIN public.marketplace_product_variants mpv ON ((mpv.marketplace_product_id = d.marketplace_product_id)))
+  WHERE (
+        CASE
+            WHEN (d.marketplace = 'cardtrader'::text) THEN COALESCE(d.zero_carried, d.low_cents)
+            WHEN (d.marketplace = 'cardmarket'::text) THEN COALESCE(d.low_cents, d.market_cents)
+            ELSE COALESCE(d.market_cents, d.low_cents)
+        END IS NOT NULL)
+  GROUP BY mpv.printing_id, d.marketplace, d.day
+  WITH NO DATA;
+
+CREATE MATERIALIZED VIEW public.mv_latest_printing_prices AS
+ SELECT DISTINCT ON (printing_id, marketplace) printing_id,
+    marketplace,
+    headline_cents,
+    day AS last_seen
+   FROM public.mv_daily_printing_prices d
+  ORDER BY printing_id, marketplace, day DESC
+  WITH NO DATA;
+
+CREATE TABLE public.printings (
+    short_code text NOT NULL,
+    rarity text NOT NULL,
+    art_variant text NOT NULL,
+    is_signed boolean DEFAULT false NOT NULL,
+    finish text NOT NULL,
+    artist text NOT NULL,
+    public_code text NOT NULL,
+    printed_rules_text text,
+    printed_effect_text text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    flavor_text text,
+    id uuid DEFAULT uuidv7() NOT NULL,
+    card_id uuid NOT NULL,
+    set_id uuid NOT NULL,
+    comment text,
+    language text DEFAULT 'EN'::text NOT NULL,
+    printed_name text,
+    marker_slugs text[] DEFAULT '{}'::text[] NOT NULL,
+    printed_year smallint,
+    size text DEFAULT 'standard'::text NOT NULL,
+    fallback_art_mode text DEFAULT 'auto'::text NOT NULL,
+    fallback_image_file_id uuid,
+    is_overnumbered boolean DEFAULT false NOT NULL,
+    released_at date,
+    release_precision public.release_precision,
+    announced_at date,
+    slug text NOT NULL,
+    CONSTRAINT chk_printings_artist_not_empty CHECK ((artist <> ''::text)),
+    CONSTRAINT chk_printings_fallback_art_mode CHECK ((fallback_art_mode = ANY (ARRAY['auto'::text, 'pinned'::text, 'none'::text]))),
+    CONSTRAINT chk_printings_fallback_pinned_has_image CHECK (((fallback_art_mode = 'pinned'::text) = (fallback_image_file_id IS NOT NULL))),
+    CONSTRAINT chk_printings_no_empty_comment CHECK ((comment <> ''::text)),
+    CONSTRAINT chk_printings_no_empty_flavor_text CHECK ((flavor_text <> ''::text)),
+    CONSTRAINT chk_printings_no_empty_printed_effect_text CHECK ((printed_effect_text <> ''::text)),
+    CONSTRAINT chk_printings_no_empty_printed_name CHECK ((printed_name <> ''::text)),
+    CONSTRAINT chk_printings_no_empty_printed_rules_text CHECK ((printed_rules_text <> ''::text)),
+    CONSTRAINT chk_printings_public_code_not_empty CHECK ((public_code <> ''::text)),
+    CONSTRAINT chk_printings_release_period_start CHECK (((released_at IS NULL) OR (release_precision = 'day'::public.release_precision) OR ((release_precision = 'month'::public.release_precision) AND (EXTRACT(day FROM released_at) = (1)::numeric)) OR ((release_precision = 'quarter'::public.release_precision) AND (EXTRACT(day FROM released_at) = (1)::numeric) AND (EXTRACT(month FROM released_at) = ANY (ARRAY[(1)::numeric, (4)::numeric, (7)::numeric, (10)::numeric]))) OR ((release_precision = 'year'::public.release_precision) AND (EXTRACT(doy FROM released_at) = (1)::numeric)))),
+    CONSTRAINT chk_printings_release_precision CHECK (((released_at IS NULL) = (release_precision IS NULL))),
+    CONSTRAINT chk_printings_short_code_not_empty CHECK ((short_code <> ''::text)),
+    CONSTRAINT chk_printings_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+CREATE MATERIALIZED VIEW public.mv_printing_foil_twins AS
+ SELECT id AS printing_id
+   FROM public.printings p
+  WHERE ((finish <> 'foil'::text) AND (EXISTS ( SELECT 1
+           FROM public.printings q
+          WHERE ((q.card_id = p.card_id) AND (q.short_code = p.short_code) AND (q.language = p.language) AND (q.size = p.size) AND (q.art_variant = p.art_variant) AND (q.is_signed = p.is_signed) AND (q.is_overnumbered = p.is_overnumbered) AND (q.marker_slugs = p.marker_slugs) AND (q.finish = 'foil'::text)))))
+  WITH NO DATA;
+
+CREATE TABLE public.sets (
+    name text NOT NULL,
+    printed_total integer,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    slug text NOT NULL,
+    id uuid DEFAULT uuidv7() NOT NULL,
+    set_type public.set_type DEFAULT 'main'::public.set_type NOT NULL,
+    CONSTRAINT chk_sets_name_not_empty CHECK ((name <> ''::text)),
+    CONSTRAINT chk_sets_printed_total_non_negative CHECK ((printed_total >= 0)),
+    CONSTRAINT chk_sets_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+CREATE MATERIALIZED VIEW public.mv_printings_canonical_rank AS
+ SELECT p.id AS printing_id,
+    (row_number() OVER (ORDER BY l.sort_order, s.sort_order, p.short_code, (array_length(p.marker_slugs, 1) IS NOT NULL), COALESCE(( SELECT min(m.sort_order) AS min
+           FROM public.markers m
+          WHERE (m.slug = ANY (p.marker_slugs))), 0), f.sort_order, cs.sort_order))::integer AS canonical_rank
+   FROM ((((public.printings p
+     JOIN public.sets s ON ((s.id = p.set_id)))
+     JOIN public.finishes f ON ((f.slug = p.finish)))
+     JOIN public.card_sizes cs ON ((cs.slug = p.size)))
+     JOIN public.languages l ON ((l.code = p.language)))
+  WITH NO DATA;
+
+CREATE TABLE public.organization_members (
+    org_id uuid NOT NULL,
+    user_id text NOT NULL,
+    role text NOT NULL,
+    joined_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_organization_members_role CHECK ((role = ANY (ARRAY['owner'::text, 'manager'::text, 'judge'::text])))
+);
+
+CREATE TABLE public.organizations (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    slug text NOT NULL,
+    name text NOT NULL,
+    description text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_organizations_description CHECK (((description IS NULL) OR (length(description) <= 4000))),
+    CONSTRAINT chk_organizations_name CHECK (((length(name) >= 1) AND (length(name) <= 120))),
+    CONSTRAINT chk_organizations_slug CHECK ((slug ~ '^[a-z0-9][a-z0-9-]{2,49}$'::text))
+);
+
+CREATE TABLE public.overlay_channels (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    user_id text NOT NULL,
+    token text,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    version integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_overlay_channels_payload_shape CHECK (((payload IS NULL) OR (jsonb_typeof(payload) = 'object'::text))),
+    CONSTRAINT chk_overlay_channels_token_not_empty CHECK (((token IS NULL) OR (token <> ''::text)))
+);
+
+CREATE TABLE public.playloltcg_decklist_cards (
+    source_deck_id text NOT NULL,
+    line_number integer NOT NULL,
+    zone text NOT NULL,
+    quantity integer NOT NULL,
+    card_name text NOT NULL,
+    CONSTRAINT chk_playloltcg_decklist_cards_card_name CHECK ((card_name <> ''::text)),
+    CONSTRAINT chk_playloltcg_decklist_cards_line CHECK ((line_number >= 0)),
+    CONSTRAINT chk_playloltcg_decklist_cards_quantity CHECK ((quantity > 0)),
+    CONSTRAINT chk_playloltcg_decklist_cards_zone CHECK ((zone <> ''::text))
+);
+
+CREATE TABLE public.playloltcg_decklists (
+    source_deck_id text NOT NULL,
+    activity_shop_id bigint NOT NULL,
+    fetch_status text NOT NULL,
+    fetched_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_playloltcg_decklists_fetch_status CHECK ((fetch_status = ANY (ARRAY['fetched'::text, 'refused'::text]))),
+    CONSTRAINT chk_playloltcg_decklists_source_deck_id CHECK ((source_deck_id <> ''::text))
+);
+
+CREATE TABLE public.playloltcg_event_checks (
+    activity_shop_id integer NOT NULL,
+    next_check_at timestamp with time zone,
+    check_stage smallint DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_playloltcg_event_checks_stage CHECK ((check_stage >= 0))
+);
+
+CREATE TABLE public.playloltcg_event_standings (
+    activity_shop_id bigint NOT NULL,
+    player_key text NOT NULL,
+    source_user_id bigint,
+    player_name text NOT NULL,
+    rank integer,
+    wins smallint,
+    losses smallint,
+    draws smallint,
+    legend_name text,
+    source_deck_id text,
+    fetched_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_playloltcg_event_standings_player_key CHECK ((player_key <> ''::text)),
+    CONSTRAINT chk_playloltcg_event_standings_player_name CHECK (((length(player_name) >= 1) AND (length(player_name) <= 80))),
+    CONSTRAINT chk_playloltcg_event_standings_rank CHECK (((rank IS NULL) OR (rank >= 1)))
+);
+
+CREATE TABLE public.playloltcg_events (
+    activity_shop_id integer NOT NULL,
+    shop_id integer,
+    shop_name text,
+    name text NOT NULL,
+    activity_type text,
+    activity_type_name text,
+    battle_mode text,
+    status smallint,
+    start_at date,
+    end_at date,
+    player_count integer,
+    max_user integer,
+    fee integer,
+    province text,
+    city text,
+    area text,
+    address text,
+    longitude double precision,
+    latitude double precision,
+    content_hash text NOT NULL,
+    first_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_seen_at timestamp with time zone NOT NULL,
+    missing_since timestamp with time zone,
+    CONSTRAINT chk_playloltcg_events_content_hash CHECK ((content_hash <> ''::text)),
+    CONSTRAINT chk_playloltcg_events_name CHECK ((length(name) >= 1)),
+    CONSTRAINT chk_playloltcg_events_player_count CHECK (((player_count IS NULL) OR (player_count >= 0))),
+    CONSTRAINT chk_playloltcg_events_status CHECK (((status IS NULL) OR ((status >= 1) AND (status <= 5))))
+);
+
+CREATE TABLE public.playloltcg_shops (
+    id integer NOT NULL,
+    name text NOT NULL,
+    province text,
+    city text,
+    area text,
+    address text,
+    longitude double precision,
+    latitude double precision,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_playloltcg_shops_name CHECK (((length(name) >= 1) AND (length(name) <= 200)))
+);
+
+CREATE TABLE public.pod_byes (
+    round_id uuid NOT NULL,
+    player_id uuid NOT NULL
+);
+
+CREATE TABLE public.pod_members (
+    pod_id uuid NOT NULL,
+    player_id uuid NOT NULL,
+    placement integer,
+    game_points integer,
+    seat integer,
+    CONSTRAINT chk_pod_members_game_points CHECK (((game_points IS NULL) OR (game_points >= 0))),
+    CONSTRAINT chk_pod_members_placement CHECK (((placement IS NULL) OR ((placement >= 1) AND (placement <= 4)))),
+    CONSTRAINT chk_pod_members_seat CHECK (((seat IS NULL) OR ((seat >= 0) AND (seat <= 3))))
+);
+
+CREATE TABLE public.pod_rounds (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    tournament_id uuid NOT NULL,
+    round_number integer NOT NULL,
+    status text DEFAULT 'reporting'::text NOT NULL,
+    penalty_total double precision NOT NULL,
+    pairing_strategy text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    finalized_at timestamp with time zone,
+    CONSTRAINT chk_pod_rounds_number CHECK ((round_number > 0)),
+    CONSTRAINT chk_pod_rounds_status CHECK ((status = ANY (ARRAY['reporting'::text, 'finalized'::text])))
+);
+
+CREATE TABLE public.pods (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    round_id uuid NOT NULL,
+    pod_number integer NOT NULL,
+    size integer NOT NULL,
+    penalty_breakdown jsonb NOT NULL,
+    result_status text DEFAULT 'pending'::text NOT NULL,
+    CONSTRAINT chk_pods_number CHECK ((pod_number > 0)),
+    CONSTRAINT chk_pods_penalty_breakdown_shape CHECK (((penalty_breakdown IS NULL) OR (jsonb_typeof(penalty_breakdown) = 'object'::text))),
+    CONSTRAINT chk_pods_result_status CHECK ((result_status = ANY (ARRAY['pending'::text, 'reported'::text]))),
+    CONSTRAINT chk_pods_size CHECK ((size = ANY (ARRAY[2, 3, 4])))
+);
+
+CREATE TABLE public.printing_citations (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    printing_id uuid NOT NULL,
+    label text NOT NULL,
+    source_url text,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_printing_citations_label CHECK (((length(label) >= 1) AND (length(label) <= 120))),
+    CONSTRAINT chk_printing_citations_source_url CHECK (((source_url IS NULL) OR ((length(source_url) >= 1) AND (length(source_url) <= 2000))))
+);
+
+CREATE TABLE public.printing_distribution_channels (
+    printing_id uuid NOT NULL,
+    channel_id uuid NOT NULL,
+    distribution_note text,
+    CONSTRAINT printing_distribution_channels_note_check CHECK ((distribution_note <> ''::text))
+);
+
+CREATE TABLE public.printing_events (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    printing_id uuid NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    retry_count integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_printing_events_status CHECK ((status = ANY (ARRAY['pending'::text, 'sent'::text, 'failed'::text])))
+);
+
+CREATE TABLE public.printing_images (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    face text DEFAULT 'front'::text NOT NULL,
+    is_active boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    printing_id uuid NOT NULL,
+    image_file_id uuid CONSTRAINT printing_images_card_image_id_not_null NOT NULL,
+    CONSTRAINT chk_printing_images_face CHECK ((face = ANY (ARRAY['front'::text, 'back'::text])))
+);
+
+CREATE TABLE public.printing_link_overrides (
+    external_id text NOT NULL,
+    finish text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    printing_id uuid NOT NULL,
+    provider text NOT NULL,
+    CONSTRAINT chk_plo_no_empty_external_id CHECK ((external_id <> ''::text))
+);
+
+CREATE TABLE public.printing_markers (
+    printing_id uuid NOT NULL,
+    marker_id uuid NOT NULL
+);
+
+CREATE VIEW public.printings_ordered AS
+ SELECT p.short_code,
+    p.rarity,
+    p.art_variant,
+    p.is_signed,
+    p.finish,
+    p.artist,
+    p.public_code,
+    p.printed_rules_text,
+    p.printed_effect_text,
+    p.created_at,
+    p.updated_at,
+    p.flavor_text,
+    p.id,
+    p.card_id,
+    p.set_id,
+    p.comment,
+    p.language,
+    p.printed_name,
+    p.marker_slugs,
+    p.printed_year,
+    p.size,
+    p.fallback_art_mode,
+    p.fallback_image_file_id,
+    p.is_overnumbered,
+    p.released_at,
+    p.release_precision,
+    p.announced_at,
+    p.slug,
+    COALESCE(r.canonical_rank, 2147483647) AS canonical_rank,
+    (t.printing_id IS NOT NULL) AS has_foil_twin
+   FROM ((public.printings p
+     LEFT JOIN public.mv_printings_canonical_rank r ON ((r.printing_id = p.id)))
+     LEFT JOIN public.mv_printing_foil_twins t ON ((t.printing_id = p.id)));
+
+CREATE TABLE public.product_printings (
+    product_id uuid NOT NULL,
+    printing_id uuid NOT NULL,
+    quantity integer NOT NULL,
+    CONSTRAINT chk_product_printings_quantity CHECK ((quantity > 0))
+);
+
+CREATE TABLE public.products (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    slug text NOT NULL,
+    name text NOT NULL,
+    description text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    set_id uuid,
+    CONSTRAINT chk_products_description CHECK (((description IS NULL) OR (length(description) <= 2000))),
+    CONSTRAINT chk_products_name CHECK (((length(name) >= 1) AND (length(name) <= 120))),
+    CONSTRAINT chk_products_slug CHECK ((slug ~ '^[a-z0-9][a-z0-9-]{2,79}$'::text))
+);
+
+CREATE TABLE public.provider_settings (
+    provider text NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    is_hidden boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    is_favorite boolean DEFAULT false NOT NULL,
+    helper_reviewable boolean DEFAULT false NOT NULL,
+    CONSTRAINT provider_settings_provider_check CHECK ((provider <> ''::text))
+);
+
+CREATE TABLE public.rarities (
+    slug text NOT NULL,
+    label text NOT NULL,
+    sort_order smallint NOT NULL,
+    is_well_known boolean DEFAULT false NOT NULL,
+    color text,
+    CONSTRAINT chk_rarities_color CHECK ((color ~ '^#[0-9a-fA-F]{6}$'::text))
+);
+
+CREATE TABLE public.rule_versions (
+    version text NOT NULL,
+    imported_at timestamp with time zone DEFAULT now() NOT NULL,
+    kind text NOT NULL,
+    comments text,
+    label text,
+    document_version text,
+    language text NOT NULL,
+    CONSTRAINT chk_rule_versions_document_version_not_empty CHECK ((document_version <> ''::text)),
+    CONSTRAINT chk_rule_versions_label_not_empty CHECK ((label <> ''::text)),
+    CONSTRAINT rule_versions_kind_check CHECK ((kind = ANY (ARRAY['core'::text, 'tournament'::text]))),
+    CONSTRAINT rule_versions_language_check CHECK ((language = ANY (ARRAY['en'::text, 'fr'::text, 'ko'::text, 'zh-Hans'::text])))
+);
+
+CREATE TABLE public.rules (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    version text NOT NULL,
+    rule_number text NOT NULL,
+    sort_order integer NOT NULL,
+    depth smallint NOT NULL,
+    rule_type text NOT NULL,
+    content text NOT NULL,
+    change_type text DEFAULT 'added'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    kind text NOT NULL,
+    language text NOT NULL,
+    CONSTRAINT rules_change_type_check CHECK ((change_type = ANY (ARRAY['added'::text, 'modified'::text, 'removed'::text, 'unchanged'::text]))),
+    CONSTRAINT rules_depth_check CHECK (((depth >= 0) AND (depth <= 3))),
+    CONSTRAINT rules_kind_check CHECK ((kind = ANY (ARRAY['core'::text, 'tournament'::text]))),
+    CONSTRAINT rules_language_check CHECK ((language = ANY (ARRAY['en'::text, 'fr'::text, 'ko'::text, 'zh-Hans'::text]))),
+    CONSTRAINT rules_rule_number_check CHECK ((rule_number <> ''::text)),
+    CONSTRAINT rules_rule_type_check CHECK ((rule_type = ANY (ARRAY['title'::text, 'subtitle'::text, 'text'::text])))
+);
+
+CREATE TABLE public.scan_index (
+    id integer NOT NULL,
+    format_version integer NOT NULL,
+    bank_hash text NOT NULL,
+    entry_count integer NOT NULL,
+    encoder_tag text NOT NULL,
+    watermark timestamp with time zone,
+    built_at timestamp with time zone DEFAULT now() NOT NULL,
+    duration_ms integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_scan_index_singleton CHECK ((id = 1))
+);
+
+CREATE TABLE public.scan_reports (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    user_id text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    reference text NOT NULL,
+    note text,
+    user_agent text,
+    journal jsonb NOT NULL,
+    CONSTRAINT chk_scan_reports_journal_shape CHECK ((jsonb_typeof(journal) = 'array'::text)),
+    CONSTRAINT chk_scan_reports_reference CHECK ((reference <> ''::text))
+);
+
+CREATE TABLE public.sessions (
+    id text NOT NULL,
+    user_id text NOT NULL,
+    token text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    ip_address text,
+    user_agent text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE public.set_releases (
+    set_id uuid NOT NULL,
+    language text NOT NULL,
+    released_at date,
+    "precision" public.release_precision,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_set_releases_period_start CHECK (((released_at IS NULL) OR ("precision" = 'day'::public.release_precision) OR (("precision" = 'month'::public.release_precision) AND (EXTRACT(day FROM released_at) = (1)::numeric)) OR (("precision" = 'quarter'::public.release_precision) AND (EXTRACT(day FROM released_at) = (1)::numeric) AND (EXTRACT(month FROM released_at) = ANY (ARRAY[(1)::numeric, (4)::numeric, (7)::numeric, (10)::numeric]))) OR (("precision" = 'year'::public.release_precision) AND (EXTRACT(doy FROM released_at) = (1)::numeric)))),
+    CONSTRAINT chk_set_releases_precision CHECK (((released_at IS NULL) = ("precision" IS NULL)))
+);
+
+CREATE TABLE public.site_settings (
+    key text NOT NULL,
+    value text NOT NULL,
+    scope text DEFAULT 'web'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT site_settings_key_check CHECK ((key <> ''::text)),
+    CONSTRAINT site_settings_scope_check CHECK ((scope = ANY (ARRAY['web'::text, 'api'::text])))
+);
+
+CREATE TABLE public.stage_presets (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    user_id text NOT NULL,
+    name text NOT NULL,
+    config jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_stage_presets_config_object CHECK ((jsonb_typeof(config) = 'object'::text)),
+    CONSTRAINT chk_stage_presets_name_not_empty CHECK ((name <> ''::text))
+);
+
+CREATE TABLE public.super_types (
+    slug text NOT NULL,
+    label text NOT NULL,
+    sort_order smallint NOT NULL,
+    is_well_known boolean DEFAULT false NOT NULL
+);
+
+CREATE TABLE public.tag_categories (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    slug text NOT NULL,
+    label text NOT NULL,
+    description text,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT tag_categories_description_check CHECK ((description <> ''::text)),
+    CONSTRAINT tag_categories_label_check CHECK ((label <> ''::text)),
+    CONSTRAINT tag_categories_slug_check CHECK ((slug <> ''::text))
+);
+
+CREATE TABLE public.tag_definitions (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    tag text NOT NULL,
+    category_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT tag_definitions_tag_check CHECK (((tag <> ''::text) AND (tag = btrim(tag))))
+);
+
+CREATE TABLE public.tier_lists (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    user_id text NOT NULL,
+    title text NOT NULL,
+    description text,
+    tiers jsonb DEFAULT '[]'::jsonb NOT NULL,
+    is_public boolean DEFAULT false NOT NULL,
+    share_token text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_tier_lists_tiers_array CHECK ((jsonb_typeof(tiers) = 'array'::text)),
+    CONSTRAINT chk_tier_lists_title_not_empty CHECK ((title <> ''::text))
+);
+
+CREATE TABLE public.topdeck_decklist_cards (
+    source_deck_id text NOT NULL,
+    line_number integer NOT NULL,
+    zone text NOT NULL,
+    quantity integer NOT NULL,
+    card_name text NOT NULL,
+    CONSTRAINT chk_topdeck_decklist_cards_card_name CHECK ((card_name <> ''::text)),
+    CONSTRAINT chk_topdeck_decklist_cards_line CHECK ((line_number >= 0)),
+    CONSTRAINT chk_topdeck_decklist_cards_quantity CHECK ((quantity > 0)),
+    CONSTRAINT chk_topdeck_decklist_cards_zone CHECK ((zone <> ''::text))
+);
+
+CREATE TABLE public.topdeck_decklists (
+    source_deck_id text NOT NULL,
+    tid text NOT NULL,
+    fetch_status text NOT NULL,
+    fetched_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_topdeck_decklists_fetch_status CHECK ((fetch_status = ANY (ARRAY['fetched'::text, 'refused'::text]))),
+    CONSTRAINT chk_topdeck_decklists_source_deck_id CHECK ((source_deck_id <> ''::text))
+);
+
+CREATE TABLE public.topdeck_event_standings (
+    tid text NOT NULL,
+    player_key text NOT NULL,
+    source_player_id text,
+    player_name text NOT NULL,
+    rank integer,
+    wins smallint,
+    losses smallint,
+    draws smallint,
+    legend_name text,
+    source_deck_id text,
+    fetched_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_topdeck_event_standings_player_key CHECK ((player_key <> ''::text)),
+    CONSTRAINT chk_topdeck_event_standings_player_name CHECK (((length(player_name) >= 1) AND (length(player_name) <= 80))),
+    CONSTRAINT chk_topdeck_event_standings_rank CHECK (((rank IS NULL) OR (rank >= 1)))
+);
+
+CREATE TABLE public.topdeck_events (
+    tid text NOT NULL,
+    name text NOT NULL,
+    format text NOT NULL,
+    start_at timestamp with time zone NOT NULL,
+    swiss_rounds integer,
+    top_cut integer,
+    player_count integer,
+    is_team_event boolean DEFAULT false NOT NULL,
+    team_size integer,
+    city text,
+    state text,
+    country text,
+    address text,
+    longitude double precision,
+    latitude double precision,
+    content_hash text NOT NULL,
+    first_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_seen_at timestamp with time zone NOT NULL,
+    missing_since timestamp with time zone,
+    CONSTRAINT chk_topdeck_events_content_hash CHECK ((content_hash <> ''::text)),
+    CONSTRAINT chk_topdeck_events_country CHECK (((country IS NULL) OR (country ~ '^[A-Z]{2}$'::text))),
+    CONSTRAINT chk_topdeck_events_format CHECK ((format <> ''::text)),
+    CONSTRAINT chk_topdeck_events_name CHECK ((length(name) >= 1)),
+    CONSTRAINT chk_topdeck_events_player_count CHECK (((player_count IS NULL) OR (player_count >= 0))),
+    CONSTRAINT chk_topdeck_events_swiss_rounds CHECK (((swiss_rounds IS NULL) OR (swiss_rounds >= 0))),
+    CONSTRAINT chk_topdeck_events_team_size CHECK (((team_size IS NULL) OR (team_size > 0))),
+    CONSTRAINT chk_topdeck_events_tid CHECK ((tid <> ''::text)),
+    CONSTRAINT chk_topdeck_events_top_cut CHECK (((top_cut IS NULL) OR (top_cut >= 0)))
+);
+
+CREATE TABLE public.tournament_groups (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    tournament_id uuid NOT NULL,
+    label text NOT NULL,
+    paired_group_id uuid,
+    CONSTRAINT chk_tournament_groups_label CHECK ((label <> ''::text))
+);
+
+CREATE TABLE public.tournament_legend_meta_shares (
+    tournament_id uuid NOT NULL,
+    legend_card_id uuid NOT NULL,
+    share numeric(6,3) NOT NULL,
+    CONSTRAINT chk_tournament_legend_meta_shares_share CHECK (((share >= (0)::numeric) AND (share <= (100)::numeric)))
+);
+
+CREATE TABLE public.tournament_participants (
+    id uuid DEFAULT uuidv7() CONSTRAINT pod_players_id_not_null NOT NULL,
+    tournament_id uuid CONSTRAINT pod_players_tournament_id_not_null NOT NULL,
+    display_name text CONSTRAINT pod_players_display_name_not_null NOT NULL,
+    status text DEFAULT 'active'::text CONSTRAINT pod_players_status_not_null NOT NULL,
+    dropped_after_round integer,
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT pod_players_created_at_not_null NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() CONSTRAINT pod_players_updated_at_not_null NOT NULL,
+    user_id text,
+    riot_id text,
+    seed integer,
+    claim_source text,
+    claim_token text,
+    claimed_at timestamp with time zone,
+    claim_blocked_at timestamp with time zone,
+    region text,
+    fixed_table integer,
+    team_id uuid,
+    group_id uuid,
+    group_slot integer,
+    legend_card_id uuid,
+    CONSTRAINT chk_tournament_participants_claim_source CHECK (((claim_source IS NULL) OR (claim_source = ANY (ARRAY['judge_manual'::text, 'self_submit'::text, 'claim_link'::text])))),
+    CONSTRAINT chk_tournament_participants_fixed_table CHECK (((fixed_table IS NULL) OR ((fixed_table >= 1) AND (fixed_table <= 999)))),
+    CONSTRAINT chk_tournament_participants_group_slot CHECK (((group_slot IS NULL) OR ((group_slot >= 0) AND (group_slot <= 3)))),
+    CONSTRAINT chk_tournament_participants_name CHECK (((length(display_name) >= 1) AND (length(display_name) <= 120))),
+    CONSTRAINT chk_tournament_participants_region CHECK (((region IS NULL) OR ((char_length(region) >= 1) AND (char_length(region) <= 50)))),
+    CONSTRAINT chk_tournament_participants_riot_id CHECK (((riot_id IS NULL) OR (length(riot_id) <= 120))),
+    CONSTRAINT chk_tournament_participants_status CHECK ((status = ANY (ARRAY['requested'::text, 'invited'::text, 'active'::text, 'dropped'::text, 'no_show'::text])))
+);
+
+CREATE TABLE public.tournament_staff (
+    tournament_id uuid NOT NULL,
+    user_id text NOT NULL,
+    role text NOT NULL,
+    added_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_tournament_staff_role CHECK ((role = ANY (ARRAY['organizer'::text, 'judge'::text])))
+);
+
+CREATE TABLE public.tournament_teams (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    tournament_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE public.tournaments (
+    id uuid DEFAULT uuidv7() CONSTRAINT pod_tournaments_id_not_null NOT NULL,
+    host_user_id text,
+    name text CONSTRAINT pod_tournaments_name_not_null NOT NULL,
+    status text DEFAULT 'setup'::text CONSTRAINT pod_tournaments_status_not_null NOT NULL,
+    current_round integer DEFAULT 0 CONSTRAINT pod_tournaments_current_round_not_null NOT NULL,
+    scoring_scheme text DEFAULT 'standard'::text CONSTRAINT pod_tournaments_scoring_scheme_not_null NOT NULL,
+    report_token text,
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT pod_tournaments_created_at_not_null NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() CONSTRAINT pod_tournaments_updated_at_not_null NOT NULL,
+    bye_points integer DEFAULT 3 CONSTRAINT pod_tournaments_bye_points_not_null NOT NULL,
+    host_type text NOT NULL,
+    host_org_id uuid,
+    group_id uuid,
+    starts_at timestamp with time zone DEFAULT now() NOT NULL,
+    pairing_style text DEFAULT 'pod'::text NOT NULL,
+    deck_submission text DEFAULT 'none'::text NOT NULL,
+    deck_phase text DEFAULT 'open'::text NOT NULL,
+    submissions_close_at timestamp with time zone,
+    list_lock_mode text DEFAULT 'on_submit'::text NOT NULL,
+    deck_format text,
+    allowed_sets jsonb,
+    self_registration boolean DEFAULT false NOT NULL,
+    submission_token text,
+    ends_at timestamp with time zone,
+    organizer_invite_token text,
+    judge_invite_token text,
+    follow_token text,
+    match_format text DEFAULT 'bo1'::text NOT NULL,
+    win_points integer DEFAULT 3 NOT NULL,
+    draw_points integer DEFAULT 1 NOT NULL,
+    regions_enabled boolean DEFAULT false NOT NULL,
+    play_mode text DEFAULT '1v1'::text NOT NULL,
+    format text DEFAULT 'rounds'::text NOT NULL,
+    cut_size integer DEFAULT 8 NOT NULL,
+    cut_rematch_avoidance boolean DEFAULT false NOT NULL,
+    legend_tiebreak boolean DEFAULT false NOT NULL,
+    groups_self_paced boolean DEFAULT true NOT NULL,
+    uvsgames_event_id text,
+    CONSTRAINT chk_tournaments_allowed_sets_shape CHECK (((allowed_sets IS NULL) OR (jsonb_typeof(allowed_sets) = 'array'::text))),
+    CONSTRAINT chk_tournaments_bye_points CHECK ((bye_points >= 0)),
+    CONSTRAINT chk_tournaments_cut_size CHECK ((cut_size = ANY (ARRAY[4, 8, 16]))),
+    CONSTRAINT chk_tournaments_deck_phase CHECK ((deck_phase = ANY (ARRAY['open'::text, 'closed'::text, 'locked'::text]))),
+    CONSTRAINT chk_tournaments_deck_submission CHECK ((deck_submission = ANY (ARRAY['none'::text, 'optional'::text, 'required'::text]))),
+    CONSTRAINT chk_tournaments_draw_points CHECK ((draw_points >= 0)),
+    CONSTRAINT chk_tournaments_format CHECK ((format = ANY (ARRAY['rounds'::text, 'group_cut'::text]))),
+    CONSTRAINT chk_tournaments_group_cut CHECK (((format = 'rounds'::text) OR ((pairing_style = 'swiss'::text) AND (play_mode = '1v1'::text)))),
+    CONSTRAINT chk_tournaments_host CHECK ((((host_type = 'user'::text) AND (host_org_id IS NULL)) OR ((host_type = 'organization'::text) AND (host_user_id IS NULL)))),
+    CONSTRAINT chk_tournaments_list_lock_mode CHECK ((list_lock_mode = ANY (ARRAY['on_submit'::text, 'at_deadline'::text]))),
+    CONSTRAINT chk_tournaments_match_format CHECK ((match_format = ANY (ARRAY['bo1'::text, 'bo3'::text]))),
+    CONSTRAINT chk_tournaments_name CHECK (((length(name) >= 1) AND (length(name) <= 120))),
+    CONSTRAINT chk_tournaments_pairing_style CHECK ((pairing_style = ANY (ARRAY['none'::text, 'pod'::text, 'swiss'::text]))),
+    CONSTRAINT chk_tournaments_play_mode CHECK ((play_mode = ANY (ARRAY['1v1'::text, '2v2'::text]))),
+    CONSTRAINT chk_tournaments_play_mode_pairing CHECK (((play_mode = '1v1'::text) OR (pairing_style <> 'pod'::text))),
+    CONSTRAINT chk_tournaments_play_mode_regions CHECK (((play_mode = '1v1'::text) OR (regions_enabled = false))),
+    CONSTRAINT chk_tournaments_scheme CHECK ((scoring_scheme = ANY (ARRAY['standard'::text, 'three_pod_reduced'::text]))),
+    CONSTRAINT chk_tournaments_status CHECK ((status = ANY (ARRAY['setup'::text, 'running'::text, 'completed'::text, 'cancelled'::text]))),
+    CONSTRAINT chk_tournaments_uvsgames_event_id CHECK (((uvsgames_event_id IS NULL) OR (uvsgames_event_id ~ '^[1-9][0-9]{0,11}$'::text))),
+    CONSTRAINT chk_tournaments_win_points CHECK ((win_points >= 0))
+);
+
+CREATE TABLE public.trade_suggestion_dismissals (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    user_id text NOT NULL,
+    counterparty_user_id text NOT NULL,
+    printing_id uuid NOT NULL,
+    direction text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT trade_suggestion_dismissals_direction_check CHECK ((direction = ANY (ARRAY['incoming'::text, 'outgoing'::text])))
+);
+
+CREATE TABLE public.user_contact_methods (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    user_id text NOT NULL,
+    type text NOT NULL,
+    value text NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_user_contact_methods_type CHECK ((type = ANY (ARRAY['discord'::text, 'signal'::text, 'telegram'::text, 'whatsapp'::text, 'phone'::text, 'email'::text, 'in_person'::text, 'other'::text]))),
+    CONSTRAINT chk_user_contact_methods_value CHECK (((length(value) >= 1) AND (length(value) <= 200)))
+);
+
+CREATE TABLE public.user_feature_flags (
+    user_id text NOT NULL,
+    flag_key text NOT NULL,
+    enabled boolean NOT NULL
+);
+
+CREATE TABLE public.user_preferences (
+    user_id text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    data jsonb DEFAULT '{"showImages": true, "richEffects": true, "visibleFields": {"type": true, "price": true, "title": true, "number": true, "rarity": true}, "marketplaceOrder": ["tcgplayer", "cardmarket", "cardtrader"]}'::jsonb NOT NULL,
+    CONSTRAINT chk_user_preferences_data_shape CHECK (((data IS NULL) OR (jsonb_typeof(data) = 'object'::text))),
+    CONSTRAINT user_preferences_data_max_size CHECK ((length((data)::text) <= 8192))
+);
+
+CREATE TABLE public.users (
+    id text NOT NULL,
+    email text NOT NULL,
+    name text,
+    email_verified boolean DEFAULT false NOT NULL,
+    image text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    share_token text,
+    riot_id text,
+    meta_credit_visibility text DEFAULT 'hidden'::text NOT NULL,
+    bio text,
+    profile_show_riot_id boolean DEFAULT false NOT NULL,
+    profile_show_collection boolean DEFAULT false NOT NULL,
+    profile_show_last_active boolean DEFAULT true NOT NULL,
+    CONSTRAINT chk_users_bio CHECK (((bio IS NULL) OR ((bio <> ''::text) AND (char_length(bio) <= 200)))),
+    CONSTRAINT chk_users_meta_credit_visibility CHECK ((meta_credit_visibility = ANY (ARRAY['hidden'::text, 'name'::text, 'riot_id'::text])))
+);
+
+CREATE TABLE public.uvsgames_decklist_cards (
+    source_deck_id text NOT NULL,
+    line_number integer NOT NULL,
+    zone text NOT NULL,
+    quantity integer NOT NULL,
+    card_name text NOT NULL,
+    CONSTRAINT chk_uvsgames_decklist_cards_card_name CHECK ((card_name <> ''::text)),
+    CONSTRAINT chk_uvsgames_decklist_cards_line CHECK ((line_number >= 0)),
+    CONSTRAINT chk_uvsgames_decklist_cards_quantity CHECK ((quantity > 0)),
+    CONSTRAINT chk_uvsgames_decklist_cards_zone CHECK ((zone <> ''::text))
+);
+
+CREATE TABLE public.uvsgames_decklists (
+    source_deck_id text NOT NULL,
+    external_id text NOT NULL,
+    fetch_status text NOT NULL,
+    fetched_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_uvsgames_decklists_fetch_status CHECK ((fetch_status = ANY (ARRAY['fetched'::text, 'refused'::text]))),
+    CONSTRAINT chk_uvsgames_decklists_source_deck_id CHECK ((source_deck_id <> ''::text))
+);
+
+CREATE TABLE public.uvsgames_event_checks (
+    external_id text NOT NULL,
+    next_check_at timestamp with time zone,
+    check_stage smallint DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_uvsgames_event_checks_stage CHECK ((check_stage >= 0))
+);
+
+CREATE TABLE public.uvsgames_event_matches (
+    external_id text NOT NULL,
+    round_id text NOT NULL,
+    phase_order integer DEFAULT 0 NOT NULL,
+    round_number integer NOT NULL,
+    table_number integer,
+    is_bye boolean DEFAULT false NOT NULL,
+    is_draw boolean DEFAULT false NOT NULL,
+    player1_uvsgames_id integer NOT NULL,
+    player2_uvsgames_id integer,
+    winner_uvsgames_id integer,
+    games_won_p1 smallint,
+    games_won_p2 smallint,
+    source_match_id text NOT NULL,
+    CONSTRAINT chk_uvsgames_event_matches_bye CHECK (((player2_uvsgames_id IS NULL) = is_bye)),
+    CONSTRAINT chk_uvsgames_event_matches_phase_order CHECK ((phase_order >= 0)),
+    CONSTRAINT chk_uvsgames_event_matches_round_id CHECK ((round_id <> ''::text)),
+    CONSTRAINT chk_uvsgames_event_matches_round_number CHECK ((round_number >= 1)),
+    CONSTRAINT chk_uvsgames_event_matches_source_match_id CHECK ((source_match_id <> ''::text)),
+    CONSTRAINT chk_uvsgames_event_matches_winner CHECK (((winner_uvsgames_id IS NULL) OR (winner_uvsgames_id = player1_uvsgames_id) OR (winner_uvsgames_id = player2_uvsgames_id)))
+);
+
+CREATE TABLE public.uvsgames_event_phases (
+    external_id text NOT NULL,
+    phase_order integer NOT NULL,
+    name text,
+    round_type text NOT NULL,
+    round_count integer,
+    rank_required integer,
+    max_game_wins smallint,
+    CONSTRAINT chk_uvsgames_event_phases_max_game_wins CHECK (((max_game_wins IS NULL) OR (max_game_wins > 0))),
+    CONSTRAINT chk_uvsgames_event_phases_order CHECK ((phase_order >= 0)),
+    CONSTRAINT chk_uvsgames_event_phases_rank_required CHECK (((rank_required IS NULL) OR (rank_required > 0))),
+    CONSTRAINT chk_uvsgames_event_phases_round_count CHECK (((round_count IS NULL) OR (round_count > 0))),
+    CONSTRAINT chk_uvsgames_event_phases_round_type CHECK ((round_type <> ''::text))
+);
+
+CREATE TABLE public.uvsgames_event_standings (
+    external_id text NOT NULL,
+    registration_id text NOT NULL,
+    uvsgames_player_id integer,
+    player_name text,
+    rank integer,
+    wins smallint,
+    losses smallint,
+    draws smallint,
+    match_points integer,
+    opponent_match_win_pct double precision,
+    game_win_pct double precision,
+    opponent_game_win_pct double precision,
+    entry_status text,
+    legend_name text,
+    source_deck_id text,
+    fetched_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_uvsgames_event_standings_entry_status CHECK (((entry_status IS NULL) OR (entry_status = ANY (ARRAY['complete'::text, 'eliminated'::text, 'dropped'::text])))),
+    CONSTRAINT chk_uvsgames_event_standings_identity CHECK (((uvsgames_player_id IS NOT NULL) OR (player_name IS NOT NULL))),
+    CONSTRAINT chk_uvsgames_event_standings_match_points CHECK (((match_points IS NULL) OR (match_points >= 0))),
+    CONSTRAINT chk_uvsgames_event_standings_rank CHECK (((rank IS NULL) OR (rank >= 1))),
+    CONSTRAINT chk_uvsgames_event_standings_registration CHECK ((registration_id <> ''::text)),
+    CONSTRAINT chk_uvsgames_event_standings_tiebreakers CHECK ((((opponent_match_win_pct IS NULL) OR ((opponent_match_win_pct >= (0)::double precision) AND (opponent_match_win_pct <= (1)::double precision))) AND ((game_win_pct IS NULL) OR ((game_win_pct >= (0)::double precision) AND (game_win_pct <= (1)::double precision))) AND ((opponent_game_win_pct IS NULL) OR ((opponent_game_win_pct >= (0)::double precision) AND (opponent_game_win_pct <= (1)::double precision)))))
+);
+
+CREATE TABLE public.uvsgames_event_templates (
+    template_id text NOT NULL,
+    source_name text,
+    watched boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    tier text,
+    CONSTRAINT chk_uvsgames_event_templates_source_name CHECK (((source_name IS NULL) OR ((length(source_name) >= 1) AND (length(source_name) <= 200)))),
+    CONSTRAINT chk_uvsgames_event_templates_template_id CHECK ((template_id <> ''::text)),
+    CONSTRAINT chk_uvsgames_event_templates_tier CHECK (((tier IS NULL) OR (tier = ANY (ARRAY['premier'::text, 'competitive'::text, 'local'::text]))))
+);
+
+CREATE TABLE public.uvsgames_events (
+    external_id text NOT NULL,
+    name text NOT NULL,
+    start_at timestamp with time zone NOT NULL,
+    end_at_estimate timestamp with time zone,
+    display_status text NOT NULL,
+    decklist_status text,
+    player_count integer,
+    event_type text,
+    event_format text,
+    store_name text,
+    location text,
+    timezone text,
+    content_hash text NOT NULL,
+    first_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_seen_at timestamp with time zone NOT NULL,
+    missing_since timestamp with time zone,
+    event_configuration_template text,
+    store_id integer,
+    results_fetched_at timestamp with time zone,
+    missing_probe text,
+    CONSTRAINT chk_uvsgames_events_content_hash CHECK ((content_hash <> ''::text)),
+    CONSTRAINT chk_uvsgames_events_display_status CHECK ((display_status <> ''::text)),
+    CONSTRAINT chk_uvsgames_events_external_id CHECK ((external_id <> ''::text)),
+    CONSTRAINT chk_uvsgames_events_missing_probe CHECK ((missing_probe = ANY (ARRAY['found'::text, 'absent'::text]))),
+    CONSTRAINT chk_uvsgames_events_missing_probe_needs_missing CHECK (((missing_probe IS NULL) OR (missing_since IS NOT NULL))),
+    CONSTRAINT chk_uvsgames_events_name CHECK ((name <> ''::text)),
+    CONSTRAINT chk_uvsgames_events_player_count CHECK (((player_count IS NULL) OR (player_count >= 0)))
+);
+
+CREATE TABLE public.uvsgames_format_mappings (
+    source_format text NOT NULL,
+    mapped_format text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_uvsgames_format_mappings_source_format CHECK ((source_format <> ''::text))
+);
+
+CREATE TABLE public.uvsgames_id_probes (
+    external_id bigint NOT NULL,
+    outcome text NOT NULL,
+    game_type text,
+    probed_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_uvsgames_id_probes_external_id CHECK ((external_id > 0)),
+    CONSTRAINT chk_uvsgames_id_probes_game_type CHECK (((game_type IS NULL) OR (game_type <> ''::text))),
+    CONSTRAINT chk_uvsgames_id_probes_outcome CHECK ((outcome = ANY (ARRAY['other_game'::text, 'absent'::text, 'unreadable'::text])))
+);
+
+CREATE TABLE public.uvsgames_players (
+    id integer NOT NULL,
+    display_name text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_uvsgames_players_display_name CHECK (((length(display_name) >= 1) AND (length(display_name) <= 80)))
+);
+
+CREATE TABLE public.uvsgames_stores (
+    id integer NOT NULL,
+    name text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_uvsgames_stores_name CHECK (((length(name) >= 1) AND (length(name) <= 200)))
+);
+
+CREATE TABLE public.verifications (
+    id text NOT NULL,
+    identifier text NOT NULL,
+    value text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+INSERT INTO public.art_variants (slug, label, sort_order, is_well_known) VALUES
+	('normal', 'Normal', 0, true),
+	('altart', 'Alt Art', 1, true),
+	('ultimate', 'Ultimate', 3, true);
+
+INSERT INTO public.card_sizes (slug, label, sort_order, is_well_known) VALUES
+	('standard', 'Standard', 0, true),
+	('oversized', 'Oversized', 1, true);
+
+INSERT INTO public.card_types (slug, label, sort_order, is_well_known) VALUES
+	('legend', 'Legend', 0, true),
+	('unit', 'Unit', 1, true),
+	('rune', 'Rune', 2, true),
+	('spell', 'Spell', 3, false),
+	('battlefield', 'Battlefield', 5, true),
+	('other', 'Other', 6, false),
+	('gear', 'Gear', 4, true);
+
+INSERT INTO public.conditions (slug, label, sort_order, is_well_known) VALUES
+	('mint', 'Mint', 0, true),
+	('near-mint', 'Near Mint', 1, true),
+	('excellent', 'Excellent', 2, true),
+	('good', 'Good', 3, true),
+	('light-played', 'Light Played', 4, true),
+	('played', 'Played', 5, true),
+	('poor', 'Poor', 6, true);
+
+INSERT INTO public.copy_deletion_sweep (only_row, pruned_through_xid) VALUES
+	(true, '0');
+
+INSERT INTO public.deck_formats (slug, label, sort_order, is_well_known) VALUES
+	('freeform', 'Freeform', 1, true),
+	('constructed', 'Constructed', 0, true),
+	('custom-region', 'Custom - Region', 2, true);
+
+INSERT INTO public.deck_zones (slug, label, sort_order, is_well_known) VALUES
+	('legend', 'Legend', 0, true),
+	('main', 'Main', 3, true),
+	('sideboard', 'Sideboard', 6, true),
+	('champion', 'Champion', 2, true),
+	('runes', 'Runes', 5, true),
+	('battlefield', 'Battlefield', 4, true),
+	('overflow', 'Overflow', 7, true),
+	('legend-options', 'Legend Options', 1, true);
+
+INSERT INTO public.distribution_channels (id, slug, label, created_at, updated_at, description, sort_order, kind, parent_id, children_label) VALUES
+	('01a1089f-5ae5-7bab-bbe5-ef16a0837848', 'promo', 'Promo', now(), now(), NULL, 0, 'event', NULL, NULL);
+
+INSERT INTO public.domains (slug, label, sort_order, is_well_known, color) VALUES
+	('fury', 'Fury', 0, false, '#CB212D'),
+	('calm', 'Calm', 1, false, '#16AA71'),
+	('mind', 'Mind', 2, false, '#227799'),
+	('body', 'Body', 3, false, '#E2710C'),
+	('chaos', 'Chaos', 4, false, '#6B4891'),
+	('order', 'Order', 5, false, '#CDA902'),
+	('colorless', 'Colorless', 7, true, '#737373'),
+	('neutral', 'Neutral', 6, true, '#78716C');
+
+INSERT INTO public.finishes (slug, label, sort_order, is_well_known) VALUES
+	('normal', 'Normal', 0, true),
+	('foil', 'Foil', 1, true),
+	('metal-deluxe', 'Metal Deluxe', 3, true);
+
+INSERT INTO public.formats (id, name, created_at) VALUES
+	('freeform', 'Freeform', now()),
+	('standard', 'Constructed', now()),
+	('2v2', '2v2', now());
+
+INSERT INTO public.graders (slug, label, sort_order, is_well_known) VALUES
+	('psa', 'PSA', 0, true),
+	('bgs', 'BGS', 1, true),
+	('cgc', 'CGC', 2, true),
+	('sgc', 'SGC', 3, true),
+	('tag', 'TAG', 4, true);
+
+INSERT INTO public.keyword_translations (keyword_name, language, label, created_at, updated_at) VALUES
+	('Accelerate', 'FR', 'Accélération', now(), now()),
+	('Action', 'FR', 'Action', now(), now()),
+	('Ambush', 'FR', 'Embuscade', now(), now()),
+	('Assault', 'FR', 'Assaut', now(), now()),
+	('Backline', 'FR', 'Arrière-ligne', now(), now()),
+	('Buff', 'FR', 'Buff', now(), now()),
+	('Deathknell', 'FR', 'Agonie', now(), now()),
+	('Deflect', 'FR', 'Protection', now(), now()),
+	('Empower', 'FR', 'Amplification', now(), now()),
+	('Equip', 'FR', 'Équiper', now(), now()),
+	('Ganking', 'FR', 'Gank', now(), now()),
+	('Hidden', 'FR', 'Caché', now(), now()),
+	('Hunt', 'FR', 'Chasse', now(), now()),
+	('Legion', 'FR', 'Légion', now(), now()),
+	('Level', 'FR', 'Niveau', now(), now()),
+	('Mighty', 'FR', 'Puissant', now(), now()),
+	('Predict', 'FR', 'Prédiction', now(), now()),
+	('Quick-Draw', 'FR', 'Dégainer', now(), now()),
+	('Reaction', 'FR', 'Réaction', now(), now()),
+	('Repeat', 'FR', 'Répétition', now(), now()),
+	('Shield', 'FR', 'Bouclier', now(), now()),
+	('Stun', 'FR', 'Étourdissement', now(), now()),
+	('Tank', 'FR', 'Tank', now(), now()),
+	('Temporary', 'FR', 'Temporaire', now(), now()),
+	('Unique', 'FR', 'Unique', now(), now()),
+	('Vision', 'FR', 'Vision', now(), now()),
+	('Weaponmaster', 'FR', 'Expert en armes', now(), now());
+
+INSERT INTO public.keywords (name, color, dark_text, created_at, updated_at, is_well_known, cost_keyword, card_modifier) VALUES
+	('Accelerate', '#24705f', false, now(), now(), false, false, false),
+	('Action', '#24705f', false, now(), now(), false, false, false),
+	('Ambush', '#24705f', false, now(), now(), false, false, false),
+	('Assault', '#cd346f', false, now(), now(), false, false, false),
+	('Backline', '#cd346f', false, now(), now(), false, false, false),
+	('Buff', '#707070', false, now(), now(), false, false, false),
+	('Deathknell', '#95b229', true, now(), now(), false, false, false),
+	('Hunt', '#95b229', true, now(), now(), false, false, false),
+	('Legion', '#24705f', false, now(), now(), false, false, false),
+	('Level', '#95b229', true, now(), now(), false, false, false),
+	('Mighty', '#707070', false, now(), now(), false, false, false),
+	('Predict', '#707070', false, now(), now(), false, false, false),
+	('Quick-Draw', '#24705f', false, now(), now(), false, false, false),
+	('Reaction', '#24705f', false, now(), now(), false, false, false),
+	('Tank', '#cd346f', false, now(), now(), false, false, false),
+	('Vision', '#707070', false, now(), now(), false, false, false),
+	('Weaponmaster', '#707070', false, now(), now(), false, false, false),
+	('Unique', '#24705f', false, now(), now(), true, false, false),
+	('Equip', '#707070', false, now(), now(), false, true, false),
+	('Repeat', '#24705f', false, now(), now(), false, true, false),
+	('Empower', '#6a6a6a', false, now(), now(), false, true, false),
+	('Deflect', '#95b229', true, now(), now(), false, false, true),
+	('Ganking', '#95b229', true, now(), now(), false, false, true),
+	('Hidden', '#24705f', false, now(), now(), false, false, true),
+	('Shield', '#cd346f', false, now(), now(), false, false, true),
+	('Stun', '#707070', false, now(), now(), false, false, true),
+	('Temporary', '#95b229', true, now(), now(), false, false, true);
+
+INSERT INTO public.languages (code, name, sort_order, created_at, updated_at, color, is_well_known) VALUES
+	('FR', 'French', 2, now(), now(), '#7C3AED', false),
+	('EN', 'English', 1, now(), now(), '#1D4ED8', true),
+	('SC', 'Simplified Chinese', 3, now(), now(), '#DC2626', true);
+
+INSERT INTO public.markers (id, slug, label, description, sort_order, created_at, updated_at) VALUES
+	('01a1089f-5bd5-7ee5-a807-882967d951d4', 'promo', 'Promo', 'Generic promo stamp', 0, now(), now());
+
+INSERT INTO public.meta_sync_settings (id, auto_accept_min_players, auto_accept_notable, updated_at, auto_accept_official, competitive_player_floor) VALUES
+	(1, NULL, false, now(), false, 128);
+
+INSERT INTO public.rarities (slug, label, sort_order, is_well_known, color) VALUES
+	('common', 'Common', 0, true, '#A6A6A6'),
+	('uncommon', 'Uncommon', 1, true, '#47D1D1'),
+	('rare', 'Rare', 2, true, '#E052B1'),
+	('epic', 'Epic', 3, true, '#FA8938'),
+	('showcase', 'Showcase', 4, true, '#FFCC00');
+
+INSERT INTO public.sets (name, printed_total, created_at, updated_at, sort_order, slug, id, set_type) VALUES
+	('Unknown set', NULL, now(), now(), 9999, 'TBA', '01a1089f-62f1-7d1d-afd4-b069b7826ee1', 'supplemental');
+
+INSERT INTO public.super_types (slug, label, sort_order, is_well_known) VALUES
+	('champion', 'Champion', 1, true),
+	('signature', 'Signature', 2, true),
+	('token', 'Token', 3, true),
+	('basic', 'Basic', 0, true);
+
+INSERT INTO public.tag_categories (id, slug, label, description, sort_order, created_at, updated_at) VALUES
+	('01a1089f-5f07-797c-ab3c-14f62750168e', 'region', 'Region', NULL, 0, now(), now()),
+	('01a1089f-5f07-7c3a-9c9d-abf1af30e19d', 'legend', 'Legend', NULL, 1, now(), now()),
+	('01a1089f-5f07-7c56-8c97-f1091631537e', 'species', 'Species', NULL, 2, now(), now());
+
+INSERT INTO public.users (id, email, name, email_verified, image, created_at, updated_at, share_token, riot_id, meta_credit_visibility, bio, profile_show_riot_id, profile_show_collection, profile_show_last_active) VALUES
+	('meta-archive', 'meta-archive@openrift.invalid', 'Meta Archive', false, NULL, now(), now(), NULL, NULL, 'hidden', NULL, false, false, true);
+
+INSERT INTO public.uvsgames_event_templates (template_id, source_name, watched, created_at, updated_at, tier) VALUES
+	('0cbcab3e-be80-4d1d-a450-9485e584906d', NULL, true, now(), now(), NULL);
+
+INSERT INTO public.uvsgames_format_mappings (source_format, mapped_format, created_at, updated_at) VALUES
+	('Constructed', 'constructed', now(), now());
+
+ALTER TABLE ONLY public.accounts
+    ADD CONSTRAINT accounts_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.admin_events
+    ADD CONSTRAINT admin_events_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.admin_grants
+    ADD CONSTRAINT admin_grants_pkey PRIMARY KEY (user_id, section);
+
+ALTER TABLE ONLY public.admins
+    ADD CONSTRAINT admins_pkey PRIMARY KEY (user_id);
+
+ALTER TABLE ONLY public.api_keys
+    ADD CONSTRAINT api_keys_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.art_variants
+    ADD CONSTRAINT art_variants_pkey PRIMARY KEY (slug);
+
+ALTER TABLE ONLY public.board_states
+    ADD CONSTRAINT board_states_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.board_states
+    ADD CONSTRAINT board_states_share_token_key UNIQUE (share_token);
+
+ALTER TABLE ONLY public.candidate_cards
+    ADD CONSTRAINT candidate_cards_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.candidate_printings
+    ADD CONSTRAINT candidate_printings_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.card_bans
+    ADD CONSTRAINT card_bans_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.card_card_types
+    ADD CONSTRAINT card_card_types_card_id_position_key UNIQUE (card_id, "position");
+
+ALTER TABLE ONLY public.card_card_types
+    ADD CONSTRAINT card_card_types_pkey PRIMARY KEY (card_id, type_slug);
+
+ALTER TABLE ONLY public.card_custom_tags
+    ADD CONSTRAINT card_custom_tags_pkey PRIMARY KEY (card_id, custom_tag_id);
+
+ALTER TABLE ONLY public.card_domains
+    ADD CONSTRAINT card_domains_card_id_ordinal_key UNIQUE (card_id, ordinal);
+
+ALTER TABLE ONLY public.card_domains
+    ADD CONSTRAINT card_domains_pkey PRIMARY KEY (card_id, domain_slug);
+
+ALTER TABLE ONLY public.card_errata
+    ADD CONSTRAINT card_errata_card_id_unique UNIQUE (card_id);
+
+ALTER TABLE ONLY public.card_errata
+    ADD CONSTRAINT card_errata_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.card_name_aliases
+    ADD CONSTRAINT card_name_aliases_pkey PRIMARY KEY (norm_name);
+
+ALTER TABLE ONLY public.card_sizes
+    ADD CONSTRAINT card_sizes_pkey PRIMARY KEY (slug);
+
+ALTER TABLE ONLY public.card_submissions
+    ADD CONSTRAINT card_submissions_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.card_super_types
+    ADD CONSTRAINT card_super_types_pkey PRIMARY KEY (card_id, super_type_slug);
+
+ALTER TABLE ONLY public.card_tokens
+    ADD CONSTRAINT card_tokens_pkey PRIMARY KEY (card_id, token_card_id);
+
+ALTER TABLE ONLY public.card_trade_copies
+    ADD CONSTRAINT card_trade_copies_pkey PRIMARY KEY (trade_id, copy_id);
+
+ALTER TABLE ONLY public.card_trade_requested_copies
+    ADD CONSTRAINT card_trade_requested_copies_pkey PRIMARY KEY (trade_id, copy_id);
+
+ALTER TABLE ONLY public.card_trade_settlement_requests
+    ADD CONSTRAINT card_trade_settlement_requests_pkey PRIMARY KEY (trade_id, user_id, request_id);
+
+ALTER TABLE ONLY public.card_trades
+    ADD CONSTRAINT card_trades_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.card_types
+    ADD CONSTRAINT card_types_pkey PRIMARY KEY (slug);
+
+ALTER TABLE ONLY public.cardmarket_sync_state
+    ADD CONSTRAINT cardmarket_sync_state_pkey PRIMARY KEY (user_id, printing_id, condition, is_altered);
+
+ALTER TABLE ONLY public.cards
+    ADD CONSTRAINT cards_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.cards
+    ADD CONSTRAINT cards_slug_key UNIQUE (slug);
+
+ALTER TABLE ONLY public.collection_deckbuilding_prefs
+    ADD CONSTRAINT collection_deckbuilding_prefs_pkey PRIMARY KEY (user_id, collection_id);
+
+ALTER TABLE ONLY public.collection_events
+    ADD CONSTRAINT collection_events_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.collection_sidebar_prefs
+    ADD CONSTRAINT collection_sidebar_prefs_pkey PRIMARY KEY (user_id, collection_id);
+
+ALTER TABLE ONLY public.collections
+    ADD CONSTRAINT collections_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.collections
+    ADD CONSTRAINT collections_share_token_key UNIQUE (share_token);
+
+ALTER TABLE ONLY public.conditions
+    ADD CONSTRAINT conditions_pkey PRIMARY KEY (slug);
+
+ALTER TABLE ONLY public.copies
+    ADD CONSTRAINT copies_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.copy_deletion_sweep
+    ADD CONSTRAINT copy_deletion_sweep_pkey PRIMARY KEY (only_row);
+
+ALTER TABLE ONLY public.copy_deletions
+    ADD CONSTRAINT copy_deletions_pkey PRIMARY KEY (copy_id);
+
+ALTER TABLE ONLY public.custom_tag_categories
+    ADD CONSTRAINT custom_tag_categories_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.custom_tag_categories
+    ADD CONSTRAINT custom_tag_categories_slug_key UNIQUE (slug);
+
+ALTER TABLE ONLY public.custom_tags
+    ADD CONSTRAINT custom_tags_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.custom_tags
+    ADD CONSTRAINT custom_tags_slug_key UNIQUE (slug);
+
+ALTER TABLE ONLY public.deck_cards
+    ADD CONSTRAINT deck_cards_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.deck_check_entries
+    ADD CONSTRAINT deck_check_entries_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.deck_check_entry_cards
+    ADD CONSTRAINT deck_check_entry_cards_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.deck_check_keys
+    ADD CONSTRAINT deck_check_keys_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.deck_check_keys
+    ADD CONSTRAINT deck_check_keys_token_hash_key UNIQUE (token_hash);
+
+ALTER TABLE ONLY public.deck_folder_entries
+    ADD CONSTRAINT deck_folder_entries_pkey PRIMARY KEY (folder_id, deck_id);
+
+ALTER TABLE ONLY public.deck_folders
+    ADD CONSTRAINT deck_folders_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.deck_formats
+    ADD CONSTRAINT deck_formats_pkey PRIMARY KEY (slug);
+
+ALTER TABLE ONLY public.deck_matchup_plans
+    ADD CONSTRAINT deck_matchup_plans_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.deck_matchup_swaps
+    ADD CONSTRAINT deck_matchup_swaps_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.deck_plans
+    ADD CONSTRAINT deck_plans_deck_id_key UNIQUE (deck_id);
+
+ALTER TABLE ONLY public.deck_plans
+    ADD CONSTRAINT deck_plans_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.deck_zones
+    ADD CONSTRAINT deck_zones_pkey PRIMARY KEY (slug);
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT decks_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT decks_share_token_key UNIQUE (share_token);
+
+ALTER TABLE ONLY public.distribution_channels
+    ADD CONSTRAINT distribution_channels_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.distribution_channels
+    ADD CONSTRAINT distribution_channels_slug_key UNIQUE (slug);
+
+ALTER TABLE ONLY public.domains
+    ADD CONSTRAINT domains_pkey PRIMARY KEY (slug);
+
+ALTER TABLE ONLY public.errata_announcements
+    ADD CONSTRAINT errata_announcements_name_key UNIQUE (name);
+
+ALTER TABLE ONLY public.errata_announcements
+    ADD CONSTRAINT errata_announcements_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.feature_flags
+    ADD CONSTRAINT feature_flags_pkey PRIMARY KEY (key);
+
+ALTER TABLE ONLY public.finishes
+    ADD CONSTRAINT finishes_pkey PRIMARY KEY (slug);
+
+ALTER TABLE ONLY public.formats
+    ADD CONSTRAINT formats_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.friend_group_calendar_feeds
+    ADD CONSTRAINT friend_group_calendar_feeds_pkey PRIMARY KEY (token);
+
+ALTER TABLE ONLY public.friend_group_collection_shares
+    ADD CONSTRAINT friend_group_collection_shares_pkey PRIMARY KEY (group_id, collection_id);
+
+ALTER TABLE ONLY public.friend_group_discord_links
+    ADD CONSTRAINT friend_group_discord_links_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.friend_group_invites
+    ADD CONSTRAINT friend_group_invites_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.friend_group_list_shares
+    ADD CONSTRAINT friend_group_list_shares_pkey PRIMARY KEY (group_id, list_id);
+
+ALTER TABLE ONLY public.friend_group_member_contacts
+    ADD CONSTRAINT friend_group_member_contacts_pkey PRIMARY KEY (group_id, user_id, contact_method_id);
+
+ALTER TABLE ONLY public.friend_group_members
+    ADD CONSTRAINT friend_group_members_pkey PRIMARY KEY (group_id, user_id);
+
+ALTER TABLE ONLY public.friend_group_shops
+    ADD CONSTRAINT friend_group_shops_pkey PRIMARY KEY (group_id, uvsgames_store_id);
+
+ALTER TABLE ONLY public.friend_groups
+    ADD CONSTRAINT friend_groups_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.friend_groups
+    ADD CONSTRAINT friend_groups_slug_key UNIQUE (slug);
+
+ALTER TABLE ONLY public.graders
+    ADD CONSTRAINT graders_pkey PRIMARY KEY (slug);
+
+ALTER TABLE ONLY public.ignored_candidate_cards
+    ADD CONSTRAINT ignored_candidate_cards_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.ignored_candidate_printings
+    ADD CONSTRAINT ignored_candidate_printings_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.ignored_meta_source_events
+    ADD CONSTRAINT ignored_meta_source_events_pkey PRIMARY KEY (provider, external_id);
+
+ALTER TABLE ONLY public.ignored_meta_source_players
+    ADD CONSTRAINT ignored_meta_source_players_pkey PRIMARY KEY (provider, event_external_id, external_id);
+
+ALTER TABLE ONLY public.image_files
+    ADD CONSTRAINT image_files_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.job_runs
+    ADD CONSTRAINT job_runs_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.job_schedules
+    ADD CONSTRAINT job_schedules_pkey PRIMARY KEY (kind);
+
+ALTER TABLE ONLY public.keyword_translations
+    ADD CONSTRAINT keyword_translations_pkey PRIMARY KEY (keyword_name, language);
+
+ALTER TABLE ONLY public.keywords
+    ADD CONSTRAINT keywords_pkey PRIMARY KEY (name);
+
+ALTER TABLE ONLY public.languages
+    ADD CONSTRAINT languages_pkey PRIMARY KEY (code);
+
+ALTER TABLE ONLY public.list_entries
+    ADD CONSTRAINT list_entries_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.lists
+    ADD CONSTRAINT lists_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.lists
+    ADD CONSTRAINT lists_share_token_key UNIQUE (share_token);
+
+ALTER TABLE ONLY public.loan_copies
+    ADD CONSTRAINT loan_copies_pkey PRIMARY KEY (loan_id, copy_id);
+
+ALTER TABLE ONLY public.loans
+    ADD CONSTRAINT loans_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.markers
+    ADD CONSTRAINT markers_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.markers
+    ADD CONSTRAINT markers_slug_key UNIQUE (slug);
+
+ALTER TABLE ONLY public.marketplace_groups
+    ADD CONSTRAINT marketplace_groups_marketplace_group_id_key UNIQUE (marketplace, group_id);
+
+ALTER TABLE ONLY public.marketplace_groups
+    ADD CONSTRAINT marketplace_groups_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.marketplace_ignored_products
+    ADD CONSTRAINT marketplace_ignored_products_pkey PRIMARY KEY (marketplace, external_id);
+
+ALTER TABLE ONLY public.marketplace_ignored_variants
+    ADD CONSTRAINT marketplace_ignored_variants_pkey PRIMARY KEY (marketplace_product_id);
+
+ALTER TABLE ONLY public.marketplace_product_card_overrides
+    ADD CONSTRAINT marketplace_product_card_overrides_pkey PRIMARY KEY (marketplace_product_id);
+
+ALTER TABLE ONLY public.marketplace_product_prices
+    ADD CONSTRAINT marketplace_product_prices_pkey PRIMARY KEY (marketplace_product_id, recorded_at);
+
+ALTER TABLE ONLY public.marketplace_product_variants
+    ADD CONSTRAINT marketplace_product_variants_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.marketplace_products
+    ADD CONSTRAINT marketplace_sources_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.meta_credits
+    ADD CONSTRAINT meta_credits_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.meta_event_matches
+    ADD CONSTRAINT meta_event_matches_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.meta_event_overlay_matches
+    ADD CONSTRAINT meta_event_overlay_matches_pkey PRIMARY KEY (event_overlay_id, external_id);
+
+ALTER TABLE ONLY public.meta_event_overlay_phases
+    ADD CONSTRAINT meta_event_overlay_phases_pkey PRIMARY KEY (event_overlay_id, phase_order);
+
+ALTER TABLE ONLY public.meta_event_overlays
+    ADD CONSTRAINT meta_event_overlays_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.meta_event_phases
+    ADD CONSTRAINT meta_event_phases_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.meta_event_player_overlay_cards
+    ADD CONSTRAINT meta_event_player_overlay_cards_pkey PRIMARY KEY (overlay_id, line_number);
+
+ALTER TABLE ONLY public.meta_event_player_overlays
+    ADD CONSTRAINT meta_event_player_overlays_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.meta_event_players
+    ADD CONSTRAINT meta_event_players_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.meta_event_sources
+    ADD CONSTRAINT meta_event_sources_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.meta_events
+    ADD CONSTRAINT meta_events_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.meta_player_links
+    ADD CONSTRAINT meta_player_links_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.meta_submissions
+    ADD CONSTRAINT meta_submissions_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.meta_sync_settings
+    ADD CONSTRAINT meta_sync_settings_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.organization_members
+    ADD CONSTRAINT organization_members_pkey PRIMARY KEY (org_id, user_id);
+
+ALTER TABLE ONLY public.organizations
+    ADD CONSTRAINT organizations_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.organizations
+    ADD CONSTRAINT organizations_slug_key UNIQUE (slug);
+
+ALTER TABLE ONLY public.overlay_channels
+    ADD CONSTRAINT overlay_channels_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.overlay_channels
+    ADD CONSTRAINT overlay_channels_token_key UNIQUE (token);
+
+ALTER TABLE ONLY public.overlay_channels
+    ADD CONSTRAINT overlay_channels_user_id_key UNIQUE (user_id);
+
+ALTER TABLE ONLY public.playloltcg_decklist_cards
+    ADD CONSTRAINT playloltcg_decklist_cards_pkey PRIMARY KEY (source_deck_id, line_number);
+
+ALTER TABLE ONLY public.playloltcg_decklists
+    ADD CONSTRAINT playloltcg_decklists_pkey PRIMARY KEY (source_deck_id);
+
+ALTER TABLE ONLY public.playloltcg_event_checks
+    ADD CONSTRAINT playloltcg_event_checks_pkey PRIMARY KEY (activity_shop_id);
+
+ALTER TABLE ONLY public.playloltcg_event_standings
+    ADD CONSTRAINT playloltcg_event_standings_pkey PRIMARY KEY (activity_shop_id, player_key);
+
+ALTER TABLE ONLY public.playloltcg_events
+    ADD CONSTRAINT playloltcg_events_pkey PRIMARY KEY (activity_shop_id);
+
+ALTER TABLE ONLY public.playloltcg_shops
+    ADD CONSTRAINT playloltcg_shops_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.pod_byes
+    ADD CONSTRAINT pod_byes_pkey PRIMARY KEY (round_id, player_id);
+
+ALTER TABLE ONLY public.pod_members
+    ADD CONSTRAINT pod_members_pkey PRIMARY KEY (pod_id, player_id);
+
+ALTER TABLE ONLY public.pod_rounds
+    ADD CONSTRAINT pod_rounds_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.pods
+    ADD CONSTRAINT pods_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.printing_citations
+    ADD CONSTRAINT printing_citations_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.printing_distribution_channels
+    ADD CONSTRAINT printing_distribution_channels_pkey PRIMARY KEY (printing_id, channel_id);
+
+ALTER TABLE ONLY public.printing_events
+    ADD CONSTRAINT printing_events_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.printing_images
+    ADD CONSTRAINT printing_images_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.printing_link_overrides
+    ADD CONSTRAINT printing_link_overrides_pkey PRIMARY KEY (external_id, finish, provider);
+
+ALTER TABLE ONLY public.printing_markers
+    ADD CONSTRAINT printing_markers_pkey PRIMARY KEY (printing_id, marker_id);
+
+ALTER TABLE ONLY public.printings
+    ADD CONSTRAINT printings_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.product_printings
+    ADD CONSTRAINT product_printings_pkey PRIMARY KEY (product_id, printing_id);
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT products_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT products_slug_key UNIQUE (slug);
+
+ALTER TABLE ONLY public.provider_settings
+    ADD CONSTRAINT provider_settings_pkey PRIMARY KEY (provider);
+
+ALTER TABLE ONLY public.rarities
+    ADD CONSTRAINT rarities_pkey PRIMARY KEY (slug);
+
+ALTER TABLE ONLY public.rule_versions
+    ADD CONSTRAINT rule_versions_pkey PRIMARY KEY (kind, language, version);
+
+ALTER TABLE ONLY public.rules
+    ADD CONSTRAINT rules_kind_language_version_rule_number_key UNIQUE (kind, language, version, rule_number);
+
+ALTER TABLE ONLY public.rules
+    ADD CONSTRAINT rules_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.scan_index
+    ADD CONSTRAINT scan_index_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.scan_reports
+    ADD CONSTRAINT scan_reports_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.scan_reports
+    ADD CONSTRAINT scan_reports_reference_key UNIQUE (reference);
+
+ALTER TABLE ONLY public.sessions
+    ADD CONSTRAINT sessions_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.set_releases
+    ADD CONSTRAINT set_releases_pkey PRIMARY KEY (set_id, language);
+
+ALTER TABLE ONLY public.sets
+    ADD CONSTRAINT sets_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.sets
+    ADD CONSTRAINT sets_slug_key UNIQUE (slug);
+
+ALTER TABLE ONLY public.site_settings
+    ADD CONSTRAINT site_settings_pkey PRIMARY KEY (key);
+
+ALTER TABLE ONLY public.stage_presets
+    ADD CONSTRAINT stage_presets_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.super_types
+    ADD CONSTRAINT super_types_pkey PRIMARY KEY (slug);
+
+ALTER TABLE ONLY public.tag_categories
+    ADD CONSTRAINT tag_categories_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.tag_categories
+    ADD CONSTRAINT tag_categories_slug_key UNIQUE (slug);
+
+ALTER TABLE ONLY public.tag_definitions
+    ADD CONSTRAINT tag_definitions_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.tag_definitions
+    ADD CONSTRAINT tag_definitions_tag_key UNIQUE (tag);
+
+ALTER TABLE ONLY public.tier_lists
+    ADD CONSTRAINT tier_lists_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.tier_lists
+    ADD CONSTRAINT tier_lists_share_token_key UNIQUE (share_token);
+
+ALTER TABLE ONLY public.topdeck_decklist_cards
+    ADD CONSTRAINT topdeck_decklist_cards_pkey PRIMARY KEY (source_deck_id, line_number);
+
+ALTER TABLE ONLY public.topdeck_decklists
+    ADD CONSTRAINT topdeck_decklists_pkey PRIMARY KEY (source_deck_id);
+
+ALTER TABLE ONLY public.topdeck_event_standings
+    ADD CONSTRAINT topdeck_event_standings_pkey PRIMARY KEY (tid, player_key);
+
+ALTER TABLE ONLY public.topdeck_events
+    ADD CONSTRAINT topdeck_events_pkey PRIMARY KEY (tid);
+
+ALTER TABLE ONLY public.tournament_groups
+    ADD CONSTRAINT tournament_groups_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.tournament_groups
+    ADD CONSTRAINT tournament_groups_tournament_id_label_key UNIQUE (tournament_id, label);
+
+ALTER TABLE ONLY public.tournament_legend_meta_shares
+    ADD CONSTRAINT tournament_legend_meta_shares_pkey PRIMARY KEY (tournament_id, legend_card_id);
+
+ALTER TABLE ONLY public.tournament_participants
+    ADD CONSTRAINT tournament_participants_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.tournament_staff
+    ADD CONSTRAINT tournament_staff_pkey PRIMARY KEY (tournament_id, user_id, role);
+
+ALTER TABLE ONLY public.tournament_teams
+    ADD CONSTRAINT tournament_teams_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.tournaments
+    ADD CONSTRAINT tournaments_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.trade_suggestion_dismissals
+    ADD CONSTRAINT trade_suggestion_dismissals_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.card_trade_copies
+    ADD CONSTRAINT uq_card_trade_copies_copy UNIQUE (copy_id);
+
+ALTER TABLE ONLY public.collections
+    ADD CONSTRAINT uq_collections_id_user UNIQUE (id, user_id);
+
+ALTER TABLE ONLY public.deck_check_entries
+    ADD CONSTRAINT uq_deck_check_entries_tournament_external UNIQUE (tournament_id, external_id);
+
+ALTER TABLE ONLY public.deck_folders
+    ADD CONSTRAINT uq_deck_folders_id_user UNIQUE (id, user_id);
+
+ALTER TABLE ONLY public.deck_matchup_swaps
+    ADD CONSTRAINT uq_deck_matchup_swaps_plan_card_direction UNIQUE (plan_id, card_id, direction);
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT uq_decks_id_user UNIQUE (id, user_id);
+
+ALTER TABLE ONLY public.friend_group_calendar_feeds
+    ADD CONSTRAINT uq_friend_group_calendar_feeds_member_kind UNIQUE (group_id, user_id, kind);
+
+ALTER TABLE ONLY public.friend_group_invites
+    ADD CONSTRAINT uq_friend_group_invites_group_user UNIQUE (group_id, user_id);
+
+ALTER TABLE ONLY public.friend_group_members
+    ADD CONSTRAINT uq_friend_group_members_user_group UNIQUE (user_id, group_id);
+
+ALTER TABLE ONLY public.lists
+    ADD CONSTRAINT uq_lists_id_kind UNIQUE (id, kind);
+
+ALTER TABLE ONLY public.lists
+    ADD CONSTRAINT uq_lists_id_user UNIQUE (id, user_id);
+
+ALTER TABLE ONLY public.loan_copies
+    ADD CONSTRAINT uq_loan_copies_copy UNIQUE (copy_id);
+
+ALTER TABLE ONLY public.meta_event_phases
+    ADD CONSTRAINT uq_meta_event_phases_order UNIQUE (meta_event_id, phase_order);
+
+ALTER TABLE ONLY public.meta_event_players
+    ADD CONSTRAINT uq_meta_event_players_deck UNIQUE (deck_id);
+
+ALTER TABLE ONLY public.meta_event_players
+    ADD CONSTRAINT uq_meta_event_players_id_event UNIQUE (id, meta_event_id);
+
+ALTER TABLE ONLY public.meta_events
+    ADD CONSTRAINT uq_meta_events_slug UNIQUE (slug);
+
+ALTER TABLE ONLY public.meta_player_links
+    ADD CONSTRAINT uq_meta_player_links_source UNIQUE (meta_event_id, provider, source_identity);
+
+ALTER TABLE ONLY public.pod_rounds
+    ADD CONSTRAINT uq_pod_rounds_number UNIQUE (tournament_id, round_number);
+
+ALTER TABLE ONLY public.pods
+    ADD CONSTRAINT uq_pods_number UNIQUE (round_id, pod_number);
+
+ALTER TABLE ONLY public.printings
+    ADD CONSTRAINT uq_printings_id_card UNIQUE (id, card_id);
+
+ALTER TABLE ONLY public.printings
+    ADD CONSTRAINT uq_printings_identity UNIQUE NULLS NOT DISTINCT (card_id, short_code, finish, marker_slugs, language, size) DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY public.printings
+    ADD CONSTRAINT uq_printings_variant UNIQUE (short_code, art_variant, is_signed, is_overnumbered, marker_slugs, rarity, finish, language, size) DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY public.tournament_teams
+    ADD CONSTRAINT uq_tournament_teams_id_tournament UNIQUE (id, tournament_id);
+
+ALTER TABLE ONLY public.trade_suggestion_dismissals
+    ADD CONSTRAINT uq_trade_suggestion_dismissals UNIQUE (user_id, counterparty_user_id, printing_id, direction);
+
+ALTER TABLE ONLY public.user_contact_methods
+    ADD CONSTRAINT user_contact_methods_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.user_feature_flags
+    ADD CONSTRAINT user_feature_flags_pk PRIMARY KEY (user_id, flag_key);
+
+ALTER TABLE ONLY public.user_preferences
+    ADD CONSTRAINT user_preferences_pkey PRIMARY KEY (user_id);
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_email_key UNIQUE (email);
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.uvsgames_decklist_cards
+    ADD CONSTRAINT uvsgames_decklist_cards_pkey PRIMARY KEY (source_deck_id, line_number);
+
+ALTER TABLE ONLY public.uvsgames_decklists
+    ADD CONSTRAINT uvsgames_decklists_pkey PRIMARY KEY (source_deck_id);
+
+ALTER TABLE ONLY public.uvsgames_event_checks
+    ADD CONSTRAINT uvsgames_event_checks_pkey PRIMARY KEY (external_id);
+
+ALTER TABLE ONLY public.uvsgames_event_matches
+    ADD CONSTRAINT uvsgames_event_matches_pkey PRIMARY KEY (external_id, round_id, player1_uvsgames_id);
+
+ALTER TABLE ONLY public.uvsgames_event_phases
+    ADD CONSTRAINT uvsgames_event_phases_pkey PRIMARY KEY (external_id, phase_order);
+
+ALTER TABLE ONLY public.uvsgames_event_standings
+    ADD CONSTRAINT uvsgames_event_standings_pkey PRIMARY KEY (external_id, registration_id);
+
+ALTER TABLE ONLY public.uvsgames_event_templates
+    ADD CONSTRAINT uvsgames_event_templates_pkey PRIMARY KEY (template_id);
+
+ALTER TABLE ONLY public.uvsgames_events
+    ADD CONSTRAINT uvsgames_events_pkey PRIMARY KEY (external_id);
+
+ALTER TABLE ONLY public.uvsgames_format_mappings
+    ADD CONSTRAINT uvsgames_format_mappings_pkey PRIMARY KEY (source_format);
+
+ALTER TABLE ONLY public.uvsgames_id_probes
+    ADD CONSTRAINT uvsgames_id_probes_pkey PRIMARY KEY (external_id);
+
+ALTER TABLE ONLY public.uvsgames_players
+    ADD CONSTRAINT uvsgames_players_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.uvsgames_stores
+    ADD CONSTRAINT uvsgames_stores_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.verifications
+    ADD CONSTRAINT verifications_pkey PRIMARY KEY (id);
+
+CREATE INDEX idx_accounts_user_id ON public.accounts USING btree (user_id);
+
+CREATE INDEX idx_admin_events_actor ON public.admin_events USING btree (actor_user_id, created_at DESC, id DESC);
+
+CREATE INDEX idx_admin_events_created ON public.admin_events USING btree (created_at DESC, id DESC);
+
+CREATE INDEX idx_api_keys_config_id ON public.api_keys USING btree (config_id);
+
+CREATE INDEX idx_api_keys_key ON public.api_keys USING btree (key);
+
+CREATE INDEX idx_api_keys_reference_id ON public.api_keys USING btree (reference_id);
+
+CREATE INDEX idx_board_states_featured ON public.board_states USING btree (updated_at DESC) WHERE is_featured;
+
+CREATE INDEX idx_board_states_user_updated ON public.board_states USING btree (user_id, updated_at DESC);
+
+CREATE INDEX idx_candidate_cards_norm_name ON public.candidate_cards USING btree (norm_name);
+
+CREATE UNIQUE INDEX idx_candidate_cards_provider_external_id ON public.candidate_cards USING btree (provider, external_id);
+
+CREATE UNIQUE INDEX idx_candidate_cards_provider_name_no_sid ON public.candidate_cards USING btree (provider, name) WHERE ((short_code IS NULL) AND (provider <> 'usersubmission'::text));
+
+CREATE INDEX idx_candidate_cards_provider_short_code ON public.candidate_cards USING btree (provider, short_code) WHERE (short_code IS NOT NULL);
+
+CREATE INDEX idx_candidate_cards_submitted_by_user_id ON public.candidate_cards USING btree (submitted_by_user_id) WHERE (submitted_by_user_id IS NOT NULL);
+
+CREATE INDEX idx_candidate_cards_unchecked ON public.candidate_cards USING btree (checked_at) WHERE (checked_at IS NULL);
+
+CREATE UNIQUE INDEX idx_candidate_printings_card_external_id ON public.candidate_printings USING btree (candidate_card_id, external_id);
+
+CREATE INDEX idx_card_card_types_type_slug ON public.card_card_types USING btree (type_slug);
+
+CREATE INDEX idx_card_custom_tags_custom_tag_id ON public.card_custom_tags USING btree (custom_tag_id);
+
+CREATE INDEX idx_card_domains_domain_slug ON public.card_domains USING btree (domain_slug);
+
+CREATE INDEX idx_card_errata_announcement ON public.card_errata USING btree (announcement_id);
+
+CREATE INDEX idx_card_submissions_candidate_card_id ON public.card_submissions USING btree (candidate_card_id) WHERE (candidate_card_id IS NOT NULL);
+
+CREATE INDEX idx_card_submissions_user_created ON public.card_submissions USING btree (user_id, created_at DESC, id DESC);
+
+CREATE INDEX idx_card_submissions_user_status ON public.card_submissions USING btree (user_id, status);
+
+CREATE INDEX idx_card_tokens_token_card_id ON public.card_tokens USING btree (token_card_id);
+
+CREATE INDEX idx_card_trade_requested_copies_copy ON public.card_trade_requested_copies USING btree (copy_id);
+
+CREATE INDEX idx_card_trade_settlement_requests_settled_trade ON public.card_trade_settlement_requests USING btree (settled_trade_id);
+
+CREATE INDEX idx_card_trade_settlement_requests_user ON public.card_trade_settlement_requests USING btree (user_id);
+
+CREATE INDEX idx_card_trades_closed_email_pending ON public.card_trades USING btree (updated_at) WHERE ((closed_email_sent_at IS NULL) AND (status = ANY (ARRAY['declined'::text, 'cancelled'::text])));
+
+CREATE INDEX idx_card_trades_expiry ON public.card_trades USING btree (expires_at) WHERE (status = 'pending'::text);
+
+CREATE INDEX idx_card_trades_giver ON public.card_trades USING btree (giver_user_id, status);
+
+CREATE INDEX idx_card_trades_group ON public.card_trades USING btree (group_id, status);
+
+CREATE INDEX idx_card_trades_receiver ON public.card_trades USING btree (receiver_user_id, status);
+
+CREATE INDEX idx_card_trades_receiver_wish_entry ON public.card_trades USING btree (receiver_wish_entry_id) WHERE (receiver_wish_entry_id IS NOT NULL);
+
+CREATE INDEX idx_card_trades_request_email_pending ON public.card_trades USING btree (created_at) WHERE ((request_email_sent_at IS NULL) AND (status = 'pending'::text));
+
+CREATE INDEX idx_card_trades_reserved_email_pending ON public.card_trades USING btree (updated_at) WHERE ((reserved_email_sent_at IS NULL) AND (status = 'reserved'::text));
+
+CREATE INDEX idx_cardmarket_sync_state_user ON public.cardmarket_sync_state USING btree (user_id);
+
+CREATE INDEX idx_cards_norm_name ON public.cards USING btree (norm_name);
+
+CREATE INDEX idx_collection_deckbuilding_prefs_collection ON public.collection_deckbuilding_prefs USING btree (collection_id);
+
+CREATE INDEX idx_collection_events_copy ON public.collection_events USING btree (copy_id);
+
+CREATE INDEX idx_collection_events_from_collection ON public.collection_events USING btree (from_collection_id) WHERE (from_collection_id IS NOT NULL);
+
+CREATE INDEX idx_collection_events_printing ON public.collection_events USING btree (printing_id);
+
+CREATE INDEX idx_collection_events_to_collection ON public.collection_events USING btree (to_collection_id) WHERE (to_collection_id IS NOT NULL);
+
+CREATE INDEX idx_collection_events_user_created ON public.collection_events USING btree (user_id, created_at, id);
+
+CREATE INDEX idx_collection_sidebar_prefs_collection ON public.collection_sidebar_prefs USING btree (collection_id);
+
+CREATE INDEX idx_collections_group ON public.collections USING btree (group_id);
+
+CREATE INDEX idx_collections_user_id ON public.collections USING btree (user_id);
+
+CREATE INDEX idx_copies_collection_created ON public.copies USING btree (collection_id, created_at DESC, id);
+
+CREATE INDEX idx_copies_printing ON public.copies USING btree (printing_id);
+
+CREATE INDEX idx_copies_updated_xid ON public.copies USING btree (updated_xid, id);
+
+CREATE INDEX idx_copy_deletions_deleted_at ON public.copy_deletions USING btree (deleted_at);
+
+CREATE INDEX idx_copy_deletions_group ON public.copy_deletions USING btree (group_id);
+
+CREATE INDEX idx_copy_deletions_user ON public.copy_deletions USING btree (user_id);
+
+CREATE INDEX idx_copy_deletions_xid ON public.copy_deletions USING btree (deleted_xid, copy_id);
+
+CREATE INDEX idx_custom_tags_category_id ON public.custom_tags USING btree (category_id);
+
+CREATE INDEX idx_deck_cards_card ON public.deck_cards USING btree (card_id);
+
+CREATE INDEX idx_deck_cards_preferred_printing ON public.deck_cards USING btree (preferred_printing_id) WHERE (preferred_printing_id IS NOT NULL);
+
+CREATE INDEX idx_deck_check_entries_participant ON public.deck_check_entries USING btree (participant_id) WHERE (participant_id IS NOT NULL);
+
+CREATE INDEX idx_deck_check_entry_cards_entry ON public.deck_check_entry_cards USING btree (entry_id);
+
+CREATE INDEX idx_deck_check_keys_host_org ON public.deck_check_keys USING btree (host_org_id) WHERE (host_org_id IS NOT NULL);
+
+CREATE INDEX idx_deck_check_keys_host_user ON public.deck_check_keys USING btree (host_user_id) WHERE (host_user_id IS NOT NULL);
+
+CREATE INDEX idx_deck_folder_entries_deck ON public.deck_folder_entries USING btree (deck_id);
+
+CREATE INDEX idx_deck_matchup_plans_deck ON public.deck_matchup_plans USING btree (deck_id);
+
+CREATE INDEX idx_decks_collection ON public.decks USING btree (collection_id) WHERE (collection_id IS NOT NULL);
+
+CREATE INDEX idx_decks_family_id ON public.decks USING btree (family_id) WHERE (family_id IS NOT NULL);
+
+CREATE INDEX idx_decks_predecessor_deck_id ON public.decks USING btree (predecessor_deck_id) WHERE (predecessor_deck_id IS NOT NULL);
+
+CREATE INDEX idx_decks_user_id ON public.decks USING btree (user_id);
+
+CREATE INDEX idx_decks_user_updated_xid ON public.decks USING btree (user_id, updated_xid);
+
+CREATE INDEX idx_distribution_channels_parent_id ON public.distribution_channels USING btree (parent_id);
+
+CREATE INDEX idx_fg_discord_links_group ON public.friend_group_discord_links USING btree (group_id);
+
+CREATE INDEX idx_friend_group_collection_shares_collection ON public.friend_group_collection_shares USING btree (collection_id);
+
+CREATE INDEX idx_friend_group_invites_user ON public.friend_group_invites USING btree (user_id);
+
+CREATE INDEX idx_friend_group_list_shares_list ON public.friend_group_list_shares USING btree (list_id);
+
+CREATE INDEX idx_friend_group_shops_store ON public.friend_group_shops USING btree (uvsgames_store_id);
+
+CREATE INDEX idx_friend_groups_banner_uploaded_at ON public.friend_groups USING btree (banner_uploaded_at DESC) WHERE (banner_url IS NOT NULL);
+
+CREATE INDEX idx_friend_groups_previous_slug ON public.friend_groups USING btree (previous_slug) WHERE (previous_slug IS NOT NULL);
+
+CREATE UNIQUE INDEX idx_ignored_candidate_cards_provider_external ON public.ignored_candidate_cards USING btree (provider, external_id);
+
+CREATE UNIQUE INDEX idx_ignored_candidate_printings_provider_external_finish ON public.ignored_candidate_printings USING btree (provider, external_id, COALESCE(finish, ''::text));
+
+CREATE UNIQUE INDEX idx_image_files_original_url ON public.image_files USING btree (original_url) WHERE (original_url IS NOT NULL);
+
+CREATE INDEX idx_job_runs_kind_started_at ON public.job_runs USING btree (kind, started_at DESC);
+
+CREATE UNIQUE INDEX idx_job_runs_running ON public.job_runs USING btree (kind) WHERE (status = 'running'::text);
+
+CREATE INDEX idx_list_entries_card ON public.list_entries USING btree (card_id) WHERE (card_id IS NOT NULL);
+
+CREATE INDEX idx_list_entries_copy ON public.list_entries USING btree (copy_id) WHERE (copy_id IS NOT NULL);
+
+CREATE INDEX idx_list_entries_list ON public.list_entries USING btree (list_id);
+
+CREATE INDEX idx_list_entries_printing ON public.list_entries USING btree (printing_id) WHERE (printing_id IS NOT NULL);
+
+CREATE INDEX idx_lists_user_intent ON public.lists USING btree (user_id, intent);
+
+CREATE INDEX idx_loans_borrower ON public.loans USING btree (borrower_user_id, status);
+
+CREATE INDEX idx_loans_lender ON public.loans USING btree (lender_user_id, status);
+
+CREATE INDEX idx_marketplace_product_variants_printing_id ON public.marketplace_product_variants USING btree (printing_id);
+
+CREATE INDEX idx_marketplace_products_norm_name_trgm ON public.marketplace_products USING gin (norm_name public.gin_trgm_ops);
+
+CREATE INDEX idx_meta_credits_event ON public.meta_credits USING btree (meta_event_id);
+
+CREATE INDEX idx_meta_credits_user ON public.meta_credits USING btree (user_id);
+
+CREATE INDEX idx_meta_event_matches_round ON public.meta_event_matches USING btree (meta_event_id, phase_order, round_number);
+
+CREATE INDEX idx_meta_event_overlays_event ON public.meta_event_overlays USING btree (meta_event_id);
+
+CREATE INDEX idx_meta_event_overlays_pending ON public.meta_event_overlays USING btree (created_at) WHERE (status = 'pending'::text);
+
+CREATE INDEX idx_meta_event_player_overlay_cards_unresolved ON public.meta_event_player_overlay_cards USING btree (overlay_id) WHERE (card_id IS NULL);
+
+CREATE INDEX idx_meta_event_player_overlays_event ON public.meta_event_player_overlays USING btree (meta_event_id);
+
+CREATE INDEX idx_meta_event_player_overlays_event_overlay ON public.meta_event_player_overlays USING btree (event_overlay_id);
+
+CREATE INDEX idx_meta_event_player_overlays_pending ON public.meta_event_player_overlays USING btree (created_at) WHERE (status = 'pending'::text);
+
+CREATE INDEX idx_meta_event_player_overlays_player ON public.meta_event_player_overlays USING btree (meta_event_player_id);
+
+CREATE INDEX idx_meta_event_players_event ON public.meta_event_players USING btree (meta_event_id, rank);
+
+CREATE INDEX idx_meta_event_players_legend ON public.meta_event_players USING btree (legend_card_id);
+
+CREATE INDEX idx_meta_event_players_minted_by ON public.meta_event_players USING btree (minted_by_overlay_id) WHERE (minted_by_overlay_id IS NOT NULL);
+
+CREATE INDEX idx_meta_event_players_player_key ON public.meta_event_players USING btree (regexp_replace(source_identity, '#\\d+$'::text, ''::text)) WHERE (source_identity IS NOT NULL);
+
+CREATE INDEX idx_meta_event_sources_event ON public.meta_event_sources USING btree (meta_event_id);
+
+CREATE INDEX idx_meta_events_country ON public.meta_events USING btree (country);
+
+CREATE INDEX idx_meta_events_event_date ON public.meta_events USING btree (event_date DESC);
+
+CREATE INDEX idx_meta_events_format ON public.meta_events USING btree (format);
+
+CREATE INDEX idx_meta_events_search_trgm ON public.meta_events USING gin (name public.gin_trgm_ops, organizer public.gin_trgm_ops, location public.gin_trgm_ops);
+
+CREATE INDEX idx_meta_events_tier ON public.meta_events USING btree (tier);
+
+CREATE INDEX idx_meta_submissions_event_pending ON public.meta_submissions USING btree (meta_event_id) WHERE (status = 'pending'::text);
+
+CREATE INDEX idx_meta_submissions_user_created ON public.meta_submissions USING btree (user_id, created_at DESC, id DESC);
+
+CREATE INDEX idx_meta_submissions_user_status ON public.meta_submissions USING btree (user_id, status);
+
+CREATE UNIQUE INDEX idx_mv_card_aggregates_pk ON public.mv_card_aggregates USING btree (card_id);
+
+CREATE INDEX idx_mv_daily_printing_prices_latest ON public.mv_daily_printing_prices USING btree (marketplace, printing_id, day DESC);
+
+CREATE UNIQUE INDEX idx_mv_daily_printing_prices_pk ON public.mv_daily_printing_prices USING btree (printing_id, marketplace, day);
+
+CREATE UNIQUE INDEX idx_mv_latest_printing_prices_pk ON public.mv_latest_printing_prices USING btree (printing_id, marketplace);
+
+CREATE UNIQUE INDEX idx_mv_printing_foil_twins_pk ON public.mv_printing_foil_twins USING btree (printing_id);
+
+CREATE UNIQUE INDEX idx_mv_printings_canonical_rank_pk ON public.mv_printings_canonical_rank USING btree (printing_id);
+
+CREATE INDEX idx_organization_members_user ON public.organization_members USING btree (user_id);
+
+CREATE INDEX idx_playloltcg_decklists_event ON public.playloltcg_decklists USING btree (activity_shop_id);
+
+CREATE INDEX idx_playloltcg_event_checks_due ON public.playloltcg_event_checks USING btree (next_check_at) WHERE (next_check_at IS NOT NULL);
+
+CREATE INDEX idx_playloltcg_events_page ON public.playloltcg_events USING btree (start_at DESC NULLS LAST, activity_shop_id DESC);
+
+CREATE INDEX idx_playloltcg_events_shop ON public.playloltcg_events USING btree (shop_id) WHERE (shop_id IS NOT NULL);
+
+CREATE INDEX idx_playloltcg_events_start ON public.playloltcg_events USING btree (start_at);
+
+CREATE INDEX idx_pod_byes_player ON public.pod_byes USING btree (player_id);
+
+CREATE INDEX idx_pod_members_player ON public.pod_members USING btree (player_id);
+
+CREATE INDEX idx_printing_citations_printing ON public.printing_citations USING btree (printing_id, sort_order, id);
+
+CREATE INDEX idx_printing_distribution_channels_channel_id ON public.printing_distribution_channels USING btree (channel_id);
+
+CREATE INDEX idx_printing_events_status_created ON public.printing_events USING btree (status, created_at);
+
+CREATE UNIQUE INDEX idx_printing_images_active ON public.printing_images USING btree (printing_id, face) WHERE (is_active = true);
+
+CREATE INDEX idx_printing_images_image_file ON public.printing_images USING btree (image_file_id);
+
+CREATE INDEX idx_printing_images_printing_face ON public.printing_images USING btree (printing_id, face);
+
+CREATE INDEX idx_printing_markers_marker_id ON public.printing_markers USING btree (marker_id);
+
+CREATE INDEX idx_printing_sources_printing_id ON public.candidate_printings USING btree (printing_id);
+
+CREATE INDEX idx_printings_card_id ON public.printings USING btree (card_id);
+
+CREATE INDEX idx_printings_fallback_image_file ON public.printings USING btree (fallback_image_file_id) WHERE (fallback_image_file_id IS NOT NULL);
+
+CREATE INDEX idx_printings_marker_slugs ON public.printings USING gin (marker_slugs);
+
+CREATE INDEX idx_printings_set_id ON public.printings USING btree (set_id);
+
+CREATE INDEX idx_product_printings_printing ON public.product_printings USING btree (printing_id);
+
+CREATE INDEX idx_products_set ON public.products USING btree (set_id);
+
+CREATE INDEX idx_rules_kind_language_version_sort ON public.rules USING btree (kind, language, version, sort_order);
+
+CREATE INDEX idx_scan_reports_user_created ON public.scan_reports USING btree (user_id, created_at DESC);
+
+CREATE UNIQUE INDEX idx_sessions_token ON public.sessions USING btree (token);
+
+CREATE INDEX idx_sessions_user_id ON public.sessions USING btree (user_id);
+
+CREATE INDEX idx_tag_definitions_category_id ON public.tag_definitions USING btree (category_id);
+
+CREATE INDEX idx_tier_lists_user_id ON public.tier_lists USING btree (user_id);
+
+CREATE INDEX idx_topdeck_decklists_event ON public.topdeck_decklists USING btree (tid);
+
+CREATE INDEX idx_topdeck_events_format ON public.topdeck_events USING btree (format);
+
+CREATE INDEX idx_topdeck_events_start ON public.topdeck_events USING btree (start_at);
+
+CREATE INDEX idx_tournament_groups_tournament ON public.tournament_groups USING btree (tournament_id);
+
+CREATE INDEX idx_tournament_participants_team ON public.tournament_participants USING btree (team_id);
+
+CREATE INDEX idx_tournament_participants_tournament ON public.tournament_participants USING btree (tournament_id);
+
+CREATE INDEX idx_tournament_participants_user ON public.tournament_participants USING btree (user_id) WHERE (user_id IS NOT NULL);
+
+CREATE INDEX idx_tournament_staff_user ON public.tournament_staff USING btree (user_id);
+
+CREATE INDEX idx_tournament_teams_tournament ON public.tournament_teams USING btree (tournament_id);
+
+CREATE INDEX idx_tournaments_group ON public.tournaments USING btree (group_id) WHERE (group_id IS NOT NULL);
+
+CREATE INDEX idx_tournaments_host_org ON public.tournaments USING btree (host_org_id) WHERE (host_org_id IS NOT NULL);
+
+CREATE INDEX idx_tournaments_host_user ON public.tournaments USING btree (host_user_id) WHERE (host_user_id IS NOT NULL);
+
+CREATE INDEX idx_user_contact_methods_user ON public.user_contact_methods USING btree (user_id);
+
+CREATE INDEX idx_uvsgames_decklists_event ON public.uvsgames_decklists USING btree (external_id);
+
+CREATE INDEX idx_uvsgames_event_checks_due ON public.uvsgames_event_checks USING btree (next_check_at) WHERE (next_check_at IS NOT NULL);
+
+CREATE INDEX idx_uvsgames_event_matches_round ON public.uvsgames_event_matches USING btree (external_id, phase_order, round_number);
+
+CREATE INDEX idx_uvsgames_event_standings_player ON public.uvsgames_event_standings USING btree (uvsgames_player_id);
+
+CREATE INDEX idx_uvsgames_events_page ON public.uvsgames_events USING btree (start_at DESC NULLS LAST, external_id DESC);
+
+CREATE INDEX idx_uvsgames_events_start ON public.uvsgames_events USING btree (start_at DESC);
+
+CREATE INDEX idx_uvsgames_events_store ON public.uvsgames_events USING btree (store_id) WHERE (store_id IS NOT NULL);
+
+CREATE INDEX idx_uvsgames_events_store_start ON public.uvsgames_events USING btree (store_id, start_at) WHERE (store_id IS NOT NULL);
+
+CREATE INDEX idx_uvsgames_events_template ON public.uvsgames_events USING btree (event_configuration_template) WHERE (event_configuration_template IS NOT NULL);
+
+CREATE UNIQUE INDEX marketplace_product_variants_product_printing_key ON public.marketplace_product_variants USING btree (marketplace_product_id, printing_id);
+
+CREATE UNIQUE INDEX marketplace_products_sku_key ON public.marketplace_products USING btree (marketplace, external_id, finish, language) NULLS NOT DISTINCT;
+
+CREATE UNIQUE INDEX uq_accounts_provider_account ON public.accounts USING btree (provider_id, account_id);
+
+CREATE UNIQUE INDEX uq_card_bans_active ON public.card_bans USING btree (card_id, format_id) WHERE (unbanned_at IS NULL);
+
+CREATE UNIQUE INDEX uq_card_submissions_provider_external ON public.card_submissions USING btree (provider, external_id);
+
+CREATE UNIQUE INDEX uq_card_trades_live ON public.card_trades USING btree (group_id, giver_user_id, receiver_user_id, printing_id) WHERE ((status = 'pending'::text) OR ((status = 'reserved'::text) AND (giver_sync_applied_at IS NULL) AND (receiver_sync_applied_at IS NULL)));
+
+CREATE UNIQUE INDEX uq_collections_user_inbox ON public.collections USING btree (user_id) WHERE (is_inbox = true);
+
+CREATE UNIQUE INDEX uq_collections_user_purpose ON public.collections USING btree (user_id, purpose) WHERE (purpose IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_deck_cards ON public.deck_cards USING btree (deck_id, card_id, zone, preferred_printing_id) NULLS NOT DISTINCT;
+
+CREATE UNIQUE INDEX uq_deck_folders_user_name ON public.deck_folders USING btree (user_id, lower(name));
+
+CREATE UNIQUE INDEX uq_decks_family_primary ON public.decks USING btree (family_id) WHERE (is_primary AND (family_id IS NOT NULL));
+
+CREATE UNIQUE INDEX uq_fg_discord_links_code ON public.friend_group_discord_links USING btree (code) WHERE (code IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_fg_discord_links_guild ON public.friend_group_discord_links USING btree (guild_id) WHERE (guild_id IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_fg_discord_links_pending ON public.friend_group_discord_links USING btree (group_id) WHERE (code IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_friend_group_one_owner ON public.friend_group_members USING btree (group_id) WHERE (role = 'owner'::text);
+
+CREATE UNIQUE INDEX uq_friend_groups_code ON public.friend_groups USING btree (code) WHERE (code IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_list_entries_card ON public.list_entries USING btree (list_id, card_id) WHERE (card_id IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_list_entries_copy ON public.list_entries USING btree (list_id, copy_id) WHERE (copy_id IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_list_entries_printing ON public.list_entries USING btree (list_id, printing_id) WHERE (printing_id IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_meta_credits_contribution ON public.meta_credits USING btree (meta_event_id, user_id, meta_event_player_id) NULLS NOT DISTINCT;
+
+CREATE UNIQUE INDEX uq_meta_event_matches_seat ON public.meta_event_matches USING btree (meta_event_id, phase_order, round_number, player1_id) WHERE (source_match_id IS NULL);
+
+CREATE UNIQUE INDEX uq_meta_event_matches_source ON public.meta_event_matches USING btree (meta_event_id, source_match_id) WHERE (source_match_id IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_meta_event_overlays_source ON public.meta_event_overlays USING btree (provider, external_id) WHERE (provider IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_meta_event_player_overlays_source_key ON public.meta_event_player_overlays USING btree (provider, source_player_key) WHERE (provider IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_meta_event_players_source_identity ON public.meta_event_players USING btree (meta_event_id, source_identity) WHERE (source_identity IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_meta_event_players_uvsgames_player ON public.meta_event_players USING btree (meta_event_id, uvsgames_player_id) WHERE (uvsgames_player_id IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_meta_event_sources_key ON public.meta_event_sources USING btree (provider, external_id) WHERE (provider IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_meta_player_links_row ON public.meta_player_links USING btree (meta_event_player_id, provider) WHERE (meta_event_player_id IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_meta_submissions_provider_external ON public.meta_submissions USING btree (provider, external_id);
+
+CREATE UNIQUE INDEX uq_printing_citations_url ON public.printing_citations USING btree (printing_id, source_url) WHERE (source_url IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_printings_card_slug ON public.printings USING btree (card_id, slug);
+
+CREATE UNIQUE INDEX uq_stage_presets_user_name ON public.stage_presets USING btree (user_id, name);
+
+CREATE UNIQUE INDEX uq_tournament_participants_claim_token ON public.tournament_participants USING btree (claim_token) WHERE (claim_token IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_tournament_participants_user ON public.tournament_participants USING btree (tournament_id, user_id) WHERE (user_id IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_tournaments_follow_token ON public.tournaments USING btree (follow_token) WHERE (follow_token IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_tournaments_judge_invite_token ON public.tournaments USING btree (judge_invite_token) WHERE (judge_invite_token IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_tournaments_organizer_invite_token ON public.tournaments USING btree (organizer_invite_token) WHERE (organizer_invite_token IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_tournaments_report_token ON public.tournaments USING btree (report_token) WHERE (report_token IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_tournaments_submission_token ON public.tournaments USING btree (submission_token) WHERE (submission_token IS NOT NULL);
+
+CREATE UNIQUE INDEX uq_users_email_lower ON public.users USING btree (lower(email));
+
+CREATE UNIQUE INDEX uq_users_share_token ON public.users USING btree (share_token) WHERE (share_token IS NOT NULL);
+
+CREATE STATISTICS public.meta_event_players_player_key_stats ON regexp_replace(source_identity, '#\\d+$'::text, ''::text) FROM public.meta_event_players;
+
+CREATE CONSTRAINT TRIGGER card_card_types_sync AFTER INSERT OR DELETE OR UPDATE ON public.card_card_types DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_card_card_types_sync();
+
+CREATE TRIGGER card_trade_copies_touch_copy AFTER INSERT OR DELETE ON public.card_trade_copies FOR EACH ROW EXECUTE FUNCTION public.trg_touch_pinned_copy();
+
+CREATE CONSTRAINT TRIGGER cards_seed_card_types AFTER INSERT ON public.cards DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_cards_seed_card_types();
+
+CREATE TRIGGER collections_record_copy_deletions BEFORE DELETE ON public.collections FOR EACH ROW EXECUTE FUNCTION public.trg_collections_record_copy_deletions();
+
+CREATE TRIGGER copies_record_deletion AFTER DELETE ON public.copies FOR EACH ROW EXECUTE FUNCTION public.trg_copies_record_deletion();
+
+CREATE TRIGGER copies_record_scope_change AFTER UPDATE OF collection_id ON public.copies FOR EACH ROW WHEN ((old.collection_id IS DISTINCT FROM new.collection_id)) EXECUTE FUNCTION public.trg_copies_record_scope_change();
+
+CREATE TRIGGER deck_cards_touch_deck AFTER INSERT OR DELETE OR UPDATE ON public.deck_cards FOR EACH ROW EXECUTE FUNCTION public.trg_touch_deck_of_card();
+
+CREATE TRIGGER distribution_channels_validate BEFORE INSERT OR UPDATE ON public.distribution_channels FOR EACH ROW EXECUTE FUNCTION public.trg_distribution_channels_validate();
+
+CREATE TRIGGER keywords_set_updated_at BEFORE UPDATE ON public.keywords FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER loan_copies_touch_copy AFTER INSERT OR DELETE ON public.loan_copies FOR EACH ROW EXECUTE FUNCTION public.trg_touch_pinned_copy();
+
+CREATE TRIGGER markers_slug_change AFTER UPDATE OF slug ON public.markers FOR EACH ROW EXECUTE FUNCTION public.trg_markers_slug_change();
+
+CREATE TRIGGER printing_distribution_channels_validate BEFORE INSERT OR UPDATE ON public.printing_distribution_channels FOR EACH ROW EXECUTE FUNCTION public.trg_printing_distribution_channels_validate();
+
+CREATE TRIGGER printing_events_set_updated_at BEFORE UPDATE ON public.printing_events FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER printing_markers_sync_iud AFTER INSERT OR DELETE OR UPDATE ON public.printing_markers FOR EACH ROW EXECUTE FUNCTION public.trg_printing_markers_sync();
+
+CREATE TRIGGER printings_set_slug BEFORE INSERT ON public.printings FOR EACH ROW EXECUTE FUNCTION public.trg_printings_set_slug();
+
+CREATE TRIGGER site_settings_set_updated_at BEFORE UPDATE ON public.site_settings FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_art_variants_protect_well_known BEFORE DELETE OR UPDATE ON public.art_variants FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+CREATE TRIGGER trg_candidate_cards_norm_name BEFORE INSERT OR UPDATE OF name ON public.candidate_cards FOR EACH ROW EXECUTE FUNCTION public.candidate_cards_set_norm_name();
+
+CREATE TRIGGER trg_card_name_aliases_norm_name BEFORE INSERT OR UPDATE OF norm_name ON public.card_name_aliases FOR EACH ROW EXECUTE FUNCTION public.card_name_aliases_set_norm_name();
+
+CREATE TRIGGER trg_card_sizes_protect_well_known BEFORE DELETE OR UPDATE ON public.card_sizes FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+CREATE TRIGGER trg_card_types_protect_well_known BEFORE DELETE OR UPDATE ON public.card_types FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+CREATE TRIGGER trg_cards_norm_name BEFORE INSERT OR UPDATE OF name ON public.cards FOR EACH ROW EXECUTE FUNCTION public.cards_set_norm_name();
+
+CREATE TRIGGER trg_conditions_protect_well_known BEFORE DELETE OR UPDATE ON public.conditions FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+CREATE TRIGGER trg_deck_formats_protect_well_known BEFORE DELETE OR UPDATE ON public.deck_formats FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+CREATE TRIGGER trg_deck_zones_protect_well_known BEFORE DELETE OR UPDATE ON public.deck_zones FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+CREATE TRIGGER trg_domains_protect_well_known BEFORE DELETE OR UPDATE ON public.domains FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+CREATE TRIGGER trg_finishes_protect_well_known BEFORE DELETE OR UPDATE ON public.finishes FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+CREATE TRIGGER trg_graders_protect_well_known BEFORE DELETE OR UPDATE ON public.graders FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+CREATE TRIGGER trg_keywords_protect_well_known BEFORE DELETE OR UPDATE ON public.keywords FOR EACH ROW EXECUTE FUNCTION public.protect_well_known_keyword();
+
+CREATE TRIGGER trg_languages_protect_well_known BEFORE DELETE OR UPDATE ON public.languages FOR EACH ROW EXECUTE FUNCTION public.protect_well_known_language();
+
+CREATE TRIGGER trg_marketplace_products_set_norm_name BEFORE INSERT OR UPDATE OF product_name ON public.marketplace_products FOR EACH ROW EXECUTE FUNCTION public.marketplace_products_set_norm_name();
+
+CREATE CONSTRAINT TRIGGER trg_organization_members_owner_guard AFTER DELETE OR UPDATE OF role ON public.organization_members DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.assert_organization_has_owner();
+
+CREATE CONSTRAINT TRIGGER trg_organizations_owner_guard AFTER INSERT ON public.organizations DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.assert_organization_has_owner();
+
+CREATE TRIGGER trg_prevent_nonempty_collection_delete BEFORE DELETE ON public.collections FOR EACH ROW EXECUTE FUNCTION public.prevent_nonempty_collection_delete();
+
+CREATE TRIGGER trg_rarities_protect_well_known BEFORE DELETE OR UPDATE ON public.rarities FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+CREATE TRIGGER trg_rebalance_friend_group_owner AFTER DELETE ON public.friend_group_members FOR EACH ROW EXECUTE FUNCTION public.rebalance_friend_group_owner();
+
+CREATE TRIGGER trg_rebalance_organization_owner BEFORE DELETE ON public.users FOR EACH ROW EXECUTE FUNCTION public.rebalance_organization_owner();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.accounts FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.admins FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.board_states FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.candidate_cards FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.candidate_printings FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.card_submissions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.cards FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.collections FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.custom_tag_categories FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.custom_tags FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.deck_check_entries FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.deck_folders FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.deck_matchup_plans FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.deck_plans FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.distribution_channels FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.feature_flags FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.friend_groups FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.image_files FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.keyword_translations FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.languages FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.list_entries FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.lists FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.markers FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.marketplace_groups FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.marketplace_ignored_products FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.marketplace_ignored_variants FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.marketplace_product_variants FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.marketplace_products FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.meta_event_matches FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.meta_event_overlays FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.meta_event_phases FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.meta_event_player_overlays FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.meta_event_players FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.meta_events FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.meta_submissions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.meta_sync_settings FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.organizations FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.overlay_channels FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.playloltcg_event_checks FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.playloltcg_shops FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.printing_images FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.printings FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.provider_settings FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.scan_index FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.sessions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.set_releases FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.sets FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.stage_presets FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.tag_categories FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.tag_definitions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.tier_lists FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.tournament_participants FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.tournaments FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.user_contact_methods FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.uvsgames_event_checks FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.uvsgames_event_templates FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.uvsgames_format_mappings FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.uvsgames_players FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.uvsgames_stores FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.verifications FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_set_updated_stamps BEFORE UPDATE ON public.copies FOR EACH ROW EXECUTE FUNCTION public.set_updated_stamps();
+
+CREATE TRIGGER trg_set_updated_stamps BEFORE UPDATE ON public.decks FOR EACH ROW EXECUTE FUNCTION public.set_updated_stamps();
+
+CREATE TRIGGER trg_snapshot_deleted_group_names BEFORE DELETE ON public.friend_groups FOR EACH ROW EXECUTE FUNCTION public.snapshot_deleted_group_names();
+
+CREATE TRIGGER trg_snapshot_deleted_user_names BEFORE DELETE ON public.users FOR EACH ROW EXECUTE FUNCTION public.snapshot_deleted_user_names();
+
+CREATE TRIGGER trg_super_types_protect_well_known BEFORE DELETE OR UPDATE ON public.super_types FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+CREATE TRIGGER trg_touch_list_on_entry_change AFTER INSERT OR DELETE OR UPDATE ON public.list_entries FOR EACH ROW EXECUTE FUNCTION public.touch_list_on_entry_change();
+
+CREATE TRIGGER user_preferences_set_updated_at BEFORE UPDATE ON public.user_preferences FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+ALTER TABLE ONLY public.accounts
+    ADD CONSTRAINT accounts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.admin_grants
+    ADD CONSTRAINT admin_grants_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.admins
+    ADD CONSTRAINT admins_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.api_keys
+    ADD CONSTRAINT api_keys_reference_id_fkey FOREIGN KEY (reference_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.board_states
+    ADD CONSTRAINT board_states_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.candidate_cards
+    ADD CONSTRAINT candidate_cards_submitted_by_user_id_fkey FOREIGN KEY (submitted_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.candidate_printings
+    ADD CONSTRAINT candidate_printings_candidate_card_id_fkey FOREIGN KEY (candidate_card_id) REFERENCES public.candidate_cards(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_bans
+    ADD CONSTRAINT card_bans_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
+
+ALTER TABLE ONLY public.card_bans
+    ADD CONSTRAINT card_bans_format_id_fkey FOREIGN KEY (format_id) REFERENCES public.formats(id);
+
+ALTER TABLE ONLY public.card_card_types
+    ADD CONSTRAINT card_card_types_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_card_types
+    ADD CONSTRAINT card_card_types_type_slug_fkey FOREIGN KEY (type_slug) REFERENCES public.card_types(slug);
+
+ALTER TABLE ONLY public.card_custom_tags
+    ADD CONSTRAINT card_custom_tags_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_custom_tags
+    ADD CONSTRAINT card_custom_tags_custom_tag_id_fkey FOREIGN KEY (custom_tag_id) REFERENCES public.custom_tags(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_domains
+    ADD CONSTRAINT card_domains_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_domains
+    ADD CONSTRAINT card_domains_domain_slug_fkey FOREIGN KEY (domain_slug) REFERENCES public.domains(slug);
+
+ALTER TABLE ONLY public.card_errata
+    ADD CONSTRAINT card_errata_announcement_id_fkey FOREIGN KEY (announcement_id) REFERENCES public.errata_announcements(id);
+
+ALTER TABLE ONLY public.card_errata
+    ADD CONSTRAINT card_errata_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_name_aliases
+    ADD CONSTRAINT card_name_aliases_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_submissions
+    ADD CONSTRAINT card_submissions_accepted_card_id_fkey FOREIGN KEY (accepted_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.card_submissions
+    ADD CONSTRAINT card_submissions_candidate_card_id_fkey FOREIGN KEY (candidate_card_id) REFERENCES public.candidate_cards(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.card_submissions
+    ADD CONSTRAINT card_submissions_resolved_by_user_id_fkey FOREIGN KEY (resolved_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.card_submissions
+    ADD CONSTRAINT card_submissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_super_types
+    ADD CONSTRAINT card_super_types_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_super_types
+    ADD CONSTRAINT card_super_types_super_type_slug_fkey FOREIGN KEY (super_type_slug) REFERENCES public.super_types(slug);
+
+ALTER TABLE ONLY public.card_tokens
+    ADD CONSTRAINT card_tokens_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_tokens
+    ADD CONSTRAINT card_tokens_token_card_id_fkey FOREIGN KEY (token_card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_trade_copies
+    ADD CONSTRAINT card_trade_copies_copy_id_fkey FOREIGN KEY (copy_id) REFERENCES public.copies(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_trade_copies
+    ADD CONSTRAINT card_trade_copies_trade_id_fkey FOREIGN KEY (trade_id) REFERENCES public.card_trades(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_trade_requested_copies
+    ADD CONSTRAINT card_trade_requested_copies_copy_id_fkey FOREIGN KEY (copy_id) REFERENCES public.copies(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_trade_requested_copies
+    ADD CONSTRAINT card_trade_requested_copies_trade_id_fkey FOREIGN KEY (trade_id) REFERENCES public.card_trades(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_trade_settlement_requests
+    ADD CONSTRAINT card_trade_settlement_requests_settled_trade_id_fkey FOREIGN KEY (settled_trade_id) REFERENCES public.card_trades(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_trade_settlement_requests
+    ADD CONSTRAINT card_trade_settlement_requests_trade_id_fkey FOREIGN KEY (trade_id) REFERENCES public.card_trades(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_trade_settlement_requests
+    ADD CONSTRAINT card_trade_settlement_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.card_trades
+    ADD CONSTRAINT card_trades_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
+
+ALTER TABLE ONLY public.card_trades
+    ADD CONSTRAINT card_trades_giver_user_id_fkey FOREIGN KEY (giver_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.card_trades
+    ADD CONSTRAINT card_trades_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.card_trades
+    ADD CONSTRAINT card_trades_last_actor_user_id_fkey FOREIGN KEY (last_actor_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.card_trades
+    ADD CONSTRAINT card_trades_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+
+ALTER TABLE ONLY public.card_trades
+    ADD CONSTRAINT card_trades_receiver_user_id_fkey FOREIGN KEY (receiver_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.card_trades
+    ADD CONSTRAINT card_trades_receiver_wish_entry_id_fkey FOREIGN KEY (receiver_wish_entry_id) REFERENCES public.list_entries(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.cardmarket_sync_state
+    ADD CONSTRAINT cardmarket_sync_state_condition_fkey FOREIGN KEY (condition) REFERENCES public.conditions(slug);
+
+ALTER TABLE ONLY public.cardmarket_sync_state
+    ADD CONSTRAINT cardmarket_sync_state_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.cardmarket_sync_state
+    ADD CONSTRAINT cardmarket_sync_state_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.collection_events
+    ADD CONSTRAINT collection_events_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+
+ALTER TABLE ONLY public.collection_events
+    ADD CONSTRAINT collection_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.collections
+    ADD CONSTRAINT collections_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.collections
+    ADD CONSTRAINT collections_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.copies
+    ADD CONSTRAINT copies_condition_fkey FOREIGN KEY (condition) REFERENCES public.conditions(slug);
+
+ALTER TABLE ONLY public.copies
+    ADD CONSTRAINT copies_grader_fkey FOREIGN KEY (grader) REFERENCES public.graders(slug);
+
+ALTER TABLE ONLY public.copies
+    ADD CONSTRAINT copies_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+
+ALTER TABLE ONLY public.custom_tags
+    ADD CONSTRAINT custom_tags_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.custom_tag_categories(id) ON DELETE RESTRICT;
+
+ALTER TABLE ONLY public.deck_cards
+    ADD CONSTRAINT deck_cards_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
+
+ALTER TABLE ONLY public.deck_cards
+    ADD CONSTRAINT deck_cards_deck_id_fkey FOREIGN KEY (deck_id) REFERENCES public.decks(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.deck_cards
+    ADD CONSTRAINT deck_cards_preferred_printing_id_fkey FOREIGN KEY (preferred_printing_id) REFERENCES public.printings(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.deck_check_entries
+    ADD CONSTRAINT deck_check_entries_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.deck_check_entries
+    ADD CONSTRAINT deck_check_entries_checked_by_fkey FOREIGN KEY (checked_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.deck_check_entries
+    ADD CONSTRAINT deck_check_entries_participant_fkey FOREIGN KEY (participant_id) REFERENCES public.tournament_participants(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.deck_check_entries
+    ADD CONSTRAINT deck_check_entries_tournament_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.deck_check_entry_cards
+    ADD CONSTRAINT deck_check_entry_cards_card_fkey FOREIGN KEY (resolved_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.deck_check_entry_cards
+    ADD CONSTRAINT deck_check_entry_cards_entry_fkey FOREIGN KEY (entry_id) REFERENCES public.deck_check_entries(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.deck_check_entry_cards
+    ADD CONSTRAINT deck_check_entry_cards_printing_fkey FOREIGN KEY (resolved_printing_id) REFERENCES public.printings(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.deck_check_entry_cards
+    ADD CONSTRAINT deck_check_entry_cards_zone_fkey FOREIGN KEY (zone) REFERENCES public.deck_zones(slug);
+
+ALTER TABLE ONLY public.deck_check_keys
+    ADD CONSTRAINT deck_check_keys_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.deck_check_keys
+    ADD CONSTRAINT deck_check_keys_host_org_fkey FOREIGN KEY (host_org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.deck_check_keys
+    ADD CONSTRAINT deck_check_keys_host_user_fkey FOREIGN KEY (host_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.deck_folders
+    ADD CONSTRAINT deck_folders_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.deck_matchup_plans
+    ADD CONSTRAINT deck_matchup_plans_card_fkey FOREIGN KEY (opponent_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.deck_matchup_plans
+    ADD CONSTRAINT deck_matchup_plans_deck_fkey FOREIGN KEY (deck_id) REFERENCES public.decks(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.deck_matchup_swaps
+    ADD CONSTRAINT deck_matchup_swaps_card_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.deck_matchup_swaps
+    ADD CONSTRAINT deck_matchup_swaps_plan_fkey FOREIGN KEY (plan_id) REFERENCES public.deck_matchup_plans(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.deck_plans
+    ADD CONSTRAINT deck_plans_battlefield_first_card_id_fkey FOREIGN KEY (battlefield_first_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.deck_plans
+    ADD CONSTRAINT deck_plans_battlefield_g1_card_id_fkey FOREIGN KEY (battlefield_g1_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.deck_plans
+    ADD CONSTRAINT deck_plans_battlefield_second_card_id_fkey FOREIGN KEY (battlefield_second_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.deck_plans
+    ADD CONSTRAINT deck_plans_deck_fkey FOREIGN KEY (deck_id) REFERENCES public.decks(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT decks_collection_id_fkey FOREIGN KEY (collection_id) REFERENCES public.collections(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT decks_cover_card_id_fkey FOREIGN KEY (cover_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT decks_cover_printing_id_fkey FOREIGN KEY (cover_printing_id) REFERENCES public.printings(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT decks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.distribution_channels
+    ADD CONSTRAINT distribution_channels_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.distribution_channels(id) ON DELETE RESTRICT;
+
+ALTER TABLE ONLY public.card_trades
+    ADD CONSTRAINT fk_card_trades_printing_card FOREIGN KEY (printing_id, card_id) REFERENCES public.printings(id, card_id);
+
+ALTER TABLE ONLY public.cards
+    ADD CONSTRAINT fk_cards_type FOREIGN KEY (type) REFERENCES public.card_types(slug);
+
+ALTER TABLE ONLY public.collection_deckbuilding_prefs
+    ADD CONSTRAINT fk_collection_deckbuilding_prefs_collection FOREIGN KEY (collection_id) REFERENCES public.collections(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.collection_deckbuilding_prefs
+    ADD CONSTRAINT fk_collection_deckbuilding_prefs_user FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.collection_sidebar_prefs
+    ADD CONSTRAINT fk_collection_sidebar_prefs_collection FOREIGN KEY (collection_id) REFERENCES public.collections(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.collection_sidebar_prefs
+    ADD CONSTRAINT fk_collection_sidebar_prefs_user FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.copies
+    ADD CONSTRAINT fk_copies_collection FOREIGN KEY (collection_id) REFERENCES public.collections(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.deck_cards
+    ADD CONSTRAINT fk_deck_cards_printing_card FOREIGN KEY (preferred_printing_id, card_id) REFERENCES public.printings(id, card_id);
+
+ALTER TABLE ONLY public.deck_cards
+    ADD CONSTRAINT fk_deck_cards_zone FOREIGN KEY (zone) REFERENCES public.deck_zones(slug);
+
+ALTER TABLE ONLY public.deck_check_entry_cards
+    ADD CONSTRAINT fk_deck_check_entry_cards_printing_card FOREIGN KEY (resolved_printing_id, resolved_card_id) REFERENCES public.printings(id, card_id);
+
+ALTER TABLE ONLY public.deck_folder_entries
+    ADD CONSTRAINT fk_deck_folder_entries_deck_user FOREIGN KEY (deck_id, user_id) REFERENCES public.decks(id, user_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.deck_folder_entries
+    ADD CONSTRAINT fk_deck_folder_entries_folder_user FOREIGN KEY (folder_id, user_id) REFERENCES public.deck_folders(id, user_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT fk_decks_cover_printing_card FOREIGN KEY (cover_printing_id, cover_card_id) REFERENCES public.printings(id, card_id);
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT fk_decks_format FOREIGN KEY (format) REFERENCES public.deck_formats(slug);
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT fk_decks_predecessor_deck FOREIGN KEY (predecessor_deck_id) REFERENCES public.decks(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.friend_group_collection_shares
+    ADD CONSTRAINT fk_friend_group_collection_shares_collection FOREIGN KEY (collection_id, user_id) REFERENCES public.collections(id, user_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.friend_group_collection_shares
+    ADD CONSTRAINT fk_friend_group_collection_shares_membership FOREIGN KEY (user_id, group_id) REFERENCES public.friend_group_members(user_id, group_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.friend_group_list_shares
+    ADD CONSTRAINT fk_friend_group_list_shares_list FOREIGN KEY (list_id, user_id) REFERENCES public.lists(id, user_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.friend_group_list_shares
+    ADD CONSTRAINT fk_friend_group_list_shares_membership FOREIGN KEY (user_id, group_id) REFERENCES public.friend_group_members(user_id, group_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.list_entries
+    ADD CONSTRAINT fk_list_entries_copy FOREIGN KEY (copy_id) REFERENCES public.copies(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.list_entries
+    ADD CONSTRAINT fk_list_entries_list_kind FOREIGN KEY (list_id, kind) REFERENCES public.lists(id, kind) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.list_entries
+    ADD CONSTRAINT fk_list_entries_list_user FOREIGN KEY (list_id, user_id) REFERENCES public.lists(id, user_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.loans
+    ADD CONSTRAINT fk_loans_printing_card FOREIGN KEY (printing_id, card_id) REFERENCES public.printings(id, card_id);
+
+ALTER TABLE ONLY public.meta_player_links
+    ADD CONSTRAINT fk_meta_player_links_player FOREIGN KEY (meta_event_player_id, meta_event_id) REFERENCES public.meta_event_players(id, meta_event_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.printing_link_overrides
+    ADD CONSTRAINT fk_plo_printing_id FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.printing_images
+    ADD CONSTRAINT fk_printing_images_image_file FOREIGN KEY (image_file_id) REFERENCES public.image_files(id);
+
+ALTER TABLE ONLY public.printings
+    ADD CONSTRAINT fk_printings_art_variant FOREIGN KEY (art_variant) REFERENCES public.art_variants(slug);
+
+ALTER TABLE ONLY public.printings
+    ADD CONSTRAINT fk_printings_fallback_image_file FOREIGN KEY (fallback_image_file_id) REFERENCES public.image_files(id) ON DELETE RESTRICT;
+
+ALTER TABLE ONLY public.printings
+    ADD CONSTRAINT fk_printings_finish FOREIGN KEY (finish) REFERENCES public.finishes(slug);
+
+ALTER TABLE ONLY public.printings
+    ADD CONSTRAINT fk_printings_rarity FOREIGN KEY (rarity) REFERENCES public.rarities(slug);
+
+ALTER TABLE ONLY public.printings
+    ADD CONSTRAINT fk_printings_size FOREIGN KEY (size) REFERENCES public.card_sizes(slug);
+
+ALTER TABLE ONLY public.friend_group_calendar_feeds
+    ADD CONSTRAINT friend_group_calendar_feeds_member_fkey FOREIGN KEY (group_id, user_id) REFERENCES public.friend_group_members(group_id, user_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.friend_group_discord_links
+    ADD CONSTRAINT friend_group_discord_links_created_by_user_id_fkey FOREIGN KEY (created_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.friend_group_discord_links
+    ADD CONSTRAINT friend_group_discord_links_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.friend_group_invites
+    ADD CONSTRAINT friend_group_invites_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.friend_group_invites
+    ADD CONSTRAINT friend_group_invites_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.friend_group_member_contacts
+    ADD CONSTRAINT friend_group_member_contacts_member_fkey FOREIGN KEY (group_id, user_id) REFERENCES public.friend_group_members(group_id, user_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.friend_group_member_contacts
+    ADD CONSTRAINT friend_group_member_contacts_method_fkey FOREIGN KEY (contact_method_id) REFERENCES public.user_contact_methods(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.friend_group_members
+    ADD CONSTRAINT friend_group_members_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.friend_group_members
+    ADD CONSTRAINT friend_group_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.friend_group_shops
+    ADD CONSTRAINT friend_group_shops_added_by_user_id_fkey FOREIGN KEY (added_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.friend_group_shops
+    ADD CONSTRAINT friend_group_shops_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.friend_group_shops
+    ADD CONSTRAINT friend_group_shops_uvsgames_store_id_fkey FOREIGN KEY (uvsgames_store_id) REFERENCES public.uvsgames_stores(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.friend_groups
+    ADD CONSTRAINT friend_groups_banner_uploaded_by_fkey FOREIGN KEY (banner_uploaded_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.keyword_translations
+    ADD CONSTRAINT keyword_translations_keyword_name_fkey FOREIGN KEY (keyword_name) REFERENCES public.keywords(name) ON UPDATE CASCADE ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.keyword_translations
+    ADD CONSTRAINT keyword_translations_language_fkey FOREIGN KEY (language) REFERENCES public.languages(code) ON UPDATE CASCADE ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.list_entries
+    ADD CONSTRAINT list_entries_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
+
+ALTER TABLE ONLY public.list_entries
+    ADD CONSTRAINT list_entries_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+
+ALTER TABLE ONLY public.lists
+    ADD CONSTRAINT lists_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.loan_copies
+    ADD CONSTRAINT loan_copies_copy_id_fkey FOREIGN KEY (copy_id) REFERENCES public.copies(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.loan_copies
+    ADD CONSTRAINT loan_copies_loan_id_fkey FOREIGN KEY (loan_id) REFERENCES public.loans(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.loans
+    ADD CONSTRAINT loans_borrower_user_id_fkey FOREIGN KEY (borrower_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.loans
+    ADD CONSTRAINT loans_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
+
+ALTER TABLE ONLY public.loans
+    ADD CONSTRAINT loans_lender_user_id_fkey FOREIGN KEY (lender_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.loans
+    ADD CONSTRAINT loans_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+
+ALTER TABLE ONLY public.marketplace_groups
+    ADD CONSTRAINT marketplace_groups_set_id_fkey FOREIGN KEY (set_id) REFERENCES public.sets(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.marketplace_ignored_variants
+    ADD CONSTRAINT marketplace_ignored_variants_product_id_fkey FOREIGN KEY (marketplace_product_id) REFERENCES public.marketplace_products(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.marketplace_product_card_overrides
+    ADD CONSTRAINT marketplace_product_card_overrides_product_fk FOREIGN KEY (marketplace_product_id) REFERENCES public.marketplace_products(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.marketplace_product_prices
+    ADD CONSTRAINT marketplace_product_prices_marketplace_product_id_fkey FOREIGN KEY (marketplace_product_id) REFERENCES public.marketplace_products(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.marketplace_product_variants
+    ADD CONSTRAINT marketplace_product_variants_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+
+ALTER TABLE ONLY public.marketplace_product_variants
+    ADD CONSTRAINT marketplace_product_variants_product_id_fkey FOREIGN KEY (marketplace_product_id) REFERENCES public.marketplace_products(id);
+
+ALTER TABLE ONLY public.marketplace_products
+    ADD CONSTRAINT marketplace_sources_group_fkey FOREIGN KEY (marketplace, group_id) REFERENCES public.marketplace_groups(marketplace, group_id);
+
+ALTER TABLE ONLY public.marketplace_product_card_overrides
+    ADD CONSTRAINT marketplace_staging_card_overrides_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
+
+ALTER TABLE ONLY public.meta_credits
+    ADD CONSTRAINT meta_credits_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_credits
+    ADD CONSTRAINT meta_credits_meta_event_player_id_fkey FOREIGN KEY (meta_event_player_id) REFERENCES public.meta_event_players(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_credits
+    ADD CONSTRAINT meta_credits_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_event_matches
+    ADD CONSTRAINT meta_event_matches_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_event_matches
+    ADD CONSTRAINT meta_event_matches_player1_id_fkey FOREIGN KEY (player1_id) REFERENCES public.meta_event_players(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_event_matches
+    ADD CONSTRAINT meta_event_matches_player2_id_fkey FOREIGN KEY (player2_id) REFERENCES public.meta_event_players(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_event_matches
+    ADD CONSTRAINT meta_event_matches_winner_id_fkey FOREIGN KEY (winner_id) REFERENCES public.meta_event_players(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_event_overlay_matches
+    ADD CONSTRAINT meta_event_overlay_matches_event_overlay_id_fkey FOREIGN KEY (event_overlay_id) REFERENCES public.meta_event_overlays(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_event_overlay_phases
+    ADD CONSTRAINT meta_event_overlay_phases_event_overlay_id_fkey FOREIGN KEY (event_overlay_id) REFERENCES public.meta_event_overlays(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_event_overlays
+    ADD CONSTRAINT meta_event_overlays_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_event_overlays
+    ADD CONSTRAINT meta_event_overlays_submitted_by_user_id_fkey FOREIGN KEY (submitted_by_user_id) REFERENCES public.users(id);
+
+ALTER TABLE ONLY public.meta_event_phases
+    ADD CONSTRAINT meta_event_phases_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_event_player_overlay_cards
+    ADD CONSTRAINT meta_event_player_overlay_cards_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.meta_event_player_overlay_cards
+    ADD CONSTRAINT meta_event_player_overlay_cards_overlay_id_fkey FOREIGN KEY (overlay_id) REFERENCES public.meta_event_player_overlays(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_event_player_overlay_cards
+    ADD CONSTRAINT meta_event_player_overlay_cards_preferred_printing_id_fkey FOREIGN KEY (preferred_printing_id) REFERENCES public.printings(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.meta_event_player_overlays
+    ADD CONSTRAINT meta_event_player_overlays_champion_card_id_fkey FOREIGN KEY (champion_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.meta_event_player_overlays
+    ADD CONSTRAINT meta_event_player_overlays_event_overlay_id_fkey FOREIGN KEY (event_overlay_id) REFERENCES public.meta_event_overlays(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_event_player_overlays
+    ADD CONSTRAINT meta_event_player_overlays_legend_card_id_fkey FOREIGN KEY (legend_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.meta_event_player_overlays
+    ADD CONSTRAINT meta_event_player_overlays_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_event_player_overlays
+    ADD CONSTRAINT meta_event_player_overlays_meta_event_player_id_fkey FOREIGN KEY (meta_event_player_id) REFERENCES public.meta_event_players(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_event_player_overlays
+    ADD CONSTRAINT meta_event_player_overlays_submitted_by_user_id_fkey FOREIGN KEY (submitted_by_user_id) REFERENCES public.users(id);
+
+ALTER TABLE ONLY public.meta_event_players
+    ADD CONSTRAINT meta_event_players_champion_card_id_fkey FOREIGN KEY (champion_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.meta_event_players
+    ADD CONSTRAINT meta_event_players_deck_id_fkey FOREIGN KEY (deck_id) REFERENCES public.decks(id) ON DELETE RESTRICT;
+
+ALTER TABLE ONLY public.meta_event_players
+    ADD CONSTRAINT meta_event_players_legend_card_id_fkey FOREIGN KEY (legend_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.meta_event_players
+    ADD CONSTRAINT meta_event_players_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_event_players
+    ADD CONSTRAINT meta_event_players_minted_by_overlay_id_fkey FOREIGN KEY (minted_by_overlay_id) REFERENCES public.meta_event_player_overlays(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.meta_event_players
+    ADD CONSTRAINT meta_event_players_uvsgames_player_id_fkey FOREIGN KEY (uvsgames_player_id) REFERENCES public.uvsgames_players(id);
+
+ALTER TABLE ONLY public.meta_event_sources
+    ADD CONSTRAINT meta_event_sources_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_events
+    ADD CONSTRAINT meta_events_format_fkey FOREIGN KEY (format) REFERENCES public.deck_formats(slug);
+
+ALTER TABLE ONLY public.meta_player_links
+    ADD CONSTRAINT meta_player_links_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.meta_submissions
+    ADD CONSTRAINT meta_submissions_accepted_deck_id_fkey FOREIGN KEY (accepted_deck_id) REFERENCES public.decks(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.meta_submissions
+    ADD CONSTRAINT meta_submissions_meta_event_id_fkey FOREIGN KEY (meta_event_id) REFERENCES public.meta_events(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.meta_submissions
+    ADD CONSTRAINT meta_submissions_meta_event_player_id_fkey FOREIGN KEY (meta_event_player_id) REFERENCES public.meta_event_players(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.meta_submissions
+    ADD CONSTRAINT meta_submissions_player_overlay_id_fkey FOREIGN KEY (player_overlay_id) REFERENCES public.meta_event_player_overlays(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.meta_submissions
+    ADD CONSTRAINT meta_submissions_resolved_by_user_id_fkey FOREIGN KEY (resolved_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.meta_submissions
+    ADD CONSTRAINT meta_submissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.organization_members
+    ADD CONSTRAINT organization_members_org_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.organization_members
+    ADD CONSTRAINT organization_members_user_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.overlay_channels
+    ADD CONSTRAINT overlay_channels_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.playloltcg_decklist_cards
+    ADD CONSTRAINT playloltcg_decklist_cards_source_deck_id_fkey FOREIGN KEY (source_deck_id) REFERENCES public.playloltcg_decklists(source_deck_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.playloltcg_decklists
+    ADD CONSTRAINT playloltcg_decklists_activity_shop_id_fkey FOREIGN KEY (activity_shop_id) REFERENCES public.playloltcg_events(activity_shop_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.playloltcg_event_checks
+    ADD CONSTRAINT playloltcg_event_checks_activity_shop_id_fkey FOREIGN KEY (activity_shop_id) REFERENCES public.playloltcg_events(activity_shop_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.playloltcg_event_standings
+    ADD CONSTRAINT playloltcg_event_standings_activity_shop_id_fkey FOREIGN KEY (activity_shop_id) REFERENCES public.playloltcg_events(activity_shop_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.playloltcg_events
+    ADD CONSTRAINT playloltcg_events_shop_id_fkey FOREIGN KEY (shop_id) REFERENCES public.playloltcg_shops(id);
+
+ALTER TABLE ONLY public.pod_byes
+    ADD CONSTRAINT pod_byes_player_fkey FOREIGN KEY (player_id) REFERENCES public.tournament_participants(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.pod_byes
+    ADD CONSTRAINT pod_byes_round_fkey FOREIGN KEY (round_id) REFERENCES public.pod_rounds(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.pod_members
+    ADD CONSTRAINT pod_members_player_fkey FOREIGN KEY (player_id) REFERENCES public.tournament_participants(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.pod_members
+    ADD CONSTRAINT pod_members_pod_fkey FOREIGN KEY (pod_id) REFERENCES public.pods(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.pod_rounds
+    ADD CONSTRAINT pod_rounds_tournament_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.pods
+    ADD CONSTRAINT pods_round_fkey FOREIGN KEY (round_id) REFERENCES public.pod_rounds(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.printing_citations
+    ADD CONSTRAINT printing_citations_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.printing_distribution_channels
+    ADD CONSTRAINT printing_distribution_channels_channel_id_fkey FOREIGN KEY (channel_id) REFERENCES public.distribution_channels(id) ON DELETE RESTRICT;
+
+ALTER TABLE ONLY public.printing_distribution_channels
+    ADD CONSTRAINT printing_distribution_channels_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.printing_images
+    ADD CONSTRAINT printing_images_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+
+ALTER TABLE ONLY public.printing_markers
+    ADD CONSTRAINT printing_markers_marker_id_fkey FOREIGN KEY (marker_id) REFERENCES public.markers(id) ON DELETE RESTRICT;
+
+ALTER TABLE ONLY public.printing_markers
+    ADD CONSTRAINT printing_markers_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.candidate_printings
+    ADD CONSTRAINT printing_sources_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+
+ALTER TABLE ONLY public.printings
+    ADD CONSTRAINT printings_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
+
+ALTER TABLE ONLY public.printings
+    ADD CONSTRAINT printings_language_fk FOREIGN KEY (language) REFERENCES public.languages(code) ON UPDATE CASCADE;
+
+ALTER TABLE ONLY public.printings
+    ADD CONSTRAINT printings_set_id_fkey FOREIGN KEY (set_id) REFERENCES public.sets(id);
+
+ALTER TABLE ONLY public.product_printings
+    ADD CONSTRAINT product_printings_printing_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
+
+ALTER TABLE ONLY public.product_printings
+    ADD CONSTRAINT product_printings_product_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT products_set_id_fkey FOREIGN KEY (set_id) REFERENCES public.sets(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.rules
+    ADD CONSTRAINT rules_kind_language_version_fkey FOREIGN KEY (kind, language, version) REFERENCES public.rule_versions(kind, language, version) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.scan_reports
+    ADD CONSTRAINT scan_reports_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.sessions
+    ADD CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.set_releases
+    ADD CONSTRAINT set_releases_language_fkey FOREIGN KEY (language) REFERENCES public.languages(code) ON UPDATE CASCADE;
+
+ALTER TABLE ONLY public.set_releases
+    ADD CONSTRAINT set_releases_set_id_fkey FOREIGN KEY (set_id) REFERENCES public.sets(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.stage_presets
+    ADD CONSTRAINT stage_presets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.tag_definitions
+    ADD CONSTRAINT tag_definitions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.tag_categories(id) ON DELETE RESTRICT;
+
+ALTER TABLE ONLY public.tier_lists
+    ADD CONSTRAINT tier_lists_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.topdeck_decklist_cards
+    ADD CONSTRAINT topdeck_decklist_cards_source_deck_id_fkey FOREIGN KEY (source_deck_id) REFERENCES public.topdeck_decklists(source_deck_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.topdeck_decklists
+    ADD CONSTRAINT topdeck_decklists_tid_fkey FOREIGN KEY (tid) REFERENCES public.topdeck_events(tid) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.topdeck_event_standings
+    ADD CONSTRAINT topdeck_event_standings_tid_fkey FOREIGN KEY (tid) REFERENCES public.topdeck_events(tid) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.tournament_groups
+    ADD CONSTRAINT tournament_groups_paired_group_id_fkey FOREIGN KEY (paired_group_id) REFERENCES public.tournament_groups(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.tournament_groups
+    ADD CONSTRAINT tournament_groups_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.tournament_legend_meta_shares
+    ADD CONSTRAINT tournament_legend_meta_shares_legend_card_id_fkey FOREIGN KEY (legend_card_id) REFERENCES public.cards(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.tournament_legend_meta_shares
+    ADD CONSTRAINT tournament_legend_meta_shares_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.tournament_participants
+    ADD CONSTRAINT tournament_participants_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.tournament_groups(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.tournament_participants
+    ADD CONSTRAINT tournament_participants_legend_card_id_fkey FOREIGN KEY (legend_card_id) REFERENCES public.cards(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.tournament_participants
+    ADD CONSTRAINT tournament_participants_team_fkey FOREIGN KEY (team_id, tournament_id) REFERENCES public.tournament_teams(id, tournament_id) ON DELETE SET NULL (team_id);
+
+ALTER TABLE ONLY public.tournament_participants
+    ADD CONSTRAINT tournament_participants_tournament_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.tournament_participants
+    ADD CONSTRAINT tournament_participants_user_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.tournament_staff
+    ADD CONSTRAINT tournament_staff_tournament_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.tournament_staff
+    ADD CONSTRAINT tournament_staff_user_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.tournament_teams
+    ADD CONSTRAINT tournament_teams_tournament_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.tournaments
+    ADD CONSTRAINT tournaments_deck_format_fkey FOREIGN KEY (deck_format) REFERENCES public.deck_formats(slug);
+
+ALTER TABLE ONLY public.tournaments
+    ADD CONSTRAINT tournaments_group_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.tournaments
+    ADD CONSTRAINT tournaments_host_org_fkey FOREIGN KEY (host_org_id) REFERENCES public.organizations(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.tournaments
+    ADD CONSTRAINT tournaments_host_user_fkey FOREIGN KEY (host_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.trade_suggestion_dismissals
+    ADD CONSTRAINT trade_suggestion_dismissals_counterparty_user_id_fkey FOREIGN KEY (counterparty_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.trade_suggestion_dismissals
+    ADD CONSTRAINT trade_suggestion_dismissals_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.trade_suggestion_dismissals
+    ADD CONSTRAINT trade_suggestion_dismissals_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.user_contact_methods
+    ADD CONSTRAINT user_contact_methods_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.user_feature_flags
+    ADD CONSTRAINT user_feature_flags_flag_key_fkey FOREIGN KEY (flag_key) REFERENCES public.feature_flags(key) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.user_feature_flags
+    ADD CONSTRAINT user_feature_flags_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.user_preferences
+    ADD CONSTRAINT user_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.uvsgames_decklist_cards
+    ADD CONSTRAINT uvsgames_decklist_cards_source_deck_id_fkey FOREIGN KEY (source_deck_id) REFERENCES public.uvsgames_decklists(source_deck_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.uvsgames_decklists
+    ADD CONSTRAINT uvsgames_decklists_external_id_fkey FOREIGN KEY (external_id) REFERENCES public.uvsgames_events(external_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.uvsgames_event_checks
+    ADD CONSTRAINT uvsgames_event_checks_external_id_fkey FOREIGN KEY (external_id) REFERENCES public.uvsgames_events(external_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.uvsgames_event_matches
+    ADD CONSTRAINT uvsgames_event_matches_external_id_fkey FOREIGN KEY (external_id) REFERENCES public.uvsgames_events(external_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.uvsgames_event_matches
+    ADD CONSTRAINT uvsgames_event_matches_player1_uvsgames_id_fkey FOREIGN KEY (player1_uvsgames_id) REFERENCES public.uvsgames_players(id);
+
+ALTER TABLE ONLY public.uvsgames_event_matches
+    ADD CONSTRAINT uvsgames_event_matches_player2_uvsgames_id_fkey FOREIGN KEY (player2_uvsgames_id) REFERENCES public.uvsgames_players(id);
+
+ALTER TABLE ONLY public.uvsgames_event_matches
+    ADD CONSTRAINT uvsgames_event_matches_winner_uvsgames_id_fkey FOREIGN KEY (winner_uvsgames_id) REFERENCES public.uvsgames_players(id);
+
+ALTER TABLE ONLY public.uvsgames_event_phases
+    ADD CONSTRAINT uvsgames_event_phases_external_id_fkey FOREIGN KEY (external_id) REFERENCES public.uvsgames_events(external_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.uvsgames_event_standings
+    ADD CONSTRAINT uvsgames_event_standings_external_id_fkey FOREIGN KEY (external_id) REFERENCES public.uvsgames_events(external_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.uvsgames_event_standings
+    ADD CONSTRAINT uvsgames_event_standings_uvsgames_player_id_fkey FOREIGN KEY (uvsgames_player_id) REFERENCES public.uvsgames_players(id);
+
+ALTER TABLE ONLY public.uvsgames_events
+    ADD CONSTRAINT uvsgames_events_store_id_fkey FOREIGN KEY (store_id) REFERENCES public.uvsgames_stores(id);
+
+ALTER TABLE ONLY public.uvsgames_format_mappings
+    ADD CONSTRAINT uvsgames_format_mappings_mapped_format_fkey FOREIGN KEY (mapped_format) REFERENCES public.deck_formats(slug);
+
+REFRESH MATERIALIZED VIEW public.mv_card_aggregates;
+
+REFRESH MATERIALIZED VIEW public.mv_daily_printing_prices;
+
+REFRESH MATERIALIZED VIEW public.mv_latest_printing_prices;
+
+REFRESH MATERIALIZED VIEW public.mv_printing_foil_twins;
+
+REFRESH MATERIALIZED VIEW public.mv_printings_canonical_rank;
+$sql$; END $baseline$
+`;
+
+const DROP = `
+DO $baseline$ BEGIN EXECUTE $sql$
+DROP MATERIALIZED VIEW IF EXISTS public.mv_card_aggregates CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS public.mv_daily_printing_prices CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS public.mv_latest_printing_prices CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS public.mv_printing_foil_twins CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS public.mv_printings_canonical_rank CASCADE;
+DROP VIEW IF EXISTS public.printings_ordered CASCADE;
+DROP TABLE IF EXISTS public.accounts CASCADE;
+DROP TABLE IF EXISTS public.admin_events CASCADE;
+DROP TABLE IF EXISTS public.admin_grants CASCADE;
+DROP TABLE IF EXISTS public.admins CASCADE;
+DROP TABLE IF EXISTS public.api_keys CASCADE;
+DROP TABLE IF EXISTS public.art_variants CASCADE;
+DROP TABLE IF EXISTS public.board_states CASCADE;
+DROP TABLE IF EXISTS public.candidate_cards CASCADE;
+DROP TABLE IF EXISTS public.candidate_printings CASCADE;
+DROP TABLE IF EXISTS public.card_bans CASCADE;
+DROP TABLE IF EXISTS public.card_card_types CASCADE;
+DROP TABLE IF EXISTS public.card_custom_tags CASCADE;
+DROP TABLE IF EXISTS public.card_domains CASCADE;
+DROP TABLE IF EXISTS public.card_errata CASCADE;
+DROP TABLE IF EXISTS public.card_name_aliases CASCADE;
+DROP TABLE IF EXISTS public.card_sizes CASCADE;
+DROP TABLE IF EXISTS public.card_submissions CASCADE;
+DROP TABLE IF EXISTS public.card_super_types CASCADE;
+DROP TABLE IF EXISTS public.card_tokens CASCADE;
+DROP TABLE IF EXISTS public.card_trade_copies CASCADE;
+DROP TABLE IF EXISTS public.card_trade_requested_copies CASCADE;
+DROP TABLE IF EXISTS public.card_trade_settlement_requests CASCADE;
+DROP TABLE IF EXISTS public.card_trades CASCADE;
+DROP TABLE IF EXISTS public.card_types CASCADE;
+DROP TABLE IF EXISTS public.cardmarket_sync_state CASCADE;
+DROP TABLE IF EXISTS public.cards CASCADE;
+DROP TABLE IF EXISTS public.collection_deckbuilding_prefs CASCADE;
+DROP TABLE IF EXISTS public.collection_events CASCADE;
+DROP TABLE IF EXISTS public.collection_sidebar_prefs CASCADE;
+DROP TABLE IF EXISTS public.collections CASCADE;
+DROP TABLE IF EXISTS public.conditions CASCADE;
+DROP TABLE IF EXISTS public.copies CASCADE;
+DROP TABLE IF EXISTS public.copy_deletion_sweep CASCADE;
+DROP TABLE IF EXISTS public.copy_deletions CASCADE;
+DROP TABLE IF EXISTS public.custom_tag_categories CASCADE;
+DROP TABLE IF EXISTS public.custom_tags CASCADE;
+DROP TABLE IF EXISTS public.deck_cards CASCADE;
+DROP TABLE IF EXISTS public.deck_check_entries CASCADE;
+DROP TABLE IF EXISTS public.deck_check_entry_cards CASCADE;
+DROP TABLE IF EXISTS public.deck_check_keys CASCADE;
+DROP TABLE IF EXISTS public.deck_folder_entries CASCADE;
+DROP TABLE IF EXISTS public.deck_folders CASCADE;
+DROP TABLE IF EXISTS public.deck_formats CASCADE;
+DROP TABLE IF EXISTS public.deck_matchup_plans CASCADE;
+DROP TABLE IF EXISTS public.deck_matchup_swaps CASCADE;
+DROP TABLE IF EXISTS public.deck_plans CASCADE;
+DROP TABLE IF EXISTS public.deck_zones CASCADE;
+DROP TABLE IF EXISTS public.decks CASCADE;
+DROP TABLE IF EXISTS public.distribution_channels CASCADE;
+DROP TABLE IF EXISTS public.domains CASCADE;
+DROP TABLE IF EXISTS public.errata_announcements CASCADE;
+DROP TABLE IF EXISTS public.feature_flags CASCADE;
+DROP TABLE IF EXISTS public.finishes CASCADE;
+DROP TABLE IF EXISTS public.formats CASCADE;
+DROP TABLE IF EXISTS public.friend_group_calendar_feeds CASCADE;
+DROP TABLE IF EXISTS public.friend_group_collection_shares CASCADE;
+DROP TABLE IF EXISTS public.friend_group_discord_links CASCADE;
+DROP TABLE IF EXISTS public.friend_group_invites CASCADE;
+DROP TABLE IF EXISTS public.friend_group_list_shares CASCADE;
+DROP TABLE IF EXISTS public.friend_group_member_contacts CASCADE;
+DROP TABLE IF EXISTS public.friend_group_members CASCADE;
+DROP TABLE IF EXISTS public.friend_group_shops CASCADE;
+DROP TABLE IF EXISTS public.friend_groups CASCADE;
+DROP TABLE IF EXISTS public.graders CASCADE;
+DROP TABLE IF EXISTS public.ignored_candidate_cards CASCADE;
+DROP TABLE IF EXISTS public.ignored_candidate_printings CASCADE;
+DROP TABLE IF EXISTS public.ignored_meta_source_events CASCADE;
+DROP TABLE IF EXISTS public.ignored_meta_source_players CASCADE;
+DROP TABLE IF EXISTS public.image_files CASCADE;
+DROP TABLE IF EXISTS public.job_runs CASCADE;
+DROP TABLE IF EXISTS public.job_schedules CASCADE;
+DROP TABLE IF EXISTS public.keyword_translations CASCADE;
+DROP TABLE IF EXISTS public.keywords CASCADE;
+DROP TABLE IF EXISTS public.languages CASCADE;
+DROP TABLE IF EXISTS public.list_entries CASCADE;
+DROP TABLE IF EXISTS public.lists CASCADE;
+DROP TABLE IF EXISTS public.loan_copies CASCADE;
+DROP TABLE IF EXISTS public.loans CASCADE;
+DROP TABLE IF EXISTS public.markers CASCADE;
+DROP TABLE IF EXISTS public.marketplace_groups CASCADE;
+DROP TABLE IF EXISTS public.marketplace_ignored_products CASCADE;
+DROP TABLE IF EXISTS public.marketplace_ignored_variants CASCADE;
+DROP TABLE IF EXISTS public.marketplace_product_card_overrides CASCADE;
+DROP TABLE IF EXISTS public.marketplace_product_prices CASCADE;
+DROP TABLE IF EXISTS public.marketplace_product_variants CASCADE;
+DROP TABLE IF EXISTS public.marketplace_products CASCADE;
+DROP TABLE IF EXISTS public.meta_credits CASCADE;
+DROP TABLE IF EXISTS public.meta_event_matches CASCADE;
+DROP TABLE IF EXISTS public.meta_event_overlay_matches CASCADE;
+DROP TABLE IF EXISTS public.meta_event_overlay_phases CASCADE;
+DROP TABLE IF EXISTS public.meta_event_overlays CASCADE;
+DROP TABLE IF EXISTS public.meta_event_phases CASCADE;
+DROP TABLE IF EXISTS public.meta_event_player_overlay_cards CASCADE;
+DROP TABLE IF EXISTS public.meta_event_player_overlays CASCADE;
+DROP TABLE IF EXISTS public.meta_event_players CASCADE;
+DROP TABLE IF EXISTS public.meta_event_sources CASCADE;
+DROP TABLE IF EXISTS public.meta_events CASCADE;
+DROP TABLE IF EXISTS public.meta_player_links CASCADE;
+DROP TABLE IF EXISTS public.meta_submissions CASCADE;
+DROP TABLE IF EXISTS public.meta_sync_settings CASCADE;
+DROP TABLE IF EXISTS public.printings CASCADE;
+DROP TABLE IF EXISTS public.sets CASCADE;
+DROP TABLE IF EXISTS public.organization_members CASCADE;
+DROP TABLE IF EXISTS public.organizations CASCADE;
+DROP TABLE IF EXISTS public.overlay_channels CASCADE;
+DROP TABLE IF EXISTS public.playloltcg_decklist_cards CASCADE;
+DROP TABLE IF EXISTS public.playloltcg_decklists CASCADE;
+DROP TABLE IF EXISTS public.playloltcg_event_checks CASCADE;
+DROP TABLE IF EXISTS public.playloltcg_event_standings CASCADE;
+DROP TABLE IF EXISTS public.playloltcg_events CASCADE;
+DROP TABLE IF EXISTS public.playloltcg_shops CASCADE;
+DROP TABLE IF EXISTS public.pod_byes CASCADE;
+DROP TABLE IF EXISTS public.pod_members CASCADE;
+DROP TABLE IF EXISTS public.pod_rounds CASCADE;
+DROP TABLE IF EXISTS public.pods CASCADE;
+DROP TABLE IF EXISTS public.printing_citations CASCADE;
+DROP TABLE IF EXISTS public.printing_distribution_channels CASCADE;
+DROP TABLE IF EXISTS public.printing_events CASCADE;
+DROP TABLE IF EXISTS public.printing_images CASCADE;
+DROP TABLE IF EXISTS public.printing_link_overrides CASCADE;
+DROP TABLE IF EXISTS public.printing_markers CASCADE;
+DROP TABLE IF EXISTS public.product_printings CASCADE;
+DROP TABLE IF EXISTS public.products CASCADE;
+DROP TABLE IF EXISTS public.provider_settings CASCADE;
+DROP TABLE IF EXISTS public.rarities CASCADE;
+DROP TABLE IF EXISTS public.rule_versions CASCADE;
+DROP TABLE IF EXISTS public.rules CASCADE;
+DROP TABLE IF EXISTS public.scan_index CASCADE;
+DROP TABLE IF EXISTS public.scan_reports CASCADE;
+DROP TABLE IF EXISTS public.sessions CASCADE;
+DROP TABLE IF EXISTS public.set_releases CASCADE;
+DROP TABLE IF EXISTS public.site_settings CASCADE;
+DROP TABLE IF EXISTS public.stage_presets CASCADE;
+DROP TABLE IF EXISTS public.super_types CASCADE;
+DROP TABLE IF EXISTS public.tag_categories CASCADE;
+DROP TABLE IF EXISTS public.tag_definitions CASCADE;
+DROP TABLE IF EXISTS public.tier_lists CASCADE;
+DROP TABLE IF EXISTS public.topdeck_decklist_cards CASCADE;
+DROP TABLE IF EXISTS public.topdeck_decklists CASCADE;
+DROP TABLE IF EXISTS public.topdeck_event_standings CASCADE;
+DROP TABLE IF EXISTS public.topdeck_events CASCADE;
+DROP TABLE IF EXISTS public.tournament_groups CASCADE;
+DROP TABLE IF EXISTS public.tournament_legend_meta_shares CASCADE;
+DROP TABLE IF EXISTS public.tournament_participants CASCADE;
+DROP TABLE IF EXISTS public.tournament_staff CASCADE;
+DROP TABLE IF EXISTS public.tournament_teams CASCADE;
+DROP TABLE IF EXISTS public.tournaments CASCADE;
+DROP TABLE IF EXISTS public.trade_suggestion_dismissals CASCADE;
+DROP TABLE IF EXISTS public.user_contact_methods CASCADE;
+DROP TABLE IF EXISTS public.user_feature_flags CASCADE;
+DROP TABLE IF EXISTS public.user_preferences CASCADE;
+DROP TABLE IF EXISTS public.users CASCADE;
+DROP TABLE IF EXISTS public.uvsgames_decklist_cards CASCADE;
+DROP TABLE IF EXISTS public.uvsgames_decklists CASCADE;
+DROP TABLE IF EXISTS public.uvsgames_event_checks CASCADE;
+DROP TABLE IF EXISTS public.uvsgames_event_matches CASCADE;
+DROP TABLE IF EXISTS public.uvsgames_event_phases CASCADE;
+DROP TABLE IF EXISTS public.uvsgames_event_standings CASCADE;
+DROP TABLE IF EXISTS public.uvsgames_event_templates CASCADE;
+DROP TABLE IF EXISTS public.uvsgames_events CASCADE;
+DROP TABLE IF EXISTS public.uvsgames_format_mappings CASCADE;
+DROP TABLE IF EXISTS public.uvsgames_id_probes CASCADE;
+DROP TABLE IF EXISTS public.uvsgames_players CASCADE;
+DROP TABLE IF EXISTS public.uvsgames_stores CASCADE;
+DROP TABLE IF EXISTS public.verifications CASCADE;
+DROP FUNCTION IF EXISTS public.assert_organization_has_owner() CASCADE;
+DROP FUNCTION IF EXISTS public.candidate_cards_set_norm_name() CASCADE;
+DROP FUNCTION IF EXISTS public.card_name_aliases_set_norm_name() CASCADE;
+DROP FUNCTION IF EXISTS public.cards_set_norm_name() CASCADE;
+DROP FUNCTION IF EXISTS public.marketplace_product_compute_norm_name(product_name text) CASCADE;
+DROP FUNCTION IF EXISTS public.marketplace_products_set_norm_name() CASCADE;
+DROP FUNCTION IF EXISTS public.prevent_nonempty_collection_delete() CASCADE;
+DROP FUNCTION IF EXISTS public.protect_well_known() CASCADE;
+DROP FUNCTION IF EXISTS public.protect_well_known_keyword() CASCADE;
+DROP FUNCTION IF EXISTS public.protect_well_known_language() CASCADE;
+DROP FUNCTION IF EXISTS public.rebalance_friend_group_owner() CASCADE;
+DROP FUNCTION IF EXISTS public.rebalance_organization_owner() CASCADE;
+DROP FUNCTION IF EXISTS public.recompute_printing_marker_slugs(target_printing_id uuid) CASCADE;
+DROP FUNCTION IF EXISTS public.set_updated_at() CASCADE;
+DROP FUNCTION IF EXISTS public.set_updated_stamps() CASCADE;
+DROP FUNCTION IF EXISTS public.snapshot_deleted_group_names() CASCADE;
+DROP FUNCTION IF EXISTS public.snapshot_deleted_user_names() CASCADE;
+DROP FUNCTION IF EXISTS public.touch_list_on_entry_change() CASCADE;
+DROP FUNCTION IF EXISTS public.trg_card_card_types_sync() CASCADE;
+DROP FUNCTION IF EXISTS public.trg_cards_seed_card_types() CASCADE;
+DROP FUNCTION IF EXISTS public.trg_collections_record_copy_deletions() CASCADE;
+DROP FUNCTION IF EXISTS public.trg_copies_record_deletion() CASCADE;
+DROP FUNCTION IF EXISTS public.trg_copies_record_scope_change() CASCADE;
+DROP FUNCTION IF EXISTS public.trg_distribution_channels_validate() CASCADE;
+DROP FUNCTION IF EXISTS public.trg_markers_slug_change() CASCADE;
+DROP FUNCTION IF EXISTS public.trg_printing_distribution_channels_validate() CASCADE;
+DROP FUNCTION IF EXISTS public.trg_printing_markers_sync() CASCADE;
+DROP FUNCTION IF EXISTS public.trg_printings_set_slug() CASCADE;
+DROP FUNCTION IF EXISTS public.trg_touch_deck_of_card() CASCADE;
+DROP FUNCTION IF EXISTS public.trg_touch_pinned_copy() CASCADE;
+DROP TYPE IF EXISTS public.marketplace_group_kind CASCADE;
+DROP TYPE IF EXISTS public.release_precision CASCADE;
+DROP TYPE IF EXISTS public.set_type CASCADE;
+$sql$; END $baseline$
+`;
+
+export async function up(db: Kysely<unknown>): Promise<void> {
+  await sql`SET LOCAL check_function_bodies = false`.execute(db);
+  await sql`SET LOCAL client_min_messages = warning`.execute(db);
+  await sql.raw(SCHEMA).execute(db);
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
-  await sql`DROP TABLE IF EXISTS wish_lists CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS wish_list_items CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS verifications CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS users CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS user_preferences CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS user_feature_flags CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS trade_lists CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS trade_list_items CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS site_settings CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS sets CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS sessions CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS provider_settings CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS promo_types CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS printings CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS printing_link_overrides CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS printing_images CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS marketplace_staging_card_overrides CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS marketplace_staging CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS marketplace_snapshots CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS marketplace_products CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS marketplace_ignored_products CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS marketplace_groups CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS languages CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS keyword_styles CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS ignored_candidate_printings CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS ignored_candidate_cards CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS formats CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS feature_flags CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS decks CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS deck_cards CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS copies CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS collections CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS collection_events CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS cards CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS card_name_aliases CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS card_bans CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS candidate_printings CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS candidate_cards CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS admins CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS acquisition_sources CASCADE`.execute(db);
-  await sql`DROP TABLE IF EXISTS accounts CASCADE`.execute(db);
-  await sql`DROP FUNCTION IF EXISTS candidate_cards_set_norm_name CASCADE`.execute(db);
-  await sql`DROP FUNCTION IF EXISTS card_name_aliases_set_norm_name CASCADE`.execute(db);
-  await sql`DROP FUNCTION IF EXISTS cards_set_norm_name CASCADE`.execute(db);
-  await sql`DROP FUNCTION IF EXISTS prevent_nonempty_collection_delete CASCADE`.execute(db);
-  await sql`DROP FUNCTION IF EXISTS set_updated_at CASCADE`.execute(db);
+  await sql`SET LOCAL client_min_messages = warning`.execute(db);
+  await sql.raw(DROP).execute(db);
 }

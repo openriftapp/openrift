@@ -13,6 +13,7 @@ import { setupTestDb } from "../../test/integration-setup.js";
 import { migrate, rollback } from "../migrate.js";
 import { loadMigrations } from "../migration-files.js";
 import type { Database } from "../tables.js";
+import { FOLDED_MIGRATIONS } from "./_folded.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -102,6 +103,28 @@ describe.skipIf(!DATABASE_URL)("migration order is clock-step resilient", () => 
       )
       .map((row) => row.name);
     expect(recordedOrder).toEqual(canonicalNames);
+  });
+});
+
+describe.skipIf(!DATABASE_URL)("migrate refuses a database that predates the squash", () => {
+  let db: Kysely<Database>;
+  let log: Logger;
+  let teardown: () => Promise<void>;
+
+  beforeAll(async () => {
+    // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by describe.skipIf
+    ({ db, log, teardown } = await setupTestDb(DATABASE_URL!, "migration_squash_guard"));
+  });
+
+  afterAll(async () => {
+    await teardown();
+  });
+
+  it("throws when the core schema is applied but a folded migration is missing", async () => {
+    const folded = FOLDED_MIGRATIONS.at(-1);
+    await sql`DELETE FROM kysely_migration WHERE name = ${folded}`.execute(db);
+
+    await expect(migrate(db, log)).rejects.toThrow("predates the migration squash");
   });
 });
 

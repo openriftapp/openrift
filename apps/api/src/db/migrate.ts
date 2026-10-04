@@ -5,7 +5,10 @@ import { sql } from "kysely";
 import { Migrator } from "kysely/migration";
 
 import { loadMigrations } from "./migration-files.js";
+import { FOLDED_MIGRATIONS } from "./migrations/_folded.js";
 import type { Database } from "./tables.js";
+
+const CORE_MIGRATION = "001-core-schema";
 
 function createMigrator(db: Kysely<Database>) {
   return new Migrator({
@@ -80,6 +83,29 @@ async function normalizeMigrationTimestamps(db: Kysely<Database>): Promise<void>
   `.execute(db);
 }
 
+// A database with the core schema but short of the squash point would run its
+// missing folded migrations as no-ops and end up with an incomplete schema.
+async function assertFoldedMigrationsApplied(db: Kysely<Database>): Promise<void> {
+  const { rows: exists } = await sql<{ present: boolean }>`
+    SELECT to_regclass('kysely_migration') IS NOT NULL AS present
+  `.execute(db);
+  if (!exists[0]?.present) {
+    return;
+  }
+
+  const { rows } = await sql<{ name: string }>`SELECT name FROM kysely_migration`.execute(db);
+  const applied = new Set(rows.map((row) => row.name));
+  if (!applied.has(CORE_MIGRATION)) {
+    return;
+  }
+  const missing = FOLDED_MIGRATIONS.filter((name) => !applied.has(name));
+  if (missing.length > 0) {
+    throw new Error(
+      `Database predates the migration squash: ${missing.length} folded migrations were never applied (first: ${missing[0]}). Reset or restore the database.`,
+    );
+  }
+}
+
 function toError(thrown: unknown): Error {
   return thrown instanceof Error ? thrown : new Error(stringifyUnknown(thrown));
 }
@@ -87,6 +113,7 @@ function toError(thrown: unknown): Error {
 export async function migrate(db: Kysely<Database>, log: Logger): Promise<void> {
   // Repair any prior clock-step corruption before Kysely's ordering check runs.
   await normalizeMigrationTimestamps(db);
+  await assertFoldedMigrationsApplied(db);
 
   const migrator = createMigrator(db);
   const { error, results } = await migrator.migrateToLatest();
