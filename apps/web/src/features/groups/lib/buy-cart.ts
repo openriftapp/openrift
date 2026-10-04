@@ -1,4 +1,4 @@
-import type { MassEntryLine } from "@openrift/shared/marketplace";
+import type { CartWizardLine, MassEntryLine } from "@openrift/shared/marketplace";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 
 import type { CardLine } from "@/lib/export-text";
@@ -53,6 +53,30 @@ export function massEntryLines(
       unlisted.push(item);
     } else {
       lines.push({ productId, quantity: item.quantity });
+    }
+  }
+  return { lines, unlisted };
+}
+
+export function cartWizardLines(
+  items: readonly BuyCartItem[],
+  productIdOf: (printingId: string) => number | null | undefined,
+  printingOf: (printingId: string) => { language: string; finish: string } | undefined,
+): { lines: CartWizardLine[]; unlisted: BuyCartItem[] } {
+  const lines: CartWizardLine[] = [];
+  const unlisted: BuyCartItem[] = [];
+  for (const item of items) {
+    const productId = productIdOf(item.printingId);
+    if (productId === null || productId === undefined) {
+      unlisted.push(item);
+    } else {
+      const printing = printingOf(item.printingId);
+      lines.push({
+        productId,
+        quantity: item.quantity,
+        language: printing?.language,
+        finish: printing?.finish,
+      });
     }
   }
   return { lines, unlisted };

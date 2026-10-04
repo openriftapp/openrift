@@ -9,6 +9,7 @@ import {
   cartTotal,
   fileOrder,
   findOrderedCollection,
+  cartWizardLines,
   massEntryLines,
   withPrinting,
 } from "./buy-cart";
@@ -74,6 +75,22 @@ describe("massEntryLines", () => {
     const productIds: Record<string, number | null> = { "p-1": 652_993, "p-2": null };
     expect(massEntryLines([JINX, STAR], (printingId) => productIds[printingId])).toEqual({
       lines: [{ productId: 652_993, quantity: 1 }],
+      unlisted: [STAR],
+    });
+  });
+});
+
+describe("cartWizardLines", () => {
+  it("carries each printing's language and finish and sets aside printings CardNexus doesn't list", () => {
+    const productIds: Record<string, number | null> = { "p-1": 151_339, "p-2": null };
+    expect(
+      cartWizardLines(
+        [JINX, STAR],
+        (printingId) => productIds[printingId],
+        () => ({ language: "FR", finish: "foil" }),
+      ),
+    ).toEqual({
+      lines: [{ productId: 151_339, quantity: 1, language: "FR", finish: "foil" }],
       unlisted: [STAR],
     });
   });

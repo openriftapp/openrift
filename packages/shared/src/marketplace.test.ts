@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   affiliateUrl,
   cardmarketLangParam,
+  cardnexusCartWizardUrl,
   cardtraderAffiliateUrl,
   MARKETPLACE_LINKS,
   marketplaceLabel,
@@ -38,6 +39,60 @@ describe("tcgplayerMassEntryUrl", () => {
       "Riftbound League of Legends Trading Card Game",
     );
     expect(target.searchParams.get("c")).toBe("1-652993||2-652801");
+  });
+});
+
+describe("cardnexusCartWizardUrl", () => {
+  it("opens the Cart Wizard with quantity, language and finish per line", () => {
+    expect(
+      cardnexusCartWizardUrl([
+        { productId: 151_339, quantity: 2, language: "FR", finish: "foil" },
+        { productId: 151_160, quantity: 1, language: "EN", finish: "normal" },
+      ]),
+    ).toBe("https://af.cardnexus.link/7018965/products/cn/151339.2.fr.f~151160.1.en.s");
+  });
+
+  it("maps our Korean and Chinese codes to CardNexus language codes", () => {
+    expect(
+      cardnexusCartWizardUrl([
+        { productId: 1, quantity: 1, language: "KR" },
+        { productId: 2, quantity: 1, language: "SC" },
+        { productId: 3, quantity: 1, language: "TC" },
+        { productId: 4, quantity: 1, language: "ZH" },
+      ]),
+    ).toBe(
+      "https://af.cardnexus.link/7018965/products/cn/1.1.ko~2.1.zh-Hans~3.1.zh-Hant~4.1.zh-Hans",
+    );
+  });
+
+  it("leaves unknown finishes and missing languages empty so CardNexus accepts any", () => {
+    expect(
+      cardnexusCartWizardUrl([
+        { productId: 7, quantity: 3, finish: "foil" },
+        { productId: 8, quantity: 1, language: "DE", finish: "metal" },
+        { productId: 9, quantity: 1 },
+      ]),
+    ).toBe("https://af.cardnexus.link/7018965/products/cn/7.3..f~8.1.de~9.1");
+  });
+
+  it("merges lines for the same product, language and finish", () => {
+    expect(
+      cardnexusCartWizardUrl([
+        { productId: 7, quantity: 1, language: "EN", finish: "normal" },
+        { productId: 7, quantity: 2, language: "EN", finish: "normal" },
+        { productId: 7, quantity: 1, language: "FR", finish: "normal" },
+      ]),
+    ).toBe("https://af.cardnexus.link/7018965/products/cn/7.3.en.s~7.1.fr.s");
+  });
+
+  it("stops at the 400 lines the Cart Wizard reads", () => {
+    const lines = Array.from({ length: 405 }, (_, index) => ({
+      productId: index + 1,
+      quantity: 1,
+    }));
+    const sent = cardnexusCartWizardUrl(lines).split("/cn/")[1]?.split("~") ?? [];
+    expect(sent).toHaveLength(400);
+    expect(sent.at(-1)).toBe("400.1");
   });
 });
 
@@ -114,6 +169,20 @@ describe("MARKETPLACE_LINKS", () => {
     expect(MARKETPLACE_LINKS.cardmarket.productUrl(42, "DE")).toBe(
       "https://www.cardmarket.com/en/Riftbound/Products?idProduct=42&language=3",
     );
+  });
+
+  it("builds CardNexus affiliate product links by CardNexus id", () => {
+    expect(MARKETPLACE_LINKS.cardnexus.productUrl(151_339)).toBe(
+      "https://af.cardnexus.link/7018965/cn/151339",
+    );
+  });
+
+  it("keeps the Riftbound filter on CardNexus search inside the tracked redirect", () => {
+    const url = new URL(MARKETPLACE_LINKS.cardnexus.searchUrl("Jinx, Rebel"));
+    expect(url.origin + url.pathname).toBe("https://go.cardnexus.link/c/7018965/3770197/48046");
+    const target = new URL(url.searchParams.get("u") ?? "");
+    expect(target.searchParams.get("q")).toBe("Jinx, Rebel");
+    expect(target.searchParams.get("game")).toBe("riftbound");
   });
 
   it("URL-encodes search queries", () => {

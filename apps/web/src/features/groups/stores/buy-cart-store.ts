@@ -5,22 +5,20 @@ import { persist } from "zustand/middleware";
 import type { BuyCartItem, UserCart } from "@/features/groups/lib/buy-cart";
 import { cartFor, withPrinting } from "@/features/groups/lib/buy-cart";
 
-// CardNexus has no cart handoff without an affiliate id, so the buy cart leaves it out.
-export type BuyCartMarketplace = Exclude<Marketplace, "cardnexus">;
-
-export const BUY_CART_MARKETPLACES: readonly BuyCartMarketplace[] = [
+export const BUY_CART_MARKETPLACES: readonly Marketplace[] = [
   "cardtrader",
   "cardmarket",
+  "cardnexus",
   "tcgplayer",
 ];
 
 interface BuyCartState {
   carts: Record<string, UserCart>;
-  marketplace: BuyCartMarketplace;
+  marketplace: Marketplace;
   addItems: (userId: string, items: readonly BuyCartItem[]) => void;
   removeItems: (userId: string, keys: readonly string[]) => void;
   clear: (userId: string) => void;
-  setMarketplace: (marketplace: BuyCartMarketplace) => void;
+  setMarketplace: (marketplace: Marketplace) => void;
   setPrinting: (userId: string, key: string, printingId: string) => void;
 }
 
@@ -70,7 +68,7 @@ function parseCarts(value: unknown): Record<string, UserCart> {
   return carts;
 }
 
-function parseMarketplace(value: unknown): BuyCartMarketplace {
+function parseMarketplace(value: unknown): Marketplace {
   return BUY_CART_MARKETPLACES.find((marketplace) => marketplace === value) ?? "cardtrader";
 }
 

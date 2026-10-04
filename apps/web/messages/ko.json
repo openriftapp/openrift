@@ -5,7 +5,7 @@
   "footer_privacy_policy": "개인정보 처리방침",
   "footer_support_us": "후원하기",
   "footer_developers": "개발자",
-  "footer_riot_disclaimer": "OpenRift는 Riot Games의 \"Legal Jibber Jabber\" 정책에 따라 Riot Games가 소유한 에셋을 사용하여 제작되었습니다. Riot Games는 이 프로젝트를 보증하거나 후원하지 않습니다. TCGPlayer와 CardTrader로 연결되는 링크는 제휴 링크입니다.",
+  "footer_riot_disclaimer": "OpenRift는 Riot Games의 \"Legal Jibber Jabber\" 정책에 따라 Riot Games가 소유한 에셋을 사용하여 제작되었습니다. Riot Games는 이 프로젝트를 보증하거나 후원하지 않습니다. TCGPlayer, CardTrader, CardNexus로 연결되는 링크는 제휴 링크입니다.",
   "locale_switcher_label": "언어",
   "profile_account_title": "계정 정보",
   "profile_account_description": "공유 목록에는 이 이름이 표시됩니다.",
@@ -9596,6 +9596,29 @@
       "match": {
         "countPlural=one": "카드 {count}장은 TCGplayer에 없어 제외했습니다.",
         "countPlural=*": "카드 {count}장은 TCGplayer에 없어 제외했습니다."
+      }
+    }
+  ],
+  "trades_buy_market_cardnexus": "CardNexus",
+  "trades_buy_how_cardnexus": "정확한 인쇄본으로 Cart Wizard를 엽니다",
+  "trades_buy_cta_cardnexus": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "카드 {count}장을 CardNexus Cart Wizard로 보내기",
+        "countPlural=*": "카드 {count}장을 CardNexus Cart Wizard로 보내기"
+      }
+    }
+  ],
+  "trades_buy_note_cardnexus": "Cart Wizard가 판매자, 배송비, 수수료를 비교해 가장 저렴한 장바구니를 구성합니다.",
+  "trades_buy_cardnexus_unlisted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "카드 {count}장은 CardNexus에 등록되어 있지 않아 제외되었습니다.",
+        "countPlural=*": "카드 {count}장은 CardNexus에 등록되어 있지 않아 제외되었습니다."
       }
     }
   ],

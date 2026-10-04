@@ -8,7 +8,12 @@ import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { stubPrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
-const jinx = stubPrinting({ id: "p-1", card: { name: "Jinx, Rebel" } });
+const jinx = stubPrinting({
+  id: "p-1",
+  language: "FR",
+  finish: "foil",
+  card: { name: "Jinx, Rebel" },
+});
 const star = stubPrinting({ id: "p-2", card: { name: "Falling Star" } });
 
 const markOrdered = vi.hoisted(() => vi.fn());
@@ -33,11 +38,13 @@ vi.mock("@/features/cards/hooks/use-marketplace-info", () => ({
           tcgplayer: { available: true, productId: 652_993 },
           cardmarket: { available: false, productId: null },
           cardtrader: { available: false, productId: null },
+          cardnexus: { available: true, productId: 151_339 },
         },
         "p-2": {
           tcgplayer: { available: false, productId: null },
           cardmarket: { available: false, productId: null },
           cardtrader: { available: false, productId: null },
+          cardnexus: { available: false, productId: null },
         },
       },
     },
@@ -108,6 +115,16 @@ describe("BuyCartPanel", () => {
     const target = new URL(new URL(link.getAttribute("href") ?? "").searchParams.get("u") ?? "");
     expect(target.searchParams.get("c")).toBe("1-652993");
     expect(screen.getByText("1 card isn't listed on TCGplayer and was left out.")).toBeTruthy();
+  });
+
+  it("sends the CardNexus Cart Wizard the listed printings with language and finish", () => {
+    useBuyCartStore.getState().setMarketplace("cardnexus");
+    renderPanel();
+    const link = screen.getByRole("link", { name: "Send 1 card to the CardNexus Cart Wizard" });
+    expect(link.getAttribute("href")).toBe(
+      "https://af.cardnexus.link/7018965/products/cn/151339.1.fr.f",
+    );
+    expect(screen.getByText("1 card isn't listed on CardNexus and was left out.")).toBeTruthy();
   });
 
   it("copies a Cardmarket wants list and shows the extension tip", async () => {

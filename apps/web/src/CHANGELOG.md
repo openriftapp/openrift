@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-04
+
+### Other
+
+- feat(Trades): **Buy through CardNexus** — the buy cart can send your cards to the CardNexus Cart Wizard with their exact language and finish, which builds the cheapest mix of sellers.
+
 ## 2026-10-03
 
 ### Other

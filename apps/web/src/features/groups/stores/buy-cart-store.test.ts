@@ -91,6 +91,10 @@ describe("useBuyCartStore", () => {
       expect(merged.marketplace).toBe("cardmarket");
     });
 
+    it("keeps a stored CardNexus choice", () => {
+      expect(mergeInto({ marketplace: "cardnexus" }).marketplace).toBe("cardnexus");
+    });
+
     it("falls back to defaults for an unknown shape", () => {
       const merged = mergeInto({ carts: 5, marketplace: "ebay" });
       expect(merged.carts).toEqual({});

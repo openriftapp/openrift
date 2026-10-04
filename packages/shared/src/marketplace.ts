@@ -62,6 +62,58 @@ export function tcgplayerMassEntryUrl(lines: readonly MassEntryLine[]): string {
   );
 }
 
+const CARDNEXUS_MP_ID = "7018965";
+const CARDNEXUS_AFFILIATE_BASE = `https://af.cardnexus.link/${CARDNEXUS_MP_ID}`;
+// af.cardnexus.link search drops query params; switch to it once it keeps `game=riftbound`.
+const CARDNEXUS_DEEP_LINK_BASE = `https://go.cardnexus.link/c/${CARDNEXUS_MP_ID}/3770197/48046`;
+const CARDNEXUS_CART_WIZARD_MAX_LINES = 400;
+
+const CARDNEXUS_LANGUAGE_CODES: Record<string, string> = {
+  KR: "ko",
+  SC: "zh-Hans",
+  ZH: "zh-Hans",
+  TC: "zh-Hant",
+};
+
+const CARDNEXUS_FINISH_CODES: Record<string, string> = {
+  normal: "s",
+  foil: "f",
+};
+
+export interface CartWizardLine {
+  productId: number;
+  quantity: number;
+  language?: string | null;
+  finish?: string | null;
+}
+
+function cardnexusLanguage(language: string | null | undefined): string {
+  if (!language) {
+    return "";
+  }
+  const upper = language.toUpperCase();
+  return CARDNEXUS_LANGUAGE_CODES[upper] ?? language.toLowerCase();
+}
+
+/** Cart Wizard reads `{productId}.{quantity}.{language}.{finish}` lines joined by `~`; an empty field means any. */
+export function cardnexusCartWizardUrl(lines: readonly CartWizardLine[]): string {
+  const quantities = new Map<string, number>();
+  for (const line of lines) {
+    const language = cardnexusLanguage(line.language);
+    const finish = CARDNEXUS_FINISH_CODES[line.finish ?? ""] ?? "";
+    const key = `${line.productId}.${language}.${finish}`;
+    quantities.set(key, (quantities.get(key) ?? 0) + line.quantity);
+  }
+  const entries = [...quantities]
+    .slice(0, CARDNEXUS_CART_WIZARD_MAX_LINES)
+    .map(([key, quantity]) => {
+      const [productId, language, finish] = key.split(".");
+      return `${productId}.${quantity}.${language}.${finish}`.replace(/\.+$/u, "");
+    })
+    .join("~");
+  return `${CARDNEXUS_AFFILIATE_BASE}/products/cn/${entries}`;
+}
+
 interface MarketplaceLinks {
   label: string;
   searchUrl: (query: string) => string;
@@ -97,10 +149,11 @@ export const MARKETPLACE_LINKS: Record<Marketplace, MarketplaceLinks> = {
   cardnexus: {
     label: "CardNexus",
     searchUrl: (query) =>
-      `https://cardnexus.com/en/search?q=${encodeURIComponent(query)}&game=riftbound`,
-    // CardNexus redirects any set and name slug to the canonical page as long as the path ends in the product id.
-    productUrl: (id) => `https://cardnexus.com/en/explore/riftbound/set/card/card-${id}`,
-    isAffiliate: false,
+      `${CARDNEXUS_DEEP_LINK_BASE}?u=${encodeURIComponent(
+        `https://cardnexus.com/en/search?q=${encodeURIComponent(query)}&game=riftbound`,
+      )}`,
+    productUrl: (id) => `${CARDNEXUS_AFFILIATE_BASE}/cn/${id}`,
+    isAffiliate: true,
   },
 };
 

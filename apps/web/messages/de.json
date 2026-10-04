@@ -5,7 +5,7 @@
   "footer_privacy_policy": "Datenschutz",
   "footer_support_us": "Unterstütze uns",
   "footer_developers": "Entwickler",
-  "footer_riot_disclaimer": "OpenRift wurde unter der \"Legal Jibber Jabber\"-Richtlinie von Riot Games mit Assets von Riot Games erstellt. Riot Games unterstützt oder sponsert dieses Projekt nicht. Links zu TCGPlayer und CardTrader sind Affiliate-Links.",
+  "footer_riot_disclaimer": "OpenRift wurde unter der \"Legal Jibber Jabber\"-Richtlinie von Riot Games mit Assets von Riot Games erstellt. Riot Games unterstützt oder sponsert dieses Projekt nicht. Links zu TCGPlayer, CardTrader und CardNexus sind Affiliate-Links.",
   "locale_switcher_label": "Sprache",
   "profile_account_title": "Kontodaten",
   "profile_account_description": "Dein Name erscheint auf geteilten Listen.",
@@ -9594,6 +9594,29 @@
       "match": {
         "countPlural=one": "{count} Karte ist bei TCGplayer nicht gelistet und wurde weggelassen.",
         "countPlural=*": "{count} Karten sind bei TCGplayer nicht gelistet und wurden weggelassen."
+      }
+    }
+  ],
+  "trades_buy_market_cardnexus": "CardNexus",
+  "trades_buy_how_cardnexus": "Öffnet den Cart Wizard mit genau diesen Drucken",
+  "trades_buy_cta_cardnexus": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Karte an den CardNexus Cart Wizard senden",
+        "countPlural=*": "{count} Karten an den CardNexus Cart Wizard senden"
+      }
+    }
+  ],
+  "trades_buy_note_cardnexus": "Der Cart Wizard vergleicht Verkäufer, Versand und Gebühren und stellt den günstigsten Warenkorb zusammen.",
+  "trades_buy_cardnexus_unlisted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Karte ist bei CardNexus nicht gelistet und wurde weggelassen.",
+        "countPlural=*": "{count} Karten sind bei CardNexus nicht gelistet und wurden weggelassen."
       }
     }
   ],

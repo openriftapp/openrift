@@ -2,8 +2,10 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import {
   CARDMARKET_WANTS_URL,
   CARDTRADER_WISHLIST_URL,
+  cardnexusCartWizardUrl,
   tcgplayerMassEntryUrl,
 } from "@openrift/shared/marketplace";
+import type { Marketplace } from "@openrift/shared/types/pricing";
 import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
 import { CheckIcon, PuzzleIcon, ShoppingCartIcon, XIcon } from "lucide-react";
@@ -29,9 +31,13 @@ import { usePrices } from "@/features/cards/hooks/use-prices";
 import { frontImageId } from "@/features/cards/lib/card-meta";
 import { useMarkOrdered } from "@/features/groups/hooks/use-mark-ordered";
 import type { BuyCartItem } from "@/features/groups/lib/buy-cart";
-import { cartCardLines, cartTotal, massEntryLines } from "@/features/groups/lib/buy-cart";
+import {
+  cartCardLines,
+  cartTotal,
+  cartWizardLines,
+  massEntryLines,
+} from "@/features/groups/lib/buy-cart";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
-import type { BuyCartMarketplace } from "@/features/groups/stores/buy-cart-store";
 import { BUY_CART_MARKETPLACES, useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useEnumOrders } from "@/hooks/use-enums";
@@ -40,18 +46,20 @@ import { formatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-function marketplaceName(marketplace: BuyCartMarketplace): string {
+function marketplaceName(marketplace: Marketplace): string {
   return {
     cardtrader: m.trades_buy_market_cardtrader(),
     cardmarket: m.trades_buy_market_cardmarket(),
+    cardnexus: m.trades_buy_market_cardnexus(),
     tcgplayer: m.trades_buy_market_tcgplayer(),
   }[marketplace];
 }
 
-function marketplaceHow(marketplace: BuyCartMarketplace): string {
+function marketplaceHow(marketplace: Marketplace): string {
   return {
     cardtrader: m.trades_buy_how_cardtrader(),
     cardmarket: m.trades_buy_how_cardmarket(),
+    cardnexus: m.trades_buy_how_cardnexus(),
     tcgplayer: m.trades_buy_how_tcgplayer(),
   }[marketplace];
 }
@@ -165,55 +173,71 @@ function HandoffButton({
   items,
   nameOf,
 }: {
-  marketplace: BuyCartMarketplace;
+  marketplace: Marketplace;
   items: readonly BuyCartItem[];
   nameOf: (item: BuyCartItem) => string;
 }) {
   const { copy } = useCopyToClipboard();
+  const { printingsById } = useCards();
+  const directCart = marketplace === "tcgplayer" || marketplace === "cardnexus";
   const { data: marketplaceInfo } = useMarketplaceInfo(
-    marketplace === "tcgplayer" ? items.map((item) => item.printingId) : [],
+    directCart ? items.map((item) => item.printingId) : [],
   );
   const lines = cartCardLines(items, nameOf);
   const className = cn(buttonVariants(), "w-full");
 
-  if (marketplace === "tcgplayer") {
-    const { lines: massEntry, unlisted } = massEntryLines(
-      items,
-      (printingId) => marketplaceInfo?.infos[printingId]?.tcgplayer.productId,
-    );
-    const sendCount = massEntry.reduce((sum, line) => sum + line.quantity, 0);
-    if (marketplaceInfo === undefined || massEntry.length === 0) {
+  if (directCart) {
+    const productIdOf = (printingId: string) =>
+      marketplaceInfo?.infos[printingId]?.[marketplace].productId;
+    let href: string;
+    let sendLines: readonly { quantity: number }[];
+    let unlisted: readonly BuyCartItem[];
+    if (marketplace === "tcgplayer") {
+      const massEntry = massEntryLines(items, productIdOf);
+      href = tcgplayerMassEntryUrl(massEntry.lines);
+      sendLines = massEntry.lines;
+      unlisted = massEntry.unlisted;
+    } else {
+      const wizard = cartWizardLines(items, productIdOf, (printingId) => printingsById[printingId]);
+      href = cardnexusCartWizardUrl(wizard.lines);
+      sendLines = wizard.lines;
+      unlisted = wizard.unlisted;
+    }
+    const cta = (count: number) =>
+      marketplace === "tcgplayer"
+        ? m.trades_buy_cta_tcgplayer({ count })
+        : m.trades_buy_cta_cardnexus({ count });
+    const unlistedNote =
+      marketplace === "tcgplayer"
+        ? m.trades_buy_tcgplayer_unlisted({ count: unlisted.length })
+        : m.trades_buy_cardnexus_unlisted({ count: unlisted.length });
+    const sendCount = sendLines.reduce((sum, line) => sum + line.quantity, 0);
+    if (marketplaceInfo === undefined || sendLines.length === 0) {
       return (
         <>
           <Button className="w-full" disabled>
             <ShoppingCartIcon />
-            {m.trades_buy_cta_tcgplayer({
-              count: items.reduce((sum, item) => sum + item.quantity, 0),
-            })}
+            {cta(items.reduce((sum, item) => sum + item.quantity, 0))}
           </Button>
           {marketplaceInfo === undefined ? null : (
-            <p className="text-muted-foreground text-sm">
-              {m.trades_buy_tcgplayer_unlisted({ count: unlisted.length })}
-            </p>
+            <p className="text-muted-foreground text-sm">{unlistedNote}</p>
           )}
         </>
       );
     }
     return (
       <>
-        <MarketplaceLink
-          marketplace="tcgplayer"
-          href={tcgplayerMassEntryUrl(massEntry)}
-          className={className}
-        >
+        <MarketplaceLink marketplace={marketplace} href={href} className={className}>
           <ShoppingCartIcon />
-          {m.trades_buy_cta_tcgplayer({ count: sendCount })}
+          {cta(sendCount)}
         </MarketplaceLink>
-        <p className="text-muted-foreground text-sm">{m.trades_buy_note_tcgplayer()}</p>
+        <p className="text-muted-foreground text-sm">
+          {marketplace === "tcgplayer"
+            ? m.trades_buy_note_tcgplayer()
+            : m.trades_buy_note_cardnexus()}
+        </p>
         {unlisted.length > 0 ? (
-          <p className="text-muted-foreground text-sm">
-            {m.trades_buy_tcgplayer_unlisted({ count: unlisted.length })}
-          </p>
+          <p className="text-muted-foreground text-sm">{unlistedNote}</p>
         ) : null}
       </>
     );
@@ -388,7 +412,7 @@ export function BuyCartPanel({
 
           <RadioGroup
             value={marketplace}
-            onValueChange={(value) => setMarketplace(value as BuyCartMarketplace)}
+            onValueChange={(value) => setMarketplace(value as Marketplace)}
             aria-label={m.trades_buy_market_label()}
           >
             {BUY_CART_MARKETPLACES.map((entry) => (

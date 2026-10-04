@@ -5,7 +5,7 @@
   "footer_privacy_policy": "Privacy Policy",
   "footer_support_us": "Support us",
   "footer_developers": "Developers",
-  "footer_riot_disclaimer": "OpenRift was created under Riot Games' \"Legal Jibber Jabber\" policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project. Links to TCGPlayer and CardTrader are affiliate links.",
+  "footer_riot_disclaimer": "OpenRift was created under Riot Games' \"Legal Jibber Jabber\" policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project. Links to TCGPlayer, CardTrader and CardNexus are affiliate links.",
   "locale_switcher_label": "Language",
   "profile_account_title": "Account Info",
   "profile_account_description": "Your name is what shows on shared lists.",
@@ -9597,6 +9597,29 @@
       "match": {
         "countPlural=one": "{count} card isn't listed on TCGplayer and was left out.",
         "countPlural=*": "{count} cards aren't listed on TCGplayer and were left out."
+      }
+    }
+  ],
+  "trades_buy_market_cardnexus": "CardNexus",
+  "trades_buy_how_cardnexus": "Opens the Cart Wizard with the exact printings",
+  "trades_buy_cta_cardnexus": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Send {count} card to the CardNexus Cart Wizard",
+        "countPlural=*": "Send {count} cards to the CardNexus Cart Wizard"
+      }
+    }
+  ],
+  "trades_buy_note_cardnexus": "The Cart Wizard compares sellers, shipping and fees and builds the cheapest cart.",
+  "trades_buy_cardnexus_unlisted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} card isn't listed on CardNexus and was left out.",
+        "countPlural=*": "{count} cards aren't listed on CardNexus and were left out."
       }
     }
   ],

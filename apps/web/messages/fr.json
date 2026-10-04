@@ -5,7 +5,7 @@
   "footer_privacy_policy": "Confidentialité",
   "footer_support_us": "Soutenez-nous",
   "footer_developers": "Développeurs",
-  "footer_riot_disclaimer": "OpenRift a été créé dans le cadre de la politique \"Legal Jibber Jabber\" de Riot Games, avec des ressources appartenant à Riot Games. Riot Games ne soutient ni ne sponsorise ce projet. Les liens vers TCGPlayer et CardTrader sont des liens affiliés.",
+  "footer_riot_disclaimer": "OpenRift a été créé dans le cadre de la politique \"Legal Jibber Jabber\" de Riot Games, avec des ressources appartenant à Riot Games. Riot Games ne soutient ni ne sponsorise ce projet. Les liens vers TCGPlayer, CardTrader et CardNexus sont des liens affiliés.",
   "locale_switcher_label": "Langue",
   "profile_account_title": "Informations du compte",
   "profile_account_description": "Votre nom est celui qui apparaît sur les listes partagées.",
@@ -9595,6 +9595,29 @@
       "match": {
         "countPlural=one": "{count} carte n'est pas proposée sur TCGplayer et a été laissée de côté.",
         "countPlural=*": "{count} cartes ne sont pas proposées sur TCGplayer et ont été laissées de côté."
+      }
+    }
+  ],
+  "trades_buy_market_cardnexus": "CardNexus",
+  "trades_buy_how_cardnexus": "Ouvre le Cart Wizard avec exactement ces impressions",
+  "trades_buy_cta_cardnexus": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Envoyer {count} carte au Cart Wizard de CardNexus",
+        "countPlural=*": "Envoyer {count} cartes au Cart Wizard de CardNexus"
+      }
+    }
+  ],
+  "trades_buy_note_cardnexus": "Le Cart Wizard compare les vendeurs, la livraison et les frais, puis compose le panier le moins cher.",
+  "trades_buy_cardnexus_unlisted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte n'est pas listée sur CardNexus et a été laissée de côté.",
+        "countPlural=*": "{count} cartes ne sont pas listées sur CardNexus et ont été laissées de côté."
       }
     }
   ],

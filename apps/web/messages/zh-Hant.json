@@ -5,7 +5,7 @@
   "footer_privacy_policy": "隱私權政策",
   "footer_support_us": "支持我們",
   "footer_developers": "開發者",
-  "footer_riot_disclaimer": "OpenRift 是依照 Riot Games 的「Legal Jibber Jabber」政策，使用 Riot Games 擁有的素材所製作。Riot Games 並未認可或贊助本專案。連往 TCGPlayer 與 CardTrader 的連結為聯盟連結。",
+  "footer_riot_disclaimer": "OpenRift 是依照 Riot Games 的「Legal Jibber Jabber」政策，使用 Riot Games 擁有的素材所製作。Riot Games 並未認可或贊助本專案。連往 TCGPlayer、CardTrader 與 CardNexus 的連結為聯盟連結。",
   "locale_switcher_label": "語言",
   "profile_account_title": "帳號資訊",
   "profile_account_description": "你的名稱會顯示在分享出去的清單上。",
@@ -9596,6 +9596,29 @@
       "match": {
         "countPlural=one": "{count} 張卡牌未在 TCGplayer 上架，已略過。",
         "countPlural=*": "{count} 張卡牌未在 TCGplayer 上架，已略過。"
+      }
+    }
+  ],
+  "trades_buy_market_cardnexus": "CardNexus",
+  "trades_buy_how_cardnexus": "用這些版本開啟 Cart Wizard",
+  "trades_buy_cta_cardnexus": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "將 {count} 張卡傳送到 CardNexus Cart Wizard",
+        "countPlural=*": "將 {count} 張卡傳送到 CardNexus Cart Wizard"
+      }
+    }
+  ],
+  "trades_buy_note_cardnexus": "Cart Wizard 會比較賣家、運費與手續費，組合出最便宜的購物車。",
+  "trades_buy_cardnexus_unlisted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 張卡未在 CardNexus 上架，已略過。",
+        "countPlural=*": "{count} 張卡未在 CardNexus 上架，已略過。"
       }
     }
   ],
