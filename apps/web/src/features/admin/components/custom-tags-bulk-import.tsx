@@ -67,9 +67,9 @@ export function BulkImport({ tags }: { tags: CustomTagResponse[] }) {
         <SectionHeaderGroup>
           <SectionHeaderTitle as="h3">Bulk import</SectionHeaderTitle>
           <SectionHeaderDescription>
-            Paste a decklist-style block (one card per line, optionally prefixed by a count) and
-            attach the selected tag to every matched card. Re-importing is safe — cards already
-            carrying the tag are left untouched.
+            Paste a decklist or an exported list (one card per line, optionally prefixed by a count
+            like 3 or 3x) and attach the selected tag to every matched card. Re-importing is safe —
+            cards already carrying the tag are left untouched.
           </SectionHeaderDescription>
         </SectionHeaderGroup>
       </SectionHeader>

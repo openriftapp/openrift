@@ -5,6 +5,7 @@ import { parseDeckImportData } from "@/features/decks/lib/deck-import-parsers";
 export interface MinimalCard {
   id: string;
   name: string;
+  shortCodes?: readonly string[];
 }
 
 export interface BulkImportPlan {
@@ -23,7 +24,11 @@ export function planCustomTagBulkImport(text: string, allCards: MinimalCard[]): 
   const { entries, warnings } = parseDeckImportData(text, "text");
 
   const byNormalizedName = new Map<string, MinimalCard[]>();
+  const byShortCode = new Map<string, MinimalCard>();
   for (const card of allCards) {
+    for (const shortCode of card.shortCodes ?? []) {
+      byShortCode.set(shortCode.toLowerCase(), card);
+    }
     const key = normalizeNameForIdentity(card.name);
     const existing = byNormalizedName.get(key);
     if (existing) {
@@ -43,7 +48,8 @@ export function planCustomTagBulkImport(text: string, allCards: MinimalCard[]): 
     if (!name) {
       continue;
     }
-    const hits = byNormalizedName.get(normalizeNameForIdentity(name)) ?? [];
+    const byCode = entry.shortCode ? byShortCode.get(entry.shortCode.toLowerCase()) : undefined;
+    const hits = byCode ? [byCode] : (byNormalizedName.get(normalizeNameForIdentity(name)) ?? []);
     const [card] = hits;
     if (card === undefined) {
       unmatched.push(name);

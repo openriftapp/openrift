@@ -85,6 +85,10 @@ function headerTextOf(line: string): string | undefined {
   return undefined;
 }
 
+const QUANTITY_LINE = /^(?:(?<count>\d+)\s*[x×]?|[x×]\s*(?<prefixedCount>\d+))\s+(?<name>.+)$/iu;
+const SHORT_CODE = /^[A-Z0-9]+-[A-Z0-9]+[a-z]?\*?$/u;
+const URL_LINE = /^https?:\/\/\S+$/iu;
+
 /**
  * Lines are `{quantity} {card name}` under an optional zone header; a bare
  * line with no leading count is treated as quantity 1.
@@ -113,11 +117,18 @@ export function parseTextFormat(code: string): DeckCodeParseResult {
       continue;
     }
 
-    const match = /^(?<quantity>\d+)\s+(?<name>.+)$/u.exec(line);
+    if (URL_LINE.test(line)) {
+      continue;
+    }
+
+    const match = QUANTITY_LINE.exec(line);
     const effectiveZone = currentZone ?? WellKnown.deckZone.MAIN;
-    const quantity = match ? Number(match[1]) : 1;
-    const cardName = match?.[2]?.trim() ?? line;
+    const quantity = Number(match?.groups?.count ?? match?.groups?.prefixedCount ?? 1);
+    const [namePart = "", codePart] = (match?.groups?.name ?? line).split(" · ");
+    const cardName = namePart.trim();
+    const shortCode = codePart !== undefined && SHORT_CODE.test(codePart) ? codePart : undefined;
     entries.push({
+      ...(shortCode && { shortCode }),
       cardName,
       quantity,
       sourceSlot: sourceSlotForZone(effectiveZone),

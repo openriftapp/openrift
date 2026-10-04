@@ -6,7 +6,7 @@ import { planCustomTagBulkImport } from "./custom-tag-bulk-import";
 const CARDS: MinimalCard[] = [
   { id: "card-1", name: "Brazen Buccaneer" },
   { id: "card-2", name: "Riptide Rex" },
-  { id: "card-3", name: "Miss Fortune, Buccaneer" },
+  { id: "card-3", name: "Miss Fortune, Buccaneer", shortCodes: ["OGN-246", "OGN-246a"] },
   { id: "card-4", name: "Miss Fortune, Captain" },
   { id: "card-5", name: "Pouty Poro" },
 ];
@@ -85,5 +85,38 @@ describe("planCustomTagBulkImport", () => {
     const plan = planCustomTagBulkImport("\n1 Pouty Poro\n\n", CARDS);
     expect(plan.cardIds).toEqual(["card-5"]);
     expect(plan.warnings).toEqual([]);
+  });
+
+  it("resolves a pasted list export, skipping its header and URL", () => {
+    const text = [
+      "Wishlist (2 cards)",
+      "https://example.com/lists/abc",
+      "",
+      "3x Brazen Buccaneer",
+      "1x Riptide Rex · €0.40",
+    ].join("\n");
+    const plan = planCustomTagBulkImport(text, CARDS);
+    expect(plan.cardIds).toEqual(["card-1", "card-2"]);
+    expect(plan.unmatched).toEqual(["Wishlist (2 cards)"]);
+  });
+
+  it("resolves by short code before name", () => {
+    const plan = planCustomTagBulkImport("2x Miss Fortune · OGN-246a · Foil", CARDS);
+    expect(plan.cardIds).toEqual(["card-3"]);
+    expect(plan.ambiguous).toEqual([]);
+  });
+
+  it("disambiguates a shared name by short code", () => {
+    const collision: MinimalCard[] = [
+      { id: "a", name: "Mystery Card", shortCodes: ["OGN-001"] },
+      { id: "b", name: "Mystery Card", shortCodes: ["SFD-001"] },
+    ];
+    const plan = planCustomTagBulkImport("1x Mystery Card · SFD-001", collision);
+    expect(plan.cardIds).toEqual(["b"]);
+  });
+
+  it("falls back to the name when the short code is unknown", () => {
+    const plan = planCustomTagBulkImport("1x Pouty Poro · XYZ-999", CARDS);
+    expect(plan.cardIds).toEqual(["card-5"]);
   });
 });

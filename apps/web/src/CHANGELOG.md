@@ -4,6 +4,7 @@
 
 ### Other
 
+- feat(Decks): **Import exported lists** — the deck importer reads counts written as 3x and pasted wishlists and tradelists, matching each card by its set code when the line has one.
 - feat(Trades): **Buy through CardNexus** — the buy cart can send your cards to the CardNexus Cart Wizard with their exact language and finish, which builds the cheapest mix of sellers.
 
 ## 2026-10-03

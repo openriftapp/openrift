@@ -185,4 +185,54 @@ describe("parseTextFormat", () => {
 
     expect(entries).toHaveLength(1);
   });
+
+  it.each([
+    ["3x Brazen Buccaneer", 3],
+    ["3X Brazen Buccaneer", 3],
+    ["3 x Brazen Buccaneer", 3],
+    ["3× Brazen Buccaneer", 3],
+    ["x3 Brazen Buccaneer", 3],
+  ])("reads the count prefix in %s", (line, quantity) => {
+    const { entries } = parseTextFormat(line);
+
+    expect(entries[0]).toMatchObject({ cardName: "Brazen Buccaneer", quantity });
+  });
+
+  it("keeps a name that starts with x after a plain count", () => {
+    const { entries } = parseTextFormat("1 Xerath, Magus Ascendant");
+
+    expect(entries[0]).toMatchObject({ cardName: "Xerath, Magus Ascendant", quantity: 1 });
+  });
+
+  it("reads a list export line into name, quantity and short code", () => {
+    const { entries } = parseTextFormat(
+      "2x Miss Fortune, Buccaneer · OGN-246a · Foil · DE · €1.20",
+    );
+
+    expect(entries[0]).toMatchObject({
+      cardName: "Miss Fortune, Buccaneer",
+      quantity: 2,
+      shortCode: "OGN-246a",
+    });
+  });
+
+  it("reads a promo short code with a star", () => {
+    const { entries } = parseTextFormat("1x Pouty Poro · T1S-005*");
+
+    expect(entries[0]!.shortCode).toBe("T1S-005*");
+  });
+
+  it("drops the suffix without a short code when the first part is not one", () => {
+    const { entries } = parseTextFormat("1x Pouty Poro · $0.50");
+
+    expect(entries[0]).toMatchObject({ cardName: "Pouty Poro" });
+    expect(entries[0]!.shortCode).toBeUndefined();
+  });
+
+  it("skips URL lines", () => {
+    const { entries } = parseTextFormat("https://example.com/lists/abc\n\n1x Pouty Poro");
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]!.cardName).toBe("Pouty Poro");
+  });
 });
