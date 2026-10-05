@@ -1,5 +1,8 @@
+import type { Transaction } from "kysely";
+import { sql } from "kysely";
 import { afterAll, describe, expect, it } from "vitest";
 
+import type { Database } from "../../../db/tables.js";
 import { UVSGAMES_PROVIDER } from "../../../lib/meta-providers.js";
 import { createDbContext } from "../../../test/integration-context.js";
 import type { UvsgamesUpsertInput } from "./uvsgames-events.js";
@@ -43,9 +46,13 @@ const EXTERNAL_IDS = [
   "mtc-prio-local",
   "mtc-prio-rq",
   "mtc-pull-soon",
+  "mtc-lock-a",
+  "mtc-lock-z",
 ];
 
 const STORE_ID = 990_001;
+const LOCK_STORE_LOW = 990_011;
+const LOCK_STORE_HIGH = 990_012;
 const SEEN = new Date("2026-08-20T12:00:00Z");
 
 const createdEventIds: string[] = [];
@@ -123,7 +130,10 @@ afterAll(async () => {
     .where("externalId", "in", EXTERNAL_IDS)
     .execute();
   await ctx.db.deleteFrom("uvsgamesEvents").where("externalId", "in", EXTERNAL_IDS).execute();
-  await ctx.db.deleteFrom("uvsgamesStores").where("id", "=", STORE_ID).execute();
+  await ctx.db
+    .deleteFrom("uvsgamesStores")
+    .where("id", "in", [STORE_ID, LOCK_STORE_LOW, LOCK_STORE_HIGH])
+    .execute();
   await ctx.db
     .deleteFrom("uvsgamesEventTemplates")
     .where("templateId", "in", ["mtc-template-a", "mtc-template-b", "mtc-template-avg"])
@@ -155,8 +165,88 @@ afterAll(async () => {
     .execute();
 });
 
+async function raceLockOrder(options: {
+  table: string;
+  lockLow: (trx: Transaction<Database>) => Promise<unknown>;
+  lockHigh: (trx: Transaction<Database>) => Promise<unknown>;
+  write: () => Promise<unknown>;
+}): Promise<void> {
+  let write: Promise<unknown> = Promise.resolve();
+  await ctx!.db.transaction().execute(async (trx) => {
+    await options.lockLow(trx);
+    write = options.write();
+    write.catch(() => {});
+    await waitForLockWait(options.table);
+    await options.lockHigh(trx);
+  });
+  await write;
+}
+
+async function waitForLockWait(table: string): Promise<void> {
+  const pattern = `insert into "${table}"%`;
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const { rows } = await sql<{ waiting: number }>`
+      select count(*)::int as waiting from pg_stat_activity
+      where wait_event_type = 'Lock' and query ilike ${pattern}`.execute(ctx!.db);
+    if ((rows[0]?.waiting ?? 0) > 0) {
+      return;
+    }
+    await Bun.sleep(10);
+  }
+  throw new Error(`No insert into ${table} ever waited on a lock`);
+}
+
 describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
   const repo = () => uvsgamesEventsRepo(ctx!.db);
+
+  it("upserts stores in id order, so a concurrent crawl cannot deadlock it", async () => {
+    const lockRow = (externalId: string, storeId: number) =>
+      row({ externalId, storeId, storeName: `MTC Store ${storeId}` });
+    await repo().upsertBatch(
+      [lockRow("mtc-lock-a", LOCK_STORE_LOW), lockRow("mtc-lock-z", LOCK_STORE_HIGH)],
+      SEEN,
+    );
+
+    const lockStore = (id: number) => (trx: Transaction<Database>) =>
+      trx.updateTable("uvsgamesStores").set({ name: "MTC Held" }).where("id", "=", id).execute();
+    await raceLockOrder({
+      table: "uvsgames_stores",
+      lockLow: lockStore(LOCK_STORE_LOW),
+      lockHigh: lockStore(LOCK_STORE_HIGH),
+      write: () =>
+        repo().upsertBatch(
+          [lockRow("mtc-lock-z", LOCK_STORE_HIGH), lockRow("mtc-lock-a", LOCK_STORE_LOW)],
+          SEEN,
+        ),
+    });
+  });
+
+  it("upserts events in key order, so a concurrent crawl cannot deadlock it", async () => {
+    await repo().upsertBatch(
+      [row({ externalId: "mtc-lock-a" }), row({ externalId: "mtc-lock-z" })],
+      SEEN,
+    );
+
+    const lockEvent = (externalId: string) => (trx: Transaction<Database>) =>
+      trx
+        .updateTable("uvsgamesEvents")
+        .set({ name: "MTC Held" })
+        .where("externalId", "=", externalId)
+        .execute();
+    await raceLockOrder({
+      table: "uvsgames_events",
+      lockLow: lockEvent("mtc-lock-a"),
+      lockHigh: lockEvent("mtc-lock-z"),
+      write: () =>
+        repo().upsertBatch(
+          [
+            row({ externalId: "mtc-lock-z", contentHash: "hash-race" }),
+            row({ externalId: "mtc-lock-a", contentHash: "hash-race" }),
+          ],
+          SEEN,
+        ),
+    });
+  });
 
   it("hash-gates the upsert: unchanged rows only move last_seen_at", async () => {
     const first = await repo().upsertBatch([row()], SEEN);

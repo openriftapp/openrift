@@ -151,6 +151,12 @@ const CATALOG_ORDER_COLUMNS = {
   playerCount: sql`c.player_count`,
 };
 
+// Upserts write rows in key order: two crawls listing the same rows in
+// different orders deadlock on the row locks.
+function compareKeys<T extends string | number>(a: T, b: T): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 /** Nulls always sort last, whichever direction the column runs. */
 function catalogOrderBy(order: UvsgamesListOrder) {
   const column = CATALOG_ORDER_COLUMNS[order.sort ?? "startAt"];
@@ -304,6 +310,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
           .map((row) => [row.storeId, { id: row.storeId, name: row.storeName }] as const),
       ).values(),
     ] as { id: number; name: string }[];
+    stores.sort((a, b) => compareKeys(a.id, b.id));
     for (const batch of rowBatches(
       stores.map((store) => ({ id: store.id, name: store.name.slice(0, 200) })),
     )) {
@@ -339,7 +346,9 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
 
       const written: { externalId: string; inserted: boolean }[] = [];
       for (const batch of rowBatches(
-        rows.map((row) => ({ ...row, lastSeenAt: seenAt, missingSince: null, missingProbe: null })),
+        rows
+          .toSorted((a, b) => compareKeys(a.externalId, b.externalId))
+          .map((row) => ({ ...row, lastSeenAt: seenAt, missingSince: null, missingProbe: null })),
       )) {
         written.push(
           ...(await db
