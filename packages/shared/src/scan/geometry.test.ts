@@ -3,12 +3,18 @@ import { describe, expect, it } from "vitest";
 import {
   applyHomography,
   boundingBox,
+  candidateFromQuad,
   canonicalizeQuad,
   computeHomography,
+  quadArea,
+  quadCenter,
+  intersectLines,
+  mapQuad,
   quadIou,
-  refineQuad,
+  subPixelMinimum,
+  touchesFrameEdge,
 } from "./geometry";
-import type { Point, Quad } from "./types";
+import type { Quad } from "./types";
 
 const UNIT_SQUARE: Quad = [
   { x: 0, y: 0 },
@@ -73,33 +79,6 @@ describe("computeHomography", () => {
   });
 });
 
-describe("refineQuad", () => {
-  it("pushes corners out to where the straight sides meet", () => {
-    const contour: Point[] = [];
-    for (let t = 15; t <= 85; t += 2) {
-      contour.push({ x: t, y: 0 }, { x: t, y: 140 });
-    }
-    for (let t = 20; t <= 120; t += 2) {
-      contour.push({ x: 0, y: t }, { x: 100, y: t });
-    }
-    const rough: Quad = [
-      { x: 3, y: 3 },
-      { x: 97, y: 3 },
-      { x: 97, y: 137 },
-      { x: 3, y: 137 },
-    ];
-    const refined = refineQuad(rough, contour);
-    expect(refined[0].x).toBeCloseTo(0, 0);
-    expect(refined[0].y).toBeCloseTo(0, 0);
-    expect(refined[2].x).toBeCloseTo(100, 0);
-    expect(refined[2].y).toBeCloseTo(140, 0);
-  });
-
-  it("keeps the input when there are too few points to fit sides", () => {
-    expect(refineQuad(UNIT_SQUARE, [{ x: 1, y: 1 }])).toEqual(UNIT_SQUARE);
-  });
-});
-
 describe("quadIou", () => {
   it("is one for identical quads", () => {
     expect(quadIou(UNIT_SQUARE, UNIT_SQUARE)).toBeCloseTo(1, 6);
@@ -129,5 +108,124 @@ describe("quadIou", () => {
 describe("boundingBox", () => {
   it("covers every corner", () => {
     expect(boundingBox(UNIT_SQUARE)).toEqual({ minX: 0, minY: 0, maxX: 10, maxY: 10 });
+  });
+});
+
+describe("quadArea", () => {
+  it("measures a square", () => {
+    expect(quadArea(UNIT_SQUARE)).toBe(100);
+  });
+
+  it("ignores the winding direction", () => {
+    const [a, b, c, d] = UNIT_SQUARE;
+    expect(quadArea([d, c, b, a])).toBe(100);
+  });
+
+  it("is zero for a collapsed quad", () => {
+    const point = { x: 3, y: 4 };
+    expect(quadArea([point, point, point, point])).toBe(0);
+  });
+});
+
+describe("quadCenter", () => {
+  it("averages the four corners", () => {
+    expect(quadCenter(UNIT_SQUARE)).toEqual({ x: 5, y: 5 });
+  });
+
+  it("follows a skewed quad's corners", () => {
+    const skewed: Quad = [
+      { x: 0, y: 0 },
+      { x: 8, y: 0 },
+      { x: 12, y: 4 },
+      { x: 0, y: 4 },
+    ];
+    expect(quadCenter(skewed)).toEqual({ x: 5, y: 2 });
+  });
+});
+
+describe("touchesFrameEdge", () => {
+  const shifted = (dx: number, dy: number): Quad =>
+    mapQuad(UNIT_SQUARE, (point) => ({ x: point.x + dx, y: point.y + dy }));
+
+  it("is false for a quad well inside the frame", () => {
+    expect(touchesFrameEdge(shifted(20, 20), 100, 100, 5)).toBe(false);
+  });
+
+  it("is true when a corner is within the margin of any edge", () => {
+    expect(touchesFrameEdge(shifted(2, 20), 100, 100, 5)).toBe(true);
+    expect(touchesFrameEdge(shifted(20, 2), 100, 100, 5)).toBe(true);
+    expect(touchesFrameEdge(shifted(88, 20), 100, 100, 5)).toBe(true);
+    expect(touchesFrameEdge(shifted(20, 88), 100, 100, 5)).toBe(true);
+  });
+
+  it("treats a corner exactly at the margin as inside the frame", () => {
+    expect(touchesFrameEdge(shifted(5, 5), 100, 100, 5)).toBe(false);
+    expect(touchesFrameEdge(shifted(85, 85), 100, 100, 5)).toBe(false);
+  });
+});
+
+describe("candidateFromQuad", () => {
+  it("measures an upright card against the frame", () => {
+    const card: Quad = [
+      { x: 10, y: 10 },
+      { x: 73, y: 10 },
+      { x: 73, y: 98 },
+      { x: 10, y: 98 },
+    ];
+    const candidate = candidateFromQuad(card, 200, 100, 0.9);
+
+    expect(candidate.areaFraction).toBeCloseTo((63 * 88) / (200 * 100));
+    expect(candidate.score).toBe(0.9);
+  });
+
+  it("puts the corners in canonical order", () => {
+    const shuffled: Quad = [UNIT_SQUARE[2], UNIT_SQUARE[0], UNIT_SQUARE[3], UNIT_SQUARE[1]];
+    expect(candidateFromQuad(shuffled, 10, 10, 1).quad).toEqual(canonicalizeQuad(shuffled));
+  });
+});
+
+describe("mapQuad", () => {
+  it("maps each corner with its index", () => {
+    expect(mapQuad(UNIT_SQUARE, (point, index) => ({ x: point.x + index, y: point.y }))).toEqual([
+      { x: 0, y: 0 },
+      { x: 11, y: 0 },
+      { x: 12, y: 10 },
+      { x: 3, y: 10 },
+    ]);
+  });
+});
+
+describe("intersectLines", () => {
+  it("meets a horizontal and a vertical line at their crossing", () => {
+    const horizontal = { point: { x: 0, y: 4 }, direction: { x: 1, y: 0 } };
+    const vertical = { point: { x: 7, y: 0 }, direction: { x: 0, y: 1 } };
+    expect(intersectLines(horizontal, vertical)).toEqual({ x: 7, y: 4 });
+  });
+
+  it("returns null for parallel lines", () => {
+    const first = { point: { x: 0, y: 0 }, direction: { x: 1, y: 0 } };
+    const second = { point: { x: 0, y: 5 }, direction: { x: 1, y: 0 } };
+    expect(intersectLines(first, second)).toBeNull();
+  });
+});
+
+describe("subPixelMinimum", () => {
+  it("finds the vertex of a parabola sampled around its minimum", () => {
+    const cost = (x: number) => (x - 0.3) ** 2;
+    expect(subPixelMinimum(cost(-1), cost(0), cost(1))).toBeCloseTo(0.3, 6);
+  });
+
+  it("is zero for a flat or downward-curving trio", () => {
+    expect(subPixelMinimum(5, 5, 5)).toBe(0);
+    expect(subPixelMinimum(1, 3, 2)).toBe(0);
+  });
+
+  it("clamps to half a step", () => {
+    expect(subPixelMinimum(10, 1, 0)).toBe(0.5);
+    expect(subPixelMinimum(0, 1, 10)).toBe(-0.5);
+  });
+
+  it("is zero when a neighbour is not a number", () => {
+    expect(subPixelMinimum(Number.NaN, 1, 2)).toBe(0);
   });
 });

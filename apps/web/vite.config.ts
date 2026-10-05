@@ -1,11 +1,12 @@
 // oxlint-disable-next-line import/no-nodejs-modules -- Vite config runs in Node.js
 import { execSync } from "node:child_process";
 // oxlint-disable-next-line import/no-nodejs-modules -- Vite config runs in Node.js
-import { createReadStream, existsSync } from "node:fs";
+import { createReadStream, existsSync, mkdirSync, writeFileSync } from "node:fs";
 // oxlint-disable-next-line import/no-nodejs-modules -- Vite config runs in Node.js
 import path from "node:path";
 
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
+import { formatFileStamp } from "@openrift/shared/format-date";
 import type { RolldownBabelPreset } from "@rolldown/plugin-babel";
 import babel from "@rolldown/plugin-babel";
 import { sentryTanstackStart } from "@sentry/tanstackstart-react/vite";
@@ -47,6 +48,54 @@ const serveMediaPlugin: Plugin = {
       const ext = path.extname(filePath).toLowerCase();
       res.setHeader("Content-Type", MEDIA_MIME_TYPES[ext] ?? "application/octet-stream");
       createReadStream(filePath).pipe(res);
+    });
+  },
+};
+
+const DEVICE_RUNS_DIR = path.join(repoRoot, "data/image-recognition-test/device-runs");
+/** Bytes. */
+const DEVICE_RUN_MAX_SIZE = 5_000_000;
+
+const saveDeviceRunPlugin: Plugin = {
+  name: "save-device-run",
+  configureServer(server) {
+    server.middlewares.use("/__device-runs", (req, res) => {
+      if (req.method !== "POST") {
+        res.statusCode = 405;
+        res.end();
+        return;
+      }
+      const kind =
+        new URL(req.url ?? "", "http://dev").searchParams.get("kind") === "speed"
+          ? "speed"
+          : "bench";
+      const chunks: Buffer[] = [];
+      let size = 0;
+      req.on("data", (chunk: Buffer) => {
+        size += chunk.length;
+        if (size <= DEVICE_RUN_MAX_SIZE) {
+          chunks.push(chunk);
+        }
+      });
+      req.on("end", () => {
+        const text = Buffer.concat(chunks).toString("utf-8");
+        let valid = size <= DEVICE_RUN_MAX_SIZE;
+        try {
+          JSON.parse(text);
+        } catch {
+          valid = false;
+        }
+        if (!valid) {
+          res.statusCode = 400;
+          res.end();
+          return;
+        }
+        const name = `${formatFileStamp(new Date())}-${kind}.json`;
+        mkdirSync(DEVICE_RUNS_DIR, { recursive: true });
+        writeFileSync(path.join(DEVICE_RUNS_DIR, name), text);
+        res.statusCode = 201;
+        res.end(name);
+      });
     });
   },
 };
@@ -254,6 +303,7 @@ export default defineConfig(({ mode, command }) => {
           ]
         : []),
       serveMediaPlugin,
+      saveDeviceRunPlugin,
       // Compiles messages/*.json into src/paraglide. Remaining options live in
       // project.inlang/paraglide.config.ts so the CLI reads the same setup.
       paraglideVitePlugin({ project: "./project.inlang" }),

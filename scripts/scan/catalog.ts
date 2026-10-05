@@ -1,13 +1,19 @@
 /* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
-/**
- * Map reference image keys onto human-readable card identities, so the bench
- * can tell a wrong-language print of the right card from a wrong card.
- */
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
-import { DATA_DIR } from "./lib";
+import { referenceSignature } from "../../packages/shared/src/scan/aligned-verify.js";
+import type { IllustrationSample } from "../../packages/shared/src/scan/art-groups.js";
+import {
+  SHARED_ILLUSTRATION_MIN_SCORE,
+  groupArtworks,
+  groupSharedIllustrations,
+  illustrationCardKey,
+} from "../../packages/shared/src/scan/art-groups.js";
+import type { EmbedBank } from "../../packages/shared/src/scan/embed.js";
+import { CACHE_DIR, DATA_DIR, listReferenceImages, loadImage } from "./lib";
 
 export interface CardIdentity {
   key: string;
@@ -22,6 +28,7 @@ export interface CardIdentity {
 }
 
 const CACHE_FILE = path.join(DATA_DIR, "cache", "catalog.json");
+const ILLUSTRATION_SIGNATURE_VERSION = "aligned-v1";
 
 const QUERY = `
   select pi.image_file_id as key,
@@ -80,9 +87,8 @@ export function loadCatalog(refresh = false): Map<string, CardIdentity> {
     ] = parts;
     const existing = byKey.get(key);
     if (existing) {
-      // One image can serve several printings. The first row stays the
-      // identity, but a marker disagreement voids the image's marker set: a
-      // shared render carries no stamp evidence either way.
+      // One image can serve several printings: the first row stays the identity,
+      // and a marker disagreement voids the image's marker set.
       if (existing.markers !== markers) {
         existing.markers = null;
       }
@@ -96,8 +102,8 @@ export function loadCatalog(refresh = false): Map<string, CardIdentity> {
       language,
       cardType,
       markers,
-      // Language is deliberately excluded (two prints differ only in text, not
-      // look). Overnumbered keys apart since it carries its own illustration.
+      // Language is left out on purpose. An overnumbered print keys apart, as in
+      // the server's scanArtKey.
       artKey: `${setSlug}|${name}|${artVariant}|${isOvernumbered === "t" ? "over" : ""}`,
     };
     byKey.set(key, identity);
@@ -107,6 +113,72 @@ export function loadCatalog(refresh = false): Map<string, CardIdentity> {
   fs.mkdirSync(path.dirname(CACHE_FILE), { recursive: true });
   fs.writeFileSync(CACHE_FILE, `${JSON.stringify(identities, null, 2)}\n`);
   return new Map(identities.map((c) => [c.key, c]));
+}
+
+/**
+ * Applies the server's bank grouping: rewrites each identity's artKey to its
+ * group and returns the catalogue-artKey-to-group map.
+ */
+export async function applyArtGroups(
+  catalog: Map<string, CardIdentity>,
+  bank: EmbedBank,
+  sharedIllustrations = true,
+): Promise<Map<string, string>> {
+  const illustrations = sharedIllustrations
+    ? await illustrationGroups(catalog, bank)
+    : new Map<string, string>();
+  const artKeys = new Map(
+    bank.keys.flatMap((key) => {
+      const identity = catalog.get(key);
+      return identity ? [[key, identity.artKey] as const] : [];
+    }),
+  );
+  const { groupOf } = groupArtworks(
+    bank,
+    artKeys,
+    (key) => {
+      const identity = catalog.get(key);
+      return identity && { name: identity.name, type: identity.cardType };
+    },
+    illustrations,
+  );
+  for (const identity of catalog.values()) {
+    identity.artKey = groupOf.get(identity.artKey) ?? identity.artKey;
+  }
+  return groupOf;
+}
+
+async function illustrationGroups(
+  catalog: Map<string, CardIdentity>,
+  bank: EmbedBank,
+): Promise<Map<string, string>> {
+  const digest = createHash("sha256")
+    .update(bank.keys.join(","))
+    .update(`|${SHARED_ILLUSTRATION_MIN_SCORE}|${ILLUSTRATION_SIGNATURE_VERSION}`)
+    .digest("hex")
+    .slice(0, 12);
+  const cacheFile = path.join(CACHE_DIR, `illustration-groups-${digest}.json`);
+  if (fs.existsSync(cacheFile)) {
+    return new Map(JSON.parse(fs.readFileSync(cacheFile, "utf-8")) as [string, string][]);
+  }
+  const files = new Map(listReferenceImages().map((entry) => [entry.key, entry.file]));
+  const samples: IllustrationSample[] = [];
+  for (const key of bank.keys) {
+    const identity = catalog.get(key);
+    const file = files.get(key);
+    if (!identity || !file) {
+      continue;
+    }
+    const image = await loadImage(file);
+    samples.push({
+      artKey: identity.artKey,
+      card: illustrationCardKey(identity.name, identity.cardType),
+      signature: referenceSignature(image),
+    });
+  }
+  const groups = groupSharedIllustrations(samples);
+  fs.writeFileSync(cacheFile, JSON.stringify([...groups]));
+  return groups;
 }
 
 export function describe(catalog: Map<string, CardIdentity>, key: string | null): string {

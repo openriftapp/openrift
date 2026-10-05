@@ -32,7 +32,6 @@ import {
 } from "@/features/admin/lib/straighten-preview";
 import { clampQuad, defaultQuad, imageToDisplayScale } from "@/features/admin/lib/straighten-quad";
 import { useScanServing } from "@/features/scan/hooks/use-scan-serving";
-import { loadOpenCv } from "@/features/scan/lib/scan-opencv";
 import { cn } from "@/lib/utils";
 
 type Scope = readonly (readonly unknown[])[];
@@ -52,11 +51,11 @@ async function ensureOriginal(
 }
 
 async function detectQuad(
-  opencvUrl: string,
+  boardDetectorUrl: string,
   url: string,
 ): Promise<{ quad: ImageQuad | null; error: string | null }> {
   try {
-    return { quad: await detectQuadInOriginal(await loadOpenCv(opencvUrl), url), error: null };
+    return { quad: await detectQuadInOriginal(boardDetectorUrl, url), error: null };
   } catch {
     return { quad: null, error: "Card detection is unavailable. Place the corners by hand." };
   }
@@ -120,7 +119,7 @@ function StraightenDialogBody({
   invalidates?: Scope;
   onDone: () => void;
 }) {
-  const opencvUrl = useScanServing().assets?.opencvUrl ?? null;
+  const boardDetectorUrl = useScanServing().assets?.boardDetectorUrl ?? null;
   const prepareOriginal = useEnsurePrintingImageOriginal();
   const setQuad = useSetPrintingImageQuad(invalidates);
   const prepare = prepareOriginal.mutateAsync;
@@ -136,13 +135,13 @@ function StraightenDialogBody({
   const previewRef = useRef<HTMLCanvasElement>(null);
 
   async function detect(source: ImageOriginalOutput): Promise<void> {
-    if (opencvUrl === null) {
+    if (boardDetectorUrl === null) {
       setStatus("Card detection is unavailable. Place the corners by hand.");
       return;
     }
     setDetecting(true);
     setStatus("Looking for the card…");
-    const result = await detectQuad(opencvUrl, source.url);
+    const result = await detectQuad(boardDetectorUrl, source.url);
     setDetecting(false);
     if (result.error !== null) {
       setStatus(result.error);

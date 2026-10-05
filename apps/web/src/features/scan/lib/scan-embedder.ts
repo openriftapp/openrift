@@ -11,8 +11,6 @@ import { fetchWithProgress } from "@/lib/fetch-progress";
 import { m } from "@/paraglide/messages.js";
 
 let cached: Promise<CardEmbedder> | null = null;
-// Single slot, latest caller wins: a strict-mode/navigation remount while the
-// download is in flight should keep painting through the fresh callback.
 let progressListener: ((loaded: number, total: number) => void) | null = null;
 let embedMsPerImage = 0;
 let embedInputSize = EMBED_IMAGE_SIZE;
@@ -20,6 +18,13 @@ let embedInputSize = EMBED_IMAGE_SIZE;
 export const SLOW_DEVICE_EMBED_MS = 250;
 
 const CREATE_RETRY_DELAY_MS = 1000;
+
+let effectiveThreads = 1;
+
+/** Threads onnxruntime actually uses: one without cross-origin isolation. */
+export function embedderThreads(): number {
+  return effectiveThreads;
+}
 
 export function measuredEmbedMsPerImage(): number {
   return embedMsPerImage;
@@ -39,7 +44,7 @@ export async function loadScanEmbedder(
   // Must be passed in: a `?url` import inside a worker's graph gets inlined as base64.
   wasmPaths: OrtWasmPaths,
   onProgress?: (loaded: number, total: number) => void,
-  inWorker = false,
+  threadsOverride?: number,
 ): Promise<CardEmbedder> {
   if (onProgress) {
     progressListener = onProgress;
@@ -49,17 +54,15 @@ export async function loadScanEmbedder(
     // Binary only: overriding the glue path too would switch ort off its
     // embedded copy for a separate download.
     ort.env.wasm.wasmPaths = { wasm: wasmPaths.wasm };
+    ort.env.wasm.numThreads =
+      threadsOverride !== undefined && threadsOverride > 0
+        ? threadsOverride
+        : Math.min(4, navigator.hardwareConcurrency || 1);
     // Threads only engage under cross-origin isolation (COOP/COEP); ort clamps
     // to 1 thread without it.
-    const params = new URLSearchParams(globalThis.location?.search ?? "");
-    const threadsOverride = Number(params.get("ortThreads"));
-    // Proxying keeps inference off the main thread; inside the scan worker
-    // there is no main thread to protect.
-    ort.env.wasm.proxy = !inWorker && params.get("ortProxy") !== "0";
-    ort.env.wasm.numThreads =
-      threadsOverride > 0 ? threadsOverride : Math.min(4, navigator.hardwareConcurrency || 1);
+    effectiveThreads = globalThis.crossOriginIsolated === true ? ort.env.wasm.numThreads : 1;
     console.log(
-      `[scan] ort init: numThreads ${ort.env.wasm.numThreads} proxy ${ort.env.wasm.proxy}` +
+      `[scan] ort init: numThreads ${ort.env.wasm.numThreads}` +
         ` crossOriginIsolated ${globalThis.crossOriginIsolated === true}`,
     );
 
@@ -126,9 +129,6 @@ export async function loadScanEmbedder(
     console.log(`[scan] ort bench: ~${embedMsPerImage.toFixed(0)}ms/image`);
 
     return async (pixels, count) => {
-      // Must be a copy (`slice`), not a view: the proxy worker receives the
-      // tensor via postMessage transfer, which detaches the ArrayBuffer, and
-      // a view would kill the session's reusable staging buffer.
       const slice = pixels.slice(0, count * 3 * size * size);
       const output = await session.run({
         pixel_values: new ort.Tensor("float32", slice, [count, 3, size, size]),

@@ -3,6 +3,13 @@
  * change when the guide is not producing locks.
  */
 
+import { DEFAULT_ALIGNED_OPTIONS } from "@openrift/shared/scan/accept";
+import {
+  ARCFACE_GATES,
+  MOBILECLIP_GATES,
+  ROTATION_MIN_FOCUS,
+} from "@openrift/shared/scan/session-options";
+
 import { m } from "@/paraglide/messages.js";
 
 interface AimPoint {
@@ -24,17 +31,6 @@ export interface AimHint {
   kind: AimHintKind;
   message: string;
 }
-
-export const AIM_HINT_KINDS: readonly AimHintKind[] = [
-  "settling",
-  "no-card",
-  "too-far",
-  "too-close",
-  "blurry",
-  "checking",
-  "glare",
-  "almost",
-];
 
 export function aimHintMessage(kind: AimHintKind): string {
   switch (kind) {
@@ -65,27 +61,24 @@ export function aimHintMessage(kind: AimHintKind): string {
   }
 }
 
-/** Below `GUIDE_MIN_IOU` (0.3, packages/shared/src/scan/session.ts) the pipeline falls back to the guide quad; 0.45 coaches before that cliff. */
 const MIN_AREA_FRACTION = 0.45;
-
-/** Above this the card already runs off the frame the detector fits a quad to (guide is 0.7 of frame height). */
 const MAX_AREA_FRACTION = 1.6;
 
-/** Below `rotationMinFocus` (40, DEFAULT_SESSION_OPTIONS) the session stops trusting the crop for rotation search. */
-const MIN_FOCUS = 40;
+/** Percent. */
+const ALMOST_MIN_SCORE = 30;
+const ALMOST_MAX_SCORE = DEFAULT_ALIGNED_OPTIONS.minScore * 100 - 3;
+const NO_MATCH_BELOW_SCORE = 3;
 
-/** Accept floor is `minInliers` 11 (DEFAULT_SESSION_OPTIONS); 6-10 is verification finishing just short. */
-const ALMOST_MIN_INLIERS = 6;
-const ALMOST_MAX_INLIERS = 10;
-
-/** Looser of the two `rotationFallbackDistance` gates (0.42 custom encoder, 0.35 MobileCLIP) from `gatesForEmbedDim`. */
-const PLAUSIBLE_DISTANCE = 0.42;
+const PLAUSIBLE_DISTANCE = Math.max(
+  ARCFACE_GATES.rotationFallbackDistance,
+  MOBILECLIP_GATES.rotationFallbackDistance,
+);
 
 export interface AimHintInput {
   active: boolean;
   hasCandidate: boolean;
   candidateAreaFraction: number;
-  bestInliers: number;
+  bestScore: number;
   focus: number;
   topDistance?: number;
   refused: boolean;
@@ -94,10 +87,10 @@ export interface AimHintInput {
   settling?: boolean;
 }
 
-export function quadArea(quad: readonly AimPoint[]): number {
+export function polygonArea(polygon: readonly AimPoint[]): number {
   let sum = 0;
-  let previous = quad.at(-1);
-  for (const point of quad) {
+  let previous = polygon.at(-1);
+  for (const point of polygon) {
     if (previous !== undefined) {
       sum += previous.x * point.y - point.x * previous.y;
     }
@@ -110,11 +103,11 @@ export function areaFractionOfGuide(
   candidate: readonly AimPoint[],
   guide: readonly AimPoint[],
 ): number {
-  const guideArea = quadArea(guide);
+  const guideArea = polygonArea(guide);
   if (guideArea <= 0) {
     return 0;
   }
-  return quadArea(candidate) / guideArea;
+  return polygonArea(candidate) / guideArea;
 }
 
 /** Checked in priority order; only the first match is shown, so reordering changes which hint wins. */
@@ -135,7 +128,7 @@ export function deriveAimHint(input: AimHintInput): AimHint | null {
     return hint("too-close");
   }
   // focus 0 is "not measured this frame", not a perfectly blurry frame.
-  if (input.focus > 0 && input.focus < MIN_FOCUS) {
+  if (input.focus > 0 && input.focus < ROTATION_MIN_FOCUS) {
     return hint("blurry");
   }
   if (input.refused) {
@@ -143,13 +136,13 @@ export function deriveAimHint(input: AimHintInput): AimHint | null {
   }
   const gate = input.plausibleDistance ?? PLAUSIBLE_DISTANCE;
   const implausible = input.topDistance === undefined || input.topDistance > gate;
-  if (input.bestInliers === 0 && implausible) {
+  if (input.bestScore < NO_MATCH_BELOW_SCORE && implausible) {
     return hint("no-card");
   }
-  if (input.bestInliers < ALMOST_MIN_INLIERS && implausible) {
+  if (input.bestScore < ALMOST_MIN_SCORE && implausible) {
     return hint("glare");
   }
-  if (input.bestInliers >= ALMOST_MIN_INLIERS && input.bestInliers <= ALMOST_MAX_INLIERS) {
+  if (input.bestScore >= ALMOST_MIN_SCORE && input.bestScore <= ALMOST_MAX_SCORE) {
     return hint("almost");
   }
   return null;

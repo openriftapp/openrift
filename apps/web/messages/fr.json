@@ -5282,6 +5282,16 @@
   "scan_notices_unavailable_title": "Le scan n'est pas disponible pour le moment.",
   "scan_notices_https": "La caméra a besoin d'une connexion sécurisée, le scan ne fonctionne donc qu'en https.",
   "scan_page_not_in_catalog": "{name} n'est pas encore au catalogue",
+  "scan_page_board_added": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte ajoutée d'un coup",
+        "countPlural=*": "{count} cartes ajoutées d'un coup"
+      }
+    }
+  ],
   "scan_page_recognised": "{name} reconnue",
   "scan_page_swap_title": "Passer à une autre impression",
   "scan_page_swap_description": "Déplacez une {name} scannée vers une autre impression, finition ou langue de la même carte.",
@@ -5326,8 +5336,6 @@
   "scan_resume_when_days": "il y a {days} jours",
   "scan_settings_language_label": "Langue des cartes",
   "scan_settings_language_description": "Utilisée pour choisir l'impression",
-  "scan_settings_count_every_copy_label": "Compter chaque exemplaire",
-  "scan_settings_count_every_copy_description": "Continue de compter pendant que les cartes défilent devant la caméra. Désactivé : chaque carte une fois.",
   "scan_settings_sounds_label": "Sons",
   "scan_settings_sounds_description": "Un tic quand une carte est reconnue",
   "scan_settings_tap_label": "Toucher pour scanner",
@@ -5401,12 +5409,11 @@
   "scan_encoder_start_failed": "Impossible de démarrer l'encodeur",
   "scan_engine_still_loading": "Le moteur charge encore, réessayez dans un instant.",
   "scan_engine_start_failed": "Le moteur de scan n'a pas pu démarrer",
-  "scan_engine_opencv_failed": "Impossible de charger OpenCV",
-  "scan_engine_opencv_eval_failed": "Le script OpenCV n'a pas pu s'exécuter",
-  "scan_engine_encoder_failed": "Impossible de charger le modèle d'encodeur",
+  "scan_engine_detector_failed": "Impossible de charger le détecteur de cartes",
+  "scan_engine_worker_unsupported": "Ce navigateur ne peut pas faire tourner le scanner. Mettez-le à jour ou essayez un autre navigateur.",
   "scan_frame_failed": "Le traitement de l'image a échoué",
   "scan_bank_load_failed": "Impossible de charger les données de scan",
-  "scan_bank_unavailable": "L'index des cartes n'a pas encore été publié. Réessayez plus tard.",
+  "scan_unavailable": "Le scanner n'est pas disponible pour le moment. Réessayez plus tard.",
   "common_error_generic": "Une erreur est survenue. Veuillez réessayer.",
   "common_new_version_available": "Une nouvelle version d'OpenRift est disponible.",
   "common_reload": "Recharger",

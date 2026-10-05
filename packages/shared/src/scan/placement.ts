@@ -1,8 +1,7 @@
 /**
  * Detects when a new card lands in the guide, from thumbnail motion alone: the
- * prior "guide went empty" signal (see `rearmLockedTracks`) misses cards dealt
- * onto a pile. Free of OpenCV and the encoder, so it can run on every camera
- * frame, faster than the recognition pipeline samples.
+ * "guide went empty" signal (see `rearmLockedTracks`) misses cards dealt onto a
+ * pile. Needs no model, so it can run on every camera frame.
  */
 
 import { boundingBox } from "./geometry";
@@ -161,6 +160,37 @@ export function createPlacementDetector(
       beforeDisturbance = null;
       disturbedFrames = 0;
       stillFrames = 0;
+    },
+  };
+}
+
+/** Seconds. */
+export const PLACEMENT_HOLD_SECONDS = 0.5;
+
+export interface PlacementHold {
+  observe: (signal: PlacementSignal, seconds: number) => boolean;
+}
+
+export function createPlacementHold(holdSeconds = PLACEMENT_HOLD_SECONDS): PlacementHold {
+  let pendingSince: number | null = null;
+  return {
+    observe(signal, seconds) {
+      if (signal.placed) {
+        pendingSince = seconds;
+        return false;
+      }
+      if (pendingSince === null) {
+        return false;
+      }
+      if (signal.disturbed) {
+        pendingSince = null;
+        return false;
+      }
+      if (seconds - pendingSince < holdSeconds) {
+        return false;
+      }
+      pendingSince = null;
+      return true;
     },
   };
 }

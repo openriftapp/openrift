@@ -5281,6 +5281,16 @@
   "scan_notices_unavailable_title": "目前無法使用掃描功能。",
   "scan_notices_https": "相機需要安全連線，因此掃描只能透過 https 使用。",
   "scan_page_not_in_catalog": "{name} 尚未收錄在目錄中",
+  "scan_page_board_added": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已一次加入 {count} 張卡牌",
+        "countPlural=*": "已一次加入 {count} 張卡牌"
+      }
+    }
+  ],
   "scan_page_recognised": "已辨識出 {name}",
   "scan_page_swap_title": "改用其他印刷版本",
   "scan_page_swap_description": "把一張掃描到的 {name} 移到同一張卡牌的其他印刷版本、工藝或語言。",
@@ -5325,8 +5335,6 @@
   "scan_resume_when_days": "{days} 天前",
   "scan_settings_language_label": "卡牌語言",
   "scan_settings_language_description": "用來挑選印刷版本",
-  "scan_settings_count_every_copy_label": "計入每一張實體卡",
-  "scan_settings_count_every_copy_description": "卡牌一張張從相機前經過時持續計數。關閉時：每張卡牌只算一次。",
   "scan_settings_sounds_label": "音效",
   "scan_settings_sounds_description": "辨識到卡牌時發出提示聲",
   "scan_settings_tap_label": "點擊才掃描",
@@ -5400,12 +5408,11 @@
   "scan_encoder_start_failed": "無法啟動編碼器",
   "scan_engine_still_loading": "引擎仍在載入，請稍後再試。",
   "scan_engine_start_failed": "掃描引擎啟動失敗",
-  "scan_engine_opencv_failed": "無法載入 OpenCV",
-  "scan_engine_opencv_eval_failed": "OpenCV 指令碼執行失敗",
-  "scan_engine_encoder_failed": "無法載入編碼器模型",
+  "scan_engine_detector_failed": "無法載入卡牌偵測器",
+  "scan_engine_worker_unsupported": "此瀏覽器無法執行掃描器。請更新瀏覽器或改用其他瀏覽器。",
   "scan_frame_failed": "畫面處理失敗",
   "scan_bank_load_failed": "無法載入掃描資料",
-  "scan_bank_unavailable": "卡牌索引尚未發布，請稍後再試。",
+  "scan_unavailable": "掃描器暫時無法使用，請稍後再試。",
   "common_error_generic": "發生錯誤，請再試一次。",
   "common_new_version_available": "OpenRift 有新版本可用。",
   "common_reload": "重新載入",

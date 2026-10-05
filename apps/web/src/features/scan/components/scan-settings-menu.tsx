@@ -21,8 +21,6 @@ export interface ScanSettingsProps {
   languageItems: LanguageItem[];
   language: string;
   onLanguageChange: (value: string) => void;
-  autoScan: boolean;
-  onAutoScanChange: (value: boolean) => void;
   muted: boolean;
   onMutedChange: (value: boolean) => void;
   tapToScan: boolean;
@@ -41,8 +39,6 @@ export function ScanSettingsMenu({
   languageItems,
   language,
   onLanguageChange,
-  autoScan,
-  onAutoScanChange,
   muted,
   onMutedChange,
   tapToScan,
@@ -77,17 +73,6 @@ export function ScanSettingsMenu({
               ))}
             </SelectContent>
           </Select>
-        </SettingsRow>
-
-        <SettingsRow
-          label={m.scan_settings_count_every_copy_label()}
-          description={m.scan_settings_count_every_copy_description()}
-        >
-          <Switch
-            aria-label={m.scan_settings_count_every_copy_label()}
-            checked={autoScan}
-            onCheckedChange={onAutoScanChange}
-          />
         </SettingsRow>
 
         <SettingsRow

@@ -10,6 +10,7 @@ import {
   formatDayLocal,
   formatDayTime,
   formatDayTimeLocal,
+  formatFileStamp,
   formatTimeLocal,
   formatDayMonthYear,
   formatMonth,
@@ -171,6 +172,21 @@ describe("formatWeekdayDayLocal", () => {
 
   it("returns an empty string for unparseable input", () => {
     expect(formatWeekdayDayLocal("nope")).toBe("");
+  });
+});
+
+describe("formatFileStamp", () => {
+  it("writes the UTC instant to the second with dashes for colons", () => {
+    expect(formatFileStamp(new Date("2026-10-04T20:21:06.789Z"))).toBe("2026-10-04T20-21-06");
+  });
+
+  it("zero-pads single-digit fields", () => {
+    expect(formatFileStamp(new Date("2026-01-05T09:07:03.000Z"))).toBe("2026-01-05T09-07-03");
+  });
+
+  it("formats the last second of the year in UTC without colons or milliseconds", () => {
+    const date = new Date("2026-12-31T23:59:59.999Z");
+    expect(formatFileStamp(date)).toBe(date.toISOString().slice(0, 19).replaceAll(":", "-"));
   });
 });
 

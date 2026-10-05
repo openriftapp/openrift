@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { REVOKE_DELAY_MS } from "./download";
 import {
   boardStateShareImageUrl,
   bundleShareImageUrl,
@@ -312,11 +313,13 @@ describe("collectionShareImageUrl", () => {
 
 describe("downloadImageFromUrl", () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
   it("fetches the image and clicks an anchor with the given filename", async () => {
+    vi.useFakeTimers();
     const anchor = document.createElement("a");
     const click = vi.spyOn(anchor, "click").mockImplementation(() => {});
     vi.spyOn(document, "createElement").mockReturnValue(anchor);
@@ -333,6 +336,7 @@ describe("downloadImageFromUrl", () => {
     expect(anchor.download).toBe("my-list.png");
     expect(anchor.href).toBe("blob:fake");
     expect(click).toHaveBeenCalledOnce();
+    vi.advanceTimersByTime(REVOKE_DELAY_MS);
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:fake");
   });
 

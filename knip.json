@@ -37,5 +37,5 @@
       "ignore": []
     }
   },
-  "ignoreBinaries": ["wait"]
+  "ignoreBinaries": ["ffmpeg", "wait"]
 }

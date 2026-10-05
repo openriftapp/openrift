@@ -5281,6 +5281,16 @@
   "scan_notices_unavailable_title": "目前无法使用扫描功能。",
   "scan_notices_https": "摄像头需要安全连接，因此扫描只能在 https 下使用。",
   "scan_page_not_in_catalog": "{name}尚未收录在卡牌目录中",
+  "scan_page_board_added": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已一次添加 {count} 张卡牌",
+        "countPlural=*": "已一次添加 {count} 张卡牌"
+      }
+    }
+  ],
   "scan_page_recognised": "已识别{name}",
   "scan_page_swap_title": "切换到其他印刷版本",
   "scan_page_swap_description": "把一张扫描到的{name}换成同一张卡牌的其他印刷版本、工艺或语言。",
@@ -5325,8 +5335,6 @@
   "scan_resume_when_days": "{days}天前",
   "scan_settings_language_label": "卡牌语言",
   "scan_settings_language_description": "用于确定印刷版本",
-  "scan_settings_count_every_copy_label": "统计每一张实体卡",
-  "scan_settings_count_every_copy_description": "把卡牌一张张从摄像头前过时持续计数。关闭时：每张卡只记一次。",
   "scan_settings_sounds_label": "声音",
   "scan_settings_sounds_description": "识别到卡牌时发出提示音",
   "scan_settings_tap_label": "点击扫描",
@@ -5400,12 +5408,11 @@
   "scan_encoder_start_failed": "无法启动编码器",
   "scan_engine_still_loading": "引擎仍在加载，请稍后再试。",
   "scan_engine_start_failed": "扫描引擎启动失败",
-  "scan_engine_opencv_failed": "无法加载 OpenCV",
-  "scan_engine_opencv_eval_failed": "OpenCV 脚本执行失败",
-  "scan_engine_encoder_failed": "无法加载编码器模型",
+  "scan_engine_detector_failed": "无法加载卡牌检测器",
+  "scan_engine_worker_unsupported": "此浏览器无法运行扫描器。请更新浏览器或换用其他浏览器。",
   "scan_frame_failed": "帧处理失败",
   "scan_bank_load_failed": "无法加载扫描数据",
-  "scan_bank_unavailable": "卡牌索引尚未发布。请稍后再试。",
+  "scan_unavailable": "扫描器暂时不可用。请稍后再试。",
   "common_error_generic": "出了点问题。请重试。",
   "common_new_version_available": "OpenRift 有新版本可用。",
   "common_reload": "重新加载",

@@ -1,4 +1,4 @@
-import { centeredGuideQuad } from "@openrift/shared/scan/session";
+import { centeredGuideQuad } from "@openrift/shared/scan/session-options";
 
 import { clamp } from "@/lib/math";
 

@@ -1,9 +1,11 @@
 /* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
 import sharp from "sharp";
 
+import type { ClipTruth, SavedRun } from "../../packages/shared/src/scan/bench-score.js";
 import type { RgbaImage } from "../../packages/shared/src/scan/types.js";
 
 export const REPO_ROOT = path.resolve(import.meta.dir, "../..");
@@ -11,24 +13,107 @@ export const MEDIA_CARDS = path.join(REPO_ROOT, "media/cards");
 export const DATA_DIR = path.join(REPO_ROOT, "data/image-recognition-test");
 export const CACHE_DIR = path.join(DATA_DIR, "cache");
 export const CLIPS = path.join(DATA_DIR, "clips/full");
+export const DEFAULT_FPS = 30;
 
-export const EXPECTED_CARDS: Record<string, number> = {
-  "double-sleved-single-cards": 5,
-  "binder-page": 9,
-  "carelessly-stacking-battlefields": 12,
-  "3d-print-scanner": 2,
-};
+export function listClips(): string[] {
+  if (!fs.existsSync(CLIPS)) {
+    return [];
+  }
+  return fs
+    .readdirSync(CLIPS)
+    .filter((name) => fs.statSync(path.join(CLIPS, name)).isDirectory())
+    .toSorted();
+}
 
-export const EXPECTED_PLACEMENTS: Record<string, number> = {
-  "3d-print-scanner": 12,
-};
+export function outputData(
+  outputs: Record<string, { data: unknown } | undefined>,
+  name: string,
+  modelFile: string,
+): Float32Array {
+  const data = outputs[name]?.data;
+  if (!(data instanceof Float32Array)) {
+    throw new Error(`${modelFile} returned no "${name}" output`);
+  }
+  return data;
+}
 
-export async function loadImage(file: string, maxSide?: number): Promise<RgbaImage> {
-  let pipeline = sharp(file).flatten({ background: { r: 128, g: 128, b: 128 } });
-  if (maxSide) {
+export function argValue(name: string): string | undefined {
+  const index = process.argv.indexOf(name);
+  return index === -1 ? undefined : process.argv[index + 1];
+}
+
+/** Exits with status 2 when the value is not a positive integer. */
+export function positiveIntArg(name: string): number | undefined {
+  const raw = argValue(name);
+  if (raw === undefined) {
+    return undefined;
+  }
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value <= 0) {
+    process.stderr.write(`${name} ${raw}: expected a positive integer\n`);
+    process.exit(2);
+  }
+  return value;
+}
+
+export function hasFlag(name: string): boolean {
+  return process.argv.includes(name);
+}
+
+export const TRUTH_DIR = path.join(DATA_DIR, "truth");
+export const RECORDINGS_DIR = path.join(DATA_DIR, "recordings");
+
+/** Frames under `clips/full` cache the archived recording. A plain decode reproduces them byte for byte. */
+export function extractClipFrames(clip: string): number {
+  const outDir = path.join(CLIPS, clip);
+  fs.rmSync(outDir, { recursive: true, force: true });
+  fs.mkdirSync(outDir, { recursive: true });
+  execFileSync(
+    "ffmpeg",
+    [
+      "-v",
+      "error",
+      "-i",
+      path.join(RECORDINGS_DIR, `${clip}.mp4`),
+      "-q:v",
+      "2",
+      path.join(outDir, "%04d.jpg"),
+    ],
+    { stdio: "inherit" },
+  );
+  return fs.readdirSync(outDir).filter((file) => file.endsWith(".jpg")).length;
+}
+
+export function loadClipTruth(clip: string): ClipTruth | null {
+  const file = path.join(TRUTH_DIR, `${clip}.json`);
+  return fs.existsSync(file) ? (JSON.parse(fs.readFileSync(file, "utf-8")) as ClipTruth) : null;
+}
+
+/** A saved run, with 0 for the marker counters older runs lack. */
+export function loadRun(file: string): SavedRun {
+  const run = JSON.parse(fs.readFileSync(file, "utf-8")) as SavedRun;
+  for (const clip of run.clips) {
+    clip.score.markerOnly ??= 0;
+    if (clip.app) {
+      clip.app.markerMiss ??= 0;
+    }
+  }
+  return run;
+}
+
+export async function loadImage(
+  file: string,
+  options: { maxSide?: number; rotate?: boolean } = {},
+): Promise<RgbaImage> {
+  let pipeline = sharp(file);
+  if (options.rotate) {
+    pipeline = pipeline.rotate();
+  }
+  pipeline = pipeline.flatten({ background: { r: 128, g: 128, b: 128 } });
+  if (options.maxSide) {
     pipeline = pipeline.resize({
-      width: maxSide,
-      height: maxSide,
+      width: options.maxSide,
+      height: options.maxSide,
       fit: "inside",
       withoutEnlargement: true,
     });

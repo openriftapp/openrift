@@ -1,6 +1,6 @@
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
 import { canonicalizeQuad } from "@openrift/shared/scan/geometry";
-import type { CardCandidate, Point, Quad } from "@openrift/shared/scan/types";
+import type { Point, Quad } from "@openrift/shared/scan/types";
 
 const DEFAULT_INSET = 0.1;
 
@@ -43,38 +43,17 @@ export function clampQuad(quad: ImageQuad, width: number, height: number): Image
   return [clamp(quad[0]), clamp(quad[1]), clamp(quad[2]), clamp(quad[3])];
 }
 
-export function bestCandidateQuad(candidates: readonly CardCandidate[]): ImageQuad | null {
-  let best: CardCandidate | null = null;
-  for (const candidate of candidates) {
-    if (best === null || candidate.score > best.score) {
-      best = candidate;
-    }
-  }
-  if (best === null) {
-    return null;
-  }
-  const ordered = toImageQuad(canonicalizeQuad(best.quad));
-  let first = 0;
-  let nearest = Infinity;
-  let index = 0;
-  for (const corner of ordered) {
-    const distance = Math.hypot(corner.x, corner.y);
-    if (distance < nearest) {
-      nearest = distance;
-      first = index;
-    }
-    index++;
-  }
-  if (first === 1) {
-    return [ordered[1], ordered[2], ordered[3], ordered[0]];
-  }
-  if (first === 2) {
-    return [ordered[2], ordered[3], ordered[0], ordered[1]];
-  }
-  if (first === 3) {
-    return [ordered[3], ordered[0], ordered[1], ordered[2]];
-  }
-  return ordered;
+export function orderQuadFromOrigin(quad: Quad): ImageQuad {
+  const [a, b, c, d] = toImageQuad(canonicalizeQuad(quad));
+  const rotations: ImageQuad[] = [
+    [a, b, c, d],
+    [b, c, d, a],
+    [c, d, a, b],
+    [d, a, b, c],
+  ];
+  return rotations.reduce((best, next) =>
+    Math.hypot(next[0].x, next[0].y) < Math.hypot(best[0].x, best[0].y) ? next : best,
+  );
 }
 
 export function quadCacheKey(quad: ImageQuad | null): string {

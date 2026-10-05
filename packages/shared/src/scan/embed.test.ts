@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { CardEmbedder, EmbedBank } from "./embed";
 import {
-  EMBED_DIM,
+  bankEmbedDim,
   EMBED_IMAGE_SIZE,
   embedImageSizeOf,
   normalizeEmbeddings,
@@ -11,6 +11,8 @@ import {
 } from "./embed";
 import { rotateRgbaCw } from "./image";
 import type { RgbaImage } from "./types";
+
+const EMBED_DIM = 512;
 
 function axis(dimension: number): Float32Array {
   const vector = new Float32Array(EMBED_DIM);
@@ -75,7 +77,7 @@ describe("rankCardEmbedding", () => {
 
   it("stops after the upright rotation when it matches confidently", async () => {
     const { embedder, calls } = embedderOf([[axis(0)]]);
-    const ranked = await rankCardEmbedding(card, "card", embedder, bank, {
+    const ranked = await rankCardEmbedding(card, embedder, bank, {
       topK: 2,
       confidentDistance: 0.3,
     });
@@ -87,7 +89,7 @@ describe("rankCardEmbedding", () => {
 
   it("runs the remaining rotations when upright is not confident", async () => {
     const { embedder, calls } = embedderOf([[axis(2)], [axis(3), axis(1), axis(4)]]);
-    const ranked = await rankCardEmbedding(card, "card", embedder, bank, {
+    const ranked = await rankCardEmbedding(card, embedder, bank, {
       topK: 2,
       confidentDistance: 0.3,
     });
@@ -102,7 +104,7 @@ describe("rankCardEmbedding", () => {
     marginal[0] = 0.72;
     marginal[2] = Math.sqrt(1 - 0.72 * 0.72);
     const { embedder, calls } = embedderOf([[marginal]]);
-    const ranked = await rankCardEmbedding(card, "card", embedder, bank, {
+    const ranked = await rankCardEmbedding(card, embedder, bank, {
       topK: 2,
       confidentDistance: 0.2,
       rotationFallbackDistance: 0.35,
@@ -114,7 +116,7 @@ describe("rankCardEmbedding", () => {
 
   it("stops after the unconfident upright pass when the rotation fallback is disallowed", async () => {
     const { embedder, calls } = embedderOf([[axis(2)]]);
-    const ranked = await rankCardEmbedding(card, "card", embedder, bank, {
+    const ranked = await rankCardEmbedding(card, embedder, bank, {
       topK: 2,
       confidentDistance: 0.3,
       allowRotationFallback: false,
@@ -125,7 +127,7 @@ describe("rankCardEmbedding", () => {
 
   it("labels a confident preferred-rotation match with that rotation", async () => {
     const { embedder, calls } = embedderOf([[axis(0)]]);
-    const ranked = await rankCardEmbedding(card, "card", embedder, bank, {
+    const ranked = await rankCardEmbedding(card, embedder, bank, {
       topK: 2,
       confidentDistance: 0.3,
       preferredRotation: 2,
@@ -137,7 +139,7 @@ describe("rankCardEmbedding", () => {
 
   it("keeps rotation labels straight when falling back from a preferred rotation", async () => {
     const { embedder, calls } = embedderOf([[axis(2)], [axis(1), axis(3), axis(4)]]);
-    const ranked = await rankCardEmbedding(card, "card", embedder, bank, {
+    const ranked = await rankCardEmbedding(card, embedder, bank, {
       topK: 2,
       confidentDistance: 0.3,
       preferredRotation: 1,
@@ -149,7 +151,7 @@ describe("rankCardEmbedding", () => {
 
   it("falls back to only the 180-degree partner in pair-only mode", async () => {
     const { embedder, calls } = embedderOf([[axis(2)], [axis(1)]]);
-    const ranked = await rankCardEmbedding(card, "card", embedder, bank, {
+    const ranked = await rankCardEmbedding(card, embedder, bank, {
       topK: 2,
       confidentDistance: 0.3,
       preferredRotation: 1,
@@ -162,7 +164,7 @@ describe("rankCardEmbedding", () => {
 
   it("embeds all four rotations in one batch when the gate is disabled", async () => {
     const { embedder, calls } = embedderOf([[axis(0), axis(2), axis(3), axis(4)]]);
-    const ranked = await rankCardEmbedding(card, "card", embedder, bank, {
+    const ranked = await rankCardEmbedding(card, embedder, bank, {
       topK: 1,
       confidentDistance: -1,
     });
@@ -221,5 +223,15 @@ describe("rotateRgbaCw", () => {
     };
     const rotated = rotateRgbaCw(image);
     expect([...rotated.data.subarray(4, 8)]).toEqual([9, 9, 9, 9]);
+  });
+});
+
+describe("bankEmbedDim", () => {
+  it("divides the vectors evenly across the keys", () => {
+    expect(bankEmbedDim({ keys: ["a", "b"], vectors: new Float32Array(6) })).toBe(3);
+  });
+
+  it("is zero for an empty bank", () => {
+    expect(bankEmbedDim({ keys: [], vectors: new Float32Array(0) })).toBe(0);
   });
 });

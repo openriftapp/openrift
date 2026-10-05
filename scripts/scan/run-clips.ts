@@ -1,503 +1,364 @@
 /* oxlint-disable import/no-nodejs-modules -- standalone CLI tooling, never bundled */
-/* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/prefer-catch, promise/no-nesting, promise/prefer-await-to-callbacks, unicorn/prefer-top-level-await -- OpenCV's emscripten module deadlocks under Bun when awaited; its `then` must be called at the top level */
 /**
- * Replays every real clip through the shared session pipeline (the same
- * `createScanSession` code the browser runs) and reports locked cards against
- * the counts each clip is known to contain.
+ * Replays every labelled clip through the scanner's own session plan and
+ * scores each lock against the clip's truth file. README.md lists the flags.
  *
- * Usage: bun scripts/scan/run-clips.ts [--clip name] [--guide] [flags...].
- * See the argValue()/process.argv.includes() calls below for the full list.
+ * Usage: SCAN_DETECTOR=card.onnx SCAN_BOARD_DETECTOR=board.onnx bun scripts/scan/run-clips.ts [flags]
  */
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-import type { CatchUpVerdict } from "../../apps/web/src/features/scan/lib/scan-catchup.js";
-import { catchUpVerdict } from "../../apps/web/src/features/scan/lib/scan-catchup.js";
-import type { OpenCvLike } from "../../packages/shared/src/scan/detect-cv.js";
-import type { EmbedBank, EmbedKind } from "../../packages/shared/src/scan/embed.js";
-import { quadIou } from "../../packages/shared/src/scan/geometry.js";
-import { toGray } from "../../packages/shared/src/scan/image.js";
-import type { OrbCvLike } from "../../packages/shared/src/scan/orb.js";
-import { createPlacementDetector } from "../../packages/shared/src/scan/placement.js";
-import type { ScanSession } from "../../packages/shared/src/scan/session.js";
+import type {
+  ReplayBehaviour,
+  ReplayFrame,
+} from "../../apps/web/src/features/admin/lib/scan-device-bench.js";
 import {
-  DEFAULT_SESSION_OPTIONS,
-  GUIDE_MIN_IOU,
-  centeredGuideQuad,
-  createScanSession,
-  gatesForEmbedDim,
-} from "../../packages/shared/src/scan/session.js";
-import type { Quad, RgbaImage } from "../../packages/shared/src/scan/types.js";
-import { describe, loadCatalog } from "./catalog";
-import { CANONICAL_BANK, EMBED_SIZE, loadEmbedBank, nodeEmbedder } from "./embed-bank";
+  everyNthFrame,
+  replayClip,
+} from "../../apps/web/src/features/admin/lib/scan-device-bench.js";
+import type { ScanPrintingIndex } from "../../apps/web/src/features/scan/lib/scan-resolve.js";
+import type {
+  BenchClipResult,
+  BenchRun,
+  ClipTruth,
+} from "../../packages/shared/src/scan/bench-score.js";
+import {
+  groupTruth,
+  multiPrintingArts,
+  scoreClip,
+  summarize,
+} from "../../packages/shared/src/scan/bench-score.js";
+import type { EmbedBank } from "../../packages/shared/src/scan/embed.js";
+import { toGray } from "../../packages/shared/src/scan/image.js";
+import { createPlacementDetector } from "../../packages/shared/src/scan/placement.js";
+import { centeredGuideQuad } from "../../packages/shared/src/scan/session-options.js";
+import type { FrameOutcome, ScanSession } from "../../packages/shared/src/scan/session.js";
+import { createScanSession } from "../../packages/shared/src/scan/session.js";
+import type { RgbaImage } from "../../packages/shared/src/scan/types.js";
+import { appPrintingIndex, languageSetting, scoreAppLocks } from "./app-outcome";
+import type { BenchSessionOptions } from "./bench-options";
+import { benchSessionOptions } from "./bench-options";
+import { createBoardDetector } from "./board-model";
+import { createCardDetector } from "./card-model";
+import type { CardIdentity } from "./catalog";
+import { applyArtGroups, describe, loadCatalog } from "./catalog";
+import type { ClipReplay, Sighting } from "./clip-report";
+import { reportClip } from "./clip-report";
+import { CANONICAL_BANK, EMBED_SIZE, MODEL_FILE, loadEmbedBank, nodeEmbedder } from "./embed-bank";
 import {
   CLIPS,
-  EXPECTED_CARDS,
-  EXPECTED_PLACEMENTS,
+  DEFAULT_FPS,
   REPO_ROOT,
+  argValue,
+  hasFlag,
+  listClips,
   listReferenceImages,
+  loadClipTruth,
   loadImage,
+  positiveIntArg,
 } from "./lib";
+import { createPlacementStats, recordPlacement } from "./placement-stats";
 
-const SINGLE_MODE_TOP_K = 4;
-const GUIDE_LOCK_RUN = 3;
+type Catalog = Map<string, CardIdentity>;
 
-function argValue(flag: string): string | undefined {
-  const i = process.argv.indexOf(flag);
-  return i === -1 ? undefined : process.argv[i + 1];
+const cardDetectorFile = process.env.SCAN_DETECTOR;
+const boardDetectorFile = process.env.SCAN_BOARD_DETECTOR;
+if (!cardDetectorFile || !boardDetectorFile) {
+  process.stderr.write(
+    "usage: SCAN_DETECTOR=card.onnx SCAN_BOARD_DETECTOR=board.onnx bun scripts/scan/run-clips.ts [flags]\n" +
+      "both detectors are required\n",
+  );
+  process.exit(2);
+}
+const detectCard = createCardDetector(cardDetectorFile);
+const detectBoard = createBoardDetector(boardDetectorFile);
+
+interface ReplayContext {
+  catalog: Catalog;
+  bank: EmbedBank;
+  referenceFiles: Map<string, string>;
+  multiPrinting: Set<string>;
+  options: BenchSessionOptions;
+  printingIndex: ScanPrintingIndex;
+  language?: string;
+  trace: boolean;
+  attribute: boolean;
+  catchUp: boolean;
+  behaviour: Partial<ReplayBehaviour>;
+  dropTo: number | null;
+  minSightings: number;
 }
 
-interface Sighting {
-  key: string;
-  label: string;
-  firstSeen: number;
-  count: number;
-  bestScore: number;
-}
-
-interface PlacementStats {
-  frames: number;
-  /** IoU-with-guide buckets, in {@link IOU_BUCKETS} order. */
-  buckets: number[];
-  belowMinIou: number;
-  guideFallback: number;
-  iouSum: number;
-  containmentSum: number;
-}
-
-const IOU_BUCKETS = [0.1, 0.2, 0.3, 0.5, 0.7];
-
-function createPlacementStats(): PlacementStats {
+function sessionDeps(context: ReplayContext) {
+  const { catalog, bank, referenceFiles } = context;
   return {
-    frames: 0,
-    buckets: Array.from({ length: IOU_BUCKETS.length + 1 }, () => 0),
-    belowMinIou: 0,
-    guideFallback: 0,
-    iouSum: 0,
-    containmentSum: 0,
+    embedder: nodeEmbedder,
+    bank,
+    artKeyOf: (key: string) => catalog.get(key)?.artKey ?? key,
+    labelOf: (key: string) => describe(catalog, key),
+    identityOf: (key: string) => {
+      const identity = catalog.get(key);
+      return (
+        identity && {
+          type: identity.cardType,
+          code: identity.publicCode,
+          markers: identity.markers ?? undefined,
+          language: identity.language,
+        }
+      );
+    },
+    embedImageSize: EMBED_SIZE,
+    fetchReference: async (key: string) => {
+      const file = referenceFiles.get(key);
+      return file ? await loadImage(file) : null;
+    },
+    detectCard,
+    detectBoard,
   };
 }
 
-function quadArea(quad: Quad): number {
-  let sum = 0;
-  for (const [index, point] of quad.entries()) {
-    const next = quad[(index + 1) % quad.length];
-    sum += point.x * next.y - next.x * point.y;
+function noteSighting(
+  sightings: Map<string, Sighting>,
+  catalog: Catalog,
+  key: string,
+  seconds: number,
+): void {
+  const existing = sightings.get(key);
+  if (existing) {
+    existing.count++;
+    return;
   }
-  return Math.abs(sum) / 2;
+  sightings.set(key, { key, label: describe(catalog, key), firstSeen: seconds, count: 1 });
 }
 
-function recordPlacement(stats: PlacementStats, quad: Quad, width: number, height: number): void {
-  const guide = centeredGuideQuad(width, height);
-  const iou = quadIou(quad, guide);
-  const candidateArea = quadArea(quad);
-  const guideArea = quadArea(guide);
-  const intersection = (iou * (candidateArea + guideArea)) / (1 + iou);
-
-  stats.frames++;
-  stats.iouSum += iou;
-  stats.containmentSum += candidateArea > 0 ? intersection / candidateArea : 0;
-  if (iou < GUIDE_MIN_IOU) {
-    stats.belowMinIou++;
-  }
-  if (quad.every((point, index) => point.x === guide[index].x && point.y === guide[index].y)) {
-    stats.guideFallback++;
-  }
-  const bucket = IOU_BUCKETS.findIndex((edge) => iou < edge);
-  stats.buckets[bucket === -1 ? IOU_BUCKETS.length : bucket]++;
-}
-
-function formatPlacement(stats: PlacementStats): string {
-  if (stats.frames === 0) {
-    return "";
-  }
-  const labels = ["<0.1", "0.1-0.2", "0.2-0.3", "0.3-0.5", "0.5-0.7", ">=0.7"];
-  const histogram = stats.buckets.map((count, index) => `${labels[index]}: ${count}`).join("  ");
-  const share = ((stats.belowMinIou / stats.frames) * 100).toFixed(0);
+function traceLine(catalog: Catalog, frame: number, outcome: FrameOutcome): string {
+  const top = outcome.ranked[0];
+  const ranked = top
+    ? `top ${describe(catalog, top.key).padEnd(44)} d${top.distance.toFixed(3)} r${top.rotation}`
+    : "no-candidate".padEnd(58);
+  const verdict = outcome.winner
+    ? `WIN ${outcome.winner.score} vs ${outcome.winner.rivalScore}`
+    : `${outcome.refused ? "refused " : ""}best-score ${outcome.bestScore}`;
   return (
-    `  placement vs guide (${stats.frames} frames with a candidate): ` +
-    `mean IoU ${(stats.iouSum / stats.frames).toFixed(2)}, ` +
-    `mean containment ${(stats.containmentSum / stats.frames).toFixed(2)}, ` +
-    `${stats.belowMinIou} below the ${GUIDE_MIN_IOU} filter (${share}%), ` +
-    `${stats.guideFallback} guide-fallback frames\n` +
-    `    IoU histogram: ${histogram}\n`
-  );
-}
-
-/**
- * Same engine, separate accept state, with an unreachable lock run so it only
- * ever reports frame winners. Mirrors `createCatchUpSession` in the web hook.
- */
-function createCatchUpSession(
-  cv: OpenCvLike & OrbCvLike,
-  catalog: ReturnType<typeof loadCatalog>,
-  bank: EmbedBank,
-  gates: ReturnType<typeof gatesForEmbedDim>,
-  referenceFiles: Map<string, string>,
-): ScanSession {
-  return createScanSession(
-    {
-      cv,
-      embedder: nodeEmbedder,
-      bank,
-      artKeyOf: (key) => catalog.get(key)?.artKey ?? key,
-      labelOf: (key) => describe(catalog, key),
-      cardTypeOf: (key) => catalog.get(key)?.cardType,
-      publicCodeOf: (key) => catalog.get(key)?.publicCode,
-      markersOf: (key) => catalog.get(key)?.markers ?? undefined,
-      languageOf: (key) => catalog.get(key)?.language,
-      embedImageSize: EMBED_SIZE,
-      fetchReference: async (key) => {
-        const file = referenceFiles.get(key);
-        return file ? await loadImage(file) : null;
-      },
-    },
-    {
-      topK: Math.min(gates.topK, SINGLE_MODE_TOP_K),
-      confidentDistance: gates.confidentDistance,
-      rotationFallbackDistance: gates.rotationFallbackDistance,
-      rotationPairOnly: CANONICAL_BANK,
-      guideFor: centeredGuideQuad,
-      accept: { lockRun: Number.POSITIVE_INFINITY, maxGapFrames: 0 },
-    },
-  );
-}
-
-async function secondLook(
-  session: ScanSession,
-  frame: RgbaImage,
-  frameIndex: number,
-  gates: ReturnType<typeof gatesForEmbedDim>,
-): Promise<CatchUpVerdict> {
-  void gates;
-  const outcome = await session.processFrame(frame, frameIndex, frameIndex / 30, () =>
-    performance.now(),
-  );
-  return catchUpVerdict(
-    outcome.winner,
-    DEFAULT_SESSION_OPTIONS.minInliers,
-    DEFAULT_SESSION_OPTIONS.margin,
+    `    #${String(frame + 1).padStart(4)} ${outcome.timings.total.toFixed(0).padStart(4)}ms ` +
+    `focus ${outcome.focus.toFixed(0).padStart(4)} ${ranked} ${verdict}\n`
   );
 }
 
 async function runClip(
-  cv: OpenCvLike & OrbCvLike,
   clip: string,
-  catalog: ReturnType<typeof loadCatalog>,
-  verbose: boolean,
-  embedKind: EmbedKind,
-  bank: EmbedBank,
-  maskFrame: boolean,
-  guided: boolean,
-): Promise<void> {
+  truth: ClipTruth,
+  context: ReplayContext,
+): Promise<ClipReplay> {
+  const { catalog, multiPrinting, options } = context;
   const dir = path.join(CLIPS, clip);
   const frames = fs
     .readdirSync(dir)
     .filter((f) => f.endsWith(".jpg"))
     .toSorted();
+  const fps = truth.fps ?? DEFAULT_FPS;
+  const deps = sessionDeps(context);
+  const session: ScanSession = createScanSession(deps, options.live);
+  const catchUpSession = context.catchUp ? createScanSession(deps, options.catchUp) : null;
+  const detector = createPlacementDetector();
 
-  const referenceFiles = new Map(listReferenceImages().map((r) => [r.key, r.file]));
-
-  const counting = guided && clip in EXPECTED_PLACEMENTS;
-
-  // bank.vectors.length / bank.keys.length recovers the embed dimension the
-  // bank was built with, which selects the default distance gates.
-  const gates = gatesForEmbedDim(bank.keys.length > 0 ? bank.vectors.length / bank.keys.length : 0);
-  const acceptMargin = Number(argValue("--margin") ?? DEFAULT_SESSION_OPTIONS.margin);
-  const acceptOptions = {
-    lockRun: Number(
-      argValue("--lock-run") ?? (guided ? GUIDE_LOCK_RUN : DEFAULT_SESSION_OPTIONS.accept.lockRun),
-    ),
-    maxGapFrames: Number(argValue("--lock-gap") ?? DEFAULT_SESSION_OPTIONS.accept.maxGapFrames),
-    // Guide-mode only: pan has no placement detector to gate a re-lock on.
-    weighted: guided && !process.argv.includes("--no-weighted"),
-    relockOnlyAfterRearm: guided && !process.argv.includes("--no-relock-gate"),
-  };
-  const session: ScanSession = createScanSession(
-    {
-      cv,
-      embedder: nodeEmbedder,
-      bank,
-      artKeyOf: (key) => catalog.get(key)?.artKey ?? key,
-      labelOf: (key) => describe(catalog, key),
-      cardTypeOf: (key) => catalog.get(key)?.cardType,
-      publicCodeOf: (key) => catalog.get(key)?.publicCode,
-      markersOf: (key) => catalog.get(key)?.markers ?? undefined,
-      languageOf: (key) => catalog.get(key)?.language,
-      embedImageSize: EMBED_SIZE,
-      fetchReference: async (key) => {
-        const file = referenceFiles.get(key);
-        return file ? await loadImage(file) : null;
-      },
-    },
-    {
-      embedKind,
-      topK: Number(
-        argValue("--top-k") ?? (guided ? Math.min(gates.topK, SINGLE_MODE_TOP_K) : gates.topK),
-      ),
-      candidatesToTry: Number(argValue("--tries") ?? DEFAULT_SESSION_OPTIONS.candidatesToTry),
-      confidentDistance: Number(argValue("--confident-distance") ?? gates.confidentDistance),
-      rotationMinFocus: Number(
-        argValue("--rotation-min-focus") ?? DEFAULT_SESSION_OPTIONS.rotationMinFocus,
-      ),
-      rotationFallbackDistance: Number(
-        argValue("--rotation-fallback-distance") ?? gates.rotationFallbackDistance,
-      ),
-      // The page pairs guide mode with a canonical bank; the bench knows the
-      // bank's frame from the env the cache was built under.
-      rotationPairOnly: process.argv.includes("--pair-only") || (guided && CANONICAL_BANK),
-      margin: acceptMargin,
-      maskReferenceFrame: maskFrame,
-      accept: acceptOptions,
-      ...(guided ? { guideFor: centeredGuideQuad } : {}),
-    },
-  );
-
+  const placement = createPlacementStats();
+  const attribution: ClipReplay["attribution"] = new Map();
   const sightings = new Map<string, Sighting>();
   let refusedFrames = 0;
-  let totalMs = 0;
-  const placement = createPlacementStats();
 
-  const trace = process.argv.includes("--trace");
-  const detector = createPlacementDetector();
-  const rearmOnPlacement = counting && !process.argv.includes("--no-rearm");
-  const skipDisturbed = counting && !process.argv.includes("--no-skip-disturbed");
-  const dropTo = argValue("--drop-to") ? Number(argValue("--drop-to")) : null;
-  const frameStride = dropTo ? Math.max(1, Math.round(30 / dropTo)) : 1;
-
-  let placements = 0;
-  let processed = 0;
-  let skipped = 0;
-  let lockEvents = 0;
-  const lockLog: string[] = [];
-  let unlockedSincePlacement = 0;
-  let missedPlacements = 0;
-  let nextProcessableFrame = 0;
-  // Second look (apps/web/src/features/scan/lib/scan-catchup.ts): replays the settled
-  // frame through a never-locking session once the placement is written off.
-  const catchUp = !process.argv.includes("--no-catch-up");
-  let pendingFrame: RgbaImage | null = null;
-  let recovered = 0;
-  let recoveredAsk = 0;
-  const catchUpSession: ScanSession | null =
-    counting && catchUp ? createCatchUpSession(cv, catalog, bank, gates, referenceFiles) : null;
-
-  for (const [i, file] of frames.entries()) {
-    const image = await loadImage(path.join(dir, file));
-    const startedAt = performance.now();
-
-    let disturbed = false;
-    if (counting) {
-      const signal = detector.observe(toGray(image), centeredGuideQuad(image.width, image.height));
-      disturbed = signal.disturbed;
-      if (signal.placed) {
-        placements++;
-        if (unlockedSincePlacement > 0) {
-          missedPlacements++;
-          if (catchUpSession && pendingFrame) {
-            const verdict = await secondLook(catchUpSession, pendingFrame, i, gates);
-            if (verdict === "add") {
-              recovered++;
-            } else if (verdict === "ask") {
-              recoveredAsk++;
-            }
-          }
-        }
-        unlockedSincePlacement = 1;
-        pendingFrame = image;
-        if (rearmOnPlacement) {
-          session.rearm();
-        }
+  function observe({ index, seconds, frame, outcome }: ReplayFrame): void {
+    refusedFrames += outcome.refused ? 1 : 0;
+    if (context.trace) {
+      process.stdout.write(traceLine(catalog, index, outcome));
+    }
+    const top = outcome.ranked[0];
+    if (context.attribute && top) {
+      const art = catalog.get(top.key)?.artKey ?? top.key;
+      const stats = attribution.get(art) ?? { top: 0, plausible: 0, bestScore: 0, winners: 0 };
+      stats.top++;
+      if (top.distance <= options.gates.rotationFallbackDistance) {
+        stats.plausible++;
+        stats.bestScore = Math.max(stats.bestScore, outcome.bestScore);
       }
-    }
-
-    if (disturbed && skipDisturbed) {
-      skipped++;
-      totalMs += performance.now() - startedAt;
-      continue;
-    }
-    if (i < nextProcessableFrame) {
-      skipped++;
-      totalMs += performance.now() - startedAt;
-      continue;
-    }
-    nextProcessableFrame = i + frameStride;
-    processed++;
-
-    // `processed - 1`, not `i`: `maxGapFrames` counts in the processed-frame
-    // index, matching what the web hook passes.
-    const outcome = await session.processFrame(image, processed - 1, i / 30, () =>
-      performance.now(),
-    );
-    if (trace) {
-      const top = outcome.ranked[0];
-      process.stdout.write(
-        `    #${String(i + 1).padStart(4)} ${outcome.timings.total.toFixed(0).padStart(4)}ms ` +
-          `focus ${outcome.focus.toFixed(0).padStart(4)} ` +
-          `${top ? `top ${describe(catalog, top.key).padEnd(44)} d${top.distance.toFixed(3)} r${top.rotation}` : "no-candidate".padEnd(58)} ` +
-          `${outcome.winner ? `WIN ${outcome.winner.inliers} vs ${outcome.winner.rivalInliers}` : `${outcome.refused ? "refused " : ""}best-inliers ${outcome.bestInliers}`}\n`,
-      );
-    }
-    if (outcome.refused) {
-      refusedFrames++;
+      if (outcome.winner?.artKey === art) {
+        stats.winners++;
+      }
+      attribution.set(art, stats);
     }
     if (outcome.candidate) {
-      recordPlacement(placement, outcome.candidate.quad, image.width, image.height);
+      recordPlacement(placement, outcome.candidate.quad, frame.width, frame.height);
     }
     if (outcome.winner) {
-      record(sightings, catalog, outcome.winner.key, i / 30, outcome.winner.inliers, verbose);
-      if (outcome.locked) {
-        lockEvents++;
-        unlockedSincePlacement = 0;
-        pendingFrame = null;
-        lockLog.push(
-          `    lock ${(i / 30).toFixed(1).padStart(5)}s  ${outcome.locked.label.padEnd(46)} ` +
-            `after ${String(outcome.locked.framesToLock).padStart(3)} frames, ` +
-            `inliers ${outcome.winner.inliers} vs rival ${outcome.winner.rivalInliers}`,
-        );
-        if (verbose) {
-          process.stdout.write(`      LOCK ${lockLog.at(-1)?.trim() ?? ""}\n`);
+      noteSighting(sightings, catalog, outcome.winner.key, seconds);
+    }
+  }
+
+  const now = () => performance.now();
+  const replay = await replayClip({
+    frameCount: frames.length,
+    fps,
+    loadFrame: (index) => loadImage(path.join(dir, frames[index] ?? "")),
+    watch: (image) => detector.observe(toGray(image), centeredGuideQuad(image.width, image.height)),
+    process: (image, index, seconds) => session.processFrame(image, index, seconds, now),
+    ...(catchUpSession
+      ? {
+          catchUp: (image: RgbaImage, index: number, seconds: number) =>
+            catchUpSession.processFrame(image, index, seconds, now),
         }
-      }
-    }
-    totalMs += performance.now() - startedAt;
-  }
-  if (unlockedSincePlacement > 0) {
-    missedPlacements++;
-    if (catchUpSession && pendingFrame) {
-      const verdict = await secondLook(catchUpSession, pendingFrame, frames.length, gates);
-      if (verdict === "add") {
-        recovered++;
-      } else if (verdict === "ask") {
-        recoveredAsk++;
-      }
-    }
-  }
-  catchUpSession?.release();
-
-  const MIN_SIGHTINGS = Number(argValue("--min-sightings") ?? 4);
-  const all = [...sightings.values()].toSorted((a, b) => a.firstSeen - b.firstSeen);
-  const distinct = all.filter((s) => s.count >= MIN_SIGHTINGS);
-  const curve = [2, 3, 4, 5, 6, 8]
-    .map((n) => {
-      const kept = all.filter((s) => s.count >= n);
-      const arts = new Set(kept.map((s) => catalog.get(s.key)?.artKey ?? s.key));
-      return `>=${n}: ${arts.size}`;
-    })
-    .join("  ");
-  const artworks = new Set(distinct.map((s) => catalog.get(s.key)?.artKey ?? s.key));
-  process.stdout.write(
-    `\n${clip}: ${frames.length} frames` +
-      `${guided ? ` (guide mode), ${processed} processed, ${skipped} skipped` : ""}, ` +
-      `${(totalMs / Math.max(1, processed)).toFixed(0)}ms/processed frame\n` +
-      `  ${artworks.size} distinct cards recognised at >=${MIN_SIGHTINGS} sightings ` +
-      `(clip contains ${EXPECTED_CARDS[clip] ?? 0})\n  persistence curve: ${curve}\n` +
-      `${formatPlacement(placement)}`,
-  );
-  if (counting) {
-    process.stdout.write(
-      `  SCORE ${lockEvents} counted / ${EXPECTED_PLACEMENTS[clip]} placed ` +
-        `(detector saw ${placements}, ${missedPlacements} placements went uncounted)\n` +
-        `  second look: ${recovered} recovered outright, ${recoveredAsk} left for the user` +
-        `${catchUp ? "" : " (OFF)"}\n` +
-        `  mode: guide, rearm ${rearmOnPlacement ? "on" : "OFF"}, ` +
-        `skip-disturbed ${skipDisturbed ? "on" : "OFF"}, ` +
-        `relock-gate ${acceptOptions.relockOnlyAfterRearm ? "on" : "OFF"}, ` +
-        `weighted ${acceptOptions.weighted ? "on" : "OFF"}` +
-        `${dropTo ? `, budget ${dropTo}fps (stride ${frameStride})` : ""}\n`,
-    );
-  } else if (clip in EXPECTED_PLACEMENTS) {
-    process.stdout.write("  (run with --guide to score how many cards were counted)\n");
-  }
-  for (const sighting of distinct) {
-    process.stdout.write(
-      `    ${sighting.firstSeen.toFixed(1).padStart(5)}s  ${sighting.label.padEnd(46)} ` +
-        `seen ${String(sighting.count).padStart(3)}x\n`,
-    );
-  }
-
-  const locked = [...session.state.values()]
-    .filter((t) => t.lockedAt !== null)
-    .toSorted((a, b) => (a.lockedAt ?? 0) - (b.lockedAt ?? 0));
-  process.stdout.write(
-    `  accept layer (margin ${acceptMargin}, run ${acceptOptions.lockRun}, ` +
-      `gap ${acceptOptions.maxGapFrames}): ${lockEvents} lock events over ` +
-      `${locked.length} artworks, ${refusedFrames} frames refused\n`,
-  );
-  for (const line of lockLog) {
-    process.stdout.write(`${line}\n`);
-  }
-  for (const track of [...session.state.values()].filter(
-    (t) => t.lockedAt === null && t.sightings >= 3,
-  )) {
-    process.stdout.write(
-      `    near ${track.firstSeen.toFixed(1).padStart(5)}s  ${track.label.padEnd(46)} ` +
-        `seen ${String(track.sightings).padStart(3)}x, best run ${track.maxRunLength}\n`,
-    );
-  }
-
-  session.release();
-}
-
-function record(
-  sightings: Map<string, Sighting>,
-  catalog: ReturnType<typeof loadCatalog>,
-  key: string,
-  seconds: number,
-  score: number,
-  verbose: boolean,
-): void {
-  const existing = sightings.get(key);
-  if (existing) {
-    existing.count++;
-    existing.bestScore = Math.max(existing.bestScore, score);
-    return;
-  }
-  sightings.set(key, {
-    key,
-    label: describe(catalog, key),
-    firstSeen: seconds,
-    count: 1,
-    bestScore: score,
+      : {}),
+    rearm: () => session.rearm(),
+    multiPrinting: (artKey) => multiPrinting.has(artKey),
+    labelOf: (key) => describe(catalog, key),
+    idleGate: options.gates.rotationFallbackDistance,
+    now,
+    pacing: everyNthFrame(context.dropTo ? Math.max(1, Math.round(fps / context.dropTo)) : 1),
+    behaviour: context.behaviour,
+    onFrame: observe,
   });
-  if (verbose) {
-    process.stdout.write(`    ${seconds.toFixed(1).padStart(5)}s ${describe(catalog, key)}\n`);
+
+  const nearLocks = [...session.state.values()]
+    .filter((track) => track.lockedAt === null && track.sightings >= 3)
+    .map((track) => ({
+      firstSeen: track.firstSeen,
+      label: track.label,
+      sightings: track.sightings,
+      maxRunLength: track.maxRunLength,
+    }));
+  const { locks: scored, score } = scoreClip(truth, replay.locks, (key) => catalog.get(key));
+  return {
+    truth,
+    skipped: replay.skipped,
+    suppressedRelocks: replay.suppressedRelocks,
+    refusedFrames,
+    sweepFrames: replay.sweepFrames,
+    stillFrames: replay.stillFrames,
+    boardReads: replay.boardReads,
+    placements: replay.placements,
+    missedPlacements: replay.missedPlacements,
+    catchUpRuns: replay.catchUpRuns,
+    recoveredAsk: replay.recoveredAsk,
+    placement,
+    attribution,
+    sightings: [...sightings.values()]
+      .toSorted((a, b) => a.firstSeen - b.firstSeen)
+      .filter((sighting) => sighting.count >= context.minSightings),
+    nearLocks,
+    result: {
+      clip,
+      split: truth.split,
+      mode: truth.mode,
+      reviewed: truth.reviewed,
+      frames: frames.length,
+      processed: replay.processed,
+      frameMs: summarize(replay.frameMs),
+      stageMs: replay.stageMs,
+      sweepShare: replay.sweepShare,
+      locks: scored,
+      score,
+      app: scoreAppLocks(truth, scored, catalog, context.printingIndex, context.language),
+    },
+  };
+}
+
+function gitRevision(): string {
+  try {
+    return execFileSync("git", ["rev-parse", "--short", "HEAD"], {
+      cwd: REPO_ROOT,
+      encoding: "utf-8",
+    }).trim();
+  } catch {
+    return "unknown";
   }
 }
 
-async function main(cv: OpenCvLike & OrbCvLike): Promise<void> {
+async function main(): Promise<void> {
+  const dropTo = positiveIntArg("--drop-to") ?? null;
+  const minSightings = positiveIntArg("--min-sightings") ?? 4;
   const catalog = loadCatalog();
   const only = argValue("--clip");
-  const verbose = process.argv.includes("--verbose");
-  const embedKind: EmbedKind = process.argv.includes("--art-crop") ? "art" : "card";
-  const maskFrame = process.argv.includes("--mask-frame");
-  const guided = process.argv.includes("--guide");
-  const bank = await loadEmbedBank(embedKind, process.argv.includes("--force-bank"));
+  const split = argValue("--split");
+  const onlyMode = argValue("--only-mode");
+  const jsonOut = argValue("--json");
+  const bank = await loadEmbedBank(hasFlag("--force-bank"));
+  const groupOf = hasFlag("--no-art-groups")
+    ? new Map<string, string>()
+    : await applyArtGroups(catalog, bank, !hasFlag("--no-illustration-groups"));
+  const context: ReplayContext = {
+    catalog,
+    bank,
+    referenceFiles: new Map(listReferenceImages().map((entry) => [entry.key, entry.file])),
+    multiPrinting: multiPrintingArts(bank.keys, (key) => catalog.get(key)),
+    options: benchSessionOptions(bank),
+    printingIndex: appPrintingIndex(catalog, hasFlag("--refresh-printings")),
+    language: languageSetting(),
+    trace: hasFlag("--trace"),
+    attribute: hasFlag("--attribute"),
+    catchUp: !hasFlag("--no-catch-up"),
+    behaviour: {
+      rearm: !hasFlag("--no-rearm"),
+      skipDisturbed: !hasFlag("--no-skip-disturbed"),
+      relockGuard: !hasFlag("--no-relock-guard"),
+    },
+    dropTo,
+    minSightings,
+  };
 
-  for (const clip of Object.keys(EXPECTED_CARDS)) {
+  const results: BenchClipResult[] = [];
+  let boardReads = 0;
+  for (const clip of listClips()) {
     if (only && clip !== only) {
       continue;
     }
-    await runClip(cv, clip, catalog, verbose, embedKind, bank, maskFrame, guided);
+    const truth = loadClipTruth(clip);
+    if (!truth) {
+      process.stdout.write(`\n${clip}: no truth.json, skipped\n`);
+      continue;
+    }
+    if ((split && truth.split !== split) || (onlyMode && truth.mode !== onlyMode)) {
+      continue;
+    }
+    const replay = await runClip(clip, groupTruth(truth, groupOf), context);
+    reportClip(replay, {
+      accept: context.options.live.accept,
+      attribute: context.attribute,
+      catchUp: context.catchUp,
+      verbose: hasFlag("--verbose"),
+    });
+    results.push(replay.result);
+    boardReads += replay.boardReads.length;
+  }
+
+  const totals = results.reduce(
+    (sum, result) => ({
+      found: sum.found + result.score.found,
+      expected: sum.expected + result.score.expected,
+      wrong: sum.wrong + result.score.wrongCards + result.score.wrongPrintings,
+    }),
+    { found: 0, expected: 0, wrong: 0 },
+  );
+  process.stdout.write(
+    `\nTOTAL found ${totals.found}/${totals.expected}, wrong locks ${totals.wrong}, ` +
+      `board reads ${boardReads}\n`,
+  );
+
+  if (jsonOut) {
+    const run: BenchRun = {
+      meta: {
+        date: new Date().toISOString(),
+        revision: gitRevision(),
+        encoder: path.basename(MODEL_FILE),
+        embedSize: EMBED_SIZE,
+        canonicalBank: CANONICAL_BANK,
+        bankEntries: bank.keys.length,
+        args: process.argv.slice(2).join(" "),
+      },
+      clips: results,
+    };
+    fs.writeFileSync(jsonOut, `${JSON.stringify(run, null, 2)}\n`);
+    process.stdout.write(`wrote ${jsonOut}\n`);
   }
 }
 
-// require, not dynamic import: Bun's `await import()` adopts the npm dist's
-// emscripten thenable and spins the microtask queue at 100% CPU forever.
-const customOpenCv = path.join(REPO_ROOT, "data/image-recognition-test/models/opencv/opencv.js");
-const useCustomOpenCv = fs.existsSync(customOpenCv);
-process.stdout.write(
-  `opencv: ${useCustomOpenCv ? "custom trimmed build" : "@techstark/opencv-js dist"}\n`,
-);
-// oxlint-disable-next-line import/no-commonjs, typescript/no-require-imports -- see the require-not-import note above
-const cvModule = useCustomOpenCv ? require(customOpenCv) : require("@techstark/opencv-js");
-
-(cvModule as unknown as { then: (fn: (cv: OpenCvLike & OrbCvLike) => void) => void }).then((cv) => {
-  main(cv).then(
-    () => process.exit(0),
-    (error: unknown) => {
-      process.stderr.write(`${String(error)}\n`);
-      process.exit(1);
-    },
-  );
-});
+await main();

@@ -5285,6 +5285,16 @@
   "scan_notices_unavailable_title": "Scanning is not available right now.",
   "scan_notices_https": "The camera needs a secure connection, so scanning only works over https.",
   "scan_page_not_in_catalog": "{name} is not in the catalog yet",
+  "scan_page_board_added": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Added {count} card at once",
+        "countPlural=*": "Added {count} cards at once"
+      }
+    }
+  ],
   "scan_page_recognised": "Recognised {name}",
   "scan_page_swap_title": "Switch to another printing",
   "scan_page_swap_description": "Move one scanned {name} to another printing, finish or language of the same card.",
@@ -5329,8 +5339,6 @@
   "scan_resume_when_days": "{days} days ago",
   "scan_settings_language_label": "Card language",
   "scan_settings_language_description": "Used to pick the printing",
-  "scan_settings_count_every_copy_label": "Count every copy",
-  "scan_settings_count_every_copy_description": "Keeps counting while cards are dealt past the camera. Off: each card once.",
   "scan_settings_sounds_label": "Sounds",
   "scan_settings_sounds_description": "A tick when a card is recognised",
   "scan_settings_tap_label": "Tap to scan",
@@ -5404,12 +5412,11 @@
   "scan_encoder_start_failed": "Could not start the encoder",
   "scan_engine_still_loading": "The engine is still loading, try again in a moment.",
   "scan_engine_start_failed": "The scanning engine failed to start",
-  "scan_engine_opencv_failed": "Could not load OpenCV",
-  "scan_engine_opencv_eval_failed": "The OpenCV script failed to evaluate",
-  "scan_engine_encoder_failed": "Could not load the encoder model",
+  "scan_engine_detector_failed": "Could not load the card detector",
+  "scan_engine_worker_unsupported": "This browser cannot run the scanner. Update it or try another browser.",
   "scan_frame_failed": "Frame processing failed",
   "scan_bank_load_failed": "Could not load the scan data",
-  "scan_bank_unavailable": "The card index has not been published yet. Please try again later.",
+  "scan_unavailable": "The scanner is not available right now. Please try again later.",
   "common_error_generic": "Something went wrong. Please try again.",
   "common_new_version_available": "A new version of OpenRift is available.",
   "common_reload": "Reload",

@@ -13,8 +13,9 @@ export const scanRouter = {
     const { scanIndex } = context.repos;
     const { scan } = context.config;
     const current = await scanIndex.get();
+    const detectorUrl = scan.detectorFile ? `/media/scan/${scan.detectorFile}` : null;
     return {
-      available: current !== null,
+      available: current !== null && detectorUrl !== null,
       formatVersion: current?.formatVersion ?? null,
       bankHash: current?.bankHash ?? null,
       entryCount: current?.entryCount ?? null,
@@ -22,7 +23,8 @@ export const scanRouter = {
       bankUrl: current ? `/media/scan/${bankFileName(current.bankHash)}` : null,
       labelsUrl: current ? `/media/scan/${labelsFileName(current.bankHash)}` : null,
       encoderUrl: `/media/scan/${current?.encoderTag ?? scan.encoderFile}`,
-      opencvUrl: `/media/scan/${scan.opencvFile}`,
+      detectorUrl,
+      boardDetectorUrl: scan.boardDetectorFile ? `/media/scan/${scan.boardDetectorFile}` : null,
     };
   }),
 };

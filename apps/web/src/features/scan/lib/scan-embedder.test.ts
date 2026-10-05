@@ -10,7 +10,7 @@ interface FakeSession {
 }
 
 const ort = {
-  env: { wasm: { wasmPaths: {} as { wasm: string }, proxy: false, numThreads: 0 } },
+  env: { wasm: { wasmPaths: {} as { wasm: string }, numThreads: 0 } },
   Tensor: class {
     readonly type: string;
     readonly data: Float32Array;
@@ -47,7 +47,7 @@ let now = 0;
 
 beforeEach(() => {
   vi.resetModules();
-  ort.env.wasm = { wasmPaths: {} as { wasm: string }, proxy: false, numThreads: 0 };
+  ort.env.wasm = { wasmPaths: {} as { wasm: string }, numThreads: 0 };
   ort.InferenceSession.create = vi.fn().mockResolvedValue(fakeSession());
   fetchWithProgress.mockReset();
   fetchWithProgress.mockResolvedValue(new ArrayBuffer(8));
@@ -103,25 +103,6 @@ describe("loadScanEmbedder", () => {
 });
 
 describe("runtime option resolution", () => {
-  it("proxies inference off the page's main thread", async () => {
-    const { loadScanEmbedder } = await loadModule();
-    await loadScanEmbedder(MODEL_URL, WASM_PATHS);
-    expect(ort.env.wasm.proxy).toBe(true);
-  });
-
-  it("runs in line when it is already inside the scan worker", async () => {
-    const { loadScanEmbedder } = await loadModule();
-    await loadScanEmbedder(MODEL_URL, WASM_PATHS, undefined, true);
-    expect(ort.env.wasm.proxy).toBe(false);
-  });
-
-  it("lets the URL turn the proxy off", async () => {
-    globalThis.history.replaceState({}, "", "/scan?ortProxy=0");
-    const { loadScanEmbedder } = await loadModule();
-    await loadScanEmbedder(MODEL_URL, WASM_PATHS);
-    expect(ort.env.wasm.proxy).toBe(false);
-  });
-
   it("caps the thread count at four on a wide device", async () => {
     const { loadScanEmbedder } = await loadModule();
     await loadScanEmbedder(MODEL_URL, WASM_PATHS);
@@ -142,18 +123,36 @@ describe("runtime option resolution", () => {
     expect(ort.env.wasm.numThreads).toBe(1);
   });
 
-  it("lets the URL override the thread count past the cap", async () => {
-    globalThis.history.replaceState({}, "", "/scan?ortThreads=7");
+  it("honours the worker's thread request past the cap", async () => {
     const { loadScanEmbedder } = await loadModule();
-    await loadScanEmbedder(MODEL_URL, WASM_PATHS);
+    await loadScanEmbedder(MODEL_URL, WASM_PATHS, undefined, 7);
     expect(ort.env.wasm.numThreads).toBe(7);
   });
 
-  it("ignores a thread override that is not a positive number", async () => {
-    globalThis.history.replaceState({}, "", "/scan?ortThreads=nope");
+  it("ignores a thread request that is not a positive number", async () => {
     const { loadScanEmbedder } = await loadModule();
-    await loadScanEmbedder(MODEL_URL, WASM_PATHS);
+    await loadScanEmbedder(MODEL_URL, WASM_PATHS, undefined, 0);
     expect(ort.env.wasm.numThreads).toBe(4);
+  });
+});
+
+describe("embedderThreads", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("reports one effective thread without cross-origin isolation", async () => {
+    vi.stubGlobal("crossOriginIsolated", false);
+    const { loadScanEmbedder, embedderThreads } = await loadModule();
+    await loadScanEmbedder(MODEL_URL, WASM_PATHS, undefined, 3);
+    expect(embedderThreads()).toBe(1);
+  });
+
+  it("reports the configured threads under cross-origin isolation", async () => {
+    vi.stubGlobal("crossOriginIsolated", true);
+    const { loadScanEmbedder, embedderThreads } = await loadModule();
+    await loadScanEmbedder(MODEL_URL, WASM_PATHS, undefined, 3);
+    expect(embedderThreads()).toBe(3);
   });
 });
 

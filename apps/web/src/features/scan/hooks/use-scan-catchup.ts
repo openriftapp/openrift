@@ -1,11 +1,11 @@
-import { DEFAULT_SESSION_OPTIONS } from "@openrift/shared/scan/session";
+import type { FrameOutcome } from "@openrift/shared/scan/session";
 import type { RgbaImage } from "@openrift/shared/scan/types";
 import type { RefObject } from "react";
 import { useRef, useState } from "react";
 
-import type { LoadedScanBank } from "@/features/scan/lib/scan-bank";
-import { describeKey } from "@/features/scan/lib/scan-bank";
+import type { ScanBankInfo } from "@/features/scan/lib/scan-bank";
 import type {
+  CatchUpVerdict,
   IdentifyAttempt,
   PendingFrame,
   UnidentifiedCard,
@@ -17,29 +17,28 @@ import {
   rankedArtworks,
   shouldRunCatchUp,
 } from "@/features/scan/lib/scan-catchup";
+import { LOCK_VIBRATION_MS } from "@/features/scan/lib/scan-feedback";
 import { guideRectIn, snapshotVideoRect } from "@/features/scan/lib/scan-flight";
 import type { ScannerEvents } from "@/features/scan/lib/scan-locks";
-import type { PlacementTally } from "@/features/scan/lib/scan-placement-counts";
-import type { RelockGuard } from "@/features/scan/lib/scan-relock";
+import { lockFromWinner } from "@/features/scan/lib/scan-locks";
+import type { ScanRun } from "@/features/scan/lib/scan-run";
+import type { SessionKind } from "@/features/scan/lib/scan-worker-protocol";
 import { errorText } from "@/lib/error-text";
-import type { ScanWorkerOutcome, SessionKind } from "@/workers/scan-worker";
 
 export interface ScanCatchUpOptions {
-  loaded: LoadedScanBank | null;
+  bank: ScanBankInfo | null;
   videoRef: RefObject<HTMLVideoElement | null>;
   runningRef: RefObject<boolean>;
   runGenerationRef: RefObject<number>;
-  sessionStartRef: RefObject<number>;
+  runRef: RefObject<ScanRun>;
   eventsRef: RefObject<ScannerEvents | undefined>;
-  relockRef: RefObject<RelockGuard>;
-  tallyRef: RefObject<PlacementTally>;
   grabFrame: (video: HTMLVideoElement) => RgbaImage | null;
   processFrame: (
     kind: SessionKind,
     frame: RgbaImage,
     index: number,
     seconds: number,
-  ) => Promise<ScanWorkerOutcome | null>;
+  ) => Promise<FrameOutcome | null>;
 }
 
 export interface ScanCatchUp {
@@ -49,32 +48,57 @@ export interface ScanCatchUp {
   shouldRun: (settling: boolean, cardInGuide: boolean) => boolean;
   run: () => Promise<void>;
   identifyNow: (onSnapshot?: (snapshot: string | null) => void) => Promise<IdentifyAttempt>;
+  clearQueue: () => void;
   reset: () => void;
 }
 
+interface SecondLook {
+  outcome: FrameOutcome;
+  verdict: CatchUpVerdict;
+}
+
 export function useScanCatchUp(options: ScanCatchUpOptions): ScanCatchUp {
-  const { loaded, videoRef, runningRef, runGenerationRef, sessionStartRef, eventsRef } = options;
-  // Replayed through a second, never-locking session: a single frame can't
-  // earn a run, and the live session's run must not be corrupted by it.
+  const { bank, videoRef, runningRef, runGenerationRef, runRef, eventsRef } = options;
   const queueRef = useRef(createCatchUpQueue());
-  const busyRef = useRef(false);
+  const queuedBusyRef = useRef(false);
+  const identifyBusyRef = useRef(false);
+  const queuedLookRef = useRef<Promise<SecondLook | null> | null>(null);
+  const identifyRef = useRef<Promise<IdentifyAttempt> | null>(null);
   const seqRef = useRef(0);
   const [pending, setPending] = useState<UnidentifiedCard[]>([]);
 
-  function seconds(): number {
-    return (performance.now() - sessionStartRef.current) / 1000;
+  function shortlist(ranked: FrameOutcome["ranked"]) {
+    return rankedArtworks(ranked, bank?.artKeys ?? new Map()).slice(0, CATCH_UP_SHORTLIST);
   }
 
-  function shortlist(ranked: ScanWorkerOutcome["outcome"]["ranked"]) {
-    return rankedArtworks(ranked, loaded?.artKeys ?? new Map()).slice(0, CATCH_UP_SHORTLIST);
+  async function processSecondLook(frame: RgbaImage, tag: string): Promise<SecondLook | null> {
+    const generation = runGenerationRef.current;
+    const seconds = (performance.now() - runRef.current.startedAt) / 1000;
+    let outcome: FrameOutcome | null = null;
+    try {
+      outcome = await options.processFrame("catchUp", frame, seqRef.current, seconds);
+    } catch (lookError) {
+      console.log(`[scan] ${tag} failed: ${errorText(lookError, "unknown")}`);
+    }
+    if (!outcome || generation !== runGenerationRef.current) {
+      return null;
+    }
+    const verdict = catchUpVerdict(outcome.winner);
+    const winner = outcome.winner;
+    const detail = winner
+      ? ` ${winner.key} score ${winner.score} vs rival ${winner.rivalScore}`
+      : " nothing verified";
+    console.log(`[scan] ${tag}: ${verdict}${detail}`);
+    return { outcome, verdict };
   }
 
-  function verdictFor(winner: ScanWorkerOutcome["outcome"]["winner"]) {
-    return catchUpVerdict(
-      winner,
-      DEFAULT_SESSION_OPTIONS.minInliers,
-      DEFAULT_SESSION_OPTIONS.margin,
-    );
+  function addWinner(outcome: FrameOutcome): void {
+    const winner = outcome.winner;
+    if (!winner) {
+      return;
+    }
+    runRef.current.relock.note(winner.artKey, performance.now());
+    eventsRef.current?.onLock?.(lockFromWinner(winner, outcome, bank?.labels ?? {}, Date.now()));
   }
 
   function enqueue(frame: PendingFrame, at: number): void {
@@ -92,71 +116,37 @@ export function useScanCatchUp(options: ScanCatchUpOptions): ScanCatchUp {
       queued: queueRef.current.size(),
       settling,
       cardInGuide,
-      busy: busyRef.current,
+      busy: queuedBusyRef.current || identifyBusyRef.current,
     });
   }
 
-  /**
-   * Runs through its own session so the live pass's run stays intact; that
-   * session never locks, since a lone frame has no run behind it.
-   */
   async function run(): Promise<void> {
     const entry = queueRef.current.take();
     if (!entry) {
       return;
     }
-    busyRef.current = true;
-    const generation = runGenerationRef.current;
-    // The optional access lives outside the try on purpose: the React Compiler
-    // cannot lower a conditional inside one and bails out of the whole hook.
-    let result: ScanWorkerOutcome | null = null;
-    try {
-      result = await options.processFrame("catchUp", entry.frame, seqRef.current, seconds());
-    } catch (catchUpError) {
-      // Deliberately swallowed: the card is already counted as a miss and
-      // the live pass must not be interrupted.
-      console.log(`[scan] catch-up failed: ${errorText(catchUpError, "unknown")}`);
+    queuedBusyRef.current = true;
+    const queuedLook = processSecondLook(entry.frame, `catch-up ${entry.id}`);
+    queuedLookRef.current = queuedLook;
+    const look = await queuedLook;
+    queuedBusyRef.current = false;
+    if (queuedLookRef.current === queuedLook) {
+      queuedLookRef.current = null;
     }
-    const outcome = result === null ? null : result.outcome;
-    busyRef.current = false;
-    if (generation !== runGenerationRef.current || !outcome) {
+    if (!look || look.verdict === "discard") {
       return;
     }
-    const verdict = verdictFor(outcome.winner);
-    console.log(
-      `[scan] catch-up ${entry.id}: ${verdict}` +
-        `${outcome.winner ? ` ${outcome.winner.key} inliers ${outcome.winner.inliers} vs rival ${outcome.winner.rivalInliers}` : " nothing verified"}`,
-    );
-    if (verdict === "discard") {
-      return;
-    }
-    if (verdict === "add" && outcome.winner) {
-      const winner = outcome.winner;
+    if (look.verdict === "add") {
       // Must decrement by one, not reset: other cards from the same burst
       // may still be genuinely unaccounted for.
-      options.tallyRef.current.noteRecovered();
-      // Reported like any other lock, so the page's resolve, picker and tray
-      // behave identically to a card the live pass caught.
-      eventsRef.current?.onLock?.({
-        key: winner.key,
-        artKey: winner.artKey,
-        label: describeKey(loaded?.labels ?? {}, winner.key),
-        resolved: false,
-        at: Date.now(),
-        lockSeconds: outcome.timings.total / 1000,
-        framesToLock: 1,
-        inliers: winner.inliers,
-      });
+      runRef.current.tally.noteRecovered();
+      addWinner(look.outcome);
       return;
     }
+    const candidates = shortlist(look.outcome.ranked);
     setPending((current) => [
       ...current,
-      {
-        id: entry.id,
-        thumbnail: entry.thumbnail,
-        candidates: shortlist(outcome.ranked),
-        at: entry.at,
-      },
+      { id: entry.id, thumbnail: entry.thumbnail, candidates, at: entry.at },
     ]);
   }
 
@@ -164,7 +154,7 @@ export function useScanCatchUp(options: ScanCatchUpOptions): ScanCatchUp {
    * Must grab a fresh frame: the published readout can lag behind a stale
    * card while the guide idles or settles.
    */
-  async function identifyNow(
+  async function identifyOnce(
     onSnapshot?: (snapshot: string | null) => void,
   ): Promise<IdentifyAttempt> {
     const video = videoRef.current;
@@ -177,51 +167,57 @@ export function useScanCatchUp(options: ScanCatchUpOptions): ScanCatchUp {
     if (!frame) {
       return { snapshot, identified: false, candidates: [] };
     }
-    const generation = runGenerationRef.current;
+    identifyBusyRef.current = true;
+    await queuedLookRef.current;
     seqRef.current += 1;
-    busyRef.current = true;
-    // The optional access lives outside the try on purpose: the React Compiler
-    // cannot lower a conditional inside one and bails out of the whole hook.
-    let result: ScanWorkerOutcome | null = null;
-    try {
-      result = await options.processFrame("catchUp", frame, seqRef.current, seconds());
-    } catch (identifyError) {
-      console.log(`[scan] identify-now failed: ${errorText(identifyError, "unknown")}`);
-    }
-    busyRef.current = false;
-    const outcome = result === null ? null : result.outcome;
-    if (!outcome || generation !== runGenerationRef.current) {
+    const look = await processSecondLook(frame, "identify-now");
+    identifyBusyRef.current = false;
+    if (!look) {
       return { snapshot, identified: false, candidates: [] };
     }
-    const verdict = verdictFor(outcome.winner);
-    console.log(
-      `[scan] identify-now: ${verdict}` +
-        `${outcome.winner ? ` ${outcome.winner.key} inliers ${outcome.winner.inliers} vs rival ${outcome.winner.rivalInliers}` : " nothing verified"}`,
-    );
-    if (verdict === "add" && outcome.winner) {
-      const winner = outcome.winner;
-      // Bypasses the re-lock guard but still counts as an add, or the live
-      // pass would lock the same card again and add an unwanted copy.
-      options.relockRef.current.note(winner.artKey, performance.now());
-      navigator.vibrate?.(50);
-      eventsRef.current?.onLock?.({
-        key: winner.key,
-        artKey: winner.artKey,
-        label: describeKey(loaded?.labels ?? {}, winner.key),
-        resolved: false,
-        at: Date.now(),
-        lockSeconds: outcome.timings.total / 1000,
-        framesToLock: 1,
-        inliers: winner.inliers,
-      });
+    if (look.verdict === "add") {
+      navigator.vibrate?.(LOCK_VIBRATION_MS);
+      addWinner(look.outcome);
       return { snapshot, identified: true, candidates: [] };
     }
-    return { snapshot, identified: false, candidates: shortlist(outcome.ranked) };
+    return { snapshot, identified: false, candidates: shortlist(look.outcome.ranked) };
+  }
+
+  async function identifyNow(
+    onSnapshot?: (snapshot: string | null) => void,
+  ): Promise<IdentifyAttempt> {
+    const running = identifyRef.current;
+    if (running) {
+      return await running;
+    }
+    const attempt = identifyOnce(onSnapshot);
+    identifyRef.current = attempt;
+    let result: IdentifyAttempt | null = null;
+    let failure: unknown = null;
+    try {
+      result = await attempt;
+    } catch (identifyError) {
+      failure = identifyError;
+    }
+    if (identifyRef.current === attempt) {
+      identifyRef.current = null;
+    }
+    if (result === null) {
+      throw failure;
+    }
+    return result;
+  }
+
+  function clearQueue(): void {
+    queueRef.current.clear();
+    queuedBusyRef.current = false;
+    identifyBusyRef.current = false;
+    queuedLookRef.current = null;
+    identifyRef.current = null;
   }
 
   function reset(): void {
-    queueRef.current.clear();
-    busyRef.current = false;
+    clearQueue();
     setPending([]);
   }
 
@@ -229,5 +225,5 @@ export function useScanCatchUp(options: ScanCatchUpOptions): ScanCatchUp {
     setPending((current) => current.filter((card) => card.id !== id));
   }
 
-  return { pending, dismiss, enqueue, shouldRun, run, identifyNow, reset };
+  return { pending, dismiss, enqueue, shouldRun, run, identifyNow, clearQueue, reset };
 }

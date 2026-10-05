@@ -5281,6 +5281,16 @@
   "scan_notices_unavailable_title": "지금은 스캔을 사용할 수 없습니다.",
   "scan_notices_https": "카메라에는 보안 연결이 필요하므로 스캔은 https에서만 작동합니다.",
   "scan_page_not_in_catalog": "{name}은(는) 아직 카탈로그에 없습니다",
+  "scan_page_board_added": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "카드 {count}장을 한 번에 추가했습니다",
+        "countPlural=*": "카드 {count}장을 한 번에 추가했습니다"
+      }
+    }
+  ],
   "scan_page_recognised": "{name} 인식됨",
   "scan_page_swap_title": "다른 인쇄판으로 변경",
   "scan_page_swap_description": "스캔한 {name} 한 장을 같은 카드의 다른 인쇄판, 마감, 언어로 옮깁니다.",
@@ -5325,8 +5335,6 @@
   "scan_resume_when_days": "{days}일 전",
   "scan_settings_language_label": "카드 언어",
   "scan_settings_language_description": "인쇄판을 고르는 데 사용됩니다",
-  "scan_settings_count_every_copy_label": "모든 사본 세기",
-  "scan_settings_count_every_copy_description": "카메라 앞으로 카드를 넘기는 동안 계속 셉니다. 끄면 카드마다 한 번만 셉니다.",
   "scan_settings_sounds_label": "소리",
   "scan_settings_sounds_description": "카드를 인식하면 딸깍 소리가 납니다",
   "scan_settings_tap_label": "탭해서 스캔",
@@ -5400,12 +5408,11 @@
   "scan_encoder_start_failed": "인코더를 시작하지 못했습니다",
   "scan_engine_still_loading": "엔진을 아직 불러오는 중입니다. 잠시 후 다시 시도해 주세요.",
   "scan_engine_start_failed": "스캔 엔진을 시작하지 못했습니다",
-  "scan_engine_opencv_failed": "OpenCV를 불러오지 못했습니다",
-  "scan_engine_opencv_eval_failed": "OpenCV 스크립트를 실행하지 못했습니다",
-  "scan_engine_encoder_failed": "인코더 모델을 불러오지 못했습니다",
+  "scan_engine_detector_failed": "카드 감지기를 불러오지 못했습니다",
+  "scan_engine_worker_unsupported": "이 브라우저에서는 스캐너를 실행할 수 없습니다. 브라우저를 업데이트하거나 다른 브라우저를 사용해 주세요.",
   "scan_frame_failed": "프레임 처리에 실패했습니다",
   "scan_bank_load_failed": "스캔 데이터를 불러오지 못했습니다",
-  "scan_bank_unavailable": "카드 색인이 아직 공개되지 않았습니다. 나중에 다시 시도해 주세요.",
+  "scan_unavailable": "지금은 스캐너를 사용할 수 없습니다. 나중에 다시 시도해 주세요.",
   "common_error_generic": "문제가 발생했습니다. 다시 시도해 주세요.",
   "common_new_version_available": "OpenRift의 새 버전이 나왔습니다.",
   "common_reload": "새로고침",

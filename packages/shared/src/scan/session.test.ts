@@ -1,53 +1,35 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import type { OpenCvLike } from "./detect-cv";
 import type { CardEmbedder, EmbedBank } from "./embed";
-import type { OrbCvLike } from "./orb";
-import {
-  DEFAULT_SESSION_OPTIONS,
-  IDLE_AFTER_NO_WINNER_FRAMES,
-  centeredGuideQuad,
-  createScanSession,
-  gatesForEmbedDim,
-  idleBackoffActive,
-  mergeCandidates,
-  prioritizeTracked,
-} from "./session";
-import type { ScanSessionDeps, ScanSessionOptions } from "./session";
-import { CARD_ASPECT } from "./types";
+import { rotateRgbaCw } from "./image";
+import { PRINTING_ATTEMPTS } from "./printing-lock";
+import { createScanSession, prioritizeTracked } from "./session";
+import type { ScanSessionDeps } from "./session";
+import { IDLE_AFTER_NO_WINNER_FRAMES } from "./session-options";
+import type * as SessionOptionsModule from "./session-options";
+import type { ScanSessionOptions } from "./session-options";
+import { SWEEP_OPTIONS } from "./sweep";
+import { blankFrame, boxQuad, cardTexture, layCard, outline, printingCard } from "./test-images";
 import type { CardCandidate, Quad, RgbaImage } from "./types";
 
-function candidate(x: number, y: number, score: number): CardCandidate {
-  const quad: Quad = [
-    { x, y },
-    { x: x + 100, y },
-    { x: x + 100, y: y + 140 },
-    { x, y: y + 140 },
-  ];
-  return { quad, aspect: 1.4, areaFraction: 0.2, rectangularity: 1, score };
-}
-
-describe("mergeCandidates", () => {
-  it("keeps only the best-scoring of two overlapping proposals", () => {
-    const weak = candidate(0, 0, 1);
-    const strong = candidate(3, 3, 5);
-    expect(mergeCandidates([weak, strong])).toEqual([strong]);
-  });
-
-  it("keeps proposals that do not overlap", () => {
-    const a = candidate(0, 0, 5);
-    const b = candidate(500, 500, 1);
-    expect(mergeCandidates([a, b])).toEqual([a, b]);
-  });
-
-  it("returns candidates best first regardless of input order", () => {
-    const low = candidate(0, 0, 1);
-    const high = candidate(500, 500, 7);
-    expect(mergeCandidates([low, high]).map((c) => c.score)).toEqual([7, 1]);
-  });
-});
+// The test textures are smooth noise below both focus floors, and every test
+// card fills its whole frame.
+vi.mock("./session-options", async (importOriginal) => ({
+  ...(await importOriginal<typeof SessionOptionsModule>()),
+  MIN_FOCUS: 0,
+  ROTATION_MIN_FOCUS: 0,
+  centeredGuideQuad: (width: number, height: number): Quad => [
+    { x: 0, y: 0 },
+    { x: width, y: 0 },
+    { x: width, y: height },
+    { x: 0, y: height },
+  ],
+}));
 
 describe("prioritizeTracked", () => {
+  const candidate = (x: number, y: number, score: number) =>
+    outline(boxQuad(x, y, 100, 140), score);
+
   it("keeps the order when there is no anchor", () => {
     const a = candidate(0, 0, 5);
     const b = candidate(500, 500, 1);
@@ -80,264 +62,14 @@ describe("prioritizeTracked", () => {
   });
 });
 
-describe("gatesForEmbedDim", () => {
-  it("returns the custom-encoder calibration for 256-dimensional banks", () => {
-    const gates = gatesForEmbedDim(256);
-    expect(gates.confidentDistance).toBe(0.35);
-    expect(gates.rotationFallbackDistance).toBe(0.42);
-    expect(gates.slowRotationFallbackDistance).toBeLessThan(0.457);
-    expect(gates.topK).toBe(2);
-  });
-
-  it("returns the MobileCLIP clip calibration for every other dimension", () => {
-    for (const dim of [512, 0, 384]) {
-      const gates = gatesForEmbedDim(dim);
-      expect(gates.confidentDistance).toBe(DEFAULT_SESSION_OPTIONS.confidentDistance);
-      expect(gates.rotationFallbackDistance).toBe(DEFAULT_SESSION_OPTIONS.rotationFallbackDistance);
-      expect(gates.slowRotationFallbackDistance).toBe(0.45);
-      expect(gates.topK).toBe(DEFAULT_SESSION_OPTIONS.topK);
-    }
-  });
-});
-
-describe("idleBackoffActive", () => {
-  it("engages only after the streak threshold in guide sessions", () => {
-    expect(idleBackoffActive(IDLE_AFTER_NO_WINNER_FRAMES - 1, true)).toBe(false);
-    expect(idleBackoffActive(IDLE_AFTER_NO_WINNER_FRAMES, true)).toBe(true);
-    expect(idleBackoffActive(IDLE_AFTER_NO_WINNER_FRAMES + 10, true)).toBe(true);
-  });
-
-  it("never engages for pan sessions", () => {
-    expect(idleBackoffActive(IDLE_AFTER_NO_WINNER_FRAMES * 3, false)).toBe(false);
-  });
-});
-
-describe("centeredGuideQuad", () => {
-  it("centers a card-proportioned rect at 0.7 of the frame height", () => {
-    const [topLeft, topRight, bottomRight] = centeredGuideQuad(1000, 800);
-    const height = bottomRight.y - topRight.y;
-    const width = topRight.x - topLeft.x;
-    expect(height).toBeCloseTo(560);
-    expect(width / height).toBeCloseTo(CARD_ASPECT);
-    expect(topLeft.x).toBeCloseTo(1000 - topRight.x);
-    expect(topLeft.y).toBeCloseTo(800 - bottomRight.y);
-  });
-
-  it("falls back to 0.9 of the width on a narrow portrait frame", () => {
-    const [topLeft, topRight, bottomRight] = centeredGuideQuad(464, 848);
-    const width = topRight.x - topLeft.x;
-    expect(width).toBeCloseTo(0.9 * 464);
-    expect(bottomRight.y - topRight.y).toBeCloseTo(width / CARD_ASPECT);
-  });
-
-  it("returns its corners clockwise from the top left", () => {
-    const quad = centeredGuideQuad(1000, 800);
-    expect(quad[0].x).toBeLessThan(quad[1].x);
-    expect(quad[1].y).toBeLessThan(quad[2].y);
-    expect(quad[3].x).toBeLessThan(quad[2].x);
-    expect(quad[0].y).toBeLessThan(quad[3].y);
-  });
-});
-
-const imageTags = new WeakMap<ArrayLike<number>, string>();
-
-class Geometry {
-  readonly args: number[];
-
-  constructor(...args: number[]) {
-    this.args = args;
-  }
-}
-
-const STUB_MATCHES = 20;
-
-function blankFrame(width = 384, height = 528): RgbaImage {
-  const data = new Uint8ClampedArray(width * height * 4);
-  data.fill(200);
-  for (let index = 3; index < data.length; index += 4) {
-    data[index] = 255;
-  }
-  return { data, width, height };
-}
-
-function taggedReference(tag: string): RgbaImage {
-  const image = blankFrame(8, 11);
-  imageTags.set(image.data, tag);
-  return image;
-}
-
 function wholeFrameGuide(): (width: number, height: number) => Quad {
-  return (width, height) => [
-    { x: 0, y: 0 },
-    { x: width, y: 0 },
-    { x: width, y: height },
-    { x: 0, y: height },
-  ];
-}
-
-interface StubCv {
-  cv: OpenCvLike & OrbCvLike;
-  releases: () => number;
-}
-
-function createStubCv(inliersFor: (tag: string | undefined) => number): StubCv {
-  let releases = 0;
-  let lastReferenceTag: string | undefined;
-
-  class Mat {
-    rows = 0;
-    tag: string | undefined;
-    data: Uint8Array;
-
-    constructor() {
-      this.data = this.taggedBuffer(0);
-    }
-
-    static zeros(): Mat {
-      return new Mat();
-    }
-
-    taggedBuffer(size: number): Uint8Array {
-      const buffer = new Uint8Array(size);
-      buffer.set = (values: ArrayLike<number>) => {
-        this.tag = imageTags.get(values);
-      };
-      return buffer;
-    }
-
-    fillInliers(count: number): void {
-      this.rows = count;
-      this.data = new Uint8Array(count).fill(1);
-    }
-
-    roi(): Mat {
-      return new Mat();
-    }
-
-    setTo(): void {}
-
-    empty(): boolean {
-      return false;
-    }
-
-    delete(): void {}
-  }
-
-  class MatVector {
-    size(): number {
-      return 0;
-    }
-
-    get(): Mat {
-      return new Mat();
-    }
-
-    delete(): void {}
-  }
-
-  class KeyPointVector {
-    get(index: number): { pt: { x: number; y: number } } {
-      return { pt: { x: index, y: index } };
-    }
-
-    delete(): void {
-      releases++;
-    }
-  }
-
-  class Orb {
-    detectAndCompute(image: Mat, _mask: Mat, _keypoints: KeyPointVector, descriptors: Mat): void {
-      descriptors.rows = 16;
-      descriptors.tag = image.tag;
-    }
-
-    delete(): void {}
-  }
-
-  class BfMatcher {
-    knnMatch(_query: Mat, train: Mat, _out: unknown, _k: number): void {
-      lastReferenceTag = train.tag;
-    }
-
-    delete(): void {}
-  }
-
-  class DMatchVectorVector {
-    size(): number {
-      return STUB_MATCHES;
-    }
-
-    get(index: number) {
-      return {
-        size: () => 2,
-        get: (which: number) => ({
-          distance: which === 0 ? 1 : 10,
-          queryIdx: index,
-          trainIdx: index,
-        }),
-        delete: () => {},
-      };
-    }
-
-    delete(): void {}
-  }
-
-  const cv = {
-    Mat,
-    MatVector,
-    KeyPointVector,
-    ORB: Orb,
-    BFMatcher: BfMatcher,
-    DMatchVectorVector,
-    Size: Geometry,
-    Rect: Geometry,
-    Scalar: Geometry,
-    RotatedRect: { points: () => [] },
-    CV_8UC1: 0,
-    CV_8UC4: 24,
-    CV_32FC2: 13,
-    COLOR_RGBA2GRAY: 11,
-    MORPH_RECT: 0,
-    MORPH_CLOSE: 3,
-    ADAPTIVE_THRESH_GAUSSIAN_C: 1,
-    THRESH_BINARY: 0,
-    THRESH_BINARY_INV: 1,
-    THRESH_OTSU: 8,
-    RETR_LIST: 1,
-    CHAIN_APPROX_SIMPLE: 2,
-    NORM_HAMMING: 6,
-    RANSAC: 8,
-    cvtColor: (source: Mat, destination: Mat) => {
-      destination.tag = source.tag;
-    },
-    equalizeHist: (source: Mat, destination: Mat) => {
-      destination.tag = source.tag;
-    },
-    resize: () => {},
-    medianBlur: () => {},
-    GaussianBlur: () => {},
-    adaptiveThreshold: () => {},
-    threshold: () => {},
-    getStructuringElement: () => new Mat(),
-    morphologyEx: () => {},
-    findContours: () => {},
-    contourArea: () => 0,
-    minAreaRect: () => ({ center: { x: 0, y: 0 }, size: { width: 0, height: 0 }, angle: 0 }),
-    matFromArray: () => new Mat(),
-    findHomography: (_source: Mat, _destination: Mat, _method: number, _t: number, mask: Mat) => {
-      mask.fillInliers(inliersFor(lastReferenceTag));
-      return new Mat();
-    },
-  };
-
-  return { cv: cv as unknown as OpenCvLike & OrbCvLike, releases: () => releases };
+  return (width, height) => boxQuad(0, 0, width, height);
 }
 
 // Places each key at (cos, sin) of an angle so 1 - cos equals its requested distance
 // from the fixed query vector (1, 0).
 function createBank(distances: Record<string, number>): EmbedBank {
-  const bank: EmbedBank = { keys: Object.keys(distances), vectors: new Float32Array(0) };
-  bank.vectors = new Float32Array(bank.keys.length * 2);
+  const bank: EmbedBank = { keys: [], vectors: new Float32Array(0) };
   setDistances(bank, distances);
   return bank;
 }
@@ -345,6 +77,8 @@ function createBank(distances: Record<string, number>): EmbedBank {
 // Mutates in place: the session holds this bank object, not a copy, so a running
 // session sees the change on its next frame.
 function setDistances(bank: EmbedBank, distances: Record<string, number>): void {
+  bank.keys = Object.keys(distances);
+  bank.vectors = new Float32Array(bank.keys.length * 2);
   bank.keys.forEach((key, index) => {
     const cosine = 1 - (distances[key] ?? 2);
     bank.vectors[index * 2] = cosine;
@@ -365,170 +99,50 @@ function createEmbedder(): { embedder: CardEmbedder; calls: number[] } {
   return { embedder, calls };
 }
 
-// Focus gates opened, so a featureless test frame still reaches the encoder.
 function testOptions(overrides: Partial<ScanSessionOptions> = {}): Partial<ScanSessionOptions> {
   return {
-    minFocus: 0,
-    rotationMinFocus: 0,
-    guideFor: wholeFrameGuide(),
-    minInliers: 10,
     accept: { lockRun: 2, maxGapFrames: 6 },
     ...overrides,
   };
 }
 
-// Every optional catalogue lookup defaults to a single-printing artwork, which
-// makes the disambiguation stage abstain.
-function testDeps(overrides: Partial<ScanSessionDeps> & Pick<ScanSessionDeps, "cv">) {
+function testDeps(overrides: Partial<ScanSessionDeps> = {}) {
   return {
     embedder: createEmbedder().embedder,
     bank: createBank({ "k-a": 0.1 }),
     artKeyOf: (key: string) => key,
     labelOf: (key: string) => key,
-    fetchReference: () => Promise.resolve(taggedReference("ref")),
+    identityOf: () => ({ markers: "" }),
+    fetchReference: () => Promise.resolve(cardTexture(1)),
     ...overrides,
   } satisfies ScanSessionDeps;
 }
 
-// Timings are irrelevant here, and a real clock makes them flaky.
 const frozenClock = () => 0;
-
-describe("createScanSession — reference cache", () => {
-  it("caches a definitively missing render, so one frame costs one request", async () => {
-    let fetches = 0;
-    const { cv } = createStubCv(() => 40);
-    const session = createScanSession(
-      testDeps({
-        cv,
-        fetchReference: () => {
-          fetches++;
-          return Promise.resolve(null);
-        },
-      }),
-      testOptions(),
-    );
-
-    await session.processFrame(blankFrame(), 0, 0, frozenClock);
-    await session.processFrame(blankFrame(), 1, 0.1, frozenClock);
-
-    expect(fetches).toBe(1);
-  });
-
-  it("does not cache a transient failure, so a later frame retries it", async () => {
-    let fetches = 0;
-    const { cv } = createStubCv(() => 40);
-    const session = createScanSession(
-      testDeps({
-        cv,
-        fetchReference: () => {
-          fetches++;
-          return Promise.reject(new Error("connection dropped"));
-        },
-      }),
-      testOptions(),
-    );
-
-    await session.processFrame(blankFrame(), 0, 0, frozenClock);
-    await session.processFrame(blankFrame(), 1, 0.1, frozenClock);
-
-    expect(fetches).toBe(2);
-  });
-
-  it("discards a frame whose shortlist had an unfetchable member", async () => {
-    const { cv } = createStubCv(() => 40);
-    const session = createScanSession(
-      testDeps({
-        cv,
-        bank: createBank({ "k-a": 0.05, "k-b": 0.3 }),
-        fetchReference: (key) =>
-          key === "k-b"
-            ? Promise.reject(new Error("connection dropped"))
-            : Promise.resolve(taggedReference(key)),
-      }),
-      testOptions(),
-    );
-
-    const outcome = await session.processFrame(blankFrame(), 0, 0, frozenClock);
-
-    expect(outcome.winner).toBeNull();
-    expect(outcome.bestInliers).toBe(0);
-    expect(outcome.candidate).not.toBeNull();
-    expect(outcome.ranked.map((entry) => entry.key)).toEqual(["k-a", "k-b"]);
-  });
-
-  it("fetches a successfully cached render only once", async () => {
-    let fetches = 0;
-    const { cv } = createStubCv(() => 40);
-    const session = createScanSession(
-      testDeps({
-        cv,
-        fetchReference: (key) => {
-          fetches++;
-          return Promise.resolve(taggedReference(key));
-        },
-      }),
-      testOptions(),
-    );
-
-    await session.processFrame(blankFrame(), 0, 0, frozenClock);
-    await session.processFrame(blankFrame(), 1, 0.1, frozenClock);
-
-    expect(fetches).toBe(1);
-  });
-
-  it("evicts the least recently used render past the cache limit and frees it", async () => {
-    const keyCount = 300;
-    const limit = 256;
-    const distances: Record<string, number> = {};
-    for (let index = 0; index < keyCount; index++) {
-      distances[`k-${index}`] = 0.05 + index / 10_000;
-    }
-    const { cv, releases } = createStubCv(() => 0);
-    const session = createScanSession(
-      testDeps({
-        cv,
-        bank: createBank(distances),
-        fetchReference: (key) => Promise.resolve(taggedReference(key)),
-      }),
-      testOptions({ topK: keyCount }),
-    );
-
-    await session.processFrame(blankFrame(), 0, 0, frozenClock);
-
-    expect(releases()).toBe(keyCount - limit + 1);
-
-    session.release();
-
-    expect(releases()).toBe(keyCount + 1);
-  });
-});
 
 describe("createScanSession — absent-frame re-arm", () => {
   // `present`/`absent` move the whole card in and out of frame at once: an absent
   // card must neither rank plausibly nor verify for a frame to count as absent.
   async function lockedSession() {
     const bank = createBank({ "k-a": 0.05 });
-    let inliers = 40;
-    const { cv } = createStubCv(() => inliers);
-    const session = createScanSession(
-      testDeps({ cv, bank, fetchReference: (key) => Promise.resolve(taggedReference(key)) }),
-      testOptions(),
-    );
-    await session.processFrame(blankFrame(), 0, 0, frozenClock);
-    await session.processFrame(blankFrame(), 1, 0.1, frozenClock);
+    let frame = cardTexture(1);
+    const session = createScanSession(testDeps({ bank }), testOptions());
+    await session.processFrame(frame, 0, 0, frozenClock);
+    await session.processFrame(frame, 1, 0.1, frozenClock);
     return {
       session,
+      frame: () => frame,
       absent: () => {
         setDistances(bank, { "k-a": 0.9 });
-        inliers = 0;
+        frame = blankFrame();
       },
       present: () => {
         setDistances(bank, { "k-a": 0.05 });
-        inliers = 40;
+        frame = cardTexture(1);
       },
       unverifiable: () => {
         setDistances(bank, { "k-a": 0.3 });
-        inliers = 0;
+        frame = cardTexture(2);
       },
     };
   }
@@ -541,21 +155,20 @@ describe("createScanSession — absent-frame re-arm", () => {
   });
 
   it("needs two absent frames in a row, not one", async () => {
-    // A single mid-hold detector dropout must not re-arm and double-count the card.
-    const { session, absent } = await lockedSession();
+    const { session, frame, absent } = await lockedSession();
     absent();
 
-    await session.processFrame(blankFrame(), 2, 0.2, frozenClock);
+    await session.processFrame(frame(), 2, 0.2, frozenClock);
 
     expect(session.state.get("k-a")?.lockedThisRun).toBe(true);
   });
 
   it("re-arms the locked track on the second absent frame", async () => {
-    const { session, absent } = await lockedSession();
+    const { session, frame, absent } = await lockedSession();
     absent();
 
-    await session.processFrame(blankFrame(), 2, 0.2, frozenClock);
-    await session.processFrame(blankFrame(), 3, 0.3, frozenClock);
+    await session.processFrame(frame(), 2, 0.2, frozenClock);
+    await session.processFrame(frame(), 3, 0.3, frozenClock);
 
     const track = session.state.get("k-a");
     expect(track?.lockedThisRun).toBe(false);
@@ -565,38 +178,56 @@ describe("createScanSession — absent-frame re-arm", () => {
   });
 
   it("treats a card that only verification missed as still present", async () => {
-    const { session, absent, unverifiable } = await lockedSession();
+    const { session, frame, absent, unverifiable } = await lockedSession();
     absent();
 
-    await session.processFrame(blankFrame(), 2, 0.2, frozenClock);
+    await session.processFrame(frame(), 2, 0.2, frozenClock);
     unverifiable();
-    await session.processFrame(blankFrame(), 3, 0.3, frozenClock);
+    const missed = await session.processFrame(frame(), 3, 0.3, frozenClock);
     absent();
-    await session.processFrame(blankFrame(), 4, 0.4, frozenClock);
+    await session.processFrame(frame(), 4, 0.4, frozenClock);
 
+    expect(missed.winner).toBeNull();
     expect(session.state.get("k-a")?.lockedThisRun).toBe(true);
   });
 
   it("lets the artwork lock again once the card comes back", async () => {
-    const { session, absent, present } = await lockedSession();
+    const { session, frame, absent, present } = await lockedSession();
     absent();
-    await session.processFrame(blankFrame(), 2, 0.2, frozenClock);
-    await session.processFrame(blankFrame(), 3, 0.3, frozenClock);
+    await session.processFrame(frame(), 2, 0.2, frozenClock);
+    await session.processFrame(frame(), 3, 0.3, frozenClock);
 
     present();
-    await session.processFrame(blankFrame(), 4, 0.4, frozenClock);
-    const second = await session.processFrame(blankFrame(), 5, 0.5, frozenClock);
+    await session.processFrame(frame(), 4, 0.4, frozenClock);
+    const second = await session.processFrame(frame(), 5, 0.5, frozenClock);
 
     expect(second.locked?.artKey).toBe("k-a");
   });
 
+  it("keeps a card the detector misses but the embedding still recognises", async () => {
+    let frame = 0;
+    const seen = (input: RgbaImage) => outline(wholeFrameGuide()(input.width, input.height));
+    const session = createScanSession(
+      testDeps({
+        detectCard: (input) => Promise.resolve(frame < 2 ? [seen(input)] : []),
+      }),
+      testOptions(),
+    );
+    let locks = 0;
+    for (frame = 0; frame < 6; frame++) {
+      const outcome = await session.processFrame(cardTexture(1), frame, frame / 10, frozenClock);
+      locks += outcome.locked ? 1 : 0;
+    }
+    expect(locks).toBe(1);
+  });
+
   it("re-arms on demand and clears the absent streak with it", async () => {
-    const { session, absent } = await lockedSession();
+    const { session, frame, absent } = await lockedSession();
     absent();
 
-    await session.processFrame(blankFrame(), 2, 0.2, frozenClock);
+    await session.processFrame(frame(), 2, 0.2, frozenClock);
     session.rearm();
-    await session.processFrame(blankFrame(), 3, 0.3, frozenClock);
+    await session.processFrame(frame(), 3, 0.3, frozenClock);
 
     const track = session.state.get("k-a");
     expect(track?.lockedThisRun).toBe(false);
@@ -608,16 +239,7 @@ describe("createScanSession — idle backoff", () => {
   function idleSession() {
     const bank = createBank({ "k-a": 0.9 });
     const { embedder, calls } = createEmbedder();
-    const { cv } = createStubCv(() => 0);
-    const session = createScanSession(
-      testDeps({
-        cv,
-        bank,
-        embedder,
-        fetchReference: (key) => Promise.resolve(taggedReference(key)),
-      }),
-      testOptions(),
-    );
+    const session = createScanSession(testDeps({ bank, embedder }), testOptions());
     return { session, bank, calls };
   }
 
@@ -658,114 +280,74 @@ describe("createScanSession — idle backoff", () => {
   });
 });
 
-// A card whose lower band carries a per-printing block over a shared base; stamp 0
-// leaves the base untouched, giving two byte-identical printings.
-function printingCard(tag: string, stamp: number): RgbaImage {
-  const width = 384;
-  const height = 528;
-  const data = new Uint8ClampedArray(width * height * 4);
-  // Inside TEXT_REGION, the fallback name band for an unknown card type.
-  const top = height * 0.65;
-  const bottom = height * 0.81;
-  const left = width * 0.28;
-  const right = width * 0.72;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      // Must stay smooth, low-frequency, with no straight edges, or the rectangle
-      // detector proposes this block, not the guide.
-      let value = 128 + 60 * Math.sin((2 * Math.PI * x) / 220) * Math.cos((2 * Math.PI * y) / 300);
-      if (stamp > 0 && y >= top && y < bottom && x >= left && x < right) {
-        // Windowed by half-sines: the glyph term must fade to zero at the band boundary.
-        const acrossX = Math.sin((Math.PI * (x - left)) / (right - left));
-        const acrossY = Math.sin((Math.PI * (y - top)) / (bottom - top));
-        value +=
-          90 * acrossX * acrossY * Math.sin((2 * Math.PI * stamp * (x - left)) / (right - left));
-      }
-      const index = (y * width + x) * 4;
-      data[index] = value;
-      data[index + 1] = value;
-      data[index + 2] = value;
-      data[index + 3] = 255;
-    }
-  }
-  const image = { data, width, height };
-  imageTags.set(data, tag);
-  return image;
-}
-
-describe("createScanSession — printing disambiguation", () => {
+describe("createScanSession — printing attempts", () => {
   const ART = "art-lux";
+  const LABELS: Record<string, string> = {
+    "p-en": "Lux [OGN EN]",
+    "p-dup": "Lux [UNL EN]",
+    "p-sc": "Lux [OGN SC]",
+  };
 
-  function printingSession(
-    renders: Record<string, number>,
-    labels: Record<string, string> = {},
-    aimedAt?: string,
-  ) {
-    const keys = Object.keys(renders);
-    const images = new Map(keys.map((key) => [key, printingCard(key, renders[key]!)]));
-    const bank = createBank(
-      Object.fromEntries(keys.map((key, index) => [key, 0.05 + index / 100])),
+  function printingSession(renders: Record<string, number>) {
+    const images = new Map(
+      Object.entries(renders).map(([key, stamp]) => [key, printingCard(stamp)]),
     );
-    const { cv } = createStubCv(() => 40);
+    const keys = Object.keys(renders);
+    const [aimedStamp = 1] = Object.values(renders);
     const session = createScanSession(
       testDeps({
-        cv,
-        bank,
+        bank: createBank(Object.fromEntries(keys.map((key, index) => [key, 0.05 + index / 100]))),
         artKeyOf: () => ART,
-        labelOf: (key) => labels[key] ?? key,
+        labelOf: (key) => LABELS[key] ?? key,
         fetchReference: (key) => Promise.resolve(images.get(key) ?? null),
       }),
       testOptions({ topK: keys.length }),
     );
-    return { session, frame: printingCard("query", renders[aimedAt ?? keys[0]!]!) };
+    return { session, frame: printingCard(aimedStamp) };
   }
 
-  it("abstains for an artwork with a single printing", async () => {
-    const { session, frame } = printingSession({ "p-en": 1 });
+  // Frame 0 starts the run; every frame from the lock on takes one attempt.
+  async function pastTheCap(session: ReturnType<typeof createScanSession>, frame: RgbaImage) {
+    const outcomes = [];
+    for (let index = 0; index < PRINTING_ATTEMPTS + 2; index++) {
+      outcomes.push(await session.processFrame(frame, index, index / 10, frozenClock));
+    }
+    return outcomes;
+  }
 
-    await session.processFrame(frame, 0, 0, frozenClock);
-    const lock = await session.processFrame(frame, 1, 0.1, frozenClock);
+  it("stops trying to settle a printing after the attempt cap", async () => {
+    const { session, frame } = printingSession({ "p-en": 1, "p-dup": 1, "p-sc": 9 });
 
-    expect(lock.locked?.artKey).toBe(ART);
-    expect(lock.printingScores).toBeUndefined();
-  });
+    const outcomes = await pastTheCap(session, frame);
 
-  it("holds the pick back until a second frame agrees with it", async () => {
-    const { session, frame } = printingSession({ "p-en": 1, "p-sc": 9 });
-
-    await session.processFrame(frame, 0, 0, frozenClock);
-    const lock = await session.processFrame(frame, 1, 0.1, frozenClock);
-
-    expect(lock.locked?.artKey).toBe(ART);
-    expect(lock.printingScores?.map((score) => score.key)).toEqual(["p-en", "p-sc"]);
-    expect(lock.printingTrack?.resolved).toBe(false);
+    expect(outcomes.filter((outcome) => outcome.printingScores).length).toBe(PRINTING_ATTEMPTS);
+    expect(outcomes.at(-1)?.printingScores).toBeUndefined();
     expect(session.state.get(ART)?.printingResolved).toBe(false);
   });
 
-  it("applies the pick on the second agreeing frame", async () => {
+  it("tries again after the cap once the artwork locks again", async () => {
+    const { session, frame } = printingSession({ "p-en": 1, "p-dup": 1, "p-sc": 9 });
+    await pastTheCap(session, frame);
+    const next = PRINTING_ATTEMPTS + 2;
+
+    session.rearm();
+    await session.processFrame(frame, next, next / 10, frozenClock);
+    const relock = await session.processFrame(frame, next + 1, (next + 1) / 10, frozenClock);
+
+    expect(relock.locked?.artKey).toBe(ART);
+    expect(relock.printingScores).toBeDefined();
+  });
+
+  it("settles the printing over the frames after the lock", async () => {
     const { session, frame } = printingSession({ "p-en": 1, "p-sc": 9 });
 
     await session.processFrame(frame, 0, 0, frozenClock);
-    await session.processFrame(frame, 1, 0.1, frozenClock);
+    const lock = await session.processFrame(frame, 1, 0.1, frozenClock);
     const retry = await session.processFrame(frame, 2, 0.2, frozenClock);
 
+    expect(lock.printingTrack?.resolved).toBe(false);
     expect(retry.printingVia).toBe("name");
-    expect(retry.printingTrack?.key).toBe("p-en");
-    expect(retry.printingTrack?.resolved).toBe(true);
-    const track = session.state.get(ART);
-    expect(track?.key).toBe("p-en");
-    expect(track?.printingResolved).toBe(true);
-  });
-
-  it("follows the card in front of the camera, not the shortlist order", async () => {
-    const { session, frame } = printingSession({ "p-en": 1, "p-sc": 9 }, {}, "p-sc");
-
-    await session.processFrame(frame, 0, 0, frozenClock);
-    await session.processFrame(frame, 1, 0.1, frozenClock);
-    const retry = await session.processFrame(frame, 2, 0.2, frozenClock);
-
-    expect(retry.printingTrack?.key).toBe("p-sc");
-    expect(retry.printingTrack?.resolved).toBe(true);
+    expect(retry.printingTrack).toMatchObject({ key: "p-en", resolved: true });
   });
 
   it("stops retrying once the track is resolved", async () => {
@@ -779,32 +361,572 @@ describe("createScanSession — printing disambiguation", () => {
     expect(after.printingTrack).toBeUndefined();
     expect(after.printingScores).toBeUndefined();
   });
+});
 
-  it("refuses to name a residual class whose members disagree on their label", async () => {
-    const { session, frame } = printingSession(
-      { "p-en": 1, "p-dup": 1, "p-sc": 9 },
-      { "p-en": "Lux [OGN EN]", "p-dup": "Lux [UNL EN]", "p-sc": "Lux [OGN SC]" },
+describe("createScanSession — learned detector with the aligned verifier", () => {
+  const fullFrame = (frame: RgbaImage) => outline(wholeFrameGuide()(frame.width, frame.height));
+
+  it("locks from detector crops and reports the aligned score in percent", async () => {
+    const session = createScanSession(
+      testDeps({ detectCard: (input) => Promise.resolve([fullFrame(input)]) }),
+      testOptions(),
     );
 
-    await session.processFrame(frame, 0, 0, frozenClock);
-    await session.processFrame(frame, 1, 0.1, frozenClock);
-    const retry = await session.processFrame(frame, 2, 0.2, frozenClock);
+    const first = await session.processFrame(cardTexture(1), 0, 0, frozenClock);
+    const second = await session.processFrame(cardTexture(1), 1, 0.1, frozenClock);
 
-    expect(retry.printingTrack?.resolved).toBe(false);
-    expect(session.state.get(ART)?.printingResolved).toBe(false);
+    expect(first.winner?.key).toBe("k-a");
+    expect(second.locked?.key).toBe("k-a");
+    expect(first.bestScore).toBeGreaterThanOrEqual(60);
+    expect(first.bestScore).toBeLessThanOrEqual(100);
   });
 
-  it("names a residual class whose members are the same printing twice", async () => {
-    const { session, frame } = printingSession(
-      { "p-en": 1, "p-dup": 1, "p-sc": 9 },
-      { "p-en": "Lux [OGN EN]", "p-dup": "Lux [OGN EN]", "p-sc": "Lux [OGN SC]" },
+  it("finds no winner when the crop does not line up with the reference", async () => {
+    const session = createScanSession(
+      testDeps({
+        fetchReference: () => Promise.resolve(cardTexture(2)),
+        detectCard: (input) => Promise.resolve([fullFrame(input)]),
+      }),
+      testOptions(),
     );
 
-    await session.processFrame(frame, 0, 0, frozenClock);
-    await session.processFrame(frame, 1, 0.1, frozenClock);
-    const retry = await session.processFrame(frame, 2, 0.2, frozenClock);
+    const outcome = await session.processFrame(cardTexture(1), 0, 0, frozenClock);
 
-    expect(retry.printingTrack?.resolved).toBe(true);
-    expect(session.state.get(ART)?.label).toBe("Lux [OGN EN]");
+    expect(outcome.ranked[0]?.key).toBe("k-a");
+    expect(outcome.winner).toBeNull();
+  });
+
+  it("refuses a frame two artworks verify equally well", async () => {
+    const session = createScanSession(
+      testDeps({ bank: createBank({ "k-a": 0.1, "k-b": 0.12 }) }),
+      testOptions(),
+    );
+
+    const outcome = await session.processFrame(cardTexture(1), 0, 0, frozenClock);
+
+    expect(outcome.winner).toBeNull();
+    expect(outcome.refused).toBe(true);
+  });
+
+  const failing =
+    (failed: string) =>
+    (key: string): Promise<RgbaImage | null> =>
+      key === failed
+        ? Promise.reject(new Error("connection dropped"))
+        : Promise.resolve(cardTexture(1));
+
+  it("reads on past an unfetchable rival ranked behind the winner", async () => {
+    const session = createScanSession(
+      testDeps({ bank: createBank({ "k-a": 0.05, "k-b": 0.3 }), fetchReference: failing("k-b") }),
+      testOptions(),
+    );
+
+    const outcome = await session.processFrame(cardTexture(1), 0, 0, frozenClock);
+
+    expect(outcome.winner?.key).toBe("k-a");
+    expect(outcome.ranked.map((entry) => entry.key)).toEqual(["k-a", "k-b"]);
+  });
+
+  it("reads on past an unfetchable printing of the winning artwork", async () => {
+    const session = createScanSession(
+      testDeps({
+        bank: createBank({ "k-a2": 0.05, "k-a": 0.1 }),
+        artKeyOf: () => "art-a",
+        fetchReference: failing("k-a2"),
+      }),
+      testOptions(),
+    );
+
+    const outcome = await session.processFrame(cardTexture(1), 0, 0, frozenClock);
+
+    expect(outcome.winner?.key).toBe("k-a");
+  });
+
+  it("discards a frame whose unfetchable rival ranked ahead of the winner", async () => {
+    const session = createScanSession(
+      testDeps({ bank: createBank({ "k-b": 0.05, "k-a": 0.1 }), fetchReference: failing("k-b") }),
+      testOptions(),
+    );
+
+    const outcome = await session.processFrame(cardTexture(1), 0, 0, frozenClock);
+
+    expect(outcome.winner).toBeNull();
+    expect(outcome.bestScore).toBe(0);
+    expect(outcome.candidate).not.toBeNull();
+  });
+
+  it("embeds only the detector's crop once it sees a card", async () => {
+    const { embedder, calls } = createEmbedder();
+    const session = createScanSession(
+      testDeps({
+        embedder,
+        bank: createBank({ "k-a": 0.9 }),
+        detectCard: (input) => Promise.resolve([fullFrame(input)]),
+      }),
+      testOptions(),
+    );
+
+    await session.processFrame(cardTexture(1), 0, 0, frozenClock);
+
+    expect(calls.reduce((sum, count) => sum + count, 0)).toBeLessThanOrEqual(4);
+  });
+});
+
+describe("createScanSession — automatic sweep", () => {
+  const EVERY = SWEEP_OPTIONS.surveyEveryFrames;
+  const outlineAt = (left: number) => outline(boxQuad(left, 100, 120, 168));
+
+  const MAX_TABLE_OFFSET = 64;
+  const table = blankFrame(blankFrame().width + MAX_TABLE_OFFSET);
+  for (let y = 0; y < table.height; y++) {
+    for (let x = 0; x < table.width; x++) {
+      const value = 128 + 60 * Math.sin(x / 23) * Math.cos(y / 31) + 40 * Math.sin((x + y) / 57);
+      table.data.fill(value, (y * table.width + x) * 4, (y * table.width + x) * 4 + 3);
+    }
+  }
+  const card = cardTexture(1);
+
+  function tableSeenFrom(offset: number, cardLefts: number[]): RgbaImage {
+    const frame = blankFrame();
+    for (let y = 0; y < frame.height; y++) {
+      const from = (y * table.width + offset) * 4;
+      frame.data.set(table.data.subarray(from, from + frame.width * 4), y * frame.width * 4);
+    }
+    for (const left of cardLefts) {
+      layCard(frame, card, { left, top: 100, width: 120, height: 168 });
+    }
+    return frame;
+  }
+
+  function sweepSession(outlines: () => CardCandidate[]) {
+    return createScanSession(
+      testDeps({
+        detectCard: () => Promise.resolve([]),
+        detectBoard: () => Promise.resolve(outlines()),
+      }),
+      testOptions({ sweep: true }),
+    );
+  }
+
+  it("switches into a sweep while the camera moves over several cards", async () => {
+    let offset = 0;
+    const session = sweepSession(() => [outlineAt(20 - offset), outlineAt(220 - offset)]);
+    const sweeping: boolean[] = [];
+    for (let frame = 0; frame < 8; frame++) {
+      offset = frame * 6;
+      const outcome = await session.processFrame(
+        tableSeenFrom(offset, [20 - offset, 220 - offset]),
+        frame,
+        frame / 30,
+        frozenClock,
+      );
+      sweeping.push(outcome.sweeping);
+    }
+    expect(sweeping.at(0)).toBe(false);
+    expect(sweeping.at(-1)).toBe(true);
+  });
+
+  it("keeps scanning single cards while the camera holds still over several cards", async () => {
+    const session = sweepSession(() => [outlineAt(20), outlineAt(220)]);
+    for (let frame = 0; frame < 8; frame++) {
+      const outcome = await session.processFrame(
+        tableSeenFrom(0, [20, 220]),
+        frame,
+        frame / 30,
+        frozenClock,
+      );
+      expect(outcome.sweeping).toBe(false);
+    }
+  });
+
+  it("publishes the survey outlines on the frame outcome", async () => {
+    const outlines = [outlineAt(20), outlineAt(220)];
+    let boardReads = 0;
+    const session = createScanSession(
+      testDeps({
+        detectCard: () => Promise.resolve([]),
+        detectBoard: () => {
+          boardReads++;
+          return Promise.resolve(outlines);
+        },
+      }),
+      testOptions({ sweep: true }),
+    );
+    const first = await session.processFrame(tableSeenFrom(0, [20, 220]), 0, 0, frozenClock);
+    const second = await session.processFrame(tableSeenFrom(0, [20, 220]), 1, 1 / 30, frozenClock);
+
+    expect(first.survey).toEqual(outlines);
+    expect(second).not.toHaveProperty("survey");
+    expect(boardReads).toBe(1);
+  });
+
+  async function surveyedFrames(bank: EmbedBank, frames: number): Promise<number[]> {
+    const session = createScanSession(
+      testDeps({
+        bank,
+        detectCard: () => Promise.resolve([]),
+        detectBoard: () => Promise.resolve([outlineAt(20), outlineAt(220)]),
+      }),
+      testOptions({ sweep: true }),
+    );
+    const surveyed: number[] = [];
+    for (let frame = 0; frame < frames; frame++) {
+      const outcome = await session.processFrame(
+        tableSeenFrom(0, [20, 220]),
+        frame,
+        frame / 30,
+        frozenClock,
+      );
+      if (outcome.survey) {
+        surveyed.push(frame);
+      }
+    }
+    return surveyed;
+  }
+
+  it("surveys once per second while the camera is still and no card is in the guide", async () => {
+    expect(await surveyedFrames(createBank({ "k-a": 0.9 }), 61)).toEqual([0, 30, 60]);
+  });
+
+  it("stops the still survey once the guide holds a card", async () => {
+    expect(await surveyedFrames(createBank({ "k-a": 0.1 }), 61)).toEqual([0]);
+  });
+
+  async function stillAfter(offsetAt: (frame: number) => number): Promise<boolean[]> {
+    const session = sweepSession(() => []);
+    const still: boolean[] = [];
+    for (let frame = 0; frame < 30 * (SWEEP_OPTIONS.stillSeconds + 0.5); frame++) {
+      const outcome = await session.processFrame(
+        tableSeenFrom(offsetAt(frame), []),
+        frame,
+        frame / 30,
+        frozenClock,
+      );
+      still.push(outcome.still);
+    }
+    return still;
+  }
+
+  it("reads a camera on a stand as still once it has not moved for a while", async () => {
+    const still = await stillAfter(() => 0);
+    expect(still.at(10)).toBe(false);
+    expect(still.at(-1)).toBe(true);
+  });
+
+  it("never reads a hand-held camera as still", async () => {
+    const still = await stillAfter((frame) => (frame % 2) * 2);
+    expect(still).not.toContain(true);
+  });
+
+  it("keeps scanning single cards while one card fills the guide", async () => {
+    const aimed = outline(boxQuad(10, 10, 364, 508));
+    const session = sweepSession(() => [aimed]);
+    for (let frame = 0; frame < 8; frame++) {
+      const outcome = await session.processFrame(
+        tableSeenFrom(frame * 6, []),
+        frame,
+        frame / 30,
+        frozenClock,
+      );
+      expect(outcome.sweeping).toBe(false);
+    }
+  });
+
+  it("returns to single cards once nothing is left in view", async () => {
+    let offset = 0;
+    let cards = true;
+    const session = sweepSession(() =>
+      cards ? [outlineAt(20 - offset), outlineAt(220 - offset)] : [],
+    );
+    let last = false;
+    for (let frame = 0; frame < 8; frame++) {
+      offset = frame * 6;
+      const outcome = await session.processFrame(
+        tableSeenFrom(offset, []),
+        frame,
+        frame / 30,
+        frozenClock,
+      );
+      last = outcome.sweeping;
+    }
+    expect(last).toBe(true);
+    cards = false;
+    for (let frame = 8; frame <= 8 + SWEEP_OPTIONS.exitFrames; frame++) {
+      const outcome = await session.processFrame(
+        tableSeenFrom(0, []),
+        frame,
+        frame / 30,
+        frozenClock,
+      );
+      last = outcome.sweeping;
+    }
+    expect(last).toBe(false);
+  });
+
+  // Corners in the card's own order: rotating clockwise puts its top-left at the frame's top-right.
+  const sidewaysOutline = (sideways: RgbaImage) =>
+    outline([
+      { x: sideways.width - 12, y: 12 },
+      { x: sideways.width - 12, y: sideways.height - 12 },
+      { x: 12, y: sideways.height - 12 },
+      { x: 12, y: 12 },
+    ]);
+
+  it("reads a landscape card the guide detector misses from the board detector's outline", async () => {
+    const sideways = rotateRgbaCw(cardTexture(1));
+    const outlined = sidewaysOutline(sideways);
+    const session = createScanSession(
+      testDeps({
+        detectCard: () => Promise.resolve([]),
+        detectBoard: () => Promise.resolve([outlined]),
+      }),
+      testOptions({ sweep: true }),
+    );
+    const outcome = await session.processFrame(sideways, 0, 0, frozenClock);
+    expect(outcome.candidate?.score).toBe(1);
+    expect(outcome.winner?.key).toBe("k-a");
+  });
+
+  it("keeps a counted card's lock when a sweep comes back to it", async () => {
+    const lefts = [40, 240];
+    let offset = 0;
+    let inView = lefts;
+    const session = sweepSession(() => inView.map((left) => outlineAt(left - offset)));
+    let frame = 0;
+    let locks = 0;
+    const run = async (frames: number) => {
+      const visible = lefts.map((left) => left - offset);
+      for (const end = frame + frames; frame < end; frame++) {
+        const outcome = await session.processFrame(
+          tableSeenFrom(offset, visible),
+          frame,
+          frame / 30,
+          frozenClock,
+        );
+        locks += outcome.locked ? 1 : 0;
+      }
+    };
+    for (let step = 0; step < EVERY; step++) {
+      offset = step * 4;
+      await run(1);
+    }
+    await run(8);
+    const counted = [...session.state.values()].map((track) => ({
+      track,
+      lockedFrame: track.lockedFrame,
+    }));
+    inView = [];
+    await run(SWEEP_OPTIONS.exitFrames - 1);
+    inView = [40];
+    await run(8);
+
+    expect(counted).toHaveLength(2);
+    expect(locks).toBe(2);
+    for (const { track, lockedFrame } of counted) {
+      expect(track.lockedFrame).toBe(lockedFrame);
+    }
+  });
+
+  it("counts a second copy in a sweep but not the card just aimed at", async () => {
+    let offset = 0;
+    let sweepingTable = false;
+    const session = createScanSession(
+      testDeps({
+        detectCard: () => Promise.resolve(sweepingTable ? [] : [outlineAt(132)]),
+        detectBoard: () =>
+          Promise.resolve(sweepingTable ? [outlineAt(132 - offset), outlineAt(300 - offset)] : []),
+      }),
+      testOptions({ sweep: true }),
+    );
+    let locks = 0;
+    for (let frame = 0; frame < 4; frame++) {
+      const outcome = await session.processFrame(
+        tableSeenFrom(0, [132]),
+        frame,
+        frame / 30,
+        frozenClock,
+      );
+      locks += outcome.locked ? 1 : 0;
+    }
+    expect(locks).toBe(1);
+    sweepingTable = true;
+    for (let frame = 4; frame < 24; frame++) {
+      offset = (frame - 4) * 3;
+      const outcome = await session.processFrame(
+        tableSeenFrom(offset, [132 - offset, 300 - offset]),
+        frame,
+        frame / 30,
+        frozenClock,
+      );
+      locks += outcome.locked ? 1 : 0;
+    }
+    expect(locks).toBe(2);
+  });
+
+  it("drops an aimed lock of a card a sweep just counted until its cross-path window passes", async () => {
+    const lefts = [40, 240];
+    let offset = 0;
+    let phase: "sweep" | "leave" | "aim" = "sweep";
+    const session = createScanSession(
+      testDeps({
+        detectCard: () => Promise.resolve(phase === "aim" ? [outlineAt(132)] : []),
+        detectBoard: () =>
+          Promise.resolve(phase === "sweep" ? lefts.map((left) => outlineAt(left - offset)) : []),
+      }),
+      testOptions({ sweep: true }),
+    );
+    const frameFor = () =>
+      phase === "aim"
+        ? tableSeenFrom(0, [132])
+        : tableSeenFrom(offset, phase === "sweep" ? lefts.map((left) => left - offset) : []);
+    const play = async (frames: number[], seconds: (frame: number) => number) => {
+      const outcomes = [];
+      for (const frame of frames) {
+        outcomes.push(await session.processFrame(frameFor(), frame, seconds(frame), frozenClock));
+      }
+      return outcomes;
+    };
+    const range = (from: number, count: number) =>
+      Array.from({ length: count }, (_, i) => from + i);
+    const live = (frame: number) => frame / 30;
+
+    const swept = [];
+    for (let step = 0; step < EVERY; step++) {
+      offset = step * 4;
+      swept.push(...(await play([step], live)));
+    }
+    swept.push(...(await play(range(EVERY, 8), live)));
+    phase = "leave";
+    const left = await play(range(EVERY + 8, SWEEP_OPTIONS.exitFrames + 1), live);
+    phase = "aim";
+    const inWindow = await play(range(100, 4), live);
+    const later = (frame: number) => live(frame) + SWEEP_OPTIONS.crossPathSeconds;
+    const afterWindow = await play(range(200, 4), later);
+
+    expect(swept.some((outcome) => outcome.locked?.artKey === "k-a")).toBe(true);
+    expect(left.at(-1)?.sweeping).toBe(false);
+    expect(inWindow.map((outcome) => outcome.winner?.key)).toEqual(["k-a", "k-a", "k-a", "k-a"]);
+    expect(inWindow.some((outcome) => outcome.locked)).toBe(false);
+    expect(afterWindow.some((outcome) => outcome.locked?.artKey === "k-a")).toBe(true);
+  });
+
+  it("spends no printing attempt of an aimed lock on a swept copy without a place", async () => {
+    const edgeLefts = [60, 230];
+    let offset = 0;
+    let sweepingTable = false;
+    const atTopEdge = (left: number) => outline(boxQuad(left, 0, 120, 168));
+    const session = createScanSession(
+      testDeps({
+        detectCard: (input) =>
+          Promise.resolve(
+            sweepingTable ? [] : [outline(wholeFrameGuide()(input.width, input.height))],
+          ),
+        detectBoard: () =>
+          Promise.resolve(sweepingTable ? edgeLefts.map((left) => atTopEdge(left - offset)) : []),
+      }),
+      testOptions({ sweep: true }),
+    );
+    const aimed = [];
+    for (let frame = 0; frame < 2; frame++) {
+      aimed.push(await session.processFrame(card, frame, frame / 30, frozenClock));
+    }
+    sweepingTable = true;
+    const swept = [];
+    for (let frame = 2; frame < 20; frame++) {
+      offset = (frame - 2) * 3;
+      const frameImage = tableSeenFrom(offset, []);
+      for (const left of edgeLefts) {
+        layCard(frameImage, card, { left: left - offset, top: 0, width: 120, height: 168 });
+      }
+      swept.push(await session.processFrame(frameImage, frame, frame / 30, frozenClock));
+    }
+    const sweptWins = swept.filter((outcome) => outcome.sweeping && outcome.winner?.key === "k-a");
+
+    expect(aimed.at(-1)?.locked?.artKey).toBe("k-a");
+    expect(sweptWins.length).toBeGreaterThan(0);
+    expect(sweptWins.map((outcome) => outcome.printingTrack)).toEqual(
+      sweptWins.map(() => undefined),
+    );
+    expect(sweptWins.some((outcome) => outcome.locked)).toBe(false);
+  });
+
+  it("keeps an earlier aimed lock intact while a re-aim falls in a sweep's cross-path window", async () => {
+    const lefts = [40, 240];
+    let offset = 0;
+    let phase: "aim" | "sweep" | "leave" = "aim";
+    const session = createScanSession(
+      testDeps({
+        detectCard: (input) =>
+          Promise.resolve(
+            phase === "aim" ? [outline(wholeFrameGuide()(input.width, input.height))] : [],
+          ),
+        detectBoard: () =>
+          Promise.resolve(phase === "sweep" ? lefts.map((left) => outlineAt(left - offset)) : []),
+      }),
+      testOptions({ sweep: true }),
+    );
+    const frameFor = () =>
+      phase === "aim"
+        ? card
+        : tableSeenFrom(offset, phase === "sweep" ? lefts.map((left) => left - offset) : []);
+    const play = async (frames: number[], seconds: (frame: number) => number) => {
+      const outcomes = [];
+      for (const frame of frames) {
+        outcomes.push(await session.processFrame(frameFor(), frame, seconds(frame), frozenClock));
+      }
+      return outcomes;
+    };
+    const range = (from: number, count: number) =>
+      Array.from({ length: count }, (_, i) => from + i);
+    const live = (frame: number) => frame / 30;
+
+    const firstFrames = await play(range(0, 2), live);
+    const firstLock = firstFrames.at(-1)?.locked?.lockedFrame;
+    phase = "sweep";
+    const swept = [];
+    for (let step = 0; step < EVERY; step++) {
+      offset = step * 4;
+      swept.push(...(await play([10 + step], live)));
+    }
+    swept.push(...(await play(range(10 + EVERY, 8), live)));
+    phase = "leave";
+    await play(range(30, SWEEP_OPTIONS.exitFrames + 1), live);
+    phase = "aim";
+    const inWindow = await play(range(100, 4), live);
+    const pastWindow = (frame: number) => live(frame) + SWEEP_OPTIONS.crossPathSeconds;
+    const heldPastWindow = await play(range(104, 4), pastWindow);
+    const reaimed = [...inWindow, ...heldPastWindow];
+
+    expect(firstLock).toBe(1);
+    expect(swept.some((outcome) => outcome.locked?.artKey === "k-a")).toBe(true);
+    expect(reaimed.map((outcome) => outcome.winner?.key)).toEqual(reaimed.map(() => "k-a"));
+    expect(reaimed.some((outcome) => outcome.locked)).toBe(false);
+    expect(reaimed.map((outcome) => outcome.printingTrack)).toEqual(reaimed.map(() => undefined));
+    expect(session.state.get("k-a")).toMatchObject({ lockedFrame: 1, lockedThisRun: false });
+  });
+
+  it("reads a landscape card that appears during the backoff once it ends", async () => {
+    const sideways = rotateRgbaCw(cardTexture(1));
+    const reads: number[] = [];
+    let frame = 0;
+    const session = createScanSession(
+      testDeps({
+        detectCard: () => Promise.resolve([]),
+        detectBoard: () => {
+          reads.push(frame);
+          return Promise.resolve(frame === 0 ? [] : [sidewaysOutline(sideways)]);
+        },
+      }),
+      testOptions({ sweep: true }),
+    );
+    const backoff = SWEEP_OPTIONS.emptyGuideBackoffFrames;
+    const outcomes = [];
+    for (frame = 0; frame <= backoff + 1; frame++) {
+      outcomes.push(await session.processFrame(sideways, frame, frame / 30, frozenClock));
+    }
+
+    expect(reads).toEqual([0, backoff + 1]);
+    expect(outcomes.at(-1)?.candidate?.score).toBe(1);
+    expect(outcomes.at(-1)?.winner?.key).toBe("k-a");
   });
 });

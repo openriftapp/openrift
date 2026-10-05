@@ -1,4 +1,4 @@
-import { IDLE_AFTER_NO_WINNER_FRAMES } from "@openrift/shared/scan/session";
+import { IDLE_AFTER_NO_WINNER_FRAMES } from "@openrift/shared/scan/session-options";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -38,21 +38,21 @@ describe("nextIdlePace", () => {
 
 describe("shouldPaceFrame", () => {
   it("paces a long idle streak of slow frames", () => {
-    expect(shouldPaceFrame(idleFor(IDLE_AFTER_NO_WINNER_FRAMES, SLOW), "single")).toBe(true);
+    expect(shouldPaceFrame(idleFor(IDLE_AFTER_NO_WINNER_FRAMES, SLOW), false)).toBe(true);
   });
 
   it("keeps full speed while the streak is short", () => {
-    expect(shouldPaceFrame(idleFor(IDLE_AFTER_NO_WINNER_FRAMES - 1, SLOW), "single")).toBe(false);
+    expect(shouldPaceFrame(idleFor(IDLE_AFTER_NO_WINNER_FRAMES - 1, SLOW), false)).toBe(false);
   });
 
   it("keeps full speed on a device whose frames are already cheap", () => {
     expect(
-      shouldPaceFrame(idleFor(IDLE_AFTER_NO_WINNER_FRAMES, IDLE_PACE_MIN_FRAME_MS), "single"),
+      shouldPaceFrame(idleFor(IDLE_AFTER_NO_WINNER_FRAMES, IDLE_PACE_MIN_FRAME_MS), false),
     ).toBe(false);
   });
 
-  it("never paces pan mode, which is swept by hand", () => {
-    expect(shouldPaceFrame(idleFor(IDLE_AFTER_NO_WINNER_FRAMES, SLOW), "pan")).toBe(false);
+  it("never paces a sweep, which passes each card only briefly", () => {
+    expect(shouldPaceFrame(idleFor(IDLE_AFTER_NO_WINNER_FRAMES, SLOW), true)).toBe(false);
   });
 });
 

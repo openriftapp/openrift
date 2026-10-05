@@ -13,13 +13,8 @@ import {
   DEFAULT_PLACEMENT_OPTIONS,
   createPlacementDetector,
 } from "../../packages/shared/src/scan/placement.js";
-import { centeredGuideQuad } from "../../packages/shared/src/scan/session.js";
-import { CLIPS, EXPECTED_PLACEMENTS, loadImage } from "./lib";
-
-function argValue(flag: string): string | undefined {
-  const i = process.argv.indexOf(flag);
-  return i === -1 ? undefined : process.argv[i + 1];
-}
+import { centeredGuideQuad } from "../../packages/shared/src/scan/session-options.js";
+import { CLIPS, argValue, hasFlag, listClips, loadClipTruth, loadImage } from "./lib";
 
 async function probeClip(clip: string): Promise<void> {
   const dir = path.join(CLIPS, clip);
@@ -55,7 +50,8 @@ async function probeClip(clip: string): Promise<void> {
     );
   }
 
-  const expected = EXPECTED_PLACEMENTS[clip];
+  const truth = loadClipTruth(clip);
+  const expected = truth?.cards.reduce((sum, card) => sum + (card.copies ?? 1), 0);
   process.stdout.write(
     `\n${clip}: ${frames.length} frames, ${disturbedFrames} disturbed\n` +
       `  ${placed} placements detected` +
@@ -70,9 +66,7 @@ async function probeClip(clip: string): Promise<void> {
 async function main(): Promise<void> {
   process.stdout.write(`gates: ${JSON.stringify(DEFAULT_PLACEMENT_OPTIONS)}\n`);
   const only = argValue("--clip");
-  const clips = process.argv.includes("--all")
-    ? fs.readdirSync(CLIPS).filter((c) => fs.statSync(path.join(CLIPS, c)).isDirectory())
-    : [only ?? "3d-print-scanner"];
+  const clips = hasFlag("--all") ? listClips() : [only ?? "3d-print-scanner"];
   for (const clip of clips) {
     await probeClip(clip);
   }

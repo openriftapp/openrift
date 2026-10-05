@@ -3,7 +3,7 @@ import { CameraIcon, LayersIcon, ScanSquareIcon, SunIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { QrCode } from "@/components/ui/qr-code";
-import type { EngineProgress } from "@/features/scan/lib/scan-load-progress";
+import type { DownloadProgress } from "@/features/scan/lib/scan-load-progress";
 import { scanLoadProgress } from "@/features/scan/lib/scan-load-progress";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
@@ -41,12 +41,11 @@ export function ScanStartHint({ className }: { className?: string }) {
 }
 
 interface ScanLoadingProps {
-  bankLoaded: boolean;
-  engineProgress: EngineProgress;
+  engineProgress: DownloadProgress;
 }
 
-export function ScanLoading({ bankLoaded, engineProgress }: ScanLoadingProps) {
-  const { percent, phase } = scanLoadProgress(bankLoaded, engineProgress);
+export function ScanLoading({ engineProgress }: ScanLoadingProps) {
+  const { percent, phase } = scanLoadProgress(engineProgress);
   return (
     <div className="flex w-64 max-w-full flex-col items-center gap-3 text-center">
       <p>{m.scan_loading_title()}</p>

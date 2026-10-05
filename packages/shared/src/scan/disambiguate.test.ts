@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import type { PrintingSignature } from "./disambiguate";
+import type { PrintingIdentity, PrintingSignature } from "./disambiguate";
 import {
   CODE_SIGNATURE_WIDTH,
   SIGNATURE_WIDTH,
   STAMP_SIGNATURE_WIDTH,
   bestShiftCorrelation,
   codeStripSignature,
-  correlateSignatures,
   discriminativeMargin,
   printingSignature,
   resolvePrinting,
@@ -159,34 +158,15 @@ describe("printingSignature", () => {
   });
 });
 
-describe("correlateSignatures", () => {
-  it("scores an identical signature at 1", () => {
-    const signature = textRegionSignature(cardWithTextPattern(1));
-    if (!signature) {
-      throw new Error("expected a signature");
-    }
-    expect(correlateSignatures(signature, signature)).toBeCloseTo(1);
-  });
-
-  it("returns 0 for a flat signature", () => {
-    const flat: GrayImage = { data: new Uint8Array(16), width: 4, height: 4 };
-    const other: GrayImage = {
-      data: Uint8Array.from({ length: 16 }, (_, i) => i * 16),
-      width: 4,
-      height: 4,
-    };
-    expect(correlateSignatures(flat, other)).toBe(0);
-  });
-});
-
 describe("discriminative tournament", () => {
   const en = bandWithStamp(SIGNATURE_WIDTH, 36, 1);
   const sc = bandWithStamp(SIGNATURE_WIDTH, 36, 9);
   const misalignedEn = shifted(en, 2);
 
   it("recovers a misaligned self-match through the shift search", () => {
-    expect(correlateSignatures(misalignedEn, en)).toBeLessThan(0.99);
-    expect(bestShiftCorrelation(misalignedEn, en).score).toBeGreaterThan(0.98);
+    const best = bestShiftCorrelation(misalignedEn, en);
+    expect(best.score).toBeGreaterThan(0.98);
+    expect(best).toMatchObject({ dx: -2, dy: -2 });
   });
 
   it("gives the true printing a positive margin despite misalignment", () => {
@@ -262,8 +242,8 @@ describe("resolvePrinting", () => {
     return { name, code, stamp };
   }
 
-  function codeOf(key: string): string {
-    return key.replace(/^(?:en|sc)-?/u, "") || "ogn";
+  function plain(key: string): PrintingIdentity {
+    return { code: key.replace(/^(?:en|sc)-?/u, "") || "ogn", markers: "" };
   }
 
   it("resolves by name band alone when it separates everything", () => {
@@ -273,7 +253,7 @@ describe("resolvePrinting", () => {
         ["en-ogn", bands(nameEn, codeOgn)],
         ["sc-ogn", bands(nameSc, codeOgn)],
       ]),
-      codeOf,
+      plain,
     );
     expect(resolution?.key).toBe("en-ogn");
     expect(resolution?.via).toBe("name");
@@ -288,7 +268,7 @@ describe("resolvePrinting", () => {
         ["en-unl", bands(nameEn, codeUnl)],
         ["sc-ogn", bands(nameSc, codeOgn)],
       ]),
-      codeOf,
+      plain,
     );
     expect(resolution?.key).toBe("en-ogn");
     expect(resolution?.via).toBe("code");
@@ -302,19 +282,20 @@ describe("resolvePrinting", () => {
         ["en-ogn", bands(nameEn, codeOgn)],
         ["en-unl", bands(nameEn, codeUnl)],
       ]),
-      codeOf,
+      plain,
     );
     expect(resolution?.key).toBe("en-unl");
     expect(resolution?.via).toBe("code");
   });
 
-  it("skips the code stage without a collector-code lookup", () => {
+  it("treats a key without an identity as carrying no code evidence", () => {
     const resolution = resolvePrinting(
       bands(shifted(nameEn, 1), shifted(codeUnl, 1)),
       new Map([
         ["en-ogn", bands(nameEn, codeOgn)],
         ["en-unl", bands(nameEn, codeUnl)],
       ]),
+      (key) => (key === "en-ogn" ? plain(key) : undefined),
     );
     expect(resolution).toBeNull();
   });
@@ -326,7 +307,7 @@ describe("resolvePrinting", () => {
         ["en-ogn", bands(nameEn, codeOgn)],
         ["sc-ogn", bands(nameEn, codeUnl)],
       ]),
-      codeOf,
+      plain,
     );
     expect(resolution).toBeNull();
   });
@@ -339,7 +320,7 @@ describe("resolvePrinting", () => {
         ["en-b", bands(nameEn, codeOgn)],
         ["sc-a", bands(nameSc, codeOgn)],
       ]),
-      () => "shared-code",
+      () => ({ code: "shared-code", markers: "" }),
     );
     expect(resolution?.via).toBe("name");
     expect(resolution?.key === "en-a" || resolution?.key === "en-b").toBe(true);
@@ -357,16 +338,20 @@ describe("resolvePrinting", () => {
         ["en-ogn", bands(nameEn, codeOgn)],
         ["en-unl", bands(nameEn, codeUnl)],
       ]),
-      codeOf,
+      plain,
     );
     expect(resolution).toBeNull();
   });
 
-  function markerKeyOf(key: string): string | undefined {
+  function markersOf(key: string): string | undefined {
     if (key.endsWith("-mixed")) {
       return undefined;
     }
     return key.endsWith("-promo") ? "promo" : "";
+  }
+
+  function sharedCode(key: string): PrintingIdentity {
+    return { code: "shared-code", markers: markersOf(key) };
   }
 
   it("resolves a same-code marker pair through the stamp band", () => {
@@ -376,14 +361,13 @@ describe("resolvePrinting", () => {
         ["en-base", bands(nameEn, codeOgn, stampPlain)],
         ["en-promo", bands(nameEn, codeOgn, stampPromo)],
       ]),
-      () => "shared-code",
-      markerKeyOf,
+      sharedCode,
     );
     expect(resolution?.key).toBe("en-promo");
     expect(resolution?.via).toBe("stamp");
   });
 
-  it("resolves through the stamp band within the name band's class", () => {
+  it("never resolves to the unmarked printing through the stamp band", () => {
     const resolution = resolvePrinting(
       bands(shifted(nameEn, 1), shifted(codeOgn, 1), shifted(stampPlain, 1)),
       new Map([
@@ -391,11 +375,56 @@ describe("resolvePrinting", () => {
         ["en-promo", bands(nameEn, codeOgn, stampPromo)],
         ["sc-base", bands(nameSc, codeOgn, stampPlain)],
       ]),
-      () => "shared-code",
-      markerKeyOf,
+      sharedCode,
+    );
+    expect(resolution?.key).toBe("en-base");
+    expect(resolution?.via).toBe("name");
+    expect(resolution?.indistinguishable).not.toContain("en-promo");
+  });
+
+  it("takes the unmarked printing from the stamp band when the name band compares nothing", () => {
+    const resolution = resolvePrinting(
+      bands(shifted(nameEn, 1), shifted(codeOgn, 1), shifted(stampPlain, 1)),
+      new Map([
+        ["en-base", bands(nameEn, codeOgn, stampPlain)],
+        ["en-promo", bands(nameEn, codeOgn, stampPromo)],
+      ]),
+      (key) => ({ ...sharedCode(key), language: "en" }),
     );
     expect(resolution?.key).toBe("en-base");
     expect(resolution?.via).toBe("stamp");
+  });
+
+  it("leaves a weak promo stamp to the unmarked default", () => {
+    const blurred: GrayImage = {
+      ...stampPromo,
+      data: stampPromo.data.map((value, index) =>
+        Math.round(value * 0.6 + (stampPlain.data[index] ?? 0) * 0.4),
+      ),
+    };
+    const resolution = resolvePrinting(
+      bands(shifted(nameEn, 1), shifted(codeOgn, 1), blurred),
+      new Map([
+        ["en-base", bands(nameEn, codeOgn, stampPlain)],
+        ["en-promo", bands(nameEn, codeOgn, stampPromo)],
+        ["sc-base", bands(nameSc, codeOgn, stampPlain)],
+      ]),
+      sharedCode,
+    );
+    expect(resolution?.key).toBe("en-base");
+  });
+
+  it("stays open when every printing the name band left is marked", () => {
+    const resolution = resolvePrinting(
+      bands(shifted(nameEn, 1), shifted(codeOgn, 1), shifted(stampPlain, 1)),
+      new Map([
+        ["en-promo", bands(nameEn, codeOgn, stampPromo)],
+        ["en-summoner", bands(nameEn, codeOgn, stampPlain)],
+        ["sc-base", bands(nameSc, codeOgn, stampPlain)],
+      ]),
+      (key) => ({ code: "shared-code", markers: key.startsWith("sc") ? "" : key.slice(3) }),
+    );
+    expect(resolution).toBeNull();
   });
 
   it("never compares stamps of printings sharing a marker set", () => {
@@ -405,8 +434,7 @@ describe("resolvePrinting", () => {
         ["en-base", bands(nameEn, codeOgn, stampPlain)],
         ["en-other", bands(nameEn, codeOgn, stampPromo)],
       ]),
-      () => "shared-code",
-      () => "",
+      () => ({ code: "shared-code", markers: "" }),
     );
     expect(resolution).toBeNull();
   });
@@ -418,20 +446,20 @@ describe("resolvePrinting", () => {
         ["en-mixed", bands(nameEn, codeOgn, stampPlain)],
         ["en-promo", bands(nameEn, codeOgn, stampPromo)],
       ]),
-      () => "shared-code",
-      markerKeyOf,
+      sharedCode,
     );
     expect(resolution).toBeNull();
   });
 
-  it("skips the stamp stage without a marker lookup", () => {
+  it("stays open when the name band's class carries no marker sets", () => {
     const resolution = resolvePrinting(
-      bands(shifted(nameEn, 1), shifted(codeOgn, 1), shifted(stampPromo, 1)),
+      bands(shifted(nameEn, 1), shifted(codeOgn, 1), shifted(stampPlain, 1)),
       new Map([
-        ["en-base", bands(nameEn, codeOgn, stampPlain)],
-        ["en-promo", bands(nameEn, codeOgn, stampPromo)],
+        ["en-a", bands(nameEn, codeOgn, stampPlain)],
+        ["en-b", bands(nameEn, codeOgn, stampPlain)],
+        ["sc-base", bands(nameSc, codeOgn, stampPlain)],
       ]),
-      () => "shared-code",
+      (key) => ({ code: "shared-code", markers: key.startsWith("sc") ? "" : undefined }),
     );
     expect(resolution).toBeNull();
   });
@@ -443,8 +471,10 @@ describe("resolvePrinting", () => {
         ["en-summoner", bands(nameEn, codeOgn, stampPromo)],
         ["en-champion", bands(nameEn, codeOgn, stampPlain)],
       ]),
-      () => "shared-code",
-      (key) => (key.endsWith("-summoner") ? "summoner" : "champion+summoner"),
+      (key) => ({
+        code: "shared-code",
+        markers: key.endsWith("-summoner") ? "summoner" : "champion+summoner",
+      }),
     );
     expect(resolution).toBeNull();
   });
@@ -458,12 +488,25 @@ describe("resolvePrinting", () => {
         ["en-base", bands(provenanceB, null, stampPlain)],
         ["en-promo", bands(provenanceA, null, stampPromo)],
       ]),
-      undefined,
-      markerKeyOf,
-      () => "EN",
+      (key) => ({ markers: markersOf(key), language: "EN" }),
     );
     expect(resolution?.key).toBe("en-promo");
     expect(resolution?.via).toBe("stamp");
+  });
+
+  it("compares name bands when a label carries no language", () => {
+    const provenanceA = bandWithStamp(SIGNATURE_WIDTH, 36, 1);
+    const provenanceB = bandWithStamp(SIGNATURE_WIDTH, 36, 5);
+    const resolution = resolvePrinting(
+      bands(shifted(provenanceA, 1), null, shifted(stampPromo, 1)),
+      new Map([
+        ["en-base", bands(provenanceB, null, stampPlain)],
+        ["en-promo", bands(provenanceA, null, stampPromo)],
+      ]),
+      (key) => ({ markers: markersOf(key), language: key === "en-base" ? undefined : "EN" }),
+    );
+    expect(resolution?.key).toBe("en-promo");
+    expect(resolution?.via).toBe("name");
   });
 
   it("still separates languages when the language lookup is present", () => {
@@ -473,9 +516,7 @@ describe("resolvePrinting", () => {
         ["en-ogn", bands(nameEn, null, null)],
         ["sc-ogn", bands(nameSc, null, null)],
       ]),
-      undefined,
-      undefined,
-      (key) => (key.startsWith("en-") ? "EN" : "SC"),
+      (key) => ({ markers: "", language: key.startsWith("en-") ? "EN" : "SC" }),
     );
     expect(resolution?.key).toBe("en-ogn");
     expect(resolution?.via).toBe("name");
@@ -488,11 +529,28 @@ describe("resolvePrinting", () => {
         ["en-ogn", bands(nameEn, codeOgn, stampPlain)],
         ["en-unl-promo", bands(nameEn, codeUnl, stampPromo)],
       ]),
-      codeOf,
-      markerKeyOf,
+      (key) => ({ ...plain(key), markers: markersOf(key) }),
     );
     expect(resolution?.key).toBe("en-unl-promo");
     expect(resolution?.via).toBe("code");
+  });
+
+  it("leaves a marked printing that only weak code evidence names to the regular one", () => {
+    const blurred: GrayImage = {
+      ...codeUnl,
+      data: codeUnl.data.map((value, index) =>
+        Math.round(value * 0.52 + (codeOgn.data[index] ?? 0) * 0.48),
+      ),
+    };
+    const resolution = resolvePrinting(
+      bands(shifted(nameEn, 1), blurred, shifted(stampPlain, 1)),
+      new Map([
+        ["en-ogn", bands(nameEn, codeOgn, stampPlain)],
+        ["en-unl-promo", bands(nameEn, codeUnl, stampPromo)],
+      ]),
+      (key) => ({ ...plain(key), markers: markersOf(key) }),
+    );
+    expect(resolution?.key).not.toBe("en-unl-promo");
   });
 
   it("does not let the stamp band decide when name evidence exists but is ambiguous", () => {
@@ -506,8 +564,7 @@ describe("resolvePrinting", () => {
         ["en-promo", bands(nameEn, null, stampPromo)],
         ["sc-base", bands(nameSc, null, stampPlain)],
       ]),
-      undefined,
-      markerKeyOf,
+      (key) => ({ markers: markersOf(key) }),
     );
     expect(resolution).toBeNull();
   });
@@ -523,7 +580,7 @@ describe("resolvePrinting", () => {
         ["en-ogn", bands(nameEn, codeOgn)],
         ["sc-unl", bands(nameSc, codeUnl)],
       ]),
-      codeOf,
+      plain,
     );
     expect(resolution).toBeNull();
   });

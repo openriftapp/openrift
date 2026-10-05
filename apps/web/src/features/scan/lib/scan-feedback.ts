@@ -1,5 +1,5 @@
-// Vibration feedback lives in the scanner hook (fires for the admin harness
-// too); this tick is the scanning page's own, behind its mute preference.
+/** ms */
+export const LOCK_VIBRATION_MS = 50;
 
 let audioContext: AudioContext | null = null;
 

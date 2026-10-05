@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import type { AimHint, AimHintInput } from "@/features/scan/lib/scan-aim-hint";
+import type { AimHint, AimHintInput, AimHintKind } from "@/features/scan/lib/scan-aim-hint";
 import {
-  AIM_HINT_KINDS,
   aimHintMessage,
   areaFractionOfGuide,
   createAimHintSmoother,
   deriveAimHint,
-  quadArea,
+  polygonArea,
 } from "@/features/scan/lib/scan-aim-hint";
 
 /** A frame with nothing to complain about; each test overrides one field. */
@@ -16,7 +15,7 @@ function frame(overrides: Partial<AimHintInput> = {}): AimHintInput {
     active: true,
     hasCandidate: true,
     candidateAreaFraction: 1,
-    bestInliers: 20,
+    bestScore: 95,
     focus: 120,
     topDistance: 0.1,
     refused: false,
@@ -25,10 +24,10 @@ function frame(overrides: Partial<AimHintInput> = {}): AimHintInput {
   };
 }
 
-describe("quadArea", () => {
+describe("polygonArea", () => {
   it("measures a unit square", () => {
     expect(
-      quadArea([
+      polygonArea([
         { x: 0, y: 0 },
         { x: 1, y: 0 },
         { x: 1, y: 1 },
@@ -44,13 +43,13 @@ describe("quadArea", () => {
       { x: 4, y: 3 },
       { x: 0, y: 3 },
     ];
-    expect(quadArea(clockwise)).toBe(12);
-    expect(quadArea(clockwise.toReversed())).toBe(12);
+    expect(polygonArea(clockwise)).toBe(12);
+    expect(polygonArea(clockwise.toReversed())).toBe(12);
   });
 
   it("measures a rotated quad", () => {
     expect(
-      quadArea([
+      polygonArea([
         { x: 1, y: 0 },
         { x: 2, y: 1 },
         { x: 1, y: 2 },
@@ -61,7 +60,7 @@ describe("quadArea", () => {
 
   it("returns 0 for a degenerate quad", () => {
     expect(
-      quadArea([
+      polygonArea([
         { x: 5, y: 5 },
         { x: 5, y: 5 },
         { x: 5, y: 5 },
@@ -106,14 +105,12 @@ describe("areaFractionOfGuide", () => {
 
 describe("deriveAimHint", () => {
   it("says nothing while the camera is off", () => {
-    expect(deriveAimHint(frame({ active: false, hasCandidate: false, bestInliers: 0 }))).toBeNull();
+    expect(deriveAimHint(frame({ active: false, hasCandidate: false, bestScore: 0 }))).toBeNull();
   });
 
   it("says nothing on a winner frame, however bad the other numbers look", () => {
     expect(
-      deriveAimHint(
-        frame({ isWinner: true, focus: 5, bestInliers: 0, candidateAreaFraction: 0.1 }),
-      ),
+      deriveAimHint(frame({ isWinner: true, focus: 5, bestScore: 0, candidateAreaFraction: 0.1 })),
     ).toBeNull();
   });
 
@@ -130,7 +127,7 @@ describe("deriveAimHint", () => {
 
   it("settling outranks the stale readings behind it", () => {
     expect(
-      deriveAimHint(frame({ settling: true, hasCandidate: false, focus: 5, bestInliers: 0 }))?.kind,
+      deriveAimHint(frame({ settling: true, hasCandidate: false, focus: 5, bestScore: 0 }))?.kind,
     ).toBe("settling");
   });
 
@@ -166,7 +163,7 @@ describe("deriveAimHint", () => {
   });
 
   it("calls a soft frame blurry", () => {
-    expect(deriveAimHint(frame({ focus: 39, bestInliers: 2 }))).toEqual({
+    expect(deriveAimHint(frame({ focus: 39, bestScore: 11 }))).toEqual({
       kind: "blurry",
       message: aimHintMessage("blurry"),
     });
@@ -181,62 +178,76 @@ describe("deriveAimHint", () => {
   });
 
   it("reports a refused frame as still checking", () => {
-    expect(deriveAimHint(frame({ refused: true, bestInliers: 12 }))).toEqual({
+    expect(deriveAimHint(frame({ refused: true, bestScore: 65 }))).toEqual({
       kind: "checking",
       message: aimHintMessage("checking"),
     });
   });
 
   it("asks for a card when nothing verified and nothing ranked plausibly", () => {
-    expect(deriveAimHint(frame({ bestInliers: 0, topDistance: 0.9 }))?.kind).toBe("no-card");
+    expect(deriveAimHint(frame({ bestScore: 0, topDistance: 0.9 }))?.kind).toBe("no-card");
+  });
+
+  it("treats a near-zero score with an implausible match as no card", () => {
+    expect(deriveAimHint(frame({ bestScore: 2, topDistance: 0.9 }))?.kind).toBe("no-card");
   });
 
   it("asks for a card when nothing ranked at all", () => {
-    expect(deriveAimHint(frame({ bestInliers: 0, topDistance: undefined }))?.kind).toBe("no-card");
+    expect(deriveAimHint(frame({ bestScore: 0, topDistance: undefined }))?.kind).toBe("no-card");
   });
 
   it("stays quiet when nothing verified but the ranking is plausible", () => {
-    expect(deriveAimHint(frame({ bestInliers: 0, topDistance: 0.3 }))).toBeNull();
+    expect(deriveAimHint(frame({ bestScore: 0, topDistance: 0.3 }))).toBeNull();
   });
 
-  it("blames glare on a few inliers with an implausible match", () => {
-    expect(deriveAimHint(frame({ bestInliers: 3, topDistance: 0.6 }))).toEqual({
+  it("blames glare on a low score with an implausible match", () => {
+    expect(deriveAimHint(frame({ bestScore: 16, topDistance: 0.6 }))).toEqual({
       kind: "glare",
       message: aimHintMessage("glare"),
     });
   });
 
   it("does not blame glare while the match is plausible", () => {
-    expect(deriveAimHint(frame({ bestInliers: 3, topDistance: 0.2 }))).toBeNull();
+    expect(deriveAimHint(frame({ bestScore: 16, topDistance: 0.2 }))).toBeNull();
   });
 
   it("honours a tighter encoder gate", () => {
-    const input = frame({ bestInliers: 3, topDistance: 0.38 });
+    const input = frame({ bestScore: 16, topDistance: 0.38 });
     expect(deriveAimHint(input)).toBeNull();
     expect(deriveAimHint({ ...input, plausibleDistance: 0.35 })?.kind).toBe("glare");
   });
 
   it("holds steady at the bottom of the almost band", () => {
-    expect(deriveAimHint(frame({ bestInliers: 6, topDistance: 0.6 }))).toEqual({
+    expect(deriveAimHint(frame({ bestScore: 30, topDistance: 0.6 }))).toEqual({
       kind: "almost",
       message: aimHintMessage("almost"),
     });
   });
 
   it("holds steady at the top of the almost band", () => {
-    expect(deriveAimHint(frame({ bestInliers: 10 }))?.kind).toBe("almost");
+    expect(deriveAimHint(frame({ bestScore: 57 }))?.kind).toBe("almost");
   });
 
   it("says nothing just below the almost band when the match is plausible", () => {
-    expect(deriveAimHint(frame({ bestInliers: 5, topDistance: 0.2 }))).toBeNull();
+    expect(deriveAimHint(frame({ bestScore: 29, topDistance: 0.2 }))).toBeNull();
   });
 
   it("says nothing at the accept floor", () => {
-    expect(deriveAimHint(frame({ bestInliers: 11 }))).toBeNull();
+    expect(deriveAimHint(frame({ bestScore: 60 }))).toBeNull();
   });
 
   it("keeps every message short enough for a phone overlay", () => {
-    for (const message of AIM_HINT_KINDS.map((kind) => aimHintMessage(kind))) {
+    const kinds = Object.keys({
+      settling: true,
+      "no-card": true,
+      "too-far": true,
+      "too-close": true,
+      blurry: true,
+      checking: true,
+      glare: true,
+      almost: true,
+    } satisfies Record<AimHintKind, true>) as AimHintKind[];
+    for (const message of kinds.map((kind) => aimHintMessage(kind))) {
       expect(message.length).toBeLessThanOrEqual(30);
       expect(message.endsWith(".")).toBe(false);
     }

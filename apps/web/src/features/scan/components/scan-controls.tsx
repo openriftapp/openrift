@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ScanShutter } from "@/features/scan/components/scan-shutter";
 import { ScanLoading, ScanStartHint, ScanTips } from "@/features/scan/components/scan-start-panel";
 import type { AimHint } from "@/features/scan/lib/scan-aim-hint";
-import type { EngineProgress } from "@/features/scan/lib/scan-load-progress";
+import type { DownloadProgress } from "@/features/scan/lib/scan-load-progress";
 import { OVER_VIDEO } from "@/features/scan/lib/scan-styles";
 import { m } from "@/paraglide/messages.js";
 
@@ -15,8 +15,7 @@ interface ScanControlsProps {
   shutter: boolean;
   ready: boolean;
   cameraAvailable: boolean | null;
-  bankLoaded: boolean;
-  engineProgress: EngineProgress;
+  engineProgress: DownloadProgress;
   captureMode: boolean;
   onStart: () => void;
   onStop: () => void;
@@ -31,7 +30,6 @@ export function ScanControls({
   shutter,
   ready,
   cameraAvailable,
-  bankLoaded,
   engineProgress,
   captureMode,
   onStart,
@@ -48,11 +46,7 @@ export function ScanControls({
       )}
       {immersive && !active && (
         <div className="flex flex-col items-center gap-3 text-white">
-          {ready ? (
-            <ScanStartHint />
-          ) : (
-            <ScanLoading bankLoaded={bankLoaded} engineProgress={engineProgress} />
-          )}
+          {ready ? <ScanStartHint /> : <ScanLoading engineProgress={engineProgress} />}
           <ScanTips className="max-w-64 justify-center text-white/70" />
         </div>
       )}

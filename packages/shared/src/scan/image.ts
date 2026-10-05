@@ -1,14 +1,15 @@
 import type { GrayImage, RgbaImage } from "./types";
 
-/** Convert packed RGBA to single-channel luma (ITU-R BT.601 weights). */
+/** ITU-R BT.601 weights in 8-bit fixed point. */
+export function luma(r: number, g: number, b: number): number {
+  return (r * 77 + g * 150 + b * 29) >> 8;
+}
+
 export function toGray(src: RgbaImage): GrayImage {
   const { data, width, height } = src;
   const out = new Uint8Array(width * height);
   for (let i = 0, p = 0; i < out.length; i++, p += 4) {
-    const r = data[p] ?? 0;
-    const g = data[p + 1] ?? 0;
-    const b = data[p + 2] ?? 0;
-    out[i] = (r * 77 + g * 150 + b * 29) >> 8;
+    out[i] = luma(data[p] ?? 0, data[p + 1] ?? 0, data[p + 2] ?? 0);
   }
   return { data: out, width, height };
 }
@@ -43,44 +44,6 @@ export function downscaleGray(src: GrayImage, dstW: number, dstH: number): GrayI
     out[i] = count === 0 ? 0 : Math.round((sums[i] ?? 0) / count);
   }
   return { data: out, width: dstW, height: dstH };
-}
-
-/** Separable box blur with running sums, so cost is independent of radius. */
-export function boxBlurGray(src: GrayImage, radius: number): GrayImage {
-  if (radius <= 0) {
-    return { data: Uint8Array.from(src.data), width: src.width, height: src.height };
-  }
-  const { width: w, height: h } = src;
-  const window = radius * 2 + 1;
-  const tmp = new Uint8Array(w * h);
-  const out = new Uint8Array(w * h);
-
-  for (let y = 0; y < h; y++) {
-    const row = y * w;
-    let sum = (src.data[row] ?? 0) * (radius + 1);
-    for (let x = 1; x <= radius; x++) {
-      sum += src.data[row + Math.min(x, w - 1)] ?? 0;
-    }
-    for (let x = 0; x < w; x++) {
-      tmp[row + x] = Math.round(sum / window);
-      sum += src.data[row + Math.min(x + radius + 1, w - 1)] ?? 0;
-      sum -= src.data[row + Math.max(x - radius, 0)] ?? 0;
-    }
-  }
-
-  for (let x = 0; x < w; x++) {
-    let sum = (tmp[x] ?? 0) * (radius + 1);
-    for (let y = 1; y <= radius; y++) {
-      sum += tmp[Math.min(y, h - 1) * w + x] ?? 0;
-    }
-    for (let y = 0; y < h; y++) {
-      out[y * w + x] = Math.round(sum / window);
-      sum += tmp[Math.min(y + radius + 1, h - 1) * w + x] ?? 0;
-      sum -= tmp[Math.max(y - radius, 0) * w + x] ?? 0;
-    }
-  }
-
-  return { data: out, width: w, height: h };
 }
 
 /** Variance of the Laplacian: higher means sharper, near-zero for a blurred frame. */

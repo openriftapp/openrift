@@ -11,10 +11,10 @@ export interface ScannerReadout {
   candidate: CardCandidate | null;
   ranked: RankedEmbed[];
   winnerKey: string | null;
-  winnerInliers: number;
-  rivalInliers: number;
+  winnerScore: number;
+  rivalScore: number;
   refused: boolean;
-  bestInliers: number;
+  bestScore: number;
   focus: number;
   fps: number;
   detectMs: number;
@@ -36,10 +36,10 @@ export const EMPTY_READOUT: ScannerReadout = {
   candidate: null,
   ranked: [],
   winnerKey: null,
-  winnerInliers: 0,
-  rivalInliers: 0,
+  winnerScore: 0,
+  rivalScore: 0,
   refused: false,
-  bestInliers: 0,
+  bestScore: 0,
   focus: 0,
   fps: 0,
   detectMs: 0,
@@ -66,7 +66,7 @@ export function aimHintInputFor(
     active: true,
     hasCandidate: outcome.candidate !== null,
     candidateAreaFraction,
-    bestInliers: outcome.bestInliers,
+    bestScore: outcome.bestScore,
     focus: outcome.focus,
     topDistance: outcome.ranked[0]?.distance,
     refused: outcome.refused,
@@ -96,10 +96,10 @@ export function buildReadout(input: ReadoutInput): ScannerReadout {
     candidate: outcome.candidate,
     ranked: outcome.ranked.slice(0, RANKED_SHOWN),
     winnerKey: outcome.winner === null ? null : outcome.winner.key,
-    winnerInliers: outcome.winner === null ? 0 : outcome.winner.inliers,
-    rivalInliers: outcome.winner === null ? 0 : outcome.winner.rivalInliers,
+    winnerScore: outcome.winner === null ? 0 : outcome.winner.score,
+    rivalScore: outcome.winner === null ? 0 : outcome.winner.rivalScore,
     refused: outcome.refused,
-    bestInliers: outcome.bestInliers,
+    bestScore: outcome.bestScore,
     focus: outcome.focus,
     fps: input.fps,
     detectMs: outcome.timings.detect,

@@ -12,8 +12,6 @@ interface ScanPrefsState {
   setDestinationCollectionId: (value: string | null) => void;
   cardLanguage: string | null;
   setCardLanguage: (value: string | null) => void;
-  autoScan: boolean;
-  setAutoScan: (value: boolean) => void;
   tapToScan: boolean;
   setTapToScan: (value: boolean) => void;
 }
@@ -41,8 +39,6 @@ export const useScanPrefsStore = create<ScanPrefsState>()(
       setDestinationCollectionId: (value) => set({ destinationCollectionId: value }),
       cardLanguage: DEFAULT_SCAN_LANGUAGE,
       setCardLanguage: (value) => set({ cardLanguage: value }),
-      autoScan: false,
-      setAutoScan: (value) => set({ autoScan: value }),
       tapToScan: false,
       setTapToScan: (value) => set({ tapToScan: value }),
     }),
@@ -52,7 +48,6 @@ export const useScanPrefsStore = create<ScanPrefsState>()(
         muted: state.muted,
         destinationCollectionId: state.destinationCollectionId,
         cardLanguage: state.cardLanguage,
-        autoScan: state.autoScan,
         tapToScan: state.tapToScan,
       }),
       merge: (persisted, current) => {
@@ -67,7 +62,6 @@ export const useScanPrefsStore = create<ScanPrefsState>()(
           muted: typeof raw.muted === "boolean" ? raw.muted : current.muted,
           destinationCollectionId: mergeDestination(raw, current.destinationCollectionId),
           cardLanguage: language,
-          autoScan: typeof raw.autoScan === "boolean" ? raw.autoScan : current.autoScan,
           tapToScan: typeof raw.tapToScan === "boolean" ? raw.tapToScan : current.tapToScan,
         };
       },

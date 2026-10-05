@@ -1,14 +1,14 @@
-/**
- * Characterisation tests for the scanner hook, faked only at its true
- * boundaries (OpenCV, encoder, camera, canvas, frame scheduler) so the real
- * session config and shared engine run underneath. Reference images carry an
- * identity through a WeakMap keyed by their pixel array, following the
- * harness in `packages/shared/src/scan/session.test.ts`.
- */
-import type { OpenCvLike } from "@openrift/shared/scan/detect-cv";
+import { DEFAULT_ALIGNED_OPTIONS } from "@openrift/shared/scan/accept";
+import type * as AlignedVerifyModule from "@openrift/shared/scan/aligned-verify";
+import type { BoardCard } from "@openrift/shared/scan/board";
 import type { CardEmbedder, EmbedBank } from "@openrift/shared/scan/embed";
-import type { OrbCvLike } from "@openrift/shared/scan/orb";
-import type { RgbaImage } from "@openrift/shared/scan/types";
+import { EMBED_IMAGE_SIZE } from "@openrift/shared/scan/embed";
+import type { CardLabels } from "@openrift/shared/scan/labels";
+import { DEFAULT_PLACEMENT_OPTIONS, PLACEMENT_HOLD_SECONDS } from "@openrift/shared/scan/placement";
+import type { ScanSession } from "@openrift/shared/scan/session";
+import type { ScanSessionOptions } from "@openrift/shared/scan/session-options";
+import { centeredGuideQuad, gatesForEmbedDim } from "@openrift/shared/scan/session-options";
+import type { CardCandidate, RgbaImage } from "@openrift/shared/scan/types";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -17,29 +17,38 @@ import type { CameraInfo } from "@/features/scan/lib/camera-info";
 import { readCameraInfo } from "@/features/scan/lib/camera-info";
 import type { LoadedScanBank } from "@/features/scan/lib/scan-bank";
 import type { IdentifyAttempt } from "@/features/scan/lib/scan-catchup";
-import type * as ScanEmbedderModule from "@/features/scan/lib/scan-embedder";
-import { loadScanEmbedder, measuredEmbedMsPerImage } from "@/features/scan/lib/scan-embedder";
-import type { LockedCard } from "@/features/scan/lib/scan-locks";
-import { loadOpenCv } from "@/features/scan/lib/scan-opencv";
+import type { BoardReadCard, LockedCard } from "@/features/scan/lib/scan-locks";
 import { GUIDE_COLOR, RETICLE_COLOR } from "@/features/scan/lib/scan-overlay";
+import { PAUSED_POLL_MS } from "@/features/scan/lib/scan-pacing";
 import { fetchReference } from "@/features/scan/lib/scan-reference-image";
 import type { ScannerSettings } from "@/features/scan/lib/scan-session";
-import { DEFAULT_SCANNER_SETTINGS } from "@/features/scan/lib/scan-session";
+import {
+  DEFAULT_SCANNER_SETTINGS,
+  createConfiguredScanSession,
+} from "@/features/scan/lib/scan-session";
+import type { ScanWorkerClient } from "@/features/scan/lib/scan-worker-client";
+import { createScanWorkerClient } from "@/features/scan/lib/scan-worker-client";
+import type {
+  DownloadPart,
+  ScanWorkerReady,
+  SessionKind,
+} from "@/features/scan/lib/scan-worker-protocol";
 
 import { useCardScanner } from "./use-card-scanner";
+import { useScanEngine } from "./use-scan-engine";
 
-vi.mock("@/features/scan/lib/scan-opencv", () => ({
-  loadOpenCv: vi.fn(),
+vi.mock("@/features/scan/lib/scan-worker-client", () => ({
+  createScanWorkerClient: vi.fn(),
 }));
 
-vi.mock("@/features/scan/lib/scan-embedder", async (importOriginal) => {
-  const actual = await importOriginal<typeof ScanEmbedderModule>();
-  return {
-    ...actual,
-    loadScanEmbedder: vi.fn(),
-    measuredEmbedMsPerImage: vi.fn(),
-  };
-});
+vi.mock("@openrift/shared/scan/aligned-verify", async (importOriginal) => ({
+  ...(await importOriginal<typeof AlignedVerifyModule>()),
+  createAlignedVerifier: (): AlignedVerifyModule.AlignedVerifier => (_card, shortlist) =>
+    Promise.resolve({
+      scores: shortlist.map(({ key }) => ({ key, score: currentScore(key) })),
+      failed: [],
+    }),
+}));
 
 vi.mock("@/features/scan/lib/scan-reference-image", () => ({
   fetchReference: vi.fn(),
@@ -53,184 +62,10 @@ vi.mock("@/features/scan/lib/camera-info", async (importOriginal) => {
   };
 });
 
-const imageTags = new WeakMap<ArrayLike<number>, string>();
-
-/** Stand-in for OpenCV's Size, Rect and Scalar, none of which is read back. */
-class Geometry {
-  readonly args: number[];
-
-  constructor(...args: number[]) {
-    this.args = args;
-  }
-}
-
-const STUB_MATCHES = 20;
-
-function taggedReference(tag: string): RgbaImage {
+function referenceImage(): RgbaImage {
   const data = new Uint8ClampedArray(8 * 11 * 4);
   data.fill(200);
-  for (let index = 3; index < data.length; index += 4) {
-    data[index] = 255;
-  }
-  imageTags.set(data, tag);
   return { data, width: 8, height: 11 };
-}
-
-/**
- * A fake OpenCV reporting the test-chosen inlier count for whichever
- * reference is verified. Both detectors report zero contours, so a guide
- * session always falls through to the guide candidate.
- */
-function createStubCv(inliersFor: (tag: string | undefined) => number): OpenCvLike & OrbCvLike {
-  let lastReferenceTag: string | undefined;
-
-  class Mat {
-    rows = 0;
-    tag: string | undefined;
-    data: Uint8Array;
-
-    constructor() {
-      this.data = this.taggedBuffer(0);
-    }
-
-    static zeros(): Mat {
-      return new Mat();
-    }
-
-    taggedBuffer(size: number): Uint8Array {
-      const buffer = new Uint8Array(size);
-      buffer.set = (values: ArrayLike<number>) => {
-        this.tag = imageTags.get(values);
-      };
-      return buffer;
-    }
-
-    fillInliers(count: number): void {
-      this.rows = count;
-      this.data = new Uint8Array(count).fill(1);
-    }
-
-    roi(): Mat {
-      return new Mat();
-    }
-
-    setTo(): void {}
-
-    empty(): boolean {
-      return false;
-    }
-
-    delete(): void {}
-  }
-
-  class MatVector {
-    size(): number {
-      return 0;
-    }
-
-    get(): Mat {
-      return new Mat();
-    }
-
-    delete(): void {}
-  }
-
-  class KeyPointVector {
-    get(index: number): { pt: { x: number; y: number } } {
-      return { pt: { x: index, y: index } };
-    }
-
-    delete(): void {}
-  }
-
-  class Orb {
-    detectAndCompute(image: Mat, _mask: Mat, _keypoints: KeyPointVector, descriptors: Mat): void {
-      // Above verifyOrb's 8-row floor, carrying the source image's identity.
-      descriptors.rows = 16;
-      descriptors.tag = image.tag;
-    }
-
-    delete(): void {}
-  }
-
-  class BfMatcher {
-    knnMatch(_query: Mat, train: Mat, _out: unknown, _k: number): void {
-      lastReferenceTag = train.tag;
-    }
-
-    delete(): void {}
-  }
-
-  class DMatchVectorVector {
-    size(): number {
-      return STUB_MATCHES;
-    }
-
-    /** Distances 1 vs 10 always clear Lowe's ratio test. */
-    get(index: number) {
-      return {
-        size: () => 2,
-        get: (which: number) => ({
-          distance: which === 0 ? 1 : 10,
-          queryIdx: index,
-          trainIdx: index,
-        }),
-        delete: () => {},
-      };
-    }
-
-    delete(): void {}
-  }
-
-  const cv = {
-    Mat,
-    MatVector,
-    KeyPointVector,
-    ORB: Orb,
-    BFMatcher: BfMatcher,
-    DMatchVectorVector,
-    Size: Geometry,
-    Rect: Geometry,
-    Scalar: Geometry,
-    RotatedRect: { points: () => [] },
-    CV_8UC1: 0,
-    CV_8UC4: 24,
-    CV_32FC2: 13,
-    COLOR_RGBA2GRAY: 11,
-    MORPH_RECT: 0,
-    MORPH_CLOSE: 3,
-    ADAPTIVE_THRESH_GAUSSIAN_C: 1,
-    THRESH_BINARY: 0,
-    THRESH_BINARY_INV: 1,
-    THRESH_OTSU: 8,
-    RETR_LIST: 1,
-    CHAIN_APPROX_SIMPLE: 2,
-    NORM_HAMMING: 6,
-    RANSAC: 8,
-    cvtColor: (source: Mat, destination: Mat) => {
-      destination.tag = source.tag;
-    },
-    equalizeHist: (source: Mat, destination: Mat) => {
-      destination.tag = source.tag;
-    },
-    resize: () => {},
-    medianBlur: () => {},
-    GaussianBlur: () => {},
-    adaptiveThreshold: () => {},
-    threshold: () => {},
-    getStructuringElement: () => new Mat(),
-    morphologyEx: () => {},
-    findContours: () => {},
-    contourArea: () => 0,
-    minAreaRect: () => ({ center: { x: 0, y: 0 }, size: { width: 0, height: 0 }, angle: 0 }),
-    matFromArray: () => new Mat(),
-    findHomography: (_source: Mat, _destination: Mat, _method: number, _t: number, mask: Mat) => {
-      mask.fillInliers(inliersFor(lastReferenceTag));
-      return new Mat();
-    },
-  };
-
-  return cv as unknown as OpenCvLike & OrbCvLike;
 }
 
 function createBank(distances: Record<string, number>): EmbedBank {
@@ -267,8 +102,10 @@ function createEmbedder(): CardEmbedder {
 
 /** Callbacks parked until the test pumps them, so loops advance on demand. */
 let rafQueue: FrameRequestCallback[] = [];
+let pumps = 0;
 
 function pumpAnimationFrames(): void {
+  pumps++;
   const callbacks = rafQueue;
   rafQueue = [];
   for (const callback of callbacks) {
@@ -287,9 +124,8 @@ function advance(ms: number): void {
 let sceneSeed = 0;
 
 /**
- * Deterministic per-size noise sharp enough to pass the real `minFocus`
- * gate; the same size and seed always produce the same pixels, so
- * consecutive frames present as a static scene to the placement watcher.
+ * Noise sharp enough for the real `MIN_FOCUS` gate; the same size and seed
+ * give the same pixels, so consecutive frames read as a static scene.
  */
 function scenePixels(width: number, height: number): Uint8ClampedArray {
   const data = new Uint8ClampedArray(width * height * 4);
@@ -422,61 +258,178 @@ const FAKE_CAMERA_INFO: CameraInfo = {
   capabilitiesSupported: false,
 };
 
-/** The inlier count the fake verifier reports, swappable mid-test. */
-let currentInliers: (tag: string | undefined) => number = () => 0;
-/** The bank the mounted hook ranks against, distances rewritable in place. */
+/** 0..1 */
+let currentScore: (key: string) => number = () => 0;
 let bankState: EmbedBank;
+let workerInit: () => Promise<ScanWorkerReady>;
+let onStand = false;
+let sweeping = false;
+let surveyOutlines: CardCandidate[] | null;
+let readBoardCards: () => Promise<BoardCard[]>;
+let createFailure: string | null = null;
+let frameGate: Promise<void> | null = null;
+let createGate: Promise<void> | null = null;
+let bankUrl = "https://assets.invalid/bank.bin";
+const liveFrames: number[] = [];
+const livePlans: Partial<ScanSessionOptions>[] = [];
+
+const LABELS: CardLabels = {
+  "k-a": { name: "Lux", code: "OGN-001", language: "en" },
+  "k-b": { name: "Garen", code: "OGN-002", language: "en" },
+};
+
+const READY: ScanWorkerReady = {
+  embedMsPerImage: 80,
+  embedImageSize: EMBED_IMAGE_SIZE,
+  threads: 1,
+  keys: ["k-a", "k-b"],
+  artKeys: [
+    ["k-a", "art-a"],
+    ["k-b", "art-b"],
+  ],
+  canonical: true,
+  bytes: 1024,
+  gates: gatesForEmbedDim(2),
+};
 
 function loadedBank(): LoadedScanBank {
   return {
     bank: bankState,
-    artKeys: new Map([["k-a", "art-a"]]),
-    labels: { "k-a": { name: "Lux", code: "OGN-001", language: "en" } },
-    bytes: 1024,
+    artKeys: new Map(READY.artKeys),
+    labels: LABELS,
+    bytes: READY.bytes,
     canonical: true,
   };
 }
 
+function createInThreadClient(
+  onProgress?: (part: DownloadPart, loaded: number, total: number) => void,
+) {
+  const sessions = new Map<SessionKind, ScanSession>();
+  let boardDetector = false;
+  const client: ScanWorkerClient = {
+    init: (assets) => {
+      boardDetector = assets.boardDetectorUrl !== null;
+      onProgress?.("encoder", 10, 20);
+      return workerInit();
+    },
+    create: async (live, catchUp) => {
+      if (createGate) {
+        await createGate;
+      }
+      if (createFailure !== null) {
+        throw new Error(createFailure);
+      }
+      livePlans.push(live);
+      const engine = {
+        embedder: createEmbedder(),
+        embedImageSize: EMBED_IMAGE_SIZE,
+        detectCard: () => Promise.resolve([]),
+        detectBoard: () => Promise.resolve([]),
+      };
+      sessions.set("live", createConfiguredScanSession(engine, loadedBank(), live));
+      sessions.set("catchUp", createConfiguredScanSession(engine, loadedBank(), catchUp));
+    },
+    processFrame: async (kind, frame, index, seconds) => {
+      const session = sessions.get(kind);
+      const gate = frameGate;
+      frameGate = null;
+      if (gate) {
+        await gate;
+      }
+      if (!session) {
+        throw new Error("no session");
+      }
+      const processed = await session.processFrame(frame, index, seconds, () => performance.now());
+      if (kind === "live") {
+        liveFrames.push(index);
+      }
+      const outcome =
+        kind === "live"
+          ? {
+              ...processed,
+              still: onStand || processed.still,
+              sweeping: sweeping || processed.sweeping,
+              ...(surveyOutlines ? { survey: boardDetector ? surveyOutlines : [] } : {}),
+            }
+          : processed;
+      return outcome;
+    },
+    readBoard: () => readBoardCards(),
+    rearm: () => {
+      sessions.get("live")?.rearm();
+    },
+    terminate: () => {},
+  };
+  return client;
+}
+
 function cardPresent(): void {
-  setDistances(bankState, { "k-a": 0.05 });
-  currentInliers = () => 40;
+  setDistances(bankState, { "k-a": 0.05, "k-b": 0.9 });
+  currentScore = (key) => (key === "k-a" ? 0.9 : 0);
+}
+
+function cardAtAcceptFloor(): void {
+  setDistances(bankState, { "k-a": 0.05, "k-b": 0.9 });
+  currentScore = (key) => (key === "k-a" ? DEFAULT_ALIGNED_OPTIONS.minScore : 0);
+}
+
+function otherCardPresent(): void {
+  setDistances(bankState, { "k-a": 0.9, "k-b": 0.05 });
+  currentScore = (key) => (key === "k-b" ? 0.9 : 0);
 }
 
 function cardAbsent(): void {
-  setDistances(bankState, { "k-a": 0.9 });
-  currentInliers = () => 0;
+  setDistances(bankState, { "k-a": 0.9, "k-b": 0.9 });
+  currentScore = () => 0;
+}
+
+/**
+ * A second artwork close behind the first: the winner clears the aligned
+ * margin but not the catch-up margin, so a lone frame is only offered.
+ */
+function cardWithCloseRival(): void {
+  setDistances(bankState, { "k-a": 0.05, "k-b": 0.06 });
+  currentScore = (key) => (key === "k-a" ? 0.7 : 0.5);
 }
 
 interface MountOptions {
   settings?: ScannerSettings;
-  loaded?: LoadedScanBank | null;
+  labels?: CardLabels | null;
+  boardDetector?: boolean;
 }
 
 async function mountScanner(options: MountOptions = {}) {
   const onLock = vi.fn<(lock: LockedCard) => void>();
-  const hook = renderHook(() =>
-    useCardScanner(
-      options.loaded === undefined ? loadedBank() : options.loaded,
-      options.settings ?? DEFAULT_SCANNER_SETTINGS,
-      {
-        encoderUrl: "https://assets.invalid/encoder.onnx",
-        opencvUrl: "https://assets.invalid/opencv.js",
-      },
-      { onLock },
-    ),
+  const onBoardRead = vi.fn<(cards: BoardReadCard[]) => void>();
+  const hook = renderHook(
+    ({ settings }: { settings: ScannerSettings }) => {
+      const engine = useScanEngine(
+        {
+          encoderUrl: "https://assets.invalid/encoder.onnx",
+          bankUrl,
+          labelsUrl: "https://assets.invalid/labels.json",
+          detectorUrl: "https://assets.invalid/detector.onnx",
+          boardDetectorUrl: options.boardDetector ? "https://assets.invalid/board.onnx" : null,
+        },
+        options.labels === undefined ? LABELS : options.labels,
+      );
+      const scanner = useCardScanner(engine, settings, { onLock, onBoardRead });
+      return { ...scanner, engine };
+    },
+    { initialProps: { settings: options.settings ?? DEFAULT_SCANNER_SETTINGS } },
   );
   const video = createFakeVideo();
   const overlay = document.createElement("canvas");
   hook.result.current.videoRef.current = video;
   hook.result.current.overlayRef.current = overlay;
-  return { hook, video, overlay, onLock };
+  return { hook, video, overlay, onLock, onBoardRead };
 }
 
 async function mountReadyScanner(options: MountOptions = {}) {
   const mounted = await mountScanner(options);
   await waitFor(() => {
-    expect(mounted.hook.result.current.cvReady).toBe(true);
-    expect(mounted.hook.result.current.embedderReady).toBe(true);
+    expect(mounted.hook.result.current.engine.engineReady).toBe(true);
   });
   return mounted;
 }
@@ -496,13 +449,14 @@ async function runFrames(count: number): Promise<void> {
   }
 }
 
+const CAMERA_TICK_MS = 100;
+
 /**
- * One camera-rate tick: the placement watcher, the painter and the frame
- * loop each run once. A short clock step, so a disturbance stays trusted
- * between ticks.
+ * One camera-rate tick: watcher, painter and frame loop run once each. The
+ * short clock step keeps a disturbance trusted between ticks.
  */
 async function pumpCameraFrame(): Promise<void> {
-  advance(100);
+  advance(CAMERA_TICK_MS);
   await act(async () => {
     pumpAnimationFrames();
     await flushAsync();
@@ -510,34 +464,41 @@ async function pumpCameraFrame(): Promise<void> {
   });
 }
 
-/**
- * Deals an unrecognised card through baseline, disturbance and settle
- * frames, then past the miss grace window. The next tick after this books
- * the miss and frees the catch-up slot.
- */
-async function landUnrecognisedCard(): Promise<void> {
-  await pumpCameraFrame();
-  for (const seed of [1, 2, 3]) {
+async function pumpCameraFrames(count: number): Promise<void> {
+  for (let frame = 0; frame < count; frame++) {
+    await pumpCameraFrame();
+  }
+}
+
+async function changeScene(seeds: readonly number[]): Promise<void> {
+  for (const seed of seeds) {
     sceneSeed = seed;
     await pumpCameraFrame();
   }
-  await pumpCameraFrame();
-  await pumpCameraFrame();
-  advance(4100);
+}
+
+async function holdStill(): Promise<void> {
+  await pumpCameraFrames(
+    DEFAULT_PLACEMENT_OPTIONS.settleFrames +
+      Math.ceil((PLACEMENT_HOLD_SECONDS * 1000) / CAMERA_TICK_MS),
+  );
 }
 
 /**
- * Another copy landing in the guide: the scene changes for a few frames
- * then holds still, which the placement watcher treats as a card dealt
- * onto the pile.
+ * Deals an unrecognised card and waits out the miss grace window; the next
+ * tick books the miss and frees the catch-up slot.
  */
+async function landUnrecognisedCard(): Promise<void> {
+  await pumpCameraFrame();
+  await changeScene([1, 2, 3]);
+  await holdStill();
+  advance(4100);
+}
+
+/** A copy dealt onto the pile: the scene changes for a few frames, then holds still. */
 async function dealAnotherCopy(): Promise<void> {
-  for (const seed of [11, 12, 13]) {
-    sceneSeed = seed;
-    await pumpCameraFrame();
-  }
-  await pumpCameraFrame();
-  await pumpCameraFrame();
+  await changeScene([11, 12, 13]);
+  await holdStill();
 }
 
 describe("useCardScanner", () => {
@@ -546,9 +507,10 @@ describe("useCardScanner", () => {
     sceneSeed = 0;
     rafQueue = [];
     strokes.length = 0;
-    bankState = createBank({ "k-a": 0.9 });
-    currentInliers = () => 0;
+    bankState = createBank({ "k-a": 0.9, "k-b": 0.9 });
+    currentScore = () => 0;
     embedFailure = null;
+    workerInit = () => Promise.resolve(READY);
 
     vi.spyOn(performance, "now").mockImplementation(() => nowMs);
     // The per-frame [scan] diagnostics would drown the test output.
@@ -565,16 +527,17 @@ describe("useCardScanner", () => {
     } as unknown as typeof HTMLCanvasElement.prototype.getContext);
     HTMLCanvasElement.prototype.toDataURL = () => "data:image/jpeg;base64,fake";
 
-    vi.mocked(loadOpenCv).mockImplementation(async (_url, onProgress) => {
-      onProgress?.(500, 1000);
-      return createStubCv((tag) => currentInliers(tag));
-    });
-    vi.mocked(loadScanEmbedder).mockImplementation(async (_url, _paths, onProgress) => {
-      onProgress?.(10, 20);
-      return createEmbedder();
-    });
-    vi.mocked(measuredEmbedMsPerImage).mockReturnValue(80);
-    vi.mocked(fetchReference).mockImplementation((key) => Promise.resolve(taggedReference(key)));
+    vi.stubGlobal("Worker", vi.fn());
+    vi.mocked(createScanWorkerClient).mockImplementation(createInThreadClient);
+    vi.mocked(fetchReference).mockImplementation(() => Promise.resolve(referenceImage()));
+    surveyOutlines = null;
+    readBoardCards = () => Promise.resolve([]);
+    liveFrames.length = 0;
+    livePlans.length = 0;
+    createFailure = null;
+    frameGate = null;
+    createGate = null;
+    bankUrl = "https://assets.invalid/bank.bin";
     vi.mocked(readCameraInfo).mockResolvedValue(FAKE_CAMERA_INFO);
     stubGetUserMedia(() => Promise.resolve(createFakeStream().stream));
   });
@@ -583,56 +546,54 @@ describe("useCardScanner", () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     rafQueue = [];
+    onStand = false;
+    sweeping = false;
   });
 
   describe("engine loading", () => {
-    it("reports download progress and readiness for both engine halves", async () => {
+    it("reports download progress and readiness", async () => {
       const { hook } = await mountReadyScanner();
 
-      expect(hook.result.current.engineProgress.opencv).toEqual({
-        loaded: 500,
-        total: 1000,
-        ready: true,
+      expect(hook.result.current.engine.progress).toEqual({
+        encoder: { loaded: 10, total: 20, ready: true },
+        bank: { loaded: 0, total: 0, ready: true },
       });
-      expect(hook.result.current.engineProgress.encoder).toEqual({
-        loaded: 10,
-        total: 20,
-        ready: true,
-      });
-      expect(hook.result.current.embedMsPerImage).toBe(80);
-      expect(hook.result.current.deviceTooSlow).toBe(false);
+      expect(hook.result.current.engine.embedMsPerImage).toBe(80);
+      expect(hook.result.current.engine.slowDevice).toBe(false);
       expect(hook.result.current.error).toBeNull();
     });
 
-    it("surfaces an OpenCV load failure as the hook error", async () => {
-      vi.mocked(loadOpenCv).mockRejectedValue(new Error("wasm refused to instantiate"));
+    it("surfaces a failed engine load as the hook error", async () => {
+      workerInit = () => Promise.reject(new Error("Could not load the card detector"));
 
       const { hook } = await mountScanner();
 
       await waitFor(() => {
-        expect(hook.result.current.error).toBe("wasm refused to instantiate");
+        expect(hook.result.current.error).toBe("Could not load the card detector");
       });
-      expect(hook.result.current.cvReady).toBe(false);
+      expect(hook.result.current.engine.engineReady).toBe(false);
     });
 
-    it("surfaces an encoder load failure as the hook error", async () => {
-      vi.mocked(loadScanEmbedder).mockRejectedValue(new Error("encoder download failed"));
+    it("explains that a browser without workers cannot scan", async () => {
+      vi.stubGlobal("Worker", undefined);
 
       const { hook } = await mountScanner();
 
       await waitFor(() => {
-        expect(hook.result.current.error).toBe("encoder download failed");
+        expect(hook.result.current.error).toBe(
+          "This browser cannot run the scanner. Update it or try another browser.",
+        );
       });
-      expect(hook.result.current.embedderReady).toBe(false);
+      expect(createScanWorkerClient).not.toHaveBeenCalled();
     });
 
     it("flags a device whose measured encoder cost crosses the slow floor", async () => {
-      vi.mocked(measuredEmbedMsPerImage).mockReturnValue(300);
+      workerInit = () => Promise.resolve({ ...READY, embedMsPerImage: 300 });
 
       const { hook } = await mountReadyScanner();
 
-      expect(hook.result.current.embedMsPerImage).toBe(300);
-      expect(hook.result.current.deviceTooSlow).toBe(true);
+      expect(hook.result.current.engine.embedMsPerImage).toBe(300);
+      expect(hook.result.current.engine.slowDevice).toBe(true);
     });
   });
 
@@ -671,7 +632,7 @@ describe("useCardScanner", () => {
 
     it("refuses to start before the engine is ready, without touching the camera", async () => {
       // oxlint-disable-next-line promise/avoid-new -- deliberately never-settling load to hold the engine in its loading state
-      vi.mocked(loadOpenCv).mockImplementation(() => new Promise(() => {}));
+      workerInit = () => new Promise(() => {});
       const getUserMedia = stubGetUserMedia(() => Promise.resolve(createFakeStream().stream));
       const { hook } = await mountScanner();
 
@@ -684,9 +645,9 @@ describe("useCardScanner", () => {
       expect(getUserMedia).not.toHaveBeenCalled();
     });
 
-    it("refuses to start while the card bank has not loaded", async () => {
+    it("refuses to start while the card labels have not loaded", async () => {
       const getUserMedia = stubGetUserMedia(() => Promise.resolve(createFakeStream().stream));
-      const { hook } = await mountReadyScanner({ loaded: null });
+      const { hook } = await mountReadyScanner({ labels: null });
 
       await act(async () => {
         await hook.result.current.start();
@@ -721,7 +682,7 @@ describe("useCardScanner", () => {
     });
 
     it("retries without the frame rate cap when a slow device's capped request is overconstrained", async () => {
-      vi.mocked(measuredEmbedMsPerImage).mockReturnValue(300);
+      workerInit = () => Promise.resolve({ ...READY, embedMsPerImage: 300 });
       const fake = createFakeStream();
       const getUserMedia = stubGetUserMedia(
         vi
@@ -758,6 +719,28 @@ describe("useCardScanner", () => {
       expect(fake.tracks[0]!.stop).toHaveBeenCalled();
     });
 
+    it("reports a start whose sessions cannot be built and lets Start run again", async () => {
+      const getUserMedia = stubGetUserMedia(() => Promise.resolve(createFakeStream().stream));
+      const { hook } = await mountReadyScanner();
+      createFailure = "the session plan was refused";
+
+      await act(async () => {
+        await hook.result.current.start();
+      });
+
+      expect(hook.result.current.error).toBe("the session plan was refused");
+      expect(hook.result.current.active).toBe(false);
+      expect(getUserMedia).not.toHaveBeenCalled();
+
+      createFailure = null;
+      await act(async () => {
+        await hook.result.current.start();
+      });
+
+      expect(hook.result.current.active).toBe(true);
+      expect(hook.result.current.error).toBeNull();
+    });
+
     it("opens the camera once for two overlapping start calls", async () => {
       const opened = deferred<MediaStream>();
       const getUserMedia = stubGetUserMedia(() => opened.promise);
@@ -780,13 +763,16 @@ describe("useCardScanner", () => {
 
     it("shuts a stream opened after stop bumped the run generation", async () => {
       const opened = deferred<MediaStream>();
-      stubGetUserMedia(() => opened.promise);
+      const getUserMedia = stubGetUserMedia(() => opened.promise);
       const fake = createFakeStream();
       const { hook, video } = await mountReadyScanner();
 
       let startPromise!: Promise<void>;
       act(() => {
         startPromise = hook.result.current.start();
+      });
+      await waitFor(() => {
+        expect(getUserMedia).toHaveBeenCalled();
       });
       act(() => {
         hook.result.current.stop();
@@ -804,13 +790,16 @@ describe("useCardScanner", () => {
 
     it("shuts a stream opened after the page unmounted mid-start", async () => {
       const opened = deferred<MediaStream>();
-      stubGetUserMedia(() => opened.promise);
+      const getUserMedia = stubGetUserMedia(() => opened.promise);
       const fake = createFakeStream();
       const { hook } = await mountReadyScanner();
 
       let startPromise!: Promise<void>;
       act(() => {
         startPromise = hook.result.current.start();
+      });
+      await waitFor(() => {
+        expect(getUserMedia).toHaveBeenCalled();
       });
       hook.unmount();
       opened.resolve(fake.stream);
@@ -819,6 +808,49 @@ describe("useCardScanner", () => {
       });
 
       expect(fake.tracks[0]!.stop).toHaveBeenCalled();
+    });
+
+    it("never asks for the camera when the page unmounts while the sessions are built", async () => {
+      const built = deferred<undefined>();
+      createGate = built.promise;
+      const getUserMedia = stubGetUserMedia(() => Promise.resolve(createFakeStream().stream));
+      const { hook } = await mountReadyScanner();
+
+      let startPromise!: Promise<void>;
+      act(() => {
+        startPromise = hook.result.current.start();
+      });
+      await act(async () => {
+        await flushAsync();
+      });
+      hook.unmount();
+      built.resolve(undefined);
+      await act(async () => {
+        await startPromise;
+      });
+
+      expect(getUserMedia).not.toHaveBeenCalled();
+    });
+
+    it("rebuilds the sessions and keeps scanning when the bank is reloaded mid-run", async () => {
+      const { hook } = await mountReadyScanner();
+      await act(async () => {
+        await hook.result.current.start();
+      });
+      await runFrames(2);
+      const settings = DEFAULT_SCANNER_SETTINGS;
+
+      bankUrl = "https://assets.invalid/bank-v2.bin";
+      hook.rerender({ settings });
+      await waitFor(() => {
+        expect(livePlans).toHaveLength(2);
+      });
+      const framesBefore = liveFrames.length;
+      await runFrames(2);
+
+      expect(liveFrames.length).toBeGreaterThan(framesBefore);
+      expect(hook.result.current.error).toBeNull();
+      expect(hook.result.current.active).toBe(true);
     });
 
     it("keeps the camera report readable after stop", async () => {
@@ -940,6 +972,34 @@ describe("useCardScanner", () => {
       expect(hook.result.current.readout.fps).toBeGreaterThan(0);
     });
 
+    it("runs one frame loop after a stop and start inside the paused poll", async () => {
+      cardAbsent();
+      const paused: ScannerSettings = { ...DEFAULT_SCANNER_SETTINGS, paused: true };
+      const { hook } = await mountReadyScanner({ settings: paused });
+      await act(async () => {
+        await hook.result.current.start();
+      });
+      await runFrames(1);
+
+      await act(async () => {
+        hook.result.current.stop();
+        await hook.result.current.start();
+      });
+      await runFrames(1);
+      await act(async () => {
+        hook.rerender({ settings: DEFAULT_SCANNER_SETTINGS });
+        // oxlint-disable-next-line promise/avoid-new -- lets both paused polls fire on the real clock
+        await new Promise((resolve) => {
+          setTimeout(resolve, PAUSED_POLL_MS + 50);
+        });
+      });
+
+      const framesBefore = liveFrames.length;
+      await runFrames(1);
+
+      expect(liveFrames.length - framesBefore).toBe(1);
+    });
+
     it("clears locks and the readout on clearHistory", async () => {
       cardPresent();
       const { hook, onLock } = await mountReadyScanner();
@@ -1007,25 +1067,218 @@ describe("useCardScanner", () => {
     });
   });
 
-  describe("placement watcher and catch-up", () => {
-    const autoMode = { settings: { ...DEFAULT_SCANNER_SETTINGS, mode: "auto" as const } };
+  describe("switching Tap to scan while the camera runs", () => {
+    const captureSettings: ScannerSettings = { ...DEFAULT_SCANNER_SETTINGS, mode: "capture" };
+
+    async function switchTo(
+      hook: Awaited<ReturnType<typeof mountReadyScanner>>["hook"],
+      settings: ScannerSettings,
+    ): Promise<void> {
+      await act(async () => {
+        hook.rerender({ settings });
+        await flushAsync();
+        await flushAsync();
+      });
+    }
+
+    it("stops the frame loop and scans per tap once Tap to scan is turned on", async () => {
+      const { stream, tracks } = createFakeStream();
+      const getUserMedia = stubGetUserMedia(() => Promise.resolve(stream));
+      cardAbsent();
+      const { hook, video, onLock } = await mountReadyScanner();
+      await act(async () => {
+        await hook.result.current.start();
+      });
+      await runFrames(2);
+
+      await switchTo(hook, captureSettings);
+      expect(livePlans).toHaveLength(2);
+      expect(livePlans[1]).toMatchObject({ sweep: false, accept: { lockRun: 1 } });
+      const framesBefore = liveFrames.length;
+      await runFrames(3);
+      expect(liveFrames.length).toBe(framesBefore);
+
+      cardPresent();
+      advance(200);
+      await act(async () => {
+        await hook.result.current.capture();
+      });
+
+      expect(onLock).toHaveBeenCalledTimes(1);
+      expect(onLock.mock.calls[0]![0].framesToLock).toBe(1);
+      expect(getUserMedia).toHaveBeenCalledTimes(1);
+      expect(tracks[0]!.stop).not.toHaveBeenCalled();
+      expect(video.srcObject).toBe(stream);
+    });
+
+    async function holdNextFrame(): Promise<ReturnType<typeof deferred<void>>> {
+      const held = deferred<void>();
+      frameGate = held.promise;
+      advance(200);
+      await act(async () => {
+        pumpAnimationFrames();
+        await flushAsync();
+      });
+      expect(frameGate).toBeNull();
+      return held;
+    }
+
+    it("switches to Tap to scan once a frame that was in flight fails", async () => {
+      cardAbsent();
+      const { hook, onLock } = await mountReadyScanner();
+      await act(async () => {
+        await hook.result.current.start();
+      });
+      await runFrames(1);
+      const held = await holdNextFrame();
+
+      await switchTo(hook, captureSettings);
+      expect(livePlans).toHaveLength(1);
+      await act(async () => {
+        held.reject(new Error("encoder backend crashed"));
+        await flushAsync();
+        await flushAsync();
+      });
+
+      expect(livePlans).toHaveLength(2);
+      expect(livePlans[1]).toMatchObject({ accept: { lockRun: 1 } });
+      cardPresent();
+      advance(200);
+      await act(async () => {
+        await hook.result.current.capture();
+      });
+      expect(onLock).toHaveBeenCalledTimes(1);
+      expect(hook.result.current.active).toBe(true);
+    });
+
+    it("ignores a tap while the switch to Tap to scan is still building the sessions", async () => {
+      cardAbsent();
+      const { hook, onLock } = await mountReadyScanner();
+      await act(async () => {
+        await hook.result.current.start();
+      });
+      await runFrames(1);
+      const held = await holdNextFrame();
+      await switchTo(hook, captureSettings);
+
+      cardPresent();
+      const framesBefore = liveFrames.length;
+      advance(200);
+      await act(async () => {
+        await hook.result.current.capture();
+      });
+      expect(liveFrames.length).toBe(framesBefore);
+
+      await act(async () => {
+        held.resolve();
+        await flushAsync();
+        await flushAsync();
+      });
+      advance(200);
+      await act(async () => {
+        await hook.result.current.capture();
+      });
+      expect(onLock).toHaveBeenCalledTimes(1);
+      expect(onLock.mock.calls[0]![0].framesToLock).toBe(1);
+    });
+
+    it("stops the camera and reports why when a switch cannot build the sessions", async () => {
+      const { stream, tracks } = createFakeStream();
+      stubGetUserMedia(() => Promise.resolve(stream));
+      cardAbsent();
+      const { hook } = await mountReadyScanner();
+      await act(async () => {
+        await hook.result.current.start();
+      });
+      await runFrames(1);
+
+      createFailure = "the session plan was refused";
+      await switchTo(hook, captureSettings);
+
+      expect(hook.result.current.error).toBe("the session plan was refused");
+      expect(hook.result.current.active).toBe(false);
+      expect(tracks[0]!.stop).toHaveBeenCalled();
+      const framesBefore = liveFrames.length;
+      await runFrames(2);
+      expect(liveFrames.length).toBe(framesBefore);
+
+      createFailure = null;
+      await act(async () => {
+        await hook.result.current.start();
+      });
+      expect(hook.result.current.active).toBe(true);
+    });
+
+    it("runs one frame loop in the final mode after a quick double toggle", async () => {
+      cardAbsent();
+      const { hook } = await mountReadyScanner();
+      await act(async () => {
+        await hook.result.current.start();
+      });
+      await runFrames(1);
+
+      hook.rerender({ settings: captureSettings });
+      hook.rerender({ settings: DEFAULT_SCANNER_SETTINGS });
+      await act(async () => {
+        await flushAsync();
+        await flushAsync();
+      });
+
+      expect(livePlans).toHaveLength(3);
+      expect(livePlans.at(-1)).toMatchObject({ sweep: true, accept: { lockRun: 3 } });
+      const framesBefore = liveFrames.length;
+      await runFrames(1);
+      expect(liveFrames.length - framesBefore).toBe(1);
+    });
+
+    it("starts the frame loop once Tap to scan is turned off", async () => {
+      const { stream, tracks } = createFakeStream();
+      const getUserMedia = stubGetUserMedia(() => Promise.resolve(stream));
+      cardAbsent();
+      const { hook, video, onLock } = await mountReadyScanner({ settings: captureSettings });
+      await act(async () => {
+        await hook.result.current.start();
+      });
+      await runFrames(3);
+      expect(liveFrames).toEqual([]);
+
+      await switchTo(hook, DEFAULT_SCANNER_SETTINGS);
+      expect(livePlans).toHaveLength(2);
+      expect(livePlans[1]).toMatchObject({ sweep: true, accept: { lockRun: 3 } });
+      cardPresent();
+      await runFrames(6);
+
+      expect(onLock).toHaveBeenCalledTimes(1);
+      expect(liveFrames.length).toBeGreaterThan(1);
+      expect(getUserMedia).toHaveBeenCalledTimes(1);
+      expect(tracks[0]!.stop).not.toHaveBeenCalled();
+      expect(video.srcObject).toBe(stream);
+    });
+  });
+
+  describe("placement watcher and catch-up on a stand", () => {
+    beforeEach(() => {
+      onStand = true;
+    });
 
     it("offers a missed placement back as an unidentifiable card the user can dismiss", async () => {
       cardAbsent();
-      const { hook, onLock } = await mountReadyScanner(autoMode);
+      const { hook, onLock } = await mountReadyScanner();
       await act(async () => {
         await hook.result.current.start();
       });
 
       await landUnrecognisedCard();
-      setDistances(bankState, { "k-a": 0.05 });
-      currentInliers = () => 15;
+      cardWithCloseRival();
       await pumpCameraFrame();
 
       expect(onLock).not.toHaveBeenCalled();
       expect(hook.result.current.unidentified).toHaveLength(1);
       const card = hook.result.current.unidentified[0]!;
-      expect(card.candidates).toEqual([{ key: "k-a", artKey: "art-a" }]);
+      expect(card.candidates).toEqual([
+        { key: "k-a", artKey: "art-a" },
+        { key: "k-b", artKey: "art-b" },
+      ]);
 
       await runFrames(1);
       expect(hook.result.current.readout.placements).toBe(1);
@@ -1039,7 +1292,7 @@ describe("useCardScanner", () => {
 
     it("recovers a missed placement outright when the second look verifies it strongly", async () => {
       cardAbsent();
-      const { hook, onLock } = await mountReadyScanner(autoMode);
+      const { hook, onLock } = await mountReadyScanner();
       await act(async () => {
         await hook.result.current.start();
       });
@@ -1052,7 +1305,7 @@ describe("useCardScanner", () => {
       const lock = onLock.mock.calls[0]![0];
       expect(lock.key).toBe("k-a");
       expect(lock.framesToLock).toBe(1);
-      expect(lock.inliers).toBe(40);
+      expect(lock.score).toBe(90);
       expect(hook.result.current.unidentified).toEqual([]);
 
       await runFrames(1);
@@ -1060,7 +1313,61 @@ describe("useCardScanner", () => {
       expect(hook.result.current.readout.missedPlacements).toBe(0);
     });
 
-    it("counts no placements at all in single mode", async () => {
+    it("only offers a lone second-look winner at the accept floor", async () => {
+      cardAbsent();
+      const { hook, onLock } = await mountReadyScanner();
+      await act(async () => {
+        await hook.result.current.start();
+      });
+
+      await landUnrecognisedCard();
+      cardAtAcceptFloor();
+      await pumpCameraFrame();
+
+      expect(onLock).not.toHaveBeenCalled();
+      expect(hook.result.current.unidentified).toHaveLength(1);
+      expect(hook.result.current.unidentified[0]!.candidates[0]).toEqual({
+        key: "k-a",
+        artKey: "art-a",
+      });
+    });
+
+    it("does not count a card held up under a still camera again as it trembles", async () => {
+      cardPresent();
+      const { hook, onLock } = await mountReadyScanner();
+      await act(async () => {
+        await hook.result.current.start();
+      });
+      await runFrames(4);
+      expect(onLock).toHaveBeenCalledTimes(1);
+
+      for (const seeds of [
+        [21, 22, 23],
+        [24, 25, 26],
+        [27, 28, 29],
+      ]) {
+        await changeScene(seeds);
+        await pumpCameraFrames(3);
+      }
+      expect(onLock).toHaveBeenCalledTimes(1);
+    });
+
+    it("counts a second copy dealt onto the pile", async () => {
+      cardPresent();
+      const { hook, onLock } = await mountReadyScanner();
+      await act(async () => {
+        await hook.result.current.start();
+      });
+      await runFrames(4);
+      expect(onLock).toHaveBeenCalledTimes(1);
+
+      await dealAnotherCopy();
+      await runFrames(4);
+      expect(onLock).toHaveBeenCalledTimes(2);
+    });
+
+    it("counts no placements while the camera is hand-held", async () => {
+      onStand = false;
       cardAbsent();
       const { hook } = await mountReadyScanner();
       await act(async () => {
@@ -1075,6 +1382,27 @@ describe("useCardScanner", () => {
       expect(hook.result.current.readout.placements).toBe(0);
       expect(hook.result.current.readout.missedPlacements).toBe(0);
       expect(hook.result.current.unidentified).toEqual([]);
+    });
+
+    it("drops a placement still on hold when the camera is lifted before it confirms", async () => {
+      cardAbsent();
+      const { hook } = await mountReadyScanner();
+      await act(async () => {
+        await hook.result.current.start();
+      });
+      await pumpCameraFrames(2);
+      await changeScene([1, 2, 3]);
+      await pumpCameraFrames(DEFAULT_PLACEMENT_OPTIONS.settleFrames);
+
+      onStand = false;
+      await pumpCameraFrame();
+      await changeScene([4, 5]);
+      advance(PLACEMENT_HOLD_SECONDS * 1000);
+      onStand = true;
+      await pumpCameraFrames(DEFAULT_PLACEMENT_OPTIONS.settleFrames + 2);
+      await runFrames(1);
+
+      expect(hook.result.current.readout.placements).toBe(0);
     });
   });
 
@@ -1103,21 +1431,135 @@ describe("useCardScanner", () => {
       await runFrames(4);
       expect(onLock).toHaveBeenCalledTimes(1);
     });
+  });
 
-    it("counts a second copy dealt onto the pile in auto mode", async () => {
+  describe("board reads", () => {
+    const [guideTopLeft, , guideBottomRight] = centeredGuideQuad(640, 480);
+    const cardWidth = (guideBottomRight.x - guideTopLeft.x) / 3;
+    const cardHeight = (guideBottomRight.y - guideTopLeft.y) / 3;
+    const outlines: CardCandidate[] = [
+      guideTopLeft.x + 10,
+      guideBottomRight.x - 10 - cardWidth,
+    ].map((left) => ({
+      quad: [
+        { x: left, y: guideTopLeft.y + 10 },
+        { x: left + cardWidth, y: guideTopLeft.y + 10 },
+        { x: left + cardWidth, y: guideTopLeft.y + 10 + cardHeight },
+        { x: left, y: guideTopLeft.y + 10 + cardHeight },
+      ],
+      areaFraction: 0,
+      score: 0.9,
+    }));
+
+    function boardCard(key: string, artKey: string): BoardCard {
+      return {
+        key,
+        artKey,
+        quad: outlines[0]!.quad,
+        score: 0.9,
+        rivalScore: 0,
+        distance: 0.05,
+        confident: true,
+        alternatives: [],
+      };
+    }
+
+    it("reads the board after two surveys with several cards and skips the card just added", async () => {
+      surveyOutlines = outlines;
+      readBoardCards = () =>
+        Promise.resolve([boardCard("k-a", "art-a"), boardCard("k-b", "art-b")]);
       cardPresent();
-      const { hook, onLock } = await mountReadyScanner({
-        settings: { ...DEFAULT_SCANNER_SETTINGS, mode: "auto" },
-      });
+      const { hook, onLock, onBoardRead } = await mountReadyScanner({ boardDetector: true });
       await act(async () => {
         await hook.result.current.start();
       });
+
       await runFrames(4);
       expect(onLock).toHaveBeenCalledTimes(1);
+      cardAbsent();
+      await runFrames(3);
 
-      await dealAnotherCopy();
-      await runFrames(4);
-      expect(onLock).toHaveBeenCalledTimes(2);
+      expect(onBoardRead).toHaveBeenCalledTimes(1);
+      expect(onBoardRead.mock.calls[0]![0].map((lock) => lock.key)).toEqual(["k-b"]);
+    });
+
+    it("does not add a card a board read just added when it is aimed at afterwards", async () => {
+      surveyOutlines = outlines;
+      readBoardCards = () => Promise.resolve([boardCard("k-b", "art-b")]);
+      cardAbsent();
+      const { hook, onLock, onBoardRead } = await mountReadyScanner({ boardDetector: true });
+      await act(async () => {
+        await hook.result.current.start();
+      });
+      await runFrames(3);
+      expect(onBoardRead).toHaveBeenCalledTimes(1);
+
+      surveyOutlines = null;
+      await runFrames(9);
+      otherCardPresent();
+      await runFrames(6);
+
+      expect(onLock).not.toHaveBeenCalled();
+    });
+
+    it("reports nothing from a read whose run was stopped before it finished", async () => {
+      const read = deferred<BoardCard[]>();
+      surveyOutlines = outlines;
+      readBoardCards = vi.fn(() => read.promise);
+      cardAbsent();
+      const { hook, onBoardRead } = await mountReadyScanner({ boardDetector: true });
+      await act(async () => {
+        await hook.result.current.start();
+      });
+
+      await runFrames(6);
+      expect(readBoardCards).toHaveBeenCalledTimes(1);
+      act(() => {
+        hook.result.current.stop();
+      });
+      read.resolve([boardCard("k-b", "art-b")]);
+      await act(async () => {
+        await flushAsync();
+      });
+
+      expect(onBoardRead).not.toHaveBeenCalled();
+    });
+
+    it("never reads the board without a board detector", async () => {
+      const readBoard = vi.fn(() => Promise.resolve([boardCard("k-b", "art-b")]));
+      readBoardCards = readBoard;
+      surveyOutlines = outlines;
+      cardAbsent();
+      const { hook } = await mountReadyScanner();
+      await act(async () => {
+        await hook.result.current.start();
+      });
+
+      await runFrames(6);
+
+      expect(readBoard).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("sweeps", () => {
+    it("processes every frame through a disturbance and counts no placement", async () => {
+      onStand = true;
+      sweeping = true;
+      cardAbsent();
+      const { hook } = await mountReadyScanner();
+      await act(async () => {
+        await hook.result.current.start();
+      });
+      await runFrames(1);
+      const framesBefore = liveFrames.length;
+      const pumpsBefore = pumps;
+
+      await landUnrecognisedCard();
+      await runFrames(1);
+
+      expect(liveFrames.length - framesBefore).toBe(pumps - pumpsBefore);
+      expect(hook.result.current.readout.placements).toBe(0);
+      expect(hook.result.current.unidentified).toEqual([]);
     });
   });
 
@@ -1140,15 +1582,14 @@ describe("useCardScanner", () => {
       expect(onLock.mock.calls[0]![0].key).toBe("k-a");
     });
 
-    it("offers the shortlist when the frame is not convincing on its own", async () => {
-      cardPresent();
+    it("only offers a lone winner at the accept floor", async () => {
+      cardAbsent();
       const { hook, onLock } = await mountReadyScanner();
       await act(async () => {
         await hook.result.current.start();
       });
       onLock.mockClear();
-      // Above the inlier floor, well short of standing alone.
-      currentInliers = () => 15;
+      cardAtAcceptFloor();
 
       let attempt!: IdentifyAttempt;
       await act(async () => {
@@ -1156,7 +1597,29 @@ describe("useCardScanner", () => {
       });
 
       expect(attempt.identified).toBe(false);
-      expect(attempt.candidates).toEqual([{ key: "k-a", artKey: "art-a" }]);
+      expect(attempt.candidates[0]).toEqual({ key: "k-a", artKey: "art-a" });
+      expect(onLock).not.toHaveBeenCalled();
+    });
+
+    it("offers the shortlist when the frame is not convincing on its own", async () => {
+      cardAbsent();
+      const { hook, onLock } = await mountReadyScanner();
+      await act(async () => {
+        await hook.result.current.start();
+      });
+      onLock.mockClear();
+      cardWithCloseRival();
+
+      let attempt!: IdentifyAttempt;
+      await act(async () => {
+        attempt = await hook.result.current.identifyNow();
+      });
+
+      expect(attempt.identified).toBe(false);
+      expect(attempt.candidates).toEqual([
+        { key: "k-a", artKey: "art-a" },
+        { key: "k-b", artKey: "art-b" },
+      ]);
       expect(onLock).not.toHaveBeenCalled();
     });
 

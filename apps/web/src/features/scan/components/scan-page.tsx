@@ -26,21 +26,24 @@ import { useScanAdd } from "@/features/scan/hooks/use-scan-add";
 import { useScanAimIdentify } from "@/features/scan/hooks/use-scan-aim-identify";
 import { useScanBank } from "@/features/scan/hooks/use-scan-bank";
 import { useScanClear } from "@/features/scan/hooks/use-scan-clear";
+import { useScanEngine } from "@/features/scan/hooks/use-scan-engine";
 import { useScanIdentify } from "@/features/scan/hooks/use-scan-identify";
 import { useScanLayout } from "@/features/scan/hooks/use-scan-layout";
 import { useScanSessionRestore } from "@/features/scan/hooks/use-scan-session-restore";
 import { useScanSwap } from "@/features/scan/hooks/use-scan-swap";
+import { describeKey } from "@/features/scan/lib/scan-bank";
 import { ghostConfidence } from "@/features/scan/lib/scan-confidence";
 import { playLockTick } from "@/features/scan/lib/scan-feedback";
 import { guideRectIn, snapshotVideoRect } from "@/features/scan/lib/scan-flight";
 import type { IdentifyCandidate } from "@/features/scan/lib/scan-identify";
 import { appendScanJournal } from "@/features/scan/lib/scan-journal";
 import { ANY_LANGUAGE, scanLanguageItems } from "@/features/scan/lib/scan-language-items";
-import type { LockedCard } from "@/features/scan/lib/scan-locks";
+import type { BoardReadCard, LockedCard } from "@/features/scan/lib/scan-locks";
 import type { PickerRequest } from "@/features/scan/lib/scan-resolve";
 import {
   buildScanPrintingIndex,
   printingsByCardId,
+  resolveBoardRead,
   resolveLock,
 } from "@/features/scan/lib/scan-resolve";
 import { describeLastScan, shouldPromptResume } from "@/features/scan/lib/scan-resume";
@@ -69,8 +72,6 @@ export function ScanPage() {
   const setDestinationId = useScanPrefsStore((state) => state.setDestinationCollectionId);
   const cardLanguage = useScanPrefsStore((state) => state.cardLanguage);
   const setCardLanguage = useScanPrefsStore((state) => state.setCardLanguage);
-  const autoScan = useScanPrefsStore((state) => state.autoScan);
-  const setAutoScan = useScanPrefsStore((state) => state.setAutoScan);
   const tapToScan = useScanPrefsStore((state) => state.tapToScan);
   const setTapToScan = useScanPrefsStore((state) => state.setTapToScan);
   const languageLabels = useLanguageLabels();
@@ -96,9 +97,11 @@ export function ScanPage() {
   const hydrated = useHydrated();
   const cameraAvailable = hydrated ? navigator.mediaDevices?.getUserMedia !== undefined : null;
 
-  const { assets, loaded, unavailableMessage } = useScanBank();
+  const { assets, labels, unavailableMessage } = useScanBank();
+  const engine = useScanEngine(assets, labels);
+  const { bank, engineReady, slowDevice: deviceTooSlow, progress: engineProgress } = engine;
 
-  const index = loaded ? buildScanPrintingIndex(allPrintings, loaded) : null;
+  const index = bank ? buildScanPrintingIndex(allPrintings, bank) : null;
   const printingsByCard = printingsByCardId(allPrintings);
 
   const [pickerQueue, setPickerQueue] = useState<PickerRequest[]>([]);
@@ -163,6 +166,35 @@ export function ScanPage() {
     recordScanned(resolution.printing);
   }
 
+  function handleBoardRead(cards: BoardReadCard[]) {
+    if (detailOpen || !index || !bank) {
+      return;
+    }
+    const { artKeys, labels: bankLabels } = bank;
+    const result = resolveBoardRead(
+      cards,
+      index,
+      (key) => artKeys.get(key) ?? key,
+      (key) => bankLabels[key]?.name ?? describeKey(bankLabels, key),
+      cardLanguage ?? undefined,
+    );
+    if (!muted && (result.added.length > 0 || result.pickers.length > 0)) {
+      playLockTick();
+    }
+    for (const printing of result.added) {
+      recordScanned(printing);
+    }
+    if (result.pickers.length > 0) {
+      setPickerQueue((queue) => [...queue, ...result.pickers]);
+    }
+    if (result.added.length > 0) {
+      toast.success(m.scan_page_board_added({ count: result.added.length }));
+    }
+    for (const name of result.unknown) {
+      toast.error(m.scan_page_not_in_catalog({ name }));
+    }
+  }
+
   function handleFlightEnd(id: string) {
     setFlights((current) => current.filter((flight) => flight.id !== id));
   }
@@ -196,10 +228,6 @@ export function ScanPage() {
     videoRef,
     overlayRef,
     active,
-    cvReady,
-    embedderReady,
-    deviceTooSlow,
-    engineProgress,
     error: scanError,
     readout,
     start,
@@ -208,18 +236,17 @@ export function ScanPage() {
     identifyNow,
     unidentified,
     dismissUnidentified,
-  } = useCardScanner(loaded, settings, assets, {
+  } = useCardScanner(engine, settings, {
     onLock: handleLock,
     onLockResolved: handleLockResolved,
+    onBoardRead: handleBoardRead,
   });
 
-  const ready = loaded !== null && cvReady && embedderReady;
+  const ready = bank !== null && engineReady;
 
   let mode: ScannerMode = "single";
   if (deviceTooSlow || tapToScan) {
     mode = "capture";
-  } else if (autoScan) {
-    mode = "auto";
   }
   if (settings.mode !== mode) {
     setSettings((previous) => ({ ...previous, mode }));
@@ -255,7 +282,7 @@ export function ScanPage() {
     pickPrinting: handleIdentifyPickPrinting,
     answerMissed: handleIdentifyMissed,
   } = useScanIdentify({
-    loaded,
+    bank,
     identifyNow,
     unidentified,
     dismissUnidentified,
@@ -354,8 +381,6 @@ export function ScanPage() {
     languageItems,
     language: cardLanguage ?? ANY_LANGUAGE,
     onLanguageChange: (value: string) => setCardLanguage(value === ANY_LANGUAGE ? null : value),
-    autoScan,
-    onAutoScanChange: setAutoScan,
     muted,
     onMutedChange: setMuted,
     tapToScan,
@@ -410,11 +435,10 @@ export function ScanPage() {
             active={active}
             immersive={immersive}
             ghostImageId={ghostImageId}
-            ghostConfidence={ghostConfidence(readout.bestInliers, readout.lockProgress)}
+            ghostConfidence={ghostConfidence(readout.bestScore, readout.lockProgress)}
             ghostLandscape={ghostLandscape}
             ready={ready}
             cameraAvailable={cameraAvailable}
-            bankLoaded={loaded !== null}
             engineProgress={engineProgress}
             showPhoneHint={phoneHandoff}
             onStart={handleStart}
@@ -429,7 +453,6 @@ export function ScanPage() {
             shutter={shutter}
             ready={ready}
             cameraAvailable={cameraAvailable}
-            bankLoaded={loaded !== null}
             engineProgress={engineProgress}
             captureMode={settings.mode === "capture"}
             onStart={handleStart}

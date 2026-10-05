@@ -9,10 +9,13 @@ function outcome(overrides: Partial<FrameOutcome> = {}): FrameOutcome {
     ranked: [{ key: "OGN-001-en", distance: 0.1234, rotation: 2 }],
     winner: null,
     refused: false,
-    bestInliers: 0,
+    bestScore: 0,
+    sweeping: false,
+    still: false,
     locked: null,
+    winnerRun: null,
     focus: 118.7,
-    timings: { detect: 10.4, embed: 20.6, verify: 30.2, total: 65.9 },
+    timings: { detect: 10.4, embed: 20.6, verify: 30.2, total: 65.9, crop: 0 },
     ...overrides,
   };
 }
@@ -33,22 +36,20 @@ describe("frameLogLine", () => {
   });
 
   it("reports the winner and the rival it beat", () => {
-    const winner = { key: "OGN-001-en", artKey: "art-a", inliers: 40, rivalInliers: 8 };
-    expect(frameLogLine(7, outcome({ winner }), 1)).toContain(
-      "winner OGN-001-en inliers 40 rival 8",
-    );
+    const winner = { key: "OGN-001-en", artKey: "art-a", score: 40, rivalScore: 8 };
+    expect(frameLogLine(7, outcome({ winner }), 1)).toContain("winner OGN-001-en score 40 rival 8");
   });
 
-  it("reports how close a failing frame came to the inlier floor", () => {
-    expect(frameLogLine(7, outcome({ bestInliers: 9 }), 1)).toContain("best-inliers 9");
+  it("reports how close a failing frame came to the score floor", () => {
+    expect(frameLogLine(7, outcome({ bestScore: 9 }), 1)).toContain("best-score 9");
   });
 
   it("marks a refused frame", () => {
     expect(frameLogLine(7, outcome({ refused: true }), 1)).toContain("refused");
   });
 
-  it("says nothing about inliers when the frame found none", () => {
-    expect(frameLogLine(7, outcome(), 1)).not.toContain("best-inliers");
+  it("says nothing about the score when the frame found none", () => {
+    expect(frameLogLine(7, outcome(), 1)).not.toContain("best-score");
   });
 });
 

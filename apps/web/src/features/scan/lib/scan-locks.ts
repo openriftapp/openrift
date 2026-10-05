@@ -1,4 +1,10 @@
-import type { ArtTrack } from "@openrift/shared/scan/accept";
+import type { ArtTrack, FrameWinner } from "@openrift/shared/scan/accept";
+import { lockIdOf } from "@openrift/shared/scan/accept";
+import type { BoardCard } from "@openrift/shared/scan/board";
+import type { CardLabels } from "@openrift/shared/scan/labels";
+import type { FrameOutcome } from "@openrift/shared/scan/session";
+
+import { describeKey } from "@/features/scan/lib/scan-bank";
 
 export const LOCK_HISTORY_LIMIT = 30;
 
@@ -10,7 +16,10 @@ export interface LockedCard {
   at: number;
   lockSeconds: number;
   framesToLock: number;
-  inliers: number;
+  /** Percent. */
+  score: number;
+  lockedFrame?: number;
+  alternatives?: string[];
 }
 
 export interface PrintingUpdate {
@@ -18,25 +27,65 @@ export interface PrintingUpdate {
   key: string;
   label: string;
   resolved: boolean;
+  lockedFrame?: number;
+}
+
+export interface BoardReadCard {
+  key: string;
+  artKey: string;
+  label: string;
+  /** Empty when the read was confident. */
+  alternatives: string[];
 }
 
 export interface ScannerEvents {
   onLock?: (lock: LockedCard) => void;
   onLockResolved?: (update: { artKey: string; key: string; label: string }) => void;
+  onBoardRead?: (cards: BoardReadCard[]) => void;
+  onFrame?: (frame: { sweeping: boolean }) => void;
+}
+
+export function boardReadCards(
+  cards: readonly BoardCard[],
+  labelOf: (key: string) => string,
+): BoardReadCard[] {
+  return cards.map((card) => ({
+    key: card.key,
+    artKey: card.artKey,
+    label: labelOf(card.key),
+    alternatives: card.confident ? [] : card.alternatives,
+  }));
+}
+
+/** A second look's add: one frame, timed by its own processing. */
+export function lockFromWinner(
+  winner: FrameWinner,
+  outcome: Pick<FrameOutcome, "timings">,
+  labels: CardLabels,
+  at: number,
+): LockedCard {
+  return {
+    key: winner.key,
+    artKey: winner.artKey,
+    label: describeKey(labels, winner.key),
+    resolved: false,
+    at,
+    lockSeconds: outcome.timings.total / 1000,
+    framesToLock: 1,
+    score: winner.score,
+  };
 }
 
 export interface LockFromTrackInput {
   track: ArtTrack;
   tapped: boolean;
   totalMs: number;
-  inliers: number;
+  score: number;
   at: number;
 }
 
 export function lockFromTrack(input: LockFromTrackInput): LockedCard {
   const { track, tapped } = input;
-  // A capture-mode lock is one deliberate tap, so run time is always
-  // 0.00s; what matters there is how long the tap took to process.
   const lockSeconds = tapped
     ? input.totalMs / 1000
     : (track.lockedAt ?? track.runStartSeconds) - track.runStartSeconds;
@@ -48,7 +97,8 @@ export function lockFromTrack(input: LockFromTrackInput): LockedCard {
     at: input.at,
     lockSeconds,
     framesToLock: tapped ? 1 : (track.framesToLock ?? 0),
-    inliers: input.inliers,
+    score: input.score,
+    ...(track.lockedFrame === undefined ? {} : { lockedFrame: track.lockedFrame }),
   };
 }
 
@@ -60,7 +110,8 @@ export function resolvePrintingIn(
   locks: readonly LockedCard[],
   update: PrintingUpdate,
 ): LockedCard[] | null {
-  const index = locks.findIndex((lock) => lock.artKey === update.artKey);
+  const id = lockIdOf(update);
+  const index = locks.findIndex((lock) => lockIdOf(lock) === id);
   const existing = locks[index];
   if (!existing || existing.key === update.key) {
     return null;

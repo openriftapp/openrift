@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { createPlacementDetector, placementSignature, signatureDelta } from "./placement";
+import {
+  createPlacementDetector,
+  createPlacementHold,
+  placementSignature,
+  signatureDelta,
+} from "./placement";
+import type { PlacementSignal } from "./placement";
 import type { GrayImage, Quad } from "./types";
 
 const WIDTH = 64;
@@ -155,5 +161,33 @@ describe("createPlacementDetector", () => {
     hold(detector, frame(1), 5);
     detector.reset();
     expect(detector.observe(frame(9), GUIDE).disturbed).toBe(false);
+  });
+});
+
+describe("createPlacementHold", () => {
+  const quiet: PlacementSignal = {
+    delta: 0,
+    disturbed: false,
+    placed: false,
+    settled: true,
+    disturbedFrames: 0,
+    changedDelta: 0,
+  };
+  const placed = { ...quiet, placed: true };
+  const moving = { ...quiet, disturbed: true, settled: false };
+
+  it("confirms a settle once the guide has stayed quiet long enough", () => {
+    const pileHold = createPlacementHold(0.5);
+    expect(pileHold.observe(placed, 0)).toBe(false);
+    expect(pileHold.observe(quiet, 0.3)).toBe(false);
+    expect(pileHold.observe(quiet, 0.5)).toBe(true);
+    expect(pileHold.observe(quiet, 0.6)).toBe(false);
+  });
+
+  it("drops a settle the hand disturbs again, as a trembling card does", () => {
+    const pileHold = createPlacementHold(0.5);
+    pileHold.observe(placed, 0);
+    pileHold.observe(moving, 0.2);
+    expect(pileHold.observe(quiet, 0.8)).toBe(false);
   });
 });

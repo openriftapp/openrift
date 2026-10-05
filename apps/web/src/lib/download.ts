@@ -7,10 +7,14 @@ export function downloadUrl(href: string, filename: string): void {
   anchor.remove();
 }
 
+export const REVOKE_DELAY_MS = 60_000;
+
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   downloadUrl(url, filename);
-  URL.revokeObjectURL(url);
+  // Some browsers cancel a download whose object URL is revoked before the
+  // download has started, so the URL outlives the click.
+  setTimeout(() => URL.revokeObjectURL(url), REVOKE_DELAY_MS);
 }
 
 export function downloadText(text: string, mime: string, filename: string): void {

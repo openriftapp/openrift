@@ -1,21 +1,12 @@
-/**
- * The accept layer: turn per-frame verification results into locked cards.
- *
- * Kept free of node and OpenCV imports so it can move into the shared engine
- * unchanged.
- */
-
-export interface VerifiedCandidate {
-  key: string;
-  artKey: string;
-  inliers: number;
-}
+/** The accept layer: turn per-frame verification results into locked cards. */
 
 export interface FrameWinner {
   key: string;
   artKey: string;
-  inliers: number;
-  rivalInliers: number;
+  /** Percent. */
+  score: number;
+  /** Percent. */
+  rivalScore: number;
 }
 
 export interface FrameDecision {
@@ -23,33 +14,55 @@ export interface FrameDecision {
   refused: boolean;
 }
 
-export function pickFrameWinner(
-  candidates: readonly VerifiedCandidate[],
-  minInliers: number,
-  margin: number,
+export interface AlignedOptions {
+  minScore: number;
+  minMargin: number;
+}
+
+export const DEFAULT_ALIGNED_OPTIONS: AlignedOptions = { minScore: 0.6, minMargin: 0.15 };
+const ALIGNED_FULL_WEIGHT_SCORE = 0.95;
+export const MAX_FRAME_WEIGHT = 2;
+
+/** Frame winner from aligned-patch scores (0..1). */
+export function pickAlignedWinner(
+  scores: readonly { key: string; score: number }[],
+  artKeyOf: (key: string) => string,
+  options: AlignedOptions,
 ): FrameDecision {
-  let best: VerifiedCandidate | null = null;
-  for (const candidate of candidates) {
-    if (!best || candidate.inliers > best.inliers) {
-      best = candidate;
+  let best: { key: string; score: number } | null = null;
+  for (const entry of scores) {
+    if (Number.isFinite(entry.score) && (!best || entry.score > best.score)) {
+      best = entry;
     }
   }
-  if (!best || best.inliers < minInliers) {
+  if (!best || best.score < options.minScore) {
     return { winner: null, refused: false };
   }
-  let rivalInliers = 0;
-  for (const candidate of candidates) {
-    if (candidate.artKey !== best.artKey && candidate.inliers > rivalInliers) {
-      rivalInliers = candidate.inliers;
+  const artKey = artKeyOf(best.key);
+  let rival = Number.NEGATIVE_INFINITY;
+  for (const entry of scores) {
+    if (Number.isFinite(entry.score) && artKeyOf(entry.key) !== artKey) {
+      rival = Math.max(rival, entry.score);
     }
   }
-  if (best.inliers < margin * rivalInliers) {
+  if (best.score - rival < options.minMargin) {
     return { winner: null, refused: true };
   }
   return {
-    winner: { key: best.key, artKey: best.artKey, inliers: best.inliers, rivalInliers },
+    winner: {
+      key: best.key,
+      artKey,
+      score: Math.round(best.score * 100),
+      rivalScore: Number.isFinite(rival) ? Math.max(0, Math.round(rival * 100)) : 0,
+    },
     refused: false,
   };
+}
+
+export function alignedFrameWeight(winner: FrameWinner, options: AlignedOptions): number {
+  const strength =
+    (winner.score / 100 - options.minScore) / (ALIGNED_FULL_WEIGHT_SCORE - options.minScore);
+  return 1 + (MAX_FRAME_WEIGHT - 1) * Math.max(0, Math.min(1, strength));
 }
 
 export interface AcceptOptions {
@@ -57,26 +70,6 @@ export interface AcceptOptions {
   maxGapFrames: number;
   weighted?: boolean;
   relockOnlyAfterRearm?: boolean;
-}
-
-export const MAX_FRAME_WEIGHT = 2;
-const FULL_WEIGHT_INLIER_MULTIPLE = 3;
-const FULL_WEIGHT_MARGIN_MULTIPLE = 3;
-
-function strengthAbove(value: number, floor: number, fullMultiple: number): number {
-  if (floor <= 0 || fullMultiple <= 1) {
-    return 0;
-  }
-  return Math.max(0, Math.min(1, (value / floor - 1) / (fullMultiple - 1)));
-}
-
-export function frameWeight(winner: FrameWinner, minInliers: number, margin: number): number {
-  const inlierStrength = strengthAbove(winner.inliers, minInliers, FULL_WEIGHT_INLIER_MULTIPLE);
-  const marginStrength =
-    winner.rivalInliers === 0
-      ? 1
-      : strengthAbove(winner.inliers / winner.rivalInliers, margin, FULL_WEIGHT_MARGIN_MULTIPLE);
-  return 1 + (MAX_FRAME_WEIGHT - 1) * Math.min(inlierStrength, marginStrength);
 }
 
 export interface ArtTrack {
@@ -90,8 +83,8 @@ export interface ArtTrack {
   lockedThisRun: boolean;
   lastFrame: number;
   lockedAt: number | null;
+  lockedFrame?: number;
   framesToLock: number | null;
-  firstFrame: number;
   printingResolved: boolean;
   runStartFrame: number;
   runStartSeconds: number;
@@ -100,6 +93,25 @@ export interface ArtTrack {
 
 export type AcceptState = Map<string, ArtTrack>;
 
+/** One lock of one physical card; copies of an artwork lock on different frames. */
+export function lockIdOf(lock: { artKey: string; lockedFrame?: number }): string {
+  return `${lock.artKey}@${lock.lockedFrame ?? ""}`;
+}
+
+export function continuesRun(
+  track: Pick<ArtTrack, "lastFrame">,
+  frame: number,
+  options: Pick<AcceptOptions, "maxGapFrames">,
+): boolean {
+  return frame - track.lastFrame <= options.maxGapFrames;
+}
+
+interface Sighting {
+  weight?: number;
+  stateKey?: string;
+  canLock?: boolean;
+}
+
 export function observeWinner(
   state: AcceptState,
   frame: number,
@@ -107,9 +119,9 @@ export function observeWinner(
   winner: FrameWinner,
   label: string,
   options: AcceptOptions,
-  weight = 1,
+  { weight = 1, stateKey = winner.artKey, canLock = true }: Sighting = {},
 ): ArtTrack | null {
-  let track = state.get(winner.artKey);
+  let track = state.get(stateKey);
   if (!track) {
     track = {
       artKey: winner.artKey,
@@ -124,15 +136,14 @@ export function observeWinner(
       lockedAt: null,
       framesToLock: null,
       printingResolved: false,
-      firstFrame: frame,
       runStartFrame: frame,
       runStartSeconds: seconds,
       maxRunLength: 0,
     };
-    state.set(winner.artKey, track);
+    state.set(stateKey, track);
   }
   track.sightings++;
-  if (frame - track.lastFrame <= options.maxGapFrames) {
+  if (continuesRun(track, frame, options)) {
     track.runLength++;
     track.runWeight += weight;
   } else {
@@ -148,9 +159,13 @@ export function observeWinner(
   track.lastFrame = frame;
   // A run's first frame weighs at most MAX_FRAME_WEIGHT, below every lockRun
   // in use, so a single frame never locks unless lockRun is 1 (capture mode).
-  if (!track.lockedThisRun && track.runWeight >= options.lockRun) {
+  if (canLock && !track.lockedThisRun && track.runWeight >= options.lockRun) {
     track.lockedThisRun = true;
     track.lockedAt = seconds;
+    track.lockedFrame = frame;
+    track.key = winner.key;
+    track.label = label;
+    track.printingResolved = false;
     track.framesToLock = frame - track.runStartFrame;
     if (options.relockOnlyAfterRearm) {
       rearmLockedTracks(state, track);

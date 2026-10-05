@@ -1,5 +1,4 @@
 import type { FrameWinner } from "@openrift/shared/scan/accept";
-import { MAX_FRAME_WEIGHT, frameWeight } from "@openrift/shared/scan/accept";
 import type { RankedEmbed } from "@openrift/shared/scan/embed";
 import type { RgbaImage } from "@openrift/shared/scan/types";
 
@@ -51,15 +50,19 @@ export function createCatchUpQueue(capacity = CATCH_UP_CAPACITY): CatchUpQueue {
 
 export type CatchUpVerdict = "add" | "ask" | "discard";
 
-export function catchUpVerdict(
-  winner: FrameWinner | null,
-  minInliers: number,
-  margin: number,
-): CatchUpVerdict {
+/** Aligned score in percent, as `FrameWinner.score` carries it. */
+export const CATCH_UP_ADD_SCORE = 75;
+/** Percent points. */
+export const CATCH_UP_ADD_MARGIN = 30;
+
+export function catchUpVerdict(winner: FrameWinner | null): CatchUpVerdict {
   if (!winner) {
     return "discard";
   }
-  return frameWeight(winner, minInliers, margin) >= MAX_FRAME_WEIGHT ? "add" : "ask";
+  return winner.score >= CATCH_UP_ADD_SCORE &&
+    winner.score - winner.rivalScore >= CATCH_UP_ADD_MARGIN
+    ? "add"
+    : "ask";
 }
 
 export function shouldRunCatchUp(input: {

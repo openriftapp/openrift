@@ -5282,6 +5282,16 @@
   "scan_notices_unavailable_title": "Scannen ist gerade nicht verfügbar.",
   "scan_notices_https": "Die Kamera braucht eine sichere Verbindung, Scannen funktioniert deshalb nur über https.",
   "scan_page_not_in_catalog": "{name} ist noch nicht im Katalog",
+  "scan_page_board_added": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Karte auf einmal hinzugefügt",
+        "countPlural=*": "{count} Karten auf einmal hinzugefügt"
+      }
+    }
+  ],
   "scan_page_recognised": "{name} erkannt",
   "scan_page_swap_title": "Zu einem anderen Druck wechseln",
   "scan_page_swap_description": "Verschiebe eine gescannte {name} zu einem anderen Druck, einer anderen Ausführung oder Sprache derselben Karte.",
@@ -5326,8 +5336,6 @@
   "scan_resume_when_days": "vor {days} Tagen",
   "scan_settings_language_label": "Kartensprache",
   "scan_settings_language_description": "Wird für die Wahl des Drucks verwendet",
-  "scan_settings_count_every_copy_label": "Jedes Exemplar zählen",
-  "scan_settings_count_every_copy_description": "Zählt weiter, während Karten an der Kamera vorbeigezogen werden. Aus: jede Karte einmal.",
   "scan_settings_sounds_label": "Töne",
   "scan_settings_sounds_description": "Ein Ticken, wenn eine Karte erkannt wird",
   "scan_settings_tap_label": "Zum Scannen tippen",
@@ -5401,12 +5409,11 @@
   "scan_encoder_start_failed": "Der Encoder konnte nicht gestartet werden",
   "scan_engine_still_loading": "Die Engine lädt noch, versuche es gleich noch einmal.",
   "scan_engine_start_failed": "Die Scan-Engine konnte nicht gestartet werden",
-  "scan_engine_opencv_failed": "OpenCV konnte nicht geladen werden",
-  "scan_engine_opencv_eval_failed": "Das OpenCV-Skript konnte nicht ausgeführt werden",
-  "scan_engine_encoder_failed": "Das Encoder-Modell konnte nicht geladen werden",
+  "scan_engine_detector_failed": "Der Kartendetektor konnte nicht geladen werden",
+  "scan_engine_worker_unsupported": "Dieser Browser kann den Scanner nicht ausführen. Aktualisiere ihn oder versuche einen anderen Browser.",
   "scan_frame_failed": "Die Bildverarbeitung ist fehlgeschlagen",
   "scan_bank_load_failed": "Die Scan-Daten konnten nicht geladen werden",
-  "scan_bank_unavailable": "Der Kartenindex wurde noch nicht veröffentlicht. Bitte versuche es später noch einmal.",
+  "scan_unavailable": "Der Scanner ist gerade nicht verfügbar. Bitte versuche es später noch einmal.",
   "common_error_generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
   "common_new_version_available": "Eine neue Version von OpenRift ist verfügbar.",
   "common_reload": "Neu laden",

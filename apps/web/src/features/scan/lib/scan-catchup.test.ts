@@ -1,9 +1,12 @@
 import type { FrameWinner } from "@openrift/shared/scan/accept";
+import { DEFAULT_ALIGNED_OPTIONS } from "@openrift/shared/scan/accept";
 import type { RgbaImage } from "@openrift/shared/scan/types";
 import { describe, expect, it } from "vitest";
 
 import type { CatchUpEntry } from "@/features/scan/lib/scan-catchup";
 import {
+  CATCH_UP_ADD_MARGIN,
+  CATCH_UP_ADD_SCORE,
   CATCH_UP_CAPACITY,
   catchUpVerdict,
   createCatchUpQueue,
@@ -22,8 +25,8 @@ function entry(id: string, at = 0): CatchUpEntry {
   return { id, frame, thumbnail: null, at };
 }
 
-function winner(inliers: number, rivalInliers: number): FrameWinner {
-  return { key: "a", artKey: "artA", inliers, rivalInliers };
+function winner(score: number, rivalScore: number): FrameWinner {
+  return { key: "a", artKey: "artA", score, rivalScore };
 }
 
 describe("createCatchUpQueue", () => {
@@ -78,25 +81,32 @@ describe("createCatchUpQueue", () => {
 });
 
 describe("catchUpVerdict", () => {
+  const acceptFloor = Math.round(DEFAULT_ALIGNED_OPTIONS.minScore * 100);
+
   it("discards a frame that verified nothing", () => {
-    expect(catchUpVerdict(null, 11, 1.5)).toBe("discard");
+    expect(catchUpVerdict(null)).toBe("discard");
   });
 
-  it("adds a frame that is clear of both floors on its own", () => {
-    expect(catchUpVerdict(winner(60, 0), 11, 1.5)).toBe("add");
+  it("adds a strong winner with no other artwork in the running", () => {
+    expect(catchUpVerdict(winner(90, 0))).toBe("add");
   });
 
-  it("asks about a frame sitting on the inlier floor", () => {
-    expect(catchUpVerdict(winner(11, 0), 11, 1.5)).toBe("ask");
+  it("only offers a lone winner sitting on the accept floor", () => {
+    expect(catchUpVerdict(winner(acceptFloor, 0))).toBe("ask");
   });
 
-  it("asks when the rival artwork is close, however many inliers there are", () => {
-    expect(catchUpVerdict(winner(80, 50), 11, 1.5)).toBe("ask");
+  it("asks when another artwork scores close behind, however strong the winner", () => {
+    expect(catchUpVerdict(winner(80, 55))).toBe("ask");
   });
 
-  it("asks at 32 inliers, just below 3x the floor where frameWeight maxes out, and adds at 33", () => {
-    expect(catchUpVerdict(winner(32, 0), 11, 1.5)).toBe("ask");
-    expect(catchUpVerdict(winner(33, 0), 11, 1.5)).toBe("add");
+  it("adds from the add score up and asks one point below it", () => {
+    expect(catchUpVerdict(winner(CATCH_UP_ADD_SCORE, 0))).toBe("add");
+    expect(catchUpVerdict(winner(CATCH_UP_ADD_SCORE - 1, 0))).toBe("ask");
+  });
+
+  it("adds from the add margin up and asks one point inside it", () => {
+    expect(catchUpVerdict(winner(90, 90 - CATCH_UP_ADD_MARGIN))).toBe("add");
+    expect(catchUpVerdict(winner(90, 91 - CATCH_UP_ADD_MARGIN))).toBe("ask");
   });
 });
 

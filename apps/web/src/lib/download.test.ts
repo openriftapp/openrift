@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  REVOKE_DELAY_MS,
   downloadBlob,
   downloadCsv,
   downloadJson,
@@ -46,6 +47,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -63,12 +65,22 @@ describe("downloadUrl", () => {
 });
 
 describe("downloadBlob", () => {
-  it("downloads through an object URL and releases it", () => {
+  it("downloads through an object URL", () => {
     downloadBlob(new Blob(["x"]), "card.png");
 
     expect(anchors[0]!.href).toBe("blob:openrift/1");
     expect(anchors[0]!.click).toHaveBeenCalledOnce();
-    expect(revokeObjectURL).toHaveBeenCalledWith("blob:openrift/1");
+  });
+
+  it("releases the object URL only after the download has had time to start", () => {
+    vi.useFakeTimers();
+    downloadBlob(new Blob([]), "empty.bin");
+
+    vi.advanceTimersByTime(REVOKE_DELAY_MS - 1);
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(1);
+    expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith("blob:openrift/1");
   });
 });
 

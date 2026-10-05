@@ -9,9 +9,8 @@ import path from "node:path";
 
 import * as ort from "onnxruntime-node";
 
-import type { CardEmbedder, EmbedBank, EmbedKind } from "../../packages/shared/src/scan/embed.js";
+import type { CardEmbedder, EmbedBank } from "../../packages/shared/src/scan/embed.js";
 import {
-  EMBED_DIM,
   EMBED_IMAGE_SIZE,
   normalizeEmbeddings,
   preprocessCardInto,
@@ -27,13 +26,10 @@ export const CANONICAL_BANK = process.env.SCAN_CANONICAL_BANK === "1";
 
 const BUILD_BATCH = 8;
 
-function cacheFile(kind: EmbedKind, extension: string): string {
+function cacheFile(extension: string): string {
   const sizeTag = EMBED_SIZE === EMBED_IMAGE_SIZE ? "" : `-${EMBED_SIZE}`;
   const canonTag = CANONICAL_BANK ? "-canon" : "";
-  return path.join(
-    CACHE_DIR,
-    `embed-bank-${kind}${MODEL_TAG}${sizeTag}${canonTag}-v1.${extension}`,
-  );
+  return path.join(CACHE_DIR, `embed-bank-card${MODEL_TAG}${sizeTag}${canonTag}-v1.${extension}`);
 }
 
 let sessionPromise: Promise<ort.InferenceSession> | null = null;
@@ -61,9 +57,9 @@ export const nodeEmbedder: CardEmbedder = async (pixels, count) => {
   return output.image_embeds.data as Float32Array;
 };
 
-export async function loadEmbedBank(kind: EmbedKind, force = false): Promise<EmbedBank> {
-  const meta = cacheFile(kind, "json");
-  const binary = cacheFile(kind, "bin");
+export async function loadEmbedBank(force = false): Promise<EmbedBank> {
+  const meta = cacheFile("json");
+  const binary = cacheFile("bin");
   if (!force && fs.existsSync(meta) && fs.existsSync(binary)) {
     const parsed = JSON.parse(fs.readFileSync(meta, "utf-8")) as { keys: string[]; dim: number };
     const raw = fs.readFileSync(binary);
@@ -88,12 +84,15 @@ export async function loadEmbedBank(kind: EmbedKind, force = false): Promise<Emb
         CANONICAL_BANK && image.width > image.height
           ? rotateRgbaCw(rotateRgbaCw(rotateRgbaCw(image)))
           : image;
-      preprocessCardInto(oriented, kind, input, slot, EMBED_SIZE);
+      preprocessCardInto(oriented, input, slot, EMBED_SIZE);
     }
     chunks.push(normalizeEmbeddings(await nodeEmbedder(input, chunk.length), chunk.length));
   }
   const flat = chunks.flat();
-  const dim = flat[0]?.length ?? EMBED_DIM;
+  const dim = flat[0]?.length;
+  if (dim === undefined) {
+    throw new Error("no reference images to embed; the embedding bank would be empty");
+  }
   const vectors = new Float32Array(refs.length * dim);
   for (const [i, vector] of flat.entries()) {
     vectors.set(vector, i * dim);

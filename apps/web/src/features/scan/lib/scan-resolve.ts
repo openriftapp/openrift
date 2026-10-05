@@ -1,6 +1,6 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 
-import type { LoadedScanBank } from "@/features/scan/lib/scan-bank";
+import type { BoardReadCard } from "@/features/scan/lib/scan-locks";
 
 /**
  * Bank keys are image ids; printings sharing a render share a key, so one key
@@ -23,7 +23,7 @@ export interface PickerRequest {
 /** Build once per catalog/bank pair, not per lock. */
 export function buildScanPrintingIndex(
   allPrintings: readonly Printing[],
-  loaded: LoadedScanBank,
+  bank: { artKeys: ReadonlyMap<string, string> },
 ): ScanPrintingIndex {
   const byImageId = new Map<string, Printing[]>();
   for (const printing of allPrintings) {
@@ -37,7 +37,7 @@ export function buildScanPrintingIndex(
     }
   }
   const keysByArtKey = new Map<string, string[]>();
-  for (const [key, artKey] of loaded.artKeys) {
+  for (const [key, artKey] of bank.artKeys) {
     const list = keysByArtKey.get(artKey);
     if (list) {
       list.push(key);
@@ -136,12 +136,12 @@ export type LockResolution =
       finishSiblings: Printing[];
     }
   | {
-      /** The engine (or the catalog) could not settle on one variant — the user picks. */
+      /** Neither the engine nor the catalog settled on one variant; the user picks. */
       kind: "picker";
       candidates: Printing[];
     }
   | {
-      /** The bank knows a render the catalog does not — nothing to add. */
+      /** The bank knows a render the catalog does not; nothing to add. */
       kind: "unknown";
     };
 
@@ -211,4 +211,60 @@ export function sortForPicker(candidates: readonly Printing[]): Printing[] {
       a.shortCode.localeCompare(b.shortCode) ||
       a.canonicalRank - b.canonicalRank,
   );
+}
+
+export interface BoardResolution {
+  added: Printing[];
+  pickers: PickerRequest[];
+  unknown: string[];
+}
+
+export function resolveBoardRead(
+  cards: readonly BoardReadCard[],
+  index: ScanPrintingIndex,
+  artKeyOf: (key: string) => string,
+  nameOf: (key: string) => string,
+  preferredLanguage?: string,
+): BoardResolution {
+  const result: BoardResolution = { added: [], pickers: [], unknown: [] };
+  for (const card of cards) {
+    if (card.alternatives.length > 0) {
+      const keys = [card.key, ...card.alternatives];
+      const candidates = keys.flatMap((key) => {
+        const resolution = resolveLock(
+          { key, artKey: artKeyOf(key), resolved: false },
+          index,
+          preferredLanguage,
+        );
+        if (resolution.kind === "auto") {
+          return [resolution.printing, ...resolution.finishSiblings];
+        }
+        return resolution.kind === "picker" ? resolution.candidates : [];
+      });
+      if (candidates.length === 0) {
+        result.unknown.push(card.label);
+        continue;
+      }
+      const names = [...new Set(keys.map((key) => nameOf(key)))];
+      result.pickers.push({
+        artKey: card.artKey,
+        label: names.join(" / "),
+        candidates: sortForPicker(candidates),
+      });
+      continue;
+    }
+    const resolution = resolveLock({ ...card, resolved: false }, index, preferredLanguage);
+    if (resolution.kind === "unknown") {
+      result.unknown.push(card.label);
+    } else if (resolution.kind === "picker") {
+      result.pickers.push({
+        artKey: card.artKey,
+        label: card.label,
+        candidates: resolution.candidates,
+      });
+    } else {
+      result.added.push(resolution.printing);
+    }
+  }
+  return result;
 }

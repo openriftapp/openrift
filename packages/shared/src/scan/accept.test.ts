@@ -1,51 +1,48 @@
 import { describe, expect, it } from "vitest";
 
-import type { AcceptState, VerifiedCandidate } from "./accept";
+import type { AcceptState } from "./accept";
 import {
   MAX_FRAME_WEIGHT,
-  frameWeight,
+  continuesRun,
   observeWinner,
-  pickFrameWinner,
+  alignedFrameWeight,
+  pickAlignedWinner,
   rearmLockedTracks,
 } from "./accept";
 
 const OPTIONS = { lockRun: 3, maxGapFrames: 6 };
+const ALIGNED = { minScore: 0.6, minMargin: 0.15 };
 
-function candidate(key: string, artKey: string, inliers: number): VerifiedCandidate {
-  return { key, artKey, inliers };
-}
-
-describe("pickFrameWinner", () => {
-  it("returns nothing when no candidate clears the floor", () => {
-    const decision = pickFrameWinner([candidate("a", "artA", 10)], 11, 1.5);
-    expect(decision.winner).toBeNull();
-    expect(decision.refused).toBe(false);
+describe("continuesRun", () => {
+  it("continues a run within the gap and breaks it past the gap", () => {
+    expect(continuesRun({ lastFrame: 4 }, 10, OPTIONS)).toBe(true);
+    expect(continuesRun({ lastFrame: 4 }, 11, OPTIONS)).toBe(false);
   });
 
-  it("accepts an unopposed winner", () => {
-    const decision = pickFrameWinner([candidate("a", "artA", 20)], 11, 1.5);
-    expect(decision.winner?.key).toBe("a");
-    expect(decision.winner?.rivalInliers).toBe(0);
+  it("never continues a re-armed track", () => {
+    expect(continuesRun({ lastFrame: Number.NEGATIVE_INFINITY }, 0, OPTIONS)).toBe(false);
   });
+});
 
-  it("refuses when the best different-artwork rival is too close", () => {
-    const decision = pickFrameWinner(
-      [candidate("a", "artA", 20), candidate("b", "artB", 15)],
-      11,
-      1.5,
-    );
-    expect(decision.winner).toBeNull();
-    expect(decision.refused).toBe(true);
-  });
+describe("observeWinner — printing on re-lock", () => {
+  it("starts a re-lock unresolved, so a reprint does not inherit the last card's printing", () => {
+    const options = { lockRun: 2, maxGapFrames: 2, relockOnlyAfterRearm: true };
+    const state: AcceptState = new Map();
+    const first = { key: "ogn-214", artKey: "rune", score: 40, rivalScore: 0 };
+    observeWinner(state, 0, 0, first, "OGN-214", options);
+    const locked = observeWinner(state, 1, 0, first, "OGN-214", options);
+    if (!locked) {
+      throw new Error("expected a lock");
+    }
+    locked.key = "ogn-214";
+    locked.printingResolved = true;
 
-  it("does not treat printings of the same artwork as rivals", () => {
-    const decision = pickFrameWinner(
-      [candidate("a-en", "artA", 20), candidate("a-sc", "artA", 19), candidate("b", "artB", 5)],
-      11,
-      1.5,
-    );
-    expect(decision.winner?.key).toBe("a-en");
-    expect(decision.winner?.rivalInliers).toBe(5);
+    rearmLockedTracks(state);
+    const second = { key: "sfd-r06", artKey: "rune", score: 40, rivalScore: 0 };
+    observeWinner(state, 5, 0, second, "SFD-R06", options);
+    const relocked = observeWinner(state, 6, 0, second, "SFD-R06", options);
+
+    expect(relocked).toMatchObject({ key: "sfd-r06", label: "SFD-R06", printingResolved: false });
   });
 });
 
@@ -53,8 +50,8 @@ describe("observeWinner", () => {
   const winner = (key: string, artKey: string) => ({
     key,
     artKey,
-    inliers: 20,
-    rivalInliers: 0,
+    score: 20,
+    rivalScore: 0,
   });
 
   it("locks after a run of agreeing frames", () => {
@@ -151,22 +148,22 @@ describe("observeWinner", () => {
   it("counts a weighted run of strong frames as more than its frame count", () => {
     const state: AcceptState = new Map();
     const options = { ...OPTIONS, weighted: true };
-    const strong = { key: "a", artKey: "artA", inliers: 60, rivalInliers: 0 };
-    const weight = frameWeight(strong, 11, 1.5);
+    const strong = { key: "a", artKey: "artA", score: 95, rivalScore: 0 };
+    const weight = alignedFrameWeight(strong, ALIGNED);
     expect(weight).toBe(MAX_FRAME_WEIGHT);
-    expect(observeWinner(state, 0, 0, strong, "A", options, weight)).toBeNull();
-    expect(observeWinner(state, 1, 0.03, strong, "A", options, weight)?.artKey).toBe("artA");
+    expect(observeWinner(state, 0, 0, strong, "A", options, { weight })).toBeNull();
+    expect(observeWinner(state, 1, 0.03, strong, "A", options, { weight })?.artKey).toBe("artA");
   });
 
   it("still needs the full run when the frames are marginal", () => {
     const state: AcceptState = new Map();
     const options = { ...OPTIONS, weighted: true };
-    const marginal = { key: "a", artKey: "artA", inliers: 11, rivalInliers: 7 };
-    const weight = frameWeight(marginal, 11, 1.5);
+    const marginal = { key: "a", artKey: "artA", score: 60, rivalScore: 40 };
+    const weight = alignedFrameWeight(marginal, ALIGNED);
     expect(weight).toBe(1);
-    expect(observeWinner(state, 0, 0, marginal, "A", options, weight)).toBeNull();
-    expect(observeWinner(state, 1, 0.03, marginal, "A", options, weight)).toBeNull();
-    expect(observeWinner(state, 2, 0.06, marginal, "A", options, weight)?.artKey).toBe("artA");
+    expect(observeWinner(state, 0, 0, marginal, "A", options, { weight })).toBeNull();
+    expect(observeWinner(state, 1, 0.03, marginal, "A", options, { weight })).toBeNull();
+    expect(observeWinner(state, 2, 0.06, marginal, "A", options, { weight })?.artKey).toBe("artA");
   });
 
   it("under the re-lock gate a run break alone cannot count the card twice", () => {
@@ -205,6 +202,95 @@ describe("observeWinner", () => {
     const locked = observeWinner(state, 102, 3.5, winner("a", "artA"), "A", OPTIONS);
     expect(locked?.framesToLock).toBe(2);
     expect(locked?.runStartSeconds).toBeCloseTo(3.3);
-    expect(locked?.firstFrame).toBe(0);
+    expect(locked?.firstSeen).toBe(0);
+  });
+
+  it("keeps counting a run it may not lock without ever locking it", () => {
+    const state: AcceptState = new Map();
+    const blocked = { stateKey: "place-1", canLock: false };
+    for (const frame of [0, 1, 2, 3]) {
+      expect(
+        observeWinner(state, frame, frame / 30, winner("a", "artA"), "A", OPTIONS, blocked),
+      ).toBeNull();
+    }
+    const track = state.get("place-1");
+    expect(track?.runLength).toBe(4);
+    expect(track?.lockedAt).toBeNull();
+    expect(
+      observeWinner(state, 4, 4 / 30, winner("a", "artA"), "A", OPTIONS, { stateKey: "place-1" }),
+    ).toBe(track);
+  });
+});
+
+describe("pickAlignedWinner", () => {
+  const artOf = (key: string) => key.split("-")[0] ?? key;
+
+  it("accepts a clear best score and reports it as percent", () => {
+    const decision = pickAlignedWinner(
+      [
+        { key: "ahri-en", score: 0.91 },
+        { key: "teemo-en", score: 0.3 },
+      ],
+      artOf,
+      ALIGNED,
+    );
+    expect(decision).toEqual({
+      winner: { key: "ahri-en", artKey: "ahri", score: 91, rivalScore: 30 },
+      refused: false,
+    });
+  });
+
+  it("rejects a best score under the floor", () => {
+    expect(pickAlignedWinner([{ key: "ahri-en", score: 0.5 }], artOf, ALIGNED)).toEqual({
+      winner: null,
+      refused: false,
+    });
+  });
+
+  it("refuses when another artwork scores close", () => {
+    const decision = pickAlignedWinner(
+      [
+        { key: "ahri-en", score: 0.8 },
+        { key: "teemo-en", score: 0.7 },
+      ],
+      artOf,
+      ALIGNED,
+    );
+    expect(decision.refused).toBe(true);
+  });
+
+  it("does not treat other printings of the same artwork as rivals", () => {
+    const decision = pickAlignedWinner(
+      [
+        { key: "ahri-en", score: 0.8 },
+        { key: "ahri-zh", score: 0.79 },
+      ],
+      artOf,
+      ALIGNED,
+    );
+    expect(decision.winner?.rivalScore).toBe(0);
+  });
+
+  it("ignores scores that carry no verdict", () => {
+    const decision = pickAlignedWinner(
+      [
+        { key: "ahri-en", score: Number.NaN },
+        { key: "teemo-en", score: 0.9 },
+      ],
+      artOf,
+      ALIGNED,
+    );
+    expect(decision.winner?.key).toBe("teemo-en");
+  });
+});
+
+describe("alignedFrameWeight", () => {
+  it("grows from 1 at the floor to the maximum near a perfect match", () => {
+    const at = (score: number) =>
+      alignedFrameWeight({ key: "a", artKey: "a", score, rivalScore: 0 }, ALIGNED);
+    expect(at(60)).toBe(1);
+    expect(at(95)).toBe(MAX_FRAME_WEIGHT);
+    expect(at(78)).toBeGreaterThan(1);
+    expect(at(78)).toBeLessThan(MAX_FRAME_WEIGHT);
   });
 });

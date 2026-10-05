@@ -1,22 +1,16 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
-import type { LoadedScanBank } from "@/features/scan/lib/scan-bank";
 import {
   buildScanPrintingIndex,
   printingsByCardId,
+  resolveBoardRead,
   resolveLock,
 } from "@/features/scan/lib/scan-resolve";
 import { stubPrinting } from "@/test/factories";
 
-function stubBank(artKeys: Record<string, string>): LoadedScanBank {
-  return {
-    bank: { keys: [], dim: 0, embeddings: new Float32Array() } as unknown as LoadedScanBank["bank"],
-    artKeys: new Map(Object.entries(artKeys)),
-    labels: {},
-    bytes: 0,
-    canonical: true,
-  };
+function stubBank(artKeys: Record<string, string>): { artKeys: Map<string, string> } {
+  return { artKeys: new Map(Object.entries(artKeys)) };
 }
 
 function withImage(printing: Printing, imageId: string): Printing {
@@ -367,5 +361,63 @@ describe("printingsByCardId", () => {
       "p-promo",
     ]);
     expect(byCard.get("card-9")?.map((printing) => printing.id)).toEqual(["p-other"]);
+  });
+});
+
+describe("resolveBoardRead", () => {
+  const ahri = withImage(
+    stubPrinting({ id: "p-ahri", cardId: "c-ahri", shortCode: "OGN-066" }),
+    "img-ahri",
+  );
+  const teemo = withImage(
+    stubPrinting({ id: "p-teemo", cardId: "c-teemo", shortCode: "OGN-100" }),
+    "img-teemo",
+  );
+  const artKeys = { "img-ahri": "art-ahri", "img-teemo": "art-teemo" };
+  const index = buildScanPrintingIndex([ahri, teemo], stubBank(artKeys));
+  const artKeyOf = (key: string) => artKeys[key as keyof typeof artKeys] ?? key;
+  const nameOf = (key: string) => (key === "img-ahri" ? "Ahri" : "Teemo");
+
+  it("adds confident cards straight away", () => {
+    const result = resolveBoardRead(
+      [{ key: "img-ahri", artKey: "art-ahri", label: "Ahri", alternatives: [] }],
+      index,
+      artKeyOf,
+      nameOf,
+    );
+    expect(result.added.map((printing) => printing.id)).toEqual(["p-ahri"]);
+    expect(result.pickers).toEqual([]);
+  });
+
+  it("asks about an uncertain card with every card it could be", () => {
+    const result = resolveBoardRead(
+      [
+        {
+          key: "img-ahri",
+          artKey: "art-ahri",
+          label: "Ahri",
+          alternatives: ["img-teemo"],
+        },
+      ],
+      index,
+      artKeyOf,
+      nameOf,
+    );
+    expect(result.added).toEqual([]);
+    expect(result.pickers[0]?.label).toBe("Ahri / Teemo");
+    expect(result.pickers[0]?.candidates.map((printing) => printing.id).toSorted()).toEqual([
+      "p-ahri",
+      "p-teemo",
+    ]);
+  });
+
+  it("reports cards the catalog does not know", () => {
+    const result = resolveBoardRead(
+      [{ key: "img-missing", artKey: "art-missing", label: "Missing", alternatives: [] }],
+      index,
+      artKeyOf,
+      nameOf,
+    );
+    expect(result.unknown).toEqual(["Missing"]);
   });
 });

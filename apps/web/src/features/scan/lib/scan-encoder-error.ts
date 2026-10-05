@@ -1,7 +1,7 @@
 import { errorText } from "@/lib/error-text";
 import { m } from "@/paraglide/messages.js";
 
-// The ort proxy worker serializes worker-side failures over postMessage: the thrown value is not always an Error.
+// onnxruntime-web can reject with a value that is not an Error.
 function matchableText(thrown: unknown): string {
   return errorText(thrown, String(thrown));
 }

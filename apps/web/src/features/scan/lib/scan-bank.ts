@@ -4,7 +4,10 @@ import type { CardLabels } from "@openrift/shared/scan/labels";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import { scanAssetError } from "@/features/scan/lib/scan-asset-hint";
+import type { ScanWorkerReady } from "@/features/scan/lib/scan-worker-protocol";
+import { fetchWithProgress } from "@/lib/fetch-progress";
 
+/** The decoded bank with its vectors; only the scan worker holds one. */
 export interface LoadedScanBank {
   bank: EmbedBank;
   artKeys: Map<string, string>;
@@ -13,26 +16,39 @@ export interface LoadedScanBank {
   canonical: boolean;
 }
 
-let cached: Promise<LoadedScanBank> | null = null;
+export interface ScanBankInfo {
+  keys: readonly string[];
+  artKeys: Map<string, string>;
+  labels: CardLabels;
+  bytes: number;
+}
+
+export async function loadScanLabels(labelsUrl: string): Promise<CardLabels> {
+  const response = await fetch(labelsUrl);
+  return response.ok ? ((await response.json()) as CardLabels) : {};
+}
 
 /** media/scan/{bank,labels} are published by the bank rebuild job and are not committed. */
-export async function loadScanBank(bankUrl: string, labelsUrl: string): Promise<LoadedScanBank> {
-  cached ??= (async () => {
-    const [bankResponse, labelResponse] = await Promise.all([fetch(bankUrl), fetch(labelsUrl)]);
-    if (!bankResponse.ok) {
-      throw new Error(scanAssetError("the scan bank", bankUrl));
-    }
-    const buffer = await bankResponse.arrayBuffer();
-    const labels = labelResponse.ok ? ((await labelResponse.json()) as CardLabels) : {};
-    const { bank, artKeys, canonical } = decodeEmbedBank(buffer);
-    return { bank, artKeys, labels, bytes: buffer.byteLength, canonical };
-  })();
-  try {
-    return await cached;
-  } catch (error) {
-    cached = null;
-    throw error;
-  }
+export async function loadScanBank(
+  bankUrl: string,
+  labelsUrl: string,
+  onProgress?: (loaded: number, total: number) => void,
+): Promise<LoadedScanBank> {
+  const [buffer, labels] = await Promise.all([
+    fetchWithProgress(bankUrl, onProgress, scanAssetError("the scan bank", bankUrl)),
+    loadScanLabels(labelsUrl),
+  ]);
+  const { bank, artKeys, canonical } = decodeEmbedBank(buffer);
+  return { bank, artKeys, labels, bytes: buffer.byteLength, canonical };
+}
+
+export function scanBankInfo(labels: CardLabels, ready: ScanWorkerReady): ScanBankInfo {
+  return {
+    keys: ready.keys,
+    artKeys: new Map(ready.artKeys),
+    labels,
+    bytes: ready.bytes,
+  };
 }
 
 export function describeKey(labels: CardLabels, key: string): string {

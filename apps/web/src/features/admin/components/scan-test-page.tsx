@@ -1,9 +1,18 @@
 import { formatDayTime } from "@openrift/shared/format-date";
-import { CameraIcon, CameraOffIcon, CircleXIcon, LoaderIcon, RotateCcwIcon } from "lucide-react";
-import { Fragment, useEffect, useState } from "react";
+import type { CardLabels } from "@openrift/shared/scan/labels";
+import {
+  CameraIcon,
+  CameraOffIcon,
+  CircleIcon,
+  CircleXIcon,
+  LoaderIcon,
+  RotateCcwIcon,
+  SaveIcon,
+  SquareIcon,
+} from "lucide-react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { PageDescription } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,18 +26,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import { useClipRecorder } from "@/features/admin/hooks/use-clip-recorder";
+import { useLatestJobRun } from "@/features/admin/hooks/use-latest-job-run";
+import {
+  REBUILD_SCAN_BANK_KIND,
+  useRebuildScanBank,
+} from "@/features/admin/hooks/use-scan-bank-admin";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { ScanLoadRow } from "@/features/scan/components/scan-load-row";
 import { useCardScanner } from "@/features/scan/hooks/use-card-scanner";
+import { useScanBank } from "@/features/scan/hooks/use-scan-bank";
+import { useScanEngine } from "@/features/scan/hooks/use-scan-engine";
 import type { ScanServing } from "@/features/scan/hooks/use-scan-serving";
-import {
-  useLatestScanBankRun,
-  useRebuildScanBank,
-  useScanServing,
-} from "@/features/scan/hooks/use-scan-serving";
+import { useScanServing } from "@/features/scan/hooks/use-scan-serving";
 import type { CameraInfo, CameraInfoEntry } from "@/features/scan/lib/camera-info";
-import type { LoadedScanBank } from "@/features/scan/lib/scan-bank";
-import { describeKey, isLandscapeKey, loadScanBank } from "@/features/scan/lib/scan-bank";
+import { describeKey, isLandscapeKey } from "@/features/scan/lib/scan-bank";
 import type { LockedCard } from "@/features/scan/lib/scan-locks";
 import type { ScannerReadout } from "@/features/scan/lib/scan-readout";
 import type { ScannerSettings } from "@/features/scan/lib/scan-session";
@@ -37,10 +49,8 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 
 const MODES: { value: string; label: string }[] = [
-  { value: "single", label: "Single card, one lock per card (handheld)" },
-  { value: "auto", label: "Single card, copies counted (phone on a stand)" },
+  { value: "single", label: "Automatic (single cards, sweeps, copies on a stand)" },
   { value: "capture", label: "Single card, tap to scan (slow devices)" },
-  { value: "pan", label: "Pan (binder pages, spread-out cards)" },
 ];
 
 const PROCESSING_SIZES: { value: string; label: string }[] = [
@@ -55,7 +65,7 @@ const CANDIDATE_TRIES: { value: string; label: string }[] = [
   { value: "4", label: "4 (calibrated default)" },
 ];
 
-function LocksCard({ locks, loaded }: { locks: LockedCard[]; loaded: LoadedScanBank | null }) {
+function LocksCard({ locks, labels }: { locks: LockedCard[]; labels: CardLabels | null }) {
   return (
     <Card>
       <CardHeader>
@@ -74,12 +84,11 @@ function LocksCard({ locks, loaded }: { locks: LockedCard[]; loaded: LoadedScanB
                   imageId={lock.key}
                   variant="120w"
                   className="w-10"
-                  landscape={loaded !== null && isLandscapeKey(loaded.labels, lock.key)}
+                  landscape={labels !== null && isLandscapeKey(labels, lock.key)}
                 />
                 <span className="flex-1">{lock.label}</span>
                 <Badge variant="secondary" className="tabular-nums">
-                  {lock.lockSeconds.toFixed(2)}s · {lock.framesToLock} frames · {lock.inliers}{" "}
-                  inliers
+                  {lock.lockSeconds.toFixed(2)}s · {lock.framesToLock} frames · score {lock.score}
                 </Badge>
               </li>
             ))}
@@ -92,11 +101,11 @@ function LocksCard({ locks, loaded }: { locks: LockedCard[]; loaded: LoadedScanB
 
 interface LiveFrameCardProps {
   readout: ScannerReadout;
-  loaded: LoadedScanBank | null;
+  labels: CardLabels | null;
   active: boolean;
 }
 
-function LiveFrameCard({ readout, loaded, active }: LiveFrameCardProps) {
+function LiveFrameCard({ readout, labels, active }: LiveFrameCardProps) {
   const idleStatus = active ? "No confident card in view." : "Camera is off.";
   const frameStatus = readout.refused
     ? "Refused: the margin over the rival was too small."
@@ -107,17 +116,17 @@ function LiveFrameCard({ readout, loaded, active }: LiveFrameCardProps) {
         <CardTitle>Live frame</CardTitle>
       </CardHeader>
       <CardContent>
-        {readout.winnerKey !== null && loaded !== null && (
+        {readout.winnerKey !== null && labels !== null && (
           <p>
-            <span className="font-medium">{describeKey(loaded.labels, readout.winnerKey)}</span>
+            <span className="font-medium">{describeKey(labels, readout.winnerKey)}</span>
             <span className="text-muted-foreground tabular-nums">
               {" "}
-              · {readout.winnerInliers} vs {readout.rivalInliers} rival inliers
+              · score {readout.winnerScore} vs rival {readout.rivalScore}
             </span>
           </p>
         )}
         {readout.winnerKey === null && <p className="text-muted-foreground">{frameStatus}</p>}
-        {readout.ranked.length > 0 && loaded !== null && (
+        {readout.ranked.length > 0 && labels !== null && (
           <ul className="mt-3 flex flex-col gap-2">
             {readout.ranked.map((entry) => (
               <li key={entry.key} className="flex items-center gap-2">
@@ -125,10 +134,10 @@ function LiveFrameCard({ readout, loaded, active }: LiveFrameCardProps) {
                   imageId={entry.key}
                   variant="120w"
                   className="w-9"
-                  landscape={isLandscapeKey(loaded.labels, entry.key)}
+                  landscape={isLandscapeKey(labels, entry.key)}
                 />
                 <span className={entry.key === readout.winnerKey ? "flex-1 font-medium" : "flex-1"}>
-                  {describeKey(loaded.labels, entry.key)}
+                  {describeKey(labels, entry.key)}
                 </span>
                 <span className="text-muted-foreground tabular-nums">
                   {entry.distance.toFixed(3)}
@@ -139,8 +148,7 @@ function LiveFrameCard({ readout, loaded, active }: LiveFrameCardProps) {
         )}
         {readout.candidate && (
           <p className="text-muted-foreground mt-3 tabular-nums">
-            quad: aspect {readout.candidate.aspect.toFixed(2)} · area{" "}
-            {(readout.candidate.areaFraction * 100).toFixed(0)}%
+            quad: area {(readout.candidate.areaFraction * 100).toFixed(0)}%
           </p>
         )}
       </CardContent>
@@ -314,7 +322,7 @@ function EngineCard({ settings, onChange }: EngineCardProps) {
 
 function ServingCard({ serving }: { serving: ScanServing }) {
   const rebuild = useRebuildScanBank();
-  const latestRun = useLatestScanBankRun();
+  const latestRun = useLatestJobRun(REBUILD_SCAN_BANK_KIND);
   const running = rebuild.isPending || latestRun.data?.status === "running";
 
   async function handleRebuild() {
@@ -343,8 +351,9 @@ function ServingCard({ serving }: { serving: ScanServing }) {
         )}
         {serving.status === "unavailable" && (
           <p className="text-muted-foreground">
-            No server bank yet, so scanning is unavailable. Rebuild to publish the first generation
-            (the encoder file must exist under media/scan first).
+            No server bank or card detector yet, so scanning is unavailable. Rebuild to publish the
+            first generation (the encoder file must exist under media/scan first) and set{" "}
+            <Code>SCAN_DETECTOR_FILE</Code> to a detector under media/scan.
           </p>
         )}
         {serving.status === "ready" && (
@@ -371,8 +380,6 @@ function ServingCard({ serving }: { serving: ScanServing }) {
 }
 
 export function ScanTestPage() {
-  const [loaded, setLoaded] = useState<LoadedScanBank | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [settings, setSettings] = useState<ScannerSettings>(DEFAULT_SCANNER_SETTINGS);
   // True once the user has picked a mode themselves; the slow-device
   // auto-switch below must never fight an explicit choice.
@@ -383,33 +390,22 @@ export function ScanTestPage() {
   const cameraAvailable = hydrated ? navigator.mediaDevices?.getUserMedia !== undefined : null;
 
   const serving = useScanServing();
-  const assets = serving.assets;
-  // Primitive deps: the assets object is re-derived per render, and an
-  // identity change mid-download would cancel the in-flight load.
-  const bankUrl = assets?.bankUrl ?? null;
-  const labelsUrl = assets?.labelsUrl ?? null;
-  useEffect(() => {
-    if (bankUrl === null || labelsUrl === null) {
-      return;
-    }
-    let cancelled = false;
-    async function load() {
-      try {
-        const result = await loadScanBank(bankUrl as string, labelsUrl as string);
-        if (!cancelled) {
-          setLoaded(result);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setLoadError(error instanceof Error ? error.message : "Could not load the scan bank");
-        }
-      }
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [bankUrl, labelsUrl]);
+  const { assets, labels, unavailableMessage } = useScanBank();
+  const labelsError = serving.status === "unavailable" ? null : unavailableMessage;
+  const engine = useScanEngine(assets, labels);
+  const {
+    bank,
+    engineReady,
+    embedMsPerImage,
+    slowDevice: deviceTooSlow,
+    progress: engineProgress,
+    threads,
+  } = engine;
+
+  const frameSinkRef = useRef<((sweeping: boolean) => void) | null>(null);
+  const scannerEvents = {
+    onFrame: (frame: { sweeping: boolean }) => frameSinkRef.current?.(frame.sweeping),
+  };
 
   // Destructured before any JSX: member access on the hook's return object
   // during render makes the React Compiler bail with a refs-during-render error.
@@ -417,11 +413,6 @@ export function ScanTestPage() {
     videoRef,
     overlayRef,
     active,
-    cvReady,
-    embedderReady,
-    embedMsPerImage,
-    deviceTooSlow,
-    engineProgress,
     error: scanError,
     readout,
     cameraInfo,
@@ -429,15 +420,26 @@ export function ScanTestPage() {
     stop,
     capture,
     clearHistory,
-  } = useCardScanner(loaded, settings, assets);
+  } = useCardScanner(engine, settings, scannerEvents);
+  const {
+    recording,
+    pending: pendingClip,
+    error: recordError,
+    start: startRecording,
+    stop: stopRecording,
+    noteFrame,
+    save: saveClip,
+    discard: discardClip,
+  } = useClipRecorder(videoRef);
+  useEffect(() => {
+    frameSinkRef.current = noteFrame;
+  }, [noteFrame]);
 
-  const ready = loaded !== null && cvReady && embedderReady;
+  const ready = bank !== null && engineReady;
   // Lock ~ 3 agreeing frames at ~2.5x the per-image encoder cost each; see
   // SLOW_DEVICE_EMBED_MS for the measurements behind the factor.
   const predictedLockSeconds = Math.ceil((embedMsPerImage * 7.5) / 1000);
 
-  // Flips the default mode when the encoder self-bench says live scanning
-  // would crawl; an explicit mode choice is never overridden.
   if (deviceTooSlow && !modeChosen && settings.mode === "single") {
     setSettings((previous) => ({ ...previous, mode: "capture" }));
   }
@@ -452,8 +454,31 @@ export function ScanTestPage() {
   function handleStart() {
     void start();
   }
+  const pendingClipMb =
+    pendingClip === null ? 0 : pendingClip.reduce((sum, file) => sum + file.size, 0) / 1024 / 1024;
+
+  function recorderContext() {
+    return {
+      mode: settings.mode,
+      processingSize: settings.processingSize,
+      locks: readout.locks,
+    };
+  }
   function handleStop() {
+    if (recording) {
+      stopRecording(recorderContext());
+    }
     stop();
+  }
+  function handleRecord() {
+    if (recording) {
+      stopRecording(recorderContext());
+    } else {
+      startRecording();
+    }
+  }
+  function handleSaveClip() {
+    void saveClip();
   }
   function handleCapture() {
     void capture();
@@ -466,11 +491,6 @@ export function ScanTestPage() {
     <>
       <AdminPageTopBar title="Scan Test" />
       <div className={cn(PAGE_WIDTH.capped, "px-safe pb-12")}>
-        <PageDescription>
-          Point the camera at a card and hold steady. A card locks once several frames agree, and
-          the lock time is the number the phone is judged on.
-        </PageDescription>
-
         {deviceTooSlow && (
           <Card className="border-warning mt-4">
             <CardContent className="pt-6">
@@ -494,14 +514,10 @@ export function ScanTestPage() {
           </Card>
         )}
 
-        {loadError && (
+        {labelsError && (
           <Card className="border-destructive mt-4">
             <CardContent className="pt-6">
-              <p className="font-medium">{loadError}</p>
-              <p className="text-muted-foreground mt-2">
-                The manifest names a generation that is missing from <Code>media/scan</Code>.
-                Rebuild the bank to publish a fresh one, or copy the files from production.
-              </p>
+              <p className="font-medium">{labelsError}</p>
             </CardContent>
           </Card>
         )}
@@ -518,14 +534,18 @@ export function ScanTestPage() {
               {!active && (
                 <div className="text-muted-foreground absolute inset-0 grid place-items-center px-6 text-center">
                   {ready ? (
-                    `Ready — ${loaded.bank.keys.length} cards, bank ${(loaded.bytes / 1024 / 1024).toFixed(1)} MB`
+                    `Ready — ${bank.keys.length} cards, bank ${(bank.bytes / 1024 / 1024).toFixed(1)} MB`
                   ) : (
                     <div className="flex flex-col items-center gap-3">
-                      <ScanLoadRow label="Card bank" done={loaded !== null} />
-                      <ScanLoadRow label="OpenCV" done={cvReady} progress={engineProgress.opencv} />
+                      <ScanLoadRow label="Card labels" done={labels !== null} />
+                      <ScanLoadRow
+                        label="Card bank"
+                        done={engineReady}
+                        progress={engineProgress.bank}
+                      />
                       <ScanLoadRow
                         label="Encoder model"
-                        done={embedderReady}
+                        done={engineReady}
                         progress={engineProgress.encoder}
                       />
                     </div>
@@ -552,6 +572,23 @@ export function ScanTestPage() {
                   Scan frame
                 </Button>
               )}
+              {active && (
+                <Button onClick={handleRecord} variant={recording ? "destructive" : "secondary"}>
+                  {recording ? <SquareIcon /> : <CircleIcon />}
+                  {recording ? "Stop recording" : "Record clip"}
+                </Button>
+              )}
+              {pendingClip && (
+                <>
+                  <Button onClick={handleSaveClip}>
+                    <SaveIcon />
+                    Save clip ({pendingClipMb.toFixed(1)} MB)
+                  </Button>
+                  <Button onClick={discardClip} variant="ghost">
+                    Discard
+                  </Button>
+                </>
+              )}
               <Button onClick={handleClear} variant="ghost">
                 <RotateCcwIcon />
                 Clear
@@ -568,6 +605,18 @@ export function ScanTestPage() {
               )}
             </div>
 
+            {threads !== null && (
+              <p className="text-muted-foreground">
+                {threads === 1 ? "1 thread" : `${threads} threads`}
+              </p>
+            )}
+
+            {recordError && (
+              <p className="text-muted-foreground flex items-center gap-1.5">
+                <CircleXIcon className="text-destructive size-4 shrink-0" />
+                {recordError}
+              </p>
+            )}
             {scanError && (
               <p className="text-muted-foreground flex items-center gap-1.5">
                 <CircleXIcon className="text-destructive size-4 shrink-0" />
@@ -583,11 +632,11 @@ export function ScanTestPage() {
               </p>
             )}
 
-            <LocksCard locks={readout.locks} loaded={loaded} />
+            <LocksCard locks={readout.locks} labels={labels} />
           </div>
 
           <div className="flex flex-col gap-4">
-            <LiveFrameCard readout={readout} loaded={loaded} active={active} />
+            <LiveFrameCard readout={readout} labels={labels} active={active} />
             <CameraCard info={cameraInfo} active={active} />
             <EngineCard settings={settings} onChange={handleSettingsChange} />
             <ServingCard serving={serving} />

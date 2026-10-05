@@ -17,15 +17,18 @@ function outcome(overrides: Partial<FrameOutcome> = {}): FrameOutcome {
     ranked: ranked(2),
     winner: null,
     refused: false,
-    bestInliers: 4,
+    bestScore: 4,
+    sweeping: false,
+    still: false,
     locked: null,
+    winnerRun: null,
     focus: 120,
-    timings: { detect: 10, embed: 20, verify: 30, total: 65 },
+    timings: { detect: 10, embed: 20, verify: 30, total: 65, crop: 0 },
     ...overrides,
   };
 }
 
-const winner = { key: "k-0", artKey: "art-a", inliers: 40, rivalInliers: 8 };
+const winner = { key: "k-0", artKey: "art-a", score: 40, rivalScore: 8 };
 
 function readoutFor(frame: FrameOutcome) {
   return buildReadout({
@@ -52,7 +55,7 @@ describe("buildReadout", () => {
       verifyMs: 30,
       totalMs: 65,
       focus: 120,
-      bestInliers: 4,
+      bestScore: 4,
       refused: true,
     });
   });
@@ -60,16 +63,16 @@ describe("buildReadout", () => {
   it("zeroes the winner columns for a frame that verified nothing", () => {
     expect(readoutFor(outcome())).toMatchObject({
       winnerKey: null,
-      winnerInliers: 0,
-      rivalInliers: 0,
+      winnerScore: 0,
+      rivalScore: 0,
     });
   });
 
   it("reports the winner and the rival it beat", () => {
     expect(readoutFor(outcome({ winner }))).toMatchObject({
       winnerKey: "k-0",
-      winnerInliers: 40,
-      rivalInliers: 8,
+      winnerScore: 40,
+      rivalScore: 8,
     });
   });
 

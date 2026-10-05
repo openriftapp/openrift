@@ -52,8 +52,6 @@ export const CARD_ASPECT = 63 / 88;
 /** A card-shaped quadrilateral proposed by one of the detectors. */
 export interface CardCandidate {
   quad: Quad;
-  aspect: number;
   areaFraction: number;
-  rectangularity: number;
   score: number;
 }

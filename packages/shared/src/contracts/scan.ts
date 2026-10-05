@@ -11,7 +11,8 @@ export const scanManifestSchema = z.object({
   bankUrl: z.string().nullable(),
   labelsUrl: z.string().nullable(),
   encoderUrl: z.string(),
-  opencvUrl: z.string(),
+  detectorUrl: z.string().nullable(),
+  boardDetectorUrl: z.string().nullable(),
 });
 
 /** Everything this points at is cached immutably, so it is the only thing a client must re-fetch. */

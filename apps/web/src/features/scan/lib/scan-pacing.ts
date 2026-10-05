@@ -1,6 +1,4 @@
-import { IDLE_AFTER_NO_WINNER_FRAMES } from "@openrift/shared/scan/session";
-
-import type { ScannerMode } from "@/features/scan/lib/scan-session";
+import { IDLE_AFTER_NO_WINNER_FRAMES } from "@openrift/shared/scan/session-options";
 
 export const IDLE_PACE_DELAY_MS = 300;
 export const PAUSED_POLL_MS = 250;
@@ -26,9 +24,9 @@ export function nextIdlePace(pace: IdlePace, plausible: boolean, totalMs: number
   return { streak: plausible ? 0 : pace.streak + 1, lastTotalMs: totalMs };
 }
 
-export function shouldPaceFrame(pace: IdlePace, mode: ScannerMode): boolean {
+export function shouldPaceFrame(pace: IdlePace, sweeping: boolean): boolean {
   return (
-    mode !== "pan" &&
+    !sweeping &&
     pace.streak >= IDLE_AFTER_NO_WINNER_FRAMES &&
     pace.lastTotalMs > IDLE_PACE_MIN_FRAME_MS
   );

@@ -5,14 +5,11 @@
  * runtime differs per host (onnxruntime-node in the bench, onnxruntime-web
  * in the browser).
  */
-import type { ArtWindow } from "./art-window";
-import { ART_LANDSCAPE, ART_PORTRAIT } from "./art-window";
 import { rotateRgbaCw } from "./image";
 import type { RgbaImage } from "./types";
 
 export const EMBED_IMAGE_SIZE = 256;
 const RESCALE = 1 / 255;
-export const EMBED_DIM = 512;
 
 export type CardEmbedder = (pixels: Float32Array, count: number) => Promise<Float32Array>;
 
@@ -21,15 +18,13 @@ export function embedImageSizeOf(shape: readonly unknown[] | undefined): number 
   return typeof side === "number" && Number.isInteger(side) && side > 0 ? side : EMBED_IMAGE_SIZE;
 }
 
-/**
- * `card` embeds the whole rectification; `art` embeds a fixed window over
- * the artwork, cutting the frame, name bar and text box every card shares.
- */
-export type EmbedKind = "card" | "art";
-
 export interface EmbedBank {
   keys: string[];
   vectors: Float32Array;
+}
+
+export function bankEmbedDim(bank: EmbedBank): number {
+  return bank.keys.length > 0 ? bank.vectors.length / bank.keys.length : 0;
 }
 
 export interface RankedEmbed {
@@ -91,32 +86,13 @@ function triangleTaps(srcSize: number, dstSize: number): FilterTaps {
   return built;
 }
 
-function region(
-  image: RgbaImage,
-  kind: EmbedKind,
-): { x: number; y: number; width: number; height: number } {
-  if (kind === "card") {
-    return { x: 0, y: 0, width: image.width, height: image.height };
-  }
-  const window: ArtWindow = image.width >= image.height ? ART_LANDSCAPE : ART_PORTRAIT;
-  const x = Math.round(image.width * window.x0);
-  const y = Math.round(image.height * window.y0);
-  return {
-    x,
-    y,
-    width: Math.round(image.width * (window.x1 - window.x0)),
-    height: Math.round(image.height * (window.y1 - window.y0)),
-  };
-}
-
 export function preprocessCardInto(
   image: RgbaImage,
-  kind: EmbedKind,
   out: Float32Array,
   slot: number,
   imageSize = EMBED_IMAGE_SIZE,
 ): void {
-  const { x, y, width, height } = region(image, kind);
+  const { width, height } = image;
   const horizontal = triangleTaps(width, imageSize);
   const vertical = triangleTaps(height, imageSize);
 
@@ -125,7 +101,7 @@ export function preprocessCardInto(
   }
   const rows = rowsScratch;
   for (let row = 0; row < height; row++) {
-    const source = ((y + row) * image.width + x) * 4;
+    const source = row * width * 4;
     const target = row * imageSize * 3;
     for (let column = 0; column < imageSize; column++) {
       const start = horizontal.starts[column] ?? 0;
@@ -193,13 +169,8 @@ export function normalizeEmbeddings(raw: Float32Array, count: number): Float32Ar
   return out;
 }
 
-/**
- * Rotates the image, not the embedding: art-window selection depends
- * on the card's on-image orientation.
- */
 export async function embedCardRotations(
   image: RgbaImage,
-  kind: EmbedKind,
   embedder: CardEmbedder,
   scratch?: Float32Array,
   imageSize = EMBED_IMAGE_SIZE,
@@ -207,7 +178,7 @@ export async function embedCardRotations(
   const input = scratch ?? new Float32Array(4 * 3 * imageSize * imageSize);
   let rotated = image;
   for (let rotation = 0; rotation < 4; rotation++) {
-    preprocessCardInto(rotated, kind, input, rotation, imageSize);
+    preprocessCardInto(rotated, input, rotation, imageSize);
     rotated = rotateRgbaCw(rotated);
   }
   return normalizeEmbeddings(await embedder(input, 4), 4);
@@ -226,7 +197,6 @@ export interface RankOptions {
 
 export async function rankCardEmbedding(
   card: RgbaImage,
-  kind: EmbedKind,
   embedder: CardEmbedder,
   bank: EmbedBank,
   {
@@ -241,11 +211,7 @@ export async function rankCardEmbedding(
   }: RankOptions,
 ): Promise<RankedEmbed[]> {
   if (confidentDistance < 0) {
-    return rankEmbedBank(
-      bank,
-      await embedCardRotations(card, kind, embedder, scratch, imageSize),
-      topK,
-    );
+    return rankEmbedBank(bank, await embedCardRotations(card, embedder, scratch, imageSize), topK);
   }
   const input = scratch ?? new Float32Array(4 * 3 * imageSize * imageSize);
   const rotationCache: RgbaImage[] = [card];
@@ -255,7 +221,7 @@ export async function rankCardEmbedding(
     }
     return rotationCache[rotation] ?? card;
   };
-  preprocessCardInto(rotationAt(preferredRotation), kind, input, 0, imageSize);
+  preprocessCardInto(rotationAt(preferredRotation), input, 0, imageSize);
   const first = normalizeEmbeddings(await embedder(input, 1), 1);
   const ranked = rankEmbedBank(bank, first, topK, [preferredRotation]);
   const closest = ranked[0];
@@ -272,7 +238,7 @@ export async function rankCardEmbedding(
     ? [(preferredRotation + 2) % 4]
     : [0, 1, 2, 3].filter((rotation) => rotation !== preferredRotation);
   for (const [slot, rotation] of others.entries()) {
-    preprocessCardInto(rotationAt(rotation), kind, input, slot, imageSize);
+    preprocessCardInto(rotationAt(rotation), input, slot, imageSize);
   }
   const rest = normalizeEmbeddings(await embedder(input, others.length), others.length);
   const query = first[0];
@@ -289,7 +255,7 @@ export function rankEmbedBank(
   rotations?: readonly number[],
 ): RankedEmbed[] {
   const ranked: RankedEmbed[] = [];
-  const dim = bank.keys.length > 0 ? bank.vectors.length / bank.keys.length : 0;
+  const dim = bankEmbedDim(bank);
   for (const [entry, key] of bank.keys.entries()) {
     const base = entry * dim;
     let best = -2;

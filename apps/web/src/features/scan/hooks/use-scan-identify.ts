@@ -2,14 +2,14 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
-import type { LoadedScanBank } from "@/features/scan/lib/scan-bank";
+import type { ScanBankInfo } from "@/features/scan/lib/scan-bank";
 import type { IdentifyAttempt, UnidentifiedCard } from "@/features/scan/lib/scan-catchup";
 import type { IdentifyCandidate } from "@/features/scan/lib/scan-identify";
 import { toIdentifyCandidates } from "@/features/scan/lib/scan-identify";
 import { m } from "@/paraglide/messages.js";
 
 interface ScanIdentifyOptions {
-  loaded: LoadedScanBank | null;
+  bank: ScanBankInfo | null;
   identifyNow: (onSnapshot?: (snapshot: string | null) => void) => Promise<IdentifyAttempt>;
   unidentified: UnidentifiedCard[];
   dismissUnidentified: (id: string) => void;
@@ -30,7 +30,7 @@ interface ScanIdentify {
 }
 
 export function useScanIdentify({
-  loaded,
+  bank,
   identifyNow,
   unidentified,
   dismissUnidentified,
@@ -50,7 +50,7 @@ export function useScanIdentify({
   // Also how a second copy of a card still in hand gets counted: the engine
   // won't lock the same artwork twice on its own.
   async function identifyCard() {
-    if (!loaded) {
+    if (!bank) {
       return;
     }
     const seq = ++identifySeqRef.current;
@@ -71,7 +71,7 @@ export function useScanIdentify({
     setIdentify({
       snapshot: attempt.snapshot,
       pending: false,
-      candidates: toIdentifyCandidates(loaded.labels, attempt.candidates),
+      candidates: toIdentifyCandidates(bank.labels, attempt.candidates),
     });
   }
 
@@ -106,7 +106,7 @@ export function useScanIdentify({
 
   function answerMissed(id: string) {
     const card = unidentified.find((entry) => entry.id === id);
-    if (!card || !loaded) {
+    if (!card || !bank) {
       return;
     }
     if (card.candidates.length === 0) {
@@ -119,7 +119,7 @@ export function useScanIdentify({
     setIdentify({
       snapshot: card.thumbnail,
       pending: false,
-      candidates: toIdentifyCandidates(loaded.labels, card.candidates),
+      candidates: toIdentifyCandidates(bank.labels, card.candidates),
     });
   }
 

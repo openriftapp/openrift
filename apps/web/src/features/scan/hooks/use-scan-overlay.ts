@@ -1,4 +1,4 @@
-import { centeredGuideQuad } from "@openrift/shared/scan/session";
+import { centeredGuideQuad } from "@openrift/shared/scan/session-options";
 import type { Quad } from "@openrift/shared/scan/types";
 import type { RefObject } from "react";
 import { useEffect, useRef } from "react";

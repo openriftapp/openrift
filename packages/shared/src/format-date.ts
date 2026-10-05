@@ -236,6 +236,13 @@ export function formatCompactUtcStamp(input: Date | string): string {
   return `${yyyy}${mm}${dd}-${hh}${mi}`;
 }
 
+/** UTC to the second, safe in a filename: `2026-10-04T20-21-06`. */
+export function formatFileStamp(date: Date): string {
+  const day = `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
+  const time = `${pad(date.getUTCHours())}-${pad(date.getUTCMinutes())}-${pad(date.getUTCSeconds())}`;
+  return `${day}T${time}`;
+}
+
 export interface DateLeafParts {
   month: string;
   day: string;

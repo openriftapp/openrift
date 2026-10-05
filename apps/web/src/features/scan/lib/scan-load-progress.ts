@@ -4,10 +4,15 @@ export interface ResourceProgress {
   ready: boolean;
 }
 
-export interface EngineProgress {
-  opencv: ResourceProgress;
+export interface DownloadProgress {
   encoder: ResourceProgress;
+  bank: ResourceProgress;
 }
+
+export const INITIAL_DOWNLOAD_PROGRESS: DownloadProgress = {
+  encoder: { loaded: 0, total: 0, ready: false },
+  bank: { loaded: 0, total: 0, ready: false },
+};
 
 type ScanLoadPhase = "downloading" | "starting";
 
@@ -30,12 +35,10 @@ function downloaded(resource: ResourceProgress): boolean {
   return resource.ready || (resource.total > 0 && resource.loaded >= resource.total);
 }
 
-export function scanLoadProgress(bankLoaded: boolean, engine: EngineProgress): ScanLoadProgress {
-  const parts = [bankLoaded ? 1 : 0, fraction(engine.opencv), fraction(engine.encoder)];
+export function scanLoadProgress(progress: DownloadProgress): ScanLoadProgress {
+  const parts = [fraction(progress.bank), fraction(progress.encoder)];
   const percent = Math.round((100 * parts.reduce((sum, part) => sum + part, 0)) / parts.length);
   const phase =
-    bankLoaded && downloaded(engine.opencv) && downloaded(engine.encoder)
-      ? "starting"
-      : "downloading";
+    downloaded(progress.bank) && downloaded(progress.encoder) ? "starting" : "downloading";
   return { percent, phase };
 }

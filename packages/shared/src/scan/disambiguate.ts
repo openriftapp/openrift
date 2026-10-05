@@ -4,7 +4,6 @@
  * rendered or read here). Tries name band (language), then collector-code
  * strip (set/number/promo), then stamp band (marker variant), in order.
  */
-import { ART_PORTRAIT } from "./art-window";
 import { downscaleGray, toGray } from "./image";
 import type { GrayImage, RgbaImage } from "./types";
 
@@ -16,7 +15,9 @@ export interface TextBand {
   y1: number;
 }
 
-const TEXT_REGION: TextBand = { x0: 0.05, y0: ART_PORTRAIT.y1, x1: 0.95, y1: 0.96 };
+const PORTRAIT_ART_BOTTOM = 0.5;
+
+const TEXT_REGION: TextBand = { x0: 0.05, y0: PORTRAIT_ART_BOTTOM, x1: 0.95, y1: 0.96 };
 
 const NAME_BANDS: Record<string, TextBand> = {
   unit: { x0: 0.07, y0: 0.53, x1: 0.93, y1: 0.67 },
@@ -155,34 +156,6 @@ export function printingSignature(
     return null;
   }
   return { name, code: codeStripSignature(card), stamp: stampBandSignature(card) };
-}
-
-/** NCC of two equal-size signatures, -1..1; 0 when either has no variance. */
-export function correlateSignatures(a: GrayImage, b: GrayImage): number {
-  const length = Math.min(a.data.length, b.data.length);
-  if (length === 0) {
-    return 0;
-  }
-  let meanA = 0;
-  let meanB = 0;
-  for (let i = 0; i < length; i++) {
-    meanA += a.data[i] ?? 0;
-    meanB += b.data[i] ?? 0;
-  }
-  meanA /= length;
-  meanB /= length;
-  let cross = 0;
-  let varA = 0;
-  let varB = 0;
-  for (let i = 0; i < length; i++) {
-    const da = (a.data[i] ?? 0) - meanA;
-    const db = (b.data[i] ?? 0) - meanB;
-    cross += da * db;
-    varA += da * da;
-    varB += db * db;
-  }
-  const norm = Math.sqrt(varA * varB);
-  return norm === 0 ? 0 : cross / norm;
 }
 
 /** NCC of `query` shifted by (dx, dy) against `reference`, optionally masked. */
@@ -332,7 +305,7 @@ export function discriminativeMargin(
 
 const NAME_MIN_SCORE = 0.55;
 
-const NAME_MIN_MARGIN = 0.15;
+const NAME_MIN_MARGIN = 0.4;
 
 const CODE_MIN_SCORE = 0.55;
 
@@ -341,6 +314,8 @@ const CODE_MIN_MARGIN = 0.15;
 const STAMP_MIN_SCORE = 0.55;
 
 const STAMP_MIN_MARGIN = 0.15;
+
+const STAMP_MARKED_MIN_MARGIN = 0.4;
 
 export interface PrintingPick {
   key: string;
@@ -407,6 +382,14 @@ export function runPrintingTournament(
   };
 }
 
+export interface PrintingIdentity {
+  type?: string;
+  code?: string;
+  /** "promo", "judge+promo", "" for none; undefined when the render's printings disagree. */
+  markers?: string;
+  language?: string;
+}
+
 export interface PrintingResolution extends PrintingPick {
   via: "name" | "code" | "stamp";
 }
@@ -418,10 +401,9 @@ export interface PrintingResolution extends PrintingPick {
 export function resolvePrinting(
   query: PrintingSignature,
   signatures: ReadonlyMap<string, PrintingSignature | null>,
-  codeOf?: (key: string) => string | undefined,
-  markerKeyOf?: (key: string) => string | undefined,
-  languageOf?: (key: string) => string | undefined,
+  identityOf: (key: string) => PrintingIdentity | undefined,
 ): PrintingResolution | null {
+  const markersOf = (key: string) => identityOf(key)?.markers;
   const nameSignatures = new Map<string, GrayImage | null>();
   for (const [key, signature] of signatures) {
     nameSignatures.set(key, signature?.name ?? null);
@@ -431,12 +413,11 @@ export function resolvePrinting(
     nameSignatures,
     NAME_MIN_SCORE,
     NAME_MIN_MARGIN,
-    languageOf &&
-      ((a, b) => {
-        const languageA = languageOf(a);
-        const languageB = languageOf(b);
-        return languageA !== undefined && languageB !== undefined && languageA === languageB;
-      }),
+    (a, b) => {
+      const languageA = identityOf(a)?.language;
+      const languageB = identityOf(b)?.language;
+      return languageA !== undefined && languageB !== undefined && languageA === languageB;
+    },
   );
   let candidates: string[];
   if (name.pick) {
@@ -449,7 +430,8 @@ export function resolvePrinting(
   } else {
     return null;
   }
-  if (query.code && codeOf) {
+  let plainStamp: PrintingResolution | null = null;
+  if (query.code) {
     const codeSignatures = new Map<string, GrayImage | null>();
     for (const key of candidates) {
       codeSignatures.set(key, signatures.get(key)?.code ?? null);
@@ -460,16 +442,20 @@ export function resolvePrinting(
       CODE_MIN_SCORE,
       CODE_MIN_MARGIN,
       (a, b) => {
-        const codeA = codeOf(a);
-        const codeB = codeOf(b);
+        const codeA = identityOf(a)?.code;
+        const codeB = identityOf(b)?.code;
         return codeA === undefined || codeB === undefined || codeA === codeB;
       },
     );
-    if (code.pick) {
+    const codeMarked = code.pick ? markersOf(code.pick.key) : undefined;
+    if (
+      code.pick &&
+      (codeMarked === undefined || codeMarked === "" || code.pick.margin >= STAMP_MARKED_MIN_MARGIN)
+    ) {
       return { ...code.pick, via: "code" };
     }
   }
-  if (query.stamp && markerKeyOf) {
+  if (query.stamp) {
     const stampSignatures = new Map<string, GrayImage | null>();
     for (const key of candidates) {
       stampSignatures.set(key, signatures.get(key)?.stamp ?? null);
@@ -480,8 +466,8 @@ export function resolvePrinting(
       STAMP_MIN_SCORE,
       STAMP_MIN_MARGIN,
       (a, b) => {
-        const markersA = markerKeyOf(a);
-        const markersB = markerKeyOf(b);
+        const markersA = markersOf(a);
+        const markersB = markersOf(b);
         if (markersA === undefined || markersB === undefined) {
           return true;
         }
@@ -490,9 +476,35 @@ export function resolvePrinting(
         return (markersA === "") === (markersB === "");
       },
     );
-    if (stamp.pick) {
+    const marked = stamp.pick ? markersOf(stamp.pick.key) : undefined;
+    if (
+      stamp.pick &&
+      marked !== undefined &&
+      marked !== "" &&
+      stamp.pick.margin >= STAMP_MARKED_MIN_MARGIN
+    ) {
       return { ...stamp.pick, via: "stamp" };
     }
+    if (stamp.pick && marked === "") {
+      plainStamp = { ...stamp.pick, via: "stamp" };
+    }
   }
-  return name.pick ? { ...name.pick, via: "name" } : null;
+  return name.pick ? unmarkedFallback(name.pick, markersOf) : plainStamp;
+}
+
+function unmarkedFallback(
+  pick: PrintingPick,
+  markersOf: (key: string) => string | undefined,
+): PrintingResolution | null {
+  const members = [pick.key, ...pick.indistinguishable];
+  const unmarked = members.find((key) => markersOf(key) === "");
+  if (unmarked === undefined) {
+    return null;
+  }
+  return {
+    key: unmarked,
+    margin: pick.margin,
+    indistinguishable: members.filter((key) => key !== unmarked && !markersOf(key)),
+    via: "name",
+  };
 }

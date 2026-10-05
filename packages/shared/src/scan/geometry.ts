@@ -1,139 +1,31 @@
-import type { Matrix3, Point, Quad } from "./types";
+import type { CardCandidate, Matrix3, Point, Quad } from "./types";
 
-interface Line {
-  px: number;
-  py: number;
-  dx: number;
-  dy: number;
+export interface Line {
+  point: Point;
+  direction: Point;
 }
 
-/** Total-least-squares line fit: stable for near-vertical edges, unlike ordinary least squares. */
-function fitLine(points: readonly Point[]): Line | null {
-  if (points.length < 2) {
+export function intersectLines(first: Line, second: Line): Point | null {
+  const cross = first.direction.x * second.direction.y - first.direction.y * second.direction.x;
+  if (Math.abs(cross) < 1e-6) {
     return null;
   }
-  let mx = 0;
-  let my = 0;
-  for (const p of points) {
-    mx += p.x;
-    my += p.y;
-  }
-  mx /= points.length;
-  my /= points.length;
-
-  let sxx = 0;
-  let syy = 0;
-  let sxy = 0;
-  for (const p of points) {
-    const dx = p.x - mx;
-    const dy = p.y - my;
-    sxx += dx * dx;
-    syy += dy * dy;
-    sxy += dx * dy;
-  }
-  const theta = 0.5 * Math.atan2(2 * sxy, sxx - syy);
-  const dx = Math.cos(theta);
-  const dy = Math.sin(theta);
-  if (!Number.isFinite(dx) || !Number.isFinite(dy)) {
-    return null;
-  }
-  return { px: mx, py: my, dx, dy };
+  const dx = second.point.x - first.point.x;
+  const dy = second.point.y - first.point.y;
+  const t = (dx * second.direction.y - dy * second.direction.x) / cross;
+  return { x: first.point.x + first.direction.x * t, y: first.point.y + first.direction.y * t };
 }
 
-interface Edge {
-  a: Point;
-  b: Point;
-  votes: Point[];
+export function mapQuad(quad: Quad, fn: (point: Point, index: number) => Point): Quad {
+  return [fn(quad[0], 0), fn(quad[1], 1), fn(quad[2], 2), fn(quad[3], 3)];
 }
 
-function intersectLines(a: Line, b: Line): Point | null {
-  const denom = a.dx * b.dy - a.dy * b.dx;
-  if (Math.abs(denom) < 1e-9) {
-    return null;
+export function subPixelMinimum(before: number, at: number, after: number): number {
+  const curvature = before - 2 * at + after;
+  if (!Number.isFinite(curvature) || curvature <= 0) {
+    return 0;
   }
-  const t = ((b.px - a.px) * b.dy - (b.py - a.py) * b.dx) / denom;
-  return { x: a.px + a.dx * t, y: a.py + a.dy * t };
-}
-
-/**
- * Snap an approximate quad onto the contour's straight edges, refitting each
- * side and taking corners as intersections of neighbouring sides.
- */
-export function refineQuad(quad: Quad, contour: readonly Point[]): Quad {
-  const edges: [Edge, Edge, Edge, Edge] = [
-    { a: quad[0], b: quad[1], votes: [] },
-    { a: quad[1], b: quad[2], votes: [] },
-    { a: quad[2], b: quad[3], votes: [] },
-    { a: quad[3], b: quad[0], votes: [] },
-  ];
-  const diagonal = quadDiagonal(quad);
-  // Only points hugging the outline may vote. Edge pixels from the card's own
-  // artwork sit well inside it and would drag the fitted sides inwards.
-  const maxDist = 0.04 * diagonal;
-  for (const p of contour) {
-    let bestVotes: Point[] | null = null;
-    let bestDist = Infinity;
-    let bestT = 0;
-    for (const { a, b, votes } of edges) {
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const lenSq = dx * dx + dy * dy;
-      if (lenSq === 0) {
-        continue;
-      }
-      const t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq;
-      const clamped = Math.max(0, Math.min(1, t));
-      const cx = a.x + dx * clamped;
-      const cy = a.y + dy * clamped;
-      const dist = Math.hypot(p.x - cx, p.y - cy);
-      if (dist < bestDist) {
-        bestDist = dist;
-        bestVotes = votes;
-        bestT = clamped;
-      }
-    }
-    // Skip the corner zones, where the card's rounded profile curves away from
-    // the straight edge and would bias the fit inwards.
-    if (bestVotes && bestDist <= maxDist && bestT > 0.12 && bestT < 0.88) {
-      bestVotes.push(p);
-    }
-  }
-
-  const fit = (votes: readonly Point[]): Line | null => (votes.length >= 6 ? fitLine(votes) : null);
-  const sides: [Line | null, Line | null, Line | null, Line | null] = [
-    fit(edges[0].votes),
-    fit(edges[1].votes),
-    fit(edges[2].votes),
-    fit(edges[3].votes),
-  ];
-
-  // A refined corner should stay near the approximate one; a wild
-  // intersection means the sides were near-parallel and cannot be trusted.
-  const corner = (prev: Line | null, cur: Line | null, approximate: Point): Point | null => {
-    if (!prev || !cur) {
-      return null;
-    }
-    const hit = intersectLines(prev, cur);
-    if (!hit) {
-      return null;
-    }
-    return Math.hypot(hit.x - approximate.x, hit.y - approximate.y) > 0.25 * diagonal ? null : hit;
-  };
-  const c0 = corner(sides[3], sides[0], quad[0]);
-  const c1 = corner(sides[0], sides[1], quad[1]);
-  const c2 = corner(sides[1], sides[2], quad[2]);
-  const c3 = corner(sides[2], sides[3], quad[3]);
-  if (!c0 || !c1 || !c2 || !c3) {
-    return quad;
-  }
-  return [c0, c1, c2, c3];
-}
-
-function quadDiagonal(quad: Quad): number {
-  return Math.max(
-    Math.hypot(quad[2].x - quad[0].x, quad[2].y - quad[0].y),
-    Math.hypot(quad[3].x - quad[1].x, quad[3].y - quad[1].y),
-  );
+  return Math.max(-0.5, Math.min(0.5, (before - after) / (2 * curvature)));
 }
 
 /**
@@ -142,8 +34,7 @@ function quadDiagonal(quad: Quad): number {
  * matcher to resolve by scoring both.
  */
 export function canonicalizeQuad(quad: Quad): Quad {
-  const cx = (quad[0].x + quad[1].x + quad[2].x + quad[3].x) / 4;
-  const cy = (quad[0].y + quad[1].y + quad[2].y + quad[3].y) / 4;
+  const { x: cx, y: cy } = quadCenter(quad);
   const ordered: [Point, Point, Point, Point] = [quad[0], quad[1], quad[2], quad[3]];
   ordered.sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
 
@@ -295,4 +186,50 @@ export function boundingBox(quad: Quad): {
     maxY = Math.max(maxY, p.y);
   }
   return { minX, minY, maxX, maxY };
+}
+
+export function quadArea(quad: Quad): number {
+  let twice = 0;
+  for (let index = 0; index < 4; index++) {
+    const a = quad[index] as Point;
+    const b = quad[(index + 1) % 4] as Point;
+    twice += a.x * b.y - b.x * a.y;
+  }
+  return Math.abs(twice) / 2;
+}
+
+export function quadCenter(quad: Quad): Point {
+  return {
+    x: (quad[0].x + quad[1].x + quad[2].x + quad[3].x) / 4,
+    y: (quad[0].y + quad[1].y + quad[2].y + quad[3].y) / 4,
+  };
+}
+
+export function touchesFrameEdge(
+  quad: Quad,
+  width: number,
+  height: number,
+  margin: number,
+): boolean {
+  return quad.some(
+    (point) =>
+      point.x < margin || point.y < margin || point.x > width - margin || point.y > height - margin,
+  );
+}
+
+export function candidateFromQuad(
+  quad: Quad,
+  frameWidth: number,
+  frameHeight: number,
+  score: number,
+): CardCandidate {
+  const ordered = canonicalizeQuad(quad);
+  const side = (a: Point, b: Point) => Math.hypot(b.x - a.x, b.y - a.y);
+  const width = (side(ordered[0], ordered[1]) + side(ordered[3], ordered[2])) / 2;
+  const height = (side(ordered[0], ordered[3]) + side(ordered[1], ordered[2])) / 2;
+  return {
+    quad: ordered,
+    areaFraction: (width * height) / (frameWidth * frameHeight),
+    score,
+  };
 }

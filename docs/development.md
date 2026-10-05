@@ -50,6 +50,23 @@ server negotiates HTTP/1.1 only: Firefox randomly fails module loads over
 Node's HTTP/2 dev server (vitejs/vite#21569), which leaves the page stuck in
 its server-rendered state.
 
+## Card scanner
+
+The scanner's engine files are not in the repository. Place the encoder and
+the two detectors in `media/scan/` once, then name the detectors in `.env`:
+
+```bash
+SCAN_DETECTOR_FILE=scan-detector-v2.onnx
+SCAN_BOARD_DETECTOR_FILE=scan-board-detector-v2.onnx
+```
+
+The encoder name defaults to `scan-encoder-v2.onnx`, and `SCAN_ENCODER_FILE`
+changes it. Without the card detector the scan manifest reports the scanner as
+unavailable. Without the board detector it scans single cards, and board reads, sweeps and the admin
+straighten tool are off. Build the reference bank once from the admin scan
+page after the encoder is in place. The offline bench under `scripts/scan/`
+has its own setup, described in `scripts/scan/README.md`.
+
 ## Database
 
 PostgreSQL runs in Docker. Data persists in a bind mount at `./data/postgres` — to wipe it, stop the container and remove the directory: `docker compose down && rm -rf ./data/postgres`.

@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { REVOKE_DELAY_MS } from "@/lib/download";
+
 const html2canvas = vi.fn();
 
 vi.mock("html2canvas-pro", () => ({ html2canvas }));
@@ -68,6 +70,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   removeClipboard();
@@ -94,8 +97,12 @@ describe("exportCardImage", () => {
     expect(clicked).toEqual([{ href: "blob:card", download: "jinx.png" }]);
   });
 
-  it("releases the object url after the download", async () => {
+  it("releases the object url only after the download has had time to start", async () => {
+    vi.useFakeTimers();
     await exportCardImage(cardElement(), "download", "jinx.png");
+    vi.advanceTimersByTime(REVOKE_DELAY_MS - 1);
+    expect(revoked).toEqual([]);
+    vi.advanceTimersByTime(1);
     expect(revoked).toEqual(["blob:card"]);
   });
 

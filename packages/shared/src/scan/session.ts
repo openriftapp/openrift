@@ -1,116 +1,49 @@
 /**
- * The live scanning pipeline as one orchestrated session.
- *
- * Per frame: detect card-shaped quads, rectify the best candidates, rank the
- * whole catalogue by embedding, verify the shortlist by ORB features, and
- * fold the winner into the accept layer, which locks a card after a run of
- * agreeing frames.
+ * The live scanning pipeline: detect cards, rectify the best candidates, rank
+ * the catalogue by embedding, check the shortlist by aligned correlation, and
+ * lock a card after a run of agreeing frames.
  */
-import type {
-  AcceptOptions,
-  AcceptState,
-  ArtTrack,
-  FrameWinner,
-  VerifiedCandidate,
-} from "./accept";
-import { frameWeight, observeWinner, pickFrameWinner, rearmLockedTracks } from "./accept";
-import type { OpenCvLike } from "./detect-cv";
-import { detectCardsWithCv } from "./detect-cv";
-import type { PrintingScore, PrintingSignature } from "./disambiguate";
+import type { AcceptOptions, AcceptState, ArtTrack, FrameWinner } from "./accept";
 import {
-  bestShiftCorrelation,
-  printingSignature,
-  resolvePrinting,
-  textBandForType,
-} from "./disambiguate";
-import type { CardEmbedder, EmbedBank, EmbedKind, RankedEmbed } from "./embed";
+  DEFAULT_ALIGNED_OPTIONS,
+  alignedFrameWeight,
+  continuesRun,
+  observeWinner,
+  pickAlignedWinner,
+  rearmLockedTracks,
+} from "./accept";
+import { createAlignedVerifier } from "./aligned-verify";
+import type { PrintingScore } from "./disambiguate";
+import { snapQuadToEdges } from "./edge-snap";
+import type { CardEmbedder, RankedEmbed } from "./embed";
 import { EMBED_IMAGE_SIZE, rankCardEmbedding } from "./embed";
-import { fitCardRects } from "./fit-rect";
-import { quadIou } from "./geometry";
-import { focusScore, rotateRgbaCw, toGray } from "./image";
-import type { OrbCvLike, OrbFeatures } from "./orb";
-import { describeOrb, releaseOrb, verifyOrb } from "./orb";
+import { createShiftTracker, framePyramid, trackShift } from "./frame-shift";
+import { candidateFromQuad, quadIou } from "./geometry";
+import { focusScore, toGray } from "./image";
+import type { PrintingLockDeps, PrintingReadout } from "./printing-lock";
+import { createPrintingLock } from "./printing-lock";
+import type { ScanSessionOptions } from "./session-options";
+import {
+  DEFAULT_SESSION_OPTIONS,
+  IDLE_AFTER_NO_WINNER_FRAMES,
+  MIN_FOCUS,
+  ROTATION_MIN_FOCUS,
+  SESSION_UNWARP_HEIGHT,
+  SESSION_UNWARP_WIDTH,
+  SWEEP_TOP_K,
+  centeredGuideQuad,
+} from "./session-options";
+import type { SweepSurvey } from "./sweep";
+import { SWEEP_OPTIONS, createSweepTracker } from "./sweep";
+import { createTablePlaces, onCountedPlace, placeFor, shiftTable } from "./table-places";
 import type { CardCandidate, Quad, RgbaImage } from "./types";
-import { CARD_ASPECT } from "./types";
 import { unwarpCard } from "./unwarp";
 
-export const SESSION_UNWARP_WIDTH = 384;
-export const SESSION_UNWARP_HEIGHT = 528;
-
-const REFERENCE_CACHE_LIMIT = 256;
-
-export interface ScanSessionDeps {
-  cv: OpenCvLike & OrbCvLike;
+export interface ScanSessionDeps extends PrintingLockDeps {
   embedder: CardEmbedder;
-  bank: EmbedBank;
-  artKeyOf: (key: string) => string;
-  labelOf: (key: string) => string;
-  cardTypeOf?: (key: string) => string | undefined;
-  publicCodeOf?: (key: string) => string | undefined;
-  markersOf?: (key: string) => string | undefined;
-  languageOf?: (key: string) => string | undefined;
-  fetchReference: (key: string) => Promise<RgbaImage | null>;
+  detectCard?: (frame: RgbaImage) => Promise<CardCandidate[]>;
+  detectBoard?: (frame: RgbaImage) => Promise<CardCandidate[]>;
   embedImageSize?: number;
-}
-
-export interface ScanSessionOptions {
-  embedKind: EmbedKind;
-  topK: number;
-  candidatesToTry: number;
-  confidentDistance: number;
-  minFocus: number;
-  rotationMinFocus: number;
-  rotationFallbackDistance: number;
-  rotationPairOnly: boolean;
-  minInliers: number;
-  margin: number;
-  maskReferenceFrame: boolean;
-  guideFor: ((width: number, height: number) => Quad) | null;
-  accept: AcceptOptions;
-}
-
-export const DEFAULT_SESSION_OPTIONS: ScanSessionOptions = {
-  embedKind: "card",
-  topK: 8,
-  candidatesToTry: 4,
-  confidentDistance: 0.22,
-  minFocus: 12,
-  rotationMinFocus: 40,
-  rotationFallbackDistance: 0.35,
-  rotationPairOnly: false,
-  guideFor: null,
-  minInliers: 11,
-  margin: 1.5,
-  maskReferenceFrame: false,
-  accept: { lockRun: 4, maxGapFrames: 6 },
-};
-
-export interface EncoderGates {
-  confidentDistance: number;
-  rotationFallbackDistance: number;
-  slowRotationFallbackDistance: number;
-  topK: number;
-}
-
-/**
- * Keyed by embedding dimension, the one encoder property a loaded bank
- * exposes (MobileCLIP-S0 at 512, the custom ArcFace encoder at 256).
- */
-export function gatesForEmbedDim(dim: number): EncoderGates {
-  if (dim === 256) {
-    return {
-      confidentDistance: 0.35,
-      rotationFallbackDistance: 0.42,
-      slowRotationFallbackDistance: 0.42,
-      topK: 2,
-    };
-  }
-  return {
-    confidentDistance: DEFAULT_SESSION_OPTIONS.confidentDistance,
-    rotationFallbackDistance: DEFAULT_SESSION_OPTIONS.rotationFallbackDistance,
-    slowRotationFallbackDistance: 0.45,
-    topK: DEFAULT_SESSION_OPTIONS.topK,
-  };
 }
 
 export interface FrameOutcome {
@@ -118,14 +51,34 @@ export interface FrameOutcome {
   ranked: RankedEmbed[];
   winner: FrameWinner | null;
   refused: boolean;
-  bestInliers: number;
+  /** Percent. */
+  bestScore: number;
   locked: ArtTrack | null;
+  winnerRun: { length: number; weight: number } | null;
   printingScores?: PrintingScore[];
   printingMargin?: number;
-  printingVia?: "name" | "code" | "stamp";
-  printingTrack?: { artKey: string; key: string; label: string; resolved: boolean };
+  printingVia?: PrintingReadout["via"];
+  printingTrack?: {
+    artKey: string;
+    key: string;
+    label: string;
+    resolved: boolean;
+    lockedFrame?: number;
+  };
+  aligned?: { key: string; score: number }[];
   focus: number;
-  timings: { detect: number; embed: number; verify: number; total: number };
+  sweeping: boolean;
+  still: boolean;
+  survey?: CardCandidate[];
+  /** Milliseconds; `crop` is the part of `embed` spent cutting out and focus-checking crops. */
+  timings: {
+    detect: number;
+    embed: number;
+    verify: number;
+    total: number;
+    crop: number;
+    printing?: number;
+  };
 }
 
 export interface ScanSession {
@@ -136,14 +89,8 @@ export interface ScanSession {
     now?: () => number,
   ) => Promise<FrameOutcome>;
   state: AcceptState;
-  /**
-   * Let every locked track lock again: something the session cannot see from
-   * the frames it processes says the guide now holds a different card.
-   * `createPlacementDetector` produces that signal, sampled faster than
-   * frames can be recognised.
-   */
+  /** Lets every locked track lock again once the placement detector reports a new card in the guide. */
   rearm: () => void;
-  release: () => void;
 }
 
 const EMPTY_OUTCOME = {
@@ -152,75 +99,22 @@ const EMPTY_OUTCOME = {
   winner: null,
   refused: false,
   locked: null,
+  winnerRun: null,
   focus: 0,
-  bestInliers: 0,
+  bestScore: 0,
 };
 
-/**
- * Contour and rectangle-fit scores are on different scales, so an
- * overlapping pair resolves to the rectangle fit's coarser quad. Do not
- * normalize the scales without re-running the clip calibration.
- */
-export function mergeCandidates(candidates: readonly CardCandidate[]): CardCandidate[] {
-  const kept: CardCandidate[] = [];
-  for (const candidate of candidates.toSorted((a, b) => b.score - a.score)) {
-    if (kept.some((other) => quadIou(candidate.quad, other.quad) > 0.6)) {
-      continue;
-    }
-    kept.push(candidate);
-  }
-  return kept;
-}
-
 const TRACK_IOU = 0.4;
-
-export const IDLE_AFTER_NO_WINNER_FRAMES = 5;
-
-export function idleBackoffActive(noWinnerStreak: number, hasGuide: boolean): boolean {
-  return hasGuide && noWinnerStreak >= IDLE_AFTER_NO_WINNER_FRAMES;
-}
-
-export const GUIDE_MIN_IOU = 0.3;
-
-/**
- * Guide rect drawn by single-card scan modes. Shared here, not owned by the
- * web hook, so the offline bench anchors on the exact rect the app draws.
- */
-export function centeredGuideQuad(width: number, height: number): Quad {
-  let cardHeight = 0.7 * height;
-  let cardWidth = cardHeight * CARD_ASPECT;
-  if (cardWidth > 0.9 * width) {
-    cardWidth = 0.9 * width;
-    cardHeight = cardWidth / CARD_ASPECT;
-  }
-  const left = (width - cardWidth) / 2;
-  const top = (height - cardHeight) / 2;
-  return [
-    { x: left, y: top },
-    { x: left + cardWidth, y: top },
-    { x: left + cardWidth, y: top + cardHeight },
-    { x: left, y: top + cardHeight },
-  ];
-}
-
 const ABSENT_FRAMES_TO_REARM = 2;
 
-function guideCandidate(quad: Quad, frame: RgbaImage): CardCandidate {
-  const width = Math.hypot(quad[1].x - quad[0].x, quad[1].y - quad[0].y);
-  const height = Math.hypot(quad[2].x - quad[1].x, quad[2].y - quad[1].y);
-  return {
-    quad,
-    aspect: height / Math.max(1, width),
-    areaFraction: (width * height) / (frame.width * frame.height),
-    rectangularity: 1,
-    score: 0,
-  };
+interface BestCrop {
+  candidate: CardCandidate;
+  ranked: RankedEmbed[];
+  top: RankedEmbed;
+  card: RgbaImage;
+  focus: number;
 }
 
-/**
- * A stale anchor only affects search order, never correctness: the embedding
- * still judges every candidate it reaches.
- */
 export function prioritizeTracked(
   candidates: readonly CardCandidate[],
   anchor: Quad | null,
@@ -235,142 +129,112 @@ export function prioritizeTracked(
   return candidates.toSorted((a, b) => overlap(b) - overlap(a));
 }
 
-/** Call `release` when finished with the session. */
 export function createScanSession(
   deps: ScanSessionDeps,
   options: Partial<ScanSessionOptions> = {},
 ): ScanSession {
   const opts = { ...DEFAULT_SESSION_OPTIONS, ...options };
   const state: AcceptState = new Map();
-  // Failed fetches are cached as null so a missing render costs one request
-  // per session, not one per frame it ranks in.
-  const referenceCache = new Map<string, OrbFeatures | null>();
   const embedImageSize = deps.embedImageSize ?? EMBED_IMAGE_SIZE;
   const embedInput = new Float32Array(4 * 3 * embedImageSize * embedImageSize);
+  const verify = createAlignedVerifier(deps.fetchReference);
+  const printingLock = createPrintingLock(deps);
+  const sweep = opts.sweep ? createSweepTracker(deps.detectBoard) : null;
+  const tablePlaces = createTablePlaces();
+  const countedPlaces = new Set<string>();
+  const shiftTracker = createShiftTracker();
+  const sweepLocks = new Map<string, number>();
   let lastWinnerQuad: Quad | null = null;
   let lastWinnerRotation = 0;
   let noWinnerStreak = 0;
   let absentStreak = 0;
-  const printingSignatureCache = new Map<string, PrintingSignature | null>();
-  // A pick only applies after two agreeing frames, so one glare-frame fluke
-  // cannot rename a locked card.
-  const printingVotes = new Map<string, { key: string; streak: number }>();
+  let cardInGuide = false;
 
-  /**
-   * Correlate the locking frame's text band against the locked artwork's
-   * printings and rewrite the track's key when one clearly wins. Abstains on
-   * landscape cards, single-printing artworks and unclear correlations.
-   */
-  async function disambiguateLock(
-    track: ArtTrack,
-    card: RgbaImage,
-    rotation: number,
-  ): Promise<
-    { scores: PrintingScore[]; margin?: number; via?: "name" | "code" | "stamp" } | undefined
-  > {
-    const keys = deps.bank.keys.filter((key) => deps.artKeyOf(key) === track.artKey);
-    const uniqueKeys = [...new Set(keys)];
-    if (uniqueKeys.length < 2) {
-      return undefined;
-    }
-    let aligned = card;
-    for (let turn = 0; turn < rotation; turn++) {
-      aligned = rotateRgbaCw(aligned);
-    }
-    const band = textBandForType(deps.cardTypeOf?.(track.key));
-    const query = printingSignature(aligned, band);
-    if (!query) {
-      return undefined;
-    }
-    const signatures = new Map<string, PrintingSignature | null>();
-    for (const key of uniqueKeys) {
-      let signature = printingSignatureCache.get(key);
-      if (signature === undefined) {
-        let image: RgbaImage | null;
-        try {
-          image = await deps.fetchReference(key);
-        } catch {
-          continue;
-        }
-        signature = image ? printingSignature(image, band) : null;
-        printingSignatureCache.set(key, signature);
-      }
-      signatures.set(key, signature);
-    }
-    const scores: PrintingScore[] = [];
-    for (const [key, signature] of signatures) {
-      if (signature) {
-        scores.push({ key, score: bestShiftCorrelation(query.name, signature.name).score });
-      }
-    }
-    scores.sort((a, b) => b.score - a.score);
-    const picked = resolvePrinting(
-      query,
-      signatures,
-      deps.publicCodeOf,
-      deps.markersOf,
-      deps.languageOf,
-    );
-    if (picked !== null) {
-      // Agreement is class-level: duplicate renders of one printing are
-      // interchangeable, or they'd split the vote forever.
-      const pickedClass = new Set([picked.key, ...picked.indistinguishable]);
-      const vote = printingVotes.get(track.artKey);
-      const streak = vote && pickedClass.has(vote.key) ? vote.streak + 1 : 1;
-      printingVotes.set(track.artKey, { key: picked.key, streak });
-      // Label alone isn't enough: same-code marker variants share a label,
-      // so markers must also agree (undefined never matches a defined set).
-      const pickedLabel = deps.labelOf(picked.key);
-      const pickedMarkers = deps.markersOf?.(picked.key);
-      const unanimous = picked.indistinguishable.every(
-        (key) => deps.labelOf(key) === pickedLabel && deps.markersOf?.(key) === pickedMarkers,
-      );
-      if (streak >= 2 && unanimous) {
-        track.key = picked.key;
-        track.label = pickedLabel;
-        track.printingResolved = true;
-      }
-    }
-    return scores.length > 0 ? { scores, margin: picked?.margin, via: picked?.via } : undefined;
+  function resetAim(): void {
+    lastWinnerQuad = null;
+    noWinnerStreak = 0;
   }
 
-  async function processFrame(
-    frame: RgbaImage,
-    frameIndex: number,
-    seconds: number,
-    now: () => number = () => Date.now(),
-  ): Promise<FrameOutcome> {
-    const startedAt = now();
-    const gray = toGray(frame);
-    let candidates = mergeCandidates([...detectCardsWithCv(deps.cv, gray), ...fitCardRects(gray)]);
-    const guide = opts.guideFor ? opts.guideFor(frame.width, frame.height) : null;
-    let guideEmpty = false;
-    if (guide) {
-      candidates = candidates.filter(
-        (candidate) => quadIou(candidate.quad, guide) >= GUIDE_MIN_IOU,
-      );
-      guideEmpty = candidates.length === 0;
-      if (candidates.length === 0) {
-        // Covers cards that defeat both detectors, and close-up framing
-        // where every proposal is an interior alignment of the card's frame.
-        candidates = [guideCandidate(guide, frame)];
-      }
-    }
-    const detectMs = now() - startedAt;
+  function acceptOptions(sweeping: boolean): AcceptOptions {
+    return sweeping ? SWEEP_OPTIONS.accept : opts.accept;
+  }
 
-    const embedStartedAt = now();
-    let best: {
-      candidate: CardCandidate;
-      ranked: RankedEmbed[];
-      top: RankedEmbed;
-      card: RgbaImage;
-      focus: number;
-    } | null = null;
-    const idle = idleBackoffActive(noWinnerStreak, guide !== null);
-    for (const candidate of prioritizeTracked(candidates, lastWinnerQuad ?? guide).slice(
-      0,
-      idle ? 1 : opts.candidatesToTry,
-    )) {
+  function frameWeightFor(winner: FrameWinner, sweeping: boolean): number {
+    return acceptOptions(sweeping).weighted
+      ? alignedFrameWeight(winner, DEFAULT_ALIGNED_OPTIONS)
+      : 1;
+  }
+
+  function snap(frame: RgbaImage, found: CardCandidate[]): CardCandidate[] {
+    if (found.length === 0) {
+      return found;
+    }
+    const gray = toGray(frame);
+    return found.map((candidate) => ({
+      ...candidate,
+      quad: snapQuadToEdges(gray, candidate.quad),
+    }));
+  }
+
+  function trackCamera(frame: RgbaImage, seconds: number): boolean {
+    if (!sweep) {
+      return false;
+    }
+    const step = trackShift(shiftTracker, framePyramid(frame));
+    shiftTable(tablePlaces, step);
+    return sweep.noteMotion(Math.hypot(step.x, step.y) / frame.width, shiftTracker.lost, seconds);
+  }
+
+  async function findCards(
+    frame: RgbaImage,
+    guide: Quad,
+    sweeping: boolean,
+    survey: SweepSurvey | null,
+  ): Promise<{ learned: CardCandidate[]; candidates: CardCandidate[]; guideEmpty: boolean }> {
+    if (sweeping) {
+      let found = survey?.started ? survey.outlines : null;
+      if (!found) {
+        found = deps.detectBoard ? await deps.detectBoard(frame) : [];
+        if (sweep?.endsSweep(found, guide)) {
+          resetAim();
+        }
+      }
+      return { learned: [], candidates: snap(frame, found), guideEmpty: false };
+    }
+    const learned = deps.detectCard ? snap(frame, await deps.detectCard(frame)) : [];
+    if (learned.length > 0) {
+      return { learned, candidates: [], guideEmpty: false };
+    }
+    const board = sweep ? await sweep.emptyGuide(frame, guide, survey?.outlines ?? null) : [];
+    return {
+      learned: snap(frame, board),
+      candidates: [candidateFromQuad(guide, frame.width, frame.height, 0)],
+      guideEmpty: true,
+    };
+  }
+
+  function uncountedFirst(ordered: CardCandidate[], sweeping: boolean): CardCandidate[] {
+    if (!sweeping || countedPlaces.size === 0) {
+      return ordered;
+    }
+    return ordered.toSorted(
+      (a, b) =>
+        Number(onCountedPlace(tablePlaces, countedPlaces, a.quad)) -
+        Number(onCountedPlace(tablePlaces, countedPlaces, b.quad)),
+    );
+  }
+
+  async function bestCrop(
+    frame: RgbaImage,
+    candidates: readonly CardCandidate[],
+    sweeping: boolean,
+    idle: boolean,
+    now: () => number,
+  ): Promise<{ best: BestCrop | null; cropMs: number }> {
+    let best: BestCrop | null = null;
+    let cropMs = 0;
+    for (const candidate of candidates) {
+      const cropStartedAt = now();
       const card = unwarpCard(
         frame,
         candidate.quad,
@@ -378,18 +242,16 @@ export function createScanSession(
         SESSION_UNWARP_HEIGHT,
         0,
       );
-      if (!card) {
+      const focus = card ? focusScore(toGray(card)) : 0;
+      cropMs += now() - cropStartedAt;
+      if (!card || focus < MIN_FOCUS) {
         continue;
       }
-      const focus = focusScore(toGray(card));
-      if (focus < opts.minFocus) {
-        continue;
-      }
-      const ranked = await rankCardEmbedding(card, opts.embedKind, deps.embedder, deps.bank, {
-        topK: opts.topK,
+      const ranked = await rankCardEmbedding(card, deps.embedder, deps.bank, {
+        topK: sweeping ? SWEEP_TOP_K : opts.topK,
         confidentDistance: opts.confidentDistance,
         rotationFallbackDistance: opts.rotationFallbackDistance,
-        allowRotationFallback: !idle && focus >= opts.rotationMinFocus,
+        allowRotationFallback: !idle && focus >= ROTATION_MIN_FOCUS,
         preferredRotation: lastWinnerRotation,
         scratch: embedInput,
         imageSize: embedImageSize,
@@ -399,19 +261,169 @@ export function createScanSession(
       if (top && (!best || top.distance < best.top.distance)) {
         best = { candidate, ranked, top, card, focus };
       }
-      // Guide mode: every candidate is a crop of one card. Pan mode: a frame
-      // can hold several, so only a confident match cuts the search short.
-      const exitDistance = guide ? opts.rotationFallbackDistance : opts.confidentDistance;
+      const exitDistance = sweeping ? opts.confidentDistance : opts.rotationFallbackDistance;
       if (opts.confidentDistance >= 0 && best !== null && best.top.distance <= exitDistance) {
         break;
       }
     }
+    return { best, cropMs };
+  }
+
+  function crossesSweptCard(artKey: string, frameIndex: number, seconds: number): boolean {
+    const swept = sweepLocks.get(artKey);
+    if (swept === undefined) {
+      return false;
+    }
+    const track = state.get(artKey);
+    const runStart =
+      track && continuesRun(track, frameIndex, opts.accept) ? track.runStartSeconds : seconds;
+    return runStart - swept <= SWEEP_OPTIONS.crossPathSeconds;
+  }
+
+  function noteLock(
+    locked: ArtTrack,
+    sweeping: boolean,
+    quad: Quad,
+    frame: RgbaImage,
+    seconds: number,
+  ): void {
+    if (!sweep) {
+      return;
+    }
+    if (sweeping) {
+      sweepLocks.set(locked.artKey, seconds);
+      return;
+    }
+    const aimedPlace = placeFor(tablePlaces, locked.artKey, quad, frame);
+    if (aimedPlace) {
+      countedPlaces.add(aimedPlace.key);
+    }
+  }
+
+  function observeFrameWinner(
+    winner: FrameWinner,
+    best: BestCrop,
+    frame: RgbaImage,
+    frameIndex: number,
+    seconds: number,
+    sweeping: boolean,
+  ): { locked: ArtTrack | null; stateKey: string | null } {
+    const place = sweeping
+      ? placeFor(tablePlaces, winner.artKey, best.candidate.quad, frame)
+      : null;
+    if (sweeping && place === null) {
+      return { locked: null, stateKey: null };
+    }
+    const stateKey = place?.key ?? winner.artKey;
+    const crossed = !sweeping && crossesSweptCard(winner.artKey, frameIndex, seconds);
+    noWinnerStreak = 0;
+    absentStreak = 0;
+    lastWinnerQuad = best.candidate.quad;
+    lastWinnerRotation =
+      best.ranked.find((entry) => entry.key === winner.key)?.rotation ?? best.top.rotation;
+    const counted = place !== null && countedPlaces.has(place.key) && state.has(place.key);
+    const locked = observeWinner(
+      state,
+      frameIndex,
+      seconds,
+      winner,
+      deps.labelOf(winner.key),
+      acceptOptions(sweeping),
+      { weight: frameWeightFor(winner, sweeping), stateKey, canLock: !counted && !crossed },
+    );
+    if (locked) {
+      if (place) {
+        countedPlaces.add(place.key);
+      }
+      noteLock(locked, sweeping, best.candidate.quad, frame, seconds);
+      printingLock.restart(locked);
+    }
+    return { locked, stateKey: crossed ? null : stateKey };
+  }
+
+  async function settlePrinting(
+    locked: ArtTrack | null,
+    stateKey: string | null,
+    card: RgbaImage,
+  ): Promise<{ track: ArtTrack | null; readout?: PrintingReadout }> {
+    let track = locked;
+    if (!track && stateKey) {
+      const candidate = state.get(stateKey);
+      if (candidate && candidate.lockedAt !== null && !candidate.printingResolved) {
+        track = candidate;
+      }
+    }
+    if (!track || !printingLock.takeAttempt(track)) {
+      return { track: null };
+    }
+    return { track, readout: await printingLock.disambiguate(track, card, lastWinnerRotation) };
+  }
+
+  function failureCouldChangeWinner(
+    failed: readonly string[],
+    winner: FrameWinner | null,
+    ranked: readonly RankedEmbed[],
+  ): boolean {
+    if (failed.length === 0) {
+      return false;
+    }
+    if (!winner) {
+      return true;
+    }
+    const rankOf = (key: string) => ranked.findIndex((entry) => entry.key === key);
+    const winnerRank = rankOf(winner.key);
+    return failed.some((key) => deps.artKeyOf(key) !== winner.artKey && rankOf(key) < winnerRank);
+  }
+
+  function bestScoreOf(scores: readonly { score: number }[]): number {
+    const best = Math.max(0, ...scores.map(({ score }) => (Number.isFinite(score) ? score : 0)));
+    return Math.round(best * 100);
+  }
+
+  async function processFrame(
+    frame: RgbaImage,
+    frameIndex: number,
+    seconds: number,
+    now: () => number = () => Date.now(),
+  ): Promise<FrameOutcome> {
+    const startedAt = now();
+    const still = trackCamera(frame, seconds);
+    const guide = centeredGuideQuad(frame.width, frame.height);
+    const survey =
+      sweep && !sweep.active ? await sweep.survey(frame, guide, seconds, cardInGuide) : null;
+    if (survey?.started) {
+      resetAim();
+    }
+    const surveyed = survey ? { survey: survey.outlines } : {};
+    const sweeping = sweep?.active ?? false;
+    const { learned, candidates, guideEmpty } = await findCards(frame, guide, sweeping, survey);
+    const detectMs = now() - startedAt;
+
+    const embedStartedAt = now();
+    const idle = !sweeping && noWinnerStreak >= IDLE_AFTER_NO_WINNER_FRAMES;
+    // Learned outlines go first, so the idle backoff's single try still uses them.
+    const ordered = [
+      ...learned,
+      ...uncountedFirst(
+        prioritizeTracked(candidates, lastWinnerQuad ?? (sweeping ? null : guide)),
+        sweeping,
+      ),
+    ].slice(0, idle ? 1 : opts.candidatesToTry);
+    const { best, cropMs } = await bestCrop(frame, ordered, sweeping, idle, now);
+    cardInGuide = best !== null && best.top.distance <= opts.rotationFallbackDistance;
     const embedMs = now() - embedStartedAt;
+    const timings = (verifyMs: number, printing?: number): FrameOutcome["timings"] => ({
+      detect: detectMs,
+      embed: embedMs,
+      verify: verifyMs,
+      total: now() - startedAt,
+      crop: cropMs,
+      ...(printing === undefined ? {} : { printing }),
+    });
 
     // Must run before verification: a card whose first frame needs the
     // rotation search could otherwise never produce the winner that resets it.
-    const plausible = best !== null && best.top.distance <= opts.rotationFallbackDistance;
-    if (plausible) {
+    if (best !== null && best.top.distance <= opts.rotationFallbackDistance) {
       noWinnerStreak = 0;
       absentStreak = 0;
     } else if (guideEmpty) {
@@ -425,140 +437,69 @@ export function createScanSession(
 
     if (!best) {
       noWinnerStreak++;
-      return {
-        ...EMPTY_OUTCOME,
-        timings: { detect: detectMs, embed: embedMs, verify: 0, total: now() - startedAt },
-      };
+      return { ...EMPTY_OUTCOME, ...surveyed, sweeping, still, timings: timings(0) };
     }
 
     const verifyStartedAt = now();
-    const query = describeOrb(deps.cv, best.card);
-    const verdicts: VerifiedCandidate[] = [];
-    // Poisons the frame: the missing reference could be exactly the rival
-    // that would have refused a wrong winner.
-    let referenceUnavailable = false;
-    for (const entry of best.ranked) {
-      let reference = referenceCache.get(entry.key);
-      if (reference === undefined) {
-        let image: RgbaImage | null;
-        try {
-          image = await deps.fetchReference(entry.key);
-        } catch {
-          // Not cached: the fetch is retried the next time this key ranks.
-          referenceUnavailable = true;
-          continue;
-        }
-        reference = image ? describeOrb(deps.cv, image, 700, opts.maskReferenceFrame) : null;
-      } else {
-        // Re-inserting refreshes recency, so busy references stay resident.
-        referenceCache.delete(entry.key);
-      }
-      referenceCache.set(entry.key, reference);
-      if (referenceCache.size > REFERENCE_CACHE_LIMIT) {
-        // Maps iterate in insertion order, so the first entry is the least
-        // recently used one.
-        for (const [staleKey, stale] of referenceCache) {
-          referenceCache.delete(staleKey);
-          if (stale) {
-            releaseOrb(stale);
-          }
-          break;
-        }
-      }
-      if (!reference) {
-        continue;
-      }
-      const verdict = verifyOrb(deps.cv, query, reference);
-      if (verdict.inliers > 0) {
-        verdicts.push({
-          key: entry.key,
-          artKey: deps.artKeyOf(entry.key),
-          inliers: verdict.inliers,
-        });
-      }
-    }
-    releaseOrb(query);
-
-    if (referenceUnavailable) {
+    const verification = await verify(best.card, best.ranked);
+    const decision = pickAlignedWinner(verification.scores, deps.artKeyOf, DEFAULT_ALIGNED_OPTIONS);
+    if (failureCouldChangeWinner(verification.failed, decision.winner, best.ranked)) {
       return {
         ...EMPTY_OUTCOME,
+        ...surveyed,
+        sweeping,
+        still,
         candidate: best.candidate,
         ranked: best.ranked,
         focus: best.focus,
-        timings: {
-          detect: detectMs,
-          embed: embedMs,
-          verify: now() - verifyStartedAt,
-          total: now() - startedAt,
-        },
+        timings: timings(now() - verifyStartedAt),
       };
     }
 
-    const decision = pickFrameWinner(verdicts, opts.minInliers, opts.margin);
-    let locked: ArtTrack | null = null;
+    cardInGuide ||= decision.winner !== null;
     if (!decision.winner && best.top.distance > opts.rotationFallbackDistance) {
       noWinnerStreak++;
     }
-    if (decision.winner) {
-      noWinnerStreak = 0;
-      absentStreak = 0;
-      lastWinnerQuad = best.candidate.quad;
-      const winnerKey = decision.winner.key;
-      lastWinnerRotation =
-        best.ranked.find((entry) => entry.key === winnerKey)?.rotation ?? best.top.rotation;
-      locked = observeWinner(
-        state,
-        frameIndex,
-        seconds,
-        decision.winner,
-        deps.labelOf(decision.winner.key),
-        opts.accept,
-        opts.accept.weighted ? frameWeight(decision.winner, opts.minInliers, opts.margin) : 1,
-      );
-    }
+    const { locked, stateKey } = decision.winner
+      ? observeFrameWinner(decision.winner, best, frame, frameIndex, seconds, sweeping)
+      : { locked: null, stateKey: null };
     const verifyMs = now() - verifyStartedAt;
 
-    // Keep retrying on later winner frames of a locked-but-unresolved track:
-    // a fast lock can land on a frame whose text band carries no signal.
-    let printing:
-      | { scores: PrintingScore[]; margin?: number; via?: "name" | "code" | "stamp" }
-      | undefined;
-    let printingTrack: ArtTrack | null = locked;
-    if (!printingTrack && decision.winner) {
-      const track = state.get(decision.winner.artKey);
-      if (track && track.lockedAt !== null && !track.printingResolved) {
-        printingTrack = track;
-      }
-    }
-    if (printingTrack) {
-      printing = await disambiguateLock(printingTrack, best.card, lastWinnerRotation);
-    }
+    const printingStartedAt = now();
+    const printing = await settlePrinting(locked, stateKey, best.card);
+    const printingMs = now() - printingStartedAt;
+    const winnerTrack = stateKey ? state.get(stateKey) : undefined;
 
     return {
       candidate: best.candidate,
       ranked: best.ranked,
       winner: decision.winner,
+      aligned: verification.scores,
       refused: decision.refused,
-      bestInliers: verdicts.reduce((most, verdict) => Math.max(most, verdict.inliers), 0),
+      bestScore: bestScoreOf(verification.scores),
       locked,
-      printingScores: printing?.scores,
-      printingMargin: printing?.margin,
-      printingVia: printing?.via,
-      printingTrack: printingTrack
+      winnerRun: winnerTrack
+        ? { length: winnerTrack.runLength, weight: winnerTrack.runWeight }
+        : null,
+      printingScores: printing.readout?.scores,
+      printingMargin: printing.readout?.margin,
+      printingVia: printing.readout?.via,
+      printingTrack: printing.track
         ? {
-            artKey: printingTrack.artKey,
-            key: printingTrack.key,
-            label: printingTrack.label,
-            resolved: printingTrack.printingResolved,
+            artKey: printing.track.artKey,
+            key: printing.track.key,
+            label: printing.track.label,
+            resolved: printing.track.printingResolved,
+            ...(printing.track.lockedFrame === undefined
+              ? {}
+              : { lockedFrame: printing.track.lockedFrame }),
           }
         : undefined,
+      ...surveyed,
+      sweeping,
+      still,
       focus: best.focus,
-      timings: {
-        detect: detectMs,
-        embed: embedMs,
-        verify: verifyMs,
-        total: now() - startedAt,
-      },
+      timings: timings(verifyMs, printingMs),
     };
   }
 
@@ -567,18 +508,10 @@ export function createScanSession(
     state,
     rearm: () => {
       rearmLockedTracks(state);
-      // lastWinnerRotation is deliberately kept: cards dealt onto a pile
-      // land the same way up, and it only steers the search order.
+      // lastWinnerRotation stays: cards dealt onto a pile land the same way
+      // up, and it only steers the search order.
       lastWinnerQuad = null;
       absentStreak = 0;
-    },
-    release: () => {
-      for (const cached of referenceCache.values()) {
-        if (cached) {
-          releaseOrb(cached);
-        }
-      }
-      referenceCache.clear();
     },
   };
 }

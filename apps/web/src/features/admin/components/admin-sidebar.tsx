@@ -5,6 +5,8 @@ import {
   ActivityIcon,
   CalendarClockIcon,
   CameraIcon,
+  GaugeIcon,
+  SquareDashedIcon,
   CloudIcon,
   CrownIcon,
   FileWarningIcon,
@@ -118,6 +120,12 @@ const systemPages = [
   { to: "/admin/api-keys" as const, icon: KeyRoundIcon, title: "API Keys" },
   { to: "/admin/cache" as const, icon: CloudIcon, title: "Cache" },
   { to: "/admin/scan" as const, icon: CameraIcon, title: "Scan Test" },
+  ...(import.meta.env.DEV
+    ? [
+        { to: "/admin/scan-bench" as const, icon: GaugeIcon, title: "Scan Bench" },
+        { to: "/admin/outline-labels" as const, icon: SquareDashedIcon, title: "Outline Labels" },
+      ]
+    : []),
 ];
 
 const groups = [

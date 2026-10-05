@@ -14,7 +14,7 @@ describe("scanAssetError", () => {
   it("never names the removed dev export script", () => {
     for (const url of [
       "/media/scan/scan-encoder-v2.onnx",
-      "/media/scan/scan-opencv-v1.js",
+      "/media/scan/scan-detector-v1.onnx",
       "https://openrift.app/media/scan/scan-labels-abc.json",
       "",
     ]) {

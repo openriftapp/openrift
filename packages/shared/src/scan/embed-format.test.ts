@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import type { EmbedBank } from "./embed";
-import { EMBED_DIM } from "./embed";
 import { decodeEmbedBank, encodeEmbedBank } from "./embed-format";
+
+const EMBED_DIM = 512;
 
 function unitVector(seed: number): Float32Array {
   const vector = new Float32Array(EMBED_DIM);

@@ -1,11 +1,13 @@
+import type { FrameOutcome } from "@openrift/shared/scan/session";
+import type { ScanSessionOptions } from "@openrift/shared/scan/session-options";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ScanSessionPlan } from "@/features/scan/lib/scan-session";
 import type {
-  ScanWorkerOutcome,
+  ScanAssets,
+  ScanWorkerReady,
   ScanWorkerRequest,
   ScanWorkerResponse,
-} from "@/workers/scan-worker";
+} from "@/features/scan/lib/scan-worker-protocol";
 
 vi.mock("@/features/scan/lib/scan-ort-assets", () => ({
   ORT_WASM_PATHS: { wasm: "/assets/ort.wasm" },
@@ -57,15 +59,15 @@ class FakeWorker {
 
 const { createScanWorkerClient } = await import("./scan-worker-client");
 
-const URLS = {
-  opencvUrl: "/assets/opencv.js",
+const URLS: ScanAssets = {
   encoderUrl: "/assets/encoder.onnx",
   bankUrl: "/assets/bank.bin",
   labelsUrl: "/assets/labels.json",
+  detectorUrl: "/assets/detector.onnx",
+  boardDetectorUrl: null,
 };
 
-const PLAN: ScanSessionPlan = {
-  guide: false,
+const PLAN: Partial<ScanSessionOptions> = {
   candidatesToTry: 4,
   confidentDistance: 0.3,
   rotationFallbackDistance: 0.45,
@@ -74,18 +76,34 @@ const PLAN: ScanSessionPlan = {
   accept: { lockRun: 3, maxGapFrames: 2 },
 };
 
-const OUTCOME: ScanWorkerOutcome = {
-  outcome: {
-    candidate: null,
-    ranked: [],
-    winner: null,
-    refused: false,
-    bestInliers: 0,
-    locked: null,
-    focus: 0,
-    timings: { detect: 0, embed: 0, verify: 0, total: 0 },
+const READY: ScanWorkerReady = {
+  embedMsPerImage: 42,
+  embedImageSize: 224,
+  threads: 4,
+  keys: ["k-a"],
+  artKeys: [["k-a", "art-a"]],
+  canonical: true,
+  bytes: 1024,
+  gates: {
+    confidentDistance: 0.2,
+    rotationFallbackDistance: 0.3,
+    slowRotationFallbackDistance: 0.4,
+    topK: 8,
   },
-  run: null,
+};
+
+const OUTCOME: FrameOutcome = {
+  candidate: null,
+  ranked: [],
+  winner: null,
+  refused: false,
+  bestScore: 0,
+  sweeping: false,
+  still: false,
+  locked: null,
+  winnerRun: null,
+  focus: 0,
+  timings: { detect: 0, embed: 0, verify: 0, total: 0, crop: 0 },
 };
 
 function worker(): FakeWorker {
@@ -130,14 +148,27 @@ describe("init", () => {
     });
   });
 
-  it("resolves with what the worker measured once it is ready", async () => {
+  it("passes a thread count the caller asked for through to the worker", () => {
+    void createScanWorkerClient().init(URLS, 1);
+    expect(worker().posted[0]?.message).toMatchObject({ type: "init", ortThreads: 1 });
+  });
+
+  it("ignores a thread count in the page url", () => {
+    vi.stubGlobal("location", { search: "?ortThreads=1" });
+    void createScanWorkerClient().init(URLS);
+    expect(worker().posted[0]?.message).not.toHaveProperty("ortThreads");
+  });
+
+  it("resolves with what the worker measured and decoded once it is ready", async () => {
     const ready = createScanWorkerClient().init(URLS);
-    worker().reply({ type: "ready", embedMsPerImage: 42, embedImageSize: 224, canonical: true });
-    await expect(ready).resolves.toEqual({
-      embedMsPerImage: 42,
-      embedImageSize: 224,
-      canonical: true,
-    });
+    worker().reply({ type: "ready", ...READY });
+    await expect(ready).resolves.toEqual(READY);
+  });
+
+  it("reports a card detector that failed to load in the reader's language", async () => {
+    const ready = createScanWorkerClient().init(URLS);
+    worker().reply({ type: "error", message: "the card detector did not load", code: "detector" });
+    await expect(ready).rejects.toThrow("Could not load the card detector");
   });
 
   it("rejects on an error that names no frame", async () => {
@@ -160,26 +191,26 @@ describe("init", () => {
 });
 
 describe("progress", () => {
-  it("reports each asset's download to the caller", () => {
+  it("reports the encoder download to the caller", () => {
     const onProgress = vi.fn();
     void createScanWorkerClient(onProgress).init(URLS);
-    worker().reply({ type: "progress", asset: "encoder", loaded: 5, total: 10 });
+    worker().reply({ type: "progress", part: "encoder", loaded: 5, total: 10 });
     expect(onProgress).toHaveBeenCalledWith("encoder", 5, 10);
   });
 
   it("leaves init pending while assets are still downloading", async () => {
     const ready = createScanWorkerClient().init(URLS);
-    worker().reply({ type: "progress", asset: "opencv", loaded: 1, total: 10 });
+    worker().reply({ type: "progress", part: "bank", loaded: 1, total: 10 });
     const settled = await Promise.race([ready.then(() => "ready"), Promise.resolve("pending")]);
     expect(settled).toBe("pending");
-    worker().reply({ type: "ready", embedMsPerImage: 1, embedImageSize: 224, canonical: false });
+    worker().reply({ type: "ready", ...READY });
     await ready;
   });
 
   it("survives a progress message with no listener", () => {
     void createScanWorkerClient().init(URLS);
     expect(() => {
-      worker().reply({ type: "progress", asset: "opencv", loaded: 1, total: 10 });
+      worker().reply({ type: "progress", part: "bank", loaded: 1, total: 10 });
     }).not.toThrow();
   });
 });
@@ -187,12 +218,26 @@ describe("progress", () => {
 describe("create", () => {
   it("sends both session plans at once", () => {
     const client = createScanWorkerClient();
-    client.create(PLAN, { ...PLAN, guide: true });
-    expect(worker().posted[0]?.message).toEqual({
-      type: "create",
-      live: PLAN,
-      catchUp: { ...PLAN, guide: true },
-    });
+    const catchUp = { ...PLAN, topK: 2 };
+    void client.create(PLAN, catchUp);
+    expect(worker().posted[0]?.message).toEqual({ type: "create", id: 1, live: PLAN, catchUp });
+  });
+
+  it("resolves once the worker has built the sessions", async () => {
+    const client = createScanWorkerClient();
+    const created = client.create(PLAN, PLAN);
+    worker().reply({ type: "created", id: 1 });
+    await expect(created).resolves.toBeUndefined();
+  });
+
+  it("rejects with the worker's error when the sessions cannot be built", async () => {
+    const client = createScanWorkerClient();
+    const ready = client.init(URLS);
+    worker().reply({ type: "ready", ...READY });
+    await ready;
+    const created = client.create(PLAN, PLAN);
+    worker().reply({ type: "error", id: 1, message: "bad plan" });
+    await expect(created).rejects.toThrow("bad plan");
   });
 });
 
@@ -233,7 +278,7 @@ describe("processFrame", () => {
   it("resolves with the outcome the worker sends back for that frame", async () => {
     const client = createScanWorkerClient();
     const pending = client.processFrame("live", wholeFrame(), 0, 0);
-    worker().reply({ type: "outcome", id: 1, result: OUTCOME });
+    worker().reply({ type: "outcome", id: 1, outcome: OUTCOME });
     await expect(pending).resolves.toEqual(OUTCOME);
   });
 
@@ -241,14 +286,14 @@ describe("processFrame", () => {
     const client = createScanWorkerClient();
     const first = client.processFrame("live", wholeFrame(), 0, 0);
     const second = client.processFrame("catchUp", wholeFrame(), 1, 0.1);
-    worker().reply({ type: "outcome", id: 2, result: { ...OUTCOME, run: null } });
+    worker().reply({ type: "outcome", id: 2, outcome: { ...OUTCOME, winnerRun: null } });
     worker().reply({
       type: "outcome",
       id: 1,
-      result: { ...OUTCOME, run: { length: 3, weight: 1 } },
+      outcome: { ...OUTCOME, winnerRun: { length: 3, weight: 1 } },
     });
-    await expect(first).resolves.toMatchObject({ run: { length: 3, weight: 1 } });
-    await expect(second).resolves.toMatchObject({ run: null });
+    await expect(first).resolves.toMatchObject({ winnerRun: { length: 3, weight: 1 } });
+    await expect(second).resolves.toMatchObject({ winnerRun: null });
   });
 
   it("rejects only the frame an error names", async () => {
@@ -257,8 +302,18 @@ describe("processFrame", () => {
     const second = client.processFrame("live", wholeFrame(), 1, 0.1);
     worker().reply({ type: "error", id: 1, message: "the frame was unreadable" });
     await expect(first).rejects.toThrow("the frame was unreadable");
-    worker().reply({ type: "outcome", id: 2, result: OUTCOME });
+    worker().reply({ type: "outcome", id: 2, outcome: OUTCOME });
     await expect(second).resolves.toEqual(OUTCOME);
+  });
+
+  it("reports a frame without a session in the reader's language", async () => {
+    const client = createScanWorkerClient();
+    const failed = client.processFrame("live", wholeFrame(), 0, 0);
+    const waiting = client.processFrame("live", wholeFrame(), 1, 0.1);
+    worker().reply({ type: "error", id: 1, message: "no session", code: "detector" });
+    worker().reply({ type: "error", id: 2, message: "no session", code: "loading" });
+    await expect(failed).rejects.toThrow("Could not load the card detector");
+    await expect(waiting).rejects.toThrow("The engine is still loading");
   });
 
   it("rejects every outstanding frame when the worker stops", async () => {
@@ -273,11 +328,33 @@ describe("processFrame", () => {
   it("ignores a reply for a frame that already settled", async () => {
     const client = createScanWorkerClient();
     const pending = client.processFrame("live", wholeFrame(), 0, 0);
-    worker().reply({ type: "outcome", id: 1, result: OUTCOME });
+    worker().reply({ type: "outcome", id: 1, outcome: OUTCOME });
     await pending;
     expect(() => {
-      worker().reply({ type: "outcome", id: 1, result: OUTCOME });
+      worker().reply({ type: "outcome", id: 1, outcome: OUTCOME });
     }).not.toThrow();
+  });
+});
+
+describe("readBoard", () => {
+  it("sends a still for a board read and resolves with its cards", async () => {
+    const client = createScanWorkerClient();
+    const pending = client.readBoard(wholeFrame());
+    expect(worker().posted[0]?.message).toMatchObject({
+      type: "board",
+      id: 1,
+      width: 2,
+      height: 2,
+    });
+    worker().reply({ type: "board", id: 1, cards: [] });
+    await expect(pending).resolves.toEqual([]);
+  });
+
+  it("rejects a board read the worker failed", async () => {
+    const client = createScanWorkerClient();
+    const pending = client.readBoard(wholeFrame());
+    worker().reply({ type: "error", id: 1, message: "detector missing" });
+    await expect(pending).rejects.toThrow("detector missing");
   });
 });
 
@@ -289,9 +366,8 @@ describe("rearm", () => {
 });
 
 describe("terminate", () => {
-  it("releases the worker's engine before killing it", () => {
+  it("kills the worker", () => {
     createScanWorkerClient().terminate();
-    expect(worker().posted[0]?.message).toEqual({ type: "release" });
     expect(worker().terminated).toBe(true);
   });
 

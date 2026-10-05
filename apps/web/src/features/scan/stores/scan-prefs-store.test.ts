@@ -38,12 +38,6 @@ describe("useScanPrefsStore", () => {
     expect(useScanPrefsStore.getState().cardLanguage).toBeNull();
   });
 
-  it("defaults auto-scan off and stores a change", () => {
-    expect(useScanPrefsStore.getState().autoScan).toBe(false);
-    useScanPrefsStore.getState().setAutoScan(true);
-    expect(useScanPrefsStore.getState().autoScan).toBe(true);
-  });
-
   it("defaults tap-to-scan off and stores a change", () => {
     expect(useScanPrefsStore.getState().tapToScan).toBe(false);
     useScanPrefsStore.getState().setTapToScan(true);
@@ -58,7 +52,6 @@ describe("useScanPrefsStore", () => {
           muted: true,
           destinationCollectionId: "col-9",
           cardLanguage: "SC",
-          autoScan: true,
           tapToScan: true,
         },
         useScanPrefsStore.getState(),
@@ -66,7 +59,6 @@ describe("useScanPrefsStore", () => {
       expect(result?.muted).toBe(true);
       expect(result?.destinationCollectionId).toBe("col-9");
       expect(result?.cardLanguage).toBe("SC");
-      expect(result?.autoScan).toBe(true);
       expect(result?.tapToScan).toBe(true);
     });
 
@@ -92,7 +84,6 @@ describe("useScanPrefsStore", () => {
           muted: "yes",
           destinationCollectionId: 42,
           cardLanguage: 7,
-          autoScan: "on",
           tapToScan: 1,
         },
         useScanPrefsStore.getState(),
@@ -100,7 +91,6 @@ describe("useScanPrefsStore", () => {
       expect(result?.muted).toBe(false);
       expect(result?.destinationCollectionId).toBeNull();
       expect(result?.cardLanguage).toBe("EN");
-      expect(result?.autoScan).toBe(false);
       expect(result?.tapToScan).toBe(false);
     });
 
@@ -110,7 +100,6 @@ describe("useScanPrefsStore", () => {
       expect(result?.muted).toBe(false);
       expect(result?.destinationCollectionId).toBeNull();
       expect(result?.cardLanguage).toBe("EN");
-      expect(result?.autoScan).toBe(false);
       expect(result?.tapToScan).toBe(false);
     });
 
@@ -126,13 +115,18 @@ describe("useScanPrefsStore", () => {
       expect(result?.destinationCollectionId).toBeNull();
     });
 
+    it("drops the retired count-every-copy setting", () => {
+      const merge = useScanPrefsStore.persist.getOptions().merge;
+      const result = merge?.({ autoScan: true }, useScanPrefsStore.getState());
+      expect(result).not.toHaveProperty("autoScan");
+    });
+
     it("defaults tap-to-scan off for a blob written before the toggle existed", () => {
       const merge = useScanPrefsStore.persist.getOptions().merge;
       const result = merge?.(
         { muted: true, targetCollectionId: "col-9", cardLanguage: "EN" },
         useScanPrefsStore.getState(),
       );
-      expect(result?.autoScan).toBe(false);
       expect(result?.tapToScan).toBe(false);
     });
   });

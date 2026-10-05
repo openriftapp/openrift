@@ -1,9 +1,9 @@
-import { DEFAULT_SESSION_OPTIONS } from "@openrift/shared/scan/session";
+import { DEFAULT_ALIGNED_OPTIONS } from "@openrift/shared/scan/accept";
 import { describe, expect, it } from "vitest";
 
 import { ghostConfidence } from "./scan-confidence";
 
-const FLOOR = DEFAULT_SESSION_OPTIONS.minInliers;
+const FLOOR = DEFAULT_ALIGNED_OPTIONS.minScore * 100;
 const NO_RUN = { runLength: 0, lockRun: 0 };
 
 describe("ghostConfidence", () => {
@@ -15,7 +15,7 @@ describe("ghostConfidence", () => {
     expect(ghostConfidence(FLOOR, { runLength: 3, lockRun: 3 })).toBe(1);
   });
 
-  it("climbs with inliers alone before any run starts", () => {
+  it("climbs with the score alone before any run starts", () => {
     const half = ghostConfidence(FLOOR / 2, NO_RUN);
     const full = ghostConfidence(FLOOR, NO_RUN);
     expect(half).toBeGreaterThan(0);
@@ -23,7 +23,7 @@ describe("ghostConfidence", () => {
     expect(full).toBeLessThan(1);
   });
 
-  it("climbs with the run at a fixed inlier count", () => {
+  it("climbs with the run at a fixed score", () => {
     const early = ghostConfidence(FLOOR, { runLength: 1, lockRun: 3 });
     const late = ghostConfidence(FLOOR, { runLength: 2, lockRun: 3 });
     expect(late).toBeGreaterThan(early);
@@ -34,7 +34,7 @@ describe("ghostConfidence", () => {
     expect(capture).toBe(ghostConfidence(FLOOR, NO_RUN));
   });
 
-  it("clamps inliers past the floor", () => {
+  it("clamps a score past the floor", () => {
     expect(ghostConfidence(FLOOR * 10, NO_RUN)).toBe(ghostConfidence(FLOOR, NO_RUN));
   });
 

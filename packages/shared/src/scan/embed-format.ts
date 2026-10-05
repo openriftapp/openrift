@@ -4,6 +4,7 @@
  * halving the payload; they decode back to Float32Array.
  */
 import type { EmbedBank } from "./embed";
+import { bankEmbedDim } from "./embed";
 
 const MAGIC = 0x52_46_45_42; // "RFEB"
 export const EMBED_BANK_VERSION = 2;
@@ -70,7 +71,7 @@ export function encodeEmbedBank(
     }
     size += 1 + entry.key.length + 1 + entry.art.length;
   }
-  const dim = bank.keys.length > 0 ? bank.vectors.length / bank.keys.length : 0;
+  const dim = bankEmbedDim(bank);
   if (!Number.isInteger(dim)) {
     throw new TypeError("embed bank vectors are not a whole number of rows");
   }

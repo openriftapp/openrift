@@ -1,20 +1,16 @@
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
-import type { CardCandidate, Quad } from "@openrift/shared/scan/types";
+import type { Quad } from "@openrift/shared/scan/types";
 import { describe, expect, it } from "vitest";
 
 import {
-  bestCandidateQuad,
   clampQuad,
   defaultQuad,
   imageQuadOf,
   imageToDisplayScale,
+  orderQuadFromOrigin,
   quadCacheKey,
   scaleQuad,
 } from "./straighten-quad";
-
-function candidate(quad: Quad, score: number): CardCandidate {
-  return { quad, aspect: 0.7, areaFraction: 0.5, rectangularity: 0.95, score };
-}
 
 const rect: ImageQuad = [
   { x: 10, y: 20 },
@@ -66,58 +62,25 @@ describe("clampQuad", () => {
   });
 });
 
-describe("bestCandidateQuad", () => {
-  it("returns null without candidates", () => {
-    expect(bestCandidateQuad([])).toBeNull();
-  });
-
-  it("takes the highest score", () => {
-    const low = candidate(
-      [
-        { x: 0, y: 0 },
-        { x: 10, y: 0 },
-        { x: 10, y: 30 },
-        { x: 0, y: 30 },
-      ],
-      0.2,
-    );
-    const high = candidate(
-      [
-        { x: 100, y: 100 },
-        { x: 200, y: 100 },
-        { x: 200, y: 300 },
-        { x: 100, y: 300 },
-      ],
-      0.9,
-    );
-    expect(bestCandidateQuad([low, high])?.[0]).toStrictEqual({ x: 100, y: 100 });
-  });
-
+describe("orderQuadFromOrigin", () => {
   it("starts at the corner nearest the image origin", () => {
-    const rotated = candidate(
-      [
-        { x: 200, y: 100 },
-        { x: 200, y: 300 },
-        { x: 100, y: 300 },
-        { x: 100, y: 100 },
-      ],
-      0.5,
-    );
-    const result = bestCandidateQuad([rotated]);
-    expect(result?.[0]).toStrictEqual({ x: 100, y: 100 });
+    const rotated: Quad = [
+      { x: 200, y: 100 },
+      { x: 200, y: 300 },
+      { x: 100, y: 300 },
+      { x: 100, y: 100 },
+    ];
+    expect(orderQuadFromOrigin(rotated)[0]).toStrictEqual({ x: 100, y: 100 });
   });
 
   it("keeps the corners going clockwise", () => {
-    const scrambled = candidate(
-      [
-        { x: 100, y: 100 },
-        { x: 100, y: 300 },
-        { x: 200, y: 300 },
-        { x: 200, y: 100 },
-      ],
-      0.5,
-    );
-    expect(bestCandidateQuad([scrambled])).toStrictEqual([
+    const scrambled: Quad = [
+      { x: 100, y: 100 },
+      { x: 100, y: 300 },
+      { x: 200, y: 300 },
+      { x: 200, y: 100 },
+    ];
+    expect(orderQuadFromOrigin(scrambled)).toStrictEqual([
       { x: 100, y: 100 },
       { x: 200, y: 100 },
       { x: 200, y: 300 },

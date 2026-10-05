@@ -91,7 +91,8 @@ export function createConfig(env: Record<string, string | undefined>) {
 
     scan: {
       encoderFile: env.SCAN_ENCODER_FILE ?? "scan-encoder-v2.onnx",
-      opencvFile: env.SCAN_OPENCV_FILE ?? "scan-opencv-v1.js",
+      detectorFile: env.SCAN_DETECTOR_FILE ?? null,
+      boardDetectorFile: env.SCAN_BOARD_DETECTOR_FILE ?? null,
     },
   } as const;
 }

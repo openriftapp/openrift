@@ -59,7 +59,6 @@
     "@tanstack/react-devtools": "0.10.13",
     "@tanstack/react-pacer-devtools": "0.14.0",
     "@tanstack/react-query-devtools": "5.103.2",
-    "@techstark/opencv-js": "5.0.0-release.1",
     "knip": "6.38.0",
     "lcov-result-merger": "6.0.0",
     "lefthook": "2.1.14",

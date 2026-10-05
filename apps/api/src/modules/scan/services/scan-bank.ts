@@ -4,6 +4,13 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 
 import type { Logger } from "@openrift/shared/logger";
+import { referenceSignature } from "@openrift/shared/scan/aligned-verify";
+import type { IllustrationSample } from "@openrift/shared/scan/art-groups";
+import {
+  groupArtworks,
+  groupSharedIllustrations,
+  illustrationCardKey,
+} from "@openrift/shared/scan/art-groups";
 import type { EmbedBank } from "@openrift/shared/scan/embed";
 import {
   embedImageSizeOf,
@@ -30,7 +37,6 @@ export const REBUILD_SCAN_BANK_KIND = "scan.rebuild_bank";
 /** Where the scanner's served artifacts live (nginx serves /media/ as-is). */
 const SCAN_MEDIA_DIR = join(MEDIA_DIR, "scan");
 
-/** Renders embedded per encoder call; above this the gain flattens. */
 const BUILD_BATCH = 8;
 
 /**
@@ -74,14 +80,13 @@ async function decodeRender(io: Io, file: string): Promise<RgbaImage> {
   };
 }
 
-/** The 400w derivative: used both as bank source and as ORB reference. */
 function renderPath(imageId: string): string {
   return join(CARD_MEDIA_DIR, imageId.slice(-2), `${imageId}-400w.webp`);
 }
 
 /**
  * Renders are embedded in the canonical frame (landscape rotated 90° left),
- * which is how every encoder we serve is trained; changing that needs this builder changed with it.
+ * the frame every served encoder is trained in.
  */
 export async function rebuildScanBank(deps: ScanBankDeps): Promise<ScanBankBuildResult> {
   const startedAt = Date.now();
@@ -101,14 +106,13 @@ export async function rebuildScanBank(deps: ScanBankDeps): Promise<ScanBankBuild
   // native runtime; only the rebuild pays for it.
   const ort = await import("onnxruntime-node");
   const session = await ort.InferenceSession.create(encoderPath);
-  // The encoder's input side comes from the model file itself, so a smaller
-  // custom encoder ships by replacing the file — no config to keep in sync.
   const inputMeta = session.inputMetadata[0];
   const imageSize = embedImageSizeOf(inputMeta?.isTensor ? inputMeta.shape : undefined);
 
   const keys: string[] = [];
   const labels: CardLabels = {};
   const artKeys = new Map<string, string>();
+  const illustrations: IllustrationSample[] = [];
   const vectors: Float32Array[] = [];
   let skipped = 0;
   let watermark: Date | null = null;
@@ -167,12 +171,17 @@ export async function rebuildScanBank(deps: ScanBankDeps): Promise<ScanBankBuild
       skipped++;
       continue;
     }
+    illustrations.push({
+      artKey: scanArtKey(row),
+      card: illustrationCardKey(row.name, row.cardType),
+      signature: referenceSignature(image),
+    });
     if (image.width > image.height) {
       // 90 degrees left = three clockwise quarter turns; matches the
       // trainer's Image.Transpose.ROTATE_90 and the bench's bank build.
       image = rotateRgbaCw(rotateRgbaCw(rotateRgbaCw(image)));
     }
-    preprocessCardInto(image, "card", staging, batch.length, imageSize);
+    preprocessCardInto(image, staging, batch.length, imageSize);
     batch.push(row);
     if (batch.length === BUILD_BATCH) {
       await flush();
@@ -189,9 +198,17 @@ export async function rebuildScanBank(deps: ScanBankDeps): Promise<ScanBankBuild
     keys,
     vectors: concat(vectors),
   };
+  const groups = groupArtworks(
+    bank,
+    artKeys,
+    (key) => labels[key],
+    groupSharedIllustrations(illustrations),
+  );
   // Always true: the browser reads this flag to gate its rotation search,
   // so it travels in the file even though this builder always sets it.
-  const bankBuffer = Buffer.from(encodeEmbedBank(bank, (key) => artKeys.get(key) ?? key, true));
+  const bankBuffer = Buffer.from(
+    encodeEmbedBank(bank, (key) => groups.artKeys.get(key) ?? key, true),
+  );
   const labelsBuffer = Buffer.from(`${JSON.stringify(labels)}\n`);
   const bankHash = createHash("sha256")
     .update(bankBuffer)
@@ -244,7 +261,6 @@ function concat(vectors: readonly Float32Array[]): Float32Array {
   return out;
 }
 
-/** The engine assets (encoder, opencv) are never touched. */
 async function pruneGenerations(
   io: Io,
   log: Logger,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { boxBlurGray, downscaleGray, focusScore, toGray } from "./image";
+import { downscaleGray, focusScore, luma, toGray } from "./image";
 import type { GrayImage, RgbaImage } from "./types";
 
 function gray(width: number, height: number, values: number[]): GrayImage {
@@ -41,19 +41,14 @@ describe("downscaleGray", () => {
   });
 });
 
-describe("boxBlurGray", () => {
-  it("copies at radius zero", () => {
-    const src = gray(2, 2, [10, 20, 30, 40]);
-    expect([...boxBlurGray(src, 0).data]).toEqual([10, 20, 30, 40]);
+describe("luma", () => {
+  it("keeps a neutral grey at its level", () => {
+    expect(luma(128, 128, 128)).toBe(128);
   });
 
-  it("keeps a uniform image uniform", () => {
-    const src = gray(
-      5,
-      5,
-      Array.from({ length: 25 }, () => 40),
-    );
-    expect([...boxBlurGray(src, 2).data]).toEqual([...src.data]);
+  it("weights green most and blue least", () => {
+    expect(luma(0, 255, 0)).toBeGreaterThan(luma(255, 0, 0));
+    expect(luma(255, 0, 0)).toBeGreaterThan(luma(0, 0, 255));
   });
 });
 

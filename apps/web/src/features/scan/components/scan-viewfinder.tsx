@@ -2,7 +2,7 @@ import type { RefObject } from "react";
 
 import { ScanGhostPreview } from "@/features/scan/components/scan-ghost-preview";
 import { ScanStartPanel } from "@/features/scan/components/scan-start-panel";
-import type { EngineProgress } from "@/features/scan/lib/scan-load-progress";
+import type { DownloadProgress } from "@/features/scan/lib/scan-load-progress";
 import { cn } from "@/lib/utils";
 
 interface ScanViewfinderProps {
@@ -15,8 +15,7 @@ interface ScanViewfinderProps {
   ghostLandscape: boolean;
   ready: boolean;
   cameraAvailable: boolean | null;
-  bankLoaded: boolean;
-  engineProgress: EngineProgress;
+  engineProgress: DownloadProgress;
   showPhoneHint: boolean;
   onStart: () => void;
 }
@@ -31,7 +30,6 @@ export function ScanViewfinder({
   ghostLandscape,
   ready,
   cameraAvailable,
-  bankLoaded,
   engineProgress,
   showPhoneHint,
   onStart,
@@ -51,7 +49,6 @@ export function ScanViewfinder({
         <ScanStartPanel
           ready={ready}
           cameraAvailable={cameraAvailable}
-          bankLoaded={bankLoaded}
           engineProgress={engineProgress}
           showPhoneHint={showPhoneHint}
           immersive={immersive}

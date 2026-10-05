@@ -4,11 +4,18 @@
 
 ### Highlights
 
+- feat(Collection): **Several cards in one scan** — hold the phone over cards lying side by side and all of them are added, with a question only for unsure ones.
+- feat(Collection): **One automatic scanning mode** — the scanner follows sweeps over a table and counts copies dealt under a still phone, replacing Count every copy.
+- feat(Collection): **Faster card scanner** — single cards are recognised faster, the scanner starts sooner and adds fewer wrong cards.
 - feat(App): **Dialogs and menus look the same everywhere** — deleting a deck, list, collection, tier list or group asks in the same red confirm dialog with an outlined Cancel, right-click menus and menu section labels match across cards, lists, collections and decks, and copy buttons show Copied in place.
 - feat(Tournaments): **Player photos in standings** — standings, pairings and group tables show profile pictures, and group and final standings switch to a compact list on phones.
 
 ### Other
 
+- fix(App): **Exports no longer cancelled** — card image and CSV exports now save in browsers that used to cancel the download before it started.
+- fix(Collection): **Promos only on a clear stamp** — the scanner adds the regular printing unless a promo stamp is clearly visible.
+- fix(Collection): **Set question for shared artwork** — cards whose artwork several sets reuse now ask which set you have.
+- fix(Collection): **Correct set for reprints** — a reprint scanned right after another printing of its artwork no longer takes that card's set.
 - feat(App): **Open your share links** — share links have an Open button, and the profile's sharing section is now called Public profile and describes what the page shows.
 - fix(App): **Battlefields turned everywhere** — share images, profile and group previews, trade art, collection covers, promo rows and price tooltips turn battlefields sideways to fill a card frame, as the card grid does.
 - feat(Tournaments): **Same fields for creating and editing** — the create form uses the settings page's fields, with date and time in one field.
