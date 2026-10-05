@@ -3,6 +3,7 @@ import { CameraIcon, LayersIcon, ScanSquareIcon, SunIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { QrCode } from "@/components/ui/qr-code";
+import { ScanShutter } from "@/features/scan/components/scan-shutter";
 import type { DownloadProgress } from "@/features/scan/lib/scan-load-progress";
 import { scanLoadProgress } from "@/features/scan/lib/scan-load-progress";
 import { getSiteUrl } from "@/lib/site-config";
@@ -13,7 +14,7 @@ const BRACKET_SIZE = "18%";
 // Same geometry as centeredGuideQuad: 70% of the height, capped at 90% of the width.
 const FRAME_SIZE = "aspect-[63/88] w-[min(90%,calc(70cqh*63/88))]";
 
-export function ScanTips({ className }: { className?: string }) {
+function ScanTips({ className }: { className?: string }) {
   const tips = [
     { icon: SunIcon, label: m.scan_tips_light() },
     { icon: ScanSquareIcon, label: m.scan_tips_fill() },
@@ -31,7 +32,7 @@ export function ScanTips({ className }: { className?: string }) {
   );
 }
 
-export function ScanStartHint({ className }: { className?: string }) {
+function ScanStartHint({ className }: { className?: string }) {
   return (
     <p className={cn("max-w-80 text-center text-white/70", className)}>
       <span className="md:hidden">{m.scan_start_hint_below()}</span>
@@ -44,7 +45,7 @@ interface ScanLoadingProps {
   engineProgress: DownloadProgress;
 }
 
-export function ScanLoading({ engineProgress }: ScanLoadingProps) {
+function ScanLoading({ engineProgress }: ScanLoadingProps) {
   const { percent, phase } = scanLoadProgress(engineProgress);
   return (
     <div className="flex w-64 max-w-full flex-col items-center gap-3 text-center">
@@ -62,6 +63,7 @@ interface ScanStartPanelProps extends ScanLoadingProps {
   cameraAvailable: boolean | null;
   showPhoneHint: boolean;
   immersive: boolean;
+  shutter: boolean;
   onStart: () => void;
 }
 
@@ -70,6 +72,7 @@ export function ScanStartPanel({
   cameraAvailable,
   showPhoneHint,
   immersive,
+  shutter,
   onStart,
   ...load
 }: ScanStartPanelProps) {
@@ -82,23 +85,35 @@ export function ScanStartPanel({
         <Bracket className="-right-0.5 -bottom-0.5 border-r-2 border-b-2" />
       </div>
 
-      {!immersive && (
-        <div
-          className={cn("relative flex flex-col items-center justify-center gap-4 p-5", FRAME_SIZE)}
-        >
-          {ready ? (
-            <>
-              <ScanStartHint />
+      <div
+        className={cn("relative flex flex-col items-center justify-center gap-4 p-4", FRAME_SIZE)}
+      >
+        {ready ? (
+          <>
+            <ScanStartHint />
+            {immersive ? (
+              <ScanTips className="justify-center text-white/60" />
+            ) : (
               <Button onClick={onStart} disabled={cameraAvailable !== true}>
                 <CameraIcon />
                 {m.scan_controls_start_camera()}
               </Button>
-            </>
-          ) : (
-            <ScanLoading {...load} />
-          )}
-        </div>
-      )}
+            )}
+          </>
+        ) : (
+          <ScanLoading {...load} />
+        )}
+        {shutter && (
+          <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-9">
+            <ScanShutter
+              icon={<CameraIcon />}
+              label={m.scan_controls_start_camera()}
+              disabled={!ready || cameraAvailable !== true}
+              onClick={onStart}
+            />
+          </div>
+        )}
+      </div>
 
       {/* The tray lives in this browser's local storage; the QR code does
           not carry the scanning session to the phone. */}

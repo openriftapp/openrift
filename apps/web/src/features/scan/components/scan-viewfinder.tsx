@@ -10,6 +10,7 @@ interface ScanViewfinderProps {
   overlayRef: RefObject<HTMLCanvasElement | null>;
   active: boolean;
   immersive: boolean;
+  shutter: boolean;
   ghostImageId: string | null;
   ghostConfidence: number;
   ghostLandscape: boolean;
@@ -25,6 +26,7 @@ export function ScanViewfinder({
   overlayRef,
   active,
   immersive,
+  shutter,
   ghostImageId,
   ghostConfidence,
   ghostLandscape,
@@ -52,6 +54,7 @@ export function ScanViewfinder({
           engineProgress={engineProgress}
           showPhoneHint={showPhoneHint}
           immersive={immersive}
+          shutter={shutter}
           onStart={onStart}
         />
       )}

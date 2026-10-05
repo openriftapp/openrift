@@ -16,6 +16,7 @@
 - fix(Collection): **Promos only on a clear stamp** — the scanner adds the regular printing unless a promo stamp is clearly visible.
 - fix(Collection): **Set question for shared artwork** — cards whose artwork several sets reuse now ask which set you have.
 - fix(Collection): **Correct set for reprints** — a reprint scanned right after another printing of its artwork no longer takes that card's set.
+- fix(Collection): **Scanner hint inside the frame** — on phones the scanner's instructions sit centred in the card frame instead of spilling past it.
 - feat(App): **Open your share links** — share links have an Open button, and the profile's sharing section is now called Public profile and describes what the page shows.
 - fix(App): **Battlefields turned everywhere** — share images, profile and group previews, trade art, collection covers, promo rows and price tooltips turn battlefields sideways to fill a card frame, as the card grid does.
 - feat(Tournaments): **Same fields for creating and editing** — the create form uses the settings page's fields, with date and time in one field.

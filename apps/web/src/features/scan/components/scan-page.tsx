@@ -434,6 +434,7 @@ export function ScanPage() {
             overlayRef={overlayRef}
             active={active}
             immersive={immersive}
+            shutter={shutter}
             ghostImageId={ghostImageId}
             ghostConfidence={ghostConfidence(readout.bestScore, readout.lockProgress)}
             ghostLandscape={ghostLandscape}
@@ -453,7 +454,6 @@ export function ScanPage() {
             shutter={shutter}
             ready={ready}
             cameraAvailable={cameraAvailable}
-            engineProgress={engineProgress}
             captureMode={settings.mode === "capture"}
             onStart={handleStart}
             onStop={handleStop}

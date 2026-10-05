@@ -2,9 +2,7 @@ import { CameraIcon, CameraOffIcon, ScanSearchIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ScanShutter } from "@/features/scan/components/scan-shutter";
-import { ScanLoading, ScanStartHint, ScanTips } from "@/features/scan/components/scan-start-panel";
 import type { AimHint } from "@/features/scan/lib/scan-aim-hint";
-import type { DownloadProgress } from "@/features/scan/lib/scan-load-progress";
 import { OVER_VIDEO } from "@/features/scan/lib/scan-styles";
 import { m } from "@/paraglide/messages.js";
 
@@ -15,7 +13,6 @@ interface ScanControlsProps {
   shutter: boolean;
   ready: boolean;
   cameraAvailable: boolean | null;
-  engineProgress: DownloadProgress;
   captureMode: boolean;
   onStart: () => void;
   onStop: () => void;
@@ -30,7 +27,6 @@ export function ScanControls({
   shutter,
   ready,
   cameraAvailable,
-  engineProgress,
   captureMode,
   onStart,
   onStop,
@@ -43,20 +39,6 @@ export function ScanControls({
         <p key={hint.kind} className="rounded-full bg-black/60 px-3 py-1 text-sm text-white">
           {hint.message}
         </p>
-      )}
-      {immersive && !active && (
-        <div className="flex flex-col items-center gap-3 text-white">
-          {ready ? <ScanStartHint /> : <ScanLoading engineProgress={engineProgress} />}
-          <ScanTips className="max-w-64 justify-center text-white/70" />
-        </div>
-      )}
-      {!active && shutter && (
-        <ScanShutter
-          icon={<CameraIcon />}
-          label={m.scan_controls_start_camera()}
-          disabled={!ready || cameraAvailable !== true}
-          onClick={onStart}
-        />
       )}
       {!active && immersive && !shutter && (
         <Button size="lg" disabled={!ready || cameraAvailable !== true} onClick={onStart}>
