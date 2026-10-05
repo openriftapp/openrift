@@ -42,16 +42,16 @@ describe("DatePicker", () => {
     expect(input.value).toBe("2026-08");
   });
 
-  it("emits onChange only for complete dates", () => {
-    const onChange = vi.fn();
-    const { container } = render(<DatePicker value="" onChange={onChange} />);
+  it("emits onValueChange only for complete dates", () => {
+    const onValueChange = vi.fn();
+    const { container } = render(<DatePicker value="" onValueChange={onValueChange} />);
     const input = getInput(container);
 
     fireEvent.change(input, { target: { value: "2026-08" } });
-    expect(onChange).not.toHaveBeenCalled();
+    expect(onValueChange).not.toHaveBeenCalled();
 
     fireEvent.change(input, { target: { value: "2026-08-01" } });
-    expect(onChange).toHaveBeenCalledWith("2026-08-01");
+    expect(onValueChange).toHaveBeenCalledWith("2026-08-01");
   });
 
   it("calls onClear when the text is emptied", () => {

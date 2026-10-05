@@ -3,6 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import {
   adminFeatureFlagOverridesQueryOptions,
   adminFeatureFlagsQueryOptions,
@@ -12,7 +13,6 @@ import { featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { featureFlagsKeys } from "@/lib/query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 export function useFeatureEnabled(key: string): boolean {
   const { data } = useSuspenseQuery(featureFlagsQueryOptions);

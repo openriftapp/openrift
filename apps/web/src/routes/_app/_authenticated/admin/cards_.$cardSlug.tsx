@@ -14,11 +14,11 @@ import type { AdminCardListStatus } from "@/features/admin/lib/card-attention";
 import { ADMIN_CARD_LIST_STATUSES } from "@/features/admin/lib/card-attention";
 import type { CardSection } from "@/features/admin/lib/card-sections";
 import { isCardSection } from "@/features/admin/lib/card-sections";
+import { adminLanguagesQueryOptions } from "@/features/admin/lib/languages-queries";
+import { adminMarkersQueryOptions } from "@/features/admin/lib/markers-queries";
 import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-settings-queries";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { adminDistinctArtistsQueryOptions } from "@/features/cards/lib/distinct-artists-queries";
-import { adminLanguagesQueryOptions } from "@/lib/languages-queries";
-import { adminMarkersQueryOptions } from "@/lib/markers-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 interface CardDetailSearch {

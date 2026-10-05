@@ -1,4 +1,5 @@
 import type { ErrorCode } from "@openrift/shared/error-codes";
+import { ORPCError } from "@orpc/client";
 
 /**
  * Thrown by {@link fetchApi} on a non-ok response. The prototype does not
@@ -53,6 +54,21 @@ export function errorStatus(error: unknown): number | undefined {
 /** The sentinel a server function throws for a typed 404, whose message route loaders match on. */
 export function notFoundError(): Error {
   return Object.assign(new Error("NOT_FOUND"), { status: 404 });
+}
+
+export function isNotFoundSentinel(error: unknown): boolean {
+  return error instanceof Error && error.message === "NOT_FOUND";
+}
+
+/** Resolves an oRPC call, turning the contract's typed NOT_FOUND into {@link notFoundError}. */
+export async function orNotFound<T>(promise: Promise<T>): Promise<T> {
+  try {
+    return await promise;
+  } catch (error) {
+    throw error instanceof ORPCError && error.defined && error.code === "NOT_FOUND"
+      ? notFoundError()
+      : error;
+  }
 }
 
 export function isRetryableError(error: unknown): boolean {

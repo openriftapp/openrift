@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { authSearchSchema } from "@/lib/route-search";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
-import { sanitizeRedirect } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/verify-email")({
   head: () =>
@@ -12,8 +12,8 @@ export const Route = createFileRoute("/_app/verify-email")({
       path: "/verify-email",
       noIndex: true,
     }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    redirect: sanitizeRedirect(search.redirect as string),
-    email: (search.email as string) || "",
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const { redirect, email } = authSearchSchema(search);
+    return { redirect, email: email ?? "" };
+  },
 });

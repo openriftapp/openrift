@@ -12,9 +12,18 @@ import { cn } from "@/lib/utils";
 // StatTile when the number should take you somewhere.
 //
 // It exists because the alternative kept being prose: "Penalty 12 · 0
-// rematches · 3 in 3-pods" was a stat row typed as a sentence. `tone="good"`
+// rematches · 3 in 3-pods" was a stat row typed as a sentence. `tone="success"`
 // tints the value where a number carries a verdict (0 rematches is a win, not
 // a neutral fact); leave it off when the number is just a number.
+
+export type StatStripTone = "neutral" | "success" | "warning" | "destructive";
+
+const VALUE_TONE: Record<StatStripTone, string> = {
+  neutral: "",
+  success: "text-success",
+  warning: "text-warning",
+  destructive: "text-destructive",
+};
 
 export interface StatStripItem {
   key: string;
@@ -23,8 +32,7 @@ export interface StatStripItem {
   /** Optional leading chip — omit for a dense numbers-only strip. */
   icon?: ComponentType<SVGProps<SVGSVGElement>>;
   iconTone?: IconChipTone;
-  /** `good` tints the value where the number is a verdict. */
-  tone?: "default" | "good";
+  tone?: StatStripTone;
 }
 
 /**
@@ -52,7 +60,7 @@ export function StatStrip({ items, className }: { items: StatStripItem[]; classN
           <span
             className={cn(
               "font-heading text-lg font-bold tabular-nums",
-              item.tone === "good" && "text-success",
+              VALUE_TONE[item.tone ?? "neutral"],
             )}
           >
             {item.value}

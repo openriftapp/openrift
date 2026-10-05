@@ -1,4 +1,4 @@
-import { legendDisplayName } from "@openrift/shared/utils";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Command as CommandPrimitive } from "cmdk";
@@ -28,7 +28,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { useQuickAddSearch } from "@/features/collections/hooks/use-quick-add-search";
 import { visibleHelpArticles } from "@/features/marketing/components/articles";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
 import type { PaletteRow } from "@/lib/command-palette-results";
 import { buildPaletteGroups } from "@/lib/command-palette-results";
 import type { FeatureFlags } from "@/lib/feature-flags";

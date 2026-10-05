@@ -1,13 +1,13 @@
 import type { PublicTierListDetailResponse } from "@openrift/shared/types/api/tier-list";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { Link2OffIcon } from "lucide-react";
 
-import { EmptyState } from "@/components/empty-state";
 import { RouteErrorFallback } from "@/components/error-message";
+import { LinkGoneState } from "@/components/link-gone-state";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { publicTierListQueryOptions } from "@/features/stage/lib/tier-lists-queries";
 import { seoHead } from "@/lib/seo";
+import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { shareImageVersion, tierListShareImageUrl } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
@@ -49,7 +49,7 @@ export const Route = createFileRoute("/_app/tier-lists_/share/$token")({
         staleTime: "static",
       });
     } catch (error) {
-      if (error instanceof Error && error.message === "NOT_FOUND") {
+      if (isNotFoundSentinel(error)) {
         throw notFound();
       }
       throw error;
@@ -57,7 +57,17 @@ export const Route = createFileRoute("/_app/tier-lists_/share/$token")({
   },
   pendingComponent: SharedTierListPending,
   errorComponent: RouteErrorFallback,
-  notFoundComponent: SharedTierListNotFound,
+  notFoundComponent: () => (
+    <LinkGoneState
+      title={m.common_share_gone_title()}
+      description={m.tier_lists_share_gone_description()}
+      action={
+        <Link to="/cards" className={buttonVariants()}>
+          {m.common_browse_cards()}
+        </Link>
+      }
+    />
+  ),
 });
 
 function SharedTierListPending() {
@@ -65,23 +75,6 @@ function SharedTierListPending() {
     <div className={cn(PAGE_PADDING, PAGE_WIDTH.full, "flex flex-col gap-4 py-4 pt-6")}>
       <Skeleton className="h-8 w-64" />
       <Skeleton className="h-72 w-full" />
-    </div>
-  );
-}
-
-function SharedTierListNotFound() {
-  return (
-    <div className={cn(PAGE_PADDING, PAGE_WIDTH.full)}>
-      <EmptyState
-        className="py-16"
-        icon={Link2OffIcon}
-        title={m.tier_lists_share_gone_title()}
-        description={m.tier_lists_share_gone_description()}
-      >
-        <Link to="/cards" className={buttonVariants()}>
-          {m.tier_lists_share_gone_action()}
-        </Link>
-      </EmptyState>
     </div>
   );
 }

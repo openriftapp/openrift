@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { TriangleAlertIcon } from "lucide-react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let coarsePointer = false;
@@ -51,5 +52,18 @@ describe("InfoHint", () => {
     render(<InfoHint label="Standard">{HINT}</InfoHint>);
 
     expect(screen.getByRole("button", { name: /Standard/u })).toBeInTheDocument();
+  });
+
+  it("draws the info glyph by default and a passed icon otherwise", () => {
+    const { unmount } = render(<InfoHint label="Price">{HINT}</InfoHint>);
+    expect(trigger().querySelector("svg")).toHaveClass("lucide-info");
+    unmount();
+
+    render(
+      <InfoHint label="Price" icon={TriangleAlertIcon}>
+        {HINT}
+      </InfoHint>,
+    );
+    expect(trigger().querySelector("svg")).toHaveClass("lucide-triangle-alert");
   });
 });

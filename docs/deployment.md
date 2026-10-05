@@ -200,7 +200,7 @@ function nextWrite(fn) {
 
 This guard was tested against a local reproduction (Bun 1.4.2, postgres.js 3.4.9, PostgreSQL 18.6): with one connection terminated via `pg_terminate_backend` during a 45 s event-loop block, unpatched postgres.js left 3 of 50 later queries hanging; patched, those queries failed with `CONNECTION_CLOSED` and nothing hung. The guards in [#1168](https://github.com/porsager/postgres/pull/1168) and [#1176](https://github.com/porsager/postgres/pull/1176) only return `false`, which avoids the crash but leaves the queries hanging.
 
-Remove the patch, and the comments pointing here from `apps/api/src/db/connect.ts` and `catalog-assembly.ts`, once a postgres.js release contains the fix.
+Remove the patch, and the comments pointing here from `apps/api/src/db/connect.ts` and `apps/api/src/lib/content-addressed-cache.ts`, once a postgres.js release contains the fix.
 
 Upstream: [#1066](https://github.com/porsager/postgres/issues/1066), [#1154](https://github.com/porsager/postgres/issues/1154), [#1208](https://github.com/porsager/postgres/issues/1208), [#1186](https://github.com/porsager/postgres/issues/1186) (the same class of hang inside transactions).
 

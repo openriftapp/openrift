@@ -46,13 +46,19 @@ describe("/stage filter search", () => {
   });
 
   it("wraps the builder in a FilterSearchProvider", () => {
-    const source = readFileSync(path.resolve(import.meta.dirname, "./stage.lazy.tsx"), "utf-8");
+    const source = readFileSync(
+      path.resolve(import.meta.dirname, "../../features/stage/components/stage-page.tsx"),
+      "utf-8",
+    );
     expect(source).toMatch(/<FilterSearchProvider value=\{search\}>/u);
   });
 });
 
 describe("/stage builder search writes", () => {
-  const source = readFileSync(path.resolve(import.meta.dirname, "./stage.lazy.tsx"), "utf-8");
+  const source = readFileSync(
+    path.resolve(import.meta.dirname, "../../features/stage/components/stage-page.tsx"),
+    "utf-8",
+  );
 
   it("starts presenting through startPresentingSearch", () => {
     expect(source).toMatch(/startPresentingSearch\(prev, ids\)/u);

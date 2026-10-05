@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
-import { useIsMobile } from "@/hooks/use-is-mobile";
+import {
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog";
 
 interface PaletteFrameProps {
   open: boolean;
@@ -12,28 +14,16 @@ interface PaletteFrameProps {
 }
 
 export function PaletteFrame({ open, onOpenChange, title, children }: PaletteFrameProps) {
-  const isMobile = useIsMobile();
-
-  if (isMobile) {
-    return (
-      <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
-        <DrawerContent>
-          <DrawerTitle className="sr-only">{title}</DrawerTitle>
-          <div className="flex min-h-0 flex-1 flex-col p-4">{open && children}</div>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent
         showCloseButton={false}
-        className="max-w-md gap-0 overflow-visible p-0 sm:max-w-md"
+        drawerClassName="gap-0 p-4"
+        dialogClassName="max-w-md gap-0 overflow-visible p-0 sm:max-w-md"
       >
-        <DialogTitle className="sr-only">{title}</DialogTitle>
+        <ResponsiveDialogTitle className="sr-only">{title}</ResponsiveDialogTitle>
         {open && children}
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

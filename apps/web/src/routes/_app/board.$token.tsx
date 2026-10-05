@@ -1,16 +1,15 @@
 import type { PublicBoardStateDetailResponse } from "@openrift/shared/types/api/board-state";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { Link2OffIcon } from "lucide-react";
 
-import { EmptyState } from "@/components/empty-state";
 import { RouteErrorFallback } from "@/components/error-message";
+import { LinkGoneState } from "@/components/link-gone-state";
 import { buttonVariants } from "@/components/ui/button";
-import { requireBoardStatesFlag } from "@/features/rules/lib/board-states-flag";
-import { publicBoardStateQueryOptions } from "@/features/rules/lib/board-states-queries";
+import { requireBoardStatesFlag } from "@/features/board-states/lib/board-states-flag";
+import { publicBoardStateQueryOptions } from "@/features/board-states/lib/board-states-queries";
 import { seoHead } from "@/lib/seo";
+import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { boardStateShareImageUrl, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
-import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 export const Route = createFileRoute("/_app/board/$token")({
@@ -43,29 +42,23 @@ export const Route = createFileRoute("/_app/board/$token")({
         staleTime: "static",
       });
     } catch (error) {
-      if (error instanceof Error && error.message === "NOT_FOUND") {
+      if (isNotFoundSentinel(error)) {
         throw notFound();
       }
       throw error;
     }
   },
   errorComponent: RouteErrorFallback,
-  notFoundComponent: SharedBoardStateNotFound,
-});
-
-function SharedBoardStateNotFound() {
-  return (
-    <div className={cn(PAGE_PADDING, PAGE_WIDTH.capped)}>
-      <EmptyState
-        className="py-16"
-        icon={Link2OffIcon}
-        title={m.board_states_share_gone_title()}
-        description={m.board_states_share_gone_description()}
-      >
+  notFoundComponent: () => (
+    <LinkGoneState
+      title={m.board_states_share_gone_title()}
+      description={m.board_states_share_gone_description()}
+      action={
         <Link to="/rules" className={buttonVariants()}>
           {m.board_states_share_gone_action()}
         </Link>
-      </EmptyState>
-    </div>
-  );
-}
+      }
+      width="capped"
+    />
+  ),
+});

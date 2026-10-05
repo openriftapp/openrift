@@ -3,7 +3,7 @@
 ## Code Style
 
 - **Imports** — use `@/` path alias in `apps/web` instead of relative parent imports (`../`).
-- **Shared package imports** — `@openrift/shared` has no barrel. Import from the leaf module that declares the symbol (`@openrift/shared/deck-rules`, `@openrift/shared/types/api/decks`); every `src/*.ts` file is exported through the `./*` pattern in its package.json. The only aggregate entries are `./contracts` (the API's router input) and `./deck-codecs`. Do not add an index file to re-export siblings, and do not re-export a shared symbol from an app module.
+- **Shared package imports** — `@openrift/shared` has no barrel. Import from the leaf module that declares the symbol (`@openrift/shared/deck-rules`, `@openrift/shared/types/api/deck`, `@openrift/shared/deck-codecs/text`); every `src/**/*.ts` file is exported through the `./*` pattern in its package.json. The only aggregate entry is `./contracts` (the API's router input). Do not add an index file to re-export siblings, and do not re-export a shared symbol from an app module.
 - **Styling** — Tailwind utility classes with `cn()` from `@/lib/utils` for conditional class merging.
 - **React Compiler** — auto-memoizes everything. Do not add `useMemo`, `useCallback`, or `React.memo`.
 - **Page chrome and card browsers** — page widths, top bars, sticky stacking, and the shared card-browser pieces are documented in [ui-composition.md](./ui-composition.md).
@@ -19,7 +19,7 @@ Whatever the directory, the layers are the same and imports only point down: `li
 - **`stores/`**: Zustand stores. A pure predicate or constant a store exports for others (`isLocalDeckId`) lives in `lib/` and the store imports it.
 - **`hooks/`**: React hooks and mutations; they import their query options from `lib/`. A React context a hook consumes lives here; the provider component stays in `components/`.
 - **`components/`**: UI. The route object comes from `getRouteApi("/path")`, search-param types from `lib/`.
-- **`routes/`**: route definitions only: `createFileRoute` with its `validateSearch`, loaders, `head` and a one-line `component`. The page body is a component under `features/<feature>/components/`, and lint fails a route file over 300 lines. Every other source file has a 1,000-line ceiling; tests and migrations are exempt. A non-lazy route file never imports from a `hooks/` directory: the route tree imports every one of them, so whatever they import ships in the entry chunk on every page. Only `.lazy.tsx` files and `__root.tsx` may use hooks.
+- **`routes/`**: route definitions only: `createFileRoute` with its `validateSearch`, loaders, `head` and a one-line `component`. The page body is a component under `features/<feature>/components/`, and lint fails a route file over 300 lines. Every other source file has a 1,000-line ceiling; tests and migrations are exempt. A non-lazy route file never imports from a `hooks/` directory: the route tree imports every one of them, so whatever they import ships in the entry chunk on every page. Only `.lazy.tsx` files and `__root.tsx` may use hooks, but a `.lazy.tsx` file only wires its page (`createLazyFileRoute(...)({ component: XPage })`) and the body lives in `features/<feature>/components/<name>-page.tsx`, reading its route through `getRouteApi("/path")`.
 
 When the rule fires, move the definition down to the layer that needs it and update every importer. Never leave a re-export behind as a shim, and never move a module up just to silence the rule unless it belongs there (a `lib/` module that writes to a store is a store action, not lib).
 
@@ -38,11 +38,13 @@ The compiler is enabled in `infer` mode. `use`-prefixed functions that don't cal
 
 **TanStack Virtual.** Always go through `useWindowVirtualizerFresh` from `apps/web/src/lib/virtualizer-fresh.ts`, never `useWindowVirtualizer` directly. A naively compiled virtualizer renders empty forever, because the compiler memoizes `getVirtualItems()` / `getTotalSize()` against the stable virtualizer ref (upstream issue TanStack/virtual#736). The wrapper carries `"use no memo"` and returns pre-read `{ virtualizer, virtualItems, totalSize }` so call sites don't re-trip the memoization. Keep `overflow-anchor: none` on the scroll container (it lives on `html, body` in `apps/web/src/index.css` for the window-scrolled surfaces).
 
+**Virtualized cells keep `memo`.** The one exception to the no-`React.memo` rule is a cell or row rendered inside a virtualizer's `items.map()`: the compiler cannot cache JSX created there, so these components wrap themselves in `memo`: `BrowserCardCell`, `CardThumbnail`, `CollectionGridCell`, `ListGridCell`, and the row components in `card-grid.tsx` and `card-table.tsx`. Every prop they take must be primitive or reference-stable, or the memo stops skipping unchanged cells. Do not add `memo` anywhere else.
+
 **dnd-kit.** Destructure `useSortable` / `useDraggable` / `useDroppable` returns into locals before JSX. Member access on the return object in render (`{...sortable.listeners}`) makes the compiler bail with a refs-during-render error, visible only in the dev console. Pattern: `apps/web/src/features/collections/components/draggable-card.tsx`.
 
 ## TanStack Table
 
-The app uses v9, where features are opt-in. Register only what a table uses via `tableFeatures()`, and reuse an existing set: `adminCardTableFeatures` (exported from `apps/web/src/features/admin/components/admin-card-table-shared.tsx`) covers sorting plus global filtering, and `admin-table.tsx` keeps a private sorting-only set. Types lead with `TFeatures`: `ColumnDef<typeof features, Row>`, `Table<TFeatures, TData>`, `Column<TFeatures, TData, TValue>`. Two things that bite: `row.getVisibleCells()` belongs to `columnVisibilityFeature`, so use `row.getAllCells()` when that feature isn't registered (if you ever add column hiding, switch back to `getVisibleCells()` in the same change, because `getHeaderGroups()` filters by visibility on its own and the headers would otherwise shrink while the cells don't), and `columnDef.sortingFn` is now `sortFn`. The package ships its own skills under `node_modules/@tanstack/react-table/skills/` (notably `migrate-v8-to-v9`), which are more accurate than the website guide.
+The app uses v9, where features are opt-in. Register only what a table uses via `tableFeatures()`, and reuse an existing set: `AdminTable` (`apps/web/src/features/admin/components/admin-table.tsx`) registers sorting only, so a new admin table goes through `AdminTable` before it builds its own `tableFeatures()` call. Types lead with `TFeatures`: `ColumnDef<typeof features, Row>`, `Table<TFeatures, TData>`, `Column<TFeatures, TData, TValue>`. Two things that bite: `row.getVisibleCells()` belongs to `columnVisibilityFeature`, so use `row.getAllCells()` when that feature isn't registered (if you ever add column hiding, switch back to `getVisibleCells()` in the same change, because `getHeaderGroups()` filters by visibility on its own and the headers would otherwise shrink while the cells don't), and `columnDef.sortingFn` is now `sortFn`. The package ships its own skills under `node_modules/@tanstack/react-table/skills/` (notably `migrate-v8-to-v9`), which are more accurate than the website guide.
 
 ## SSR-unsafe hooks
 
@@ -51,6 +53,8 @@ The app uses v9, where features are opt-in. Register only what a table uses via 
 ## Mutation errors
 
 The QueryClient's default mutation `onError` (`apps/web/src/lib/query-client.ts`) owns the error toast, the stale-bundle reload and the 401 session refetch for every mutation, via the exported `reportMutationError` in that same file. A call site must not add its own `toast.error` in a `catch`: write `catch { /* Reported by the global mutation error toast. */ }` and keep only the state resets. Declaring `onError` in a `useMutation` call replaces that default (react-query merges mutation options shallowly), so a handler that rolls an optimistic update back must call `reportMutationError(error, queryClient)` itself, or the change reverts with nothing telling the user why. Callbacks passed per call (`mutate(vars, { onError })`) run in addition to the default, so those must not toast either: the call site's generic string and the default's server message would both appear. Two call-site toasts stay legitimate, each with a comment saying why: a partial-progress warning after a batched loop ("Import failed. Some cards may have been added.") and a per-item label when one iteration of a loop failed. Non-mutation async (clipboard, PDF/image download, `localStorage` quota) never reaches the global handler and toasts normally.
+
+A fire-and-forget handler that awaits `mutateAsync` wraps it in `runReportedMutation` (`apps/web/src/lib/run-reported-mutation.ts`) in place of a hand-written empty `catch`. `ConfirmActionButton`'s `onConfirm` is the exception: it must return the rejecting promise unwrapped, because the button keeps its dialog open when the promise rejects.
 
 ## Database access
 
@@ -73,9 +77,17 @@ Imports point down, strictly: `db` < `repositories` < `lib` < `services` < `rout
 
 Row-to-response mapping is called a **presenter**, and it lives in `lib/<domain>-presenters.ts` — one module per domain (`collection`, `copy`, `deck`, `list`, `printing`, `product`, `deck-check`, `tournament`). Do not name these `mappers` or `*-response`, and do not park one in a service because that's where its first caller happened to be. Presenters are pure and get a sibling `*-presenters.test.ts`; the one exception is a presenter that needs a repo read to compose a detail response (`buildEntryDetail`), which stays in the domain's presenter module rather than moving to `services/`.
 
+**Errors.** When the procedure's contract declares the error, throw it through the handler's `errors` argument (`throw errors.NOT_FOUND()`). Everywhere else throw `AppError` from `src/errors.ts`, and use the helpers in `src/lib/assertions.ts` for the common shapes: `assertFound` for a missing row, `assertExisted` for a write that touched zero rows. Never throw a raw `ORPCError`. A plain Hono route answers an error with `jsonError(c, status, message)` from `src/lib/http-response.ts`, which always carries a `code`. A Hono middleware in front of an oRPC procedure answers with `orpcErrorResponse` from `src/orpc/error-body.ts`, so the typed client can parse it.
+
+**Repository naming.** A lookup that returns a row or `undefined` is named `get*` (`getById`, `getByShareToken`); do not add `find*` names for the same shape. A `deleteById*` method returns a boolean (true when a row was deleted), so the caller checks it with `assertExisted`.
+
+**Services.** A route imports a service function directly. A service goes through `context.services` (wired in the module's `wiring.ts`) only when it needs injected dependencies such as the email sender, so tests can swap them.
+
+**Logging.** A service that logs takes the request-scoped logger (ADR-010) as a parameter: `context.log` in an oRPC handler, `c.get("log")` in a Hono route; it does not create its own with `createLogger`. A scheduled job receives the logger derived from its job kind.
+
 ## Displaying card names
 
-A Riftbound Legend is stored under its epithet (`Emperor of the Sands`) with the champion in a tag (`Azir`), but players call it `Azir, Emperor of the Sands`. **`legendDisplayName` in `packages/shared/src/utils.ts` is the only place that composes that label.** It takes `{ name, types, tags }`; a deck row spells those fields `cardName` / `cardTypes` / `tags`, so reshape at the call site rather than adding a second entry point. `compareCardDisplayName` is the sort comparator over the same rule.
+A Riftbound Legend is stored under its epithet (`Emperor of the Sands`) with the champion in a tag (`Azir`), but players call it `Azir, Emperor of the Sands`. **`legendDisplayName` in `packages/shared/src/card-name.ts` is the only place that composes that label.** It takes `{ name, types, tags }`; a deck row spells those fields `cardName` / `cardTypes` / `tags`, so reshape at the call site rather than adding a second entry point. `compareCardDisplayName` is the sort comparator over the same rule.
 
 Three rules follow from that:
 
@@ -99,7 +111,7 @@ Three entry points sit on top of that fold, and nothing else should hand-roll a 
 - `resolveCard(index, name)` — one written name to one card, for importers and deck check. Returns `matched` only when exactly one card reaches the strongest tier any card reaches; a tie is `ambiguous` and belongs in front of the user. There is deliberately no approximate matching.
 - `matchesCardQuery(query, values)` — an unranked boolean, for a table's global filter or a plain `.filter()`. Never write `name.toLowerCase().includes(query)`: the catalogue stores `Doran’s Shield`, so a typed `Doran's` finds nothing.
 
-A card is indexed under its canonical name plus `SearchableCard.altNames`, which every surface builds with `cardSearchAltNames` — the colloquial Legend form (`"Azir, Emperor of the Sands"`), a printing's localized `printedName`, and the curated `card_name_aliases` keys where the server has them. Server-side, `services/card-lookup-index.ts` holds one memoized index for the whole API, so a name that resolves in chat resolves the same way in deck check.
+A card is indexed under its canonical name plus `SearchableCard.altNames`, which every surface builds with `cardSearchAltNames` — the colloquial Legend form (`"Azir, Emperor of the Sands"`), a printing's localized `printedName`, and the curated `card_name_aliases` keys where the server has them. Server-side, `catalog/lib/card-lookup-index.ts` holds one memoized index for the whole API, so a name that resolves in chat resolves the same way in deck check.
 
 **Identity** answers the different question "are these two rows the same card?" and is `normalizeNameForIdentity` in `utils.ts`, mirrored in SQL as the `norm_name` columns. Use it for dedup, grouping and storage keys, never for matching user input. It deliberately does **not** fold accents, because NFKD merges letters that are distinct in some scripts (Cyrillic `й` decomposes to `и`) and a collision in a uniqueness key is a bug. Search wants the opposite. One function used to serve both, search inherited the no-folding compromise, and reaching for the identity key to match typed text brings that back.
 
@@ -125,6 +137,13 @@ bunx shadcn@latest add <component-name>
 ```
 
 When customizing a scaffolded component, add a `// custom: <reason>` comment on every changed or added line. This makes it easy to re-scaffold with `--overwrite` and diff to re-apply customizations.
+
+Primitive props follow one vocabulary, scaffolded or hand-authored:
+
+- **Value callbacks** are `onValueChange` (`DatePicker`, `QuantityStepper`, `SearchInput`). `MultiSelectCombobox` and `LinkRowsField` in `components/` still say `onChange`.
+- **Palette:** `variant` when the prop also changes shape (`Badge`, `Alert`, `Callout`, `Button`); `tone` when it only changes color (`IconChip`, `StatTile`, `ActionBand`, `StatStrip`). The status values are `success`, `warning`, `destructive` and `neutral`.
+- **Accessible name:** `label` when the primitive renders the text visibly; `aria-label` passthrough when it only names an icon or an unlabelled field (`SearchInput`, `CopyField`). A primitive with two icon buttons names each with its own prop (`InlineCountStepper`'s `decrementLabel` and `incrementLabel`).
+- **Loading:** `pending` on `Button` (and the top-bar wrappers, which forward it) shows the `Spinner` and disables. Never hand-roll an `animate-spin` icon.
 
 ## Comments
 

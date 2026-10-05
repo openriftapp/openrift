@@ -1,14 +1,14 @@
 /* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then, unicorn/prefer-top-level-await -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
 import type { DeckZone } from "@openrift/shared/types/enums";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { RouteErrorFallback } from "@/components/error-message";
-import { catalogQueryOptions } from "@/features/cards/lib/catalog-query";
+import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
 import { filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { DeckPending } from "@/features/decks/components/deck-pending";
 import { queueCardsSearchSchema } from "@/features/stage/lib/presentation-queue-search";
-import { sessionQueryOptions } from "@/lib/auth-session";
+import { requireSession, sessionQueryOptions } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
@@ -58,16 +58,7 @@ export const Route = createFileRoute("/_app/stage")({
     if (search.tier === undefined) {
       return;
     }
-    const session = await context.queryClient.query({
-      ...sessionQueryOptions(),
-      staleTime: "static",
-    });
-    if (!session?.user) {
-      throw redirect({
-        to: "/login",
-        search: { redirect: location.href || undefined, email: undefined },
-      });
-    }
+    await requireSession({ context, location });
   },
   loaderDeps: ({ search }) => ({ deck: search.deck }),
   loader: async ({ context, deps }) => {

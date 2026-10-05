@@ -1,6 +1,13 @@
+type DiffType = "equal" | "added" | "removed";
+
 export interface DiffSegment {
   text: string;
-  type: "equal" | "added" | "removed";
+  type: DiffType;
+}
+
+interface LcsEntry<T> {
+  type: DiffType;
+  item: T;
 }
 
 type DiffGranularity = "word" | "char";
@@ -30,9 +37,66 @@ function merge(segments: DiffSegment[]): DiffSegment[] {
 function lcsCell(dp: number[][], row: number, column: number): number {
   const value = dp[row]?.[column];
   if (value === undefined) {
-    throw new Error(`textDiff: no LCS cell at ${row},${column}`);
+    throw new Error(`lcsDiff: no LCS cell at ${row},${column}`);
   }
   return value;
+}
+
+/**
+ * Longest-common-subsequence diff of two sequences, comparing items by `key`.
+ * Ties resolve so a replacement reads as the removal, then the addition.
+ */
+export function lcsDiff<T>(
+  before: readonly T[],
+  after: readonly T[],
+  key: (item: T) => string,
+): LcsEntry<T>[] {
+  const beforeKeys = before.map((item) => key(item));
+  const afterKeys = after.map((item) => key(item));
+
+  const dp: number[][] = [Array.from({ length: after.length + 1 }, () => 0)];
+  for (const [beforeIndex, beforeKey] of beforeKeys.entries()) {
+    const row: number[] = [0];
+    let left = 0;
+    for (const [afterIndex, afterKey] of afterKeys.entries()) {
+      const value =
+        beforeKey === afterKey
+          ? lcsCell(dp, beforeIndex, afterIndex) + 1
+          : Math.max(lcsCell(dp, beforeIndex, afterIndex + 1), left);
+      row.push(value);
+      left = value;
+    }
+    dp.push(row);
+  }
+
+  const reversed: LcsEntry<T>[] = [];
+  let i = before.length;
+  let j = after.length;
+  while (i > 0 || j > 0) {
+    const beforeItem = before[i - 1];
+    const afterItem = after[j - 1];
+    if (
+      beforeItem !== undefined &&
+      afterItem !== undefined &&
+      beforeKeys[i - 1] === afterKeys[j - 1]
+    ) {
+      reversed.push({ type: "equal", item: afterItem });
+      i--;
+      j--;
+    } else if (
+      afterItem !== undefined &&
+      (beforeItem === undefined || lcsCell(dp, i, j - 1) >= lcsCell(dp, i - 1, j))
+    ) {
+      reversed.push({ type: "added", item: afterItem });
+      j--;
+    } else if (beforeItem === undefined) {
+      throw new Error("lcsDiff: LCS backtrack ran past both sequences");
+    } else {
+      reversed.push({ type: "removed", item: beforeItem });
+      i--;
+    }
+  }
+  return reversed.toReversed();
 }
 
 export function textDiff(
@@ -51,51 +115,10 @@ export function textDiff(
   }
 
   const granularity = options.granularity ?? "word";
-  const oldTokens = tokenize(oldText, granularity);
-  const newTokens = tokenize(newText, granularity);
-  const n = oldTokens.length;
-  const m = newTokens.length;
-
-  const dp: number[][] = [Array.from({ length: m + 1 }, () => 0)];
-  for (const [oldIndex, oldToken] of oldTokens.entries()) {
-    const row: number[] = [0];
-    let left = 0;
-    for (const [newIndex, newToken] of newTokens.entries()) {
-      const value =
-        oldToken === newToken
-          ? lcsCell(dp, oldIndex, newIndex) + 1
-          : Math.max(lcsCell(dp, oldIndex, newIndex + 1), left);
-      row.push(value);
-      left = value;
-    }
-    dp.push(row);
-  }
-
-  const reversed: DiffSegment[] = [];
-  let i = n;
-  let j = m;
-
-  while (i > 0 || j > 0) {
-    const oldToken = oldTokens[i - 1];
-    const newToken = newTokens[j - 1];
-    if (oldToken !== undefined && oldToken === newToken) {
-      reversed.push({ text: oldToken, type: "equal" });
-      i--;
-      j--;
-    } else if (
-      newToken !== undefined &&
-      (oldToken === undefined || lcsCell(dp, i, j - 1) >= lcsCell(dp, i - 1, j))
-    ) {
-      reversed.push({ text: newToken, type: "added" });
-      j--;
-    } else if (oldToken === undefined) {
-      throw new Error("textDiff: LCS backtrack ran past both token lists");
-    } else {
-      reversed.push({ text: oldToken, type: "removed" });
-      i--;
-    }
-  }
-
-  reversed.reverse();
-  return merge(reversed);
+  const entries = lcsDiff(
+    tokenize(oldText, granularity),
+    tokenize(newText, granularity),
+    (token) => token,
+  );
+  return merge(entries.map(({ type, item }) => ({ text: item, type })));
 }

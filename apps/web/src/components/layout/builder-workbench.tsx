@@ -1,12 +1,9 @@
 import type { CSSProperties, ReactNode, Ref } from "react";
 import { useState } from "react";
 
-import {
-  PAGE_TOP_BAR_STICKY,
-  PageTopBarHeightContext,
-  useMeasuredHeight,
-} from "@/components/layout/page-top-bar";
+import { PAGE_TOP_BAR_STICKY, PageTopBarHeightContext } from "@/components/layout/page-top-bar";
 import { useHeaderHeight } from "@/hooks/use-header-height";
+import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { cn } from "@/lib/utils";
 
 interface BuilderWorkbenchProps {

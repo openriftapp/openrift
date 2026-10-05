@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
-import { catalogQueryOptions } from "@/features/cards/lib/catalog-query";
+import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
 import { metaEventPageQueryOptions, metaSubmitEventQuery } from "@/features/meta/lib/meta-queries";
 import { initQueryOptions } from "@/lib/init-queries";
 import { seoHead } from "@/lib/seo";

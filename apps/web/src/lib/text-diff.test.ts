@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { textDiff } from "./text-diff";
+import { lcsDiff, textDiff } from "./text-diff";
 
 describe("textDiff (word granularity, default)", () => {
   it("returns a single equal segment when inputs are identical", () => {
@@ -140,5 +140,41 @@ describe("textDiff round-trip", () => {
       .map((s) => s.text)
       .join("");
     expect(reconstructed).toBe(newText);
+  });
+});
+
+describe("lcsDiff", () => {
+  const byId = (item: { id: string; label: string }) => item.id;
+
+  it("marks shared items equal and returns the after item for them", () => {
+    const before = [{ id: "a", label: "old" }];
+    const after = [{ id: "a", label: "new" }];
+
+    expect(lcsDiff(before, after, byId)).toEqual([{ type: "equal", item: after[0] }]);
+  });
+
+  it("lists a replacement as the removal, then the addition", () => {
+    const diff = lcsDiff(["the", "cat"], ["the", "dog"], (token) => token);
+
+    expect(diff).toEqual([
+      { type: "equal", item: "the" },
+      { type: "removed", item: "cat" },
+      { type: "added", item: "dog" },
+    ]);
+  });
+
+  it("handles empty sides", () => {
+    expect(lcsDiff([], ["a"], (token) => token)).toEqual([{ type: "added", item: "a" }]);
+    expect(lcsDiff(["a"], [], (token) => token)).toEqual([{ type: "removed", item: "a" }]);
+    expect(lcsDiff([], [], (token) => token)).toEqual([]);
+  });
+
+  it("keeps the longest common run", () => {
+    const diff = lcsDiff(["a", "b", "c", "d"], ["b", "c", "x"], (token) => token);
+
+    expect(diff.filter((entry) => entry.type === "equal").map((entry) => entry.item)).toEqual([
+      "b",
+      "c",
+    ]);
   });
 });

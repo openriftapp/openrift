@@ -1,38 +1,7 @@
-import { createLazyFileRoute, Link } from "@tanstack/react-router";
-import { SettingsIcon } from "lucide-react";
+import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { PageTopBarButton } from "@/components/layout/page-top-bar";
-import { CalendarFeedButton } from "@/features/groups/components/calendar-feed-dialog";
-import { FriendGroupSectionFrame, isAdmin } from "@/features/groups/components/friend-group-shell";
-import { ShopEventsContent } from "@/features/groups/components/shop-events-page";
-import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
-import { m } from "@/paraglide/messages.js";
+import { GroupShopEventsPage } from "@/features/groups/components/group-shop-events-page";
 
 export const Route = createLazyFileRoute("/_app/_authenticated/groups/$slug_/shops")({
-  component: GroupShopEventsRoute,
+  component: GroupShopEventsPage,
 });
-
-function GroupShopEventsRoute() {
-  const { slug } = Route.useParams();
-  const { data } = useFriendGroupDetail(slug);
-  return (
-    <FriendGroupSectionFrame
-      slug={slug}
-      title={m.groups_nav_shop_events()}
-      actions={
-        <>
-          <CalendarFeedButton slug={slug} kind="shop_events" />
-          {isAdmin(data.viewerRole) ? (
-            <PageTopBarButton
-              render={<Link to="/groups/$slug/manage" params={{ slug }} hash="shops" />}
-            >
-              <SettingsIcon className="size-4" />
-              {m.groups_shops_manage()}
-            </PageTopBarButton>
-          ) : null}
-        </>
-      }
-      render={(detail) => <ShopEventsContent slug={slug} data={detail} />}
-    />
-  );
-}

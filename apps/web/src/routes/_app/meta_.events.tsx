@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
-import { META_EVENTS_DESCRIPTION } from "@/features/meta/components/meta-copy";
+import { META_EVENTS_DESCRIPTION } from "@/features/meta/lib/meta-copy";
 import {
   eventIndexHoldings,
   eventPageOrder,

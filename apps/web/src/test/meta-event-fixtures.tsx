@@ -1,3 +1,4 @@
+import { stringifyUnknown } from "@openrift/shared/strings";
 import type {
   MetaEventDetail,
   MetaEventField,
@@ -7,7 +8,6 @@ import type {
   MetaEventStandingsResponse,
   MetaStandingsRow,
 } from "@openrift/shared/types/api/meta";
-import { stringifyUnknown } from "@openrift/shared/utils";
 import type { ReactNode } from "react";
 
 /**
@@ -30,6 +30,8 @@ export function metaPlayer(overrides: Partial<MetaEventPlayer> = {}): MetaEventP
     legend: {
       cardId: "card-yasuo",
       name: "Yasuo, the Unforgiven",
+      character: "Yasuo",
+      epithet: "the Unforgiven",
       slug: "yasuo-the-unforgiven",
       imageId: null,
       domains: ["fury"],

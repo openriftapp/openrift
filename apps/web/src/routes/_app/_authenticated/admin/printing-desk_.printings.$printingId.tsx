@@ -2,10 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
+import { adminDistributionChannelsQueryOptions } from "@/features/admin/lib/distribution-channels-queries";
+import { adminMarkersQueryOptions } from "@/features/admin/lib/markers-queries";
 import { deskPrintingQueryOptions } from "@/features/admin/lib/printing-desk-queries";
-import { adminDistributionChannelsQueryOptions } from "@/lib/distribution-channels-queries";
 import { initQueryOptions } from "@/lib/init-queries";
-import { adminMarkersQueryOptions } from "@/lib/markers-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute(

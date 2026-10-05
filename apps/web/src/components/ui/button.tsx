@@ -2,6 +2,7 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva } from "class-variance-authority";
 import type { VariantProps } from "class-variance-authority";
 
+import { Spinner } from "@/components/ui/spinner"; // custom: pending state
 import { cn } from "@/lib/utils";
 
 // custom: the shared control surface (docs/design-language.md), one neutral fill ladder
@@ -66,14 +67,25 @@ const buttonVariants = cva(
   },
 );
 
+// custom: the spinner matches the icon size each button size gives its svgs
+const SPINNER_SIZE: Partial<
+  Record<NonNullable<VariantProps<typeof buttonVariants>["size"]>, string>
+> = { xs: "size-3", "icon-xs": "size-3", sm: "size-3.5", "icon-sm": "size-3.5" };
+
 function Button({
   className,
   variant = "default",
   size = "default",
   render,
   nativeButton,
+  pending = false, // custom: pending state
+  disabled, // custom: pending state
+  children, // custom: pending state
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props &
+  VariantProps<typeof buttonVariants> & {
+    pending?: boolean; // custom: pending state
+  }) {
   // custom: default nativeButton to false when a `render` prop is supplied.
   // Render is almost always used to swap in a TanStack <Link> (an <a>), and
   // Base UI warns at runtime if nativeButton stays true on a non-<button>.
@@ -81,7 +93,10 @@ function Button({
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(
+        buttonVariants({ variant, size, className }),
+        pending && "[&>[data-slot=spinner]+svg]:hidden", // custom: the spinner stands in for the leading icon
+      )}
       // custom: BaseUI's useRenderElement conditionally skips useMergedRefs on
       // the server (typeof document check), which causes the native <button>'s
       // `disabled` attribute to be absent from SSR HTML while present on the
@@ -89,8 +104,16 @@ function Button({
       suppressHydrationWarning
       render={render}
       nativeButton={resolvedNativeButton}
+      disabled={disabled || pending} // custom: pending state
+      aria-busy={pending || undefined} // custom: pending state
       {...props}
-    />
+    >
+      {/* custom: pending state */}
+      {pending ? (
+        <Spinner aria-hidden="true" className={size ? SPINNER_SIZE[size] : undefined} />
+      ) : null}
+      {children}
+    </ButtonPrimitive>
   );
 }
 

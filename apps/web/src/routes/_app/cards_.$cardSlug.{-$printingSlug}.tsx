@@ -1,9 +1,9 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { priceLookupFromMap } from "@openrift/shared/price-lookup";
 import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { PricesResponse } from "@openrift/shared/types/api/pricing";
 import { ALL_MARKETPLACES, MARKETPLACE_CURRENCY } from "@openrift/shared/types/pricing";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { z } from "zod";
 
@@ -20,6 +20,7 @@ import { fetchPricesForSeo, pricesQueryOptions } from "@/features/cards/lib/pric
 import { initQueryOptions } from "@/lib/init-queries";
 import { effectiveLanguageOrder } from "@/lib/language-order";
 import { breadcrumbJsonLd, productJsonLd, seoHead, toAbsoluteUrl } from "@/lib/seo";
+import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
 
@@ -121,7 +122,7 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
         context.queryClient.query({ ...initQueryOptions, select: undefined, staleTime: "static" }),
       ]);
     } catch (error) {
-      if (error instanceof Error && error.message === "NOT_FOUND") {
+      if (isNotFoundSentinel(error)) {
         throw notFound();
       }
       throw error;

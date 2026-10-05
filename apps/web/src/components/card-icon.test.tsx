@@ -30,6 +30,21 @@ describe("CardIcon", () => {
     expect(img).toHaveClass("size-6");
   });
 
+  it("hides a decorative SVG from screen readers", () => {
+    render(<CardIcon src="/icons/fire.svg" />);
+    expect(document.querySelector("span")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("names an SVG icon when given alt", () => {
+    render(<CardIcon src="/icons/fire.svg" alt="Fury" />);
+    expect(screen.getByRole("img", { name: "Fury" })).toBeInTheDocument();
+  });
+
+  it("names an image icon when given alt", () => {
+    render(<CardIcon src="/icons/fire.png" alt="Fury" />);
+    expect(screen.getByAltText("Fury")).toBeInTheDocument();
+  });
+
   it("uses default size when no className is provided", () => {
     render(<CardIcon src="/icons/fire.svg" />);
     const el = document.querySelector("span");

@@ -3,13 +3,13 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { adminSiteSettingsQueryOptions } from "@/lib/admin-site-settings-queries";
 import { siteSettingsKeys } from "@/lib/query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import type { SiteSettings } from "@/lib/site-settings";
 import { siteSettingsQueryOptions } from "@/lib/site-settings";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 export function useSiteSettingValue(key: string): string | undefined {
   const { data } = useSuspenseQuery(siteSettingsQueryOptions);

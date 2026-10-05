@@ -1,4 +1,4 @@
-import { legendDisplayName } from "@openrift/shared/utils";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { RENAMED_LANGUAGES } from "@openrift/shared/well-known";
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 

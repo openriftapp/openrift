@@ -4,6 +4,7 @@ import { RouteErrorFallback } from "@/components/error-message";
 import { CollectionPending } from "@/features/collections/components/collection-pending";
 import { listDetailQueryOptions } from "@/features/lists/lib/lists-queries";
 import { seoHead } from "@/lib/seo";
+import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/_authenticated/collections/lists/$listId")({
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/_app/_authenticated/collections/lists/$li
         staleTime: "static",
       });
     } catch (error) {
-      if (error instanceof Error && error.message === "NOT_FOUND") {
+      if (isNotFoundSentinel(error)) {
         throw notFound();
       }
       throw error;

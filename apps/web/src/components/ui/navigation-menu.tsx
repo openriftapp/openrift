@@ -135,6 +135,19 @@ function NavigationMenuLink({ className, ...props }: NavigationMenuPrimitive.Lin
   );
 }
 
+// custom: section label inside NavigationMenuContent, styled like DropdownMenuLabel
+function NavigationMenuLabel({ className, ...props }: React.ComponentProps<"div">) {
+  const labelClass = "text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wide uppercase"; // custom:
+  return (
+    // custom:
+    <div
+      data-slot="navigation-menu-label" // custom:
+      className={cn(labelClass, className)} // custom:
+      {...props} // custom:
+    />
+  ); // custom:
+} // custom:
+
 function NavigationMenuIndicator({
   className,
   ...props
@@ -158,6 +171,7 @@ export {
   NavigationMenuContent,
   NavigationMenuIndicator,
   NavigationMenuItem,
+  NavigationMenuLabel, // custom: section label
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,

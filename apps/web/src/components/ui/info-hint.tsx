@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import { InfoIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -5,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 /** Shared trigger styling so the icon reads the same in both variants. */
 const TRIGGER_CLASS = "text-muted-foreground hover:text-foreground cursor-default";
@@ -31,6 +33,7 @@ export function InfoHint({
   children,
   className,
   side = "top",
+  icon: Icon = InfoIcon,
 }: {
   /** Name of the field the hint belongs to; forms the trigger's accessible name. */
   label: string;
@@ -40,10 +43,11 @@ export function InfoHint({
   className?: string;
   /** Preferred side for the overlay. */
   side?: "top" | "bottom" | "left" | "right";
+  icon?: LucideIcon;
 }) {
   const coarsePointer = useCoarsePointer();
-  const triggerLabel = `${label}: what's this?`;
-  const icon = <InfoIcon className={cn("size-3.5", className)} />;
+  const triggerLabel = m.common_info_hint_label({ label });
+  const icon = <Icon className={cn("size-3.5", className)} />;
 
   if (coarsePointer) {
     return (

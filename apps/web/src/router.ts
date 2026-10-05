@@ -4,6 +4,7 @@ import { createClientOnlyFn } from "@tanstack/react-start";
 
 import { RouterErrorFallback } from "./components/error-fallback";
 import { NotFoundFallback } from "./components/error-message";
+import { RoutePending } from "./components/route-pending";
 import { setDiagnosticsSources } from "./lib/app-diagnostics";
 import { createQueryClient } from "./lib/query-client";
 import { initVersionStaleNavigationReload } from "./lib/stale-bundle-reload";
@@ -22,6 +23,7 @@ export function getRouter() {
     defaultPreload: "intent",
     defaultErrorComponent: RouterErrorFallback,
     defaultNotFoundComponent: NotFoundFallback,
+    defaultPendingComponent: RoutePending,
     scrollRestoration: true,
   });
 

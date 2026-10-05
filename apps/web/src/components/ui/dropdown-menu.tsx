@@ -69,7 +69,8 @@ function DropdownMenuLabel({
       data-inset={inset}
       className={cn(
         // custom: px-2 py-1.5 label — popup rows sit on the h-8 rhythm, not below it
-        "text-muted-foreground px-2 py-1.5 text-xs font-medium data-inset:pl-7",
+        // custom: muted uppercase tracking-wide, the app's one group-label style
+        "text-muted-foreground px-2 py-1.5 text-xs font-medium tracking-wide uppercase data-inset:pl-7",
         className,
       )}
       {...props}

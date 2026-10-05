@@ -1,7 +1,7 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
 import { PageTopBarBack } from "@/components/layout/page-top-bar";
-import { FilterSearchProvider } from "@/features/cards/lib/search-schemas";
+import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { usePublicUserBundleList } from "@/features/groups/hooks/use-user-share";
 import { SharedListContent } from "@/features/lists/components/shared-list-content";
 

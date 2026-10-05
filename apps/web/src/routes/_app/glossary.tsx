@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
+import { querySearchSchema } from "@/features/rules/lib/rules-search-schema";
 import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { initQueryOptions } from "@/lib/init-queries";
@@ -9,6 +10,7 @@ import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/glossary")({
+  validateSearch: querySearchSchema,
   head: () =>
     seoHead({
       siteUrl: getSiteUrl(),

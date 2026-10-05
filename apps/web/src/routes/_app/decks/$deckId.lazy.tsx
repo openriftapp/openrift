@@ -1,6 +1,6 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { FilterSearchProvider } from "@/features/cards/lib/search-schemas";
+import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { DeckEditorPage } from "@/features/decks/components/deck-editor-page";
 import { ViewSurfaceProvider } from "@/hooks/use-view-prefs";
 

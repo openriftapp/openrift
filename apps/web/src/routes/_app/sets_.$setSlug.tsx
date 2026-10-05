@@ -1,10 +1,11 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { SetDetailResponse } from "@openrift/shared/types/api/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { publicSetDetailQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { breadcrumbJsonLd, collectionPageJsonLd, seoHead } from "@/lib/seo";
+import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/sets_/$setSlug")({
@@ -63,7 +64,7 @@ export const Route = createFileRoute("/_app/sets_/$setSlug")({
         staleTime: "static",
       });
     } catch (error) {
-      if (error instanceof Error && error.message === "NOT_FOUND") {
+      if (isNotFoundSentinel(error)) {
         throw notFound();
       }
       throw error;

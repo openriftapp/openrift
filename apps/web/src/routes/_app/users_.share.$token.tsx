@@ -1,13 +1,17 @@
 import type { PublicUserBundleResponse } from "@openrift/shared/types/api/user-share";
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { RouteErrorFallback } from "@/components/error-message";
+import { LinkGoneState } from "@/components/link-gone-state";
+import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { publicUserBundleQueryOptions } from "@/features/groups/lib/user-share-queries";
 import { seoHead } from "@/lib/seo";
+import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { bundleShareImageUrl, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createFileRoute("/_app/users_/share/$token")({
   head: ({ loaderData, params }) => {
@@ -39,7 +43,7 @@ export const Route = createFileRoute("/_app/users_/share/$token")({
         staleTime: "static",
       });
     } catch (error) {
-      if (error instanceof Error && error.message === "NOT_FOUND") {
+      if (isNotFoundSentinel(error)) {
         throw notFound();
       }
       throw error;
@@ -47,7 +51,18 @@ export const Route = createFileRoute("/_app/users_/share/$token")({
   },
   pendingComponent: SharedUserBundlePending,
   errorComponent: RouteErrorFallback,
-  notFoundComponent: NotFoundFallback,
+  notFoundComponent: () => (
+    <LinkGoneState
+      title={m.common_share_gone_title()}
+      description={m.lists_share_bundle_gone_description()}
+      action={
+        <Link to="/cards" className={buttonVariants()}>
+          {m.common_browse_cards()}
+        </Link>
+      }
+      width="capped"
+    />
+  ),
 });
 
 function SharedUserBundlePending() {

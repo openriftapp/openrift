@@ -57,6 +57,30 @@ describe("Dropzone", () => {
     expect(onFiles.mock.calls[0]?.[0]).toHaveLength(2);
   });
 
+  it("drops files the accept list rules out", () => {
+    const onFiles = vi.fn();
+    render(<Dropzone multiple accept="image/*" label="Drop photos here" onFiles={onFiles} />);
+
+    fireEvent.drop(screen.getByText("Drop photos here"), {
+      dataTransfer: {
+        files: [file("a.png"), new File(["x"], "rules.pdf", { type: "application/pdf" })],
+      },
+    });
+
+    expect(onFiles).toHaveBeenCalledWith([expect.objectContaining({ name: "a.png" })]);
+  });
+
+  it("stays quiet when every dropped file is ruled out", () => {
+    const onFiles = vi.fn();
+    render(<Dropzone accept="image/*" label="Drop photos here" onFiles={onFiles} />);
+
+    fireEvent.drop(screen.getByText("Drop photos here"), {
+      dataTransfer: { files: [new File(["x"], "rules.pdf", { type: "application/pdf" })] },
+    });
+
+    expect(onFiles).not.toHaveBeenCalled();
+  });
+
   it("stays quiet on an empty drop", () => {
     const onFiles = vi.fn();
     render(<Dropzone label="Drop photos here" onFiles={onFiles} />);

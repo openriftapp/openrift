@@ -1,6 +1,13 @@
 import { Children } from "react";
 import type { ReactNode } from "react";
 
+import {
+  SectionHeader,
+  SectionHeaderActions,
+  SectionHeaderDescription,
+  SectionHeaderGroup,
+  SectionHeaderTitle,
+} from "@/components/section-header";
 import { cn } from "@/lib/utils";
 
 export function SettingsSection({
@@ -27,13 +34,15 @@ export function SettingsSection({
       data-slot="settings-section"
       className={cn("flex scroll-mt-16 flex-col gap-6", className)}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h3 className="font-heading text-base leading-snug font-medium">{title}</h3>
-          {description ? <p className="text-muted-foreground text-sm">{description}</p> : null}
-        </div>
-        {action}
-      </div>
+      <SectionHeader>
+        <SectionHeaderGroup>
+          <SectionHeaderTitle level={3} className="font-heading leading-snug">
+            {title}
+          </SectionHeaderTitle>
+          {description ? <SectionHeaderDescription>{description}</SectionHeaderDescription> : null}
+        </SectionHeaderGroup>
+        {action ? <SectionHeaderActions>{action}</SectionHeaderActions> : null}
+      </SectionHeader>
       {Children.toArray(children).length > 0 ? (
         <div
           data-slot="settings-section-content"

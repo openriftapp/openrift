@@ -21,7 +21,7 @@ import {
   catalogQueryOptions,
   normalizeCatalogLangs,
   readCatalogVersionFromServerCache,
-} from "@/features/cards/lib/catalog-query";
+} from "@/features/cards/lib/catalog-queries";
 import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
 import { cleanedSearchForRedirect } from "@/features/cards/lib/search-schemas";
 import { initQueryOptions } from "@/lib/init-queries";

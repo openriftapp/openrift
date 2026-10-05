@@ -4,6 +4,8 @@
 import type { ShareImageQuery } from "@openrift/shared/share-image-params";
 import { shareImageQueryParams } from "@openrift/shared/share-image-params";
 
+import { downloadBlob } from "@/lib/download";
+
 const API_BASE = "/api/v1";
 
 function withParams(base: string, params: Record<string, string | undefined>): string {
@@ -158,7 +160,7 @@ export function collectionShareImageUrl(
 // Downloads via fetch + object URL, not `<a download>` on the image URL directly,
 // so the chosen filename is honored regardless of cross-origin download-attribute quirks.
 export async function downloadImageFromUrl(url: string, filename: string): Promise<void> {
-  triggerBlobDownload(await fetchImageBlob(url), filename);
+  downloadBlob(await fetchImageBlob(url), filename);
 }
 
 export async function fetchImageBlob(url: string): Promise<Blob> {
@@ -187,14 +189,5 @@ export async function downloadImageFromPost(
   body: unknown,
   filename: string,
 ): Promise<void> {
-  triggerBlobDownload(await fetchImageBlobFromPost(url, body), filename);
-}
-
-function triggerBlobDownload(blob: Blob, filename: string): void {
-  const objectUrl = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = objectUrl;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(objectUrl);
+  downloadBlob(await fetchImageBlobFromPost(url, body), filename);
 }

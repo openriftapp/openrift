@@ -60,3 +60,38 @@ describe("control variant", () => {
     );
   });
 });
+
+describe("pending", () => {
+  it("disables the button and marks it busy", () => {
+    render(<Button pending>Save</Button>);
+    const button = screen.getByRole("button", { name: "Save" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button.querySelector("[data-slot=spinner]")).toBeInTheDocument();
+  });
+
+  it("puts the spinner first and hides the leading icon behind it", () => {
+    render(
+      <Button pending>
+        <svg />
+        Save
+      </Button>,
+    );
+    const button = screen.getByRole("button", { name: "Save" });
+    expect(button.firstElementChild).toHaveAttribute("data-slot", "spinner");
+    expect(button).toHaveClass("[&>[data-slot=spinner]+svg]:hidden");
+  });
+
+  it("renders no spinner and stays enabled when not pending", () => {
+    render(<Button>Save</Button>);
+    const button = screen.getByRole("button", { name: "Save" });
+    expect(button).toBeEnabled();
+    expect(button).not.toHaveAttribute("aria-busy");
+    expect(button.querySelector("[data-slot=spinner]")).not.toBeInTheDocument();
+  });
+
+  it("keeps an explicit disabled when not pending", () => {
+    render(<Button disabled>Save</Button>);
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+  });
+});

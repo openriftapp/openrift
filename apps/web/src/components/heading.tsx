@@ -25,24 +25,30 @@ export function Heading({ level = 2, as, className, children, ...props }: Headin
   );
 }
 
+const EYEBROW_STYLES = {
+  default: "text-muted-foreground mb-3",
+  kicker: "text-primary text-2xs mb-0",
+  gold: "text-border-accent text-2xs mb-0",
+} as const;
+
+/** Use `as="span"` where the label is not a heading. */
 export function Eyebrow({
   variant = "default",
+  as: Tag = "h4",
   className,
   children,
   ...props
-}: ComponentProps<"h4"> & { variant?: "default" | "kicker" }) {
+}: ComponentProps<"h4"> & {
+  variant?: keyof typeof EYEBROW_STYLES;
+  as?: "h4" | "p" | "span";
+}) {
   return (
-    <h4
+    <Tag
       data-slot="eyebrow"
-      className={cn(
-        variant === "default"
-          ? "text-muted-foreground mb-3 font-semibold tracking-wide uppercase"
-          : "text-primary text-2xs mb-0 font-semibold tracking-wide uppercase",
-        className,
-      )}
+      className={cn("font-semibold tracking-wide uppercase", EYEBROW_STYLES[variant], className)}
       {...props}
     >
       {children}
-    </h4>
+    </Tag>
   );
 }

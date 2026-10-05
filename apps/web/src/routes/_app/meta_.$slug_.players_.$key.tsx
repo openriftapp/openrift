@@ -1,4 +1,4 @@
-import { formatRank } from "@openrift/shared/meta-standings";
+import { formatRankEnglish } from "@openrift/shared/meta-standings";
 import type { MetaEventRunResponse } from "@openrift/shared/types/api/meta";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { metaRunQueryOptions } from "@/features/meta/lib/meta-queries";
 import { initQueryOptions } from "@/lib/init-queries";
 import { breadcrumbJsonLd, seoHead } from "@/lib/seo";
+import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";
 
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/_app/meta_/$slug_/players_/$key")({
     }
     const { event, player } = data;
     const title = `${player.playerName} at ${event.name}`;
-    const description = `${player.playerName} finished ${formatRank(player.rank, player.rankIsTier)} at ${event.name} on ${event.eventDate}: every round, opponent and result the organizer published.`;
+    const description = `${player.playerName} finished ${formatRankEnglish(player.rank, player.rankIsTier)} at ${event.name} on ${event.eventDate}: every round, opponent and result the organizer published.`;
     return {
       ...seoHead({ siteUrl, title, description, path }),
       scripts: [
@@ -45,7 +46,7 @@ export const Route = createFileRoute("/_app/meta_/$slug_/players_/$key")({
         }),
       ]);
     } catch (error) {
-      if (error instanceof Error && error.message === "NOT_FOUND") {
+      if (isNotFoundSentinel(error)) {
         throw notFound();
       }
       throw error;

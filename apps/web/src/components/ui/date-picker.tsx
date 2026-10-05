@@ -35,7 +35,7 @@ function isValidIso(value: string): boolean {
 
 interface DatePickerProps {
   value?: string | null;
-  onChange?: (iso: string) => void;
+  onValueChange?: (iso: string) => void;
   onClear?: () => void;
   placeholder?: string;
   className?: string;
@@ -44,7 +44,7 @@ interface DatePickerProps {
 
 export function DatePicker({
   value,
-  onChange,
+  onValueChange,
   onClear,
   placeholder = "YYYY-MM-DD",
   className,
@@ -79,7 +79,7 @@ export function DatePicker({
     if (isValidIso(raw)) {
       const d = parseIso(raw);
       setMonth(d);
-      onChange?.(formatIso(d));
+      onValueChange?.(formatIso(d));
     }
   }
 
@@ -87,7 +87,7 @@ export function DatePicker({
     if (day) {
       const iso = formatIso(day);
       setText(iso);
-      onChange?.(iso);
+      onValueChange?.(iso);
       setOpen(false);
     }
   }

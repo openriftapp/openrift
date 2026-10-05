@@ -3,7 +3,7 @@ import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { DeckPending } from "@/features/decks/components/deck-pending";
-import { sessionQueryOptions } from "@/lib/auth-session";
+import { requireSession, sessionQueryOptions } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
@@ -54,19 +54,9 @@ export const Route = createFileRoute("/_app/decks/$deckId")({
       await context.queryClient.query({ ...initQueryOptions, staleTime: "static" });
       return;
     }
-    const session = await context.queryClient.query({
-      ...sessionQueryOptions(),
-      staleTime: "static",
-    });
-    if (!session?.user) {
-      throw redirect({
-        to: "/login",
-        search: { redirect: location.href || undefined, email: undefined },
-      });
-    }
+    const { userId } = await requireSession({ context, location });
     const { deckInStore, getDeckCardsCollection, getDecksCollection, refreshDeckStores } =
       await import("@/features/decks/lib/decks-collection");
-    const userId = session.user.id;
     await Promise.all([
       getDecksCollection(context.queryClient, userId).preload(),
       getDeckCardsCollection(context.queryClient, userId).preload(),

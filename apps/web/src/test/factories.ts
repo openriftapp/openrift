@@ -217,6 +217,8 @@ export function stubCardOwnership(overrides: Partial<CardOwnership> = {}): CardO
 const META_PLAYER_LEGEND: NonNullable<MetaPlayerFinish["legend"]> = {
   cardId: "legend-lux",
   name: "Lux, Lady of Luminosity",
+  character: "Lux",
+  epithet: "Lady of Luminosity",
   slug: "lady-of-luminosity",
   imageId: "img-lux",
   domains: ["calm"],

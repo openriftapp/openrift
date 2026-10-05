@@ -3,6 +3,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { tournamentReportQueryOptions } from "@/features/tournaments/lib/tournament-run-queries";
 import { seoHead } from "@/lib/seo";
+import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/tournaments_/report/$token")({
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/_app/tournaments_/report/$token")({
         staleTime: "static",
       });
     } catch (error) {
-      if (error instanceof Error && error.message === "NOT_FOUND") {
+      if (isNotFoundSentinel(error)) {
         throw notFound();
       }
       throw error;

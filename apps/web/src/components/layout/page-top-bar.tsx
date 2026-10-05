@@ -1,7 +1,7 @@
 import { createLink } from "@tanstack/react-router";
 import { ArrowLeftIcon, ChevronDownIcon, PanelLeftIcon } from "lucide-react";
 import type { AnchorHTMLAttributes, ComponentProps } from "react";
-import { createContext, forwardRef, use, useLayoutEffect, useState } from "react";
+import { createContext, forwardRef, use } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -24,33 +24,6 @@ export function usePageTopBarHeight(): number {
   const height = use(PageTopBarHeightContext);
   const hydrated = useHydrated();
   return hydrated ? height : 0;
-}
-
-export function useMeasuredHeight(el: HTMLElement | null) {
-  const [height, setHeight] = useState(0);
-  const [measuredEl, setMeasuredEl] = useState(el);
-  if (measuredEl !== el) {
-    setMeasuredEl(el);
-    if (!el) {
-      setHeight(0);
-    }
-  }
-  useLayoutEffect(() => {
-    if (!el) {
-      return;
-    }
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries.at(0);
-      if (!entry) {
-        return;
-      }
-      const h = entry.borderBoxSize[0]?.blockSize ?? entry.contentRect.height;
-      setHeight(Math.round(h));
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [el]);
-  return height;
 }
 
 // -1px + -mt-px: at fractional browser zoom the header and bar blur layers
@@ -106,9 +79,10 @@ export function PageTopBar({ children, className }: PageTopBarProps) {
 
 const BackAnchor = forwardRef<HTMLAnchorElement, AnchorHTMLAttributes<HTMLAnchorElement>>(
   // oxlint-disable-next-line react/function-component-definition -- a forwardRef render function is a callback, so the function-expression form this rule wants trips prefer-arrow-callback instead; the two rules cannot both be satisfied here
-  ({ children: _children, className, ...rest }, ref) => (
+  ({ children: _children, className, "aria-label": ariaLabel, ...rest }, ref) => (
     <a
       ref={ref}
+      aria-label={ariaLabel ?? m.common_back()}
       {...rest}
       className={cn(buttonVariants({ variant: "ghost", size: "icon" }), className)}
     >

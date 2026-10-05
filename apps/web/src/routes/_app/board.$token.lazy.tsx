@@ -1,7 +1,7 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { BoardStateView } from "@/features/rules/components/board-state-view";
-import { usePublicBoardState } from "@/features/rules/hooks/use-board-states";
+import { BoardStateView } from "@/features/board-states/components/board-state-view";
+import { usePublicBoardState } from "@/features/board-states/hooks/use-board-states";
 
 export const Route = createLazyFileRoute("/_app/board/$token")({
   component: SharedBoardStatePage,

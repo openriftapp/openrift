@@ -1,17 +1,27 @@
 import type { PublicCollectionDetailResponse } from "@openrift/shared/types/api/collection";
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
 
-import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { RouteErrorFallback } from "@/components/error-message";
+import { LinkGoneState } from "@/components/link-gone-state";
+import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { filterSearchSchema } from "@/features/cards/lib/search-schemas";
-import { publicCollectionQueryOptions } from "@/features/collections/lib/collections-query";
+import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
+import { publicCollectionQueryOptions } from "@/features/collections/lib/collections-queries";
 import { seoHead } from "@/lib/seo";
+import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { collectionShareImageUrl, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createFileRoute("/_app/collections_/share/$token")({
   validateSearch: filterSearchSchema,
+  beforeLoad: ({ search, location, params }) => {
+    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr);
+    if (cleaned) {
+      throw redirect({ to: "/collections/share/$token", params, search: cleaned, replace: true });
+    }
+  },
   head: ({ loaderData, params }) => {
     const siteUrl = getSiteUrl();
     const path = `/collections/share/${params.token}`;
@@ -36,7 +46,7 @@ export const Route = createFileRoute("/_app/collections_/share/$token")({
         staleTime: "static",
       });
     } catch (error) {
-      if (error instanceof Error && error.message === "NOT_FOUND") {
+      if (isNotFoundSentinel(error)) {
         throw notFound();
       }
       throw error;
@@ -44,7 +54,17 @@ export const Route = createFileRoute("/_app/collections_/share/$token")({
   },
   pendingComponent: SharedCollectionPending,
   errorComponent: RouteErrorFallback,
-  notFoundComponent: NotFoundFallback,
+  notFoundComponent: () => (
+    <LinkGoneState
+      title={m.common_share_gone_title()}
+      description={m.collections_share_gone_description()}
+      action={
+        <Link to="/cards" className={buttonVariants()}>
+          {m.common_browse_cards()}
+        </Link>
+      }
+    />
+  ),
 });
 
 function SharedCollectionPending() {

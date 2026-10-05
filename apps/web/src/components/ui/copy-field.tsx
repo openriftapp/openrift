@@ -1,8 +1,7 @@
-import { CheckIcon, CopyIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
+import { CopyTextButton } from "@/components/copy-text-button";
 import { Input } from "@/components/ui/input";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -17,13 +16,15 @@ interface CopyFieldProps {
   /** The text shown and copied. */
   value: string;
   /** Accessible name for the read-only field, e.g. "Nightbot command". */
-  label: string;
+  "aria-label": string;
   /**
    * Monospace the value. For anything the user reads character by character
    * before pasting it somewhere that cares (commands, codes, URLs).
    */
   mono?: boolean;
   className?: string;
+  inputClassName?: string;
+  children?: ReactNode;
 }
 
 /**
@@ -35,22 +36,25 @@ interface CopyFieldProps {
  *
  * @returns The copy row.
  */
-export function CopyField({ value, label, mono = false, className }: CopyFieldProps) {
-  const { copied, copy } = useCopyToClipboard();
-
+export function CopyField({
+  value,
+  "aria-label": label,
+  mono = false,
+  className,
+  inputClassName,
+  children,
+}: CopyFieldProps) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <Input
         value={value}
         readOnly
         aria-label={label}
-        className={cn("min-w-0 flex-1", mono && "font-mono text-sm")}
+        className={cn("min-w-0 flex-1", mono && "font-mono text-sm", inputClassName)}
         onFocus={(event) => event.currentTarget.select()}
       />
-      <Button variant="outline" onClick={() => void copy(value)}>
-        {copied ? <CheckIcon /> : <CopyIcon />}
-        {copied ? m.common_copied() : m.common_copy()}
-      </Button>
+      <CopyTextButton value={value} label={m.common_copy()} normalizeLineBreaks={false} />
+      {children}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { getRouteApi, Outlet } from "@tanstack/react-router";
 
 import { useSessionExpiredRedirect } from "@/features/account/hooks/use-session-expired-redirect";
-import { AuthUserIdContext } from "@/lib/auth-session";
+import { AuthUserIdContext } from "@/hooks/use-session";
 
 const route = getRouteApi("/_app/_authenticated");
 

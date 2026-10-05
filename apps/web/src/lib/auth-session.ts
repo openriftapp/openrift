@@ -1,11 +1,11 @@
 // During SSR, the better-auth client can't forward cookies automatically, so
 // this server function reads them from the incoming request and forwards them.
 
-import { queryOptions, useQuery } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
+import { queryOptions } from "@tanstack/react-query";
+import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { createContext, use } from "react";
 
-import { captureHandledError } from "./report-error";
 import { fetchApi } from "./server-fns/fetch-api";
 import { withCookies } from "./server-fns/middleware";
 
@@ -54,46 +54,23 @@ export const sessionQueryOptions = () =>
     refetchOnWindowFocus: false,
   });
 
-/** Drop-in replacement for better-auth's useSession(); reads from the React Query cache. */
-export function useSession() {
-  return useQuery(sessionQueryOptions());
-}
-
-/** For hooks that may run on public pages where authentication is optional. */
-export function useUserId(): string | null {
-  const { data: session } = useSession();
-  return session?.user?.id ?? null;
-}
-
-/** Carries the id `_authenticated`'s beforeLoad resolved, which survives an empty client query cache. */
-export const AuthUserIdContext = createContext<string | undefined>(undefined);
-
-let fallbackReported = false;
-
-function reportSessionFallbackOnce(): void {
-  if (fallbackReported || globalThis.window === undefined) {
-    return;
+/** For `beforeLoad` / `loader`: redirects a signed-out visitor to /login and back to `location.href`. */
+export async function requireSession({
+  context,
+  location,
+}: {
+  context: { queryClient: QueryClient };
+  location: { href: string };
+}): Promise<{ userId: string }> {
+  const session = await context.queryClient.query({
+    ...sessionQueryOptions(),
+    staleTime: "static",
+  });
+  if (!session?.user) {
+    throw redirect({
+      to: "/login",
+      search: { redirect: location.href || undefined, email: undefined },
+    });
   }
-  fallbackReported = true;
-  captureHandledError(
-    new Error("useRequiredUserId() fell back to the route context: no session in the query cache."),
-    { session_fallback: "true" },
-  );
-}
-
-/** For hooks on `_authenticated` routes only; reaching the throw means it was called from a public route. */
-export function useRequiredUserId(): string {
-  const sessionUserId = useUserId();
-  const routeUserId = use(AuthUserIdContext);
-  if (sessionUserId) {
-    return sessionUserId;
-  }
-  if (routeUserId) {
-    reportSessionFallbackOnce();
-    return routeUserId;
-  }
-  throw new Error(
-    "useRequiredUserId() called without an authenticated session. " +
-      "Move this call inside an `_authenticated` route, or switch to useUserId() and handle the null case.",
-  );
+  return { userId: session.user.id };
 }

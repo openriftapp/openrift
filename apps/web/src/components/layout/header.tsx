@@ -34,6 +34,7 @@ import {
   visiblePrimaryItems,
 } from "@/components/layout/nav-items";
 import { Badge } from "@/components/ui/badge";
+import { BrandGlyph } from "@/components/ui/brand-glyph";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -53,6 +54,7 @@ import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
+  NavigationMenuLabel,
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
@@ -76,10 +78,11 @@ import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-s
 import { useBadges } from "@/features/groups/hooks/use-badges";
 import { milestoneBannerDecision } from "@/features/marketing/lib/milestone-banner";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
+import { useGravatarHash } from "@/hooks/use-gravatar-hash";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { sessionQueryOptions, useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
+import { sessionQueryOptions } from "@/lib/auth-session";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
-import { useGravatarHash } from "@/lib/gravatar";
 import { isStandaloneDisplay } from "@/lib/install-platform";
 import type { LockedFeatureKey, NavBadgeCounts, NavItemConfig } from "@/lib/nav-items";
 import { SOCIAL_LINKS } from "@/lib/social-links";
@@ -267,9 +270,7 @@ function DesktopNav({
             <div className="w-[34rem] columns-2 gap-2 p-2">
               {visibleMoreSections({ flags, mobile: false, badges }).map((section) => (
                 <section key={section.label} className="mb-3 break-inside-avoid last:mb-0">
-                  <div className="text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wide uppercase">
-                    {section.label}
-                  </div>
+                  <NavigationMenuLabel>{section.label}</NavigationMenuLabel>
                   <ul className="grid gap-1">
                     {section.items.map((item) => (
                       <li key={item.to}>
@@ -446,7 +447,7 @@ function UserMenu({
         <Link
           to="/login"
           search={{ redirect: signInRedirect, email: undefined }}
-          className={buttonVariants({ variant: "default", size: "sm" })}
+          className={buttonVariants({ size: "sm" })}
         >
           {m.common_sign_in()}
         </Link>
@@ -639,9 +640,7 @@ function MobileNav({
             rel="noreferrer"
             className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm"
           >
-            <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-              <path d={siDiscord.path} fill="currentColor" />
-            </svg>
+            <BrandGlyph icon={siDiscord} fallback={ExternalLinkIcon} />
             {m.layout_header_join_discord()}
           </a>
           <p className="text-muted-foreground text-xs">{m.layout_header_tagline()}</p>
@@ -652,14 +651,6 @@ function MobileNav({
 }
 
 const POPOVER_ROW_CLASS = "hover:bg-muted flex items-center gap-3 rounded-md px-2 py-2 text-sm";
-
-function SimpleIconGlyph({ path }: { path: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className="size-4 shrink-0" aria-hidden="true">
-      <path d={path} fill="currentColor" />
-    </svg>
-  );
-}
 
 function PopoverRowText({ label, description }: { label: string; description: string }) {
   return (
@@ -763,13 +754,13 @@ function HelpPopover() {
         )}
         <ExternalPopoverRow
           href={SOCIAL_LINKS.githubNewIssue}
-          icon={<SimpleIconGlyph path={siGithub.path} />}
+          icon={<BrandGlyph icon={siGithub} fallback={ExternalLinkIcon} />}
           label={m.layout_header_report_bug()}
           description={m.layout_header_report_bug_description()}
         />
         <ExternalPopoverRow
           href={SOCIAL_LINKS.discordInvite}
-          icon={<SimpleIconGlyph path={siDiscord.path} />}
+          icon={<BrandGlyph icon={siDiscord} fallback={ExternalLinkIcon} />}
           label={m.layout_header_ask_discord()}
           description={m.layout_header_ask_discord_description()}
         />

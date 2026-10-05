@@ -1,4 +1,4 @@
-import { straightenApostrophes } from "@openrift/shared/utils";
+import { straightenApostrophes } from "@openrift/shared/strings";
 
 export interface CardLine {
   name: string;

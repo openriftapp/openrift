@@ -1,3 +1,4 @@
+import { ORPCError } from "@orpc/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -7,7 +8,9 @@ import {
   isApiError,
   isRetryableError,
   isSessionExpiredError,
+  isNotFoundSentinel,
   notFoundError,
+  orNotFound,
 } from "./api-error";
 
 function mockResponse(body: string, init: { status?: number; statusText?: string } = {}) {
@@ -52,6 +55,49 @@ describe("notFoundError", () => {
 
     expect(errorStatus(error)).toBe(404);
     expect(Object.getOwnPropertyNames(error)).toContain("status");
+  });
+});
+
+describe("isNotFoundSentinel", () => {
+  it("matches the sentinel", () => {
+    expect(isNotFoundSentinel(notFoundError())).toBe(true);
+  });
+
+  it("matches a sentinel rebuilt after the server-function boundary", () => {
+    expect(isNotFoundSentinel(new Error("NOT_FOUND"))).toBe(true);
+  });
+
+  it("rejects other errors and non-errors", () => {
+    expect(isNotFoundSentinel(new Error("Boom"))).toBe(false);
+    expect(isNotFoundSentinel({ message: "NOT_FOUND" })).toBe(false);
+    expect(isNotFoundSentinel(null)).toBe(false);
+  });
+});
+
+describe("orNotFound", () => {
+  it("resolves with the call's data", async () => {
+    await expect(orNotFound(Promise.resolve({ id: "deck-1" }))).resolves.toEqual({ id: "deck-1" });
+  });
+
+  it("turns the contract's typed NOT_FOUND into the sentinel", async () => {
+    const thrown: unknown = await orNotFound(
+      Promise.reject(new ORPCError("NOT_FOUND", { defined: true })),
+    ).catch((error: unknown) => error);
+
+    expect(isNotFoundSentinel(thrown)).toBe(true);
+    expect(errorStatus(thrown)).toBe(404);
+  });
+
+  it("rethrows an undeclared NOT_FOUND unchanged", async () => {
+    const error = new ORPCError("NOT_FOUND");
+
+    await expect(orNotFound(Promise.reject(error))).rejects.toBe(error);
+  });
+
+  it("rethrows other typed errors unchanged", async () => {
+    const error = new ORPCError("FORBIDDEN", { defined: true });
+
+    await expect(orNotFound(Promise.reject(error))).rejects.toBe(error);
   });
 });
 

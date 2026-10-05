@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
+import { matchesAccept } from "@/lib/file-accept";
 import { cn } from "@/lib/utils";
 
 interface DropzoneProps {
@@ -35,7 +36,7 @@ function Dropzone({
   const coarsePointer = useCoarsePointer();
   const showCamera = cameraLabel !== undefined && coarsePointer;
 
-  function emit(list: FileList | null) {
+  function emit(list: FileList | File[] | null) {
     const files = [...(list ?? [])];
     if (files.length > 0) {
       onFiles(multiple ? files : files.slice(0, 1));
@@ -57,7 +58,7 @@ function Dropzone({
         event.preventDefault();
         setIsOver(false);
         if (!disabled) {
-          emit(event.dataTransfer.files);
+          emit([...event.dataTransfer.files].filter((file) => matchesAccept(file, accept)));
         }
       }}
       className={cn(

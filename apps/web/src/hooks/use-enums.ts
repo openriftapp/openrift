@@ -1,7 +1,7 @@
+import { labelMap } from "@openrift/shared/collections";
 import type { ColoredEnumRow, EnumRow } from "@openrift/shared/types/api/init";
 import type { CustomTag, DistributionChannel } from "@openrift/shared/types/catalog";
 import type { DeckZone, EnumOrders } from "@openrift/shared/types/enums";
-import { labelMap } from "@openrift/shared/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
 import type { EnumLabels } from "@/lib/enum-labels";

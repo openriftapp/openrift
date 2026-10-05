@@ -6,7 +6,7 @@ import {
   adminMetaEventPlayersQueryOptions,
   adminMetaEventQueryOptions,
 } from "@/features/admin/lib/admin-meta-queries";
-import { catalogQueryOptions } from "@/features/cards/lib/catalog-query";
+import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
 import { initQueryOptions } from "@/lib/init-queries";
 import { adminSeoHead } from "@/lib/seo";
 

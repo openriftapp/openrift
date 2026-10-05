@@ -6,15 +6,13 @@ import {
   loadTournamentRunState,
   redirectToTournamentOverview,
 } from "@/features/tournaments/lib/tournament-route-guards";
+import { roundSearchSchema } from "@/lib/route-search";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/_authenticated/tournaments_/$id_/standings")({
   ssr: "data-only",
-  validateSearch: (search: Record<string, unknown>): { round?: number } => {
-    const round = Number(search.round);
-    return Number.isInteger(round) && round > 0 ? { round } : {};
-  },
+  validateSearch: roundSearchSchema,
   head: () => seoHead({ siteUrl: getSiteUrl(), title: "Standings", noIndex: true }),
   loader: async ({ context, params }) => {
     const detail = await loadTournamentDetail(context.queryClient, context.userId, params.id);

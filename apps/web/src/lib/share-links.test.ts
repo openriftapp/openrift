@@ -23,6 +23,9 @@ describe("shareLinkUrl", () => {
     expect(shareLinkUrl("bundle", { shareToken: "tok", isPublic: true })).toBe(
       "https://openrift.test/users/share/tok",
     );
+    expect(shareLinkUrl("board", { shareToken: "tok", isPublic: true })).toBe(
+      "https://openrift.test/board/tok",
+    );
   });
 
   it("has no URL without a token", () => {

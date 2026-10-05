@@ -1,24 +1,5 @@
-import { useSyncExternalStore } from "react";
+import { createMediaQueryHook } from "@/hooks/create-media-query-hook";
 
 const MOBILE_BREAKPOINT = 768;
-const MOBILE_QUERY = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`;
 
-const mql =
-  typeof globalThis.matchMedia === "function" ? globalThis.matchMedia(MOBILE_QUERY) : null;
-
-function subscribe(onChange: () => void): () => void {
-  mql?.addEventListener("change", onChange);
-  return () => mql?.removeEventListener("change", onChange);
-}
-
-function getSnapshot(): boolean {
-  return mql?.matches ?? false;
-}
-
-function getServerSnapshot(): boolean {
-  return false;
-}
-
-export function useIsMobile(): boolean {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-}
+export const useIsMobile = createMediaQueryHook(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`, false);

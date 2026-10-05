@@ -1,10 +1,11 @@
 import { joinCatalogCards } from "@openrift/shared/catalog-join";
+import { todayUtc } from "@openrift/shared/format-date";
 import { imageUrl } from "@openrift/shared/image-url";
-import { isReleasedIn, todayUtc } from "@openrift/shared/set-release";
+import { preferredPrinting } from "@openrift/shared/printing-select";
+import { isReleasedIn } from "@openrift/shared/set-release";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import type { Rarity } from "@openrift/shared/types/enums";
-import { preferredPrinting } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { jsPDF } from "jspdf";
 

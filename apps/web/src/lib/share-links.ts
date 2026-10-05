@@ -1,11 +1,12 @@
 import { getSiteUrl } from "@/lib/site-config";
 
 const SHARE_PATHS = {
-  list: "lists",
-  collection: "collections",
-  deck: "decks",
-  tierList: "tier-lists",
-  bundle: "users",
+  list: "lists/share",
+  collection: "collections/share",
+  deck: "decks/share",
+  tierList: "tier-lists/share",
+  bundle: "users/share",
+  board: "board",
 } as const;
 
 export type ShareLinkKind = keyof typeof SHARE_PATHS;
@@ -23,5 +24,5 @@ export function shareLinkUrl(kind: ShareLinkKind, share: ShareState): string | n
   if (!share.isPublic || share.shareToken === null) {
     return null;
   }
-  return `${getSiteUrl()}/${SHARE_PATHS[kind]}/share/${share.shareToken}`;
+  return `${getSiteUrl()}/${SHARE_PATHS[kind]}/${share.shareToken}`;
 }

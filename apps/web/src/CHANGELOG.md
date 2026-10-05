@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-10-05
+
+### Highlights
+
+- feat(App): **Dialogs and menus look the same everywhere** — deleting a deck, list, collection, tier list or group asks in the same red confirm dialog with an outlined Cancel, right-click menus and menu section labels match across cards, lists, collections and decks, and copy buttons show Copied in place.
+- feat(Tournaments): **Player photos in standings** — standings, pairings and group tables show profile pictures, and group and final standings switch to a compact list on phones.
+
+### Other
+
+- feat(Tournaments): **Same fields for creating and editing** — the create form uses the settings page's fields, with date and time in one field.
+- fix(App): **Revoked share links explain themselves** — a collection, list or profile link that no longer works says so and offers Browse cards, as deck links already did.
+- fix(Rules): **Searches survive the back button** — the glossary and errata keep the search text in the address, so going back or sharing the link restores it.
+- fix(App): **Hints open with a tap** — ban and errata warnings, the tokens hint and printing notes open on phones.
+- fix(App): **Unsaved changes warning** — leaving the board-state editor or the deck plan editor with unsaved changes asks first.
+- fix(App): **One banner at a time** — the language, milestone and install banners no longer stack on top of each other.
+- fix(Collections): **Imports match more card codes** — collection and deck imports match codes typed without dashes or in any case, and public codes like OGN-001/298.
+- fix(App): **Fewer untranslated words** — unpriced counts, trade status, copy buttons and several deck, pack opener and meta labels are now translated.
+- fix(Packs): **Unpriced pulls in rarity order** — the pack opener lists pulls without a price from the highest rarity down, and the rarity bar counts tokens.
+- fix(Decks): **Edits saved when you leave** — leaving the deck editor saves pending changes right away, and an unsaved plan survives switching tabs.
+- fix(App): **Links read as links** — buttons that open another page are announced as links by screen readers.
+
 ## 2026-10-04
 
 ### Other

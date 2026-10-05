@@ -2,7 +2,7 @@ import { siteSettingsContract } from "@openrift/shared/contracts/site-settings";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
-import { siteSettingsKeys } from "@/lib/query-keys";
+import { serverCacheKeys, siteSettingsKeys } from "@/lib/query-keys";
 
 import { serverCache } from "./server-cache";
 import { apiOrpcClient } from "./server-fns/orpc-client";
@@ -11,7 +11,7 @@ export type SiteSettings = Record<string, string>;
 
 const fetchSiteSettings = createServerFn({ method: "GET" }).handler(() =>
   serverCache.query({
-    queryKey: ["server-cache", "site-settings"],
+    queryKey: serverCacheKeys.siteSettings,
     queryFn: async () => {
       const data = await apiOrpcClient(siteSettingsContract).get();
       return data.settings;

@@ -2,7 +2,7 @@ import { featureFlagsContract } from "@openrift/shared/contracts/feature-flags";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
-import { featureFlagsKeys } from "@/lib/query-keys";
+import { featureFlagsKeys, serverCacheKeys } from "@/lib/query-keys";
 
 import { serverCache } from "./server-cache";
 import { withCookies } from "./server-fns/middleware";
@@ -27,7 +27,7 @@ export function loadFeatureFlags(cookie: string): Promise<FeatureFlags> {
     return fetchFlagsFromApi(cookie);
   }
   return serverCache.query({
-    queryKey: ["server-cache", "feature-flags"],
+    queryKey: serverCacheKeys.featureFlags,
     queryFn: () => fetchFlagsFromApi(),
   });
 }

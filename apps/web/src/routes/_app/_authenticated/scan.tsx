@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
-import { catalogQueryOptions, loadCatalogTail } from "@/features/cards/lib/catalog-query";
+import { catalogQueryOptions, loadCatalogTail } from "@/features/cards/lib/catalog-queries";
 import { CollectionPending } from "@/features/collections/components/collection-pending";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";

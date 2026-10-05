@@ -1,7 +1,11 @@
 import type { LucideIcon } from "lucide-react";
 
-import type { BrandIconData } from "@/features/admin/lib/source-brand";
 import { cn } from "@/lib/utils";
+
+export interface BrandIconData {
+  /** A single path, drawn against simple-icons' 24x24 viewBox. */
+  path: string;
+}
 
 interface BrandGlyphProps {
   /** The brand mark, or undefined when the thing has no recognised brand. */

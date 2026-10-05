@@ -11,6 +11,7 @@ import { metaDecksQueryOptions, metaLegendQueryOptions } from "@/features/meta/l
 import { deriveSetEras, metaScopeQueryFromScope } from "@/features/meta/lib/meta-scope";
 import { initQueryOptions } from "@/lib/init-queries";
 import { breadcrumbJsonLd, seoHead, toAbsoluteUrl } from "@/lib/seo";
+import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";
 
@@ -75,7 +76,7 @@ export const Route = createFileRoute("/_app/meta_/legends_/$slug")({
       });
       return legend;
     } catch (error) {
-      if (error instanceof Error && error.message === "NOT_FOUND") {
+      if (isNotFoundSentinel(error)) {
         throw notFound();
       }
       throw error;

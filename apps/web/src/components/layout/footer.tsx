@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
+import { ExternalLinkIcon } from "lucide-react";
 import { siDiscord, siGithub } from "simple-icons";
 
+import { BrandGlyph } from "@/components/ui/brand-glyph";
 import { OrnamentRule } from "@/components/ui/ornament";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { COMMIT_HASH } from "@/lib/env";
@@ -44,13 +46,11 @@ export function Footer({ className }: { className?: string }) {
           rel="noreferrer"
           className="hover:text-muted-foreground"
         >
-          <svg
-            role="img"
-            viewBox="0 0 24 24"
-            className="mr-0.5 mb-px inline size-2.5 fill-current align-middle"
-          >
-            <path d={siDiscord.path} />
-          </svg>
+          <BrandGlyph
+            icon={siDiscord}
+            fallback={ExternalLinkIcon}
+            className="mr-0.5 mb-px inline size-2.5 align-middle"
+          />
           Discord
         </a>
         <span aria-hidden="true"> · </span>
@@ -60,13 +60,11 @@ export function Footer({ className }: { className?: string }) {
           rel="noreferrer"
           className="hover:text-muted-foreground"
         >
-          <svg
-            role="img"
-            viewBox="0 0 24 24"
-            className="mr-0.5 mb-px inline size-2.5 fill-current align-middle"
-          >
-            <path d={siGithub.path} />
-          </svg>
+          <BrandGlyph
+            icon={siGithub}
+            fallback={ExternalLinkIcon}
+            className="mr-0.5 mb-px inline size-2.5 align-middle"
+          />
           {COMMIT_HASH}
         </a>
       </p>

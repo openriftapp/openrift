@@ -2,7 +2,15 @@ import type { ComponentType, SVGProps } from "react";
 
 import { cn } from "@/lib/utils";
 
-export type IconChipTone = "neutral" | "primary" | "gold" | "info" | "success" | "violet";
+export type IconChipTone =
+  | "neutral"
+  | "primary"
+  | "gold"
+  | "info"
+  | "success"
+  | "warning"
+  | "destructive"
+  | "violet";
 
 /** The chip tints. One place — tiles, feed rows, and rails all read from here. */
 const TONE_CLASS: Record<IconChipTone, string> = {
@@ -11,6 +19,8 @@ const TONE_CLASS: Record<IconChipTone, string> = {
   gold: "bg-border-accent/15 text-border-accent",
   info: "bg-info-soft text-info",
   success: "bg-success-soft text-success",
+  warning: "bg-warning-soft text-warning",
+  destructive: "bg-destructive-soft text-destructive",
   violet: "bg-violet-soft text-violet",
 };
 

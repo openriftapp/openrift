@@ -317,8 +317,8 @@ describe("downloadImageFromUrl", () => {
   });
 
   it("fetches the image and clicks an anchor with the given filename", async () => {
-    const click = vi.fn();
-    const anchor = { href: "", download: "", click } as unknown as HTMLAnchorElement;
+    const anchor = document.createElement("a");
+    const click = vi.spyOn(anchor, "click").mockImplementation(() => {});
     vi.spyOn(document, "createElement").mockReturnValue(anchor);
     const revokeObjectURL = vi.fn();
     URL.createObjectURL = vi.fn(() => "blob:fake") as typeof URL.createObjectURL;
@@ -354,8 +354,8 @@ describe("downloadImageFromPost", () => {
   });
 
   it("POSTs the JSON body and downloads the returned image", async () => {
-    const click = vi.fn();
-    const anchor = { href: "", download: "", click } as unknown as HTMLAnchorElement;
+    const anchor = document.createElement("a");
+    const click = vi.spyOn(anchor, "click").mockImplementation(() => {});
     vi.spyOn(document, "createElement").mockReturnValue(anchor);
     URL.createObjectURL = vi.fn(() => "blob:fake") as typeof URL.createObjectURL;
     URL.revokeObjectURL = vi.fn() as typeof URL.revokeObjectURL;

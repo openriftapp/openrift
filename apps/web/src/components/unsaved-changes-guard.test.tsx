@@ -61,6 +61,18 @@ describe("UnsavedChangesGuard", () => {
     expect(blocker.reset).not.toHaveBeenCalled();
   });
 
+  it("calls onLeave before proceeding on Leave", async () => {
+    blocker.status = "blocked";
+    const onLeave = vi.fn(() => {
+      expect(blocker.proceed).not.toHaveBeenCalled();
+    });
+    render(<UnsavedChangesGuard dirty onLeave={onLeave} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Leave" }));
+
+    expect(onLeave).toHaveBeenCalledTimes(1);
+  });
+
   it("cancels the navigation on Stay", async () => {
     blocker.status = "blocked";
     render(<UnsavedChangesGuard dirty />);

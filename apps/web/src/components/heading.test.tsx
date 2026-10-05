@@ -79,4 +79,16 @@ describe("Eyebrow", () => {
     expect(heading.className).toContain("uppercase");
     expect(heading.className).toContain("mb-0");
   });
+
+  it("renders the gold kicker as a span when asked", () => {
+    render(
+      <Eyebrow variant="gold" as="span">
+        Champion
+      </Eyebrow>,
+    );
+    const label = screen.getByText("Champion");
+    expect(label.tagName).toBe("SPAN");
+    expect(label).toHaveClass("text-border-accent", "text-2xs", "uppercase");
+    expect(screen.queryByRole("heading")).toBeNull();
+  });
 });

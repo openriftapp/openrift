@@ -1,14 +1,14 @@
+import { sentenceCaseSlug } from "@openrift/shared/strings";
 import type { PublicDeckDetailResponse } from "@openrift/shared/types/api/deck";
-import { sentenceCaseSlug } from "@openrift/shared/utils";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { Link2OffIcon } from "lucide-react";
 
-import { EmptyState } from "@/components/empty-state";
 import { RouteErrorFallback } from "@/components/error-message";
+import { LinkGoneState } from "@/components/link-gone-state";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { publicDeckQueryOptions } from "@/features/decks/lib/decks-queries";
 import { seoHead } from "@/lib/seo";
+import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { deckShareImageUrl, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
@@ -48,7 +48,7 @@ export const Route = createFileRoute("/_app/decks_/share/$token")({
         staleTime: "static",
       });
     } catch (error) {
-      if (error instanceof Error && error.message === "NOT_FOUND") {
+      if (isNotFoundSentinel(error)) {
         throw notFound();
       }
       throw error;
@@ -56,7 +56,17 @@ export const Route = createFileRoute("/_app/decks_/share/$token")({
   },
   pendingComponent: SharedDeckPending,
   errorComponent: RouteErrorFallback,
-  notFoundComponent: SharedDeckNotFound,
+  notFoundComponent: () => (
+    <LinkGoneState
+      title={m.common_share_gone_title()}
+      description={m.decks_share_gone_description()}
+      action={
+        <Link to="/decks" className={buttonVariants()}>
+          {m.decks_share_gone_action()}
+        </Link>
+      }
+    />
+  ),
 });
 
 /** Mirrors the loaded page's shape (KPI strip, zone tiles, deck block) so content pops in without a layout jump. */
@@ -75,23 +85,6 @@ function SharedDeckPending() {
         <Skeleton className="h-44" />
       </div>
       <Skeleton className="h-72 w-full" />
-    </div>
-  );
-}
-
-function SharedDeckNotFound() {
-  return (
-    <div className={cn(PAGE_PADDING, PAGE_WIDTH.full)}>
-      <EmptyState
-        className="py-16"
-        icon={Link2OffIcon}
-        title={m.decks_share_gone_title()}
-        description={m.decks_share_gone_description()}
-      >
-        <Link to="/decks" className={buttonVariants()}>
-          {m.decks_share_gone_action()}
-        </Link>
-      </EmptyState>
     </div>
   );
 }

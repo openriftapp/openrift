@@ -1,10 +1,11 @@
+import { compareCardDisplayName, legendDisplayName } from "@openrift/shared/card-name";
 import { imageUrl } from "@openrift/shared/image-url";
-import { compareCardDisplayName, legendDisplayName } from "@openrift/shared/utils";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { errataListQueryOptions } from "@/features/cards/lib/errata-queries";
 import { errataContentVersion } from "@/features/cards/lib/errata-share-image";
+import { querySearchSchema } from "@/features/rules/lib/rules-search-schema";
 import { initQueryOptions } from "@/lib/init-queries";
 import { breadcrumbJsonLd, collectionPageJsonLd, seoHead } from "@/lib/seo";
 import { errataShareImageUrl } from "@/lib/share-image";
@@ -28,6 +29,7 @@ function errataDescription(cardCount: number): string {
 }
 
 export const Route = createFileRoute("/_app/errata")({
+  validateSearch: querySearchSchema,
   head: ({ loaderData }) => {
     const siteUrl = getSiteUrl();
     const head = loaderData as ErrataHeadData | undefined;

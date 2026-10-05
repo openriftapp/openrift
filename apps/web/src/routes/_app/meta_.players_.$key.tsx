@@ -1,10 +1,10 @@
+import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/contracts/meta";
 import type { MetaPlayerDetailResponse } from "@openrift/shared/types/api/meta";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
-import { DECK_GRID_ALL_LIMIT } from "@/features/meta/lib/meta-deck-grid";
 import { metaDecksQueryOptions, metaPlayerQueryOptions } from "@/features/meta/lib/meta-queries";
 import {
   ERA_ALL,
@@ -15,6 +15,7 @@ import {
 } from "@/features/meta/lib/meta-scope";
 import { initQueryOptions } from "@/lib/init-queries";
 import { breadcrumbJsonLd, seoHead } from "@/lib/seo";
+import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";
 
@@ -63,13 +64,13 @@ export const Route = createFileRoute("/_app/meta_/players_/$key")({
         ...metaDecksQueryOptions({
           ...metaScopeQueryFromScope(scopeWithDefaultEra(deps, ERA_ALL), deriveSetEras(sets.sets)),
           player: params.key,
-          limit: DECK_GRID_ALL_LIMIT,
+          limit: META_MAX_LIST_PAGE_SIZE,
         }),
         staleTime: "static",
       });
       return player;
     } catch (error) {
-      if (error instanceof Error && error.message === "NOT_FOUND") {
+      if (isNotFoundSentinel(error)) {
         throw notFound();
       }
       throw error;

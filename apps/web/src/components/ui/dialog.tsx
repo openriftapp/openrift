@@ -25,6 +25,21 @@ function DialogClose({ ...props }: DialogPrimitive.Close.Props) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
+// custom: outline Cancel for dialog footers, the one Cancel style app-wide
+function DialogCancel({ children, ...props }: DialogPrimitive.Close.Props) {
+  const label = children ?? m.common_cancel(); // custom:
+  return (
+    // custom:
+    <DialogPrimitive.Close
+      data-slot="dialog-cancel" // custom:
+      render={<Button variant="outline" />} // custom:
+      {...props} // custom:
+    >
+      {label /* custom: */}
+    </DialogPrimitive.Close>
+  ); // custom:
+} // custom:
+
 function DialogOverlay({
   className,
   onClick, // custom: composed below so callers can still pass onClick
@@ -162,6 +177,7 @@ function DialogDescription({ className, ...props }: DialogPrimitive.Description.
 
 export {
   Dialog,
+  DialogCancel, // custom: outline Cancel
   DialogClose,
   DialogContent,
   DialogDescription,

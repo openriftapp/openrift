@@ -5,11 +5,12 @@ import { m } from "@/paraglide/messages.js";
 
 interface UnsavedChangesGuardProps {
   dirty: boolean;
+  onLeave?: () => void;
 }
 
 // The blocker sees `dirty` as of the last commit: clear it inside `flushSync`
 // before a programmatic navigation that follows a state change.
-export function UnsavedChangesGuard({ dirty }: UnsavedChangesGuardProps) {
+export function UnsavedChangesGuard({ dirty, onLeave }: UnsavedChangesGuardProps) {
   const blocker = useBlocker({
     shouldBlockFn: () => dirty,
     enableBeforeUnload: () => dirty,
@@ -28,7 +29,10 @@ export function UnsavedChangesGuard({ dirty }: UnsavedChangesGuardProps) {
       description={m.unsaved_changes_description()}
       confirmLabel={m.unsaved_changes_leave()}
       cancelLabel={m.unsaved_changes_stay()}
-      onConfirm={() => blocker.proceed?.()}
+      onConfirm={() => {
+        onLeave?.();
+        blocker.proceed?.();
+      }}
     />
   );
 }

@@ -93,7 +93,7 @@ function preFormatted(): string[] {
 
 describe("number inputs of messages", () => {
   it("finds the messages that format a number themselves", () => {
-    expect(numericInputs.get("meta_show_all_n")).toEqual(["count"]);
+    expect(numericInputs.get("common_show_all")).toEqual(["count"]);
     expect(numericInputs.size).toBeGreaterThan(100);
   });
 

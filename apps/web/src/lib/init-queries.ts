@@ -3,16 +3,18 @@ import type { InitResponse } from "@openrift/shared/types/api/init";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
-import { initKeys } from "@/lib/query-keys";
+import { initKeys, serverCacheKeys } from "@/lib/query-keys";
 import { serverCache } from "@/lib/server-cache";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
-const fetchInit = createServerFn({ method: "GET" }).handler((): Promise<InitResponse> =>
-  serverCache.query({
-    queryKey: ["server-cache", "init"],
+export function readInitFromServerCache(): Promise<InitResponse> {
+  return serverCache.query({
+    queryKey: serverCacheKeys.init,
     queryFn: () => apiOrpcClient(initContract).get(),
-  }),
-);
+  });
+}
+
+const fetchInit = createServerFn({ method: "GET" }).handler(() => readInitFromServerCache());
 
 export const initQueryOptions = queryOptions({
   queryKey: initKeys.all,

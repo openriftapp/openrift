@@ -1,17 +1,24 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { ProductDetailResponse } from "@openrift/shared/contracts/products";
-import { legendDisplayName } from "@openrift/shared/utils";
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { productDetailQueryOptions } from "@/features/cards/lib/products-queries";
-import { filterSearchSchema } from "@/features/cards/lib/search-schemas";
+import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { breadcrumbJsonLd, collectionPageJsonLd, seoHead } from "@/lib/seo";
+import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/products_/$slug")({
   validateSearch: filterSearchSchema,
+  beforeLoad: ({ search, location, params }) => {
+    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, location.searchStr);
+    if (cleaned) {
+      throw redirect({ to: "/products/$slug", params, search: cleaned, replace: true });
+    }
+  },
   head: ({ loaderData, params }) => {
     const siteUrl = getSiteUrl();
     const path = `/products/${params.slug}`;
@@ -57,7 +64,7 @@ export const Route = createFileRoute("/_app/products_/$slug")({
         staleTime: "static",
       });
     } catch (error) {
-      if (error instanceof Error && error.message === "NOT_FOUND") {
+      if (isNotFoundSentinel(error)) {
         throw notFound();
       }
       throw error;

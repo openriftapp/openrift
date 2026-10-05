@@ -1,6 +1,6 @@
 import { ArrowLeftIcon } from "lucide-react";
-import type { ReactElement, ReactNode } from "react";
-import { cloneElement, Fragment } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
+import { cloneElement, Fragment, useState } from "react";
 
 import {
   PageTopBar,
@@ -9,6 +9,7 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { buttonVariants } from "@/components/ui/button";
+import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -65,20 +66,51 @@ export function TopBarBreadcrumbTrail({ segments }: { segments: TopBarCrumb[] })
   );
 }
 
-/** For drill-down pages that don't already render their own PageTopBar. */
+/** With `title`, every segment links; `children` get `--sticky-top` from the bar height. */
 export function TopBarBreadcrumbBar({
   segments,
+  title,
   actions,
+  children,
 }: {
   segments: TopBarCrumb[];
+  title?: ReactNode;
   actions?: ReactNode;
+  children?: ReactNode;
 }) {
-  return (
-    <PageTopBarSticky width="capped">
+  const [barEl, setBarEl] = useState<HTMLDivElement | null>(null);
+  const barHeight = useMeasuredHeight(barEl);
+
+  const bar = (
+    <PageTopBarSticky ref={setBarEl} width="capped">
       <PageTopBar className="gap-2">
-        <TopBarBreadcrumbTrail segments={segments} />
+        {title === undefined ? (
+          <TopBarBreadcrumbTrail segments={segments} />
+        ) : (
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:items-baseline">
+            <TopBarBreadcrumbTrail segments={segments} />
+            <TopBarBreadcrumbSeparator className="hidden sm:inline" />
+            <PageTopBarTitle>{title}</PageTopBarTitle>
+          </div>
+        )}
         {actions ? <PageTopBarActions>{actions}</PageTopBarActions> : null}
       </PageTopBar>
     </PageTopBarSticky>
+  );
+  if (children === undefined) {
+    return bar;
+  }
+  return (
+    <>
+      {bar}
+      <div
+        className="contents"
+        style={
+          { "--sticky-top": `calc(var(--header-height) + ${barHeight}px + 1rem)` } as CSSProperties
+        }
+      >
+        {children}
+      </div>
+    </>
   );
 }

@@ -1,6 +1,6 @@
+import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/contracts/meta";
 import { describe, expect, it, vi } from "vitest";
 
-import { DECK_GRID_ALL_LIMIT } from "@/features/meta/lib/meta-deck-grid";
 import { metaKeys } from "@/features/meta/lib/meta-query-keys";
 
 import { Route } from "./meta_.players_.$key";
@@ -64,7 +64,7 @@ describe("/meta/players/$key loader", () => {
     const keys = await warmedKeys();
 
     expect(keys).toContainEqual([
-      ...metaKeys.decks({ formats: ["constructed"], player: KEY, limit: DECK_GRID_ALL_LIMIT }),
+      ...metaKeys.decks({ formats: ["constructed"], player: KEY, limit: META_MAX_LIST_PAGE_SIZE }),
     ]);
   });
 
@@ -78,7 +78,7 @@ describe("/meta/players/$key loader", () => {
         formats: ["constructed"],
         countriesEx: ["DE"],
         player: KEY,
-        limit: DECK_GRID_ALL_LIMIT,
+        limit: META_MAX_LIST_PAGE_SIZE,
       }),
     ]);
   });
@@ -86,6 +86,8 @@ describe("/meta/players/$key loader", () => {
   it("asks for the whole record in one page, since a player's is a few dozen rows", async () => {
     const keys = await warmedKeys({ era: "all", formats: [] });
 
-    expect(keys).toContainEqual([...metaKeys.decks({ player: KEY, limit: DECK_GRID_ALL_LIMIT })]);
+    expect(keys).toContainEqual([
+      ...metaKeys.decks({ player: KEY, limit: META_MAX_LIST_PAGE_SIZE }),
+    ]);
   });
 });

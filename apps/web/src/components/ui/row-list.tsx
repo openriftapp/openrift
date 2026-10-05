@@ -45,7 +45,7 @@ function RowListLink({ className, render, ...props }: useRender.ComponentProps<"
     props: mergeProps<"a">(
       {
         className: cn(
-          "hover:bg-muted/50 -mx-2 flex min-w-0 flex-1 items-center gap-3 rounded-md px-2 py-1 no-underline",
+          "hover:bg-muted/50 focus-visible:ring-ring/50 -mx-2 flex min-w-0 flex-1 items-center gap-3 rounded-md px-2 py-1 no-underline outline-none focus-visible:ring-2",
           className,
         ),
       },

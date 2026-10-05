@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
-import { META_LEGENDS_DESCRIPTION } from "@/features/meta/components/meta-copy";
+import { META_LEGENDS_DESCRIPTION } from "@/features/meta/lib/meta-copy";
 import { metaLegendsSearchSchema } from "@/features/meta/lib/meta-legends-search";
 import { metaLegendsQueryOptions } from "@/features/meta/lib/meta-queries";
 import { deriveSetEras, metaScopeQueryFromScope } from "@/features/meta/lib/meta-scope";

@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
-import { requireBoardStatesFlag } from "@/features/rules/lib/board-states-flag";
+import { requireBoardStatesFlag } from "@/features/board-states/lib/board-states-flag";
 import {
   boardStatesQueryOptions,
   featuredBoardStatesQueryOptions,
-} from "@/features/rules/lib/board-states-queries";
+} from "@/features/board-states/lib/board-states-queries";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";

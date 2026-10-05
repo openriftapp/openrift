@@ -26,8 +26,8 @@ const badgeVariants = cva(
         violet: "bg-violet-soft text-violet",
         // custom: info variant for shared-list chips on the info token — matching IconChip's info tone
         info: "bg-info-soft text-info",
-        // custom: neutral muted badge — replaces inline bg-muted text-muted-foreground label spans
-        muted: "bg-muted text-muted-foreground",
+        // custom: neutral badge, named like the other status tones — replaces inline bg-muted text-muted-foreground label spans
+        neutral: "bg-muted text-muted-foreground",
         // custom: subtle primary-tinted label badge — replaces inline bg-primary/10 text-primary label spans
         subtle: "bg-primary/10 text-primary",
         // custom: compact count/notification bubble — replaces hand-rolled bg-primary text-primary-foreground count pills (header nav, group tabs)

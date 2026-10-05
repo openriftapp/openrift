@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { mergeFields, pickBoolean, pickNumber, pickString } from "@/lib/persist-merge";
+
 export interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
@@ -56,17 +58,12 @@ export const useInstallStore = create<InstallState>()(
         nudgeDismissed: state.nudgeDismissed,
         installedToastShown: state.installedToastShown,
       }),
-      merge: (persisted, current) => {
-        const raw = persisted as Record<string, unknown> | undefined;
-        return {
-          ...current,
-          visitDays: typeof raw?.visitDays === "number" ? raw.visitDays : current.visitDays,
-          lastVisitDay:
-            typeof raw?.lastVisitDay === "string" ? raw.lastVisitDay : current.lastVisitDay,
-          nudgeDismissed: raw?.nudgeDismissed === true,
-          installedToastShown: raw?.installedToastShown === true,
-        };
-      },
+      merge: mergeFields<InstallState>({
+        visitDays: pickNumber,
+        lastVisitDay: pickString,
+        nudgeDismissed: pickBoolean,
+        installedToastShown: pickBoolean,
+      }),
     },
   ),
 );

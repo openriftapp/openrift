@@ -5,13 +5,11 @@ import { CommandPalette } from "@/components/command-palette/command-palette";
 import { AppBackground } from "@/components/layout/app-background";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
-import { LocaleBanner } from "@/features/account/components/locale-banner";
+import { SiteBanner } from "@/components/layout/site-banner";
 import { usePreferencesSync } from "@/features/account/hooks/use-preferences-sync";
-import { InstallNudge } from "@/features/marketing/components/install-nudge";
-import { MilestoneBanner } from "@/features/marketing/components/milestone-banner";
 import { useIdleAreaPrefetch } from "@/hooks/use-idle-area-prefetch";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
 import { setSentryUser } from "@/lib/report-error";
 import { cn, CONTAINER_WIDTH, FOOTER_PADDING_NO_TOP } from "@/lib/utils";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -39,9 +37,7 @@ export function AppLayout() {
     <>
       <AppBackground />
       <Header />
-      <LocaleBanner />
-      <MilestoneBanner />
-      <InstallNudge />
+      <SiteBanner />
       <CommandPalette />
       <main className={cn("flex min-h-0 flex-1 flex-col", CONTAINER_WIDTH)}>
         <div className="flex min-h-0 flex-1 flex-col">

@@ -1,6 +1,6 @@
 # Browser Extension
 
-`apps/extension` is a cross-browser extension (Chrome MV3, Firefox) that sends the decklist the user is viewing on an external deck site to OpenRift, and shows their collection and wishlist counts on Cardmarket seller offers. It is built with [WXT](https://wxt.dev/) and shares the deck text codec with the rest of the monorepo through `@openrift/shared/deck-codecs`.
+`apps/extension` is a cross-browser extension (Chrome MV3, Firefox) that sends the decklist the user is viewing on an external deck site to OpenRift, and shows their collection and wishlist counts on Cardmarket seller offers. It is built with [WXT](https://wxt.dev/) and shares the deck text codec with the rest of the monorepo through `@openrift/shared/deck-codecs/text`.
 
 ## Design
 
