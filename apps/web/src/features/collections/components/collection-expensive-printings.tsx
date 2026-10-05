@@ -48,7 +48,11 @@ export function MostExpensivePrintings({
                   {/* Base UI's default trigger is an anchor, which can't nest
                       inside the row's own link. */}
                   <HoverCardTrigger render={<span />}>
-                    <CardArtThumb src={printing.thumbnail} className="h-20" />
+                    <CardArtThumb
+                      src={printing.thumbnail}
+                      landscape={printing.landscape}
+                      className="h-20"
+                    />
                   </HoverCardTrigger>
                   {printing.fullImage && (
                     <HoverCardContent side="right" className="w-auto p-1">

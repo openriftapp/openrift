@@ -10,7 +10,7 @@ import { TextLink } from "@/components/ui/text-link";
 import { UserAvatarStack } from "@/components/user-avatar-stack";
 import { CardFan, CardFanOutline } from "@/features/cards/components/card-fan";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { frontImageId } from "@/features/cards/lib/card-meta";
+import { printingArt } from "@/features/cards/lib/card-meta";
 import { useCollections } from "@/features/collections/hooks/use-collections";
 import { useFriendGroupActivity } from "@/features/groups/hooks/use-friend-groups";
 import { GROUP_BANNER_FRAME } from "@/features/groups/lib/banner-frame";
@@ -41,8 +41,8 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
     activity.events.filter((event) => event.kind === "trade-completed" || event.kind === "match"),
   )
     .flatMap((printingId) => {
-      const imageId = frontImageId(printingsById[printingId]);
-      return imageId ? [{ key: printingId, imageId }] : [];
+      const { imageId, landscape } = printingArt(printingsById[printingId]);
+      return imageId ? [{ key: printingId, imageId, landscape }] : [];
     })
     .slice(0, 4);
 

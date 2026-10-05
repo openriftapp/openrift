@@ -1,5 +1,4 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { imageUrl } from "@openrift/shared/image-url";
 import { getPlaysetSize } from "@openrift/shared/playset";
 import type { CompletionScopePreference } from "@openrift/shared/types/api/preferences";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
@@ -13,6 +12,8 @@ import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
+import type { PrintingArt } from "@/features/cards/lib/card-meta";
+import { printingArt } from "@/features/cards/lib/card-meta";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
 import type { CustomTagAssignments } from "@/features/collections/hooks/use-collection-stats";
 import {
@@ -30,7 +31,7 @@ interface CurvePoint {
   percent: number;
   label?: string;
   itemPrice?: number;
-  thumbnail?: string;
+  art?: PrintingArt;
 }
 
 interface MilestonePoint {
@@ -117,12 +118,7 @@ function computeForCards(
     if (cheapest === undefined) {
       unpricedMissing++;
     } else {
-      const cheapestImageId = cheapestPrinting?.images[0]?.imageId;
-      missingItems.push({
-        label: cardName,
-        price: cheapest,
-        thumbnail: cheapestImageId ? imageUrl(cheapestImageId, "240w") : undefined,
-      });
+      missingItems.push({ label: cardName, price: cheapest, art: printingArt(cheapestPrinting) });
     }
   }
 
@@ -153,11 +149,10 @@ function computeForPrintings(
     if (price === undefined) {
       unpricedMissing++;
     } else {
-      const firstImageId = printing.images[0]?.imageId;
       missingItems.push({
         label: legendDisplayName(printing.card),
         price,
-        thumbnail: firstImageId ? imageUrl(firstImageId, "240w") : undefined,
+        art: printingArt(printing),
       });
     }
   }
@@ -225,10 +220,9 @@ function computeForCopies(
     if (cheapest === undefined) {
       unpricedMissing += missing;
     } else {
-      const cheapestImgId = cheapestPrinting?.images[0]?.imageId;
-      const thumb = cheapestImgId ? imageUrl(cheapestImgId, "240w") : undefined;
+      const art = printingArt(cheapestPrinting);
       for (let index = 0; index < missing; index++) {
-        missingItems.push({ label: card.name, price: cheapest, thumbnail: thumb });
+        missingItems.push({ label: card.name, price: cheapest, art });
       }
     }
   }
@@ -239,7 +233,7 @@ function computeForCopies(
 interface MissingItem {
   label: string;
   price: number;
-  thumbnail?: string;
+  art: PrintingArt;
 }
 
 function buildCurve(
@@ -266,7 +260,7 @@ function buildCurve(
       percent,
       label: item.label,
       itemPrice: item.price,
-      thumbnail: item.thumbnail,
+      art: item.art,
     });
   }
 
@@ -366,7 +360,14 @@ function CostToCompleteTooltipContent({
 
   return (
     <div className="bg-popover text-popover-foreground ring-border flex min-w-36 gap-2.5 rounded-lg px-2.5 py-1.5 text-xs shadow-md ring-1">
-      {point.thumbnail && <CardArtThumb src={point.thumbnail} className="h-16" />}
+      {point.art?.imageId && (
+        <CardArtThumb
+          imageId={point.art.imageId}
+          landscape={point.art.landscape}
+          variant="240w"
+          className="h-16"
+        />
+      )}
       <div>
         {point.label ? (
           <p className="mb-1 font-medium">{point.label}</p>

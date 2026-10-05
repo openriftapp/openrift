@@ -8,6 +8,7 @@ interface CardArtThumbStackItem {
   imageId?: string | null;
   src?: string;
   alt?: string;
+  landscape?: boolean;
 }
 
 export function CardArtThumbStack({
@@ -31,6 +32,7 @@ export function CardArtThumbStack({
           src={item.src}
           imageId={item.imageId}
           alt={item.alt ?? ""}
+          landscape={item.landscape}
           loading="lazy"
           className={cn("ring-background ring-2", index > 0 && "-ml-2.5", thumbClassName ?? "w-8")}
         />

@@ -1,18 +1,22 @@
-import { imageUrl } from "@openrift/shared/image-url";
+import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 
-export function UserProfilePreviewFan({ imageIds }: { imageIds: readonly string[] }) {
-  if (imageIds.length === 0) {
+export function UserProfilePreviewFan({
+  previews,
+}: {
+  previews: readonly { imageId: string; landscape: boolean }[];
+}) {
+  if (previews.length === 0) {
     return null;
   }
   return (
     <div className="flex shrink-0 items-center justify-end gap-1.5">
-      {imageIds.map((imageId) => (
-        <img
+      {previews.map(({ imageId, landscape }) => (
+        <CardArtThumb
           key={imageId}
-          src={imageUrl(imageId, "120w")}
-          alt=""
+          imageId={imageId}
+          landscape={landscape}
           loading="lazy"
-          className="ring-border aspect-[63/88] w-10 shrink-0 rounded-sm object-cover ring-1"
+          className="ring-border w-10 ring-1"
         />
       ))}
     </div>

@@ -14,7 +14,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
 import { CardDetailOverlayProvider } from "@/features/cards/components/card-detail-opener";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { frontImageId } from "@/features/cards/lib/card-meta";
+import { printingArt } from "@/features/cards/lib/card-meta";
 import { TradeMarket } from "@/features/groups/components/trade-market";
 import { useUserTrades } from "@/features/groups/hooks/use-card-trades";
 import { useFriendGroupsList } from "@/features/groups/hooks/use-friend-groups";
@@ -40,7 +40,7 @@ function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGro
   const action = needsYouLine(person.needsYou);
   const art = artPrintingIds(person).map((printingId) => ({
     key: printingId,
-    imageId: frontImageId(printingsById[printingId]),
+    ...printingArt(printingsById[printingId]),
   }));
   const waiting = person.needsYou.length > 0 ? 0 : person.waiting.length;
 

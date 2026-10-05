@@ -6,6 +6,21 @@ import { createMockDb } from "../../../test/mock-db.js";
 import { printingImagesRepo } from "./printing-images.js";
 
 describe("printingImagesRepo", () => {
+  it("landscapeImageIds keeps only images of landscape cards", async () => {
+    const db = createMockDb([
+      { imageFileId: "img-bf", type: "battlefield" },
+      { imageFileId: "img-unit", type: "unit" },
+    ]);
+    expect(await printingImagesRepo(db).landscapeImageIds(["img-bf", "img-unit"])).toEqual(
+      new Set(["img-bf"]),
+    );
+  });
+
+  it("landscapeImageIds skips the query for no ids", async () => {
+    const db = createMockDb([{ imageFileId: "img-bf", type: "battlefield" }]);
+    expect(await printingImagesRepo(db).landscapeImageIds([])).toEqual(new Set());
+  });
+
   it("getIdAndRehostedUrl returns image data", async () => {
     const db = createMockDb([{ id: "pi-1", rehostedUrl: "https://example.com/img.jpg" }]);
     expect(await printingImagesRepo(db).getIdAndRehostedUrl("pi-1")).toBeDefined();

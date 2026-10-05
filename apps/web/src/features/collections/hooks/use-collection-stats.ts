@@ -25,6 +25,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
+import { printingArt } from "@/features/cards/lib/card-meta";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
 import { useStackedCopies } from "@/features/collections/hooks/use-stacked-copies";
@@ -63,6 +64,7 @@ export interface PricedCard {
   cardSlug: string;
   thumbnail?: string;
   fullImage?: string;
+  landscape: boolean;
 }
 
 export interface CollectionStats {
@@ -369,7 +371,7 @@ export function computeCollectionStats(input: ComputeInput): Omit<CollectionStat
     .toSorted((a, b) => b.price - a.price)
     .slice(0, MAX_EXPENSIVE_PRINTINGS)
     .map(({ stack, price }) => {
-      const firstImageId = stack.printing.images[0]?.imageId;
+      const { imageId: firstImageId, landscape } = printingArt(stack.printing);
       return {
         name: legendDisplayName(stack.printing.card),
         printingId: stack.printingId,
@@ -378,6 +380,7 @@ export function computeCollectionStats(input: ComputeInput): Omit<CollectionStat
         cardSlug: stack.printing.card.slug,
         thumbnail: firstImageId ? imageUrl(firstImageId, "400w") : undefined,
         fullImage: firstImageId ? imageUrl(firstImageId, "full") : undefined,
+        landscape,
       };
     });
 

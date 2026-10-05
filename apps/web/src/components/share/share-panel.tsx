@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { LinkIcon, Trash2Icon } from "lucide-react";
+import { ExternalLinkIcon, LinkIcon, Trash2Icon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -9,7 +9,7 @@ import type { ShareImagePanelProps, ShareNoun } from "@/components/share/share-i
 import { ShareImagePanel } from "@/components/share/share-image-panel";
 import { ShareLinkRow } from "@/components/share/share-link-row";
 import { ShareQrPanel } from "@/components/share/share-qr-panel";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BinderSheetPanel } from "@/features/groups/components/binder-sheet-panel";
 import { m } from "@/paraglide/messages.js";
@@ -181,14 +181,25 @@ export function SharePanel({
                 label={link.label}
                 hideQr
                 actions={
-                  <Button
-                    variant="destructive"
-                    onClick={() => setConfirmStopOpen(true)}
-                    disabled={link.stopping}
-                  >
-                    <Trash2Icon />
-                    {m.share_stop_sharing()}
-                  </Button>
+                  <>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={buttonVariants({ variant: "outline" })}
+                    >
+                      <ExternalLinkIcon />
+                      {m.share_open_link()}
+                    </a>
+                    <Button
+                      variant="destructive"
+                      onClick={() => setConfirmStopOpen(true)}
+                      disabled={link.stopping}
+                    >
+                      <Trash2Icon />
+                      {m.share_stop_sharing()}
+                    </Button>
+                  </>
                 }
               />
               <p className="text-muted-foreground text-sm">

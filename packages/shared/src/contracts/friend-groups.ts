@@ -18,7 +18,7 @@ import {
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-import { nameField } from "./fields.js";
+import { cardArtSchema, nameField } from "./fields.js";
 
 // Slugs that collide with app-level routes or squat targets, mirrored in the
 // route layer for a clean 400 before the DB rejects.
@@ -266,9 +266,8 @@ export const friendGroupShareResponseSchema = z.object({
   sharedAt: z.string(),
 });
 
-export const friendGroupCollectionCoverSchema = z.object({
+export const friendGroupCollectionCoverSchema = cardArtSchema.extend({
   printingId: z.string(),
-  imageId: z.string(),
 });
 
 export const friendGroupCollectionShareResponseSchema = z.object({

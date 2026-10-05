@@ -13,3 +13,8 @@ export const shareOwnerSchema = z.object({
   displayName: z.string(),
   gravatarHash: z.string().nullable(),
 });
+
+export const cardArtSchema = z.object({
+  imageId: z.string(),
+  landscape: z.boolean(),
+});

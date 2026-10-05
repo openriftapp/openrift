@@ -44,4 +44,13 @@ describe("CardFan", () => {
       expect(img.getAttribute("fetchpriority")).toBe("high");
     }
   });
+
+  it("rotates landscape (Battlefield) covers to fill the portrait slot", () => {
+    const { container } = render(
+      <CardFan covers={[{ key: "bf", imageId: "image-bf", landscape: true }, COVERS[0]!]} />,
+    );
+    const [battlefield, unit] = container.querySelectorAll("img");
+    expect(battlefield?.parentElement?.style.transform).toContain("rotate(-90deg)");
+    expect(unit?.style.transform).not.toContain("rotate(-90deg)");
+  });
 });

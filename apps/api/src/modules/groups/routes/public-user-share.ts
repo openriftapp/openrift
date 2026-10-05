@@ -3,6 +3,7 @@ import type { PublicListDetailResponse } from "@openrift/shared/types/api/list";
 import type { PublicUserBundleResponse } from "@openrift/shared/types/api/user-share";
 import { implement } from "@orpc/server";
 
+import { toCardArt } from "../../../lib/card-art.js";
 import { toShareOwner } from "../../../lib/share-owner.js";
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -28,6 +29,7 @@ export const publicUserShareRouter = {
         userProfile,
         canonicalPrintings,
         podTournaments,
+        printingImages,
       } = context.repos;
       const viewerUserId = context.user?.id ?? null;
 
@@ -85,6 +87,10 @@ export const publicUserShareRouter = {
           PREVIEW_IMAGE_COUNT,
         ),
       ]);
+      const landscapeIds = await printingImages.landscapeImageIds([
+        ...[...expanded.values()].flatMap((list) => list.previewImageIds),
+        ...[...collectionPreviews.values()].flat(),
+      ]);
       const overlap = otherViewerId
         ? await overlapWithViewer(profileRepos, otherViewerId, listRefs, expanded)
         : null;
@@ -128,6 +134,7 @@ export const publicUserShareRouter = {
             row,
             expanded.get(row.list.id),
             overlap ? (overlap.perList.get(row.list.id) ?? 0) : null,
+            landscapeIds,
           ),
         ),
         collections: collections.map((col) => ({
@@ -135,7 +142,9 @@ export const publicUserShareRouter = {
           name: col.collectionName,
           description: col.collectionDescription,
           viaGroups: col.viaGroups,
-          previewImageIds: collectionPreviews.get(col.collectionId) ?? [],
+          previews: (collectionPreviews.get(col.collectionId) ?? []).map((imageId) =>
+            toCardArt(imageId, landscapeIds),
+          ),
         })),
       };
     },

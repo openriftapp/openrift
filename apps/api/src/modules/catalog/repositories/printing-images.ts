@@ -1,3 +1,4 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
 import type { CardFace, FallbackArtMode } from "@openrift/shared/types/enums";
 import type { Kysely } from "kysely";
@@ -26,6 +27,25 @@ export function printingImagesRepo(db: Kysely<Database>) {
   }
 
   return {
+    async landscapeImageIds(imageIds: readonly string[]): Promise<Set<string>> {
+      if (imageIds.length === 0) {
+        return new Set();
+      }
+      const rows = await db
+        .selectFrom("printingImages as pi")
+        .innerJoin("printings as p", "p.id", "pi.printingId")
+        .innerJoin("cards as c", "c.id", "p.cardId")
+        .select(["pi.imageFileId", "c.type"])
+        .where("pi.imageFileId", "in", [...imageIds])
+        .distinct()
+        .execute();
+      return new Set(
+        rows
+          .filter((row) => getOrientation([row.type]) === "landscape")
+          .map((row) => row.imageFileId),
+      );
+    },
+
     getIdAndRehostedUrl(
       imageId: string,
     ): Promise<{ id: string; printingId: string; rehostedUrl: string | null } | undefined> {

@@ -97,7 +97,7 @@ export const friendGroupsCoreRouter = {
 
   get: os.get.handler(async ({ input, context }): Promise<FriendGroupDetailResponse> => {
     const viewerId = context.userId;
-    const { friendGroups, lists, cardTrades, copies } = context.repos;
+    const { friendGroups, lists, cardTrades, copies, printingImages } = context.repos;
 
     const group = await loadGroupBySlug(context.repos, input.slug);
 
@@ -152,6 +152,9 @@ export const friendGroupsCoreRouter = {
       ),
     ]);
     const coversByCollection = groupCovers(shareCovers);
+    const landscapeIds = await printingImages.landscapeImageIds(
+      shareCovers.map((cover) => cover.imageId),
+    );
 
     return {
       group: toGroup(group, canSeeCode(membership.role)),
@@ -162,7 +165,7 @@ export const friendGroupsCoreRouter = {
         toShare({ ...row, entryCount: expandedCounts.get(row.listId) ?? row.entryCount }),
       ),
       collectionShares: collectionShares.map((row) =>
-        toCollectionShare(row, coversByCollection.get(row.collectionId)),
+        toCollectionShare(row, coversByCollection.get(row.collectionId), landscapeIds),
       ),
       pendingRequests: pendingRequests.map((row) => toRequest(row)),
       cardsTradedCount,

@@ -3,6 +3,7 @@ import type { CSSProperties, ComponentType, SVGProps } from "react";
 
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
+import { LANDSCAPE_ROTATION_STYLE } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 /** One fan slot: x/y offset (px), rotation (deg), and an optional paint-order z. */
@@ -99,7 +100,7 @@ function fanCardStyle(
 }
 
 /** A self-hosted image id, or a direct `src` for demos and external art. */
-type FanCover = { key: string } & ({ imageId: string } | { src: string });
+type FanCover = { key: string; landscape?: boolean } & ({ imageId: string } | { src: string });
 
 function coverSources(
   cover: FanCover,
@@ -143,19 +144,46 @@ export function CardFan({ covers, size = "sm", anchor = "bottom", priority }: Ca
         if (!cover) {
           return null;
         }
+        const loadProps = {
+          alt: "",
+          loading: priority ? ("eager" as const) : ("lazy" as const),
+          fetchPriority: priority ? ("high" as const) : undefined,
+          fallback: null,
+        };
+        const slotStyle: CSSProperties = {
+          ...fanCardStyle(slot, spec.cardWidth, anchor),
+          borderRadius: CARD_BORDER_RADIUS,
+        };
+        if (cover.landscape) {
+          return (
+            <span
+              key={cover.key}
+              className={cn(
+                "ring-foreground/20 min-w-0 overflow-hidden shadow-md ring-1",
+                fanCardClass(anchor),
+              )}
+              style={slotStyle}
+            >
+              <span
+                className="absolute top-1/2 left-1/2 overflow-hidden"
+                style={LANDSCAPE_ROTATION_STYLE}
+              >
+                <ImgWithFallback
+                  {...coverSources(cover, (spec.cardWidth * 88) / 63, variant)}
+                  {...loadProps}
+                  className="size-full object-cover"
+                />
+              </span>
+            </span>
+          );
+        }
         return (
           <ImgWithFallback
             key={cover.key}
             {...coverSources(cover, spec.cardWidth, variant)}
-            alt=""
-            loading={priority ? "eager" : "lazy"}
-            fetchPriority={priority ? "high" : undefined}
+            {...loadProps}
             className={cn("ring-foreground/20 object-cover shadow-md ring-1", fanCardClass(anchor))}
-            style={{
-              ...fanCardStyle(slot, spec.cardWidth, anchor),
-              borderRadius: CARD_BORDER_RADIUS,
-            }}
-            fallback={null}
+            style={slotStyle}
           />
         );
       })}

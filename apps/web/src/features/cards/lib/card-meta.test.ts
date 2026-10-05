@@ -4,6 +4,8 @@ import type {
 } from "@openrift/shared/types/api/catalog";
 import { describe, expect, it } from "vitest";
 
+import { stubPrinting } from "@/test/factories";
+
 import type { CardMarketplaceOffer } from "./card-meta";
 import {
   buildCardMetaDescription,
@@ -11,6 +13,7 @@ import {
   frontImageId,
   getCardFrontImageFullUrl,
   pickCardMetaPrinting,
+  printingArt,
   resolveCardMetaPrinting,
 } from "./card-meta";
 
@@ -283,5 +286,24 @@ describe("resolveCardMetaPrinting", () => {
 
   it("returns undefined when there are no printings", () => {
     expect(resolveCardMetaPrinting([], "p-ja", LANG_ORDER)).toBeUndefined();
+  });
+});
+
+describe("printingArt", () => {
+  it("flags battlefield art as landscape", () => {
+    const printing = stubPrinting({
+      images: [{ face: "front", imageId: "bf-id" }],
+      card: { type: "battlefield", types: ["battlefield"] },
+    });
+    expect(printingArt(printing)).toEqual({ imageId: "bf-id", landscape: true });
+  });
+
+  it("keeps other cards portrait", () => {
+    const printing = stubPrinting({ images: [{ face: "front", imageId: "unit-id" }] });
+    expect(printingArt(printing)).toEqual({ imageId: "unit-id", landscape: false });
+  });
+
+  it("returns no art for a printing missing from the catalog", () => {
+    expect(printingArt(undefined)).toEqual({ imageId: null, landscape: false });
   });
 });

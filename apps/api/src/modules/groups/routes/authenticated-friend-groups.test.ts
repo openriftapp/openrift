@@ -55,6 +55,7 @@ function makeApp(overrides: {
   marketplace?: Record<string, unknown>;
   userPreferences?: Record<string, unknown>;
   cardTrades?: Record<string, unknown>;
+  printingImages?: Record<string, unknown>;
   user?: { id: string };
 }) {
   const friendGroups = {
@@ -130,6 +131,11 @@ function makeApp(overrides: {
     ...overrides.cardTrades,
   };
 
+  const printingImages = {
+    landscapeImageIds: vi.fn(() => Promise.resolve(new Set<string>())),
+    ...overrides.printingImages,
+  };
+
   const notifyAdminsOfGroupJoinRequest = vi.fn(() => Promise.resolve());
   const notifyMemberOfGroupApproval = vi.fn(() => Promise.resolve());
 
@@ -144,6 +150,7 @@ function makeApp(overrides: {
       marketplace,
       userPreferences,
       cardTrades,
+      printingImages,
     };
     c.set("user", (overrides.user ?? { id: USER_ID }) as never);
     c.set("repos", repos as never);
@@ -518,6 +525,7 @@ describe("friend-groups route", () => {
         ),
       },
       copies: { coverPrintingsAcross },
+      printingImages: { landscapeImageIds: vi.fn(() => Promise.resolve(new Set([IMAGE_ID]))) },
     });
     const res = await app.request("/api/v1/friend-groups/playgroup");
     expect(res.status).toBe(200);
@@ -526,7 +534,7 @@ describe("friend-groups route", () => {
     };
     expect(coverPrintingsAcross).toHaveBeenCalledWith([COLLECTION_ID], 4);
     expect(body.collectionShares[0]!.coverPrintings).toEqual([
-      { printingId: PRINTING_ID, imageId: IMAGE_ID },
+      { printingId: PRINTING_ID, imageId: IMAGE_ID, landscape: true },
     ]);
   });
 

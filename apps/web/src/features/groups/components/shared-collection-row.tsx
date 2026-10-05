@@ -36,6 +36,7 @@ export function SharedCollectionRow({
           items={share.coverPrintings.map((cover) => ({
             key: cover.printingId,
             imageId: cover.imageId,
+            landscape: cover.landscape,
           }))}
           max={3}
           className="shrink-0"

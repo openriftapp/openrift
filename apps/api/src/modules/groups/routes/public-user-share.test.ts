@@ -43,6 +43,10 @@ const mockPodTournamentsRepo = {
   computeStandings: vi.fn(),
 };
 
+const mockPrintingImagesRepo = {
+  landscapeImageIds: vi.fn(),
+};
+
 let currentUser: { id: string } | null = null;
 
 const app = new Hono<{ Variables: Variables }>();
@@ -57,6 +61,7 @@ app.use("*", async (c, next) => {
     userProfile: mockUserProfileRepo,
     canonicalPrintings: mockCanonicalPrintingsRepo,
     podTournaments: mockPodTournamentsRepo,
+    printingImages: mockPrintingImagesRepo,
   } as never);
   await next();
 });
@@ -124,6 +129,7 @@ function resetProfileMocks() {
   mockUserProfileRepo.completedTournamentParticipations.mockResolvedValue([]);
   mockUserProfileRepo.cardIdsForPrintings.mockResolvedValue(new Map());
   mockUserProfileRepo.collectionPreviewImageIds.mockResolvedValue(new Map());
+  mockPrintingImagesRepo.landscapeImageIds.mockResolvedValue(new Set());
   mockCanonicalPrintingsRepo.resolvePrintingMetaForRows.mockImplementation(
     (rows: { cardId: string }[]) =>
       Promise.resolve(rows.map(({ cardId }) => ({ cardId, imageId: `img-${cardId}` }))),
@@ -200,7 +206,11 @@ describe("GET /api/v1/users/share/:token", () => {
       viaGroups: [],
       createdAt: NOW.toISOString(),
       updatedAt: NOW.toISOString(),
-      previewImageIds: ["img-c-1", "img-c-2", "img-c-3"],
+      previews: [
+        { imageId: "img-c-1", landscape: false },
+        { imageId: "img-c-2", landscape: false },
+        { imageId: "img-c-3", landscape: false },
+      ],
       matchCount: null,
     });
     expect(json.collections).toEqual([]);
@@ -301,6 +311,7 @@ describe("GET /api/v1/users/share/:token", () => {
     mockUserProfileRepo.collectionPreviewImageIds.mockResolvedValue(
       new Map([["col-1", ["img-a", "img-b"]]]),
     );
+    mockPrintingImagesRepo.landscapeImageIds.mockResolvedValue(new Set(["img-b"]));
 
     const res = await app.request("/api/v1/users/share/tok-abc");
     expect(res.status).toBe(200);
@@ -320,7 +331,10 @@ describe("GET /api/v1/users/share/:token", () => {
         name: "Main",
         description: "My cards",
         viaGroups: [{ id: "g1", slug: "buds", name: "Buds" }],
-        previewImageIds: ["img-a", "img-b"],
+        previews: [
+          { imageId: "img-a", landscape: false },
+          { imageId: "img-b", landscape: true },
+        ],
       },
     ]);
     expect(mockUserProfileRepo.collectionPreviewImageIds).toHaveBeenCalledWith(["col-1"], 4);

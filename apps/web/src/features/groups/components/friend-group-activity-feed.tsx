@@ -15,7 +15,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { UserAvatar } from "@/components/user-avatar";
 import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { frontImageId } from "@/features/cards/lib/card-meta";
+import { printingArt } from "@/features/cards/lib/card-meta";
 import { useFriendGroupActivity } from "@/features/groups/hooks/use-friend-groups";
 import {
   buildActivityDays,
@@ -120,7 +120,7 @@ function TradeBatchRow({ slug, batch }: { slug: string; batch: TradeBatch }) {
   const viewerId = useRequiredUserId();
   const thumbs = distinctPrintingIds(batch.events).map((printingId) => ({
     key: printingId,
-    imageId: frontImageId(printingsById[printingId]),
+    ...printingArt(printingsById[printingId]),
   }));
   return (
     <RowListLink render={<Link to="/groups/$slug/trades" params={{ slug }} />}>
@@ -151,7 +151,7 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
     cardsById[cardId]?.name ?? m.groups_activity_a_card();
   const thumb = (printingId: string): ReactNode => (
     <CardArtThumbStack
-      items={[{ key: printingId, imageId: frontImageId(printingsById[printingId]) }]}
+      items={[{ key: printingId, ...printingArt(printingsById[printingId]) }]}
       thumbClassName="w-6"
     />
   );

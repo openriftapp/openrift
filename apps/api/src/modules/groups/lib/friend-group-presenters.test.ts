@@ -183,8 +183,15 @@ describe("toCollectionShare", () => {
       userName: "Ekko",
       sharedAt: "2026-03-06T09:00:00.000Z",
       copyCount: 40,
-      coverPrintings: [{ printingId: "p1", imageId: "i1" }],
+      coverPrintings: [{ printingId: "p1", imageId: "i1", landscape: false }],
     });
+  });
+
+  it("flags covers whose art is landscape", () => {
+    const covers = [{ collectionId: "c1", printingId: "p1", imageId: "i1" }];
+    expect(toCollectionShare(row, covers, new Set(["i1"])).coverPrintings).toEqual([
+      { printingId: "p1", imageId: "i1", landscape: true },
+    ]);
   });
 
   it("returns an empty cover list when none were loaded", () => {

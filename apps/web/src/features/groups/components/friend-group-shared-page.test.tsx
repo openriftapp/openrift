@@ -204,8 +204,8 @@ describe("SharedPageContent member shares", () => {
       collectionShares: [
         makeCollectionShare("col-9", "user-2", {
           coverPrintings: [
-            { printingId: "p-1", imageId: "img-1" },
-            { printingId: "p-2", imageId: "img-2" },
+            { printingId: "p-1", imageId: "img-1", landscape: false },
+            { printingId: "p-2", imageId: "img-2", landscape: true },
           ],
         }),
       ],

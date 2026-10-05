@@ -28,7 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { UserAvatarStack } from "@/components/user-avatar-stack";
 import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { frontImageId } from "@/features/cards/lib/card-meta";
+import { printingArt } from "@/features/cards/lib/card-meta";
 import { useBadges } from "@/features/groups/hooks/use-badges";
 import { useUserTrades } from "@/features/groups/hooks/use-card-trades";
 import {
@@ -67,7 +67,7 @@ function SuggestionStrip({
   }
   const items = strip.printingIds.map((printingId) => ({
     key: printingId,
-    imageId: frontImageId(printingsById[printingId]),
+    ...printingArt(printingsById[printingId]),
   }));
   return (
     <div className="flex min-w-0 items-center gap-2.5">

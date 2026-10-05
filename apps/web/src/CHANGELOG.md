@@ -9,6 +9,8 @@
 
 ### Other
 
+- feat(App): **Open your share links** — share links have an Open button, and the profile's sharing section is now called Public profile and describes what the page shows.
+- fix(App): **Battlefields turned everywhere** — share images, profile and group previews, trade art, collection covers, promo rows and price tooltips turn battlefields sideways to fill a card frame, as the card grid does.
 - feat(Tournaments): **Same fields for creating and editing** — the create form uses the settings page's fields, with date and time in one field.
 - fix(Cards): **Legend names in the card grid** — Legends in the card grid are named by their champion, like Azir, Emperor of the Sands.
 - fix(App): **Revoked share links explain themselves** — a collection, list or profile link that no longer works says so and offers Browse cards, as deck links already did.

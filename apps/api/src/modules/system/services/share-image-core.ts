@@ -110,8 +110,12 @@ async function cardArtDataUri(
     const cornerMask = Buffer.from(
       `<svg width="${widthPx}" height="${heightPx}"><rect width="${widthPx}" height="${heightPx}" rx="${radiusPx}" ry="${radiusPx}" fill="#fff"/></svg>`,
     );
+    // Battlefields are stored landscape; the web app turns them -90° to fill portrait frames.
+    const { width = 0, height = 0 } = await io.sharp(source).metadata();
+    const turn = width > height !== widthPx > heightPx;
     const png = await io
       .sharp(source)
+      .rotate(turn ? -90 : 0)
       .resize(widthPx, heightPx, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
       .composite([{ input: cornerMask, blend: "dest-in" }])
       .png()

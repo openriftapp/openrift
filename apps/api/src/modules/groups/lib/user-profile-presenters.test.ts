@@ -21,13 +21,18 @@ describe("toBundleList", () => {
   } as unknown as BundleListSummary;
 
   it("reads isPublic from the row, so a revoked token is not public", () => {
-    expect(toBundleList(row, undefined, null).isPublic).toBe(false);
+    expect(toBundleList(row, undefined, null, new Set()).isPublic).toBe(false);
   });
 
-  it("prefers the expanded count and previews", () => {
-    expect(toBundleList(row, { entryCount: 9, previewImageIds: ["i1"] }, 2)).toMatchObject({
+  it("prefers the expanded count and previews, flagging landscape art", () => {
+    expect(
+      toBundleList(row, { entryCount: 9, previewImageIds: ["i1", "bf"] }, 2, new Set(["bf"])),
+    ).toMatchObject({
       entryCount: 9,
-      previewImageIds: ["i1"],
+      previews: [
+        { imageId: "i1", landscape: false },
+        { imageId: "bf", landscape: true },
+      ],
       matchCount: 2,
       createdAt: "2026-03-01T10:00:00.000Z",
       hasRule: false,
@@ -35,9 +40,9 @@ describe("toBundleList", () => {
   });
 
   it("falls back to the materialized count without an expansion", () => {
-    expect(toBundleList(row, undefined, null)).toMatchObject({
+    expect(toBundleList(row, undefined, null, new Set())).toMatchObject({
       entryCount: 4,
-      previewImageIds: [],
+      previews: [],
       matchCount: null,
     });
   });

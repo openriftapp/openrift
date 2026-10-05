@@ -7,6 +7,8 @@ import {
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
+import { cardArtSchema } from "./fields.js";
+
 const groupRefSchema = z.object({
   id: z.string(),
   slug: z.string(),
@@ -26,7 +28,7 @@ export const publicUserBundleListResponseSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   hasRule: z.boolean(),
-  previewImageIds: z.array(z.string()),
+  previews: z.array(cardArtSchema),
   matchCount: z.number().int().nonnegative().nullable(),
 });
 
@@ -61,7 +63,7 @@ export const publicUserBundleCollectionResponseSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   viaGroups: z.array(groupRefSchema),
-  previewImageIds: z.array(z.string()),
+  previews: z.array(cardArtSchema),
 });
 
 export const publicUserBundleResponseSchema = z.object({

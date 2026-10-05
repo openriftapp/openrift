@@ -58,7 +58,7 @@ export function UserProfileListTile({
             </span>
           ) : null}
         </div>
-        <UserProfilePreviewFan imageIds={list.previewImageIds} />
+        <UserProfilePreviewFan previews={list.previews} />
       </div>
     </CardLink>
   );

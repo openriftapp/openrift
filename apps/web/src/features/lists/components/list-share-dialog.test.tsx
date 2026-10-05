@@ -170,20 +170,20 @@ describe("ListShareDialog", () => {
     expect(screen.getByText(/needs a share link to point at/iu)).toBeInTheDocument();
   });
 
-  it("points wish and trade lists at the profile's Public sharing section", () => {
+  it("points wish and trade lists at the profile's public profile section", () => {
     const { rerender } = render(<Harness shareToken={null} intent="wish" />);
-    expect(screen.getByRole("link", { name: /public sharing/iu })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /public profile/iu })).toHaveAttribute(
       "href",
       "/profile#sharing",
     );
 
     rerender(<Harness shareToken={null} intent="trade" />);
-    expect(screen.getByRole("link", { name: /public sharing/iu })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /public profile/iu })).toBeInTheDocument();
   });
 
   it("omits the bundle cross-link for organize lists, which the bundle excludes", () => {
     render(<Harness shareToken={null} intent="organize" />);
-    expect(screen.queryByRole("link", { name: /public sharing/iu })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /public profile/iu })).not.toBeInTheDocument();
   });
 
   it("shows the friend-group visibility controls when the user has groups", () => {

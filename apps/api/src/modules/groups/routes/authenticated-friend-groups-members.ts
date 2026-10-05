@@ -197,7 +197,7 @@ export const friendGroupsMembersRouter = {
   getMemberDetail: os.getMemberDetail.handler(
     async ({ input, context }): Promise<FriendGroupMemberDetailResponse> => {
       const viewerId = context.userId;
-      const { friendGroups, lists, copies } = context.repos;
+      const { friendGroups, lists, copies, printingImages } = context.repos;
       const counterpartyUserId = input.userId;
 
       const ctx = await loadGroupForMember(context.repos, input.slug, viewerId);
@@ -228,6 +228,9 @@ export const friendGroupsMembersRouter = {
         ),
       ]);
       const coversByCollection = groupCovers(shareCovers);
+      const landscapeIds = await printingImages.landscapeImageIds(
+        shareCovers.map((cover) => cover.imageId),
+      );
 
       return {
         member: toMember(counterparty, contactsByUser.get(counterpartyUserId) ?? []),
@@ -235,7 +238,7 @@ export const friendGroupsMembersRouter = {
           toShare({ ...row, entryCount: expandedCounts.get(row.listId) ?? row.entryCount }),
         ),
         collectionShares: memberCollectionShares.map((row) =>
-          toCollectionShare(row, coversByCollection.get(row.collectionId)),
+          toCollectionShare(row, coversByCollection.get(row.collectionId), landscapeIds),
         ),
       };
     },

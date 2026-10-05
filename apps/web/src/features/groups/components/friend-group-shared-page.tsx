@@ -21,7 +21,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { UserAvatar } from "@/components/user-avatar";
 import { CardFan, CardFanOutline } from "@/features/cards/components/card-fan";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { frontImageId } from "@/features/cards/lib/card-meta";
+import { printingArt } from "@/features/cards/lib/card-meta";
 import { CreateCollectionDialog } from "@/features/collections/components/create-collection-dialog";
 import { useCollections } from "@/features/collections/hooks/use-collections";
 import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
@@ -71,7 +71,10 @@ export function SharedCollectionAction({ slug }: { slug: string }) {
   );
 }
 
-function useGroupCollectionCoverFans(): Map<string, { key: string; imageId: string }[]> {
+function useGroupCollectionCoverFans(): Map<
+  string,
+  { key: string; imageId: string; landscape: boolean }[]
+> {
   const copiesCollection = useCopiesCollection();
   const { printingsById } = useCards();
   // Same SSR/sign-out guard as useCollections: null query on the server
@@ -87,8 +90,8 @@ function useGroupCollectionCoverFans(): Map<string, { key: string; imageId: stri
     [...covers].map(([collectionId, printingIds]) => [
       collectionId,
       printingIds.flatMap((printingId) => {
-        const imageId = frontImageId(printingsById[printingId]);
-        return imageId ? [{ key: printingId, imageId }] : [];
+        const { imageId, landscape } = printingArt(printingsById[printingId]);
+        return imageId ? [{ key: printingId, imageId, landscape }] : [];
       }),
     ]),
   );
@@ -121,7 +124,7 @@ function GroupCollectionTile({
   covers,
 }: {
   collection: CollectionResponse;
-  covers: { key: string; imageId: string }[];
+  covers: { key: string; imageId: string; landscape: boolean }[];
 }) {
   const copies = m.common_copies({ count: collection.copyCount });
   return (

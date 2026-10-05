@@ -14,6 +14,7 @@ import type {
   FriendGroupSummaryResponse,
 } from "@openrift/shared/types/api/friend-group";
 
+import { toCardArt } from "../../../lib/card-art.js";
 import { gravatarHashForEmail } from "../../../lib/gravatar.js";
 import { isoOrNull } from "../../../lib/iso-date.js";
 import { tradeDefaultsFromList } from "../../lists/lib/list-presenters.js";
@@ -128,7 +129,8 @@ export function groupCovers(rows: CollectionCoverRow[]): Map<string, CollectionC
 
 export function toCollectionShare(
   row: CollectionShareRow,
-  covers?: CollectionCoverRow[],
+  covers: CollectionCoverRow[] = [],
+  landscapeIds: ReadonlySet<string> = new Set(),
 ): FriendGroupCollectionShareResponse {
   return {
     groupId: row.groupId,
@@ -138,9 +140,9 @@ export function toCollectionShare(
     userName: row.userName,
     sharedAt: row.sharedAt.toISOString(),
     copyCount: row.copyCount,
-    coverPrintings: (covers ?? []).map((cover) => ({
+    coverPrintings: covers.map((cover) => ({
       printingId: cover.printingId,
-      imageId: cover.imageId,
+      ...toCardArt(cover.imageId, landscapeIds),
     })),
   };
 }

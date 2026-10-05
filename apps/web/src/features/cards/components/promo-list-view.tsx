@@ -14,6 +14,7 @@ import { FinishIcon } from "@/features/cards/components/finish-icon";
 import { PrintingChannelCell } from "@/features/cards/components/printing-channel-cell";
 import { PrintingNotesCell } from "@/features/cards/components/printing-notes-cell";
 import { StaticCountTableActions } from "@/features/cards/components/static-count-table-actions";
+import { printingArt } from "@/features/cards/lib/card-meta";
 import type { ActionsColumn } from "@/features/collections/lib/collection-table";
 import { useEnumOrders } from "@/hooks/use-enums";
 
@@ -104,11 +105,17 @@ export function PromoMobileCard({
   showChannel?: boolean;
   onClick: (printing: Printing) => void;
 }) {
-  const image = printing.images[0];
+  const { imageId, landscape } = printingArt(printing);
   const cardName = legendDisplayName(printing.card);
   return (
     <Card size="sm" className="hover:bg-muted/50 relative w-full flex-row items-start gap-3 px-3">
-      <CardArtThumb imageId={image?.imageId} variant="400w" alt={cardName} className="h-20" />
+      <CardArtThumb
+        imageId={imageId}
+        landscape={landscape}
+        variant="400w"
+        alt={cardName}
+        className="h-20"
+      />
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-baseline justify-between gap-2">
           <div className="truncate font-medium">{cardName}</div>

@@ -13,7 +13,7 @@ import { TextLink } from "@/components/ui/text-link";
 import { UserAvatar } from "@/components/user-avatar";
 import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { frontImageId } from "@/features/cards/lib/card-meta";
+import { printingArt } from "@/features/cards/lib/card-meta";
 import { useFriendGroupShareableLists } from "@/features/groups/hooks/use-friend-group-sharing";
 import { distinctPrintingIds } from "@/features/groups/lib/friend-group-activity";
 import type { TradeHubCard, TradeSuggestionSide } from "@/features/groups/lib/trade-hub";
@@ -72,7 +72,7 @@ function TradeSuggestionRows({
           <CardArtThumbStack
             items={row.side.printingIds.map((printingId) => ({
               key: printingId,
-              imageId: frontImageId(printingsById[printingId]),
+              ...printingArt(printingsById[printingId]),
             }))}
             max={3}
             thumbClassName="w-8"
@@ -102,7 +102,7 @@ export function TradeHubMemberCard({
   const footer = footerLine(card);
   const waitingArt = distinctPrintingIds(card.needsYou).map((printingId) => ({
     key: printingId,
-    imageId: frontImageId(printingsById[printingId]),
+    ...printingArt(printingsById[printingId]),
   }));
 
   return (

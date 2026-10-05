@@ -153,7 +153,7 @@ test.describe("profile shell", () => {
       await expect(nav).toBeVisible({ timeout: 15_000 });
 
       // The active TOC link carries font-medium; there's no aria-current yet.
-      const sharingLink = nav.getByRole("link", { name: "Public sharing", exact: true });
+      const sharingLink = nav.getByRole("link", { name: "Public profile", exact: true });
       await expect(sharingLink).toHaveClass(/font-medium/u);
 
       const preferencesLink = nav.getByRole("link", { name: "Preferences", exact: true });

@@ -8,7 +8,7 @@ import { ActionBand } from "@/components/ui/action-band";
 import { buttonVariants } from "@/components/ui/button";
 import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { frontImageId } from "@/features/cards/lib/card-meta";
+import { printingArt } from "@/features/cards/lib/card-meta";
 import { useGroupTrades, useUserTrades } from "@/features/groups/hooks/use-card-trades";
 import { useFriendGroupMatches } from "@/features/groups/hooks/use-friend-groups";
 import { withoutLiveTradeMatches } from "@/features/groups/lib/trade-derivation";
@@ -28,7 +28,7 @@ function ShelfRow({
 }) {
   const items = row.printingIds.map((printingId) => ({
     key: printingId,
-    imageId: frontImageId(printingsById[printingId]),
+    ...printingArt(printingsById[printingId]),
   }));
   return (
     <li className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">

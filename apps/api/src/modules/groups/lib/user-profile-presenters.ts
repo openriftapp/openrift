@@ -4,6 +4,7 @@ import type {
   PublicUserBundleResponse,
 } from "@openrift/shared/types/api/user-share";
 
+import { toCardArt } from "../../../lib/card-art.js";
 import { parseListRules } from "../../lists/lib/list-presenters.js";
 import type { BundleListSummary } from "../repositories/user-shares.js";
 
@@ -29,6 +30,7 @@ export function toBundleList(
   row: BundleListSummary,
   expanded: { entryCount: number; previewImageIds: string[] } | undefined,
   matchCount: number | null,
+  landscapeIds: ReadonlySet<string>,
 ): PublicUserBundleResponse["lists"][number] {
   const { list } = row;
   return {
@@ -42,7 +44,7 @@ export function toBundleList(
     createdAt: list.createdAt.toISOString(),
     updatedAt: list.updatedAt.toISOString(),
     hasRule: parseListRules(list.rules).length > 0,
-    previewImageIds: expanded?.previewImageIds ?? [],
+    previews: (expanded?.previewImageIds ?? []).map((imageId) => toCardArt(imageId, landscapeIds)),
     matchCount,
   };
 }

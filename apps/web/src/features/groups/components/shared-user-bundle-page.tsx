@@ -142,7 +142,7 @@ function BundleCollectionRow({ collection }: { collection: PublicUserBundleColle
         ))}
       </div>
       <div className="mt-auto flex justify-end pt-2">
-        <UserProfilePreviewFan imageIds={collection.previewImageIds} />
+        <UserProfilePreviewFan previews={collection.previews} />
       </div>
     </CardLink>
   );

@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageUrl } from "@openrift/shared/image-url";
 import { preferredPrinting } from "@openrift/shared/printing-select";
 import type {
@@ -116,6 +117,18 @@ export function frontImageId(
   printing: { images: readonly { face: string; imageId: string }[] } | undefined,
 ): string | null {
   return printing?.images.find((image) => image.face === "front")?.imageId ?? null;
+}
+
+export interface PrintingArt {
+  imageId: string | null;
+  landscape: boolean;
+}
+
+export function printingArt(printing: Printing | undefined): PrintingArt {
+  return {
+    imageId: frontImageId(printing),
+    landscape: printing !== undefined && getOrientation(printing.card.types) === "landscape",
+  };
 }
 
 export function getCardFrontImageFullUrl(
