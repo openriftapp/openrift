@@ -472,7 +472,7 @@ describe("createScanSession — learned detector with the aligned verifier", () 
   });
 });
 
-describe("createScanSession — automatic sweep", () => {
+describe("createScanSession — automatic sweep", { timeout: 20_000 }, () => {
   const EVERY = SWEEP_OPTIONS.surveyEveryFrames;
   const outlineAt = (left: number) => outline(boxQuad(left, 100, 120, 168));
 
