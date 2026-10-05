@@ -2340,6 +2340,7 @@
   "decks_dialog_export_desc_tts": "以空格分隔的短代碼，適用於",
   "decks_dialog_export_desc_tts_link": "Tabletop Simulator 模組",
   "decks_dialog_export_dirty_note": "你有未儲存的變更。匯出的代碼反映的是上次儲存的狀態。",
+  "decks_dialog_export_empty": "此牌組還沒有可匯出的卡牌。",
   "decks_dialog_export_failed": "無法產生匯出內容。",
   "decks_dialog_export_tab_code": "牌組代碼",
   "decks_dialog_export_tab_text": "文字",

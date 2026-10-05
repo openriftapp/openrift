@@ -2340,6 +2340,7 @@
   "decks_dialog_export_desc_tts": "Space-separated short codes for the",
   "decks_dialog_export_desc_tts_link": "Tabletop Simulator mod",
   "decks_dialog_export_dirty_note": "You have unsaved changes. The exported code reflects the last saved state.",
+  "decks_dialog_export_empty": "This deck has no cards to export yet.",
   "decks_dialog_export_failed": "Failed to generate export.",
   "decks_dialog_export_tab_code": "Deck Code",
   "decks_dialog_export_tab_text": "Text",

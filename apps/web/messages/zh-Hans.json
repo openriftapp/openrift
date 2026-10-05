@@ -2340,6 +2340,7 @@
   "decks_dialog_export_desc_tts": "以空格分隔的简短代码，用于",
   "decks_dialog_export_desc_tts_link": "Tabletop Simulator 模组",
   "decks_dialog_export_dirty_note": "你有未保存的更改。导出的代码反映的是最后一次保存的状态。",
+  "decks_dialog_export_empty": "此卡组还没有可导出的卡牌。",
   "decks_dialog_export_failed": "导出生成失败。",
   "decks_dialog_export_tab_code": "卡组代码",
   "decks_dialog_export_tab_text": "文本",

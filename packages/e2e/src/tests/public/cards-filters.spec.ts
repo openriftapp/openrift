@@ -19,12 +19,14 @@ const FOOTER_BUTTON = /^(?:Done|Show \d+ (?:cards?|printings?))$/u;
  */
 async function openFilterDrawer(page: Page): Promise<Locator> {
   const drawer = page.locator('[data-slot="drawer-content"]');
+  const dialog = page.getByRole("dialog", { name: "Options" });
   const options = page.getByRole("button", { name: "Options" });
-  // A click that lands while the drawer is still opening closes it again, so
-  // give each attempt room to settle before the next one.
+  // The panel stays mounted while closed, so check the dialog and click only while it is shut.
   await expect(async () => {
-    await options.click();
-    await expect(drawer).toBeVisible({ timeout: 4000 });
+    if (!(await dialog.isVisible())) {
+      await options.click({ timeout: 2000 });
+    }
+    await expect(dialog).toBeVisible({ timeout: 4000 });
   }).toPass({ timeout: 30_000 });
   return drawer;
 }

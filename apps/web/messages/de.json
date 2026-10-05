@@ -2340,6 +2340,7 @@
   "decks_dialog_export_desc_tts": "Kurzcodes, durch Leerzeichen getrennt, für die",
   "decks_dialog_export_desc_tts_link": "Tabletop-Simulator-Mod",
   "decks_dialog_export_dirty_note": "Du hast ungespeicherte Änderungen. Der exportierte Code zeigt den zuletzt gespeicherten Stand.",
+  "decks_dialog_export_empty": "Dieses Deck enthält noch keine Karten zum Exportieren.",
   "decks_dialog_export_failed": "Export konnte nicht erstellt werden.",
   "decks_dialog_export_tab_code": "Deck-Code",
   "decks_dialog_export_tab_text": "Text",

@@ -112,10 +112,13 @@ test.describe("root essentials", () => {
     });
   });
 
-  test.describe("manifest-like links", () => {
-    test("no PWA manifest link present", async ({ page }) => {
+  test.describe("manifest link", () => {
+    test("links the web app manifest", async ({ page }) => {
       await page.goto("/");
-      await expect(page.locator('link[rel="manifest"]')).toHaveCount(0);
+      await expect(page.locator('link[rel="manifest"]')).toHaveAttribute(
+        "href",
+        "/manifest.webmanifest",
+      );
     });
   });
 });

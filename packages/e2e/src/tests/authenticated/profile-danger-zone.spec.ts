@@ -60,7 +60,9 @@ async function setupUser(
 }
 
 async function openDialog(page: Page) {
-  await expect(page.getByRole("heading", { name: "Danger Zone", level: 2 })).toBeVisible({
+  await expect(
+    page.getByRole("heading", { name: "Danger Zone", exact: true, level: 2 }),
+  ).toBeVisible({
     timeout: 15_000,
   });
   // The component tree remounts when useSession() resolves, detaching the
@@ -84,7 +86,7 @@ test.describe("profile danger zone", () => {
       await loginViaForm(page, email, password);
       await page.goto("/profile");
 
-      const heading = page.getByRole("heading", { name: "Danger Zone", level: 2 });
+      const heading = page.getByRole("heading", { name: "Danger Zone", exact: true, level: 2 });
       await expect(heading).toBeVisible({ timeout: 15_000 });
 
       // CardTitle is a div, so the "Danger Zone" h2 sits outside the card and
@@ -105,7 +107,7 @@ test.describe("profile danger zone", () => {
       await loginViaForm(page, email, password);
       await page.goto("/profile");
 
-      const heading = page.getByRole("heading", { name: "Danger Zone", level: 2 });
+      const heading = page.getByRole("heading", { name: "Danger Zone", exact: true, level: 2 });
       await expect(heading).toBeVisible({ timeout: 15_000 });
       await heading.scrollIntoViewIfNeeded();
 

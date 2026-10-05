@@ -215,11 +215,12 @@ test.describe("profile preferences", () => {
       userEmail = await createAndLogin(page);
       await gotoProfile(page);
 
-      // Default marketplace order is CardTrader, TCGplayer, Cardmarket (see
-      // ALL_MARKETPLACES in packages/shared).
+      // Default marketplace order is CardTrader, TCGplayer, Cardmarket, CardNexus
+      // (see ALL_MARKETPLACES in packages/shared).
       await expect(page.getByRole("switch", { name: "CardTrader" })).toBeChecked();
       await expect(page.getByRole("switch", { name: "TCGplayer" })).toBeChecked();
       await expect(page.getByRole("switch", { name: "Cardmarket" })).toBeChecked();
+      await expect(page.getByRole("switch", { name: "CardNexus" })).toBeChecked();
 
       await expect(page.getByRole("button", { name: "Reset marketplace order" })).toHaveCount(0);
 
@@ -227,7 +228,7 @@ test.describe("profile preferences", () => {
       await expect(favoriteBadges).toHaveCount(1);
 
       await expect(page.getByRole("button", { name: "Move CardTrader up" })).toBeDisabled();
-      await expect(page.getByRole("button", { name: "Move Cardmarket down" })).toBeDisabled();
+      await expect(page.getByRole("button", { name: "Move CardNexus down" })).toBeDisabled();
     });
 
     test("disabling the favorite moves it down and promotes the next row", async ({ page }) => {

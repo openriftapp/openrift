@@ -3,9 +3,9 @@ import { expect, test } from "@playwright/test";
 
 import { API_BASE_URL, WEB_BASE_URL } from "../../helpers/constants.js";
 
-const PROMOS_TITLE = "Promo Cards - OpenRift";
+const PROMOS_TITLE = "Riftbound Promo Cards in English - OpenRift";
 const PROMOS_DESCRIPTION =
-  "Browse all promotional card printings for the Riftbound trading card game, grouped by promo type.";
+  "Browse all English promotional card printings for the Riftbound trading card game, grouped by promo type.";
 
 interface PromoFixtureChannel {
   id: string;
@@ -140,7 +140,7 @@ test.describe("promos", () => {
           "aria-current",
           "page",
         );
-        await expect(panel).toContainText(/\d+ printings? · \d+ cards?/u);
+        await expect(panel).toContainText(/\d+ printings?/u);
       }
 
       // Channels render as <section id="lang-EN-ch-..."> with a "(N)" count in the divider.
@@ -219,7 +219,7 @@ test.describe("promos", () => {
 
       // Anchor on a seeded card's art, not "the first tile": filter chips are
       // also <img>-bearing buttons, and imageless cards overlay a "suggest image" link.
-      const firstCard = page.getByRole("img", { name: /^Wuju Bladesman, Starter$/u }).first();
+      const firstCard = page.getByRole("img", { name: /^Master Yi, Wuju Bladesman$/u }).first();
       await expect(firstCard).toBeVisible();
 
       // Modal or docked pane depending on preference; both close controls share a name.

@@ -82,6 +82,13 @@ function formatDescriptions(): Record<ExportFormat, React.ReactNode> {
   };
 }
 
+function exportEmptyNote(failed: boolean, data?: DeckExportResponse): string | undefined {
+  if (failed) {
+    return m.decks_dialog_export_failed();
+  }
+  return data === undefined ? undefined : m.decks_dialog_export_empty();
+}
+
 interface DeckExportDialogProps {
   deckId: string;
   isDirty: boolean;
@@ -202,7 +209,7 @@ export function DeckExportDialog({
                 text={currentData?.code ?? ""}
                 rows={8}
                 isLoading={currentLoading}
-                emptyNote={currentError ? m.decks_dialog_export_failed() : undefined}
+                emptyNote={exportEmptyNote(currentError, currentData)}
               />
 
               {currentData && currentData.warnings.length > 0 && (

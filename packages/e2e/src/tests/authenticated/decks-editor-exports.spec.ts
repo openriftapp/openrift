@@ -309,7 +309,9 @@ test.describe("deck editor exports", () => {
 
       const exportDialog = await openExportDialog(page);
 
-      await expect(exportDialog.getByRole("textbox").first()).toBeVisible({ timeout: 15_000 });
+      await expect(exportDialog.getByText("This deck has no cards to export yet.")).toBeVisible({
+        timeout: 15_000,
+      });
 
       await page.keyboard.press("Escape");
       await expect(exportDialog).toBeHidden();

@@ -77,6 +77,18 @@ describe("DeckExportDialog", () => {
     );
   });
 
+  it("says the deck has nothing to export when the code comes back empty", async () => {
+    exportMock.mockImplementationOnce(
+      (_input: unknown, { onSuccess }: { onSuccess: (data: unknown) => void }) => {
+        onSuccess({ code: "", warnings: [] });
+      },
+    );
+    render(<DeckExportDialog deckId="deck-1" isDirty={false} open onOpenChange={vi.fn()} />);
+
+    expect(await screen.findByText("This deck has no cards to export yet.")).toBeTruthy();
+    expect(screen.queryByRole("textbox")).toBeNull();
+  });
+
   it("never subscribes the editor draft when the caller brings its own cards", async () => {
     render(
       <DeckExportDialog

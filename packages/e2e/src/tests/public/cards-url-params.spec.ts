@@ -45,7 +45,7 @@ test.describe("card browser URL params", () => {
   test("?types=Legend narrows the grid to Legend cards", async ({ page }) => {
     await page.goto(`/cards?types=${encodeURIComponent(JSON.stringify(["legend"]))}`);
 
-    await scrollUntilVisible(page, cardImage(page, "Dark Child, Starter"));
+    await scrollUntilVisible(page, cardImage(page, "Annie, Dark Child"));
     await expect(cardImage(page, "Annie, Fiery").first()).not.toBeVisible();
   });
 

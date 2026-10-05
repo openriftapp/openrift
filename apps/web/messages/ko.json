@@ -2340,6 +2340,7 @@
   "decks_dialog_export_desc_tts": "공백으로 구분된 짧은 코드:",
   "decks_dialog_export_desc_tts_link": "Tabletop Simulator 모드",
   "decks_dialog_export_dirty_note": "저장하지 않은 변경 사항이 있습니다. 내보낸 코드에는 마지막으로 저장된 상태가 반영됩니다.",
+  "decks_dialog_export_empty": "이 덱에는 아직 내보낼 카드가 없습니다.",
   "decks_dialog_export_failed": "내보내기를 생성하지 못했습니다.",
   "decks_dialog_export_tab_code": "덱 코드",
   "decks_dialog_export_tab_text": "텍스트",

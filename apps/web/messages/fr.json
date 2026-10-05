@@ -2340,6 +2340,7 @@
   "decks_dialog_export_desc_tts": "Codes courts séparés par des espaces pour le",
   "decks_dialog_export_desc_tts_link": "mod Tabletop Simulator",
   "decks_dialog_export_dirty_note": "Vous avez des modifications non enregistrées. Le code exporté reflète le dernier état enregistré.",
+  "decks_dialog_export_empty": "Ce deck ne contient encore aucune carte à exporter.",
   "decks_dialog_export_failed": "Impossible de générer l’export.",
   "decks_dialog_export_tab_code": "Code de deck",
   "decks_dialog_export_tab_text": "Texte",
