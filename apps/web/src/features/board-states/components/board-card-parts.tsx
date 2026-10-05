@@ -47,7 +47,7 @@ export interface ZoneDropData {
   owner?: BoardPlayer;
 }
 
-export function cardImage(card: BoardCardRef, catalog: UseCardsResult): string | undefined {
+export function cardImageId(card: BoardCardRef, catalog: UseCardsResult): string | undefined {
   const preferred = card.printingId ? catalog.printingsById[card.printingId] : undefined;
   const printing =
     preferred && frontImageId(preferred) !== null
@@ -55,8 +55,12 @@ export function cardImage(card: BoardCardRef, catalog: UseCardsResult): string |
       : catalog.printingsByCardId
           .get(card.cardId)
           ?.find((candidate) => frontImageId(candidate) !== null);
-  const id = frontImageId(printing);
-  return id === null ? undefined : imageUrl(id, "240w");
+  return frontImageId(printing) ?? undefined;
+}
+
+export function cardImage(card: BoardCardRef, catalog: UseCardsResult): string | undefined {
+  const id = cardImageId(card, catalog);
+  return id === undefined ? undefined : imageUrl(id, "240w");
 }
 
 export function CardBack({ owner, className }: { owner: BoardPlayer; className?: string }) {
@@ -74,9 +78,13 @@ export function CardBack({ owner, className }: { owner: BoardPlayer; className?:
   );
 }
 
-/** Dashed card-sized slot the editor renders as its "add here" trigger. */
 export const CARD_SLOT_CLASS = cn(
   "flex shrink-0 items-center justify-center border border-dashed border-white/40 text-white/70 hover:border-white/80 hover:bg-white/10 hover:text-white",
+  CARD_UPRIGHT,
+);
+
+export const BOARD_ADD_SLOT_CLASS = cn(
+  "flex shrink-0 items-center justify-center border border-dashed border-transparent bg-white/5 text-white/50 hover:border-white/60 hover:bg-white/10 hover:text-white",
   CARD_UPRIGHT,
 );
 
@@ -157,5 +165,30 @@ export function ArrowHandle({ from }: { from: BoardArrow["from"] }) {
       aria-label={m.board_states_arrow_handle()}
       className="bg-gilt absolute top-1/2 -right-1.5 z-10 size-3 -translate-y-1/2 cursor-grab rounded-full ring-1 ring-black/50"
     />
+  );
+}
+
+export function KeywordBadgeChip({
+  keyword,
+  badge,
+}: {
+  keyword: string;
+  badge?: { color: string; darkText: boolean; label: string };
+}) {
+  return (
+    <span className="relative inline-flex items-center pr-1.5 pl-1">
+      <span
+        className="absolute inset-0 -skew-x-[15deg]"
+        style={{ backgroundColor: badge?.color ?? "#707070" }}
+      />
+      <span
+        className={cn(
+          "font-condensed text-2xs relative font-semibold tracking-tighter uppercase italic",
+          badge?.darkText ? "text-black" : "text-white",
+        )}
+      >
+        {badge?.label ?? keyword}
+      </span>
+    </span>
   );
 }

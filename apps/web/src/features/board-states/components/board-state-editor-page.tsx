@@ -6,7 +6,7 @@ import {
 import type { BoardStateResponse } from "@openrift/shared/types/api/board-state";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { EyeIcon, PencilIcon, Trash2Icon, UndoIcon } from "lucide-react";
+import { EllipsisVerticalIcon, EyeIcon, PencilIcon, Trash2Icon, UndoIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Suspense, useState } from "react";
 import { flushSync } from "react-dom";
@@ -17,17 +17,25 @@ import {
   PageTopBar,
   PageTopBarActions,
   PageTopBarButton,
+  PageTopBarIconButton,
   PageTopBarPrimaryButton,
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { ruleRefLabel } from "@/features/board-states/components/board-caption-text";
-import { BoardEditorHeader } from "@/features/board-states/components/board-editor-header";
 import { BoardEditorPreview } from "@/features/board-states/components/board-editor-preview";
 import { BoardEditorRulesPopover } from "@/features/board-states/components/board-editor-rules-popover";
+import { BoardEditorTitleDialog } from "@/features/board-states/components/board-editor-title-dialog";
 import type { EditorMeta } from "@/features/board-states/components/board-state-editor-workspace";
 import { BoardWorkspace } from "@/features/board-states/components/board-state-editor-workspace";
 import {
@@ -299,6 +307,8 @@ function EditorLayout({
   actions: ReactNode;
 }) {
   const [preview, setPreview] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [hideEmptyZones, setHideEmptyZones] = useState(false);
   const undo = useBoardEditorStore((state) => state.undo);
   const canUndo = useBoardEditorStore((state) => state.history.length > 0);
   const steps = useBoardEditorStore((state) => state.document.steps);
@@ -327,6 +337,24 @@ function EditorLayout({
               onChange={(pins) => onMeta({ ...meta, ...pins })}
             />
             {actions}
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<PageTopBarIconButton />}>
+                <EllipsisVerticalIcon className="size-4" />
+                <span className="sr-only">{m.board_states_editor_more()}</span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setRenaming(true)}>
+                  <PencilIcon />
+                  {m.board_states_editor_rename()}
+                </DropdownMenuItem>
+                <DropdownMenuCheckboxItem
+                  checked={hideEmptyZones}
+                  onCheckedChange={setHideEmptyZones}
+                >
+                  {m.board_states_editor_hide_empty()}
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </PageTopBarActions>
         </PageTopBar>
       </PageTopBarSticky>
@@ -342,7 +370,6 @@ function EditorLayout({
         {notice ? <p className="text-muted-foreground">{notice}</p> : null}
         <p className="text-muted-foreground lg:hidden">{m.board_states_editor_desktop_only()}</p>
         <div className="hidden flex-col gap-4 lg:flex">
-          <BoardEditorHeader title={meta.title} onTitle={(title) => onMeta({ ...meta, title })} />
           {preview ? (
             <BoardEditorPreview
               pins={{
@@ -352,11 +379,17 @@ function EditorLayout({
             />
           ) : (
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_19rem]">
-              <BoardWorkspace />
+              <BoardWorkspace hideEmptyZones={hideEmptyZones} />
             </div>
           )}
         </div>
       </div>
+      <BoardEditorTitleDialog
+        title={meta.title}
+        open={renaming}
+        onOpenChange={setRenaming}
+        onTitle={(title) => onMeta({ ...meta, title })}
+      />
     </>
   );
 }

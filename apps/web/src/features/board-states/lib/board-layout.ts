@@ -190,7 +190,7 @@ export function boardWidthUnits(
   steps: readonly BoardStep[],
   zones: BoardZoneVisibility,
   seats: BoardSeats,
-  battlefieldCount: number,
+  battlefields: readonly number[],
 ): number {
   const occupied = occupiedZones(steps);
   const side = Math.max(seats.top.length, seats.bottom.length);
@@ -212,7 +212,7 @@ export function boardWidthUnits(
     seatUnits += used("hand") ? SLOT_UNITS.base : SLOT_UNITS.empty;
   }
   let battlefieldUnits = 0;
-  for (let index = 0; index < battlefieldCount; index++) {
+  for (const index of battlefields) {
     const zone: BoardZoneRef = { kind: "battlefield", index };
     const crowd = Math.max(
       0,

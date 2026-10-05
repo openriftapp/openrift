@@ -1,5 +1,6 @@
 import { useDroppable } from "@dnd-kit/core";
 import type { BoardChainEntry, BoardPiece, ChainEntryType } from "@openrift/shared/board-state";
+import { imageUrl } from "@openrift/shared/image-url";
 import { HandIcon, SparklesIcon, ZapIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -37,7 +38,7 @@ export interface ChainInteraction {
 interface ChainView {
   chain: readonly BoardChainEntry[];
   pieces: readonly BoardPiece[];
-  images: ReadonlyMap<string, string>;
+  imageIds: ReadonlyMap<string, string>;
   interaction: ChainInteraction;
   onHoverSource: (pieceId: string | null) => void;
 }
@@ -85,7 +86,8 @@ function DroppableChainEntry(props: ChainEntryProps) {
 /** Abilities get a dashed frame in the owner's colour so they never read as cards. */
 function ChainEntryFace({ entry, position, view }: ChainEntryProps) {
   const { interaction } = view;
-  const image = view.images.get(entry.id);
+  const imageId = view.imageIds.get(entry.id);
+  const image = imageId === undefined ? undefined : imageUrl(imageId, "240w");
   const label = chainEntryLabel(entry, view.pieces);
   const ability = entry.type !== "spell";
   const selected = interaction.selectedChainId === entry.id;
@@ -95,6 +97,8 @@ function ChainEntryFace({ entry, position, view }: ChainEntryProps) {
   const tile = (
     <span
       data-board-chain={entry.id}
+      data-board-preview={imageId === undefined ? undefined : ""}
+      data-card-image={imageId}
       className={cn(
         "bg-card relative block overflow-hidden transition-transform",
         CARD_UPRIGHT,

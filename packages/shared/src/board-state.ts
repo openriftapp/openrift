@@ -321,6 +321,36 @@ export function zoneBattlefieldIndex(zone: BoardZoneRef): number | null {
   return zone.kind === "battlefield" || zone.kind === "facedown" ? zone.index : null;
 }
 
+export function shownBattlefields(document: BoardDocument): number[] {
+  const used = new Set<number>();
+  for (const step of document.steps) {
+    for (const piece of step.pieces) {
+      const index = zoneBattlefieldIndex(piece.zone);
+      if (index !== null) {
+        used.add(index);
+      }
+    }
+    for (const arrow of step.arrows) {
+      const index = "zone" in arrow.to ? zoneBattlefieldIndex(arrow.to.zone) : null;
+      if (index !== null) {
+        used.add(index);
+      }
+    }
+    for (const [index, state] of step.battlefields.entries()) {
+      if (
+        state.controller !== null ||
+        state.contested ||
+        state.scoredBy.length > 0 ||
+        state.encounter !== null
+      ) {
+        used.add(index);
+      }
+    }
+  }
+  const all = document.battlefields.map((_, index) => index);
+  return used.size === 0 ? all : all.filter((index) => used.has(index));
+}
+
 export function sameZone(a: BoardZoneRef, b: BoardZoneRef): boolean {
   return a.kind === b.kind && zoneBattlefieldIndex(a) === zoneBattlefieldIndex(b);
 }

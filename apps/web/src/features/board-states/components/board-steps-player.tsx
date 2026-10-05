@@ -1,4 +1,5 @@
 import type { BoardChainEntry, BoardDocument, BoardPiece } from "@openrift/shared/board-state";
+import { imageUrl } from "@openrift/shared/image-url";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Suspense, useState } from "react";
@@ -6,12 +7,13 @@ import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { RulesPins } from "@/features/board-states/components/board-caption-text";
 import { BoardCaptionText } from "@/features/board-states/components/board-caption-text";
-import { cardImage } from "@/features/board-states/components/board-card-parts";
+import { cardImageId } from "@/features/board-states/components/board-card-parts";
 import { BoardView } from "@/features/board-states/components/board-view";
 import { CHAIN_TYPE_LABEL, chainEntryLabel } from "@/features/board-states/lib/board-labels";
 import { longestChain } from "@/features/board-states/lib/board-layout";
 import { CARD_CORNER_STYLE, PLAYER_COLOR } from "@/features/board-states/lib/board-style";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { useCardHoverPreview } from "@/features/rules/components/rule-card-preview";
 import { useKnownRules } from "@/features/rules/hooks/use-known-rules";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { cn } from "@/lib/utils";
@@ -148,9 +150,9 @@ function ChainListWithArt(props: ChainPanelProps) {
   const images = new Map<string, string>();
   for (const entry of props.chain) {
     const card = entry.card ?? props.pieces.find((piece) => piece.id === entry.source)?.card;
-    const url = card ? cardImage(card, catalog) : undefined;
-    if (url !== undefined) {
-      images.set(entry.id, url);
+    const id = card ? cardImageId(card, catalog) : undefined;
+    if (id !== undefined) {
+      images.set(entry.id, id);
     }
   }
   return <ChainList {...props} images={images} />;
@@ -164,8 +166,13 @@ function ChainList({
   images,
 }: ChainPanelProps & { images: ReadonlyMap<string, string> }) {
   const top = chain.length - 1;
+  const cardPreview = useCardHoverPreview("[data-board-preview]");
   return (
-    <section className="flex flex-col gap-2 [grid-area:chain]">
+    <section
+      className="flex flex-col gap-2 [grid-area:chain]"
+      onPointerOver={cardPreview.handlePointerOver}
+      onPointerOut={cardPreview.handlePointerOut}
+    >
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-sm font-medium">{m.board_states_chain()}</h2>
         <span className="text-muted-foreground text-xs">{m.board_states_chain_order_top()}</span>
@@ -192,14 +199,7 @@ function ChainList({
                   highlightedId === entry.id && "ring-gilt ring-2",
                 )}
               >
-                <span
-                  className="bg-card border-card-edge relative h-12 w-[2.15rem] shrink-0 overflow-hidden border"
-                  style={CARD_CORNER_STYLE}
-                >
-                  {images.has(entry.id) ? (
-                    <img src={images.get(entry.id)} alt="" className="size-full object-cover" />
-                  ) : null}
-                </span>
+                <ChainListThumb imageId={images.get(entry.id)} />
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-sm font-medium">
                     {chainEntryLabel(entry, pieces)}
@@ -218,6 +218,22 @@ function ChainList({
             ))
         )}
       </ol>
+      {cardPreview.preview}
     </section>
+  );
+}
+
+function ChainListThumb({ imageId }: { imageId?: string }) {
+  return (
+    <span
+      className="bg-card border-card-edge relative h-12 w-[2.15rem] shrink-0 overflow-hidden border"
+      style={CARD_CORNER_STYLE}
+      data-board-preview={imageId === undefined ? undefined : ""}
+      data-card-image={imageId}
+    >
+      {imageId === undefined ? null : (
+        <img src={imageUrl(imageId, "240w")} alt="" className="size-full object-cover" />
+      )}
+    </span>
   );
 }

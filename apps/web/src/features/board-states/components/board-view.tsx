@@ -7,7 +7,12 @@ import type {
   BoardZoneRef,
   PlayerZoneKind,
 } from "@openrift/shared/board-state";
-import { BOARD_PLAYERS, emptyBattlefieldState } from "@openrift/shared/board-state";
+import {
+  BOARD_PLAYERS,
+  emptyBattlefieldState,
+  shownBattlefields,
+} from "@openrift/shared/board-state";
+import { imageUrl } from "@openrift/shared/image-url";
 import { ChevronsUpIcon, DropletIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Suspense, useRef, useState } from "react";
@@ -28,7 +33,8 @@ import {
   ArrowHandle,
   BattlefieldCardFrame,
   CardBack,
-  cardImage,
+  cardImageId,
+  KeywordBadgeChip,
 } from "@/features/board-states/components/board-card-parts";
 import type { ChainInteraction } from "@/features/board-states/components/board-chain";
 import { ChainRow } from "@/features/board-states/components/board-chain";
@@ -61,6 +67,7 @@ import {
   zoneEdge,
 } from "@/features/board-states/lib/board-style";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { useCardHoverPreview } from "@/features/rules/components/rule-card-preview";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useCardModifierKeywords, useKeywordStyles } from "@/hooks/use-keyword-styles";
 import { cn } from "@/lib/utils";
@@ -74,6 +81,7 @@ interface BoardInteraction extends ChainInteraction {
   selectedPieceIds?: readonly string[];
   highlightedPieceId?: string | null;
   pieceNumerals?: boolean;
+  cardPreview?: boolean;
   onPieceClick?: (piece: BoardPiece, event: React.MouseEvent) => void;
   onPieceContextMenu?: (piece: BoardPiece, event: React.MouseEvent) => void;
   onZoneClick?: (zone: BoardZoneRef, owner?: BoardPlayer) => void;
@@ -91,17 +99,17 @@ interface KeywordBadge {
 }
 
 interface BoardArt {
-  pieceImages: Map<string, string>;
-  chainImages: Map<string, string>;
-  battlefieldImages: Map<number, string>;
+  pieceImageIds: Map<string, string>;
+  chainImageIds: Map<string, string>;
+  battlefieldImageIds: Map<number, string>;
   keywords: Map<string, KeywordBadge>;
   grantedLegendSlots: Map<BoardPlayer, number>;
 }
 
 const PLAIN_ART: BoardArt = {
-  pieceImages: new Map(),
-  chainImages: new Map(),
-  battlefieldImages: new Map(),
+  pieceImageIds: new Map(),
+  chainImageIds: new Map(),
+  battlefieldImageIds: new Map(),
   keywords: new Map(),
   grantedLegendSlots: new Map(),
 };
@@ -110,6 +118,7 @@ interface BoardViewProps extends BoardInteraction {
   document: BoardDocument;
   step: BoardStep;
   viewer?: boolean;
+  hideEmptyZones?: boolean;
   className?: string;
 }
 
@@ -135,25 +144,27 @@ function BoardTableWithArt(props: BoardViewProps) {
   const modifiers = useCardModifierKeywords();
   const locale = getLocale();
 
-  const pieceImages = new Map<string, string>();
+  const pieceImageIds = new Map<string, string>();
   for (const piece of props.step.pieces) {
-    const url = piece.card ? cardImage(piece.card, catalog) : undefined;
-    if (url !== undefined) {
-      pieceImages.set(piece.id, url);
+    const id = piece.card ? cardImageId(piece.card, catalog) : undefined;
+    if (id !== undefined) {
+      pieceImageIds.set(piece.id, id);
     }
   }
-  const chainImages = new Map<string, string>();
+  const chainImageIds = new Map<string, string>();
   for (const entry of props.step.chain) {
-    const url = entry.card ? cardImage(entry.card, catalog) : pieceImages.get(entry.source ?? "");
-    if (url !== undefined) {
-      chainImages.set(entry.id, url);
+    const id = entry.card
+      ? cardImageId(entry.card, catalog)
+      : pieceImageIds.get(entry.source ?? "");
+    if (id !== undefined) {
+      chainImageIds.set(entry.id, id);
     }
   }
-  const battlefieldImages = new Map<number, string>();
+  const battlefieldImageIds = new Map<number, string>();
   for (const [index, battlefield] of props.document.battlefields.entries()) {
-    const url = battlefield.card ? cardImage(battlefield.card, catalog) : undefined;
-    if (url !== undefined) {
-      battlefieldImages.set(index, url);
+    const id = battlefield.card ? cardImageId(battlefield.card, catalog) : undefined;
+    if (id !== undefined) {
+      battlefieldImageIds.set(index, id);
     }
   }
   const keywords = new Map<string, KeywordBadge>();
@@ -181,9 +192,9 @@ function BoardTableWithArt(props: BoardViewProps) {
     <BoardTable
       {...props}
       art={{
-        pieceImages,
-        chainImages,
-        battlefieldImages,
+        pieceImageIds,
+        chainImageIds,
+        battlefieldImageIds,
         keywords,
         grantedLegendSlots: grantedLegendSlotsByPlayer,
       }}
@@ -195,8 +206,25 @@ interface BoardTableProps extends BoardViewProps {
   art: BoardArt;
 }
 
-function BoardTable({ document, step, viewer = false, className, art, ...rest }: BoardTableProps) {
+function BoardTable({
+  document,
+  step,
+  viewer = false,
+  hideEmptyZones = false,
+  className,
+  art,
+  ...rest
+}: BoardTableProps) {
   const [hoveredSource, setHoveredSource] = useState<string | null>(null);
+  const cardPreview = useCardHoverPreview("[data-board-preview]");
+  const previewHandlers =
+    rest.cardPreview === false
+      ? {}
+      : {
+          onPointerOver: cardPreview.handlePointerOver,
+          onPointerOut: cardPreview.handlePointerOut,
+          onPointerDown: cardPreview.handlePointerDown,
+        };
   const interaction: BoardInteraction = {
     ...rest,
     highlightedPieceId: hoveredSource ?? rest.highlightedPieceId,
@@ -213,11 +241,13 @@ function BoardTable({ document, step, viewer = false, className, art, ...rest }:
     interaction,
     zones: document.zones,
     viewer,
-    occupied: viewer ? occupiedZones(document.steps) : null,
+    occupied: viewer || hideEmptyZones ? occupiedZones(document.steps) : null,
   };
-  const units = viewer
-    ? boardWidthUnits(document.steps, document.zones, seats, document.battlefields.length)
-    : 0;
+  const battlefields =
+    viewer || hideEmptyZones
+      ? shownBattlefields(document)
+      : document.battlefields.map((_, index) => index);
+  const units = viewer ? boardWidthUnits(document.steps, document.zones, seats, battlefields) : 0;
   return (
     <div
       className={cn(
@@ -225,6 +255,7 @@ function BoardTable({ document, step, viewer = false, className, art, ...rest }:
         viewer && "@container",
         className,
       )}
+      {...previewHandlers}
       style={
         viewer
           ? ({
@@ -240,13 +271,13 @@ function BoardTable({ document, step, viewer = false, className, art, ...rest }:
             <ChainRow
               chain={step.chain}
               pieces={step.pieces}
-              images={art.chainImages}
+              imageIds={art.chainImageIds}
               interaction={interaction}
               onHoverSource={setHoveredSource}
             />
           )}
           <SeatSide players={seats.top} slots={slots} top context={context} />
-          <BattlefieldRow battlefields={document.battlefields} seats={seats} context={context} />
+          <BattlefieldRow indexes={battlefields} seats={seats} context={context} />
           <SeatSide players={seats.bottom} slots={slots} context={context} />
           <ArrowOverlay
             key={arrowLayoutSignature(document, step)}
@@ -256,6 +287,7 @@ function BoardTable({ document, step, viewer = false, className, art, ...rest }:
         </div>
       </div>
       <ArrowLegend arrows={step.arrows} />
+      {cardPreview.preview}
     </div>
   );
 }
@@ -366,7 +398,7 @@ function DeckZone({
       owner={owner}
       interaction={context.interaction}
       mirrored={mirrored}
-      className="min-h-[calc(var(--board-card-w)*1.4+1.4rem)] border border-dashed"
+      className="min-h-[calc(var(--board-card-w)*1.4+1.4rem)] border bg-black/15"
       style={{ borderColor: zoneEdge(owner) }}
     >
       <ZoneLabel text={ZONE_LABEL[kind]()} owner={owner} mirrored={mirrored} />
@@ -506,7 +538,7 @@ function PlayerZone({
       fill={kind === "base"}
       className={cn(
         "min-h-[calc(var(--board-card-w)*1.4+1.4rem)] border",
-        context.viewer ? "bg-black/15" : "border-dashed",
+        "bg-black/15",
         kind === "base" && "min-w-[calc(var(--board-card-w)*2.9)]",
         kind === "runes" && "min-w-[calc(var(--board-card-w)*2.3)]",
         kind !== "base" && kind !== "runes" && "w-auto min-w-[calc(var(--board-card-w)+1.8rem)]",
@@ -563,7 +595,8 @@ function HandStrip({
       fill
       className={cn(
         "min-h-[calc(var(--board-card-w)*1.4+0.5rem)] items-center border",
-        context.viewer ? "min-w-[calc(var(--board-card-w)*2.9)] bg-black/15" : "border-dashed",
+        "bg-black/15",
+        context.viewer && "min-w-[calc(var(--board-card-w)*2.9)]",
       )}
       style={{ borderColor: zoneEdge(owner) }}
     >
@@ -585,19 +618,19 @@ function HandStrip({
 }
 
 function BattlefieldRow({
-  battlefields,
+  indexes,
   seats,
   context,
 }: {
-  battlefields: BoardDocument["battlefields"];
+  indexes: readonly number[];
   seats: ReturnType<typeof seatsFor>;
   context: BoardContext;
 }) {
-  if (battlefields.length === 0) {
+  if (indexes.length === 0) {
     return null;
   }
   const players = [...seats.top, ...seats.bottom];
-  const columns = battlefields.map((_, index) =>
+  const columns = indexes.map((index) =>
     players.some((player) => isOccupied(context, { kind: "battlefield", index }, player))
       ? "minmax(0, 1fr)"
       : "auto",
@@ -610,12 +643,11 @@ function BattlefieldRow({
       )}
       style={{ "--battlefield-cols": columns.join(" ") } as React.CSSProperties}
     >
-      {battlefields.map((battlefield, index) => (
+      {indexes.map((index) => (
         <BattlefieldColumn
-          // oxlint-disable-next-line react/no-array-index-key -- battlefields are positional
           key={index}
           index={index}
-          cardName={battlefield.card?.name ?? null}
+          cardName={context.document.battlefields[index]?.card?.name ?? null}
           seats={seats}
           context={context}
         />
@@ -636,7 +668,8 @@ function BattlefieldColumn({
   context: BoardContext;
 }) {
   const zone: BoardZoneRef = { kind: "battlefield", index };
-  const image = context.art.battlefieldImages.get(index);
+  const imageId = context.art.battlefieldImageIds.get(index);
+  const image = imageId === undefined ? undefined : imageUrl(imageId, "240w");
   const state = context.step.battlefields[index] ?? emptyBattlefieldState();
   const controller = state.controller;
   const half = (players: BoardPlayer[]) => {
@@ -661,10 +694,7 @@ function BattlefieldColumn({
             owner={player}
             interaction={context.interaction}
             fill
-            className={cn(
-              "relative items-center justify-center border",
-              context.viewer ? "bg-black/15" : "border-dashed",
-            )}
+            className="relative items-center justify-center border bg-black/15"
             style={{ borderColor: zoneEdge(player) }}
           >
             <span
@@ -699,11 +729,18 @@ function BattlefieldColumn({
       {half(seats.top)}
       <div className="relative flex items-center justify-center gap-1.5">
         <BattlefieldStateBadges state={state} />
-        {context.interaction.renderBattlefieldCard ? (
-          context.interaction.renderBattlefieldCard(index, cardName, image)
-        ) : (
-          <BattlefieldCardFrame index={index} cardName={cardName} image={image} />
-        )}
+        <span
+          className="flex min-w-0"
+          data-board-preview={imageId === undefined ? undefined : ""}
+          data-card-image={imageId}
+          data-card-landscape=""
+        >
+          {context.interaction.renderBattlefieldCard ? (
+            context.interaction.renderBattlefieldCard(index, cardName, image)
+          ) : (
+            <BattlefieldCardFrame index={index} cardName={cardName} image={image} />
+          )}
+        </span>
         <FacedownZone index={index} controller={controller} seats={seats} context={context} />
       </div>
       {half(seats.bottom)}
@@ -736,7 +773,7 @@ function FacedownZone({
     <ZoneFrame
       zone={zone}
       interaction={context.interaction}
-      className="items-center border border-dashed border-white/40"
+      className="items-center border border-white/20 bg-black/15"
     >
       <span className="text-2xs text-white/60 uppercase">{ZONE_LABEL.facedown()}</span>
       <PieceRow pieces={pieces} context={context} trailing={trailing} />
@@ -842,7 +879,8 @@ function PieceToken({ piece, mirrored, context }: PieceProps) {
   const spotlit = interaction.highlightedPieceId === piece.id;
   const glow = piece.highlight || spotlit;
   const numeral = context.numerals.get(piece.id);
-  const image = context.art.pieceImages.get(piece.id);
+  const imageId = context.art.pieceImageIds.get(piece.id);
+  const image = imageId === undefined ? undefined : imageUrl(imageId, "240w");
   // Chips and badges are the author's marks, not print on the card, so they
   // stay upright however the card itself is turned.
   const marksRotation = (piece.exhausted ? 90 : 0) + (mirrored === true ? 180 : 0);
@@ -929,7 +967,11 @@ function PieceToken({ piece, mirrored, context }: PieceProps) {
         {(piece.keywords.length > 0 || piece.label !== undefined) && (
           <span className="pointer-events-none absolute bottom-full left-1/2 mb-0.5 flex -translate-x-1/2 flex-col items-center gap-px">
             {piece.keywords.map((keyword) => (
-              <KeywordBadgeChip key={keyword} keyword={keyword} art={context.art} />
+              <KeywordBadgeChip
+                key={keyword}
+                keyword={keyword}
+                badge={context.art.keywords.get(keyword)}
+              />
             ))}
             {piece.label !== undefined && (
               <span className="text-2xs rounded-sm bg-black/80 px-1 whitespace-nowrap text-white">
@@ -944,6 +986,8 @@ function PieceToken({ piece, mirrored, context }: PieceProps) {
   const box = (
     <span
       data-board-piece={piece.id}
+      data-board-preview={imageId === undefined ? undefined : ""}
+      data-card-image={imageId}
       // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a facedown card reveals itself on focus for keyboard readers
       tabIndex={piece.facedown && !interaction.onPieceClick ? 0 : undefined}
       className={cn(
@@ -988,25 +1032,5 @@ function PieceToken({ piece, mirrored, context }: PieceProps) {
     >
       {box}
     </Pressable>
-  );
-}
-
-function KeywordBadgeChip({ keyword, art }: { keyword: string; art: BoardArt }) {
-  const badge = art.keywords.get(keyword);
-  return (
-    <span className="relative inline-flex items-center pr-1.5 pl-1">
-      <span
-        className="absolute inset-0 -skew-x-[15deg]"
-        style={{ backgroundColor: badge?.color ?? UNKNOWN_KEYWORD.color }}
-      />
-      <span
-        className={cn(
-          "font-condensed text-2xs relative font-semibold tracking-tighter uppercase italic",
-          badge?.darkText ? "text-black" : "text-white",
-        )}
-      >
-        {badge?.label ?? keyword}
-      </span>
-    </span>
   );
 }

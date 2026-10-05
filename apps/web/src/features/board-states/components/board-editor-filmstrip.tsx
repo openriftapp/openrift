@@ -87,7 +87,7 @@ function StepThumb({
           }}
           aria-hidden
         >
-          <BoardView document={document} step={step} pieceNumerals={false} />
+          <BoardView document={document} step={step} pieceNumerals={false} cardPreview={false} />
         </span>
         <span className="bg-foreground text-background text-2xs absolute top-0.5 left-0.5 rounded-sm px-1 font-semibold">
           {index + 1}

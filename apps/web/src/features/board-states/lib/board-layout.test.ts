@@ -351,18 +351,26 @@ describe("boardWidthUnits", () => {
 
   it("counts zones empty in every step as labels", () => {
     const steps = [stepWith([piece({ id: "p1", owner: "B" })])];
-    expect(boardWidthUnits(steps, baseAndHand, seatsFor(2), 0)).toBeCloseTo(3.9);
+    expect(boardWidthUnits(steps, baseAndHand, seatsFor(2), [])).toBeCloseTo(3.9);
   });
 
   it("widens for a crowded battlefield", () => {
     const crowd = ["p1", "p2", "p3", "p4"].map((id) =>
       piece({ id, zone: { kind: "battlefield", index: 0 } }),
     );
-    expect(boardWidthUnits([stepWith(crowd)], baseAndHand, seatsFor(2), 2)).toBeCloseTo(6.4);
+    expect(boardWidthUnits([stepWith(crowd)], baseAndHand, seatsFor(2), [0, 1])).toBeCloseTo(6.4);
+  });
+
+  it("measures only the battlefields it is given", () => {
+    const crowd = ["p1", "p2", "p3", "p4"].map((id) =>
+      piece({ id, zone: { kind: "battlefield", index: 1 } }),
+    );
+    expect(boardWidthUnits([stepWith(crowd)], baseAndHand, seatsFor(2), [0])).toBeCloseTo(1.8);
+    expect(boardWidthUnits([stepWith(crowd)], baseAndHand, seatsFor(2), [1])).toBeCloseTo(4.8);
   });
 
   it("doubles the seat row when two players share a side", () => {
     const steps = [stepWith([piece({ id: "p1" }), piece({ id: "p2", zone: { kind: "hand" } })])];
-    expect(boardWidthUnits(steps, baseAndHand, seatsFor(4), 0)).toBeCloseTo(12);
+    expect(boardWidthUnits(steps, baseAndHand, seatsFor(4), [])).toBeCloseTo(12);
   });
 });

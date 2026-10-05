@@ -48,6 +48,7 @@ import type {
 } from "@/features/board-states/components/board-card-parts";
 import {
   BattlefieldCardFrame,
+  BOARD_ADD_SLOT_CLASS,
   CARD_SLOT_CLASS,
   CardGhost,
   cardImage,
@@ -395,7 +396,7 @@ function ZoneAddPopover({ zone, owner }: { zone: BoardZoneRef; owner: BoardPlaye
       <PopoverTrigger
         render={
           <Pressable
-            className={CARD_SLOT_CLASS}
+            className={BOARD_ADD_SLOT_CLASS}
             style={CARD_CORNER_STYLE}
             aria-label={label}
             onClick={(event) => {
@@ -418,7 +419,7 @@ function ZoneAddPopover({ zone, owner }: { zone: BoardZoneRef; owner: BoardPlaye
   );
 }
 
-export function BoardWorkspace() {
+export function BoardWorkspace({ hideEmptyZones }: { hideEmptyZones: boolean }) {
   const document = useBoardEditorStore((state) => state.document);
   const activeStep = useBoardEditorStore((state) => state.activeStep);
   const selectedPieceId = useBoardEditorStore((state) => state.selectedPieceId);
@@ -648,6 +649,9 @@ export function BoardWorkspace() {
           />
         ) : null}
       </DragOverlay>
+      <div className="lg:col-span-2">
+        <BoardEditorFilmstrip />
+      </div>
       <div className="flex min-w-0 flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <BoardEditorSetupStrip />
@@ -665,6 +669,7 @@ export function BoardWorkspace() {
         <BoardView
           document={document}
           step={step}
+          hideEmptyZones={hideEmptyZones}
           selectedPieceId={selectedPieceId}
           selectedPieceIds={selectedPieceIds}
           selectedChainId={selectedChainId}
@@ -746,16 +751,11 @@ export function BoardWorkspace() {
           </Section>
         )}
       </div>
-      <BoardEditorRail
-        players={players}
-        playerCount={document.playerCount}
-        selectedPiece={selectedPiece}
-        actions={actions}
-      />
-      <div className="flex flex-col gap-3 lg:col-span-2">
-        <BoardEditorFilmstrip />
+      <div className="flex min-w-0 flex-col gap-5">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="board-caption">{m.board_states_editor_caption()}</Label>
+          <Label htmlFor="board-caption" className="text-muted-foreground text-xs uppercase">
+            {m.board_states_editor_caption()}
+          </Label>
           <BoardCaptionEditor
             id="board-caption"
             value={step.caption}
@@ -768,6 +768,12 @@ export function BoardWorkspace() {
             {m.board_states_editor_caption_refs()}
           </span>
         </div>
+        <BoardEditorRail
+          players={players}
+          playerCount={document.playerCount}
+          selectedPiece={selectedPiece}
+          actions={actions}
+        />
       </div>
       {menuAnchor && menuPiece ? (
         <BoardEditorPieceMenu
@@ -907,7 +913,7 @@ function ChainAddPopover({
       <PopoverTrigger
         render={
           <Pressable
-            className={CARD_SLOT_CLASS}
+            className={BOARD_ADD_SLOT_CLASS}
             style={CARD_CORNER_STYLE}
             aria-label={m.board_states_editor_chain_add()}
           />

@@ -11,6 +11,7 @@ import {
   extractCardRefs,
   extractRuleRefs,
   sameZone,
+  shownBattlefields,
   upgradeBoardDocument,
 } from "./board-state.js";
 
@@ -337,6 +338,55 @@ describe("sameZone", () => {
     expect(sameZone({ kind: "facedown", index: 0 }, { kind: "facedown", index: 1 })).toBe(false);
     expect(sameZone({ kind: "facedown", index: 0 }, { kind: "battlefield", index: 0 })).toBe(false);
     expect(sameZone({ kind: "deck" }, { kind: "deck" })).toBe(true);
+  });
+});
+
+describe("shownBattlefields", () => {
+  it("keeps every battlefield when none is used", () => {
+    expect(shownBattlefields(docWith([piece()]))).toEqual([0, 1]);
+  });
+
+  it("drops a battlefield that stays empty in every step", () => {
+    const doc = docWith([piece({ zone: { kind: "battlefield", index: 1 } })]);
+    expect(shownBattlefields(doc)).toEqual([1]);
+  });
+
+  it("counts a facedown card as using its battlefield", () => {
+    const doc = docWith([piece({ zone: { kind: "facedown", index: 0 } })]);
+    expect(shownBattlefields(doc)).toEqual([0]);
+  });
+
+  it("counts a piece in any step", () => {
+    const doc = docWith([]);
+    doc.steps.push({
+      ...emptyBoardStep(2),
+      pieces: [piece({ zone: { kind: "battlefield", index: 1 } })],
+    });
+    expect(shownBattlefields(doc)).toEqual([1]);
+  });
+
+  it("counts an arrow into a battlefield", () => {
+    const doc = docWith(
+      [piece()],
+      {},
+      {
+        arrows: [
+          {
+            kind: "move",
+            from: { piece: "p1" },
+            to: { zone: { kind: "battlefield", index: 0 }, owner: "A" },
+          },
+        ],
+      },
+    );
+    expect(shownBattlefields(doc)).toEqual([0]);
+  });
+
+  it("counts battlefield state such as a controller", () => {
+    const step = emptyBoardStep(2);
+    step.battlefields[1] = { ...step.battlefields[1]!, controller: "B" };
+    const doc = docWith([], {}, { battlefields: step.battlefields });
+    expect(shownBattlefields(doc)).toEqual([1]);
   });
 });
 

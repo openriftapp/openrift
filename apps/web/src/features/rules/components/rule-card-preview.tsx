@@ -9,19 +9,31 @@ interface HoveredCard {
   landscape: boolean;
 }
 
-export function useRuleCardPreview(): {
+interface CardHoverPreview {
   handlePointerOver: (event: PointerEvent<HTMLElement>) => void;
   handlePointerOut: (event: PointerEvent<HTMLElement>) => void;
+  handlePointerDown: () => void;
   preview: ReactNode;
-} {
+}
+
+export function useRuleCardPreview(): CardHoverPreview {
+  return useCardHoverPreview("a[data-card-image]");
+}
+
+/** Matches of `selector` carry `data-card-image` (an image id) and optionally `data-card-landscape`. */
+export function useCardHoverPreview(selector: string): CardHoverPreview {
   const anchorRef = useRef<HTMLElement | null>(null);
   const [hovered, setHovered] = useState<HoveredCard | null>(null);
 
   const handlePointerOver = (event: PointerEvent<HTMLElement>) => {
-    if (event.pointerType !== "mouse" || !(event.target instanceof Element)) {
+    if (
+      event.pointerType !== "mouse" ||
+      event.buttons !== 0 ||
+      !(event.target instanceof Element)
+    ) {
       return;
     }
-    const anchor = event.target.closest<HTMLElement>("a[data-card-image]");
+    const anchor = event.target.closest<HTMLElement>(selector);
     const imageId = anchor?.dataset.cardImage;
     if (!anchor || !imageId || anchor === anchorRef.current) {
       return;
@@ -43,6 +55,11 @@ export function useRuleCardPreview(): {
     setHovered(null);
   };
 
+  const handlePointerDown = () => {
+    anchorRef.current = null;
+    setHovered(null);
+  };
+
   const preview = hovered ? (
     <ImageHoverPreview
       thumbnailUrl={imageUrl(hovered.imageId, "400w")}
@@ -52,5 +69,5 @@ export function useRuleCardPreview(): {
     />
   ) : null;
 
-  return { handlePointerOver, handlePointerOut, preview };
+  return { handlePointerOver, handlePointerOut, handlePointerDown, preview };
 }

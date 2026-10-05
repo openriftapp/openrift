@@ -6,7 +6,12 @@ import type {
   BoardZoneRef,
   PlayerZoneKind,
 } from "@openrift/shared/board-state";
-import { chainEntryName, isDeckZone, sameZone } from "@openrift/shared/board-state";
+import {
+  chainEntryName,
+  isDeckZone,
+  sameZone,
+  shownBattlefields,
+} from "@openrift/shared/board-state";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 
 import type { Io } from "../../../io.js";
@@ -386,7 +391,8 @@ function battlefieldRow(
   return element(
     "div",
     { display: "flex", flexDirection: "row", flexShrink: 0, gap: GAP },
-    ...document.battlefields.map((battlefield, index) => {
+    ...shownBattlefields(document).map((index) => {
+      const battlefield = document.battlefields[index];
       const zone: BoardZoneRef = { kind: "battlefield", index };
       const controller = document.steps[0]?.battlefields[index]?.controller ?? null;
       return element(
@@ -428,7 +434,7 @@ function battlefieldRow(
               textAlign: "center",
               overflow: "hidden",
             },
-            elideTitle(battlefield.card?.name ?? `Battlefield ${index + 1}`, 34),
+            elideTitle(battlefield?.card?.name ?? `Battlefield ${index + 1}`, 34),
           ),
           ...piecesIn(pieces, { kind: "facedown", index }, [...seats.top, ...seats.bottom]).map(
             (piece) => pieceTile(piece, Math.min(pieceH, frameH)),
