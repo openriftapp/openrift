@@ -29,7 +29,7 @@
         "nitro/*.ts"
       ],
       "ignore": ["src/components/ui/**", "public/sw.js", "src/test/paraglide-en.js"],
-      "ignoreDependencies": ["@tanstack/router-plugin", "flag-icons"]
+      "ignoreDependencies": ["flag-icons"]
     },
     "packages/shared": {},
     "packages/e2e": {

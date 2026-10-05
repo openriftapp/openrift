@@ -145,7 +145,7 @@ const acceptNewCardFn = createServerFn({ method: "POST" })
     });
   });
 
-export const acceptFavoritesFn = createServerFn({ method: "POST" })
+const acceptFavoritesFn = createServerFn({ method: "POST" })
   .validator((input: { name: string }) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {

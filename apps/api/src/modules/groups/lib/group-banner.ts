@@ -1,5 +1,5 @@
 /** Wire form of a friend-group banner upload, mirrored by a CHECK on `friend_groups.banner_url`. */
-export const GROUP_BANNER_URL_PATTERN =
+const GROUP_BANNER_URL_PATTERN =
   /^\/media\/group-banners\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.webp$/u;
 
 export function isGroupBannerUrl(url: string): boolean {

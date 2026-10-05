@@ -100,7 +100,7 @@ export async function listOwnedByUser<TRow>(
 }
 
 /** A row stamped at or below this transaction id is committed or gone. */
-export const safeXidExpression = sql<string>`pg_snapshot_xmin(pg_current_snapshot())::text`;
+const safeXidExpression = sql<string>`pg_snapshot_xmin(pg_current_snapshot())::text`;
 
 export async function currentSafeXid(db: Kysely<Database>): Promise<string> {
   const row = await db.selectNoFrom(safeXidExpression.as("xid")).executeTakeFirstOrThrow();

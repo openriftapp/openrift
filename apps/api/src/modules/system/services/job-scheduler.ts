@@ -12,7 +12,7 @@ import type { JobScheduleMeta } from "../lib/job-schedule-presenters.js";
 import { toJobScheduleView } from "../lib/job-schedule-presenters.js";
 import { runJob, runJobAsync } from "./run-job.js";
 
-export interface JobDefinition<T = unknown> extends JobScheduleMeta {
+interface JobDefinition<T = unknown> extends JobScheduleMeta {
   skipCronTick?: () => Promise<string | null>;
   execute: (runId: string) => Promise<T>;
   summarize?: (result: T) => unknown;

@@ -15,7 +15,7 @@ interface TagCategoryFields {
   description?: string | null;
 }
 
-export interface TagCategoryRepo {
+interface TagCategoryRepo {
   listAll: () => Promise<TagCategoryRow[]>;
   getById: (id: string) => Promise<TagCategoryRow | undefined>;
   getBySlug: (slug: string) => Promise<unknown>;
