@@ -34,15 +34,15 @@ describe.skipIf(!ctx)("overlayChannelsRepo (integration)", () => {
 
   it("finds the channel by user and by token", async () => {
     const created = await repo.create(OTHER);
-    const byUser = await repo.findByUserId(OTHER);
-    const byToken = await repo.findByToken(created.token!);
+    const byUser = await repo.getByUserId(OTHER);
+    const byToken = await repo.getByToken(created.token!);
 
     expect(byUser?.token).toBe(created.token);
     expect(byToken?.userId).toBe(OTHER);
   });
 
   it("returns undefined for an unknown token", async () => {
-    expect(await repo.findByToken("no-such-token")).toBeUndefined();
+    expect(await repo.getByToken("no-such-token")).toBeUndefined();
   });
 
   it("round-trips the jsonb payload as an object, not a string", async () => {
@@ -56,7 +56,7 @@ describe.skipIf(!ctx)("overlayChannelsRepo (integration)", () => {
     };
 
     await repo.setPayload(OWNER, payload);
-    const read = await repo.findByUserId(OWNER);
+    const read = await repo.getByUserId(OWNER);
 
     expect(read?.payload).toEqual(payload);
     expect(typeof read?.payload).toBe("object");
@@ -77,7 +77,7 @@ describe.skipIf(!ctx)("overlayChannelsRepo (integration)", () => {
       .where("userId", "=", OWNER)
       .execute();
 
-    const read = await repo.findByUserId(OWNER);
+    const read = await repo.getByUserId(OWNER);
 
     expect(read?.payload).toEqual({
       ...DEFAULT_OVERLAY_PAYLOAD,
@@ -90,7 +90,7 @@ describe.skipIf(!ctx)("overlayChannelsRepo (integration)", () => {
   });
 
   it("bumps the version on every payload write", async () => {
-    const before = await repo.findByUserId(OWNER);
+    const before = await repo.getByUserId(OWNER);
     const updated = await repo.setPayload(OWNER, {
       ...DEFAULT_OVERLAY_PAYLOAD,
       printingId: "printing-2",
@@ -100,7 +100,7 @@ describe.skipIf(!ctx)("overlayChannelsRepo (integration)", () => {
   });
 
   it("bumps the version when the token is turned off or back on, so pollers notice", async () => {
-    const before = await repo.findByUserId(OWNER);
+    const before = await repo.getByUserId(OWNER);
     const disabled = await repo.disableToken(OWNER);
 
     expect(disabled?.token).toBeNull();
@@ -113,7 +113,7 @@ describe.skipIf(!ctx)("overlayChannelsRepo (integration)", () => {
   });
 
   it("keeps the payload across a disable and enable — a leaked token is not a blank scene", async () => {
-    const before = await repo.findByUserId(OWNER);
+    const before = await repo.getByUserId(OWNER);
     await repo.disableToken(OWNER);
     const enabled = await repo.enableToken(OWNER);
 
@@ -121,10 +121,10 @@ describe.skipIf(!ctx)("overlayChannelsRepo (integration)", () => {
   });
 
   it("stops resolving the old token once it is turned off", async () => {
-    const before = await repo.findByUserId(OWNER);
+    const before = await repo.getByUserId(OWNER);
     await repo.disableToken(OWNER);
 
-    expect(await repo.findByToken(before!.token!)).toBeUndefined();
+    expect(await repo.getByToken(before!.token!)).toBeUndefined();
   });
 
   it("returns undefined when writing for a user with no channel", async () => {
@@ -142,6 +142,6 @@ describe.skipIf(!ctx)("overlayChannelsRepo (integration)", () => {
 
     await db.deleteFrom("users").where("id", "=", doomed).execute();
 
-    expect(await repo.findByToken(channel.token!)).toBeUndefined();
+    expect(await repo.getByToken(channel.token!)).toBeUndefined();
   });
 });

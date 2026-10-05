@@ -193,6 +193,8 @@ describe("toMetaEventFinish", () => {
       legend: {
         cardId: "legend-1",
         name: "Jinx",
+        character: null,
+        epithet: "Jinx",
         slug: "jinx",
         imageId: "image-legend",
         domains: ["chaos", "fury"],
@@ -455,6 +457,8 @@ describe("toMetaEventPlayer", () => {
       legend: {
         cardId: "legend-1",
         name: "Jinx",
+        character: null,
+        epithet: "Jinx",
         slug: "jinx",
         imageId: "image-legend",
         domains: ["chaos", "fury"],
@@ -463,6 +467,8 @@ describe("toMetaEventPlayer", () => {
       champion: {
         cardId: "champion-1",
         name: "Vi",
+        character: null,
+        epithet: "Vi",
         slug: "vi",
         imageId: "image-champion",
         domains: ["body"],
@@ -493,6 +499,8 @@ describe("toMetaEventPlayer", () => {
     expect(player.legend).toEqual({
       cardId: "legend-1",
       name: "Jinx",
+      character: null,
+      epithet: "Jinx",
       slug: "jinx",
       imageId: "image-legend",
       domains: ["chaos", "fury"],
@@ -513,6 +521,8 @@ describe("toMetaEventPlayer", () => {
     expect(player.legend).toEqual({
       cardId: "legend-1",
       name: "",
+      character: null,
+      epithet: "",
       slug: "jinx",
       imageId: "image-legend",
       domains: ["chaos", "fury"],
@@ -543,6 +553,8 @@ describe("toMetaEventPlayer", () => {
     expect(player.legend).toEqual({
       cardId: "legend-1",
       name: "Azir, Emperor of the Sands",
+      character: "Azir",
+      epithet: "Emperor of the Sands",
       slug: "emperor-of-the-sands",
       imageId: "image-legend",
       domains: ["chaos", "fury"],
@@ -1234,6 +1246,8 @@ describe("toMetaLegendSummary", () => {
     expect(summary.legend).toEqual({
       cardId: "3f7a1c2e-0000-7000-8000-00000000000e",
       name: "Kennen, Heart of the Tempest",
+      character: "Kennen",
+      epithet: "Heart of the Tempest",
       slug: "heart-of-the-tempest",
       imageId: "img-1",
       domains: ["chaos", "order"],
@@ -1373,6 +1387,8 @@ describe("toMetaPlayerFinish", () => {
     expect(toMetaPlayerFinish(playerFinishRow(), IMAGES).legend).toEqual({
       cardId: "legend-1",
       name: "Jinx",
+      character: null,
+      epithet: "Jinx",
       slug: "jinx",
       imageId: "image-legend",
       domains: ["chaos", "fury"],

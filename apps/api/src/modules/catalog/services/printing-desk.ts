@@ -170,7 +170,7 @@ export async function createDeskPrinting(
 
   const base = basePrintingId
     ? await repos.printingDesk.getFullPrinting(basePrintingId)
-    : await repos.printingDesk.findBasePrinting(cardId, fields.language);
+    : await repos.printingDesk.getBasePrinting(cardId, fields.language);
 
   const artist = fields.artist ?? base?.artist;
   if (!artist) {

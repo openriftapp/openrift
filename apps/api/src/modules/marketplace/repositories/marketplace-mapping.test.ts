@@ -144,8 +144,8 @@ describe("marketplaceMappingRepo", () => {
   });
 
   it("deleteVariantById deletes a variant (parent product left behind)", async () => {
-    const db = createMockDb([]);
-    await expect(marketplaceMappingRepo(db).deleteVariantById("var-1")).resolves.toBeUndefined();
+    const db = createMockDb({ numDeletedRows: 1n });
+    await expect(marketplaceMappingRepo(db).deleteVariantById("var-1")).resolves.toBe(true);
   });
 
   it("allStaging carries a NULL language through, the normal case for CM/TCG", async () => {

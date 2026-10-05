@@ -1,8 +1,8 @@
-import type { DeleteResult, Kysely, Selectable, UpdateResult } from "kysely";
+import type { Kysely, Selectable, UpdateResult } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { ReferenceTable } from "../../../db/tables/reference.js";
-import { reorderBySortOrder } from "./sort-order.js";
+import { reorderBySortOrder } from "../../../repositories/query-helpers.js";
 
 /**
  * `deckZones`, `conditions`, `graders` and `cardSizes` share this row shape
@@ -42,7 +42,7 @@ export interface SlugTaxonomyRepo<T extends SlugTaxonomyTable> {
     slug: string,
     updates: { label?: string } & Partial<ExtraColumns<T>>,
   ) => Promise<UpdateResult>;
-  deleteBySlug: (slug: string) => Promise<DeleteResult>;
+  deleteBySlug: (slug: string) => Promise<boolean>;
   isInUse: (slug: string) => Promise<unknown>;
   reorder: (slugs: readonly string[]) => Promise<void>;
 }
@@ -99,8 +99,9 @@ export function slugTaxonomyRepo<T extends SlugTaxonomyTable>(
         .executeTakeFirstOrThrow();
     },
 
-    deleteBySlug(slug) {
-      return rows.deleteFrom(from).where("slug", "=", slug).executeTakeFirstOrThrow();
+    async deleteBySlug(slug) {
+      const result = await rows.deleteFrom(from).where("slug", "=", slug).executeTakeFirst();
+      return result.numDeletedRows > 0n;
     },
 
     isInUse,

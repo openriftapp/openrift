@@ -59,7 +59,7 @@ function withParsedTiers<Row extends { tiers: TierListRow[] }>(row: Row): Row {
 
 /**
  * Owner-scoped methods filter on `userId`; a mismatched id returns nothing, not an error.
- * `findByShareToken` is the one unscoped read, gated by `is_public`.
+ * `getByShareToken` is the one unscoped read, gated by `is_public`.
  */
 export function tierListsRepo(db: Kysely<Database>) {
   return {
@@ -128,7 +128,7 @@ export function tierListsRepo(db: Kysely<Database>) {
       return row ? withParsedTiers(row) : undefined;
     },
 
-    async remove(id: string, userId: string): Promise<boolean> {
+    async deleteByIdForUser(id: string, userId: string): Promise<boolean> {
       const result = await db
         .deleteFrom("tierLists")
         .where("id", "=", id)
@@ -162,7 +162,7 @@ export function tierListsRepo(db: Kysely<Database>) {
      * Resolves a public share token. Requires `is_public` as well as the token,
      * so revoking sharing kills the link even if the token is still on the row.
      */
-    async findByShareToken(shareToken: string): Promise<SharedTierList | undefined> {
+    async getByShareToken(shareToken: string): Promise<SharedTierList | undefined> {
       const found = await findByShareToken(db, "tierLists", shareToken);
       if (!found) {
         return undefined;

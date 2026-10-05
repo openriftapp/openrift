@@ -1,5 +1,6 @@
+import { buildCodeIndex, lookupCode } from "@openrift/shared/card-search";
 import { formatPrintingVariantLabelParts } from "@openrift/shared/printing-label";
-import { foldForSearch, squashForSearch } from "@openrift/shared/search-fold";
+import { foldForSearch } from "@openrift/shared/search-fold";
 
 import type { CatalogCard, CatalogPrinting, CatalogSnapshot } from "./catalog-cache.js";
 import { representativePrinting } from "./catalog-cache.js";
@@ -81,16 +82,10 @@ export function resolvePrinting(
     return fallback;
   }
   const printings = snapshot.printingsByCardId.get(card.id) ?? [];
-  const squashed = squashForSearch(query);
+  const codeIndex = buildCodeIndex(printings.map((printing) => ({ card, printing })));
   return (
     printings.find((printing) => printing.id === query) ??
-    (squashed
-      ? printings.find(
-          (printing) =>
-            squashForSearch(printing.shortCode) === squashed ||
-            squashForSearch(printing.publicCode) === squashed,
-        )
-      : undefined) ??
+    lookupCode(codeIndex, query)?.printing ??
     fallback
   );
 }

@@ -4,10 +4,7 @@ import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
-import { refreshCardmarketPrices } from "../../marketplace/services/price-refresh/cardmarket.js";
-import { refreshCardnexusPrices } from "../../marketplace/services/price-refresh/cardnexus.js";
-import { refreshCardtraderPrices } from "../../marketplace/services/price-refresh/cardtrader.js";
-import { refreshTcgplayerPrices } from "../../marketplace/services/price-refresh/tcgplayer.js";
+import { requireScheduler } from "../services/job-scheduler.js";
 import { runJobAsync } from "../services/run-job.js";
 
 const log = createLogger("admin");
@@ -26,55 +23,21 @@ export const adminOperationsRouter = {
     return { marketplace: input.marketplace, deleted: { prices, variants, products } };
   }),
 
-  refreshTcgplayer: os.refreshTcgplayer.handler(async ({ context }) => {
-    const repos = context.repos;
-    const fetchFn = context.io.fetch;
-    return await runJobAsync(
-      { repos, log },
-      "tcgplayer.refresh",
-      "admin",
-      () => refreshTcgplayerPrices(fetchFn, repos, log),
-      { summarize: (result) => result },
-    );
-  }),
+  refreshTcgplayer: os.refreshTcgplayer.handler(({ context }) =>
+    requireScheduler(context.scheduler).runNow("tcgplayer.refresh"),
+  ),
 
-  refreshCardmarket: os.refreshCardmarket.handler(async ({ context }) => {
-    const repos = context.repos;
-    const fetchFn = context.io.fetch;
-    return await runJobAsync(
-      { repos, log },
-      "cardmarket.refresh",
-      "admin",
-      () => refreshCardmarketPrices(fetchFn, repos, log),
-      { summarize: (result) => result },
-    );
-  }),
+  refreshCardmarket: os.refreshCardmarket.handler(({ context }) =>
+    requireScheduler(context.scheduler).runNow("cardmarket.refresh"),
+  ),
 
-  refreshCardtrader: os.refreshCardtrader.handler(async ({ context }) => {
-    const repos = context.repos;
-    const fetchFn = context.io.fetch;
-    const ctToken = context.config.cardtraderApiToken;
-    return await runJobAsync(
-      { repos, log },
-      "cardtrader.refresh",
-      "admin",
-      () => refreshCardtraderPrices(fetchFn, repos, log, ctToken),
-      { summarize: (result) => result },
-    );
-  }),
+  refreshCardtrader: os.refreshCardtrader.handler(({ context }) =>
+    requireScheduler(context.scheduler).runNow("cardtrader.refresh"),
+  ),
 
-  refreshCardnexus: os.refreshCardnexus.handler(async ({ context }) => {
-    const repos = context.repos;
-    const fetchFn = context.io.fetch;
-    const apiKey = context.config.cardnexusApiKey;
-    return await runJobAsync(
-      { repos, log },
-      "cardnexus.refresh",
-      "admin",
-      () => refreshCardnexusPrices(fetchFn, repos, log, apiKey),
-      { summarize: (result) => result },
-    );
-  }),
+  refreshCardnexus: os.refreshCardnexus.handler(({ context }) =>
+    requireScheduler(context.scheduler).runNow("cardnexus.refresh"),
+  ),
 
   refreshMatviews: os.refreshMatviews.handler(async ({ context }) => {
     const repos = context.repos;

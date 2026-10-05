@@ -2,7 +2,7 @@ import { publicTierListsContract } from "@openrift/shared/contracts/public-tier-
 import type { PublicTierListDetailResponse } from "@openrift/shared/types/api/tier-list";
 import { implement } from "@orpc/server";
 
-import { gravatarHashForEmail } from "../../../lib/gravatar.js";
+import { toShareOwner } from "../../../lib/share-owner.js";
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { toPublicTierList } from "../lib/tier-list-presenters.js";
@@ -16,17 +16,14 @@ const os = implement(publicTierListsContract).$context<ApiContext>().use(require
 export const publicTierListsRouter = {
   share: os.share.handler(
     async ({ input, context, errors }): Promise<PublicTierListDetailResponse> => {
-      const found = await context.repos.tierLists.findByShareToken(input.token);
+      const found = await context.repos.tierLists.getByShareToken(input.token);
       if (!found) {
         throw errors.NOT_FOUND({ message: "Not found" });
       }
 
       return {
         tierList: toPublicTierList(found.tierList),
-        owner: {
-          displayName: found.ownerName ?? "Anonymous",
-          gravatarHash: gravatarHashForEmail(found.ownerEmail),
-        },
+        owner: toShareOwner({ displayName: found.ownerName, email: found.ownerEmail }),
       };
     },
   ),

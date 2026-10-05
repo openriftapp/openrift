@@ -2,7 +2,7 @@ import type { Logger } from "@openrift/shared/logger";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../deps.js";
-import type { SubmissionAcceptedEmailDeps } from "../../users/services/submission-accepted-notifications.js";
+import type { EmailDeps } from "../../../email.js";
 import { notifySubmitterOfCardAcceptance } from "./card-submission-thanks.js";
 
 interface EmailContext {
@@ -29,7 +29,7 @@ const CARD_SUBMISSION = {
 
 function makeDeps(sendEmail = vi.fn().mockResolvedValue(undefined)) {
   const error = vi.fn();
-  const deps: SubmissionAcceptedEmailDeps = {
+  const deps: EmailDeps = {
     sendEmail,
     appBaseUrl: "https://openrift.app",
     unsubscribeSecret: "test-secret-key",
@@ -55,13 +55,13 @@ function makeCardRepos(
   },
   context: EmailContext | null = SUBMITTER,
 ) {
-  const findById = vi.fn().mockResolvedValue(submission);
+  const getById = vi.fn().mockResolvedValue(submission);
   const repos = {
-    cardSubmissions: { findById },
+    cardSubmissions: { getById },
     catalogMutations: { getCardById: vi.fn().mockResolvedValue(card) },
     userPreferences: contextRepo(context),
   } as unknown as Repos;
-  return { repos, findById };
+  return { repos, getById };
 }
 
 describe("notifySubmitterOfCardAcceptance", () => {
@@ -157,11 +157,11 @@ describe("notifySubmitterOfCardAcceptance", () => {
   });
 
   it("reads nothing when no email deps are wired", async () => {
-    const { repos, findById } = makeCardRepos();
+    const { repos, getById } = makeCardRepos();
 
     await notifySubmitterOfCardAcceptance(repos, "sub-1");
 
-    expect(findById).not.toHaveBeenCalled();
+    expect(getById).not.toHaveBeenCalled();
   });
 
   it("never throws when the send fails, so the accept still stands", async () => {

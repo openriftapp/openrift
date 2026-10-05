@@ -1,7 +1,9 @@
+import { legendDisplayName, legendNameParts } from "@openrift/shared/card-name";
 import type {
   AdminMetaEventCorrection,
   AdminMetaSubmission,
 } from "@openrift/shared/contracts/admin/meta-submissions";
+import { metaLegendSlug, metaPlayerKey } from "@openrift/shared/meta-keys";
 import type {
   AdminMetaEvent,
   AdminMetaPlayer,
@@ -27,8 +29,8 @@ import type {
   MetaPlayerFinish,
 } from "@openrift/shared/types/api/meta";
 import type { CardType, MetaEventTier } from "@openrift/shared/types/enums";
-import { legendDisplayName, metaLegendSlug, metaPlayerKey } from "@openrift/shared/utils";
 
+import { isoOrNull } from "../../../lib/iso-date.js";
 import type { MetaContributorRow } from "../repositories/meta-credits.js";
 import type {
   MetaDeckCardRow,
@@ -102,6 +104,8 @@ function toCardRef(
     name: string | null;
     slug: string | null;
     domains: string[] | null;
+    types?: CardType[] | null;
+    tags?: string[] | null;
   },
   images: ImageIds,
   archiveSlug: string | null = null,
@@ -109,9 +113,11 @@ function toCardRef(
   if (card.cardId === null) {
     return null;
   }
+  const nameParts = { name: card.name ?? "", types: card.types ?? [], tags: card.tags ?? [] };
   return {
     cardId: card.cardId,
-    name: card.name ?? "",
+    name: legendDisplayName(nameParts),
+    ...legendNameParts(nameParts),
     slug: card.slug ?? "",
     imageId: images.get(card.cardId) ?? null,
     domains: card.domains ?? [],
@@ -136,6 +142,22 @@ function legendLabel(row: {
         types: row.legendTypes ?? [],
         tags: row.legendTags ?? [],
       });
+}
+
+function rowLegendNameParts(row: {
+  legendName: string | null;
+  legendTypes: CardType[] | null;
+  legendTags: string[] | null;
+}): { legendCharacter: string | null; legendEpithet: string | null } {
+  if (row.legendName === null) {
+    return { legendCharacter: null, legendEpithet: null };
+  }
+  const { character, epithet } = legendNameParts({
+    name: row.legendName,
+    types: row.legendTypes ?? [],
+    tags: row.legendTags ?? [],
+  });
+  return { legendCharacter: character, legendEpithet: epithet };
 }
 
 /** A standings row's legend key on `/meta/legends`, null when it names none. */
@@ -197,9 +219,11 @@ export function toMetaEventFinish(row: MetaEventPlayerRow, images: ImageIds): Me
     legend: toCardRef(
       {
         cardId: row.legendCardId,
-        name: legendLabel(row),
+        name: row.legendName,
         slug: row.legendSlug,
         domains: row.legendDomains,
+        types: row.legendTypes,
+        tags: row.legendTags,
       },
       images,
       rowLegendArchiveSlug(row),
@@ -246,7 +270,7 @@ export function toMetaEventDetail(
   return {
     ...toMetaEventSummary(row, options.topFinishes ?? []),
     notes: row.notes,
-    sourceCheckedAt: row.sourceCheckedAt?.toISOString() ?? null,
+    sourceCheckedAt: isoOrNull(row.sourceCheckedAt),
     sources: options.sources.map((source) => toMetaEventSource(source)),
     contributors: options.contributors.map((contributor) => contributor.displayName),
   };
@@ -265,9 +289,11 @@ export function toMetaEventPlayer(row: MetaEventPlayerRow, images: ImageIds): Me
     legend: toCardRef(
       {
         cardId: row.legendCardId,
-        name: legendLabel(row),
+        name: row.legendName,
         slug: row.legendSlug,
         domains: row.legendDomains,
+        types: row.legendTypes,
+        tags: row.legendTags,
       },
       images,
       rowLegendArchiveSlug(row),
@@ -428,6 +454,7 @@ export function toMetaDeckSummary(row: MetaDeckSummaryRow, images: ImageIds): Me
     format: row.deckFormat,
     legendCardId: row.legendCardId,
     legendName: legendLabel(row),
+    ...rowLegendNameParts(row),
     legendSlug: row.legendSlug,
     legendArchiveSlug: rowLegendArchiveSlug(row),
     legendImageId: row.legendCardId === null ? null : (images.get(row.legendCardId) ?? null),
@@ -482,8 +509,12 @@ export function toMetaDeckFacets(rows: MetaDeckFacetRows): MetaDeckFacetsRespons
  * The champion-led display name for one legend card, as every archive surface
  * prints it. A row whose legend is untagged keeps the card's own name.
  */
+function archiveLegendNameParts(row: MetaArchiveLegendRow) {
+  return { name: row.name, types: row.types ?? [], tags: row.tags ?? [] };
+}
+
 function archiveLegendName(row: MetaArchiveLegendRow): string {
-  return legendDisplayName({ name: row.name, types: row.types ?? [], tags: row.tags ?? [] });
+  return legendDisplayName(archiveLegendNameParts(row));
 }
 
 /** The identity half of a legend summary, shared with the detail page's header. */
@@ -497,6 +528,7 @@ export function toMetaLegendRef(
     legend: {
       cardId: row.cardId,
       name: archiveLegendName(row),
+      ...legendNameParts(archiveLegendNameParts(row)),
       slug: row.slug,
       imageId: images.get(row.cardId) ?? null,
       domains: row.domains ?? [],
@@ -592,9 +624,11 @@ export function toMetaPlayerFinish(row: MetaPlayerFinishRow, images: ImageIds): 
     legend: toCardRef(
       {
         cardId: row.legendCardId,
-        name: legendLabel(row),
+        name: row.legendName,
         slug: row.legendSlug,
         domains: row.legendDomains,
+        types: row.legendTypes,
+        tags: row.legendTags,
       },
       images,
       rowLegendArchiveSlug(row),
@@ -747,7 +781,7 @@ export function toMetaSubmission(
     resolutionNote: row.resolutionNote,
     acceptedDeckToken,
     createdAt: row.createdAt.toISOString(),
-    resolvedAt: row.resolvedAt?.toISOString() ?? null,
+    resolvedAt: isoOrNull(row.resolvedAt),
   };
 }
 
@@ -768,7 +802,7 @@ export function toAdminMetaSubmission(row: MetaSubmissionRow): AdminMetaSubmissi
     resolutionNote: row.resolutionNote,
     acceptedDeckId: row.acceptedDeckId,
     createdAt: row.createdAt.toISOString(),
-    resolvedAt: row.resolvedAt?.toISOString() ?? null,
+    resolvedAt: isoOrNull(row.resolvedAt),
   };
 }
 

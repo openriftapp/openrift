@@ -73,10 +73,10 @@ vi.mock("../services/meta-retier.js", async (importOriginal) => ({
 }));
 
 const mockJobRuns = {
-  findRunning: vi.fn(),
+  getRunning: vi.fn(),
   getResult: vi.fn(),
   requestCancel: vi.fn(),
-  findLatestForResume: vi.fn(),
+  getLatestForResume: vi.fn(),
   listRecentByKinds: vi.fn(),
 };
 
@@ -100,6 +100,7 @@ const mockMeta = { archiveOverview: vi.fn() };
 const mockMetaOverlays = { ignoreEvent: vi.fn(), unignoreEvent: vi.fn() };
 
 const mockDeckFormats = { getBySlug: vi.fn() };
+const mockScheduler = { runNow: vi.fn(), isEnabled: vi.fn(() => false) };
 const mockAdminEvents = { insert: vi.fn() };
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
@@ -121,6 +122,7 @@ app.use("*", async (c, next) => {
     metaSync: { baseUrl: "https://example.invalid", playloltcgBaseUrl: "https://example.invalid" },
   } as never);
   c.set("io", { fetch: vi.fn() } as never);
+  c.set("scheduler", mockScheduler as never);
   await next();
 });
 registerRouterForTest(app, adminMetaCatalogRouter);
@@ -148,14 +150,14 @@ function checkpoint(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockJobRuns.findLatestForResume.mockResolvedValue(null);
+  mockJobRuns.getLatestForResume.mockResolvedValue(null);
 });
 
 describe("POST /catalogue/sync/cancel", () => {
   const uvsBackfill = { source: "uvsgames", job: "backfill" };
 
   it("404s when no backfill is running", async () => {
-    mockJobRuns.findRunning.mockResolvedValue(null);
+    mockJobRuns.getRunning.mockResolvedValue(null);
 
     const res = await post("/sync/cancel", uvsBackfill);
 
@@ -164,7 +166,7 @@ describe("POST /catalogue/sync/cancel", () => {
   });
 
   it("409s while the run has not written its first checkpoint", async () => {
-    mockJobRuns.findRunning.mockResolvedValue({ id: RUN_ID });
+    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID });
     mockJobRuns.getResult.mockResolvedValue(null);
 
     const res = await post("/sync/cancel", uvsBackfill);
@@ -174,7 +176,7 @@ describe("POST /catalogue/sync/cancel", () => {
   });
 
   it("sets the flag in place, so a heartbeat between the read and the write cannot lose it", async () => {
-    mockJobRuns.findRunning.mockResolvedValue({ id: RUN_ID });
+    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID });
     mockJobRuns.getResult.mockResolvedValue(checkpoint());
 
     const res = await post("/sync/cancel", uvsBackfill);
@@ -182,30 +184,30 @@ describe("POST /catalogue/sync/cancel", () => {
     expect(res.status).toBe(200);
     expect(await readJson(res)).toEqual({ runId: RUN_ID, cancelRequested: true });
     expect(mockJobRuns.requestCancel).toHaveBeenCalledWith(RUN_ID);
-    expect(mockJobRuns.findRunning).toHaveBeenCalledWith("meta.uvsgames_backfill");
+    expect(mockJobRuns.getRunning).toHaveBeenCalledWith("meta.uvsgames_backfill");
   });
 
   it("cancels the playloltcg backfill when that source is named", async () => {
-    mockJobRuns.findRunning.mockResolvedValue({ id: RUN_ID });
+    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID });
     mockJobRuns.getResult.mockResolvedValue(checkpoint());
 
     await post("/sync/cancel", { source: "playloltcg", job: "backfill" });
 
-    expect(mockJobRuns.findRunning).toHaveBeenCalledWith("meta.playloltcg_backfill");
+    expect(mockJobRuns.getRunning).toHaveBeenCalledWith("meta.playloltcg_backfill");
   });
 
   it("aims a recheck stop at the named source's recheck run", async () => {
-    mockJobRuns.findRunning.mockResolvedValue({ id: RUN_ID });
+    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID });
 
     const res = await post("/sync/cancel", { source: "uvsgames", job: "recheck" });
 
     expect(res.status).toBe(200);
-    expect(mockJobRuns.findRunning).toHaveBeenCalledWith("meta.uvsgames_recheck");
+    expect(mockJobRuns.getRunning).toHaveBeenCalledWith("meta.uvsgames_recheck");
     expect(mockJobRuns.requestCancel).toHaveBeenCalledWith(RUN_ID);
   });
 
   it("flags a recheck that has written no result yet, since it never writes a checkpoint", async () => {
-    mockJobRuns.findRunning.mockResolvedValue({ id: RUN_ID });
+    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID });
     mockJobRuns.getResult.mockResolvedValue(null);
 
     const res = await post("/sync/cancel", { source: "uvsgames", job: "recheck" });
@@ -215,22 +217,22 @@ describe("POST /catalogue/sync/cancel", () => {
   });
 
   it("404s when the recheck is not running, without touching the backfill's run", async () => {
-    mockJobRuns.findRunning.mockResolvedValue(null);
+    mockJobRuns.getRunning.mockResolvedValue(null);
 
     const res = await post("/sync/cancel", { source: "uvsgames", job: "recheck" });
 
     expect(res.status).toBe(404);
-    expect(mockJobRuns.findRunning).toHaveBeenCalledWith("meta.uvsgames_recheck");
+    expect(mockJobRuns.getRunning).toHaveBeenCalledWith("meta.uvsgames_recheck");
     expect(mockJobRuns.requestCancel).not.toHaveBeenCalled();
   });
 
   it("refuses the playloltcg recheck, which runs without a run id to read the flag from", async () => {
-    mockJobRuns.findRunning.mockResolvedValue({ id: RUN_ID });
+    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID });
 
     const res = await post("/sync/cancel", { source: "playloltcg", job: "recheck" });
 
     expect(res.status).toBe(400);
-    expect(mockJobRuns.findRunning).not.toHaveBeenCalled();
+    expect(mockJobRuns.getRunning).not.toHaveBeenCalled();
     expect(mockJobRuns.requestCancel).not.toHaveBeenCalled();
   });
 
@@ -238,7 +240,29 @@ describe("POST /catalogue/sync/cancel", () => {
     const res = await post("/sync/cancel");
 
     expect(res.status).toBe(400);
-    expect(mockJobRuns.findRunning).not.toHaveBeenCalled();
+    expect(mockJobRuns.getRunning).not.toHaveBeenCalled();
+  });
+});
+
+describe.each([
+  ["/sync/daily", "meta.uvsgames_sync"],
+  ["/playloltcg/sync", "meta.playloltcg_sync"],
+  ["/topdeck/sync", "meta.topdeck_sync"],
+])("POST /catalogue%s", (path, kind) => {
+  it("starts the job through its scheduler definition", async () => {
+    mockScheduler.runNow.mockResolvedValue({ runId: RUN_ID, status: "running" });
+
+    const res = await post(path);
+
+    expect(res.status).toBe(202);
+    expect(await readJson(res)).toEqual({
+      status: "running",
+      runId: RUN_ID,
+      message: null,
+      result: null,
+    });
+    expect(mockScheduler.runNow).toHaveBeenCalledWith(kind);
+    expect(runJobAsync).not.toHaveBeenCalled();
   });
 });
 
@@ -271,7 +295,7 @@ describe("POST /catalogue/sync/auto-accept", () => {
 
 describe("POST /catalogue/sync/backfill", () => {
   it("resumes one millisecond past the last run's covered instant", async () => {
-    mockJobRuns.findLatestForResume.mockResolvedValue({ result: checkpoint() });
+    mockJobRuns.getLatestForResume.mockResolvedValue({ result: checkpoint() });
 
     const res = await post("/sync/backfill");
 
@@ -282,7 +306,7 @@ describe("POST /catalogue/sync/backfill", () => {
   });
 
   it("starts fresh when the last run finished its whole range", async () => {
-    mockJobRuns.findLatestForResume.mockResolvedValue({
+    mockJobRuns.getLatestForResume.mockResolvedValue({
       result: checkpoint({ complete: true }),
     });
 
@@ -294,7 +318,7 @@ describe("POST /catalogue/sync/backfill", () => {
   });
 
   it("starts fresh for a stored result that predates the checkpoint shape", async () => {
-    mockJobRuns.findLatestForResume.mockResolvedValue({ result: { pages: 366, rows: 91_500 } });
+    mockJobRuns.getLatestForResume.mockResolvedValue({ result: { pages: 366, rows: 91_500 } });
 
     await post("/sync/backfill");
 
@@ -304,12 +328,12 @@ describe("POST /catalogue/sync/backfill", () => {
   });
 
   it("ignores the resume point on a restart, without even reading it", async () => {
-    mockJobRuns.findLatestForResume.mockResolvedValue({ result: checkpoint() });
+    mockJobRuns.getLatestForResume.mockResolvedValue({ result: checkpoint() });
 
     const res = await post("/sync/backfill/restart");
 
     expect(res.status).toBe(202);
-    expect(mockJobRuns.findLatestForResume).not.toHaveBeenCalled();
+    expect(mockJobRuns.getLatestForResume).not.toHaveBeenCalled();
     expect(backfillCatalog).toHaveBeenCalledWith(expect.anything(), "run-1");
   });
 });
@@ -528,6 +552,7 @@ describe("GET /catalogue/sync", () => {
     missing: 1,
     queued: 1,
     dueRecheck: 0,
+    oldestDueAt: null,
     acceptedAwaitingResults: 1,
     acceptedMissing: 0,
     lastSeenAt: new Date("2026-08-20T00:00:00Z"),

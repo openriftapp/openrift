@@ -10,6 +10,7 @@ import type {
 import type { DeckZone } from "@openrift/shared/types/enums";
 
 import type { Repos } from "../../../deps.js";
+import { isoOrNull } from "../../../lib/iso-date.js";
 import type { DeckCheckEntry, DeckCheckEntrySummary } from "../repositories/deck-check-entries.js";
 import type { DeckCheckEntryCard } from "../repositories/deck-check-entry-cards.js";
 import type {
@@ -61,7 +62,7 @@ export function toEventSummary(
     listLockMode: row.listLockMode,
     allowSelfSubmission: row.allowSelfSubmission,
     submissionToken: row.allowSelfSubmission ? row.submissionToken : null,
-    submissionsCloseAt: row.submissionsCloseAt?.toISOString() ?? null,
+    submissionsCloseAt: isoOrNull(row.submissionsCloseAt),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -78,15 +79,15 @@ export function toEntrySummary(row: DeckCheckEntrySummary): DeckCheckEntrySummar
     participantStatus: row.participantStatus,
     source: deckCheckEntrySource(row.externalId),
     playerName: row.playerName,
-    submittedAt: row.submittedAt?.toISOString() ?? null,
+    submittedAt: isoOrNull(row.submittedAt),
     state: row.state,
     reviewOutcome: row.reviewOutcome,
     checkedByName: row.checkedByName,
-    checkedAt: row.checkedAt?.toISOString() ?? null,
+    checkedAt: isoOrNull(row.checkedAt),
     approvedByName: row.approvedByName,
-    approvedAt: row.approvedAt?.toISOString() ?? null,
+    approvedAt: isoOrNull(row.approvedAt),
     changedSinceReview: row.changeSummary !== null,
-    unlockRequestedAt: row.unlockRequestedAt?.toISOString() ?? null,
+    unlockRequestedAt: isoOrNull(row.unlockRequestedAt),
     claimedUserName: row.claimedUserName,
     copyCount: listVisible ? row.copyCount : 0,
     verifiedCopyCount: listVisible ? row.verifiedCopyCount : 0,
@@ -109,18 +110,18 @@ function toEntry(
     allowDeckPublishing: row.allowDeckPublishing,
     allowNameSharing: row.allowNameSharing,
     allowRiotIdSharing: row.allowRiotIdSharing,
-    submittedAt: row.submittedAt?.toISOString() ?? null,
+    submittedAt: isoOrNull(row.submittedAt),
     state: row.state,
     reviewOutcome: row.reviewOutcome,
     checkedBy: row.checkedBy,
     checkedByName,
-    checkedAt: row.checkedAt?.toISOString() ?? null,
+    checkedAt: isoOrNull(row.checkedAt),
     approvedByName,
-    approvedAt: row.approvedAt?.toISOString() ?? null,
-    unlockRequestedAt: row.unlockRequestedAt?.toISOString() ?? null,
+    approvedAt: isoOrNull(row.approvedAt),
+    unlockRequestedAt: isoOrNull(row.unlockRequestedAt),
     notes: row.notes,
     changeSummary: row.changeSummary,
-    withdrawnAt: row.withdrawnAt?.toISOString() ?? null,
+    withdrawnAt: isoOrNull(row.withdrawnAt),
     claimedUserId: row.claimedUserId,
     claimedUserName,
     claimSource: row.claimSource,
@@ -140,8 +141,8 @@ export function toKey(row: DeckCheckKey & { createdByName?: string | null }): De
     label: row.label,
     createdByName: row.createdByName ?? null,
     createdAt: row.createdAt.toISOString(),
-    lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
-    revokedAt: row.revokedAt?.toISOString() ?? null,
+    lastUsedAt: isoOrNull(row.lastUsedAt),
+    revokedAt: isoOrNull(row.revokedAt),
   };
 }
 

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { DeckCard, DeckState } from "./deck-rules";
 import {
   battlefieldAllTypeBattlefield,
+  totalQuantity,
   battlefieldExactlyThree,
   battlefieldNoDuplicates,
   championCopyLimitAcrossZones,
@@ -1577,5 +1578,15 @@ describe("validateDeck for custom-region", () => {
     ];
     const violations = validateDeck(makeState(cards, "custom-region", { tagSlugs }));
     expect(violations.filter((v) => v.code === "SIGNATURE_CHAMPION_COPIES")).toEqual([]);
+  });
+});
+
+describe("totalQuantity", () => {
+  it("sums quantities", () => {
+    expect(totalQuantity([{ quantity: 3 }, { quantity: 2 }])).toBe(5);
+  });
+
+  it("is zero for no cards", () => {
+    expect(totalQuantity([])).toBe(0);
   });
 });

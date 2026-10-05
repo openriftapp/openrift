@@ -4,7 +4,9 @@ import { sql } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import type { PlayloltcgEventsTable } from "../../../db/tables/meta-sources.js";
 import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
+import { containsPattern } from "../../../lib/like-pattern.js";
 import { PLAYLOLTCG_PROVIDER, PLAYLOLTCG_STATUS_FINISHED } from "../../../lib/meta-providers.js";
+import { offsetPage } from "../../../repositories/query-helpers.js";
 
 type PlayloltcgEventRow = Selectable<PlayloltcgEventsTable>;
 
@@ -349,7 +351,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    async list(
+    list(
       filters: PlayloltcgListFilters,
       pagination: { limit: number; offset: number },
       order: PlayloltcgListOrder = {},
@@ -357,7 +359,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
       const applyFilters = <T extends ReturnType<typeof triagedQuery>>(q: T): T => {
         let base = q;
         if (filters.search !== undefined && filters.search.trim() !== "") {
-          const like = `%${filters.search.trim()}%`;
+          const like = containsPattern(filters.search.trim());
           base = base.where((eb) =>
             eb.or([eb("c.name", "ilike", like), eb("c.shopName", "ilike", like)]),
           ) as T;
@@ -390,20 +392,14 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
         return base;
       };
 
-      const rows = await applyFilters(listSelect())
-        .orderBy(catalogOrderBy(order))
-        // Ties on the sort column are common (a locals night files every store
-        // on the same day), so the key breaks them and keeps paging stable.
-        .orderBy("c.activityShopId", "desc")
-        .limit(pagination.limit)
-        .offset(pagination.offset)
-        .execute();
-
-      const countRow = await applyFilters(triagedQuery())
-        .select(sql<string>`count(*)`.as("total"))
-        .executeTakeFirstOrThrow();
-
-      return { rows, total: Number(countRow.total) };
+      return offsetPage(
+        applyFilters(listSelect())
+          .orderBy(catalogOrderBy(order))
+          // Ties on the sort column are common (a locals night files every store
+          // on the same day), so the key breaks them and keeps paging stable.
+          .orderBy("c.activityShopId", "desc"),
+        pagination,
+      );
     },
 
     async dueForRecheck(now: Date, limit: number): Promise<PlayloltcgRecheckRow[]> {

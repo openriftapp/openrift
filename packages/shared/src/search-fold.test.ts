@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { foldCached, foldForSearch, squashCached, squashForSearch } from "./search-fold.js";
+import {
+  foldCached,
+  foldForSearch,
+  matchesTextQuery,
+  squashCached,
+  squashForSearch,
+} from "./search-fold.js";
 
 describe("foldForSearch", () => {
   it("collapses the apostrophe variants a user might type", () => {
@@ -103,5 +109,22 @@ describe("caches", () => {
     expect(foldCached("Doran’s Shield")).toBe("dorans shield");
     expect(squashCached("Quick-Draw")).toBe("quickdraw");
     expect(squashCached("Quick-Draw")).toBe("quickdraw");
+  });
+});
+
+describe("matchesTextQuery", () => {
+  it("matches every term across fields, folding accents and quotes", () => {
+    expect(matchesTextQuery("jose ramirez", ["José", "Ramírez"])).toBe(true);
+    expect(matchesTextQuery("o’brien", ["O'Brien"])).toBe(true);
+  });
+
+  it("rejects when a term is missing", () => {
+    expect(matchesTextQuery("jose smith", ["José", "Ramírez"])).toBe(false);
+  });
+
+  it("matches everything for a blank query and skips empty fields", () => {
+    expect(matchesTextQuery("a", [null, undefined, "a"])).toBe(true);
+    expect(matchesTextQuery("  ", ["a"])).toBe(true);
+    expect(matchesTextQuery("a", [null])).toBe(false);
   });
 });

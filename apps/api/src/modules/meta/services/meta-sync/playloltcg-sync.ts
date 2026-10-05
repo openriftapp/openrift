@@ -1,3 +1,4 @@
+import { recordCapped } from "../../../../lib/json-coerce.js";
 import { PLAYLOLTCG_STATUS_FINISHED } from "../../../../lib/meta-providers.js";
 import {
   DECKLIST_PUBLISHED,
@@ -40,8 +41,6 @@ const COOLDOWN_HOURS = 6;
 const HOUR_MS = 60 * 60 * 1000;
 const BACKOFF_MS = 30 * 60 * 1000;
 const BLOCKED_EVENT_DEFER_MS = 24 * HOUR_MS;
-
-const MAX_ERRORS = 50;
 
 const PLAYLOLTCG_RECHECK_BUDGET_MS = 5 * 60 * 1000;
 
@@ -119,22 +118,12 @@ function cooldownUntil(now: Date): string {
   return new Date(now.getTime() + COOLDOWN_HOURS * HOUR_MS).toISOString();
 }
 
-/** Caps collected errors so a failing run can't fill `job_runs`. */
-function record(errors: string[], messages: readonly string[]): void {
-  for (const message of messages) {
-    if (errors.length >= MAX_ERRORS) {
-      return;
-    }
-    errors.push(message);
-  }
-}
-
 export async function playloltcgCoolingDown(
   deps: PlayloltcgSyncDeps,
   kind: string,
   now: Date,
 ): Promise<boolean> {
-  const prior = await deps.repos.jobRuns.findLatestForResume(kind);
+  const prior = await deps.repos.jobRuns.getLatestForResume(kind);
   const result = prior?.result as { blockedUntil?: unknown } | null | undefined;
   const until = result?.blockedUntil;
   return typeof until === "string" && new Date(until).getTime() > now.getTime();
@@ -150,7 +139,7 @@ function markBlocked(
   result.blocked = true;
   result.complete = false;
   result.blockedUntil = cooldownUntil(now);
-  record(result.errors, [error.message]);
+  recordCapped(result.errors, [error.message]);
 }
 
 /**
@@ -196,7 +185,7 @@ async function crawlWindow(
   const days = Math.round((to.getTime() - from.getTime()) / DAY_MS);
   if (days < 1) {
     result.complete = false;
-    record(result.errors, [
+    recordCapped(result.errors, [
       `${day(from)} alone returned ${MAX_PAGE_SIZE} rows, which is all the source will give for one query, so part of that day was not read.`,
     ]);
     return;
@@ -218,7 +207,7 @@ async function syncShops(deps: PlayloltcgSyncDeps, result: PlayloltcgSyncResult)
   result.shops = await deps.repos.playloltcgEvents.upsertShops(shops);
   if (body.items.length >= MAX_PAGE_SIZE) {
     result.complete = false;
-    record(result.errors, [
+    recordCapped(result.errors, [
       `The store registry filled a ${MAX_PAGE_SIZE}-row page, so it is no longer one call and the directory is incomplete.`,
     ]);
   }
@@ -231,7 +220,7 @@ async function finish(
 ): Promise<void> {
   const auto = await autoAcceptPlayloltcgEvents(deps, [...new Set(touched)]);
   result.autoAccepted = auto.accepted;
-  record(result.errors, auto.errors);
+  recordCapped(result.errors, auto.errors);
   result.requests = deps.client.requests;
 }
 
@@ -315,7 +304,7 @@ async function refreshRecentListing(
   const auto = await autoAcceptPlayloltcgEvents(deps, unique);
   result.listed = listing.rows;
   result.pulledForward = await deps.repos.playloltcgEvents.pullForwardRechecks(unique, now);
-  record(
+  recordCapped(
     result.errors,
     [...listing.errors, ...auto.errors].map((message) => `Listing: ${message}`),
   );
@@ -370,7 +359,7 @@ export async function processPlayloltcgRechecks(
         if (failedInARow >= MAX_FAILED_VISITS_IN_A_ROW) {
           result.backedOff = true;
           result.blockedUntil = new Date(clock(deps).getTime() + BACKOFF_MS).toISOString();
-          record(result.errors, [
+          recordCapped(result.errors, [
             `Stopped after ${failedInARow} visits in a row failed; pausing for 30 minutes.`,
           ]);
         }
@@ -389,7 +378,7 @@ export async function processPlayloltcgRechecks(
       deps.log.warn({ err: error }, "playloltcg WAF block");
       result.blocked = true;
       result.blockedUntil = cooldownUntil(now);
-      record(result.errors, [error.message]);
+      recordCapped(result.errors, [error.message]);
     } else {
       throw error;
     }
@@ -435,7 +424,7 @@ async function visitPlayloltcgEvent(
 ): Promise<boolean> {
   const detailErrors: string[] = [];
   const detail = await readPlayloltcgDetail(deps, row.activityShopId, detailErrors);
-  record(result.errors, detailErrors);
+  recordCapped(result.errors, detailErrors);
   if (detail === null) {
     await grace(deps, row.activityShopId, now, row.checkStage);
     return true;
@@ -488,7 +477,7 @@ async function visitPlayloltcgEvent(
   result.players += fetched.players;
   result.decks += fetched.decks;
   result.acceptedPlayers += fetched.acceptedPlayers;
-  record(result.errors, fetched.errors);
+  recordCapped(result.errors, fetched.errors);
   if (!fetched.complete) {
     await grace(deps, row.activityShopId, now, row.checkStage);
     return true;

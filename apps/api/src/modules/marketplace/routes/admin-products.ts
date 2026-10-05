@@ -1,8 +1,6 @@
 import { adminProductsContract } from "@openrift/shared/contracts/admin/products";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -38,13 +36,13 @@ export const adminProductsRouter = {
     );
   }),
 
-  update: os.update.handler(async ({ input, context }): Promise<void> => {
+  update: os.update.handler(async ({ input, context, errors }): Promise<void> => {
     const { id, ...patch } = input;
     const { products, sets } = context.repos;
     const existing = await products.getById(id);
     assertFound(existing, "Product not found");
     if (patch.slug !== undefined && (await products.slugTaken(patch.slug, id))) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, `Slug "${patch.slug}" already in use`);
+      throw errors.CONFLICT({ message: `Slug "${patch.slug}" already in use` });
     }
     if (patch.setId !== null && patch.setId !== undefined) {
       assertFound(await sets.getRef(patch.setId), "Set not found");
@@ -52,10 +50,10 @@ export const adminProductsRouter = {
     await products.update(id, patch);
   }),
 
-  remove: os.remove.handler(async ({ input, context }): Promise<void> => {
+  remove: os.remove.handler(async ({ input, context, errors }): Promise<void> => {
     const removed = await context.repos.products.remove(input.id);
     if (!removed) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Product not found");
+      throw errors.NOT_FOUND({ message: "Product not found" });
     }
   }),
 };

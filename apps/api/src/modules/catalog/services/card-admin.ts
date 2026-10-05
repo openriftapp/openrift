@@ -4,6 +4,7 @@ import type { Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import type { Io } from "../../../io.js";
 import { assertFound } from "../../../lib/assertions.js";
+import { isForeignKeyViolation } from "../../../lib/pg-errors.js";
 import type {
   CardDeleteBlockers,
   catalogDeleteGuardsRepo,
@@ -62,7 +63,7 @@ export async function deleteCard(
     });
   } catch (error: unknown) {
     // 23503 = foreign_key_violation: a row appeared after the blocker check, re-check for CONFLICT.
-    if (error instanceof Error && "code" in error && error.code === "23503") {
+    if (isForeignKeyViolation(error)) {
       throwIfBlocked(await repos.catalogDeleteGuards.countForCard(card.id));
     }
     throw error;

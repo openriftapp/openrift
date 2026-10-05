@@ -81,7 +81,7 @@ describe.skipIf(!ctx)("stagePresetsRepo (integration)", () => {
     const created = await repo.create(OWNER, { name: "Readback", config: CONFIG });
 
     const listed = await repo.listForUser(OWNER);
-    const found = await repo.findByIdForUser(created.id, OWNER);
+    const found = await repo.getByIdForUser(created.id, OWNER);
 
     expect(typeof found?.config).toBe("object");
     expect(found?.config).toEqual(CONFIG);
@@ -101,13 +101,13 @@ describe.skipIf(!ctx)("stagePresetsRepo (integration)", () => {
   it("does not reach another user's preset", async () => {
     const preset = await repo.create(OTHER, { name: "Theirs", config: CONFIG });
 
-    expect(await repo.findByIdForUser(preset.id, OWNER)).toBeUndefined();
+    expect(await repo.getByIdForUser(preset.id, OWNER)).toBeUndefined();
     expect(await repo.update(preset.id, OWNER, { name: "Mine now" })).toBeUndefined();
-    expect(await repo.remove(preset.id, OWNER)).toBe(false);
+    expect(await repo.deleteByIdForUser(preset.id, OWNER)).toBe(false);
   });
 
   it("returns undefined for a malformed id instead of erroring on the uuid cast", async () => {
-    expect(await repo.findByIdForUser("not-a-uuid", OWNER)).toBeUndefined();
+    expect(await repo.getByIdForUser("not-a-uuid", OWNER)).toBeUndefined();
   });
 
   it("counts and deletes the user's own presets", async () => {
@@ -115,7 +115,7 @@ describe.skipIf(!ctx)("stagePresetsRepo (integration)", () => {
     const preset = await repo.create(OTHER, { name: "Doomed", config: {} });
 
     expect(await repo.countForUser(OTHER)).toBe(before + 1);
-    expect(await repo.remove(preset.id, OTHER)).toBe(true);
+    expect(await repo.deleteByIdForUser(preset.id, OTHER)).toBe(true);
     expect(await repo.countForUser(OTHER)).toBe(before);
   });
 });

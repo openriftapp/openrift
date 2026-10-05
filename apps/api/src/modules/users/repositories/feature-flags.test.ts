@@ -38,10 +38,9 @@ describe("featureFlagsRepo", () => {
     expect(result).toEqual(ROW);
   });
 
-  it("deleteByKey returns a delete result", async () => {
+  it("deleteByKey reports a deleted row", async () => {
     const db = createMockDb({ numDeletedRows: 1n });
     const repo = featureFlagsRepo(db);
-    const result = await repo.deleteByKey("beta");
-    expect(result).toEqual({ numDeletedRows: 1n });
+    expect(await repo.deleteByKey("beta")).toBe(true);
   });
 });

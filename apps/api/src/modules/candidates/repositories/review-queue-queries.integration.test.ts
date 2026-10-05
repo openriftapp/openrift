@@ -1,4 +1,4 @@
-import { normalizeNameForIdentity } from "@openrift/shared/utils";
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CARD_FURY_UNIT } from "../../../test/fixtures/constants.js";

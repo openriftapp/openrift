@@ -2,6 +2,8 @@ import { boardDocumentSchema } from "@openrift/shared/board-state";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
+import { shareOwnerSchema } from "./fields.js";
+
 export const publicBoardStateResponseSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -16,7 +18,7 @@ export const publicBoardStateResponseSchema = z.object({
 
 export const publicBoardStateDetailResponseSchema = z.object({
   boardState: publicBoardStateResponseSchema,
-  owner: z.object({ displayName: z.string() }),
+  owner: shareOwnerSchema,
 });
 
 export const featuredBoardStateResponseSchema = publicBoardStateResponseSchema.extend({

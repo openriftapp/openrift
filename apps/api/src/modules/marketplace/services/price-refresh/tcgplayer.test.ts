@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../../deps";
 import type { Fetch } from "../../../../io";
-import * as fetchMod from "./fetch";
+import * as fetchMod from "../../../../lib/http";
 import * as logMod from "./log";
 import { refreshTcgplayerPrices } from "./tcgplayer";
 import type { StagingRow, UpsertCounts } from "./types";

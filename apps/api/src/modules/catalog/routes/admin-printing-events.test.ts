@@ -4,30 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
-import { runJobAsync } from "../../system/services/run-job.js";
 import { adminPrintingEventsRouter } from "./admin-printing-events";
 
-// vitest hoists these vi.mock calls above the imports at transform time, so the
-// mocked modules are replaced before ./printing-events pulls them in.
-vi.mock("../../system/services/run-job.js", () => ({
-  runJobAsync: vi.fn(),
-}));
-vi.mock("../services/flush-printing-events.js", () => ({
-  flushPendingPrintingEvents: vi.fn(),
-}));
-
-const mockRunJobAsync = vi.mocked(runJobAsync);
+const mockScheduler = { runNow: vi.fn() };
 
 const mockRepo = {
   listByStatus: vi.fn(),
   retryFailed: vi.fn(),
-};
-
-const config = {
-  discordWebhooks: {
-    newPrintings: "https://discord.example/new",
-  },
-  appBaseUrl: "https://openrift.example",
 };
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
@@ -36,7 +19,7 @@ const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
   c.set("repos", { printingEvents: mockRepo } as never);
-  c.set("config", config as never);
+  c.set("scheduler", mockScheduler as never);
   await next();
 });
 registerRouterForTest(app, adminPrintingEventsRouter);
@@ -68,13 +51,13 @@ describe("POST /printing-events/flush", () => {
     vi.resetAllMocks();
   });
 
-  it("returns 202 with the run handle", async () => {
-    mockRunJobAsync.mockResolvedValue({ runId: RUN_ID, status: "running" } as never);
+  it("starts the scheduled flush job and returns 202 with the run handle", async () => {
+    mockScheduler.runNow.mockResolvedValue({ runId: RUN_ID, status: "running" });
     const res = await app.request("/api/admin/v1/printing-events/flush", { method: "POST" });
     expect(res.status).toBe(202);
     const json = await readJson(res);
     expect(json).toEqual({ runId: RUN_ID, status: "running" });
-    expect(mockRunJobAsync).toHaveBeenCalledTimes(1);
+    expect(mockScheduler.runNow).toHaveBeenCalledWith("discord.flush_printing_events");
   });
 });
 

@@ -30,7 +30,7 @@ export function listsSharingRepo(db: Kysely<Database>) {
       return updateShareRow(db, "lists", id, userId, shareToken, isPublic);
     },
 
-    async findByShareToken(
+    async getByShareToken(
       shareToken: string,
     ): Promise<
       { list: Selectable<ListsTable>; ownerName: string | null; ownerEmail: string } | undefined

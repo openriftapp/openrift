@@ -220,3 +220,37 @@ export function matchesCardQuery(
   }
   return tokens.every((token) => haystacks.some((hay) => hay.includes(token)));
 }
+
+export interface CodeEntry<TCard, TPrinting extends SearchablePrintingCodes> {
+  card: TCard;
+  printing: TPrinting;
+}
+
+export type CodeIndex<TCard, TPrinting extends SearchablePrintingCodes> = Map<
+  string,
+  CodeEntry<TCard, TPrinting>
+>;
+
+/** Indexes short and public codes squashed; the first printing seen for a key wins. */
+export function buildCodeIndex<TCard, TPrinting extends SearchablePrintingCodes>(
+  printings: Iterable<CodeEntry<TCard, TPrinting>>,
+): CodeIndex<TCard, TPrinting> {
+  const index: CodeIndex<TCard, TPrinting> = new Map();
+  for (const entry of printings) {
+    for (const code of [entry.printing.shortCode, entry.printing.publicCode]) {
+      const key = squashForSearch(code);
+      if (key && !index.has(key)) {
+        index.set(key, entry);
+      }
+    }
+  }
+  return index;
+}
+
+export function lookupCode<TCard, TPrinting extends SearchablePrintingCodes>(
+  index: CodeIndex<TCard, TPrinting>,
+  code: string,
+): CodeEntry<TCard, TPrinting> | undefined {
+  const key = squashForSearch(code);
+  return key ? index.get(key) : undefined;
+}

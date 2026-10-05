@@ -1,5 +1,5 @@
-import { mathRandom } from "../pack-opener/rng.js";
-import type { Random } from "../pack-opener/rng.js";
+import { mathRandom, shuffle } from "../random.js";
+import type { Random } from "../random.js";
 import { evaluatePod } from "./evaluate.js";
 import { determinePodSizes, determineSwissPodSizes } from "./pod-sizes.js";
 import { DEFAULT_LOCAL_SEARCH_BUDGET, DEFAULT_PAIRING_CONFIG } from "./types.js";
@@ -33,22 +33,6 @@ export class InvalidPlayerCountError extends Error {
 }
 
 const EPSILON = 1e-9;
-
-// Fisher-Yates shuffle.
-function shuffle<T>(items: readonly T[], rng: Random): T[] {
-  const result = [...items];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(rng.next() * (i + 1));
-    const atI = result[i];
-    const atJ = result[j];
-    if (atI === undefined || atJ === undefined) {
-      throw new Error(`shuffle: index out of range (${i}, ${j})`);
-    }
-    result[i] = atJ;
-    result[j] = atI;
-  }
-  return result;
-}
 
 // Shuffles within each equal-score band so restarts differ.
 function constructOrder(players: PairingPlayer[], rng: Random): PairingPlayer[] {

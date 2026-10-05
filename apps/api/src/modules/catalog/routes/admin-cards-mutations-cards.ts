@@ -1,18 +1,16 @@
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/card-mutations";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { CardType, Domain, SuperType } from "@openrift/shared/types/enums";
-import { normalizeNameForIdentity } from "@openrift/shared/utils";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
-import { acceptFavoriteNewCard } from "../../candidates/services/accept-gallery.js";
 import {
   assertSomeProviderInScope,
   reviewableProviderScope,
-} from "../../candidates/services/card-review-scope.js";
+} from "../../candidates/lib/card-review-scope.js";
+import { acceptFavoriteNewCard } from "../../candidates/services/accept-gallery.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { deleteCard } from "../services/card-admin.js";
 import { normalizeCardFieldValue, writeCardField } from "../services/card-field-writes.js";
@@ -20,12 +18,12 @@ import { normalizeCardFieldValue, writeCardField } from "../services/card-field-
 const os = implement(adminCardMutationsContract).$context<ApiContext>().use(requireAuthedUser);
 
 export const adminCardMutationsCardsRouter = {
-  renameCard: os.renameCard.handler(async ({ input, context }): Promise<void> => {
+  renameCard: os.renameCard.handler(async ({ input, context, errors }): Promise<void> => {
     const { catalogMutations: mut } = context.repos;
     const { cardId, newId } = input;
 
     if (!newId?.trim()) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "newId is required");
+      throw errors.BAD_REQUEST({ message: "newId is required" });
     }
 
     const card = await mut.getCardById(cardId);
@@ -205,12 +203,12 @@ export const adminCardMutationsCardsRouter = {
     return result;
   }),
 
-  linkUnmatched: os.linkUnmatched.handler(async ({ input, context }): Promise<void> => {
+  linkUnmatched: os.linkUnmatched.handler(async ({ input, context, errors }): Promise<void> => {
     const { catalogMutations: mut } = context.repos;
     const { name, cardId } = input;
 
     if (!cardId) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "cardId required");
+      throw errors.BAD_REQUEST({ message: "cardId required" });
     }
 
     const card = await mut.getCardById(cardId);

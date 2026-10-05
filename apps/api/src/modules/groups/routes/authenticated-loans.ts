@@ -9,6 +9,17 @@ import { implement } from "@orpc/server";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { toLoanResponse } from "../lib/loan-presenters.js";
+import {
+  acknowledgeLoan,
+  confirmBorrowerReturn,
+  createLoan,
+  declareLoanReturn,
+  deleteLoan,
+  rejectLoan,
+  reopenBorrowerReturn,
+  returnLoanCopies,
+  writeOffLoan,
+} from "../services/loans.js";
 
 const os = implement(loansContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -16,17 +27,16 @@ const RECENT_BORROWER_NAMES_LIMIT = 8;
 
 /** Loan services throw `AppError` for state failures, mapped by the handler's appErrorInterceptor. */
 export const loansRouter = {
-  create: os.create.handler(({ input, context }): Promise<LoanResponse> => {
-    const { createLoan } = context.services;
-    return createLoan(context.transact, {
+  create: os.create.handler(({ input, context }): Promise<LoanResponse> =>
+    createLoan(context.transact, {
       lenderUserId: context.userId,
       printingId: input.printingId,
       quantity: input.quantity,
       borrowerUserId: input.borrowerUserId,
       borrowerName: input.borrowerName,
       contextCollectionId: input.contextCollectionId,
-    });
-  }),
+    }),
+  ),
 
   list: os.list.handler(async ({ context }): Promise<LoanListResponse> => {
     const { loans } = context.repos;
@@ -45,43 +55,35 @@ export const loansRouter = {
     },
   ),
 
-  acknowledge: os.acknowledge.handler(({ input, context }): Promise<LoanResponse> => {
-    const { acknowledgeLoan } = context.services;
-    return acknowledgeLoan(context.transact, input.id, context.userId);
-  }),
+  acknowledge: os.acknowledge.handler(({ input, context }): Promise<LoanResponse> =>
+    acknowledgeLoan(context.transact, input.id, context.userId),
+  ),
 
-  reject: os.reject.handler(({ input, context }): Promise<LoanResponse> => {
-    const { rejectLoan } = context.services;
-    return rejectLoan(context.transact, input.id, context.userId);
-  }),
+  reject: os.reject.handler(({ input, context }): Promise<LoanResponse> =>
+    rejectLoan(context.transact, input.id, context.userId),
+  ),
 
-  declareReturn: os.declareReturn.handler(({ input, context }): Promise<LoanResponse> => {
-    const { declareLoanReturn } = context.services;
-    return declareLoanReturn(context.transact, input.id, context.userId, input.quantity);
-  }),
+  declareReturn: os.declareReturn.handler(({ input, context }): Promise<LoanResponse> =>
+    declareLoanReturn(context.transact, input.id, context.userId, input.quantity),
+  ),
 
-  confirmReturn: os.confirmReturn.handler(({ input, context }): Promise<LoanResponse> => {
-    const { confirmBorrowerReturn } = context.services;
-    return confirmBorrowerReturn(context.transact, input.id, context.userId);
-  }),
+  confirmReturn: os.confirmReturn.handler(({ input, context }): Promise<LoanResponse> =>
+    confirmBorrowerReturn(context.transact, input.id, context.userId),
+  ),
 
-  reopenReturn: os.reopenReturn.handler(({ input, context }): Promise<LoanResponse> => {
-    const { reopenBorrowerReturn } = context.services;
-    return reopenBorrowerReturn(context.transact, input.id, context.userId);
-  }),
+  reopenReturn: os.reopenReturn.handler(({ input, context }): Promise<LoanResponse> =>
+    reopenBorrowerReturn(context.transact, input.id, context.userId),
+  ),
 
-  returnCopies: os.returnCopies.handler(({ input, context }): Promise<LoanResponse> => {
-    const { returnLoanCopies } = context.services;
-    return returnLoanCopies(context.transact, input.id, context.userId, input.quantity);
-  }),
+  returnCopies: os.returnCopies.handler(({ input, context }): Promise<LoanResponse> =>
+    returnLoanCopies(context.transact, input.id, context.userId, input.quantity),
+  ),
 
-  writeOff: os.writeOff.handler(({ input, context }): Promise<LoanResponse> => {
-    const { writeOffLoan } = context.services;
-    return writeOffLoan(context.transact, input.id, context.userId, input.removeCopies);
-  }),
+  writeOff: os.writeOff.handler(({ input, context }): Promise<LoanResponse> =>
+    writeOffLoan(context.transact, input.id, context.userId, input.removeCopies),
+  ),
 
   remove: os.remove.handler(async ({ input, context }): Promise<{ deleted: boolean }> => {
-    const { deleteLoan } = context.services;
     await deleteLoan(context.transact, input.id, context.userId);
     return { deleted: true };
   }),

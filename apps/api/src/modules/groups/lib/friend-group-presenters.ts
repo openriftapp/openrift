@@ -1,19 +1,31 @@
+import type { AdminGroupBannersResponse } from "@openrift/shared/contracts/admin/friend-group-banners";
 import type { ContactMethod } from "@openrift/shared/types/api/contact-method";
 import type {
   FriendGroupCollectionShareResponse,
+  FriendGroupDiscordLinksResponse,
+  FriendGroupListResponse,
   FriendGroupMemberPreview,
   FriendGroupMemberResponse,
   FriendGroupRequestResponse,
   FriendGroupResponse,
   FriendGroupRole,
+  FriendGroupSharedListDetailResponse,
   FriendGroupShareResponse,
+  FriendGroupSummaryResponse,
 } from "@openrift/shared/types/api/friend-group";
 
 import { gravatarHashForEmail } from "../../../lib/gravatar.js";
+import { isoOrNull } from "../../../lib/iso-date.js";
+import { tradeDefaultsFromList } from "../../lists/lib/list-presenters.js";
+import type { DiscordLink } from "../repositories/friend-group-discord-links.js";
+import type { GroupSummary } from "../repositories/friend-groups-core.js";
 import type {
   Group,
+  GroupBannerRow,
+  GroupInvite,
   MemberPreviewRow,
   MemberWithUser,
+  SharedListRow,
 } from "../repositories/friend-groups-shared.js";
 import { hasRole } from "./group-access.js";
 
@@ -146,4 +158,75 @@ export function toRequest(row: PendingRequestRow): FriendGroupRequestResponse {
 
 export function canSeeCode(role: FriendGroupRole): boolean {
   return hasRole(role, "admin");
+}
+
+export function toGroupSummary(row: GroupSummary): FriendGroupSummaryResponse {
+  return {
+    ...toGroup(row, canSeeCode(row.viewerRole)),
+    viewerRole: row.viewerRole,
+    memberCount: row.memberCount,
+    pendingRequestCount: row.pendingRequestCount,
+    sharedListCount: row.sharedListCount,
+    memberPreviews: row.memberPreviews.map((preview) => toMemberPreview(preview)),
+    recentTradedCardCount: row.recentTradedCardCount,
+    tradedCardCount: row.tradedCardCount,
+  };
+}
+
+export function toOutgoingRequest(
+  row: GroupInvite & { groupName: string; groupSlug: string; memberCount: number },
+): FriendGroupListResponse["outgoingRequests"][number] {
+  return {
+    id: row.id,
+    groupId: row.groupId,
+    groupSlug: row.groupSlug,
+    groupName: row.groupName,
+    createdAt: row.createdAt.toISOString(),
+    memberCount: row.memberCount,
+  };
+}
+
+export function toSharedList(row: SharedListRow): FriendGroupSharedListDetailResponse["list"] {
+  return {
+    id: row.list.id,
+    name: row.list.name,
+    intent: row.list.intent,
+    kind: row.list.kind,
+    ownerUserId: row.list.userId,
+    ownerName: row.ownerName,
+    tradeDefaults: tradeDefaultsFromList(row.list),
+    currency: row.list.currency,
+  };
+}
+
+/** Pending links (no guild yet) are not listed. */
+export function toDiscordLink(
+  link: DiscordLink,
+): FriendGroupDiscordLinksResponse["items"][number] | null {
+  if (link.guildId === null || link.linkedAt === null) {
+    return null;
+  }
+  return {
+    id: link.id,
+    guildId: link.guildId,
+    guildName: link.guildName,
+    linkedAt: link.linkedAt.toISOString(),
+  };
+}
+
+export function toAdminGroupBanner(
+  row: GroupBannerRow,
+): AdminGroupBannersResponse["items"][number] {
+  return {
+    groupId: row.groupId,
+    groupSlug: row.slug,
+    groupName: row.name,
+    bannerUrl: row.bannerUrl,
+    bannerPosition: row.bannerPosition,
+    uploadedAt: isoOrNull(row.bannerUploadedAt),
+    uploaderUserId: row.uploaderUserId,
+    uploaderName: row.uploaderName,
+    uploaderEmail: row.uploaderEmail,
+    memberCount: row.memberCount,
+  };
 }

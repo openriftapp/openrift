@@ -11,11 +11,12 @@ import { idParamSchema, withParams, xidWatermarkSchema } from "@openrift/shared/
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
+import { nameField, shareStateResponseSchema } from "./fields.js";
 
 export const MAX_DECK_LINKS = 5;
 
 const deckFieldRules = {
-  name: z.string().min(1).max(200),
+  name: nameField(200),
   format: z.string().min(1),
 };
 
@@ -155,10 +156,7 @@ export const deckResponseSchema = z.object({
   isDraft: z.boolean(),
 });
 
-export const deckShareResponseSchema = z.object({
-  shareToken: z.string().nullable(),
-  isPublic: z.boolean(),
-});
+export const deckShareResponseSchema = shareStateResponseSchema;
 
 export const deckCloneResponseSchema = z.object({
   deckId: z.string(),

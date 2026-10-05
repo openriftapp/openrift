@@ -1,5 +1,5 @@
-import { mathRandom } from "../pack-opener/rng.js";
-import type { Random } from "../pack-opener/rng.js";
+import { mathRandom } from "../random.js";
+import type { Random } from "../random.js";
 
 export interface SeatingHistory {
   adjacent: ReadonlyMap<string, number>;

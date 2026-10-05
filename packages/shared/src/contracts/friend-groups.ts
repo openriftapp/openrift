@@ -18,6 +18,7 @@ import {
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
+import { nameField } from "./fields.js";
 
 // Slugs that collide with app-level routes or squat targets, mirrored in the
 // route layer for a clean 400 before the DB rejects.
@@ -26,7 +27,7 @@ export const RESERVED_FRIEND_GROUP_SLUGS = new Set(["new", "join", "create", "se
 export const createFriendGroupSchema = z
   .object({
     slug: friendGroupSlugSchema,
-    name: z.string().min(1).max(60),
+    name: nameField(60),
     description: z.string().max(500).nullable().optional(),
     generateCode: z.boolean().default(true),
   })
@@ -38,7 +39,7 @@ export const createFriendGroupSchema = z
 export const updateFriendGroupSchema = z
   .object({
     slug: friendGroupSlugSchema.optional(),
-    name: z.string().min(1).max(60).optional(),
+    name: nameField(60).optional(),
     description: z.string().max(500).nullable().optional(),
     bannerPosition: z.number().int().min(0).max(100).optional(),
   })

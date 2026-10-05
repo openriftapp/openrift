@@ -32,13 +32,33 @@ const mockDismissalsRepo = {
 };
 
 const mockCreateTrade = vi.fn(() => Promise.resolve({} as object));
-const mockAcceptTrade = vi.fn(() => Promise.resolve({} as object));
-const mockListTradeCopyOptions = vi.fn(() => Promise.resolve({} as object));
-const mockDeclineTrade = vi.fn(() => Promise.resolve({} as object));
-const mockCancelTrade = vi.fn(() => Promise.resolve({} as object));
-const mockSetTradeQuantity = vi.fn(() => Promise.resolve({} as object));
-const mockApplyTradeSync = vi.fn(() => Promise.resolve({} as object));
-const mockSkipTradeSync = vi.fn(() => Promise.resolve({} as object));
+const {
+  mockAcceptTrade,
+  mockListTradeCopyOptions,
+  mockDeclineTrade,
+  mockCancelTrade,
+  mockSetTradeQuantity,
+  mockApplyTradeSync,
+  mockSkipTradeSync,
+} = vi.hoisted(() => ({
+  mockAcceptTrade: vi.fn(() => Promise.resolve({} as object)),
+  mockListTradeCopyOptions: vi.fn(() => Promise.resolve({} as object)),
+  mockDeclineTrade: vi.fn(() => Promise.resolve({} as object)),
+  mockCancelTrade: vi.fn(() => Promise.resolve({} as object)),
+  mockSetTradeQuantity: vi.fn(() => Promise.resolve({} as object)),
+  mockApplyTradeSync: vi.fn(() => Promise.resolve({} as object)),
+  mockSkipTradeSync: vi.fn(() => Promise.resolve({} as object)),
+}));
+
+vi.mock("../services/card-trades.js", () => ({
+  acceptTrade: mockAcceptTrade,
+  listTradeCopyOptions: mockListTradeCopyOptions,
+  declineTrade: mockDeclineTrade,
+  cancelTrade: mockCancelTrade,
+  setTradeQuantity: mockSetTradeQuantity,
+  applyTradeSync: mockApplyTradeSync,
+  skipTradeSync: mockSkipTradeSync,
+}));
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
@@ -54,13 +74,6 @@ app.use("*", async (c, next) => {
   } as never);
   c.set("services", {
     createTrade: mockCreateTrade,
-    listTradeCopyOptions: mockListTradeCopyOptions,
-    acceptTrade: mockAcceptTrade,
-    declineTrade: mockDeclineTrade,
-    cancelTrade: mockCancelTrade,
-    setTradeQuantity: mockSetTradeQuantity,
-    applyTradeSync: mockApplyTradeSync,
-    skipTradeSync: mockSkipTradeSync,
   } as never);
   await next();
 });

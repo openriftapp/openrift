@@ -9,6 +9,7 @@ import type {
   UvsgamesEventStandingsTable,
 } from "../../../db/tables/meta-sources.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 
 /**
  * Keyed by the source's own ids, in the source's own vocabulary (unmapped
@@ -74,7 +75,7 @@ export function uvsgamesResultsRepo(db: Kysely<Database>) {
       externalId: string,
       rows: readonly Insertable<UvsgamesEventStandingsTable>[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx
           .deleteFrom("uvsgamesEventStandings")
           .where("externalId", "=", externalId)
@@ -98,7 +99,7 @@ export function uvsgamesResultsRepo(db: Kysely<Database>) {
       externalId: string,
       rows: readonly Insertable<UvsgamesEventPhasesTable>[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx.deleteFrom("uvsgamesEventPhases").where("externalId", "=", externalId).execute();
         for (const batch of rowBatches(rows)) {
           await trx.insertInto("uvsgamesEventPhases").values(batch).execute();
@@ -133,7 +134,7 @@ export function uvsgamesResultsRepo(db: Kysely<Database>) {
       roundId: string,
       rows: readonly Insertable<UvsgamesEventMatchesTable>[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx
           .deleteFrom("uvsgamesEventMatches")
           .where("externalId", "=", externalId)
@@ -187,7 +188,7 @@ export function uvsgamesResultsRepo(db: Kysely<Database>) {
       row: Insertable<UvsgamesDecklistsTable>,
       cards: readonly Omit<Insertable<UvsgamesDecklistCardsTable>, "sourceDeckId">[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx
           .insertInto("uvsgamesDecklists")
           .values(row)

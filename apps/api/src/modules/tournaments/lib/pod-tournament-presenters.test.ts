@@ -1,6 +1,7 @@
 import type { PodPenaltyBreakdown } from "@openrift/shared/pairing/types";
 import { describe, expect, it } from "vitest";
 
+import { gravatarHashForEmail } from "../../../lib/gravatar.js";
 import type { PodMemberRow } from "../repositories/pod-tournaments-rounds.js";
 import type { Pod, PodRound, PodScoring } from "../repositories/pod-tournaments-shared.js";
 import { toRoundResponse } from "./pod-tournament-presenters.js";
@@ -49,6 +50,8 @@ function member(playerId: string, placement: number | null, teamId: string | nul
     podId: POD.id,
     playerId,
     displayName: playerId.toUpperCase(),
+    image: null,
+    email: null,
     teamId,
     placement,
     gamePoints: placement === null ? null : 4 - placement,
@@ -83,6 +86,8 @@ describe("toRoundResponse", () => {
             {
               playerId: "a",
               displayName: "A",
+              image: null,
+              gravatarHash: null,
               teamId: null,
               gamePoints: 3,
               placement: 1,
@@ -91,6 +96,8 @@ describe("toRoundResponse", () => {
             {
               playerId: "b",
               displayName: "B",
+              image: null,
+              gravatarHash: null,
               teamId: null,
               gamePoints: 2,
               placement: 2,
@@ -99,6 +106,8 @@ describe("toRoundResponse", () => {
             {
               playerId: "c",
               displayName: "C",
+              image: null,
+              gravatarHash: null,
               teamId: null,
               gamePoints: 1,
               placement: 3,
@@ -107,6 +116,8 @@ describe("toRoundResponse", () => {
             {
               playerId: "d",
               displayName: "D",
+              image: null,
+              gravatarHash: null,
               teamId: null,
               gamePoints: 0,
               placement: 4,
@@ -195,6 +206,25 @@ describe("toRoundResponse", () => {
     );
 
     expect(response.pods[0]!.members.map((entry) => entry.points)).toEqual([3, 0, 3, 0]);
+  });
+
+  it("gives a linked member the account photo and a gravatar hash, never the email", () => {
+    const linked = {
+      ...member("a", 1),
+      image: "https://example.com/jinx.png",
+      email: " Jinx@Example.com ",
+    };
+    const response = toRoundResponse(
+      { round: ROUND, pods: [{ pod: POD, members: [linked, ...MEMBERS.slice(1)] }], byes: [] },
+      SCORING,
+    );
+
+    const [first] = response.pods[0]!.members;
+    expect(first).toMatchObject({
+      image: "https://example.com/jinx.png",
+      gravatarHash: gravatarHashForEmail("jinx@example.com"),
+    });
+    expect(JSON.stringify(response)).not.toContain("Example.com");
   });
 
   it("carries the byes through as player id and display name only", () => {

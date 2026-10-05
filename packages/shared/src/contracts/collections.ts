@@ -3,13 +3,14 @@ import { copiesQuerySchema, idParamSchema, withParams } from "@openrift/shared/s
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
+import { nameField, shareStateResponseSchema } from "./fields.js";
 
 /**
  * Field rules inlined from api/db/schemas — mirrors DB CHECK constraints for
  * the subset needed by shared request-validation schemas.
  */
 const collectionFieldRules = {
-  name: z.string().min(1).max(200),
+  name: nameField(200),
 };
 
 export const collectionPurposeSchema = z.enum(["marketplace_orders"]);
@@ -78,10 +79,7 @@ export const collectionResponseSchema = z.object({
 
 export const collectionListResponseSchema = z.object({ items: z.array(collectionResponseSchema) });
 
-export const collectionShareResponseSchema = z.object({
-  shareToken: z.string().nullable(),
-  isPublic: z.boolean(),
-});
+export const collectionShareResponseSchema = shareStateResponseSchema;
 
 export const collectionGroupSharesResponseSchema = z.object({
   items: z.array(

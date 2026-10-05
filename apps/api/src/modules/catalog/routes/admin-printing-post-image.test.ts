@@ -46,7 +46,7 @@ app.use("*", async (c, next) => {
     finishes: mockFinishes,
   } as never);
   c.set("io", {} as never);
-  c.set("config", { corsOrigin: "https://cards.example" } as never);
+  c.set("config", { siteOrigin: "https://cards.example" } as never);
   await next();
 });
 mountAdminPrintingPostImage(app);

@@ -1,11 +1,10 @@
 import type { AcceptPrintingField } from "@openrift/shared/contracts/admin/card-mutations";
 import { printingFieldRules } from "@openrift/shared/db-field-rules";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { normalizeProvidedPrintingValue } from "@openrift/shared/printing-value-normalize";
 
 import type { Repos, Transact } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
+import { asFieldWriteError, validateFieldValue } from "../lib/field-values.js";
 import { updatePrintingDistributionChannels, updatePrintingMarkers } from "./printing-admin.js";
 
 export type PrintingFieldSource = "provider" | "manual";
@@ -37,18 +36,11 @@ export async function normalizePrintingFieldValue(
     normalized = raritySlugs.find((slug) => slug.toLowerCase() === value.toLowerCase()) ?? value;
   }
 
-  const validator = printingFieldRules[field as keyof typeof printingFieldRules];
-  if (validator) {
-    const parsed = validator.safeParse(normalized);
-    if (!parsed.success) {
-      throw new AppError(
-        400,
-        ERROR_CODES.VALIDATION_ERROR,
-        `Invalid value for ${field}: ${parsed.error.issues[0]?.message ?? "invalid value"}`,
-      );
-    }
-    normalized = parsed.data;
-  }
+  normalized = validateFieldValue(
+    printingFieldRules[field as keyof typeof printingFieldRules],
+    field,
+    normalized,
+  );
 
   if (source === "provider" && typeof normalized === "string") {
     const costKeywords = TYPOGRAPHY_TEXT_FIELDS.has(field)
@@ -100,14 +92,7 @@ export async function writePrintingField(
   try {
     await mut.updatePrintingFieldById(printingId, field, written);
   } catch (error: unknown) {
-    if (error instanceof Error && "code" in error && error.code === "23503") {
-      throw new AppError(
-        400,
-        ERROR_CODES.VALIDATION_ERROR,
-        `Invalid value for ${field}: ${String(written)}`,
-      );
-    }
-    throw error;
+    throw asFieldWriteError(error, field, written);
   }
 
   if (field === "printedRulesText" || field === "printedEffectText") {

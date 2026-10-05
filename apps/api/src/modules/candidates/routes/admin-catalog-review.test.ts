@@ -28,9 +28,9 @@ const repos = {
   providerSettings: { helperReviewableProviders: vi.fn() },
   cardSubmissions: {
     pendingReviewQueueRows: vi.fn(),
-    findByCandidateCardId: vi.fn(),
+    getByCandidateCardId: vi.fn(),
     liveCardByNormName: vi.fn(),
-    findByExternalId: vi.fn(),
+    getByExternalId: vi.fn(),
     resolve: vi.fn(),
     setResolutionMessage: vi.fn(),
     candidatePrintingImageUrls: vi.fn(),
@@ -91,10 +91,10 @@ function resetDefaults(): void {
   adminAccess = { isAdmin: true, sections: [] };
   repos.providerSettings.helperReviewableProviders.mockResolvedValue(new Set(["usersubmission"]));
   repos.cardSubmissions.pendingReviewQueueRows.mockResolvedValue([]);
-  repos.cardSubmissions.findByCandidateCardId.mockResolvedValue(pendingSubmission);
+  repos.cardSubmissions.getByCandidateCardId.mockResolvedValue(pendingSubmission);
   services.notifySubmitterOfCardAcceptance.mockResolvedValue(undefined);
   repos.cardSubmissions.liveCardByNormName.mockResolvedValue({ id: "card-1", slug: "jinx" });
-  repos.cardSubmissions.findByExternalId.mockResolvedValue(pendingSubmission);
+  repos.cardSubmissions.getByExternalId.mockResolvedValue(pendingSubmission);
   repos.cardSubmissions.candidatePrintingImageUrls.mockResolvedValue([]);
   repos.candidateCards.listCatalogSourceRows.mockResolvedValue([]);
   repos.candidateCards.listSourceReviewGroups.mockResolvedValue([]);
@@ -218,7 +218,7 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
   });
 
   it("thanks the submitter once the submission is accepted", async () => {
-    repos.cardSubmissions.findByCandidateCardId
+    repos.cardSubmissions.getByCandidateCardId
       .mockResolvedValueOnce(pendingSubmission)
       .mockResolvedValueOnce({ ...pendingSubmission, status: "accepted" });
 
@@ -243,7 +243,7 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
   });
 
   it("returns 409 when the submission is already settled", async () => {
-    repos.cardSubmissions.findByCandidateCardId.mockResolvedValue({
+    repos.cardSubmissions.getByCandidateCardId.mockResolvedValue({
       ...pendingSubmission,
       status: "rejected",
     });
@@ -254,7 +254,7 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
   });
 
   it("returns 404 when no submission points at the candidate", async () => {
-    repos.cardSubmissions.findByCandidateCardId.mockResolvedValue(null);
+    repos.cardSubmissions.getByCandidateCardId.mockResolvedValue(null);
 
     const res = await post(`${BASE}/submissions/cc-1/accept`, {});
     expect(res.status).toBe(404);
@@ -296,7 +296,7 @@ describe(`POST ${BASE}/submissions/{id}/reject`, () => {
   });
 
   it("returns 409 for an already settled submission", async () => {
-    repos.cardSubmissions.findByCandidateCardId.mockResolvedValue({
+    repos.cardSubmissions.getByCandidateCardId.mockResolvedValue({
       ...pendingSubmission,
       status: "accepted",
     });
@@ -312,7 +312,7 @@ describe(`POST ${BASE}/candidates/{id}/create-card`, () => {
   const cardFields = { id: "ekko", name: "Ekko", types: ["unit"], domains: ["body"] };
 
   it("creates the card and returns its slug", async () => {
-    repos.cardSubmissions.findByCandidateCardId.mockResolvedValue({
+    repos.cardSubmissions.getByCandidateCardId.mockResolvedValue({
       ...pendingSubmission,
       kind: "new_card",
     });
@@ -326,7 +326,7 @@ describe(`POST ${BASE}/candidates/{id}/create-card`, () => {
 
   it("thanks the submitter of a new card once it is created", async () => {
     const newCard = { ...pendingSubmission, kind: "new_card" };
-    repos.cardSubmissions.findByCandidateCardId
+    repos.cardSubmissions.getByCandidateCardId
       .mockResolvedValueOnce(newCard)
       .mockResolvedValueOnce({ ...newCard, status: "accepted" });
     repos.cardSubmissions.liveCardByNormName.mockResolvedValue(null);
@@ -341,7 +341,7 @@ describe(`POST ${BASE}/candidates/{id}/create-card`, () => {
   });
 
   it("creates a card for a candidate with no ledger row", async () => {
-    repos.cardSubmissions.findByCandidateCardId.mockResolvedValue(null);
+    repos.cardSubmissions.getByCandidateCardId.mockResolvedValue(null);
     repos.cardSubmissions.liveCardByNormName.mockResolvedValue(null);
     repos.candidateCards.candidateCardById.mockResolvedValue({
       ...candidate,
@@ -364,7 +364,7 @@ describe(`POST ${BASE}/candidates/{id}/create-card`, () => {
   });
 
   it("returns 409 when the card already exists", async () => {
-    repos.cardSubmissions.findByCandidateCardId.mockResolvedValue({
+    repos.cardSubmissions.getByCandidateCardId.mockResolvedValue({
       ...pendingSubmission,
       kind: "new_card",
     });

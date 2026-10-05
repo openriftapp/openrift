@@ -1,12 +1,18 @@
 import { splitCardBans } from "@openrift/shared/card-ban";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
 import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
-import { findStandardArtFallback } from "@openrift/shared/standard";
+import { formatCents } from "@openrift/shared/money";
+import { cardPath } from "@openrift/shared/site-paths";
+import {
+  fallbackArtDifferences as sharedFallbackArtDifferences,
+  findStandardArtFallback,
+} from "@openrift/shared/standard";
+import { truncateWithEllipsis } from "@openrift/shared/strings";
 import type { MarketplaceInfoResponse } from "@openrift/shared/types/api/pricing";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
-import { formatCents, legendDisplayName, truncateWithEllipsis } from "@openrift/shared/utils";
-import { WellKnown } from "@openrift/shared/well-known";
 import type { APIEmbed, APIEmbedField } from "discord.js";
 
 import { formatCardText } from "./card-text.js";
@@ -114,39 +120,36 @@ function priceLink(
   return MARKETPLACE_LINKS[marketplace].searchUrl(card.name);
 }
 
-/** Mirrors the site's `FallbackArtBadges`; a pinned substitute has no printing behind it, so `artPrinting` is null. */
 export function fallbackArtDifferences(
   printing: CatalogPrinting,
   artPrinting: CatalogPrinting | null,
   labels: EnumLabels,
 ): string[] {
-  const tags: string[] = [];
-  if (artPrinting !== null && printing.language !== artPrinting.language) {
-    tags.push(artPrinting.language);
-  }
-  for (const marker of printing.markers) {
-    tags.push(marker.label);
-  }
-  const artVariant = printing.artVariant || WellKnown.artVariant.NORMAL;
-  const artVariantLabel = labels.artVariants[artVariant];
-  if (artVariant !== WellKnown.artVariant.NORMAL && artVariantLabel !== undefined) {
-    tags.push(artVariantLabel);
-  }
-  if (printing.isOvernumbered) {
-    tags.push("Overnumbered");
-  }
-  if (printing.isSigned) {
-    tags.push("Signed");
-  }
-  const finishLabel = labels.finishes[printing.finish];
-  if (
-    (printing.finish === WellKnown.finish.METAL ||
-      printing.finish === WellKnown.finish.METAL_DELUXE) &&
-    finishLabel !== undefined
-  ) {
-    tags.push(finishLabel);
-  }
-  return tags;
+  return sharedFallbackArtDifferences(printing, artPrinting).flatMap((tag) => {
+    switch (tag.kind) {
+      case "language": {
+        return [tag.language];
+      }
+      case "marker": {
+        return [tag.label];
+      }
+      case "artVariant": {
+        return [enumLabel(labels.artVariants, tag.slug)];
+      }
+      case "overnumbered": {
+        return ["Overnumbered"];
+      }
+      case "signed": {
+        return ["Signed"];
+      }
+      case "finish": {
+        return [enumLabel(labels.finishes, tag.slug)];
+      }
+      default: {
+        return [];
+      }
+    }
+  });
 }
 
 /** Like the site's card browser, falls back to the standard printing's artwork (same language, else EN) when there's none of its own. */
@@ -285,7 +288,7 @@ export function buildCardEmbed(input: CardEmbedInput): APIEmbed {
   const lines = [...cardWarnings(card), ...(fallbackNote ? [fallbackNote] : [])];
   return {
     title: legendDisplayName(card),
-    url: `${siteUrl}/cards/${card.slug}`,
+    url: `${siteUrl}${cardPath(card.slug)}`,
     ...(lines.length > 0 ? { description: lines.join("\n") } : {}),
     color: EMBED_COLOR,
     ...(imageId ? { image: { url: `${siteUrl}${imageUrl(imageId, "full")}` } } : {}),

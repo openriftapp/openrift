@@ -1,7 +1,7 @@
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { reorderBySortOrder } from "./sort-order.js";
+import { reorderBySortOrder } from "../../../repositories/query-helpers.js";
 
 export function languagesRepo(db: Kysely<Database>) {
   return {
@@ -37,8 +37,9 @@ export function languagesRepo(db: Kysely<Database>) {
         .executeTakeFirstOrThrow();
     },
 
-    deleteByCode(code: string) {
-      return db.deleteFrom("languages").where("code", "=", code).executeTakeFirstOrThrow();
+    async deleteByCode(code: string): Promise<boolean> {
+      const result = await db.deleteFrom("languages").where("code", "=", code).executeTakeFirst();
+      return result.numDeletedRows > 0n;
     },
 
     isInUse(code: string) {

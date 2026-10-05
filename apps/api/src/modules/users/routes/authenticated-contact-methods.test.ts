@@ -11,7 +11,7 @@ const mockContactMethodsRepo = {
   listForUser: vi.fn(() => Promise.resolve([] as object[])),
   create: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   update: vi.fn(() => Promise.resolve(undefined as object | undefined)),
-  delete: vi.fn(() => Promise.resolve(false)),
+  deleteByIdForUser: vi.fn(() => Promise.resolve(false)),
   reorder: vi.fn(() => Promise.resolve()),
 };
 
@@ -113,17 +113,17 @@ describe("PATCH /api/v1/contact-methods/:id", () => {
 
 describe("DELETE /api/v1/contact-methods/:id", () => {
   it("returns 200 with the refreshed list after deleting", async () => {
-    mockContactMethodsRepo.delete.mockResolvedValue(true);
+    mockContactMethodsRepo.deleteByIdForUser.mockResolvedValue(true);
     mockContactMethodsRepo.listForUser.mockResolvedValue([]);
     const res = await app.request(`/api/v1/contact-methods/${METHOD_ID}`, { method: "DELETE" });
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json.items).toEqual([]);
-    expect(mockContactMethodsRepo.delete).toHaveBeenCalledWith(METHOD_ID, USER_ID);
+    expect(mockContactMethodsRepo.deleteByIdForUser).toHaveBeenCalledWith(METHOD_ID, USER_ID);
   });
 
   it("returns 404 when the method does not exist", async () => {
-    mockContactMethodsRepo.delete.mockResolvedValue(false);
+    mockContactMethodsRepo.deleteByIdForUser.mockResolvedValue(false);
     const res = await app.request(`/api/v1/contact-methods/${METHOD_ID}`, { method: "DELETE" });
     expect(res.status).toBe(404);
     const lintBody = await readJson(res);

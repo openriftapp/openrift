@@ -1,9 +1,7 @@
 import { adminMarketplaceGroupsContract } from "@openrift/shared/contracts/admin/marketplace-groups";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { MarketplaceGroupResponse } from "@openrift/shared/types/api/admin";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 
@@ -47,17 +45,13 @@ export const adminMarketplaceGroupsRouter = {
     };
   }),
 
-  update: os.update.handler(async ({ input, context }): Promise<void> => {
+  update: os.update.handler(async ({ input, context, errors }): Promise<void> => {
     const { marketplaceAdmin: mktAdmin } = context.repos;
     const { marketplace, id: groupId, ...patch } = input;
 
     const updated = await mktAdmin.updateGroup(marketplace, groupId, patch);
     if (!updated) {
-      throw new AppError(
-        404,
-        ERROR_CODES.NOT_FOUND,
-        `Marketplace group ${marketplace}/${groupId} not found`,
-      );
+      throw errors.NOT_FOUND({ message: `Marketplace group ${marketplace}/${groupId} not found` });
     }
   }),
 };

@@ -690,8 +690,7 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
       await decks.update(older.id, userId, { name: "DV Delete Primary (older)" });
       await decks.update(newer.id, userId, { name: "DV Delete Primary (newer)" });
 
-      const result = await decks.deleteByIdForUser(source.id, userId);
-      expect(result.numDeletedRows).toBe(1n);
+      expect(await decks.deleteByIdForUser(source.id, userId)).toBe(true);
 
       const reloadedNewer = await reload(newer.id);
       const reloadedOlder = await reload(older.id);
@@ -731,14 +730,11 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
 
     it("still deletes a standalone deck and reports a miss for someone else's", async () => {
       const standalone = await makeDeck("DV Delete Standalone");
-      const first = await decks.deleteByIdForUser(standalone.id, userId);
-      expect(first.numDeletedRows).toBe(1n);
-      const second = await decks.deleteByIdForUser(standalone.id, userId);
-      expect(second.numDeletedRows).toBe(0n);
+      expect(await decks.deleteByIdForUser(standalone.id, userId)).toBe(true);
+      expect(await decks.deleteByIdForUser(standalone.id, userId)).toBe(false);
 
       const foreign = await makeDeck("DV Delete Foreign", { owner: otherUserId });
-      const foreignDelete = await decks.deleteByIdForUser(foreign.id, userId);
-      expect(foreignDelete.numDeletedRows).toBe(0n);
+      expect(await decks.deleteByIdForUser(foreign.id, userId)).toBe(false);
       const survivor = await reload(foreign.id);
       expect(survivor.id).toBe(foreign.id);
     });

@@ -4,12 +4,12 @@ import type {
   FriendGroupDetailResponse,
   FriendGroupListResponse,
   FriendGroupResponse,
-  FriendGroupSummaryResponse,
 } from "@openrift/shared/types/api/friend-group";
 import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
-import { generateShareToken } from "../../../lib/share-token.js";
+import { assertExisted, assertFound } from "../../../lib/assertions.js";
+import { withUniqueShareToken } from "../../../lib/share-token.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { expandRuleListCounts } from "../../lists/lib/list-counts.js";
@@ -19,12 +19,13 @@ import {
   groupCovers,
   toCollectionShare,
   toGroup,
+  toGroupSummary,
   toMember,
-  toMemberPreview,
+  toOutgoingRequest,
   toRequest,
   toShare,
 } from "../lib/friend-group-presenters.js";
-import { hasRole, loadGroupForMember, requireRole } from "../lib/group-access.js";
+import { hasRole, loadGroupBySlug, loadGroupForMember, requireRole } from "../lib/group-access.js";
 
 const os = implement(friendGroupsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -37,24 +38,8 @@ export const friendGroupsCoreRouter = {
       friendGroups.listOwnRequestsForUser(userId),
     ]);
     return {
-      items: groups.map((row): FriendGroupSummaryResponse => ({
-        ...toGroup(row, canSeeCode(row.viewerRole)),
-        viewerRole: row.viewerRole,
-        memberCount: row.memberCount,
-        pendingRequestCount: row.pendingRequestCount,
-        sharedListCount: row.sharedListCount,
-        memberPreviews: row.memberPreviews.map((preview) => toMemberPreview(preview)),
-        recentTradedCardCount: row.recentTradedCardCount,
-        tradedCardCount: row.tradedCardCount,
-      })),
-      outgoingRequests: requests.map((row) => ({
-        id: row.id,
-        groupId: row.groupId,
-        groupSlug: row.groupSlug,
-        groupName: row.groupName,
-        createdAt: row.createdAt.toISOString(),
-        memberCount: row.memberCount,
-      })),
+      items: groups.map((row) => toGroupSummary(row)),
+      outgoingRequests: requests.map((row) => toOutgoingRequest(row)),
     };
   }),
 
@@ -66,14 +51,18 @@ export const friendGroupsCoreRouter = {
       throw new AppError(409, ERROR_CODES.CONFLICT, "Slug already in use");
     }
 
-    const group = await friendGroups.createWithOwner(
-      {
-        slug: input.slug,
-        name: input.name,
-        description: input.description ?? null,
-        code: input.generateCode ? generateShareToken() : null,
-      },
-      userId,
+    const group = await withUniqueShareToken(
+      (code) =>
+        friendGroups.createWithOwner(
+          {
+            slug: input.slug,
+            name: input.name,
+            description: input.description ?? null,
+            code: input.generateCode ? code : null,
+          },
+          userId,
+        ),
+      { constraint: "uq_friend_groups_code" },
     );
     return toGroup(group, true);
   }),
@@ -83,9 +72,7 @@ export const friendGroupsCoreRouter = {
     const { friendGroups } = context.repos;
 
     const group = await friendGroups.getByCode(input.code);
-    if (!group) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "No group matches that code");
-    }
+    assertFound(group, "No group matches that code");
 
     const existingMembership = await friendGroups.getMembership(group.id, viewerId);
     if (existingMembership) {
@@ -112,10 +99,7 @@ export const friendGroupsCoreRouter = {
     const viewerId = context.userId;
     const { friendGroups, lists, cardTrades, copies } = context.repos;
 
-    const group = await friendGroups.getBySlugOrPrevious(input.slug);
-    if (!group) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Group not found");
-    }
+    const group = await loadGroupBySlug(context.repos, input.slug);
 
     const [membership, invite] = await Promise.all([
       friendGroups.getMembership(group.id, viewerId),
@@ -136,9 +120,7 @@ export const friendGroupsCoreRouter = {
       };
     }
 
-    if (!membership) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Group not found");
-    }
+    assertFound(membership, "Group not found");
 
     const isAdmin = hasRole(membership.role, "admin");
     const [
@@ -219,9 +201,7 @@ export const friendGroupsCoreRouter = {
       bannerPosition: body.bannerPosition,
       updatedAt: new Date(),
     });
-    if (!patched) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Group not found");
-    }
+    assertFound(patched, "Group not found");
     return toGroup(patched, true);
   }),
 
@@ -232,7 +212,7 @@ export const friendGroupsCoreRouter = {
     const ctx = await loadGroupForMember(context.repos, input.slug, viewerId);
     requireRole(ctx.membership, "owner");
 
-    await friendGroups.deleteById(ctx.group.id);
+    assertExisted(await friendGroups.deleteById(ctx.group.id), "Group not found");
   }),
 
   disableCode: os.disableCode.handler(async ({ input, context }): Promise<FriendGroupResponse> => {
@@ -243,9 +223,7 @@ export const friendGroupsCoreRouter = {
     requireRole(ctx.membership, "admin");
 
     const updated = await friendGroups.setCode(ctx.group.id, null);
-    if (!updated) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Group not found");
-    }
+    assertFound(updated, "Group not found");
     return toGroup(updated, true);
   }),
 
@@ -256,10 +234,8 @@ export const friendGroupsCoreRouter = {
     const ctx = await loadGroupForMember(context.repos, input.slug, viewerId);
     requireRole(ctx.membership, "admin");
 
-    const updated = await friendGroups.setCode(ctx.group.id, generateShareToken());
-    if (!updated) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Group not found");
-    }
+    const updated = await withUniqueShareToken((code) => friendGroups.setCode(ctx.group.id, code));
+    assertFound(updated, "Group not found");
     return toGroup(updated, true);
   }),
 };

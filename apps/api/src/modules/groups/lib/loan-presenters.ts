@@ -1,11 +1,8 @@
 import type { LoanCounterparty, LoanResponse, LoanRole } from "@openrift/shared/types/api/loan";
 
 import { gravatarHashForEmail } from "../../../lib/gravatar.js";
+import { isoOrNull } from "../../../lib/iso-date.js";
 import type { LoanDtoRow } from "../repositories/loans.js";
-
-function isoOrNull(value: Date | null): string | null {
-  return value === null ? null : value.toISOString();
-}
 
 /** The lender sees the borrower (user, free-text name, or neither if deleted); a borrower always sees the lender. */
 export function toLoanResponse(row: LoanDtoRow, userId: string): LoanResponse {

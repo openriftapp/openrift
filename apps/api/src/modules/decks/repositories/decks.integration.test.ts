@@ -333,24 +333,22 @@ describe.skipIf(!ctx)("decksRepo (integration)", () => {
       isPublic: false,
     });
 
-    const result = await repo.deleteByIdForUser(deck.id, userId);
-
-    expect(result.numDeletedRows).toBe(1n);
+    expect(await repo.deleteByIdForUser(deck.id, userId)).toBe(true);
 
     const gone = await repo.getByIdForUser(deck.id, userId);
     expect(gone).toBeUndefined();
   });
 
-  it("returns numDeletedRows = 0 for a nonexistent deck", async () => {
+  it("returns false for a nonexistent deck", async () => {
     const result = await repo.deleteByIdForUser("a0000000-0000-4000-a000-000000000000", userId);
 
-    expect(result.numDeletedRows).toBe(0n);
+    expect(result).toBe(false);
   });
 
-  it("returns numDeletedRows = 0 when trying to delete another user's deck", async () => {
+  it("returns false when trying to delete another user's deck", async () => {
     const deckId = createdDeckIds[0]!;
     const result = await repo.deleteByIdForUser(deckId, "a0000000-9999-4000-a000-000000000001");
 
-    expect(result.numDeletedRows).toBe(0n);
+    expect(result).toBe(false);
   });
 });

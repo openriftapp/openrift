@@ -2,6 +2,8 @@ import type { Kysely, RawBuilder, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { containsPattern } from "../../../lib/like-pattern.js";
+import { offsetPage } from "../../../repositories/query-helpers.js";
 import type { MetaEventRow, MetaEventWithCounts } from "./meta-events.js";
 import type { MetaScopeFacet, MetaScopeFilters } from "./meta-shared.js";
 import { scopeConditions } from "./meta-shared.js";
@@ -85,7 +87,7 @@ export function metaEventIndexRepo(db: Kysely<Database>) {
     }
     const needle = filters.q?.trim() ?? "";
     if (needle !== "") {
-      const pattern = `%${needle}%`;
+      const pattern = containsPattern(needle);
       applied.push(
         sql<SqlBool>`(me.name ilike ${pattern} or me.organizer ilike ${pattern} or me.location ilike ${pattern})`,
       );
@@ -189,21 +191,16 @@ export function metaEventIndexRepo(db: Kysely<Database>) {
       if (by === "country") {
         rowQuery = rowQuery.orderBy(sql`me.country is null asc`);
       }
-      const rows = await rowQuery
-        .orderBy(sql`${column} ${direction}`)
-        .orderBy(sql`${EVENT_ORDER_COLUMNS.tier} asc`)
-        .orderBy("me.name", "asc")
-        .orderBy("me.slug", "asc")
-        .limit(page.limit)
-        .offset(page.offset)
-        .execute();
-      const [counts, countRow] = await Promise.all([
-        countsForEvents(rows.map((row) => row.id)),
-        filtered(filters)
-          .select((eb) => eb.fn.countAll<string>().as("total"))
-          .executeTakeFirstOrThrow(),
-      ]);
-      return { rows: withCounts(rows, counts), total: Number(countRow.total) };
+      const { rows, total } = await offsetPage(
+        rowQuery
+          .orderBy(sql`${column} ${direction}`)
+          .orderBy(sql`${EVENT_ORDER_COLUMNS.tier} asc`)
+          .orderBy("me.name", "asc")
+          .orderBy("me.slug", "asc"),
+        page,
+      );
+      const counts = await countsForEvents(rows.map((row) => row.id));
+      return { rows: withCounts(rows, counts), total };
     },
 
     async eventFacetCounts(filters: MetaEventIndexFilters): Promise<MetaEventFacetCounts> {

@@ -18,7 +18,7 @@ const mockRepo = {
   currentSafeXid: vi.fn(() => Promise.resolve("5000")),
   getByIdForUser: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   update: vi.fn(() => Promise.resolve(undefined as object | undefined)),
-  deleteByIdForUser: vi.fn(() => Promise.resolve({ numDeletedRows: 0n })),
+  deleteByIdForUser: vi.fn(() => Promise.resolve(false)),
   cardsForDeck: vi.fn(() => Promise.resolve([] as object[])),
   cardsWithDetails: vi.fn(() => Promise.resolve([] as object[])),
   getIdAndFormat: vi.fn(() => Promise.resolve(undefined as object | undefined)),
@@ -27,7 +27,7 @@ const mockRepo = {
   cloneDeck: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   getShareState: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   setShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
-  findByShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
+  getByShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   cloneFromShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
 };
 
@@ -644,13 +644,13 @@ describe("DELETE /api/v1/decks/:id", () => {
   });
 
   it("returns 204 when deleted", async () => {
-    mockRepo.deleteByIdForUser.mockResolvedValue({ numDeletedRows: 1n });
+    mockRepo.deleteByIdForUser.mockResolvedValue(true);
     const res = await app.request(`/api/v1/decks/${DECK_ID}`, { method: "DELETE" });
     expect(res.status).toBe(204);
   });
 
   it("returns 404 when not found", async () => {
-    mockRepo.deleteByIdForUser.mockResolvedValue({ numDeletedRows: 0n });
+    mockRepo.deleteByIdForUser.mockResolvedValue(false);
     const res = await app.request(`/api/v1/decks/${DECK_ID}`, { method: "DELETE" });
     expect(res.status).toBe(404);
   });

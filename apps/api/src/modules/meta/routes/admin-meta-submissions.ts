@@ -3,6 +3,7 @@ import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
+import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
@@ -22,9 +23,7 @@ async function requireUnsettled(
   id: string,
 ): Promise<MetaSubmissionRow> {
   const submission = await repos.metaSubmissions.byId(id);
-  if (submission === null) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Submission not found");
-  }
+  assertFound(submission, "Submission not found");
   if (submission.status === "accepted") {
     throw new AppError(
       409,

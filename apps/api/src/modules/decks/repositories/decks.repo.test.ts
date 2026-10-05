@@ -67,11 +67,10 @@ describe("decksRepo", () => {
     expect(await repo.update("d-1", "u1", { name: "Updated" })).toEqual(DECK);
   });
 
-  it("deleteByIdForUser returns a delete result", async () => {
+  it("deleteByIdForUser reports a deleted row", async () => {
     const db = createMockDb({ numDeletedRows: 1n });
     const repo = decksRepo(db);
-    const result = await repo.deleteByIdForUser("d-1", "u1");
-    expect(result).toEqual({ numDeletedRows: 1n });
+    expect(await repo.deleteByIdForUser("d-1", "u1")).toBe(true);
   });
 
   it("cardsForDeck returns slim deck card rows", async () => {

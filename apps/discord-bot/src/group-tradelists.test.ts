@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { ApiClients } from "./api-client.js";
 import { fetchTradelistHolders } from "./group-tradelists.js";
+import { log } from "./log.js";
 
 function clientsWith(
   tradelistHolders: (input: { guildId: string; cardId: string }) => Promise<unknown>,
@@ -50,10 +51,10 @@ describe("fetchTradelistHolders", () => {
   });
 
   it("degrades a failed lookup to null instead of throwing", async () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const logError = vi.spyOn(log, "error").mockImplementation(() => undefined);
     const api = clientsWith(() => Promise.reject(new Error("api down")));
     expect(await fetchTradelistHolders(api, "guild-1", "card-1")).toBeNull();
-    expect(consoleError).toHaveBeenCalled();
-    consoleError.mockRestore();
+    expect(logError).toHaveBeenCalled();
+    logError.mockRestore();
   });
 });

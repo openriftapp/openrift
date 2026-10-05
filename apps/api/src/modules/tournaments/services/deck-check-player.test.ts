@@ -16,29 +16,29 @@ function makeRepos(overrides: {
   const linkParticipantByClaimTokenIfUnclaimed = vi.fn(() =>
     Promise.resolve(overrides.linkResult ?? undefined),
   );
-  const findParticipantByClaimToken = vi.fn(() =>
+  const getParticipantByClaimToken = vi.fn(() =>
     Promise.resolve(overrides.tokenParticipant ?? undefined),
   );
-  const findParticipantByUser = vi.fn(() =>
+  const getParticipantByUser = vi.fn(() =>
     Promise.resolve(overrides.existingParticipant ?? undefined),
   );
-  const findEntryIdByParticipant = vi.fn(() => Promise.resolve(overrides.entryId ?? null));
+  const getEntryIdByParticipant = vi.fn(() => Promise.resolve(overrides.entryId ?? null));
   const repos = {
     tournaments: {
-      findParticipantByClaimToken,
-      findParticipantByUser,
+      getParticipantByClaimToken,
+      getParticipantByUser,
       linkParticipantByClaimTokenIfUnclaimed,
     },
-    deckCheck: { findEntryIdByParticipant },
+    deckCheck: { getEntryIdByParticipant },
     // oxlint-disable-next-line typescript/no-explicit-any -- partial repos double for the claim path
   } as any as Repos;
-  return { repos, findParticipantByUser, linkParticipantByClaimTokenIfUnclaimed };
+  return { repos, getParticipantByUser, linkParticipantByClaimTokenIfUnclaimed };
 }
 
 describe("claimParticipantByToken", () => {
   it("refuses as 'duplicate' when the caller already holds a different spot in the tournament", async () => {
     // Linking the token's spot too would violate uq_tournament_participants_user.
-    const { repos, findParticipantByUser, linkParticipantByClaimTokenIfUnclaimed } = makeRepos({
+    const { repos, getParticipantByUser, linkParticipantByClaimTokenIfUnclaimed } = makeRepos({
       tokenParticipant: {
         id: "spot-from-token",
         tournamentId: TOURNAMENT_ID,
@@ -60,7 +60,7 @@ describe("claimParticipantByToken", () => {
       tournamentId: TOURNAMENT_ID,
       entryId: "deck-already-held",
     });
-    expect(findParticipantByUser).toHaveBeenCalledWith(TOURNAMENT_ID, USER_ID);
+    expect(getParticipantByUser).toHaveBeenCalledWith(TOURNAMENT_ID, USER_ID);
     expect(linkParticipantByClaimTokenIfUnclaimed).not.toHaveBeenCalled();
   });
 

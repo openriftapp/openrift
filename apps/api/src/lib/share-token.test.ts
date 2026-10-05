@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { generateShareToken, withUniqueShareToken } from "./share-token.js";
+import { AppError } from "../errors.js";
+import { enableShare, generateShareToken, withUniqueShareToken } from "./share-token.js";
 
 function uniqueViolation(constraintName?: string): Error {
   const error = new Error("duplicate key value violates unique constraint");
@@ -92,5 +93,65 @@ describe("withUniqueShareToken", () => {
       await expect(withUniqueShareToken(attempt, options)).rejects.toThrow("duplicate key");
       expect(attempt).toHaveBeenCalledOnce();
     });
+  });
+});
+
+describe("enableShare", () => {
+  it("returns the existing token without writing while the row is shared", async () => {
+    const write = vi.fn();
+    const result = await enableShare({
+      read: async () => ({ shareToken: "existingTok1", isPublic: true }),
+      write,
+    });
+    expect(result).toEqual({ shareToken: "existingTok1", isPublic: true });
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  it("mints and writes a token for an unshared row", async () => {
+    const write = vi.fn(async (token: string) => ({ token }));
+    const result = await enableShare({
+      read: async () => ({ shareToken: null, isPublic: false }),
+      write,
+    });
+    expect(result.isPublic).toBe(true);
+    expect(result.shareToken).toMatch(/^[A-Za-z0-9]{12}$/u);
+    expect(write).toHaveBeenCalledWith(result.shareToken);
+  });
+
+  it("replaces a token left on a revoked row", async () => {
+    const write = vi.fn(async () => ({}));
+    const result = await enableShare({
+      read: async () => ({ shareToken: "staleToken12", isPublic: false }),
+      write,
+    });
+    expect(result.shareToken).not.toBe("staleToken12");
+    expect(write).toHaveBeenCalledOnce();
+  });
+
+  it("throws 404 when the row is not the caller's", async () => {
+    const write = vi.fn();
+    await expect(enableShare({ read: async () => undefined, write })).rejects.toBeInstanceOf(
+      AppError,
+    );
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  it("throws 404 when the write finds no row", async () => {
+    await expect(
+      enableShare({
+        read: async () => ({ shareToken: null, isPublic: false }),
+        write: async () => undefined,
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("retries the write on a token collision", async () => {
+    const write = vi.fn().mockRejectedValueOnce(uniqueViolation()).mockResolvedValueOnce({});
+    const result = await enableShare({
+      read: async () => ({ shareToken: null, isPublic: false }),
+      write,
+    });
+    expect(write).toHaveBeenCalledTimes(2);
+    expect(write).toHaveBeenLastCalledWith(result.shareToken);
   });
 });

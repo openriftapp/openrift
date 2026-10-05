@@ -9,16 +9,20 @@ import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
 import {
-  buildCandidateCardList,
   buildCardDetail,
-  buildExport,
   buildUnmatchedDetail,
-} from "../../candidates/services/candidate-queries.js";
+} from "../../candidates/lib/candidate-card-detail.js";
+import { buildCandidateCardList } from "../../candidates/lib/candidate-card-list.js";
+import { buildExport } from "../../candidates/lib/candidate-export.js";
 import { adminCardQueriesRouter } from "./admin-cards-queries";
 
-vi.mock("../../candidates/services/candidate-queries.js", () => ({
+vi.mock("../../candidates/lib/candidate-card-list.js", () => ({
   buildCandidateCardList: vi.fn(),
+}));
+vi.mock("../../candidates/lib/candidate-export.js", () => ({
   buildExport: vi.fn(),
+}));
+vi.mock("../../candidates/lib/candidate-card-detail.js", () => ({
   buildCardDetail: vi.fn(),
   buildUnmatchedDetail: vi.fn(),
 }));

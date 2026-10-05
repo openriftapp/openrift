@@ -23,7 +23,6 @@ const mockCollectionsRepo = {
   moveCopiesBetweenCollections: vi.fn(() => Promise.resolve()),
   deleteByIdForUser: vi.fn(() => Promise.resolve()),
   deleteById: vi.fn(() => Promise.resolve()),
-  setShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   setShareTokenById: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   nextPersonalSortOrder: vi.fn(() => Promise.resolve(0)),
   idForPurpose: vi.fn(() => Promise.resolve(undefined as string | undefined)),
@@ -58,10 +57,18 @@ const mockMarketplaceRepo = {
 };
 
 const mockEnsureInbox = vi.fn(() => Promise.resolve("inbox-id"));
-const mockDeleteCollection = vi.fn(() => Promise.resolve());
-const mockClearCollection = vi.fn(() =>
-  Promise.resolve({ removedCount: 0, keptCopyIds: [] as string[] }),
-);
+const { mockDeleteCollection, mockClearCollection } = vi.hoisted(() => ({
+  mockDeleteCollection: vi.fn(() => Promise.resolve()),
+  mockClearCollection: vi.fn(() =>
+    Promise.resolve({ removedCount: 0, keptCopyIds: [] as string[] }),
+  ),
+}));
+
+vi.mock("../services/collections.js", () => ({
+  deleteCollection: mockDeleteCollection,
+  clearCollection: mockClearCollection,
+  resetCollections: vi.fn(),
+}));
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
@@ -79,8 +86,6 @@ app.use("*", async (c, next) => {
   } as never);
   c.set("services", {
     ensureInbox: mockEnsureInbox,
-    deleteCollection: mockDeleteCollection,
-    clearCollection: mockClearCollection,
   } as never);
   await next();
 });
@@ -301,7 +306,7 @@ describe("POST /api/v1/collections", () => {
     );
   });
 
-  it("returns 403 when groupSlug is provided but the user is not a member", async () => {
+  it("returns 404 when groupSlug is provided but the user is not a member", async () => {
     mockFriendGroupsRepo.getBySlug.mockResolvedValue({
       id: "g",
       slug: "friday-night",
@@ -313,7 +318,7 @@ describe("POST /api/v1/collections", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Pool", groupSlug: "friday-night" }),
     });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
   });
 
   it("returns the caller's existing collection when a create is replayed with its id", async () => {
@@ -595,6 +600,24 @@ describe("POST /api/v1/collections/:id/share", () => {
     expect(json.shareToken).toMatch(/^[A-Za-z0-9]{12}$/u);
     expect(json.isPublic).toBe(true);
     expect(mockCollectionsRepo.setShareTokenById).toHaveBeenCalledWith(
+      dbCollection.id,
+      json.shareToken,
+      true,
+    );
+  });
+
+  it("retries with a new token when the first one collides", async () => {
+    mockCollectionsRepo.getAccessForUser.mockResolvedValue(access(dbCollection));
+    mockCollectionsRepo.setShareTokenById
+      .mockRejectedValueOnce(Object.assign(new Error("duplicate key"), { code: "23505" }))
+      .mockResolvedValueOnce({ ...dbCollection, isPublic: true });
+    const res = await app.request(`/api/v1/collections/${dbCollection.id}/share`, {
+      method: "POST",
+    });
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(mockCollectionsRepo.setShareTokenById).toHaveBeenCalledTimes(2);
+    expect(mockCollectionsRepo.setShareTokenById).toHaveBeenLastCalledWith(
       dbCollection.id,
       json.shareToken,
       true,

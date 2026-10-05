@@ -43,6 +43,25 @@ describe("createConfig", () => {
     const config = createConfig({ DISCORD_CLIENT_ID: "discord-id" });
     expect(config.auth.discord).toBeUndefined();
   });
+
+  it("derives siteOrigin from BETTER_AUTH_URL, dropping any path", () => {
+    const config = createConfig({ BETTER_AUTH_URL: "https://openrift.test/some/path" });
+    expect(config.siteOrigin).toBe("https://openrift.test");
+  });
+
+  it("leaves siteOrigin undefined when BETTER_AUTH_URL is unset or invalid", () => {
+    expect(createConfig({}).siteOrigin).toBeUndefined();
+    expect(createConfig({ BETTER_AUTH_URL: "" }).siteOrigin).toBeUndefined();
+    expect(createConfig({ BETTER_AUTH_URL: "not a url" }).siteOrigin).toBeUndefined();
+  });
+
+  it("ignores CORS_ORIGIN for siteOrigin", () => {
+    const config = createConfig({
+      CORS_ORIGIN: "https://cors.test",
+      BETTER_AUTH_URL: "https://site.test",
+    });
+    expect(config.siteOrigin).toBe("https://site.test");
+  });
 });
 
 describe("validateConfig", () => {

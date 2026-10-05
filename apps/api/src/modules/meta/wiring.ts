@@ -1,6 +1,8 @@
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../db/tables.js";
+import { bindEmailDeps } from "../../email.js";
+import type { EmailDeps } from "../../email.js";
 import { metaOverlaysRepo } from "./repositories/meta-overlays.js";
 import { metaPlayerLinksRepo } from "./repositories/meta-player-links.js";
 import { metaSubmissionsRepo } from "./repositories/meta-submissions.js";
@@ -27,7 +29,6 @@ import { promoteMetaEvent, promoteNewEvent } from "./services/meta-promote.js";
 import { repromoteMetaEvents } from "./services/meta-repromote.js";
 import { retierMetaEvents } from "./services/meta-retier.js";
 import { notifyAdminsOfMetaSubmission } from "./services/meta-submission-notifications.js";
-import type { MetaSubmissionEmailDeps } from "./services/meta-submission-notifications.js";
 import { notifySubmitterOfMetaAcceptance } from "./services/meta-submission-thanks.js";
 import { submitMetaDeck, submitMetaEventCorrection } from "./services/meta-submission.js";
 import { fetchUvsgamesEvent } from "./services/meta-sync/uvsgames-on-demand.js";
@@ -83,7 +84,7 @@ export function createMetaRepos(db: Kysely<Database>): MetaRepos {
   };
 }
 
-export function createMetaServices(emailDeps?: MetaSubmissionEmailDeps): MetaServices {
+export function createMetaServices(emailDeps?: EmailDeps): MetaServices {
   return {
     ingestMetaOverlays,
     promoteMetaEvent,
@@ -99,14 +100,8 @@ export function createMetaServices(emailDeps?: MetaSubmissionEmailDeps): MetaSer
     suggestMetaPlayerMatches,
     submitMetaDeck,
     submitMetaEventCorrection,
-    notifyAdminsOfMetaSubmission:
-      emailDeps === undefined
-        ? notifyAdminsOfMetaSubmission
-        : (repos, submission) => notifyAdminsOfMetaSubmission(repos, submission, emailDeps),
-    notifySubmitterOfMetaAcceptance:
-      emailDeps === undefined
-        ? notifySubmitterOfMetaAcceptance
-        : (repos, submissionId) => notifySubmitterOfMetaAcceptance(repos, submissionId, emailDeps),
+    notifyAdminsOfMetaSubmission: bindEmailDeps(notifyAdminsOfMetaSubmission, emailDeps),
+    notifySubmitterOfMetaAcceptance: bindEmailDeps(notifySubmitterOfMetaAcceptance, emailDeps),
     fetchUvsgamesEvent,
     loadTournamentListTarget,
     sendTournamentLists,

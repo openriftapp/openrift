@@ -24,7 +24,7 @@ interface IgnoredVariantRow {
   createdAt: Date;
 }
 
-type IgnoredEntry = IgnoredProductRow | IgnoredVariantRow;
+export type IgnoredEntry = IgnoredProductRow | IgnoredVariantRow;
 
 export function marketplaceAdminRepo(db: Kysely<Database>) {
   return {

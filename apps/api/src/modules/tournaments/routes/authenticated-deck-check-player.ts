@@ -12,8 +12,11 @@ import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
+import { assertFound } from "../../../lib/assertions.js";
+import { isoOrNull } from "../../../lib/iso-date.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { retryOnClaimTokenCollision } from "../lib/claim-token.js";
 import { buildEntryAdvisories } from "../lib/deck-check-advisories.js";
 import { isoDate, toDeckCheckEntryCardResponse } from "../lib/deck-check-presenters.js";
 import type {
@@ -73,8 +76,8 @@ async function buildPlayerDetail(
       allowDeckPublishing: row.allowDeckPublishing,
       allowNameSharing: row.allowNameSharing,
       allowRiotIdSharing: row.allowRiotIdSharing,
-      submittedAt: row.submittedAt?.toISOString() ?? null,
-      submissionsCloseAt: event.submissionsCloseAt?.toISOString() ?? null,
+      submittedAt: isoOrNull(row.submittedAt),
+      submissionsCloseAt: isoOrNull(event.submissionsCloseAt),
       updatedAt: row.updatedAt.toISOString(),
       windowOpen,
       canEdit: windowOpen && row.state === "editable",
@@ -149,13 +152,9 @@ async function withSettledEvent(
   repos: Repos,
   row: PlayerDeckCheckEntryRow | undefined,
 ): Promise<LoadedOwnEntry> {
-  if (!row) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Entry not found");
-  }
+  assertFound(row, "Entry not found");
   const event = await repos.deckCheck.getEventById(row.tournamentId);
-  if (!event) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Entry not found");
-  }
+  assertFound(event, "Entry not found");
   const settled = await settleExpiredEditable(repos, event, row);
   return {
     row: { ...row, ...settled },
@@ -173,9 +172,7 @@ async function loadOpenSubmissionEvent(
   // clears the token, so the lookup misses). Self-registration is a separate
   // policy gate handled per-caller: turning it off keeps the link alive for
   // already-claimed participants.
-  if (!event) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Submission link not found");
-  }
+  assertFound(event, "Submission link not found");
   return event;
 }
 
@@ -193,7 +190,7 @@ async function loadSubmissionEventForUser(
 ): Promise<DeckCheckEvent & { groupName: string }> {
   const event = await loadOpenSubmissionEvent(repos, token);
   if (!event.allowSelfSubmission) {
-    const participant = await repos.tournaments.findParticipantByUser(event.id, userId);
+    const participant = await repos.tournaments.getParticipantByUser(event.id, userId);
     if (!participant) {
       throw new AppError(
         403,
@@ -266,9 +263,7 @@ async function persistSubmission(
   }
 
   const account = await repos.deckCheck.getUserAccount(userId);
-  if (!account) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Account not found");
-  }
+  assertFound(account, "Account not found");
   return createSelfSubmittedEntry(repos, event, account, lines, cardRows, consent);
 }
 
@@ -449,7 +444,7 @@ export const deckCheckPlayerRouter = {
         groupName: event.groupName,
         format: event.format,
         allowedSets: event.allowedSets,
-        submissionsCloseAt: event.submissionsCloseAt?.toISOString() ?? null,
+        submissionsCloseAt: isoOrNull(event.submissionsCloseAt),
         submissionsOpen: submissionWindowOpen(event),
         linkedEntry: linked
           ? (() => {
@@ -494,12 +489,14 @@ export const deckCheckPlayerRouter = {
       if (!submissionWindowOpen(event)) {
         throw new AppError(409, ERROR_CODES.CONFLICT, "Submissions are closed");
       }
-      const entry = await context.transact((txRepos) =>
-        persistSubmission(txRepos, event, userId, lines, cardRows, {
-          allowDeckPublishing: input.allowDeckPublishing,
-          allowNameSharing: input.allowNameSharing,
-          allowRiotIdSharing: input.allowRiotIdSharing,
-        }),
+      const entry = await retryOnClaimTokenCollision(() =>
+        context.transact((txRepos) =>
+          persistSubmission(txRepos, event, userId, lines, cardRows, {
+            allowDeckPublishing: input.allowDeckPublishing,
+            allowNameSharing: input.allowNameSharing,
+            allowRiotIdSharing: input.allowRiotIdSharing,
+          }),
+        ),
       );
       const cards = await repos.deckCheck.listCardsForEntry(entry.id);
       return {
@@ -516,9 +513,7 @@ export const deckCheckPlayerRouter = {
     const result = await context.transact((txRepos) =>
       claimParticipantByToken(txRepos, input.token, userId),
     );
-    if (!result) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Claim link not found");
-    }
+    assertFound(result, "Claim link not found");
     return result;
   }),
 };

@@ -5,6 +5,7 @@ import type { MetaCrossSourceState } from "@openrift/shared/types/enums";
 
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
+import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import { resolvedStandingName } from "../lib/meta-event-naming.js";
 import type { MetaEventSourceRow } from "../repositories/meta-sources.js";
 import { rankPlayerMatches } from "./meta-match-suggestions.js";
@@ -175,9 +176,10 @@ export async function unlinkMetaCrossSourcePlayer(
       "This source is being read. Stop reading it first, then revise the link.",
     );
   }
-  if (!(await repos.metaPlayerLinks.remove(metaEventId, provider, sourceIdentity))) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That entry has not been reviewed.");
-  }
+  assertExisted(
+    await repos.metaPlayerLinks.remove(metaEventId, provider, sourceIdentity),
+    "That entry has not been reviewed.",
+  );
   await promoteMetaEvent(repos, metaEventId);
 }
 
@@ -187,9 +189,7 @@ export async function setMetaEventSourceContributes(
   contributes: boolean,
 ): Promise<void> {
   const source = await repos.meta.eventSourceById(sourceId);
-  if (source === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That citation no longer exists.");
-  }
+  assertFound(source, "That citation no longer exists.");
   if (source.provider === null || !MIRROR_PROVIDERS.has(source.provider)) {
     throw new AppError(
       400,

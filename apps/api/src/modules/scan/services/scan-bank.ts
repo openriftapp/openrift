@@ -16,9 +16,10 @@ import type { CardLabels } from "@openrift/shared/scan/labels";
 import type { RgbaImage } from "@openrift/shared/scan/types";
 
 import type { Io } from "../../../io.js";
+import { MEDIA_DIR } from "../../../lib/media-upload.js";
 import type { ScanReferenceRow } from "../../catalog/repositories/catalog-printings.js";
 import type { catalogRepo } from "../../catalog/repositories/catalog.js";
-import { CARD_MEDIA_DIR, MEDIA_DIR } from "../../catalog/services/images/paths.js";
+import { CARD_MEDIA_DIR } from "../../catalog/services/images/paths.js";
 import type { scanIndexRepo } from "../repositories/scan-index.js";
 
 type CatalogRepo = ReturnType<typeof catalogRepo>;

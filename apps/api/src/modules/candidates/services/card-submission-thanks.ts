@@ -1,9 +1,7 @@
 import type { Repos } from "../../../deps.js";
+import type { EmailDeps } from "../../../email.js";
 import { sendSubmissionAcceptedEmail } from "../../users/services/submission-accepted-notifications.js";
-import type {
-  SubmissionAcceptedEmailDeps,
-  ViewLink,
-} from "../../users/services/submission-accepted-notifications.js";
+import type { ViewLink } from "../../users/services/submission-accepted-notifications.js";
 
 /**
  * Thanks the submitter of an accepted card submission. Never throws; callers
@@ -12,14 +10,14 @@ import type {
 export async function notifySubmitterOfCardAcceptance(
   repos: Repos,
   submissionId: string,
-  deps?: SubmissionAcceptedEmailDeps,
+  deps?: EmailDeps,
 ): Promise<void> {
   if (deps === undefined) {
     return;
   }
 
   try {
-    const submission = await repos.cardSubmissions.findById(submissionId);
+    const submission = await repos.cardSubmissions.getById(submissionId);
     if (submission?.status !== "accepted") {
       return;
     }

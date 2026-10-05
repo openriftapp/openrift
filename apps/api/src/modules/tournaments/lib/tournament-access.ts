@@ -3,6 +3,7 @@ import type { TournamentHostType } from "@openrift/shared/types/api/tournament";
 
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
+import { assertFound } from "../../../lib/assertions.js";
 import type { Tournament, TournamentParticipant } from "../repositories/tournaments-shared.js";
 import { hasOrgRole, loadOrg, requireOrgRole } from "./org-access.js";
 
@@ -14,10 +15,8 @@ import { hasOrgRole, loadOrg, requireOrgRole } from "./org-access.js";
  */
 
 export async function loadTournament(repos: Repos, id: string): Promise<Tournament> {
-  const tournament = await repos.tournaments.findById(id);
-  if (!tournament) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Tournament not found");
-  }
+  const tournament = await repos.tournaments.getById(id);
+  assertFound(tournament, "Tournament not found");
   return tournament;
 }
 
@@ -106,7 +105,7 @@ export async function loadParticipant(
   tournamentId: string,
   participantId: string,
 ): Promise<TournamentParticipant> {
-  const participant = await repos.tournaments.findParticipantById(participantId);
+  const participant = await repos.tournaments.getParticipantById(participantId);
   if (!participant || participant.tournamentId !== tournamentId) {
     throw new AppError(404, ERROR_CODES.NOT_FOUND, "Participant not found");
   }

@@ -3,8 +3,8 @@ import { createLogger } from "@openrift/shared/logger";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createRepos } from "../../../deps.js";
+import type { EmailDeps } from "../../../email.js";
 import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
-import type { CardSubmissionEmailDeps } from "./card-submission-notifications.js";
 import { notifyAdminsOfCardSubmission } from "./card-submission-notifications.js";
 
 const SUBMITTER_ID = crypto.randomUUID();
@@ -31,7 +31,7 @@ describe.skipIf(!ctx)("card submission admin notifications (integration)", () =>
   const { db } = ctx!;
   const repos = createRepos(db);
 
-  function makeDeps(sent: { to: string; subject: string }[]): CardSubmissionEmailDeps {
+  function makeDeps(sent: { to: string; subject: string }[]): EmailDeps {
     return {
       // oxlint-disable-next-line require-await -- mock matches the async sender shape
       sendEmail: async ({ to, subject }) => {

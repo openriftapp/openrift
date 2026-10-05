@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   aspectFromQuery,
+  deckImageBodySchema,
   MAX_IMAGE_SCALE,
   qrFromQuery,
   scaleFromQuery,
@@ -98,5 +99,30 @@ describe("qrFromQuery", () => {
   it("reads back what the serializer wrote", () => {
     expect(qrFromQuery(shareImageQueryParams({ qr: false }).qr)).toBe(false);
     expect(qrFromQuery(shareImageQueryParams({ qr: true }).qr)).toBe(true);
+  });
+});
+
+describe("deckImageBodySchema", () => {
+  it("accepts a minimal deck body", () => {
+    expect(
+      deckImageBodySchema.safeParse({ cards: [{ cardId: "c", zone: "main", quantity: 3 }] })
+        .success,
+    ).toBe(true);
+  });
+
+  it("accepts a null preferred printing and optional labels", () => {
+    expect(
+      deckImageBodySchema.safeParse({
+        deckName: "D",
+        format: "constructed",
+        ownerName: "O",
+        cards: [{ cardId: "c", zone: "main", preferredPrintingId: null }],
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects missing cards or a card without a zone", () => {
+    expect(deckImageBodySchema.safeParse({}).success).toBe(false);
+    expect(deckImageBodySchema.safeParse({ cards: [{ cardId: "c" }] }).success).toBe(false);
   });
 });

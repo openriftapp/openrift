@@ -1,11 +1,12 @@
-import { aspectFromQuery, qrFromQuery, scaleFromQuery } from "@openrift/shared/share-image-params";
 import { Hono } from "hono";
 
 import { assertFound } from "../../../lib/assertions.js";
+import { pngResponse } from "../../../lib/http-response.js";
+import { parseShareImageQuery } from "../../../lib/share-image-query.js";
+import { shareUrlFromOrigin, siteHostFromOrigin } from "../../../lib/site-url.js";
 import { getUserId } from "../../../middleware/get-user-id.js";
 import { requireAuth } from "../../../middleware/require-auth.js";
 import type { Variables } from "../../../types.js";
-import { siteHostFromOrigin } from "../../lists/services/list-image.js";
 import { renderImage } from "../../system/services/render-pool.js";
 import { buildTierListImageRows } from "../services/tier-list-image.js";
 
@@ -21,19 +22,15 @@ export const tierListImageRoute = new Hono<{ Variables: Variables }>()
     const repos = c.get("repos");
     const config = c.get("config");
     const userId = getUserId(c);
-    const scale = scaleFromQuery(c.req.query("scale"), c.req.query("size"));
-    const aspect = aspectFromQuery(c.req.query("aspect"));
-    const withQr = qrFromQuery(c.req.query("qr"));
+    const { scale, aspect, qr: withQr } = parseShareImageQuery((name) => c.req.query(name));
 
     const tierList = await repos.tierLists.getByIdForUser(c.req.param("id"), userId);
     assertFound(tierList, "Not found");
 
     const rows = await buildTierListImageRows(repos, tierList.tiers);
-    // The first CORS origin is the canonical site origin.
-    const firstOrigin = config.corsOrigin?.split(",")[0]?.trim();
     const shareUrl =
-      withQr && tierList.isPublic && tierList.shareToken && firstOrigin
-        ? `${firstOrigin}/tier-lists/share/${tierList.shareToken}`
+      withQr && tierList.isPublic && tierList.shareToken
+        ? shareUrlFromOrigin(config.siteOrigin, `/tier-lists/share/${tierList.shareToken}`)
         : undefined;
 
     const png = await renderImage({
@@ -42,15 +39,12 @@ export const tierListImageRoute = new Hono<{ Variables: Variables }>()
         title: tierList.title,
         ownerName: c.get("user")?.name ?? undefined,
         rows,
-        siteHost: siteHostFromOrigin(config.corsOrigin),
+        siteHost: siteHostFromOrigin(config.siteOrigin),
         shareUrl,
       },
       scale,
       aspect,
     });
 
-    return new Response(png, {
-      status: 200,
-      headers: { "Content-Type": "image/png", "Cache-Control": "private, no-store" },
-    });
+    return pngResponse(png);
   });

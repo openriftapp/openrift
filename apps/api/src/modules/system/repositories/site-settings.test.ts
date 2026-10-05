@@ -63,10 +63,9 @@ describe("siteSettingsRepo", () => {
     expect(result).toEqual(ROW);
   });
 
-  it("deleteByKey returns a delete result", async () => {
+  it("deleteByKey reports whether a row was deleted", async () => {
     const db = createMockDb({ numDeletedRows: 1n });
     const repo = siteSettingsRepo(db);
-    const result = await repo.deleteByKey("motd");
-    expect(result).toEqual({ numDeletedRows: 1n });
+    expect(await repo.deleteByKey("motd")).toBe(true);
   });
 });

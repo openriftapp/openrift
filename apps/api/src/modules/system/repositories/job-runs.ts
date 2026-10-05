@@ -3,7 +3,9 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { startsWithPattern } from "../../../lib/like-pattern.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
+import { offsetPage } from "../../../repositories/query-helpers.js";
 
 export interface JobRun {
   id: string;
@@ -18,11 +20,6 @@ export interface JobRun {
   /** Activity axis for a succeeded run: true = no work done, false = did work,
    *  null = unclassified (failures, unclassified jobs, pre-migration rows). */
   noop: boolean | null;
-}
-
-/** Both LIKE wildcards are ordinary characters in a job kind (`meta.uvsgames_`). */
-function escapeLike(value: string): string {
-  return value.replaceAll(/[\\%_]/gu, String.raw`\$&`);
 }
 
 export function jobRunsRepo(db: Kysely<Database>) {
@@ -77,7 +74,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    async findRunning(kind: string): Promise<{ id: string } | null> {
+    async getRunning(kind: string): Promise<{ id: string } | null> {
       const row = await db
         .selectFrom("jobRuns")
         .select("id")
@@ -149,7 +146,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
      * with a null `result` are skipped so a failure that never wrote a
      * checkpoint doesn't shadow an earlier run's progress.
      */
-    async findLatestForResume(kind: string): Promise<JobRun | null> {
+    async getLatestForResume(kind: string): Promise<JobRun | null> {
       const row = await db
         .selectFrom("jobRuns")
         .select([
@@ -199,7 +196,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
      * Sort is tie-broken by id so the ordering is stable across pages when
      * rows share a started_at.
      */
-    async listPage(params: {
+    listPage(params: {
       kind?: string;
       kindPrefix?: string;
       trigger?: JobTrigger;
@@ -210,7 +207,7 @@ export function jobRunsRepo(db: Kysely<Database>) {
       limit: number;
       offset: number;
     }): Promise<{ rows: JobRun[]; total: number }> {
-      let rowQuery = db
+      let query = db
         .selectFrom("jobRuns")
         .select([
           "id",
@@ -225,38 +222,23 @@ export function jobRunsRepo(db: Kysely<Database>) {
           "noop",
         ])
         .orderBy("startedAt", "desc")
-        .orderBy("id", "desc")
-        .limit(params.limit)
-        .offset(params.offset);
-      let countQuery = db
-        .selectFrom("jobRuns")
-        .select((eb) => eb.fn.countAll<string>().as("total"));
+        .orderBy("id", "desc");
       if (params.kind !== undefined) {
-        rowQuery = rowQuery.where("kind", "=", params.kind);
-        countQuery = countQuery.where("kind", "=", params.kind);
+        query = query.where("kind", "=", params.kind);
       }
       if (params.kindPrefix !== undefined) {
-        const pattern = `${escapeLike(params.kindPrefix)}%`;
-        rowQuery = rowQuery.where("kind", "like", pattern);
-        countQuery = countQuery.where("kind", "like", pattern);
+        query = query.where("kind", "like", startsWithPattern(params.kindPrefix));
       }
       if (params.trigger !== undefined) {
-        rowQuery = rowQuery.where("trigger", "=", params.trigger);
-        countQuery = countQuery.where("trigger", "=", params.trigger);
+        query = query.where("trigger", "=", params.trigger);
       }
       if (params.status !== undefined) {
-        rowQuery = rowQuery.where("status", "=", params.status);
-        countQuery = countQuery.where("status", "=", params.status);
+        query = query.where("status", "=", params.status);
       }
       if (params.noop !== undefined) {
-        rowQuery = rowQuery.where("noop", "=", params.noop);
-        countQuery = countQuery.where("noop", "=", params.noop);
+        query = query.where("noop", "=", params.noop);
       }
-      const [rows, countRow] = await Promise.all([
-        rowQuery.execute(),
-        countQuery.executeTakeFirstOrThrow(),
-      ]);
-      return { rows, total: Number(countRow.total) };
+      return offsetPage(query, params);
     },
 
     listRecentByKinds(kinds: string[], limit: number): Promise<JobRun[]> {

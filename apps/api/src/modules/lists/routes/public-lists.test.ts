@@ -7,7 +7,7 @@ import type { Variables } from "../../../types.js";
 import { publicListsRouter } from "./public-lists";
 
 const mockListsRepo = {
-  findByShareToken: vi.fn(
+  getByShareToken: vi.fn(
     () =>
       Promise.resolve(undefined) as Promise<
         { list: Record<string, unknown>; ownerName: string | null; ownerEmail: string } | undefined
@@ -60,7 +60,7 @@ describe("GET /api/v1/lists/share/:token", () => {
   });
 
   it("returns 200 with the public list, entries, and owner display name", async () => {
-    mockListsRepo.findByShareToken.mockResolvedValue({
+    mockListsRepo.getByShareToken.mockResolvedValue({
       list: dbList,
       ownerName: "Alice",
       ownerEmail: "alice@example.com",
@@ -86,7 +86,7 @@ describe("GET /api/v1/lists/share/:token", () => {
   });
 
   it("falls back to 'Anonymous' when the owner has no display name", async () => {
-    mockListsRepo.findByShareToken.mockResolvedValue({
+    mockListsRepo.getByShareToken.mockResolvedValue({
       list: dbList,
       ownerName: null,
       ownerEmail: "alice@example.com",
@@ -101,7 +101,7 @@ describe("GET /api/v1/lists/share/:token", () => {
   });
 
   it("returns 404 when the token is not found or the list is not public", async () => {
-    mockListsRepo.findByShareToken.mockResolvedValue(undefined);
+    mockListsRepo.getByShareToken.mockResolvedValue(undefined);
 
     const res = await app.request("/api/v1/lists/share/unknown");
     expect(res.status).toBe(404);

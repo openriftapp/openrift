@@ -1,4 +1,5 @@
-import type { Random } from "../pack-opener/rng.js";
+import { shuffle } from "../random.js";
+import type { Random } from "../random.js";
 import type { GroupPlan, GroupPlanGroup } from "./group-cut-types.js";
 
 const MIN_PLAYERS = 6;
@@ -23,21 +24,6 @@ export function validateGroupCount(count: number): void {
   if (!Number.isInteger(count) || count < MIN_PLAYERS || count % 2 !== 0) {
     throw new InvalidGroupCountError(count);
   }
-}
-
-function shuffle<T>(items: readonly T[], rng: Random): T[] {
-  const result = [...items];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(rng.next() * (i + 1));
-    const atI = result[i];
-    const atJ = result[j];
-    if (atI === undefined || atJ === undefined) {
-      throw new Error(`shuffle: index out of range (${i}, ${j})`);
-    }
-    result[i] = atJ;
-    result[j] = atI;
-  }
-  return result;
 }
 
 export function groupLabel(index: number): string {

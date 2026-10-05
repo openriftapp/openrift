@@ -68,9 +68,9 @@ describe("catalogRepo", () => {
     expect(await catalogRepo(db).printingImages()).toHaveLength(1);
   });
 
-  it("printingById returns id when found", async () => {
+  it("getPrintingById returns id when found", async () => {
     const db = createMockDb([{ id: "p-1" }]);
-    expect(await catalogRepo(db).printingById("p-1")).toEqual({ id: "p-1" });
+    expect(await catalogRepo(db).getPrintingById("p-1")).toEqual({ id: "p-1" });
   });
 
   it("landingSummary returns numeric counts and identified thumbnails", async () => {

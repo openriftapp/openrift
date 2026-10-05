@@ -1,6 +1,8 @@
-import { sentenceCaseSlug } from "@openrift/shared/utils";
+import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { sentenceCaseSlug } from "@openrift/shared/strings";
 import { Hono } from "hono";
 
+import { jsonError } from "../../../lib/http-response.js";
 import type { Variables } from "../../../types.js";
 
 /**
@@ -30,17 +32,21 @@ function versionFromDate(value: Date | string | null | undefined): number {
   return Number.isNaN(epochMs) ? 0 : epochMs;
 }
 
-/** Must belong to the `CORS_ORIGIN` allow-list, or this endpoint is an open SSRF redirector. */
-function allowedOrigins(corsOrigin: string | undefined): Set<string> {
-  if (!corsOrigin) {
-    return new Set();
-  }
-  return new Set(
-    corsOrigin
+/** Must be the site origin or on the `CORS_ORIGIN` allow-list, or this endpoint is an open SSRF redirector. */
+function allowedOrigins(
+  siteOrigin: string | undefined,
+  corsOrigin: string | undefined,
+): Set<string> {
+  const origins = new Set(
+    (corsOrigin ?? "")
       .split(",")
       .map((origin) => origin.trim())
       .filter((origin) => origin.length > 0),
   );
+  if (siteOrigin) {
+    origins.add(siteOrigin);
+  }
+  return origins;
 }
 
 function parseShareUrl(
@@ -80,7 +86,7 @@ async function resolveShare(
 ): Promise<ResolvedShare | undefined> {
   switch (kind) {
     case "decks": {
-      const found = await repos.decks.findByShareToken(token);
+      const found = await repos.decks.getByShareToken(token);
       if (!found) {
         return undefined;
       }
@@ -92,7 +98,7 @@ async function resolveShare(
       };
     }
     case "collections": {
-      const found = await repos.collections.findByShareToken(token);
+      const found = await repos.collections.getByShareToken(token);
       if (!found) {
         return undefined;
       }
@@ -105,7 +111,7 @@ async function resolveShare(
       };
     }
     case "lists": {
-      const found = await repos.lists.findByShareToken(token);
+      const found = await repos.lists.getByShareToken(token);
       if (!found) {
         return undefined;
       }
@@ -116,9 +122,9 @@ async function resolveShare(
       };
     }
     case "tier-lists": {
-      // `findByShareToken` requires is_public, so a revoked link resolves to
+      // `getByShareToken` requires is_public, so a revoked link resolves to
       // nothing here exactly as it does on the share page and its image route.
-      const found = await repos.tierLists.findByShareToken(token);
+      const found = await repos.tierLists.getByShareToken(token);
       if (!found) {
         return undefined;
       }
@@ -175,23 +181,23 @@ export const publicOembedRoute = new Hono<{ Variables: Variables }>().get("/oemb
   // Spec: a provider that can't return the requested format answers 501. We
   // only implement JSON (the default WordPress requests first).
   if (format && format !== "json") {
-    return c.json({ error: "Only json format is supported" }, 501);
+    return jsonError(c, 501, "Only json format is supported", ERROR_CODES.BAD_REQUEST);
   }
 
   const rawUrl = c.req.query("url");
   if (!rawUrl) {
-    return c.json({ error: "Missing url parameter" }, 400);
+    return jsonError(c, 400, "Missing url parameter");
   }
 
   const config = c.get("config");
-  const match = parseShareUrl(rawUrl, allowedOrigins(config.corsOrigin));
+  const match = parseShareUrl(rawUrl, allowedOrigins(config.siteOrigin, config.corsOrigin));
   if (!match) {
-    return c.json({ error: "Unsupported url" }, 404);
+    return jsonError(c, 404, "Unsupported url");
   }
 
   const resolved = await resolveShare(c.get("repos"), match.kind, match.token);
   if (!resolved) {
-    return c.json({ error: "Not found" }, 404);
+    return jsonError(c, 404, "Not found");
   }
 
   // Same-origin as the validated page URL; the image route ignores `?v=` and

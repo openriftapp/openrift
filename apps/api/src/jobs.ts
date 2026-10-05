@@ -4,7 +4,8 @@ import type { Kysely } from "kysely";
 import type { Database } from "./db/tables.js";
 import type { Repos } from "./deps.js";
 import { createTransact } from "./deps.js";
-import type { createEmailSender } from "./email.js";
+import { createEmailDeps } from "./email.js";
+import type { SendEmail } from "./email.js";
 import { defaultIo } from "./io.js";
 import { checkMatchingCandidates } from "./modules/candidates/services/check-matching-candidates.js";
 import { sweepSubmissionUploads } from "./modules/candidates/services/submission-uploads.js";
@@ -69,7 +70,7 @@ interface JobDefinitionDeps {
   config: Config;
   repos: Repos;
   db: Kysely<Database>;
-  sendEmail: ReturnType<typeof createEmailSender>;
+  sendEmail: SendEmail;
   log: Logger;
 }
 
@@ -77,94 +78,71 @@ interface JobDefinitionDeps {
 export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[] {
   const { config, repos, db, sendEmail, log } = deps;
   const transact = createTransact(db);
+  const emailDeps = createEmailDeps(config, sendEmail, log);
 
-  const tcgLog = log.child({ service: "tcgplayer" });
-  const cmLog = log.child({ service: "cardmarket" });
-  const ctLog = log.child({ service: "cardtrader" });
-  const cnLog = log.child({ service: "cardnexus" });
-  const clLog = log.child({ service: "changelog" });
-  const peLog = log.child({ service: "printing-events" });
-  const jrLog = log.child({ service: "job-runs-cleanup" });
-  const suLog = log.child({ service: "submission-upload-sweep" });
-  const ifLog = log.child({ service: "image-fingerprint-sweep" });
-  const cdLog = log.child({ service: "copy-deletions-sweep" });
-  const cmcLog = log.child({ service: "check-matching-candidates" });
-  const cteLog = log.child({ service: "card-trades-expire" });
-  const tdLog = log.child({ service: "trade-match-digest" });
-  const trfLog = log.child({ service: "trade-request-flush" });
-  const tsfLog = log.child({ service: "trade-status-flush" });
-  const metaLog = log.child({ service: "meta-sync" });
-
-  const metaDeps = () =>
+  const metaDeps = (jobLog: Logger) =>
     createMetaSyncDeps({
       repos,
       transact,
       fetch: globalThis.fetch,
-      log: metaLog,
+      log: jobLog,
       baseUrl: config.metaSync.baseUrl,
     });
 
-  const playloltcgDeps = () =>
+  const playloltcgDeps = (jobLog: Logger) =>
     createPlayloltcgSyncDeps({
       repos,
       transact,
       fetch: globalThis.fetch,
-      log: metaLog,
+      log: jobLog,
       baseUrl: config.metaSync.playloltcgBaseUrl,
     });
 
   const topdeckApiKey = config.metaSync.topdeckApiKey;
-  const topdeckDeps = () =>
+  const topdeckDeps = (jobLog: Logger) =>
     createTopdeckSyncDeps({
       repos,
       transact,
       fetch: globalThis.fetch,
-      log: metaLog,
+      log: jobLog,
       baseUrl: config.metaSync.topdeckBaseUrl,
       apiKey: topdeckApiKey ?? "",
     });
 
   return [
-    defineJob({
+    defineJob(log, {
       kind: "tcgplayer.refresh",
       title: "TCGPlayer price refresh",
       description: "Fetches the current TCGPlayer prices for every mapped printing.",
       suggestedSchedule: "0 6 * * *",
-      log: tcgLog,
-      execute: () => refreshTcgplayerPrices(globalThis.fetch, repos, tcgLog),
-      summarize: (result) => result,
+      execute: (_runId, jobLog) => refreshTcgplayerPrices(globalThis.fetch, repos, jobLog),
     }),
-    defineJob({
+    defineJob(log, {
       kind: "cardmarket.refresh",
       title: "Cardmarket price refresh",
       description: "Fetches the current Cardmarket prices for every mapped printing.",
       suggestedSchedule: "15 6 * * *",
-      log: cmLog,
-      execute: () => refreshCardmarketPrices(globalThis.fetch, repos, cmLog),
-      summarize: (result) => result,
+      execute: (_runId, jobLog) => refreshCardmarketPrices(globalThis.fetch, repos, jobLog),
     }),
-    defineJob({
+    defineJob(log, {
       kind: "cardtrader.refresh",
       title: "CardTrader price refresh",
       description: "Fetches the current CardTrader prices for every mapped printing.",
       suggestedSchedule: "30 6 * * *",
       unavailableReason: config.cardtraderApiToken ? undefined : "CARDTRADER_API_TOKEN is not set.",
-      log: ctLog,
-      execute: () =>
-        refreshCardtraderPrices(globalThis.fetch, repos, ctLog, config.cardtraderApiToken),
-      summarize: (result) => result,
+      execute: (_runId, jobLog) =>
+        refreshCardtraderPrices(globalThis.fetch, repos, jobLog, config.cardtraderApiToken),
     }),
-    defineJob({
+    defineJob(log, {
       kind: "cardnexus.refresh",
       title: "CardNexus price refresh",
       description: "Fetches the current CardNexus prices for every mapped printing.",
       suggestedSchedule: "45 6 * * *",
       unavailableReason: config.cardnexusApiKey ? undefined : "CARDNEXUS_API_KEY is not set.",
-      log: cnLog,
-      execute: () => refreshCardnexusPrices(globalThis.fetch, repos, cnLog, config.cardnexusApiKey),
-      summarize: (result) => result,
+      execute: (_runId, jobLog) =>
+        refreshCardnexusPrices(globalThis.fetch, repos, jobLog, config.cardnexusApiKey),
     }),
-    defineJob({
+    defineJob(log, {
       kind: "discord.post_changelog",
       title: "Changelog Discord post",
       description: "Posts new changelog entries to the announcements channel on Discord.",
@@ -172,21 +150,19 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       unavailableReason: config.discordWebhooks.changelog
         ? undefined
         : "DISCORD_WEBHOOK_CHANGELOG is not set.",
-      log: clLog,
-      execute: async (runId) => {
-        const prior = await repos.jobRuns.findLatestForResume("discord.post_changelog");
+      execute: async (runId, jobLog) => {
+        const prior = await repos.jobRuns.getLatestForResume("discord.post_changelog");
         return await postChangelogToDiscord({
           webhookUrl: config.discordWebhooks.changelog,
           changelogPath: config.changelogPath,
           jobRuns: repos.jobRuns,
           runId,
           fromDate: extractWatermark(prior?.result),
-          log: clLog,
+          log: jobLog,
         });
       },
-      summarize: (result) => result,
     }),
-    defineJob({
+    defineJob(log, {
       kind: "discord.flush_printing_events",
       title: "New-printing Discord posts",
       description: "Posts the cards added since the last run to the new-printings channel.",
@@ -194,198 +170,156 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       unavailableReason: config.discordWebhooks.newPrintings
         ? undefined
         : "DISCORD_WEBHOOK_NEW_PRINTINGS is not set.",
-      log: peLog,
-      execute: () =>
+      execute: (_runId, jobLog) =>
         flushPendingPrintingEvents(
           repos,
           { newPrintings: config.discordWebhooks.newPrintings },
           config.appBaseUrl,
-          peLog,
+          jobLog,
         ),
-      summarize: (result) => result,
       classifyNoop: isPrintingFlushNoop,
     }),
-    defineJob({
+    defineJob(log, {
       kind: "job_runs.cleanup",
       title: "Job history cleanup",
       description: `Deletes job runs older than ${JOB_RUNS_RETENTION_DAYS} days.`,
       suggestedSchedule: "0 4 * * *",
-      log: jrLog,
       execute: async () => {
         const cutoff = new Date(Date.now() - JOB_RUNS_RETENTION_DAYS * 24 * 60 * 60 * 1000);
         const deleted = await repos.jobRuns.purgeOlderThan(cutoff);
         return { deleted, cutoff: cutoff.toISOString() };
       },
-      summarize: (summary) => summary,
       classifyNoop: (summary) => summary.deleted === 0,
     }),
-    defineJob({
+    defineJob(log, {
       kind: "submission_uploads.sweep",
       title: "Submission upload sweep",
       description:
         "Deletes contributor photo uploads older than 7 days that never became a submission.",
       suggestedSchedule: "0 4 * * *",
-      log: suLog,
       execute: () => sweepSubmissionUploads(defaultIo, repos, { now: new Date() }),
-      summarize: (result) => result,
       classifyNoop: (result) => result.deleted === 0,
     }),
-    defineJob({
+    defineJob(log, {
       kind: "copy_deletions.sweep",
       title: "Copy tombstone sweep",
       description:
         "Drops copy deletion tombstones past the sync window. A client whose watermark is older takes a full read instead.",
       suggestedSchedule: "0 4 * * *",
-      log: cdLog,
       execute: async () => {
         const cutoff = new Date(Date.now() - COPY_DELETION_RETENTION_MS);
         const deleted = await repos.copies.purgeDeletionsOlderThan(cutoff);
         return { deleted, cutoff: cutoff.toISOString() };
       },
-      summarize: (summary) => summary,
       classifyNoop: (summary) => summary.deleted === 0,
     }),
-    defineJob({
+    defineJob(log, {
       kind: "images.fingerprint",
       title: "Image fingerprint sweep",
       description:
         "Fingerprints live and source images so check matching can tell a rehosted copy from a different image.",
       suggestedSchedule: "*/5 * * * *",
-      log: ifLog,
-      execute: () => sweepImageFingerprints(defaultIo, repos, ifLog),
-      summarize: (result) => result,
+      execute: (_runId, jobLog) => sweepImageFingerprints(defaultIo, repos, jobLog),
       classifyNoop: isFingerprintSweepNoop,
     }),
-    defineJob({
+    defineJob(log, {
       kind: "candidates.check_matching",
       title: "Check matching sources",
       description:
         "Marks unchecked source rows checked when every value they provide equals the live card or printing.",
       suggestedSchedule: "30 5 * * *",
-      log: cmcLog,
       execute: () => checkMatchingCandidates(repos, new Date()),
-      summarize: (result) => result,
       classifyNoop: (result) => result.cardsChecked === 0 && result.printingsChecked === 0,
     }),
-    defineJob({
+    defineJob(log, {
       kind: "card_trades.expire_pending",
       title: "Expire pending trades",
       description: "Closes trade offers nobody answered before their deadline.",
       suggestedSchedule: "*/15 * * * *",
-      log: cteLog,
       execute: () => repos.cardTrades.expirePending(),
-      summarize: (result) => result,
       classifyNoop: (result) => result.expired === 0,
     }),
-    defineJob({
+    defineJob(log, {
       kind: "email.trade_match_digest",
       title: "Trade match digest",
       description: "Emails each member the new trade matches found since the last digest.",
       suggestedSchedule: "0 8 * * *",
-      log: tdLog,
-      execute: async () => {
-        const prior = await repos.jobRuns.findLatestForResume("email.trade_match_digest");
+      execute: async (_runId, jobLog) => {
+        const prior = await repos.jobRuns.getLatestForResume("email.trade_match_digest");
         const sinceTimestamp = extractDigestWatermark(prior?.result);
         // Watermark from the run start, not its end, so matches created mid-run
         // aren't skipped (at worst re-sent next day).
         const runStartedAt = new Date();
         const result = await sendTradeMatchDigest({
+          ...emailDeps,
           repos,
-          log: tdLog,
-          sendEmail,
-          appBaseUrl: config.appBaseUrl,
-          unsubscribeSecret: config.auth.secret,
+          log: jobLog,
           sinceTimestamp,
         });
         return { ...result, lastRunAt: runStartedAt.toISOString() };
       },
-      summarize: (result) => result,
       classifyNoop: isTradeMatchDigestNoop,
     }),
-    defineJob({
+    defineJob(log, {
       kind: "email.flush_trade_requests",
       title: "Trade request emails",
       description: "Sends the follow-up email once a burst of trade requests has settled.",
       suggestedSchedule: "* * * * *",
-      log: trfLog,
-      execute: () =>
-        flushCoalescedTradeRequests({
-          repos,
-          log: trfLog,
-          sendEmail,
-          appBaseUrl: config.appBaseUrl,
-          unsubscribeSecret: config.auth.secret,
-        }),
-      summarize: (result) => result,
+      execute: (_runId, jobLog) =>
+        flushCoalescedTradeRequests({ ...emailDeps, repos, log: jobLog }),
       classifyNoop: isTradeRequestFlushNoop,
     }),
-    defineJob({
+    defineJob(log, {
       kind: "email.flush_trade_status",
       title: "Trade status emails",
       description: "Tells the other party a trade was accepted, declined or cancelled.",
       suggestedSchedule: "* * * * *",
-      log: tsfLog,
-      execute: () =>
-        flushTradeStatusEmails({
-          repos,
-          log: tsfLog,
-          sendEmail,
-          appBaseUrl: config.appBaseUrl,
-          unsubscribeSecret: config.auth.secret,
-        }),
-      summarize: (result) => result,
+      execute: (_runId, jobLog) => flushTradeStatusEmails({ ...emailDeps, repos, log: jobLog }),
       classifyNoop: isTradeStatusFlushNoop,
     }),
-    defineJob({
+    defineJob(log, {
       kind: "meta.uvsgames_sync",
       title: "UVS Games event sync",
       description: "Reads the UVS Games event list and queues anything new for a full fetch.",
       suggestedSchedule: "0 6 * * *",
-      log: metaLog,
-      execute: (runId) => syncCatalog(metaDeps(), runId),
-      summarize: (result) => result,
+      execute: (runId, jobLog) => syncCatalog(metaDeps(jobLog), runId),
       classifyNoop: isCatalogSyncNoop,
     }),
-    defineJob({
+    defineJob(log, {
       kind: "meta.uvsgames_recheck",
       title: "UVS Games event recheck",
       description:
         "Re-fetches queued UVS Games events until their results are published. Once an hour it also re-reads the last three days of the listing.",
       suggestedSchedule: "*/10 * * * *",
-      log: metaLog,
-      execute: (runId) =>
-        processRechecks(metaDeps(), { runId, listing: isFirstTickOfHour(new Date()) }),
-      summarize: (result) => result,
+      execute: (runId, jobLog) =>
+        processRechecks(metaDeps(jobLog), { runId, listing: isFirstTickOfHour(new Date()) }),
       classifyNoop: isRecheckNoop,
     }),
-    defineJob({
+    defineJob(log, {
       kind: "meta.playloltcg_sync",
       title: "PlayLoLTCG event sync",
       description: "Reads the PlayLoLTCG event list and queues anything new for a full fetch.",
       suggestedSchedule: "0 7 * * *",
-      log: metaLog,
-      skipCronTick: async () => {
+      skipCronTick: async (jobLog) => {
         const cooling = await playloltcgCoolingDown(
-          playloltcgDeps(),
+          playloltcgDeps(jobLog),
           "meta.playloltcg_sync",
           new Date(),
         );
         return cooling ? "playloltcg sync cooling down after a WAF block; skipping" : null;
       },
-      execute: () => syncPlayloltcgCatalog(playloltcgDeps()),
-      summarize: (result) => result,
+      execute: (_runId, jobLog) => syncPlayloltcgCatalog(playloltcgDeps(jobLog)),
       classifyNoop: isPlayloltcgSyncNoop,
     }),
-    defineJob({
+    defineJob(log, {
       kind: "meta.playloltcg_recheck",
       title: "PlayLoLTCG event recheck",
       description:
         "Re-fetches queued PlayLoLTCG events until their results are published. Once an hour it also re-reads the last three days of the listing.",
       suggestedSchedule: "*/10 * * * *",
-      log: metaLog,
-      skipCronTick: async () => {
+      skipCronTick: async (jobLog) => {
         const cooling = await playloltcgCoolingDown(
-          playloltcgDeps(),
+          playloltcgDeps(jobLog),
           "meta.playloltcg_recheck",
           new Date(),
         );
@@ -393,22 +327,20 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
           ? "playloltcg recheck cooling down after a WAF block or repeated refusals; skipping"
           : null;
       },
-      execute: () =>
-        processPlayloltcgRechecks(playloltcgDeps(), { listing: isFirstTickOfHour(new Date()) }),
-      summarize: (result) => result,
+      execute: (_runId, jobLog) =>
+        processPlayloltcgRechecks(playloltcgDeps(jobLog), {
+          listing: isFirstTickOfHour(new Date()),
+        }),
       classifyNoop: isPlayloltcgRecheckNoop,
     }),
-    defineJob({
+    defineJob(log, {
       kind: "meta.topdeck_sync",
       title: "Topdeck event sync",
       description:
         "Reads the last month of Topdeck tournaments, with their standings and decklists.",
       suggestedSchedule: "30 7 * * *",
-      log: metaLog,
-      skipCronTick: () =>
-        Promise.resolve(topdeckApiKey === null ? "TOPDECK_API_KEY is unset; skipping" : null),
-      execute: () => syncTopdeckCatalog(topdeckDeps()),
-      summarize: (result) => result,
+      unavailableReason: topdeckApiKey === null ? "TOPDECK_API_KEY is not set." : undefined,
+      execute: (_runId, jobLog) => syncTopdeckCatalog(topdeckDeps(jobLog)),
       classifyNoop: isTopdeckSyncNoop,
     }),
   ];

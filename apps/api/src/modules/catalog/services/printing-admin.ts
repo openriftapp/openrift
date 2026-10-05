@@ -7,6 +7,7 @@ import type { Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import type { Io } from "../../../io.js";
 import { assertFound } from "../../../lib/assertions.js";
+import { isForeignKeyViolation } from "../../../lib/pg-errors.js";
 import type { candidateCardsRepo } from "../../candidates/repositories/candidate-cards.js";
 import type {
   catalogDeleteGuardsRepo,
@@ -180,7 +181,7 @@ export async function deletePrinting(
   } catch (error: unknown) {
     // 23503 foreign_key_violation: a row appeared between the blocker check
     // and the delete; re-check so the client still gets a clean CONFLICT.
-    if (error instanceof Error && "code" in error && error.code === "23503") {
+    if (isForeignKeyViolation(error)) {
       throwIfPrintingBlocked(await guards.countForPrinting(printing.id));
     }
     throw error;
@@ -292,9 +293,7 @@ export async function acceptPrintingDeferringRehost(
   }
 
   const card = await mut.getCardById(cardId);
-  if (!card) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Card not found");
-  }
+  assertFound(card, "Card not found");
 
   const finish = (printingFields.finish ?? WellKnown.finish.NORMAL) as Finish;
   const size = (printingFields.size ?? WellKnown.cardSize.STANDARD) as CardSize;

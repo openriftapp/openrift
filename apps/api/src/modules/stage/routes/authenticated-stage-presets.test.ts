@@ -33,11 +33,11 @@ function uniqueViolation(constraint: string): Error {
 
 const mockRepo = {
   listForUser: vi.fn(),
-  findByIdForUser: vi.fn(),
+  getByIdForUser: vi.fn(),
   countForUser: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
-  remove: vi.fn(),
+  deleteByIdForUser: vi.fn(),
 };
 
 const app = new Hono<{ Variables: Variables }>();
@@ -146,7 +146,7 @@ describe("PATCH /api/v1/stage-presets/{id}", () => {
   });
 
   it("reads back the current state for an edit that names no field", async () => {
-    mockRepo.findByIdForUser.mockResolvedValue(stubPreset());
+    mockRepo.getByIdForUser.mockResolvedValue(stubPreset());
 
     const res = await patch({});
 
@@ -165,16 +165,16 @@ describe("PATCH /api/v1/stage-presets/{id}", () => {
 
 describe("DELETE /api/v1/stage-presets/{id}", () => {
   it("deletes the caller's preset", async () => {
-    mockRepo.remove.mockResolvedValue(true);
+    mockRepo.deleteByIdForUser.mockResolvedValue(true);
 
     const res = await app.request(`/api/v1/stage-presets/${PRESET_ID}`, { method: "DELETE" });
 
     expect(res.status).toBe(204);
-    expect(mockRepo.remove).toHaveBeenCalledWith(PRESET_ID, USER_ID);
+    expect(mockRepo.deleteByIdForUser).toHaveBeenCalledWith(PRESET_ID, USER_ID);
   });
 
   it("answers 404 when nothing was deleted", async () => {
-    mockRepo.remove.mockResolvedValue(false);
+    mockRepo.deleteByIdForUser.mockResolvedValue(false);
 
     const res = await app.request(`/api/v1/stage-presets/${PRESET_ID}`, { method: "DELETE" });
 

@@ -1,6 +1,3 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side hashing, never reaches the browser
-import { createHash } from "node:crypto";
-
 import {
   buildContentHashInput,
   mapSectionToZone,
@@ -16,14 +13,13 @@ import { inferZone } from "@openrift/shared/zone-inference";
 
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
+import { assertFound } from "../../../lib/assertions.js";
+import { sha256Hex } from "../../../lib/hash.js";
+import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import type { DeckCheckEntry } from "../repositories/deck-check-entries.js";
 import type { NewDeckCheckEntryCard } from "../repositories/deck-check-entry-cards.js";
 import type { DeckCheckEvent } from "../repositories/deck-check-events.js";
 import { cardResolutionKey, resolveDeckCheckCards } from "./deck-check-card-resolution.js";
-
-function sha256(input: string): string {
-  return createHash("sha256").update(input).digest("hex");
-}
 
 /**
  * Claims a participant (a tournament "spot") via its claim token. Rooted on
@@ -47,12 +43,12 @@ export async function claimParticipantByToken(
   token: string,
   userId: string,
 ): Promise<DeckCheckClaimResultResponse | null> {
-  const participant = await repos.tournaments.findParticipantByClaimToken(token);
+  const participant = await repos.tournaments.getParticipantByClaimToken(token);
   if (!participant) {
     return null;
   }
   if (participant.userId === userId) {
-    const entryId = await repos.deckCheck.findEntryIdByParticipant(participant.id);
+    const entryId = await repos.deckCheck.getEntryIdByParticipant(participant.id);
     return { status: "already", tournamentId: participant.tournamentId, entryId: entryId ?? null };
   }
   if (participant.userId !== null) {
@@ -63,9 +59,9 @@ export async function claimParticipantByToken(
   }
   // uq_tournament_participants_user: one account per tournament. Pre-check so a
   // caller who already holds a spot gets a "duplicate" outcome, not a 500.
-  const existing = await repos.tournaments.findParticipantByUser(participant.tournamentId, userId);
+  const existing = await repos.tournaments.getParticipantByUser(participant.tournamentId, userId);
   if (existing) {
-    const entryId = await repos.deckCheck.findEntryIdByParticipant(existing.id);
+    const entryId = await repos.deckCheck.getEntryIdByParticipant(existing.id);
     return {
       status: "duplicate",
       tournamentId: participant.tournamentId,
@@ -84,13 +80,13 @@ export async function claimParticipantByToken(
   } catch (error) {
     // A concurrent claim can trip uq_tournament_participants_user (23505)
     // between the pre-check above and this write; treat it as "duplicate", not a 500.
-    if (error instanceof Error && "code" in error && error.code === "23505") {
-      const existingSpot = await repos.tournaments.findParticipantByUser(
+    if (isUniqueViolationOn(error, "uq_tournament_participants_user")) {
+      const existingSpot = await repos.tournaments.getParticipantByUser(
         participant.tournamentId,
         userId,
       );
       if (existingSpot) {
-        const entryId = await repos.deckCheck.findEntryIdByParticipant(existingSpot.id);
+        const entryId = await repos.deckCheck.getEntryIdByParticipant(existingSpot.id);
         return {
           status: "duplicate",
           tournamentId: participant.tournamentId,
@@ -101,12 +97,12 @@ export async function claimParticipantByToken(
     throw error;
   }
   if (linked) {
-    const entryId = await repos.deckCheck.findEntryIdByParticipant(linked.id);
+    const entryId = await repos.deckCheck.getEntryIdByParticipant(linked.id);
     return { status: "claimed", tournamentId: linked.tournamentId, entryId: entryId ?? null };
   }
-  const fresh = await repos.tournaments.findParticipantByClaimToken(token);
+  const fresh = await repos.tournaments.getParticipantByClaimToken(token);
   if (fresh?.userId === userId) {
-    const entryId = await repos.deckCheck.findEntryIdByParticipant(fresh.id);
+    const entryId = await repos.deckCheck.getEntryIdByParticipant(fresh.id);
     return { status: "already", tournamentId: fresh.tournamentId, entryId: entryId ?? null };
   }
   if (fresh && fresh.userId === null && fresh.claimBlockedAt !== null) {
@@ -200,9 +196,7 @@ async function linesFromOwnDeck(
   deckId: string,
 ): Promise<DeckCheckCardLine[]> {
   const deck = await repos.decks.getByIdForUser(deckId, userId);
-  if (!deck) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Deck not found");
-  }
+  assertFound(deck, "Deck not found");
   const rows = await repos.decks.cardsWithDetails(deckId, userId);
   return rows
     .filter((row) => row.zone !== WellKnown.deckZone.OVERFLOW)
@@ -311,7 +305,7 @@ export async function applyPlayerList(
   cardRows: NewDeckCheckEntryCard[],
   consent: PlayerSharingConsent = {},
 ): Promise<DeckCheckEntry> {
-  const contentHash = sha256(buildContentHashInput(lines));
+  const contentHash = sha256Hex(buildContentHashInput(lines));
   if (entry.contentHash === contentHash) {
     const patch = consentPatch(consent);
     if (Object.keys(patch).length > 0) {
@@ -363,7 +357,7 @@ export async function createSelfSubmittedEntry(
     externalId: `${SELF_SUBMIT_EXTERNAL_ID_PREFIX}${account.id}`,
     submittedAt: new Date(),
     ...consentPatch(consent),
-    contentHash: sha256(buildContentHashInput(lines)),
+    contentHash: sha256Hex(buildContentHashInput(lines)),
     withdrawnAt: null,
     state: "submitted",
   });

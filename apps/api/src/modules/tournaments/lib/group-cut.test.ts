@@ -77,6 +77,8 @@ function round(
         podId: `p-${roundNumber}-${entry.podNumber}`,
         playerId,
         displayName: playerId.toUpperCase(),
+        image: null,
+        email: null,
         teamId: null,
         placement: entry.reported ? seat + 1 : null,
         gamePoints: entry.reported ? 1 - seat : null,

@@ -6,6 +6,7 @@ import type {
   OrganizationMembersTable,
   OrganizationsTable,
 } from "../../../db/tables/organizations.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 
 /** The "owner" shown in a listing is the longest-standing `role = 'owner'` member. */
 function ownerNameSubquery(eb: ExpressionBuilder<Database & { o: OrganizationsTable }, "o">) {
@@ -53,7 +54,7 @@ export function organizationsRepo(db: Kysely<Database>) {
     create(input: NewOrganization): Promise<Organization> {
       // A deferred owner-guard trigger checks at commit that the org has an
       // owner-role member, so this must run in one transaction.
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const org = await trx
           .insertInto("organizations")
           .values({
@@ -72,11 +73,11 @@ export function organizationsRepo(db: Kysely<Database>) {
       });
     },
 
-    findBySlug(slug: string): Promise<Organization | undefined> {
+    getBySlug(slug: string): Promise<Organization | undefined> {
       return db.selectFrom("organizations").selectAll().where("slug", "=", slug).executeTakeFirst();
     },
 
-    findById(id: string): Promise<Organization | undefined> {
+    getById(id: string): Promise<Organization | undefined> {
       return db.selectFrom("organizations").selectAll().where("id", "=", id).executeTakeFirst();
     },
 
@@ -172,9 +173,9 @@ export function organizationsRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    async deleteById(id: string): Promise<{ numDeletedRows: bigint }> {
+    async deleteById(id: string): Promise<boolean> {
       const result = await db.deleteFrom("organizations").where("id", "=", id).executeTakeFirst();
-      return { numDeletedRows: result.numDeletedRows };
+      return result.numDeletedRows > 0n;
     },
 
     listMembers(orgId: string): Promise<OrganizationMemberWithName[]> {

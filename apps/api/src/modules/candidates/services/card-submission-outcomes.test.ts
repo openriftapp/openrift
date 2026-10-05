@@ -33,7 +33,7 @@ function stubRepos(options: StubOptions = {}) {
   const repos = {
     cardSubmissions: {
       pendingByCandidateCardIds: vi.fn(async () => options.pending ?? []),
-      findByExternalId: vi.fn(async () => null),
+      getByExternalId: vi.fn(async () => null),
       liveCardByNormName: vi.fn(async () => options.liveCard ?? null),
       liveSnapshot: vi.fn(async () => ({
         snapshot: {
@@ -303,7 +303,7 @@ describe("resolveCheckedSubmissions", () => {
 describe("rejectIgnoredSubmission", () => {
   it("rejects the submission behind the ignored key", async () => {
     const { repos, resolve } = stubRepos();
-    repos.cardSubmissions.findByExternalId = vi.fn(
+    repos.cardSubmissions.getByExternalId = vi.fn(
       async () => ({ id: "sub-1", status: "pending" }) as never,
     );
 
@@ -325,7 +325,7 @@ describe("rejectIgnoredSubmission", () => {
     const { repos } = stubRepos({
       candidateImageUrls: ["/media/submissions/0198f000-0000-7000-8000-00000000000d.jpg"],
     });
-    repos.cardSubmissions.findByExternalId = vi.fn(
+    repos.cardSubmissions.getByExternalId = vi.fn(
       async () => ({ id: "sub-1", status: "pending", candidateCardId: "cc-1" }) as never,
     );
 
@@ -354,7 +354,7 @@ describe("rejectIgnoredSubmission", () => {
 
   it("is idempotent for an already rejected submission", async () => {
     const { repos, resolve } = stubRepos();
-    repos.cardSubmissions.findByExternalId = vi.fn(
+    repos.cardSubmissions.getByExternalId = vi.fn(
       async () => ({ id: "sub-1", status: "rejected" }) as never,
     );
 
@@ -372,7 +372,7 @@ describe("rejectIgnoredSubmission", () => {
 describe("reopenUnignoredSubmission", () => {
   it("returns a rejected submission to the queue", async () => {
     const { repos, reopen } = stubRepos();
-    repos.cardSubmissions.findByExternalId = vi.fn(
+    repos.cardSubmissions.getByExternalId = vi.fn(
       async () => ({ id: "sub-1", status: "rejected" }) as never,
     );
 
@@ -385,7 +385,7 @@ describe("reopenUnignoredSubmission", () => {
 
   it("leaves a submission that was never rejected alone", async () => {
     const { repos, reopen } = stubRepos();
-    repos.cardSubmissions.findByExternalId = vi.fn(
+    repos.cardSubmissions.getByExternalId = vi.fn(
       async () => ({ id: "sub-1", status: "accepted" }) as never,
     );
 

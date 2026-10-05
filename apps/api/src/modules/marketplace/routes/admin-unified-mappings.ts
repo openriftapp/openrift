@@ -5,7 +5,11 @@ import { implement } from "@orpc/server";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { createMarketplaceConfigs } from "../lib/marketplace-configs.js";
-import { saveMappings, unmapPrinting } from "../services/marketplace-mapping.js";
+import {
+  getMappingOverview,
+  saveMappings,
+  unmapPrinting,
+} from "../services/marketplace-mapping.js";
 import {
   buildUnifiedMappingsCardResponse,
   buildUnifiedMappingsResponse,
@@ -16,7 +20,6 @@ const os = implement(adminUnifiedMappingsContract).$context<ApiContext>().use(re
 export const adminUnifiedMappingsRouter = {
   list: os.list.handler(async ({ context }) => {
     const repos = context.repos;
-    const { getMappingOverview } = context.services;
     return await buildUnifiedMappingsResponse(
       repos,
       createMarketplaceConfigs(repos),
@@ -26,7 +29,6 @@ export const adminUnifiedMappingsRouter = {
 
   summary: os.summary.handler(async ({ context }) => {
     const repos = context.repos;
-    const { getMappingOverview } = context.services;
     const { groups, unmatchedProducts } = await buildUnifiedMappingsResponse(
       repos,
       createMarketplaceConfigs(repos),

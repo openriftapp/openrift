@@ -1,11 +1,12 @@
-import { aspectFromQuery, qrFromQuery, scaleFromQuery } from "@openrift/shared/share-image-params";
 import { Hono } from "hono";
 
 import { assertFound } from "../../../lib/assertions.js";
+import { pngResponse } from "../../../lib/http-response.js";
+import { parseShareImageQuery } from "../../../lib/share-image-query.js";
+import { shareUrlFromOrigin, siteHostFromOrigin } from "../../../lib/site-url.js";
 import { getUserId } from "../../../middleware/get-user-id.js";
 import { requireAuth } from "../../../middleware/require-auth.js";
 import type { Variables } from "../../../types.js";
-import { shareUrlFromOrigin, siteHostFromOrigin } from "../../lists/services/list-image.js";
 import { renderImage } from "../../system/services/render-pool.js";
 import { buildCollectionShareInput } from "../services/collection-image.js";
 
@@ -28,33 +29,28 @@ export const collectionImageRoute = new Hono<{ Variables: Variables }>()
     const collection = await collections.getByIdForUser(id, userId);
     assertFound(collection, "Not found");
 
-    // Only a currently-public collection gets a QR: findByShareToken requires
+    // Only a currently-public collection gets a QR: getByShareToken requires
     // is_public, so a revoked collection's stale token would 404 instead.
     const shareUrl =
       collection.isPublic && collection.shareToken
-        ? shareUrlFromOrigin(config.corsOrigin, `/collections/share/${collection.shareToken}`)
+        ? shareUrlFromOrigin(config.siteOrigin, `/collections/share/${collection.shareToken}`)
         : undefined;
 
     const input = await buildCollectionShareInput({
       collectionId: collection.id,
       ownerName: c.get("user")?.name ?? "Anonymous",
       collectionName: collection.name,
-      siteHost: siteHostFromOrigin(config.corsOrigin),
+      siteHost: siteHostFromOrigin(config.siteOrigin),
       shareUrl,
       copies,
     });
+    const { scale, aspect, qr } = parseShareImageQuery((name) => c.req.query(name));
     const png = await renderImage({
       kind: "share",
       input,
-      scale: scaleFromQuery(c.req.query("scale"), c.req.query("size")),
-      options: {
-        aspect: aspectFromQuery(c.req.query("aspect")),
-        qr: qrFromQuery(c.req.query("qr")),
-      },
+      scale,
+      options: { aspect, qr },
     });
 
-    return new Response(png, {
-      status: 200,
-      headers: { "Content-Type": "image/png", "Cache-Control": "private, no-store" },
-    });
+    return pngResponse(png);
   });

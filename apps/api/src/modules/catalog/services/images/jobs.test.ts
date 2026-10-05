@@ -518,12 +518,12 @@ function makeFakeJobRunsRepo(initial: unknown = null) {
     start: vi.fn(),
     succeed: vi.fn(),
     fail: vi.fn(),
-    findRunning: vi.fn(),
+    getRunning: vi.fn(),
     listRecent: vi.fn(),
     getLatestPerKind: vi.fn(),
     sweepOrphaned: vi.fn(),
     purgeOlderThan: vi.fn(),
-    findLatestForResume: vi.fn(),
+    getLatestForResume: vi.fn(),
   };
   const current = () => state.stored;
   const setCancel = () => {

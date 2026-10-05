@@ -74,6 +74,18 @@ export function isZoneShown(
   return true;
 }
 
+export function isSingleSlotZone(zone: string): boolean {
+  return zone === WellKnown.deckZone.LEGEND || zone === WellKnown.deckZone.CHAMPION;
+}
+
+/** The legend, else the chosen champion, as the deck's identifying card. */
+export function deckIdentityCard<T extends { zone: string }>(cards: readonly T[]): T | undefined {
+  return (
+    cards.find((card) => card.zone === WellKnown.deckZone.LEGEND) ??
+    cards.find((card) => card.zone === WellKnown.deckZone.CHAMPION)
+  );
+}
+
 export function isCountedZone(zone: string): boolean {
   return zone !== WellKnown.deckZone.OVERFLOW;
 }

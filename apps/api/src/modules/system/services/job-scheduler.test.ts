@@ -2,7 +2,7 @@ import { createLogger } from "@openrift/shared/logger";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AnyJobDefinition, JobScheduler } from "./job-scheduler.js";
-import { createJobScheduler } from "./job-scheduler.js";
+import { createJobScheduler, defineJob } from "./job-scheduler.js";
 
 const log = createLogger("test");
 
@@ -15,7 +15,7 @@ const jobSchedules = {
 
 const jobRuns = {
   getLatestPerKind: vi.fn(),
-  findRunning: vi.fn(),
+  getRunning: vi.fn(),
   start: vi.fn(),
   succeed: vi.fn(),
   fail: vi.fn(),
@@ -180,7 +180,7 @@ describe("enableSuggested", () => {
 
 describe("runNow", () => {
   it("returns the new run's handle", async () => {
-    jobRuns.findRunning.mockResolvedValue(null);
+    jobRuns.getRunning.mockResolvedValue(null);
     jobRuns.start.mockResolvedValue({ id: "run-1" });
     scheduler = build([definition()]);
     await expect(scheduler.runNow("tcgplayer.refresh")).resolves.toEqual({
@@ -191,7 +191,7 @@ describe("runNow", () => {
   });
 
   it("reports the in-flight run instead of starting a second one", async () => {
-    jobRuns.findRunning.mockResolvedValue({ id: "run-0" });
+    jobRuns.getRunning.mockResolvedValue({ id: "run-0" });
     scheduler = build([definition()]);
     await expect(scheduler.runNow("tcgplayer.refresh")).resolves.toEqual({
       runId: "run-0",
@@ -234,5 +234,49 @@ describe("list", () => {
     expect(views[1]!.updatedAt).toBe("2026-08-01T00:00:00.000Z");
     expect(views[1]!.nextRun).not.toBeNull();
     expect(views[1]!.lastRun?.status).toBe("succeeded");
+  });
+});
+
+describe("defineJob", () => {
+  const meta = {
+    kind: "tcgplayer.refresh",
+    title: "TCGPlayer price refresh",
+    description: "Fetches prices.",
+    suggestedSchedule: NEVER,
+  } as const;
+
+  it("stores the result as returned when no summarize is given", () => {
+    const job = defineJob(log, { ...meta, execute: async () => ({ updated: 1 }) });
+    expect(job.summarize?.({ updated: 1 })).toEqual({ updated: 1 });
+  });
+
+  it("stores no result when summarize is false", () => {
+    const job = defineJob(log, { ...meta, summarize: false, execute: async () => 1 });
+    expect(job.summarize).toBeUndefined();
+  });
+
+  it("keeps an explicit summarize", () => {
+    const job = defineJob(log, {
+      ...meta,
+      summarize: (result: { updated: number }) => result.updated,
+      execute: async () => ({ updated: 3 }),
+    });
+    expect(job.summarize?.({ updated: 3 })).toBe(3);
+  });
+
+  it("hands execute and skipCronTick a logger named after the kind", async () => {
+    const child = createLogger("child");
+    const rootLog = { child: vi.fn(() => child) } as unknown as typeof log;
+    const execute = vi.fn().mockResolvedValue(null);
+    const skipCronTick = vi.fn().mockResolvedValue(null);
+    const job = defineJob(rootLog, { ...meta, execute, skipCronTick });
+
+    await job.execute("run-1");
+    await job.skipCronTick?.();
+
+    expect(rootLog.child).toHaveBeenCalledWith({ service: "tcgplayer.refresh" });
+    expect(job.log).toBe(child);
+    expect(execute).toHaveBeenCalledWith("run-1", child);
+    expect(skipCronTick).toHaveBeenCalledWith(child);
   });
 });

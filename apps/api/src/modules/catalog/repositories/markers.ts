@@ -1,7 +1,7 @@
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { reorderBySortOrder } from "./sort-order.js";
+import { inTransaction, reorderBySortOrder } from "../../../repositories/query-helpers.js";
 
 export function markersRepo(db: Kysely<Database>) {
   return {
@@ -66,8 +66,9 @@ export function markersRepo(db: Kysely<Database>) {
       return db.updateTable("markers").set(updates).where("id", "=", id).executeTakeFirstOrThrow();
     },
 
-    deleteById(id: string) {
-      return db.deleteFrom("markers").where("id", "=", id).executeTakeFirstOrThrow();
+    async deleteById(id: string): Promise<boolean> {
+      const result = await db.deleteFrom("markers").where("id", "=", id).executeTakeFirst();
+      return result.numDeletedRows > 0n;
     },
 
     isInUse(id: string) {
@@ -90,7 +91,7 @@ export function markersRepo(db: Kysely<Database>) {
           .values(markerIds.map((markerId) => ({ printingId, markerId })))
           .execute();
       };
-      await (db.isTransaction ? run(db) : db.transaction().execute(run));
+      await inTransaction(db, run);
     },
   };
 }

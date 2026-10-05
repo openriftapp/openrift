@@ -4,6 +4,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import type { Io } from "../../../io.js";
+import { assertFound } from "../../../lib/assertions.js";
 import type { catalogMutationsRepo } from "../../catalog/repositories/catalog-mutations.js";
 import type { distributionChannelsRepo } from "../../catalog/repositories/distribution-channels.js";
 import type { markersRepo } from "../../catalog/repositories/markers.js";
@@ -42,9 +43,7 @@ export async function acceptFavoritePrintingsForCard(
   const mut = repos.catalogMutations;
 
   const card = await mut.getCardBySlug(cardSlug);
-  if (!card) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, `Card not found: ${cardSlug}`);
-  }
+  assertFound(card, `Card not found: ${cardSlug}`);
 
   const aliases = await mut.getCardAliases(card.id);
   if (aliases.length === 0) {

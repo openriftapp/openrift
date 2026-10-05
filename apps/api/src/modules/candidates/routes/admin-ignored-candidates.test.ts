@@ -25,7 +25,7 @@ const mockAdminEvents = { insert: vi.fn() };
 // Returning null is the scraped-provider case: no ledger row, so the
 // outcome service no-ops.
 const mockCardSubmissions = {
-  findByExternalId: vi.fn().mockResolvedValue(null),
+  getByExternalId: vi.fn().mockResolvedValue(null),
   resolve: vi.fn(),
   reopen: vi.fn(),
 };
@@ -197,7 +197,7 @@ describe("POST /api/admin/v1/ignored-candidates/cards", () => {
 
   it("rejects the user submission behind an ignored candidate", async () => {
     mockRepo.ignoreCard.mockResolvedValue(undefined);
-    mockCardSubmissions.findByExternalId.mockResolvedValue({ id: "sub-1", status: "pending" });
+    mockCardSubmissions.getByExternalId.mockResolvedValue({ id: "sub-1", status: "pending" });
     const res = await app.request("/api/admin/v1/ignored-candidates/cards", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -212,7 +212,7 @@ describe("POST /api/admin/v1/ignored-candidates/cards", () => {
 
   it("leaves a scraped provider's candidate alone", async () => {
     mockRepo.ignoreCard.mockResolvedValue(undefined);
-    mockCardSubmissions.findByExternalId.mockResolvedValue(null);
+    mockCardSubmissions.getByExternalId.mockResolvedValue(null);
     const res = await app.request("/api/admin/v1/ignored-candidates/cards", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -241,7 +241,7 @@ describe("DELETE /api/admin/v1/ignored-candidates/cards", () => {
 
   it("returns a rejected submission to the queue when unignored", async () => {
     mockRepo.unignoreCard.mockResolvedValue(undefined);
-    mockCardSubmissions.findByExternalId.mockResolvedValue({ id: "sub-1", status: "rejected" });
+    mockCardSubmissions.getByExternalId.mockResolvedValue({ id: "sub-1", status: "rejected" });
     const res = await app.request("/api/admin/v1/ignored-candidates/cards", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },

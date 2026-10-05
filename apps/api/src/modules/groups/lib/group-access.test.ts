@@ -1,9 +1,16 @@
 import type { FriendGroupRole } from "@openrift/shared/types/api/friend-group";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
+import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import type { GroupMember } from "../repositories/friend-groups-shared.js";
-import { hasRole, requireRole, ROLE_RANK } from "./group-access.js";
+import {
+  hasRole,
+  loadGroupBySlug,
+  loadGroupForMember,
+  requireRole,
+  ROLE_RANK,
+} from "./group-access.js";
 
 function membership(role: FriendGroupRole): GroupMember {
   return {
@@ -57,5 +64,48 @@ describe("requireRole", () => {
     for (const role of ["owner", "admin", "member"] as const) {
       expect(() => requireRole(membership(role), "member")).not.toThrow();
     }
+  });
+
+  it("rejects a non-member with 403", () => {
+    expect(() => requireRole(undefined, "member")).toThrow(AppError);
+  });
+});
+
+function reposWith(group: unknown, member: GroupMember | undefined): Repos {
+  return {
+    friendGroups: {
+      getBySlugOrPrevious: vi.fn(async () => group),
+      getMembership: vi.fn(async () => member),
+    },
+  } as unknown as Repos;
+}
+
+describe("loadGroupBySlug", () => {
+  it("returns the group", async () => {
+    await expect(loadGroupBySlug(reposWith({ id: "g1" }, undefined), "s")).resolves.toEqual({
+      id: "g1",
+    });
+  });
+
+  it("throws 404 when the slug matches no group", async () => {
+    await expect(loadGroupBySlug(reposWith(undefined, undefined), "s")).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+});
+
+describe("loadGroupForMember", () => {
+  it("returns the group with the viewer's membership", async () => {
+    const member = membership("member");
+    await expect(loadGroupForMember(reposWith({ id: "g1" }, member), "s", "u1")).resolves.toEqual({
+      group: { id: "g1" },
+      membership: member,
+    });
+  });
+
+  it("throws 404 for a non-member", async () => {
+    await expect(
+      loadGroupForMember(reposWith({ id: "g1" }, undefined), "s", "u1"),
+    ).rejects.toMatchObject({ status: 404 });
   });
 });

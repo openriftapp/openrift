@@ -13,7 +13,7 @@ vi.mock("../services/deck-check-ingest.js", () => ({
 }));
 
 const mockDeckCheckKeysRepo = {
-  findActiveKeyByHash: vi.fn(),
+  getActiveKeyByHash: vi.fn(),
   touchKeyUsage: vi.fn(),
 };
 
@@ -54,7 +54,7 @@ describe("POST /api/v1/ingest/deck-check (oRPC)", () => {
   });
 
   it("returns 200 with the ingest result for a valid key + payload", async () => {
-    mockDeckCheckKeysRepo.findActiveKeyByHash.mockResolvedValue({
+    mockDeckCheckKeysRepo.getActiveKeyByHash.mockResolvedValue({
       id: "key-1",
       hostType: "user",
       hostUserId: "user-1",
@@ -77,6 +77,31 @@ describe("POST /api/v1/ingest/deck-check (oRPC)", () => {
     expect(mockDeckCheckKeysRepo.touchKeyUsage).toHaveBeenCalledWith("key-1");
   });
 
+  it("reruns the ingest transaction when a minted claim token collides", async () => {
+    mockDeckCheckKeysRepo.getActiveKeyByHash.mockResolvedValue({
+      id: "key-1",
+      hostType: "user",
+      hostUserId: "user-1",
+      hostOrgId: null,
+    });
+    mockIngest
+      .mockRejectedValueOnce(
+        Object.assign(new Error("duplicate key"), {
+          code: "23505",
+          constraint_name: "uq_tournament_participants_claim_token",
+        }),
+      )
+      .mockResolvedValueOnce(RESULT);
+
+    const res = await push(
+      { tournamentId: EVENT_ID, entries: [] },
+      { Authorization: "Bearer secret" },
+    );
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual(RESULT);
+    expect(mockIngest).toHaveBeenCalledTimes(2);
+  });
+
   it("returns 401 { code, message } when the Authorization header is missing", async () => {
     const res = await push({ tournamentId: EVENT_ID, entries: [] });
     expect(res.status).toBe(401);
@@ -84,11 +109,11 @@ describe("POST /api/v1/ingest/deck-check (oRPC)", () => {
       code: ERROR_CODES.UNAUTHORIZED,
       message: "Missing push key",
     });
-    expect(mockDeckCheckKeysRepo.findActiveKeyByHash).not.toHaveBeenCalled();
+    expect(mockDeckCheckKeysRepo.getActiveKeyByHash).not.toHaveBeenCalled();
   });
 
   it("returns 401 { code, message } when the key is unknown or revoked", async () => {
-    mockDeckCheckKeysRepo.findActiveKeyByHash.mockResolvedValue(undefined);
+    mockDeckCheckKeysRepo.getActiveKeyByHash.mockResolvedValue(undefined);
     const res = await push(
       { tournamentId: EVENT_ID, entries: [] },
       { Authorization: "Bearer nope" },
@@ -103,7 +128,7 @@ describe("POST /api/v1/ingest/deck-check (oRPC)", () => {
   it("returns 400 on a bad body, before the auth check (oRPC input validation)", async () => {
     const res = await push({ tournamentId: "not-a-uuid" }, { Authorization: "Bearer secret" });
     expect(res.status).toBe(400);
-    expect(mockDeckCheckKeysRepo.findActiveKeyByHash).not.toHaveBeenCalled();
+    expect(mockDeckCheckKeysRepo.getActiveKeyByHash).not.toHaveBeenCalled();
   });
 });
 
@@ -134,7 +159,7 @@ describe("deck-check ingest body limit", () => {
   });
 
   it("lets an under-cap push through to the router", async () => {
-    mockDeckCheckKeysRepo.findActiveKeyByHash.mockResolvedValue(undefined);
+    mockDeckCheckKeysRepo.getActiveKeyByHash.mockResolvedValue(undefined);
 
     const res = await limited.request("/api/v1/ingest/deck-check", {
       method: "POST",

@@ -3,7 +3,7 @@
  * flag, or the two could disagree.
  */
 
-import { formatDay, formatMonth } from "./format-date.js";
+import { formatDay, formatMonth, todayUtc } from "./format-date.js";
 
 export type ReleasePrecision = "day" | "month" | "quarter" | "year";
 
@@ -15,12 +15,6 @@ export interface SetRelease {
 
 /** A set's releases keyed by language code. A missing key means not announced. */
 export type SetReleases = Record<string, SetRelease>;
-
-// UTC on purpose: SSR and hydration must agree on "today", and comparing a
-// UTC server against a browser's local timezone would cause a React #418.
-export function todayUtc(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export function releasePeriodEnd(release: SetRelease): string | null {
   const { releasedAt, precision } = release;

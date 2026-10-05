@@ -1,4 +1,5 @@
 import type { StagePresetConfig } from "@openrift/shared/contracts/stage-presets";
+import { isUuid } from "@openrift/shared/strings";
 import type { Kysely, Selectable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
@@ -6,12 +7,6 @@ import type { StagePresetsTable } from "../../../db/tables/stage.js";
 
 /** A preset row with its `config` jsonb parsed. */
 export type StagePresetRow = Selectable<StagePresetsTable>;
-
-/**
- * Postgres 500s with `22P02` on a malformed uuid, and the public overlay read
- * takes this id straight from a browser-source URL, so shape is checked first.
- */
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
 /**
  * Every method filters on `userId`: another user's preset matches nothing,
@@ -29,9 +24,12 @@ export function stagePresetsRepo(db: Kysely<Database>) {
       return rows;
     },
 
-    /** Returns `undefined` for a malformed, unknown, or someone else's id — never throws. */
-    async findByIdForUser(id: string, userId: string): Promise<StagePresetRow | undefined> {
-      if (!UUID_PATTERN.test(id)) {
+    /**
+     * Postgres 500s with `22P02` on a malformed uuid, and the public overlay read
+     * takes this id straight from a browser-source URL, so shape is checked first.
+     */
+    async getByIdForUser(id: string, userId: string): Promise<StagePresetRow | undefined> {
+      if (!isUuid(id)) {
         return undefined;
       }
       const row = await db
@@ -86,7 +84,7 @@ export function stagePresetsRepo(db: Kysely<Database>) {
       return row;
     },
 
-    async remove(id: string, userId: string): Promise<boolean> {
+    async deleteByIdForUser(id: string, userId: string): Promise<boolean> {
       const result = await db
         .deleteFrom("stagePresets")
         .where("id", "=", id)

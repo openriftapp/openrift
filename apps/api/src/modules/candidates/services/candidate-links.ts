@@ -4,7 +4,7 @@
  * user-submission ingest, the relink pass, and the meta archive's promotion
  * and overlay ingest; the key and gate must not be duplicated elsewhere.
  */
-import { normalizeNameForIdentity } from "@openrift/shared/utils";
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 
 import { buildPrintingLinkKey } from "../../../lib/printing-link-key.js";
 import type { ingestRepo } from "../repositories/ingest.js";

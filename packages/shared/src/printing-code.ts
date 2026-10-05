@@ -22,3 +22,18 @@ export function tbaPublicCode(setSlug: string): string {
 export function formatPrintingCode(publicCode: string): string {
   return isTbaCode(publicCode) ? "Code TBA" : publicCode;
 }
+
+export function extractCardIdFromShortCode(shortCode: string): string {
+  return shortCode.replace(/(?<=\d)[a-z*]+$/u, "");
+}
+
+export function formatShortCodesArray(ids: string[]): string[] {
+  if (ids.length === 0) {
+    return [];
+  }
+  const counts = new Map<string, number>();
+  for (const id of ids) {
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return [...counts.entries()].map(([id, n]) => (n > 1 ? `${id} ×${n}` : id));
+}

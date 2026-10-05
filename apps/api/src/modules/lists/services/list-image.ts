@@ -50,29 +50,6 @@ export async function buildCards(
   }));
 }
 
-/** CORS_ORIGIN is a comma-separated allow-list; new URL() on the whole string
- * mis-parses the authority, so only the first origin is used. */
-export function siteHostFromOrigin(corsOrigin: string | undefined): string | undefined {
-  const firstOrigin = corsOrigin?.split(",")[0]?.trim();
-  if (!firstOrigin) {
-    return undefined;
-  }
-  try {
-    return new URL(firstOrigin).host || undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-/** Same first-origin rule as {@link siteHostFromOrigin}. */
-export function shareUrlFromOrigin(
-  corsOrigin: string | undefined,
-  path: string,
-): string | undefined {
-  const firstOrigin = corsOrigin?.split(",")[0]?.trim();
-  return firstOrigin ? `${firstOrigin}${path}` : undefined;
-}
-
 function intentLabel(intent: string): string {
   if (intent === "trade") {
     return "Trade list";

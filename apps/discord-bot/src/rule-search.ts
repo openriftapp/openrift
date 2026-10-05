@@ -1,4 +1,5 @@
 import { buildTermAnchors, compareRuleNumbers, formatRuleNumber } from "@openrift/shared/rules";
+import { truncateWithEllipsis } from "@openrift/shared/strings";
 import type { RuleKind, RuleResponse } from "@openrift/shared/types/api/rules";
 
 import type { RulesSnapshot } from "./rules-cache.js";
@@ -173,5 +174,5 @@ export function findRule(index: RuleIndex, query: string): IndexedRule | undefin
 export function ruleChoice(entry: IndexedRule): { name: string; value: string } {
   const citation = `${entry.prefix} ${entry.number}`;
   const label = `${citation} — ${entry.plain}`;
-  return { name: label.length > 100 ? `${label.slice(0, 99)}…` : label, value: citation };
+  return { name: truncateWithEllipsis(label, 100), value: citation };
 }

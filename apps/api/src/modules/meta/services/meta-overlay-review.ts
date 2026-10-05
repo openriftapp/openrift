@@ -1,4 +1,5 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { stringifyUnknown } from "@openrift/shared/strings";
 import type {
   MetaOverlayBulkAcceptResult,
   MetaOverlayReviewResult,
@@ -11,12 +12,13 @@ import type {
   MetaPlayerOverlayField,
 } from "@openrift/shared/types/enums";
 import { META_EVENT_TIERS } from "@openrift/shared/types/enums";
-import { stringifyUnknown } from "@openrift/shared/utils";
 import type { Insertable } from "kysely";
 
 import type { MetaEventPlayerOverlaysTable } from "../../../db/tables/meta.js";
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
+import { assertFound } from "../../../lib/assertions.js";
+import { isoOrNull } from "../../../lib/iso-date.js";
 import { TOURNAMENT_LIST_PROVIDER } from "../../../lib/meta-providers.js";
 import type { MetaPlayerOverlayRow } from "../repositories/meta-overlays.js";
 import { sourceEventKeyPrefix } from "../repositories/meta-overlays.js";
@@ -63,9 +65,7 @@ export async function acceptMetaEventOverlay(
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
   const overlay = await repos.metaOverlays.eventOverlayById(overlayId);
-  if (overlay === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That overlay no longer exists.");
-  }
+  assertFound(overlay, "That overlay no longer exists.");
 
   if (overlay.metaEventId !== null) {
     await repos.metaOverlays.setEventOverlayStatus(overlayId, "accepted", now);
@@ -75,9 +75,7 @@ export async function acceptMetaEventOverlay(
 
   if (intoMetaEventId !== null) {
     const target = await repos.meta.eventById(intoMetaEventId);
-    if (target === undefined) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "That archived event no longer exists.");
-    }
+    assertFound(target, "That archived event no longer exists.");
     const redundant = redundantClaims(
       overlay.claimedFields,
       overlay as unknown as Record<string, unknown>,
@@ -143,9 +141,7 @@ async function acceptMirroredProposal(
   now: Date,
 ): Promise<MetaOverlayReviewResult> {
   const row = await repos.uvsgamesEvents.byKey(uvsgamesEventId);
-  if (row === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That UVS Games event is not mirrored.");
-  }
+  assertFound(row, "That UVS Games event is not mirrored.");
   const accepted = await acceptCatalogEvent(
     { repos, now: () => now },
     row,
@@ -203,9 +199,7 @@ export async function moveMetaEventOverlay(
   intoMetaEventId: string,
 ): Promise<MetaOverlayReviewResult> {
   const overlay = await repos.metaOverlays.eventOverlayById(overlayId);
-  if (overlay === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That overlay no longer exists.");
-  }
+  assertFound(overlay, "That overlay no longer exists.");
   if (overlay.provider === null || overlay.externalId === null) {
     throw new AppError(
       400,
@@ -217,9 +211,7 @@ export async function moveMetaEventOverlay(
     return { metaEventId: intoMetaEventId, created: false };
   }
   const target = await repos.meta.eventById(intoMetaEventId);
-  if (target === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That archived event no longer exists.");
-  }
+  assertFound(target, "That archived event no longer exists.");
 
   const leaving = overlay.metaEventId;
   await repos.metaOverlays.reanchorPlayerOverlays(
@@ -266,7 +258,7 @@ export async function listMetaUploadsForEvent(
       provider: overlay.provider,
       externalId: overlay.externalId,
       status: overlay.status,
-      acceptedAt: overlay.acceptedAt?.toISOString() ?? null,
+      acceptedAt: isoOrNull(overlay.acceptedAt),
       acceptedPlayers: players.filter((player) => player.status === "accepted").length,
       pendingPlayers: players.filter((player) => player.status === "pending").length,
       mintedPlayers: players.reduce((sum, player) => sum + (minted.get(player.id) ?? 0), 0),
@@ -345,9 +337,7 @@ export async function writeEventOverlayFields(
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
   const live = await repos.meta.eventById(metaEventId);
-  if (live === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That archived event no longer exists.");
-  }
+  assertFound(live, "That archived event no longer exists.");
   if (edits.length === 0) {
     return { metaEventId, created: false };
   }
@@ -391,9 +381,7 @@ export async function applyMetaEventCorrection(
 ): Promise<MetaOverlayReviewResult> {
   const metaEventId = await transact(async (trx) => {
     const found = await trx.metaSubmissions.byId(submissionId);
-    if (found === null) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Submission not found");
-    }
+    assertFound(found, "Submission not found");
     // Serializes a concurrent apply of the same correction behind this commit.
     await trx.ingest.lockUserSubmissions(found.userId);
     const submission = (await trx.metaSubmissions.byId(submissionId)) ?? found;
@@ -469,9 +457,7 @@ export async function releaseEventOverlayField(
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
   const live = await repos.meta.eventById(metaEventId);
-  if (live === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That archived event no longer exists.");
-  }
+  assertFound(live, "That archived event no longer exists.");
 
   const overlays = await repos.metaOverlays.acceptedEventOverlays(metaEventId);
   for (const overlay of overlays) {
@@ -596,9 +582,7 @@ export async function writeMetaPlayerOverlayFields(
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
   const metaEventId = await repos.meta.eventIdForPlayer(metaEventPlayerId);
-  if (metaEventId === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That standings row no longer exists.");
-  }
+  assertFound(metaEventId, "That standings row no longer exists.");
 
   const fields = edits.fields ?? {};
   const claimedScalars = PLAYER_SCALAR_FIELDS.filter((field) => Object.hasOwn(fields, field));
@@ -717,9 +701,7 @@ export async function releaseMetaPlayerOverlayField(
   now: Date = new Date(),
 ): Promise<MetaOverlayReviewResult> {
   const metaEventId = await repos.meta.eventIdForPlayer(metaEventPlayerId);
-  if (metaEventId === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That standings row no longer exists.");
-  }
+  assertFound(metaEventId, "That standings row no longer exists.");
 
   const released: MetaPlayerOverlayField[] =
     field === "cards" || field === "listStatus" ? ["cards", "listStatus"] : [field];
@@ -768,16 +750,12 @@ async function loadPlayerAccept(
   metaEventPlayerId: string | null,
 ): Promise<PendingPlayerAccept> {
   const overlay = await repos.metaOverlays.playerOverlayById(overlayId);
-  if (overlay === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That overlay no longer exists.");
-  }
+  assertFound(overlay, "That overlay no longer exists.");
   let player: MetaEventPlayerRow | null = null;
   let metaEventId = await eventIdForPlayerOverlay(repos, overlay);
   if (metaEventPlayerId !== null) {
     player = (await repos.meta.playerById(metaEventPlayerId)) ?? null;
-    if (player === null) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "That standings row no longer exists.");
-    }
+    assertFound(player, "That standings row no longer exists.");
     metaEventId = (await repos.meta.eventIdForPlayer(metaEventPlayerId)) ?? metaEventId;
   }
   if (metaEventId === null) {
@@ -967,13 +945,9 @@ export async function linkMetaPlayerOverlay(
   metaEventPlayerId: string,
 ): Promise<MetaOverlayReviewResult> {
   const overlay = await repos.metaOverlays.playerOverlayById(overlayId);
-  if (overlay === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That overlay no longer exists.");
-  }
+  assertFound(overlay, "That overlay no longer exists.");
   const player = await repos.meta.playerById(metaEventPlayerId);
-  if (player === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That standings row no longer exists.");
-  }
+  assertFound(player, "That standings row no longer exists.");
 
   await anchorPlayerOverlay(repos, overlay, player);
   const metaEventId = await repos.meta.eventIdForPlayer(metaEventPlayerId);
@@ -994,9 +968,7 @@ export async function rejectMetaOverlay(
 ): Promise<MetaOverlayReviewResult> {
   if (target.kind === "event") {
     const overlay = await repos.metaOverlays.eventOverlayById(target.id);
-    if (overlay === undefined) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "That overlay no longer exists.");
-    }
+    assertFound(overlay, "That overlay no longer exists.");
     const wasApplied = overlay.status === "accepted";
     await repos.metaOverlays.setEventOverlayStatus(target.id, "rejected", now);
     if (wasApplied && overlay.metaEventId !== null) {
@@ -1006,9 +978,7 @@ export async function rejectMetaOverlay(
   }
 
   const overlay = await repos.metaOverlays.playerOverlayById(target.id);
-  if (overlay === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That overlay no longer exists.");
-  }
+  assertFound(overlay, "That overlay no longer exists.");
   const wasApplied = overlay.status === "accepted";
   const metaEventId = await eventIdForPlayerOverlay(repos, overlay);
   await repos.metaOverlays.setPlayerOverlayStatus(target.id, "rejected", now);

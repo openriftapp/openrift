@@ -1,9 +1,9 @@
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 /**
  * Every entry point here only touches `pending` rows, so a check that runs
  * twice (or crashes between check and resolve) settles the same way.
  */
 import { isSubmissionUploadUrl } from "@openrift/shared/contribute-schema";
-import { normalizeNameForIdentity } from "@openrift/shared/utils";
 
 import type { CardSubmissionStatus } from "../../../db/tables/candidates.js";
 import type { Repos } from "../../../deps.js";
@@ -118,7 +118,7 @@ export async function rejectIgnoredSubmission(
   repos: Repos,
   args: { provider: string; externalId: string; adminUserId: string; now: Date; io: Io },
 ): Promise<void> {
-  const submission = await repos.cardSubmissions.findByExternalId(args.provider, args.externalId);
+  const submission = await repos.cardSubmissions.getByExternalId(args.provider, args.externalId);
   if (!submission || submission.status === "rejected") {
     return;
   }
@@ -136,7 +136,7 @@ export async function reopenUnignoredSubmission(
   repos: Repos,
   args: { provider: string; externalId: string },
 ): Promise<void> {
-  const submission = await repos.cardSubmissions.findByExternalId(args.provider, args.externalId);
+  const submission = await repos.cardSubmissions.getByExternalId(args.provider, args.externalId);
   if (!submission || submission.status !== "rejected") {
     return;
   }

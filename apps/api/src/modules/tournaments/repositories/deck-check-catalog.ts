@@ -8,7 +8,7 @@ export function deckCheckCatalogRepo(db: Kysely<Database>) {
      * The canonical printing of each given card, purely to source a thumbnail
      * for a resolved decklist line. Name resolution itself is not here: it runs
      * against the shared in-memory lookup index
-     * (`services/card-lookup-index.ts`), so a decklist name reaches the same
+     * (`lib/card-lookup-index.ts`), so a decklist name reaches the same
      * card the pickers, the chat lookup and the Discord bot reach.
      */
     async canonicalPrintingByCard(cardIds: string[]): Promise<Map<string, string>> {

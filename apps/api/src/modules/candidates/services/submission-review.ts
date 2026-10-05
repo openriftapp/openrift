@@ -24,9 +24,9 @@ import {
   writePrintingField,
 } from "../../catalog/services/printing-field-writes.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import { assertProvidersInScope } from "../lib/card-review-scope.js";
+import { describeUnknownRefs, unknownPrintingRefs } from "../lib/printing-refs.js";
 import type { CardSubmissionRow } from "../repositories/card-submissions.js";
-import { assertProvidersInScope } from "./card-review-scope.js";
-import { describeUnknownRefs, unknownPrintingRefs } from "./printing-refs.js";
 import { relinkCandidatePrintings } from "./relink-candidates.js";
 import { discardSubmissionUploads } from "./submission-uploads.js";
 
@@ -108,7 +108,7 @@ async function loadOpenSubmission(
   repos: Repos,
   candidateCardId: string,
 ): Promise<CardSubmissionRow | null> {
-  const submission = await repos.cardSubmissions.findByCandidateCardId(candidateCardId);
+  const submission = await repos.cardSubmissions.getByCandidateCardId(candidateCardId);
   if (submission && submission.status !== "pending") {
     throw new AppError(409, ERROR_CODES.CONFLICT, "Submission already settled");
   }

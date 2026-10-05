@@ -1,7 +1,7 @@
 /* oxlint-disable no-restricted-imports -- api has no @/ alias */
 import { describe, expect, it } from "vitest";
 
-import { isValidIsoDate } from "./iso-date.js";
+import { isoOrNull, isValidIsoDate } from "./iso-date.js";
 
 describe("isValidIsoDate", () => {
   it("accepts a real calendar date", () => {
@@ -38,5 +38,15 @@ describe("isValidIsoDate", () => {
 
   it("rejects a non-date string", () => {
     expect(isValidIsoDate("not-a-date")).toBe(false);
+  });
+});
+
+describe("isoOrNull", () => {
+  it("formats a date as an ISO timestamp", () => {
+    expect(isoOrNull(new Date("2026-08-15T12:34:56.789Z"))).toBe("2026-08-15T12:34:56.789Z");
+  });
+
+  it("passes null through", () => {
+    expect(isoOrNull(null)).toBeNull();
   });
 });

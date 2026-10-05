@@ -1,7 +1,9 @@
 import type { ContactMethod, ContactMethodType } from "@openrift/shared/types/api/contact-method";
-import type { Kysely } from "kysely";
+import type { Kysely, SqlBool } from "kysely";
+import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { reorderBySortOrder } from "../../../repositories/query-helpers.js";
 
 /** All writes are scoped by `userId` so a caller can only touch their own rows. */
 export function userContactMethodsRepo(db: Kysely<Database>) {
@@ -48,7 +50,7 @@ export function userContactMethodsRepo(db: Kysely<Database>) {
     },
 
     /** The reveal rows cascade away with the deleted method. */
-    async delete(id: string, userId: string): Promise<boolean> {
+    async deleteByIdForUser(id: string, userId: string): Promise<boolean> {
       const result = await db
         .deleteFrom("userContactMethods")
         .where("id", "=", id)
@@ -57,36 +59,14 @@ export function userContactMethodsRepo(db: Kysely<Database>) {
       return Number(result.numDeletedRows) > 0;
     },
 
-    /**
-     * Reorders the user's methods to match `ids` (ids the user doesn't own are
-     * ignored). Methods not present in `ids` keep their relative order after the
-     * listed ones.
-     */
-    async reorder(userId: string, ids: string[]): Promise<void> {
-      if (ids.length === 0) {
-        return;
-      }
-      await db.transaction().execute(async (trx) => {
-        const owned = await trx
-          .selectFrom("userContactMethods")
-          .select("id")
-          .where("userId", "=", userId)
-          .where("id", "in", ids)
-          .execute();
-        const ownedIds = new Set(owned.map((row) => row.id));
-        let order = 0;
-        for (const id of ids) {
-          if (!ownedIds.has(id)) {
-            continue;
-          }
-          await trx
-            .updateTable("userContactMethods")
-            .set({ sortOrder: order })
-            .where("id", "=", id)
-            .where("userId", "=", userId)
-            .execute();
-          order += 1;
-        }
+    /** Ids the user doesn't own are ignored; methods missing from `ids` keep their old `sort_order`. */
+    reorder(userId: string, ids: readonly string[]): Promise<void> {
+      return reorderBySortOrder(db, {
+        table: "userContactMethods",
+        keyColumn: "id",
+        keys: ids,
+        keyType: "uuid",
+        scope: sql<SqlBool>`${sql.ref("userContactMethods.userId")} = ${userId}`,
       });
     },
   };

@@ -6,15 +6,12 @@
 
 import type { CardTextToken } from "@openrift/shared/card-text";
 import { tokenizeCardText } from "@openrift/shared/card-text";
+import { capitalize } from "@openrift/shared/strings";
 
 import type { GlyphEmojis } from "./glyph-emoji.js";
 
 const ENERGY_PATTERN = /^energy_(?<amount>\d+)$/u;
 const RUNE_PATTERN = /^rune_(?<domain>\w+)$/u;
-
-function capitalize(word: string): string {
-  return word.charAt(0).toUpperCase() + word.slice(1);
-}
 
 export function glyphFallback(name: string): string {
   const energy = ENERGY_PATTERN.exec(name)?.[1];

@@ -12,6 +12,7 @@ import { buildUnifiedMappingsResponse } from "../services/unified-mapping-merge.
 import { adminUnifiedMappingsRouter } from "./admin-unified-mappings";
 
 vi.mock("../services/marketplace-mapping.js", () => ({
+  getMappingOverview: vi.fn(),
   saveMappings: vi.fn(),
   unmapPrinting: vi.fn(),
 }));
@@ -29,8 +30,6 @@ const mockMarketplaceMapping = {
   pricesByMarketplace: vi.fn(),
 };
 
-const mockGetMappingOverview = vi.fn();
-
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
 const app = new Hono<{ Variables: Variables }>();
@@ -38,7 +37,6 @@ app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
   c.set("repos", { marketplaceMapping: mockMarketplaceMapping } as never);
   c.set("transact", vi.fn() as never);
-  c.set("services", { getMappingOverview: mockGetMappingOverview } as never);
   await next();
 });
 registerRouterForTest(app, adminUnifiedMappingsRouter);

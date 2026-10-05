@@ -21,6 +21,8 @@ import type {
   MetaEventsTable,
 } from "../../../db/tables/meta.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
+import { containsPattern } from "../../../lib/like-pattern.js";
+import { inTransaction, offsetPage } from "../../../repositories/query-helpers.js";
 
 export type MetaEventMatchRow = Selectable<MetaEventMatchesTable>;
 
@@ -183,62 +185,46 @@ export function metaEventsRepo(db: Kysely<Database>) {
   }
 
   return {
-    async listEvents(
+    listEvents(
       filters: MetaEventFilters,
       page: { limit: number; offset: number },
       order: MetaEventOrder = {},
     ): Promise<{ rows: MetaEventWithCounts[]; total: number }> {
-      let rowQuery = eventQuery()
+      let query = eventQuery()
         .orderBy(eventOrderBy(order))
         // Whole days collide constantly on the date column, so the slug breaks
         // ties and keeps a page boundary from repeating or skipping a row.
-        .orderBy("metaEvents.slug", "asc")
-        .limit(page.limit)
-        .offset(page.offset);
-      let countQuery = eventQuery()
-        .clearSelect()
-        .select((eb) => eb.fn.countAll<string>().as("total"));
+        .orderBy("metaEvents.slug", "asc");
 
       if (filters.search !== undefined && filters.search.trim() !== "") {
-        const pattern = `%${filters.search.trim()}%`;
+        const pattern = containsPattern(filters.search.trim());
         const matches = (eb: ExpressionBuilder<Database, "metaEvents">) =>
           eb.or([
             eb("metaEvents.name", "ilike", pattern),
             eb("metaEvents.organizer", "ilike", pattern),
           ]);
-        rowQuery = rowQuery.where(matches);
-        countQuery = countQuery.where(matches);
+        query = query.where(matches);
       }
       if (filters.format !== undefined) {
-        rowQuery = rowQuery.where("metaEvents.format", "=", filters.format);
-        countQuery = countQuery.where("metaEvents.format", "=", filters.format);
+        query = query.where("metaEvents.format", "=", filters.format);
       }
       if (filters.source !== undefined) {
-        rowQuery = rowQuery.where(sourcedBy(filters.source));
-        countQuery = countQuery.where(sourcedBy(filters.source));
+        query = query.where(sourcedBy(filters.source));
       }
       if (filters.dateFrom !== undefined) {
-        rowQuery = rowQuery.where("metaEvents.eventDate", ">=", filters.dateFrom);
-        countQuery = countQuery.where("metaEvents.eventDate", ">=", filters.dateFrom);
+        query = query.where("metaEvents.eventDate", ">=", filters.dateFrom);
       }
       if (filters.dateTo !== undefined) {
-        rowQuery = rowQuery.where("metaEvents.eventDate", "<=", filters.dateTo);
-        countQuery = countQuery.where("metaEvents.eventDate", "<=", filters.dateTo);
+        query = query.where("metaEvents.eventDate", "<=", filters.dateTo);
       }
       if (filters.incompleteStandings === true) {
-        rowQuery = rowQuery.where(standingsShort);
-        countQuery = countQuery.where(standingsShort);
+        query = query.where(standingsShort);
       }
       if (filters.noDecks === true) {
-        rowQuery = rowQuery.where(noDecks);
-        countQuery = countQuery.where(noDecks);
+        query = query.where(noDecks);
       }
 
-      const [rows, countRow] = await Promise.all([
-        rowQuery.execute(),
-        countQuery.executeTakeFirstOrThrow(),
-      ]);
-      return { rows, total: Number(countRow.total) };
+      return offsetPage(query, page);
     },
 
     eventBySlug(slug: string): Promise<MetaEventWithCounts | undefined> {
@@ -372,7 +358,7 @@ export function metaEventsRepo(db: Kysely<Database>) {
      * both correct and cheaper than reconciling three rows.
      */
     async replaceEventPhases(eventId: string, rows: NewMetaEventPhase[]): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx.deleteFrom("metaEventPhases").where("metaEventId", "=", eventId).execute();
         if (rows.length > 0) {
           await trx.insertInto("metaEventPhases").values(rows).execute();
@@ -438,7 +424,7 @@ export function metaEventsRepo(db: Kysely<Database>) {
       // Batched: a 1000-player Swiss binds past one statement's parameter
       // ceiling. Wrapped in a transaction so readers see a whole
       // materialization or none of it.
-      return await db.transaction().execute(async (trx) => {
+      return await inTransaction(db, async (trx) => {
         const written: UpsertedMetaEventMatch[] = [];
         for (const batch of rowBatches(rows)) {
           written.push(
@@ -540,7 +526,7 @@ export function metaEventsRepo(db: Kysely<Database>) {
      * survive under the synthetic owner.
      */
     deleteEvent(id: string): Promise<boolean> {
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const deckRows = await trx
           .selectFrom("metaEventPlayers")
           .select("deckId")

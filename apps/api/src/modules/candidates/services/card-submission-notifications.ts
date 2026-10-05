@@ -1,21 +1,10 @@
 import type { IngestCard } from "@openrift/shared/contracts/admin/card-mutations";
-import type { Logger } from "@openrift/shared/logger";
 
 import type { Repos } from "../../../deps.js";
-import type { createEmailSender } from "../../../email.js";
+import type { EmailDeps } from "../../../email.js";
 import { buildCardSubmissionAlertEmail } from "../../../emails/card-submission-emails.js";
 import type { CardSubmissionPrintingLine } from "../../../emails/card-submission-emails.js";
 import { buildUnsubscribeUrls } from "../../../emails/unsubscribe-token.js";
-
-type SendEmail = ReturnType<typeof createEmailSender>;
-
-/** Dependencies the admin card-submission alert needs beyond `repos`. */
-export interface CardSubmissionEmailDeps {
-  sendEmail: SendEmail;
-  appBaseUrl: string;
-  unsubscribeSecret: string;
-  log: Logger;
-}
 
 export interface CardSubmissionAlert {
   submitterUserId: string;
@@ -51,7 +40,7 @@ function printingLines(card: IngestCard): CardSubmissionPrintingLine[] {
 export async function notifyAdminsOfCardSubmission(
   repos: Repos,
   submission: CardSubmissionAlert,
-  deps?: CardSubmissionEmailDeps,
+  deps?: EmailDeps,
 ): Promise<void> {
   // No SMTP wired (tests, an SMTP-less env): nothing to send.
   if (deps === undefined) {
@@ -64,7 +53,7 @@ export async function notifyAdminsOfCardSubmission(
       return;
     }
 
-    const submitter = await repos.users.findById(submission.submitterUserId);
+    const submitter = await repos.users.getById(submission.submitterUserId);
     const url = reviewUrl(deps.appBaseUrl);
     const printings = printingLines(submission.card);
 

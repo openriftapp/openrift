@@ -21,7 +21,7 @@ import { adminChangelogRouter } from "./admin-changelog";
 const runJobMock = vi.mocked(runJobOutcome);
 
 const mockJobRuns = {
-  findLatestForResume: vi.fn(),
+  getLatestForResume: vi.fn(),
 };
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
@@ -41,7 +41,7 @@ registerRouterForTest(app, adminChangelogRouter);
 describe("POST /changelog/post", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockJobRuns.findLatestForResume.mockResolvedValue(undefined);
+    mockJobRuns.getLatestForResume.mockResolvedValue(undefined);
   });
 
   it("returns posted=true with the count when entries were posted", async () => {

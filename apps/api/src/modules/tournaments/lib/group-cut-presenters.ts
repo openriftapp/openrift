@@ -10,7 +10,11 @@ import type {
 } from "@openrift/shared/types/api/pod-tournament";
 
 import type { PodRoundRows } from "../repositories/pod-tournaments-rounds.js";
-import type { LegendMetaShareRow, TournamentGroup } from "../repositories/tournament-groups.js";
+import type {
+  LegendCardName,
+  LegendMetaShareRow,
+  TournamentGroup,
+} from "../repositories/tournament-groups.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
 import type { GroupCutPlayer } from "./group-cut.js";
 import { cutRounds, qualificationOrder, unitPlayerIds, unitProgress } from "./group-cut.js";
@@ -22,7 +26,7 @@ export interface GroupStageViewInput {
   players: readonly GroupCutPlayer[];
   roundRows: readonly PodRoundRows[];
   ranking: GroupStageRanking;
-  legendNames: ReadonlyMap<string, string>;
+  legendNames: ReadonlyMap<string, LegendCardName>;
 }
 
 export function toLegendMetaShares(rows: readonly LegendMetaShareRow[]): LegendMetaShareView[] {
@@ -39,7 +43,7 @@ export function toGroupStageView(input: GroupStageViewInput): GroupStageView {
   const groupByLabel = new Map(input.groups.map((group) => [group.label, group]));
   const standingsByLabel = new Map(ranking.groups.map((group) => [group.label, group.rows]));
   const running = tournament.status !== "completed" && tournament.status !== "cancelled";
-  const nameOf = (legendCardId: string | null): string | null =>
+  const nameOf = (legendCardId: string | null): LegendCardName | null =>
     legendCardId === null ? null : (input.legendNames.get(legendCardId) ?? null);
 
   const groups: GroupStageGroupView[] = [];
@@ -70,12 +74,15 @@ export function toGroupStageView(input: GroupStageViewInput): GroupStageView {
         done,
         standings: (standingsByLabel.get(planGroup.label) ?? []).map((standing) => {
           const player = playerById.get(standing.playerId);
+          const legend = nameOf(player?.legendCardId ?? null);
           return {
             playerId: standing.playerId,
             displayName: player?.displayName ?? "",
             status: (player?.status ?? "active") as PodPlayerStatus,
             legendCardId: player?.legendCardId ?? null,
-            legendName: nameOf(player?.legendCardId ?? null),
+            legendName: legend?.name ?? null,
+            legendCharacter: legend?.character ?? null,
+            legendEpithet: legend?.epithet ?? null,
             place: standing.place,
             points: standing.points,
             wins: standing.wins,
@@ -150,7 +157,7 @@ export function toGroupStageView(input: GroupStageViewInput): GroupStageView {
           }),
     pendingMetaShares: ranking.pendingMetaLegendIds.map((legendCardId) => ({
       legendCardId,
-      legendName: nameOf(legendCardId),
+      legendName: nameOf(legendCardId)?.name ?? null,
     })),
     stageComplete,
     cutGenerated,

@@ -2,6 +2,7 @@ import { withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
+import { nameField } from "./fields.js";
 
 const orgSlugSchema = z
   .string()
@@ -9,7 +10,7 @@ const orgSlugSchema = z
     /^[a-z0-9][a-z0-9-]{2,49}$/u,
     "Slug must be 3-50 chars: lowercase letters, digits, dashes",
   );
-const orgNameSchema = z.string().min(1).max(120);
+const orgNameSchema = nameField(120);
 const orgDescriptionSchema = z.string().max(4000).nullable();
 export const organizationRoleSchema = z.enum(["owner", "manager", "judge"]);
 

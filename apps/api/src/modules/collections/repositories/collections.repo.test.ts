@@ -91,10 +91,16 @@ describe("collectionsRepo", () => {
     await expect(repo.moveCopiesBetweenCollections("col-1", "col-2")).resolves.toBeUndefined();
   });
 
-  it("deleteByIdForUser deletes the collection", async () => {
-    const db = createMockDb([]);
-    const repo = collectionsRepo(db);
-    await expect(repo.deleteByIdForUser("col-1", "u1")).resolves.toBeUndefined();
+  it("deleteByIdForUser reports whether a row was deleted", async () => {
+    const repo = collectionsRepo(createMockDb([{ numDeletedRows: 1n }]));
+    await expect(repo.deleteByIdForUser("col-1", "u1")).resolves.toBe(true);
+    const none = collectionsRepo(createMockDb([{ numDeletedRows: 0n }]));
+    await expect(none.deleteByIdForUser("col-1", "u1")).resolves.toBe(false);
+  });
+
+  it("deleteById reports whether a row was deleted", async () => {
+    const repo = collectionsRepo(createMockDb([{ numDeletedRows: 1n }]));
+    await expect(repo.deleteById("col-1")).resolves.toBe(true);
   });
 
   it("ensureInbox returns inbox id when insert succeeds", async () => {

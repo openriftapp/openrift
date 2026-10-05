@@ -1,35 +1,30 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { createRoleRank } from "@openrift/shared/friend-group-roles";
+import { isUuid } from "@openrift/shared/strings";
 import type { OrganizationRole } from "@openrift/shared/types/api/tournament";
 
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
+import { assertFound } from "../../../lib/assertions.js";
 import type { Organization, OrganizationMember } from "../repositories/organizations.js";
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
 /**
  * Loads an organization by id or slug; 404 if missing. A non-uuid `id` passed
- * to `findById` throws Postgres `22P02`, so branch on the value's shape.
+ * to `getById` throws Postgres `22P02`, so branch on the value's shape.
  */
 export async function loadOrg(
   repos: Repos,
   idOrSlug: string,
   notFoundMessage = "Organization not found",
 ): Promise<Organization> {
-  const org = UUID_PATTERN.test(idOrSlug)
-    ? await repos.organizations.findById(idOrSlug)
-    : await repos.organizations.findBySlug(idOrSlug);
-  if (!org) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, notFoundMessage);
-  }
+  const org = isUuid(idOrSlug)
+    ? await repos.organizations.getById(idOrSlug)
+    : await repos.organizations.getBySlug(idOrSlug);
+  assertFound(org, notFoundMessage);
   return org;
 }
 
-export const ORG_ROLE_RANK: Record<OrganizationRole, number> = {
-  judge: 0,
-  manager: 1,
-  owner: 2,
-};
+export const ORG_ROLE_RANK = createRoleRank<OrganizationRole>(["judge", "manager", "owner"]);
 
 const ORG_ROLE_MINIMUM_MESSAGE: Record<OrganizationRole, string> = {
   judge: "Organization members only",

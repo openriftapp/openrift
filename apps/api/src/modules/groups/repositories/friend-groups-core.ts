@@ -1,12 +1,13 @@
 import { TRADED_CARD_TRADE_STATUSES } from "@openrift/shared/card-trade-lifecycle";
 import { TRADE_VOLUME_WINDOW_DAYS } from "@openrift/shared/contracts/friend-groups";
-import { GROUP_BANNER_DEFAULT_POSITION } from "@openrift/shared/group-banner";
 import type { FriendGroupRole } from "@openrift/shared/types/api/friend-group";
 import { sql } from "kysely";
 import type { ExpressionBuilder, Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { FriendGroupsTable } from "../../../db/tables/friend-groups.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
+import { GROUP_BANNER_DEFAULT_POSITION } from "../lib/group-banner.js";
 import type {
   Group,
   GroupBannerRow,
@@ -146,7 +147,7 @@ export function friendGroupRecordsRepo(db: Kysely<Database>) {
      * partial-unique-owner invariant always holds.
      */
     createWithOwner(values: NewGroupValues, ownerUserId: string): Promise<Group> {
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const group = await trx
           .insertInto("friendGroups")
           .values(values)
@@ -176,7 +177,7 @@ export function friendGroupRecordsRepo(db: Kysely<Database>) {
       id: string,
       values: GroupBannerValues,
     ): Promise<{ previous: Group; updated: Group } | undefined> {
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const previous = await trx
           .selectFrom("friendGroups")
           .selectAll()
@@ -198,7 +199,7 @@ export function friendGroupRecordsRepo(db: Kysely<Database>) {
 
     /** @returns The group before the write, so the caller can unlink the file it dropped. */
     clearBanner(id: string): Promise<{ previous: Group; updated: Group } | undefined> {
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const previous = await trx
           .selectFrom("friendGroups")
           .selectAll()
@@ -257,8 +258,9 @@ export function friendGroupRecordsRepo(db: Kysely<Database>) {
     },
 
     /** Owner-only. The trigger on members handles successor promotion. */
-    async deleteById(id: string): Promise<void> {
-      await db.deleteFrom("friendGroups").where("id", "=", id).execute();
+    async deleteById(id: string): Promise<boolean> {
+      const result = await db.deleteFrom("friendGroups").where("id", "=", id).executeTakeFirst();
+      return result.numDeletedRows > 0n;
     },
 
     /**

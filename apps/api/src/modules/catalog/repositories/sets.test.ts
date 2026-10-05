@@ -115,8 +115,8 @@ describe("setsRepo", () => {
   });
 
   it("deleteById deletes a set", async () => {
-    const db = createMockDb([]);
-    await expect(setsRepo(db).deleteById("s-1")).resolves.toBeUndefined();
+    const db = createMockDb({ numDeletedRows: 1n });
+    await expect(setsRepo(db).deleteById("s-1")).resolves.toBe(true);
   });
 
   it("cardCount returns count", async () => {

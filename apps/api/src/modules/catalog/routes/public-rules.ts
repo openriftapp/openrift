@@ -1,3 +1,4 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { rulesContract } from "@openrift/shared/contracts/rules";
 import {
   cardMentionPattern,
@@ -10,8 +11,9 @@ import {
   sortRuleLanguages,
 } from "@openrift/shared/rules";
 import type { CardMentions, RuleHtmlOptions } from "@openrift/shared/rules-html";
-import { escapeHtml, renderCommentHtml, renderRuleHtml } from "@openrift/shared/rules-html";
+import { renderCommentHtml, renderRuleHtml } from "@openrift/shared/rules-html";
 import type { KeywordBadge } from "@openrift/shared/rules-markdown";
+import { escapeHtml } from "@openrift/shared/strings";
 import type {
   RuleChangeType,
   RuleKind,
@@ -27,7 +29,6 @@ import type {
   RuleVersionsListResponse,
 } from "@openrift/shared/types/api/rules";
 import type { CardType } from "@openrift/shared/types/enums";
-import { getOrientation } from "@openrift/shared/utils";
 import { implement } from "@orpc/server";
 
 import { requireUser } from "../../../orpc/base.js";

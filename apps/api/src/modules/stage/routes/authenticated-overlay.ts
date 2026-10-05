@@ -15,7 +15,7 @@ const os = implement(overlayContract).$context<ApiContext>().use(requireAuthedUs
  * Returns the user's channel, creating it on first ask.
  */
 async function ensureChannel(repos: Repos, userId: string): Promise<OverlayChannel> {
-  const existing = await repos.overlayChannels.findByUserId(userId);
+  const existing = await repos.overlayChannels.getByUserId(userId);
   if (existing) {
     return existing;
   }
@@ -24,7 +24,7 @@ async function ensureChannel(repos: Repos, userId: string): Promise<OverlayChann
   } catch (error) {
     // Two first-opens can race on the user_id unique; the winner's row is returned.
     if (isUniqueViolationOn(error, "overlay_channels_user_id_key")) {
-      const winner = await repos.overlayChannels.findByUserId(userId);
+      const winner = await repos.overlayChannels.getByUserId(userId);
       if (winner) {
         return winner;
       }

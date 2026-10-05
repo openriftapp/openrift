@@ -15,9 +15,19 @@ const mockRepo = {
   prunedThroughXid: vi.fn(() => Promise.resolve("100")),
 };
 
-const mockAddCopies = vi.fn(() => Promise.resolve([] as object[]));
-const mockMoveCopies = vi.fn(() => Promise.resolve());
-const mockDisposeCopies = vi.fn(() => Promise.resolve());
+const { mockAddCopies, mockMoveCopies, mockDisposeCopies, mockUpdateCopies } = vi.hoisted(() => ({
+  mockAddCopies: vi.fn(() => Promise.resolve([] as object[])),
+  mockMoveCopies: vi.fn(() => Promise.resolve()),
+  mockDisposeCopies: vi.fn(() => Promise.resolve()),
+  mockUpdateCopies: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock("../services/copies.js", () => ({
+  addCopies: mockAddCopies,
+  moveCopies: mockMoveCopies,
+  disposeCopies: mockDisposeCopies,
+  updateCopies: mockUpdateCopies,
+}));
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
@@ -29,12 +39,6 @@ app.use("*", async (c, next) => {
   c.set("repos", { copies: mockRepo } as any);
   // oxlint-disable-next-line no-explicit-any -- test stub
   c.set("transact", (() => {}) as any);
-  c.set("services", {
-    addCopies: mockAddCopies,
-    moveCopies: mockMoveCopies,
-    disposeCopies: mockDisposeCopies,
-    // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Services type
-  } as any);
   await next();
 });
 registerRouterForTest(app, copiesRouter);
@@ -291,6 +295,43 @@ describe("POST /api/v1/copies", () => {
     expect(res.status).toBe(201);
     const json = await readJson(res);
     expect(json.items).toHaveLength(1);
+  });
+});
+
+describe("pg error mapping", () => {
+  beforeEach(() => {
+    mockAddCopies.mockReset();
+    mockUpdateCopies.mockReset();
+  });
+
+  it("maps an unknown printing on add to 400", async () => {
+    mockAddCopies.mockRejectedValue({ code: "23503" });
+    const res = await app.request("/api/v1/copies", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ copies: [{ printingId: PRINTING_ID }] }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it.each(["23503", "23514"])("maps %s on update to 400", async (code) => {
+    mockUpdateCopies.mockRejectedValue({ code });
+    const res = await app.request("/api/v1/copies/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ copyIds: [COPY_ID], patch: { condition: "nm" } }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("rethrows other update errors", async () => {
+    mockUpdateCopies.mockRejectedValue(new AppError(404, "NOT_FOUND", "gone"));
+    const res = await app.request("/api/v1/copies/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ copyIds: [COPY_ID], patch: { condition: "nm" } }),
+    });
+    expect(res.status).toBe(404);
   });
 });
 

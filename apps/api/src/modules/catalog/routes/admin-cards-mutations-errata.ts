@@ -4,6 +4,7 @@ import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { importErrata } from "../../candidates/services/import-errata.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 
 const os = implement(adminCardMutationsContract).$context<ApiContext>().use(requireAuthedUser);
@@ -80,7 +81,6 @@ export const adminCardMutationsErrataRouter = {
   }),
 
   uploadErrata: os.uploadErrata.handler(async ({ input, context }) => {
-    const { importErrata } = context.services;
     const result = await importErrata(context.transact, {
       entries: input.entries,
       dryRun: input.dryRun,

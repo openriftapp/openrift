@@ -90,7 +90,7 @@ export function deckCheckKeysRepo(db: Kysely<Database>) {
       return result.numDeletedRows > 0n;
     },
 
-    findActiveKeyByHash(tokenHash: string): Promise<(DeckCheckHost & { id: string }) | undefined> {
+    getActiveKeyByHash(tokenHash: string): Promise<(DeckCheckHost & { id: string }) | undefined> {
       return db
         .selectFrom("deckCheckKeys")
         .select(["id", "hostType", "hostUserId", "hostOrgId"])

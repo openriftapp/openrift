@@ -1,4 +1,4 @@
-import { normalizeNameForIdentity } from "@openrift/shared/utils";
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import { sql } from "kysely";
 import { describe, expect, it } from "vitest";
 

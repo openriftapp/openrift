@@ -1,5 +1,7 @@
+import type { AdminCardSubmission } from "@openrift/shared/contracts/admin/card-submissions";
 import type { CardSubmissionStatusResponse } from "@openrift/shared/contracts/card-submissions";
 
+import { isoOrNull } from "../../../lib/iso-date.js";
 import type { CardSubmissionRow } from "../repositories/card-submissions.js";
 
 /**
@@ -19,6 +21,19 @@ export function toCardSubmissionStatus(row: CardSubmissionRow): CardSubmissionSt
     reason: row.resolutionReason,
     resolutionNote: row.resolutionNote,
     createdAt: row.createdAt.toISOString(),
-    resolvedAt: row.resolvedAt ? row.resolvedAt.toISOString() : null,
+    resolvedAt: isoOrNull(row.resolvedAt),
+  };
+}
+
+export function toAdminCardSubmission(row: CardSubmissionRow): AdminCardSubmission {
+  return {
+    id: row.id,
+    kind: row.kind,
+    status: row.status,
+    cardName: row.cardName,
+    note: row.note,
+    reason: row.resolutionReason,
+    resolutionNote: row.resolutionNote,
+    resolvedAt: isoOrNull(row.resolvedAt),
   };
 }

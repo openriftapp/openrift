@@ -183,7 +183,7 @@ export function catalogCardsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    cardById(id: string): Promise<Pick<Selectable<CardsTable>, "id"> | undefined> {
+    getCardById(id: string): Promise<Pick<Selectable<CardsTable>, "id"> | undefined> {
       return db.selectFrom("cards").select("id").where("id", "=", id).executeTakeFirst();
     },
 

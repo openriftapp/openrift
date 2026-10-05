@@ -7,6 +7,7 @@ import type {
   TopdeckEventStandingsTable,
 } from "../../../db/tables/meta-sources.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 
 export type TopdeckStandingRow = Selectable<TopdeckEventStandingsTable>;
 export type TopdeckDecklistCardRow = Selectable<TopdeckDecklistCardsTable>;
@@ -28,7 +29,7 @@ export function topdeckResultsRepo(db: Kysely<Database>) {
       tid: string,
       rows: readonly Insertable<TopdeckEventStandingsTable>[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx.deleteFrom("topdeckEventStandings").where("tid", "=", tid).execute();
         for (const batch of rowBatches(rows)) {
           await trx.insertInto("topdeckEventStandings").values(batch).execute();
@@ -55,7 +56,7 @@ export function topdeckResultsRepo(db: Kysely<Database>) {
       row: Insertable<TopdeckDecklistsTable>,
       cards: readonly Omit<Insertable<TopdeckDecklistCardsTable>, "sourceDeckId">[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx
           .insertInto("topdeckDecklists")
           .values(row)

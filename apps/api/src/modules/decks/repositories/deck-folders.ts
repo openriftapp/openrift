@@ -1,8 +1,9 @@
-import type { Kysely, Selectable } from "kysely";
+import type { Kysely, Selectable, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { DeckFoldersTable } from "../../../db/tables/decks.js";
+import { inTransaction, reorderBySortOrder } from "../../../repositories/query-helpers.js";
 
 export type DeckFolderWithCount = Selectable<DeckFoldersTable> & { deckCount: number };
 
@@ -71,7 +72,7 @@ export function deckFoldersRepo(db: Kysely<Database>) {
 
     // Membership rows cascade, so the decks themselves are untouched — they
     // just stop being filed here.
-    async remove(id: string, userId: string): Promise<boolean> {
+    async deleteByIdForUser(id: string, userId: string): Promise<boolean> {
       const result = await db
         .deleteFrom("deckFolders")
         .where("id", "=", id)
@@ -81,26 +82,19 @@ export function deckFoldersRepo(db: Kysely<Database>) {
     },
 
     // IDs the user doesn't own are silently ignored, not rejected.
-    async reorder(userId: string, orderedIds: readonly string[]): Promise<void> {
-      if (orderedIds.length === 0) {
-        return;
-      }
-      const ids = [...orderedIds];
-      await sql`
-        update deck_folders
-        set sort_order = ranked.new_order
-        from (
-          select id, ord::int - 1 as new_order
-          from unnest(${ids}::uuid[]) with ordinality as t(id, ord)
-        ) as ranked
-        where deck_folders.id = ranked.id
-          and deck_folders.user_id = ${userId}
-      `.execute(db);
+    reorder(userId: string, orderedIds: readonly string[]): Promise<void> {
+      return reorderBySortOrder(db, {
+        table: "deckFolders",
+        keyColumn: "id",
+        keys: orderedIds,
+        keyType: "uuid",
+        scope: sql<SqlBool>`${sql.ref("deckFolders.userId")} = ${userId}`,
+      });
     },
 
     // Unknown or unowned ids are dropped by the insert's ownership filter.
     async setForDeck(deckId: string, userId: string, folderIds: readonly string[]): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx
           .deleteFrom("deckFolderEntries")
           .where("deckId", "=", deckId)

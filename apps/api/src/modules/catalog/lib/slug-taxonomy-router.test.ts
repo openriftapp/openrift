@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { AppError } from "../../../errors.js";
 import type { ApiContext } from "../../../orpc/context.js";
-import { createSlugTaxonomyHandlers } from "./slug-taxonomy-router.js";
+import { createKeyedTaxonomyHandlers, createSlugTaxonomyHandlers } from "./slug-taxonomy-router.js";
 
 function mockRepo() {
   return {
@@ -300,5 +300,71 @@ describe("createSlugTaxonomyHandlers", () => {
         expect((error as AppError).status).toBe(404);
       }
     });
+  });
+});
+
+describe("createKeyedTaxonomyHandlers", () => {
+  const codeRow = { code: "en", name: "English", isWellKnown: true };
+  const context = {} as ApiContext;
+
+  function languageHandlers(repo: ReturnType<typeof mockRepo>) {
+    return createKeyedTaxonomyHandlers({
+      keyColumn: "code",
+      entityName: "Language",
+      inUseBy: "one or more printings",
+      keyNoun: "language codes",
+      repo: () => repo,
+      getByKey: (_context, code) => repo.getBySlug(code),
+      deleteByKey: (_context, code) => repo.deleteBySlug(code),
+      notFoundMessage: () => "Language not found",
+    });
+  }
+
+  it("reads the plural key field and derives the unknown label from the key column", async () => {
+    const repo = mockRepo();
+    repo.listAll.mockResolvedValue([codeRow]);
+    const handlers = languageHandlers(repo);
+
+    await handlers.reorder({ input: { codes: ["en"] }, context });
+    expect(repo.reorder).toHaveBeenCalledWith(["en"]);
+
+    await expect(handlers.reorder({ input: { codes: ["en", "en"] }, context })).rejects.toThrow(
+      "Duplicate language codes in reorder list.",
+    );
+    await expect(handlers.reorder({ input: { codes: ["fr"] }, context })).rejects.toThrow(
+      "Unknown language codes: fr",
+    );
+  });
+
+  it("uses the custom not-found message", async () => {
+    const repo = mockRepo();
+    repo.getBySlug.mockResolvedValue(undefined);
+
+    await expect(
+      languageHandlers(repo).remove({ input: { code: "xx" }, context }),
+    ).rejects.toMatchObject({ status: 404, message: "Language not found" });
+  });
+
+  it("skips the well-known guard unless asked for", async () => {
+    const repo = mockRepo();
+    repo.getBySlug.mockResolvedValue(codeRow);
+    repo.isInUse.mockResolvedValue(false);
+
+    await languageHandlers(repo).remove({ input: { code: "en" }, context });
+    expect(repo.deleteBySlug).toHaveBeenCalledWith("en");
+  });
+
+  it("names the entity and inUseBy in the in-use conflict", async () => {
+    const repo = mockRepo();
+    repo.getBySlug.mockResolvedValue(codeRow);
+    repo.isInUse.mockResolvedValue(true);
+
+    await expect(
+      languageHandlers(repo).remove({ input: { code: "en" }, context }),
+    ).rejects.toMatchObject({
+      status: 409,
+      message: "Cannot delete: language is in use by one or more printings",
+    });
+    expect(repo.deleteBySlug).not.toHaveBeenCalled();
   });
 });

@@ -6,12 +6,12 @@ import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
-import { acceptFavoritePrintingsForCard } from "../../candidates/services/accept-favorite-printings.js";
 import {
   assertCandidatePrintingsInScope,
   assertSomeProviderInScope,
   reviewableProviderScope,
-} from "../../candidates/services/card-review-scope.js";
+} from "../../candidates/lib/card-review-scope.js";
+import { acceptFavoritePrintingsForCard } from "../../candidates/services/accept-favorite-printings.js";
 import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { acceptPrinting, deletePrinting } from "../services/printing-admin.js";

@@ -1,5 +1,5 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { ShareImageAspect } from "@openrift/shared/share-image-params";
-import { legendDisplayName } from "@openrift/shared/utils";
 
 import type { Repos } from "../../../deps.js";
 import type { Io } from "../../../io.js";

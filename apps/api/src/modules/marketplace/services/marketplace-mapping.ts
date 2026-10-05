@@ -1,3 +1,4 @@
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import type {
   MappingGroupHeader,
   MappingPrintingResponse,
@@ -6,11 +7,10 @@ import type {
   StagedProductResponse,
 } from "@openrift/shared/types/api/admin";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { normalizeNameForIdentity } from "@openrift/shared/utils";
 
 import type { Repos, Transact } from "../../../deps.js";
 import type { MarketplaceConfig, ProductInfo, StagingRow } from "../lib/marketplace-configs.js";
-import { buildStagedRowMapping } from "./marketplace-mapping-shared.js";
+import { buildStagedRowMapping } from "../lib/marketplace-mapping-shared.js";
 
 interface PrintingRow extends MappingPrintingResponse {
   sourceGroupId: number | null;

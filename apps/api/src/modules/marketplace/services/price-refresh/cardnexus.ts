@@ -4,10 +4,10 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../../deps.js";
 import type { Fetch } from "../../../../io.js";
+import { fetchJson } from "../../../../lib/http.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import type { CrossRefCandidate } from "./cross-ref-match.js";
 import { autoMatchByCrossReference } from "./cross-ref-match.js";
-import { fetchJson } from "./fetch.js";
 import { logFetchSummary, logUpsertCounts } from "./log.js";
 import type { GroupRow, PriceUpsertConfig, StagingRow } from "./types.js";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
@@ -129,7 +129,7 @@ async function fetchCardnexusData(
   log: Logger,
 ): Promise<CardnexusFetchResult> {
   const { data: feeds } = await fetchJson<CnFeeds>(fetchFn, CN_FEEDS_URL, {
-    Authorization: `Bearer ${apiKey}`,
+    headers: { Authorization: `Bearer ${apiKey}` },
   });
   if (!feeds.catalog || !feeds.expansions || !feeds.prices) {
     throw new Error("CardNexus has not generated every Riftbound feed yet");

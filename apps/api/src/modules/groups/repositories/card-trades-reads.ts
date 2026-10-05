@@ -74,7 +74,7 @@ export function cardTradeReadsRepo(db: Kysely<Database>) {
       return (options?.forUpdate ? query.forUpdate() : query).executeTakeFirst();
     },
 
-    findLiveTrade(
+    getLiveTrade(
       groupId: string,
       giverUserId: string,
       receiverUserId: string,

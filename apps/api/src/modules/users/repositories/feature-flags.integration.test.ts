@@ -108,14 +108,10 @@ describe.skipIf(!ctx)("featureFlagsRepo (integration)", () => {
       description: null,
     });
 
-    const result = await repo.deleteByKey("test-flag-0031-delete");
-
-    expect(result.numDeletedRows).toBe(1n);
+    expect(await repo.deleteByKey("test-flag-0031-delete")).toBe(true);
   });
 
-  it("returns numDeletedRows = 0 when deleting a nonexistent flag", async () => {
-    const result = await repo.deleteByKey("nonexistent-flag-0031");
-
-    expect(result.numDeletedRows).toBe(0n);
+  it("returns false when deleting a nonexistent flag", async () => {
+    expect(await repo.deleteByKey("nonexistent-flag-0031")).toBe(false);
   });
 });

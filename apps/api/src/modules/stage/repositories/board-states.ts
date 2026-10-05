@@ -14,9 +14,11 @@ export type BoardState = Selectable<BoardStatesTable>;
 
 export type BoardStateWithOwner = BoardState & { ownerName: string | null };
 
+/** The email only feeds the owner's gravatar hash; it never reaches a response. */
 export interface SharedBoardState {
   boardState: BoardState;
   ownerName: string | null;
+  ownerEmail: string;
 }
 
 export interface BoardStateValues {
@@ -79,7 +81,7 @@ export function boardStatesRepo(db: Kysely<Database>) {
       return row === undefined ? undefined : upgraded(row);
     },
 
-    async remove(id: string, userId: string): Promise<boolean> {
+    async deleteByIdForUser(id: string, userId: string): Promise<boolean> {
       const result = await db
         .deleteFrom("boardStates")
         .where("id", "=", id)
@@ -104,9 +106,15 @@ export function boardStatesRepo(db: Kysely<Database>) {
       return updateShareState(db, "boardStates", id, userId, shareToken, isPublic);
     },
 
-    async findByShareToken(shareToken: string): Promise<SharedBoardState | undefined> {
+    async getByShareToken(shareToken: string): Promise<SharedBoardState | undefined> {
       const found = await findByShareToken(db, "boardStates", shareToken);
-      return found ? { boardState: upgraded(found.row), ownerName: found.ownerName } : undefined;
+      return found
+        ? {
+            boardState: upgraded(found.row),
+            ownerName: found.ownerName,
+            ownerEmail: found.ownerEmail,
+          }
+        : undefined;
     },
 
     async getById(id: string): Promise<BoardState | undefined> {

@@ -8,7 +8,7 @@ import type { Variables } from "../../../types.js";
 import { pricesRouter } from "./public-prices";
 
 const mockCatalogRepo = {
-  printingById: vi.fn(() => Promise.resolve(undefined as object | undefined)),
+  getPrintingById: vi.fn(() => Promise.resolve(undefined as object | undefined)),
 };
 
 const mockMarketplaceRepo = {
@@ -79,7 +79,7 @@ const dbSnapshot = {
 describe("GET /api/v1/prices", () => {
   beforeEach(() => {
     mockMarketplaceRepo.latestPrices.mockReset().mockResolvedValue([dbPrice, dbPriceFoil]);
-    mockCatalogRepo.printingById.mockReset();
+    mockCatalogRepo.getPrintingById.mockReset();
     mockMarketplaceRepo.sourcesForPrinting.mockReset();
     mockMarketplaceRepo.snapshots.mockReset();
   });
@@ -185,7 +185,7 @@ describe("GET /api/v1/prices", () => {
 describe("GET /api/v1/prices/:printingId/history", () => {
   beforeEach(() => {
     mockMarketplaceRepo.latestPrices.mockReset();
-    mockCatalogRepo.printingById.mockReset().mockResolvedValue(dbPrinting);
+    mockCatalogRepo.getPrintingById.mockReset().mockResolvedValue(dbPrinting);
     mockMarketplaceRepo.sourcesForPrinting
       .mockReset()
       .mockResolvedValue([dbMarketplaceSource, dbMarketplaceSourceCM]);
@@ -232,7 +232,7 @@ describe("GET /api/v1/prices/:printingId/history", () => {
   });
 
   it("returns unavailable sources for non-existent printing", async () => {
-    mockCatalogRepo.printingById.mockResolvedValue(undefined);
+    mockCatalogRepo.getPrintingById.mockResolvedValue(undefined);
     const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-ffffffffffff/history");
     expect(res.status).toBe(200);
     const json = await readJson(res);

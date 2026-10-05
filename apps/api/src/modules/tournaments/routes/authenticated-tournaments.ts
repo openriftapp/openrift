@@ -11,10 +11,12 @@ import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
-import { generateShareToken } from "../../../lib/share-token.js";
+import { assertExisted } from "../../../lib/assertions.js";
+import { withUniqueShareToken } from "../../../lib/share-token.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { loadGroupForMember } from "../../groups/lib/group-access.js";
+import { withUniqueClaimToken } from "../lib/claim-token.js";
 import { isGroupCut } from "../lib/group-cut.js";
 import {
   buildPodRunDetail,
@@ -151,39 +153,45 @@ export const tournamentsRouter = {
       }
     }
 
-    const created = await context.transact(async (txRepos) => {
-      const tournament = await txRepos.tournaments.create({
-        ...host,
-        groupId: input.groupId ?? null,
-        name: input.name,
-        pairingStyle: input.pairingStyle,
-        playMode: input.playMode,
-        scoringScheme: input.scoringScheme,
-        byePoints: input.byePoints,
-        matchFormat: input.matchFormat,
-        winPoints: input.winPoints,
-        drawPoints: input.drawPoints,
-        regionsEnabled: input.regionsEnabled,
-        format: input.format,
-        cutSize: input.cutSize,
-        cutRematchAvoidance: input.cutRematchAvoidance,
-        legendTiebreak: input.legendTiebreak,
-        groupsSelfPaced: input.groupsSelfPaced,
-        deckSubmission: input.deckSubmission,
-        submissionsCloseAt: input.submissionsCloseAt ? new Date(input.submissionsCloseAt) : null,
-        listLockMode: input.listLockMode,
-        deckFormat: input.deckFormat ?? null,
-        allowedSets: input.allowedSets ?? null,
-        selfRegistration: input.selfRegistration,
-        startsAt: new Date(input.startsAt),
-        endsAt: input.endsAt ? new Date(input.endsAt) : null,
-      });
-      await txRepos.tournaments.addStaff(tournament.id, userId, "organizer");
-      if ((input.selfRegistration ?? false) || input.deckSubmission !== "none") {
-        await txRepos.tournaments.setSubmissionToken(tournament.id, generateShareToken());
-      }
-      return tournament;
-    });
+    const created = await withUniqueShareToken(
+      (submissionToken) =>
+        context.transact(async (txRepos) => {
+          const tournament = await txRepos.tournaments.create({
+            ...host,
+            groupId: input.groupId ?? null,
+            name: input.name,
+            pairingStyle: input.pairingStyle,
+            playMode: input.playMode,
+            scoringScheme: input.scoringScheme,
+            byePoints: input.byePoints,
+            matchFormat: input.matchFormat,
+            winPoints: input.winPoints,
+            drawPoints: input.drawPoints,
+            regionsEnabled: input.regionsEnabled,
+            format: input.format,
+            cutSize: input.cutSize,
+            cutRematchAvoidance: input.cutRematchAvoidance,
+            legendTiebreak: input.legendTiebreak,
+            groupsSelfPaced: input.groupsSelfPaced,
+            deckSubmission: input.deckSubmission,
+            submissionsCloseAt: input.submissionsCloseAt
+              ? new Date(input.submissionsCloseAt)
+              : null,
+            listLockMode: input.listLockMode,
+            deckFormat: input.deckFormat ?? null,
+            allowedSets: input.allowedSets ?? null,
+            selfRegistration: input.selfRegistration,
+            startsAt: new Date(input.startsAt),
+            endsAt: input.endsAt ? new Date(input.endsAt) : null,
+          });
+          await txRepos.tournaments.addStaff(tournament.id, userId, "organizer");
+          if ((input.selfRegistration ?? false) || input.deckSubmission !== "none") {
+            await txRepos.tournaments.setSubmissionToken(tournament.id, submissionToken);
+          }
+          return tournament;
+        }),
+      { constraint: "uq_tournaments_submission_token" },
+    );
     return detailById(repos, created.id, userId);
   }),
 
@@ -325,7 +333,7 @@ export const tournamentsRouter = {
     const willSelfRegister = patch.selfRegistration ?? tournament.selfRegistration;
     const willExpectDecks = (patch.deckSubmission ?? tournament.deckSubmission) !== "none";
     if (!tournament.submissionToken && (willSelfRegister || willExpectDecks)) {
-      await repos.tournaments.setSubmissionToken(id, generateShareToken());
+      await withUniqueShareToken((token) => repos.tournaments.setSubmissionToken(id, token));
     }
     return detailById(repos, id, userId);
   }),
@@ -344,7 +352,8 @@ export const tournamentsRouter = {
     const userId = context.userId;
     const tournament = await loadTournament(repos, input.id);
     await requireHost(repos, tournament, userId);
-    await repos.tournaments.deleteById(input.id);
+    const deleted = await repos.tournaments.deleteById(input.id);
+    assertExisted(deleted, "Tournament not found");
   }),
 
   enableSubmissionToken: os.enableSubmissionToken.handler(
@@ -353,7 +362,7 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      await repos.tournaments.setSubmissionToken(input.id, generateShareToken());
+      await withUniqueShareToken((token) => repos.tournaments.setSubmissionToken(input.id, token));
       return detailById(repos, input.id, userId);
     },
   ),
@@ -415,7 +424,9 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      await repos.tournaments.setStaffInviteToken(input.id, input.role, generateShareToken());
+      await withUniqueShareToken((token) =>
+        repos.tournaments.setStaffInviteToken(input.id, input.role, token),
+      );
       return detailById(repos, input.id, userId);
     },
   ),
@@ -464,13 +475,16 @@ export const tournamentsRouter = {
       await requireStaff(repos, tournament, userId);
       assertParticipantsOpen(tournament);
       await assertValidRegion(repos, input.region);
-      await repos.tournaments.createParticipant({
-        tournamentId: input.id,
-        displayName: input.displayName,
-        region: input.region ?? null,
-        fixedTable: input.fixedTable ?? null,
-        status: "active",
-      });
+      await withUniqueClaimToken((claimToken) =>
+        repos.tournaments.createParticipant({
+          tournamentId: input.id,
+          displayName: input.displayName,
+          region: input.region ?? null,
+          fixedTable: input.fixedTable ?? null,
+          claimToken,
+          status: "active",
+        }),
+      );
       return buildParticipantList(repos, input.id);
     },
   ),
@@ -494,7 +508,7 @@ export const tournamentsRouter = {
         await assertLegendAssignable(repos, tournament, input.legendCardId);
       }
       if (input.seed !== undefined && isGroupCut(tournament)) {
-        const cutRound = await repos.podTournaments.findRoundByNumber(
+        const cutRound = await repos.podTournaments.getRoundByNumber(
           tournament.id,
           GROUP_STAGE_ROUNDS + 1,
         );
@@ -656,7 +670,9 @@ export const tournamentsRouter = {
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
       await loadParticipant(repos, input.id, input.participantId);
-      await repos.tournaments.reissueClaim(input.participantId);
+      await withUniqueClaimToken((claimToken) =>
+        repos.tournaments.reissueClaim(input.participantId, claimToken),
+      );
       return buildParticipantList(repos, input.id);
     },
   ),
@@ -708,7 +724,7 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      const team = await repos.podTournaments.findTeam(input.teamId);
+      const team = await repos.podTournaments.getTeam(input.teamId);
       if (!team || team.tournamentId !== input.id) {
         throw new AppError(404, ERROR_CODES.NOT_FOUND, "Team not found");
       }
@@ -870,7 +886,7 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      await repos.tournaments.setReportToken(tournament.id, generateShareToken());
+      await withUniqueShareToken((token) => repos.tournaments.setReportToken(tournament.id, token));
       return detailById(repos, input.id, userId);
     },
   ),
@@ -892,7 +908,7 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      await repos.tournaments.setFollowToken(tournament.id, generateShareToken());
+      await withUniqueShareToken((token) => repos.tournaments.setFollowToken(tournament.id, token));
       return detailById(repos, input.id, userId);
     },
   ),

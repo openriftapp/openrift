@@ -1,15 +1,15 @@
 import { DEFAULT_TIER_LABELS, tierListsContract } from "@openrift/shared/contracts/tier-lists";
+import { trimToNull } from "@openrift/shared/strings";
 import type {
   TierListListResponse,
   TierListResponse,
   TierListShareResponse,
 } from "@openrift/shared/types/api/tier-list";
-import { trimToNull } from "@openrift/shared/utils";
 import { implement } from "@orpc/server";
 
 import type { TierListRow } from "../../../db/tables/stage.js";
-import { assertFound } from "../../../lib/assertions.js";
-import { withUniqueShareToken } from "../../../lib/share-token.js";
+import { assertExisted, assertFound } from "../../../lib/assertions.js";
+import { enableShare } from "../../../lib/share-token.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { toTierList, toTierListSummary } from "../lib/tier-list-presenters.js";
@@ -80,26 +80,16 @@ export const tierListsRouter = {
   }),
 
   remove: os.remove.handler(async ({ input, context }): Promise<void> => {
-    const deleted = await context.repos.tierLists.remove(input.id, context.userId);
-    if (!deleted) {
-      assertFound(undefined, NOT_FOUND);
-    }
+    const deleted = await context.repos.tierLists.deleteByIdForUser(input.id, context.userId);
+    assertExisted(deleted, NOT_FOUND);
   }),
 
   share: os.share.handler(async ({ input, context }): Promise<TierListShareResponse> => {
     const { tierLists } = context.repos;
-    const existing = await tierLists.getShareState(input.id, context.userId);
-    assertFound(existing, NOT_FOUND);
-    if (existing.shareToken !== null && existing.isPublic) {
-      return { shareToken: existing.shareToken, isPublic: true };
-    }
-
-    const token = await withUniqueShareToken(async (candidate) => {
-      const updated = await tierLists.setShare(input.id, context.userId, candidate, true);
-      assertFound(updated, NOT_FOUND);
-      return candidate;
+    return await enableShare({
+      read: () => tierLists.getShareState(input.id, context.userId),
+      write: (token) => tierLists.setShare(input.id, context.userId, token, true),
     });
-    return { shareToken: token, isPublic: true };
   }),
 
   unshare: os.unshare.handler(async ({ input, context }): Promise<void> => {

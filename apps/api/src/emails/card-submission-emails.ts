@@ -1,4 +1,6 @@
-import { emailButton, escapeHtml, MUTED_TEXT, renderEmailLayout } from "./layout.js";
+import { escapeHtml } from "@openrift/shared/strings";
+
+import { emailButton, MUTED_TEXT, renderEmailLayout } from "./layout.js";
 
 const FOOTER_NOTE = "You're receiving this because you're an OpenRift admin.";
 

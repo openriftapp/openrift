@@ -53,7 +53,7 @@ async function claimRun(
 ): Promise<{ started: string } | { alreadyRunning: string }> {
   const { repos } = deps;
   for (let attempt = 0; attempt < 3; attempt++) {
-    const existing = await repos.jobRuns.findRunning(kind);
+    const existing = await repos.jobRuns.getRunning(kind);
     if (existing !== null) {
       return { alreadyRunning: existing.id };
     }

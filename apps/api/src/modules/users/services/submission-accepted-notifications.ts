@@ -1,23 +1,13 @@
-import type { Logger } from "@openrift/shared/logger";
 import { isSubmissionAcceptedEmailEnabled } from "@openrift/shared/types/api/preferences";
 
 import type { Repos } from "../../../deps.js";
-import type { createEmailSender } from "../../../email.js";
+import type { EmailDeps } from "../../../email.js";
 import { buildSubmissionAcceptedEmail } from "../../../emails/submission-accepted-emails.js";
 import type {
   AcceptedSubmission,
   AcceptedSubmissionTarget,
 } from "../../../emails/submission-accepted-emails.js";
 import { buildUnsubscribeUrls } from "../../../emails/unsubscribe-token.js";
-
-type SendEmail = ReturnType<typeof createEmailSender>;
-
-export interface SubmissionAcceptedEmailDeps {
-  sendEmail: SendEmail;
-  appBaseUrl: string;
-  unsubscribeSecret: string;
-  log: Logger;
-}
 
 export interface ViewLink {
   viewUrl: string;
@@ -27,7 +17,7 @@ export interface ViewLink {
 /** Sends only to a verified address whose owner has not opted out. */
 export async function sendSubmissionAcceptedEmail(
   repos: Repos,
-  deps: SubmissionAcceptedEmailDeps,
+  deps: EmailDeps,
   message: {
     userId: string;
     submission: AcceptedSubmission;

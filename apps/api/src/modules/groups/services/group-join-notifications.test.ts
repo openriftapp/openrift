@@ -3,12 +3,12 @@ import type { DisplayLocale } from "@openrift/shared/types/api/preferences";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../deps.js";
+import type { EmailDeps } from "../../../email.js";
 import type { GroupApproval, GroupJoinRequest } from "./group-join-notifications.js";
 import {
   notifyAdminsOfGroupJoinRequest,
   notifyMemberOfGroupApproval,
 } from "./group-join-notifications.js";
-import type { TradeEmailDeps } from "./trade-notifications.js";
 
 const OWNER = { userId: "owner-1", email: "owner@example.com", name: "Riven" };
 
@@ -30,18 +30,18 @@ function makeRepos(
   const listGroupJoinRequestRecipients = vi
     .fn()
     .mockResolvedValue(recipients.map((row) => ({ displayLocale: "en", ...row })));
-  const findById = vi
+  const getById = vi
     .fn()
     .mockResolvedValue({ id: "user-1", name: "Garen", email: "joiner@example.com" });
   const repos = {
     userPreferences: { listGroupJoinRequestRecipients },
-    users: { findById },
+    users: { getById },
   } as unknown as Repos;
-  return { repos, listGroupJoinRequestRecipients, findById };
+  return { repos, listGroupJoinRequestRecipients, getById };
 }
 
 function makeDeps(sendEmail = vi.fn().mockResolvedValue(undefined)): {
-  deps: TradeEmailDeps;
+  deps: EmailDeps;
   sendEmail: ReturnType<typeof vi.fn>;
   error: ReturnType<typeof vi.fn>;
 } {
@@ -51,7 +51,7 @@ function makeDeps(sendEmail = vi.fn().mockResolvedValue(undefined)): {
     appBaseUrl: "https://openrift.app",
     unsubscribeSecret: "test-secret-key",
     log: { error } as unknown as Logger,
-  } as TradeEmailDeps;
+  } as EmailDeps;
   return { deps, sendEmail, error };
 }
 
@@ -95,13 +95,13 @@ describe("notifyAdminsOfGroupJoinRequest", () => {
   });
 
   it("sends nothing when every admin has opted out", async () => {
-    const { repos, findById } = makeRepos([]);
+    const { repos, getById } = makeRepos([]);
     const { deps, sendEmail } = makeDeps();
 
     await notifyAdminsOfGroupJoinRequest(repos, REQUEST, deps);
 
     expect(sendEmail).not.toHaveBeenCalled();
-    expect(findById).not.toHaveBeenCalled();
+    expect(getById).not.toHaveBeenCalled();
   });
 
   it("sends nothing when no email deps are wired (SMTP-less env)", async () => {
@@ -134,7 +134,7 @@ describe("notifyAdminsOfGroupJoinRequest", () => {
       userPreferences: {
         listGroupJoinRequestRecipients: vi.fn().mockRejectedValue(new Error("db down")),
       },
-      users: { findById: vi.fn() },
+      users: { getById: vi.fn() },
     } as unknown as Repos;
     const { deps, sendEmail, error } = makeDeps();
 

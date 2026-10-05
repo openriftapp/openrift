@@ -12,6 +12,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { ttlCached } from "../../../lib/ttl-cached.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 import type { MetaScopeFacet, MetaScopeFilters } from "./meta-shared.js";
 import {
   META_ARCHIVE_USER_ID,
@@ -678,7 +679,7 @@ export function metaDecksRepo(db: Kysely<Database>) {
       shareToken: string,
       options?: { preserveName?: boolean },
     ): Promise<{ deckId: string } | undefined> {
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const player = await trx
           .selectFrom("metaEventPlayers")
           .select(["deckId", "listStatus"])
@@ -760,7 +761,7 @@ export function metaDecksRepo(db: Kysely<Database>) {
      * standings row must never disappear because someone removed a decklist.
      */
     clearPlayerDeck(playerId: string): Promise<boolean> {
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const player = await trx
           .selectFrom("metaEventPlayers")
           .select("deckId")

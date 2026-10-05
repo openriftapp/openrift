@@ -147,7 +147,7 @@ describe.skipIf(!ctx)("deckFoldersRepo", () => {
   it("deletes a folder without deleting the decks in it", async () => {
     const folder = await repo.create(userId, "DF Doomed");
     await repo.setForDeck(deckA, userId, [folder.id]);
-    const deleted = await repo.remove(folder.id, userId);
+    const deleted = await repo.deleteByIdForUser(folder.id, userId);
     expect(deleted).toBe(true);
 
     const deck = await db
@@ -162,7 +162,7 @@ describe.skipIf(!ctx)("deckFoldersRepo", () => {
 
   it("will not delete another user's folder", async () => {
     const theirs = await repo.create(otherUserId, "DF Protected");
-    expect(await repo.remove(theirs.id, userId)).toBe(false);
+    expect(await repo.deleteByIdForUser(theirs.id, userId)).toBe(false);
   });
 
   it("renames a folder and refuses an unowned one", async () => {

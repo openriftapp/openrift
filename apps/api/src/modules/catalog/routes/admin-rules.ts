@@ -1,5 +1,4 @@
 import { adminRulesContract } from "@openrift/shared/contracts/admin/rules";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { createLogger } from "@openrift/shared/logger";
 import type {
   RuleChangeType,
@@ -9,7 +8,6 @@ import type {
 } from "@openrift/shared/types/api/rules";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { purgeCloudflarePaths } from "../../system/services/cloudflare-purge.js";
@@ -146,7 +144,7 @@ export const adminRulesRouter = {
     };
   }),
 
-  import: os.import.handler(async ({ input, context }) => {
+  import: os.import.handler(async ({ input, context, errors }) => {
     const { rules: repo } = context.repos;
     const transact = context.transact;
     const body = input;
@@ -154,23 +152,19 @@ export const adminRulesRouter = {
     const { kind, language } = body;
     const existing = await repo.getVersion(kind, language, body.version);
     if (existing) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
-        `Version "${body.version}" already exists for kind "${kind}" in "${language}"`,
-      );
+      throw errors.CONFLICT({
+        message: `Version "${body.version}" already exists for kind "${kind}" in "${language}"`,
+      });
     }
     if (language !== "en" && !(await repo.getVersion(kind, "en", body.version))) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        `Version "${body.version}" has no English original for kind "${kind}". Import the English version first.`,
-      );
+      throw errors.BAD_REQUEST({
+        message: `Version "${body.version}" has no English original for kind "${kind}". Import the English version first.`,
+      });
     }
 
     const parsed = parseRulesText(body.content);
     if (parsed.length === 0) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "No valid rules found in content");
+      throw errors.BAD_REQUEST({ message: "No valid rules found in content" });
     }
 
     // Versions are ordered ASC so `at(-1)` is the highest existing version.
@@ -181,11 +175,9 @@ export const adminRulesRouter = {
     // a version older than what's already on file would corrupt reads of the
     // existing newer versions. Reject up front.
     if (previousVersion && body.version < previousVersion) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        `Version "${body.version}" is older than the latest "${previousVersion}" for kind "${kind}" in "${language}". Imports must arrive in chronological order — delete newer versions first if you need to insert an older one.`,
-      );
+      throw errors.BAD_REQUEST({
+        message: `Version "${body.version}" is older than the latest "${previousVersion}" for kind "${kind}" in "${language}". Imports must arrive in chronological order — delete newer versions first if you need to insert an older one.`,
+      });
     }
 
     let previousRulesMap = new Map<string, string>();
@@ -329,26 +321,22 @@ export const adminRulesRouter = {
     };
   }),
 
-  removeVersion: os.removeVersion.handler(async ({ input, context }): Promise<void> => {
+  removeVersion: os.removeVersion.handler(async ({ input, context, errors }): Promise<void> => {
     const { rules: repo } = context.repos;
     const { kind, language, version } = input;
 
     const existing = await repo.getVersion(kind, language, version);
     if (!existing) {
-      throw new AppError(
-        404,
-        ERROR_CODES.NOT_FOUND,
-        `Version "${version}" not found for kind "${kind}" in "${language}"`,
-      );
+      throw errors.NOT_FOUND({
+        message: `Version "${version}" not found for kind "${kind}" in "${language}"`,
+      });
     }
     if (language === "en") {
       const translations = await repo.listTranslations(kind, version);
       if (translations.length > 0) {
-        throw new AppError(
-          409,
-          ERROR_CODES.CONFLICT,
-          `Version "${version}" still has translations (${translations.map((t) => t.language).join(", ")}). Delete them first.`,
-        );
+        throw errors.CONFLICT({
+          message: `Version "${version}" still has translations (${translations.map((t) => t.language).join(", ")}). Delete them first.`,
+        });
       }
     }
 
@@ -356,7 +344,7 @@ export const adminRulesRouter = {
     await purgeRulesPages(context, kind, { language, version });
   }),
 
-  updateVersion: os.updateVersion.handler(async ({ input, context }) => {
+  updateVersion: os.updateVersion.handler(async ({ input, context, errors }) => {
     const { rules: repo } = context.repos;
     const { kind, language, version, comments, label, documentVersion } = input;
 
@@ -366,11 +354,9 @@ export const adminRulesRouter = {
       documentVersion,
     });
     if (!updated) {
-      throw new AppError(
-        404,
-        ERROR_CODES.NOT_FOUND,
-        `Version "${version}" not found for kind "${kind}" in "${language}"`,
-      );
+      throw errors.NOT_FOUND({
+        message: `Version "${version}" not found for kind "${kind}" in "${language}"`,
+      });
     }
 
     await purgeRulesPages(context, kind);

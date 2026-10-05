@@ -18,10 +18,10 @@ function reposStub(overrides: {
   findByUser: (...args: unknown[]) => Promise<unknown>;
   createParticipant: (...args: unknown[]) => Promise<unknown>;
 }) {
-  const findParticipantByUser = vi.fn(overrides.findByUser);
+  const getParticipantByUser = vi.fn(overrides.findByUser);
   const createParticipant = vi.fn(overrides.createParticipant);
-  const repos = { tournaments: { findParticipantByUser, createParticipant } } as unknown as Repos;
-  return { repos, findParticipantByUser, createParticipant };
+  const repos = { tournaments: { getParticipantByUser, createParticipant } } as unknown as Repos;
+  return { repos, getParticipantByUser, createParticipant };
 }
 
 describe("participantDisplayName", () => {
@@ -75,7 +75,7 @@ describe("resolveSelfJoin", () => {
       .mockResolvedValueOnce({ id: "p-race", status: "requested" });
     const repos = {
       tournaments: {
-        findParticipantByUser: findByUser,
+        getParticipantByUser: findByUser,
         createParticipant: vi.fn(async () => {
           throw Object.assign(new Error("duplicate key"), { code: "23505" });
         }),
@@ -109,7 +109,7 @@ function makeStaffInviteApp(overrides: {
     c.set("user", (overrides.user ?? null) as never);
     c.set("repos", {
       tournaments: {
-        findByStaffInviteToken: vi.fn(() =>
+        getByStaffInviteToken: vi.fn(() =>
           Promise.resolve({
             tournament: {
               id: TOURNAMENT_ID,
@@ -169,7 +169,7 @@ describe("staffInviteLanding", () => {
   it("returns 404 for a token that matches nothing", async () => {
     const app = makeStaffInviteApp({
       user: null,
-      tournaments: { findByStaffInviteToken: vi.fn(() => Promise.resolve(undefined)) },
+      tournaments: { getByStaffInviteToken: vi.fn(() => Promise.resolve(undefined)) },
     });
     const res = await app.request(`/api/v1/tournaments/staff-invite/${INVITE_TOKEN}`);
     expect(res.status).toBe(404);

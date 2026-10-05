@@ -21,7 +21,7 @@ async function dressedState(
   if (presetId === undefined) {
     return toOverlayState(channel);
   }
-  const preset = await repos.stagePresets.findByIdForUser(presetId, channel.userId);
+  const preset = await repos.stagePresets.getByIdForUser(presetId, channel.userId);
   if (!preset) {
     return toOverlayState(channel);
   }
@@ -34,7 +34,7 @@ async function dressedState(
  */
 export const publicOverlayRouter = {
   state: os.state.handler(async ({ input, context }): Promise<OverlayStateResponse> => {
-    const channel = await context.repos.overlayChannels.findByToken(input.token);
+    const channel = await context.repos.overlayChannels.getByToken(input.token);
     if (!channel) {
       return { version: 0, payload: DEFAULT_OVERLAY_PAYLOAD };
     }

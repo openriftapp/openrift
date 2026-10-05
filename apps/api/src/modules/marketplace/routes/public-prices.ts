@@ -121,7 +121,7 @@ export const pricesRouter = {
     const cutoff = days ? new Date(Date.now() - days * 86_400_000) : null;
 
     const [printing, sources] = await Promise.all([
-      catalog.printingById(printingId),
+      catalog.getPrintingById(printingId),
       marketplace.sourcesForPrinting(printingId),
     ]);
 

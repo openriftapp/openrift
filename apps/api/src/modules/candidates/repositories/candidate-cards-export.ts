@@ -2,6 +2,7 @@ import type { Kysely, Selectable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { CardsTable, PrintingsTable } from "../../../db/tables/catalog.js";
+import { joinFrontImage } from "../../../repositories/query-helpers.js";
 
 export interface ExportPrintingRow extends Selectable<PrintingsTable> {
   setSlug: string;
@@ -35,23 +36,17 @@ export function candidateExportRepo(db: Kysely<Database>) {
     },
 
     exportPrintings(): Promise<ExportPrintingRow[]> {
-      return db
-        .selectFrom("printings")
-        .innerJoin("sets", "sets.id", "printings.setId")
-        .leftJoin("printingImages", (jb) =>
-          jb
-            .onRef("printingImages.printingId", "=", "printings.id")
-            .on("printingImages.face", "=", "front")
-            .on("printingImages.isActive", "=", true),
-        )
-        .leftJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
+      return joinFrontImage(
+        db.selectFrom("printings").innerJoin("sets", "sets.id", "printings.setId"),
+        "printings",
+      )
         .selectAll("printings")
         .select([
           "sets.slug as setSlug",
           "sets.name as setName",
-          "printingImages.id as imageId",
-          "ci.rehostedUrl",
-          "ci.originalUrl",
+          "pi.id as imageId",
+          "imgf.rehostedUrl",
+          "imgf.originalUrl",
         ])
         .innerJoin("printingsOrdered as po", "po.id", "printings.id")
         .orderBy("po.canonicalRank")

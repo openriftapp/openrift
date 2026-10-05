@@ -3,6 +3,7 @@ import type {
   ScheduledJobKind,
 } from "@openrift/shared/contracts/admin/job-schedules";
 
+import { isoOrNull } from "../../../lib/iso-date.js";
 import type { JobRun } from "../repositories/job-runs.js";
 import type { JobScheduleRow } from "../repositories/job-schedules.js";
 
@@ -29,13 +30,13 @@ export function toJobScheduleView(params: {
     schedule: row?.schedule ?? null,
     available: meta.unavailableReason === undefined,
     unavailableReason: meta.unavailableReason ?? null,
-    nextRun: nextRun?.toISOString() ?? null,
+    nextRun: isoOrNull(nextRun),
     lastRun:
       lastRun === undefined
         ? null
         : {
             startedAt: lastRun.startedAt.toISOString(),
-            finishedAt: lastRun.finishedAt?.toISOString() ?? null,
+            finishedAt: isoOrNull(lastRun.finishedAt),
             durationMs: lastRun.durationMs,
             status: lastRun.status,
             errorMessage: lastRun.errorMessage,

@@ -1,4 +1,5 @@
 import type { ApiClients } from "./api-client.js";
+import { log } from "./log.js";
 
 export interface TradelistHolderPrinting {
   printingId: string;
@@ -31,7 +32,7 @@ export async function fetchTradelistHolders(
     }
     return { groupName: response.groupName, holders: response.holders };
   } catch (error) {
-    console.error("tradelist-holders lookup failed", error);
+    log.error({ err: error }, "tradelist-holders lookup failed");
     return null;
   }
 }

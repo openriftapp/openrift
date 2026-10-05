@@ -7,8 +7,25 @@ import type {
   FriendGroupMembersTable,
   FriendGroupsTable,
 } from "../../../db/tables/friend-groups.js";
+import type { ListsTable } from "../../../db/tables/lists.js";
 
 export type Group = Selectable<FriendGroupsTable>;
+
+export interface SharedListRow {
+  list: Pick<
+    Selectable<ListsTable>,
+    | "id"
+    | "userId"
+    | "name"
+    | "intent"
+    | "kind"
+    | "defaultPricePref"
+    | "defaultPriceAbsoluteCents"
+    | "defaultTradeType"
+    | "currency"
+  >;
+  ownerName: string | null;
+}
 export type GroupMember = Selectable<FriendGroupMembersTable>;
 export type GroupInvite = Selectable<FriendGroupInvitesTable>;
 export type GroupShare = Selectable<FriendGroupListSharesTable>;

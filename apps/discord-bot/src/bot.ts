@@ -1,8 +1,8 @@
+import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
 import type { CardSearchIndex } from "@openrift/shared/card-search";
 import { buildCardIndex, findCard, searchCards } from "@openrift/shared/card-search";
 import { parsePiltoverDeckCode } from "@openrift/shared/deck-code";
 import type { MarketplaceInfoResponse } from "@openrift/shared/types/api/pricing";
-import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/utils";
 import { isDefinedError, safe } from "@orpc/client";
 import type {
   AutocompleteInteraction,
@@ -38,6 +38,7 @@ import type { BotEnv } from "./env.js";
 import type { GlyphEmojis } from "./glyph-emoji.js";
 import { fetchGlyphEmojis, NO_GLYPH_EMOJIS } from "./glyph-emoji.js";
 import { fetchTradelistHolders } from "./group-tradelists.js";
+import { log } from "./log.js";
 import { extractCardReferences } from "./message-scan.js";
 import { printingChoices, resolvePrinting } from "./printing-choice.js";
 import { buildRuleEmbed } from "./rule-embed.js";
@@ -205,7 +206,7 @@ async function marketplaceInfoFor(
     const response = await api.prices.marketplaceInfo({ printings: printingId });
     return response.infos[printingId];
   } catch (error) {
-    console.error("marketplace-info lookup failed", error);
+    log.error({ err: error }, "marketplace-info lookup failed");
     return undefined;
   }
 }
@@ -419,7 +420,7 @@ async function handleTradeChannelCommand(
     }),
   );
   if (error) {
-    console.error("set-trade-channel failed", error);
+    log.error({ err: error }, "set-trade-channel failed");
     await interaction.reply({
       content: "Couldn't save that, try again in a moment.",
       flags: MessageFlags.Ephemeral,
@@ -520,7 +521,7 @@ async function handleTradeScan(ctx: BotContext, message: Message) {
     return;
   }
   if (ctx.env.tradeScanMode !== "reply") {
-    console.log(
+    log.info(
       `[trade-scan log-only] #${message.channelId}: matched ${cards
         .map((card) => legendDisplayName(card))
         .join(", ")} — would reply:\n${reply}`,
@@ -539,7 +540,7 @@ async function handleMessage(ctx: BotContext, message: Message) {
     try {
       await handleTradeScan(ctx, message);
     } catch (error) {
-      console.error("Trade scan failed", error);
+      log.error({ err: error }, "Trade scan failed");
     }
   }
   if (!message.content.includes("[[")) {
@@ -609,7 +610,7 @@ export function createBot(ctx: BotContext): Client {
   });
 
   const onReady = async (readyClient: Client<true>) => {
-    console.log(`Logged in as ${readyClient.user.tag}`);
+    log.info(`Logged in as ${readyClient.user.tag}`);
     try {
       await readyClient.application.commands.set([
         CARD_COMMAND,
@@ -618,14 +619,14 @@ export function createBot(ctx: BotContext): Client {
         ...(ctx.api.discordBot ? [LINK_COMMAND, TRADE_CHANNEL_COMMAND] : []),
       ]);
     } catch (error) {
-      console.error("Failed to register slash commands", error);
+      log.error({ err: error }, "Failed to register slash commands");
     }
     // A failed fetch (or an app the glyphs were never uploaded to) falls back to plain words.
     try {
       glyphEmojis = await fetchGlyphEmojis(readyClient);
-      console.log(`Glyph emojis loaded: ${glyphEmojis.size}`);
+      log.info(`Glyph emojis loaded: ${glyphEmojis.size}`);
     } catch (error) {
-      console.error("Failed to load glyph emojis, card text will use plain words", error);
+      log.error({ err: error }, "Failed to load glyph emojis, card text will use plain words");
     }
   };
   client.once(Events.ClientReady, (readyClient) => void onReady(readyClient));
@@ -665,7 +666,7 @@ export function createBot(ctx: BotContext): Client {
         await handleTradeChannelCommand(ctx, interaction);
       }
     } catch (error) {
-      console.error("Interaction handling failed", error);
+      log.error({ err: error }, "Interaction handling failed");
     }
   };
   client.on(Events.InteractionCreate, (interaction) => void onInteraction(interaction));
@@ -674,7 +675,7 @@ export function createBot(ctx: BotContext): Client {
     try {
       await handleMessage(ctx, message);
     } catch (error) {
-      console.error("Message handling failed", error);
+      log.error({ err: error }, "Message handling failed");
     }
   };
   client.on(Events.MessageCreate, (message) => void onMessage(message));

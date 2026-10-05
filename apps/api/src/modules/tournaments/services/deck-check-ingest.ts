@@ -1,5 +1,5 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side hashing, never reaches the browser
-import { createHash, randomUUID } from "node:crypto";
+// oxlint-disable-next-line import/no-nodejs-modules -- server-side id minting, never reaches the browser
+import { randomUUID } from "node:crypto";
 
 import type { createDeckCheckEntrySchema } from "@openrift/shared/contracts/deck-check";
 import type { deckCheckIngestSchema } from "@openrift/shared/contracts/deck-check-ingest";
@@ -18,6 +18,8 @@ import type { z } from "zod";
 
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
+import { assertFound } from "../../../lib/assertions.js";
+import { sha256Hex } from "../../../lib/hash.js";
 import { generateShareToken } from "../../../lib/share-token.js";
 import type { DeckCheckEntry } from "../repositories/deck-check-entries.js";
 import type { NewDeckCheckEntryCard } from "../repositories/deck-check-entry-cards.js";
@@ -28,10 +30,6 @@ import { storedCardLines } from "./deck-check-states.js";
 export type DeckCheckIngestPayload = z.infer<typeof deckCheckIngestSchema>;
 
 type IngestEntry = DeckCheckIngestPayload["entries"][number];
-
-function sha256(input: string): string {
-  return createHash("sha256").update(input).digest("hex");
-}
 
 /**
  * Maps every entry's sections up front so an unknown section rejects the whole
@@ -67,7 +65,7 @@ function mapAllSections(entries: IngestEntry[]): DeckCheckCardLine[][] {
 export async function recomputeEntryHash(repos: Repos, entryId: string): Promise<void> {
   const cards = await repos.deckCheck.listCardsForEntry(entryId);
   await repos.deckCheck.updateEntry(entryId, {
-    contentHash: sha256(buildContentHashInput(storedCardLines(cards))),
+    contentHash: sha256Hex(buildContentHashInput(storedCardLines(cards))),
   });
 }
 
@@ -82,13 +80,7 @@ export async function ingestDeckCheckPush(
   appBaseUrl: string,
 ): Promise<DeckCheckIngestResultResponse> {
   const event = await repos.deckCheck.getEventForHost(host, payload.tournamentId);
-  if (!event) {
-    throw new AppError(
-      404,
-      ERROR_CODES.NOT_FOUND,
-      "Unknown tournament id. Create the deck-check tournament in OpenRift first.",
-    );
-  }
+  assertFound(event, "Unknown tournament id. Create the deck-check tournament in OpenRift first.");
   if (event.status === "archived") {
     throw new AppError(
       409,
@@ -149,7 +141,7 @@ export async function ingestDeckCheckPush(
 
   for (const [index, entry] of payload.entries.entries()) {
     const lines = mappedLines[index] ?? [];
-    const contentHash = sha256(buildContentHashInput(lines));
+    const contentHash = sha256Hex(buildContentHashInput(lines));
     const cardRows: NewDeckCheckEntryCard[] = entry.cards.map((card, sortOrder) => {
       const resolution = resolutions.get(cardResolutionKey(card.name)) ?? {
         resolvedCardId: null,
@@ -317,7 +309,7 @@ export async function createManualDeckCheckEntry(
     participantId: payload.participantId,
     externalId: `${MANUAL_ENTRY_EXTERNAL_ID_PREFIX}${randomUUID()}`,
     submittedAt: null,
-    contentHash: sha256(buildContentHashInput(lines)),
+    contentHash: sha256Hex(buildContentHashInput(lines)),
     withdrawnAt: null,
   });
   await repos.deckCheck.replaceEntryCards(created.id, cardRows);

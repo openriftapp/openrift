@@ -184,7 +184,7 @@ describe("DELETE /api/admin/v1/site-settings/:key", () => {
   });
 
   it("returns 204 on successful deletion", async () => {
-    mockRepo.deleteByKey.mockResolvedValue({ numDeletedRows: 1n });
+    mockRepo.deleteByKey.mockResolvedValue(true);
     const res = await app.request("/api/admin/v1/site-settings/umami-url", {
       method: "DELETE",
     });
@@ -193,7 +193,7 @@ describe("DELETE /api/admin/v1/site-settings/:key", () => {
   });
 
   it("returns 404 when setting not found", async () => {
-    mockRepo.deleteByKey.mockResolvedValue({ numDeletedRows: 0n });
+    mockRepo.deleteByKey.mockResolvedValue(false);
     const res = await app.request("/api/admin/v1/site-settings/nonexistent", {
       method: "DELETE",
     });

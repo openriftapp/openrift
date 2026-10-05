@@ -78,7 +78,7 @@ function createMockRepos(overrides: {
         overrides.insertedValues?.push(values);
         return Promise.resolve(overrides.insertedCopies ?? []);
       },
-      findByIdsInCollections: (copyIds: readonly string[], collectionIds: readonly string[]) =>
+      listByIdsInCollections: (copyIds: readonly string[], collectionIds: readonly string[]) =>
         Promise.resolve(
           (overrides.existingCopies ?? []).filter(
             (row) => copyIds.includes(row.id) && collectionIds.includes(row.collectionId),

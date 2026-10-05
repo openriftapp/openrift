@@ -2,6 +2,7 @@ import { ERROR_CODES } from "@openrift/shared/error-codes";
 
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
+import { assertFound } from "../../../lib/assertions.js";
 import { loadCardNameIndex } from "../../candidates/services/candidate-links.js";
 import { metaEventSlugCandidates } from "../lib/meta-event-naming.js";
 import type { MetaEventOverlayPatch } from "../lib/meta-overlay-apply.js";
@@ -54,9 +55,7 @@ export async function promoteMetaEvent(
   context?: MetaPromoteContext,
 ): Promise<MetaPromoteResult> {
   const live = await repos.meta.eventRowById(metaEventId);
-  if (live === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That archived event no longer exists.");
-  }
+  assertFound(live, "That archived event no longer exists.");
   const ctx = context ?? (await createMetaPromoteContext(repos));
 
   const result = emptyResult(metaEventId);

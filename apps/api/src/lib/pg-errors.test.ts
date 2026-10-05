@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  isCheckViolation,
   isForeignKeyViolation,
   isUniqueViolation,
   isUniqueViolationOn,
@@ -87,5 +88,17 @@ describe("raisedExceptionMessage", () => {
   it("returns null for non-object errors", () => {
     expect(raisedExceptionMessage(null)).toBeNull();
     expect(raisedExceptionMessage("P0001")).toBeNull();
+  });
+});
+
+describe("isCheckViolation", () => {
+  it("is true for a Postgres 23514 error", () => {
+    expect(isCheckViolation({ code: "23514" })).toBe(true);
+  });
+
+  it("is false for other SQLSTATEs and non-objects", () => {
+    expect(isCheckViolation({ code: "23505" })).toBe(false);
+    expect(isCheckViolation("23514")).toBe(false);
+    expect(isCheckViolation(null)).toBe(false);
   });
 });

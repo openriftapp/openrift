@@ -1,5 +1,5 @@
 import { formatContactMethodsSummary } from "@openrift/shared/contact-methods";
-import type { Logger } from "@openrift/shared/logger";
+import { groupPath } from "@openrift/shared/site-paths";
 import {
   getTradeRequestEmailCadence,
   isTradeRequestEmailEnabled,
@@ -8,18 +8,16 @@ import {
 import type { TradeRequestEmailCadence } from "@openrift/shared/types/api/preferences";
 
 import type { Repos } from "../../../deps.js";
-import type { createEmailSender } from "../../../email.js";
+import type { EmailDeps } from "../../../email.js";
+import { sendChannelEmail } from "../../../email.js";
 import type { CoalescedRequestGroup } from "../../../emails/trade-emails.js";
 import {
   buildCoalescedTradeRequestsEmail,
   buildTradeRequestEmail,
 } from "../../../emails/trade-emails.js";
-import { buildUnsubscribeUrls } from "../../../emails/unsubscribe-token.js";
 import type { EmailNotificationContext } from "../../users/repositories/user-preferences.js";
 import { toCardTradeResponse } from "../lib/card-trade-presenters.js";
 import type { LiveCardTrade } from "../repositories/card-trades-shared.js";
-
-type SendEmail = ReturnType<typeof createEmailSender>;
 
 /**
  * Kill switch, an api-scoped site setting. Default on: absent (never created)
@@ -57,13 +55,6 @@ export function isRequestGroupDue(
   return quietFor >= windowMs || agedFor >= 2 * windowMs;
 }
 
-export interface TradeEmailDeps {
-  sendEmail: SendEmail;
-  appBaseUrl: string;
-  unsubscribeSecret: string;
-  log: Logger;
-}
-
 /**
  * Emails the non-initiator that a trade was requested. Gated by the
  * recipient's `tradeRequests` preference (on by default) and a verified email.
@@ -80,7 +71,7 @@ export interface TradeEmailDeps {
 export async function sendTradeRequestEmail(
   repos: Repos,
   trade: LiveCardTrade,
-  deps: TradeEmailDeps,
+  deps: EmailDeps,
 ): Promise<void> {
   try {
     // Kill switch (default on): only an explicit `false` stops sending.
@@ -130,38 +121,32 @@ export async function sendTradeRequestEmail(
       return;
     }
     const sheetUrl = `${deps.appBaseUrl}/trades/${dto.counterparty.userId}`;
-    const { pageUrl, oneClickUrl } = buildUnsubscribeUrls(
-      deps.appBaseUrl,
-      deps.unsubscribeSecret,
-      recipientUserId,
+    await sendChannelEmail(
+      deps,
+      { userId: recipientUserId, email: context.email },
       "tradeRequests",
+      ({ unsubscribeUrl }) =>
+        buildTradeRequestEmail({
+          locale: context.displayLocale,
+          recipientName: context.name,
+          initiatorName,
+          cardName,
+          quantity: trade.quantity,
+          // receiver-initiated = the initiator wants the card; giver-initiated = offer.
+          kind: trade.initiator === "receiver" ? "wants" : "offers",
+          initiatorContact,
+          sheetUrl,
+          unsubscribeUrl,
+        }),
+      { tradeId: trade.id },
     );
-
-    const { subject, html } = buildTradeRequestEmail({
-      locale: context.displayLocale,
-      recipientName: context.name,
-      initiatorName,
-      cardName,
-      quantity: trade.quantity,
-      // receiver-initiated = the initiator wants the card; giver-initiated = offer.
-      kind: trade.initiator === "receiver" ? "wants" : "offers",
-      initiatorContact,
-      sheetUrl,
-      unsubscribeUrl: pageUrl,
-    });
-
-    await deps.sendEmail({ to: context.email, subject, html, listUnsubscribeUrl: oneClickUrl });
   } catch (error) {
     deps.log.error({ err: error, tradeId: trade.id }, "Failed to send trade-request email");
   }
 }
 
-export interface CoalescedRequestFlushDeps {
+export interface CoalescedRequestFlushDeps extends EmailDeps {
   repos: Repos;
-  log: Logger;
-  sendEmail: SendEmail;
-  appBaseUrl: string;
-  unsubscribeSecret: string;
 }
 
 export interface CoalescedRequestFlushResult {
@@ -189,7 +174,7 @@ export function isTradeRequestFlushNoop(result: CoalescedRequestFlushResult): bo
 export async function flushCoalescedTradeRequests(
   deps: CoalescedRequestFlushDeps,
 ): Promise<CoalescedRequestFlushResult> {
-  const { repos, log, sendEmail, appBaseUrl, unsubscribeSecret } = deps;
+  const { repos, appBaseUrl } = deps;
 
   // Kill switch (shared with the instant email): leave queued rows untouched
   // while off, so they resume when the setting is turned back on.
@@ -290,7 +275,7 @@ export async function flushCoalescedTradeRequests(
       if (section === undefined) {
         section = {
           groupName: row.groupName,
-          tradesUrl: `${appBaseUrl}/groups/${row.groupSlug}/trades`,
+          tradesUrl: appBaseUrl + groupPath(row.groupSlug, "trades"),
           requests: [],
         };
         sectionByGroup.set(row.groupId, section);
@@ -304,31 +289,26 @@ export async function flushCoalescedTradeRequests(
       });
     }
 
-    const { pageUrl, oneClickUrl } = buildUnsubscribeUrls(
-      appBaseUrl,
-      unsubscribeSecret,
-      recipientUserId,
+    const sent = await sendChannelEmail(
+      deps,
+      { userId: recipientUserId, email: context.email },
       "tradeRequests",
+      ({ unsubscribeUrl }) =>
+        buildCoalescedTradeRequestsEmail({
+          locale: context.displayLocale,
+          recipientName: context.name,
+          senderName: senderLabel ?? null,
+          groups: sections,
+          unsubscribeUrl,
+        }),
+      { senderUserId },
     );
-    const { subject, html } = buildCoalescedTradeRequestsEmail({
-      locale: context.displayLocale,
-      recipientName: context.name,
-      senderName: senderLabel ?? null,
-      groups: sections,
-      unsubscribeUrl: pageUrl,
-    });
-
-    try {
-      await sendEmail({ to: context.email, subject, html, listUnsubscribeUrl: oneClickUrl });
+    if (sent) {
       emailsSent += 1;
       requests += claimedRows.length;
-    } catch (error) {
+    } else {
       failed += 1;
       requestsDropped += claimedRows.length;
-      log.error(
-        { err: error, recipientUserId, senderUserId },
-        "Failed to send coalesced trade-request email",
-      );
     }
   }
 

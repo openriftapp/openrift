@@ -28,6 +28,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
+import { assertFound } from "../../../lib/assertions.js";
 import { isValidIsoDate } from "../../../lib/iso-date.js";
 import {
   loadCardNameIndex,
@@ -234,9 +235,7 @@ export function submitMetaEventCorrection(
     }
 
     const event = await repos.meta.eventById(args.metaEventId);
-    if (event === undefined) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Event not found");
-    }
+    assertFound(event, "Event not found");
 
     const submissionId = await repos.metaSubmissions.insert({
       userId: args.userId,

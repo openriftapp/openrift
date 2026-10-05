@@ -140,7 +140,7 @@ export function userSharesRepo(db: Kysely<Database>) {
     },
 
     /** Used by `/users/share/:token/lists/:listId` to gate per-list reads. */
-    findListInBundle(
+    getListInBundle(
       shareToken: string,
       listId: string,
       viewerUserId: string | null,

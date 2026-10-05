@@ -5,6 +5,7 @@ import type {
 } from "@openrift/shared/types/api/friend-group";
 import { uvsgamesEventUrl } from "@openrift/shared/uvsgames-links";
 
+import { isoOrNull } from "../../../lib/iso-date.js";
 import type {
   GroupShopRow,
   ShopEventRow,
@@ -17,7 +18,7 @@ export function presentGroupShop(row: GroupShopRow): FriendGroupShopResponse {
     name: row.name,
     location: row.location,
     upcomingCount: row.upcomingCount,
-    nextEventAt: row.nextEventAt?.toISOString() ?? null,
+    nextEventAt: isoOrNull(row.nextEventAt),
   };
 }
 

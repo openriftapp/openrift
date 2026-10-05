@@ -1,5 +1,5 @@
 import type { ArtVariant, Finish, Rarity } from "@openrift/shared/types/enums";
-import type { DeleteResult, Kysely, Selectable, Updateable, UpdateResult } from "kysely";
+import type { Kysely, Selectable, Updateable, UpdateResult } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { CandidatePrintingsTable } from "../../../db/tables/candidates.js";
@@ -17,8 +17,12 @@ export function candidateCardWritesRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    deleteCandidatePrinting(id: string): Promise<DeleteResult> {
-      return db.deleteFrom("candidatePrintings").where("id", "=", id).executeTakeFirst();
+    async deleteCandidatePrinting(id: string): Promise<boolean> {
+      const result = await db
+        .deleteFrom("candidatePrintings")
+        .where("id", "=", id)
+        .executeTakeFirst();
+      return result.numDeletedRows > 0n;
     },
 
     getCandidatePrintingById(id: string): Promise<Selectable<CandidatePrintingsTable> | undefined> {

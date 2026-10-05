@@ -5,6 +5,7 @@ import type {
   TopdeckDecklistCardsTable,
   TopdeckEventStandingsTable,
 } from "../../../../db/tables/meta-sources.js";
+import { recordCapped } from "../../../../lib/json-coerce.js";
 import {
   legendFromTopdeckLines,
   projectTopdeckDeckLines,
@@ -38,8 +39,6 @@ const ARCHIVE_START = new Date("2025-06-01T00:00:00Z");
 // without it returns neither.
 const SEARCH_COLUMNS = ["name", "id", "decklist", "wins", "losses", "draws"];
 
-const MAX_ERRORS = 50;
-
 export interface TopdeckSyncResult extends MetaSyncResultBase {
   players: number;
   decks: number;
@@ -66,16 +65,6 @@ function shift(from: Date, days: number): Date {
 
 function unixSeconds(date: Date): number {
   return Math.floor(date.getTime() / 1000);
-}
-
-// Capped so one bad run cannot fill `job_runs` with error lines.
-function record(errors: string[], messages: readonly string[]): void {
-  for (const message of messages) {
-    if (errors.length >= MAX_ERRORS) {
-      return;
-    }
-    errors.push(message);
-  }
 }
 
 // The card bridge is built once per tournament: one query, not one per list.
@@ -186,7 +175,7 @@ async function crawlFormatWindow(
       ctx.result.decks += counts.decks;
     } catch (error) {
       failed.push(projection.event.tid);
-      record(ctx.result.errors, [errorText(error, `topdeck ${projection.event.tid}`)]);
+      recordCapped(ctx.result.errors, [errorText(error, `topdeck ${projection.event.tid}`)]);
     }
   }
   if (failed.length > 0) {
@@ -210,7 +199,7 @@ async function crawlFormatWindow(
 async function finish(deps: TopdeckSyncDeps, ctx: CrawlContext): Promise<TopdeckSyncResult> {
   const auto = await autoAcceptTopdeckEvents(deps, [...new Set(ctx.touched)]);
   ctx.result.autoAccepted = auto.accepted;
-  record(ctx.result.errors, auto.errors);
+  recordCapped(ctx.result.errors, auto.errors);
   ctx.result.requests = deps.client.requests;
   return ctx.result;
 }

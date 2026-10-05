@@ -1,10 +1,11 @@
 import type { CollectionPurpose } from "@openrift/shared/types/api/collection";
 import type { FriendGroupRole } from "@openrift/shared/types/api/friend-group";
-import type { Kysely, Selectable, Updateable } from "kysely";
+import type { Kysely, Selectable, SqlBool, Updateable } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { CollectionsTable, CopiesTable } from "../../../db/tables/collections.js";
+import { reorderBySortOrder } from "../../../repositories/query-helpers.js";
 
 interface CollectionWithCount extends Selectable<CollectionsTable> {
   copyCount: number;
@@ -217,22 +218,14 @@ export function collectionsRepo(db: Kysely<Database>) {
      * inbox is treated like any other personal collection — the repo doesn't
      * pin it; that's the UI's job.
      */
-    async reorderPersonal(userId: string, orderedIds: readonly string[]): Promise<void> {
-      if (orderedIds.length === 0) {
-        return;
-      }
-      const ids = [...orderedIds];
-      await sql`
-        update collections
-        set sort_order = ranked.new_order
-        from (
-          select id, ord::int - 1 as new_order
-          from unnest(${ids}::uuid[]) with ordinality as t(id, ord)
-        ) as ranked
-        where collections.id = ranked.id
-          and collections.user_id = ${userId}
-          and collections.group_id is null
-      `.execute(db);
+    reorderPersonal(userId: string, orderedIds: readonly string[]): Promise<void> {
+      return reorderBySortOrder(db, {
+        table: "collections",
+        keyColumn: "id",
+        keys: orderedIds,
+        keyType: "uuid",
+        scope: sql<SqlBool>`${sql.ref("collections.userId")} = ${userId} and ${sql.ref("collections.groupId")} is null`,
+      });
     },
 
     update(
@@ -338,20 +331,22 @@ export function collectionsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    async deleteByIdForUser(id: string, userId: string): Promise<void> {
-      await db
+    async deleteByIdForUser(id: string, userId: string): Promise<boolean> {
+      const result = await db
         .deleteFrom("collections")
         .where("id", "=", id)
         .where("userId", "=", userId)
-        .execute();
+        .executeTakeFirst();
+      return result.numDeletedRows > 0n;
     },
 
     /**
      * Deletes a collection by id without user scoping. Caller must verify admin
      * access first via `getAccessForUser`.
      */
-    async deleteById(id: string): Promise<void> {
-      await db.deleteFrom("collections").where("id", "=", id).execute();
+    async deleteById(id: string): Promise<boolean> {
+      const result = await db.deleteFrom("collections").where("id", "=", id).executeTakeFirst();
+      return result.numDeletedRows > 0n;
     },
 
     /**
@@ -366,21 +361,6 @@ export function collectionsRepo(db: Kysely<Database>) {
         .where("isInbox", "=", false)
         .executeTakeFirst();
       return Number(result.numDeletedRows);
-    },
-
-    setShareToken(
-      id: string,
-      userId: string,
-      shareToken: string | null,
-      isPublic: boolean,
-    ): Promise<Selectable<CollectionsTable> | undefined> {
-      return db
-        .updateTable("collections")
-        .set({ shareToken, isPublic, updatedAt: sql`now()` })
-        .where("id", "=", id)
-        .where("userId", "=", userId)
-        .returningAll()
-        .executeTakeFirst();
     },
 
     /**
@@ -405,7 +385,7 @@ export function collectionsRepo(db: Kysely<Database>) {
      * display name; shared collections expose the group name in that slot (the
      * share page treats it as an "owner" label).
      */
-    async findByShareToken(shareToken: string): Promise<
+    async getByShareToken(shareToken: string): Promise<
       | {
           collection: CollectionWithCount;
           ownerName: string | null;

@@ -1,6 +1,7 @@
+import { escapeHtml } from "@openrift/shared/strings";
 import type { DisplayLocale } from "@openrift/shared/types/api/preferences";
 
-import { BRAND, emailButton, escapeHtml, renderEmailLayout } from "./layout.js";
+import { BRAND, emailButton, renderEmailLayout } from "./layout.js";
 import { emailMessages } from "./messages.js";
 
 export interface GroupJoinRequestEmailInput {

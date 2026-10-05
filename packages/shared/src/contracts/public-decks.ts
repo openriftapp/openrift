@@ -15,6 +15,7 @@ import { oc } from "@orpc/contract";
 import { z } from "zod";
 
 import { deckExportResponseSchema, deckOddsConfigSchema } from "./decks.js";
+import { shareOwnerSchema } from "./fields.js";
 
 const encodeDeckCardSchema = z.object({
   cardId: z.string(),
@@ -89,7 +90,7 @@ export const deckCatalogSubsetSchema = z.object({
 export const publicDeckDetailResponseSchema = z.object({
   deck: publicDeckResponseSchema,
   cards: z.array(publicDeckCardResponseSchema),
-  owner: z.object({ displayName: z.string(), gravatarHash: z.string().nullable() }),
+  owner: shareOwnerSchema,
   plan: deckPlanResponseSchema.nullable(),
   planCardMeta: z.array(deckPlanCardMetaResponseSchema),
   customTagAssignments: z.record(z.string(), z.array(z.string())).meta({ examples: [{}] }),

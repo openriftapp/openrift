@@ -1,5 +1,6 @@
 import { splitCardBans } from "./card-ban.js";
-import { isReleasedIn, todayUtc } from "./set-release.js";
+import { todayUtc } from "./format-date.js";
+import { isReleasedIn } from "./set-release.js";
 import type { CatalogResponse } from "./types/api/catalog.js";
 import type { Card, CardBan, Printing } from "./types/catalog.js";
 

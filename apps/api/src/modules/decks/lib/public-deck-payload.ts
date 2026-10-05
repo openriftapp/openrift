@@ -9,7 +9,7 @@ import type { Selectable } from "kysely";
 
 import type { DecksTable } from "../../../db/tables/decks.js";
 import type { Repos } from "../../../deps.js";
-import { gravatarHashForEmail } from "../../../lib/gravatar.js";
+import { toShareOwner } from "../../../lib/share-owner.js";
 import {
   buildCardsResponse,
   buildPrintingsResponse,
@@ -41,7 +41,6 @@ async function catalogSubsetForCards(
   };
 }
 
-/** What `decksRepo.findByShareToken` hands back: the deck plus its owner's display fields. */
 export interface SharedDeckRow {
   deck: Selectable<DecksTable>;
   ownerName: string | null;
@@ -135,10 +134,7 @@ export async function buildPublicDeckDetail(
       }
       return toPublicDeckCard(row, cardMeta, printingMeta, bannedCardIds.has(row.cardId));
     }),
-    owner: {
-      displayName: found.ownerName ?? "Anonymous",
-      gravatarHash: gravatarHashForEmail(found.ownerEmail),
-    },
+    owner: toShareOwner({ displayName: found.ownerName, email: found.ownerEmail }),
     plan: visiblePlan,
     planCardMeta,
     customTagAssignments: Object.fromEntries(customTagAssignmentsMap),

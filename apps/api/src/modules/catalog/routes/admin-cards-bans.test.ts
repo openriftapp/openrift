@@ -10,14 +10,10 @@ const CARD_ID = "019cfc3b-0389-744b-837c-792fd586300e";
 
 const mockCardBans = {
   listByCard: vi.fn(),
-  findActiveBan: vi.fn(),
+  getActiveBan: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
   unban: vi.fn(),
-};
-
-const mockCatalog = {
-  cardById: vi.fn(),
 };
 
 const mockCatalogMutations = { getCardById: vi.fn() };
@@ -27,7 +23,6 @@ const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("repos", {
     cardBans: mockCardBans,
-    catalog: mockCatalog,
     catalogMutations: mockCatalogMutations,
     adminEvents: mockAdminEvents,
   } as never);
@@ -79,8 +74,12 @@ describe("POST /api/admin/v1/cards/:id/bans", () => {
   });
 
   it("creates a ban and returns 201", async () => {
-    mockCatalog.cardById.mockResolvedValue({ id: CARD_ID });
-    mockCardBans.findActiveBan.mockResolvedValue(null);
+    mockCatalogMutations.getCardById.mockResolvedValue({
+      id: CARD_ID,
+      name: "Fireball",
+      slug: "fireball",
+    });
+    mockCardBans.getActiveBan.mockResolvedValue(null);
     mockCardBans.create.mockResolvedValue(banRow);
 
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/bans`, {
@@ -105,8 +104,12 @@ describe("POST /api/admin/v1/cards/:id/bans", () => {
   });
 
   it("defaults a missing reason to null", async () => {
-    mockCatalog.cardById.mockResolvedValue({ id: CARD_ID });
-    mockCardBans.findActiveBan.mockResolvedValue(null);
+    mockCatalogMutations.getCardById.mockResolvedValue({
+      id: CARD_ID,
+      name: "Fireball",
+      slug: "fireball",
+    });
+    mockCardBans.getActiveBan.mockResolvedValue(null);
     mockCardBans.create.mockResolvedValue({ ...banRow, reason: null });
 
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/bans`, {
@@ -120,7 +123,7 @@ describe("POST /api/admin/v1/cards/:id/bans", () => {
   });
 
   it("404s when the card does not exist", async () => {
-    mockCatalog.cardById.mockResolvedValue(null);
+    mockCatalogMutations.getCardById.mockResolvedValue(undefined);
 
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/bans`, {
       method: "POST",
@@ -133,8 +136,12 @@ describe("POST /api/admin/v1/cards/:id/bans", () => {
   });
 
   it("409s when the card is already banned in the format", async () => {
-    mockCatalog.cardById.mockResolvedValue({ id: CARD_ID });
-    mockCardBans.findActiveBan.mockResolvedValue(banRow);
+    mockCatalogMutations.getCardById.mockResolvedValue({
+      id: CARD_ID,
+      name: "Fireball",
+      slug: "fireball",
+    });
+    mockCardBans.getActiveBan.mockResolvedValue(banRow);
 
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/bans`, {
       method: "POST",
@@ -236,8 +243,7 @@ describe("audit events", () => {
   });
 
   it("ban create records an event with the card label", async () => {
-    mockCatalog.cardById.mockResolvedValue({ id: CARD_ID });
-    mockCardBans.findActiveBan.mockResolvedValue(null);
+    mockCardBans.getActiveBan.mockResolvedValue(null);
     mockCardBans.create.mockResolvedValue(banRow);
     mockCatalogMutations.getCardById.mockResolvedValue({
       id: CARD_ID,
@@ -263,7 +269,7 @@ describe("audit events", () => {
   });
 
   it("ban removal records the prior ban as oldValues", async () => {
-    mockCardBans.findActiveBan.mockResolvedValue(banRow);
+    mockCardBans.getActiveBan.mockResolvedValue(banRow);
     mockCardBans.unban.mockResolvedValue(true);
 
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/bans`, {

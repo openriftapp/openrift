@@ -3,21 +3,17 @@ import type { PublicListDetailResponse } from "@openrift/shared/types/api/list";
 import type { PublicUserBundleResponse } from "@openrift/shared/types/api/user-share";
 import { implement } from "@orpc/server";
 
-import { gravatarHashForEmail } from "../../../lib/gravatar.js";
+import { toShareOwner } from "../../../lib/share-owner.js";
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
-import {
-  parseListRules,
-  toListEntryDetail,
-  toPublicList,
-} from "../../lists/lib/list-presenters.js";
+import { toListEntryDetail, toPublicList } from "../../lists/lib/list-presenters.js";
 import { tournamentHistoryForUser } from "../../tournaments/lib/player-history.js";
 import {
   PREVIEW_IMAGE_COUNT,
   expandOwnerLists,
   overlapWithViewer,
 } from "../lib/user-profile-lists.js";
-import { lastActiveBucket } from "../lib/user-profile-presenters.js";
+import { lastActiveBucket, toBundleList } from "../lib/user-profile-presenters.js";
 
 const os = implement(publicUserShareContract).$context<ApiContext>().use(requireUser);
 
@@ -98,8 +94,7 @@ export const publicUserShareRouter = {
 
       return {
         owner: {
-          displayName: owner.displayName ?? "Anonymous",
-          gravatarHash: gravatarHashForEmail(owner.email),
+          ...toShareOwner(owner),
           userId: groupsInCommon.length > 0 ? owner.userId : null,
           isViewer: viewerUserId === owner.userId,
           bio: owner.bio,
@@ -128,20 +123,13 @@ export const publicUserShareRouter = {
               theyOfferYouWant: overlap.theyOfferYouWant,
             }
           : null,
-        lists: lists.map(({ list, entryCount, viaGroups }) => ({
-          id: list.id,
-          name: list.name,
-          intent: list.intent,
-          kind: list.kind,
-          entryCount: expanded.get(list.id)?.entryCount ?? entryCount,
-          isPublic: list.shareToken !== null,
-          viaGroups,
-          createdAt: list.createdAt.toISOString(),
-          updatedAt: list.updatedAt.toISOString(),
-          hasRule: parseListRules(list.rules).length > 0,
-          previewImageIds: expanded.get(list.id)?.previewImageIds ?? [],
-          matchCount: overlap ? (overlap.perList.get(list.id) ?? 0) : null,
-        })),
+        lists: lists.map((row) =>
+          toBundleList(
+            row,
+            expanded.get(row.list.id),
+            overlap ? (overlap.perList.get(row.list.id) ?? 0) : null,
+          ),
+        ),
         collections: collections.map((col) => ({
           id: col.collectionId,
           name: col.collectionName,
@@ -158,7 +146,7 @@ export const publicUserShareRouter = {
       const { userShares, lists } = context.repos;
       const viewerUserId = context.user?.id ?? null;
 
-      const list = await userShares.findListInBundle(input.token, input.listId, viewerUserId);
+      const list = await userShares.getListInBundle(input.token, input.listId, viewerUserId);
       if (!list) {
         throw errors.NOT_FOUND({ message: "Not found" });
       }
@@ -173,10 +161,7 @@ export const publicUserShareRouter = {
       return {
         list: toPublicList(list),
         entries: entries.map((row) => toListEntryDetail(row)),
-        owner: {
-          displayName: owner.displayName ?? "Anonymous",
-          gravatarHash: gravatarHashForEmail(owner.email),
-        },
+        owner: toShareOwner(owner),
       };
     },
   ),

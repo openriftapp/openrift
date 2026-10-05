@@ -1,4 +1,4 @@
-import type { Random } from "../pack-opener/rng.js";
+import type { Random } from "../random.js";
 
 /**
  * A flat, database-free snapshot of one player going into a pairing; the

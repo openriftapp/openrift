@@ -8,7 +8,7 @@ import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
 import { publicBoardStatesRouter } from "./public-board-states";
 
-const mockRepo = { findByShareToken: vi.fn(), listFeatured: vi.fn() };
+const mockRepo = { getByShareToken: vi.fn(), listFeatured: vi.fn() };
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
@@ -46,7 +46,11 @@ function row(overrides: object = {}) {
 
 describe("GET /api/v1/board-states/share/{token}", () => {
   it("resolves a shared board state without a session", async () => {
-    mockRepo.findByShareToken.mockResolvedValue({ boardState: row(), ownerName: "Rell" });
+    mockRepo.getByShareToken.mockResolvedValue({
+      boardState: row(),
+      ownerName: "Rell",
+      ownerEmail: "rell@example.com",
+    });
 
     const res = await app.request("/api/v1/board-states/share/AbC123XyZ789");
 
@@ -55,10 +59,15 @@ describe("GET /api/v1/board-states/share/{token}", () => {
     expect(json.boardState.title).toBe("Stunned defender");
     expect(json.boardState).not.toHaveProperty("shareToken");
     expect(json.owner.displayName).toBe("Rell");
+    expect(json.owner.gravatarHash).toMatch(/^[0-9a-f]{64}$/u);
   });
 
   it("falls back to Anonymous for an owner without a name", async () => {
-    mockRepo.findByShareToken.mockResolvedValue({ boardState: row(), ownerName: null });
+    mockRepo.getByShareToken.mockResolvedValue({
+      boardState: row(),
+      ownerName: null,
+      ownerEmail: "rell@example.com",
+    });
 
     const json = await readJson(await app.request("/api/v1/board-states/share/AbC123XyZ789"));
 
@@ -66,7 +75,7 @@ describe("GET /api/v1/board-states/share/{token}", () => {
   });
 
   it("404s for an unknown or revoked token", async () => {
-    mockRepo.findByShareToken.mockResolvedValue(undefined);
+    mockRepo.getByShareToken.mockResolvedValue(undefined);
 
     const res = await app.request("/api/v1/board-states/share/nope");
 

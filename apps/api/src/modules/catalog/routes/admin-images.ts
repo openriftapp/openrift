@@ -1,11 +1,9 @@
 import { adminImagesContract } from "@openrift/shared/contracts/admin/images";
 import { isRegenerateImagesCheckpoint } from "@openrift/shared/contracts/admin/job-results";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { createLogger } from "@openrift/shared/logger";
 import type { RegenerateImagesCheckpoint } from "@openrift/shared/types/api/admin";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { runJobAsync } from "../../system/services/run-job.js";
@@ -44,7 +42,7 @@ export const adminImagesRouter = {
     // whole catalog, which scansOnly is meant to avoid.
     let resumeFrom: { runId: string; checkpoint: RegenerateImagesCheckpoint } | undefined;
     if (!reset && !scansOnly) {
-      const prior = await repos.jobRuns.findLatestForResume(REGENERATE_IMAGES_KIND);
+      const prior = await repos.jobRuns.getLatestForResume(REGENERATE_IMAGES_KIND);
       if (
         prior?.status === "failed" &&
         isRegenerateImagesCheckpoint(prior.result) &&
@@ -71,19 +69,15 @@ export const adminImagesRouter = {
     );
   }),
 
-  cancelRegenerate: os.cancelRegenerate.handler(async ({ context }) => {
+  cancelRegenerate: os.cancelRegenerate.handler(async ({ context, errors }) => {
     const { jobRuns } = context.repos;
-    const running = await jobRuns.findRunning(REGENERATE_IMAGES_KIND);
+    const running = await jobRuns.getRunning(REGENERATE_IMAGES_KIND);
     if (!running) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "No regenerate-images job is running");
+      throw errors.NOT_FOUND({ message: "No regenerate-images job is running" });
     }
     const current = await jobRuns.getResult(running.id);
     if (!isRegenerateImagesCheckpoint(current)) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
-        "Job is still initializing. Try again shortly.",
-      );
+      throw errors.CONFLICT({ message: "Job is still initializing. Try again shortly." });
     }
     await jobRuns.requestCancel(running.id);
     return { runId: running.id, cancelRequested: true as const };

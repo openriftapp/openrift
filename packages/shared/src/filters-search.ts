@@ -1,8 +1,8 @@
+import { cardSearchAltNames } from "./card-name.js";
 import { foldCached, foldForSearch, squashCached, squashForSearch } from "./search-fold.js";
 import type { Printing } from "./types/catalog.js";
 import type { SearchField } from "./types/search.js";
 import { ALL_SEARCH_FIELDS, SEARCH_PREFIX_MAP } from "./types/search.js";
-import { cardSearchAltNames } from "./utils.js";
 
 interface ParsedSearchTerm {
   field: SearchField | null;

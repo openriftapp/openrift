@@ -118,8 +118,9 @@ test.describe("profile account & security", () => {
       await updateRequest;
 
       await expect(page.getByText("Name updated.")).toBeVisible({ timeout: 10_000 });
-      // Multiple card titles exist; the header card is first in document order.
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Updated Name", {
+      await expect(
+        page.getByRole("heading", { level: 2, name: "Updated Name", exact: true }),
+      ).toBeVisible({
         timeout: 10_000,
       });
     });

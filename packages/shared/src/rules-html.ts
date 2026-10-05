@@ -14,6 +14,7 @@ import {
   RULE_GLYPHS,
   ruleUsesYVariable,
 } from "./rules-markdown.js";
+import { escapeHtml } from "./strings.js";
 import type { RuleLanguage } from "./types/api/rules.js";
 
 export interface CardMentions {
@@ -71,15 +72,6 @@ const COMMENT_BLOCK_TAGS: ReadonlySet<string> = new Set([
 ]);
 const SAFE_HREF_REGEX =
   /^(?:#rule-[\w.-]+|\/rules\/(?:core|tournament)(?:\?lang=[A-Za-z-]+)?#rule-[\w.-]+|\/cards\/[a-z0-9-]+|https:\/\/[^\s"'<>]+)$/u;
-
-export function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
 
 // Allowlist serializer: any element or attribute not named here is dropped, and raw HTML never passes.
 function serialize(node: HastNode, blockTags: ReadonlySet<string>): string {

@@ -1,3 +1,4 @@
+import { escapeHtml } from "@openrift/shared/strings";
 import type { DisplayLocale } from "@openrift/shared/types/api/preferences";
 
 import { emailMessages } from "./messages.js";
@@ -13,15 +14,6 @@ export const MUTED_TEXT = "#71717a";
 const MUTED = MUTED_TEXT;
 const BORDER = "#e4e4e7";
 const BACKGROUND = "#f4f4f5";
-
-export function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
 
 export function emailButton(label: string, href: string): string {
   return `<a href="${escapeHtml(href)}" style="display:inline-block;background:${BRAND};color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:10px 18px;border-radius:8px;">${escapeHtml(label)}</a>`;

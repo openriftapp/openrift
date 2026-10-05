@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { cardFiltersSchema, EMPTY_CARD_FILTERS } from "./search";
+import {
+  ALL_SEARCH_FIELDS,
+  cardFiltersSchema,
+  DEFAULT_SEARCH_SCOPE,
+  EMPTY_CARD_FILTERS,
+  SEARCH_PREFIX_MAP,
+} from "./search";
 
 describe("cardFiltersSchema defaults", () => {
   it("parses an empty object into the blank filter set, catching any dimension missing a default", () => {
@@ -34,5 +40,30 @@ describe("cardFiltersSchema defaults", () => {
     expect(parsed.rarities).toEqual(["rare"]);
     expect(parsed.keywords).toEqual(["Shield"]);
     expect(parsed.isBanned).toBe(true);
+  });
+});
+
+describe("constants", () => {
+  it("ALL_SEARCH_FIELDS includes all 8 fields", () => {
+    expect(ALL_SEARCH_FIELDS).toHaveLength(8);
+    expect(ALL_SEARCH_FIELDS).toContain("name");
+    expect(ALL_SEARCH_FIELDS).toContain("flavorText");
+    expect(ALL_SEARCH_FIELDS).toContain("type");
+    expect(ALL_SEARCH_FIELDS).toContain("id");
+  });
+
+  it("DEFAULT_SEARCH_SCOPE includes all fields", () => {
+    expect(DEFAULT_SEARCH_SCOPE).toEqual(ALL_SEARCH_FIELDS);
+  });
+
+  it("SEARCH_PREFIX_MAP maps prefixes to fields", () => {
+    expect(SEARCH_PREFIX_MAP.n).toBe("name");
+    expect(SEARCH_PREFIX_MAP.d).toBe("cardText");
+    expect(SEARCH_PREFIX_MAP.k).toBe("keywords");
+    expect(SEARCH_PREFIX_MAP.t).toBe("tags");
+    expect(SEARCH_PREFIX_MAP.a).toBe("artist");
+    expect(SEARCH_PREFIX_MAP.f).toBe("flavorText");
+    expect(SEARCH_PREFIX_MAP.ty).toBe("type");
+    expect(SEARCH_PREFIX_MAP.id).toBe("id");
   });
 });

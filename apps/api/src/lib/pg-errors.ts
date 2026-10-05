@@ -48,3 +48,13 @@ export function raisedExceptionMessage(error: unknown): string | null {
   }
   return message;
 }
+
+/** True if the error is a Postgres check-constraint violation (SQLSTATE 23514). */
+export function isCheckViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "23514"
+  );
+}

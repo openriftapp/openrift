@@ -1,10 +1,10 @@
-import type { TokenCardName } from "@openrift/shared/card-tokens";
-import { findTokenReferences } from "@openrift/shared/card-tokens";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
+import type { TokenCardName } from "../lib/card-tokens.js";
+import { findTokenReferences } from "../lib/card-tokens.js";
 
 interface TokenTextSources {
   errata: { correctedRulesText: string | null; correctedEffectText: string | null } | undefined;

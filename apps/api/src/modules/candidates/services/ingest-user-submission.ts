@@ -16,7 +16,6 @@ import type { Insertable } from "kysely";
 
 import type { CandidateCardsTable } from "../../../db/tables/candidates.js";
 import type { Transact } from "../../../deps.js";
-import { computeProposedDiff } from "../lib/card-submission-diff.js";
 import {
   buildCandidateCardFields,
   buildCandidatePrintingFields,
@@ -24,7 +23,8 @@ import {
   candidateCardValidatorInput,
   candidatePrintingValidator,
   candidatePrintingValidatorInput,
-} from "./candidate-fields.js";
+} from "../lib/candidate-fields.js";
+import { computeProposedDiff } from "../lib/card-submission-diff.js";
 import {
   loadCandidateLinkIndex,
   resolveCardIdByName,

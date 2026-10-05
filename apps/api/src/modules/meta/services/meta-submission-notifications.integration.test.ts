@@ -2,8 +2,8 @@ import { createLogger } from "@openrift/shared/logger";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createRepos } from "../../../deps.js";
+import type { EmailDeps } from "../../../email.js";
 import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
-import type { MetaSubmissionEmailDeps } from "./meta-submission-notifications.js";
 import { notifyAdminsOfMetaSubmission } from "./meta-submission-notifications.js";
 
 const SUBMITTER_ID = crypto.randomUUID();
@@ -25,7 +25,7 @@ describe.skipIf(!ctx)("meta submission admin notifications (integration)", () =>
   const { db } = ctx!;
   const repos = createRepos(db);
 
-  function makeDeps(sent: { to: string; subject: string }[]): MetaSubmissionEmailDeps {
+  function makeDeps(sent: { to: string; subject: string }[]): EmailDeps {
     return {
       // oxlint-disable-next-line require-await -- mock matches the async sender shape
       sendEmail: async ({ to, subject }) => {

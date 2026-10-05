@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { mulberry32 } from "../random";
 import { buildPool } from "./pools";
 import {
   COMMONS_PER_PACK,
@@ -13,7 +14,6 @@ import {
   ULTIMATE_RATE,
   UNCOMMONS_PER_PACK,
 } from "./rates";
-import { mulberry32 } from "./rng";
 import { openPack, openPacks } from "./sample";
 import type { PackPrinting } from "./types";
 

@@ -1,12 +1,11 @@
 import { adminOrganizationsContract } from "@openrift/shared/contracts/organizations";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type {
   OrganizationListResponse,
   OrganizationResponse,
 } from "@openrift/shared/types/api/tournament";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
+import { assertExisted, assertFound, assertSlugAvailable } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { toOrganizationResponse, toOrganizationSummary } from "../lib/tournament-presenters.js";
@@ -27,14 +26,10 @@ export const adminOrganizationsRouter = {
 
   create: os.create.handler(async ({ input, context }): Promise<OrganizationResponse> => {
     const { organizations, users } = context.repos;
-    const existing = await organizations.findBySlug(input.slug);
-    if (existing) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, `Organization "${input.slug}" already exists`);
-    }
-    const owner = await users.findById(input.ownerUserId);
-    if (!owner) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Owner user not found");
-    }
+    const existing = await organizations.getBySlug(input.slug);
+    assertSlugAvailable(existing, input.slug, "Organization");
+    const owner = await users.getById(input.ownerUserId);
+    assertFound(owner, "Owner user not found");
     const org = await organizations.create({
       slug: input.slug,
       name: input.name,
@@ -47,31 +42,19 @@ export const adminOrganizationsRouter = {
   update: os.update.handler(async ({ input, context }): Promise<OrganizationResponse> => {
     const { organizations } = context.repos;
     const { id, ...patch } = input;
-    const org = await organizations.findById(id);
-    if (!org) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Organization not found");
-    }
+    const org = await organizations.getById(id);
+    assertFound(org, "Organization not found");
     if (patch.slug && patch.slug !== org.slug) {
-      const clash = await organizations.findBySlug(patch.slug);
-      if (clash) {
-        throw new AppError(
-          409,
-          ERROR_CODES.CONFLICT,
-          `Organization "${patch.slug}" already exists`,
-        );
-      }
+      const clash = await organizations.getBySlug(patch.slug);
+      assertSlugAvailable(clash, patch.slug, "Organization");
     }
     const updated = await organizations.update(id, patch);
-    if (!updated) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Organization not found");
-    }
+    assertFound(updated, "Organization not found");
     return toOrganizationResponse(updated);
   }),
 
   remove: os.remove.handler(async ({ input, context }): Promise<void> => {
-    const result = await context.repos.organizations.deleteById(input.id);
-    if (result.numDeletedRows === 0n) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Organization not found");
-    }
+    const deleted = await context.repos.organizations.deleteById(input.id);
+    assertExisted(deleted, "Organization not found");
   }),
 };

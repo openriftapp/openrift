@@ -11,6 +11,8 @@ import type {
   MetaEventPlayerOverlaysTable,
 } from "../../../db/tables/meta.js";
 import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
+import { startsWithPattern } from "../../../lib/like-pattern.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 
 /**
  * Sparse patches applied on top of promotion. `claimedFields` distinguishes
@@ -48,13 +50,6 @@ export interface MetaSourcePlayerKey {
 /** The `<length>:<eventExternalId>` half every one of an event's player keys starts with. */
 export function sourceEventKeyPrefix(eventExternalId: string): string {
   return `${eventExternalId.length}:${eventExternalId}`;
-}
-
-function escapeLike(value: string): string {
-  return value
-    .replaceAll("\\", String.raw`\\`)
-    .replaceAll("%", String.raw`\%`)
-    .replaceAll("_", String.raw`\_`);
 }
 
 export interface MetaPlayerOverlayWithCards extends MetaPlayerOverlayRow {
@@ -184,7 +179,7 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
       phases: readonly MetaOverlayPhaseInput[],
       matches: readonly MetaOverlayMatchInput[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx
           .deleteFrom("metaEventOverlayPhases")
           .where("eventOverlayId", "=", eventOverlayId)
@@ -357,7 +352,7 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
         }
         return row.id;
       };
-      return db.isTransaction ? await run(db) : await db.transaction().execute(run);
+      return await inTransaction(db, run);
     },
 
     /**
@@ -387,7 +382,7 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
           await trx.insertInto("metaEventPlayerOverlayCards").values(batch).execute();
         }
       };
-      await (db.isTransaction ? run(db) : db.transaction().execute(run));
+      await inTransaction(db, run);
     },
 
     /** The one row an admin's field edits on a standings row merge into. See {@link adminEditOverlay}. */
@@ -446,7 +441,7 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
         .selectFrom("metaEventPlayerOverlays")
         .selectAll()
         .where("provider", "=", provider)
-        .where("sourcePlayerKey", "like", `${escapeLike(sourceEventKeyPrefix(eventExternalId))}%`)
+        .where("sourcePlayerKey", "like", startsWithPattern(sourceEventKeyPrefix(eventExternalId)))
         .execute();
     },
 
@@ -468,7 +463,7 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
                 eb(
                   "sourcePlayerKey",
                   "like",
-                  `${escapeLike(sourceEventKeyPrefix(key.externalId))}%`,
+                  startsWithPattern(sourceEventKeyPrefix(key.externalId)),
                 ),
               ]),
             ),
@@ -486,7 +481,7 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
         .updateTable("metaEventPlayerOverlays")
         .set({ metaEventId, metaEventPlayerId: null, eventOverlayId: null })
         .where("provider", "=", provider)
-        .where("sourcePlayerKey", "like", `${escapeLike(sourceEventKeyPrefix(eventExternalId))}%`)
+        .where("sourcePlayerKey", "like", startsWithPattern(sourceEventKeyPrefix(eventExternalId)))
         .executeTakeFirst();
       return Number(result.numUpdatedRows);
     },

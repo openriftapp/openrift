@@ -2,6 +2,7 @@ import { idParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
+import { nameField } from "./fields.js";
 import {
   overlayCornerSchema,
   overlayPlateFieldsSchema,
@@ -27,7 +28,7 @@ export const stagePresetConfigSchema = z.object({
 });
 
 const stagePresetFieldRules = {
-  name: z.string().trim().min(1).max(60),
+  name: nameField(60),
 };
 
 export const createStagePresetSchema = z.object({

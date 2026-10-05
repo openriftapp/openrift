@@ -548,7 +548,7 @@ describe.skipIf(!ownerCtx)("deck-check player self-service (integration, ADR-026
         req("POST", `/deck-check/submissions/${submissionToken}`, { deckCode: "irrelevant" }),
       );
       expect(strangerSubmit.status).toBe(403);
-      const created = await repos.tournaments.findParticipantByUser(eventId, OUTSIDER_ID);
+      const created = await repos.tournaments.getParticipantByUser(eventId, OUTSIDER_ID);
       expect(created).toBeFalsy();
 
       // Restore self-registration for the remaining cases.

@@ -1,3 +1,4 @@
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import type {
   AssignableCardResponse,
   MappingGroupHeader,
@@ -10,7 +11,6 @@ import type {
   UnifiedMappingsResponse,
 } from "@openrift/shared/types/api/admin";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { normalizeNameForIdentity } from "@openrift/shared/utils";
 
 import type { Repos } from "../../../deps.js";
 import type {
@@ -18,7 +18,7 @@ import type {
   MarketplaceConfigs,
   StagingRow,
 } from "../lib/marketplace-configs.js";
-import { buildStagedRowMapping } from "./marketplace-mapping-shared.js";
+import { buildStagedRowMapping } from "../lib/marketplace-mapping-shared.js";
 import { buildCardIndex, buildResponseGroups } from "./marketplace-mapping.js";
 
 type UnifiedCardRow = Awaited<

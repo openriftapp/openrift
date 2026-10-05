@@ -37,7 +37,7 @@ function buildApp(session: { user: { id: string; name?: string } } | null) {
       c.set("auth", { api: { getSession: () => Promise.resolve(session) } } as never);
       c.set("repos", { collections: mockCollectionsRepo, copies: {} } as never);
       c.set("io", {} as never);
-      c.set("config", { corsOrigin: "https://openrift.app" } as never);
+      c.set("config", { siteOrigin: "https://openrift.app" } as never);
       await next();
     })
     .route("/api/v1", collectionImageRoute)
@@ -100,7 +100,7 @@ describe("collectionImageRoute", () => {
       ownerName: "Owner",
       siteHost: "openrift.app",
     });
-    // Private collection: `findByShareToken` requires is_public, so there is no
+    // Private collection: `getByShareToken` requires is_public, so there is no
     // viewable link to encode.
     expect(data?.shareUrl).toBeUndefined();
     expect(scale).toBe(1);

@@ -13,7 +13,11 @@ import type {
 import type { Repos } from "../../../deps.js";
 import type { PodRoundRows } from "../repositories/pod-tournaments-rounds.js";
 import { tieBreakKey } from "../repositories/pod-tournaments-standings.js";
-import type { LegendMetaShareRow, TournamentGroup } from "../repositories/tournament-groups.js";
+import type {
+  LegendCardName,
+  LegendMetaShareRow,
+  TournamentGroup,
+} from "../repositories/tournament-groups.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
 import { toGroupStageView, toLegendMetaShares } from "./group-cut-presenters.js";
 import type { GroupCutPlayer } from "./group-cut.js";
@@ -32,7 +36,7 @@ export interface GroupCutContext {
   ranking: GroupStageRanking;
   qualifiers: QualificationRow[];
   metaShares: LegendMetaShareRow[];
-  legendNames: Map<string, string>;
+  legendNames: Map<string, LegendCardName>;
 }
 
 export async function loadGroupCutContext(

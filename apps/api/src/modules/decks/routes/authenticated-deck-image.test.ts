@@ -35,7 +35,7 @@ function buildApp(session: { user: { id: string; name?: string } } | null) {
       c.set("auth", { api: { getSession: () => Promise.resolve(session) } } as never);
       c.set("repos", { decks: mockDecksRepo } as never);
       c.set("io", {} as never);
-      c.set("config", { corsOrigin: "https://openrift.app" } as never);
+      c.set("config", { siteOrigin: "https://openrift.app" } as never);
       await next();
     })
     .route("/api/v1", deckImageRoute)
@@ -105,6 +105,18 @@ describe("deckImageRoute auth scoping", () => {
         aspect: "landscape",
       }),
     );
+  });
+
+  it("honors an explicit 3x scale", async () => {
+    mockDecksRepo.getByIdForUser.mockResolvedValue({
+      id: "abc",
+      name: "Deck",
+      format: "constructed",
+    });
+
+    await buildApp({ user: { id: "user-1" } }).request("/api/v1/decks/abc/image.png?scale=3");
+
+    expect(renderImage).toHaveBeenCalledWith(expect.objectContaining({ scale: 3 }));
   });
 
   it("renders the vertical canvas when aspect=vertical", async () => {

@@ -3,6 +3,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { FriendGroupDiscordLinksTable } from "../../../db/tables/friend-groups.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 
 export type DiscordLink = Selectable<FriendGroupDiscordLinksTable>;
 
@@ -43,7 +44,7 @@ export function friendGroupDiscordLinksRepo(db: Kysely<Database>) {
           .returningAll()
           .executeTakeFirstOrThrow();
       };
-      return db.isTransaction ? run(db) : db.transaction().execute(run);
+      return inTransaction(db, run);
     },
 
     // Re-linking the same guild to its current group is idempotent; a guild
@@ -99,7 +100,7 @@ export function friendGroupDiscordLinksRepo(db: Kysely<Database>) {
           .executeTakeFirstOrThrow();
         return { status: "linked", link };
       };
-      return db.isTransaction ? run(db) : db.transaction().execute(run);
+      return inTransaction(db, run);
     },
 
     listLinks(groupId: string): Promise<DiscordLink[]> {

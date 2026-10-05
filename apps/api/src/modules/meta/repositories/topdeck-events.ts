@@ -4,7 +4,9 @@ import { sql } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import type { TopdeckEventsTable } from "../../../db/tables/meta-sources.js";
 import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
+import { containsPattern } from "../../../lib/like-pattern.js";
 import { TOPDECK_PROVIDER } from "../../../lib/meta-providers.js";
+import { offsetPage } from "../../../repositories/query-helpers.js";
 
 type TopdeckEventRow = Selectable<TopdeckEventsTable>;
 
@@ -283,7 +285,7 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    async list(
+    list(
       filters: TopdeckListFilters,
       pagination: { limit: number; offset: number },
       order: TopdeckListOrder = {},
@@ -291,7 +293,7 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
       const applyFilters = <T extends ReturnType<typeof triagedQuery>>(q: T): T => {
         let base = q;
         if (filters.search !== undefined && filters.search.trim() !== "") {
-          const like = `%${filters.search.trim()}%`;
+          const like = containsPattern(filters.search.trim());
           base = base.where((eb) =>
             eb.or([eb("c.name", "ilike", like), eb("c.city", "ilike", like)]),
           ) as T;
@@ -324,20 +326,14 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
         return base;
       };
 
-      const rows = await applyFilters(listSelect())
-        .orderBy(catalogOrderBy(order))
-        // Ties on the sort column are common (a locals night files every store
-        // on the same day), so the key breaks them and keeps paging stable.
-        .orderBy("c.tid", "desc")
-        .limit(pagination.limit)
-        .offset(pagination.offset)
-        .execute();
-
-      const countRow = await applyFilters(triagedQuery())
-        .select(sql<string>`count(*)`.as("total"))
-        .executeTakeFirstOrThrow();
-
-      return { rows, total: Number(countRow.total) };
+      return offsetPage(
+        applyFilters(listSelect())
+          .orderBy(catalogOrderBy(order))
+          // Ties on the sort column are common (a locals night files every store
+          // on the same day), so the key breaks them and keeps paging stable.
+          .orderBy("c.tid", "desc"),
+        pagination,
+      );
     },
 
     async newKeys(): Promise<string[]> {

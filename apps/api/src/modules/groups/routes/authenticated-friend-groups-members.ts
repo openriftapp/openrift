@@ -1,5 +1,6 @@
 import { friendGroupsContract } from "@openrift/shared/contracts/friend-groups";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { canManageMember } from "@openrift/shared/friend-group-roles";
 import type {
   FriendGroupMemberDetailResponse,
   FriendGroupMemberResponse,
@@ -7,6 +8,7 @@ import type {
 import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
+import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { expandRuleListCounts } from "../../lists/lib/list-counts.js";
@@ -17,7 +19,7 @@ import {
   toMember,
   toShare,
 } from "../lib/friend-group-presenters.js";
-import { hasRole, loadGroupForMember, requireRole } from "../lib/group-access.js";
+import { loadGroupBySlug, loadGroupForMember, requireRole } from "../lib/group-access.js";
 
 const os = implement(friendGroupsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -27,20 +29,11 @@ export const friendGroupsMembersRouter = {
     const { friendGroups } = context.repos;
     const targetUserId = input.userId;
 
-    const group = await friendGroups.getBySlugOrPrevious(input.slug);
-    if (!group) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Group not found");
-    }
-
+    const group = await loadGroupBySlug(context.repos, input.slug);
     const invite = await friendGroups.getInvite(group.id, targetUserId);
-    if (!invite) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "No pending invite");
-    }
+    assertFound(invite, "No pending invite");
 
-    const membership = await friendGroups.getMembership(group.id, viewerId);
-    if (!membership || !hasRole(membership.role, "admin")) {
-      throw new AppError(403, ERROR_CODES.FORBIDDEN, "Admin only");
-    }
+    requireRole(await friendGroups.getMembership(group.id, viewerId), "admin");
 
     // Add the member and consume the invite atomically so a failure can't
     // leave a member without clearing the pending invite (or vice versa).
@@ -67,21 +60,12 @@ export const friendGroupsMembersRouter = {
     const { friendGroups } = context.repos;
     const targetUserId = input.userId;
 
-    const group = await friendGroups.getBySlugOrPrevious(input.slug);
-    if (!group) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Group not found");
-    }
-
+    const group = await loadGroupBySlug(context.repos, input.slug);
     const invite = await friendGroups.getInvite(group.id, targetUserId);
-    if (!invite) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "No pending invite");
-    }
+    assertFound(invite, "No pending invite");
 
     if (targetUserId !== viewerId) {
-      const membership = await friendGroups.getMembership(group.id, viewerId);
-      if (!membership || !hasRole(membership.role, "admin")) {
-        throw new AppError(403, ERROR_CODES.FORBIDDEN, "Forbidden");
-      }
+      requireRole(await friendGroups.getMembership(group.id, viewerId), "admin");
     }
 
     await friendGroups.deleteInvite(group.id, targetUserId);
@@ -136,28 +120,25 @@ export const friendGroupsMembersRouter = {
       requireRole(ctx.membership, "admin");
 
       const target = await friendGroups.getMembership(ctx.group.id, targetUserId);
-      if (!target) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Member not found");
-      }
+      assertFound(target, "Member not found");
       if (target.role === "owner") {
         throw new AppError(409, ERROR_CODES.CONFLICT, "Cannot demote the owner");
       }
-      if ((target.role === "admin" || input.role === "admin") && ctx.membership.role !== "owner") {
+      if (
+        !canManageMember(ctx.membership.role, target.role) ||
+        (input.role === "admin" && ctx.membership.role !== "owner")
+      ) {
         throw new AppError(403, ERROR_CODES.FORBIDDEN, "Only the owner can change admins");
       }
 
       const updated = await friendGroups.updateRole(ctx.group.id, targetUserId, input.role);
-      if (!updated) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Member not found");
-      }
+      assertFound(updated, "Member not found");
       const [members, contactsByUser] = await Promise.all([
         friendGroups.listMembers(ctx.group.id),
         friendGroups.getRevealedContactsForMembers(ctx.group.id),
       ]);
       const enriched = members.find((member) => member.userId === targetUserId);
-      if (!enriched) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Member not found");
-      }
+      assertFound(enriched, "Member not found");
       return toMember(enriched, contactsByUser.get(targetUserId) ?? []);
     },
   ),
@@ -180,9 +161,7 @@ export const friendGroupsMembersRouter = {
         friendGroups.getRevealedContactsForMembers(ctx.group.id),
       ]);
       const enriched = members.find((member) => member.userId === viewerId);
-      if (!enriched) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Member not found");
-      }
+      assertFound(enriched, "Member not found");
       return toMember(enriched, contactsByUser.get(viewerId) ?? []);
     },
   ),
@@ -199,13 +178,11 @@ export const friendGroupsMembersRouter = {
       throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Use /leave to remove yourself");
     }
     const target = await friendGroups.getMembership(ctx.group.id, targetUserId);
-    if (!target) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Member not found");
-    }
+    assertFound(target, "Member not found");
     if (target.role === "owner") {
       throw new AppError(409, ERROR_CODES.CONFLICT, "Cannot kick the owner");
     }
-    if (target.role === "admin" && ctx.membership.role !== "owner") {
+    if (!canManageMember(ctx.membership.role, target.role)) {
       throw new AppError(403, ERROR_CODES.FORBIDDEN, "Only the owner can remove admins");
     }
 
@@ -230,9 +207,7 @@ export const friendGroupsMembersRouter = {
         friendGroups.getRevealedContactsForMembers(ctx.group.id),
       ]);
       const counterparty = members.find((member) => member.userId === counterpartyUserId);
-      if (!counterparty) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Member not found");
-      }
+      assertFound(counterparty, "Member not found");
 
       const [allShares, allCollectionShares] = await Promise.all([
         friendGroups.listSharesForGroup(ctx.group.id),

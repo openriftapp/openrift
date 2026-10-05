@@ -69,7 +69,7 @@ function makeRepos() {
       isDeskPrinting: vi.fn(() => Promise.resolve(false)),
       nonDeskPrintingIdsForImageFile: vi.fn(() => Promise.resolve([] as string[])),
       getFullPrinting: vi.fn(() => Promise.resolve(BASE_PRINTING)),
-      findBasePrinting: vi.fn(() => Promise.resolve(BASE_PRINTING)),
+      getBasePrinting: vi.fn(() => Promise.resolve(BASE_PRINTING)),
       updatePrintingDeskFields: vi.fn(() => Promise.resolve()),
     },
     printingEvents: {},
@@ -170,14 +170,14 @@ describe("createDeskPrinting", () => {
   });
 
   it("rejects a card with no base printing when no artist is given", async () => {
-    repos.printingDesk.findBasePrinting.mockResolvedValue(undefined as never);
+    repos.printingDesk.getBasePrinting.mockResolvedValue(undefined as never);
     await expect(create(repos)).rejects.toThrow("artist is required");
   });
 
   it("reads the base printing by id when one is named", async () => {
     await create(repos, { basePrintingId: "base-9" });
     expect(repos.printingDesk.getFullPrinting).toHaveBeenCalledWith("base-9");
-    expect(repos.printingDesk.findBasePrinting).not.toHaveBeenCalled();
+    expect(repos.printingDesk.getBasePrinting).not.toHaveBeenCalled();
   });
 
   it("snaps a coarse release date to the start of its period", async () => {

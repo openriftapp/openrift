@@ -4,7 +4,7 @@ import type { Marketplace } from "@openrift/shared/types/pricing";
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../db/tables.js";
-import { createContentAddressedCache } from "../catalog/services/catalog-assembly.js";
+import { createContentAddressedCache } from "../../lib/content-addressed-cache.js";
 import { cardmarketOverlayRepo } from "./repositories/cardmarket-overlay.js";
 import { cardmarketStockRepo } from "./repositories/cardmarket-stock.js";
 import { marketplaceAdminRepo } from "./repositories/marketplace-admin.js";
@@ -13,7 +13,6 @@ import { marketplaceRepo } from "./repositories/marketplace.js";
 import { priceRefreshRepo } from "./repositories/price-refresh.js";
 import { productsRepo } from "./repositories/products.js";
 import { providerSettingsRepo } from "./repositories/provider-settings.js";
-import { getMappingOverview } from "./services/marketplace-mapping.js";
 
 export interface MarketplaceRepos {
   marketplace: ReturnType<typeof marketplaceRepo>;
@@ -24,10 +23,6 @@ export interface MarketplaceRepos {
   providerSettings: ReturnType<typeof providerSettingsRepo>;
   marketplaceMapping: ReturnType<typeof marketplaceMappingRepo>;
   priceRefresh: ReturnType<typeof priceRefreshRepo>;
-}
-
-export interface MarketplaceServices {
-  getMappingOverview: typeof getMappingOverview;
 }
 
 export function createMarketplaceRepos(db: Kysely<Database>): MarketplaceRepos {
@@ -55,8 +50,4 @@ export function createRulePriceLookup(db: Kysely<Database>): () => Promise<Price
     },
     () => marketplaceRepo(db).latestPricesContentVersion(),
   );
-}
-
-export function createMarketplaceServices(): MarketplaceServices {
-  return { getMappingOverview };
 }

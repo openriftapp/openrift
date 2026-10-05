@@ -33,7 +33,7 @@ const mockTagRepo = {
 };
 
 const mockCatalog = {
-  cardById: vi.fn(),
+  getCardById: vi.fn(),
 };
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
@@ -173,7 +173,7 @@ describe("DELETE /custom-tag-categories/:id", () => {
   it("returns 204 when not in use", async () => {
     mockCatRepo.getById.mockResolvedValue(catRow);
     mockCatRepo.isInUse.mockResolvedValue(false);
-    mockCatRepo.deleteById.mockResolvedValue(undefined);
+    mockCatRepo.deleteById.mockResolvedValue(true);
     const res = await app.request(`/api/admin/v1/custom-tag-categories/${CAT_ID}`, {
       method: "DELETE",
     });
@@ -322,20 +322,18 @@ describe("DELETE /custom-tags/:id", () => {
   });
 
   it("returns 204 and deletes", async () => {
-    mockTagRepo.getById.mockResolvedValue(tagRow);
-    mockTagRepo.deleteById.mockResolvedValue(undefined);
+    mockTagRepo.deleteById.mockResolvedValue(true);
     const res = await app.request(`/api/admin/v1/custom-tags/${TAG_ID}`, { method: "DELETE" });
     expect(res.status).toBe(204);
     expect(mockTagRepo.deleteById).toHaveBeenCalledWith(TAG_ID);
   });
 
   it("returns 404 when the tag does not exist", async () => {
-    mockTagRepo.getById.mockResolvedValue(undefined);
+    mockTagRepo.deleteById.mockResolvedValue(false);
     const res = await app.request(`/api/admin/v1/custom-tags/${TAG_ID}`, { method: "DELETE" });
     expect(res.status).toBe(404);
     const lintBody = await readJson(res);
     expect(lintBody.message).toContain("not found");
-    expect(mockTagRepo.deleteById).not.toHaveBeenCalled();
   });
 });
 
@@ -398,7 +396,7 @@ describe("GET /cards/:id/custom-tags", () => {
   });
 
   it("returns 200 with the card's tag ids", async () => {
-    mockCatalog.cardById.mockResolvedValue({ id: CARD_ID });
+    mockCatalog.getCardById.mockResolvedValue({ id: CARD_ID });
     mockTagRepo.tagIdsForCard.mockResolvedValue([TAG_ID]);
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/custom-tags`);
     expect(res.status).toBe(200);
@@ -407,7 +405,7 @@ describe("GET /cards/:id/custom-tags", () => {
   });
 
   it("returns 404 when the card does not exist", async () => {
-    mockCatalog.cardById.mockResolvedValue(undefined);
+    mockCatalog.getCardById.mockResolvedValue(undefined);
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/custom-tags`);
     expect(res.status).toBe(404);
     const lintBody = await readJson(res);
@@ -422,7 +420,7 @@ describe("PUT /cards/:id/custom-tags", () => {
   });
 
   it("returns 204 and sets the tags", async () => {
-    mockCatalog.cardById.mockResolvedValue({ id: CARD_ID });
+    mockCatalog.getCardById.mockResolvedValue({ id: CARD_ID });
     mockTagRepo.getById.mockResolvedValue(tagRow);
     mockTagRepo.setForCard.mockResolvedValue(undefined);
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/custom-tags`, {
@@ -435,7 +433,7 @@ describe("PUT /cards/:id/custom-tags", () => {
   });
 
   it("returns 404 when the card does not exist", async () => {
-    mockCatalog.cardById.mockResolvedValue(undefined);
+    mockCatalog.getCardById.mockResolvedValue(undefined);
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/custom-tags`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },

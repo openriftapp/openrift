@@ -1,6 +1,7 @@
+import { escapeHtml } from "@openrift/shared/strings";
 import type { DisplayLocale } from "@openrift/shared/types/api/preferences";
 
-import { emailButton, escapeHtml, MUTED_TEXT, renderEmailLayout } from "./layout.js";
+import { emailButton, MUTED_TEXT, renderEmailLayout } from "./layout.js";
 import { emailMessages } from "./messages.js";
 import type { EmailMessages, TradeRequestKind, TradeStatusEvent } from "./messages.js";
 

@@ -1,7 +1,7 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { ListKind } from "@openrift/shared/types/api/list";
 import type { TradePreference } from "@openrift/shared/types/api/trade-preferences";
 import type { Finish, Rarity } from "@openrift/shared/types/enums";
-import { legendDisplayName } from "@openrift/shared/utils";
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";

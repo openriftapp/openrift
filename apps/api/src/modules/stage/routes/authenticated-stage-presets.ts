@@ -3,11 +3,9 @@ import type {
   StagePresetListResponse,
 } from "@openrift/shared/contracts/stage-presets";
 import { MAX_STAGE_PRESETS, stagePresetsContract } from "@openrift/shared/contracts/stage-presets";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
-import { assertFound } from "../../../lib/assertions.js";
+import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -16,9 +14,9 @@ import { toStagePreset } from "../lib/stage-preset-presenters.js";
 const NOT_FOUND = "Preset not found";
 const NAME_TAKEN = "You already have a preset with that name";
 
-function rethrowPresetError(error: unknown): never {
+function rethrowPresetError(error: unknown, conflict: (message: string) => Error): never {
   if (isUniqueViolationOn(error, "uq_stage_presets_user_name")) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, NAME_TAKEN);
+    throw conflict(NAME_TAKEN);
   }
   throw error;
 }
@@ -32,15 +30,12 @@ export const stagePresetsRouter = {
     return { items: rows.map((row) => toStagePreset(row)) };
   }),
 
-  create: os.create.handler(async ({ input, context }): Promise<StagePreset> => {
+  create: os.create.handler(async ({ input, context, errors }): Promise<StagePreset> => {
+    const conflict = (message: string) => errors.CONFLICT({ message });
     // Check-then-act: a race landing a twenty-first preset is a cosmetic overrun.
     const count = await context.repos.stagePresets.countForUser(context.userId);
     if (count >= MAX_STAGE_PRESETS) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
-        `You can keep at most ${MAX_STAGE_PRESETS} presets. Delete one to make room.`,
-      );
+      throw conflict(`You can keep at most ${MAX_STAGE_PRESETS} presets. Delete one to make room.`);
     }
 
     let row;
@@ -51,16 +46,17 @@ export const stagePresetsRouter = {
         config: input.config,
       });
     } catch (error) {
-      rethrowPresetError(error);
+      rethrowPresetError(error, conflict);
     }
     return toStagePreset(row);
   }),
 
-  update: os.update.handler(async ({ input, context }): Promise<StagePreset> => {
+  update: os.update.handler(async ({ input, context, errors }): Promise<StagePreset> => {
+    const conflict = (message: string) => errors.CONFLICT({ message });
     const { id, name, config } = input;
     if (name === undefined && config === undefined) {
       // An empty SQL SET is invalid: nothing is written, and the current row is returned.
-      const current = await context.repos.stagePresets.findByIdForUser(id, context.userId);
+      const current = await context.repos.stagePresets.getByIdForUser(id, context.userId);
       assertFound(current, NOT_FOUND);
       return toStagePreset(current);
     }
@@ -69,16 +65,14 @@ export const stagePresetsRouter = {
     try {
       row = await context.repos.stagePresets.update(id, context.userId, { name, config });
     } catch (error) {
-      rethrowPresetError(error);
+      rethrowPresetError(error, conflict);
     }
     assertFound(row, NOT_FOUND);
     return toStagePreset(row);
   }),
 
   remove: os.remove.handler(async ({ input, context }): Promise<void> => {
-    const deleted = await context.repos.stagePresets.remove(input.id, context.userId);
-    if (!deleted) {
-      assertFound(undefined, NOT_FOUND);
-    }
+    const deleted = await context.repos.stagePresets.deleteByIdForUser(input.id, context.userId);
+    assertExisted(deleted, NOT_FOUND);
   }),
 };

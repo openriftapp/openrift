@@ -18,10 +18,10 @@ const os = implement(adminChangelogContract).$context<ApiContext>().use(requireA
  * collapsing both to `null` here would answer the click with a 200.
  */
 export const adminChangelogRouter = {
-  post: os.post.handler(async ({ context }) => {
+  post: os.post.handler(async ({ context, errors }) => {
     const config = context.config;
     const repos = context.repos;
-    const prior = await repos.jobRuns.findLatestForResume("discord.post_changelog");
+    const prior = await repos.jobRuns.getLatestForResume("discord.post_changelog");
     const fromDate = extractWatermark(prior?.result);
 
     const outcome = await runJobOutcome(
@@ -41,11 +41,9 @@ export const adminChangelogRouter = {
     );
 
     if (outcome.status === "already_running") {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
-        "A changelog post is already running — wait for it to finish.",
-      );
+      throw errors.CONFLICT({
+        message: "A changelog post is already running — wait for it to finish.",
+      });
     }
     if (outcome.status === "failed") {
       throw new AppError(

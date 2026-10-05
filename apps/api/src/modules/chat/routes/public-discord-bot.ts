@@ -12,14 +12,14 @@ import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
+import { bearerToken } from "../../../lib/bearer.js";
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 
 /** Hash-then-compare keeps the secret comparison constant-time without leaking length. */
 function requireBotSecret(context: ApiContext): void {
   const expected = context.config.discordBotApiSecret;
-  const header = context.reqHeader("authorization");
-  const provided = header?.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : null;
+  const provided = bearerToken(context.reqHeader("authorization"));
   if (!expected || !provided) {
     throw new AppError(401, ERROR_CODES.UNAUTHORIZED, "Missing or unknown bot secret");
   }
@@ -38,7 +38,7 @@ const os = implement(discordBotContract).$context<ApiContext>().use(requireUser)
  */
 export const discordBotRouter = {
   redeemLink: os.redeemLink.handler(
-    async ({ input, context }): Promise<DiscordBotRedeemLinkResponse> => {
+    async ({ input, context, errors }): Promise<DiscordBotRedeemLinkResponse> => {
       requireBotSecret(context);
       const result = await context.repos.friendGroupDiscordLinks.redeemCode({
         code: input.code,
@@ -46,14 +46,14 @@ export const discordBotRouter = {
         guildName: input.guildName?.trim() || null,
       });
       if (result.status === "unknown-code") {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Unknown or expired link code");
+        throw errors.NOT_FOUND({ message: "Unknown or expired link code" });
       }
       if (result.status === "guild-taken") {
-        throw new AppError(409, ERROR_CODES.CONFLICT, "Guild is already linked to another group");
+        throw errors.CONFLICT({ message: "Guild is already linked to another group" });
       }
       const linked = await context.repos.friendGroupDiscordLinks.findByGuildId(input.guildId);
       if (!linked) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Unknown or expired link code");
+        throw errors.NOT_FOUND({ message: "Unknown or expired link code" });
       }
       return { groupSlug: linked.groupSlug, groupName: linked.groupName };
     },

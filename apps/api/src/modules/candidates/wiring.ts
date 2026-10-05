@@ -1,16 +1,14 @@
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../db/tables.js";
+import { bindEmailDeps } from "../../email.js";
+import type { EmailDeps } from "../../email.js";
 import { candidateCardsRepo } from "./repositories/candidate-cards.js";
 import { cardSubmissionsRepo } from "./repositories/card-submissions.js";
 import { ignoredCandidatesRepo } from "./repositories/ignored-candidates.js";
 import { ingestRepo } from "./repositories/ingest.js";
 import { notifyAdminsOfCardSubmission } from "./services/card-submission-notifications.js";
-import type { CardSubmissionEmailDeps } from "./services/card-submission-notifications.js";
 import { notifySubmitterOfCardAcceptance } from "./services/card-submission-thanks.js";
-import { importErrata } from "./services/import-errata.js";
-import { ingestCandidates } from "./services/ingest-candidates.js";
-import { ingestUserSubmission } from "./services/ingest-user-submission.js";
 
 export interface CandidatesRepos {
   cardSubmissions: ReturnType<typeof cardSubmissionsRepo>;
@@ -20,9 +18,6 @@ export interface CandidatesRepos {
 }
 
 export interface CandidatesServices {
-  ingestCandidates: typeof ingestCandidates;
-  ingestUserSubmission: typeof ingestUserSubmission;
-  importErrata: typeof importErrata;
   notifyAdminsOfCardSubmission: typeof notifyAdminsOfCardSubmission;
   notifySubmitterOfCardAcceptance: typeof notifySubmitterOfCardAcceptance;
 }
@@ -36,18 +31,9 @@ export function createCandidatesRepos(db: Kysely<Database>): CandidatesRepos {
   };
 }
 
-export function createCandidatesServices(emailDeps?: CardSubmissionEmailDeps): CandidatesServices {
+export function createCandidatesServices(emailDeps?: EmailDeps): CandidatesServices {
   return {
-    ingestCandidates,
-    ingestUserSubmission,
-    importErrata,
-    notifyAdminsOfCardSubmission:
-      emailDeps === undefined
-        ? notifyAdminsOfCardSubmission
-        : (repos, submission) => notifyAdminsOfCardSubmission(repos, submission, emailDeps),
-    notifySubmitterOfCardAcceptance:
-      emailDeps === undefined
-        ? notifySubmitterOfCardAcceptance
-        : (repos, submissionId) => notifySubmitterOfCardAcceptance(repos, submissionId, emailDeps),
+    notifyAdminsOfCardSubmission: bindEmailDeps(notifyAdminsOfCardSubmission, emailDeps),
+    notifySubmitterOfCardAcceptance: bindEmailDeps(notifySubmitterOfCardAcceptance, emailDeps),
   };
 }

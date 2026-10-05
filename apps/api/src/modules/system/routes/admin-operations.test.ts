@@ -1,28 +1,13 @@
+import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../deps.js";
+import { AppError } from "../../../errors.js";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
-import { refreshCardmarketPrices } from "../../marketplace/services/price-refresh/cardmarket.js";
-import { refreshCardtraderPrices } from "../../marketplace/services/price-refresh/cardtrader.js";
-import { refreshTcgplayerPrices } from "../../marketplace/services/price-refresh/tcgplayer.js";
 import { adminOperationsRouter } from "./admin-operations";
-
-vi.mock("../../marketplace/services/price-refresh/tcgplayer.js", () => ({
-  refreshTcgplayerPrices: vi.fn(),
-}));
-vi.mock("../../marketplace/services/price-refresh/cardmarket.js", () => ({
-  refreshCardmarketPrices: vi.fn(),
-}));
-vi.mock("../../marketplace/services/price-refresh/cardtrader.js", () => ({
-  refreshCardtraderPrices: vi.fn(),
-}));
-
-const mockRefreshTcgplayer = vi.mocked(refreshTcgplayerPrices);
-const mockRefreshCardmarket = vi.mocked(refreshCardmarketPrices);
-const mockRefreshCardtrader = vi.mocked(refreshCardtraderPrices);
 
 const mockMktAdmin = {
   clearPriceData: vi.fn(),
@@ -38,7 +23,7 @@ const mockJobRuns = {
   start: vi.fn(async () => ({ id: "019d4999-4219-72f6-b7bb-64004e1b1bff" })),
   succeed: vi.fn(async () => undefined),
   fail: vi.fn(async () => undefined),
-  findRunning: vi.fn<Repos["jobRuns"]["findRunning"]>(async () => null),
+  getRunning: vi.fn<Repos["jobRuns"]["getRunning"]>(async () => null),
   listRecent: vi.fn(),
   getLatestPerKind: vi.fn(),
   sweepOrphaned: vi.fn(),
@@ -46,14 +31,13 @@ const mockJobRuns = {
 };
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
-const mockIo = { fetch: vi.fn() };
-const mockConfig = { cardtraderApiToken: "test-token-123" };
+const mockScheduler = { runNow: vi.fn() };
+let schedulerRunning = true;
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
-  c.set("io", mockIo as never);
-  c.set("config", mockConfig as never);
+  c.set("scheduler", (schedulerRunning ? mockScheduler : null) as never);
   c.set("repos", {
     marketplaceAdmin: mockMktAdmin,
     marketplace: mockMarketplace,
@@ -64,13 +48,6 @@ app.use("*", async (c, next) => {
   await next();
 });
 registerRouterForTest(app, adminOperationsRouter);
-
-const priceRefreshResult = {
-  transformed: { groups: 5, products: 100, prices: 300 },
-  upserted: {
-    prices: { total: 100, new: 50, updated: 30, unchanged: 20 },
-  },
-};
 
 describe("POST /api/admin/v1/clear-prices", () => {
   beforeEach(() => {
@@ -122,95 +99,53 @@ function resetJobRunMocks() {
   }));
   mockJobRuns.succeed.mockImplementation(async () => undefined);
   mockJobRuns.fail.mockImplementation(async () => undefined);
-  mockJobRuns.findRunning.mockImplementation(async () => null);
+  mockJobRuns.getRunning.mockImplementation(async () => null);
 }
 
-describe("POST /api/admin/v1/refresh-tcgplayer-prices", () => {
+describe.each([
+  ["refresh-tcgplayer-prices", "tcgplayer.refresh"],
+  ["refresh-cardmarket-prices", "cardmarket.refresh"],
+  ["refresh-cardtrader-prices", "cardtrader.refresh"],
+  ["refresh-cardnexus-prices", "cardnexus.refresh"],
+])("POST /api/admin/v1/%s", (path, kind) => {
   beforeEach(() => {
     vi.resetAllMocks();
-    resetJobRunMocks();
+    schedulerRunning = true;
   });
 
-  it("returns 202 with runId and runs the refresh in the background", async () => {
-    mockRefreshTcgplayer.mockResolvedValue(priceRefreshResult);
-
-    const res = await app.request("/api/admin/v1/refresh-tcgplayer-prices", {
-      method: "POST",
+  it("starts the job through its scheduler definition and returns the run handle", async () => {
+    mockScheduler.runNow.mockResolvedValue({
+      runId: "019d4999-4219-72f6-b7bb-64004e1b1bff",
+      status: "running",
     });
+
+    const res = await app.request(`/api/admin/v1/${path}`, { method: "POST" });
+
     expect(res.status).toBe(202);
     expect(await readJson(res)).toEqual({
       runId: "019d4999-4219-72f6-b7bb-64004e1b1bff",
       status: "running",
     });
-    expect(mockJobRuns.start).toHaveBeenCalledWith({
-      kind: "tcgplayer.refresh",
-      trigger: "admin",
-    });
-
-    await vi.waitFor(() => {
-      expect(mockJobRuns.succeed).toHaveBeenCalledWith(
-        "019d4999-4219-72f6-b7bb-64004e1b1bff",
-        expect.objectContaining({ result: priceRefreshResult }),
-      );
-    });
-    expect(mockRefreshTcgplayer).toHaveBeenCalled();
-  });
-
-  it("returns 'already_running' when a run is already in flight", async () => {
-    mockJobRuns.findRunning.mockResolvedValueOnce({ id: "019d4999-4219-72f6-b7bb-64004e1b1c00" });
-
-    const res = await app.request("/api/admin/v1/refresh-tcgplayer-prices", {
-      method: "POST",
-    });
-    expect(res.status).toBe(202);
-    expect(await readJson(res)).toEqual({
-      runId: "019d4999-4219-72f6-b7bb-64004e1b1c00",
-      status: "already_running",
-    });
-    expect(mockRefreshTcgplayer).not.toHaveBeenCalled();
+    expect(mockScheduler.runNow).toHaveBeenCalledWith(kind);
     expect(mockJobRuns.start).not.toHaveBeenCalled();
   });
 
-  it("writes a failed row when the background refresh throws", async () => {
-    mockRefreshTcgplayer.mockRejectedValue(new Error("upstream 502"));
+  it("passes on the definition's refusal when the job is unavailable", async () => {
+    mockScheduler.runNow.mockRejectedValue(
+      new AppError(400, ERROR_CODES.BAD_REQUEST, "The job is unavailable."),
+    );
 
-    const res = await app.request("/api/admin/v1/refresh-tcgplayer-prices", {
-      method: "POST",
-    });
-    expect(res.status).toBe(202);
+    const res = await app.request(`/api/admin/v1/${path}`, { method: "POST" });
 
-    await vi.waitFor(() => {
-      expect(mockJobRuns.fail).toHaveBeenCalledWith(
-        "019d4999-4219-72f6-b7bb-64004e1b1bff",
-        expect.objectContaining({ errorMessage: "upstream 502" }),
-      );
-    });
-    expect(mockJobRuns.succeed).not.toHaveBeenCalled();
-  });
-});
-
-describe("POST /api/admin/v1/refresh-cardmarket-prices", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-    resetJobRunMocks();
+    expect(res.status).toBe(400);
   });
 
-  it("returns 202 with runId and runs refresh in the background", async () => {
-    mockRefreshCardmarket.mockResolvedValue(priceRefreshResult);
+  it("returns 503 when the scheduler is not running", async () => {
+    schedulerRunning = false;
 
-    const res = await app.request("/api/admin/v1/refresh-cardmarket-prices", {
-      method: "POST",
-    });
-    expect(res.status).toBe(202);
-    expect(await readJson(res)).toEqual({
-      runId: "019d4999-4219-72f6-b7bb-64004e1b1bff",
-      status: "running",
-    });
+    const res = await app.request(`/api/admin/v1/${path}`, { method: "POST" });
 
-    await vi.waitFor(() => {
-      expect(mockJobRuns.succeed).toHaveBeenCalled();
-    });
-    expect(mockRefreshCardmarket).toHaveBeenCalled();
+    expect(res.status).toBe(503);
   });
 });
 
@@ -245,7 +180,7 @@ describe("POST /api/admin/v1/refresh-materialized-views", () => {
   });
 
   it("returns 'already_running' when a refresh is already in flight", async () => {
-    mockJobRuns.findRunning.mockResolvedValueOnce({ id: "019d4999-4219-72f6-b7bb-64004e1b1c00" });
+    mockJobRuns.getRunning.mockResolvedValueOnce({ id: "019d4999-4219-72f6-b7bb-64004e1b1c00" });
 
     const res = await app.request("/api/admin/v1/refresh-materialized-views", {
       method: "POST",
@@ -313,7 +248,7 @@ describe("POST /api/admin/v1/recompute-card-tokens", () => {
   });
 
   it("returns 'already_running' when a recompute is already in flight", async () => {
-    mockJobRuns.findRunning.mockResolvedValueOnce({ id: "019d4999-4219-72f6-b7bb-64004e1b1c00" });
+    mockJobRuns.getRunning.mockResolvedValueOnce({ id: "019d4999-4219-72f6-b7bb-64004e1b1c00" });
 
     const res = await app.request("/api/admin/v1/recompute-card-tokens", {
       method: "POST",
@@ -324,34 +259,5 @@ describe("POST /api/admin/v1/recompute-card-tokens", () => {
       status: "already_running",
     });
     expect(mockCardTokens.recomputeAll).not.toHaveBeenCalled();
-  });
-});
-
-describe("POST /api/admin/v1/refresh-cardtrader-prices", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-    resetJobRunMocks();
-  });
-
-  it("returns 202 with runId and passes api token to background fn", async () => {
-    mockRefreshCardtrader.mockResolvedValue(priceRefreshResult);
-
-    const res = await app.request("/api/admin/v1/refresh-cardtrader-prices", {
-      method: "POST",
-    });
-    expect(res.status).toBe(202);
-    expect(await readJson(res)).toEqual({
-      runId: "019d4999-4219-72f6-b7bb-64004e1b1bff",
-      status: "running",
-    });
-
-    await vi.waitFor(() => {
-      expect(mockRefreshCardtrader).toHaveBeenCalledWith(
-        mockIo.fetch,
-        expect.objectContaining({ marketplaceAdmin: mockMktAdmin }),
-        expect.anything(),
-        "test-token-123",
-      );
-    });
   });
 });

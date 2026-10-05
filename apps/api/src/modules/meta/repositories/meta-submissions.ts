@@ -10,7 +10,7 @@ import type { Kysely, Selectable } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import type { MetaEventsTable, MetaSubmissionsTable } from "../../../db/tables/meta.js";
 import { keyBatches } from "../../../lib/bind-batches.js";
-import { listOwnedByUser } from "../../../repositories/query-helpers.js";
+import { inTransaction, listOwnedByUser } from "../../../repositories/query-helpers.js";
 
 export type MetaSubmissionRow = Selectable<MetaSubmissionsTable>;
 
@@ -299,7 +299,7 @@ export function metaSubmissionsRepo(db: Kysely<Database>) {
           .where("id", "=", values.submissionId)
           .execute();
       };
-      await (db.isTransaction ? run(db) : db.transaction().execute(run));
+      await inTransaction(db, run);
     },
 
     /**

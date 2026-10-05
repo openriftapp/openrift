@@ -1,5 +1,5 @@
 import type { Logger } from "@openrift/shared/logger";
-import { stringifyUnknown } from "@openrift/shared/utils";
+import { stringifyUnknown } from "@openrift/shared/strings";
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 import { Migrator } from "kysely/migration";

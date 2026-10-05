@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mulberry32 } from "../pack-opener/rng";
+import { mulberry32 } from "../random";
 import type {
   GroupMatch,
   GroupPlanGroup,

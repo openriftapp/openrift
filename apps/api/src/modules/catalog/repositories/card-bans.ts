@@ -32,7 +32,7 @@ export function cardBansRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    findActiveBan(cardId: string, formatId: string) {
+    getActiveBan(cardId: string, formatId: string) {
       return db
         .selectFrom("cardBans")
         .selectAll()

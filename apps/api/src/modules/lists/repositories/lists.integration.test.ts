@@ -213,8 +213,7 @@ describe.skipIf(!ctx)("listsRepo (integration)", () => {
 
   it("deletes a list", async () => {
     const list = await repo.create({ userId, name: "Doomed", intent: "wish", kind: "card" });
-    const result = await repo.deleteByIdForUser(list.id, userId);
-    expect(result.numDeletedRows).toBe(1n);
+    expect(await repo.deleteByIdForUser(list.id, userId)).toBe(true);
     expect(await repo.getByIdForUser(list.id, userId)).toBeUndefined();
   });
 
@@ -231,16 +230,16 @@ describe.skipIf(!ctx)("listsRepo (integration)", () => {
     expect(shared?.isPublic).toBe(true);
     expect(shared?.shareToken).toBe("tok-abc");
 
-    const found = await repo.findByShareToken("tok-abc");
+    const found = await repo.getByShareToken("tok-abc");
     expect(found?.list.id).toBe(list.id);
 
     const unshared = await repo.setShareToken(list.id, userId, null, false);
     expect(unshared?.isPublic).toBe(false);
     expect(unshared?.shareToken).toBeNull();
-    expect(await repo.findByShareToken("tok-abc")).toBeUndefined();
+    expect(await repo.getByShareToken("tok-abc")).toBeUndefined();
   });
 
-  it("findByShareToken requires isPublic=true even when a token exists", async () => {
+  it("getByShareToken requires isPublic=true even when a token exists", async () => {
     const list = await repo.create({
       userId,
       name: "Token only",
@@ -253,7 +252,7 @@ describe.skipIf(!ctx)("listsRepo (integration)", () => {
       .set({ shareToken: "dangling-tok", isPublic: false })
       .where("id", "=", list.id)
       .execute();
-    expect(await repo.findByShareToken("dangling-tok")).toBeUndefined();
+    expect(await repo.getByShareToken("dangling-tok")).toBeUndefined();
   });
 
   it("creates a card-kind entry on a card-kind list", async () => {

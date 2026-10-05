@@ -45,7 +45,7 @@ async function resolveHost(repos: Repos, tournament: Tournament): Promise<Tourna
     };
   }
   const org = tournament.hostOrgId
-    ? await repos.organizations.findById(tournament.hostOrgId)
+    ? await repos.organizations.getById(tournament.hostOrgId)
     : undefined;
   return {
     type: "organization",
@@ -216,7 +216,7 @@ export async function buildDetail(
     repos.tournaments.getCounts(tournament.id),
     resolveStaff(repos, tournament),
     repos.tournaments.getStaffRoles(tournament.id, userId),
-    repos.tournaments.findParticipantByUser(tournament.id, userId),
+    repos.tournaments.getParticipantByUser(tournament.id, userId),
     isHost(repos, tournament, userId),
     repos.tournaments.hasRounds(tournament.id),
     loadSummaryExtras(repos, [tournament]),

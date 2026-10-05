@@ -2,6 +2,7 @@ import { isoDateTime } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
+import { kebabKeyRegex } from "./shared.js";
 
 const TAG = "Admin - Site Settings";
 
@@ -26,9 +27,7 @@ export const adminSiteSettingsContract = {
     .errors({ CONFLICT: { message: "Setting already exists" } })
     .input(
       z.object({
-        key: z
-          .string()
-          .regex(/^[a-z][a-z0-9]+(?:-[a-z0-9]+)*$/u, "Key must be kebab-case (e.g. umami-url)"),
+        key: z.string().regex(kebabKeyRegex, "Key must be kebab-case (e.g. umami-url)"),
         value: z.string(),
         scope: scopeEnum.optional(),
       }),

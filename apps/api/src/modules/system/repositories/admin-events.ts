@@ -2,6 +2,7 @@ import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { AdminEventAction, AdminEventEntityType } from "../../../db/tables/admin-events.js";
+import { containsPattern } from "../../../lib/like-pattern.js";
 import { keysetCursorPredicate } from "../../../repositories/query-helpers.js";
 
 export interface AdminEventInsert {
@@ -121,7 +122,7 @@ export function adminEventsRepo(db: Kysely<Database>) {
         query = query.where((eb) => eb(eb.cast<string>(eb.ref("ae.action"), "text"), "=", action));
       }
       if (filters.search) {
-        const pattern = `%${filters.search}%`;
+        const pattern = containsPattern(filters.search);
         query = query.where((eb) =>
           eb.or([
             eb("ae.entityLabel", "ilike", pattern),

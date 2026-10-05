@@ -77,11 +77,13 @@ describe("listsRepo", () => {
     expect(await repo.update("lst-1", "u1", { name: "Renamed" })).toEqual(LIST);
   });
 
-  it("deleteByIdForUser returns a delete result", async () => {
-    const db = createMockDb({ numDeletedRows: 1n });
-    const repo = listsRepo(db);
-    const result = await repo.deleteByIdForUser("lst-1", "u1");
-    expect(result).toEqual({ numDeletedRows: 1n });
+  it("deleteByIdForUser reports whether a row was deleted", async () => {
+    await expect(
+      listsRepo(createMockDb({ numDeletedRows: 1n })).deleteByIdForUser("lst-1", "u1"),
+    ).resolves.toBe(true);
+    await expect(
+      listsRepo(createMockDb({ numDeletedRows: 0n })).deleteByIdForUser("lst-1", "u1"),
+    ).resolves.toBe(false);
   });
 
   it("listMembershipsForCopies short-circuits on empty input without hitting the db", async () => {
@@ -145,18 +147,18 @@ describe("listsRepo", () => {
     expect(await repo.setShareToken("lst-1", "u1", null, false)).toEqual(LIST);
   });
 
-  it("findByShareToken returns list + owner name", async () => {
+  it("getByShareToken returns list + owner name", async () => {
     const db = createMockDb([{ ...LIST, ownerName: "Friend" }]);
     const repo = listsRepo(db);
-    const found = await repo.findByShareToken("tok-abc");
+    const found = await repo.getByShareToken("tok-abc");
     expect(found?.list.id).toBe("lst-1");
     expect(found?.ownerName).toBe("Friend");
   });
 
-  it("findByShareToken returns undefined when token is unknown", async () => {
+  it("getByShareToken returns undefined when token is unknown", async () => {
     const db = createMockDb([]);
     const repo = listsRepo(db);
-    expect(await repo.findByShareToken("nope")).toBeUndefined();
+    expect(await repo.getByShareToken("nope")).toBeUndefined();
   });
 
   it("entriesWithDetails dispatches to the card-kind query", async () => {

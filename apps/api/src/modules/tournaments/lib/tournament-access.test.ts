@@ -60,24 +60,24 @@ function makeRepos(options: {
   membership?: OrganizationMember;
   participant?: TournamentParticipant;
 }) {
-  const findById = vi.fn().mockResolvedValue(options.tournament);
+  const getById = vi.fn().mockResolvedValue(options.tournament);
   const isHostOrStaff = vi.fn().mockResolvedValue(options.isHostOrStaff ?? false);
-  const findParticipantById = vi.fn().mockResolvedValue(options.participant);
-  const findOrgById = vi.fn().mockResolvedValue(options.org);
+  const getParticipantById = vi.fn().mockResolvedValue(options.participant);
+  const getOrgById = vi.fn().mockResolvedValue(options.org);
   const getMembership = vi.fn().mockResolvedValue(options.membership);
   const repos = {
-    tournaments: { findById, isHostOrStaff, findParticipantById },
-    organizations: { findById: findOrgById, findBySlug: vi.fn(), getMembership },
+    tournaments: { getById, isHostOrStaff, getParticipantById },
+    organizations: { getById: getOrgById, getBySlug: vi.fn(), getMembership },
   } as unknown as Repos;
-  return { repos, findById, isHostOrStaff, findParticipantById, findOrgById, getMembership };
+  return { repos, getById, isHostOrStaff, getParticipantById, getOrgById, getMembership };
 }
 
 describe("loadTournament", () => {
   it("returns the tournament when found", async () => {
     const row = tournament();
-    const { repos, findById } = makeRepos({ tournament: row });
+    const { repos, getById } = makeRepos({ tournament: row });
     await expect(loadTournament(repos, TOURNAMENT_ID)).resolves.toBe(row);
-    expect(findById).toHaveBeenCalledWith(TOURNAMENT_ID);
+    expect(getById).toHaveBeenCalledWith(TOURNAMENT_ID);
   });
 
   it("throws 404 when the tournament is missing", async () => {
@@ -238,9 +238,9 @@ describe("requireHost", () => {
 describe("loadParticipant", () => {
   it("returns the participant when it belongs to the tournament", async () => {
     const row = participant({ id: "p1", tournamentId: TOURNAMENT_ID });
-    const { repos, findParticipantById } = makeRepos({ participant: row });
+    const { repos, getParticipantById } = makeRepos({ participant: row });
     await expect(loadParticipant(repos, TOURNAMENT_ID, "p1")).resolves.toBe(row);
-    expect(findParticipantById).toHaveBeenCalledWith("p1");
+    expect(getParticipantById).toHaveBeenCalledWith("p1");
   });
 
   it("throws 404 when no participant has that id", async () => {

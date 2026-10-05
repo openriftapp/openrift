@@ -1,9 +1,9 @@
 import type { Logger } from "@openrift/shared/logger";
-import { toCents } from "@openrift/shared/utils";
+import { toCents } from "@openrift/shared/money";
 import { describe, expect, it } from "vitest";
 
 import type { Fetch } from "../../../../io.js";
-import { fetchJson } from "./fetch";
+import { fetchJson } from "../../../../lib/http";
 import { logUpsertCounts } from "./log";
 import type { UpsertCounts } from "./types";
 

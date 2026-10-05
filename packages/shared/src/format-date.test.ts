@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DAY_MS,
   dateLeafParts,
   dateLeafPartsUtc,
   ENGLISH_DATE_WORDS,
@@ -17,6 +18,8 @@ import {
   formatRelativeTime,
   formatWeekdayDayLocal,
   formatWeekdayLocal,
+  HOUR_MS,
+  todayUtc,
 } from "./format-date.js";
 import type { DateWords } from "./format-date.js";
 
@@ -327,5 +330,19 @@ describe("injected date words", () => {
     expect(formatRelativeDay("2026-06-01", NOW, shouting)).toBe("LAST WEEK");
     expect(formatMonthYear("2026-03-01", shouting)).toBe("MONTH2 2026");
     expect(formatDayMonthYear("2026-03-01", shouting)).toBe("1 MONTH2 2026");
+  });
+});
+
+describe("todayUtc", () => {
+  it("returns a calendar day in UTC", () => {
+    expect(todayUtc()).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
+    expect(todayUtc()).toBe(new Date().toISOString().slice(0, 10));
+  });
+});
+
+describe("duration constants", () => {
+  it("are consistent", () => {
+    expect(HOUR_MS).toBe(3_600_000);
+    expect(DAY_MS).toBe(24 * HOUR_MS);
   });
 });

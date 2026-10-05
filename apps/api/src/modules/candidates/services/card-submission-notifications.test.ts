@@ -3,10 +3,8 @@ import type { Logger } from "@openrift/shared/logger";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../deps.js";
-import type {
-  CardSubmissionAlert,
-  CardSubmissionEmailDeps,
-} from "./card-submission-notifications.js";
+import type { EmailDeps } from "../../../email.js";
+import type { CardSubmissionAlert } from "./card-submission-notifications.js";
 import { notifyAdminsOfCardSubmission } from "./card-submission-notifications.js";
 
 const ADMIN = { userId: "admin-1", email: "admin@example.com", name: "Riven" };
@@ -31,18 +29,18 @@ const SUBMISSION: CardSubmissionAlert = {
 
 function makeRepos(recipients: { userId: string; email: string; name: string | null }[]) {
   const listCardSubmissionRecipients = vi.fn().mockResolvedValue(recipients);
-  const findById = vi
+  const getById = vi
     .fn()
     .mockResolvedValue({ id: "user-1", name: "Garen", email: "contributor@example.com" });
   const repos = {
     userPreferences: { listCardSubmissionRecipients },
-    users: { findById },
+    users: { getById },
   } as unknown as Repos;
-  return { repos, listCardSubmissionRecipients, findById };
+  return { repos, listCardSubmissionRecipients, getById };
 }
 
 function makeDeps(sendEmail = vi.fn().mockResolvedValue(undefined)): {
-  deps: CardSubmissionEmailDeps;
+  deps: EmailDeps;
   sendEmail: ReturnType<typeof vi.fn>;
   error: ReturnType<typeof vi.fn>;
 } {
@@ -52,7 +50,7 @@ function makeDeps(sendEmail = vi.fn().mockResolvedValue(undefined)): {
     appBaseUrl: "https://openrift.app",
     unsubscribeSecret: "test-secret-key",
     log: { error } as unknown as Logger,
-  } as CardSubmissionEmailDeps;
+  } as EmailDeps;
   return { deps, sendEmail, error };
 }
 
@@ -88,13 +86,13 @@ describe("notifyAdminsOfCardSubmission", () => {
   });
 
   it("sends nothing when no admin has opted in", async () => {
-    const { repos, findById } = makeRepos([]);
+    const { repos, getById } = makeRepos([]);
     const { deps, sendEmail } = makeDeps();
 
     await notifyAdminsOfCardSubmission(repos, SUBMISSION, deps);
 
     expect(sendEmail).not.toHaveBeenCalled();
-    expect(findById).not.toHaveBeenCalled();
+    expect(getById).not.toHaveBeenCalled();
   });
 
   it("sends nothing when no email deps are wired (SMTP-less env)", async () => {
@@ -127,7 +125,7 @@ describe("notifyAdminsOfCardSubmission", () => {
       userPreferences: {
         listCardSubmissionRecipients: vi.fn().mockRejectedValue(new Error("db down")),
       },
-      users: { findById: vi.fn() },
+      users: { getById: vi.fn() },
     } as unknown as Repos;
     const { deps, sendEmail, error } = makeDeps();
 
@@ -137,8 +135,8 @@ describe("notifyAdminsOfCardSubmission", () => {
   });
 
   it("falls back to the submitter id when their account row is gone", async () => {
-    const { repos, findById } = makeRepos([ADMIN]);
-    findById.mockResolvedValue(undefined);
+    const { repos, getById } = makeRepos([ADMIN]);
+    getById.mockResolvedValue(undefined);
     const { deps, sendEmail } = makeDeps();
 
     await notifyAdminsOfCardSubmission(repos, SUBMISSION, deps);

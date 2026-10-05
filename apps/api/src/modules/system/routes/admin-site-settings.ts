@@ -1,12 +1,10 @@
 import { adminSiteSettingsContract } from "@openrift/shared/contracts/admin/site-settings";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
-import type { SiteSettingResponse } from "@openrift/shared/types/api/admin";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
-import { assertDeleted, assertFound } from "../../../lib/assertions.js";
+import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { toSiteSettingResponse } from "../lib/site-setting-presenters.js";
 
 const os = implement(adminSiteSettingsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -19,22 +17,16 @@ export const adminSiteSettingsRouter = {
     const { siteSettings } = context.repos;
     const rows = await siteSettings.listAll();
     return {
-      settings: rows.map((r): SiteSettingResponse => ({
-        key: r.key,
-        value: r.value,
-        scope: r.scope,
-        createdAt: r.createdAt.toISOString(),
-        updatedAt: r.updatedAt.toISOString(),
-      })),
+      settings: rows.map((row) => toSiteSettingResponse(row)),
     };
   }),
 
-  create: os.create.handler(async ({ input, context }): Promise<void> => {
+  create: os.create.handler(async ({ input, context, errors }): Promise<void> => {
     const { siteSettings } = context.repos;
     const { key, value, scope } = input;
     const created = await siteSettings.create({ key, value, scope: scope ?? "web" });
     if (!created) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, `Setting "${key}" already exists`);
+      throw errors.CONFLICT({ message: `Setting "${key}" already exists` });
     }
   }),
 
@@ -47,7 +39,7 @@ export const adminSiteSettingsRouter = {
 
   remove: os.remove.handler(async ({ input, context }): Promise<void> => {
     const { siteSettings } = context.repos;
-    const result = await siteSettings.deleteByKey(input.key);
-    assertDeleted(result, `Setting "${input.key}" not found`);
+    const deleted = await siteSettings.deleteByKey(input.key);
+    assertExisted(deleted, `Setting "${input.key}" not found`);
   }),
 };

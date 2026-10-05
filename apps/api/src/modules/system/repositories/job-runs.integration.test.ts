@@ -59,13 +59,13 @@ describe.skipIf(!ctx)("jobRunsRepo (integration)", () => {
     expect(rows[0]?.durationMs).toBe(500);
   });
 
-  it("findRunning returns the running row for a kind", async () => {
+  it("getRunning returns the running row for a kind", async () => {
     const { id } = await begin("test.kind", "cron");
-    const running = await repo.findRunning("test.kind");
+    const running = await repo.getRunning("test.kind");
     expect(running?.id).toBe(id);
 
     await repo.succeed(id, { durationMs: 1 });
-    expect(await repo.findRunning("test.kind")).toBeNull();
+    expect(await repo.getRunning("test.kind")).toBeNull();
   });
 
   it("getLatestPerKind returns one row per distinct kind (the most recent)", async () => {
@@ -147,18 +147,18 @@ describe.skipIf(!ctx)("jobRunsRepo (integration)", () => {
     expect(await repo.getResult("00000000-0000-4000-a000-000000000000")).toBeNull();
   });
 
-  it("findLatestForResume returns the most recent run with a non-null result", async () => {
-    expect(await repo.findLatestForResume("test.kind")).toBeNull();
+  it("getLatestForResume returns the most recent run with a non-null result", async () => {
+    expect(await repo.getLatestForResume("test.kind")).toBeNull();
     const a = await begin("test.kind");
     await repo.fail(a.id, { durationMs: 100, errorMessage: "boom" });
     const b = await begin("test.kind", "admin");
     await repo.succeed(b.id, { durationMs: 200, result: { ok: true } });
-    const latest = await repo.findLatestForResume("test.kind");
+    const latest = await repo.getLatestForResume("test.kind");
     expect(latest?.id).toBe(b.id);
     expect(latest?.status).toBe("succeeded");
   });
 
-  it("findLatestForResume skips later runs whose result is null", async () => {
+  it("getLatestForResume skips later runs whose result is null", async () => {
     // A failure that never wrote a checkpoint must not shadow the watermark
     // from an earlier partially-progressed run.
     const old = await begin("test.kind");
@@ -166,7 +166,7 @@ describe.skipIf(!ctx)("jobRunsRepo (integration)", () => {
     await repo.fail(old.id, { durationMs: 100, errorMessage: "boom" });
     const fresh = await begin("test.kind", "admin");
     await repo.fail(fresh.id, { durationMs: 50, errorMessage: "first post 400'd" });
-    const latest = await repo.findLatestForResume("test.kind");
+    const latest = await repo.getLatestForResume("test.kind");
     expect(latest?.id).toBe(old.id);
     expect(latest?.result).toEqual({ lastPostedDate: "2026-04-17" });
   });
@@ -186,7 +186,7 @@ describe.skipIf(!ctx)("jobRunsRepo (integration)", () => {
     expect(await repo.getResult(id)).toEqual(result);
     const list = await repo.listRecent({ kind: "test.kind" });
     expect(list[0]?.result).toEqual(result);
-    const latest = await repo.findLatestForResume("test.kind");
+    const latest = await repo.getLatestForResume("test.kind");
     expect(latest?.result).toEqual(result);
     const perKind = await repo.getLatestPerKind();
     expect(perKind["test.kind"]?.result).toEqual(result);

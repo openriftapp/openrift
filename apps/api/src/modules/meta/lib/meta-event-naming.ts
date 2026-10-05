@@ -1,5 +1,5 @@
 import { RESERVED_META_EVENT_SLUGS } from "@openrift/shared/contracts/admin/meta-events";
-import { slugifyName } from "@openrift/shared/utils";
+import { slugifyName } from "@openrift/shared/strings";
 
 const MIN_SLUG_LENGTH = 3;
 const MAX_SLUG_LENGTH = 50;

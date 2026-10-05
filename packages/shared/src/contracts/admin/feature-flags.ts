@@ -2,6 +2,7 @@ import { isoDateTime, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
+import { kebabKeyRegex } from "./shared.js";
 
 const TAG = "Admin - Feature Flags";
 
@@ -40,9 +41,7 @@ export const adminFeatureFlagsContract = {
     .errors({ CONFLICT: { message: "A flag with that key already exists" } })
     .input(
       z.object({
-        key: z
-          .string()
-          .regex(/^[a-z][a-z0-9]+(?:-[a-z0-9]+)*$/u, "Key must be kebab-case (e.g. deck-builder)"),
+        key: z.string().regex(kebabKeyRegex, "Key must be kebab-case (e.g. deck-builder)"),
         description: z.string().nullable().optional(),
         enabled: z.boolean().optional(),
       }),

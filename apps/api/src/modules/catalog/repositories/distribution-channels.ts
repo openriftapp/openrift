@@ -1,7 +1,7 @@
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { reorderBySortOrder } from "./sort-order.js";
+import { inTransaction, reorderBySortOrder } from "../../../repositories/query-helpers.js";
 
 type DistributionChannelKind = "event" | "product";
 
@@ -105,8 +105,12 @@ export function distributionChannelsRepo(db: Kysely<Database>) {
         .executeTakeFirstOrThrow();
     },
 
-    deleteById(id: string) {
-      return db.deleteFrom("distributionChannels").where("id", "=", id).executeTakeFirstOrThrow();
+    async deleteById(id: string): Promise<boolean> {
+      const result = await db
+        .deleteFrom("distributionChannels")
+        .where("id", "=", id)
+        .executeTakeFirst();
+      return result.numDeletedRows > 0n;
     },
 
     isInUse(id: string) {
@@ -174,7 +178,6 @@ export function distributionChannelsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    // Some callers already hold a transaction open; do not nest db.transaction() here.
     async setForPrinting(
       printingId: string,
       links: readonly { channelId: string; distributionNote?: string | null }[],
@@ -198,7 +201,7 @@ export function distributionChannelsRepo(db: Kysely<Database>) {
           )
           .execute();
       };
-      await (db.isTransaction ? run(db) : db.transaction().execute(run));
+      await inTransaction(db, run);
     },
   };
 }

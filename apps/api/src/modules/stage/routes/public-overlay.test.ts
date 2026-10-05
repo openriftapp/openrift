@@ -8,8 +8,8 @@ import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
 import { publicOverlayRouter } from "./public-overlay";
 
-const mockRepo = { findByToken: vi.fn() };
-const mockPresetRepo = { findByIdForUser: vi.fn() };
+const mockRepo = { getByToken: vi.fn() };
+const mockPresetRepo = { getByIdForUser: vi.fn() };
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
@@ -29,7 +29,7 @@ beforeEach(() => vi.resetAllMocks());
 describe("GET /api/v1/overlay/{token}/state", () => {
   it("serves the channel's version and payload without a session", async () => {
     const payload = { ...DEFAULT_OVERLAY_PAYLOAD, printingId: "p-1" };
-    mockRepo.findByToken.mockResolvedValue({
+    mockRepo.getByToken.mockResolvedValue({
       id: "chan-1",
       userId: "user-1",
       token: "AbC123XyZ789",
@@ -43,11 +43,11 @@ describe("GET /api/v1/overlay/{token}/state", () => {
 
     expect(res.status).toBe(200);
     expect(await readJson(res)).toEqual({ version: 42, payload });
-    expect(mockRepo.findByToken).toHaveBeenCalledWith("AbC123XyZ789");
+    expect(mockRepo.getByToken).toHaveBeenCalledWith("AbC123XyZ789");
   });
 
   it("answers an unknown token with the empty state, not a 404", async () => {
-    mockRepo.findByToken.mockResolvedValue(undefined);
+    mockRepo.getByToken.mockResolvedValue(undefined);
 
     const res = await app.request("/api/v1/overlay/rotated-away/state");
 
@@ -56,7 +56,7 @@ describe("GET /api/v1/overlay/{token}/state", () => {
   });
 
   it("exposes neither the token nor the owner in the response", async () => {
-    mockRepo.findByToken.mockResolvedValue({
+    mockRepo.getByToken.mockResolvedValue({
       id: "chan-1",
       userId: "user-1",
       token: "AbC123XyZ789",
@@ -78,7 +78,7 @@ describe("GET /api/v1/overlay/{token}/state?presetId=", () => {
   const PRESET_ID = "80000000-0001-4000-a000-000000000001";
 
   beforeEach(() => {
-    mockRepo.findByToken.mockResolvedValue({
+    mockRepo.getByToken.mockResolvedValue({
       id: "chan-1",
       userId: "user-1",
       token: "AbC123XyZ789",
@@ -94,7 +94,7 @@ describe("GET /api/v1/overlay/{token}/state?presetId=", () => {
   }
 
   it("dresses the state with the owner's preset", async () => {
-    mockPresetRepo.findByIdForUser.mockResolvedValue({
+    mockPresetRepo.getByIdForUser.mockResolvedValue({
       id: PRESET_ID,
       userId: "user-1",
       name: "Draft night",
@@ -105,7 +105,7 @@ describe("GET /api/v1/overlay/{token}/state?presetId=", () => {
 
     const json = await readJson(await request(`?presetId=${PRESET_ID}`));
 
-    expect(mockPresetRepo.findByIdForUser).toHaveBeenCalledWith(PRESET_ID, "user-1");
+    expect(mockPresetRepo.getByIdForUser).toHaveBeenCalledWith(PRESET_ID, "user-1");
     expect(json.payload.corner).toBe("top-left");
     expect(json.payload.plateFields).toEqual({
       ...DEFAULT_OVERLAY_PAYLOAD.plateFields,
@@ -116,7 +116,7 @@ describe("GET /api/v1/overlay/{token}/state?presetId=", () => {
   });
 
   it("ignores a preset that is unknown or someone else's rather than blanking the scene", async () => {
-    mockPresetRepo.findByIdForUser.mockResolvedValue(undefined);
+    mockPresetRepo.getByIdForUser.mockResolvedValue(undefined);
 
     const json = await readJson(await request(`?presetId=${PRESET_ID}`));
 
@@ -127,7 +127,7 @@ describe("GET /api/v1/overlay/{token}/state?presetId=", () => {
   });
 
   it("degrades a corrupt stored config to no dressing at all", async () => {
-    mockPresetRepo.findByIdForUser.mockResolvedValue({
+    mockPresetRepo.getByIdForUser.mockResolvedValue({
       id: PRESET_ID,
       userId: "user-1",
       name: "Draft night",
@@ -144,6 +144,6 @@ describe("GET /api/v1/overlay/{token}/state?presetId=", () => {
   it("does not look a preset up when the URL names none", async () => {
     await request("");
 
-    expect(mockPresetRepo.findByIdForUser).not.toHaveBeenCalled();
+    expect(mockPresetRepo.getByIdForUser).not.toHaveBeenCalled();
   });
 });

@@ -25,6 +25,53 @@ type FallbackCandidateFields = StandardCheckFields &
     | "fallbackImageId"
   >;
 
+export type FallbackArtTag =
+  | { kind: "substitute" }
+  | { kind: "language"; language: string }
+  | { kind: "marker"; slug: string; label: string }
+  | { kind: "artVariant"; slug: string }
+  | { kind: "overnumbered" }
+  | { kind: "signed" }
+  | { kind: "finish"; slug: string };
+
+type FallbackTagFields = Pick<
+  Printing,
+  "language" | "markers" | "artVariant" | "isOvernumbered" | "isSigned" | "finish"
+>;
+
+/** What the shown artwork has that this printing's own would not. A pinned substitute has no printing behind it, so `artPrinting` is null. */
+export function fallbackArtDifferences(
+  printing: FallbackTagFields,
+  artPrinting: Pick<Printing, "language"> | null,
+): FallbackArtTag[] {
+  const tags: FallbackArtTag[] = [];
+  if (artPrinting === null) {
+    tags.push({ kind: "substitute" });
+  } else if (printing.language !== artPrinting.language) {
+    tags.push({ kind: "language", language: artPrinting.language });
+  }
+  for (const marker of printing.markers) {
+    tags.push({ kind: "marker", slug: marker.slug, label: marker.label });
+  }
+  const artVariant = printing.artVariant || WellKnown.artVariant.NORMAL;
+  if (artVariant !== WellKnown.artVariant.NORMAL) {
+    tags.push({ kind: "artVariant", slug: artVariant });
+  }
+  if (printing.isOvernumbered) {
+    tags.push({ kind: "overnumbered" });
+  }
+  if (printing.isSigned) {
+    tags.push({ kind: "signed" });
+  }
+  if (
+    printing.finish === WellKnown.finish.METAL ||
+    printing.finish === WellKnown.finish.METAL_DELUXE
+  ) {
+    tags.push({ kind: "finish", slug: printing.finish });
+  }
+  return tags;
+}
+
 /**
  * The plain collectible version of a card, excluding every premium,
  * promotional, or collector treatment. Always-foil rarities count foil as

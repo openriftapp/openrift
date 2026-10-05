@@ -5,7 +5,7 @@ import type { CardTradeSettlementRequestsTable } from "../../../db/tables/trades
 
 export function cardTradeSettlementRequestsRepo(db: Kysely<Database>) {
   return {
-    findSettlementRequest(tradeId: string, userId: string, requestId: string) {
+    getSettlementRequest(tradeId: string, userId: string, requestId: string) {
       return db
         .selectFrom("cardTradeSettlementRequests")
         .select(["fingerprint", "settledTradeId"])

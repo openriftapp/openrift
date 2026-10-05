@@ -24,6 +24,7 @@ import {
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
+import { nameField, shareStateResponseSchema } from "./fields.js";
 
 const listIntentSchema = z.enum(LIST_INTENTS);
 
@@ -55,7 +56,7 @@ export const listIntentQuerySchema = z.object({
  */
 export const createListSchema = z
   .object({
-    name: z.string().min(1).max(200),
+    name: nameField(200),
     intent: listIntentSchema,
     kind: listKindSchema,
     tradeDefaults: tradePreferenceInputSchema.optional(),
@@ -88,7 +89,7 @@ export const createListSchema = z
   );
 
 export const updateListSchema = z.object({
-  name: z.string().min(1).max(200).optional(),
+  name: nameField(200).optional(),
   sidebarHidden: z.boolean().optional(),
   tradeDefaults: tradePreferenceInputSchema.optional(),
   currency: currencySchema.nullable().optional(),
@@ -197,10 +198,9 @@ export const listDetailResponseSchema = z.object({
   entries: z.array(listEntryDetailResponseSchema),
 });
 
-export const listShareResponseSchema = z
-  // shareToken is nullable: GET /share reports an owned-but-unshared list as
-  // null; share always returns a non-null token.
-  .object({ shareToken: z.string().nullable(), isPublic: z.boolean() });
+// shareToken is nullable: GET /share reports an owned-but-unshared list as
+// null; share always returns a non-null token.
+export const listShareResponseSchema = shareStateResponseSchema;
 
 export const listBulkAddResponseSchema = z.object({
   added: z.number().int().nonnegative(),

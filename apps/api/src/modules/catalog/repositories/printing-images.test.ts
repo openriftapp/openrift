@@ -186,11 +186,6 @@ describe("printingImagesRepo", () => {
     expect(await printingImagesRepo(db).getCandidatePrintingById("cp-1")).toBeDefined();
   });
 
-  it("getPrintingById returns id", async () => {
-    const db = createMockDb([{ id: "p-1" }]);
-    expect(await printingImagesRepo(db).getPrintingById("p-1")).toEqual({ id: "p-1" });
-  });
-
   it("rehostStatusBySet returns per-set stats via real DB", async () => {
     const ctx = createDbContext("a0000000-0034-4000-a000-000000000001");
     if (!ctx) {

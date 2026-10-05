@@ -4,6 +4,7 @@ import type { ListKind, ListMoveResponse } from "@openrift/shared/types/api/list
 
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
+import { assertFound } from "../../../lib/assertions.js";
 import type { MoveEntry, NewEntryValues } from "../repositories/lists-entries.js";
 
 const KIND_RANK: Record<ListKind, number> = { card: 0, printing: 1, copy: 2 };
@@ -32,12 +33,8 @@ export async function moveListEntries(
     repos.lists.getByIdForUser(fromListId, userId),
     repos.lists.getByIdForUser(toListId, userId),
   ]);
-  if (!source) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Source list not found");
-  }
-  if (!destination) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Destination list not found");
-  }
+  assertFound(source, "Source list not found");
+  assertFound(destination, "Destination list not found");
 
   return transact(async (trxRepos) => {
     const entries = await trxRepos.lists.entriesForMove(fromListId, userId, entryIds);

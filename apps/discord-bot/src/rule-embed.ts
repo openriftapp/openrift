@@ -1,6 +1,7 @@
 import { RULE_REFERENCE_REGEX, ruleReferenceFromMatch } from "@openrift/shared/rules";
+import { rulesPath } from "@openrift/shared/site-paths";
+import { truncateWithEllipsis } from "@openrift/shared/strings";
 import type { RuleKind } from "@openrift/shared/types/api/rules";
-import { truncateWithEllipsis } from "@openrift/shared/utils";
 import type { APIEmbed } from "discord.js";
 
 import { EMBED_COLOR } from "./card-embed.js";
@@ -16,7 +17,7 @@ const DESCRIPTION_LIMIT = 4000;
 export type RulePageUrls = Record<RuleKind, string>;
 
 export function rulePageUrls(siteUrl: string, versions: Record<RuleKind, string>): RulePageUrls {
-  const page = (kind: RuleKind) => `${siteUrl}/rules/${kind}/${versions[kind]}?lang=en`;
+  const page = (kind: RuleKind) => `${siteUrl}${rulesPath(kind, versions[kind], "en")}`;
   return { core: page("core"), tournament: page("tournament") };
 }
 

@@ -70,13 +70,11 @@ describe.skipIf(!ctx)("siteSettingsRepo (integration)", () => {
 
   it("deletes a setting by key", async () => {
     await repo.create({ key: "test_delete_34", value: "bye", scope: "web" });
-    const result = await repo.deleteByKey("test_delete_34");
-    expect(result.numDeletedRows).toBe(1n);
+    expect(await repo.deleteByKey("test_delete_34")).toBe(true);
   });
 
-  it("deleteByKey returns 0 for nonexistent key", async () => {
-    const result = await repo.deleteByKey("nonexistent_key_34");
-    expect(result.numDeletedRows).toBe(0n);
+  it("deleteByKey returns false for nonexistent key", async () => {
+    expect(await repo.deleteByKey("nonexistent_key_34")).toBe(false);
   });
 
   it("listByScope filters by scope", async () => {

@@ -14,6 +14,7 @@ import type {
   DeckCheckEntriesTable,
   TournamentParticipantsTable,
 } from "../../../db/tables/tournaments.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 import { eventStatusForTournamentStatus } from "./deck-check-shared.js";
 
 /**
@@ -276,7 +277,7 @@ export function deckCheckEntriesRepo(db: Kysely<Database>) {
     },
 
     /** The deck entry attached to a participant, if any (one deck per participant). */
-    async findEntryIdByParticipant(participantId: string): Promise<string | undefined> {
+    async getEntryIdByParticipant(participantId: string): Promise<string | undefined> {
       const row = await db
         .selectFrom("deckCheckEntries")
         .select("id")
@@ -491,9 +492,7 @@ export function deckCheckEntriesRepo(db: Kysely<Database>) {
       };
 
       if (writesParticipant || writesEntry) {
-        const applied = db.isTransaction
-          ? await applyPatches(db)
-          : await db.transaction().execute(applyPatches);
+        const applied = await inTransaction(db, applyPatches);
         if (!applied) {
           return undefined;
         }

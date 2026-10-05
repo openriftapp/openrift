@@ -75,6 +75,8 @@ function round(roundNumber: number, pods: [string, string][], reported: boolean)
         podId: `p-${roundNumber}-${index}`,
         playerId,
         displayName: playerId.toUpperCase(),
+        image: null,
+        email: null,
         teamId: null,
         placement: reported ? seat + 1 : null,
         gamePoints: reported ? 1 - seat : null,
@@ -200,13 +202,21 @@ describe("toGroupStageView", () => {
       players: roster,
       roundRows: [],
       ranking: { ...ranking(ORDER), pendingMetaLegendIds: ["card-1"] },
-      legendNames: new Map([["card-1", "Jinx"]]),
+      legendNames: new Map([
+        ["card-1", { name: "Jinx, Loose Cannon", character: "Jinx", epithet: "Loose Cannon" }],
+      ]),
     });
-    expect(view.pendingMetaShares).toEqual([{ legendCardId: "card-1", legendName: "Jinx" }]);
+    expect(view.pendingMetaShares).toEqual([
+      { legendCardId: "card-1", legendName: "Jinx, Loose Cannon" },
+    ]);
     const standingA1 = view.groups
       .find((entry) => entry.label === "A")
       ?.standings.find((row) => row.playerId === "a1");
-    expect(standingA1?.legendName).toBe("Jinx");
+    expect(standingA1).toMatchObject({
+      legendName: "Jinx, Loose Cannon",
+      legendCharacter: "Jinx",
+      legendEpithet: "Loose Cannon",
+    });
     expect(standingA1?.displayName).toBe("A1");
   });
 

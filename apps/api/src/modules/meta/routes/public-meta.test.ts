@@ -544,6 +544,8 @@ describe("GET /meta/events/{slug}", () => {
     expect(json.standings.players[0].legend).toEqual({
       cardId: LEGEND_ID,
       name: "Azir",
+      character: null,
+      epithet: "Azir",
       slug: "azir",
       imageId: "img-legend",
       domains: ["order", "calm"],
@@ -552,6 +554,8 @@ describe("GET /meta/events/{slug}", () => {
     expect(json.standings.players[0].champion).toEqual({
       cardId: CHAMPION_ID,
       name: "Jinx",
+      character: null,
+      epithet: "Jinx",
       slug: "jinx",
       imageId: null,
       domains: ["chaos"],
@@ -583,6 +587,8 @@ describe("GET /meta/events/{slug}", () => {
     expect(json.standings.players[0].legend).toEqual({
       cardId: LEGEND_ID,
       name: "Azir, Emperor of the Sands",
+      character: "Azir",
+      epithet: "Emperor of the Sands",
       slug: "emperor-of-the-sands",
       imageId: "img-legend",
       domains: [],
@@ -1424,6 +1430,8 @@ describe("GET /meta/players/{key}", () => {
     expect(json.finishes[0].legend).toEqual({
       cardId: LEGEND_ID,
       name: "Kennen, Heart of the Tempest",
+      character: "Kennen",
+      epithet: "Heart of the Tempest",
       slug: "heart-of-the-tempest",
       imageId: "img-legend",
       domains: ["chaos", "order"],

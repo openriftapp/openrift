@@ -60,7 +60,7 @@ test.describe("profile shell", () => {
 
       const { name, email } = TEST_USERS.regular;
 
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(name, {
+      await expect(page.getByRole("heading", { level: 2, name, exact: true })).toBeVisible({
         timeout: 15_000,
       });
       await expect(page.getByText(email, { exact: true }).first()).toBeVisible();
@@ -94,7 +94,7 @@ test.describe("profile shell", () => {
       await loginViaForm(page, email, password);
       await page.goto("/profile");
 
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(email, {
+      await expect(page.getByRole("heading", { level: 2, name: email, exact: true })).toBeVisible({
         timeout: 15_000,
       });
       await expect(page.getByText(email, { exact: true }).first()).toBeVisible();
@@ -122,7 +122,9 @@ test.describe("profile shell", () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto("/profile");
 
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(TEST_USERS.regular.name, {
+      await expect(
+        page.getByRole("heading", { level: 2, name: TEST_USERS.regular.name, exact: true }),
+      ).toBeVisible({
         timeout: 15_000,
       });
 

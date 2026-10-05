@@ -1,6 +1,5 @@
 // oRPC contracts shared between the API (which implements them) and the web
-// client (which builds typed links from them). New endpoints migrated off
-// `@hono/zod-openapi` add their contract here.
+// client (which builds typed links from them).
 export * from "./admin/art-variants.js";
 export * from "./admin/audit-events.js";
 export * from "./admin/board-states.js";
@@ -8,6 +7,7 @@ export * from "./admin/cache.js";
 export * from "./admin/card-bans.js";
 export * from "./admin/card-images.js";
 export * from "./admin/card-mutations.js";
+export * from "./admin/card-submissions.js";
 export * from "./admin/card-queries.js";
 export * from "./admin/card-tags.js";
 export * from "./admin/card-types.js";
@@ -36,6 +36,7 @@ export * from "./admin/languages.js";
 export * from "./admin/markers.js";
 export * from "./admin/marketplace-groups.js";
 export * from "./admin/meta.js";
+export * from "./admin/meta-catalog.js";
 export * from "./admin/meta-submissions.js";
 export * from "./admin/operations.js";
 export * from "./admin/printing-citations.js";

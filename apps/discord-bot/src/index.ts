@@ -2,6 +2,7 @@ import { createApiClients } from "./api-client.js";
 import { createBot } from "./bot.js";
 import { CatalogCache } from "./catalog-cache.js";
 import { readBotEnv } from "./env.js";
+import { log } from "./log.js";
 import { RulesCache } from "./rules-cache.js";
 import { TradeChannelCache } from "./trade-channels.js";
 
@@ -28,11 +29,11 @@ while (cache.snapshot === null || rules.snapshot === null) {
       rules.snapshot === null ? rules.refresh() : undefined,
     ]);
   } catch (error) {
-    console.error(`Startup fetch failed, retrying in ${STARTUP_RETRY_MS / 1000}s`, error);
+    log.error({ err: error }, `Startup fetch failed, retrying in ${STARTUP_RETRY_MS / 1000}s`);
     await Bun.sleep(STARTUP_RETRY_MS);
   }
 }
-console.log(
+log.info(
   `Catalog loaded: ${cache.snapshot.cards.length} cards; rules loaded: ` +
     `${rules.snapshot.core.rules.length} core, ${rules.snapshot.tournament.rules.length} tournament`,
 );
@@ -41,12 +42,12 @@ async function refreshSafely(): Promise<void> {
   try {
     await cache.refresh();
   } catch (error) {
-    console.error("Catalog refresh failed, keeping previous snapshot", error);
+    log.error({ err: error }, "Catalog refresh failed, keeping previous snapshot");
   }
   try {
     await rules.refresh();
   } catch (error) {
-    console.error("Rules refresh failed, keeping previous snapshot", error);
+    log.error({ err: error }, "Rules refresh failed, keeping previous snapshot");
   }
 }
 
@@ -56,12 +57,12 @@ setInterval(() => void refreshSafely(), REFRESH_INTERVAL_MS);
 // here leaves the map empty, which means no scanning, not scanning everything.
 const tradeChannels = new TradeChannelCache(api);
 await tradeChannels.start();
-console.log(`Trade scanning: ${env.tradeScanMode === "reply" ? "replying" : "log-only"}`);
+log.info(`Trade scanning: ${env.tradeScanMode === "reply" ? "replying" : "log-only"}`);
 
 const client = createBot({ env, api, cache, rules, tradeChannels });
 
 async function shutdown(signal: string): Promise<void> {
-  console.log(`Received ${signal}, shutting down`);
+  log.info(`Received ${signal}, shutting down`);
   try {
     await client.destroy();
   } finally {

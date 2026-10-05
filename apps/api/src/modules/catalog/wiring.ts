@@ -3,6 +3,7 @@ import type { Kysely } from "kysely";
 
 import type { Database } from "../../db/tables.js";
 import type { Repos } from "../../deps.js";
+import { createContentAddressedCache } from "../../lib/content-addressed-cache.js";
 import { artVariantsRepo } from "./repositories/art-variants.js";
 import { canonicalPrintingsRepo } from "./repositories/canonical-printings.js";
 import { cardBansRepo } from "./repositories/card-bans.js";
@@ -27,9 +28,9 @@ import { raritiesRepo } from "./repositories/rarities.js";
 import { rulesRepo } from "./repositories/rules.js";
 import { setsRepo } from "./repositories/sets.js";
 import { superTypesRepo } from "./repositories/super-types.js";
-import { tagCategoriesRepo } from "./repositories/tag-categories.js";
+import { tagCategoryRepo } from "./repositories/tag-categories.js";
 import { tagDefinitionsRepo } from "./repositories/tag-definitions.js";
-import { assembleRuleCatalog, createContentAddressedCache } from "./services/catalog-assembly.js";
+import { assembleRuleCatalog } from "./services/catalog-assembly.js";
 import type { RuleCatalog } from "./services/catalog-assembly.js";
 
 export interface CatalogRepos {
@@ -56,7 +57,7 @@ export interface CatalogRepos {
   rules: ReturnType<typeof rulesRepo>;
   sets: ReturnType<typeof setsRepo>;
   superTypes: ReturnType<typeof superTypesRepo>;
-  tagCategories: ReturnType<typeof tagCategoriesRepo>;
+  tagCategories: ReturnType<typeof tagCategoryRepo>;
   tagDefinitions: ReturnType<typeof tagDefinitionsRepo>;
   printingEvents: ReturnType<typeof printingEventsRepo>;
 }
@@ -129,7 +130,7 @@ export function createCatalogRepos(
     rules: rulesRepo(db),
     sets: setsRepo(db),
     superTypes: superTypesRepo(db),
-    tagCategories: tagCategoriesRepo(db),
+    tagCategories: tagCategoryRepo(db, { table: "tagCategories", tagTable: "tagDefinitions" }),
     tagDefinitions: tagDefinitionsRepo(db),
     printingEvents: printingEventsRepo(db),
   };

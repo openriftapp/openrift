@@ -3,8 +3,6 @@ import { z } from "zod";
 
 import { RULE_LANGUAGES } from "../rules.js";
 
-export { RULE_LANGUAGES } from "../rules.js";
-
 /** Which rulebook a rule belongs to. Mirrors the `rules.kind` CHECK. */
 export const RULE_KINDS = ["core", "tournament"] as const;
 /** A rule's role in the document outline. Mirrors the `rules.rule_type` CHECK. */

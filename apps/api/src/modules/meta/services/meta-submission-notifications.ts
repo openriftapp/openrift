@@ -1,19 +1,9 @@
-import type { Logger } from "@openrift/shared/logger";
 import type { MetaSubmissionKind } from "@openrift/shared/types/enums";
 
 import type { Repos } from "../../../deps.js";
-import type { createEmailSender } from "../../../email.js";
+import { sendChannelEmail } from "../../../email.js";
+import type { EmailDeps } from "../../../email.js";
 import { buildMetaSubmissionAlertEmail } from "../../../emails/meta-submission-emails.js";
-import { buildUnsubscribeUrls } from "../../../emails/unsubscribe-token.js";
-
-type SendEmail = ReturnType<typeof createEmailSender>;
-
-export interface MetaSubmissionEmailDeps {
-  sendEmail: SendEmail;
-  appBaseUrl: string;
-  unsubscribeSecret: string;
-  log: Logger;
-}
 
 export interface MetaSubmissionAlert {
   submitterUserId: string;
@@ -43,7 +33,7 @@ function reviewUrl(appBaseUrl: string): string {
 export async function notifyAdminsOfMetaSubmission(
   repos: Repos,
   submission: MetaSubmissionAlert,
-  deps?: MetaSubmissionEmailDeps,
+  deps?: EmailDeps,
 ): Promise<void> {
   if (deps === undefined) {
     return;
@@ -55,41 +45,23 @@ export async function notifyAdminsOfMetaSubmission(
       return;
     }
 
-    const submitter = await repos.users.findById(submission.submitterUserId);
+    const submitter = await repos.users.getById(submission.submitterUserId);
     const url = reviewUrl(deps.appBaseUrl);
 
     for (const recipient of recipients) {
-      const { pageUrl, oneClickUrl } = buildUnsubscribeUrls(
-        deps.appBaseUrl,
-        deps.unsubscribeSecret,
-        recipient.userId,
-        "metaSubmissions",
+      await sendChannelEmail(deps, recipient, "metaSubmissions", ({ unsubscribeUrl }) =>
+        buildMetaSubmissionAlertEmail({
+          recipientName: recipient.name,
+          submitterName: submitter?.name ?? null,
+          submitterEmail: submitter?.email ?? submission.submitterUserId,
+          eventName: submission.eventName,
+          playerName: submission.playerName,
+          summary: submission.summary ?? KIND_SUMMARIES[submission.kind],
+          note: submission.note,
+          reviewUrl: url,
+          unsubscribeUrl,
+        }),
       );
-      const { subject, html } = buildMetaSubmissionAlertEmail({
-        recipientName: recipient.name,
-        submitterName: submitter?.name ?? null,
-        submitterEmail: submitter?.email ?? submission.submitterUserId,
-        eventName: submission.eventName,
-        playerName: submission.playerName,
-        summary: submission.summary ?? KIND_SUMMARIES[submission.kind],
-        note: submission.note,
-        reviewUrl: url,
-        unsubscribeUrl: pageUrl,
-      });
-
-      try {
-        await deps.sendEmail({
-          to: recipient.email,
-          subject,
-          html,
-          listUnsubscribeUrl: oneClickUrl,
-        });
-      } catch (error) {
-        deps.log.error(
-          { err: error, recipientUserId: recipient.userId },
-          "Failed to send meta-submission admin email",
-        );
-      }
     }
   } catch (error) {
     deps.log.error(

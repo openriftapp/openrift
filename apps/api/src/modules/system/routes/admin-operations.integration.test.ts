@@ -418,35 +418,23 @@ describe.skipIf(!ctx)("Admin operations routes (integration)", () => {
   });
 
   describe("POST /admin/refresh-tcgplayer-prices", () => {
-    it("returns 202 with runId (fire-and-forget)", async () => {
+    it("returns 503 when no job scheduler is running", async () => {
       const res = await app.fetch(adminReq("POST", "/refresh-tcgplayer-prices"));
-      expect(res.status).toBe(202);
-
-      const json = await readJson(res);
-      expect(json).toHaveProperty("runId");
-      expect(json).toHaveProperty("status");
+      expect(res.status).toBe(503);
     });
   });
 
   describe("POST /admin/refresh-cardmarket-prices", () => {
-    it("returns 202 with runId (fire-and-forget)", async () => {
+    it("returns 503 when no job scheduler is running", async () => {
       const res = await app.fetch(adminReq("POST", "/refresh-cardmarket-prices"));
-      expect(res.status).toBe(202);
-
-      const json = await readJson(res);
-      expect(json).toHaveProperty("runId");
-      expect(json).toHaveProperty("status");
+      expect(res.status).toBe(503);
     });
   });
 
   describe("POST /admin/refresh-cardtrader-prices", () => {
-    it("returns 202 with runId (fire-and-forget)", async () => {
+    it("returns 503 when no job scheduler is running", async () => {
       const res = await app.fetch(adminReq("POST", "/refresh-cardtrader-prices"));
-      expect(res.status).toBe(202);
-
-      const json = await readJson(res);
-      expect(json).toHaveProperty("runId");
-      expect(json).toHaveProperty("status");
+      expect(res.status).toBe(503);
     });
   });
 });

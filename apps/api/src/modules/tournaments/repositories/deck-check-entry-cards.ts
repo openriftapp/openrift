@@ -4,6 +4,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { DeckCheckEntryCardsTable } from "../../../db/tables/tournaments.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 
 export type DeckCheckEntryCard = Selectable<DeckCheckEntryCardsTable>;
 
@@ -91,7 +92,7 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
     ): Promise<boolean> {
       // FOR UPDATE lock on the source line serializes concurrent splits of the same line.
       // Every read/write below must use trx.
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const source = await trx
           .selectFrom("deckCheckEntryCards")
           .select(["quantity", "foundCopies", "zone"])
@@ -296,7 +297,7 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
         `.execute(trx);
         return (result.numAffectedRows ?? 0n) > 0n;
       };
-      return db.isTransaction ? run(db) : db.transaction().execute(run);
+      return inTransaction(db, run);
     },
 
     /**

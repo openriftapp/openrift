@@ -2,8 +2,8 @@ import { publicCollectionsContract } from "@openrift/shared/contracts/public-col
 import type { PublicCollectionDetailResponse } from "@openrift/shared/types/api/collection";
 import { implement } from "@orpc/server";
 
-import { gravatarHashForEmail } from "../../../lib/gravatar.js";
 import { keysetPage } from "../../../lib/keyset-cursor.js";
+import { toShareOwner } from "../../../lib/share-owner.js";
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { getFavoriteMarketplace } from "../../users/lib/preferences.js";
@@ -19,7 +19,7 @@ export const publicCollectionsRouter = {
       const repos = context.repos;
       const { collections, copies, marketplace } = repos;
 
-      const found = await collections.findByShareToken(input.token);
+      const found = await collections.getByShareToken(input.token);
       if (!found) {
         throw errors.NOT_FOUND({ message: "Not found" });
       }
@@ -39,11 +39,7 @@ export const publicCollectionsRouter = {
         collection: toPublicCollection(found.collection, value),
         items,
         nextCursor,
-        owner: {
-          displayName: found.ownerName ?? "Anonymous",
-          // null for group-owned collections (a group has no email/gravatar).
-          gravatarHash: found.ownerEmail ? gravatarHashForEmail(found.ownerEmail) : null,
-        },
+        owner: toShareOwner({ displayName: found.ownerName, email: found.ownerEmail }),
       };
     },
   ),

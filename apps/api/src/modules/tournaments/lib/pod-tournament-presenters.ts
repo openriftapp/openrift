@@ -1,5 +1,6 @@
 import type { PodResponse, PodRoundResponse } from "@openrift/shared/types/api/pod-tournament";
 
+import { gravatarHashForEmail } from "../../../lib/gravatar.js";
 import { podSizeOf, pointsForPod, pointsForTeamPod, teamsOf } from "../repositories/pod-points.js";
 import type { PodMemberRow, PodRoundRows } from "../repositories/pod-tournaments-rounds.js";
 import type { Pod, PodScoring } from "../repositories/pod-tournaments-shared.js";
@@ -27,6 +28,8 @@ function toPodResponse(pod: Pod, memberRows: PodMemberRow[], scoring: PodScoring
     members: memberRows.map((member, index) => ({
       playerId: member.playerId,
       displayName: member.displayName,
+      image: member.image,
+      gravatarHash: member.email ? gravatarHashForEmail(member.email) : null,
       teamId: member.teamId,
       gamePoints: member.gamePoints,
       placement: member.placement,

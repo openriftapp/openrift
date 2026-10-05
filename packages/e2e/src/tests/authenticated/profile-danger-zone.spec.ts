@@ -89,7 +89,7 @@ test.describe("profile danger zone", () => {
 
       // CardTitle is a div, so the "Danger Zone" h2 sits outside the card and
       // can't anchor it; scope via the unique "Delete account" button instead.
-      const section = page.locator('[data-slot="card"]').filter({
+      const section = page.locator('[data-slot="danger-zone"]').filter({
         has: page.getByRole("button", { name: "Delete account", exact: true }),
       });
       await expect(
@@ -110,7 +110,7 @@ test.describe("profile danger zone", () => {
       await heading.scrollIntoViewIfNeeded();
 
       // Class tokens are the only user-visible signal for the destructive styling.
-      const card = page.locator('[data-slot="card"]').filter({
+      const card = page.locator('[data-slot="danger-zone"]').filter({
         has: page.getByRole("button", { name: "Delete account", exact: true }),
       });
       await expect(card).toHaveClass(/ring-destructive/u);

@@ -424,10 +424,6 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    getPrintingById(id: string): Promise<{ id: string } | undefined> {
-      return db.selectFrom("printings").select("id").where("id", "=", id).executeTakeFirst();
-    },
-
     /**
      * How many printings pin this image file as their substitute art.
      * Deleting a printing image consults this before removing the files behind

@@ -1,9 +1,9 @@
+import { legendDisplayName } from "./card-name.js";
 import { orderIndex } from "./filters-shared.js";
 import type { SetOrderInfo } from "./set-order.js";
 import { setIndexById, UNKNOWN_SET_INDEX } from "./set-order.js";
 import type { Printing } from "./types/catalog.js";
 import type { SortDirection, SortOption } from "./types/search.js";
-import { legendDisplayName } from "./utils.js";
 
 /** Nulls always sort to the end; the tiebreaker (card ID) is always ascending. */
 function compareWithFallback(

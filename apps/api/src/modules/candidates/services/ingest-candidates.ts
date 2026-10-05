@@ -14,7 +14,7 @@ import {
   candidateCardValidatorInput,
   candidatePrintingValidator,
   candidatePrintingValidatorInput,
-} from "./candidate-fields.js";
+} from "../lib/candidate-fields.js";
 import {
   loadCandidateLinkIndex,
   resolveCardIdByName,

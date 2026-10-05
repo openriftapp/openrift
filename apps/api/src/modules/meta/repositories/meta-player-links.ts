@@ -2,6 +2,7 @@ import type { Kysely, Selectable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { MetaPlayerLinksTable } from "../../../db/tables/meta.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 
 /** One decision on a cited-but-unread mirror's standing, confirmed by a human. */
 
@@ -32,7 +33,7 @@ export function metaPlayerLinksRepo(db: Kysely<Database>) {
       if (inputs.length === 0) {
         return;
       }
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         for (const input of inputs) {
           await trx
             .insertInto("metaPlayerLinks")

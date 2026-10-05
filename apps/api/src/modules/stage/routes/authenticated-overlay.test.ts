@@ -41,8 +41,8 @@ function stubChannel(overrides: Record<string, unknown> = {}) {
 }
 
 const mockRepo = {
-  findByUserId: vi.fn(),
-  findByToken: vi.fn(),
+  getByUserId: vi.fn(),
+  getByToken: vi.fn(),
   create: vi.fn(),
   setPayload: vi.fn(),
   enableToken: vi.fn(),
@@ -65,8 +65,8 @@ app.onError((err, c) => {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  // Default: the user already has a channel. First-use tests override findByUserId.
-  mockRepo.findByUserId.mockResolvedValue(stubChannel());
+  // Default: the user already has a channel. First-use tests override getByUserId.
+  mockRepo.getByUserId.mockResolvedValue(stubChannel());
   mockRepo.setPayload.mockImplementation((_userId: string, payload: unknown) =>
     Promise.resolve(stubChannel({ payload, version: 4 })),
   );
@@ -84,7 +84,7 @@ describe("GET /api/v1/overlay/me", () => {
   });
 
   it("creates the channel on first ask", async () => {
-    mockRepo.findByUserId.mockResolvedValue(undefined);
+    mockRepo.getByUserId.mockResolvedValue(undefined);
     mockRepo.create.mockResolvedValue(stubChannel({ token: "FreshToken12", version: 0 }));
 
     const res = await app.request("/api/v1/overlay/me");
@@ -104,7 +104,7 @@ describe("GET /api/v1/overlay/me", () => {
 
 describe("POST /api/v1/overlay/me/push", () => {
   it("sets the card and keeps the existing dressing", async () => {
-    mockRepo.findByUserId.mockResolvedValue(
+    mockRepo.getByUserId.mockResolvedValue(
       stubChannel({
         payload: { ...DEFAULT_OVERLAY_PAYLOAD, corner: "top-left", scale: 45 },
       }),
@@ -139,7 +139,7 @@ describe("POST /api/v1/overlay/me/push", () => {
   });
 
   it("takes a board down when a card is pushed over it", async () => {
-    mockRepo.findByUserId.mockResolvedValue(
+    mockRepo.getByUserId.mockResolvedValue(
       stubChannel({ payload: { ...DEFAULT_OVERLAY_PAYLOAD, board: { ...BOARD } } }),
     );
 
@@ -179,7 +179,7 @@ describe("POST /api/v1/overlay/me/push", () => {
 
 describe("POST /api/v1/overlay/me/board", () => {
   it("puts the board up and takes the card down", async () => {
-    mockRepo.findByUserId.mockResolvedValue(
+    mockRepo.getByUserId.mockResolvedValue(
       stubChannel({
         payload: { ...DEFAULT_OVERLAY_PAYLOAD, printingId: "p-live", corner: "top-left" },
       }),
@@ -239,7 +239,7 @@ describe("POST /api/v1/overlay/me/board", () => {
 
 describe("POST /api/v1/overlay/me/board/reveal", () => {
   it("steps the reveal without touching the rest of the board", async () => {
-    mockRepo.findByUserId.mockResolvedValue(
+    mockRepo.getByUserId.mockResolvedValue(
       stubChannel({ payload: { ...DEFAULT_OVERLAY_PAYLOAD, board: { ...BOARD } } }),
     );
 
@@ -259,7 +259,7 @@ describe("POST /api/v1/overlay/me/board/reveal", () => {
   });
 
   it("clamps a step past the last card", async () => {
-    mockRepo.findByUserId.mockResolvedValue(
+    mockRepo.getByUserId.mockResolvedValue(
       stubChannel({ payload: { ...DEFAULT_OVERLAY_PAYLOAD, board: { ...BOARD } } }),
     );
 
@@ -297,7 +297,7 @@ describe("POST /api/v1/overlay/me/hidden", () => {
   }
 
   it("drops the curtain without giving up what is on screen", async () => {
-    mockRepo.findByUserId.mockResolvedValue(
+    mockRepo.getByUserId.mockResolvedValue(
       stubChannel({ payload: { ...DEFAULT_OVERLAY_PAYLOAD, printingId: "p-1" } }),
     );
 
@@ -312,7 +312,7 @@ describe("POST /api/v1/overlay/me/hidden", () => {
   });
 
   it("keeps a hidden board hidden and intact", async () => {
-    mockRepo.findByUserId.mockResolvedValue(
+    mockRepo.getByUserId.mockResolvedValue(
       stubChannel({ payload: { ...DEFAULT_OVERLAY_PAYLOAD, board: { ...BOARD } } }),
     );
 
@@ -325,7 +325,7 @@ describe("POST /api/v1/overlay/me/hidden", () => {
   });
 
   it("raises the curtain again", async () => {
-    mockRepo.findByUserId.mockResolvedValue(
+    mockRepo.getByUserId.mockResolvedValue(
       stubChannel({ payload: { ...DEFAULT_OVERLAY_PAYLOAD, printingId: "p-1", hidden: true } }),
     );
 
@@ -338,7 +338,7 @@ describe("POST /api/v1/overlay/me/hidden", () => {
   });
 
   it("leaves the scene setup alone", async () => {
-    mockRepo.findByUserId.mockResolvedValue(
+    mockRepo.getByUserId.mockResolvedValue(
       stubChannel({
         payload: { ...DEFAULT_OVERLAY_PAYLOAD, corner: "top-left", scale: 55, showPlate: false },
       }),
@@ -365,7 +365,7 @@ describe("POST /api/v1/overlay/me/hidden", () => {
 
 describe("the curtain is sticky", () => {
   beforeEach(() => {
-    mockRepo.findByUserId.mockResolvedValue(
+    mockRepo.getByUserId.mockResolvedValue(
       stubChannel({ payload: { ...DEFAULT_OVERLAY_PAYLOAD, hidden: true } }),
     );
   });
@@ -397,7 +397,7 @@ describe("the curtain is sticky", () => {
   });
 
   it("survives a reveal step", async () => {
-    mockRepo.findByUserId.mockResolvedValue(
+    mockRepo.getByUserId.mockResolvedValue(
       stubChannel({
         payload: { ...DEFAULT_OVERLAY_PAYLOAD, board: { ...BOARD }, hidden: true },
       }),
@@ -418,7 +418,7 @@ describe("the curtain is sticky", () => {
 
 describe("POST /api/v1/overlay/me/clear", () => {
   it("raises the curtain, so the next segment's first push is seen", async () => {
-    mockRepo.findByUserId.mockResolvedValue(
+    mockRepo.getByUserId.mockResolvedValue(
       stubChannel({ payload: { ...DEFAULT_OVERLAY_PAYLOAD, printingId: "p-1", hidden: true } }),
     );
 
@@ -431,7 +431,7 @@ describe("POST /api/v1/overlay/me/clear", () => {
   });
 
   it("takes the board down along with the card", async () => {
-    mockRepo.findByUserId.mockResolvedValue(
+    mockRepo.getByUserId.mockResolvedValue(
       stubChannel({ payload: { ...DEFAULT_OVERLAY_PAYLOAD, board: { ...BOARD } } }),
     );
 
@@ -444,7 +444,7 @@ describe("POST /api/v1/overlay/me/clear", () => {
   });
 
   it("blanks the card but leaves the scene setup alone", async () => {
-    mockRepo.findByUserId.mockResolvedValue(
+    mockRepo.getByUserId.mockResolvedValue(
       stubChannel({
         payload: {
           ...DEFAULT_OVERLAY_PAYLOAD,
@@ -473,7 +473,7 @@ describe("POST /api/v1/overlay/me/clear", () => {
 
 describe("PATCH /api/v1/overlay/me", () => {
   it("changes a switch without touching the card on screen", async () => {
-    mockRepo.findByUserId.mockResolvedValue(
+    mockRepo.getByUserId.mockResolvedValue(
       stubChannel({ payload: { ...DEFAULT_OVERLAY_PAYLOAD, printingId: "p-live" } }),
     );
 
@@ -503,7 +503,7 @@ describe("POST /api/v1/overlay/me/token", () => {
   });
 
   it("creates the channel first when the user has none", async () => {
-    mockRepo.findByUserId.mockResolvedValue(undefined);
+    mockRepo.getByUserId.mockResolvedValue(undefined);
     mockRepo.create.mockResolvedValue(stubChannel({ token: "FreshToken12" }));
     mockRepo.enableToken.mockResolvedValue(stubChannel({ token: "FreshToken1" }));
 

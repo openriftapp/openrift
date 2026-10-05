@@ -9,6 +9,7 @@ import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
+import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { computeZoneSuggestions } from "../lib/deck-check-advisories.js";
@@ -37,9 +38,7 @@ async function authorizeJudge(
   userId: string,
 ): Promise<DeckCheckEvent> {
   const event = await repos.deckCheck.getEventById(tournamentId);
-  if (!event) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Tournament not found");
-  }
+  assertFound(event, "Tournament not found");
   const allowed = await repos.tournaments.isHostOrStaff(tournamentId, userId, [
     "organizer",
     "judge",
@@ -60,9 +59,7 @@ async function loadEntry(
   entryId: string,
 ): Promise<DeckCheckEntry> {
   const entry = await repos.deckCheck.getEntry(event.id, entryId);
-  if (!entry) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Entry not found");
-  }
+  assertFound(entry, "Entry not found");
   return await settleExpiredEditable(repos, event, entry);
 }
 
@@ -118,7 +115,7 @@ export const tournamentDeckCheckRouter = {
           "Event is archived. Un-archive it before adding decks.",
         );
       }
-      const participant = await repos.tournaments.findParticipantById(input.participantId);
+      const participant = await repos.tournaments.getParticipantById(input.participantId);
       if (!participant || participant.tournamentId !== event.id) {
         throw new AppError(404, ERROR_CODES.NOT_FOUND, "Participant not found");
       }
@@ -158,9 +155,7 @@ export const tournamentDeckCheckRouter = {
         // Row-locked re-load: without it, two concurrent judge requests validate
         // against stale state and the second commit overwrites the first's.
         const fresh = await txRepos.deckCheck.getEntryForUpdate(event.id, input.entryId);
-        if (!fresh) {
-          throw new AppError(404, ERROR_CODES.NOT_FOUND, "Entry not found");
-        }
+        assertFound(fresh, "Entry not found");
         const settled = await settleExpiredEditable(txRepos, event, fresh);
         return applyJudgeTransition(txRepos, context.userId, settled, {
           state: input.state,
@@ -202,9 +197,7 @@ export const tournamentDeckCheckRouter = {
             : { allowDeckPublishing: input.allowDeckPublishing }),
         }),
       );
-      if (!updated) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Entry not found");
-      }
+      assertFound(updated, "Entry not found");
       return buildEntryDetail(repos, event, updated);
     },
   ),
@@ -213,9 +206,7 @@ export const tournamentDeckCheckRouter = {
     const repos = context.repos;
     const event = await authorizeJudge(repos, input.tournamentId, context.userId);
     const deleted = await repos.deckCheck.deleteEntry(event.id, input.entryId);
-    if (!deleted) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Entry not found");
-    }
+    assertExisted(deleted, "Entry not found");
   }),
 
   addCard: os.addCard.handler(async ({ input, context }): Promise<DeckCheckEntryDetailResponse> => {
@@ -283,9 +274,7 @@ export const tournamentDeckCheckRouter = {
           copies,
         });
       }
-      if (!updated) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Card not found");
-      }
+      assertExisted(updated, "Card not found");
       await recomputeEntryHash(repos, entry.id);
       const reloaded = await loadEntry(repos, event, input.entryId);
       return buildEntryDetail(repos, event, reloaded);
@@ -346,9 +335,7 @@ export const tournamentDeckCheckRouter = {
       input.cardId,
       input.copyIndex,
     );
-    if (!removed) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Card not found");
-    }
+    assertExisted(removed, "Card not found");
     await recomputeEntryHash(repos, input.entryId);
   }),
 
@@ -376,9 +363,7 @@ export const tournamentDeckCheckRouter = {
       await loadEntry(repos, event, input.entryId);
 
       const updated = await repos.deckCheck.unlinkEntry(input.entryId);
-      if (!updated) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Entry not found");
-      }
+      assertFound(updated, "Entry not found");
       return buildEntryDetail(repos, event, updated);
     },
   ),

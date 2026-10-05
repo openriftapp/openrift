@@ -9,6 +9,7 @@ import { assertFound } from "../../../lib/assertions.js";
 import { ensureInbox } from "../../groups/services/inbox.js";
 import { autoCancelUnfillablePendingTrades } from "../../groups/services/trade-supply.js";
 import { logEvents } from "../../system/services/event-logger.js";
+import { loadWritableCopies } from "../lib/collection-access.js";
 
 const log = createLogger("copies");
 
@@ -86,7 +87,7 @@ export async function addCopies(
 
     const suppliedIds = copies.map((item) => item.id).filter((id) => id !== undefined);
     const missingIds = suppliedIds.filter((id) => !insertedById.has(id));
-    const replayedRows = await trxRepos.copies.findByIdsInCollections(missingIds, [
+    const replayedRows = await trxRepos.copies.listByIdsInCollections(missingIds, [
       ...new Set([...explicitIds, inboxId]),
     ]);
     const replayedById = new Map(replayedRows.map((row) => [row.id, row]));
@@ -174,17 +175,7 @@ export async function updateCopies(
   const normalized = normalizeCopyMetadataPatch(patch);
 
   await transact(async (trxRepos) => {
-    const copies = await trxRepos.copies.listWithCollectionContext(copyIds);
-
-    if (copies.length !== copyIds.length) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "One or more copies not found");
-    }
-
-    const sourceIds = [...new Set(copies.map((row) => row.collectionId))];
-    const writableSources = await trxRepos.collections.filterWritableByViewer(sourceIds, userId);
-    if (writableSources.length !== sourceIds.length) {
-      throw new AppError(403, ERROR_CODES.FORBIDDEN, "One or more copies are not writable by you");
-    }
+    await loadWritableCopies(trxRepos, userId, copyIds);
 
     await trxRepos.copies.updateMetadataBatchById(copyIds, {
       ...normalized,
@@ -227,17 +218,7 @@ export async function moveCopies(
   assertFound(target, "Target collection not found");
 
   await transact(async (trxRepos) => {
-    const copies = await trxRepos.copies.listWithCollectionContext(copyIds);
-
-    if (copies.length !== copyIds.length) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "One or more copies not found");
-    }
-
-    const sourceIds = [...new Set(copies.map((row) => row.collectionId))];
-    const writableSources = await trxRepos.collections.filterWritableByViewer(sourceIds, userId);
-    if (writableSources.length !== sourceIds.length) {
-      throw new AppError(403, ERROR_CODES.FORBIDDEN, "One or more copies are not writable by you");
-    }
+    const copies = await loadWritableCopies(trxRepos, userId, copyIds);
 
     if (target.groupId !== null) {
       // Lock the rows first so a concurrent trade-accept serializes against this
@@ -320,17 +301,7 @@ export async function disposeCopiesInTransaction(
   // would cascade the just-created reservation away.
   await trxRepos.copies.lockByIds(copyIds);
 
-  const copies = await trxRepos.copies.listWithCollectionContext(copyIds);
-
-  if (copies.length !== copyIds.length) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "One or more copies not found");
-  }
-
-  const sourceIds = [...new Set(copies.map((row) => row.collectionId))];
-  const writableSources = await trxRepos.collections.filterWritableByViewer(sourceIds, userId);
-  if (writableSources.length !== sourceIds.length) {
-    throw new AppError(403, ERROR_CODES.FORBIDDEN, "One or more copies are not writable by you");
-  }
+  const copies = await loadWritableCopies(trxRepos, userId, copyIds);
 
   // A reserved copy is physically promised to a trade — refuse to destroy it.
   // Same for a copy out on a loan: write-off releases its pins first and then

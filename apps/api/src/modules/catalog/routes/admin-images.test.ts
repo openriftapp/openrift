@@ -65,8 +65,8 @@ const mockJobRuns = {
   start: vi.fn(async () => ({ id: RUN_TEST })),
   succeed: vi.fn(),
   fail: vi.fn(),
-  findRunning: vi.fn<Repos["jobRuns"]["findRunning"]>(async () => null),
-  findLatestForResume: vi.fn<Repos["jobRuns"]["findLatestForResume"]>(async () => null),
+  getRunning: vi.fn<Repos["jobRuns"]["getRunning"]>(async () => null),
+  getLatestForResume: vi.fn<Repos["jobRuns"]["getLatestForResume"]>(async () => null),
   getResult: vi.fn(),
   updateResult: vi.fn(),
   requestCancel: vi.fn(),
@@ -122,8 +122,8 @@ describe("POST /api/admin/v1/regenerate-images", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockJobRuns.start.mockResolvedValue({ id: RUN_TEST });
-    mockJobRuns.findRunning.mockResolvedValue(null);
-    mockJobRuns.findLatestForResume.mockResolvedValue(null);
+    mockJobRuns.getRunning.mockResolvedValue(null);
+    mockJobRuns.getLatestForResume.mockResolvedValue(null);
     mockRunRegenerateImagesJob.mockResolvedValue({
       snapshot: [],
       totalFiles: 0,
@@ -147,11 +147,11 @@ describe("POST /api/admin/v1/regenerate-images", () => {
       kind: REGENERATE_IMAGES_KIND,
       trigger: "admin",
     });
-    expect(mockJobRuns.findLatestForResume).toHaveBeenCalledWith(REGENERATE_IMAGES_KIND);
+    expect(mockJobRuns.getLatestForResume).toHaveBeenCalledWith(REGENERATE_IMAGES_KIND);
   });
 
   it("returns already_running when a regenerate job is already in flight", async () => {
-    mockJobRuns.findRunning.mockResolvedValue({ id: EARLIER_RUN });
+    mockJobRuns.getRunning.mockResolvedValue({ id: EARLIER_RUN });
     const res = await app.request("/api/admin/v1/regenerate-images", { method: "POST" });
     expect(res.status).toBe(200);
     const json = await readJson(res);
@@ -160,7 +160,7 @@ describe("POST /api/admin/v1/regenerate-images", () => {
   });
 
   it("does NOT pass resumeFrom when ?reset=true is present, even if a failed prior run exists", async () => {
-    mockJobRuns.findLatestForResume.mockResolvedValue({
+    mockJobRuns.getLatestForResume.mockResolvedValue({
       id: "prior-failed",
       kind: REGENERATE_IMAGES_KIND,
       trigger: "admin",
@@ -186,7 +186,7 @@ describe("POST /api/admin/v1/regenerate-images", () => {
 
     const res = await app.request("/api/admin/v1/regenerate-images?reset=true", { method: "POST" });
     expect(res.status).toBe(200);
-    expect(mockJobRuns.findLatestForResume).not.toHaveBeenCalled();
+    expect(mockJobRuns.getLatestForResume).not.toHaveBeenCalled();
   });
 });
 
@@ -196,7 +196,7 @@ describe("POST /api/admin/v1/regenerate-images/cancel", () => {
   });
 
   it("flips cancelRequested on the running row's checkpoint", async () => {
-    mockJobRuns.findRunning.mockResolvedValue({ id: RUN_X });
+    mockJobRuns.getRunning.mockResolvedValue({ id: RUN_X });
     mockJobRuns.getResult.mockResolvedValue({
       snapshot: [],
       totalFiles: 5,
@@ -219,7 +219,7 @@ describe("POST /api/admin/v1/regenerate-images/cancel", () => {
   });
 
   it("404s when no regenerate job is running", async () => {
-    mockJobRuns.findRunning.mockResolvedValue(null);
+    mockJobRuns.getRunning.mockResolvedValue(null);
     const res = await app.request("/api/admin/v1/regenerate-images/cancel", { method: "POST" });
     expect(res.status).toBe(404);
   });

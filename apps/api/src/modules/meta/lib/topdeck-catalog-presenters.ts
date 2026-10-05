@@ -1,5 +1,6 @@
 import type { TopdeckCatalogRow } from "@openrift/shared/contracts/admin/meta-catalog";
 
+import { isoOrNull } from "../../../lib/iso-date.js";
 import type { TopdeckListRow } from "../repositories/topdeck-events.js";
 import { topdeckEventUrl } from "./topdeck-catalog.js";
 
@@ -18,8 +19,8 @@ export function toTopdeckCatalogRow(row: TopdeckListRow): TopdeckCatalogRow {
     triage: row.triage,
     metaEventId: row.metaEventId,
     metaEventSlug: row.metaEventSlug,
-    fetchedAt: row.fetchedAt?.toISOString() ?? null,
-    missingSince: row.missingSince?.toISOString() ?? null,
+    fetchedAt: isoOrNull(row.fetchedAt),
+    missingSince: isoOrNull(row.missingSince),
     stagedPlayerCount: row.stagedPlayerCount,
     stagedLegendCount: row.stagedLegendCount,
     stagedDeckCount: row.stagedDeckCount,

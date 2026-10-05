@@ -1,7 +1,7 @@
 import type { DeckCodeParseResult, DeckImportEntry } from "../deck-code.js";
 import { ZONE_LABELS } from "../deck-zones.js";
+import { straightenApostrophes } from "../strings.js";
 import type { DeckZone } from "../types/enums.js";
-import { straightenApostrophes } from "../utils.js";
 import { WellKnown } from "../well-known.js";
 import { sourceSlotForZone } from "../zone-inference.js";
 import type { DeckCodecCard, EncodeResult } from "./types.js";

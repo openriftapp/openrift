@@ -1,4 +1,5 @@
 import { adminMetaCandidatesContract } from "@openrift/shared/contracts/admin/meta";
+import { stringifyUnknown } from "@openrift/shared/strings";
 import type {
   MetaEventDrift,
   MetaOverlayQueueRow,
@@ -6,7 +7,6 @@ import type {
   MetaOverlayRowMatch,
 } from "@openrift/shared/types/api/meta";
 import { META_CATALOG_PROVIDERS, META_EVENT_OVERLAY_FIELDS } from "@openrift/shared/types/enums";
-import { stringifyUnknown } from "@openrift/shared/utils";
 import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
@@ -15,6 +15,7 @@ import { TOURNAMENT_LIST_PROVIDER } from "../../../lib/meta-providers.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import { toMetaIgnoredEntry, toMetaOverlayCardRows } from "../lib/meta-overlay-presenters.js";
 import type { MetaEventWithCounts } from "../repositories/meta-events.js";
 import type {
   MetaEventOverlayRow,
@@ -182,16 +183,6 @@ function playerSourceIds(overlay: MetaPlayerOverlayRow): {
   };
 }
 
-function toCardRows(cards: readonly MetaOverlayCardRow[]): MetaOverlayQueueRow["cards"] {
-  return cards.map((card) => ({
-    lineNumber: card.lineNumber,
-    zone: card.zone,
-    quantity: card.quantity,
-    cardName: card.cardName,
-    cardId: card.cardId,
-  }));
-}
-
 function unresolvedNames(cards: readonly MetaOverlayCardRow[]): string[] {
   return [...new Set(cards.filter((card) => card.cardId === null).map((card) => card.cardName))];
 }
@@ -342,7 +333,7 @@ async function queueRows(
       submittedBy: overlay.submittedByUserId,
       submissionNote: overlay.submissionNote,
       changes: playerChanges(overlay, (live ?? null) as Record<string, unknown> | null, cardNames),
-      cards: toCardRows(cards),
+      cards: toMetaOverlayCardRows(cards),
       unresolvedNames: unresolvedNames(cards),
       createdAt: overlay.createdAt.toISOString(),
     };
@@ -584,8 +575,8 @@ export const adminMetaCandidatesRouter = os.router({
   listIgnored: os.listIgnored.handler(async ({ context }) => {
     const { events, players } = await context.repos.metaOverlays.listIgnored();
     return {
-      events: events.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() })),
-      players: players.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() })),
+      events: events.map((row) => toMetaIgnoredEntry(row)),
+      players: players.map((row) => toMetaIgnoredEntry(row)),
     };
   }),
 

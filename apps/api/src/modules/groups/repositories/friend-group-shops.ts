@@ -2,6 +2,7 @@ import type { Kysely, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { containsPattern } from "../../../lib/like-pattern.js";
 
 export interface GroupShopRow {
   storeId: number;
@@ -95,7 +96,7 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
     // Only shops with a listing ahead of them are offered: a store with no
     // upcoming Riftbound event would link to a permanently empty feed.
     async searchShops(term: string): Promise<ShopSearchRow[]> {
-      const pattern = `%${term.trim()}%`;
+      const pattern = containsPattern(term.trim());
       const rows = await db
         .selectFrom("uvsgamesStores as s")
         .select((eb) => [

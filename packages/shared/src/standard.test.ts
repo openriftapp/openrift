@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { findStandardArtFallback, isStandardPrinting } from "./standard.js";
+import { fallbackArtDifferences, findStandardArtFallback, isStandardPrinting } from "./standard.js";
 import { makePrinting as stubPrinting } from "./test-factories.js";
 import type { Marker, Printing } from "./types/catalog.js";
 
@@ -269,5 +269,45 @@ describe("findStandardArtFallback", () => {
       const result = findStandardArtFallback(target, [target, standard]);
       expect(result?.printing?.id).toBe("p-std");
     });
+  });
+});
+
+describe("fallbackArtDifferences", () => {
+  it("is empty for a plain printing with the same language", () => {
+    expect(fallbackArtDifferences(makePrinting(), makePrinting())).toEqual([]);
+  });
+
+  it("flags a pinned substitute when there is no art printing", () => {
+    expect(fallbackArtDifferences(makePrinting(), null)).toEqual([{ kind: "substitute" }]);
+  });
+
+  it("reports the art language when it differs", () => {
+    expect(fallbackArtDifferences(makePrinting({ language: "FR" }), makePrinting())).toEqual([
+      { kind: "language", language: "EN" },
+    ]);
+  });
+
+  it("lists markers, treatments, signed and metal finishes", () => {
+    const tags = fallbackArtDifferences(
+      makePrinting({
+        markers: [aMarker],
+        artVariant: "altart",
+        isOvernumbered: true,
+        isSigned: true,
+        finish: "metal",
+      }),
+      makePrinting(),
+    );
+    expect(tags).toEqual([
+      { kind: "marker", slug: "stamp", label: "Stamp" },
+      { kind: "artVariant", slug: "altart" },
+      { kind: "overnumbered" },
+      { kind: "signed" },
+      { kind: "finish", slug: "metal" },
+    ]);
+  });
+
+  it("ignores foil finishes", () => {
+    expect(fallbackArtDifferences(makePrinting({ finish: "foil" }), makePrinting())).toEqual([]);
   });
 });

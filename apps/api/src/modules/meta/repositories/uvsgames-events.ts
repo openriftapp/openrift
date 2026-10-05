@@ -5,7 +5,9 @@ import { sql } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import type { UvsgamesEventsTable } from "../../../db/tables/meta-sources.js";
 import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
+import { containsPattern } from "../../../lib/like-pattern.js";
 import { normalizeFormatKey, UVSGAMES_PROVIDER } from "../../../lib/meta-providers.js";
+import { inTransaction, offsetPage } from "../../../repositories/query-helpers.js";
 
 /**
  * Owns one source's crawl bookkeeping; live archive tables stay in `metaRepo`.
@@ -682,12 +684,12 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       return rows;
     },
 
-    async list(
+    list(
       filters: UvsgamesListFilters,
       page: { limit: number; offset: number },
       order: UvsgamesListOrder = {},
     ): Promise<{ rows: UvsgamesCoverageRow[]; total: number }> {
-      let rowQuery = triagedQuery()
+      let query = triagedQuery()
         .selectAll("c")
         .select([
           triage.as("triage"),
@@ -702,55 +704,39 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
         .orderBy(catalogOrderBy(order))
         // Ties on the sort column are common (a locals night files every store
         // at the same minute), so the key breaks them and keeps paging stable.
-        .orderBy("c.externalId", "desc")
-        .limit(page.limit)
-        .offset(page.offset);
-      let countQuery = triagedQuery().select((eb) => eb.fn.countAll<string>().as("total"));
+        .orderBy("c.externalId", "desc");
 
       if (filters.search !== undefined && filters.search.trim() !== "") {
-        const pattern = `%${filters.search.trim()}%`;
-        rowQuery = rowQuery.where("c.name", "ilike", pattern);
-        countQuery = countQuery.where("c.name", "ilike", pattern);
+        const pattern = containsPattern(filters.search.trim());
+        query = query.where("c.name", "ilike", pattern);
       }
       if (filters.displayStatus !== undefined) {
-        rowQuery = rowQuery.where("c.displayStatus", "=", filters.displayStatus);
-        countQuery = countQuery.where("c.displayStatus", "=", filters.displayStatus);
+        query = query.where("c.displayStatus", "=", filters.displayStatus);
       }
       if (filters.decklistPublished === true) {
-        rowQuery = rowQuery.where("c.decklistStatus", "=", "PUBLISHED");
-        countQuery = countQuery.where("c.decklistStatus", "=", "PUBLISHED");
+        query = query.where("c.decklistStatus", "=", "PUBLISHED");
       }
       if (filters.minPlayers !== undefined) {
-        rowQuery = rowQuery.where("c.playerCount", ">=", filters.minPlayers);
-        countQuery = countQuery.where("c.playerCount", ">=", filters.minPlayers);
+        query = query.where("c.playerCount", ">=", filters.minPlayers);
       }
       if (filters.dateFrom !== undefined) {
-        rowQuery = rowQuery.where("c.startAt", ">=", filters.dateFrom);
-        countQuery = countQuery.where("c.startAt", ">=", filters.dateFrom);
+        query = query.where("c.startAt", ">=", filters.dateFrom);
       }
       if (filters.dateTo !== undefined) {
-        rowQuery = rowQuery.where("c.startAt", "<=", filters.dateTo);
-        countQuery = countQuery.where("c.startAt", "<=", filters.dateTo);
+        query = query.where("c.startAt", "<=", filters.dateTo);
       }
       if (filters.missing === true) {
-        rowQuery = rowQuery.where("c.missingSince", "is not", null);
-        countQuery = countQuery.where("c.missingSince", "is not", null);
+        query = query.where("c.missingSince", "is not", null);
       }
       if (filters.awaitingResults === true) {
-        rowQuery = rowQuery.where(pagedAccepted).where(notFetched);
-        countQuery = countQuery.where(pagedAccepted).where(notFetched);
+        query = query.where(pagedAccepted).where(notFetched);
       }
       if (filters.triage !== undefined) {
         const predicate = pagedTriagePredicate(filters.triage);
-        rowQuery = rowQuery.where(predicate);
-        countQuery = countQuery.where(predicate);
+        query = query.where(predicate);
       }
 
-      const [rows, countRow] = await Promise.all([
-        rowQuery.execute(),
-        countQuery.executeTakeFirstOrThrow(),
-      ]);
-      return { rows, total: Number(countRow.total) };
+      return offsetPage(query, page);
     },
 
     async triageCounts(): Promise<UvsgamesTriageCounts> {
@@ -958,7 +944,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       mappedFormat: string | null,
     ): Promise<UvsgamesFormatRow | undefined> {
       const key = normalizeFormatKey(sourceFormat);
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         const stored = await trx
           .selectFrom("uvsgamesFormatMappings")
           .select("sourceFormat")

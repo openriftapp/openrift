@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { boundsOf } from "./collections";
 import { filterCards } from "./filters";
 import { computeFilterCounts } from "./filters-counts";
 import type { FilterCounts } from "./filters-counts";
 import type { Card, Printing } from "./types/catalog.js";
 import type { CardFilters, FilterRange, PresenceDimension } from "./types/search.js";
 import { EMPTY_CARD_FILTERS, NONE, PRESENCE_DIMENSIONS } from "./types/search.js";
-import { boundsOf } from "./utils";
 
 interface RefOptions {
   countBy: "printing" | "card";

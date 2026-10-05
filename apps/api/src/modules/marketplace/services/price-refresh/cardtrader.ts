@@ -4,6 +4,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../../deps.js";
 import type { Fetch } from "../../../../io.js";
+import { fetchJson } from "../../../../lib/http.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
 import type { CrossRefCandidate } from "./cross-ref-match.js";
 import { autoMatchByCrossReference } from "./cross-ref-match.js";
@@ -98,14 +99,15 @@ async function ctFetch<T>(
   url: string,
   authHeaders: Record<string, string>,
 ): Promise<T> {
-  const res = await fetchFn(url, {
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  const { data } = await fetchJson<T>(fetchFn, url, {
     headers: { ...authHeaders, Accept: "application/json" },
+    timeoutMs: FETCH_TIMEOUT_MS,
+    transform: unwrapArray,
   });
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status} for ${url}: ${await res.text()}`);
-  }
-  const json: unknown = await res.json();
+  return data;
+}
+
+function unwrapArray<T>(json: unknown): T {
   if (
     json !== null &&
     typeof json === "object" &&

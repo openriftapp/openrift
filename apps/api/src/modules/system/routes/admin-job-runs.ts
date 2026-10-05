@@ -1,9 +1,10 @@
-import type { JobRunsListResponse, JobRunView } from "@openrift/shared/contracts/admin/job-runs";
+import type { JobRunsListResponse } from "@openrift/shared/contracts/admin/job-runs";
 import { adminJobRunsContract } from "@openrift/shared/contracts/admin/job-runs";
 import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { toJobRunView } from "../lib/job-run-presenters.js";
 
 const os = implement(adminJobRunsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -22,21 +23,7 @@ export const adminJobRunsRouter = {
       jobRuns.listPage({ kind, kindPrefix, trigger, status, noop, limit: pageSize, offset }),
       jobRuns.listKinds(),
     ]);
-    const runs: JobRunView[] = rows.map((row) => ({
-      id: row.id,
-      kind: row.kind,
-      trigger: row.trigger,
-      status: row.status,
-      startedAt: row.startedAt.toISOString(),
-      finishedAt: row.finishedAt?.toISOString() ?? null,
-      durationMs: row.durationMs,
-      errorMessage: row.errorMessage,
-      result:
-        row.result === null || typeof row.result !== "object"
-          ? null
-          : (row.result as Record<string, unknown>),
-      noop: row.noop,
-    }));
+    const runs = rows.map((row) => toJobRunView(row));
     return { runs, total, page: pageNumber, limit: pageSize, kinds };
   }),
 };

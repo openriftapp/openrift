@@ -10,6 +10,11 @@ const SKIPPED_DIRS = new Set(["node_modules", "dist", ".output", ".nitro", ".tur
 
 const MOUNTED_AS_ONE_AGGREGATE_ROUTER = "packages/shared/src/contracts/index.ts";
 
+const EXEMPT_SHARED_REEXPORTS = new Set(["apps/web/src/lib/server-fns/api-types.ts"]);
+
+const SHARED_REEXPORT =
+  /export\s+(?:type\s+)?(?:\*(?:\s+as\s+[A-Za-z_$][\w$]*)?|\{[^}]*\})\s+from\s+["']@openrift\/shared\/[^"']+["'];?/gu;
+
 const COMMENT = /\/\*[\s\S]*?\*\/|\/\/[^\n]*/gu;
 const REEXPORT =
   /export\s+(?:type\s+)?(?:\*(?:\s+as\s+[A-Za-z_$][\w$]*)?|\{[^}]*\})\s+from\s+["'][^"']+["'];?/gu;
@@ -76,4 +81,37 @@ describe("barrel files", () => {
     ).toBe(true);
     expect(isReexportOnly(`export { a } from "./a.js";\nexport const b = 1;\n`)).toBe(false);
   });
+});
+
+describe("shared re-exports", () => {
+  it("recognises a re-export from a shared module", () => {
+    expect(`export { a } from "@openrift/shared/rules";`.match(SHARED_REEXPORT)).toHaveLength(1);
+    expect(
+      `export type {\n  B,\n} from "@openrift/shared/deck-code";`.match(SHARED_REEXPORT),
+    ).toHaveLength(1);
+    expect(`export { a } from "./a.js";`.match(SHARED_REEXPORT)).toBeNull();
+  });
+
+  it("do not appear in app code outside api-types", async () => {
+    const apps = await readdir(join(REPO_ROOT, "apps"), { withFileTypes: true });
+    const roots = apps
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => join(REPO_ROOT, "apps", entry.name, "src"));
+    const fileLists = await Promise.all(roots.map((root) => listSourceFiles(root)));
+    const files = fileLists.flat();
+    const offenders = await Promise.all(
+      files.map(async (file) => {
+        const raw = await readFile(file, "utf-8");
+        const contents = raw.replace(COMMENT, "");
+        return contents.match(SHARED_REEXPORT) === null ? null : file;
+      }),
+    );
+    expect(
+      offenders
+        .filter((file) => file !== null)
+        .map((file) => relative(REPO_ROOT, file).replaceAll("\\", "/"))
+        .filter((file) => !EXEMPT_SHARED_REEXPORTS.has(file))
+        .toSorted(),
+    ).toStrictEqual([]);
+  }, 30_000);
 });

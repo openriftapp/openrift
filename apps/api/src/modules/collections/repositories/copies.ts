@@ -1,6 +1,6 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { OwnedCopyRow } from "@openrift/shared/list-rule-eval";
 import type { CopyLink } from "@openrift/shared/types/api/collection";
-import { legendDisplayName } from "@openrift/shared/utils";
 import type { Insertable, Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
@@ -8,11 +8,12 @@ import type { Database } from "../../../db/tables.js";
 import type { CopiesTable } from "../../../db/tables/collections.js";
 import {
   cardTypesColumn,
+  currentSafeXid,
+  inTransaction,
   keysetCursorPredicate,
   notPinnedToLoan,
   notReservedByTrade,
   requireFrontImage,
-  safeXidExpression,
   selectCopyWithCard,
 } from "../../../repositories/query-helpers.js";
 
@@ -134,9 +135,8 @@ export function copiesRepo(db: Kysely<Database>) {
       return query.execute();
     },
 
-    async currentSafeXid(): Promise<string> {
-      const row = await db.selectNoFrom(safeXidExpression.as("xid")).executeTakeFirstOrThrow();
-      return row.xid;
+    currentSafeXid(): Promise<string> {
+      return currentSafeXid(db);
     },
 
     // `>= since` pairs with the exclusive `< safe` of the read that issued the
@@ -219,7 +219,7 @@ export function copiesRepo(db: Kysely<Database>) {
     },
 
     async purgeDeletionsOlderThan(cutoff: Date): Promise<number> {
-      return await db.transaction().execute(async (trx) => {
+      return await inTransaction(db, async (trx) => {
         // Must be raised before the rows are dropped, or a delta landing
         // between the two steps would miss them.
         const highest = await trx
@@ -351,7 +351,7 @@ export function copiesRepo(db: Kysely<Database>) {
       return rows.map((row) => ({ ...row, onLoan: false, reserved: false }));
     },
 
-    async findByIdsInCollections(
+    async listByIdsInCollections(
       copyIds: readonly string[],
       collectionIds: readonly string[],
     ): Promise<Omit<CopyRow, "groupId" | "createdAt">[]> {

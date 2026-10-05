@@ -66,7 +66,7 @@ function makeApp(overrides: {
     getByCode: vi.fn(),
     createWithOwner: vi.fn(),
     update: vi.fn(),
-    deleteById: vi.fn(),
+    deleteById: vi.fn(() => Promise.resolve(true)),
     setCode: vi.fn(),
     getMembership: vi.fn(),
     listMembers: vi.fn(() => Promise.resolve([])),

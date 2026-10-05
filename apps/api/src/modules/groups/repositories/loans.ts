@@ -404,13 +404,13 @@ export function loansRepo(db: Kysely<Database>) {
      * Deletes a loan outright (lender only, any status: loans are a personal
      * ledger and history is best-effort). Pins cascade.
      */
-    async deleteByIdForLender(loanId: string, lenderUserId: string): Promise<number> {
+    async deleteByIdForLender(loanId: string, lenderUserId: string): Promise<boolean> {
       const result = await db
         .deleteFrom("loans")
         .where("id", "=", loanId)
         .where("lenderUserId", "=", lenderUserId)
         .executeTakeFirst();
-      return Number(result.numDeletedRows);
+      return result.numDeletedRows > 0n;
     },
 
     async isCoMember(userId: string, otherUserId: string): Promise<boolean> {

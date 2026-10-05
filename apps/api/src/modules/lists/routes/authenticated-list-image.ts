@@ -1,16 +1,14 @@
-import { aspectFromQuery, qrFromQuery, scaleFromQuery } from "@openrift/shared/share-image-params";
 import { Hono } from "hono";
 
 import { assertFound } from "../../../lib/assertions.js";
+import { pngResponse } from "../../../lib/http-response.js";
+import { parseShareImageQuery } from "../../../lib/share-image-query.js";
+import { shareUrlFromOrigin, siteHostFromOrigin } from "../../../lib/site-url.js";
 import { getUserId } from "../../../middleware/get-user-id.js";
 import { requireAuth } from "../../../middleware/require-auth.js";
 import type { Variables } from "../../../types.js";
 import { renderImage } from "../../system/services/render-pool.js";
-import {
-  buildListShareInput,
-  shareUrlFromOrigin,
-  siteHostFromOrigin,
-} from "../services/list-image.js";
+import { buildListShareInput } from "../services/list-image.js";
 
 /**
  * Owner-authenticated download of a list's share image, resolving the list by
@@ -31,7 +29,7 @@ export const listImageRoute = new Hono<{ Variables: Variables }>()
     assertFound(list, "Not found");
 
     const entries = await lists.entriesWithDetailsAnon(list.id, list.kind);
-    // Only a list that is *currently* public gets a QR: `findByShareToken`
+    // Only a list that is *currently* public gets a QR: `getByShareToken`
     // requires `is_public`, so encoding a revoked list's stale token would put a
     // 404 on the image. No token, no mark — the renderer drops it.
     const input = await buildListShareInput({
@@ -40,25 +38,20 @@ export const listImageRoute = new Hono<{ Variables: Variables }>()
       intent: list.intent,
       kind: list.kind,
       entries,
-      siteHost: siteHostFromOrigin(config.corsOrigin),
+      siteHost: siteHostFromOrigin(config.siteOrigin),
       shareUrl:
         list.isPublic && list.shareToken
-          ? shareUrlFromOrigin(config.corsOrigin, `/lists/share/${list.shareToken}`)
+          ? shareUrlFromOrigin(config.siteOrigin, `/lists/share/${list.shareToken}`)
           : undefined,
       canonicalPrintings,
     });
+    const { scale, aspect, qr } = parseShareImageQuery((name) => c.req.query(name));
     const png = await renderImage({
       kind: "share",
       input,
-      scale: scaleFromQuery(c.req.query("scale"), c.req.query("size")),
-      options: {
-        aspect: aspectFromQuery(c.req.query("aspect")),
-        qr: qrFromQuery(c.req.query("qr")),
-      },
+      scale,
+      options: { aspect, qr },
     });
 
-    return new Response(png, {
-      status: 200,
-      headers: { "Content-Type": "image/png", "Cache-Control": "private, no-store" },
-    });
+    return pngResponse(png);
   });

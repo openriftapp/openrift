@@ -1,9 +1,9 @@
 import { adminIgnoredProductsContract } from "@openrift/shared/contracts/admin/ignored-products";
-import type { IgnoredProductResponse } from "@openrift/shared/types/api/admin";
 import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { toIgnoredProductResponse } from "../lib/ignored-product-presenters.js";
 
 const os = implement(adminIgnoredProductsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -12,25 +12,7 @@ export const adminIgnoredProductsRouter = {
     const { marketplaceAdmin: mktAdmin } = context.repos;
     const rows = await mktAdmin.listIgnoredProducts();
     return {
-      products: rows.map((r): IgnoredProductResponse =>
-        r.level === "product"
-          ? {
-              level: "product",
-              marketplace: r.marketplace,
-              externalId: r.externalId,
-              productName: r.productName,
-              createdAt: r.createdAt.toISOString(),
-            }
-          : {
-              level: "variant",
-              marketplace: r.marketplace,
-              externalId: r.externalId,
-              finish: r.finish,
-              language: r.language,
-              productName: r.productName,
-              createdAt: r.createdAt.toISOString(),
-            },
-      ),
+      products: rows.map((row) => toIgnoredProductResponse(row)),
     };
   }),
 

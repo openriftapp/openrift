@@ -1,15 +1,9 @@
 import { adminPrintingEventsContract } from "@openrift/shared/contracts/admin/printing-events";
-import { createLogger } from "@openrift/shared/logger";
 import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
-import { runJobAsync } from "../../system/services/run-job.js";
-import { flushPendingPrintingEvents } from "../services/flush-printing-events.js";
-
-const log = createLogger("admin");
-
-const FLUSH_KIND = "discord.flush_printing_events";
+import { requireScheduler } from "../../system/services/job-scheduler.js";
 
 const os = implement(adminPrintingEventsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -18,24 +12,9 @@ const os = implement(adminPrintingEventsContract).$context<ApiContext>().use(req
  * handler's {@link appErrorInterceptor}.
  */
 export const adminPrintingEventsRouter = {
-  flush: os.flush.handler(async ({ context }) => {
-    const repos = context.repos;
-    const config = context.config;
-
-    return await runJobAsync(
-      { repos, log },
-      FLUSH_KIND,
-      "admin",
-      () =>
-        flushPendingPrintingEvents(
-          repos,
-          { newPrintings: config.discordWebhooks.newPrintings },
-          config.appBaseUrl,
-          log,
-        ),
-      { summarize: (result) => result },
-    );
-  }),
+  flush: os.flush.handler(({ context }) =>
+    requireScheduler(context.scheduler).runNow("discord.flush_printing_events"),
+  ),
 
   list: os.list.handler(async ({ context }) => {
     const { printingEvents } = context.repos;

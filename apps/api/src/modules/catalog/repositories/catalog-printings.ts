@@ -157,7 +157,7 @@ export function catalogPrintingsRepo(db: Kysely<Database>) {
       return Number(result.count);
     },
 
-    printingById(id: string): Promise<Pick<Selectable<PrintingsTable>, "id"> | undefined> {
+    getPrintingById(id: string): Promise<Pick<Selectable<PrintingsTable>, "id"> | undefined> {
       return db.selectFrom("printings").select("id").where("id", "=", id).executeTakeFirst();
     },
 

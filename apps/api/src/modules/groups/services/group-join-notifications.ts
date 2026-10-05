@@ -1,30 +1,19 @@
+import { groupPath } from "@openrift/shared/site-paths";
 import { isGroupApprovalEmailEnabled } from "@openrift/shared/types/api/preferences";
 
 import type { Repos } from "../../../deps.js";
+import type { EmailDeps } from "../../../email.js";
+import { sendChannelEmail } from "../../../email.js";
 import {
   buildGroupApprovedEmail,
   buildGroupJoinRequestEmail,
 } from "../../../emails/group-emails.js";
-import { buildUnsubscribeUrls } from "../../../emails/unsubscribe-token.js";
-import type { TradeEmailDeps } from "./trade-notifications.js";
 
 export interface GroupJoinRequest {
   groupId: string;
   groupSlug: string;
   groupName: string;
   requesterUserId: string;
-}
-
-function membersUrl(appBaseUrl: string, groupSlug: string): string {
-  return `${appBaseUrl}/groups/${encodeURIComponent(groupSlug)}/members`;
-}
-
-function groupUrl(appBaseUrl: string, groupSlug: string): string {
-  return `${appBaseUrl}/groups/${encodeURIComponent(groupSlug)}`;
-}
-
-function manageUrl(appBaseUrl: string, groupSlug: string): string {
-  return `${appBaseUrl}/groups/${encodeURIComponent(groupSlug)}/manage`;
 }
 
 /**
@@ -34,7 +23,7 @@ function manageUrl(appBaseUrl: string, groupSlug: string): string {
 export async function notifyAdminsOfGroupJoinRequest(
   repos: Repos,
   request: GroupJoinRequest,
-  deps?: TradeEmailDeps,
+  deps?: EmailDeps,
 ): Promise<void> {
   if (deps === undefined) {
     return;
@@ -46,39 +35,26 @@ export async function notifyAdminsOfGroupJoinRequest(
       return;
     }
 
-    const requester = await repos.users.findById(request.requesterUserId);
-    const url = membersUrl(deps.appBaseUrl, request.groupSlug);
+    const requester = await repos.users.getById(request.requesterUserId);
+    const membersUrl = deps.appBaseUrl + groupPath(request.groupSlug, "members");
 
+    // Sent individually so admins don't see each other's addresses.
     for (const recipient of recipients) {
-      const { pageUrl, oneClickUrl } = buildUnsubscribeUrls(
-        deps.appBaseUrl,
-        deps.unsubscribeSecret,
-        recipient.userId,
+      await sendChannelEmail(
+        deps,
+        recipient,
         "groupJoinRequests",
+        ({ unsubscribeUrl }) =>
+          buildGroupJoinRequestEmail({
+            locale: recipient.displayLocale,
+            recipientName: recipient.name,
+            requesterName: requester?.name ?? null,
+            groupName: request.groupName,
+            membersUrl,
+            unsubscribeUrl,
+          }),
+        { groupId: request.groupId },
       );
-      const { subject, html } = buildGroupJoinRequestEmail({
-        locale: recipient.displayLocale,
-        recipientName: recipient.name,
-        requesterName: requester?.name ?? null,
-        groupName: request.groupName,
-        membersUrl: url,
-        unsubscribeUrl: pageUrl,
-      });
-
-      // Sent individually so admins don't see each other's addresses.
-      try {
-        await deps.sendEmail({
-          to: recipient.email,
-          subject,
-          html,
-          listUnsubscribeUrl: oneClickUrl,
-        });
-      } catch (error) {
-        deps.log.error(
-          { err: error, recipientUserId: recipient.userId },
-          "Failed to send group join-request email",
-        );
-      }
     }
   } catch (error) {
     deps.log.error(
@@ -102,7 +78,7 @@ export interface GroupApproval {
 export async function notifyMemberOfGroupApproval(
   repos: Repos,
   approval: GroupApproval,
-  deps?: TradeEmailDeps,
+  deps?: EmailDeps,
 ): Promise<void> {
   if (deps === undefined) {
     return;
@@ -117,27 +93,21 @@ export async function notifyMemberOfGroupApproval(
       return;
     }
 
-    const { pageUrl, oneClickUrl } = buildUnsubscribeUrls(
-      deps.appBaseUrl,
-      deps.unsubscribeSecret,
-      approval.memberUserId,
+    await sendChannelEmail(
+      deps,
+      { userId: approval.memberUserId, email: context.email },
       "groupApprovals",
+      ({ unsubscribeUrl }) =>
+        buildGroupApprovedEmail({
+          locale: context.displayLocale,
+          recipientName: context.name,
+          groupName: approval.groupName,
+          groupUrl: deps.appBaseUrl + groupPath(approval.groupSlug),
+          manageUrl: deps.appBaseUrl + groupPath(approval.groupSlug, "manage"),
+          unsubscribeUrl,
+        }),
+      { groupId: approval.groupId },
     );
-    const { subject, html } = buildGroupApprovedEmail({
-      locale: context.displayLocale,
-      recipientName: context.name,
-      groupName: approval.groupName,
-      groupUrl: groupUrl(deps.appBaseUrl, approval.groupSlug),
-      manageUrl: manageUrl(deps.appBaseUrl, approval.groupSlug),
-      unsubscribeUrl: pageUrl,
-    });
-
-    await deps.sendEmail({
-      to: context.email,
-      subject,
-      html,
-      listUnsubscribeUrl: oneClickUrl,
-    });
   } catch (error) {
     deps.log.error(
       { err: error, groupId: approval.groupId, memberUserId: approval.memberUserId },

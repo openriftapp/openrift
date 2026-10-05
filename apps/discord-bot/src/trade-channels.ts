@@ -1,4 +1,5 @@
 import type { ApiClients } from "./api-client.js";
+import { log } from "./log.js";
 
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 
@@ -36,7 +37,7 @@ export class TradeChannelCache {
       );
       return true;
     } catch (error) {
-      console.error("trade-channel refresh failed", error);
+      log.error({ err: error }, "trade-channel refresh failed");
       return false;
     }
   }

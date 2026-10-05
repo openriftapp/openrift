@@ -274,7 +274,7 @@ describe("candidateCardsRepo", () => {
 
   it("deleteCandidatePrinting deletes a printing", async () => {
     const db = createMockDb([{ numDeletedRows: 1n }]);
-    expect(await candidateCardsRepo(db).deleteCandidatePrinting("cp-1")).toBeDefined();
+    expect(await candidateCardsRepo(db).deleteCandidatePrinting("cp-1")).toBe(true);
   });
 
   it("getCandidatePrintingById returns a printing", async () => {

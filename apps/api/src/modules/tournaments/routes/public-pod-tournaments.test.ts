@@ -17,7 +17,7 @@ vi.mock("../services/pod-pairing.js", () => ({
 // The tournaments row itself belongs to `tournamentsRepo`; `podTournamentsRepo`
 // owns only the pod tables (rounds, pods, standings).
 const mockTournamentsRepo = {
-  findByShareToken: vi.fn(
+  getByShareToken: vi.fn(
     () => Promise.resolve(undefined) as Promise<Record<string, unknown> | undefined>,
   ),
 };
@@ -74,6 +74,8 @@ const playerIds = [
 const standingRow = {
   playerId: playerIds[0],
   displayName: "Alice",
+  image: null,
+  gravatarHash: null,
   status: "active" as const,
   droppedAfterRound: null,
   teamId: null,
@@ -102,7 +104,7 @@ describe("GET /api/v1/pod-tournaments/report/:token", () => {
   });
 
   it("returns 200 with the participant-facing report when the token resolves", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue(dbTournament);
+    mockTournamentsRepo.getByShareToken.mockResolvedValue(dbTournament);
     mockPodTournamentsRepo.computeStandings.mockResolvedValue([standingRow]);
     mockPodTournamentsRepo.loadRounds.mockResolvedValue([]);
 
@@ -121,7 +123,7 @@ describe("GET /api/v1/pod-tournaments/report/:token", () => {
   });
 
   it("serves the report for a cancelled tournament, even though it isn't one of the three primary pod statuses", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue({
+    mockTournamentsRepo.getByShareToken.mockResolvedValue({
       ...dbTournament,
       status: "cancelled",
     });
@@ -133,7 +135,7 @@ describe("GET /api/v1/pod-tournaments/report/:token", () => {
   });
 
   it("marks the report follow-only (canSubmit false) when reached via the follow token", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue(dbTournament);
+    mockTournamentsRepo.getByShareToken.mockResolvedValue(dbTournament);
 
     const res = await app.request(`/api/v1/pod-tournaments/report/${FOLLOW_TOKEN}`);
     expect(res.status).toBe(200);
@@ -142,7 +144,7 @@ describe("GET /api/v1/pod-tournaments/report/:token", () => {
   });
 
   it("strips organizer-only penalty internals from rounds and pods", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue(dbTournament);
+    mockTournamentsRepo.getByShareToken.mockResolvedValue(dbTournament);
     mockPodTournamentsRepo.loadRounds.mockResolvedValue([
       {
         round: {
@@ -187,7 +189,7 @@ describe("GET /api/v1/pod-tournaments/report/:token", () => {
   });
 
   it("returns NOT_FOUND when the token does not resolve", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue(undefined);
+    mockTournamentsRepo.getByShareToken.mockResolvedValue(undefined);
 
     const res = await app.request(`/api/v1/pod-tournaments/report/${TOKEN}`);
     expect(res.status).toBe(404);
@@ -197,7 +199,7 @@ describe("GET /api/v1/pod-tournaments/report/:token", () => {
   });
 
   it("returns NOT_FOUND when the token resolves a non-pod tournament", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue({
+    mockTournamentsRepo.getByShareToken.mockResolvedValue({
       ...dbTournament,
       pairingStyle: "none",
     });
@@ -235,7 +237,7 @@ describe("PUT /api/v1/pod-tournaments/report/:token/pods/:podId/result", () => {
     });
 
   it("submits the result and returns the refreshed report", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue(dbTournament);
+    mockTournamentsRepo.getByShareToken.mockResolvedValue(dbTournament);
 
     const res = await putRequest(TOKEN, POD_ID, validBody);
     expect(res.status).toBe(200);
@@ -249,7 +251,7 @@ describe("PUT /api/v1/pod-tournaments/report/:token/pods/:podId/result", () => {
   });
 
   it("returns FORBIDDEN when submitting via the read-only follow token", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue(dbTournament);
+    mockTournamentsRepo.getByShareToken.mockResolvedValue(dbTournament);
 
     const res = await putRequest(FOLLOW_TOKEN, POD_ID, validBody);
     expect(res.status).toBe(403);
@@ -259,7 +261,7 @@ describe("PUT /api/v1/pod-tournaments/report/:token/pods/:podId/result", () => {
   });
 
   it("returns NOT_FOUND when the token does not resolve", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue(undefined);
+    mockTournamentsRepo.getByShareToken.mockResolvedValue(undefined);
 
     const res = await putRequest(TOKEN, POD_ID, validBody);
     expect(res.status).toBe(404);
@@ -269,7 +271,7 @@ describe("PUT /api/v1/pod-tournaments/report/:token/pods/:podId/result", () => {
   });
 
   it("returns NOT_FOUND when the token resolves a non-pod tournament", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue({
+    mockTournamentsRepo.getByShareToken.mockResolvedValue({
       ...dbTournament,
       pairingStyle: "none",
     });
@@ -282,7 +284,7 @@ describe("PUT /api/v1/pod-tournaments/report/:token/pods/:podId/result", () => {
   });
 
   it("bridges an AppError from submitPodResult to its status and message", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue(dbTournament);
+    mockTournamentsRepo.getByShareToken.mockResolvedValue(dbTournament);
     mockSubmitPodResult.mockRejectedValue(
       new AppError(409, "CONFLICT", "Round is not accepting results"),
     );
@@ -314,7 +316,7 @@ describe("PUT /api/v1/pod-tournaments/report/:token/pods/:podId/players/:playerI
     );
 
   it("submits the player's score and returns the refreshed report", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue(dbTournament);
+    mockTournamentsRepo.getByShareToken.mockResolvedValue(dbTournament);
 
     const res = await putRequest(TOKEN, playerIds[0]!, { gamePoints: 3 });
     expect(res.status).toBe(200);
@@ -329,7 +331,7 @@ describe("PUT /api/v1/pod-tournaments/report/:token/pods/:podId/players/:playerI
   });
 
   it("accepts per-player entry on a Swiss tournament, since Swiss also seats players in pods", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue({
+    mockTournamentsRepo.getByShareToken.mockResolvedValue({
       ...dbTournament,
       pairingStyle: "swiss",
     });
@@ -340,7 +342,7 @@ describe("PUT /api/v1/pod-tournaments/report/:token/pods/:podId/players/:playerI
   });
 
   it("returns FORBIDDEN when submitting via the read-only follow token", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue(dbTournament);
+    mockTournamentsRepo.getByShareToken.mockResolvedValue(dbTournament);
 
     const res = await putRequest(FOLLOW_TOKEN, playerIds[0]!, { gamePoints: 3 });
     expect(res.status).toBe(403);
@@ -350,7 +352,7 @@ describe("PUT /api/v1/pod-tournaments/report/:token/pods/:podId/players/:playerI
   });
 
   it("returns NOT_FOUND when the token does not resolve", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue(undefined);
+    mockTournamentsRepo.getByShareToken.mockResolvedValue(undefined);
 
     const res = await putRequest(TOKEN, playerIds[0]!, { gamePoints: 3 });
     expect(res.status).toBe(404);
@@ -360,7 +362,7 @@ describe("PUT /api/v1/pod-tournaments/report/:token/pods/:podId/players/:playerI
   });
 
   it("returns NOT_FOUND when the tournament has no pairing engine", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue({
+    mockTournamentsRepo.getByShareToken.mockResolvedValue({
       ...dbTournament,
       pairingStyle: "none",
     });
@@ -373,7 +375,7 @@ describe("PUT /api/v1/pod-tournaments/report/:token/pods/:podId/players/:playerI
   });
 
   it("bridges an AppError from submitPodPlayerResult to its status and message", async () => {
-    mockTournamentsRepo.findByShareToken.mockResolvedValue(dbTournament);
+    mockTournamentsRepo.getByShareToken.mockResolvedValue(dbTournament);
     mockSubmitPodPlayerResult.mockRejectedValue(
       new AppError(400, "BAD_REQUEST", "This player is not in this pod."),
     );
@@ -398,7 +400,7 @@ describe("pod-tournaments route registration", () => {
     });
     registerRouterForTest(mountedApp, publicPodTournamentsRouter);
 
-    mockTournamentsRepo.findByShareToken.mockResolvedValue(dbTournament);
+    mockTournamentsRepo.getByShareToken.mockResolvedValue(dbTournament);
     mockPodTournamentsRepo.listPlayers.mockResolvedValue([]);
     mockPodTournamentsRepo.computeStandings.mockResolvedValue([]);
     mockPodTournamentsRepo.loadRounds.mockResolvedValue([]);

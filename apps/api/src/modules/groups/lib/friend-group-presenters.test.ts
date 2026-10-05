@@ -15,12 +15,17 @@ import type {
 import {
   canSeeCode,
   groupCovers,
+  toAdminGroupBanner,
   toCollectionShare,
+  toDiscordLink,
   toGroup,
+  toGroupSummary,
   toMember,
   toMemberPreview,
+  toOutgoingRequest,
   toRequest,
   toShare,
+  toSharedList,
 } from "./friend-group-presenters.js";
 
 const GROUP_ID = "group-1";
@@ -205,5 +210,148 @@ describe("toRequest", () => {
       gravatarHash: gravatarHashForEmail("vi@example.com"),
       createdAt: "2026-03-07T07:00:00.000Z",
     });
+  });
+});
+
+describe("toGroupSummary", () => {
+  it("hides the code from a plain member and carries the counts", () => {
+    const summary = toGroupSummary({
+      ...groupRow(),
+      viewerRole: "member",
+      memberCount: 3,
+      pendingRequestCount: 1,
+      sharedListCount: 2,
+      memberPreviews: [],
+      recentTradedCardCount: 4,
+      tradedCardCount: 9,
+    });
+    expect(summary.code).toBeNull();
+    expect(summary).toMatchObject({
+      viewerRole: "member",
+      memberCount: 3,
+      pendingRequestCount: 1,
+      sharedListCount: 2,
+      memberPreviews: [],
+      recentTradedCardCount: 4,
+      tradedCardCount: 9,
+    });
+  });
+});
+
+describe("toOutgoingRequest", () => {
+  it("serializes the request with its group", () => {
+    expect(
+      toOutgoingRequest({
+        id: "inv-1",
+        groupId: GROUP_ID,
+        userId: USER_ID,
+        direction: "request",
+        createdAt: new Date("2026-03-01T10:00:00.000Z"),
+        groupName: "Summoner Skirmish",
+        groupSlug: "summoner-skirmish",
+        memberCount: 5,
+      }),
+    ).toEqual({
+      id: "inv-1",
+      groupId: GROUP_ID,
+      groupSlug: "summoner-skirmish",
+      groupName: "Summoner Skirmish",
+      createdAt: "2026-03-01T10:00:00.000Z",
+      memberCount: 5,
+    });
+  });
+});
+
+describe("toSharedList", () => {
+  const list = {
+    id: "list-1",
+    userId: USER_ID,
+    name: "Trade binder",
+    intent: "trade" as const,
+    kind: "copy" as const,
+    defaultPricePref: null,
+    defaultPriceAbsoluteCents: null,
+    defaultTradeType: null,
+    currency: null,
+  };
+
+  it("maps the owner and empty trade defaults", () => {
+    expect(toSharedList({ list, ownerName: "Teemo" })).toEqual({
+      id: "list-1",
+      name: "Trade binder",
+      intent: "trade",
+      kind: "copy",
+      ownerUserId: USER_ID,
+      ownerName: "Teemo",
+      tradeDefaults: { pricePref: null, priceAbsoluteCents: null, tradeType: null },
+      currency: null,
+    });
+  });
+
+  it("keeps set trade defaults", () => {
+    const row = { list: { ...list, defaultPriceAbsoluteCents: 250 }, ownerName: null };
+    expect(toSharedList(row).tradeDefaults.priceAbsoluteCents).toBe(250);
+  });
+});
+
+describe("toDiscordLink", () => {
+  const link = {
+    id: "link-1",
+    groupId: GROUP_ID,
+    guildId: "guild-1",
+    guildName: "Bandle City",
+    code: null,
+    codeExpiresAt: null,
+    createdByUserId: USER_ID,
+    createdAt: new Date("2026-03-01T10:00:00.000Z"),
+    linkedAt: new Date("2026-03-02T10:00:00.000Z"),
+    tradeChannelIds: [],
+  };
+
+  it("maps a linked guild", () => {
+    expect(toDiscordLink(link)).toEqual({
+      id: "link-1",
+      guildId: "guild-1",
+      guildName: "Bandle City",
+      linkedAt: "2026-03-02T10:00:00.000Z",
+    });
+  });
+
+  it("returns null for a pending link", () => {
+    expect(toDiscordLink({ ...link, guildId: null, linkedAt: null })).toBeNull();
+  });
+});
+
+describe("toAdminGroupBanner", () => {
+  const row = {
+    groupId: GROUP_ID,
+    slug: "summoner-skirmish",
+    name: "Summoner Skirmish",
+    bannerUrl: "/media/banner.webp",
+    bannerPosition: 40,
+    bannerUploadedAt: new Date("2026-03-01T10:00:00.000Z"),
+    uploaderUserId: USER_ID,
+    uploaderName: "Teemo",
+    uploaderEmail: "teemo@example.com",
+    memberCount: 6,
+  };
+
+  it("renames the group fields and serializes the upload time", () => {
+    expect(toAdminGroupBanner(row)).toEqual({
+      groupId: GROUP_ID,
+      groupSlug: "summoner-skirmish",
+      groupName: "Summoner Skirmish",
+      bannerUrl: "/media/banner.webp",
+      bannerPosition: 40,
+      uploadedAt: "2026-03-01T10:00:00.000Z",
+      uploaderUserId: USER_ID,
+      uploaderName: "Teemo",
+      uploaderEmail: "teemo@example.com",
+      memberCount: 6,
+    });
+  });
+
+  it("keeps a missing upload time null", () => {
+    expect(toAdminGroupBanner({ ...row, bannerUploadedAt: null }).uploadedAt).toBeNull();
   });
 });

@@ -7,7 +7,7 @@ import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
 import { publicTierListsRouter } from "./public-tier-lists";
 
-const mockRepo = { findByShareToken: vi.fn() };
+const mockRepo = { getByShareToken: vi.fn() };
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
@@ -47,7 +47,7 @@ function sharedRow(overrides: Record<string, unknown> = {}) {
 
 describe("GET /api/v1/tier-lists/share/{token}", () => {
   it("resolves a shared list without a session", async () => {
-    mockRepo.findByShareToken.mockResolvedValue(sharedRow());
+    mockRepo.getByShareToken.mockResolvedValue(sharedRow());
 
     const res = await app.request("/api/v1/tier-lists/share/AbC123XyZ789");
 
@@ -58,11 +58,11 @@ describe("GET /api/v1/tier-lists/share/{token}", () => {
       { label: "S", cards: [{ cardId: "c-1", printingId: null }] },
     ]);
     expect(json.owner.displayName).toBe("Rell");
-    expect(mockRepo.findByShareToken).toHaveBeenCalledWith("AbC123XyZ789");
+    expect(mockRepo.getByShareToken).toHaveBeenCalledWith("AbC123XyZ789");
   });
 
   it("exposes neither the share state nor the owner's identifiers", async () => {
-    mockRepo.findByShareToken.mockResolvedValue(sharedRow());
+    mockRepo.getByShareToken.mockResolvedValue(sharedRow());
 
     const json = await readJson(await app.request("/api/v1/tier-lists/share/AbC123XyZ789"));
 
@@ -74,7 +74,7 @@ describe("GET /api/v1/tier-lists/share/{token}", () => {
   });
 
   it("404s for an unknown or revoked token", async () => {
-    mockRepo.findByShareToken.mockResolvedValue(undefined);
+    mockRepo.getByShareToken.mockResolvedValue(undefined);
 
     const res = await app.request("/api/v1/tier-lists/share/revoked-or-never-was");
 
@@ -82,7 +82,7 @@ describe("GET /api/v1/tier-lists/share/{token}", () => {
   });
 
   it("falls back to Anonymous when the owner has no display name", async () => {
-    mockRepo.findByShareToken.mockResolvedValue(sharedRow({ ownerName: null }));
+    mockRepo.getByShareToken.mockResolvedValue(sharedRow({ ownerName: null }));
 
     const json = await readJson(await app.request("/api/v1/tier-lists/share/AbC123XyZ789"));
 

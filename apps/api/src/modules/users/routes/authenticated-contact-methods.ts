@@ -42,7 +42,7 @@ export const contactMethodsRouter = {
     async ({ input, context, errors }): Promise<UserContactMethodsResponse> => {
       const { userContactMethods } = context.repos;
       const userId = context.userId;
-      const deleted = await userContactMethods.delete(input.id, userId);
+      const deleted = await userContactMethods.deleteByIdForUser(input.id, userId);
       if (!deleted) {
         throw errors.NOT_FOUND({ message: "Contact method not found" });
       }

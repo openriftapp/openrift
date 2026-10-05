@@ -275,8 +275,12 @@ export function marketplaceMappingVariantsRepo(db: Db) {
      * — they represent a known upstream SKU and survive unmap, so a later
      * rebind inherits full history without the product being recreated.
      */
-    async deleteVariantById(id: string): Promise<void> {
-      await db.deleteFrom("marketplaceProductVariants").where("id", "=", id).execute();
+    async deleteVariantById(id: string): Promise<boolean> {
+      const result = await db
+        .deleteFrom("marketplaceProductVariants")
+        .where("id", "=", id)
+        .executeTakeFirst();
+      return result.numDeletedRows > 0n;
     },
 
     /**

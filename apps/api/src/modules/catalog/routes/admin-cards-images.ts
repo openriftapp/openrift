@@ -2,18 +2,16 @@
 import { join } from "node:path";
 
 import { adminCardImagesContract } from "@openrift/shared/contracts/admin/card-images";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { implement } from "@orpc/server";
 import { v7 as uuidv7 } from "uuid";
 
-import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import {
   assertCandidatePrintingsInScope,
   reviewableProviderScope,
-} from "../../candidates/services/card-review-scope.js";
+} from "../../candidates/lib/card-review-scope.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { rehostImageFile, rehostSingleImage } from "../services/images/jobs.js";
 import { fetchOriginalImage } from "../services/images/original-source.js";
@@ -35,7 +33,7 @@ const os = implement(adminCardImagesContract).$context<ApiContext>().use(require
  * multipart body.
  */
 export const adminCardImagesRouter = {
-  setImage: os.setImage.handler(async ({ input, context }): Promise<void> => {
+  setImage: os.setImage.handler(async ({ input, context, errors }): Promise<void> => {
     const { printingImages, candidateCards, providerSettings } = context.repos;
     const { id, mode } = input;
 
@@ -46,15 +44,11 @@ export const adminCardImagesRouter = {
     assertFound(ps, "Candidate printing not found");
 
     if (!ps.printingId) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        "Candidate printing not linked to a printing",
-      );
+      throw errors.BAD_REQUEST({ message: "Candidate printing not linked to a printing" });
     }
 
     if (!ps.imageUrl) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Candidate printing has no image URL");
+      throw errors.BAD_REQUEST({ message: "Candidate printing has no image URL" });
     }
 
     const imageId = await context.transact((trxRepos) =>
@@ -143,7 +137,7 @@ export const adminCardImagesRouter = {
     });
   }),
 
-  unrehostImage: os.unrehostImage.handler(async ({ input, context }): Promise<void> => {
+  unrehostImage: os.unrehostImage.handler(async ({ input, context, errors }): Promise<void> => {
     const { printingImages } = context.repos;
     const { imageId } = input;
 
@@ -151,20 +145,18 @@ export const adminCardImagesRouter = {
     assertFound(image, "Printing image not found");
 
     if (!image.rehostedUrl) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Image is not rehosted");
+      throw errors.BAD_REQUEST({ message: "Image is not rehosted" });
     }
 
     if (!image.originalUrl) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        "Cannot un-rehost: image has no original URL to fall back to",
-      );
+      throw errors.BAD_REQUEST({
+        message: "Cannot un-rehost: image has no original URL to fall back to",
+      });
     }
 
     const imageFileId = await printingImages.getImageFileId(imageId);
     if (!imageFileId) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Image has no associated image file");
+      throw errors.BAD_REQUEST({ message: "Image has no associated image file" });
     }
 
     const othersUsingFiles = await printingImages.countOthersByImageFileId(imageFileId, imageId);
@@ -182,7 +174,7 @@ export const adminCardImagesRouter = {
     });
   }),
 
-  rehostImage: os.rehostImage.handler(async ({ input, context }) => {
+  rehostImage: os.rehostImage.handler(async ({ input, context, errors }) => {
     const { printingImages } = context.repos;
     const { imageId } = input;
 
@@ -190,7 +182,7 @@ export const adminCardImagesRouter = {
     assertFound(image, "Printing image not found");
 
     if (!image.originalUrl) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Image has no original URL to rehost");
+      throw errors.BAD_REQUEST({ message: "Image has no original URL to rehost" });
     }
 
     const { buffer, ext } = await fetchOriginalImage(context.io, image.originalUrl);
@@ -338,15 +330,15 @@ export const adminCardImagesRouter = {
     );
   }),
 
-  addImageUrl: os.addImageUrl.handler(async ({ input, context }): Promise<void> => {
-    const { printingImages } = context.repos;
+  addImageUrl: os.addImageUrl.handler(async ({ input, context, errors }): Promise<void> => {
+    const { catalog } = context.repos;
     const { printingId, url: rawUrl, mode: rawMode } = input;
 
     if (!rawUrl?.trim()) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "url is required");
+      throw errors.BAD_REQUEST({ message: "url is required" });
     }
 
-    const printing = await printingImages.getPrintingById(printingId);
+    const printing = await catalog.getPrintingById(printingId);
     assertFound(printing, "Printing not found");
 
     const mode = rawMode ?? "main";
@@ -364,11 +356,11 @@ export const adminCardImagesRouter = {
     });
   }),
 
-  uploadImage: os.uploadImage.handler(async ({ input, context }) => {
-    const { printingImages } = context.repos;
+  uploadImage: os.uploadImage.handler(async ({ input, context, errors }) => {
+    const { catalog } = context.repos;
     const { printingId, file, mode: rawMode, face: rawFace, credit } = input;
 
-    const printing = await printingImages.getPrintingById(printingId);
+    const printing = await catalog.getPrintingById(printingId);
     assertFound(printing, "Printing not found");
     await assertDeskPrintingScope(context.repos, context.adminAccess, context.userId, printing.id);
 
@@ -379,7 +371,7 @@ export const adminCardImagesRouter = {
 
     const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
     if (file.size > MAX_UPLOAD_BYTES) {
-      throw new AppError(413, ERROR_CODES.PAYLOAD_TOO_LARGE, "File exceeds 50 MB limit");
+      throw errors.PAYLOAD_TOO_LARGE({ message: "File exceeds 50 MB limit" });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -412,7 +404,7 @@ export const adminCardImagesRouter = {
     return { rehostedUrl };
   }),
 
-  setFallbackArt: os.setFallbackArt.handler(async ({ input, context }): Promise<void> => {
+  setFallbackArt: os.setFallbackArt.handler(async ({ input, context, errors }): Promise<void> => {
     const { printingImages } = context.repos;
     const { printingId, mode, imageFileId } = input;
 
@@ -420,14 +412,10 @@ export const adminCardImagesRouter = {
     assertFound(current, "Printing not found");
 
     if (mode === "pinned" && !imageFileId) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "imageFileId is required to pin");
+      throw errors.BAD_REQUEST({ message: "imageFileId is required to pin" });
     }
     if (mode !== "pinned" && imageFileId) {
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        `imageFileId is only valid with mode "pinned"`,
-      );
+      throw errors.BAD_REQUEST({ message: `imageFileId is only valid with mode "pinned"` });
     }
     if (imageFileId) {
       const file = await printingImages.getImageFileForRehost(imageFileId);
@@ -449,38 +437,40 @@ export const adminCardImagesRouter = {
     });
   }),
 
-  addFallbackArtUrl: os.addFallbackArtUrl.handler(async ({ input, context }): Promise<void> => {
-    const { printingImages } = context.repos;
-    const { printingId, url: rawUrl } = input;
+  addFallbackArtUrl: os.addFallbackArtUrl.handler(
+    async ({ input, context, errors }): Promise<void> => {
+      const { printingImages } = context.repos;
+      const { printingId, url: rawUrl } = input;
 
-    if (!rawUrl?.trim()) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "url is required");
-    }
+      if (!rawUrl?.trim()) {
+        throw errors.BAD_REQUEST({ message: "url is required" });
+      }
 
-    const current = await printingImages.getFallbackArt(printingId);
-    assertFound(current, "Printing not found");
+      const current = await printingImages.getFallbackArt(printingId);
+      assertFound(current, "Printing not found");
 
-    const url = rawUrl.trim();
-    const imageFileId = await printingImages.imageFileForUrl(url);
-    await printingImages.setFallbackArt(printingId, "pinned", imageFileId);
+      const url = rawUrl.trim();
+      const imageFileId = await printingImages.imageFileForUrl(url);
+      await printingImages.setFallbackArt(printingId, "pinned", imageFileId);
 
-    // Best-effort: the catalog reports fallbackArtMode "auto" until the retry lands if this fails.
-    await rehostImageFile(context.io, printingImages, imageFileId);
+      // Best-effort: the catalog reports fallbackArtMode "auto" until the retry lands if this fails.
+      await rehostImageFile(context.io, printingImages, imageFileId);
 
-    await recordAdminEvent(context.repos, context.userId, {
-      action: "printing.fallback-art",
-      entityType: "printing",
-      entityId: printingId,
-      entityLabel: current.shortCode,
-      oldValues: {
-        fallbackArtMode: current.fallbackArtMode,
-        fallbackImageFileId: current.fallbackImageFileId,
-      },
-      newValues: { fallbackArtMode: "pinned", fallbackImageFileId: imageFileId, url },
-    });
-  }),
+      await recordAdminEvent(context.repos, context.userId, {
+        action: "printing.fallback-art",
+        entityType: "printing",
+        entityId: printingId,
+        entityLabel: current.shortCode,
+        oldValues: {
+          fallbackArtMode: current.fallbackArtMode,
+          fallbackImageFileId: current.fallbackImageFileId,
+        },
+        newValues: { fallbackArtMode: "pinned", fallbackImageFileId: imageFileId, url },
+      });
+    },
+  ),
 
-  uploadFallbackArt: os.uploadFallbackArt.handler(async ({ input, context }) => {
+  uploadFallbackArt: os.uploadFallbackArt.handler(async ({ input, context, errors }) => {
     const { printingImages } = context.repos;
     const { printingId, file } = input;
 
@@ -489,7 +479,7 @@ export const adminCardImagesRouter = {
 
     const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
     if (file.size > MAX_UPLOAD_BYTES) {
-      throw new AppError(413, ERROR_CODES.PAYLOAD_TOO_LARGE, "File exceeds 50 MB limit");
+      throw errors.PAYLOAD_TOO_LARGE({ message: "File exceeds 50 MB limit" });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());

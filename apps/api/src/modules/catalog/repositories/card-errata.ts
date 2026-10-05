@@ -3,7 +3,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { imageId } from "../../../repositories/query-helpers.js";
+import { imageId, joinFrontImage } from "../../../repositories/query-helpers.js";
 
 const ERRATA_COLUMNS = [
   "announcementId",
@@ -112,16 +112,10 @@ export function cardErrataRepo(db: Kysely<Database>) {
         .innerJoin("mvCardAggregates as mca", "mca.cardId", "cards.id")
         .leftJoinLateral(
           (eb) =>
-            eb
-              .selectFrom("printingsOrdered as po")
-              .innerJoin("sets", "sets.id", "po.setId")
-              .leftJoin("printingImages as pi", (join) =>
-                join
-                  .onRef("pi.printingId", "=", "po.id")
-                  .on("pi.face", "=", "front")
-                  .on("pi.isActive", "=", true),
-              )
-              .leftJoin("imageFiles as ci", "ci.id", "pi.imageFileId")
+            joinFrontImage(
+              eb.selectFrom("printingsOrdered as po").innerJoin("sets", "sets.id", "po.setId"),
+              "po",
+            )
               .select([
                 "po.shortCode",
                 "po.printedRulesText",
@@ -129,7 +123,7 @@ export function cardErrataRepo(db: Kysely<Database>) {
                 "sets.slug as setSlug",
                 "sets.name as setName",
                 "sets.sortOrder as setSortOrder",
-                imageId("ci").as("imageId"),
+                imageId("imgf").as("imageId"),
               ])
               .whereRef("po.cardId", "=", "cards.id")
               .where("po.language", "=", WellKnown.language.EN)

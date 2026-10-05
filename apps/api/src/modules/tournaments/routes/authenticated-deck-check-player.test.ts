@@ -154,12 +154,12 @@ function makeRepos() {
     getCardsByShortCodes: stub(new Map()),
     getCardDetails: stub(new Map()),
     getCardSetSlugs: stub(new Map()),
-    findEntryIdByParticipant: stub<any>(null),
+    getEntryIdByParticipant: stub<any>(null),
   };
   const tournaments = {
-    findParticipantByUser: stub<any>(undefined),
+    getParticipantByUser: stub<any>(undefined),
     resolveOrCreateParticipant: stub({ id: "participant-new" }),
-    findParticipantByClaimToken: stub<any>(undefined),
+    getParticipantByClaimToken: stub<any>(undefined),
     linkParticipantByClaimTokenIfUnclaimed: stub<any>(undefined),
   };
   const decks = {
@@ -854,7 +854,7 @@ describe("GET /deck-check/submissions/{token} (submissionPage)", () => {
     repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
       deckEvent({ allowSelfSubmission: false, groupName: "Noxus Locals" }),
     );
-    repos.tournaments.findParticipantByUser.mockResolvedValue(undefined);
+    repos.tournaments.getParticipantByUser.mockResolvedValue(undefined);
 
     const res = await makeApp(repos).fetch(req("GET", `/submissions/${TOKEN}`));
     const body = (await res.json()) as { message: string; code: string };
@@ -939,6 +939,39 @@ describe("POST /deck-check/submissions/{token} (submitToToken / persistSubmissio
     expect(repos.deckCheck.createEntry).toHaveBeenCalledWith(
       expect.objectContaining({ externalId: `openrift:${USER_ID}`, state: "submitted" }),
     );
+  });
+
+  it("reruns the submission transaction when the new participant's claim token collides", async () => {
+    const repos = makeRepos();
+    repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
+      deckEvent({ groupName: "Noxus Locals" }),
+    );
+    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(undefined);
+    repos.deckCheck.getEntryByExternalId.mockResolvedValue(undefined);
+    repos.deckCheck.getUserAccount.mockResolvedValue({
+      id: USER_ID,
+      name: "Player One",
+      email: "player@example.com",
+      riotId: null,
+    });
+    repos.tournaments.resolveOrCreateParticipant.mockRejectedValueOnce(
+      Object.assign(new Error("duplicate key"), {
+        code: "23505",
+        constraint_name: "uq_tournament_participants_claim_token",
+      }),
+    );
+    repos.deckCheck.createEntry.mockResolvedValue(entryRow({ state: "submitted" }));
+    repos.deckCheck.listCardsForEntry.mockResolvedValue([cardRow()]);
+
+    const res = await makeApp(repos).fetch(
+      req("POST", `/submissions/${TOKEN}`, {
+        cards: [{ name: "Card", quantity: 1, section: "main" }],
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(repos.tournaments.resolveOrCreateParticipant).toHaveBeenCalledTimes(2);
+    expect(repos.deckCheck.createEntry).toHaveBeenCalledOnce();
   });
 
   it("replaces and resubmits a linked editable entry", async () => {
@@ -1134,7 +1167,7 @@ describe("POST /deck-check/submissions/{token} (submitToToken / persistSubmissio
 describe("POST /deck-check/claim/{token}", () => {
   it("404s an unknown claim token", async () => {
     const repos = makeRepos();
-    repos.tournaments.findParticipantByClaimToken.mockResolvedValue(undefined);
+    repos.tournaments.getParticipantByClaimToken.mockResolvedValue(undefined);
 
     const res = await makeApp(repos).fetch(req("POST", `/claim/${TOKEN}`));
     const body = (await res.json()) as { message: string; code: string };
@@ -1146,13 +1179,13 @@ describe("POST /deck-check/claim/{token}", () => {
 
   it("returns the claim outcome for a token the caller already holds", async () => {
     const repos = makeRepos();
-    repos.tournaments.findParticipantByClaimToken.mockResolvedValue({
+    repos.tournaments.getParticipantByClaimToken.mockResolvedValue({
       id: "spot-1",
       tournamentId: TOURNAMENT_ID,
       userId: USER_ID,
       claimBlockedAt: null,
     });
-    repos.deckCheck.findEntryIdByParticipant.mockResolvedValue(ENTRY_ID);
+    repos.deckCheck.getEntryIdByParticipant.mockResolvedValue(ENTRY_ID);
 
     const res = await makeApp(repos).fetch(req("POST", `/claim/${TOKEN}`));
     const body = (await res.json()) as { status: string; tournamentId: string; entryId: string };

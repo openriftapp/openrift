@@ -36,15 +36,15 @@ function makeRepos(options: {
   membership?: OrganizationMember;
   owners?: number;
 }) {
-  const findById = vi.fn().mockResolvedValue(options.byId);
-  const findBySlug = vi.fn().mockResolvedValue(options.bySlug);
+  const getById = vi.fn().mockResolvedValue(options.byId);
+  const getBySlug = vi.fn().mockResolvedValue(options.bySlug);
   const getMembership = vi.fn().mockResolvedValue(options.membership);
   const lockForUpdate = vi.fn().mockResolvedValue(undefined);
   const countOwners = vi.fn().mockResolvedValue(options.owners ?? 0);
   const repos = {
-    organizations: { findById, findBySlug, getMembership, lockForUpdate, countOwners },
+    organizations: { getById, getBySlug, getMembership, lockForUpdate, countOwners },
   } as unknown as Repos;
-  return { repos, findById, findBySlug, getMembership, lockForUpdate, countOwners };
+  return { repos, getById, getBySlug, getMembership, lockForUpdate, countOwners };
 }
 
 describe("hasOrgRole", () => {
@@ -68,17 +68,17 @@ describe("hasOrgRole", () => {
 
 describe("loadOrg", () => {
   it("looks a uuid up by id", async () => {
-    const { repos, findById, findBySlug } = makeRepos({ byId: org() });
+    const { repos, getById, getBySlug } = makeRepos({ byId: org() });
     await expect(loadOrg(repos, ORG_ID)).resolves.toMatchObject({ id: ORG_ID });
-    expect(findById).toHaveBeenCalledWith(ORG_ID);
-    expect(findBySlug).not.toHaveBeenCalled();
+    expect(getById).toHaveBeenCalledWith(ORG_ID);
+    expect(getBySlug).not.toHaveBeenCalled();
   });
 
   it("looks a non-uuid up by slug, so a slug never reaches the uuid column", async () => {
-    const { repos, findById, findBySlug } = makeRepos({ bySlug: org() });
+    const { repos, getById, getBySlug } = makeRepos({ bySlug: org() });
     await expect(loadOrg(repos, "summoner-skirmish")).resolves.toMatchObject({ id: ORG_ID });
-    expect(findBySlug).toHaveBeenCalledWith("summoner-skirmish");
-    expect(findById).not.toHaveBeenCalled();
+    expect(getBySlug).toHaveBeenCalledWith("summoner-skirmish");
+    expect(getById).not.toHaveBeenCalled();
   });
 
   it("throws 404 when the org is missing", async () => {

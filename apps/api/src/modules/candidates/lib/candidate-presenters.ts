@@ -9,6 +9,7 @@ import type {
   CandidateCardsTable,
   CandidatePrintingsTable,
 } from "../../../db/tables/candidates.js";
+import { isoOrNull } from "../../../lib/iso-date.js";
 
 /**
  * Pure row → response mappers for the card-submission candidate surface. The
@@ -73,7 +74,7 @@ export type CandidatePrintingRow = Pick<
 export function formatCandidateCard(row: CandidateCardRow): CandidateCardResponse {
   return {
     ...row,
-    checkedAt: row.checkedAt?.toISOString() ?? null,
+    checkedAt: isoOrNull(row.checkedAt),
   };
 }
 
@@ -84,6 +85,6 @@ export function formatCandidatePrinting(
   return {
     ...row,
     imageMatch,
-    checkedAt: row.checkedAt?.toISOString() ?? null,
+    checkedAt: isoOrNull(row.checkedAt),
   };
 }

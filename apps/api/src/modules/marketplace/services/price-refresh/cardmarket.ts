@@ -5,14 +5,14 @@
  */
 
 import type { Logger } from "@openrift/shared/logger";
+import { toCents } from "@openrift/shared/money";
 import type { PriceRefreshResponse } from "@openrift/shared/types/api/admin";
-import { toCents } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../../deps.js";
 import type { Fetch } from "../../../../io.js";
+import { fetchJson } from "../../../../lib/http.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
-import { fetchJson } from "./fetch.js";
 import { logFetchSummary, logUpsertCounts } from "./log.js";
 import type { GroupRow, PriceUpsertConfig, StagingRow } from "./types.js";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";

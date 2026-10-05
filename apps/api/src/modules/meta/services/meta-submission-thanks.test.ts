@@ -2,7 +2,7 @@ import type { Logger } from "@openrift/shared/logger";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../deps.js";
-import type { SubmissionAcceptedEmailDeps } from "../../users/services/submission-accepted-notifications.js";
+import type { EmailDeps } from "../../../email.js";
 import { notifySubmitterOfMetaAcceptance } from "./meta-submission-thanks.js";
 
 interface EmailContext {
@@ -32,7 +32,7 @@ const META_SUBMISSION = {
 
 function makeDeps(sendEmail = vi.fn().mockResolvedValue(undefined)) {
   const error = vi.fn();
-  const deps: SubmissionAcceptedEmailDeps = {
+  const deps: EmailDeps = {
     sendEmail,
     appBaseUrl: "https://openrift.app",
     unsubscribeSecret: "test-secret-key",

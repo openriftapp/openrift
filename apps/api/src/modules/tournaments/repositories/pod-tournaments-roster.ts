@@ -28,7 +28,7 @@ export function podRosterRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    findPlayer(playerId: string): Promise<PodPlayer | undefined> {
+    getPlayer(playerId: string): Promise<PodPlayer | undefined> {
       return db
         .selectFrom("tournamentParticipants")
         .selectAll()
@@ -126,7 +126,7 @@ export function podRosterRepo(db: Kysely<Database>) {
       }
     },
 
-    findTeam(teamId: string): Promise<{ id: string; tournamentId: string } | undefined> {
+    getTeam(teamId: string): Promise<{ id: string; tournamentId: string } | undefined> {
       return db
         .selectFrom("tournamentTeams")
         .select(["id", "tournamentId"])

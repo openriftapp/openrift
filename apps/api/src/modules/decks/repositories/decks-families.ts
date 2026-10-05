@@ -2,6 +2,7 @@ import type { Kysely, Selectable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { DecksTable } from "../../../db/tables/decks.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 import { createsCycle } from "./deck-lineage.js";
 import { lockFamilies } from "./decks-shared.js";
 
@@ -18,7 +19,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       userId: string,
       input: { name?: string },
     ): Promise<Selectable<DecksTable> | undefined> {
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const source = await trx
           .selectFrom("decks")
           .selectAll()
@@ -173,7 +174,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       userId: string,
       input: { otherDeckId: string; markAsPreviousVersion?: boolean },
     ): Promise<Selectable<DecksTable> | "not-found" | "invalid"> {
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         if (id === input.otherDeckId) {
           return "invalid" as const;
         }
@@ -272,7 +273,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       id: string,
       userId: string,
     ): Promise<Selectable<DecksTable> | "not-found" | "no-family"> {
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const departing = await trx
           .selectFrom("decks")
           .select(["id", "familyId", "isPrimary", "predecessorDeckId"])
@@ -348,7 +349,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       userId: string,
       predecessorDeckId: string | null,
     ): Promise<Selectable<DecksTable> | "not-found" | "invalid"> {
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         if (id === predecessorDeckId) {
           return "invalid" as const;
         }
@@ -406,7 +407,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       id: string,
       userId: string,
     ): Promise<Selectable<DecksTable> | "not-found" | "no-family"> {
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const target = await trx
           .selectFrom("decks")
           .select(["id", "familyId"])

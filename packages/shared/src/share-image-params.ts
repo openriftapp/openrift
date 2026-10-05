@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 /** `vertical` is download-only: no crawler consumes a 9:16 og:image, so an aspect never reaches an og:image URL. */
 export type ShareImageAspect = "landscape" | "vertical";
 
@@ -43,3 +45,19 @@ export function scaleFromQuery(scale: string | undefined, size: string | undefin
 export function qrFromQuery(value: string | undefined): boolean {
   return value !== "0";
 }
+
+export const deckImageBodySchema = z.object({
+  deckName: z.string().optional(),
+  format: z.string().optional(),
+  ownerName: z.string().optional(),
+  cards: z.array(
+    z.object({
+      cardId: z.string(),
+      preferredPrintingId: z.string().nullable().optional(),
+      quantity: z.number().optional(),
+      zone: z.string(),
+    }),
+  ),
+});
+
+export type DeckImageBody = z.infer<typeof deckImageBodySchema>;

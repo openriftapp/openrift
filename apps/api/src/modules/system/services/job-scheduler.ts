@@ -23,11 +23,28 @@ export interface JobDefinition<T = unknown> extends JobScheduleMeta {
 // oxlint-disable-next-line typescript/no-explicit-any -- the result type is per definition and `summarize`/`classifyNoop` make it invariant, so a list of mixed definitions cannot be typed on `unknown`
 export type AnyJobDefinition = JobDefinition<any>;
 
+export interface JobSpec<T> extends JobScheduleMeta {
+  skipCronTick?: (log: Logger) => Promise<string | null>;
+  execute: (runId: string, log: Logger) => Promise<T>;
+  /** Defaults to storing the result as returned; `false` stores no result. */
+  summarize?: ((result: T) => unknown) | false;
+  classifyNoop?: (result: T) => boolean;
+}
+
 /**
  * Erases a definition's result type so mixed definitions fit one array, while
  * still checking `summarize` and `classifyNoop` against what `execute` returns.
  */
-export function defineJob<T>(definition: JobDefinition<T>): AnyJobDefinition {
+export function defineJob<T>(rootLog: Logger, spec: JobSpec<T>): AnyJobDefinition {
+  const { execute, summarize, skipCronTick, ...meta } = spec;
+  const log = rootLog.child({ service: spec.kind });
+  const definition: JobDefinition<T> = {
+    ...meta,
+    log,
+    skipCronTick: skipCronTick && (() => skipCronTick(log)),
+    execute: (runId) => execute(runId, log),
+    summarize: summarize === false ? undefined : (summarize ?? ((result) => result)),
+  };
   return definition;
 }
 
@@ -48,6 +65,13 @@ interface JobSchedulerDeps {
   repos: Pick<Repos, "jobSchedules" | "jobRuns">;
   definitions: AnyJobDefinition[];
   log: Logger;
+}
+
+export function requireScheduler(scheduler: JobScheduler | null): JobScheduler {
+  if (scheduler === null) {
+    throw new AppError(503, ERROR_CODES.SERVICE_UNAVAILABLE, "The job scheduler is not running");
+  }
+  return scheduler;
 }
 
 function messageOf(error: unknown): string {

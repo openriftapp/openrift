@@ -8,7 +8,6 @@ import {
   isReleasedIn,
   normalizeToPeriodStart,
   releasePeriodEnd,
-  todayUtc,
 } from "./set-release.js";
 import type { SetRelease } from "./set-release.js";
 
@@ -190,12 +189,5 @@ describe("formatReleasePeriod", () => {
   it("falls back to TBA when undated or absent", () => {
     expect(formatReleasePeriod({ releasedAt: null, precision: null })).toBe("TBA");
     expect(formatReleasePeriod(undefined)).toBe("TBA");
-  });
-});
-
-describe("todayUtc", () => {
-  it("returns a calendar day in UTC", () => {
-    expect(todayUtc()).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
-    expect(todayUtc()).toBe(new Date().toISOString().slice(0, 10));
   });
 });

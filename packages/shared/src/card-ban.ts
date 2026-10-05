@@ -3,7 +3,7 @@
  * cached catalog stays correct across midnight. `Card.bans` holds only the bans in effect.
  */
 
-import { todayUtc } from "./set-release.js";
+import { todayUtc } from "./format-date.js";
 import type { Card, CardBan } from "./types/catalog.js";
 
 export function isBanInEffect(ban: Pick<CardBan, "bannedAt">, today = todayUtc()): boolean {

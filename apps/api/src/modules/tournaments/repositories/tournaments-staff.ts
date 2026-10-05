@@ -180,7 +180,7 @@ export function tournamentStaffRepo(db: Kysely<Database>) {
       return row;
     },
 
-    async findByStaffInviteToken(
+    async getByStaffInviteToken(
       token: string,
     ): Promise<{ tournament: Tournament; role: TournamentStaffRole } | undefined> {
       const tournament = await db

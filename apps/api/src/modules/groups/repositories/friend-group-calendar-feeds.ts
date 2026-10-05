@@ -57,7 +57,7 @@ export function friendGroupCalendarFeedsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    findByToken(token: string): Promise<CalendarFeedLookupRow | undefined> {
+    getByToken(token: string): Promise<CalendarFeedLookupRow | undefined> {
       return db
         .selectFrom("friendGroupCalendarFeeds as f")
         .innerJoin("friendGroups as g", "g.id", "f.groupId")

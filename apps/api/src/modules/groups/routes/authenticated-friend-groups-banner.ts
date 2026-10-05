@@ -1,21 +1,19 @@
 import { friendGroupsContract } from "@openrift/shared/contracts/friend-groups";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
-import {
-  GROUP_BANNER_DEFAULT_POSITION,
-  GROUP_BANNER_MAX_BYTES,
-} from "@openrift/shared/group-banner";
 import type { FriendGroupResponse } from "@openrift/shared/types/api/friend-group";
 import { implement } from "@orpc/server";
 import type { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 
 import { AppError } from "../../../errors.js";
+import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { orpcErrorResponse } from "../../../orpc/error-body.js";
 import type { Variables } from "../../../types.js";
 import { toGroup } from "../lib/friend-group-presenters.js";
 import { loadGroupForMember, requireRole } from "../lib/group-access.js";
+import { GROUP_BANNER_DEFAULT_POSITION, GROUP_BANNER_MAX_BYTES } from "../lib/group-banner.js";
 import { deleteGroupBanner, saveGroupBanner } from "../services/group-banners.js";
 
 const os = implement(friendGroupsContract).$context<ApiContext>().use(requireAuthedUser);
@@ -72,9 +70,7 @@ export const friendGroupsBannerRouter = {
       requireRole(ctx.membership, "admin");
 
       const written = await friendGroups.clearBanner(ctx.group.id);
-      if (!written) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Group not found");
-      }
+      assertFound(written, "Group not found");
 
       await deleteGroupBanner(context.io, written.previous.bannerUrl);
       return toGroup(written.updated, true);

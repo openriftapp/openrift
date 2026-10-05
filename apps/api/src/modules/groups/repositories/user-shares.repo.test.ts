@@ -69,9 +69,9 @@ describe("userSharesRepo", () => {
     ]);
   });
 
-  it("findListInBundle returns the list when it belongs to the token's owner", async () => {
+  it("getListInBundle returns the list when it belongs to the token's owner", async () => {
     const db = createMockDb([LIST]);
     const repo = userSharesRepo(db);
-    expect(await repo.findListInBundle("abc", "lst-1", null)).toEqual(LIST);
+    expect(await repo.getListInBundle("abc", "lst-1", null)).toEqual(LIST);
   });
 });

@@ -110,16 +110,16 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
     }
   });
 
-  it("printingById returns the printing id for existing printing", async () => {
+  it("getPrintingById returns the printing id for existing printing", async () => {
     const printings = await repo.printings();
     const first = printings[0];
-    const result = await repo.printingById(first!.id);
+    const result = await repo.getPrintingById(first!.id);
     expect(result).toBeDefined();
     expect(result!.id).toBe(first!.id);
   });
 
-  it("printingById returns undefined for nonexistent id", async () => {
-    const result = await repo.printingById("00000000-0000-0000-0000-000000000000");
+  it("getPrintingById returns undefined for nonexistent id", async () => {
+    const result = await repo.getPrintingById("00000000-0000-0000-0000-000000000000");
     expect(result).toBeUndefined();
   });
 

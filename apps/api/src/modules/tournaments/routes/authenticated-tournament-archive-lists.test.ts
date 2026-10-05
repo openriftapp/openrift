@@ -52,7 +52,7 @@ function makeApp(options: { manager?: boolean; tournament?: Record<string, unkno
   const notifyAdminsOfMetaSubmission = vi.fn(() => Promise.resolve());
   const repos = {
     tournaments: {
-      findById: vi.fn(() => Promise.resolve(tournament(options.tournament))),
+      getById: vi.fn(() => Promise.resolve(tournament(options.tournament))),
       isHostOrStaff: vi.fn(() => Promise.resolve(options.manager ?? true)),
     },
     deckCheck: {

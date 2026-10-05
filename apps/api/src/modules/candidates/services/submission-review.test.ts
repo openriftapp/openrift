@@ -30,9 +30,9 @@ const candidate = {
 function createRepos(overrides: Record<string, unknown> = {}) {
   const repos = {
     cardSubmissions: {
-      findByCandidateCardId: vi.fn().mockResolvedValue(pendingSubmission),
+      getByCandidateCardId: vi.fn().mockResolvedValue(pendingSubmission),
       liveCardByNormName: vi.fn().mockResolvedValue({ id: "card-1", slug: "jinx" }),
-      findByExternalId: vi.fn().mockResolvedValue(pendingSubmission),
+      getByExternalId: vi.fn().mockResolvedValue(pendingSubmission),
       resolve: vi.fn(),
       setResolutionMessage: vi.fn(),
       candidatePrintingImageUrls: vi.fn().mockResolvedValue([]),
@@ -320,7 +320,7 @@ describe("acceptSubmission", () => {
   it("conflicts on a submission that is already settled", async () => {
     const repos = createRepos({
       cardSubmissions: {
-        findByCandidateCardId: vi
+        getByCandidateCardId: vi
           .fn()
           .mockResolvedValue({ ...pendingSubmission, status: "accepted" }),
       },
@@ -333,7 +333,7 @@ describe("acceptSubmission", () => {
 
   it("404s when no ledger row points at the candidate", async () => {
     const repos = createRepos({
-      cardSubmissions: { findByCandidateCardId: vi.fn().mockResolvedValue(null) },
+      cardSubmissions: { getByCandidateCardId: vi.fn().mockResolvedValue(null) },
     });
 
     await expect(
@@ -395,7 +395,7 @@ describe("rejectSubmission", () => {
       resolvedAt: NOW,
       resolvedByUserId: ADMIN_ID,
     });
-    expect(repos.cardSubmissions.findByExternalId).not.toHaveBeenCalled();
+    expect(repos.cardSubmissions.getByExternalId).not.toHaveBeenCalled();
   });
 
   it("passes a reason through when the caller sends one", async () => {
@@ -417,7 +417,7 @@ describe("rejectSubmission", () => {
   it("conflicts on a submission that is already settled", async () => {
     const repos = createRepos({
       cardSubmissions: {
-        findByCandidateCardId: vi
+        getByCandidateCardId: vi
           .fn()
           .mockResolvedValue({ ...pendingSubmission, status: "rejected" }),
       },
@@ -460,9 +460,7 @@ describe("createCardFromCandidate", () => {
   it("creates the card and resolves the ledger as accepted", async () => {
     const repos = createRepos({
       cardSubmissions: {
-        findByCandidateCardId: vi
-          .fn()
-          .mockResolvedValue({ ...pendingSubmission, kind: "new_card" }),
+        getByCandidateCardId: vi.fn().mockResolvedValue({ ...pendingSubmission, kind: "new_card" }),
         liveCardByNormName: vi.fn().mockResolvedValue(null),
         resolve: vi.fn(),
         candidatePrintingImageUrls: vi.fn().mockResolvedValue([]),
@@ -492,9 +490,7 @@ describe("createCardFromCandidate", () => {
   it("conflicts when a live card already holds the name", async () => {
     const repos = createRepos({
       cardSubmissions: {
-        findByCandidateCardId: vi
-          .fn()
-          .mockResolvedValue({ ...pendingSubmission, kind: "new_card" }),
+        getByCandidateCardId: vi.fn().mockResolvedValue({ ...pendingSubmission, kind: "new_card" }),
         liveCardByNormName: vi.fn().mockResolvedValue({ id: "card-1", slug: "jinx" }),
       },
     });
@@ -527,7 +523,7 @@ describe("createCardFromCandidate", () => {
   it("creates a scrape's new-card group with no ledger row to settle", async () => {
     const repos = createRepos({
       cardSubmissions: {
-        findByCandidateCardId: vi.fn().mockResolvedValue(null),
+        getByCandidateCardId: vi.fn().mockResolvedValue(null),
         liveCardByNormName: vi.fn().mockResolvedValue(null),
         resolve: vi.fn(),
       },

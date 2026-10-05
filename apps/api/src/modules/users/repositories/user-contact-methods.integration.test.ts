@@ -75,8 +75,10 @@ describe.skipIf(!ctx)("userContactMethodsRepo (integration)", () => {
 
   it("deletes a method, scoped to the owner", async () => {
     const list = await repo.listForUser(userId);
-    expect(await repo.delete(list[0]!.id, "a0000000-0057-4000-a000-000000000001")).toBe(false);
-    expect(await repo.delete(list[0]!.id, userId)).toBe(true);
+    expect(await repo.deleteByIdForUser(list[0]!.id, "a0000000-0057-4000-a000-000000000001")).toBe(
+      false,
+    );
+    expect(await repo.deleteByIdForUser(list[0]!.id, userId)).toBe(true);
     const remaining = await repo.listForUser(userId);
     expect(remaining.some((method) => method.id === list[0]!.id)).toBe(false);
   });

@@ -1,28 +1,11 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side file needs filesystem path join
-import { join } from "node:path";
-
-import { GROUP_BANNER_WIDTH, isGroupBannerUrl } from "@openrift/shared/group-banner";
-import { v7 as uuidv7 } from "uuid";
-
 import type { Io } from "../../../io.js";
-import { MEDIA_DIR } from "../../catalog/services/images/paths.js";
-
-export const GROUP_BANNER_MEDIA_DIR = join(MEDIA_DIR, "group-banners");
-
-const URL_PREFIX = "/media/group-banners/";
-
-const UPLOAD_DAILY_LIMIT = 30;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
+import type { MediaUploadResult } from "../../../lib/media-upload.js";
+import { createMediaUploadStore } from "../../../lib/media-upload.js";
+import { GROUP_BANNER_WIDTH, isGroupBannerUrl } from "../lib/group-banner.js";
 
 const WEBP_QUALITY = 82;
 
-const uploadTimesByUser = new Map<string, number[]>();
-
-export type GroupBannerUploadResult =
-  | { status: "ok"; url: string }
-  | { status: "not_an_image" }
-  | { status: "rate_limited"; limit: number };
+export type GroupBannerUploadResult = MediaUploadResult;
 
 interface SaveGroupBannerArgs {
   userId: string;
@@ -30,7 +13,7 @@ interface SaveGroupBannerArgs {
   now: Date;
 }
 
-async function reencode(io: Io, buffer: Buffer): Promise<Buffer | null> {
+async function reencode(io: Io, buffer: Buffer): Promise<{ data: Buffer; ext: string } | null> {
   try {
     const { format } = await io.sharp(buffer).metadata();
     if (!format) {
@@ -38,52 +21,37 @@ async function reencode(io: Io, buffer: Buffer): Promise<Buffer | null> {
     }
     // Re-encoding is what drops EXIF, GPS included: sharp writes no metadata
     // unless asked to.
-    return await io
+    const data = await io
       .sharp(buffer)
       .rotate()
       .resize(GROUP_BANNER_WIDTH, undefined, { withoutEnlargement: true })
       .webp({ quality: WEBP_QUALITY })
       .toBuffer();
+    return { data, ext: "webp" };
   } catch {
     return null;
   }
 }
 
-// nginx serves `media/group-banners/` to anyone; the uuid filename is the only
-// thing keeping a banner unlisted while the group page itself is members-only.
-export async function saveGroupBanner(
+const store = createMediaUploadStore({
+  subdir: "group-banners",
+  dailyLimit: 30,
+  encode: reencode,
+});
+
+export const GROUP_BANNER_MEDIA_DIR = store.dir;
+
+// The group page is members-only, but its banner file is public to anyone with the URL.
+export function saveGroupBanner(
   io: Io,
   args: SaveGroupBannerArgs,
 ): Promise<GroupBannerUploadResult> {
-  const { userId, buffer, now } = args;
-
-  const since = now.getTime() - DAY_MS;
-  const recent = (uploadTimesByUser.get(userId) ?? []).filter((at) => at > since);
-  if (recent.length >= UPLOAD_DAILY_LIMIT) {
-    uploadTimesByUser.set(userId, recent);
-    return { status: "rate_limited", limit: UPLOAD_DAILY_LIMIT };
-  }
-
-  const encoded = await reencode(io, buffer);
-  if (!encoded) {
-    return { status: "not_an_image" };
-  }
-
-  const name = `${uuidv7()}.webp`;
-  await io.fs.mkdir(GROUP_BANNER_MEDIA_DIR, { recursive: true });
-  await io.fs.writeFile(join(GROUP_BANNER_MEDIA_DIR, name), encoded);
-
-  recent.push(now.getTime());
-  uploadTimesByUser.set(userId, recent);
-
-  return { status: "ok", url: `${URL_PREFIX}${name}` };
+  return store.save(io, args);
 }
 
 export async function deleteGroupBanner(io: Io, url: string | null): Promise<void> {
   if (!url || !isGroupBannerUrl(url)) {
     return;
   }
-  const name = url.slice(URL_PREFIX.length);
-  // oxlint-disable-next-line no-empty-function -- swallow missing-file errors
-  await io.fs.unlink(join(GROUP_BANNER_MEDIA_DIR, name)).catch(() => {});
+  await store.remove(io, url);
 }

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { isCountedZone, isZoneShown, zoneExpected } from "./deck-zones.js";
+import {
+  deckIdentityCard,
+  isCountedZone,
+  isSingleSlotZone,
+  isZoneShown,
+  zoneExpected,
+} from "./deck-zones.js";
 import { WellKnown } from "./well-known.js";
 
 describe("isCountedZone", () => {
@@ -69,5 +75,33 @@ describe("zoneExpected", () => {
       zoneExpected(WellKnown.deckZone.LEGEND_OPTIONS, "constructed", [option]),
     ).toBeUndefined();
     expect(zoneExpected(WellKnown.deckZone.LEGEND_OPTIONS, "constructed")).toBeUndefined();
+  });
+});
+
+describe("isSingleSlotZone", () => {
+  it("is true for legend and champion only", () => {
+    expect(isSingleSlotZone(WellKnown.deckZone.LEGEND)).toBe(true);
+    expect(isSingleSlotZone(WellKnown.deckZone.CHAMPION)).toBe(true);
+    expect(isSingleSlotZone(WellKnown.deckZone.MAIN)).toBe(false);
+    expect(isSingleSlotZone("")).toBe(false);
+  });
+});
+
+describe("deckIdentityCard", () => {
+  const legend = { zone: "legend", id: "l" };
+  const champion = { zone: "champion", id: "c" };
+  const main = { zone: "main", id: "m" };
+
+  it("prefers the legend over the champion", () => {
+    expect(deckIdentityCard([main, champion, legend])).toBe(legend);
+  });
+
+  it("falls back to the champion", () => {
+    expect(deckIdentityCard([main, champion])).toBe(champion);
+  });
+
+  it("is undefined without either", () => {
+    expect(deckIdentityCard([main])).toBeUndefined();
+    expect(deckIdentityCard([])).toBeUndefined();
   });
 });

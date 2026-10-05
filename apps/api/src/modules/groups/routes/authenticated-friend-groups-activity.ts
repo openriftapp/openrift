@@ -6,12 +6,17 @@ import type {
   FriendGroupBoxWantsResponse,
   FriendGroupMatchesResponse,
 } from "@openrift/shared/types/api/friend-group";
-import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
 import { implement } from "@orpc/server";
 
-import { gravatarHashForEmail } from "../../../lib/gravatar.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import {
+  toCollectionSharedEvent,
+  toListSharedEvent,
+  toMatchEvent,
+  toMemberJoinedEvent,
+  toTradeCompletedEvent,
+} from "../lib/friend-group-activity-presenters.js";
 import { loadGroupForMember } from "../lib/group-access.js";
 
 const os = implement(friendGroupsContract).$context<ApiContext>().use(requireAuthedUser);
@@ -70,54 +75,11 @@ export const friendGroupsActivityRouter = {
       ]);
 
       const events: FriendGroupActivityEvent[] = [
-        ...completedTrades.map((trade): FriendGroupActivityEvent => ({
-          kind: "trade-completed",
-          at: trade.completedAt.toISOString(),
-          tradeId: trade.tradeId,
-          printingId: trade.printingId,
-          cardId: trade.cardId,
-          quantity: trade.quantity,
-          giverUserId: trade.giverUserId,
-          giverName: trade.giverName,
-          receiverUserId: trade.receiverUserId,
-          receiverName: trade.receiverName,
-        })),
-        ...members.map((member): FriendGroupActivityEvent => ({
-          kind: "member-joined",
-          at: member.joinedAt.toISOString(),
-          userId: member.userId,
-          userName: member.userName,
-          userImage: member.userImage,
-          gravatarHash: gravatarHashForEmail(member.userEmail),
-        })),
-        ...shares.map((share): FriendGroupActivityEvent => ({
-          kind: "list-shared",
-          at: share.sharedAt.toISOString(),
-          userId: share.userId,
-          userName: share.userName,
-          listId: share.listId,
-          listName: share.listName,
-          listIntent: share.listIntent as ListIntent,
-          listKind: share.listKind as ListKind,
-        })),
-        ...collectionShares.map((share): FriendGroupActivityEvent => ({
-          kind: "collection-shared",
-          at: share.sharedAt.toISOString(),
-          userId: share.userId,
-          userName: share.userName,
-          collectionId: share.collectionId,
-          collectionName: share.collectionName,
-        })),
-        ...matches.map((match): FriendGroupActivityEvent => ({
-          kind: "match",
-          at: match.matchedAt.toISOString(),
-          counterpartyUserId: match.counterpartyUserId,
-          counterpartyName: match.counterpartyName,
-          counterpartyImage: match.counterpartyImage,
-          counterpartyGravatarHash: match.counterpartyGravatarHash,
-          printingId: match.printingId,
-          cardId: match.cardId,
-        })),
+        ...completedTrades.map((row) => toTradeCompletedEvent(row)),
+        ...members.map((row) => toMemberJoinedEvent(row)),
+        ...shares.map((row) => toListSharedEvent(row)),
+        ...collectionShares.map((row) => toCollectionSharedEvent(row)),
+        ...matches.map((row) => toMatchEvent(row)),
       ];
 
       // Newest first by ISO timestamp (lexicographic order matches chronological

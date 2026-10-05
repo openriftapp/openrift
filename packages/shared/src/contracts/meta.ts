@@ -17,6 +17,8 @@ const BASE = "/api/v1/meta";
 export const metaCardRefSchema = z.object({
   cardId: z.string(),
   name: z.string(),
+  character: z.string().nullable(),
+  epithet: z.string(),
   slug: z.string(),
   imageId: z.string().nullable(),
   domains: z.array(z.string()),
@@ -159,6 +161,8 @@ export const metaDeckSummarySchema = z.object({
   format: deckFormatSchema,
   legendCardId: z.string().nullable(),
   legendName: z.string().nullable(),
+  legendCharacter: z.string().nullable(),
+  legendEpithet: z.string().nullable(),
   legendSlug: z.string().nullable(),
   legendArchiveSlug: z.string().nullable(),
   legendImageId: z.string().nullable(),

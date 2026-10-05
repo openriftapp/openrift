@@ -22,6 +22,14 @@ describe("adminEventsRepo", () => {
     expect(parameters[0]).toContain("card.retired-long-ago");
   });
 
+  it("list takes LIKE wildcards in the search term literally", async () => {
+    const { db, parameters } = createRecordingDb();
+
+    await adminEventsRepo(db).list({ search: "50%_off" }, 20);
+
+    expect(parameters[0]).toContain(String.raw`%50\%\_off%`);
+  });
+
   it("list omits the action filter when absent", async () => {
     const { db, queries } = createRecordingDb();
 

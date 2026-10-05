@@ -11,6 +11,7 @@ import type { CardType, Domain, SuperType } from "@openrift/shared/types/enums";
 import type { Selectable } from "kysely";
 
 import type { DecksTable } from "../../../db/tables/decks.js";
+import { isoOrNull } from "../../../lib/iso-date.js";
 import type { DeckPlanData } from "../repositories/deck-plans.js";
 
 export function toDeck(row: Selectable<DecksTable>): DeckResponse {
@@ -23,7 +24,7 @@ export function toDeck(row: Selectable<DecksTable>): DeckResponse {
     isPublic: row.isPublic,
     shareToken: row.shareToken,
     isPinned: row.isPinned,
-    archivedAt: row.archivedAt?.toISOString() ?? null,
+    archivedAt: isoOrNull(row.archivedAt),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     oddsConfig: row.oddsConfig,
@@ -52,7 +53,7 @@ export function toDeckSummary(row: Selectable<DecksTable>): DeckSummaryResponse 
     format: row.format,
     formatConfig: row.formatConfig,
     isPinned: row.isPinned,
-    archivedAt: row.archivedAt?.toISOString() ?? null,
+    archivedAt: isoOrNull(row.archivedAt),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     coverCardId: row.coverCardId,

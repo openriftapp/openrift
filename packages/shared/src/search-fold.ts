@@ -72,3 +72,16 @@ export function squashCached(text: string): string {
   }
   return squashed;
 }
+
+/** True when every whitespace-separated term of the query appears in at least one field. */
+export function matchesTextQuery(
+  query: string,
+  fields: readonly (string | null | undefined)[],
+): boolean {
+  const terms = foldForSearch(query).split(" ").filter(Boolean);
+  if (terms.length === 0) {
+    return true;
+  }
+  const haystack = fields.map((field) => (field ? foldForSearch(field) : ""));
+  return terms.every((term) => haystack.some((field) => field.includes(term)));
+}

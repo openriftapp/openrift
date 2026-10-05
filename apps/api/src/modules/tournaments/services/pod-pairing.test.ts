@@ -43,7 +43,7 @@ function player(id: string, overrides: Partial<TeamSnapshotPlayer> = {}): TeamSn
 function reposFor(createRound: () => Promise<unknown>): Repos {
   return {
     podTournaments: {
-      findOpenRound: vi.fn(async () => undefined),
+      getOpenRound: vi.fn(async () => undefined),
       loadPairingSnapshot: vi.fn(async () => []),
       createRound: vi.fn(createRound),
     },
@@ -62,7 +62,7 @@ function reposWithSnapshot(players: TeamSnapshotPlayer[]) {
   );
   const repos = {
     podTournaments: {
-      findOpenRound: vi.fn(async () => undefined),
+      getOpenRound: vi.fn(async () => undefined),
       loadPairingSnapshot: vi.fn(async () => players),
       createRound,
     },
@@ -293,7 +293,7 @@ describe("submitPodResult 2v2 team results", () => {
     );
     const repos = {
       podTournaments: {
-        findPodForResult: vi.fn(async () => ({
+        getPodForResult: vi.fn(async () => ({
           pod: { id: "pod-x", size: 4 },
           round: { status: "reporting" },
           tournament: { ...TEAM_TOURNAMENT, playMode },
@@ -382,7 +382,7 @@ describe("submitPodPlayerResult 2v2 self-reporting", () => {
     const setMemberGamePoints = vi.fn(async () => undefined);
     const repos = {
       podTournaments: {
-        findPodForResult: vi.fn(async () => ({
+        getPodForResult: vi.fn(async () => ({
           pod: { id: "pod-x", size: 4 },
           round: { status: "reporting" },
           tournament: { ...TEAM_TOURNAMENT, playMode },

@@ -6,7 +6,7 @@ import { publicFriendGroupCalendarFeedsRoute } from "./public-friend-group-calen
 
 const GROUP_ID = "00000000-0000-4000-a000-000000000001";
 
-const mockCalendarFeedsRepo = { findByToken: vi.fn() };
+const mockCalendarFeedsRepo = { getByToken: vi.fn() };
 const mockTournamentsRepo = { listForGroup: vi.fn() };
 const mockShopsRepo = { listFeedEvents: vi.fn() };
 
@@ -23,14 +23,14 @@ const app = new Hono<{ Variables: Variables }>()
   .route("/api/v1", publicFriendGroupCalendarFeedsRoute);
 
 beforeEach(() => {
-  mockCalendarFeedsRepo.findByToken.mockReset();
+  mockCalendarFeedsRepo.getByToken.mockReset();
   mockTournamentsRepo.listForGroup.mockReset();
   mockShopsRepo.listFeedEvents.mockReset();
 });
 
 describe("GET /api/v1/calendar-feeds/:token.ics", () => {
   it("serves the group's tournaments as a private iCalendar feed", async () => {
-    mockCalendarFeedsRepo.findByToken.mockResolvedValue({
+    mockCalendarFeedsRepo.getByToken.mockResolvedValue({
       groupId: GROUP_ID,
       groupName: "Hexgate Playgroup",
       kind: "tournaments",
@@ -55,13 +55,13 @@ describe("GET /api/v1/calendar-feeds/:token.ics", () => {
     expect(body).toContain("X-WR-CALNAME:Hexgate Playgroup · Tournaments");
     expect(body).toContain("UID:openrift-tournament-t-1");
     expect(body).toContain("URL:https://example.test/tournaments/t-1");
-    expect(mockCalendarFeedsRepo.findByToken).toHaveBeenCalledWith("tok_ABC-123");
+    expect(mockCalendarFeedsRepo.getByToken).toHaveBeenCalledWith("tok_ABC-123");
     expect(mockTournamentsRepo.listForGroup).toHaveBeenCalledWith(GROUP_ID);
     expect(mockShopsRepo.listFeedEvents).not.toHaveBeenCalled();
   });
 
   it("serves the events at the group's shops starting 30 days back", async () => {
-    mockCalendarFeedsRepo.findByToken.mockResolvedValue({
+    mockCalendarFeedsRepo.getByToken.mockResolvedValue({
       groupId: GROUP_ID,
       groupName: "Hexgate Playgroup",
       kind: "shop_events",
@@ -90,7 +90,7 @@ describe("GET /api/v1/calendar-feeds/:token.ics", () => {
   });
 
   it("answers 404 for a token that matches no feed", async () => {
-    mockCalendarFeedsRepo.findByToken.mockResolvedValue(undefined);
+    mockCalendarFeedsRepo.getByToken.mockResolvedValue(undefined);
 
     const res = await app.request("/api/v1/calendar-feeds/unknown.ics");
 
@@ -101,6 +101,6 @@ describe("GET /api/v1/calendar-feeds/:token.ics", () => {
     const res = await app.request("/api/v1/calendar-feeds/tok");
 
     expect(res.status).toBe(404);
-    expect(mockCalendarFeedsRepo.findByToken).not.toHaveBeenCalled();
+    expect(mockCalendarFeedsRepo.getByToken).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,7 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
+import { shareOwnerSchema } from "./fields.js";
 import { tierRowResponseSchema } from "./tier-lists.js";
 
 /** No owner-only fields (share token, is_public): reaching this proves the token was known. */
@@ -15,7 +16,7 @@ export const publicTierListResponseSchema = z.object({
 
 export const publicTierListDetailResponseSchema = z.object({
   tierList: publicTierListResponseSchema,
-  owner: z.object({ displayName: z.string(), gravatarHash: z.string().nullable() }),
+  owner: shareOwnerSchema,
 });
 
 /** Cards are bare ids: the client already holds the full catalogue to resolve them. */

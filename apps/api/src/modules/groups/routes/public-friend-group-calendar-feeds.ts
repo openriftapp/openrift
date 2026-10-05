@@ -18,7 +18,7 @@ export const publicFriendGroupCalendarFeedsRoute = new Hono<{ Variables: Variabl
   async (c) => {
     const repos = c.get("repos");
     const token = c.req.param("file").slice(0, -".ics".length);
-    const feed = await repos.friendGroupCalendarFeeds.findByToken(token);
+    const feed = await repos.friendGroupCalendarFeeds.getByToken(token);
     if (!feed) {
       return c.body(null, 404);
     }

@@ -10,6 +10,7 @@ import type { Repos } from "../../../deps.js";
 import { isUniqueViolation } from "../../../lib/pg-errors.js";
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { withUniqueClaimToken } from "../lib/claim-token.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
 
 async function hostDisplayName(repos: Repos, tournament: Tournament): Promise<string> {
@@ -21,7 +22,7 @@ async function hostDisplayName(repos: Repos, tournament: Tournament): Promise<st
     return names.get(tournament.hostUserId) || "Host";
   }
   const org = tournament.hostOrgId
-    ? await repos.organizations.findById(tournament.hostOrgId)
+    ? await repos.organizations.getById(tournament.hostOrgId)
     : undefined;
   return org?.name ?? "Organization";
 }
@@ -48,7 +49,7 @@ export async function resolveSelfJoin(
   tournamentId: string,
   user: { id: string; name: string | null; email: string },
 ): Promise<PublicTournamentJoinResponse> {
-  const existing = await repos.tournaments.findParticipantByUser(tournamentId, user.id);
+  const existing = await repos.tournaments.getParticipantByUser(tournamentId, user.id);
   if (existing) {
     return {
       participantId: existing.id,
@@ -57,14 +58,17 @@ export async function resolveSelfJoin(
     };
   }
   try {
-    const created = await repos.tournaments.createParticipant({
-      tournamentId,
-      userId: user.id,
-      displayName: participantDisplayName(user.name, user.email),
-      status: "requested",
-      claimSource: "self_submit",
-      claimedAt: new Date(),
-    });
+    const created = await withUniqueClaimToken((claimToken) =>
+      repos.tournaments.createParticipant({
+        tournamentId,
+        userId: user.id,
+        displayName: participantDisplayName(user.name, user.email),
+        status: "requested",
+        claimSource: "self_submit",
+        claimToken,
+        claimedAt: new Date(),
+      }),
+    );
     return {
       participantId: created.id,
       status: created.status,
@@ -72,7 +76,7 @@ export async function resolveSelfJoin(
     };
   } catch (error) {
     if (isUniqueViolation(error)) {
-      const raced = await repos.tournaments.findParticipantByUser(tournamentId, user.id);
+      const raced = await repos.tournaments.getParticipantByUser(tournamentId, user.id);
       if (raced) {
         return {
           participantId: raced.id,
@@ -91,13 +95,13 @@ export const publicTournamentsRouter = {
   landing: os.landing.handler(
     async ({ input, context, errors }): Promise<PublicTournamentLandingResponse> => {
       const repos = context.repos;
-      const tournament = await repos.tournaments.findBySubmissionToken(input.token);
+      const tournament = await repos.tournaments.getBySubmissionToken(input.token);
       if (!tournament) {
         throw errors.NOT_FOUND({ message: "Not found" });
       }
       const viewer = await context.loadUser();
       const viewerIsParticipant = viewer
-        ? Boolean(await repos.tournaments.findParticipantByUser(tournament.id, viewer.id))
+        ? Boolean(await repos.tournaments.getParticipantByUser(tournament.id, viewer.id))
         : false;
       return {
         name: tournament.name,
@@ -116,7 +120,7 @@ export const publicTournamentsRouter = {
       if (!user) {
         throw errors.UNAUTHORIZED({ message: "Unauthorized" });
       }
-      const tournament = await repos.tournaments.findBySubmissionToken(input.token);
+      const tournament = await repos.tournaments.getBySubmissionToken(input.token);
       if (!tournament) {
         throw errors.NOT_FOUND({ message: "Not found" });
       }
@@ -134,7 +138,7 @@ export const publicTournamentsRouter = {
   staffInviteLanding: os.staffInviteLanding.handler(
     async ({ input, context, errors }): Promise<TournamentStaffInviteLandingResponse> => {
       const repos = context.repos;
-      const match = await repos.tournaments.findByStaffInviteToken(input.token);
+      const match = await repos.tournaments.getByStaffInviteToken(input.token);
       if (!match) {
         throw errors.NOT_FOUND({ message: "Not found" });
       }
@@ -157,7 +161,7 @@ export const publicTournamentsRouter = {
     if (!user) {
       throw errors.UNAUTHORIZED({ message: "Unauthorized" });
     }
-    const match = await repos.tournaments.findByStaffInviteToken(input.token);
+    const match = await repos.tournaments.getByStaffInviteToken(input.token);
     if (!match) {
       throw errors.NOT_FOUND({ message: "Not found" });
     }

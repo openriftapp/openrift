@@ -1,3 +1,4 @@
+import { assertFound } from "./assertions.js";
 import { isUniqueViolation, isUniqueViolationOn } from "./pg-errors.js";
 
 const SHARE_TOKEN_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -45,4 +46,30 @@ export async function withUniqueShareToken<Result>(
       }
     }
   }
+}
+
+export interface ShareStateView {
+  shareToken: string | null;
+  isPublic: boolean;
+}
+
+/**
+ * A token left on a revoked row is replaced, so a link from before the revoke stays dead.
+ * `read` and `write` resolve undefined for a row the caller does not own (404).
+ */
+export async function enableShare(handlers: {
+  read: () => Promise<ShareStateView | undefined>;
+  write: (token: string) => Promise<unknown>;
+}): Promise<{ shareToken: string; isPublic: true }> {
+  const existing = await handlers.read();
+  assertFound(existing, "Not found");
+  if (existing.shareToken !== null && existing.isPublic) {
+    return { shareToken: existing.shareToken, isPublic: true };
+  }
+  const shareToken = await withUniqueShareToken(async (candidate) => {
+    const updated = await handlers.write(candidate);
+    assertFound(updated, "Not found");
+    return candidate;
+  });
+  return { shareToken, isPublic: true };
 }

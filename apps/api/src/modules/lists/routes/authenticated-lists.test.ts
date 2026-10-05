@@ -16,14 +16,14 @@ const mockListsRepo = {
   ),
   create: vi.fn(() => Promise.resolve({} as object)),
   update: vi.fn(() => Promise.resolve(undefined as object | undefined)),
-  deleteByIdForUser: vi.fn(() => Promise.resolve({ numDeletedRows: 0n })),
+  deleteByIdForUser: vi.fn(() => Promise.resolve(false)),
   setShareToken: vi.fn((..._args: Parameters<Repos["lists"]["setShareToken"]>) =>
     Promise.resolve(undefined as object | undefined),
   ),
   getShareState: vi.fn(() =>
     Promise.resolve(undefined as { shareToken: string | null; isPublic: boolean } | undefined),
   ),
-  findByShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
+  getByShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   entriesWithDetails: vi.fn(() => Promise.resolve([] as object[])),
   entriesWithDetailsAnon: vi.fn(() => Promise.resolve([] as object[])),
   createEntry: vi.fn(() => Promise.resolve({} as object)),
@@ -442,13 +442,13 @@ describe("DELETE /api/v1/lists/:id", () => {
   });
 
   it("returns 204 on success", async () => {
-    mockListsRepo.deleteByIdForUser.mockResolvedValue({ numDeletedRows: 1n });
+    mockListsRepo.deleteByIdForUser.mockResolvedValue(true);
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, { method: "DELETE" });
     expect(res.status).toBe(204);
   });
 
   it("returns 404 when not found", async () => {
-    mockListsRepo.deleteByIdForUser.mockResolvedValue({ numDeletedRows: 0n });
+    mockListsRepo.deleteByIdForUser.mockResolvedValue(false);
     const res = await app.request(`/api/v1/lists/${LIST_ID}`, { method: "DELETE" });
     expect(res.status).toBe(404);
   });
@@ -784,6 +784,16 @@ describe("POST /api/v1/lists/:id/share", () => {
     expect(json.shareToken).toBe("existing");
     expect(json.isPublic).toBe(true);
     expect(mockListsRepo.setShareToken).not.toHaveBeenCalled();
+  });
+
+  it("re-publishes a list that kept its token but is not public", async () => {
+    mockListsRepo.getShareState.mockResolvedValue({ shareToken: "existing", isPublic: false });
+    mockListsRepo.setShareToken.mockResolvedValue({ ...dbList, isPublic: true, shareToken: "x" });
+    const res = await app.request(`/api/v1/lists/${LIST_ID}/share`, { method: "POST" });
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.isPublic).toBe(true);
+    expect(mockListsRepo.setShareToken).toHaveBeenCalled();
   });
 
   it("returns 404 when not owned", async () => {

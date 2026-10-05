@@ -2,9 +2,8 @@ import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { Selectable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import type { ReferenceTable } from "../../../db/tables/reference.js";
 import { AppError } from "../../../errors.js";
-import { assertSlugAvailable, assertValidReorder } from "../../../lib/assertions.js";
+import { assertFound, assertSlugAvailable, assertValidReorder } from "../../../lib/assertions.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import type { SlugTaxonomyRepo, SlugTaxonomyTable } from "../repositories/slug-taxonomy.js";
 
@@ -35,6 +34,85 @@ function keyed<K extends string, V>(key: K, value: V): Record<K, V> {
   return { [key]: value } as Record<K, V>;
 }
 
+type TaxonomyKeyColumn = "id" | "code" | "slug";
+
+interface KeyedTaxonomyRepo<Row> {
+  listAll: () => Promise<Row[]>;
+  reorder: (keys: readonly string[]) => Promise<void>;
+  isInUse: (key: string) => Promise<unknown>;
+}
+
+/** Reorder and remove for any taxonomy keyed by `keyColumn`; the reorder input field is its plural (`ids`, `codes`, `slugs`). */
+export interface KeyedTaxonomyConfig<Row, Key extends TaxonomyKeyColumn> {
+  keyColumn: Key;
+  entityName: string;
+  inUseBy: string;
+  repo: (context: ApiContext) => KeyedTaxonomyRepo<Row>;
+  getByKey: (context: ApiContext, key: string) => Promise<Row | undefined>;
+  deleteByKey: (context: ApiContext, key: string) => Promise<unknown>;
+  notFoundMessage?: (key: string) => string;
+  keyNoun?: string;
+  guardWellKnown?: boolean;
+  afterReorder?: (context: ApiContext) => Promise<void>;
+}
+
+export interface KeyedTaxonomyHandlers<Key extends TaxonomyKeyColumn> {
+  reorder: (args: { input: Record<`${Key}s`, string[]>; context: ApiContext }) => Promise<void>;
+  remove: (args: { input: Record<Key, string>; context: ApiContext }) => Promise<void>;
+}
+
+export function createKeyedTaxonomyHandlers<Row, Key extends TaxonomyKeyColumn>(
+  config: KeyedTaxonomyConfig<Row, Key>,
+): KeyedTaxonomyHandlers<Key> {
+  const { keyColumn, entityName, inUseBy, repo: repoOf, getByKey, deleteByKey } = config;
+  const { guardWellKnown, afterReorder } = config;
+  const entityLower = entityName.toLowerCase();
+  const keyNoun = config.keyNoun ?? `${keyColumn}s`;
+  const notFoundMessage =
+    config.notFoundMessage ?? ((key: string) => `${entityName} "${key}" not found`);
+
+  function keyOf(row: Row): string {
+    return (row as Record<Key, string>)[keyColumn];
+  }
+
+  return {
+    async reorder({ input, context }) {
+      const repo = repoOf(context);
+      const keys = (input as Record<string, string[]>)[`${keyColumn}s`] ?? [];
+      const all = await repo.listAll();
+      assertValidReorder(keys, all, {
+        keyOf,
+        keyNoun,
+        unknownLabel: `${entityLower} ${keyColumn}s`,
+      });
+      await repo.reorder(keys);
+      if (afterReorder) {
+        await afterReorder(context);
+      }
+    },
+
+    async remove({ input, context }) {
+      const key = (input as Record<Key, string>)[keyColumn];
+      const existing = await getByKey(context, key);
+      assertFound(existing, notFoundMessage(key));
+
+      if (guardWellKnown && (existing as { isWellKnown: boolean }).isWellKnown) {
+        throw new AppError(409, ERROR_CODES.CONFLICT, `Cannot delete a well-known ${entityLower}`);
+      }
+
+      if (await repoOf(context).isInUse(key)) {
+        throw new AppError(
+          409,
+          ERROR_CODES.CONFLICT,
+          `Cannot delete: ${entityLower} is in use by ${inUseBy}`,
+        );
+      }
+
+      await deleteByKey(context, key);
+    },
+  };
+}
+
 /** Spelled out explicitly: Kysely's `Selectable<Database[T]>` pulls in an internal type TS can't print from an inferred return position. */
 export interface SlugTaxonomyHandlers<T extends SlugTaxonomyTable, CreateKey extends string> {
   list: (args: { context: ApiContext }) => Promise<Record<T, Selectable<Database[T]>[]>>;
@@ -52,18 +130,21 @@ export function createSlugTaxonomyHandlers<T extends SlugTaxonomyTable, CreateKe
   config: SlugTaxonomyRouterConfig<T, CreateKey>,
 ): SlugTaxonomyHandlers<T, CreateKey> {
   const { repoKey, entityName, createKey, inUseBy, hasColor, afterReorder } = config;
-  const entityLower = entityName.toLowerCase();
-
   function repoOf(context: ApiContext): SlugTaxonomyRepo<T> {
     const repos = context.repos as unknown as Record<T, SlugTaxonomyRepo<T>>;
     return repos[repoKey];
   }
 
-  // Every one of the seven tables carries the full `ReferenceTable` shape, so this cast is safe
-  // even though T is generic here and TS can't see through it to those columns.
-  function asReference(row: Selectable<Database[T]>): ReferenceTable {
-    return row as unknown as ReferenceTable;
-  }
+  const keyedHandlers = createKeyedTaxonomyHandlers({
+    keyColumn: "slug",
+    entityName,
+    inUseBy,
+    repo: repoOf,
+    getByKey: (context, slug) => repoOf(context).getBySlug(slug),
+    deleteByKey: (context, slug) => repoOf(context).deleteBySlug(slug),
+    guardWellKnown: true,
+    afterReorder,
+  });
 
   return {
     async list({ context }: { context: ApiContext }) {
@@ -71,26 +152,7 @@ export function createSlugTaxonomyHandlers<T extends SlugTaxonomyTable, CreateKe
       return keyed(repoKey, rows);
     },
 
-    async reorder({
-      input,
-      context,
-    }: {
-      input: { slugs: string[] };
-      context: ApiContext;
-    }): Promise<void> {
-      const repo = repoOf(context);
-      const { slugs } = input;
-      const all = await repo.listAll();
-      assertValidReorder(slugs, all, {
-        keyOf: (row) => asReference(row).slug,
-        keyNoun: "slugs",
-        unknownLabel: `${entityLower} slugs`,
-      });
-      await repo.reorder(slugs);
-      if (afterReorder) {
-        await afterReorder(context);
-      }
-    },
+    reorder: keyedHandlers.reorder,
 
     async create({ input, context }: { input: CreateInput; context: ApiContext }) {
       const repo = repoOf(context);
@@ -109,9 +171,7 @@ export function createSlugTaxonomyHandlers<T extends SlugTaxonomyTable, CreateKe
       const repo = repoOf(context);
 
       const existing = await repo.getBySlug(input.slug);
-      if (!existing) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, `${entityName} "${input.slug}" not found`);
-      }
+      assertFound(existing, `${entityName} "${input.slug}" not found`);
 
       if (hasColor) {
         const updates: { label?: string; color?: string | null } = {};
@@ -129,34 +189,6 @@ export function createSlugTaxonomyHandlers<T extends SlugTaxonomyTable, CreateKe
       }
     },
 
-    async remove({
-      input,
-      context,
-    }: {
-      input: { slug: string };
-      context: ApiContext;
-    }): Promise<void> {
-      const repo = repoOf(context);
-
-      const existing = await repo.getBySlug(input.slug);
-      if (!existing) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, `${entityName} "${input.slug}" not found`);
-      }
-
-      if (asReference(existing).isWellKnown) {
-        throw new AppError(409, ERROR_CODES.CONFLICT, `Cannot delete a well-known ${entityLower}`);
-      }
-
-      const inUse = await repo.isInUse(input.slug);
-      if (inUse) {
-        throw new AppError(
-          409,
-          ERROR_CODES.CONFLICT,
-          `Cannot delete: ${entityLower} is in use by ${inUseBy}`,
-        );
-      }
-
-      await repo.deleteBySlug(input.slug);
-    },
+    remove: keyedHandlers.remove,
   };
 }

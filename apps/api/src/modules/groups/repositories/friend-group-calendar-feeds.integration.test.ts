@@ -86,7 +86,7 @@ describe.skipIf(!ctx)("friendGroupCalendarFeedsRepo (integration)", () => {
     expect(await repo.listForMember(group.id, OWNER_ID)).toEqual([
       { kind: "tournaments", token: `tournaments-${group.id}` },
     ]);
-    expect(await repo.findByToken(`shops-${group.id}`)).toBeUndefined();
+    expect(await repo.getByToken(`shops-${group.id}`)).toBeUndefined();
   });
 
   it("resolves a token to its group and feed kind", async () => {
@@ -98,7 +98,7 @@ describe.skipIf(!ctx)("friendGroupCalendarFeedsRepo (integration)", () => {
       token: `lookup-${group.id}`,
     });
 
-    expect(await repo.findByToken(`lookup-${group.id}`)).toEqual({
+    expect(await repo.getByToken(`lookup-${group.id}`)).toEqual({
       groupId: group.id,
       groupName: "Hexgate Playgroup",
       kind: "shop_events",
@@ -117,7 +117,7 @@ describe.skipIf(!ctx)("friendGroupCalendarFeedsRepo (integration)", () => {
 
     await groups.removeMember(group.id, MEMBER_ID);
 
-    expect(await repo.findByToken(`leaver-${group.id}`)).toBeUndefined();
+    expect(await repo.getByToken(`leaver-${group.id}`)).toBeUndefined();
   });
 
   it("refuses a feed for someone who is not a member", async () => {

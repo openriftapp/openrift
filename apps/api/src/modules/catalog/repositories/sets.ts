@@ -4,7 +4,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { SetsTable } from "../../../db/tables/catalog.js";
-import { reorderBySortOrder } from "./sort-order.js";
+import { reorderBySortOrder } from "../../../repositories/query-helpers.js";
 
 export function setsRepo(db: Kysely<Database>) {
   return {
@@ -141,8 +141,9 @@ export function setsRepo(db: Kysely<Database>) {
       });
     },
 
-    async deleteById(id: string): Promise<void> {
-      await db.deleteFrom("sets").where("id", "=", id).execute();
+    async deleteById(id: string): Promise<boolean> {
+      const result = await db.deleteFrom("sets").where("id", "=", id).executeTakeFirst();
+      return result.numDeletedRows > 0n;
     },
 
     async cardCount(setId: string): Promise<number> {

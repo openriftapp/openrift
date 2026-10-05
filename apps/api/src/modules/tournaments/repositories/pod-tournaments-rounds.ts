@@ -5,6 +5,7 @@ import type { PairingResult } from "@openrift/shared/pairing/types";
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 import type { Pod, PodRound } from "./pod-tournaments-shared.js";
 import type { Tournament } from "./tournaments-shared.js";
 
@@ -12,6 +13,9 @@ export interface PodMemberRow {
   podId: string;
   playerId: string;
   displayName: string;
+  image: string | null;
+  /** Only feeds the gravatar hash. */
+  email: string | null;
   teamId: string | null;
   placement: number | null;
   gamePoints: number | null;
@@ -129,7 +133,7 @@ export function podRoundsRepo(db: Kysely<Database>) {
   }
 
   return {
-    findOpenRound(tournamentId: string): Promise<PodRound | undefined> {
+    getOpenRound(tournamentId: string): Promise<PodRound | undefined> {
       return db
         .selectFrom("podRounds")
         .selectAll()
@@ -138,7 +142,7 @@ export function podRoundsRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    findRoundByNumber(tournamentId: string, roundNumber: number): Promise<PodRound | undefined> {
+    getRoundByNumber(tournamentId: string, roundNumber: number): Promise<PodRound | undefined> {
       return db
         .selectFrom("podRounds")
         .selectAll()
@@ -153,7 +157,7 @@ export function podRoundsRepo(db: Kysely<Database>) {
       pairing: PairingResult,
       byePlayerIds: string[] = [],
     ): Promise<PodRound> {
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const round = await trx
           .insertInto("podRounds")
           .values({
@@ -175,7 +179,7 @@ export function podRoundsRepo(db: Kysely<Database>) {
       pairing: PairingResult,
       byePlayerIds: string[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx.deleteFrom("pods").where("roundId", "=", roundId).execute();
         await trx.deleteFrom("podByes").where("roundId", "=", roundId).execute();
         await writePodsAndByes(trx, roundId, pairing, byePlayerIds);
@@ -210,7 +214,7 @@ export function podRoundsRepo(db: Kysely<Database>) {
       await db.deleteFrom("podRounds").where("id", "=", roundId).execute();
     },
 
-    async findPodForResult(podId: string): Promise<PodForResult | undefined> {
+    async getPodForResult(podId: string): Promise<PodForResult | undefined> {
       const pod = await db
         .selectFrom("pods")
         .selectAll()
@@ -258,7 +262,7 @@ export function podRoundsRepo(db: Kysely<Database>) {
       podId: string,
       results: { playerId: string; placement: number; gamePoints: number }[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         for (const { playerId, placement, gamePoints } of results) {
           await trx
             .updateTable("podMembers")
@@ -286,7 +290,7 @@ export function podRoundsRepo(db: Kysely<Database>) {
       playerIds: string[],
       gamePoints: number,
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx.selectFrom("pods").select("id").where("id", "=", podId).forUpdate().execute();
         await trx
           .updateTable("podMembers")
@@ -345,7 +349,7 @@ export function podRoundsRepo(db: Kysely<Database>) {
       tournamentId: string,
       newCurrentRound: number,
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx
           .updateTable("podRounds")
           .set({ status: "finalized", finalizedAt: new Date() })
@@ -384,10 +388,13 @@ export function podRoundsRepo(db: Kysely<Database>) {
           : db
               .selectFrom("podMembers as m")
               .innerJoin("tournamentParticipants as pl", "pl.id", "m.playerId")
+              .leftJoin("users as u", "u.id", "pl.userId")
               .select([
                 "m.podId",
                 "m.playerId",
                 "pl.displayName",
+                "u.image",
+                "u.email",
                 "pl.teamId",
                 "m.placement",
                 "m.gamePoints",

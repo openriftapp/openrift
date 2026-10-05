@@ -5,6 +5,7 @@ import type {
 } from "@openrift/shared/types/api/board-state";
 import { implement } from "@orpc/server";
 
+import { toShareOwner } from "../../../lib/share-owner.js";
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { toFeaturedBoardState, toPublicBoardState } from "../lib/board-state-presenters.js";
@@ -14,13 +15,13 @@ const os = implement(publicBoardStatesContract).$context<ApiContext>().use(requi
 export const publicBoardStatesRouter = {
   share: os.share.handler(
     async ({ input, context, errors }): Promise<PublicBoardStateDetailResponse> => {
-      const found = await context.repos.boardStates.findByShareToken(input.token);
+      const found = await context.repos.boardStates.getByShareToken(input.token);
       if (!found) {
         throw errors.NOT_FOUND({ message: "Not found" });
       }
       return {
         boardState: toPublicBoardState(found.boardState),
-        owner: { displayName: found.ownerName ?? "Anonymous" },
+        owner: toShareOwner({ displayName: found.ownerName, email: found.ownerEmail }),
       };
     },
   ),

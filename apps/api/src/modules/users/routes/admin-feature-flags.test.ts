@@ -179,7 +179,7 @@ describe("DELETE /feature-flags/:key", () => {
   });
 
   it("returns 204 on successful deletion", async () => {
-    mockFlagsRepo.deleteByKey.mockResolvedValue({ numDeletedRows: 1n });
+    mockFlagsRepo.deleteByKey.mockResolvedValue(true);
     const res = await app.request("/api/admin/v1/feature-flags/deck-builder", {
       method: "DELETE",
     });
@@ -188,7 +188,7 @@ describe("DELETE /feature-flags/:key", () => {
   });
 
   it("returns 404 when flag not found", async () => {
-    mockFlagsRepo.deleteByKey.mockResolvedValue({ numDeletedRows: 0n });
+    mockFlagsRepo.deleteByKey.mockResolvedValue(false);
     const res = await app.request("/api/admin/v1/feature-flags/nonexistent", {
       method: "DELETE",
     });

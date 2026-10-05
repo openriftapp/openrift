@@ -1,3 +1,5 @@
+import { createLogger } from "@openrift/shared/logger";
+import type { Logger } from "@openrift/shared/logger";
 import { isAPIError } from "better-auth/api";
 import type { Context } from "hono";
 
@@ -11,6 +13,8 @@ import { mapAuthError } from "../modules/users/lib/better-auth-error.js";
 import type { Auth, Config, Variables } from "../types.js";
 
 type SessionUser = NonNullable<Variables["user"]>;
+
+const fallbackLog = createLogger("api");
 
 /**
  * Native, typed context handed to oRPC procedures. Deps are read from the live
@@ -31,6 +35,7 @@ export interface ApiContext {
   io: Io;
   auth: Auth;
   scheduler: JobScheduler | null;
+  log: Logger;
   user: SessionUser | null;
   /**
    * Admin authorization resolved by `requireAdmin` (full admins and grant
@@ -97,6 +102,7 @@ export function buildApiContext(c: Context<{ Variables: Variables }>): ApiContex
     io: c.get("io"),
     auth: c.get("auth"),
     scheduler: c.get("scheduler") ?? null,
+    log: c.get("log") ?? fallbackLog,
     user: c.get("user") ?? null,
     adminAccess: c.get("adminAccess") ?? null,
     loadUser: async () => {

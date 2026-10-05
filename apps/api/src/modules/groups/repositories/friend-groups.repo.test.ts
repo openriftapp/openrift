@@ -68,9 +68,13 @@ describe("friendGroupsRepo", () => {
     expect(await repo.setCode("grp-1", null)).toEqual(GROUP);
   });
 
-  it("deleteById resolves without throwing", async () => {
-    const repo = friendGroupsRepo(createMockDb([]));
-    await expect(repo.deleteById("grp-1")).resolves.toBeUndefined();
+  it("deleteById reports whether a row was deleted", async () => {
+    await expect(
+      friendGroupsRepo(createMockDb([{ numDeletedRows: 1n }])).deleteById("grp-1"),
+    ).resolves.toBe(true);
+    await expect(
+      friendGroupsRepo(createMockDb([{ numDeletedRows: 0n }])).deleteById("grp-1"),
+    ).resolves.toBe(false);
   });
 
   it("getMembership returns the row", async () => {

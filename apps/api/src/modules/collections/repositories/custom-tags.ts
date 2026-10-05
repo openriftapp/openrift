@@ -2,6 +2,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 
 function selectWithCategory(db: Kysely<Database>) {
   return db
@@ -96,9 +97,9 @@ export function customTagsRepo(db: Kysely<Database>) {
       await db.updateTable("customTags").set(updates).where("id", "=", id).execute();
     },
 
-    async deleteById(id: string): Promise<void> {
-      // DELETE without RETURNING never throws on an empty match.
-      await db.deleteFrom("customTags").where("id", "=", id).execute();
+    async deleteById(id: string): Promise<boolean> {
+      const result = await db.deleteFrom("customTags").where("id", "=", id).executeTakeFirst();
+      return result.numDeletedRows > 0n;
     },
 
     async assignmentsByCard(): Promise<Map<string, string[]>> {
@@ -163,7 +164,7 @@ export function customTagsRepo(db: Kysely<Database>) {
           .values(customTagIds.map((customTagId) => ({ cardId, customTagId })))
           .execute();
       };
-      await (db.isTransaction ? run(db) : db.transaction().execute(run));
+      await inTransaction(db, run);
     },
 
     async addToCards(customTagId: string, cardIds: readonly string[]): Promise<number> {

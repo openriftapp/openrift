@@ -13,7 +13,7 @@ const mockBoardStatesRepo = {
   getByIdForUser: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   create: vi.fn((_userId: string, values: object) => Promise.resolve(dbRow(values))),
   update: vi.fn(() => Promise.resolve(undefined as object | undefined)),
-  remove: vi.fn(() => Promise.resolve(false)),
+  deleteByIdForUser: vi.fn(() => Promise.resolve(false)),
   getShareState: vi.fn(() =>
     Promise.resolve(undefined as { shareToken: string | null; isPublic: boolean } | undefined),
   ),
@@ -255,7 +255,7 @@ describe("DELETE /board-states/{id}", () => {
   });
 
   it("204s when the row was deleted", async () => {
-    mockBoardStatesRepo.remove.mockResolvedValue(true);
+    mockBoardStatesRepo.deleteByIdForUser.mockResolvedValue(true);
     const { status } = await request(`/board-states/${BOARD_ID}`, { method: "DELETE" });
     expect(status).toBe(204);
   });

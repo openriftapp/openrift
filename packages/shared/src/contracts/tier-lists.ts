@@ -2,6 +2,7 @@ import { idParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
+import { nameField, shareStateResponseSchema } from "./fields.js";
 
 export const MAX_TIER_ROWS = 12;
 export const MAX_CARDS_PER_TIER = 400;
@@ -43,7 +44,7 @@ export const tiersSchema = z
   );
 
 const tierListFieldRules = {
-  title: z.string().trim().min(1).max(120),
+  title: nameField(120),
   description: z.string().max(2000),
 };
 
@@ -109,10 +110,7 @@ export const tierListListResponseSchema = z.object({
   items: z.array(tierListSummaryResponseSchema),
 });
 
-export const tierListShareResponseSchema = z.object({
-  shareToken: z.string().nullable(),
-  isPublic: z.boolean(),
-});
+export const tierListShareResponseSchema = shareStateResponseSchema;
 
 const TAG = "Tier lists";
 const NOT_FOUND = { NOT_FOUND: { message: "Tier list not found" } };

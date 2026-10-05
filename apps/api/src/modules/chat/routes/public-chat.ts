@@ -3,14 +3,14 @@ import * as Sentry from "@sentry/bun";
 import { Hono } from "hono";
 
 import type { Variables } from "../../../types.js";
+import type { ChatCardIndex } from "../lib/chat-card-index.js";
+import { createChatCardIndexLoader } from "../lib/chat-card-index.js";
 import {
   chatCardLine,
   chatErrorLine,
   chatMissLine,
   chatUsageLine,
 } from "../lib/chat-presenters.js";
-import type { ChatCardIndex } from "../services/chat-card-index.js";
-import { createChatCardIndexLoader } from "../services/chat-card-index.js";
 
 /**
  * `GET /api/v1/chat/card?q=` always answers 200 text/plain, since a chat
@@ -48,9 +48,7 @@ export function createPublicChatRoute() {
 
   return new Hono<{ Variables: Variables }>().get("/chat/card", async (c) => {
     const config = c.get("config");
-    // CORS_ORIGIN's first entry is the deployment's own site origin (see cors.ts).
-    const firstOrigin = config.corsOrigin?.split(",")[0]?.trim();
-    const siteUrl = firstOrigin || undefined;
+    const siteUrl = config.siteOrigin;
     const query = (c.req.query("q") ?? "").slice(0, MAX_QUERY_LENGTH);
 
     if (!query.trim()) {

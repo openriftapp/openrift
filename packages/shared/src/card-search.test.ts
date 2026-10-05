@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import type { SearchableCard, SearchablePrintingCodes } from "./card-search.js";
 import {
   buildCardIndex,
+  buildCodeIndex,
   findCard,
+  lookupCode,
   matchesCardQuery,
   resolveCard,
   searchCards,
@@ -305,5 +307,34 @@ describe("matchesCardQuery", () => {
 
   it("returns false against an empty value list", () => {
     expect(matchesCardQuery("annie", [])).toBe(false);
+  });
+});
+
+describe("buildCodeIndex / lookupCode", () => {
+  const entries = [
+    {
+      card: { name: "Jinx" },
+      printing: { id: "p1", shortCode: "OGN-202", publicCode: "OGN-202/298" },
+    },
+    {
+      card: { name: "Other" },
+      printing: { id: "p2", shortCode: "OGN-202", publicCode: "OGS-001" },
+    },
+  ];
+  const codeIndex = buildCodeIndex(entries);
+
+  it("finds a printing by short or public code, ignoring case and punctuation", () => {
+    expect(lookupCode(codeIndex, "ogn 202")?.printing.id).toBe("p1");
+    expect(lookupCode(codeIndex, "ogn-202/298")?.card.name).toBe("Jinx");
+    expect(lookupCode(codeIndex, "OGS001")?.card.name).toBe("Other");
+  });
+
+  it("keeps the first entry for a colliding key", () => {
+    expect(lookupCode(codeIndex, "OGN202")?.printing.id).toBe("p1");
+  });
+
+  it("returns undefined for unknown or empty codes", () => {
+    expect(lookupCode(codeIndex, "XXX-999")).toBeUndefined();
+    expect(lookupCode(codeIndex, "---")).toBeUndefined();
   });
 });

@@ -11,7 +11,10 @@ import type { ApiContext } from "../../../orpc/context.js";
 import { orpcErrorResponse } from "../../../orpc/error-body.js";
 import type { Variables } from "../../../types.js";
 import { toCardSubmissionStatus } from "../lib/card-submission-presenters.js";
-import { buildUserSubmissionCard } from "../services/ingest-user-submission.js";
+import {
+  buildUserSubmissionCard,
+  ingestUserSubmission,
+} from "../services/ingest-user-submission.js";
 import { saveSubmissionUpload } from "../services/submission-uploads.js";
 
 const MAX_BODY_BYTES = 256 * 1024;
@@ -60,7 +63,7 @@ export const cardSubmissionsRouter = {
     const dateStamp = formatCompactUtcStamp(now);
     const card = buildUserSubmissionCard(input, context.userId, dateStamp);
 
-    const result = await context.services.ingestUserSubmission(context.transact, {
+    const result = await ingestUserSubmission(context.transact, {
       userId: context.userId,
       submissionNote: input.submissionNote ?? null,
       card,

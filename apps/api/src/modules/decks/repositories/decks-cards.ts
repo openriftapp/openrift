@@ -6,7 +6,7 @@ import { sql } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import type { CardsTable } from "../../../db/tables/catalog.js";
 import type { DeckCardsTable } from "../../../db/tables/decks.js";
-import { safeXidExpression } from "../../../repositories/query-helpers.js";
+import { currentSafeXid, inTransaction } from "../../../repositories/query-helpers.js";
 
 /** Slim deck card row — card metadata is resolved client-side from the catalog. */
 type DeckCardRow = Pick<
@@ -94,9 +94,8 @@ export function decksCardsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    async currentSafeXid(): Promise<string> {
-      const row = await db.selectNoFrom(safeXidExpression.as("xid")).executeTakeFirstOrThrow();
-      return row.xid;
+    currentSafeXid(): Promise<string> {
+      return currentSafeXid(db);
     },
 
     /** The watermark filters by the deck, not the card: a touched deck returns all of its cards, so removals show as absence. */
@@ -193,7 +192,7 @@ export function decksCardsRepo(db: Kysely<Database>) {
         preferredPrintingId: string | null;
       }[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx.deleteFrom("deckCards").where("deckId", "=", deckId).execute();
 
         if (cards.length > 0) {

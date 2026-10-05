@@ -68,17 +68,7 @@ describe("createTransact", () => {
 
 describe("services", () => {
   it("exports all expected service functions", () => {
-    const expectedKeys = [
-      "ensureInbox",
-      "logEvents",
-      "deleteCollection",
-      "addCopies",
-      "moveCopies",
-      "disposeCopies",
-      "getMappingOverview",
-      "ingestCandidates",
-      "importErrata",
-    ];
+    const expectedKeys = ["ensureInbox", "notifyAdminsOfGroupJoinRequest", "createTrade"];
     for (const key of expectedKeys) {
       expect(services).toHaveProperty(key);
       expect(typeof (services as any)[key]).toBe("function");

@@ -93,7 +93,7 @@ export function tournamentParticipantsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    findParticipantById(participantId: string): Promise<TournamentParticipant | undefined> {
+    getParticipantById(participantId: string): Promise<TournamentParticipant | undefined> {
       return db
         .selectFrom("tournamentParticipants")
         .selectAll()
@@ -101,7 +101,7 @@ export function tournamentParticipantsRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    findParticipantByClaimToken(token: string): Promise<TournamentParticipant | undefined> {
+    getParticipantByClaimToken(token: string): Promise<TournamentParticipant | undefined> {
       return db
         .selectFrom("tournamentParticipants")
         .selectAll()
@@ -180,7 +180,7 @@ export function tournamentParticipantsRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    findParticipantByUser(
+    getParticipantByUser(
       tournamentId: string,
       userId: string,
     ): Promise<TournamentParticipant | undefined> {
@@ -207,7 +207,7 @@ export function tournamentParticipantsRepo(db: Kysely<Database>) {
       status?: TournamentParticipantStatus;
     }): Promise<TournamentParticipant> {
       if (input.userId) {
-        const byUser = await this.findParticipantByUser(input.tournamentId, input.userId);
+        const byUser = await this.getParticipantByUser(input.tournamentId, input.userId);
         if (byUser) {
           return byUser;
         }
@@ -262,7 +262,10 @@ export function tournamentParticipantsRepo(db: Kysely<Database>) {
      * Clears the claim block an unlink left behind and rotates the claim
      * token, so the correct player can claim the spot through a fresh link.
      */
-    reissueClaim(participantId: string): Promise<TournamentParticipant | undefined> {
+    reissueClaim(
+      participantId: string,
+      claimToken: string,
+    ): Promise<TournamentParticipant | undefined> {
       return db
         .updateTable("tournamentParticipants")
         .set({
@@ -270,7 +273,7 @@ export function tournamentParticipantsRepo(db: Kysely<Database>) {
           claimSource: null,
           claimedAt: null,
           claimBlockedAt: null,
-          claimToken: generateShareToken(),
+          claimToken,
           updatedAt: new Date(),
         })
         .where("id", "=", participantId)

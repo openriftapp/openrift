@@ -1,12 +1,11 @@
 import { adminCardBansContract } from "@openrift/shared/contracts/admin/card-bans";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import { toCardBanResponse } from "../lib/card-ban-presenters.js";
 
 const os = implement(adminCardBansContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -22,53 +21,35 @@ export const adminCardBansRouter = {
     const { cardBans } = context.repos;
     const rows = await cardBans.listByCard(input.id);
     return {
-      bans: rows.map((r) => ({
-        id: r.id,
-        cardId: r.cardId,
-        formatId: r.formatId,
-        formatName: r.formatName,
-        bannedAt: r.bannedAt,
-        reason: r.reason,
-        createdAt: r.createdAt.toISOString(),
-      })),
+      bans: rows.map((row) => toCardBanResponse(row)),
     };
   }),
 
-  create: os.create.handler(async ({ input, context }) => {
-    const { cardBans, catalog } = context.repos;
+  create: os.create.handler(async ({ input, context, errors }) => {
+    const { cardBans, catalogMutations } = context.repos;
     const { id, formatId, bannedAt, reason } = input;
 
-    const card = await catalog.cardById(id);
+    const card = await catalogMutations.getCardById(id);
     assertFound(card, "Card not found");
 
-    const existing = await cardBans.findActiveBan(id, formatId);
+    const existing = await cardBans.getActiveBan(id, formatId);
     if (existing) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, `Card is already banned in ${formatId}`);
+      throw errors.CONFLICT({ message: `Card is already banned in ${formatId}` });
     }
 
     const row = await cardBans.create({ cardId: id, formatId, bannedAt, reason: reason ?? null });
 
-    // catalog.cardById only returns the id — fetch name/slug for the label
-    const cardDetails = await context.repos.catalogMutations.getCardById(id);
     await recordAdminEvent(context.repos, context.userId, {
       action: "ban.add",
       entityType: "ban",
       entityId: row.id,
-      entityLabel: cardDetails?.name ?? null,
-      cardSlug: cardDetails?.slug ?? null,
+      entityLabel: card.name,
+      cardSlug: card.slug,
       newValues: { cardId: id, formatId, bannedAt, reason: reason ?? null },
     });
 
     return {
-      ban: {
-        id: row.id,
-        cardId: row.cardId,
-        formatId: row.formatId,
-        formatName: row.formatName,
-        bannedAt: row.bannedAt,
-        reason: row.reason,
-        createdAt: row.createdAt.toISOString(),
-      },
+      ban: toCardBanResponse(row),
     };
   }),
 
@@ -84,7 +65,7 @@ export const adminCardBansRouter = {
       fields.reason = reason;
     }
 
-    const before = await cardBans.findActiveBan(id, formatId);
+    const before = await cardBans.getActiveBan(id, formatId);
 
     const row = await cardBans.update(id, formatId, fields);
     assertFound(row, `No active ban found for format ${formatId}`);
@@ -98,28 +79,19 @@ export const adminCardBansRouter = {
     });
 
     return {
-      ban: {
-        id: row.id,
-        cardId: row.cardId,
-        formatId: row.formatId,
-        formatName: row.formatName,
-        bannedAt: row.bannedAt,
-        reason: row.reason,
-        createdAt: row.createdAt.toISOString(),
-      },
+      ban: toCardBanResponse(row),
     };
   }),
 
-  remove: os.remove.handler(async ({ input, context }): Promise<void> => {
+  remove: os.remove.handler(async ({ input, context, errors }): Promise<void> => {
     const { cardBans } = context.repos;
     const { id, formatId } = input;
 
-    const before = await cardBans.findActiveBan(id, formatId);
+    const before = await cardBans.getActiveBan(id, formatId);
 
-    // `unban` returns a boolean, not a row, so assertFound (null/undefined only) can't be used here.
     const removed = await cardBans.unban(id, formatId);
     if (!removed) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, `No active ban found for format ${formatId}`);
+      throw errors.NOT_FOUND({ message: `No active ban found for format ${formatId}` });
     }
 
     await recordAdminEvent(context.repos, context.userId, {

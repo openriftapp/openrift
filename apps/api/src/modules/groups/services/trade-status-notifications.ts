@@ -1,29 +1,23 @@
-import type { Logger } from "@openrift/shared/logger";
+import { groupPath } from "@openrift/shared/site-paths";
 import {
   getTradeRequestEmailCadence,
   isTradeStatusEmailEnabled,
 } from "@openrift/shared/types/api/preferences";
 
 import type { Repos } from "../../../deps.js";
-import type { createEmailSender } from "../../../email.js";
+import type { EmailDeps } from "../../../email.js";
+import { sendChannelEmail } from "../../../email.js";
 import type { TradeStatusUpdateGroup } from "../../../emails/trade-emails.js";
 import { buildTradeStatusUpdateEmail } from "../../../emails/trade-emails.js";
-import { buildUnsubscribeUrls } from "../../../emails/unsubscribe-token.js";
 import type { EmailNotificationContext } from "../../users/repositories/user-preferences.js";
 import type { QueuedStatusEmailRow } from "../repositories/card-trades-emails.js";
 import { isRequestGroupDue } from "./trade-notifications.js";
 
-type SendEmail = ReturnType<typeof createEmailSender>;
-
 /** Site setting; `"false"` disables sending. Keep in sync with the admin site-settings page. */
 const TRADE_STATUS_EMAIL_SETTING = "trade-status-email";
 
-export interface TradeStatusFlushDeps {
+export interface TradeStatusFlushDeps extends EmailDeps {
   repos: Repos;
-  log: Logger;
-  sendEmail: SendEmail;
-  appBaseUrl: string;
-  unsubscribeSecret: string;
 }
 
 export interface TradeStatusFlushResult {
@@ -79,7 +73,7 @@ async function claimPair(
 export async function flushTradeStatusEmails(
   deps: TradeStatusFlushDeps,
 ): Promise<TradeStatusFlushResult> {
-  const { repos, log, sendEmail, appBaseUrl, unsubscribeSecret } = deps;
+  const { repos, appBaseUrl } = deps;
 
   // While off, queued rows are left untouched and resume once turned back on.
   if ((await repos.siteSettings.getBool(TRADE_STATUS_EMAIL_SETTING)) === false) {
@@ -172,7 +166,7 @@ export async function flushTradeStatusEmails(
       if (section === undefined) {
         section = {
           groupName: row.groupName,
-          tradesUrl: `${appBaseUrl}/groups/${row.groupSlug}/trades`,
+          tradesUrl: appBaseUrl + groupPath(row.groupSlug, "trades"),
           updates: [],
         };
         sectionByGroup.set(row.groupId, section);
@@ -185,31 +179,26 @@ export async function flushTradeStatusEmails(
       });
     }
 
-    const { pageUrl, oneClickUrl } = buildUnsubscribeUrls(
-      appBaseUrl,
-      unsubscribeSecret,
-      recipientUserId,
+    const sent = await sendChannelEmail(
+      deps,
+      { userId: recipientUserId, email: context.email },
       "tradeStatus",
+      ({ unsubscribeUrl }) =>
+        buildTradeStatusUpdateEmail({
+          locale: context.displayLocale,
+          recipientName: context.name,
+          actorName: actorLabel ?? null,
+          groups: sections,
+          unsubscribeUrl,
+        }),
+      { actorUserId },
     );
-    const { subject, html } = buildTradeStatusUpdateEmail({
-      locale: context.displayLocale,
-      recipientName: context.name,
-      actorName: actorLabel ?? null,
-      groups: sections,
-      unsubscribeUrl: pageUrl,
-    });
-
-    try {
-      await sendEmail({ to: context.email, subject, html, listUnsubscribeUrl: oneClickUrl });
+    if (sent) {
       emailsSent += 1;
       events += claimedRows.length;
-    } catch (error) {
+    } else {
       failed += 1;
       eventsDropped += claimedRows.length;
-      log.error(
-        { err: error, recipientUserId, actorUserId },
-        "Failed to send coalesced trade-status email",
-      );
     }
   }
 

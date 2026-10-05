@@ -1,6 +1,6 @@
+import { normalizeNameForIdentity } from "./card-name.js";
 import type { DeckCheckChangeSummary } from "./types/api/deck-check.js";
 import type { DeckZone } from "./types/enums.js";
-import { normalizeNameForIdentity } from "./utils.js";
 import { WellKnown } from "./well-known.js";
 
 export interface DeckCheckCardLine {

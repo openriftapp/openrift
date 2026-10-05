@@ -313,7 +313,7 @@ export const metaRouter = {
   deck: os.deck.handler(async ({ input, context, errors }): Promise<MetaDeckDetailResponse> => {
     const { decks, meta } = context.repos;
 
-    const found = await decks.findByShareToken(input.token);
+    const found = await decks.getByShareToken(input.token);
     if (!found) {
       throw errors.NOT_FOUND({ message: "Deck not found" });
     }

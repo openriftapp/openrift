@@ -6,17 +6,18 @@ import type {
   FriendGroupSharedCollectionDetailResponse,
   FriendGroupSharedListDetailResponse,
 } from "@openrift/shared/types/api/friend-group";
-import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
 import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
+import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { toCopy } from "../../collections/lib/copy-presenters.js";
 import { expandRuleListCounts } from "../../lists/lib/list-counts.js";
 import { toListEntryDetail } from "../../lists/lib/list-presenters.js";
 import { getFavoriteMarketplace } from "../../users/lib/preferences.js";
-import { loadGroupForMember } from "../lib/group-access.js";
+import { toSharedList } from "../lib/friend-group-presenters.js";
+import { loadGroupBySlug, loadGroupForMember } from "../lib/group-access.js";
 import { autoCancelUnfillablePendingTrades } from "../services/trade-supply.js";
 
 const os = implement(friendGroupsContract).$context<ApiContext>().use(requireAuthedUser);
@@ -63,9 +64,7 @@ export const friendGroupsSharesRouter = {
     const ctx = await loadGroupForMember(context.repos, input.slug, viewerId);
 
     const list = await lists.getByIdForUser(input.listId, viewerId);
-    if (!list) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "List not found");
-    }
+    assertFound(list, "List not found");
 
     await friendGroups.share(ctx.group.id, input.listId, viewerId);
   }),
@@ -77,9 +76,7 @@ export const friendGroupsSharesRouter = {
     const ctx = await loadGroupForMember(context.repos, input.slug, viewerId);
 
     const list = await lists.getByIdForUser(input.listId, viewerId);
-    if (!list) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "List not found");
-    }
+    assertFound(list, "List not found");
 
     if (list.intent !== "trade") {
       await friendGroups.unshare(ctx.group.id, input.listId);
@@ -105,36 +102,16 @@ export const friendGroupsSharesRouter = {
       const viewerId = context.userId;
       const { friendGroups, lists } = context.repos;
 
-      const group = await friendGroups.getBySlugOrPrevious(input.slug);
-      if (!group) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Group not found");
-      }
+      const group = await loadGroupBySlug(context.repos, input.slug);
 
       const shared = await friendGroups.getSharedList(group.id, input.listId, viewerId);
-      if (!shared) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "List not shared with this group");
-      }
+      assertFound(shared, "List not shared with this group");
 
-      const kind = shared.list.kind as ListKind;
+      const kind = shared.list.kind;
       const entries = await lists.entriesWithDetailsAnon(input.listId, kind);
 
       return {
-        list: {
-          id: shared.list.id,
-          name: shared.list.name,
-          intent: shared.list.intent as ListIntent,
-          kind,
-          ownerUserId: shared.list.userId,
-          ownerName: shared.ownerName,
-          tradeDefaults: {
-            pricePref: shared.list
-              .defaultPricePref as FriendGroupSharedListDetailResponse["list"]["tradeDefaults"]["pricePref"],
-            priceAbsoluteCents: shared.list.defaultPriceAbsoluteCents,
-            tradeType: shared.list
-              .defaultTradeType as FriendGroupSharedListDetailResponse["list"]["tradeDefaults"]["tradeType"],
-          },
-          currency: shared.list.currency as FriendGroupSharedListDetailResponse["list"]["currency"],
-        },
+        list: toSharedList(shared),
         entries: entries.map((row) => toListEntryDetail(row)),
       };
     },
@@ -195,15 +172,10 @@ export const friendGroupsSharesRouter = {
       const repos = context.repos;
       const { friendGroups, copies, marketplace } = repos;
 
-      const group = await friendGroups.getBySlugOrPrevious(input.slug);
-      if (!group) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Group not found");
-      }
+      const group = await loadGroupBySlug(repos, input.slug);
 
       const shared = await friendGroups.getSharedCollection(group.id, input.collectionId, viewerId);
-      if (!shared) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Collection not shared with this group");
-      }
+      assertFound(shared, "Collection not shared with this group");
 
       // Value uses the owner's favorite marketplace, matching what the owner
       // sees and what the public-share-token page does.

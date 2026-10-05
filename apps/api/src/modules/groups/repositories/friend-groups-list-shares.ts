@@ -2,7 +2,7 @@ import { sql } from "kysely";
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import type { GroupShare } from "./friend-groups-shared.js";
+import type { GroupShare, SharedListRow } from "./friend-groups-shared.js";
 
 export function friendGroupListSharesRepo(db: Kysely<Database>) {
   return {
@@ -118,23 +118,7 @@ export function friendGroupListSharesRepo(db: Kysely<Database>) {
       groupId: string,
       listId: string,
       viewerUserId: string,
-    ): Promise<
-      | {
-          list: {
-            id: string;
-            userId: string;
-            name: string;
-            intent: string;
-            kind: string;
-            defaultPricePref: string | null;
-            defaultPriceAbsoluteCents: number | null;
-            defaultTradeType: string | null;
-            currency: string | null;
-          };
-          ownerName: string | null;
-        }
-      | undefined
-    > {
+    ): Promise<SharedListRow | undefined> {
       const viewerMembership = await db
         .selectFrom("friendGroupMembers")
         .select("role")

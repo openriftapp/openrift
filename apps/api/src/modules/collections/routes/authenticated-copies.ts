@@ -7,12 +7,15 @@ import type {
 import { implement } from "@orpc/server";
 
 import { keysetPage } from "../../../lib/keyset-cursor.js";
+import { isCheckViolation, isForeignKeyViolation } from "../../../lib/pg-errors.js";
+import { pinWatermark, takePage } from "../../../lib/xid-watermark.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { clampCopiesLimit } from "../lib/copies-page-limit.js";
 import type { CopyDeltaCursor } from "../lib/copy-delta-cursor.js";
 import { buildCopyDeltaCursor, parseCopyDeltaCursor } from "../lib/copy-delta-cursor.js";
 import { toCopy } from "../lib/copy-presenters.js";
+import { addCopies, disposeCopies, moveCopies, updateCopies } from "../services/copies.js";
 
 const os = implement(copiesContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -31,9 +34,9 @@ async function deltaPage(
     copies.listChangedForAccessibleCollections(userId, since, safeXid, limit, cursor?.row),
     copies.deletionsSince(userId, since, safeXid, limit, cursor?.deletion),
   ]);
-  const rowPage = rows.slice(0, limit);
-  const deletionPage = deletions.slice(0, limit);
-  const drained = rows.length <= limit && deletions.length <= limit;
+  const { page: rowPage, drained: rowsDrained } = takePage(rows, limit);
+  const { page: deletionPage, drained: deletionsDrained } = takePage(deletions, limit);
+  const drained = rowsDrained && deletionsDrained;
   const lastRow = rowPage.at(-1);
   const lastDeletion = deletionPage.at(-1);
   return {
@@ -61,12 +64,8 @@ export const copiesRouter = {
     const cursor =
       input.deltaCursor === undefined ? undefined : parseCopyDeltaCursor(input.deltaCursor);
     const currentSafeXid = await copies.currentSafeXid();
-    // The cursor's watermark is client input, so it may only narrow the window.
-    // A larger one would filter every later delta out and freeze that caller's store.
-    const pinnedXid =
-      cursor !== undefined && BigInt(cursor.safeXid) < BigInt(currentSafeXid)
-        ? cursor.safeXid
-        : currentSafeXid;
+    // A cursor watermark above the server's would filter every later delta out and freeze that caller's store.
+    const pinnedXid = pinWatermark(currentSafeXid, cursor?.safeXid);
 
     // A watermark above the server's own would match no row and still report the
     // read drained, skipping everything written between the two.
@@ -99,18 +98,16 @@ export const copiesRouter = {
   }),
 
   add: os.add.handler(async ({ input, context, errors }): Promise<CopyAddResponse> => {
-    const { addCopies: addCopiesService } = context.services;
     const repos = context.repos;
     const transact = context.transact;
     const userId = context.userId;
     let created;
     try {
-      created = await addCopiesService(repos, transact, userId, input.copies, {
+      created = await addCopies(repos, transact, userId, input.copies, {
         batchId: input.batchId,
       });
     } catch (error) {
-      // 23503 = foreign_key_violation: printingId does not exist.
-      if (error instanceof Error && "code" in error && error.code === "23503") {
+      if (isForeignKeyViolation(error)) {
         throw errors.BAD_REQUEST({ message: "One or more printings do not exist" });
       }
       throw error;
@@ -119,8 +116,7 @@ export const copiesRouter = {
   }),
 
   move: os.move.handler(async ({ input, context }): Promise<void> => {
-    const { moveCopies: moveCopiesService } = context.services;
-    await moveCopiesService(
+    await moveCopies(
       context.repos,
       context.transact,
       context.userId,
@@ -130,16 +126,11 @@ export const copiesRouter = {
   }),
 
   update: os.update.handler(async ({ input, context, errors }): Promise<void> => {
-    const { updateCopies: updateCopiesService } = context.services;
     try {
-      await updateCopiesService(context.transact, context.userId, input.copyIds, input.patch);
+      await updateCopies(context.transact, context.userId, input.copyIds, input.patch);
     } catch (error) {
-      // 23503 = unknown condition/grader slug; 23514 = bad grader/grade pairing.
-      if (
-        error instanceof Error &&
-        "code" in error &&
-        (error.code === "23503" || error.code === "23514")
-      ) {
+      // FK = unknown condition/grader slug; check = bad grader/grade pairing.
+      if (isForeignKeyViolation(error) || isCheckViolation(error)) {
         throw errors.BAD_REQUEST({ message: "Unknown condition or grader" });
       }
       throw error;
@@ -147,8 +138,7 @@ export const copiesRouter = {
   }),
 
   dispose: os.dispose.handler(async ({ input, context }): Promise<void> => {
-    const { disposeCopies: disposeCopiesService } = context.services;
-    await disposeCopiesService(context.transact, context.userId, input.copyIds);
+    await disposeCopies(context.transact, context.userId, input.copyIds);
   }),
 
   listMemberships: os.listMemberships.handler(

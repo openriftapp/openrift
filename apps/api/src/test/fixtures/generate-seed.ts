@@ -12,7 +12,7 @@ import { writeFileSync } from "node:fs";
 // oxlint-disable-next-line import/no-nodejs-modules -- CLI script, not a browser module
 import { resolve } from "node:path";
 
-import { stringifyUnknown } from "@openrift/shared/utils";
+import { stringifyUnknown } from "@openrift/shared/strings";
 import postgres from "postgres";
 
 const DATABASE_URL = process.env.DATABASE_URL;

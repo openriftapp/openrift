@@ -63,8 +63,8 @@ describe("buildScanIndex", () => {
 
   it("indexes both the short and the public printing code", () => {
     const index = indexOf([["card-1", "Jinx, Rebel"]], [{ cardId: "card-1" }]);
-    expect(index.byCode.get("ogn202")?.name).toBe("Jinx, Rebel");
-    expect(index.byCode.get("ogn202298")?.name).toBe("Jinx, Rebel");
+    expect(index.byCode.get("ogn202")?.card.name).toBe("Jinx, Rebel");
+    expect(index.byCode.get("ogn202298")?.card.name).toBe("Jinx, Rebel");
   });
 });
 

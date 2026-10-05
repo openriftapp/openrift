@@ -1,11 +1,7 @@
-import { z } from "zod";
-
 import { authedRoute } from "./_base.js";
+import { shareStateResponseSchema } from "./fields.js";
 
-export const userShareStateResponseSchema = z.object({
-  shareToken: z.string().nullable(),
-  isPublic: z.boolean(),
-});
+export const userShareStateResponseSchema = shareStateResponseSchema;
 
 export const userShareContract = {
   get: authedRoute

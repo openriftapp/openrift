@@ -9,7 +9,7 @@ import { publicUserShareRouter } from "./public-user-share";
 const mockUserSharesRepo = {
   findOwnerByShareToken: vi.fn(),
   listsForOwner: vi.fn(),
-  findListInBundle: vi.fn(),
+  getListInBundle: vi.fn(),
 };
 
 const mockFriendGroupsRepo = {
@@ -88,6 +88,7 @@ const dbList = {
   intent: "trade" as const,
   kind: "card" as const,
   shareToken: "list-tok",
+  isPublic: true,
   createdAt: NOW,
   updatedAt: NOW,
   defaultPricePref: null,
@@ -385,7 +386,7 @@ describe("GET /api/v1/users/share/:token/lists/:listId", () => {
   });
 
   it("returns 200 with the list, entries, and owner", async () => {
-    mockUserSharesRepo.findListInBundle.mockResolvedValue(dbList);
+    mockUserSharesRepo.getListInBundle.mockResolvedValue(dbList);
     mockUserSharesRepo.findOwnerByShareToken.mockResolvedValue(dbOwner);
     mockListsRepo.entriesWithDetailsAnon.mockResolvedValue([dbEntry]);
 
@@ -401,7 +402,7 @@ describe("GET /api/v1/users/share/:token/lists/:listId", () => {
   });
 
   it("returns 404 when the list is not visible in the bundle", async () => {
-    mockUserSharesRepo.findListInBundle.mockResolvedValue(undefined);
+    mockUserSharesRepo.getListInBundle.mockResolvedValue(undefined);
 
     const res = await app.request(`/api/v1/users/share/tok-abc/lists/${LIST_ID}`);
     expect(res.status).toBe(404);
@@ -413,6 +414,6 @@ describe("GET /api/v1/users/share/:token/lists/:listId", () => {
   it("returns 400 when the listId is not a UUID", async () => {
     const res = await app.request("/api/v1/users/share/tok-abc/lists/not-a-uuid");
     expect(res.status).toBe(400);
-    expect(mockUserSharesRepo.findListInBundle).not.toHaveBeenCalled();
+    expect(mockUserSharesRepo.getListInBundle).not.toHaveBeenCalled();
   });
 });

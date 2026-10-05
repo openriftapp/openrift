@@ -10,9 +10,10 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { Hono } from "hono";
 
 import { assertFound } from "../../../lib/assertions.js";
+import { pngResponse } from "../../../lib/http-response.js";
+import { siteHostFromOrigin } from "../../../lib/site-url.js";
 import { requireAdmin } from "../../../middleware/require-admin.js";
 import type { Variables } from "../../../types.js";
-import { siteHostFromOrigin } from "../../lists/services/list-image.js";
 import { renderPrintingPostImage } from "../services/printing-post-image.js";
 
 const PATH = "/api/admin/v1/printing-desk/printings/:printingId/post-image.png";
@@ -66,7 +67,7 @@ export function mountAdminPrintingPostImage(app: Hono<{ Variables: Variables }>)
         channelLabel,
         markerLabels: markers.map((marker) => marker.label),
         artist: printing.artist,
-        siteHost: siteHostFromOrigin(config.corsOrigin),
+        siteHost: siteHostFromOrigin(config.siteOrigin),
         imageCredit: imageCredit?.credit ?? null,
         detailsLine: detailsLine || undefined,
         label,
@@ -79,9 +80,6 @@ export function mountAdminPrintingPostImage(app: Hono<{ Variables: Variables }>)
       scale,
     );
 
-    return new Response(png, {
-      status: 200,
-      headers: { "Content-Type": "image/png", "Cache-Control": "private, no-store" },
-    });
+    return pngResponse(png);
   });
 }

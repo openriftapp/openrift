@@ -1,12 +1,12 @@
 import { adminFeatureFlagsContract } from "@openrift/shared/contracts/admin/feature-flags";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
-import type { FeatureFlagResponse } from "@openrift/shared/types/api/admin";
 import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
-import { assertDeleted, assertFound } from "../../../lib/assertions.js";
+import { assertDeleted, assertExisted, assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { toFeatureFlag } from "../lib/user-presenters.js";
 
 const os = implement(adminFeatureFlagsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -15,17 +15,11 @@ export const adminFeatureFlagsRouter = {
     const { featureFlags: flagsRepo } = context.repos;
     const rows = await flagsRepo.listAll();
     return {
-      flags: rows.map((r): FeatureFlagResponse => ({
-        key: r.key,
-        enabled: r.enabled,
-        description: r.description,
-        createdAt: r.createdAt.toISOString(),
-        updatedAt: r.updatedAt.toISOString(),
-      })),
+      flags: rows.map((row) => toFeatureFlag(row)),
     };
   }),
 
-  create: os.create.handler(async ({ input, context }): Promise<void> => {
+  create: os.create.handler(async ({ input, context, errors }): Promise<void> => {
     const { featureFlags: flagsRepo } = context.repos;
     const { key, description, enabled } = input;
     const created = await flagsRepo.create({
@@ -34,7 +28,7 @@ export const adminFeatureFlagsRouter = {
       description: description ?? null,
     });
     if (!created) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, `Flag "${key}" already exists`);
+      throw errors.CONFLICT({ message: `Flag "${key}" already exists` });
     }
   }),
 
@@ -47,8 +41,8 @@ export const adminFeatureFlagsRouter = {
 
   remove: os.remove.handler(async ({ input, context }): Promise<void> => {
     const { featureFlags: flagsRepo } = context.repos;
-    const result = await flagsRepo.deleteByKey(input.key);
-    assertDeleted(result, `Flag "${input.key}" not found`);
+    const deleted = await flagsRepo.deleteByKey(input.key);
+    assertExisted(deleted, `Flag "${input.key}" not found`);
   }),
 
   listOverrides: os.listOverrides.handler(async ({ context }) => {

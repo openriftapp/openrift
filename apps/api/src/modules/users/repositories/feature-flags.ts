@@ -1,4 +1,4 @@
-import type { DeleteResult, Kysely, Selectable } from "kysely";
+import type { Kysely, Selectable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { FeatureFlagsTable } from "../../../db/tables/settings.js";
@@ -47,8 +47,9 @@ export function featureFlagsRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    deleteByKey(key: string): Promise<DeleteResult> {
-      return db.deleteFrom("featureFlags").where("key", "=", key).executeTakeFirst();
+    async deleteByKey(key: string): Promise<boolean> {
+      const result = await db.deleteFrom("featureFlags").where("key", "=", key).executeTakeFirst();
+      return result.numDeletedRows > 0n;
     },
   };
 }

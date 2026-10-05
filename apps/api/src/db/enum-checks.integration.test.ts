@@ -23,12 +23,7 @@ import {
 } from "@openrift/shared/contracts/friend-groups";
 import { LOAN_STATUSES } from "@openrift/shared/contracts/loans";
 import { organizationRoleSchema } from "@openrift/shared/contracts/organizations";
-import {
-  RULE_CHANGE_TYPES,
-  RULE_KINDS,
-  RULE_LANGUAGES,
-  RULE_TYPES,
-} from "@openrift/shared/contracts/rules";
+import { RULE_CHANGE_TYPES, RULE_KINDS, RULE_TYPES } from "@openrift/shared/contracts/rules";
 import {
   scoringSchemeSchema,
   tournamentDeckPhaseSchema,
@@ -62,6 +57,7 @@ import {
   tournamentFormatSchema,
   tradeTypeResponseSchema,
 } from "@openrift/shared/response-schemas";
+import { RULE_LANGUAGES } from "@openrift/shared/rules";
 import { CONTACT_METHOD_TYPES } from "@openrift/shared/types/api/contact-method";
 import { TRADE_PRICE_PREFS } from "@openrift/shared/types/api/trade-preferences";
 import {

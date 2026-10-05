@@ -39,7 +39,7 @@ function cardsInZone(cards: DeckCard[], zone: DeckZone): DeckCard[] {
   return cards.filter((card) => card.zone === zone);
 }
 
-function totalQuantity(cards: DeckCard[]): number {
+export function totalQuantity(cards: readonly { quantity: number }[]): number {
   return cards.reduce((sum, card) => sum + card.quantity, 0);
 }
 

@@ -7,6 +7,7 @@ import type {
   PlayloltcgEventStandingsTable,
 } from "../../../db/tables/meta-sources.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 
 // This source publishes standings and decks, but no per-round pairings and no
 // phase structure, so it has neither table.
@@ -36,7 +37,7 @@ export function playloltcgResultsRepo(db: Kysely<Database>) {
       activityShopId: number,
       rows: readonly Insertable<PlayloltcgEventStandingsTable>[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx
           .deleteFrom("playloltcgEventStandings")
           .where("activityShopId", "=", activityShopId)
@@ -96,7 +97,7 @@ export function playloltcgResultsRepo(db: Kysely<Database>) {
       row: Insertable<PlayloltcgDecklistsTable>,
       cards: readonly Omit<Insertable<PlayloltcgDecklistCardsTable>, "sourceDeckId">[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx
           .insertInto("playloltcgDecklists")
           .values(row)

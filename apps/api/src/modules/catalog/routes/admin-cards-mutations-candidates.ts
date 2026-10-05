@@ -1,20 +1,20 @@
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/card-mutations";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
-import { normalizeNameForIdentity } from "@openrift/shared/utils";
 import { implement } from "@orpc/server";
 import type { Updateable } from "kysely";
 
 import type { CandidatePrintingsTable } from "../../../db/tables/candidates.js";
-import { AppError } from "../../../errors.js";
-import { assertDeleted, assertFound, assertUpdated } from "../../../lib/assertions.js";
+import { assertExisted, assertFound, assertUpdated } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import {
   assertCandidatePrintingsInScope,
   reviewableProviderScope,
-} from "../../candidates/services/card-review-scope.js";
+} from "../../candidates/lib/card-review-scope.js";
 import { resolveCheckedSubmissions } from "../../candidates/services/card-submission-outcomes.js";
+import { ingestCandidates } from "../../candidates/services/ingest-candidates.js";
 import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
+import { requireScheduler } from "../../system/services/job-scheduler.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 
 const os = implement(adminCardMutationsContract).$context<ApiContext>().use(requireAuthedUser);
@@ -111,7 +111,7 @@ export const adminCardMutationsCandidatesRouter = {
   }),
 
   patchCandidatePrinting: os.patchCandidatePrinting.handler(
-    async ({ input, context }): Promise<void> => {
+    async ({ input, context, errors }): Promise<void> => {
       const { candidateCards, providerSettings } = context.repos;
       const { id, ...body } = input;
 
@@ -122,7 +122,7 @@ export const adminCardMutationsCandidatesRouter = {
       const updates: Updateable<CandidatePrintingsTable> = { ...body };
 
       if (Object.keys(updates).length === 0) {
-        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "No valid fields to update");
+        throw errors.BAD_REQUEST({ message: "No valid fields to update" });
       }
 
       const before = await candidateCards.getCandidatePrintingById(id);
@@ -149,8 +149,8 @@ export const adminCardMutationsCandidatesRouter = {
     async ({ input, context }): Promise<void> => {
       const { candidateCards } = context.repos;
       const before = await candidateCards.getCandidatePrintingById(input.id);
-      const result = await candidateCards.deleteCandidatePrinting(input.id);
-      assertDeleted(result, "Candidate printing not found");
+      const deleted = await candidateCards.deleteCandidatePrinting(input.id);
+      assertExisted(deleted, "Candidate printing not found");
 
       await recordAdminEvent(context.repos, context.userId, {
         action: "candidate-printing.delete",
@@ -172,12 +172,12 @@ export const adminCardMutationsCandidatesRouter = {
   ),
 
   copyCandidatePrinting: os.copyCandidatePrinting.handler(
-    async ({ input, context }): Promise<void> => {
+    async ({ input, context, errors }): Promise<void> => {
       const { catalogMutations: mut, candidateCards } = context.repos;
       const { id, printingId } = input;
 
       if (!printingId) {
-        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "printingId is required");
+        throw errors.BAD_REQUEST({ message: "printingId is required" });
       }
 
       const ps = await candidateCards.getCandidatePrintingById(id);
@@ -199,12 +199,12 @@ export const adminCardMutationsCandidatesRouter = {
   ),
 
   linkCandidatePrintings: os.linkCandidatePrintings.handler(
-    async ({ input, context }): Promise<void> => {
+    async ({ input, context, errors }): Promise<void> => {
       const { candidateCards } = context.repos;
       const { candidatePrintingIds, printingId } = input;
 
       if (!Array.isArray(candidatePrintingIds) || candidatePrintingIds.length === 0) {
-        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "candidatePrintingIds[] required");
+        throw errors.BAD_REQUEST({ message: "candidatePrintingIds[] required" });
       }
 
       await candidateCards.linkCandidatePrintings(candidatePrintingIds, printingId);
@@ -236,10 +236,7 @@ export const adminCardMutationsCandidatesRouter = {
   }),
 
   checkMatchingCandidates: os.checkMatchingCandidates.handler(async ({ context }) => {
-    if (context.scheduler === null) {
-      throw new AppError(503, ERROR_CODES.SERVICE_UNAVAILABLE, "The job scheduler is not running");
-    }
-    const started = await context.scheduler.runNow("candidates.check_matching");
+    const started = await requireScheduler(context.scheduler).runNow("candidates.check_matching");
 
     if (started.status === "running") {
       await recordAdminEvent(context.repos, context.userId, {
@@ -252,11 +249,11 @@ export const adminCardMutationsCandidatesRouter = {
     return started;
   }),
 
-  checkByProvider: os.checkByProvider.handler(async ({ input, context }) => {
+  checkByProvider: os.checkByProvider.handler(async ({ input, context, errors }) => {
     const { candidateCards } = context.repos;
     const provider = input.provider;
     if (!provider.trim()) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Provider name is required");
+      throw errors.BAD_REQUEST({ message: "Provider name is required" });
     }
     const now = new Date();
     const result = await candidateCards.checkByProvider(provider.trim(), now);
@@ -273,10 +270,10 @@ export const adminCardMutationsCandidatesRouter = {
     return result;
   }),
 
-  deleteByProvider: os.deleteByProvider.handler(async ({ input, context }) => {
+  deleteByProvider: os.deleteByProvider.handler(async ({ input, context, errors }) => {
     const provider = input.provider.trim();
     if (!provider) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Provider name is required");
+      throw errors.BAD_REQUEST({ message: "Provider name is required" });
     }
     const deleted = await context.transact(async (repos) => {
       const count = await repos.candidateCards.deleteByProvider(provider);
@@ -298,7 +295,6 @@ export const adminCardMutationsCandidatesRouter = {
   upload: os.upload.handler(async ({ input, context }) => {
     const { provider, candidates: cards } = input;
 
-    const { ingestCandidates } = context.services;
     const result = await ingestCandidates(context.transact, provider.trim(), cards);
 
     // Counts only — the per-card detail arrays are unbounded.

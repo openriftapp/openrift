@@ -1,3 +1,5 @@
+import type { Random } from "../random.js";
+import { pickOneUnique } from "../random.js";
 import { WellKnown } from "../well-known.js";
 import {
   COMMONS_PER_PACK,
@@ -13,8 +15,6 @@ import {
   ULTIMATE_RATE,
   UNCOMMONS_PER_PACK,
 } from "./rates.js";
-import type { Random } from "./rng.js";
-import { pickOneUnique } from "./rng.js";
 import type { PackPool, PackPrinting, PackPull, PackResult } from "./types.js";
 
 function pickFoilSlot(rng: Random, pool: PackPool, pulled: ReadonlySet<string>): PackPrinting {

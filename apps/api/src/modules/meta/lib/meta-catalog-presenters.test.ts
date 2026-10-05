@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 
+import type { JobRun } from "../../system/repositories/job-runs.js";
 import type { UvsgamesCoverageRow, UvsgamesTemplateRow } from "../repositories/uvsgames-events.js";
-import { toMetaCatalogRow, toMetaSourceTemplate } from "./meta-catalog-presenters.js";
+import {
+  toMetaCatalogRow,
+  toMetaSourceTemplate,
+  toMetaSyncCatalog,
+  toMetaSyncRun,
+  toMetaSyncSettings,
+} from "./meta-catalog-presenters.js";
 
 const WATCHED = "0cbcab3e-be80-4d1d-a450-9485e584906d";
 const UNWATCHED = "f0c650f5-ab18-4d69-8112-19e5cff8b7b2";
@@ -206,5 +213,96 @@ describe("toMetaSourceTemplate", () => {
     expect(presented.sourceName).toBeNull();
     expect(presented.suggestedTier).toBeNull();
     expect(presented.lastStartAt).toBeNull();
+  });
+});
+
+function jobRun(overrides: Partial<JobRun> = {}): JobRun {
+  return {
+    id: "run-1",
+    kind: "meta.uvsgames_sync",
+    trigger: "cron",
+    status: "succeeded",
+    startedAt: new Date("2026-08-15T18:00:00Z"),
+    finishedAt: new Date("2026-08-15T18:05:00Z"),
+    durationMs: 300_000,
+    errorMessage: null,
+    result: { accepted: 3 },
+    noop: false,
+    ...overrides,
+  };
+}
+
+describe("toMetaSyncRun", () => {
+  it("serializes the timestamps and drops the noop flag", () => {
+    expect(toMetaSyncRun(jobRun())).toEqual({
+      id: "run-1",
+      kind: "meta.uvsgames_sync",
+      trigger: "cron",
+      status: "succeeded",
+      startedAt: "2026-08-15T18:00:00.000Z",
+      finishedAt: "2026-08-15T18:05:00.000Z",
+      durationMs: 300_000,
+      errorMessage: null,
+      result: { accepted: 3 },
+    });
+  });
+
+  it("keeps a running job's missing finish and result as null", () => {
+    const presented = toMetaSyncRun(
+      jobRun({ status: "running", finishedAt: null, durationMs: null, result: undefined }),
+    );
+
+    expect(presented.finishedAt).toBeNull();
+    expect(presented.result).toBeNull();
+  });
+});
+
+describe("toMetaSyncSettings", () => {
+  it("serializes updatedAt and keeps the toggles", () => {
+    expect(
+      toMetaSyncSettings({
+        autoAcceptMinPlayers: null,
+        autoAcceptNotable: true,
+        autoAcceptOfficial: false,
+        competitivePlayerFloor: 16,
+        updatedAt: new Date("2026-08-15T18:00:00Z"),
+      }),
+    ).toEqual({
+      autoAcceptMinPlayers: null,
+      autoAcceptNotable: true,
+      autoAcceptOfficial: false,
+      competitivePlayerFloor: 16,
+      updatedAt: "2026-08-15T18:00:00.000Z",
+    });
+  });
+});
+
+describe("toMetaSyncCatalog", () => {
+  const overview = {
+    total: 120,
+    completed: 90,
+    decklistPublished: 40,
+    missing: 2,
+    queued: 5,
+    dueRecheck: 7,
+    oldestDueAt: new Date("2026-08-01T00:00:00Z"),
+    acceptedAwaitingResults: 3,
+    acceptedMissing: 1,
+    lastSeenAt: new Date("2026-08-20T00:00:00Z"),
+  };
+
+  it("serializes the two timestamps and keeps the counts", () => {
+    expect(toMetaSyncCatalog(overview)).toEqual({
+      ...overview,
+      oldestDueAt: "2026-08-01T00:00:00.000Z",
+      lastSeenAt: "2026-08-20T00:00:00.000Z",
+    });
+  });
+
+  it("keeps an empty catalogue's timestamps null", () => {
+    const presented = toMetaSyncCatalog({ ...overview, oldestDueAt: null, lastSeenAt: null });
+
+    expect(presented.oldestDueAt).toBeNull();
+    expect(presented.lastSeenAt).toBeNull();
   });
 });

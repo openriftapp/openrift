@@ -155,7 +155,7 @@ describe.skipIf(!ctx)("userSharesRepo (integration)", () => {
     expect(anonymousRows.map((row) => row.list.id)).not.toContain(groupOnly.id);
   });
 
-  it("findListInBundle: rejects organize, gates by share_token + group membership", async () => {
+  it("getListInBundle: rejects organize, gates by share_token + group membership", async () => {
     await repo.setShareToken(userId, "find-list-token");
 
     const publicWish = await lists.create({
@@ -183,16 +183,16 @@ describe.skipIf(!ctx)("userSharesRepo (integration)", () => {
     });
     createdListIds.push(organize.id);
 
-    const publicFound = await repo.findListInBundle("find-list-token", publicWish.id, null);
+    const publicFound = await repo.getListInBundle("find-list-token", publicWish.id, null);
     expect(publicFound?.id).toBe(publicWish.id);
 
-    const privateFound = await repo.findListInBundle("find-list-token", privateWish.id, null);
+    const privateFound = await repo.getListInBundle("find-list-token", privateWish.id, null);
     expect(privateFound).toBeUndefined();
 
-    const organizeFound = await repo.findListInBundle("find-list-token", organize.id, null);
+    const organizeFound = await repo.getListInBundle("find-list-token", organize.id, null);
     expect(organizeFound).toBeUndefined();
 
-    const wrongTokenFound = await repo.findListInBundle("wrong-token", publicWish.id, null);
+    const wrongTokenFound = await repo.getListInBundle("wrong-token", publicWish.id, null);
     expect(wrongTokenFound).toBeUndefined();
   });
 });

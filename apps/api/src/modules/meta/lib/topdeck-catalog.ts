@@ -1,10 +1,9 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- server-side hashing, never reaches the browser
-import { createHash } from "node:crypto";
-
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { inferZone } from "@openrift/shared/zone-inference";
 
+import { stableKey } from "../../../lib/hash.js";
+import { coord, count, record, text } from "../../../lib/json-coerce.js";
 import { countryFromAddress } from "./meta-event-classify.js";
 
 /**
@@ -24,31 +23,6 @@ export function topdeckFormat(sourceFormat: string): string {
   return sourceFormat.toLowerCase() === "constructed"
     ? WellKnown.deckFormat.CONSTRUCTED
     : WellKnown.deckFormat.FREEFORM;
-}
-
-function record(value: unknown): Record<string, unknown> | null {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-function text(value: unknown): string | null {
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    return trimmed === "" ? null : trimmed;
-  }
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
-  }
-  return null;
-}
-
-function count(value: unknown): number | null {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
-}
-
-function coord(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 /** The source's `startDate`, unix seconds. */
@@ -112,7 +86,7 @@ export function topdeckContentHash(fields: Omit<TopdeckEventProjection, "content
     fields.longitude === null ? "" : String(fields.longitude),
     fields.latitude === null ? "" : String(fields.latitude),
   ];
-  return createHash("sha256").update(parts.join("\0")).digest("hex").slice(0, 32);
+  return stableKey(parts, 32);
 }
 
 const MAX_EVENT_NAME = 120;

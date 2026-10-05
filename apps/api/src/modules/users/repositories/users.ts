@@ -2,7 +2,7 @@ import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 
-interface UserWithCounts {
+export interface UserWithCounts {
   id: string;
   email: string;
   name: string | null;
@@ -96,7 +96,7 @@ export function usersRepo(db: Kysely<Database>) {
       }));
     },
 
-    findById(id: string): Promise<{ id: string; name: string | null; email: string } | undefined> {
+    getById(id: string): Promise<{ id: string; name: string | null; email: string } | undefined> {
       return db
         .selectFrom("users")
         .select(["id", "name", "email"])
@@ -114,7 +114,7 @@ export function usersRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    findIdByEmail(email: string): Promise<{ id: string } | undefined> {
+    getIdByEmail(email: string): Promise<{ id: string } | undefined> {
       return db
         .selectFrom("users")
         .select(["id"])

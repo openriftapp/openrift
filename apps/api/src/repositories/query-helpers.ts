@@ -1,5 +1,5 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CardType, Finish, Rarity } from "@openrift/shared/types/enums";
-import { legendDisplayName } from "@openrift/shared/utils";
 import type {
   Expression,
   ExpressionBuilder,
@@ -102,6 +102,68 @@ export async function listOwnedByUser<TRow>(
 /** A row stamped at or below this transaction id is committed or gone. */
 export const safeXidExpression = sql<string>`pg_snapshot_xmin(pg_current_snapshot())::text`;
 
+export async function currentSafeXid(db: Kysely<Database>): Promise<string> {
+  const row = await db.selectNoFrom(safeXidExpression.as("xid")).executeTakeFirstOrThrow();
+  return row.xid;
+}
+
+/** Reuses an enclosing transaction, since Kysely rejects a nested one. */
+export function inTransaction<T>(
+  db: Kysely<Database>,
+  run: (trx: Kysely<Database>) => Promise<T>,
+): Promise<T> {
+  return db.isTransaction ? run(db) : db.transaction().execute(run);
+}
+
+/**
+ * Runs `base` once as the page and once as a `count(*)` with its select list and
+ * ORDER BY dropped, so both share the same filters. `base` must not group.
+ */
+export async function offsetPage<DB, TB extends keyof DB, O>(
+  base: SelectQueryBuilder<DB, TB, O>,
+  page: { limit: number; offset: number },
+): Promise<{ rows: O[]; total: number }> {
+  const [rows, countRow] = await Promise.all([
+    base.limit(page.limit).offset(page.offset).execute(),
+    base
+      .clearSelect()
+      .clearOrderBy()
+      .select(sql<string>`count(*)`.as("total"))
+      .executeTakeFirstOrThrow(),
+  ]);
+  return { rows, total: Number((countRow as { total: string }).total) };
+}
+
+/**
+ * Callers must validate `keys` against the table's current rows first: an
+ * unmatched key is silently ignored, and a row missing from `keys` keeps its old position.
+ */
+export async function reorderBySortOrder(
+  db: Kysely<Database>,
+  options: {
+    table: keyof Database;
+    keyColumn: string;
+    keys: readonly string[];
+    keyType?: "text" | "uuid";
+    scope?: Expression<SqlBool>;
+  },
+): Promise<void> {
+  const { table, keyColumn, keys, keyType = "text", scope } = options;
+  if (keys.length === 0) {
+    return;
+  }
+
+  const cast = sql.raw(keyType);
+  const values = sql.join(keys.map((key, i) => sql`(${key}::${cast}, ${i}::int)`));
+  const scoped = scope === undefined ? sql`` : sql` and ${scope}`;
+  await sql`
+    update ${sql.table(table)}
+    set sort_order = d.new_order
+    from (values ${values}) as d(key, new_order)
+    where ${sql.ref(`${table}.${keyColumn}`)} = d.key${scoped}
+  `.execute(db);
+}
+
 /**
  * Caller's ORDER BY must be `<timeColumn> desc, <idColumn> <idDirection>`.
  * Needs both a `date_trunc('milliseconds', ...)` comparison (the column keeps µs precision a JS `Date` cannot) and a redundant bare-column bound (`date_trunc` is only STABLE, so it alone is not sargable).
@@ -130,23 +192,30 @@ interface FrontImageTables {
 }
 
 /**
- * Left-joins the active front-face image of the `p`-aliased printing, exposing
- * it as `pi` (printing_images) and `imgf` (image_files). Left, not inner, so a
- * printing with no artwork still yields its row — pair it with `imageId("imgf")`
- * to get the nullable image id, or read `imgf.rehostedUrl` directly.
+ * Left-joins the active front-face image of the printing aliased `printingAlias`
+ * (default `p`), exposing it as `pi` (printing_images) and `imgf` (image_files).
+ * Left, not inner, so a printing with no artwork still yields its row — pair it
+ * with `imageId("imgf")` to get the nullable image id, or read `imgf.rehostedUrl` directly.
  *
- * The query must already have `printings` (or `printings_ordered`) aliased to
- * `p`; the generic constraint enforces that much, and the internal casts are
+ * The query must already have `printings` (or `printings_ordered`) under that
+ * alias; the generic constraint enforces that much, and the internal casts are
  * what let one helper serve every root table. Callers therefore must not
  * already use the `pi` or `imgf` aliases.
  */
-export function joinFrontImage<DB extends { p: { id: unknown } }, TB extends keyof DB, O>(
+export function joinFrontImage<
+  DB extends Record<Alias, { id: unknown }>,
+  TB extends keyof DB,
+  O,
+  Alias extends string = "p",
+>(
   qb: SelectQueryBuilder<DB, TB, O>,
+  printingAlias?: Alias,
 ): SelectQueryBuilder<DB & FrontImageTables, TB | "pi" | "imgf", O> {
+  const printingId = `${printingAlias ?? "p"}.id` as "p.id";
   return (qb as unknown as SelectQueryBuilder<Database & { p: PrintingsTable }, "p", O>)
     .leftJoin("printingImages as pi", (join) =>
       join
-        .onRef("pi.printingId", "=", "p.id")
+        .onRef("pi.printingId", "=", printingId)
         .on("pi.face", "=", "front")
         .on("pi.isActive", "=", true),
     )

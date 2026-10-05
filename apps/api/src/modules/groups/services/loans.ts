@@ -3,6 +3,7 @@ import type { LoanResponse } from "@openrift/shared/types/api/loan";
 
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
+import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolation } from "../../../lib/pg-errors.js";
 import { disposeCopiesInTransaction } from "../../collections/services/copies.js";
 import { toLoanResponse } from "../lib/loan-presenters.js";
@@ -28,18 +29,28 @@ function tooFewAvailable(count: number): AppError {
 
 async function reloadDto(repos: Repos, loanId: string, userId: string): Promise<LoanResponse> {
   const row = await repos.loans.getDtoRowByIdForUser(loanId, userId);
-  if (row === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Loan not found");
-  }
+  assertFound(row, "Loan not found");
   return toLoanResponse(row, userId);
 }
 
-async function requireLenderLoan(repos: Repos, loanId: string, userId: string) {
+async function requireLoanParty(
+  repos: Repos,
+  loanId: string,
+  userId: string,
+  party: "lenderUserId" | "borrowerUserId",
+) {
   const loan = await repos.loans.getById(loanId);
-  if (loan === undefined || loan.lenderUserId !== userId) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Loan not found");
-  }
-  return loan;
+  const owned = loan?.[party] === userId ? loan : undefined;
+  assertFound(owned, "Loan not found");
+  return owned;
+}
+
+function requireLenderLoan(repos: Repos, loanId: string, userId: string) {
+  return requireLoanParty(repos, loanId, userId, "lenderUserId");
+}
+
+function requireBorrowerLoan(repos: Repos, loanId: string, userId: string) {
+  return requireLoanParty(repos, loanId, userId, "borrowerUserId");
 }
 
 export function createLoan(transact: Transact, input: CreateLoanInput): Promise<LoanResponse> {
@@ -61,15 +72,11 @@ export function createLoan(transact: Transact, input: CreateLoanInput): Promise<
     }
     if (borrowerUserId !== undefined) {
       const shared = await trxRepos.loans.isCoMember(lenderUserId, borrowerUserId);
-      if (!shared) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Borrower not found in your groups");
-      }
+      assertExisted(shared, "Borrower not found in your groups");
     }
 
     const cardId = await trxRepos.loans.printingCardId(printingId);
-    if (cardId === undefined) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Printing not found");
-    }
+    assertFound(cardId, "Printing not found");
 
     const unclaimed = await trxRepos.loans.listUnclaimedCopyIds(
       lenderUserId,
@@ -151,10 +158,7 @@ export function declareLoanReturn(
   count: number,
 ): Promise<LoanResponse> {
   return transact(async (trxRepos) => {
-    const loan = await trxRepos.loans.getById(loanId);
-    if (loan === undefined || loan.borrowerUserId !== userId) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Loan not found");
-    }
+    const loan = await requireBorrowerLoan(trxRepos, loanId, userId);
     if (loan.status !== "active" || loan.acknowledgedAt === null) {
       throw new AppError(409, ERROR_CODES.CONFLICT, "Loan is not active");
     }
@@ -265,10 +269,7 @@ export function acknowledgeLoan(
   return transact(async (trxRepos) => {
     const updated = await trxRepos.loans.acknowledge(loanId, userId);
     if (updated === 0) {
-      const loan = await trxRepos.loans.getById(loanId);
-      if (loan === undefined || loan.borrowerUserId !== userId) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Loan not found");
-      }
+      await requireBorrowerLoan(trxRepos, loanId, userId);
       throw new AppError(409, ERROR_CODES.CONFLICT, "Loan is not active");
     }
     return reloadDto(trxRepos, loanId, userId);
@@ -283,10 +284,7 @@ export function rejectLoan(
   return transact(async (trxRepos) => {
     const updated = await trxRepos.loans.reject(loanId, userId);
     if (updated === 0) {
-      const loan = await trxRepos.loans.getById(loanId);
-      if (loan === undefined || loan.borrowerUserId !== userId) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Loan not found");
-      }
+      await requireBorrowerLoan(trxRepos, loanId, userId);
       throw new AppError(409, ERROR_CODES.CONFLICT, "Loan is not active");
     }
     return reloadDto(trxRepos, loanId, userId);
@@ -300,8 +298,6 @@ export async function deleteLoan(
 ): Promise<void> {
   await transact(async (trxRepos) => {
     const deleted = await trxRepos.loans.deleteByIdForLender(loanId, userId);
-    if (deleted === 0) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Loan not found");
-    }
+    assertExisted(deleted, "Loan not found");
   });
 }

@@ -8,6 +8,7 @@ import type { Database } from "../../../db/tables.js";
 import type { DecksTable } from "../../../db/tables/decks.js";
 import {
   findByShareToken,
+  inTransaction,
   selectShareState,
   updateShareRow,
 } from "../../../repositories/query-helpers.js";
@@ -157,8 +158,8 @@ export function decksCoreRepo(db: Kysely<Database>) {
      * deck, and a deleted primary hands the flag to the most recently updated
      * survivor. Predecessor pointers detach via the FK.
      */
-    deleteByIdForUser(id: string, userId: string): Promise<{ numDeletedRows: bigint }> {
-      return db.transaction().execute(async (trx) => {
+    deleteByIdForUser(id: string, userId: string): Promise<boolean> {
+      return inTransaction(db, async (trx) => {
         // Peek the family without a lock, then lock the whole family in id
         // order (target included). Locking the target row first and the
         // family second would deadlock two concurrent deletes of siblings.
@@ -169,7 +170,7 @@ export function decksCoreRepo(db: Kysely<Database>) {
           .where("userId", "=", userId)
           .executeTakeFirst();
         if (!peek) {
-          return { numDeletedRows: 0n };
+          return false;
         }
         await lockFamilies(trx, userId, peek.familyId ? [peek.familyId] : []);
         const target = await trx
@@ -180,7 +181,7 @@ export function decksCoreRepo(db: Kysely<Database>) {
           .forUpdate()
           .executeTakeFirst();
         if (!target) {
-          return { numDeletedRows: 0n };
+          return false;
         }
         if (target.familyId && target.familyId !== peek.familyId) {
           // The deck changed families between the peek and the lock.
@@ -220,7 +221,7 @@ export function decksCoreRepo(db: Kysely<Database>) {
               .execute();
           }
         }
-        return { numDeletedRows: 1n };
+        return true;
       });
     },
 
@@ -236,7 +237,7 @@ export function decksCoreRepo(db: Kysely<Database>) {
         return undefined;
       }
 
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const newDeck = await trx
           .insertInto("decks")
           .values({
@@ -321,7 +322,7 @@ export function decksCoreRepo(db: Kysely<Database>) {
       return updateShareRow(db, "decks", id, userId, shareToken, isPublic);
     },
 
-    async findByShareToken(
+    async getByShareToken(
       shareToken: string,
     ): Promise<
       { deck: Selectable<DecksTable>; ownerName: string | null; ownerEmail: string } | undefined
@@ -349,7 +350,7 @@ export function decksCoreRepo(db: Kysely<Database>) {
         return undefined;
       }
 
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const newDeck = await trx
           .insertInto("decks")
           .values({

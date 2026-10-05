@@ -1,12 +1,14 @@
+import { legendDisplayName, legendNameParts } from "@openrift/shared/card-name";
+import type { LegendNameParts } from "@openrift/shared/card-name";
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
 import type { PodPenaltyBreakdown } from "@openrift/shared/pairing/types";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { TournamentGroupsTable } from "../../../db/tables/tournaments.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 
 export type TournamentGroup = Selectable<TournamentGroupsTable>;
 
@@ -26,8 +28,13 @@ export interface GroupPodInsert {
   placements: [number, number] | null;
 }
 
-function legendName(card: { name: string; tags: readonly string[] }): string {
-  return legendDisplayName({ ...card, types: [WellKnown.cardType.LEGEND] });
+export interface LegendCardName extends LegendNameParts {
+  name: string;
+}
+
+function legendName(card: { name: string; tags: readonly string[] }): LegendCardName {
+  const parts = { ...card, types: [WellKnown.cardType.LEGEND] };
+  return { name: legendDisplayName(parts), ...legendNameParts(parts) };
 }
 
 export interface LegendMetaShareRow {
@@ -124,7 +131,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
       groups: GroupInsert[];
       firstRoundPods: GroupPodInsert[];
     }): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await lockTournament(trx, input.tournamentId);
         if (await roundExistsFrom(trx, input.tournamentId, 1)) {
           return;
@@ -199,7 +206,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
       if (pods.length === 0) {
         return;
       }
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await lockTournament(trx, tournamentId);
         const taken = await trx
           .selectFrom("podMembers as m")
@@ -225,7 +232,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
       seeds: { participantId: string; seed: number }[];
       pods: GroupPodInsert[];
     }): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await lockTournament(trx, input.tournamentId);
         if (await roundExistsFrom(trx, input.tournamentId, input.roundNumber)) {
           return;
@@ -271,7 +278,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
     },
 
     async replaceCutRoundPods(roundId: string, pods: GroupPodInsert[]): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx.deleteFrom("pods").where("roundId", "=", roundId).execute();
         await writePods(trx, roundId, pods);
       });
@@ -282,7 +289,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
       roundNumber: number,
       pods: GroupPodInsert[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await lockTournament(trx, tournamentId);
         if (await roundExistsFrom(trx, tournamentId, roundNumber)) {
           return;
@@ -308,7 +315,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
     },
 
     async deleteRound(roundId: string, tournamentId: string, currentRound: number): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx.deleteFrom("podRounds").where("id", "=", roundId).execute();
         await trx
           .updateTable("tournaments")
@@ -320,7 +327,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
 
     /** Re-rolling the groups: the three rounds, the groups and the slots go. */
     async deleteGroupStage(tournamentId: string): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx
           .deleteFrom("podRounds")
           .where("tournamentId", "=", tournamentId)
@@ -354,7 +361,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
       podId: string,
       results: { playerId: string; placement: number }[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         for (const { playerId, placement } of results) {
           await trx
             .updateTable("podMembers")
@@ -418,7 +425,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
     },
 
     /** Only ids the catalog knows as Legend cards come back; the rest are rejected upstream. */
-    async legendCardNames(cardIds: string[]): Promise<Map<string, string>> {
+    async legendCardNames(cardIds: string[]): Promise<Map<string, LegendCardName>> {
       if (cardIds.length === 0) {
         return new Map();
       }
@@ -491,7 +498,8 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
         .execute();
       return rows.map((row) => ({
         legendCardId: row.legendCardId,
-        legendName: row.name === null ? null : legendName({ name: row.name, tags: row.tags ?? [] }),
+        legendName:
+          row.name === null ? null : legendName({ name: row.name, tags: row.tags ?? [] }).name,
         share: Number(row.share),
       }));
     },

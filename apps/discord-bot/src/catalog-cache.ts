@@ -1,4 +1,5 @@
 import type { CardStatLabels } from "@openrift/shared/card-stat-line";
+import { enumLabelsFromInit } from "@openrift/shared/enum-label";
 import type { VariantLabelEnumLabels } from "@openrift/shared/printing-label";
 import type {
   CatalogResponse,
@@ -8,7 +9,6 @@ import type {
 } from "@openrift/shared/types/api/catalog";
 import type { InitResponse } from "@openrift/shared/types/api/init";
 import type { PricesResponse } from "@openrift/shared/types/api/pricing";
-import { labelMap } from "@openrift/shared/utils";
 
 export type CatalogCard = CatalogResponseCardValue & { id: string };
 export type CatalogPrinting = CatalogResponsePrintingValue & { id: string };
@@ -54,15 +54,7 @@ export function buildSnapshot(
     setsById: new Map(catalog.sets.map((set) => [set.id, set])),
     prices: prices.prices,
     currencies: prices.currencies,
-    labels: {
-      cardTypes: labelMap(init.enums.cardTypes),
-      superTypes: labelMap(init.enums.superTypes),
-      domains: labelMap(init.enums.domains),
-      deckZones: labelMap(init.enums.deckZones),
-      artVariants: labelMap(init.enums.artVariants),
-      finishes: labelMap(init.enums.finishes),
-      cardSizes: labelMap(init.enums.cardSizes),
-    },
+    labels: enumLabelsFromInit(init.enums),
     zoneOrder: init.enums.deckZones
       .toSorted((a, b) => a.sortOrder - b.sortOrder)
       .map((row) => row.slug),

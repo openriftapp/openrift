@@ -6,16 +6,16 @@ import type { Variables } from "../../../types.js";
 import { publicOembedRoute } from "./public-oembed";
 
 const mockDecksRepo = {
-  findByShareToken: vi.fn(),
+  getByShareToken: vi.fn(),
 };
 const mockCollectionsRepo = {
-  findByShareToken: vi.fn(),
+  getByShareToken: vi.fn(),
 };
 const mockListsRepo = {
-  findByShareToken: vi.fn(),
+  getByShareToken: vi.fn(),
 };
 const mockTierListsRepo = {
-  findByShareToken: vi.fn(),
+  getByShareToken: vi.fn(),
 };
 const mockUserSharesRepo = {
   findOwnerByShareToken: vi.fn(),
@@ -31,7 +31,10 @@ const app = new Hono<{ Variables: Variables }>()
       tierLists: mockTierListsRepo,
       userShares: mockUserSharesRepo,
     } as never);
-    c.set("config", { corsOrigin: "https://openrift.app,https://preview.openrift.app" } as never);
+    c.set("config", {
+      siteOrigin: "https://site.openrift.test",
+      corsOrigin: "https://openrift.app,https://preview.openrift.app",
+    } as never);
     await next();
   })
   .route("/api/v1", publicOembedRoute);
@@ -45,17 +48,17 @@ async function request(query: Record<string, string>): Promise<Response> {
 }
 
 beforeEach(() => {
-  mockDecksRepo.findByShareToken.mockReset();
-  mockCollectionsRepo.findByShareToken.mockReset();
-  mockListsRepo.findByShareToken.mockReset();
-  mockTierListsRepo.findByShareToken.mockReset();
+  mockDecksRepo.getByShareToken.mockReset();
+  mockCollectionsRepo.getByShareToken.mockReset();
+  mockListsRepo.getByShareToken.mockReset();
+  mockTierListsRepo.getByShareToken.mockReset();
   mockUserSharesRepo.findOwnerByShareToken.mockReset();
   mockUserSharesRepo.listsForOwner.mockReset();
 });
 
 describe("GET /api/v1/oembed", () => {
   it("resolves a deck share URL to a photo response with the versioned image", async () => {
-    mockDecksRepo.findByShareToken.mockResolvedValue({
+    mockDecksRepo.getByShareToken.mockResolvedValue({
       deck: { name: "Best of Diana", format: "constructed", updatedAt: NOW },
       ownerName: "drawphasetcg",
       ownerEmail: "owner@example.test",
@@ -77,11 +80,11 @@ describe("GET /api/v1/oembed", () => {
       width: 1200,
       height: 630,
     });
-    expect(mockDecksRepo.findByShareToken).toHaveBeenCalledWith("tok-deck");
+    expect(mockDecksRepo.getByShareToken).toHaveBeenCalledWith("tok-deck");
   });
 
   it("folds copyCount into the collection image version", async () => {
-    mockCollectionsRepo.findByShareToken.mockResolvedValue({
+    mockCollectionsRepo.getByShareToken.mockResolvedValue({
       collection: { name: "My Binder", updatedAt: NOW, copyCount: 7 },
       ownerName: "Bob",
       ownerEmail: "bob@example.test",
@@ -98,7 +101,7 @@ describe("GET /api/v1/oembed", () => {
   });
 
   it("resolves a list share URL with the list intent in the title", async () => {
-    mockListsRepo.findByShareToken.mockResolvedValue({
+    mockListsRepo.getByShareToken.mockResolvedValue({
       list: { name: "Holiday Targets", intent: "trade", updatedAt: NOW },
       ownerName: "Alice",
       ownerEmail: "alice@example.test",
@@ -112,7 +115,7 @@ describe("GET /api/v1/oembed", () => {
   });
 
   it("resolves a tier-list share URL", async () => {
-    mockTierListsRepo.findByShareToken.mockResolvedValue({
+    mockTierListsRepo.getByShareToken.mockResolvedValue({
       tierList: { title: "Origins power ranking", updatedAt: NOW },
       ownerName: "drawphasetcg",
       ownerEmail: "owner@example.test",
@@ -130,11 +133,11 @@ describe("GET /api/v1/oembed", () => {
       width: 1200,
       height: 630,
     });
-    expect(mockTierListsRepo.findByShareToken).toHaveBeenCalledWith("tok-tier");
+    expect(mockTierListsRepo.getByShareToken).toHaveBeenCalledWith("tok-tier");
   });
 
   it("returns 404 for a tier list whose share link was revoked", async () => {
-    mockTierListsRepo.findByShareToken.mockResolvedValue(undefined);
+    mockTierListsRepo.getByShareToken.mockResolvedValue(undefined);
 
     const res = await request({ url: "https://openrift.app/tier-lists/share/tok-tier" });
 
@@ -162,7 +165,7 @@ describe("GET /api/v1/oembed", () => {
   });
 
   it("scales the reported dimensions down to honor maxwidth", async () => {
-    mockDecksRepo.findByShareToken.mockResolvedValue({
+    mockDecksRepo.getByShareToken.mockResolvedValue({
       deck: { name: "Deck", format: "standard", updatedAt: NOW },
       ownerName: null,
       ownerEmail: "x@example.test",
@@ -180,25 +183,44 @@ describe("GET /api/v1/oembed", () => {
   });
 
   it("returns 404 for an unknown token without leaking which resource", async () => {
-    mockDecksRepo.findByShareToken.mockResolvedValue(undefined);
+    mockDecksRepo.getByShareToken.mockResolvedValue(undefined);
 
     const res = await request({ url: "https://openrift.app/decks/share/nope" });
 
     expect(res.status).toBe(404);
   });
 
+  it("accepts a share URL on the site origin even when CORS_ORIGIN does not list it", async () => {
+    mockDecksRepo.getByShareToken.mockResolvedValue({
+      deck: { name: "Best of Diana", format: "constructed", updatedAt: NOW },
+      ownerName: "drawphasetcg",
+      ownerEmail: "owner@example.test",
+    });
+
+    const res = await request({ url: "https://site.openrift.test/decks/share/tok-deck" });
+
+    expect(res.status).toBe(200);
+    expect(mockDecksRepo.getByShareToken).toHaveBeenCalledWith("tok-deck");
+  });
+
+  it("answers an unsupported url with the error envelope", async () => {
+    const res = await request({ url: "https://evil.example.com/decks/share/tok" });
+
+    expect(await res.json()).toEqual({ error: "Unsupported url", code: "NOT_FOUND" });
+  });
+
   it("returns 404 for a URL whose origin is not in the allow-list", async () => {
     const res = await request({ url: "https://evil.example.com/decks/share/tok" });
 
     expect(res.status).toBe(404);
-    expect(mockDecksRepo.findByShareToken).not.toHaveBeenCalled();
+    expect(mockDecksRepo.getByShareToken).not.toHaveBeenCalled();
   });
 
   it("returns 404 for a same-origin path that is not a share surface", async () => {
     const res = await request({ url: "https://openrift.app/cards/lux" });
 
     expect(res.status).toBe(404);
-    expect(mockDecksRepo.findByShareToken).not.toHaveBeenCalled();
+    expect(mockDecksRepo.getByShareToken).not.toHaveBeenCalled();
   });
 
   it("returns 404 for a share sub-page with extra path segments", async () => {
@@ -223,6 +245,6 @@ describe("GET /api/v1/oembed", () => {
     });
 
     expect(res.status).toBe(501);
-    expect(mockDecksRepo.findByShareToken).not.toHaveBeenCalled();
+    expect(mockDecksRepo.getByShareToken).not.toHaveBeenCalled();
   });
 });

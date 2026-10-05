@@ -94,7 +94,7 @@ export interface TournamentSummaryRow extends Tournament {
 
 export function tournamentsCoreRepo(db: Kysely<Database>) {
   return {
-    async findById(id: string): Promise<Tournament | undefined> {
+    async getById(id: string): Promise<Tournament | undefined> {
       const row = await db
         .selectFrom("tournaments")
         .selectAll()
@@ -172,8 +172,9 @@ export function tournamentsCoreRepo(db: Kysely<Database>) {
       return row;
     },
 
-    async deleteById(id: string): Promise<void> {
-      await db.deleteFrom("tournaments").where("id", "=", id).execute();
+    async deleteById(id: string): Promise<boolean> {
+      const result = await db.deleteFrom("tournaments").where("id", "=", id).executeTakeFirst();
+      return result.numDeletedRows > 0n;
     },
 
     async setSubmissionToken(id: string, token: string | null): Promise<Tournament | undefined> {
@@ -186,7 +187,7 @@ export function tournamentsCoreRepo(db: Kysely<Database>) {
       return row;
     },
 
-    async findBySubmissionToken(token: string): Promise<Tournament | undefined> {
+    async getBySubmissionToken(token: string): Promise<Tournament | undefined> {
       const row = await db
         .selectFrom("tournaments")
         .selectAll()
@@ -219,7 +220,7 @@ export function tournamentsCoreRepo(db: Kysely<Database>) {
      * The caller decides write permission by comparing the matched token
      * against `reportToken` (read+write) vs `followToken` (read-only).
      */
-    async findByShareToken(token: string): Promise<Tournament | undefined> {
+    async getByShareToken(token: string): Promise<Tournament | undefined> {
       const row = await db
         .selectFrom("tournaments")
         .selectAll()

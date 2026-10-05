@@ -10,7 +10,7 @@ const mockCatalog = {
   cards: vi.fn(),
   cardErrata: vi.fn(),
   printings: vi.fn(),
-  printingById: vi.fn(),
+  getPrintingById: vi.fn(),
 };
 
 const mockMutations = {
@@ -244,7 +244,7 @@ describe("POST /api/admin/v1/typography-review/accept", () => {
   });
 
   it("writes a printing field through the typed printing update", async () => {
-    mockCatalog.printingById.mockResolvedValue(basePrinting);
+    mockCatalog.getPrintingById.mockResolvedValue(basePrinting);
     mockMutations.updatePrintingById.mockResolvedValue(undefined);
 
     const res = await app.request("/api/admin/v1/typography-review/accept", {
@@ -273,7 +273,7 @@ describe("POST /api/admin/v1/typography-review/accept", () => {
     });
 
     expect(res.status).toBe(400);
-    expect(mockCatalog.printingById).not.toHaveBeenCalled();
+    expect(mockCatalog.getPrintingById).not.toHaveBeenCalled();
     expect(mockMutations.updatePrintingById).not.toHaveBeenCalled();
   });
 

@@ -2,15 +2,13 @@ import type { OwnedCopyRow } from "@openrift/shared/list-rule-eval";
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../db/tables.js";
+import { tagCategoryRepo } from "../catalog/repositories/tag-categories.js";
 import { collectionDeckbuildingPrefsRepo } from "./repositories/collection-deckbuilding-prefs.js";
 import { collectionEventsRepo } from "./repositories/collection-events.js";
 import { collectionSidebarPrefsRepo } from "./repositories/collection-sidebar-prefs.js";
 import { collectionsRepo } from "./repositories/collections.js";
 import { copiesRepo } from "./repositories/copies.js";
-import { customTagCategoriesRepo } from "./repositories/custom-tag-categories.js";
 import { customTagsRepo } from "./repositories/custom-tags.js";
-import { clearCollection, deleteCollection, resetCollections } from "./services/collections.js";
-import { addCopies, disposeCopies, moveCopies, updateCopies } from "./services/copies.js";
 
 export interface CollectionsRepos {
   collectionEvents: ReturnType<typeof collectionEventsRepo>;
@@ -18,18 +16,8 @@ export interface CollectionsRepos {
   collectionDeckbuildingPrefs: ReturnType<typeof collectionDeckbuildingPrefsRepo>;
   collectionSidebarPrefs: ReturnType<typeof collectionSidebarPrefsRepo>;
   copies: ReturnType<typeof copiesRepo>;
-  customTagCategories: ReturnType<typeof customTagCategoriesRepo>;
+  customTagCategories: ReturnType<typeof tagCategoryRepo>;
   customTags: ReturnType<typeof customTagsRepo>;
-}
-
-export interface CollectionsServices {
-  clearCollection: typeof clearCollection;
-  deleteCollection: typeof deleteCollection;
-  resetCollections: typeof resetCollections;
-  addCopies: typeof addCopies;
-  moveCopies: typeof moveCopies;
-  updateCopies: typeof updateCopies;
-  disposeCopies: typeof disposeCopies;
 }
 
 export function createCollectionsRepos(db: Kysely<Database>): CollectionsRepos {
@@ -39,7 +27,10 @@ export function createCollectionsRepos(db: Kysely<Database>): CollectionsRepos {
     collectionDeckbuildingPrefs: collectionDeckbuildingPrefsRepo(db),
     collectionSidebarPrefs: collectionSidebarPrefsRepo(db),
     copies: copiesRepo(db),
-    customTagCategories: customTagCategoriesRepo(db),
+    customTagCategories: tagCategoryRepo(db, {
+      table: "customTagCategories",
+      tagTable: "customTags",
+    }),
     customTags: customTagsRepo(db),
   };
 }
@@ -48,16 +39,4 @@ export function createOwnedCopiesReader(
   db: Kysely<Database>,
 ): (ownerId: string, printingIds?: readonly string[]) => Promise<OwnedCopyRow[]> {
   return (ownerId, printingIds) => copiesRepo(db).ownedRowsForUser(ownerId, printingIds);
-}
-
-export function createCollectionsServices(): CollectionsServices {
-  return {
-    clearCollection,
-    deleteCollection,
-    resetCollections,
-    addCopies,
-    moveCopies,
-    updateCopies,
-    disposeCopies,
-  };
 }

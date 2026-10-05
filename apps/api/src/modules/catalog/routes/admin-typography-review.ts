@@ -146,7 +146,7 @@ export const adminTypographyReviewRouter = {
     return { diffs };
   }),
 
-  accept: os.accept.handler(async ({ input, context }): Promise<void> => {
+  accept: os.accept.handler(async ({ input, context, errors }): Promise<void> => {
     const { catalog, catalogMutations: mut, cardErrata } = context.repos;
     const { target, proposed } = input;
 
@@ -161,7 +161,7 @@ export const adminTypographyReviewRouter = {
         const allCards = await catalog.cards();
         const card = allCards.find((row) => row.id === id);
         if (!card) {
-          throw new AppError(404, ERROR_CODES.NOT_FOUND, "Card not found");
+          throw errors.NOT_FOUND({ message: "Card not found" });
         }
         await mut.updateCardById(id, { tags: fixTagList(card.tags) });
         return;
@@ -169,7 +169,7 @@ export const adminTypographyReviewRouter = {
 
       const errata = await cardErrata.getByCardId(id);
       if (!errata) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Card errata not found");
+        throw errors.NOT_FOUND({ message: "Card errata not found" });
       }
       await cardErrata.upsert(id, {
         ...errata,
@@ -181,9 +181,9 @@ export const adminTypographyReviewRouter = {
     }
 
     const { id, field } = target;
-    const printing = await catalog.printingById(id);
+    const printing = await catalog.getPrintingById(id);
     if (!printing) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Printing not found");
+      throw errors.NOT_FOUND({ message: "Printing not found" });
     }
     await mut.updatePrintingById(id, printingUpdateFor(field, proposed));
   }),

@@ -61,7 +61,7 @@ const os = implement(publicPodTournamentsContract).$context<ApiContext>().use(re
 export const publicPodTournamentsRouter = {
   report: os.report.handler(async ({ input, context, errors }): Promise<PodReportResponse> => {
     const repos = context.repos;
-    const tournament = await repos.tournaments.findByShareToken(input.token);
+    const tournament = await repos.tournaments.getByShareToken(input.token);
     // A no-pairing tournament has nothing to report, so it is treated as not found.
     if (!tournament || tournament.pairingStyle === "none") {
       throw errors.NOT_FOUND({ message: "Not found" });
@@ -71,7 +71,7 @@ export const publicPodTournamentsRouter = {
   }),
 
   reportStandings: os.reportStandings.handler(async ({ input, context, errors }) => {
-    const tournament = await context.repos.tournaments.findByShareToken(input.token);
+    const tournament = await context.repos.tournaments.getByShareToken(input.token);
     if (!tournament || tournament.pairingStyle === "none") {
       throw errors.NOT_FOUND({ message: "Not found" });
     }
@@ -81,7 +81,7 @@ export const publicPodTournamentsRouter = {
   submitResult: os.submitResult.handler(
     async ({ input, context, errors }): Promise<PodReportResponse> => {
       const repos = context.repos;
-      const tournament = await repos.tournaments.findByShareToken(input.token);
+      const tournament = await repos.tournaments.getByShareToken(input.token);
       if (!tournament || tournament.pairingStyle === "none") {
         throw errors.NOT_FOUND({ message: "Not found" });
       }
@@ -98,7 +98,7 @@ export const publicPodTournamentsRouter = {
   submitPlayerResult: os.submitPlayerResult.handler(
     async ({ input, context, errors }): Promise<PodReportResponse> => {
       const repos = context.repos;
-      const tournament = await repos.tournaments.findByShareToken(input.token);
+      const tournament = await repos.tournaments.getByShareToken(input.token);
       // Swiss also seats players in pods, so per-player entry applies to it too.
       if (!tournament || tournament.pairingStyle === "none") {
         throw errors.NOT_FOUND({ message: "Not found" });
@@ -120,7 +120,7 @@ export const publicPodTournamentsRouter = {
   startGroupRound: os.startGroupRound.handler(
     async ({ input, context, errors }): Promise<PodReportResponse> => {
       const repos = context.repos;
-      const tournament = await repos.tournaments.findByShareToken(input.token);
+      const tournament = await repos.tournaments.getByShareToken(input.token);
       if (!tournament || tournament.pairingStyle === "none") {
         throw errors.NOT_FOUND({ message: "Not found" });
       }

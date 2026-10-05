@@ -7,8 +7,8 @@ import type {
 import type { RuleKind } from "@openrift/shared/types/api/rules";
 import { implement } from "@orpc/server";
 
-import { assertFound } from "../../../lib/assertions.js";
-import { withUniqueShareToken } from "../../../lib/share-token.js";
+import { assertExisted, assertFound } from "../../../lib/assertions.js";
+import { enableShare } from "../../../lib/share-token.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { toBoardState } from "../lib/board-state-presenters.js";
@@ -116,26 +116,16 @@ export const boardStatesRouter = {
   }),
 
   remove: os.remove.handler(async ({ input, context }): Promise<void> => {
-    const deleted = await context.repos.boardStates.remove(input.id, context.userId);
-    if (!deleted) {
-      assertFound(undefined, NOT_FOUND);
-    }
+    const deleted = await context.repos.boardStates.deleteByIdForUser(input.id, context.userId);
+    assertExisted(deleted, NOT_FOUND);
   }),
 
   share: os.share.handler(async ({ input, context }): Promise<BoardStateShareResponse> => {
     const { boardStates } = context.repos;
-    const existing = await boardStates.getShareState(input.id, context.userId);
-    assertFound(existing, NOT_FOUND);
-    if (existing.shareToken !== null && existing.isPublic) {
-      return { shareToken: existing.shareToken, isPublic: true };
-    }
-
-    const token = await withUniqueShareToken(async (candidate) => {
-      const updated = await boardStates.setShare(input.id, context.userId, candidate, true);
-      assertFound(updated, NOT_FOUND);
-      return candidate;
+    return await enableShare({
+      read: () => boardStates.getShareState(input.id, context.userId),
+      write: (token) => boardStates.setShare(input.id, context.userId, token, true),
     });
-    return { shareToken: token, isPublic: true };
   }),
 
   unshare: os.unshare.handler(async ({ input, context }): Promise<void> => {

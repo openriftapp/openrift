@@ -1,4 +1,5 @@
 import { isBanInEffect } from "@openrift/shared/card-ban";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { decksContract } from "@openrift/shared/contracts/decks";
 import type { updateDeckPlanSchema } from "@openrift/shared/contracts/decks";
 import { isValidInDeckList, summarizeDeckCards } from "@openrift/shared/deck-list-summary";
@@ -20,25 +21,26 @@ import type {
   Domain,
   SuperType,
 } from "@openrift/shared/types/enums";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown, isBaseBanFormat } from "@openrift/shared/well-known";
 import { implement } from "@orpc/server";
 import type { z } from "zod";
 
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
-import { assertDeleted, assertFound } from "../../../lib/assertions.js";
-import { withUniqueShareToken } from "../../../lib/share-token.js";
+import { assertExisted, assertFound } from "../../../lib/assertions.js";
+import { enableShare } from "../../../lib/share-token.js";
+import {
+  decodeXidKeyset,
+  encodeXidKeyset,
+  pinWatermark,
+  takePage,
+} from "../../../lib/xid-watermark.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { buildPatchUpdates } from "../../../patch.js";
 import type { FieldMapping } from "../../../patch.js";
 import { resolveFavoriteMarketplace } from "../../users/lib/preferences.js";
-import {
-  buildDeckCardsCursor,
-  clampDeckCardsLimit,
-  parseDeckCardsCursor,
-} from "../lib/deck-cards-page-limit.js";
+import { clampDeckCardsLimit } from "../lib/deck-cards-page-limit.js";
 import { assertKnownFormat, validateFormatConfig } from "../lib/deck-format-validation.js";
 import { toDeck, toDeckCard, toDeckPlan, toDeckSummary } from "../lib/deck-presenters.js";
 import type { DeckUpdateInput } from "../repositories/decks-core.js";
@@ -125,10 +127,6 @@ const patchFields: FieldMapping<DeckUpdateInput> = {
 
 const os = implement(decksContract).$context<ApiContext>().use(requireAuthedUser);
 
-/**
- * Bad-request and not-found states are thrown as `AppError` and mapped to
- * ORPCErrors by the handler's appErrorInterceptor.
- */
 export const decksRouter = {
   list: os.list.handler(async ({ input, context }): Promise<DeckListResponse> => {
     const { decks, deckFolders, marketplace, userPreferences, enums, copies, loans, catalog } =
@@ -270,12 +268,9 @@ export const decksRouter = {
     // Pinned before the read: every transaction below it has finished, so a save
     // still in flight lands in the next delta.
     const currentSafeXid = await context.repos.decks.currentSafeXid();
-    const cursor = input.cursor === undefined ? undefined : parseDeckCardsCursor(input.cursor);
-    // The cursor's watermark is client input, so it may only narrow the window.
-    const safeXid =
-      cursor !== undefined && BigInt(cursor.safeXid) < BigInt(currentSafeXid)
-        ? cursor.safeXid
-        : currentSafeXid;
+    // The contract's regex guarantees the `<xid>_<id>` shape.
+    const cursor = input.cursor === undefined ? undefined : decodeXidKeyset(input.cursor);
+    const safeXid = pinWatermark(currentSafeXid, cursor?.xid);
     const sinceXid =
       input.since === undefined || BigInt(input.since) > BigInt(safeXid) ? undefined : input.since;
     const limit = clampDeckCardsLimit(input.limit);
@@ -289,19 +284,18 @@ export const decksRouter = {
       limit,
       ...(cursor === undefined ? {} : { after: cursor.id }),
     });
-    const page = rows.slice(0, limit);
-    const drained = rows.length <= limit;
+    const { page, drained } = takePage(rows, limit);
     const last = page.at(-1);
     return {
       items: page.map((row) => ({ deckId: row.deckId, ...toDeckCard(row) })),
       ...(touchedDeckIds === undefined ? {} : { touchedDeckIds }),
       nextCursor:
-        drained || last === undefined ? null : buildDeckCardsCursor({ safeXid, id: last.id }),
+        drained || last === undefined ? null : encodeXidKeyset({ xid: safeXid, id: last.id }),
       ...(drained ? { syncedXid: safeXid } : {}),
     };
   }),
 
-  create: os.create.handler(async ({ input, context }) => {
+  create: os.create.handler(async ({ input, context, errors }) => {
     const { decks, deckFormats, customTags } = context.repos;
     const userId = context.userId;
     await assertKnownFormat(deckFormats, input.format);
@@ -322,7 +316,7 @@ export const decksRouter = {
     const existing =
       input.id === undefined ? undefined : await decks.getByIdForUser(input.id, userId);
     if (!existing) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "Deck id already belongs to someone else");
+      throw errors.CONFLICT({ message: "Deck id already belongs to someone else" });
     }
     return toDeck(existing);
   }),
@@ -343,7 +337,7 @@ export const decksRouter = {
     };
   }),
 
-  update: os.update.handler(async ({ input, context }) => {
+  update: os.update.handler(async ({ input, context, errors }) => {
     const { decks, deckFormats, customTags, collections } = context.repos;
     const userId = context.userId;
     if (input.format !== undefined) {
@@ -359,11 +353,7 @@ export const decksRouter = {
       // box a deck is filled from. Decks linked to one before this rule keep
       // working; they just can't be re-pointed at another group binder.
       if (access.collection.groupId !== null) {
-        throw new AppError(
-          400,
-          ERROR_CODES.BAD_REQUEST,
-          "A deck box must be one of your own collections",
-        );
+        throw errors.BAD_REQUEST({ message: "A deck box must be one of your own collections" });
       }
     }
     // Decide which format the resulting deck will be under, so format_config
@@ -400,8 +390,8 @@ export const decksRouter = {
 
   remove: os.remove.handler(async ({ input, context }): Promise<void> => {
     const { decks } = context.repos;
-    const result = await decks.deleteByIdForUser(input.id, context.userId);
-    assertDeleted(result, "Not found");
+    const deleted = await decks.deleteByIdForUser(input.id, context.userId);
+    assertExisted(deleted, "Not found");
   }),
 
   replaceCards: os.replaceCards.handler(async ({ input, context }) => {
@@ -496,53 +486,53 @@ export const decksRouter = {
 
   // Link a deck that already exists into this deck's variant family, merging
   // the two families when both sides already have one.
-  linkVariant: os.linkVariant.handler(async ({ input, context }) => {
+  linkVariant: os.linkVariant.handler(async ({ input, context, errors }) => {
     const { decks } = context.repos;
     const result = await decks.linkAsVariant(input.id, context.userId, {
       otherDeckId: input.otherDeckId,
       markAsPreviousVersion: input.markAsPreviousVersion,
     });
     if (result === "not-found") {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Not found");
+      throw errors.NOT_FOUND({ message: "Not found" });
     }
     if (result === "invalid") {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Decks cannot be linked");
+      throw errors.BAD_REQUEST({ message: "Decks cannot be linked" });
     }
     return toDeck(result);
   }),
 
-  unlinkVariant: os.unlinkVariant.handler(async ({ input, context }) => {
+  unlinkVariant: os.unlinkVariant.handler(async ({ input, context, errors }) => {
     const { decks } = context.repos;
     const result = await decks.unlinkVariant(input.id, context.userId);
     if (result === "not-found") {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Not found");
+      throw errors.NOT_FOUND({ message: "Not found" });
     }
     if (result === "no-family") {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Deck has no variants");
+      throw errors.BAD_REQUEST({ message: "Deck has no variants" });
     }
     return toDeck(result);
   }),
 
-  setPredecessor: os.setPredecessor.handler(async ({ input, context }) => {
+  setPredecessor: os.setPredecessor.handler(async ({ input, context, errors }) => {
     const { decks } = context.repos;
     const result = await decks.setPredecessor(input.id, context.userId, input.predecessorDeckId);
     if (result === "not-found") {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Not found");
+      throw errors.NOT_FOUND({ message: "Not found" });
     }
     if (result === "invalid") {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Decks cannot be linked");
+      throw errors.BAD_REQUEST({ message: "Decks cannot be linked" });
     }
     return toDeck(result);
   }),
 
-  promotePrimary: os.promotePrimary.handler(async ({ input, context }) => {
+  promotePrimary: os.promotePrimary.handler(async ({ input, context, errors }) => {
     const { decks } = context.repos;
     const result = await decks.promoteToPrimary(input.id, context.userId);
     if (result === "not-found") {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Not found");
+      throw errors.NOT_FOUND({ message: "Not found" });
     }
     if (result === "no-family") {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Deck has no variants");
+      throw errors.BAD_REQUEST({ message: "Deck has no variants" });
     }
     return toDeck(result);
   }),
@@ -598,25 +588,13 @@ export const decksRouter = {
     return { shareToken: state.shareToken, isPublic: state.isPublic };
   }),
 
-  // Idempotent enable: if the deck already has a token, return the existing
-  // share state unchanged; otherwise mint one and flip is_public=true.
   share: os.share.handler(async ({ input, context }): Promise<DeckShareResponse> => {
     const { decks } = context.repos;
     const userId = context.userId;
-
-    const existing = await decks.getShareState(input.id, userId);
-    assertFound(existing, "Not found");
-    if (existing.shareToken !== null && existing.isPublic) {
-      return { shareToken: existing.shareToken, isPublic: existing.isPublic };
-    }
-
-    const token = await withUniqueShareToken(async (candidate) => {
-      const updated = await decks.setShareToken(input.id, userId, candidate, true);
-      assertFound(updated, "Not found");
-      return candidate;
+    return await enableShare({
+      read: () => decks.getShareState(input.id, userId),
+      write: (token) => decks.setShareToken(input.id, userId, token, true),
     });
-
-    return { shareToken: token, isPublic: true };
   }),
 
   unshare: os.unshare.handler(async ({ input, context }): Promise<void> => {

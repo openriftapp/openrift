@@ -88,7 +88,7 @@ async function assertOwnedByPrinting(
 export const adminPrintingCitationsRouter = {
   list: os.list.handler(async ({ input, context }) => {
     const { catalog, printingCitations } = context.repos;
-    assertFound(await catalog.printingById(input.printingId), "Printing not found");
+    assertFound(await catalog.getPrintingById(input.printingId), "Printing not found");
     const rows = await printingCitations.listForPrinting(input.printingId);
     const editable = await citationsEditableBy(
       context.repos,
@@ -101,7 +101,7 @@ export const adminPrintingCitationsRouter = {
 
   create: os.create.handler(async ({ input, context }) => {
     const { catalog, printingCitations } = context.repos;
-    assertFound(await catalog.printingById(input.printingId), "Printing not found");
+    assertFound(await catalog.getPrintingById(input.printingId), "Printing not found");
     await assertDeskPrintingScope(
       context.repos,
       context.adminAccess,

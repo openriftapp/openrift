@@ -17,7 +17,8 @@ import { matchOrigin } from "./cors.js";
 import type { Database } from "./db/tables.js";
 import type { Services } from "./deps.js";
 import { createRepos, createServices, createTransact } from "./deps.js";
-import type { createEmailSender } from "./email.js";
+import { createEmailDeps } from "./email.js";
+import type { SendEmail } from "./email.js";
 import { AppError, codeForStatus } from "./errors.js";
 import { defaultIo } from "./io.js";
 import type { Io } from "./io.js";
@@ -66,7 +67,7 @@ export interface AppDeps {
   io?: Io;
   services?: Partial<Services>;
   scheduler?: JobScheduler;
-  sendEmail?: ReturnType<typeof createEmailSender>;
+  sendEmail?: SendEmail;
 }
 
 const authRateLimit = rateLimiter<{ Variables: Variables }>({
@@ -87,14 +88,7 @@ const rateLimitedAuthPrefixes = [
 export function createApp(deps: AppDeps) {
   const { db, auth, config, log } = deps;
   const built = createServices(
-    deps.sendEmail
-      ? {
-          sendEmail: deps.sendEmail,
-          appBaseUrl: config.appBaseUrl,
-          unsubscribeSecret: config.auth.secret,
-          log,
-        }
-      : undefined,
+    deps.sendEmail ? createEmailDeps(config, deps.sendEmail, log) : undefined,
   );
   const services: Services = deps.services ? { ...built, ...deps.services } : built;
 
@@ -287,7 +281,8 @@ export function createApp(deps: AppDeps) {
     c.set("repos", repos);
     c.set("services", services);
     c.set("transact", transact);
-    c.set("scheduler", deps.scheduler);
+    c.set("scheduler", deps.scheduler ?? null);
+    c.set("log", log.child({ method: c.req.method }));
     await next();
   });
 

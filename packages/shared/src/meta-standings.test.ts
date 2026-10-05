@@ -1,37 +1,37 @@
 import { describe, expect, it } from "vitest";
 
 import type { CutPhase } from "./meta-standings.js";
-import { cutPhaseOrders, cutSizeOf, formatRank, formatRecord } from "./meta-standings.js";
+import { cutPhaseOrders, cutSizeOf, formatRankEnglish, formatRecord } from "./meta-standings.js";
 
-describe("formatRank", () => {
+describe("formatRankEnglish", () => {
   it("renders an exact standing as an ordinal", () => {
-    expect(formatRank(1, false)).toBe("1st");
-    expect(formatRank(2, false)).toBe("2nd");
-    expect(formatRank(3, false)).toBe("3rd");
-    expect(formatRank(4, false)).toBe("4th");
-    expect(formatRank(8, false)).toBe("8th");
-    expect(formatRank(21, false)).toBe("21st");
-    expect(formatRank(102, false)).toBe("102nd");
+    expect(formatRankEnglish(1, false)).toBe("1st");
+    expect(formatRankEnglish(2, false)).toBe("2nd");
+    expect(formatRankEnglish(3, false)).toBe("3rd");
+    expect(formatRankEnglish(4, false)).toBe("4th");
+    expect(formatRankEnglish(8, false)).toBe("8th");
+    expect(formatRankEnglish(21, false)).toBe("21st");
+    expect(formatRankEnglish(102, false)).toBe("102nd");
   });
 
   it("renders the teens as -th, not as their last digit", () => {
-    expect(formatRank(11, false)).toBe("11th");
-    expect(formatRank(12, false)).toBe("12th");
-    expect(formatRank(13, false)).toBe("13th");
-    expect(formatRank(111, false)).toBe("111th");
-    expect(formatRank(113, false)).toBe("113th");
+    expect(formatRankEnglish(11, false)).toBe("11th");
+    expect(formatRankEnglish(12, false)).toBe("12th");
+    expect(formatRankEnglish(13, false)).toBe("13th");
+    expect(formatRankEnglish(111, false)).toBe("111th");
+    expect(formatRankEnglish(113, false)).toBe("113th");
   });
 
   it("keeps the podium when the rank is a cut bucket", () => {
-    expect(formatRank(1, true)).toBe("1st");
-    expect(formatRank(2, true)).toBe("2nd");
+    expect(formatRankEnglish(1, true)).toBe("1st");
+    expect(formatRankEnglish(2, true)).toBe("2nd");
   });
 
   it("renders a cut bucket from third place up", () => {
-    expect(formatRank(3, true)).toBe("T3");
-    expect(formatRank(4, true)).toBe("T4");
-    expect(formatRank(8, true)).toBe("T8");
-    expect(formatRank(16, true)).toBe("T16");
+    expect(formatRankEnglish(3, true)).toBe("T3");
+    expect(formatRankEnglish(4, true)).toBe("T4");
+    expect(formatRankEnglish(8, true)).toBe("T8");
+    expect(formatRankEnglish(16, true)).toBe("T16");
   });
 });
 

@@ -7,6 +7,7 @@ import type {
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { gravatarHashForEmail } from "../../../lib/gravatar.js";
 import { podSizeOf, pointsForPod, pointsForTeamPod, teamsOf } from "./pod-points.js";
 import type { PodRosterPlayer, PodScoring } from "./pod-tournaments-shared.js";
 import { ROSTER_STATUSES } from "./pod-tournaments-shared.js";
@@ -201,7 +202,7 @@ function foldFinalized(
 }
 
 function sortedStandingRows(
-  players: PodRosterPlayer[],
+  players: (PodRosterPlayer & { image?: string | null; email?: string | null })[],
   aggregates: Map<string, PlayerAggregate>,
 ): PodStandingRow[] {
   const scoreOf = (id: string): number => aggregates.get(id)?.score ?? 0;
@@ -214,6 +215,8 @@ function sortedStandingRows(
     return {
       playerId: player.id,
       displayName: player.displayName,
+      image: player.image ?? null,
+      gravatarHash: player.email ? gravatarHashForEmail(player.email) : null,
       status: player.status,
       droppedAfterRound: player.droppedAfterRound,
       teamId: player.teamId,
@@ -387,12 +390,14 @@ export function podStandingsRepo(db: Kysely<Database>) {
     ): Promise<PodStandingRow[]> {
       const [players, finalizedRows, finalizedByes] = await Promise.all([
         db
-          .selectFrom("tournamentParticipants")
-          .selectAll()
-          .where("tournamentId", "=", tournamentId)
-          .where("status", "in", ROSTER_STATUSES)
+          .selectFrom("tournamentParticipants as p")
+          .leftJoin("users as u", "u.id", "p.userId")
+          .selectAll("p")
+          .select(["u.image as image", "u.email as email"])
+          .where("p.tournamentId", "=", tournamentId)
+          .where("p.status", "in", ROSTER_STATUSES)
           .$narrowType<{ status: PodPlayerStatus }>()
-          .orderBy("createdAt", "asc")
+          .orderBy("p.createdAt", "asc")
           .execute(),
         loadFinalizedRows(tournamentId, throughRound),
         loadFinalizedByePlayerIds(tournamentId, throughRound),

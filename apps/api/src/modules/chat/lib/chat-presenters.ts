@@ -6,9 +6,10 @@
  * trimmed; the name and stat line share whatever space remains.
  */
 
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CardStatLabels } from "@openrift/shared/card-stat-line";
 import { describeCardStats } from "@openrift/shared/card-stat-line";
-import { legendDisplayName, truncateWithEllipsis } from "@openrift/shared/utils";
+import { truncateWithEllipsis } from "@openrift/shared/strings";
 
 const CHAT_LINE_LIMIT = 400;
 

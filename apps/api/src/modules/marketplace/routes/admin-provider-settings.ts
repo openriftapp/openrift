@@ -1,9 +1,7 @@
 import { adminProviderSettingsContract } from "@openrift/shared/contracts/admin/provider-settings";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { ProviderSettingResponse } from "@openrift/shared/types/api/admin";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 
@@ -28,13 +26,13 @@ export const adminProviderSettingsRouter = {
     };
   }),
 
-  reorder: os.reorder.handler(async ({ input, context }): Promise<void> => {
+  reorder: os.reorder.handler(async ({ input, context, errors }): Promise<void> => {
     const { providerSettings: repo } = context.repos;
     const { providers } = input;
 
     const uniqueProviders = new Set(providers);
     if (uniqueProviders.size !== providers.length) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Duplicate providers in reorder list");
+      throw errors.BAD_REQUEST({ message: "Duplicate providers in reorder list" });
     }
 
     await repo.reorder(providers);

@@ -1,4 +1,4 @@
-import { formatRank, formatRecord } from "@openrift/shared/meta-standings";
+import { formatRankEnglish, formatRecord } from "@openrift/shared/meta-standings";
 
 import type { MetaDeckContextRow } from "../repositories/meta-decks.js";
 
@@ -13,7 +13,7 @@ export function metaDeckImageFraming(
   legendName: string | null,
 ): MetaDeckImageFraming {
   const player = context.playerName;
-  const finish = formatRank(context.rank, context.rankIsTier);
+  const finish = formatRankEnglish(context.rank, context.rankIsTier);
   const fieldSize = context.eventPlayerCount;
   const parts = [
     fieldSize !== null && fieldSize > 0

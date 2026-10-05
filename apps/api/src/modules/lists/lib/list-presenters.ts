@@ -20,7 +20,7 @@ const EMPTY_TRADE_PREFERENCE: TradePreference = {
   tradeType: null,
 };
 
-function tradeDefaultsFromList(
+export function tradeDefaultsFromList(
   row: Pick<
     Selectable<ListsTable>,
     "defaultPricePref" | "defaultPriceAbsoluteCents" | "defaultTradeType"

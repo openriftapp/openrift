@@ -3,6 +3,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { offsetPage } from "../../../repositories/query-helpers.js";
 import type { MetaScopeFilters } from "./meta-shared.js";
 import { foldedPlayerIdentity, resolvedPlayerName, scopeConditions } from "./meta-shared.js";
 
@@ -223,21 +224,16 @@ export function metaLegendsRepo(db: Kysely<Database>) {
       scope: MetaScopeFilters = {},
       page?: { limit: number; offset: number },
     ): Promise<{ rows: MetaLegendFinishRow[]; total: number }> {
-      let rowQuery = legendFinishRows(legendCardId, scope)
+      const query = legendFinishRows(legendCardId, scope)
         .orderBy("me.eventDate", "desc")
         .orderBy("p.rank", "asc")
         .orderBy("me.name", "asc")
         .orderBy("p.id", "asc");
       if (page !== undefined) {
-        rowQuery = rowQuery.limit(page.limit).offset(page.offset);
+        return offsetPage(query, page);
       }
-      const [rows, countRow] = await Promise.all([
-        rowQuery.execute(),
-        legendFinishQuery(legendCardId, scope)
-          .select((eb) => eb.fn.countAll<string>().as("total"))
-          .executeTakeFirstOrThrow(),
-      ]);
-      return { rows, total: Number(countRow.total) };
+      const rows = await query.execute();
+      return { rows, total: rows.length };
     },
 
     /**

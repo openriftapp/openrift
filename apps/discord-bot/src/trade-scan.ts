@@ -1,5 +1,8 @@
-import { foldForSearch, squashForSearch } from "@openrift/shared/search-fold";
-import { legendDisplayName } from "@openrift/shared/utils";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { buildCodeIndex, lookupCode } from "@openrift/shared/card-search";
+import type { CodeEntry, CodeIndex } from "@openrift/shared/card-search";
+import { foldForSearch } from "@openrift/shared/search-fold";
+import { cardPath } from "@openrift/shared/site-paths";
 
 import type { CatalogCard, CatalogPrinting } from "./catalog-cache.js";
 import type { TradelistHolders } from "./group-tradelists.js";
@@ -12,7 +15,7 @@ const MIN_TOKEN_LENGTH = 3;
 
 export interface ScanIndex {
   byName: Map<string, CatalogCard[]>;
-  byCode: Map<string, CatalogCard>;
+  byCode: CodeIndex<CatalogCard, CatalogPrinting>;
   maxTokens: number;
 }
 
@@ -37,7 +40,7 @@ export function buildScanIndex(
   printingsByCardId: Map<string, CatalogPrinting[]>,
 ): ScanIndex {
   const byName = new Map<string, CatalogCard[]>();
-  const byCode = new Map<string, CatalogCard>();
+  const codeEntries: CodeEntry<CatalogCard, CatalogPrinting>[] = [];
   let maxTokens = 1;
   for (const card of cards) {
     const tokens = scanTokens(card.name);
@@ -51,15 +54,10 @@ export function buildScanIndex(
     byName.set(key, [...(byName.get(key) ?? []), card]);
     maxTokens = Math.min(Math.max(maxTokens, tokens.length), MAX_NAME_TOKENS);
     for (const printing of printingsByCardId.get(card.id) ?? []) {
-      for (const code of [printing.shortCode, printing.publicCode]) {
-        const squashed = squashForSearch(code);
-        if (squashed && !byCode.has(squashed)) {
-          byCode.set(squashed, card);
-        }
-      }
+      codeEntries.push({ card, printing });
     }
   }
-  return { byName, byCode, maxTokens };
+  return { byName, byCode: buildCodeIndex(codeEntries), maxTokens };
 }
 
 // Each match becomes a space, not nothing, so removing it can't fuse the words either side.
@@ -87,10 +85,9 @@ export function scanForCards(content: string, index: ScanIndex): CatalogCard[] {
 
   // Codes first: unambiguous and take precedence over name matches.
   for (const raw of text.split(/\s+/u)) {
-    const squashed = squashForSearch(raw);
-    const card = squashed ? index.byCode.get(squashed) : undefined;
-    if (card) {
-      push(card);
+    const match = lookupCode(index.byCode, raw);
+    if (match) {
+      push(match.card);
     }
   }
 
@@ -126,7 +123,7 @@ export function tradeLine(
   const offers = holders.holders.map(
     (holder) => `${holder.userName ?? "Unknown user"} ${holder.quantity}×`,
   );
-  return `**[${legendDisplayName(card)}](${siteUrl}/cards/${card.slug})** · ${offers.join(" · ")}`;
+  return `**[${legendDisplayName(card)}](${siteUrl}${cardPath(card.slug)})** · ${offers.join(" · ")}`;
 }
 
 export function buildTradeReply(lines: (string | null)[], groupName: string | null): string | null {

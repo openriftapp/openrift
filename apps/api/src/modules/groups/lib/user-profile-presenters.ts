@@ -1,6 +1,11 @@
-import type { ProfileLastActive } from "@openrift/shared/types/api/user-share";
+import { DAY_MS } from "@openrift/shared/format-date";
+import type {
+  ProfileLastActive,
+  PublicUserBundleResponse,
+} from "@openrift/shared/types/api/user-share";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { parseListRules } from "../../lists/lib/list-presenters.js";
+import type { BundleListSummary } from "../repositories/user-shares.js";
 
 /** Coarse on purpose: the profile says how recently, never when. */
 export function lastActiveBucket(lastActiveAt: Date | null, now: Date): ProfileLastActive | null {
@@ -18,4 +23,26 @@ export function lastActiveBucket(lastActiveAt: Date | null, now: Date): ProfileL
     return "month";
   }
   return "older";
+}
+
+export function toBundleList(
+  row: BundleListSummary,
+  expanded: { entryCount: number; previewImageIds: string[] } | undefined,
+  matchCount: number | null,
+): PublicUserBundleResponse["lists"][number] {
+  const { list } = row;
+  return {
+    id: list.id,
+    name: list.name,
+    intent: list.intent,
+    kind: list.kind,
+    entryCount: expanded?.entryCount ?? row.entryCount,
+    isPublic: list.isPublic,
+    viaGroups: row.viaGroups,
+    createdAt: list.createdAt.toISOString(),
+    updatedAt: list.updatedAt.toISOString(),
+    hasRule: parseListRules(list.rules).length > 0,
+    previewImageIds: expanded?.previewImageIds ?? [],
+    matchCount,
+  };
 }

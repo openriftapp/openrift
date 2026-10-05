@@ -1,6 +1,5 @@
 import { tournamentArchiveListsContract } from "@openrift/shared/contracts/tournament-archive-lists";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
-import { createLogger } from "@openrift/shared/logger";
 import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import type {
   ArchiveListSendResponse,
@@ -14,14 +13,17 @@ import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { createMetaSyncDeps } from "../../meta/services/meta-sync/index.js";
 import {
+  toArchiveListEvent,
+  toArchiveListParticipant,
+  toUvsgamesEventSuggestion,
+} from "../lib/archive-list-presenters.js";
+import {
   archiveListEligibility,
   canSendArchiveList,
   suggestArchiveListIdentities,
 } from "../lib/archive-lists.js";
 import { loadTournament, requireManage } from "../lib/tournament-access.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
-
-const log = createLogger("tournament-archive-lists");
 
 const os = implement(tournamentArchiveListsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -78,30 +80,16 @@ async function buildState(
   return {
     uvsgamesEventId: tournament.uvsgamesEventId,
     tournamentCompleted: isCompleted(tournament, new Date()),
-    event:
-      target === null
-        ? null
-        : {
-            name: target.event.name,
-            startAt: target.event.startAt.toISOString(),
-            displayStatus: target.event.displayStatus,
-            playerCount: target.event.playerCount,
-            storeName: target.event.storeName,
-            resultsFetchedAt: target.event.resultsFetchedAt?.toISOString() ?? null,
-          },
+    event: target === null ? null : toArchiveListEvent(target.event),
     metaEventSlug: target?.metaEvent?.slug ?? null,
     standings,
-    participants: seated.map((participant) => {
-      const entry = entryByParticipant.get(participant.id);
-      return {
-        participantId: participant.id,
-        displayName: participant.displayName,
-        entryState: entry?.state ?? null,
-        eligibility: archiveListEligibility(entry),
-        unmatchedLines: entry?.unmatchedLineCount ?? 0,
-        suggestedIdentity: suggestions.get(participant.id) ?? null,
-      };
-    }),
+    participants: seated.map((participant) =>
+      toArchiveListParticipant(
+        participant,
+        entryByParticipant.get(participant.id),
+        suggestions.get(participant.id) ?? null,
+      ),
+    ),
   };
 }
 
@@ -125,12 +113,12 @@ export const tournamentArchiveListsRouter = {
       repos: context.repos,
       transact: context.transact,
       fetch: context.io.fetch,
-      log,
+      log: context.log,
       baseUrl: context.config.metaSync.baseUrl,
     });
     const fetched = await context.services.fetchUvsgamesEvent(deps, uvsgamesEventId);
     if (fetched.status === "failed") {
-      log.warn(
+      context.log.warn(
         { uvsgamesEventId, errors: fetched.errors },
         "UVS Games fetch for a tournament failed",
       );
@@ -232,12 +220,7 @@ export const tournamentArchiveListsRouter = {
       new Date(start + SUGGESTION_WINDOW_MS),
     );
     return {
-      items: rows.map((row) => ({
-        externalId: row.externalId,
-        name: row.name,
-        startAt: row.startAt.toISOString(),
-        storeName: row.storeName,
-      })),
+      items: rows.map((row) => toUvsgamesEventSuggestion(row)),
     };
   }),
 };

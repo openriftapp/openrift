@@ -1,10 +1,11 @@
 import type { ListIntent } from "@openrift/shared/types/api/list";
 import type { ListRuleCombine, ListRules } from "@openrift/shared/types/list-rule";
-import type { DeleteResult, Insertable, Kysely, Selectable, Updateable } from "kysely";
+import type { Insertable, Kysely, Selectable, SqlBool, Updateable } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { ListsTable } from "../../../db/tables/lists.js";
+import { reorderBySortOrder } from "../../../repositories/query-helpers.js";
 
 export interface ListWithCount extends Selectable<ListsTable> {
   entryCount: number;
@@ -102,26 +103,14 @@ export function listsCoreRepo(db: Kysely<Database>) {
      * IDs not owned by the user (or not in the given intent) are silently
      * ignored — the caller is expected to send the current view of the bucket.
      */
-    async reorder(
-      userId: string,
-      intent: ListIntent,
-      orderedIds: readonly string[],
-    ): Promise<void> {
-      if (orderedIds.length === 0) {
-        return;
-      }
-      const ids = [...orderedIds];
-      await sql`
-        update lists
-        set sort_order = ranked.new_order
-        from (
-          select id, ord::int - 1 as new_order
-          from unnest(${ids}::uuid[]) with ordinality as t(id, ord)
-        ) as ranked
-        where lists.id = ranked.id
-          and lists.user_id = ${userId}
-          and lists.intent = ${intent}
-      `.execute(db);
+    reorder(userId: string, intent: ListIntent, orderedIds: readonly string[]): Promise<void> {
+      return reorderBySortOrder(db, {
+        table: "lists",
+        keyColumn: "id",
+        keys: orderedIds,
+        keyType: "uuid",
+        scope: sql<SqlBool>`${sql.ref("lists.userId")} = ${userId} and ${sql.ref("lists.intent")} = ${intent}`,
+      });
     },
 
     update(
@@ -140,12 +129,13 @@ export function listsCoreRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    deleteByIdForUser(id: string, userId: string): Promise<DeleteResult> {
-      return db
+    async deleteByIdForUser(id: string, userId: string): Promise<boolean> {
+      const result = await db
         .deleteFrom("lists")
         .where("id", "=", id)
         .where("userId", "=", userId)
         .executeTakeFirst();
+      return result.numDeletedRows > 0n;
     },
 
     /**

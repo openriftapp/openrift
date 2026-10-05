@@ -18,7 +18,6 @@ import {
 import { adminCardImagesRouter } from "./admin-cards-images";
 
 vi.mock("../services/images/paths.js", () => ({
-  MEDIA_DIR: "/mock/media",
   CARD_MEDIA_DIR: "/mock/media/cards",
   imageRehostedUrl: vi.fn(),
 }));
@@ -69,11 +68,12 @@ const mockPrintingImages = {
   getIdAndUrls: vi.fn(),
   updateRehostedUrl: vi.fn(),
   getForRehost: vi.fn(),
-  getPrintingById: vi.fn(),
   setRotation: vi.fn(),
   setNeedsTrim: vi.fn(),
   setQuad: vi.fn(),
 };
+
+const mockCatalog = { getPrintingById: vi.fn() };
 
 const mockTrxPrintingImages = {
   insertImage: vi.fn(),
@@ -111,6 +111,7 @@ app.use("*", async (c, next) => {
   c.set("io", mockIo as never);
   c.set("transact", mockTransact as never);
   c.set("repos", {
+    catalog: mockCatalog,
     printingImages: mockPrintingImages,
     adminEvents: mockAdminEvents,
     printingDesk: mockPrintingDesk,
@@ -825,7 +826,7 @@ describe("POST /printing/:printingId/add-image-url", () => {
   });
 
   it("inserts with default mode", async () => {
-    mockPrintingImages.getPrintingById.mockResolvedValue({ id: "printing-1" });
+    mockCatalog.getPrintingById.mockResolvedValue({ id: "printing-1" });
 
     const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/add-image-url`, {
       method: "POST",
@@ -841,7 +842,7 @@ describe("POST /printing/:printingId/add-image-url", () => {
   });
 
   it("respects explicit mode", async () => {
-    mockPrintingImages.getPrintingById.mockResolvedValue({ id: "printing-1" });
+    mockCatalog.getPrintingById.mockResolvedValue({ id: "printing-1" });
 
     const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/add-image-url`, {
       method: "POST",
@@ -868,7 +869,7 @@ describe("POST /printing/:printingId/add-image-url", () => {
   });
 
   it("returns 404 when printing not found", async () => {
-    mockPrintingImages.getPrintingById.mockResolvedValue(null);
+    mockCatalog.getPrintingById.mockResolvedValue(null);
 
     const res = await app.request(
       "/api/admin/v1/cards/printing/00000000-0000-4000-a000-000000000099/add-image-url",
@@ -890,7 +891,7 @@ describe("POST /printing/:printingId/upload-image", () => {
   });
 
   it("returns 200 with rehosted url on success", async () => {
-    mockPrintingImages.getPrintingById.mockResolvedValue({ id: "printing-1" });
+    mockCatalog.getPrintingById.mockResolvedValue({ id: "printing-1" });
     mockProcessAndSave.mockResolvedValue(undefined);
     mockImageRehostedUrl.mockReturnValue("/media/cards/v7/mock-uuid-v7");
     mockTrxPrintingImages.insertUploadedImage.mockResolvedValue(undefined);
@@ -916,7 +917,7 @@ describe("POST /printing/:printingId/upload-image", () => {
   });
 
   it("stores a back face with the image credit", async () => {
-    mockPrintingImages.getPrintingById.mockResolvedValue({ id: "printing-1" });
+    mockCatalog.getPrintingById.mockResolvedValue({ id: "printing-1" });
     mockProcessAndSave.mockResolvedValue(undefined);
     mockImageRehostedUrl.mockReturnValue("/media/cards/v7/mock-uuid-v7");
     mockTrxPrintingImages.insertUploadedImage.mockResolvedValue(undefined);
@@ -937,7 +938,7 @@ describe("POST /printing/:printingId/upload-image", () => {
   });
 
   it("respects explicit mode", async () => {
-    mockPrintingImages.getPrintingById.mockResolvedValue({ id: "printing-1" });
+    mockCatalog.getPrintingById.mockResolvedValue({ id: "printing-1" });
     mockProcessAndSave.mockResolvedValue(undefined);
     mockImageRehostedUrl.mockReturnValue("/media/cards/v7/mock-uuid-v7");
     mockTrxPrintingImages.insertUploadedImage.mockResolvedValue(undefined);
@@ -957,7 +958,7 @@ describe("POST /printing/:printingId/upload-image", () => {
   });
 
   it("returns 404 when printing not found", async () => {
-    mockPrintingImages.getPrintingById.mockResolvedValue(null);
+    mockCatalog.getPrintingById.mockResolvedValue(null);
 
     const formData = new FormData();
     formData.append("file", new File(["data"], "card.png", { type: "image/png" }));
@@ -1216,7 +1217,7 @@ describe("grant holder scope", () => {
   }
 
   it("403s an upload to a printing outside the desk", async () => {
-    mockPrintingImages.getPrintingById.mockResolvedValue({ id: PRINTING_ID });
+    mockCatalog.getPrintingById.mockResolvedValue({ id: PRINTING_ID });
 
     const res = await uploadTo(PRINTING_ID);
 
@@ -1225,7 +1226,7 @@ describe("grant holder scope", () => {
   });
 
   it("stores an upload to a promo as additional, so it never takes over the live art", async () => {
-    mockPrintingImages.getPrintingById.mockResolvedValue({ id: PROMO_ID });
+    mockCatalog.getPrintingById.mockResolvedValue({ id: PROMO_ID });
     mockImageRehostedUrl.mockReturnValue("/media/cards/v7/mock-uuid-v7");
 
     const res = await uploadTo(PROMO_ID, "main");

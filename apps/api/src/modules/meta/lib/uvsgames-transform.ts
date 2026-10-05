@@ -3,6 +3,8 @@ import { META_ENTRY_STATUSES } from "@openrift/shared/types/enums";
 import type { MetaEntryStatus } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
+import { count, record, text } from "../../../lib/json-coerce.js";
+
 /**
  * Projects one deep fetch's responses into the source mirror's columns.
  * Allowlist: only fields named here reach `uvsgames_*`. Fields are `unknown`
@@ -68,29 +70,8 @@ const ZONE_BY_CARD_TYPE: Readonly<Record<string, string>> = {
 
 type Json = Record<string, unknown>;
 
-function record(value: unknown): Json | null {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as Json)
-    : null;
-}
-
 function array(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
-}
-
-function text(value: unknown): string | null {
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    return trimmed === "" ? null : trimmed;
-  }
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
-  }
-  return null;
-}
-
-function count(value: unknown): number | null {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
 }
 
 /** A tiebreaker percentage. The live CHECK is 0..1, so anything else is dropped. */

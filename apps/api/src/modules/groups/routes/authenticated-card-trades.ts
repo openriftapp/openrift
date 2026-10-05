@@ -11,6 +11,7 @@ import type {
 import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
+import { assertFound } from "../../../lib/assertions.js";
 import { isForeignKeyViolation } from "../../../lib/pg-errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -20,6 +21,15 @@ import {
   toCardTradeResponse,
   toCardTradeSheetRows,
 } from "../lib/card-trade-presenters.js";
+import {
+  acceptTrade,
+  applyTradeSync,
+  cancelTrade,
+  declineTrade,
+  listTradeCopyOptions,
+  setTradeQuantity,
+  skipTradeSync,
+} from "../services/card-trades.js";
 
 const os = implement(cardTradesContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -97,9 +107,7 @@ export const cardTradesRouter = {
     // account-existence probe.
     const groups = await friendGroups.sharedGroups(viewerId, counterpartyUserId);
     const [primaryGroup] = groups;
-    if (!primaryGroup) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Member not found");
-    }
+    assertFound(primaryGroup, "Member not found");
 
     // The profile is the same in every shared group, so one roster answers it;
     // revealed contacts are per group, so those are read from all of them.
@@ -108,9 +116,7 @@ export const cardTradesRouter = {
       Promise.all(groups.map((group) => friendGroups.getRevealedContactsForMembers(group.id))),
     ]);
     const member = members.find((row) => row.userId === counterpartyUserId);
-    if (!member) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Member not found");
-    }
+    assertFound(member, "Member not found");
 
     // Must preserve `groups`' sorted order: it decides attribution for rows shared by several groups.
     const matchesByGroup = await Promise.all(
@@ -144,48 +150,39 @@ export const cardTradesRouter = {
     };
   }),
 
-  copyOptions: os.copyOptions.handler(
-    ({ input, context }): Promise<CardTradeCopyOptionsResponse> => {
-      const { listTradeCopyOptions } = context.services;
-      return listTradeCopyOptions(context.repos, input.id, context.userId);
-    },
+  copyOptions: os.copyOptions.handler(({ input, context }): Promise<CardTradeCopyOptionsResponse> =>
+    listTradeCopyOptions(context.repos, input.id, context.userId),
   ),
 
-  accept: os.accept.handler(({ input, context }): Promise<CardTradeResponse> => {
-    const { acceptTrade } = context.services;
-    return acceptTrade(context.transact, input.id, context.userId, input.copyIds);
-  }),
+  accept: os.accept.handler(({ input, context }): Promise<CardTradeResponse> =>
+    acceptTrade(context.transact, input.id, context.userId, input.copyIds),
+  ),
 
-  decline: os.decline.handler(({ input, context }): Promise<CardTradeResponse> => {
-    const { declineTrade } = context.services;
-    return declineTrade(context.transact, input.id, context.userId);
-  }),
+  decline: os.decline.handler(({ input, context }): Promise<CardTradeResponse> =>
+    declineTrade(context.transact, input.id, context.userId),
+  ),
 
-  cancel: os.cancel.handler(({ input, context }): Promise<CardTradeResponse> => {
-    const { cancelTrade } = context.services;
-    return cancelTrade(context.transact, input.id, context.userId);
-  }),
+  cancel: os.cancel.handler(({ input, context }): Promise<CardTradeResponse> =>
+    cancelTrade(context.transact, input.id, context.userId),
+  ),
 
-  setQuantity: os.setQuantity.handler(({ input, context }): Promise<CardTradeResponse> => {
-    const { setTradeQuantity } = context.services;
-    return setTradeQuantity(context.transact, input.id, context.userId, input.quantity);
-  }),
+  setQuantity: os.setQuantity.handler(({ input, context }): Promise<CardTradeResponse> =>
+    setTradeQuantity(context.transact, input.id, context.userId, input.quantity),
+  ),
 
-  sync: os.sync.handler(({ input, context }): Promise<CardTradeResponse> => {
-    const { applyTradeSync } = context.services;
-    return applyTradeSync(context.transact, input.id, context.userId, {
+  sync: os.sync.handler(({ input, context }): Promise<CardTradeResponse> =>
+    applyTradeSync(context.transact, input.id, context.userId, {
       requestId: input.requestId,
       targetCollectionId: input.targetCollectionId,
       copyIds: input.copyIds,
       quantity: input.quantity,
-    });
-  }),
+    }),
+  ),
 
-  skipSync: os.skipSync.handler(({ input, context }): Promise<CardTradeResponse> => {
-    const { skipTradeSync } = context.services;
-    return skipTradeSync(context.transact, input.id, context.userId, {
+  skipSync: os.skipSync.handler(({ input, context }): Promise<CardTradeResponse> =>
+    skipTradeSync(context.transact, input.id, context.userId, {
       requestId: input.requestId,
       quantity: input.quantity,
-    });
-  }),
+    }),
+  ),
 };

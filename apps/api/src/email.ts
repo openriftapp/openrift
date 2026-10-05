@@ -1,6 +1,9 @@
 import { createLogger } from "@openrift/shared/logger";
+import type { Logger } from "@openrift/shared/logger";
+import type { EmailNotificationChannel } from "@openrift/shared/types/api/preferences";
 import { createTransport } from "nodemailer";
 
+import { buildUnsubscribeUrls } from "./emails/unsubscribe-token.js";
 import type { Config } from "./types.js";
 
 const log = createLogger("email");
@@ -71,4 +74,62 @@ export function createEmailSender(smtp: Config["smtp"], isDev: boolean) {
       throw error;
     }
   };
+}
+
+export type SendEmail = ReturnType<typeof createEmailSender>;
+
+export interface EmailDeps {
+  sendEmail: SendEmail;
+  appBaseUrl: string;
+  unsubscribeSecret: string;
+  log: Logger;
+}
+
+export function createEmailDeps(config: Config, sendEmail: SendEmail, logger: Logger): EmailDeps {
+  return {
+    sendEmail,
+    appBaseUrl: config.appBaseUrl,
+    unsubscribeSecret: config.auth.secret,
+    log: logger,
+  };
+}
+
+/** Without deps (tests, an SMTP-less env) the service runs with its email step skipped. */
+export function bindEmailDeps<A, B, R>(
+  run: (first: A, second: B, deps?: EmailDeps) => R,
+  deps?: EmailDeps,
+): (first: A, second: B) => R {
+  return deps === undefined ? run : (first, second) => run(first, second, deps);
+}
+
+export interface ChannelEmailRecipient {
+  userId: string;
+  email: string;
+}
+
+/** Never throws: a failed send is logged with `logContext` and reported as `false`. */
+export async function sendChannelEmail(
+  deps: EmailDeps,
+  recipient: ChannelEmailRecipient,
+  channel: EmailNotificationChannel,
+  build: (links: { unsubscribeUrl: string }) => { subject: string; html: string },
+  logContext?: Record<string, unknown>,
+): Promise<boolean> {
+  try {
+    const { pageUrl, oneClickUrl } = buildUnsubscribeUrls(
+      deps.appBaseUrl,
+      deps.unsubscribeSecret,
+      recipient.userId,
+      channel,
+    );
+    const { subject, html } = build({ unsubscribeUrl: pageUrl });
+    await deps.sendEmail({ to: recipient.email, subject, html, listUnsubscribeUrl: oneClickUrl });
+    return true;
+  } catch (error) {
+    deps.log.error(
+      { err: error, userId: recipient.userId, channel, ...logContext },
+      "Failed to send notification email",
+    );
+    return false;
+  }
 }

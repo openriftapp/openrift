@@ -42,7 +42,7 @@ export function overlayChannelsRepo(db: Kysely<Database>) {
   }
 
   return {
-    async findByUserId(userId: string): Promise<OverlayChannel | undefined> {
+    async getByUserId(userId: string): Promise<OverlayChannel | undefined> {
       const row = await db
         .selectFrom("overlayChannels")
         .selectAll()
@@ -52,7 +52,7 @@ export function overlayChannelsRepo(db: Kysely<Database>) {
     },
 
     // Token-authorised: deliberately returns no owner information.
-    async findByToken(token: string): Promise<OverlayChannel | undefined> {
+    async getByToken(token: string): Promise<OverlayChannel | undefined> {
       const row = await db
         .selectFrom("overlayChannels")
         .selectAll()

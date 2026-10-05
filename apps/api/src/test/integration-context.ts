@@ -36,6 +36,7 @@ const mockConfig = {
   databaseUrl: "",
   corsOrigin: undefined,
   appBaseUrl: "http://localhost:5173",
+  siteOrigin: "http://localhost:5173",
   auth: { secret: "test", adminEmail: undefined, google: undefined, discord: undefined },
   smtp: { configured: false },
 } as any;

@@ -2,17 +2,11 @@
 import { extname, join } from "node:path";
 
 import { isSubmissionUploadUrl } from "@openrift/shared/contribute-schema";
-import { v7 as uuidv7 } from "uuid";
 
 import type { Repos } from "../../../deps.js";
 import type { Io } from "../../../io.js";
-import { MEDIA_DIR } from "../../catalog/services/images/paths.js";
-
-export const SUBMISSION_MEDIA_DIR = join(MEDIA_DIR, "submissions");
-
-const URL_PREFIX = "/media/submissions/";
-
-const UPLOAD_DAILY_LIMIT = 200;
+import type { MediaUploadResult } from "../../../lib/media-upload.js";
+import { createMediaUploadStore } from "../../../lib/media-upload.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -22,12 +16,7 @@ const SWEEP_GRACE_DAYS = 7;
 
 const JPEG_QUALITY = 92;
 
-const uploadTimesByUser = new Map<string, number[]>();
-
-export type SubmissionUploadResult =
-  | { status: "ok"; url: string }
-  | { status: "not_an_image" }
-  | { status: "rate_limited"; limit: number };
+export type SubmissionUploadResult = MediaUploadResult;
 
 interface SaveSubmissionUploadArgs {
   userId: string;
@@ -55,33 +44,19 @@ async function reencode(io: Io, buffer: Buffer): Promise<{ data: Buffer; ext: st
   }
 }
 
-// nginx serves `media/submissions/` to anyone; the uuid filename is the only thing keeping an upload unlisted.
-export async function saveSubmissionUpload(
+const store = createMediaUploadStore({
+  subdir: "submissions",
+  dailyLimit: 200,
+  encode: reencode,
+});
+
+export const SUBMISSION_MEDIA_DIR = store.dir;
+
+export function saveSubmissionUpload(
   io: Io,
   args: SaveSubmissionUploadArgs,
 ): Promise<SubmissionUploadResult> {
-  const { userId, buffer, now } = args;
-
-  const since = now.getTime() - DAY_MS;
-  const recent = (uploadTimesByUser.get(userId) ?? []).filter((at) => at > since);
-  if (recent.length >= UPLOAD_DAILY_LIMIT) {
-    uploadTimesByUser.set(userId, recent);
-    return { status: "rate_limited", limit: UPLOAD_DAILY_LIMIT };
-  }
-
-  const encoded = await reencode(io, buffer);
-  if (!encoded) {
-    return { status: "not_an_image" };
-  }
-
-  const name = `${uuidv7()}.${encoded.ext}`;
-  await io.fs.mkdir(SUBMISSION_MEDIA_DIR, { recursive: true });
-  await io.fs.writeFile(join(SUBMISSION_MEDIA_DIR, name), encoded.data);
-
-  recent.push(now.getTime());
-  uploadTimesByUser.set(userId, recent);
-
-  return { status: "ok", url: `${URL_PREFIX}${name}` };
+  return store.save(io, args);
 }
 
 export async function readSubmissionUpload(
@@ -91,7 +66,7 @@ export async function readSubmissionUpload(
   if (!isSubmissionUploadUrl(url)) {
     throw new Error(`Not a submission upload URL: ${url}`);
   }
-  const name = url.slice(URL_PREFIX.length);
+  const name = store.fileName(url);
   const buffer = await io.fs.readFile(join(SUBMISSION_MEDIA_DIR, name));
   return { buffer, ext: extname(name) };
 }
@@ -100,9 +75,7 @@ export async function deleteSubmissionUpload(io: Io, url: string): Promise<void>
   if (!isSubmissionUploadUrl(url)) {
     return;
   }
-  const name = url.slice(URL_PREFIX.length);
-  // oxlint-disable-next-line no-empty-function -- swallow missing-file errors
-  await io.fs.unlink(join(SUBMISSION_MEDIA_DIR, name)).catch(() => {});
+  await store.remove(io, url);
 }
 
 // An upload an admin already attached stays: `image_files.original_url` still points at it.
@@ -159,12 +132,12 @@ export async function sweepSubmissionUploads(
   }
 
   const urls = names
-    .map((name) => `${URL_PREFIX}${name}`)
+    .map((name) => `${store.urlPrefix}${name}`)
     .filter((url) => isSubmissionUploadUrl(url));
 
   const stale: string[] = [];
   for (const url of urls) {
-    if (await olderThan(io, url.slice(URL_PREFIX.length), cutoff.getTime())) {
+    if (await olderThan(io, store.fileName(url), cutoff.getTime())) {
       stale.push(url);
     }
   }

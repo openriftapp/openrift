@@ -8,6 +8,7 @@ import type {
 import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
+import { assertExisted } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import {
@@ -52,9 +53,7 @@ export const friendGroupsShopsRouter = {
     requireRole(ctx.membership, "admin");
 
     const exists = await context.repos.friendGroupShops.storeExists(input.storeId);
-    if (!exists) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Shop not found");
-    }
+    assertExisted(exists, "Shop not found");
     const count = await context.repos.friendGroupShops.countShops(ctx.group.id);
     if (count >= MAX_SHOPS_PER_GROUP) {
       throw new AppError(
@@ -75,9 +74,7 @@ export const friendGroupsShopsRouter = {
     requireRole(ctx.membership, "admin");
 
     const deleted = await context.repos.friendGroupShops.unlinkShop(ctx.group.id, input.storeId);
-    if (!deleted) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Shop not found");
-    }
+    assertExisted(deleted, "Shop not found");
   }),
 
   shopEvents: os.shopEvents.handler(

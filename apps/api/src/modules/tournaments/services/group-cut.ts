@@ -1,5 +1,4 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
-import { mathRandom } from "@openrift/shared/pack-opener/rng";
 import { nextCutRoundPairs, seedBracket } from "@openrift/shared/pairing/cut-bracket";
 import type {
   BracketSeed,
@@ -15,6 +14,7 @@ import {
   unitRoundPairs,
   validateGroupCount,
 } from "@openrift/shared/pairing/group-stage";
+import { mathRandom } from "@openrift/shared/random";
 
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
@@ -216,7 +216,7 @@ async function generateCut(
   const context = await loadGroupCutContext(repos, tournament, players, roundRows);
   if (context.ranking.pendingMetaLegendIds.length > 0) {
     const names = context.ranking.pendingMetaLegendIds
-      .map((legendCardId) => context.legendNames.get(legendCardId) ?? legendCardId)
+      .map((legendCardId) => context.legendNames.get(legendCardId)?.name ?? legendCardId)
       .join(", ");
     throw conflict(`Enter the meta shares for ${names} first.`);
   }

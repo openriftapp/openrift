@@ -1,3 +1,4 @@
+import type { ScheduledJobKind } from "@openrift/shared/contracts/admin/job-schedules";
 import type {
   MetaCancellableJob,
   MetaSource,
@@ -13,6 +14,7 @@ import { createLogger } from "@openrift/shared/logger";
 import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
+import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import {
   PLAYLOLTCG_PROVIDER,
   TOPDECK_PROVIDER,
@@ -20,10 +22,16 @@ import {
 } from "../../../lib/meta-providers.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
-import type { JobRun } from "../../system/repositories/job-runs.js";
+import { requireScheduler } from "../../system/services/job-scheduler.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { runJobAsync } from "../../system/services/run-job.js";
-import { toMetaCatalogRow, toMetaSourceTemplate } from "../lib/meta-catalog-presenters.js";
+import {
+  toMetaCatalogRow,
+  toMetaSourceTemplate,
+  toMetaSyncCatalog,
+  toMetaSyncRun,
+  toMetaSyncSettings,
+} from "../lib/meta-catalog-presenters.js";
 import { toPlayloltcgCatalogRow } from "../lib/playloltcg-catalog-presenters.js";
 import { toTopdeckCatalogRow } from "../lib/topdeck-catalog-presenters.js";
 import type { UvsgamesListRow } from "../repositories/uvsgames-events.js";
@@ -49,7 +57,6 @@ import {
   META_JOB_KINDS,
   processRechecks,
   sweepEventIds,
-  syncCatalog,
   acceptPlayloltcgEvent,
   autoAcceptPlayloltcgBacklog,
   backfillPlayloltcg,
@@ -58,13 +65,11 @@ import {
   isPlayloltcgRecheckNoop,
   isPlayloltcgSyncNoop,
   processPlayloltcgRechecks,
-  syncPlayloltcgCatalog,
   acceptTopdeckEvent,
   autoAcceptTopdeckBacklog,
   backfillTopdeck,
   createTopdeckSyncDeps,
   isTopdeckSyncNoop,
-  syncTopdeckCatalog,
 } from "../services/meta-sync/index.js";
 
 const log = createLogger("meta-sync");
@@ -132,20 +137,6 @@ function jobKindsForSource(source: MetaSource): string[] {
 
 const ARCHIVE_JOB_KINDS = ["meta.retier", "meta.repromote"];
 
-function toMetaSyncRun(run: JobRun) {
-  return {
-    id: run.id,
-    kind: run.kind,
-    trigger: run.trigger,
-    status: run.status,
-    startedAt: run.startedAt.toISOString(),
-    finishedAt: run.finishedAt?.toISOString() ?? null,
-    durationMs: run.durationMs,
-    errorMessage: run.errorMessage,
-    result: (run.result ?? null) as Record<string, unknown> | null,
-  };
-}
-
 function isAutoAcceptNoop(
   summary: MetaAutoAcceptSummary | PlayloltcgAcceptSummary | TopdeckAcceptSummary,
 ): boolean {
@@ -164,9 +155,7 @@ function syncDeps(context: ApiContext): MetaSyncDeps {
 
 async function requireRow(context: ApiContext, externalId: string): Promise<UvsgamesListRow> {
   const row = await context.repos.uvsgamesEvents.byKey(externalId);
-  if (row === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Catalogue event not found");
-  }
+  assertFound(row, "Catalogue event not found");
   return row;
 }
 
@@ -189,6 +178,14 @@ async function startJob<TDeps, TResult>(
     (runId) => work(deps, runId),
     { summarize: (result) => result, classifyNoop },
   );
+  return { status: started.status, runId: started.runId, message: null, result: null };
+}
+
+async function runScheduledJob(
+  context: ApiContext,
+  kind: ScheduledJobKind,
+): Promise<MetaSyncTriggerResult> {
+  const started = await requireScheduler(context.scheduler).runNow(kind);
   return { status: started.status, runId: started.runId, message: null, result: null };
 }
 
@@ -260,9 +257,7 @@ export const adminMetaCatalogRouter = {
       UVSGAMES_PROVIDER,
       input.externalId,
     );
-    if (!removed) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Ignore entry not found");
-    }
+    assertExisted(removed, "Ignore entry not found");
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.undismiss",
       entityType: "meta-catalog",
@@ -283,9 +278,7 @@ export const adminMetaCatalogRouter = {
       ...(input.tier === undefined ? {} : { tier: input.tier }),
     };
     const row = await context.repos.uvsgamesEvents.updateTemplate(input.templateId, patch);
-    if (row === undefined) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Unknown template");
-    }
+    assertFound(row, "Unknown template");
     if (Object.keys(patch).length > 0) {
       await recordAdminEvent(context.repos, context.userId, {
         action: "meta-catalog.template",
@@ -317,17 +310,13 @@ export const adminMetaCatalogRouter = {
       }
     }
     const existing = await context.repos.uvsgamesEvents.formatByName(input.sourceFormat);
-    if (existing === undefined) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "No catalogue event carries this format");
-    }
+    assertFound(existing, "No catalogue event carries this format");
 
     const updated = await context.repos.uvsgamesEvents.setFormatMapping(
       input.sourceFormat,
       input.mappedFormat,
     );
-    if (updated === undefined) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "No catalogue event carries this format");
-    }
+    assertFound(updated, "No catalogue event carries this format");
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.format",
       entityType: "meta-catalog-format",
@@ -341,7 +330,7 @@ export const adminMetaCatalogRouter = {
 
   settings: os.settings.handler(async ({ context }) => {
     const row = await context.repos.uvsgamesEvents.settings();
-    return { ...row, updatedAt: row.updatedAt.toISOString() };
+    return toMetaSyncSettings(row);
   }),
 
   updateSettings: os.updateSettings.handler(async ({ input, context }) => {
@@ -352,7 +341,7 @@ export const adminMetaCatalogRouter = {
       entityId: UVSGAMES_PROVIDER,
       newValues: input,
     });
-    return { ...row, updatedAt: row.updatedAt.toISOString() };
+    return toMetaSyncSettings(row);
   }),
 
   archiveJobs: os.archiveJobs.handler(async ({ context }) => {
@@ -374,18 +363,7 @@ export const adminMetaCatalogRouter = {
       context.repos.jobRuns.listRecentByKinds(jobKindsForSource(source), STATUS_RUN_LIMIT),
     ]);
     return {
-      catalog: {
-        total: overview.total,
-        completed: overview.completed,
-        decklistPublished: overview.decklistPublished,
-        missing: overview.missing,
-        queued: overview.queued,
-        dueRecheck: overview.dueRecheck,
-        oldestDueAt: overview.oldestDueAt?.toISOString() ?? null,
-        acceptedAwaitingResults: overview.acceptedAwaitingResults,
-        acceptedMissing: overview.acceptedMissing,
-        lastSeenAt: overview.lastSeenAt?.toISOString() ?? null,
-      },
+      catalog: toMetaSyncCatalog(overview),
       archive,
       counts,
       runs: runs.map((run) => toMetaSyncRun(run)),
@@ -399,14 +377,12 @@ export const adminMetaCatalogRouter = {
     };
   }),
 
-  runSync: os.runSync.handler(({ context }) =>
-    startJob(context, "meta.uvsgames_sync", syncDeps, syncCatalog, isCatalogSyncNoop),
-  ),
+  runSync: os.runSync.handler(({ context }) => runScheduledJob(context, "meta.uvsgames_sync")),
 
   runBackfill: os.runBackfill.handler(async ({ context }) => {
     // A run that stopped early leaves a resume point behind and this picks it
     // up. `restartBackfill` is the way to ignore it.
-    const previous = await context.repos.jobRuns.findLatestForResume(BACKFILL_KIND);
+    const previous = await context.repos.jobRuns.getLatestForResume(BACKFILL_KIND);
     const prior = previous?.result;
     const resumeFrom = isResumableCheckpoint(prior) ? new Date(prior.coveredThrough) : undefined;
     return await startJob(
@@ -452,10 +428,8 @@ export const adminMetaCatalogRouter = {
     if (kind === undefined) {
       throw new AppError(400, ERROR_CODES.BAD_REQUEST, `${source} runs no ${job}`);
     }
-    const running = await context.repos.jobRuns.findRunning(kind);
-    if (!running) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, `No ${job} is running`);
-    }
+    const running = await context.repos.jobRuns.getRunning(kind);
+    assertFound(running, `No ${job} is running`);
     // Only recheck cancels without a checkpoint; backfill and the sweep read
     // the flag from their own heartbeat, so one must exist first.
     if (job !== "recheck") {
@@ -515,13 +489,7 @@ export const adminMetaCatalogRouter = {
   ),
 
   runPlayloltcgSync: os.runPlayloltcgSync.handler(({ context }) =>
-    startJob(
-      context,
-      "meta.playloltcg_sync",
-      playloltcgDeps,
-      syncPlayloltcgCatalog,
-      isPlayloltcgSyncNoop,
-    ),
+    runScheduledJob(context, "meta.playloltcg_sync"),
   ),
 
   runPlayloltcgRecheck: os.runPlayloltcgRecheck.handler(({ context }) =>
@@ -535,7 +503,7 @@ export const adminMetaCatalogRouter = {
   ),
 
   runPlayloltcgBackfill: os.runPlayloltcgBackfill.handler(async ({ context }) => {
-    const previous = await context.repos.jobRuns.findLatestForResume(PLAYLOLTCG_BACKFILL_KIND);
+    const previous = await context.repos.jobRuns.getLatestForResume(PLAYLOLTCG_BACKFILL_KIND);
     const prior = previous?.result;
     const resumeFrom = isResumableCheckpoint(prior) ? new Date(prior.coveredThrough) : undefined;
     return await startJob(
@@ -592,9 +560,7 @@ export const adminMetaCatalogRouter = {
 
   playloltcgAccept: os.playloltcgAccept.handler(async ({ input, context }) => {
     const row = await context.repos.playloltcgEvents.byKey(input.activityShopId);
-    if (row === undefined) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Catalogue event not found");
-    }
+    assertFound(row, "Catalogue event not found");
     const accepted = await acceptPlayloltcgEvent(playloltcgDeps(context), row);
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.accept",
@@ -608,9 +574,7 @@ export const adminMetaCatalogRouter = {
 
   playloltcgDismiss: os.playloltcgDismiss.handler(async ({ input, context }) => {
     const row = await context.repos.playloltcgEvents.byKey(input.activityShopId);
-    if (row === undefined) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Catalogue event not found");
-    }
+    assertFound(row, "Catalogue event not found");
     await context.repos.metaOverlays.ignoreEvent(PLAYLOLTCG_PROVIDER, String(row.activityShopId));
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.dismiss",
@@ -623,9 +587,7 @@ export const adminMetaCatalogRouter = {
   playloltcgUndismiss: os.playloltcgUndismiss.handler(async ({ input, context }) => {
     const externalId = String(input.activityShopId);
     const removed = await context.repos.metaOverlays.unignoreEvent(PLAYLOLTCG_PROVIDER, externalId);
-    if (!removed) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Ignore entry not found");
-    }
+    assertExisted(removed, "Ignore entry not found");
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.undismiss",
       entityType: "meta-catalog",
@@ -635,9 +597,7 @@ export const adminMetaCatalogRouter = {
 
   playloltcgFetchEvent: os.playloltcgFetchEvent.handler(async ({ input, context }) => {
     const row = await context.repos.playloltcgEvents.byKey(input.activityShopId);
-    if (row === undefined) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Catalogue event not found");
-    }
+    assertFound(row, "Catalogue event not found");
     if (row.metaEventId === null) {
       throw new AppError(
         400,
@@ -651,11 +611,11 @@ export const adminMetaCatalogRouter = {
   }),
 
   runTopdeckSync: os.runTopdeckSync.handler(({ context }) =>
-    startJob(context, "meta.topdeck_sync", topdeckDeps, syncTopdeckCatalog, isTopdeckSyncNoop),
+    runScheduledJob(context, "meta.topdeck_sync"),
   ),
 
   runTopdeckBackfill: os.runTopdeckBackfill.handler(async ({ context }) => {
-    const previous = await context.repos.jobRuns.findLatestForResume(TOPDECK_BACKFILL_KIND);
+    const previous = await context.repos.jobRuns.getLatestForResume(TOPDECK_BACKFILL_KIND);
     const prior = previous?.result;
     const resumeFrom = isResumableCheckpoint(prior) ? new Date(prior.coveredThrough) : undefined;
     return await startJob(
@@ -711,9 +671,7 @@ export const adminMetaCatalogRouter = {
 
   topdeckAccept: os.topdeckAccept.handler(async ({ input, context }) => {
     const row = await context.repos.topdeckEvents.byKey(input.tid);
-    if (row === undefined) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Catalogue event not found");
-    }
+    assertFound(row, "Catalogue event not found");
     const accepted = await acceptTopdeckEvent(topdeckDeps(context), row);
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.accept",
@@ -727,9 +685,7 @@ export const adminMetaCatalogRouter = {
 
   topdeckDismiss: os.topdeckDismiss.handler(async ({ input, context }) => {
     const row = await context.repos.topdeckEvents.byKey(input.tid);
-    if (row === undefined) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Catalogue event not found");
-    }
+    assertFound(row, "Catalogue event not found");
     await context.repos.metaOverlays.ignoreEvent(TOPDECK_PROVIDER, row.tid);
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.dismiss",
@@ -741,9 +697,7 @@ export const adminMetaCatalogRouter = {
 
   topdeckUndismiss: os.topdeckUndismiss.handler(async ({ input, context }) => {
     const removed = await context.repos.metaOverlays.unignoreEvent(TOPDECK_PROVIDER, input.tid);
-    if (!removed) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Ignore entry not found");
-    }
+    assertExisted(removed, "Ignore entry not found");
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.undismiss",
       entityType: "meta-catalog",

@@ -38,7 +38,7 @@ function buildApp(session: { user: { id: string; name?: string } } | null) {
       c.set("auth", { api: { getSession: () => Promise.resolve(session) } } as never);
       c.set("repos", { tierLists: mockTierListsRepo } as never);
       c.set("io", {} as never);
-      c.set("config", { corsOrigin: "https://openrift.app" } as never);
+      c.set("config", { siteOrigin: "https://openrift.app" } as never);
       await next();
     })
     .route("/api/v1", tierListImageRoute)

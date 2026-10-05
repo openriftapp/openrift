@@ -27,7 +27,7 @@ const shareJobs = (): Extract<RenderJob, { kind: "share" }>[] => jobsOfKind("sha
 const deckJobs = (): Extract<RenderJob, { kind: "deck" }>[] => jobsOfKind("deck");
 
 const mockListsRepo = {
-  findByShareToken: vi.fn(),
+  getByShareToken: vi.fn(),
   entriesWithDetailsAnon: vi.fn(),
 };
 const mockUserSharesRepo = {
@@ -38,13 +38,13 @@ const mockCanonicalPrintingsRepo = {
   resolvePrintingMetaForRows: vi.fn(() => Promise.resolve([] as unknown[])),
 };
 const mockCollectionsRepo = {
-  findByShareToken: vi.fn(),
+  getByShareToken: vi.fn(),
 };
 const mockCopiesRepo = {
   collectionShareImageCards: vi.fn(),
 };
 const mockDecksRepo = {
-  findByShareToken: vi.fn(),
+  getByShareToken: vi.fn(),
   cardsForDeck: vi.fn(),
 };
 const mockCatalogRepo = {
@@ -72,7 +72,7 @@ const app = new Hono<{ Variables: Variables }>()
       cardErrata: mockCardErrataRepo,
     } as never);
     c.set("io", {} as never);
-    c.set("config", { corsOrigin: "https://openrift.app,https://preview.openrift.app" } as never);
+    c.set("config", { siteOrigin: "https://openrift.app" } as never);
     await next();
   })
   .route("/api/v1", publicShareImagesRoute)
@@ -133,15 +133,15 @@ function copyEntry(id: string, cardName: string, quantity: number) {
 
 beforeEach(() => {
   renderMock.mockClear();
-  mockListsRepo.findByShareToken.mockReset();
+  mockListsRepo.getByShareToken.mockReset();
   mockListsRepo.entriesWithDetailsAnon.mockReset();
   mockUserSharesRepo.findOwnerByShareToken.mockReset();
   mockUserSharesRepo.listsForOwner.mockReset();
   mockCanonicalPrintingsRepo.resolvePrintingMetaForRows.mockReset();
   mockCanonicalPrintingsRepo.resolvePrintingMetaForRows.mockResolvedValue([]);
-  mockCollectionsRepo.findByShareToken.mockReset();
+  mockCollectionsRepo.getByShareToken.mockReset();
   mockCopiesRepo.collectionShareImageCards.mockReset();
-  mockDecksRepo.findByShareToken.mockReset();
+  mockDecksRepo.getByShareToken.mockReset();
   mockDecksRepo.cardsForDeck.mockReset();
   mockCatalogRepo.cardsByIds.mockReset();
   mockMetaRepo.contextForDeck.mockReset();
@@ -150,7 +150,7 @@ beforeEach(() => {
 
 describe("GET /api/v1/lists/share/:token/image.png", () => {
   it("renders a PNG with an immutable cache header and maps list metadata", async () => {
-    mockListsRepo.findByShareToken.mockResolvedValue({
+    mockListsRepo.getByShareToken.mockResolvedValue({
       list: tradeList,
       ownerName: "Alice",
       ownerEmail: "alice@example.test",
@@ -181,7 +181,7 @@ describe("GET /api/v1/lists/share/:token/image.png", () => {
   });
 
   it("returns 404 for an unknown token and does not render", async () => {
-    mockListsRepo.findByShareToken.mockResolvedValue(undefined);
+    mockListsRepo.getByShareToken.mockResolvedValue(undefined);
 
     const res = await getImage("/api/v1/lists/share/nope/image.png");
 
@@ -191,7 +191,7 @@ describe("GET /api/v1/lists/share/:token/image.png", () => {
   });
 
   it("resolves representative art for card-kind entries", async () => {
-    mockListsRepo.findByShareToken.mockResolvedValue({
+    mockListsRepo.getByShareToken.mockResolvedValue({
       list: { ...tradeList, intent: "wish", kind: "card" },
       ownerName: "Alice",
       ownerEmail: "alice@example.test",
@@ -227,7 +227,7 @@ describe("GET /api/v1/lists/share/:token/image.png", () => {
   });
 
   it("renders a placeholder image (200) for a shared list with no entries", async () => {
-    mockListsRepo.findByShareToken.mockResolvedValue({
+    mockListsRepo.getByShareToken.mockResolvedValue({
       list: tradeList,
       ownerName: "Alice",
       ownerEmail: "alice@example.test",
@@ -242,7 +242,7 @@ describe("GET /api/v1/lists/share/:token/image.png", () => {
   });
 
   it("renders the landscape canvas with the mark on when no params are given", async () => {
-    mockListsRepo.findByShareToken.mockResolvedValue({
+    mockListsRepo.getByShareToken.mockResolvedValue({
       list: tradeList,
       ownerName: "Alice",
       ownerEmail: "alice@example.test",
@@ -255,7 +255,7 @@ describe("GET /api/v1/lists/share/:token/image.png", () => {
   });
 
   it("passes the vertical aspect and the code toggle through", async () => {
-    mockListsRepo.findByShareToken.mockResolvedValue({
+    mockListsRepo.getByShareToken.mockResolvedValue({
       list: tradeList,
       ownerName: "Alice",
       ownerEmail: "alice@example.test",
@@ -269,7 +269,7 @@ describe("GET /api/v1/lists/share/:token/image.png", () => {
   });
 
   it("rate-limits repeated share-image renders from one IP with 429", async () => {
-    mockListsRepo.findByShareToken.mockResolvedValue({
+    mockListsRepo.getByShareToken.mockResolvedValue({
       list: tradeList,
       ownerName: "Alice",
       ownerEmail: "alice@example.test",
@@ -347,7 +347,7 @@ describe("GET /api/v1/users/share/:token/image.png", () => {
 
 describe("GET /api/v1/collections/share/:token/image.png", () => {
   it("renders a PNG with an immutable cache header and maps collection metadata", async () => {
-    mockCollectionsRepo.findByShareToken.mockResolvedValue({
+    mockCollectionsRepo.getByShareToken.mockResolvedValue({
       collection: { id: "col-1", name: "My Binder", updatedAt: NOW, copyCount: 7 },
       ownerName: "Bob",
       ownerEmail: "bob@example.test",
@@ -382,7 +382,7 @@ describe("GET /api/v1/collections/share/:token/image.png", () => {
   });
 
   it("passes the vertical aspect and the code toggle through", async () => {
-    mockCollectionsRepo.findByShareToken.mockResolvedValue({
+    mockCollectionsRepo.getByShareToken.mockResolvedValue({
       collection: { id: "col-1", name: "My Binder", updatedAt: NOW, copyCount: 7 },
       ownerName: "Bob",
       ownerEmail: "bob@example.test",
@@ -399,7 +399,7 @@ describe("GET /api/v1/collections/share/:token/image.png", () => {
   });
 
   it("returns 404 for an unknown or private token and does not render", async () => {
-    mockCollectionsRepo.findByShareToken.mockResolvedValue(undefined);
+    mockCollectionsRepo.getByShareToken.mockResolvedValue(undefined);
 
     const res = await getImage("/api/v1/collections/share/nope/image.png");
 
@@ -418,7 +418,7 @@ describe("GET /api/v1/decks/share/:token/image.png", () => {
   };
 
   function setupDeck() {
-    mockDecksRepo.findByShareToken.mockResolvedValue({
+    mockDecksRepo.getByShareToken.mockResolvedValue({
       deck,
       ownerName: "drawphasetcg",
       ownerEmail: "owner@example.test",
@@ -550,7 +550,7 @@ describe("GET /api/v1/decks/share/:token/image.png", () => {
   });
 
   it("returns 404 for an unknown deck token and does not render", async () => {
-    mockDecksRepo.findByShareToken.mockResolvedValue(undefined);
+    mockDecksRepo.getByShareToken.mockResolvedValue(undefined);
 
     const res = await getImage("/api/v1/decks/share/nope/image.png");
 
@@ -588,7 +588,7 @@ describe("GET /api/v1/decks/share/:token/image.png", () => {
     };
 
     function setupArchivedDeck() {
-      mockDecksRepo.findByShareToken.mockResolvedValue({
+      mockDecksRepo.getByShareToken.mockResolvedValue({
         deck: { ...deck, name: "Blade Dancer (adtoll)" },
         ownerName: "Meta Archive",
         ownerEmail: "meta@example.test",

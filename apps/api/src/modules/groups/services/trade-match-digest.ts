@@ -1,24 +1,18 @@
-import type { Logger } from "@openrift/shared/logger";
+import { groupPath } from "@openrift/shared/site-paths";
 
 import type { Repos } from "../../../deps.js";
-import type { createEmailSender } from "../../../email.js";
+import type { EmailDeps } from "../../../email.js";
+import { sendChannelEmail } from "../../../email.js";
 import type { DigestGroupSection } from "../../../emails/trade-emails.js";
 import { buildTradeMatchDigestEmail } from "../../../emails/trade-emails.js";
-import { buildUnsubscribeUrls } from "../../../emails/unsubscribe-token.js";
 import type { IncomingMatchFeedRow } from "../repositories/friend-group-matches-view.js";
-
-type SendEmail = ReturnType<typeof createEmailSender>;
 
 const DIGEST_MATCH_LIMIT = 500;
 
 export const TRADE_MATCH_DIGEST_SETTING = "trade-match-digest";
 
-export interface TradeMatchDigestDeps {
+export interface TradeMatchDigestDeps extends EmailDeps {
   repos: Repos;
-  log: Logger;
-  sendEmail: SendEmail;
-  appBaseUrl: string;
-  unsubscribeSecret: string;
   sinceTimestamp: Date | null;
 }
 
@@ -56,7 +50,7 @@ interface PendingGroup {
 export async function sendTradeMatchDigest(
   deps: TradeMatchDigestDeps,
 ): Promise<TradeMatchDigestResult> {
-  const { repos, log, sendEmail, appBaseUrl, unsubscribeSecret, sinceTimestamp } = deps;
+  const { repos, appBaseUrl, sinceTimestamp } = deps;
 
   if ((await repos.siteSettings.getBool(TRADE_MATCH_DIGEST_SETTING)) === false) {
     return { recipients: 0, emailsSent: 0, matches: 0, failed: 0, matchesDropped: 0 };
@@ -107,7 +101,7 @@ export async function sendTradeMatchDigest(
 
     const sections: DigestGroupSection[] = pending.map((group) => ({
       groupName: group.name,
-      tradesUrl: `${appBaseUrl}/groups/${group.slug}/trades`,
+      tradesUrl: appBaseUrl + groupPath(group.slug, "trades"),
       matches: group.rows.map((row) => ({
         cardName: nameByCard.get(row.cardId) ?? null,
         counterpartyLabel: group.labelByUser.get(row.counterpartyUserId) ?? null,
@@ -115,31 +109,20 @@ export async function sendTradeMatchDigest(
     }));
 
     const totalMatches = sections.reduce((sum, section) => sum + section.matches.length, 0);
-    const { pageUrl, oneClickUrl } = buildUnsubscribeUrls(
-      appBaseUrl,
-      unsubscribeSecret,
-      recipient.userId,
-      "tradeMatches",
+    const sent = await sendChannelEmail(deps, recipient, "tradeMatches", ({ unsubscribeUrl }) =>
+      buildTradeMatchDigestEmail({
+        locale: recipient.displayLocale,
+        recipientName: recipient.name,
+        groups: sections,
+        unsubscribeUrl,
+      }),
     );
-
-    const { subject, html } = buildTradeMatchDigestEmail({
-      locale: recipient.displayLocale,
-      recipientName: recipient.name,
-      groups: sections,
-      unsubscribeUrl: pageUrl,
-    });
-
-    try {
-      await sendEmail({ to: recipient.email, subject, html, listUnsubscribeUrl: oneClickUrl });
+    if (sent) {
       emailsSent += 1;
       matchesSent += totalMatches;
-    } catch (error) {
+    } else {
       failed += 1;
       matchesDropped += totalMatches;
-      log.error(
-        { err: error, userId: recipient.userId },
-        "Failed to send trade match digest to recipient",
-      );
     }
   }
 

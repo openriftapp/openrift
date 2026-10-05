@@ -1,10 +1,11 @@
+import { compareCardDisplayName, legendDisplayName } from "@openrift/shared/card-name";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
-import { aspectFromQuery, qrFromQuery } from "@openrift/shared/share-image-params";
 import {
-  compareCardDisplayName,
-  legendDisplayName,
-  sentenceCaseSlug,
-} from "@openrift/shared/utils";
+  aspectFromQuery,
+  deckImageBodySchema,
+  qrFromQuery,
+} from "@openrift/shared/share-image-params";
+import { sentenceCaseSlug } from "@openrift/shared/strings";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { rateLimiter } from "hono-rate-limiter";
@@ -12,6 +13,8 @@ import { bodyLimit } from "hono/body-limit";
 
 import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
+import { jsonError, pngResponse } from "../../../lib/http-response.js";
+import { shareUrlFromOrigin, siteHostFromOrigin } from "../../../lib/site-url.js";
 import type { Variables } from "../../../types.js";
 import { buildCollectionShareInput } from "../../collections/services/collection-image.js";
 import {
@@ -20,13 +23,7 @@ import {
   resolveCoverImageId,
   splitDeckZones,
 } from "../../decks/services/deck-image.js";
-import {
-  buildCards,
-  buildListShareInput,
-  shareUrlFromOrigin,
-  siteHostFromOrigin,
-  topByQuantity,
-} from "../../lists/services/list-image.js";
+import { buildCards, buildListShareInput, topByQuantity } from "../../lists/services/list-image.js";
 import { metaDeckImageFraming } from "../../meta/lib/meta-share-image.js";
 import { buildTierListImageRows } from "../../stage/services/tier-list-image.js";
 import { renderImage } from "../services/render-pool.js";
@@ -94,13 +91,6 @@ function imageOptions(aspect: string | undefined, qr: string | undefined): Share
   return { aspect: aspectFromQuery(aspect), qr: qrFromQuery(qr) };
 }
 
-function pngResponse(png: Buffer): Response {
-  return new Response(png, {
-    status: 200,
-    headers: { "Content-Type": "image/png", "Cache-Control": IMAGE_CACHE_CONTROL },
-  });
-}
-
 /**
  * Collapses cards that recur across a bundle's lists into one tile, keeping the
  * first occurrence's quantity: summing across lists would misrepresent "how
@@ -123,7 +113,7 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
     const config = c.get("config");
     const token = c.req.param("token");
 
-    const found = await lists.findByShareToken(token);
+    const found = await lists.getByShareToken(token);
     assertFound(found, "Not found");
 
     const entries = await lists.entriesWithDetailsAnon(found.list.id, found.list.kind);
@@ -133,8 +123,8 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
       intent: found.list.intent,
       kind: found.list.kind,
       entries,
-      siteHost: siteHostFromOrigin(config.corsOrigin),
-      shareUrl: shareUrlFromOrigin(config.corsOrigin, `/lists/share/${token}`),
+      siteHost: siteHostFromOrigin(config.siteOrigin),
+      shareUrl: shareUrlFromOrigin(config.siteOrigin, `/lists/share/${token}`),
       canonicalPrintings,
     });
     const png = await renderImage({
@@ -144,7 +134,7 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
       options: imageOptions(c.req.query("aspect"), c.req.query("qr")),
     });
 
-    return pngResponse(png);
+    return pngResponse(png, IMAGE_CACHE_CONTROL);
   })
 
   .get("/users/share/:token/image.png", shareImageRateLimit, async (c) => {
@@ -174,14 +164,14 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
         unit: { one: "card", many: "cards" },
         cards,
         totalCount: cards.length,
-        siteHost: siteHostFromOrigin(config.corsOrigin),
-        shareUrl: shareUrlFromOrigin(config.corsOrigin, `/users/share/${token}`),
+        siteHost: siteHostFromOrigin(config.siteOrigin),
+        shareUrl: shareUrlFromOrigin(config.siteOrigin, `/users/share/${token}`),
       },
       scale: c.req.query("size") === "hq" ? 2 : 1,
       options: imageOptions(c.req.query("aspect"), c.req.query("qr")),
     });
 
-    return pngResponse(png);
+    return pngResponse(png, IMAGE_CACHE_CONTROL);
   })
 
   .get("/collections/share/:token/image.png", shareImageRateLimit, async (c) => {
@@ -189,17 +179,17 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
     const config = c.get("config");
     const token = c.req.param("token");
 
-    // findByShareToken only resolves public collections, so a private token (or
+    // getByShareToken only resolves public collections, so a private token (or
     // an unknown one) 404s — the image must never leak a non-shared collection.
-    const found = await collections.findByShareToken(token);
+    const found = await collections.getByShareToken(token);
     assertFound(found, "Not found");
 
     const input = await buildCollectionShareInput({
       collectionId: found.collection.id,
       ownerName: found.ownerName ?? "Anonymous",
       collectionName: found.collection.name,
-      siteHost: siteHostFromOrigin(config.corsOrigin),
-      shareUrl: shareUrlFromOrigin(config.corsOrigin, `/collections/share/${token}`),
+      siteHost: siteHostFromOrigin(config.siteOrigin),
+      shareUrl: shareUrlFromOrigin(config.siteOrigin, `/collections/share/${token}`),
       copies,
     });
     const png = await renderImage({
@@ -209,7 +199,7 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
       options: imageOptions(c.req.query("aspect"), c.req.query("qr")),
     });
 
-    return pngResponse(png);
+    return pngResponse(png, IMAGE_CACHE_CONTROL);
   })
 
   .get("/decks/share/:token/image.png", shareImageRateLimit, async (c) => {
@@ -217,7 +207,7 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
     const config = c.get("config");
     const token = c.req.param("token");
 
-    const found = await repos.decks.findByShareToken(token);
+    const found = await repos.decks.getByShareToken(token);
     assertFound(found, "Not found");
 
     const [cards, metaContext] = await Promise.all([
@@ -233,7 +223,7 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
     const aspect = aspectFromQuery(c.req.query("aspect"));
     const path = archive ? `/meta/decks/${token}` : `/decks/share/${token}`;
     const shareUrl = qrFromQuery(c.req.query("qr"))
-      ? shareUrlFromOrigin(config.corsOrigin, path)
+      ? shareUrlFromOrigin(config.siteOrigin, path)
       : undefined;
 
     const png = await renderImage({
@@ -244,7 +234,7 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
         formatLabel: sentenceCaseSlug(found.deck.format),
         resultLine: archive?.resultLine,
         cards,
-        siteHost: siteHostFromOrigin(config.corsOrigin),
+        siteHost: siteHostFromOrigin(config.siteOrigin),
         shareUrl,
         coverImageId: await resolveCoverImageId(repos, found.deck),
       },
@@ -252,7 +242,7 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
       aspect,
     });
 
-    return pngResponse(png);
+    return pngResponse(png, IMAGE_CACHE_CONTROL);
   })
 
   .get("/tier-lists/share/:token/image.png", shareImageRateLimit, async (c) => {
@@ -260,16 +250,16 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
     const config = c.get("config");
     const token = c.req.param("token");
 
-    // findByShareToken requires is_public, so a revoked link 404s here exactly
+    // getByShareToken requires is_public, so a revoked link 404s here exactly
     // as it does on the share page itself.
-    const found = await repos.tierLists.findByShareToken(token);
+    const found = await repos.tierLists.getByShareToken(token);
     assertFound(found, "Not found");
 
     const rows = await buildTierListImageRows(repos, found.tierList.tiers);
     const scale = c.req.query("size") === "hq" ? 2 : 1;
     const aspect = aspectFromQuery(c.req.query("aspect"));
     const shareUrl = qrFromQuery(c.req.query("qr"))
-      ? shareUrlFromOrigin(config.corsOrigin, `/tier-lists/share/${token}`)
+      ? shareUrlFromOrigin(config.siteOrigin, `/tier-lists/share/${token}`)
       : undefined;
 
     const png = await renderImage({
@@ -278,21 +268,21 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
         title: found.tierList.title,
         ownerName: found.ownerName ?? "Anonymous",
         rows,
-        siteHost: siteHostFromOrigin(config.corsOrigin),
+        siteHost: siteHostFromOrigin(config.siteOrigin),
         shareUrl,
       },
       scale,
       aspect,
     });
 
-    return pngResponse(png);
+    return pngResponse(png, IMAGE_CACHE_CONTROL);
   })
 
   .get("/board-states/share/:token/image.png", shareImageRateLimit, async (c) => {
     const repos = c.get("repos");
     const config = c.get("config");
 
-    const found = await repos.boardStates.findByShareToken(c.req.param("token"));
+    const found = await repos.boardStates.getByShareToken(c.req.param("token"));
     assertFound(found, "Not found");
 
     const png = await renderImage({
@@ -300,12 +290,12 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
       input: {
         title: found.boardState.title,
         document: found.boardState.document,
-        siteHost: siteHostFromOrigin(config.corsOrigin),
+        siteHost: siteHostFromOrigin(config.siteOrigin),
       },
       scale: c.req.query("size") === "hq" ? 2 : 1,
     });
 
-    return pngResponse(png);
+    return pngResponse(png, IMAGE_CACHE_CONTROL);
   })
 
   .get("/errata/image.png", shareImageRateLimit, async (c) => {
@@ -330,12 +320,12 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
         cards,
         cardCount: rows.length,
         updateCount: announcements.length,
-        siteHost: siteHostFromOrigin(config.corsOrigin),
+        siteHost: siteHostFromOrigin(config.siteOrigin),
       },
       scale: c.req.query("size") === "hq" ? 2 : 1,
     });
 
-    return pngResponse(png);
+    return pngResponse(png, IMAGE_CACHE_CONTROL);
   })
 
   // Browser-local decks have no server row or session; saved decks use the
@@ -344,23 +334,21 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
     const repos = c.get("repos");
     const config = c.get("config");
 
-    const body = (await c.req.json().catch(() => null)) as {
-      deckName?: unknown;
-      format?: unknown;
-      ownerName?: unknown;
-      cards?: unknown;
-    } | null;
-    const rawCards = Array.isArray(body?.cards) ? body.cards : null;
-    if (!rawCards || rawCards.length === 0 || rawCards.length > MAX_RENDER_CARD_ROWS) {
-      return c.json({ error: "Invalid deck" }, 400);
+    const parsed = deckImageBodySchema.safeParse(await c.req.json().catch(() => null));
+    if (
+      !parsed.success ||
+      parsed.data.cards.length === 0 ||
+      parsed.data.cards.length > MAX_RENDER_CARD_ROWS
+    ) {
+      return jsonError(c, 400, "Invalid deck");
     }
+    const body = parsed.data;
 
-    const refs = rawCards.map((card: Record<string, unknown>) => ({
-      cardId: String(card.cardId),
-      preferredPrintingId:
-        typeof card.preferredPrintingId === "string" ? card.preferredPrintingId : null,
-      quantity: Number(card.quantity) || 1,
-      zone: String(card.zone),
+    const refs = body.cards.map((card) => ({
+      cardId: card.cardId,
+      preferredPrintingId: card.preferredPrintingId ?? null,
+      quantity: card.quantity || 1,
+      zone: card.zone,
     }));
 
     const scale = c.req.query("size") === "hq" ? 2 : 1;
@@ -369,28 +357,17 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
     const png = await renderImage({
       kind: "deck",
       input: {
-        deckName:
-          typeof body?.deckName === "string" && body.deckName
-            ? body.deckName.slice(0, MAX_RENDER_TEXT_LENGTH)
-            : "Deck",
-        ownerName:
-          typeof body?.ownerName === "string" && body.ownerName
-            ? body.ownerName.slice(0, MAX_RENDER_TEXT_LENGTH)
-            : undefined,
+        deckName: body.deckName ? body.deckName.slice(0, MAX_RENDER_TEXT_LENGTH) : "Deck",
+        ownerName: body.ownerName ? body.ownerName.slice(0, MAX_RENDER_TEXT_LENGTH) : undefined,
         formatLabel: sentenceCaseSlug(
-          typeof body?.format === "string"
-            ? body.format.slice(0, MAX_RENDER_TEXT_LENGTH)
-            : "constructed",
+          body.format ? body.format.slice(0, MAX_RENDER_TEXT_LENGTH) : "constructed",
         ),
         cards: imageCards,
-        siteHost: siteHostFromOrigin(config.corsOrigin),
+        siteHost: siteHostFromOrigin(config.siteOrigin),
       },
       scale,
       aspect,
     });
 
-    return new Response(png, {
-      status: 200,
-      headers: { "Content-Type": "image/png", "Cache-Control": "private, no-store" },
-    });
+    return pngResponse(png);
   });

@@ -84,7 +84,7 @@ describe("applyTradeSync overlapping receiver settlements and retries", () => {
       let credited = 0;
       const repos = {
         cardTrades: {
-          findSettlementRequest: async (_tradeId: string, _userId: string, requestId: string) =>
+          getSettlementRequest: async (_tradeId: string, _userId: string, requestId: string) =>
             requests.get(requestId),
           recordSettlementRequest: async (request: {
             requestId: string;
@@ -144,7 +144,7 @@ describe("applyTradeSync overlapping receiver settlements and retries", () => {
           ensureInbox: async () => "inbox-1",
           listIdAndNameByIds: async () => [{ id: "inbox-1", name: "Inbox" }],
         },
-        users: { findById: async () => ({ name: "Ekko" }) },
+        users: { getById: async () => ({ name: "Ekko" }) },
         copies: {
           insertBatch: async (values: { printingId: string; collectionId: string }[]) => {
             credited += values.length;
@@ -287,7 +287,7 @@ function supplyRepos(supplyByGroup: Record<string, string[]>, pending: Pending[]
       giverPrintingSupply,
     },
     cardTrades: {
-      findLiveTrade: vi.fn(async () => undefined),
+      getLiveTrade: vi.fn(async () => undefined),
       listPendingForGiverPrinting,
       create,
       setPendingQuantity,

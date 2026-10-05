@@ -2,6 +2,7 @@ import { createLogger } from "@openrift/shared/logger";
 import { Hono } from "hono";
 
 import type { Fetch } from "../../../io.js";
+import { jsonError } from "../../../lib/http-response.js";
 import type { Variables } from "../../../types.js";
 
 const log = createLogger("sentry-tunnel");
@@ -19,7 +20,7 @@ export const sentryTunnelRoute = new Hono<{ Variables: Variables }>().post(
     const { fetch } = c.get("io");
 
     if (!sentryDsnSsr) {
-      return c.json({ error: "Sentry tunnel not configured" }, 503);
+      return jsonError(c, 503, "Sentry tunnel not configured");
     }
 
     const allowed = new URL(sentryDsnSsr);

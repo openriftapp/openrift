@@ -3,6 +3,7 @@ import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { toAdminUser } from "../lib/user-presenters.js";
 
 const os = implement(adminUsersContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -12,20 +13,7 @@ export const adminUsersRouter = {
     const rows = await usersRepo.listWithCounts();
 
     return {
-      users: rows.map((r) => ({
-        id: r.id,
-        email: r.email,
-        name: r.name,
-        image: r.image,
-        isAdmin: r.isAdmin,
-        cardCount: r.cardCount,
-        deckCount: r.deckCount,
-        collectionCount: r.collectionCount,
-        listCount: r.listCount,
-        groups: r.groups,
-        createdAt: r.createdAt.toISOString(),
-        lastActiveAt: r.lastActiveAt ? r.lastActiveAt.toISOString() : null,
-      })),
+      users: rows.map((row) => toAdminUser(row)),
     };
   }),
 };

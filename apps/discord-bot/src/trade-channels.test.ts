@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ApiClients } from "./api-client.js";
+import { log } from "./log.js";
 import { TradeChannelCache } from "./trade-channels.js";
 
 function clientsWith(tradeChannels: () => Promise<unknown>): ApiClients {
@@ -33,7 +34,7 @@ describe("TradeChannelCache", () => {
       .fn()
       .mockResolvedValueOnce(GUILDS)
       .mockRejectedValueOnce(new Error("api down"));
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(log, "error").mockImplementation(() => {});
     const cache = new TradeChannelCache(clientsWith(fetcher));
     await cache.refresh();
     expect(await cache.refresh()).toBe(false);

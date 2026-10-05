@@ -1,9 +1,8 @@
-import { ORPCError } from "@orpc/server";
 import type { Context, Hono } from "hono";
 import { rateLimiter } from "hono-rate-limiter";
-import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 import { resolveSession } from "../../../middleware/load-session.js";
+import { orpcErrorResponse } from "../../../orpc/error-body.js";
 import type { Variables } from "../../../types.js";
 
 export const BOARD_STATE_CREATES_PER_HOUR = 30;
@@ -25,10 +24,7 @@ function perUserHourlyLimit(limit: number, message: string) {
       return !c.get("user");
     },
     keyGenerator: (c: Ctx) => c.get("user")?.id ?? "anonymous",
-    handler: (c: Ctx) => {
-      const error = new ORPCError("TOO_MANY_REQUESTS", { message });
-      return c.json(error.toJSON(), error.status as ContentfulStatusCode);
-    },
+    handler: (c: Ctx) => orpcErrorResponse(c, "TOO_MANY_REQUESTS", message),
   });
 }
 

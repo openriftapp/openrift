@@ -243,7 +243,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    async findBasePrinting(
+    async getBasePrinting(
       cardId: string,
       language: string,
     ): Promise<Selectable<PrintingsTable> | undefined> {

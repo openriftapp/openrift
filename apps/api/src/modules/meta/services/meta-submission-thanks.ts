@@ -1,11 +1,9 @@
-import { metaPlayerKey } from "@openrift/shared/utils";
+import { metaPlayerKey } from "@openrift/shared/meta-keys";
 
 import type { Repos } from "../../../deps.js";
+import type { EmailDeps } from "../../../email.js";
 import { sendSubmissionAcceptedEmail } from "../../users/services/submission-accepted-notifications.js";
-import type {
-  SubmissionAcceptedEmailDeps,
-  ViewLink,
-} from "../../users/services/submission-accepted-notifications.js";
+import type { ViewLink } from "../../users/services/submission-accepted-notifications.js";
 
 /**
  * Thanks the submitter of an accepted decklist or applied event correction.
@@ -15,7 +13,7 @@ import type {
 export async function notifySubmitterOfMetaAcceptance(
   repos: Repos,
   submissionId: string,
-  deps?: SubmissionAcceptedEmailDeps,
+  deps?: EmailDeps,
 ): Promise<void> {
   if (deps === undefined) {
     return;

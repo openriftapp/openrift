@@ -3,8 +3,8 @@ import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
-import { reviewableProviderScope } from "../services/card-review-scope.js";
-import { buildCatalogSources } from "../services/catalog-sources.js";
+import { reviewableProviderScope } from "../lib/card-review-scope.js";
+import { buildCatalogSources } from "../lib/catalog-sources.js";
 import { buildReviewQueue } from "../services/review-queue.js";
 import {
   acceptSubmission,
@@ -16,7 +16,7 @@ const os = implement(adminCatalogReviewContract).$context<ApiContext>().use(requ
 
 // Both accept verbs refuse a settled submission, so an accepted row here was pending before the call.
 async function thankIfAccepted(context: ApiContext, candidateCardId: string): Promise<void> {
-  const submission = await context.repos.cardSubmissions.findByCandidateCardId(candidateCardId);
+  const submission = await context.repos.cardSubmissions.getByCandidateCardId(candidateCardId);
   if (submission?.status === "accepted") {
     await context.services.notifySubmitterOfCardAcceptance(context.repos, submission.id);
   }

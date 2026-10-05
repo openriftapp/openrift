@@ -59,13 +59,13 @@ const mockEnumsRepo = {
   contentVersion: vi.fn(),
 };
 
-const DEFAULT_CORS_ORIGIN = "https://openrift.app,https://preview.example";
+const DEFAULT_SITE_ORIGIN = "https://openrift.app";
 
 /**
- * A test can pass `{}` to exercise the unset-`CORS_ORIGIN` path; the
+ * A test can pass `{}` to exercise the unset site-origin path; the
  * default only applies when `config` is omitted entirely.
  */
-function makeApp(config: { corsOrigin?: string } = { corsOrigin: DEFAULT_CORS_ORIGIN }) {
+function makeApp(config: { siteOrigin?: string } = { siteOrigin: DEFAULT_SITE_ORIGIN }) {
   return new Hono<{ Variables: Variables }>()
     .use("*", async (c, next) => {
       c.set("repos", { catalog: mockCatalogRepo, enums: mockEnumsRepo } as never);
@@ -137,8 +137,8 @@ describe("GET /api/v1/chat/card", () => {
     expect(await lookupText("%20%20")).toContain("Look up a Riftbound card");
   });
 
-  it("links the deployment's own origin, taking the first CORS entry", async () => {
-    const app = makeApp({ corsOrigin: "https://preview.openrift.app,https://openrift.app" });
+  it("links the deployment's own site origin", async () => {
+    const app = makeApp({ siteOrigin: "https://preview.openrift.app" });
     expect(await lookupText("viktor", app)).toContain("https://preview.openrift.app/cards/");
   });
 

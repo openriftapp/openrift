@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { VariantLabelEnumLabels, VariantLabelPrinting } from "./printing-label.js";
-import { formatPrintingVariantLabel, formatPrintingVariantLabelParts } from "./printing-label.js";
+import {
+  formatPrintingLabel,
+  formatPrintingVariantLabel,
+  formatPrintingVariantLabelParts,
+  printingLabelParts,
+} from "./printing-label.js";
 
 const TEST_LABELS: VariantLabelEnumLabels = {
   finishes: { normal: "Normal", foil: "Foil" },
@@ -189,5 +194,85 @@ describe("formatPrintingVariantLabelParts", () => {
       language: null,
       rest: ["Alt Art"],
     });
+  });
+});
+
+describe("formatPrintingLabel", () => {
+  it("builds a basic unmarked slug", () => {
+    expect(formatPrintingLabel("OGN-001", [], "normal")).toBe("OGN-001::normal");
+  });
+
+  it("includes a single marker slug", () => {
+    expect(formatPrintingLabel("OGN-001", ["promo"], "foil")).toBe("OGN-001:promo:foil");
+  });
+
+  it("joins multiple marker slugs with +", () => {
+    expect(formatPrintingLabel("OGN-001", ["promo", "top-8"], "foil")).toBe(
+      "OGN-001:promo+top-8:foil",
+    );
+  });
+
+  it("preserves finish value", () => {
+    expect(formatPrintingLabel("OGN-105", [], "normal")).toBe("OGN-105::normal");
+  });
+
+  it("prepends EN language prefix when explicit", () => {
+    expect(formatPrintingLabel("OGN-001", [], "normal", "EN")).toBe("EN:OGN-001::normal");
+  });
+
+  it("omits language prefix when language is null", () => {
+    expect(formatPrintingLabel("OGN-001", [], "normal", null)).toBe("OGN-001::normal");
+  });
+
+  it("omits language prefix when language is undefined", () => {
+    expect(formatPrintingLabel("OGN-001", [], "normal", undefined)).toBe("OGN-001::normal");
+  });
+
+  it("prepends language prefix for non-EN languages", () => {
+    expect(formatPrintingLabel("OGN-001", [], "normal", "FR")).toBe("FR:OGN-001::normal");
+  });
+
+  it("prepends language prefix with marker", () => {
+    expect(formatPrintingLabel("OGN-001", ["promo"], "foil", "SC")).toBe("SC:OGN-001:promo:foil");
+  });
+
+  it("appends a non-standard size segment", () => {
+    expect(formatPrintingLabel("OGN-279", [], "normal", "EN", "oversized")).toBe(
+      "EN:OGN-279::normal:oversized",
+    );
+  });
+
+  it("omits the size segment for standard printings", () => {
+    expect(formatPrintingLabel("OGN-279", [], "normal", "EN", "standard")).toBe(
+      "EN:OGN-279::normal",
+    );
+  });
+
+  it("omits the size segment when size is undefined", () => {
+    expect(formatPrintingLabel("OGN-279", [], "normal", "EN")).toBe("EN:OGN-279::normal");
+  });
+});
+
+describe("printingLabelParts", () => {
+  it("lists code, markers and finish in order", () => {
+    expect(printingLabelParts("OGN-001", ["a", "b"], "foil")).toEqual(["OGN-001", "a+b", "foil"]);
+  });
+
+  it("adds a non-standard size after the finish and the language first", () => {
+    expect(printingLabelParts("OGN-001", [], "normal", "FR", "oversized")).toEqual([
+      "FR",
+      "OGN-001",
+      "",
+      "normal",
+      "oversized",
+    ]);
+  });
+
+  it("skips a standard size and an empty language", () => {
+    expect(printingLabelParts("OGN-001", [], "normal", null, "standard")).toEqual([
+      "OGN-001",
+      "",
+      "normal",
+    ]);
   });
 });

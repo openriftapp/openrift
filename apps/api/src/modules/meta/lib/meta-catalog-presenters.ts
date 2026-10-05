@@ -1,10 +1,19 @@
 import type {
+  MetaArchiveJobs,
   MetaCatalogRow as MetaCatalogRowResponse,
   MetaSourceTemplate,
+  MetaSyncSettings,
+  MetaSyncStatus,
 } from "@openrift/shared/contracts/admin/meta-catalog";
 import { uvsgamesEventUrl } from "@openrift/shared/uvsgames-links";
 
-import type { UvsgamesCoverageRow, UvsgamesTemplateRow } from "../repositories/uvsgames-events.js";
+import { isoOrNull } from "../../../lib/iso-date.js";
+import type { JobRun } from "../../system/repositories/job-runs.js";
+import type {
+  MetaSyncSettingsRow,
+  UvsgamesCoverageRow,
+  UvsgamesTemplateRow,
+} from "../repositories/uvsgames-events.js";
 import { suggestTierForTemplateName } from "./meta-event-classify.js";
 import { mapSourceFormat } from "./uvsgames-catalog.js";
 
@@ -20,7 +29,7 @@ export function toMetaCatalogRow(
     externalId: row.externalId,
     name: row.name,
     startAt: row.startAt.toISOString(),
-    endAtEstimate: row.endAtEstimate?.toISOString() ?? null,
+    endAtEstimate: isoOrNull(row.endAtEstimate),
     displayStatus: row.displayStatus,
     decklistStatus: row.decklistStatus,
     playerCount: row.playerCount,
@@ -36,14 +45,14 @@ export function toMetaCatalogRow(
     timezone: row.timezone,
     firstSeenAt: row.firstSeenAt.toISOString(),
     lastSeenAt: row.lastSeenAt.toISOString(),
-    missingSince: row.missingSince?.toISOString() ?? null,
+    missingSince: isoOrNull(row.missingSince),
     missingProbe: row.missingProbe,
-    nextCheckAt: row.nextCheckAt?.toISOString() ?? null,
+    nextCheckAt: isoOrNull(row.nextCheckAt),
     checkStage: row.checkStage,
     triage: row.triage,
     metaEventId: row.metaEventId,
     metaEventSlug: row.metaEventSlug,
-    fetchedAt: row.fetchedAt?.toISOString() ?? null,
+    fetchedAt: isoOrNull(row.fetchedAt),
     stagedPlayerCount: row.stagedPlayerCount,
     stagedLegendCount: row.stagedLegendCount,
     stagedDeckCount: row.stagedDeckCount,
@@ -63,6 +72,46 @@ export function toMetaSourceTemplate(row: UvsgamesTemplateRow): MetaSourceTempla
     avgPlayers: row.avgPlayers,
     ranEventCount: row.ranEventCount,
     sampleEventName: row.sampleEventName,
-    lastStartAt: row.lastStartAt?.toISOString() ?? null,
+    lastStartAt: isoOrNull(row.lastStartAt),
+  };
+}
+
+export function toMetaSyncRun(run: JobRun): MetaArchiveJobs["runs"][number] {
+  return {
+    id: run.id,
+    kind: run.kind,
+    trigger: run.trigger,
+    status: run.status,
+    startedAt: run.startedAt.toISOString(),
+    finishedAt: isoOrNull(run.finishedAt),
+    durationMs: run.durationMs,
+    errorMessage: run.errorMessage,
+    result: (run.result ?? null) as Record<string, unknown> | null,
+  };
+}
+
+export function toMetaSyncSettings(row: MetaSyncSettingsRow): MetaSyncSettings {
+  return { ...row, updatedAt: row.updatedAt.toISOString() };
+}
+
+type MetaSyncCatalog = MetaSyncStatus["catalog"];
+
+export function toMetaSyncCatalog(
+  overview: Omit<MetaSyncCatalog, "oldestDueAt" | "lastSeenAt"> & {
+    oldestDueAt: Date | null;
+    lastSeenAt: Date | null;
+  },
+): MetaSyncCatalog {
+  return {
+    total: overview.total,
+    completed: overview.completed,
+    decklistPublished: overview.decklistPublished,
+    missing: overview.missing,
+    queued: overview.queued,
+    dueRecheck: overview.dueRecheck,
+    oldestDueAt: isoOrNull(overview.oldestDueAt),
+    acceptedAwaitingResults: overview.acceptedAwaitingResults,
+    acceptedMissing: overview.acceptedMissing,
+    lastSeenAt: isoOrNull(overview.lastSeenAt),
   };
 }

@@ -4,6 +4,8 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { MetaEventPlayersTable } from "../../../db/tables/meta.js";
+import { containsPattern } from "../../../lib/like-pattern.js";
+import { inTransaction, offsetPage } from "../../../repositories/query-helpers.js";
 import type { MetaArchivedDeckInput } from "./meta-decks.js";
 import { insertDeckForPlayer } from "./meta-decks.js";
 import { foldedPlayerIdentity, resolvedPlayerName } from "./meta-shared.js";
@@ -216,7 +218,9 @@ export function metaPlayersRepo(db: Kysely<Database>) {
     let narrowed = query.where(sql<SqlBool>`p.meta_event_id = ${eventId}::uuid`);
     const needle = filters.q?.trim() ?? "";
     if (needle !== "") {
-      narrowed = narrowed.where(sql<SqlBool>`${resolvedPlayerName} ilike ${`%${needle}%`}`);
+      narrowed = narrowed.where(
+        sql<SqlBool>`${resolvedPlayerName} ilike ${containsPattern(needle)}`,
+      );
     }
     if (filters.withList === true) {
       narrowed = narrowed.where(sql<SqlBool>`d.share_token is not null`);
@@ -265,32 +269,18 @@ export function metaPlayersRepo(db: Kysely<Database>) {
       );
     },
 
-    async standingsPage(
+    standingsPage(
       eventId: string,
       filters: MetaStandingsFilters,
       page: { limit: number; offset: number },
     ): Promise<{ rows: MetaEventPlayerRow[]; total: number }> {
-      const narrowed = standingsFilters(playerQuery(), eventId, filters);
-      const [rows, countRow] = await Promise.all([
-        narrowed
+      return offsetPage(
+        standingsFilters(playerQuery(), eventId, filters)
           .orderBy("p.rank", "asc")
           .orderBy(resolvedPlayerName, "asc")
-          .orderBy("p.id", "asc")
-          .limit(page.limit)
-          .offset(page.offset)
-          .execute(),
-        standingsFilters(
-          db
-            .selectFrom("metaEventPlayers as p")
-            .leftJoin("uvsgamesPlayers as up", "up.id", "p.uvsgamesPlayerId")
-            .leftJoin("decks as d", "d.id", "p.deckId"),
-          eventId,
-          filters,
-        )
-          .select((eb) => eb.fn.countAll<string>().as("total"))
-          .executeTakeFirstOrThrow(),
-      ]);
-      return { rows, total: Number(countRow.total) };
+          .orderBy("p.id", "asc"),
+        page,
+      );
     },
 
     standingsRowsByIds,
@@ -499,7 +489,7 @@ export function metaPlayersRepo(db: Kysely<Database>) {
       input: MetaEventPlayerInput,
       shareToken: string | null,
     ): Promise<{ metaEventPlayerId: string; deckId: string | null } | undefined> {
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const event = await trx
           .selectFrom("metaEvents")
           .select("id")
@@ -676,7 +666,7 @@ export function metaPlayersRepo(db: Kysely<Database>) {
     },
 
     deletePlayer(playerId: string): Promise<boolean> {
-      return db.transaction().execute(async (trx) => {
+      return inTransaction(db, async (trx) => {
         const player = await trx
           .selectFrom("metaEventPlayers")
           .select("deckId")

@@ -8,6 +8,8 @@ import type { Variables } from "../../../types.js";
 import { acceptFavoritePrintingsForCard } from "../../candidates/services/accept-favorite-printings.js";
 import { acceptFavoriteNewCard } from "../../candidates/services/accept-gallery.js";
 import { resolveCheckedSubmissions } from "../../candidates/services/card-submission-outcomes.js";
+import { importErrata } from "../../candidates/services/import-errata.js";
+import { ingestCandidates } from "../../candidates/services/ingest-candidates.js";
 import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
 import {
   acceptPrinting,
@@ -24,6 +26,8 @@ vi.mock("../services/printing-admin.js", () => ({
 }));
 
 vi.mock("../../candidates/services/accept-gallery.js", () => ({ acceptFavoriteNewCard: vi.fn() }));
+vi.mock("../../candidates/services/import-errata.js", () => ({ importErrata: vi.fn() }));
+vi.mock("../../candidates/services/ingest-candidates.js", () => ({ ingestCandidates: vi.fn() }));
 vi.mock("../../candidates/services/accept-favorite-printings.js", () => ({
   acceptFavoritePrintingsForCard: vi.fn(),
 }));
@@ -84,8 +88,8 @@ const mockTrxMut = {
   createNameAliases: vi.fn(),
 };
 
-const mockImportErrata = vi.fn();
-const mockIngestCandidates = vi.fn();
+const mockImportErrata = vi.mocked(importErrata);
+const mockIngestCandidates = vi.mocked(ingestCandidates);
 const mockIo = { fetch: vi.fn() };
 const mockSets = { getBySlug: vi.fn() };
 const mockRefreshCatalogViews = vi.fn();
@@ -166,8 +170,6 @@ app.use("*", async (c, next) => {
     },
   } as never);
   c.set("services", {
-    importErrata: mockImportErrata,
-    ingestCandidates: mockIngestCandidates,
     notifySubmitterOfCardAcceptance: mockNotifySubmitterOfCardAcceptance,
   } as never);
   await next();
@@ -445,7 +447,7 @@ describe("DELETE /cards/candidate-printings/:id", () => {
   });
 
   it("returns 204 on success", async () => {
-    mockCandidateCards.deleteCandidatePrinting.mockResolvedValue({ numDeletedRows: 1n });
+    mockCandidateCards.deleteCandidatePrinting.mockResolvedValue(true);
 
     const res = await app.request(`/api/admin/v1/cards/candidate-printings/${CP_ID}`, {
       method: "DELETE",
@@ -455,7 +457,7 @@ describe("DELETE /cards/candidate-printings/:id", () => {
   });
 
   it("returns 404 when not found", async () => {
-    mockCandidateCards.deleteCandidatePrinting.mockResolvedValue({ numDeletedRows: 0n });
+    mockCandidateCards.deleteCandidatePrinting.mockResolvedValue(false);
 
     const res = await app.request(`/api/admin/v1/cards/candidate-printings/${CP_ID}`, {
       method: "DELETE",
@@ -1543,7 +1545,7 @@ describe("audit events", () => {
       artVariant: "normal",
       externalId: "ext-2",
     });
-    mockCandidateCards.deleteCandidatePrinting.mockResolvedValue({ numDeletedRows: 1n });
+    mockCandidateCards.deleteCandidatePrinting.mockResolvedValue(true);
 
     const res = await app.request(`/api/admin/v1/cards/candidate-printings/${CP_ID}`, {
       method: "DELETE",

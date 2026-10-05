@@ -12,7 +12,7 @@ const os = implement(publicDecksContract).$context<ApiContext>().use(requireUser
 /** Card + preferred-printing data is denormalized so the share page can SSR without the global catalog. */
 export const publicDecksRouter = {
   share: os.share.handler(async ({ input, context, errors }): Promise<PublicDeckDetailResponse> => {
-    const found = await context.repos.decks.findByShareToken(input.token);
+    const found = await context.repos.decks.getByShareToken(input.token);
     if (!found) {
       throw errors.NOT_FOUND({ message: "Not found" });
     }

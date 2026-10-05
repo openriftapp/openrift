@@ -1576,7 +1576,7 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
         }),
       ).rejects.toMatchObject({ status: 403 });
       expect(
-        await repos.cardTrades.findSettlementRequest(trade.id, RECEIVER_ID, options.requestId),
+        await repos.cardTrades.getSettlementRequest(trade.id, RECEIVER_ID, options.requestId),
       ).toBeUndefined();
       expect(await repos.cardTrades.getById(trade.id)).toMatchObject({ quantity: 3 });
 

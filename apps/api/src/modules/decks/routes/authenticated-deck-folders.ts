@@ -1,10 +1,8 @@
 import { deckFoldersContract } from "@openrift/shared/contracts/deck-folders";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { DeckFolderListResponse, DeckFolderResponse } from "@openrift/shared/types/api/deck";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
-import { assertFound } from "../../../lib/assertions.js";
+import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -13,27 +11,23 @@ import { toDeckFolder } from "../lib/deck-folder-presenters.js";
 const NAME_TAKEN = "You already have a folder with that name";
 
 /** Turns the case-insensitive name collision into a 409; other errors rethrow. */
-function rethrowFolderError(error: unknown): never {
+function rethrowFolderError(error: unknown, conflict: (message: string) => Error): never {
   if (isUniqueViolationOn(error, "uq_deck_folders_user_name")) {
-    throw new AppError(409, ERROR_CODES.CONFLICT, NAME_TAKEN);
+    throw conflict(NAME_TAKEN);
   }
   throw error;
 }
 
 const os = implement(deckFoldersContract).$context<ApiContext>().use(requireAuthedUser);
 
-/** Not-found and conflict states must be thrown as `AppError`; the handler's appErrorInterceptor maps only that type. */
 export const deckFoldersRouter = {
   list: os.list.handler(async ({ context }): Promise<DeckFolderListResponse> => {
     const rows = await context.repos.deckFolders.listForUser(context.userId);
     return { items: rows.map((row) => toDeckFolder(row)) };
   }),
 
-  create: os.create.handler(async ({ input, context }): Promise<DeckFolderResponse> => {
-    const name = input.name.trim();
-    if (name === "") {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Folder name cannot be blank");
-    }
+  create: os.create.handler(async ({ input, context, errors }): Promise<DeckFolderResponse> => {
+    const { name } = input;
     // Not a check-then-act: the unique index is the arbiter, so two concurrent
     // creates of the same name give one folder and one 409.
     let row;
@@ -43,7 +37,7 @@ export const deckFoldersRouter = {
           ? await context.repos.deckFolders.create(context.userId, name)
           : await context.repos.deckFolders.createUnlessIdTaken(context.userId, name, input.id);
     } catch (error) {
-      rethrowFolderError(error);
+      rethrowFolderError(error, (message) => errors.CONFLICT({ message }));
     }
     if (row) {
       return toDeckFolder(row);
@@ -51,21 +45,17 @@ export const deckFoldersRouter = {
     const folders = await context.repos.deckFolders.listForUser(context.userId);
     const existing = folders.find((folder) => folder.id === input.id);
     if (!existing) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "Folder id already belongs to someone else");
+      throw errors.CONFLICT({ message: "Folder id already belongs to someone else" });
     }
     return toDeckFolder(existing);
   }),
 
-  update: os.update.handler(async ({ input, context }): Promise<DeckFolderResponse> => {
-    const name = input.name.trim();
-    if (name === "") {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Folder name cannot be blank");
-    }
+  update: os.update.handler(async ({ input, context, errors }): Promise<DeckFolderResponse> => {
     let row;
     try {
-      row = await context.repos.deckFolders.rename(input.id, context.userId, name);
+      row = await context.repos.deckFolders.rename(input.id, context.userId, input.name);
     } catch (error) {
-      rethrowFolderError(error);
+      rethrowFolderError(error, (message) => errors.CONFLICT({ message }));
     }
     assertFound(row, "Folder not found");
     return toDeckFolder(row);
@@ -73,10 +63,8 @@ export const deckFoldersRouter = {
 
   remove: os.remove.handler(async ({ input, context }): Promise<void> => {
     // Membership rows cascade; the decks themselves are untouched.
-    const deleted = await context.repos.deckFolders.remove(input.id, context.userId);
-    if (!deleted) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Folder not found");
-    }
+    const deleted = await context.repos.deckFolders.deleteByIdForUser(input.id, context.userId);
+    assertExisted(deleted, "Folder not found");
   }),
 
   reorder: os.reorder.handler(async ({ input, context }): Promise<void> => {

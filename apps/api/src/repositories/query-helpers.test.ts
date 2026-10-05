@@ -2,21 +2,27 @@ import type { Expression, SqlBool } from "kysely";
 import {
   CamelCasePlugin,
   DummyDriver,
+  expressionBuilder,
   Kysely,
   PostgresAdapter,
   PostgresIntrospector,
   PostgresQueryCompiler,
 } from "kysely";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import type { Database } from "../db/tables.js";
 import { AppError } from "../errors.js";
 import { buildKeysetCursor } from "../lib/keyset-cursor.js";
+import { createRecordingDb, onlyStatement } from "../test/recording-db.js";
 import {
+  currentSafeXid,
   imageId,
   imageUrlWithOriginal,
+  inTransaction,
   joinFrontImage,
   keysetCursorPredicate,
+  offsetPage,
+  reorderBySortOrder,
   requireFrontImage,
   selectCopyWithCard,
 } from "./query-helpers.js";
@@ -30,6 +36,9 @@ const compileDb = new Kysely<Database>({
   },
   plugins: [new CamelCasePlugin()],
 });
+
+const captured = createRecordingDb();
+const { db } = captured;
 
 function compileWhere(predicate: Expression<SqlBool>) {
   const compiled = compileDb.selectFrom("copies as cp").select("cp.id").where(predicate).compile();
@@ -207,5 +216,188 @@ describe("keysetCursorPredicate", () => {
     } catch (error) {
       expect((error as AppError).status).toBe(400);
     }
+  });
+});
+
+describe("reorderBySortOrder", () => {
+  beforeEach(() => {
+    captured.reset();
+  });
+
+  it("assigns 0-based positions in the given key order", async () => {
+    await reorderBySortOrder(db, {
+      table: "finishes",
+      keyColumn: "slug",
+      keys: ["holofoil", "normal"],
+    });
+
+    const { sql, parameters } = onlyStatement(captured);
+    expect(sql).toBe(
+      'update "finishes" set sort_order = d.new_order ' +
+        "from (values ($1::text, $2::int), ($3::text, $4::int)) as d(key, new_order) " +
+        'where "finishes"."slug" = d.key',
+    );
+    expect(parameters).toEqual(["holofoil", 0, "normal", 1]);
+  });
+
+  it("converts camelCase table and column names to snake_case", async () => {
+    await reorderBySortOrder(db, {
+      table: "artVariants",
+      keyColumn: "slug",
+      keys: ["alternate-art"],
+    });
+
+    const { sql } = onlyStatement(captured);
+    expect(sql).toContain('update "art_variants"');
+    expect(sql).toContain('where "art_variants"."slug" = d.key');
+  });
+
+  it("casts uuid keys so Postgres can infer the VALUES column type", async () => {
+    const id = "11111111-2222-4333-8444-555555555555";
+    await reorderBySortOrder(db, {
+      table: "markers",
+      keyColumn: "id",
+      keys: [id],
+      keyType: "uuid",
+    });
+
+    const { sql, parameters } = onlyStatement(captured);
+    expect(sql).toContain("(values ($1::uuid, $2::int))");
+    expect(sql).toContain('where "markers"."id" = d.key');
+    expect(parameters).toEqual([id, 0]);
+  });
+
+  it("addresses a non-slug key column", async () => {
+    await reorderBySortOrder(db, { table: "languages", keyColumn: "code", keys: ["EN", "KR"] });
+
+    const { sql, parameters } = onlyStatement(captured);
+    expect(sql).toContain('where "languages"."code" = d.key');
+    expect(parameters).toEqual(["EN", 0, "KR", 1]);
+  });
+
+  it("issues no statement for an empty key list", async () => {
+    await reorderBySortOrder(db, { table: "finishes", keyColumn: "slug", keys: [] });
+
+    expect(captured.statements).toHaveLength(0);
+  });
+});
+
+describe("reorderBySortOrder scope", () => {
+  beforeEach(() => {
+    captured.reset();
+  });
+
+  it("appends the scope condition to the where clause", async () => {
+    await reorderBySortOrder(db, {
+      table: "deckFolders",
+      keyColumn: "id",
+      keys: ["f1"],
+      keyType: "uuid",
+      scope: expressionBuilder<Database, "deckFolders">()("deckFolders.userId", "=", "u1"),
+    });
+
+    const { sql: text, parameters } = onlyStatement(captured);
+    expect(text).toContain('where "deck_folders"."id" = d.key and "deck_folders"."user_id" = $3');
+    expect(parameters).toEqual(["f1", 0, "u1"]);
+  });
+});
+
+describe("currentSafeXid", () => {
+  beforeEach(() => {
+    captured.reset();
+  });
+
+  it("reads the snapshot xmin as text", async () => {
+    captured.setRows([{ xid: "4242" }]);
+
+    await expect(currentSafeXid(db)).resolves.toBe("4242");
+    expect(onlyStatement(captured).sql).toBe(
+      'select pg_snapshot_xmin(pg_current_snapshot())::text as "xid"',
+    );
+  });
+
+  it("rejects when the database returns no row", async () => {
+    await expect(currentSafeXid(db)).rejects.toThrow();
+  });
+});
+
+describe("inTransaction", () => {
+  beforeEach(() => {
+    captured.reset();
+  });
+
+  it("opens a transaction on a plain connection", async () => {
+    const result = await inTransaction(db, async (trx) => {
+      expect(trx.isTransaction).toBe(true);
+      return "done";
+    });
+
+    expect(result).toBe("done");
+    expect(captured.events).toEqual(["begin", "commit"]);
+  });
+
+  it("reuses an enclosing transaction instead of nesting", async () => {
+    await db.transaction().execute(async (outer) => {
+      await inTransaction(outer, async (trx) => {
+        expect(trx).toBe(outer);
+      });
+    });
+
+    expect(captured.events).toEqual(["begin", "commit"]);
+  });
+
+  it("rolls back when the callback throws", async () => {
+    await expect(inTransaction(db, () => Promise.reject(new Error("boom")))).rejects.toThrow(
+      "boom",
+    );
+    expect(captured.events).toEqual(["begin", "rollback"]);
+  });
+});
+
+describe("offsetPage", () => {
+  it("pages the base query and counts it with the same filters", async () => {
+    const recording = createRecordingDb([[{ id: "r1" }, { id: "r2" }], [{ total: "7" }]]);
+    const base = recording.db
+      .selectFrom("jobRuns")
+      .select(["id"])
+      .where("kind", "=", "tcgplayer.refresh")
+      .orderBy("startedAt", "desc");
+
+    const page = await offsetPage(base, { limit: 2, offset: 4 });
+
+    expect(page).toEqual({ rows: [{ id: "r1" }, { id: "r2" }], total: 7 });
+    const [rowSql, countSql] = recording.queries;
+    expect(rowSql).toBe(
+      'select "id" from "job_runs" where "kind" = $1 order by "started_at" desc limit $2 offset $3',
+    );
+    expect(countSql).toBe('select count(*) as "total" from "job_runs" where "kind" = $1');
+    expect(recording.parameters).toEqual([["tcgplayer.refresh", 2, 4], ["tcgplayer.refresh"]]);
+  });
+
+  it("reports zero total for an empty result", async () => {
+    const recording = createRecordingDb([[], [{ total: "0" }]]);
+    const page = await offsetPage(recording.db.selectFrom("jobRuns").select("id"), {
+      limit: 10,
+      offset: 0,
+    });
+
+    expect(page).toEqual({ rows: [], total: 0 });
+  });
+
+  it("rejects when the query fails", async () => {
+    const recording = createRecordingDb([new Error("db down"), [{ total: "0" }]]);
+    await expect(
+      offsetPage(recording.db.selectFrom("jobRuns").select("id"), { limit: 1, offset: 0 }),
+    ).rejects.toThrow("db down");
+  });
+});
+
+describe("joinFrontImage alias", () => {
+  it("joins off a printing under a custom alias", () => {
+    const { sql: text } = joinFrontImage(compileDb.selectFrom("printings as pr"), "pr")
+      .select("pr.id")
+      .compile();
+
+    expect(text).toContain('"pi"."printing_id" = "pr"."id"');
   });
 });

@@ -1,19 +1,15 @@
 import { adminJobSchedulesContract } from "@openrift/shared/contracts/admin/job-schedules";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { implement } from "@orpc/server";
 
-import { AppError } from "../../../errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import type { JobScheduler } from "../services/job-scheduler.js";
+import { requireScheduler } from "../services/job-scheduler.js";
 
 const os = implement(adminJobSchedulesContract).$context<ApiContext>().use(requireAuthedUser);
 
 function scheduler(context: ApiContext): JobScheduler {
-  if (context.scheduler === null) {
-    throw new AppError(503, ERROR_CODES.SERVICE_UNAVAILABLE, "The job scheduler is not running");
-  }
-  return context.scheduler;
+  return requireScheduler(context.scheduler);
 }
 
 export const adminJobSchedulesRouter = {

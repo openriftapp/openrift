@@ -9,7 +9,7 @@ import type { Variables } from "../../../types.js";
 import { publicDecksRouter } from "./public-decks";
 
 const mockRepo = {
-  findByShareToken: vi.fn(
+  getByShareToken: vi.fn(
     () =>
       Promise.resolve(undefined) as Promise<
         { deck: Record<string, unknown>; ownerName: string | null; ownerEmail: string } | undefined
@@ -143,7 +143,7 @@ const printingMeta = {
 
 describe("GET /api/v1/decks/share/:token", () => {
   beforeEach(() => {
-    mockRepo.findByShareToken.mockReset();
+    mockRepo.getByShareToken.mockReset();
     mockRepo.cardsForDeck.mockReset();
     mockCatalogRepo.cardsByIds.mockReset();
     mockCatalogRepo.cardsByIds.mockResolvedValue([]);
@@ -156,7 +156,7 @@ describe("GET /api/v1/decks/share/:token", () => {
   });
 
   it("marks a base-banned card so the share page can validate bans", async () => {
-    mockRepo.findByShareToken.mockResolvedValue({
+    mockRepo.getByShareToken.mockResolvedValue({
       deck: dbDeck,
       ownerName: "Alice",
       ownerEmail: "alice@example.com",
@@ -179,7 +179,7 @@ describe("GET /api/v1/decks/share/:token", () => {
   });
 
   it("leaves a mode-scoped ban off the card, since it does not invalidate a deck", async () => {
-    mockRepo.findByShareToken.mockResolvedValue({
+    mockRepo.getByShareToken.mockResolvedValue({
       deck: dbDeck,
       ownerName: "Alice",
       ownerEmail: "alice@example.com",
@@ -202,7 +202,7 @@ describe("GET /api/v1/decks/share/:token", () => {
   });
 
   it("returns 200 with the enriched public deck detail when the token resolves", async () => {
-    mockRepo.findByShareToken.mockResolvedValue({
+    mockRepo.getByShareToken.mockResolvedValue({
       deck: dbDeck,
       ownerName: "Alice",
       ownerEmail: "alice@example.com",
@@ -230,7 +230,7 @@ describe("GET /api/v1/decks/share/:token", () => {
   });
 
   it("excludes owner-only fields (shareToken, isPublic) from the response", async () => {
-    mockRepo.findByShareToken.mockResolvedValue({
+    mockRepo.getByShareToken.mockResolvedValue({
       deck: dbDeck,
       ownerName: "Alice",
       ownerEmail: "alice@example.com",
@@ -245,7 +245,7 @@ describe("GET /api/v1/decks/share/:token", () => {
   });
 
   it("falls back to 'Anonymous' when the owner has no display name", async () => {
-    mockRepo.findByShareToken.mockResolvedValue({
+    mockRepo.getByShareToken.mockResolvedValue({
       deck: dbDeck,
       ownerName: null,
       ownerEmail: "alice@example.com",
@@ -258,7 +258,7 @@ describe("GET /api/v1/decks/share/:token", () => {
   });
 
   it("returns 404 when the token is not found or the deck is not public", async () => {
-    mockRepo.findByShareToken.mockResolvedValue(undefined);
+    mockRepo.getByShareToken.mockResolvedValue(undefined);
 
     const res = await app.request("/api/v1/decks/share/unknown");
     expect(res.status).toBe(404);
@@ -266,7 +266,7 @@ describe("GET /api/v1/decks/share/:token", () => {
   });
 
   it("passes the owner user id to cardsForDeck for defense-in-depth scoping", async () => {
-    mockRepo.findByShareToken.mockResolvedValue({
+    mockRepo.getByShareToken.mockResolvedValue({
       deck: dbDeck,
       ownerName: "Alice",
       ownerEmail: "alice@example.com",

@@ -44,7 +44,7 @@ function formatOrdinal(value: number): string {
 }
 
 // rankIsTier means the source only publishes cut buckets, not exact standings: 1 and 2 still print as podium, 3+ print as "T4", "T8".
-export function formatRank(rank: number, rankIsTier: boolean): string {
+export function formatRankEnglish(rank: number, rankIsTier: boolean): string {
   if (!rankIsTier) {
     return formatOrdinal(rank);
   }

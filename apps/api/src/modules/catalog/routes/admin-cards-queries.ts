@@ -4,12 +4,12 @@ import { implement } from "@orpc/server";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import {
-  buildCandidateCardList,
   buildCardDetail,
-  buildExport,
   buildUnmatchedDetail,
-} from "../../candidates/services/candidate-queries.js";
-import { reviewableProviderScope } from "../../candidates/services/card-review-scope.js";
+} from "../../candidates/lib/candidate-card-detail.js";
+import { buildCandidateCardList } from "../../candidates/lib/candidate-card-list.js";
+import { buildExport } from "../../candidates/lib/candidate-export.js";
+import { reviewableProviderScope } from "../../candidates/lib/card-review-scope.js";
 
 const os = implement(adminCardQueriesContract).$context<ApiContext>().use(requireAuthedUser);
 

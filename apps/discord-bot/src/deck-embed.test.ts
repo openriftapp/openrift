@@ -9,6 +9,7 @@ import {
   fetchDeckImage,
   resolveDeckEntries,
 } from "./deck-embed.js";
+import { log } from "./log.js";
 import {
   makeCard,
   makeCatalogResponse,
@@ -167,6 +168,21 @@ describe("buildDeckEmbed", () => {
     );
   });
 
+  it("falls back to the zone slug when the catalog has no label for it", () => {
+    const snapshot = makeDeckSnapshot();
+    const { runes: _runes, ...deckZones } = snapshot.labels.deckZones;
+    const deck = resolveDeckEntries(snapshot, [makeEntry({ shortCode: "OGN-200", quantity: 2 })]);
+
+    const embed = buildDeckEmbed({
+      deck,
+      code: "TESTCODE",
+      snapshot: { ...snapshot, labels: { ...snapshot.labels, deckZones } },
+      siteUrl: "https://openrift.app",
+    });
+
+    expect(embed.description).toBe("**runes**\n2× Fury Rune");
+  });
+
   it("links to the import page with the code prefilled", () => {
     const snapshot = makeDeckSnapshot();
     const deck = resolveDeckEntries(snapshot, [makeEntry()]);
@@ -268,9 +284,12 @@ describe("fetchDeckImage", () => {
     const snapshot = makeDeckSnapshot();
     const deck = resolveDeckEntries(snapshot, [makeEntry()]);
     const fetchImpl = vi.fn().mockRejectedValue(new Error("connection refused"));
+    const logError = vi.spyOn(log, "error").mockImplementation(() => undefined);
 
     expect(
       await fetchDeckImage("http://api:3000", deck, fetchImpl as unknown as typeof fetch),
     ).toBeNull();
+    expect(logError).toHaveBeenCalled();
+    logError.mockRestore();
   });
 });

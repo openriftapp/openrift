@@ -1,9 +1,9 @@
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import { resolveCard } from "@openrift/shared/card-search";
-import { normalizeNameForIdentity } from "@openrift/shared/utils";
 
 import type { Repos } from "../../../deps.js";
-import type { CardLookupIndex } from "../../catalog/services/card-lookup-index.js";
-import { createCardLookupIndexLoader } from "../../catalog/services/card-lookup-index.js";
+import type { CardLookupIndex } from "../../catalog/lib/card-lookup-index.js";
+import { createCardLookupIndexLoader } from "../../catalog/lib/card-lookup-index.js";
 import type { CardResolution } from "../repositories/deck-check-entry-cards.js";
 
 interface CardResolutionInput {

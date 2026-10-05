@@ -15,20 +15,20 @@ import { ruleCombineMatchesKind, ruleKindForListKind } from "@openrift/shared/ty
 import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
-import { assertDeleted, assertFound } from "../../../lib/assertions.js";
-import { withUniqueShareToken } from "../../../lib/share-token.js";
+import { assertDeleted, assertExisted, assertFound } from "../../../lib/assertions.js";
+import { isUniqueViolation } from "../../../lib/pg-errors.js";
+import { enableShare } from "../../../lib/share-token.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { toList, toListDetail, toListEntry, toListEntryDetail } from "../lib/list-presenters.js";
 import type { ListUpdate } from "../repositories/lists-core.js";
 import type { ListEntryUpdate, NewEntryValues } from "../repositories/lists-entries.js";
+import { moveListEntries } from "../services/lists.js";
 
 const os = implement(listsContract).$context<ApiContext>().use(requireAuthedUser);
 
 /**
  * The authenticated unified-lists contract, mounted at `/api/v1/lists`.
- * Bad-request / not-found / conflict states are thrown as `AppError` and
- * mapped by the handler's appErrorInterceptor.
  */
 export const listsRouter = {
   list: os.list.handler(async ({ input, context }): Promise<ListListResponse> => {
@@ -73,7 +73,7 @@ export const listsRouter = {
     };
   }),
 
-  update: os.update.handler(async ({ input, context }): Promise<ListResponse> => {
+  update: os.update.handler(async ({ input, context, errors }): Promise<ListResponse> => {
     const { lists } = context.repos;
     const userId = context.userId;
 
@@ -102,23 +102,19 @@ export const listsRouter = {
     // Unlike create, the update payload carries no list kind, so this schema check runs here instead.
     if (input.rules !== undefined) {
       if (input.rules.some((rule) => rule.kind !== ruleKindForListKind(existing.kind))) {
-        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "rule kind must match the list kind");
+        throw errors.BAD_REQUEST({ message: "rule kind must match the list kind" });
       }
       updates.rules = input.rules;
     }
     // null resets the combine mode to the list kind's default.
     if (input.ruleCombine !== undefined) {
       if (input.ruleCombine !== null && !ruleCombineMatchesKind(input.ruleCombine, existing.kind)) {
-        throw new AppError(
-          400,
-          ERROR_CODES.BAD_REQUEST,
-          "rule combine mode must match the list kind",
-        );
+        throw errors.BAD_REQUEST({ message: "rule combine mode must match the list kind" });
       }
       updates.ruleCombine = input.ruleCombine;
     }
     if (Object.keys(updates).length === 0) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "No fields to update");
+      throw errors.BAD_REQUEST({ message: "No fields to update" });
     }
     const row = await lists.update(input.id, userId, updates);
     assertFound(row, "Not found");
@@ -127,49 +123,51 @@ export const listsRouter = {
 
   remove: os.remove.handler(async ({ input, context }): Promise<void> => {
     const { lists } = context.repos;
-    const result = await lists.deleteByIdForUser(input.id, context.userId);
-    assertDeleted(result, "Not found");
+    const deleted = await lists.deleteByIdForUser(input.id, context.userId);
+    assertExisted(deleted, "Not found");
   }),
 
-  createEntry: os.createEntry.handler(async ({ input, context }): Promise<ListEntryResponse> => {
-    const { lists, copies } = context.repos;
-    const userId = context.userId;
-    const listId = input.id;
+  createEntry: os.createEntry.handler(
+    async ({ input, context, errors }): Promise<ListEntryResponse> => {
+      const { lists, copies } = context.repos;
+      const userId = context.userId;
+      const listId = input.id;
 
-    const list = await lists.getIdKindIntent(listId, userId);
-    assertFound(list, "List not found");
+      const list = await lists.getIdKindIntent(listId, userId);
+      assertFound(list, "List not found");
 
-    // Trade/wish lists may reference only copies the user personally owns; organize lists may reference shared group copies too.
-    const personalOnly = list.intent !== "organize";
-    const target = await resolveEntryTarget(list.kind, input, userId, copies, personalOnly);
+      // Trade/wish lists may reference only copies the user personally owns; organize lists may reference shared group copies too.
+      const personalOnly = list.intent !== "organize";
+      const target = await resolveEntryTarget(list.kind, input, userId, copies, personalOnly);
 
-    let row;
-    try {
-      row = await lists.createEntry({
-        listId,
-        userId,
-        kind: list.kind,
-        cardId: target.cardId,
-        printingId: target.printingId,
-        copyId: target.copyId,
-        quantity: input.quantity,
-        pricePref: input.tradeOverride.pricePref,
-        priceAbsoluteCents: input.tradeOverride.priceAbsoluteCents,
-        tradeType: input.tradeOverride.tradeType,
-      });
-    } catch (error) {
-      // 23505 (unique_violation): the partial unique index rejects a duplicate target.
-      if (error instanceof Error && "code" in error && error.code === "23505") {
-        throw new AppError(409, ERROR_CODES.CONFLICT, "That item is already in the list");
+      let row;
+      try {
+        row = await lists.createEntry({
+          listId,
+          userId,
+          kind: list.kind,
+          cardId: target.cardId,
+          printingId: target.printingId,
+          copyId: target.copyId,
+          quantity: input.quantity,
+          pricePref: input.tradeOverride.pricePref,
+          priceAbsoluteCents: input.tradeOverride.priceAbsoluteCents,
+          tradeType: input.tradeOverride.tradeType,
+        });
+      } catch (error) {
+        // The partial unique index rejects a duplicate target.
+        if (isUniqueViolation(error)) {
+          throw errors.CONFLICT({ message: "That item is already in the list" });
+        }
+        throw error;
       }
-      throw error;
-    }
 
-    return toListEntry(row);
-  }),
+      return toListEntry(row);
+    },
+  ),
 
   bulkCreateEntries: os.bulkCreateEntries.handler(
-    async ({ input, context }): Promise<ListBulkAddResponse> => {
+    async ({ input, context, errors }): Promise<ListBulkAddResponse> => {
       const { lists, copies } = context.repos;
       const userId = context.userId;
       const listId = input.id;
@@ -180,11 +178,9 @@ export const listsRouter = {
 
       for (const entry of entries) {
         if (!targetMatchesKind(list.kind, entry)) {
-          throw new AppError(
-            400,
-            ERROR_CODES.BAD_REQUEST,
-            `Every entry must target the list's kind (${list.kind})`,
-          );
+          throw errors.BAD_REQUEST({
+            message: `Every entry must target the list's kind (${list.kind})`,
+          });
         }
       }
 
@@ -254,7 +250,6 @@ export const listsRouter = {
   ),
 
   moveEntries: os.moveEntries.handler(async ({ input, context }): Promise<ListMoveResponse> => {
-    const { moveListEntries } = context.services;
     const repos = context.repos;
     const transact = context.transact;
     const userId = context.userId;
@@ -271,26 +266,28 @@ export const listsRouter = {
     );
   }),
 
-  updateEntry: os.updateEntry.handler(async ({ input, context }): Promise<ListEntryResponse> => {
-    const { lists } = context.repos;
-    const userId = context.userId;
-    // Built manually: the generic patch helper would reject a tradeOverride-only patch as empty.
-    const updates: ListEntryUpdate = {};
-    if (input.quantity !== undefined) {
-      updates.quantity = input.quantity;
-    }
-    if (input.tradeOverride !== undefined) {
-      updates.pricePref = input.tradeOverride.pricePref;
-      updates.priceAbsoluteCents = input.tradeOverride.priceAbsoluteCents;
-      updates.tradeType = input.tradeOverride.tradeType;
-    }
-    if (Object.keys(updates).length === 0) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "No fields to update");
-    }
-    const row = await lists.updateEntry(input.itemId, input.id, userId, updates);
-    assertFound(row, "Not found");
-    return toListEntry(row);
-  }),
+  updateEntry: os.updateEntry.handler(
+    async ({ input, context, errors }): Promise<ListEntryResponse> => {
+      const { lists } = context.repos;
+      const userId = context.userId;
+      // Built manually: the generic patch helper would reject a tradeOverride-only patch as empty.
+      const updates: ListEntryUpdate = {};
+      if (input.quantity !== undefined) {
+        updates.quantity = input.quantity;
+      }
+      if (input.tradeOverride !== undefined) {
+        updates.pricePref = input.tradeOverride.pricePref;
+        updates.priceAbsoluteCents = input.tradeOverride.priceAbsoluteCents;
+        updates.tradeType = input.tradeOverride.tradeType;
+      }
+      if (Object.keys(updates).length === 0) {
+        throw errors.BAD_REQUEST({ message: "No fields to update" });
+      }
+      const row = await lists.updateEntry(input.itemId, input.id, userId, updates);
+      assertFound(row, "Not found");
+      return toListEntry(row);
+    },
+  ),
 
   removeEntry: os.removeEntry.handler(async ({ input, context }): Promise<void> => {
     const { lists } = context.repos;
@@ -334,20 +331,10 @@ export const listsRouter = {
   share: os.share.handler(async ({ input, context }): Promise<ListShareResponse> => {
     const { lists } = context.repos;
     const userId = context.userId;
-
-    const current = await lists.getShareState(input.id, userId);
-    assertFound(current, "Not found");
-    if (current.shareToken !== null) {
-      return current;
-    }
-
-    const token = await withUniqueShareToken(async (candidate) => {
-      const updated = await lists.setShareToken(input.id, userId, candidate, true);
-      assertFound(updated, "Not found");
-      return candidate;
+    return await enableShare({
+      read: () => lists.getShareState(input.id, userId),
+      write: (token) => lists.setShareToken(input.id, userId, token, true),
     });
-
-    return { shareToken: token, isPublic: true };
   }),
 
   unshare: os.unshare.handler(async ({ input, context }): Promise<void> => {

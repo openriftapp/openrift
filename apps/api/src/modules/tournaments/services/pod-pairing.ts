@@ -174,7 +174,7 @@ export async function pairNextRound(
   tournament: Tournament,
   byePlayerIds: string[] = [],
 ): Promise<PodRound> {
-  const open = await repos.podTournaments.findOpenRound(tournament.id);
+  const open = await repos.podTournaments.getOpenRound(tournament.id);
   if (open) {
     throw roundAlreadyOpen();
   }
@@ -189,7 +189,7 @@ export async function pairNextRound(
       run.byePlayerIds,
     );
   } catch (error) {
-    // findOpenRound is check-then-act; a concurrent insert races it and
+    // getOpenRound is check-then-act; a concurrent insert races it and
     // uq_pod_rounds_number rejects the loser. Catch only that constraint.
     if (isUniqueViolationOn(error, "uq_pod_rounds_number")) {
       throw roundAlreadyOpen();
@@ -207,7 +207,7 @@ export async function rerollRound(
   tournament: Tournament,
   roundNumber: number,
 ): Promise<PodRound> {
-  const round = await repos.podTournaments.findRoundByNumber(tournament.id, roundNumber);
+  const round = await repos.podTournaments.getRoundByNumber(tournament.id, roundNumber);
   assertFound(round, "Round not found");
   if (round.status === "finalized") {
     throw new AppError(400, ERROR_CODES.BAD_REQUEST, "A finalized round cannot be re-rolled.");
@@ -237,7 +237,7 @@ export async function replaceRoundPairing(
   pods: { size: 2 | 3 | 4; playerIds: string[] }[],
   byePlayerIds: string[],
 ): Promise<void> {
-  const round = await repos.podTournaments.findRoundByNumber(tournament.id, roundNumber);
+  const round = await repos.podTournaments.getRoundByNumber(tournament.id, roundNumber);
   assertFound(round, "Round not found");
   if (round.status === "finalized") {
     throw new AppError(400, ERROR_CODES.BAD_REQUEST, "A finalized round cannot be edited.");
@@ -366,7 +366,7 @@ export async function finalizeRound(
   tournament: Tournament,
   roundNumber: number,
 ): Promise<void> {
-  const round = await repos.podTournaments.findRoundByNumber(tournament.id, roundNumber);
+  const round = await repos.podTournaments.getRoundByNumber(tournament.id, roundNumber);
   assertFound(round, "Round not found");
   if (round.status === "finalized") {
     throw new AppError(409, ERROR_CODES.CONFLICT, "Round already finalized.");
@@ -393,7 +393,7 @@ export async function submitPodResult(
   results: { playerId: string; gamePoints: number }[],
   options: { allowFinalized: boolean },
 ): Promise<void> {
-  const found = await repos.podTournaments.findPodForResult(podId);
+  const found = await repos.podTournaments.getPodForResult(podId);
   if (!found || found.tournament.id !== tournamentId) {
     throw new AppError(404, ERROR_CODES.NOT_FOUND, "Pod not found");
   }
@@ -475,7 +475,7 @@ export async function submitPodPlayerResult(
   playerId: string,
   gamePoints: number,
 ): Promise<void> {
-  const found = await repos.podTournaments.findPodForResult(podId);
+  const found = await repos.podTournaments.getPodForResult(podId);
   if (!found || found.tournament.id !== tournamentId) {
     throw new AppError(404, ERROR_CODES.NOT_FOUND, "Pod not found");
   }

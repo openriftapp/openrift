@@ -2,11 +2,11 @@ import { createLogger } from "@openrift/shared/logger";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createRepos } from "../../../deps.js";
+import type { EmailDeps } from "../../../email.js";
 import { PRINTING_1 } from "../../../test/fixtures/constants.js";
 import { createDbContext } from "../../../test/integration-context.js";
 import { friendGroupsRepo } from "../repositories/friend-groups.js";
 import { createTrade } from "./card-trades.js";
-import type { TradeEmailDeps } from "./trade-notifications.js";
 import { TRADE_REQUEST_EMAIL_SETTING } from "./trade-notifications.js";
 
 const GIVER_ID = crypto.randomUUID();
@@ -23,9 +23,9 @@ describe.skipIf(!ctx)("trade-request email (integration)", () => {
   const groupsRepo = friendGroupsRepo(db);
   const createdGroupIds: string[] = [];
 
-  function makeEmailDeps(): { deps: TradeEmailDeps; sent: { to: string; subject: string }[] } {
+  function makeEmailDeps(): { deps: EmailDeps; sent: { to: string; subject: string }[] } {
     const sent: { to: string; subject: string }[] = [];
-    const deps: TradeEmailDeps = {
+    const deps: EmailDeps = {
       // oxlint-disable-next-line require-await -- mock matches the async sender shape
       sendEmail: async ({ to, subject }) => {
         sent.push({ to, subject });
@@ -165,7 +165,7 @@ describe.skipIf(!ctx)("trade-request email (integration)", () => {
     return group;
   }
 
-  function requestAsReceiver(group: { slug: string }, deps?: TradeEmailDeps) {
+  function requestAsReceiver(group: { slug: string }, deps?: EmailDeps) {
     return createTrade(
       repos,
       {
@@ -180,7 +180,7 @@ describe.skipIf(!ctx)("trade-request email (integration)", () => {
     );
   }
 
-  function offerAsGiver(group: { slug: string }, deps?: TradeEmailDeps) {
+  function offerAsGiver(group: { slug: string }, deps?: EmailDeps) {
     return createTrade(
       repos,
       {
@@ -239,7 +239,7 @@ describe.skipIf(!ctx)("trade-request email (integration)", () => {
 
   it("still creates the trade when the email send throws", async () => {
     const group = await setupMatch();
-    const failingDeps: TradeEmailDeps = {
+    const failingDeps: EmailDeps = {
       // oxlint-disable-next-line require-await -- mock matches the async sender shape
       sendEmail: async () => {
         throw new Error("SMTP down");

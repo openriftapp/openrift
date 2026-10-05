@@ -9,7 +9,9 @@ import type {
 } from "@openrift/shared/types/api/card-trade";
 
 import type { Repos, Transact } from "../../../deps.js";
+import type { EmailDeps } from "../../../email.js";
 import { AppError } from "../../../errors.js";
+import { assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolation } from "../../../lib/pg-errors.js";
 import { disposeCopiesInTransaction } from "../../collections/services/copies.js";
 import { logEvents } from "../../system/services/event-logger.js";
@@ -20,8 +22,8 @@ import {
   toCardTradeCopyOptions,
   toCardTradeResponse,
 } from "../lib/card-trade-presenters.js";
+import { loadGroupForMember } from "../lib/group-access.js";
 import type { CardTrade, LiveCardTrade } from "../repositories/card-trades-shared.js";
-import type { TradeEmailDeps } from "./trade-notifications.js";
 import { sendTradeRequestEmail } from "./trade-notifications.js";
 import {
   assertSupplyAvailable,
@@ -57,9 +59,7 @@ async function reloadDto(
   userId: string,
 ): Promise<CardTradeResponse> {
   const row = await repos.cardTrades.getDtoRowByIdForUser(tradeId, userId);
-  if (row === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Trade not found");
-  }
+  assertFound(row, "Trade not found");
   return toCardTradeResponse(row, userId);
 }
 
@@ -93,9 +93,7 @@ async function loadTradeForParty(
   options?: { forUpdate?: boolean },
 ): Promise<{ trade: LiveCardTrade; role: CardTradeRole }> {
   const trade = await repos.cardTrades.getById(tradeId, options);
-  if (trade === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Trade not found");
-  }
+  assertFound(trade, "Trade not found");
   const role = callerRole(trade, byUserId);
   if (role === null) {
     throw new AppError(403, ERROR_CODES.FORBIDDEN, "You are not a party to this trade");
@@ -167,7 +165,7 @@ async function assertRequestableCopies(
 export async function createTrade(
   repos: Repos,
   input: CreateTradeInput,
-  emailDeps?: TradeEmailDeps,
+  emailDeps?: EmailDeps,
 ): Promise<CardTradeResponse> {
   const { callerUserId, groupSlug, counterpartyUserId, role, printingId, quantity, copyIds } =
     input;
@@ -176,21 +174,12 @@ export async function createTrade(
     throw new AppError(400, ERROR_CODES.BAD_REQUEST, "You cannot trade with yourself");
   }
 
-  const group = await repos.friendGroups.getBySlugOrPrevious(groupSlug);
-  if (group === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Group not found");
-  }
-  const callerMembership = await repos.friendGroups.getMembership(group.id, callerUserId);
-  if (callerMembership === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Group not found");
-  }
+  const { group } = await loadGroupForMember(repos, groupSlug, callerUserId);
   const counterpartyMembership = await repos.friendGroups.getMembership(
     group.id,
     counterpartyUserId,
   );
-  if (counterpartyMembership === undefined) {
-    throw new AppError(404, ERROR_CODES.NOT_FOUND, "Counterparty is not a member of this group");
-  }
+  assertFound(counterpartyMembership, "Counterparty is not a member of this group");
 
   const giverUserId = role === "giver" ? callerUserId : counterpartyUserId;
   const receiverUserId = role === "giver" ? counterpartyUserId : callerUserId;
@@ -215,7 +204,7 @@ export async function createTrade(
 
   // Must run before the supply check: its own pending offer holds the copy,
   // which would pass the supply check and mask this one.
-  const existing = await repos.cardTrades.findLiveTrade(
+  const existing = await repos.cardTrades.getLiveTrade(
     group.id,
     giverUserId,
     receiverUserId,
@@ -610,7 +599,7 @@ function assertGiverUnsettled(trade: LiveCardTrade): void {
 
 /** Written into the receiver's free-text private note; the app never reads it back. */
 async function tradeProvenanceNote(trxRepos: Repos, trade: LiveCardTrade): Promise<string | null> {
-  const giver = await trxRepos.users.findById(trade.giverUserId);
+  const giver = await trxRepos.users.getById(trade.giverUserId);
   const name = giver?.name ?? trade.giverName;
   return name === null || name === undefined || name === ""
     ? null
@@ -772,7 +761,7 @@ async function replaySettlement(
   if (requestId === undefined) {
     return undefined;
   }
-  const previous = await repos.cardTrades.findSettlementRequest(tradeId, userId, requestId);
+  const previous = await repos.cardTrades.getSettlementRequest(tradeId, userId, requestId);
   if (previous === undefined) {
     return undefined;
   }

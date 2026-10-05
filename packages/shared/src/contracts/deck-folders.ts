@@ -2,14 +2,15 @@ import { idParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
+import { nameField } from "./fields.js";
 
 export const createDeckFolderSchema = z.object({
   id: z.uuid().optional(),
-  name: z.string().min(1).max(100),
+  name: nameField(100),
 });
 
 export const updateDeckFolderSchema = z.object({
-  name: z.string().min(1).max(100),
+  name: nameField(100),
 });
 
 /** Not bucket-scoped, unlike lists: folders are a single flat set per user. */

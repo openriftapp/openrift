@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CardSubmissionRow } from "../repositories/card-submissions.js";
-import { toCardSubmissionStatus } from "./card-submission-presenters.js";
+import { toAdminCardSubmission, toCardSubmissionStatus } from "./card-submission-presenters.js";
 
 const ROW = {
   id: "sub-1",
@@ -63,5 +63,24 @@ describe("toCardSubmissionStatus", () => {
     expect(result.candidateCardId).toBeUndefined();
     expect(result.acceptedCardId).toBeUndefined();
     expect(result.userId).toBeUndefined();
+  });
+});
+
+describe("toAdminCardSubmission", () => {
+  it("maps a resolved submission to the review shape", () => {
+    expect(toAdminCardSubmission(ROW)).toEqual({
+      id: "sub-1",
+      kind: "correction",
+      status: "accepted",
+      cardName: "Jinx",
+      note: "Saw it on the back of the box.",
+      reason: null,
+      resolutionNote: null,
+      resolvedAt: "2026-08-13T12:00:00.000Z",
+    });
+  });
+
+  it("keeps resolvedAt null while the submission is pending", () => {
+    expect(toAdminCardSubmission({ ...ROW, resolvedAt: null }).resolvedAt).toBeNull();
   });
 });

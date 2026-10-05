@@ -64,3 +64,30 @@ export function formatPrintingVariantLabel(
   const parts = language ? [`[${language}]`, ...rest] : rest;
   return parts.length > 0 ? parts.join(" · ") : "Standard";
 }
+
+export function printingLabelParts(
+  shortCode: string,
+  markerSlugs: readonly string[],
+  finish: string,
+  language?: string | null,
+  size?: string | null,
+): string[] {
+  const parts = [shortCode, markerSlugs.join("+"), finish];
+  if (size && size !== WellKnown.cardSize.STANDARD) {
+    parts.push(size);
+  }
+  if (language) {
+    parts.unshift(language);
+  }
+  return parts;
+}
+
+export function formatPrintingLabel(
+  shortCode: string,
+  markerSlugs: readonly string[],
+  finish: string,
+  language?: string | null,
+  size?: string | null,
+): string {
+  return printingLabelParts(shortCode, markerSlugs, finish, language, size).join(":");
+}

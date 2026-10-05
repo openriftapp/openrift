@@ -1,8 +1,7 @@
 // oxlint-disable-next-line import/no-nodejs-modules -- server-side key minting, never reaches the browser
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 import { deckCheckKeysContract } from "@openrift/shared/contracts/deck-check-keys";
-import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type {
   DeckCheckKeyMintedResponse,
   DeckCheckKeyResponse,
@@ -11,7 +10,8 @@ import type {
 import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
-import { AppError } from "../../../errors.js";
+import { assertExisted, assertFound } from "../../../lib/assertions.js";
+import { sha256Hex } from "../../../lib/hash.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { toKey } from "../lib/deck-check-presenters.js";
@@ -22,7 +22,7 @@ function mintToken(): { token: string; tokenHash: string; tokenPrefix: string } 
   const token = `orpk_${randomBytes(24).toString("base64url")}`;
   return {
     token,
-    tokenHash: createHash("sha256").update(token).digest("hex"),
+    tokenHash: sha256Hex(token),
     tokenPrefix: token.slice(0, 10),
   };
 }
@@ -75,9 +75,7 @@ export const deckCheckKeysRouter = {
       input.keyId,
       input.label,
     );
-    if (!key) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Key not found");
-    }
+    assertFound(key, "Key not found");
     return toKey(key);
   }),
 
@@ -87,9 +85,7 @@ export const deckCheckKeysRouter = {
       userHost(context.userId),
       input.keyId,
     );
-    if (!revoked) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Key not found");
-    }
+    assertExisted(revoked, "Key not found");
   }),
 
   removeMine: os.removeMine.handler(async ({ input, context }): Promise<void> => {
@@ -98,9 +94,7 @@ export const deckCheckKeysRouter = {
       userHost(context.userId),
       input.keyId,
     );
-    if (!removed) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Key not found");
-    }
+    assertExisted(removed, "Key not found");
   }),
 
   listForOrg: os.listForOrg.handler(async ({ input, context }): Promise<DeckCheckKeysResponse> => {
@@ -131,9 +125,7 @@ export const deckCheckKeysRouter = {
       const repos = context.repos;
       const host = await authorizeOrgHost(repos, input.orgId, context.userId);
       const key = await repos.deckCheckKeys.updateKeyLabelForHost(host, input.keyId, input.label);
-      if (!key) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Key not found");
-      }
+      assertFound(key, "Key not found");
       return toKey(key);
     },
   ),
@@ -142,17 +134,13 @@ export const deckCheckKeysRouter = {
     const repos = context.repos;
     const host = await authorizeOrgHost(repos, input.orgId, context.userId);
     const revoked = await repos.deckCheckKeys.revokeKeyForHost(host, input.keyId);
-    if (!revoked) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Key not found");
-    }
+    assertExisted(revoked, "Key not found");
   }),
 
   removeForOrg: os.removeForOrg.handler(async ({ input, context }): Promise<void> => {
     const repos = context.repos;
     const host = await authorizeOrgHost(repos, input.orgId, context.userId);
     const removed = await repos.deckCheckKeys.deleteRevokedKeyForHost(host, input.keyId);
-    if (!removed) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Key not found");
-    }
+    assertExisted(removed, "Key not found");
   }),
 };

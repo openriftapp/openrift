@@ -67,7 +67,7 @@ export async function buildPodRunDetail(
     repos.podTournaments.listPlayers(tournament.id),
     repos.podTournaments.computeStandings(tournament.id, scoring),
     repos.podTournaments.loadRounds(tournament.id),
-    repos.podTournaments.findOpenRound(tournament.id),
+    repos.podTournaments.getOpenRound(tournament.id),
   ]);
   const openRoundSnapshot = openRound
     ? await repos.podTournaments.loadOpenRoundSnapshot(tournament.id, scoring)

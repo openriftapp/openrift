@@ -13,6 +13,7 @@ import type { Kysely, Selectable, Updateable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { CardsTable, PrintingsTable } from "../../../db/tables/catalog.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 
 /**
  * The field set the `uq_printings_identity` unique constraint covers — the key
@@ -201,7 +202,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       // commits alone, so an insert refused by the FK (an unknown slug the
       // validator let through) would leave the delete committed and the card
       // stripped of all its domains.
-      const run = async (trx: typeof db): Promise<void> => {
+      await inTransaction(db, async (trx) => {
         await trx.deleteFrom("cardDomains").where("cardId", "=", cardId).execute();
         if (domains.length > 0) {
           await trx
@@ -215,8 +216,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
             )
             .execute();
         }
-      };
-      await (db.isTransaction ? run(db) : db.transaction().execute(run));
+      });
     },
 
     /**
@@ -231,20 +231,19 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       // trigger rejects any COMMIT that leaves a card with zero junction rows,
       // and outside a transaction each statement commits on its own — the bare
       // delete would be rejected before the insert runs.
-      const run = async (trx: typeof db): Promise<void> => {
+      await inTransaction(db, async (trx) => {
         await trx.deleteFrom("cardCardTypes").where("cardId", "=", cardId).execute();
         await trx
           .insertInto("cardCardTypes")
           .values(types.map((type, index) => ({ cardId, typeSlug: type, position: index })))
           .execute();
         await trx.updateTable("cards").set({ type: types[0] }).where("id", "=", cardId).execute();
-      };
-      await (db.isTransaction ? run(db) : db.transaction().execute(run));
+      });
     },
 
     async replaceCardSuperTypesById(cardId: string, superTypes: string[]): Promise<void> {
       // Same transactional pairing as replaceCardDomainsById above.
-      const run = async (trx: typeof db): Promise<void> => {
+      await inTransaction(db, async (trx) => {
         await trx.deleteFrom("cardSuperTypes").where("cardId", "=", cardId).execute();
         if (superTypes.length > 0) {
           await trx
@@ -252,8 +251,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
             .values(superTypes.map((superType) => ({ cardId, superTypeSlug: superType })))
             .execute();
         }
-      };
-      await (db.isTransaction ? run(db) : db.transaction().execute(run));
+      });
     },
 
     async deleteCardBansByCardId(cardId: string): Promise<void> {
@@ -386,8 +384,12 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       return pin !== undefined;
     },
 
-    async deleteImageFileById(imageFileId: string): Promise<void> {
-      await db.deleteFrom("imageFiles").where("id", "=", imageFileId).execute();
+    async deleteImageFileById(imageFileId: string): Promise<boolean> {
+      const result = await db
+        .deleteFrom("imageFiles")
+        .where("id", "=", imageFileId)
+        .executeTakeFirst();
+      return result.numDeletedRows > 0n;
     },
 
     /**

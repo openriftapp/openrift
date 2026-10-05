@@ -1,5 +1,16 @@
 import { parseAppEnv } from "@openrift/shared/app-env";
 
+function originOf(url: string | undefined): string | undefined {
+  if (!url) {
+    return undefined;
+  }
+  try {
+    return new URL(url).origin;
+  } catch {
+    return undefined;
+  }
+}
+
 export function createConfig(env: Record<string, string | undefined>) {
   const appEnv = parseAppEnv(env.APP_ENV);
   return {
@@ -50,6 +61,7 @@ export function createConfig(env: Record<string, string | undefined>) {
         : undefined,
 
     appBaseUrl: env.BETTER_AUTH_URL ?? "",
+    siteOrigin: originOf(env.BETTER_AUTH_URL),
 
     render: {
       workers: Number(env.RENDER_WORKERS ?? 2),

@@ -4,6 +4,7 @@ import { implement } from "@orpc/server";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import { toAdminCardSubmission } from "../lib/card-submission-presenters.js";
 
 const os = implement(adminCardSubmissionsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -13,28 +14,17 @@ const os = implement(adminCardSubmissionsContract).$context<ApiContext>().use(re
  */
 export const adminCardSubmissionsRouter = {
   forCandidate: os.forCandidate.handler(async ({ input, context }) => {
-    const submission = await context.repos.cardSubmissions.findByCandidateCardId(
+    const submission = await context.repos.cardSubmissions.getByCandidateCardId(
       input.candidateCardId,
     );
     if (!submission) {
       return { submission: null };
     }
-    return {
-      submission: {
-        id: submission.id,
-        kind: submission.kind,
-        status: submission.status,
-        cardName: submission.cardName,
-        note: submission.note,
-        reason: submission.resolutionReason,
-        resolutionNote: submission.resolutionNote,
-        resolvedAt: submission.resolvedAt ? submission.resolvedAt.toISOString() : null,
-      },
-    };
+    return { submission: toAdminCardSubmission(submission) };
   }),
 
   setResolution: os.setResolution.handler(async ({ input, context, errors }): Promise<void> => {
-    const submission = await context.repos.cardSubmissions.findByCandidateCardId(
+    const submission = await context.repos.cardSubmissions.getByCandidateCardId(
       input.candidateCardId,
     );
     if (!submission) {

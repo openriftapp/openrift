@@ -65,7 +65,7 @@ function tournamentRow(overrides: Partial<Tournament> = {}): Tournament {
 // request still assembles a schema-valid detail payload.
 function makeApp(tournament: Tournament) {
   const tournaments = {
-    findById: vi.fn(() => Promise.resolve(tournament)),
+    getById: vi.fn(() => Promise.resolve(tournament)),
     create: vi.fn(() => Promise.resolve(tournament)),
     isHostOrStaff: vi.fn(() => Promise.resolve(true)),
     hasRounds: vi.fn(() => Promise.resolve(false)),
@@ -77,7 +77,7 @@ function makeApp(tournament: Tournament) {
     getCounts: vi.fn(() => Promise.resolve({ participantCount: 0, pendingRequestCount: 0 })),
     getStaffRoles: vi.fn(() => Promise.resolve([])),
     listStaffWithNames: vi.fn(() => Promise.resolve([])),
-    findParticipantByUser: vi.fn(() => Promise.resolve(undefined)),
+    getParticipantByUser: vi.fn(() => Promise.resolve(undefined)),
     participantPreviewAcross: vi.fn(() => Promise.resolve([])),
   };
   const deckCheck = {

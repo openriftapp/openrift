@@ -6,7 +6,7 @@ import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
 import { adminPrintingCitationsRouter } from "./admin-printing-citations";
 
-const mockCatalog = { printingById: vi.fn() };
+const mockCatalog = { getPrintingById: vi.fn() };
 
 const mockPrintingCitations = {
   listForPrinting: vi.fn(),
@@ -72,7 +72,7 @@ beforeEach(() => {
 
 describe("GET /printings/{printingId}/citations", () => {
   it("lists the printing's citations without exposing the server-only sortOrder", async () => {
-    mockCatalog.printingById.mockResolvedValue({ id: PRINTING_ID });
+    mockCatalog.getPrintingById.mockResolvedValue({ id: PRINTING_ID });
     mockPrintingCitations.listForPrinting.mockResolvedValue([
       citationRow(),
       citationRow({ id: "c0000000-0001-4000-a000-000000000002", sourceUrl: null }),
@@ -88,7 +88,7 @@ describe("GET /printings/{printingId}/citations", () => {
   });
 
   it("404s for an unknown printing", async () => {
-    mockCatalog.printingById.mockResolvedValue(undefined);
+    mockCatalog.getPrintingById.mockResolvedValue(undefined);
 
     const res = await app.request(BASE);
 
@@ -99,7 +99,7 @@ describe("GET /printings/{printingId}/citations", () => {
 
 describe("POST /printings/{printingId}/citations", () => {
   it("writes a citation", async () => {
-    mockCatalog.printingById.mockResolvedValue({ id: PRINTING_ID });
+    mockCatalog.getPrintingById.mockResolvedValue({ id: PRINTING_ID });
     mockPrintingCitations.insert.mockResolvedValue(citationRow());
 
     const res = await createCitation({
@@ -116,7 +116,7 @@ describe("POST /printings/{printingId}/citations", () => {
   });
 
   it("accepts a citation with no link", async () => {
-    mockCatalog.printingById.mockResolvedValue({ id: PRINTING_ID });
+    mockCatalog.getPrintingById.mockResolvedValue({ id: PRINTING_ID });
     mockPrintingCitations.insert.mockResolvedValue(citationRow({ sourceUrl: null }));
 
     const res = await createCitation({ label: "Riot CM in the official Discord", sourceUrl: null });
@@ -127,7 +127,7 @@ describe("POST /printings/{printingId}/citations", () => {
   });
 
   it("rejects a blank label", async () => {
-    mockCatalog.printingById.mockResolvedValue({ id: PRINTING_ID });
+    mockCatalog.getPrintingById.mockResolvedValue({ id: PRINTING_ID });
 
     const res = await createCitation({ label: "   ", sourceUrl: null });
 
@@ -136,7 +136,7 @@ describe("POST /printings/{printingId}/citations", () => {
   });
 
   it("rejects a label past the column's limit", async () => {
-    mockCatalog.printingById.mockResolvedValue({ id: PRINTING_ID });
+    mockCatalog.getPrintingById.mockResolvedValue({ id: PRINTING_ID });
 
     const res = await createCitation({ label: "x".repeat(121), sourceUrl: null });
 
@@ -145,7 +145,7 @@ describe("POST /printings/{printingId}/citations", () => {
   });
 
   it("rejects a non-http(s) link, since it is rendered as a raw href", async () => {
-    mockCatalog.printingById.mockResolvedValue({ id: PRINTING_ID });
+    mockCatalog.getPrintingById.mockResolvedValue({ id: PRINTING_ID });
 
     // oxlint-disable-next-line no-script-url -- the payload under test is the point
     const res = await createCitation({ label: "VOD", sourceUrl: "javascript:alert(1)" });
@@ -155,7 +155,7 @@ describe("POST /printings/{printingId}/citations", () => {
   });
 
   it("409s when the same link is already cited on the printing", async () => {
-    mockCatalog.printingById.mockResolvedValue({ id: PRINTING_ID });
+    mockCatalog.getPrintingById.mockResolvedValue({ id: PRINTING_ID });
     mockPrintingCitations.insert.mockRejectedValue(
       Object.assign(new Error("duplicate key"), {
         code: "23505",
@@ -172,7 +172,7 @@ describe("POST /printings/{printingId}/citations", () => {
   });
 
   it("404s for an unknown printing", async () => {
-    mockCatalog.printingById.mockResolvedValue(undefined);
+    mockCatalog.getPrintingById.mockResolvedValue(undefined);
 
     const res = await createCitation({ label: "VOD", sourceUrl: null });
 
@@ -321,7 +321,7 @@ describe("DELETE /printings/{printingId}/citations/{citationId}", () => {
 describe("grant holder scope", () => {
   beforeEach(() => {
     adminAccess = GRANT_HOLDER;
-    mockCatalog.printingById.mockResolvedValue({ id: PRINTING_ID });
+    mockCatalog.getPrintingById.mockResolvedValue({ id: PRINTING_ID });
     mockPrintingCitations.listForPrinting.mockResolvedValue([citationRow()]);
   });
 

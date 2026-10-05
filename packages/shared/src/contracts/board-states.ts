@@ -3,11 +3,12 @@ import { idParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
+import { nameField, shareStateResponseSchema } from "./fields.js";
 
 const rulesVersion = z.string().trim().min(1).max(40);
 
 const boardStateFieldRules = {
-  title: z.string().trim().min(1).max(200),
+  title: nameField(200),
   rulesVersion: rulesVersion.nullable(),
 };
 
@@ -49,10 +50,7 @@ export const boardStateListResponseSchema = z.object({
   items: z.array(boardStateResponseSchema),
 });
 
-export const boardStateShareResponseSchema = z.object({
-  shareToken: z.string().nullable(),
-  isPublic: z.boolean(),
-});
+export const boardStateShareResponseSchema = shareStateResponseSchema;
 
 const TAG = "Board states";
 const NOT_FOUND = { NOT_FOUND: { message: "Board state not found" } };

@@ -12,14 +12,14 @@ const mockTierListsRepo = {
   getByIdForUser: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   create: vi.fn(() => Promise.resolve({} as object)),
   update: vi.fn(() => Promise.resolve(undefined as object | undefined)),
-  remove: vi.fn(() => Promise.resolve(false)),
+  deleteByIdForUser: vi.fn(() => Promise.resolve(false)),
   getShareState: vi.fn(() =>
     Promise.resolve(undefined as { shareToken: string | null; isPublic: boolean } | undefined),
   ),
   setShare: vi.fn(() =>
     Promise.resolve(undefined as { shareToken: string | null; isPublic: boolean } | undefined),
   ),
-  findByShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
+  getByShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
 };
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
@@ -278,16 +278,16 @@ describe("PATCH /tier-lists/{id}", () => {
 
 describe("DELETE /tier-lists/{id}", () => {
   it("204s when a list was deleted", async () => {
-    mockTierListsRepo.remove.mockResolvedValue(true);
+    mockTierListsRepo.deleteByIdForUser.mockResolvedValue(true);
 
     const { status } = await request(`/tier-lists/${LIST_ID}`, { method: "DELETE" });
 
     expect(status).toBe(204);
-    expect(mockTierListsRepo.remove).toHaveBeenCalledWith(LIST_ID, USER_ID);
+    expect(mockTierListsRepo.deleteByIdForUser).toHaveBeenCalledWith(LIST_ID, USER_ID);
   });
 
   it("404s when nothing was deleted", async () => {
-    mockTierListsRepo.remove.mockResolvedValue(false);
+    mockTierListsRepo.deleteByIdForUser.mockResolvedValue(false);
 
     const { status } = await request(`/tier-lists/${LIST_ID}`, { method: "DELETE" });
 

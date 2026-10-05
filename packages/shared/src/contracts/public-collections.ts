@@ -3,6 +3,8 @@ import { copiesQuerySchema } from "@openrift/shared/schemas";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
+import { shareOwnerSchema } from "./fields.js";
+
 export const publicCollectionResponseSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -25,7 +27,7 @@ export const publicCollectionDetailResponseSchema = z.object({
   collection: publicCollectionResponseSchema,
   items: z.array(publicCopyResponseSchema),
   nextCursor: z.string().nullable(),
-  owner: z.object({ displayName: z.string(), gravatarHash: z.string().nullable() }),
+  owner: shareOwnerSchema,
 });
 
 export const publicCollectionsContract = {

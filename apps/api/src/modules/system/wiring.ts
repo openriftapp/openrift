@@ -7,7 +7,6 @@ import { jobRunsRepo } from "./repositories/job-runs.js";
 import { jobSchedulesRepo } from "./repositories/job-schedules.js";
 import { siteSettingsRepo } from "./repositories/site-settings.js";
 import { statusRepo } from "./repositories/status.js";
-import { logEvents } from "./services/event-logger.js";
 
 export interface SystemRepos {
   adminEvents: ReturnType<typeof adminEventsRepo>;
@@ -16,10 +15,6 @@ export interface SystemRepos {
   siteSettings: ReturnType<typeof siteSettingsRepo>;
   jobRuns: ReturnType<typeof jobRunsRepo>;
   jobSchedules: ReturnType<typeof jobSchedulesRepo>;
-}
-
-export interface SystemServices {
-  logEvents: typeof logEvents;
 }
 
 export function createSystemRepos(db: Kysely<Database>): SystemRepos {
@@ -31,8 +26,4 @@ export function createSystemRepos(db: Kysely<Database>): SystemRepos {
     jobRuns: jobRunsRepo(db),
     jobSchedules: jobSchedulesRepo(db),
   };
-}
-
-export function createSystemServices(): SystemServices {
-  return { logEvents };
 }

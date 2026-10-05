@@ -3,12 +3,12 @@ import { sql } from "kysely";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createRepos } from "../../../deps.js";
+import type { EmailDeps } from "../../../email.js";
 import { PRINTING_1, PRINTING_2 } from "../../../test/fixtures/constants.js";
 import { createDbContext } from "../../../test/integration-context.js";
 import { friendGroupsRepo } from "../repositories/friend-groups.js";
 import { createTrade } from "./card-trades.js";
 import { flushCoalescedTradeRequests } from "./trade-notifications.js";
-import type { TradeEmailDeps } from "./trade-notifications.js";
 
 // Own upsert, not seedTestUser: emailVerified toggles per-case.
 const GIVER_ID = crypto.randomUUID();
@@ -36,7 +36,7 @@ describe.skipIf(!ctx)("trade-request coalescing (integration)", () => {
     return { sent, sendEmail };
   }
 
-  function emailDeps(sendEmail: TradeEmailDeps["sendEmail"]): TradeEmailDeps {
+  function emailDeps(sendEmail: EmailDeps["sendEmail"]): EmailDeps {
     return { sendEmail, appBaseUrl: "http://localhost:5173", unsubscribeSecret: "test", log };
   }
 
@@ -162,7 +162,7 @@ describe.skipIf(!ctx)("trade-request coalescing (integration)", () => {
     return group;
   }
 
-  function requestAsReceiver(group: { slug: string }, printingId: string, deps: TradeEmailDeps) {
+  function requestAsReceiver(group: { slug: string }, printingId: string, deps: EmailDeps) {
     return createTrade(
       repos,
       {
@@ -186,7 +186,7 @@ describe.skipIf(!ctx)("trade-request coalescing (integration)", () => {
       .execute();
   }
 
-  function flushDeps(sendEmail: TradeEmailDeps["sendEmail"]) {
+  function flushDeps(sendEmail: EmailDeps["sendEmail"]) {
     return {
       repos,
       log,

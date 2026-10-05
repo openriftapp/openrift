@@ -7,7 +7,7 @@ import type { Variables } from "../../../types.js";
 import { publicCollectionsRouter } from "./public-collections";
 
 const mockCollectionsRepo = {
-  findByShareToken: vi.fn(
+  getByShareToken: vi.fn(
     () =>
       Promise.resolve(undefined) as Promise<
         { collection: Record<string, unknown>; ownerName: string | null } | undefined
@@ -82,7 +82,7 @@ const dbCopy = {
 
 describe("GET /api/v1/collections/share/:token", () => {
   beforeEach(() => {
-    mockCollectionsRepo.findByShareToken.mockReset();
+    mockCollectionsRepo.getByShareToken.mockReset();
     mockCopiesRepo.listForCollection.mockReset();
     mockMarketplaceRepo.singleCollectionValue.mockReset();
     mockUserPreferencesRepo.getByUserId.mockReset();
@@ -90,7 +90,7 @@ describe("GET /api/v1/collections/share/:token", () => {
   });
 
   it("returns 200 with the collection, copies, value, and owner display name", async () => {
-    mockCollectionsRepo.findByShareToken.mockResolvedValue({
+    mockCollectionsRepo.getByShareToken.mockResolvedValue({
       collection: dbCollection,
       ownerName: "Alice",
     });
@@ -115,7 +115,7 @@ describe("GET /api/v1/collections/share/:token", () => {
   });
 
   it("excludes owner-only fields (shareToken, isPublic, isInbox, availableForDeckbuilding) from the response", async () => {
-    mockCollectionsRepo.findByShareToken.mockResolvedValue({
+    mockCollectionsRepo.getByShareToken.mockResolvedValue({
       collection: dbCollection,
       ownerName: "Alice",
     });
@@ -132,7 +132,7 @@ describe("GET /api/v1/collections/share/:token", () => {
   });
 
   it("narrows public copies, stripping collectionId/groupId/notesPrivate", async () => {
-    mockCollectionsRepo.findByShareToken.mockResolvedValue({
+    mockCollectionsRepo.getByShareToken.mockResolvedValue({
       collection: dbCollection,
       ownerName: "Alice",
     });
@@ -156,7 +156,7 @@ describe("GET /api/v1/collections/share/:token", () => {
   });
 
   it("falls back to 'Anonymous' when the owner has no display name", async () => {
-    mockCollectionsRepo.findByShareToken.mockResolvedValue({
+    mockCollectionsRepo.getByShareToken.mockResolvedValue({
       collection: dbCollection,
       ownerName: null,
     });
@@ -168,7 +168,7 @@ describe("GET /api/v1/collections/share/:token", () => {
   });
 
   it("returns 404 when the token is not found or the collection is not public", async () => {
-    mockCollectionsRepo.findByShareToken.mockResolvedValue(undefined);
+    mockCollectionsRepo.getByShareToken.mockResolvedValue(undefined);
 
     const res = await app.request("/api/v1/collections/share/unknown");
     expect(res.status).toBe(404);
@@ -176,7 +176,7 @@ describe("GET /api/v1/collections/share/:token", () => {
   });
 
   it("returns nextCursor when copy count exceeds the requested limit", async () => {
-    mockCollectionsRepo.findByShareToken.mockResolvedValue({
+    mockCollectionsRepo.getByShareToken.mockResolvedValue({
       collection: dbCollection,
       ownerName: "Alice",
     });
@@ -195,7 +195,7 @@ describe("GET /api/v1/collections/share/:token", () => {
   });
 
   it("returns inbox collections too (inbox is shareable like any other)", async () => {
-    mockCollectionsRepo.findByShareToken.mockResolvedValue({
+    mockCollectionsRepo.getByShareToken.mockResolvedValue({
       collection: dbInbox,
       ownerName: "Alice",
     });

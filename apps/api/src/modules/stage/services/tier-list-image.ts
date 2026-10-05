@@ -1,7 +1,7 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { ShareImageAspect } from "@openrift/shared/share-image-params";
 import { SHARE_IMAGE_CANVAS } from "@openrift/shared/share-image-params";
 import { tierRowColor } from "@openrift/shared/tier-colors";
-import { legendDisplayName } from "@openrift/shared/utils";
 
 import type { Repos } from "../../../deps.js";
 import type { Io } from "../../../io.js";

@@ -128,10 +128,7 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
      * Resolve a submission from the candidate's natural key, which is all the
      * ignore path has to work with.
      */
-    async findByExternalId(
-      provider: string,
-      externalId: string,
-    ): Promise<CardSubmissionRow | null> {
+    async getByExternalId(provider: string, externalId: string): Promise<CardSubmissionRow | null> {
       const row = await db
         .selectFrom("cardSubmissions")
         .selectAll()
@@ -207,7 +204,7 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    async findById(id: string): Promise<CardSubmissionRow | null> {
+    async getById(id: string): Promise<CardSubmissionRow | null> {
       const row = await db
         .selectFrom("cardSubmissions")
         .selectAll()
@@ -220,7 +217,7 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
      * Any status, not just pending: the admin's reply dialog has to show a
      * note already written on a settled submission.
      */
-    async findByCandidateCardId(candidateCardId: string): Promise<CardSubmissionRow | null> {
+    async getByCandidateCardId(candidateCardId: string): Promise<CardSubmissionRow | null> {
       const row = await db
         .selectFrom("cardSubmissions")
         .selectAll()

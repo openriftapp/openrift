@@ -22,6 +22,7 @@ import {
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
+import { nameField } from "./fields.js";
 
 export const tournamentStatusSchema = z.enum(TOURNAMENT_STATUSES);
 // Re-exported from response-schemas.ts: the pod engine reads the same columns.
@@ -202,7 +203,7 @@ const hostInputSchema = z.discriminatedUnion("type", [
 ]);
 
 export const createTournamentSchema = z.object({
-  name: z.string().min(1).max(120),
+  name: nameField(120),
   host: hostInputSchema,
   pairingStyle: tournamentPairingStyleSchema,
   // Composes with 'swiss' or 'none'; rejected with 'pod' or regionsEnabled.
@@ -231,7 +232,7 @@ export const createTournamentSchema = z.object({
 });
 
 export const updateTournamentSchema = z.object({
-  name: z.string().min(1).max(120).optional(),
+  name: nameField(120).optional(),
   status: tournamentStatusSchema.optional(),
   // Host-only; reassigning to an org requires the caller be one of its
   // owner/manager members.

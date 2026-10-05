@@ -1,3 +1,5 @@
+import type { Logger } from "@openrift/shared/logger";
+
 import type { createAuth } from "./auth.js";
 import type { createConfig } from "./config.js";
 import type { Repos, Services, Transact } from "./deps.js";
@@ -18,5 +20,6 @@ export interface Variables {
   repos: Repos;
   services: Services;
   transact: Transact;
-  scheduler: JobScheduler | undefined;
+  scheduler: JobScheduler | null;
+  log: Logger | undefined;
 }

@@ -7,6 +7,7 @@ import type {
   DeckMatchupSwapsTable,
   DeckPlansTable,
 } from "../../../db/tables/decks.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 
 type MatchupWithSwaps = Selectable<DeckMatchupPlansTable> & {
   swaps: Selectable<DeckMatchupSwapsTable>[];
@@ -72,7 +73,7 @@ export function deckPlansRepo(db: Kysely<Database>) {
 
     // Assumes the caller has already verified ownership and validated card references.
     async replaceForDeck(deckId: string, input: DeckPlanInput): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         // Upsert (not delete+insert) so id/created_at survive an edit and
         // the BEFORE UPDATE trigger advances updated_at.
         const planValues = {

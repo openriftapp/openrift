@@ -4,6 +4,7 @@ import { sql } from "kysely";
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 import type { GroupMember, MemberWithUser } from "./friend-groups-shared.js";
 
 export function friendGroupMembersRepo(db: Kysely<Database>) {
@@ -120,7 +121,7 @@ export function friendGroupMembersRepo(db: Kysely<Database>) {
       userId: string,
       contactMethodIds: string[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx
           .deleteFrom("friendGroupMemberContacts")
           .where("groupId", "=", groupId)
@@ -162,7 +163,7 @@ export function friendGroupMembersRepo(db: Kysely<Database>) {
      * group.
      */
     async transferOwnership(groupId: string, fromUserId: string, toUserId: string): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      await inTransaction(db, async (trx) => {
         await trx
           .updateTable("friendGroupMembers")
           .set({ role: "admin" })
