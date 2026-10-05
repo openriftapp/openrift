@@ -429,6 +429,10 @@ export const CardThumbnail = memo(function CardThumbnail({
   imageOverlay,
 }: CardThumbnailProps) {
   const card = displayCard(printing);
+  const displayName =
+    printing.printedName && printing.printedName !== printing.card.name
+      ? printing.printedName
+      : legendDisplayName(printing.card);
   const frontImage = printing.images[0] ?? null;
   // Reads printing.card.type directly, not card.type: coupling this to the derived
   // `card` object would block React Compiler from memoizing it and its JSX.
@@ -631,7 +635,7 @@ export const CardThumbnail = memo(function CardThumbnail({
             thumbnailUrl={thumbnailUrl}
             srcSet={srcSet}
             sizes={cardWidth ? `${Math.round(cardWidth - 12)}px` : sizesOverride}
-            alt={card.name}
+            alt={displayName}
             priority={Boolean(priority)}
             rotated={rotated}
             rarity={printing.rarity}
@@ -692,7 +696,7 @@ export const CardThumbnail = memo(function CardThumbnail({
     <CardMetaLabel
       className="relative z-10 mt-2.5"
       shortCode={printing.shortCode}
-      name={card.name}
+      name={displayName}
       rarity={printing.rarity}
       rarityTitle={rarityTitle}
       finish={printing.finish}

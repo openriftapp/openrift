@@ -544,6 +544,48 @@ describe("CardThumbnail placeholder promo label", () => {
   });
 });
 
+describe("CardThumbnail label", () => {
+  it("names a Legend by its champion even when the printing carries a printed name", () => {
+    const printing = stubPrinting({
+      card: {
+        slug: "SFD-197",
+        name: "Emperor of the Sands",
+        types: [WellKnown.cardType.LEGEND],
+        tags: ["Azir"],
+      },
+      printedName: "Emperor of the Sands",
+      images: [{ face: "front", imageId: "SFD-197-image-id-aa" }],
+    });
+    const { container, getByAltText } = render(
+      <CardThumbnail printing={printing} onClick={() => {}} showImages display={baseDisplay} />,
+      { wrapper: makeWrapper() },
+    );
+    expect(container.textContent).toContain("Azir, Emperor of the Sands");
+    expect(getByAltText("Azir, Emperor of the Sands")).not.toBeNull();
+  });
+});
+
+describe("CardThumbnail localized label", () => {
+  it("keeps a localized Legend's printed name", () => {
+    const printing = stubPrinting({
+      card: {
+        slug: "SFD-197",
+        name: "Emperor of the Sands",
+        types: [WellKnown.cardType.LEGEND],
+        tags: ["Azir"],
+      },
+      printedName: "沙漠皇帝",
+      images: [{ face: "front", imageId: "SFD-197-image-id-aa" }],
+    });
+    const { container } = render(
+      <CardThumbnail printing={printing} onClick={() => {}} showImages display={baseDisplay} />,
+      { wrapper: makeWrapper() },
+    );
+    expect(container.textContent).toContain("沙漠皇帝");
+    expect(container.textContent).not.toContain("Azir");
+  });
+});
+
 describe("CardThumbnail price", () => {
   const pricedDisplay: CardThumbnailDisplay = {
     ...baseDisplay,

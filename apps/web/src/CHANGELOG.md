@@ -10,6 +10,7 @@
 ### Other
 
 - feat(Tournaments): **Same fields for creating and editing** — the create form uses the settings page's fields, with date and time in one field.
+- fix(Cards): **Legend names in the card grid** — Legends in the card grid are named by their champion, like Azir, Emperor of the Sands.
 - fix(App): **Revoked share links explain themselves** — a collection, list or profile link that no longer works says so and offers Browse cards, as deck links already did.
 - fix(Rules): **Searches survive the back button** — the glossary and errata keep the search text in the address, so going back or sharing the link restores it.
 - fix(App): **Hints open with a tap** — ban and errata warnings, the tokens hint and printing notes open on phones.
