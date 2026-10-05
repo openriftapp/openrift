@@ -55,7 +55,7 @@ export interface ReplayBehaviour {
   boardReads: boolean;
 }
 
-export const APP_BEHAVIOUR: ReplayBehaviour = {
+const APP_BEHAVIOUR: ReplayBehaviour = {
   rearm: true,
   skipDisturbed: true,
   relockGuard: true,
