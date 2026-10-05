@@ -1,16 +1,19 @@
 import { formatDay } from "@openrift/shared/format-date";
+import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaDeckDetailResponse } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 
+import { Eyebrow } from "@/components/heading";
 import { CountryFlag } from "@/components/ui/country-flag";
 import { Medal } from "@/components/ui/podium";
+import { StatFigure } from "@/components/ui/stat-figure";
 import { TextLink } from "@/components/ui/text-link";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import { medalRank } from "@/features/meta/lib/meta-deck-archive";
 import type { ArchivedDeckIdentity } from "@/features/meta/lib/meta-deck-identity";
-import { formatRank, formatRecord } from "@/features/meta/lib/meta-format";
+import { formatRank } from "@/features/meta/lib/meta-format";
 import { m } from "@/paraglide/messages.js";
 
 type MetaDeckContext = MetaDeckDetailResponse["meta"];
@@ -21,23 +24,22 @@ export function MetaDeckFinish({ meta }: { meta: MetaDeckContext }) {
   const field = meta.event.playerCount;
   return (
     <div className="flex shrink-0 flex-col items-start gap-1 self-center pr-2 sm:pr-3">
-      <span className="text-border-accent text-2xs font-semibold tracking-wide uppercase">
+      <Eyebrow variant="gold" as="span">
         {m.meta_filter_finish()}
-      </span>
-      <span className="flex items-center gap-1.5">
-        {medal !== null && <Medal rank={medal} />}
-        <span className="font-heading text-2xl leading-none font-bold tabular-nums">
-          {formatRank(meta.rank, meta.rankIsTier)}
-        </span>
-      </span>
-      {field !== null && (
-        <span className="text-muted-foreground text-xs tabular-nums">
-          {m.meta_run_of_players({ count: field })}
-        </span>
-      )}
-      {record !== null && (
-        <span className="text-muted-foreground text-xs tabular-nums">{record}</span>
-      )}
+      </Eyebrow>
+      <StatFigure
+        value={
+          <span className="inline-flex items-center gap-1.5">
+            {medal !== null && <Medal rank={medal} />}
+            {formatRank(meta.rank, meta.rankIsTier)}
+          </span>
+        }
+        label={field === null ? null : m.meta_run_of_players({ count: field })}
+      >
+        {record !== null && (
+          <span className="text-muted-foreground text-xs tabular-nums">{record}</span>
+        )}
+      </StatFigure>
     </div>
   );
 }
@@ -56,7 +58,7 @@ export function MetaDeckHeading({
       </p>
       {identity !== null && (
         <MetaIdentity
-          name={identity.name}
+          legend={identity}
           slug={identity.slug}
           domains={identity.domains}
           className="font-heading text-lg"

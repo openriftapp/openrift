@@ -97,7 +97,7 @@ const STATS_DECK_SIZE = 40;
 
 function SettledFormatBadge() {
   return (
-    <Badge variant="outline" className="bg-success-soft border-success/30 text-success text-xs">
+    <Badge variant="success">
       <CheckIcon aria-hidden="true" />
       Constructed
     </Badge>
@@ -106,7 +106,7 @@ function SettledFormatBadge() {
 
 function InvalidFormatBadge() {
   return (
-    <Badge variant="outline" className="bg-warning-soft border-warning/40 text-warning text-xs">
+    <Badge variant="warning">
       Constructed
       <span className="tabular-nums">· 55/56</span>
       <CircleAlertIcon aria-hidden="true" />

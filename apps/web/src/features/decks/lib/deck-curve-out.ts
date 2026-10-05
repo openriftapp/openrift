@@ -1,3 +1,4 @@
+import { mulberry32, shuffle } from "@openrift/shared/random";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
@@ -11,17 +12,6 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
  */
 
 const DEFAULT_ITERATIONS = 3000;
-
-export function mulberry32(seed: number): () => number {
-  let state = seed >>> 0;
-  return () => {
-    state = (state + 0x6d_2b_79_f5) >>> 0;
-    let mixed = state;
-    mixed = Math.imul(mixed ^ (mixed >>> 15), mixed | 1);
-    mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61);
-    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4_294_967_296;
-  };
-}
 
 export function deckCompositionSeed(cards: readonly DeckBuilderCard[]): number {
   const parts = cards
@@ -77,26 +67,19 @@ export function curveOutRate(
   if (library.length === 0) {
     return null;
   }
-  const random = mulberry32(options.seed ?? deckCompositionSeed(cards));
-  const indices = library.map((_, index) => index);
+  const rng = mulberry32(options.seed ?? deckCompositionSeed(cards));
+  let indices = library.map((_, index) => index);
 
   let successes = 0;
   for (let run = 0; run < iterations; run++) {
-    for (let index = indices.length - 1; index > 0; index--) {
-      const swap = Math.floor(random() * (index + 1));
-      const held = indices[index];
-      const other = indices[swap];
-      if (held !== undefined && other !== undefined) {
-        indices[index] = other;
-        indices[swap] = held;
-      }
-    }
+    const deck = shuffle(indices, rng);
+    indices = deck;
 
     const hand: number[] = [];
     let next = 0;
     const draw = (count: number) => {
       for (let i = 0; i < count; i++) {
-        const drawn = indices[next];
+        const drawn = deck[next];
         if (drawn === undefined) {
           return;
         }

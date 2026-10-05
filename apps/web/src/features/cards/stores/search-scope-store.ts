@@ -3,6 +3,8 @@ import { ALL_SEARCH_FIELDS, DEFAULT_SEARCH_SCOPE } from "@openrift/shared/types/
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { mergeFields, pickEnumArray } from "@/lib/persist-merge";
+
 interface SearchScopeState {
   scope: SearchField[];
   toggleField: (field: SearchField) => void;
@@ -30,19 +32,7 @@ export const useSearchScopeStore = create<SearchScopeState>()(
     {
       name: "openrift-search-scope",
       partialize: (state) => ({ scope: state.scope }),
-      merge: (persisted, current) => {
-        const raw = (persisted as Partial<SearchScopeState>)?.scope;
-        if (!Array.isArray(raw)) {
-          return current;
-        }
-        const valid = raw.filter((f): f is SearchField =>
-          ALL_SEARCH_FIELDS.includes(f as SearchField),
-        );
-        return {
-          ...current,
-          scope: valid.length > 0 ? valid : DEFAULT_SEARCH_SCOPE,
-        };
-      },
+      merge: mergeFields<SearchScopeState>({ scope: pickEnumArray(ALL_SEARCH_FIELDS) }),
     },
   ),
 );

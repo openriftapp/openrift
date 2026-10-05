@@ -1,7 +1,12 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDayTime } from "@openrift/shared/format-date";
+import { formatCents } from "@openrift/shared/money";
+import { formatPrintingLabel } from "@openrift/shared/printing-label";
+import type {
+  AssignableCardResponse,
+  UnifiedMappingPrintingResponse,
+} from "@openrift/shared/types/api/admin";
 import { marketplaceCarriesLanguage } from "@openrift/shared/types/pricing";
-import { formatCents, formatPrintingLabel } from "@openrift/shared/utils";
 import { AlertTriangleIcon, CheckIcon, WandSparklesIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -13,10 +18,6 @@ import { Pressable } from "@/components/ui/pressable";
 import { textLinkVariants } from "@/components/ui/text-link";
 import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
 import { nameBeyondCardName } from "@/features/admin/lib/name-suffix";
-import type {
-  AssignableCard,
-  UnifiedMappingPrinting,
-} from "@/features/admin/lib/price-mappings-types";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search";
 import { useEnumOrders } from "@/hooks/use-enums";
@@ -35,7 +36,7 @@ import type { ProductSuggestion } from "./suggest-mapping";
 
 type CellProps = AdminCellSlotProps<MarketplaceTableRow>;
 
-export type RowSuggestion = ProductSuggestion & { printing: UnifiedMappingPrinting };
+export type RowSuggestion = ProductSuggestion & { printing: UnifiedMappingPrintingResponse };
 
 export function ProductCell({ row, cardName }: CellProps & { cardName: string }) {
   if (!row || !row.showProduct) {
@@ -228,8 +229,8 @@ export function MarketplaceActionsCell({
   allCards,
 }: CellProps & {
   handlers: MarketplaceHandlers;
-  printings: UnifiedMappingPrinting[];
-  allCards: AssignableCard[];
+  printings: UnifiedMappingPrintingResponse[];
+  allCards: AssignableCardResponse[];
 }) {
   const [reassigning, setReassigning] = useState(false);
   const [cardQuery, setCardQuery] = useState("");

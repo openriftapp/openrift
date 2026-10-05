@@ -2,8 +2,11 @@ import type { LucideIcon } from "lucide-react";
 import { CrownIcon, FlagIcon, ShieldIcon, SparklesIcon, SwordsIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { Eyebrow } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Pressable } from "@/components/ui/pressable";
+import type { MedallionSize, XpSize } from "@/features/match-tracker/lib/match-layout";
+import { TEAM_CHIP, TEAM_PANEL_BORDER, teamLabels } from "@/features/match-tracker/lib/match-teams";
 import type { TeamId } from "@/features/match-tracker/stores/match-tracker-store";
 import {
   SCORE_REASONS,
@@ -11,8 +14,6 @@ import {
   scoreReasonLabel,
   useMatchTrackerStore,
 } from "@/features/match-tracker/stores/match-tracker-store";
-import type { MedallionSize, XpSize } from "@/features/tournaments/lib/match-layout";
-import { TEAM_CHIP, TEAM_PANEL_BORDER, teamLabels } from "@/features/tournaments/lib/match-teams";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { deckGlowStyle } from "@/lib/domain";
 import { cn } from "@/lib/utils";
@@ -152,9 +153,9 @@ export function PlayerPanel({
             {isFirst && <FirstBadge />}
           </div>
         )}
-        <span className="text-muted-foreground text-2xs w-full truncate text-center font-semibold tracking-wide uppercase">
+        <Eyebrow as="span" className="text-2xs mb-0 w-full truncate text-center">
           {player.name}
-        </span>
+        </Eyebrow>
       </div>
 
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-1.5">
@@ -283,9 +284,9 @@ function ScoreMedallion({
         <Icon className={cn("text-primary", style.icon)} />
       </span>
       {style.label && (
-        <span className="text-muted-foreground text-2xs font-bold tracking-wide uppercase">
+        <Eyebrow as="span" className="text-2xs mb-0 font-bold">
           {label}
-        </span>
+        </Eyebrow>
       )}
     </Pressable>
   );

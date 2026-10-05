@@ -1,6 +1,5 @@
 /* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then, unicorn/prefer-top-level-await -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
 import { GROUP_BY_FIELDS, SORT_DIRECTIONS, SORT_OPTIONS } from "@openrift/shared/types/search";
-import { createContext, useContext } from "react";
 import { z } from "zod";
 
 // `.catch(undefined)` drops malformed URL values silently; it does not throw.
@@ -112,16 +111,4 @@ export function cleanedSearchForRedirect<Output extends Record<string, unknown>>
   const hasExtraneous =
     rawKeys.size !== cleanedKeys.size || [...rawKeys].some((key) => !cleanedKeys.has(key));
   return hasExtraneous ? cleaned : null;
-}
-
-const FilterSearchContext = createContext<FilterSearch | null>(null);
-
-export const FilterSearchProvider = FilterSearchContext;
-
-export function useFilterSearch(): FilterSearch {
-  const value = useContext(FilterSearchContext);
-  if (value === null) {
-    throw new Error("useFilterSearch must be used within a <FilterSearchProvider>");
-  }
-  return value;
 }

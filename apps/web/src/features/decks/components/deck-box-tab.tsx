@@ -1,8 +1,10 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
+import { ZONE_LABELS } from "@openrift/shared/deck-zones";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { VariantLabelEnumLabels, VariantLabelPrinting } from "@openrift/shared/printing-label";
 import { formatPrintingVariantLabelParts } from "@openrift/shared/printing-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRightIcon, BoxIcon, HandHeartIcon, PackageSearchIcon } from "lucide-react";
@@ -17,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { TextLink } from "@/components/ui/text-link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
+import { FilterIcon } from "@/features/cards/components/filter-icon";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import {
   cardHoverProps,
@@ -34,10 +37,8 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import { GROUPED_ZONES } from "@/features/decks/lib/deck-card-sort";
-import { ZONE_LABELS } from "@/features/decks/lib/deck-zone-labels";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { getTypeIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -229,7 +230,7 @@ export function DeckBoxTab({
           </TextLink>
         </span>
         {complete && (
-          <Badge variant="muted" className="text-success">
+          <Badge variant="neutral" className="text-success">
             {m.decks_overview_ready_to_play()}
           </Badge>
         )}
@@ -353,11 +354,7 @@ function ZoneSection({
               {group.label !== null && (
                 <div className="text-muted-foreground flex items-center gap-1.5 px-2 text-xs">
                   {groupBy === "type" && (
-                    <img
-                      src={getTypeIconPath(group.key, [])}
-                      alt=""
-                      className="size-3.5 brightness-0 dark:invert"
-                    />
+                    <FilterIcon category="types" value={group.key} className="size-3.5" />
                   )}
                   <span className="whitespace-nowrap">{group.label}</span>
                 </div>

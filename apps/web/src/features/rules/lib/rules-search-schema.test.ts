@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { defaultRuleLanguage, rulesSearchSchema } from "./rules-search-schema";
+import { defaultRuleLanguage, querySearchSchema, rulesSearchSchema } from "./rules-search-schema";
+
+describe("querySearchSchema", () => {
+  it("keeps a query and drops everything else", () => {
+    expect(querySearchSchema({ q: "might", lang: "fr" })).toEqual({ q: "might" });
+  });
+
+  it("drops an absent, blank or non-string query", () => {
+    expect(querySearchSchema({})).toEqual({});
+    expect(querySearchSchema({ q: "  " })).toEqual({});
+    expect(querySearchSchema({ q: ["might"] })).toEqual({});
+  });
+});
 
 describe("rulesSearchSchema", () => {
   it("keeps a query", () => {

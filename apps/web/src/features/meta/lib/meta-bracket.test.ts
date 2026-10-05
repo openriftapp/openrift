@@ -72,7 +72,9 @@ describe("metaEventBracket with the source's phase list", () => {
 
   it("names a cut deeper than a quarterfinal by its size", () => {
     const deep = [...round(1, 8), ...round(2, 4), ...round(3, 2), ...round(4, 1)];
-    expect(metaEventBracket(deep, [phase({ rankRequired: 16 })])?.rounds[0]!.label).toBe("Top 16");
+    expect(metaEventBracket(deep, [phase({ rankRequired: 16 })])?.rounds[0]!.label).toBe(
+      "Round of 16",
+    );
   });
 
   it("ignores the swiss phase, however its rounds happen to thin out", () => {

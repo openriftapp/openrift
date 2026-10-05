@@ -4,13 +4,11 @@ import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/car
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import type { UploadCandidatesBody, UploadCandidatesResponse } from "@/lib/server-fns/api-types";
 import { getApiUrl } from "@/lib/server-fns/api-url";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
-
-export type { UploadCandidatesBody } from "@/lib/server-fns/api-types";
 
 const deletePrintingImageFn = createServerFn({ method: "POST" })
   .validator((input: { imageId: string }) => input)

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createStoreResetter } from "@/test/store-helpers";
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => "viewer-1",
 }));
 
@@ -34,7 +34,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 const { GroupSetupNudges, pendingGroupNudges } = await import("./group-setup-nudges");
-const { useOnboardingStore } = await import("@/features/account/stores/onboarding-store");
+const { useOnboardingStore } = await import("@/stores/onboarding-store");
 
 let resetStore: () => void;
 

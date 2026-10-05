@@ -1,7 +1,7 @@
+import { META_MAX_PAGE_SIZE } from "@openrift/shared/contracts/meta";
 import { describe, expect, it } from "vitest";
 
 import {
-  META_MAX_PAGE_SIZE,
   META_PAGE_ALL,
   metaPageCount,
   metaPageSize,

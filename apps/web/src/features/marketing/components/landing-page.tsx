@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
-import { landingSummaryQueryOptions } from "@/features/marketing/lib/landing-summary-query";
+import { landingSummaryQueryOptions } from "@/features/marketing/lib/landing-summary-queries";
 import { landingThumbnailCards } from "@/features/marketing/lib/landing-thumbnails";
 import { useCountUp } from "@/hooks/use-count-up";
 import { formatCount } from "@/lib/format";

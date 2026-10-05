@@ -4,7 +4,14 @@ import { toast } from "sonner";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogCancel,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { DialogForm } from "@/components/ui/dialog-form";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
@@ -188,13 +195,7 @@ export function AddToListDialog({
             </Button>
           </div>
         ) : (
-          <form
-            className="flex items-center gap-2 pt-1"
-            onSubmit={(event) => {
-              event.preventDefault();
-              handleCreateAndAdd();
-            }}
-          >
+          <DialogForm className="flex items-center gap-2 pt-1" onSubmit={handleCreateAndAdd}>
             <Input
               autoFocus // oxlint-disable-line jsx-a11y/no-autofocus -- intentional inside dialog
               value={newName}
@@ -207,7 +208,7 @@ export function AddToListDialog({
               className="h-8"
             />
             <Button type="submit" size="sm" disabled={!newName.trim() || disableAdd}>
-              {m.lists_add_create()}
+              {m.common_create()}
             </Button>
             <Button
               type="button"
@@ -220,12 +221,10 @@ export function AddToListDialog({
             >
               {m.common_cancel()}
             </Button>
-          </form>
+          </DialogForm>
         )}
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
-            {m.common_cancel()}
-          </Button>
+          <DialogCancel disabled={isPending} />
         </div>
       </DialogContent>
     </Dialog>

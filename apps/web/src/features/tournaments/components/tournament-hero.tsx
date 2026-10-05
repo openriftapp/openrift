@@ -1,4 +1,5 @@
 import { formatDayTimeLocal } from "@openrift/shared/format-date";
+import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import type { TournamentDetailResponse } from "@openrift/shared/types/api/tournament";
 import { uvsgamesEventUrl } from "@openrift/shared/uvsgames-links";
 import { Link } from "@tanstack/react-router";
@@ -18,7 +19,6 @@ import { HeroAvatarCluster } from "@/features/tournaments/components/hero-avatar
 import {
   deckSubmissionLabels,
   effectiveStateLabels,
-  effectiveTournamentState,
 } from "@/features/tournaments/lib/tournament-display";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";

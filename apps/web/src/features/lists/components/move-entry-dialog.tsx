@@ -51,7 +51,7 @@ function modeCopy(mode: MoveMode) {
         sameIntent: m.lists_copy_same_intent_note,
         crossIntent: m.lists_copy_intent_note,
         crossIntentMulti: m.lists_copy_intent_note_multi,
-        confirm: m.lists_copy_confirm,
+        confirm: m.common_copy,
         pending: m.lists_copy_pending,
       }
     : {
@@ -221,7 +221,7 @@ export function MoveEntryDialogBody({
           </div>
         ))}
       <div className="flex justify-end gap-2 pt-2">
-        <Button variant="ghost" onClick={onCancel} disabled={isPending}>
+        <Button variant="outline" onClick={onCancel} disabled={isPending}>
           {m.common_cancel()}
         </Button>
         <Button type="submit" disabled={!canConfirm}>

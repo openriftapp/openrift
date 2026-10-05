@@ -1,5 +1,5 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type { CardDetailRelatedCard } from "@openrift/shared/types/api/catalog";
-import { getOrientation } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
 
 import { Heading } from "@/components/heading";

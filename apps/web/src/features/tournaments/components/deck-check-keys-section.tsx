@@ -1,6 +1,6 @@
 import { formatDay } from "@openrift/shared/format-date";
 import type { DeckCheckKeyResponse } from "@openrift/shared/types/api/deck-check";
-import { CheckIcon, CopyIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { PencilIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -8,8 +8,11 @@ import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Code } from "@/components/ui/code";
+import { CopyField } from "@/components/ui/copy-field";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -17,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RowList, RowListItem } from "@/components/ui/row-list";
@@ -32,7 +36,6 @@ import {
   useRevokeMyDeckCheckKey,
   useRevokeOrgDeckCheckKey,
 } from "@/features/tournaments/hooks/use-deck-check-keys";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { m } from "@/paraglide/messages.js";
 
 interface KeyActions {
@@ -133,7 +136,9 @@ function DeckCheckKeysCard(actions: KeyActions) {
           ))}
         </RowList>
       ) : (
-        <p className="text-muted-foreground text-sm">{m.profile_deck_check_empty()}</p>
+        <Empty className="p-4">
+          <EmptyDescription>{m.profile_deck_check_empty()}</EmptyDescription>
+        </Empty>
       )}
 
       <CreateKeyDialog
@@ -201,9 +206,7 @@ function CreateKeyDialog({
             />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              {m.profile_deck_check_cancel()}
-            </Button>
+            <DialogCancel />
             <Button type="submit" disabled={mintPending || !label.trim()}>
               {mintPending ? m.profile_deck_check_creating() : m.profile_deck_check_create()}
             </Button>
@@ -245,7 +248,7 @@ function KeyRow({ apiKey, actions }: { apiKey: DeckCheckKeyResponse; actions: Ke
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate font-medium">
           {apiKey.label ?? m.profile_deck_check_unnamed()}{" "}
-          <code className="text-muted-foreground font-normal">{apiKey.tokenPrefix}…</code>
+          <Code className="text-muted-foreground font-normal">{apiKey.tokenPrefix}…</Code>
         </span>
         <span className="text-muted-foreground text-sm">
           {apiKey.createdByName
@@ -365,11 +368,9 @@ function RenameKeyDialog({
           </DialogHeader>
           <Input value={label} onChange={(event) => setLabel(event.target.value)} maxLength={120} />
           <DialogFooter>
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              {m.profile_deck_check_cancel()}
-            </Button>
+            <DialogCancel />
             <Button type="submit" disabled={pending || !label.trim()}>
-              {pending ? m.profile_deck_check_saving() : m.profile_deck_check_save()}
+              {pending ? m.common_saving() : m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>
@@ -379,38 +380,21 @@ function RenameKeyDialog({
 }
 
 function MintedKeyDialog({ token, onClose }: { token: string | null; onClose: () => void }) {
-  const { copied, copy, reset } = useCopyToClipboard();
-
   return (
     <Dialog
       open={token !== null}
       onOpenChange={(open) => {
         if (!open) {
-          reset();
           onClose();
         }
       }}
     >
       <DialogContent>
-        <DialogForm
-          onSubmit={() => {
-            if (token) {
-              void copy(token);
-            }
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>{m.profile_deck_check_minted_title()}</DialogTitle>
-            <DialogDescription>{m.profile_deck_check_minted_description()}</DialogDescription>
-          </DialogHeader>
-          <div className="bg-muted rounded-md p-3 font-mono text-sm break-all">{token}</div>
-          <DialogFooter>
-            <Button type="submit">
-              {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
-              {copied ? m.profile_deck_check_copied() : m.profile_deck_check_copy()}
-            </Button>
-          </DialogFooter>
-        </DialogForm>
+        <DialogHeader>
+          <DialogTitle>{m.profile_deck_check_minted_title()}</DialogTitle>
+          <DialogDescription>{m.profile_deck_check_minted_description()}</DialogDescription>
+        </DialogHeader>
+        <CopyField value={token ?? ""} aria-label={m.profile_deck_check_token_label()} mono />
       </DialogContent>
     </Dialog>
   );

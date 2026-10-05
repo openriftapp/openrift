@@ -4,6 +4,7 @@ import { META_EVENT_TIERS } from "@openrift/shared/types/enums";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Disclosure } from "@/components/disclosure";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -26,7 +27,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { AdminDisclosure } from "@/features/admin/components/admin-disclosure";
 import { MetaCrossSourcePanel } from "@/features/admin/components/meta-cross-source-panel";
 import { MetaEventDriftPanel } from "@/features/admin/components/meta-event-drift-panel";
 import { MetaEventSourcesEditor } from "@/features/admin/components/meta-event-sources-editor";
@@ -139,7 +139,7 @@ export function MetaEventDialog({ event, onClose }: MetaEventDialogProps) {
               <Label>Date</Label>
               <DatePicker
                 value={draft.eventDate}
-                onChange={(iso) => set("eventDate", iso)}
+                onValueChange={(iso) => set("eventDate", iso)}
                 onClear={() => set("eventDate", "")}
               />
             </div>
@@ -258,15 +258,15 @@ export function MetaEventDialog({ event, onClose }: MetaEventDialogProps) {
         {event && <MetaEventSourcesEditor eventId={event.id} />}
 
         {event && (
-          <AdminDisclosure title="Source drift" onOpenChange={setDriftOpen}>
+          <Disclosure title="Source drift" onOpenChange={setDriftOpen}>
             <MetaEventDriftPanel metaEventId={event.id} enabled={driftOpen} />
-          </AdminDisclosure>
+          </Disclosure>
         )}
 
         {event && (
-          <AdminDisclosure title="Cross-source players" onOpenChange={setCrossSourceOpen}>
+          <Disclosure title="Cross-source players" onOpenChange={setCrossSourceOpen}>
             <MetaCrossSourcePanel metaEventId={event.id} enabled={crossSourceOpen} />
-          </AdminDisclosure>
+          </Disclosure>
         )}
 
         <DialogFooter>

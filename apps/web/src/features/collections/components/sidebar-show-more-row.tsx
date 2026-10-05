@@ -2,8 +2,8 @@ import { useDndContext, useDroppable } from "@dnd-kit/core";
 import { useEffect } from "react";
 
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
-import type { AnyDragData } from "@/features/collections/components/dnd-types";
-import { CARD_CARRYING_DRAG_TYPES } from "@/features/collections/components/dnd-types";
+import type { AnyDragData } from "@/features/collections/lib/dnd-types";
+import { CARD_CARRYING_DRAG_TYPES } from "@/features/collections/lib/dnd-types";
 import { asDragData } from "@/lib/dnd-data";
 import { m } from "@/paraglide/messages.js";
 import type { SidebarGroupKey } from "@/stores/sidebar-fold-store";
@@ -43,9 +43,7 @@ export function SidebarShowMoreRow({ foldKey, hiddenCount, shown }: SidebarShowM
         onClick={() => toggleMoreShown(foldKey)}
       >
         <span>
-          {shown
-            ? m.collections_sidebar_show_less()
-            : m.collections_sidebar_show_more({ count: hiddenCount })}
+          {shown ? m.common_show_fewer() : m.collections_sidebar_show_more({ count: hiddenCount })}
         </span>
       </SidebarMenuButton>
     </SidebarMenuItem>

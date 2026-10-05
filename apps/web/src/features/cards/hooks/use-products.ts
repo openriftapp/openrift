@@ -7,11 +7,12 @@ import {
   productDetailQueryOptions,
   productsListQueryOptions,
 } from "@/features/cards/lib/products-queries";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { serverCacheKeys } from "@/lib/query-keys";
 import { serverCache } from "@/lib/server-cache";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 type CreateProductInput = ContractInput<typeof adminProductsContract, "create">;
 type UpdateProductInput = ContractInput<typeof adminProductsContract, "update">;
@@ -27,7 +28,7 @@ export function useProductDetail(slug: string) {
 // Mutations must bust this explicitly, or client-side invalidation refetches
 // through the still-fresh server cache and pins the stale list.
 function invalidateProductsServerCache(): Promise<void> {
-  return serverCache.invalidateQueries({ queryKey: ["server-cache", "products"] });
+  return serverCache.invalidateQueries({ queryKey: serverCacheKeys.products });
 }
 
 const createProductFn = createServerFn({ method: "POST" })

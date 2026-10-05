@@ -8,8 +8,8 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
-import { copyLimitFor } from "@openrift/shared/deck-rules";
-import { legendDisplayName } from "@openrift/shared/utils";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { copyLimitFor, totalQuantity } from "@openrift/shared/deck-rules";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -245,9 +245,9 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
       }
       if (moveAll) {
         if (overData.zone === WellKnown.deckZone.RUNES) {
-          const runeTotal = deckCards
-            .filter((card) => card.zone === WellKnown.deckZone.RUNES)
-            .reduce((sum, card) => sum + card.quantity, 0);
+          const runeTotal = totalQuantity(
+            deckCards.filter((card) => card.zone === WellKnown.deckZone.RUNES),
+          );
           actions.addCard(activeData.card, overData.zone, Math.max(0, 12 - runeTotal));
         } else {
           // Unlimited-override cards have no cap, so a shift-drop adds a chunk of 3 (matching shift-click).
@@ -287,13 +287,13 @@ export function DeckDndContext({ deckId, children }: { deckId: string; children:
   const browserRemaining = dragInfo?.fromBrowser
     ? Number.isFinite(browserLimit)
       ? browserLimit -
-        deckCards
-          .filter(
+        totalQuantity(
+          deckCards.filter(
             (card) =>
               card.cardId === dragInfo.cardId &&
               (card.zone === WellKnown.deckZone.MAIN || card.zone === WellKnown.deckZone.SIDEBOARD),
-          )
-          .reduce((sum, card) => sum + card.quantity, 0)
+          ),
+        )
       : 3
     : 0;
 

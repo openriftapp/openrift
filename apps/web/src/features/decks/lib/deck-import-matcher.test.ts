@@ -1,6 +1,6 @@
+import type { DeckImportEntry } from "@openrift/shared/deck-code";
 import { describe, expect, it } from "vitest";
 
-import type { DeckImportEntry } from "@/features/decks/lib/deck-import-parsers";
 import { stubPrinting } from "@/test/factories";
 
 import { matchDeckEntries } from "./deck-import-matcher";
@@ -110,6 +110,43 @@ describe("matchDeckEntries", () => {
       const result = matchDeckEntries(entries, [scPrinting, enPrinting]);
       expect(result[0]!.status).toBe("exact");
       expect(result[0]!.resolvedCard?.preferredPrintingId).toBeNull();
+    });
+
+    it("matches a code typed without separators or in another case", () => {
+      const entries: DeckImportEntry[] = [
+        { shortCode: "ogn001", quantity: 1, sourceSlot: "mainDeck", rawFields: {} },
+      ];
+      const result = matchDeckEntries(entries, [enPrinting]);
+      expect(result[0]!.status).toBe("exact");
+      expect(result[0]!.resolvedCard?.cardId).toBe(enPrinting.cardId);
+    });
+
+    it("matches a printing's public code", () => {
+      const printing = stubPrinting({
+        shortCode: "OGN-007",
+        publicCode: "OGN-007/298",
+        card: { name: "Public Card", type: "unit" },
+      });
+      const entries: DeckImportEntry[] = [
+        { shortCode: "OGN-007/298", quantity: 1, sourceSlot: "mainDeck", rawFields: {} },
+      ];
+      const result = matchDeckEntries(entries, [printing]);
+      expect(result[0]!.resolvedCard?.cardId).toBe(printing.cardId);
+    });
+
+    it("falls back to the card name when the code is unknown", () => {
+      const entries: DeckImportEntry[] = [
+        {
+          shortCode: "XYZ-999",
+          cardName: "Test Card",
+          quantity: 1,
+          sourceSlot: "mainDeck",
+          rawFields: {},
+        },
+      ];
+      const result = matchDeckEntries(entries, [enPrinting]);
+      expect(result[0]!.status).toBe("exact");
+      expect(result[0]!.resolvedCard?.cardId).toBe(enPrinting.cardId);
     });
   });
 

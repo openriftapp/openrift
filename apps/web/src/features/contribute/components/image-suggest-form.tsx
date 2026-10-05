@@ -160,7 +160,8 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
         <Button
           type="submit"
           className="self-start"
-          disabled={submit.isPending || upload.isPending}
+          pending={submit.isPending}
+          disabled={upload.isPending}
         >
           <SendIcon className="size-4" />
           {submit.isPending ? m.contribute_submit_pending() : m.contribute_image_submit()}

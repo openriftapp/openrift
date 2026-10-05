@@ -1,3 +1,4 @@
+import { totalQuantity } from "@openrift/shared/deck-rules";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
@@ -57,7 +58,7 @@ export function buildDrawOddsRows(
   cards: readonly { cardId: string; cardName: string; quantity: number; zone: DeckZone }[],
 ): DrawOddsRow[] {
   const mainCards = cards.filter((card) => card.zone === WellKnown.deckZone.MAIN);
-  const deckSize = mainCards.reduce((sum, card) => sum + card.quantity, 0);
+  const deckSize = totalQuantity(mainCards);
   if (deckSize === 0) {
     return [];
   }

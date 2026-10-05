@@ -1,11 +1,11 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { ChangelogEntry, ChangelogGroup } from "@openrift/shared/changelog";
 import { parseChangelog } from "@openrift/shared/changelog";
-import { dateLeafPartsUtc, formatRelativeDay } from "@openrift/shared/format-date";
+import { formatRelativeDay } from "@openrift/shared/format-date";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ChevronRightIcon } from "lucide-react";
 
 import changelogMd from "@/CHANGELOG.md?raw";
+import { Disclosure } from "@/components/disclosure";
 import {
   PageTopBar,
   PageTopBarActions,
@@ -13,7 +13,6 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { TextLink } from "@/components/ui/text-link";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -89,14 +88,13 @@ function TimelineRow({
   isLast: boolean;
   children: React.ReactNode;
 }) {
-  const leaf = dateLeafPartsUtc(`${date}T00:00:00Z`, DATE_WORDS);
   return (
     <li id={date} className="flex scroll-mt-32 gap-4">
       <div className="flex w-11 shrink-0 flex-col items-center gap-2 self-stretch">
         {/* <time> keeps the ISO day machine-readable (assistive tech, feed
             readers, the e2e test) while the leaf shows the parts. */}
         <time dateTime={date} title={formatRelativeDay(date, undefined, DATE_WORDS)}>
-          <DateLeaf month={leaf.month} day={leaf.day} caption={leaf.year} size="sm" />
+          <DateLeaf at={`${date}T00:00:00Z`} clock="utc" showYear size="sm" />
         </time>
         {!isLast && <span aria-hidden="true" className="bg-border-accent/60 w-px flex-1" />}
       </div>
@@ -116,26 +114,26 @@ function DayGroup({ group }: { group: ChangelogGroup }) {
           ))}
         </ul>
       )}
-      {group.other.length > 0 && (
-        <Collapsible
-          defaultOpen={group.highlights.length === 0}
-          className={cn((group.highlights.length > 0 || group.milestone) && "pt-2")}
-        >
-          {group.highlights.length > 0 && (
-            <CollapsibleTrigger className="group text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-1 text-sm">
-              <ChevronRightIcon className="size-3.5 transition-transform group-data-[panel-open]:rotate-90" />
-              {m.marketing_changelog_more({ count: group.other.length })}
-            </CollapsibleTrigger>
-          )}
-          <CollapsibleContent>
-            <ul className="space-y-2 pt-2">
+      {group.other.length > 0 &&
+        (group.highlights.length > 0 ? (
+          <Disclosure
+            variant="plain"
+            title={m.marketing_changelog_more({ count: group.other.length })}
+            className="pt-2"
+          >
+            <ul className="space-y-2">
               {group.other.map((entry, i) => (
                 <EntryItem key={i} entry={entry} />
               ))}
             </ul>
-          </CollapsibleContent>
-        </Collapsible>
-      )}
+          </Disclosure>
+        ) : (
+          <ul className={cn("space-y-2", group.milestone && "pt-2")}>
+            {group.other.map((entry, i) => (
+              <EntryItem key={i} entry={entry} />
+            ))}
+          </ul>
+        ))}
     </>
   );
 }

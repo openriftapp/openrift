@@ -8,9 +8,10 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod/v4";
 
 import { SettingsSection } from "@/components/layout/settings-section";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { authAccountsKeys } from "@/features/account/lib/account-query-keys";
 import { authClient } from "@/features/account/lib/auth-client";
 import { setServerError } from "@/lib/auth-errors";
 import { m } from "@/paraglide/messages.js";
@@ -32,7 +33,7 @@ type PasswordValues = z.infer<ReturnType<typeof passwordSchema>>;
 
 export function PasswordSection({ currentEmail }: { currentEmail: string }) {
   const { data: accounts, isPending } = useQuery({
-    queryKey: ["auth", "accounts"],
+    queryKey: authAccountsKeys.all,
     queryFn: async () => {
       const { data, error } = await authClient.listAccounts();
       if (error) {
@@ -46,7 +47,7 @@ export function PasswordSection({ currentEmail }: { currentEmail: string }) {
   if (isPending) {
     return (
       <SettingsSection title={m.profile_password_title()}>
-        <p className="text-muted-foreground text-sm">{m.profile_password_loading()}</p>
+        <p className="text-muted-foreground text-sm">{m.common_loading()}</p>
       </SettingsSection>
     );
   }
@@ -73,9 +74,9 @@ function SetPasswordCard({ currentEmail }: { currentEmail: string }) {
           />
         </FieldDescription>
         <Field>
-          <Button render={<Link to="/reset-password" search={{ email: currentEmail }} />}>
+          <Link to="/reset-password" search={{ email: currentEmail }} className={buttonVariants()}>
             {m.profile_password_set_cta()}
-          </Button>
+          </Link>
         </Field>
       </FieldGroup>
     </SettingsSection>

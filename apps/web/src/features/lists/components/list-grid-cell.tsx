@@ -1,3 +1,4 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type {
   CardTradeLiveAnnotation,
   CardTradeResponse,
@@ -5,7 +6,6 @@ import type {
 import type { ListKind } from "@openrift/shared/types/api/list";
 import type { Currency, TradePreference } from "@openrift/shared/types/api/trade-preferences";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { ListIcon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { memo } from "react";
@@ -15,6 +15,7 @@ import { CardCell } from "@/features/cards/components/card-cell";
 import { CardCountStrip } from "@/features/cards/components/card-count-strip";
 import { CardStrip, StripIconButton } from "@/features/cards/components/card-strip";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
+import { useCellDisplayState } from "@/features/cards/hooks/use-cell-display-state";
 import {
   dispatchEntryQuantityChange,
   dispatchExcludeFromRule,
@@ -29,23 +30,18 @@ import {
   dispatchSiblingClick,
   isQuantityPending,
 } from "@/features/cards/stores/card-row-actions-store";
-import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
 import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
-import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
-import type { ListEntryDragData } from "@/features/collections/components/dnd-types";
 import { SelectionCheckbox } from "@/features/collections/components/selection-checkbox";
+import type { ListEntryDragData } from "@/features/collections/lib/dnd-types";
 import { TradePreferenceGridPill } from "@/features/groups/components/trade-preference-grid-pill";
 import { TradeStatusChip } from "@/features/groups/components/trade-status-chip";
 import { DraggableListEntry } from "@/features/lists/components/draggable-list-entry";
 import { ListEntryContextMenu } from "@/features/lists/components/list-entry-context-menu";
-import type { ListTradeIndex } from "@/features/lists/components/list-trade-status";
-import {
-  listEntryTrades,
-  listEntryTradeStatus,
-} from "@/features/lists/components/list-trade-status";
 import { isRuleSourced, RuleSourceBadge } from "@/features/lists/components/rule-source-badge";
 import { entrySelectionId } from "@/features/lists/lib/list-entries";
 import { entryAddsCopies, ruleEntryRef } from "@/features/lists/lib/list-move";
+import type { ListTradeIndex } from "@/features/lists/lib/list-trade-status";
+import { listEntryTrades, listEntryTradeStatus } from "@/features/lists/lib/list-trade-status";
 import { useListEntriesStore } from "@/features/lists/stores/list-entries-store";
 import { entryToExcludeTarget } from "@/features/rules/lib/rule-exclude";
 import type { CardRenderContext } from "@/lib/card-viewer-types";
@@ -104,19 +100,13 @@ export const ListGridCell = memo(function ListGridCell({
   const inCardsView = view === "cards";
   const inSelectMode = mode === "select";
 
-  const isSelected = useGridFocusStore(
-    (s) => s.selectedItemId === itemId || s.selectedItemId === printing.id,
-  );
-  const isFlashing = useGridFocusStore(
-    (s) => s.flashCardId === itemId || s.flashCardId === printing.id,
-  );
-  const overrideId = useSiblingOverrideStore((s) =>
-    inCardsView ? s.overrides.list.get(printing.cardId) : undefined,
-  );
-  const displayPrinting =
-    overrideId && siblings
-      ? (siblings.find((sibling) => sibling.id === overrideId) ?? printing)
-      : printing;
+  const { displayPrinting, isSelected, isFlashing } = useCellDisplayState({
+    printing,
+    itemId,
+    siblings,
+    scope: "list",
+    inCardsView,
+  });
 
   const key = kind === "card" ? printing.cardId : displayPrinting.id;
   const entry = useListEntriesStore((s) =>

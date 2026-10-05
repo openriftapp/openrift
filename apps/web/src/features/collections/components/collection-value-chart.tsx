@@ -2,7 +2,7 @@ import { formatDay } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import type { CompletionScopePreference } from "@openrift/shared/types/api/preferences";
 import type { Marketplace, TimeRange } from "@openrift/shared/types/pricing";
-import { CircleXIcon, Loader2Icon } from "lucide-react";
+import { CircleXIcon } from "lucide-react";
 import { useState } from "react";
 import { Area, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from "recharts";
 
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/chart";
 import type { ChartConfig } from "@/components/ui/chart";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
+import { Spinner } from "@/components/ui/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCollectionValueHistory } from "@/features/collections/hooks/use-collection-value-history";
@@ -66,11 +67,11 @@ function CollectionValueTooltipContent({
   // sign already carries the direction.
   const { sign, magnitude, percent } = describePriceChange(point.value, point.baselineValue);
   return (
-    <div className="border-border/50 bg-background rounded-lg border px-2.5 py-1.5 text-xs shadow-md">
+    <div className="bg-popover text-popover-foreground ring-border rounded-lg px-2.5 py-1.5 text-xs shadow-md ring-1">
       <p className="mb-1 font-medium">{formatDay(point.date)}</p>
       <div className="space-y-0.5">
         <div className="flex items-center gap-2">
-          <span className="size-2 rounded-full" style={{ backgroundColor: "var(--color-value)" }} />
+          <span className="size-2.5 rounded-sm" style={{ backgroundColor: "var(--color-value)" }} />
           <span className="text-muted-foreground">{m.collections_stats_value_series_value()}</span>
           <span className="ml-auto font-mono font-medium tabular-nums">
             {currencyFormatter(point.value)}
@@ -78,7 +79,7 @@ function CollectionValueTooltipContent({
         </div>
         <div className="flex items-center gap-2">
           <span
-            className="size-2 rounded-full"
+            className="size-2.5 rounded-sm"
             style={{ backgroundColor: "var(--color-baselineValue)" }}
           />
           <span className="text-muted-foreground">
@@ -89,7 +90,7 @@ function CollectionValueTooltipContent({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="size-2" />
+          <span className="size-2.5" />
           <span className="text-muted-foreground">{m.collections_stats_value_price_change()}</span>
           <span className="ml-auto font-mono font-medium tabular-nums">
             {sign}
@@ -98,7 +99,7 @@ function CollectionValueTooltipContent({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="size-2" />
+          <span className="size-2.5" />
           <span className="text-muted-foreground">{m.collections_stats_value_cards()}</span>
           <span className="ml-auto font-mono font-medium tabular-nums">
             {formatCount(point.copyCount)}
@@ -182,7 +183,7 @@ export function CollectionValueChart({ collectionId, scope }: CollectionValueCha
 
       {isLoading && (
         <div className="flex items-center justify-center py-8">
-          <Loader2Icon className="text-muted-foreground size-5 animate-spin" />
+          <Spinner className="text-muted-foreground size-5" />
         </div>
       )}
 

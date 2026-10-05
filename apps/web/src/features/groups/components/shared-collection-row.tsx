@@ -3,7 +3,9 @@ import { Link } from "@tanstack/react-router";
 import { FolderIcon } from "lucide-react";
 
 import { IconChip } from "@/components/ui/icon-chip";
+import { RowListLink } from "@/components/ui/row-list";
 import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
+import { m } from "@/paraglide/messages.js";
 
 export function SharedCollectionRow({
   slug,
@@ -12,19 +14,21 @@ export function SharedCollectionRow({
   slug: string;
   share: FriendGroupCollectionShareResponse;
 }) {
-  const noun = share.copyCount === 1 ? "copy" : "copies";
   return (
-    <Link
-      to="/groups/$slug/collections/$collectionId"
-      params={{ slug, collectionId: share.collectionId }}
-      search={(prev) => prev}
-      className="hover:bg-muted/50 focus-visible:ring-ring/50 flex items-center gap-2.5 rounded-md px-2 py-2 outline-none focus-visible:ring-2"
+    <RowListLink
+      render={
+        <Link
+          to="/groups/$slug/collections/$collectionId"
+          params={{ slug, collectionId: share.collectionId }}
+          search={(prev) => prev}
+        />
+      }
     >
       <IconChip icon={FolderIcon} tone="info" size="sm" shape="round" />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-sm font-medium">{share.collectionName}</span>
         <span className="text-muted-foreground truncate text-xs">
-          {share.copyCount} {noun}
+          {m.common_copies({ count: share.copyCount })}
         </span>
       </span>
       {share.coverPrintings.length > 0 ? (
@@ -38,6 +42,6 @@ export function SharedCollectionRow({
           thumbClassName="ring-card w-7"
         />
       ) : null}
-    </Link>
+    </RowListLink>
   );
 }

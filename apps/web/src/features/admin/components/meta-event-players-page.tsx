@@ -1,17 +1,13 @@
-import { formatRank } from "@openrift/shared/meta-standings";
+import { formatRankEnglish, formatRecord } from "@openrift/shared/meta-standings";
 import type { AdminMetaPlayer } from "@openrift/shared/types/api/meta";
 import type { MetaPlayerOverlayField } from "@openrift/shared/types/enums";
 import { ExternalLinkIcon, LockIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import {
-  PageTopBarBack,
-  PageTopBarButton,
-  PageTopBarPrimaryButton,
-} from "@/components/layout/page-top-bar";
+import { PageTopBarBack, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
@@ -28,7 +24,6 @@ import { useReleasePlayerOverlayField } from "@/features/admin/hooks/use-admin-m
 import { MetaListStatusBadge } from "@/features/meta/components/meta-list-status-badge";
 import {
   formatRankRuns,
-  formatRecord,
   metaPlayerClaimChips,
   recordSortValue,
   standingsGaps,
@@ -45,7 +40,7 @@ function FinishCell({ row }: AdminCellSlotProps<AdminMetaPlayer>) {
   if (!row) {
     return null;
   }
-  return <span className="tabular-nums">{formatRank(row.rank, row.rankIsTier)}</span>;
+  return <span className="tabular-nums">{formatRankEnglish(row.rank, row.rankIsTier)}</span>;
 }
 
 function RecordCell({ row }: AdminCellSlotProps<AdminMetaPlayer>) {
@@ -207,19 +202,16 @@ export function MetaEventPlayersPage({ eventId }: { eventId: string }) {
         }
         actions={
           <>
-            <PageTopBarButton
-              render={
-                <a
-                  href={`/meta/${event.slug}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`Open ${event.name} in the public archive`}
-                />
-              }
+            <a
+              href={`/meta/${event.slug}`}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Open ${event.name} in the public archive`}
+              className={buttonVariants({ variant: "ghost" })}
             >
               Public page
               <ExternalLinkIcon />
-            </PageTopBarButton>
+            </a>
             <PageTopBarPrimaryButton onClick={() => setDialog({ mode: "create" })}>
               Add Player
             </PageTopBarPrimaryButton>

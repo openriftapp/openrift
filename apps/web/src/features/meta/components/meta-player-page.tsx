@@ -1,10 +1,7 @@
+import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/contracts/meta";
 import { Link, getRouteApi } from "@tanstack/react-router";
 
-import { PageTopBar, PageTopBarSticky, PageTopBarTitle } from "@/components/layout/page-top-bar";
-import {
-  TopBarBreadcrumbSeparator,
-  TopBarBreadcrumbTrail,
-} from "@/components/layout/top-bar-breadcrumb";
+import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";
 import { MetaArchivedDecks } from "@/features/meta/components/meta-archived-decks";
 import { MetaPlayerFinishes } from "@/features/meta/components/meta-player-finishes";
 import { MetaPlayerHero } from "@/features/meta/components/meta-player-hero";
@@ -12,7 +9,6 @@ import { MetaPlayerLegends } from "@/features/meta/components/meta-player-legend
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
 import { useMetaDecks, useMetaPlayer } from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
-import { DECK_GRID_ALL_LIMIT } from "@/features/meta/lib/meta-deck-grid";
 import {
   filterPlayerFinishes,
   metaPlayerCounts,
@@ -46,7 +42,7 @@ export function MetaPlayerPage() {
   const { data: deckData } = useMetaDecks({
     ...metaScopeQueryFromScope(scope, eras),
     player: key,
-    limit: DECK_GRID_ALL_LIMIT,
+    limit: META_MAX_LIST_PAGE_SIZE,
   });
 
   const setScope = (patch: Partial<MetaScope>) => {
@@ -66,17 +62,10 @@ export function MetaPlayerPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageTopBarSticky width="capped">
-        <PageTopBar className="gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <TopBarBreadcrumbTrail
-              segments={[{ label: m.meta_breadcrumb_archive(), link: <Link to="/meta" /> }]}
-            />
-            <TopBarBreadcrumbSeparator className="hidden sm:inline" />
-            <PageTopBarTitle>{data.name}</PageTopBarTitle>
-          </div>
-        </PageTopBar>
-      </PageTopBarSticky>
+      <TopBarBreadcrumbBar
+        segments={[{ label: m.meta_breadcrumb_archive(), link: <Link to="/meta" /> }]}
+        title={data.name}
+      />
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-10")}>
         <div className="flex flex-col gap-5">

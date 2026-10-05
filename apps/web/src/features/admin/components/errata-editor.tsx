@@ -118,7 +118,7 @@ export function ErrataEditor({
             <DatePicker
               value={draft.effectiveDate || null}
               className="w-44"
-              onChange={(effectiveDate) => onChange({ effectiveDate })}
+              onValueChange={(effectiveDate) => onChange({ effectiveDate })}
               onClear={() => onChange({ effectiveDate: "" })}
             />
           </div>

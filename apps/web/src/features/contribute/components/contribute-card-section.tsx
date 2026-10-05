@@ -1,5 +1,4 @@
 import { enumLabel } from "@openrift/shared/enum-label";
-import { WellKnown } from "@openrift/shared/well-known";
 import { useState } from "react";
 
 import { SettingsSection } from "@/components/layout/settings-section";
@@ -7,15 +6,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { CatalogCardPicker } from "@/features/cards/components/catalog-card-picker";
+import { DomainIcon } from "@/features/cards/components/domain-icon";
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
-import { ExistingCardPicker } from "@/features/contribute/components/existing-card-picker";
 import { ChipInput, FieldRow, NumberInput } from "@/features/contribute/components/form-fields";
 import type { ContributeFormApi } from "@/features/contribute/hooks/use-contribute-form";
 import type { ContributeFormCard } from "@/features/contribute/lib/contribute-json";
+import { prefillFromCatalogCard } from "@/features/contribute/lib/contribute-json";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { computeDomainDisabled } from "@/lib/domain";
-import { getFilterIconPath } from "@/lib/icons";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 interface ContributeCardSectionProps extends Pick<
@@ -57,14 +56,21 @@ export function ContributeCardSection({
   }
   const { orders, labels } = useEnumOrders();
   const domainDisabled = computeDomainDisabled(form.card.domains, orders.domains);
-  const domainIcons = Object.fromEntries(
-    orders.domains.map((slug) => [slug, getFilterIconPath("domains", slug)]),
-  );
 
   return (
     <SettingsSection
       title={m.contribute_card_section_title()}
-      action={lockedSlug ? undefined : <ExistingCardPicker onPick={prefillFromExisting} />}
+      action={
+        lockedSlug ? undefined : (
+          <CatalogCardPicker
+            label={m.contribute_picker_select_existing()}
+            variant="ghost"
+            onPick={(card, catalog, cardId) =>
+              prefillFromExisting(prefillFromCatalogCard(cardId, card, catalog))
+            }
+          />
+        )
+      }
       contentClassName="gap-8"
     >
       <FieldRow
@@ -100,17 +106,9 @@ export function ContributeCardSection({
               {orders.domains.map((slug) => {
                 const selected = form.card.domains.includes(slug);
                 const disabled = !selected && domainDisabled.has(slug);
-                const iconSrc = domainIcons[slug];
-                const isColorless = slug === WellKnown.domain.COLORLESS;
                 return (
                   <ToggleGroupItem key={slug} value={slug} disabled={disabled}>
-                    {iconSrc && (
-                      <img
-                        src={iconSrc}
-                        alt=""
-                        className={cn("size-4 shrink-0", isColorless && "brightness-0 dark:invert")}
-                      />
-                    )}
+                    <DomainIcon domain={slug} decorative className="size-4 shrink-0" />
                     {enumLabel(labels.domains, slug)}
                   </ToggleGroupItem>
                 );

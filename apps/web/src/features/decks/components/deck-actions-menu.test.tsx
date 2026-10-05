@@ -9,6 +9,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type * as UseDecks from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 
 const { dialogProps } = vi.hoisted(() => ({
@@ -43,7 +44,8 @@ vi.mock("@/features/decks/hooks/use-decks-collections", () => ({
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }));
 
 const noopMutation = { mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false };
-vi.mock("@/features/decks/hooks/use-decks", () => ({
+vi.mock("@/features/decks/hooks/use-decks", async (importOriginal) => ({
+  ...(await importOriginal<typeof UseDecks>()),
   useDeleteDeck: () => noopMutation,
   usePromoteDeckPrimary: () => noopMutation,
   useSetDeckArchived: () => noopMutation,

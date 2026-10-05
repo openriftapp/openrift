@@ -12,8 +12,8 @@ import {
 } from "lucide-react";
 
 import { Heading } from "@/components/heading";
+import { PROSE_MARKUP, linkMarkup } from "@/components/message-markup";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
-import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
 import { m } from "@/paraglide/messages.js";
 
@@ -24,9 +24,9 @@ export default function ListsArticle() {
         <ParaglideMessage
           message={m.help_lists_intro}
           markup={{
-            strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            link: ({ children }) => <TextLink href="/help/groups">{children}</TextLink>,
+            strong: PROSE_MARKUP.strong,
+            strong2: PROSE_MARKUP.strong,
+            link: linkMarkup("/help/groups"),
           }}
         />
       </p>
@@ -50,10 +50,8 @@ export default function ListsArticle() {
           <ParaglideMessage
             message={m.help_lists_kinds_p}
             markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              link: ({ children }) => (
-                <TextLink href="/help/cards-printings-copies">{children}</TextLink>
-              ),
+              strong: PROSE_MARKUP.strong,
+              link: linkMarkup("/help/cards-printings-copies"),
             }}
           />
         </p>
@@ -80,8 +78,8 @@ export default function ListsArticle() {
             message={m.help_lists_create_wishlist_p}
             inputs={{ action: m.help_lists_new_wishlist_label() }}
             markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong: PROSE_MARKUP.strong,
+              strong2: PROSE_MARKUP.strong,
             }}
           />
         </p>
@@ -110,8 +108,8 @@ export default function ListsArticle() {
           <ParaglideMessage
             message={m.help_lists_fill_wishlist_p}
             markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong: PROSE_MARKUP.strong,
+              strong2: PROSE_MARKUP.strong,
             }}
           />
         </p>
@@ -129,9 +127,7 @@ export default function ListsArticle() {
               <ParaglideMessage
                 message={m.help_lists_fill_bulk_desc}
                 markup={{
-                  link: ({ children }) => (
-                    <TextLink href="/help/import-export">{children}</TextLink>
-                  ),
+                  link: linkMarkup("/help/import-export"),
                 }}
               />
             }
@@ -156,8 +152,8 @@ export default function ListsArticle() {
             message={m.help_lists_create_wishlist_p}
             inputs={{ action: m.help_lists_new_tradelist_label() }}
             markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong: PROSE_MARKUP.strong,
+              strong2: PROSE_MARKUP.strong,
             }}
           />
         </p>
@@ -186,7 +182,7 @@ export default function ListsArticle() {
           <ParaglideMessage
             message={m.help_lists_fill_tradelist_p}
             markup={{
-              link: ({ children }) => <TextLink href="/help/collections">{children}</TextLink>,
+              link: linkMarkup("/help/collections"),
             }}
           />
         </p>
@@ -211,8 +207,8 @@ export default function ListsArticle() {
           <ParaglideMessage
             message={m.help_lists_prices_p}
             markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong: PROSE_MARKUP.strong,
+              strong2: PROSE_MARKUP.strong,
             }}
           />
         </p>
@@ -221,12 +217,7 @@ export default function ListsArticle() {
           {m.help_lists_defaults_heading()}
         </Heading>
         <p className="text-muted-foreground">
-          <ParaglideMessage
-            message={m.help_lists_defaults_p}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_lists_defaults_p} markup={PROSE_MARKUP} />
         </p>
         <DefinitionList className="text-muted-foreground mt-3">
           <DefinitionTerm>{m.help_lists_defaults_price_term()}</DefinitionTerm>
@@ -234,8 +225,8 @@ export default function ListsArticle() {
             <ParaglideMessage
               message={m.help_lists_defaults_price}
               markup={{
-                strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-                strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+                strong: PROSE_MARKUP.strong,
+                strong2: PROSE_MARKUP.strong,
               }}
             />
           </DefinitionDetail>
@@ -262,8 +253,8 @@ export default function ListsArticle() {
           <ParaglideMessage
             message={m.help_lists_quantities}
             markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong: PROSE_MARKUP.strong,
+              strong2: PROSE_MARKUP.strong,
             }}
           />
         </p>
@@ -275,9 +266,9 @@ export default function ListsArticle() {
           <ParaglideMessage
             message={m.help_lists_filing_p1}
             markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              strong3: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong: PROSE_MARKUP.strong,
+              strong2: PROSE_MARKUP.strong,
+              strong3: PROSE_MARKUP.strong,
             }}
           />
         </p>
@@ -290,7 +281,7 @@ export default function ListsArticle() {
           <ParaglideMessage
             message={m.help_lists_importing_p}
             markup={{
-              link: ({ children }) => <TextLink href="/help/import-export">{children}</TextLink>,
+              link: linkMarkup("/help/import-export"),
             }}
           />
         </p>
@@ -302,8 +293,8 @@ export default function ListsArticle() {
           <ParaglideMessage
             message={m.help_lists_sharing_p}
             markup={{
-              link: ({ children }) => <TextLink href="/help/groups">{children}</TextLink>,
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              link: linkMarkup("/help/groups"),
+              strong: PROSE_MARKUP.strong,
             }}
           />
         </p>
@@ -312,12 +303,7 @@ export default function ListsArticle() {
       <section>
         <Heading className="mb-2">{m.help_lists_organize_heading()}</Heading>
         <p className="text-muted-foreground">
-          <ParaglideMessage
-            message={m.help_lists_organize_p}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_lists_organize_p} markup={PROSE_MARKUP} />
         </p>
       </section>
     </div>

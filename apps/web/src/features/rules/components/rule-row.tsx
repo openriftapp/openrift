@@ -1,19 +1,24 @@
-import { ruleNumberDepth } from "@openrift/shared/rules";
+import { formatRuleNumber, ruleNumberDepth } from "@openrift/shared/rules";
+import { CheckIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { toast } from "sonner";
 
+import { Eyebrow } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Pressable } from "@/components/ui/pressable";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { RuleExamplesList, RuleExamplesMarker } from "@/features/rules/components/rule-examples";
+import { ruleLinkUrl } from "@/features/rules/lib/rule-link";
 import { ruleHtmlToText } from "@/features/rules/lib/rule-text";
 import type { ChangeKind, RuleEntry } from "@/features/rules/lib/rules-changes";
 import { changeKindBadge } from "@/features/rules/lib/rules-changes";
 import { useRulesFoldStore } from "@/features/rules/stores/rules-fold-store";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { copyRuleLink, formatRuleNumber, InlineDiff } from "./rule-content";
+import { InlineDiff } from "./rule-content";
 
 const GUIDE_DEPTH_CLASS: Record<number, string> = {
   1: "rule-guides [--rule-depth:1]",
@@ -51,6 +56,13 @@ export function RuleRow({
     ancestors.some((ancestor) => state.foldedRules.has(ancestor)),
   );
   const toggle = useRulesFoldStore((state) => state.toggle);
+  const { copied, copy } = useCopyToClipboard();
+  const copyLink = async () => {
+    const ok = await copy(ruleLinkUrl(rule.ruleNumber, globalThis.location));
+    if (!ok) {
+      toast.error(m.rules_copy_link_error());
+    }
+  };
 
   const isTitle = rule.ruleType === "title";
   const isSubtitle = rule.ruleType === "subtitle";
@@ -80,17 +92,23 @@ export function RuleRow({
       >
         <Pressable
           onClick={() => {
-            void copyRuleLink(rule.ruleNumber);
+            void copyLink();
           }}
-          aria-label={m.rules_copy_link_aria({ rule: formatRuleNumber(rule.ruleNumber) })}
+          aria-label={
+            copied
+              ? m.common_copied()
+              : m.rules_copy_link_aria({ rule: formatRuleNumber(rule.ruleNumber) })
+          }
           className={cn(
             // Copy glyph is a ::after mask via rule-copy-affordance, not a <CopyIcon>
             // element, since this page renders ~2,400 of them. See index.css.
-            "rule-copy-affordance text-muted-foreground hover:text-foreground mr-3 flex shrink-0 items-start gap-1 font-mono text-xs no-underline",
+            !copied && "rule-copy-affordance",
+            "text-muted-foreground hover:text-foreground mr-3 flex shrink-0 items-start gap-1 font-mono text-xs no-underline",
             isTitle && "font-semibold",
           )}
         >
           <span>{formatRuleNumber(rule.ruleNumber)}</span>
+          {copied && <CheckIcon className="size-3 self-center" aria-hidden="true" />}
         </Pressable>
         <div
           className={cn(
@@ -189,14 +207,12 @@ function DiffPane({
       )}
     >
       {title && (
-        <p
-          className={cn(
-            "text-xs font-semibold tracking-wide uppercase",
-            tone === "old" ? "text-muted-foreground" : "text-success",
-          )}
+        <Eyebrow
+          as="p"
+          className={cn("mb-0 text-xs", tone === "old" ? "text-muted-foreground" : "text-success")}
         >
           {title}
-        </p>
+        </Eyebrow>
       )}
       <div>{children}</div>
     </div>

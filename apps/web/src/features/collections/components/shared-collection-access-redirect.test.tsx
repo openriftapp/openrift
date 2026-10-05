@@ -18,7 +18,7 @@ vi.mock("@tanstack/react-router", async () => {
 });
 
 vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: hydratedMock }));
-vi.mock("@/lib/auth-session", () => ({ useUserId: userIdMock }));
+vi.mock("@/hooks/use-session", () => ({ useUserId: userIdMock }));
 vi.mock("@/features/collections/hooks/use-collections", () => ({
   useCollectionsMap: collectionsMapMock,
 }));

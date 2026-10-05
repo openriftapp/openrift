@@ -1,16 +1,15 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type { DeskImage, DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import type { AdminPrintingCitation } from "@openrift/shared/types/api/admin";
-import { getOrientation } from "@openrift/shared/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   CropIcon,
   ExternalLinkIcon,
   LinkIcon,
-  LoaderIcon,
   PencilIcon,
   PlusIcon,
   RotateCcwIcon,
@@ -25,7 +24,7 @@ import { PageTopBarBack, PageTopBarButton } from "@/components/layout/page-top-b
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { BrandGlyph } from "@/components/ui/brand-glyph";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -34,11 +33,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { Dropzone } from "@/components/ui/dropzone";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { PrintingDeskEditFields } from "@/features/admin/components/printing-desk-form-page";
 import { DeskSegmented, DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
@@ -55,6 +56,8 @@ import {
   useDeletePrintingCitation,
   useUpdatePrintingCitation,
 } from "@/features/admin/hooks/use-admin-printing-citations";
+import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
+import { useMarkers } from "@/features/admin/hooks/use-markers";
 import {
   useDeskPrinting,
   useSetDeskImageFace,
@@ -71,11 +74,9 @@ import { ImageHoverPreview } from "@/features/cards/components/printing-hover-pr
 import { freshCardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { cardsKeys, catalogKeys, promosKeys } from "@/features/cards/lib/cards-query-keys";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
-import { useDistributionChannels } from "@/hooks/use-distribution-channels";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
-import { useMarkers } from "@/hooks/use-markers";
 import { useMouseHover } from "@/hooks/use-mouse-hover";
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
 import { cn } from "@/lib/utils";
 
@@ -144,18 +145,20 @@ export function PrintingDeskPrintingPage({ printingId }: { printingId: string })
               Make a post
             </PageTopBarButton>
           ) : (
-            <PageTopBarButton
-              render={<Link to="/admin/printing-desk/post" search={{ slides: postSlides }} />}
+            <Link
+              to="/admin/printing-desk/post"
+              search={{ slides: postSlides }}
+              className={buttonVariants({ variant: "ghost" })}
             >
               <Share2Icon />
               Make a post
-            </PageTopBarButton>
+            </Link>
           )
         }
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        {channelPath.length > 0 && <Badge variant="muted">{channelPath}</Badge>}
+        {channelPath.length > 0 && <Badge variant="neutral">{channelPath}</Badge>}
         <Badge variant="outline" className="font-mono">
           {formatPrintingCode(printing.publicCode)}
         </Badge>
@@ -183,7 +186,7 @@ export function PrintingDeskPrintingPage({ printingId }: { printingId: string })
 
               {uploading.map((name) => (
                 <p key={name} className="text-muted-foreground flex items-center gap-2 text-sm">
-                  <LoaderIcon className="size-4 animate-spin" />
+                  <Spinner />
                   Uploading {name}…
                 </p>
               ))}
@@ -325,7 +328,7 @@ function DetailsCard({
           </Suspense>
         ) : (
           <>
-            <dl className="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
+            <DefinitionList className="sm:grid-cols-[max-content_minmax(0,1fr)_max-content_minmax(0,1fr)]">
               <DetailRow label="Channel" value={channelPath.length > 0 ? channelPath : "None"} />
               <DetailRow label="Code" value={formatPrintingCode(printing.publicCode)} />
               <DetailRow label="Set" value={printing.setName} />
@@ -340,7 +343,7 @@ function DetailsCard({
                 <DetailRow label="Announced on" value={formatDay(printing.announcedAt)} />
               )}
               <DetailRow label="Available from" value={deskPrintingPeriod(printing)} />
-            </dl>
+            </DefinitionList>
 
             {printing.markerSlugs.length > 0 && (
               <div className="mt-3 flex flex-wrap items-center gap-1">
@@ -372,9 +375,9 @@ function DetailsCard({
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-2">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 truncate">{value}</dd>
+    <div className="contents">
+      <DefinitionTerm>{label}</DefinitionTerm>
+      <DefinitionDetail className="truncate">{value}</DefinitionDetail>
     </div>
   );
 }
@@ -497,16 +500,15 @@ function DeskImageRow({
             <CropIcon className={cn(image.quad !== null && "text-success")} />
           </Button>
           {fullUrl !== null && (
-            <Button
-              variant="ghost"
-              size="icon-xs"
+            <a
+              href={fullUrl}
+              target="_blank"
+              rel="noreferrer"
               aria-label="Open full size"
-              render={
-                <a href={fullUrl} target="_blank" rel="noreferrer" aria-label="Open full size" />
-              }
+              className={buttonVariants({ variant: "ghost", size: "icon-xs" })}
             >
               <ExternalLinkIcon />
-            </Button>
+            </a>
           )}
 
           <label

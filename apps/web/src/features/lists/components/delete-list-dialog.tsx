@@ -48,7 +48,7 @@ export function DeleteListDialog({
         </>
       }
       confirmLabel={m.common_delete()}
-      pendingLabel={m.lists_delete_pending()}
+      pendingLabel={m.common_deleting()}
       onConfirm={onConfirm}
       isPending={isPending}
     />

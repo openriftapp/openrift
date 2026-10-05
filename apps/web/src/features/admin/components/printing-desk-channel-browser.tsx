@@ -3,6 +3,7 @@ import type { DistributionChannelKind } from "@openrift/shared/types/catalog";
 import { CheckIcon } from "lucide-react";
 import { useState } from "react";
 
+import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +16,6 @@ import {
 } from "@/components/ui/dialog";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
-import { Input } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
 import {
   buildChannelBrowseRows,
@@ -74,9 +74,9 @@ export function PrintingDeskChannelBrowser({
           </DialogDescription>
         </DialogHeader>
 
-        <Input
+        <SearchInput
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onValueChange={setQuery}
           placeholder="Filter by name…"
           aria-label="Filter events and products"
         />

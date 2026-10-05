@@ -5,9 +5,9 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 const fetchCardBansFn = createServerFn({ method: "GET" })
   .validator((input: { cardId: string }) => input)

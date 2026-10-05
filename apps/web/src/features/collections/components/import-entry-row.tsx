@@ -1,4 +1,5 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 import { AlertTriangleIcon, CheckCircle2Icon, SearchIcon, XCircleIcon } from "lucide-react";
@@ -64,18 +65,20 @@ export function ImportEntryRow({
   const [showSearch, setShowSearch] = useState(false);
   const { icon: StatusIcon, className: statusColor } = BUCKET_CONFIG[getImportBucket(entry)];
   const rawFieldEntries = Object.entries(entry.entry.rawFields);
+  const hasDetails = rawFieldEntries.length > 0;
   const hasCandidates = entry.candidates.length > 0;
   const { labels } = useEnumOrders();
-  const specialties = formatEntrySpecialties(entry, labels.finishes);
+  const specialties = formatEntrySpecialties(entry, labels.finishes, labels.artVariants);
 
   return (
     <div className={cn(isSkipped && "opacity-40")}>
       <ImportRowShell
         chevron={
           <ExpandToggle
-            expanded={isExpanded}
-            className="text-muted-foreground hover:text-foreground shrink-0"
+            expanded={isExpanded && hasDetails}
+            className="text-muted-foreground hover:text-foreground shrink-0 disabled:pointer-events-none disabled:opacity-40"
             chevronClassName="text-inherit"
+            disabled={!hasDetails}
             onClick={() => onToggleExpand(index)}
             aria-label={
               isExpanded
@@ -143,7 +146,7 @@ export function ImportEntryRow({
           </>
         }
       />
-      {isExpanded && rawFieldEntries.length > 0 && (
+      {isExpanded && hasDetails && (
         <Callout variant="inset">
           <ImportRowRawFields entries={rawFieldEntries} />
         </Callout>
@@ -156,16 +159,17 @@ export function ImportEntryRow({
 function formatEntrySpecialties(
   entry: MatchedEntry,
   finishLabels: Record<string, string>,
+  artVariantLabels: Record<string, string>,
 ): string | null {
   const parts: string[] = [];
   if (entry.entry.finish !== WellKnown.finish.NORMAL) {
-    parts.push(finishLabels[entry.entry.finish] ?? entry.entry.finish);
+    parts.push(enumLabel(finishLabels, entry.entry.finish));
   }
   if (entry.entry.artVariant === WellKnown.artVariant.ALTART) {
-    parts.push("Alt Art");
+    parts.push(enumLabel(artVariantLabels, WellKnown.artVariant.ALTART));
   }
   if (entry.entry.isOvernumbered) {
-    parts.push("Overnumbered");
+    parts.push(m.cards_flag_overnumbered());
   }
   return parts.length > 0 ? parts.join(" · ") : null;
 }

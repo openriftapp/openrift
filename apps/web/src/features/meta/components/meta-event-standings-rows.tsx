@@ -171,7 +171,7 @@ export function PhoneRow({
               />
             </p>
             <MetaIdentity
-              name={player.legend?.name}
+              legend={player.legend}
               slug={player.legend?.slug}
               archiveSlug={player.legend?.archiveSlug}
               domains={player.legend?.domains}

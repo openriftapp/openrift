@@ -1,3 +1,5 @@
+import { slugifyName } from "@openrift/shared/strings";
+
 import type {
   ContributeFormCard,
   ContributeFormPrinting,
@@ -5,11 +7,7 @@ import type {
   ValidationError,
   ValidationResult,
 } from "@/features/contribute/lib/contribute-json";
-import {
-  emptyFormState,
-  emptyPrinting,
-  nameToSlug,
-} from "@/features/contribute/lib/contribute-json";
+import { emptyFormState, emptyPrinting } from "@/features/contribute/lib/contribute-json";
 
 export interface ContributeFormReducerState {
   form: ContributeFormState;
@@ -86,7 +84,7 @@ export function contributeFormReducer(
       return {
         ...state,
         form: {
-          slug: state.slugLocked ? form.slug : nameToSlug(card.name),
+          slug: state.slugLocked ? form.slug : slugifyName(card.name, { foldDiacritics: true }),
           card,
           printings: form.printings.map((printing) =>
             printing.printedName === previousName || printing.printedName === ""

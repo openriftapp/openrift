@@ -1,7 +1,7 @@
 import { Heading } from "@/components/heading";
+import type { FeatureChapter } from "@/features/marketing/lib/features-chapters";
+import { chapterAnchor } from "@/features/marketing/lib/features-chapters";
 
-import type { FeatureChapter } from "./features-chapters";
-import { chapterAnchor } from "./features-chapters";
 import { Reveal } from "./reveal";
 
 export function ChapterDivider({ chapter }: { chapter: FeatureChapter }) {

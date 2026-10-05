@@ -43,7 +43,7 @@ vi.mock("@/features/admin/hooks/use-printing-desk", () => ({
   },
 }));
 
-vi.mock("@/hooks/use-distribution-channels", () => ({
+vi.mock("@/features/admin/hooks/use-distribution-channels", () => ({
   useDistributionChannels: () => ({
     data: {
       distributionChannels: [
@@ -78,7 +78,7 @@ vi.mock("@/hooks/use-distribution-channels", () => ({
   }),
 }));
 
-vi.mock("@/hooks/use-markers", () => ({
+vi.mock("@/features/admin/hooks/use-markers", () => ({
   useMarkers: () => ({
     data: { markers: [{ id: "m-1", slug: "stamped", label: "Stamped" }] },
   }),
@@ -96,12 +96,12 @@ vi.mock("@/features/admin/hooks/use-admin", () => ({
   useIsAdmin: () => ({ data: access.isAdmin }),
 }));
 
-vi.mock("@/features/collections/lib/csv-export", async (importOriginal) => {
+vi.mock("@/lib/download", async (importOriginal) => {
   // oxlint-disable-next-line typescript/consistent-type-imports -- vitest dynamic import pattern
-  const original = await importOriginal<typeof import("@/features/collections/lib/csv-export")>();
+  const original = await importOriginal<typeof import("@/lib/download")>();
   return {
     ...original,
-    downloadCSV: (csv: string, filename: string) => {
+    downloadCsv: (csv: string, filename: string) => {
       captured.csv = csv;
       captured.filename = filename;
     },

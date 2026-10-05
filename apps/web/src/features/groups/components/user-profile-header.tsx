@@ -2,7 +2,6 @@ import { formatMonthYear } from "@openrift/shared/format-date";
 import type { PublicUserBundleResponse } from "@openrift/shared/types/api/user-share";
 import {
   CalendarIcon,
-  CheckIcon,
   ClockIcon,
   LinkIcon,
   SparklesIcon,
@@ -11,14 +10,13 @@ import {
 } from "lucide-react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 
+import { CopyTextButton } from "@/components/copy-text-button";
 import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
 import { ContactMethodChips } from "@/features/groups/components/contact-method-chips";
 import { groupsInCommonLabel, lastActiveLabel } from "@/features/groups/lib/user-profile-copy";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
 
@@ -34,16 +32,6 @@ function MetaItem({
       <Icon className="size-3.5 shrink-0" />
       {children}
     </span>
-  );
-}
-
-function CopyLinkButton({ url }: { url: string }) {
-  const { copied, copy } = useCopyToClipboard();
-  return (
-    <Button variant="outline" onClick={() => void copy(url)}>
-      {copied ? <CheckIcon className="text-success" /> : <LinkIcon />}
-      {copied ? m.common_copied() : m.user_profile_copy_link()}
-    </Button>
   );
 }
 
@@ -101,7 +89,12 @@ export function UserProfileHeader({
           ) : null}
         </div>
         <div className="sm:pb-1">
-          <CopyLinkButton url={shareUrl} />
+          <CopyTextButton
+            value={shareUrl}
+            label={m.user_profile_copy_link()}
+            icon={LinkIcon}
+            normalizeLineBreaks={false}
+          />
         </div>
       </div>
     </Card>

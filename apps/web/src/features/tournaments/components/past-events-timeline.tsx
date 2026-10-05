@@ -1,4 +1,4 @@
-import { dateLeafParts, formatDayTimeLocal } from "@openrift/shared/format-date";
+import { formatDayTimeLocal } from "@openrift/shared/format-date";
 import type {
   TournamentSummaryResponse,
   TournamentWinner,
@@ -14,7 +14,6 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { ParticipantFacepile } from "@/features/tournaments/components/participant-facepile";
 import { tournamentContextLabel } from "@/features/tournaments/lib/tournament-display";
 import { useDeckFormatList } from "@/hooks/use-enums";
-import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
 
 function WinnerChip({ winner }: { winner: TournamentWinner }) {
@@ -47,7 +46,7 @@ function PastEventCard({
           <span className="flex items-center gap-2">
             <span className="truncate text-base font-medium">{tournament.name}</span>
             {tournament.status === "cancelled" ? (
-              <Badge variant="muted">{m.tournaments_past_events_cancelled()}</Badge>
+              <Badge variant="neutral">{m.tournaments_past_events_cancelled()}</Badge>
             ) : null}
             {showContext && tournamentContextLabel(tournament) ? (
               <Badge variant="outline" className="max-sm:hidden">
@@ -96,18 +95,15 @@ export function PastEventsTimeline({
 }) {
   return (
     <ul className="flex flex-col gap-2.5">
-      {tournaments.map((tournament) => {
-        const leaf = dateLeafParts(tournament.startsAt, DATE_WORDS);
-        return (
-          <li
-            key={tournament.id}
-            className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3"
-          >
-            <DateLeaf month={leaf.month} day={leaf.day} size="sm" className="mt-2" />
-            <PastEventCard tournament={tournament} showContext={showContext} />
-          </li>
-        );
-      })}
+      {tournaments.map((tournament) => (
+        <li
+          key={tournament.id}
+          className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3"
+        >
+          <DateLeaf at={tournament.startsAt} clock="local" size="sm" className="mt-2" />
+          <PastEventCard tournament={tournament} showContext={showContext} />
+        </li>
+      ))}
     </ul>
   );
 }

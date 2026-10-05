@@ -1,13 +1,13 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type { PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
 import type { DeckZone } from "@openrift/shared/types/enums";
-import { getOrientation } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
-import { CheckIcon, CopyIcon, EllipsisVerticalIcon } from "lucide-react";
+import { CopyIcon, EllipsisVerticalIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TextLink } from "@/components/ui/text-link";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { useOpenCardDetail } from "@/features/cards/components/card-detail-opener";
-import { DomainIcon } from "@/features/decks/components/domain-icon";
+import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { OwnershipBand } from "@/features/decks/components/ownership-band";
 import { useCopyArchivedDeck } from "@/features/decks/hooks/use-copy-archived-deck";
 import { useEncodeDeckCards } from "@/features/decks/hooks/use-decks";
@@ -35,6 +35,7 @@ import { deckRuneSplit, deckTypeSplit } from "@/features/meta/lib/meta-deck-comp
 import { metaDeckCopyFields } from "@/features/meta/lib/meta-deck-copy";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useSignInSearch } from "@/hooks/use-sign-in-search";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -126,8 +127,9 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
   const { data } = useMetaDeck(token);
   const copyToMyDecks = useCopyArchivedDeck();
   const encodeMutation = useEncodeDeckCards();
-  const { copied, copy } = useCopyToClipboard();
+  const { copy } = useCopyToClipboard();
   const hydrated = useHydrated();
+  const signIn = useSignInSearch();
   const [owned, setOwned] = useState<MetaOwnedCards>();
   const bandFor = (card: PublicDeckCardResponse) =>
     owned === undefined
@@ -166,7 +168,11 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
   const handleCopyCode = async () => {
     try {
       const encoded = await encodeMutation.mutateAsync({ cards: encodeCards });
-      await copy(encoded.code);
+      if (await copy(encoded.code)) {
+        toast.success(m.decks_menu_code_copied());
+      } else {
+        toast.error(m.decks_menu_code_copy_failed());
+      }
       reportEncodeWarnings(encoded.warnings);
     } catch {
       /* Reported by the global mutation error toast. */
@@ -220,16 +226,7 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
         {missing !== null && <span>{missing}</span>}
         <MetaContributors contributors={data.meta.contributors} className="text-xs" />
         {!copyToMyDecks.isLoggedIn && (
-          <TextLink
-            render={
-              <Link
-                to="/login"
-                search={{ redirect: `/meta/${data.meta.event.slug}`, email: undefined }}
-              />
-            }
-          >
-            {m.meta_deck_preview_sign_in_compare()}
-          </TextLink>
+          <TextLink render={<Link {...signIn} />}>{m.meta_deck_preview_sign_in_compare()}</TextLink>
         )}
         <span className="ml-auto" />
         <span className="flex items-center gap-1.5">
@@ -260,14 +257,18 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
                 disabled={encodeMutation.isPending}
                 onClick={() => void handleCopyCode()}
               >
-                {copied ? <CheckIcon /> : <CopyIcon />}
-                {copied ? m.common_copied() : m.meta_deck_preview_copy_code()}
+                <CopyIcon />
+                {m.meta_deck_preview_copy_code()}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button size="sm" render={<Link to="/meta/decks/$token" params={{ token }} />}>
+          <Link
+            to="/meta/decks/$token"
+            params={{ token }}
+            className={buttonVariants({ size: "sm" })}
+          >
             {m.meta_deck_preview_open_deck()}
-          </Button>
+          </Link>
         </span>
       </div>
     </div>

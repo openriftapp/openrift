@@ -15,6 +15,7 @@ import { useState } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
+import { StatFigure } from "@/components/ui/stat-figure";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { GrowthChart, GrowthRangeToggle } from "@/features/admin/components/growth-chart";
 import { useAdminDashboard } from "@/features/admin/hooks/use-admin-dashboard";
@@ -48,14 +49,10 @@ function StatTile({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        <div>
-          <p className="font-heading text-2xl font-semibold tabular-nums">
-            {value.toLocaleString()}
-          </p>
-          <p className="text-muted-foreground text-xs">
-            +{added.toLocaleString()} {GROWTH_RANGE_CAPTIONS[range]}
-          </p>
-        </div>
+        <StatFigure
+          value={value.toLocaleString()}
+          label={`+${added.toLocaleString()} ${GROWTH_RANGE_CAPTIONS[range]}`}
+        />
         <GrowthChart series={series} label={label} compact />
       </CardContent>
     </>

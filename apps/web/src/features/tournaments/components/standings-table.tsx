@@ -1,8 +1,7 @@
 import type { PodRoundResponse, PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 import type { TournamentPlayMode } from "@openrift/shared/types/api/tournament";
 
-import { Badge } from "@/components/ui/badge";
-import { RankBand } from "@/components/ui/rank-band";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import {
   Table,
@@ -12,50 +11,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserAvatar } from "@/components/user-avatar";
 import { MetaRunStrip } from "@/features/meta/components/meta-run-strip";
+import { PlayerChip } from "@/features/tournaments/components/player-chip";
+import { StandingsRankCell } from "@/features/tournaments/components/standings-rank-cell";
 import { TournamentLegend } from "@/features/tournaments/components/tournament-legend";
 import { playerRunRounds } from "@/features/tournaments/lib/player-run";
+import {
+  formatMatchRecord,
+  formatPlayerRecord,
+  formatScore,
+  podWinsHint,
+  rankedStandings,
+} from "@/features/tournaments/lib/standings-display";
 import { collapseTeamStandings } from "@/features/tournaments/lib/team-display";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { formatPlayerRecord, formatScore, podWinsHint, rankedStandings } from "./standings-display";
-
-// Named module-level default: an inline arrow default is not reorderable and
-// makes the React Compiler bail out.
-const rawRegionSlug = (slug: string): string => slug;
-
-function RankMark({ rank }: { rank: number }) {
+function PlayerIdentity({ row, regionsEnabled }: { row: PodStandingRow; regionsEnabled: boolean }) {
   return (
-    <RankBand rank={rank} text={String(rank)} filled={false} className="w-10 shrink-0 rounded-md" />
-  );
-}
-
-function PlayerIdentity({
-  row,
-  regionsEnabled,
-  regionLabel,
-}: {
-  row: PodStandingRow;
-  regionsEnabled: boolean;
-  regionLabel: (slug: string) => string;
-}) {
-  return (
-    <div className="flex min-w-0 items-center gap-2">
-      <UserAvatar name={row.displayName} size="sm" className="shrink-0" />
-      <span className="truncate font-medium">{row.displayName}</span>
-      {regionsEnabled && row.region ? (
-        <Badge variant="outline" className="shrink-0">
-          {regionLabel(row.region)}
-        </Badge>
-      ) : null}
-      {row.status === "dropped" ? (
-        <span className="text-muted-foreground shrink-0 text-sm">
-          {m.tournaments_standings_dropped()}
-        </span>
-      ) : null}
-    </div>
+    <PlayerChip
+      name={row.displayName}
+      image={row.image}
+      gravatarHash={row.gravatarHash}
+      region={regionsEnabled ? row.region : null}
+      dropped={row.status === "dropped"}
+    />
   );
 }
 
@@ -64,7 +44,6 @@ export function StandingsTable({
   variant = "pod",
   playMode = "1v1",
   regionsEnabled = false,
-  regionLabel = rawRegionSlug,
   rounds,
   legendByPlayer,
 }: {
@@ -79,13 +58,17 @@ export function StandingsTable({
   playMode?: TournamentPlayMode;
   /** Shows each player's region alongside their name. */
   regionsEnabled?: boolean;
-  /** Region slug -> display label; defaults to the raw slug. */
-  regionLabel?: (slug: string) => string;
 }) {
   const teamMode = playMode === "2v2";
   const standings = teamMode ? collapseTeamStandings(standingsInput) : standingsInput;
   if (standings.length === 0) {
-    return <p className="text-muted-foreground">{m.tournaments_standings_empty()}</p>;
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyDescription>{m.tournaments_standings_empty()}</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
   }
   const swiss = variant === "swiss";
   const ranked = rankedStandings(standings);
@@ -105,9 +88,9 @@ export function StandingsTable({
               rank === 1 && "bg-border-accent/5",
             )}
           >
-            <RankMark rank={rank} />
+            <StandingsRankCell rank={rank} />
             <div className="min-w-0 flex-1">
-              <PlayerIdentity row={row} regionsEnabled={regionsEnabled} regionLabel={regionLabel} />
+              <PlayerIdentity row={row} regionsEnabled={regionsEnabled} />
               <div className="text-muted-foreground flex gap-x-3 text-sm">
                 <span
                   className={swiss ? "tabular-nums" : undefined}
@@ -182,14 +165,10 @@ export function StandingsTable({
                 )}
               >
                 <TableCell>
-                  <RankMark rank={rank} />
+                  <StandingsRankCell rank={rank} />
                 </TableCell>
                 <TableCell>
-                  <PlayerIdentity
-                    row={row}
-                    regionsEnabled={regionsEnabled}
-                    regionLabel={regionLabel}
-                  />
+                  <PlayerIdentity row={row} regionsEnabled={regionsEnabled} />
                 </TableCell>
                 {showLegend ? (
                   <TableCell>
@@ -209,7 +188,7 @@ export function StandingsTable({
                 </TableCell>
                 {swiss ? (
                   <TableCell className="text-right tabular-nums">
-                    {row.wins}-{row.losses}-{row.draws}
+                    {formatMatchRecord(row)}
                   </TableCell>
                 ) : (
                   <TableCell className="text-right tabular-nums">{row.podWins}</TableCell>

@@ -1,7 +1,8 @@
+import { deckIdentityLabels, legendDisplayName } from "@openrift/shared/card-name";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import type { DeckFormat } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { deckIdentityLabels, legendDisplayName } from "@openrift/shared/utils";
+import { Link } from "@tanstack/react-router";
 import {
   BoxIcon,
   CheckCircle2Icon,
@@ -11,20 +12,21 @@ import {
 } from "lucide-react";
 
 import { ArtBandBackdrop } from "@/components/art-band-backdrop";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pressable } from "@/components/ui/pressable";
 import { textLinkVariants } from "@/components/ui/text-link";
+import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { CardOpenTarget } from "@/features/cards/lib/card-row-interactions";
 import { DeckFormatBadge } from "@/features/decks/components/deck-format-badge";
 import { DomainBar } from "@/features/decks/components/deck-stats-panel";
-import { DomainIcon } from "@/features/decks/components/domain-icon";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { useDomainColors } from "@/hooks/use-domain-colors";
+import { useSignInSearch } from "@/hooks/use-sign-in-search";
 import { formatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -45,7 +47,7 @@ interface DeckHeroProps {
   domainTotal: number;
   ownershipData?: DeckOwnershipData;
   marketplace: Marketplace;
-  signInHref?: string;
+  showSignIn?: boolean;
   onViewMissing?: () => void;
   onCardClick?: (card: CardOpenTarget) => void;
   /** Owner-only: the public share page never resolves one. */
@@ -158,7 +160,7 @@ export function DeckHero({
   domainTotal,
   ownershipData,
   marketplace,
-  signInHref,
+  showSignIn,
   onViewMissing,
   onCardClick,
   box,
@@ -169,6 +171,7 @@ export function DeckHero({
   footer,
 }: DeckHeroProps) {
   const domainColors = useDomainColors();
+  const signIn = useSignInSearch();
   const fmtPrice = formatterForMarketplace(marketplace);
   const legendDomains = legend?.domains ?? [];
   const hasViolations = violations.length > 0;
@@ -314,7 +317,7 @@ export function DeckHero({
                 {formatBadge}
                 {totalCards > 0 && (
                   <>
-                    {ownershipData && !signInHref && missingCount > 0 && onViewMissing && (
+                    {ownershipData && !showSignIn && missingCount > 0 && onViewMissing && (
                       <Button
                         type="button"
                         variant="outline"
@@ -337,7 +340,7 @@ export function DeckHero({
                         </span>
                       </Button>
                     )}
-                    {ownershipData && !signInHref && missingCount === 0 && (
+                    {ownershipData && !showSignIn && missingCount === 0 && (
                       <span className={cn(CHIP_CLASS, "text-success")}>
                         <CheckCircle2Icon className="size-3" />
                         {/* Borrowed copies count toward "ready" but not ownership. */}
@@ -346,7 +349,7 @@ export function DeckHero({
                           : m.decks_overview_fully_owned()}
                       </span>
                     )}
-                    {ownershipData && !signInHref && borrowedCount > 0 && (
+                    {ownershipData && !showSignIn && borrowedCount > 0 && (
                       <span
                         className={cn(CHIP_CLASS, "text-violet")}
                         title={m.decks_overview_borrowed_hint()}
@@ -357,21 +360,22 @@ export function DeckHero({
                         </span>
                       </span>
                     )}
-                    {signInHref && (
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        className={chipButtonClass()}
-                        // oxlint-disable-next-line jsx-a11y/anchor-has-content, jsx-a11y/control-has-associated-label -- text label is inside the Button children
-                        render={<a href={signInHref} />}
+                    {showSignIn && (
+                      <Link
+                        {...signIn}
+                        className={buttonVariants({
+                          variant: "outline",
+                          size: "xs",
+                          className: chipButtonClass(),
+                        })}
                       >
                         <LogInIcon className="size-3" />
                         {m.decks_overview_hero_sign_in()}
-                      </Button>
+                      </Link>
                     )}
 
                     {ownershipData?.deckValueCents !== undefined &&
-                      (signInHref && onViewMissing ? (
+                      (showSignIn && onViewMissing ? (
                         <Button
                           type="button"
                           variant="outline"

@@ -1,12 +1,14 @@
 import { formatDay } from "@openrift/shared/format-date";
+import { pluralize } from "@openrift/shared/strings";
 import type { MetaOverlayQueueRow } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 import { CheckIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import {
@@ -28,7 +30,6 @@ import {
   MetaReviewPlayerRow,
   PLAYER_ROW_COLUMNS,
 } from "@/features/admin/components/meta-review-player-row";
-import { ConfirmActionButton } from "@/features/admin/components/meta-review-shared";
 import {
   useAcceptMetaEventOverlay,
   useAcceptMetaPlayerOverlays,
@@ -138,12 +139,12 @@ function BulkAcceptButton({ group }: { group: MetaReviewGroup }) {
 
   async function run(): Promise<void> {
     const result = await acceptAll.mutateAsync({ items });
-    toast.success(`Accepted ${result.accepted} row${result.accepted === 1 ? "" : "s"}.`);
+    toast.success(`Accepted ${result.accepted} ${pluralize(result.accepted, "row")}.`);
   }
 
   return (
     <ConfirmActionButton
-      title={`Accept ${items.length} ready row${items.length === 1 ? "" : "s"}?`}
+      title={`Accept ${items.length} ready ${pluralize(items.length, "row")}?`}
       description="Each exact match links to its standings row, every card name is already resolved, and the event is promoted once at the end."
       confirmLabel="Accept all"
       onConfirm={run}
@@ -252,10 +253,10 @@ export function MetaReviewEventGroup({ group }: { group: MetaReviewGroup }) {
           );
         })}
         <span className="text-muted-foreground text-sm">
-          {decklists > 0 && `${decklists} decklist${decklists === 1 ? "" : "s"}`}
+          {decklists > 0 && `${decklists} ${pluralize(decklists, "decklist")}`}
           {decklists > 0 && group.corrections.length > 0 && " · "}
           {group.corrections.length > 0 &&
-            `${group.corrections.length} correction${group.corrections.length === 1 ? "" : "s"}`}
+            `${group.corrections.length} ${pluralize(group.corrections.length, "correction")}`}
         </span>
         <span className="flex items-center gap-1.5">
           {group.counts.ready > 0 && decklists > 0 && (
@@ -263,7 +264,7 @@ export function MetaReviewEventGroup({ group }: { group: MetaReviewGroup }) {
           )}
           {group.counts.needsRow > 0 && (
             <Badge variant="warning">
-              {group.counts.needsRow} need{group.counts.needsRow === 1 ? "s" : ""} a row
+              {group.counts.needsRow} {pluralize(group.counts.needsRow, "needs", "need")} a row
             </Badge>
           )}
           {group.counts.unmatched > 0 && (
@@ -273,13 +274,13 @@ export function MetaReviewEventGroup({ group }: { group: MetaReviewGroup }) {
         <span className="ml-auto flex items-center gap-1.5">
           <BulkAcceptButton group={group} />
           {group.metaEventId !== null && (
-            <Button
-              variant="outline"
-              size="sm"
-              render={<Link to="/admin/meta/$eventId" params={{ eventId: group.metaEventId }} />}
+            <Link
+              to="/admin/meta/$eventId"
+              params={{ eventId: group.metaEventId }}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
             >
               Open event
-            </Button>
+            </Link>
           )}
           {group.slug !== null && (
             <MetaPublicLinkButton

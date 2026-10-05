@@ -1,6 +1,7 @@
-import { MinusIcon, PlusIcon, XIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { InlineCountStepper } from "@/components/ui/inline-count-stepper";
 import { m } from "@/paraglide/messages.js";
 
 type ListEntryTableActionsProps = {
@@ -40,40 +41,21 @@ export function ListEntryTableActions(props: ListEntryTableActionsProps) {
   }
   return (
     <div className="flex items-center gap-0.5">
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={(event) => {
-          event.stopPropagation();
-          if (props.quantity <= 1) {
-            props.onRemove();
-          } else {
-            props.onDecrement();
-          }
-        }}
-        disabled={props.isQuantityPending || props.isRemovePending}
-        aria-label={m.lists_entry_decrease_quantity()}
-      >
-        <MinusIcon className="size-3.5" />
-      </Button>
-      <span
-        className="text-foreground min-w-5 text-center text-xs font-semibold tabular-nums"
-        aria-label={m.lists_entry_quantity_aria({ count: props.quantity })}
-      >
-        {props.quantity}
-      </span>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={(event) => {
-          event.stopPropagation();
-          props.onIncrement();
-        }}
-        disabled={props.isQuantityPending}
-        aria-label={m.lists_entry_increase_quantity()}
-      >
-        <PlusIcon className="size-3.5" />
-      </Button>
+      <InlineCountStepper
+        count={
+          <span aria-label={m.lists_entry_quantity_aria({ count: props.quantity })}>
+            {props.quantity}
+          </span>
+        }
+        decrementLabel={m.lists_entry_decrease_quantity()}
+        incrementLabel={m.lists_entry_increase_quantity()}
+        onDecrement={
+          props.isQuantityPending || props.isRemovePending
+            ? undefined
+            : () => (props.quantity <= 1 ? props.onRemove() : props.onDecrement())
+        }
+        onIncrement={props.isQuantityPending ? undefined : props.onIncrement}
+      />
       <Button
         variant="ghost"
         size="icon-sm"

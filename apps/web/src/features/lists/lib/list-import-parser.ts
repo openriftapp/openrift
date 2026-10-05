@@ -1,4 +1,4 @@
-import { normalizeNameForIdentity } from "@openrift/shared/utils";
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { ImportEntry } from "@/features/collections/lib/import-parsers";

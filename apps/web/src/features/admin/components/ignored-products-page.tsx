@@ -1,5 +1,6 @@
 import { formatDayTime } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
+import { pluralize } from "@openrift/shared/strings";
 import type { IgnoredProductResponse } from "@openrift/shared/types/api/admin";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { Undo2Icon } from "lucide-react";
@@ -8,6 +9,7 @@ import { PageDescription } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import {
@@ -183,11 +185,11 @@ export function IgnoredProductsPage() {
       }
       emptyText="No ignored products."
       defaultSort={{ column: "Ignored At", direction: "desc" }}
-      title="Ignored Products"
+      topBar={(actions) => <AdminPageTopBar title="Ignored Products" actions={actions} />}
       toolbar={
         products.length > 0 ? (
           <PageDescription>
-            {products.length} ignored entr{products.length === 1 ? "y" : "ies"} across all
+            {products.length} ignored {pluralize(products.length, "entry", "entries")} across all
             marketplaces
           </PageDescription>
         ) : undefined

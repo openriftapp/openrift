@@ -9,13 +9,8 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+import { ContextMenuSeparator } from "@/components/ui/context-menu";
+import { CardContextMenu, CardMenuItem } from "@/features/cards/components/card-context-menu";
 import {
   dispatchContextAction,
   dispatchTake,
@@ -48,88 +43,57 @@ export function CollectionCardContextMenu({
   children,
 }: CollectionCardContextMenuProps) {
   return (
-    <ContextMenu>
-      <ContextMenuTrigger
-        className="block select-none [-webkit-touch-callout:none]"
-        render={<div />}
-      >
-        {children}
-      </ContextMenuTrigger>
-      <ContextMenuContent className="w-44">
-        {canTake && (
-          <>
-            <ContextMenuItem
-              onClick={(event) => {
-                event.stopPropagation();
-                dispatchTake(itemId, 1);
-              }}
-            >
-              <HandIcon />
-              {m.collections_menu_take_one()}
-            </ContextMenuItem>
-            {takeAllCount !== undefined && takeAllCount > 1 && (
-              <ContextMenuItem
-                onClick={(event) => {
-                  event.stopPropagation();
-                  dispatchTake(itemId, takeAllCount);
-                }}
-              >
-                <HandIcon />
-                {m.collections_menu_take_many({ count: takeAllCount })}
-              </ContextMenuItem>
-            )}
-            <ContextMenuSeparator />
-          </>
-        )}
-        <ContextMenuItem
-          onClick={(event) => {
-            event.stopPropagation();
-            dispatchContextAction(itemId, "copyDetails");
-          }}
-        >
-          <NotebookPenIcon />
-          {stacked ? m.collections_menu_copies() : m.collections_menu_copy_details()}
-        </ContextMenuItem>
-        <ContextMenuItem
-          onClick={(event) => {
-            event.stopPropagation();
-            dispatchContextAction(itemId, "move");
-          }}
-        >
-          <BookOpenIcon />
-          {m.collections_menu_move()}
-        </ContextMenuItem>
-        <ContextMenuItem
-          onClick={(event) => {
-            event.stopPropagation();
-            dispatchContextAction(itemId, "addToList");
-          }}
-        >
-          <ListPlusIcon />
-          {m.collections_menu_add_to_list()}
-        </ContextMenuItem>
-        {canLend && (
-          <ContextMenuItem
-            onClick={(event) => {
-              event.stopPropagation();
-              dispatchContextAction(itemId, "lend", lendPrinting);
-            }}
+    <CardContextMenu
+      menu={
+        <>
+          {canTake && (
+            <>
+              <CardMenuItem icon={HandIcon} onSelect={() => dispatchTake(itemId, 1)}>
+                {m.collections_menu_take_one()}
+              </CardMenuItem>
+              {takeAllCount !== undefined && takeAllCount > 1 && (
+                <CardMenuItem icon={HandIcon} onSelect={() => dispatchTake(itemId, takeAllCount)}>
+                  {m.collections_menu_take_many({ count: takeAllCount })}
+                </CardMenuItem>
+              )}
+              <ContextMenuSeparator />
+            </>
+          )}
+          <CardMenuItem
+            icon={NotebookPenIcon}
+            onSelect={() => dispatchContextAction(itemId, "copyDetails")}
           >
-            <HandHeartIcon />
-            {m.collections_menu_lend()}
-          </ContextMenuItem>
-        )}
-        <ContextMenuItem
-          variant="destructive"
-          onClick={(event) => {
-            event.stopPropagation();
-            dispatchContextAction(itemId, "dispose");
-          }}
-        >
-          <Trash2Icon />
-          {m.collections_menu_dispose()}
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
+            {stacked ? m.collections_menu_copies() : m.collections_menu_copy_details()}
+          </CardMenuItem>
+          <CardMenuItem icon={BookOpenIcon} onSelect={() => dispatchContextAction(itemId, "move")}>
+            {m.collections_menu_move()}
+          </CardMenuItem>
+          <CardMenuItem
+            icon={ListPlusIcon}
+            onSelect={() => dispatchContextAction(itemId, "addToList")}
+          >
+            {m.collections_menu_add_to_list()}
+          </CardMenuItem>
+          {canLend && (
+            <CardMenuItem
+              icon={HandHeartIcon}
+              onSelect={() => dispatchContextAction(itemId, "lend", lendPrinting)}
+            >
+              {m.collections_menu_lend()}
+            </CardMenuItem>
+          )}
+          <ContextMenuSeparator />
+          <CardMenuItem
+            icon={Trash2Icon}
+            variant="destructive"
+            onSelect={() => dispatchContextAction(itemId, "dispose")}
+          >
+            {m.collections_menu_dispose()}
+          </CardMenuItem>
+        </>
+      }
+    >
+      {children}
+    </CardContextMenu>
   );
 }

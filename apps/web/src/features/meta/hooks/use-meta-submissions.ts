@@ -18,7 +18,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { metaSubmissionsKeys } from "@/features/meta/lib/meta-query-keys";
 import { metaSubmissionsQueryOptions } from "@/features/meta/lib/meta-submissions-queries";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 

@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { CardType } from "@openrift/shared/types/enums";
 
 import { comboKey } from "@/features/collections/lib/stat-types";
@@ -86,7 +87,7 @@ function buildGroups(
     const grouped = Map.groupBy(cards, (card) => card.cardType);
     return orderedTypeKeys(grouped).map((type) => ({
       key: type,
-      label: m.decks_editor_group_type({ type: ctx.typeLabels[type] ?? type }),
+      label: m.decks_editor_group_type({ type: enumLabel(ctx.typeLabels, type) }),
       cards: grouped.get(type) ?? [],
     }));
   }
@@ -141,7 +142,7 @@ function buildGroups(
           ? m.decks_editor_group_no_domain()
           : key
               .split("+")
-              .map((domain) => ctx.domainLabels[domain] ?? domain)
+              .map((domain) => enumLabel(ctx.domainLabels, domain))
               .join(" / "),
       cards: grouped.get(key) ?? [],
     }));

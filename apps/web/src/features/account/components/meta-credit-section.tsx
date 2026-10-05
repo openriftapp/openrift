@@ -5,7 +5,8 @@ import { Link } from "@tanstack/react-router";
 
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Callout } from "@/components/ui/callout";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RadioGroup } from "@/components/ui/radio-group";
+import { RadioOptionRow } from "@/components/ui/radio-option-row";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TextLink } from "@/components/ui/text-link";
 import { MetaContributors } from "@/features/meta/components/meta-contributors";
@@ -18,7 +19,7 @@ import {
   metaCreditVisibilityHints,
   metaCreditVisibilityLabels,
 } from "@/features/meta/lib/meta-submission-copy";
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 
 function CreditPreview({
@@ -98,28 +99,19 @@ export function MetaCreditSection() {
           onValueChange={(next) =>
             setVisibility.mutate({ visibility: next as MetaCreditVisibility })
           }
-          className="flex flex-col gap-3"
+          className="flex flex-col gap-1"
           aria-label={m.profile_meta_credit_title()}
         >
-          {META_CREDIT_VISIBILITIES.map((option) => {
-            const radioId = `meta-credit-${option}`;
-            return (
-              <div key={option} className="flex items-start gap-2">
-                <RadioGroupItem
-                  id={radioId}
-                  value={option}
-                  disabled={setVisibility.isPending}
-                  className="mt-1"
-                />
-                <label htmlFor={radioId} className="cursor-pointer">
-                  <span className="block">{metaCreditVisibilityLabels()[option]}</span>
-                  <span className="text-muted-foreground block text-sm">
-                    {metaCreditVisibilityHints()[option]}
-                  </span>
-                </label>
-              </div>
-            );
-          })}
+          {META_CREDIT_VISIBILITIES.map((option) => (
+            <RadioOptionRow
+              key={option}
+              id={`meta-credit-${option}`}
+              value={option}
+              disabled={setVisibility.isPending}
+              title={metaCreditVisibilityLabels()[option]}
+              description={metaCreditVisibilityHints()[option]}
+            />
+          ))}
         </RadioGroup>
       )}
 

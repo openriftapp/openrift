@@ -165,10 +165,7 @@ export function ListPage({ listId }: ListPageProps) {
                   <DownloadIcon className="size-4" />
                   {m.lists_page_export()}
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={() => setDeleteOpen(true)}
-                >
+                <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
                   <Trash2Icon className="size-4" />
                   {m.lists_page_delete_list()}
                 </DropdownMenuItem>

@@ -1,12 +1,17 @@
 import { formatDayTime } from "@openrift/shared/format-date";
-import type { StagedProductResponse } from "@openrift/shared/types/api/admin";
+import { formatCents } from "@openrift/shared/money";
+import { matchesTextQuery } from "@openrift/shared/search-fold";
+import type {
+  AssignableCardResponse,
+  StagedProductResponse,
+} from "@openrift/shared/types/api/admin";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
-import { formatCents } from "@openrift/shared/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { AlertTriangleIcon, BanIcon, EllipsisVerticalIcon, LinkIcon, XIcon } from "lucide-react";
 import React, { useState } from "react";
 
+import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +21,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -42,11 +46,7 @@ import {
   useUnifiedMappings,
 } from "@/features/admin/hooks/use-unified-mappings";
 import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
-import type {
-  AssignableCard,
-  SourceMappingConfig,
-  StagedProduct,
-} from "@/features/admin/lib/price-mappings-types";
+import type { SourceMappingConfig } from "@/features/admin/lib/price-mappings-types";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search";
 
@@ -69,7 +69,7 @@ function isStaleRecord(recordedAt: Date): boolean {
 
 interface UnmatchedRow {
   marketplace: Marketplace;
-  product: StagedProduct;
+  product: StagedProductResponse;
 }
 
 function flattenUnmatched(data: {
@@ -119,7 +119,6 @@ export function UnmatchedProductsPanel() {
     ...new Set(allRows.map((row) => row.product.language).filter((l): l is string => l !== null)),
   ].toSorted();
 
-  const needle = search.trim().toLowerCase();
   const filtered = allRows.filter((row) => {
     if (marketplaceFilter !== "all" && row.marketplace !== marketplaceFilter) {
       return false;
@@ -130,7 +129,7 @@ export function UnmatchedProductsPanel() {
     if (languageFilter !== "all" && row.product.language !== languageFilter) {
       return false;
     }
-    if (needle && !row.product.productName.toLowerCase().includes(needle)) {
+    if (!matchesTextQuery(search, [row.product.productName])) {
       return false;
     }
     return true;
@@ -182,7 +181,7 @@ export function UnmatchedProductsPanel() {
 
   function handleAssignToCard(
     marketplace: Marketplace,
-    product: StagedProduct,
+    product: StagedProductResponse,
     card: { cardId: string; cardSlug: string },
   ) {
     const mutations = mutationsFor(marketplace);
@@ -259,7 +258,7 @@ export function UnmatchedProductsPanel() {
                     <UnmatchedProductRow
                       marketplace={marketplace}
                       product={product}
-                      allCards={data.allCards as AssignableCard[]}
+                      allCards={data.allCards as AssignableCardResponse[]}
                       onAssignToCard={(card) => handleAssignToCard(marketplace, product, card)}
                       isAssigning={mutations.assign.isPending}
                       onIgnoreVariant={() =>
@@ -300,8 +299,8 @@ function UnmatchedProductRow({
   isIgnoring,
 }: {
   marketplace: Marketplace;
-  product: StagedProduct;
-  allCards: AssignableCard[];
+  product: StagedProductResponse;
+  allCards: AssignableCardResponse[];
   onAssignToCard: (card: { cardId: string; cardSlug: string }) => void;
   isAssigning: boolean;
   onIgnoreVariant: () => void;
@@ -529,11 +528,10 @@ function FilterBar({
         </SelectContent>
       </Select>
 
-      <Input
-        type="search"
+      <SearchInput
         placeholder="Search product name…"
         value={search}
-        onChange={(event) => onSearchChange(event.target.value)}
+        onValueChange={onSearchChange}
         className="w-64"
       />
 

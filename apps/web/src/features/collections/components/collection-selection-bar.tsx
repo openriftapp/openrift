@@ -1,7 +1,7 @@
 import { BookOpenIcon, ListPlusIcon, Trash2Icon } from "lucide-react";
 
+import { FloatingActionBar } from "@/components/floating-action-bar";
 import type { CollectionContextAction } from "@/features/cards/stores/card-row-actions-store";
-import { FloatingActionBar } from "@/features/collections/components/floating-action-bar";
 import { m } from "@/paraglide/messages.js";
 
 interface CollectionSelectionBarProps {

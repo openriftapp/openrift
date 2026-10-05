@@ -10,7 +10,7 @@ import { EMPTY_TRADE_PREFERENCE, stubCopy, stubPrinting } from "@/test/factories
 const viPrinting = stubPrinting({ id: "p-vi", cardId: "card-vi", card: { name: "Vi" } });
 const jinxPrinting = stubPrinting({ id: "p-jinx", cardId: "card-jinx", card: { name: "Jinx" } });
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => "user-1",
 }));
 

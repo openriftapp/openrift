@@ -4,9 +4,9 @@ import { Link } from "@tanstack/react-router";
 import { CameraIcon } from "lucide-react";
 import { useState } from "react";
 
+import { ShowMoreButton } from "@/components/show-more-button";
 import { CardContent } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
-import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
 
@@ -52,14 +52,12 @@ export function MissingImagesTiles({ items }: MissingImagesTilesProps) {
         ))}
       </div>
       {items.length > VISIBLE_LIMIT && (
-        <ExpandToggle
+        <ShowMoreButton
+          count={items.length}
           expanded={showAll}
-          chevronPosition="end"
           onClick={() => setShowAll(!showAll)}
-          className="text-muted-foreground hover:text-foreground self-start text-sm"
-        >
-          {showAll ? m.contribute_show_fewer() : m.contribute_show_all({ count: items.length })}
-        </ExpandToggle>
+          className="mt-0"
+        />
       )}
     </div>
   );

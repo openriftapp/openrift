@@ -2,7 +2,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import type { FieldDef } from "@/features/admin/components/candidate-field-defs";
 import { resolveLabel } from "@/features/admin/components/candidate-field-defs";
 import { hasValue } from "@/features/admin/lib/candidate-cell-values";
-import { getFilterIconPath } from "@/lib/icons";
+import { FilterIcon } from "@/features/cards/components/filter-icon";
 import type { DiffSegment } from "@/lib/text-diff";
 
 export const DIFF_FIELDS = new Set([
@@ -55,12 +55,9 @@ export function renderLabeledValue(field: FieldDef, value: unknown): React.React
   const values = Array.isArray(value) ? value.map(String) : [String(value)];
   return (
     <span className="inline-flex items-center gap-1">
-      {values.map((v) => {
-        const icon = getFilterIconPath(iconCategory, v);
-        return icon ? (
-          <img key={v} src={icon} alt="" width={28} height={28} className="size-4 shrink-0" />
-        ) : null;
-      })}
+      {values.map((v) => (
+        <FilterIcon key={v} category={iconCategory} value={v} className="size-4 shrink-0" />
+      ))}
       {label}
     </span>
   );

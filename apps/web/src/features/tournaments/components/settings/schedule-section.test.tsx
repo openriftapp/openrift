@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { combineLocalDateTimeToUtc } from "@/features/tournaments/lib/tournament-display";
+import { combineLocalDateTimeToUtc } from "@/lib/date-time-input";
 
 const updateMutateAsync = vi.fn();
 const toastError = vi.fn();

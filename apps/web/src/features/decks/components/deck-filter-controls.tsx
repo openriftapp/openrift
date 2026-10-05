@@ -1,13 +1,13 @@
 import type { DeckFolderResponse } from "@openrift/shared/types/api/deck";
 import type { Domain } from "@openrift/shared/types/enums";
 
+import { MultiSelectCombobox } from "@/components/multi-select-combobox";
 import { Button } from "@/components/ui/button";
 import {
   FilterIconCluster,
   useClusterLabelsFit,
 } from "@/features/cards/components/compact-filter-bar";
 import { FlagBadge } from "@/features/cards/components/filter-flag-badge";
-import { MultiSelectCombobox } from "@/features/cards/components/multi-select-combobox";
 import { useDeckListFilters } from "@/features/decks/hooks/use-deck-list-filters";
 import type {
   DeckListFilterAvailability,

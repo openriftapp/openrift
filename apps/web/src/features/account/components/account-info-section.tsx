@@ -105,7 +105,7 @@ function DisplayNameForm({ defaultName, userId }: { defaultName: string; userId:
                   className="flex-1"
                 />
                 <Button type="submit" disabled={loading || watchedName.trim() === defaultName}>
-                  {loading ? m.profile_account_saving() : m.profile_account_save()}
+                  {loading ? m.common_saving() : m.common_save()}
                 </Button>
               </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -185,7 +185,7 @@ function RiotIdForm({ defaultRiotId, userId }: { defaultRiotId: string; userId: 
                   className="flex-1"
                 />
                 <Button type="submit" disabled={loading || watchedRiotId.trim() === defaultRiotId}>
-                  {loading ? m.profile_account_saving() : m.profile_account_save()}
+                  {loading ? m.common_saving() : m.common_save()}
                 </Button>
               </div>
               <FieldDescription>{m.profile_account_riot_description()}</FieldDescription>
@@ -382,7 +382,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
               className="h-auto px-0 text-sm"
               onClick={resetFlow}
             >
-              {m.profile_account_cancel()}
+              {m.common_cancel()}
             </Button>
           </div>
         </>
@@ -411,7 +411,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
               className="h-auto px-0 text-sm"
               onClick={resetFlow}
             >
-              {m.profile_account_cancel()}
+              {m.common_cancel()}
             </Button>
           </div>
         </>

@@ -1,23 +1,26 @@
+import { pluralize } from "@openrift/shared/strings";
 import type { MetaUploadBody, MetaUploadResponse } from "@openrift/shared/types/api/meta";
-import { UploadIcon, XIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { UploadIcon } from "lucide-react";
+import { useState } from "react";
 
+import { Disclosure } from "@/components/disclosure";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { StatStripItem } from "@/components/ui/stat-strip";
 import { StatStrip } from "@/components/ui/stat-strip";
-import { AdminDisclosure } from "@/features/admin/components/admin-disclosure";
+import { JsonFileField } from "@/features/admin/components/json-file-field";
 import { useUploadMetaOverlays } from "@/features/admin/hooks/use-admin-meta-overlays";
+import { useJsonFileInput } from "@/features/admin/hooks/use-json-file-input";
+import type { JsonParseResult } from "@/features/admin/lib/json-upload";
 import { parseMetaUploadFile } from "@/features/meta/lib/meta-source-review";
 
 const EXAMPLE_UPLOAD_JSON = `{
@@ -60,7 +63,7 @@ const EXAMPLE_UPLOAD_JSON = `{
 
 function FormatHelp() {
   return (
-    <AdminDisclosure title="Format and example" contentClassName="space-y-3 py-3">
+    <Disclosure title="Format and example" contentClassName="space-y-3 py-3">
       <p>
         The file is the whole request body: a <Code>provider</Code> string and a non-empty{" "}
         <Code>events</Code> array. Each event replaces its own staged copy in full, keyed by{" "}
@@ -72,7 +75,7 @@ function FormatHelp() {
       <pre className="bg-muted overflow-x-auto rounded-md p-3">
         <code>{EXAMPLE_UPLOAD_JSON}</code>
       </pre>
-    </AdminDisclosure>
+    </Disclosure>
   );
 }
 
@@ -97,7 +100,7 @@ function UploadSummary({ result }: { result: MetaUploadResponse }) {
       <StatStrip items={summaryItems(result)} />
 
       {result.newEventDetails.length > 0 && (
-        <AdminDisclosure title={`New events (${result.newEventDetails.length})`}>
+        <Disclosure title={`New events (${result.newEventDetails.length})`}>
           <ul className="space-y-1">
             {result.newEventDetails.map((event) => (
               <li key={event.externalId}>
@@ -106,11 +109,11 @@ function UploadSummary({ result }: { result: MetaUploadResponse }) {
               </li>
             ))}
           </ul>
-        </AdminDisclosure>
+        </Disclosure>
       )}
 
       {result.updatedEventDetails.length > 0 && (
-        <AdminDisclosure title={`Updated events (${result.updatedEventDetails.length})`}>
+        <Disclosure title={`Updated events (${result.updatedEventDetails.length})`}>
           <ul className="space-y-1">
             {result.updatedEventDetails.map((event) => (
               <li key={event.externalId}>
@@ -119,13 +122,11 @@ function UploadSummary({ result }: { result: MetaUploadResponse }) {
               </li>
             ))}
           </ul>
-        </AdminDisclosure>
+        </Disclosure>
       )}
 
       {result.unresolvedCards.length > 0 && (
-        <AdminDisclosure
-          title={`Lists with unmatched card names (${result.unresolvedCards.length})`}
-        >
+        <Disclosure title={`Lists with unmatched card names (${result.unresolvedCards.length})`}>
           <ul className="space-y-2">
             {result.unresolvedCards.map((entry) => (
               <li key={`${entry.eventExternalId}-${entry.playerExternalId}`}>
@@ -136,20 +137,25 @@ function UploadSummary({ result }: { result: MetaUploadResponse }) {
               </li>
             ))}
           </ul>
-        </AdminDisclosure>
+        </Disclosure>
       )}
 
       {result.errors.length > 0 && (
-        <AdminDisclosure title={`Errors (${result.errors.length})`}>
+        <Disclosure title={`Errors (${result.errors.length})`}>
           <ul className="text-muted-foreground space-y-1">
             {result.errors.map((error) => (
               <li key={error}>{error}</li>
             ))}
           </ul>
-        </AdminDisclosure>
+        </Disclosure>
       )}
     </div>
   );
+}
+
+function parseUploadBody(text: string): JsonParseResult<MetaUploadBody> {
+  const parsed = parseMetaUploadFile(text);
+  return parsed.ok ? { ok: true, value: parsed.body } : parsed;
 }
 
 /**
@@ -157,37 +163,10 @@ function UploadSummary({ result }: { result: MetaUploadResponse }) {
  * comes back in the summary's error list.
  */
 export function MetaOverlayUploadDialog({ onClose }: { onClose: () => void }) {
-  const fileRef = useRef<HTMLInputElement>(null);
   const upload = useUploadMetaOverlays();
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [body, setBody] = useState<MetaUploadBody | null>(null);
-  const [parseError, setParseError] = useState<string | null>(null);
+  const file = useJsonFileInput(parseUploadBody);
+  const body = file.value;
   const [result, setResult] = useState<MetaUploadResponse | null>(null);
-
-  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-    setFileName(file.name);
-    setParseError(null);
-    setBody(null);
-    setResult(null);
-
-    let text: string;
-    try {
-      text = await file.text();
-    } catch {
-      setParseError("Could not read that file");
-      return;
-    }
-    const parsed = parseMetaUploadFile(text);
-    if (!parsed.ok) {
-      setParseError(parsed.error);
-      return;
-    }
-    setBody(parsed.body);
-  }
 
   async function handleUpload() {
     if (!body) {
@@ -201,11 +180,7 @@ export function MetaOverlayUploadDialog({ onClose }: { onClose: () => void }) {
       return;
     }
     setResult(response);
-    setBody(null);
-    setFileName(null);
-    if (fileRef.current) {
-      fileRef.current.value = "";
-    }
+    file.reset();
   }
 
   return (
@@ -221,37 +196,23 @@ export function MetaOverlayUploadDialog({ onClose }: { onClose: () => void }) {
         <div className="max-h-[60vh] space-y-4 overflow-y-auto">
           <FormatHelp />
 
-          <div className="space-y-2">
-            <Label htmlFor="meta-candidates-file">JSON file</Label>
-            <Input
-              id="meta-candidates-file"
-              ref={fileRef}
-              type="file"
-              accept=".json,application/json"
-              onChange={(event) => void handleFileChange(event)}
-            />
-            {fileName && body && (
-              <p className="text-muted-foreground text-sm">
-                {fileName}: {body.events.length} event{body.events.length === 1 ? "" : "s"} under{" "}
-                <span className="font-mono">{body.provider}</span>
-              </p>
+          <JsonFileField
+            input={file}
+            onFile={() => setResult(null)}
+            summary={(value, fileName) => (
+              <>
+                {fileName}: {value.events.length} {pluralize(value.events.length, "event")} under{" "}
+                <span className="font-mono">{value.provider}</span>
+              </>
             )}
-            {parseError && (
-              <p className="text-muted-foreground flex items-center gap-1 text-sm">
-                <XIcon className="text-destructive size-4 shrink-0" />
-                {parseError}
-              </p>
-            )}
-          </div>
+          />
 
           {result && <UploadSummary result={result} />}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-          <Button onClick={() => void handleUpload()} disabled={!body || upload.isPending}>
+          <DialogCancel>Close</DialogCancel>
+          <Button onClick={() => void handleUpload()} disabled={!body} pending={upload.isPending}>
             <UploadIcon />
             Upload
           </Button>

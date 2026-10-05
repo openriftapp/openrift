@@ -1,7 +1,5 @@
 import type { MetaRunRound } from "@openrift/shared/types/api/meta";
 
-import { m } from "@/paraglide/messages.js";
-
 export interface MetaRunRecord {
   wins: number;
   losses: number;
@@ -21,14 +19,4 @@ export function metaRunRecord(rounds: readonly MetaRunRound[]): MetaRunRecord {
     }
   }
   return record;
-}
-
-export function metaCutRoundLabel(roundNumber: number, lastRoundNumber: number): string {
-  const fromEnd = lastRoundNumber - roundNumber;
-  const labels = [
-    m.meta_bracket_round_final(),
-    m.meta_bracket_round_semifinal(),
-    m.meta_bracket_round_quarterfinal(),
-  ];
-  return labels[fromEnd] ?? m.meta_bracket_top_n({ size: String(2 ** (fromEnd + 1)) });
 }

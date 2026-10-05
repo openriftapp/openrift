@@ -39,7 +39,7 @@ export function VariantCountToggle({
 export function DraftBadge({ className }: { className?: string }) {
   return (
     <Tooltip>
-      <TooltipTrigger render={<Badge variant="muted" className={cn("shrink-0", className)} />}>
+      <TooltipTrigger render={<Badge variant="neutral" className={cn("shrink-0", className)} />}>
         {m.decks_dialog_draft_badge()}
       </TooltipTrigger>
       <TooltipContent className="max-w-56 text-center">

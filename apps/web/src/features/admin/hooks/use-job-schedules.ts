@@ -9,9 +9,9 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { adminJobSchedulesQueryOptions } from "@/features/admin/lib/job-schedules-queries";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 export function useJobSchedules() {
   return useSuspenseQuery(adminJobSchedulesQueryOptions);

@@ -1,23 +1,26 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
 import type { ReactElement, ReactNode } from "react";
-import { Fragment, cloneElement, memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, cloneElement, memo, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { OrnamentRule } from "@/components/ui/ornament";
 import { SelectionRowMark } from "@/components/ui/selection-mark";
+import { useStickyHeader } from "@/features/cards/hooks/use-sticky-header";
+import type { VRow } from "@/features/cards/lib/card-grid-types";
 import { buildGroups } from "@/features/cards/lib/card-groups";
 import type { CardGroup } from "@/features/cards/lib/card-groups";
+import { computeRowStarts } from "@/features/cards/lib/compute-row-starts";
 import { useCardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
 import type { ActionsColumn } from "@/features/collections/lib/collection-table";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useHeaderHeight } from "@/hooks/use-header-height";
+import { useWindowScrollMargin } from "@/hooks/use-window-scroll-margin";
 import type { GroupInfo } from "@/lib/card-group-types";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { useWindowVirtualizerFresh } from "@/lib/virtualizer-fresh";
 import { m } from "@/paraglide/messages.js";
 
-import type { VRow } from "./card-grid-types";
 import type { CardTableColumnOptions } from "./card-table-row";
 import {
   CARD_TABLE_HEADER_HEIGHT,
@@ -29,9 +32,7 @@ import {
   getCardTableMinWidth,
 } from "./card-table-row";
 import { CardViewerEmptyState } from "./card-viewer-empty-state";
-import { computeRowStarts } from "./compute-row-starts";
 import { ScrollIndicator } from "./scroll-indicator";
-import { useStickyHeader } from "./use-sticky-header";
 
 const GAP = 0;
 
@@ -165,8 +166,6 @@ interface CardTableProps {
   noResultsDescription?: ReactNode;
 }
 
-let cachedScrollMargin = 0;
-
 export function CardTable({
   items,
   totalItems,
@@ -189,7 +188,7 @@ export function CardTable({
   const headerHeight = useHeaderHeight();
   const stickyOffset = stickyOffsetProp ?? headerHeight;
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
 
   const groups = buildGroups(items, groupBy, setOrder, groupDir, orders, labels, collectionOrder);
   const multipleGroups = groups.length > 1;
@@ -206,26 +205,9 @@ export function CardTable({
 
   const rowStarts = computeRowStarts(virtualRows, estimateRowHeight, GAP);
 
-  const [scrollMargin, setScrollMargin] = useState(() => cachedScrollMargin);
-
-  useLayoutEffect(() => {
-    const el = containerRef.current;
-    if (!el) {
-      return;
-    }
-    const measure = () => {
-      // The non-sticky column header pushes the rows one header-height below
-      // this container's top; scrollMargin must include it or scrollToIndex lands a row off.
-      const next =
-        Math.round(el.getBoundingClientRect().top + globalThis.scrollY) + CARD_TABLE_HEADER_HEIGHT;
-      cachedScrollMargin = next;
-      setScrollMargin((prev) => (prev === next ? prev : next));
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(document.body);
-    return () => observer.disconnect();
-  }, []);
+  // The non-sticky column header pushes the rows one header-height below the
+  // container's top; without it scrollToIndex lands a row off.
+  const scrollMargin = useWindowScrollMargin(containerEl, CARD_TABLE_HEADER_HEIGHT);
 
   const { virtualizer, virtualItems, totalSize } = useWindowVirtualizerFresh({
     count: virtualRows.length,
@@ -302,14 +284,14 @@ export function CardTable({
 
   if (items.length === 0) {
     return (
-      <div ref={containerRef} className="flex flex-1 flex-col">
+      <div ref={setContainerEl} className="flex flex-1 flex-col">
         <CardViewerEmptyState totalItems={totalItems} noResultsDescription={noResultsDescription} />
       </div>
     );
   }
 
   return (
-    <div ref={containerRef}>
+    <div ref={setContainerEl}>
       <ScrollIndicator
         virtualRows={virtualRows}
         rowStarts={rowStarts}

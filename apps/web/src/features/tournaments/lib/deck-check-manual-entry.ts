@@ -1,6 +1,5 @@
+import { parseDeckImportData } from "@openrift/shared/deck-codecs/parse";
 import { WellKnown } from "@openrift/shared/well-known";
-
-import { parseDeckImportData } from "@/features/decks/lib/deck-import-parsers";
 
 interface ManualEntryCard {
   name: string;

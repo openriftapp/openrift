@@ -1,6 +1,8 @@
 import type { CardTextToken } from "@openrift/shared/card-text";
 import { tokenizeCardText } from "@openrift/shared/card-text";
 
+import { lcsDiff } from "@/lib/text-diff";
+
 type ErrataDiffStatus = "same" | "added" | "removed";
 
 export interface ErrataDiffSegment {
@@ -62,50 +64,11 @@ interface DiffedAtom {
   status: ErrataDiffStatus;
 }
 
-function lcsTable(before: Atom[], after: Atom[]): number[][] {
-  const table = Array.from({ length: before.length + 1 }, () =>
-    Array.from({ length: after.length + 1 }, () => 0),
-  );
-  for (let i = before.length - 1; i >= 0; i--) {
-    for (let j = after.length - 1; j >= 0; j--) {
-      const row = table[i];
-      const below = table[i + 1];
-      if (row === undefined || below === undefined) {
-        continue;
-      }
-      row[j] =
-        before[i]?.key === after[j]?.key
-          ? (below[j + 1] ?? 0) + 1
-          : Math.max(below[j] ?? 0, row[j + 1] ?? 0);
-    }
-  }
-  return table;
-}
-
+// Reversed in and out to keep front-to-back tie-breaking (additions before removals).
 function diffAtoms(before: Atom[], after: Atom[]): DiffedAtom[] {
-  const table = lcsTable(before, after);
-  const out: DiffedAtom[] = [];
-  let i = 0;
-  let j = 0;
-  while (i < before.length || j < after.length) {
-    const left = before[i];
-    const right = after[j];
-    if (left !== undefined && right !== undefined && left.key === right.key) {
-      out.push({ atom: right, status: "same" });
-      i++;
-      j++;
-    } else if (
-      right !== undefined &&
-      (left === undefined || (table[i]?.[j + 1] ?? 0) >= (table[i + 1]?.[j] ?? 0))
-    ) {
-      out.push({ atom: right, status: "added" });
-      j++;
-    } else if (left !== undefined) {
-      out.push({ atom: left, status: "removed" });
-      i++;
-    }
-  }
-  return out;
+  return lcsDiff(before.toReversed(), after.toReversed(), (atom) => atom.key)
+    .toReversed()
+    .map(({ type, item }) => ({ atom: item, status: type === "equal" ? "same" : type }));
 }
 
 function isBlankAtom(atom: Atom): boolean {

@@ -1,9 +1,9 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type {
   AdminCardDetailResponse,
   AdminPrintingResponse,
 } from "@openrift/shared/types/api/admin";
-import { getOrientation } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 import { CheckCheckIcon, PencilIcon } from "lucide-react";
@@ -11,7 +11,7 @@ import { CheckCheckIcon, PencilIcon } from "lucide-react";
 import { Heading } from "@/components/heading";
 import { LanguageChip } from "@/components/language-chip";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { CardList } from "@/components/ui/card-list";
 import { Pressable } from "@/components/ui/pressable";
 import { renderLabeledValue } from "@/features/admin/components/candidate-cell-display";
@@ -25,18 +25,17 @@ import {
   useCheckCandidateCard,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import type { CardReviewNavSearch } from "@/features/admin/hooks/use-card-review-navigation";
+import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { usePrintingsByLanguage } from "@/features/admin/hooks/use-printings-by-language";
 import { hasValue } from "@/features/admin/lib/candidate-cell-values";
 import { firstPrintingSetLabel } from "@/features/admin/lib/card-overview";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import type { OverviewSourceGroup } from "@/features/admin/lib/source-groups";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
+import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { useMarkers } from "@/hooks/use-markers";
-import { getFilterIconPath } from "@/lib/icons";
 
 interface TileLabels {
-  rarities: Record<string, string>;
   finishes: Record<string, string>;
   markers: Record<string, string>;
   cardSizes: Record<string, string>;
@@ -69,7 +68,6 @@ function PrintingTile({
   const image = detail.printingImages.find(
     (candidate) => candidate.printingId === printing.id && candidate.isActive,
   );
-  const rarityIcon = getFilterIconPath("rarities", printing.rarity);
 
   return (
     <Pressable
@@ -89,15 +87,7 @@ function PrintingTile({
         <span className="truncate">{printing.shortCode}</span>
       </span>
       <span className="text-muted-foreground flex items-center gap-1 text-xs">
-        {rarityIcon !== null && (
-          <img
-            src={rarityIcon}
-            alt={enumLabel(labels.rarities, printing.rarity)}
-            width={28}
-            height={28}
-            className="size-3.5 shrink-0"
-          />
-        )}
+        <RarityIcon rarity={printing.rarity} labelled className="size-3.5" />
         <span className="truncate">{idParts(printing, labels)}</span>
       </span>
     </Pressable>
@@ -132,7 +122,6 @@ export function CardOverviewSection({
   const { labels: enumLabels } = useEnumOrders();
   const { data: markersData } = useMarkers();
   const tileLabels: TileLabels = {
-    rarities: enumLabels.rarities,
     finishes: enumLabels.finishes,
     cardSizes: enumLabels.cardSizes,
     markers: Object.fromEntries(markersData.markers.map((marker) => [marker.slug, marker.label])),
@@ -173,21 +162,19 @@ export function CardOverviewSection({
                   {renderLabeledValue(field, card[field.key])}
                 </dd>
                 <dd>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
+                  <Link
+                    to="/admin/cards/$cardSlug"
+                    params={{ cardSlug }}
+                    search={{ ...listSearch, section: "printings", focusField: field.key }}
                     aria-label={`Edit ${field.label}`}
-                    className="-my-1"
-                    render={
-                      <Link
-                        to="/admin/cards/$cardSlug"
-                        params={{ cardSlug }}
-                        search={{ ...listSearch, section: "printings", focusField: field.key }}
-                      />
-                    }
+                    className={buttonVariants({
+                      variant: "ghost",
+                      size: "icon-sm",
+                      className: "-my-1",
+                    })}
                   >
                     <PencilIcon />
-                  </Button>
+                  </Link>
                 </dd>
               </div>
             ))}
@@ -201,7 +188,7 @@ export function CardOverviewSection({
           {byLanguage.length === 0 ? (
             <p className="text-muted-foreground text-sm">No printings yet.</p>
           ) : (
-            byLanguage.map(([language, printings]) => (
+            byLanguage.map(({ language, printings }) => (
               <div key={language} className="flex flex-col gap-2">
                 <PrintingLanguageHeader code={language} />
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,24rem),24rem))] items-start gap-2">

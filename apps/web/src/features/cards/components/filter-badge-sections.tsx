@@ -73,7 +73,7 @@ export function FilterBadgeSections({
             selected={filterState.languages}
             excluded={filterState.languagesEx}
             onCycle={(v) => cycleArrayFilter("languages", "languagesEx", v)}
-            displayLabel={(code) => languageLabels[code] ?? code}
+            displayLabel={(code) => enumLabel(languageLabels, code)}
             counts={filterCounts?.languages}
           />
         )}

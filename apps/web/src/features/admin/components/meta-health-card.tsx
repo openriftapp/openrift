@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { CircleAlertIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { MetaAdminTarget } from "@/features/admin/lib/meta-admin-triggers";
 import { catalogueSource, JOB_KIND_PREFIX } from "@/features/admin/lib/meta-admin-triggers";
@@ -36,34 +36,24 @@ function AlertAction({ alert, source }: { alert: MetaSyncAlert; source: MetaSour
   const destination = ALERT_TARGETS[alert.target];
   if (destination.kind === "runs") {
     return (
-      <Button
-        variant="ghost"
-        size="sm"
-        render={
-          <Link
-            to="/admin/job-runs"
-            search={{ runPrefix: JOB_KIND_PREFIX[source], runStatus: destination.status }}
-          />
-        }
+      <Link
+        to="/admin/job-runs"
+        search={{ runPrefix: JOB_KIND_PREFIX[source], runStatus: destination.status }}
+        className={buttonVariants({ variant: "ghost", size: "sm" })}
       >
         {destination.label}
-      </Button>
+      </Link>
     );
   }
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      render={
-        <Link
-          from="/admin/meta"
-          to="/admin/meta"
-          search={(prev) => ({ ...prev, source: catalogueSource(source), ...destination.target })}
-        />
-      }
+    <Link
+      from="/admin/meta"
+      to="/admin/meta"
+      search={(prev) => ({ ...prev, source: catalogueSource(source), ...destination.target })}
+      className={buttonVariants({ variant: "ghost", size: "sm" })}
     >
       {destination.label}
-    </Button>
+    </Link>
   );
 }
 
@@ -82,7 +72,7 @@ export function HealthCard({ alerts }: { alerts: SourcedAlert[] }) {
         {alerts.map((alert) => (
           <div key={`${alert.source}-${alert.id}`} className="flex items-center gap-2">
             <CircleAlertIcon className="text-destructive size-4 shrink-0" />
-            <Badge variant="muted">{META_SOURCE_LABELS[alert.source]}</Badge>
+            <Badge variant="neutral">{META_SOURCE_LABELS[alert.source]}</Badge>
             <span className="flex-1">{alert.message}</span>
             <AlertAction alert={alert} source={alert.source} />
           </div>

@@ -7,6 +7,8 @@ import { render, screen } from "@testing-library/react";
 import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type * as UseDecks from "@/features/decks/hooks/use-decks";
+
 function cardRow(deckId: string, quantity: number): DeckCardWithDeckResponse {
   return {
     deckId,
@@ -38,7 +40,8 @@ vi.mock("@/features/cards/hooks/use-cards", async () => {
   return { useCards: () => ({ cardsById }) };
 });
 
-vi.mock("@/features/decks/hooks/use-decks", () => ({
+vi.mock("@/features/decks/hooks/use-decks", async (importOriginal) => ({
+  ...(await importOriginal<typeof UseDecks>()),
   useDecks: () => ({
     data: [
       {

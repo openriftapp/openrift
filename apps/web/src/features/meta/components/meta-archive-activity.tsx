@@ -32,10 +32,7 @@ function ActivityRow({ item }: { item: MetaActivityItem }) {
   const Icon = KIND_ICON[item.kind];
 
   return (
-    <RowListLink
-      render={<Link to="/meta/$slug" params={{ slug: item.event.slug }} />}
-      className="focus-visible:ring-ring/50 outline-none focus-visible:ring-2"
-    >
+    <RowListLink render={<Link to="/meta/$slug" params={{ slug: item.event.slug }} />}>
       <span className="bg-muted text-muted-foreground flex size-7 shrink-0 items-center justify-center rounded-full">
         <Icon aria-hidden className="size-3.5" />
       </span>

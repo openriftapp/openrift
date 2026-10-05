@@ -9,16 +9,15 @@ import {
   PageTopBar,
   PageTopBarActions,
   PageTopBarBack,
-  PageTopBarPrimaryButton,
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
+import { ShowMoreButton } from "@/components/show-more-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MetaShowMore } from "@/features/meta/components/meta-show-more";
 import { useMetaSubmissions } from "@/features/meta/hooks/use-meta-submissions";
 import {
   metaSubmissionExplanation,
@@ -53,7 +52,7 @@ function SubmissionRow({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <Badge variant="muted">{metaSubmissionKindLabels()[submission.kind]}</Badge>
+          <Badge variant="neutral">{metaSubmissionKindLabels()[submission.kind]}</Badge>
           <Badge variant={metaSubmissionStatusBadgeVariant[submission.status]}>
             {metaSubmissionStatusLabels(submission.kind)[submission.status]}
           </Badge>
@@ -98,9 +97,9 @@ export function MetaSubmissionsPage() {
           <PageTopBarBack to="/meta" />
           <PageTopBarTitle>{m.meta_submissions_title()}</PageTopBarTitle>
           <PageTopBarActions>
-            <PageTopBarPrimaryButton render={<Link to="/meta/submit" />}>
+            <Link to="/meta/submit" className={buttonVariants()}>
               {m.meta_contribute_send_decklist()}
-            </PageTopBarPrimaryButton>
+            </Link>
           </PageTopBarActions>
         </PageTopBar>
       </PageTopBarSticky>
@@ -123,7 +122,9 @@ export function MetaSubmissionsPage() {
             title={m.meta_submissions_empty_title()}
             description={m.meta_submissions_empty_description()}
           >
-            <Button render={<Link to="/meta/submit" />}>{m.meta_contribute_send_decklist()}</Button>
+            <Link to="/meta/submit" className={buttonVariants()}>
+              {m.meta_contribute_send_decklist()}
+            </Link>
           </EmptyState>
         ) : null}
 
@@ -139,9 +140,9 @@ export function MetaSubmissionsPage() {
               ))}
             </RowList>
             {hasNextPage ? (
-              <MetaShowMore disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>
-                {isFetchingNextPage ? m.meta_loading() : m.meta_submissions_show_older()}
-              </MetaShowMore>
+              <ShowMoreButton pending={isFetchingNextPage} onClick={() => void fetchNextPage()}>
+                {m.meta_submissions_show_older()}
+              </ShowMoreButton>
             ) : null}
           </div>
         ) : null}

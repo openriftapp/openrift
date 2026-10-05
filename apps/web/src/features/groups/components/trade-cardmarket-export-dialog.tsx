@@ -1,5 +1,5 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
-import { legendDisplayName } from "@openrift/shared/utils";
 
 import { CardmarketWantsLink } from "@/components/cardmarket-wants-link";
 import { CopyTextButton } from "@/components/copy-text-button";

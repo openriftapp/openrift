@@ -88,21 +88,28 @@ describe("CollectionTopBar", () => {
   it("keeps Scan and Quick add in the bar whenever adding is available", () => {
     renderTopBar();
 
-    expect(screen.getAllByRole("button", { name: /scan/iu }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /scan/iu }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: "Quick add" }).length).toBeGreaterThan(0);
   });
 
   it("still offers both actions on a collection holding no cards", () => {
     renderTopBar({ hasCards: false });
 
-    expect(screen.getAllByRole("button", { name: /scan/iu }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /scan/iu }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: "Quick add" }).length).toBeGreaterThan(0);
+  });
+
+  it("exposes the button-styled Scan navigation as a link, never a button", () => {
+    renderTopBar();
+
+    expect(screen.getAllByRole("link", { name: /scan/iu }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /scan/iu })).not.toBeInTheDocument();
   });
 
   it("drops both while the empty state carries its own", () => {
     renderTopBar({ showAddActions: false });
 
-    expect(screen.queryByRole("button", { name: /scan/iu })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /scan/iu })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Quick add" })).not.toBeInTheDocument();
   });
 

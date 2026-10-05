@@ -10,7 +10,7 @@ import {
   getDecksCollection,
 } from "@/features/decks/lib/decks-collection";
 import { reorderDeckFolders } from "@/features/decks/lib/decks-write";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 
 function byFolderOrder(a: DeckFolderResponse, b: DeckFolderResponse): number {
   return a.sortOrder - b.sortOrder || a.name.localeCompare(b.name);

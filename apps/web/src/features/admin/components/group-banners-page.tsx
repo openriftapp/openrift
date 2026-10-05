@@ -1,11 +1,13 @@
 import type { AdminGroupBanner } from "@openrift/shared/contracts/admin/friend-group-banners";
 import { formatDayTime } from "@openrift/shared/format-date";
+import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
 import { Trash2Icon } from "lucide-react";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { useGroupBanners, useRemoveGroupBanner } from "@/features/admin/hooks/use-group-banners";
@@ -116,11 +118,11 @@ export function GroupBannersPage() {
       getRowKey={(banner) => banner.groupId}
       emptyText="No group has uploaded a banner."
       defaultSort={{ column: "Uploaded At", direction: "desc" }}
-      title="Group Banners"
+      topBar={(actions) => <AdminPageTopBar title="Group Banners" actions={actions} />}
       toolbar={
         items.length > 0 ? (
           <PageDescription>
-            {items.length} group{items.length === 1 ? "" : "s"} with an uploaded banner
+            {items.length} {pluralize(items.length, "group")} with an uploaded banner
           </PageDescription>
         ) : undefined
       }

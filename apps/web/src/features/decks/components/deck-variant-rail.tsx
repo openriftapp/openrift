@@ -2,19 +2,17 @@ import { ZONE_LABELS } from "@openrift/shared/deck-zones";
 import { formatDay } from "@openrift/shared/format-date";
 import type { DeckCardResponse } from "@openrift/shared/types/api/deck";
 import type { Card } from "@openrift/shared/types/catalog";
-import { inArray, useLiveQuery } from "@tanstack/react-db";
 import { Link } from "@tanstack/react-router";
 import { ArrowRightIcon, GitBranchIcon, GitCompareArrowsIcon, PlusIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Suspense, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { useDecks } from "@/features/decks/hooks/use-decks";
-import { useDeckCardsCollection } from "@/features/decks/hooks/use-decks-collections";
+import { useDeckCardsFor, useDecks } from "@/features/decks/hooks/use-decks";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import { deckCardsByDeck } from "@/features/decks/lib/deck-card-rows";
 import type { DeckDiff, DeckDiffEntry } from "@/features/decks/lib/deck-diff";
@@ -218,13 +216,13 @@ function EdgeCounts({
         <RailPopoverFooter>
           {/* Not a PopoverClose: the navigation unmounts the whole rail, and
               closing first would only race the route change. */}
-          <Button
-            variant="ghost"
-            size="sm"
-            render={<Link to="/decks/compare" search={{ from: fromId, to: toId }} />}
+          <Link
+            to="/decks/compare"
+            search={{ from: fromId, to: toId }}
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
           >
             {m.decks_dialog_rail_show_full_changes()}
-          </Button>
+          </Link>
         </RailPopoverFooter>
       </PopoverContent>
     </Popover>
@@ -274,14 +272,14 @@ function RailCurrentPopover({
         {compareFrom !== null && (
           // Not a PopoverClose: the navigation unmounts the whole rail, and
           // closing first would only race the route change.
-          <Button
-            variant="ghost"
-            size="sm"
-            render={<Link to="/decks/compare" search={{ from: compareFrom, to: node.id }} />}
+          <Link
+            to="/decks/compare"
+            search={{ from: compareFrom, to: node.id }}
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
           >
             <GitCompareArrowsIcon className="size-4" />
             {m.decks_dialog_rail_compare_versions()}
-          </Button>
+          </Link>
         )}
         <PopoverClose render={<Button variant="ghost" size="sm" onClick={onBranchFrom} />}>
           <GitBranchIcon className="size-4" />
@@ -326,21 +324,21 @@ function RailNodePopover({
       <RailPopoverFooter>
         {/* Neither link is a PopoverClose: the navigation unmounts the whole
             rail, and closing first would only race the route change. */}
-        <Button
-          variant="default"
-          size="sm"
-          render={<Link to="/decks/$deckId" params={{ deckId: node.id }} />}
+        <Link
+          to="/decks/$deckId"
+          params={{ deckId: node.id }}
+          className={buttonVariants({ size: "sm" })}
         >
           <ArrowRightIcon className="size-4" />
           {m.decks_dialog_rail_open_deck()}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          render={<Link to="/decks/compare" search={{ from: node.id, to: openDeckId }} />}
+        </Link>
+        <Link
+          to="/decks/compare"
+          search={{ from: node.id, to: openDeckId }}
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
         >
           {m.decks_dialog_rail_show_full_changes()}
-        </Button>
+        </Link>
         <PopoverClose render={<Button variant="ghost" size="sm" onClick={onBranchFrom} />}>
           <GitBranchIcon className="size-4" />
           {m.decks_dialog_rail_branch_from_here()}
@@ -411,13 +409,7 @@ function VariantRailBody({ deckId }: { deckId: string }) {
       : buildRailLayout(members, deckId, MAX_RAIL_NODES);
 
   const railDeckIds = layout.nodes.map((node) => node.id);
-  const cardsCollection = useDeckCardsCollection();
-  const { data: cardRows } = useLiveQuery({
-    query: (q) =>
-      cardsCollection && railDeckIds.length > 0
-        ? q.from({ card: cardsCollection }).where(({ card }) => inArray(card.deckId, railDeckIds))
-        : null,
-  });
+  const cardRows = useDeckCardsFor(railDeckIds);
   const cardsByDeck = deckCardsByDeck(cardRows, railDeckIds);
 
   const openDeckName = current?.deck.name ?? m.decks_dialog_rail_this_deck();

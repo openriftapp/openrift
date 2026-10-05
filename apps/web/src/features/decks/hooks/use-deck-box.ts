@@ -10,7 +10,7 @@ import { computeDeckBoxPlan } from "@/features/decks/lib/deck-box";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { useConditionList } from "@/hooks/use-enums";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 
 /** SSR-unsafe (reads the copies collection through `useLiveQuery`); mount consumers behind `useHydrated`. */
 export function useDeckBox(

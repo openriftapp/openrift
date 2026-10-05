@@ -3,6 +3,8 @@ import { persist } from "zustand/middleware";
 
 import type { DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import type { DeckOverviewSort } from "@/features/decks/lib/deck-overview-list-sort";
+import type { FieldPicker } from "@/lib/persist-merge";
+import { mergeFields, pickBoolean, pickEnum } from "@/lib/persist-merge";
 
 export type DeckOverviewDisplayMode = "grid" | "list" | "stacks";
 
@@ -35,9 +37,9 @@ interface DeckOverviewViewState {
   setShowPrices: (showPrices: boolean) => void;
 }
 
-const DISPLAY_MODES: ReadonlySet<DeckOverviewDisplayMode> = new Set(["grid", "list", "stacks"]);
+const DISPLAY_MODES: readonly DeckOverviewDisplayMode[] = ["grid", "list", "stacks"];
 
-const SORTS: ReadonlySet<DeckOverviewSort> = new Set([
+const SORTS: readonly DeckOverviewSort[] = [
   "default",
   "id",
   "name",
@@ -45,29 +47,17 @@ const SORTS: ReadonlySet<DeckOverviewSort> = new Set([
   "price",
   "rarity",
   "ownership",
-]);
+];
 
-const GROUPS: ReadonlySet<DeckOverviewGroup> = new Set([
-  "type",
-  "energy",
-  "domain",
-  "ownership",
-  "none",
-]);
+const GROUPS: readonly DeckOverviewGroup[] = ["type", "energy", "domain", "ownership", "none"];
 
-/**
- * Keeps a persisted value only when it is one of the allowed choices; a
- * corrupt or stale blob falls back to the in-code default.
- */
-function keepAllowed<Value>(raw: unknown, allowed: ReadonlySet<Value>, fallback: Value): Value {
-  return allowed.has(raw as Value) ? (raw as Value) : fallback;
-}
+const DIRECTIONS: readonly ("asc" | "desc")[] = ["asc", "desc"];
 
-function isColumnCount(raw: unknown): raw is number {
-  return (
-    typeof raw === "number" && Number.isInteger(raw) && raw >= 1 && raw <= MAX_PERSISTED_COLUMNS
-  );
-}
+// Anything that isn't a usable count, including the `thumbSize` step this replaced, falls back to Auto.
+const pickColumnCount: FieldPicker<number | null> = (raw) =>
+  typeof raw === "number" && Number.isInteger(raw) && raw >= 1 && raw <= MAX_PERSISTED_COLUMNS
+    ? raw
+    : undefined;
 
 /**
  * Kept separate from the global card-browser `displayStore` so switching the
@@ -105,33 +95,20 @@ export const useDeckOverviewViewStore = create<DeckOverviewViewState>()(
       name: "deck-overview-view",
       // Validate on rehydrate: a hand-edited or stale blob must fall back to
       // defaults per field, never load junk view state.
-      merge: (persisted, current) => {
-        if (!persisted || typeof persisted !== "object") {
-          return current;
-        }
-        const raw = persisted as Record<string, unknown>;
-        return {
-          ...current,
-          displayMode: keepAllowed(raw.displayMode, DISPLAY_MODES, current.displayMode),
-          // Anything that isn't a usable count — including the `thumbSize` step
-          // this replaced — falls back to Auto.
-          columns: isColumnCount(raw.columns) ? raw.columns : current.columns,
-          preferOwnedPrintings:
-            raw.preferOwnedPrintings === true ? true : current.preferOwnedPrintings,
-          showAllCopies: raw.showAllCopies === true ? true : current.showAllCopies,
-          showAllRuneCopies: raw.showAllRuneCopies === true ? true : current.showAllRuneCopies,
-          sortBy: keepAllowed(raw.sortBy, SORTS, current.sortBy),
-          sortDir: raw.sortDir === "desc" ? "desc" : current.sortDir,
-          groupBy: keepAllowed(raw.groupBy, GROUPS, current.groupBy),
-          groupDir: raw.groupDir === "desc" ? "desc" : current.groupDir,
-          // Defaults to open, so only an explicit `false` survives rehydrate.
-          statsOpen: raw.statsOpen === false ? false : current.statsOpen,
-          // Same: bands are on by default, so only an explicit `false` sticks.
-          showOwnershipBands: raw.showOwnershipBands === false ? false : current.showOwnershipBands,
-          // Prices are off by default, so only an explicit `true` sticks.
-          showPrices: raw.showPrices === true ? true : current.showPrices,
-        };
-      },
+      merge: mergeFields<DeckOverviewViewState>({
+        displayMode: pickEnum(DISPLAY_MODES),
+        columns: pickColumnCount,
+        preferOwnedPrintings: pickBoolean,
+        showAllCopies: pickBoolean,
+        showAllRuneCopies: pickBoolean,
+        sortBy: pickEnum(SORTS),
+        sortDir: pickEnum(DIRECTIONS),
+        groupBy: pickEnum(GROUPS),
+        groupDir: pickEnum(DIRECTIONS),
+        statsOpen: pickBoolean,
+        showOwnershipBands: pickBoolean,
+        showPrices: pickBoolean,
+      }),
     },
   ),
 );

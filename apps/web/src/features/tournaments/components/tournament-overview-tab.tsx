@@ -1,3 +1,4 @@
+import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import type { PodTournamentDetailResponse } from "@openrift/shared/types/api/pod-tournament";
 import type { TournamentDetailResponse } from "@openrift/shared/types/api/tournament";
 import { useQuery } from "@tanstack/react-query";
@@ -23,23 +24,22 @@ import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { StatTile } from "@/components/ui/stat-tile";
 import { TextLink } from "@/components/ui/text-link";
-import { UserAvatar } from "@/components/user-avatar";
 import { ChampionPlate } from "@/features/tournaments/components/champion-plate";
 import { finalStandingsSeats } from "@/features/tournaments/components/final-standings-display";
 import { ParticipantFacepile } from "@/features/tournaments/components/participant-facepile";
+import { PlayerChip } from "@/features/tournaments/components/player-chip";
+import { useTournamentDeckCheckEntries } from "@/features/tournaments/hooks/use-tournament-deck-check";
+import { useParticipantAction } from "@/features/tournaments/hooks/use-tournament-mutations";
+import { useTournamentParticipants } from "@/features/tournaments/hooks/use-tournaments";
 import {
   formatPlayerRecord,
   podWinsHint,
   standingRanks,
-} from "@/features/tournaments/components/standings-display";
-import { useTournamentDeckCheckEntries } from "@/features/tournaments/hooks/use-tournament-deck-check";
-import { useParticipantAction } from "@/features/tournaments/hooks/use-tournament-mutations";
-import { useTournamentParticipants } from "@/features/tournaments/hooks/use-tournaments";
+} from "@/features/tournaments/lib/standings-display";
 import { collapseTeamStandings } from "@/features/tournaments/lib/team-display";
 import {
   canCheckDecks,
   canManageTournament,
-  effectiveTournamentState,
   hasPairing,
   isTournamentStaff,
   pairingLabel,
@@ -47,7 +47,7 @@ import {
   staffRoleLabels,
 } from "@/features/tournaments/lib/tournament-display";
 import { tournamentRunStateQueryOptions } from "@/features/tournaments/lib/tournament-run-queries";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -422,10 +422,12 @@ function ThroneModule({
                 <span className="text-muted-foreground w-6 shrink-0 text-right text-sm tabular-nums">
                   {rank}
                 </span>
-                <UserAvatar name={row.displayName} size="sm" />
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                  {row.displayName}
-                </span>
+                <PlayerChip
+                  name={row.displayName}
+                  image={row.image}
+                  gravatarHash={row.gravatarHash}
+                  className="flex-1 text-sm"
+                />
                 <span
                   className="text-muted-foreground shrink-0 text-xs"
                   title={swiss ? undefined : podWinsHint()}
@@ -498,7 +500,7 @@ function RoundsRail({
                   />
                 }
               >
-                Standings
+                {m.tournaments_section_standings()}
               </TextLink>
             ) : null}
           </RowListItem>
@@ -544,10 +546,10 @@ function StaffRail({ id, detail }: { id: string; detail: TournamentDetailRespons
       <RowList>
         {detail.staff.map((member) => (
           <RowListItem key={`${member.userId}:${member.role}`}>
-            <UserAvatar name={member.name} size="sm" />
-            <span className="min-w-0 flex-1 truncate text-sm font-medium">
-              {member.name ?? m.tournaments_overview_staff_unnamed()}
-            </span>
+            <PlayerChip
+              name={member.name ?? m.tournaments_overview_staff_unnamed()}
+              className="flex-1 text-sm"
+            />
             <span className="text-muted-foreground shrink-0 text-xs">
               {staffRoleLabels()[member.role]}
             </span>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -107,9 +108,7 @@ export function TradePreferenceDialog({
               {m.trade_pref_reset()}
             </Button>
             <div className="flex items-center gap-2">
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-                {m.common_cancel()}
-              </Button>
+              <DialogCancel />
               <Button type="submit" disabled={absoluteNeedsAmount}>
                 {m.common_save()}
               </Button>

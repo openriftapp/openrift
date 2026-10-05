@@ -5,8 +5,12 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+const routeSearch: { q?: string } = {};
+const navigate = vi.fn();
+
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
+  getRouteApi: () => ({ useSearch: () => routeSearch, useNavigate: () => navigate }),
   Link: ({
     to,
     params,
@@ -178,6 +182,35 @@ describe("ErrataPage", () => {
     expect(within(origins as HTMLElement).getByText("Arise")).toBeInTheDocument();
   });
 
+  it("writes the query to the address and reads it back", async () => {
+    const user = userEvent.setup();
+    navigate.mockClear();
+    renderPage();
+
+    await user.type(
+      screen.getByRole("textbox", { name: "Search errata by card name or text" }),
+      "arise",
+    );
+
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalled());
+    const [options] = navigate.mock.calls.at(-1) ?? [];
+    const { search } = options as {
+      search: (prev: Record<string, unknown>) => Record<string, unknown>;
+    };
+    expect(search({})).toEqual({ q: "arise" });
+  });
+
+  it("starts filtered when the address carries a query", () => {
+    routeSearch.q = "arise";
+    const { container } = renderPage();
+    routeSearch.q = undefined;
+
+    expect(container.querySelector("#astral-heron")).toBeNull();
+    expect(screen.getByRole("textbox", { name: "Search errata by card name or text" })).toHaveValue(
+      "arise",
+    );
+  });
+
   it("opens a collapsed update when the address links to one of its cards", () => {
     globalThis.location.hash = "#arise";
     const { container } = renderPage();
@@ -195,6 +228,6 @@ describe("ErrataPage", () => {
       "zzz",
     );
 
-    expect(screen.getByText("No errata match these filters.")).toBeInTheDocument();
+    expect(screen.getByText(/No errata match these filters\./u)).toBeInTheDocument();
   });
 });

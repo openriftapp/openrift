@@ -1,20 +1,10 @@
 import type { FriendGroupDetailResponse } from "@openrift/shared/types/api/friend-group";
 import { useNavigate } from "@tanstack/react-router";
 import { Trash2Icon } from "lucide-react";
-import { useState } from "react";
 
-import { SettingsSection } from "@/components/layout/settings-section";
+import { ConfirmActionButton } from "@/components/confirm-action-dialog";
+import { DangerZone } from "@/components/layout/danger-zone";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { DialogForm } from "@/components/ui/dialog-form";
 import { TransferOwnershipControl } from "@/features/groups/components/transfer-ownership-control";
 import {
   useDeleteFriendGroup,
@@ -33,15 +23,10 @@ export function LeaveOrDeletePanel({
   const leave = useLeaveFriendGroup();
   const remove = useDeleteFriendGroup();
   const isOwner = data.viewerRole === "owner";
-  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function handleDelete() {
-    try {
-      await remove.mutateAsync(slug);
-      void navigate({ to: "/groups" });
-    } catch {
-      /* Reported by the global mutation error toast. */
-    }
+    await remove.mutateAsync(slug);
+    void navigate({ to: "/groups" });
   }
 
   async function handleLeave() {
@@ -54,39 +39,30 @@ export function LeaveOrDeletePanel({
   }
 
   return (
-    <SettingsSection title={m.groups_leave_title()}>
+    <DangerZone
+      title={m.groups_leave_title()}
+      description={isOwner ? m.groups_leave_owner_note() : undefined}
+      contentClassName={isOwner ? "flex flex-col items-start gap-4" : undefined}
+    >
       {isOwner ? (
         <>
           <TransferOwnershipControl data={data} slug={slug} />
-          <p className="text-muted-foreground text-sm">{m.groups_leave_owner_note()}</p>
-          <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-            <DialogTrigger render={<Button variant="destructive" />}>
-              <Trash2Icon className="size-4" />
-              {m.groups_leave_delete_group()}
-            </DialogTrigger>
-            <DialogContent>
-              <DialogForm onSubmit={() => void handleDelete()}>
-                <DialogHeader>
-                  <DialogTitle>{m.groups_leave_confirm_title()}</DialogTitle>
-                  <DialogDescription>{m.groups_leave_confirm_description()}</DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
-                    {m.common_cancel()}
-                  </Button>
-                  <Button type="submit" variant="destructive" disabled={remove.isPending}>
-                    {m.common_delete()}
-                  </Button>
-                </DialogFooter>
-              </DialogForm>
-            </DialogContent>
-          </Dialog>
+          <ConfirmActionButton
+            trigger={<Button variant="destructive" />}
+            onConfirm={handleDelete}
+            title={m.groups_leave_confirm_title()}
+            description={m.groups_leave_confirm_description()}
+            confirmLabel={m.common_delete()}
+          >
+            <Trash2Icon className="size-4" />
+            {m.groups_leave_delete_group()}
+          </ConfirmActionButton>
         </>
       ) : (
-        <Button variant="ghost" onClick={() => void handleLeave()} disabled={leave.isPending}>
+        <Button variant="outline" pending={leave.isPending} onClick={() => void handleLeave()}>
           {m.groups_leave_button()}
         </Button>
       )}
-    </SettingsSection>
+    </DangerZone>
   );
 }

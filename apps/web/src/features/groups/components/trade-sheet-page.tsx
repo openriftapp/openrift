@@ -3,29 +3,22 @@ import type {
   CardTradeSheetResponse,
 } from "@openrift/shared/types/api/card-trade";
 import { Link } from "@tanstack/react-router";
-import {
-  BellIcon,
-  CheckIcon,
-  ChevronRightIcon,
-  EllipsisVerticalIcon,
-  HandshakeIcon,
-} from "lucide-react";
+import { BellIcon, CheckIcon, EllipsisVerticalIcon, HandshakeIcon } from "lucide-react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import { useState } from "react";
 
+import { Disclosure } from "@/components/disclosure";
 import { EmptyState } from "@/components/empty-state";
 import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";
 import { PersonPageHeader } from "@/components/person-page-header";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { IconChip } from "@/components/ui/icon-chip";
 import type { IconChipTone } from "@/components/ui/icon-chip";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { CardDetailOverlayProvider } from "@/features/cards/components/card-detail-opener";
@@ -97,22 +90,17 @@ function HistoryFold({ trades }: { trades: CardTradeResponse[] }) {
   }
   const sequence = stepSequence(trades);
   return (
-    <Collapsible defaultOpen={false} className="flex flex-col gap-3">
-      <SectionHeading as="h3">
-        <CollapsibleTrigger className="group hover:text-foreground flex w-full items-center gap-2.5 text-left transition-colors">
-          <IconChip icon={CheckIcon} size="sm" />
-          {m.trades_completed({ count: trades.length })}
-          <ChevronRightIcon className="size-4 shrink-0 transition-transform group-data-[panel-open]:rotate-90" />
-        </CollapsibleTrigger>
-      </SectionHeading>
-      <CollapsibleContent>
-        <ul className="flex flex-col gap-2">
-          {trades.map((trade) => (
-            <TradeRow key={trade.id} trade={trade} sequence={sequence} />
-          ))}
-        </ul>
-      </CollapsibleContent>
-    </Collapsible>
+    <Disclosure
+      variant="heading"
+      icon={CheckIcon}
+      title={m.trades_completed({ count: trades.length })}
+    >
+      <ul className="flex flex-col gap-2">
+        {trades.map((trade) => (
+          <TradeRow key={trade.id} trade={trade} sequence={sequence} />
+        ))}
+      </ul>
+    </Disclosure>
   );
 }
 
@@ -226,18 +214,13 @@ function TradeSheetBody({
             actions={
               <>
                 {hasListsToSee ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    render={
-                      <Link
-                        to="/groups/$slug/members/$userId"
-                        params={{ slug: anchorGroup.slug, userId }}
-                      />
-                    }
+                  <Link
+                    to="/groups/$slug/members/$userId"
+                    params={{ slug: anchorGroup.slug, userId }}
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
                   >
                     {m.trades_view_their_lists()}
-                  </Button>
+                  </Link>
                 ) : null}
                 {reserved.length > 0 ? (
                   <DropdownMenu>

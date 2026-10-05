@@ -46,7 +46,7 @@ export function MetaDeckArchiveBar({
           <PageTopBarTitle>
             {identity ? (
               <MetaIdentity
-                name={identity.name}
+                legend={identity}
                 slug={identity.slug}
                 domains={identity.domains}
                 className="flex-nowrap"

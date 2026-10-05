@@ -23,8 +23,8 @@ import { useState } from "react";
 
 import { DndScrollWatcher } from "@/components/dnd-scroll-watcher";
 import { CardDragGhost } from "@/features/cards/components/card-drag-ghost";
-import type { StageDragData } from "@/features/stage/components/stage-dnd-types";
-import { asStageDragData, asStageDropData } from "@/features/stage/components/stage-dnd-types";
+import type { StageDragData } from "@/features/stage/lib/stage-dnd-types";
+import { asStageDragData, asStageDropData } from "@/features/stage/lib/stage-dnd-types";
 import { usePresentQueueStore } from "@/features/stage/stores/present-queue-store";
 import { collisionDropData } from "@/lib/dnd-data";
 import { moveToIndex } from "@/lib/move-to-index";

@@ -3,8 +3,8 @@ import type { AvailableFilters } from "@openrift/shared/filters-available";
 import type { FilterCounts } from "@openrift/shared/filters-counts";
 import type { PresenceDimension } from "@openrift/shared/types/search";
 
-import type { MultiSelectComboboxProps } from "@/features/cards/components/multi-select-combobox";
-import { MultiSelectCombobox } from "@/features/cards/components/multi-select-combobox";
+import type { MultiSelectComboboxProps } from "@/components/multi-select-combobox";
+import { MultiSelectCombobox } from "@/components/multi-select-combobox";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { buildChannelBreadcrumbs } from "@/features/cards/lib/channel-breadcrumbs";
 import {
@@ -53,7 +53,7 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     emptyText: m.cards_filter_empty_languages(),
     options: (ctx.availableLanguages ?? []).map((value) => ({
       value,
-      label: ctx.languageLabels[value] ?? value,
+      label: enumLabel(ctx.languageLabels, value),
     })),
     selected: ctx.filterState.languages,
     excluded: ctx.filterState.languagesEx,

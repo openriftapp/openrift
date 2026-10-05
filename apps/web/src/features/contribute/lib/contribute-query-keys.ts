@@ -1,4 +1,5 @@
 export const cardSubmissionsKeys = {
+  root: ["card-submissions"] as const,
   all: (userId: string) => ["card-submissions", userId] as const,
   missingImages: (userId: string) => ["card-submissions", userId, "missing-images"] as const,
   summary: (userId: string) => ["card-submissions", userId, "summary"] as const,

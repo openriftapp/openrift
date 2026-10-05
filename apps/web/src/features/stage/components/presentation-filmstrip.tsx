@@ -1,4 +1,5 @@
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { useEffect, useRef } from "react";
 
 import { Pressable } from "@/components/ui/pressable";

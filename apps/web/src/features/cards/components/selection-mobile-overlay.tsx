@@ -1,25 +1,17 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { Suspense, lazy } from "react";
+import { lazy } from "react";
 import type { ReactNode } from "react";
 
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useSelectionDetail } from "@/features/cards/hooks/use-selection-detail";
+import { CardDetailDrawerShell } from "@/features/cards/components/card-detail/card-detail-shells";
 import {
   closeOverlayHistoryEntry,
   useOverlayHistoryEntry,
-} from "@/features/stage/hooks/use-overlay-history-entry";
+} from "@/features/cards/hooks/use-overlay-history-entry";
+import { useSelectionDetail } from "@/features/cards/hooks/use-selection-detail";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { getDomainTintStyle } from "@/lib/domain";
-import { m } from "@/paraglide/messages.js";
 import { useSelectionStore } from "@/stores/selection-store";
 
 const cardDetailImport = import("@/features/cards/components/card-detail/card-detail");
@@ -78,67 +70,24 @@ export function SelectionMobileOverlay({
   }
 
   return (
-    <Drawer
+    <CardDetailDrawerShell
       open={detailOpen}
-      onOpenChange={(open) => {
-        if (!open) {
-          handleClose();
-        }
-      }}
+      onClose={handleClose}
+      style={getDomainTintStyle(selectedCard.card.domains, domainColors)}
     >
-      <DrawerContent
-        // Fixed height overrides the popup's auto sizing to fill the screen
-        // minus the iOS safe area.
-        className="data-[swipe-direction=down]:h-[calc(100dvh-env(safe-area-inset-top,0px))] data-[swipe-direction=down]:max-h-none"
-        style={getDomainTintStyle(selectedCard.card.domains, domainColors)}
-      >
-        <DrawerHeader className="sr-only">
-          <DrawerTitle>{m.cards_detail_title()}</DrawerTitle>
-          <DrawerDescription>{m.cards_detail_description()}</DrawerDescription>
-        </DrawerHeader>
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <Suspense fallback={<CardDetailSkeleton />}>
-            <CardDetail
-              printing={selectedCard}
-              onClose={handleClose}
-              showImages={showImages}
-              onPrevCard={handlePrevCard}
-              onNextCard={handleNextCard}
-              onTagClick={handleTagClick}
-              onKeywordClick={handleKeywordClick}
-              printings={siblingPrintings}
-              onSelectPrinting={handleSelectPrinting}
-              actions={actions?.(selectedCard)}
-              collectionId={collectionId}
-            />
-          </Suspense>
-        </div>
-      </DrawerContent>
-    </Drawer>
-  );
-}
-
-function CardDetailSkeleton() {
-  return (
-    <div className="bg-background rounded-lg px-3">
-      <div className="p-4">
-        <div className="flex items-center gap-2">
-          <Skeleton className="size-8 rounded-md" />
-          <div className="space-y-1.5">
-            <Skeleton className="h-5 w-36" />
-            <Skeleton className="h-3.5 w-24" />
-          </div>
-        </div>
-      </div>
-      <div className="space-y-4 p-4">
-        <Skeleton className="aspect-card w-full rounded-xl" />
-        <div className="flex justify-center gap-1.5">
-          <Skeleton className="h-7 w-16 rounded-md" />
-          <Skeleton className="h-7 w-16 rounded-md" />
-          <Skeleton className="h-7 w-16 rounded-md" />
-        </div>
-        <Skeleton className="h-20 w-full rounded-lg" />
-      </div>
-    </div>
+      <CardDetail
+        printing={selectedCard}
+        onClose={handleClose}
+        showImages={showImages}
+        onPrevCard={handlePrevCard}
+        onNextCard={handleNextCard}
+        onTagClick={handleTagClick}
+        onKeywordClick={handleKeywordClick}
+        printings={siblingPrintings}
+        onSelectPrinting={handleSelectPrinting}
+        actions={actions?.(selectedCard)}
+        collectionId={collectionId}
+      />
+    </CardDetailDrawerShell>
   );
 }

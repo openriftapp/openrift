@@ -1,20 +1,21 @@
 import { joinCatalogCards } from "@openrift/shared/catalog-join";
 import { setsContract } from "@openrift/shared/contracts/sets";
-import { isReleasedIn, todayUtc } from "@openrift/shared/set-release";
+import { todayUtc } from "@openrift/shared/format-date";
+import { isReleasedIn } from "@openrift/shared/set-release";
 import type { SetDetailResponse, SetListResponse } from "@openrift/shared/types/api/catalog";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
-import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { setsKeys } from "@/features/cards/lib/cards-query-keys";
+import { serverCacheKeys } from "@/lib/query-keys";
 import { serverCache } from "@/lib/server-cache";
-import { notFoundError } from "@/lib/server-fns/api-error";
+import { orNotFound } from "@/lib/server-fns/api-error";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 const fetchSetList = createServerFn({ method: "GET" }).handler((): Promise<SetListResponse> =>
   serverCache.query({
-    queryKey: ["server-cache", "sets"],
+    queryKey: serverCacheKeys.sets,
     queryFn: () => apiOrpcClient(setsContract).list(),
   }),
 );
@@ -23,20 +24,8 @@ const fetchSetDetail = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .handler(({ data }): Promise<SetDetailResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "set-detail", data],
-      queryFn: async () => {
-        // 404 (unknown slug) maps to the NOT_FOUND sentinel the caller expects.
-        const { error, data: detail } = await safe(
-          apiOrpcClient(setsContract).detail({ setSlug: data }),
-        );
-        if (error) {
-          if (isDefinedError(error) && error.code === "NOT_FOUND") {
-            throw notFoundError();
-          }
-          throw error;
-        }
-        return detail;
-      },
+      queryKey: serverCacheKeys.setDetail(data),
+      queryFn: () => orNotFound(apiOrpcClient(setsContract).detail({ setSlug: data })),
     }),
   );
 

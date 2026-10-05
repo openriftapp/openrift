@@ -1,6 +1,7 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";

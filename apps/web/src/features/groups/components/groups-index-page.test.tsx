@@ -28,7 +28,7 @@ vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({ printingsById: {} }),
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => "viewer-1",
 }));
 

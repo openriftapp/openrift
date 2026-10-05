@@ -2,13 +2,13 @@ import type { MouseEvent } from "react";
 import { useEffect, useState } from "react";
 
 import { usePageTopBarHeight } from "@/components/layout/page-top-bar";
+import type { FeatureChapter } from "@/features/marketing/lib/features-chapters";
+import { chapterAnchor } from "@/features/marketing/lib/features-chapters";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { cornerClip } from "./clip-frame";
-import type { FeatureChapter } from "./features-chapters";
-import { chapterAnchor } from "./features-chapters";
 
 const READING_LINE = 1 / 3;
 

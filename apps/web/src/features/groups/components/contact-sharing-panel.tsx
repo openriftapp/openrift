@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { TextLink } from "@/components/ui/text-link";
 import { useContactMethods } from "@/features/account/hooks/use-contact-methods";
 import { useUpdateGroupContactReveal } from "@/features/groups/hooks/use-friend-group-mutations";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 
 export function ContactSharingPanel({

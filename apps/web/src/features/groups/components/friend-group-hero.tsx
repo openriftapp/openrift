@@ -5,7 +5,7 @@ import { Fragment } from "react";
 
 import { Eyebrow, Heading } from "@/components/heading";
 import { MarkdownText } from "@/components/markdown-text";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
 import { UserAvatarStack } from "@/components/user-avatar-stack";
 import { CardFan, CardFanOutline } from "@/features/cards/components/card-fan";
@@ -88,15 +88,19 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
             className="h-full w-full object-cover"
             style={{ objectPosition: `50% ${data.group.bannerPosition}%` }}
           />
-          <Button
-            variant="outline"
-            size="sm"
-            className="absolute top-3 right-3 border-white/20 bg-black/60 text-white shadow-md backdrop-blur-sm hover:border-white/30 hover:bg-black/70 hover:text-white"
-            render={<Link to="/groups/$slug/manage" params={{ slug }} />}
+          <Link
+            to="/groups/$slug/manage"
+            params={{ slug }}
+            className={buttonVariants({
+              variant: "outline",
+              size: "sm",
+              className:
+                "absolute top-3 right-3 border-white/20 bg-black/60 text-white shadow-md backdrop-blur-sm hover:border-white/30 hover:bg-black/70 hover:text-white",
+            })}
           >
             <SettingsIcon />
             {m.groups_manage()}
-          </Button>
+          </Link>
         </div>
       ) : null}
       <div
@@ -109,15 +113,18 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
         style={banner ? undefined : { backgroundImage: HERO_WASH }}
       >
         {banner ? null : (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute top-3 right-3 z-10"
-            render={<Link to="/groups/$slug/manage" params={{ slug }} />}
+          <Link
+            to="/groups/$slug/manage"
+            params={{ slug }}
+            className={buttonVariants({
+              variant: "ghost",
+              size: "sm",
+              className: "absolute top-3 right-3 z-10",
+            })}
           >
             <SettingsIcon />
             {m.groups_manage()}
-          </Button>
+          </Link>
         )}
         <div className={cn("flex min-w-0 flex-1 flex-col gap-2.5", banner ? null : "py-6 pl-5")}>
           <Eyebrow variant="kicker">{m.groups_hero_kicker()}</Eyebrow>

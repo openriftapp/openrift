@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
 import { getRouteApi } from "@tanstack/react-router";
 
@@ -67,7 +68,7 @@ export function FirstRowPreview() {
 
   const availableFilters = fromWireFacets(facets);
   const filterCountsHydrated = filterCounts ? fromWireFilterCounts(filterCounts) : undefined;
-  const setDisplayLabel = (slug: string) => setLabels[slug] ?? slug;
+  const setDisplayLabel = (slug: string) => enumLabel(setLabels, slug);
 
   return (
     <CardBrowserLayout
@@ -109,7 +110,7 @@ export function FirstRowPreview() {
               <span className="flex flex-row gap-3 text-sm">
                 <span className="text-muted-foreground font-medium">{firstRow[0]?.setSlug}</span>
                 <span className="font-semibold">
-                  {setLabels[firstRow[0]?.setSlug ?? ""] ?? firstRow[0]?.setSlug}
+                  {enumLabel(setLabels, firstRow[0]?.setSlug ?? "")}
                 </span>
               </span>
             </OrnamentRule>

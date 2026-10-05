@@ -1,8 +1,8 @@
 import type { AdminAuditEventResponse } from "@openrift/shared/contracts/admin/audit-events";
 import { formatDayTime } from "@openrift/shared/format-date";
-import { LoaderIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { ShowMoreButton } from "@/components/show-more-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardList } from "@/components/ui/card-list";
@@ -24,7 +24,7 @@ import {
   SUBMISSION_OUTCOME_LABELS,
   submissionOutcome,
 } from "@/features/admin/lib/history-events";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 
 // The endpoint matches the card as a substring across three columns, so a page
 // can hold no rows for this card; pull a few more before handing over the button.
@@ -73,7 +73,7 @@ function HistoryRow({
         <span className="text-muted-foreground">by {actorName(event, userId)}</span>
       </span>
       {outcome !== null && (
-        <Badge variant={outcome === "accepted" ? "success" : "muted"}>
+        <Badge variant={outcome === "accepted" ? "success" : "neutral"}>
           {SUBMISSION_OUTCOME_LABELS[outcome]}
         </Badge>
       )}
@@ -168,19 +168,14 @@ export function CardHistorySection({
         </Empty>
       )}
 
-      {!busy && events.hasNextPage && (
-        <div className="flex justify-center">
-          <Button variant="outline" onClick={() => void events.fetchNextPage()}>
-            Load more
-          </Button>
-        </div>
-      )}
-
-      {events.isFetchingNextPage && (
-        <p className="text-muted-foreground flex items-center justify-center gap-1.5 text-sm">
-          <LoaderIcon className="size-4 animate-spin" />
-          Looking further back
-        </p>
+      {(events.hasNextPage || events.isFetchingNextPage) && (
+        <ShowMoreButton
+          className="mt-0"
+          pending={events.isFetchingNextPage}
+          onClick={() => void events.fetchNextPage()}
+        >
+          {events.isFetchingNextPage ? "Looking further back" : "Load more"}
+        </ShowMoreButton>
       )}
     </div>
   );

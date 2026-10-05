@@ -1,8 +1,7 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { ListResponse } from "@openrift/shared/types/api/list";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Loader2Icon, PlusSquareIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { PlusSquareIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -17,7 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { CountPill } from "@/components/ui/count-pill";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RadioGroup } from "@/components/ui/radio-group";
+import { RadioOptionRow } from "@/components/ui/radio-option-row";
 import { RowList } from "@/components/ui/row-list";
 import { TextLink } from "@/components/ui/text-link";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -30,7 +30,7 @@ import {
   createImportEntryHandlers,
   deriveImportSummary,
   IMPORT_BATCH_SIZE,
-} from "@/features/collections/hooks/import-flow-shared";
+} from "@/features/collections/lib/import-flow-shared";
 import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
 import { partitionMatchedEntries } from "@/features/collections/lib/import-summary";
 import { useCardmarketPicksResolution } from "@/features/extension/hooks/use-cardmarket-picks";
@@ -43,6 +43,7 @@ import {
 } from "@/features/extension/lib/cardmarket-picks-payload";
 import { buildListImportPayload } from "@/features/lists/hooks/use-list-import-flow";
 import { useBulkAddListEntries, useCreateList, useLists } from "@/features/lists/hooks/use-lists";
+import { sendInBatches } from "@/lib/send-in-batches";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -133,18 +134,20 @@ function TargetPicker({
         value={choice.selected}
         onValueChange={(value) => onChange({ ...choice, selected: String(value) })}
       >
-        <TargetOption id="picks-target-new" value={NEW_LIST} label={m.extension_picks_new_list()}>
-          <PlusSquareIcon className="text-muted-foreground size-4 shrink-0" />
-        </TargetOption>
+        <RadioOptionRow
+          className="-mx-2"
+          value={NEW_LIST}
+          title={m.extension_picks_new_list()}
+          meta={<PlusSquareIcon className="text-muted-foreground size-4 shrink-0" />}
+        />
         {lists.map((list) => (
-          <TargetOption
+          <RadioOptionRow
             key={list.id}
-            id={`picks-target-${list.id}`}
+            className="-mx-2"
             value={list.id}
-            label={list.name}
-          >
-            <CountPill>{list.entryCount}</CountPill>
-          </TargetOption>
+            title={list.name}
+            meta={<CountPill>{list.entryCount}</CountPill>}
+          />
         ))}
       </RadioGroup>
       {choice.selected === NEW_LIST ? (
@@ -158,29 +161,6 @@ function TargetPicker({
       ) : null}
       <p className="text-muted-foreground text-sm">{m.extension_picks_organize_note()}</p>
     </SettingsSection>
-  );
-}
-
-function TargetOption({
-  id,
-  value,
-  label,
-  children,
-}: {
-  id: string;
-  value: string;
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <label
-      htmlFor={id}
-      className="hover:bg-muted/50 -mx-2 flex cursor-pointer items-center gap-3 rounded-md px-2 py-1"
-    >
-      <RadioGroupItem id={id} value={value} />
-      <span className="min-w-0 flex-1 truncate font-medium">{label}</span>
-      {children}
-    </label>
   );
 }
 
@@ -235,13 +215,11 @@ function PicksEditor({
   };
 
   const addAll = async (listId: string) => {
-    const entries = buildListImportPayload(importableEntries, "printing");
-    for (let offset = 0; offset < entries.length; offset += IMPORT_BATCH_SIZE) {
-      await bulkAdd.mutateAsync({
-        listId,
-        entries: entries.slice(offset, offset + IMPORT_BATCH_SIZE),
-      });
-    }
+    await sendInBatches(
+      buildListImportPayload(importableEntries, "printing"),
+      IMPORT_BATCH_SIZE,
+      (entries) => bulkAdd.mutateAsync({ listId, entries }),
+    );
   };
 
   const handleSave = async () => {
@@ -319,15 +297,8 @@ function PicksEditor({
           needsAttentionCount={summary.needsAttentionCount}
           skippedCount={skippedCount}
         />
-        <Button disabled={!canSave || isSaving} onClick={() => void handleSave()}>
-          {isSaving ? (
-            <>
-              <Loader2Icon className="size-4 animate-spin" />
-              {m.extension_picks_saving()}
-            </>
-          ) : (
-            m.extension_picks_save({ count: summary.totalCards })
-          )}
+        <Button disabled={!canSave} pending={isSaving} onClick={() => void handleSave()}>
+          {isSaving ? m.common_saving() : m.extension_picks_save({ count: summary.totalCards })}
         </Button>
       </Callout>
     </div>

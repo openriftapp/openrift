@@ -48,7 +48,7 @@ vi.mock("@/hooks/use-enums", () => ({
   useEnumOrders: () => ({ orders: { domains: ["fury"] }, labels: { domains: { fury: "Fury" } } }),
 }));
 
-vi.mock("@/lib/auth-session", () => ({ useUserId: () => captured.userId }));
+vi.mock("@/hooks/use-session", () => ({ useUserId: () => captured.userId }));
 
 vi.mock("@/components/layout/page-top-bar", () => ({
   PageTopBar: ({ children }: { children?: ReactNode }) => <div>{children}</div>,

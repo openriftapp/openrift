@@ -6,12 +6,13 @@ export interface RulesSearch {
   lang?: RuleLanguage;
 }
 
-/** No zod: this schema runs in a route file, whose imports load on every page. */
+/** No zod: these schemas run in route files, whose imports load on every page. */
+export function querySearchSchema(search: Record<string, unknown>): { q?: string } {
+  return typeof search.q === "string" && search.q.trim() !== "" ? { q: search.q } : {};
+}
+
 export function rulesSearchSchema(search: Record<string, unknown>): RulesSearch {
-  const result: RulesSearch = {};
-  if (typeof search.q === "string" && search.q.trim() !== "") {
-    result.q = search.q;
-  }
+  const result: RulesSearch = querySearchSchema(search);
   if (isRuleLanguage(search.lang)) {
     result.lang = search.lang;
   }

@@ -1,17 +1,18 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 import { PencilLineIcon } from "lucide-react";
 
+import { EmptyState } from "@/components/empty-state";
 import {
   PageTopBar,
   PageTopBarActions,
   PageTopBarBack,
-  PageTopBarButton,
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
+import { buttonVariants } from "@/components/ui/button";
 import { CollectionSlot } from "@/features/cards/components/card-page-collection-slot";
 import { CardPageFactRows } from "@/features/cards/components/card-page-fact-rows";
 import { CardPageHero } from "@/features/cards/components/card-page-hero";
@@ -64,7 +65,7 @@ export function CardDetailPage() {
   if (!selectedPrinting) {
     return (
       <div className={PAGE_PADDING}>
-        <p className="text-muted-foreground">{m.card_detail_no_printings()}</p>
+        <EmptyState title={m.card_detail_no_printings()} />
       </div>
     );
   }
@@ -76,13 +77,15 @@ export function CardDetailPage() {
           <PageTopBarBack to="/cards" aria-label={m.card_detail_all_cards()} />
           <PageTopBarTitle>{legendDisplayName(card)}</PageTopBarTitle>
           <PageTopBarActions>
-            <PageTopBarButton
+            <Link
+              to="/contribute/card/$cardSlug"
+              params={{ cardSlug }}
               aria-label={m.card_detail_link_suggest_correction()}
-              render={<Link to="/contribute/card/$cardSlug" params={{ cardSlug }} />}
+              className={buttonVariants({ variant: "ghost" })}
             >
               <PencilLineIcon className="size-4" />
               <span className="hidden sm:inline">{m.card_detail_link_suggest_correction()}</span>
-            </PageTopBarButton>
+            </Link>
             <ShareLinkButton cardName={legendDisplayName(card)} />
           </PageTopBarActions>
         </PageTopBar>
@@ -101,7 +104,7 @@ export function CardDetailPage() {
           </div>
         </div>
 
-        <CollectionSlot cardSlug={cardSlug} printing={selectedPrinting} siblings={printings} />
+        <CollectionSlot printing={selectedPrinting} siblings={printings} />
 
         <CardPagePrintings
           printings={printings}

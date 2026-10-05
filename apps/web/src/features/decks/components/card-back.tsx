@@ -1,5 +1,6 @@
 import { useId } from "react";
 
+import { CardIcon } from "@/components/card-icon";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -41,11 +42,9 @@ export function CardBack({ className, interactive = false }: CardBackProps) {
         }}
       />
       <div className="absolute inset-0 flex items-center justify-center">
-        <img
+        <CardIcon
           src="/logo.svg"
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none size-[45cqw] opacity-80 brightness-0 invert"
+          className="pointer-events-none size-[45cqw] text-white opacity-80"
         />
       </div>
     </div>

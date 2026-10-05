@@ -1,13 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { XIcon } from "lucide-react";
 import { Fragment } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Callout } from "@/components/ui/callout";
+import { NudgeCallout } from "@/components/nudge-callout";
+import { buttonVariants } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
-import { useOnboardingStore } from "@/features/account/stores/onboarding-store";
 import { useMyMissingImages } from "@/features/contribute/hooks/use-missing-images";
 import { m } from "@/paraglide/messages.js";
+import { useOnboardingStore } from "@/stores/onboarding-store";
 
 const PREVIEW_LIMIT = 3;
 
@@ -28,47 +27,34 @@ export function CollectionMissingImagesCallout() {
   const title = m.collections_stats_missing_images_title({ count });
 
   return (
-    <Callout className="mb-3 flex items-start justify-between gap-4">
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="text-muted-foreground text-sm">
-          <span className="text-foreground font-medium">{title}</span>{" "}
-          {m.collections_stats_missing_images_hint({ count })}
-        </p>
-        <p className="text-muted-foreground text-sm">
-          {preview.map((item, index) => (
-            <Fragment key={item.printingId}>
-              {index > 0 ? " · " : null}
-              <TextLink
-                render={
-                  <Link
-                    to="/contribute/card/$cardSlug/printing/$printingId/image"
-                    params={{ cardSlug: item.cardSlug, printingId: item.printingId }}
-                  />
-                }
-              >
-                {item.cardName}
-              </TextLink>
-            </Fragment>
-          ))}
-          {rest > 0 ? ` ${m.collections_stats_missing_images_more({ count: rest })}` : null}
-        </p>
-      </div>
-      <div className="-my-1 flex shrink-0 items-center gap-1">
-        <Button size="sm" render={<Link to="/contribute" />}>
+    <NudgeCallout
+      className="mb-3"
+      title={title}
+      body={m.collections_stats_missing_images_hint({ count })}
+      action={
+        <Link to="/contribute" className={buttonVariants({ size: "sm" })}>
           {m.collections_stats_missing_images_add({ count })}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          onClick={() => {
-            dismiss(items.map((item) => item.printingId));
-          }}
-          aria-label={m.collections_stats_missing_images_dismiss()}
-        >
-          <XIcon className="size-4" />
-        </Button>
-      </div>
-    </Callout>
+        </Link>
+      }
+      onDismiss={() => dismiss(items.map((item) => item.printingId))}
+      dismissLabel={m.collections_stats_missing_images_dismiss()}
+    >
+      {preview.map((item, index) => (
+        <Fragment key={item.printingId}>
+          {index > 0 ? " · " : null}
+          <TextLink
+            render={
+              <Link
+                to="/contribute/card/$cardSlug/printing/$printingId/image"
+                params={{ cardSlug: item.cardSlug, printingId: item.printingId }}
+              />
+            }
+          >
+            {item.cardName}
+          </TextLink>
+        </Fragment>
+      ))}
+      {rest > 0 ? ` ${m.collections_stats_missing_images_more({ count: rest })}` : null}
+    </NudgeCallout>
   );
 }

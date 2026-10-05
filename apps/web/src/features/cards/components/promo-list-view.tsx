@@ -1,5 +1,5 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 
 import { Card } from "@/components/ui/card";
 import { Pressable } from "@/components/ui/pressable";

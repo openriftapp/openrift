@@ -1,6 +1,7 @@
 import { formatDayTimeLocal, formatRelativeTime } from "@openrift/shared/format-date";
+import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
-import { CheckIcon, LoaderIcon, RotateCcwIcon, SendIcon, XIcon } from "lucide-react";
+import { RotateCcwIcon, SendIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -21,34 +22,28 @@ import {
 } from "@/components/ui/table";
 import { TextLink } from "@/components/ui/text-link";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
-import { RefreshCountdownButton } from "@/features/admin/components/refresh-countdown-button";
-import type { PrintingEventView } from "@/features/admin/hooks/use-flush-printing-events";
 import {
+  JobRunStatusLine,
+  JobRunStatusMessage,
+} from "@/features/admin/components/job-run-status-line";
+import { JobStatusBadge } from "@/features/admin/components/job-status-badge";
+import { RefreshCountdownButton } from "@/features/admin/components/refresh-countdown-button";
+import {
+  FLUSH_PRINTING_EVENTS_KIND,
   isFlushPrintingEventsResult,
   useAdminPrintingEvents,
   useFlushPrintingEvents,
-  useLatestFlushRun,
   useRetryPrintingEvents,
 } from "@/features/admin/hooks/use-flush-printing-events";
+import { useLatestJobRun } from "@/features/admin/hooks/use-latest-job-run";
 import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import { PRINTING_EVENTS_REFRESH_INTERVAL_MS } from "@/features/admin/lib/flush-printing-events-queries";
-import type { JobRunView } from "@/lib/server-fns/api-types";
-
-function StatusBadge({ status }: { status: PrintingEventView["status"] }) {
-  if (status === "failed") {
-    return (
-      <Badge variant="outline" className="border-destructive text-destructive">
-        failed
-      </Badge>
-    );
-  }
-  return <Badge variant="secondary">pending</Badge>;
-}
+import type { JobRunView, PrintingEventView } from "@/lib/server-fns/api-types";
 
 export function PrintingEventsPage() {
   const { data, refetch, isFetching, dataUpdatedAt } = useAdminPrintingEvents();
   const flush = useFlushPrintingEvents();
-  const latestRun = useLatestFlushRun();
+  const latestRun = useLatestJobRun(FLUSH_PRINTING_EVENTS_KIND);
   const retry = useRetryPrintingEvents();
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
 
@@ -74,10 +69,9 @@ export function PrintingEventsPage() {
 
   async function handleRetry(ids: string[]) {
     setRetryingIds(new Set(ids));
-    const suffix = ids.length === 1 ? "" : "s";
     try {
       await retry.mutateAsync(ids);
-      toast.success(`Reset ${ids.length} event${suffix} to pending`);
+      toast.success(`Reset ${ids.length} ${pluralize(ids.length, "event")} to pending`);
     } catch {
       // Reported by the global mutation error toast.
     }
@@ -92,9 +86,9 @@ export function PrintingEventsPage() {
           {failed.length > 0 && (
             <PageTopBarButton
               onClick={() => void handleRetry(failed.map((e) => e.id))}
-              disabled={retry.isPending}
+              pending={retry.isPending}
             >
-              {retry.isPending ? <LoaderIcon className="animate-spin" /> : <RotateCcwIcon />}
+              <RotateCcwIcon />
               Retry all failed
             </PageTopBarButton>
           )}
@@ -104,8 +98,8 @@ export function PrintingEventsPage() {
             dataUpdatedAt={dataUpdatedAt}
             intervalMs={PRINTING_EVENTS_REFRESH_INTERVAL_MS}
           />
-          <PageTopBarPrimaryButton onClick={() => void handleFlush()} disabled={isFlushRunning}>
-            {isFlushRunning ? <LoaderIcon className="animate-spin" /> : <SendIcon />}
+          <PageTopBarPrimaryButton onClick={() => void handleFlush()} pending={isFlushRunning}>
+            <SendIcon />
             Flush now
           </PageTopBarPrimaryButton>
         </>
@@ -133,7 +127,14 @@ export function PrintingEventsPage() {
         </span>
       </div>
 
-      {latestRun.data && <FlushRunStatus run={latestRun.data} />}
+      {latestRun.data && (
+        <JobRunStatusLine
+          run={latestRun.data}
+          runningText={`Flush started ${formatRelativeTime(latestRun.data.startedAt, { seconds: true })}`}
+          failedText="Flush failed"
+          renderSucceeded={(run) => <FlushSucceededLine run={run} />}
+        />
+      )}
 
       <Table className={ADMIN_TABLE_CLASS}>
         <TableHeader>
@@ -180,7 +181,11 @@ function PrintingEventRow({
   return (
     <TableRow>
       <TableCell>
-        <StatusBadge status={event.status} />
+        {event.status === "failed" ? (
+          <JobStatusBadge status="failed" />
+        ) : (
+          <Badge variant="secondary">pending</Badge>
+        )}
       </TableCell>
       <TableCell>
         {event.cardSlug ? (
@@ -211,14 +216,10 @@ function PrintingEventRow({
             size="icon"
             className="size-7"
             onClick={onRetry}
-            disabled={isRetrying}
+            pending={isRetrying}
             title="Reset to pending"
           >
-            {isRetrying ? (
-              <LoaderIcon className="size-3.5 animate-spin" />
-            ) : (
-              <RotateCcwIcon className="size-3.5" />
-            )}
+            <RotateCcwIcon className="size-3.5" />
           </Button>
         )}
       </TableCell>
@@ -226,50 +227,22 @@ function PrintingEventRow({
   );
 }
 
-function FlushRunStatus({ run }: { run: JobRunView }) {
-  if (run.status === "running") {
-    return (
-      <p className="text-muted-foreground flex items-center gap-1 text-sm">
-        <LoaderIcon className="size-4 animate-spin" />
-        Flush started {formatRelativeTime(run.startedAt, { seconds: true })}
-      </p>
-    );
+function FlushSucceededLine({ run }: { run: JobRunView }) {
+  if (!isFlushPrintingEventsResult(run.result)) {
+    return <JobRunStatusMessage status="succeeded">Last flush completed</JobRunStatusMessage>;
   }
-  if (run.status === "failed") {
+  const { sent, failed } = run.result;
+  if (sent === 0 && failed === 0) {
     return (
-      <p className="text-muted-foreground flex items-center gap-1 text-sm">
-        <XIcon className="text-destructive size-4 shrink-0" />
-        {run.errorMessage ?? "Flush failed"}
-      </p>
-    );
-  }
-  if (isFlushPrintingEventsResult(run.result)) {
-    const { sent, failed: failedCount } = run.result;
-    if (sent === 0 && failedCount === 0) {
-      return (
-        <p className="text-muted-foreground flex items-center gap-1 text-sm">
-          <CheckIcon className="size-4" />
-          No pending events on last flush
-        </p>
-      );
-    }
-    return (
-      <p
-        className={
-          failedCount === 0
-            ? "text-success flex items-center gap-1 text-sm"
-            : "text-warning flex items-center gap-1 text-sm"
-        }
-      >
-        <CheckIcon className="size-4" />
-        Last flush sent {sent}, failed {failedCount}
-      </p>
+      <JobRunStatusMessage status="succeeded">No pending events on last flush</JobRunStatusMessage>
     );
   }
   return (
-    <p className="text-muted-foreground flex items-center gap-1 text-sm">
-      <CheckIcon className="text-success size-4 shrink-0" />
-      Last flush completed
-    </p>
+    <JobRunStatusMessage
+      status="succeeded"
+      className={failed === 0 ? "text-success" : "text-warning [&>svg]:text-warning"}
+    >
+      Last flush sent {sent}, failed {failed}
+    </JobRunStatusMessage>
   );
 }

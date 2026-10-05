@@ -1,13 +1,20 @@
 import { adminIgnoredCandidatesContract } from "@openrift/shared/contracts/admin/ignored-candidates";
-import { useMutation, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { ignoredCandidatesQueryOptions } from "@/features/admin/lib/ignored-candidates-queries";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 type Scope = readonly (readonly unknown[])[];
+
+const IGNORE_INVALIDATES = [
+  adminKeys.ignoredCandidates,
+  adminKeys.cards.all,
+  adminKeys.reviewQueue,
+] as const;
 
 export function useIgnoredCandidates() {
   return useSuspenseQuery(ignoredCandidatesQueryOptions);
@@ -21,18 +28,10 @@ const ignoreCandidateCardFn = createServerFn({ method: "POST" })
   });
 
 export function useIgnoreCandidateCard(invalidates: Scope = []) {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (params: { provider: string; externalId: string }) =>
       ignoreCandidateCardFn({ data: params }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: adminKeys.ignoredCandidates });
-      void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
-      void queryClient.invalidateQueries({ queryKey: adminKeys.reviewQueue });
-      for (const key of invalidates) {
-        void queryClient.invalidateQueries({ queryKey: [...key] });
-      }
-    },
+    invalidates: [...IGNORE_INVALIDATES, ...invalidates],
   });
 }
 
@@ -44,15 +43,10 @@ const unignoreCandidateCardFn = createServerFn({ method: "POST" })
   });
 
 export function useUnignoreCandidateCard() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (params: { provider: string; externalId: string }) =>
       unignoreCandidateCardFn({ data: params }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: adminKeys.ignoredCandidates });
-      void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
-      void queryClient.invalidateQueries({ queryKey: adminKeys.reviewQueue });
-    },
+    invalidates: IGNORE_INVALIDATES,
   });
 }
 
@@ -64,18 +58,10 @@ const ignoreCandidatePrintingFn = createServerFn({ method: "POST" })
   });
 
 export function useIgnoreCandidatePrinting(invalidates: Scope = []) {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (params: { provider: string; externalId: string; finish?: string | null }) =>
       ignoreCandidatePrintingFn({ data: params }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: adminKeys.ignoredCandidates });
-      void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
-      void queryClient.invalidateQueries({ queryKey: adminKeys.reviewQueue });
-      for (const key of invalidates) {
-        void queryClient.invalidateQueries({ queryKey: [...key] });
-      }
-    },
+    invalidates: [...IGNORE_INVALIDATES, ...invalidates],
   });
 }
 
@@ -87,15 +73,10 @@ const unignoreCandidatePrintingFn = createServerFn({ method: "POST" })
   });
 
 export function useUnignoreCandidatePrinting() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (params: { provider: string; externalId: string; finish: string | null }) =>
       unignoreCandidatePrintingFn({ data: params }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: adminKeys.ignoredCandidates });
-      void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
-      void queryClient.invalidateQueries({ queryKey: adminKeys.reviewQueue });
-    },
+    invalidates: IGNORE_INVALIDATES,
   });
 }
 
@@ -107,14 +88,9 @@ const deletePrintingLinkFn = createServerFn({ method: "POST" })
   });
 
 export function useDeletePrintingLink() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (params: { provider: string; externalId: string; finish: string }) =>
       deletePrintingLinkFn({ data: params }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: adminKeys.ignoredCandidates });
-      void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
-      void queryClient.invalidateQueries({ queryKey: adminKeys.reviewQueue });
-    },
+    invalidates: IGNORE_INVALIDATES,
   });
 }

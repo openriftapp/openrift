@@ -1,0 +1,57 @@
+import { adminMarkersContract } from "@openrift/shared/contracts/admin/markers";
+import { createServerFn } from "@tanstack/react-start";
+
+import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { adminMarkersQueryOptions } from "@/features/admin/lib/markers-queries";
+import { promosKeys } from "@/features/cards/lib/cards-query-keys";
+import { createAdminEnumHooks } from "@/hooks/create-admin-enum-hooks";
+import { withCookies } from "@/lib/server-fns/middleware";
+import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+
+const createMarkerFn = createServerFn({ method: "POST" })
+  .validator((input: { slug: string; label: string; description?: string | null }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminMarkersContract, context.cookie).create(data);
+  });
+
+const updateMarkerFn = createServerFn({ method: "POST" })
+  .validator(
+    (input: { id: string; slug?: string; label?: string; description?: string | null }) => input,
+  )
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminMarkersContract, context.cookie).update(data);
+  });
+
+const reorderMarkersFn = createServerFn({ method: "POST" })
+  .validator((input: { ids: string[] }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminMarkersContract, context.cookie).reorder({ ids: data.ids });
+  });
+
+const deleteMarkerFn = createServerFn({ method: "POST" })
+  .validator((input: { id: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminMarkersContract, context.cookie).remove({ id: data.id });
+  });
+
+const markerHooks = createAdminEnumHooks({
+  listQueryOptions: adminMarkersQueryOptions,
+  invalidates: [adminKeys.markers],
+  create: (vars: { slug: string; label: string; description?: string | null }) =>
+    createMarkerFn({ data: vars }),
+  update: (vars: { id: string; slug?: string; label?: string; description?: string | null }) =>
+    updateMarkerFn({ data: vars }),
+  reorder: (ids: string[]) => reorderMarkersFn({ data: { ids } }),
+  reorderInvalidates: [adminKeys.markers, promosKeys.all],
+  remove: (id: string) => deleteMarkerFn({ data: { id } }),
+});
+
+export const useMarkers = markerHooks.useList;
+export const useCreateMarker = markerHooks.useCreate;
+export const useUpdateMarker = markerHooks.useUpdate;
+export const useDeleteMarker = markerHooks.useDelete;
+export const useReorderMarkers = markerHooks.useReorder;

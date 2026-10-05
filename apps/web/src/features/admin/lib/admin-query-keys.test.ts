@@ -22,6 +22,21 @@ describe("adminKeys", () => {
     expect(adminKeys.sets).toEqual(["admin", "sets"]);
   });
 
+  it("audit keys", () => {
+    expect(adminKeys.audit.events({ action: "x" })).toEqual([
+      "admin",
+      "audit-events",
+      { action: "x" },
+    ]);
+    expect(adminKeys.audit.actors).toEqual(["admin", "audit-actors"]);
+    expect(adminKeys.audit.actions).toEqual(["admin", "audit-actions"]);
+  });
+
+  it("printingEvents and marketplace", () => {
+    expect(adminKeys.printingEvents).toEqual(["admin", "printing-events"]);
+    expect(adminKeys.marketplace("tcgplayer")).toEqual(["admin", "tcgplayer"]);
+  });
+
   it("marketplaceGroups", () => {
     expect(adminKeys.marketplaceGroups).toEqual(["admin", "marketplace-groups"]);
   });

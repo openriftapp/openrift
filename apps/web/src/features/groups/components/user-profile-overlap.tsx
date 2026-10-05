@@ -2,23 +2,13 @@ import type { PublicUserBundleResponse } from "@openrift/shared/types/api/user-s
 import { Link } from "@tanstack/react-router";
 import { ArrowLeftRightIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { PublicShareCta } from "@/components/signed-out-cta";
+import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { IconChip } from "@/components/ui/icon-chip";
-import { PublicShareCta } from "@/features/account/components/signed-out-cta";
+import { StatFigure } from "@/components/ui/stat-figure";
 import { formatCount } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
-
-function OverlapCount({ value, children }: { value: number; children: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="font-heading min-w-8 text-3xl font-semibold tabular-nums">
-        {formatCount(value)}
-      </span>
-      <span className="text-muted-foreground max-w-48 text-sm">{children}</span>
-    </div>
-  );
-}
 
 /** Anonymous viewers get the sign-in nudge instead (client-only, since the page is publicly cached for them). */
 export function UserProfileOverlap({
@@ -52,24 +42,26 @@ export function UserProfileOverlap({
           <span className="text-muted-foreground text-xs">{m.user_profile_overlap_subtitle()}</span>
         </div>
       </div>
-      <OverlapCount value={overlap.theyWantYouHave}>
-        {m.user_profile_overlap_they_want()}
-      </OverlapCount>
-      <OverlapCount value={overlap.theyOfferYouWant}>
-        {m.user_profile_overlap_they_offer()}
-      </OverlapCount>
+      <StatFigure
+        size="hero"
+        className="max-w-48"
+        value={formatCount(overlap.theyWantYouHave)}
+        label={m.user_profile_overlap_they_want()}
+      />
+      <StatFigure
+        size="hero"
+        className="max-w-48"
+        value={formatCount(overlap.theyOfferYouWant)}
+        label={m.user_profile_overlap_they_offer()}
+      />
       {matchGroup && owner.userId ? (
-        <Button
-          className="sm:ml-auto"
-          render={
-            <Link
-              to="/groups/$slug/members/$userId"
-              params={{ slug: matchGroup.slug, userId: owner.userId }}
-            />
-          }
+        <Link
+          to="/groups/$slug/members/$userId"
+          params={{ slug: matchGroup.slug, userId: owner.userId }}
+          className={buttonVariants({ className: "sm:ml-auto" })}
         >
           {m.user_profile_see_matches({ group: matchGroup.name })}
-        </Button>
+        </Link>
       ) : null}
     </Card>
   );

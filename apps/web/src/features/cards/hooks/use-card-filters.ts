@@ -18,11 +18,11 @@ import type {
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 
+import { useFilterSearch } from "@/features/cards/hooks/use-filter-search";
 import { cycleIncludeExclude } from "@/features/cards/lib/filter-cycle";
 import { toFilterState } from "@/features/cards/lib/filter-dimensions";
 import { isPrintingsOnlyGrouping } from "@/features/cards/lib/group-by-field";
 import type { FilterSearch, OwnedBucket } from "@/features/cards/lib/search-schemas";
-import { useFilterSearch } from "@/features/cards/lib/search-schemas";
 import { useSearchScopeStore } from "@/features/cards/stores/search-scope-store";
 import { useSurfaceViewDefaults, useViewPrefsWriter } from "@/hooks/use-view-prefs";
 import { trackEvent } from "@/lib/analytics";

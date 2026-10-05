@@ -1,8 +1,17 @@
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import { useNavigate } from "@tanstack/react-router";
-import { EyeIcon, EyeOffIcon, LayersIcon, PencilIcon, Share2Icon, Trash2Icon } from "lucide-react";
+import {
+  EyeIcon,
+  EyeOffIcon,
+  LayersIcon,
+  LinkIcon,
+  PencilIcon,
+  Share2Icon,
+  Trash2Icon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import {
   ContextMenu,
@@ -16,6 +25,8 @@ import {
   useSetCollectionDeckbuilding,
   useSetCollectionSidebarHidden,
 } from "@/features/collections/hooks/use-collections";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { shareLinkUrl } from "@/lib/share-links";
 import { m } from "@/paraglide/messages.js";
 
 import { CollectionShareDialog } from "./collection-share-dialog";
@@ -37,6 +48,20 @@ export function CollectionRowMenu({ collection, isActive, children }: Collection
   const setDeckbuilding = useSetCollectionDeckbuilding();
   const deleteCollection = useDeleteCollection();
   const navigate = useNavigate();
+
+  const { copy } = useCopyToClipboard();
+  const shareUrl = shareLinkUrl("collection", collection);
+
+  const handleCopyLink = async () => {
+    if (!shareUrl) {
+      return;
+    }
+    if (await copy(shareUrl)) {
+      toast.success(m.common_share_link_copied());
+      return;
+    }
+    toast.error(m.common_copy_link_error());
+  };
 
   const canAdmin = collection.viewerCanAdmin;
   const canDelete = canAdmin && !collection.isInbox;
@@ -87,6 +112,12 @@ export function CollectionRowMenu({ collection, isActive, children }: Collection
             <ContextMenuItem onClick={() => setShareOpen(true)}>
               <Share2Icon />
               {m.collections_row_share()}
+            </ContextMenuItem>
+          )}
+          {shareUrl && (
+            <ContextMenuItem onClick={() => void handleCopyLink()}>
+              <LinkIcon />
+              {m.common_copy_share_link()}
             </ContextMenuItem>
           )}
           {!collection.isInbox && (

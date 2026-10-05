@@ -1,7 +1,8 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type { DeskImage, DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
 import { enumLabel } from "@openrift/shared/enum-label";
+import { todayUtc } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
-import { buildPrintingsPostCaption } from "@openrift/shared/printing-post-caption";
 import {
   formatPostDate,
   isPostDayDate,
@@ -14,16 +15,12 @@ import {
   POST_IMAGE_LABEL_TEXT,
   POST_IMAGE_LABELS,
 } from "@openrift/shared/printing-post-image";
-import { todayUtc } from "@openrift/shared/set-release";
-import { getOrientation } from "@openrift/shared/utils";
 import { useSuspenseQueries } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   CalendarDaysIcon,
-  CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  CopyIcon,
   DownloadIcon,
   ImageIcon,
   PlusIcon,
@@ -32,8 +29,9 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { CopyTextButton } from "@/components/copy-text-button";
 import { PageTopBarBack } from "@/components/layout/page-top-bar";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -52,10 +50,13 @@ import { Pressable } from "@/components/ui/pressable";
 import { Textarea } from "@/components/ui/textarea";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { DeskSegmented } from "@/features/admin/components/printing-desk-shared";
+import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
+import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { printingDeskCardUrl } from "@/features/admin/lib/printing-desk-csv";
 import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { deskPrintingQueryOptions } from "@/features/admin/lib/printing-desk-queries";
 import { deskPrintingRelease, deskPrintingStatus } from "@/features/admin/lib/printing-desk-status";
+import { buildPrintingsPostCaption } from "@/features/admin/lib/printing-post-caption";
 import { effectivePostDate, POST_DATE_NONE } from "@/features/admin/lib/printing-post-date-default";
 import {
   POST_IMAGE_PREVIEW_WIDTH,
@@ -72,10 +73,7 @@ import {
 } from "@/features/admin/lib/printing-post-slides";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { useDistributionChannels } from "@/hooks/use-distribution-channels";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { useMarkers } from "@/hooks/use-markers";
 import { downloadImageFromUrl } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
@@ -161,9 +159,9 @@ function NoSlides() {
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Button variant="outline" render={<Link to="/admin/printing-desk" />}>
+        <Link to="/admin/printing-desk" className={buttonVariants({ variant: "outline" })}>
           Back to your printings
-        </Button>
+        </Link>
       </EmptyContent>
     </Empty>
   );
@@ -179,7 +177,6 @@ function PostComposer({
   const { data: channelData } = useDistributionChannels();
   const { data: markerData } = useMarkers();
   const { labels } = useEnumOrders();
-  const { copied, copy } = useCopyToClipboard();
 
   const printingIds = [...new Set(slides.map((slide) => slide.printingId))];
   const results = useSuspenseQueries({
@@ -529,7 +526,7 @@ function PostComposer({
               <div className="flex items-center gap-1">
                 <DatePicker
                   value={postDayValue}
-                  onChange={(iso) => goTo({ date: iso })}
+                  onValueChange={(iso) => goTo({ date: iso })}
                   onClear={() => goTo({ date: POST_DATE_NONE })}
                   placeholder={postDate === undefined ? "No date" : formatPostDate(postDate)}
                 />
@@ -612,10 +609,7 @@ function PostComposer({
                 <DownloadIcon />
                 Download this slide
               </Button>
-              <Button variant="outline" onClick={() => void copy(caption)}>
-                {copied ? <CheckIcon /> : <CopyIcon />}
-                Copy caption
-              </Button>
+              <CopyTextButton label="Copy caption" value={caption} />
             </div>
 
             <Field>

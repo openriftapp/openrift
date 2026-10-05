@@ -1,4 +1,4 @@
-import { slugifyName } from "@openrift/shared/utils";
+import { slugifyName } from "@openrift/shared/strings";
 
 export interface KeywordEntry {
   summary: string;

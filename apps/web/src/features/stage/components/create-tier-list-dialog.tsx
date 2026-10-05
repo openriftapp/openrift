@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -61,9 +62,7 @@ export function CreateTierListDialog({ open, onOpenChange }: CreateTierListDialo
         </Field>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {m.common_cancel()}
-          </Button>
+          <DialogCancel />
           <Button onClick={handleCreate} disabled={trimmedTitle === "" || createTierList.isPending}>
             {m.common_create()}
           </Button>

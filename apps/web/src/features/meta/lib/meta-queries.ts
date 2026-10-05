@@ -26,13 +26,13 @@ import type {
   MetaPlayerDetailResponse,
   MetaScopeQuery,
 } from "@openrift/shared/types/api/meta";
-import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { metaKeys, metaSubmissionsKeys } from "@/features/meta/lib/meta-query-keys";
+import { serverCacheKeys } from "@/lib/query-keys";
 import { serverCache } from "@/lib/server-cache";
-import { notFoundError } from "@/lib/server-fns/api-error";
+import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -60,7 +60,7 @@ const fetchMetaEvents = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(({ context, data: query }): Promise<MetaEventListResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "meta", "events", ...cacheKeyFor(query)],
+      queryKey: serverCacheKeys.meta("events", ...cacheKeyFor(query)),
       queryFn: () => apiOrpcClient(metaContract, context.cookie).events(query),
     }),
   );
@@ -93,7 +93,7 @@ const fetchMetaEventFacets = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(({ context, data: query }): Promise<MetaEventFacetsResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "meta", "event-facets", ...cacheKeyFor(query)],
+      queryKey: serverCacheKeys.meta("event-facets", ...cacheKeyFor(query)),
       queryFn: () => apiOrpcClient(metaContract, context.cookie).eventFacets(query),
     }),
   );
@@ -112,7 +112,7 @@ const fetchMetaEventDayCounts = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(({ context, data: query }): Promise<MetaEventDayCountsResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "meta", "event-day-counts", ...cacheKeyFor(query)],
+      queryKey: serverCacheKeys.meta("event-day-counts", ...cacheKeyFor(query)),
       queryFn: () => apiOrpcClient(metaContract, context.cookie).eventDayCounts(query),
     }),
   );
@@ -131,7 +131,7 @@ const fetchMetaCounts = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(({ context, data: query }): Promise<MetaCountsResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "meta", "counts", ...cacheKeyFor(query)],
+      queryKey: serverCacheKeys.meta("counts", ...cacheKeyFor(query)),
       queryFn: () => apiOrpcClient(metaContract, context.cookie).counts(query),
     }),
   );
@@ -149,7 +149,7 @@ const fetchMetaActivity = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(({ context }): Promise<MetaActivityResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "meta", "activity"],
+      queryKey: serverCacheKeys.meta("activity"),
       queryFn: () => apiOrpcClient(metaContract, context.cookie).activity(),
     }),
   );
@@ -163,16 +163,9 @@ export const metaActivityQueryOptions = queryOptions({
 const fetchMetaEvent = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: slug }): Promise<MetaEventDetailResponse> => {
-    const { error, data } = await safe(apiOrpcClient(metaContract, context.cookie).event({ slug }));
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ context, data: slug }): Promise<MetaEventDetailResponse> =>
+    orNotFound(apiOrpcClient(metaContract, context.cookie).event({ slug })),
+  );
 
 export function metaEventQueryOptions(slug: string) {
   return queryOptions({
@@ -191,19 +184,8 @@ const fetchMetaStandings = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(({ context, data: query }): Promise<MetaEventStandingsResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "meta", "standings", query.slug, ...cacheKeyFor(query)],
-      queryFn: async () => {
-        const { error, data } = await safe(
-          apiOrpcClient(metaContract, context.cookie).standings(query),
-        );
-        if (error) {
-          if (isDefinedError(error) && error.code === "NOT_FOUND") {
-            throw notFoundError();
-          }
-          throw error;
-        }
-        return data;
-      },
+      queryKey: serverCacheKeys.meta("standings", query.slug, ...cacheKeyFor(query)),
+      queryFn: () => orNotFound(apiOrpcClient(metaContract, context.cookie).standings(query)),
     }),
   );
 
@@ -223,16 +205,9 @@ export function metaStandingsQueryOptions(
 const fetchMetaRun = createServerFn({ method: "GET" })
   .validator((input: { slug: string; key: string }) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data }): Promise<MetaEventRunResponse> => {
-    const { error, data: run } = await safe(apiOrpcClient(metaContract, context.cookie).run(data));
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return run;
-  });
+  .handler(({ context, data }): Promise<MetaEventRunResponse> =>
+    orNotFound(apiOrpcClient(metaContract, context.cookie).run(data)),
+  );
 
 export function metaRunQueryOptions(slug: string, key: string) {
   return queryOptions({
@@ -263,7 +238,7 @@ const fetchMetaDecks = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(({ context, data: query }): Promise<MetaDeckListResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "meta", "decks", ...cacheKeyFor(query)],
+      queryKey: serverCacheKeys.meta("decks", ...cacheKeyFor(query)),
       queryFn: () => apiOrpcClient(metaContract, context.cookie).decks(query),
     }),
   );
@@ -282,7 +257,7 @@ const fetchMetaDeckFacets = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(({ context, data: query }): Promise<MetaDeckFacetsResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "meta", "deck-facets", ...cacheKeyFor(query)],
+      queryKey: serverCacheKeys.meta("deck-facets", ...cacheKeyFor(query)),
       queryFn: () => apiOrpcClient(metaContract, context.cookie).deckFacets(query),
     }),
   );
@@ -301,7 +276,7 @@ const fetchMetaDeckCards = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(({ context, data: query }): Promise<MetaDeckCardIndexResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "meta", "deck-cards", ...cacheKeyFor(query)],
+      queryKey: serverCacheKeys.meta("deck-cards", ...cacheKeyFor(query)),
       queryFn: () => apiOrpcClient(metaContract, context.cookie).deckCards(query),
     }),
   );
@@ -318,16 +293,9 @@ export function metaDeckCardsQueryOptions(query?: MetaDeckCardsQuery) {
 const fetchMetaDeck = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: token }): Promise<MetaDeckDetailResponse> => {
-    const { error, data } = await safe(apiOrpcClient(metaContract, context.cookie).deck({ token }));
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ context, data: token }): Promise<MetaDeckDetailResponse> =>
+    orNotFound(apiOrpcClient(metaContract, context.cookie).deck({ token })),
+  );
 
 export function metaDeckQueryOptions(token: string) {
   return queryOptions({
@@ -342,7 +310,7 @@ const fetchMetaLegends = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(({ context, data: query }): Promise<MetaLegendListResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "meta", "legends", ...cacheKeyFor(query)],
+      queryKey: serverCacheKeys.meta("legends", ...cacheKeyFor(query)),
       queryFn: () => apiOrpcClient(metaContract, context.cookie).legends(query),
     }),
   );
@@ -359,16 +327,9 @@ export function metaLegendsQueryOptions(query: MetaScopeQuery = {}) {
 const fetchMetaLegend = createServerFn({ method: "GET" })
   .validator((input: MetaLegendPageQuery & { slug: string }) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: query }): Promise<MetaLegendDetailResponse> => {
-    const { error, data } = await safe(apiOrpcClient(metaContract, context.cookie).legend(query));
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ context, data: query }): Promise<MetaLegendDetailResponse> =>
+    orNotFound(apiOrpcClient(metaContract, context.cookie).legend(query)),
+  );
 
 export function metaLegendQueryOptions(slug: string, query?: MetaLegendPageQuery) {
   const narrowed = narrow(query);
@@ -382,16 +343,9 @@ export function metaLegendQueryOptions(slug: string, query?: MetaLegendPageQuery
 const fetchMetaPlayer = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: key }): Promise<MetaPlayerDetailResponse> => {
-    const { error, data } = await safe(apiOrpcClient(metaContract, context.cookie).player({ key }));
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ context, data: key }): Promise<MetaPlayerDetailResponse> =>
+    orNotFound(apiOrpcClient(metaContract, context.cookie).player({ key })),
+  );
 
 export function metaPlayerQueryOptions(key: string) {
   return queryOptions({

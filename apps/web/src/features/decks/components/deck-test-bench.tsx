@@ -1,8 +1,12 @@
 import type { DeckOddsConfig } from "@openrift/shared/contracts/decks";
+import { totalQuantity } from "@openrift/shared/deck-rules";
+import { shuffle } from "@openrift/shared/random";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
+import { HandIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { EmptyState } from "@/components/empty-state";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { DeckBenchHand } from "@/features/decks/components/deck-bench-hand";
 import { DeckDrawOddsPanel } from "@/features/decks/components/deck-draw-odds-panel";
@@ -24,7 +28,7 @@ import {
   buildLibraryHitChances,
   buildMulliganPreview,
 } from "@/features/decks/lib/deck-hand-odds";
-import { applyMulligan, shuffle } from "@/features/decks/lib/deck-mulligan";
+import { applyMulligan } from "@/features/decks/lib/deck-mulligan";
 import type { OddsGroupDef } from "@/features/decks/lib/deck-odds-groups";
 import {
   defaultOddsGroupKeys,
@@ -93,7 +97,7 @@ export function DeckTestBench({
       if (!first) {
         return [];
       }
-      return [{ ...first, quantity: group.reduce((sum, card) => sum + card.quantity, 0) }];
+      return [{ ...first, quantity: totalQuantity(group) }];
     });
     return sortOverviewCards(aggregated, zone).map((card) => ({
       cardId: card.cardId,
@@ -362,7 +366,7 @@ export function DeckTestBench({
   // mainRows reflects the real deck, not the experiment: cutting every
   // main-deck card must not swap the whole tab for a placeholder with no way back.
   if (mainRows.length === 0) {
-    return <p className="text-muted-foreground text-sm">{m.decks_test_bench_empty()}</p>;
+    return <EmptyState className="py-12" icon={HandIcon} title={m.decks_test_bench_empty()} />;
   }
 
   return (

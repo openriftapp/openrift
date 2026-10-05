@@ -71,7 +71,7 @@ function renderTable(onDelete: (row: Row) => Promise<unknown>) {
 }
 
 describe("AdminTable delete confirmation", () => {
-  it("keeps the dialog open with the error even after a delayed close would have fired", async () => {
+  it("keeps the dialog open when the delete rejects", async () => {
     const user = userEvent.setup();
     const onDelete = vi.fn().mockRejectedValue(new Error("Set still has printings"));
     renderTable(onDelete);
@@ -82,15 +82,9 @@ describe("AdminTable delete confirmation", () => {
 
     expect(onDelete).toHaveBeenCalledWith(row);
     await vi.waitFor(() => {
-      expect(screen.getByText("Set still has printings")).toBeInTheDocument();
-    });
-
-    // oxlint-disable-next-line promise/avoid-new -- wrapping the setTimeout callback API to await a delay
-    await new Promise((resolve) => {
-      setTimeout(resolve, 50);
+      expect(within(dialog).getByRole("button", { name: "Delete" })).toBeEnabled();
     });
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
-    expect(screen.getByText("Set still has printings")).toBeInTheDocument();
   });
 
   it("closes the dialog once the delete resolves", async () => {
@@ -123,7 +117,7 @@ describe("AdminTable delete confirmation", () => {
     });
   });
 
-  it("clears the delete error once a later delete on the same row succeeds", async () => {
+  it("closes the dialog once a retry after a failed delete succeeds", async () => {
     const user = userEvent.setup();
     const onDelete = vi
       .fn()
@@ -132,20 +126,18 @@ describe("AdminTable delete confirmation", () => {
     renderTable(onDelete);
 
     await user.click(screen.getByRole("button"));
-    let dialog = await screen.findByRole("alertdialog");
+    const dialog = await screen.findByRole("alertdialog");
     await user.click(within(dialog).getByRole("button", { name: "Delete" }));
 
     await vi.waitFor(() => {
-      expect(screen.getByText("Set still has printings")).toBeInTheDocument();
+      expect(within(dialog).getByRole("button", { name: "Delete" })).toBeEnabled();
     });
-
-    dialog = screen.getByRole("alertdialog");
     await user.click(within(dialog).getByRole("button", { name: "Delete" }));
 
     await vi.waitFor(() => {
       expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     });
-    expect(screen.queryByText("Set still has printings")).not.toBeInTheDocument();
+    expect(onDelete).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -844,5 +836,70 @@ describe("AdminTable edit", () => {
 
     await user.click(screen.getByRole("button", { name: "Edit" }));
     expect(screen.getByLabelText("Label")).toHaveValue("Alpha");
+  });
+});
+
+describe("AdminTable slots", () => {
+  it("renders renderExpanded content under the rows it returns content for", () => {
+    const rows: Row[] = [row, { slug: "other", label: "Other" }];
+    render(
+      <AdminTable
+        columns={columns}
+        data={rows}
+        getRowKey={(r) => r.slug}
+        renderExpanded={(r) => (r.slug === "other" ? <p>Details for {r.label}</p> : null)}
+      />,
+    );
+
+    expect(screen.getByText("Details for Other")).toBeInTheDocument();
+    expect(screen.queryByText("Details for Some Set")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("row")).toHaveLength(4);
+  });
+
+  it("renders the footer below the table", () => {
+    render(
+      <AdminTable
+        columns={columns}
+        data={[row]}
+        getRowKey={(r) => r.slug}
+        footer={<nav aria-label="Pages" />}
+      />,
+    );
+
+    expect(screen.getByRole("navigation", { name: "Pages" })).toBeInTheDocument();
+  });
+
+  it("fixes the column layout when asked", () => {
+    render(<AdminTable columns={columns} data={[row]} getRowKey={(r) => r.slug} layout="fixed" />);
+
+    expect(screen.getByRole("table")).toHaveClass("table-fixed");
+  });
+
+  it("hands the add and export actions to topBar and starts an add from there", async () => {
+    const user = userEvent.setup();
+    render(
+      <AdminTable
+        columns={draftColumns}
+        data={[row]}
+        getRowKey={(r) => r.slug}
+        topBar={(actions) => <header>{actions}</header>}
+        add={{ emptyDraft: { slug: "", label: "" }, onSave: vi.fn(), label: "Add set" }}
+        export={{ filename: "sets.json" }}
+      />,
+    );
+
+    const header = screen.getByRole("banner");
+    expect(within(header).getByRole("button", { name: "Export JSON" })).toBeInTheDocument();
+    await user.click(within(header).getByRole("button", { name: "Add set" }));
+
+    expect(screen.getByLabelText("Label")).toHaveValue("");
+    expect(within(header).getByRole("button", { name: "Add set" })).toBeDisabled();
+  });
+
+  it("passes no actions to topBar when the table has neither add nor export", () => {
+    const topBar = vi.fn(() => null);
+    render(<AdminTable columns={columns} data={[row]} getRowKey={(r) => r.slug} topBar={topBar} />);
+
+    expect(topBar).toHaveBeenCalledWith(undefined);
   });
 });

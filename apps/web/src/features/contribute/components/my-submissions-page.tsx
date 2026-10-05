@@ -9,12 +9,12 @@ import {
   PageTopBar,
   PageTopBarActions,
   PageTopBarBack,
-  PageTopBarPrimaryButton,
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
+import { ShowMoreButton } from "@/components/show-more-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -88,12 +88,12 @@ export function MySubmissionsPage() {
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarBack to="/contribute" />
+          <PageTopBarBack to="/contribute" aria-label={m.contribute_back()} />
           <PageTopBarTitle>{m.contribute_submissions_title()}</PageTopBarTitle>
           <PageTopBarActions>
-            <PageTopBarPrimaryButton render={<Link to="/contribute/card" />}>
+            <Link to="/contribute/card" className={buttonVariants()}>
               {m.contribute_submissions_cta()}
-            </PageTopBarPrimaryButton>
+            </Link>
           </PageTopBarActions>
         </PageTopBar>
       </PageTopBarSticky>
@@ -114,9 +114,9 @@ export function MySubmissionsPage() {
             title={m.contribute_submissions_empty_title()}
             description={m.contribute_submissions_empty_description()}
           >
-            <Button render={<Link to="/contribute/card" />}>
+            <Link to="/contribute/card" className={buttonVariants()}>
               {m.contribute_submissions_cta()}
-            </Button>
+            </Link>
           </EmptyState>
         ) : null}
 
@@ -129,16 +129,13 @@ export function MySubmissionsPage() {
         ) : null}
 
         {hasNextPage ? (
-          <Button
-            variant="outline"
-            className="w-full"
-            disabled={isFetchingNextPage}
+          <ShowMoreButton
+            pending={isFetchingNextPage}
             onClick={() => void fetchNextPage()}
+            className="mt-0"
           >
-            {isFetchingNextPage
-              ? m.contribute_submissions_loading()
-              : m.contribute_submissions_older()}
-          </Button>
+            {m.contribute_submissions_older()}
+          </ShowMoreButton>
         ) : null}
       </div>
     </>

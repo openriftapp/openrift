@@ -1,3 +1,4 @@
+import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import type { TournamentDetailResponse } from "@openrift/shared/types/api/tournament";
 import { ShieldCheckIcon } from "lucide-react";
 
@@ -5,11 +6,7 @@ import { EmptyState } from "@/components/empty-state";
 import { ArchiveListsBand } from "@/features/tournaments/components/archive-lists-band";
 import { TournamentDeckCheckEntries } from "@/features/tournaments/components/deck-check-event-page";
 import { DeckCheckIngestGuide } from "@/features/tournaments/components/deck-check-ingest-guide";
-import {
-  canCheckDecks,
-  canManageTournament,
-  effectiveTournamentState,
-} from "@/features/tournaments/lib/tournament-display";
+import { canCheckDecks, canManageTournament } from "@/features/tournaments/lib/tournament-display";
 import { m } from "@/paraglide/messages.js";
 
 /** The entrant list comes from a staff-only endpoint; gate on host/organizer/judge here. */

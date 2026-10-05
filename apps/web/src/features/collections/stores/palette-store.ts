@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { cookieStorage } from "@/lib/cookie-storage";
+import { mergeFields, pickEnum } from "@/lib/persist-merge";
 
 interface PaletteState {
   preference: Palette | null;
@@ -12,9 +13,7 @@ interface PaletteState {
   reset: () => void;
 }
 
-function isPalette(value: unknown): value is Palette {
-  return typeof value === "string" && (PALETTES as readonly string[]).includes(value);
-}
+const mergePreference = mergeFields<PaletteState>({ preference: pickEnum(PALETTES) });
 
 function resolvePalette(preference: Palette | null): Palette {
   return preference ?? PREFERENCE_DEFAULTS.palette;
@@ -50,17 +49,8 @@ export const usePaletteStore = create<PaletteState>()(
         }
       },
       merge: (persisted, current) => {
-        const record =
-          typeof persisted === "object" && persisted !== null
-            ? (persisted as Record<string, unknown>)
-            : {};
-        const raw = record.preference;
-        const preference = isPalette(raw) ? raw : null;
-        return {
-          ...current,
-          preference,
-          palette: resolvePalette(preference),
-        };
+        const merged = mergePreference(persisted, current);
+        return { ...merged, palette: resolvePalette(merged.preference) };
       },
     },
   ),

@@ -12,10 +12,10 @@ import {
 } from "lucide-react";
 
 import { Eyebrow, Heading } from "@/components/heading";
+import { PROSE_MARKUP, linkMarkup } from "@/components/message-markup";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
-import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
 import { m } from "@/paraglide/messages.js";
 
@@ -134,12 +134,7 @@ export default function GroupsArticle() {
       <section>
         <Heading className="mb-2">{m.help_groups_share_heading()}</Heading>
         <p className="text-muted-foreground">
-          <ParaglideMessage
-            message={m.help_groups_share_intro}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_groups_share_intro} markup={PROSE_MARKUP} />
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <FeatureCard
@@ -177,16 +172,14 @@ export default function GroupsArticle() {
           <ParaglideMessage
             message={m.help_groups_matches_p2}
             markup={{
-              link: ({ children }) => (
-                <TextLink href="/help/cards-printings-copies">{children}</TextLink>
-              ),
+              link: linkMarkup("/help/cards-printings-copies"),
             }}
           />
         </p>
         <p className="text-muted-foreground mt-2">
           <ParaglideMessage
             message={m.help_groups_matches_p3}
-            markup={{ link: ({ children }) => <TextLink href="/trades">{children}</TextLink> }}
+            markup={{ link: linkMarkup("/trades") }}
           />
         </p>
       </section>
@@ -198,7 +191,7 @@ export default function GroupsArticle() {
           <ParaglideMessage
             message={m.help_groups_group_collections_p2}
             markup={{
-              link: ({ children }) => <TextLink href="/help/collections">{children}</TextLink>,
+              link: linkMarkup("/help/collections"),
             }}
           />
         </p>
@@ -207,20 +200,10 @@ export default function GroupsArticle() {
       <section>
         <Heading className="mb-2">{m.help_groups_personal_collections_heading()}</Heading>
         <p className="text-muted-foreground">
-          <ParaglideMessage
-            message={m.help_groups_personal_p1}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_groups_personal_p1} markup={PROSE_MARKUP} />
         </p>
         <p className="text-muted-foreground mt-2">
-          <ParaglideMessage
-            message={m.help_groups_personal_p2}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_groups_personal_p2} markup={PROSE_MARKUP} />
         </p>
       </section>
 
@@ -228,12 +211,7 @@ export default function GroupsArticle() {
         <Heading className="mb-2">{m.help_groups_members_heading()}</Heading>
         <p className="text-muted-foreground">{m.help_groups_members_p1()}</p>
         <p className="text-muted-foreground mt-2">
-          <ParaglideMessage
-            message={m.help_groups_members_p2}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_groups_members_p2} markup={PROSE_MARKUP} />
         </p>
       </section>
 

@@ -19,13 +19,14 @@ import {
   publicListQueryOptions,
 } from "@/features/lists/lib/lists-queries";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { reportMutationError } from "@/lib/query-client";
 import { reorderInPlace } from "@/lib/reorder-in-place";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 type CreateListInput = ContractInput<typeof listsContract, "create">;
 type UpdateListInput = Omit<ContractInput<typeof listsContract, "update">, "id"> & {
@@ -82,38 +83,18 @@ export function useUpdateList() {
 
 export function useSetListSidebarHidden() {
   const userId = useRequiredUserId();
-  const queryClient = useQueryClient();
-  return useMutation<
-    ListResponse,
-    Error,
-    { listId: string; hidden: boolean },
-    { previous: ListListResponse | undefined }
-  >({
-    mutationFn: ({ listId, hidden }) => updateListFn({ data: { listId, sidebarHidden: hidden } }),
-    onMutate: ({ listId, hidden }) => {
-      const key = listsKeys.all(userId);
-      const previous = queryClient.getQueryData<ListListResponse>(key);
-      if (previous) {
-        queryClient.setQueryData<ListListResponse>(key, {
-          ...previous,
-          items: previous.items.map((list) =>
-            list.id === listId ? { ...list, sidebarHidden: hidden } : list,
-          ),
-        });
-      }
-      return { previous };
+  return useOptimisticMutation<ListListResponse, { listId: string; hidden: boolean }, ListResponse>(
+    {
+      queryKey: listsKeys.all(userId),
+      mutationFn: ({ listId, hidden }) => updateListFn({ data: { listId, sidebarHidden: hidden } }),
+      apply: (cached, { listId, hidden }) => ({
+        ...cached,
+        items: cached.items.map((list) =>
+          list.id === listId ? { ...list, sidebarHidden: hidden } : list,
+        ),
+      }),
     },
-    onError: (error, _variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(listsKeys.all(userId), context.previous);
-      }
-      // Replaces the QueryClient's default onError; report here or the rollback is silent.
-      reportMutationError(error, queryClient);
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: listsKeys.all(userId) });
-    },
-  });
+  );
 }
 
 const deleteListFn = createServerFn({ method: "POST" })
@@ -140,36 +121,13 @@ const reorderListsFn = createServerFn({ method: "POST" })
 
 export function useReorderLists() {
   const userId = useRequiredUserId();
-  const queryClient = useQueryClient();
-  return useMutation<
-    unknown,
-    Error,
-    { intent: ListIntent; orderedIds: string[] },
-    { previous: ListListResponse | undefined }
-  >({
+  return useOptimisticMutation<ListListResponse, { intent: ListIntent; orderedIds: string[] }>({
+    queryKey: listsKeys.all(userId),
     mutationFn: (variables) => reorderListsFn({ data: variables }),
-    onMutate: ({ orderedIds }) => {
-      const key = listsKeys.all(userId);
-      const previous = queryClient.getQueryData<ListListResponse>(key);
-      if (previous) {
-        queryClient.setQueryData<ListListResponse>(key, {
-          ...previous,
-          items: reorderInPlace(previous.items, orderedIds),
-        });
-      }
-      return { previous };
-    },
-    onError: (error, _variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(listsKeys.all(userId), context.previous);
-      }
-      // Replaces the QueryClient's default onError; report here or the rollback
-      // reverts silently.
-      reportMutationError(error, queryClient);
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: listsKeys.all(userId) });
-    },
+    apply: (cached, { orderedIds }) => ({
+      ...cached,
+      items: reorderInPlace(cached.items, orderedIds),
+    }),
   });
 }
 

@@ -3,26 +3,23 @@ import type { LanguageResponse } from "@openrift/shared/types/api/admin";
 import { languageChipStyle } from "@/components/language-chip";
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
   ColorCell,
   ColorInput,
+  DraftTextInput,
   validateHexColor,
 } from "@/features/admin/components/admin-crud-shared";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
-import type {
-  AdminCellSlotProps,
-  AdminColumnDef,
-  AdminDraftSlotProps,
-} from "@/features/admin/components/admin-table";
-import { flatReorder } from "@/features/admin/lib/admin-reorder";
+import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import {
   useCreateLanguage,
   useDeleteLanguage,
   useLanguages,
   useReorderLanguages,
   useUpdateLanguage,
-} from "@/hooks/use-languages";
+} from "@/features/admin/hooks/use-languages";
+import { flatReorder } from "@/features/admin/lib/admin-reorder";
 
 interface LanguageDraft {
   code: string;
@@ -57,62 +54,26 @@ function PreviewCell({ row }: AdminCellSlotProps<LanguageResponse>) {
   );
 }
 
-function CodeAddInput({ draft, setDraft }: AdminDraftSlotProps<LanguageDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.code}
-      onChange={(event) =>
-        setDraft((prev) => ({ ...prev, code: event.target.value.toUpperCase() }))
-      }
-      placeholder="EN"
-      className="h-8 w-24 font-mono"
-    />
-  );
-}
-
-function NameInput({ draft, setDraft }: AdminDraftSlotProps<LanguageDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.name}
-      onChange={(event) => setDraft((prev) => ({ ...prev, name: event.target.value }))}
-      className="h-8"
-    />
-  );
-}
-
-function NameAddInput({ draft, setDraft }: AdminDraftSlotProps<LanguageDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.name}
-      onChange={(event) => setDraft((prev) => ({ ...prev, name: event.target.value }))}
-      placeholder="English"
-      className="h-8"
-    />
-  );
-}
-
 const columns: AdminColumnDef<LanguageResponse, LanguageDraft>[] = [
   {
     header: "Code",
     sortValue: (lang) => lang.code,
     cell: <CodeCell />,
-    addCell: <CodeAddInput />,
+    addCell: (
+      <DraftTextInput<LanguageDraft>
+        field="code"
+        placeholder="EN"
+        letterCase="upper"
+        className="w-24 font-mono"
+      />
+    ),
   },
   {
     header: "Name",
     sortValue: (lang) => lang.name,
     cell: <NameCell />,
-    editCell: <NameInput />,
-    addCell: <NameAddInput />,
+    editCell: <DraftTextInput<LanguageDraft> field="name" placeholder="English" />,
+    addCell: <DraftTextInput<LanguageDraft> field="name" placeholder="English" />,
   },
   {
     header: "Color",
@@ -142,7 +103,7 @@ export function LanguagesPage() {
       data={languages}
       getRowKey={(lang) => lang.code}
       emptyText="No languages yet."
-      title="Languages"
+      topBar={(actions) => <AdminPageTopBar title="Languages" actions={actions} />}
       toolbar={
         <PageDescription>The color appears on each printing&apos;s language chip.</PageDescription>
       }

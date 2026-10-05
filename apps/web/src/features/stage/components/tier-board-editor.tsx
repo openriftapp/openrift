@@ -25,14 +25,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { TierRowFrame } from "@/features/stage/components/tier-board";
 import { TierCardPrintingMenu } from "@/features/stage/components/tier-card-printing-menu";
 import { TierCardTile, useTierTileWidth } from "@/features/stage/components/tier-card-tile";
+import type { TierPickerRow } from "@/features/stage/components/tier-picker";
+import { TierPicker } from "@/features/stage/components/tier-picker";
 import type {
   BoardCardDragData,
   RowHandleDragData,
   TierCardDropData,
   TierRowDropData,
-} from "@/features/stage/components/tier-list-dnd-types";
-import type { TierPickerRow } from "@/features/stage/components/tier-picker";
-import { TierPicker } from "@/features/stage/components/tier-picker";
+} from "@/features/stage/lib/tier-list-dnd-types";
 import { resolveTierRows } from "@/features/stage/lib/tier-list-presentation";
 import type { TierCardView } from "@/features/stage/lib/tier-list-presentation";
 import { useTierListBuilderStore } from "@/features/stage/stores/tier-list-builder-store";

@@ -1,6 +1,6 @@
+import { parseDeckImportData } from "@openrift/shared/deck-codecs/parse";
 import { describe, expect, it } from "vitest";
 
-import { parseDeckImportData } from "./deck-import-parsers";
 import { buildSampleDeckCards, SAMPLE_DECK_CODE, sampleDeckKeyCards } from "./sample-deck";
 
 describe("sample deck", () => {

@@ -4,7 +4,7 @@ import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { collectionsKeys } from "@/features/collections/lib/collections-query-keys";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 

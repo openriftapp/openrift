@@ -3,13 +3,12 @@ import type { Domain } from "@openrift/shared/types/enums";
 import { LayoutGridIcon, ListIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { SearchInput } from "@/components/search-input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MobileOptionsDrawer } from "@/features/cards/components/options-bar";
-import { SearchInput } from "@/features/cards/components/search-input";
 import type { SortGroupOption } from "@/features/cards/components/sort-group-controls";
 import { SortGroupControls } from "@/features/cards/components/sort-group-controls";
-import { useSearchUrlSync } from "@/features/cards/hooks/use-search-url-sync";
 import { useDeckListFilters } from "@/features/decks/hooks/use-deck-list-filters";
 import type {
   DeckListFilterAvailability,
@@ -21,6 +20,7 @@ import {
   useDeckListPrefsStore,
   useDeckListViewPrefs,
 } from "@/features/decks/stores/deck-list-prefs-store";
+import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 import { m } from "@/paraglide/messages.js";
 
 import { DeckActiveFilters } from "./deck-active-filters";
@@ -169,7 +169,7 @@ export function DeckListToolbar({
           value={localSearch}
           onValueChange={setLocalSearch}
           placeholder={m.decks_list_search_placeholder()}
-          ariaLabel={m.decks_list_search_aria()}
+          aria-label={m.decks_list_search_aria()}
           trailing={`${countLabel} ${unitLabel}`}
           className="min-w-[200px] flex-1"
         />

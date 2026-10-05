@@ -1,8 +1,8 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
 
-import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogCancel, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { m } from "@/paraglide/messages.js";
@@ -36,10 +36,10 @@ export function TakeConfirmDialog({
   const canStep = maxQuantity > 1;
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
         <DialogForm onSubmit={() => onConfirm(quantity)}>
-          <AlertDialogTitle>{m.collections_dialog_take_title()}</AlertDialogTitle>
+          <DialogTitle>{m.collections_dialog_take_title()}</DialogTitle>
           {canStep && (
             <div className="flex flex-col items-center gap-1 py-1">
               <QuantityStepper
@@ -54,9 +54,7 @@ export function TakeConfirmDialog({
             </div>
           )}
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
-              {m.common_cancel()}
-            </Button>
+            <DialogCancel disabled={isPending} />
             <Button type="submit" disabled={isPending}>
               {isPending
                 ? m.collections_dialog_take_pending()
@@ -64,7 +62,7 @@ export function TakeConfirmDialog({
             </Button>
           </div>
         </DialogForm>
-      </AlertDialogContent>
-    </AlertDialog>
+      </DialogContent>
+    </Dialog>
   );
 }

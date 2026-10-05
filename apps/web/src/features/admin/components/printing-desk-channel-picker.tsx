@@ -1,7 +1,8 @@
 import type { DistributionChannelResponse } from "@openrift/shared/types/api/admin";
-import { PlusIcon, SearchIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
+import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
@@ -16,14 +17,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PrintingDeskChannelBrowser } from "@/features/admin/components/printing-desk-channel-browser";
+import {
+  useCreateDistributionChannel,
+  useDistributionChannels,
+} from "@/features/admin/hooks/use-distribution-channels";
 import type { ChannelSearchOption } from "@/features/admin/lib/channel-picker-search";
 import { searchChannelOptions } from "@/features/admin/lib/channel-picker-search";
 import { slugifyLabel, suggestChannelSlug } from "@/features/admin/lib/channel-slug-suggest";
 import { buildChannelTree, leafChannels } from "@/features/cards/lib/distribution-channel-tree";
-import {
-  useCreateDistributionChannel,
-  useDistributionChannels,
-} from "@/hooks/use-distribution-channels";
 
 type Channel = DistributionChannelResponse;
 
@@ -85,16 +86,13 @@ export function PrintingDeskChannelPicker({
       )}
 
       <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-4 -translate-y-1/2" />
-          <Input
-            id="desk-channel-search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search events and products…"
-            className="pl-8"
-          />
-        </div>
+        <SearchInput
+          value={query}
+          onValueChange={setQuery}
+          placeholder="Search events and products…"
+          id="desk-channel-search"
+          className="min-w-0 flex-1"
+        />
         <PrintingDeskChannelBrowser channels={channels} selected={value} onSelect={add} />
       </div>
 

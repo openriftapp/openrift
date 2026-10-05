@@ -1,8 +1,9 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type { ImageVariant } from "@openrift/shared/image-url";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
-import { getOrientation } from "@openrift/shared/utils";
 import type { ReactNode } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CARD_ASPECT_INVERSE } from "@/features/cards/lib/card-grid-constants";
 import { frontImageId } from "@/features/cards/lib/card-meta";
@@ -96,12 +97,13 @@ export function CardDragGhost({
         </div>
       )}
       {count !== undefined && count > 1 && (
-        <div
-          className="bg-primary text-primary-foreground absolute -top-2 -right-2 flex size-6 items-center justify-center rounded-full text-xs font-bold shadow"
+        <Badge
+          variant="count"
+          className="absolute -top-2 -right-2 shadow"
           style={{ zIndex: frames.length + 1 }}
         >
           {count}
-        </div>
+        </Badge>
       )}
     </div>
   );

@@ -1,14 +1,15 @@
-import { PlusIcon, SearchIcon } from "lucide-react";
+import { matchesTextQuery } from "@openrift/shared/search-fold";
+import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
+import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { Field, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
 import { PrintingDeskMarkerBrowser } from "@/features/admin/components/printing-desk-marker-browser";
+import { useCreateMarker, useMarkers } from "@/features/admin/hooks/use-markers";
 import { slugifyLabel } from "@/features/admin/lib/channel-slug-suggest";
-import { useCreateMarker, useMarkers } from "@/hooks/use-markers";
 
 export function PrintingDeskMarkerPicker({
   value,
@@ -25,10 +26,7 @@ export function PrintingDeskMarkerPicker({
   const needle = query.trim().toLowerCase();
   const results = data.markers.filter(
     (marker) =>
-      !value.includes(marker.slug) &&
-      (needle.length === 0 ||
-        marker.label.toLowerCase().includes(needle) ||
-        marker.slug.includes(needle)),
+      !value.includes(marker.slug) && matchesTextQuery(query, [marker.label, marker.slug]),
   );
   const exists = data.markers.some(
     (marker) => marker.label.toLowerCase() === needle || marker.slug === slugifyLabel(query),
@@ -77,16 +75,13 @@ export function PrintingDeskMarkerPicker({
       )}
 
       <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-4 -translate-y-1/2" />
-          <Input
-            id="desk-marker-search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Stamp, signature, promo mark…"
-            className="pl-8"
-          />
-        </div>
+        <SearchInput
+          value={query}
+          onValueChange={setQuery}
+          placeholder="Stamp, signature, promo mark…"
+          id="desk-marker-search"
+          className="min-w-0 flex-1"
+        />
         <PrintingDeskMarkerBrowser markers={data.markers} selected={value} onToggle={toggle} />
       </div>
 

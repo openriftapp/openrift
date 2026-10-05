@@ -1,13 +1,19 @@
 import type { PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { RegionOverview } from "./region-overview";
+
+vi.mock("@/features/tournaments/hooks/use-region-label", () => ({
+  useRegionLabel: () => (slug: string) => slug.toUpperCase(),
+}));
 
 function makeRow(playerId: string, region: string | null, score: number): PodStandingRow {
   return {
     playerId,
     displayName: `Player ${playerId}`,
+    image: null,
+    gravatarHash: null,
     status: "active",
     droppedAfterRound: null,
     teamId: null,
@@ -52,7 +58,6 @@ describe("RegionOverview", () => {
     render(
       <RegionOverview
         standings={[makeRow("a", "emea", 9), makeRow("b", "emea", 6), makeRow("c", "na", 3)]}
-        regionLabel={(slug) => slug.toUpperCase()}
       />,
     );
     const [top] = screen.getAllByRole("listitem");

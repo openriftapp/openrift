@@ -5,12 +5,11 @@ import type {
   TierListListResponse,
   TierListResponse,
 } from "@openrift/shared/types/api/tier-list";
-import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { tierListsKeys } from "@/features/stage/lib/stage-query-keys";
-import { notFoundError } from "@/lib/server-fns/api-error";
+import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -23,34 +22,17 @@ const fetchTierLists = createServerFn({ method: "GET" })
 const fetchTierList = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: id }): Promise<TierListResponse> => {
-    // 404 here is expected (deleted list, or another user's): map to NOT_FOUND, not an error.
-    const { error, data } = await safe(
-      apiOrpcClient(tierListsContract, context.cookie).get({ id }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ context, data: id }): Promise<TierListResponse> =>
+    orNotFound(apiOrpcClient(tierListsContract, context.cookie).get({ id })),
+  );
 
 const fetchPublicTierList = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ data: token }): Promise<PublicTierListDetailResponse> => {
+  .handler(({ data: token }): Promise<PublicTierListDetailResponse> =>
     // No cookie forwarded: share links must resolve for a logged-out viewer.
-    const { error, data } = await safe(apiOrpcClient(publicTierListsContract).share({ token }));
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+    orNotFound(apiOrpcClient(publicTierListsContract).share({ token })),
+  );
 
 export function tierListsQueryOptions(userId: string) {
   return queryOptions({

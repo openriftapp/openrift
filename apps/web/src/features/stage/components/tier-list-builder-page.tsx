@@ -1,6 +1,6 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { TierListResponse } from "@openrift/shared/types/api/tier-list";
-import { getOrientation } from "@openrift/shared/utils";
 import { useNavigate } from "@tanstack/react-router";
 import {
   EllipsisVerticalIcon,
@@ -14,6 +14,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { BuilderWorkbench } from "@/components/layout/builder-workbench";
 import {
   PageTopBar,
@@ -24,16 +25,6 @@ import {
   PageTopBarPrimaryButton,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -43,10 +34,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
-import { useOnboardingStore } from "@/features/account/stores/onboarding-store";
+import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { frontImageId } from "@/features/cards/lib/card-meta";
-import { HoveredCardPreview } from "@/features/decks/components/hovered-card-preview";
 import { TierBoardEditor } from "@/features/stage/components/tier-board-editor";
 import { TierListDetailsDialog } from "@/features/stage/components/tier-list-details-dialog";
 import { TierListDndContext } from "@/features/stage/components/tier-list-dnd-context";
@@ -59,6 +49,7 @@ import type { TierCardView } from "@/features/stage/lib/tier-list-presentation";
 import { useTierListBuilderStore } from "@/features/stage/stores/tier-list-builder-store";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { m } from "@/paraglide/messages.js";
+import { useOnboardingStore } from "@/stores/onboarding-store";
 
 interface TierListBuilderPageProps {
   tierList: TierListResponse;
@@ -242,22 +233,15 @@ export function TierListBuilderPage({ tierList }: TierListBuilderPageProps) {
         open={shareOpen}
         onOpenChange={setShareOpen}
       />
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{m.tier_lists_delete_title()}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {m.tier_lists_delete_description({ name: tierList.title })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{m.tier_lists_delete_keep()}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={deleteTierList.isPending}>
-              {m.common_delete()}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmActionDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onConfirm={handleDelete}
+        isPending={deleteTierList.isPending}
+        title={m.tier_lists_delete_title()}
+        description={m.tier_lists_delete_description({ name: tierList.title })}
+        confirmLabel={m.common_delete()}
+      />
     </>
   );
 }

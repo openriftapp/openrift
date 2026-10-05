@@ -107,7 +107,7 @@ vi.mock("@/hooks/use-enums", () => ({
   useEnumOrders: () => ({ labels: { rarities: {}, finishes: {}, artVariants: {} } }),
 }));
 
-vi.mock("@/hooks/use-markers", () => ({
+vi.mock("@/features/admin/hooks/use-markers", () => ({
   useMarkers: () => ({ data: { markers: [] } }),
 }));
 

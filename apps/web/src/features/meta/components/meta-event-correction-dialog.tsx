@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -122,7 +122,7 @@ export function MetaEventCorrectionDialog({
                   </FieldLabel>
                   <DatePicker
                     value={draft.eventDate}
-                    onChange={(iso) => set("eventDate", iso)}
+                    onValueChange={(iso) => set("eventDate", iso)}
                     onClear={() => set("eventDate", event.eventDate)}
                     className="w-full"
                   />
@@ -201,12 +201,10 @@ export function MetaEventCorrectionDialog({
           )}
 
           <DialogFooter>
-            <DialogClose render={<Button variant="outline" type="button" />}>
-              {sent ? m.common_close() : m.common_cancel()}
-            </DialogClose>
+            <DialogCancel type="button">{sent ? m.common_close() : m.common_cancel()}</DialogCancel>
             {!sent && (
-              <Button type="submit" disabled={submit.isPending}>
-                {submit.isPending ? m.meta_correction_sending() : m.meta_correction_send()}
+              <Button type="submit" pending={submit.isPending}>
+                {m.meta_correction_send()}
               </Button>
             )}
           </DialogFooter>

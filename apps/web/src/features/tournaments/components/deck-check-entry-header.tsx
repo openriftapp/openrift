@@ -20,20 +20,11 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import {
-  PageTopBar,
-  PageTopBarActions,
-  PageTopBarIconButton,
-  PageTopBarPrimaryButton,
-  PageTopBarSticky,
-  PageTopBarTitle,
-} from "@/components/layout/page-top-bar";
-import {
-  TopBarBreadcrumbSeparator,
-  TopBarBreadcrumbTrail,
-} from "@/components/layout/top-bar-breadcrumb";
+import { PageTopBarIconButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
+import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,11 +32,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
+import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { DeckDomainBar } from "@/features/decks/components/deck-domain-bar";
 import { FormatStateBadge } from "@/features/decks/components/deck-format-badge";
 import { FannedPreview, typeCountSummary } from "@/features/decks/components/deck-tile";
-import { DomainIcon } from "@/features/decks/components/domain-icon";
 import { EntryStateBadge } from "@/features/tournaments/components/deck-check-event-page";
 import {
   useDenyTournamentDeckCheckUnlock,
@@ -70,33 +61,30 @@ export function DeckEntryTopBar({
 }) {
   const { data: tournament } = useTournamentDetail(tournamentId);
   return (
-    <PageTopBarSticky width="capped">
-      <PageTopBar className="gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-2 sm:items-baseline">
-          <TopBarBreadcrumbTrail
-            segments={[
-              { label: m.nav_tournaments(), link: <Link to="/tournaments" /> },
-              {
-                label: tournament.name,
-                link: <Link to="/tournaments/$id" params={{ id: tournamentId }} />,
-              },
-              {
-                label: m.nav_decks(),
-                link: <Link to="/tournaments/$id/decks" params={{ id: tournamentId }} />,
-              },
-            ]}
-          />
-          <TopBarBreadcrumbSeparator className="hidden sm:inline" />
-          <PageTopBarTitle>
-            {entry?.playerName ?? m.tournaments_deck_check_entry_fallback_title()}
-          </PageTopBarTitle>
-          {entry ? (
-            <EntryStateBadge state={entry.state} reviewOutcome={entry.reviewOutcome} />
-          ) : null}
-        </div>
-        {actions ? <PageTopBarActions>{actions}</PageTopBarActions> : null}
-      </PageTopBar>
-    </PageTopBarSticky>
+    <TopBarBreadcrumbBar
+      segments={[
+        { label: m.nav_tournaments(), link: <Link to="/tournaments" /> },
+        {
+          label: tournament.name,
+          link: <Link to="/tournaments/$id" params={{ id: tournamentId }} />,
+        },
+        {
+          label: m.nav_decks(),
+          link: <Link to="/tournaments/$id/decks" params={{ id: tournamentId }} />,
+        },
+      ]}
+      title={entry?.playerName ?? m.tournaments_deck_check_entry_fallback_title()}
+      actions={
+        entry || actions ? (
+          <>
+            {entry ? (
+              <EntryStateBadge state={entry.state} reviewOutcome={entry.reviewOutcome} />
+            ) : null}
+            {actions}
+          </>
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -272,7 +260,7 @@ export function EntryHeader({
           <Button
             size="sm"
             variant="outline"
-            disabled={denyUnlock.isPending}
+            pending={denyUnlock.isPending}
             onClick={() => denyUnlock.mutate({ tournamentId, entryId })}
           >
             {m.tournaments_deck_check_decline()}
@@ -296,7 +284,7 @@ function EntryMetaGrid({ entry }: { entry: DeckCheckEntryDetailResponse["entry"]
         ? m.tournaments_deck_check_approved_by({ name: entry.approvedByName })
         : null;
   return (
-    <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+    <DefinitionList className="mt-1.5 gap-y-1">
       <MetaRow label={m.tournaments_deck_check_meta_contact()}>
         {contact || (
           <span className="text-muted-foreground">
@@ -323,15 +311,15 @@ function EntryMetaGrid({ entry }: { entry: DeckCheckEntryDetailResponse["entry"]
           </span>
         </MetaRow>
       ) : null}
-    </dl>
+    </DefinitionList>
   );
 }
 
 function MetaRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <>
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0">{children}</dd>
+      <DefinitionTerm>{label}</DefinitionTerm>
+      <DefinitionDetail>{children}</DefinitionDetail>
     </>
   );
 }
@@ -390,7 +378,7 @@ function AccountLinkAction({
     <Button
       size="sm"
       variant="outline"
-      disabled={unlink.isPending}
+      pending={unlink.isPending}
       title={m.tournaments_deck_check_unlink_title()}
       onClick={() => unlink.mutate({ tournamentId, entryId })}
     >
@@ -439,9 +427,7 @@ export function PlayerMessageField({
             );
           }}
         >
-          {updateEntry.isPending
-            ? m.tournaments_deck_check_saving()
-            : m.tournaments_deck_check_save_message()}
+          {updateEntry.isPending ? m.common_saving() : m.tournaments_deck_check_save_message()}
         </Button>
       ) : null}
     </div>

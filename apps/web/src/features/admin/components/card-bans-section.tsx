@@ -1,13 +1,14 @@
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { CardList } from "@/components/ui/card-list";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AdminConfirmDialog } from "@/features/admin/components/admin-confirm-dialog";
 import { BanEditor } from "@/features/admin/components/ban-editor";
 import { BanRow } from "@/features/admin/components/ban-row";
+import { useFormats } from "@/features/admin/hooks/use-formats";
 import type { BanDraft } from "@/features/admin/lib/ban-draft";
 import {
   banDraftFromBan,
@@ -21,7 +22,6 @@ import {
   useRemoveCardBan,
   useUpdateCardBan,
 } from "@/features/cards/hooks/use-card-bans";
-import { useFormats } from "@/hooks/use-formats";
 
 export function CardBansSection({ cardId }: { cardId: string }) {
   const { data: bans, isPending } = useCardBans(cardId);
@@ -62,7 +62,10 @@ export function CardBansSection({ cardId }: { cardId: string }) {
     if (removing === null) {
       return;
     }
-    removeBan.mutate({ cardId, formatId: removing.formatId });
+    removeBan.mutate(
+      { cardId, formatId: removing.formatId },
+      { onSuccess: () => setRemovingId(null) },
+    );
   }
 
   return (
@@ -134,14 +137,14 @@ export function CardBansSection({ cardId }: { cardId: string }) {
         </Button>
       )}
 
-      <AdminConfirmDialog
+      <ConfirmActionDialog
         open={removing !== null}
         onOpenChange={(open) => setRemovingId(open ? removingId : null)}
-        copy={{
-          title: `Lift the ${removing?.formatName ?? ""} ban?`,
-          description: "The card counts as legal in that format again as soon as this is removed.",
-          confirmLabel: "Remove ban",
-        }}
+        title={`Lift the ${removing?.formatName ?? ""} ban?`}
+        description="The card counts as legal in that format again as soon as this is removed."
+        confirmLabel="Remove ban"
+        pendingLabel="Removing…"
+        isPending={removeBan.isPending}
         onConfirm={confirmRemove}
       />
     </section>

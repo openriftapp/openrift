@@ -1,10 +1,11 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type {
   AcceptSubmissionResponse,
   ReviewQueueItem,
 } from "@openrift/shared/contracts/admin/catalog-review";
 import { formatRelativeTime } from "@openrift/shared/format-date";
+import { pluralize } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
-import { getOrientation } from "@openrift/shared/utils";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { CheckIcon, MessageSquareIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -75,7 +76,7 @@ function SettledCard({ settled }: { settled: SettledResult }) {
         <ul className="flex flex-wrap gap-1.5">
           {settled.rows.map((row) => (
             <li key={row.key}>
-              <Badge variant={row.applied ? "success" : "muted"}>
+              <Badge variant={row.applied ? "success" : "neutral"}>
                 {row.label} {row.applied ? "applied" : "not applied"}
               </Badge>
             </li>
@@ -103,7 +104,7 @@ function BlockHeader({
     <div className="bg-muted flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
       <Badge variant={submission.kind === "image" ? "info" : "warning"}>{kindLabel}</Badge>
       <span className="font-medium">
-        {total} change{total === 1 ? "" : "s"} from {who}
+        {total} {pluralize(total, "change")} from {who}
       </span>
       {queueItem && (
         <span className="text-muted-foreground text-xs">

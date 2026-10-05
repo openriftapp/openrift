@@ -4,23 +4,23 @@ import { PageDescription } from "@/components/layout/page-top-bar";
 import {
   DescriptionCell,
   DescriptionInput,
-  LabelAddInput,
+  DraftTextInput,
   LabelCell,
-  LabelInput,
   SlugAddInput,
   SlugCell,
   validateSlugAndLabel,
 } from "@/features/admin/components/admin-crud-shared";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminColumnDef } from "@/features/admin/components/admin-table";
-import { flatReorder } from "@/features/admin/lib/admin-reorder";
 import {
   useCreateMarker,
   useDeleteMarker,
   useMarkers,
   useReorderMarkers,
   useUpdateMarker,
-} from "@/hooks/use-markers";
+} from "@/features/admin/hooks/use-markers";
+import { flatReorder } from "@/features/admin/lib/admin-reorder";
 
 interface MarkerDraft {
   id: string;
@@ -40,8 +40,8 @@ const columns: AdminColumnDef<MarkerResponse, MarkerDraft>[] = [
     header: "Label",
     sortValue: (m) => m.label,
     cell: <LabelCell<MarkerResponse> />,
-    editCell: <LabelInput<MarkerDraft> />,
-    addCell: <LabelAddInput<MarkerDraft> placeholder="Top 8" />,
+    editCell: <DraftTextInput<MarkerDraft> field="label" />,
+    addCell: <DraftTextInput<MarkerDraft> field="label" placeholder="Top 8" />,
   },
   {
     header: "Description",
@@ -66,7 +66,7 @@ export function MarkersPage() {
       data={markers}
       getRowKey={(m) => m.id}
       emptyText="No markers yet."
-      title="Markers"
+      topBar={(actions) => <AdminPageTopBar title="Markers" actions={actions} />}
       toolbar={
         <PageDescription>
           What is physically printed on a card. Printings with different markers are distinct and

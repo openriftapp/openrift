@@ -52,15 +52,8 @@ vi.mock("@/hooks/use-enums", () => ({
   useEnumOrders: () => ({ orders: { domains: ["fury"] }, labels: { domains: { fury: "Fury" } } }),
 }));
 
-vi.mock("@/components/layout/page-top-bar", () => ({
-  PageTopBar: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
-  PageTopBarSticky: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
-  PageTopBarTitle: ({ children }: { children?: ReactNode }) => <h1>{children}</h1>,
-}));
-
 vi.mock("@/components/layout/top-bar-breadcrumb", () => ({
-  TopBarBreadcrumbSeparator: () => null,
-  TopBarBreadcrumbTrail: () => null,
+  TopBarBreadcrumbBar: ({ title }: { title?: ReactNode }) => <h1>{title}</h1>,
 }));
 
 const { MetaEventRunPage } = await import("./meta-event-run-page");
@@ -78,6 +71,8 @@ const ANA = metaPlayer({
   champion: {
     cardId: "card-yasuo-unit",
     name: "Yasuo",
+    character: null,
+    epithet: "Yasuo",
     slug: "yasuo",
     imageId: null,
     domains: ["fury"],
@@ -259,11 +254,11 @@ describe("MetaEventRunPage", () => {
 
   it("names the cut rounds from the event's last cut round", () => {
     renderPage();
-    expect(screen.getAllByText("Semifinal").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Semifinals").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Final").length).toBeGreaterThan(0);
   });
 
-  it("still calls a quarterfinal exit a quarterfinal", () => {
+  it("still names a quarterfinal exit by its round", () => {
     renderPage({
       opponents: [CY],
       phases: [CUT_PHASE],
@@ -282,7 +277,7 @@ describe("MetaEventRunPage", () => {
       finalRoundNumber: 3,
     });
 
-    expect(screen.getAllByText("Quarterfinal").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Quarterfinals").length).toBeGreaterThan(0);
     expect(screen.getAllByText("QF").length).toBeGreaterThan(0);
   });
 
@@ -337,8 +332,8 @@ describe("MetaEventRunPage", () => {
   it("renders a phone row beside the desktop one, so neither reads alone", () => {
     renderPage();
     expect(screen.getAllByText("R2")).toHaveLength(2);
-    expect(screen.getAllByText("Final")).toHaveLength(1);
-    expect(screen.getAllByText("F")).toHaveLength(1);
+    expect(screen.getAllByText("Final")).toHaveLength(2);
+    expect(screen.getAllByText("SF")).toHaveLength(1);
   });
 
   it("sends the reader back to the standings the run is one row of", () => {

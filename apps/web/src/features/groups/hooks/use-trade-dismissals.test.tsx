@@ -19,7 +19,7 @@ vi.mock("@tanstack/react-start", async (importOriginal) => {
 });
 vi.mock("@/lib/server-fns/middleware", () => ({ withCookies: () => {} }));
 vi.mock("@/lib/server-fns/orpc-client", () => ({ apiOrpcClient: () => ({}) }));
-vi.mock("@/lib/auth-session", () => ({ useRequiredUserId: () => "user-1" }));
+vi.mock("@/hooks/use-session", () => ({ useRequiredUserId: () => "user-1" }));
 vi.mock("@/lib/query-client", () => ({ reportMutationError }));
 
 const { useDismissSuggestions, useRestoreSuggestion } = await import("./use-trade-dismissals");

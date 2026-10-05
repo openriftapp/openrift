@@ -1,14 +1,19 @@
+import { matchesTextQuery } from "@openrift/shared/search-fold";
 import type {
   TournamentDetailResponse,
   TournamentParticipantStatus,
 } from "@openrift/shared/types/api/tournament";
-import { CheckIcon, GlobeIcon, UserPlusIcon, UserXIcon } from "lucide-react";
+import { CheckIcon, GlobeIcon, UserPlusIcon, UsersIcon, UserXIcon } from "lucide-react";
 import { useState } from "react";
 
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { EmptyState } from "@/components/empty-state";
 import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
+import { SearchInput } from "@/components/search-input";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -16,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { SectionHeading } from "@/components/ui/section-heading";
 import {
@@ -27,7 +33,6 @@ import {
 } from "@/components/ui/select";
 import type { StatStripItem } from "@/components/ui/stat-strip";
 import { StatStrip } from "@/components/ui/stat-strip";
-import { SearchInput } from "@/features/cards/components/search-input";
 import type { LegendTarget } from "@/features/tournaments/components/legend-picker-dialog";
 import { LegendPickerDialog } from "@/features/tournaments/components/legend-picker-dialog";
 import { MissingRegionsBand } from "@/features/tournaments/components/missing-regions-band";
@@ -153,8 +158,8 @@ export function TournamentParticipantsTab({
             label: m.tournaments_roster_stat_on_a_team(),
             icon: CheckIcon,
             tone: (unteamedCount === 0 && activeCount > 0
-              ? "good"
-              : "default") as StatStripItem["tone"],
+              ? "success"
+              : "neutral") as StatStripItem["tone"],
           },
         ]
       : []),
@@ -167,21 +172,16 @@ export function TournamentParticipantsTab({
             icon: GlobeIcon,
             iconTone: "info" as const,
             tone: (missingRegionPlayers.length === 0 && activeCount > 0
-              ? "good"
-              : "default") as StatStripItem["tone"],
+              ? "success"
+              : "neutral") as StatStripItem["tone"],
           },
         ]
       : []),
   ];
 
-  const needle = search.trim().toLowerCase();
-  const visible = needle
-    ? participants.filter((participant) =>
-        [participant.displayName, participant.userName].some((field) =>
-          field?.toLowerCase().includes(needle),
-        ),
-      )
-    : participants;
+  const visible = participants.filter((participant) =>
+    matchesTextQuery(search, [participant.displayName, participant.userName]),
+  );
 
   async function run(action: () => Promise<unknown>) {
     try {
@@ -268,18 +268,23 @@ export function TournamentParticipantsTab({
             value={search}
             onValueChange={setSearch}
             placeholder={m.tournaments_roster_search_players()}
-            ariaLabel={m.tournaments_roster_search_players()}
+            aria-label={m.tournaments_roster_search_players()}
             className="w-full max-w-xs"
           />
         </>
       ) : null}
 
       {participants.length === 0 ? (
-        <p className="text-muted-foreground">
-          {manage ? m.tournaments_roster_empty_manage() : m.tournaments_roster_empty()}
-        </p>
+        <EmptyState
+          className="py-12"
+          icon={UsersIcon}
+          title={m.tournaments_roster_empty_title()}
+          description={manage ? m.tournaments_roster_empty_manage_description() : undefined}
+        />
       ) : groups.length === 0 ? (
-        <p className="text-muted-foreground">{m.tournaments_roster_no_match()}</p>
+        <Empty>
+          <EmptyDescription>{m.tournaments_roster_no_match()}</EmptyDescription>
+        </Empty>
       ) : (
         groups.map((group) => (
           <section key={group.key} className="flex flex-col gap-3">
@@ -330,12 +335,11 @@ export function TournamentParticipantsTab({
               aria-label={m.tournaments_roster_rename_aria()}
             />
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setRenameTarget(null)}>
-                {m.common_cancel()}
-              </Button>
+              <DialogCancel />
               <Button
                 type="submit"
-                disabled={!renameTarget?.name.trim() || updateParticipant.isPending}
+                disabled={!renameTarget?.name.trim()}
+                pending={updateParticipant.isPending}
               >
                 {m.common_save()}
               </Button>
@@ -360,10 +364,8 @@ export function TournamentParticipantsTab({
               }
             />
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setRegionTarget(null)}>
-                {m.common_cancel()}
-              </Button>
-              <Button type="submit" disabled={updateParticipant.isPending}>
+              <DialogCancel />
+              <Button type="submit" pending={updateParticipant.isPending}>
                 {m.common_save()}
               </Button>
             </DialogFooter>
@@ -400,15 +402,11 @@ export function TournamentParticipantsTab({
               aria-label={m.tournaments_roster_fixed_table_aria()}
             />
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setFixedTableTarget(null)}>
-                {m.common_cancel()}
-              </Button>
+              <DialogCancel />
               <Button
                 type="submit"
-                disabled={
-                  updateParticipant.isPending ||
-                  parseFixedTable(fixedTableTarget?.fixedTable ?? "") === undefined
-                }
+                disabled={parseFixedTable(fixedTableTarget?.fixedTable ?? "") === undefined}
+                pending={updateParticipant.isPending}
               >
                 {m.common_save()}
               </Button>
@@ -424,33 +422,19 @@ export function TournamentParticipantsTab({
         onPick={(participantId, legendCardId) => void handleSetLegend(participantId, legendCardId)}
       />
 
-      <Dialog open={removeTarget !== null} onOpenChange={(open) => !open && setRemoveTarget(null)}>
-        <DialogContent>
-          <DialogForm
-            onSubmit={() => {
-              if (removeTarget) {
-                fireAction(removeTarget.participantId, "remove");
-                setRemoveTarget(null);
-              }
-            }}
-          >
-            <DialogHeader>
-              <DialogTitle>
-                {m.tournaments_roster_remove_title({ name: removeTarget?.name ?? "" })}
-              </DialogTitle>
-              <DialogDescription>{m.tournaments_roster_remove_description()}</DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setRemoveTarget(null)}>
-                {m.common_cancel()}
-              </Button>
-              <Button type="submit" variant="destructive" disabled={participantAction.isPending}>
-                {m.tournaments_roster_remove()}
-              </Button>
-            </DialogFooter>
-          </DialogForm>
-        </DialogContent>
-      </Dialog>
+      <ConfirmActionDialog
+        open={removeTarget !== null}
+        onOpenChange={(open) => !open && setRemoveTarget(null)}
+        title={m.tournaments_roster_remove_title({ name: removeTarget?.name ?? "" })}
+        description={m.tournaments_roster_remove_description()}
+        confirmLabel={m.tournaments_roster_remove()}
+        onConfirm={() => {
+          if (removeTarget) {
+            fireAction(removeTarget.participantId, "remove");
+            setRemoveTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }
@@ -517,16 +501,11 @@ export function AddParticipantButton({ id }: { id: string }) {
       </PageTopBarPrimaryButton>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{m.tournaments_roster_add_player()}</DialogTitle>
-            <DialogDescription>{m.tournaments_roster_add_player_description()}</DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void submit();
-            }}
-          >
+          <DialogForm onSubmit={() => void submit()}>
+            <DialogHeader>
+              <DialogTitle>{m.tournaments_roster_add_player()}</DialogTitle>
+              <DialogDescription>{m.tournaments_roster_add_player_description()}</DialogDescription>
+            </DialogHeader>
             <Input
               value={name}
               onChange={(event) => setName(event.target.value)}
@@ -534,15 +513,13 @@ export function AddParticipantButton({ id }: { id: string }) {
               placeholder={m.tournaments_roster_player_name()}
               aria-label={m.tournaments_roster_player_name()}
             />
-            <DialogFooter className="mt-4">
-              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-                {m.common_cancel()}
-              </Button>
-              <Button type="submit" disabled={!name.trim() || addParticipant.isPending}>
+            <DialogFooter>
+              <DialogCancel />
+              <Button type="submit" disabled={!name.trim()} pending={addParticipant.isPending}>
                 {m.tournaments_roster_add()}
               </Button>
             </DialogFooter>
-          </form>
+          </DialogForm>
         </DialogContent>
       </Dialog>
     </>

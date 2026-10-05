@@ -123,9 +123,9 @@ function DragGhost({ urls, className }: { urls: readonly string[]; className?: s
           );
         })}
         {urls.length > 1 && (
-          <span className="bg-primary text-primary-foreground text-2xs absolute -top-1.5 -right-1.5 z-10 flex size-4 items-center justify-center rounded-full font-bold shadow">
+          <Badge variant="count" className="absolute -top-1.5 -right-1.5 z-10 shadow">
             {urls.length}
-          </span>
+          </Badge>
         )}
       </span>
     </span>

@@ -1,6 +1,6 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { useState } from "react";
 
 import { SectionHeading } from "@/components/ui/section-heading";

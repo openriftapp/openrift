@@ -1,5 +1,5 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { getOrientation } from "@openrift/shared/utils";
 import type { ReactNode } from "react";
 
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";

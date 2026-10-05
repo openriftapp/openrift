@@ -59,7 +59,7 @@ export function SearchPrefixChip({ fields }: SearchPrefixChipProps) {
   const summary = scopeSummary(fields);
   return (
     <Badge
-      variant="muted"
+      variant="neutral"
       className="min-w-0 font-normal"
       title={m.cards_search_prefix_hint({ summary })}
     >

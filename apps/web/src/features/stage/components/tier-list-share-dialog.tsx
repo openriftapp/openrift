@@ -1,4 +1,4 @@
-import { ShareDialog } from "@/features/groups/components/share-dialog";
+import { ShareDialog } from "@/components/share/share-dialog";
 import { useSetTierListShare } from "@/features/stage/hooks/use-tier-lists";
 import { tierListOwnerImageUrl } from "@/lib/share-image";
 import { shareLinkUrl } from "@/lib/share-links";

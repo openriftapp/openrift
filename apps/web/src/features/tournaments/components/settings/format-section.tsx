@@ -2,25 +2,18 @@ import type { TournamentDetailResponse } from "@openrift/shared/types/api/tourna
 
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { GroupCutSettingsFields } from "@/features/tournaments/components/group-cut-settings-fields";
+import {
+  PlayModeField,
+  RoundsField,
+} from "@/features/tournaments/components/settings/format-fields";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
-import type { TournamentRoundsChoice } from "@/features/tournaments/lib/tournament-display";
 import {
   hasPairing,
-  isGroupCutChoice,
   MATCH_FORMAT_LABEL,
   pairingStyleLabels,
-  PLAY_MODE_ITEMS,
   pairingFromRoundsChoice,
-  roundsChoiceItems,
   roundsChoiceFor,
 } from "@/features/tournaments/lib/tournament-display";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
@@ -38,12 +31,6 @@ export function FormatSection({
   const isSwiss = detail.pairingStyle === "swiss";
   const groupCut = detail.format === "group_cut";
   const roundsChoice = roundsChoiceFor(detail.pairingStyle, detail.matchFormat, detail.format);
-  const roundsItems = roundsChoiceItems().filter(
-    (item) => detail.playMode !== "2v2" || (item.value !== "pod" && !isGroupCutChoice(item.value)),
-  );
-  const playModeItems = groupCut
-    ? PLAY_MODE_ITEMS.filter((item) => item.value === "1v1")
-    : PLAY_MODE_ITEMS;
   const description = detail.hasRounds
     ? m.tournaments_settings_format_description_rounds({
         teams: detail.playMode === "2v2" ? m.tournaments_settings_format_teams_prefix() : "",
@@ -74,38 +61,22 @@ export function FormatSection({
         ) : null
       ) : (
         <div className="flex flex-wrap gap-x-4 gap-y-3">
-          <div className="flex flex-col gap-1.5">
-            <Label>{m.tournaments_settings_play_mode_label()}</Label>
-            <Select
-              items={playModeItems}
-              value={detail.playMode}
-              disabled={locked || updateTournament.isPending}
-              onValueChange={(value) => {
-                if (value === "1v1" || value === "2v2") {
-                  void runReportedMutation(() =>
-                    updateTournament.mutateAsync({
-                      id: detail.id,
-                      playMode: value,
-                      pairingStyle:
-                        value === "2v2" && detail.pairingStyle === "pod" ? "swiss" : undefined,
-                      regionsEnabled: value === "2v2" && detail.regionsEnabled ? false : undefined,
-                    }),
-                  );
-                }
-              }}
-            >
-              <SelectTrigger aria-label={m.tournaments_settings_play_mode_label()}>
-                <SelectValue placeholder={m.tournaments_settings_play_mode_label()} />
-              </SelectTrigger>
-              <SelectContent>
-                {playModeItems.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <PlayModeField
+            value={detail.playMode}
+            groupCut={groupCut}
+            disabled={locked || updateTournament.isPending}
+            onChange={(playMode) =>
+              void runReportedMutation(() =>
+                updateTournament.mutateAsync({
+                  id: detail.id,
+                  playMode,
+                  pairingStyle:
+                    playMode === "2v2" && detail.pairingStyle === "pod" ? "swiss" : undefined,
+                  regionsEnabled: playMode === "2v2" && detail.regionsEnabled ? false : undefined,
+                }),
+              )
+            }
+          />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="t-pairings-enabled">{m.tournaments_settings_pairings_label()}</Label>
             <div className="flex h-8 items-center">
@@ -129,40 +100,23 @@ export function FormatSection({
             </div>
           </div>
           {roundsChoice ? (
-            <div className="flex flex-col gap-1.5">
-              <Label>{m.tournaments_settings_rounds_label()}</Label>
-              <Select
-                items={roundsItems}
-                value={roundsChoice}
-                disabled={locked || updateTournament.isPending}
-                onValueChange={(value) => {
-                  if (!value || value === roundsChoice) {
-                    return;
-                  }
-                  const next = pairingFromRoundsChoice(value as TournamentRoundsChoice);
-                  void runReportedMutation(() =>
-                    updateTournament.mutateAsync({
-                      id: detail.id,
-                      pairingStyle: next.pairingStyle,
-                      matchFormat: next.pairingStyle === "swiss" ? next.matchFormat : undefined,
-                      format: next.format,
-                      playMode: next.format === "group_cut" ? "1v1" : undefined,
-                    }),
-                  );
-                }}
-              >
-                <SelectTrigger aria-label={m.tournaments_settings_rounds_label()}>
-                  <SelectValue placeholder={m.tournaments_settings_rounds_label()} />
-                </SelectTrigger>
-                <SelectContent>
-                  {roundsItems.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <RoundsField
+              value={roundsChoice}
+              teams={detail.playMode === "2v2"}
+              disabled={locked || updateTournament.isPending}
+              onChange={(choice) => {
+                const next = pairingFromRoundsChoice(choice);
+                void runReportedMutation(() =>
+                  updateTournament.mutateAsync({
+                    id: detail.id,
+                    pairingStyle: next.pairingStyle,
+                    matchFormat: next.pairingStyle === "swiss" ? next.matchFormat : undefined,
+                    format: next.format,
+                    playMode: next.format === "group_cut" ? "1v1" : undefined,
+                  }),
+                );
+              }}
+            />
           ) : null}
           {groupCut ? (
             <div className="basis-full">

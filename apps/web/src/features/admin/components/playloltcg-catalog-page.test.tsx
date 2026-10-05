@@ -79,7 +79,7 @@ vi.mock("@/features/admin/hooks/use-admin-playloltcg-catalog", () => ({
   },
   useDismissPlayloltcgEvent: () => ({
     mutate: captured.dismiss,
-    mutateAsync: captured.dismiss,
+    mutateAsync: (input: unknown) => Promise.resolve(captured.dismiss(input)),
     isPending: false,
   }),
   useUndismissPlayloltcgEvent: () => ({ mutate: captured.undismiss, isPending: false }),

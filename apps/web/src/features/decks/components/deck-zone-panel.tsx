@@ -1,9 +1,10 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { totalQuantity } from "@openrift/shared/deck-rules";
+import { isZoneShown, requiredZoneProgress } from "@openrift/shared/deck-zones";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import { LayoutDashboardIcon } from "lucide-react";
-import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,10 +19,10 @@ import { useDeckStats } from "@/features/decks/hooks/use-deck-stats";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
-import { isZoneShown, requiredZoneProgress } from "@/features/decks/lib/deck-zone-labels";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useZoneOrder } from "@/hooks/use-enums";
+import { useShiftHeld } from "@/hooks/use-shift-held";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { deckGlowStyle } from "@/lib/domain";
 import { cn } from "@/lib/utils";
@@ -52,7 +53,7 @@ function PanelIdentityHeader({
   const legendDomains = legend?.domains ?? [];
   const { progress, total } = requiredZoneProgress(cards, format);
   const isFreeform = format === WellKnown.deckFormat.FREEFORM;
-  const totalQuantity = cards.reduce((sum, card) => sum + card.quantity, 0);
+  const zoneQuantity = totalQuantity(cards);
   const isComplete = !isFreeform && progress === total && violationCount === 0;
 
   const legendImage = legend
@@ -119,7 +120,7 @@ function PanelIdentityHeader({
             )}
           >
             {isFreeform
-              ? m.common_cards({ count: totalQuantity })
+              ? m.common_cards({ count: zoneQuantity })
               : m.decks_editor_progress_cards({ progress, total })}
           </p>
         </div>
@@ -186,25 +187,7 @@ export function DeckZonePanel({
 
   const visibleZones = zoneOrder.filter((zone) => isZoneShown(zone, deckDetail.deck.format, cards));
 
-  const [shiftHeld, setShiftHeld] = useState(false);
-  useEffect(() => {
-    const down = (event: KeyboardEvent) => {
-      if (event.key === "Shift") {
-        setShiftHeld(true);
-      }
-    };
-    const up = (event: KeyboardEvent) => {
-      if (event.key === "Shift") {
-        setShiftHeld(false);
-      }
-    };
-    globalThis.addEventListener("keydown", down);
-    globalThis.addEventListener("keyup", up);
-    return () => {
-      globalThis.removeEventListener("keydown", down);
-      globalThis.removeEventListener("keyup", up);
-    };
-  }, []);
+  const shiftHeld = useShiftHeld();
 
   return (
     // gap-4 must clear the drop ring a section grows to while a card hovers over it.

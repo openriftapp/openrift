@@ -1,23 +1,23 @@
 import { PageDescription } from "@/components/layout/page-top-bar";
 import {
-  LabelAddInput,
+  DraftTextInput,
   LabelCell,
-  LabelInput,
   SlugAddInput,
   SlugCell,
   validateSlugAndLabel,
   WellKnownCell,
 } from "@/features/admin/components/admin-crud-shared";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminColumnDef } from "@/features/admin/components/admin-table";
-import { flatReorder } from "@/features/admin/lib/admin-reorder";
 import {
   useCreateSuperType,
   useDeleteSuperType,
   useReorderSuperTypes,
   useSuperTypes,
   useUpdateSuperType,
-} from "@/hooks/use-super-types";
+} from "@/features/admin/hooks/use-super-types";
+import { flatReorder } from "@/features/admin/lib/admin-reorder";
 
 interface SuperTypeRow {
   slug: string;
@@ -42,8 +42,8 @@ const columns: AdminColumnDef<SuperTypeRow, SuperTypeDraft>[] = [
     header: "Label",
     sortValue: (superType) => superType.label,
     cell: <LabelCell<SuperTypeRow> />,
-    editCell: <LabelInput<SuperTypeDraft> />,
-    addCell: <LabelAddInput<SuperTypeDraft> placeholder="Champion" />,
+    editCell: <DraftTextInput<SuperTypeDraft> field="label" />,
+    addCell: <DraftTextInput<SuperTypeDraft> field="label" placeholder="Champion" />,
   },
   {
     header: "Well-known",
@@ -65,7 +65,7 @@ export function SuperTypesPage() {
       data={superTypes}
       getRowKey={(superType) => superType.slug}
       emptyText="No supertypes yet."
-      title="Supertypes"
+      topBar={(actions) => <AdminPageTopBar title="Supertypes" actions={actions} />}
       toolbar={
         <PageDescription>
           Supertypes are qualifiers applied on top of a card&apos;s type (e.g. Champion, Signature).

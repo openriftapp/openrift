@@ -1,28 +1,28 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageUrl } from "@openrift/shared/image-url";
-import { getOrientation } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
-import { ImageOffIcon, InfoIcon } from "lucide-react";
+import { ImageOffIcon } from "lucide-react";
 import { useState } from "react";
 
 import { ExpandToggle } from "@/components/ui/expand-toggle";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { InfoHint } from "@/components/ui/info-hint";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import { AFTER_BORDER } from "@/features/cards/components/card-thumbnail";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { rowActivateProps } from "@/features/cards/lib/card-row-interactions";
 import { DECK_LIST_SECTION_CLASS } from "@/features/decks/components/deck-overview-list";
-import {
-  LANDSCAPE_THUMB_CLASS,
-  LANDSCAPE_THUMB_STYLE,
-  PORTRAIT_THUMB_CLASS,
-  PORTRAIT_THUMB_STYLE,
-} from "@/features/decks/components/deck-thumb-metrics";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import type { DeckTokenEntry } from "@/features/decks/hooks/use-deck-tokens";
 import { useDeckTokens } from "@/features/decks/hooks/use-deck-tokens";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
+import {
+  LANDSCAPE_THUMB_CLASS,
+  LANDSCAPE_THUMB_STYLE,
+  PORTRAIT_THUMB_CLASS,
+  PORTRAIT_THUMB_STYLE,
+} from "@/features/decks/lib/deck-thumb-metrics";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
@@ -43,15 +43,7 @@ function tokenTitle(entry: DeckTokenEntry): string {
 }
 
 function TokensHint() {
-  return (
-    <Tooltip>
-      <TooltipTrigger className="text-muted-foreground/70 hover:text-foreground flex shrink-0 items-center transition-colors">
-        <InfoIcon className="size-3.5" />
-        <span className="sr-only">{m.decks_editor_tokens_hint()}</span>
-      </TooltipTrigger>
-      <TooltipContent>{m.decks_editor_tokens_hint()}</TooltipContent>
-    </Tooltip>
-  );
+  return <InfoHint label={m.decks_editor_tokens()}>{m.decks_editor_tokens_hint()}</InfoHint>;
 }
 
 function TokenThumb({

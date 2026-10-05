@@ -1,5 +1,6 @@
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import { copyLimitFor, requiredLegendOptions, validateDeck } from "@openrift/shared/deck-rules";
+import { isSingleSlotZone } from "@openrift/shared/deck-zones";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type { DeckFormat, DeckZone, Domain } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -7,7 +8,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import type { Collection } from "@tanstack/react-db";
 
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
-import { useDeckDraftCollection } from "@/features/decks/hooks/deck-builder-collection";
+import { useDeckDraftCollection } from "@/features/decks/hooks/use-deck-draft";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
@@ -167,7 +168,7 @@ export function addCardAction(
   const preferredPrintingId = card.preferredPrintingId;
   const freeform = format === WellKnown.deckFormat.FREEFORM;
 
-  if (zone === WellKnown.deckZone.LEGEND || zone === WellKnown.deckZone.CHAMPION) {
+  if (isSingleSlotZone(zone)) {
     if (freeform) {
       incrementOrInsert(collection, card, zone, preferredPrintingId, count ?? 1);
       return;
@@ -344,9 +345,7 @@ export function moveCardAction(
   if (!source || !isCardAllowedInZone(source, toZone)) {
     return;
   }
-  const singleSlot =
-    (toZone === WellKnown.deckZone.LEGEND || toZone === WellKnown.deckZone.CHAMPION) &&
-    format !== WellKnown.deckFormat.FREEFORM;
+  const singleSlot = isSingleSlotZone(toZone) && format !== WellKnown.deckFormat.FREEFORM;
   if (singleSlot) {
     moveIntoSingleSlot(collection, source, sourceKey, toZone);
     return;
@@ -377,9 +376,7 @@ export function moveOneCardAction(
   if (!source || !isCardAllowedInZone(source, toZone)) {
     return;
   }
-  const singleSlot =
-    (toZone === WellKnown.deckZone.LEGEND || toZone === WellKnown.deckZone.CHAMPION) &&
-    format !== WellKnown.deckFormat.FREEFORM;
+  const singleSlot = isSingleSlotZone(toZone) && format !== WellKnown.deckFormat.FREEFORM;
   if (singleSlot) {
     moveIntoSingleSlot(collection, source, sourceKey, toZone);
     return;

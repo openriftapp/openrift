@@ -1,6 +1,6 @@
+import { pluralize } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
-import { CircleXIcon, LoaderIcon, PlusIcon, Trash2Icon } from "lucide-react";
-import { useState } from "react";
+import { CircleXIcon } from "lucide-react";
 
 import { Heading } from "@/components/heading";
 import { PageDescription } from "@/components/layout/page-top-bar";
@@ -9,7 +9,6 @@ import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import {
   Select,
@@ -18,22 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ColorInput, DraftTextInput } from "@/features/admin/components/admin-crud-shared";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type {
   AdminCellSlotProps,
   AdminColumnDef,
   AdminDraftSlotProps,
 } from "@/features/admin/components/admin-table";
-import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
-import { useLanguageLabels } from "@/hooks/use-enums";
 import {
   useCreateKeywordStyle,
   useDeleteKeywordStyle,
@@ -43,7 +34,8 @@ import {
   useRecomputeKeywords,
   useUpdateKeywordStyle,
   useUpsertTranslation,
-} from "@/hooks/use-keywords";
+} from "@/features/admin/hooks/use-keywords";
+import { useLanguageLabels } from "@/hooks/use-enums";
 
 // Fallback badge color, matching getKeywordStyle's FALLBACK_COLOR. Used when a
 // keyword with no style row is flagged as a cost keyword (which needs a row).
@@ -166,34 +158,6 @@ function PreviewCell({ row }: AdminCellSlotProps<KeywordRow>) {
   );
 }
 
-function KeywordAddInput({ draft, setDraft }: AdminDraftSlotProps<KeywordDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.keyword}
-      onChange={(event) => setDraft((prev) => ({ ...prev, keyword: event.target.value }))}
-      placeholder="Keyword name"
-      className="h-8 w-40"
-    />
-  );
-}
-
-function ColorInput({ draft, setDraft }: AdminDraftSlotProps<KeywordDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.color}
-      onChange={(event) => setDraft((prev) => ({ ...prev, color: event.target.value }))}
-      placeholder="#6366f1"
-      className="h-8 w-28 font-mono"
-    />
-  );
-}
-
 function DarkTextInput({ draft, setDraft }: AdminDraftSlotProps<KeywordDraft>) {
   if (!draft || !setDraft) {
     return null;
@@ -279,7 +243,9 @@ const columns: AdminColumnDef<KeywordRow, KeywordDraft>[] = [
     header: "Keyword",
     sortValue: (row) => row.keyword,
     cell: <KeywordCell />,
-    addCell: <KeywordAddInput />,
+    addCell: (
+      <DraftTextInput<KeywordDraft> field="keyword" placeholder="Keyword name" className="w-40" />
+    ),
   },
   {
     header: "Cards",
@@ -290,8 +256,8 @@ const columns: AdminColumnDef<KeywordRow, KeywordDraft>[] = [
   {
     header: "Color",
     cell: <ColorCell />,
-    editCell: <ColorInput />,
-    addCell: <ColorInput />,
+    editCell: <ColorInput<KeywordDraft> placeholder="#6366f1" />,
+    addCell: <ColorInput<KeywordDraft> placeholder="#6366f1" />,
   },
   {
     header: "Dark text",
@@ -382,9 +348,9 @@ export function KeywordsPage() {
           <Button
             variant="outline"
             onClick={() => recomputeKeywords.mutate()}
-            disabled={recomputeKeywords.isPending}
+            pending={recomputeKeywords.isPending}
           >
-            {recomputeKeywords.isPending ? <LoaderIcon className="animate-spin" /> : "Recompute"}
+            Recompute
           </Button>
         </SettingsRow>
 
@@ -397,7 +363,7 @@ export function KeywordsPage() {
               Found {discoverTranslations.data.discovered.length}, inserted{" "}
               {discoverTranslations.data.inserted}
               {discoverTranslations.data.conflicts.length > 0 &&
-                `, ${discoverTranslations.data.conflicts.length} conflicts`}
+                `, ${discoverTranslations.data.conflicts.length} ${pluralize(discoverTranslations.data.conflicts.length, "conflict")}`}
             </p>
           )}
           {discoverTranslations.isError && (
@@ -409,9 +375,9 @@ export function KeywordsPage() {
           <Button
             variant="outline"
             onClick={() => discoverTranslations.mutate()}
-            disabled={discoverTranslations.isPending}
+            pending={discoverTranslations.isPending}
           >
-            {discoverTranslations.isPending ? <LoaderIcon className="animate-spin" /> : "Discover"}
+            Discover
           </Button>
         </SettingsRow>
       </SettingsSection>
@@ -437,7 +403,7 @@ export function KeywordsPage() {
         getRowKey={(row) => row.keyword}
         defaultSort={{ column: "Cards", direction: "desc" }}
         emptyText="No keywords found. Try running recompute first."
-        title="Keywords"
+        topBar={(actions) => <AdminPageTopBar title="Keywords" actions={actions} />}
         toolbar={
           <PageDescription>
             Keywords extracted from card and printing text. Styles control how keyword badges
@@ -507,6 +473,86 @@ export function KeywordsPage() {
   );
 }
 
+function TranslationKeywordCell({ row }: AdminCellSlotProps<TranslationRow>) {
+  if (!row) {
+    return null;
+  }
+  return <span className="font-medium">{row.keywordName}</span>;
+}
+
+function TranslationLanguageCell({ row }: AdminCellSlotProps<TranslationRow>) {
+  return row ? row.language : null;
+}
+
+function TranslationLabelCell({ row }: AdminCellSlotProps<TranslationRow>) {
+  return row ? row.label : null;
+}
+
+function TranslationKeywordSelect({
+  draft,
+  setDraft,
+  keywordNames,
+}: AdminDraftSlotProps<TranslationRow> & { keywordNames: string[] }) {
+  if (!draft || !setDraft) {
+    return null;
+  }
+  return (
+    <Select
+      value={draft.keywordName}
+      onValueChange={(value) => setDraft((prev) => ({ ...prev, keywordName: value ?? "" }))}
+    >
+      <SelectTrigger className="h-8 w-40" aria-label="Keyword">
+        <SelectValue placeholder="Keyword" />
+      </SelectTrigger>
+      <SelectContent>
+        {keywordNames.toSorted().map((name) => (
+          <SelectItem key={name} value={name}>
+            {name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function TranslationLanguageSelect({
+  draft,
+  setDraft,
+  languageLabels,
+}: AdminDraftSlotProps<TranslationRow> & { languageLabels: Record<string, string> }) {
+  if (!draft || !setDraft) {
+    return null;
+  }
+  return (
+    <Select
+      value={draft.language}
+      onValueChange={(value) => setDraft((prev) => ({ ...prev, language: value ?? "" }))}
+    >
+      <SelectTrigger className="h-8 w-28" aria-label="Language">
+        <SelectValue placeholder="Language">
+          {(value: string) => `${value} — ${languageLabels[value] ?? value}`}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {Object.entries(languageLabels)
+          .filter(([code]) => code !== WellKnown.language.EN)
+          .map(([code, name]) => (
+            <SelectItem key={code} value={code}>
+              {code} — {name}
+            </SelectItem>
+          ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function validateTranslation(draft: TranslationRow): string | null {
+  if (!draft.keywordName.trim() || !draft.language.trim() || !draft.label.trim()) {
+    return "Keyword, language and translation are required";
+  }
+  return null;
+}
+
 function TranslationsTable({
   translations,
   keywordNames,
@@ -518,197 +564,58 @@ function TranslationsTable({
 }) {
   const upsertTranslation = useUpsertTranslation();
   const deleteTranslation = useDeleteTranslation();
-  const [addKeyword, setAddKeyword] = useState("");
-  const [addLanguage, setAddLanguage] = useState("");
-  const [addLabel, setAddLabel] = useState("");
-  const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [editLabel, setEditLabel] = useState("");
 
-  async function handleSaveEdit(row: TranslationRow) {
-    const label = editLabel.trim();
-    if (!label) {
-      return;
-    }
-    try {
-      await upsertTranslation.mutateAsync({
-        keywordName: row.keywordName,
-        language: row.language,
-        label,
-      });
-      setEditingKey(null);
-    } catch {
-      /* Reported by the global mutation error toast. */
-    }
-  }
+  const translationColumns: AdminColumnDef<TranslationRow>[] = [
+    {
+      header: "Keyword",
+      cell: <TranslationKeywordCell />,
+      addCell: <TranslationKeywordSelect keywordNames={keywordNames} />,
+    },
+    {
+      header: "Language",
+      cell: <TranslationLanguageCell />,
+      addCell: <TranslationLanguageSelect languageLabels={languageLabels} />,
+    },
+    {
+      header: "Translation",
+      cell: <TranslationLabelCell />,
+      editCell: <DraftTextInput<TranslationRow> field="label" className="w-40" />,
+      addCell: (
+        <DraftTextInput<TranslationRow> field="label" placeholder="Translation" className="w-40" />
+      ),
+    },
+  ];
 
-  async function handleDelete(row: TranslationRow) {
-    try {
-      await deleteTranslation.mutateAsync({
-        keywordName: row.keywordName,
-        language: row.language,
-      });
-    } catch {
-      /* Reported by the global mutation error toast. */
-    }
-  }
-
-  async function handleAdd() {
-    try {
-      await upsertTranslation.mutateAsync({
-        keywordName: addKeyword.trim(),
-        language: addLanguage.trim(),
-        label: addLabel.trim(),
-      });
-      setAddKeyword("");
-      setAddLanguage("");
-      setAddLabel("");
-    } catch {
-      /* Reported by the global mutation error toast. */
-    }
+  function saveTranslation(draft: TranslationRow) {
+    return upsertTranslation.mutateAsync({
+      keywordName: draft.keywordName.trim(),
+      language: draft.language.trim(),
+      label: draft.label.trim(),
+    });
   }
 
   return (
-    <div className="space-y-3">
-      <Heading level={2}>Keyword Translations</Heading>
-      <div className={ADMIN_TABLE_SURFACE}>
-        <Table className={ADMIN_TABLE_CLASS}>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Keyword</TableHead>
-              <TableHead>Language</TableHead>
-              <TableHead>Translation</TableHead>
-              <TableHead className="w-32 text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {translations.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-muted-foreground text-center">
-                  No translations yet. Try running auto-discover.
-                </TableCell>
-              </TableRow>
-            )}
-            {translations.map((t) => {
-              const key = `${t.keywordName}-${t.language}`;
-              const isEditing = editingKey === key;
-              return (
-                <TableRow key={key}>
-                  <TableCell className="font-medium">{t.keywordName}</TableCell>
-                  <TableCell>{t.language}</TableCell>
-                  <TableCell>
-                    {isEditing ? (
-                      <Input
-                        value={editLabel}
-                        onChange={(event) => setEditLabel(event.target.value)}
-                        className="h-7 w-40 text-sm"
-                      />
-                    ) : (
-                      t.label
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {isEditing ? (
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => void handleSaveEdit(t)}
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => setEditingKey(null)}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => {
-                            setEditingKey(key);
-                            setEditLabel(t.label);
-                          }}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive h-7 text-xs"
-                          onClick={() => void handleDelete(t)}
-                        >
-                          <Trash2Icon className="size-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            <TableRow>
-              <TableCell>
-                <Select value={addKeyword} onValueChange={(value) => setAddKeyword(value ?? "")}>
-                  <SelectTrigger className="h-7 w-40 text-sm" size="sm">
-                    <SelectValue placeholder="Keyword" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {keywordNames.toSorted().map((name) => (
-                      <SelectItem key={name} value={name}>
-                        {name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </TableCell>
-              <TableCell>
-                <Select value={addLanguage} onValueChange={(value) => setAddLanguage(value ?? "")}>
-                  <SelectTrigger className="h-7 w-28 text-sm" size="sm">
-                    <SelectValue placeholder="Language">
-                      {(value: string) => `${value} — ${languageLabels[value] ?? value}`}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(languageLabels)
-                      .filter(([code]) => code !== WellKnown.language.EN)
-                      .map(([code, name]) => (
-                        <SelectItem key={code} value={code}>
-                          {code} — {name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </TableCell>
-              <TableCell>
-                <Input
-                  value={addLabel}
-                  onChange={(event) => setAddLabel(event.target.value)}
-                  placeholder="Translation"
-                  className="h-7 w-40 text-sm"
-                />
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs"
-                  disabled={!addKeyword.trim() || !addLanguage.trim() || !addLabel.trim()}
-                  onClick={() => void handleAdd()}
-                >
-                  <PlusIcon className="size-3" /> Add
-                </Button>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <AdminTable
+      columns={translationColumns}
+      data={translations}
+      getRowKey={(t) => `${t.keywordName}-${t.language}`}
+      emptyText="No translations yet. Try running auto-discover."
+      toolbar={<Heading level={2}>Keyword Translations</Heading>}
+      add={{
+        emptyDraft: { keywordName: "", language: "", label: "" },
+        onSave: saveTranslation,
+        validate: validateTranslation,
+        label: "Add Translation",
+      }}
+      edit={{
+        toDraft: (row) => ({ ...row }),
+        onSave: saveTranslation,
+        validate: validateTranslation,
+      }}
+      delete={{
+        onDelete: (row) =>
+          deleteTranslation.mutateAsync({ keywordName: row.keywordName, language: row.language }),
+      }}
+    />
   );
 }

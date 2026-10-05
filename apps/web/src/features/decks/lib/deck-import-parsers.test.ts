@@ -1,3 +1,4 @@
+import { parseDeckImportData } from "@openrift/shared/deck-codecs/parse";
 import type { PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
 import { describe, expect, it, vi } from "vitest";
 
@@ -5,7 +6,6 @@ import {
   entriesFromSharedDeck,
   extractDeckFromUrl,
   parseDeckImportAuto,
-  parseDeckImportData,
   sniffDeckImportFormat,
 } from "./deck-import-parsers";
 

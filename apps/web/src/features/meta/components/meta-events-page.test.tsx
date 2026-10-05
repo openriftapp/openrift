@@ -171,6 +171,8 @@ function winner(playerName: string): MetaEventSummary["topFinishes"][number] {
     legend: {
       cardId: "c1",
       name: "Lee Sin, the Blind Monk",
+      character: "Lee Sin",
+      epithet: "the Blind Monk",
       slug: "lee-sin",
       imageId: "i1",
       domains: ["body"],

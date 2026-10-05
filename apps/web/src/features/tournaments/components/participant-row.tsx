@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { CardRow } from "@/components/ui/card-list";
 import {
   DropdownMenu,
@@ -31,9 +31,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UserAvatar } from "@/components/user-avatar";
+import { RegionBadge } from "@/features/tournaments/components/region-badge";
 import { participantStatusLabels } from "@/features/tournaments/lib/tournament-display";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { useRegionLabel } from "@/hooks/use-region-label";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -111,7 +111,6 @@ export function ParticipantRow({
   onSetFixedTable,
   onRemove,
 }: ParticipantRowProps) {
-  const regionLabel = useRegionLabel();
   const { copy } = useCopyToClipboard();
   const missesRegion = participantMissesRegion(participant, regionsEnabled);
   const missesLegend = participantMissesLegend(participant, legendTiebreak);
@@ -153,7 +152,7 @@ export function ParticipantRow({
           </Badge>
         ) : null}
         {regionsEnabled && participant.region ? (
-          <Badge variant="outline">{regionLabel(participant.region)}</Badge>
+          <RegionBadge region={participant.region} />
         ) : missesRegion ? (
           <Badge variant="warning">
             <GlobeIcon className="size-3" />
@@ -171,7 +170,7 @@ export function ParticipantRow({
             {participant.legendName}
           </Badge>
         ) : missesLegend ? (
-          <Badge variant="muted">
+          <Badge variant="neutral">
             <CrownIcon className="size-3" />
             {m.tournaments_participant_no_legend()}
           </Badge>
@@ -230,19 +229,14 @@ export function ParticipantRow({
             </Button>
           ) : null}
           {deckEntryId ? (
-            <Button
-              size="sm"
-              className="hidden sm:inline-flex"
-              render={
-                <Link
-                  to="/tournaments/$id/decks/$entryId"
-                  params={{ id: tournamentId, entryId: deckEntryId }}
-                />
-              }
+            <Link
+              to="/tournaments/$id/decks/$entryId"
+              params={{ id: tournamentId, entryId: deckEntryId }}
+              className={buttonVariants({ size: "sm", className: "hidden sm:inline-flex" })}
             >
               <LayersIcon className="size-4" />
               {m.tournaments_participant_deck()}
-            </Button>
+            </Link>
           ) : null}
           {participant.status === "requested" ? (
             <>

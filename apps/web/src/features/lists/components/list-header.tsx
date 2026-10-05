@@ -27,10 +27,10 @@ const INTENT_ICON: Record<ListIntent, IconComponent> = {
   organize: FolderIcon,
 };
 
-const KIND_NOUN: Record<ListKind, { singular: string; plural: string }> = {
-  card: { singular: "Card", plural: "Cards" },
-  printing: { singular: "Printing", plural: "Printings" },
-  copy: { singular: "Copy", plural: "Copies" },
+const KIND_COUNT: Record<ListKind, (inputs: { count: number }) => string> = {
+  card: m.common_cards,
+  printing: m.common_printings,
+  copy: m.common_copies,
 };
 
 interface ListSummary {
@@ -65,7 +65,6 @@ export function ListHeader({
   const IntentIcon = INTENT_ICON[list.intent];
   const KindIcon = LIST_KIND_ICON[list.kind];
   const count = entries.length;
-  const kindNoun = count === 1 ? KIND_NOUN[list.kind].singular : KIND_NOUN[list.kind].plural;
 
   return (
     <PageTopBar>
@@ -79,14 +78,12 @@ export function ListHeader({
         </span>
         <span className="text-muted-foreground hidden shrink-0 items-baseline gap-1 text-xs sm:inline-flex">
           <KindIcon className="size-3 self-center" />
-          <span>
-            {count} {kindNoun}
-          </span>
+          <span>{KIND_COUNT[list.kind]({ count })}</span>
         </span>
         {hydrated && count > 0 && <ListValueLabel kind={list.kind} entries={entries} />}
         {attribution.kind === "owner" && attribution.ownerName ? (
           <span className="text-muted-foreground hidden shrink-0 text-xs sm:inline">
-            · by {attribution.ownerName}
+            · {m.lists_header_byline({ name: attribution.ownerName })}
           </span>
         ) : null}
       </div>

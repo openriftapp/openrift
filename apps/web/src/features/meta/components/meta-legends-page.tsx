@@ -10,21 +10,20 @@ import {
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
+import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { RankBand } from "@/components/ui/rank-band";
-import { RowList } from "@/components/ui/row-list";
+import { RowList, RowListLink } from "@/components/ui/row-list";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
-import { SearchInput } from "@/features/cards/components/search-input";
-import { useSearchUrlSync } from "@/features/cards/hooks/use-search-url-sync";
-import { DomainIcon } from "@/features/decks/components/domain-icon";
+import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import { useMetaLegends } from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
 import { metaEventCountries } from "@/features/meta/lib/meta-events-index";
-import { formatRank, metaShownLabel, splitLegendName } from "@/features/meta/lib/meta-format";
+import { formatRank, metaShownLabel } from "@/features/meta/lib/meta-format";
 import type { MetaLegendIndexEntry } from "@/features/meta/lib/meta-legend-page";
 import {
   nextLegendSort,
@@ -42,6 +41,7 @@ import {
   metaScopeQueryFromScope,
   nextScopeSearch,
 } from "@/features/meta/lib/meta-scope";
+import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 import { formatCount } from "@/lib/format";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -102,14 +102,14 @@ function LegendArt({ entry, className }: { entry: MetaLegendIndexEntry; classNam
 
 /** Both size variants share one Link so a legend is one click target and one tab stop. */
 function LegendRow({ entry }: { entry: MetaLegendIndexEntry }) {
-  const { champion, title } = splitLegendName(entry.legend.name);
+  const champion = entry.legend.character ?? entry.legend.epithet;
+  const title = entry.legend.character === null ? null : entry.legend.epithet;
   const best = entry.bestFinish;
 
   return (
-    <Link
-      to="/meta/legends/$slug"
-      params={{ slug: entry.slug }}
-      className="hover:bg-muted/50 focus-visible:ring-ring/50 -mx-2 block rounded-md px-2 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-inset"
+    <RowListLink
+      render={<Link to="/meta/legends/$slug" params={{ slug: entry.slug }} />}
+      className="block py-2.5"
     >
       <div className={cn(LEGEND_INDEX_GRID, "hidden md:grid")}>
         <LegendArt entry={entry} className="size-12" />
@@ -166,7 +166,7 @@ function LegendRow({ entry }: { entry: MetaLegendIndexEntry }) {
           </div>
         </div>
       </div>
-    </Link>
+    </RowListLink>
   );
 }
 

@@ -1,8 +1,9 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { ChevronDownIcon, ChevronUpIcon, GripVerticalIcon } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 
@@ -12,7 +13,7 @@ import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { PrintingVariantLabel } from "@/features/cards/components/printing-label";
 import { moveQueueEntry } from "@/features/cards/lib/card-queue";
-import type { StageQueueRowData } from "@/features/stage/components/stage-dnd-types";
+import type { StageQueueRowData } from "@/features/stage/lib/stage-dnd-types";
 import { formatPublicCode } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";

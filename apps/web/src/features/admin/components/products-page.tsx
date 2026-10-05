@@ -1,7 +1,7 @@
 import type { ProductSummary } from "@openrift/shared/contracts/products";
 import { RESERVED_PRODUCT_SLUGS, productSlugRegex } from "@openrift/shared/contracts/products";
 import { formatDayTime } from "@openrift/shared/format-date";
-import { slugifyName } from "@openrift/shared/utils";
+import { slugifyName } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
 import { RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
@@ -36,7 +36,11 @@ import {
 } from "@/components/ui/select";
 import { TextLink } from "@/components/ui/text-link";
 import { Textarea } from "@/components/ui/textarea";
-import { SlugCell } from "@/features/admin/components/admin-crud-shared";
+import {
+  DescriptionInput,
+  DraftTextInput,
+  SlugCell,
+} from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { suggestListIdForProduct } from "@/features/admin/lib/suggest-product-list";
 import {
@@ -112,46 +116,6 @@ function UpdatedCell({ row }: AdminCellSlotProps<ProductSummary>) {
   return <span className="text-muted-foreground text-xs">{formatDayTime(row.updatedAt)}</span>;
 }
 
-function NameInput({ draft, setDraft }: AdminDraftSlotProps<ProductDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.name}
-      onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
-      className="h-8"
-    />
-  );
-}
-
-function SlugInput({ draft, setDraft }: AdminDraftSlotProps<ProductDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.slug}
-      onChange={(e) => setDraft((prev) => ({ ...prev, slug: e.target.value.toLowerCase() }))}
-      className="h-8 w-56 font-mono"
-    />
-  );
-}
-
-function DescriptionInput({ draft, setDraft }: AdminDraftSlotProps<ProductDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.description}
-      onChange={(e) => setDraft((prev) => ({ ...prev, description: e.target.value }))}
-      placeholder="Optional markdown description"
-      className="h-8"
-    />
-  );
-}
-
 /** Sentinel select value for "no set" (BaseUI selects don't take ""). */
 const NO_SET = "none";
 
@@ -204,15 +168,26 @@ function SetInput({ draft, setDraft }: AdminDraftSlotProps<ProductDraft>) {
 }
 
 const productColumns: AdminColumnDef<ProductSummary, ProductDraft>[] = [
-  { header: "Name", sortValue: (p) => p.name, cell: <NameCell />, editCell: <NameInput /> },
+  {
+    header: "Name",
+    sortValue: (p) => p.name,
+    cell: <NameCell />,
+    editCell: <DraftTextInput<ProductDraft> field="name" />,
+  },
   {
     header: "Slug",
     sortValue: (p) => p.slug,
     cell: <SlugCell<ProductSummary> />,
-    editCell: <SlugInput />,
+    editCell: (
+      <DraftTextInput<ProductDraft> field="slug" letterCase="lower" className="w-56 font-mono" />
+    ),
   },
   { header: "Set", sortValue: (p) => p.set?.name ?? "", cell: <SetCell />, editCell: <SetInput /> },
-  { header: "Description", cell: <DescriptionCell />, editCell: <DescriptionInput /> },
+  {
+    header: "Description",
+    cell: <DescriptionCell />,
+    editCell: <DescriptionInput<ProductDraft> placeholder="Optional markdown description" />,
+  },
   { header: "Cards", align: "right", sortValue: (p) => p.cardTotal, cell: <CardTotalCell /> },
   {
     header: "Unique",

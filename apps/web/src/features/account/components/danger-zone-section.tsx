@@ -3,6 +3,8 @@ import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { ConfirmActionButton } from "@/components/confirm-action-dialog";
+import { DangerZone } from "@/components/layout/danger-zone";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -15,19 +17,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/features/account/lib/auth-client";
 import { useResetCollections } from "@/features/collections/hooks/use-collections";
 import { sessionQueryOptions } from "@/lib/auth-session";
-import { errorText } from "@/lib/error-text";
 import { m } from "@/paraglide/messages.js";
 
 const RESET_CONFIRM_WORD = "reset";
 
-// Lives outside the handler: React Compiler cannot lower a conditional inside
-// a try/catch.
 function resetSummaryMessage(summary: {
   removedCopies: number;
   removedCollections: number;
@@ -40,24 +38,11 @@ function resetSummaryMessage(summary: {
 }
 
 function ResetCollectionsAction() {
-  const [open, setOpen] = useState(false);
-  const [confirmText, setConfirmText] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const resetCollections = useResetCollections();
 
   async function handleReset() {
-    if (confirmText.trim().toLowerCase() !== RESET_CONFIRM_WORD) {
-      setError(m.profile_danger_reset_confirm_error({ word: RESET_CONFIRM_WORD }));
-      return;
-    }
-    setError(null);
-    try {
-      const summary = await resetCollections.mutateAsync();
-      setOpen(false);
-      toast.success(resetSummaryMessage(summary));
-    } catch (resetError) {
-      setError(errorText(resetError, m.profile_danger_reset_failed()));
-    }
+    const summary = await resetCollections.mutateAsync();
+    toast.success(resetSummaryMessage(summary));
   }
 
   return (
@@ -66,56 +51,17 @@ function ResetCollectionsAction() {
         <p className="font-medium">{m.profile_danger_reset_title()}</p>
         <p className="text-muted-foreground text-sm">{m.profile_danger_reset_description()}</p>
       </div>
-      <AlertDialog
-        open={open}
-        onOpenChange={(nextOpen) => {
-          setOpen(nextOpen);
-          if (!nextOpen) {
-            setConfirmText("");
-            setError(null);
-          }
-        }}
+      <ConfirmActionButton
+        trigger={<Button variant="destructive" className="self-start" />}
+        title={m.profile_danger_reset_dialog_title()}
+        description={m.profile_danger_reset_dialog_description({ word: RESET_CONFIRM_WORD })}
+        confirmLabel={m.profile_danger_reset_title()}
+        pendingLabel={m.profile_danger_reset_pending()}
+        confirmPhrase={RESET_CONFIRM_WORD}
+        onConfirm={handleReset}
       >
-        <AlertDialogTrigger
-          render={
-            <Button variant="destructive" className="self-start">
-              {m.profile_danger_reset_title()}
-            </Button>
-          }
-        />
-        <AlertDialogContent>
-          <DialogForm onSubmit={() => void handleReset()}>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{m.profile_danger_reset_dialog_title()}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {m.profile_danger_reset_dialog_description({ word: RESET_CONFIRM_WORD })}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="grid gap-2">
-              <Input
-                autoComplete="off"
-                placeholder={m.profile_danger_reset_placeholder({ word: RESET_CONFIRM_WORD })}
-                value={confirmText}
-                onChange={(e) => setConfirmText(e.target.value)}
-                aria-invalid={Boolean(error)}
-              />
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-            </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{m.profile_danger_cancel()}</AlertDialogCancel>
-              <Button type="submit" variant="destructive" disabled={resetCollections.isPending}>
-                {resetCollections.isPending
-                  ? m.profile_danger_reset_pending()
-                  : m.profile_danger_reset_title()}
-              </Button>
-            </AlertDialogFooter>
-          </DialogForm>
-        </AlertDialogContent>
-      </AlertDialog>
+        {m.profile_danger_reset_title()}
+      </ConfirmActionButton>
     </div>
   );
 }
@@ -203,9 +149,9 @@ function DeleteAccountAction() {
               )}
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel>{m.profile_danger_cancel()}</AlertDialogCancel>
-              <Button type="submit" variant="destructive" disabled={loading}>
-                {loading ? m.profile_danger_delete_pending() : m.profile_danger_delete_title()}
+              <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+              <Button type="submit" variant="destructive" pending={loading}>
+                {loading ? m.common_deleting() : m.profile_danger_delete_title()}
               </Button>
             </AlertDialogFooter>
           </DialogForm>
@@ -217,15 +163,13 @@ function DeleteAccountAction() {
 
 export function DangerZoneSection() {
   return (
-    <Card className="ring-destructive/50">
-      <CardHeader>
-        <CardTitle>{m.profile_danger_title()}</CardTitle>
-        <CardDescription>{m.profile_danger_description()}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        <ResetCollectionsAction />
-        <DeleteAccountAction />
-      </CardContent>
-    </Card>
+    <DangerZone
+      title={m.profile_danger_title()}
+      description={m.profile_danger_description()}
+      contentClassName="flex-col flex-nowrap gap-6"
+    >
+      <ResetCollectionsAction />
+      <DeleteAccountAction />
+    </DangerZone>
   );
 }

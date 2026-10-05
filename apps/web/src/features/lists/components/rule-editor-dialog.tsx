@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Skeleton } from "@/components/ui/skeleton";
-import { catalogQueryOptions, loadCatalogTail } from "@/features/cards/lib/catalog-query";
+import { catalogQueryOptions, loadCatalogTail } from "@/features/cards/lib/catalog-queries";
 import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
 import { CardRuleEditor, CopyRuleEditor } from "@/features/lists/components/rule-editors";
 import { useUpdateList } from "@/features/lists/hooks/use-lists";
@@ -107,14 +108,7 @@ export function RuleEditorDialog({
           </Suspense>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              disabled={updateList.isPending}
-            >
-              {m.common_cancel()}
-            </Button>
+            <DialogCancel disabled={updateList.isPending} />
             <Button type="submit" disabled={updateList.isPending}>
               {m.common_save()}
             </Button>

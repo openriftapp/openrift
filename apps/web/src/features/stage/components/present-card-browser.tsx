@@ -1,6 +1,6 @@
 import { useDraggable } from "@dnd-kit/core";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { MinusIcon, PlusIcon } from "lucide-react";
 
 import { CountPill } from "@/components/ui/count-pill";
@@ -8,8 +8,8 @@ import { CardCell } from "@/features/cards/components/card-cell";
 import { CardStrip, StripIconButton } from "@/features/cards/components/card-strip";
 import type { PickerCellProps } from "@/features/cards/components/picker-card-browser";
 import { PickerCardBrowser } from "@/features/cards/components/picker-card-browser";
-import type { StagePoolCardDragData } from "@/features/stage/components/stage-dnd-types";
 import { MAX_QUEUE_LENGTH } from "@/features/stage/lib/presentation-queue";
+import type { StagePoolCardDragData } from "@/features/stage/lib/stage-dnd-types";
 import { usePresentQueueStore } from "@/features/stage/stores/present-queue-store";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { m } from "@/paraglide/messages.js";

@@ -1,6 +1,6 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { useState } from "react";
 import { toast } from "sonner";
 

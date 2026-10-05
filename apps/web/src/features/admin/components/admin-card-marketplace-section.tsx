@@ -1,3 +1,4 @@
+import { pluralize } from "@openrift/shared/strings";
 import type {
   AdminMarketplaceName,
   UnifiedMappingGroupResponse,
@@ -266,8 +267,8 @@ export function AdminCardMarketplaceSection({
         <div className="flex justify-end">
           <Button disabled={isSaving} onClick={() => acceptAllRef.current()}>
             <WandSparklesIcon />
-            Accept {offered} {strongCount > 0 ? "strong" : "weak"} suggestion
-            {offered === 1 ? "" : "s"}
+            Accept {offered} {strongCount > 0 ? "strong" : "weak"}{" "}
+            {pluralize(offered, "suggestion")}
             <Kbd className="bg-background/20 pointer-events-none ml-1 leading-none text-inherit opacity-60">
               Ctrl &#8629;
             </Kbd>

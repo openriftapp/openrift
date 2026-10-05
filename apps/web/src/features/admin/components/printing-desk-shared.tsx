@@ -1,6 +1,6 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
 import type { ImageVariant } from "@openrift/shared/image-url";
-import { getOrientation } from "@openrift/shared/utils";
 
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";

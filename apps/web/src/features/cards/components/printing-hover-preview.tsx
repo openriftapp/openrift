@@ -1,10 +1,11 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { getOrientation } from "@openrift/shared/utils";
 import type { RefObject } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
+import { useProgressiveCardImage } from "@/features/cards/hooks/use-progressive-card-image";
 import type { DockSide } from "@/features/cards/lib/hover-dock";
 import { pickDockSide } from "@/features/cards/lib/hover-dock";
 import { cn } from "@/lib/utils";
@@ -51,17 +52,13 @@ export function ImageHoverPreview({
    * from the pointer and follows it; omitted, it sits beside the anchor. */
   cursorX?: number;
 }) {
-  const [fullLoaded, setFullLoaded] = useState(false);
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const { thumbnailFailed, fullLoaded, onThumbnailError, onFullLoad } = useProgressiveCardImage(
+    thumbnail,
+    fullUrl,
+  );
   const previewRef = useRef<HTMLDivElement>(null);
   const cursorXRef = useRef(0);
   const dockSideRef = useRef<DockSide | null>(null);
-
-  const [loadedUrl, setLoadedUrl] = useState(fullUrl);
-  if (fullUrl !== loadedUrl) {
-    setLoadedUrl(fullUrl);
-    setFullLoaded(false);
-  }
 
   useEffect(() => {
     const previewWidth = landscape ? 560 : 400;
@@ -118,7 +115,7 @@ export function ImageHoverPreview({
     };
   }, [anchorRef, landscape, cursorX]);
 
-  if (!thumbnail || thumbnail === failedUrl) {
+  if (!thumbnail || thumbnailFailed) {
     return null;
   }
 
@@ -132,13 +129,13 @@ export function ImageHoverPreview({
           src={thumbnail}
           alt=""
           className="w-full rounded-lg shadow-lg"
-          onError={() => setFailedUrl(thumbnail)}
+          onError={onThumbnailError}
         />
         {fullUrl && (
           <img
             src={fullUrl}
             alt=""
-            onLoad={() => setFullLoaded(true)}
+            onLoad={onFullLoad}
             className={cn(
               "absolute inset-0 w-full rounded-lg shadow-lg transition-opacity duration-150",
               fullLoaded ? "opacity-100" : "opacity-0",

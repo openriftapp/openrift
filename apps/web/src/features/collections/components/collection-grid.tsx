@@ -4,7 +4,6 @@ import { createPortal } from "react-dom";
 
 import { TopBarSlotContext } from "@/components/layout/top-bar-slot";
 import { useSidebar } from "@/components/ui/sidebar";
-import { useOnboardingStore } from "@/features/account/stores/onboarding-store";
 import { BrowserCardViewer } from "@/features/cards/components/browser-card-viewer";
 import { CardBrowserFilterProvider } from "@/features/cards/components/card-browser-filter-scaffold";
 import { useFilterValues } from "@/features/cards/hooks/use-card-filters";
@@ -57,6 +56,7 @@ import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
+import { useOnboardingStore } from "@/stores/onboarding-store";
 
 // Custom tags are a deck-builder concept; hiding them keeps this grid scoped
 // to physical attributes of owned copies. Markers/channels self-hide instead.
@@ -189,8 +189,10 @@ export function CollectionGrid({
         : null,
   });
 
-  const introDismissed = useOnboardingStore((state) => state.collectionIntroDismissed);
-  const dismissIntro = useOnboardingStore((state) => state.dismissCollectionIntro);
+  const introDismissed = useOnboardingStore((state) =>
+    state.dismissedIntros.includes("collection"),
+  );
+  const dismissIntro = useOnboardingStore((state) => state.dismissIntro);
   const showIntroBanner = !introDismissed;
 
   // Group-owned collections are a communal "bulk box": any member can take a
@@ -428,7 +430,10 @@ export function CollectionGrid({
             banner={
               <>
                 {showIntroBanner && (
-                  <CollectionIntroBanner showLibrary={showLibrary} onDismiss={dismissIntro} />
+                  <CollectionIntroBanner
+                    showLibrary={showLibrary}
+                    onDismiss={() => dismissIntro("collection")}
+                  />
                 )}
                 <CollectionMissingImagesCallout />
               </>

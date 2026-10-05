@@ -1,10 +1,17 @@
 import { useDndContext, useDraggable, useDroppable } from "@dnd-kit/core";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
-import { formatHasSideboard, SIDEBOARD_MAXIMUM } from "@openrift/shared/deck-rules";
+import { formatHasSideboard, SIDEBOARD_MAXIMUM, totalQuantity } from "@openrift/shared/deck-rules";
+import {
+  isSingleSlotZone,
+  isZoneShown,
+  ZONE_LABELS,
+  zoneExpected,
+} from "@openrift/shared/deck-zones";
 import { setIndexById } from "@openrift/shared/set-order";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangleIcon, HandHeartIcon, LockIcon, PlusIcon } from "lucide-react";
@@ -49,12 +56,7 @@ import { sortDeckOverviewList } from "@/features/decks/lib/deck-overview-list-so
 import type { CardOwnership, DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import type { StatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import { cardMatchesStatsFocus } from "@/features/decks/lib/deck-stats-focus";
-import {
-  isZoneShown,
-  ZONE_LABELS,
-  zoneEmptyHint,
-  zoneExpected,
-} from "@/features/decks/lib/deck-zone-labels";
+import { zoneEmptyHint } from "@/features/decks/lib/deck-zone-labels";
 import { useBorrowedLenders } from "@/features/groups/hooks/use-loans";
 import { borrowedReasonText } from "@/features/groups/lib/loan-derivation";
 import { useDomainColors } from "@/hooks/use-domain-colors";
@@ -221,7 +223,7 @@ export function DeckOverviewList({
   })).filter((entry) => zoneVisible(entry.zone, entry.cards.length));
 
   const renderZone = ({ zone, cards: zoneCards }: (typeof zones)[number]) => {
-    const quantity = zoneCards.reduce((sum, card) => sum + card.quantity, 0);
+    const quantity = totalQuantity(zoneCards);
     const expected = zoneExpected(zone, format, cards);
     const showExpected =
       expected !== undefined &&
@@ -233,7 +235,7 @@ export function DeckOverviewList({
       zoneViolations.length === 0 &&
       showExpected &&
       quantity === expected &&
-      (zone === WellKnown.deckZone.LEGEND || zone === WellKnown.deckZone.CHAMPION);
+      isSingleSlotZone(zone);
     const cardViolations = new Map<string, string>();
     for (const violation of violations) {
       if (violation.zone === zone && violation.cardId && !cardViolations.has(violation.cardId)) {

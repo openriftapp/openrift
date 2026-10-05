@@ -4,10 +4,10 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { adminDeckZonesQueryOptions } from "@/features/decks/lib/deck-zones-queries";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { initKeys } from "@/lib/query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 export function useDeckZones() {
   return useSuspenseQuery(adminDeckZonesQueryOptions);

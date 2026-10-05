@@ -5,6 +5,7 @@ import type {
   GroupQualificationRowView,
 } from "@openrift/shared/types/api/pod-tournament";
 
+import { bracketRoundLabels } from "@/lib/bracket-round-label";
 import { m } from "@/paraglide/messages.js";
 
 export function groupCutTierLabels(): Record<GroupCutTierView, string> {
@@ -47,33 +48,9 @@ export function checkGroupPlayerCount(activeCount: number): GroupCountCheck {
   return { valid: true, message: null };
 }
 
-function cutRoundLongLabels(): string[] {
-  return [
-    m.tournaments_lib_cut_round_16(),
-    m.tournaments_lib_cut_round_quarter(),
-    m.tournaments_lib_cut_round_semi(),
-    m.tournaments_lib_cut_round_final(),
-  ];
-}
-
-function cutRoundShortLabelList(): string[] {
-  return [
-    m.tournaments_lib_cut_short_16(),
-    m.tournaments_lib_cut_short_quarter(),
-    m.tournaments_lib_cut_short_semi(),
-    m.tournaments_lib_cut_round_final(),
-  ];
-}
-
 /** Ordered from the first cut round to the final, sized for the cut. */
 export function cutRoundLabels(cutSize: CutSize): string[] {
-  const all = cutRoundLongLabels();
-  return all.slice(all.length - Math.log2(cutSize));
-}
-
-function cutRoundShortLabels(cutSize: CutSize): string[] {
-  const all = cutRoundShortLabelList();
-  return all.slice(all.length - Math.log2(cutSize));
+  return bracketRoundLabels(Math.log2(cutSize));
 }
 
 /** `roundNumber` is the tournament round; the group stage owns 1 to 3. */
@@ -103,7 +80,7 @@ export function cutMatchShortLabel(
   roundNumber: number,
   podNumber: number,
 ): string {
-  const labels = cutRoundShortLabels(cutSize);
+  const labels = bracketRoundLabels(Math.log2(cutSize), true);
   const index = roundNumber - GROUP_STAGE_ROUNDS - 1;
   const label = labels[index];
   if (label === undefined) {

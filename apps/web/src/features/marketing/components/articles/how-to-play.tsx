@@ -2,6 +2,7 @@ import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { CoinsIcon, FlagIcon, SwordIcon, TimerIcon, TrophyIcon, ZapIcon } from "lucide-react";
 
 import { Eyebrow, Heading } from "@/components/heading";
+import { PROSE_MARKUP, linkMarkup } from "@/components/message-markup";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
@@ -19,12 +20,7 @@ export default function HowToPlayArticle() {
         <TrophyIcon className="text-warning" />
         <AlertTitle>{m.help_how_to_play_goal_title()}</AlertTitle>
         <AlertDescription>
-          <ParaglideMessage
-            message={m.help_how_to_play_goal}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_how_to_play_goal} markup={PROSE_MARKUP} />
         </AlertDescription>
       </Alert>
 
@@ -69,7 +65,7 @@ export default function HowToPlayArticle() {
           <ParaglideMessage
             message={m.help_how_to_play_deck_builder}
             markup={{
-              link: ({ children }) => <TextLink href="/help/deck-building">{children}</TextLink>,
+              link: linkMarkup("/help/deck-building"),
             }}
           />
         </p>
@@ -78,12 +74,7 @@ export default function HowToPlayArticle() {
       <section>
         <Heading className="mb-2">{m.help_how_to_play_board_heading()}</Heading>
         <p className="text-muted-foreground">
-          <ParaglideMessage
-            message={m.help_how_to_play_board}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_how_to_play_board} markup={PROSE_MARKUP} />
         </p>
 
         <Callout className="mt-3">
@@ -237,7 +228,7 @@ export default function HowToPlayArticle() {
             <ParaglideMessage
               message={m.help_how_to_play_next_brew}
               markup={{
-                link: ({ children }) => <TextLink href="/help/deck-building">{children}</TextLink>,
+                link: linkMarkup("/help/deck-building"),
               }}
             />
           </li>

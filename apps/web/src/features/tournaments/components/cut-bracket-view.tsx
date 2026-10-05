@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { BracketMatch } from "@/features/tournaments/lib/cut-bracket-display";
-import { buildBracketColumns } from "@/features/tournaments/lib/cut-bracket-display";
+import { buildBracketColumns, isHigherSeed } from "@/features/tournaments/lib/cut-bracket-display";
 import { cutMatchShortLabel } from "@/features/tournaments/lib/group-cut-display";
 import { groupLabelByPlayer } from "@/features/tournaments/lib/group-cut-units";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
@@ -90,7 +90,6 @@ export function CutBracketView({
                     matchFormat={matchFormat}
                     winPoints={winPoints}
                     drawPoints={drawPoints}
-                    regionLabel={rawSlug}
                     showPenalty={false}
                     warnings={[]}
                     warningsExpanded={false}
@@ -123,22 +122,6 @@ export function CutBracketView({
   );
 }
 
-// Named module-level default: an inline arrow makes the React Compiler bail.
-const rawSlug = (slug: string): string => slug;
-
-function isHigherSeed(
-  pod: PodResponse,
-  playerId: string,
-  seedByPlayer: Map<string, number>,
-): boolean {
-  const seeds = pod.members.flatMap((member) => {
-    const seed = seedByPlayer.get(member.playerId);
-    return seed === undefined ? [] : [seed];
-  });
-  const own = seedByPlayer.get(playerId);
-  return own !== undefined && seeds.length > 0 && own === Math.min(...seeds);
-}
-
 function SeedPill({ seed }: { seed: number | undefined }) {
   if (seed === undefined) {
     return null;
@@ -164,13 +147,13 @@ function MemberNotes({
       {legend ? (
         <TournamentLegend
           legendCardId={legend.legendCardId}
-          legendName={legend.legendName}
+          fallback={legend}
           championOnly
           className="text-muted-foreground shrink-0 text-xs"
         />
       ) : null}
       {groupLabel ? (
-        <Badge variant="muted" className="shrink-0">
+        <Badge variant="neutral" className="shrink-0">
           {groupLabel}
         </Badge>
       ) : null}

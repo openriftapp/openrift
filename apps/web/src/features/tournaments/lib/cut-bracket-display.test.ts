@@ -1,7 +1,12 @@
 import type { PodResponse, PodRoundResponse } from "@openrift/shared/types/api/pod-tournament";
 import { describe, expect, it } from "vitest";
 
-import { buildBracketColumns, cutRounds, groupStageRounds } from "./cut-bracket-display";
+import {
+  buildBracketColumns,
+  cutRounds,
+  groupStageRounds,
+  isHigherSeed,
+} from "./cut-bracket-display";
 
 function makePod(podNumber: number): PodResponse {
   return {
@@ -66,5 +71,27 @@ describe("round split", () => {
     const rounds = [makeRound(1, [1]), makeRound(3, [1]), makeRound(4, [1]), makeRound(5, [1])];
     expect(groupStageRounds(rounds).map((round) => round.roundNumber)).toEqual([1, 3]);
     expect(cutRounds(rounds).map((round) => round.roundNumber)).toEqual([4, 5]);
+  });
+});
+
+describe("isHigherSeed", () => {
+  const pod = { members: [{ playerId: "Ashe" }, { playerId: "Jinx" }] };
+
+  it("is true only for the lowest seed in the pod", () => {
+    const seeds = new Map([
+      ["Ashe", 3],
+      ["Jinx", 2],
+    ]);
+    expect(isHigherSeed(pod, "Jinx", seeds)).toBe(true);
+    expect(isHigherSeed(pod, "Ashe", seeds)).toBe(false);
+  });
+
+  it("ignores members without a seed", () => {
+    expect(isHigherSeed(pod, "Ashe", new Map([["Ashe", 4]]))).toBe(true);
+  });
+
+  it("is false for an unseeded player", () => {
+    expect(isHigherSeed(pod, "Jinx", new Map([["Ashe", 4]]))).toBe(false);
+    expect(isHigherSeed(pod, "Jinx", new Map())).toBe(false);
   });
 });

@@ -1,4 +1,3 @@
-import { InfoIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cloneElement, isValidElement, useId, useState } from "react";
 
@@ -16,8 +15,8 @@ import {
   ComboboxTrigger,
 } from "@/components/ui/combobox";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { InfoHint } from "@/components/ui/info-hint";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -35,8 +34,6 @@ export interface LabelledControlProps {
   "aria-labelledby"?: string;
 }
 
-// Hint renders as an info button that opens on click, not always-on helper
-// text, so grid rows keep a uniform height.
 export function FieldRow({
   label,
   hint,
@@ -75,33 +72,11 @@ export function FieldRow({
           {label}
           {required && <span className="text-destructive"> *</span>}
         </FieldLabel>
-        {hint && <FieldHint label={label} hint={hint} />}
+        {hint && <InfoHint label={label}>{hint}</InfoHint>}
       </div>
       {control}
       {error && <FieldError>{error}</FieldError>}
     </Field>
-  );
-}
-
-function FieldHint({ label, hint }: { label: string; hint: string }) {
-  return (
-    <Popover>
-      <PopoverTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label={m.contribute_field_about({ label })}
-            className="text-muted-foreground -m-1"
-          />
-        }
-      >
-        <InfoIcon className="size-3.5" />
-      </PopoverTrigger>
-      <PopoverContent align="start" className="text-muted-foreground w-64 text-sm">
-        {hint}
-      </PopoverContent>
-    </Popover>
   );
 }
 

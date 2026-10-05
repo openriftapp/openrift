@@ -27,7 +27,7 @@ function CoverageChip({
 }: {
   done: boolean;
   children: string;
-  variant: "success" | "warning" | "muted";
+  variant: "success" | "warning" | "neutral";
 }) {
   return (
     <Badge variant={variant}>
@@ -66,7 +66,7 @@ export function MetaCoverageChips({ row, now }: { row: MetaCoverageRow; now?: Da
         (legends > 0 ? (
           <CoverageChip done variant="success">{`${legends} legends`}</CoverageChip>
         ) : (
-          <CoverageChip done={false} variant="muted">
+          <CoverageChip done={false} variant="neutral">
             No legends
           </CoverageChip>
         ))}
@@ -78,7 +78,7 @@ export function MetaCoverageChips({ row, now }: { row: MetaCoverageRow; now?: Da
         </CoverageChip>
       )}
       {decks === 0 && !decklistsPublished && (
-        <CoverageChip done={false} variant="muted">
+        <CoverageChip done={false} variant="neutral">
           No decklists
         </CoverageChip>
       )}

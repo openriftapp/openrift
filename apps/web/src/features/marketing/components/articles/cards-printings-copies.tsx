@@ -4,11 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
+import { PROSE_MARKUP, linkMarkup } from "@/components/message-markup";
 import { Callout } from "@/components/ui/callout";
-import { Code } from "@/components/ui/code";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { TextLink } from "@/components/ui/text-link";
 import { CardText } from "@/features/cards/components/card-text";
 import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { cn } from "@/lib/utils";
@@ -45,12 +44,7 @@ export default function CardsPrintingsCopiesArticle() {
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
-        <ParaglideMessage
-          message={m.help_cards_printings_copies_intro}
-          markup={{
-            strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-          }}
-        />
+        <ParaglideMessage message={m.help_cards_printings_copies_intro} markup={PROSE_MARKUP} />
       </p>
 
       <Callout>
@@ -132,18 +126,16 @@ export default function CardsPrintingsCopiesArticle() {
         <p className="text-muted-foreground">
           <ParaglideMessage
             message={m.help_cards_printings_copies_cards_p1}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
+            markup={PROSE_MARKUP}
           />
         </p>
         <p className="text-muted-foreground mt-2">
           <ParaglideMessage
             message={m.help_cards_printings_copies_cards_p2}
             markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              link: ({ children }) => <TextLink href="/cards">{children}</TextLink>,
-              em: ({ children }) => <em>{children}</em>,
+              strong: PROSE_MARKUP.strong,
+              link: linkMarkup("/cards"),
+              em: PROSE_MARKUP.em,
             }}
           />
         </p>
@@ -197,15 +189,13 @@ export default function CardsPrintingsCopiesArticle() {
         <p className="text-muted-foreground">
           <ParaglideMessage
             message={m.help_cards_printings_copies_printings_p1}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
+            markup={PROSE_MARKUP}
           />
         </p>
         <p className="text-muted-foreground mt-2">
           <ParaglideMessage
             message={m.help_cards_printings_copies_printings_p2}
-            markup={{ code: ({ children }) => <Code>{children}</Code> }}
+            markup={PROSE_MARKUP}
           />
         </p>
         <p className="text-muted-foreground mt-2">{m.help_cards_printings_copies_printings_p3()}</p>
@@ -213,8 +203,8 @@ export default function CardsPrintingsCopiesArticle() {
           <ParaglideMessage
             message={m.help_cards_printings_copies_printings_p4}
             markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              link: ({ children }) => <TextLink href="/cards">{children}</TextLink>,
+              strong: PROSE_MARKUP.strong,
+              link: linkMarkup("/cards"),
             }}
           />
         </p>
@@ -250,17 +240,15 @@ export default function CardsPrintingsCopiesArticle() {
         <p className="text-muted-foreground">
           <ParaglideMessage
             message={m.help_cards_printings_copies_copies_p1}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
+            markup={PROSE_MARKUP}
           />
         </p>
         <p className="text-muted-foreground mt-2">
           <ParaglideMessage
             message={m.help_cards_printings_copies_copies_p2}
             markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              link: ({ children }) => <TextLink href="/collections">{children}</TextLink>,
+              strong: PROSE_MARKUP.strong,
+              link: linkMarkup("/collections"),
             }}
           />
         </p>

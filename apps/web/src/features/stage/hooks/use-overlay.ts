@@ -12,7 +12,7 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/r
 import { createServerFn } from "@tanstack/react-start";
 
 import { overlayKeys } from "@/features/stage/lib/stage-query-keys";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient, browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 

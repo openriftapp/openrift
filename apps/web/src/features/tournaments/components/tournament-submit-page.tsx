@@ -5,13 +5,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { PageTopBar, PageTopBarSticky, PageTopBarTitle } from "@/components/layout/page-top-bar";
-import { Button } from "@/components/ui/button";
+import { SignedOutAuthButtons } from "@/components/signed-out-cta";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SignedOutAuthButtons } from "@/features/account/components/signed-out-cta";
 import { PlayerSubmitDeckSection } from "@/features/tournaments/components/player-submit-page";
 import { useRequestJoinTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useTournamentSubmitLanding } from "@/features/tournaments/hooks/use-tournaments";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -53,7 +53,7 @@ function SignedInJoinState({
   }
   if (data.selfRegistrationOpen) {
     return (
-      <Button onClick={onJoin} disabled={pending}>
+      <Button onClick={onJoin} pending={pending}>
         {m.tournaments_submit_request_to_join()}
       </Button>
     );
@@ -124,9 +124,12 @@ export function TournamentSubmitPage({ token }: { token: string }) {
                   pending={requestJoin.isPending}
                   onJoin={() => void handleJoin()}
                 />
-                <Button variant="ghost" render={<Link to="/tournaments" />} className="w-fit">
+                <Link
+                  to="/tournaments"
+                  className={buttonVariants({ variant: "ghost", className: "w-fit" })}
+                >
                   {m.tournaments_staff_invite_go_to_tournaments()}
-                </Button>
+                </Link>
               </>
             ) : (
               <SignedOutJoinState data={data} />

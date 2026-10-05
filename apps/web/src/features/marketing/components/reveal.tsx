@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,13 +19,14 @@ export function Reveal({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [offscreen, setOffscreen] = useState(false);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     const node = ref.current;
     if (!node) {
       return;
     }
-    if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (reducedMotion) {
       return;
     }
     if (node.getBoundingClientRect().top <= globalThis.innerHeight) {
@@ -42,14 +44,14 @@ export function Reveal({
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [reducedMotion]);
 
   return (
     <div
       ref={ref}
       className={cn(
         "transition-[opacity,translate] duration-700 ease-out",
-        offscreen && "translate-y-6 opacity-0",
+        offscreen && !reducedMotion && "translate-y-6 opacity-0",
         className,
       )}
       style={delayMs ? { transitionDelay: `${delayMs}ms` } : undefined}

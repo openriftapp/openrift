@@ -1,4 +1,5 @@
 import { formatDayTimeLocal } from "@openrift/shared/format-date";
+import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import type { TournamentSummaryResponse } from "@openrift/shared/types/api/tournament";
 import { Link } from "@tanstack/react-router";
 import { CalendarIcon, LayersIcon, TrophyIcon, UsersIcon } from "lucide-react";
@@ -8,7 +9,6 @@ import { CardContent } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
 import {
   effectiveStateLabels,
-  effectiveTournamentState,
   primaryViewerRole,
   viewerRoleLabels,
 } from "@/features/tournaments/lib/tournament-display";

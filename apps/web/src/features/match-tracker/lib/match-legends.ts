@@ -1,6 +1,7 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { matchesCardQuery } from "@openrift/shared/card-search";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 
 // The tracker works offline; the catalog is only read while the legend
@@ -12,9 +13,7 @@ export interface TrackedLegend {
   thumbnail: string | null;
 }
 
-export interface LegendOption extends TrackedLegend {
-  search: string;
-}
+export type LegendOption = TrackedLegend;
 
 /**
  * Printings arrive sorted by the reader's languages and canonical rank, so the
@@ -36,18 +35,13 @@ export function collectLegendOptions(printings: readonly Printing[]): LegendOpti
       name,
       domains: printing.card.domains,
       thumbnail: front ? imageUrl(front.imageId, "400w") : null,
-      search: name.toLowerCase(),
     });
   }
   return [...byCardId.values()].toSorted((a, b) => a.name.localeCompare(b.name));
 }
 
 export function filterLegendOptions(options: LegendOption[], query: string): LegendOption[] {
-  const needle = query.trim().toLowerCase();
-  if (needle === "") {
-    return options;
-  }
-  return options.filter((option) => option.search.includes(needle));
+  return options.filter((option) => matchesCardQuery(query, [option.name]));
 }
 
 export function toTrackedLegend(option: LegendOption): TrackedLegend {

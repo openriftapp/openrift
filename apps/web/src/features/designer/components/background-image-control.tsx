@@ -1,10 +1,10 @@
 import { ImageUpIcon, Trash2Icon } from "lucide-react";
-import { useRef } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Dropzone } from "@/components/ui/dropzone";
 import { FieldError } from "@/components/ui/field";
 import { Slider } from "@/components/ui/slider";
-import { useImageUpload } from "@/features/admin/hooks/use-image-upload";
+import { useImageUpload } from "@/features/designer/hooks/use-image-upload";
 import { CARD_MAX_ZOOM, CARD_MIN_ZOOM } from "@/features/designer/lib/card-designer";
 import { useCardDesignerStore } from "@/features/designer/stores/card-designer-store";
 import { m } from "@/paraglide/messages.js";
@@ -15,36 +15,20 @@ export function BackgroundImageControl() {
   const setImageTransform = useCardDesignerStore((state) => state.setImageTransform);
   const clearImage = useCardDesignerStore((state) => state.clearImage);
   const { handleFile, loading, error } = useImageUpload();
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      void handleFile(file);
-    }
-    // Reset so picking the same file again still fires onChange.
-    event.target.value = "";
-  };
 
   return (
     <div className="flex flex-col gap-3">
-      <input
-        ref={inputRef}
-        type="file"
+      <Dropzone
         accept="image/*"
-        aria-label={m.designer_background_file_aria()}
-        className="sr-only"
-        onChange={handleChange}
-      />
-      <Button
-        type="button"
-        variant="outline"
         disabled={loading}
-        onClick={() => inputRef.current?.click()}
-      >
-        <ImageUpIcon className="size-4" />
-        {dataUrl ? m.designer_background_replace() : m.designer_background_upload()}
-      </Button>
+        icon={<ImageUpIcon className="text-muted-foreground size-5" />}
+        label={dataUrl ? m.designer_background_replace() : m.designer_background_upload()}
+        onFiles={([file]) => {
+          if (file) {
+            void handleFile(file);
+          }
+        }}
+      />
       {error && <FieldError>{error}</FieldError>}
       {dataUrl && (
         <>

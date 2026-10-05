@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CommandEmpty, CommandGroup } from "@/components/ui/command";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -189,16 +190,14 @@ export function MoveToListDialog({
               <p className="text-muted-foreground text-sm">{m.lists_entry_move_needs_single()}</p>
             )}
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
-                {m.common_cancel()}
-              </Button>
+              <DialogCancel disabled={isPending} />
               <Button type="submit" disabled={!selectedId || isPending}>
                 {isPending
                   ? isCopy
                     ? m.lists_copy_pending()
                     : m.lists_entry_move_pending()
                   : isCopy
-                    ? m.lists_copy_confirm()
+                    ? m.common_copy()
                     : m.lists_entry_move_confirm()}
               </Button>
             </div>

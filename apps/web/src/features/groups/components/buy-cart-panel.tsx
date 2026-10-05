@@ -1,3 +1,5 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import {
   CARDMARKET_WANTS_URL,
@@ -6,7 +8,6 @@ import {
   tcgplayerMassEntryUrl,
 } from "@openrift/shared/marketplace";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
 import { CheckIcon, PuzzleIcon, ShoppingCartIcon, XIcon } from "lucide-react";
 import { useState } from "react";
@@ -15,6 +16,7 @@ import { toast } from "sonner";
 import { MarketplaceLink } from "@/components/marketplace-link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -382,7 +384,11 @@ export function BuyCartPanel({
 
       {items.length === 0 ? (
         filed === null ? (
-          <p className="text-muted-foreground">{m.trades_buy_cart_empty()}</p>
+          <Empty>
+            <EmptyHeader>
+              <EmptyDescription>{m.trades_buy_cart_empty()}</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : null
       ) : (
         <>

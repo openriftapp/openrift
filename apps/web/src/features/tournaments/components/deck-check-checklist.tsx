@@ -1,8 +1,9 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageUrl } from "@openrift/shared/image-url";
 import { setIndexById, UNKNOWN_SET_INDEX } from "@openrift/shared/set-order";
 import type { DeckCheckEntryCardResponse } from "@openrift/shared/types/api/deck-check";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import { CheckIcon, LayoutGridIcon, PencilIcon, Rows3Icon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
@@ -19,10 +20,10 @@ import {
   StripActionButton,
   StripIconButton,
 } from "@/features/cards/components/card-strip";
+import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
-import { HoveredCardPreview } from "@/features/decks/components/hovered-card-preview";
 import { FixCardDialog } from "@/features/tournaments/components/deck-check-entry-dialogs";
 import {
   useRemoveTournamentDeckCheckCard,

@@ -31,7 +31,7 @@ import {
   groupPendingSubmissions,
   NO_PENDING_SUBMISSIONS,
 } from "@/features/meta/lib/meta-pending-submissions";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 

@@ -1,11 +1,11 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import type { DeckImportEntry } from "@openrift/shared/deck-code";
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
-import { legendDisplayName } from "@openrift/shared/utils";
 
 import type { DeckDiffCard } from "@/features/decks/lib/deck-diff";
 import { matchDeckEntries } from "@/features/decks/lib/deck-import-matcher";
-import type { DeckImportEntry } from "@/features/decks/lib/deck-import-parsers";
 import type { LocalDeck } from "@/features/decks/lib/local-deck";
 
 /** A deck of the user's own, offered as a source in the compare picker. */

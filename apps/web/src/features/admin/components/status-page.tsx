@@ -1,13 +1,5 @@
 import { formatRelativeTime } from "@openrift/shared/format-date";
-import {
-  ActivityIcon,
-  BugIcon,
-  CpuIcon,
-  DatabaseIcon,
-  LoaderIcon,
-  ServerIcon,
-  TagIcon,
-} from "lucide-react";
+import { ActivityIcon, BugIcon, CpuIcon, DatabaseIcon, ServerIcon, TagIcon } from "lucide-react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import { toast } from "sonner";
 
@@ -235,12 +227,12 @@ function SentrySmokeTestSection() {
           <BugIcon />
           Throw in browser
         </Button>
-        <Button variant="outline" onClick={() => void handleSsr()} disabled={throwSsr.isPending}>
-          {throwSsr.isPending ? <LoaderIcon className="animate-spin" /> : <BugIcon />}
+        <Button pending={throwSsr.isPending} variant="outline" onClick={() => void handleSsr()}>
+          <BugIcon />
           Throw in SSR
         </Button>
-        <Button variant="outline" onClick={() => void handleApi()} disabled={throwApi.isPending}>
-          {throwApi.isPending ? <LoaderIcon className="animate-spin" /> : <BugIcon />}
+        <Button pending={throwApi.isPending} variant="outline" onClick={() => void handleApi()}>
+          <BugIcon />
           Throw in API
         </Button>
       </div>

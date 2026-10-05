@@ -3,7 +3,7 @@ import { Suspense, useEffect } from "react";
 
 import { useCollectionsMap } from "@/features/collections/hooks/use-collections";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 
 /** Sends a viewer who can edit the collection on to the full view; the share URL stays read-only for everyone else. */
 export function SharedCollectionAccessRedirect({ collectionId }: { collectionId: string }) {

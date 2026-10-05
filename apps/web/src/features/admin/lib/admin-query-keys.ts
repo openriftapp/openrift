@@ -28,6 +28,14 @@ export const adminKeys = {
       { prefix: ["admin", "printing-desk", "printing"] as const },
     ),
   },
+  audit: {
+    events: (filters: { actorUserId?: string; action?: string; search?: string }) =>
+      ["admin", "audit-events", filters] as const,
+    actors: ["admin", "audit-actors"] as const,
+    actions: ["admin", "audit-actions"] as const,
+  },
+  printingEvents: ["admin", "printing-events"] as const,
+  marketplace: (marketplace: string) => ["admin", marketplace] as const,
   marketplaceGroups: ["admin", "marketplace-groups"] as const,
   groupBanners: ["admin", "group-banners"] as const,
   boardStates: ["admin", "board-states"] as const,

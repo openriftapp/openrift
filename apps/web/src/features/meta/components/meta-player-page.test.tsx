@@ -1,3 +1,4 @@
+import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/contracts/meta";
 import type { MetaDeckSummary, MetaPlayerDetailResponse } from "@openrift/shared/types/api/meta";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -77,7 +78,7 @@ vi.mock("@/hooks/use-enums", () => ({
 }));
 
 vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
-vi.mock("@/lib/auth-session", () => ({ useUserId: () => null }));
+vi.mock("@/hooks/use-session", () => ({ useUserId: () => null }));
 // Newest first, the way the hook itself orders them: the first is the current
 // set, which is the era an unscoped page opens on.
 vi.mock("@/features/meta/hooks/use-meta-eras", () => ({
@@ -111,7 +112,6 @@ vi.mock("@/features/meta/components/meta-scope-bar", () => ({
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
-import { DECK_GRID_ALL_LIMIT } from "@/features/meta/lib/meta-deck-grid";
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { makeMetaPlayerDetail, makeMetaPlayerFinish, resetIdCounter } from "@/test/factories";
 
@@ -121,6 +121,8 @@ import { MetaPlayerPage } from "./meta-player-page";
 const LUX = {
   cardId: "legend-lux",
   name: "Lux, Lady of Luminosity",
+  character: "Lux",
+  epithet: "Lady of Luminosity",
   slug: "lady-of-luminosity",
   imageId: "img-lux",
   domains: ["calm"],
@@ -137,6 +139,8 @@ function deck(deckId: string, shareToken: string, country = "DE"): MetaDeckSumma
     format: "constructed",
     legendCardId: LUX.cardId,
     legendName: LUX.name,
+    legendCharacter: LUX.character,
+    legendEpithet: LUX.epithet,
     legendSlug: LUX.slug,
     legendArchiveSlug: LUX.archiveSlug,
     legendImageId: LUX.imageId,
@@ -266,7 +270,7 @@ describe("MetaPlayerPage", () => {
       formats: ["constructed"],
       tiers: ["premier"],
       player: "pnrenata",
-      limit: DECK_GRID_ALL_LIMIT,
+      limit: META_MAX_LIST_PAGE_SIZE,
     });
   });
 

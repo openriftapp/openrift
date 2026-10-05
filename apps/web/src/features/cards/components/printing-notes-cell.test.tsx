@@ -1,7 +1,9 @@
-import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { PrintingNotesCell } from "./printing-notes-cell";
+
+vi.mock("@/hooks/use-coarse-pointer", () => ({ useCoarsePointer: () => true }));
 
 describe("PrintingNotesCell", () => {
   it("renders nothing when the printing has no note, markers or citations", () => {
@@ -69,6 +71,43 @@ describe("PrintingNotesCell", () => {
         citations={[{ id: "c-1", label: "Convention handout", sourceUrl: null }]}
       />,
     );
-    expect(getByLabelText("Convention handout").tagName).not.toBe("A");
+    expect(getByLabelText(/Convention handout/u).tagName).not.toBe("A");
+  });
+
+  it("opens an unlinked citation's label with a tap, without reaching the row", () => {
+    const onRowClick = vi.fn();
+    const { getByRole, getAllByText } = render(
+      // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stands in for the clickable table row
+      <div onClick={onRowClick}>
+        <PrintingNotesCell
+          comment={null}
+          markers={[]}
+          citations={[{ id: "c-1", label: "Convention handout", sourceUrl: null }]}
+        />
+      </div>,
+    );
+    fireEvent.click(getByRole("button", { name: /Convention handout/u }));
+    expect(getAllByText("Convention handout")).toHaveLength(1);
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
+
+  it("keeps a tap on the note from reaching the row behind it", () => {
+    const onRowClick = vi.fn();
+    const { getByRole } = render(
+      // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stands in for the clickable table row
+      <div onClick={onRowClick}>
+        <PrintingNotesCell comment="Handed out at the launch event" markers={[]} citations={[]} />
+      </div>,
+    );
+    fireEvent.click(getByRole("button", { name: /Printing note/u }));
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
+
+  it("opens the note with a tap on a coarse pointer", () => {
+    const { getByRole, getAllByText } = render(
+      <PrintingNotesCell comment="Handed out at the launch event" markers={[]} citations={[]} />,
+    );
+    fireEvent.click(getByRole("button", { name: /Printing note/u }));
+    expect(getAllByText("Handed out at the launch event")).toHaveLength(2);
   });
 });

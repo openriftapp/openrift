@@ -4,7 +4,7 @@ import type { CardHoldingLine } from "@/features/cards/lib/card-holdings";
 import { cardHoldingLines } from "@/features/cards/lib/card-holdings";
 import { useLiveTradesByPrinting } from "@/features/groups/hooks/use-card-trades";
 import { loansQueryOptions } from "@/features/groups/lib/loans-queries";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 
 /**
  * Loan and live-trade lines for `printingIds`. Both reads reuse the
@@ -12,10 +12,7 @@ import { useUserId } from "@/lib/auth-session";
  */
 export function useCardHoldingLines(printingIds: readonly string[]): CardHoldingLine[] {
   const userId = useUserId();
-  const { data: loans } = useQuery({
-    ...loansQueryOptions(userId ?? ""),
-    enabled: userId !== null,
-  });
+  const { data: loans } = useQuery(loansQueryOptions(userId));
   const { data: liveTrades } = useLiveTradesByPrinting();
 
   if (userId === null) {

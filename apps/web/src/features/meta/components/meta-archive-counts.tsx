@@ -1,3 +1,4 @@
+import { StatFigure } from "@/components/ui/stat-figure";
 import { formatCount } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 
@@ -12,20 +13,9 @@ export function MetaArchiveCounts({
 }) {
   return (
     <div className="flex flex-wrap gap-x-10 gap-y-4 sm:gap-x-12">
-      <CountItem value={eventCount} label={m.meta_counts_archived_events()} />
-      <CountItem value={playerResultCount} label={m.meta_counts_player_results()} />
-      <CountItem value={deckCount} label={m.meta_counts_decklists()} />
+      <StatFigure value={formatCount(eventCount)} label={m.meta_counts_archived_events()} />
+      <StatFigure value={formatCount(playerResultCount)} label={m.meta_counts_player_results()} />
+      <StatFigure value={formatCount(deckCount)} label={m.meta_counts_decklists()} />
     </div>
-  );
-}
-
-function CountItem({ value, label }: { value: number; label: string }) {
-  return (
-    <p className="flex flex-col gap-0.5">
-      <span className="font-heading text-2xl leading-none font-bold tabular-nums">
-        {formatCount(value)}
-      </span>
-      <span className="text-muted-foreground text-xs">{label}</span>
-    </p>
   );
 }

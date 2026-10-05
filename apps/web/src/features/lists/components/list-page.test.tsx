@@ -110,7 +110,7 @@ vi.mock("@tanstack/react-query", async (importOriginal) => ({
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useSession: () => ({ data: null }),
   useUserId: () => "user-1",
   useRequiredUserId: () => "user-1",
@@ -266,7 +266,7 @@ vi.mock("@/features/lists/components/rule-editor-dialog", () => ({ RuleEditorDia
 
 const { ListPage } = await import("./list-page");
 const { TopBarSlotContext } = await import("@/components/layout/top-bar-slot");
-const { FilterSearchProvider } = await import("@/features/cards/lib/search-schemas");
+const { FilterSearchProvider } = await import("@/features/cards/hooks/use-filter-search");
 const { useCardRowActionsStore } = await import("@/features/cards/stores/card-row-actions-store");
 const { useGridFocusStore } = await import("@/features/cards/stores/grid-focus-store");
 const { useGridSelectionStore } = await import("@/features/cards/stores/grid-selection-store");

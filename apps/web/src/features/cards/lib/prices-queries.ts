@@ -5,15 +5,18 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { pricesKeys } from "@/features/cards/lib/cards-query-keys";
+import { serverCacheKeys } from "@/lib/query-keys";
 import { serverCache } from "@/lib/server-cache";
 import { apiOrpcClient, browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 
-const fetchPrices = createServerFn({ method: "GET" }).handler((): Promise<PricesResponse> =>
-  serverCache.query({
-    queryKey: ["server-cache", "prices"],
+export function readPricesFromServerCache(): Promise<PricesResponse> {
+  return serverCache.query({
+    queryKey: serverCacheKeys.prices,
     queryFn: () => apiOrpcClient(pricesContract).prices(),
-  }),
-);
+  });
+}
+
+const fetchPrices = createServerFn({ method: "GET" }).handler(() => readPricesFromServerCache());
 
 // Goes directly to /api/v1/prices so Cloudflare can serve it from the edge cache.
 function fetchPricesFromEdge(): Promise<PricesResponse> {

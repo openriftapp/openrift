@@ -13,7 +13,7 @@ const PDF_BACKED_MODULES = [
   "@/lib/image-pdf",
   "@/lib/pdf-document",
   "@/lib/proxy-pdf",
-  "@/features/tournaments/lib/registration-pdf",
+  "@/features/decks/lib/registration-pdf",
   "@/features/collections/lib/binder-sheet-pdf",
   "jspdf",
   "html2canvas-pro",
@@ -41,7 +41,7 @@ describe("deck-print-dialog load-time module graph", () => {
 
   it("still reads the proxy and registration types it needs", () => {
     expect(source).toContain("import type { ProxyCard");
-    expect(source).toContain('} from "@/features/tournaments/lib/registration-pdf";');
+    expect(source).toContain('} from "@/features/decks/lib/registration-pdf";');
   });
 
   it("loads each generator through a module-scope dynamic import", () => {
@@ -51,7 +51,7 @@ describe("deck-print-dialog load-time module graph", () => {
       /^async function loadImagePdfDownloader\(\) \{\n {2}const module = await import\("@\/lib\/image-pdf"\);/mu,
     );
     expect(source).toMatch(
-      /^async function loadRegistrationPdfGenerator\(\) \{\n {2}const module = await import\("@\/features\/tournaments\/lib\/registration-pdf"\);/mu,
+      /^async function loadRegistrationPdfGenerator\(\) \{\n {2}const module = await import\("@\/features\/decks\/lib\/registration-pdf"\);/mu,
     );
     expect(source).toMatch(/await import\("@\/lib\/proxy-pdf"\)/u);
   });

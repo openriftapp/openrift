@@ -3,6 +3,7 @@ import type {
   ReviewQueueItem,
   ReviewQueueKind,
 } from "@openrift/shared/contracts/admin/catalog-review";
+import { pluralize } from "@openrift/shared/strings";
 
 export type ReviewFilter = "all" | "contributors" | "sources";
 
@@ -28,13 +29,13 @@ export const REVIEW_KIND_LABELS: Record<ReviewQueueKind, string> = {
   source: "Source",
 };
 
-export type ReviewKindTone = "warning" | "violet" | "info" | "muted";
+export type ReviewKindTone = "warning" | "violet" | "info" | "neutral";
 
 export const REVIEW_KIND_TONES: Record<ReviewQueueKind, ReviewKindTone> = {
   correction: "warning",
   new_card: "violet",
   image: "info",
-  source: "muted",
+  source: "neutral",
 };
 
 export const REVIEW_KIND_PLURALS: Record<ReviewQueueKind, string> = {
@@ -84,7 +85,7 @@ export function countReviewKinds(
 }
 
 function plural(count: number, singular: string): string {
-  return `${count} ${singular}${count === 1 ? "" : "s"}`;
+  return `${count} ${pluralize(count, singular)}`;
 }
 
 export function summarizeReviewItem(item: ReviewQueueItem): string {

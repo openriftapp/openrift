@@ -3,6 +3,7 @@ import {
   copyLimitFor,
   formatHasSideboard,
   requiredLegendOptions,
+  totalQuantity,
 } from "@openrift/shared/deck-rules";
 import type { DeckCardResponse, PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
 import type { Card } from "@openrift/shared/types/catalog";
@@ -274,15 +275,15 @@ export function isDeckZoneFullForDrag(args: {
     if (options.some((card) => card.cardId === draggedCardId)) {
       return true;
     }
-    const held = options.reduce((sum, card) => sum + card.quantity, 0);
+    const held = totalQuantity(options);
     return (
       fromZone !== WellKnown.deckZone.LEGEND_OPTIONS && held >= requiredLegendOptions(allCards)
     );
   }
   if (zone === WellKnown.deckZone.RUNES) {
-    const runeTotal = allCards
-      .filter((card) => card.zone === WellKnown.deckZone.RUNES)
-      .reduce((sum, card) => sum + card.quantity, 0);
+    const runeTotal = totalQuantity(
+      allCards.filter((card) => card.zone === WellKnown.deckZone.RUNES),
+    );
     return runeTotal >= RUNE_TARGET;
   }
   return false;

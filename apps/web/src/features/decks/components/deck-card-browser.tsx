@@ -1,11 +1,12 @@
-import { copyLimitFor } from "@openrift/shared/deck-rules";
+import { copyLimitFor, totalQuantity } from "@openrift/shared/deck-rules";
+import { isSingleSlotZone } from "@openrift/shared/deck-zones";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckResponse } from "@openrift/shared/types/api/deck";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
-import { Suspense, useDeferredValue, useEffect, useState } from "react";
+import { Suspense, useDeferredValue } from "react";
 
 import { BrowserCardViewer } from "@/features/cards/components/browser-card-viewer";
 import {
@@ -15,11 +16,11 @@ import {
 import { CardCell } from "@/features/cards/components/card-cell";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
-import { useGridKeyboardNav } from "@/features/cards/components/use-grid-keyboard-nav";
 import { useCardData } from "@/features/cards/hooks/use-card-data";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { useGridKeyboardNav } from "@/features/cards/hooks/use-grid-keyboard-nav";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
@@ -27,7 +28,6 @@ import { splitsCardIntoTiles } from "@/features/cards/lib/card-tiles";
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
 import { useDeckBuildingCounts } from "@/features/collections/hooks/use-owned-count";
 import { useRowActionHandlers } from "@/features/collections/hooks/use-row-action-handlers";
-import { getFormatTagConfig } from "@/features/collections/lib/format-tag-config";
 import { maxOwnedCount } from "@/features/collections/lib/owned-bucket";
 import { DeckAddStrip } from "@/features/decks/components/deck-add-strip";
 import { DeckCardDetailMenu } from "@/features/decks/components/deck-card-detail-menu";
@@ -53,12 +53,14 @@ import {
 } from "@/features/decks/lib/deck-builder-card";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { buildRunesByDomain } from "@/features/decks/lib/deck-runes-by-domain";
+import { getFormatTagConfig } from "@/features/decks/lib/format-tag-config";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs";
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
+import { useShiftHeld } from "@/hooks/use-shift-held";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -338,29 +340,9 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
     : undefined;
   // The wrapper only renders this component when activeZone is set.
   const activeZone = useDeckBuilderUiStore((state) => state.activeZone) as DeckZone;
-  const isSingleCardZone =
-    !isFreeform &&
-    (activeZone === WellKnown.deckZone.LEGEND || activeZone === WellKnown.deckZone.CHAMPION);
+  const isSingleCardZone = !isFreeform && isSingleSlotZone(activeZone);
 
-  const [shiftHeld, setShiftHeld] = useState(false);
-  useEffect(() => {
-    const down = (event: KeyboardEvent) => {
-      if (event.key === "Shift") {
-        setShiftHeld(true);
-      }
-    };
-    const up = (event: KeyboardEvent) => {
-      if (event.key === "Shift") {
-        setShiftHeld(false);
-      }
-    };
-    globalThis.addEventListener("keydown", down);
-    globalThis.addEventListener("keyup", up);
-    return () => {
-      globalThis.removeEventListener("keydown", down);
-      globalThis.removeEventListener("keyup", up);
-    };
-  }, []);
+  const shiftHeld = useShiftHeld();
 
   const deckCards = useDeckCards(deckId);
   const singleCardZoneOccupied =
@@ -507,9 +489,9 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
     }
   }
 
-  const runeTotal = deckCards
-    .filter((card) => card.zone === WellKnown.deckZone.RUNES)
-    .reduce((sum, card) => sum + card.quantity, 0);
+  const runeTotal = totalQuantity(
+    deckCards.filter((card) => card.zone === WellKnown.deckZone.RUNES),
+  );
 
   useRowActionHandlers("deck", {
     onRowClick: handleCardClick,
@@ -520,7 +502,7 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
       return false;
     }
     const cardId = item.printing.cardId;
-    if (activeZone === WellKnown.deckZone.LEGEND || activeZone === WellKnown.deckZone.CHAMPION) {
+    if (isSingleSlotZone(activeZone)) {
       return deckCards.some((card) => card.cardId === cardId && card.zone === activeZone);
     }
     if (activeZone === WellKnown.deckZone.BATTLEFIELD) {

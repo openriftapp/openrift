@@ -3,10 +3,11 @@ import { Link } from "@tanstack/react-router";
 import { PackageIcon } from "lucide-react";
 import { lazy, Suspense } from "react";
 
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
+import { useSignInSearch } from "@/hooks/use-sign-in-search";
 import { m } from "@/paraglide/messages.js";
 
 const CardPageCollectionActions = lazy(async () => {
@@ -17,11 +18,9 @@ const CardPageCollectionActions = lazy(async () => {
 // The counts come from a live query with no server snapshot, so this mounts
 // only after hydration to avoid a server/client mismatch.
 export function CollectionSlot({
-  cardSlug,
   printing,
   siblings,
 }: {
-  cardSlug: string;
   printing: Printing;
   siblings: readonly Printing[];
 }) {
@@ -31,7 +30,7 @@ export function CollectionSlot({
     return null;
   }
   if (!session?.user) {
-    return <TrackCollectionNudge cardSlug={cardSlug} />;
+    return <TrackCollectionNudge />;
   }
   if (!hydrated) {
     return null;
@@ -43,21 +42,20 @@ export function CollectionSlot({
   );
 }
 
-function TrackCollectionNudge({ cardSlug }: { cardSlug: string }) {
+function TrackCollectionNudge() {
+  const { search } = useSignInSearch();
   return (
     <section className="flex flex-col gap-2">
       <SectionHeading icon={PackageIcon}>{m.card_detail_copies_title()}</SectionHeading>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <p className="text-muted-foreground text-sm">{m.card_detail_nudge_text()}</p>
-        <Button
-          variant="outline"
-          size="sm"
-          render={
-            <Link to="/signup" search={{ redirect: `/cards/${cardSlug}`, email: undefined }} />
-          }
+        <Link
+          to="/signup"
+          search={search}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
         >
           {m.card_detail_nudge_signup()}
-        </Button>
+        </Link>
       </div>
     </section>
   );

@@ -4,7 +4,6 @@ import {
   ArrowUpIcon,
   CheckIcon,
   CompassIcon,
-  CopyIcon,
   DownloadIcon,
   EllipsisIcon,
   EllipsisVerticalIcon,
@@ -18,13 +17,13 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { CopyTextButton } from "@/components/copy-text-button";
 import { Heading } from "@/components/heading";
 import { PageHero } from "@/components/layout/page-hero";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { QrCode } from "@/components/ui/qr-code";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import type { InstallGuide, InstallPlatform } from "@/lib/install-platform";
 import {
   detectInstallPlatform,
@@ -257,21 +256,6 @@ function ViewerHint({ guide }: { guide: InstallGuide }) {
   );
 }
 
-function CopyLinkButton({ label, className }: { label: string; className?: string }) {
-  const { copied, copy } = useCopyToClipboard();
-  return (
-    <Button
-      variant="outline"
-      size="lg"
-      className={cn("h-11 gap-2", className)}
-      onClick={() => void copy(globalThis.location.href)}
-    >
-      {copied ? <CheckIcon /> : <CopyIcon />}
-      {copied ? m.common_copied() : label}
-    </Button>
-  );
-}
-
 function InAppGuide({ platform }: { platform: InstallPlatform }) {
   const ios = platform.os === "ios";
   const openHref = openInBrowserUrl(ios ? "ios" : "android", globalThis.location.href);
@@ -287,7 +271,13 @@ function InAppGuide({ platform }: { platform: InstallPlatform }) {
           <CompassIcon className="size-5" />
           {ios ? m.install_in_app_open_ios() : m.install_in_app_open_android()}
         </a>
-        <CopyLinkButton label={m.install_copy_link()} />
+        <CopyTextButton
+          label={m.install_copy_link()}
+          getText={() => globalThis.location.href}
+          normalizeLineBreaks={false}
+          size="lg"
+          className="h-11 gap-2"
+        />
       </div>
       <Callout>
         <p className="mb-1 font-semibold">{m.install_in_app_fallback_title()}</p>
@@ -493,7 +483,13 @@ function InstalledView() {
       <Callout className="flex w-full flex-col gap-3 text-left">
         <p className="font-semibold">{m.install_installed_other_title()}</p>
         <p className="text-muted-foreground">{m.install_installed_other_body()}</p>
-        <CopyLinkButton label={m.install_copy_page_link()} />
+        <CopyTextButton
+          label={m.install_copy_page_link()}
+          getText={() => globalThis.location.href}
+          normalizeLineBreaks={false}
+          size="lg"
+          className="h-11 gap-2"
+        />
       </Callout>
     </div>
   );

@@ -80,7 +80,6 @@ function makeMatch(): AggregatedMatch {
     shortCode: "OGN-001",
     setIndex: 3,
     setName: "Origins",
-    rarityLabel: "Common",
     finishLabel: "Foil",
     domains: ["fury"],
     printing: null,

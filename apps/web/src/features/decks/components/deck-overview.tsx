@@ -1,5 +1,11 @@
 import type { DeckOddsConfig } from "@openrift/shared/contracts/decks";
-import { validateDeck } from "@openrift/shared/deck-rules";
+import { totalQuantity, validateDeck } from "@openrift/shared/deck-rules";
+import {
+  isZoneShown,
+  requiredZoneProgress,
+  ZONE_LABELS,
+  zoneExpected,
+} from "@openrift/shared/deck-zones";
 import { imageUrl } from "@openrift/shared/image-url";
 import { setIndexById } from "@openrift/shared/set-order";
 import type { DeckFormatConfig, DeckLink } from "@openrift/shared/types/api/deck";
@@ -14,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useOnboardingStore } from "@/features/account/stores/onboarding-store";
 import { MobileOptionsDrawer } from "@/features/cards/components/options-bar";
 import type { SortGroupOption } from "@/features/cards/components/sort-group-controls";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -26,12 +31,6 @@ import { DeckBoxTab } from "@/features/decks/components/deck-box-tab";
 import { DeckBuilderIntroBanner } from "@/features/decks/components/deck-builder-intro-banner";
 import { DeckDescription, DeckLinkChips } from "@/features/decks/components/deck-description";
 import { DeckHero } from "@/features/decks/components/deck-hero";
-import {
-  DECK_GRID_GAP,
-  SMALL_ZONES,
-  smallZoneGridStyles,
-  UNMEASURED_CARD_WIDTH,
-} from "@/features/decks/components/deck-overview-geometry";
 import { DeckOverviewList } from "@/features/decks/components/deck-overview-list";
 import {
   PlanTabActionsContext,
@@ -63,6 +62,12 @@ import {
   NO_PRICE_TEXTS,
   zoneShowsAllCopies,
 } from "@/features/decks/lib/deck-overview-derive";
+import {
+  DECK_GRID_GAP,
+  SMALL_ZONES,
+  smallZoneGridStyles,
+  UNMEASURED_CARD_WIDTH,
+} from "@/features/decks/lib/deck-overview-geometry";
 import type { DeckListSortContext } from "@/features/decks/lib/deck-overview-list-sort";
 import { sortDeckOverviewList } from "@/features/decks/lib/deck-overview-list-sort";
 import type { OwnershipBandSources } from "@/features/decks/lib/deck-ownership-band";
@@ -74,19 +79,14 @@ import {
   statsFocusLabel,
   statsFocusOpeningChance,
 } from "@/features/decks/lib/deck-stats-focus";
-import {
-  isZoneShown,
-  requiredZoneProgress,
-  ZONE_LABELS,
-  zoneEmptyHint,
-  zoneExpected,
-} from "@/features/decks/lib/deck-zone-labels";
+import { zoneEmptyHint } from "@/features/decks/lib/deck-zone-labels";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useDeckOverviewViewStore } from "@/features/decks/stores/deck-overview-view-store";
 import { useChampionIdentifierTags, useEnumOrders } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { m } from "@/paraglide/messages.js";
+import { useOnboardingStore } from "@/stores/onboarding-store";
 
 interface DeckOverviewProps {
   deck: {
@@ -109,7 +109,7 @@ interface DeckOverviewProps {
   onViewMissing?: () => void;
   onHoverCard?: HoverHandler;
   readOnly?: boolean;
-  signInHref?: string;
+  showSignIn?: boolean;
   description?: string;
   onEditDescription?: () => void;
   onCardClick?: (card: CardOpenTarget) => void;
@@ -136,7 +136,7 @@ export function DeckOverview({
   onViewMissing,
   onHoverCard,
   readOnly,
-  signInHref,
+  showSignIn,
   description,
   onEditDescription,
   onCardClick,
@@ -163,7 +163,7 @@ export function DeckOverview({
   const stats = useDeckStats(cards);
   const hasLinks = (deck.links?.length ?? 0) > 0;
 
-  const totalCards = cards.reduce((sum, card) => sum + card.quantity, 0);
+  const totalCards = totalQuantity(cards);
   const { progress: requiredProgress, total: requiredTotal } = requiredZoneProgress(
     cards,
     deck.format,
@@ -178,8 +178,10 @@ export function DeckOverview({
       (coverEntry ? getThumbnail(coverEntry.cardId, coverEntry.preferredPrintingId) : undefined))
     : undefined;
   const hasLegend = legendCard !== undefined;
-  const introDismissed = useOnboardingStore((state) => state.deckBuilderIntroDismissed);
-  const dismissIntro = useOnboardingStore((state) => state.dismissDeckBuilderIntro);
+  const introDismissed = useOnboardingStore((state) =>
+    state.dismissedIntros.includes("deck-builder"),
+  );
+  const dismissIntro = useOnboardingStore((state) => state.dismissIntro);
   const showIntroBanner = !readOnly && totalCards === 0 && !introDismissed;
   const fallbackHint =
     !readOnly && totalCards > 0 && !hasLegend ? m.decks_overview_pick_legend_hint() : null;
@@ -211,7 +213,7 @@ export function DeckOverview({
   const showAllCopies = hydrated && storedShowAllCopies;
   const showAllRuneCopies = hydrated && storedShowAllRuneCopies;
   const showBands = hydrated ? storedShowBands : true;
-  const canPreferOwned = ownershipData !== undefined && !signInHref;
+  const canPreferOwned = ownershipData !== undefined && !showSignIn;
   const preferOwned = hydrated && canPreferOwned && storedPreferOwned;
   const hydratedGroupBy = hydrated ? storedGroupBy : "type";
   const groupBy: DeckOverviewGroup =
@@ -457,7 +459,7 @@ export function DeckOverview({
         domainTotal={stats.totalCards}
         ownershipData={ownershipData}
         marketplace={marketplace}
-        signInHref={signInHref}
+        showSignIn={showSignIn}
         onViewMissing={onViewMissing}
         onCardClick={onCardClick}
         box={
@@ -539,7 +541,10 @@ export function DeckOverview({
         </Callout>
       )}
       {showOverviewContent && showIntroBanner && (
-        <DeckBuilderIntroBanner format={deck.format} onDismiss={dismissIntro} />
+        <DeckBuilderIntroBanner
+          format={deck.format}
+          onDismiss={() => dismissIntro("deck-builder")}
+        />
       )}
       {showOverviewContent && fallbackHint && <p className="text-sm">{fallbackHint}</p>}
 
@@ -629,7 +634,7 @@ export function DeckOverview({
               format={deck.format}
               violations={violations}
               ownership={ownershipData}
-              showOwnership={ownershipData !== undefined && !signInHref}
+              showOwnership={ownershipData !== undefined && !showSignIn}
               marketplace={marketplace}
               sortBy={listSortBy}
               sortDir={listSortDir}

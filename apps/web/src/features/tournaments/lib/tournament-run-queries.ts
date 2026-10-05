@@ -4,49 +4,27 @@ import type {
   PodReportResponse,
   PodTournamentDetailResponse,
 } from "@openrift/shared/types/api/pod-tournament";
-import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { openRoundRefetchInterval } from "@/features/tournaments/lib/open-round-polling";
 import { podTournamentsKeys } from "@/features/tournaments/lib/tournaments-query-keys";
-import { notFoundError } from "@/lib/server-fns/api-error";
+import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 const fetchRunState = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: id }): Promise<PodTournamentDetailResponse> => {
-    // 404 (unknown / no relationship) maps to the sentinel the route boundary
-    // expects; 403 (not a manager, for a mutation) propagates as a normal error.
-    const { error, data } = await safe(
-      apiOrpcClient(tournamentsContract, context.cookie).runState({ id }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ context, data: id }): Promise<PodTournamentDetailResponse> =>
+    orNotFound(apiOrpcClient(tournamentsContract, context.cookie).runState({ id })),
+  );
 
 const fetchReport = createServerFn({ method: "GET" })
   .validator((input: string) => input)
-  .handler(async ({ data: token }): Promise<PodReportResponse> => {
-    // 404 (disabled/rotated token) maps to the sentinel the route boundary expects.
-    const { error, data } = await safe(
-      apiOrpcClient(publicPodTournamentsContract).report({ token }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ data: token }): Promise<PodReportResponse> =>
+    orNotFound(apiOrpcClient(publicPodTournamentsContract).report({ token })),
+  );
 
 export function tournamentRunStateQueryOptions(userId: string, id: string) {
   return queryOptions({

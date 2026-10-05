@@ -1,18 +1,19 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { ExternalLinkIcon } from "lucide-react";
 import { siDiscord } from "simple-icons";
 
 import { PageHero } from "@/components/layout/page-hero";
+import { BrandGlyph } from "@/components/ui/brand-glyph";
 import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
 import { TextLink } from "@/components/ui/text-link";
+import { helpArticleLabels, visibleHelpArticles } from "@/features/marketing/components/articles";
 import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-import { helpArticleLabels, visibleHelpArticles } from "./articles";
 
 export function HelpIndexPage() {
   // Requires featureFlagsQueryOptions prefetched in the root loader, or this suspends during SSR.
@@ -33,13 +34,11 @@ export function HelpIndexPage() {
               target="_blank"
               rel="noreferrer"
             >
-              <svg
-                viewBox="0 0 24 24"
-                className="size-3.5 self-center fill-current"
-                aria-hidden="true"
-              >
-                <path d={siDiscord.path} />
-              </svg>
+              <BrandGlyph
+                icon={siDiscord}
+                fallback={ExternalLinkIcon}
+                className="size-3.5 self-center"
+              />
               <span>{m.help_index_ask_on_discord()}</span>
             </TextLink>
           </>

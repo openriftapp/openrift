@@ -1,17 +1,18 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type {
   DeckCheckEntryCardResponse,
   DeckCheckEntryDetailResponse,
 } from "@openrift/shared/types/api/deck-check";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -32,6 +33,7 @@ import { CardSearchDropdown } from "@/features/cards/components/card-search-drop
 import { PrintingThumbnail } from "@/features/cards/components/printing-option-content";
 import { useCardSearch } from "@/features/cards/hooks/use-card-search";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { useCardSearchIndex } from "@/features/cards/hooks/use-search-index";
 import {
   useAddTournamentDeckCheckCard,
   useFixTournamentDeckCheckCard,
@@ -94,87 +96,81 @@ export function EditPlayerDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{m.tournaments_deck_check_edit_player_title()}</DialogTitle>
-        </DialogHeader>
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void handleSave();
-          }}
-        >
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="deck-check-player-name">{m.common_name()}</Label>
-            <Input
-              id="deck-check-player-name"
-              value={playerName}
-              onChange={(event) => setPlayerName(event.target.value)}
-              maxLength={120}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="deck-check-riot-id">{m.tournaments_deck_check_riot_id_label()}</Label>
-            <Input
-              id="deck-check-riot-id"
-              value={riotId}
-              onChange={(event) => setRiotId(event.target.value)}
-              maxLength={120}
-              placeholder="Player#EUW"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label>{m.tournaments_deck_check_public_sharing()}</Label>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="deck-check-publish"
-                checked={allowDeckPublishing}
-                onCheckedChange={(checked) => setAllowDeckPublishing(checked === true)}
+        <DialogForm onSubmit={() => void handleSave()}>
+          <DialogHeader>
+            <DialogTitle>{m.tournaments_deck_check_edit_player_title()}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="deck-check-player-name">{m.common_name()}</Label>
+              <Input
+                id="deck-check-player-name"
+                value={playerName}
+                onChange={(event) => setPlayerName(event.target.value)}
+                maxLength={120}
               />
-              <Label htmlFor="deck-check-publish" className="font-normal">
-                {m.tournaments_deck_check_publish_deck()}
-              </Label>
             </div>
-            <div className="ml-6 flex items-center gap-2">
-              <Checkbox
-                id="deck-check-share-name"
-                checked={allowNameSharing}
-                disabled={!allowDeckPublishing}
-                onCheckedChange={(checked) => setAllowNameSharing(checked === true)}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="deck-check-riot-id">{m.tournaments_deck_check_riot_id_label()}</Label>
+              <Input
+                id="deck-check-riot-id"
+                value={riotId}
+                onChange={(event) => setRiotId(event.target.value)}
+                maxLength={120}
+                placeholder="Player#EUW"
               />
-              <Label
-                htmlFor="deck-check-share-name"
-                className="font-normal data-[disabled]:opacity-50"
-                data-disabled={!allowDeckPublishing || undefined}
-              >
-                {m.tournaments_deck_check_publish_name()}
-              </Label>
             </div>
-            <div className="ml-6 flex items-center gap-2">
-              <Checkbox
-                id="deck-check-share-riot-id"
-                checked={allowRiotIdSharing}
-                disabled={!allowDeckPublishing}
-                onCheckedChange={(checked) => setAllowRiotIdSharing(checked === true)}
-              />
-              <Label
-                htmlFor="deck-check-share-riot-id"
-                className="font-normal data-[disabled]:opacity-50"
-                data-disabled={!allowDeckPublishing || undefined}
-              >
-                {m.tournaments_deck_check_publish_riot_id()}
-              </Label>
+            <div className="flex flex-col gap-2">
+              <Label>{m.tournaments_deck_check_public_sharing()}</Label>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="deck-check-publish"
+                  checked={allowDeckPublishing}
+                  onCheckedChange={(checked) => setAllowDeckPublishing(checked === true)}
+                />
+                <Label htmlFor="deck-check-publish" className="font-normal">
+                  {m.tournaments_deck_check_publish_deck()}
+                </Label>
+              </div>
+              <div className="ml-6 flex items-center gap-2">
+                <Checkbox
+                  id="deck-check-share-name"
+                  checked={allowNameSharing}
+                  disabled={!allowDeckPublishing}
+                  onCheckedChange={(checked) => setAllowNameSharing(checked === true)}
+                />
+                <Label
+                  htmlFor="deck-check-share-name"
+                  className="font-normal data-[disabled]:opacity-50"
+                  data-disabled={!allowDeckPublishing || undefined}
+                >
+                  {m.tournaments_deck_check_publish_name()}
+                </Label>
+              </div>
+              <div className="ml-6 flex items-center gap-2">
+                <Checkbox
+                  id="deck-check-share-riot-id"
+                  checked={allowRiotIdSharing}
+                  disabled={!allowDeckPublishing}
+                  onCheckedChange={(checked) => setAllowRiotIdSharing(checked === true)}
+                />
+                <Label
+                  htmlFor="deck-check-share-riot-id"
+                  className="font-normal data-[disabled]:opacity-50"
+                  data-disabled={!allowDeckPublishing || undefined}
+                >
+                  {m.tournaments_deck_check_publish_riot_id()}
+                </Label>
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              {m.common_cancel()}
-            </Button>
+            <DialogCancel />
             <Button type="submit" disabled={updateEntry.isPending || !playerName.trim()}>
-              {updateEntry.isPending ? m.tournaments_deck_check_saving() : m.common_save()}
+              {updateEntry.isPending ? m.common_saving() : m.common_save()}
             </Button>
           </DialogFooter>
-        </form>
+        </DialogForm>
       </DialogContent>
     </Dialog>
   );
@@ -187,11 +183,11 @@ function CardNameSearchField({
   initialName?: string;
   onNameChange: (name: string) => void;
 }) {
-  const { printingsByCardId } = useCards();
+  const { allPrintings } = useCards();
   const { labels } = useEnumOrders();
   const [query, setQuery] = useState(initialName ?? "");
 
-  const results = useMatchingPrintings(printingsByCardId, query).map((printing) => ({
+  const results = useMatchingPrintings(allPrintings, query).map((printing) => ({
     id: printing.cardId,
     label: legendDisplayName(printing.card),
     sublabel: printing.card.types.map((slug) => enumLabel(labels.cardTypes, slug)).join(" "),
@@ -215,33 +211,11 @@ function CardNameSearchField({
 const MAX_NAME_MATCHES = 8;
 const MIN_QUERY_LENGTH = 1;
 
-function useMatchingPrintings(
-  printingsByCardId: ReadonlyMap<string, Printing[]>,
-  query: string,
-): Printing[] {
-  const searchable = useMemo(
-    () =>
-      [...printingsByCardId.values()].flatMap((printings) => {
-        const printing = printings[0];
-        return printing
-          ? [
-              {
-                id: printing.cardId,
-                slug: printing.cardId,
-                name: legendDisplayName(printing.card),
-                // A decklist may spell the card either way; match against both forms.
-                altNames: cardSearchAltNames(printing.card, [printing.printedName]),
-                printing,
-              },
-            ]
-          : [];
-      }),
-    [printingsByCardId],
-  );
-
+function useMatchingPrintings(allPrintings: readonly Printing[], query: string): Printing[] {
+  const { rows } = useCardSearchIndex(allPrintings);
   // Names only: the judge reads a decklist, not a card in hand, so there is no
   // code to type here.
-  const matches = useCardSearch(searchable, query, undefined, MAX_NAME_MATCHES, MIN_QUERY_LENGTH);
+  const matches = useCardSearch(rows, query, undefined, MAX_NAME_MATCHES, MIN_QUERY_LENGTH);
   return matches.map((row) => row.printing);
 }
 
@@ -386,11 +360,9 @@ export function FixCardDialog({
             ) : null}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              {m.common_cancel()}
-            </Button>
+            <DialogCancel />
             <Button type="submit" disabled={fixCard.isPending || !name.trim() || !copiesValid}>
-              {fixCard.isPending ? m.tournaments_deck_check_saving() : m.common_save()}
+              {fixCard.isPending ? m.common_saving() : m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>
@@ -486,9 +458,7 @@ export function AddCardDialog({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              {m.common_cancel()}
-            </Button>
+            <DialogCancel />
             <Button type="submit" disabled={addCard.isPending || !name.trim()}>
               {addCard.isPending
                 ? m.tournaments_deck_check_adding()

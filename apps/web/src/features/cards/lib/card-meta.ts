@@ -1,10 +1,11 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { imageUrl } from "@openrift/shared/image-url";
+import { preferredPrinting } from "@openrift/shared/printing-select";
 import type {
   CardDetailResponse,
   CatalogPrintingResponse,
 } from "@openrift/shared/types/api/catalog";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName, preferredPrinting } from "@openrift/shared/utils";
 
 import { formatPrice, formatPriceEur } from "@/lib/format";
 

@@ -1,8 +1,9 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
+import { straightenApostrophes } from "@openrift/shared/strings";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName, straightenApostrophes } from "@openrift/shared/utils";
 import { isAlwaysFoilRarity, WellKnown } from "@openrift/shared/well-known";
 
 import { conditionShortCode } from "@/features/collections/lib/condition-codes";
@@ -505,14 +506,4 @@ export function csvExportFilename(format: CsvExportFormat, name: string): string
       .replaceAll(/^-|-$/gu, "") || "export";
   const date = formatDay(new Date());
   return `${CSV_EXPORT_FORMATS[format].filenamePrefix}-${slug}-${date}.csv`;
-}
-
-export function downloadCSV(csv: string, filename: string): void {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
 }

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
+import { PALETTES, PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createStoreResetter } from "@/test/store-helpers";
@@ -74,6 +74,39 @@ describe("usePaletteStore", () => {
         { preference: "totally-not-a-palette" },
         usePaletteStore.getState(),
       ) as { preference: unknown; palette: unknown };
+
+      expect(result.preference).toBeNull();
+      expect(result.palette).toBe(PREFERENCE_DEFAULTS.palette);
+    });
+
+    it("restores a valid palette and derives the active palette from it", () => {
+      const merge = (
+        usePaletteStore.persist.getOptions() as {
+          merge?: (persisted: unknown, current: unknown) => unknown;
+        }
+      ).merge;
+      const valid = PALETTES.find((palette) => palette !== PREFERENCE_DEFAULTS.palette);
+
+      const result = merge?.({ preference: valid }, usePaletteStore.getState()) as {
+        preference: unknown;
+        palette: unknown;
+      };
+
+      expect(result.preference).toBe(valid);
+      expect(result.palette).toBe(valid);
+    });
+
+    it("keeps the current state when the persisted blob is not an object", () => {
+      const merge = (
+        usePaletteStore.persist.getOptions() as {
+          merge?: (persisted: unknown, current: unknown) => unknown;
+        }
+      ).merge;
+
+      const result = merge?.("garbage", usePaletteStore.getState()) as {
+        preference: unknown;
+        palette: unknown;
+      };
 
       expect(result.preference).toBeNull();
       expect(result.palette).toBe(PREFERENCE_DEFAULTS.palette);

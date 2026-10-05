@@ -31,7 +31,7 @@ import {
   metaStandingsQueryOptions,
   metaPlayerQueryOptions,
 } from "@/features/meta/lib/meta-queries";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 
 export function useMetaPendingSubmissions(slug: string) {
   return useQuery(metaPendingSubmissionsQueryOptions(slug, useUserId()));

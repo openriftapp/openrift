@@ -18,7 +18,7 @@ import {
   extractCatalogFacets,
   extractSetLabels,
 } from "./cards-facets";
-import { enrichCatalog } from "./catalog-query";
+import { enrichCatalog } from "./catalog-queries";
 import type { FilterSearch } from "./search-schemas";
 
 function makeSet(id: string, slug: string): CatalogSetResponse {

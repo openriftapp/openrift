@@ -2,10 +2,10 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import type { MouseEvent, PointerEvent, ReactNode, RefObject } from "react";
 import { useRef } from "react";
 
-import { ContextMenuItem } from "@/components/ui/context-menu";
+import { ContextMenuGroup, ContextMenuItem, ContextMenuLabel } from "@/components/ui/context-menu";
 import { PrintingHoverPreview } from "@/features/cards/components/printing-hover-preview";
 import { PrintingRowContent } from "@/features/cards/components/printing-row";
-import { usePrintingHover } from "@/features/cards/components/use-printing-hover";
+import { usePrintingHover } from "@/features/cards/hooks/use-printing-hover";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -78,11 +78,11 @@ export function PrintingChoiceMenuSection({
     return null;
   }
   return (
-    <>
-      <div className="text-muted-foreground text-2xs px-1.5 pt-1 pb-1.5 font-medium tracking-wide uppercase">
+    <ContextMenuGroup>
+      <ContextMenuLabel>
         {m.cards_printing_menu_change_printing()}
         {hint}
-      </div>
+      </ContextMenuLabel>
       <div className="flex flex-col gap-0.5">
         {activePrintingId !== null && onSelectDefault && (
           <ContextMenuItem
@@ -108,6 +108,6 @@ export function PrintingChoiceMenuSection({
           </ContextMenuItem>
         ))}
       </div>
-    </>
+    </ContextMenuGroup>
   );
 }

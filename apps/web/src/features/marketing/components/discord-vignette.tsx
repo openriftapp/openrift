@@ -1,6 +1,8 @@
+import { BotIcon } from "lucide-react";
 import { siDiscord } from "simple-icons";
 
 import { Badge } from "@/components/ui/badge";
+import { BrandGlyph } from "@/components/ui/brand-glyph";
 import type { LandingThumbnailCard } from "@/features/marketing/lib/landing-thumbnails";
 import { m } from "@/paraglide/messages.js";
 
@@ -63,9 +65,7 @@ export function DiscordVignette({ card }: { card?: LandingThumbnailCard }) {
       </div>
       <div className="motion-safe:animate-vignette-reply flex gap-3">
         <span className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-full">
-          <svg role="img" viewBox="0 0 24 24" className="size-4 fill-current" aria-hidden="true">
-            <path d={siDiscord.path} />
-          </svg>
+          <BrandGlyph icon={siDiscord} fallback={BotIcon} />
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex items-center gap-2">

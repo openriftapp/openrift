@@ -1,3 +1,4 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { imageUrl } from "@openrift/shared/image-url";
 import { getPlaysetSize } from "@openrift/shared/playset";
 import type { CompletionScopePreference } from "@openrift/shared/types/api/preferences";
@@ -5,7 +6,6 @@ import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { CardType } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { Area, AreaChart, ReferenceArea, ReferenceDot, XAxis, YAxis } from "recharts";
 
 import { trackMarketplaceClick } from "@/components/marketplace-link";
@@ -365,7 +365,7 @@ function CostToCompleteTooltipContent({
   const point = firstEntry.payload;
 
   return (
-    <div className="border-border/50 bg-background flex min-w-36 gap-2.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-md">
+    <div className="bg-popover text-popover-foreground ring-border flex min-w-36 gap-2.5 rounded-lg px-2.5 py-1.5 text-xs shadow-md ring-1">
       {point.thumbnail && <CardArtThumb src={point.thumbnail} className="h-16" />}
       <div>
         {point.label ? (

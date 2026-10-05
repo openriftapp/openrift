@@ -15,6 +15,8 @@ function makePod(overrides: Partial<PodResponse> = {}): PodResponse {
       {
         playerId: "p1",
         displayName: "Ashe",
+        image: null,
+        gravatarHash: null,
         teamId: null,
         gamePoints: null,
         placement: null,
@@ -23,6 +25,8 @@ function makePod(overrides: Partial<PodResponse> = {}): PodResponse {
       {
         playerId: "p2",
         displayName: "Braum",
+        image: null,
+        gravatarHash: null,
         teamId: null,
         gamePoints: null,
         placement: null,
@@ -31,6 +35,8 @@ function makePod(overrides: Partial<PodResponse> = {}): PodResponse {
       {
         playerId: "p3",
         displayName: "Caitlyn",
+        image: null,
+        gravatarHash: null,
         teamId: null,
         gamePoints: null,
         placement: null,
@@ -39,6 +45,8 @@ function makePod(overrides: Partial<PodResponse> = {}): PodResponse {
       {
         playerId: "p4",
         displayName: "Darius",
+        image: null,
+        gravatarHash: null,
         teamId: null,
         gamePoints: null,
         placement: null,
@@ -166,6 +174,8 @@ describe("PairingsView", () => {
                 {
                   playerId: "p5",
                   displayName: "Ezreal",
+                  image: null,
+                  gravatarHash: null,
                   teamId: null,
                   gamePoints: 3,
                   placement: null,
@@ -174,6 +184,8 @@ describe("PairingsView", () => {
                 {
                   playerId: "p6",
                   displayName: "Fiora",
+                  image: null,
+                  gravatarHash: null,
                   teamId: null,
                   gamePoints: 1,
                   placement: null,
@@ -182,6 +194,8 @@ describe("PairingsView", () => {
                 {
                   playerId: "p7",
                   displayName: "Garen",
+                  image: null,
+                  gravatarHash: null,
                   teamId: null,
                   gamePoints: null,
                   placement: null,
@@ -190,6 +204,8 @@ describe("PairingsView", () => {
                 {
                   playerId: "p8",
                   displayName: "Hecarim",
+                  image: null,
+                  gravatarHash: null,
                   teamId: null,
                   gamePoints: null,
                   placement: null,
@@ -287,6 +303,8 @@ describe("PairingsView", () => {
                 {
                   playerId: "p1",
                   displayName: "Ashe",
+                  image: null,
+                  gravatarHash: null,
                   teamId: null,
                   gamePoints: 8,
                   placement: 1,
@@ -295,6 +313,8 @@ describe("PairingsView", () => {
                 {
                   playerId: "p2",
                   displayName: "PinkelGelbeZaehne",
+                  image: null,
+                  gravatarHash: null,
                   teamId: null,
                   gamePoints: 5,
                   placement: 2,
@@ -327,6 +347,8 @@ describe("PairingsView", () => {
                 {
                   playerId: "p1",
                   displayName: "Ashe",
+                  image: null,
+                  gravatarHash: null,
                   teamId: null,
                   gamePoints: 2,
                   placement: 1,
@@ -335,6 +357,8 @@ describe("PairingsView", () => {
                 {
                   playerId: "p2",
                   displayName: "Braum",
+                  image: null,
+                  gravatarHash: null,
                   teamId: null,
                   gamePoints: 1,
                   placement: 2,
@@ -392,6 +416,8 @@ describe("PairingsView", () => {
                 {
                   playerId: "p1",
                   displayName: "Ashe",
+                  image: null,
+                  gravatarHash: null,
                   teamId: null,
                   gamePoints: 6,
                   placement: null,
@@ -400,6 +426,8 @@ describe("PairingsView", () => {
                 {
                   playerId: "p2",
                   displayName: "Braum",
+                  image: null,
+                  gravatarHash: null,
                   teamId: null,
                   gamePoints: null,
                   placement: null,
@@ -438,6 +466,8 @@ describe("PairingsView 2v2 team matches", () => {
         {
           playerId: "p1",
           displayName: "Ashe",
+          image: null,
+          gravatarHash: null,
           teamId: "team-a",
           gamePoints: null,
           placement: null,
@@ -446,6 +476,8 @@ describe("PairingsView 2v2 team matches", () => {
         {
           playerId: "p2",
           displayName: "Braum",
+          image: null,
+          gravatarHash: null,
           teamId: "team-a",
           gamePoints: null,
           placement: null,
@@ -454,6 +486,8 @@ describe("PairingsView 2v2 team matches", () => {
         {
           playerId: "p3",
           displayName: "Caitlyn",
+          image: null,
+          gravatarHash: null,
           teamId: "team-b",
           gamePoints: null,
           placement: null,
@@ -462,6 +496,8 @@ describe("PairingsView 2v2 team matches", () => {
         {
           playerId: "p4",
           displayName: "Darius",
+          image: null,
+          gravatarHash: null,
           teamId: "team-b",
           gamePoints: null,
           placement: null,

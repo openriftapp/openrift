@@ -1,6 +1,17 @@
+import {
+  BracketColumn,
+  BracketColumns,
+  BracketEmptySeat,
+  BracketMatchCard,
+  BracketRankMark,
+  BracketSeatRow,
+  BracketSeedMark,
+} from "@/components/bracket/bracket";
+import { LegendFinishGrid, LegendFinishTile } from "@/components/deck-identity/legend-finish-tile";
 import { Medal, Podium } from "@/components/ui/podium";
 import type { PodiumSeat } from "@/components/ui/podium";
 import { RankBand } from "@/components/ui/rank-band";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { UserAvatar } from "@/components/user-avatar";
 import { UserAvatarStack } from "@/components/user-avatar-stack";
 import {
@@ -36,8 +47,17 @@ const RANK_BAND_DEMOS = [
   { rank: 12, text: "12th", label: null, filled: false },
 ];
 
+const LEGEND_FINISHES = [
+  { key: "f1", rank: 1, rankText: "1", label: "Winner", legend: "Jinx", player: "Poro Herder" },
+  { key: "f2", rank: 2, rankText: "2", label: "Finalist", legend: "Ahri", player: "Hex Tinkerer" },
+  { key: "f3", rank: 3, rankText: "3", label: "Top 4", legend: "Viktor", player: "Void Binder" },
+  { key: "f4", rank: 6, rankText: "6th", label: "Top 8", legend: "Teemo", player: "Glacial Mina" },
+];
+
 const GROUPS = {
   avatar: { id: "people-avatar", title: "Avatar" },
+  bracket: { id: "people-bracket", title: "Bracket" },
+  legendFinish: { id: "people-legend-finish", title: "Legend finish tile" },
   podium: { id: "people-podium", title: "Podium" },
   medal: { id: "people-medal", title: "Medal" },
   rankBand: { id: "people-rank-band", title: "Rank band" },
@@ -136,6 +156,77 @@ export function PeopleSection() {
             />
           </Swatch>
         </SwatchRow>
+      </DemoGroup>
+
+      <DemoGroup
+        {...GROUPS.bracket}
+        hint="Columns stack final-first on phones. A seat row without a mark keeps the mark column so names line up."
+      >
+        <DemoRow label="Top 4" className="block">
+          <BracketColumns columnCount={2}>
+            <BracketColumn label="Semifinal">
+              <BracketMatchCard label="Table 1" aside="Best of 3">
+                <BracketSeatRow
+                  winner
+                  mark={<BracketSeedMark>1</BracketSeedMark>}
+                  name="Poro Herder"
+                  score={2}
+                />
+                <BracketSeatRow
+                  winner={false}
+                  mark={<BracketSeedMark>4</BracketSeedMark>}
+                  name="Glacial Mina"
+                  score={1}
+                />
+              </BracketMatchCard>
+              <BracketMatchCard label="Table 2">
+                <BracketSeatRow winner={false} name="Hex Tinkerer" score={0} />
+                <BracketEmptySeat>Waiting on the winner of table 3</BracketEmptySeat>
+              </BracketMatchCard>
+            </BracketColumn>
+            <BracketColumn label="Final">
+              <BracketMatchCard isFinal label="Final">
+                <BracketSeatRow
+                  winner
+                  mark={<BracketRankMark rank={1} text="1" />}
+                  name="Poro Herder"
+                  score={2}
+                />
+                <BracketSeatRow
+                  winner={false}
+                  mark={<BracketRankMark rank={2} text="2" />}
+                  name="Void Binder"
+                  score={1}
+                />
+              </BracketMatchCard>
+            </BracketColumn>
+          </BracketColumns>
+        </DemoRow>
+      </DemoGroup>
+
+      <DemoGroup
+        {...GROUPS.legendFinish}
+        hint="LegendFinishGrid shows eight tiles and folds the rest behind a show-all button in the heading."
+      >
+        <DemoRow label="LegendFinishGrid" className="block">
+          <LegendFinishGrid
+            heading={<SectionHeading as="h3">Top finishes</SectionHeading>}
+            items={LEGEND_FINISHES}
+            getKey={(finish) => finish.key}
+            renderTile={(finish) => (
+              <LegendFinishTile
+                rank={finish.rank}
+                rankText={finish.rankText}
+                rankLabel={finish.label}
+                imageId={null}
+                identity={<span className="truncate text-sm font-medium">{finish.legend}</span>}
+                player={finish.player}
+                detail="Summoner Skirmish"
+                action={finish.rank === 6 ? "+ Add" : undefined}
+              />
+            )}
+          />
+        </DemoRow>
       </DemoGroup>
     </DemoSection>
   );

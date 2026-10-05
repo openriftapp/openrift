@@ -11,6 +11,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { rulesKeys } from "@/features/rules/lib/rules-query-keys";
+import { serverCacheKeys } from "@/lib/query-keys";
 import { serverCache } from "@/lib/server-cache";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -24,7 +25,7 @@ const fetchRulesAtVersion = createServerFn({ method: "GET" })
   .validator((input: RulesDocumentInput) => input)
   .handler(({ data }): Promise<RulesPageResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "rules", data.kind, data.language, data.version, "page"],
+      queryKey: serverCacheKeys.rules.page(data.kind, data.language, data.version),
       queryFn: () => apiOrpcClient(rulesContract).page(data),
     }),
   );
@@ -33,7 +34,7 @@ const fetchRulesSource = createServerFn({ method: "GET" })
   .validator((input: RulesDocumentInput) => input)
   .handler(({ data }): Promise<RuleSourceResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "rules", data.kind, data.language, data.version, "source"],
+      queryKey: serverCacheKeys.rules.source(data.kind, data.language, data.version),
       queryFn: () => apiOrpcClient(rulesContract).source(data),
     }),
   );
@@ -42,7 +43,7 @@ const fetchRuleNumbers = createServerFn({ method: "GET" })
   .validator((input: { kind: RuleKind; version: string }) => input)
   .handler(({ data }): Promise<RuleNumbersResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "rules", data.kind, data.version, "numbers"],
+      queryKey: serverCacheKeys.rules.numbers(data.kind, data.version),
       queryFn: () => apiOrpcClient(rulesContract).numbers(data),
     }),
   );
@@ -51,7 +52,7 @@ const fetchVersions = createServerFn({ method: "GET" })
   .validator((input: { kind?: RuleKind; language: RuleLanguage }) => input)
   .handler(({ data }): Promise<RuleVersionsListResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "rules-versions", data.language, data.kind ?? "all"],
+      queryKey: serverCacheKeys.rulesVersions.list(data.language, data.kind ?? "all"),
       queryFn: () => apiOrpcClient(rulesContract).versions(data),
     }),
   );

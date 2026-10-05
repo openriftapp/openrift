@@ -1,9 +1,9 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type {
   CardTradeCopyOptionsResponse,
   CardTradeResponse,
 } from "@openrift/shared/types/api/card-trade";
-import { getOrientation } from "@openrift/shared/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { EllipsisVerticalIcon, HandshakeIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
@@ -46,7 +46,7 @@ import { runSettleBatch } from "@/features/groups/lib/trade-settle-batch";
 import { stepSequence } from "@/features/groups/lib/trade-sheet";
 import { talliedCount, useTradeTallyStore } from "@/features/groups/stores/trade-tally-store";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { languageNameForCode } from "@/lib/language-names";
 import { m } from "@/paraglide/messages.js";
 
@@ -112,7 +112,6 @@ function TallyRow({
           <CardMetaLine
             shortCode={printing.shortCode}
             rarity={printing.rarity}
-            rarityLabel={enumLabel(labels.rarities, printing.rarity)}
             finish={printing.finish}
             finishLabel={enumLabel(labels.finishes, printing.finish)}
             trailing={

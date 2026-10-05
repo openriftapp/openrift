@@ -2,7 +2,7 @@ import { adminIgnoredProductsContract } from "@openrift/shared/contracts/admin/i
 import { adminStagingCardOverridesContract } from "@openrift/shared/contracts/admin/staging-card-overrides";
 import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/unified-mappings";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { useMutation, useQuery, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
@@ -11,6 +11,7 @@ import {
   unifiedMappingsQueryOptions,
   unifiedMappingsSummaryQueryOptions,
 } from "@/features/admin/lib/unified-mappings-queries";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import type { UnifiedMappingsSummaryResponse } from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
@@ -39,17 +40,9 @@ function useUnifiedMutation<TInput, TResult>(
   marketplace: Marketplace,
   mutationFn: (input: TInput) => Promise<TResult>,
 ) {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: adminKeys.unifiedMappings.all,
-      });
-      void queryClient.invalidateQueries({
-        queryKey: ["admin", marketplace] as const,
-      });
-    },
+    invalidates: [adminKeys.unifiedMappings.all, adminKeys.marketplace(marketplace)],
   });
 }
 

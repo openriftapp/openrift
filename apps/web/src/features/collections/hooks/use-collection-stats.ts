@@ -1,3 +1,12 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import {
+  includes,
+  matchesCustomTags,
+  matchesFlag,
+  noneExcluded,
+  notExcluded,
+  overlaps,
+} from "@openrift/shared/filters-predicates";
 import { imageUrl } from "@openrift/shared/image-url";
 import { getPlaysetSize } from "@openrift/shared/playset";
 import { isStandardPrinting } from "@openrift/shared/standard";
@@ -11,7 +20,6 @@ import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { CardType, Domain } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
@@ -594,27 +602,7 @@ function scopeHasFilters(scope: CompletionScopePreference): boolean {
   );
 }
 
-function includesValue(allowed: string[] | undefined, value: string): boolean {
-  return !allowed || allowed.length === 0 || allowed.includes(value);
-}
-
-/** Any overlap passes; must match `overlaps` in the shared card filters. */
-function overlapsValues(allowed: string[] | undefined, values: readonly string[]): boolean {
-  return !allowed || allowed.length === 0 || values.some((value) => allowed.includes(value));
-}
-
-function notExcluded(excluded: string[] | undefined, value: string): boolean {
-  return !excluded || excluded.length === 0 || !excluded.includes(value);
-}
-
-/** One excluded value rejects the card; must match `noneExcluded` in the shared card filters. */
-function noneExcluded(excluded: string[] | undefined, values: readonly string[]): boolean {
-  return !excluded || excluded.length === 0 || !values.some((value) => excluded.includes(value));
-}
-
-function matchesFlag(filter: boolean | undefined, actual: boolean): boolean {
-  return filter === undefined || filter === actual;
-}
+const NO_VALUES: string[] = [];
 
 function matchesPresence(state: "any" | "none" | undefined, has: boolean): boolean {
   return state === undefined || (state === "any" ? has : !has);
@@ -628,31 +616,31 @@ export function matchesScope(
   const { card } = printing;
   const markerPresence = scope.promos && (scope.promos === "only" ? "any" : "none");
   return (
-    includesValue(scope.sets, printing.setSlug) &&
-    includesValue(scope.languages, printing.language) &&
-    includesValue(scope.rarities, printing.rarity) &&
-    includesValue(scope.finishes, printing.finish) &&
-    includesValue(scope.artVariants, printing.artVariant) &&
-    includesValue(scope.cardSizes, printing.size) &&
-    overlapsValues(scope.domains, card.domains) &&
-    overlapsValues(scope.types, card.types) &&
-    overlapsValues(scope.keywords, card.keywords) &&
-    overlapsValues(scope.tags, card.tags) &&
-    overlapsValues(scope.customTags, customTagSlugs) &&
-    notExcluded(scope.setsExclude, printing.setSlug) &&
-    notExcluded(scope.languagesExclude, printing.language) &&
-    notExcluded(scope.raritiesExclude, printing.rarity) &&
-    notExcluded(scope.finishesExclude, printing.finish) &&
-    notExcluded(scope.artVariantsExclude, printing.artVariant) &&
-    noneExcluded(scope.domainsExclude, card.domains) &&
-    noneExcluded(scope.typesExclude, card.types) &&
-    noneExcluded(scope.keywordsExclude, card.keywords) &&
-    noneExcluded(scope.tagsExclude, card.tags) &&
-    noneExcluded(scope.customTagsExclude, customTagSlugs) &&
-    matchesFlag(scope.standard, isStandardPrinting(printing)) &&
-    matchesFlag(scope.signed, printing.isSigned) &&
-    matchesFlag(scope.banned, card.bans.length > 0) &&
-    matchesFlag(scope.errata, card.errata !== null) &&
+    includes(scope.sets ?? NO_VALUES, printing.setSlug) &&
+    includes(scope.languages ?? NO_VALUES, printing.language) &&
+    includes(scope.rarities ?? NO_VALUES, printing.rarity) &&
+    includes(scope.finishes ?? NO_VALUES, printing.finish) &&
+    includes(scope.artVariants ?? NO_VALUES, printing.artVariant) &&
+    includes(scope.cardSizes ?? NO_VALUES, printing.size) &&
+    overlaps(scope.domains ?? NO_VALUES, card.domains) &&
+    overlaps(scope.types ?? NO_VALUES, card.types) &&
+    overlaps(scope.keywords ?? NO_VALUES, card.keywords) &&
+    overlaps(scope.tags ?? NO_VALUES, card.tags) &&
+    matchesCustomTags(scope.customTags ?? NO_VALUES, customTagSlugs) &&
+    notExcluded(scope.setsExclude ?? NO_VALUES, printing.setSlug) &&
+    notExcluded(scope.languagesExclude ?? NO_VALUES, printing.language) &&
+    notExcluded(scope.raritiesExclude ?? NO_VALUES, printing.rarity) &&
+    notExcluded(scope.finishesExclude ?? NO_VALUES, printing.finish) &&
+    notExcluded(scope.artVariantsExclude ?? NO_VALUES, printing.artVariant) &&
+    noneExcluded(scope.domainsExclude ?? NO_VALUES, card.domains) &&
+    noneExcluded(scope.typesExclude ?? NO_VALUES, card.types) &&
+    noneExcluded(scope.keywordsExclude ?? NO_VALUES, card.keywords) &&
+    noneExcluded(scope.tagsExclude ?? NO_VALUES, card.tags) &&
+    noneExcluded(scope.customTagsExclude ?? NO_VALUES, customTagSlugs) &&
+    matchesFlag(scope.standard ?? null, isStandardPrinting(printing)) &&
+    matchesFlag(scope.signed ?? null, printing.isSigned) &&
+    matchesFlag(scope.banned ?? null, card.bans.length > 0) &&
+    matchesFlag(scope.errata ?? null, card.errata !== null) &&
     matchesPresence(markerPresence, printing.markers.length > 0) &&
     matchesPresence(scope.keywordsPresence, card.keywords.length > 0) &&
     matchesPresence(scope.tagsPresence, card.tags.length > 0) &&

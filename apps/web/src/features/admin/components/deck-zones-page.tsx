@@ -1,5 +1,6 @@
 import { PageDescription } from "@/components/layout/page-top-bar";
-import { LabelCell, LabelInput, SlugCell } from "@/features/admin/components/admin-crud-shared";
+import { DraftTextInput, LabelCell, SlugCell } from "@/features/admin/components/admin-crud-shared";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminColumnDef } from "@/features/admin/components/admin-table";
 import { flatReorder } from "@/features/admin/lib/admin-reorder";
@@ -31,7 +32,7 @@ const columns: AdminColumnDef<DeckZoneRow, DeckZoneDraft>[] = [
     header: "Label",
     sortValue: (zone) => zone.label,
     cell: <LabelCell<DeckZoneRow> />,
-    editCell: <LabelInput<DeckZoneDraft> />,
+    editCell: <DraftTextInput<DeckZoneDraft> field="label" />,
   },
 ];
 
@@ -47,7 +48,7 @@ export function DeckZonesPage() {
       data={deckZones}
       getRowKey={(zone) => zone.slug}
       emptyText="No deck zones."
-      title="Deck Zones"
+      topBar={(actions) => <AdminPageTopBar title="Deck Zones" actions={actions} />}
       toolbar={
         <PageDescription>
           Order here is the display order in the deck builder and imports.

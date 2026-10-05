@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { m } from "@/paraglide/messages.js";
 
@@ -36,7 +36,9 @@ export function MetaContributeBand() {
       title={m.meta_contribute_title()}
       description={m.meta_contribute_description()}
       action={
-        <Button render={<Link to="/meta/submit" />}>{m.meta_contribute_send_decklist()}</Button>
+        <Link to="/meta/submit" className={buttonVariants()}>
+          {m.meta_contribute_send_decklist()}
+        </Link>
       }
     />
   );

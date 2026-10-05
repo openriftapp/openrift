@@ -1,5 +1,6 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 

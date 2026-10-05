@@ -1,7 +1,7 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
-import type { CardDragData, ListEntryDragData } from "@/features/collections/components/dnd-types";
+import type { CardDragData, ListEntryDragData } from "@/features/collections/lib/dnd-types";
 
 import { isCompatibleDrop } from "./droppable-sidebar-list";
 

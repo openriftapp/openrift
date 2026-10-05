@@ -81,7 +81,7 @@ const wanted = [
   wantedCard({ key: "printing:p-jinx", cardId: "c-jinx", printingId: "p-jinx", quantity: 1 }),
 ];
 
-vi.mock("@/lib/auth-session", () => ({ useRequiredUserId: () => "user-1" }));
+vi.mock("@/hooks/use-session", () => ({ useRequiredUserId: () => "user-1" }));
 vi.mock("@/features/groups/hooks/use-trade-market", () => ({
   useTradeMarket: () => ({
     market: currentMarket,
@@ -238,7 +238,7 @@ describe("TradeMarket", () => {
 
   it("narrows the grid by the search", () => {
     render(<TradeMarket />);
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search cards" }), {
+    fireEvent.change(screen.getByRole("textbox", { name: "Search cards" }), {
       target: { value: "leona" },
     });
     expect(screen.queryByText("Jinx, Rebel")).toBeNull();

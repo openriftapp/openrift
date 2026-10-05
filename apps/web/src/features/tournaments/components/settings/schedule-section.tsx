@@ -2,17 +2,11 @@ import type { TournamentDetailResponse } from "@openrift/shared/types/api/tourna
 
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import { DatePicker } from "@/components/ui/date-picker";
-import { FieldError } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ScheduleFields } from "@/features/tournaments/components/settings/schedule-fields";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
-import {
-  localTimeZoneLabel,
-  parseScheduleInput,
-  splitUtcToLocalDateTime,
-} from "@/features/tournaments/lib/tournament-display";
+import { parseScheduleInput } from "@/features/tournaments/lib/tournament-display";
 import { useServerSeededState } from "@/hooks/use-server-seeded-state";
+import { localTimeZoneLabel, splitUtcToLocalDateTime } from "@/lib/date-time-input";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
@@ -42,8 +36,6 @@ export function ScheduleSection({
   const {
     startsAt: nextStartsAt,
     endsAt: nextEndsAt,
-    endIncomplete,
-    endBeforeStart,
     scheduleInvalid,
   } = parseScheduleInput(startDate, startTime, endDate, endTime);
   const startChanged =
@@ -63,59 +55,16 @@ export function ScheduleSection({
       description={m.tournaments_settings_schedule_description({ timezone: tzLabel })}
       contentClassName="gap-3"
     >
-      <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
-        <div className="flex flex-col gap-1.5">
-          <Label>{m.tournaments_settings_starts_label()}</Label>
-          <div className="flex flex-wrap items-center gap-2">
-            <DatePicker
-              value={startDate}
-              onChange={setStartDate}
-              onClear={() => setStartDate("")}
-              disabled={locked}
-              className="w-44"
-            />
-            <Input
-              value={startTime}
-              disabled={locked}
-              onChange={(event) => setStartTime(event.target.value)}
-              placeholder="HH:mm"
-              aria-label={m.tournaments_settings_start_time_aria()}
-              className="w-24 tabular-nums"
-            />
-          </div>
-          {nextStartsAt === null ? (
-            <FieldError>{m.tournaments_settings_start_invalid()}</FieldError>
-          ) : null}
-        </div>
-        <span className="text-muted-foreground mb-2 text-sm">
-          {m.tournaments_settings_schedule_to()}
-        </span>
-        <div className="flex flex-col gap-1.5">
-          <Label>{m.tournaments_settings_ends_label()}</Label>
-          <div className="flex flex-wrap items-center gap-2">
-            <DatePicker
-              value={endDate}
-              onChange={setEndDate}
-              onClear={() => setEndDate("")}
-              disabled={locked}
-              className="w-44"
-            />
-            <Input
-              value={endTime}
-              disabled={locked}
-              onChange={(event) => setEndTime(event.target.value)}
-              placeholder="HH:mm"
-              aria-label={m.tournaments_settings_end_time_aria()}
-              className="w-24 tabular-nums"
-            />
-          </div>
-          {endIncomplete ? (
-            <FieldError>{m.tournaments_settings_end_incomplete()}</FieldError>
-          ) : endBeforeStart ? (
-            <FieldError>{m.tournaments_settings_end_before_start()}</FieldError>
-          ) : null}
-        </div>
-      </div>
+      <ScheduleFields
+        value={{ startDate, startTime, endDate, endTime }}
+        disabled={locked}
+        onChange={(patch) => {
+          setStartDate(patch.startDate ?? startDate);
+          setStartTime(patch.startTime ?? startTime);
+          setEndDate(patch.endDate ?? endDate);
+          setEndTime(patch.endTime ?? endTime);
+        }}
+      />
       <div className="flex flex-wrap items-center gap-2">
         <Button
           disabled={locked || scheduleInvalid || !scheduleChanged || updateTournament.isPending}

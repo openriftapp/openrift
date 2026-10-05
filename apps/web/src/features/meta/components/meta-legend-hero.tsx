@@ -2,12 +2,13 @@ import type { MetaLegendDetailResponse } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 
 import { Card } from "@/components/ui/card";
+import { StatFigure } from "@/components/ui/stat-figure";
 import { TextLink } from "@/components/ui/text-link";
-import { DomainIcon } from "@/features/decks/components/domain-icon";
-import { MetaHeroArt, MetaHeroCounter } from "@/features/meta/components/meta-hero";
-import { splitLegendName } from "@/features/meta/lib/meta-format";
+import { DomainIcon } from "@/features/cards/components/domain-icon";
+import { MetaHeroArt } from "@/features/meta/components/meta-hero";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { deckGlowStyle } from "@/lib/domain";
+import { formatCount } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 
 type MetaLegendCounts = MetaLegendDetailResponse["counts"];
@@ -15,9 +16,9 @@ type MetaLegendCounts = MetaLegendDetailResponse["counts"];
 function FactCounters({ counts }: { counts: MetaLegendCounts }) {
   return (
     <div className="flex flex-wrap gap-x-9 gap-y-3">
-      <MetaHeroCounter value={counts.wins} label={m.meta_legend_hero_event_wins()} />
-      <MetaHeroCounter value={counts.finishes} label={m.meta_legend_hero_finishes()} />
-      <MetaHeroCounter value={counts.decklists} label={m.meta_legend_hero_decklists()} />
+      <StatFigure value={formatCount(counts.wins)} label={m.meta_legend_hero_event_wins()} />
+      <StatFigure value={formatCount(counts.finishes)} label={m.meta_legend_hero_finishes()} />
+      <StatFigure value={formatCount(counts.decklists)} label={m.meta_legend_hero_decklists()} />
     </div>
   );
 }
@@ -30,7 +31,8 @@ export function MetaLegendHero({
   counts: MetaLegendCounts;
 }) {
   const domainColors = useDomainColors();
-  const { champion, title } = splitLegendName(legend.name);
+  const champion = legend.character ?? legend.epithet;
+  const title = legend.character === null ? null : legend.epithet;
 
   return (
     <Card className="relative gap-0 py-0">

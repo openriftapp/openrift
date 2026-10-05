@@ -1,5 +1,6 @@
 import { formatDay } from "@openrift/shared/format-date";
 import { imageUrl } from "@openrift/shared/image-url";
+import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaDeckSummary } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 
@@ -8,7 +9,7 @@ import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { RankBand, rankBandRingClass, rankBandTone } from "@/components/ui/rank-band";
 import { TextLink } from "@/components/ui/text-link";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
-import { finishBracketLabel, formatRank, formatRecord } from "@/features/meta/lib/meta-format";
+import { finishBracketLabel, formatRank } from "@/features/meta/lib/meta-format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -49,7 +50,7 @@ export function MetaPlayerDeckTile({
         )}
         <div className="flex min-w-0 flex-1 flex-col justify-between gap-1">
           <MetaIdentity
-            name={deck.legendName}
+            legend={{ character: deck.legendCharacter, epithet: deck.legendEpithet }}
             slug={deck.legendSlug}
             archiveSlug={deck.legendArchiveSlug}
             domains={legendDomains}

@@ -6,8 +6,6 @@ import { z } from "zod";
 // on every page load, so anything this module pulls in lands in the startup
 // bundle of every route.
 
-export { META_MAX_PAGE_SIZE, META_PAGE_SIZES } from "@openrift/shared/contracts/meta";
-
 export const META_PAGE_ALL = "all";
 
 export type MetaPageSizeValue = (typeof META_PAGE_SIZES)[number];

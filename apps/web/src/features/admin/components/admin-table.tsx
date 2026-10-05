@@ -13,7 +13,7 @@ import {
 } from "@tanstack/react-table";
 import { CircleXIcon, DownloadIcon } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
-import { Fragment, cloneElement, useState } from "react";
+import { Fragment, cloneElement } from "react";
 
 import { PageTopBarButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import type { AdminDeleteConfig } from "@/features/admin/components/admin-table-delete-button";
 import { DeleteButton } from "@/features/admin/components/admin-table-delete-button";
 import {
@@ -41,7 +40,7 @@ import { useVirtualizedRows } from "@/features/admin/hooks/use-virtualized-rows"
 import { columnId } from "@/features/admin/lib/admin-table-columns";
 import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
 import type { ServerSort } from "@/features/admin/lib/admin-table-types";
-import { downloadJSON } from "@/features/collections/lib/json-export";
+import { downloadJson } from "@/lib/download";
 import { cn } from "@/lib/utils";
 
 // The row model is registered unconditionally even on reorder tables, where
@@ -103,8 +102,11 @@ interface AdminTableProps<TData, TDraft = TData> {
   defaultSort?: { column: string; direction: "asc" | "desc" };
   serverSort?: ServerSort;
 
-  title?: ReactNode;
+  topBar?: (actions: ReactNode) => ReactNode;
   toolbar?: ReactNode;
+  footer?: ReactNode;
+  layout?: "auto" | "fixed";
+  renderExpanded?: (row: TData) => ReactNode;
 
   add?: {
     emptyDraft: TDraft;
@@ -222,8 +224,11 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
   emptyText = "No data.",
   defaultSort,
   serverSort,
-  title,
+  topBar,
   toolbar,
+  footer,
+  layout = "auto",
+  renderExpanded,
   add,
   addChild,
   edit,
@@ -237,8 +242,6 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
   export: exportConfig,
   actions,
 }: AdminTableProps<TData, TDraft>) {
-  const [deleteError, setDeleteError] = useState("");
-
   const {
     adding,
     addDraft,
@@ -328,7 +331,7 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
   const handleExport = exportConfig
     ? () => {
         const payload = exportConfig.transform ? exportConfig.transform(data) : data;
-        downloadJSON(payload, exportConfig.filename);
+        downloadJson(payload, exportConfig.filename);
       }
     : undefined;
 
@@ -355,8 +358,6 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
         }
         onEdit={edit ? () => startEditing(getRowKey(original), edit.toDraft(original)) : undefined}
         del={del}
-        deleteError={deleteError}
-        setDeleteError={setDeleteError}
       />
     );
   }
@@ -364,7 +365,7 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
   return (
     <div className="space-y-4">
       <AdminTableChrome
-        title={title}
+        topBar={topBar}
         toolbar={toolbar}
         adding={adding}
         addLabel={add?.label ?? "Add"}
@@ -381,7 +382,13 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
           onDragEnd={handleDragEnd}
           onDragCancel={handleDragCancel}
         >
-          <Table className={cn(ADMIN_TABLE_CLASS, virtualize && "table-fixed", minWidth)}>
+          <Table
+            className={cn(
+              ADMIN_TABLE_CLASS,
+              (virtualize || layout === "fixed") && "table-fixed",
+              minWidth,
+            )}
+          >
             <AdminTableHead
               table={table}
               orderColumnWidth={reorder ? (reorderSteppers ? "w-24" : "w-10") : undefined}
@@ -391,11 +398,7 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
               {addingUnderKey === null && addRow}
 
               {allRows.length === 0 && !adding && (
-                <TableRow>
-                  <TableCell colSpan={totalCols} className="text-muted-foreground h-24 text-center">
-                    {emptyText}
-                  </TableCell>
-                </TableRow>
+                <AdminTableEmptyRow colSpan={totalCols}>{emptyText}</AdminTableEmptyRow>
               )}
 
               {pinnedRows.map((row) => (
@@ -417,6 +420,7 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
                   return null;
                 }
                 const key = row.id;
+                const expandedContent = renderExpanded?.(row.original);
                 return (
                   <Fragment key={key}>
                     {reorder ? (
@@ -447,6 +451,13 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
                         {rowCells(row)}
                       </TableRow>
                     )}
+                    {expandedContent ? (
+                      <TableRow>
+                        <TableCell colSpan={totalCols} className="whitespace-normal">
+                          {expandedContent}
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
                     {addingUnderKey === key && addRow}
                   </Fragment>
                 );
@@ -460,7 +471,24 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
           </Table>
         </ReorderProvider>
       </div>
+      {footer}
     </div>
+  );
+}
+
+export function AdminTableEmptyRow({
+  colSpan,
+  children,
+}: {
+  colSpan: number;
+  children: ReactNode;
+}) {
+  return (
+    <TableRow>
+      <TableCell colSpan={colSpan} className="text-muted-foreground h-24 text-center">
+        {children}
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -477,8 +505,6 @@ function AdminRowCells<TData extends RowData, TDraft>({
   onAddChild,
   onEdit,
   del,
-  deleteError,
-  setDeleteError,
 }: {
   row: TanStackRow<AdminTableFeatures, TData>;
   hasActions: boolean;
@@ -492,15 +518,10 @@ function AdminRowCells<TData extends RowData, TDraft>({
   onAddChild?: () => void;
   onEdit?: () => void;
   del?: AdminDeleteConfig<TData>;
-  deleteError: string;
-  setDeleteError: (err: string) => void;
 }) {
   const isEditing = editDraft !== null;
   return (
     <>
-      {/* getAllCells, not getVisibleCells: pair with the same call in
-          admin-card-table-shared.tsx if that ever registers
-          columnVisibilityFeature. */}
       {row.getAllCells().map((cell) => {
         const meta = cell.column.columnDef.meta as AdminColumnMeta<TDraft> | undefined;
         return (
@@ -540,12 +561,7 @@ function AdminRowCells<TData extends RowData, TDraft>({
                 </Button>
               )}
               {del && (del.canDelete ? del.canDelete(row.original) : true) && (
-                <DeleteButton
-                  row={row.original}
-                  config={del}
-                  deleteError={deleteError}
-                  setDeleteError={setDeleteError}
-                />
+                <DeleteButton row={row.original} config={del} />
               )}
             </div>
           )}
@@ -555,44 +571,62 @@ function AdminRowCells<TData extends RowData, TDraft>({
   );
 }
 
+function AdminTableActions({
+  adding,
+  addLabel,
+  onAdd,
+  onExport,
+}: {
+  adding: boolean;
+  addLabel: string;
+  onAdd?: () => void;
+  onExport?: () => void;
+}) {
+  return (
+    <>
+      {onExport && (
+        <PageTopBarButton onClick={onExport}>
+          <DownloadIcon />
+          Export JSON
+        </PageTopBarButton>
+      )}
+      {onAdd && (
+        <PageTopBarPrimaryButton onClick={onAdd} disabled={adding}>
+          {addLabel}
+        </PageTopBarPrimaryButton>
+      )}
+    </>
+  );
+}
+
 function AdminTableChrome({
-  title,
+  topBar,
   toolbar,
   adding,
   addLabel,
   onAdd,
   onExport,
 }: {
-  title?: ReactNode;
+  topBar?: (actions: ReactNode) => ReactNode;
   toolbar?: ReactNode;
   adding: boolean;
   addLabel: string;
   onAdd?: () => void;
   onExport?: () => void;
 }) {
-  if (title !== undefined) {
+  if (topBar) {
     return (
       <>
-        <AdminPageTopBar
-          title={title}
-          actions={
-            (onExport || onAdd) && (
-              <>
-                {onExport && (
-                  <PageTopBarButton onClick={onExport}>
-                    <DownloadIcon />
-                    Export JSON
-                  </PageTopBarButton>
-                )}
-                {onAdd && (
-                  <PageTopBarPrimaryButton onClick={onAdd} disabled={adding}>
-                    {addLabel}
-                  </PageTopBarPrimaryButton>
-                )}
-              </>
-            )
-          }
-        />
+        {topBar(
+          onAdd || onExport ? (
+            <AdminTableActions
+              adding={adding}
+              addLabel={addLabel}
+              onAdd={onAdd}
+              onExport={onExport}
+            />
+          ) : undefined,
+        )}
         {toolbar}
       </>
     );

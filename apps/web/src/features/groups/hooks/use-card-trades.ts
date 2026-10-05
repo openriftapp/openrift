@@ -5,7 +5,13 @@ import type {
   CardTradeResponse,
   CardTradeRole,
 } from "@openrift/shared/types/api/card-trade";
-import { queryOptions, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  queryOptions,
+  skipToken,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { copiesKeys } from "@/features/collections/lib/collections-query-keys";
@@ -17,12 +23,12 @@ import {
 import { badgesKeys, friendGroupsKeys, tradesKeys } from "@/features/groups/lib/groups-query-keys";
 import { runTradeSettlement } from "@/features/groups/lib/trade-settlement-request";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
-import { useRequiredUserId, useUserId } from "@/lib/auth-session";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useRequiredUserId, useUserId } from "@/hooks/use-session";
 import { reportMutationError } from "@/lib/query-client";
 import { errorStatus } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 const fetchLiveTradesByPrinting = createServerFn({ method: "GET" })
   .middleware([withCookies])
@@ -124,18 +130,17 @@ export function useGroupTrades(groupId: string) {
 export function useUserTrades() {
   const userId = useUserId();
   return useQuery({
-    ...userTradesQueryOptions(userId ?? ""),
+    ...userTradesQueryOptions(userId),
     refetchInterval: 30_000,
     refetchOnWindowFocus: true,
-    enabled: userId !== null,
   });
 }
 
 /** Shared by the card browsers' trade markers and the deck builder's incoming counts, so both read one cached response. */
-function liveTradesByPrintingQueryOptions(userId: string) {
+function liveTradesByPrintingQueryOptions(userId: string | null) {
   return queryOptions({
-    queryKey: tradesKeys.liveByPrinting(userId),
-    queryFn: () => fetchLiveTradesByPrinting(),
+    queryKey: tradesKeys.liveByPrinting(userId ?? ""),
+    queryFn: userId === null ? skipToken : () => fetchLiveTradesByPrinting(),
     staleTime: 60_000,
     refetchOnWindowFocus: true,
   });
@@ -147,10 +152,7 @@ function liveTradesByPrintingQueryOptions(userId: string) {
  */
 export function useLiveTradesByPrinting() {
   const userId = useUserId();
-  return useQuery({
-    ...liveTradesByPrintingQueryOptions(userId ?? ""),
-    enabled: userId !== null,
-  });
+  return useQuery(liveTradesByPrintingQueryOptions(userId));
 }
 
 /**
@@ -176,8 +178,8 @@ export function useIncomingTradeCounts(enabled: boolean): {
 } {
   const userId = useUserId();
   const { data } = useQuery({
-    ...liveTradesByPrintingQueryOptions(userId ?? ""),
-    enabled: enabled && userId !== null,
+    ...liveTradesByPrintingQueryOptions(userId),
+    enabled,
   });
   if (!enabled || data === undefined) {
     return { data: undefined };

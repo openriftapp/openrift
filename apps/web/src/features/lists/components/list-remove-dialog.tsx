@@ -23,7 +23,7 @@ export function ListRemoveDialog({
       title={m.lists_remove_title()}
       description={m.lists_remove_description({ count })}
       confirmLabel={m.lists_remove_confirm({ count })}
-      pendingLabel={m.lists_remove_pending()}
+      pendingLabel={m.common_removing()}
       onConfirm={onConfirm}
       isPending={isPending}
     />

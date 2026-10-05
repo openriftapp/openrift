@@ -4,9 +4,9 @@ import { ArrowRightIcon, CheckIcon } from "lucide-react";
 import { Heading } from "@/components/heading";
 import { OrnamentRule } from "@/components/ui/ornament";
 import { ClipFrame } from "@/features/marketing/components/clip-frame";
-import { chapterAnchor, featureChapters } from "@/features/marketing/components/features-chapters";
 import { CHAPTER_TILE_CLASS, ChapterTileBody } from "@/features/marketing/components/features-hero";
 import { Reveal } from "@/features/marketing/components/reveal";
+import { chapterAnchor, featureChapters } from "@/features/marketing/lib/features-chapters";
 import { m } from "@/paraglide/messages.js";
 
 import { HeroCtas } from "./hero-ctas";

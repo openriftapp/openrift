@@ -1,5 +1,6 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
+import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaEventSummary, MetaSubmissionResult } from "@openrift/shared/types/api/meta";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
@@ -11,14 +12,13 @@ import {
   PageTopBar,
   PageTopBarActions,
   PageTopBarBack,
-  PageTopBarButton,
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -36,7 +36,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { useMetaEventPage, useMetaEventSearch } from "@/features/meta/hooks/use-meta";
 import type { MetaSubmissionOutcome } from "@/features/meta/hooks/use-meta-submissions";
 import { useSubmitMetaDeck } from "@/features/meta/hooks/use-meta-submissions";
-import { formatRank, formatRecord } from "@/features/meta/lib/meta-format";
+import { formatRank } from "@/features/meta/lib/meta-format";
 import { metaSubmitEventQuery } from "@/features/meta/lib/meta-queries";
 import {
   metaSubmissionCompletenessLabels,
@@ -193,7 +193,7 @@ function ListReadback({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={parsed.listStatus === "full" ? "success" : "muted"}>
+        <Badge variant={parsed.listStatus === "full" ? "success" : "neutral"}>
           {metaSubmissionCompletenessLabels()[parsed.listStatus]}
         </Badge>
         <span className="text-muted-foreground text-sm">
@@ -292,16 +292,16 @@ function SubmissionSent({
 
       <div className="flex flex-wrap gap-2">
         {eventSlug !== undefined && (
-          <Button render={<Link to="/meta/$slug" params={{ slug: eventSlug }} />}>
+          <Link to="/meta/$slug" params={{ slug: eventSlug }} className={buttonVariants()}>
             {m.meta_submit_back_to_standings()}
-          </Button>
+          </Link>
         )}
-        <Button
-          variant={eventSlug === undefined ? "default" : "outline"}
-          render={<Link to="/meta/submissions" />}
+        <Link
+          to="/meta/submissions"
+          className={buttonVariants({ variant: eventSlug === undefined ? "default" : "outline" })}
         >
           {m.meta_submissions_title()}
-        </Button>
+        </Link>
         {showRetry && (
           <Button variant="outline" onClick={onSendAnother}>
             {unresolved.length === 0
@@ -430,9 +430,9 @@ export function MetaSubmitPage({
           )}
           <PageTopBarTitle>{metaSubmissionFormTitles()[kind]}</PageTopBarTitle>
           <PageTopBarActions>
-            <PageTopBarButton render={<Link to="/meta/submissions" />}>
+            <Link to="/meta/submissions" className={buttonVariants({ variant: "ghost" })}>
               {m.meta_submissions_title()}
-            </PageTopBarButton>
+            </Link>
           </PageTopBarActions>
         </PageTopBar>
       </PageTopBarSticky>
@@ -533,7 +533,7 @@ export function MetaSubmitPage({
                             </FieldLabel>
                             <DatePicker
                               value={draft.eventDate}
-                              onChange={(iso) => set("eventDate", iso)}
+                              onValueChange={(iso) => set("eventDate", iso)}
                               onClear={() => set("eventDate", "")}
                               className="w-full"
                             />
@@ -758,22 +758,24 @@ export function MetaSubmitPage({
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
-                disabled={submit.isPending || parsed === null || parsed.cards.length === 0}
+                pending={submit.isPending}
+                disabled={parsed === null || parsed.cards.length === 0}
                 onClick={() => void handleSubmit()}
               >
-                {submit.isPending ? m.meta_submit_sending() : m.meta_submit_send()}
+                {m.meta_submit_send()}
               </Button>
               {cancelSlug === undefined ? (
-                <Button variant="outline" render={<Link to="/meta" />}>
+                <Link to="/meta" className={buttonVariants({ variant: "outline" })}>
                   {m.common_cancel()}
-                </Button>
+                </Link>
               ) : (
-                <Button
-                  variant="outline"
-                  render={<Link to="/meta/$slug" params={{ slug: cancelSlug }} />}
+                <Link
+                  to="/meta/$slug"
+                  params={{ slug: cancelSlug }}
+                  className={buttonVariants({ variant: "outline" })}
                 >
                   {m.common_cancel()}
-                </Button>
+                </Link>
               )}
             </div>
           </>

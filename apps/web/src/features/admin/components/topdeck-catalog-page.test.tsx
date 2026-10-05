@@ -73,7 +73,7 @@ vi.mock("@/features/admin/hooks/use-admin-topdeck-catalog", () => ({
   useAcceptTopdeckEvent: () => ({ mutate: captured.accept, isPending: false }),
   useDismissTopdeckEvent: () => ({
     mutate: captured.dismiss,
-    mutateAsync: captured.dismiss,
+    mutateAsync: (input: unknown) => Promise.resolve(captured.dismiss(input)),
     isPending: false,
   }),
   useUndismissTopdeckEvent: () => ({ mutate: captured.undismiss, isPending: false }),

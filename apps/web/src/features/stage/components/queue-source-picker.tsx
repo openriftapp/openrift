@@ -1,10 +1,9 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { ListIntent } from "@openrift/shared/types/api/list";
-import { useLiveQuery } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { LayersIcon, ListIcon, Loader2Icon } from "lucide-react";
+import { LayersIcon, ListIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -13,12 +12,15 @@ import { Button } from "@/components/ui/button";
 import { CommandEmpty } from "@/components/ui/command";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Spinner } from "@/components/ui/spinner";
+import { TextLink } from "@/components/ui/text-link";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { useDecksCollection } from "@/features/decks/hooks/use-decks-collections";
+import { useDeckList } from "@/features/decks/hooks/use-decks";
 import { deckCardsForDeck } from "@/features/decks/lib/deck-card-rows";
 import { listDetailQueryOptions, listsQueryOptions } from "@/features/lists/lib/lists-queries";
 import { deckPrintingIds, listPrintingIds } from "@/features/stage/lib/present-queue-sources";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
+import { useSignInSearch } from "@/hooks/use-sign-in-search";
 import { m } from "@/paraglide/messages.js";
 
 function intentLabel(intent: ListIntent): string {
@@ -97,7 +99,7 @@ function SourceRow({
     <PickerRow value={id} keywords={[name]} onSelect={onSelect}>
       <span className="min-w-0 flex-1 truncate">{name}</span>
       {busy ? (
-        <Loader2Icon className="text-muted-foreground size-4 animate-spin" />
+        <Spinner className="text-muted-foreground" />
       ) : (
         detail !== undefined && (
           <span className="text-muted-foreground shrink-0 text-sm">{detail}</span>
@@ -140,13 +142,8 @@ export function QueueSourcePicker({ onAdd }: { onAdd: (source: QueueSource) => v
   const [openSource, setOpenSource] = useState<"deck" | "list" | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const decksCollection = useDecksCollection();
-  const { data: deckRows } = useLiveQuery({
-    query: (q) =>
-      globalThis.window === undefined || openSource !== "deck" || !decksCollection
-        ? null
-        : q.from({ deck: decksCollection }),
-  });
+  const deckRows = useDeckList({ enabled: openSource === "deck" });
+  const signIn = useSignInSearch();
   const lists = useQuery({
     ...listsQueryOptions(userId ?? ""),
     enabled: userId !== null && openSource === "list",
@@ -175,13 +172,9 @@ export function QueueSourcePicker({ onAdd }: { onAdd: (source: QueueSource) => v
           message={m.stage_queue_source_signin}
           markup={{
             link: ({ children }) => (
-              <Link
-                to="/login"
-                search={{ redirect: "/stage", email: undefined }}
-                className="underline underline-offset-2"
-              >
+              <TextLink variant="muted" render={<Link {...signIn} />}>
                 {children}
-              </Link>
+              </TextLink>
             ),
           }}
         />

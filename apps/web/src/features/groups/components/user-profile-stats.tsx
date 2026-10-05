@@ -2,9 +2,7 @@ import type { PublicUserProfileStats } from "@openrift/shared/types/api/user-sha
 import { FolderIcon, LayersIcon, PenLineIcon, TrophyIcon } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
-import { Card } from "@/components/ui/card";
-import type { IconChipTone } from "@/components/ui/icon-chip";
-import { IconChip } from "@/components/ui/icon-chip";
+import { StatFigure } from "@/components/ui/stat-figure";
 import { bestFinishHint, contributionsHint } from "@/features/groups/lib/user-profile-copy";
 import { formatCount } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
@@ -12,35 +10,18 @@ import { m } from "@/paraglide/messages.js";
 interface StatEntry {
   key: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
-  tone: IconChipTone;
   label: string;
   value: number;
   hint: string | null;
 }
 
-function ProfileStat({ icon, tone, label, value, hint }: Omit<StatEntry, "key">) {
-  return (
-    <Card className="gap-4 p-5">
-      <div className="flex items-center gap-3">
-        <IconChip icon={icon} tone={tone} />
-        <span className="text-muted-foreground text-sm font-medium">{label}</span>
-        <span className="font-heading ml-auto text-3xl font-semibold tabular-nums">
-          {formatCount(value)}
-        </span>
-      </div>
-      {hint ? <span className="text-muted-foreground text-xs">{hint}</span> : null}
-    </Card>
-  );
-}
-
-/** Zero tiles are left out; a profile with nothing to count shows no strip at all. */
+/** Zero counts are left out; a profile with nothing to count shows no strip at all. */
 export function UserProfileStats({ stats }: { stats: PublicUserProfileStats }) {
   const entries: StatEntry[] = [];
   if (stats.collection !== null && stats.collection.copies > 0) {
     entries.push({
       key: "collection",
       icon: LayersIcon,
-      tone: "info",
       label: m.user_profile_stat_collection(),
       value: stats.collection.copies,
       hint: m.user_profile_unique_cards({ count: stats.collection.uniqueCards }),
@@ -50,7 +31,6 @@ export function UserProfileStats({ stats }: { stats: PublicUserProfileStats }) {
     entries.push({
       key: "contributions",
       icon: PenLineIcon,
-      tone: "success",
       label: m.user_profile_stat_contributions(),
       value: stats.contributions.total,
       hint: contributionsHint(stats.contributions),
@@ -60,7 +40,6 @@ export function UserProfileStats({ stats }: { stats: PublicUserProfileStats }) {
     entries.push({
       key: "tournaments",
       icon: TrophyIcon,
-      tone: "gold",
       label: m.user_profile_stat_tournaments(),
       value: stats.tournaments.played,
       hint: bestFinishHint(stats.tournaments.bestFinish),
@@ -70,7 +49,6 @@ export function UserProfileStats({ stats }: { stats: PublicUserProfileStats }) {
     entries.push({
       key: "decks",
       icon: FolderIcon,
-      tone: "violet",
       label: m.user_profile_stat_decks(),
       value: stats.decks.total,
       hint: stats.decks.topLegend
@@ -82,9 +60,16 @@ export function UserProfileStats({ stats }: { stats: PublicUserProfileStats }) {
     return null;
   }
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {entries.map(({ key, ...entry }) => (
-        <ProfileStat key={key} {...entry} />
+    <div className="flex flex-wrap gap-x-10 gap-y-4">
+      {entries.map((entry) => (
+        <StatFigure
+          key={entry.key}
+          icon={entry.icon}
+          value={formatCount(entry.value)}
+          label={entry.label}
+        >
+          {entry.hint ? <span className="text-muted-foreground text-xs">{entry.hint}</span> : null}
+        </StatFigure>
       ))}
     </div>
   );

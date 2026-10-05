@@ -1,10 +1,13 @@
+import { ZONE_LABELS } from "@openrift/shared/deck-zones";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { MouseEvent, ReactNode } from "react";
 
 import {
   ContextMenu,
   ContextMenuContent,
+  ContextMenuGroup,
   ContextMenuItem,
+  ContextMenuLabel,
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
@@ -18,8 +21,7 @@ import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { buildMoveRows, getAllowedMoveTargets } from "@/features/decks/lib/deck-builder-card";
-import { ZONE_LABELS } from "@/features/decks/lib/deck-zone-labels";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { m } from "@/paraglide/messages.js";
 
 interface DeckCardPrintingMenuProps {
@@ -93,11 +95,11 @@ export function DeckCardPrintingMenu({ deckId, card, children }: DeckCardPrintin
       <ContextMenuContent ref={popupRef} className="max-h-[70vh] w-72 overflow-y-auto">
         {moveTargets.length > 0 && (
           <>
-            <div className="text-muted-foreground text-2xs px-1.5 pt-1 pb-1.5 font-medium tracking-wide uppercase">
-              {m.decks_card_menu_move_to()}
-              {card.quantity > 1 && <SplitHint>{m.decks_card_menu_shift_move_hint()}</SplitHint>}
-            </div>
-            <div className="flex flex-col gap-0.5">
+            <ContextMenuGroup className="flex flex-col gap-0.5">
+              <ContextMenuLabel>
+                {m.decks_card_menu_move_to()}
+                {card.quantity > 1 && <SplitHint>{m.decks_card_menu_shift_move_hint()}</SplitHint>}
+              </ContextMenuLabel>
               {moveRows.map((row) => (
                 <ContextMenuItem
                   key={`${row.zone}:${row.splitOne}`}
@@ -116,7 +118,7 @@ export function DeckCardPrintingMenu({ deckId, card, children }: DeckCardPrintin
                   )}
                 </ContextMenuItem>
               ))}
-            </div>
+            </ContextMenuGroup>
             {printings.length > 0 && <ContextMenuSeparator />}
           </>
         )}

@@ -1,10 +1,12 @@
 import { useDraggable } from "@dnd-kit/core";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
 import { formatPrintingVariantLabel } from "@openrift/shared/printing-label";
 import type { StandardArtFallback } from "@openrift/shared/standard";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Domain, Rarity } from "@openrift/shared/types/enums";
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown, isBaseBanFormat } from "@openrift/shared/well-known";
 import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { memo, useEffect, useRef, useState } from "react";
@@ -459,10 +461,10 @@ export const CardThumbnail = memo(function CardThumbnail({
   };
   const favoritePrice = prices.get(printing.id, favoriteMarketplace);
   const isFoilCard = printing.finish === WellKnown.finish.FOIL;
-  const finishTitle = finishLabels[printing.finish] ?? printing.finish;
-  const rarityTitle = rarityLabels[printing.rarity] ?? printing.rarity;
+  const finishTitle = enumLabel(finishLabels, printing.finish);
+  const rarityTitle = enumLabel(rarityLabels, printing.rarity);
   const isOversized = printing.size !== WellKnown.cardSize.STANDARD;
-  const sizeLabel = sizeLabels[printing.size] ?? printing.size;
+  const sizeLabel = enumLabel(sizeLabels, printing.size);
   const tiltEnabled = cardTilt && !coarsePointer;
   const ImageShell = tiltEnabled ? TiltImageShell : PlainImageShell;
   const otherPrintings = siblings ? siblings.filter((s) => s.id !== printing.id).toReversed() : [];

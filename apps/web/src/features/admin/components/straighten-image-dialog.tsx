@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -329,7 +329,7 @@ function StraightenDialogBody({
             Remove straightening
           </Button>
         )}
-        <DialogClose render={<Button type="button" variant="outline" />}>Cancel</DialogClose>
+        <DialogCancel />
         <Button type="submit" disabled={corners === null || setQuad.isPending}>
           Save
         </Button>

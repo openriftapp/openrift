@@ -4,9 +4,9 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-settings-queries";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 export function useProviderSettings() {
   return useSuspenseQuery(providerSettingsQueryOptions);

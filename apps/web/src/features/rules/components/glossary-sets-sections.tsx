@@ -2,6 +2,7 @@ import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { formatReleasePeriod, isReleasedAnywhere } from "@openrift/shared/set-release";
 import { Link } from "@tanstack/react-router";
 
+import { Badge } from "@/components/ui/badge";
 import { RowList } from "@/components/ui/row-list";
 import { TextLink } from "@/components/ui/text-link";
 import type { SetEntry } from "@/features/rules/lib/glossary-content";
@@ -47,9 +48,7 @@ export function SetsSection({ sets, query }: { sets: SetEntry[]; query: string }
                   : m.glossary_set_type_main()}
               </span>
               {!isReleasedAnywhere(set.releases) && (
-                <span className="bg-warning-soft text-warning rounded-md px-1.5 py-0.5 text-xs">
-                  {m.glossary_set_unreleased()}
-                </span>
+                <Badge variant="warning">{m.glossary_set_unreleased()}</Badge>
               )}
             </div>
             <p className="text-muted-foreground">

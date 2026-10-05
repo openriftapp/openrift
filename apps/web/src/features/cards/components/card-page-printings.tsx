@@ -1,10 +1,12 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import { PaletteIcon, TagIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { CardIcon } from "@/components/card-icon";
 import { Heading } from "@/components/heading";
 import { LanguageChip } from "@/components/language-chip";
 import { Card as CardPanel } from "@/components/ui/card";
@@ -38,7 +40,7 @@ export function CardPagePrintings({
           <div key={lang} className="flex flex-col gap-4">
             <SectionHeading as="h3" size="sm" className="flex items-center gap-2">
               <LanguageChip code={lang} />
-              {languageLabels[lang] ?? lang}
+              {enumLabel(languageLabels, lang)}
             </SectionHeading>
             {/* grid-cols-1: an implicit column would size to the widest printing card and push the page past a phone viewport. */}
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -152,11 +154,7 @@ function PrintingCard({
           </div>
           {printing.artist && (
             <p className="text-muted-foreground inline-flex items-center gap-1 text-xs">
-              <img
-                src="/images/artist.svg"
-                alt=""
-                className="size-3 shrink-0 brightness-0 dark:invert"
-              />
+              <CardIcon src="/images/artist.svg" className="size-3 shrink-0" />
               <span className="truncate">{printing.artist}</span>
             </p>
           )}

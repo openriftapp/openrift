@@ -4,20 +4,18 @@ import { CloudOffIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { TextLink } from "@/components/ui/text-link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useSignInSearch } from "@/hooks/use-sign-in-search";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-function SignInLink({ children, className }: { children?: ReactNode; className?: string }) {
+function SignInLink({ children }: { children?: ReactNode }) {
+  const signIn = useSignInSearch();
   return (
-    <Link
-      to="/login"
-      // Redirect is hardcoded to /decks: this component only mounts there.
-      search={{ redirect: "/decks", email: undefined }}
-      className={cn("hover:text-foreground font-medium underline", className)}
-    >
+    <TextLink variant="muted" className="font-medium" render={<Link {...signIn} />}>
       {children}
-    </Link>
+    </TextLink>
   );
 }
 

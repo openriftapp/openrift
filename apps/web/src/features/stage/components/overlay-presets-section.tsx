@@ -10,17 +10,8 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { SettingsSection } from "@/components/layout/settings-section";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -174,7 +165,7 @@ function OverlayPresetRow({
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setRenameOpen(true)}>
             <PencilIcon />
-            {m.stage_preset_rename()}
+            {m.common_rename()}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
@@ -189,30 +180,20 @@ function OverlayPresetRow({
         onOpenChange={setRenameOpen}
         title={m.stage_preset_rename_title()}
         description={m.stage_preset_rename_description()}
-        confirmLabel={m.stage_preset_rename()}
+        confirmLabel={m.common_rename()}
         initialName={preset.name}
         pending={updatePreset.isPending}
         onConfirm={rename}
       />
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{m.stage_preset_delete_title()}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {m.stage_preset_delete_description({ name: preset.name })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{m.stage_preset_delete_keep()}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deletePreset.mutate(preset.id)}
-              disabled={deletePreset.isPending}
-            >
-              {m.common_delete()}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmActionDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onConfirm={() => deletePreset.mutate(preset.id, { onSuccess: () => setDeleteOpen(false) })}
+        isPending={deletePreset.isPending}
+        title={m.stage_preset_delete_title()}
+        description={m.stage_preset_delete_description({ name: preset.name })}
+        confirmLabel={m.common_delete()}
+      />
     </RowListItem>
   );
 }

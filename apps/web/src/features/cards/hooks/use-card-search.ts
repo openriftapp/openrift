@@ -33,6 +33,11 @@ export function useCardSearch<TCard extends SearchableCard>(
   }, [index, query, limit, minQueryLength]);
 }
 
+/** No public codes here, so each short code stands in for both. */
+function shortCodesAsCodes(shortCodes: readonly string[]): SearchablePrintingCodes[] {
+  return shortCodes.map((code) => ({ shortCode: code, publicCode: code }));
+}
+
 export interface AdminSearchableCard extends SearchableCard {
   types: string[];
   shortCodes: string[];
@@ -43,14 +48,7 @@ export function useAdminCardSearch(
   query: string,
 ): CardSearchResult[] {
   const printingsByCardId = useMemo(
-    () =>
-      new Map(
-        cards.map((card) => [
-          card.id,
-          // No public codes here, so each short code stands in for both.
-          card.shortCodes.map((code) => ({ shortCode: code, publicCode: code })),
-        ]),
-      ),
+    () => new Map(cards.map((card) => [card.id, shortCodesAsCodes(card.shortCodes)])),
     [cards],
   );
 
@@ -90,14 +88,7 @@ export function useAssignableCardSearch(
   );
 
   const printingsByCardId = useMemo(
-    () =>
-      new Map(
-        cards.map((card) => [
-          card.cardId,
-          // No public codes here, so each short code stands in for both.
-          card.shortCodes.map((code) => ({ shortCode: code, publicCode: code })),
-        ]),
-      ),
+    () => new Map(cards.map((card) => [card.cardId, shortCodesAsCodes(card.shortCodes)])),
     [cards],
   );
 

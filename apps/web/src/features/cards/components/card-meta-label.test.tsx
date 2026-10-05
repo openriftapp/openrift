@@ -1,7 +1,9 @@
-import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { CardMetaLabel } from "@/features/cards/components/card-meta-label";
+
+vi.mock("@/hooks/use-coarse-pointer", () => ({ useCoarsePointer: () => true }));
 
 function renderLabel(props: Partial<Parameters<typeof CardMetaLabel>[0]> = {}) {
   return render(<CardMetaLabel shortCode="OGN-007" name="Ice Golem" rarity="common" {...props} />);
@@ -40,5 +42,11 @@ describe("CardMetaLabel", () => {
   it("keeps metal finish icons at any rarity", () => {
     const { queryByTitle } = renderLabel({ rarity: "epic", finish: "metal", finishTitle: "Metal" });
     expect(queryByTitle("Metal")).not.toBeNull();
+  });
+
+  it("opens the printing note with a tap on a coarse pointer", () => {
+    const { getByRole, getByText } = renderLabel({ printingComment: "Launch event handout" });
+    fireEvent.click(getByRole("button", { name: /Printing note/u }));
+    expect(getByText("Launch event handout")).toBeInTheDocument();
   });
 });

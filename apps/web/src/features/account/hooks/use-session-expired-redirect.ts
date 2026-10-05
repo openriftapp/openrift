@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
 
 /**
  * Catches a session expiring while `_authenticated` stays mounted (the beforeLoad

@@ -1,7 +1,7 @@
 import type { MetaRunRound } from "@openrift/shared/types/api/meta";
 import { describe, expect, it } from "vitest";
 
-import { metaCutRoundLabel, metaRunRecord } from "./meta-player-run";
+import { metaRunRecord } from "./meta-player-run";
 
 function round(overrides: Partial<MetaRunRound> = {}): MetaRunRound {
   return {
@@ -32,17 +32,5 @@ describe("metaRunRecord", () => {
 
   it("sums an empty run to nothing", () => {
     expect(metaRunRecord([])).toEqual({ wins: 0, losses: 0, draws: 0 });
-  });
-});
-
-describe("metaCutRoundLabel", () => {
-  it("names the last three cut rounds the way players do", () => {
-    expect(metaCutRoundLabel(3, 3)).toBe("Final");
-    expect(metaCutRoundLabel(2, 3)).toBe("Semifinal");
-    expect(metaCutRoundLabel(1, 3)).toBe("Quarterfinal");
-  });
-
-  it("names a deeper cut by the bracket it opens", () => {
-    expect(metaCutRoundLabel(1, 4)).toBe("Top 16");
   });
 });

@@ -23,7 +23,7 @@ vi.mock("@/features/cards/stores/search-scope-store", () => ({
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
-import { FilterSearchProvider } from "@/features/cards/lib/search-schemas";
+import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { useDisplayStore } from "@/stores/display-store";
 

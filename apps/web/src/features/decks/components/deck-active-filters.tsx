@@ -1,13 +1,10 @@
 import { enumLabel } from "@openrift/shared/enum-label";
-import { MinusIcon } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
+import { FilterChip } from "@/components/ui/filter-chip";
+import { FilterIcon } from "@/features/cards/components/filter-icon";
 import { useDeckListFilters } from "@/features/decks/hooks/use-deck-list-filters";
 import { useDeckFormatList, useEnumOrders } from "@/hooks/use-enums";
-import { getFilterIconPath } from "@/lib/icons";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 // Visible only below `md`; the toolbar hides it above via CSS once the
@@ -41,40 +38,41 @@ export function DeckActiveFilters() {
     label: string,
     excluded: boolean,
     onRemove: () => void,
-    icon?: string,
+    domain?: string,
   ) => (
-    <Badge key={key} variant="secondary" className="gap-1">
-      {excluded && <MinusIcon className="size-3 shrink-0" />}
-      {icon && <img src={icon} alt="" className="size-3.5" />}
-      <span className={cn(excluded && "line-through")}>{label}</span>
-      <ChipRemoveButton
-        aria-label={
-          excluded
-            ? m.decks_editor_stop_excluding({ label })
-            : m.decks_editor_remove_filter({ label })
-        }
-        onClick={onRemove}
-      />
-    </Badge>
+    <FilterChip
+      key={key}
+      label={label}
+      excluded={excluded}
+      icon={
+        domain === undefined ? undefined : (
+          <FilterIcon category="domains" value={domain} className="size-3.5" />
+        )
+      }
+      removeLabel={
+        excluded
+          ? m.decks_editor_stop_excluding({ label })
+          : m.decks_editor_remove_filter({ label })
+      }
+      onRemove={onRemove}
+    />
   );
 
   return (
     <div className="flex flex-wrap items-center gap-1">
       {search !== "" && (
-        <Badge variant="secondary" className="gap-1">
-          &ldquo;{search}&rdquo;
-          <ChipRemoveButton
-            aria-label={m.decks_editor_clear_search_filter()}
-            onClick={() => setSearch("")}
-          />
-        </Badge>
+        <FilterChip
+          label={<>&ldquo;{search}&rdquo;</>}
+          removeLabel={m.decks_editor_clear_search_filter()}
+          onRemove={() => setSearch("")}
+        />
       )}
 
       {formats.map((slug) =>
-        chip(slug, formatLabels[slug] ?? slug, false, () => cycleFormat(slug)),
+        chip(slug, enumLabel(formatLabels, slug), false, () => cycleFormat(slug)),
       )}
       {formatsExclude.map((slug) =>
-        chip(`ex-${slug}`, formatLabels[slug] ?? slug, true, () => cycleFormat(slug)),
+        chip(`ex-${slug}`, enumLabel(formatLabels, slug), true, () => cycleFormat(slug)),
       )}
 
       {validity !== "all" &&
@@ -91,7 +89,7 @@ export function DeckActiveFilters() {
           enumLabel(enumLabels.domains, domain),
           false,
           () => cycleDomain(domain),
-          getFilterIconPath("domains", domain),
+          domain,
         ),
       )}
       {domainsExclude.map((domain) =>
@@ -100,7 +98,7 @@ export function DeckActiveFilters() {
           enumLabel(enumLabels.domains, domain),
           true,
           () => cycleDomain(domain),
-          getFilterIconPath("domains", domain),
+          domain,
         ),
       )}
 

@@ -2,17 +2,8 @@ import type { FriendGroupDetailResponse } from "@openrift/shared/types/api/frien
 import { CrownIcon } from "lucide-react";
 import { useState } from "react";
 
+import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { DialogForm } from "@/components/ui/dialog-form";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -22,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTransferFriendGroupOwnership } from "@/features/groups/hooks/use-friend-group-mutations";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 
 export function TransferOwnershipControl({
@@ -35,7 +26,6 @@ export function TransferOwnershipControl({
   const viewerId = useRequiredUserId();
   const transfer = useTransferFriendGroupOwnership();
   const [targetId, setTargetId] = useState<string | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const candidates = data.members.filter((member) => member.userId !== viewerId);
   if (candidates.length === 0) {
@@ -48,14 +38,8 @@ export function TransferOwnershipControl({
   const target = candidates.find((member) => member.userId === targetId);
 
   async function handleTransfer() {
-    if (!target) {
-      return;
-    }
-    try {
+    if (target) {
       await transfer.mutateAsync({ slug, userId: target.userId });
-      setConfirmOpen(false);
-    } catch {
-      /* Reported by the global mutation error toast. */
     }
   }
 
@@ -79,31 +63,18 @@ export function TransferOwnershipControl({
             ))}
           </SelectContent>
         </Select>
-        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-          <DialogTrigger render={<Button variant="outline" disabled={target === undefined} />}>
-            {m.groups_transfer_title()}
-          </DialogTrigger>
-          <DialogContent>
-            <DialogForm onSubmit={() => void handleTransfer()}>
-              <DialogHeader>
-                <DialogTitle>
-                  {m.groups_transfer_confirm_title({
-                    member: target?.userName ?? m.groups_this_member(),
-                  })}
-                </DialogTitle>
-                <DialogDescription>{m.groups_transfer_confirm_description()}</DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
-                  {m.common_cancel()}
-                </Button>
-                <Button type="submit" variant="destructive" disabled={transfer.isPending}>
-                  {m.groups_transfer_button()}
-                </Button>
-              </DialogFooter>
-            </DialogForm>
-          </DialogContent>
-        </Dialog>
+        <ConfirmActionButton
+          trigger={<Button variant="outline" />}
+          disabled={target === undefined}
+          onConfirm={handleTransfer}
+          title={m.groups_transfer_confirm_title({
+            member: target?.userName ?? m.groups_this_member(),
+          })}
+          description={m.groups_transfer_confirm_description()}
+          confirmLabel={m.groups_transfer_button()}
+        >
+          {m.groups_transfer_title()}
+        </ConfirmActionButton>
       </div>
     </div>
   );

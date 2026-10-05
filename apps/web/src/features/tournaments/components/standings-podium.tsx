@@ -3,15 +3,14 @@ import type { TournamentPlayMode } from "@openrift/shared/types/api/tournament";
 
 import type { PodiumSeat } from "@/components/ui/podium";
 import { Podium } from "@/components/ui/podium";
-import { collapseTeamStandings } from "@/features/tournaments/lib/team-display";
-import { m } from "@/paraglide/messages.js";
-
 import {
   decidingTieBreak,
   formatPlayerRecord,
   formatScore,
   rankedStandings,
-} from "./standings-display";
+} from "@/features/tournaments/lib/standings-display";
+import { collapseTeamStandings } from "@/features/tournaments/lib/team-display";
+import { m } from "@/paraglide/messages.js";
 
 function seatHint(row: PodStandingRow, rival: PodStandingRow | undefined, swiss: boolean): string {
   const record = formatPlayerRecord(row, swiss);
@@ -30,6 +29,8 @@ function podiumSeats(standings: readonly PodStandingRow[], swiss: boolean): Podi
       key: row.playerId,
       rank,
       name: row.displayName,
+      image: row.image,
+      gravatarHash: row.gravatarHash,
       score: formatScore(row.score),
       hint: seatHint(row, index === 0 ? standings[1] : standings[0], swiss),
     }));

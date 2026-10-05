@@ -7,7 +7,7 @@ import type {
 
 import { Badge } from "@/components/ui/badge";
 import { Podium } from "@/components/ui/podium";
-import { RankBand } from "@/components/ui/rank-band";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import {
   Table,
@@ -17,12 +17,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserAvatar } from "@/components/user-avatar";
 import { MetaRunStrip } from "@/features/meta/components/meta-run-strip";
 import {
   exitLabel,
   finalStandingsSeats,
 } from "@/features/tournaments/components/final-standings-display";
+import { PlayerChip } from "@/features/tournaments/components/player-chip";
+import { StandingsRankCell } from "@/features/tournaments/components/standings-rank-cell";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { playerRunRounds } from "@/features/tournaments/lib/player-run";
 import { m } from "@/paraglide/messages.js";
@@ -61,62 +62,82 @@ export function FinalStandingsCard({
           {m.tournaments_final_standings_description({ size: cutSize })}
         </p>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-16">#</TableHead>
-            <TableHead>{m.tournaments_standings_col_player()}</TableHead>
-            {showLegend ? <TableHead>{m.tournaments_standings_col_legend()}</TableHead> : null}
-            <TableHead>{m.tournaments_standings_col_run()}</TableHead>
-            <TableHead>{m.tournaments_final_standings_col_result()}</TableHead>
-            <TableHead className="text-right">{m.tournaments_group_col_seed()}</TableHead>
-            <TableHead>{m.tournaments_group_col_group()}</TableHead>
-            <TableHead className="text-right">
-              {m.tournaments_final_standings_col_group_place()}
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((row) => (
-            <TableRow key={row.playerId}>
-              <TableCell>
-                <RankBand
-                  rank={row.place}
-                  text={String(row.place)}
-                  filled={false}
-                  className="min-w-10 rounded-md"
-                />
-              </TableCell>
-              <TableCell>
-                <div className="flex min-w-0 items-center gap-2">
-                  <UserAvatar name={row.displayName} size="sm" className="shrink-0" />
-                  <span className="truncate font-medium">{row.displayName}</span>
-                </div>
-              </TableCell>
-              {showLegend ? (
-                <TableCell>
+      <RowList variant="divided" className="sm:hidden">
+        {rows.map((row) => {
+          const legend = legendByPlayer.get(row.playerId);
+          return (
+            <RowListItem key={row.playerId}>
+              <StandingsRankCell rank={row.place} />
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <PlayerChip name={row.displayName} />
+                {legend?.legendName ? (
                   <TournamentLegend
-                    legendCardId={legendByPlayer.get(row.playerId)?.legendCardId ?? null}
-                    legendName={legendByPlayer.get(row.playerId)?.legendName}
+                    legendCardId={legend.legendCardId}
+                    fallback={legend}
                     className="text-sm"
                   />
-                </TableCell>
-              ) : null}
-              <TableCell>
+                ) : null}
+                <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 text-sm">
+                  <span>{exitLabel(row, cutSize)}</span>
+                  {row.seed === null ? null : <span className="tabular-nums">#{row.seed}</span>}
+                  <Badge variant="neutral">{row.groupLabel}</Badge>
+                </div>
                 <MetaRunStrip rounds={playerRunRounds(rounds, row.playerId, true)} />
-              </TableCell>
-              <TableCell className="text-muted-foreground">{exitLabel(row, cutSize)}</TableCell>
-              <TableCell className="text-right tabular-nums">
-                {row.seed === null ? "" : `#${row.seed}`}
-              </TableCell>
-              <TableCell>
-                <Badge variant="muted">{row.groupLabel}</Badge>
-              </TableCell>
-              <TableCell className="text-right tabular-nums">{row.groupPlace}</TableCell>
+              </div>
+            </RowListItem>
+          );
+        })}
+      </RowList>
+      <div className="hidden sm:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-16">#</TableHead>
+              <TableHead>{m.tournaments_standings_col_player()}</TableHead>
+              {showLegend ? <TableHead>{m.tournaments_standings_col_legend()}</TableHead> : null}
+              <TableHead>{m.tournaments_standings_col_run()}</TableHead>
+              <TableHead>{m.tournaments_final_standings_col_result()}</TableHead>
+              <TableHead className="text-right">{m.tournaments_group_col_seed()}</TableHead>
+              <TableHead>{m.tournaments_group_col_group()}</TableHead>
+              <TableHead className="text-right">
+                {m.tournaments_final_standings_col_group_place()}
+              </TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.playerId}>
+                <TableCell>
+                  <StandingsRankCell rank={row.place} />
+                </TableCell>
+                <TableCell>
+                  <PlayerChip name={row.displayName} />
+                </TableCell>
+                {showLegend ? (
+                  <TableCell>
+                    <TournamentLegend
+                      legendCardId={legendByPlayer.get(row.playerId)?.legendCardId ?? null}
+                      fallback={legendByPlayer.get(row.playerId)}
+                      className="text-sm"
+                    />
+                  </TableCell>
+                ) : null}
+                <TableCell>
+                  <MetaRunStrip rounds={playerRunRounds(rounds, row.playerId, true)} />
+                </TableCell>
+                <TableCell className="text-muted-foreground">{exitLabel(row, cutSize)}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {row.seed === null ? "" : `#${row.seed}`}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="neutral">{row.groupLabel}</Badge>
+                </TableCell>
+                <TableCell className="text-right tabular-nums">{row.groupPlace}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </section>
   );
 }

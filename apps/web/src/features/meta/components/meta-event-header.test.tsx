@@ -165,6 +165,8 @@ describe("MetaEventHeader champion plate", () => {
     legend: {
       cardId: "card-yasuo",
       name: "Yasuo, the Unforgiven",
+      character: "Yasuo",
+      epithet: "the Unforgiven",
       slug: "yasuo-the-unforgiven",
       imageId: "img-yasuo",
       domains: ["fury"],

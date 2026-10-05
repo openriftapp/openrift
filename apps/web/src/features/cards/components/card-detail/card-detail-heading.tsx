@@ -1,6 +1,7 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 
+import { CardIcon } from "@/components/card-icon";
 import { Heading } from "@/components/heading";
 import { getTypeIconPaths } from "@/lib/icons";
 import { htmlLangTag } from "@/lib/language-tag";
@@ -41,7 +42,7 @@ export function CardDetailHeading({
       <div className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm uppercase">
         <span className="inline-flex items-center gap-1">
           {typeIconPaths.map((path) => (
-            <img key={path} src={path} alt="" className="size-4 brightness-0 dark:invert" />
+            <CardIcon key={path} src={path} className="size-4" />
           ))}
           {card.superTypes.length > 0 ? `${card.superTypes.join(" ")} ${typeText}` : typeText}
         </span>

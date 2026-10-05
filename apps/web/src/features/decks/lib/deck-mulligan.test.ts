@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { applyMulligan, shuffle } from "./deck-mulligan";
+import { applyMulligan } from "./deck-mulligan";
 
 const card = (key: string) => ({ key });
 const identity = <Value>(items: readonly Value[]): Value[] => [...items];
@@ -35,23 +35,5 @@ describe("applyMulligan", () => {
     const result = applyMulligan(hand, [card("e")], new Set(["a", "b"]), identity);
     expect(result.hand.map((entry) => entry.key)).toEqual(["c", "d", "e"]);
     expect(result.library.map((entry) => entry.key)).toEqual(["a", "b"]);
-  });
-});
-
-describe("shuffle", () => {
-  it("returns a fresh array with the same members", () => {
-    const input = [card("a"), card("b"), card("c"), card("d"), card("e")];
-    const result = shuffle(input);
-    expect(result).not.toBe(input);
-    expect(result).toHaveLength(input.length);
-    expect(new Set(result.map((entry) => entry.key))).toEqual(
-      new Set(input.map((entry) => entry.key)),
-    );
-    expect(input.map((entry) => entry.key)).toEqual(["a", "b", "c", "d", "e"]);
-  });
-
-  it("handles empty and single-element arrays", () => {
-    expect(shuffle([])).toEqual([]);
-    expect(shuffle([1])).toEqual([1]);
   });
 });

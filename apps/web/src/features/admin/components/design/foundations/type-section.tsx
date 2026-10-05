@@ -82,14 +82,6 @@ export function TypeSection() {
             <SectionHeading count={12}>Cards with prices</SectionHeading>
           </div>
         </DemoRow>
-        <DemoRow label="Display variant">
-          <div className="w-full space-y-4">
-            <SectionHeading variant="display">Also coming up</SectionHeading>
-            <SectionHeading variant="display" count={7}>
-              Past events
-            </SectionHeading>
-          </div>
-        </DemoRow>
         <DemoRow label="Small size">
           <div className="w-full space-y-3">
             <SectionHeading size="sm">Yesterday</SectionHeading>

@@ -35,14 +35,14 @@ export const META_SOURCE_LABELS: Record<MetaSource, string> = {
 
 export interface CatalogChipDisplay {
   label: string;
-  variant: "warning" | "subtle" | "success" | "muted" | "outline";
+  variant: "warning" | "subtle" | "success" | "neutral" | "outline";
 }
 
 const STATUS_DISPLAY: Record<string, CatalogChipDisplay> = {
   upcoming: { label: "Upcoming", variant: "outline" },
   inProgress: { label: "In progress", variant: "warning" },
   complete: { label: "Complete", variant: "success" },
-  canceled: { label: "Canceled", variant: "muted" },
+  canceled: { label: "Canceled", variant: "neutral" },
 };
 
 export function catalogStatusDisplay(status: string): CatalogChipDisplay {
@@ -116,7 +116,7 @@ export function topdeckCoverageRow(row: TopdeckCatalogRow): MetaCoverageRow {
 const TRIAGE_DISPLAY: Record<MetaCatalogTriage, CatalogChipDisplay> = {
   new: { label: "New", variant: "warning" },
   accepted: { label: "Accepted", variant: "success" },
-  dismissed: { label: "Dismissed", variant: "muted" },
+  dismissed: { label: "Dismissed", variant: "neutral" },
 };
 
 export function catalogTriageDisplay(triage: MetaCatalogTriage): CatalogChipDisplay {

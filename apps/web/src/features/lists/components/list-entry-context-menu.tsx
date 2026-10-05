@@ -1,11 +1,18 @@
+import {
+  ArrowRightLeftIcon,
+  BanIcon,
+  BookOpenIcon,
+  CircleMinusIcon,
+  CopyIcon,
+  HandCoinsIcon,
+  InfoIcon,
+  PackagePlusIcon,
+  Trash2Icon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+import { ContextMenuSeparator } from "@/components/ui/context-menu";
+import { CardContextMenu, CardMenuItem } from "@/features/cards/components/card-context-menu";
 import { m } from "@/paraglide/messages.js";
 
 interface ListEntryContextMenuProps {
@@ -33,109 +40,64 @@ export function ListEntryContextMenu({
   onExclude,
   children,
 }: ListEntryContextMenuProps) {
+  const hasActions = Boolean(
+    onViewDetail ?? onSetPreference ?? onMove ?? onCopy ?? onMoveToCollection ?? onAddToCollection,
+  );
+  const hasDestructive = Boolean(onTakeOff ?? onRemove ?? onExclude);
   return (
-    <ContextMenu>
-      <ContextMenuTrigger
-        className="block select-none [-webkit-touch-callout:none]"
-        render={<div />}
-      >
-        {children}
-      </ContextMenuTrigger>
-      <ContextMenuContent className="w-48">
-        {onViewDetail ? (
-          <ContextMenuItem
-            onClick={(event) => {
-              event.stopPropagation();
-              onViewDetail();
-            }}
-          >
-            {m.lists_entry_view_details()}
-          </ContextMenuItem>
-        ) : null}
-        {onSetPreference ? (
-          <ContextMenuItem
-            onClick={(event) => {
-              event.stopPropagation();
-              onSetPreference();
-            }}
-          >
-            {m.lists_entry_trade_preference()}
-          </ContextMenuItem>
-        ) : null}
-        {onMove ? (
-          <ContextMenuItem
-            onClick={(event) => {
-              event.stopPropagation();
-              onMove();
-            }}
-          >
-            {m.lists_entry_move_to_list()}
-          </ContextMenuItem>
-        ) : null}
-        {onCopy ? (
-          <ContextMenuItem
-            onClick={(event) => {
-              event.stopPropagation();
-              onCopy();
-            }}
-          >
-            {m.lists_entry_copy_to_list()}
-          </ContextMenuItem>
-        ) : null}
-        {onMoveToCollection ? (
-          <ContextMenuItem
-            onClick={(event) => {
-              event.stopPropagation();
-              onMoveToCollection();
-            }}
-          >
-            {m.lists_entry_move_to_collection()}
-          </ContextMenuItem>
-        ) : null}
-        {onAddToCollection ? (
-          <ContextMenuItem
-            onClick={(event) => {
-              event.stopPropagation();
-              onAddToCollection();
-            }}
-          >
-            {m.lists_entry_add_to_collection()}
-          </ContextMenuItem>
-        ) : null}
-        {onTakeOff ? (
-          <ContextMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={(event) => {
-              event.stopPropagation();
-              onTakeOff();
-            }}
-          >
-            {m.lists_entry_take_off_list()}
-          </ContextMenuItem>
-        ) : null}
-        {onRemove ? (
-          <ContextMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={(event) => {
-              event.stopPropagation();
-              onRemove();
-            }}
-          >
-            {m.lists_entry_remove_from_list()}
-          </ContextMenuItem>
-        ) : null}
-        {onExclude ? (
-          <ContextMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={(event) => {
-              event.stopPropagation();
-              onExclude();
-            }}
-          >
-            {m.lists_entry_exclude()}
-          </ContextMenuItem>
-        ) : null}
-      </ContextMenuContent>
-    </ContextMenu>
+    <CardContextMenu
+      menu={
+        <>
+          {onViewDetail && (
+            <CardMenuItem icon={InfoIcon} onSelect={onViewDetail}>
+              {m.lists_entry_view_details()}
+            </CardMenuItem>
+          )}
+          {onSetPreference && (
+            <CardMenuItem icon={HandCoinsIcon} onSelect={onSetPreference}>
+              {m.lists_entry_trade_preference()}
+            </CardMenuItem>
+          )}
+          {onMove && (
+            <CardMenuItem icon={ArrowRightLeftIcon} onSelect={onMove}>
+              {m.lists_entry_move_to_list()}
+            </CardMenuItem>
+          )}
+          {onCopy && (
+            <CardMenuItem icon={CopyIcon} onSelect={onCopy}>
+              {m.lists_entry_copy_to_list()}
+            </CardMenuItem>
+          )}
+          {onMoveToCollection && (
+            <CardMenuItem icon={BookOpenIcon} onSelect={onMoveToCollection}>
+              {m.lists_entry_move_to_collection()}
+            </CardMenuItem>
+          )}
+          {onAddToCollection && (
+            <CardMenuItem icon={PackagePlusIcon} onSelect={onAddToCollection}>
+              {m.lists_entry_add_to_collection()}
+            </CardMenuItem>
+          )}
+          {hasActions && hasDestructive && <ContextMenuSeparator />}
+          {onTakeOff && (
+            <CardMenuItem icon={CircleMinusIcon} variant="destructive" onSelect={onTakeOff}>
+              {m.lists_entry_take_off_list()}
+            </CardMenuItem>
+          )}
+          {onRemove && (
+            <CardMenuItem icon={Trash2Icon} variant="destructive" onSelect={onRemove}>
+              {m.lists_entry_remove_from_list()}
+            </CardMenuItem>
+          )}
+          {onExclude && (
+            <CardMenuItem icon={BanIcon} variant="destructive" onSelect={onExclude}>
+              {m.lists_entry_exclude()}
+            </CardMenuItem>
+          )}
+        </>
+      }
+    >
+      {children}
+    </CardContextMenu>
   );
 }

@@ -1,10 +1,10 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
+import { totalQuantity } from "@openrift/shared/deck-rules";
 import { ZONE_LABELS } from "@openrift/shared/deck-zones";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
-import { getOrientation } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -23,7 +23,7 @@ import {
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { CommandEmpty, CommandGroup } from "@/components/ui/command";
 import { Label } from "@/components/ui/label";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
@@ -31,6 +31,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Pressable } from "@/components/ui/pressable";
 import { Switch } from "@/components/ui/switch";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
+import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-card-row";
@@ -39,11 +40,7 @@ import { DeckComparePasteDialog } from "@/features/decks/components/deck-compare
 import type { DeckIdentity } from "@/features/decks/components/deck-mini-identity";
 import { DeckMiniIdentity } from "@/features/decks/components/deck-mini-identity";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
-import { HoveredCardPreview } from "@/features/decks/components/hovered-card-preview";
-import {
-  useDeckCardsCollection,
-  useDecksCollection,
-} from "@/features/decks/hooks/use-decks-collections";
+import { useDeckCardsFor, useDeckList } from "@/features/decks/hooks/use-decks";
 import { useLocalDeck, useLocalDecks } from "@/features/decks/hooks/use-local-decks";
 import type { CompareSide } from "@/features/decks/lib/deck-compare-side";
 import { parseCompareSide } from "@/features/decks/lib/deck-compare-side";
@@ -320,19 +317,14 @@ function DeckPicker({
           </Button>
         )}
         {pastedText !== null && (
-          <Button
-            variant="outline"
-            className="self-center"
-            render={
-              <Link
-                to="/decks/import"
-                search={{ code: pastedText }}
-                aria-label={m.decks_compare_save_pasted_aria()}
-              />
-            }
+          <Link
+            to="/decks/import"
+            search={{ code: pastedText }}
+            aria-label={m.decks_compare_save_pasted_aria()}
+            className={buttonVariants({ variant: "outline", className: "self-center" })}
           >
             {m.common_save()}
-          </Button>
+          </Link>
         )}
         {(side !== null || pastedText !== null) && (
           <Button
@@ -379,10 +371,6 @@ function DeckPickerRow({
   );
 }
 
-function countCopies(cards: readonly OwnDeckCard[]): number {
-  return cards.reduce((total, card) => total + card.quantity, 0);
-}
-
 function serverIdentity(item: DeckListItemResponse): DeckIdentity {
   return {
     name: item.deck.name,
@@ -399,7 +387,7 @@ function localIdentity(deck: LocalDeck): DeckIdentity {
     name: deck.name,
     legendCardId: deck.cards.find((card) => card.zone === WellKnown.deckZone.LEGEND)?.cardId,
     championCardId: deck.cards.find((card) => card.zone === WellKnown.deckZone.CHAMPION)?.cardId,
-    cardCount: countCopies(deck.cards),
+    cardCount: totalQuantity(deck.cards),
     updatedAt: deck.updatedAt,
   };
 }
@@ -409,7 +397,7 @@ function cardsIdentity(name: string, cards: readonly OwnDeckCard[]): DeckIdentit
     name,
     legendCardId: cards.find((card) => card.zone === WellKnown.deckZone.LEGEND)?.cardId,
     championCardId: cards.find((card) => card.zone === WellKnown.deckZone.CHAMPION)?.cardId,
-    cardCount: countCopies(cards),
+    cardCount: totalQuantity(cards),
   };
 }
 
@@ -425,13 +413,7 @@ const NO_SIDE: SideData = { rows: null, linkIdentity: null };
 function useSideData(side: CompareSide | null): SideData {
   const deckId = side?.kind === "deck" ? side.deckId : null;
   const localDeck = useLocalDeck(deckId ?? "");
-  const cardsCollection = useDeckCardsCollection();
-  const { data: cardRows } = useLiveQuery({
-    query: (q) =>
-      deckId !== null && localDeck === undefined && cardsCollection
-        ? q.from({ card: cardsCollection }).where(({ card }) => eq(card.deckId, deckId))
-        : null,
-  });
+  const cardRows = useDeckCardsFor(deckId !== null && localDeck === undefined ? [deckId] : []);
   const { data: metaData } = useQuery({
     ...metaDeckQueryOptions(side?.kind === "meta" ? side.token : ""),
     enabled: side?.kind === "meta",
@@ -482,10 +464,7 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
   const { labels } = useEnumOrders();
   const domainColors = useDomainColors();
   const localDecks = useLocalDecks();
-  const decksCollection = useDecksCollection();
-  const { data: serverDecks } = useLiveQuery({
-    query: (q) => (decksCollection ? q.from({ deck: decksCollection }) : null),
-  });
+  const serverDecks = useDeckList();
 
   const display: RowDisplay = {
     domainColors,

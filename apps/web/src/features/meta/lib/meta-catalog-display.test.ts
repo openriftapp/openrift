@@ -27,7 +27,7 @@ describe("catalogStatusDisplay", () => {
   it("names each status the source publishes", () => {
     expect(catalogStatusDisplay("inProgress").label).toBe("In progress");
     expect(catalogStatusDisplay("complete").label).toBe("Complete");
-    expect(catalogStatusDisplay("canceled")).toEqual({ label: "Canceled", variant: "muted" });
+    expect(catalogStatusDisplay("canceled")).toEqual({ label: "Canceled", variant: "neutral" });
   });
 
   it("shows a status it has never seen verbatim rather than dropping it", () => {
@@ -170,7 +170,7 @@ describe("TOPDECK_FORMAT_CHOICES", () => {
 describe("catalogTriageDisplay", () => {
   it("tones the untriaged state as the one needing attention", () => {
     expect(catalogTriageDisplay("new")).toEqual({ label: "New", variant: "warning" });
-    expect(catalogTriageDisplay("dismissed").variant).toBe("muted");
+    expect(catalogTriageDisplay("dismissed").variant).toBe("neutral");
   });
 });
 

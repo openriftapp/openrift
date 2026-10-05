@@ -1,16 +1,16 @@
 import { loansContract } from "@openrift/shared/contracts/loans";
 import type { LoanResponse } from "@openrift/shared/types/api/loan";
-import { useQuery } from "@tanstack/react-query";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { copiesKeys } from "@/features/collections/lib/collections-query-keys";
 import { badgesKeys, loansKeys } from "@/features/groups/lib/groups-query-keys";
 import { loanCounterpartyLabel } from "@/features/groups/lib/loan-derivation";
 import { loansQueryOptions } from "@/features/groups/lib/loans-queries";
-import { useRequiredUserId, useUserId } from "@/lib/auth-session";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useRequiredUserId, useUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 const fetchBorrowerOptions = createServerFn({ method: "GET" })
   .middleware([withCookies])
@@ -123,8 +123,8 @@ export function useLoanBorrowerOptions(enabled: boolean) {
   const userId = useUserId();
   return useQuery({
     queryKey: loansKeys.borrowerOptions(userId ?? ""),
-    queryFn: () => fetchBorrowerOptions(),
-    enabled: enabled && userId !== null,
+    queryFn: userId === null ? skipToken : () => fetchBorrowerOptions(),
+    enabled,
   });
 }
 
@@ -132,8 +132,8 @@ export function useLoanBorrowerOptions(enabled: boolean) {
 export function useBorrowedCounts(enabled: boolean): { data: Record<string, number> | undefined } {
   const userId = useUserId();
   const { data } = useQuery({
-    ...loansQueryOptions(userId ?? ""),
-    enabled: enabled && userId !== null,
+    ...loansQueryOptions(userId),
+    enabled,
   });
   if (!enabled || data === undefined) {
     return { data: undefined };
@@ -143,10 +143,7 @@ export function useBorrowedCounts(enabled: boolean): { data: Record<string, numb
 
 export function useBorrowedLenders(): { data: Record<string, string[]> | undefined } {
   const userId = useUserId();
-  const { data } = useQuery({
-    ...loansQueryOptions(userId ?? ""),
-    enabled: userId !== null,
-  });
+  const { data } = useQuery(loansQueryOptions(userId));
   if (data === undefined) {
     return { data: undefined };
   }

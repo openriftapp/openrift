@@ -33,7 +33,7 @@ vi.mock("@/lib/server-fns/orpc-client", () => ({
   apiOrpcClient: () => ({ me: mocks.me }),
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useUserId: () => mocks.userId,
 }));
 

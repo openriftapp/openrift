@@ -35,7 +35,7 @@ export function MetaEventSourcesEditor({ eventId }: { eventId: string }) {
       onDelete={(sourceId) => deleteSource.mutate({ eventId, sourceId })}
       renderBadge={(citation) =>
         citation.provider === null ? null : (
-          <Badge variant="muted">
+          <Badge variant="neutral">
             <LinkIcon className="size-3" />
             {citation.provider}
           </Badge>

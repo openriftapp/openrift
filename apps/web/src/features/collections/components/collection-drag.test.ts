@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
+import type { CardDragData } from "@/features/collections/lib/dnd-types";
 import { resetIdCounter, stubPrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
 import { resolveDropCopyIds, resolveSelectionDrag } from "./collection-drag";
-import type { CardDragData } from "./dnd-types";
 
 const resetSelection = createStoreResetter(useGridSelectionStore);
 

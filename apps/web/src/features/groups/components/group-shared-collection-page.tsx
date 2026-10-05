@@ -1,0 +1,55 @@
+import type { PublicCollectionDetailResponse } from "@openrift/shared/types/api/collection";
+import { Link, getRouteApi } from "@tanstack/react-router";
+
+import { TopBarBreadcrumbTrail } from "@/components/layout/top-bar-breadcrumb";
+import { SharedCollectionView } from "@/features/collections/components/shared-collection-view";
+import { useFriendGroupSharedCollection } from "@/features/groups/hooks/use-friend-group-sharing";
+import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
+import { m } from "@/paraglide/messages.js";
+
+const routeApi = getRouteApi("/_app/_authenticated/groups/$slug_/collections/$collectionId");
+
+export function GroupSharedCollectionPage() {
+  const { slug, collectionId } = routeApi.useParams();
+  const { data } = useFriendGroupSharedCollection(slug, collectionId);
+  const { data: groupDetail } = useFriendGroupDetail(slug);
+  const search = routeApi.useSearch();
+
+  // Timestamps and pagination are unused on the page; left empty/null on purpose.
+  const publicShape: PublicCollectionDetailResponse = {
+    collection: {
+      id: data.collection.id,
+      name: data.collection.name,
+      description: data.collection.description,
+      copyCount: data.collection.copyCount,
+      totalValueCents: data.collection.totalValueCents,
+      unpricedCopyCount: data.collection.unpricedCopyCount,
+      createdAt: "",
+      updatedAt: "",
+    },
+    items: data.copies,
+    nextCursor: null,
+    owner: {
+      displayName: data.collection.ownerName ?? m.groups_owner_unknown(),
+      gravatarHash: null,
+    },
+  };
+
+  return (
+    <SharedCollectionView
+      data={publicShape}
+      search={search}
+      topBarTrailing={
+        <TopBarBreadcrumbTrail
+          segments={[
+            { label: groupDetail.group.name, link: <Link to="/groups/$slug" params={{ slug }} /> },
+            {
+              label: m.groups_nav_collections(),
+              link: <Link to="/groups/$slug/shared" params={{ slug }} />,
+            },
+          ]}
+        />
+      }
+    />
+  );
+}

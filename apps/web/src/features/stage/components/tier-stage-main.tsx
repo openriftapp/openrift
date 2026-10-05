@@ -1,8 +1,9 @@
 import { CardDetailArt } from "@/features/cards/components/card-detail/card-detail-art";
 import { PresentationTextPanel } from "@/features/stage/components/card-stage-main";
 import { StageRankBadge } from "@/features/stage/components/stage-rank-badge";
-import { isChromaGround, useChromaPlate } from "@/features/stage/components/stage-shell";
 import { TierBoard } from "@/features/stage/components/tier-board";
+import { useChromaPlate } from "@/features/stage/hooks/use-chroma-plate";
+import { isChromaGround } from "@/features/stage/lib/chroma-ground";
 import type {
   ResolvedTierRow,
   TierCardView,

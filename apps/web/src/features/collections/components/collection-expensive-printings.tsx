@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { ShowMoreButton } from "@/components/show-more-button";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -64,18 +64,14 @@ export function MostExpensivePrintings({
         ))}
       </RowList>
       {printings.length > COLLAPSED_EXPENSIVE_PRINTINGS && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="self-start"
+        <ShowMoreButton
+          className="mt-0"
+          count={printings.length}
+          expanded={expanded}
           onClick={() => {
             setExpanded(!expanded);
           }}
-        >
-          {expanded
-            ? m.collections_stats_show_less()
-            : m.collections_stats_show_more({ count: printings.length })}
-        </Button>
+        />
       )}
     </section>
   );

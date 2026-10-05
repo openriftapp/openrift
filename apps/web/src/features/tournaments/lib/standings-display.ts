@@ -1,0 +1,84 @@
+import { formatRecord } from "@openrift/shared/meta-standings";
+import { placementsFromGamePoints } from "@openrift/shared/pairing/points";
+import type { PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
+
+import { m } from "@/paraglide/messages.js";
+
+/**
+ * Renders as an integer when whole, otherwise up to two decimals (avoids
+ * rounding an average like 1.75 to 1.8).
+ */
+export function formatScore(score: number): string {
+  return Number.isInteger(score) ? String(score) : Number(score.toFixed(2)).toString();
+}
+
+/**
+ * Competition ranks for an already-sorted standings list: players level on
+ * score share a rank and the next distinct score skips ahead (1, 1, 3).
+ * Deeper tie-breaks order the rows but don't affect the rank.
+ */
+export function standingRanks(standings: readonly PodStandingRow[]): number[] {
+  return rankedStandings(standings).map((entry) => entry.rank);
+}
+
+export function rankedStandings<T extends PodStandingRow>(
+  standings: readonly T[],
+): { row: T; rank: number }[] {
+  const ranks = placementsFromGamePoints(standings.map((row) => row.score));
+  return ranks.flatMap((rank, index) => {
+    const row = standings[index];
+    return row === undefined ? [] : [{ row, rank }];
+  });
+}
+
+// Engine's tie-break chain below the score, in order. `podWins` is omitted:
+// the seat already shows the win count.
+const TIE_BREAKS: { read: (row: PodStandingRow) => number; label: (value: number) => string }[] = [
+  {
+    read: (row) => row.avgOpponentScore,
+    label: (value) => m.tournaments_standings_tiebreak_opp({ value: formatScore(value) }),
+  },
+  {
+    read: (row) => row.gamePoints,
+    label: (value) => m.tournaments_standings_tiebreak_game_points({ value: formatScore(value) }),
+  },
+  {
+    read: (row) => row.avgOpponentGamePoints,
+    label: (value) => m.tournaments_standings_tiebreak_opp_game({ value: formatScore(value) }),
+  },
+];
+
+/**
+ * First tie-break in the engine's chain where `row` and `other` differ,
+ * formatted for `row`. Null when not tied on points/podWins, or all match.
+ */
+export function decidingTieBreak(row: PodStandingRow, other: PodStandingRow): string | null {
+  if (row.score !== other.score || row.podWins !== other.podWins) {
+    return null;
+  }
+  for (const tieBreak of TIE_BREAKS) {
+    if (tieBreak.read(row) !== tieBreak.read(other)) {
+      return tieBreak.label(tieBreak.read(row));
+    }
+  }
+  return null;
+}
+
+export function podWinsHint(): string {
+  return m.tournaments_standings_pod_wins_hint();
+}
+
+/**
+ * Swiss keeps W-L-D; the engine only tracks win/loss/draw for 1v1s, so an
+ * FFA pod reports its win count instead.
+ */
+export function formatPlayerRecord(row: PodStandingRow, swiss: boolean): string {
+  if (swiss) {
+    return formatMatchRecord(row);
+  }
+  return m.tournaments_standings_pod_wins({ count: row.podWins });
+}
+
+export function formatMatchRecord(row: { wins: number; losses: number; draws: number }): string {
+  return formatRecord(row.wins, row.losses, row.draws) ?? "";
+}

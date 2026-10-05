@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { SwitchField } from "@/features/tournaments/components/settings/switch-field";
 import { cutSizeItems, parseCutSize } from "@/features/tournaments/lib/group-cut-display";
 import { m } from "@/paraglide/messages.js";
 
@@ -83,32 +83,6 @@ export function GroupCutSettingsFields({
         disabled={disabled}
         onCheckedChange={(checked) => onChange({ legendTiebreak: checked })}
       />
-    </div>
-  );
-}
-
-function SwitchField({
-  id,
-  label,
-  hint,
-  checked,
-  disabled,
-  onCheckedChange,
-}: {
-  id: string;
-  label: string;
-  hint: string;
-  checked: boolean;
-  disabled: boolean;
-  onCheckedChange: (checked: boolean) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-3">
-        <Switch id={id} checked={checked} disabled={disabled} onCheckedChange={onCheckedChange} />
-        <Label htmlFor={id}>{label}</Label>
-      </div>
-      <span className="text-muted-foreground text-sm">{hint}</span>
     </div>
   );
 }

@@ -11,18 +11,8 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
-import { DialogForm } from "@/components/ui/dialog-form";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -115,17 +105,17 @@ export function LocalDeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             }}
           >
             <PencilIcon className="size-4" />
-            {m.decks_menu_rename()}
+            {m.common_rename()}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleDuplicate}>
             <CopyIcon className="size-4" />
             {m.decks_menu_duplicate()}
           </DropdownMenuItem>
           <DropdownMenuItem
+            variant="destructive"
             onClick={() => {
               setDeleteOpen(true);
             }}
-            className="text-destructive focus:text-destructive"
           >
             <Trash2Icon className="size-4" />
             {m.common_delete()}
@@ -164,22 +154,14 @@ export function LocalDeckActionsMenu({ item }: { item: DeckListItemResponse }) {
         deckName={deck.name}
       />
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <DialogForm onSubmit={handleDelete}>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{m.decks_dialog_delete_title()}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {m.decks_dialog_delete_local_description({ name: deck.name })}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-              <AlertDialogAction type="submit">{m.common_delete()}</AlertDialogAction>
-            </AlertDialogFooter>
-          </DialogForm>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmActionDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onConfirm={handleDelete}
+        title={m.decks_dialog_delete_title()}
+        description={m.decks_dialog_delete_local_description({ name: deck.name })}
+        confirmLabel={m.common_delete()}
+      />
     </>
   );
 }

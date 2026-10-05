@@ -40,7 +40,7 @@ import { useChannelRegistry } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs";
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";

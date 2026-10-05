@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -451,7 +452,7 @@ function PrintingDeskFields({
             <DatePicker
               className="w-44"
               value={form.announcedAt}
-              onChange={(next) => form.setAnnouncedAt(next)}
+              onValueChange={(next) => form.setAnnouncedAt(next)}
               onClear={() => form.setAnnouncedAt(null)}
             />
           </Field>
@@ -462,7 +463,7 @@ function PrintingDeskFields({
               <DatePicker
                 className="w-44"
                 value={form.releasedAt}
-                onChange={(next) => form.setReleasedAt(next)}
+                onValueChange={(next) => form.setReleasedAt(next)}
                 onClear={() => form.setReleasedAt(null)}
               />
               <DeskSegmented
@@ -543,16 +544,12 @@ function BaseAside({
       <CardContent className="space-y-3">
         <DeskThumb row={base} className="w-24" />
 
-        <dl className="space-y-1.5 text-sm">
-          <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">Rarity</dt>
-            <dd>{rarityLabel}</dd>
-          </div>
-          <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">Type</dt>
-            <dd>{typeLabel}</dd>
-          </div>
-        </dl>
+        <DefinitionList>
+          <DefinitionTerm>Rarity</DefinitionTerm>
+          <DefinitionDetail>{rarityLabel}</DefinitionDetail>
+          <DefinitionTerm>Type</DefinitionTerm>
+          <DefinitionDetail>{typeLabel}</DefinitionDetail>
+        </DefinitionList>
       </CardContent>
     </Card>
   );

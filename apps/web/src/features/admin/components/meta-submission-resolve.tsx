@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -73,7 +73,7 @@ function ResolvedSummary({
       <Badge variant={metaSubmissionStatusBadgeVariant[submission.status]}>
         {metaSubmissionStatusLabels(submission.kind)[submission.status]}
       </Badge>
-      <Badge variant="muted">{metaSubmissionKindLabels()[submission.kind]}</Badge>
+      <Badge variant="neutral">{metaSubmissionKindLabels()[submission.kind]}</Badge>
       {submission.resolvedAt !== null && (
         <span className="text-muted-foreground text-sm tabular-nums">
           {formatDayTime(submission.resolvedAt)}
@@ -181,7 +181,7 @@ export function MetaSubmissionResolve({ submission, playerOverlayId }: MetaSubmi
       <Badge variant={metaSubmissionStatusBadgeVariant.pending}>
         {metaSubmissionStatusLabels().pending}
       </Badge>
-      <Badge variant="muted">{metaSubmissionKindLabels()[submission.kind]}</Badge>
+      <Badge variant="neutral">{metaSubmissionKindLabels()[submission.kind]}</Badge>
       <span className="text-muted-foreground min-w-0 text-sm">
         Nothing has been sent back to this contributor yet.
       </span>
@@ -257,7 +257,7 @@ export function MetaSubmissionResolve({ submission, playerOverlayId }: MetaSubmi
             </div>
 
             <DialogFooter>
-              <DialogClose render={<Button variant="outline" type="button" />}>Cancel</DialogClose>
+              <DialogCancel />
               <Button
                 type="submit"
                 disabled={resolve.isPending || blocksSubmit(status, trimmedNote, reason)}

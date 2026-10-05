@@ -1,3 +1,4 @@
+import { pluralize } from "@openrift/shared/strings";
 import { META_EVENT_SOURCE_FILTERS } from "@openrift/shared/types/enums";
 import type { MetaEventSourceFilter } from "@openrift/shared/types/enums";
 
@@ -70,14 +71,14 @@ export function EventFilters({
         />
         <DatePicker
           value={filters.dateFrom ?? ""}
-          onChange={(value) => applyFilter({ dateFrom: value })}
+          onValueChange={(value) => applyFilter({ dateFrom: value })}
           onClear={() => applyFilter({ dateFrom: undefined })}
           placeholder="From"
           className="w-40"
         />
         <DatePicker
           value={filters.dateTo ?? ""}
-          onChange={(value) => applyFilter({ dateTo: value })}
+          onValueChange={(value) => applyFilter({ dateTo: value })}
           onClear={() => applyFilter({ dateTo: undefined })}
           placeholder="To"
           className="w-40"
@@ -98,7 +99,7 @@ export function EventFilters({
         </AdminFilterSwitch>
       </div>
       <p className="text-muted-foreground">
-        {total} archived {total === 1 ? "event" : "events"}.
+        {total} archived {pluralize(total, "event")}.
       </p>
     </div>
   );

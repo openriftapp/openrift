@@ -5,10 +5,10 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 import { ExternalLinkIcon } from "lucide-react";
 
-import { CardIcon } from "@/components/card-icon";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { ProgressIndicator, ProgressTrack } from "@/components/ui/progress";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { FilterIcon } from "@/features/cards/components/filter-icon";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import type {
   CollectionStatsResult,
@@ -24,7 +24,7 @@ import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { getDomainColor } from "@/lib/domain";
 import { formatCount } from "@/lib/format";
-import { getFilterIconPath } from "@/lib/icons";
+import type { FilterCategory } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -56,12 +56,12 @@ function CompletionTotalRow({ entries }: { entries: CompletionEntry[] }) {
 
 function CompletionRow({
   entry,
-  icon,
+  iconCategory,
   barColor,
   missingSearch,
 }: {
   entry: CompletionEntry;
-  icon?: string;
+  iconCategory?: FilterCategory;
   barColor?: string;
   missingSearch?: Partial<FilterSearch>;
 }) {
@@ -70,7 +70,9 @@ function CompletionRow({
   return (
     <div className="flex items-center gap-3 py-1.5">
       <span className="flex w-36 shrink-0 items-center gap-1.5 truncate text-sm font-medium sm:w-48">
-        {icon && <CardIcon src={icon} className="size-4 shrink-0" />}
+        {iconCategory && (
+          <FilterIcon category={iconCategory} value={entry.key} className="size-4 shrink-0" />
+        )}
         {entry.label}
       </span>
       <div className="bg-muted h-1.5 flex-1 overflow-hidden rounded-full">
@@ -110,22 +112,11 @@ function CompletionRow({
   );
 }
 
-function getRowIcon(groupBy: CompletionGroupBy, key: string): string | undefined {
-  switch (groupBy) {
-    case "domain": {
-      return getFilterIconPath("domains", key);
-    }
-    case "rarity": {
-      return getFilterIconPath("rarities", key);
-    }
-    case "type": {
-      return getFilterIconPath("types", key);
-    }
-    default: {
-      return undefined;
-    }
-  }
-}
+const ROW_ICON_CATEGORY: Partial<Record<CompletionGroupBy, FilterCategory>> = {
+  domain: "domains",
+  rarity: "rarities",
+  type: "types",
+};
 
 export function CompletionSection({
   stats,
@@ -197,7 +188,7 @@ export function CompletionSection({
               <CompletionRow
                 key={entry.key}
                 entry={entry}
-                icon={getRowIcon(groupBy, entry.key)}
+                iconCategory={ROW_ICON_CATEGORY[groupBy]}
                 barColor={rowBarColor(entry.key)}
                 missingSearch={missingSearch(entry.key)}
               />
@@ -212,7 +203,7 @@ export function CompletionSection({
                 <CompletionRow
                   key={entry.key}
                   entry={entry}
-                  icon={getRowIcon(groupBy, entry.key)}
+                  iconCategory={ROW_ICON_CATEGORY[groupBy]}
                   barColor={rowBarColor(entry.key)}
                   missingSearch={missingSearch(entry.key)}
                 />

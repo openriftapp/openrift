@@ -48,7 +48,7 @@ vi.mock("@/components/layout/page-top-bar", () => ({
   ),
 }));
 
-vi.mock("@/features/groups/components/share-dialog", () => ({
+vi.mock("@/components/share/share-dialog", () => ({
   ShareDialog: (props: Record<string, unknown>) => {
     dialogProps.share = props;
     return null;

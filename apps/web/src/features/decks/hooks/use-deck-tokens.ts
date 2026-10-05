@@ -1,5 +1,6 @@
+import { compareCardDisplayName } from "@openrift/shared/card-name";
+import { preferredPrinting } from "@openrift/shared/printing-select";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
-import { compareCardDisplayName, preferredPrinting } from "@openrift/shared/utils";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";

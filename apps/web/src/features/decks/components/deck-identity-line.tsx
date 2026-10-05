@@ -1,5 +1,5 @@
+import { deckIdentityLabels } from "@openrift/shared/card-name";
 import type { Card } from "@openrift/shared/types/catalog";
-import { deckIdentityLabels } from "@openrift/shared/utils";
 
 import { cn } from "@/lib/utils";
 

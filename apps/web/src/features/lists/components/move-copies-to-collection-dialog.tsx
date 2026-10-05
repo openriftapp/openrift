@@ -5,7 +5,7 @@ import { MoveDialog } from "@/features/collections/components/move-dialog";
 import { useCollections } from "@/features/collections/hooks/use-collections";
 import { useMoveCopies } from "@/features/collections/hooks/use-copies";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 
 interface MoveCopiesToCollectionDialogProps {
   listId: string;

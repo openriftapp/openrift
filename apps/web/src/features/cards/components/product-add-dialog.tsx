@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -170,11 +170,11 @@ function ProductAddBody({
       </p>
 
       <DialogFooter>
-        <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
+        <DialogCancel />
         <Button
           type="submit"
+          pending={pending}
           disabled={
-            pending ||
             !countValid ||
             totalCards === 0 ||
             (selectedId === NEW_COLLECTION_OPTION && newName.trim().length === 0)

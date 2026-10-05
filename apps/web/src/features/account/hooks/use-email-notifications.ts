@@ -16,7 +16,7 @@ import {
 } from "@/features/account/lib/email-notification-prefs";
 import { preferencesQueryOptions } from "@/features/account/lib/preferences-queries";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 

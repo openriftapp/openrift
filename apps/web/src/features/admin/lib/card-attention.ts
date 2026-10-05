@@ -1,3 +1,4 @@
+import { pluralize } from "@openrift/shared/strings";
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 
 export const CARD_ISSUES = [
@@ -51,11 +52,11 @@ export interface AttentionBadge {
   key: CardIssue | "sources";
   label: string;
   title?: string;
-  tone: "warning" | "violet" | "info" | "muted";
+  tone: "warning" | "violet" | "info" | "neutral";
 }
 
 function plural(count: number, singular: string): string {
-  return `${count} ${singular}${count === 1 ? "" : "s"}`;
+  return `${count} ${pluralize(count, singular)}`;
 }
 
 export function hasIssue(
@@ -124,14 +125,14 @@ export function cardAttentionBadges(
     badges.push({
       key: "sources",
       label: plural(row.candidateCount, "source"),
-      tone: "muted",
+      tone: "neutral",
     });
   }
   if (unlinked > 0) {
     badges.push({
       key: "unlinked-products",
       label: `marketplace: ${unlinked} unlinked`,
-      tone: "muted",
+      tone: "neutral",
     });
   }
   return badges;

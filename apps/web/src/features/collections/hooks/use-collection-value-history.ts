@@ -1,4 +1,5 @@
 import { collectionValueHistoryContract } from "@openrift/shared/contracts/collection-value-history";
+import { centsToDollars } from "@openrift/shared/money";
 import type { CollectionValueHistoryResponse } from "@openrift/shared/types/api/collection-value-history";
 import type { CompletionScopePreference } from "@openrift/shared/types/api/preferences";
 import {
@@ -11,7 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { collectionValueHistoryKeys } from "@/features/collections/lib/collections-query-keys";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -87,8 +88,8 @@ export function useCollectionValueHistory(
     select: (data) => ({
       series: data.series.map((point) => ({
         date: point.date,
-        value: point.valueCents / 100,
-        baselineValue: point.baselineValueCents / 100,
+        value: centsToDollars(point.valueCents),
+        baselineValue: centsToDollars(point.baselineValueCents),
         copyCount: point.copyCount,
       })),
     }),

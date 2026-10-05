@@ -27,7 +27,7 @@ vi.mock("@/features/groups/hooks/use-friend-group-sharing", () => ({
   useFriendGroupShareableCollections: () => ({ data: { items: [] } }),
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => "viewer-1",
 }));
 

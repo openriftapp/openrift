@@ -1,10 +1,10 @@
 import { isRuleLanguage } from "@openrift/shared/rules";
 import type { RuleKind, RuleLanguage } from "@openrift/shared/types/api/rules";
-import { useDebouncedCallback } from "@tanstack/react-pacer";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { FileClockIcon } from "lucide-react";
 import { useState } from "react";
 
+import { SearchInput } from "@/components/search-input";
 import {
   Select,
   SelectContent,
@@ -15,7 +15,6 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { SearchInput } from "@/features/cards/components/search-input";
 import {
   isRulesChangesView,
   useRulesChangesViewStore,
@@ -23,6 +22,7 @@ import {
 import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
+import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
 import { m } from "@/paraglide/messages.js";
 
@@ -153,34 +153,41 @@ export function KindTabs({ kind }: { kind: RuleKind | "glossary" }) {
 
 export function RulesSearchBar({ trailing }: { trailing: string }) {
   const urlQuery = useSearch({ strict: false, select: (search) => search.q });
-  const [draft, setDraft] = useState(typeof urlQuery === "string" ? urlQuery : "");
+  const urlValue = typeof urlQuery === "string" ? urlQuery : "";
   const setQuery = useRulesSearchStore((state) => state.setQuery);
   const resetSignal = useRulesSearchStore((state) => state.resetSignal);
   const navigate = useNavigate();
-  const debouncedApply = useDebouncedCallback(
-    (next: string) => {
-      setQuery(next);
-      // Use replace, not push: avoids one history entry per keystroke.
-      void navigate({
-        to: ".",
-        search: (prev: Record<string, unknown>) => ({ ...prev, q: next === "" ? undefined : next }),
-        replace: true,
-      });
-    },
-    { wait: 150 },
-  );
+  const [resetPending, setResetPending] = useState(false);
 
-  const [seenUrlQuery, setSeenUrlQuery] = useState(urlQuery);
-  if (seenUrlQuery !== urlQuery) {
-    setSeenUrlQuery(urlQuery);
-    if (typeof urlQuery === "string" && urlQuery !== draft) {
-      setDraft(urlQuery);
-    }
-  }
-  useScopeEffect(urlQuery, (query) => {
-    if (typeof query === "string" && query !== useRulesSearchStore.getState().query) {
-      setQuery(query);
-    }
+  const [draft, setDraft] = useSearchUrlSync({
+    urlValue,
+    delay: 150,
+    onCommit: (next) => {
+      setQuery(next);
+      const search = (prev: Record<string, unknown>) => ({
+        ...prev,
+        q: next === "" ? undefined : next,
+      });
+      if (resetPending) {
+        setResetPending(false);
+        // A reset can follow a raw history.pushState anchor jump the router has not seen.
+        const hash = globalThis.location.hash.slice(1);
+        void navigate({
+          to: ".",
+          search,
+          hash: hash === "" ? undefined : hash,
+          replace: true,
+          resetScroll: false,
+          hashScrollIntoView: false,
+        });
+        return;
+      }
+      void navigate({ to: ".", search, replace: true });
+    },
+  });
+
+  useScopeEffect(urlValue, (query) => {
+    setQuery(query);
   });
 
   // Gated on resetSignal, not the query value: during normal typing the store
@@ -188,7 +195,8 @@ export function RulesSearchBar({ trailing }: { trailing: string }) {
   const [handledSignal, setHandledSignal] = useState(resetSignal);
   if (handledSignal !== resetSignal) {
     setHandledSignal(resetSignal);
-    if (resetSignal > 0) {
+    if (resetSignal > 0 && draft !== "") {
+      setResetPending(true);
       setDraft("");
     }
   }
@@ -196,14 +204,7 @@ export function RulesSearchBar({ trailing }: { trailing: string }) {
   return (
     <SearchInput
       value={draft}
-      onValueChange={(next) => {
-        setDraft(next);
-        debouncedApply(next);
-      }}
-      onClear={() => {
-        setDraft("");
-        debouncedApply("");
-      }}
+      onValueChange={setDraft}
       placeholder={m.rules_search_placeholder()}
       trailing={trailing}
       className="min-w-[200px] flex-1"

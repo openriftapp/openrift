@@ -10,7 +10,7 @@ vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 vi.mock("@/features/decks/hooks/use-decks", () => ({
   useCloneSharedDeck: () => ({ mutateAsync: cloneMutateAsync, isPending: false }),
 }));
-vi.mock("@/lib/auth-session", () => ({ useUserId: () => userId }));
+vi.mock("@/hooks/use-session", () => ({ useUserId: () => userId }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 
 const { useCopyArchivedDeck } = await import("./use-copy-archived-deck");

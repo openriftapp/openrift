@@ -23,16 +23,6 @@ const GROUND_CLASS: Record<StageGround, string> = {
   magenta: "bg-[#ff00ff]",
 };
 
-export function isChromaGround(ground: StageGround): boolean {
-  return ground !== "black";
-}
-
-/** A chroma filter keys any partly-opaque pixel partly out, fringing translucent panels; an opaque plate gives content something to composite against instead. */
-export function useChromaPlate(): string {
-  const ground = usePresentationStore((state) => state.ground);
-  return isChromaGround(ground) ? "rounded-lg bg-[#08090c] p-3" : "";
-}
-
 export function StageTileSizeSlider() {
   const tierTileStep = useDisplayStore((state) => state.tierTileStep);
   const setTierTileStep = useDisplayStore((state) => state.setTierTileStep);

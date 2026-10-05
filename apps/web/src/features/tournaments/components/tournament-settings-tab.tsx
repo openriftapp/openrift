@@ -1,3 +1,4 @@
+import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import type { TournamentDetailResponse } from "@openrift/shared/types/api/tournament";
 import { Suspense } from "react";
 
@@ -16,10 +17,7 @@ import { RegionsSection } from "@/features/tournaments/components/settings/regio
 import { ScheduleSection } from "@/features/tournaments/components/settings/schedule-section";
 import { SignupLinksSection } from "@/features/tournaments/components/settings/signup-links-section";
 import { UvsgamesSection } from "@/features/tournaments/components/settings/uvsgames-section";
-import {
-  effectiveTournamentState,
-  hasPairing,
-} from "@/features/tournaments/lib/tournament-display";
+import { hasPairing } from "@/features/tournaments/lib/tournament-display";
 import { m } from "@/paraglide/messages.js";
 
 function buildTocItems({

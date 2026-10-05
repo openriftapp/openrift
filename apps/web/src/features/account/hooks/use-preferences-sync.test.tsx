@@ -30,7 +30,7 @@ vi.mock("@/lib/server-fns/middleware", () => ({ withCookies: () => {} }));
 const { signedInUser } = vi.hoisted(() => ({
   signedInUser: { id: "test-user-id" as string | null },
 }));
-vi.mock("@/lib/auth-session", () => ({ useUserId: () => signedInUser.id }));
+vi.mock("@/hooks/use-session", () => ({ useUserId: () => signedInUser.id }));
 vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => true }));
 vi.mock("@/paraglide/runtime.js", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),

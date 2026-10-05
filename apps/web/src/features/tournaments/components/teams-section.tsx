@@ -7,6 +7,7 @@ import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { CardRow } from "@/components/ui/card-list";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { SectionHeading } from "@/components/ui/section-heading";
 import {
   Select,
@@ -15,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserAvatar } from "@/components/user-avatar";
+import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import {
   useCreateTeam,
   useDissolveTeam,
@@ -92,22 +93,18 @@ export function TeamsSection({
         {m.tournaments_teams_heading()}
       </SectionHeading>
       {teams.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{m.tournaments_teams_empty()}</p>
+        <Empty>
+          <EmptyHeader>
+            <EmptyDescription>{m.tournaments_teams_empty()}</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <ul className="flex flex-col gap-2">
           {teams.map((team) => {
             const name = teamDisplayName(team.members.map((member) => member.displayName));
             return (
               <CardRow key={team.teamId} className={team.dropped ? "opacity-50" : undefined}>
-                <span className="flex min-w-0 items-center gap-2">
-                  <UserAvatar name={name} size="sm" />
-                  <span className="truncate font-medium">{name}</span>
-                  {team.dropped ? (
-                    <span className="text-muted-foreground shrink-0 text-sm">
-                      {m.tournaments_standings_dropped()}
-                    </span>
-                  ) : null}
-                </span>
+                <PlayerChip name={name} dropped={team.dropped} />
                 {manage ? (
                   <ChipRemoveButton
                     aria-label={m.tournaments_teams_dissolve_aria({ name })}

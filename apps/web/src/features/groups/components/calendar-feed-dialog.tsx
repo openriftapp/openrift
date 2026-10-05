@@ -4,11 +4,11 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { PageTopBarButton } from "@/components/layout/page-top-bar";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { CopyField } from "@/components/ui/copy-field";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -83,7 +83,7 @@ function CalendarFeedDialogBody({ slug, kind }: CalendarFeedProps) {
       </DialogHeader>
       {content}
       <DialogFooter>
-        <DialogClose render={<Button variant="outline" />}>{m.common_close()}</DialogClose>
+        <DialogCancel>{m.common_close()}</DialogCancel>
         {feedUrl === null ? (
           <Button
             disabled={feeds.isPending || enableFeed.isPending}
@@ -108,24 +108,21 @@ function CalendarFeedDialogBody({ slug, kind }: CalendarFeedProps) {
 function CalendarFeedLink({ feedUrl }: { feedUrl: string }) {
   return (
     <div className="flex flex-col gap-3">
-      <CopyField value={feedUrl} label={m.groups_calendar_feed_url_label()} mono />
+      <CopyField value={feedUrl} aria-label={m.groups_calendar_feed_url_label()} mono />
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          // oxlint-disable-next-line jsx-a11y/anchor-has-content, jsx-a11y/control-has-associated-label -- text label is inside the Button children
-          render={<a href={webcalUrl(feedUrl)} />}
-        >
+        <a href={webcalUrl(feedUrl)} className={buttonVariants({ variant: "outline" })}>
           <CalendarPlusIcon />
           {m.groups_calendar_feed_open_app()}
-        </Button>
-        <Button
-          variant="outline"
-          // oxlint-disable-next-line jsx-a11y/anchor-has-content, jsx-a11y/control-has-associated-label -- text label is inside the Button children
-          render={<a href={googleCalendarSubscribeUrl(feedUrl)} target="_blank" rel="noreferrer" />}
+        </a>
+        <a
+          href={googleCalendarSubscribeUrl(feedUrl)}
+          target="_blank"
+          rel="noreferrer"
+          className={buttonVariants({ variant: "outline" })}
         >
           <ExternalLinkIcon />
           {m.groups_calendar_feed_google()}
-        </Button>
+        </a>
       </div>
       <p className="text-muted-foreground">{m.groups_calendar_feed_on_note()}</p>
     </div>

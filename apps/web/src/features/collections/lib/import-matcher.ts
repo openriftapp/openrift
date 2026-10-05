@@ -1,7 +1,18 @@
-import type { CardResolution, CardSearchIndex, SearchableCard } from "@openrift/shared/card-search";
-import { buildCardIndex, resolveCard } from "@openrift/shared/card-search";
+import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
+import type {
+  CardResolution,
+  CardSearchIndex,
+  CodeIndex,
+  SearchableCard,
+} from "@openrift/shared/card-search";
+import {
+  buildCardIndex,
+  buildCodeIndex,
+  lookupCode,
+  resolveCard,
+} from "@openrift/shared/card-search";
+import { squashForSearch } from "@openrift/shared/search-fold";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/utils";
 
 import type { ImportEntry } from "@/features/collections/lib/import-parsers";
 
@@ -31,6 +42,8 @@ interface SearchableCardGroup extends SearchableCard {
 
 class PrintingIndex {
   private readonly byShortCode = new Map<string, Printing[]>();
+  private readonly bySquashedCode: CodeIndex<null, Printing>;
+  private readonly ambiguousSquashedCodes = new Set<string>();
   private readonly nameIndex: CardSearchIndex<SearchableCardGroup>;
   private readonly byCardId = new Map<string, SearchableCardGroup>();
 
@@ -43,6 +56,22 @@ class PrintingIndex {
         this.byShortCode.set(key, group);
       }
       group.push(printing);
+    }
+
+    this.bySquashedCode = buildCodeIndex(
+      allPrintings.map((printing) => ({ card: null, printing })),
+    );
+    const shortCodeBySquashed = new Map<string, string>();
+    for (const printing of allPrintings) {
+      for (const code of [printing.shortCode, printing.publicCode]) {
+        const key = squashForSearch(code);
+        const seen = shortCodeBySquashed.get(key);
+        if (seen === undefined) {
+          shortCodeBySquashed.set(key, printing.shortCode);
+        } else if (seen !== printing.shortCode) {
+          this.ambiguousSquashedCodes.add(key);
+        }
+      }
     }
 
     const byCard = this.byCardId;
@@ -75,6 +104,15 @@ class PrintingIndex {
     const direct = this.byShortCode.get(sourceCode.toLowerCase());
     if (direct && direct.length > 0) {
       return direct;
+    }
+
+    // Punctuation and spacing drift, e.g. "ogn 001" or a public code. Squashing folds a
+    // trailing "*" away, so it runs after the exact key and skips keys two codes share.
+    const squashed = this.ambiguousSquashedCodes.has(squashForSearch(sourceCode))
+      ? undefined
+      : lookupCode(this.bySquashedCode, sourceCode);
+    if (squashed) {
+      return this.byShortCode.get(squashed.printing.shortCode.toLowerCase()) ?? [];
     }
 
     // e.g. "OGN-001a" → "OGN-001"

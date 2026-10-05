@@ -1,7 +1,8 @@
-import { Loader2Icon, WandSparklesIcon } from "lucide-react";
+import type { UnifiedMappingPrintingResponse } from "@openrift/shared/types/api/admin";
+import { WandSparklesIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import type { UnifiedMappingPrinting } from "@/features/admin/lib/price-mappings-types";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 
 import { PrintingLabel } from "./marketplace-printing-label";
@@ -17,7 +18,7 @@ export function SuggestionChip({
   onAssign,
   disabled,
 }: {
-  suggestion: ProductSuggestion & { printing: UnifiedMappingPrinting };
+  suggestion: ProductSuggestion & { printing: UnifiedMappingPrintingResponse };
   productExternalId: number;
   highlightFinish?: string;
   highlightLanguage?: string;
@@ -64,7 +65,7 @@ export function SuggestionChip({
       )}
     >
       {pending ? (
-        <Loader2Icon className="size-3 shrink-0 animate-spin" />
+        <Spinner className="size-3 shrink-0" />
       ) : (
         <WandSparklesIcon className="size-3 shrink-0" />
       )}

@@ -14,6 +14,7 @@ import type {
   TournamentViewerRole,
 } from "@openrift/shared/types/api/tournament";
 
+import { combineLocalDateTimeToUtc } from "@/lib/date-time-input";
 import { m } from "@/paraglide/messages.js";
 
 export function deckSubmissionLabels(): Record<TournamentDeckSubmission, string> {
@@ -127,19 +128,6 @@ export function pairingLabel(podNumber: number): string {
   return m.tournaments_lib_pairing_label_table({ number: podNumber });
 }
 
-export function ordinalPlace(place: number): string {
-  const teen = place % 100;
-  if (teen >= 11 && teen <= 13) {
-    return m.tournaments_lib_ordinal_other({ place });
-  }
-  const format = {
-    1: m.tournaments_lib_ordinal_1,
-    2: m.tournaments_lib_ordinal_2,
-    3: m.tournaments_lib_ordinal_3,
-  }[place % 10];
-  return format === undefined ? m.tournaments_lib_ordinal_other({ place }) : format({ place });
-}
-
 export function isAllMatchRound(sizes: readonly number[]): boolean {
   return sizes.length > 0 && sizes.every((size) => isMatchPairing(size));
 }
@@ -203,30 +191,6 @@ export function isTournamentStaff(myRoles: readonly TournamentViewerRole[]): boo
   return myRoles.includes("host") || myRoles.includes("organizer") || myRoles.includes("judge");
 }
 
-export function combineLocalDateTimeToUtc(date: string, time: string): string | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/u.test(date)) {
-    return null;
-  }
-  if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/u.test(time)) {
-    return null;
-  }
-  const [year, month, day] = date.split("-").map(Number);
-  const [hour, minute] = time.split(":").map(Number);
-  if (year === undefined || month === undefined) {
-    return null;
-  }
-  return new Date(year, month - 1, day, hour, minute, 0, 0).toISOString();
-}
-
-export function splitUtcToLocalDateTime(iso: string): { date: string; time: string } {
-  const dt = new Date(iso);
-  const pad = (n: number): string => String(n).padStart(2, "0");
-  return {
-    date: `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`,
-    time: `${pad(dt.getHours())}:${pad(dt.getMinutes())}`,
-  };
-}
-
 export interface ParsedScheduleInput {
   startsAt: string | null;
   endsAt: string | null;
@@ -258,10 +222,6 @@ export function parseScheduleInput(
   };
 }
 
-export function localTimeZoneLabel(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone;
-}
-
 export function tournamentContextLabel(
   tournament: Pick<TournamentSummaryResponse, "groupName" | "host">,
 ): string | null {
@@ -289,9 +249,6 @@ export function formatStartsIn(iso: string, now: Date = new Date()): string | nu
   }
   return m.tournaments_lib_starts_in_days({ days });
 }
-
-export { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
-export type { EffectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 
 export function effectiveStateLabels(): Record<EffectiveTournamentState, string> {
   return {

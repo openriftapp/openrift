@@ -19,10 +19,7 @@ import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
 import { useCopyListMemberships, useDisposeCopies } from "@/features/collections/hooks/use-copies";
 import { useRowActionHandlers } from "@/features/collections/hooks/use-row-action-handlers";
-import {
-  computeShiftRange,
-  resolveContextActionTarget,
-} from "@/features/collections/lib/stack-selection";
+import { resolveContextActionTarget } from "@/features/collections/lib/stack-selection";
 import {
   useBulkAddListEntries,
   useBulkRemoveListEntries,
@@ -55,8 +52,9 @@ import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import type { RuleExcludeTarget } from "@/features/rules/lib/rule-exclude";
 import { excludeEntryFromRules } from "@/features/rules/lib/rule-exclude";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
+import { computeShiftRange } from "@/lib/shift-range";
 import { m } from "@/paraglide/messages.js";
 import { useSelectionStore } from "@/stores/selection-store";
 

@@ -341,3 +341,41 @@ describe("matchEntries — Legend colloquial names", () => {
     expect(results[0]!.status).toBe("unresolved");
   });
 });
+
+describe("matchEntries — code lookup", () => {
+  it("matches a code that differs only in punctuation and case", () => {
+    const printing = makePrinting({ id: "p-1", shortCode: "OGN-001" });
+    const [result] = matchEntries([makeEntry({ sourceCode: "ogn 001" })], [printing]);
+    expect(result?.status).toBe("exact");
+    expect(result?.resolvedPrinting?.id).toBe("p-1");
+  });
+
+  it("matches a public code", () => {
+    const printing = makePrinting({ id: "p-1", shortCode: "OGN-001", publicCode: "OGN-001/298" });
+    const [result] = matchEntries([makeEntry({ sourceCode: "OGN-001/298" })], [printing]);
+    expect(result?.resolvedPrinting?.id).toBe("p-1");
+  });
+
+  it("prefers the exact code over a code that squashes to the same key", () => {
+    const starred = makePrinting({ id: "star", shortCode: "T1S-003*" });
+    const plain = makePrinting({ id: "plain", shortCode: "T1S-003" });
+    const [result] = matchEntries([makeEntry({ sourceCode: "T1S-003" })], [starred, plain]);
+    expect(result?.resolvedPrinting?.id).toBe("plain");
+  });
+
+  it("does not pick a printing when two codes squash to the same key", () => {
+    const starred = makePrinting({ id: "star", shortCode: "T1S-003*" });
+    const plain = makePrinting({ id: "plain", shortCode: "T1S-003" });
+    const [result] = matchEntries([makeEntry({ sourceCode: "T1S003" })], [starred, plain]);
+    expect(result?.status).not.toBe("exact");
+  });
+
+  it("leaves an unknown code unresolved", () => {
+    const printing = makePrinting({ id: "p-1", shortCode: "OGN-001" });
+    const [result] = matchEntries(
+      [makeEntry({ sourceCode: "XYZ-999", cardName: "Nobody" })],
+      [printing],
+    );
+    expect(result?.status).toBe("unresolved");
+  });
+});

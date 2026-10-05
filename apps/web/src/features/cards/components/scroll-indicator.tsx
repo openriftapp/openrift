@@ -1,11 +1,10 @@
 import type { Virtualizer } from "@tanstack/react-virtual";
 
+import { useScrollIndicator } from "@/features/cards/hooks/use-scroll-indicator";
+import type { VRow } from "@/features/cards/lib/card-grid-types";
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { STICKY_SURFACE_POPOVER } from "@/lib/sticky-surface";
 import { cn } from "@/lib/utils";
-
-import type { VRow } from "./card-grid-types";
-import { useScrollIndicator } from "./use-scroll-indicator";
 
 interface ScrollIndicatorProps {
   virtualRows: VRow[];

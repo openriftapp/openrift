@@ -1,8 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
 import { TextLink } from "@/components/ui/text-link";
-import { DomainIcon } from "@/features/decks/components/domain-icon";
-import { splitLegendName } from "@/features/meta/lib/meta-format";
+import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { cn } from "@/lib/utils";
 
 type MetaIdentityLayout = "row" | "stacked" | "tile";
@@ -29,8 +28,13 @@ const RUNE_CLASS: Record<MetaIdentityLayout, string> = {
   tile: "size-4",
 };
 
+export interface MetaIdentityLegend {
+  character: string | null;
+  epithet: string | null;
+}
+
 export interface MetaIdentityProps {
-  name: string | null | undefined;
+  legend: MetaIdentityLegend | null | undefined;
   slug?: string | null;
   archiveSlug?: string | null;
   domains?: readonly string[];
@@ -40,7 +44,7 @@ export interface MetaIdentityProps {
 }
 
 export function MetaIdentity({
-  name,
+  legend,
   slug,
   archiveSlug,
   domains,
@@ -48,11 +52,14 @@ export function MetaIdentity({
   championOnly = false,
   className,
 }: MetaIdentityProps) {
-  if (name === null || name === undefined || name === "") {
+  const epithet = filled(legend?.epithet);
+  if (epithet === null) {
     return null;
   }
 
-  const { champion, title } = splitLegendName(name);
+  const character = filled(legend?.character);
+  const champion = character ?? epithet;
+  const title = character === null ? null : epithet;
   const showTitle = !championOnly && title !== null;
 
   const championText = <span className={CHAMPION_CLASS[layout]}>{champion}</span>;

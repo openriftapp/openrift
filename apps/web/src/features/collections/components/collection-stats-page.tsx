@@ -2,6 +2,7 @@ import { getAvailableFilters } from "@openrift/shared/filters-available";
 import { use, useDeferredValue, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { Heading } from "@/components/heading";
 import { PageTopBar, PageTopBarTitle } from "@/components/layout/page-top-bar";
 import { TopBarSlotContext } from "@/components/layout/top-bar-slot";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -103,9 +104,7 @@ export function CollectionStatsPage() {
         ) : (
           <div className="space-y-10">
             <section className="space-y-4">
-              <SectionHeading variant="display">
-                {m.collections_stats_heading_completion()}
-              </SectionHeading>
+              <Heading>{m.collections_stats_heading_completion()}</Heading>
               <CompletionSection
                 stats={stats}
                 groupBy={groupBy}
@@ -115,9 +114,7 @@ export function CollectionStatsPage() {
             </section>
 
             <section className="space-y-4">
-              <SectionHeading variant="display">
-                {m.collections_stats_heading_cost_to_complete()}
-              </SectionHeading>
+              <Heading>{m.collections_stats_heading_cost_to_complete()}</Heading>
               <CostToCompleteChart
                 allPrintings={stats.allPrintings}
                 stacks={stats.stacks}
@@ -131,17 +128,13 @@ export function CollectionStatsPage() {
 
             {priceHistoryEnabled && (
               <section className="space-y-4">
-                <SectionHeading variant="display">
-                  {m.collections_stats_heading_value_over_time()}
-                </SectionHeading>
+                <Heading>{m.collections_stats_heading_value_over_time()}</Heading>
                 <CollectionValueChart collectionId={collectionId} scope={scope} />
               </section>
             )}
 
             <section className="space-y-4">
-              <SectionHeading variant="display">
-                {m.collections_stats_heading_stats()}
-              </SectionHeading>
+              <Heading>{m.collections_stats_heading_stats()}</Heading>
               <StatsHeroStats stats={stats} />
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                 <section className="flex flex-col gap-3">

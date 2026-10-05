@@ -1,13 +1,13 @@
-import { legendDisplayName } from "@openrift/shared/utils";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { Link } from "@tanstack/react-router";
 import { BellIcon, CheckIcon, ChevronRightIcon, ShoppingCartIcon, UsersIcon } from "lucide-react";
 import { Suspense } from "react";
 
+import { Disclosure } from "@/components/disclosure";
 import { PageHero } from "@/components/layout/page-hero";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { CardLink } from "@/components/ui/card-link";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { IconChip } from "@/components/ui/icon-chip";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { UserAvatar } from "@/components/user-avatar";
@@ -24,7 +24,7 @@ import { needsYouLine, nextMoveLabel } from "@/features/groups/lib/trade-hub";
 import type { TradesIndexPerson } from "@/features/groups/lib/trades-index";
 import { buildTradesIndex } from "@/features/groups/lib/trades-index";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -120,19 +120,14 @@ function YourMoveRow({ person }: { person: TradesIndexPerson }) {
           <span className="min-w-0 flex-1 truncate font-medium">
             {person.name ?? m.trades_member_fallback()}
           </span>
-          <Button
-            size="sm"
-            className="shrink-0"
-            render={
-              <Link
-                to="/trades/$userId"
-                params={{ userId: person.userId }}
-                search={{ from: undefined }}
-              />
-            }
+          <Link
+            to="/trades/$userId"
+            params={{ userId: person.userId }}
+            search={{ from: undefined }}
+            className={buttonVariants({ size: "sm", className: "shrink-0" })}
           >
             {nextMoveLabel(person.needsYou[0])}
-          </Button>
+          </Link>
         </div>
         {action === null ? null : <span className="truncate text-sm">{action}</span>}
         {cardNames === "" ? null : (
@@ -148,9 +143,9 @@ function NoGroupsCallout() {
     <Callout className="flex flex-wrap items-center gap-3">
       <IconChip icon={UsersIcon} tone="info" size="sm" shape="round" />
       <p className="text-muted-foreground min-w-0 flex-1">{m.trades_empty_description()}</p>
-      <Button size="sm" variant="outline" render={<Link to="/groups" />}>
+      <Link to="/groups" className={buttonVariants({ variant: "outline", size: "sm" })}>
         {m.trades_go_to_groups()}
-      </Button>
+      </Link>
     </Callout>
   );
 }
@@ -174,12 +169,15 @@ export function TradesIndexPage() {
         title={m.trades_title()}
         lead={m.trades_hero_lead()}
       >
-        <Button variant="outline" className="mt-3" render={<Link to="/trades/buy" />}>
+        <Link
+          to="/trades/buy"
+          className={buttonVariants({ variant: "outline", className: "mt-3" })}
+        >
           <ShoppingCartIcon />
           {cartCount > 0
             ? m.trades_buy_cart_button_count({ count: cartCount })
             : m.trades_buy_cart_button()}
-        </Button>
+        </Link>
       </PageHero>
 
       <div className={cn(PAGE_WIDTH.full, "px-safe flex flex-col gap-8 pt-3 pb-12")}>
@@ -203,33 +201,25 @@ export function TradesIndexPage() {
         </Suspense>
 
         {index.waiting.length > 0 ? (
-          <Collapsible defaultOpen={index.yourMove.length === 0} className="flex flex-col gap-3">
-            <SectionHeading as="h3">
-              <CollapsibleTrigger className="group hover:text-foreground flex w-full items-center gap-2.5 text-left transition-colors">
-                {m.trades_section_waiting()}
-                <span className="text-muted-foreground tabular-nums">{index.waiting.length}</span>
-                <ChevronRightIcon className="size-4 shrink-0 transition-transform group-data-[panel-open]:rotate-90" />
-              </CollapsibleTrigger>
-            </SectionHeading>
-            <CollapsibleContent>
-              <PeopleGrid people={index.waiting} showGroups={showGroups} />
-            </CollapsibleContent>
-          </Collapsible>
+          <Disclosure
+            variant="heading"
+            defaultOpen={index.yourMove.length === 0}
+            title={m.trades_section_waiting()}
+            count={index.waiting.length}
+          >
+            <PeopleGrid people={index.waiting} showGroups={showGroups} />
+          </Disclosure>
         ) : null}
 
         {index.past.length > 0 ? (
-          <Collapsible defaultOpen={live === 0} className="flex flex-col gap-3">
-            <SectionHeading as="h3">
-              <CollapsibleTrigger className="group hover:text-foreground flex w-full items-center gap-2.5 text-left transition-colors">
-                <IconChip icon={CheckIcon} size="sm" />
-                {m.trades_traded_before({ count: index.past.length })}
-                <ChevronRightIcon className="size-4 shrink-0 transition-transform group-data-[panel-open]:rotate-90" />
-              </CollapsibleTrigger>
-            </SectionHeading>
-            <CollapsibleContent>
-              <PeopleGrid people={index.past} showGroups={showGroups} />
-            </CollapsibleContent>
-          </Collapsible>
+          <Disclosure
+            variant="heading"
+            defaultOpen={live === 0}
+            icon={CheckIcon}
+            title={m.trades_traded_before({ count: index.past.length })}
+          >
+            <PeopleGrid people={index.past} showGroups={showGroups} />
+          </Disclosure>
         ) : null}
       </div>
     </CardDetailOverlayProvider>

@@ -8,10 +8,10 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { friendGroupShopEventsQueryOptions } from "@/features/groups/lib/friend-group-shops-queries";
 import { friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 export const SHOP_SEARCH_MIN_LENGTH = 2;
 

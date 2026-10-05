@@ -1,6 +1,6 @@
 import { ExternalLinkIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 
 /** Archive pages live outside the admin shell, so this is a plain anchor, not a router `Link`. */
 export function MetaPublicLinkButton({
@@ -15,13 +15,15 @@ export function MetaPublicLinkButton({
   mono?: boolean;
 }) {
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      render={<a href={href} target="_blank" rel="noreferrer" aria-label={ariaLabel} />}
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={ariaLabel}
+      className={buttonVariants({ variant: "ghost", size: "sm" })}
     >
       <span className={mono ? "font-mono" : undefined}>{label}</span>
       <ExternalLinkIcon />
-    </Button>
+    </a>
   );
 }

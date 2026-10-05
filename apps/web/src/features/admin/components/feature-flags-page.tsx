@@ -6,7 +6,6 @@ import { Eyebrow, Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import {
   Select,
@@ -16,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { DraftTextInput } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type {
@@ -34,6 +34,7 @@ import {
   useToggleFeatureFlag,
   useUpsertFeatureFlagOverride,
 } from "@/hooks/use-feature-flags";
+import { errorText } from "@/lib/error-text";
 
 interface FlagDraft {
   key: string;
@@ -110,45 +111,26 @@ function FlagStatusCell({ row }: AdminCellSlotProps<FeatureFlagResponse>) {
   );
 }
 
-function FlagKeyAddInput({ draft, setDraft }: AdminDraftSlotProps<FlagDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.key}
-      onChange={(e) => setDraft((prev) => ({ ...prev, key: e.target.value.toLowerCase() }))}
-      placeholder="deck-builder"
-      className="h-8 w-48 font-mono"
-    />
-  );
-}
-
-function FlagDescriptionAddInput({ draft, setDraft }: AdminDraftSlotProps<FlagDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.description}
-      onChange={(e) => setDraft((prev) => ({ ...prev, description: e.target.value }))}
-      placeholder="What this flag controls"
-      className="h-8"
-    />
-  );
-}
-
 const globalFlagColumns: AdminColumnDef<FeatureFlagResponse, FlagDraft>[] = [
   {
     header: "Key",
     sortValue: (f) => f.key,
     cell: <FlagKeyCell />,
-    addCell: <FlagKeyAddInput />,
+    addCell: (
+      <DraftTextInput<FlagDraft>
+        field="key"
+        placeholder="deck-builder"
+        letterCase="lower"
+        className="w-48 font-mono"
+      />
+    ),
   },
   {
     header: "Description",
     cell: <FlagDescriptionCell />,
-    addCell: <FlagDescriptionAddInput />,
+    addCell: (
+      <DraftTextInput<FlagDraft> field="description" placeholder="What this flag controls" />
+    ),
   },
   {
     header: "Status",
@@ -243,7 +225,7 @@ function KnownFlagRow({
       await onCreate(known.description);
       setPending(false);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "Creation failed");
+      setSaveError(errorText(error, "Creation failed"));
       setPending(false);
     }
   }

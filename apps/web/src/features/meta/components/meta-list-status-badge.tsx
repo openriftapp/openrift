@@ -16,7 +16,7 @@ export function MetaListStatusBadge({
     return null;
   }
   return (
-    <Badge variant="muted" className={cn("shrink-0", className)}>
+    <Badge variant="neutral" className={cn("shrink-0", className)}>
       {metaListStatusLabels()[listStatus]}
     </Badge>
   );

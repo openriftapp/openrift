@@ -8,6 +8,8 @@ function makeRow(playerId: string, overrides: Partial<PodStandingRow> = {}): Pod
   return {
     playerId,
     displayName: `Player ${playerId}`,
+    image: null,
+    gravatarHash: null,
     status: "active",
     droppedAfterRound: null,
     teamId: null,

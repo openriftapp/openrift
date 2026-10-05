@@ -85,7 +85,16 @@ function legend(name: string, slug: string, overrides: LegendOverrides = {}): Me
   const { event, ...rest } = overrides;
   return {
     slug,
-    legend: { cardId: slug, name, slug, imageId: null, domains: ["fury"], archiveSlug: slug },
+    legend: {
+      cardId: slug,
+      name,
+      character: name.includes(", ") ? name.slice(0, name.indexOf(", ")) : null,
+      epithet: name.includes(", ") ? name.slice(name.indexOf(", ") + 2) : name,
+      slug,
+      imageId: null,
+      domains: ["fury"],
+      archiveSlug: slug,
+    },
     bestFinish: {
       rank: 8,
       rankIsTier: false,

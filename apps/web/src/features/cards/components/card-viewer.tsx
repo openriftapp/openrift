@@ -9,7 +9,7 @@ import {
 import { CardGrid } from "@/features/cards/components/card-grid";
 import { CardTable } from "@/features/cards/components/card-table";
 import type { CardTableSelection, TableRowSlotProps } from "@/features/cards/components/card-table";
-import { useGridKeyboardNav } from "@/features/cards/components/use-grid-keyboard-nav";
+import { useGridKeyboardNav } from "@/features/cards/hooks/use-grid-keyboard-nav";
 import type { ActionsColumn } from "@/features/collections/lib/collection-table";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { GroupInfo } from "@/lib/card-group-types";

@@ -38,7 +38,7 @@ const BADGE_VARIANTS = [
   "warning",
   "violet",
   "info",
-  "muted",
+  "neutral",
   "subtle",
   "count",
 ] as const;
@@ -173,6 +173,9 @@ export function MarksSection() {
           </Swatch>
           <Swatch label="with year">
             <DateLeaf month="AUG" day="8" caption="2026" size="sm" />
+          </Swatch>
+          <Swatch label="at + clock">
+            <DateLeaf at="2026-08-08" clock="utc" showYear size="sm" />
           </Swatch>
         </SwatchRow>
       </DemoGroup>

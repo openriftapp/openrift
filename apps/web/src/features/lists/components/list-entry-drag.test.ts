@@ -2,7 +2,7 @@ import type { ListEntryDetailResponse } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
-import type { ListEntryDragData } from "@/features/collections/components/dnd-types";
+import type { ListEntryDragData } from "@/features/collections/lib/dnd-types";
 import { EMPTY_TRADE_PREFERENCE, stubPrinting } from "@/test/factories";
 
 import { resolveListEntrySelection } from "./list-entry-drag";

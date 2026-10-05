@@ -49,7 +49,12 @@ export function collapseTeamStandings(standings: readonly PodStandingRow[]): Pod
       continue;
     }
     seenTeams.add(row.teamId);
-    rows.push({ ...row, displayName: names.get(row.teamId) ?? row.displayName });
+    rows.push({
+      ...row,
+      displayName: names.get(row.teamId) ?? row.displayName,
+      image: null,
+      gravatarHash: null,
+    });
   }
   return rows;
 }

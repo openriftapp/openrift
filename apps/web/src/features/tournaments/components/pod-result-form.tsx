@@ -6,7 +6,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ordinalPlace } from "@/features/tournaments/lib/tournament-display";
+import { formatRank } from "@/features/meta/lib/meta-format";
+import { formatScore } from "@/features/tournaments/lib/standings-display";
 import { m } from "@/paraglide/messages.js";
 
 interface PodResultFormProps {
@@ -15,12 +16,6 @@ interface PodResultFormProps {
   onSubmit: (results: { playerId: string; gamePoints: number }[]) => Promise<void> | void;
   submitting: boolean;
   onCancel?: () => void;
-}
-
-// Scheme points can be fractional (a tied place averages, e.g. 1.75); show up to two decimals
-// then, so a value like 1.75 isn't rounded down to 1.8.
-function formatPoints(points: number): string {
-  return Number.isInteger(points) ? String(points) : Number(points.toFixed(2)).toString();
 }
 
 /** Parses a controlled points input to a whole, non-negative game-point count. */
@@ -102,7 +97,8 @@ export function PodResultForm({ pod, scheme, onSubmit, submitting, onCancel }: P
             </span>
             {previewPoints && placements ? (
               <span className="text-muted-foreground shrink-0 tabular-nums">
-                {ordinalPlace(placements[index] ?? 1)} · +{formatPoints(previewPoints[index] ?? 0)}
+                {formatRank(placements[index] ?? 1, false)} · +
+                {formatScore(previewPoints[index] ?? 0)}
               </span>
             ) : null}
           </span>

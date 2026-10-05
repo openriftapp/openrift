@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -17,7 +17,8 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RadioGroup } from "@/components/ui/radio-group";
+import { RadioOptionRow } from "@/components/ui/radio-option-row";
 import { useCreateTrade } from "@/features/groups/hooks/use-card-trades";
 import {
   useFriendGroupShareableLists,
@@ -191,24 +192,18 @@ function OfferBody({
             setQuantity(1);
           }}
         >
-          {choices.map((choice, index) => {
-            const inputId = `offer-printing-${choice.printing.id}`;
-            return (
-              <label
-                key={choice.printing.id}
-                htmlFor={inputId}
-                className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-2"
-              >
-                <RadioGroupItem id={inputId} value={String(index)} />
-                <span className="min-w-0 flex-1 truncate font-medium">
-                  {choice.printing.shortCode}
-                </span>
-                <span className="text-muted-foreground shrink-0 text-xs">
+          {choices.map((choice, index) => (
+            <RadioOptionRow
+              key={choice.printing.id}
+              value={String(index)}
+              title={choice.printing.shortCode}
+              meta={
+                <span className="text-muted-foreground text-xs">
                   {m.trades_owned_count({ count: choice.copyIds.length })}
                 </span>
-              </label>
-            );
-          })}
+              }
+            />
+          ))}
         </RadioGroup>
       </div>
     ) : null;
@@ -237,7 +232,7 @@ function OfferBody({
         {printingPicker}
         {stepper}
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
+          <DialogCancel />
           <Button type="submit" disabled={pending}>
             {m.trades_send_offer()}
           </Button>
@@ -285,36 +280,33 @@ function OfferBody({
       {printingPicker}
 
       <RadioGroup value={selectedId} onValueChange={(value) => setSelectedId(String(value))}>
-        {options.map((option) => {
-          const inputId = `offer-tradelist-${option.listId}`;
-          return (
-            <label
-              key={option.listId}
-              htmlFor={inputId}
-              className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-2"
-            >
-              <RadioGroupItem id={inputId} value={option.listId} />
-              <span className="min-w-0 flex-1 truncate font-medium">{option.listName}</span>
-              <span className="text-muted-foreground shrink-0 text-xs">
-                {m.common_copies({ count: option.entryCount })}
-              </span>
-              <Badge variant={option.isShared ? "secondary" : "outline"} className="shrink-0">
-                {option.isShared ? m.trades_shared() : m.trades_will_be_shared()}
-              </Badge>
-            </label>
-          );
-        })}
-        <label
-          htmlFor="offer-tradelist-new"
-          className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-2"
-        >
-          <RadioGroupItem id="offer-tradelist-new" value={NEW_LIST} />
-          <PlusSquareIcon className="text-muted-foreground size-4 shrink-0" />
-          <span className="flex-1 font-medium">{m.trades_new_tradelist()}</span>
-          <Badge variant="outline" className="shrink-0">
-            {m.trades_will_be_shared()}
-          </Badge>
-        </label>
+        {options.map((option) => (
+          <RadioOptionRow
+            key={option.listId}
+            value={option.listId}
+            title={option.listName}
+            meta={
+              <>
+                <span className="text-muted-foreground text-xs">
+                  {m.common_copies({ count: option.entryCount })}
+                </span>
+                <Badge variant={option.isShared ? "secondary" : "outline"}>
+                  {option.isShared ? m.trades_shared() : m.trades_will_be_shared()}
+                </Badge>
+              </>
+            }
+          />
+        ))}
+        <RadioOptionRow
+          value={NEW_LIST}
+          title={
+            <>
+              <PlusSquareIcon className="text-muted-foreground mr-2 inline size-4 align-text-bottom" />
+              {m.trades_new_tradelist()}
+            </>
+          }
+          meta={<Badge variant="outline">{m.trades_will_be_shared()}</Badge>}
+        />
       </RadioGroup>
 
       {selectedId === NEW_LIST ? (
@@ -329,7 +321,7 @@ function OfferBody({
       {stepper}
 
       <DialogFooter>
-        <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
+        <DialogCancel />
         {needsShare ? (
           <Button
             type="submit"

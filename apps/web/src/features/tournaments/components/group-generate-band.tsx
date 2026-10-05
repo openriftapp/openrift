@@ -5,9 +5,10 @@ import { useState } from "react";
 
 import { ActionBand } from "@/components/ui/action-band";
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -127,15 +128,14 @@ function MissingLegendDialog({
           ))}
         </ul>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            {m.common_cancel()}
-          </Button>
-          <Button
-            variant="outline"
-            render={<Link to="/tournaments/$id/participants" params={{ id }} />}
+          <DialogCancel />
+          <Link
+            to="/tournaments/$id/participants"
+            params={{ id }}
+            className={buttonVariants({ variant: "outline" })}
           >
             {m.tournaments_group_set_legends()}
-          </Button>
+          </Link>
           <Button variant="secondary" disabled={pending} onClick={onSkip}>
             {m.tournaments_group_skip_legend_tiebreak()}
           </Button>

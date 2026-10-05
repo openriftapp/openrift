@@ -30,7 +30,7 @@ vi.mock("@tanstack/react-router", () => {
   return { Link: Anchor, createLink: () => Anchor };
 });
 
-vi.mock("@/lib/auth-session", () => ({ useUserId: () => captured.userId }));
+vi.mock("@/hooks/use-session", () => ({ useUserId: () => captured.userId }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaLegendFinishes } from "./meta-legend-finishes";

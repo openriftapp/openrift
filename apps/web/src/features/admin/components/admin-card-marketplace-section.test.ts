@@ -1,17 +1,16 @@
 import type {
   StagedProductResponse,
+  UnifiedMappingGroupResponse,
+  UnifiedMappingPrintingResponse,
   UnifiedMappingsCardResponse,
 } from "@openrift/shared/types/api/admin";
 import { describe, expect, it } from "vitest";
 
-import type {
-  UnifiedMappingGroup,
-  UnifiedMappingPrinting,
-} from "@/features/admin/lib/price-mappings-types";
-
 import { applyOptimisticAssignmentForCard } from "./admin-card-marketplace-section";
 
-function printing(overrides: Partial<UnifiedMappingPrinting> = {}): UnifiedMappingPrinting {
+function printing(
+  overrides: Partial<UnifiedMappingPrintingResponse> = {},
+): UnifiedMappingPrintingResponse {
   return {
     printingId: "p-en",
     setId: "ogn",
@@ -55,13 +54,13 @@ function staged(overrides: Partial<StagedProductResponse> = {}): StagedProductRe
 
 function group(
   cardId: string,
-  printings: UnifiedMappingPrinting[],
+  printings: UnifiedMappingPrintingResponse[],
   perMarketplace: Partial<{
     tcgplayer: { staged: StagedProductResponse[]; assigned: StagedProductResponse[] };
     cardmarket: { staged: StagedProductResponse[]; assigned: StagedProductResponse[] };
     cardtrader: { staged: StagedProductResponse[]; assigned: StagedProductResponse[] };
   }> = {},
-): UnifiedMappingGroup {
+): UnifiedMappingGroupResponse {
   const empty = { staged: [], assigned: [] };
   const tcg = { ...empty, ...perMarketplace.tcgplayer };
   const cm = { ...empty, ...perMarketplace.cardmarket };
@@ -85,7 +84,7 @@ function group(
   };
 }
 
-function cardResponse(g: UnifiedMappingGroup | null): UnifiedMappingsCardResponse {
+function cardResponse(g: UnifiedMappingGroupResponse | null): UnifiedMappingsCardResponse {
   return { group: g, allCards: [] };
 }
 

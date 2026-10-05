@@ -1,4 +1,4 @@
-import { normalizeNameForIdentity } from "@openrift/shared/utils";
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 
 const TRIM_EDGES = /^[\s\-–—(:|/]+|[\s\-–—:|/]+$/gu;
 const ORPHAN_CLOSER = /^(?<head>[^(]*)\)/u;

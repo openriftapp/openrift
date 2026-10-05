@@ -2,12 +2,12 @@ import { filterCards } from "@openrift/shared/filters";
 import { getAvailableFilters } from "@openrift/shared/filters-available";
 import { computeFilterCounts } from "@openrift/shared/filters-counts";
 import { sortCards } from "@openrift/shared/filters-sort";
+import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { DistributionChannel, Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import type { CardFilters, GroupByField, SortOption } from "@openrift/shared/types/search";
 import { EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
-import { sortByLanguageAndCanonicalRank } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useDeferredValue } from "react";
 

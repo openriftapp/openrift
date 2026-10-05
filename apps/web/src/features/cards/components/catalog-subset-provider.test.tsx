@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { CatalogSubsetProvider } from "@/features/cards/components/catalog-subset-provider";
 import { useCards, useFullCatalog } from "@/features/cards/hooks/use-cards";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
-import { enrichCatalogSubset } from "@/features/cards/lib/catalog-query";
+import { enrichCatalogSubset } from "@/features/cards/lib/catalog-queries";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import { initQueryOptions } from "@/lib/init-queries";
 import { stubDeckBuilderCard, stubPrinting } from "@/test/factories";

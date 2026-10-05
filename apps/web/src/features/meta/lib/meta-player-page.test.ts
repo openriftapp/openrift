@@ -28,6 +28,8 @@ const ALL_TIME = { scope: { era: ERA_ALL, formats: [] }, eras: ERAS };
 const LUX = {
   cardId: "legend-lux",
   name: "Lux, Lady of Luminosity",
+  character: "Lux",
+  epithet: "Lady of Luminosity",
   slug: "lady-of-luminosity",
   imageId: "img-lux",
   domains: ["calm"],
@@ -37,6 +39,8 @@ const LUX = {
 const VI = {
   cardId: "legend-vi",
   name: "Vi, Piltover's Enforcer",
+  character: "Vi",
+  epithet: "Piltover's Enforcer",
   slug: "piltovers-enforcer",
   imageId: "img-vi",
   domains: ["fury"],
@@ -57,6 +61,8 @@ function deck({ event, ...overrides }: DeckOverrides = {}): MetaDeckSummary {
     format: "constructed",
     legendCardId: LUX.cardId,
     legendName: LUX.name,
+    legendCharacter: LUX.character,
+    legendEpithet: LUX.epithet,
     legendSlug: LUX.slug,
     legendArchiveSlug: LUX.archiveSlug,
     legendImageId: LUX.imageId,
@@ -274,6 +280,8 @@ describe("metaPlayerLegendDomains", () => {
     const ahri = {
       cardId: "card-ahri",
       name: "Ahri, Nine-Tailed Fox",
+      character: "Ahri",
+      epithet: "Nine-Tailed Fox",
       slug: "nine-tailed-fox",
       imageId: null,
       domains: ["calm", "mind"],

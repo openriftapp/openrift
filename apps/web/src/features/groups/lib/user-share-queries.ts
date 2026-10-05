@@ -1,12 +1,11 @@
 import { publicUserShareContract } from "@openrift/shared/contracts/public-user-share";
 import type { PublicListDetailResponse } from "@openrift/shared/types/api/list";
 import type { PublicUserBundleResponse } from "@openrift/shared/types/api/user-share";
-import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { userShareKeys } from "@/features/groups/lib/groups-query-keys";
-import { notFoundError } from "@/lib/server-fns/api-error";
+import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -16,18 +15,9 @@ import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 const fetchPublicUserBundleFn = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .validator((input: string) => input)
-  .handler(async ({ context, data: token }): Promise<PublicUserBundleResponse> => {
-    const { error, data } = await safe(
-      apiOrpcClient(publicUserShareContract, context.cookie).bundle({ token }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ context, data: token }): Promise<PublicUserBundleResponse> =>
+    orNotFound(apiOrpcClient(publicUserShareContract, context.cookie).bundle({ token })),
+  );
 
 export function publicUserBundleQueryOptions(token: string) {
   return queryOptions({
@@ -39,21 +29,14 @@ export function publicUserBundleQueryOptions(token: string) {
 const fetchPublicUserBundleListFn = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .validator((input: { token: string; listId: string }) => input)
-  .handler(async ({ context, data }): Promise<PublicListDetailResponse> => {
-    const { error, data: result } = await safe(
+  .handler(({ context, data }): Promise<PublicListDetailResponse> =>
+    orNotFound(
       apiOrpcClient(publicUserShareContract, context.cookie).bundleList({
         token: data.token,
         listId: data.listId,
       }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return result;
-  });
+    ),
+  );
 
 export function publicUserBundleListQueryOptions(token: string, listId: string) {
   return queryOptions({

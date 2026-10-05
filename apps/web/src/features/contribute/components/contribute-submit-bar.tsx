@@ -110,7 +110,8 @@ export function ContributeSubmitBar({
           <Button
             type="submit"
             className="self-start"
-            disabled={submit.isPending || submit.isSuccess}
+            pending={submit.isPending}
+            disabled={submit.isSuccess}
           >
             <SendIcon className="size-4" />
             {submit.isPending

@@ -3,12 +3,13 @@ import { Link } from "@tanstack/react-router";
 import { ArchiveIcon, PinIcon } from "lucide-react";
 
 import { cardLinkVariants } from "@/components/ui/card-link";
+import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { useHomeCollection } from "@/features/collections/hooks/use-home-collection";
-import { resolveFormatTagSummary } from "@/features/collections/lib/format-tag-config";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckFamilyEntry } from "@/features/decks/lib/deck-family";
 import { deckBoxPart } from "@/features/decks/lib/deck-meta";
+import { resolveFormatTagSummary } from "@/features/decks/lib/format-tag-config";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useCustomTagList } from "@/hooks/use-enums";
 import { getDomainGradientStyle } from "@/lib/domain";
@@ -21,7 +22,6 @@ import { DeckFormatText } from "./deck-format-badge";
 import { DeckIdentityLine } from "./deck-identity-line";
 import { DeckMetaLine } from "./deck-meta-line";
 import { DraftBadge, VariantCountToggle } from "./deck-variant-controls";
-import { DomainIcon } from "./domain-icon";
 import { LocalDeckActionsMenu } from "./local-deck-actions-menu";
 import { LocalDeckBadge } from "./local-save-hint";
 

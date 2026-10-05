@@ -99,7 +99,9 @@ vi.mock("@/components/layout/page-top-bar", () => ({
 vi.mock("@/features/cards/components/card-mini-row", () => ({ CardMiniRow: () => null }));
 vi.mock("./deck-mini-identity", () => ({ DeckMiniIdentity: () => null }));
 vi.mock("./deck-compare-paste-dialog", () => ({ DeckComparePasteDialog: () => null }));
-vi.mock("./hovered-card-preview", () => ({ HoveredCardPreview: () => null }));
+vi.mock("@/features/cards/components/hovered-card-preview", () => ({
+  HoveredCardPreview: () => null,
+}));
 
 vi.mock("@/features/cards/hooks/use-cards", async () => {
   const { stubCard } = await import("@/test/factories");

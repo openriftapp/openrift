@@ -8,8 +8,8 @@ import type {
   AnyDragData,
   SidebarReorderCollectionDragData,
   SidebarReorderListDragData,
-} from "@/features/collections/components/dnd-types";
-import { SIDEBAR_REORDER_DRAG_TYPES } from "@/features/collections/components/dnd-types";
+} from "@/features/collections/lib/dnd-types";
+import { SIDEBAR_REORDER_DRAG_TYPES } from "@/features/collections/lib/dnd-types";
 import { asDragData } from "@/lib/dnd-data";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";

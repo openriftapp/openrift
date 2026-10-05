@@ -8,7 +8,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
-import { legendDisplayName } from "@openrift/shared/utils";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { getRouteApi, Outlet } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -18,25 +18,24 @@ import { Footer } from "@/components/layout/footer";
 import {
   PAGE_TOP_BAR_STICKY_BASE,
   PageTopBarHeightContext,
-  useMeasuredHeight,
 } from "@/components/layout/page-top-bar";
 import { TopBarSlotContext } from "@/components/layout/top-bar-slot";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { CardDragGhost } from "@/features/cards/components/card-drag-ghost";
-import { FilterSearchProvider } from "@/features/cards/lib/search-schemas";
+import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
 import {
   resolveDropCopyIds,
   resolveSelectionDrag,
 } from "@/features/collections/components/collection-drag";
 import { CollectionSidebar } from "@/features/collections/components/collection-sidebar";
+import { useMoveCopies } from "@/features/collections/hooks/use-copies";
 import type {
   AnyDragData,
   CardDragData,
   ListEntryDragData,
-} from "@/features/collections/components/dnd-types";
-import { COLLECTION_DRAG_TYPES } from "@/features/collections/components/dnd-types";
-import { useMoveCopies } from "@/features/collections/hooks/use-copies";
+} from "@/features/collections/lib/dnd-types";
+import { COLLECTION_DRAG_TYPES } from "@/features/collections/lib/dnd-types";
 import { useDragPreviewStore } from "@/features/collections/stores/drag-preview-store";
 import { AddEntryToCollectionDialog } from "@/features/lists/components/add-entry-to-collection-dialog";
 import type { SidebarListDropData } from "@/features/lists/components/droppable-sidebar-list";
@@ -65,6 +64,7 @@ import {
   ruleEntryCopyInputs,
 } from "@/features/lists/lib/list-move";
 import { describeListAdd } from "@/features/lists/lib/list-toast";
+import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { ViewSurfaceProvider } from "@/hooks/use-view-prefs";
 import { asDragData } from "@/lib/dnd-data";
 import { isTypingTarget } from "@/lib/keyboard-target";

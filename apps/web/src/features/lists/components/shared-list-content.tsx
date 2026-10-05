@@ -1,27 +1,17 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type {
   ListEntryDetailResponse,
   ListKind,
   PublicListDetailResponse,
 } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { HandshakeIcon, HeartIcon, ListIcon, XIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 
-import {
-  PAGE_TOP_BAR_STICKY,
-  PageTopBarHeightContext,
-  useMeasuredHeight,
-} from "@/components/layout/page-top-bar";
+import { EmptyState } from "@/components/empty-state";
+import { PAGE_TOP_BAR_STICKY, PageTopBarHeightContext } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
 import { CountPillButton } from "@/components/ui/count-pill";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
 import {
   BrowserToolbar,
   CardBrowserFilterProvider,
@@ -39,9 +29,9 @@ import { useCardData } from "@/features/cards/hooks/use-card-data";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { FilterSearchProvider, useFilterSearch } from "@/features/cards/hooks/use-filter-search";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
-import { FilterSearchProvider, useFilterSearch } from "@/features/cards/lib/search-schemas";
 import { useCopies } from "@/features/collections/hooks/use-copies";
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
 import { OfferToWishlistDialog } from "@/features/groups/components/offer-to-wishlist-dialog";
@@ -71,7 +61,9 @@ import { useChannelRegistry } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
+import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
+import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -127,7 +119,7 @@ export function SharedListContent({ data, backLink, exchange, notice }: SharedLi
             backLink={backLink}
           />
         </div>
-        <div className="flex min-w-0 flex-1 flex-col px-3 pb-3">
+        <div className={cn(PAGE_PADDING_NO_TOP, "flex min-w-0 flex-1 flex-col")}>
           {notice}
           <SharedListBody data={data} exchange={exchange} />
         </div>
@@ -443,17 +435,13 @@ function SharedListGrid({
   );
 
   if (listPrintings.length === 0) {
-    const KindIcon = LIST_KIND_ICON[list.kind];
     return (
-      <Empty className="flex-1">
-        <EmptyHeader>
-          <EmptyMedia>
-            <KindIcon className="size-16 opacity-50" />
-          </EmptyMedia>
-          <EmptyTitle>{emptyTitleFor(list.kind)}</EmptyTitle>
-          <EmptyDescription>{m.lists_share_empty_description()}</EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <EmptyState
+        className="flex-1"
+        icon={LIST_KIND_ICON[list.kind]}
+        title={emptyTitleFor(list.kind)}
+        description={m.lists_share_empty_description()}
+      />
     );
   }
 

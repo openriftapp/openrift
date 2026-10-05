@@ -1,6 +1,6 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import { capitalize } from "@openrift/shared/strings";
 import type { DeckResponse } from "@openrift/shared/types/api/deck";
-import { capitalize } from "@openrift/shared/utils";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { Label } from "@/components/ui/label";
 import { useFilterActions } from "@/features/cards/hooks/use-card-filters";
-import { getFormatTagConfig } from "@/features/collections/lib/format-tag-config";
 import {
   TagMultiSelect,
   useCategoryTagSlugs,
 } from "@/features/decks/components/format-tag-multi-select";
 import { useUpdateDeckMeta } from "@/features/decks/hooks/use-decks";
+import { getFormatTagConfig } from "@/features/decks/lib/format-tag-config";
 import { m } from "@/paraglide/messages.js";
 
 /**

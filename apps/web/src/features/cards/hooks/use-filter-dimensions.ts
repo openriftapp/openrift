@@ -83,7 +83,7 @@ export function useSingleActiveFilterLabel({
   );
   // Every resolver falls back to the raw slug when the URL names a value the surface doesn't offer.
   const dimensionLabels: FilterDimensionLabels = {
-    language: (code) => languageLabels[code] ?? code,
+    language: (code) => enumLabel(languageLabels, code),
     set: (code) => setDisplayLabel?.(code) ?? code,
     domain: (slug) => formatDomainFilterLabel(slug, labels.domains),
     rarity: (slug) => enumLabel(labels.rarities, slug),

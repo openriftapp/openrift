@@ -14,6 +14,7 @@ import { Pressable } from "@/components/ui/pressable";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { LegendPickerDialog } from "@/features/match-tracker/components/legend-picker";
 import type { TrackedLegend } from "@/features/match-tracker/lib/match-legends";
+import { teamLabels } from "@/features/match-tracker/lib/match-teams";
 import type { TeamId } from "@/features/match-tracker/stores/match-tracker-store";
 import {
   MAX_PLAYERS,
@@ -21,7 +22,6 @@ import {
   teamMemberCounts,
   useMatchTrackerStore,
 } from "@/features/match-tracker/stores/match-tracker-store";
-import { teamLabels } from "@/features/tournaments/lib/match-teams";
 import { useNumericDraft } from "@/hooks/use-numeric-draft";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";

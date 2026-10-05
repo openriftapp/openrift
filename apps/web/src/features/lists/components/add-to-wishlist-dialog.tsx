@@ -4,7 +4,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogCancel,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { useBulkAddListEntries, useLists } from "@/features/lists/hooks/use-lists";
@@ -113,9 +119,7 @@ export function AddToWishlistDialog({
             <PlusIcon className="size-3.5" />
             {m.lists_add_new_wishlist()}
           </Button>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={bulkAdd.isPending}>
-            {m.common_cancel()}
-          </Button>
+          <DialogCancel disabled={bulkAdd.isPending} />
         </div>
       </DialogContent>
     </Dialog>

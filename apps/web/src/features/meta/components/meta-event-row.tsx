@@ -1,4 +1,4 @@
-import { dateLeafPartsUtc } from "@openrift/shared/format-date";
+import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaEventFinish, MetaEventSummary } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon } from "lucide-react";
@@ -6,12 +6,12 @@ import { ChevronRightIcon } from "lucide-react";
 import { CountryFlag } from "@/components/ui/country-flag";
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { RankBand } from "@/components/ui/rank-band";
+import { RowListLink } from "@/components/ui/row-list";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
-import { formatRank, formatRecord, metaEventCounts } from "@/features/meta/lib/meta-format";
+import { formatRank, metaEventCounts } from "@/features/meta/lib/meta-format";
 import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
-import { DATE_WORDS } from "@/lib/date-words";
 import { cn } from "@/lib/utils";
 
 /** Full width by design: a caller placing content beside the standings below must not squeeze this. */
@@ -22,13 +22,12 @@ export function MetaEventHeading({
   event: MetaEventSummary;
   showTier?: boolean;
 }) {
-  const leaf = dateLeafPartsUtc(event.eventDate, DATE_WORDS);
   const venue = [event.organizer, event.location].filter(Boolean).join(" · ");
   const counts = metaEventCounts(event);
 
   return (
     <span className="flex items-center gap-3">
-      <DateLeaf month={leaf.month} day={leaf.day} size="sm" />
+      <DateLeaf at={event.eventDate} clock="utc" size="sm" />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate font-semibold">{event.name}</span>
         <span className="text-muted-foreground truncate text-xs">{venue}</span>
@@ -74,11 +73,7 @@ export function MetaFinishRow({
         <span className={cn("truncate", finish.rank === 1 ? "font-semibold" : "font-medium")}>
           {finish.playerName}
         </span>
-        <MetaIdentity
-          name={finish.legend?.name}
-          domains={finish.legend?.domains}
-          className="text-sm"
-        />
+        <MetaIdentity legend={finish.legend} domains={finish.legend?.domains} className="text-sm" />
       </span>
       {record !== null && (
         <span className="text-muted-foreground ml-auto shrink-0 text-xs tabular-nums">
@@ -97,10 +92,9 @@ export function MetaEventRow({ event }: { event: MetaEventSummary }) {
   const winners = metaEventWinners(event);
 
   return (
-    <Link
-      to="/meta/$slug"
-      params={{ slug: event.slug }}
-      className="hover:bg-muted/50 focus-visible:ring-ring/50 -mx-2 flex flex-col gap-1.5 rounded-md px-2 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-inset"
+    <RowListLink
+      render={<Link to="/meta/$slug" params={{ slug: event.slug }} />}
+      className="flex-col items-stretch gap-1.5 py-2.5"
     >
       <MetaEventHeading event={event} />
       {winners.length > 0 && (
@@ -110,6 +104,6 @@ export function MetaEventRow({ event }: { event: MetaEventSummary }) {
           ))}
         </span>
       )}
-    </Link>
+    </RowListLink>
   );
 }

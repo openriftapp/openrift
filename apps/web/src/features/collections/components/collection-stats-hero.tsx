@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { CoinsIcon, CopyIcon, ImageOffIcon, SquareIcon, SquareStackIcon } from "lucide-react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 
+import { MarketplaceIcon } from "@/components/marketplace-icon";
 import { MarketplaceLink } from "@/components/marketplace-link";
 import { TextLink } from "@/components/ui/text-link";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
@@ -79,7 +80,7 @@ export function StatsHeroStats({ stats }: { stats: CollectionStats }) {
       >
         <span className="text-muted-foreground text-xs">
           <span className="flex items-center gap-1">
-            <img src={marketplace.icon} alt="" className="h-3 invert dark:invert-0" />
+            <MarketplaceIcon marketplace={stats.marketplace} />
             {marketplace.label}
           </span>
           {stats.unpricedCount > 0 && (

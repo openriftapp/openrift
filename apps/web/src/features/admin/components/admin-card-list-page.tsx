@@ -2,7 +2,7 @@ import type { PriceAssignBucket } from "@openrift/shared/price-assign-buckets";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { AlertTriangleIcon, PlusIcon } from "lucide-react";
 
-import { PageTopBarButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
+import { buttonVariants } from "@/components/ui/button";
 import { AdminCardsTable, ALL_SETS } from "@/features/admin/components/admin-cards-table";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
@@ -47,14 +47,14 @@ export function AdminCardListPage() {
         actions={
           isAdmin ? (
             <>
-              <PageTopBarButton render={<Link to="/admin/unmatched" />}>
+              <Link to="/admin/unmatched" className={buttonVariants({ variant: "ghost" })}>
                 <AlertTriangleIcon />
                 Unmatched {unmatchedCount}
-              </PageTopBarButton>
-              <PageTopBarPrimaryButton render={<Link to="/admin/cards/create" />}>
+              </Link>
+              <Link to="/admin/cards/create" className={buttonVariants()}>
                 <PlusIcon />
                 New card
-              </PageTopBarPrimaryButton>
+              </Link>
             </>
           ) : undefined
         }

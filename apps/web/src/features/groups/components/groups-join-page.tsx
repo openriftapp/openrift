@@ -2,15 +2,21 @@ import type { FriendGroupJoinPreviewResponse } from "@openrift/shared/types/api/
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 
-import { Heading } from "@/components/heading";
+import {
+  PageDescription,
+  PageTopBar,
+  PageTopBarBack,
+  PageTopBarSticky,
+  PageTopBarTitle,
+} from "@/components/layout/page-top-bar";
 import { MarkdownText } from "@/components/markdown-text";
-import { Button } from "@/components/ui/button";
+import { SignedOutAuthButtons } from "@/components/signed-out-cta";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SignedOutAuthButtons } from "@/features/account/components/signed-out-cta";
 import { useJoinFriendGroupByCode } from "@/features/groups/hooks/use-friend-group-mutations";
 import { friendGroupJoinPreviewQueryOptions } from "@/features/groups/hooks/use-friend-groups";
-import { useUserId } from "@/lib/auth-session";
-import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { useUserId } from "@/hooks/use-session";
+import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 interface GroupsJoinPageProps {
@@ -53,9 +59,9 @@ function JoinAction({
 
   return (
     <div className="flex justify-between gap-3">
-      <Button variant="ghost" render={<Link to="/groups" />}>
+      <Link to="/groups" className={buttonVariants({ variant: "ghost" })}>
         {m.common_cancel()}
-      </Button>
+      </Link>
       <Button
         onClick={() => void handleSubmit()}
         disabled={!code || previewLoading || joinByCode.isPending}
@@ -76,53 +82,58 @@ export function GroupsJoinPage({ code = "" }: GroupsJoinPageProps) {
   const deadLink = !code || preview.isError;
 
   return (
-    <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-6", PAGE_PADDING)}>
-      <div className="flex flex-col gap-2">
-        <Heading level={1}>{m.groups_join_title()}</Heading>
-        <p className="text-muted-foreground text-sm">{m.groups_join_subtitle()}</p>
+    <>
+      <PageTopBarSticky width="capped">
+        <PageTopBar>
+          <PageTopBarBack to="/groups" aria-label={m.groups_join_back()} />
+          <PageTopBarTitle>{m.groups_join_title()}</PageTopBarTitle>
+        </PageTopBar>
+      </PageTopBarSticky>
+      <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-6 pt-3 pb-12")}>
+        <PageDescription>{m.groups_join_subtitle()}</PageDescription>
+
+        {deadLink ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>{m.groups_join_dead_title()}</CardTitle>
+              <CardDescription>{m.groups_join_dead_description()}</CardDescription>
+            </CardHeader>
+          </Card>
+        ) : preview.data ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>{preview.data.name}</CardTitle>
+              <CardDescription>
+                {m.groups_member_count({ count: preview.data.memberCount })}
+              </CardDescription>
+            </CardHeader>
+            {preview.data.description ? (
+              <CardContent>
+                <MarkdownText
+                  text={preview.data.description}
+                  links="labeled"
+                  className="text-muted-foreground text-sm"
+                />
+              </CardContent>
+            ) : null}
+          </Card>
+        ) : null}
+
+        {deadLink ? (
+          <div className="flex justify-start">
+            <Link to="/groups" className={buttonVariants({ variant: "ghost" })}>
+              {m.groups_join_back()}
+            </Link>
+          </div>
+        ) : userId ? (
+          <JoinAction code={code} preview={preview.data} previewLoading={preview.isLoading} />
+        ) : preview.data ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-muted-foreground text-sm">{m.groups_join_signed_out()}</p>
+            <SignedOutAuthButtons signInLabel={m.groups_join_sign_in_label()} />
+          </div>
+        ) : null}
       </div>
-
-      {deadLink ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{m.groups_join_dead_title()}</CardTitle>
-            <CardDescription>{m.groups_join_dead_description()}</CardDescription>
-          </CardHeader>
-        </Card>
-      ) : preview.data ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{preview.data.name}</CardTitle>
-            <CardDescription>
-              {m.groups_member_count({ count: preview.data.memberCount })}
-            </CardDescription>
-          </CardHeader>
-          {preview.data.description ? (
-            <CardContent>
-              <MarkdownText
-                text={preview.data.description}
-                links="labeled"
-                className="text-muted-foreground text-sm"
-              />
-            </CardContent>
-          ) : null}
-        </Card>
-      ) : null}
-
-      {deadLink ? (
-        <div className="flex justify-start">
-          <Button variant="ghost" render={<Link to="/groups" />}>
-            {m.groups_join_back()}
-          </Button>
-        </div>
-      ) : userId ? (
-        <JoinAction code={code} preview={preview.data} previewLoading={preview.isLoading} />
-      ) : preview.data ? (
-        <div className="flex flex-col gap-3">
-          <p className="text-muted-foreground text-sm">{m.groups_join_signed_out()}</p>
-          <SignedOutAuthButtons signInLabel={m.groups_join_sign_in_label()} />
-        </div>
-      ) : null}
-    </div>
+    </>
   );
 }

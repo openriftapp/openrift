@@ -1,8 +1,9 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageUrl } from "@openrift/shared/image-url";
 import { findStandardArtFallback } from "@openrift/shared/standard";
 import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { CardPlaceholderImage } from "@/features/cards/components/card-placeholder-image";

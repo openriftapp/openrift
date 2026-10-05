@@ -45,6 +45,8 @@ function makeMember(
   return {
     playerId,
     displayName: playerId.toUpperCase(),
+    image: null,
+    gravatarHash: null,
     teamId: null,
     gamePoints: null,
     placement: null,

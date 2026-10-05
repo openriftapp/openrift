@@ -1,6 +1,6 @@
 import { LanguageChip } from "@/components/language-chip";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { useLanguages } from "@/hooks/use-languages";
+import { useLanguages } from "@/features/admin/hooks/use-languages";
 import { cn } from "@/lib/utils";
 
 export function PrintingLanguageHeader({ code, className }: { code: string; className?: string }) {

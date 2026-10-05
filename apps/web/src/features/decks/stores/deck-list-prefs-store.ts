@@ -6,11 +6,12 @@ import type {
   DeckListSortField,
   SortDir,
 } from "@/features/decks/lib/deck-list-utils";
+import { mergeFields, pickEnum } from "@/lib/persist-merge";
 import { useLocalViewPrefsStore } from "@/stores/view-prefs-store";
 
 type DeckListDensity = "grid" | "list";
 
-const DENSITY_OPTIONS: ReadonlySet<DeckListDensity> = new Set(["grid", "list"]);
+const DENSITY_OPTIONS: readonly DeckListDensity[] = ["grid", "list"];
 
 interface DeckListPrefsState {
   density: DeckListDensity;
@@ -30,15 +31,8 @@ export const useDeckListPrefsStore = create<DeckListPrefsState>()(
     {
       name: "openrift-deck-list-prefs",
       partialize: (state) => ({ density: state.density }),
-      merge: (persisted, current) => {
-        const raw = (persisted as Record<string, unknown>) ?? {};
-        const density = DENSITY_OPTIONS.has(raw.density as DeckListDensity)
-          ? (raw.density as DeckListDensity)
-          : current.density;
-        // Filter keys from the pre-URL blob are simply ignored — no version
-        // bump, so a stale bundle can never discard a newer preference.
-        return { ...current, density };
-      },
+      // Filter keys from the pre-URL blob are ignored, so a stale bundle never discards a newer preference.
+      merge: mergeFields<DeckListPrefsState>({ density: pickEnum(DENSITY_OPTIONS) }),
     },
   ),
 );

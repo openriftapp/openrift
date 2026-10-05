@@ -1,11 +1,12 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { getRouteApi } from "@tanstack/react-router";
+import { useState } from "react";
 import type { CSSProperties } from "react";
 
 import { PAGE_HERO_EYEBROW_CLASS, PageHero } from "@/components/layout/page-hero";
 import { PageToc, PageTocMobileTrigger } from "@/components/layout/page-toc";
-import { PAGE_TOP_BAR_GEOMETRY, useMeasuredHeight } from "@/components/layout/page-top-bar";
-import { SearchInput } from "@/features/cards/components/search-input";
+import { PAGE_TOP_BAR_GEOMETRY } from "@/components/layout/page-top-bar";
+import { SearchInput } from "@/components/search-input";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import {
   ArtVariantsSection,
@@ -28,40 +29,53 @@ import { KEYWORD_INFO } from "@/features/rules/lib/glossary";
 import type { KeywordRow, SetEntry } from "@/features/rules/lib/glossary-content";
 import { useMarkerList } from "@/hooks/use-enums";
 import { useIsStuck } from "@/hooks/use-is-stuck";
+import { useMeasuredHeight } from "@/hooks/use-measured-height";
+import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 import { initQueryOptions } from "@/lib/init-queries";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
+const route = getRouteApi("/_app/glossary");
+
+function buildKeywordRows(
+  keywords: Record<string, { color: string; darkText?: boolean }>,
+): KeywordRow[] {
+  const rows: KeywordRow[] = [];
+  const seen = new Set<string>();
+  for (const [name, entry] of Object.entries(keywords)) {
+    seen.add(name);
+    rows.push({ name, color: entry.color, darkText: entry.darkText, info: KEYWORD_INFO[name] });
+  }
+  for (const name of Object.keys(KEYWORD_INFO)) {
+    if (!seen.has(name)) {
+      rows.push({ name, info: KEYWORD_INFO[name] });
+    }
+  }
+  return rows.toSorted((a, b) => a.name.localeCompare(b.name));
+}
+
 export function GlossaryPage() {
   const { data: init } = useSuspenseQuery(initQueryOptions);
   const { data: setList } = useSuspenseQuery(publicSetListQueryOptions);
   const markers = useMarkerList();
-  const [query, setQuery] = useState("");
+  const { q } = route.useSearch();
+  const navigate = route.useNavigate();
+  const [query, setQuery] = useSearchUrlSync({
+    urlValue: q ?? "",
+    onCommit: (next) => {
+      void navigate({
+        search: (prev) => ({ ...prev, q: next === "" ? undefined : next }),
+        replace: true,
+        resetScroll: false,
+      });
+    },
+  });
   const [toolbarEl, setToolbarEl] = useState<HTMLDivElement | null>(null);
   const isToolbarStuck = useIsStuck(toolbarEl);
   const toolbarHeight = useMeasuredHeight(toolbarEl);
 
-  const keywordRows = useMemo<KeywordRow[]>(() => {
-    const rows: KeywordRow[] = [];
-    const seen = new Set<string>();
-    for (const [name, entry] of Object.entries(init.keywords ?? {})) {
-      seen.add(name);
-      rows.push({
-        name,
-        color: entry.color,
-        darkText: entry.darkText,
-        info: KEYWORD_INFO[name],
-      });
-    }
-    for (const name of Object.keys(KEYWORD_INFO)) {
-      if (!seen.has(name)) {
-        rows.push({ name, info: KEYWORD_INFO[name] });
-      }
-    }
-    rows.sort((a, b) => a.name.localeCompare(b.name));
-    return rows;
-  }, [init.keywords]);
+  const keywordRows = buildKeywordRows(init.keywords ?? {});
 
   const domains = init.enums.domains ?? [];
   const rarities = init.enums.rarities ?? [];
@@ -108,7 +122,7 @@ export function GlossaryPage() {
             value={query}
             onValueChange={setQuery}
             placeholder={m.glossary_search_placeholder()}
-            ariaLabel={m.glossary_search_placeholder()}
+            aria-label={m.glossary_search_placeholder()}
             className="min-w-0 flex-1"
           />
         </div>

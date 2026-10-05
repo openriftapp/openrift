@@ -45,6 +45,8 @@ describe("archivedDeckIdentity", () => {
     expect(archivedDeckIdentity([legend, card()])).toEqual({
       cardId: "legend-1",
       name: "Volibear, Relentless Storm",
+      character: "Volibear",
+      epithet: "Relentless Storm",
       slug: "relentless-storm",
       domains: ["fury", "body"],
     });
@@ -60,7 +62,11 @@ describe("archivedDeckIdentity", () => {
       cardTypes: ["unit"],
       tags: ["Volibear"],
     });
-    expect(archivedDeckIdentity([champion, card()])?.name).toBe("Volibear, Thunder's Roar");
+    expect(archivedDeckIdentity([champion, card()])).toMatchObject({
+      name: "Volibear, Thunder's Roar",
+      character: null,
+      epithet: "Volibear, Thunder's Roar",
+    });
   });
 
   it("returns null when neither identity zone holds a card", () => {

@@ -1,6 +1,6 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { useEffect } from "react";
 
 import { cardsViewTileKey, splitsCardIntoTiles } from "@/features/cards/lib/card-tiles";
@@ -13,16 +13,14 @@ import {
   computeDragSelectionSummary,
   dragSelectionNoun,
 } from "@/features/collections/lib/collection-drag";
-import {
-  computeShiftRange,
-  resolveContextActionTarget,
-} from "@/features/collections/lib/stack-selection";
+import { resolveContextActionTarget } from "@/features/collections/lib/stack-selection";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
 import type { VariantPopoverIntent } from "@/features/collections/stores/add-mode-store";
 import { useCollectionOverlayStore } from "@/features/collections/stores/collection-overlay-store";
 import { useDragPreviewStore } from "@/features/collections/stores/drag-preview-store";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
+import { computeShiftRange } from "@/lib/shift-range";
 import { useSelectionStore } from "@/stores/selection-store";
 
 function printingsArrayEqual(a: readonly Printing[], b: readonly Printing[]): boolean {

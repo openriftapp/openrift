@@ -26,7 +26,7 @@ vi.mock("@/lib/site-config", () => ({ getSiteUrl: () => "https://openrift.app" }
 
 vi.mock("@/features/decks/hooks/use-deck-builder", () => ({ useDeckCards: () => [] }));
 
-vi.mock("@/lib/auth-session", () => ({ useSession: () => ({ data: undefined }) }));
+vi.mock("@/hooks/use-session", () => ({ useSession: () => ({ data: undefined }) }));
 
 // Only the client read is stubbed; the module graph pulls a real QueryClient through the server cache.
 vi.mock("@tanstack/react-query", async (importOriginal) => ({

@@ -3,6 +3,7 @@ import { notFound, redirect } from "@tanstack/react-router";
 
 import { tournamentRunStateQueryOptions } from "@/features/tournaments/lib/tournament-run-queries";
 import { tournamentDetailQueryOptions } from "@/features/tournaments/lib/tournaments-queries";
+import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 
 /** Converts the server fn's NOT_FOUND sentinel into the router's notFound. */
 export async function loadTournamentDetail(queryClient: QueryClient, userId: string, id: string) {
@@ -12,7 +13,7 @@ export async function loadTournamentDetail(queryClient: QueryClient, userId: str
       staleTime: "static",
     });
   } catch (error) {
-    if (error instanceof Error && error.message === "NOT_FOUND") {
+    if (isNotFoundSentinel(error)) {
       throw notFound();
     }
     throw error;

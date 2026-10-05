@@ -1,17 +1,12 @@
 import { useDraggable } from "@dnd-kit/core";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
-import {
-  AlertTriangleIcon,
-  HandHeartIcon,
-  LockIcon,
-  MinusIcon,
-  PlusIcon,
-  XIcon,
-} from "lucide-react";
+import { AlertTriangleIcon, HandHeartIcon, LockIcon, PlusIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { InlineCountStepper } from "@/components/ui/inline-count-stepper";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { cardHoverProps, rowActivateProps } from "@/features/cards/lib/card-row-interactions";
@@ -98,7 +93,7 @@ export function PowerPips({
   if (power === null || power <= 0) {
     return null;
   }
-  const named = domains.map((domain) => domainLabels[domain]).join(", ");
+  const named = domains.map((domain) => enumLabel(domainLabels, domain)).join(", ");
   const label =
     named.length > 0
       ? m.decks_editor_power_with_domains({ power, domains: named })
@@ -124,8 +119,9 @@ export function EnergyGlyph({ value }: { value: number }) {
   );
 }
 
-function CardControls({
+export function CardControls({
   controlMode,
+  cardName,
   quantity,
   countWidthClass,
   shiftHeld,
@@ -134,6 +130,7 @@ function CardControls({
   onRemove,
 }: {
   controlMode: ControlMode;
+  cardName: string;
   quantity: number;
   countWidthClass: string;
   shiftHeld?: boolean;
@@ -167,57 +164,20 @@ function CardControls({
   }
 
   return (
-    <span className="flex shrink-0 items-center gap-1">
-      <span className="contents md:hidden md:group-hover/card:contents">
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant={shiftHeld && quantity > 1 ? "destructive" : "ghost"}
-                size="icon-sm"
-                className="size-5"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onDecrement?.(event);
-                }}
-                disabled={!onDecrement}
-              />
-            }
-          >
-            {shiftHeld && quantity > 1 ? (
-              <span className="text-2xs leading-none font-semibold">-{quantity}</span>
-            ) : (
-              <MinusIcon className="size-3" />
-            )}
-          </TooltipTrigger>
-          <TooltipContent>{m.decks_editor_shift_remove_all()}</TooltipContent>
-        </Tooltip>
-      </span>
-      <span className={cn("text-right text-xs font-medium tabular-nums", countWidthClass)}>
-        {quantity}×
-      </span>
-      <span className="contents md:hidden md:group-hover/card:contents">
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant={shiftHeld && onIncrement ? "default" : "ghost"}
-                size="icon-sm"
-                className="size-5"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onIncrement?.(event);
-                }}
-                disabled={!onIncrement}
-              />
-            }
-          >
-            <PlusIcon className="size-3" />
-          </TooltipTrigger>
-          <TooltipContent>{m.decks_editor_shift_add_max()}</TooltipContent>
-        </Tooltip>
-      </span>
-    </span>
+    <InlineCountStepper
+      size="xs"
+      className="md:[&>button]:hidden md:group-hover/card:[&>button]:inline-flex"
+      count={<span className={cn("block text-right", countWidthClass)}>{quantity}×</span>}
+      decrementLabel={m.decks_editor_remove_one_copy({ card: cardName })}
+      incrementLabel={m.decks_editor_add_one_copy({ card: cardName })}
+      onDecrement={onDecrement}
+      onIncrement={onIncrement}
+      bulk={shiftHeld}
+      bulkDecrementLabel={quantity > 1 ? `-${quantity}` : undefined}
+      bulkIncrementLabel={<PlusIcon className="size-3" />}
+      decrementTooltip={m.decks_editor_shift_remove_all()}
+      incrementTooltip={m.decks_editor_shift_add_max()}
+    />
   );
 }
 
@@ -247,10 +207,16 @@ export function DeckCardRow({
   const { labels } = useEnumOrders();
   const enableDrag = draggable && !isMobile;
 
+  const cardName = legendDisplayName({
+    name: card.cardName,
+    types: card.cardTypes,
+    tags: card.tags,
+  });
+
   const dragData: DeckCardDragData = {
     type: "deck-card",
     cardId: card.cardId,
-    cardName: legendDisplayName({ name: card.cardName, types: card.cardTypes, tags: card.tags }),
+    cardName,
     fromZone: card.zone as DeckZone,
     quantity: card.quantity,
     preferredPrintingId: card.preferredPrintingId,
@@ -289,6 +255,7 @@ export function DeckCardRow({
 
       <CardControls
         controlMode={controlMode}
+        cardName={cardName}
         quantity={displayQuantity}
         countWidthClass={countWidthClass}
         shiftHeld={shiftHeld}
@@ -297,9 +264,7 @@ export function DeckCardRow({
         onRemove={onRemove}
       />
 
-      <span className="min-w-0 flex-1 truncate text-left">
-        {legendDisplayName({ name: card.cardName, types: card.cardTypes, tags: card.tags })}
-      </span>
+      <span className="min-w-0 flex-1 truncate text-left">{cardName}</span>
 
       {shortfall !== undefined && shortfall > 0 && (
         <Tooltip>

@@ -7,8 +7,8 @@ import { EmptyState } from "@/components/empty-state";
 import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";
 import { PersonPageHeader } from "@/components/person-page-header";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { RowList } from "@/components/ui/row-list";
+import { buttonVariants } from "@/components/ui/button";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { CardDetailOverlayProvider } from "@/features/cards/components/card-detail-opener";
 import {
@@ -20,17 +20,17 @@ import {
   useFriendGroupDetail,
   useFriendGroupMemberDetail,
 } from "@/features/groups/hooks/use-friend-groups";
+import { roleLabel } from "@/features/groups/lib/group-roles";
 import {
   bucketMemberTrades,
   countTradeSuggestions,
   withoutLiveTradeMatches,
 } from "@/features/groups/lib/trade-derivation";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { ContactMethodChips } from "./contact-method-chips";
-import { roleLabel } from "./friend-group-shell";
 import { SharedCollectionRow } from "./shared-collection-row";
 import { SharedListRow } from "./shared-list-row";
 
@@ -119,9 +119,14 @@ function MemberTradeSection({
       <SectionHeading>{m.groups_nav_trades()}</SectionHeading>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="min-w-0">{tradeSummary}</p>
-        <Button render={<Link to="/trades/$userId" params={{ userId }} search={{ from: slug }} />}>
+        <Link
+          to="/trades/$userId"
+          params={{ userId }}
+          search={{ from: slug }}
+          className={buttonVariants()}
+        >
           {m.groups_member_open_trade_sheet()}
-        </Button>
+        </Link>
       </div>
       {hasSharedAnything ? null : (
         <p className="text-muted-foreground">
@@ -186,9 +191,9 @@ export function MemberDetailPage({ slug, userId }: MemberDetailPageProps) {
               <SectionHeading>{m.groups_nav_collections()}</SectionHeading>
               <RowList>
                 {sortedCollections.map((share) => (
-                  <li key={share.collectionId}>
+                  <RowListItem key={share.collectionId}>
                     <SharedCollectionRow slug={slug} share={share} />
-                  </li>
+                  </RowListItem>
                 ))}
               </RowList>
             </section>

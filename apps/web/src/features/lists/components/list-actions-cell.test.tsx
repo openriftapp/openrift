@@ -9,7 +9,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ListActionsCell } from "@/features/lists/components/list-actions-cell";
-import { buildListTradeIndex } from "@/features/lists/components/list-trade-status";
+import { buildListTradeIndex } from "@/features/lists/lib/list-trade-status";
 import { EMPTY_TRADE_PREFERENCE, stubPrinting } from "@/test/factories";
 
 vi.mock("@tanstack/react-router", () => ({

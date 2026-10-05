@@ -1,13 +1,14 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { matchesCardQuery } from "@openrift/shared/card-search";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
-import { SearchIcon, ShoppingCartIcon } from "lucide-react";
+import { ShoppingCartIcon } from "lucide-react";
 import { useState } from "react";
 
+import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import {
   Select,
   SelectContent,
@@ -16,11 +17,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UserAvatarStack } from "@/components/user-avatar-stack";
 import { CardThumbnail } from "@/features/cards/components/card-thumbnail";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
-import { SourceAvatars } from "@/features/groups/components/source-avatars";
 import {
   HiddenSuggestions,
   PeopleFilter,
@@ -42,7 +43,7 @@ import {
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
 import { wantedMatchesPrinting } from "@/features/groups/lib/wanted-cards";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { formatterForMarketplace } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -56,6 +57,7 @@ const GRID =
 const GRID_SIZES =
   "(min-width: 1280px) calc(100vw / 7), (min-width: 1024px) calc(100vw / 6), (min-width: 768px) calc(100vw / 4), (min-width: 640px) calc(100vw / 3), 50vw";
 const BADGE_POSITION = "pointer-events-none absolute bottom-1.5 left-1.5 z-30";
+const MAX_SOURCE_AVATARS = 3;
 
 function whoLine(card: TradeMarketCard): string {
   const [first] = card.sources;
@@ -72,15 +74,20 @@ function whoLine(card: TradeMarketCard): string {
 }
 
 function EmptyTab({ tab, searching }: { tab: MarketTab; searching: boolean }) {
-  if (searching) {
-    return <p className="text-muted-foreground py-6">{m.trades_market_no_match()}</p>;
-  }
-  const text = {
-    get: m.trades_market_empty_get(),
-    give: m.trades_market_empty_give(),
-    buy: m.trades_market_empty_buy(),
-  }[tab];
-  return <p className="text-muted-foreground py-6">{text}</p>;
+  const text = searching
+    ? m.trades_market_no_match()
+    : {
+        get: m.trades_market_empty_get(),
+        give: m.trades_market_empty_give(),
+        buy: m.trades_market_empty_buy(),
+      }[tab];
+  return (
+    <Empty>
+      <EmptyHeader>
+        <EmptyDescription>{text}</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  );
 }
 
 type MarketPick =
@@ -108,9 +115,9 @@ function BuyAllCallout({
         </p>
       </div>
       {allInCart ? (
-        <Button size="sm" variant="outline" render={<Link to="/trades/buy" />}>
+        <Link to="/trades/buy" className={buttonVariants({ variant: "outline", size: "sm" })}>
           {m.trades_market_view_cart()}
-        </Button>
+        </Link>
       ) : (
         <Button size="sm" onClick={onAddAll}>
           <ShoppingCartIcon />
@@ -243,18 +250,12 @@ export function TradeMarket() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <InputGroup className="w-full sm:w-64">
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-            <InputGroupInput
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={m.trades_market_search_placeholder()}
-              aria-label={m.trades_market_search_placeholder()}
-            />
-          </InputGroup>
+          <SearchInput
+            value={query}
+            onValueChange={setQuery}
+            placeholder={m.trades_market_search_placeholder()}
+            className="w-full sm:w-64"
+          />
           {tab === "buy" || groups.length < 2 ? null : (
             <Select
               items={groupItems}
@@ -372,7 +373,15 @@ export function TradeMarket() {
                     }
                     belowLabel={
                       <span className="text-muted-foreground mt-1 flex min-w-0 items-center gap-2 px-1.5 text-sm">
-                        <SourceAvatars sources={card.sources} />
+                        <UserAvatarStack
+                          size="sm"
+                          members={card.sources.slice(0, MAX_SOURCE_AVATARS).map((source) => ({
+                            userId: source.userId,
+                            userName: source.name,
+                            userImage: source.image,
+                            gravatarHash: source.gravatarHash,
+                          }))}
+                        />
                         <span className="truncate">{whoLine(card)}</span>
                       </span>
                     }

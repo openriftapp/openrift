@@ -1,5 +1,5 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CardType, DeckZone, Domain, SuperType } from "@openrift/shared/types/enums";
-import { legendDisplayName } from "@openrift/shared/utils";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 

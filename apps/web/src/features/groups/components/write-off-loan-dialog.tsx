@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -11,7 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RadioGroup } from "@/components/ui/radio-group";
+import { RadioOptionRow } from "@/components/ui/radio-option-row";
 import { m } from "@/paraglide/messages.js";
 
 interface WriteOffLoanDialogProps {
@@ -47,36 +48,22 @@ export function WriteOffLoanDialog({
           <RadioGroup
             value={removeCopies ? "remove" : "keep"}
             onValueChange={(value) => setRemoveCopies(value === "remove")}
-            className="gap-2 py-1"
+            className="gap-1 py-1"
           >
-            <label
-              htmlFor="write-off-remove"
-              className="hover:bg-muted/50 flex cursor-pointer items-start gap-3 rounded-md border p-3"
-            >
-              <RadioGroupItem id="write-off-remove" value="remove" className="mt-0.5" />
-              <span className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium">{m.loans_write_off_remove_label()}</span>
-                <span className="text-muted-foreground text-xs">
-                  {m.loans_write_off_remove_hint({ count: outstanding })}
-                </span>
-              </span>
-            </label>
-            <label
-              htmlFor="write-off-keep"
-              className="hover:bg-muted/50 flex cursor-pointer items-start gap-3 rounded-md border p-3"
-            >
-              <RadioGroupItem id="write-off-keep" value="keep" className="mt-0.5" />
-              <span className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium">{m.loans_write_off_keep_label()}</span>
-                <span className="text-muted-foreground text-xs">
-                  {m.loans_write_off_keep_hint({ count: outstanding })}
-                </span>
-              </span>
-            </label>
+            <RadioOptionRow
+              value="remove"
+              title={m.loans_write_off_remove_label()}
+              description={m.loans_write_off_remove_hint({ count: outstanding })}
+            />
+            <RadioOptionRow
+              value="keep"
+              title={m.loans_write_off_keep_label()}
+              description={m.loans_write_off_keep_hint({ count: outstanding })}
+            />
           </RadioGroup>
 
           <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
+            <DialogCancel />
             <Button type="submit" variant="destructive" disabled={pending}>
               {m.loans_write_off_confirm()}
             </Button>

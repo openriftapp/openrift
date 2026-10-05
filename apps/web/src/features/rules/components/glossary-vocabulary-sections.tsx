@@ -1,6 +1,9 @@
+import { CardIcon } from "@/components/card-icon";
 import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { RowList } from "@/components/ui/row-list";
+import { DomainIcon } from "@/features/cards/components/domain-icon";
+import { FilterIcon } from "@/features/cards/components/filter-icon";
 import { keywordAnchorSlug } from "@/features/rules/lib/glossary";
 import type { KeywordRow } from "@/features/rules/lib/glossary-content";
 import {
@@ -10,7 +13,6 @@ import {
   supertypeEntries,
 } from "@/features/rules/lib/glossary-content";
 import { matches } from "@/features/rules/lib/glossary-search";
-import { getFilterIconPath } from "@/lib/icons";
 import { m } from "@/paraglide/messages.js";
 
 import {
@@ -39,18 +41,11 @@ export function DomainsSection({
         {visible.map((domain) => {
           const slug = domain.slug.toLowerCase();
           const hasIcon = slug !== "colorless";
-          const domainIcon = getFilterIconPath("domains", domain.slug);
           const ruleNumber = DOMAIN_RULES[slug];
           return (
             <GlossaryTermTile key={domain.slug} className="flex-row items-center gap-3">
-              {hasIcon && domainIcon && (
-                <img
-                  src={domainIcon}
-                  alt={domain.label}
-                  width={40}
-                  height={40}
-                  className="size-10 shrink-0"
-                />
+              {hasIcon && (
+                <DomainIcon domain={domain.slug} tooltip={false} className="size-10 shrink-0" />
               )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
@@ -103,17 +98,14 @@ export function CardTypesSection({
             {visible.map((cardType) => {
               const slug = cardType.slug.toLowerCase();
               const hasIcon = knownIcons.has(slug);
-              const typeIcon = getFilterIconPath("types", cardType.slug);
               const ruleNumber = CARD_TYPE_RULES[slug];
               return (
                 <GlossaryTermTile key={cardType.slug} className="flex-row items-center gap-3">
-                  {hasIcon && typeIcon && (
-                    <img
-                      src={typeIcon}
-                      alt={cardType.label}
-                      width={32}
-                      height={32}
-                      className="size-8 shrink-0 brightness-0 dark:invert"
+                  {hasIcon && (
+                    <FilterIcon
+                      category="types"
+                      value={cardType.slug}
+                      className="size-8 shrink-0"
                     />
                   )}
                   <div className="flex min-w-0 flex-1 items-baseline justify-between gap-2">
@@ -133,31 +125,24 @@ export function CardTypesSection({
           </Heading>
           <p className="text-muted-foreground mt-1">{m.glossary_supertypes_intro()}</p>
           <RowList className="mt-3">
-            {visibleSupertypes.map((supertype) => {
-              const supertypeIcon = getFilterIconPath("superTypes", supertype.slug);
-              return (
-                <GlossaryTermRow
-                  key={supertype.slug}
-                  term={
-                    <>
-                      {supertypeIcon && (
-                        <img
-                          src={supertypeIcon}
-                          alt=""
-                          width={20}
-                          height={20}
-                          className="size-5 shrink-0 brightness-0 dark:invert"
-                        />
-                      )}
-                      {supertype.label}
-                    </>
-                  }
-                >
-                  <p className="text-muted-foreground flex-1">{supertype.description}</p>
-                  <RuleRef ruleNumber={supertype.ruleNumber} className="shrink-0" />
-                </GlossaryTermRow>
-              );
-            })}
+            {visibleSupertypes.map((supertype) => (
+              <GlossaryTermRow
+                key={supertype.slug}
+                term={
+                  <>
+                    <FilterIcon
+                      category="superTypes"
+                      value={supertype.slug}
+                      className="size-5 shrink-0"
+                    />
+                    {supertype.label}
+                  </>
+                }
+              >
+                <p className="text-muted-foreground flex-1">{supertype.description}</p>
+                <RuleRef ruleNumber={supertype.ruleNumber} className="shrink-0" />
+              </GlossaryTermRow>
+            ))}
           </RowList>
         </>
       )}
@@ -236,13 +221,7 @@ export function SymbolsSection({ query }: { query: string }) {
         {visible.map((sym) => (
           <GlossaryTermTile key={sym.key} className="flex-row items-start gap-3">
             {sym.icon ? (
-              <img
-                src={sym.icon}
-                alt={sym.label}
-                width={32}
-                height={32}
-                className="size-8 shrink-0 brightness-0 dark:invert"
-              />
+              <CardIcon src={sym.icon} alt={sym.label} className="size-8 shrink-0" />
             ) : (
               <div className="size-8 shrink-0" aria-hidden="true" />
             )}

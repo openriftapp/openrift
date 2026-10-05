@@ -1,6 +1,7 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Suspense, lazy } from "react";
 
+import { CardIcon } from "@/components/card-icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { useDisplayStore } from "@/stores/display-store";
@@ -38,7 +39,7 @@ export function CardFooter({
   return (
     <div className="mt-2 space-y-2">
       <p className="text-muted-foreground flex items-center gap-1 text-xs">
-        <img src="/images/artist.svg" alt="" className="size-3.5 brightness-0 dark:invert" />
+        <CardIcon src="/images/artist.svg" className="size-3.5" />
         {printing.artist}
       </p>
       {frontImage?.credit !== undefined && <ImageCreditLine credit={frontImage.credit} />}

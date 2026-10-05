@@ -1,19 +1,19 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatRelativeTime } from "@openrift/shared/format-date";
 import type { LoanResponse } from "@openrift/shared/types/api/loan";
-import { getOrientation } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
-import { ChevronRightIcon, EllipsisVerticalIcon, HandHeartIcon } from "lucide-react";
+import { EllipsisVerticalIcon, HandHeartIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Disclosure } from "@/components/disclosure";
 import { EmptyState } from "@/components/empty-state";
 import { PageHero, PageHeroStats } from "@/components/layout/page-hero";
 import type { PageHeroStat } from "@/components/layout/page-hero";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { CardRow } from "@/components/ui/card-list";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -117,7 +117,6 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
             <CardMetaLine
               shortCode={printing.shortCode}
               rarity={printing.rarity}
-              rarityLabel={enumLabel(labels.rarities, printing.rarity)}
               finish={printing.finish}
               finishLabel={enumLabel(labels.finishes, printing.finish)}
             />
@@ -401,7 +400,7 @@ export function LoansPage() {
             title={m.loans_empty_title()}
             description={m.loans_empty_description()}
           >
-            <Link to="/collections" className={buttonVariants({ variant: "default" })}>
+            <Link to="/collections" className={buttonVariants()}>
               {m.loans_empty_cta()}
             </Link>
           </EmptyState>
@@ -412,21 +411,18 @@ export function LoansPage() {
         <LoanGroup heading={m.loans_group_borrowed()} loans={borrowed} />
 
         {history.length > 0 ? (
-          <Collapsible>
-            <CollapsibleTrigger className="group flex w-full items-center gap-1.5">
-              <ChevronRightIcon className="size-3.5 transition-transform group-data-[panel-open]:rotate-90" />
-              <SectionHeading as="span" count={history.length}>
-                {m.loans_group_history()}
-              </SectionHeading>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pt-2">
-              <ul className="flex flex-col gap-2">
-                {history.map((loan) => (
-                  <LoanRow key={loan.id} loan={loan} />
-                ))}
-              </ul>
-            </CollapsibleContent>
-          </Collapsible>
+          <Disclosure
+            variant="heading"
+            headingLevel="h2"
+            title={m.loans_group_history()}
+            count={history.length}
+          >
+            <ul className="flex flex-col gap-2">
+              {history.map((loan) => (
+                <LoanRow key={loan.id} loan={loan} />
+              ))}
+            </ul>
+          </Disclosure>
         ) : null}
       </div>
     </>

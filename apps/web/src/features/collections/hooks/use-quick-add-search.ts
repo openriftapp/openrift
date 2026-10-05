@@ -1,7 +1,7 @@
+import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
 import type { SearchablePrintingCodes } from "@openrift/shared/card-search";
 import { buildCardIndex, searchCards } from "@openrift/shared/card-search";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/utils";
 import { useMemo } from "react";
 
 import type { QuickAddCardResult } from "@/features/collections/lib/quick-add-result";

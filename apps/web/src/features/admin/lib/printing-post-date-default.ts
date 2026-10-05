@@ -1,7 +1,7 @@
+import { todayUtc } from "@openrift/shared/format-date";
 import { releasePostDate } from "@openrift/shared/printing-post-date";
 import type { PostImageLabel } from "@openrift/shared/printing-post-image";
 import type { SetRelease } from "@openrift/shared/set-release";
-import { todayUtc } from "@openrift/shared/set-release";
 
 export const POST_DATE_NONE = "none";
 

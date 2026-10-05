@@ -3,12 +3,8 @@ import type { JobRunStartedResponse } from "@openrift/shared/types/api/admin";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
-import { getLatestJobRunFn } from "@/features/admin/hooks/refresh-actions";
-import {
-  adminPrintingEventsQueryOptions,
-  PRINTING_EVENTS_KEY,
-} from "@/features/admin/lib/flush-printing-events-queries";
-import type { JobRunView } from "@/lib/server-fns/api-types";
+import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { adminPrintingEventsQueryOptions } from "@/features/admin/lib/flush-printing-events-queries";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -24,9 +20,7 @@ export interface FlushPrintingEventsResult {
   failures?: WebhookFailure[];
 }
 
-const FLUSH_PRINTING_EVENTS_KIND = "discord.flush_printing_events";
-
-const FLUSH_RUN_KEY = ["admin", "job-runs", FLUSH_PRINTING_EVENTS_KIND] as const;
+export const FLUSH_PRINTING_EVENTS_KIND = "discord.flush_printing_events";
 
 const flushPrintingEventsFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
@@ -41,20 +35,11 @@ export function useFlushPrintingEvents() {
     onSuccess: () => {
       // Surface the new running row immediately and refresh the queue list
       // once the flush completes; the run-poll hook drives intermediate state.
-      void queryClient.invalidateQueries({ queryKey: FLUSH_RUN_KEY });
-      void queryClient.invalidateQueries({ queryKey: PRINTING_EVENTS_KEY });
+      void queryClient.invalidateQueries({
+        queryKey: adminKeys.jobRunsByKind(FLUSH_PRINTING_EVENTS_KIND),
+      });
+      void queryClient.invalidateQueries({ queryKey: adminKeys.printingEvents });
     },
-  });
-}
-
-export function useLatestFlushRun() {
-  return useQuery({
-    queryKey: FLUSH_RUN_KEY,
-    queryFn: async (): Promise<JobRunView | null> => {
-      const response = await getLatestJobRunFn({ data: { kind: FLUSH_PRINTING_EVENTS_KIND } });
-      return response.runs[0] ?? null;
-    },
-    refetchInterval: (query) => (query.state.data?.status === "running" ? 2000 : 60_000),
   });
 }
 
@@ -65,8 +50,6 @@ export function isFlushPrintingEventsResult(value: unknown): value is FlushPrint
   const candidate = value as { sent?: unknown; failed?: unknown };
   return typeof candidate.sent === "number" && typeof candidate.failed === "number";
 }
-
-export type { PrintingEventView } from "@/lib/server-fns/api-types";
 
 export function useAdminPrintingEvents() {
   return useQuery(adminPrintingEventsQueryOptions);
@@ -83,6 +66,6 @@ export function useRetryPrintingEvents() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (ids: string[]) => retryPrintingEventsFn({ data: { ids } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: PRINTING_EVENTS_KEY }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.printingEvents }),
   });
 }

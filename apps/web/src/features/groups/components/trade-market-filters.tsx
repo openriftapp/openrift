@@ -1,9 +1,9 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { TradeSuggestionDismissal } from "@openrift/shared/types/api/card-trade";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, EyeOffIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { SectionHeading } from "@/components/ui/section-heading";
 import {
@@ -26,7 +26,7 @@ import type {
   TradeMarketPerson,
 } from "@/features/groups/lib/trade-market";
 import { marketDismissals } from "@/features/groups/lib/trade-market";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { m } from "@/paraglide/messages.js";
 
 const ALL_PEOPLE = "all";
@@ -113,20 +113,15 @@ export function PersonActions({
   const dismissals = marketDismissals(cards, person.userId);
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button
-        size="sm"
-        variant="outline"
-        render={
-          <Link
-            to="/trades/$userId"
-            params={{ userId: person.userId }}
-            search={{ from: undefined }}
-          />
-        }
+      <Link
+        to="/trades/$userId"
+        params={{ userId: person.userId }}
+        search={{ from: undefined }}
+        className={buttonVariants({ variant: "outline", size: "sm" })}
       >
         {m.trades_market_open_sheet({ name })}
         <ChevronRightIcon />
-      </Button>
+      </Link>
       {dismissals.length === 0 ? null : (
         <Button
           size="sm"

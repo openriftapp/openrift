@@ -6,12 +6,11 @@ import type {
   ListListResponse,
   PublicListDetailResponse,
 } from "@openrift/shared/types/api/list";
-import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
-import { notFoundError } from "@/lib/server-fns/api-error";
+import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -25,35 +24,15 @@ const fetchLists = createServerFn({ method: "GET" })
 const fetchListDetail = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: listId }): Promise<ListDetailResponse> => {
-    // 404 (unknown list, or one belonging to another user) maps to the
-    // NOT_FOUND sentinel the route boundary expects.
-    const { error, data } = await safe(
-      apiOrpcClient(listsContract, context.cookie).get({ id: listId }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ context, data: listId }): Promise<ListDetailResponse> =>
+    orNotFound(apiOrpcClient(listsContract, context.cookie).get({ id: listId })),
+  );
 
-// 404 (unknown/non-public token) is a typed NOT_FOUND error mapped to the
-// sentinel the caller expects.
 const fetchPublicListFn = createServerFn({ method: "GET" })
   .validator((input: string) => input)
-  .handler(async ({ data: token }): Promise<PublicListDetailResponse> => {
-    const { error, data } = await safe(apiOrpcClient(publicListsContract).share({ token }));
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ data: token }): Promise<PublicListDetailResponse> =>
+    orNotFound(apiOrpcClient(publicListsContract).share({ token })),
+  );
 
 export function listsQueryOptions(userId: string, intent?: ListIntent) {
   return queryOptions({

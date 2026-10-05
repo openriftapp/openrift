@@ -2,9 +2,9 @@ import { SlidersHorizontalIcon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { MultiSelectCombobox } from "@/components/multi-select-combobox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
   Drawer,
@@ -16,6 +16,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { FilterChip } from "@/components/ui/filter-chip";
 import {
   Select,
   SelectContent,
@@ -25,7 +26,6 @@ import {
 } from "@/components/ui/select";
 import { FilterSection } from "@/features/cards/components/filter-badge-row";
 import { LabelledRow } from "@/features/cards/components/labelled-row";
-import { MultiSelectCombobox } from "@/features/cards/components/multi-select-combobox";
 import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
 import type {
   MetaEra,
@@ -179,14 +179,14 @@ export function MetaScopeBar({
     <>
       <DatePicker
         value={scope.from ?? ""}
-        onChange={(iso) => setScope({ from: iso })}
+        onValueChange={(iso) => setScope({ from: iso })}
         onClear={() => setScope({ from: undefined })}
         placeholder={m.meta_scope_from()}
         className="w-36"
       />
       <DatePicker
         value={scope.to ?? ""}
-        onChange={(iso) => setScope({ to: iso })}
+        onValueChange={(iso) => setScope({ to: iso })}
         onClear={() => setScope({ to: undefined })}
         placeholder={m.meta_scope_to()}
         className="w-36"
@@ -270,22 +270,25 @@ export function MetaScopeBar({
       {!smUp && active && (
         <div className="flex flex-wrap items-center gap-1 sm:hidden">
           {strip.map((chip) => (
-            <Badge key={chip.key} variant="secondary" className="gap-1">
-              {chip.label}
-              <ChipRemoveButton
-                aria-label={m.cards_filter_remove_value({ label: chip.group, value: chip.label })}
-                onClick={() => setScope(chip.patch)}
-              />
-            </Badge>
+            <FilterChip
+              key={chip.key}
+              label={chip.label}
+              excluded={chip.excluded}
+              removeLabel={
+                chip.excluded
+                  ? m.cards_filter_remove_excluded_value({ label: chip.group, value: chip.label })
+                  : m.cards_filter_remove_value({ label: chip.group, value: chip.label })
+              }
+              onRemove={() => setScope(chip.patch)}
+            />
           ))}
           {activeChips.map((chip) => (
-            <Badge key={chip.key} variant="secondary" className="gap-1">
-              {chip.label}
-              <ChipRemoveButton
-                aria-label={m.cards_filter_clear_named({ label: chip.label })}
-                onClick={() => chip.onRemove()}
-              />
-            </Badge>
+            <FilterChip
+              key={chip.key}
+              label={chip.label}
+              removeLabel={m.cards_filter_clear_named({ label: chip.label })}
+              onRemove={() => chip.onRemove()}
+            />
           ))}
           <Button
             type="button"
@@ -306,6 +309,7 @@ interface StripChip {
   key: string;
   group: string;
   label: string;
+  excluded?: boolean;
   patch: Partial<MetaScope>;
 }
 
@@ -351,7 +355,8 @@ function activeStrip(
       chips.push({
         key: `${view.facet}:-${value}`,
         group: view.label,
-        label: `−${name(value)}`,
+        label: name(value),
+        excluded: true,
         patch: removeScopeFacetValue(scope, view.facet, value, defaults),
       });
     }
@@ -369,9 +374,9 @@ function ScopeDrawer({ count, children }: { count: number; children: ReactNode }
       >
         <SlidersHorizontalIcon className="size-4" />
         {count > 0 && (
-          <span className="bg-primary text-primary-foreground text-2xs absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-semibold tabular-nums">
+          <Badge variant="count" className="absolute -top-1 -right-1 min-w-4 tabular-nums">
             {count}
-          </span>
+          </Badge>
         )}
       </DrawerTrigger>
       <DrawerContent className="pb-4 data-ending-style:duration-250" keepMounted={openedOnce}>

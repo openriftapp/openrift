@@ -1,3 +1,4 @@
+import { ZONE_LABELS } from "@openrift/shared/deck-zones";
 import type { DeckDetailResponse } from "@openrift/shared/types/api/deck";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -51,7 +52,6 @@ import {
 } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
-import { ZONE_LABELS } from "@/features/decks/lib/deck-zone-labels";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -126,7 +126,7 @@ export function DeckEditorTopBar({
   return (
     <PageTopBar>
       <div className="hidden md:block">
-        <PageTopBarBack to="/decks" />
+        <PageTopBarBack to="/decks" aria-label={m.decks_compare_back_to_decks()} />
       </div>
       <div className="flex min-w-0 flex-1 items-baseline gap-2">
         <PageTopBarTitle onToggleSidebar={onToggleSidebar}>
@@ -230,7 +230,7 @@ export function DeckEditorTopBar({
                   gets the name on its own. */}
             <DropdownMenuItem onClick={() => openDialog(isLocal ? "rename" : "details")}>
               <PencilIcon className="size-4" />
-              {isLocal ? m.decks_editor_menu_rename() : m.decks_editor_menu_name_description()}
+              {isLocal ? m.common_rename() : m.decks_editor_menu_name_description()}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => openDialog("cover")}>
               <ImageIcon className="size-4" />
@@ -303,10 +303,7 @@ export function DeckEditorTopBar({
             <DropdownMenuSeparator />
             {/* A variant is a deck of its own, so this is also how a
                   single version of a family is deleted. */}
-            <DropdownMenuItem
-              onClick={() => openDialog("delete")}
-              className="text-destructive focus:text-destructive"
-            >
+            <DropdownMenuItem variant="destructive" onClick={() => openDialog("delete")}>
               <Trash2Icon className="size-4" />
               {m.decks_editor_menu_delete()}
             </DropdownMenuItem>

@@ -60,3 +60,16 @@ export function cutRounds(rounds: readonly PodRoundResponse[]): PodRoundResponse
 export function groupStageRounds(rounds: readonly PodRoundResponse[]): PodRoundResponse[] {
   return rounds.filter((round) => round.roundNumber <= GROUP_STAGE_ROUNDS);
 }
+
+export function isHigherSeed(
+  pod: { members: readonly { playerId: string }[] },
+  playerId: string,
+  seedByPlayer: ReadonlyMap<string, number>,
+): boolean {
+  const seeds = pod.members.flatMap((member) => {
+    const seed = seedByPlayer.get(member.playerId);
+    return seed === undefined ? [] : [seed];
+  });
+  const own = seedByPlayer.get(playerId);
+  return own !== undefined && seeds.length > 0 && own === Math.min(...seeds);
+}

@@ -1,21 +1,17 @@
+import { META_MAX_LIST_PAGE_SIZE } from "@openrift/shared/contracts/meta";
 import type { MetaLegendFinish, MetaScopeQuery } from "@openrift/shared/types/api/meta";
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { Link, getRouteApi } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { PageTopBar, PageTopBarSticky, PageTopBarTitle } from "@/components/layout/page-top-bar";
-import {
-  TopBarBreadcrumbSeparator,
-  TopBarBreadcrumbTrail,
-} from "@/components/layout/top-bar-breadcrumb";
+import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";
 import { MetaArchivedDecks } from "@/features/meta/components/meta-archived-decks";
 import { MetaLegendFinishes } from "@/features/meta/components/meta-legend-finishes";
 import { MetaLegendHero } from "@/features/meta/components/meta-legend-hero";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
 import { useMetaLegend } from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
-import { DECK_GRID_ALL_LIMIT, DECK_GRID_LIMIT } from "@/features/meta/lib/meta-deck-grid";
-import { splitLegendName } from "@/features/meta/lib/meta-format";
+import { DECK_GRID_LIMIT } from "@/features/meta/lib/meta-deck-grid";
 import { metaScopedCountries } from "@/features/meta/lib/meta-legend-page";
 import { metaDecksQueryOptions, metaLegendQueryOptions } from "@/features/meta/lib/meta-queries";
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
@@ -80,7 +76,7 @@ function LegendDecks({
     ...metaDecksQueryOptions({
       ...query,
       legend: legendCardId,
-      limit: showAll ? DECK_GRID_ALL_LIMIT : DECK_GRID_LIMIT,
+      limit: showAll ? META_MAX_LIST_PAGE_SIZE : DECK_GRID_LIMIT,
     }),
     placeholderData: keepPreviousData,
   });
@@ -109,26 +105,19 @@ export function MetaLegendPage() {
   const clearScope = () => setScope(CLEARED_SCOPE);
 
   const narrowed = isScopeRestricting(search, eras);
-  const { champion } = splitLegendName(data.legend.name);
+  const champion = data.legend.character ?? data.legend.epithet;
   // Each section prefixes this: two siblings sharing one key leave the first one's DOM behind.
   const sectionKey = scopeKey(search);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageTopBarSticky width="capped">
-        <PageTopBar className="gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <TopBarBreadcrumbTrail
-              segments={[
-                { label: m.meta_breadcrumb_archive(), link: <Link to="/meta" /> },
-                { label: m.meta_legends_title(), link: <Link to="/meta/legends" /> },
-              ]}
-            />
-            <TopBarBreadcrumbSeparator className="hidden sm:inline" />
-            <PageTopBarTitle>{champion}</PageTopBarTitle>
-          </div>
-        </PageTopBar>
-      </PageTopBarSticky>
+      <TopBarBreadcrumbBar
+        segments={[
+          { label: m.meta_breadcrumb_archive(), link: <Link to="/meta" /> },
+          { label: m.meta_legends_title(), link: <Link to="/meta/legends" /> },
+        ]}
+        title={champion}
+      />
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-10")}>
         <div className="flex flex-col gap-5">

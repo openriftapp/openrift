@@ -3,14 +3,14 @@ import type {
   TradeSuggestionDismissal,
   TradeSuggestionDismissalListResponse,
 } from "@openrift/shared/types/api/card-trade";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { tradeDismissalsQueryOptions } from "@/features/groups/lib/card-trades-queries";
 import { tradesKeys } from "@/features/groups/lib/groups-query-keys";
 import { withDismissals, withoutDismissal } from "@/features/groups/lib/trade-dismissals";
-import { useRequiredUserId } from "@/lib/auth-session";
-import { reportMutationError } from "@/lib/query-client";
+import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -45,33 +45,10 @@ function useOptimisticDismissals<TVariables>(
   ) => TradeSuggestionDismissal[],
 ) {
   const userId = useRequiredUserId();
-  const queryClient = useQueryClient();
-  const queryKey = tradesKeys.dismissals(userId);
-  return useMutation<
-    unknown,
-    Error,
-    TVariables,
-    { prev: TradeSuggestionDismissalListResponse | undefined }
-  >({
+  return useOptimisticMutation<TradeSuggestionDismissalListResponse, TVariables>({
+    queryKey: tradesKeys.dismissals(userId),
     mutationFn: send,
-    onMutate: async (variables) => {
-      await queryClient.cancelQueries({ queryKey });
-      const prev = queryClient.getQueryData<TradeSuggestionDismissalListResponse>(queryKey);
-      queryClient.setQueryData<TradeSuggestionDismissalListResponse>(queryKey, {
-        items: apply(prev?.items ?? [], variables),
-      });
-      return { prev };
-    },
-    onError: (error, _variables, context) => {
-      if (context?.prev !== undefined) {
-        queryClient.setQueryData(queryKey, context.prev);
-      }
-      // Replaces the QueryClient's default onError; report here or the revert is silent.
-      reportMutationError(error, queryClient);
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey });
-    },
+    apply: (cached, variables) => ({ items: apply(cached.items, variables) }),
   });
 }
 

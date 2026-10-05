@@ -1,23 +1,23 @@
 import { useDraggable } from "@dnd-kit/core";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { DeckZone } from "@openrift/shared/types/enums";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { useState } from "react";
 
 import { AFTER_BORDER, CornerRibbon } from "@/features/cards/components/card-thumbnail";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { CardOpenTarget } from "@/features/cards/lib/card-row-interactions";
 import { DeckCardPrintingMenu } from "@/features/decks/components/deck-card-printing-menu";
-import type { StackStripVariant } from "@/features/decks/components/deck-overview-geometry";
-import {
-  isLandscapeCard,
-  STACK_GAP_PX,
-  stackStripGeometry,
-} from "@/features/decks/components/deck-overview-geometry";
 import { ZoneThumb } from "@/features/decks/components/deck-zone-thumbs";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { cardInteractiveProps, deckCardDragData } from "@/features/decks/lib/deck-card-interaction";
 import { DRAG_SOURCE_ZONES } from "@/features/decks/lib/deck-dnd-data";
+import type { StackStripVariant } from "@/features/decks/lib/deck-overview-geometry";
+import {
+  isLandscapeCard,
+  STACK_GAP_PX,
+  stackStripGeometry,
+} from "@/features/decks/lib/deck-overview-geometry";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
 import type { StatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import { cardMatchesStatsFocus } from "@/features/decks/lib/deck-stats-focus";

@@ -1,26 +1,24 @@
 import { isRegenerateImagesCheckpoint } from "@openrift/shared/contracts/admin/job-results";
+import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
+import { pluralize } from "@openrift/shared/strings";
 import type { RehostImageResponse } from "@openrift/shared/types/api/admin";
 import { Link } from "@tanstack/react-router";
-import { CheckIcon, LoaderIcon, XIcon } from "lucide-react";
+import { CheckIcon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pressable } from "@/components/ui/pressable";
 import { Progress } from "@/components/ui/progress";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
-import { ConfirmClearButton } from "@/features/admin/components/confirm-clear-button";
-import { useLatestJobRunByKind } from "@/features/admin/hooks/use-job-runs";
-import {
-  filterMissingImagesByLanguage,
-  summarizeMissingImagesByLanguage,
-} from "@/features/admin/lib/missing-images";
-import { useLanguageList } from "@/hooks/use-enums";
+import { JobRunStatusLine } from "@/features/admin/components/job-run-status-line";
+import { useLatestJobRun } from "@/features/admin/hooks/use-latest-job-run";
 import {
   useBrokenImages,
   useCancelRegenerateImages,
@@ -33,9 +31,15 @@ import {
   useRehostImages,
   useRehostStatus,
   useUnrehostImages,
-} from "@/hooks/use-rehost";
+} from "@/features/admin/hooks/use-rehost";
+import {
+  filterMissingImagesByLanguage,
+  summarizeMissingImagesByLanguage,
+} from "@/features/admin/lib/missing-images";
+import { useLanguageList } from "@/hooks/use-enums";
 
 const REGENERATE_KIND = "images.regenerate";
+const ALL_LANGUAGES = "__all";
 
 const BYTE_UNITS = ["B", "KB", "MB", "GB"] as const;
 const BYTES_PER_UNIT = 1024;
@@ -99,22 +103,12 @@ function MutationStatus({
 }
 
 /** Driven by the polled job_runs row, not client-side mutation state, so it survives a tab refresh. */
-function RegenerateJobStatus({
-  run,
-}: {
-  run: { status: "running" | "succeeded" | "failed"; errorMessage: string | null; result: unknown };
-}) {
+function RegenerateJobStatus({ run }: { run: JobRunView }) {
   const checkpoint = isRegenerateImagesCheckpoint(run.result) ? run.result : null;
   if (!checkpoint) {
-    if (run.status === "failed") {
-      return (
-        <p className="text-muted-foreground flex items-center gap-1 text-sm">
-          <XIcon className="text-destructive size-4 shrink-0" />
-          {run.errorMessage ?? "Regenerate failed"}
-        </p>
-      );
-    }
-    return null;
+    return run.status === "failed" ? (
+      <JobRunStatusLine run={run} failedText="Regenerate failed" />
+    ) : null;
   }
 
   const pct =
@@ -185,7 +179,7 @@ function ErrorsList({ errors }: { errors: string[] }) {
 
 function ManageSection() {
   const { data: status, refetch } = useRehostStatus();
-  const { data: latestRegenRun } = useLatestJobRunByKind(REGENERATE_KIND);
+  const { data: latestRegenRun } = useLatestJobRun(REGENERATE_KIND);
 
   const rehostMutation = useRehostImages(() => void refetch());
   const regenMutation = useRegenerateImages();
@@ -245,24 +239,18 @@ function ManageSection() {
         <Button
           variant="outline"
           disabled={anyPending || migrateMutation.isSuccess}
+          pending={migrateMutation.isPending}
           onClick={() => migrateMutation.mutate()}
         >
-          {migrateMutation.isPending ? (
-            <LoaderIcon className="size-4 animate-spin" />
-          ) : (
-            "Migrate directories"
-          )}
+          Migrate directories
         </Button>
         <Button
           variant="outline"
           disabled={anyPending || !status.disk.totalBytes}
+          pending={regenMutation.isPending}
           onClick={() => regenMutation.mutate({ skipExisting: true, reset: true })}
         >
-          {regenMutation.isPending ? (
-            <LoaderIcon className="size-4 animate-spin" />
-          ) : (
-            "Fill missing variants"
-          )}
+          Fill missing variants
         </Button>
         <Button
           variant="outline"
@@ -274,15 +262,12 @@ function ManageSection() {
         <Button
           variant="outline"
           disabled={anyPending || !status.disk.totalBytes}
+          pending={regenRunning}
           onClick={() => regenMutation.mutate({})}
         >
-          {regenRunning ? (
-            <LoaderIcon className="size-4 animate-spin" />
-          ) : resumableCheckpoint && canResume ? (
-            `Resume regeneration (${resumableCheckpoint.lastProcessedIndex + 1}/${resumableCheckpoint.totalFiles})`
-          ) : (
-            "Regenerate resolutions"
-          )}
+          {resumableCheckpoint && canResume
+            ? `Resume regeneration (${resumableCheckpoint.lastProcessedIndex + 1}/${resumableCheckpoint.totalFiles})`
+            : "Regenerate resolutions"}
         </Button>
         {canResume && (
           <Button
@@ -296,41 +281,37 @@ function ManageSection() {
         {regenRunning && (
           <Button
             variant="outline"
-            disabled={cancelRegenMutation.isPending}
+            pending={cancelRegenMutation.isPending}
             onClick={() => cancelRegenMutation.mutate()}
           >
-            {cancelRegenMutation.isPending ? (
-              <LoaderIcon className="size-4 animate-spin" />
-            ) : (
-              "Cancel regeneration"
-            )}
+            Cancel regeneration
           </Button>
         )}
-        <Button disabled={anyPending || allDone} onClick={() => rehostMutation.mutate()}>
-          {rehostMutation.isPending ? (
-            <LoaderIcon className="size-4 animate-spin" />
-          ) : (
-            "Rehost missing"
-          )}
+        <Button
+          disabled={anyPending || allDone}
+          pending={rehostMutation.isPending}
+          onClick={() => rehostMutation.mutate()}
+        >
+          Rehost missing
         </Button>
         <Button
           variant="outline"
           disabled={anyPending || !status.orphanedFiles}
+          pending={cleanupMutation.isPending}
           onClick={() => cleanupMutation.mutate()}
         >
-          {cleanupMutation.isPending ? (
-            <LoaderIcon className="size-4 animate-spin" />
-          ) : (
-            "Delete orphaned"
-          )}
+          Delete orphaned
         </Button>
-        <ConfirmClearButton
+        <ConfirmActionButton
           title="Delete all rehosted images?"
           description="This will delete all locally cached images. They can be re-fetched by running rehost again."
-          onConfirm={() => clearMutation.mutate()}
+          confirmLabel="Clear"
+          onConfirm={() => clearMutation.mutateAsync()}
           disabled={anyPending || !status.rehosted}
-          isPending={clearMutation.isPending}
-        />
+          trigger={<Button variant="destructive" />}
+        >
+          Clear
+        </ConfirmActionButton>
       </div>
 
       {latestRegenRun && <RegenerateJobStatus run={latestRegenRun} />}
@@ -408,35 +389,29 @@ function MissingImagesSection() {
       title="Missing Images"
       description={
         <>
-          {shown.length} {shown.length === 1 ? "card has" : "cards have"} printings without an
+          {shown.length} {pluralize(shown.length, "card has", "cards have")} printings without an
           active front-face image
           {language === null ? "" : ` in ${language}`}.
         </>
       }
     >
-      <div className="flex flex-wrap gap-1.5">
-        <Badge
-          variant={language === null ? "default" : "outline"}
-          className="cursor-pointer"
-          render={<Pressable onClick={() => setLanguage(null)} />}
-        >
-          All {cards.length}
-        </Badge>
+      <ToggleGroup
+        variant="outline"
+        size="sm"
+        className="flex-wrap"
+        value={[language ?? ALL_LANGUAGES]}
+        aria-label="Filter by language"
+        onValueChange={([next]) =>
+          setLanguage(next === undefined || next === ALL_LANGUAGES ? null : next)
+        }
+      >
+        <ToggleGroupItem value={ALL_LANGUAGES}>All {cards.length}</ToggleGroupItem>
         {summaries.map((summary) => (
-          <Badge
-            key={summary.language}
-            variant={language === summary.language ? "default" : "outline"}
-            className="cursor-pointer"
-            render={
-              <Pressable
-                onClick={() => setLanguage(language === summary.language ? null : summary.language)}
-              />
-            }
-          >
+          <ToggleGroupItem key={summary.language} value={summary.language}>
             {summary.language} {summary.cards}
-          </Badge>
+          </ToggleGroupItem>
         ))}
-      </div>
+      </ToggleGroup>
       <RowList className="text-sm">
         {shown.map((card) => (
           <RowListItem key={card.cardId} className="flex-wrap gap-1.5">
@@ -447,7 +422,7 @@ function MissingImagesSection() {
               <span className="text-muted-foreground/60">{card.slug}</span> {card.name}
             </TextLink>
             {card.byLanguage.map((entry) => (
-              <Badge key={entry.language} variant="muted">
+              <Badge key={entry.language} variant="neutral">
                 {entry.language} {entry.count}
               </Badge>
             ))}
@@ -527,18 +502,19 @@ function BrokenImagesSection() {
       description={
         <>
           {data.broken.length} of {data.total} rehosted{" "}
-          {data.broken.length === 1 ? "image is" : "images are"} missing files on disk.
+          {pluralize(data.broken.length, "image is", "images are")} missing files on disk.
         </>
       }
       action={
-        <ConfirmClearButton
-          label="Un-rehost all"
-          title={`Un-rehost ${data.broken.length} broken ${data.broken.length === 1 ? "image" : "images"}?`}
+        <ConfirmActionButton
+          title={`Un-rehost ${data.broken.length} broken ${pluralize(data.broken.length, "image")}?`}
           description="Clears the rehosted URL on each image so the next Rehost missing run re-downloads and regenerates them from the original source."
-          onConfirm={() => unrehostMutation.mutate(imageIds)}
-          disabled={unrehostMutation.isPending}
-          isPending={unrehostMutation.isPending}
-        />
+          confirmLabel="Un-rehost all"
+          onConfirm={() => unrehostMutation.mutateAsync(imageIds)}
+          trigger={<Button variant="destructive" />}
+        >
+          Un-rehost all
+        </ConfirmActionButton>
       }
     >
       {unrehostMutation.isSuccess && unrehostMutation.data && (
@@ -621,7 +597,7 @@ function LowResImagesSection() {
       description={
         <>
           {data.lowRes.length} of {data.total} rehosted{" "}
-          {data.lowRes.length === 1 ? "image has" : "images have"} a full-resolution width under
+          {pluralize(data.lowRes.length, "image has", "images have")} a full-resolution width under
           600px.
         </>
       }

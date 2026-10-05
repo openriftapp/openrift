@@ -48,7 +48,7 @@ vi.mock("@/features/decks/components/public-deck-surface", () => ({
 }));
 
 // DomainIcon reads enum orders off a suspense query this file has no client for.
-vi.mock("@/features/decks/components/domain-icon", () => ({
+vi.mock("@/features/cards/components/domain-icon", () => ({
   DomainIcon: ({ domain }: { domain: string }) => <span>{domain}</span>,
 }));
 
@@ -94,7 +94,7 @@ vi.mock("@/features/decks/hooks/use-decks", () => ({
   useCloneSharedDeck: () => ({ isPending: false }),
   useEncodeDeckCards: () => ({ isPending: false }),
 }));
-vi.mock("@/lib/auth-session", () => ({ useUserId: () => captured.userId }));
+vi.mock("@/hooks/use-session", () => ({ useUserId: () => captured.userId }));
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
     children,

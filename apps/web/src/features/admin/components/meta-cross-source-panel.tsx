@@ -1,3 +1,4 @@
+import { pluralize } from "@openrift/shared/strings";
 import type { MetaCrossSourceCitation, MetaCrossSourceRow } from "@openrift/shared/types/api/meta";
 import { LinkIcon, UnlinkIcon, UserXIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -61,7 +62,7 @@ function SourceHeader({
       {source.contributes ? (
         <Badge variant="success">read</Badge>
       ) : (
-        <Badge variant="muted">cited only</Badge>
+        <Badge variant="neutral">cited only</Badge>
       )}
       {!source.contributes && (
         <span className="text-muted-foreground tabular-nums">
@@ -256,7 +257,7 @@ export function MetaCrossSourcePanel({
       // Reported by the global mutation error toast.
       return;
     }
-    toast.success(`Linked ${picks.length} exact match${picks.length === 1 ? "" : "es"}.`);
+    toast.success(`Linked ${picks.length} exact ${pluralize(picks.length, "match", "matches")}.`);
   }
 
   if (isError) {
@@ -308,7 +309,7 @@ export function MetaCrossSourcePanel({
           }}
         >
           <LinkIcon />
-          Link {autoLinks.length} exact match{autoLinks.length === 1 ? "" : "es"}
+          Link {autoLinks.length} exact {pluralize(autoLinks.length, "match", "matches")}
         </Button>
       )}
 

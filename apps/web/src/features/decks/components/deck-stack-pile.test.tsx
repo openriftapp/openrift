@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { CARD_HEIGHT_RATIO } from "@/features/decks/components/deck-overview-geometry";
+import { CARD_HEIGHT_RATIO } from "@/features/decks/lib/deck-overview-geometry";
 import { stubDeckBuilderCard } from "@/test/factories";
 
 let coarsePointer = false;

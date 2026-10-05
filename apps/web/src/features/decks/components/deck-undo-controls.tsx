@@ -6,13 +6,10 @@ import { useEffect } from "react";
 
 import { PageTopBarIconButton } from "@/components/layout/page-top-bar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  applyDeckSnapshot,
-  useDeckDraftCollection,
-  useDeckDraftScope,
-} from "@/features/decks/hooks/deck-builder-collection";
 import { allCards } from "@/features/decks/hooks/use-deck-builder";
+import { useDeckDraftCollection, useDeckDraftScope } from "@/features/decks/hooks/use-deck-draft";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
+import { applyDeckSnapshot } from "@/features/decks/stores/deck-draft-store";
 import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
 import { m } from "@/paraglide/messages.js";
 

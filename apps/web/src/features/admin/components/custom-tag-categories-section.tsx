@@ -1,51 +1,23 @@
 import type { CustomTagCategoryResponse } from "@openrift/shared/types/api/admin";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
-import { Input } from "@/components/ui/input";
 import {
+  DescriptionCell,
   DescriptionInput,
+  DraftTextInput,
+  LabelCell,
+  SlugAddInput,
+  SlugCell,
   validateSlugAndLabel,
 } from "@/features/admin/components/admin-crud-shared";
 import { AdminTable } from "@/features/admin/components/admin-table";
-import type {
-  AdminCellSlotProps,
-  AdminColumnDef,
-  AdminDraftSlotProps,
-} from "@/features/admin/components/admin-table";
+import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import type { CustomTagCategoryDraft } from "@/features/admin/lib/custom-tags-drafts";
 import {
   useCreateCustomTagCategory,
   useDeleteCustomTagCategory,
   useUpdateCustomTagCategory,
 } from "@/features/collections/hooks/use-custom-tags";
-
-function CategorySlugCell({ row }: AdminCellSlotProps<CustomTagCategoryResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="font-mono text-sm">{row.slug}</span>;
-}
-
-function CategoryLabelCell({ row }: AdminCellSlotProps<CustomTagCategoryResponse>) {
-  if (!row) {
-    return null;
-  }
-  return <span>{row.label}</span>;
-}
-
-function CategoryDescriptionCell({ row }: AdminCellSlotProps<CustomTagCategoryResponse>) {
-  if (!row) {
-    return null;
-  }
-  return (
-    <span
-      className="text-muted-foreground block max-w-xs truncate"
-      title={row.description ?? undefined}
-    >
-      {row.description ?? "—"}
-    </span>
-  );
-}
 
 function CategoryTagCountCell({ row }: AdminCellSlotProps<CustomTagCategoryResponse>) {
   if (!row) {
@@ -54,65 +26,24 @@ function CategoryTagCountCell({ row }: AdminCellSlotProps<CustomTagCategoryRespo
   return <span className="font-mono text-sm">{row.tagCount}</span>;
 }
 
-function CategorySlugAddInput({ draft, setDraft }: AdminDraftSlotProps<CustomTagCategoryDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.slug}
-      onChange={(e) => setDraft((prev) => ({ ...prev, slug: e.target.value.toLowerCase() }))}
-      placeholder="region"
-      className="h-8 w-48 font-mono"
-    />
-  );
-}
-
-function CategoryLabelInput({ draft, setDraft }: AdminDraftSlotProps<CustomTagCategoryDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.label}
-      onChange={(e) => setDraft((prev) => ({ ...prev, label: e.target.value }))}
-      className="h-8"
-    />
-  );
-}
-
-function CategoryLabelAddInput({ draft, setDraft }: AdminDraftSlotProps<CustomTagCategoryDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.label}
-      onChange={(e) => setDraft((prev) => ({ ...prev, label: e.target.value }))}
-      placeholder="Region"
-      className="h-8"
-    />
-  );
-}
-
 const categoryColumns: AdminColumnDef<CustomTagCategoryResponse, CustomTagCategoryDraft>[] = [
   {
     header: "Slug",
     sortValue: (cat) => cat.slug,
-    cell: <CategorySlugCell />,
-    addCell: <CategorySlugAddInput />,
+    cell: <SlugCell<CustomTagCategoryResponse> />,
+    addCell: <SlugAddInput<CustomTagCategoryDraft> placeholder="region" width="w-48" />,
   },
   {
     header: "Label",
     sortValue: (cat) => cat.label,
-    cell: <CategoryLabelCell />,
-    editCell: <CategoryLabelInput />,
-    addCell: <CategoryLabelAddInput />,
+    cell: <LabelCell<CustomTagCategoryResponse> />,
+    editCell: <DraftTextInput<CustomTagCategoryDraft> field="label" />,
+    addCell: <DraftTextInput<CustomTagCategoryDraft> field="label" placeholder="Region" />,
   },
   {
     header: "Description",
     sortValue: (cat) => cat.description ?? "",
-    cell: <CategoryDescriptionCell />,
+    cell: <DescriptionCell<CustomTagCategoryResponse> />,
     editCell: <DescriptionInput<CustomTagCategoryDraft> />,
     addCell: <DescriptionInput<CustomTagCategoryDraft> />,
   },

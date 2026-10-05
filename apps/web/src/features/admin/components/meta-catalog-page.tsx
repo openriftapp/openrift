@@ -14,9 +14,10 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { PageTopBarButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Pager } from "@/components/ui/pager";
 import { TextLink } from "@/components/ui/text-link";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -29,7 +30,6 @@ import {
   announceSyncTrigger,
 } from "@/features/admin/components/meta-catalog-shared";
 import { MetaCoverageChips } from "@/features/admin/components/meta-coverage-chips";
-import { ConfirmActionButton } from "@/features/admin/components/meta-review-shared";
 import { MetaSourceVocabularyDialog } from "@/features/admin/components/meta-source-vocabulary-dialog";
 import { urlTriage } from "@/features/admin/components/meta-triage-filter";
 import type { MetaCatalogQueryParams } from "@/features/admin/hooks/use-admin-meta-catalog";
@@ -300,14 +300,14 @@ function CatalogRowActionsFor({
     return (
       <>
         {row.metaEventId !== null && (
-          <Button
-            variant="ghost"
-            size="sm"
-            render={<Link to="/admin/meta/$eventId" params={{ eventId: row.metaEventId }} />}
+          <Link
+            to="/admin/meta/$eventId"
+            params={{ eventId: row.metaEventId }}
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
           >
             <LayersIcon />
             Standings
-          </Button>
+          </Link>
         )}
         <Button
           variant="ghost"

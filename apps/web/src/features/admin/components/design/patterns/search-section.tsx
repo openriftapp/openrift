@@ -2,6 +2,8 @@ import { ALL_SEARCH_FIELDS } from "@openrift/shared/types/search";
 import type { SearchField } from "@openrift/shared/types/search";
 import { useRef, useState } from "react";
 
+import { MultiSelectCombobox } from "@/components/multi-select-combobox";
+import { SearchInput } from "@/components/search-input";
 import { AdminFilterSelect, AdminFilterSwitch } from "@/features/admin/components/admin-filters";
 import {
   DemoGroup,
@@ -11,8 +13,6 @@ import {
   SwatchRow,
 } from "@/features/admin/components/design/demo-primitives";
 import type { DesignGroup } from "@/features/admin/components/design/design-sections";
-import { MultiSelectCombobox } from "@/features/cards/components/multi-select-combobox";
-import { SearchInput } from "@/features/cards/components/search-input";
 import { SearchPrefixChip, SearchScopeChip } from "@/features/cards/components/search-scope-menu";
 
 const GROUPS = {

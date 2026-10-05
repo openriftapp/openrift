@@ -2,6 +2,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { MinusIcon, PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { InlineCountStepper } from "@/components/ui/inline-count-stepper";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -54,62 +55,84 @@ export function DeckTableActions({
     );
   }
 
+  if (deckQuantity > 0 && !addLabel) {
+    return (
+      <InlineCountStepper
+        variant="outline"
+        count={`×${deckQuantity}`}
+        decrementLabel={m.decks_editor_remove_from_deck()}
+        incrementLabel={addAriaLabel ?? m.decks_editor_add_to_deck()}
+        onDecrement={(event) => onRemove(printing, event)}
+        onIncrement={maxReached ? undefined : (event) => onQuickAdd(printing, event)}
+        bulk={shiftHeld}
+        bulkDecrementLabel={showBulkRemove ? `-${deckQuantity}` : undefined}
+        bulkIncrementLabel={showBulkAdd ? `+${remainingCount}` : undefined}
+        decrementTooltip={m.decks_editor_shift_remove_all()}
+        incrementTooltip={maxReached ? undefined : (addTooltip ?? m.decks_editor_shift_add_max())}
+      />
+    );
+  }
+
+  const addButton = (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            variant="default"
+            size={addLabel ? "sm" : "icon-sm"}
+            disabled={maxReached}
+            onClick={(event) => {
+              event.stopPropagation();
+              onQuickAdd(printing, event);
+            }}
+            aria-label={addAriaLabel ?? m.decks_editor_add_to_deck()}
+            className={cn(showBulkAdd && "min-w-9 px-1 text-xs font-semibold")}
+          />
+        }
+      >
+        {!maxReached && addLabel ? (
+          addLabel
+        ) : showBulkAdd ? (
+          `+${remainingCount}`
+        ) : (
+          <PlusIcon className="size-3.5" />
+        )}
+      </TooltipTrigger>
+      {!maxReached && (
+        <TooltipContent>{addTooltip ?? m.decks_editor_shift_add_max()}</TooltipContent>
+      )}
+    </Tooltip>
+  );
+
+  if (deckQuantity === 0) {
+    return addButton;
+  }
+
   return (
     <>
-      {deckQuantity > 0 && (
-        <span className="text-primary text-xs font-semibold tabular-nums">×{deckQuantity}</span>
-      )}
-      {deckQuantity > 0 && (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                type="button"
-                variant={showBulkRemove ? "destructive" : "outline"}
-                size="icon-sm"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onRemove(printing, event);
-                }}
-                aria-label={m.decks_editor_remove_from_deck()}
-                className={cn(showBulkRemove && "min-w-9 px-1 text-xs font-semibold")}
-              />
-            }
-          >
-            {showBulkRemove ? `-${deckQuantity}` : <MinusIcon className="size-3.5" />}
-          </TooltipTrigger>
-          <TooltipContent>{m.decks_editor_shift_remove_all()}</TooltipContent>
-        </Tooltip>
-      )}
+      <span className="text-primary text-xs font-semibold tabular-nums">×{deckQuantity}</span>
       <Tooltip>
         <TooltipTrigger
           render={
             <Button
               type="button"
-              variant="default"
-              size={addLabel ? "sm" : "icon-sm"}
-              disabled={maxReached}
+              variant={showBulkRemove ? "destructive" : "outline"}
+              size="icon-sm"
               onClick={(event) => {
                 event.stopPropagation();
-                onQuickAdd(printing, event);
+                onRemove(printing, event);
               }}
-              aria-label={addAriaLabel ?? m.decks_editor_add_to_deck()}
-              className={cn(showBulkAdd && "min-w-9 px-1 text-xs font-semibold")}
+              aria-label={m.decks_editor_remove_from_deck()}
+              className={cn(showBulkRemove && "min-w-9 px-1 text-xs font-semibold")}
             />
           }
         >
-          {!maxReached && addLabel ? (
-            addLabel
-          ) : showBulkAdd ? (
-            `+${remainingCount}`
-          ) : (
-            <PlusIcon className="size-3.5" />
-          )}
+          {showBulkRemove ? `-${deckQuantity}` : <MinusIcon className="size-3.5" />}
         </TooltipTrigger>
-        {!maxReached && (
-          <TooltipContent>{addTooltip ?? m.decks_editor_shift_add_max()}</TooltipContent>
-        )}
+        <TooltipContent>{m.decks_editor_shift_remove_all()}</TooltipContent>
       </Tooltip>
+      {addButton}
     </>
   );
 }

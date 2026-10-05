@@ -41,7 +41,10 @@ function buildChartConfig(
 ): ChartConfig {
   const config: ChartConfig = {};
   for (const domain of domains) {
-    config[domain] = { label: domainLabels[domain], color: getDomainColor(domain, colors) };
+    config[domain] = {
+      label: enumLabel(domainLabels, domain),
+      color: getDomainColor(domain, colors),
+    };
   }
   return config;
 }

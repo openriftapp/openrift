@@ -1,7 +1,7 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
-import type { ReactNode } from "react";
 
 import { Heading } from "@/components/heading";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { CopyField } from "@/components/ui/copy-field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -27,7 +27,7 @@ function ChatBotSetups() {
           <Heading level={3}>{setup.name}</Heading>
           <CopyField
             value={setup.command}
-            label={m.help_chat_commands_copy_label({ name: setup.name })}
+            aria-label={m.help_chat_commands_copy_label({ name: setup.name })}
             mono
           />
           <p className="text-muted-foreground text-sm">{setup.note}</p>
@@ -41,10 +41,7 @@ export default function ChatCommandsArticle() {
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
-        <ParaglideMessage
-          message={m.help_chat_commands_intro}
-          markup={{ code: ({ children }) => <InlineCode>{children}</InlineCode> }}
-        />
+        <ParaglideMessage message={m.help_chat_commands_intro} markup={PROSE_MARKUP} />
       </p>
 
       <section>
@@ -56,8 +53,4 @@ export default function ChatCommandsArticle() {
       </section>
     </div>
   );
-}
-
-function InlineCode({ children }: { children: ReactNode }) {
-  return <code className="bg-muted rounded-md px-1 py-0.5 font-mono text-sm">{children}</code>;
 }

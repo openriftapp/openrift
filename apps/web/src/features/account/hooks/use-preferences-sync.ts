@@ -15,7 +15,7 @@ import { useLocaleBannerStore } from "@/features/account/stores/locale-banner-st
 import { usePaletteStore } from "@/features/collections/stores/palette-store";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { isDisplayLocale } from "@/lib/display-locale";
 import { sanitizePalette, sanitizeServerResponse, sanitizeTheme } from "@/lib/sanitize-preferences";
 import { withCookies } from "@/lib/server-fns/middleware";

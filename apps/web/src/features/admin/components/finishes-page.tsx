@@ -1,23 +1,23 @@
 import { PageDescription } from "@/components/layout/page-top-bar";
 import {
-  LabelAddInput,
+  DraftTextInput,
   LabelCell,
-  LabelInput,
   SlugAddInput,
   SlugCell,
   validateSlugAndLabel,
   WellKnownCell,
 } from "@/features/admin/components/admin-crud-shared";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminColumnDef } from "@/features/admin/components/admin-table";
-import { flatReorder } from "@/features/admin/lib/admin-reorder";
 import {
   useCreateFinish,
   useDeleteFinish,
   useFinishes,
   useReorderFinishes,
   useUpdateFinish,
-} from "@/hooks/use-finishes";
+} from "@/features/admin/hooks/use-finishes";
+import { flatReorder } from "@/features/admin/lib/admin-reorder";
 
 interface FinishRow {
   slug: string;
@@ -42,8 +42,8 @@ const columns: AdminColumnDef<FinishRow, FinishDraft>[] = [
     header: "Label",
     sortValue: (finish) => finish.label,
     cell: <LabelCell<FinishRow> />,
-    editCell: <LabelInput<FinishDraft> />,
-    addCell: <LabelAddInput<FinishDraft> placeholder="Foil" />,
+    editCell: <DraftTextInput<FinishDraft> field="label" />,
+    addCell: <DraftTextInput<FinishDraft> field="label" placeholder="Foil" />,
   },
   {
     header: "Well-known",
@@ -65,7 +65,7 @@ export function FinishesPage() {
       data={finishes}
       getRowKey={(finish) => finish.slug}
       emptyText="No finishes yet."
-      title="Finishes"
+      topBar={(actions) => <AdminPageTopBar title="Finishes" actions={actions} />}
       toolbar={
         <PageDescription>
           Finishes describe the physical treatment of a card (e.g. Non-Foil, Foil, Etched).

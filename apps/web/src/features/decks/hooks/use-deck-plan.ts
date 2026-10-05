@@ -5,7 +5,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import type { DeckPlanSaveInput } from "@/features/decks/lib/deck-plan";
 import { decksKeys } from "@/features/decks/lib/decks-query-keys";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 

@@ -1,4 +1,4 @@
-import { Loader2Icon, PrinterIcon } from "lucide-react";
+import { PrinterIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -242,18 +242,9 @@ export function BinderSheetPanel({
 
       <div className="flex flex-col gap-2">
         <p className="text-muted-foreground text-sm">{m.binder_print_scale_note()}</p>
-        <Button className="self-start" onClick={() => void handleCreate()} disabled={generating}>
-          {generating ? (
-            <>
-              <Loader2Icon className="animate-spin" />
-              {m.binder_creating()}
-            </>
-          ) : (
-            <>
-              <PrinterIcon />
-              {m.binder_create_pdf()}
-            </>
-          )}
+        <Button className="self-start" pending={generating} onClick={() => void handleCreate()}>
+          <PrinterIcon />
+          {generating ? m.binder_creating() : m.binder_create_pdf()}
         </Button>
       </div>
     </div>

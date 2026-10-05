@@ -1,4 +1,5 @@
-import { dateLeafPartsUtc, formatDay } from "@openrift/shared/format-date";
+import { formatDay } from "@openrift/shared/format-date";
+import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaDeckSummary } from "@openrift/shared/types/api/meta";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { Link } from "@tanstack/react-router";
@@ -12,8 +13,7 @@ import { MetaListStatusBadge } from "@/features/meta/components/meta-list-status
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
-import { formatRank, formatRecord } from "@/features/meta/lib/meta-format";
-import { DATE_WORDS } from "@/lib/date-words";
+import { formatRank } from "@/features/meta/lib/meta-format";
 import { compactFormatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -127,7 +127,6 @@ export function MetaDeckIndexRow({
   marketplace: Marketplace;
   grouped?: boolean;
 }) {
-  const leaf = dateLeafPartsUtc(deck.event.eventDate, DATE_WORDS);
   const record = formatRecord(deck.wins, deck.losses, deck.draws);
   const value = cost?.value;
   const priced = value === undefined ? null : compactFormatterForMarketplace(marketplace)(value);
@@ -146,7 +145,7 @@ export function MetaDeckIndexRow({
         <Art deck={deck} />
         <div className="min-w-0">
           <MetaIdentity
-            name={deck.legendName}
+            legend={{ character: deck.legendCharacter, epithet: deck.legendEpithet }}
             archiveSlug={deck.legendArchiveSlug}
             layout="stacked"
           />
@@ -174,7 +173,7 @@ export function MetaDeckIndexRow({
                 <CountryFlag code={deck.event.country} size="sm" />
               </span>
             </div>
-            <DateLeaf month={leaf.month} day={leaf.day} size="sm" />
+            <DateLeaf at={deck.event.eventDate} clock="utc" size="sm" />
           </>
         )}
         <span className="text-right text-sm tabular-nums">{priced}</span>
@@ -187,7 +186,11 @@ export function MetaDeckIndexRow({
         <Finish deck={deck} fieldSize={grouped ? null : fieldSize} />
         <CardArtThumb imageId={deck.legendImageId} variant="120w" className="w-7.5 rounded-xs" />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <MetaIdentity name={deck.legendName} archiveSlug={deck.legendArchiveSlug} layout="row" />
+          <MetaIdentity
+            legend={{ character: deck.legendCharacter, epithet: deck.legendEpithet }}
+            archiveSlug={deck.legendArchiveSlug}
+            layout="row"
+          />
           <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm">
             <MetaPlayerName
               name={deck.playerName}

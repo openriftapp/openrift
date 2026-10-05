@@ -1,7 +1,7 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileTextIcon, Loader2Icon, PrinterIcon } from "lucide-react";
+import { FileTextIcon, PrinterIcon } from "lucide-react";
 import { Suspense, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -30,19 +30,20 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CardPlaceholderImage } from "@/features/cards/components/card-placeholder-image";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
-import type { LocalDeckImageBody } from "@/features/decks/components/local-deck-image-body";
-import { useLocalDeckImageBody } from "@/features/decks/components/local-deck-image-body";
 import { useDeckCards } from "@/features/decks/hooks/use-deck-builder";
+import { useLocalDeckImageBody } from "@/features/decks/hooks/use-local-deck-image-body";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { sortCardsLikeSidebar } from "@/features/decks/lib/deck-card-order";
+import type { LocalDeckImageBody } from "@/features/decks/lib/local-deck-image-body";
 import { isLocalDeck } from "@/features/decks/lib/local-decks-collection";
 import type { PublicDeckSource } from "@/features/decks/lib/public-deck-source";
 import type {
   RegistrationFields,
   RegistrationPageSize,
-} from "@/features/tournaments/lib/registration-pdf";
-import { useSession } from "@/lib/auth-session";
+} from "@/features/decks/lib/registration-pdf";
+import { useSession } from "@/hooks/use-session";
+import { safeFilename } from "@/lib/download";
 import { initQueryOptions } from "@/lib/init-queries";
 import { effectiveLanguageOrder } from "@/lib/language-order";
 import type { ProxyCard, ProxyPageSize, ProxyRenderMode, RenderedCard } from "@/lib/proxy-pdf";
@@ -121,7 +122,7 @@ function resolveClipPaths(element: HTMLElement): void {
 // Dynamic import at module scope: react-compiler can't lower an `import()` inside a component
 // and bails on the whole file, and eager import would put jsPDF on every deck tile's page.
 async function loadRegistrationPdfGenerator() {
-  const module = await import("@/features/tournaments/lib/registration-pdf");
+  const module = await import("@/features/decks/lib/registration-pdf");
   return module.generateRegistrationPdf;
 }
 
@@ -281,10 +282,6 @@ async function generateProxyPdf({
   });
 }
 
-function fileNameBase(deckName: string | undefined): string {
-  return (deckName ?? "deck").replaceAll(/[^\w -]+/gu, "_").trim() || "deck";
-}
-
 function ProxyPrintPanel({
   cards,
   deckName,
@@ -402,23 +399,21 @@ function ProxyPrintPanel({
           </div>
         )}
 
-        <Button type="submit" className="self-start" disabled={generating || cards.length === 0}>
-          {generating ? (
-            <>
-              <Loader2Icon className="size-4 animate-spin" />
-              {progress.total > 0
-                ? m.decks_dialog_print_rendering({
-                    current: progress.current,
-                    total: progress.total,
-                  })
-                : m.decks_dialog_print_generating()}
-            </>
-          ) : (
-            <>
-              <PrinterIcon className="size-4" />
-              {m.decks_dialog_print_generate_pdf()}
-            </>
-          )}
+        <Button
+          type="submit"
+          className="self-start"
+          pending={generating}
+          disabled={cards.length === 0}
+        >
+          <PrinterIcon className="size-4" />
+          {generating
+            ? progress.total > 0
+              ? m.decks_dialog_print_rendering({
+                  current: progress.current,
+                  total: progress.total,
+                })
+              : m.decks_dialog_print_generating()
+            : m.decks_dialog_print_generate_pdf()}
         </Button>
       </div>
 
@@ -546,7 +541,7 @@ function RegistrationPrintPanel({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label>{m.decks_dialog_print_reg_event_date()}</Label>
-          <DatePicker value={eventDate || null} onChange={setEventDate} />
+          <DatePicker value={eventDate || null} onValueChange={setEventDate} />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="reg-event-name">{m.decks_dialog_print_reg_event_name()}</Label>
@@ -594,19 +589,11 @@ function RegistrationPrintPanel({
       <Button
         className="self-start"
         onClick={() => void handleGenerate()}
-        disabled={generating || cards.length === 0}
+        pending={generating}
+        disabled={cards.length === 0}
       >
-        {generating ? (
-          <>
-            <Loader2Icon className="size-4 animate-spin" />
-            {m.decks_dialog_print_generating()}
-          </>
-        ) : (
-          <>
-            <FileTextIcon className="size-4" />
-            {m.decks_dialog_print_download_pdf()}
-          </>
-        )}
+        <FileTextIcon className="size-4" />
+        {generating ? m.decks_dialog_print_generating() : m.decks_dialog_print_download_pdf()}
       </Button>
     </div>
   );
@@ -649,10 +636,11 @@ function DeckSheetPrintPanel({
     setDownloading(true);
     const options = { size: "hq" as const, qr: isLocal ? false : qr };
     const blob = fetchSheetImage(deckId, publicSource, options, imageBody);
+    const filename = `${safeFilename(deckName, "deck")}.pdf`;
     // React Compiler can't yet lower try/finally, so reset in both paths.
     try {
       const downloadImageAsPdf = await loadImagePdfDownloader();
-      await downloadImageAsPdf(await blob, `${fileNameBase(deckName)}.pdf`);
+      await downloadImageAsPdf(await blob, filename);
       setDownloading(false);
     } catch {
       toast.error(m.decks_dialog_print_pdf_failed());
@@ -675,18 +663,9 @@ function DeckSheetPrintPanel({
           </label>
         </div>
       )}
-      <Button className="self-start" onClick={() => void handleDownload()} disabled={downloading}>
-        {downloading ? (
-          <>
-            <Loader2Icon className="size-4 animate-spin" />
-            {m.decks_dialog_print_preparing()}
-          </>
-        ) : (
-          <>
-            <PrinterIcon className="size-4" />
-            {m.decks_dialog_print_download_pdf()}
-          </>
-        )}
+      <Button className="self-start" onClick={() => void handleDownload()} pending={downloading}>
+        <PrinterIcon className="size-4" />
+        {downloading ? m.decks_dialog_print_preparing() : m.decks_dialog_print_download_pdf()}
       </Button>
     </div>
   );

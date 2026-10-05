@@ -3,52 +3,34 @@ import type {
   DeckCheckEntryDetailResponse,
   DeckCheckEventDetailResponse,
 } from "@openrift/shared/types/api/deck-check";
-import { isDefinedError, safe } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { deckCheckEntryInvalidationKeys } from "@/features/tournaments/lib/tournament-invalidation";
 import { tournamentDeckCheckKeys } from "@/features/tournaments/lib/tournaments-query-keys";
-import { useRequiredUserId } from "@/lib/auth-session";
-import { notFoundError } from "@/lib/server-fns/api-error";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useRequiredUserId } from "@/hooks/use-session";
+import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 const POLL_INTERVAL_MS = 5000;
 
 const fetchEntries = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: tournamentId }): Promise<DeckCheckEventDetailResponse> => {
-    // Map the 404 (deleted tournament, or deck submission disabled) to the Sentry-ignored sentinel.
-    const { error, data } = await safe(
+  .handler(({ context, data: tournamentId }): Promise<DeckCheckEventDetailResponse> =>
+    orNotFound(
       apiOrpcClient(tournamentDeckCheckContract, context.cookie).listEntries({ tournamentId }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+    ),
+  );
 
 const fetchEntry = createServerFn({ method: "GET" })
   .validator((input: { tournamentId: string; entryId: string }) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data }): Promise<DeckCheckEntryDetailResponse> => {
-    const { error, data: entry } = await safe(
-      apiOrpcClient(tournamentDeckCheckContract, context.cookie).getEntry(data),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return entry;
-  });
+  .handler(({ context, data }): Promise<DeckCheckEntryDetailResponse> =>
+    orNotFound(apiOrpcClient(tournamentDeckCheckContract, context.cookie).getEntry(data)),
+  );
 
 // `enabled: false` skips the query for viewers who can't read deck-check; the endpoint
 // is staff-only and 403s participants otherwise.

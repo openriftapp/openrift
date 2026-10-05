@@ -1,6 +1,8 @@
+import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
+import { zoneExpected } from "@openrift/shared/deck-zones";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
-import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangleIcon,
   ArrowDownIcon,
@@ -10,7 +12,7 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
@@ -23,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
@@ -49,7 +52,8 @@ import type {
   PlanWarning,
   SwapDirection,
 } from "@/features/decks/lib/deck-plan";
-import { zoneExpected } from "@/features/decks/lib/deck-zone-labels";
+import { getDeckPlanDraft, setDeckPlanDraft } from "@/features/decks/stores/deck-draft-store";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -336,7 +340,11 @@ export function DeckPlanEditor({
   const savePlan = useSaveDeckPlan();
   const { allPrintings } = useCards();
   const { getPreferredPrinting } = usePreferredPrinting();
-  const [draft, setDraft] = useState<PlanDraft>(() => planResponseToDraft(data.plan));
+  const queryClient = useQueryClient();
+  const userId = useRequiredUserId();
+  const [draft, setDraft] = useState<PlanDraft>(
+    () => getDeckPlanDraft(queryClient, userId, deckId) ?? planResponseToDraft(data.plan),
+  );
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
   const singleBattlefield = zoneExpected(WellKnown.deckZone.BATTLEFIELD, format) === 1;
@@ -383,6 +391,10 @@ export function DeckPlanEditor({
   const savedPayload = JSON.stringify(planDraftToSaveInput(planResponseToDraft(data.plan)));
   const draftPayload = JSON.stringify(planDraftToSaveInput(draft));
   const isDirty = savedPayload !== draftPayload;
+
+  useEffect(() => {
+    setDeckPlanDraft(queryClient, userId, deckId, isDirty ? draft : null);
+  }, [queryClient, userId, deckId, isDirty, draft]);
 
   const updateMatchup = (index: number, partial: Partial<PlanMatchupDraft>) => {
     setDraft((current) => ({
@@ -483,6 +495,10 @@ export function DeckPlanEditor({
 
   return (
     <div className="space-y-8 pb-8">
+      <UnsavedChangesGuard
+        dirty={isDirty}
+        onLeave={() => setDeckPlanDraft(queryClient, userId, deckId, null)}
+      />
       {actionsSlot === undefined && <div className="flex items-center gap-2">{actions}</div>}
       {actionsSlot ? createPortal(actions, actionsSlot) : null}
 

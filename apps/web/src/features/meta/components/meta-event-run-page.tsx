@@ -1,30 +1,29 @@
-import { formatRank as formatRankEnglish, formatRecord } from "@openrift/shared/meta-standings";
+import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaEventPlayer, MetaRunRound } from "@openrift/shared/types/api/meta";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { ChevronRightIcon } from "lucide-react";
 
-import { Heading } from "@/components/heading";
-import { PageTopBar, PageTopBarSticky, PageTopBarTitle } from "@/components/layout/page-top-bar";
-import {
-  TopBarBreadcrumbSeparator,
-  TopBarBreadcrumbTrail,
-} from "@/components/layout/top-bar-breadcrumb";
-import { Button } from "@/components/ui/button";
+import { Eyebrow, Heading } from "@/components/heading";
+import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";
+import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { accentGlow } from "@/components/ui/podium";
 import { RowList } from "@/components/ui/row-list";
+import { StatFigure } from "@/components/ui/stat-figure";
 import { TextLink } from "@/components/ui/text-link";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
-import { MetaHeroArt, MetaHeroCounter } from "@/features/meta/components/meta-hero";
+import { MetaHeroArt } from "@/features/meta/components/meta-hero";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaResultChip } from "@/features/meta/components/meta-result-chip";
 import { useMetaRun } from "@/features/meta/hooks/use-meta";
 import { describeEventStructure } from "@/features/meta/lib/meta-event-structure";
-import { formatRank, splitLegendName } from "@/features/meta/lib/meta-format";
-import { metaCutRoundLabel, metaRunRecord } from "@/features/meta/lib/meta-player-run";
+import { formatRank, metaOpponentFinishLine } from "@/features/meta/lib/meta-format";
+import { metaRunRecord } from "@/features/meta/lib/meta-player-run";
 import { useDomainColors } from "@/hooks/use-domain-colors";
+import { bracketRoundLabel, bracketRoundShortLabel } from "@/lib/bracket-round-label";
 import { deckGlowStyle } from "@/lib/domain";
+import { formatCount } from "@/lib/format";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -35,24 +34,6 @@ const FINAL_GLOW = accentGlow(12);
 const ROW_GRID = "items-center gap-x-3.5";
 const SWISS_GRID = `grid grid-cols-[2.75rem_3.5rem_minmax(0,1fr)_10.5rem_7rem_6rem] ${ROW_GRID}`;
 const CUT_GRID = `grid grid-cols-[6rem_3.5rem_minmax(0,1fr)_10.5rem_7rem_6rem] ${ROW_GRID}`;
-
-const SHORT_CUT_LABEL: Record<string, string> = {
-  Quarterfinal: "QF",
-  Semifinal: "SF",
-  Final: "F",
-};
-
-function opponentFinishLine(opponent: MetaEventPlayer | undefined): string | null {
-  if (opponent === undefined) {
-    return null;
-  }
-  const parts = [`finished ${formatRankEnglish(opponent.rank, opponent.rankIsTier)}`];
-  const record = formatRecord(opponent.wins, opponent.losses, opponent.draws);
-  if (record !== null) {
-    parts.push(record);
-  }
-  return parts.join(" · ");
-}
 
 function OpponentList({ opponent }: { opponent: MetaEventPlayer | undefined }) {
   if (opponent === undefined || opponent.shareToken === null) {
@@ -91,7 +72,7 @@ function OpponentLegend({
 }) {
   return (
     <MetaIdentity
-      name={opponent?.legend?.name}
+      legend={opponent?.legend}
       slug={opponent?.legend?.slug}
       archiveSlug={opponent?.legend?.archiveSlug}
       domains={opponent?.legend?.domains}
@@ -187,9 +168,9 @@ function RunRow({ round, opponent, label, shortLabel, grid, isFinal }: RunRowPro
                 championOnly
                 className="text-muted-foreground text-xs"
               />
-              {opponentFinishLine(opponent) !== null && (
+              {metaOpponentFinishLine(opponent) !== null && (
                 <p className="text-muted-foreground text-xs tabular-nums">
-                  {opponentFinishLine(opponent)}
+                  {metaOpponentFinishLine(opponent)}
                 </p>
               )}
             </div>
@@ -266,14 +247,18 @@ function RunSection({
             const label =
               lastCutRound === null
                 ? `R${round.roundNumber}`
-                : metaCutRoundLabel(round.roundNumber, lastCutRound);
+                : bracketRoundLabel(lastCutRound - round.roundNumber);
             return (
               <RunRow
                 key={`${round.phaseOrder}:${round.roundNumber}`}
                 round={round}
                 opponent={round.opponentId === null ? undefined : players.get(round.opponentId)}
                 label={label}
-                shortLabel={lastCutRound === null ? label : (SHORT_CUT_LABEL[label] ?? label)}
+                shortLabel={
+                  lastCutRound === null
+                    ? label
+                    : bracketRoundShortLabel(lastCutRound - round.roundNumber)
+                }
                 grid={grid}
                 isFinal={round.roundNumber === finalRoundNumber}
               />
@@ -299,27 +284,21 @@ export function MetaEventRunPage() {
   const structure = describeEventStructure(data.phases);
   const lastCutRound = data.lastCutRound ?? 0;
 
-  const champion = player.legend === null ? null : splitLegendName(player.legend.name).champion;
+  const champion =
+    player.legend === null ? null : (player.legend.character ?? player.legend.epithet);
   const fieldSize = data.event.playerCount ?? data.event.playerRowCount;
   const record = formatRecord(player.wins, player.losses, player.draws);
   const roundsPlayed = run.swiss.length + run.cut.length;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageTopBarSticky width="capped">
-        <PageTopBar className="gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <TopBarBreadcrumbTrail
-              segments={[
-                { label: m.meta_breadcrumb_archive(), link: <Link to="/meta" /> },
-                { label: data.event.name, link: <Link to="/meta/$slug" params={{ slug }} /> },
-              ]}
-            />
-            <TopBarBreadcrumbSeparator className="hidden sm:inline" />
-            <PageTopBarTitle>{player.playerName}</PageTopBarTitle>
-          </div>
-        </PageTopBar>
-      </PageTopBarSticky>
+      <TopBarBreadcrumbBar
+        segments={[
+          { label: m.meta_breadcrumb_archive(), link: <Link to="/meta" /> },
+          { label: data.event.name, link: <Link to="/meta/$slug" params={{ slug }} /> },
+        ]}
+        title={player.playerName}
+      />
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-10")}>
         <Card className="relative gap-0 py-0">
@@ -332,13 +311,13 @@ export function MetaEventRunPage() {
 
           <div className="relative flex flex-col gap-3 p-5 pr-[45%] sm:pr-[38%]">
             <div className="flex flex-col gap-1">
-              <p className="text-border-accent text-2xs font-semibold tracking-wide uppercase">
+              <Eyebrow variant="gold" as="p">
                 {player.rank === 1 ? m.meta_run_title_win() : m.meta_run_title()}
-              </p>
+              </Eyebrow>
               <h2 className="font-heading text-2xl font-bold">{player.playerName}</h2>
               <p className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
                 <MetaIdentity
-                  name={player.legend?.name}
+                  legend={player.legend}
                   slug={player.legend?.slug}
                   archiveSlug={player.legend?.archiveSlug}
                   domains={player.legend?.domains}
@@ -356,36 +335,36 @@ export function MetaEventRunPage() {
             </div>
 
             <div className="flex flex-wrap gap-x-9 gap-y-3">
-              <MetaHeroCounter
+              <StatFigure
                 value={formatRank(player.rank, player.rankIsTier)}
                 label={m.meta_run_of_players({ count: fieldSize })}
-                className="text-border-accent"
+                valueClassName="text-border-accent"
               />
-              {record !== null && (
-                <MetaHeroCounter value={record} label={m.meta_run_final_record()} />
-              )}
-              <MetaHeroCounter value={roundsPlayed} label={m.meta_run_rounds_played()} />
+              {record !== null && <StatFigure value={record} label={m.meta_run_final_record()} />}
+              <StatFigure value={formatCount(roundsPlayed)} label={m.meta_run_rounds_played()} />
             </div>
 
             <div className="flex flex-wrap gap-2">
               {player.shareToken !== null && (
-                <Button
-                  variant="outline"
-                  render={<Link to="/meta/decks/$token" params={{ token: player.shareToken }} />}
+                <Link
+                  to="/meta/decks/$token"
+                  params={{ token: player.shareToken }}
+                  className={buttonVariants({ variant: "outline" })}
                 >
                   {player.listStatus === "partial"
                     ? m.meta_list_status_partial()
                     : m.meta_standings_decklist()}
-                </Button>
+                </Link>
               )}
               {player.playerKey !== null && (
-                <Button
-                  variant="ghost"
-                  render={<Link to="/meta/players/$key" params={{ key: player.playerKey }} />}
+                <Link
+                  to="/meta/players/$key"
+                  params={{ key: player.playerKey }}
+                  className={buttonVariants({ variant: "ghost" })}
                 >
                   Every finish by {player.playerName}
                   <ChevronRightIcon />
-                </Button>
+                </Link>
               )}
             </div>
           </div>

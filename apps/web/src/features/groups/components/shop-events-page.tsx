@@ -1,4 +1,5 @@
-import { dateLeafParts, formatTimeLocal } from "@openrift/shared/format-date";
+import { formatTimeLocal } from "@openrift/shared/format-date";
+import { isGroupAdminRole } from "@openrift/shared/friend-group-roles";
 import type {
   FriendGroupDetailResponse,
   FriendGroupShopEventResponse,
@@ -9,13 +10,12 @@ import { useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { PageDescription } from "@/components/layout/page-top-bar";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { DateLeaf } from "@/components/ui/date-leaf";
-import { RowList } from "@/components/ui/row-list";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
+import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { isAdmin } from "@/features/groups/components/friend-group-shell";
-import { HOVER_ROW_CLASS } from "@/features/groups/components/hover-row";
 import { useFriendGroupShopEvents } from "@/features/groups/hooks/use-friend-group-shops";
 import type { ShopEventRange } from "@/features/groups/lib/shop-events";
 import {
@@ -23,7 +23,6 @@ import {
   filterShopEventsByRange,
   groupShopEventsByDay,
 } from "@/features/groups/lib/shop-events";
-import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
 
 const ALL_SHOPS = "all";
@@ -67,13 +66,20 @@ export function ShopEventsContent({
         icon={StoreIcon}
         title={m.groups_shops_empty_title()}
         description={
-          isAdmin(data.viewerRole) ? m.groups_shops_empty_admin() : m.groups_shops_empty_member()
+          isGroupAdminRole(data.viewerRole)
+            ? m.groups_shops_empty_admin()
+            : m.groups_shops_empty_member()
         }
       >
-        {isAdmin(data.viewerRole) ? (
-          <Button render={<Link to="/groups/$slug/manage" params={{ slug }} hash="shops" />}>
+        {isGroupAdminRole(data.viewerRole) ? (
+          <Link
+            to="/groups/$slug/manage"
+            params={{ slug }}
+            hash="shops"
+            className={buttonVariants()}
+          >
             {m.groups_link_a_shop()}
-          </Button>
+          </Link>
         ) : null}
       </EmptyState>
     );
@@ -124,32 +130,30 @@ export function ShopEventsContent({
       </div>
 
       {days.length === 0 ? (
-        <p className="text-muted-foreground">{m.groups_shops_nothing_in_range()}</p>
+        <Empty>
+          <EmptyHeader>
+            <EmptyDescription>{m.groups_shops_nothing_in_range()}</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <ul className="flex flex-col gap-5">
-          {days.map((day) => {
-            const leaf = dateLeafParts(`${day.day}T00:00:00`, DATE_WORDS);
-            return (
-              <li
-                key={day.day}
-                className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3"
-              >
-                <DateLeaf month={leaf.month} day={leaf.day} size="sm" className="mt-1" />
-                <div className="flex min-w-0 flex-col gap-1">
-                  <SectionHeading as="h3" size="sm">
-                    {day.label}
-                  </SectionHeading>
-                  <RowList>
-                    {day.events.map((event) => (
-                      <li key={event.externalId}>
-                        <ShopEventRow event={event} showShop={selectedStoreId === null} />
-                      </li>
-                    ))}
-                  </RowList>
-                </div>
-              </li>
-            );
-          })}
+          {days.map((day) => (
+            <li key={day.day} className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3">
+              <DateLeaf at={day.day} clock="utc" size="sm" className="mt-1" />
+              <div className="flex min-w-0 flex-col gap-1">
+                <SectionHeading as="h3" size="sm">
+                  {day.label}
+                </SectionHeading>
+                <RowList>
+                  {day.events.map((event) => (
+                    <RowListItem key={event.externalId}>
+                      <ShopEventRow event={event} showShop={selectedStoreId === null} />
+                    </RowListItem>
+                  ))}
+                </RowList>
+              </div>
+            </li>
+          ))}
         </ul>
       )}
     </div>
@@ -170,12 +174,13 @@ function ShopEventRow({
   ].join(" · ");
 
   return (
-    <a href={event.url} target="_blank" rel="noreferrer" className={HOVER_ROW_CLASS}>
+    // oxlint-disable-next-line jsx-a11y/control-has-associated-label -- text label is inside the RowListLink children
+    <RowListLink render={<a href={event.url} target="_blank" rel="noreferrer" />}>
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-sm font-medium">{event.name}</span>
         <span className="text-muted-foreground truncate text-xs">{meta}</span>
       </span>
       <ExternalLinkIcon className="text-muted-foreground/40 size-4 shrink-0" />
-    </a>
+    </RowListLink>
   );
 }

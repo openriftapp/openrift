@@ -14,6 +14,8 @@ function member(playerId: string, gamePoints: number | null): PodMemberResponse 
   return {
     playerId,
     displayName: playerId,
+    image: null,
+    gravatarHash: null,
     teamId: null,
     gamePoints,
     placement: null,

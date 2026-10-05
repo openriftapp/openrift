@@ -1,3 +1,4 @@
+import { META_PAGE_SIZES } from "@openrift/shared/contracts/meta";
 import { formatDay } from "@openrift/shared/format-date";
 import type { MetaDeckSummary, MetaEventSummary } from "@openrift/shared/types/api/meta";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -14,7 +15,7 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { PAGER_SCROLL_TARGET, Pager } from "@/components/ui/pager";
-import { RowList } from "@/components/ui/row-list";
+import { RowList, RowListLink } from "@/components/ui/row-list";
 import {
   Select,
   SelectContent,
@@ -53,11 +54,11 @@ import {
 } from "@/features/meta/lib/meta-deck-search";
 import { metaEventFieldSize, metaShownLabel } from "@/features/meta/lib/meta-format";
 import type { MetaPageSizeValue } from "@/features/meta/lib/meta-paging";
-import { META_PAGE_SIZES, metaPageCount, metaPageSlice } from "@/features/meta/lib/meta-paging";
+import { metaPageCount, metaPageSlice } from "@/features/meta/lib/meta-paging";
 import { scopeKey } from "@/features/meta/lib/meta-scope";
 import { isCostFilterActive } from "@/features/meta/lib/meta-standings-cost";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
 import type { MetaDeckView } from "@/lib/sanitize-preferences";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -477,10 +478,9 @@ function DeckEventHeader({
   summary: MetaEventSummary | undefined;
 }) {
   return (
-    <Link
-      to="/meta/$slug"
-      params={{ slug: event.slug }}
-      className="hover:bg-muted/50 focus-visible:ring-ring/50 -mx-2 block rounded-md px-2 py-2 outline-none focus-visible:ring-2 focus-visible:ring-inset"
+    <RowListLink
+      render={<Link to="/meta/$slug" params={{ slug: event.slug }} />}
+      className="block py-2"
     >
       {summary === undefined ? (
         <span className="flex min-w-0 flex-col">
@@ -492,7 +492,7 @@ function DeckEventHeader({
       ) : (
         <MetaEventHeading event={summary} showTier />
       )}
-    </Link>
+    </RowListLink>
   );
 }
 

@@ -49,7 +49,7 @@ describe("MetaTierBadge", () => {
     );
     expect(screen.getByText("Premier")).toHaveAttribute("data-variant", "outline");
     expect(screen.getByText("Competitive")).toHaveAttribute("data-variant", "outline");
-    expect(screen.getByText("Local")).toHaveAttribute("data-variant", "muted");
+    expect(screen.getByText("Local")).toHaveAttribute("data-variant", "neutral");
   });
 
   it("takes call-site classes", () => {

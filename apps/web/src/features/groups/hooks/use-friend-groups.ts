@@ -7,7 +7,6 @@ import type {
   FriendGroupMatchRow,
   FriendGroupMemberDetailResponse,
 } from "@openrift/shared/types/api/friend-group";
-import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions, useQueries, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -19,8 +18,8 @@ import {
 } from "@/features/groups/lib/friend-groups-queries";
 import { friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
 import type { GroupMatchPanels } from "@/features/groups/lib/trade-derivation";
-import { useRequiredUserId } from "@/lib/auth-session";
-import { notFoundError } from "@/lib/server-fns/api-error";
+import { useRequiredUserId } from "@/hooks/use-session";
+import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -55,19 +54,9 @@ const fetchMemberDetail = createServerFn({ method: "GET" })
 const fetchJoinPreview = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: code }): Promise<FriendGroupJoinPreviewResponse> => {
-    // 404 (no group matches the code) maps to the NOT_FOUND sentinel.
-    const { error, data } = await safe(
-      apiOrpcClient(publicFriendGroupsContract, context.cookie).joinPreview({ code }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ context, data: code }): Promise<FriendGroupJoinPreviewResponse> =>
+    orNotFound(apiOrpcClient(publicFriendGroupsContract, context.cookie).joinPreview({ code })),
+  );
 
 function friendGroupMatchesQueryOptions(userId: string, slug: string) {
   return queryOptions({

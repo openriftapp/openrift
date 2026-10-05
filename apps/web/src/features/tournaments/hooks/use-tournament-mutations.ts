@@ -10,11 +10,11 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { participantMutationInvalidationKeys } from "@/features/tournaments/lib/tournament-invalidation";
 import { tournamentsKeys } from "@/features/tournaments/lib/tournaments-query-keys";
-import { useRequiredUserId, useUserId } from "@/lib/auth-session";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useRequiredUserId, useUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 type CreateTournamentInput = ContractInput<typeof tournamentsContract, "create">;
 type UpdateTournamentInput = ContractInput<typeof tournamentsContract, "update">;

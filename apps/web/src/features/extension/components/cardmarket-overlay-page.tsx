@@ -3,7 +3,7 @@ import type { CardmarketOverlaySnapshot } from "@openrift/shared/contracts/cardm
 import { CARDMARKET_OVERLAY_MAX_LISTS } from "@openrift/shared/contracts/cardmarket-overlay";
 import { formatDayTimeLocal } from "@openrift/shared/format-date";
 import { Link } from "@tanstack/react-router";
-import { CheckIcon, Loader2Icon } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CountPill } from "@/components/ui/count-pill";
 import { RowList, RowListItem } from "@/components/ui/row-list";
+import { Spinner } from "@/components/ui/spinner";
 import { TextLink } from "@/components/ui/text-link";
 import { useCardmarketOverlaySnapshot } from "@/features/extension/hooks/use-cardmarket-overlay";
 import { useOverlayCaptured } from "@/features/extension/hooks/use-overlay-captured";
@@ -58,7 +59,7 @@ function HandOff({ snapshot }: { snapshot: CardmarketOverlaySnapshot }) {
       ) : (
         <div className="flex flex-col gap-1">
           <p className="text-muted-foreground flex items-center gap-2 text-sm">
-            <Loader2Icon className="size-4 shrink-0 animate-spin" />
+            <Spinner className="shrink-0" />
             {m.extension_overlay_waiting()}
           </p>
           <p className="text-muted-foreground text-sm">

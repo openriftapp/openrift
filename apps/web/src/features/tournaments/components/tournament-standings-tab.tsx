@@ -36,10 +36,8 @@ import {
   latestSnapshotRound,
   legendsByPlayer,
 } from "@/features/tournaments/lib/player-run";
+import { rankedStandings } from "@/features/tournaments/lib/standings-display";
 import { isTournamentStaff } from "@/features/tournaments/lib/tournament-display";
-import { useRegionLabel } from "@/hooks/use-region-label";
-
-import { rankedStandings } from "./standings-display";
 
 type Tournament = PodTournamentDetailResponse["tournament"];
 
@@ -102,13 +100,11 @@ function SnapshotStandings({
   id,
   round,
   tournament,
-  regionLabel,
   legendCardByPlayer,
 }: {
   id: string;
   round: number;
   tournament: Tournament;
-  regionLabel: (slug: string) => string;
   legendCardByPlayer: ReadonlyMap<string, string | null>;
 }) {
   const { data } = useStandingsSnapshot(id, round);
@@ -135,7 +131,6 @@ function SnapshotStandings({
         variant={variant}
         playMode={playMode}
         regionsEnabled={tournament.regionsEnabled}
-        regionLabel={regionLabel}
         rounds={data.rounds}
         legendByPlayer={legendCardByPlayer}
       />
@@ -154,7 +149,6 @@ export function TournamentStandingsTab({
   round?: number;
 }) {
   const { data } = useTournamentRunState(id);
-  const regionLabel = useRegionLabel();
   const navigate = useNavigate();
   const tournament = data.tournament;
   const variant = tournament.pairingStyle === "swiss" ? "swiss" : "pod";
@@ -180,7 +174,6 @@ export function TournamentStandingsTab({
         id={id}
         round={snapshot}
         tournament={tournament}
-        regionLabel={regionLabel}
         legendCardByPlayer={legendCardByPlayer}
       />
     );
@@ -224,13 +217,10 @@ export function TournamentStandingsTab({
           variant={variant}
           playMode={tournament.playMode}
           regionsEnabled={tournament.regionsEnabled}
-          regionLabel={regionLabel}
           rounds={data.rounds}
           legendByPlayer={legendCardByPlayer}
         />
-        {tournament.regionsEnabled ? (
-          <RegionOverview standings={data.standings} regionLabel={regionLabel} />
-        ) : null}
+        {tournament.regionsEnabled ? <RegionOverview standings={data.standings} /> : null}
       </>
     );
   }

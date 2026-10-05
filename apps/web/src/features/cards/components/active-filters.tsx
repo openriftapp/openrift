@@ -1,12 +1,11 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { AvailableFilters } from "@openrift/shared/filters-available";
 import type { PresenceDimension, RangeKey } from "@openrift/shared/types/search";
-import { MinusIcon, XIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
 
-import { CardIcon } from "@/components/card-icon";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
+import { FilterChip } from "@/components/ui/filter-chip";
+import { FilterIcon } from "@/features/cards/components/filter-icon";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
 import { ownedBucketLabel } from "@/features/cards/lib/filter-dimensions";
@@ -15,9 +14,7 @@ import { groupTagsByCategory } from "@/features/collections/lib/tag-category-gro
 import { useCustomTagList, useEnumOrders, useTagCategories } from "@/hooks/use-enums";
 import { formatDomainFilterLabel } from "@/lib/domain";
 import { compactFormatterForMarketplace } from "@/lib/format";
-import { getFilterIconPath } from "@/lib/icons";
 import { rangeBadgeLabel } from "@/lib/range-label";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -131,7 +128,7 @@ export function ActiveFilters({
     | "channelsEx"
     | "keywordsEx";
   // Excludes the icon-less "owned"/"cardSizes" sections; markers/channels are
-  // guarded out separately before reaching `getFilterIconPath`.
+  // guarded out separately before reaching `FilterIcon`.
   type ExcludeSection =
     | "sets"
     | "rarities"
@@ -355,35 +352,35 @@ export function ActiveFilters({
             <span className="text-muted-foreground hidden text-xs sm:inline">
               {m.cards_filter_active_search_label()}
             </span>
-            <Badge variant="secondary" className="gap-1">
-              &ldquo;{filterState.search}&rdquo;
-              <ChipRemoveButton
-                aria-label={m.cards_filter_clear_search()}
-                onClick={() => setSearch("")}
-              />
-            </Badge>
+            <FilterChip
+              label={<>&ldquo;{filterState.search}&rdquo;</>}
+              removeLabel={m.cards_filter_clear_search()}
+              onRemove={() => setSearch("")}
+            />
           </div>
         )}
         {filterGroups.map(({ key, label, values, displayLabel: groupDisplayLabel }) => (
           <div key={key} className="flex min-w-0 flex-wrap items-center gap-1">
             <span className="text-muted-foreground hidden text-xs sm:inline">{label}:</span>
             {values.map((value) => {
-              const icon =
-                key === "markers" || key === "channels" || key === "owned" || key === "keywords"
-                  ? undefined
-                  : getFilterIconPath(key, value);
               const displayFn =
                 groupDisplayLabel ??
                 (key === "sets" && setDisplayLabel ? setDisplayLabel : (v: string) => v);
               return (
-                <Badge key={`${key}-${value}`} variant="secondary" className="gap-1">
-                  {icon && <CardIcon src={icon} />}
-                  {displayFn(value)}
-                  <ChipRemoveButton
-                    aria-label={m.cards_filter_remove_value({ label, value: displayFn(value) })}
-                    onClick={() => toggleArrayFilter(key, value)}
-                  />
-                </Badge>
+                <FilterChip
+                  key={`${key}-${value}`}
+                  label={displayFn(value)}
+                  icon={
+                    key === "markers" ||
+                    key === "channels" ||
+                    key === "owned" ||
+                    key === "keywords" ? undefined : (
+                      <FilterIcon category={key} value={value} />
+                    )
+                  }
+                  removeLabel={m.cards_filter_remove_value({ label, value: displayFn(value) })}
+                  onRemove={() => toggleArrayFilter(key, value)}
+                />
               );
             })}
           </div>
@@ -400,13 +397,12 @@ export function ActiveFilters({
               {values.map((slug) => {
                 const tag = customTagBySlug.get(slug);
                 return (
-                  <Badge key={`customTags-${slug}`} variant="secondary" className="gap-1">
-                    {tag?.label ?? slug}
-                    <ChipRemoveButton
-                      aria-label={m.cards_filter_remove_tag({ tag: tag?.label ?? slug })}
-                      onClick={() => toggleArrayFilter("customTags", slug)}
-                    />
-                  </Badge>
+                  <FilterChip
+                    key={`customTags-${slug}`}
+                    label={tag?.label ?? slug}
+                    removeLabel={m.cards_filter_remove_tag({ tag: tag?.label ?? slug })}
+                    onRemove={() => toggleArrayFilter("customTags", slug)}
+                  />
                 );
               })}
             </div>
@@ -416,13 +412,12 @@ export function ActiveFilters({
             <div key={`tags-${groupSlug}`} className="flex min-w-0 flex-wrap items-center gap-1">
               <span className="text-muted-foreground hidden text-xs sm:inline">{groupLabel}:</span>
               {tags.map((tag) => (
-                <Badge key={`tags-${tag}`} variant="secondary" className="gap-1">
-                  {tag}
-                  <ChipRemoveButton
-                    aria-label={m.cards_filter_remove_tag({ tag })}
-                    onClick={() => toggleArrayFilter("tags", tag)}
-                  />
-                </Badge>
+                <FilterChip
+                  key={`tags-${tag}`}
+                  label={tag}
+                  removeLabel={m.cards_filter_remove_tag({ tag })}
+                  onRemove={() => toggleArrayFilter("tags", tag)}
+                />
               ))}
             </div>
           ))}
@@ -430,30 +425,27 @@ export function ActiveFilters({
           <div key={key} className="flex min-w-0 flex-wrap items-center gap-1">
             <span className="text-muted-foreground hidden text-xs sm:inline">{label}:</span>
             {values.map((value) => {
-              const icon =
-                section === "markers" || section === "channels" || section === "keywords"
-                  ? undefined
-                  : getFilterIconPath(section, value);
               const displayFn =
                 groupDisplayLabel ??
                 (section === "sets" && setDisplayLabel ? setDisplayLabel : (v: string) => v);
               return (
-                <Badge
+                <FilterChip
                   key={`${key}-${value}`}
-                  variant="outline"
-                  className="border-destructive/40 text-destructive gap-1"
-                >
-                  <MinusIcon className="size-3 shrink-0" />
-                  {icon && <CardIcon src={icon} />}
-                  <span className="line-through">{displayFn(value)}</span>
-                  <ChipRemoveButton
-                    aria-label={m.cards_filter_remove_excluded_value({
-                      label,
-                      value: displayFn(value),
-                    })}
-                    onClick={() => toggleArrayFilter(key, value)}
-                  />
-                </Badge>
+                  excluded
+                  label={displayFn(value)}
+                  icon={
+                    section === "markers" ||
+                    section === "channels" ||
+                    section === "keywords" ? undefined : (
+                      <FilterIcon category={section} value={value} />
+                    )
+                  }
+                  removeLabel={m.cards_filter_remove_excluded_value({
+                    label,
+                    value: displayFn(value),
+                  })}
+                  onRemove={() => toggleArrayFilter(key, value)}
+                />
               );
             })}
           </div>
@@ -470,18 +462,13 @@ export function ActiveFilters({
               {values.map((slug) => {
                 const tag = customTagBySlug.get(slug);
                 return (
-                  <Badge
+                  <FilterChip
                     key={`customTagsEx-${slug}`}
-                    variant="outline"
-                    className="border-destructive/40 text-destructive gap-1"
-                  >
-                    <MinusIcon className="size-3 shrink-0" />
-                    <span className="line-through">{tag?.label ?? slug}</span>
-                    <ChipRemoveButton
-                      aria-label={m.cards_filter_remove_excluded_tag({ tag: tag?.label ?? slug })}
-                      onClick={() => toggleArrayFilter("customTagsEx", slug)}
-                    />
-                  </Badge>
+                    excluded
+                    label={tag?.label ?? slug}
+                    removeLabel={m.cards_filter_remove_excluded_tag({ tag: tag?.label ?? slug })}
+                    onRemove={() => toggleArrayFilter("customTagsEx", slug)}
+                  />
                 );
               })}
             </div>
@@ -491,18 +478,13 @@ export function ActiveFilters({
             <div key={`tagsEx-${groupSlug}`} className="flex min-w-0 flex-wrap items-center gap-1">
               <span className="text-muted-foreground hidden text-xs sm:inline">{groupLabel}:</span>
               {tags.map((tag) => (
-                <Badge
+                <FilterChip
                   key={`tagsEx-${tag}`}
-                  variant="outline"
-                  className="border-destructive/40 text-destructive gap-1"
-                >
-                  <MinusIcon className="size-3 shrink-0" />
-                  <span className="line-through">{tag}</span>
-                  <ChipRemoveButton
-                    aria-label={m.cards_filter_remove_excluded_tag({ tag })}
-                    onClick={() => toggleArrayFilter("tagsEx", tag)}
-                  />
-                </Badge>
+                  excluded
+                  label={tag}
+                  removeLabel={m.cards_filter_remove_excluded_tag({ tag })}
+                  onRemove={() => toggleArrayFilter("tagsEx", tag)}
+                />
               ))}
             </div>
           ))}
@@ -610,20 +592,17 @@ function FlagChip({
   state: boolean;
   onClear: () => void;
 }) {
-  const excluded = state === false;
   return (
     <div className="flex items-center gap-1">
       <span className="text-muted-foreground hidden text-xs sm:inline">
         {m.cards_filter_active_flag_label()}
       </span>
-      <Badge
-        variant={excluded ? "outline" : "secondary"}
-        className={cn("gap-1", excluded && "border-destructive/40 text-destructive")}
-      >
-        {excluded && <MinusIcon className="size-3 shrink-0" />}
-        <span className={cn(excluded && "line-through")}>{label}</span>
-        <ChipRemoveButton aria-label={m.cards_filter_clear_named({ label })} onClick={onClear} />
-      </Badge>
+      <FilterChip
+        excluded={state === false}
+        label={label}
+        removeLabel={m.cards_filter_clear_named({ label })}
+        onRemove={onClear}
+      />
     </div>
   );
 }
@@ -650,12 +629,17 @@ function RangeBadge({
   return (
     <div className="flex items-center gap-1">
       <span className="text-muted-foreground hidden text-xs sm:inline">{label}:</span>
-      <Badge variant="secondary" className="gap-1">
-        {/* On mobile the external prefix is hidden, so carry the label inside the chip. */}
-        <span className="sm:hidden">{label}</span>
-        {valueLabel}
-        <ChipRemoveButton aria-label={m.cards_filter_clear_named({ label })} onClick={onClear} />
-      </Badge>
+      <FilterChip
+        label={
+          <>
+            {/* On mobile the external prefix is hidden, so carry the label inside the chip. */}
+            <span className="sm:hidden">{label} </span>
+            {valueLabel}
+          </>
+        }
+        removeLabel={m.cards_filter_clear_named({ label })}
+        onRemove={onClear}
+      />
     </div>
   );
 }

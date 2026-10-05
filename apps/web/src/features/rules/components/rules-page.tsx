@@ -1,17 +1,18 @@
 import { formatDay } from "@openrift/shared/format-date";
+import { formatRuleNumber } from "@openrift/shared/rules";
 import type { RuleKind, RuleLanguage } from "@openrift/shared/types/api/rules";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { BookOpenIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { PAGE_HERO_EYEBROW_CLASS, PageHero, PageHeroStats } from "@/components/layout/page-hero";
 import { PageToc, PageTocMobileTrigger } from "@/components/layout/page-toc";
 import type { PageTocItem } from "@/components/layout/page-toc";
-import { PAGE_TOP_BAR_GEOMETRY, useMeasuredHeight } from "@/components/layout/page-top-bar";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import { PAGE_TOP_BAR_GEOMETRY } from "@/components/layout/page-top-bar";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import {
   Select,
   SelectContent,
@@ -19,8 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { featuredBoardStatesQueryOptions } from "@/features/board-states/lib/board-states-queries";
 import { useRuleVersions, useRulesAtVersion } from "@/features/rules/hooks/use-rules";
-import { featuredBoardStatesQueryOptions } from "@/features/rules/lib/board-states-queries";
 import { buildRuleExamplesMap } from "@/features/rules/lib/rule-examples";
 import { ruleHtmlToText } from "@/features/rules/lib/rule-text";
 import { ruleVersionLabels } from "@/features/rules/lib/rule-version-label";
@@ -48,13 +49,14 @@ import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store"
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsStuck } from "@/hooks/use-is-stuck";
+import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { useRuleCardPreview } from "./rule-card-preview";
-import { formatRuleNumber, handleRuleHtmlClick, VersionComments } from "./rule-content";
+import { handleRuleHtmlClick, VersionComments } from "./rule-content";
 import { RuleRow } from "./rule-row";
 import { ChangesSummary } from "./rules-changes-summary";
 import { ChangesViewToggle, KindTabs, RulesLanguageSelect, RulesSearchBar } from "./rules-toolbar";
@@ -163,9 +165,14 @@ function RulesContent({
   // global, so without this it would leak across pages.
   const expandAll = useRulesFoldStore((state) => state.expandAll);
   const resetSearch = useRulesSearchStore((state) => state.reset);
-  useScopeEffect(`${kind} ${language} ${version}`, () => {
+  const searchScope = useRef<string | null>(null);
+  useScopeEffect(`${kind} ${language} ${version}`, (scope) => {
     expandAll();
-    resetSearch();
+    // The first scope keeps a deep-linked `?q=`; the search bar seeds the store from the URL.
+    if (searchScope.current !== null && searchScope.current !== scope) {
+      resetSearch();
+    }
+    searchScope.current = scope;
   });
 
   const isHydrated = useHydrated();
@@ -356,10 +363,7 @@ function RulesContent({
               )}
               {noSearchResults ? (
                 <Empty>
-                  <EmptyHeader>
-                    <EmptyTitle>{m.rules_search_empty_title()}</EmptyTitle>
-                    <EmptyDescription>{m.rules_search_empty_description()}</EmptyDescription>
-                  </EmptyHeader>
+                  <EmptyDescription>{m.rules_search_no_matches()}</EmptyDescription>
                 </Empty>
               ) : searchResult === null ? (
                 rules.map((rule) => (

@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { setsQueryOptions } from "@/features/cards/lib/sets-queries";
-import { createAdminEnumHooks } from "@/lib/create-admin-enum-hooks";
+import { createAdminEnumHooks } from "@/hooks/create-admin-enum-hooks";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";

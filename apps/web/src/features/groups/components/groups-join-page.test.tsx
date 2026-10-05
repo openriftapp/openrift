@@ -24,11 +24,11 @@ vi.mock("@/features/groups/hooks/use-friend-group-mutations", () => ({
   useJoinFriendGroupByCode: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useUserId: () => viewerId,
 }));
 
-vi.mock("@/features/account/components/signed-out-cta", () => ({
+vi.mock("@/components/signed-out-cta", () => ({
   SignedOutAuthButtons: ({ signInLabel }: { signInLabel?: string }) => (
     <a href="/login">{signInLabel}</a>
   ),

@@ -2,8 +2,8 @@ import { useDroppable } from "@dnd-kit/core";
 import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
 import type { ReactNode } from "react";
 
-import type { AnyDragData } from "@/features/collections/components/dnd-types";
-import { COLLECTION_DRAG_TYPES } from "@/features/collections/components/dnd-types";
+import type { AnyDragData } from "@/features/collections/lib/dnd-types";
+import { COLLECTION_DRAG_TYPES } from "@/features/collections/lib/dnd-types";
 import { asDragData } from "@/lib/dnd-data";
 import { cn } from "@/lib/utils";
 

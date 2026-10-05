@@ -1,10 +1,9 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { useNavigate } from "@tanstack/react-router";
-import { FileUpIcon, UploadIcon } from "lucide-react";
 import type { ChangeEvent } from "react";
 import { useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Code } from "@/components/ui/code";
 import {
   Dialog,
   DialogContent,
@@ -13,9 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { handleImportFileUpload } from "@/features/collections/hooks/import-flow-shared";
+import { ImportTextInput } from "@/features/collections/components/import-preview-chrome";
+import { handleImportFileUpload } from "@/features/collections/lib/import-flow-shared";
 import { useImportHandoffStore } from "@/features/collections/stores/import-handoff-store";
 import { m } from "@/paraglide/messages.js";
 
@@ -64,40 +62,21 @@ export function CollectionImportDialog({
               <ParaglideMessage
                 message={m.collections_import_paste_hint}
                 markup={{
-                  code: ({ children }) => <code className="text-foreground">{children}</code>,
+                  code: ({ children }) => <Code>{children}</Code>,
                 }}
               />
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex min-w-0 flex-col gap-3">
-            <Textarea
-              value={rawText}
-              onChange={(event) => setRawText(event.target.value)}
-              placeholder={m.collections_import_textarea_placeholder()}
-              // text-base below md: iOS Safari zooms the viewport when a focused
-              // field is under 16px, and there is no maximum-scale to stop it.
-              className="min-h-[200px] font-mono text-base md:text-xs"
-            />
-
-            <div className="flex flex-wrap items-center justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}>
-                <FileUpIcon className="size-4" />
-                {m.collections_import_upload_file()}
-              </Button>
-              <Input
-                ref={fileRef}
-                type="file"
-                accept=".csv,text/csv,.txt,text/plain"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <Button type="submit" disabled={rawText.trim().length === 0}>
-                <UploadIcon className="size-4" />
-                {m.collections_import_continue()}
-              </Button>
-            </div>
-          </div>
+          <ImportTextInput
+            value={rawText}
+            onValueChange={setRawText}
+            placeholder={m.collections_import_textarea_placeholder()}
+            fileRef={fileRef}
+            onFileUpload={handleFileUpload}
+            uploadLabel={m.collections_import_upload_file()}
+            actionLabel={m.collections_import_continue()}
+          />
         </DialogForm>
       </DialogContent>
     </Dialog>

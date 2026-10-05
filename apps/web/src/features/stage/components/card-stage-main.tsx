@@ -4,7 +4,8 @@ import { useState } from "react";
 
 import { CardDetailArt } from "@/features/cards/components/card-detail/card-detail-art";
 import { CardPlateContent } from "@/features/cards/components/card-plate";
-import { isChromaGround, useChromaPlate } from "@/features/stage/components/stage-shell";
+import { useChromaPlate } from "@/features/stage/hooks/use-chroma-plate";
+import { isChromaGround } from "@/features/stage/lib/chroma-ground";
 import type { PresentationItem } from "@/features/stage/lib/presentation-queue";
 import { usePresentationStore } from "@/features/stage/stores/presentation-store";
 import { cn } from "@/lib/utils";

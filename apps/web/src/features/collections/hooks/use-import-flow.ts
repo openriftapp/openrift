@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
-import type { ImportStep } from "@/features/collections/hooks/import-flow-shared";
+import { useCreateCollection } from "@/features/collections/hooks/use-collections";
+import { useAddCopies, useDisposeCopies } from "@/features/collections/hooks/use-copies";
+import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
+import type { ImportStep } from "@/features/collections/lib/import-flow-shared";
 import {
   createImportEntryHandlers,
   deriveImportSummary,
@@ -12,10 +15,7 @@ import {
   IMPORT_BATCH_SIZE,
   runImportParse,
   STATUS_SORT_ORDER,
-} from "@/features/collections/hooks/import-flow-shared";
-import { useCreateCollection } from "@/features/collections/hooks/use-collections";
-import { useAddCopies, useDisposeCopies } from "@/features/collections/hooks/use-copies";
-import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
+} from "@/features/collections/lib/import-flow-shared";
 import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
 import { matchEntries } from "@/features/collections/lib/import-matcher";
 import type { ImportCopyMetadata } from "@/features/collections/lib/import-parsers";
@@ -24,6 +24,7 @@ import { useImportHandoffStore } from "@/features/collections/stores/import-hand
 import type { ImportableListKind } from "@/features/lists/hooks/use-list-import-flow";
 import { buildListImportPayload } from "@/features/lists/hooks/use-list-import-flow";
 import { useBulkAddListEntries, useLists } from "@/features/lists/hooks/use-lists";
+import { sendInBatches } from "@/lib/send-in-batches";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -133,24 +134,15 @@ export function useImportFlow() {
     setIsImporting(true);
 
     const payload = buildListImportPayload(importableEntries, list.kind);
-    const batches: (typeof payload)[] = [];
-    for (let offset = 0; offset < payload.length; offset += IMPORT_BATCH_SIZE) {
-      batches.push(payload.slice(offset, offset + IMPORT_BATCH_SIZE));
-    }
-
-    const sendAllBatches = async () => {
-      for (const batch of batches) {
-        await bulkAddEntries.mutateAsync({ listId, entries: batch });
-      }
-    };
-
     const addedToListMessage = m.collections_import_toast_added_to_list({
       count: summary.totalCards,
       name: list.name,
     });
 
     try {
-      await sendAllBatches();
+      await sendInBatches(payload, IMPORT_BATCH_SIZE, (entries) =>
+        bulkAddEntries.mutateAsync({ listId, entries }),
+      );
       toast.success(addedToListMessage);
       void navigate({ to: "/collections/lists/$listId", params: { listId } });
     } catch {
@@ -225,21 +217,12 @@ export function useImportFlow() {
       }
     }
 
-    const batches: (typeof copies)[] = [];
-    for (let offset = 0; offset < copies.length; offset += IMPORT_BATCH_SIZE) {
-      batches.push(copies.slice(offset, offset + IMPORT_BATCH_SIZE));
-    }
-
-    const sendAllBatches = async () => {
-      for (const batch of batches) {
-        await addCopies.mutateAsync({ copies: batch });
-      }
-    };
-
     const importedMessage = m.collections_import_toast_imported({ count: summary.totalCards });
 
     try {
-      await sendAllBatches();
+      await sendInBatches(copies, IMPORT_BATCH_SIZE, (batch) =>
+        addCopies.mutateAsync({ copies: batch }),
+      );
       toast.success(importedMessage);
       void navigate({
         to: "/collections/$collectionId",

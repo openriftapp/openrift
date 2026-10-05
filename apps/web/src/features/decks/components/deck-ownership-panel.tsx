@@ -1,6 +1,7 @@
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { PackageSearchIcon } from "lucide-react";
 
+import { MarketplaceIcon } from "@/components/marketplace-icon";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
@@ -96,7 +97,7 @@ function PriceBlock({ data, marketplace }: { data: DeckOwnershipData; marketplac
       )}
     >
       <div className="text-muted-foreground flex items-center gap-1.5 pb-0.5 text-xs">
-        <img src={MARKETPLACE_META[marketplace].icon} alt="" className="h-3 invert dark:invert-0" />
+        <MarketplaceIcon marketplace={marketplace} />
         {m.decks_overview_marketplace_prices({ marketplace: MARKETPLACE_META[marketplace].label })}
       </div>
       <span />

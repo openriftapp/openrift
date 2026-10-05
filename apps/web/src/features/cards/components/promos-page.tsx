@@ -26,6 +26,7 @@ import { SelectionDetailOverlays } from "@/features/cards/components/selection-d
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
+import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { buildGroups } from "@/features/cards/lib/card-groups";
 import { groupByOptionsFor } from "@/features/cards/lib/group-by-field";
 import { buildPromoTreeFromMatches } from "@/features/cards/lib/promo-filters";
@@ -42,15 +43,14 @@ import {
   flattenChannelSections,
 } from "@/features/cards/lib/promo-sections";
 import { publicPromoListQueryOptions } from "@/features/cards/lib/public-promos-queries";
-import { FilterSearchProvider } from "@/features/cards/lib/search-schemas";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
 import { applyOwnedBucketFilter } from "@/features/collections/lib/owned-bucket";
 import { useEnumOrders, useLanguageList } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
+import { useSession } from "@/hooks/use-session";
 import { ViewSurfaceProvider } from "@/hooks/use-view-prefs";
-import { useSession } from "@/lib/auth-session";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";

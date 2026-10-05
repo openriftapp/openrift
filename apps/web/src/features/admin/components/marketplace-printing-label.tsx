@@ -1,6 +1,8 @@
-import { WellKnown } from "@openrift/shared/well-known";
+import { printingLabelParts } from "@openrift/shared/printing-label";
+import type { UnifiedMappingPrintingResponse } from "@openrift/shared/types/api/admin";
+import { Fragment } from "react";
 
-import type { UnifiedMappingPrinting } from "@/features/admin/lib/price-mappings-types";
+const MATCH_CLASS = "underline decoration-2 underline-offset-2";
 
 export function PrintingLabel({
   printing,
@@ -9,7 +11,7 @@ export function PrintingLabel({
   highlightMarkers,
 }: {
   printing: Pick<
-    UnifiedMappingPrinting,
+    UnifiedMappingPrintingResponse,
     "shortCode" | "markerSlugs" | "finish" | "language" | "size"
   >;
   highlightFinish?: string;
@@ -18,21 +20,29 @@ export function PrintingLabel({
 }) {
   const langMatches = highlightLanguage !== undefined && printing.language === highlightLanguage;
   const finishMatches = highlightFinish !== undefined && printing.finish === highlightFinish;
-  const matchCls = "underline decoration-2 underline-offset-2";
-  const isOversized = printing.size !== WellKnown.cardSize.STANDARD;
+  const parts = printingLabelParts(
+    printing.shortCode,
+    printing.markerSlugs,
+    printing.finish,
+    printing.language,
+    printing.size,
+  );
+  const partClasses = [
+    ...(printing.language ? [langMatches ? MATCH_CLASS : undefined] : []),
+    undefined,
+    highlightMarkers ? MATCH_CLASS : undefined,
+    finishMatches ? MATCH_CLASS : undefined,
+    "text-warning",
+  ];
   return (
     <span>
-      {printing.language && (
-        <>
-          <span className={langMatches ? matchCls : undefined}>{printing.language}</span>:
-        </>
-      )}
-      {printing.shortCode}:
-      <span className={highlightMarkers ? matchCls : undefined}>
-        {printing.markerSlugs.join("+")}
-      </span>
-      :<span className={finishMatches ? matchCls : undefined}>{printing.finish}</span>
-      {isOversized && <span className="text-warning">:{printing.size}</span>}
+      {parts.map((part, index) => (
+        // oxlint-disable-next-line react/no-array-index-key -- the parts are positional
+        <Fragment key={index}>
+          {index > 0 && ":"}
+          <span className={partClasses[index]}>{part}</span>
+        </Fragment>
+      ))}
     </span>
   );
 }

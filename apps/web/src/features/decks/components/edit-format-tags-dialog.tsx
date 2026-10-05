@@ -1,4 +1,4 @@
-import { capitalize } from "@openrift/shared/utils";
+import { capitalize } from "@openrift/shared/strings";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,9 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Label } from "@/components/ui/label";
 import { useFilterActions } from "@/features/cards/hooks/use-card-filters";
-import { getFormatTagConfig } from "@/features/collections/lib/format-tag-config";
 import { TagMultiSelect } from "@/features/decks/components/format-tag-multi-select";
 import { useUpdateDeck } from "@/features/decks/hooks/use-decks";
+import { getFormatTagConfig } from "@/features/decks/lib/format-tag-config";
 import { m } from "@/paraglide/messages.js";
 
 interface Props {

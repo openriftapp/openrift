@@ -7,9 +7,12 @@ import { PaletteIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Fragment } from "react";
 
+import { CardIcon } from "@/components/card-icon";
 import { LanguageChip } from "@/components/language-chip";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
+import { FilterIcon } from "@/features/cards/components/filter-icon";
 import { FinishIcon } from "@/features/cards/components/finish-icon";
+import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { formatPublicCode } from "@/lib/format";
 import { getFilterIconPath, getTypeIconPaths } from "@/lib/icons";
@@ -49,20 +52,19 @@ export function CardPageInfoTable({
   if (printing.printedName && printing.printedName !== card.name) {
     leftRows.push([m.card_detail_info_printed_name(), printing.printedName]);
   }
-  leftRows.push([
-    m.card_detail_info_language(),
-    <span key="language" className="inline-flex items-center gap-1.5">
-      <LanguageChip code={printing.language} />
-      {languageLabels[printing.language] ?? printing.language}
-    </span>,
-  ]);
-  const rarityIcon = getFilterIconPath("rarities", printing.rarity);
   leftRows.push(
+    [
+      m.card_detail_info_language(),
+      <span key="language" className="inline-flex items-center gap-1.5">
+        <LanguageChip code={printing.language} />
+        {enumLabel(languageLabels, printing.language)}
+      </span>,
+    ],
     [
       m.card_detail_info_rarity(),
       <span key="rarity" className="inline-flex items-center gap-1.5">
         <span className="inline-flex w-4 shrink-0 justify-center">
-          {rarityIcon && <img src={rarityIcon} alt="" width={28} height={28} className="size-4" />}
+          <RarityIcon rarity={printing.rarity} />
         </span>
         {enumLabel(labels.rarities, printing.rarity)}
       </span>,
@@ -95,7 +97,7 @@ export function CardPageInfoTable({
       m.card_detail_info_artist(),
       <span key="artist" className="inline-flex items-center gap-1.5">
         <span className="inline-flex w-4 shrink-0 justify-center">
-          <img src="/images/artist.svg" alt="" className="size-3.5 brightness-0 dark:invert" />
+          <CardIcon src="/images/artist.svg" />
         </span>
         {printing.artist}
       </span>,
@@ -182,7 +184,7 @@ function TypeValue({
     <span className="inline-flex items-center gap-1.5">
       <span className="inline-flex w-4 shrink-0 justify-center gap-0.5">
         {iconPaths.map((path) => (
-          <img key={path} src={path} alt="" className="size-4 brightness-0 dark:invert" />
+          <CardIcon key={path} src={path} className="size-4" />
         ))}
       </span>
       {typeLabel}
@@ -193,15 +195,12 @@ function TypeValue({
 function DomainList({ domains, labels }: { domains: string[]; labels: Record<string, string> }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5">
-      {domains.map((domain) => {
-        const iconPath = getFilterIconPath("domains", domain);
-        return (
-          <span key={domain} className="inline-flex items-center gap-1">
-            {iconPath && <img src={iconPath} alt="" width={64} height={64} className="size-4" />}
-            {labels[domain]}
-          </span>
-        );
-      })}
+      {domains.map((domain) => (
+        <span key={domain} className="inline-flex items-center gap-1">
+          <FilterIcon category="domains" value={domain} className="size-4" />
+          {labels[domain]}
+        </span>
+      ))}
     </span>
   );
 }
@@ -209,7 +208,7 @@ function DomainList({ domains, labels }: { domains: string[]; labels: Record<str
 function MightValue({ value, bonus = false }: { value: number; bonus?: boolean }) {
   return (
     <span className={cn("inline-flex items-center gap-1", bonus && "font-semibold")}>
-      <img src="/images/might.svg" alt="" className="size-4 brightness-0 dark:invert" />
+      <CardIcon src="/images/might.svg" className="size-4" />
       {bonus ? `+${value}` : value}
     </span>
   );
@@ -217,14 +216,13 @@ function MightValue({ value, bonus = false }: { value: number; bonus?: boolean }
 
 function PowerValue({ power, domains }: { power: number; domains: string[] }) {
   const primaryDomain = domains[0] ?? WellKnown.domain.COLORLESS;
-  const iconPath = getFilterIconPath("domains", primaryDomain);
-  if (!iconPath) {
+  if (!getFilterIconPath("domains", primaryDomain)) {
     return <span>{power}</span>;
   }
   return (
     <span className="inline-flex items-center gap-0.5">
       {Array.from({ length: power }, (_, index) => (
-        <img key={index} src={iconPath} alt="" className="size-4" />
+        <FilterIcon key={index} category="domains" value={primaryDomain} className="size-4" />
       ))}
     </span>
   );

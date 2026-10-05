@@ -1,15 +1,16 @@
 import { formatDay, formatDayTime } from "@openrift/shared/format-date";
+import { pluralize } from "@openrift/shared/strings";
 import type { MetaUploadSummary } from "@openrift/shared/types/api/meta";
 import { ArrowRightLeftIcon, Undo2Icon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { ConfirmActionButton } from "@/components/confirm-action-dialog";
+import { Disclosure } from "@/components/disclosure";
 import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AdminDisclosure } from "@/features/admin/components/admin-disclosure";
-import { ConfirmActionButton } from "@/features/admin/components/meta-review-shared";
 import {
   useMetaEventMatchSuggestions,
   useMetaEventUploads,
@@ -72,22 +73,18 @@ function MoveTargets({ eventOverlayId }: { eventOverlayId: string }) {
   );
 }
 
-function rows(count: number): string {
-  return count === 1 ? "row" : "rows";
-}
-
 function UploadCard({ upload }: { upload: MetaUploadSummary }) {
   const [moveOpen, setMoveOpen] = useState(false);
   const revert = useRevertMetaUpload();
   const provider = sourceProviderDisplay(upload.provider);
-  const summary = `${upload.acceptedPlayers} applied, ${upload.pendingPlayers} still in the queue, ${upload.mintedPlayers} standings ${rows(upload.mintedPlayers)} it minted.`;
+  const summary = `${upload.acceptedPlayers} applied, ${upload.pendingPlayers} still in the queue, ${upload.mintedPlayers} standings ${pluralize(upload.mintedPlayers, "row")} it minted.`;
 
   async function handleRevert(): Promise<void> {
     const result = await revert.mutateAsync({
       provider: upload.provider,
       externalId: upload.externalId,
     });
-    toast.success(`Reverted ${result.players} standings ${rows(result.players)}.`);
+    toast.success(`Reverted ${result.players} standings ${pluralize(result.players, "row")}.`);
   }
 
   return (
@@ -117,9 +114,9 @@ function UploadCard({ upload }: { upload: MetaUploadSummary }) {
         Revert this upload
       </ConfirmActionButton>
 
-      <AdminDisclosure title="Move to another event" onOpenChange={setMoveOpen}>
+      <Disclosure title="Move to another event" onOpenChange={setMoveOpen}>
         {moveOpen && <MoveTargets eventOverlayId={upload.eventOverlayId} />}
-      </AdminDisclosure>
+      </Disclosure>
     </div>
   );
 }

@@ -1,9 +1,10 @@
-import { groupPrintingsByLanguage } from "@/features/admin/lib/printings-by-language";
-import { useLanguages } from "@/hooks/use-languages";
+import { useLanguages } from "@/features/admin/hooks/use-languages";
+import type { PrintingLanguageGroup } from "@/features/cards/lib/printing-languages";
+import { groupPrintingsByLanguage } from "@/features/cards/lib/printing-languages";
 
 export function usePrintingsByLanguage<T extends { language: string }>(
   printings: readonly T[],
-): [string, T[]][] {
+): PrintingLanguageGroup<T>[] {
   const { data } = useLanguages();
   return groupPrintingsByLanguage(
     printings,

@@ -1,11 +1,10 @@
-import { describe, expect, it } from "vitest";
-
 import type {
-  MarketplaceAssignment,
-  StagedProduct,
-  UnifiedMappingGroup,
-  UnifiedMappingPrinting,
-} from "@/features/admin/lib/price-mappings-types";
+  MarketplaceAssignmentResponse,
+  StagedProductResponse,
+  UnifiedMappingGroupResponse,
+  UnifiedMappingPrintingResponse,
+} from "@openrift/shared/types/api/admin";
+import { describe, expect, it } from "vitest";
 
 import {
   buildMarketplaceRows,
@@ -17,7 +16,9 @@ import {
 import type { ProductSuggestion } from "./suggest-mapping";
 import { productSuggestionKey } from "./suggest-mapping";
 
-function printing(overrides: Partial<UnifiedMappingPrinting> = {}): UnifiedMappingPrinting {
+function printing(
+  overrides: Partial<UnifiedMappingPrintingResponse> = {},
+): UnifiedMappingPrintingResponse {
   return {
     printingId: "p-en",
     setId: "ogn",
@@ -39,7 +40,7 @@ function printing(overrides: Partial<UnifiedMappingPrinting> = {}): UnifiedMappi
   };
 }
 
-function staged(overrides: Partial<StagedProduct> = {}): StagedProduct {
+function staged(overrides: Partial<StagedProductResponse> = {}): StagedProductResponse {
   return {
     externalId: 1,
     productName: "Product",
@@ -60,25 +61,25 @@ function staged(overrides: Partial<StagedProduct> = {}): StagedProduct {
 }
 
 function group(
-  printings: UnifiedMappingPrinting[],
+  printings: UnifiedMappingPrintingResponse[],
   perMarketplace: Partial<{
     tcgplayer: {
-      staged: StagedProduct[];
-      assigned: StagedProduct[];
-      assignments: MarketplaceAssignment[];
+      staged: StagedProductResponse[];
+      assigned: StagedProductResponse[];
+      assignments: MarketplaceAssignmentResponse[];
     };
     cardmarket: {
-      staged: StagedProduct[];
-      assigned: StagedProduct[];
-      assignments: MarketplaceAssignment[];
+      staged: StagedProductResponse[];
+      assigned: StagedProductResponse[];
+      assignments: MarketplaceAssignmentResponse[];
     };
     cardtrader: {
-      staged: StagedProduct[];
-      assigned: StagedProduct[];
-      assignments: MarketplaceAssignment[];
+      staged: StagedProductResponse[];
+      assigned: StagedProductResponse[];
+      assignments: MarketplaceAssignmentResponse[];
     };
   }> = {},
-): UnifiedMappingGroup {
+): UnifiedMappingGroupResponse {
   const empty = { staged: [], assigned: [], assignments: [] };
   const tcg = { ...empty, ...perMarketplace.tcgplayer };
   const cm = { ...empty, ...perMarketplace.cardmarket };

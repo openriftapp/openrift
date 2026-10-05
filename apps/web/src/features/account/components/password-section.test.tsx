@@ -51,7 +51,7 @@ describe("PasswordSection", () => {
     listAccounts.mockResolvedValue({ data: [{ providerId: "google" }], error: null });
     renderSection();
 
-    expect(await screen.findByRole("button", { name: "Set a password" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "Set a password" })).toHaveAttribute(
       "href",
       "/reset-password?email=vi%40example.com",
     );
@@ -66,7 +66,7 @@ describe("PasswordSection", () => {
     renderSection();
 
     expect(await screen.findByLabelText("Current password")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Set a password" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Set a password" })).not.toBeInTheDocument();
   });
 
   it("falls back to the change form when the account list cannot be read", async () => {

@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 
 import { RowList } from "@/components/ui/row-list";
 import { TextLink } from "@/components/ui/text-link";
+import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import {
   artVariantDescription,
   finishDescription,
@@ -10,7 +11,6 @@ import {
   printingDetails,
 } from "@/features/rules/lib/glossary-content";
 import { matches } from "@/features/rules/lib/glossary-search";
-import { getFilterIconPath } from "@/lib/icons";
 import { m } from "@/paraglide/messages.js";
 
 import { GlossarySectionHeading, GlossaryTermRow, GlossaryTermTile } from "./glossary-shared";
@@ -34,18 +34,9 @@ export function RaritiesSection({
       <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((rarity) => {
           const slug = rarity.slug.toLowerCase();
-          const rarityIcon = getFilterIconPath("rarities", rarity.slug);
           return (
             <GlossaryTermTile key={rarity.slug} className="flex-row items-center gap-3">
-              {withImage.has(slug) && rarityIcon && (
-                <img
-                  src={rarityIcon}
-                  alt={rarity.label}
-                  width={28}
-                  height={28}
-                  className="size-7 shrink-0"
-                />
-              )}
+              {withImage.has(slug) && <RarityIcon rarity={rarity.slug} className="size-7" />}
               <span className="font-medium" style={rarity.color ? { color: rarity.color } : {}}>
                 {rarity.label}
               </span>

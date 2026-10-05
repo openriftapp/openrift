@@ -1,8 +1,8 @@
 import type { CardSubmissionInput } from "@openrift/shared/contracts/card-submissions";
 import { contributionFileSchema } from "@openrift/shared/contribute-schema";
 import { formatCompactUtcStamp } from "@openrift/shared/format-date";
+import { trimToNull } from "@openrift/shared/strings";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
-import { trimToNull } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { core } from "zod";
 
@@ -133,15 +133,6 @@ export function emptyPrinting(): ContributeFormPrinting {
 
 export function emptyFormState(): ContributeFormState {
   return { slug: "", card: emptyCard(), printings: [emptyPrinting()] };
-}
-
-export function nameToSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize("NFKD")
-    .replaceAll(/[̀-ͯ]/gu, "")
-    .replaceAll(/[^a-z0-9]+/gu, "-")
-    .replaceAll(/^-+|-+$/gu, "");
 }
 
 export function validateContribution(state: ContributeFormState): ValidationResult {
@@ -412,6 +403,24 @@ export function prefillFromCard(
       printedYear: p.printedYear,
     })),
   };
+}
+
+export function prefillFromCatalogCard(
+  cardId: string,
+  card: Card,
+  catalog: {
+    printingsByCardId: Map<string, Printing[]>;
+    sets: readonly { id: string; slug: string; name: string }[];
+  },
+): ContributeFormState {
+  const setSlugById = new Map(catalog.sets.map((set) => [set.id, set.slug]));
+  const setNameById = new Map(catalog.sets.map((set) => [set.id, set.name]));
+  return prefillFromCard(
+    card,
+    catalog.printingsByCardId.get(cardId) ?? [],
+    setSlugById,
+    setNameById,
+  );
 }
 
 export function prefillForNewPrinting(

@@ -353,7 +353,7 @@ export function SurfacesSection() {
           <StatStrip
             items={[
               { key: "penalty", value: 12, label: "penalty" },
-              { key: "rematches", value: 0, label: "rematches", tone: "good" },
+              { key: "rematches", value: 0, label: "rematches", tone: "success" },
               { key: "three", value: 3, label: "in 3-pods" },
               { key: "spread", value: 4, label: "largest spread" },
             ]}

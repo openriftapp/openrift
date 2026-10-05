@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -13,6 +14,7 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { TradePreferenceEditor } from "@/features/groups/components/trade-preference-editor";
 import { useUpdateList } from "@/features/lists/hooks/use-lists";
 import { m } from "@/paraglide/messages.js";
@@ -97,7 +99,7 @@ export function ListEditDialog({
 
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-              <Label htmlFor="list-edit-name">{m.lists_edit_name_label()}</Label>
+              <Label htmlFor="list-edit-name">{m.common_name()}</Label>
               <Input
                 id="list-edit-name"
                 value={name}
@@ -110,9 +112,9 @@ export function ListEditDialog({
 
             {supportsPrefs && (
               <div className="flex flex-col gap-2">
-                <div className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                <SectionHeading as="h3" className="text-xs">
                   {m.lists_edit_trade_preferences()}
-                </div>
+                </SectionHeading>
                 <div className="text-muted-foreground text-xs">
                   {m.lists_edit_trade_defaults_hint()}
                 </div>
@@ -129,14 +131,7 @@ export function ListEditDialog({
           </div>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              disabled={updateList.isPending}
-            >
-              {m.common_cancel()}
-            </Button>
+            <DialogCancel disabled={updateList.isPending} />
             <Button
               type="submit"
               disabled={!name.trim() || absoluteNeedsAmount || updateList.isPending}

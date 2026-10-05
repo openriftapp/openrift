@@ -1,26 +1,16 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { XIcon } from "lucide-react";
-import { Suspense, lazy, useRef } from "react";
+import { lazy, useRef } from "react";
 import type { ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Pressable } from "@/components/ui/pressable";
-import { Skeleton } from "@/components/ui/skeleton";
 import { textLinkVariants } from "@/components/ui/text-link";
-import { useSelectionDetail } from "@/features/cards/hooks/use-selection-detail";
+import { CardDetailDialogShell } from "@/features/cards/components/card-detail/card-detail-shells";
 import {
   closeOverlayHistoryEntry,
   hasOverlayHistoryEntry,
   useOverlayHistoryEntry,
-} from "@/features/stage/hooks/use-overlay-history-entry";
+} from "@/features/cards/hooks/use-overlay-history-entry";
+import { useSelectionDetail } from "@/features/cards/hooks/use-selection-detail";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { getDomainTintStyle } from "@/lib/domain";
@@ -112,84 +102,33 @@ export function SelectionDetailModal({
   };
 
   return (
-    <Dialog
-      open
-      onOpenChange={(next) => {
-        if (!next) {
-          handleClose();
-        }
-      }}
+    <CardDetailDialogShell
+      onClose={handleClose}
+      style={getDomainTintStyle(selectedCard.card.domains, domainColors)}
+      onKeyDown={handleKeyDown}
     >
-      <DialogContent
-        className="sm:max-w-[860px]"
-        style={getDomainTintStyle(selectedCard.card.domains, domainColors)}
-        onKeyDown={handleKeyDown}
-        showCloseButton={false}
-      >
-        <DialogClose
-          render={<Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />}
-          // Must match the pane and mobile drawer's close button label: one locator finds all three.
-          aria-label={m.cards_detail_close()}
-        >
-          <XIcon className="size-4" />
-        </DialogClose>
-        <DialogHeader className="sr-only">
-          <DialogTitle>{m.cards_detail_title()}</DialogTitle>
-          <DialogDescription>{m.cards_detail_description()}</DialogDescription>
-        </DialogHeader>
-        <Suspense fallback={<CardDetailModalSkeleton />}>
-          <CardDetail
-            printing={selectedCard}
-            layout="modal"
-            showImages={showImages}
-            onPrevCard={handlePrevCard}
-            onNextCard={handleNextCard}
-            onTagClick={handleTagClick}
-            onKeywordClick={handleKeywordClick}
-            printings={siblingPrintings}
-            onSelectPrinting={handleSelectPrinting}
-            actions={actions?.(selectedCard)}
-            collectionId={collectionId}
-            navLabel={navLabel}
-            footerSlot={
-              <span className="text-muted-foreground text-xs">
-                {m.cards_detail_dock_prompt()}{" "}
-                <Pressable onClick={handleDock} className={textLinkVariants({ variant: "muted" })}>
-                  {m.cards_detail_dock_action()}
-                </Pressable>
-              </span>
-            }
-          />
-        </Suspense>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/**
- * Mirrors the modal's two-column layout: the pane's skeleton puts an
- * `aspect-card` block at full width, which at 860px is ~1150px tall and made
- * the dialog open oversized before snapping down.
- */
-function CardDetailModalSkeleton() {
-  return (
-    <div className="@container flex flex-col gap-4">
-      <div className="space-y-1.5">
-        <Skeleton className="h-6 w-56" />
-        <Skeleton className="h-4 w-32" />
-      </div>
-      <div className="grid gap-5 @2xl:grid-cols-[340px_minmax(0,1fr)]">
-        <Skeleton className="aspect-card w-full rounded-xl" />
-        <div className="min-w-0 space-y-4">
-          <div className="flex gap-1.5">
-            <Skeleton className="h-7 w-16 rounded-md" />
-            <Skeleton className="h-7 w-16 rounded-md" />
-            <Skeleton className="h-7 w-16 rounded-md" />
-          </div>
-          <Skeleton className="h-20 w-full rounded-lg" />
-          <Skeleton className="h-12 w-full rounded-lg" />
-        </div>
-      </div>
-    </div>
+      <CardDetail
+        printing={selectedCard}
+        layout="modal"
+        showImages={showImages}
+        onPrevCard={handlePrevCard}
+        onNextCard={handleNextCard}
+        onTagClick={handleTagClick}
+        onKeywordClick={handleKeywordClick}
+        printings={siblingPrintings}
+        onSelectPrinting={handleSelectPrinting}
+        actions={actions?.(selectedCard)}
+        collectionId={collectionId}
+        navLabel={navLabel}
+        footerSlot={
+          <span className="text-muted-foreground text-xs">
+            {m.cards_detail_dock_prompt()}{" "}
+            <Pressable onClick={handleDock} className={textLinkVariants({ variant: "muted" })}>
+              {m.cards_detail_dock_action()}
+            </Pressable>
+          </span>
+        }
+      />
+    </CardDetailDialogShell>
   );
 }

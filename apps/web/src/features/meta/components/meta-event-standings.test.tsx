@@ -115,7 +115,7 @@ vi.mock("@/features/meta/hooks/use-meta", async () => {
   };
 });
 
-vi.mock("@/lib/auth-session", () => ({ useUserId: () => session.userId }));
+vi.mock("@/hooks/use-session", () => ({ useUserId: () => session.userId }));
 vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => true }));
 vi.mock("@/features/meta/hooks/use-meta-deck-costs", () => ({
   useMetaDeckCosts: (side: boolean, options: { withCollection: boolean }) => {
@@ -843,7 +843,7 @@ describe("MetaEventStandings", () => {
     const user = userEvent.setup();
     renderStandings(field(12));
 
-    await user.type(screen.getByRole("searchbox", { name: "Find a player" }), "player 7");
+    await user.type(screen.getByRole("textbox", { name: "Find a player" }), "player 7");
 
     await waitFor(() => {
       expect(within(screen.getByRole("list")).queryByText("Player 6")).toBeNull();
@@ -855,7 +855,7 @@ describe("MetaEventStandings", () => {
     const user = userEvent.setup();
     renderStandings(field(12));
 
-    const box = screen.getByRole("searchbox", { name: "Find a player" });
+    const box = screen.getByRole("textbox", { name: "Find a player" });
     await user.type(box, "player 7");
     await waitFor(() => {
       expect(within(screen.getByRole("list")).queryByText("Player 6")).toBeNull();
@@ -887,7 +887,7 @@ describe("MetaEventStandings", () => {
     const user = userEvent.setup();
     renderStandings(field(12));
 
-    await user.type(screen.getByRole("searchbox", { name: "Find a player" }), "Ziggs");
+    await user.type(screen.getByRole("textbox", { name: "Find a player" }), "Ziggs");
 
     expect(await screen.findByText("No entries match.")).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
@@ -1027,7 +1027,7 @@ describe("MetaEventStandings", () => {
       archive.failing.add(keyFor(NARROWED, 420));
       renderStandings(field(420), "2020-01-01", { search: NARROWED });
 
-      expect(screen.getByRole("searchbox", { name: "Find a player" })).toHaveValue("Player");
+      expect(screen.getByRole("textbox", { name: "Find a player" })).toHaveValue("Player");
       expect(screen.getByRole("navigation", { name: "Standings pages" })).toBeInTheDocument();
     });
 

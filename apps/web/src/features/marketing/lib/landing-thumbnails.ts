@@ -1,6 +1,6 @@
 import { imageUrl } from "@openrift/shared/image-url";
+import { centsToDollars } from "@openrift/shared/money";
 import type { LandingSummaryResponse } from "@openrift/shared/types/api/catalog";
-import { centsToDollars } from "@openrift/shared/utils";
 
 export interface LandingThumbnailCard {
   url: string;

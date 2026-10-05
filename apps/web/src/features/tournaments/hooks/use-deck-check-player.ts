@@ -14,11 +14,11 @@ import {
   tournamentDecksKeys,
   tournamentsKeys,
 } from "@/features/tournaments/lib/tournaments-query-keys";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 /**
  * One of an own deck's id, a pasted deck code, or the parsed lines of a

@@ -3,6 +3,7 @@ import type { PodPlayerResponse, PodStandingRow } from "@openrift/shared/types/a
 import type { TournamentPlayMode } from "@openrift/shared/types/api/tournament";
 import { Link } from "@tanstack/react-router";
 import { RotateCcwIcon, TriangleAlertIcon, UserMinusIcon, UserXIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -20,11 +21,34 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { UserAvatar } from "@/components/user-avatar";
+import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import { useParticipantAction } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useGenerateTournamentRound } from "@/features/tournaments/hooks/use-tournament-run";
 import { teamDisplayName } from "@/features/tournaments/lib/team-display";
 import { m } from "@/paraglide/messages.js";
+
+function PlayerAvatarChip({
+  name,
+  standing,
+  className,
+  children,
+}: {
+  name: string;
+  standing: PodStandingRow | undefined;
+  className?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <PlayerChip
+      name={name}
+      image={standing?.image}
+      gravatarHash={standing?.gravatarHash}
+      className={className}
+    >
+      {children}
+    </PlayerChip>
+  );
+}
 
 export function GenerateRoundControls({
   id,
@@ -56,6 +80,7 @@ export function GenerateRoundControls({
   const teamMode = playMode === "2v2";
   const activePlayers = players.filter((player) => player.status === "active");
   const droppedPlayers = players.filter((player) => player.status === "dropped");
+  const standingById = new Map(standings.map((row) => [row.playerId, row]));
   const byeCountById = new Map(standings.map((row) => [row.playerId, row.byeCount]));
   const nameById = new Map(players.map((player) => [player.id, player.displayName]));
 
@@ -218,13 +243,20 @@ export function GenerateRoundControls({
                             data-checked={unitChecked(unit)}
                             onSelect={() => toggleByeUnit(unit)}
                           >
-                            <UserAvatar name={unit.label} size="sm" />
-                            <span className="truncate">{unit.label}</span>
-                            {priorByes > 0 ? (
-                              <Badge variant="warning">
-                                {m.tournaments_pairings_byes_count({ count: priorByes })}
-                              </Badge>
-                            ) : null}
+                            <PlayerAvatarChip
+                              name={unit.label}
+                              standing={
+                                unit.memberIds.length === 1
+                                  ? standingById.get(unit.memberIds[0])
+                                  : undefined
+                              }
+                            >
+                              {priorByes > 0 ? (
+                                <Badge variant="warning">
+                                  {m.tournaments_pairings_byes_count({ count: priorByes })}
+                                </Badge>
+                              ) : null}
+                            </PlayerAvatarChip>
                           </CommandItem>
                         );
                       })}
@@ -252,10 +284,13 @@ export function GenerateRoundControls({
                         disabled={participantAction.isPending}
                         onSelect={() => void setDropped(player, true)}
                       >
-                        <UserAvatar name={player.displayName} size="sm" />
                         {/* CommandItem appends its own ml-auto CheckIcon; a second ml-auto here
                             would split the slack between the two icons. */}
-                        <span className="min-w-0 flex-1 truncate">{player.displayName}</span>
+                        <PlayerAvatarChip
+                          name={player.displayName}
+                          standing={standingById.get(player.id)}
+                          className="flex-1"
+                        />
                         <UserXIcon className="text-muted-foreground size-4" />
                       </CommandItem>
                     ))}
@@ -269,10 +304,11 @@ export function GenerateRoundControls({
                           disabled={participantAction.isPending}
                           onSelect={() => void setDropped(player, false)}
                         >
-                          <UserAvatar name={player.displayName} size="sm" className="opacity-50" />
-                          <span className="text-muted-foreground min-w-0 flex-1 truncate">
-                            {player.displayName}
-                          </span>
+                          <PlayerAvatarChip
+                            name={player.displayName}
+                            standing={standingById.get(player.id)}
+                            className="flex-1 opacity-60"
+                          />
                           <RotateCcwIcon className="text-muted-foreground size-4" />
                         </CommandItem>
                       ))}

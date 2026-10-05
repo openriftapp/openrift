@@ -1,22 +1,10 @@
 import type { TournamentDetailResponse } from "@openrift/shared/types/api/tournament";
 import { Link } from "@tanstack/react-router";
 import { SettingsIcon } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
-import { useState } from "react";
+import type { ReactNode } from "react";
 
-import {
-  PageTopBar,
-  PageTopBarActions,
-  PageTopBarButton,
-  PageTopBarSticky,
-  PageTopBarTitle,
-  useMeasuredHeight,
-} from "@/components/layout/page-top-bar";
-import {
-  TopBarBreadcrumbBar,
-  TopBarBreadcrumbSeparator,
-  TopBarBreadcrumbTrail,
-} from "@/components/layout/top-bar-breadcrumb";
+import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";
+import { buttonVariants } from "@/components/ui/button";
 import { TournamentHero } from "@/features/tournaments/components/tournament-hero";
 import { useTournamentDetail } from "@/features/tournaments/hooks/use-tournaments";
 import { canManageTournament } from "@/features/tournaments/lib/tournament-display";
@@ -71,10 +59,14 @@ export function TournamentOverviewFrame({
         ]}
         actions={
           manage ? (
-            <PageTopBarButton render={<Link to="/tournaments/$id/settings" params={{ id }} />}>
+            <Link
+              to="/tournaments/$id/settings"
+              params={{ id }}
+              className={buttonVariants({ variant: "ghost" })}
+            >
               <SettingsIcon className="size-4" />
               {m.tournaments_section_settings()}
-            </PageTopBarButton>
+            </Link>
           ) : undefined
         }
       />
@@ -98,34 +90,19 @@ export function TournamentSectionFrame({
   render: (data: TournamentDetailResponse) => ReactNode;
 }) {
   const { data } = useTournamentDetail(id);
-  const [barEl, setBarEl] = useState<HTMLDivElement | null>(null);
-  const barHeight = useMeasuredHeight(barEl);
 
   return (
-    <>
-      <PageTopBarSticky ref={setBarEl} width="capped">
-        <PageTopBar className="gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-2 sm:items-baseline">
-            <TopBarBreadcrumbTrail
-              segments={[
-                { label: m.nav_tournaments(), link: <Link to="/tournaments" /> },
-                { label: data.name, link: <Link to="/tournaments/$id" params={{ id }} /> },
-              ]}
-            />
-            <TopBarBreadcrumbSeparator className="hidden sm:inline" />
-            <PageTopBarTitle>{tournamentSectionLabels()[section]}</PageTopBarTitle>
-          </div>
-          {actions ? <PageTopBarActions>{actions}</PageTopBarActions> : null}
-        </PageTopBar>
-      </PageTopBarSticky>
-      <div
-        className={cn(PAGE_WIDTH.capped, "flex flex-col gap-6 pt-3", PAGE_PADDING_NO_TOP)}
-        style={
-          { "--sticky-top": `calc(var(--header-height) + ${barHeight}px + 1rem)` } as CSSProperties
-        }
-      >
+    <TopBarBreadcrumbBar
+      segments={[
+        { label: m.nav_tournaments(), link: <Link to="/tournaments" /> },
+        { label: data.name, link: <Link to="/tournaments/$id" params={{ id }} /> },
+      ]}
+      title={tournamentSectionLabels()[section]}
+      actions={actions}
+    >
+      <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-6 pt-3", PAGE_PADDING_NO_TOP)}>
         {render(data)}
       </div>
-    </>
+    </TopBarBreadcrumbBar>
   );
 }

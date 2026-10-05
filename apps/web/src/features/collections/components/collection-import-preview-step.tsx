@@ -1,5 +1,4 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { Loader2Icon } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -11,8 +10,11 @@ import {
 } from "@/components/section-header";
 import {
   AlertDialog,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -245,16 +247,10 @@ export function CollectionImportPreviewStep({
 
           <Button
             onClick={() => (promptsForReplace ? setReplaceDialogOpen(true) : onImport())}
-            disabled={!canImport || isImporting}
+            disabled={!canImport}
+            pending={isImporting}
           >
-            {isImporting ? (
-              <>
-                <Loader2Icon className="size-4 animate-spin" />
-                {m.collections_import_importing()}
-              </>
-            ) : (
-              importLabel
-            )}
+            {isImporting ? m.collections_import_importing() : importLabel}
           </Button>
           {needsAttentionCount > 0 && !isImporting && (
             <span className="text-muted-foreground text-sm">
@@ -270,19 +266,19 @@ export function CollectionImportPreviewStep({
 
       <AlertDialog open={replaceDialogOpen} onOpenChange={setReplaceDialogOpen}>
         <AlertDialogContent>
-          <AlertDialogTitle>
-            {m.collections_import_replace_title({
-              name: targetCollection?.name ?? "",
-              count: targetCopyCount,
-            })}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {m.collections_import_replace_description()}
-          </AlertDialogDescription>
-          <div className="flex flex-col justify-end gap-2 pt-2 sm:flex-row">
-            <Button variant="ghost" onClick={() => setReplaceDialogOpen(false)}>
-              {m.common_cancel()}
-            </Button>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {m.collections_import_replace_title({
+                name: targetCollection?.name ?? "",
+                count: targetCopyCount,
+              })}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {m.collections_import_replace_description()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
             <Button
               variant="outline"
               onClick={() => {
@@ -301,7 +297,7 @@ export function CollectionImportPreviewStep({
             >
               {m.collections_import_replace_all({ count: targetCopyCount })}
             </Button>
-          </div>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </ImportPreviewStack>

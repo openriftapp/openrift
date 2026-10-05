@@ -1,6 +1,7 @@
 import { enumLabel } from "@openrift/shared/enum-label";
-import { dateLeafPartsUtc, formatRelativeTime } from "@openrift/shared/format-date";
+import { formatRelativeTime } from "@openrift/shared/format-date";
 import { imageUrl } from "@openrift/shared/image-url";
+import { formatRecord } from "@openrift/shared/meta-standings";
 import type {
   MetaEventDetail,
   MetaEventField,
@@ -11,10 +12,12 @@ import { ExternalLinkIcon } from "lucide-react";
 import { Fragment } from "react";
 
 import { ArtBandBackdrop } from "@/components/art-band-backdrop";
+import { Eyebrow, Heading } from "@/components/heading";
 import { Card } from "@/components/ui/card";
 import { CountryFlag } from "@/components/ui/country-flag";
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
+import { StatFigure } from "@/components/ui/stat-figure";
 import { TextLink } from "@/components/ui/text-link";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { MetaContributors } from "@/features/meta/components/meta-contributors";
@@ -26,11 +29,9 @@ import {
   describeEventProgress,
   describeEventStructure,
 } from "@/features/meta/lib/meta-event-structure";
-import { formatRecord } from "@/features/meta/lib/meta-format";
 import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { DATE_WORDS } from "@/lib/date-words";
 import { formatCount } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 
@@ -61,15 +62,6 @@ function EventSources({ sources }: { sources: MetaEventDetail["sources"] }) {
   );
 }
 
-function Counter({ value, label }: { value: string; label: string }) {
-  return (
-    <p className="flex flex-col gap-0.5">
-      <span className="font-heading text-2xl leading-none font-bold tabular-nums">{value}</span>
-      <span className="text-muted-foreground text-xs">{label}</span>
-    </p>
-  );
-}
-
 function ChampionPlate({
   player,
   artId,
@@ -86,9 +78,9 @@ function ChampionPlate({
   return (
     <div className="flex w-full shrink-0 items-center gap-4 sm:w-auto">
       <div className="flex w-full flex-col gap-2 sm:w-64">
-        <span className="text-border-accent text-2xs font-semibold tracking-wide uppercase">
+        <Eyebrow variant="gold" as="span">
           {m.meta_event_header_champion()}
-        </span>
+        </Eyebrow>
         <p className="font-heading font-semibold">
           <MetaPlayerName
             name={player.playerName}
@@ -97,7 +89,7 @@ function ChampionPlate({
           />
         </p>
         <MetaIdentity
-          name={player.legend?.name}
+          legend={player.legend}
           slug={player.legend?.slug}
           archiveSlug={player.legend?.archiveSlug}
           domains={player.legend?.domains}
@@ -145,7 +137,6 @@ export function MetaEventHeader({
 }) {
   const { labels: formatLabels } = useDeckFormatList();
   const hydrated = useHydrated();
-  const leaf = dateLeafPartsUtc(event.eventDate, DATE_WORDS);
   const structure = describeEventStructure(phases);
   const live = event.status === "in_progress";
   const winnerLegend =
@@ -170,7 +161,9 @@ export function MetaEventHeader({
     liveLine.push(describeEventProgress(field.progress, phases) ?? m.meta_event_header_round_one());
     // Relative to the reader's clock, so it only renders once hydrated.
     if (hydrated && event.sourceCheckedAt !== null) {
-      liveLine.push(`checked ${formatRelativeTime(event.sourceCheckedAt)}`);
+      liveLine.push(
+        m.meta_event_header_checked({ time: formatRelativeTime(event.sourceCheckedAt) }),
+      );
     }
   }
 
@@ -186,10 +179,10 @@ export function MetaEventHeader({
       <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-5">
           <div className="flex items-center gap-3">
-            <DateLeaf month={leaf.month} day={leaf.day} caption={leaf.year} />
+            <DateLeaf at={event.eventDate} clock="utc" showYear />
             <div className="flex min-w-0 flex-col gap-0.5">
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                <h1 className="font-heading text-2xl font-bold">{event.name}</h1>
+                <Heading level={1}>{event.name}</Heading>
                 <MetaTierBadge tier={event.tier} />
                 <MetaEventStatusBadge status={event.status} />
               </div>
@@ -213,18 +206,21 @@ export function MetaEventHeader({
 
           <div className="flex flex-wrap gap-x-9 gap-y-3">
             {event.playerCount !== null && (
-              <Counter
+              <StatFigure
                 value={formatCount(event.playerCount)}
                 label={m.meta_event_header_players()}
               />
             )}
-            <Counter
+            <StatFigure
               value={formatCount(event.playerRowCount)}
               label={m.meta_event_header_results()}
             />
-            <Counter value={formatCount(event.deckCount)} label={m.meta_event_header_decklists()} />
+            <StatFigure
+              value={formatCount(event.deckCount)}
+              label={m.meta_event_header_decklists()}
+            />
             {cutLineRecord !== null && (
-              <Counter value={cutLineRecord} label={m.meta_event_header_cut_record()} />
+              <StatFigure value={cutLineRecord} label={m.meta_event_header_cut_record()} />
             )}
           </div>
 

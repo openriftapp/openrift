@@ -6,25 +6,28 @@ import type {
   PodRoundResponse,
 } from "@openrift/shared/types/api/pod-tournament";
 
+import {
+  BracketColumn,
+  BracketColumns,
+  BracketEmptySeat,
+  BracketMatchCard,
+  BracketRankMark,
+  BracketSeatRow,
+  BracketSeedMark,
+} from "@/components/bracket/bracket";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { accentGlow } from "@/components/ui/podium";
-import { RankBand } from "@/components/ui/rank-band";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { formatRank } from "@/features/meta/lib/meta-format";
 import type { BracketMatch } from "@/features/tournaments/lib/cut-bracket-display";
-import { buildBracketColumns } from "@/features/tournaments/lib/cut-bracket-display";
+import { buildBracketColumns, isHigherSeed } from "@/features/tournaments/lib/cut-bracket-display";
 import { cutMatchShortLabel } from "@/features/tournaments/lib/group-cut-display";
 import { groupLabelByPlayer, isWalkoverPod } from "@/features/tournaments/lib/group-cut-units";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { legendsByPlayer } from "@/features/tournaments/lib/player-run";
 import { pairingLabel } from "@/features/tournaments/lib/tournament-display";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { TournamentLegend } from "./tournament-legend";
-
-const FINAL_GLOW = accentGlow(12);
 
 interface SeatContext {
   cutSize: CutSize;
@@ -34,13 +37,11 @@ interface SeatContext {
   placeByPlayer: Map<string, number>;
 }
 
-function isHigherSeed(pod: PodResponse, playerId: string, seedByPlayer: Map<string, number>) {
-  const seeds = pod.members.flatMap((member) => {
-    const seed = seedByPlayer.get(member.playerId);
-    return seed === undefined ? [] : [seed];
-  });
-  const own = seedByPlayer.get(playerId);
-  return own !== undefined && seeds.length > 0 && own === Math.min(...seeds);
+function seatScore(pod: PodResponse, member: PodMemberResponse, winner: boolean) {
+  if (isWalkoverPod(pod)) {
+    return winner ? m.tournaments_cut_walkover_win() : "–";
+  }
+  return member.gamePoints ?? "–";
 }
 
 function Seat({
@@ -60,69 +61,41 @@ function Seat({
   const open = pod.resultStatus !== "reported";
   const chooser = open && isHigherSeed(pod, member.playerId, context.seedByPlayer);
   return (
-    <div
-      className={cn(
-        "flex text-sm not-last:border-b",
-        winner ? "font-semibold" : "text-muted-foreground",
-      )}
+    <BracketSeatRow
+      winner={winner}
+      mark={
+        place === undefined ? (
+          <BracketSeedMark>
+            <Badge variant="outline" className="w-8 justify-center tabular-nums">
+              {seed === undefined ? "–" : `#${seed}`}
+            </Badge>
+          </BracketSeedMark>
+        ) : (
+          <BracketRankMark rank={place} text={formatRank(place, false)} />
+        )
+      }
+      name={member.displayName}
+      score={seatScore(pod, member, winner)}
     >
-      {place === undefined ? (
-        <span className="flex w-14 shrink-0 items-center justify-center">
-          <Badge variant="outline" className="w-8 justify-center tabular-nums">
-            {seed === undefined ? "–" : `#${seed}`}
-          </Badge>
+      {group ? (
+        <Badge variant="neutral" className="shrink-0">
+          {group}
+        </Badge>
+      ) : null}
+      {chooser ? (
+        <span className="text-muted-foreground shrink-0 text-xs">
+          {m.tournaments_cut_chooses_starter()}
         </span>
-      ) : (
-        <RankBand
-          rank={place}
-          text={formatRank(place, false)}
-          crownOnly
-          className="w-14 shrink-0"
+      ) : null}
+      {legend ? (
+        <TournamentLegend
+          legendCardId={legend.legendCardId}
+          fallback={legend}
+          championOnly
+          className="text-muted-foreground hidden shrink-0 text-xs sm:flex"
         />
-      )}
-      <div className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5">
-        <span className="min-w-0 flex-1 truncate">{member.displayName}</span>
-        {group ? (
-          <Badge variant="muted" className="shrink-0">
-            {group}
-          </Badge>
-        ) : null}
-        {chooser ? (
-          <span className="text-muted-foreground shrink-0 text-xs">
-            {m.tournaments_cut_chooses_starter()}
-          </span>
-        ) : null}
-        {legend ? (
-          <TournamentLegend
-            legendCardId={legend.legendCardId}
-            legendName={legend.legendName}
-            championOnly
-            className="text-muted-foreground hidden shrink-0 text-xs sm:flex"
-          />
-        ) : null}
-        <span className="font-heading w-6 text-right tabular-nums">
-          {isWalkoverPod(pod) ? (winner ? "W" : "–") : (member.gamePoints ?? "–")}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function EmptySeat({ label }: { label: string }) {
-  return (
-    <div className="text-muted-foreground flex items-center px-3 py-2.5 text-sm not-last:border-b">
-      {label}
-    </div>
-  );
-}
-
-function PodSeats({ pod, context }: { pod: PodResponse; context: SeatContext }) {
-  return (
-    <>
-      {pod.members.map((member) => (
-        <Seat key={member.playerId} member={member} pod={pod} context={context} />
-      ))}
-    </>
+      ) : null}
+    </BracketSeatRow>
   );
 }
 
@@ -137,28 +110,25 @@ function Match({
   context: SeatContext;
   isFinal: boolean;
 }) {
+  const pod = match.pod;
   return (
-    <Card
-      className={cn("gap-0 py-0", isFinal && "ring-border-accent/50")}
-      style={isFinal ? { backgroundImage: FINAL_GLOW } : undefined}
+    <BracketMatchCard
+      isFinal={isFinal}
+      label={cutMatchShortLabel(context.cutSize, roundNumber, match.podNumber)}
+      aside={pairingLabel(match.podNumber)}
     >
-      <div className="text-muted-foreground flex items-center justify-between border-b px-3 py-1.5 text-xs font-semibold">
-        <span>{cutMatchShortLabel(context.cutSize, roundNumber, match.podNumber)}</span>
-        <span className="font-normal">{pairingLabel(match.podNumber)}</span>
-      </div>
-      {match.pod === null ? (
-        (
-          match.feeders ?? [m.tournaments_cut_not_drawn_yet(), m.tournaments_cut_not_drawn_yet()]
-        ).map((feeder, index) => (
-          <EmptySeat
-            key={`${match.key}:${index}`}
-            label={match.feeders ? m.tournaments_cut_winner_of({ match: feeder }) : feeder}
-          />
-        ))
-      ) : (
-        <PodSeats pod={match.pod} context={context} />
-      )}
-    </Card>
+      {pod === null
+        ? (
+            match.feeders ?? [m.tournaments_cut_not_drawn_yet(), m.tournaments_cut_not_drawn_yet()]
+          ).map((feeder, index) => (
+            <BracketEmptySeat key={`${match.key}:${index}`}>
+              {match.feeders ? m.tournaments_cut_winner_of({ match: feeder }) : feeder}
+            </BracketEmptySeat>
+          ))
+        : pod.members.map((member) => (
+            <Seat key={member.playerId} member={member} pod={pod} context={context} />
+          ))}
+    </BracketMatchCard>
   );
 }
 
@@ -190,14 +160,9 @@ export function CutBracketCompact({
   return (
     <section className="flex flex-col gap-3">
       <SectionHeading>{m.tournaments_cut_top_heading({ size: cutSize })}</SectionHeading>
-      {/* flex-col-reverse renders the rounds final-first on phones without duplicate markup. */}
-      <div
-        className="flex flex-col-reverse gap-4 lg:grid lg:gap-5"
-        style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
-      >
+      <BracketColumns columnCount={columns.length}>
         {columns.map((column, index) => (
-          <div key={column.roundNumber} className="flex flex-col justify-center gap-2.5">
-            <span className="text-muted-foreground text-xs font-semibold">{column.label}</span>
+          <BracketColumn key={column.roundNumber} label={column.label}>
             {column.matches.map((match) => (
               <Match
                 key={match.key}
@@ -207,9 +172,9 @@ export function CutBracketCompact({
                 isFinal={index === columns.length - 1}
               />
             ))}
-          </div>
+          </BracketColumn>
         ))}
-      </div>
+      </BracketColumns>
     </section>
   );
 }

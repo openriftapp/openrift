@@ -5,10 +5,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type { ErrataInput } from "@/features/admin/lib/errata-draft";
 import { catalogKeys, errataKeys } from "@/features/cards/lib/cards-query-keys";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 type BulkErrataUploadBody = ContractInput<typeof adminCardMutationsContract, "uploadErrata">;
 

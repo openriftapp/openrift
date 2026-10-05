@@ -5,7 +5,7 @@ import { CopyIcon, InfoIcon } from "lucide-react";
 
 import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
 import { PublicDeckActionsMenu } from "@/features/decks/components/public-deck-actions-menu";
 import { PublicDeckSurface } from "@/features/decks/components/public-deck-surface";
@@ -48,13 +48,14 @@ function MetaDeckNotice({
           {/* The hero chip counts the deck the archive holds, not the deck as played. */}
           {isLoggedIn && ` ${m.meta_deck_incomplete_collection_note()}`}
         </span>
-        <Button
-          variant="secondary"
-          size="sm"
-          render={<Link to="/meta/$slug/submit" params={{ slug: eventSlug }} search={search} />}
+        <Link
+          to="/meta/$slug/submit"
+          params={{ slug: eventSlug }}
+          search={search}
+          className={buttonVariants({ variant: "secondary", size: "sm" })}
         >
           {m.meta_deck_incomplete_complete_it()}
-        </Button>
+        </Link>
       </AlertDescription>
     </Alert>
   );
@@ -100,7 +101,6 @@ export function MetaDeckPage({ token }: { token: string }) {
     <PublicDeckSurface
       data={data}
       isLoggedIn={isLoggedIn}
-      returnPath={`/meta/decks/${token}`}
       topBar={
         <MetaDeckArchiveBar
           event={data.meta.event}

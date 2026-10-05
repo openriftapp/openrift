@@ -1,5 +1,4 @@
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArchiveIcon,
@@ -22,18 +21,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
-import { DialogForm } from "@/components/ui/dialog-form";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -48,13 +37,13 @@ import {
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useDeckFolders, useSetDeckFolders } from "@/features/decks/hooks/use-deck-folders";
 import {
+  useDeckCardsFor,
   useDeleteDeck,
   usePromoteDeckPrimary,
   useSetDeckArchived,
   useSetDeckPinned,
   useUpdateDeck,
 } from "@/features/decks/hooks/use-decks";
-import { useDeckCardsCollection } from "@/features/decks/hooks/use-decks-collections";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { useDeckFormatList } from "@/hooks/use-enums";
@@ -91,13 +80,7 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
   const folderList = folders ?? [];
 
   const needsCards = shareOpen || exportOpen || printOpen;
-  const cardsCollection = useDeckCardsCollection();
-  const { data: cardRows } = useLiveQuery({
-    query: (q) =>
-      needsCards && cardsCollection
-        ? q.from({ card: cardsCollection }).where(({ card }) => eq(card.deckId, deck.id))
-        : null,
-  });
+  const cardRows = useDeckCardsFor(needsCards ? [deck.id] : []);
   const { cardsById } = useCards();
   const detailCards = cardRows
     ? cardRows
@@ -194,7 +177,7 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             }}
           >
             <PencilIcon className="size-4" />
-            {m.decks_menu_rename()}
+            {m.common_rename()}
           </DropdownMenuItem>
           {otherFormats.length > 0 && (
             <DropdownMenuSub>
@@ -285,10 +268,10 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             )}
           </DropdownMenuItem>
           <DropdownMenuItem
+            variant="destructive"
             onClick={() => {
               setDeleteOpen(true);
             }}
-            className="text-destructive focus:text-destructive"
           >
             <Trash2Icon className="size-4" />
             {m.common_delete()}
@@ -322,24 +305,15 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
         deckName={deck.name}
       />
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <DialogForm onSubmit={handleDelete}>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{m.decks_dialog_delete_title()}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {m.decks_dialog_delete_description({ name: deck.name })}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-              <AlertDialogAction type="submit" disabled={deleteDeck.isPending}>
-                {m.common_delete()}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </DialogForm>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmActionDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onConfirm={handleDelete}
+        isPending={deleteDeck.isPending}
+        title={m.decks_dialog_delete_title()}
+        description={m.decks_dialog_delete_description({ name: deck.name })}
+        confirmLabel={m.common_delete()}
+      />
 
       <DeckRenameDialog
         deckId={deck.id}

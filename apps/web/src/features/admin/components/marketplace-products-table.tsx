@@ -1,15 +1,16 @@
-import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
+import { pluralize } from "@openrift/shared/strings";
+import type {
+  AdminMarketplaceName,
+  AssignableCardResponse,
+  UnifiedMappingGroupResponse,
+  UnifiedMappingPrintingResponse,
+} from "@openrift/shared/types/api/admin";
 import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 import { WandSparklesIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { AdminTable } from "@/features/admin/components/admin-table";
-import type {
-  AssignableCard,
-  UnifiedMappingGroup,
-  UnifiedMappingPrinting,
-} from "@/features/admin/lib/price-mappings-types";
 
 import type { RowSuggestion } from "./marketplace-product-cells";
 import {
@@ -57,8 +58,8 @@ function AcceptSuggestionsButton({
       className={isWeak ? "border-warning/40 text-warning hover:bg-warning-soft" : undefined}
     >
       <WandSparklesIcon />
-      Accept {mappings.length} {isWeak ? "weak " : ""}suggestion
-      {mappings.length === 1 ? "" : "s"}
+      Accept {mappings.length} {isWeak ? "weak " : ""}
+      {pluralize(mappings.length, "suggestion")}
     </Button>
   );
 }
@@ -79,8 +80,8 @@ function MarketplaceTable({
   marketplace: AdminMarketplaceName;
   rows: MarketplaceTableRow[];
   suggestionsByKey: ReadonlyMap<string, RowSuggestion[]>;
-  printings: UnifiedMappingPrinting[];
-  allCards: AssignableCard[];
+  printings: UnifiedMappingPrintingResponse[];
+  allCards: AssignableCardResponse[];
   cardName: string;
   handlers: MarketplaceHandlers;
   strong: PrintingAssignment[];
@@ -152,8 +153,8 @@ export function MarketplaceProductsTable({
   suggestions,
   onOpenPrinting,
 }: {
-  group: UnifiedMappingGroup;
-  allCards: AssignableCard[];
+  group: UnifiedMappingGroupResponse;
+  allCards: AssignableCardResponse[];
   handlers: Record<AdminMarketplaceName, MarketplaceHandlers>;
   suggestions?: Map<string, ProductSuggestion[]>;
   onOpenPrinting?: (printingId: string) => void;

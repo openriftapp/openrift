@@ -101,10 +101,19 @@ describe("filterLegendOptions", () => {
   it("returns nothing when nothing matches", () => {
     expect(filterLegendOptions(options, "zzz")).toEqual([]);
   });
+
+  it("matches a name typed without its punctuation", () => {
+    const withApostrophe = collectLegendOptions([
+      printing({ id: "p3", cardId: "c3", name: "Kai'Sa" }),
+    ]);
+    expect(filterLegendOptions(withApostrophe, "kaisa").map((option) => option.name)).toEqual([
+      "Kai'Sa",
+    ]);
+  });
 });
 
 describe("toTrackedLegend", () => {
-  it("drops the search key so only board fields are persisted", () => {
+  it("keeps only the board fields", () => {
     const [option] = collectLegendOptions([
       printing({ id: "p1", cardId: "c1", name: "Jinx", domains: ["fury"] }),
     ]);

@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ChartBarIcon, SearchIcon } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { m } from "@/paraglide/messages.js";
 
@@ -28,10 +28,10 @@ export function StatsEmptyState() {
       title={m.collections_stats_empty_title()}
       description={m.collections_stats_empty_description()}
     >
-      <Button variant="default" render={<Link to="/cards" />}>
+      <Link to="/cards" className={buttonVariants()}>
         <SearchIcon />
         {m.collections_stats_empty_action()}
-      </Button>
+      </Link>
     </EmptyState>
   );
 }

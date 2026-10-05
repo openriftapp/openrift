@@ -1,5 +1,5 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { UNKNOWN_SET_INDEX } from "@openrift/shared/set-order";
-import { legendDisplayName } from "@openrift/shared/utils";
 
 import type { CatalogPosition } from "@/features/cards/lib/catalog-position";
 import { compareCatalogPosition } from "@/features/cards/lib/catalog-position";

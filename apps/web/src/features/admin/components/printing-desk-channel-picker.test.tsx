@@ -40,7 +40,7 @@ const channels = [
   channel({ id: "root-2", slug: "prize-wall", label: "Prize Wall", kind: "product" }),
 ];
 
-vi.mock("@/hooks/use-distribution-channels", () => ({
+vi.mock("@/features/admin/hooks/use-distribution-channels", () => ({
   useDistributionChannels: () => ({ data: { distributionChannels: channels } }),
   useCreateDistributionChannel: () => ({
     isPending: false,

@@ -25,7 +25,7 @@ vi.mock("@tanstack/react-start", async (importOriginal) => ({
 }));
 
 vi.mock("@/lib/server-fns/middleware", () => ({ withCookies: () => {} }));
-vi.mock("@/lib/auth-session", async (importOriginal) => ({
+vi.mock("@/hooks/use-session", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   useRequiredUserId: () => "user-1",
 }));

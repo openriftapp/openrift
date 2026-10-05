@@ -11,14 +11,14 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { OwnedVariantBreakdown } from "@/features/cards/components/owned-variant-breakdown";
-import { FilterSearchProvider } from "@/features/cards/lib/search-schemas";
+import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import type { OwnedBreakdownVariant } from "@/features/collections/hooks/use-owned-count";
 import {
   useOwnedCollections,
   useOwnedCollectionsByVariants,
   useOwnedCount,
 } from "@/features/collections/hooks/use-owned-count";
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";

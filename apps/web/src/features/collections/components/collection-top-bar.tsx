@@ -19,10 +19,12 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TextLink } from "@/components/ui/text-link";
@@ -98,7 +100,7 @@ export function CollectionTopBar({
         <PageTopBarTitle onToggleSidebar={onToggleSidebar}>{title}</PageTopBarTitle>
 
         {boxLabel && (
-          <Badge variant="muted" className="shrink-0 gap-1">
+          <Badge variant="neutral" className="shrink-0 gap-1">
             <BoxIcon className="size-3" />
             {singleHomeDeck ? (
               <TextLink
@@ -128,10 +130,14 @@ export function CollectionTopBar({
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <PageTopBarIconButton
-                      render={<Link to="/scan" />}
+                    <Link
+                      to="/scan"
                       aria-label={m.collections_topbar_scan_cards()}
-                      className="sm:hidden"
+                      className={buttonVariants({
+                        variant: "ghost",
+                        size: "icon",
+                        className: "sm:hidden",
+                      })}
                     />
                   }
                 >
@@ -139,10 +145,13 @@ export function CollectionTopBar({
                 </TooltipTrigger>
                 <TooltipContent>{m.collections_topbar_scan_cards()}</TooltipContent>
               </Tooltip>
-              <PageTopBarButton render={<Link to="/scan" />} className="hidden sm:flex">
+              <Link
+                to="/scan"
+                className={buttonVariants({ variant: "ghost", className: "hidden sm:flex" })}
+              >
                 <CameraIcon className="size-4" />
                 {m.collections_topbar_scan()}
-              </PageTopBarButton>
+              </Link>
             </>
           )}
           {canAdd && (
@@ -207,13 +216,13 @@ export function CollectionTopBar({
                 {m.collections_topbar_export()}
               </DropdownMenuItem>
               {canDelete && (
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={onDelete}
-                >
-                  <Trash2Icon className="size-4" />
-                  {m.collections_topbar_delete()}
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onClick={onDelete}>
+                    <Trash2Icon className="size-4" />
+                    {m.collections_topbar_delete()}
+                  </DropdownMenuItem>
+                </>
               )}
             </DropdownMenuContent>
           </DropdownMenu>

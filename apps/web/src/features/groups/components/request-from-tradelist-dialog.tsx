@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -17,16 +17,17 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RadioGroup } from "@/components/ui/radio-group";
+import { RadioOptionRow } from "@/components/ui/radio-option-row";
 import { useCreateTrade } from "@/features/groups/hooks/use-card-trades";
 import {
   useFriendGroupShareableLists,
   useShareListWithFriendGroup,
 } from "@/features/groups/hooks/use-friend-group-sharing";
 import { useFriendGroupMatches } from "@/features/groups/hooks/use-friend-groups";
+import { listKindNoun } from "@/features/groups/lib/list-intent-meta";
 import {
   entryForPrinting,
-  listKindNoun,
   listTargetOptions,
   preferredListId,
   requestListKind,
@@ -201,7 +202,7 @@ function RequestBody({
         </DialogHeader>
         {stepper}
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
+          <DialogCancel />
           <Button type="submit" disabled={pending}>
             {m.trades_send_request()}
           </Button>
@@ -248,41 +249,44 @@ function RequestBody({
 
       <RadioGroup value={selectedId} onValueChange={(value) => setSelectedId(String(value))}>
         {options.map((option) => {
-          const inputId = `request-wishlist-${option.listId}`;
           const KindIcon = LIST_KIND_ICON[option.listKind];
           return (
-            <label
+            <RadioOptionRow
               key={option.listId}
-              htmlFor={inputId}
-              className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-2"
-            >
-              <RadioGroupItem id={inputId} value={option.listId} />
-              <span className="min-w-0 flex-1 truncate font-medium">{option.listName}</span>
-              <span className="text-muted-foreground inline-flex shrink-0 items-center gap-1 text-xs">
-                <KindIcon className="size-3" />
-                {option.entryCount} {listKindNoun(option.listKind, option.entryCount)}
-              </span>
-              <Badge variant={option.isShared ? "secondary" : "outline"} className="shrink-0">
-                {option.isShared ? m.trades_shared() : m.trades_will_be_shared()}
-              </Badge>
-            </label>
+              value={option.listId}
+              title={option.listName}
+              meta={
+                <>
+                  <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
+                    <KindIcon className="size-3" />
+                    {option.entryCount} {listKindNoun(option.listKind, option.entryCount)}
+                  </span>
+                  <Badge variant={option.isShared ? "secondary" : "outline"}>
+                    {option.isShared ? m.trades_shared() : m.trades_will_be_shared()}
+                  </Badge>
+                </>
+              }
+            />
           );
         })}
-        <label
-          htmlFor="request-wishlist-new"
-          className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-2"
-        >
-          <RadioGroupItem id="request-wishlist-new" value={NEW_LIST} />
-          <PlusSquareIcon className="text-muted-foreground size-4 shrink-0" />
-          <span className="min-w-0 flex-1 truncate font-medium">{m.trades_new_wishlist()}</span>
-          <span className="text-muted-foreground inline-flex shrink-0 items-center gap-1 text-xs">
-            <NewKindIcon className="size-3" />
-            {listKindNoun("printing", 2)}
-          </span>
-          <Badge variant="outline" className="shrink-0">
-            {m.trades_will_be_shared()}
-          </Badge>
-        </label>
+        <RadioOptionRow
+          value={NEW_LIST}
+          title={
+            <>
+              <PlusSquareIcon className="text-muted-foreground mr-2 inline size-4 align-text-bottom" />
+              {m.trades_new_wishlist()}
+            </>
+          }
+          meta={
+            <>
+              <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
+                <NewKindIcon className="size-3" />
+                {listKindNoun("printing", 2)}
+              </span>
+              <Badge variant="outline">{m.trades_will_be_shared()}</Badge>
+            </>
+          }
+        />
       </RadioGroup>
 
       {selectedId === NEW_LIST ? (
@@ -297,7 +301,7 @@ function RequestBody({
       {stepper}
 
       <DialogFooter>
-        <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
+        <DialogCancel />
         {needsShare ? (
           <Button
             type="submit"

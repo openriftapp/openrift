@@ -1,9 +1,10 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
-import { legendDisplayName } from "@openrift/shared/utils";
 
 import {
   AlertDialog,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogTitle,
@@ -88,13 +89,9 @@ export function AnnotatedDisposeDialog({
               : ""}
           </AlertDialogDescription>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={onCancel} disabled={isPending}>
-              {m.common_cancel()}
-            </Button>
+            <AlertDialogCancel disabled={isPending}>{m.common_cancel()}</AlertDialogCancel>
             <Button type="submit" variant="destructive" disabled={isPending}>
-              {isPending
-                ? m.collections_dialog_removing()
-                : m.collections_dialog_annotated_confirm()}
+              {isPending ? m.common_removing() : m.collections_dialog_annotated_confirm()}
             </Button>
           </div>
         </DialogForm>

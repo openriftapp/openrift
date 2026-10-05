@@ -9,9 +9,9 @@ import {
 } from "lucide-react";
 
 import { Eyebrow, Heading } from "@/components/heading";
+import { PROSE_MARKUP, linkMarkup } from "@/components/message-markup";
 import { Callout } from "@/components/ui/callout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Code } from "@/components/ui/code";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import {
   Table,
@@ -32,8 +32,8 @@ export default function ImportExportArticle() {
         <ParaglideMessage
           message={m.help_import_export_intro}
           markup={{
-            strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            link: ({ children }) => <TextLink href="/collections">{children}</TextLink>,
+            strong: PROSE_MARKUP.strong,
+            link: linkMarkup("/collections"),
           }}
         />
       </p>
@@ -41,12 +41,7 @@ export default function ImportExportArticle() {
       <section>
         <Heading className="mb-2">{m.help_import_export_importing_heading()}</Heading>
         <p className="text-muted-foreground">
-          <ParaglideMessage
-            message={m.help_import_export_importing_p}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_import_export_importing_p} markup={PROSE_MARKUP} />
         </p>
       </section>
 
@@ -55,10 +50,7 @@ export default function ImportExportArticle() {
           {m.help_import_export_step1_heading()}
         </Heading>
         <p className="text-muted-foreground">
-          <ParaglideMessage
-            message={m.help_import_export_step1_p}
-            markup={{ code: ({ children }) => <Code>{children}</Code> }}
-          />
+          <ParaglideMessage message={m.help_import_export_step1_p} markup={PROSE_MARKUP} />
         </p>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -189,33 +181,18 @@ export default function ImportExportArticle() {
         </Callout>
 
         <p className="text-muted-foreground mt-3">
-          <ParaglideMessage
-            message={m.help_import_export_review_p1}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_import_export_review_p1} markup={PROSE_MARKUP} />
         </p>
 
         <p className="text-muted-foreground mt-2">
-          <ParaglideMessage
-            message={m.help_import_export_review_p2}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_import_export_review_p2} markup={PROSE_MARKUP} />
         </p>
       </section>
 
       <section>
         <Heading className="mb-2">{m.help_import_export_exporting_heading()}</Heading>
         <p className="text-muted-foreground">
-          <ParaglideMessage
-            message={m.help_import_export_export_p}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_import_export_export_p} markup={PROSE_MARKUP} />
         </p>
 
         <div className="mt-3">
@@ -285,8 +262,8 @@ export default function ImportExportArticle() {
           <ParaglideMessage
             message={m.help_import_export_file_p}
             markup={{
-              code: ({ children }) => <Code>{children}</Code>,
-              em: ({ children }) => <em>{children}</em>,
+              code: PROSE_MARKUP.code,
+              em: PROSE_MARKUP.em,
             }}
           />
         </p>
@@ -303,8 +280,8 @@ export default function ImportExportArticle() {
             <ParaglideMessage
               message={m.help_import_export_matching_code}
               markup={{
-                code: ({ children }) => <Code>{children}</Code>,
-                link: ({ children }) => <TextLink href="/cards">{children}</TextLink>,
+                code: PROSE_MARKUP.code,
+                link: linkMarkup("/cards"),
               }}
             />
           </li>

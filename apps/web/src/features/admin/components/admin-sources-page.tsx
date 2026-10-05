@@ -1,19 +1,11 @@
-import { adminCardQueriesContract } from "@openrift/shared/contracts/admin/card-queries";
 import { formatDay } from "@openrift/shared/format-date";
 import { Link } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
-import {
-  BanIcon,
-  DownloadIcon,
-  Link2Icon,
-  ListChecksIcon,
-  LoaderIcon,
-  UploadIcon,
-} from "lucide-react";
+import { BanIcon, DownloadIcon, Link2Icon, ListChecksIcon, UploadIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { PageTopBarButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
+import { buttonVariants } from "@/components/ui/button";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,17 +17,9 @@ import {
   useRelinkCandidatePrintings,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useSources } from "@/features/admin/hooks/use-sources";
-import { downloadJSONText } from "@/features/collections/lib/json-export";
+import { exportCatalogFn } from "@/features/admin/lib/sources-queries";
+import { downloadText } from "@/lib/download";
 import { errorText } from "@/lib/error-text";
-import { withCookies } from "@/lib/server-fns/middleware";
-import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-
-const exportCatalogFn = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(async ({ context }): Promise<string> => {
-    const data = await apiOrpcClient(adminCardQueriesContract, context.cookie).exportCandidates();
-    return JSON.stringify(data, null, 2);
-  });
 
 const SWITCH_HELP = [
   {
@@ -70,7 +54,7 @@ function ExportCatalogButton() {
     setExporting(true);
     try {
       const json = await exportCatalogFn();
-      downloadJSONText(json, `cards-export-${formatDay(new Date())}.json`);
+      downloadText(json, "application/json", `cards-export-${formatDay(new Date())}.json`);
     } catch (error) {
       toast.error(errorText(error, "Export failed"));
     }
@@ -78,8 +62,8 @@ function ExportCatalogButton() {
   }
 
   return (
-    <PageTopBarButton disabled={exporting} onClick={() => void handleExport()}>
-      {exporting ? <LoaderIcon className="animate-spin" /> : <DownloadIcon />}
+    <PageTopBarButton pending={exporting} onClick={() => void handleExport()}>
+      <DownloadIcon />
       Export catalog
     </PageTopBarButton>
   );
@@ -90,19 +74,16 @@ function RelinkSourcesButton() {
 
   return (
     <PageTopBarButton
-      disabled={relink.isPending}
+      pending={relink.isPending}
       onClick={() =>
         relink.mutate(undefined, {
           onSuccess: (result) => {
             toast.success(`Linked ${result.linked} of ${result.examined} stranded rows`);
           },
-          onError: (error) => {
-            toast.error(error.message);
-          },
         })
       }
     >
-      {relink.isPending ? <LoaderIcon className="animate-spin" /> : <Link2Icon />}
+      <Link2Icon />
       Relink sources
     </PageTopBarButton>
   );
@@ -113,7 +94,7 @@ function CheckMatchingButton() {
 
   return (
     <PageTopBarButton
-      disabled={checkMatching.isPending}
+      pending={checkMatching.isPending}
       onClick={() =>
         checkMatching.mutate(undefined, {
           onSuccess: (result) => {
@@ -121,13 +102,10 @@ function CheckMatchingButton() {
               `Checked ${result.cardsChecked} matching cards and ${result.printingsChecked} matching printings`,
             );
           },
-          onError: (error) => {
-            toast.error(error.message);
-          },
         })
       }
     >
-      {checkMatching.isPending ? <LoaderIcon className="animate-spin" /> : <ListChecksIcon />}
+      <ListChecksIcon />
       Check matching
     </PageTopBarButton>
   );
@@ -152,10 +130,10 @@ export function AdminSourcesPage() {
             <ExportCatalogButton />
             <RelinkSourcesButton />
             <CheckMatchingButton />
-            <PageTopBarButton render={<Link to="/admin/ignored-sources" />}>
+            <Link to="/admin/ignored-sources" className={buttonVariants({ variant: "ghost" })}>
               <BanIcon />
               Ignored {ignoredTotal}
-            </PageTopBarButton>
+            </Link>
             <PageTopBarPrimaryButton onClick={() => setUploadFor("")}>
               <UploadIcon />
               Upload source

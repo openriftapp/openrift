@@ -29,11 +29,7 @@ export function GroupTournamentsLens({ slug, canCreate, groupId }: GroupTourname
         }
       >
         {canCreate ? (
-          <Link
-            to="/tournaments/new"
-            search={{ group: groupId }}
-            className={buttonVariants({ variant: "default" })}
-          >
+          <Link to="/tournaments/new" search={{ group: groupId }} className={buttonVariants()}>
             <PlusIcon />
             {m.tournaments_group_lens_new_tournament()}
           </Link>

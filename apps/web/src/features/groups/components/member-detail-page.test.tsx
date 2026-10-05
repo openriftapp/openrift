@@ -54,7 +54,7 @@ vi.mock("./shared-collection-row", () => ({
   SharedCollectionRow: () => <div>collection-row</div>,
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => "viewer-1",
 }));
 

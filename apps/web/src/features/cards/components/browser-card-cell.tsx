@@ -1,5 +1,5 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import type { ReactNode } from "react";
 import { memo } from "react";
 
@@ -9,6 +9,7 @@ import { OwnedCollectionsPopover } from "@/features/cards/components/card-detail
 import { CatalogCardContextMenu } from "@/features/cards/components/catalog-card-context-menu";
 import { WishlistButton } from "@/features/cards/components/wishlist-heart";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
+import { useCellDisplayState } from "@/features/cards/hooks/use-cell-display-state";
 import {
   dispatchAddToWishlist,
   dispatchDecrement,
@@ -17,8 +18,6 @@ import {
   dispatchRowClick,
   dispatchSiblingClick,
 } from "@/features/cards/stores/card-row-actions-store";
-import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
-import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
 import { useTileOwnedCounts } from "@/features/collections/hooks/use-owned-count";
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
 import type { CardRenderContext } from "@/lib/card-viewer-types";
@@ -66,13 +65,13 @@ export const BrowserCardCell = memo(function BrowserCardCell({
   wishEntries,
   inCardsView,
 }: BrowserCardCellProps) {
-  const overrideId = useSiblingOverrideStore((s) =>
-    inCardsView ? s.overrides.cards.get(printing.cardId) : undefined,
-  );
-  const displayPrinting =
-    overrideId && siblings
-      ? (siblings.find((sibling) => sibling.id === overrideId) ?? printing)
-      : printing;
+  const { displayPrinting, isSelected, isFlashing } = useCellDisplayState({
+    printing,
+    itemId,
+    siblings,
+    scope: "cards",
+    inCardsView,
+  });
 
   const siblingIds = siblings?.map((sibling) => sibling.id);
   const {
@@ -143,12 +142,6 @@ export const BrowserCardCell = memo(function BrowserCardCell({
     );
   }
 
-  const isSelected = useGridFocusStore(
-    (s) => s.selectedItemId === itemId || s.selectedItemId === printing.id,
-  );
-  const isFlashing = useGridFocusStore(
-    (s) => s.flashCardId === itemId || s.flashCardId === printing.id,
-  );
   const ctx: CardRenderContext = { isSelected, isFlashing, cardWidth, priority };
   return (
     <CardCell

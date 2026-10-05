@@ -55,6 +55,8 @@ function makeDeck(overrides: Partial<MetaDeckSummary> = {}): MetaDeckSummary {
     format: event.format,
     legendCardId: "card-jinx",
     legendName: "Jinx, Loose Cannon",
+    legendCharacter: "Jinx",
+    legendEpithet: "Loose Cannon",
     legendSlug: "jinx-loose-cannon",
     legendArchiveSlug: null,
     legendImageId: "img-jinx",
@@ -81,6 +83,8 @@ const decks: MetaDeckSummary[] = [
     rank: 4,
     legendCardId: "card-lux",
     legendName: "Lux",
+    legendCharacter: null,
+    legendEpithet: "Lux",
   }),
   makeDeck({
     deckId: "c",
@@ -88,6 +92,8 @@ const decks: MetaDeckSummary[] = [
     rank: 8,
     legendCardId: null,
     legendName: null,
+    legendCharacter: null,
+    legendEpithet: null,
     event: {
       slug: "rift-open",
       name: "Rift Open",

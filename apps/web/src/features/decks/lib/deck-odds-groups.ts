@@ -1,4 +1,5 @@
 import type { DeckOddsGroup } from "@openrift/shared/contracts/decks";
+import { totalQuantity } from "@openrift/shared/deck-rules";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
 
@@ -213,10 +214,8 @@ export function oddsGroupPresets(
 
 export function oddsGroupRow(cards: readonly GroupCard[], def: OddsGroupDef): OddsGroupRow {
   const mainCards = cards.filter((card) => card.zone === WellKnown.deckZone.MAIN);
-  const deckSize = mainCards.reduce((sum, card) => sum + card.quantity, 0);
-  const copies = mainCards
-    .filter((card) => cardMatchesOddsGroup(card, def))
-    .reduce((sum, card) => sum + card.quantity, 0);
+  const deckSize = totalQuantity(mainCards);
+  const copies = totalQuantity(mainCards.filter((card) => cardMatchesOddsGroup(card, def)));
   return {
     key: def.key,
     label: def.label,
@@ -240,7 +239,7 @@ export function defaultOddsGroupKeys(
   presets: readonly OddsGroupPreset[],
 ): string[] {
   const mainCards = cards.filter((card) => card.zone === WellKnown.deckZone.MAIN);
-  const deckSize = mainCards.reduce((sum, card) => sum + card.quantity, 0);
+  const deckSize = totalQuantity(mainCards);
   if (deckSize === 0) {
     return [];
   }

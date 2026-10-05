@@ -12,18 +12,8 @@ import { Link } from "@tanstack/react-router";
 import { ExternalLinkIcon, RefreshCwIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import {
-  PageDescription,
-  PageTopBar,
-  PageTopBarActions,
-  PageTopBarButton,
-  PageTopBarSticky,
-  PageTopBarTitle,
-} from "@/components/layout/page-top-bar";
-import {
-  TopBarBreadcrumbSeparator,
-  TopBarBreadcrumbTrail,
-} from "@/components/layout/top-bar-breadcrumb";
+import { PageDescription, PageTopBarButton } from "@/components/layout/page-top-bar";
+import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -113,35 +103,28 @@ function ArchiveTopBar({
 }) {
   const { data: tournament } = useTournamentDetail(tournamentId);
   return (
-    <PageTopBarSticky width="capped">
-      <PageTopBar className="gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-2 sm:items-baseline">
-          <TopBarBreadcrumbTrail
-            segments={[
-              { label: m.nav_tournaments(), link: <Link to="/tournaments" /> },
-              {
-                label: tournament.name,
-                link: <Link to="/tournaments/$id" params={{ id: tournamentId }} />,
-              },
-              {
-                label: m.nav_decks(),
-                link: <Link to="/tournaments/$id/decks" params={{ id: tournamentId }} />,
-              },
-            ]}
-          />
-          <TopBarBreadcrumbSeparator className="hidden sm:inline" />
-          <PageTopBarTitle>{m.tournaments_archive_title()}</PageTopBarTitle>
-        </div>
-        {onReload ? (
-          <PageTopBarActions>
-            <PageTopBarButton onClick={onReload}>
-              <RefreshCwIcon />
-              {m.tournaments_archive_reload()}
-            </PageTopBarButton>
-          </PageTopBarActions>
-        ) : null}
-      </PageTopBar>
-    </PageTopBarSticky>
+    <TopBarBreadcrumbBar
+      segments={[
+        { label: m.nav_tournaments(), link: <Link to="/tournaments" /> },
+        {
+          label: tournament.name,
+          link: <Link to="/tournaments/$id" params={{ id: tournamentId }} />,
+        },
+        {
+          label: m.nav_decks(),
+          link: <Link to="/tournaments/$id/decks" params={{ id: tournamentId }} />,
+        },
+      ]}
+      title={m.tournaments_archive_title()}
+      actions={
+        onReload ? (
+          <PageTopBarButton onClick={onReload}>
+            <RefreshCwIcon />
+            {m.tournaments_archive_reload()}
+          </PageTopBarButton>
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -248,7 +231,8 @@ function SendBar({
       </p>
       <div>
         <Button
-          disabled={blocked || send.isPending}
+          disabled={blocked}
+          pending={send.isPending}
           onClick={() => send.mutate(plan.links, { onSuccess: onSent })}
         >
           {m.tournaments_archive_send({ count: plan.links.length })}
@@ -349,7 +333,7 @@ export function ArchiveListsPage({ tournamentId }: { tournamentId: string }) {
             {outcomeMessage(outcome) === null ? null : <Callout>{outcomeMessage(outcome)}</Callout>}
             {state.event === null ? (
               <div>
-                <Button disabled={refresh.isPending} onClick={load}>
+                <Button pending={refresh.isPending} onClick={load}>
                   {m.tournaments_archive_load()}
                 </Button>
               </div>

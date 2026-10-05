@@ -1,11 +1,12 @@
 import { appendSetTotal } from "@openrift/shared/fix-typography";
+import { formatPrintingLabel } from "@openrift/shared/printing-label";
+import { pluralize, stringifyUnknown } from "@openrift/shared/strings";
 import type {
   AdminPrintingResponse,
   CandidateCardResponse,
   CandidatePrintingResponse,
   ProviderSettingResponse,
 } from "@openrift/shared/types/api/admin";
-import { formatPrintingLabel, stringifyUnknown } from "@openrift/shared/utils";
 import {
   ArrowRightIcon,
   CheckCheckIcon,
@@ -279,8 +280,7 @@ export function NewPrintingGroupCard({
               language={(activePrinting.language as string | undefined) ?? null}
               className="text-muted-foreground"
             />
-            ({group.candidates.length} source
-            {group.candidates.length === 1 ? "" : "s"})
+            ({group.candidates.length} {pluralize(group.candidates.length, "source")})
           </span>
         </span>
         {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stopPropagation wrapper, not interactive */}

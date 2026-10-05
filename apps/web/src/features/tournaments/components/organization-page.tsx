@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { CardList } from "@/components/ui/card-list";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -240,10 +241,8 @@ export function OrganizationPage({ id }: { id: string }) {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setAddOpen(false)}>
-                {m.common_cancel()}
-              </Button>
-              <Button type="submit" disabled={!email.trim() || addMember.isPending}>
+              <DialogCancel />
+              <Button type="submit" disabled={!email.trim()} pending={addMember.isPending}>
                 {m.tournaments_org_add()}
               </Button>
             </DialogFooter>

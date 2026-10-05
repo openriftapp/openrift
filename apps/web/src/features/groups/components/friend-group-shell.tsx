@@ -1,41 +1,16 @@
-import type {
-  FriendGroupDetailResponse,
-  FriendGroupRole,
-} from "@openrift/shared/types/api/friend-group";
+import type { FriendGroupDetailResponse } from "@openrift/shared/types/api/friend-group";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
 import { Heading } from "@/components/heading";
-import {
-  PageTopBar,
-  PageTopBarActions,
-  PageTopBarSticky,
-  PageTopBarTitle,
-} from "@/components/layout/page-top-bar";
-import {
-  TopBarBreadcrumbSeparator,
-  TopBarBreadcrumbTrail,
-} from "@/components/layout/top-bar-breadcrumb";
+import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";
 import { Button } from "@/components/ui/button";
 import { FriendGroupHero } from "@/features/groups/components/friend-group-hero";
 import { useDeclineFriendGroupInvite } from "@/features/groups/hooks/use-friend-group-mutations";
 import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { cn, PAGE_PADDING, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-export function roleLabel(role: FriendGroupRole): string {
-  const labels: Record<FriendGroupRole, () => string> = {
-    owner: m.groups_role_owner,
-    admin: m.groups_role_admin,
-    member: m.groups_role_member,
-  };
-  return labels[role]();
-}
-
-export function isAdmin(role: FriendGroupRole | null): role is "admin" | "owner" {
-  return role === "admin" || role === "owner";
-}
 
 export function FriendGroupPageFrame({
   slug,
@@ -74,25 +49,15 @@ export function FriendGroupSectionFrame({
     return <PendingApprovalStub data={data} />;
   }
   return (
-    <>
-      <PageTopBarSticky width="capped">
-        <PageTopBar>
-          <div className="flex min-w-0 flex-1 items-center gap-2 sm:items-baseline">
-            <TopBarBreadcrumbTrail
-              segments={[
-                { label: data.group.name, link: <Link to="/groups/$slug" params={{ slug }} /> },
-              ]}
-            />
-            <TopBarBreadcrumbSeparator className="hidden sm:inline" />
-            <PageTopBarTitle>{title}</PageTopBarTitle>
-          </div>
-          {actions ? <PageTopBarActions>{actions}</PageTopBarActions> : null}
-        </PageTopBar>
-      </PageTopBarSticky>
+    <TopBarBreadcrumbBar
+      segments={[{ label: data.group.name, link: <Link to="/groups/$slug" params={{ slug }} /> }]}
+      title={title}
+      actions={actions}
+    >
       <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-6 pt-3", PAGE_PADDING_NO_TOP)}>
         {render(data)}
       </div>
-    </>
+    </TopBarBreadcrumbBar>
   );
 }
 

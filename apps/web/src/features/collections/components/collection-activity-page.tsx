@@ -1,14 +1,13 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDayLocal, formatTimeLocal } from "@openrift/shared/format-date";
 import type { CollectionEventResponse } from "@openrift/shared/types/api/collection-event";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowLeftRightIcon,
   ArrowRightLeftIcon,
   HistoryIcon,
-  Loader2Icon,
   MinusIcon,
   PackageIcon,
   PlusIcon,
@@ -17,12 +16,14 @@ import {
 import { use, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { CardIcon } from "@/components/card-icon";
 import { EmptyState } from "@/components/empty-state";
 import { PageTopBar, PageTopBarTitle } from "@/components/layout/page-top-bar";
 import { TopBarSlotContext } from "@/components/layout/top-bar-slot";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia } from "@/components/ui/empty";
+import { buttonVariants } from "@/components/ui/button";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
+import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import {
   Select,
@@ -32,8 +33,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useSidebar } from "@/components/ui/sidebar";
+import { Spinner } from "@/components/ui/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
+import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { useCollectionEvents } from "@/features/collections/hooks/use-collection-events";
 import { useCollections } from "@/features/collections/hooks/use-collections";
@@ -45,7 +48,7 @@ import type {
 import { getDateCutoff, groupEvents } from "@/features/collections/lib/collection-activity";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { compactFormatterForMarketplace, priceColorClass } from "@/lib/format";
-import { getFilterIconPath, getTypeIconPaths } from "@/lib/icons";
+import { getTypeIconPaths } from "@/lib/icons";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -179,7 +182,6 @@ function EventCard({
   const { labels } = useEnumOrders();
   const cardTypeLabel = event.cardTypes.map((slug) => enumLabel(labels.cardTypes, slug)).join(" ");
   const superTypeLabels = event.cardSuperTypes.map((slug) => enumLabel(labels.superTypes, slug));
-  const rarityLabel = enumLabel(labels.rarities, event.rarity);
 
   const isMove = event.action === "moved" && event.fromCollectionName && event.toCollectionName;
   const isUnfilteredAddRemove =
@@ -188,14 +190,9 @@ function EventCard({
     (event.toCollectionName ?? event.fromCollectionName);
   const showCollection = isMove || isUnfilteredAddRemove;
   const typeIconPaths = getTypeIconPaths(event.cardTypes, event.cardSuperTypes);
-  const rarityIconPath = getFilterIconPath("rarities", event.rarity);
 
   return (
-    <Link
-      to="/cards"
-      search={{ printingId: event.printingId }}
-      className="hover:bg-muted/50 flex items-center gap-3 py-2 transition-colors"
-    >
+    <RowListLink render={<Link to="/cards" search={{ printingId: event.printingId }} />}>
       <div
         className={cn(
           "flex size-8 shrink-0 items-center justify-center rounded-full border",
@@ -230,21 +227,17 @@ function EventCard({
         <p className="text-muted-foreground flex items-center gap-1 text-xs">
           {event.shortCode}
           {typeIconPaths.map((path) => (
-            <img
+            <CardIcon
               key={path}
               src={path}
-              alt={cardTypeLabel}
-              title={
+              alt={
                 superTypeLabels.length > 0
                   ? `${superTypeLabels.join(" ")} ${cardTypeLabel}`
                   : cardTypeLabel
               }
-              className="size-3.5 brightness-0 dark:invert"
             />
           ))}
-          {rarityIconPath && (
-            <img src={rarityIconPath} alt={rarityLabel} title={rarityLabel} className="size-3.5" />
-          )}
+          <RarityIcon rarity={event.rarity} labelled className="size-3.5" />
           {totalPrice !== undefined && (
             <span className={cn("font-medium", priceColorClass(totalPrice))}>
               {formatPrice(totalPrice)}
@@ -269,7 +262,7 @@ function EventCard({
           </p>
         )}
       </div>
-    </Link>
+    </RowListLink>
   );
 }
 
@@ -360,7 +353,7 @@ function LoadMoreSentinel({
 
   return (
     <div ref={ref} className="flex justify-center py-4">
-      {isFetching && <Loader2Icon className="text-muted-foreground size-5 animate-spin" />}
+      {isFetching && <Spinner className="text-muted-foreground size-5" />}
     </div>
   );
 }
@@ -373,10 +366,10 @@ function ActivityEmptyState() {
       title={m.collections_activity_empty_title()}
       description={m.collections_activity_empty_description()}
     >
-      <Button variant="default" render={<Link to="/cards" />}>
+      <Link to="/cards" className={buttonVariants()}>
         <SearchIcon />
         {m.collections_activity_browse_cards()}
-      </Button>
+      </Link>
     </EmptyState>
   );
 }
@@ -384,12 +377,7 @@ function ActivityEmptyState() {
 function FilteredEmptyState() {
   return (
     <Empty className="py-16">
-      <EmptyHeader>
-        <EmptyMedia>
-          <HistoryIcon className="text-muted-foreground size-8" />
-        </EmptyMedia>
-        <EmptyDescription>{m.collections_activity_no_matches()}</EmptyDescription>
-      </EmptyHeader>
+      <EmptyDescription>{m.collections_activity_no_matches()}</EmptyDescription>
     </Empty>
   );
 }
@@ -478,20 +466,21 @@ export function CollectionActivityPage() {
                   <SectionHeading>{formatDayLocal(firstEvent.createdAt)}</SectionHeading>
                   <DaySummary events={events} marketplace={marketplace} formatPrice={formatPrice} />
                 </div>
-                <div>
+                <RowList>
                   {grouped.map((g) => {
                     const collectionId = g.event.toCollectionId ?? g.event.fromCollectionId ?? "";
                     return (
-                      <EventCard
-                        key={`${g.event.action}:${g.event.printingId}:${collectionId}`}
-                        {...g}
-                        price={prices.get(g.event.printingId, marketplace)}
-                        formatPrice={formatPrice}
-                        collectionFilter={collectionFilter}
-                      />
+                      <RowListItem key={`${g.event.action}:${g.event.printingId}:${collectionId}`}>
+                        <EventCard
+                          {...g}
+                          price={prices.get(g.event.printingId, marketplace)}
+                          formatPrice={formatPrice}
+                          collectionFilter={collectionFilter}
+                        />
+                      </RowListItem>
                     );
                   })}
-                </div>
+                </RowList>
               </div>
             );
           })}

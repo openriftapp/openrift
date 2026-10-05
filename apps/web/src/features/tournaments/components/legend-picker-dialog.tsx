@@ -5,6 +5,7 @@ import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -53,9 +54,7 @@ export function LegendPickerDialog({
           </Suspense>
         ) : null}
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            {m.common_cancel()}
-          </Button>
+          <DialogCancel />
           {target?.legendName ? (
             <Button
               variant="outline"

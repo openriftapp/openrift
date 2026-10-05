@@ -77,7 +77,7 @@ describe("MetaScopeBar on a phone", () => {
   it("lists the picks as removable chips under the search", async () => {
     const { setScope, user } = renderBar({ scope: { tiers: ["premier"], countriesEx: ["de"] } });
     expect(screen.getByText("Premier")).toBeInTheDocument();
-    expect(screen.getByText("−Germany")).toBeInTheDocument();
+    expect(screen.getByText("Germany").closest("[data-excluded]")).not.toBeNull();
     await user.click(screen.getByRole("button", { name: "Remove Tier Premier" }));
     expect(setScope).toHaveBeenCalledWith({ tiers: [], tiersEx: [] });
   });

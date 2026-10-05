@@ -1,16 +1,101 @@
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
-import { CheckCircle2Icon, ChevronRightIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { CheckCircle2Icon, FileUpIcon, UploadIcon } from "lucide-react";
+import type { ChangeEvent, ReactNode, RefObject } from "react";
+import { useState } from "react";
 
+import { Disclosure } from "@/components/disclosure";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ExpandToggle } from "@/components/ui/expand-toggle";
+import { Input } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
+import { Textarea } from "@/components/ui/textarea";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
+
+/** Without `onAction` the primary button submits the surrounding form. */
+export function ImportTextInput({
+  value,
+  onValueChange,
+  placeholder,
+  fileRef,
+  onFileUpload,
+  accept = ".csv,text/csv,.txt,text/plain",
+  uploadLabel,
+  actionLabel,
+  onAction,
+  actionPending = false,
+  errors = [],
+  className,
+  textareaClassName,
+}: {
+  value: string;
+  onValueChange: (text: string) => void;
+  placeholder?: string;
+  fileRef: RefObject<HTMLInputElement | null>;
+  onFileUpload: (event: ChangeEvent<HTMLInputElement>) => void;
+  accept?: string;
+  uploadLabel: ReactNode;
+  actionLabel: ReactNode;
+  onAction?: () => void;
+  actionPending?: boolean;
+  errors?: string[];
+  className?: string;
+  textareaClassName?: string;
+}) {
+  return (
+    <div className={cn("flex min-w-0 flex-col gap-3", className)}>
+      <Textarea
+        value={value}
+        onChange={(event) => onValueChange(event.target.value)}
+        placeholder={placeholder}
+        // text-base below md: iOS Safari zooms the viewport when a focused
+        // field is under 16px, and there is no maximum-scale to stop it.
+        className={cn("min-h-[200px] font-mono text-base md:text-xs", textareaClassName)}
+      />
+
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}>
+          <FileUpIcon />
+          {uploadLabel}
+        </Button>
+        <Input
+          ref={fileRef}
+          type="file"
+          accept={accept}
+          onChange={onFileUpload}
+          className="hidden"
+        />
+        <Button
+          type={onAction ? "button" : "submit"}
+          onClick={onAction}
+          pending={actionPending}
+          disabled={value.trim().length === 0}
+        >
+          <UploadIcon />
+          {actionLabel}
+        </Button>
+      </div>
+
+      {errors.length > 0 && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {errors.map((error) => (
+              <p key={error}>{error}</p>
+            ))}
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+}
 
 export function ImportPreviewStack({
   className,
@@ -107,17 +192,34 @@ export function ImportParseErrorDetails({
     return null;
   }
 
+  return <ParseErrorAlert summary={parseErrorSummary(errors.length, unit)} errors={errors} />;
+}
+
+function ParseErrorAlert({ summary, errors }: { summary: string; errors: string[] }) {
+  const [open, setOpen] = useState(false);
   return (
-    <details className="bg-warning-soft border-warning/40 text-warning rounded-lg border">
-      <summary className="cursor-pointer px-3 py-2 font-medium">
-        {parseErrorSummary(errors.length, unit)}
-      </summary>
-      <div className="border-warning/40 border-t px-3 py-2">
-        {errors.map((error) => (
-          <p key={error}>{error}</p>
-        ))}
-      </div>
-    </details>
+    <Alert variant="warning">
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger
+          render={
+            <ExpandToggle
+              expanded={open}
+              chevronClassName="text-current"
+              className="w-full font-medium"
+            />
+          }
+        >
+          {summary}
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="border-warning/40 mt-2 border-t pt-2">
+            {errors.map((error) => (
+              <p key={error}>{error}</p>
+            ))}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </Alert>
   );
 }
 
@@ -140,14 +242,17 @@ export function ImportExactMatchesDisclosure({
   }
 
   return (
-    <details className="group rounded-lg border">
-      <summary className="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-2 px-4 py-2.5">
-        <ChevronRightIcon className="size-4 transition-transform group-open:rotate-90" />
-        <CheckCircle2Icon className="text-success size-4" />
-        <span>{m.collections_import_matched_exactly({ count })}</span>
-      </summary>
-      <div className="divide-border divide-y border-t">{children}</div>
-    </details>
+    <Disclosure
+      title={
+        <span className="flex items-center gap-2">
+          <CheckCircle2Icon className="text-success size-4" />
+          {m.collections_import_matched_exactly({ count })}
+        </span>
+      }
+      contentClassName="divide-border divide-y border-t p-0"
+    >
+      {children}
+    </Disclosure>
   );
 }
 

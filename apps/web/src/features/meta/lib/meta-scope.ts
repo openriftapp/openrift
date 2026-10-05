@@ -1,8 +1,9 @@
 /* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then, unicorn/prefer-top-level-await -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
 import { MAX_FACET_VALUES } from "@openrift/shared/contracts/meta";
+import { todayUtc } from "@openrift/shared/format-date";
 import { isoDate } from "@openrift/shared/schemas";
 import type { SetReleases } from "@openrift/shared/set-release";
-import { earliestRelease, todayUtc } from "@openrift/shared/set-release";
+import { earliestRelease } from "@openrift/shared/set-release";
 import type { MetaEventFilterQuery, MetaScopeQuery } from "@openrift/shared/types/api/meta";
 import { z } from "zod";
 

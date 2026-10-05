@@ -1,7 +1,7 @@
 import { ArrowRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { Heading } from "@/components/heading";
+import { Eyebrow, Heading } from "@/components/heading";
 import { OrnamentRule } from "@/components/ui/ornament";
 import { cn } from "@/lib/utils";
 
@@ -63,9 +63,9 @@ export function FeatureSection({
     >
       <Reveal className={cn("flex flex-col items-start gap-4", flip && "lg:order-2")}>
         {eyebrow ? (
-          <span className="text-muted-foreground font-heading text-xs font-semibold tracking-wide uppercase">
+          <Eyebrow as="span" className="font-heading mb-0 text-xs">
             {eyebrow}
-          </span>
+          </Eyebrow>
         ) : null}
         <Heading level={1} as="h2" className={FEATURE_HEADING_CLASS}>
           {title}

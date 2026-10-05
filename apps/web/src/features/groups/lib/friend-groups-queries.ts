@@ -3,7 +3,6 @@ import type {
   FriendGroupDetailResponse,
   FriendGroupListResponse,
 } from "@openrift/shared/types/api/friend-group";
-import { isDefinedError, safe } from "@orpc/client";
 import type { QueryClient } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import type { ParsedLocation } from "@tanstack/react-router";
@@ -11,7 +10,7 @@ import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 
 import { friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
-import { notFoundError } from "@/lib/server-fns/api-error";
+import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -24,19 +23,9 @@ const fetchGroups = createServerFn({ method: "GET" })
 const fetchGroupDetail = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: slug }): Promise<FriendGroupDetailResponse> => {
-    // The route boundary expects a thrown "NOT_FOUND" for an unknown or hidden group.
-    const { error, data } = await safe(
-      apiOrpcClient(friendGroupsContract, context.cookie).get({ slug }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ context, data: slug }): Promise<FriendGroupDetailResponse> =>
+    orNotFound(apiOrpcClient(friendGroupsContract, context.cookie).get({ slug })),
+  );
 
 export function friendGroupsQueryOptions(userId: string) {
   return queryOptions({

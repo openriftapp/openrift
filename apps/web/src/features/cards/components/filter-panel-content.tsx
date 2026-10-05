@@ -1,11 +1,8 @@
 import type { AvailableFilters } from "@openrift/shared/filters-available";
 import type { FilterCounts } from "@openrift/shared/filters-counts";
-import { ChevronRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Disclosure } from "@/components/disclosure";
 import { FilterBadgeSections } from "@/features/cards/components/filter-badge-sections";
 import { FilterChipSections } from "@/features/cards/components/filter-chip-sections";
 import { FilterRangeSections } from "@/features/cards/components/filter-range-sections";
@@ -14,7 +11,6 @@ import {
   getApplicablePlacementUnits,
 } from "@/features/cards/lib/filter-sections";
 import { useCustomTagList } from "@/hooks/use-enums";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 export interface FilterPanelContentProps {
@@ -123,22 +119,13 @@ export function FilterPanelContent({
 }
 
 function MoreFiltersFold({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground -ml-2 gap-1"
-          />
-        }
-      >
-        <ChevronRightIcon className={cn("size-4 transition-transform", open && "rotate-90")} />
-        {m.cards_more_filters()}
-      </CollapsibleTrigger>
-      <CollapsibleContent className="flex flex-col gap-3 pt-3">{children}</CollapsibleContent>
-    </Collapsible>
+    <Disclosure
+      variant="plain"
+      title={m.cards_more_filters()}
+      contentClassName="flex flex-col gap-3 pt-3"
+    >
+      {children}
+    </Disclosure>
   );
 }

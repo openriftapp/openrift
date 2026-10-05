@@ -158,7 +158,7 @@ vi.mock("@/features/groups/components/offer-to-wishlist-dialog", () => ({
 }));
 
 const { SharedListContent } = await import("./shared-list-content");
-const { FilterSearchProvider } = await import("@/features/cards/lib/search-schemas");
+const { FilterSearchProvider } = await import("@/features/cards/hooks/use-filter-search");
 const { useSelectionStore } = await import("@/stores/selection-store");
 
 const resetSelectionStore = createStoreResetter(useSelectionStore);

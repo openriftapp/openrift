@@ -35,7 +35,7 @@ import type {
 } from "@/features/lists/lib/list-move";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { formatImportPrintingLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -171,7 +171,7 @@ export function AddEntryToCollectionDialogBody({
         disabled={isPending}
       />
       <div className="flex justify-end gap-2 pt-2">
-        <Button variant="ghost" onClick={onCancel} disabled={isPending}>
+        <Button variant="outline" onClick={onCancel} disabled={isPending}>
           {m.common_cancel()}
         </Button>
         <Button type="submit" disabled={!canConfirm}>
@@ -314,7 +314,7 @@ export function AddEntriesToCollectionDialogBody({
         </p>
       )}
       <div className="flex justify-end gap-2 pt-2">
-        <Button variant="ghost" onClick={onCancel} disabled={isPending}>
+        <Button variant="outline" onClick={onCancel} disabled={isPending}>
           {m.common_cancel()}
         </Button>
         <Button type="submit" disabled={!canConfirm}>

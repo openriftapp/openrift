@@ -1,7 +1,9 @@
+import { matchesTextQuery } from "@openrift/shared/search-fold";
 import type { MarkerResponse } from "@openrift/shared/types/api/admin";
 import { CheckIcon } from "lucide-react";
 import { useState } from "react";
 
+import { SearchInput } from "@/components/search-input";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,7 +14,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
-import { Input } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
 import { cn } from "@/lib/utils";
 
@@ -27,13 +28,7 @@ export function PrintingDeskMarkerBrowser({
 }) {
   const [query, setQuery] = useState("");
 
-  const needle = query.trim().toLowerCase();
-  const visible = markers.filter(
-    (marker) =>
-      needle.length === 0 ||
-      marker.label.toLowerCase().includes(needle) ||
-      marker.slug.includes(needle),
-  );
+  const visible = markers.filter((marker) => matchesTextQuery(query, [marker.label, marker.slug]));
 
   return (
     <Dialog
@@ -52,9 +47,9 @@ export function PrintingDeskMarkerBrowser({
           </DialogDescription>
         </DialogHeader>
 
-        <Input
+        <SearchInput
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onValueChange={setQuery}
           placeholder="Filter by name…"
           aria-label="Filter markers"
         />

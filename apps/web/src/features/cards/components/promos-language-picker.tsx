@@ -1,6 +1,7 @@
 import type { PromosListResponse } from "@openrift/shared/types/api/catalog";
 import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 
+import { SectionHeading } from "@/components/ui/section-heading";
 import {
   Select,
   SelectContent,
@@ -30,9 +31,7 @@ export function PromosLanguagePanel({
       aria-label={m.promos_languages_heading()}
       className="bg-card/80 hidden w-80 shrink-0 flex-col gap-1 rounded-lg border p-4 shadow-xl md:flex"
     >
-      <h2 className="text-muted-foreground font-heading mb-1 text-sm font-semibold tracking-wide uppercase">
-        {m.promos_languages_heading()}
-      </h2>
+      <SectionHeading className="mb-1">{m.promos_languages_heading()}</SectionHeading>
       {counts.map((count) => {
         const active = count.language === activeLanguage;
         return (

@@ -1,10 +1,9 @@
+import { formatRuleNumber } from "@openrift/shared/rules";
 import { Link } from "@tanstack/react-router";
 
 import { CountPillButton } from "@/components/ui/count-pill";
 import { useRuleExamplesStore } from "@/features/rules/stores/rule-examples-store";
 import { m } from "@/paraglide/messages.js";
-
-import { formatRuleNumber } from "./rule-content";
 
 export function RuleExamplesMarker({ ruleNumber }: { ruleNumber: string }) {
   const count = useRuleExamplesStore((state) => state.examplesByRule.get(ruleNumber)?.length ?? 0);

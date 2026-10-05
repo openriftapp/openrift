@@ -1,5 +1,5 @@
+import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/utils";
 import { useMemo, useState } from "react";
 
 import { Input } from "@/components/ui/input";

@@ -1,6 +1,5 @@
 import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
-
-import type { CardDragData } from "./dnd-types";
+import type { CardDragData } from "@/features/collections/lib/dnd-types";
 
 /**
  * A tile in an active multi-selection carries `fromSelection: true`, not a frozen

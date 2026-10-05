@@ -1,3 +1,4 @@
+import { matchesTextQuery } from "@openrift/shared/search-fold";
 import type { DistributionChannelResponse } from "@openrift/shared/types/api/admin";
 
 import type { ChannelLike } from "@/features/cards/lib/distribution-channel-tree";
@@ -29,16 +30,12 @@ export function filterChannelBrowseRows<T extends ChannelLike>(
   rows: readonly ChannelBrowseRow<T>[],
   query: string,
 ): ChannelBrowseRow<T>[] {
-  const needle = query.trim().toLowerCase();
-  if (needle.length === 0) {
+  if (query.trim().length === 0) {
     return [...rows];
   }
   const keep = new Set<string>();
   for (const row of rows) {
-    const matches =
-      row.channel.label.toLowerCase().includes(needle) ||
-      row.breadcrumb.toLowerCase().includes(needle);
-    if (matches) {
+    if (matchesTextQuery(query, [row.channel.label, row.breadcrumb])) {
       for (const id of row.ancestorIds) {
         keep.add(id);
       }

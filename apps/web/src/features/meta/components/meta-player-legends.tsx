@@ -29,7 +29,7 @@ function LegendTile({ entry }: { entry: MetaPlayerLegendEntry }) {
       )}
       <div className="flex min-w-0 flex-col gap-0.5">
         <MetaIdentity
-          name={legend.name}
+          legend={legend}
           slug={legend.slug}
           archiveSlug={legend.archiveSlug}
           domains={legend.domains}

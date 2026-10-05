@@ -1,14 +1,14 @@
-import { sortByLanguageAndCanonicalRank } from "@openrift/shared/utils";
+import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { use } from "react";
 
-import { CatalogSubsetContext } from "@/features/cards/hooks/catalog-subset-context";
-import type { UseCardsResult } from "@/features/cards/lib/catalog-query";
+import type { UseCardsResult } from "@/features/cards/lib/catalog-queries";
 import {
   catalogQueryOptions,
   loadCatalogTail,
   noCatalogQueryOptions,
-} from "@/features/cards/lib/catalog-query";
+} from "@/features/cards/lib/catalog-queries";
+import { CatalogSubsetContext } from "@/features/cards/lib/catalog-subset-context";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useDisplayStore } from "@/stores/display-store";
 

@@ -1,6 +1,8 @@
-import { CheckIcon, ChevronsUpDownIcon, LoaderIcon, XIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { pluralize } from "@openrift/shared/strings";
+import { CheckIcon, ChevronsUpDownIcon, XIcon } from "lucide-react";
+import { useState } from "react";
 
+import { Disclosure } from "@/components/disclosure";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
 import {
@@ -18,7 +20,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -29,32 +30,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AdminDisclosure } from "@/features/admin/components/admin-disclosure";
-import type { UploadCandidatesBody } from "@/features/admin/hooks/use-admin-image-mutations";
+import { JsonFileField } from "@/features/admin/components/json-file-field";
 import { useUploadCandidates } from "@/features/admin/hooks/use-admin-image-mutations";
+import { useJsonFileInput } from "@/features/admin/hooks/use-json-file-input";
 import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
-import type { UploadCandidatesResponse } from "@/lib/server-fns/api-types";
+import { parseJsonEntries } from "@/features/admin/lib/json-upload";
+import type { UploadCandidatesBody, UploadCandidatesResponse } from "@/lib/server-fns/api-types";
 
 type UploadDetail = UploadCandidatesResponse["newCardDetails"][number];
 type UploadDiff = UploadCandidatesResponse["updatedCards"][number];
 
-type ParseResult =
-  | { ok: true; candidates: UploadCandidatesBody["candidates"] }
-  | { ok: false; error: "invalid-json" | "empty-or-wrong-shape" };
-
-// Module-level so react-compiler doesn't try to lower the ternary + logical
-// expressions inside the try/catch (it bails on "value blocks" within try statements).
-function parseCandidates(text: string): ParseResult {
-  try {
-    const json = JSON.parse(text) as unknown[] | { candidates?: unknown };
-    const candidates = Array.isArray(json) ? json : json.candidates;
-    if (!Array.isArray(candidates) || candidates.length === 0) {
-      return { ok: false, error: "empty-or-wrong-shape" };
-    }
-    return { ok: true, candidates: candidates as UploadCandidatesBody["candidates"] };
-  } catch {
-    return { ok: false, error: "invalid-json" };
-  }
+function parseCandidates(text: string) {
+  return parseJsonEntries<UploadCandidatesBody["candidates"][number]>(
+    text,
+    "candidates",
+    "The file must hold a non-empty array of entries",
+  );
 }
 
 const EXAMPLE_SOURCE_JSON = `[
@@ -91,7 +82,7 @@ const EXAMPLE_SOURCE_JSON = `[
 
 function UploadFormatHelp() {
   return (
-    <AdminDisclosure title="Format and example" contentClassName="space-y-3">
+    <Disclosure title="Format and example" contentClassName="space-y-3">
       <p>
         The file must contain a JSON array of entries (or an object with a <Code>candidates</Code>{" "}
         field holding the array). Each entry has a <Code>card</Code> object and a{" "}
@@ -121,7 +112,7 @@ function UploadFormatHelp() {
       <pre className="bg-muted overflow-x-auto rounded-md p-3">
         <code>{EXAMPLE_SOURCE_JSON}</code>
       </pre>
-    </AdminDisclosure>
+    </Disclosure>
   );
 }
 
@@ -336,43 +327,10 @@ export function SourceUploadDialog({
   initialName: string;
   onClose: () => void;
 }) {
-  const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(initialName);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [fileData, setFileData] = useState<UploadCandidatesBody["candidates"] | null>(null);
-  const [parseError, setParseError] = useState<string | null>(null);
+  const file = useJsonFileInput(parseCandidates);
+  const fileData = file.value;
   const upload = useUploadCandidates();
-
-  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-    setFileName(file.name);
-    setParseError(null);
-    setFileData(null);
-    if (name === "") {
-      setName(file.name.replace(/\.json$/iu, ""));
-    }
-
-    let text: string;
-    try {
-      text = await file.text();
-    } catch {
-      setParseError("Could not read that file");
-      return;
-    }
-    const parsed = parseCandidates(text);
-    if (!parsed.ok) {
-      setParseError(
-        parsed.error === "invalid-json"
-          ? "Invalid JSON file"
-          : "The file must hold a non-empty array of entries",
-      );
-      return;
-    }
-    setFileData(parsed.candidates);
-  }
 
   function handleUpload() {
     if (!fileData || name.trim() === "") {
@@ -381,13 +339,7 @@ export function SourceUploadDialog({
     upload.mutate(
       { provider: name.trim(), candidates: fileData },
       {
-        onSuccess: () => {
-          setFileData(null);
-          setFileName(null);
-          if (fileRef.current) {
-            fileRef.current.value = "";
-          }
-        },
+        onSuccess: () => file.reset(),
       },
     );
   }
@@ -412,42 +364,26 @@ export function SourceUploadDialog({
         <div className="space-y-4">
           <UploadFormatHelp />
 
-          <div className="space-y-2">
-            <Label htmlFor="source-file">JSON file</Label>
-            <Input
-              id="source-file"
-              ref={fileRef}
-              type="file"
-              accept=".json,application/json"
-              onChange={(event) => void handleFileChange(event)}
-            />
-            {fileName && fileData && (
-              <p className="text-muted-foreground text-sm">
-                {fileName} ({fileData.length} card{fileData.length === 1 ? "" : "s"})
-              </p>
-            )}
-            {parseError && (
-              <p className="text-muted-foreground flex items-center gap-1 text-sm">
-                <XIcon className="text-destructive size-4 shrink-0" />
-                {parseError}
-              </p>
-            )}
-          </div>
+          <JsonFileField
+            input={file}
+            onFile={(picked) => {
+              if (name === "") {
+                setName(picked.name.replace(/\.json$/iu, ""));
+              }
+            }}
+            summary={(value, fileName) =>
+              `${fileName} (${value.length} ${pluralize(value.length, "card")})`
+            }
+          />
 
           <SourceNameField names={names} value={name} onChange={setName} />
 
           <Button
-            disabled={!fileData || name.trim() === "" || upload.isPending}
+            disabled={!fileData || name.trim() === ""}
+            pending={upload.isPending}
             onClick={handleUpload}
           >
-            {upload.isPending ? (
-              <>
-                <LoaderIcon className="size-4 animate-spin" />
-                Uploading…
-              </>
-            ) : (
-              "Upload"
-            )}
+            {upload.isPending ? "Uploading…" : "Upload"}
           </Button>
 
           {upload.isSuccess && <UploadSummary data={upload.data} />}

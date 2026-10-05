@@ -196,7 +196,7 @@ export function RulesImportPage() {
           <Label>Version (date)</Label>
           <DatePicker
             value={version || null}
-            onChange={setVersion}
+            onValueChange={setVersion}
             onClear={() => setVersion("")}
           />
         </div>

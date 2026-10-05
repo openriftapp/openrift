@@ -1,6 +1,7 @@
 import { imageUrl } from "@openrift/shared/image-url";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
+import { ExternalLinkIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { siGithub } from "simple-icons";
@@ -11,12 +12,15 @@ import {
   PageTopBarHeightContext,
   PageTopBarSticky,
   PageTopBarTitle,
-  useMeasuredHeight,
 } from "@/components/layout/page-top-bar";
+import { BrandGlyph } from "@/components/ui/brand-glyph";
 import { TextLink } from "@/components/ui/text-link";
-import { landingSummaryQueryOptions } from "@/features/marketing/lib/landing-summary-query";
+import { HeroCta } from "@/features/marketing/components/hero-cta";
+import { featureChapters } from "@/features/marketing/lib/features-chapters";
+import { landingSummaryQueryOptions } from "@/features/marketing/lib/landing-summary-queries";
 import { landingThumbnailCards } from "@/features/marketing/lib/landing-thumbnails";
-import { useSession } from "@/lib/auth-session";
+import { useMeasuredHeight } from "@/hooks/use-measured-height";
+import { useSession } from "@/hooks/use-session";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -25,7 +29,6 @@ import { BoxVignette } from "./box-vignette";
 import { CatalogVignette } from "./catalog-vignette";
 import { ChapterDivider } from "./chapter-divider";
 import { ChatVignette } from "./chat-vignette";
-import { cornerClip } from "./clip-frame";
 import { CollectionsVignette } from "./collections-vignette";
 import { DecksVignette } from "./decks-vignette";
 import { DesignerVignette } from "./designer-vignette";
@@ -38,7 +41,6 @@ import {
   FeatureSection,
   SectionRule,
 } from "./feature-section";
-import { featureChapters } from "./features-chapters";
 import { FeaturesHero } from "./features-hero";
 import { FeaturesChipNav, FeaturesRail } from "./features-nav";
 import { GroupsVignette } from "./groups-vignette";
@@ -65,8 +67,6 @@ import {
   tradedCard,
 } from "./trade-flow-vignettes";
 import { VariantsVignette } from "./variants-vignette";
-
-const CTA_CUT = 12;
 
 interface FullSectionDef {
   id: string;
@@ -107,27 +107,15 @@ function ClosingBlock({ signedOut }: { signedOut: boolean }) {
           {m.marketing_features_closing_languages()}
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <Link
-            to="/cards"
-            className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring font-heading inline-flex h-11 items-center px-7 font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
-            style={{ clipPath: cornerClip(CTA_CUT) }}
-          >
-            {m.collections_activity_browse_cards()}
-          </Link>
+          <HeroCta to="/cards">{m.collections_activity_browse_cards()}</HeroCta>
           {signedOut && (
-            <span
-              className="bg-border-accent inline-block p-px"
-              style={{ clipPath: cornerClip(CTA_CUT) }}
+            <HeroCta
+              to="/signup"
+              search={{ redirect: undefined, email: undefined }}
+              variant="outline"
             >
-              <Link
-                to="/signup"
-                search={{ redirect: undefined, email: undefined }}
-                className="bg-background hover:bg-secondary focus-visible:ring-ring font-heading inline-flex h-11 items-center px-7 font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
-                style={{ clipPath: cornerClip(CTA_CUT) }}
-              >
-                {m.card_detail_nudge_signup()}
-              </Link>
-            </span>
+              {m.card_detail_nudge_signup()}
+            </HeroCta>
           )}
         </div>
         <TextLink
@@ -136,9 +124,7 @@ function ClosingBlock({ signedOut }: { signedOut: boolean }) {
           rel="noreferrer"
           className={FEATURE_ACTION_CLASS}
         >
-          <svg role="img" viewBox="0 0 24 24" className="size-4 fill-current" aria-hidden="true">
-            <path d={siGithub.path} />
-          </svg>
+          <BrandGlyph icon={siGithub} fallback={ExternalLinkIcon} />
           {m.marketing_features_closing_github()}
         </TextLink>
       </section>

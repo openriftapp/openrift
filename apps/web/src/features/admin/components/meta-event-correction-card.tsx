@@ -1,10 +1,11 @@
 import type { AdminMetaEventCorrection } from "@openrift/shared/contracts/admin/meta-submissions";
 import { formatDayTime } from "@openrift/shared/format-date";
+import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MetaSubmissionResolve } from "@/features/admin/components/meta-submission-resolve";
 import { useApplyMetaEventCorrection } from "@/features/admin/hooks/use-admin-meta-submissions";
@@ -51,14 +52,13 @@ export function MetaEventCorrectionCard({ correction }: { correction: AdminMetaE
           <span className="text-muted-foreground text-sm">&ldquo;{submission.note}&rdquo;</span>
         )}
         {event !== null && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="ml-auto"
-            render={<Link to="/admin/meta/$eventId" params={{ eventId: event.id }} />}
+          <Link
+            to="/admin/meta/$eventId"
+            params={{ eventId: event.id }}
+            className={buttonVariants({ variant: "outline", size: "sm", className: "ml-auto" })}
           >
             Edit the event
-          </Button>
+          </Link>
         )}
       </div>
 
@@ -110,7 +110,7 @@ export function MetaEventCorrectionCard({ correction }: { correction: AdminMetaE
       {applicable && changed.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 pt-2">
           <Button size="sm" disabled={kept.length === 0 || apply.isPending} onClick={handleApply}>
-            {kept.length === 1 ? "Apply 1 change" : `Apply ${kept.length} changes`}
+            Apply {kept.length} {pluralize(kept.length, "change")}
           </Button>
           <span className="text-muted-foreground min-w-0 text-sm">
             Writes the ticked values under the submitter&apos;s name, credits them on the event and

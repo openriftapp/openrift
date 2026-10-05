@@ -37,6 +37,8 @@ function makeStanding(playerId: string, byeCount: number): PodStandingRow {
   return {
     playerId,
     displayName: playerId,
+    image: null,
+    gravatarHash: null,
     status: "active",
     droppedAfterRound: null,
     teamId: null,

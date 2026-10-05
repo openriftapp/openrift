@@ -14,7 +14,7 @@ vi.mock("@tanstack/react-router", () => ({
   useLocation: () => ({ href: locationState.href }),
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useSession: () => ({ data: sessionState.data }),
 }));
 

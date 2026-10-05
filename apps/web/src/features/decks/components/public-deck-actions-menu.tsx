@@ -12,6 +12,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { PageTopBarIconButton } from "@/components/layout/page-top-bar";
+import { ShareDialog } from "@/components/share/share-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,7 +28,6 @@ import type { DeckLinkKind } from "@/features/decks/lib/deck-compare-side";
 import { compareLinkParam } from "@/features/decks/lib/deck-compare-side";
 import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
 import type { PublicDeckSource } from "@/features/decks/lib/public-deck-source";
-import { ShareDialog } from "@/features/groups/components/share-dialog";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { deckShareImageUrl, shareImageOptions, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";

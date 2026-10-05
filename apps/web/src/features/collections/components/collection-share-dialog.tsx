@@ -1,13 +1,13 @@
 import { CatchBoundary } from "@tanstack/react-router";
 import { Suspense } from "react";
 
+import { ShareDialog } from "@/components/share/share-dialog";
 import { useCollectionGroupShares } from "@/features/collections/hooks/use-collection-group-shares";
 import {
   useShareCollection,
   useUnshareCollection,
 } from "@/features/collections/hooks/use-collections";
 import { GroupVisibilitySection } from "@/features/groups/components/group-visibility-section";
-import { ShareDialog } from "@/features/groups/components/share-dialog";
 import {
   useShareCollectionWithFriendGroup,
   useUnshareCollectionFromFriendGroup,

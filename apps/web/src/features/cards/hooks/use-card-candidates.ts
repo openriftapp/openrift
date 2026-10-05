@@ -1,5 +1,5 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Card } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { useMemo } from "react";
 
 import { useCards } from "@/features/cards/hooks/use-cards";

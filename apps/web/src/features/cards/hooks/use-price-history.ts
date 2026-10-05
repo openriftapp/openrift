@@ -1,4 +1,5 @@
 import { pricesContract } from "@openrift/shared/contracts/prices";
+import { centsToDollars } from "@openrift/shared/money";
 import type { PriceHistoryResponse } from "@openrift/shared/types/api/pricing";
 import type { TimeRange } from "@openrift/shared/types/pricing";
 import { useQuery } from "@tanstack/react-query";
@@ -33,39 +34,35 @@ export function usePriceHistory(printingId: string | null, range: TimeRange = "3
         ...data.tcgplayer,
         snapshots: data.tcgplayer.snapshots.map((s) => ({
           date: s.date,
-          market: s.market / 100,
-          low: centsToMajor(s.low),
+          market: centsToDollars(s.market),
+          low: centsToDollars(s.low),
         })),
       },
       cardmarket: {
         ...data.cardmarket,
         snapshots: data.cardmarket.snapshots.map((s) => ({
           date: s.date,
-          market: s.market / 100,
-          low: centsToMajor(s.low),
+          market: centsToDollars(s.market),
+          low: centsToDollars(s.low),
         })),
       },
       cardtrader: {
         ...data.cardtrader,
         snapshots: data.cardtrader.snapshots.map((s) => ({
           date: s.date,
-          zeroLow: centsToMajor(s.zeroLow),
-          low: centsToMajor(s.low),
+          zeroLow: centsToDollars(s.zeroLow),
+          low: centsToDollars(s.low),
         })),
       },
       cardnexus: {
         ...data.cardnexus,
         snapshots: data.cardnexus.snapshots.map((s) => ({
           date: s.date,
-          low: centsToMajor(s.low),
+          low: centsToDollars(s.low),
         })),
       },
     }),
     enabled: Boolean(printingId),
     staleTime: 60 * 60 * 1000, // 1 hour
   });
-}
-
-function centsToMajor(cents: number | null): number | null {
-  return cents === null ? null : cents / 100;
 }

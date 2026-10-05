@@ -2,6 +2,7 @@ import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { ImageIcon, InfoIcon, RulerIcon, ScissorsIcon, ShieldCheckIcon } from "lucide-react";
 
 import { Eyebrow, Heading } from "@/components/heading";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
@@ -74,12 +75,7 @@ export default function ProxyPrintingArticle() {
       <section>
         <Heading className="mb-2">{m.help_proxy_printing_generate_heading()}</Heading>
         <p className="text-muted-foreground">
-          <ParaglideMessage
-            message={m.help_proxy_printing_generate}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_proxy_printing_generate} markup={PROSE_MARKUP} />
         </p>
         <p className="text-muted-foreground mt-2">{m.help_proxy_printing_generate_copies()}</p>
       </section>

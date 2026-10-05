@@ -1,10 +1,11 @@
 import { adminCardSubmissionsContract } from "@openrift/shared/contracts/admin/card-submissions";
 import type { AdminCardSubmission } from "@openrift/shared/contracts/admin/card-submissions";
 import type { CardSubmissionReason } from "@openrift/shared/contracts/card-submissions";
-import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { cardSubmissionsKeys } from "@/features/contribute/lib/contribute-query-keys";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -48,17 +49,12 @@ const setSubmissionResolutionFn = createServerFn({ method: "POST" })
  * before or after the submission settles.
  */
 export function useSetSubmissionResolution() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (params: {
       candidateCardId: string;
       reason: CardSubmissionReason | null;
       note: string | null;
     }) => setSubmissionResolutionFn({ data: params }),
-    onSuccess: (_result, params) => {
-      void queryClient.invalidateQueries({
-        queryKey: cardSubmissionsKeys.forCandidate(params.candidateCardId),
-      });
-    },
+    invalidates: (params) => [cardSubmissionsKeys.forCandidate(params.candidateCardId)],
   });
 }

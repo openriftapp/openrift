@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -76,7 +76,7 @@ export function SendNoteDialog({
           </div>
 
           <DialogFooter>
-            <DialogClose render={<Button variant="ghost" type="button" />}>Cancel</DialogClose>
+            <DialogCancel />
             <Button type="submit" disabled={setResolution.isPending}>
               Send
             </Button>

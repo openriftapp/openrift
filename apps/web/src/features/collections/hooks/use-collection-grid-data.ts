@@ -15,7 +15,7 @@ import { maxOwnedCount } from "@/features/collections/lib/owned-bucket";
 import { useFriendGroupsList, useGroupBoxWants } from "@/features/groups/hooks/use-friend-groups";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
 import type { GroupInfo } from "@/lib/card-group-types";
 
 const EMPTY_SORTED_CARDS: Printing[] = [];

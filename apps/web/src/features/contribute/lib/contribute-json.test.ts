@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { stubPrinting } from "@/test/factories";
+import { stubCard, stubPrinting } from "@/test/factories";
 
 import type { ContributeFormState } from "./contribute-json";
 import {
@@ -8,7 +8,7 @@ import {
   buildImagePatchState,
   buildSubmissionPayload,
   emptyFormState,
-  nameToSlug,
+  prefillFromCatalogCard,
   validateContribution,
 } from "./contribute-json";
 
@@ -53,24 +53,6 @@ function fullState(): ContributeFormState {
     ],
   };
 }
-
-describe("nameToSlug", () => {
-  it("kebab-cases plain ASCII", () => {
-    expect(nameToSlug("Ahri Alluring")).toBe("ahri-alluring");
-  });
-
-  it("collapses runs of whitespace and punctuation", () => {
-    expect(nameToSlug("Ahri,  the   Nine-Tailed!")).toBe("ahri-the-nine-tailed");
-  });
-
-  it("strips diacritics", () => {
-    expect(nameToSlug("Pénélope")).toBe("penelope");
-  });
-
-  it("trims leading and trailing dashes", () => {
-    expect(nameToSlug("---  hello  ---")).toBe("hello");
-  });
-});
 
 describe("validateContribution", () => {
   it("accepts a complete state", () => {
@@ -515,5 +497,31 @@ describe("buildImagePatchState", () => {
     });
     const json = buildContributionJson(state, STAMP);
     expect(json.printings[0]!.printed_name).toBe("Ahri, Alluring");
+  });
+});
+
+describe("prefillFromCatalogCard", () => {
+  it("prefills the card with its catalog printings and resolves set slugs and names", () => {
+    const card = stubCard({ slug: "ahri-alluring", name: "Ahri, Alluring" });
+    const printing = stubPrinting({ cardId: "card-1", setId: "set-1" });
+    const state = prefillFromCatalogCard("card-1", card, {
+      printingsByCardId: new Map([["card-1", [printing]]]),
+      sets: [{ id: "set-1", slug: "ogn", name: "Origins" }],
+    });
+
+    expect(state.slug).toBe("ahri-alluring");
+    expect(state.printings).toHaveLength(1);
+    expect(state.printings[0]?.setId).toBe("ogn");
+    expect(state.printings[0]?.setName).toBe("Origins");
+  });
+
+  it("returns no printings when the catalog has none for the card", () => {
+    const card = stubCard();
+    const state = prefillFromCatalogCard("card-2", card, {
+      printingsByCardId: new Map(),
+      sets: [],
+    });
+
+    expect(state.printings).toEqual([]);
   });
 });

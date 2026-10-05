@@ -9,10 +9,11 @@ import {
   ruleVersionsQueryOptions,
   rulesAtVersionQueryOptions,
 } from "@/features/rules/lib/rules-queries";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { serverCacheKeys } from "@/lib/query-keys";
 import { serverCache } from "@/lib/server-cache";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 interface RuleVersionDetails {
   comments: string | null;
@@ -55,8 +56,8 @@ const importRulesFn = createServerFn({ method: "POST" })
       documentVersion: data.documentVersion,
       content: data.content,
     });
-    await serverCache.invalidateQueries({ queryKey: ["server-cache", "rules"] });
-    await serverCache.invalidateQueries({ queryKey: ["server-cache", "rules-versions"] });
+    await serverCache.invalidateQueries({ queryKey: serverCacheKeys.rules.all });
+    await serverCache.invalidateQueries({ queryKey: serverCacheKeys.rulesVersions.all });
     return result;
   });
 
@@ -76,8 +77,8 @@ const deleteRuleVersionFn = createServerFn({ method: "POST" })
       language: data.language,
       version: data.version,
     });
-    await serverCache.invalidateQueries({ queryKey: ["server-cache", "rules"] });
-    await serverCache.invalidateQueries({ queryKey: ["server-cache", "rules-versions"] });
+    await serverCache.invalidateQueries({ queryKey: serverCacheKeys.rules.all });
+    await serverCache.invalidateQueries({ queryKey: serverCacheKeys.rulesVersions.all });
   });
 
 export function useDeleteRuleVersion() {
@@ -99,7 +100,7 @@ const updateRuleVersionFn = createServerFn({ method: "POST" })
       label: data.label,
       documentVersion: data.documentVersion,
     });
-    await serverCache.invalidateQueries({ queryKey: ["server-cache", "rules-versions"] });
+    await serverCache.invalidateQueries({ queryKey: serverCacheKeys.rulesVersions.all });
     return result;
   });
 

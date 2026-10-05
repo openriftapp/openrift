@@ -1,8 +1,8 @@
-import { useLocalDeckImageBody } from "@/features/decks/components/local-deck-image-body";
+import { ShareDialog } from "@/components/share/share-dialog";
 import { useShareDeck, useUnshareDeck } from "@/features/decks/hooks/use-decks";
+import { useLocalDeckImageBody } from "@/features/decks/hooks/use-local-deck-image-body";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { ShareDialog } from "@/features/groups/components/share-dialog";
 import {
   deckImageFromCardsUrl,
   deckOwnerImageUrl,

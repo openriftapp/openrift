@@ -3,7 +3,7 @@ import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -99,7 +99,7 @@ function TradeAddTargetBody({ onClose }: { onClose: () => void }) {
       />
 
       <DialogFooter>
-        <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
+        <DialogCancel />
         <Button
           type="submit"
           disabled={

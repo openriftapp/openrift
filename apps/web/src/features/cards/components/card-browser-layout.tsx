@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
-import { createContext, use, useLayoutEffect, useRef, useState } from "react";
+import { createContext, use, useState } from "react";
 
 import { usePageTopBarHeight } from "@/components/layout/page-top-bar";
 import { useHeaderHeight } from "@/hooks/use-header-height";
+import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import { cn } from "@/lib/utils";
 
@@ -51,43 +52,10 @@ export function CardBrowserLayout({
   children,
 }: CardBrowserLayoutProps) {
   const pageTopBarHeight = usePageTopBarHeight();
-  const toolbarRef = useRef<HTMLDivElement>(null);
-  const aboveGridRef = useRef<HTMLDivElement>(null);
-  const [toolbarHeight, setToolbarHeight] = useState(0);
-  const [aboveGridHeight, setAboveGridHeight] = useState(0);
-
-  useLayoutEffect(() => {
-    const el = toolbarRef.current;
-    if (!el) {
-      return;
-    }
-    const observer = new ResizeObserver(([entry]) => {
-      if (!entry) {
-        return;
-      }
-      const height = entry.borderBoxSize[0]?.blockSize ?? entry.contentRect.height;
-      setToolbarHeight(Math.round(height));
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  useLayoutEffect(() => {
-    const el = aboveGridRef.current;
-    if (!el) {
-      setAboveGridHeight(0);
-      return;
-    }
-    const observer = new ResizeObserver(([entry]) => {
-      if (!entry) {
-        return;
-      }
-      const height = entry.borderBoxSize[0]?.blockSize ?? entry.contentRect.height;
-      setAboveGridHeight(Math.round(height));
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+  const [toolbarEl, setToolbarEl] = useState<HTMLDivElement | null>(null);
+  const [aboveGridEl, setAboveGridEl] = useState<HTMLDivElement | null>(null);
+  const toolbarHeight = useMeasuredHeight(toolbarEl);
+  const aboveGridHeight = useMeasuredHeight(aboveGridEl);
 
   // -1 tucks the tier chain under the z-50 header, closing the 1px seam that
   // fractional browser zoom opens between independently-snapping sticky layers.
@@ -99,7 +67,7 @@ export function CardBrowserLayout({
     <CardBrowserLayoutContext value={{ toolbarOffset, stickyOffset }}>
       <div className="@container flex flex-1 flex-col">
         <div
-          ref={toolbarRef}
+          ref={setToolbarEl}
           className={cn(
             // z-30, co-planar with the page top bar: at z-20 the bar's own bg
             // painted over and clipped a focused control's outset ring. See
@@ -122,7 +90,7 @@ export function CardBrowserLayout({
           {leftPane}
           <div className="flex min-w-0 flex-1 flex-col">
             <div
-              ref={aboveGridRef}
+              ref={setAboveGridEl}
               className={cn(STICKY_SURFACE, "mx-safe-neg px-safe sticky z-15 sm:rounded-b-lg")}
               style={{ top: toolbarOffset }}
             >

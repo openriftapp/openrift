@@ -1,4 +1,4 @@
-import { stringifyUnknown } from "@openrift/shared/utils";
+import { stringifyUnknown } from "@openrift/shared/strings";
 
 export function hasValue(value: unknown): boolean {
   if (value === null || value === undefined || value === "") {

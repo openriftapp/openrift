@@ -3,6 +3,7 @@ import type { TournamentMatchFormat } from "@openrift/shared/types/api/tournamen
 import { Fragment, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { swissPointsPreview, swissResultPresets } from "@/features/tournaments/lib/swiss-results";
 import { groupPodMembersByTeam, teamDisplayName } from "@/features/tournaments/lib/team-display";
 import { m } from "@/paraglide/messages.js";
@@ -110,7 +111,19 @@ export function SwissResultForm({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2">
+      <ToggleGroup
+        variant="outline"
+        size="sm"
+        value={selected === null ? [] : [String(selected)]}
+        onValueChange={(next) => {
+          const [value] = next;
+          if (value !== undefined) {
+            setSelected(Number(value));
+          }
+        }}
+        disabled={submitting}
+        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center"
+      >
         {outcomeGroups.map((group) => (
           <Fragment key={group.aria}>
             <span
@@ -121,25 +134,22 @@ export function SwissResultForm({
             </span>
             <div className="flex flex-wrap justify-end gap-1.5">
               {group.entries.map((entry) => (
-                <Button
+                <ToggleGroupItem
                   key={entry.index}
-                  variant={selected === entry.index ? "default" : "outline"}
-                  size="sm"
+                  value={String(entry.index)}
                   className="tabular-nums"
-                  onClick={() => setSelected(entry.index)}
-                  disabled={submitting}
                   // The visible label repeats across the win rows ("1–0" or
                   // "Win" on either side), so the accessible name carries the
                   // outcome.
                   aria-label={entry.aria}
                 >
                   {entry.label}
-                </Button>
+                </ToggleGroupItem>
               ))}
             </div>
           </Fragment>
         ))}
-      </div>
+      </ToggleGroup>
       {preview ? (
         <div className="text-muted-foreground grid w-fit grid-cols-[auto_auto] gap-x-4 text-sm tabular-nums">
           <span>{side1Name}</span>

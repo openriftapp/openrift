@@ -22,6 +22,8 @@ function makeRow(
     status: "active",
     legendCardId: null,
     legendName: null,
+    legendCharacter: null,
+    legendEpithet: null,
     place,
     points: 0,
     wins: 0,
@@ -68,6 +70,14 @@ function bodyRows(): HTMLElement[] {
   return within(screen.getByRole("table")).getAllByRole("row").slice(1);
 }
 
+function table() {
+  return within(screen.getByRole("table"));
+}
+
+function phoneList(container: HTMLElement) {
+  return within(container.querySelector(String.raw`ul.sm\:hidden`) as HTMLElement);
+}
+
 describe("GroupStandingsCard", () => {
   it("names the group and counts its players", () => {
     render(<GroupStandingsCard group={makeGroup()} />);
@@ -99,6 +109,8 @@ describe("GroupStandingsCard", () => {
             makeRow("p1", 1, {
               displayName: "Ashe",
               legendName: "Ashe, Frost Archer",
+              legendCharacter: "Ashe",
+              legendEpithet: "Frost Archer",
               points: 6,
               wins: 2,
               losses: 1,
@@ -124,7 +136,7 @@ describe("GroupStandingsCard", () => {
       />,
     );
     expect(screen.getByText("Below the row above by")).toBeInTheDocument();
-    expect(screen.getByText("H2H")).toBeInTheDocument();
+    expect(table().getByText("H2H")).toBeInTheDocument();
   });
 
   it("leaves the tier column blank when the points differ", () => {
@@ -141,7 +153,42 @@ describe("GroupStandingsCard", () => {
         })}
       />,
     );
-    expect(screen.getByText("Needs meta share")).toBeInTheDocument();
+    expect(table().getByText("Needs meta share")).toBeInTheDocument();
+  });
+
+  it("marks a dropped player", () => {
+    render(
+      <GroupStandingsCard
+        group={makeGroup({ standings: [makeRow("p1", 1, { status: "dropped" })] })}
+      />,
+    );
+    expect(within(bodyRows()[0]!).getByText("(dropped)")).toBeInTheDocument();
+  });
+
+  it("keeps rank, record, game win rate and points on the phone list", () => {
+    const { container } = render(
+      <GroupStandingsCard
+        group={makeGroup({
+          standings: [
+            makeRow("p1", 1, {
+              displayName: "Ashe",
+              points: 6,
+              wins: 2,
+              losses: 1,
+              gameWinRate: 0.75,
+              decidedBy: "h2h",
+            }),
+          ],
+        })}
+      />,
+    );
+    const phone = phoneList(container);
+    expect(phone.getByText("Ashe")).toBeInTheDocument();
+    expect(phone.getByText("1")).toBeInTheDocument();
+    expect(phone.getByText("2-1-0")).toBeInTheDocument();
+    expect(phone.getByText("GW% 75%")).toBeInTheDocument();
+    expect(phone.getByText("6")).toBeInTheDocument();
+    expect(phone.getByText("H2H")).toBeInTheDocument();
   });
 });
 
@@ -236,8 +283,18 @@ describe("CutSeedsCard", () => {
 
   it("adds the Legend columns only with the Legend tiebreak on", () => {
     renderCard({}, true);
-    expect(screen.getByText("Legend count")).toBeInTheDocument();
-    expect(screen.getByText("Meta share")).toBeInTheDocument();
+    expect(table().getByText("Legend count")).toBeInTheDocument();
+    expect(table().getByText("Meta share")).toBeInTheDocument();
+  });
+
+  it("draws the cut line on the phone list too", () => {
+    const { container } = renderCard();
+    const items = phoneList(container).getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    expect(within(items[0]!).getByText("Caitlyn")).toBeInTheDocument();
+    expect(within(items[0]!).getByText("#3")).toBeInTheDocument();
+    expect(items[1]).toHaveAttribute("data-cut-line");
+    expect(within(items[1]!).getByText("GW%")).toBeInTheDocument();
   });
 
   it("explains the last seed against the first player out", () => {

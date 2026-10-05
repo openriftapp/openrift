@@ -1,4 +1,4 @@
-import { legendDisplayName } from "@openrift/shared/utils";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { Link } from "@tanstack/react-router";
 import { PackageIcon } from "lucide-react";
 import { useState } from "react";
@@ -6,8 +6,9 @@ import { useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { PageDescription, PageTopBar, PageTopBarSticky } from "@/components/layout/page-top-bar";
 import { TopBarBreadcrumbTrail } from "@/components/layout/top-bar-breadcrumb";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { IconChip } from "@/components/ui/icon-chip";
 import { SelectionMark } from "@/components/ui/selection-mark";
 import { TextLink } from "@/components/ui/text-link";
@@ -27,7 +28,7 @@ import type { TradeMarketSource } from "@/features/groups/lib/trade-market";
 import { sortByValue, wantedSources } from "@/features/groups/lib/trade-market";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -201,10 +202,16 @@ export function BuyPage() {
               title={m.trades_buy_empty_title()}
               description={m.trades_buy_empty_description()}
             >
-              <Button render={<Link to="/collections" />}>{m.trades_buy_empty_cta()}</Button>
+              <Link to="/collections" className={buttonVariants()}>
+                {m.trades_buy_empty_cta()}
+              </Link>
             </EmptyState>
           ) : shown.length === 0 ? (
-            <p className="text-muted-foreground py-6">{m.trades_buy_filter_empty()}</p>
+            <Empty>
+              <EmptyHeader>
+                <EmptyDescription>{m.trades_buy_filter_empty()}</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
               {shown.map((item) => {

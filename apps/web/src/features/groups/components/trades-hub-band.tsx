@@ -3,6 +3,7 @@ import type { FriendGroupDetailResponse } from "@openrift/shared/types/api/frien
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, ZapIcon } from "lucide-react";
 
+import { Eyebrow } from "@/components/heading";
 import { ActionBand } from "@/components/ui/action-band";
 import { buttonVariants } from "@/components/ui/button";
 import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
@@ -31,14 +32,15 @@ function ShelfRow({
   }));
   return (
     <li className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-      <span
+      <Eyebrow
+        as="span"
         className={cn(
-          "text-xs font-medium tracking-wide uppercase sm:w-32 sm:shrink-0",
+          "mb-0 text-xs sm:w-32 sm:shrink-0",
           row.tone === "warning" ? "text-warning" : "text-success",
         )}
       >
         {row.label}
-      </span>
+      </Eyebrow>
       <div className="flex min-w-0 items-center gap-3">
         <CardArtThumbStack items={items} max={MAX_THUMBS} thumbClassName="w-8" />
         <span className="text-muted-foreground min-w-0 truncate text-sm">{row.detail}</span>

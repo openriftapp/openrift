@@ -1,6 +1,7 @@
 import type { CustomTagResponse } from "@openrift/shared/types/api/admin";
 import { useState } from "react";
 
+import { Eyebrow } from "@/components/heading";
 import {
   SectionHeader,
   SectionHeaderDescription,
@@ -143,7 +144,9 @@ function CardTagToggleList({
       <p className="text-sm font-medium">{cardName}</p>
       {[...tagsByCategory.entries()].map(([categoryLabel, group]) => (
         <div key={categoryLabel} className="space-y-1">
-          <p className="text-muted-foreground font-mono text-xs uppercase">{categoryLabel}</p>
+          <Eyebrow as="p" className="mb-0 font-mono text-xs">
+            {categoryLabel}
+          </Eyebrow>
           <div className="flex flex-wrap gap-2">
             {group.map((tag) => {
               const active = pending.has(tag.id);

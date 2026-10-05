@@ -23,6 +23,8 @@ function pod(
     members: seats.map(([playerId, gamePoints, placement]) => ({
       playerId,
       displayName: playerId,
+      image: null,
+      gravatarHash: null,
       teamId: null,
       gamePoints,
       placement,
@@ -65,6 +67,8 @@ const stage: GroupStageView = {
           status: "active",
           legendCardId: "c1",
           legendName: "Ashe, Frost Archer",
+          legendCharacter: "Ashe",
+          legendEpithet: "Frost Archer",
           place: 1,
           points: 9,
           wins: 3,
@@ -167,6 +171,24 @@ describe("CutBracketCompact", () => {
     );
     expect(screen.queryByText("#1")).not.toBeInTheDocument();
     expect(screen.getByText("#3")).toBeInTheDocument();
+  });
+
+  it("marks the walkover winner instead of a score", () => {
+    render(
+      <CutBracketCompact
+        cutSize={4}
+        groupStage={stage}
+        rounds={[
+          round(5, [
+            pod("p3", 1, [
+              ["Ashe", null, 1],
+              ["Jinx", null, 2],
+            ]),
+          ]),
+        ]}
+      />,
+    );
+    expect(screen.getByText("W")).toBeInTheDocument();
   });
 
   it("renders nothing before the cut is generated", () => {

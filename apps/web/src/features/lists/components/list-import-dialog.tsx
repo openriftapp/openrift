@@ -1,12 +1,10 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { FileUpIcon, Loader2Icon, UploadIcon } from "lucide-react";
 import { useEffect } from "react";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
-import { Code } from "@/components/ui/code";
 import {
   Dialog,
   DialogContent,
@@ -15,17 +13,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { ImportEntryRow } from "@/features/collections/components/import-entry-row";
-import type { ImportInputStepProps } from "@/features/collections/components/import-input-step-props";
 import {
   ImportExactMatchesDisclosure,
   ImportParseErrorDetails,
   ImportPreviewStack,
   ImportRowsSection,
   ImportStatusBadges,
+  ImportTextInput,
 } from "@/features/collections/components/import-preview-chrome";
+import type { ImportInputStepProps } from "@/features/collections/lib/import-input-step-props";
 import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
 import { partitionMatchedEntries } from "@/features/collections/lib/import-summary";
 import type { ImportableListKind } from "@/features/lists/hooks/use-list-import-flow";
@@ -55,10 +52,7 @@ export function ListImportDialog({ listId, listKind, open, onOpenChange }: ListI
         <DialogHeader>
           <DialogTitle>{m.lists_import_title()}</DialogTitle>
           <DialogDescription>
-            <ParaglideMessage
-              message={m.lists_import_paste}
-              markup={{ code: ({ children }) => <Code>{children}</Code> }}
-            />{" "}
+            <ParaglideMessage message={m.lists_import_paste} markup={PROSE_MARKUP} />{" "}
             {listKind === "printing" ? m.lists_import_hint_printing() : m.lists_import_hint_card()}
           </DialogDescription>
         </DialogHeader>
@@ -110,44 +104,17 @@ function InputStep({
 }: ImportInputStepProps) {
   return (
     <DialogForm onSubmit={() => onParse(rawText)}>
-      <div className="flex min-w-0 flex-col gap-3">
-        <Textarea
-          value={rawText}
-          onChange={(event) => onTextChange(event.target.value)}
-          placeholder={"1 Teemo, Scout\n3 Jinx, Rebel"}
-          // text-base below md: iOS Safari zooms the viewport when a focused
-          // field is under 16px, and there is no maximum-scale to stop it.
-          className="min-h-[200px] font-mono text-base md:text-xs"
-        />
-
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <Button variant="outline" onClick={() => fileRef.current?.click()}>
-            <FileUpIcon className="size-4" />
-            {m.lists_import_upload_file()}
-          </Button>
-          <Input
-            ref={fileRef}
-            type="file"
-            accept=".txt,.csv,text/plain,text/csv"
-            onChange={onFileUpload}
-            className="hidden"
-          />
-          <Button type="submit" disabled={rawText.trim().length === 0}>
-            <UploadIcon className="size-4" />
-            {m.lists_import_parse()}
-          </Button>
-        </div>
-
-        {parseErrors.length > 0 && (
-          <Alert variant="destructive">
-            <AlertDescription>
-              {parseErrors.map((error) => (
-                <p key={error}>{error}</p>
-              ))}
-            </AlertDescription>
-          </Alert>
-        )}
-      </div>
+      <ImportTextInput
+        value={rawText}
+        onValueChange={onTextChange}
+        placeholder={"1 Teemo, Scout\n3 Jinx, Rebel"}
+        fileRef={fileRef}
+        onFileUpload={onFileUpload}
+        accept=".txt,.csv,text/plain,text/csv"
+        uploadLabel={m.lists_import_upload_file()}
+        actionLabel={m.lists_import_parse()}
+        errors={parseErrors}
+      />
     </DialogForm>
   );
 }
@@ -247,15 +214,8 @@ function PreviewStep({
             skippedCount={skippedCount}
           />
 
-          <Button type="submit" disabled={importableCount === 0 || isImporting}>
-            {isImporting ? (
-              <>
-                <Loader2Icon className="size-4 animate-spin" />
-                {m.lists_import_importing()}
-              </>
-            ) : (
-              m.lists_import_add({ count: totalCards })
-            )}
+          <Button type="submit" disabled={importableCount === 0} pending={isImporting}>
+            {isImporting ? m.lists_import_importing() : m.lists_import_add({ count: totalCards })}
           </Button>
         </Callout>
       </ImportPreviewStack>

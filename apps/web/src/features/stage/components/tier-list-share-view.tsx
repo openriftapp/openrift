@@ -7,10 +7,10 @@ import {
   PageDescription,
   PageTopBar,
   PageTopBarActions,
-  PageTopBarButton,
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
+import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -51,14 +51,14 @@ export function TierListShareView({ data, token }: TierListSharePageProps) {
           </div>
           {rankedCount > 0 && (
             <PageTopBarActions>
-              <PageTopBarButton
-                render={
-                  <Link to="/stage" search={{ tierShare: token, i: 0 }}>
-                    <MonitorPlayIcon />
-                    {m.tier_lists_present()}
-                  </Link>
-                }
-              />
+              <Link
+                to="/stage"
+                search={{ tierShare: token, i: 0 }}
+                className={buttonVariants({ variant: "ghost" })}
+              >
+                <MonitorPlayIcon />
+                {m.tier_lists_present()}
+              </Link>
             </PageTopBarActions>
           )}
         </PageTopBar>

@@ -4,15 +4,16 @@ import type {
   ProductsListResponse,
 } from "@openrift/shared/contracts/products";
 import { productsContract } from "@openrift/shared/contracts/products";
-import { isReleasedIn, todayUtc } from "@openrift/shared/set-release";
+import { todayUtc } from "@openrift/shared/format-date";
+import { isReleasedIn } from "@openrift/shared/set-release";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { productsKeys } from "@/features/cards/lib/cards-query-keys";
+import { serverCacheKeys } from "@/lib/query-keys";
 import { serverCache } from "@/lib/server-cache";
-import { notFoundError } from "@/lib/server-fns/api-error";
+import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -20,7 +21,7 @@ const fetchProducts = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(({ context }): Promise<ProductsListResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "products"],
+      queryKey: serverCacheKeys.products,
       queryFn: () => apiOrpcClient(productsContract, context.cookie).list(),
     }),
   );
@@ -34,19 +35,9 @@ export const productsListQueryOptions = queryOptions({
 const fetchProductDetail = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: slug }): Promise<ProductDetailResponse> => {
-    // 404 maps to the NOT_FOUND sentinel the route boundary expects.
-    const { error, data } = await safe(
-      apiOrpcClient(productsContract, context.cookie).get({ slug }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ context, data: slug }): Promise<ProductDetailResponse> =>
+    orNotFound(apiOrpcClient(productsContract, context.cookie).get({ slug })),
+  );
 
 export interface EnrichedProductDetail {
   product: ProductDetailResponse["product"];

@@ -110,7 +110,7 @@ function UnitProgressBadge({
     return <Badge variant="success">{m.tournaments_group_unit_done()}</Badge>;
   }
   if (unit.roundsStarted === 0) {
-    return <Badge variant="muted">{m.tournaments_group_unit_not_started()}</Badge>;
+    return <Badge variant="neutral">{m.tournaments_group_unit_not_started()}</Badge>;
   }
   return (
     <Badge variant={reported === total ? "success" : "warning"}>
@@ -202,7 +202,6 @@ function GroupUnitSection({
                 matchFormat={matchFormat}
                 winPoints={winPoints}
                 drawPoints={drawPoints}
-                regionLabel={rawSlug}
                 showPenalty={false}
                 warnings={[]}
                 warningsExpanded={false}
@@ -292,7 +291,6 @@ function EarlierRound({
               matchFormat={matchFormat}
               winPoints={winPoints}
               drawPoints={drawPoints}
-              regionLabel={rawSlug}
               showPenalty={false}
               warnings={[]}
               warningsExpanded={false}
@@ -319,15 +317,12 @@ function MemberLegend({ legend }: { legend: PlayerLegend | undefined }) {
   return (
     <TournamentLegend
       legendCardId={legend.legendCardId}
-      legendName={legend.legendName}
+      fallback={legend}
       championOnly
       className="text-muted-foreground shrink-0 text-xs"
     />
   );
 }
-
-// Named module-level default: an inline arrow makes the React Compiler bail.
-const rawSlug = (slug: string): string => slug;
 
 function podNames(pods: readonly PodResponse[]): Map<string, string> {
   return new Map(

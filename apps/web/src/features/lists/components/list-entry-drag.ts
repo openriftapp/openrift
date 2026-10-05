@@ -2,7 +2,7 @@ import type { ListEntryDetailResponse } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
-import type { ListEntryDragData } from "@/features/collections/components/dnd-types";
+import type { ListEntryDragData } from "@/features/collections/lib/dnd-types";
 import type { SelectionParts } from "@/features/lists/lib/list-entry-selection";
 import {
   listSelectionSubjects,

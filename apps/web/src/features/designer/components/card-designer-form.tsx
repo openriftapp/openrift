@@ -1,6 +1,5 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { Domain, Rarity } from "@openrift/shared/types/enums";
-import { WellKnown } from "@openrift/shared/well-known";
 import { EraserIcon } from "lucide-react";
 
 import { SettingsRow } from "@/components/layout/settings-row";
@@ -10,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { CardTextInput } from "@/features/contribute/components/card-text-input";
 import {
   ChipInput,
@@ -20,8 +20,6 @@ import {
 import { useCardDesignerStore } from "@/features/designer/stores/card-designer-store";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { computeDomainDisabled } from "@/lib/domain";
-import { getFilterIconPath } from "@/lib/icons";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 /**
@@ -38,9 +36,6 @@ export function CardDesignerForm() {
   const { orders, labels } = useEnumOrders();
 
   const domainDisabled = computeDomainDisabled(card.domains, orders.domains);
-  const domainIcons = Object.fromEntries(
-    orders.domains.map((slug) => [slug, getFilterIconPath("domains", slug)]),
-  );
 
   return (
     <SettingsSection
@@ -85,17 +80,9 @@ export function CardDesignerForm() {
             {orders.domains.map((slug) => {
               const selected = card.domains.includes(slug as Domain);
               const disabled = !selected && domainDisabled.has(slug);
-              const iconSrc = domainIcons[slug];
-              const isColorless = slug === WellKnown.domain.COLORLESS;
               return (
                 <ToggleGroupItem key={slug} value={slug} disabled={disabled}>
-                  {iconSrc && (
-                    <img
-                      src={iconSrc}
-                      alt=""
-                      className={cn("size-4 shrink-0", isColorless && "brightness-0 dark:invert")}
-                    />
-                  )}
+                  <DomainIcon domain={slug} decorative className="size-4 shrink-0" />
                   {enumLabel(labels.domains, slug)}
                 </ToggleGroupItem>
               );

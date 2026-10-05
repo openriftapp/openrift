@@ -1,8 +1,9 @@
 import { cardSubmissionsContract } from "@openrift/shared/contracts/card-submissions";
 import type { CardSubmissionInput } from "@openrift/shared/contracts/card-submissions";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
+import { cardSubmissionsKeys } from "@/features/contribute/lib/contribute-query-keys";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -15,11 +16,10 @@ const submitCardFn = createServerFn({ method: "POST" })
 
 /** On the daily-cap or validation paths, the thrown error's message is contributor-facing and can be shown directly. */
 export function useSubmitCard() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: async (input: CardSubmissionInput) => {
       await submitCardFn({ data: input });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["card-submissions"] }),
+    invalidates: [cardSubmissionsKeys.root],
   });
 }

@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import { filterCards } from "@openrift/shared/filters";
 import { getAvailableFilters } from "@openrift/shared/filters-available";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -11,6 +12,7 @@ import { PlusIcon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { MultiSelectCombobox } from "@/components/multi-select-combobox";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,7 +33,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MultiSelectCombobox } from "@/features/cards/components/multi-select-combobox";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { cycleIncludeExclude } from "@/features/cards/lib/filter-cycle";
@@ -166,10 +167,10 @@ export function RuleFilterEditor({
 
   const languageOptions: Option[] = [...new Set(allPrintings.map((printing) => printing.language))]
     .sort((first, second) => first.localeCompare(second))
-    .map((language) => ({ value: language, label: languageLabels[language] ?? language }));
+    .map((language) => ({ value: language, label: enumLabel(languageLabels, language) }));
 
   const namedOptions = (slugs: readonly string[], lookup: Record<string, string>): Option[] =>
-    slugs.map((slug) => ({ value: slug, label: lookup[slug] ?? slug }));
+    slugs.map((slug) => ({ value: slug, label: enumLabel(lookup, slug) }));
 
   const setNames = new Map(sets.map((set) => [set.slug, set.name]));
 

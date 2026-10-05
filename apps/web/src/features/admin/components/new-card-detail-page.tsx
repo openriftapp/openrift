@@ -1,10 +1,11 @@
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
+import { pluralize } from "@openrift/shared/strings";
 import type {
   CandidateCardResponse,
   CandidatePrintingResponse,
   UnmatchedCardDetailResponse,
 } from "@openrift/shared/types/api/admin";
-import { useNavigate } from "@tanstack/react-router";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRightIcon,
   BanIcon,
@@ -18,12 +19,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Heading } from "@/components/heading";
-import {
-  SectionHeader,
-  SectionHeaderDescription,
-  SectionHeaderGroup,
-  SectionHeaderTitle,
-} from "@/components/section-header";
+import { PageDescription } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import type { FieldDef, NewCardFieldKey } from "@/features/admin/components/candidate-field-defs";
 import { CandidateSpreadsheet } from "@/features/admin/components/candidate-spreadsheet";
 import {
@@ -116,6 +113,7 @@ function NewCardColumnActions({
       )}
       {isAdmin && (
         <DropdownMenuItem
+          variant="destructive"
           onClick={() => {
             if (isUserSubmission) {
               onResolveSubmission(cardRow.id, "reject");
@@ -132,7 +130,14 @@ function NewCardColumnActions({
   );
 }
 
-export function NewCardDetailPage({ identifier }: { identifier: string }) {
+const routeApi = getRouteApi("/_app/_authenticated/admin/cards_/new/$name");
+
+export function NewCardDetailPage() {
+  const { name } = routeApi.useParams();
+  return <NewCardDetail key={name} identifier={decodeURIComponent(name)} />;
+}
+
+function NewCardDetail({ identifier }: { identifier: string }) {
   const navigate = useNavigate();
   const { data: access } = useAdminAccess();
   // card-review grant holders keep the per-field accept flow; linking,
@@ -193,7 +198,7 @@ export function NewCardDetailPage({ identifier }: { identifier: string }) {
   if (isLoading || !unmatchedData) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-8 w-64" />
+        <AdminPageTopBar title={identifier} />
         <Skeleton className="h-64" />
       </div>
     );
@@ -254,15 +259,10 @@ export function NewCardDetailPage({ identifier }: { identifier: string }) {
 
   return (
     <div className="space-y-6">
-      <SectionHeader>
-        <SectionHeaderGroup>
-          <SectionHeaderTitle>{unmatchedData.displayName}</SectionHeaderTitle>
-          <SectionHeaderDescription>
-            Candidate card ({sources.length} source
-            {sources.length === 1 ? "" : "s"})
-          </SectionHeaderDescription>
-        </SectionHeaderGroup>
-      </SectionHeader>
+      <AdminPageTopBar title={unmatchedData.displayName} />
+      <PageDescription>
+        Candidate card ({sources.length} {pluralize(sources.length, "source")})
+      </PageDescription>
 
       <section className="space-y-2">
         <Heading level={3}>Card Fields</Heading>
@@ -349,7 +349,8 @@ export function NewCardDetailPage({ identifier }: { identifier: string }) {
             </div>
             <Button
               variant="outline"
-              disabled={!linkCardId.trim() || linkCard.isPending}
+              disabled={!linkCardId.trim()}
+              pending={linkCard.isPending}
               onClick={handleLink}
             >
               <LinkIcon className="size-4" />
@@ -369,7 +370,8 @@ export function NewCardDetailPage({ identifier }: { identifier: string }) {
             />
           </div>
           <Button
-            disabled={!hasRequiredFields || !newModeCardId.trim() || acceptNewCard.isPending}
+            disabled={!hasRequiredFields || !newModeCardId.trim()}
+            pending={acceptNewCard.isPending}
             onClick={handleAcceptAsNew}
           >
             <PlusIcon className="size-4" />
@@ -390,8 +392,8 @@ export function NewCardDetailPage({ identifier }: { identifier: string }) {
             <div key={group.groupKey} className="rounded-md border border-dashed">
               <div className="flex items-center justify-between px-3 py-2">
                 <span className="text-sm font-medium">
-                  {guessedId} ({group.candidates.length} source
-                  {group.candidates.length === 1 ? "" : "s"})
+                  {guessedId} ({group.candidates.length}{" "}
+                  {pluralize(group.candidates.length, "source")})
                 </span>
                 {groups.length > 1 && (
                   <DropdownMenu>

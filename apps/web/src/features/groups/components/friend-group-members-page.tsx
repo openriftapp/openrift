@@ -1,4 +1,6 @@
 import { formatMonth } from "@openrift/shared/format-date";
+import { canManageMember, isGroupAdminRole } from "@openrift/shared/friend-group-roles";
+import { matchesTextQuery } from "@openrift/shared/search-fold";
 import type {
   FriendGroupCollectionShareResponse,
   FriendGroupDetailResponse,
@@ -19,9 +21,10 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { PageTopBarButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
+import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
+import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { CountPill } from "@/components/ui/count-pill";
 import {
   DropdownMenu,
@@ -30,6 +33,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Pressable } from "@/components/ui/pressable";
 import { RowList } from "@/components/ui/row-list";
 import {
@@ -41,21 +45,20 @@ import {
 } from "@/components/ui/select";
 import { textLinkVariants } from "@/components/ui/text-link";
 import { UserAvatar } from "@/components/user-avatar";
-import { SearchInput } from "@/features/cards/components/search-input";
 import {
   useKickFriendGroupMember,
   useUpdateFriendGroupRole,
 } from "@/features/groups/hooks/use-friend-group-mutations";
 import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
+import { roleLabel } from "@/features/groups/lib/group-roles";
+import { LIST_INTENT_ICON } from "@/features/groups/lib/list-intent-meta";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { ContactMethodChips } from "./contact-method-chips";
-import { isAdmin, roleLabel } from "./friend-group-shell";
-import { LIST_INTENT_ICON } from "./list-intent-meta";
 import { PendingRequestsBand } from "./pending-requests-band";
 import { ShareListsWithGroupDialog } from "./share-lists-with-group-dialog";
 
@@ -109,11 +112,7 @@ export function filterMembersByName(
   members: FriendGroupMemberResponse[],
   query: string,
 ): FriendGroupMemberResponse[] {
-  const needle = query.trim().toLowerCase();
-  if (needle === "") {
-    return members;
-  }
-  return members.filter((member) => (member.userName ?? "").toLowerCase().includes(needle));
+  return members.filter((member) => matchesTextQuery(query, [member.userName]));
 }
 
 // Nameless members sort last; the rest compare by the viewer's locale.
@@ -163,7 +162,7 @@ export function MembersPageContent({
 
   return (
     <div className="flex flex-col gap-4">
-      {isAdmin(viewerRole) && data.pendingRequests.length > 0 ? (
+      {isGroupAdminRole(viewerRole) && data.pendingRequests.length > 0 ? (
         <PendingRequestsBand slug={slug} requests={data.pendingRequests} />
       ) : null}
 
@@ -172,7 +171,7 @@ export function MembersPageContent({
           value={query}
           onValueChange={setQuery}
           placeholder={m.groups_members_search_placeholder()}
-          ariaLabel={m.groups_members_search_aria()}
+          aria-label={m.groups_members_search_aria()}
           className="w-full max-w-xs"
         />
         <Select
@@ -194,7 +193,11 @@ export function MembersPageContent({
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-muted-foreground">{m.groups_members_no_match()}</p>
+        <Empty>
+          <EmptyHeader>
+            <EmptyDescription>{m.groups_members_no_match()}</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <RowList>
           {rows.map((member) => (
@@ -221,10 +224,14 @@ export function MembersTradedAction({ slug }: { slug: string }) {
     return null;
   }
   return (
-    <PageTopBarButton render={<Link to="/groups/$slug/trades" params={{ slug }} />}>
+    <Link
+      to="/groups/$slug/trades"
+      params={{ slug }}
+      className={buttonVariants({ variant: "ghost" })}
+    >
       <ZapIcon className="size-4" />
       {m.groups_members_cards_traded({ count: data.cardsTradedCount })}
-    </PageTopBarButton>
+    </Link>
   );
 }
 
@@ -232,16 +239,16 @@ export function MembersInviteAction({ slug }: { slug: string }) {
   const { data } = useFriendGroupDetail(slug);
   const navigate = useNavigate();
   const { copy } = useCopyToClipboard();
-  if (!isAdmin(data.viewerRole ?? "member")) {
+  if (!isGroupAdminRole(data.viewerRole)) {
     return null;
   }
   const code = data.group.code;
   if (code === null) {
     return (
-      <PageTopBarPrimaryButton render={<Link to="/groups/$slug/manage" params={{ slug }} />}>
+      <Link to="/groups/$slug/manage" params={{ slug }} className={buttonVariants()}>
         <UserPlusIcon className="size-4" />
         {m.groups_members_invite()}
-      </PageTopBarPrimaryButton>
+      </Link>
     );
   }
   const handleInvite = async () => {
@@ -342,11 +349,7 @@ function MemberRow({
     },
   ].filter((pill) => pill.count > 0);
 
-  const canKick =
-    isAdmin(viewerRole) &&
-    !isSelf &&
-    member.role !== "owner" &&
-    (member.role !== "admin" || viewerRole === "owner");
+  const canKick = !isSelf && canManageMember(viewerRole, member.role);
   const canPromote = viewerRole === "owner" && !isSelf && member.role !== "admin";
   const canDemote = viewerRole === "owner" && !isSelf && member.role === "admin";
 
@@ -373,7 +376,7 @@ function MemberRow({
             {member.role === "member" ? null : (
               <Badge variant={ROLE_BADGE_VARIANT[member.role]}>{roleLabel(member.role)}</Badge>
             )}
-            {isSelf ? <Badge variant="muted">{m.groups_members_badge_you()}</Badge> : null}
+            {isSelf ? <Badge variant="neutral">{m.groups_members_badge_you()}</Badge> : null}
             {isNewMember(member.joinedAt) ? (
               <Badge variant="success">{m.groups_members_badge_new()}</Badge>
             ) : null}
@@ -443,8 +446,8 @@ function MemberRow({
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
+                  variant="destructive"
                   onClick={() => kickMember.mutate({ slug, userId: member.userId })}
-                  className="text-destructive"
                 >
                   <Trash2Icon className="size-4" />
                   {m.groups_members_remove()}

@@ -1,20 +1,18 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { filterCards } from "@openrift/shared/filters";
 import { sortCards } from "@openrift/shared/filters-sort";
+import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select";
 import { setIndexById, UNKNOWN_SET_INDEX } from "@openrift/shared/set-order";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 import type { GroupByField, SortOption } from "@openrift/shared/types/search";
-import {
-  getOrientation,
-  legendDisplayName,
-  sortByLanguageAndCanonicalRank,
-} from "@openrift/shared/utils";
 import { createServerFn } from "@tanstack/react-start";
 import { getCookie } from "@tanstack/react-start/server";
 
 import { dedupeToCardsViewTiles } from "@/features/cards/lib/card-tiles";
 import { searchToFilters } from "@/features/cards/lib/cards-facets";
-import { enrichCatalog, readCatalogFromServerCache } from "@/features/cards/lib/catalog-query";
+import { enrichCatalog, readCatalogFromServerCache } from "@/features/cards/lib/catalog-queries";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import { needsCssRotation } from "@/lib/images";
 import type { SurfaceViewPrefs } from "@/lib/view-prefs";

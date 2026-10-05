@@ -1,10 +1,12 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import { matchesTextQuery } from "@openrift/shared/search-fold";
 import type { DeckCheckEntrySummaryResponse } from "@openrift/shared/types/api/deck-check";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   BanIcon,
   CheckIcon,
   EllipsisVerticalIcon,
+  LayersIcon,
   PlusIcon,
   RotateCcwIcon,
   Trash2Icon,
@@ -13,13 +15,17 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { EmptyState } from "@/components/empty-state";
 import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
+import { PROSE_MARKUP } from "@/components/message-markup";
+import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cardLinkVariants } from "@/components/ui/card-link";
 import { CardRow } from "@/components/ui/card-list";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -34,6 +40,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -44,7 +51,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { SearchInput } from "@/features/cards/components/search-input";
 import { DeckCheckListSkeleton } from "@/features/tournaments/components/deck-check-skeletons";
 import {
   useCreateTournamentDeckCheckEntry,
@@ -93,9 +99,8 @@ export function TournamentDeckCheckEntries({
   }
 
   const { event, entries } = detail;
-  const needle = search.trim().toLowerCase();
   const visible = entries
-    .filter((entry) => !needle || entry.playerName.toLowerCase().includes(needle))
+    .filter((entry) => matchesTextQuery(search, [entry.playerName]))
     .toSorted(
       (a, b) =>
         Number(b.unlockRequestedAt !== null) - Number(a.unlockRequestedAt !== null) ||
@@ -110,7 +115,7 @@ export function TournamentDeckCheckEntries({
           value={search}
           onValueChange={setSearch}
           placeholder={m.tournaments_deck_check_search_players()}
-          ariaLabel={m.tournaments_deck_check_search_players()}
+          aria-label={m.tournaments_deck_check_search_players()}
           className="w-full max-w-xs"
         />
         <p className="text-muted-foreground text-sm">
@@ -122,12 +127,16 @@ export function TournamentDeckCheckEntries({
         </p>
       </div>
 
-      {visible.length === 0 ? (
-        <p className="text-muted-foreground">
-          {entries.length === 0
-            ? m.tournaments_deck_check_no_decks_yet()
-            : m.tournaments_deck_check_no_player_matches()}
-        </p>
+      {entries.length === 0 ? (
+        <EmptyState
+          icon={LayersIcon}
+          title={m.tournaments_deck_check_no_decks_title()}
+          description={m.tournaments_deck_check_no_decks_description()}
+        />
+      ) : visible.length === 0 ? (
+        <Empty>
+          <EmptyDescription>{m.tournaments_deck_check_no_player_matches()}</EmptyDescription>
+        </Empty>
       ) : (
         <ul className="flex flex-col gap-2">
           {visible.map((entry) => (
@@ -179,7 +188,7 @@ function CheckedProgressChip({ verified, total }: { verified: number; total: num
   const done = verified === total;
   return (
     <Badge
-      variant={done ? "success" : verified > 0 ? "warning" : "muted"}
+      variant={done ? "success" : verified > 0 ? "warning" : "neutral"}
       className="tabular-nums"
       title={m.tournaments_deck_check_progress_title({ verified, total })}
     >
@@ -495,7 +504,7 @@ function AddDeckDialog({
               <p className="text-muted-foreground text-sm">
                 <ParaglideMessage
                   message={m.tournaments_deck_check_manual_format}
-                  markup={{ code: ({ children }) => <code>{children}</code> }}
+                  markup={PROSE_MARKUP}
                 />
               </p>
               {parsed.cards.length > 0 ? (
@@ -517,9 +526,7 @@ function AddDeckDialog({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              {m.common_cancel()}
-            </Button>
+            <DialogCancel />
             <Button type="submit" disabled={createEntry.isPending || !participantId}>
               {createEntry.isPending
                 ? m.tournaments_deck_check_adding()

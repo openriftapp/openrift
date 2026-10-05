@@ -1,0 +1,52 @@
+import { adminArtVariantsContract } from "@openrift/shared/contracts/admin/art-variants";
+import { createServerFn } from "@tanstack/react-start";
+
+import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { adminArtVariantsQueryOptions } from "@/features/admin/lib/art-variants-queries";
+import { createAdminEnumHooks } from "@/hooks/create-admin-enum-hooks";
+import { initKeys } from "@/lib/query-keys";
+import { withCookies } from "@/lib/server-fns/middleware";
+import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+
+const createArtVariantFn = createServerFn({ method: "POST" })
+  .validator((input: { slug: string; label: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminArtVariantsContract, context.cookie).create(data);
+  });
+
+const updateArtVariantFn = createServerFn({ method: "POST" })
+  .validator((input: { slug: string; label?: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminArtVariantsContract, context.cookie).update(data);
+  });
+
+const reorderArtVariantsFn = createServerFn({ method: "POST" })
+  .validator((input: { slugs: string[] }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminArtVariantsContract, context.cookie).reorder({ slugs: data.slugs });
+  });
+
+const deleteArtVariantFn = createServerFn({ method: "POST" })
+  .validator((input: { slug: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminArtVariantsContract, context.cookie).remove({ slug: data.slug });
+  });
+
+const artVariantHooks = createAdminEnumHooks({
+  listQueryOptions: adminArtVariantsQueryOptions,
+  invalidates: [adminKeys.artVariants, initKeys.all],
+  create: (vars: { slug: string; label: string }) => createArtVariantFn({ data: vars }),
+  update: (vars: { slug: string; label?: string }) => updateArtVariantFn({ data: vars }),
+  reorder: (slugs: string[]) => reorderArtVariantsFn({ data: { slugs } }),
+  remove: (slug: string) => deleteArtVariantFn({ data: { slug } }),
+});
+
+export const useArtVariants = artVariantHooks.useList;
+export const useCreateArtVariant = artVariantHooks.useCreate;
+export const useUpdateArtVariant = artVariantHooks.useUpdate;
+export const useReorderArtVariants = artVariantHooks.useReorder;
+export const useDeleteArtVariant = artVariantHooks.useDelete;

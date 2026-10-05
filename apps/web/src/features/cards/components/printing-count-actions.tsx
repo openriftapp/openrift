@@ -1,5 +1,5 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 
 import { CardCountStrip } from "@/features/cards/components/card-count-strip";
 import { OwnedCollectionsPopover } from "@/features/cards/components/card-detail/owned-collections-popover";

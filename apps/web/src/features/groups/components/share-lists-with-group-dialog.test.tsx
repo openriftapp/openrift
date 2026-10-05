@@ -113,7 +113,7 @@ describe("ShareListsWithGroupDialog", () => {
     await user.click(screen.getByRole("button", { name: "Skip for now" }));
 
     expect(shareMutateAsync).not.toHaveBeenCalled();
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onOpenChange).toHaveBeenCalledWith(false, expect.anything());
   });
 
   it("disables the share button when nothing is selected", async () => {

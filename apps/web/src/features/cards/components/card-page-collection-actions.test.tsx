@@ -20,7 +20,7 @@ vi.mock("@/features/collections/hooks/use-collections", () => ({
   useCollectionsList: () => collectionsMock(),
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useUserId: () => "user-1",
   useSession: () => ({ data: { user: { id: "user-1" } } }),
 }));

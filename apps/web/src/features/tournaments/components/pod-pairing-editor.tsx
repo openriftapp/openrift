@@ -79,7 +79,6 @@ export function PodPairingEditor({
   round,
   snapshot,
   mode = "pod",
-  regionLabel,
   podLabel,
   onClose,
 }: {
@@ -87,7 +86,6 @@ export function PodPairingEditor({
   round: PodRoundResponse;
   snapshot: PodSnapshotPlayer[];
   mode?: EditorMode;
-  regionLabel?: (slug: string) => string;
   /** Names a pod card by its editor index; cut brackets pass the slot label. */
   podLabel?: (index: number) => string;
   onClose: () => void;
@@ -262,10 +260,9 @@ export function PodPairingEditor({
               nameById={nameById}
               mode={mode}
               label={podLabel?.(index)}
-              regionLabel={regionLabel}
             >
               {pod.playerIds.map((playerId) => (
-                <PlayerChip
+                <DraggablePlayer
                   key={playerId}
                   playerId={playerId}
                   name={nameById.get(playerId) ?? m.tournaments_pairing_editor_unknown_player()}
@@ -279,7 +276,7 @@ export function PodPairingEditor({
               <NewPodDropZone mode={mode} />
               <ByeDropZone byeIds={state.byes} warnings={byeWarnings} nameById={nameById}>
                 {state.byes.map((playerId) => (
-                  <PlayerChip
+                  <DraggablePlayer
                     key={playerId}
                     playerId={playerId}
                     name={nameById.get(playerId) ?? m.tournaments_pairing_editor_unknown_player()}
@@ -364,7 +361,15 @@ function ChipBody({ name, score, dragging }: { name: string; score: number; drag
   );
 }
 
-function PlayerChip({ playerId, name, score }: { playerId: string; name: string; score: number }) {
+function DraggablePlayer({
+  playerId,
+  name,
+  score,
+}: {
+  playerId: string;
+  name: string;
+  score: number;
+}) {
   const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
     id: `player:${playerId}`,
     data: { type: "pod-player", playerId } satisfies PodPlayerDragData,
@@ -389,7 +394,6 @@ function PodDropZone({
   nameById,
   mode,
   label,
-  regionLabel,
   children,
 }: {
   index: number;
@@ -399,7 +403,6 @@ function PodDropZone({
   nameById: Map<string, string>;
   mode: EditorMode;
   label?: string;
-  regionLabel?: (slug: string) => string;
   children: React.ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({
@@ -427,7 +430,7 @@ function PodDropZone({
               : m.tournaments_group_players_count({ count })}
           </span>
         </CardTitle>
-        <WarningList warnings={warnings} nameById={nameById} regionLabel={regionLabel} />
+        <WarningList warnings={warnings} nameById={nameById} />
       </CardHeader>
       <CardContent className="flex min-h-12 flex-col gap-1.5">{children}</CardContent>
     </Card>

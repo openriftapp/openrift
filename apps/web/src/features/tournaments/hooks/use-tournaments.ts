@@ -1,6 +1,5 @@
 import { tournamentsContract } from "@openrift/shared/contracts/tournaments";
 import type { TournamentStaffCandidateListResponse } from "@openrift/shared/types/api/tournament";
-import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -13,26 +12,17 @@ import {
   tournamentSubmitLandingQueryOptions,
 } from "@/features/tournaments/lib/tournaments-queries";
 import { tournamentsKeys } from "@/features/tournaments/lib/tournaments-query-keys";
-import { useRequiredUserId } from "@/lib/auth-session";
-import { notFoundError } from "@/lib/server-fns/api-error";
+import { useRequiredUserId } from "@/hooks/use-session";
+import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 const fetchStaffCandidates = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: id }): Promise<TournamentStaffCandidateListResponse> => {
-    const { error, data } = await safe(
-      apiOrpcClient(tournamentsContract, context.cookie).listStaffCandidates({ id }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ context, data: id }): Promise<TournamentStaffCandidateListResponse> =>
+    orNotFound(apiOrpcClient(tournamentsContract, context.cookie).listStaffCandidates({ id })),
+  );
 
 function tournamentStaffCandidatesQueryOptions(userId: string, id: string) {
   return queryOptions({

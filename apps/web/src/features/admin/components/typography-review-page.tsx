@@ -1,4 +1,5 @@
 import type { TypographyTarget } from "@openrift/shared/contracts/admin/typography-review";
+import { pluralize } from "@openrift/shared/strings";
 import { CheckIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -92,7 +93,7 @@ export function TypographyReviewPage() {
     <div className="flex flex-col gap-8">
       {topBar}
       <PageDescription>
-        {String(data.diffs.length)} {data.diffs.length === 1 ? "mismatch" : "mismatches"} found
+        {String(data.diffs.length)} {pluralize(data.diffs.length, "mismatch", "mismatches")} found
       </PageDescription>
 
       <RowList variant="divided">

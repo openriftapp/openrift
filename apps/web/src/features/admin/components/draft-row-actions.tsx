@@ -1,5 +1,5 @@
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
-import { CheckIcon, LinkIcon, LoaderIcon } from "lucide-react";
+import { CheckIcon, LinkIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { AssignButton } from "@/features/admin/components/assign-button";
@@ -32,12 +32,12 @@ export function DraftRowActions({
         <Button
           variant="outline"
           size="icon-sm"
-          disabled={acceptFavorite.isPending}
+          pending={acceptFavorite.isPending}
           aria-label="Accept as a new card"
           title="Accept as a new card"
           onClick={() => acceptFavorite.mutate(row.normalizedName)}
         >
-          {acceptFavorite.isPending ? <LoaderIcon className="animate-spin" /> : <CheckIcon />}
+          <CheckIcon />
         </Button>
       )}
       {suggested && (

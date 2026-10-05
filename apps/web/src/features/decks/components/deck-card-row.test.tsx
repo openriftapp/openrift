@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { PowerDomainIcon, PowerPips } from "./deck-card-row";
+import { CardControls, PowerDomainIcon, PowerPips } from "./deck-card-row";
 
 const COLORS = { fury: "#cb212d", calm: "#16aa71", colorless: "#737373" };
 
@@ -79,5 +79,27 @@ describe("PowerPips", () => {
   it("renders nothing for a card with no power cost", () => {
     expect(renderPips(0, ["fury"]).children.length).toBe(0);
     expect(renderPips(null, ["fury"]).children.length).toBe(0);
+  });
+});
+
+describe("CardControls", () => {
+  it("names the quantity buttons after the card", () => {
+    render(
+      <CardControls
+        controlMode="quantity"
+        cardName="Iron Ballista"
+        quantity={2}
+        countWidthClass="w-4"
+        onIncrement={() => {}}
+        onDecrement={() => {}}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Remove one copy of Iron Ballista" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Add one copy of Iron Ballista" }),
+    ).toBeInTheDocument();
   });
 });

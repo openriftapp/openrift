@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { DraftTextInput } from "@/features/admin/components/admin-crud-shared";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type {
   AdminCellSlotProps,
@@ -31,6 +33,7 @@ import {
   useSiteSettings,
   useUpdateSiteSetting,
 } from "@/hooks/use-site-settings";
+import { errorText } from "@/lib/error-text";
 
 interface SettingDraft {
   key: string;
@@ -134,20 +137,6 @@ function ScopeCell({ row }: AdminCellSlotProps<SiteSettingResponse>) {
   return <Badge variant={row.scope === "web" ? "default" : "secondary"}>{row.scope}</Badge>;
 }
 
-function KeyAddInput({ draft, setDraft }: AdminDraftSlotProps<SettingDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.key}
-      onChange={(event) => setDraft((prev) => ({ ...prev, key: event.target.value.toLowerCase() }))}
-      placeholder="my-custom-key"
-      className="h-8 w-48 font-mono"
-    />
-  );
-}
-
 function ValueInput({ draft, setDraft }: AdminDraftSlotProps<SettingDraft>) {
   if (!draft || !setDraft) {
     return null;
@@ -168,20 +157,6 @@ function ValueInput({ draft, setDraft }: AdminDraftSlotProps<SettingDraft>) {
     <Input
       value={draft.value}
       onChange={(event) => setDraft((prev) => ({ ...prev, value: event.target.value }))}
-      className="h-8 font-mono"
-    />
-  );
-}
-
-function ValueAddInput({ draft, setDraft }: AdminDraftSlotProps<SettingDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.value}
-      onChange={(event) => setDraft((prev) => ({ ...prev, value: event.target.value }))}
-      placeholder="https://..."
       className="h-8 font-mono"
     />
   );
@@ -216,13 +191,22 @@ const columns: AdminColumnDef<SiteSettingResponse, SettingDraft>[] = [
     header: "Key",
     sortValue: (setting) => setting.key,
     cell: <KeyCell />,
-    addCell: <KeyAddInput />,
+    addCell: (
+      <DraftTextInput<SettingDraft>
+        field="key"
+        placeholder="my-custom-key"
+        letterCase="lower"
+        className="w-48 font-mono"
+      />
+    ),
   },
   {
     header: "Value",
     cell: <ValueCell />,
     editCell: <ValueInput />,
-    addCell: <ValueAddInput />,
+    addCell: (
+      <DraftTextInput<SettingDraft> field="value" placeholder="https://..." className="font-mono" />
+    ),
   },
   {
     header: "Scope",
@@ -251,7 +235,7 @@ export function SiteSettingsPage() {
         data={settings}
         getRowKey={(setting) => setting.key}
         emptyText="No site settings yet."
-        title="Site Settings"
+        topBar={(actions) => <AdminPageTopBar title="Site Settings" actions={actions} />}
         add={{
           emptyDraft: { key: "", value: "", scope: "web" },
           onSave: (draft) =>
@@ -390,7 +374,7 @@ function KnownSettingRow({
       setValue("");
       setPending(false);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "Save failed");
+      setSaveError(errorText(error, "Save failed"));
       setPending(false);
     }
   }
@@ -404,7 +388,7 @@ function KnownSettingRow({
       await onCreate("true");
       setPending(false);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "Save failed");
+      setSaveError(errorText(error, "Save failed"));
       setPending(false);
     }
   }

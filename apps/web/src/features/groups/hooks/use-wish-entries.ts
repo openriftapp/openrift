@@ -3,7 +3,7 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
 import { listDetailQueryOptions, listsQueryOptions } from "@/features/lists/lib/lists-queries";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 
 /** The viewer's wish-list membership, queried for highlighting + post-take cleanup. */
 export interface WishMembership {

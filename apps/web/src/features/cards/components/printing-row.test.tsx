@@ -38,7 +38,7 @@ describe("PrintingVariantLine", () => {
 
     render(<PrintingVariantLine printing={printings[0]!} siblings={printings} />);
 
-    expect(screen.queryByAltText("common")).not.toBeInTheDocument();
+    expect(screen.queryByAltText("Common")).not.toBeInTheDocument();
   });
 
   it("shows each row's rarity icon when the siblings mix rarities", () => {
@@ -46,13 +46,13 @@ describe("PrintingVariantLine", () => {
 
     render(<PrintingVariantLine printing={printings[1]!} siblings={printings} />);
 
-    expect(screen.getByAltText("rare")).toBeInTheDocument();
+    expect(screen.getByAltText("Rare")).toBeInTheDocument();
   });
 
   it("omits the rarity icon when there is no sibling set to compare against", () => {
     render(<PrintingVariantLine printing={stubPrinting({ rarity: "rare" })} />);
 
-    expect(screen.queryByAltText("rare")).not.toBeInTheDocument();
+    expect(screen.queryByAltText("Rare")).not.toBeInTheDocument();
   });
 
   it("renders the code as plain text, never a link", () => {

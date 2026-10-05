@@ -1,5 +1,5 @@
 import { RESERVED_FRIEND_GROUP_SLUGS } from "@openrift/shared/contracts/friend-groups";
-import { slugifyName } from "@openrift/shared/utils";
+import { slugifyName } from "@openrift/shared/strings";
 
 import { m } from "@/paraglide/messages.js";
 

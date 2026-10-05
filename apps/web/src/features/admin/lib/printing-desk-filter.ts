@@ -1,5 +1,7 @@
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
+import { matchesTextQuery } from "@openrift/shared/search-fold";
+import { pluralize } from "@openrift/shared/strings";
 
 import type { DeskPrintingStatus } from "./printing-desk-status";
 import { deskPrintingStatus } from "./printing-desk-status";
@@ -15,13 +17,12 @@ export function matchesDeskFilter(row: DeskPrintingRow, filter: DeskFilter): boo
   if (filter.status !== "any" && deskPrintingStatus(row) !== filter.status) {
     return false;
   }
-  const query = filter.query.trim().toLowerCase();
-  if (query.length === 0) {
-    return true;
-  }
-  return [row.cardName, row.cardSlug, formatPrintingCode(row.publicCode), row.publicCode].some(
-    (field) => field.toLowerCase().includes(query),
-  );
+  return matchesTextQuery(filter.query, [
+    row.cardName,
+    row.cardSlug,
+    formatPrintingCode(row.publicCode),
+    row.publicCode,
+  ]);
 }
 
 export function filterDeskPrintings(
@@ -57,5 +58,5 @@ export function imageCountText(count: number): string {
   if (count === 0) {
     return "no images";
   }
-  return count === 1 ? "1 image" : `${count} images`;
+  return `${count} ${pluralize(count, "image")}`;
 }

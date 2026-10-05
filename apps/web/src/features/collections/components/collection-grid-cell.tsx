@@ -1,6 +1,6 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { copyHasMetadata } from "@openrift/shared/copy-metadata";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { ArrowDownToLineIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { memo } from "react";
@@ -11,6 +11,7 @@ import { CardCountStrip } from "@/features/cards/components/card-count-strip";
 import { OwnedCollectionsPopover } from "@/features/cards/components/card-detail/owned-collections-popover";
 import { WishlistHeart } from "@/features/cards/components/wishlist-heart";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
+import { useCellDisplayState } from "@/features/cards/hooks/use-cell-display-state";
 import {
   dispatchDecrement,
   dispatchIncrement,
@@ -20,9 +21,7 @@ import {
   dispatchSiblingClick,
   dispatchTake,
 } from "@/features/cards/stores/card-row-actions-store";
-import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
 import { useGridSelectionStore } from "@/features/cards/stores/grid-selection-store";
-import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
 import { CollectionCardContextMenu } from "@/features/collections/components/collection-card-context-menu";
 import {
   CopyMetadataStrip,
@@ -30,12 +29,12 @@ import {
 } from "@/features/collections/components/copy-metadata-badges";
 import { DraggableCard } from "@/features/collections/components/draggable-card";
 import { SelectionCheckbox } from "@/features/collections/components/selection-checkbox";
-import { tileTradeStatus } from "@/features/collections/components/tile-trade-status";
 import {
   useCopyRowsForPrintings,
   useTileOwnedCounts,
 } from "@/features/collections/hooks/use-owned-count";
 import { isStackSelected } from "@/features/collections/lib/stack-selection";
+import { tileTradeStatus } from "@/features/collections/lib/tile-trade-status";
 import { useDragPreviewStore } from "@/features/collections/stores/drag-preview-store";
 import { OnLoanChip } from "@/features/groups/components/on-loan-chip";
 import { TradeStatusChip } from "@/features/groups/components/trade-status-chip";
@@ -84,19 +83,13 @@ export const CollectionGridCell = memo(function CollectionGridCell({
 }: CollectionGridCellProps) {
   const inCardsView = dataView === "cards";
 
-  const isSelected = useGridFocusStore(
-    (s) => s.selectedItemId === itemId || s.selectedItemId === printing.id,
-  );
-  const isFlashing = useGridFocusStore(
-    (s) => s.flashCardId === itemId || s.flashCardId === printing.id,
-  );
-  const overrideId = useSiblingOverrideStore((s) =>
-    inCardsView ? s.overrides.collection.get(printing.cardId) : undefined,
-  );
-  const displayPrinting =
-    overrideId && siblings
-      ? (siblings.find((sibling) => sibling.id === overrideId) ?? printing)
-      : printing;
+  const { displayPrinting, isSelected, isFlashing } = useCellDisplayState({
+    printing,
+    itemId,
+    siblings,
+    scope: "collection",
+    inCardsView,
+  });
 
   const siblingIds = inCardsView && siblings ? siblings.map((s) => s.id) : [displayPrinting.id];
   const {

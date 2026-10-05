@@ -1,10 +1,10 @@
 import type { CardBan } from "@openrift/shared/types/catalog";
 import type { Rarity } from "@openrift/shared/types/enums";
 import { LOW_RARITIES, WellKnown } from "@openrift/shared/well-known";
-import { InfoIcon, TriangleAlertIcon } from "lucide-react";
+import { TriangleAlertIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { InfoHint } from "@/components/ui/info-hint";
 import { FinishIcon } from "@/features/cards/components/finish-icon";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
@@ -75,32 +75,29 @@ export function CardMetaLabel({
             </span>
           )}
           {bans && bans.length > 0 && (
-            <span
-              title={bans
-                .map((ban) =>
-                  m.card_detail_ban_title({ format: ban.formatName, date: ban.bannedAt }),
-                )
-                .join("\n")}
-              className="inline-flex"
+            <InfoHint
+              label={m.cards_thumb_banned()}
+              icon={TriangleAlertIcon}
+              className="text-destructive"
             >
-              <TriangleAlertIcon className="text-destructive size-3.5" />
-            </span>
+              {bans.map((ban) => (
+                <span key={ban.formatId} className="block">
+                  {m.card_detail_ban_title({ format: ban.formatName, date: ban.bannedAt })}
+                </span>
+              ))}
+            </InfoHint>
           )}
           {hasRulesDeviation && (
-            <span title={m.card_detail_meta_rules_deviation()} className="inline-flex">
-              <TriangleAlertIcon className="text-warning size-3.5" />
-            </span>
+            <InfoHint
+              label={m.cards_flag_errata()}
+              icon={TriangleAlertIcon}
+              className="text-warning"
+            >
+              {m.card_detail_meta_rules_deviation()}
+            </InfoHint>
           )}
           {printingComment && (
-            <Tooltip>
-              <TooltipTrigger
-                className="cursor-default"
-                aria-label={m.card_detail_meta_printing_note()}
-              >
-                <InfoIcon className="size-3.5" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">{printingComment}</TooltipContent>
-            </Tooltip>
+            <InfoHint label={m.card_detail_meta_printing_note()}>{printingComment}</InfoHint>
           )}
         </span>
       </div>

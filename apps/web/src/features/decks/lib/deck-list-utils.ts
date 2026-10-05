@@ -1,9 +1,9 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { matchesDomains, noneExcluded } from "@openrift/shared/filters-predicates";
 import { foldForSearch, squashForSearch } from "@openrift/shared/search-fold";
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import type { Card } from "@openrift/shared/types/catalog";
 import type { Domain } from "@openrift/shared/types/enums";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import { m } from "@/paraglide/messages.js";

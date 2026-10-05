@@ -4,12 +4,14 @@ import type { PrintingImage } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
 import { ArchiveIcon, PinIcon } from "lucide-react";
 
+import { CardIcon } from "@/components/card-icon";
 import { cardLinkVariants } from "@/components/ui/card-link";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
+import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
-import { resolveFormatTagSummary } from "@/features/collections/lib/format-tag-config";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckFamilyEntry } from "@/features/decks/lib/deck-family";
+import { resolveFormatTagSummary } from "@/features/decks/lib/format-tag-config";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useCustomTagList } from "@/hooks/use-enums";
 import { getDomainGradientStyle } from "@/lib/domain";
@@ -23,7 +25,6 @@ import { DeckFormatBadge } from "./deck-format-badge";
 import { DeckIdentityLine } from "./deck-identity-line";
 import { DeckMetaLine } from "./deck-meta-line";
 import { DraftBadge, VariantCountToggle } from "./deck-variant-controls";
-import { DomainIcon } from "./domain-icon";
 import { LocalDeckActionsMenu } from "./local-deck-actions-menu";
 import { LocalDeckBadge } from "./local-save-hint";
 
@@ -76,13 +77,7 @@ function PlaceholderPreviewCard({
       )}
       style={{ aspectRatio: "var(--aspect-card)", ...style }}
     >
-      <span
-        className="bg-muted-foreground/70 size-7"
-        style={{
-          mask: `url(${iconSrc}) center / contain no-repeat`,
-          WebkitMask: `url(${iconSrc}) center / contain no-repeat`,
-        }}
-      />
+      <CardIcon src={iconSrc} className="text-muted-foreground/70 size-7" />
       <span className="text-muted-foreground/70 text-2xs tracking-wide uppercase">{label}</span>
     </div>
   );

@@ -27,7 +27,7 @@ vi.mock("@tanstack/react-start/server", () => ({
 
 let currentUserId: string | null = "user-1";
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => {
     if (currentUserId === null) {
       throw new Error("useRequiredUserId() called without an authenticated session.");
@@ -38,9 +38,14 @@ vi.mock("@/lib/auth-session", () => ({
   useUserId: () => currentUserId,
 }));
 
+let hydrated = true;
+
+vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => hydrated }));
+
 const { getDeckCardsCollection, getDecksCollection } =
   await import("@/features/decks/lib/decks-collection");
-const { useCreateDeck, useDeckDetail, useDeleteDeck } = await import("./use-decks");
+const { useCreateDeck, useDeckCardsFor, useDeckDetail, useDeckList, useDeleteDeck } =
+  await import("./use-decks");
 
 describe("useDeleteDeck", () => {
   afterEach(() => {
@@ -250,6 +255,56 @@ describe("a deck read from the stores", () => {
       expect(result.current.data.deck.id).toBe(DECK_ID);
     });
     expect(result.current.data.cards.map((card) => card.cardId)).toEqual(["card-a"]);
+  });
+
+  it("lists the viewer's server decks", async () => {
+    const { result } = renderHook(() => useDeckList(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current?.map((item) => item.deck.id).toSorted()).toEqual(
+        [DECK_ID, OTHER_ID].toSorted(),
+      );
+    });
+  });
+
+  it("reads no decks while disabled", () => {
+    const { result } = renderHook(() => useDeckList({ enabled: false }), { wrapper });
+
+    expect(result.current).toBeUndefined();
+  });
+
+  it("reads no decks before hydration", () => {
+    hydrated = false;
+    try {
+      const { result } = renderHook(() => useDeckList(), { wrapper });
+      expect(result.current).toBeUndefined();
+    } finally {
+      hydrated = true;
+    }
+  });
+
+  it("reads no decks while signed out", () => {
+    currentUserId = null;
+    try {
+      const { result } = renderHook(() => useDeckList(), { wrapper });
+      expect(result.current).toBeUndefined();
+    } finally {
+      currentUserId = "user-1";
+    }
+  });
+
+  it("reads only the requested decks' cards", async () => {
+    const { result } = renderHook(() => useDeckCardsFor([DECK_ID]), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current?.map((row) => row.cardId)).toEqual(["card-a"]);
+    });
+  });
+
+  it("reads no cards for an empty id list", () => {
+    const { result } = renderHook(() => useDeckCardsFor([]), { wrapper });
+
+    expect(result.current).toBeUndefined();
   });
 
   it("drops a deleted deck's cards from the cards store", async () => {

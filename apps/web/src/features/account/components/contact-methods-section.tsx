@@ -101,7 +101,7 @@ function ContactMethodRow({ method }: { method: ContactMethod }) {
       />
       {canSave ? (
         <Button disabled={update.isPending} onClick={() => void handleSave()}>
-          {m.profile_contacts_save()}
+          {m.common_save()}
         </Button>
       ) : null}
       <Button

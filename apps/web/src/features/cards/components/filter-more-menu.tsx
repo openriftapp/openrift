@@ -4,6 +4,7 @@ import type { PresenceDimension } from "@openrift/shared/types/search";
 import { CheckIcon, ChevronDownIcon, MinusIcon } from "lucide-react";
 import { Fragment } from "react";
 
+import { MultiSelectCombobox } from "@/components/multi-select-combobox";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,7 +22,6 @@ import {
   FilterValueDropdown,
   FilterVariantDropdown,
 } from "@/features/cards/components/filter-value-dropdown";
-import { MultiSelectCombobox } from "@/features/cards/components/multi-select-combobox";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import {
   useSingleActiveFilterLabel,

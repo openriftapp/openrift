@@ -9,7 +9,7 @@ import { stubCopy, stubPrinting } from "@/test/factories";
 const yasuo = stubPrinting({ id: "p-yasuo", cardId: "card-yasuo", card: { name: "Yasuo" } });
 const jinx = stubPrinting({ id: "p-jinx", cardId: "card-jinx", card: { name: "Jinx" } });
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => "user-1",
 }));
 

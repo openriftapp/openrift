@@ -1,4 +1,5 @@
-import { validateDeck } from "@openrift/shared/deck-rules";
+import { totalQuantity, validateDeck } from "@openrift/shared/deck-rules";
+import { requiredZoneProgress } from "@openrift/shared/deck-zones";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type { DeckFormat } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -19,7 +20,6 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toDeckBuilderCard, toRuleEngineCard } from "@/features/decks/lib/deck-builder-card";
 import type { ImportedDeckCard } from "@/features/decks/lib/deck-import-cards";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
-import { requiredZoneProgress } from "@/features/decks/lib/deck-zone-labels";
 import { useChampionIdentifierTags } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { formatterForMarketplace } from "@/lib/format";
@@ -76,7 +76,7 @@ export function DeckImportSummary({
     cards: builderCards.map((card) => toRuleEngineCard(card, customTagAssignments)),
     championIdentifierTags,
   });
-  const totalCards = builderCards.reduce((sum, card) => sum + card.quantity, 0);
+  const totalCards = totalQuantity(builderCards);
   const { progress: requiredProgress, total: requiredTotal } = requiredZoneProgress(
     builderCards,
     format,

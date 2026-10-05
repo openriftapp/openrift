@@ -21,7 +21,7 @@ vi.mock("@tanstack/react-start", async (importOriginal) => ({
 vi.mock("@/lib/server-fns/middleware", () => ({ withCookies: () => {} }));
 
 let currentUserId: string | null = null;
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useUserId: () => currentUserId,
   useRequiredUserId: () => {
     if (!currentUserId) {

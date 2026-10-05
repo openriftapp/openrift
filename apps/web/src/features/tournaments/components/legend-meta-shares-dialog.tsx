@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -115,9 +116,7 @@ export function LegendMetaSharesDialog({
             ))}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              {m.common_cancel()}
-            </Button>
+            <DialogCancel />
             <Button type="submit" disabled={!complete || setShares.isPending}>
               {m.common_save()}
             </Button>

@@ -14,7 +14,6 @@ import { PageDescription } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -30,7 +29,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AdminTable } from "@/features/admin/components/admin-table";
+import { DraftTextInput } from "@/features/admin/components/admin-crud-shared";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import { AdminTable, AdminTableEmptyRow } from "@/features/admin/components/admin-table";
 import type {
   AdminCellSlotProps,
   AdminColumnDef,
@@ -141,74 +142,6 @@ function PrintingsCell({ row }: AdminCellSlotProps<AdminSetResponse>) {
   );
 }
 
-function IdInput({ draft, setDraft }: AdminDraftSlotProps<SetDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.id}
-      onChange={(e) => setDraft((prev) => ({ ...prev, id: e.target.value }))}
-      placeholder="ID"
-      className="font-mono"
-    />
-  );
-}
-
-function NameInput({ draft, setDraft }: AdminDraftSlotProps<SetDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.name}
-      onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
-    />
-  );
-}
-
-function NameAddInput({ draft, setDraft }: AdminDraftSlotProps<SetDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.name}
-      onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
-      placeholder="Name"
-    />
-  );
-}
-
-function PrintedTotalInput({ draft, setDraft }: AdminDraftSlotProps<SetDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      inputMode="numeric"
-      value={draft.printedTotal}
-      onChange={(e) => setDraft((prev) => ({ ...prev, printedTotal: e.target.value }))}
-      className="ml-auto text-right"
-    />
-  );
-}
-
-function PrintedTotalAddInput({ draft, setDraft }: AdminDraftSlotProps<SetDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      inputMode="numeric"
-      value={draft.printedTotal}
-      onChange={(e) => setDraft((prev) => ({ ...prev, printedTotal: e.target.value }))}
-      placeholder="0"
-      className="ml-auto text-right"
-    />
-  );
-}
-
 function SetTypeSelect({ draft, setDraft }: AdminDraftSlotProps<SetDraft>) {
   if (!draft || !setDraft) {
     return null;
@@ -247,21 +180,35 @@ const columns: AdminColumnDef<AdminSetResponse, SetDraft>[] = [
     header: "ID",
     width: "w-28",
     cell: <IdCell />,
-    addCell: <IdInput />,
+    addCell: <DraftTextInput<SetDraft> field="id" placeholder="ID" className="font-mono" />,
   },
   {
     header: "Name",
     cell: <NameCell />,
-    editCell: <NameInput />,
-    addCell: <NameAddInput />,
+    editCell: <DraftTextInput<SetDraft> field="name" placeholder="Name" />,
+    addCell: <DraftTextInput<SetDraft> field="name" placeholder="Name" />,
   },
   {
     header: "Printed Total",
     width: "w-32",
     align: "right",
     cell: <PrintedTotalCell />,
-    editCell: <PrintedTotalInput />,
-    addCell: <PrintedTotalAddInput />,
+    editCell: (
+      <DraftTextInput<SetDraft>
+        field="printedTotal"
+        inputMode="numeric"
+        placeholder="0"
+        className="ml-auto text-right"
+      />
+    ),
+    addCell: (
+      <DraftTextInput<SetDraft>
+        field="printedTotal"
+        inputMode="numeric"
+        placeholder="0"
+        className="ml-auto text-right"
+      />
+    ),
   },
   {
     header: "Releases",
@@ -435,11 +382,7 @@ function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
           </TableHeader>
           <TableBody>
             {groups.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-muted-foreground text-center">
-                  No release dates yet.
-                </TableCell>
-              </TableRow>
+              <AdminTableEmptyRow colSpan={5}>No release dates yet.</AdminTableEmptyRow>
             )}
             {groups.flatMap((group) => [
               <AdminTableGroupRow key={group.language} colSpan={5}>
@@ -451,7 +394,7 @@ function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
                   <TableCell>
                     <DatePicker
                       value={row.release.releasedAt}
-                      onChange={(iso) =>
+                      onValueChange={(iso) =>
                         writeRelease(row.setId, row.language, {
                           releasedAt: iso,
                           precision: row.release.precision ?? "day",
@@ -566,7 +509,7 @@ export function SetsPage() {
         data={sets}
         getRowKey={(s) => s.id}
         emptyText="No sets yet."
-        title="Sets"
+        topBar={(actions) => <AdminPageTopBar title="Sets" actions={actions} />}
         toolbar={
           <PageDescription>
             Set order picks the default printing where none is pinned: first by language, then by

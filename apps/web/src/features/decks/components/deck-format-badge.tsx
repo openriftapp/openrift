@@ -1,4 +1,5 @@
 import type { DeckViolation } from "@openrift/shared/deck-rules";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
 import { CheckIcon, CircleAlertIcon } from "lucide-react";
 
@@ -8,6 +9,7 @@ import type { DeckFormatBadgeKind } from "@/features/decks/lib/deck-format-badge
 import { deckFormatBadgeState } from "@/features/decks/lib/deck-format-badge-state";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * Two-state badge with no build figure, for the deck-check surfaces. Deck
@@ -15,7 +17,7 @@ import { cn } from "@/lib/utils";
  */
 export function FormatStateBadge({ format, isValid }: { format: string; isValid: boolean }) {
   const { labels: formatLabels } = useDeckFormatList();
-  const formatLabel = formatLabels[format] ?? format;
+  const formatLabel = enumLabel(formatLabels, format);
   if (format === WellKnown.deckFormat.FREEFORM) {
     return (
       <Badge variant="outline" className="text-xs">
@@ -25,14 +27,14 @@ export function FormatStateBadge({ format, isValid }: { format: string; isValid:
   }
   if (isValid) {
     return (
-      <Badge variant="outline" className="border-success/30 bg-success-soft text-success text-xs">
+      <Badge variant="success">
         <CheckIcon className="size-3" />
         {formatLabel}
       </Badge>
     );
   }
   return (
-    <Badge variant="outline" className="border-warning/40 bg-warning-soft text-warning text-xs">
+    <Badge variant="warning">
       <CircleAlertIcon className="size-3" />
       {formatLabel}
     </Badge>
@@ -59,7 +61,7 @@ export function DeckFormatBadge({
   violations?: DeckViolation[];
 }) {
   const { labels: formatLabels } = useDeckFormatList();
-  const formatLabel = formatLabels[format] ?? format;
+  const formatLabel = enumLabel(formatLabels, format);
   const { kind, progress } = deckFormatBadgeState({
     format,
     totalCards,
@@ -70,8 +72,8 @@ export function DeckFormatBadge({
 
   if (kind === "draft") {
     return (
-      <Badge variant="muted" className="rounded-md">
-        {formatLabel} · Draft
+      <Badge variant="neutral" className="rounded-md">
+        {formatLabel} · {m.decks_dialog_draft_badge()}
       </Badge>
     );
   }
@@ -83,7 +85,7 @@ export function DeckFormatBadge({
       );
     }
     return (
-      <Badge variant="outline" className="border-warning/40 bg-warning-soft text-warning text-xs">
+      <Badge variant="warning">
         {formatLabel}
         {progress && <span className="tabular-nums">· {progress}</span>}
         <CircleAlertIcon className="size-3" />
@@ -109,7 +111,7 @@ function formatStateText(
   progress?: string,
 ): string {
   if (kind === "draft") {
-    return `${formatLabel} · Draft`;
+    return `${formatLabel} · ${m.decks_dialog_draft_badge()}`;
   }
   if (progress) {
     return `${formatLabel} · ${progress}`;
@@ -144,7 +146,7 @@ export function DeckFormatText({
   className?: string;
 }) {
   const { labels: formatLabels } = useDeckFormatList();
-  const formatLabel = formatLabels[format] ?? format;
+  const formatLabel = enumLabel(formatLabels, format);
   const { kind, progress } = deckFormatBadgeState({
     format,
     totalCards,

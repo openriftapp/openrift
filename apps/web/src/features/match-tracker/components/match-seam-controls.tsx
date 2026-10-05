@@ -17,11 +17,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Pressable } from "@/components/ui/pressable";
+import { useFirstPlayerSpotlight } from "@/features/match-tracker/hooks/use-first-player-spotlight";
 import {
   describeAction,
   useMatchTrackerStore,
 } from "@/features/match-tracker/stores/match-tracker-store";
-import { useFirstPlayerSpotlight } from "@/hooks/use-first-player-spotlight";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 

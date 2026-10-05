@@ -8,10 +8,9 @@ import { Link } from "@tanstack/react-router";
 import { cardLinkVariants } from "@/components/ui/card-link";
 import { CardRow } from "@/components/ui/card-list";
 import { UserAvatar } from "@/components/user-avatar";
+import { LIST_INTENT_ICON, listKindNoun } from "@/features/groups/lib/list-intent-meta";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-import { LIST_INTENT_ICON, listKindNoun } from "./list-intent-meta";
 
 const LIST_INTENT_LABEL: Record<ListIntent, () => string> = {
   wish: m.lists_intent_label_wish,
@@ -60,7 +59,9 @@ export function SharedListRow({
             gravatarHash={member.gravatarHash}
             size="sm"
           />
-          <span className="hidden text-sm sm:inline">{member.userName ?? "Member"}</span>
+          <span className="hidden text-sm sm:inline">
+            {member.userName ?? m.groups_unknown_user()}
+          </span>
         </Link>
       ) : null}
     </CardRow>

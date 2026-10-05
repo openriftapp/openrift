@@ -1,12 +1,12 @@
 import { formatMonth } from "@openrift/shared/format-date";
 import { Link } from "@tanstack/react-router";
-import { ChevronDownIcon, TriangleAlertIcon } from "lucide-react";
+import { TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Callout } from "@/components/ui/callout";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { CardText } from "@/features/cards/components/card-text";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 interface ErrataNoticeProps {
@@ -71,10 +71,15 @@ export function ErrataNotice({
             )}
           </span>
         </div>
-        <CollapsibleTrigger className="text-muted-foreground/50 hover:text-warning flex cursor-pointer items-center gap-1 text-xs">
-          <ChevronDownIcon
-            className={cn("size-3 shrink-0 transition-transform", open && "rotate-180")}
-          />
+        <CollapsibleTrigger
+          render={
+            <ExpandToggle
+              expanded={open}
+              chevronClassName="size-3 text-current"
+              className="text-muted-foreground/50 hover:text-warning gap-1 text-xs"
+            />
+          }
+        >
           <span>
             {open ? m.card_detail_errata_hide_original() : m.card_detail_errata_show_original()}
           </span>

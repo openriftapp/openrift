@@ -1,4 +1,5 @@
-import { dateLeafParts, formatDayTimeLocal } from "@openrift/shared/format-date";
+import { formatDayTimeLocal } from "@openrift/shared/format-date";
+import { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 import type { TournamentSummaryResponse } from "@openrift/shared/types/api/tournament";
 import { Link } from "@tanstack/react-router";
 import { CalendarIcon, LayersIcon, TrophyIcon } from "lucide-react";
@@ -13,13 +14,11 @@ import { HeroAvatarCluster } from "@/features/tournaments/components/hero-avatar
 import { ParticipantFacepile } from "@/features/tournaments/components/participant-facepile";
 import {
   viewerRoleLabels,
-  effectiveTournamentState,
   formatStartsIn,
   primaryViewerRole,
   tournamentContextLabel,
 } from "@/features/tournaments/lib/tournament-display";
 import { useDeckFormatList } from "@/hooks/use-enums";
-import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
 
 function HeroBandContent({ tournament }: { tournament: TournamentSummaryResponse }) {
@@ -63,7 +62,6 @@ export function NextEventHero({ tournament, showContext = false }: NextEventHero
   const state = effectiveTournamentState(tournament.startsAt, tournament.endsAt, tournament.status);
   const live = state === "in_progress";
   const startsIn = formatStartsIn(tournament.startsAt);
-  const leaf = dateLeafParts(tournament.startsAt, DATE_WORDS);
   const role = primaryViewerRole(tournament.myRoles);
   return (
     <CardLink
@@ -81,7 +79,7 @@ export function NextEventHero({ tournament, showContext = false }: NextEventHero
           {live ? m.tournaments_next_event_happening_now() : m.tournaments_next_event_next()}
         </Eyebrow>
         <div className="flex min-w-0 items-center gap-3.5">
-          <DateLeaf month={leaf.month} day={leaf.day} />
+          <DateLeaf at={tournament.startsAt} clock="local" />
           <div className="min-w-0">
             <Heading level={2} as="h3" className="truncate">
               {tournament.name}

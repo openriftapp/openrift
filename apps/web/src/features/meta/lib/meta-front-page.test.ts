@@ -40,6 +40,8 @@ const WINNER = {
   legend: {
     cardId: "legend-1",
     name: "Kennen, Heart of the Tempest",
+    character: "Kennen",
+    epithet: "Heart of the Tempest",
     slug: "kennen",
     imageId: null,
     domains: ["chaos", "order"],

@@ -19,15 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useNumericDraft } from "@/hooks/use-numeric-draft";
-import { m } from "@/paraglide/messages.js";
-
 import {
   CURRENCY_SYMBOL,
   pricePrefLabel,
   pricePrefShortLabel,
   tradeTypeLabel,
-} from "./trade-preference-labels";
+} from "@/features/groups/lib/trade-preference-labels";
+import { useNumericDraft } from "@/hooks/use-numeric-draft";
+import { m } from "@/paraglide/messages.js";
 
 const PRICE_PREF_NONE = "__none__";
 const TRADE_TYPE_NONE = "__none__";

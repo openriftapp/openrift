@@ -1,6 +1,6 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { copyHasMetadata } from "@openrift/shared/copy-metadata";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { useState } from "react";
 import { toast } from "sonner";
 

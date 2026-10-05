@@ -5,8 +5,10 @@ import { PlayIcon } from "lucide-react";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TextLink } from "@/components/ui/text-link";
 import { OverlayOutputPanel } from "@/features/stage/components/overlay-output-panel";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
+import { useSignInSearch } from "@/hooks/use-sign-in-search";
 import { m } from "@/paraglide/messages.js";
 
 export function StageOutputBlock({
@@ -17,6 +19,7 @@ export function StageOutputBlock({
   canStart: boolean;
 }) {
   const userId = useUserId();
+  const signIn = useSignInSearch();
 
   return (
     <SettingsSection title={m.stage_output_title()}>
@@ -42,13 +45,9 @@ export function StageOutputBlock({
                 message={m.stage_output_obs_signin}
                 markup={{
                   link: ({ children }) => (
-                    <Link
-                      to="/login"
-                      search={{ redirect: "/stage", email: undefined }}
-                      className="underline underline-offset-2"
-                    >
+                    <TextLink variant="muted" render={<Link {...signIn} />}>
                       {children}
-                    </Link>
+                    </TextLink>
                   ),
                 }}
               />

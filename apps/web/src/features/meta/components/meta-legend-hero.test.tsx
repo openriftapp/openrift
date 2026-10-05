@@ -40,6 +40,8 @@ import { MetaLegendHero } from "./meta-legend-hero";
 const legend = {
   cardId: "card-1",
   name: "Kennen, Heart of the Tempest",
+  character: "Kennen",
+  epithet: "Heart of the Tempest",
   slug: "heart-of-the-tempest",
   imageId: "img-1",
   domains: ["fury", "calm"],
@@ -87,7 +89,14 @@ describe("MetaLegendHero", () => {
   it("renders a legend with no artwork and no title rather than a hole", () => {
     render(
       <MetaLegendHero
-        legend={{ ...legend, name: "Emperor of the Sands", imageId: null, domains: [] }}
+        legend={{
+          ...legend,
+          name: "Emperor of the Sands",
+          character: null,
+          epithet: "Emperor of the Sands",
+          imageId: null,
+          domains: [],
+        }}
         counts={{ wins: 0, finishes: 0, decklists: 0 }}
       />,
     );

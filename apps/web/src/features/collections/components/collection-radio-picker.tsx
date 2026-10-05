@@ -3,7 +3,8 @@ import { PlusSquareIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RadioGroup } from "@/components/ui/radio-group";
+import { RadioOptionRow } from "@/components/ui/radio-option-row";
 import { m } from "@/paraglide/messages.js";
 
 export const NEW_COLLECTION_OPTION = "__new__";
@@ -28,40 +29,35 @@ export function CollectionRadioPicker({
   return (
     <>
       <RadioGroup value={selectedId} onValueChange={(value) => onSelectedIdChange(String(value))}>
-        {collections.map((collection) => {
-          const inputId = `${idPrefix}-${collection.id}`;
-          return (
-            <label
-              key={collection.id}
-              htmlFor={inputId}
-              className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-2"
-            >
-              <RadioGroupItem id={inputId} value={collection.id} />
-              <span className="min-w-0 flex-1 truncate font-medium">{collection.name}</span>
-              {collection.isInbox ? (
-                <Badge variant="secondary" className="shrink-0">
-                  {m.collections_dialog_picker_inbox_badge()}
-                </Badge>
-              ) : null}
-              {collection.groupName ? (
-                <Badge variant="outline" className="max-w-32 shrink-0 truncate">
-                  {collection.groupName}
-                </Badge>
-              ) : null}
-              <span className="text-muted-foreground shrink-0 text-xs">
-                {m.common_cards({ count: collection.copyCount })}
-              </span>
-            </label>
-          );
-        })}
-        <label
-          htmlFor={`${idPrefix}-new`}
-          className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-2"
-        >
-          <RadioGroupItem id={`${idPrefix}-new`} value={NEW_COLLECTION_OPTION} />
-          <span className="flex-1 font-medium">{m.collections_dialog_picker_new()}</span>
-          <PlusSquareIcon className="text-muted-foreground size-4 shrink-0" />
-        </label>
+        {collections.map((collection) => (
+          <RadioOptionRow
+            key={collection.id}
+            id={`${idPrefix}-${collection.id}`}
+            value={collection.id}
+            title={collection.name}
+            meta={
+              <>
+                {collection.isInbox ? (
+                  <Badge variant="secondary">{m.collections_dialog_picker_inbox_badge()}</Badge>
+                ) : null}
+                {collection.groupName ? (
+                  <Badge variant="outline" className="max-w-32 truncate">
+                    {collection.groupName}
+                  </Badge>
+                ) : null}
+                <span className="text-muted-foreground text-xs">
+                  {m.common_cards({ count: collection.copyCount })}
+                </span>
+              </>
+            }
+          />
+        ))}
+        <RadioOptionRow
+          id={`${idPrefix}-new`}
+          value={NEW_COLLECTION_OPTION}
+          title={m.collections_dialog_picker_new()}
+          meta={<PlusSquareIcon className="text-muted-foreground size-4" />}
+        />
       </RadioGroup>
 
       {selectedId === NEW_COLLECTION_OPTION ? (

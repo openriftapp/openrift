@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { MarketplaceIcon } from "@/components/marketplace-icon";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { TIME_RANGES } from "@/features/cards/components/price-history-chart-constants";
+import { TIME_RANGES } from "@/features/cards/lib/price-history-chart-constants";
 import { percentChange } from "@/features/cards/lib/price-trend";
 import {
   PRICE_SAMPLE_COUNT,

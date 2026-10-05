@@ -4,6 +4,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
 import { Suspense, useState } from "react";
 
+import { EmptyState } from "@/components/empty-state";
 import {
   PAGE_HERO_EYEBROW_CLASS,
   PageHero,
@@ -29,22 +30,22 @@ import { useCardData } from "@/features/cards/hooks/use-card-data";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
 import type { EnrichedProductDetail } from "@/features/cards/lib/products-queries";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
-import { FilterSearchProvider } from "@/features/cards/lib/search-schemas";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
 import { maxOwnedCount } from "@/features/collections/lib/owned-bucket";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { formatterForMarketplace } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -135,7 +136,7 @@ export function ProductDetailView({ data, search }: ProductDetailViewProps) {
           productSlug={product.slug}
           productName={product.name}
         />
-        <div className="flex min-w-0 flex-1 flex-col px-3 pt-3 pb-3">
+        <div className={cn(PAGE_PADDING_NO_TOP, "flex min-w-0 flex-1 flex-col pt-3")}>
           {product.description ? (
             <MarkdownText text={product.description} className="text-muted-foreground py-3" />
           ) : null}
@@ -180,7 +181,7 @@ function ProductHeroStats({
           key: "value",
           label:
             unpriced > 0
-              ? `${m.hero_stat_value()} ${m.products_unpriced({ count: unpriced })}`
+              ? `${m.hero_stat_value()} ${m.common_unpriced({ count: unpriced })}`
               : m.hero_stat_value(),
           value: formatValue(total),
         },
@@ -345,7 +346,7 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
   );
 
   if (productPrintings.length === 0) {
-    return <p className="text-muted-foreground py-3 text-sm">{m.products_empty_product()}</p>;
+    return <EmptyState title={m.products_empty_product()} />;
   }
 
   return (

@@ -2,7 +2,7 @@ import type { MetaDeckSummary } from "@openrift/shared/types/api/meta";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
-import { Button } from "@/components/ui/button";
+import { ShowMoreButton } from "@/components/show-more-button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { MetaArchiveDeckTile } from "@/features/meta/components/meta-archive-deck-tile";
 import { MetaPlayerDeckTile } from "@/features/meta/components/meta-player-deck-tile";
@@ -58,18 +58,17 @@ export function MetaArchivedDecks({
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <Heading>{m.meta_archived_decks_heading()}</Heading>
         {(remaining > 0 || expanded) && (
-          <Button
-            variant="link"
-            className="h-auto p-0 text-sm font-medium"
+          <ShowMoreButton
+            placement="heading"
+            count={total}
+            expanded={expanded}
             onClick={() => {
               setExpanded(!expanded);
               if (!expanded) {
                 onShowAll?.();
               }
             }}
-          >
-            {expanded ? m.meta_show_fewer() : m.meta_show_all_n({ count: total })}
-          </Button>
+          />
         )}
       </div>
       <div>

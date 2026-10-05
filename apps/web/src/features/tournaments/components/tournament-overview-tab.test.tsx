@@ -51,7 +51,11 @@ vi.mock("@/features/tournaments/components/champion-plate", () => ({
   ChampionPlate: () => <div data-testid="champion-plate" />,
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/features/tournaments/hooks/use-region-label", () => ({
+  useRegionLabel: () => (slug: string) => slug.toUpperCase(),
+}));
+
+vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => "viewer-1",
 }));
 
@@ -121,6 +125,8 @@ function makeStanding(
   return {
     playerId,
     displayName: `Player ${playerId}`,
+    image: null,
+    gravatarHash: null,
     status: "active",
     droppedAfterRound: null,
     teamId: null,
@@ -221,6 +227,8 @@ function makeRunState(
               {
                 playerId: "p1",
                 displayName: "Player p1",
+                image: null,
+                gravatarHash: null,
                 teamId: null,
                 gamePoints: 3,
                 placement: 1,
@@ -229,6 +237,8 @@ function makeRunState(
               {
                 playerId: "p2",
                 displayName: "Player p2",
+                image: null,
+                gravatarHash: null,
                 teamId: null,
                 gamePoints: 1,
                 placement: 2,
@@ -237,6 +247,8 @@ function makeRunState(
               {
                 playerId: "p3",
                 displayName: "Player p3",
+                image: null,
+                gravatarHash: null,
                 teamId: null,
                 gamePoints: null,
                 placement: null,
@@ -245,6 +257,8 @@ function makeRunState(
               {
                 playerId: "p4",
                 displayName: "Player p4",
+                image: null,
+                gravatarHash: null,
                 teamId: null,
                 gamePoints: null,
                 placement: null,

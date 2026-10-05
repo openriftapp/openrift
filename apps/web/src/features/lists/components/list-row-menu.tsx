@@ -1,8 +1,8 @@
 import type { ListResponse } from "@openrift/shared/types/api/list";
-import { useNavigate } from "@tanstack/react-router";
-import { EyeIcon, EyeOffIcon, LinkIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import { CatchBoundary, useNavigate } from "@tanstack/react-router";
+import { EyeIcon, EyeOffIcon, LinkIcon, PencilIcon, Share2Icon, Trash2Icon } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -12,13 +12,17 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { useDeleteList, useSetListSidebarHidden } from "@/features/lists/hooks/use-lists";
+import { DeleteListDialog } from "@/features/lists/components/delete-list-dialog";
+import { ListEditDialog } from "@/features/lists/components/list-edit-dialog";
+import { ListShareDialog } from "@/features/lists/components/list-share-dialog";
+import {
+  useDeleteList,
+  useListDetail,
+  useSetListSidebarHidden,
+} from "@/features/lists/hooks/use-lists";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { getSiteUrl } from "@/lib/site-config";
+import { shareLinkUrl } from "@/lib/share-links";
 import { m } from "@/paraglide/messages.js";
-
-import { DeleteListDialog } from "./delete-list-dialog";
-import { ListEditDialog } from "./list-edit-dialog";
 
 interface ListRowMenuProps {
   list: ListResponse;
@@ -28,6 +32,7 @@ interface ListRowMenuProps {
 
 export function ListRowMenu({ list, isActive, children }: ListRowMenuProps) {
   const [editOpen, setEditOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { copy } = useCopyToClipboard();
@@ -35,8 +40,7 @@ export function ListRowMenu({ list, isActive, children }: ListRowMenuProps) {
   const deleteList = useDeleteList();
   const navigate = useNavigate();
 
-  const shareUrl =
-    list.isPublic && list.shareToken ? `${getSiteUrl()}/lists/share/${list.shareToken}` : null;
+  const shareUrl = shareLinkUrl("list", list);
 
   // The menu closes on click, so the hook's inline "Copied" state never shows;
   // the toast is the feedback here instead.
@@ -45,10 +49,10 @@ export function ListRowMenu({ list, isActive, children }: ListRowMenuProps) {
       return;
     }
     if (await copy(shareUrl)) {
-      toast.success(m.lists_row_copy_success());
+      toast.success(m.common_share_link_copied());
       return;
     }
-    toast.error(m.lists_row_copy_error());
+    toast.error(m.common_copy_link_error());
   };
 
   const handleDelete = () => {
@@ -76,10 +80,14 @@ export function ListRowMenu({ list, isActive, children }: ListRowMenuProps) {
             <PencilIcon />
             {m.lists_row_edit()}
           </ContextMenuItem>
+          <ContextMenuItem onClick={() => setShareOpen(true)}>
+            <Share2Icon />
+            {m.lists_page_share()}
+          </ContextMenuItem>
           {shareUrl && (
             <ContextMenuItem onClick={() => void handleCopyLink()}>
               <LinkIcon />
-              {m.lists_row_copy_link()}
+              {m.common_copy_share_link()}
             </ContextMenuItem>
           )}
           <ContextMenuSeparator />
@@ -109,6 +117,13 @@ export function ListRowMenu({ list, isActive, children }: ListRowMenuProps) {
           onOpenChange={setEditOpen}
         />
       )}
+      {shareOpen && (
+        <CatchBoundary getResetKey={() => list.id} errorComponent={() => null}>
+          <Suspense fallback={null}>
+            <ListRowShareDialog list={list} onOpenChange={setShareOpen} />
+          </Suspense>
+        </CatchBoundary>
+      )}
       {deleteOpen && (
         <DeleteListDialog
           open
@@ -121,5 +136,32 @@ export function ListRowMenu({ list, isActive, children }: ListRowMenuProps) {
         />
       )}
     </>
+  );
+}
+
+/** Reads the entries the share text needs, so it mounts only while open. */
+function ListRowShareDialog({
+  list,
+  onOpenChange,
+}: {
+  list: ListResponse;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { data } = useListDetail(list.id);
+  return (
+    <ListShareDialog
+      listId={list.id}
+      listName={data.list.name}
+      kind={data.list.kind}
+      intent={data.list.intent}
+      tradeDefaults={data.list.tradeDefaults}
+      currency={data.list.currency}
+      isPublic={data.list.isPublic}
+      shareToken={data.list.shareToken}
+      updatedAt={data.list.updatedAt}
+      entries={data.entries}
+      open
+      onOpenChange={onOpenChange}
+    />
   );
 }

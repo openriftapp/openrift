@@ -1,4 +1,4 @@
-import { dateLeafParts, formatRelativeTime } from "@openrift/shared/format-date";
+import { formatRelativeTime } from "@openrift/shared/format-date";
 import type { AggregatedActivityRow, TradeBatch } from "@openrift/shared/friend-group-activity";
 import type { FriendGroupActivityEvent } from "@openrift/shared/types/api/friend-group";
 import { Link } from "@tanstack/react-router";
@@ -6,9 +6,11 @@ import { ArrowLeftRightIcon, FolderIcon, SparklesIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { ShowMoreButton } from "@/components/show-more-button";
 import { DateLeaf } from "@/components/ui/date-leaf";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { IconChip } from "@/components/ui/icon-chip";
+import { RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { UserAvatar } from "@/components/user-avatar";
 import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
@@ -19,12 +21,10 @@ import {
   buildActivityDays,
   distinctPrintingIds,
 } from "@/features/groups/lib/friend-group-activity";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { LIST_INTENT_ICON, listIntentNoun } from "@/features/groups/lib/list-intent-meta";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
-
-import { HOVER_ROW_CLASS } from "./hover-row";
-import { LIST_INTENT_ICON, listIntentNoun } from "./list-intent-meta";
 
 const FEED_ROWS = 10;
 
@@ -41,50 +41,48 @@ export function FriendGroupActivityFeed({ slug }: { slug: string }) {
       <div className="flex items-baseline justify-between gap-3">
         <SectionHeading>{m.groups_activity_title()}</SectionHeading>
         {totalRows > FEED_ROWS && (
-          <Button
-            variant="link"
-            className="h-auto shrink-0 p-0 text-xs font-medium"
+          <ShowMoreButton
+            placement="heading"
+            count={totalRows}
+            expanded={expanded}
+            className="shrink-0"
             onClick={() => setExpanded(!expanded)}
-          >
-            {expanded ? m.groups_activity_show_fewer() : m.groups_activity_show_more()}
-          </Button>
+          />
         )}
       </div>
       {days.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{m.groups_activity_empty()}</p>
+        <Empty>
+          <EmptyHeader>
+            <EmptyDescription>{m.groups_activity_empty()}</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <ul className="flex flex-col gap-6">
-          {days.map((day) => {
-            const leaf = dateLeafParts(day.at, DATE_WORDS);
-            return (
-              <li
-                key={day.key}
-                className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3"
-              >
-                <span className="flex flex-col items-center gap-2 self-stretch">
-                  <DateLeaf
-                    month={leaf.month}
-                    day={leaf.day}
-                    caption={formatRelativeTime(day.at, { words: DATE_WORDS })}
-                    size="sm"
-                    className="mt-1"
-                  />
-                  <span aria-hidden="true" className="bg-border-accent/60 w-px flex-1" />
-                </span>
-                <ul className="flex flex-col gap-1">
-                  {day.rows.map((row) => (
-                    <li key={rowKey(row)}>
-                      {row.kind === "trade-batch" ? (
-                        <TradeBatchRow slug={slug} batch={row} />
-                      ) : (
-                        <ActivityRow slug={slug} event={row.event} />
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            );
-          })}
+          {days.map((day) => (
+            <li key={day.key} className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3">
+              <span className="flex flex-col items-center gap-2 self-stretch">
+                <DateLeaf
+                  at={day.at}
+                  clock="local"
+                  caption={formatRelativeTime(day.at, { words: DATE_WORDS })}
+                  size="sm"
+                  className="mt-1"
+                />
+                <span aria-hidden="true" className="bg-border-accent/60 w-px flex-1" />
+              </span>
+              <ul className="flex flex-col gap-1">
+                {day.rows.map((row) => (
+                  <li key={rowKey(row)}>
+                    {row.kind === "trade-batch" ? (
+                      <TradeBatchRow slug={slug} batch={row} />
+                    ) : (
+                      <ActivityRow slug={slug} event={row.event} />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
         </ul>
       )}
     </section>
@@ -125,7 +123,7 @@ function TradeBatchRow({ slug, batch }: { slug: string; batch: TradeBatch }) {
     imageId: frontImageId(printingsById[printingId]),
   }));
   return (
-    <Link to="/groups/$slug/trades" params={{ slug }} className={HOVER_ROW_CLASS}>
+    <RowListLink render={<Link to="/groups/$slug/trades" params={{ slug }} />}>
       <IconChip icon={ArrowLeftRightIcon} tone="primary" size="sm" shape="round" />
       <CardArtThumbStack items={thumbs} thumbClassName="w-6" />
       <span className="text-muted-foreground line-clamp-2 min-w-0 flex-1 text-sm">
@@ -141,7 +139,7 @@ function TradeBatchRow({ slug, batch }: { slug: string; batch: TradeBatch }) {
               : (batch.receiverName ?? m.groups_a_member()),
         })}
       </span>
-    </Link>
+    </RowListLink>
   );
 }
 
@@ -169,7 +167,7 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
   switch (event.kind) {
     case "trade-completed": {
       return (
-        <Link to="/groups/$slug/trades" params={{ slug }} className={HOVER_ROW_CLASS}>
+        <RowListLink render={<Link to="/groups/$slug/trades" params={{ slug }} />}>
           <IconChip icon={ArrowLeftRightIcon} tone="primary" size="sm" shape="round" />
           {text(
             m.groups_activity_trade_completed({
@@ -186,12 +184,12 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
             }),
             thumb(event.printingId),
           )}
-        </Link>
+        </RowListLink>
       );
     }
     case "match": {
       return (
-        <Link to="/groups/$slug/trades" params={{ slug }} className={HOVER_ROW_CLASS}>
+        <RowListLink render={<Link to="/groups/$slug/trades" params={{ slug }} />}>
           <IconChip icon={SparklesIcon} tone="primary" size="sm" shape="round" />
           {text(
             m.groups_activity_match({
@@ -200,15 +198,15 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
             }),
             thumb(event.printingId),
           )}
-        </Link>
+        </RowListLink>
       );
     }
     case "member-joined": {
       return (
-        <Link
-          to="/groups/$slug/members/$userId"
-          params={{ slug, userId: event.userId }}
-          className={HOVER_ROW_CLASS}
+        <RowListLink
+          render={
+            <Link to="/groups/$slug/members/$userId" params={{ slug, userId: event.userId }} />
+          }
         >
           <UserAvatar
             image={event.userImage}
@@ -220,16 +218,14 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
               member: event.userName ?? m.groups_activity_a_member(),
             }),
           )}
-        </Link>
+        </RowListLink>
       );
     }
     case "list-shared": {
       const Icon = LIST_INTENT_ICON[event.listIntent];
       return (
-        <Link
-          to="/groups/$slug/lists/$listId"
-          params={{ slug, listId: event.listId }}
-          className={HOVER_ROW_CLASS}
+        <RowListLink
+          render={<Link to="/groups/$slug/lists/$listId" params={{ slug, listId: event.listId }} />}
         >
           <IconChip icon={Icon} size="sm" shape="round" />
           {text(
@@ -239,15 +235,18 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
               list: event.listName,
             }),
           )}
-        </Link>
+        </RowListLink>
       );
     }
     case "collection-shared": {
       return (
-        <Link
-          to="/groups/$slug/collections/$collectionId"
-          params={{ slug, collectionId: event.collectionId }}
-          className={HOVER_ROW_CLASS}
+        <RowListLink
+          render={
+            <Link
+              to="/groups/$slug/collections/$collectionId"
+              params={{ slug, collectionId: event.collectionId }}
+            />
+          }
         >
           <IconChip icon={FolderIcon} size="sm" shape="round" />
           {text(
@@ -256,7 +255,7 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
               collection: event.collectionName,
             }),
           )}
-        </Link>
+        </RowListLink>
       );
     }
   }

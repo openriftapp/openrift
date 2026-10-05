@@ -1,7 +1,10 @@
+import { LogInIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { siDiscord, siGoogle } from "simple-icons";
 import { toast } from "sonner";
 
 import { Heading } from "@/components/heading";
+import { BrandGlyph } from "@/components/ui/brand-glyph";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldGroup, FieldSeparator } from "@/components/ui/field";
@@ -14,30 +17,42 @@ export function AuthFormCard({
   className,
   title,
   subtitle,
+  layout = "split",
   children,
   ...props
-}: React.ComponentProps<"div"> & { title: string; subtitle: string }) {
+}: Omit<React.ComponentProps<"div">, "title"> & {
+  title: string;
+  subtitle: ReactNode;
+  layout?: "split" | "single";
+}) {
+  const split = layout === "split";
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0">
-        <CardContent className="grid p-0 md:grid-cols-2">
+        <CardContent className={cn("grid p-0", split && "md:grid-cols-2")}>
           <div className="p-6 md:p-8">
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
-                <img src="/logo-color.svg" alt="OpenRift" className="size-12 md:hidden" />
+                <img
+                  src="/logo-color.svg"
+                  alt="OpenRift"
+                  className={cn("size-12", split && "md:hidden")}
+                />
                 <Heading level={1}>{title}</Heading>
                 <p className="text-muted-foreground text-balance">{subtitle}</p>
               </div>
               {children}
             </FieldGroup>
           </div>
-          <div className="bg-muted relative hidden md:block">
-            <img
-              src="/logo-color.svg"
-              alt="OpenRift"
-              className="absolute inset-0 m-auto size-48 object-contain"
-            />
-          </div>
+          {split && (
+            <div className="bg-muted relative hidden md:block">
+              <img
+                src="/logo-color.svg"
+                alt="OpenRift"
+                className="absolute inset-0 m-auto size-48 object-contain"
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -70,9 +85,7 @@ export function SocialAuthButtons({ redirectTo }: { redirectTo?: string }) {
           className="w-full"
           onClick={() => void signInWith("google")}
         >
-          <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-            <path d={siGoogle.path} fill="currentColor" />
-          </svg>
+          <BrandGlyph icon={siGoogle} fallback={LogInIcon} />
           Google
         </Button>
         <Button
@@ -81,9 +94,7 @@ export function SocialAuthButtons({ redirectTo }: { redirectTo?: string }) {
           className="w-full"
           onClick={() => void signInWith("discord")}
         >
-          <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-            <path d={siDiscord.path} fill="currentColor" />
-          </svg>
+          <BrandGlyph icon={siDiscord} fallback={LogInIcon} />
           Discord
         </Button>
       </Field>

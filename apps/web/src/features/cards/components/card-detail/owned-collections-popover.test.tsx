@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Component } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { FilterSearchProvider } from "@/features/cards/lib/search-schemas";
+import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { useSearchScopeStore } from "@/features/cards/stores/search-scope-store";
 import { useDisplayStore } from "@/stores/display-store";
 import { createStoreResetter } from "@/test/store-helpers";
@@ -32,7 +32,7 @@ const { sessionMock } = vi.hoisted(() => ({
   })),
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useSession: sessionMock,
 }));
 

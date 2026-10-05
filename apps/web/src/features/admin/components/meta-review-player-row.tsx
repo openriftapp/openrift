@@ -1,9 +1,11 @@
 import { formatRelativeTime } from "@openrift/shared/format-date";
+import { pluralize } from "@openrift/shared/strings";
 import type { MetaOverlayQueueRow } from "@openrift/shared/types/api/meta";
 import { CheckIcon, LinkIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
@@ -15,7 +17,7 @@ import {
   PlayerMatches,
   SubmissionLedger,
 } from "@/features/admin/components/meta-review-overlay-detail";
-import { ConfirmActionButton, rankLabel } from "@/features/admin/components/meta-review-shared";
+import { rankLabel } from "@/features/admin/components/meta-review-shared";
 import {
   useAcceptMetaPlayerOverlay,
   useRejectMetaOverlay,
@@ -43,7 +45,7 @@ function StandingsCell({ overlay }: { overlay: MetaOverlayQueueRow }) {
     case "linked": {
       return (
         <>
-          <Badge variant="muted">
+          <Badge variant="neutral">
             <LinkIcon />
             linked
           </Badge>
@@ -64,7 +66,7 @@ function StandingsCell({ overlay }: { overlay: MetaOverlayQueueRow }) {
       return (
         <>
           <Badge variant="warning">
-            {match.candidateCount} candidate{match.candidateCount === 1 ? "" : "s"}
+            {match.candidateCount} {pluralize(match.candidateCount, "candidate")}
           </Badge>
           <span className="text-muted-foreground text-xs">pick one below</span>
         </>
@@ -79,7 +81,7 @@ function StandingsCell({ overlay }: { overlay: MetaOverlayQueueRow }) {
       );
     }
     case "unscored": {
-      return <Badge variant="muted">accept the event first</Badge>;
+      return <Badge variant="neutral">accept the event first</Badge>;
     }
   }
 }
@@ -94,7 +96,7 @@ function CardsCell({ overlay }: { overlay: MetaOverlayQueueRow }) {
   return (
     <span className="flex items-center gap-1.5">
       <CheckIcon className="text-success size-3.5" />
-      {overlay.cards.length} line{overlay.cards.length === 1 ? "" : "s"}
+      {overlay.cards.length} {pluralize(overlay.cards.length, "line")}
     </span>
   );
 }
@@ -118,7 +120,7 @@ export function MetaReviewPlayerRow({ overlay }: { overlay: MetaOverlayQueueRow 
   const unmatched =
     overlay.unresolvedNames.length === 0
       ? ""
-      : ` ${String(overlay.unresolvedNames.length)} card${overlay.unresolvedNames.length === 1 ? "" : "s"} match nothing in the catalog, so it lands without a decklist.`;
+      : ` ${String(overlay.unresolvedNames.length)} ${pluralize(overlay.unresolvedNames.length, "card")} match nothing in the catalog, so it lands without a decklist.`;
 
   async function runAccept(): Promise<void> {
     const metaEventPlayerId = state === "exact" ? (overlay.match?.metaEventPlayerId ?? null) : null;
@@ -229,8 +231,8 @@ export function MetaReviewPlayerRow({ overlay }: { overlay: MetaOverlayQueueRow 
                 )}
                 {confirming && (
                   <p className="text-muted-foreground text-sm">
-                    {overlay.unresolvedNames.length} card
-                    {overlay.unresolvedNames.length === 1 ? "" : "s"} match nothing, so this lands
+                    {overlay.unresolvedNames.length}{" "}
+                    {pluralize(overlay.unresolvedNames.length, "card")} match nothing, so this lands
                     as a standings row with no decklist.
                   </p>
                 )}
@@ -257,7 +259,7 @@ export function MetaReviewPlayerRow({ overlay }: { overlay: MetaOverlayQueueRow 
                     <p className="text-muted-foreground text-sm">
                       {keepsNothing
                         ? "Nothing left to claim. Reject the row instead."
-                        : `Unticked fields stay with the sources. Accepting claims ${String(kept.length)} field${kept.length === 1 ? "" : "s"}.`}
+                        : `Unticked fields stay with the sources. Accepting claims ${String(kept.length)} ${pluralize(kept.length, "field")}.`}
                     </p>
                   )}
                 </div>

@@ -1,6 +1,6 @@
-import { formatDayMonthYear, formatMonthYear } from "@openrift/shared/format-date";
+import { formatDayMonthYear, formatMonthYear, todayUtc } from "@openrift/shared/format-date";
 import type { SetRelease, SetReleases } from "@openrift/shared/set-release";
-import { isReleased, todayUtc } from "@openrift/shared/set-release";
+import { isReleased } from "@openrift/shared/set-release";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
 
 import { DATE_WORDS } from "@/lib/date-words";

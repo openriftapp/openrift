@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
-import type { ImportStep } from "@/features/collections/hooks/import-flow-shared";
+import type { ImportStep } from "@/features/collections/lib/import-flow-shared";
 import {
   createImportEntryHandlers,
   deriveImportSummary,
@@ -10,10 +10,11 @@ import {
   IMPORT_BATCH_SIZE,
   runImportParse,
   STATUS_SORT_ORDER,
-} from "@/features/collections/hooks/import-flow-shared";
+} from "@/features/collections/lib/import-flow-shared";
 import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
 import { matchEntries } from "@/features/collections/lib/import-matcher";
 import { useBulkAddListEntries } from "@/features/lists/hooks/use-lists";
+import { sendInBatches } from "@/lib/send-in-batches";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -100,16 +101,10 @@ export function useListImportFlow(
 
     const payload = buildListImportPayload(importableEntries, listKind);
 
-    const batches: (typeof payload)[] = [];
-    for (let offset = 0; offset < payload.length; offset += IMPORT_BATCH_SIZE) {
-      batches.push(payload.slice(offset, offset + IMPORT_BATCH_SIZE));
-    }
-
-    const sendAllBatches = async () => {
-      for (const batch of batches) {
-        await bulkAddEntries.mutateAsync({ listId, entries: batch });
-      }
-    };
+    const sendAllBatches = () =>
+      sendInBatches(payload, IMPORT_BATCH_SIZE, (entries) =>
+        bulkAddEntries.mutateAsync({ listId, entries }),
+      );
 
     const successMessage = m.lists_import_success({ count: summary.totalCards });
 

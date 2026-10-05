@@ -44,6 +44,16 @@ import {
   useCollections,
   useReorderCollections,
 } from "@/features/collections/hooks/use-collections";
+import type {
+  AnyDragData,
+  CardDragData,
+  SidebarReorderCollectionDragData,
+  SidebarReorderListDragData,
+} from "@/features/collections/lib/dnd-types";
+import {
+  COLLECTION_DRAG_TYPES,
+  SIDEBAR_REORDER_DRAG_TYPES,
+} from "@/features/collections/lib/dnd-types";
 import { deckBoxLabel } from "@/features/decks/lib/deck-box-label";
 import { CreateListDialog, LIST_KIND_ICON } from "@/features/lists/components/create-list-dialog";
 import { DroppableSidebarList } from "@/features/lists/components/droppable-sidebar-list";
@@ -58,13 +68,6 @@ import { moreKey, useSidebarFoldStore } from "@/stores/sidebar-fold-store";
 
 import { CollectionRowMenu } from "./collection-row-menu";
 import { CreateCollectionDialog } from "./create-collection-dialog";
-import type {
-  AnyDragData,
-  CardDragData,
-  SidebarReorderCollectionDragData,
-  SidebarReorderListDragData,
-} from "./dnd-types";
-import { COLLECTION_DRAG_TYPES, SIDEBAR_REORDER_DRAG_TYPES } from "./dnd-types";
 import { DroppableCollection } from "./droppable-collection";
 import { SidebarShowMoreRow } from "./sidebar-show-more-row";
 import { SIDEBAR_ROW_ICON_CLASS, SortableSidebarRow } from "./sortable-sidebar-row";

@@ -37,7 +37,7 @@ vi.mock("@/features/stage/hooks/use-stage-presets", () => ({
 }));
 
 const userId = vi.fn<() => string | null>(() => null);
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useUserId: () => userId(),
 }));
 

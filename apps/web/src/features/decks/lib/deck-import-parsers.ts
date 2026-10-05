@@ -6,9 +6,6 @@ import { ZONE_LABELS } from "@openrift/shared/deck-zones";
 import type { PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
 import { sourceSlotForZone } from "@openrift/shared/zone-inference";
 
-export type { DeckImportEntry } from "@openrift/shared/deck-code";
-export { parseDeckImportData } from "@openrift/shared/deck-codecs/parse";
-
 export type DeckImportFormat = DeckCodeFormat;
 
 export type DeckImportUrlSniff =

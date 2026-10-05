@@ -14,20 +14,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconChip } from "@/components/ui/icon-chip";
 import { Input } from "@/components/ui/input";
-import { UserAvatar } from "@/components/user-avatar";
+import { formatRank } from "@/features/meta/lib/meta-format";
+import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import { isWalkoverPod } from "@/features/tournaments/lib/group-cut-units";
+import { formatScore } from "@/features/tournaments/lib/standings-display";
 import { groupPodMembersByTeam, teamDisplayName } from "@/features/tournaments/lib/team-display";
-import {
-  isMatchPairing,
-  ordinalPlace,
-  pairingLabel,
-} from "@/features/tournaments/lib/tournament-display";
+import { isMatchPairing, pairingLabel } from "@/features/tournaments/lib/tournament-display";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { WarningBadge, WarningList } from "./pairing-warnings";
 import { parsePoints, PodResultForm } from "./pod-result-form";
-import { formatScore } from "./standings-display";
 import { SwissResultForm } from "./swiss-result-form";
 
 interface PodResultEntry {
@@ -48,7 +45,7 @@ function MemberSeedBadge({
   return (
     <Badge variant="secondary" className="shrink-0 tabular-nums">
       {placement !== null && (
-        <span title={m.tournaments_pod_finished_place({ place: ordinalPlace(placement) })}>
+        <span title={m.tournaments_pod_finished_place({ place: formatRank(placement, false) })}>
           {placement}
         </span>
       )}
@@ -92,7 +89,6 @@ export function PodCard({
   winPoints,
   drawPoints,
   regionByPlayer,
-  regionLabel,
   showPenalty,
   warnings,
   warningsExpanded,
@@ -112,7 +108,6 @@ export function PodCard({
   winPoints: number;
   drawPoints: number;
   regionByPlayer?: Map<string, string | null>;
-  regionLabel: (slug: string) => string;
   showPenalty: boolean;
   warnings: PairingWarning[];
   warningsExpanded: boolean;
@@ -182,9 +177,11 @@ export function PodCard({
       return null;
     }
     const name = teamDisplayName(members.map((member) => member.displayName));
+    const region = regionByPlayer?.get(lead.playerId);
+    const solo = members.length === 1;
     return (
       <li key={lead.teamId ?? lead.playerId} className="flex items-center justify-between gap-2">
-        <span className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           {renderMemberLeading?.(lead.playerId)}
           {isMatch ? (
             lead.gamePoints === null ? null : (
@@ -199,15 +196,15 @@ export function PodCard({
           ) : (
             <MemberSeedBadge placement={lead.placement} gamePoints={lead.gamePoints} />
           )}
-          <UserAvatar name={name} size="sm" />
-          <span className="truncate font-medium">{name}</span>
-          {regionByPlayer?.get(lead.playerId) ? (
-            <Badge variant="outline" className="shrink-0">
-              {regionLabel(regionByPlayer.get(lead.playerId) ?? "")}
-            </Badge>
-          ) : null}
-          {renderMemberBadge?.(lead.playerId)}
-        </span>
+          <PlayerChip
+            name={name}
+            image={solo ? lead.image : null}
+            gravatarHash={solo ? lead.gravatarHash : null}
+            region={region}
+          >
+            {renderMemberBadge?.(lead.playerId)}
+          </PlayerChip>
+        </div>
         {selfEntry && scoringPlayerId === lead.playerId ? (
           <span className="flex items-center gap-1.5">
             <Input
@@ -292,10 +289,10 @@ export function PodCard({
           <span className="ml-auto flex items-center gap-2">
             {crossGroup ? <Badge variant="info">{m.tournaments_pod_cross_group()}</Badge> : null}
             {showPenalty && !warningsExpanded ? (
-              <WarningBadge warnings={warnings} nameById={nameById} regionLabel={regionLabel} />
+              <WarningBadge warnings={warnings} nameById={nameById} />
             ) : null}
             {walkover ? (
-              <Badge variant="muted">{m.tournaments_pod_walkover()}</Badge>
+              <Badge variant="neutral">{m.tournaments_pod_walkover()}</Badge>
             ) : (
               <PodStatusBadge
                 reported={reported}
@@ -310,7 +307,7 @@ export function PodCard({
           <p className="text-muted-foreground text-sm">{penaltySummary}</p>
         ) : null}
         {showPenalty && warningsExpanded ? (
-          <WarningList warnings={warnings} nameById={nameById} regionLabel={regionLabel} />
+          <WarningList warnings={warnings} nameById={nameById} />
         ) : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -390,7 +387,7 @@ function PodStatusBadge({
     return <Badge variant="success">{m.tournaments_pod_reported()}</Badge>;
   }
   return (
-    <Badge variant={enteredCount > 0 ? "warning" : "muted"}>
+    <Badge variant={enteredCount > 0 ? "warning" : "neutral"}>
       {m.tournaments_pod_entered_of({ entered: enteredCount, size })}
     </Badge>
   );

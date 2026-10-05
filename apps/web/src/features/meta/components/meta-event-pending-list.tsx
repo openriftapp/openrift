@@ -30,7 +30,7 @@ export function MetaEventPendingList({ items }: { items: readonly MetaPendingSub
             <span className="text-muted-foreground">{kinds[item.kind]}</span>
             {item.mine && (
               <TextLink render={<Link to="/meta/submissions" />}>
-                <Badge variant="muted">{m.meta_pending_yours()}</Badge>
+                <Badge variant="neutral">{m.meta_pending_yours()}</Badge>
               </TextLink>
             )}
           </li>

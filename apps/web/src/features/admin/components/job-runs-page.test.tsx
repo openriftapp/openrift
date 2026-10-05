@@ -72,7 +72,7 @@ vi.mock("@/features/admin/hooks/use-job-runs", async () => {
   };
 });
 
-vi.mock("@/hooks/use-rehost", () => ({
+vi.mock("@/features/admin/hooks/use-rehost", () => ({
   useCancelRegenerateImages: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
@@ -137,6 +137,24 @@ describe("JobRunsPage", () => {
     render(<JobRunsPage />);
 
     expect(screen.getByText("server restarted during run")).toBeInTheDocument();
+  });
+
+  it("opens a run's raw result under its row", async () => {
+    const user = userEvent.setup();
+    render(<JobRunsPage />);
+
+    expect(screen.queryByText(/"requests": 155/u)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Show details" }));
+
+    expect(screen.getByText(/"requests": 155/u)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Hide details" })).toBeInTheDocument();
+  });
+
+  it("says when no runs match the filters", () => {
+    captured.response = response({ runs: [], total: 3 });
+    render(<JobRunsPage />);
+
+    expect(screen.getByText("No runs match the current filters.")).toBeInTheDocument();
   });
 
   it("offers a whole namespace as one filter, and asks the API for the family", async () => {

@@ -6,12 +6,9 @@ import { dispatchExcludeFromRule } from "@/features/cards/stores/card-row-action
 import { TradePreferencePill } from "@/features/groups/components/trade-preference-pill";
 import { TradeStatusChip } from "@/features/groups/components/trade-status-chip";
 import { ListEntryTableActions } from "@/features/lists/components/list-entry-table-actions";
-import type { ListTradeIndex } from "@/features/lists/components/list-trade-status";
-import {
-  listEntryTrades,
-  listEntryTradeStatus,
-} from "@/features/lists/components/list-trade-status";
 import { RuleSourceBadge } from "@/features/lists/components/rule-source-badge";
+import type { ListTradeIndex } from "@/features/lists/lib/list-trade-status";
+import { listEntryTrades, listEntryTradeStatus } from "@/features/lists/lib/list-trade-status";
 import { entryToExcludeTarget } from "@/features/rules/lib/rule-exclude";
 
 interface ListActionsCellProps extends TableRowSlotProps {

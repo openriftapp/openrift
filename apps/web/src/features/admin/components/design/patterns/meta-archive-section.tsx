@@ -1,3 +1,4 @@
+import { formatRecord } from "@openrift/shared/meta-standings";
 import { useState } from "react";
 
 import {
@@ -14,7 +15,6 @@ import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
-import { formatRecord } from "@/features/meta/lib/meta-format";
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
 
 const GROUPS = {
@@ -26,7 +26,7 @@ const GROUPS = {
 
 export const META_ARCHIVE_GROUPS: readonly DesignGroup[] = Object.values(GROUPS);
 
-const DEMO_LEGEND = "Lux, Lady of Luminosity";
+const DEMO_LEGEND = { character: "Lux", epithet: "Lady of Luminosity" };
 
 export function MetaArchiveSection() {
   const [scope, setScope] = useState<MetaScope>({});
@@ -57,25 +57,25 @@ export function MetaArchiveSection() {
       >
         <DemoGrid>
           <Demo name="row" hint="Bylines and headers.">
-            <MetaIdentity name={DEMO_LEGEND} domains={["order", "calm"]} />
+            <MetaIdentity legend={DEMO_LEGEND} domains={["order", "calm"]} />
           </Demo>
           <Demo name="stacked" hint="Two-line table cell.">
-            <MetaIdentity name={DEMO_LEGEND} domains={["order", "calm"]} layout="stacked" />
+            <MetaIdentity legend={DEMO_LEGEND} domains={["order", "calm"]} layout="stacked" />
           </Demo>
           <Demo name="tile" hint="Deck tiles and winner cards.">
-            <MetaIdentity name={DEMO_LEGEND} domains={["order", "calm"]} layout="tile" />
+            <MetaIdentity legend={DEMO_LEGEND} domains={["order", "calm"]} layout="tile" />
           </Demo>
           <Demo name="championOnly" hint="The compact bracket, and nowhere else.">
-            <MetaIdentity name={DEMO_LEGEND} championOnly />
+            <MetaIdentity legend={DEMO_LEGEND} championOnly />
           </Demo>
           <Demo
             name="linked"
             hint="Links the champion at its card page. Omit the slug inside a wrapper that is itself a link."
           >
-            <MetaIdentity name={DEMO_LEGEND} slug="lady-of-luminosity" />
+            <MetaIdentity legend={DEMO_LEGEND} slug="lady-of-luminosity" />
           </Demo>
           <Demo name="untagged" hint="A legend with no champion is all champion.">
-            <MetaIdentity name="Emperor of the Sands" />
+            <MetaIdentity legend={{ character: null, epithet: "Emperor of the Sands" }} />
           </Demo>
         </DemoGrid>
       </DemoGroup>

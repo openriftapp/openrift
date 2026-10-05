@@ -1,4 +1,3 @@
-import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
 import type {
   MetaCancellableJob,
   MetaSource,
@@ -6,23 +5,13 @@ import type {
 } from "@openrift/shared/contracts/admin/meta-catalog";
 import { formatDayTime, formatRelativeTime } from "@openrift/shared/format-date";
 import { Link } from "@tanstack/react-router";
-import { PlayIcon, RefreshCwIcon, SquareIcon } from "lucide-react";
+import { PlayIcon, SquareIcon } from "lucide-react";
 import { useState } from "react";
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DialogForm } from "@/components/ui/dialog-form";
 import { JobStatusBadge } from "@/features/admin/components/job-status-badge";
 import { announceSyncTrigger } from "@/features/admin/components/meta-catalog-shared";
 import { useCancelMetaRun, useRunMetaSync } from "@/features/admin/hooks/use-admin-meta-catalog";
@@ -49,55 +38,43 @@ export function TriggerRow({
   pending: boolean;
   disabled: boolean;
   pendingTriage: number | null;
-  onStart: () => void;
+  onStart: () => Promise<unknown>;
 }) {
   const scheduled = entry.scheduleKey === undefined || schedules[entry.scheduleKey] === true;
   const confirm = entry.confirm;
-  const face = (
-    <>
-      {pending ? <RefreshCwIcon className="animate-spin" /> : <PlayIcon />}
-      {entry.label}
-    </>
-  );
   return (
     <div className="flex items-start gap-3">
       {confirm === undefined ? (
         <Button
           variant="outline"
           disabled={disabled}
-          onClick={onStart}
+          pending={pending}
+          onClick={() => void onStart()}
           className="w-48 shrink-0 justify-start"
         >
-          {face}
+          <PlayIcon />
+          {entry.label}
         </Button>
       ) : (
-        <AlertDialog>
-          <AlertDialogTrigger
-            disabled={disabled}
-            render={<Button variant="outline" className="w-48 shrink-0 justify-start" />}
-          >
-            {face}
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <DialogForm onSubmit={onStart}>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{confirm.title}</AlertDialogTitle>
-                <AlertDialogDescription>{confirm.body(pendingTriage)}</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogPrimitive.Close render={<Button type="submit" />}>
-                  {confirm.action}
-                </AlertDialogPrimitive.Close>
-              </AlertDialogFooter>
-            </DialogForm>
-          </AlertDialogContent>
-        </AlertDialog>
+        <ConfirmActionButton
+          disabled={disabled}
+          trigger={
+            <Button variant="outline" pending={pending} className="w-48 shrink-0 justify-start" />
+          }
+          title={confirm.title}
+          description={confirm.body(pendingTriage)}
+          confirmLabel={confirm.action}
+          destructive={false}
+          onConfirm={onStart}
+        >
+          <PlayIcon />
+          {entry.label}
+        </ConfirmActionButton>
       )}
       <div className="text-muted-foreground">
         {entry.description}
         {!scheduled && (
-          <Badge variant="muted" className="ml-2">
+          <Badge variant="neutral" className="ml-2">
             cron disabled
           </Badge>
         )}
@@ -121,11 +98,11 @@ function StopRow({
     <div className="flex items-start gap-3">
       <Button
         variant="outline"
-        disabled={pending}
+        pending={pending}
         onClick={onStop}
         className="w-48 shrink-0 justify-start"
       >
-        {pending ? <RefreshCwIcon className="animate-spin" /> : <SquareIcon />}
+        <SquareIcon />
         {label}
       </Button>
       <div className="text-muted-foreground">{description}</div>
@@ -218,7 +195,7 @@ export function TriggersCard({
               pending={pending === entry.trigger}
               disabled={run.isPending}
               pendingTriage={pendingTriage}
-              onStart={() => void start(entry.trigger, entry.label)}
+              onStart={() => start(entry.trigger, entry.label)}
             />
           );
         })}
@@ -238,7 +215,7 @@ export function TriggersCard({
                 pending={pending === entry.trigger}
                 disabled={run.isPending}
                 pendingTriage={pendingTriage}
-                onStart={() => void start(entry.trigger, entry.label)}
+                onStart={() => start(entry.trigger, entry.label)}
               />
             ))}
           {backfill.phase === "running" && (
@@ -277,13 +254,13 @@ function LastRunLine({ runs, source }: { runs: MetaSyncStatus["runs"]; source: M
           )}
         </>
       )}
-      <Button
-        variant="ghost"
-        size="sm"
-        render={<Link to="/admin/job-runs" search={{ runPrefix: JOB_KIND_PREFIX[source] }} />}
+      <Link
+        to="/admin/job-runs"
+        search={{ runPrefix: JOB_KIND_PREFIX[source] }}
+        className={buttonVariants({ variant: "ghost", size: "sm" })}
       >
         All runs
-      </Button>
+      </Link>
     </div>
   );
 }

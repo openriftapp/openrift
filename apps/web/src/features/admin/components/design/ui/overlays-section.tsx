@@ -1,4 +1,4 @@
-import { ChevronDownIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/context-menu";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -33,7 +34,9 @@ import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
@@ -83,8 +86,8 @@ export function OverlaysSection() {
           <Button variant="outline" onClick={() => setAlertOpen(true)}>
             Alert dialog
           </Button>
-          <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
-            <Trash2Icon /> Delete deck
+          <Button variant="outline" onClick={() => setConfirmOpen(true)}>
+            Confirm (non-destructive)
           </Button>
           <Button variant="outline" onClick={() => setSheetOpen(true)}>
             Sheet
@@ -106,7 +109,10 @@ export function OverlaysSection() {
               }
             />
             <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => toast("Renamed")}>Rename</DropdownMenuItem>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Deck</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => toast("Renamed")}>Rename</DropdownMenuItem>
+              </DropdownMenuGroup>
               <DropdownMenuItem variant="destructive" onClick={() => toast("Deleted")}>
                 Delete
               </DropdownMenuItem>
@@ -159,9 +165,7 @@ export function OverlaysSection() {
             </DialogHeader>
             <Input placeholder="Jinx Aggro" />
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancel
-              </Button>
+              <DialogCancel />
               <Button type="submit">Save</Button>
             </DialogFooter>
           </DialogForm>
@@ -178,7 +182,9 @@ export function OverlaysSection() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction type="submit">Delete</AlertDialogAction>
+              <AlertDialogAction variant="destructive" type="submit">
+                Delete
+              </AlertDialogAction>
             </AlertDialogFooter>
           </DialogForm>
         </AlertDialogContent>
@@ -186,12 +192,13 @@ export function OverlaysSection() {
       <ConfirmActionDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title="Delete Jinx Aggro?"
-        description="The deck and its plans are removed. Cards in your collection stay untouched."
-        confirmLabel="Delete"
+        title="Publish Jinx Aggro?"
+        description="Anyone with the link can see the deck and its plans."
+        confirmLabel="Publish"
+        destructive={false}
         onConfirm={() => {
           setConfirmOpen(false);
-          toast("Deleted (demo only)");
+          toast("Published (demo only)");
         }}
       />
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>

@@ -1,5 +1,3 @@
-import { initContract } from "@openrift/shared/contracts/init";
-import { pricesContract } from "@openrift/shared/contracts/prices";
 import { filterCards } from "@openrift/shared/filters";
 import type { AvailableFilters } from "@openrift/shared/filters-available";
 import { getAvailableFilters } from "@openrift/shared/filters-available";
@@ -25,28 +23,14 @@ import type { PresenceDimension, PresenceState } from "@openrift/shared/types/se
 import { DEFAULT_SEARCH_SCOPE, EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
 import { createServerFn } from "@tanstack/react-start";
 
-import { enrichCatalog, readCatalogFromServerCache } from "@/features/cards/lib/catalog-query";
+import { enrichCatalog, readCatalogFromServerCache } from "@/features/cards/lib/catalog-queries";
+import { readPricesFromServerCache } from "@/features/cards/lib/prices-queries";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
-import { serverCache } from "@/lib/server-cache";
-import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+import { readInitFromServerCache } from "@/lib/init-queries";
 
 // Both match PREFERENCE_DEFAULTS from shared/types/api/preferences.ts.
 const SSR_MARKETPLACE: Marketplace = "cardtrader";
 const SSR_DEFAULT_VIEW = "cards";
-
-function readPricesFromServerCache(): Promise<PricesResponse> {
-  return serverCache.query({
-    queryKey: ["server-cache", "prices"],
-    queryFn: () => apiOrpcClient(pricesContract).prices(),
-  });
-}
-
-function readInitFromServerCache(): Promise<InitResponse> {
-  return serverCache.query({
-    queryKey: ["server-cache", "init"],
-    queryFn: () => apiOrpcClient(initContract).get(),
-  });
-}
 
 function ordersFromInit(init: InitResponse): EnumOrders {
   const slugs = (rows: { slug: string; sortOrder: number }[]): string[] =>

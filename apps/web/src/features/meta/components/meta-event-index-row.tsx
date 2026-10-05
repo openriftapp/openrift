@@ -1,21 +1,18 @@
-import { dateLeafPartsUtc, formatDay } from "@openrift/shared/format-date";
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import { formatDay } from "@openrift/shared/format-date";
+import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaEventFinish, MetaEventSummary } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 
 import { CountryFlag } from "@/components/ui/country-flag";
 import { DateLeaf } from "@/components/ui/date-leaf";
+import { RowListLink } from "@/components/ui/row-list";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
-import {
-  formatRecord,
-  joinNames,
-  metaEventCounts,
-  metaEventEmptyStatus,
-  splitLegendName,
-} from "@/features/meta/lib/meta-format";
+import { joinNames, metaEventCounts, metaEventEmptyStatus } from "@/features/meta/lib/meta-format";
 import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
-import { DATE_WORDS } from "@/lib/date-words";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 /** Shared with the sort header above so the two grids can never drift apart. */
 export const EVENT_INDEX_GRID =
@@ -23,23 +20,21 @@ export const EVENT_INDEX_GRID =
 
 /** Both layouts share one Link, so an event stays one click target and tab stop at every width. */
 export function MetaEventIndexRow({ event }: { event: MetaEventSummary }) {
-  const leaf = dateLeafPartsUtc(event.eventDate, DATE_WORDS);
   const venue = [event.organizer, event.location].filter(Boolean).join(" · ");
   const counts = metaEventCounts(event);
   const winners = metaEventWinners(event);
   const emptyStatus = metaEventEmptyStatus(event);
 
   return (
-    <Link
-      to="/meta/$slug"
-      params={{ slug: event.slug }}
-      className="hover:bg-muted/50 focus-visible:ring-ring/50 -mx-2 block rounded-md px-2 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-inset"
+    <RowListLink
+      render={<Link to="/meta/$slug" params={{ slug: event.slug }} />}
+      className="block py-2.5"
     >
       <span className="sr-only">{formatDay(event.eventDate)}</span>
 
       <div className={cn(EVENT_INDEX_GRID, "hidden sm:grid")}>
         <span aria-hidden className="contents">
-          <DateLeaf month={leaf.month} day={leaf.day} caption={leaf.year} size="sm" />
+          <DateLeaf at={event.eventDate} clock="utc" showYear size="sm" />
         </span>
         <div className="min-w-0">
           <p className="truncate font-medium">{event.name}</p>
@@ -76,13 +71,7 @@ export function MetaEventIndexRow({ event }: { event: MetaEventSummary }) {
 
       <div className="flex items-start gap-3 sm:hidden">
         <span aria-hidden className="contents">
-          <DateLeaf
-            month={leaf.month}
-            day={leaf.day}
-            caption={leaf.year}
-            size="sm"
-            className="mt-0.5"
-          />
+          <DateLeaf at={event.eventDate} clock="utc" showYear size="sm" className="mt-0.5" />
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="min-w-0">
@@ -97,7 +86,7 @@ export function MetaEventIndexRow({ event }: { event: MetaEventSummary }) {
           <WinnerLine winners={winners} />
         </div>
       </div>
-    </Link>
+    </RowListLink>
   );
 }
 
@@ -129,8 +118,11 @@ function WinnerLine({ winners }: { winners: readonly MetaEventFinish[] }) {
     <span className="flex min-w-0 items-center gap-2 text-sm">
       <LegendThumbs winners={winners} />
       <span className="truncate">
-        Won by{" "}
-        <span className="font-medium">{joinNames(winners.map((winner) => winner.playerName))}</span>
+        <ParaglideMessage
+          message={m.meta_event_won_by}
+          inputs={{ names: joinNames(winners.map((winner) => winner.playerName)) }}
+          markup={{ name: ({ children }) => <span className="font-medium">{children}</span> }}
+        />
       </span>
       {record !== null && (
         <span className="text-muted-foreground shrink-0 tabular-nums">{record}</span>
@@ -154,7 +146,7 @@ function LegendThumbs({ winners }: { winners: readonly MetaEventFinish[] }) {
 }
 
 function LegendThumb({ winner }: { winner: MetaEventFinish }) {
-  const champion = winner.legend === null ? "" : splitLegendName(winner.legend.name).champion;
+  const champion = winner.legend === null ? "" : (winner.legend.character ?? winner.legend.epithet);
   return (
     <CardArtThumb
       shape="square"

@@ -9,8 +9,8 @@ import { BookOpenIcon, CopyIcon, LibraryBigIcon, ListIcon, Trash2Icon, XIcon } f
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
+import { FloatingActionBar } from "@/components/floating-action-bar";
 import { Toggle } from "@/components/ui/toggle";
-import { useOnboardingStore } from "@/features/account/stores/onboarding-store";
 import {
   BrowserToolbar,
   CardBrowserFilterProvider,
@@ -21,11 +21,10 @@ import { SelectionDetailOverlays } from "@/features/cards/components/selection-d
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { useFilterActions } from "@/features/cards/hooks/use-card-filters";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { FilterSearchProvider, useFilterSearch } from "@/features/cards/hooks/use-filter-search";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
-import { FilterSearchProvider, useFilterSearch } from "@/features/cards/lib/search-schemas";
 import { dispatchItemToggle } from "@/features/cards/stores/card-row-actions-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
-import { FloatingActionBar } from "@/features/collections/components/floating-action-bar";
 import { TradePreferenceDialog } from "@/features/groups/components/trade-preference-dialog";
 import { useLiveTradesByPrinting, useUserTrades } from "@/features/groups/hooks/use-card-trades";
 import { AddEntryToCollectionDialog } from "@/features/lists/components/add-entry-to-collection-dialog";
@@ -33,16 +32,17 @@ import { ListActionsCell } from "@/features/lists/components/list-actions-cell";
 import { ListGridCell } from "@/features/lists/components/list-grid-cell";
 import { ListIntroBanner } from "@/features/lists/components/list-intro-banner";
 import { ListRemoveDialog } from "@/features/lists/components/list-remove-dialog";
-import { buildListTradeIndex } from "@/features/lists/components/list-trade-status";
 import { MoveCopiesToCollectionDialog } from "@/features/lists/components/move-copies-to-collection-dialog";
 import { MoveToListDialog } from "@/features/lists/components/move-to-list-dialog";
 import { TakeOffTradelistDialog } from "@/features/lists/components/take-off-tradelist-dialog";
 import { useListEntryBrowserData } from "@/features/lists/hooks/use-list-entry-browser-data";
 import { useListEntryBrowserSelection } from "@/features/lists/hooks/use-list-entry-browser-selection";
 import { entryAddsCopies } from "@/features/lists/lib/list-move";
+import { buildListTradeIndex } from "@/features/lists/lib/list-trade-status";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { m } from "@/paraglide/messages.js";
+import { useOnboardingStore } from "@/stores/onboarding-store";
 
 const LIST_HIDDEN_FILTER_SECTIONS: ReadonlySet<string> = new Set(["owned", "customTags"]);
 
@@ -385,7 +385,7 @@ export function ListEntryBrowser({
                   disabled: moveEntries.isPending || selectionHasRuleEntry,
                 },
                 {
-                  label: m.lists_entry_copy_action(),
+                  label: m.common_copy(),
                   icon: <CopyIcon />,
                   onClick: () => openListAction("copy", [...selected]),
                   disabled: moveEntries.isPending,

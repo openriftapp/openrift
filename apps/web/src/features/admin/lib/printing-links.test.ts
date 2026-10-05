@@ -36,6 +36,10 @@ describe("filterPrintingLinks", () => {
     expect(filterPrintingLinks(LINKS, "  VENGEFUL  ")).toEqual([PLAYLOL]);
   });
 
+  it("folds accents and matches each word in any field", () => {
+    expect(filterPrintingLinks(LINKS, "ánnie ogn")).toEqual([WILDCARD]);
+  });
+
   it("returns nothing when no row matches", () => {
     expect(filterPrintingLinks(LINKS, "riftbinder")).toEqual([]);
   });

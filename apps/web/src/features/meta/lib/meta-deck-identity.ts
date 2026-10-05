@@ -1,10 +1,12 @@
+import { legendDisplayName, legendNameParts } from "@openrift/shared/card-name";
 import type { PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 
 export interface ArchivedDeckIdentity {
   cardId: string;
   name: string;
+  character: string | null;
+  epithet: string;
   slug: string;
   domains: string[];
 }
@@ -19,9 +21,11 @@ export function archivedDeckIdentity(
   if (!named) {
     return null;
   }
+  const nameParts = { name: named.cardName, types: named.cardTypes, tags: named.tags };
   return {
     cardId: named.cardId,
-    name: legendDisplayName({ name: named.cardName, types: named.cardTypes, tags: named.tags }),
+    name: legendDisplayName(nameParts),
+    ...legendNameParts(nameParts),
     slug: named.cardSlug,
     domains: named.domains,
   };

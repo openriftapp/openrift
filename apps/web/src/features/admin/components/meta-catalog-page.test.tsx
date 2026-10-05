@@ -81,7 +81,10 @@ vi.mock("@/features/admin/hooks/use-admin-meta-catalog", () => ({
     return { data: captured.response };
   },
   useAcceptCatalogEvent: () => ({ mutateAsync: captured.accept, isPending: false }),
-  useDismissCatalogEvent: () => ({ mutateAsync: captured.dismiss, isPending: false }),
+  useDismissCatalogEvent: () => ({
+    mutateAsync: (input: unknown) => Promise.resolve(captured.dismiss(input)),
+    isPending: false,
+  }),
   useUndismissCatalogEvent: () => ({ mutate: captured.undismiss, isPending: false }),
   useFetchCatalogEvent: () => ({ mutateAsync: captured.fetchEvent, isPending: false }),
   useRunMetaSync: () => ({ mutateAsync: captured.runSync, isPending: false }),
@@ -348,7 +351,7 @@ describe("MetaCatalogPage", () => {
     render(<MetaCatalogPage />);
 
     await user.click(screen.getByRole("button", { name: /Accept/u }));
-    const dialog = await screen.findByRole("alertdialog");
+    const dialog = await screen.findByRole("dialog");
     await user.click(within(dialog).getByRole("combobox"));
     await user.click(await screen.findByRole("option", { name: "Standard" }));
     await user.click(within(dialog).getByRole("button", { name: "Accept" }));
@@ -366,7 +369,7 @@ describe("MetaCatalogPage", () => {
     await user.click(screen.getByRole("button", { name: /Accept/u }));
 
     expect(captured.accept).not.toHaveBeenCalled();
-    const dialog = await screen.findByRole("alertdialog");
+    const dialog = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent('The source calls this "Draft Cup"');
   });
 

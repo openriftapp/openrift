@@ -12,11 +12,13 @@ import {
 } from "lucide-react";
 import { siDiscord, siSignal, siTelegram, siWhatsapp } from "simple-icons";
 
+import { CopyTextButton } from "@/components/copy-text-button";
+import { Eyebrow } from "@/components/heading";
 import { BrandGlyph } from "@/components/ui/brand-glyph";
-import { Button, buttonVariants } from "@/components/ui/button";
+import type { BrandIconData } from "@/components/ui/brand-glyph";
+import { buttonVariants } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pressable } from "@/components/ui/pressable";
-import type { BrandIconData } from "@/features/admin/lib/source-brand";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -120,7 +122,6 @@ const COMPACT_CHIP_CLASS =
   "bg-muted text-muted-foreground hover:text-foreground inline-flex size-7 shrink-0 items-center justify-center rounded-full transition-colors";
 
 function ContactChipCompact({ method }: { method: ContactMethod }) {
-  const { copied, copy } = useCopyToClipboard();
   const label = CONTACT_METHOD_LABELS[method.type];
   const href = contactHref(method);
   return (
@@ -134,9 +135,9 @@ function ContactChipCompact({ method }: { method: ContactMethod }) {
       </PopoverTrigger>
       <PopoverContent className="w-60">
         <div className="flex flex-col gap-0.5">
-          <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+          <Eyebrow as="span" className="mb-0 text-xs">
             {label}
-          </span>
+          </Eyebrow>
           <span className="break-all select-all">{method.value}</span>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -152,10 +153,12 @@ function ContactChipCompact({ method }: { method: ContactMethod }) {
               {m.groups_contact_open()}
             </a>
           )}
-          <Button size="sm" variant="outline" onClick={() => void copy(method.value)}>
-            {copied ? <CheckIcon /> : <CopyIcon />}
-            {copied ? "Copied" : "Copy"}
-          </Button>
+          <CopyTextButton
+            size="sm"
+            value={method.value}
+            label={m.common_copy()}
+            normalizeLineBreaks={false}
+          />
         </div>
       </PopoverContent>
     </Popover>

@@ -1,12 +1,13 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/utils";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { CatalogSearchCombobox } from "@/features/cards/components/card-search-dropdown";
 import { PrintingHoverPreview } from "@/features/cards/components/printing-hover-preview";
 import { ImportPrintingLabel } from "@/features/cards/components/printing-label";
 import { PrintingThumbnail } from "@/features/cards/components/printing-option-content";
 import { useCardSearch } from "@/features/cards/hooks/use-card-search";
+import { usePrintingSearchIndex } from "@/features/cards/hooks/use-search-index";
+import type { PrintingSearchRow } from "@/features/cards/lib/card-search-rows";
 import { m } from "@/paraglide/messages.js";
 
 const MAX_RESULTS = 20;
@@ -21,32 +22,11 @@ export function PrintingSearch({
 }) {
   const [query, setQuery] = useState("");
 
-  const searchable = useMemo(
-    () =>
-      allPrintings.map((printing) => ({
-        id: printing.id,
-        slug: printing.shortCode,
-        name: legendDisplayName(printing.card),
-        altNames: cardSearchAltNames(printing.card, [printing.printedName]),
-        printing,
-      })),
-    [allPrintings],
-  );
-  const codesByRowId = useMemo(
-    () =>
-      new Map(
-        allPrintings.map((printing) => [
-          printing.id,
-          [{ shortCode: printing.shortCode, publicCode: printing.publicCode }],
-        ]),
-      ),
-    [allPrintings],
-  );
-
-  const results = useCardSearch(searchable, query, codesByRowId, MAX_RESULTS, MIN_QUERY_LENGTH);
+  const { rows, codesByRowId } = usePrintingSearchIndex(allPrintings);
+  const results = useCardSearch(rows, query, codesByRowId, MAX_RESULTS, MIN_QUERY_LENGTH);
 
   return (
-    <CatalogSearchCombobox<(typeof searchable)[number]>
+    <CatalogSearchCombobox<PrintingSearchRow>
       ariaLabel={m.cards_search_catalog_label()}
       placeholder={m.cards_search_catalog_placeholder()}
       className="h-7 w-44"

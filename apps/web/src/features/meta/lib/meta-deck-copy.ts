@@ -1,7 +1,8 @@
+import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaDeckDetailResponse } from "@openrift/shared/types/api/meta";
 
 import { archivedDeckIdentity } from "@/features/meta/lib/meta-deck-identity";
-import { formatRank, formatRecord } from "@/features/meta/lib/meta-format";
+import { formatRank } from "@/features/meta/lib/meta-format";
 import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
 

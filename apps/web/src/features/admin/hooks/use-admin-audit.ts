@@ -4,6 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import type { AuditFilters } from "@/features/admin/lib/admin-audit-queries";
 import { auditEventsQueryOptions } from "@/features/admin/lib/admin-audit-queries";
+import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type {
   AdminAuditActionsResponse,
   AdminAuditActorsResponse,
@@ -29,7 +30,7 @@ export function useAuditEvents(filters: AuditFilters) {
 
 export function useAuditActors() {
   return useQuery({
-    queryKey: ["admin", "audit-actors"] as const,
+    queryKey: adminKeys.audit.actors,
     queryFn: () => fetchAuditActorsFn(),
     staleTime: 5 * 60 * 1000,
   });
@@ -37,7 +38,7 @@ export function useAuditActors() {
 
 export function useAuditActions() {
   return useQuery({
-    queryKey: ["admin", "audit-actions"] as const,
+    queryKey: adminKeys.audit.actions,
     queryFn: () => fetchAuditActionsFn(),
     staleTime: 5 * 60 * 1000,
   });

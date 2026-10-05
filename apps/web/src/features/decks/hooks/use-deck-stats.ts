@@ -1,3 +1,4 @@
+import { totalQuantity } from "@openrift/shared/deck-rules";
 import type { DeckZone, Domain } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
@@ -178,7 +179,7 @@ export function useDeckStats(cards: DeckBuilderCard[]): DeckStats {
       return entry;
     });
 
-  const totalCards = mainCards.reduce((sum, card) => sum + card.quantity, 0);
+  const totalCards = totalQuantity(mainCards);
 
   return {
     domainDistribution,

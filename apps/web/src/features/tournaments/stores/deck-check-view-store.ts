@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import type { DeckCheckSort } from "@/features/tournaments/lib/deck-check-sort";
+import { mergeFields, pickBoolean, pickEnum } from "@/lib/persist-merge";
 
 export type DeckCheckDisplayMode = "grid" | "list";
 
@@ -18,21 +19,7 @@ interface DeckCheckViewState {
   setMaxColumns: (maxColumns: number | null) => void;
 }
 
-const DECK_CHECK_SORTS: ReadonlySet<DeckCheckSort> = new Set([
-  "deck",
-  "id",
-  "name",
-  "domain",
-  "energy",
-]);
-
-/**
- * Keeps a persisted value only when it is one of the allowed choices; a
- * corrupt or stale blob falls back to the in-code default.
- */
-function keepAllowed<Value>(raw: unknown, allowed: ReadonlySet<Value>, fallback: Value): Value {
-  return allowed.has(raw as Value) ? (raw as Value) : fallback;
-}
+const DECK_CHECK_SORTS: readonly DeckCheckSort[] = ["deck", "id", "name", "domain", "energy"];
 
 /**
  * Kept separate from the global card-browser `displayStore` so sizing the
@@ -54,29 +41,14 @@ export const useDeckCheckViewStore = create<DeckCheckViewState>()(
     }),
     {
       name: "deck-check-view",
-      // Validate on rehydrate: a hand-edited or stale blob must fall back to
-      // defaults per field, never load junk view state.
-      merge: (persisted, current) => {
-        if (!persisted || typeof persisted !== "object") {
-          return current;
-        }
-        const raw = persisted as Record<string, unknown>;
-        return {
-          ...current,
-          wide: typeof raw.wide === "boolean" ? raw.wide : current.wide,
-          displayMode: keepAllowed(
-            raw.displayMode,
-            new Set<DeckCheckDisplayMode>(["grid", "list"]),
-            current.displayMode,
-          ),
-          sortBy: keepAllowed(raw.sortBy, DECK_CHECK_SORTS, current.sortBy),
-          sortDir: raw.sortDir === "desc" ? "desc" : current.sortDir,
-          maxColumns:
-            typeof raw.maxColumns === "number" && raw.maxColumns >= 1
-              ? Math.floor(raw.maxColumns)
-              : null,
-        };
-      },
+      merge: mergeFields<DeckCheckViewState>({
+        wide: pickBoolean,
+        displayMode: pickEnum<DeckCheckDisplayMode>(["grid", "list"]),
+        sortBy: pickEnum(DECK_CHECK_SORTS),
+        sortDir: pickEnum(["asc", "desc"]),
+        maxColumns: (value) =>
+          typeof value === "number" && value >= 1 ? Math.floor(value) : undefined,
+      }),
     },
   ),
 );

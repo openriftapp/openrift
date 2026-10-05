@@ -1,3 +1,4 @@
+import { totalQuantity } from "@openrift/shared/deck-rules";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
@@ -60,7 +61,7 @@ export function buildRuneOddsRows(
   options: { goingSecond: boolean },
 ): RuneOddsRow[] {
   const runes = cards.filter((card) => card.zone === WellKnown.deckZone.RUNES);
-  const deckSize = runes.reduce((sum, card) => sum + card.quantity, 0);
+  const deckSize = totalQuantity(runes);
   if (deckSize === 0) {
     return [];
   }

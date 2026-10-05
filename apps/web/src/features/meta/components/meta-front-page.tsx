@@ -1,4 +1,4 @@
-import { dateLeafPartsUtc, formatDayMonthYear } from "@openrift/shared/format-date";
+import { formatDayMonthYear } from "@openrift/shared/format-date";
 import type { MetaEventSummary } from "@openrift/shared/types/api/meta";
 import type { MetaEventTier } from "@openrift/shared/types/enums";
 import { Link, getRouteApi } from "@tanstack/react-router";
@@ -12,14 +12,14 @@ import {
 import type { ReactNode } from "react";
 
 import { EmptyState } from "@/components/empty-state";
+import { Heading } from "@/components/heading";
 import { PageHero } from "@/components/layout/page-hero";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
-import { RowList } from "@/components/ui/row-list";
-import { SectionHeading } from "@/components/ui/section-heading";
+import { RowList, RowListLink } from "@/components/ui/row-list";
 import { TextLink } from "@/components/ui/text-link";
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
 import { MetaArchiveActivity } from "@/features/meta/components/meta-archive-activity";
@@ -60,7 +60,7 @@ import {
   nextScopeSearch,
   UNSCOPED,
 } from "@/features/meta/lib/meta-scope";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { DATE_WORDS } from "@/lib/date-words";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -92,9 +92,12 @@ function ContributionsLink() {
     return null;
   }
   return (
-    <Button variant="outline" className="mt-2" render={<Link to="/meta/submissions" />}>
+    <Link
+      to="/meta/submissions"
+      className={buttonVariants({ variant: "outline", className: "mt-2" })}
+    >
       {m.meta_submissions_title()}
-    </Button>
+    </Link>
   );
 }
 
@@ -127,7 +130,9 @@ function MetaEmptyState() {
       description={m.meta_front_empty_description()}
     >
       {isAdmin === true && (
-        <Button render={<Link to="/admin/meta" />}>{m.meta_front_add_event()}</Button>
+        <Link to="/admin/meta" className={buttonVariants()}>
+          {m.meta_front_add_event()}
+        </Link>
       )}
     </EmptyState>
   );
@@ -152,7 +157,7 @@ function Section({
         {accent !== undefined && (
           <span aria-hidden="true" className={cn("h-4 w-1 self-center rounded-full", accent)} />
         )}
-        <SectionHeading variant="display">{title}</SectionHeading>
+        <Heading>{title}</Heading>
         {action}
       </div>
       {children}
@@ -199,18 +204,13 @@ function ResultlessNote({ count, search }: { count: number; search: MetaFrontSea
 }
 
 function UpcomingTeaser({ next, count }: { next: MetaEventSummary; count: number }) {
-  const leaf = dateLeafPartsUtc(next.eventDate, DATE_WORDS);
-
   return (
     <div className="lg:hidden">
-      <Link
-        from="/meta"
-        search={(prev) => prev}
-        hash="coming-up"
-        hashScrollIntoView
-        className="hover:bg-muted/50 focus-visible:ring-ring/50 -mx-2 flex items-center gap-3 rounded-md px-2 py-1.5 outline-none focus-visible:ring-2"
+      <RowListLink
+        render={<Link from="/meta" search={(prev) => prev} hash="coming-up" hashScrollIntoView />}
+        className="py-1.5"
       >
-        <DateLeaf month={leaf.month} day={leaf.day} size="sm" />
+        <DateLeaf at={next.eventDate} clock="utc" size="sm" />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate">
             <span className="font-semibold">{m.meta_front_next_up()}</span>
@@ -220,7 +220,7 @@ function UpcomingTeaser({ next, count }: { next: MetaEventSummary; count: number
           <span className="text-muted-foreground text-xs">{m.meta_front_upcoming({ count })}</span>
         </span>
         <ChevronDownIcon aria-hidden className="text-muted-foreground size-4 shrink-0" />
-      </Link>
+      </RowListLink>
     </div>
   );
 }

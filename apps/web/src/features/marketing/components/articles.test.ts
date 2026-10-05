@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { helpArticleList, visibleHelpArticles } from "./articles";
+import { helpArticleList, visibleHelpArticles } from "@/features/marketing/components/articles";
 
 const flaggedArticles = helpArticleList.filter((article) => article.featureFlag);
 const unflaggedSlugs = helpArticleList

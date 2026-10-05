@@ -1,3 +1,4 @@
+import { totalQuantity } from "@openrift/shared/deck-rules";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -85,9 +86,7 @@ export function statsFocusLabel(
 }
 
 export function statsFocusCount(cards: readonly DeckBuilderCard[], focus: StatsFocus): number {
-  return cards
-    .filter((card) => cardMatchesStatsFocus(card, focus))
-    .reduce((sum, card) => sum + card.quantity, 0);
+  return totalQuantity(cards.filter((card) => cardMatchesStatsFocus(card, focus)));
 }
 
 // Computed over the drawn main deck only: the champion starts outside it.
@@ -96,10 +95,8 @@ export function statsFocusOpeningChance(
   focus: StatsFocus,
 ): number | null {
   const mainCards = cards.filter((card) => card.zone === WellKnown.deckZone.MAIN);
-  const deckSize = mainCards.reduce((sum, card) => sum + card.quantity, 0);
-  const copies = mainCards
-    .filter((card) => cardMatchesStatsFocus(card, focus))
-    .reduce((sum, card) => sum + card.quantity, 0);
+  const deckSize = totalQuantity(mainCards);
+  const copies = totalQuantity(mainCards.filter((card) => cardMatchesStatsFocus(card, focus)));
   if (deckSize === 0 || copies === 0) {
     return null;
   }

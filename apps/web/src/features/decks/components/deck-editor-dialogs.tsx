@@ -3,17 +3,7 @@ import type { DeckDetailResponse } from "@openrift/shared/types/api/deck";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { useNavigate } from "@tanstack/react-router";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { DialogForm } from "@/components/ui/dialog-form";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { DeckCoverDialog } from "@/features/decks/components/deck-cover-dialog";
 import { DeckDetailsDialog } from "@/features/decks/components/deck-details-dialog";
@@ -129,28 +119,21 @@ export function DeckEditorDialogs({
         />
       )}
 
-      <AlertDialog open={open.delete} onOpenChange={(next) => setDialogOpen("delete", next)}>
-        <AlertDialogContent>
-          <DialogForm onSubmit={handleDelete}>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{m.decks_editor_delete_title()}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {m.decks_editor_delete_confirm({ name: deck.name })}{" "}
-                {isLocal
-                  ? m.decks_editor_delete_local_note()
-                  : m.decks_editor_delete_permanent_note()}
-                {deck.familyId !== null && ` ${m.decks_editor_delete_variants_note()}`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-              <AlertDialogAction type="submit" disabled={deleteDeck.isPending}>
-                {m.common_delete()}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </DialogForm>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmActionDialog
+        open={open.delete}
+        onOpenChange={(next) => setDialogOpen("delete", next)}
+        onConfirm={handleDelete}
+        isPending={deleteDeck.isPending}
+        title={m.decks_editor_delete_title()}
+        description={
+          <>
+            {m.decks_editor_delete_confirm({ name: deck.name })}{" "}
+            {isLocal ? m.decks_editor_delete_local_note() : m.decks_editor_delete_permanent_note()}
+            {deck.familyId !== null && ` ${m.decks_editor_delete_variants_note()}`}
+          </>
+        }
+        confirmLabel={m.common_delete()}
+      />
       <DeckShareDialog
         deckId={deckId}
         deckName={deck.name}

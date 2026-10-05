@@ -2,11 +2,11 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import { sortCards } from "@openrift/shared/filters-sort";
 import { mergeListEntriesByTarget } from "@openrift/shared/list-entries";
 import type { SetOrderInfo } from "@openrift/shared/set-order";
+import { straightenApostrophes } from "@openrift/shared/strings";
 import type { ListEntryDetailResponse, ListKind } from "@openrift/shared/types/api/list";
 import type { Currency, TradePreference } from "@openrift/shared/types/api/trade-preferences";
 import { resolveEffectiveTradePreference } from "@openrift/shared/types/api/trade-preferences";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { straightenApostrophes } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";

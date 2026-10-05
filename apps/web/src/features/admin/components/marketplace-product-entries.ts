@@ -1,13 +1,13 @@
-import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
-import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
-import { formatPrintingLabel } from "@openrift/shared/utils";
-
+import { formatPrintingLabel } from "@openrift/shared/printing-label";
 import type {
-  SourceMappingConfig,
-  StagedProduct,
-  UnifiedMappingGroup,
-  UnifiedMappingPrinting,
-} from "@/features/admin/lib/price-mappings-types";
+  AdminMarketplaceName,
+  StagedProductResponse,
+  UnifiedMappingGroupResponse,
+  UnifiedMappingPrintingResponse,
+} from "@openrift/shared/types/api/admin";
+import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
+
+import type { SourceMappingConfig } from "@/features/admin/lib/price-mappings-types";
 
 import { CM_CONFIG, CN_CONFIG, CT_CONFIG, TCG_CONFIG } from "./source-configs";
 import type { ProductSuggestion } from "./suggest-mapping";
@@ -74,7 +74,7 @@ interface AssignedPrinting {
 
 export interface TableEntry {
   marketplace: AdminMarketplaceName;
-  product: StagedProduct;
+  product: StagedProductResponse;
   isAssigned: boolean;
   assignedPrintings: AssignedPrinting[];
   assignedPrintingIds: Set<string>;
@@ -121,7 +121,7 @@ export function buildMarketplaceRows(
   );
 }
 
-export function collectEntries(group: UnifiedMappingGroup): TableEntry[] {
+export function collectEntries(group: UnifiedMappingGroupResponse): TableEntry[] {
   const printingById = new Map(group.printings.map((p) => [p.printingId, p]));
   const entries: TableEntry[] = [];
   for (const marketplace of ALL_MARKETPLACES) {
@@ -149,7 +149,7 @@ export function collectEntries(group: UnifiedMappingGroup): TableEntry[] {
             (a.language === null || a.language === product.language),
         )
         .map((a) => printingById.get(a.printingId))
-        .filter((p): p is UnifiedMappingPrinting => p !== undefined);
+        .filter((p): p is UnifiedMappingPrintingResponse => p !== undefined);
       const assignedPrintings: AssignedPrinting[] = matchingPrintings
         .map((p) => ({
           printingId: p.printingId,
@@ -199,7 +199,7 @@ export function collectEntries(group: UnifiedMappingGroup): TableEntry[] {
 }
 
 export function collectStrongMappings(
-  group: UnifiedMappingGroup,
+  group: UnifiedMappingGroupResponse,
   suggestions: Map<string, ProductSuggestion[]> | undefined,
 ): Record<AdminMarketplaceName, PrintingAssignment[]> {
   const out: Record<AdminMarketplaceName, PrintingAssignment[]> = {
@@ -234,7 +234,7 @@ export function collectStrongMappings(
 }
 
 export function collectWeakMappings(
-  group: UnifiedMappingGroup,
+  group: UnifiedMappingGroupResponse,
   suggestions: Map<string, ProductSuggestion[]> | undefined,
 ): Record<AdminMarketplaceName, PrintingAssignment[]> {
   const out: Record<AdminMarketplaceName, PrintingAssignment[]> = {

@@ -1,10 +1,11 @@
+import { compareCardDisplayName, legendDisplayName } from "@openrift/shared/card-name";
 import { matchesCardQuery } from "@openrift/shared/card-search";
 import type {
   ErrataAnnouncement,
   ErrataEntry,
   ErrataListResponse,
 } from "@openrift/shared/contracts/errata";
-import { compareCardDisplayName, legendDisplayName } from "@openrift/shared/utils";
+import { slugifyName } from "@openrift/shared/strings";
 
 export const UNANNOUNCED_GROUP_ID = "unannounced-changes";
 
@@ -21,10 +22,7 @@ export interface ErrataFilters {
 }
 
 export function errataGroupId(announcement: ErrataAnnouncement): string {
-  return announcement.name
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/gu, "-")
-    .replaceAll(/^-|-$/gu, "");
+  return slugifyName(announcement.name);
 }
 
 function matchesFilters(entry: ErrataEntry, filters: ErrataFilters): boolean {

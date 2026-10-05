@@ -2,9 +2,9 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 
+import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { FinishIcon, hasFinishIcon } from "@/features/cards/components/finish-icon";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -41,20 +41,7 @@ export function CardDetailStats({
         <StatChip label={m.card_detail_stat_might()} value={card.might} icon="/images/might.svg" />
       )}
       {!card.domains.includes(WellKnown.domain.COLORLESS) &&
-        card.domains.map((d) => {
-          const domainIcon = getFilterIconPath("domains", d);
-          return domainIcon ? (
-            <img
-              key={d}
-              src={domainIcon}
-              alt={enumLabel(labels.domains, d)}
-              title={enumLabel(labels.domains, d)}
-              width={64}
-              height={64}
-              className="size-5"
-            />
-          ) : null;
-        })}
+        card.domains.map((d) => <DomainIcon key={d} domain={d} className="size-5" />)}
       {hasFinishIcon(printing.finish) && (
         <span className="bg-muted inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-sm font-semibold">
           <FinishIcon finish={printing.finish} />

@@ -4,7 +4,7 @@ import type {
   CardTradeStatus,
   TradeSuggestionDismissalListResponse,
 } from "@openrift/shared/types/api/card-trade";
-import { queryOptions } from "@tanstack/react-query";
+import { queryOptions, skipToken } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { tradesKeys } from "@/features/groups/lib/groups-query-keys";
@@ -45,10 +45,10 @@ export function tradeDismissalsQueryOptions(userId: string) {
   });
 }
 
-export function userTradesQueryOptions(userId: string) {
+export function userTradesQueryOptions(userId: string | null) {
   return queryOptions({
-    queryKey: tradesKeys.all(userId),
-    queryFn: () => fetchUserTrades({ data: {} }),
+    queryKey: tradesKeys.all(userId ?? ""),
+    queryFn: userId === null ? skipToken : () => fetchUserTrades({ data: {} }),
   });
 }
 

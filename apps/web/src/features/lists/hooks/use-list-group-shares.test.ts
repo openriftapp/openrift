@@ -24,7 +24,7 @@ vi.mock("@tanstack/react-start/server", () => ({
   getRequest: () => new Request("http://localhost"),
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => "user-1",
   useUserId: () => "user-1",
 }));

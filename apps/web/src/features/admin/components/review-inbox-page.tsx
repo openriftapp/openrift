@@ -6,6 +6,7 @@ import { DatabaseIcon, UserIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TextLink } from "@/components/ui/text-link";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
@@ -159,7 +160,7 @@ export function ReviewInboxPage() {
 
   return (
     <AdminTable
-      title="Review"
+      topBar={(actions) => <AdminPageTopBar title="Review" actions={actions} />}
       columns={columns}
       data={items}
       getRowKey={(item) => item.id}

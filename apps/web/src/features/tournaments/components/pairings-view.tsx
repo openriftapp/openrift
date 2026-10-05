@@ -22,19 +22,13 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { StatStripItem } from "@/components/ui/stat-strip";
 import { StatStrip } from "@/components/ui/stat-strip";
-import { UserAvatar } from "@/components/user-avatar";
+import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import { teamNamesById } from "@/features/tournaments/lib/team-display";
 import { isAllMatchRound } from "@/features/tournaments/lib/tournament-display";
 import { m } from "@/paraglide/messages.js";
@@ -47,9 +41,6 @@ interface PodResultEntry {
   gamePoints: number;
 }
 
-// Named so the React Compiler can reorder it.
-const rawRegionSlug = (slug: string): string => slug;
-
 interface PairingsViewProps {
   rounds: PodRoundResponse[];
   playMode: TournamentPlayMode;
@@ -59,7 +50,6 @@ interface PairingsViewProps {
   winPoints: number;
   drawPoints: number;
   regionByPlayer?: Map<string, string | null>;
-  regionLabel?: (slug: string) => string;
   showPenalty: boolean;
   snapshot?: PodSnapshotPlayer[] | null;
   warningsExpanded?: boolean;
@@ -88,7 +78,6 @@ export function PairingsView({
   winPoints,
   drawPoints,
   regionByPlayer,
-  regionLabel = rawRegionSlug,
   showPenalty,
   snapshot,
   warningsExpanded = true,
@@ -104,17 +93,7 @@ export function PairingsView({
     if (emptyMessage === "") {
       return null;
     }
-    return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <SwordsIcon />
-          </EmptyMedia>
-          <EmptyTitle>{emptyMessage}</EmptyTitle>
-          {emptyDescription ? <EmptyDescription>{emptyDescription}</EmptyDescription> : null}
-        </EmptyHeader>
-      </Empty>
-    );
+    return <EmptyState icon={SwordsIcon} title={emptyMessage} description={emptyDescription} />;
   }
   const teamMode = playMode === "2v2";
   const nameById = new Map<string, string>(
@@ -244,7 +223,6 @@ export function PairingsView({
                   winPoints={winPoints}
                   drawPoints={drawPoints}
                   regionByPlayer={regionByPlayer}
-                  regionLabel={regionLabel}
                   showPenalty={showPenalty}
                   warnings={podWarnings.get(podIndex) ?? []}
                   warningsExpanded={warningsExpanded}
@@ -303,7 +281,7 @@ function RoundPenaltyStats({ round }: { round: PodRoundResponse }) {
       label: m.tournaments_round_stat_rematch({ count: rematches }),
       icon: RepeatIcon,
       iconTone: rematches === 0 ? "success" : "gold",
-      tone: rematches === 0 ? "good" : "default",
+      tone: rematches === 0 ? "success" : "neutral",
     },
   ];
   if (!allMatches) {
@@ -368,15 +346,13 @@ function ByesSection({
           const priorByes = priorByesByPlayer.get(bye.playerId) ?? 0;
           return (
             <RowListItem key={bye.playerId} className="justify-between">
-              <span className="flex min-w-0 items-center gap-2">
-                <UserAvatar name={bye.displayName} size="sm" />
-                <span className="truncate font-medium">{bye.displayName}</span>
+              <PlayerChip name={bye.displayName}>
                 {priorByes > 0 ? (
                   <Badge variant="warning">
                     {priorByes} earlier bye{priorByes === 1 ? "" : "s"}
                   </Badge>
                 ) : null}
-              </span>
+              </PlayerChip>
               <span className="font-semibold tabular-nums">
                 {byePoints > 0 ? `+${byePoints} bye` : "sat out · 0"}
               </span>

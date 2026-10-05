@@ -17,7 +17,9 @@ import { WellKnown } from "@openrift/shared/well-known";
 import {
   createCollection,
   eq,
+  inArray,
   localOnlyCollectionOptions,
+  useLiveQuery,
   useLiveSuspenseQuery,
 } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
@@ -43,10 +45,11 @@ import {
 } from "@/features/decks/lib/decks-write";
 import type { LocalDeck } from "@/features/decks/lib/local-deck";
 import { updateLocalDeck } from "@/features/decks/lib/local-decks-collection";
-import { useRequiredUserId, useUserId } from "@/lib/auth-session";
+import { useHydrated } from "@/hooks/use-hydrated";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useRequiredUserId, useUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 export function useDecks(): { data: DeckListItemResponse[] } {
   const userId = useRequiredUserId();
@@ -54,6 +57,34 @@ export function useDecks(): { data: DeckListItemResponse[] } {
   const collection = getDecksCollection(queryClient, userId);
   const { data } = useLiveSuspenseQuery({ query: (q) => q.from({ deck: collection }) });
   return { data };
+}
+
+/** The viewer's server decks, or undefined during SSR, while they load, or when nobody is signed in. */
+export function useDeckList(options?: { enabled?: boolean }): DeckListItemResponse[] | undefined {
+  const hydrated = useHydrated();
+  const collection = useDecksCollection();
+  const active = hydrated && collection !== null && options?.enabled !== false;
+  const { data, isReady } = useLiveQuery({
+    query: (q) => (active && collection ? q.from({ deck: collection }) : null),
+  });
+  return active && isReady ? (data ?? []) : undefined;
+}
+
+/** The server deck-card rows of these decks, or undefined for no ids, during SSR, while loading, or when signed out. */
+export function useDeckCardsFor(
+  deckIds: readonly string[],
+): DeckCardWithDeckResponse[] | undefined {
+  const hydrated = useHydrated();
+  const collection = useDeckCardsCollection();
+  const ids = [...deckIds];
+  const active = hydrated && collection !== null && ids.length > 0;
+  const { data, isReady } = useLiveQuery({
+    query: (q) =>
+      active && collection
+        ? q.from({ card: collection }).where(({ card }) => inArray(card.deckId, ids))
+        : null,
+  });
+  return active && isReady ? (data ?? []) : undefined;
 }
 
 async function loadedDecks(queryClient: QueryClient, userId: string) {

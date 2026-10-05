@@ -1,28 +1,20 @@
 import { splitCardBans } from "@openrift/shared/card-ban";
 import { cardsContract } from "@openrift/shared/contracts/cards";
-import { isReleasedIn, todayUtc } from "@openrift/shared/set-release";
+import { todayUtc } from "@openrift/shared/format-date";
+import { isReleasedIn } from "@openrift/shared/set-release";
 import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
-import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { cardsKeys } from "@/features/cards/lib/cards-query-keys";
+import { serverCacheKeys } from "@/lib/query-keys";
 import { serverCache } from "@/lib/server-cache";
-import { notFoundError } from "@/lib/server-fns/api-error";
+import { orNotFound } from "@/lib/server-fns/api-error";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
-async function loadCardDetail(cardSlug: string): Promise<CardDetailResponse> {
-  // 404 is a typed NOT_FOUND error on the contract, mapped here to the
-  // sentinel the route boundary expects.
-  const { error, data: detail } = await safe(apiOrpcClient(cardsContract).detail({ cardSlug }));
-  if (error) {
-    if (isDefinedError(error) && error.code === "NOT_FOUND") {
-      throw notFoundError();
-    }
-    throw error;
-  }
-  return detail;
+function loadCardDetail(cardSlug: string): Promise<CardDetailResponse> {
+  return orNotFound(apiOrpcClient(cardsContract).detail({ cardSlug }));
 }
 
 const fetchCardDetail = createServerFn({ method: "GET" })
@@ -32,7 +24,7 @@ const fetchCardDetail = createServerFn({ method: "GET" })
       return loadCardDetail(data.cardSlug);
     }
     return serverCache.query({
-      queryKey: ["server-cache", "card-detail", data.cardSlug],
+      queryKey: serverCacheKeys.cardDetail(data.cardSlug),
       queryFn: () => loadCardDetail(data.cardSlug),
     });
   });

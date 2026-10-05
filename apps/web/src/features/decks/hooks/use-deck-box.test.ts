@@ -42,7 +42,7 @@ const copiesCollection = createCollection(
 
 let collectionsList: CollectionResponse[] | undefined;
 
-vi.mock("@/lib/auth-session", () => ({ useUserId: () => "user-1" }));
+vi.mock("@/hooks/use-session", () => ({ useUserId: () => "user-1" }));
 vi.mock("@/features/collections/hooks/use-collections", () => ({
   useCollectionsList: () => collectionsList,
 }));

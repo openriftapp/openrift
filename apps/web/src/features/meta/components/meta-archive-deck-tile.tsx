@@ -1,3 +1,4 @@
+import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaDeckSummary } from "@openrift/shared/types/api/meta";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 
@@ -9,7 +10,7 @@ import { MetaListStatusBadge } from "@/features/meta/components/meta-list-status
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
-import { formatRank, formatRecord, MEDAL_RANKS } from "@/features/meta/lib/meta-format";
+import { formatRank, MEDAL_RANKS } from "@/features/meta/lib/meta-format";
 import { compactFormatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -128,7 +129,11 @@ export function MetaArchiveDeckTile({
       </div>
 
       <div className="flex flex-1 flex-col gap-1.5 p-3">
-        <MetaIdentity name={deck.legendName} archiveSlug={deck.legendArchiveSlug} layout="tile" />
+        <MetaIdentity
+          legend={{ character: deck.legendCharacter, epithet: deck.legendEpithet }}
+          archiveSlug={deck.legendArchiveSlug}
+          layout="tile"
+        />
 
         <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm">
           <MetaPlayerName

@@ -1,11 +1,12 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { ErrataEntry as ErrataEntryData } from "@openrift/shared/contracts/errata";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
 import { imageUrl } from "@openrift/shared/image-url";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
 import { InfoIcon } from "lucide-react";
 
+import { Eyebrow } from "@/components/heading";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { TextLink } from "@/components/ui/text-link";
 import { CardTextTokens } from "@/features/cards/components/card-text";
@@ -106,14 +107,15 @@ function Pane({
         tone === "printed" ? "bg-muted/60" : "bg-card ring-warning/40 ring-1",
       )}
     >
-      <p
+      <Eyebrow
+        as="p"
         className={cn(
-          "text-xs font-semibold tracking-wide uppercase",
+          "mb-0 text-xs",
           tone === "printed" ? "text-muted-foreground" : "text-warning",
         )}
       >
         {title}
-      </p>
+      </Eyebrow>
       {changes.map((change) => (
         <div key={change.key}>
           {change.label !== null && (

@@ -1,4 +1,5 @@
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { frontImageId } from "@/features/cards/lib/card-meta";

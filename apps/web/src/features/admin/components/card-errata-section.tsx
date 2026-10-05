@@ -2,12 +2,12 @@ import { formatDay } from "@openrift/shared/format-date";
 import { PencilIcon, PlusIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardList } from "@/components/ui/card-list";
 import { TextLink } from "@/components/ui/text-link";
-import { AdminConfirmDialog } from "@/features/admin/components/admin-confirm-dialog";
 import { ErrataEditor } from "@/features/admin/components/errata-editor";
 import { useErrataAnnouncements } from "@/features/admin/hooks/use-admin-card-queries";
 import type { AdminCardErrata, ErrataDraft } from "@/features/admin/lib/errata-draft";
@@ -138,15 +138,15 @@ export function CardErrataSection({
         )
       )}
 
-      <AdminConfirmDialog
+      <ConfirmActionDialog
         open={removing}
         onOpenChange={setRemoving}
-        copy={{
-          title: "Remove the errata?",
-          description: "The card falls back to the text printed on it.",
-          confirmLabel: "Remove errata",
-        }}
-        onConfirm={() => deleteErrata.mutate({ cardId })}
+        title="Remove the errata?"
+        description="The card falls back to the text printed on it."
+        confirmLabel="Remove errata"
+        pendingLabel="Removing…"
+        isPending={deleteErrata.isPending}
+        onConfirm={() => deleteErrata.mutate({ cardId }, { onSuccess: () => setRemoving(false) })}
       />
     </section>
   );

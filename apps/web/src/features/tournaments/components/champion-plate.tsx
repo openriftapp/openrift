@@ -1,28 +1,28 @@
+import { legendNameParts } from "@openrift/shared/card-name";
 import { imageUrl } from "@openrift/shared/image-url";
 import type {
   PodStandingRow,
   PodTournamentDetailResponse,
 } from "@openrift/shared/types/api/pod-tournament";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { Suspense } from "react";
 
 import { ArtBandBackdrop } from "@/components/art-band-backdrop";
+import { Eyebrow } from "@/components/heading";
 import { Card } from "@/components/ui/card";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { UserAvatar } from "@/components/user-avatar";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
-import {
-  formatPlayerRecord,
-  standingRanks,
-} from "@/features/tournaments/components/standings-display";
+import { formatPlayerRecord, standingRanks } from "@/features/tournaments/lib/standings-display";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { m } from "@/paraglide/messages.js";
 
 interface Champion {
   playerId: string;
   displayName: string;
+  image: string | null;
+  gravatarHash: string | null;
   record: string | null;
   legendCardId: string | null;
 }
@@ -37,6 +37,8 @@ export function tournamentChampion(
   const build = (row: PodStandingRow | undefined, playerId: string, displayName: string) => ({
     playerId,
     displayName,
+    image: row?.image ?? null,
+    gravatarHash: row?.gravatarHash ?? null,
     record: row === undefined ? null : formatPlayerRecord(row, swiss),
     legendCardId: legendOf.get(playerId) ?? null,
   });
@@ -64,9 +66,9 @@ function ChampionText({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <span className="text-border-accent text-2xs font-semibold tracking-wide uppercase">
+      <Eyebrow variant="gold" as="span">
         {m.tournaments_champion_label()}
-      </span>
+      </Eyebrow>
       {name === null ? null : <p className="font-heading text-xl font-semibold">{name}</p>}
       {legend}
       {record === null ? null : (
@@ -88,14 +90,20 @@ function PlateBody({ champion }: { champion: Champion }) {
     <>
       <ArtBandBackdrop thumbnail={art} domains={printing?.card.domains ?? []} />
       <div className="relative flex items-center gap-4 p-5">
-        <UserAvatar name={champion.displayName} size="lg" className="shrink-0" />
+        <UserAvatar
+          name={champion.displayName}
+          image={champion.image}
+          gravatarHash={champion.gravatarHash}
+          size="lg"
+          className="shrink-0"
+        />
         <ChampionText
           name={champion.displayName}
           record={champion.record}
           legend={
             printing === undefined ? null : (
               <MetaIdentity
-                name={legendDisplayName(printing.card)}
+                legend={legendNameParts(printing.card)}
                 slug={printing.card.slug}
                 domains={printing.card.domains}
                 layout="stacked"
@@ -124,7 +132,13 @@ function PlateBody({ champion }: { champion: Champion }) {
 function PlainPlate({ champion }: { champion: Champion }) {
   return (
     <div className="relative flex items-center gap-4 p-5">
-      <UserAvatar name={champion.displayName} size="lg" className="shrink-0" />
+      <UserAvatar
+        name={champion.displayName}
+        image={champion.image}
+        gravatarHash={champion.gravatarHash}
+        size="lg"
+        className="shrink-0"
+      />
       <ChampionText name={champion.displayName} record={champion.record} legend={null} />
     </div>
   );

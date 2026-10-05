@@ -1,6 +1,7 @@
 import { HelpCircleIcon, ItalicIcon, WandSparklesIcon } from "lucide-react";
 import { useId, useRef, useState } from "react";
 
+import { CardIcon } from "@/components/card-icon";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import {
@@ -284,10 +285,9 @@ function SyntaxToolbar({
                 label={m.contribute_text_insert_glyph({ name: g.name })}
                 onInsert={onInsert}
               >
-                <img
+                <CardIcon
                   src={`/images/glyphs/${g.token.replaceAll("_", "-")}.svg`}
-                  alt=""
-                  className="size-4 brightness-0 dark:invert"
+                  className="size-4"
                 />
               </GlyphButton>
             ))}

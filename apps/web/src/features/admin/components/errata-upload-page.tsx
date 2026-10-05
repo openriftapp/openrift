@@ -1,13 +1,13 @@
 import type { UploadErrataResponse } from "@openrift/shared/contracts/admin/card-mutations";
-import { CheckIcon, EyeIcon, FileWarningIcon, LoaderIcon, UploadIcon, XIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { pluralize } from "@openrift/shared/strings";
+import { CheckIcon, EyeIcon, FileWarningIcon, UploadIcon, XIcon } from "lucide-react";
+import { useState } from "react";
 
+import { Disclosure } from "@/components/disclosure";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { SectionHeading } from "@/components/ui/section-heading";
 import {
   Table,
@@ -17,72 +17,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AdminDisclosure } from "@/features/admin/components/admin-disclosure";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import { JsonFileField } from "@/features/admin/components/json-file-field";
+import { useJsonFileInput } from "@/features/admin/hooks/use-json-file-input";
 import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
+import { parseJsonEntries } from "@/features/admin/lib/json-upload";
 import type { BulkErrataEntry } from "@/features/cards/hooks/use-card-errata";
 import { useUploadErrata } from "@/features/cards/hooks/use-card-errata";
 
-type ParseResult =
-  | { ok: true; entries: BulkErrataEntry[] }
-  | { ok: false; error: "invalid-json" | "empty-or-wrong-shape" };
-
-/**
- * Kept as a module-level helper so react-compiler doesn't try to lower the ternary + logical
- * expressions inside the try/catch (it bails on "value blocks" within try statements).
- */
-function parseErrataEntries(text: string): ParseResult {
-  try {
-    const json = JSON.parse(text) as unknown[] | { entries?: unknown };
-    const list = Array.isArray(json) ? json : json.entries;
-    if (!Array.isArray(list) || list.length === 0) {
-      return { ok: false, error: "empty-or-wrong-shape" };
-    }
-    return { ok: true, entries: list as BulkErrataEntry[] };
-  } catch {
-    return { ok: false, error: "invalid-json" };
-  }
+function parseErrataEntries(text: string) {
+  return parseJsonEntries<BulkErrataEntry>(
+    text,
+    "entries",
+    "JSON must contain a non-empty array of errata entries",
+  );
 }
 
 export function ErrataUploadPage() {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [entries, setEntries] = useState<BulkErrataEntry[] | null>(null);
-  const [parseError, setParseError] = useState<string | null>(null);
+  const file = useJsonFileInput(parseErrataEntries);
+  const entries = file.value;
   const [preview, setPreview] = useState<UploadErrataResponse | null>(null);
 
   const upload = useUploadErrata();
-
-  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    setFileName(file.name);
-    setParseError(null);
-    setEntries(null);
-    setPreview(null);
-    upload.reset();
-
-    let text: string;
-    try {
-      text = await file.text();
-    } catch {
-      setParseError("Could not read that file");
-      return;
-    }
-    const parsed = parseErrataEntries(text);
-    if (!parsed.ok) {
-      setParseError(
-        parsed.error === "invalid-json"
-          ? "Invalid JSON file"
-          : "JSON must contain a non-empty array of errata entries",
-      );
-      return;
-    }
-    setEntries(parsed.entries);
-  }
 
   function handlePreview() {
     if (!entries) {
@@ -106,12 +62,8 @@ export function ErrataUploadPage() {
       { dryRun: false, entries },
       {
         onSuccess: () => {
-          setEntries(null);
-          setFileName(null);
+          file.reset();
           setPreview(null);
-          if (fileRef.current) {
-            fileRef.current.value = "";
-          }
         },
       },
     );
@@ -131,58 +83,33 @@ export function ErrataUploadPage() {
       >
         <FormatHelp />
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="errata-file">JSON file</Label>
-          <Input
-            id="errata-file"
-            ref={fileRef}
-            type="file"
-            accept=".json,application/json"
-            onChange={(event) => void handleFileChange(event)}
-          />
-          {fileName && entries && (
-            <p className="text-muted-foreground text-sm">
-              {fileName} ({entries.length} entr{entries.length === 1 ? "y" : "ies"})
-            </p>
-          )}
-          {parseError && (
-            <p className="text-muted-foreground flex items-center gap-1 text-sm">
-              <XIcon className="text-destructive size-4 shrink-0" />
-              {parseError}
-            </p>
-          )}
-        </div>
+        <JsonFileField
+          input={file}
+          onFile={() => {
+            setPreview(null);
+            upload.reset();
+          }}
+          summary={(value, fileName) =>
+            `${fileName} (${value.length} ${pluralize(value.length, "entry", "entries")})`
+          }
+        />
 
         <div className="flex gap-2">
-          <Button disabled={!entries || upload.isPending} onClick={handlePreview}>
-            {upload.isPending && preview === null ? (
-              <>
-                <LoaderIcon className="size-4 animate-spin" />
-                Previewing...
-              </>
-            ) : (
-              <>
-                <EyeIcon className="size-4" />
-                Preview
-              </>
-            )}
+          <Button
+            disabled={!entries || upload.isPending}
+            pending={upload.isPending && preview === null}
+            onClick={handlePreview}
+          >
+            <EyeIcon className="size-4" />
+            {upload.isPending && preview === null ? "Previewing…" : "Preview"}
           </Button>
           <Button
-            variant="default"
             disabled={!entries || !preview || upload.isPending}
+            pending={upload.isPending && preview !== null}
             onClick={handleApply}
           >
-            {upload.isPending && preview !== null ? (
-              <>
-                <LoaderIcon className="size-4 animate-spin" />
-                Applying...
-              </>
-            ) : (
-              <>
-                <UploadIcon className="size-4" />
-                Apply
-              </>
-            )}
+            <UploadIcon className="size-4" />
+            {upload.isPending && preview !== null ? "Applying…" : "Apply"}
           </Button>
         </div>
 
@@ -228,7 +155,7 @@ const EXAMPLE_ERRATA_JSON = `[
 
 function FormatHelp() {
   return (
-    <AdminDisclosure title="Format and example" contentClassName="space-y-3">
+    <Disclosure title="Format and example" contentClassName="space-y-3">
       <p>
         The file must contain a JSON array of entries (or an object with an <Code>entries</Code>{" "}
         field holding the array). Each entry has these fields:
@@ -267,7 +194,7 @@ function FormatHelp() {
       <pre className="bg-muted overflow-x-auto rounded-md p-3">
         <code>{EXAMPLE_ERRATA_JSON}</code>
       </pre>
-    </AdminDisclosure>
+    </Disclosure>
   );
 }
 
@@ -277,8 +204,8 @@ function PreviewSummary({ data }: { data: UploadErrataResponse }) {
       <div className="flex flex-wrap gap-2 text-sm">
         <Pill label="New" count={data.newCount} tone="success" />
         <Pill label="Updated" count={data.updatedCount} tone="warning" />
-        <Pill label="Unchanged" count={data.unchangedCount} tone="muted" />
-        <Pill label="Matches printed" count={data.matchesPrintedCount} tone="muted" />
+        <Pill label="Unchanged" count={data.unchangedCount} tone="neutral" />
+        <Pill label="Matches printed" count={data.matchesPrintedCount} tone="neutral" />
         <Pill label="Errors" count={data.errors.length} tone="destructive" />
       </div>
 
@@ -337,7 +264,7 @@ function Pill({
 }: {
   label: string;
   count: number;
-  tone: "success" | "warning" | "destructive" | "muted";
+  tone: "success" | "warning" | "destructive" | "neutral";
 }) {
   return (
     <Badge variant={tone} className="h-auto rounded-md px-2 py-0.5 text-sm">

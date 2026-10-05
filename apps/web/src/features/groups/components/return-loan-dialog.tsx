@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -56,7 +56,7 @@ export function ReturnLoanDialog({
           </p>
 
           <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
+            <DialogCancel />
             <Button type="submit" disabled={pending}>
               {m.loans_mark_returned()}
             </Button>

@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import { Fragment } from "react";
 
+import { MultiSelectCombobox } from "@/components/multi-select-combobox";
 import { FilterSection } from "@/features/cards/components/filter-badge-row";
 import { FlagBadge } from "@/features/cards/components/filter-flag-badge";
 import type { FilterPanelContentProps } from "@/features/cards/components/filter-panel-content";
 import { FilterValueDropdown } from "@/features/cards/components/filter-value-dropdown";
-import { MultiSelectCombobox } from "@/features/cards/components/multi-select-combobox";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useVisibleFilterDimensions } from "@/features/cards/hooks/use-filter-dimensions";
 import { filterDimension, ownedBuckets } from "@/features/cards/lib/filter-dimensions";

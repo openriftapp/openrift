@@ -1,13 +1,13 @@
 import type { JobScheduleView } from "@openrift/shared/contracts/admin/job-schedules";
 import { formatDayTime, formatRelativeTime } from "@openrift/shared/format-date";
 import { Link } from "@tanstack/react-router";
-import { CalendarPlusIcon, CircleXIcon, HistoryIcon, LoaderIcon, PlayIcon } from "lucide-react";
+import { CalendarPlusIcon, CircleXIcon, HistoryIcon, PlayIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { PageDescription, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -118,8 +118,13 @@ function JobScheduleCard({ job }: { job: JobScheduleView }) {
       >
         Disable
       </Button>
-      <Button variant="outline" onClick={() => void handleRunNow()} disabled={busy}>
-        {runNow.isPending ? <LoaderIcon className="animate-spin" /> : <PlayIcon />}
+      <Button
+        pending={runNow.isPending}
+        variant="outline"
+        onClick={() => void handleRunNow()}
+        disabled={busy}
+      >
+        <PlayIcon />
         Run now
       </Button>
     </>
@@ -127,8 +132,12 @@ function JobScheduleCard({ job }: { job: JobScheduleView }) {
 
   const offActions = (
     <>
-      <Button onClick={handleEnableSuggested} disabled={busy || !job.available}>
-        {setSchedule.isPending ? <LoaderIcon className="animate-spin" /> : <CalendarPlusIcon />}
+      <Button
+        pending={setSchedule.isPending}
+        onClick={handleEnableSuggested}
+        disabled={busy || !job.available}
+      >
+        <CalendarPlusIcon />
         Enable suggested
       </Button>
       <Button variant="ghost" onClick={() => setEditing(true)} disabled={!job.available}>
@@ -156,14 +165,14 @@ function JobScheduleCard({ job }: { job: JobScheduleView }) {
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
             {!editing && (isOn ? onActions : offActions)}
-            <Button
-              variant="ghost"
-              nativeButton={false}
-              render={<Link to="/admin/job-runs" search={{ runKind: job.kind }} />}
+            <Link
+              to="/admin/job-runs"
+              search={{ runKind: job.kind }}
+              className={buttonVariants({ variant: "ghost" })}
             >
               <HistoryIcon />
               Runs
-            </Button>
+            </Link>
           </div>
         </div>
       </CardHeader>
@@ -209,14 +218,11 @@ export function JobSchedulesPage() {
         title="Jobs"
         actions={
           <PageTopBarPrimaryButton
+            pending={enableSuggested.isPending}
             onClick={() => enableSuggested.mutate()}
             disabled={allEnabled || enableSuggested.isPending}
           >
-            {enableSuggested.isPending ? (
-              <LoaderIcon className="animate-spin" />
-            ) : (
-              <CalendarPlusIcon />
-            )}
+            <CalendarPlusIcon />
             Enable all suggested
           </PageTopBarPrimaryButton>
         }

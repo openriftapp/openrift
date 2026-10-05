@@ -1,3 +1,4 @@
+import { centsToDollars } from "@openrift/shared/money";
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import { Fragment } from "react";
 
@@ -36,7 +37,7 @@ export function DeckMetaLine({
   const marketplaceOrder = useDisplayStore((state) => state.marketplaceOrder);
   const priceFormatter = formatterForMarketplace(marketplaceOrder[0]);
   const box = useHomeCollection(item.deck.collectionId);
-  const parts = deckMetaParts(item, (cents) => priceFormatter(cents / 100), box?.name);
+  const parts = deckMetaParts(item, (cents) => priceFormatter(centsToDollars(cents)), box?.name);
 
   if (variant === "columns") {
     // The box is free text among fixed-width numbers, so a column of its own

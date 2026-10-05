@@ -10,10 +10,10 @@ import { createServerFn } from "@tanstack/react-start";
 
 import type { ArchiveListLink } from "@/features/tournaments/lib/archive-lists";
 import { tournamentsKeys } from "@/features/tournaments/lib/tournaments-query-keys";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 const fetchState = createServerFn({ method: "GET" })
   .validator((input: string) => input)

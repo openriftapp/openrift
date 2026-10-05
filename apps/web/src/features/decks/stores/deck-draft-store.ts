@@ -1,0 +1,400 @@
+import { toError } from "@openrift/shared/strings";
+import type { Collection } from "@tanstack/react-db";
+import { createCollection, localOnlyCollectionOptions } from "@tanstack/react-db";
+import type { QueryClient } from "@tanstack/react-query";
+
+import { cleanupWhenIdle, markOrphaned } from "@/features/collections/lib/collection-cleanup";
+import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
+import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import type { PlanDraft } from "@/features/decks/lib/deck-plan";
+import { getDeckCardsCollection } from "@/features/decks/lib/decks-collection";
+import { saveDeckCards } from "@/features/decks/lib/decks-write";
+import { isLocalDeck, setLocalDeckCards } from "@/features/decks/lib/local-decks-collection";
+import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
+import { withTimeout } from "@/lib/with-timeout";
+import { m } from "@/paraglide/messages.js";
+
+export const LOCAL_SCOPE = "local";
+
+const SAVE_DEBOUNCE_MS = 1000;
+
+export interface DeckSaveStatus {
+  isSaving: boolean;
+  isDirty: boolean;
+  error: Error | null;
+}
+
+export const CLEAN_STATUS: DeckSaveStatus = { isSaving: false, isDirty: false, error: null };
+
+interface DraftEntry {
+  deckId: string;
+  collection: Collection<DeckBuilderCard, string | number>;
+  status: DeckSaveStatus;
+  subscribers: Set<() => void>;
+  saveTimer: ReturnType<typeof setTimeout> | null;
+  saveController: AbortController | null;
+  saveSeq: number;
+  lastAppliedSeq: number;
+  suppressSave: boolean;
+  hydrated: boolean;
+  planDraft: PlanDraft | null;
+}
+
+interface CacheEntry {
+  userId: string;
+  drafts: Map<string, DraftEntry>;
+}
+
+const cache = new WeakMap<QueryClient, CacheEntry>();
+
+function notify(entry: DraftEntry): void {
+  for (const listener of entry.subscribers) {
+    // oxlint-disable-next-line promise/prefer-await-to-callbacks -- sync store subscribers
+    listener();
+  }
+}
+
+function setStatus(entry: DraftEntry, partial: Partial<DeckSaveStatus>): void {
+  const next = { ...entry.status, ...partial };
+  if (
+    next.isSaving === entry.status.isSaving &&
+    next.isDirty === entry.status.isDirty &&
+    next.error === entry.status.error
+  ) {
+    return;
+  }
+  entry.status = next;
+  notify(entry);
+}
+
+function collectionCards(entry: DraftEntry): {
+  cardId: string;
+  zone: DeckBuilderCard["zone"];
+  quantity: number;
+  preferredPrintingId: string | null;
+}[] {
+  return [...entry.collection.values()].map((card) => ({
+    cardId: card.cardId,
+    zone: card.zone,
+    quantity: card.quantity,
+    preferredPrintingId: card.preferredPrintingId,
+  }));
+}
+
+function runLocalSave(entry: DraftEntry): void {
+  setLocalDeckCards(entry.deckId, collectionCards(entry));
+  setStatus(entry, { isSaving: false, isDirty: entry.saveTimer !== null, error: null });
+}
+
+async function runSave(queryClient: QueryClient, userId: string, entry: DraftEntry): Promise<void> {
+  if (isLocalDeck(entry.deckId)) {
+    runLocalSave(entry);
+    return;
+  }
+
+  entry.saveController?.abort();
+  const controller = new AbortController();
+  entry.saveController = controller;
+  const seq = ++entry.saveSeq;
+
+  const cards = collectionCards(entry);
+
+  setStatus(entry, { isSaving: true, error: null });
+
+  try {
+    const collection = getDeckCardsCollection(queryClient, userId);
+    await collection.preload();
+    await withTimeout(
+      saveDeckCards(collection, entry.deckId, cards, { queryClient, userId }).isPersisted.promise,
+      { label: m.decks_editor_timeout_save(), abortController: controller },
+    );
+
+    if (seq < entry.lastAppliedSeq || controller.signal.aborted) {
+      return;
+    }
+    entry.lastAppliedSeq = seq;
+
+    const stillDirty = entry.saveTimer !== null;
+    setStatus(entry, { isSaving: false, isDirty: stillDirty, error: null });
+  } catch (error) {
+    if (controller.signal.aborted && seq < entry.saveSeq) {
+      return;
+    }
+    setStatus(entry, {
+      isSaving: false,
+      error: toError(error),
+    });
+  }
+}
+
+function scheduleSave(queryClient: QueryClient, userId: string, entry: DraftEntry): void {
+  if (entry.suppressSave) {
+    return;
+  }
+  setStatus(entry, { isDirty: true, error: null });
+  if (entry.saveTimer) {
+    clearTimeout(entry.saveTimer);
+  }
+  entry.saveTimer = setTimeout(() => {
+    entry.saveTimer = null;
+    void runSave(queryClient, userId, entry);
+  }, SAVE_DEBOUNCE_MS);
+}
+
+function createEntry(queryClient: QueryClient, userId: string, deckId: string): DraftEntry {
+  const entry: DraftEntry = {
+    deckId,
+    collection: null as unknown as Collection<DeckBuilderCard, string | number>,
+    status: CLEAN_STATUS,
+    subscribers: new Set(),
+    saveTimer: null,
+    saveController: null,
+    saveSeq: 0,
+    lastAppliedSeq: 0,
+    suppressSave: false,
+    hydrated: false,
+    planDraft: null,
+  };
+
+  entry.collection = createCollection(
+    localOnlyCollectionOptions<DeckBuilderCard>({
+      id: `deck-draft:${userId}:${deckId}`,
+      getKey: getDeckCardKey,
+      onInsert: () => {
+        scheduleSave(queryClient, userId, entry);
+        return Promise.resolve();
+      },
+      onUpdate: () => {
+        scheduleSave(queryClient, userId, entry);
+        return Promise.resolve();
+      },
+      onDelete: () => {
+        scheduleSave(queryClient, userId, entry);
+        return Promise.resolve();
+      },
+    }),
+  );
+
+  return entry;
+}
+
+function getDraftsForUser(queryClient: QueryClient, userId: string): Map<string, DraftEntry> {
+  const existing = cache.get(queryClient);
+  if (existing && existing.userId === userId) {
+    return existing.drafts;
+  }
+  if (existing) {
+    // Local-only collections don't auto-GC (gcTime: 0); orphan and clean up
+    // every previous-user draft here or they leak indefinitely.
+    for (const [draftDeckId, draft] of existing.drafts) {
+      if (draft.saveTimer) {
+        clearTimeout(draft.saveTimer);
+        draft.saveTimer = null;
+      }
+      draft.saveController?.abort();
+      draft.saveController = null;
+      markOrphaned(draft.collection, `deck-draft:${existing.userId}:${draftDeckId}`);
+      cleanupWhenIdle(draft.collection);
+    }
+  }
+  const entry: CacheEntry = { userId, drafts: new Map() };
+  cache.set(queryClient, entry);
+  return entry.drafts;
+}
+
+export function getDeckDraftCollection(
+  queryClient: QueryClient,
+  userId: string,
+  deckId: string,
+): Collection<DeckBuilderCard, string | number> {
+  const drafts = getDraftsForUser(queryClient, userId);
+  let entry = drafts.get(deckId);
+  if (!entry) {
+    entry = createEntry(queryClient, userId, deckId);
+    drafts.set(deckId, entry);
+  }
+  return entry.collection;
+}
+
+function getOrCreateEntry(queryClient: QueryClient, userId: string, deckId: string): DraftEntry {
+  const drafts = getDraftsForUser(queryClient, userId);
+  let entry = drafts.get(deckId);
+  if (!entry) {
+    entry = createEntry(queryClient, userId, deckId);
+    drafts.set(deckId, entry);
+  }
+  return entry;
+}
+
+function replaceDraftCards(entry: DraftEntry, cards: DeckBuilderCard[]): void {
+  const existingKeys = new Set<string | number>();
+  for (const key of entry.collection.keys()) {
+    existingKeys.add(key);
+  }
+  const incomingKeys = new Set<string | number>(cards.map((card) => getDeckCardKey(card)));
+
+  for (const key of existingKeys) {
+    if (!incomingKeys.has(key)) {
+      entry.collection.delete(key);
+    }
+  }
+  for (const card of cards) {
+    const key = getDeckCardKey(card);
+    if (existingKeys.has(key)) {
+      entry.collection.update(key, (draft) => {
+        draft.quantity = card.quantity;
+        draft.cardName = card.cardName;
+        draft.cardType = card.cardType;
+        draft.superTypes = card.superTypes;
+        draft.domains = card.domains;
+        draft.tags = card.tags;
+        draft.keywords = card.keywords;
+        draft.energy = card.energy;
+        draft.might = card.might;
+        draft.power = card.power;
+      });
+    } else {
+      entry.collection.insert(card);
+    }
+  }
+}
+
+export function hydrateDeckDraft(
+  queryClient: QueryClient,
+  userId: string,
+  deckId: string,
+  cards: DeckBuilderCard[],
+): void {
+  const entry = getOrCreateEntry(queryClient, userId, deckId);
+
+  if (entry.saveTimer) {
+    clearTimeout(entry.saveTimer);
+    entry.saveTimer = null;
+  }
+  entry.saveController?.abort();
+  entry.saveController = null;
+
+  entry.suppressSave = true;
+  try {
+    replaceDraftCards(entry, cards);
+  } finally {
+    entry.suppressSave = false;
+  }
+
+  setStatus(entry, { isSaving: false, isDirty: false, error: null });
+
+  if (!entry.hydrated) {
+    entry.hydrated = true;
+    notify(entry);
+  }
+
+  useDeckUndoStore.getState().reset(deckId);
+}
+
+/**
+ * For writes that bypass the editor: drops pending draft saves and marks the
+ * draft stale so the editor re-hydrates from the deck detail.
+ */
+export function resetDeckDraft(queryClient: QueryClient, scope: string, deckId: string): void {
+  const cached = cache.get(queryClient);
+  const entry = cached?.userId === scope ? cached.drafts.get(deckId) : undefined;
+  if (!entry) {
+    return;
+  }
+
+  if (entry.saveTimer) {
+    clearTimeout(entry.saveTimer);
+    entry.saveTimer = null;
+  }
+  entry.saveController?.abort();
+  entry.saveController = null;
+  entry.saveSeq += 1;
+  entry.status = CLEAN_STATUS;
+  entry.hydrated = false;
+  notify(entry);
+}
+
+export function flushDeckDraft(queryClient: QueryClient, scope: string, deckId: string): void {
+  const cached = cache.get(queryClient);
+  const entry = cached?.userId === scope ? cached.drafts.get(deckId) : undefined;
+  if (!entry?.saveTimer) {
+    return;
+  }
+  clearTimeout(entry.saveTimer);
+  entry.saveTimer = null;
+  void runSave(queryClient, scope, entry);
+}
+
+export function getDeckPlanDraft(
+  queryClient: QueryClient,
+  userId: string,
+  deckId: string,
+): PlanDraft | null {
+  const cached = cache.get(queryClient);
+  if (!cached || cached.userId !== userId) {
+    return null;
+  }
+  return cached.drafts.get(deckId)?.planDraft ?? null;
+}
+
+/** Holds an unsaved plan while the plan tab is closed; `null` drops it. */
+export function setDeckPlanDraft(
+  queryClient: QueryClient,
+  userId: string,
+  deckId: string,
+  draft: PlanDraft | null,
+): void {
+  if (draft === null) {
+    const cached = cache.get(queryClient);
+    const entry = cached?.userId === userId ? cached.drafts.get(deckId) : undefined;
+    if (entry) {
+      entry.planDraft = null;
+    }
+    return;
+  }
+  getOrCreateEntry(queryClient, userId, deckId).planDraft = draft;
+}
+
+export function applyDeckSnapshot(
+  queryClient: QueryClient,
+  userId: string,
+  deckId: string,
+  cards: DeckBuilderCard[],
+): void {
+  replaceDraftCards(getOrCreateEntry(queryClient, userId, deckId), cards);
+}
+
+export function subscribeToDeckDraft(
+  queryClient: QueryClient,
+  userId: string,
+  deckId: string,
+  listener: () => void,
+): () => void {
+  const entry = getOrCreateEntry(queryClient, userId, deckId);
+  entry.subscribers.add(listener);
+  return () => entry.subscribers.delete(listener);
+}
+
+export function getDeckDraftHydrated(
+  queryClient: QueryClient,
+  userId: string,
+  deckId: string,
+): boolean {
+  const cached = cache.get(queryClient);
+  if (!cached || cached.userId !== userId) {
+    return false;
+  }
+  return cached.drafts.get(deckId)?.hydrated ?? false;
+}
+
+export function getDeckDraftStatus(
+  queryClient: QueryClient,
+  userId: string,
+  deckId: string,
+): DeckSaveStatus {
+  const cached = cache.get(queryClient);
+  if (!cached || cached.userId !== userId) {
+    return CLEAN_STATUS;
+  }
+  return cached.drafts.get(deckId)?.status ?? CLEAN_STATUS;
+}

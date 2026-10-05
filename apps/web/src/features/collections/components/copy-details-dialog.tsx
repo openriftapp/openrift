@@ -36,13 +36,11 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PrintingVariantLabel } from "@/features/cards/components/printing-label";
-import {
-  copyHasRecordedDetails,
-  copyMarkers,
-} from "@/features/collections/components/copy-indicators";
-import { tradeAnnotationByCopyId } from "@/features/collections/components/tile-trade-status";
+import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { useCopies, useUpdateCopies } from "@/features/collections/hooks/use-copies";
 import type { CopyDetailsTarget } from "@/features/collections/lib/copy-details-target";
+import { copyHasRecordedDetails, copyMarkers } from "@/features/collections/lib/copy-indicators";
+import { tradeAnnotationByCopyId } from "@/features/collections/lib/tile-trade-status";
 import { OnLoanChip } from "@/features/groups/components/on-loan-chip";
 import { TradeStatusChip } from "@/features/groups/components/trade-status-chip";
 import { useLiveTradesByPrinting } from "@/features/groups/hooks/use-card-trades";
@@ -50,7 +48,6 @@ import { liveTradeStatus, tradeStatusTitle } from "@/features/groups/lib/trade-s
 import { useConditionList, useEnumOrders, useGraderList } from "@/hooks/use-enums";
 import type { EnumLabels } from "@/lib/enum-labels";
 import { formatCardId } from "@/lib/format";
-import { getFilterIconPath } from "@/lib/icons";
 import { m } from "@/paraglide/messages.js";
 
 // Select sentinels for the two non-slug condition states. Real condition
@@ -149,7 +146,6 @@ function distinctPrintings(printingByCopyId: Map<string, Printing>): Printing[] 
 
 function PrintingDescriptor({ printing, siblings }: { printing: Printing; siblings: Printing[] }) {
   const hasMixedRarities = new Set(siblings.map((p) => p.rarity)).size > 1;
-  const rarityIcon = getFilterIconPath("rarities", printing.rarity);
   return (
     <span className="inline-flex items-center gap-1">
       <PrintingVariantLabel
@@ -159,16 +155,7 @@ function PrintingDescriptor({ printing, siblings }: { printing: Printing; siblin
           <span className="text-muted-foreground font-mono text-xs">{formatCardId(printing)}</span>
         }
       />
-      {hasMixedRarities && rarityIcon && (
-        <img
-          src={rarityIcon}
-          alt={printing.rarity}
-          title={printing.rarity}
-          width={28}
-          height={28}
-          className="size-3.5"
-        />
-      )}
+      {hasMixedRarities && <RarityIcon rarity={printing.rarity} labelled className="size-3.5" />}
     </span>
   );
 }
@@ -298,7 +285,7 @@ function CopyPickerList({
         </PickerList>
       </div>
       <DialogFooter>
-        <Button variant="ghost" onClick={onClose}>
+        <Button variant="outline" onClick={onClose}>
           {m.common_close()}
         </Button>
       </DialogFooter>
@@ -519,7 +506,7 @@ function CopyEditor({
 
       <DialogFooter>
         <Button
-          variant="ghost"
+          variant="outline"
           onClick={showBack ? onBack : onDone}
           disabled={updateCopies.isPending}
         >

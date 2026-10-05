@@ -10,17 +10,9 @@ import {
   siX,
   siYoutube,
 } from "simple-icons";
+import type { SimpleIcon } from "simple-icons";
 
-/**
- * Declared structurally rather than imported as `SimpleIcon`, so a caller can
- * hand over a hand-rolled glyph without the package's whole type coming along.
- */
-export interface BrandIconData {
-  /** A single path, drawn against simple-icons' 24x24 viewBox. */
-  path: string;
-}
-
-const BRANDS_BY_HOST: Record<string, BrandIconData> = {
+const BRANDS_BY_HOST: Record<string, SimpleIcon> = {
   "youtube.com": siYoutube,
   "youtu.be": siYoutube,
   "twitch.tv": siTwitch,
@@ -41,7 +33,7 @@ const BRANDS_BY_HOST: Record<string, BrandIconData> = {
  * Resolved from the URL's host, not the label: labels are free text an admin
  * types and could name the wrong platform.
  */
-export function sourceBrand(url: string | null | undefined): BrandIconData | undefined {
+export function sourceBrand(url: string | null | undefined): SimpleIcon | undefined {
   if (url === null || url === undefined || url === "") {
     return undefined;
   }

@@ -9,9 +9,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CatchBoundary, Link } from "@tanstack/react-router";
 import { Suspense } from "react";
 
-import { Button } from "@/components/ui/button";
+import { ShareDialog } from "@/components/share/share-dialog";
+import { buttonVariants } from "@/components/ui/button";
 import { ensurePriceLookup } from "@/features/cards/hooks/use-prices";
-import { ShareDialog } from "@/features/groups/components/share-dialog";
 import { ListGroupShareSection } from "@/features/lists/components/list-group-share-section";
 import { useShareList, useUnshareList } from "@/features/lists/hooks/use-lists";
 import { formatListShareText } from "@/features/lists/lib/list-export";
@@ -116,14 +116,14 @@ export function ListShareDialog({
               message={m.lists_share_bundle_note}
               markup={{
                 link: ({ children }) => (
-                  <Button
-                    variant="link"
-                    className="h-auto p-0"
+                  <Link
+                    to="/profile"
+                    hash="sharing"
                     onClick={() => onOpenChange(false)}
-                    render={<Link to="/profile" hash="sharing" />}
+                    className={buttonVariants({ variant: "link", className: "h-auto p-0" })}
                   >
                     {children}
-                  </Button>
+                  </Link>
                 ),
               }}
             />

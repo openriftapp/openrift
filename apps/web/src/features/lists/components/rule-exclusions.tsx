@@ -1,5 +1,5 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { ListKind } from "@openrift/shared/types/api/list";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { XIcon } from "lucide-react";
 
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";

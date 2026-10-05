@@ -41,7 +41,7 @@ vi.mock("@/hooks/use-enums", () => ({
   useDeckFormatList: () => ({ formats: [], labels: {} }),
   useZoneOrder: () => ({ zoneOrder: [], zoneLabels: {} }),
 }));
-vi.mock("@/lib/auth-session", () => ({ useUserId: () => "user-1" }));
+vi.mock("@/hooks/use-session", () => ({ useUserId: () => "user-1" }));
 
 function deckRow(id: string, name: string): DeckListItemResponse {
   return {

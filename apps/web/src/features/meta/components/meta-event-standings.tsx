@@ -1,6 +1,6 @@
-import { STANDINGS_PAGE_SIZE } from "@openrift/shared/contracts/meta";
+import { META_PAGE_SIZES, STANDINGS_PAGE_SIZE } from "@openrift/shared/contracts/meta";
+import { todayUtc } from "@openrift/shared/format-date";
 import { cutSizeOf } from "@openrift/shared/meta-standings";
-import { todayUtc } from "@openrift/shared/set-release";
 import type {
   MetaEventField,
   MetaEventPhase,
@@ -8,13 +8,12 @@ import type {
 } from "@openrift/shared/types/api/meta";
 import type { MetaEventStatus } from "@openrift/shared/types/enums";
 import { getRouteApi } from "@tanstack/react-router";
-import { SearchIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 
 import { Heading } from "@/components/heading";
+import { SearchInput } from "@/components/search-input";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
-import { Input } from "@/components/ui/input";
 import { PAGER_SCROLL_TARGET, Pager } from "@/components/ui/pager";
 import {
   Select,
@@ -25,7 +24,6 @@ import {
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CardDetailOverlayProvider } from "@/features/cards/components/card-detail-opener";
-import { useSearchUrlSync } from "@/features/cards/hooks/use-search-url-sync";
 import type { MetaCostFilterValue } from "@/features/meta/components/meta-deck-cost-filter";
 import {
   EMPTY_META_COST_FILTER,
@@ -46,7 +44,7 @@ import {
 } from "@/features/meta/lib/meta-event-standings";
 import { describeEventProgress } from "@/features/meta/lib/meta-event-structure";
 import type { MetaPageSize } from "@/features/meta/lib/meta-paging";
-import { META_PAGE_ALL, META_PAGE_SIZES, metaPageCount } from "@/features/meta/lib/meta-paging";
+import { META_PAGE_ALL, metaPageCount } from "@/features/meta/lib/meta-paging";
 import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
 import {
   costMatchesBounds,
@@ -57,7 +55,8 @@ import {
 import type { MetaStandingsSearch } from "@/features/meta/lib/meta-standings-search";
 import { standingsPageQuery, standingsPageSize } from "@/features/meta/lib/meta-standings-search";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { useUserId } from "@/lib/auth-session";
+import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
+import { useUserId } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -409,19 +408,12 @@ function StandingsSearch({ value, onCommit }: { value: string; onCommit: (next: 
   const [typed, setTyped] = useSearchUrlSync({ urlValue: value, onCommit });
 
   return (
-    <div className="relative min-w-48 flex-1 sm:max-w-64">
-      <SearchIcon
-        aria-hidden
-        className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
-      />
-      <Input
-        type="search"
-        aria-label={m.meta_standings_find_player()}
-        placeholder={m.meta_standings_find_player_placeholder()}
-        value={typed}
-        onChange={(event) => setTyped(event.target.value)}
-        className="pl-8"
-      />
-    </div>
+    <SearchInput
+      className="min-w-48 flex-1 sm:max-w-64"
+      aria-label={m.meta_standings_find_player()}
+      placeholder={m.meta_standings_find_player_placeholder()}
+      value={typed}
+      onValueChange={setTyped}
+    />
   );
 }

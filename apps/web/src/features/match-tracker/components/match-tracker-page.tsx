@@ -1,6 +1,5 @@
 import { TrophyIcon } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
-import type { RefObject } from "react";
+import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { Heading } from "@/components/heading";
@@ -8,17 +7,18 @@ import { Button } from "@/components/ui/button";
 import { MatchSeamControls } from "@/features/match-tracker/components/match-seam-controls";
 import { PlayerPanel } from "@/features/match-tracker/components/player-panel";
 import { SetupScreen } from "@/features/match-tracker/components/setup-screen";
-import { useMatchTrackerStore } from "@/features/match-tracker/stores/match-tracker-store";
 import {
   medallionSizeTier,
   perRowHeight,
   planSeats,
   scoreSizeClass,
   xpSizeTier,
-} from "@/features/tournaments/lib/match-layout";
-import type { MedallionSize, Seat, XpSize } from "@/features/tournaments/lib/match-layout";
+} from "@/features/match-tracker/lib/match-layout";
+import type { MedallionSize, Seat, XpSize } from "@/features/match-tracker/lib/match-layout";
+import { useMatchTrackerStore } from "@/features/match-tracker/stores/match-tracker-store";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsLandscape } from "@/hooks/use-is-landscape";
+import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { m } from "@/paraglide/messages.js";
 
 // The store reads localStorage, so rendering is gated behind hydration to avoid an SSR mismatch.
@@ -43,8 +43,8 @@ function MatchBoard() {
   const isLandscape = useIsLandscape();
   const rows = planSeats(playerIds, isLandscape);
 
-  const boardRef = useRef<HTMLDivElement>(null);
-  const boardHeight = useMeasuredHeight(boardRef);
+  const [boardEl, setBoardEl] = useState<HTMLDivElement | null>(null);
+  const boardHeight = useMeasuredHeight(boardEl);
   const panelHeight = perRowHeight(boardHeight, rows.length);
   const scoreClass = scoreSizeClass(panelHeight);
   const medSize = medallionSizeTier(panelHeight);
@@ -54,7 +54,7 @@ function MatchBoard() {
     // Clears the iOS safe areas so a landscape Dynamic Island (sides) and home indicator
     // (bottom) don't cover the edge panels; max() keeps the 8px gutter where insets are 0.
     <div className="relative flex min-h-0 flex-1 flex-col pt-2 pr-[max(0.5rem,env(safe-area-inset-right,0px))] pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] pl-[max(0.5rem,env(safe-area-inset-left,0px))]">
-      <div ref={boardRef} className="relative flex min-h-0 flex-1 flex-col gap-2">
+      <div ref={setBoardEl} className="relative flex min-h-0 flex-1 flex-col gap-2">
         {rows.map((seats) => (
           <BoardRow
             key={seats.map((seat) => seat.id).join("-")}
@@ -69,30 +69,6 @@ function MatchBoard() {
       <WinnerBanner />
     </div>
   );
-}
-
-// Measured in a layout effect so the corrected value lands before the browser paints.
-function useMeasuredHeight(ref: RefObject<HTMLDivElement | null>): number {
-  const [height, setHeight] = useState(0);
-  useLayoutEffect(() => {
-    const element = ref.current;
-    if (!element) {
-      return;
-    }
-    let rafId = 0;
-    const measure = () => setHeight(element.clientHeight);
-    measure();
-    const observer = new ResizeObserver(() => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(measure);
-    });
-    observer.observe(element);
-    return () => {
-      cancelAnimationFrame(rafId);
-      observer.disconnect();
-    };
-  }, [ref]);
-  return height;
 }
 
 function BoardRow({

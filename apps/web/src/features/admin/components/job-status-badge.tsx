@@ -9,15 +9,7 @@ export function JobStatusBadge({ status }: { status: string }) {
     return <Badge variant="secondary">running</Badge>;
   }
   if (status === "failed") {
-    return (
-      <Badge variant="outline" className="border-destructive text-destructive">
-        failed
-      </Badge>
-    );
+    return <Badge variant="destructive">failed</Badge>;
   }
-  return (
-    <Badge variant="outline" className="border-success text-success">
-      ok
-    </Badge>
-  );
+  return <Badge variant="success">ok</Badge>;
 }

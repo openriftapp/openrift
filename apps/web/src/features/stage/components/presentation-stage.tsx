@@ -21,7 +21,7 @@ import {
 import type { PresentationItem } from "@/features/stage/lib/presentation-queue";
 import { stepIndex } from "@/features/stage/lib/presentation-queue";
 import { usePresentationStore } from "@/features/stage/stores/presentation-store";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { isTypingTarget } from "@/lib/keyboard-target";
 import { m } from "@/paraglide/messages.js";
 

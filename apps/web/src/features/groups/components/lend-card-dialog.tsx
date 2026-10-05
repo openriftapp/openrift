@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -18,6 +18,7 @@ import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RadioOptionRow } from "@/components/ui/radio-option-row";
 import { UserAvatar } from "@/components/user-avatar";
 import { CardMetaLine } from "@/features/groups/components/trade-row-parts";
 import { useCreateLoan, useLoanBorrowerOptions } from "@/features/groups/hooks/use-loans";
@@ -89,31 +90,30 @@ export function LendCardDialog({
             <CardMetaLine
               shortCode={printing.shortCode}
               rarity={printing.rarity}
-              rarityLabel={enumLabel(labels.rarities, printing.rarity)}
               finish={printing.finish}
               finishLabel={enumLabel(labels.finishes, printing.finish)}
             />
           </div>
 
-          <RadioGroup value={borrower} onValueChange={setBorrower} className="gap-2 py-1">
+          <RadioGroup value={borrower} onValueChange={setBorrower} className="gap-1 py-1">
             {members.map((member) => (
-              <label
+              <RadioOptionRow
                 key={member.userId}
-                className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md border p-2.5"
-              >
-                <RadioGroupItem value={member.userId} />
-                <UserAvatar
-                  image={member.image}
-                  name={member.name}
-                  gravatarHash={member.gravatarHash}
-                  size="sm"
-                />
-                <span className="min-w-0 flex-1 truncate text-sm">
-                  {member.name ?? m.loans_member_fallback()}
-                </span>
-              </label>
+                value={member.userId}
+                title={
+                  <span className="flex min-w-0 items-center gap-3">
+                    <UserAvatar
+                      image={member.image}
+                      name={member.name}
+                      gravatarHash={member.gravatarHash}
+                      size="sm"
+                    />
+                    <span className="truncate">{member.name ?? m.loans_member_fallback()}</span>
+                  </span>
+                }
+              />
             ))}
-            <label className="hover:bg-muted/50 flex cursor-pointer items-start gap-3 rounded-md border p-2.5">
+            <label className="hover:bg-muted/50 flex cursor-pointer items-start gap-3 rounded-md px-2 py-2">
               <RadioGroupItem value={FREE_TEXT} className="mt-2" />
               <span className="flex min-w-0 flex-1 flex-col gap-1.5">
                 <Input
@@ -156,7 +156,7 @@ export function LendCardDialog({
           </div>
 
           <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
+            <DialogCancel />
             <Button type="submit" disabled={createLoan.isPending || !canConfirm}>
               {m.loans_lend_confirm()}
             </Button>

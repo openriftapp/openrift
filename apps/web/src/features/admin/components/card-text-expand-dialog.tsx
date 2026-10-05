@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -99,7 +99,7 @@ export function CardTextExpandDialog({
               >
                 Clear
               </Button>
-              <DialogClose render={<Button type="button" variant="outline" />}>Cancel</DialogClose>
+              <DialogCancel />
               <Button type="submit">Save</Button>
             </DialogFooter>
           </DialogForm>

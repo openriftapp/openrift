@@ -6,6 +6,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { MultiSelectCombobox } from "@/components/multi-select-combobox";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -16,7 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { MultiSelectCombobox } from "@/features/cards/components/multi-select-combobox";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { RuleExclusions } from "@/features/lists/components/rule-exclusions";
 import {

@@ -1,4 +1,5 @@
-import { requiredLegendOptions } from "@openrift/shared/deck-rules";
+import { requiredLegendOptions, totalQuantity } from "@openrift/shared/deck-rules";
+import { ZONE_LABELS, zoneExpected } from "@openrift/shared/deck-zones";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -28,7 +29,6 @@ import {
   isCardAllowedInZone,
   isDeckZoneFullForDrag,
 } from "@/features/decks/lib/deck-builder-card";
-import { ZONE_LABELS, zoneExpected } from "@/features/decks/lib/deck-zone-labels";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { cn } from "@/lib/utils";
@@ -73,9 +73,9 @@ export function buildTargets(
           label: ZONE_LABELS[zone],
           kind: "add" as const,
           disabled: full || runeMismatch,
-          count: deckCards
-            .filter((card) => card.cardId === builderCard.cardId && card.zone === zone)
-            .reduce((sum, card) => sum + card.quantity, 0),
+          count: totalQuantity(
+            deckCards.filter((card) => card.cardId === builderCard.cardId && card.zone === zone),
+          ),
           expected: zoneExpected(zone, format, deckCards),
         };
       });

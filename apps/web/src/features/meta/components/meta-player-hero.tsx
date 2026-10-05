@@ -4,21 +4,22 @@ import { Fragment } from "react";
 
 import { Card } from "@/components/ui/card";
 import { CountryFlag } from "@/components/ui/country-flag";
-import { MetaHeroArt, MetaHeroCounter } from "@/features/meta/components/meta-hero";
-import { splitLegendName } from "@/features/meta/lib/meta-format";
+import { StatFigure } from "@/components/ui/stat-figure";
+import { MetaHeroArt } from "@/features/meta/components/meta-hero";
 import type { MetaPlayerCounts, MetaPlayerFacts } from "@/features/meta/lib/meta-player-page";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { countryName } from "@/lib/country";
 import { deckGlowStyle } from "@/lib/domain";
+import { formatCount } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 
 function FactCounters({ counts }: { counts: MetaPlayerCounts }) {
   return (
     <div className="flex flex-wrap gap-x-9 gap-y-3">
-      <MetaHeroCounter value={counts.eventWins} label={m.meta_player_hero_event_wins()} />
-      <MetaHeroCounter value={counts.topEights} label={m.meta_player_hero_top_eights()} />
-      <MetaHeroCounter value={counts.finishes} label={m.meta_legend_hero_finishes()} />
-      <MetaHeroCounter value={counts.decklists} label={m.meta_legend_hero_decklists()} />
+      <StatFigure value={formatCount(counts.eventWins)} label={m.meta_player_hero_event_wins()} />
+      <StatFigure value={formatCount(counts.topEights)} label={m.meta_player_hero_top_eights()} />
+      <StatFigure value={formatCount(counts.finishes)} label={m.meta_legend_hero_finishes()} />
+      <StatFigure value={formatCount(counts.decklists)} label={m.meta_legend_hero_decklists()} />
     </div>
   );
 }
@@ -84,7 +85,7 @@ export function MetaPlayerHero({
 }) {
   const domainColors = useDomainColors();
   const { topLegend } = facts;
-  const champion = topLegend === null ? null : splitLegendName(topLegend.name).champion;
+  const champion = topLegend === null ? null : (topLegend.character ?? topLegend.epithet);
 
   return (
     <Card className="relative gap-0 py-0">

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -66,7 +66,7 @@ export function DeckRenameDialog({
             />
           </div>
           <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
+            <DialogCancel />
             <Button type="submit" disabled={!draft.trim()}>
               {m.common_save()}
             </Button>

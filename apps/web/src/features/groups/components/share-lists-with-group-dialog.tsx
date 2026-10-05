@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -105,9 +106,7 @@ function ShareListsBody({
           )}
         </p>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            {m.common_close()}
-          </Button>
+          <DialogCancel>{m.common_close()}</DialogCancel>
         </DialogFooter>
       </>
     );
@@ -164,9 +163,7 @@ function ShareListsBody({
         })}
       </ul>
       <DialogFooter>
-        <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={share.isPending}>
-          {cancelLabel}
-        </Button>
+        <DialogCancel disabled={share.isPending}>{cancelLabel}</DialogCancel>
         <Button type="submit" disabled={share.isPending || selectedIds.size === 0}>
           {m.share_lists_dialog_submit({ count: selectedIds.size })}
         </Button>

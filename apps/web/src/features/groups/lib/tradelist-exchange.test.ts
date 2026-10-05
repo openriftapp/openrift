@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 import type { ListTargetOption } from "./tradelist-exchange";
 import {
   entryForPrinting,
-  listKindNoun,
   listTargetOptions,
   offerablePrintings,
   pendingRequestsByPrinting,
@@ -104,20 +103,6 @@ describe("entryForPrinting", () => {
     expect(entryForPrinting("card", printing, 0).quantity).toBe(1);
     expect(entryForPrinting("card", printing, -5).quantity).toBe(1);
     expect(entryForPrinting("card", printing, 2.9).quantity).toBe(2);
-  });
-});
-
-describe("listKindNoun", () => {
-  it("uses the singular noun when the count is exactly one", () => {
-    expect(listKindNoun("card", 1)).toBe("card");
-    expect(listKindNoun("printing", 1)).toBe("printing");
-    expect(listKindNoun("copy", 1)).toBe("copy");
-  });
-
-  it("uses the plural noun for zero or many", () => {
-    expect(listKindNoun("card", 0)).toBe("cards");
-    expect(listKindNoun("printing", 3)).toBe("printings");
-    expect(listKindNoun("copy", 2)).toBe("copies");
   });
 });
 

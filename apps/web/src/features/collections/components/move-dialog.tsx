@@ -111,7 +111,7 @@ export function MoveDialog({
             )}
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
               {m.common_cancel()}
             </Button>
             {canChooseQuantity && (

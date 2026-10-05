@@ -54,7 +54,7 @@ vi.mock("@/features/groups/hooks/use-friend-groups", () => ({
 }));
 vi.mock("@/hooks/use-enums", () => ({ useChannelRegistry: () => ({}) }));
 vi.mock("@/hooks/use-keyword-reverse-map", () => ({ useKeywordReverseMap: () => new Map() }));
-vi.mock("@/lib/auth-session", () => ({ useSession: () => ({ data: undefined }) }));
+vi.mock("@/hooks/use-session", () => ({ useSession: () => ({ data: undefined }) }));
 
 const { useCollectionGridData } = await import("./use-collection-grid-data");
 

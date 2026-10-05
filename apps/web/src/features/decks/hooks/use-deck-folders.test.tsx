@@ -27,7 +27,7 @@ vi.mock("@tanstack/react-start/server", () => ({
 
 let currentUserId: string | null = "user-1";
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => {
     if (currentUserId === null) {
       throw new Error("useRequiredUserId() called without an authenticated session.");

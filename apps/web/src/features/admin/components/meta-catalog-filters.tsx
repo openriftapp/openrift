@@ -1,4 +1,5 @@
 import type { MetaCatalogTriage } from "@openrift/shared/contracts/admin/meta-catalog";
+import { pluralize } from "@openrift/shared/strings";
 import { META_CATALOG_DISPLAY_STATUSES } from "@openrift/shared/types/enums";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
@@ -10,8 +11,8 @@ import { CatalogSourceSelect } from "@/features/admin/components/meta-catalog-sh
 import type { TriageCounts } from "@/features/admin/components/meta-triage-filter";
 import { ANY, TriageFilterSelect } from "@/features/admin/components/meta-triage-filter";
 import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
-import { useSearchUrlSync } from "@/features/cards/hooks/use-search-url-sync";
 import { catalogStatusDisplay } from "@/features/meta/lib/meta-catalog-display";
+import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 
 const STATUS_OPTIONS = [
   { value: ANY, label: "Any status" },
@@ -86,14 +87,14 @@ export function CatalogFilters({
         />
         <DatePicker
           value={filters.dateFrom ?? ""}
-          onChange={(value) => applyFilter({ dateFrom: value })}
+          onValueChange={(value) => applyFilter({ dateFrom: value })}
           onClear={() => applyFilter({ dateFrom: undefined })}
           placeholder="From"
           className="w-40"
         />
         <DatePicker
           value={filters.dateTo ?? ""}
-          onChange={(value) => applyFilter({ dateTo: value })}
+          onValueChange={(value) => applyFilter({ dateTo: value })}
           onClear={() => applyFilter({ dateTo: undefined })}
           placeholder="To"
           className="w-40"
@@ -121,7 +122,7 @@ export function CatalogFilters({
         </AdminFilterSwitch>
       </div>
       <p className="text-muted-foreground">
-        {total} matching {total === 1 ? "event" : "events"}.
+        {total} matching {pluralize(total, "event")}.
       </p>
     </div>
   );

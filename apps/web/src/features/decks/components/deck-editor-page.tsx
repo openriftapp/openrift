@@ -1,7 +1,9 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import { getOrientation } from "@openrift/shared/card-orientation";
+import { totalQuantity } from "@openrift/shared/deck-rules";
+import { isZoneShown, requiredZoneProgress } from "@openrift/shared/deck-zones";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckZone } from "@openrift/shared/types/enums";
-import { getOrientation } from "@openrift/shared/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { CornerLeftUpIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -11,7 +13,6 @@ import { Footer } from "@/components/layout/footer";
 import {
   PAGE_TOP_BAR_STICKY,
   PageTopBarHeightContext,
-  useMeasuredHeight,
   usePageTopBarHeight,
 } from "@/components/layout/page-top-bar";
 import {
@@ -26,6 +27,8 @@ import {
   SidebarProvider,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
+import type { HoverOrigin } from "@/features/cards/components/hovered-card-preview";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { useFilterActions } from "@/features/cards/hooks/use-card-filters";
@@ -41,14 +44,8 @@ import { DeckMobileDock } from "@/features/decks/components/deck-mobile-dock";
 import { useDeckUndoShortcuts } from "@/features/decks/components/deck-undo-controls";
 import { DeckVariantRail } from "@/features/decks/components/deck-variant-rail";
 import { DeckZonePanel } from "@/features/decks/components/deck-zone-panel";
-import { HoveredCardPreview } from "@/features/decks/components/hovered-card-preview";
-import type { HoverOrigin } from "@/features/decks/components/hovered-card-preview";
-import {
-  hydrateDeckDraft,
-  useDeckDraftHydrated,
-  useDeckSaveStatus,
-} from "@/features/decks/hooks/deck-builder-collection";
 import { useDeckCards, useDeckViolations } from "@/features/decks/hooks/use-deck-builder";
+import { useDeckDraftHydrated, useDeckSaveStatus } from "@/features/decks/hooks/use-deck-draft";
 import { useDeckEditorDialogs } from "@/features/decks/hooks/use-deck-editor-dialogs";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import { useDeckOwnership } from "@/features/decks/hooks/use-deck-ownership";
@@ -58,14 +55,15 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { buildRunesByDomain } from "@/features/decks/lib/deck-runes-by-domain";
 import { deckZoneFilterPreset } from "@/features/decks/lib/deck-zone-filters";
-import { isZoneShown, requiredZoneProgress } from "@/features/decks/lib/deck-zone-labels";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
+import { flushDeckDraft, hydrateDeckDraft } from "@/features/decks/stores/deck-draft-store";
 import { useIncomingTradeCounts } from "@/features/groups/hooks/use-card-trades";
 import { useBorrowedCounts } from "@/features/groups/hooks/use-loans";
 import { useRegisterQuickAdd } from "@/hooks/use-command-palette";
 import { useHeaderHeight } from "@/hooks/use-header-height";
+import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
-import { useSession, useUserId } from "@/lib/auth-session";
+import { useSession, useUserId } from "@/hooks/use-session";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -204,6 +202,13 @@ function DeckEditorContent({
     [resetUi],
   );
 
+  useEffect(
+    () => () => {
+      flushDeckDraft(queryClient, scope, deckId);
+    },
+    [queryClient, scope, deckId],
+  );
+
   // The handler re-registers only on the two transitions it reads, not on
   // every card edit.
   const unsavedWarning = saveStatus.isDirty || saveStatus.isSaving;
@@ -322,10 +327,8 @@ function DeckEditorContent({
         }
       : null;
 
-  const zoneCount = deckCards
-    .filter((card) => card.zone === activeZone)
-    .reduce((sum, card) => sum + card.quantity, 0);
-  const totalCards = deckCards.reduce((sum, card) => sum + card.quantity, 0);
+  const zoneCount = totalQuantity(deckCards.filter((card) => card.zone === activeZone));
+  const totalCards = totalQuantity(deckCards);
   const requiredCounts = requiredZoneProgress(deckCards, data.deck.format);
 
   if (!hydrated) {

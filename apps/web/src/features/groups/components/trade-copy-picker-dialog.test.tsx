@@ -34,7 +34,7 @@ vi.mock("@/features/groups/hooks/use-card-trades", () => ({
   }),
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => "user-1",
 }));
 

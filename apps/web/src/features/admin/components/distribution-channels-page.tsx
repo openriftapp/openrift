@@ -1,8 +1,8 @@
+import { pluralize } from "@openrift/shared/strings";
 import type { DistributionChannelResponse } from "@openrift/shared/types/api/admin";
 import type { DistributionChannelKind } from "@openrift/shared/types/catalog";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -13,28 +13,28 @@ import {
 import {
   DescriptionCell,
   DescriptionInput,
-  LabelAddInput,
-  LabelInput,
+  DraftTextInput,
   SlugAddInput,
   SlugCell,
   validateSlugAndLabel,
 } from "@/features/admin/components/admin-crud-shared";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type {
   AdminCellSlotProps,
   AdminColumnDef,
   AdminDraftSlotProps,
 } from "@/features/admin/components/admin-table";
-import { treeReorder } from "@/features/admin/lib/admin-reorder";
-import type { ChannelTreeNode } from "@/features/cards/lib/distribution-channel-tree";
-import { buildChannelTree, canReparent } from "@/features/cards/lib/distribution-channel-tree";
 import {
   useCreateDistributionChannel,
   useDeleteDistributionChannel,
   useDistributionChannels,
   useReorderDistributionChannels,
   useUpdateDistributionChannel,
-} from "@/hooks/use-distribution-channels";
+} from "@/features/admin/hooks/use-distribution-channels";
+import { treeReorder } from "@/features/admin/lib/admin-reorder";
+import type { ChannelTreeNode } from "@/features/cards/lib/distribution-channel-tree";
+import { buildChannelTree, canReparent } from "@/features/cards/lib/distribution-channel-tree";
 
 interface ChannelDraft {
   id: string;
@@ -222,19 +222,7 @@ function KindAddSelect({ draft, setDraft }: AdminDraftSlotProps<ChannelDraft>) {
   return <KindSelect draft={draft} setDraft={setDraft} />;
 }
 
-function ChildrenLabelInput({ draft, setDraft }: AdminDraftSlotProps<ChannelDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.childrenLabel}
-      onChange={(e) => setDraft((prev) => ({ ...prev, childrenLabel: e.target.value }))}
-      placeholder="Edition, Placement, Type, …"
-      className="h-8"
-    />
-  );
-}
+const CHILDREN_LABEL_EXAMPLE = "Edition, Placement, Type, …";
 
 export function DistributionChannelsPage() {
   const { data } = useDistributionChannels();
@@ -261,8 +249,8 @@ export function DistributionChannelsPage() {
     {
       header: "Label",
       cell: <LabelCell nodeById={nodeById} />,
-      editCell: <LabelInput<ChannelDraft> />,
-      addCell: <LabelAddInput<ChannelDraft> placeholder="Nexus Night 2025" />,
+      editCell: <DraftTextInput<ChannelDraft> field="label" />,
+      addCell: <DraftTextInput<ChannelDraft> field="label" placeholder="Nexus Night 2025" />,
     },
     {
       header: "Slug",
@@ -287,8 +275,12 @@ export function DistributionChannelsPage() {
       headerTitle:
         "Used as the column header when /promos collapses sparse children into a compact table",
       cell: <ChildrenLabelCell />,
-      editCell: <ChildrenLabelInput />,
-      addCell: <ChildrenLabelInput />,
+      editCell: (
+        <DraftTextInput<ChannelDraft> field="childrenLabel" placeholder={CHILDREN_LABEL_EXAMPLE} />
+      ),
+      addCell: (
+        <DraftTextInput<ChannelDraft> field="childrenLabel" placeholder={CHILDREN_LABEL_EXAMPLE} />
+      ),
     },
     {
       header: "Description",
@@ -315,7 +307,7 @@ export function DistributionChannelsPage() {
       data={orderedChannels}
       getRowKey={(c) => c.id}
       emptyText="No distribution channels yet."
-      title="Distribution Channels"
+      topBar={(actions) => <AdminPageTopBar title="Distribution Channels" actions={actions} />}
       toolbar={
         <PageDescription>
           Where a printing was distributed. Channels can nest, and printings attach only to leaf
@@ -397,7 +389,7 @@ export function DistributionChannelsPage() {
           if (c.printingCount > 0) {
             return {
               title: `Delete "${c.label}"?`,
-              description: `This channel is linked to ${c.printingCount.toLocaleString()} printing${c.printingCount === 1 ? "" : "s"}. Deleting it will unlink it from ${c.printingCount === 1 ? "that printing" : "all of them"}.`,
+              description: `This channel is linked to ${c.printingCount.toLocaleString()} ${pluralize(c.printingCount, "printing")}. Deleting it will unlink it from ${c.printingCount === 1 ? "that printing" : "all of them"}.`,
             };
           }
           return {

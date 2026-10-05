@@ -1,7 +1,8 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
-import type { CardDragData, ListEntryDragData } from "./dnd-types";
+import type { CardDragData, ListEntryDragData } from "@/features/collections/lib/dnd-types";
+
 import { isCompatibleCollectionDrop } from "./droppable-collection";
 
 const STUB_PRINTING = { id: "printing-1" } as unknown as Printing;

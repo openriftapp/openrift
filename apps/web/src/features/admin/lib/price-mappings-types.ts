@@ -4,15 +4,6 @@ import type {
   StagedProductResponse,
 } from "@openrift/shared/types/api/admin";
 
-export type {
-  AssignableCardResponse as AssignableCard,
-  MappingPrintingResponse as MappingPrinting,
-  MarketplaceAssignmentResponse as MarketplaceAssignment,
-  StagedProductResponse as StagedProduct,
-  UnifiedMappingGroupResponse as UnifiedMappingGroup,
-  UnifiedMappingPrintingResponse as UnifiedMappingPrinting,
-} from "@openrift/shared/types/api/admin";
-
 export interface SourceMappingConfig {
   source: string;
   displayName: string;

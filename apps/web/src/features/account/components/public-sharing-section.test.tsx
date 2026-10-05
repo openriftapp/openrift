@@ -20,7 +20,7 @@ vi.mock("@/features/groups/hooks/use-user-share", () => ({
   useDisableUserShare: () => ({ mutate: disableMutate, isPending: false }),
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useSession: () => ({ data: { user: { name: "Summoner Kai" } } }),
 }));
 

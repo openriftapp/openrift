@@ -1,10 +1,11 @@
 import { formatDay } from "@openrift/shared/format-date";
+import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaLegendFinish } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
-import { Button } from "@/components/ui/button";
+import { ShowMoreButton } from "@/components/show-more-button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { RankBand } from "@/components/ui/rank-band";
 import { RowList } from "@/components/ui/row-list";
@@ -18,12 +19,11 @@ import {
 } from "@/components/ui/table";
 import { TextLink } from "@/components/ui/text-link";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
-import { MetaShowMore } from "@/features/meta/components/meta-show-more";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
-import { formatRank, formatRecord } from "@/features/meta/lib/meta-format";
+import { formatRank } from "@/features/meta/lib/meta-format";
 import type { MetaFinishesView } from "@/features/meta/lib/meta-legend-page";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 
 function Rank({ finish }: { finish: MetaLegendFinish }) {
@@ -65,7 +65,7 @@ function ListLink({ finish, canSubmit }: { finish: MetaLegendFinish; canSubmit: 
         />
       }
     >
-      + Add
+      {m.meta_add_deck_link()}
     </TextLink>
   );
 }
@@ -189,13 +189,12 @@ export function MetaLegendFinishes({
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <Heading>{m.meta_finishes_heading()}</Heading>
         {total > best.length && (
-          <Button
-            variant="link"
-            className="h-auto p-0 text-sm font-medium"
+          <ShowMoreButton
+            placement="heading"
+            count={total}
+            expanded={view === "all"}
             onClick={() => setView(view === "best" ? "all" : "best")}
-          >
-            {view === "best" ? m.meta_show_all_n({ count: total }) : m.meta_show_fewer()}
-          </Button>
+          />
         )}
       </div>
 
@@ -224,9 +223,9 @@ export function MetaLegendFinishes({
         </RowList>
 
         {view === "all" && remaining > 0 && (
-          <MetaShowMore disabled={loadingMore} onClick={onShowMore}>
+          <ShowMoreButton pending={loadingMore} onClick={onShowMore}>
             {m.meta_finishes_more({ count: remaining })}
-          </MetaShowMore>
+          </ShowMoreButton>
         )}
       </div>
     </section>

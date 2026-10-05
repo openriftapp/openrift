@@ -2,6 +2,7 @@ import { adminAuditEventsContract } from "@openrift/shared/contracts/admin/audit
 import { infiniteQueryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
+import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type { AdminAuditEventsListResponse } from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
@@ -31,7 +32,7 @@ const fetchAuditEventsFn = createServerFn({ method: "GET" })
 
 export function auditEventsQueryOptions(filters: AuditFilters = {}) {
   return infiniteQueryOptions({
-    queryKey: ["admin", "audit-events", filters] as const,
+    queryKey: adminKeys.audit.events(filters),
     queryFn: ({ pageParam }) =>
       fetchAuditEventsFn({
         data: {

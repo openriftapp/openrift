@@ -6,7 +6,6 @@ import {
   PageDescription,
   PageTopBar,
   PageTopBarActions,
-  PageTopBarPrimaryButton,
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
@@ -25,9 +24,9 @@ export function TournamentsListPage() {
         <PageTopBar>
           <PageTopBarTitle>{m.nav_tournaments()}</PageTopBarTitle>
           <PageTopBarActions>
-            <PageTopBarPrimaryButton render={<Link to="/tournaments/new" />}>
+            <Link to="/tournaments/new" className={buttonVariants()}>
               <PlusIcon /> {m.tournaments_list_new()}
-            </PageTopBarPrimaryButton>
+            </Link>
           </PageTopBarActions>
         </PageTopBar>
       </PageTopBarSticky>
@@ -41,7 +40,7 @@ export function TournamentsListPage() {
             title={m.tournaments_list_empty_title()}
             description={m.tournaments_list_empty_description()}
           >
-            <Link to="/tournaments/new" className={buttonVariants({ variant: "default" })}>
+            <Link to="/tournaments/new" className={buttonVariants()}>
               <PlusIcon />
               {m.tournaments_list_new()}
             </Link>

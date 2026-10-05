@@ -7,16 +7,16 @@ import { META_CATALOG_PROVIDERS } from "@openrift/shared/types/enums";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogCancel,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -99,16 +99,16 @@ export function MetaCatalogAcceptDialog({
   }
 
   return (
-    <AlertDialog open onOpenChange={(open) => !open && onCancel()}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Which format is &ldquo;{row.name}&rdquo;?</AlertDialogTitle>
-          <AlertDialogDescription>
+    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Which format is &ldquo;{row.name}&rdquo;?</DialogTitle>
+          <DialogDescription>
             {row.eventFormat === null
               ? "The source published no format for this event, so the archive has nothing to file it under."
               : `The source calls this "${row.eventFormat}", which maps to none of our formats.`}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+          </DialogDescription>
+        </DialogHeader>
         <div className="space-y-2">
           <Label htmlFor="meta-catalog-accept-format">Format</Label>
           <Select
@@ -128,13 +128,13 @@ export function MetaCatalogAcceptDialog({
             </SelectContent>
           </Select>
         </div>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <Button disabled={format === "" || pending} onClick={() => onConfirm(format)}>
+        <DialogFooter>
+          <DialogCancel />
+          <Button disabled={format === ""} pending={pending} onClick={() => onConfirm(format)}>
             Accept
           </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

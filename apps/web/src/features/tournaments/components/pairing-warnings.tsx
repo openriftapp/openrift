@@ -6,11 +6,9 @@ import { TriangleAlertIcon } from "lucide-react";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useRegionLabel } from "@/features/tournaments/hooks/use-region-label";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-// Named so the React Compiler can reorder it.
-const rawRegionSlug = (slug: string): string => slug;
 
 /**
  * Rebuilds the engine's snapshot players (Map opponents, plus the 2v2 team)
@@ -31,12 +29,17 @@ export function snapshotToPlayers(snapshot: PodSnapshotPlayer[]): TeamSnapshotPl
   }));
 }
 
+type SameRegionWarning = Extract<PairingWarning, { kind: "sameRegion" }>;
+
+function playerName(nameById: Map<string, string>, id: string): string {
+  return nameById.get(id) ?? m.tournaments_warning_fallback_player();
+}
+
 function describeWarning(
-  warning: PairingWarning,
+  warning: Exclude<PairingWarning, SameRegionWarning>,
   nameById: Map<string, string>,
-  regionLabel: (slug: string) => string,
 ): string {
-  const name = (id: string) => nameById.get(id) ?? m.tournaments_warning_fallback_player();
+  const name = (id: string) => playerName(nameById, id);
   switch (warning.kind) {
     case "rematch": {
       return warning.meetings === 1
@@ -65,13 +68,6 @@ function describeWarning(
         count: warning.priorByes,
       });
     }
-    case "sameRegion": {
-      return m.tournaments_warning_same_region({
-        first: name(warning.playerIds[0]),
-        second: name(warning.playerIds[1]),
-        region: regionLabel(warning.region),
-      });
-    }
     case "fixedSeatDisplaced": {
       return m.tournaments_warning_fixed_seat({
         name: name(warning.playerId),
@@ -82,6 +78,38 @@ function describeWarning(
   }
 }
 
+function SameRegionWarningLine({
+  warning,
+  nameById,
+}: {
+  warning: SameRegionWarning;
+  nameById: Map<string, string>;
+}) {
+  const regionLabel = useRegionLabel();
+  return (
+    <li>
+      {m.tournaments_warning_same_region({
+        first: playerName(nameById, warning.playerIds[0]),
+        second: playerName(nameById, warning.playerIds[1]),
+        region: regionLabel(warning.region),
+      })}
+    </li>
+  );
+}
+
+function WarningLine({
+  warning,
+  nameById,
+}: {
+  warning: PairingWarning;
+  nameById: Map<string, string>;
+}) {
+  if (warning.kind === "sameRegion") {
+    return <SameRegionWarningLine warning={warning} nameById={nameById} />;
+  }
+  return <li>{describeWarning(warning, nameById)}</li>;
+}
+
 /**
  * The pod's warnings written out, one line each, in the app's amber warning
  * callout. Renders nothing when there are no warnings.
@@ -89,12 +117,10 @@ function describeWarning(
 export function WarningList({
   warnings,
   nameById,
-  regionLabel = rawRegionSlug,
   className,
 }: {
   warnings: PairingWarning[];
   nameById: Map<string, string>;
-  regionLabel?: (slug: string) => string;
   className?: string;
 }) {
   if (warnings.length === 0) {
@@ -106,7 +132,7 @@ export function WarningList({
       <AlertTitle>
         <ul className="flex flex-col gap-0.5 font-normal">
           {warnings.map((warning, index) => (
-            <li key={index}>{describeWarning(warning, nameById, regionLabel)}</li>
+            <WarningLine key={index} warning={warning} nameById={nameById} />
           ))}
         </ul>
       </AlertTitle>
@@ -121,11 +147,9 @@ export function WarningList({
 export function WarningBadge({
   warnings,
   nameById,
-  regionLabel = rawRegionSlug,
 }: {
   warnings: PairingWarning[];
   nameById: Map<string, string>;
-  regionLabel?: (slug: string) => string;
 }) {
   if (warnings.length === 0) {
     return null;
@@ -139,7 +163,7 @@ export function WarningBadge({
       <TooltipContent>
         <ul className="flex flex-col gap-0.5">
           {warnings.map((warning, index) => (
-            <li key={index}>{describeWarning(warning, nameById, regionLabel)}</li>
+            <WarningLine key={index} warning={warning} nameById={nameById} />
           ))}
         </ul>
       </TooltipContent>

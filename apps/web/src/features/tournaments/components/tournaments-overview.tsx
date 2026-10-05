@@ -1,6 +1,6 @@
 import type { TournamentSummaryResponse } from "@openrift/shared/types/api/tournament";
 
-import { SectionHeading } from "@/components/ui/section-heading";
+import { Heading } from "@/components/heading";
 import { NextEventHero } from "@/features/tournaments/components/next-event-hero";
 import { PastEventsTimeline } from "@/features/tournaments/components/past-events-timeline";
 import { TournamentCard } from "@/features/tournaments/components/tournament-card";
@@ -46,17 +46,18 @@ export function TournamentsOverview({
       )}
       {alsoUpcoming.length > 0 ? (
         <section className="flex flex-col gap-3">
-          <SectionHeading variant="display">
-            {m.tournaments_overview_also_coming_up()}
-          </SectionHeading>
+          <Heading>{m.tournaments_overview_also_coming_up()}</Heading>
           <UpcomingGrid tournaments={alsoUpcoming} />
         </section>
       ) : null}
       {pastSorted.length > 0 ? (
         <section className="flex flex-col gap-3">
-          <SectionHeading variant="display" count={pastSorted.length}>
+          <Heading>
             {m.tournaments_overview_past_events()}
-          </SectionHeading>
+            <span className="text-muted-foreground ml-2 text-sm font-normal tabular-nums">
+              {pastSorted.length}
+            </span>
+          </Heading>
           <PastEventsTimeline tournaments={pastSorted} showContext={showContext} />
         </section>
       ) : null}

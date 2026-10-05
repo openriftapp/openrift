@@ -1,9 +1,8 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { DeckExportResponse } from "@openrift/shared/types/api/deck";
-import { CheckIcon, CopyIcon, Loader2Icon } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { CopyTextPanel } from "@/components/copy-text-panel";
 import {
   Dialog,
   DialogContent,
@@ -13,14 +12,12 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TextLink } from "@/components/ui/text-link";
-import { Textarea } from "@/components/ui/textarea";
 import { useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useEncodeDeckCards, useExportDeck } from "@/features/decks/hooks/use-decks";
 import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
 import type { PublicDeckSource } from "@/features/decks/lib/public-deck-source";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { m } from "@/paraglide/messages.js";
 
 type ExportFormat = "piltover" | "text" | "tts";
@@ -115,7 +112,6 @@ export function DeckExportDialog({
   // Subscribing the draft of a deck the viewer doesn't own would fetch someone
   // else's deck, and a caller bringing its own cards never reads it anyway.
   const liveCards = useDeckCards(cardsProp === undefined ? deckId : "");
-  const { copied, copy, reset: resetCopied } = useCopyToClipboard();
   const [tab, setTab] = useState<ExportFormat>("text");
   const [formats, setFormats] = useState<Partial<Record<ExportFormat, DeckExportResponse>>>({});
 
@@ -132,7 +128,6 @@ export function DeckExportDialog({
   const discardMutations = useEffectEvent(() => {
     exportDeck.reset();
     encodeDeck.reset();
-    resetCopied();
   });
   useEffect(() => {
     if (open) {
@@ -173,23 +168,10 @@ export function DeckExportDialog({
     fetchFormat(tab);
   }, [open, tab]);
 
-  const handleTabChange = (newTab: ExportFormat) => {
-    setTab(newTab);
-    resetCopied();
-  };
-
   const currentData = formats[tab];
   const isCurrentTab = exportMutation.variables?.format === tab;
   const currentLoading = exportMutation.isPending && isCurrentTab;
   const currentError = exportMutation.isError && isCurrentTab;
-
-  const handleCopy = () => {
-    if (!currentData?.code) {
-      return;
-    }
-    // Use \r\n so line breaks survive iOS Safari's clipboard
-    void copy(currentData.code.replaceAll("\n", "\r\n"));
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -197,7 +179,7 @@ export function DeckExportDialog({
         <Tabs
           defaultValue="text"
           value={tab}
-          onValueChange={(value) => handleTabChange(value as ExportFormat)}
+          onValueChange={(value) => setTab(value as ExportFormat)}
         >
           <DialogHeader>
             <DialogTitle>{m.decks_dialog_export_title()}</DialogTitle>
@@ -215,33 +197,13 @@ export function DeckExportDialog({
 
           <TabsContent value={tab}>
             <div className="flex min-w-0 flex-col gap-3">
-              <Textarea
-                readOnly
-                value={currentData?.code ?? ""}
-                placeholder={currentError ? m.decks_dialog_export_failed() : ""}
-                className="field-sizing-fixed font-mono text-xs break-all"
+              <CopyTextPanel
+                key={tab}
+                text={currentData?.code ?? ""}
                 rows={8}
-                onClick={(event) => (event.target as HTMLTextAreaElement).select()}
+                isLoading={currentLoading}
+                emptyNote={currentError ? m.decks_dialog_export_failed() : undefined}
               />
-
-              <div className="flex items-center gap-2 self-end">
-                {currentLoading && (
-                  <Loader2Icon className="text-muted-foreground size-4 animate-spin" />
-                )}
-                <Button onClick={handleCopy} disabled={!currentData}>
-                  {copied ? (
-                    <>
-                      <CheckIcon className="size-4" />
-                      {m.common_copied()}
-                    </>
-                  ) : (
-                    <>
-                      <CopyIcon className="size-4" />
-                      {m.common_copy()}
-                    </>
-                  )}
-                </Button>
-              </div>
 
               {currentData && currentData.warnings.length > 0 && (
                 <div className="text-muted-foreground text-xs">

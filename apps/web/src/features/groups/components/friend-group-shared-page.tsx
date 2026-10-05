@@ -14,8 +14,9 @@ import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
 import { CardLink } from "@/components/ui/card-link";
 import { CountPill } from "@/components/ui/count-pill";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Pressable } from "@/components/ui/pressable";
-import { RowList } from "@/components/ui/row-list";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { UserAvatar } from "@/components/user-avatar";
 import { CardFan, CardFanOutline } from "@/features/cards/components/card-fan";
@@ -27,7 +28,7 @@ import { useCopiesCollection } from "@/features/collections/hooks/use-copies-col
 import { deriveCollectionCovers } from "@/features/collections/lib/collection-cover-art";
 import { useFriendGroupShareableCollections } from "@/features/groups/hooks/use-friend-group-sharing";
 import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 
 import { ContactMethodChips } from "./contact-method-chips";
@@ -217,7 +218,11 @@ function MemberSharesSection({ slug, data }: { slug: string; data: FriendGroupDe
     <section className="flex flex-col gap-3">
       <SectionHeading>{m.groups_shared_member_collections()}</SectionHeading>
       {owners.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{m.groups_shared_empty()}</p>
+        <Empty>
+          <EmptyHeader>
+            <EmptyDescription>{m.groups_shared_empty()}</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <div className="flex flex-col gap-5">
           {owners.map(({ member, collections }) => (
@@ -280,9 +285,9 @@ function MemberSharesBlock({
       {collections.length > 0 ? (
         <RowList>
           {collections.map((share) => (
-            <li key={share.collectionId}>
+            <RowListItem key={share.collectionId}>
               <SharedCollectionRow slug={slug} share={share} />
-            </li>
+            </RowListItem>
           ))}
         </RowList>
       ) : null}

@@ -1,32 +1,15 @@
-import { formatRuleNumber, isRuleLanguage } from "@openrift/shared/rules";
+import { isRuleLanguage } from "@openrift/shared/rules";
 import type { HastNode } from "@openrift/shared/rules-markdown";
 import type { RuleLanguage } from "@openrift/shared/types/api/rules";
 import { Link } from "@tanstack/react-router";
 import type { MouseEvent, ReactNode } from "react";
 import { flushSync } from "react-dom";
-import { toast } from "sonner";
 
 import { Callout } from "@/components/ui/callout";
 import { TextLink } from "@/components/ui/text-link";
-import { diffRuleMarkdown, diffRuleSide } from "@/features/rules/lib/rules-markdown";
+import { diffRuleMarkdown, diffRuleSide } from "@/features/rules/lib/rules-markdown-diff";
 import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
-import { copyTextToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
-import { m } from "@/paraglide/messages.js";
-
-export { formatRuleNumber } from "@openrift/shared/rules";
-
-export async function copyRuleLink(ruleNumber: string): Promise<void> {
-  const lang = new URLSearchParams(globalThis.location.search).get("lang");
-  const search = lang === null ? "" : `?lang=${encodeURIComponent(lang)}`;
-  const url = `${globalThis.location.origin}${globalThis.location.pathname}${search}#rule-${ruleNumber}`;
-  try {
-    await copyTextToClipboard(url);
-    toast.success(m.rules_copy_link_success({ rule: formatRuleNumber(ruleNumber) }));
-  } catch {
-    toast.error(m.rules_copy_link_error());
-  }
-}
 
 // Tournament penalty labels — matched as literal `[Label]` strings inside rule
 // bodies and styled on the status tokens by severity.

@@ -27,20 +27,20 @@ import {
   useUncheckCandidateCard,
   useUncheckCandidatePrinting,
 } from "@/features/admin/hooks/use-admin-card-mutations";
+import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
 import {
   useIgnoreCandidateCard,
   useIgnoreCandidatePrinting,
 } from "@/features/admin/hooks/use-ignored-candidates";
+import { useLanguages } from "@/features/admin/hooks/use-languages";
+import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
 import type { CandidateSpreadsheetRow } from "@/features/admin/lib/candidate-rows";
 import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
 import { buildSourceSubmitters } from "@/features/admin/lib/candidate-submitter";
 import { useDistinctArtists } from "@/features/cards/hooks/use-distinct-artists";
 import { buildChannelTree, leafChannels } from "@/features/cards/lib/distribution-channel-tree";
-import { useDistributionChannels } from "@/hooks/use-distribution-channels";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { useLanguages } from "@/hooks/use-languages";
-import { useMarkers } from "@/hooks/use-markers";
 
 export function useCardDetailData(invalidates: readonly (readonly unknown[])[]) {
   const { orders, labels } = useEnumOrders();

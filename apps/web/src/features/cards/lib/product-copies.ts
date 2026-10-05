@@ -1,3 +1,4 @@
+import { chunk } from "@openrift/shared/collections";
 import type { ProductDetailResponse } from "@openrift/shared/contracts/products";
 
 /** One row of the POST /copies payload. */
@@ -36,9 +37,5 @@ export function expandProductContents(
 }
 
 export function chunkProductCopies(rows: ProductCopyRow[]): ProductCopyRow[][] {
-  const batches: ProductCopyRow[][] = [];
-  for (let offset = 0; offset < rows.length; offset += PRODUCT_COPY_BATCH_SIZE) {
-    batches.push(rows.slice(offset, offset + PRODUCT_COPY_BATCH_SIZE));
-  }
-  return batches;
+  return chunk(rows, PRODUCT_COPY_BATCH_SIZE);
 }

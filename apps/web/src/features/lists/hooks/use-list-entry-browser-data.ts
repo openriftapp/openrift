@@ -18,7 +18,7 @@ import {
 import { useListEntriesStore } from "@/features/lists/stores/list-entries-store";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
 import { useDisplayStore } from "@/stores/display-store";
 
 export interface UseListEntryBrowserDataParams {

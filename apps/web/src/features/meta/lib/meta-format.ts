@@ -1,4 +1,5 @@
-import { todayUtc } from "@openrift/shared/set-release";
+import { todayUtc } from "@openrift/shared/format-date";
+import { formatRecord } from "@openrift/shared/meta-standings";
 import type {
   MetaEventStatus,
   MetaEventTier,
@@ -9,12 +10,33 @@ import { META_PLAYER_OVERLAY_FIELDS } from "@openrift/shared/types/enums";
 
 import { m } from "@/paraglide/messages.js";
 
-// The deck share image also uses this; it lives in `shared` for both to import.
-export { formatRecord } from "@openrift/shared/meta-standings";
-
 /** Tier sources publish only cut buckets: 1 and 2 still read as places, 3+ as "T4". */
 export function formatRank(rank: number, rankIsTier: boolean): string {
   return rankIsTier && rank > 2 ? m.meta_rank_tier({ rank }) : m.meta_rank_ordinal({ rank });
+}
+
+export function metaOpponentFinishLine(
+  opponent:
+    | {
+        rank: number;
+        rankIsTier: boolean;
+        wins: number | null;
+        losses: number | null;
+        draws: number | null;
+      }
+    | undefined,
+): string | null {
+  if (opponent === undefined) {
+    return null;
+  }
+  const parts: string[] = [
+    m.meta_run_opponent_finished({ rank: formatRank(opponent.rank, opponent.rankIsTier) }),
+  ];
+  const record = formatRecord(opponent.wins, opponent.losses, opponent.draws);
+  if (record !== null) {
+    parts.push(record);
+  }
+  return parts.join(" · ");
 }
 
 export function metaListStatusLabels(): Record<MetaListStatus, string> {
@@ -88,23 +110,6 @@ export function joinNames(names: readonly string[]): string {
     return names[0] ?? "";
   }
   return m.meta_join_and({ names: names.slice(0, -1).join(", "), last: names.at(-1) ?? "" });
-}
-
-export interface LegendNameParts {
-  champion: string;
-  title: string | null;
-}
-
-/**
- * Assumes every Legend is champion-tagged: an untagged legend, or a printed
- * name with a natural comma, would misparse as champion plus title.
- */
-export function splitLegendName(name: string): LegendNameParts {
-  const at = name.indexOf(", ");
-  if (at === -1) {
-    return { champion: name, title: null };
-  }
-  return { champion: name.slice(0, at), title: name.slice(at + 2) };
 }
 
 /** Assumes no event runs 1000+ rounds, or wins would stop outweighing losses in the packed value. */

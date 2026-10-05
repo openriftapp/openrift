@@ -56,7 +56,7 @@ vi.mock("@/features/groups/hooks/use-friend-group-shops", () => ({
   useFriendGroupShopEvents: () => ({ data: currentShopEvents }),
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => "viewer-1",
 }));
 

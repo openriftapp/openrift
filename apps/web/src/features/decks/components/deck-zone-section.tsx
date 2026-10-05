@@ -1,10 +1,12 @@
 import type { DeckViolation } from "@openrift/shared/deck-rules";
-import { copyLimitFor } from "@openrift/shared/deck-rules";
+import { copyLimitFor, totalQuantity } from "@openrift/shared/deck-rules";
+import { ZONE_LABELS, zoneExpected } from "@openrift/shared/deck-zones";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { AlertTriangleIcon, BanIcon } from "lucide-react";
 import { useState } from "react";
 
+import { CardIcon } from "@/components/card-icon";
 import { Button } from "@/components/ui/button";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -26,7 +28,7 @@ import {
   TYPE_GROUP_ORDER,
 } from "@/features/decks/lib/deck-card-order";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
-import { ZONE_LABELS, zoneEmptyHint, zoneExpected } from "@/features/decks/lib/deck-zone-labels";
+import { zoneEmptyHint } from "@/features/decks/lib/deck-zone-labels";
 import { useBorrowedLenders } from "@/features/groups/hooks/use-loans";
 import { borrowedReasonText } from "@/features/groups/lib/loan-derivation";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
@@ -120,7 +122,7 @@ export function DeckZoneSection({
     onActivate();
   };
 
-  const totalQuantity = cards.reduce((sum, card) => sum + card.quantity, 0);
+  const zoneQuantity = totalQuantity(cards);
   const maxCardQuantity = cards.reduce((max, card) => Math.max(max, card.quantity), 0);
   // Freeform has no per-zone target — hide the "x/N" denominator entirely.
   const expected = isFreeform ? undefined : zoneExpected(zone, format, allCards);
@@ -195,14 +197,12 @@ export function DeckZoneSection({
 
     return TYPE_GROUP_ORDER.filter((type) => grouped.has(type)).map((type) => {
       const group = (grouped.get(type) ?? []).toSorted(compareGroupedCards);
-      const groupQty = group.reduce((sum, card) => sum + card.quantity, 0);
+      const groupQty = totalQuantity(group);
       const typeIconPath = getTypeIconPath(type, []);
       return (
         <div key={type} className="flex">
           <div className="flex w-7 shrink-0 flex-col items-center pt-1.5">
-            {typeIconPath && (
-              <img src={typeIconPath} alt={type} className="size-3.5 brightness-0 dark:invert" />
-            )}
+            {typeIconPath && <CardIcon src={typeIconPath} alt={type} className="size-3.5" />}
             <span className="text-muted-foreground text-2xs">{groupQty}</span>
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -286,7 +286,7 @@ export function DeckZoneSection({
         {!(
           !hasZoneViolations &&
           expected !== undefined &&
-          totalQuantity === expected &&
+          zoneQuantity === expected &&
           SINGLE_CARD_ZONES.has(zone)
         ) && (
           <span
@@ -295,15 +295,15 @@ export function DeckZoneSection({
               "ml-auto text-xs tabular-nums",
               hasZoneViolations
                 ? "text-destructive"
-                : expected !== undefined && totalQuantity === expected
+                : expected !== undefined && zoneQuantity === expected
                   ? "text-success"
                   : "text-muted-foreground",
             )}
           >
-            {totalQuantity}
+            {zoneQuantity}
             {expected !== null &&
               expected !== undefined &&
-              totalQuantity !== expected &&
+              zoneQuantity !== expected &&
               `/${expected}`}
           </span>
         )}
@@ -330,11 +330,11 @@ export function DeckZoneSection({
                 <div key={getDeckCardKey(card)} className="flex">
                   <div className="flex w-7 shrink-0 flex-wrap items-center justify-center gap-0.5">
                     {typeIconPaths.map((path) => (
-                      <img
+                      <CardIcon
                         key={path}
                         src={path}
                         alt={card.cardTypes.join(" ")}
-                        className="size-3.5 brightness-0 dark:invert"
+                        className="size-3.5"
                       />
                     ))}
                   </div>

@@ -9,7 +9,7 @@ import { ChampionPlate, tournamentChampion } from "./champion-plate";
 
 vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => true }));
 vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
-vi.mock("@/features/decks/components/domain-icon", () => ({
+vi.mock("@/features/cards/components/domain-icon", () => ({
   DomainIcon: ({ domain }: { domain: string }) => <span>{domain}</span>,
 }));
 vi.mock("@tanstack/react-router", () => ({
@@ -41,6 +41,8 @@ function standing(playerId: string, score: number, wins: number): PodStandingRow
   return {
     playerId,
     displayName: `Player ${playerId}`,
+    image: null,
+    gravatarHash: null,
     status: "active",
     droppedAfterRound: null,
     teamId: null,
@@ -109,6 +111,8 @@ describe("tournamentChampion", () => {
     expect(tournamentChampion(run(), true)).toEqual({
       playerId: "p1",
       displayName: "Player p1",
+      image: null,
+      gravatarHash: null,
       record: "3-0-0",
       legendCardId: "legend-1",
     });

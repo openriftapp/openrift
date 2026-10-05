@@ -1,13 +1,13 @@
 import { PageDescription } from "@/components/layout/page-top-bar";
 import {
-  LabelAddInput,
+  DraftTextInput,
   LabelCell,
-  LabelInput,
   SlugAddInput,
   SlugCell,
   validateSlugAndLabel,
   WellKnownCell,
 } from "@/features/admin/components/admin-crud-shared";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminColumnDef } from "@/features/admin/components/admin-table";
 import { flatReorder } from "@/features/admin/lib/admin-reorder";
@@ -42,8 +42,8 @@ const columns: AdminColumnDef<DeckFormatRow, DeckFormatDraft>[] = [
     header: "Label",
     sortValue: (deckFormat) => deckFormat.label,
     cell: <LabelCell<DeckFormatRow> />,
-    editCell: <LabelInput<DeckFormatDraft> />,
-    addCell: <LabelAddInput<DeckFormatDraft> placeholder="Constructed" />,
+    editCell: <DraftTextInput<DeckFormatDraft> field="label" />,
+    addCell: <DraftTextInput<DeckFormatDraft> field="label" placeholder="Constructed" />,
   },
   {
     header: "Well-known",
@@ -65,7 +65,7 @@ export function DeckFormatsPage() {
       data={deckFormats}
       getRowKey={(deckFormat) => deckFormat.slug}
       emptyText="No deck formats yet."
-      title="Deck Formats"
+      topBar={(actions) => <AdminPageTopBar title="Deck Formats" actions={actions} />}
       toolbar={
         <PageDescription>
           Deck formats describe the construction rules a deck follows (e.g. Constructed, Freeform).

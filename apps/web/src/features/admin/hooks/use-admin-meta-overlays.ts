@@ -17,10 +17,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { adminMetaOverlaysQueryOptions } from "@/features/admin/lib/admin-meta-overlays-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { metaKeys } from "@/features/meta/lib/meta-query-keys";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 /** Every write invalidates the queue and the live archive keys: accepting or claiming re-promotes the event it touches. */
 const ALL_META_KEYS = [adminKeys.meta.overlays, adminKeys.meta.events, metaKeys.all] as const;

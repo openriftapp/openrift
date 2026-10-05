@@ -1,26 +1,16 @@
-import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
 import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
-import { CheckIcon, EraserIcon, LoaderIcon, RefreshCwIcon, TrashIcon, XIcon } from "lucide-react";
+import { EraserIcon, RefreshCwIcon, TrashIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
-import { DialogForm } from "@/components/ui/dialog-form";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import { JobRunStatusLine } from "@/features/admin/components/job-run-status-line";
 import { useCacheStatus, usePurgeCache } from "@/features/admin/hooks/use-cache-purge";
-import { useLatestJobRunByKind } from "@/features/admin/hooks/use-job-runs";
+import { useLatestJobRun } from "@/features/admin/hooks/use-latest-job-run";
 import {
   CARD_TOKENS_RECOMPUTE_KIND,
   useRecomputeCardTokens,
@@ -30,36 +20,6 @@ import {
   useRefreshMatviews,
 } from "@/features/admin/hooks/use-refresh-matviews";
 import { useClearSsrCache } from "@/features/admin/hooks/use-status";
-
-/**
- * Latest-run status line for the fire-and-forget jobs on this page: spinner
- * while the background run is going, the error on failure, `succeededText`
- * once it completes.
- */
-function JobRunStatusLine({ run, succeededText }: { run: JobRunView; succeededText: string }) {
-  if (run.status === "running") {
-    return (
-      <p className="text-muted-foreground flex items-center gap-1 text-sm">
-        <LoaderIcon className="size-4 animate-spin" />
-        Running…
-      </p>
-    );
-  }
-  if (run.status === "failed") {
-    return (
-      <p className="text-muted-foreground flex items-center gap-1 text-sm">
-        <XIcon className="text-destructive size-4 shrink-0" />
-        {run.errorMessage ?? "Failed"}
-      </p>
-    );
-  }
-  return (
-    <p className="text-muted-foreground flex items-center gap-1 text-sm">
-      <CheckIcon className="text-success size-4 shrink-0" />
-      {succeededText}
-    </p>
-  );
-}
 
 /**
  * Succeeded-line text for the card-token job: the counts its run summary
@@ -80,21 +40,12 @@ export function CachePage() {
   const clearSsrCache = useClearSsrCache();
   const refreshMatviews = useRefreshMatviews();
   const recomputeCardTokens = useRecomputeCardTokens();
-  const matviewsRun = useLatestJobRunByKind(MATVIEWS_REFRESH_KIND);
-  const cardTokensRun = useLatestJobRunByKind(CARD_TOKENS_RECOMPUTE_KIND);
+  const matviewsRun = useLatestJobRun(MATVIEWS_REFRESH_KIND);
+  const cardTokensRun = useLatestJobRun(CARD_TOKENS_RECOMPUTE_KIND);
 
   const matviewsRunning = refreshMatviews.isPending || matviewsRun.data?.status === "running";
   const cardTokensRunning =
     recomputeCardTokens.isPending || cardTokensRun.data?.status === "running";
-
-  async function handlePurge() {
-    try {
-      await purge.mutateAsync();
-      toast.success("Cloudflare cache purged");
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
-    }
-  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -107,13 +58,9 @@ export function CachePage() {
           <Button
             variant="outline"
             onClick={() => clearSsrCache.mutate()}
-            disabled={clearSsrCache.isPending}
+            pending={clearSsrCache.isPending}
           >
-            {clearSsrCache.isPending ? (
-              <LoaderIcon className="size-4 animate-spin" />
-            ) : (
-              <EraserIcon className="size-4" />
-            )}
+            <EraserIcon className="size-4" />
             {clearSsrCache.isSuccess ? "Cache Cleared" : "Clear SSR Cache"}
           </Button>
         </div>
@@ -129,13 +76,9 @@ export function CachePage() {
             onClick={() =>
               refreshMatviews.mutate(undefined, { onSuccess: () => void matviewsRun.refetch() })
             }
-            disabled={matviewsRunning}
+            pending={matviewsRunning}
           >
-            {matviewsRunning ? (
-              <LoaderIcon className="size-4 animate-spin" />
-            ) : (
-              <RefreshCwIcon className="size-4" />
-            )}
+            <RefreshCwIcon className="size-4" />
             Refresh materialized views
           </Button>
         </div>
@@ -156,13 +99,9 @@ export function CachePage() {
                 onSuccess: () => void cardTokensRun.refetch(),
               })
             }
-            disabled={cardTokensRunning}
+            pending={cardTokensRunning}
           >
-            {cardTokensRunning ? (
-              <LoaderIcon className="size-4 animate-spin" />
-            ) : (
-              <RefreshCwIcon className="size-4" />
-            )}
+            <RefreshCwIcon className="size-4" />
             Re-derive card tokens
           </Button>
         </div>
@@ -180,38 +119,19 @@ export function CachePage() {
       >
         <div>
           {data.configured ? (
-            <AlertDialog>
-              <AlertDialogTrigger
-                disabled={purge.isPending}
-                render={<Button variant="destructive" />}
-              >
-                {purge.isPending ? (
-                  <LoaderIcon className="size-4 animate-spin" />
-                ) : (
-                  <TrashIcon className="size-4" />
-                )}
-                Purge Cloudflare cache
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <DialogForm onSubmit={() => void handlePurge()}>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Purge all Cloudflare cache?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Every cached URL for this zone will be evicted. The next visitor to each page
-                      will briefly see a slower response while the cache warms up again.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogPrimitive.Close
-                      render={<Button type="submit" variant="destructive" />}
-                    >
-                      Purge
-                    </AlertDialogPrimitive.Close>
-                  </AlertDialogFooter>
-                </DialogForm>
-              </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionButton
+              title="Purge all Cloudflare cache?"
+              description="Every cached URL for this zone will be evicted. The next visitor to each page will briefly see a slower response while the cache warms up again."
+              confirmLabel="Purge"
+              onConfirm={async () => {
+                await purge.mutateAsync();
+                toast.success("Cloudflare cache purged");
+              }}
+              trigger={<Button variant="destructive" />}
+            >
+              <TrashIcon className="size-4" />
+              Purge Cloudflare cache
+            </ConfirmActionButton>
           ) : (
             <Alert variant="warning">
               <AlertDescription>

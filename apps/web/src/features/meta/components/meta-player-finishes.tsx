@@ -1,10 +1,11 @@
 import { formatDay } from "@openrift/shared/format-date";
+import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaPlayerFinish } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
-import { Button } from "@/components/ui/button";
+import { ShowMoreButton } from "@/components/show-more-button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { RankBand } from "@/components/ui/rank-band";
 import { RowList } from "@/components/ui/row-list";
@@ -18,14 +19,13 @@ import {
 } from "@/components/ui/table";
 import { TextLink } from "@/components/ui/text-link";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
-import { MetaShowMore } from "@/features/meta/components/meta-show-more";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
-import { formatRank, formatRecord } from "@/features/meta/lib/meta-format";
+import { formatRank } from "@/features/meta/lib/meta-format";
 import type { MetaFinishesView } from "@/features/meta/lib/meta-legend-page";
 import { BEST_FINISH_COUNT, FINISH_PAGE_SIZE } from "@/features/meta/lib/meta-legend-page";
 import { sortPlayerFinishes } from "@/features/meta/lib/meta-player-page";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 
 function Rank({ finish }: { finish: MetaPlayerFinish }) {
@@ -48,7 +48,7 @@ function LegendCell({ finish, className }: { finish: MetaPlayerFinish; className
   }
   return (
     <MetaIdentity
-      name={legend.name}
+      legend={legend}
       slug={legend.slug}
       archiveSlug={legend.archiveSlug}
       domains={legend.domains}
@@ -92,7 +92,7 @@ function ListLink({
         />
       }
     >
-      + Add
+      {m.meta_add_deck_link()}
     </TextLink>
   );
 }
@@ -223,16 +223,15 @@ export function MetaPlayerFinishes({
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <Heading>{m.meta_finishes_heading()}</Heading>
         {finishes.length > BEST_FINISH_COUNT && (
-          <Button
-            variant="link"
-            className="h-auto p-0 text-sm font-medium"
+          <ShowMoreButton
+            placement="heading"
+            count={finishes.length}
+            expanded={view === "all"}
             onClick={() => {
               setView(view === "best" ? "all" : "best");
               setShown(FINISH_PAGE_SIZE);
             }}
-          >
-            {view === "best" ? m.meta_show_all_n({ count: finishes.length }) : m.meta_show_fewer()}
-          </Button>
+          />
         )}
       </div>
 
@@ -271,9 +270,9 @@ export function MetaPlayerFinishes({
         </RowList>
 
         {view === "all" && remaining > 0 && (
-          <MetaShowMore onClick={() => setShown(shown + FINISH_PAGE_SIZE)}>
+          <ShowMoreButton onClick={() => setShown(shown + FINISH_PAGE_SIZE)}>
             {m.meta_finishes_more({ count: remaining })}
-          </MetaShowMore>
+          </ShowMoreButton>
         )}
       </div>
     </section>

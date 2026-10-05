@@ -10,7 +10,7 @@ import type {
   DeckFoldersCollection,
   DecksCollection,
 } from "@/features/decks/lib/decks-write";
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
 
 export function useDecksCollection(): DecksCollection | null {
   const { data: session } = useSession();

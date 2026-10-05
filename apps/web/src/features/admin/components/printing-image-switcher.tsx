@@ -1,4 +1,3 @@
-import { hostnameFromUrl, hostSlugFromUrl } from "@openrift/shared/host-slug";
 import { imageUrl } from "@openrift/shared/image-url";
 import type {
   AdminPrintingImageResponse,
@@ -56,6 +55,7 @@ import {
   useUploadFallbackArt,
   useUploadPrintingImage,
 } from "@/features/admin/hooks/use-admin-image-mutations";
+import { hostnameFromUrl, hostSlugFromUrl } from "@/features/admin/lib/host-slug";
 import { printingImageDisplayUrl as getDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { imageQuadOf } from "@/features/admin/lib/straighten-quad";
 import { cn } from "@/lib/utils";
@@ -273,11 +273,12 @@ export function PrintingImageSwitcher({
                   )}
                   {isAdmin && (
                     <DropdownMenuItem
+                      variant="destructive"
                       disabled={deletePrintingImage.isPending}
                       onClick={() => deletePrintingImage.mutate(effectiveImage.id)}
                     >
-                      <Trash2Icon className="text-destructive size-3.5" />
-                      <span className="text-destructive">Remove</span>
+                      <Trash2Icon className="size-3.5" />
+                      Remove
                     </DropdownMenuItem>
                   )}
                 </>
@@ -421,11 +422,7 @@ export function PrintingImageSwitcher({
                 src={imageUrl(fallbackImageFileId, "120w")}
                 alt="Pinned substitute art"
                 className="h-8 w-auto rounded-sm"
-                fallback={
-                  <Badge variant="outline" className="text-warning">
-                    Not rehosted
-                  </Badge>
-                }
+                fallback={<Badge variant="warning">Not rehosted</Badge>}
               />
             )}
             {fallbackArtMode === "pinned" && pinnedSibling === undefined && (

@@ -6,6 +6,7 @@ import { OrnamentRule } from "@/components/ui/ornament";
 import { Pressable } from "@/components/ui/pressable";
 import { useAdminSettings } from "@/features/admin/hooks/use-admin-settings";
 import { useResponsiveColumns } from "@/features/cards/hooks/use-responsive-columns";
+import { useStickyHeader } from "@/features/cards/hooks/use-sticky-header";
 import {
   BUTTON_PAD,
   CARD_ASPECT_INVERSE,
@@ -16,13 +17,16 @@ import {
   LABEL_HEIGHT,
 } from "@/features/cards/lib/card-grid-constants";
 import { computeGridMetrics } from "@/features/cards/lib/card-grid-metrics";
+import type { VRow } from "@/features/cards/lib/card-grid-types";
 import { buildGroups } from "@/features/cards/lib/card-groups";
 import type { CardGroup } from "@/features/cards/lib/card-groups";
+import { computeRowStarts } from "@/features/cards/lib/compute-row-starts";
 import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
 import { useGridViewportStore } from "@/features/cards/stores/grid-viewport-store";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useHeaderHeight } from "@/hooks/use-header-height";
 import { useScopeEffect, useScopeLayoutEffect } from "@/hooks/use-scope-effect";
+import { useWindowScrollMargin } from "@/hooks/use-window-scroll-margin";
 import type { GroupInfo } from "@/lib/card-group-types";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
@@ -31,15 +35,8 @@ import { useWindowVirtualizerFresh } from "@/lib/virtualizer-fresh";
 import { useDisplayStore } from "@/stores/display-store";
 
 import { CardGridDebug } from "./card-grid-debug";
-import type { VRow } from "./card-grid-types";
 import { CardViewerEmptyState } from "./card-viewer-empty-state";
-import { computeRowStarts } from "./compute-row-starts";
 import { ScrollIndicator } from "./scroll-indicator";
-import { useStickyHeader } from "./use-sticky-header";
-
-// Module-level cache: persists the measured grid offset across re-mounts so
-// SSR's 0 doesn't flash before the ResizeObserver corrects it.
-let cachedScrollMargin = 0;
 
 function buildVirtualRows(groups: CardGroup[], columns: number): VRow[] {
   const showHeaders = groups.length > 1;
@@ -271,24 +268,7 @@ export function CardGrid({
 
   const rowStarts = computeRowStarts(virtualRows, estimateRowHeight, gap);
 
-  const [scrollMargin, setScrollMargin] = useState(() => cachedScrollMargin);
-
-  useLayoutEffect(() => {
-    const el = containerEl;
-    if (!el) {
-      return;
-    }
-    const measure = () => {
-      const next = Math.round(el.getBoundingClientRect().top + globalThis.scrollY);
-      cachedScrollMargin = next;
-      setScrollMargin((prev) => (prev === next ? prev : next));
-    };
-    measure();
-    // Observes body, not the container: catches toolbar/chip wrap above the grid too.
-    const observer = new ResizeObserver(measure);
-    observer.observe(document.body);
-    return () => observer.disconnect();
-  }, [containerEl]);
+  const scrollMargin = useWindowScrollMargin(containerEl);
 
   const { virtualizer, virtualItems, totalSize } = useWindowVirtualizerFresh({
     count: virtualRows.length,

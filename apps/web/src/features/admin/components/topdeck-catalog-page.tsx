@@ -5,9 +5,10 @@ import { getRouteApi, Link } from "@tanstack/react-router";
 import { ArchiveXIcon, CheckIcon, LayersIcon, SlidersHorizontalIcon, UndoIcon } from "lucide-react";
 import { useState } from "react";
 
+import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { PageTopBarButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Pager } from "@/components/ui/pager";
 import { TextLink } from "@/components/ui/text-link";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -15,7 +16,6 @@ import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { MetaAutoAcceptDialog } from "@/features/admin/components/meta-auto-accept-dialog";
 import { MetaCoverageChips } from "@/features/admin/components/meta-coverage-chips";
-import { ConfirmActionButton } from "@/features/admin/components/meta-review-shared";
 import { urlTriage } from "@/features/admin/components/meta-triage-filter";
 import { TopdeckCatalogFilters } from "@/features/admin/components/topdeck-catalog-filters";
 import type { TopdeckCatalogParams } from "@/features/admin/hooks/use-admin-topdeck-catalog";
@@ -102,7 +102,7 @@ function CoverageCell({ row }: AdminCellSlotProps<TopdeckCatalogRow>) {
       <Badge variant={triage.variant}>{triage.label}</Badge>
       {rival !== null && (
         <Badge
-          variant="muted"
+          variant="neutral"
           title="The linked event reads another source. This one is cited for attribution and not promoted, so its players are not archived twice."
         >
           Cited only, {META_SOURCE_LABELS[rival as keyof typeof META_SOURCE_LABELS] ?? rival} wins
@@ -162,14 +162,14 @@ function TopdeckRowActions({
   if (row.triage === "accepted") {
     return (
       row.metaEventId !== null && (
-        <Button
-          variant="ghost"
-          size="sm"
-          render={<Link to="/admin/meta/$eventId" params={{ eventId: row.metaEventId }} />}
+        <Link
+          to="/admin/meta/$eventId"
+          params={{ eventId: row.metaEventId }}
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
         >
           <LayersIcon />
           Standings
-        </Button>
+        </Link>
       )
     );
   }

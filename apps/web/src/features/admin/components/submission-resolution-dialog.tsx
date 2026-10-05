@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -120,7 +120,7 @@ export function SubmissionResolutionDialog({
           </div>
 
           <DialogFooter>
-            <DialogClose render={<Button variant="outline" type="button" />}>Cancel</DialogClose>
+            <DialogCancel />
             <Button
               type="submit"
               variant={mode === "reject" ? "destructive" : "default"}

@@ -13,7 +13,16 @@ function member(
   teamId: string | null,
   displayName = `Player ${playerId}`,
 ): PodMemberResponse {
-  return { playerId, displayName, teamId, gamePoints: null, placement: null, points: null };
+  return {
+    playerId,
+    displayName,
+    image: null,
+    gravatarHash: null,
+    teamId,
+    gamePoints: null,
+    placement: null,
+    points: null,
+  };
 }
 
 function standingRow(
@@ -24,6 +33,8 @@ function standingRow(
   return {
     playerId,
     displayName: `Player ${playerId}`,
+    image: null,
+    gravatarHash: null,
     status: "active",
     droppedAfterRound: null,
     teamId,
@@ -115,6 +126,22 @@ describe("collapseTeamStandings", () => {
     expect(rows[0]!.displayName).toBe("Player a1 & Player a2");
     expect(rows[0]!.score).toBe(9);
     expect(rows[1]!.displayName).toBe("Player b1 & Player b2");
+  });
+
+  it("drops the lead player's photo from a team row", () => {
+    const rows = collapseTeamStandings([
+      standingRow("a1", "A", { image: "https://example.test/a1.png", gravatarHash: "hash-a1" }),
+      standingRow("a2", "A"),
+    ]);
+    expect(rows[0]!.image).toBeNull();
+    expect(rows[0]!.gravatarHash).toBeNull();
+  });
+
+  it("keeps a solo player's photo", () => {
+    const rows = collapseTeamStandings([
+      standingRow("c1", null, { image: "https://example.test/c1.png" }),
+    ]);
+    expect(rows[0]!.image).toBe("https://example.test/c1.png");
   });
 
   it("collapses teammates even when another team's rows sit between them", () => {

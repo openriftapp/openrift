@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RadioGroup } from "@/components/ui/radio-group";
+import { RadioOptionRow } from "@/components/ui/radio-option-row";
 import { m } from "@/paraglide/messages.js";
 
 type GroupVisibilityMode = "all" | "selected" | "none";
@@ -82,22 +83,20 @@ export function GroupVisibilitySection({
           <RadioGroup
             value={mode}
             onValueChange={(next) => applyMode(next as GroupVisibilityMode)}
-            className="flex flex-col gap-2"
+            className="flex flex-col gap-1"
           >
-            {visibilityOptions().map((option) => {
-              const radioId = `${idPrefix}-visibility-${option.value}`;
-              return (
-                <div key={option.value} className="flex items-center gap-2">
-                  <RadioGroupItem id={radioId} value={option.value} disabled={pending} />
-                  <label htmlFor={radioId} className="cursor-pointer text-sm">
-                    {option.label}
-                  </label>
-                </div>
-              );
-            })}
+            {visibilityOptions().map((option) => (
+              <RadioOptionRow
+                key={option.value}
+                id={`${idPrefix}-visibility-${option.value}`}
+                value={option.value}
+                title={option.label}
+                disabled={pending}
+              />
+            ))}
           </RadioGroup>
           {mode === "selected" ? (
-            <ul className="flex flex-col gap-2 ps-6">
+            <ul className="flex flex-col gap-2 ps-9">
               {groups.map((group) => {
                 const checkboxId = `${idPrefix}-group-${group.id}`;
                 return (

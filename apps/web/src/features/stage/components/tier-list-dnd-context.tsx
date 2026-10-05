@@ -16,11 +16,8 @@ import { useState } from "react";
 import { DndScrollWatcher } from "@/components/dnd-scroll-watcher";
 import { CardDragGhost } from "@/features/cards/components/card-drag-ghost";
 import { useTierTileWidth } from "@/features/stage/components/tier-card-tile";
-import type { TierListDragData } from "@/features/stage/components/tier-list-dnd-types";
-import {
-  asTierListDragData,
-  asTierListDropData,
-} from "@/features/stage/components/tier-list-dnd-types";
+import type { TierListDragData } from "@/features/stage/lib/tier-list-dnd-types";
+import { asTierListDragData, asTierListDropData } from "@/features/stage/lib/tier-list-dnd-types";
 import { useTierListBuilderStore } from "@/features/stage/stores/tier-list-builder-store";
 import { collisionDropData } from "@/lib/dnd-data";
 

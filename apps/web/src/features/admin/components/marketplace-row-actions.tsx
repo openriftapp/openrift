@@ -1,3 +1,7 @@
+import type {
+  StagedProductResponse,
+  UnifiedMappingPrintingResponse,
+} from "@openrift/shared/types/api/admin";
 import {
   BanIcon,
   CheckIcon,
@@ -16,10 +20,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type {
-  StagedProduct,
-  UnifiedMappingPrinting,
-} from "@/features/admin/lib/price-mappings-types";
 import { cn } from "@/lib/utils";
 
 import { PrintingLabel } from "./marketplace-printing-label";
@@ -37,8 +37,8 @@ export function AssignToPrintingButton({
   onAssignToPrinting,
   isAssigning,
 }: {
-  printings: UnifiedMappingPrinting[];
-  product: StagedProduct;
+  printings: UnifiedMappingPrintingResponse[];
+  product: StagedProductResponse;
   assignedPrintingIds: Set<string>;
   otherAssignedPrintingIds: Set<string>;
   highlightFinish?: string;
@@ -129,7 +129,7 @@ export function RowActions({
   canReassign: boolean;
   canUnassign: boolean;
   handlers: MarketplaceHandlers;
-  product: StagedProduct;
+  product: StagedProductResponse;
   onToggleReassign: () => void;
   showAssign: boolean;
 }) {

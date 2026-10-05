@@ -14,12 +14,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PricingSection } from "@/features/cards/components/card-detail/pricing";
-import {
-  TIME_RANGES,
-  timeRangeLabel,
-} from "@/features/cards/components/price-history-chart-constants";
 import { PriceTrend } from "@/features/cards/components/price-trend";
 import { usePriceHistory } from "@/features/cards/hooks/use-price-history";
+import { TIME_RANGES, timeRangeLabel } from "@/features/cards/lib/price-history-chart-constants";
 import { priceHistoryPoint } from "@/features/cards/lib/price-history-points";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatPublicCode, formatterForMarketplace } from "@/lib/format";

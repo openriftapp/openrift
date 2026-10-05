@@ -156,7 +156,7 @@ vi.mock("@/features/admin/hooks/use-admin", () => ({ useIsAdmin: () => ({ data: 
 
 vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
 
-vi.mock("@/lib/auth-session", () => ({ useUserId: () => captured.userId }));
+vi.mock("@/hooks/use-session", () => ({ useUserId: () => captured.userId }));
 
 // The scope bar pulls chrome these tests do not exercise; what matters here is
 // which facts the page puts on the screen.
@@ -178,6 +178,8 @@ const WINNER = {
   legend: {
     cardId: "card-azir",
     name: "Azir, Emperor of the Sands",
+    character: "Azir",
+    epithet: "Emperor of the Sands",
     slug: "azir-emperor-of-the-sands",
     imageId: null,
     domains: ["calm", "order"],
@@ -320,6 +322,8 @@ describe("MetaFrontPage", () => {
             legend: {
               cardId: "card-yasuo",
               name: "Yasuo, the Unforgiven",
+              character: "Yasuo",
+              epithet: "the Unforgiven",
               slug: "yasuo-the-unforgiven",
               imageId: null,
               domains: ["fury"],

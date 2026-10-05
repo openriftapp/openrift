@@ -19,7 +19,7 @@ let isPending = false;
 let user: { name?: string | null; riotId?: string | null } | null = null;
 const setVisibility = vi.fn();
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useSession: () => ({ data: user ? { user } : null }),
 }));
 

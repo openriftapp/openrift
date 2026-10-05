@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -76,7 +76,7 @@ export function RejectSubmissionDialog({
           </div>
 
           <DialogFooter>
-            <DialogClose render={<Button variant="ghost" type="button" />}>Cancel</DialogClose>
+            <DialogCancel />
             <Button type="submit" variant="destructive" disabled={rejectSubmission.isPending}>
               Reject
             </Button>

@@ -1,7 +1,7 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { formatPrintingVariantLabelParts } from "@openrift/shared/printing-label";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
-import { legendDisplayName } from "@openrift/shared/utils";
-import { DownloadIcon, Loader2Icon } from "lucide-react";
+import { DownloadIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -27,10 +27,10 @@ import {
   CSV_EXPORT_FORMATS,
   csvExportFilename,
   csvExportLabels,
-  downloadCSV,
 } from "@/features/collections/lib/csv-export";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { downloadCsv } from "@/lib/download";
 import type { EnumLabels } from "@/lib/enum-labels";
 import type { CardLine, DetailedCardLine } from "@/lib/export-text";
 import {
@@ -187,7 +187,7 @@ export function ExportDialog({
       csvExportLabels(sets, labels),
       payload.copiesById,
     );
-    downloadCSV(csv, csvExportFilename(format, filenameBase));
+    downloadCsv(csv, csvExportFilename(format, filenameBase));
     toast.success(successMessage);
   };
 
@@ -249,18 +249,9 @@ export function ExportDialog({
 
             {isText ? null : (
               <div className="flex justify-end">
-                <Button type="submit" disabled={isLoading || count === 0}>
-                  {isLoading ? (
-                    <>
-                      <Loader2Icon className="size-4 animate-spin" />
-                      {m.collections_export_loading()}
-                    </>
-                  ) : (
-                    <>
-                      <DownloadIcon className="size-4" />
-                      {exportButtonLabel(unit, count)}
-                    </>
-                  )}
+                <Button type="submit" disabled={count === 0} pending={isLoading}>
+                  <DownloadIcon className="size-4" />
+                  {isLoading ? m.common_loading() : exportButtonLabel(unit, count)}
                 </Button>
               </div>
             )}

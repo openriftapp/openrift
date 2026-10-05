@@ -9,7 +9,7 @@ import { findOrderedCollection } from "@/features/groups/lib/buy-cart";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
 import { buildWantedCards } from "@/features/groups/lib/wanted-cards";
 import { listDetailQueryOptions, listsQueryOptions } from "@/features/lists/lib/lists-queries";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 
 // Matches no collection, so the copies query stays empty until the ordered collection exists.
 const NO_COLLECTION = "";

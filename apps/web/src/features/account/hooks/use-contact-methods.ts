@@ -9,10 +9,10 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { contactMethodsKeys } from "@/features/account/lib/account-query-keys";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { useUserId } from "@/lib/auth-session";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 const listContactMethodsFn = createServerFn({ method: "GET" })
   .middleware([withCookies])

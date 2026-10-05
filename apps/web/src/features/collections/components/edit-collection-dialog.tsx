@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -124,11 +125,9 @@ export function EditCollectionDialog({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
-              {m.common_cancel()}
-            </Button>
+            <DialogCancel disabled={isPending} />
             <Button type="submit" disabled={!name.trim() || isPending}>
-              {isPending ? m.collections_dialog_edit_saving() : m.common_save()}
+              {isPending ? m.common_saving() : m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>

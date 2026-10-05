@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { META_DECKS_DESCRIPTION } from "@/features/meta/components/meta-copy";
+import { META_DECKS_DESCRIPTION } from "@/features/meta/lib/meta-copy";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -95,7 +95,7 @@ vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => captured.hydrated })
 vi.mock("@/features/meta/hooks/use-meta-deck-costs", () => ({
   useMetaDeckCosts: () => captured.costs,
 }));
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useSession: () => ({ data: captured.signedIn ? { user: { id: "u1" } } : null }),
 }));
 
@@ -123,6 +123,8 @@ function deck(overrides: Partial<MetaDeckSummary> = {}): MetaDeckSummary {
     format: "constructed",
     legendCardId: "card-kennen",
     legendName: "Kennen, Heart of the Tempest",
+    legendCharacter: "Kennen",
+    legendEpithet: "Heart of the Tempest",
     legendSlug: "kennen",
     legendArchiveSlug: null,
     legendImageId: null,

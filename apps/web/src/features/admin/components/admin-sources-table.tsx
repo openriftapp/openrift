@@ -1,7 +1,7 @@
 import type { CatalogSource } from "@openrift/shared/contracts/admin/catalog-review";
 import { formatRelativeTime } from "@openrift/shared/format-date";
 import { Link } from "@tanstack/react-router";
-import { ListChecksIcon, LoaderIcon } from "lucide-react";
+import { ListChecksIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -156,7 +156,7 @@ function CheckAllAction({ row }: AdminCellSlotProps<CatalogSource>) {
     <Button
       variant="ghost"
       size="sm"
-      disabled={checkProvider.isPending}
+      pending={checkProvider.isPending}
       onClick={() =>
         checkProvider.mutate(row.provider, {
           onSuccess: (result) => {
@@ -167,7 +167,7 @@ function CheckAllAction({ row }: AdminCellSlotProps<CatalogSource>) {
         })
       }
     >
-      {checkProvider.isPending ? <LoaderIcon className="animate-spin" /> : <ListChecksIcon />}
+      <ListChecksIcon />
       Mark all checked
     </Button>
   );

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 /** Scoped so /cards, /collections and /lists don't bleed overrides into each other. */
-type SiblingOverrideScope = "cards" | "collection" | "list";
+export type SiblingOverrideScope = "cards" | "collection" | "list";
 
 interface SiblingOverrideState {
   overrides: Record<SiblingOverrideScope, Map<string, string>>;

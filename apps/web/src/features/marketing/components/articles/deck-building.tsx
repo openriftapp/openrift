@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { Eyebrow, Heading } from "@/components/heading";
+import { PROSE_MARKUP, linkMarkup } from "@/components/message-markup";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
@@ -27,9 +28,7 @@ export default function DeckBuildingArticle() {
             <ParaglideMessage
               message={m.help_deck_building_alert_p1}
               markup={{
-                link: ({ children }) => (
-                  <TextLink href="/help/cards-printings-copies">{children}</TextLink>
-                ),
+                link: linkMarkup("/help/cards-printings-copies"),
               }}
             />
           </p>
@@ -37,7 +36,7 @@ export default function DeckBuildingArticle() {
             <ParaglideMessage
               message={m.help_deck_building_alert_p2}
               markup={{
-                link: ({ children }) => <TextLink href="/help/collections">{children}</TextLink>,
+                link: linkMarkup("/help/collections"),
                 link2: ({ children }) => (
                   <TextLink href="/help/collections#deck-building-availability">
                     {children}
@@ -167,12 +166,7 @@ export default function DeckBuildingArticle() {
           />
         </div>
         <p className="text-muted-foreground mt-3">
-          <ParaglideMessage
-            message={m.help_deck_building_add_overflow}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_deck_building_add_overflow} markup={PROSE_MARKUP} />
         </p>
       </section>
 

@@ -1,3 +1,5 @@
+import { totalQuantity } from "@openrift/shared/deck-rules";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -20,7 +22,7 @@ import { decksKeys } from "@/features/decks/lib/decks-query-keys";
 import { clearImportedLocalDecks } from "@/features/decks/lib/local-decks-collection";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 
 export function ClaimLocalDecksPrompt() {
@@ -93,7 +95,7 @@ export function ClaimLocalDecksPrompt() {
 
           <ul className="flex max-h-72 flex-col gap-1 overflow-y-auto">
             {list.map((deck) => {
-              const totalCards = deck.cards.reduce((sum, card) => sum + card.quantity, 0);
+              const totalCards = totalQuantity(deck.cards);
               return (
                 <li key={deck.id}>
                   <label className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md p-2">
@@ -104,7 +106,7 @@ export function ClaimLocalDecksPrompt() {
                       }
                     />
                     <span className="min-w-0 flex-1 truncate font-medium">{deck.name}</span>
-                    <Badge variant="secondary">{formatLabels[deck.format] ?? deck.format}</Badge>
+                    <Badge variant="secondary">{enumLabel(formatLabels, deck.format)}</Badge>
                     <span className="text-muted-foreground tabular-nums">
                       {m.common_cards({ count: totalCards })}
                     </span>

@@ -43,7 +43,7 @@ vi.mock("@/features/groups/hooks/use-friend-group-discord", () => ({
   useFriendGroupDiscordLinks: () => ({ data: { items: [] } }),
 }));
 
-vi.mock("@/lib/auth-session", () => ({ useRequiredUserId: () => "viewer-1" }));
+vi.mock("@/hooks/use-session", () => ({ useRequiredUserId: () => "viewer-1" }));
 vi.mock("@tanstack/react-router", () => ({
   createLink: (component: unknown) => component,
   useNavigate: () => vi.fn(),

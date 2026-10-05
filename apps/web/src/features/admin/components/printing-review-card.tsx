@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +56,7 @@ import {
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAdminPrintingCitations } from "@/features/admin/hooks/use-admin-printing-citations";
 import { useIgnoreCandidatePrinting } from "@/features/admin/hooks/use-ignored-candidates";
+import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { toastFieldAccepted } from "@/features/admin/lib/accept-undo";
 import { getProviderLabel } from "@/features/admin/lib/candidate-rows";
 import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
@@ -64,9 +66,8 @@ import {
   getStoredCollapsedPrintings,
   useAdminCardFoldStore,
 } from "@/features/admin/stores/admin-card-fold-store";
+import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { useMarkers } from "@/hooks/use-markers";
-import { getFilterIconPath } from "@/lib/icons";
 
 interface PrintingSourceColumnActionsProps {
   row?: CandidateCardResponse | CandidatePrintingResponse;
@@ -175,6 +176,7 @@ export function PrintingReviewCard({
   const copyPrintingSource = useCopyCandidatePrinting(invalidates);
   const deletePrintingSource = useDeleteCandidatePrinting(invalidates);
   const deletePrintingMutation = useDeletePrinting(invalidates);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const ignorePrintingSource = useIgnoreCandidatePrinting();
   const { labels } = useEnumOrders();
   const { data: markersData } = useMarkers();
@@ -197,7 +199,6 @@ export function PrintingReviewCard({
     printing.setName ?? printing.setSlug,
     enumLabel(labels.finishes, printing.finish),
   ].join(" · ");
-  const rarityIcon = getFilterIconPath("rarities", printing.rarity);
   const printingWithImage = {
     ...printing,
     imageUrl: activeImage?.originalUrl ?? null,
@@ -247,15 +248,7 @@ export function PrintingReviewCard({
               )}
             </span>
             <span className="text-muted-foreground flex flex-wrap items-center gap-1.5 font-normal">
-              {rarityIcon !== null && (
-                <img
-                  src={rarityIcon}
-                  alt={enumLabel(labels.rarities, printing.rarity)}
-                  width={28}
-                  height={28}
-                  className="size-4 shrink-0"
-                />
-              )}
+              <RarityIcon rarity={printing.rarity} labelled />
               <span>{setAndFinish}</span>
               <span aria-hidden>·</span>
               <span>{printingKindLabel(printing, summaryLabels)}</span>
@@ -325,22 +318,29 @@ export function PrintingReviewCard({
                 Duplicate printing
               </DropdownMenuItem>
               <DropdownMenuItem
+                variant="destructive"
                 disabled={deletePrintingMutation.isPending}
-                onClick={() => {
-                  if (
-                    globalThis.confirm(`Delete printing "${printingLabel}"? This cannot be undone.`)
-                  ) {
-                    deletePrintingMutation.mutate(printingId);
-                  }
-                }}
+                onClick={() => setDeleteOpen(true)}
               >
-                <Trash2Icon className="text-destructive mr-2" />
-                <span className="text-destructive">Delete</span>
+                <Trash2Icon className="mr-2" />
+                Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         )}
       </div>
+      <ConfirmActionDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={`Delete printing "${printingLabel}"?`}
+        description="This cannot be undone."
+        confirmLabel="Delete"
+        pendingLabel="Deleting…"
+        isPending={deletePrintingMutation.isPending}
+        onConfirm={() =>
+          deletePrintingMutation.mutate(printingId, { onSuccess: () => setDeleteOpen(false) })
+        }
+      />
       {isExpanded && (
         <div className="flex flex-col gap-3 px-3 pb-3">
           <div className="min-w-0 flex-1 space-y-3">

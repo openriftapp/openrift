@@ -21,9 +21,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type { MetaSyncTrigger } from "@/features/admin/lib/meta-admin-triggers";
 import { metaKeys } from "@/features/meta/lib/meta-query-keys";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 export const META_CATALOG_PAGE_SIZE = 50;
 

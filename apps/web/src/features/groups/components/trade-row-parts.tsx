@@ -7,11 +7,11 @@ import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { FinishIcon } from "@/features/cards/components/finish-icon";
+import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { tradeStatusLabel } from "@/features/groups/lib/trade-derivation";
 import { DATE_WORDS } from "@/lib/date-words";
 import { compactFormatterForMarketplace, priceColorClass } from "@/lib/format";
-import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -41,32 +41,20 @@ export function TradeDirectionIcon({ incoming }: { incoming: boolean }) {
 export function CardMetaLine({
   shortCode,
   rarity,
-  rarityLabel,
   finish,
   finishLabel,
   trailing,
 }: {
   shortCode: string;
   rarity: Rarity;
-  rarityLabel: string;
   finish: Finish;
   finishLabel: string;
   trailing?: ReactNode;
 }) {
-  const rarityIcon = getFilterIconPath("rarities", rarity);
   return (
     <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
       {shortCode ? <span className="font-medium">{shortCode}</span> : null}
-      {rarityIcon ? (
-        <img
-          src={rarityIcon}
-          alt={rarityLabel}
-          title={rarityLabel}
-          width={28}
-          height={28}
-          className="size-3.5"
-        />
-      ) : null}
+      <RarityIcon rarity={rarity} labelled className="size-3.5" />
       <FinishIcon finish={finish} title={finishLabel} />
       {trailing}
     </span>

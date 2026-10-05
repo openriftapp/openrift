@@ -1,7 +1,7 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import {
   ArrowRightIcon,
   ArrowRightLeftIcon,

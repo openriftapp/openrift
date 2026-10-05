@@ -3,7 +3,7 @@ import { formatDayTime, formatRelativeTime } from "@openrift/shared/format-date"
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { JobStatusBadge } from "@/features/admin/components/job-status-badge";
 import { announceSyncTrigger } from "@/features/admin/components/meta-catalog-shared";
@@ -59,7 +59,7 @@ export function ArchiveJobsCard() {
             pending={pending === entry.trigger}
             disabled={run.isPending || anyRunning}
             pendingTriage={null}
-            onStart={() => void start(entry.trigger, entry.label)}
+            onStart={() => start(entry.trigger, entry.label)}
           />
         ))}
         {anyRunning && (
@@ -94,9 +94,13 @@ function ArchiveRunLine({ runs }: { runs: MetaSyncStatus["runs"] }) {
           )}
         </>
       )}
-      <Button variant="ghost" size="sm" render={<Link to="/admin/job-runs" search={{}} />}>
+      <Link
+        to="/admin/job-runs"
+        search={{}}
+        className={buttonVariants({ variant: "ghost", size: "sm" })}
+      >
         All runs
-      </Button>
+      </Link>
     </div>
   );
 }

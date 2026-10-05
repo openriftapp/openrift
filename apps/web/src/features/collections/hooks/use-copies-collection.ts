@@ -3,7 +3,7 @@ import type { Collection } from "@tanstack/react-db";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { getCopiesCollection } from "@/features/collections/lib/copies-collection";
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
 
 export function useCopiesCollection(): Collection<CopyResponse, string | number> | null {
   const { data: session } = useSession();

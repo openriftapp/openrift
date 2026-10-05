@@ -1,17 +1,20 @@
 import { formatDay } from "@openrift/shared/format-date";
+import { pluralize } from "@openrift/shared/strings";
 import type { MetaOverlayQueueRow } from "@openrift/shared/types/api/meta";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { ArchiveXIcon, CheckIcon, LinkIcon, TriangleAlertIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MetaCardNamePicker } from "@/features/admin/components/meta-card-name-picker";
 import { MetaEventSearchPicker } from "@/features/admin/components/meta-event-search-picker";
-import { ConfirmActionButton, rankLabel } from "@/features/admin/components/meta-review-shared";
+import { rankLabel } from "@/features/admin/components/meta-review-shared";
 import { MetaStandingsRowPicker } from "@/features/admin/components/meta-standings-row-picker";
 import { MetaSubmissionResolve } from "@/features/admin/components/meta-submission-resolve";
 import {
@@ -45,18 +48,20 @@ export function OverlayChanges({
   }
   if (onToggle === undefined) {
     return (
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+      <DefinitionList className="gap-y-1">
         {real.map((change) => (
           <div key={change.field} className="contents">
-            <dt className="text-muted-foreground font-mono text-xs">{change.field}</dt>
-            <dd className="flex flex-wrap items-baseline gap-2">
+            <DefinitionTerm className="font-mono text-xs font-normal">
+              {change.field}
+            </DefinitionTerm>
+            <DefinitionDetail className="flex flex-wrap items-baseline gap-2">
               <span className="text-muted-foreground line-through">{change.from ?? "empty"}</span>
               <span aria-hidden>→</span>
               <span className="font-medium">{change.to ?? "empty"}</span>
-            </dd>
+            </DefinitionDetail>
           </div>
         ))}
-      </dl>
+      </DefinitionList>
     );
   }
   return (
@@ -133,7 +138,7 @@ export function OverlayCardLines({ overlay }: { overlay: MetaOverlayQueueRow }) 
       <div className="flex items-baseline gap-2">
         <span className="font-medium">Decklist</span>
         <span className="text-muted-foreground text-sm">
-          {overlay.cards.length} line{overlay.cards.length === 1 ? "" : "s"}
+          {overlay.cards.length} {pluralize(overlay.cards.length, "line")}
           {overlay.unresolvedNames.length === 0 && " · every name resolved"}
         </span>
       </div>
@@ -142,9 +147,8 @@ export function OverlayCardLines({ overlay }: { overlay: MetaOverlayQueueRow }) 
           <p className="text-muted-foreground flex items-start gap-1.5">
             <TriangleAlertIcon className="text-warning mt-0.5 size-4 shrink-0" />
             <span>
-              {overlay.unresolvedNames.length} card
-              {overlay.unresolvedNames.length === 1 ? "" : "s"} match nothing in the catalog, so no
-              deck is attached until they do.
+              {overlay.unresolvedNames.length} {pluralize(overlay.unresolvedNames.length, "card")}{" "}
+              match nothing in the catalog, so no deck is attached until they do.
             </span>
           </p>
           <ul className="space-y-1">
@@ -185,8 +189,8 @@ export function EventMatches({
     <div className="space-y-2">
       {best === undefined ? (
         <p className="text-muted-foreground text-sm">
-          No archived event within {data.windowDays} day{data.windowDays === 1 ? "" : "s"} looks
-          like this one, so accepting mints a new one.
+          No archived event within {data.windowDays} {pluralize(data.windowDays, "day")} looks like
+          this one, so accepting mints a new one.
         </p>
       ) : (
         <div className="bg-warning-soft flex flex-wrap items-center gap-2 rounded-md px-3 py-2 text-sm">

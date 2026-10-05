@@ -1,10 +1,11 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { CopyListMembershipsResponse } from "@openrift/shared/types/api/collection";
-import { LoaderIcon, TriangleAlertIcon } from "lucide-react";
+import { TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 
 import {
   AlertDialog,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogTitle,
@@ -139,20 +140,18 @@ export function DisposeDialog({
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
-              {m.common_cancel()}
-            </Button>
-            <Button type="submit" variant="destructive" disabled={confirmDisabled}>
-              {membershipsLoading ? (
-                <>
-                  <LoaderIcon className="animate-spin" />
-                  {m.collections_dialog_dispose_checking_lists()}
-                </>
-              ) : isPending ? (
-                m.collections_dialog_removing()
-              ) : (
-                m.collections_dialog_dispose_confirm({ count: quantity })
-              )}
+            <AlertDialogCancel disabled={isPending}>{m.common_cancel()}</AlertDialogCancel>
+            <Button
+              type="submit"
+              variant="destructive"
+              disabled={confirmDisabled}
+              pending={membershipsLoading}
+            >
+              {membershipsLoading
+                ? m.collections_dialog_dispose_checking_lists()
+                : isPending
+                  ? m.common_removing()
+                  : m.collections_dialog_dispose_confirm({ count: quantity })}
             </Button>
           </div>
         </DialogForm>

@@ -1,3 +1,4 @@
+import { slugifyName } from "@openrift/shared/strings";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useRef, useState } from "react";
 
@@ -8,7 +9,6 @@ import {
   exportCardImage,
   waitForRender,
 } from "@/features/cards/lib/card-export";
-import { nameToSlug } from "@/features/contribute/lib/contribute-json";
 import { BackgroundImageControl } from "@/features/designer/components/background-image-control";
 import { CardDesignerForm } from "@/features/designer/components/card-designer-form";
 import { CardDesignerPreview } from "@/features/designer/components/card-designer-preview";
@@ -84,7 +84,7 @@ export function CardDesignerPage() {
     setRenderClone(true);
     await waitForRender();
     const element = cloneRef.current;
-    const filename = `${nameToSlug(cardName) || "riftbound-card"}.png`;
+    const filename = `${slugifyName(cardName, { foldDiacritics: true }) || "riftbound-card"}.png`;
     const outcome = element
       ? await exportCardImage(element, action, filename).catch(() => null)
       : null;

@@ -1,7 +1,5 @@
-import { STANDINGS_PAGE_SIZE } from "@openrift/shared/contracts/meta";
+import { META_MAX_PAGE_SIZE, STANDINGS_PAGE_SIZE } from "@openrift/shared/contracts/meta";
 import { describe, expect, it } from "vitest";
-
-import { META_MAX_PAGE_SIZE } from "@/features/meta/lib/meta-paging";
 
 import {
   metaStandingsSearchSchema,

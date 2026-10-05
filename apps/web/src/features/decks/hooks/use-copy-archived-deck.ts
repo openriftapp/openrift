@@ -7,7 +7,7 @@ import {
   setLocalDeckCards,
   updateLocalDeck,
 } from "@/features/decks/lib/local-decks-collection";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 
 interface CopyArchivedDeckInput {

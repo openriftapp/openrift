@@ -19,7 +19,7 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("@/features/meta/hooks/use-meta", () => ({ useMetaDeck: () => ({ data: state.deck }) }));
-vi.mock("@/lib/auth-session", () => ({ useUserId: () => state.userId }));
+vi.mock("@/hooks/use-session", () => ({ useUserId: () => state.userId }));
 vi.mock("@/features/decks/hooks/use-decks", () => ({
   useCloneSharedDeck: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useEncodeDeckCards: () => ({ mutateAsync: state.encode, isPending: false }),
@@ -49,7 +49,12 @@ vi.mock("@/features/meta/components/meta-owned-cards-bridge", async () => {
 });
 vi.mock("@tanstack/react-router", async () => {
   const fixtures = await import("@/test/meta-event-fixtures");
-  return { Link: fixtures.StubLink, useNavigate: () => vi.fn() };
+  return {
+    Link: fixtures.StubLink,
+    useNavigate: () => vi.fn(),
+    useLocation: ({ select }: { select: (location: { href: string }) => string }) =>
+      select({ href: "/meta/summoner-skirmish" }),
+  };
 });
 
 const { MetaEventDeckPreview } = await import("./meta-event-deck-preview");

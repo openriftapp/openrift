@@ -1,3 +1,5 @@
+import type { DeckImportEntry } from "@openrift/shared/deck-code";
+import { parseDeckImportData } from "@openrift/shared/deck-codecs/parse";
 import type { DeckResponse, PublicDeckDetailResponse } from "@openrift/shared/types/api/deck";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { eq, useLiveQuery } from "@tanstack/react-db";
@@ -7,9 +9,8 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { handleImportFileUpload } from "@/features/collections/hooks/import-flow-shared";
+import { handleImportFileUpload } from "@/features/collections/lib/import-flow-shared";
 import { classifyBucket } from "@/features/collections/lib/import-summary";
-import { resetDeckDraft } from "@/features/decks/hooks/deck-builder-collection";
 import { useCreateDeck, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
 import { useDecksCollection } from "@/features/decks/hooks/use-decks-collections";
 import { useLocalDecks } from "@/features/decks/hooks/use-local-decks";
@@ -27,12 +28,10 @@ import type {
 import { matchDeckEntries } from "@/features/decks/lib/deck-import-matcher";
 import type { DeckImportMode } from "@/features/decks/lib/deck-import-modes";
 import { detectedFormatLabels } from "@/features/decks/lib/deck-import-modes";
-import type { DeckImportEntry } from "@/features/decks/lib/deck-import-parsers";
 import {
   entriesFromSharedDeck,
   extractDeckFromUrl,
   parseDeckImportAuto,
-  parseDeckImportData,
   sniffDeckImportFormat,
 } from "@/features/decks/lib/deck-import-parsers";
 import { sortDeckImportEntries } from "@/features/decks/lib/deck-import-preview";
@@ -42,8 +41,10 @@ import {
   setLocalDeckCards,
   updateLocalDeck,
 } from "@/features/decks/lib/local-decks-collection";
+import { resetDeckDraft } from "@/features/decks/stores/deck-draft-store";
 import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
+import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
 import { m } from "@/paraglide/messages.js";
 
 type DeckImportStep = "input" | "preview";
@@ -140,7 +141,7 @@ export function useDeckImportFlow() {
       data = await queryDeckLink(queryClient, kind, token);
     } catch (error) {
       setParseWarnings([
-        error instanceof Error && error.message === "NOT_FOUND"
+        isNotFoundSentinel(error)
           ? m.decks_import_share_link_gone()
           : m.decks_import_share_link_failed(),
       ]);

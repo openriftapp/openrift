@@ -103,7 +103,7 @@ vi.mock("@/hooks/use-enums", () => ({
 }));
 
 vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
-vi.mock("@/lib/auth-session", () => ({ useUserId: () => null }));
+vi.mock("@/hooks/use-session", () => ({ useUserId: () => null }));
 // Newest first, the way the hook itself orders them: the first is the current
 // set, which is the era an unscoped page opens on.
 vi.mock("@/features/meta/hooks/use-meta-eras", () => ({
@@ -142,6 +142,8 @@ import { MetaLegendPage } from "./meta-legend-page";
 const LEGEND = {
   cardId: "card-kennen",
   name: "Kennen, Heart of the Tempest",
+  character: "Kennen",
+  epithet: "Heart of the Tempest",
   slug: "heart-of-the-tempest",
   imageId: null,
   domains: ["fury"],
@@ -197,6 +199,8 @@ function deck(
     format: "constructed",
     legendCardId,
     legendName: "Kennen, Heart of the Tempest",
+    legendCharacter: "Kennen",
+    legendEpithet: "Heart of the Tempest",
     legendSlug: "heart-of-the-tempest",
     legendArchiveSlug: null,
     legendImageId: null,

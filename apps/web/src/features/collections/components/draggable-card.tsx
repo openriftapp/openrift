@@ -2,9 +2,8 @@ import { useDraggable } from "@dnd-kit/core";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { ReactNode } from "react";
 
+import type { CardDragData } from "@/features/collections/lib/dnd-types";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-
-import type { CardDragData } from "./dnd-types";
 
 interface DraggableCardProps {
   id: string;

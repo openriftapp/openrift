@@ -1,8 +1,9 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
+import { pluralize } from "@openrift/shared/strings";
 import type {
   AdminCardDetailResponse,
   CandidatePrintingResponse,
 } from "@openrift/shared/types/api/admin";
-import { getOrientation } from "@openrift/shared/utils";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -49,7 +50,7 @@ function summaryText(changedFields: number, newPrintings: number): string {
     parts.push(`${changedFields} differ`);
   }
   if (newPrintings > 0) {
-    parts.push(`${newPrintings} new printing${newPrintings === 1 ? "" : "s"}`);
+    parts.push(`${newPrintings} new ${pluralize(newPrintings, "printing")}`);
   }
   return parts.length === 0 ? "nothing differs" : parts.join(" · ");
 }

@@ -1,6 +1,7 @@
+import type { DeckImportEntry } from "@openrift/shared/deck-code";
+import { parseDeckImportData } from "@openrift/shared/deck-codecs/parse";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2Icon } from "lucide-react";
 import { useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -18,10 +19,8 @@ import type { DeckLinkKind } from "@/features/decks/lib/deck-compare-side";
 import { compareLinkParam, queryDeckLink } from "@/features/decks/lib/deck-compare-side";
 import { diffCardsFromEntries } from "@/features/decks/lib/deck-compare-sources";
 import type { DeckDiffCard } from "@/features/decks/lib/deck-diff";
-import type { DeckImportEntry } from "@/features/decks/lib/deck-import-parsers";
 import {
   extractDeckFromUrl,
-  parseDeckImportData,
   sniffDeckImportFormat,
 } from "@/features/decks/lib/deck-import-parsers";
 import { m } from "@/paraglide/messages.js";
@@ -153,16 +152,10 @@ export function DeckComparePasteDialog({
         <Button
           className="self-end"
           onClick={() => void handleCompare()}
-          disabled={pending || text.trim().length === 0}
+          pending={pending}
+          disabled={text.trim().length === 0}
         >
-          {pending ? (
-            <>
-              <Loader2Icon className="size-4 animate-spin" />
-              {m.decks_compare_reading()}
-            </>
-          ) : (
-            m.decks_compare_use_this_list()
-          )}
+          {pending ? m.decks_compare_reading() : m.decks_compare_use_this_list()}
         </Button>
       </DialogContent>
     </Dialog>

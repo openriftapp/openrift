@@ -1,16 +1,16 @@
 import { formatDay } from "@openrift/shared/format-date";
-import { BotIcon, CheckIcon, CopyIcon, Trash2Icon } from "lucide-react";
+import { BotIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
+import { CopyField } from "@/components/ui/copy-field";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import {
   useCreateFriendGroupDiscordLinkCode,
   useDeleteFriendGroupDiscordLink,
   useFriendGroupDiscordLinks,
 } from "@/features/groups/hooks/use-friend-group-discord";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { m } from "@/paraglide/messages.js";
 
 // While a code is outstanding the links list polls, so the redeem shows up without a reload.
@@ -21,7 +21,6 @@ export function DiscordPanel({ slug }: { slug: string }) {
     code: string;
     knownLinkIds: string[];
   } | null>(null);
-  const { copied, copy } = useCopyToClipboard();
 
   const { data } = useFriendGroupDiscordLinks(slug, {
     refetchInterval: pending === null ? undefined : 5000,
@@ -93,19 +92,12 @@ export function DiscordPanel({ slug }: { slug: string }) {
       ) : (
         <div className="flex flex-col gap-2">
           <p className="text-muted-foreground text-sm">{m.groups_discord_run_command()}</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <code className="bg-muted rounded-md px-2 py-1 font-mono text-sm">
-              /link code:{pending.code}
-            </code>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => void copy(`/link code:${pending.code}`)}
-            >
-              {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
-              {copied ? m.common_copied() : m.common_copy()}
-            </Button>
-          </div>
+          <CopyField
+            mono
+            value={`/link code:${pending.code}`}
+            aria-label={m.groups_discord_command_label()}
+            className="max-w-md"
+          />
         </div>
       )}
     </SettingsSection>

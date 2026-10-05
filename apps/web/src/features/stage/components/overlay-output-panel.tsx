@@ -1,6 +1,6 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
 import { ChevronLeftIcon, ChevronRightIcon, EyeIcon, EyeOffIcon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";

@@ -1,3 +1,4 @@
+import { pluralize } from "@openrift/shared/strings";
 import type { MetaEventDrift } from "@openrift/shared/types/api/meta";
 import type { MetaEventOverlayField } from "@openrift/shared/types/enums";
 import { META_EVENT_OVERLAY_FIELDS, META_EVENT_TIERS } from "@openrift/shared/types/enums";
@@ -150,7 +151,7 @@ function ClaimForm({
       {field === "eventDate" && (
         <DatePicker
           value={draft}
-          onChange={setDraft}
+          onValueChange={setDraft}
           onClear={() => {
             setDraft("");
           }}
@@ -385,8 +386,8 @@ export function MetaEventDriftPanel({
             setShowAgreed(!showAgreed);
           }}
         >
-          {showAgreed ? "Hide" : "Show"} {agreed.length} field
-          {agreed.length === 1 ? "" : "s"} that agree
+          {showAgreed ? "Hide" : "Show"} {agreed.length} {pluralize(agreed.length, "field")} that
+          agree
         </Button>
       )}
     </div>

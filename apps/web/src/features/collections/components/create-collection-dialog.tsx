@@ -3,12 +3,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { useCreateCollection } from "@/features/collections/hooks/use-collections";
 import { m } from "@/paraglide/messages.js";
@@ -75,24 +77,18 @@ export function CreateCollectionDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {title ??
-              (isShared
-                ? m.collections_dialog_create_title_shared()
-                : m.collections_dialog_create_title())}
-          </DialogTitle>
-          {effectiveDescription !== undefined && (
-            <DialogDescription>{effectiveDescription}</DialogDescription>
-          )}
-        </DialogHeader>
-        <form
-          className="flex flex-col gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            handleSubmit();
-          }}
-        >
+        <DialogForm onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>
+              {title ??
+                (isShared
+                  ? m.collections_dialog_create_title_shared()
+                  : m.collections_dialog_create_title())}
+            </DialogTitle>
+            {effectiveDescription !== undefined && (
+              <DialogDescription>{effectiveDescription}</DialogDescription>
+            )}
+          </DialogHeader>
           <Input
             autoFocus // oxlint-disable-line jsx-a11y/no-autofocus -- intentional inside dialog
             value={name}
@@ -100,19 +96,12 @@ export function CreateCollectionDialog({
             placeholder={m.collections_dialog_collection_name_placeholder()}
           />
           <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => handleOpenChange(false)}
-              disabled={createCollection.isPending}
-            >
-              {m.common_cancel()}
-            </Button>
+            <DialogCancel disabled={createCollection.isPending} />
             <Button type="submit" disabled={!name.trim() || createCollection.isPending}>
               {m.common_create()}
             </Button>
           </DialogFooter>
-        </form>
+        </DialogForm>
       </DialogContent>
     </Dialog>
   );

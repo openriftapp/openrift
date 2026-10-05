@@ -24,6 +24,8 @@ function deck(overrides: Partial<MetaDeckSummary> = {}): MetaDeckSummary {
     format: "constructed",
     legendCardId: "card-ornn",
     legendName: "Ornn, Fire Below the Mountain",
+    legendCharacter: "Ornn",
+    legendEpithet: "Fire Below the Mountain",
     legendSlug: "fire-below-the-mountain",
     legendArchiveSlug: "ornn-fire-below-the-mountain",
     legendImageId: null,

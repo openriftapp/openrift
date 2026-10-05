@@ -5,6 +5,8 @@ import type { GroupStageView, PodRoundResponse } from "@openrift/shared/types/ap
 export interface PlayerLegend {
   legendCardId: string | null;
   legendName: string | null;
+  legendCharacter: string | null;
+  legendEpithet: string | null;
 }
 
 export function legendsByPlayer(groupStage: GroupStageView | null): Map<string, PlayerLegend> {
@@ -12,7 +14,12 @@ export function legendsByPlayer(groupStage: GroupStageView | null): Map<string, 
     (groupStage?.groups ?? []).flatMap((group) =>
       group.standings.map((row) => [
         row.playerId,
-        { legendCardId: row.legendCardId, legendName: row.legendName },
+        {
+          legendCardId: row.legendCardId,
+          legendName: row.legendName,
+          legendCharacter: row.legendCharacter,
+          legendEpithet: row.legendEpithet,
+        },
       ]),
     ),
   );

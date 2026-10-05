@@ -5,16 +5,7 @@ import { CopyIcon, EllipsisVerticalIcon, Link2Icon, Trash2Icon } from "lucide-re
 import { Suspense, useState } from "react";
 import { toast } from "sonner";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DialogForm } from "@/components/ui/dialog-form";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -214,14 +204,14 @@ function RowActions({
           <DropdownMenuItem onClick={onPromote}>{m.decks_menu_make_primary()}</DropdownMenuItem>
         )}
         {canUnlink && (
-          <DropdownMenuItem onClick={onUnlink} className="text-destructive focus:text-destructive">
+          <DropdownMenuItem variant="destructive" onClick={onUnlink}>
             {m.decks_menu_remove_from_variants()}
           </DropdownMenuItem>
         )}
         {/* The open deck deletes itself from its own top bar instead: doing it
             here would delete the page the dialog is sitting on. */}
         {!isCurrent && (
-          <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+          <DropdownMenuItem variant="destructive" onClick={onDelete}>
             <Trash2Icon className="size-4" />
             {m.decks_menu_delete_version()}
           </DropdownMenuItem>
@@ -514,31 +504,19 @@ function VariantsDialogBody({
         )}
       </div>
 
-      <AlertDialog
+      <ConfirmActionDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => {
           if (!open) {
             setDeleteTarget(null);
           }
         }}
-      >
-        <AlertDialogContent>
-          <DialogForm onSubmit={handleDelete}>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{m.decks_dialog_variants_delete_title()}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {m.decks_dialog_variants_delete_description({ name: deleteTarget?.name ?? "" })}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-              <AlertDialogAction type="submit" disabled={deleteDeck.isPending}>
-                {m.common_delete()}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </DialogForm>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirm={handleDelete}
+        isPending={deleteDeck.isPending}
+        title={m.decks_dialog_variants_delete_title()}
+        description={m.decks_dialog_variants_delete_description({ name: deleteTarget?.name ?? "" })}
+        confirmLabel={m.common_delete()}
+      />
     </div>
   );
 }

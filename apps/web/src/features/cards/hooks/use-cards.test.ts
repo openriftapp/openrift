@@ -27,7 +27,7 @@ vi.mock("@/lib/server-cache", async () => {
 
 // Must import after the mock so the mock is applied.
 const { serverCache } = await import("@/lib/server-cache");
-const { catalogQueryOptions } = await import("@/features/cards/lib/catalog-query");
+const { catalogQueryOptions } = await import("@/features/cards/lib/catalog-queries");
 
 const CARD_A_ID = "00000000-0000-0000-0000-000000000001";
 const CARD_B_ID = "00000000-0000-0000-0000-000000000002";

@@ -1,4 +1,6 @@
+import { totalQuantity } from "@openrift/shared/deck-rules";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
+import { isSingleSlotZone } from "@openrift/shared/deck-zones";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { PlusIcon, AlertTriangleIcon } from "lucide-react";
@@ -9,14 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Pressable } from "@/components/ui/pressable";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { GroupedThumbs } from "@/features/decks/components/deck-grouped-thumbs";
-import { LANDSCAPE_ZONES } from "@/features/decks/components/deck-overview-geometry";
 import { StackPile } from "@/features/decks/components/deck-stack-pile";
-import {
-  LANDSCAPE_THUMB_CLASS,
-  LANDSCAPE_THUMB_STYLE,
-  PORTRAIT_THUMB_CLASS,
-  PORTRAIT_THUMB_STYLE,
-} from "@/features/decks/components/deck-thumb-metrics";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { ZoneThumb } from "@/features/decks/components/deck-zone-thumbs";
 import { useDeckZoneDrop } from "@/features/decks/hooks/use-deck-zone-drop";
@@ -25,9 +20,16 @@ import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import { GROUPED_ZONES } from "@/features/decks/lib/deck-card-sort";
 import { expandCopies, overviewHoverHandler } from "@/features/decks/lib/deck-overview-derive";
+import { LANDSCAPE_ZONES } from "@/features/decks/lib/deck-overview-geometry";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
 import type { StatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import { cardMatchesStatsFocus } from "@/features/decks/lib/deck-stats-focus";
+import {
+  LANDSCAPE_THUMB_CLASS,
+  LANDSCAPE_THUMB_STYLE,
+  PORTRAIT_THUMB_CLASS,
+  PORTRAIT_THUMB_STYLE,
+} from "@/features/decks/lib/deck-thumb-metrics";
 import { zoneEmptyReadOnlyLabel } from "@/features/decks/lib/deck-zone-labels";
 import type { CollapsibleDeckSection } from "@/features/decks/stores/deck-builder-ui-store";
 import { cn } from "@/lib/utils";
@@ -122,11 +124,10 @@ export function ZoneTile({
 }: ZoneTileProps) {
   const hasViolation = zoneViolations.length > 0;
   const collapsed = collapsedZones.has(zone);
-  const quantity = cards.reduce((sum, card) => sum + card.quantity, 0);
+  const quantity = totalQuantity(cards);
   const isEmpty = cards.length === 0;
   const isComplete = !hasViolation && expected !== undefined && quantity === expected;
-  const hideCount =
-    isComplete && (zone === WellKnown.deckZone.LEGEND || zone === WellKnown.deckZone.CHAMPION);
+  const hideCount = isComplete && isSingleSlotZone(zone);
   const isLandscape = LANDSCAPE_ZONES.has(zone);
   const hoverCard = overviewHoverHandler(stacked, onHoverCard);
 

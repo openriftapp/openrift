@@ -1,9 +1,11 @@
-import { isCountedZone } from "@openrift/shared/deck-zones";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
+import { REQUIRED_ZONES, isCountedZone } from "@openrift/shared/deck-zones";
+import { preferredPrinting } from "@openrift/shared/printing-select";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { getOrientation, legendDisplayName, preferredPrinting } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import { usePrices } from "@/features/cards/hooks/use-prices";
@@ -13,7 +15,6 @@ import type {
   DeckOwnershipData,
   OwnershipPrinting,
 } from "@/features/decks/lib/deck-ownership-types";
-import { REQUIRED_ZONES } from "@/features/decks/lib/deck-zone-labels";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 
 function toOwnershipPrinting(printing: Printing): OwnershipPrinting {

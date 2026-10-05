@@ -1,3 +1,4 @@
+import { META_PAGE_SIZES } from "@openrift/shared/contracts/meta";
 import type { MetaEventSummary } from "@openrift/shared/types/api/meta";
 import { getRouteApi } from "@tanstack/react-router";
 import { TrophyIcon } from "lucide-react";
@@ -9,6 +10,7 @@ import {
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
+import { SearchInput } from "@/components/search-input";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
@@ -22,8 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FilterDropdownChip } from "@/features/cards/components/compact-filter-bar";
-import { SearchInput } from "@/features/cards/components/search-input";
-import { useSearchUrlSync } from "@/features/cards/hooks/use-search-url-sync";
 import { MetaDecklistsToggle } from "@/features/meta/components/meta-decklists-toggle";
 import {
   EVENT_INDEX_GRID,
@@ -57,7 +57,7 @@ import {
   eventPageSlice,
 } from "@/features/meta/lib/meta-events-search";
 import { metaShownLabel } from "@/features/meta/lib/meta-format";
-import { META_PAGE_SIZES, metaPageCount } from "@/features/meta/lib/meta-paging";
+import { metaPageCount } from "@/features/meta/lib/meta-paging";
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
 import {
   CLEARED_SCOPE,
@@ -67,6 +67,7 @@ import {
   nextScopeSearch,
   scopeKey,
 } from "@/features/meta/lib/meta-scope";
+import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 

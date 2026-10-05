@@ -1,12 +1,21 @@
-import type { CardResolution, CardSearchIndex, SearchableCard } from "@openrift/shared/card-search";
-import { buildCardIndex, resolveCard } from "@openrift/shared/card-search";
+import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
+import type {
+  CardResolution,
+  CardSearchIndex,
+  CodeIndex,
+  SearchableCard,
+} from "@openrift/shared/card-search";
+import {
+  buildCardIndex,
+  buildCodeIndex,
+  lookupCode,
+  resolveCard,
+} from "@openrift/shared/card-search";
+import type { DeckImportEntry } from "@openrift/shared/deck-code";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { CardType, DeckZone, Domain, SuperType } from "@openrift/shared/types/enums";
-import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import { inferZone } from "@openrift/shared/zone-inference";
-
-import type { DeckImportEntry } from "@/features/decks/lib/deck-import-parsers";
 
 export type DeckMatchStatus = "exact" | "needs-review" | "unresolved";
 
@@ -36,18 +45,17 @@ interface SearchableDeckCard extends SearchableCard {
 }
 
 class CardIndex {
-  private readonly byShortCode = new Map<string, ResolvedCard>();
+  private readonly byCode: CodeIndex<ResolvedCard, Printing>;
   private readonly nameIndex: CardSearchIndex<SearchableDeckCard>;
 
   constructor(allPrintings: Printing[]) {
     const rows = new Map<string, SearchableDeckCard>();
 
-    for (const printing of allPrintings) {
-      const shortCodeKey = printing.shortCode.toLowerCase();
-      if (!this.byShortCode.has(shortCodeKey)) {
-        this.byShortCode.set(shortCodeKey, cardFromPrinting(printing));
-      }
+    this.byCode = buildCodeIndex(
+      allPrintings.map((printing) => ({ card: cardFromPrinting(printing), printing })),
+    );
 
+    for (const printing of allPrintings) {
       if (rows.has(printing.cardId)) {
         continue;
       }
@@ -67,7 +75,7 @@ class CardIndex {
 
   /** `preferredPrintingId` is always null: deck-code formats encode card identity, not printing identity. */
   lookupByCode(shortCode: string): ResolvedCard | null {
-    return this.byShortCode.get(shortCode.toLowerCase()) ?? null;
+    return lookupCode(this.byCode, shortCode)?.card ?? null;
   }
 
   resolveName(cardName: string): CardResolution<SearchableDeckCard> {

@@ -1,5 +1,6 @@
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import type { AdminAuditEventResponse } from "@openrift/shared/contracts/admin/audit-events";
-import { normalizeNameForIdentity } from "@openrift/shared/utils";
+import { pluralize } from "@openrift/shared/strings";
 
 import {
   CARD_FIELD_LABELS,
@@ -154,7 +155,7 @@ function skippedCount(value: unknown): number {
 }
 
 function plural(n: number, singular: string): string {
-  return `${n} ${singular}${n === 1 ? "" : "s"}`;
+  return `${n} ${pluralize(n, singular)}`;
 }
 
 function eventPrintingId(event: AdminAuditEventResponse): string | null {
@@ -200,7 +201,7 @@ function createdPrintings(event: AdminAuditEventResponse, context: HistoryContex
   }
   return names === null
     ? plural(made, "new printing")
-    : `${made === 1 ? "new printing" : "new printings"} ${names}`;
+    : `new ${pluralize(made, "printing")} ${names}`;
 }
 
 function acceptedPrintingFields(event: AdminAuditEventResponse, context: HistoryContext): string[] {
@@ -308,7 +309,7 @@ export function historySentence(
       const target = printingName(event, context);
       return joined([
         "Linked",
-        rows === null ? "an incoming row" : `${rows} incoming row${rows === 1 ? "" : "s"}`,
+        rows === null ? "an incoming row" : `${rows} incoming ${pluralize(rows, "row")}`,
         target === null ? "to a printing" : `to ${target}`,
       ]);
     }
@@ -334,7 +335,7 @@ export function historySentence(
       return joined([
         "Removed",
         provider === null ? "a source's data" : `${provider}'s data`,
-        deleted === null ? null : `(${deleted} row${deleted === 1 ? "" : "s"})`,
+        deleted === null ? null : `(${deleted} ${pluralize(deleted, "row")})`,
       ]);
     }
     case "image.activate": {

@@ -1,11 +1,12 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import { PencilIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getFormatTagConfig } from "@/features/collections/lib/format-tag-config";
 import { EditFormatTagsDialog } from "@/features/decks/components/edit-format-tags-dialog";
+import { getFormatTagConfig } from "@/features/decks/lib/format-tag-config";
 import { useCustomTagList, useDeckFormatList } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
 
@@ -30,7 +31,7 @@ export function FormatConfigCard({ deckId, format, formatConfig, readOnly }: Pro
   // Unresolvable slugs are surfaced separately as CARD_NOT_IN_FORMAT_TAG; don't duplicate that here.
   const visibleSlugs = tagSlugs.filter((slug) => customTags.some((tag) => tag.slug === slug));
   const labelFor = (slug: string) => customTags.find((tag) => tag.slug === slug)?.label ?? slug;
-  const formatLabel = formatLabels[format] ?? format;
+  const formatLabel = enumLabel(formatLabels, format);
 
   return (
     <Card className="flex-row items-center justify-between gap-4 px-4">

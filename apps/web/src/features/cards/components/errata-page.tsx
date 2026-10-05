@@ -1,14 +1,15 @@
 import { formatDay, formatMonthYear } from "@openrift/shared/format-date";
 import { imageUrl } from "@openrift/shared/image-url";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
-import { ArrowUpRightIcon, SearchXIcon } from "lucide-react";
+import { getRouteApi, Link } from "@tanstack/react-router";
+import { ArrowUpRightIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { EmptyState } from "@/components/empty-state";
-import { Heading } from "@/components/heading";
+import { Eyebrow, Heading } from "@/components/heading";
 import { PageHero, PageHeroCardFan, PageHeroStats } from "@/components/layout/page-hero";
-import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/search-input";
+import { buttonVariants } from "@/components/ui/button";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import {
   Select,
@@ -20,7 +21,6 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { ErrataView } from "@/features/cards/components/errata-entry";
 import { ErrataEntry } from "@/features/cards/components/errata-entry";
-import { SearchInput } from "@/features/cards/components/search-input";
 import type { ErrataGroup } from "@/features/cards/lib/errata-list";
 import {
   countErrataBySet,
@@ -29,6 +29,7 @@ import {
   latestErrataUpdate,
 } from "@/features/cards/lib/errata-list";
 import { errataListQueryOptions } from "@/features/cards/lib/errata-queries";
+import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 import { DATE_WORDS } from "@/lib/date-words";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -56,9 +57,9 @@ function GroupNav({ groups }: { groups: ErrataGroup[] }) {
       aria-label={m.errata_toc_heading()}
       className="min-w-0 lg:sticky lg:top-[calc(var(--header-height)+1rem)] lg:self-start"
     >
-      <p className="text-muted-foreground mb-2 hidden text-xs font-semibold tracking-wide uppercase lg:block">
+      <Eyebrow as="p" className="mb-2 hidden text-xs lg:block">
         {m.errata_toc_heading()}
-      </p>
+      </Eyebrow>
       <ul className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 lg:flex-col lg:overflow-visible">
         {groups.map((group) => (
           <li key={group.id} className="shrink-0">
@@ -106,11 +107,11 @@ function GroupSection({
     <section id={group.id} aria-labelledby={headingId} className="scroll-mt-40">
       <div className="border-foreground flex flex-wrap items-end justify-between gap-3 border-b-2 pb-3">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <p className="text-warning text-xs font-semibold tracking-wide uppercase">
+          <Eyebrow as="p" className="text-warning mb-0 text-xs">
             {announcement === null
               ? m.errata_unannounced_eyebrow()
               : formatMonthYear(announcement.publishedOn, DATE_WORDS)}
-          </p>
+          </Eyebrow>
           <Heading id={headingId}>{groupTitle(group)}</Heading>
           <p className="text-muted-foreground text-sm">
             {announcement === null
@@ -122,22 +123,16 @@ function GroupSection({
         </div>
         <div className="flex items-center gap-2">
           {announcement !== null && (
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={
-                <a
-                  href={announcement.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={m.errata_announcement_link()}
-                />
-              }
+            <a
+              href={announcement.url}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={m.errata_announcement_link()}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
             >
               {m.errata_announcement_link()}
               <ArrowUpRightIcon />
-            </Button>
+            </a>
           )}
           <ExpandToggle
             expanded={open}
@@ -159,9 +154,24 @@ function GroupSection({
   );
 }
 
+const route = getRouteApi("/_app/errata");
+
 export function ErrataPage() {
   const { data } = useSuspenseQuery(errataListQueryOptions);
-  const [query, setQuery] = useState("");
+  const { q } = route.useSearch();
+  const navigate = route.useNavigate();
+  const [query, setQuery] = useSearchUrlSync({
+    urlValue: q ?? "",
+    onCommit: (next) => {
+      void navigate({
+        search: (prev) => ({ ...prev, q: next === "" ? undefined : next }),
+        hash: true,
+        replace: true,
+        resetScroll: false,
+        hashScrollIntoView: false,
+      });
+    },
+  });
   const [setSlug, setSetSlug] = useState(ALL_SETS);
   const [view, setView] = useState<ErrataView>("side");
   const [toggled, setToggled] = useState<ReadonlySet<string>>(new Set());
@@ -249,7 +259,7 @@ export function ErrataPage() {
             value={query}
             onValueChange={setQuery}
             placeholder={m.errata_search_placeholder()}
-            ariaLabel={m.errata_search_label()}
+            aria-label={m.errata_search_label()}
             className="w-full sm:w-72"
           />
           <Select
@@ -292,12 +302,9 @@ export function ErrataPage() {
           <GroupNav groups={groups} />
           <div className="flex min-w-0 flex-col gap-10">
             {visibleGroups.length === 0 ? (
-              <EmptyState
-                className="py-12"
-                icon={SearchXIcon}
-                title={m.errata_empty_title()}
-                description={m.errata_empty_description()}
-              />
+              <Empty className="py-12">
+                <EmptyDescription>{m.errata_no_matches()}</EmptyDescription>
+              </Empty>
             ) : (
               visibleGroups.map((group) => (
                 <GroupSection
@@ -331,9 +338,9 @@ export function ErrataPage() {
             <h2 className="font-semibold">{m.errata_missing_title()}</h2>
             <p className="text-muted-foreground">{m.errata_missing_body()}</p>
           </div>
-          <Button nativeButton={false} render={<Link to="/contribute" />}>
+          <Link to="/contribute" className={buttonVariants()}>
             {m.errata_missing_cta()}
-          </Button>
+          </Link>
         </section>
       </div>
     </div>

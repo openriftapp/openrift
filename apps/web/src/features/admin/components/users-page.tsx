@@ -1,5 +1,6 @@
 import { ADMIN_SECTION_LABELS, ADMIN_SECTION_SLUGS } from "@openrift/shared/admin-sections";
 import { formatDay } from "@openrift/shared/format-date";
+import { pluralize } from "@openrift/shared/strings";
 import type { AdminUserResponse } from "@openrift/shared/types/api/admin";
 import { EllipsisVerticalIcon } from "lucide-react";
 
@@ -14,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UserAvatar } from "@/components/user-avatar";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { GrowthPanel } from "@/features/admin/components/growth-chart";
@@ -24,7 +26,7 @@ import {
   useRemoveAdminGrant,
 } from "@/features/admin/hooks/use-admin-grants";
 import { useAdminUsers } from "@/features/admin/hooks/use-admin-users";
-import { useGravatarHash } from "@/lib/gravatar";
+import { useGravatarHash } from "@/hooks/use-gravatar-hash";
 
 function formatDate(iso: string): string {
   return formatDay(iso);
@@ -273,10 +275,10 @@ export function UsersPage() {
         getRowKey={(user) => user.id}
         emptyText="No users yet."
         defaultSort={{ column: "Joined", direction: "desc" }}
-        title="Users"
+        topBar={(actions) => <AdminPageTopBar title="Users" actions={actions} />}
         toolbar={
           <PageDescription>
-            {data.users.length} registered {data.users.length === 1 ? "user" : "users"}
+            {data.users.length} registered {pluralize(data.users.length, "user")}
           </PageDescription>
         }
       />

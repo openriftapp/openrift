@@ -88,6 +88,53 @@ export function ColorPreviewCell<TRow extends { label: string; color: string | n
   );
 }
 
+type StringField<TDraft> = {
+  [K in keyof TDraft]: TDraft[K] extends string ? K : never;
+}[keyof TDraft];
+
+const LETTER_CASE = {
+  lower: (value: string) => value.toLowerCase(),
+  upper: (value: string) => value.toUpperCase(),
+};
+
+interface DraftTextInputProps<TDraft> extends AdminDraftSlotProps<TDraft> {
+  field: StringField<TDraft>;
+  placeholder?: string;
+  className?: string;
+  inputMode?: "numeric" | "url";
+  letterCase?: keyof typeof LETTER_CASE;
+  "aria-label"?: string;
+}
+
+export function DraftTextInput<TDraft>({
+  draft,
+  setDraft,
+  field,
+  placeholder,
+  className,
+  inputMode,
+  letterCase,
+  "aria-label": ariaLabel,
+}: DraftTextInputProps<TDraft>) {
+  if (!draft || !setDraft) {
+    return null;
+  }
+  return (
+    <Input
+      value={String(draft[field])}
+      onChange={(event) => {
+        const raw = event.target.value;
+        const value = letterCase ? LETTER_CASE[letterCase](raw) : raw;
+        setDraft((prev) => ({ ...prev, [field]: value }));
+      }}
+      placeholder={placeholder}
+      inputMode={inputMode}
+      aria-label={ariaLabel}
+      className={cn("h-8", className)}
+    />
+  );
+}
+
 interface SlugAddInputProps<TDraft extends { slug: string }> extends AdminDraftSlotProps<TDraft> {
   placeholder: string;
   width?: string;
@@ -95,60 +142,17 @@ interface SlugAddInputProps<TDraft extends { slug: string }> extends AdminDraftS
 
 // Every taxonomy slug is kebab-case, so typing is lowercased as it goes in.
 export function SlugAddInput<TDraft extends { slug: string }>({
-  draft,
-  setDraft,
   placeholder,
   width = "w-40",
+  ...slot
 }: SlugAddInputProps<TDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
   return (
-    <Input
-      value={draft.slug}
-      onChange={(event) =>
-        setDraft((prev) => ({ ...prev, slug: event.target.value.toLowerCase() }))
-      }
+    <DraftTextInput<TDraft>
+      {...slot}
+      field={"slug" as StringField<TDraft>}
       placeholder={placeholder}
-      className={cn("h-8 font-mono", width)}
-    />
-  );
-}
-
-export function LabelInput<TDraft extends { label: string }>({
-  draft,
-  setDraft,
-}: AdminDraftSlotProps<TDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.label}
-      onChange={(event) => setDraft((prev) => ({ ...prev, label: event.target.value }))}
-      className="h-8"
-    />
-  );
-}
-
-interface LabelAddInputProps<TDraft extends { label: string }> extends AdminDraftSlotProps<TDraft> {
-  placeholder: string;
-}
-
-export function LabelAddInput<TDraft extends { label: string }>({
-  draft,
-  setDraft,
-  placeholder,
-}: LabelAddInputProps<TDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.label}
-      onChange={(event) => setDraft((prev) => ({ ...prev, label: event.target.value }))}
-      placeholder={placeholder}
-      className="h-8"
+      letterCase="lower"
+      className={cn("font-mono", width)}
     />
   );
 }
@@ -160,19 +164,14 @@ interface DescriptionInputProps<
 }
 
 export function DescriptionInput<TDraft extends { description: string }>({
-  draft,
-  setDraft,
   placeholder = "Optional description",
+  ...slot
 }: DescriptionInputProps<TDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
   return (
-    <Input
-      value={draft.description}
-      onChange={(e) => setDraft((prev) => ({ ...prev, description: e.target.value }))}
+    <DraftTextInput<TDraft>
+      {...slot}
+      field={"description" as StringField<TDraft>}
       placeholder={placeholder}
-      className="h-8"
     />
   );
 }
@@ -182,19 +181,15 @@ interface ColorInputProps<TDraft extends { color: string }> extends AdminDraftSl
 }
 
 export function ColorInput<TDraft extends { color: string }>({
-  draft,
-  setDraft,
   placeholder,
+  ...slot
 }: ColorInputProps<TDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
   return (
-    <Input
-      value={draft.color}
-      onChange={(event) => setDraft((prev) => ({ ...prev, color: event.target.value }))}
+    <DraftTextInput<TDraft>
+      {...slot}
+      field={"color" as StringField<TDraft>}
       placeholder={placeholder}
-      className="h-8 w-28 font-mono"
+      className="w-28 font-mono"
     />
   );
 }

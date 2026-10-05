@@ -4,24 +4,23 @@ import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Suspense, useEffect, useRef, useState } from "react";
 
-import { useMeasuredHeight } from "@/components/layout/page-top-bar";
 import { Pane } from "@/components/layout/panes";
 import { CatalogSubsetProvider } from "@/features/cards/components/catalog-subset-provider";
+import type { HoverOrigin } from "@/features/cards/components/hovered-card-preview";
+import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import {
   CardDetailSkeleton,
   SelectionDetailPane,
 } from "@/features/cards/components/selection-detail-pane";
+import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import type { CardOpenTarget } from "@/features/cards/lib/card-row-interactions";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
-import { FilterSearchProvider } from "@/features/cards/lib/search-schemas";
 import { DeckMissingCardsDialog } from "@/features/decks/components/deck-missing-cards-dialog";
 import { DeckOverview } from "@/features/decks/components/deck-overview";
 import { DeckOwnershipBridge } from "@/features/decks/components/deck-ownership-bridge";
 import { DeckPlanView } from "@/features/decks/components/deck-plan-view";
-import type { HoverOrigin } from "@/features/decks/components/hovered-card-preview";
-import { HoveredCardPreview } from "@/features/decks/components/hovered-card-preview";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toBuilderCardFromPublic } from "@/features/decks/lib/deck-builder-card";
@@ -30,6 +29,7 @@ import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-s
 import { useHeaderHeight } from "@/hooks/use-header-height";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -43,7 +43,6 @@ function thumbKey(cardId: string, preferredPrintingId: string | null): string {
 interface PublicDeckSurfaceProps {
   data: PublicDeckDetailResponse;
   isLoggedIn: boolean;
-  returnPath: string;
   heroByline?: React.ReactNode;
   heroHeading?: React.ReactNode;
   heroLead?: React.ReactNode;
@@ -76,7 +75,6 @@ export function PublicDeckSurface({ topBar, ...props }: PublicDeckSurfaceProps) 
 function PublicDeckContent({
   data,
   isLoggedIn,
-  returnPath,
   heroByline,
   heroHeading,
   heroLead,
@@ -198,9 +196,7 @@ function PublicDeckContent({
             onHoverCard={onHoverCard}
             onViewMissing={() => setMissingOpen(true)}
             readOnly
-            signInHref={
-              isLoggedIn ? undefined : `/login?redirect=${encodeURIComponent(returnPath)}`
-            }
+            showSignIn={!isLoggedIn}
             description={data.deck.description ?? undefined}
             oddsConfig={data.deck.oddsConfig}
             onCardClick={handleCardClick}

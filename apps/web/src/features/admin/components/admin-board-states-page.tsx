@@ -1,10 +1,12 @@
 import type { AdminBoardState } from "@openrift/shared/contracts/admin/board-states";
 import { formatDayTime } from "@openrift/shared/format-date";
+import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { Switch } from "@/components/ui/switch";
 import { TextLink } from "@/components/ui/text-link";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import {
@@ -121,11 +123,11 @@ export function AdminBoardStatesPage() {
       getRowKey={(boardState) => boardState.id}
       emptyText="No board states yet."
       defaultSort={{ column: "Updated", direction: "desc" }}
-      title="Board States"
+      topBar={(actions) => <AdminPageTopBar title="Board States" actions={actions} />}
       toolbar={
         items.length > 0 ? (
           <PageDescription>
-            {items.length} board state{items.length === 1 ? "" : "s"}, only shared ones can be
+            {items.length} {pluralize(items.length, "board state")}, only shared ones can be
             featured
           </PageDescription>
         ) : undefined

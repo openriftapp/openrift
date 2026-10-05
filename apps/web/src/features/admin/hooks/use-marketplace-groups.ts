@@ -4,12 +4,10 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { marketplaceGroupsQueryOptions } from "@/features/admin/lib/marketplace-groups-queries";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
-
-export type { MarketplaceGroup } from "@/lib/server-fns/api-types";
 
 export function useMarketplaceGroups() {
   return useSuspenseQuery(marketplaceGroupsQueryOptions);

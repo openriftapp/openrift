@@ -1,3 +1,4 @@
+import { formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaEventPlayer, MetaStandingsRow } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, ClockIcon } from "lucide-react";
@@ -14,7 +15,7 @@ import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaRunStrip } from "@/features/meta/components/meta-run-strip";
 import { useMetaPriceFormat } from "@/features/meta/hooks/use-meta-price-format";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
-import { finishBracketLabel, formatRank, formatRecord } from "@/features/meta/lib/meta-format";
+import { finishBracketLabel, formatRank } from "@/features/meta/lib/meta-format";
 import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
 import { cn } from "@/lib/utils";
@@ -88,7 +89,7 @@ export function LegendCell({ player }: { player: MetaEventPlayer }) {
         className="w-9"
       />
       <MetaIdentity
-        name={player.legend?.name}
+        legend={player.legend}
         slug={player.legend?.slug}
         archiveSlug={player.legend?.archiveSlug}
         domains={player.legend?.domains}
@@ -223,7 +224,7 @@ export function DeckCell({
         />
       }
     >
-      + Add
+      {m.meta_add_deck_link()}
     </TextLink>
   );
 }

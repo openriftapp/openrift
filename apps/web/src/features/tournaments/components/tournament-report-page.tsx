@@ -7,7 +7,6 @@ import {
   useSubmitTournamentReportResult,
 } from "@/features/tournaments/hooks/use-tournament-run";
 import { cutRounds } from "@/features/tournaments/lib/cut-bracket-display";
-import { useRegionLabel } from "@/hooks/use-region-label";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
@@ -20,7 +19,6 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
   const submitResult = useSubmitTournamentReportResult(token);
   const submitPlayerResult = useSubmitTournamentReportPlayerResult(token);
   const startGroupRound = useStartReportGroupRound(token);
-  const regionLabel = useRegionLabel();
   const regionByPlayer = data.regionsEnabled
     ? new Map(data.standings.map((row) => [row.playerId, row.region]))
     : undefined;
@@ -118,7 +116,6 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
         winPoints={data.winPoints}
         drawPoints={data.drawPoints}
         regionByPlayer={regionByPlayer}
-        regionLabel={regionLabel}
         showPenalty={false}
         canEnterResult={(round) => canSubmit && round.status === "reporting"}
         onSubmitResult={submit}

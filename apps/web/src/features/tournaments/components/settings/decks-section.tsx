@@ -4,27 +4,18 @@ import { Link } from "@tanstack/react-router";
 
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import { DatePicker } from "@/components/ui/date-picker";
-import { FieldError } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { Code } from "@/components/ui/code";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+  AllowDeckEditsField,
+  DeckDeadlineField,
+  DeckSubmissionField,
+  parseDeadlineInput,
+} from "@/features/tournaments/components/settings/decks-fields";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
-import {
-  combineLocalDateTimeToUtc,
-  deckPhaseLabels,
-  deckSubmissionItems,
-  localTimeZoneLabel,
-  splitUtcToLocalDateTime,
-} from "@/features/tournaments/lib/tournament-display";
+import { deckPhaseLabels } from "@/features/tournaments/lib/tournament-display";
 import { useServerSeededState } from "@/hooks/use-server-seeded-state";
+import { splitUtcToLocalDateTime } from "@/lib/date-time-input";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
@@ -42,17 +33,12 @@ export function DecksSection({
   const [closeDate, setCloseDate] = useServerSeededState(closeInit.date);
   const [closeTime, setCloseTime] = useServerSeededState(closeInit.time);
 
-  const submissionItems = deckSubmissionItems();
-  const tzLabel = localTimeZoneLabel();
   const deckExpected = detail.deckSubmission !== "none";
-
-  const closeTouched = closeDate !== "" || closeTime !== "";
-  const nextCloseAt = closeTouched ? combineLocalDateTimeToUtc(closeDate, closeTime) : null;
-  const closeIncomplete = closeTouched && nextCloseAt === null;
-  const closeAfterEnd =
-    nextCloseAt !== null &&
-    detail.endsAt !== null &&
-    new Date(nextCloseAt) > new Date(detail.endsAt);
+  const {
+    closeAt: nextCloseAt,
+    incomplete: closeIncomplete,
+    afterEnd: closeAfterEnd,
+  } = parseDeadlineInput(closeDate, closeTime, detail.endsAt);
   const closeInvalid = closeIncomplete || closeAfterEnd;
   const closeChanged =
     (nextCloseAt === null) !== (detail.submissionsCloseAt === null) ||
@@ -69,57 +55,34 @@ export function DecksSection({
       })}
       contentClassName="gap-3"
     >
-      <div className="flex flex-col gap-1.5">
-        <Label>{m.tournaments_settings_deck_submission_label()}</Label>
-        <Select
-          items={submissionItems}
-          value={detail.deckSubmission}
-          disabled={locked || updateTournament.isPending}
-          onValueChange={(value) => {
-            if (value === "none" || value === "optional" || value === "required") {
-              void runReportedMutation(() =>
-                updateTournament.mutateAsync({ id: detail.id, deckSubmission: value }),
-              );
-            }
-          }}
-        >
-          <SelectTrigger
-            className="max-w-sm"
-            aria-label={m.tournaments_settings_deck_submission_label()}
-          >
-            <SelectValue placeholder={m.tournaments_settings_deck_submission_label()} />
-          </SelectTrigger>
-          <SelectContent>
-            {submissionItems.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <DeckSubmissionField
+        value={detail.deckSubmission}
+        disabled={locked || updateTournament.isPending}
+        className="max-w-sm"
+        onChange={(deckSubmission) =>
+          void runReportedMutation(() =>
+            updateTournament.mutateAsync({ id: detail.id, deckSubmission }),
+          )
+        }
+      />
 
       {deckExpected ? (
         <>
-          <div className="flex flex-col gap-1.5">
-            <Label>{m.tournaments_settings_deadline_label()}</Label>
-            <div className="flex flex-wrap items-center gap-2">
-              <DatePicker
-                value={closeDate}
-                onChange={setCloseDate}
-                onClear={() => setCloseDate("")}
-                disabled={locked}
-                className="w-44"
-              />
-              <Input
-                value={closeTime}
-                disabled={locked}
-                onChange={(event) => setCloseTime(event.target.value)}
-                placeholder="HH:mm"
-                aria-label={m.tournaments_settings_deadline_time_aria()}
-                className="w-24 tabular-nums"
-              />
-              <span className="text-muted-foreground text-sm">{tzLabel}</span>
+          <DeckDeadlineField
+            date={closeDate}
+            time={closeTime}
+            disabled={locked}
+            onDateChange={setCloseDate}
+            onTimeChange={setCloseTime}
+            error={
+              closeIncomplete
+                ? m.tournaments_settings_deadline_incomplete()
+                : closeAfterEnd
+                  ? m.tournaments_settings_deadline_after_end()
+                  : undefined
+            }
+            hint={m.tournaments_settings_deadline_blank_hint()}
+            action={
               <Button
                 disabled={locked || closeInvalid || !closeChanged || updateTournament.isPending}
                 onClick={() =>
@@ -133,39 +96,18 @@ export function DecksSection({
               >
                 {m.common_save()}
               </Button>
-            </div>
-            {closeIncomplete ? (
-              <FieldError>{m.tournaments_settings_deadline_incomplete()}</FieldError>
-            ) : closeAfterEnd ? (
-              <FieldError>{m.tournaments_settings_deadline_after_end()}</FieldError>
-            ) : (
-              <span className="text-muted-foreground text-sm">
-                {m.tournaments_settings_deadline_blank_hint()}
-              </span>
-            )}
-          </div>
+            }
+          />
 
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-3">
-              <Switch
-                id="t-allow-edits"
-                checked={detail.listLockMode === "at_deadline"}
-                disabled={locked || updateTournament.isPending}
-                onCheckedChange={(checked) =>
-                  void runReportedMutation(() =>
-                    updateTournament.mutateAsync({
-                      id: detail.id,
-                      listLockMode: checked ? "at_deadline" : "on_submit",
-                    }),
-                  )
-                }
-              />
-              <Label htmlFor="t-allow-edits">{m.tournaments_settings_allow_edits_label()}</Label>
-            </div>
-            <span className="text-muted-foreground text-sm">
-              {m.tournaments_settings_allow_edits_hint()}
-            </span>
-          </div>
+          <AllowDeckEditsField
+            value={detail.listLockMode}
+            disabled={locked || updateTournament.isPending}
+            onChange={(listLockMode) =>
+              void runReportedMutation(() =>
+                updateTournament.mutateAsync({ id: detail.id, listLockMode }),
+              )
+            }
+          />
 
           <div className="flex flex-col gap-1.5">
             <Label>{m.tournaments_settings_push_label()}</Label>
@@ -174,7 +116,7 @@ export function DecksSection({
                 message={m.tournaments_settings_push_hint}
                 inputs={{ id: detail.id }}
                 markup={{
-                  code: ({ children }) => <code className="break-all">{children}</code>,
+                  code: ({ children }) => <Code className="break-all">{children}</Code>,
                   link: ({ children }) => (
                     <Link
                       to="/tournaments/$id/decks"

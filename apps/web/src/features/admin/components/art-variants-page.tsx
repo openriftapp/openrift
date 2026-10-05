@@ -1,23 +1,23 @@
 import { PageDescription } from "@/components/layout/page-top-bar";
 import {
-  LabelAddInput,
+  DraftTextInput,
   LabelCell,
-  LabelInput,
   SlugAddInput,
   SlugCell,
   validateSlugAndLabel,
   WellKnownCell,
 } from "@/features/admin/components/admin-crud-shared";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminColumnDef } from "@/features/admin/components/admin-table";
-import { flatReorder } from "@/features/admin/lib/admin-reorder";
 import {
   useArtVariants,
   useCreateArtVariant,
   useDeleteArtVariant,
   useReorderArtVariants,
   useUpdateArtVariant,
-} from "@/hooks/use-art-variants";
+} from "@/features/admin/hooks/use-art-variants";
+import { flatReorder } from "@/features/admin/lib/admin-reorder";
 
 interface ArtVariantRow {
   slug: string;
@@ -42,8 +42,8 @@ const columns: AdminColumnDef<ArtVariantRow, ArtVariantDraft>[] = [
     header: "Label",
     sortValue: (artVariant) => artVariant.label,
     cell: <LabelCell<ArtVariantRow> />,
-    editCell: <LabelInput<ArtVariantDraft> />,
-    addCell: <LabelAddInput<ArtVariantDraft> placeholder="Alternate Art" />,
+    editCell: <DraftTextInput<ArtVariantDraft> field="label" />,
+    addCell: <DraftTextInput<ArtVariantDraft> field="label" placeholder="Alternate Art" />,
   },
   {
     header: "Well-known",
@@ -65,7 +65,7 @@ export function ArtVariantsPage() {
       data={artVariants}
       getRowKey={(artVariant) => artVariant.slug}
       emptyText="No art variants yet."
-      title="Art Variants"
+      topBar={(actions) => <AdminPageTopBar title="Art Variants" actions={actions} />}
       toolbar={
         <PageDescription>
           Art variants describe alternate artwork treatments for a printing (e.g. Normal, Alternate,

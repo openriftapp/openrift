@@ -1,3 +1,4 @@
+import { pluralize } from "@openrift/shared/strings";
 import type { ProviderSettingResponse } from "@openrift/shared/types/api/admin";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
@@ -133,7 +134,7 @@ export function CandidateSpreadsheet<
               <ChevronDownIcon className="size-3" />
             )}
             {collapsed
-              ? `${foldedKeys.size} field${foldedKeys.size > 1 ? "s" : ""} everyone agrees on`
+              ? `${foldedKeys.size} ${pluralize(foldedKeys.size, "field")} everyone agrees on`
               : "Hide"}
           </span>
         </td>

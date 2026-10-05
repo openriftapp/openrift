@@ -5,18 +5,9 @@ import { Link } from "@tanstack/react-router";
 import { EllipsisVerticalIcon, LayersIcon, PlusIcon, Share2Icon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { PageHero } from "@/components/layout/page-hero";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -187,27 +178,17 @@ function TierListRow({ tierList }: { tierList: TierListSummaryResponse }) {
         open={shareOpen}
         onOpenChange={setShareOpen}
       />
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{m.tier_lists_delete_title()}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {m.tier_lists_delete_description({ name: tierList.title })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{m.tier_lists_delete_keep()}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                deleteTierList.mutate(tierList.id);
-              }}
-              disabled={deleteTierList.isPending}
-            >
-              {m.common_delete()}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmActionDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onConfirm={() =>
+          deleteTierList.mutate(tierList.id, { onSuccess: () => setDeleteOpen(false) })
+        }
+        isPending={deleteTierList.isPending}
+        title={m.tier_lists_delete_title()}
+        description={m.tier_lists_delete_description({ name: tierList.title })}
+        confirmLabel={m.common_delete()}
+      />
     </Card>
   );
 }

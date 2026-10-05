@@ -26,9 +26,7 @@ export function ShareLinkButton({ cardName }: { cardName: string }) {
       }
     }
 
-    if (await copy(url)) {
-      toast.success(m.card_detail_share_copied());
-    } else {
+    if (!(await copy(url))) {
       toast.error(m.card_detail_share_failed());
     }
   };
@@ -39,7 +37,7 @@ export function ShareLinkButton({ cardName }: { cardName: string }) {
       aria-label={m.card_detail_share_link_aria()}
     >
       {copied ? <CheckIcon className="size-4" /> : <Share2Icon className="size-4" />}
-      {m.card_detail_share()}
+      {copied ? m.common_copied() : m.card_detail_share()}
     </PageTopBarButton>
   );
 }

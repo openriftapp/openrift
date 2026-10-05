@@ -7,7 +7,7 @@ import { useCollectionsList } from "@/features/collections/hooks/use-collections
 import { useQuickAddActions } from "@/features/collections/hooks/use-quick-add-actions";
 import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
 import { WishlistPickerHost } from "@/features/lists/components/wishlist-picker-host";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 
 /**
  * Add and remove wiring for a surface that never registers card-row handlers,

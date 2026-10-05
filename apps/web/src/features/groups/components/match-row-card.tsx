@@ -1,3 +1,5 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { setIndexById, UNKNOWN_SET_INDEX } from "@openrift/shared/set-order";
 import type { CardTradeResponse, CardTradeStatus } from "@openrift/shared/types/api/card-trade";
@@ -5,7 +7,6 @@ import type { FriendGroupMatchRow } from "@openrift/shared/types/api/friend-grou
 import type { MarketplaceInfo } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { EyeOffIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -43,7 +44,7 @@ import {
   groupMatchCopyConditions,
   summarizeMatchCopies,
 } from "@/features/groups/lib/trade-derivation";
-import { useMatchVariantsFoldStore } from "@/features/match-tracker/stores/match-variants-fold-store";
+import { useMatchVariantsFoldStore } from "@/features/groups/stores/match-variants-fold-store";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useMouseHover } from "@/hooks/use-mouse-hover";
 import {
@@ -169,7 +170,6 @@ interface ResolvedMatchRow extends FriendGroupMatchRow {
   shortCode: string;
   setIndex: number;
   setName: string;
-  rarityLabel: string;
   finishLabel: string;
   domains: string[];
   printing: Printing | null;
@@ -207,7 +207,6 @@ export function resolveMatchRows(
       shortCode: printing?.shortCode ?? "",
       setIndex: setIndexes.get(row.setId) ?? UNKNOWN_SET_INDEX,
       setName: set?.name ?? row.setId,
-      rarityLabel: enumLabel(labels.rarities, row.rarity),
       finishLabel: enumLabel(labels.finishes, row.finish),
       domains: card?.domains ?? [],
       printing,
@@ -222,7 +221,6 @@ function MatchRowMeta({ match }: { match: DirectedMatch }) {
     <CardMetaLine
       shortCode={match.shortCode}
       rarity={match.rarity}
-      rarityLabel={match.rarityLabel}
       finish={match.finish}
       finishLabel={match.finishLabel}
       trailing={

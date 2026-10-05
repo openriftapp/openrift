@@ -2,10 +2,10 @@ import { searchPrefixFields } from "@openrift/shared/filters-search";
 import { ALL_SEARCH_FIELDS } from "@openrift/shared/types/search";
 import { useEffect, useRef, useState } from "react";
 
-import { SearchInput } from "@/features/cards/components/search-input";
+import { SearchInput } from "@/components/search-input";
 import { SearchPrefixChip, SearchScopeChip } from "@/features/cards/components/search-scope-menu";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
-import { useSearchUrlSync } from "@/features/cards/hooks/use-search-url-sync";
+import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 import { trackEvent } from "@/lib/analytics";
 import { m } from "@/paraglide/messages.js";
 

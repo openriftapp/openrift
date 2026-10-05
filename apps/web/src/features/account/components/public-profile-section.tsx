@@ -138,7 +138,7 @@ function BioForm({ defaultBio }: { defaultBio: string }) {
                   })}
                 </FieldDescription>
                 <Button type="submit" disabled={loading || watchedBio.trim() === defaultBio}>
-                  {loading ? m.profile_public_bio_saving() : m.profile_public_bio_save()}
+                  {loading ? m.common_saving() : m.common_save()}
                 </Button>
               </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

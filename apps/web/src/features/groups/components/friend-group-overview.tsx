@@ -1,6 +1,7 @@
-import { dateLeafParts, formatDayTimeLocal, formatTimeLocal } from "@openrift/shared/format-date";
+import { formatDayTimeLocal, formatTimeLocal } from "@openrift/shared/format-date";
+import { isGroupAdminRole } from "@openrift/shared/friend-group-roles";
+import { capitalize } from "@openrift/shared/strings";
 import type { FriendGroupDetailResponse } from "@openrift/shared/types/api/friend-group";
-import { capitalize } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
 import {
   ChevronRightIcon,
@@ -24,28 +25,26 @@ import { UserAvatarStack } from "@/components/user-avatar-stack";
 import { useCollections } from "@/features/collections/hooks/use-collections";
 import { useFriendGroupShopEvents } from "@/features/groups/hooks/use-friend-group-shops";
 import { useGroupBoxWants } from "@/features/groups/hooks/use-friend-groups";
+import { LIST_INTENT_ICON, listIntentNoun } from "@/features/groups/lib/list-intent-meta";
 import { filterShopEventsByRange } from "@/features/groups/lib/shop-events";
 import { useGroupTournaments } from "@/features/tournaments/hooks/use-tournaments";
 import {
   compareTournamentsForList,
   partitionTournaments,
 } from "@/features/tournaments/lib/tournament-display";
-import { useRequiredUserId } from "@/lib/auth-session";
-import { DATE_WORDS } from "@/lib/date-words";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { FriendGroupActivityFeed } from "./friend-group-activity-feed";
-import { isAdmin } from "./friend-group-shell";
 import { GroupSetupNudges } from "./group-setup-nudges";
-import { LIST_INTENT_ICON, listIntentNoun } from "./list-intent-meta";
 import { PendingRequestsBand } from "./pending-requests-band";
 import { TradesHubBand } from "./trades-hub-band";
 
 export function OverviewContent({ slug, data }: { slug: string; data: FriendGroupDetailResponse }) {
   return (
     <div className="flex flex-col gap-8">
-      {isAdmin(data.viewerRole) && data.pendingRequests.length > 0 ? (
+      {isGroupAdminRole(data.viewerRole) && data.pendingRequests.length > 0 ? (
         <PendingRequestsBand slug={slug} requests={data.pendingRequests} />
       ) : null}
       <GroupSetupNudges slug={slug} data={data} />
@@ -148,7 +147,7 @@ function GroupTournamentsTile({ slug, data }: { slug: string; data: FriendGroupD
         label={m.groups_nav_tournaments()}
         value={tournaments.items.length}
         hint={
-          isAdmin(data.viewerRole)
+          isGroupAdminRole(data.viewerRole)
             ? m.groups_overview_plan_one()
             : tournaments.items.length === 0
               ? m.groups_overview_no_tournaments_yet()
@@ -227,7 +226,7 @@ function OverviewRail({ slug, data }: { slug: string; data: FriendGroupDetailRes
 
 function ShopNextUp({ slug, data }: { slug: string; data: FriendGroupDetailResponse }) {
   const { data: feed } = useFriendGroupShopEvents(slug);
-  const admin = isAdmin(data.viewerRole);
+  const admin = isGroupAdminRole(data.viewerRole);
   const upcoming = filterShopEventsByRange(feed.items, "upcoming");
 
   if (feed.shops.length === 0 && !admin) {
@@ -248,24 +247,21 @@ function ShopNextUp({ slug, data }: { slug: string; data: FriendGroupDetailRespo
       </div>
       {upcoming.length > 0 ? (
         <RowList>
-          {upcoming.slice(0, 3).map((event) => {
-            const leaf = dateLeafParts(event.startAt, DATE_WORDS);
-            return (
-              <RowListItem key={event.externalId}>
-                {/* oxlint-disable-next-line jsx-a11y/control-has-associated-label -- text label is inside the RowListLink children */}
-                <RowListLink render={<a href={event.url} target="_blank" rel="noreferrer" />}>
-                  <DateLeaf month={leaf.month} day={leaf.day} size="sm" />
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-sm font-medium">{event.name}</span>
-                    <span className="text-muted-foreground truncate text-xs">
-                      {formatTimeLocal(event.startAt)} · {event.storeName}
-                    </span>
+          {upcoming.slice(0, 3).map((event) => (
+            <RowListItem key={event.externalId}>
+              {/* oxlint-disable-next-line jsx-a11y/control-has-associated-label -- text label is inside the RowListLink children */}
+              <RowListLink render={<a href={event.url} target="_blank" rel="noreferrer" />}>
+                <DateLeaf at={event.startAt} clock="local" size="sm" />
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-sm font-medium">{event.name}</span>
+                  <span className="text-muted-foreground truncate text-xs">
+                    {formatTimeLocal(event.startAt)} · {event.storeName}
                   </span>
-                  <ExternalLinkIcon className="text-muted-foreground/40 size-4 shrink-0" />
-                </RowListLink>
-              </RowListItem>
-            );
-          })}
+                </span>
+                <ExternalLinkIcon className="text-muted-foreground/40 size-4 shrink-0" />
+              </RowListLink>
+            </RowListItem>
+          ))}
         </RowList>
       ) : (
         <OverviewSlotEmpty
@@ -388,7 +384,7 @@ function TournamentNudge({ slug, data }: { slug: string; data: FriendGroupDetail
   const current = partitionTournaments(tournaments.items)
     .current.toSorted((a, b) => compareTournamentsForList(a, b))
     .slice(0, 2);
-  const admin = isAdmin(data.viewerRole);
+  const admin = isGroupAdminRole(data.viewerRole);
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-3">

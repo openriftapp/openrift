@@ -1,18 +1,21 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { LinkIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Fragment } from "react";
 
+import { CardIcon } from "@/components/card-icon";
 import { Pressable } from "@/components/ui/pressable";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
+import { FilterIcon } from "@/features/cards/components/filter-icon";
 import { FinishIcon } from "@/features/cards/components/finish-icon";
 import { PrintingChannelCell } from "@/features/cards/components/printing-channel-cell";
 import { PrintingNotesCell } from "@/features/cards/components/printing-notes-cell";
 import { rowActivateProps } from "@/features/cards/lib/card-row-interactions";
 import type { ActionsColumn } from "@/features/collections/lib/collection-table";
-import { getFilterIconPath, getTypeIconPaths } from "@/lib/icons";
+import { getTypeIconPaths } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -256,7 +259,6 @@ export function CardTableRow({
     .filter(Boolean)
     .join(" ");
   const typeIconPaths = getTypeIconPaths(printing.card.types, printing.card.superTypes);
-  const rarityIconPath = getFilterIconPath("rarities", printing.rarity);
   const rarityLabel = rarityLabels[printing.rarity];
 
   const staticCellByKey: Record<StaticColumnKey, ReactNode> = {
@@ -290,16 +292,14 @@ export function CardTableRow({
     type: (
       <div className="text-muted-foreground flex min-w-0 items-center gap-2">
         {typeIconPaths.map((path) => (
-          <img key={path} src={path} alt="" className="size-4 shrink-0 brightness-0 dark:invert" />
+          <CardIcon key={path} src={path} className="size-4 shrink-0" />
         ))}
         <span className="truncate">{typeLabel}</span>
       </div>
     ),
     rarity: (
       <div className="text-muted-foreground flex min-w-0 items-center gap-2">
-        {rarityIconPath && (
-          <img src={rarityIconPath} alt="" width={28} height={28} className="size-4 shrink-0" />
-        )}
+        <FilterIcon category="rarities" value={printing.rarity} className="size-4 shrink-0" />
         <span className="truncate">{rarityLabel}</span>
       </div>
     ),

@@ -17,13 +17,16 @@ import type { ComponentType, SVGProps } from "react";
 import { useState } from "react";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { EmptyState } from "@/components/empty-state";
 import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
+import { ShareLinkRow } from "@/components/share/share-link-row";
 import { ActionBand } from "@/components/ui/action-band";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -37,7 +40,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia } from "@/components/ui/empty";
 import { Label } from "@/components/ui/label";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -48,8 +50,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserAvatar } from "@/components/user-avatar";
-import { ShareLinkRow } from "@/features/groups/components/share-link-row";
+import { PlayerChip } from "@/features/tournaments/components/player-chip";
 import {
   useAddTournamentStaff,
   useRemoveTournamentStaff,
@@ -82,7 +83,7 @@ function roleSections(): Record<
     heading: string;
     icon: ComponentType<SVGProps<SVGSVGElement>>;
     empty: string;
-    emptyHint: string;
+    emptyDescription: string;
   }
 > {
   return {
@@ -90,13 +91,13 @@ function roleSections(): Record<
       heading: m.tournaments_staff_organizers_heading(),
       icon: ShieldIcon,
       empty: m.tournaments_staff_empty_organizers(),
-      emptyHint: m.tournaments_staff_empty_hint_organizer(),
+      emptyDescription: m.tournaments_staff_empty_description_organizer(),
     },
     judge: {
       heading: m.tournaments_staff_judges_heading(),
       icon: GavelIcon,
       empty: m.tournaments_staff_empty_judges(),
-      emptyHint: m.tournaments_staff_empty_hint_judge(),
+      emptyDescription: m.tournaments_staff_empty_description_judge(),
     },
   };
 }
@@ -151,17 +152,12 @@ function StaffRoleSection({
     <section className="flex flex-col gap-3">
       <SectionHeading count={members.length}>{section.heading}</SectionHeading>
       {members.length === 0 ? (
-        <Empty className="py-8">
-          <EmptyHeader>
-            <EmptyMedia>
-              <section.icon className="text-muted-foreground size-8" />
-            </EmptyMedia>
-            <EmptyDescription>
-              {section.empty}
-              {host ? section.emptyHint : "."}
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <EmptyState
+          className="py-8"
+          icon={section.icon}
+          title={section.empty}
+          description={host ? section.emptyDescription : undefined}
+        />
       ) : (
         <RowList>
           {members.map((member) => (
@@ -200,9 +196,7 @@ function StaffRow({
 
   return (
     <RowListItem>
-      <UserAvatar name={member.name} className="size-9 shrink-0" />
-      <span className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="truncate font-medium">{member.name ?? member.userId}</span>
+      <PlayerChip name={member.name ?? member.userId} className="flex-1">
         {member.source === "organization" && member.orgRole ? (
           <Badge
             variant="subtle"
@@ -215,7 +209,7 @@ function StaffRow({
             {m.tournaments_staff_via_org()}
           </Badge>
         ) : null}
-      </span>
+      </PlayerChip>
       {canRemove ? (
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -315,7 +309,7 @@ function StaffInviteRow({
                   ? m.tournaments_staff_create_link_aria_judge()
                   : m.tournaments_staff_create_link_aria_organizer()
               }
-              disabled={setInvite.isPending}
+              pending={setInvite.isPending}
               onClick={() => void run(true)}
             >
               {m.tournaments_staff_create_link()}
@@ -456,7 +450,7 @@ function AddStaffDialog({
             <div className="flex flex-col gap-1.5">
               <Label>{m.tournaments_staff_person_label()}</Label>
               {isLoading ? (
-                <p className="text-muted-foreground text-sm">{m.tournaments_staff_loading()}</p>
+                <p className="text-muted-foreground text-sm">{m.common_loading()}</p>
               ) : items.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   {m.tournaments_staff_no_candidates()}
@@ -482,10 +476,8 @@ function AddStaffDialog({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              {m.common_cancel()}
-            </Button>
-            <Button type="submit" disabled={!userId || addStaff.isPending}>
+            <DialogCancel />
+            <Button type="submit" disabled={!userId} pending={addStaff.isPending}>
               {m.tournaments_roster_add()}
             </Button>
           </DialogFooter>

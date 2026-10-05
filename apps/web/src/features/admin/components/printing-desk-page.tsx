@@ -2,8 +2,9 @@ import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay, formatDayTimeLocal, formatRelativeTime } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
+import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
-import { ChevronRightIcon, DownloadIcon, PlusIcon, SearchIcon, Share2Icon } from "lucide-react";
+import { ChevronRightIcon, DownloadIcon, PlusIcon, Share2Icon } from "lucide-react";
 import { useState } from "react";
 
 import { LanguageChip } from "@/components/language-chip";
@@ -12,8 +13,9 @@ import {
   PageTopBarButton,
   PageTopBarPrimaryButton,
 } from "@/components/layout/page-top-bar";
+import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { CardList } from "@/components/ui/card-list";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -23,7 +25,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -40,6 +41,8 @@ import {
   DeskThumb,
 } from "@/features/admin/components/printing-desk-shared";
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
+import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
+import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { useDeskPrintings } from "@/features/admin/hooks/use-printing-desk";
 import {
   buildPrintingDeskCsv,
@@ -54,10 +57,8 @@ import {
 import type { DeskListMode } from "@/features/admin/lib/printing-desk-queries";
 import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
-import { downloadCSV } from "@/features/collections/lib/csv-export";
-import { useDistributionChannels } from "@/hooks/use-distribution-channels";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { useMarkers } from "@/hooks/use-markers";
+import { downloadCsv } from "@/lib/download";
 import { getSiteUrl } from "@/lib/site-config";
 
 const MODE_OPTIONS = [
@@ -110,7 +111,7 @@ export function PrintingDeskPage() {
 
   function handleExport() {
     const csv = buildPrintingDeskCsv(rows, { channelPaths, siteUrl: getSiteUrl() });
-    downloadCSV(csv, printingDeskCsvFilename(mode, formatDay(new Date())));
+    downloadCsv(csv, printingDeskCsvFilename(mode, formatDay(new Date())));
   }
 
   function toggleSelected(printingId: string, checked: boolean) {
@@ -149,16 +150,13 @@ export function PrintingDeskPage() {
       </PageDescription>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-48 flex-1 sm:max-w-72">
-          <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-4 -translate-y-1/2" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Card name or code…"
-            aria-label="Filter by card name or code"
-            className="pl-8"
-          />
-        </div>
+        <SearchInput
+          value={query}
+          onValueChange={setQuery}
+          placeholder="Card name or code…"
+          aria-label="Filter by card name or code"
+          className="min-w-48 flex-1 sm:max-w-72"
+        />
 
         <DeskSegmented
           ariaLabel="Which printings to show"
@@ -218,19 +216,14 @@ export function PrintingDeskPage() {
                 Make a post
               </Button>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                render={
-                  <Link
-                    to="/admin/printing-desk/post"
-                    search={{ slides: encodePostSlides(postSlides) }}
-                  />
-                }
+              <Link
+                to="/admin/printing-desk/post"
+                search={{ slides: encodePostSlides(postSlides) }}
+                className={buttonVariants({ variant: "outline", size: "sm" })}
               >
                 <Share2Icon />
                 Make a post
-              </Button>
+              </Link>
             )}
             {withoutImage > 0 && (
               <span className="text-muted-foreground text-xs">
@@ -243,7 +236,7 @@ export function PrintingDeskPage() {
         )}
 
         <span className="text-muted-foreground ml-auto text-sm">
-          {rows.length} {rows.length === 1 ? "printing" : "printings"}
+          {rows.length} {pluralize(rows.length, "printing")}
         </span>
       </div>
 

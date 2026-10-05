@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { cardSubmissionsQueryOptions } from "@/features/contribute/lib/card-submissions-queries";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 
 export function useCardSubmissions() {
   const userId = useRequiredUserId();

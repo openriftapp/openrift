@@ -22,12 +22,10 @@ export function PodPairingsSection({
   id,
   data,
   staff = false,
-  regionLabel,
 }: {
   id: string;
   data: PodTournamentDetailResponse;
   staff?: boolean;
-  regionLabel?: (slug: string) => string;
 }) {
   const rerollRound = useRerollTournamentRound();
   const finalizeRound = useFinalizeTournamentRound();
@@ -116,7 +114,6 @@ export function PodPairingsSection({
           round={openRound}
           snapshot={data.openRoundSnapshot}
           mode={teamMode ? "team" : isSwiss ? "swiss" : "pod"}
-          regionLabel={regionLabel}
           onClose={() => setEditingRound(null)}
         />
       ) : null}
@@ -129,7 +126,6 @@ export function PodPairingsSection({
         winPoints={data.tournament.winPoints}
         drawPoints={data.tournament.drawPoints}
         regionByPlayer={regionByPlayer}
-        regionLabel={regionLabel}
         showPenalty
         snapshot={data.openRoundSnapshot}
         warningsExpanded={warningsExpanded}

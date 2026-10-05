@@ -9,9 +9,11 @@ import type { ScheduledJobKind } from "@openrift/shared/contracts/admin/job-sche
 import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/unified-mappings";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { createServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { checkMatchingResultFromRun, waitForJobRun } from "@/features/admin/lib/job-run-wait";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import type {
   AcceptNewCardBody,
   AcceptPrintingBody,
@@ -21,7 +23,6 @@ import type {
 } from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 export type {
   AcceptNewCardBody,
@@ -650,5 +651,37 @@ export function useUnmapMarketplacePrinting(invalidates: Scope = defaultMarketpl
       language: string | null;
     }) => unmapMarketplacePrintingFn({ data: input }),
     invalidates,
+  });
+}
+
+export function useAcceptAllCards(
+  onProgress: (progress: { done: number; total: number } | null) => void,
+) {
+  return useMutationWithInvalidation({
+    mutationFn: async (names: string[]) => {
+      let done = 0;
+      let failed = 0;
+      onProgress({ done: 0, total: names.length });
+
+      for (const name of names) {
+        try {
+          await acceptFavoritesFn({ data: { name } });
+        } catch {
+          failed++;
+        }
+        done++;
+        onProgress({ done, total: names.length });
+      }
+
+      onProgress(null);
+      const accepted = done - failed;
+      if (failed === 0) {
+        toast.success(`Accepted ${accepted} new cards`);
+      } else {
+        toast.warning(`Accepted ${accepted}, failed ${failed}`);
+      }
+      return { accepted, failed };
+    },
+    invalidates: [adminKeys.cards.all],
   });
 }

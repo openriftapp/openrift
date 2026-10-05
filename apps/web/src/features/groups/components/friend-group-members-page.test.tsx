@@ -26,7 +26,7 @@ vi.mock("@/features/groups/hooks/use-friend-group-sharing", () => ({
   useShareListWithFriendGroup: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => "viewer-1",
 }));
 

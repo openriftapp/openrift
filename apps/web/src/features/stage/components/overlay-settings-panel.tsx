@@ -9,13 +9,13 @@ import { useState } from "react";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { SettingsRow } from "@/components/layout/settings-row";
 import { SettingsSection } from "@/components/layout/settings-section";
+import { ShareLinkRow } from "@/components/share/share-link-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { ShareLinkRow } from "@/features/groups/components/share-link-row";
 import { OverlayPresetsSection } from "@/features/stage/components/overlay-presets-section";
 import {
   useDisableOverlayToken,

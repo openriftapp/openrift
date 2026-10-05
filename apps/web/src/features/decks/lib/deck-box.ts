@@ -1,9 +1,9 @@
+import { compareCardDisplayName } from "@openrift/shared/card-name";
 import { isCountedZone } from "@openrift/shared/deck-zones";
 import type { VariantLabelPrinting } from "@openrift/shared/printing-label";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import type { CardType, Domain, Rarity } from "@openrift/shared/types/enums";
-import { compareCardDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import { frontImageId } from "@/features/cards/lib/card-meta";

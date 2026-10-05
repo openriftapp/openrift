@@ -1,13 +1,13 @@
 import { PageDescription } from "@/components/layout/page-top-bar";
 import {
-  LabelAddInput,
+  DraftTextInput,
   LabelCell,
-  LabelInput,
   SlugAddInput,
   SlugCell,
   validateSlugAndLabel,
   WellKnownCell,
 } from "@/features/admin/components/admin-crud-shared";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminColumnDef } from "@/features/admin/components/admin-table";
 import { flatReorder } from "@/features/admin/lib/admin-reorder";
@@ -42,8 +42,8 @@ const columns: AdminColumnDef<CardTypeRow, CardTypeDraft>[] = [
     header: "Label",
     sortValue: (cardType) => cardType.label,
     cell: <LabelCell<CardTypeRow> />,
-    editCell: <LabelInput<CardTypeDraft> />,
-    addCell: <LabelAddInput<CardTypeDraft> placeholder="Unit" />,
+    editCell: <DraftTextInput<CardTypeDraft> field="label" />,
+    addCell: <DraftTextInput<CardTypeDraft> field="label" placeholder="Unit" />,
   },
   {
     header: "Well-known",
@@ -65,7 +65,7 @@ export function CardTypesPage() {
       data={cardTypes}
       getRowKey={(cardType) => cardType.slug}
       emptyText="No card types yet."
-      title="Card Types"
+      topBar={(actions) => <AdminPageTopBar title="Card Types" actions={actions} />}
       toolbar={
         <PageDescription>
           Card types categorize cards by their game role (e.g. Unit, Spell, Battlefield, Legend,

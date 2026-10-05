@@ -10,11 +10,11 @@ import {
   tierListQueryOptions,
   tierListsQueryOptions,
 } from "@/features/stage/lib/tier-lists-queries";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 type CreateTierListBody = ContractInput<typeof tierListsContract, "create">;
 type UpdateTierListBody = ContractInput<typeof tierListsContract, "update">;

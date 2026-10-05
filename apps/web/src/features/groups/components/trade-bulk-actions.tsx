@@ -1,15 +1,7 @@
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import { useState } from "react";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
 import {
   useAcceptTrade,
@@ -90,30 +82,21 @@ export function BulkTradeActions({
         {m.trades_accept_all({ count: targets.length })}
       </Button>
       {needsConfirm ? (
-        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-          <AlertDialogContent>
-            <AlertDialogTitle>
-              {m.trades_accept_all_confirm_title({
-                count: targets.length,
-                name: counterpartyName,
-              })}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {m.trades_accept_all_confirm_description()}
-            </AlertDialogDescription>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  setConfirmOpen(false);
-                  runAll(accept);
-                }}
-              >
-                {m.trades_accept_all({ count: targets.length })}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <ConfirmActionDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          onConfirm={() => {
+            setConfirmOpen(false);
+            runAll(accept);
+          }}
+          title={m.trades_accept_all_confirm_title({
+            count: targets.length,
+            name: counterpartyName,
+          })}
+          description={m.trades_accept_all_confirm_description()}
+          confirmLabel={m.trades_accept_all({ count: targets.length })}
+          destructive={false}
+        />
       ) : null}
     </div>
   );

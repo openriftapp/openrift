@@ -1,3 +1,4 @@
+import { adminCardQueriesContract } from "@openrift/shared/contracts/admin/card-queries";
 import { adminCatalogReviewContract } from "@openrift/shared/contracts/admin/catalog-review";
 import type { CatalogSourcesResponse } from "@openrift/shared/contracts/admin/catalog-review";
 import { queryOptions } from "@tanstack/react-query";
@@ -18,3 +19,10 @@ export const sourcesQueryOptions = queryOptions({
   queryFn: () => fetchSources(),
   staleTime: 60 * 1000,
 });
+
+export const exportCatalogFn = createServerFn({ method: "GET" })
+  .middleware([withCookies])
+  .handler(async ({ context }): Promise<string> => {
+    const data = await apiOrpcClient(adminCardQueriesContract, context.cookie).exportCandidates();
+    return JSON.stringify(data, null, 2);
+  });

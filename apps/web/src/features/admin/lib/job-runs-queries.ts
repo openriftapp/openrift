@@ -1,6 +1,7 @@
 import type {
   JobRunActivity,
   JobRunsListResponse,
+  JobRunView,
   JobStatus,
   JobTrigger,
 } from "@openrift/shared/contracts/admin/job-runs";
@@ -9,11 +10,15 @@ import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { getLatestJobRunFn } from "@/features/admin/lib/refresh-actions";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 export const JOB_RUNS_PAGE_SIZE = 50;
+
+const LATEST_RUN_ACTIVE_POLL_MS = 2000;
+const LATEST_RUN_IDLE_POLL_MS = 60_000;
 
 export type JobRunsQueryParams = Omit<
   ContractInput<typeof adminJobRunsContract, "list">,
@@ -67,5 +72,17 @@ export function adminJobRunsQueryOptions(params: JobRunsQueryParams) {
     queryFn: () => fetchJobRuns({ data: params }),
     refetchInterval: jobRunsRefreshIntervalMs(params.page),
     placeholderData: keepPreviousData,
+  });
+}
+
+export function latestJobRunQueryOptions(kind: string) {
+  return queryOptions({
+    queryKey: adminKeys.jobRunsByKind(kind),
+    queryFn: async (): Promise<JobRunView | null> => {
+      const response = await getLatestJobRunFn({ data: { kind } });
+      return response.runs[0] ?? null;
+    },
+    refetchInterval: (query) =>
+      query.state.data?.status === "running" ? LATEST_RUN_ACTIVE_POLL_MS : LATEST_RUN_IDLE_POLL_MS,
   });
 }

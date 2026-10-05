@@ -1,13 +1,10 @@
 import type { PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 
 import { SectionHeading } from "@/components/ui/section-heading";
+import { useRegionLabel } from "@/features/tournaments/hooks/use-region-label";
 import { computeRegionOverview } from "@/features/tournaments/lib/region-overview";
+import { formatScore } from "@/features/tournaments/lib/standings-display";
 import { m } from "@/paraglide/messages.js";
-
-import { formatScore } from "./standings-display";
-
-// Named so the React Compiler can reorder it.
-const rawRegionSlug = (slug: string): string => slug;
 
 // Guards against dividing by zero: a zero leading average leaves every track empty.
 function barWidth(avgScore: number, topAvgScore: number): string {
@@ -21,13 +18,12 @@ function barWidth(avgScore: number, topAvgScore: number): string {
  * The region leaderboard: regions ranked by average points, as bars against
  * the leading region. Renders nothing while no player has a region yet.
  */
-export function RegionOverview({
-  standings,
-  regionLabel = rawRegionSlug,
-}: {
-  standings: PodStandingRow[];
-  regionLabel?: (slug: string) => string;
-}) {
+function RegionName({ region }: { region: string }) {
+  const regionLabel = useRegionLabel();
+  return <span className="truncate font-medium">{regionLabel(region)}</span>;
+}
+
+export function RegionOverview({ standings }: { standings: PodStandingRow[] }) {
   const { rows, unassignedCount } = computeRegionOverview(standings);
   const [leadingRow] = rows;
   if (leadingRow === undefined) {
@@ -43,7 +39,7 @@ export function RegionOverview({
         {rows.map((row) => (
           <li key={row.region} className="flex flex-col gap-1">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="truncate font-medium">{regionLabel(row.region)}</span>
+              <RegionName region={row.region} />
               <span className="text-muted-foreground shrink-0 text-sm">
                 <span className="text-foreground font-semibold tabular-nums">
                   {formatScore(row.avgScore)}

@@ -38,7 +38,7 @@ vi.mock("@/features/cards/hooks/use-prices", () => ({
 }));
 
 const { useFilteredListEntries } = await import("./use-filtered-list-entries");
-const { FilterSearchProvider } = await import("@/features/cards/lib/search-schemas");
+const { FilterSearchProvider } = await import("@/features/cards/hooks/use-filter-search");
 
 const baseEntry = {
   listId: "list-1",

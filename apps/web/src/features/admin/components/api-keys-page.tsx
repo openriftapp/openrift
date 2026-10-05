@@ -1,20 +1,12 @@
-import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
 import { formatDay } from "@openrift/shared/format-date";
-import { CheckIcon, CopyIcon, KeyRoundIcon, LoaderIcon, PlusIcon, TrashIcon } from "lucide-react";
+import { KeyRoundIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { ConfirmActionButton } from "@/components/confirm-action-dialog";
+import { CopyTextButton } from "@/components/copy-text-button";
+import { EmptyState } from "@/components/empty-state";
 import { Heading } from "@/components/heading";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -25,24 +17,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DialogForm } from "@/components/ui/dialog-form";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import type { ApiKeySummary } from "@/features/account/hooks/use-api-keys";
 import {
   useApiKeys,
@@ -50,8 +26,8 @@ import {
   useDeleteApiKey,
 } from "@/features/account/hooks/use-api-keys";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
-import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
+import { AdminTable } from "@/features/admin/components/admin-table";
 
 /**
  * Formats a better-auth date (a Date on the type, an ISO string on the wire).
@@ -65,9 +41,6 @@ function keyDate(value: Date | string | null): string {
 }
 
 function CreatedKeyDialog({ createdKey, onClose }: { createdKey: string; onClose: () => void }) {
-  // The key must never end up in a QR.
-  const { copied: justCopied, copy } = useCopyToClipboard();
-
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
@@ -81,10 +54,8 @@ function CreatedKeyDialog({ createdKey, onClose }: { createdKey: string; onClose
           {createdKey}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => void copy(createdKey)}>
-            {justCopied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
-            {justCopied ? "Copied" : "Copy key"}
-          </Button>
+          {/* The key must never end up in a QR. */}
+          <CopyTextButton label="Copy key" value={createdKey} />
           <Button onClick={onClose}>Done</Button>
         </DialogFooter>
       </DialogContent>
@@ -92,44 +63,41 @@ function CreatedKeyDialog({ createdKey, onClose }: { createdKey: string; onClose
   );
 }
 
-function DeleteKeyButton({ apiKey }: { apiKey: ApiKeySummary }) {
+function RevokeKeyCell({ row: apiKey }: AdminCellSlotProps<ApiKeySummary>) {
   const deleteKey = useDeleteApiKey();
-
-  async function handleDelete() {
-    try {
-      await deleteKey.mutateAsync({ keyId: apiKey.id });
-      toast.success("API key revoked");
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
-    }
+  if (!apiKey) {
+    return null;
   }
 
   return (
-    <AlertDialog>
-      <AlertDialogTrigger
-        disabled={deleteKey.isPending}
-        render={<Button size="sm" variant="ghost" aria-label="Revoke key" />}
-      >
-        <TrashIcon className="size-4" />
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <DialogForm onSubmit={() => void handleDelete()}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Revoke &ldquo;{apiKey.name ?? apiKey.start}&rdquo;?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Scripts using this key stop working immediately. This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogPrimitive.Close render={<Button type="submit" variant="destructive" />}>
-              Revoke
-            </AlertDialogPrimitive.Close>
-          </AlertDialogFooter>
-        </DialogForm>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmActionButton
+      title={`Revoke “${apiKey.name ?? apiKey.start}”?`}
+      description="Scripts using this key stop working immediately. This cannot be undone."
+      confirmLabel="Revoke"
+      onConfirm={async () => {
+        await deleteKey.mutateAsync({ keyId: apiKey.id });
+        toast.success("API key revoked");
+      }}
+      trigger={<Button size="sm" variant="ghost" aria-label="Revoke key" />}
+    >
+      <TrashIcon className="size-4" />
+    </ConfirmActionButton>
   );
+}
+
+function KeyStartCell({ row: apiKey }: AdminCellSlotProps<ApiKeySummary>) {
+  return <span className="font-mono">{apiKey?.start ? `${apiKey.start}…` : "—"}</span>;
+}
+
+function TextCell({
+  row,
+  value,
+  className,
+}: AdminCellSlotProps<ApiKeySummary> & {
+  value: (row: ApiKeySummary) => string | number;
+  className?: string;
+}) {
+  return row ? <span className={className}>{value(row)}</span> : null;
 }
 
 export function ApiKeysPage() {
@@ -185,13 +153,10 @@ export function ApiKeysPage() {
             </div>
             <Button
               onClick={() => void handleCreate()}
-              disabled={!name.trim() || createKey.isPending}
+              disabled={!name.trim()}
+              pending={createKey.isPending}
             >
-              {createKey.isPending ? (
-                <LoaderIcon className="size-4 animate-spin" />
-              ) : (
-                <PlusIcon className="size-4" />
-              )}
+              <PlusIcon className="size-4" />
               Create key
             </Button>
           </div>
@@ -203,46 +168,31 @@ export function ApiKeysPage() {
         {isPending ? (
           <p className="text-muted-foreground text-sm">Loading…</p>
         ) : !keys || keys.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <KeyRoundIcon />
-              </EmptyMedia>
-              <EmptyTitle>No API keys</EmptyTitle>
-              <EmptyDescription>
-                Keys you create appear here. Only the first characters are kept for display.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
+          <EmptyState
+            icon={KeyRoundIcon}
+            title="No API keys"
+            description="Keys you create appear here. Only the first characters are kept for display."
+          />
         ) : (
-          <div className={ADMIN_TABLE_SURFACE}>
-            <Table className={ADMIN_TABLE_CLASS}>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Key</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Last used</TableHead>
-                  <TableHead className="text-right">Requests</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {keys.map((key) => (
-                  <TableRow key={key.id}>
-                    <TableCell>{key.name ?? "—"}</TableCell>
-                    <TableCell className="font-mono">{key.start ? `${key.start}…` : "—"}</TableCell>
-                    <TableCell>{keyDate(key.createdAt)}</TableCell>
-                    <TableCell>{keyDate(key.lastRequest)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{key.requestCount}</TableCell>
-                    <TableCell className="text-right">
-                      <DeleteKeyButton apiKey={key} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <AdminTable
+            columns={[
+              { header: "Name", cell: <TextCell value={(key) => key.name ?? "—"} /> },
+              { header: "Key", cell: <KeyStartCell /> },
+              { header: "Created", cell: <TextCell value={(key) => keyDate(key.createdAt)} /> },
+              {
+                header: "Last used",
+                cell: <TextCell value={(key) => keyDate(key.lastRequest)} />,
+              },
+              {
+                header: "Requests",
+                align: "right",
+                cell: <TextCell value={(key) => key.requestCount} className="tabular-nums" />,
+              },
+            ]}
+            data={keys}
+            getRowKey={(key) => key.id}
+            actions={<RevokeKeyCell />}
+          />
         )}
       </section>
 

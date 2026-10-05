@@ -1,10 +1,10 @@
+import { parseDeckImportData } from "@openrift/shared/deck-codecs/parse";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckFormat } from "@openrift/shared/types/enums";
 
 import type { ImportedDeckCard } from "@/features/decks/lib/deck-import-cards";
 import { dedupeMatchedEntries } from "@/features/decks/lib/deck-import-cards";
 import { matchDeckEntries } from "@/features/decks/lib/deck-import-matcher";
-import { parseDeckImportData } from "@/features/decks/lib/deck-import-parsers";
 import { m } from "@/paraglide/messages.js";
 
 export function sampleDeckName(): string {

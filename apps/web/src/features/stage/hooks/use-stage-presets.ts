@@ -5,14 +5,14 @@ import type {
   UpdateStagePreset,
 } from "@openrift/shared/contracts/stage-presets";
 import { stagePresetsContract } from "@openrift/shared/contracts/stage-presets";
-import { queryOptions, useQuery } from "@tanstack/react-query";
+import { queryOptions, skipToken, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { stagePresetsKeys } from "@/features/stage/lib/stage-query-keys";
-import { useUserId } from "@/lib/auth-session";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 const fetchStagePresetsFn = createServerFn({ method: "GET" })
   .middleware([withCookies])
@@ -20,10 +20,10 @@ const fetchStagePresetsFn = createServerFn({ method: "GET" })
     apiOrpcClient(stagePresetsContract, context.cookie).list(),
   );
 
-function stagePresetsQueryOptions(userId: string) {
+function stagePresetsQueryOptions(userId: string | null) {
   return queryOptions({
-    queryKey: stagePresetsKeys.all(userId),
-    queryFn: () => fetchStagePresetsFn(),
+    queryKey: stagePresetsKeys.all(userId ?? ""),
+    queryFn: userId === null ? skipToken : () => fetchStagePresetsFn(),
     select: (data: StagePresetListResponse) => data.items,
   });
 }
@@ -31,10 +31,7 @@ function stagePresetsQueryOptions(userId: string) {
 /** Not a suspense query: surfaces offering presets are already up when the list arrives. */
 export function useStagePresets() {
   const userId = useUserId();
-  return useQuery({
-    ...stagePresetsQueryOptions(userId ?? ""),
-    enabled: userId !== null,
-  });
+  return useQuery(stagePresetsQueryOptions(userId));
 }
 
 const createStagePresetFn = createServerFn({ method: "POST" })

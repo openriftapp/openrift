@@ -1,9 +1,9 @@
 import { render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import type { AvailableFiltersWire, CardCounts } from "@/features/cards/lib/cards-facets";
 import type { FirstRowCard } from "@/features/cards/lib/cards-first-row";
-import { FilterSearchProvider } from "@/features/cards/lib/search-schemas";
 
 interface LoaderData {
   firstRow: FirstRowCard[];

@@ -1,14 +1,14 @@
 import { useState } from "react";
 
 import { SettingsSection } from "@/components/layout/settings-section";
+import { SharePanel } from "@/components/share/share-panel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SharePanel } from "@/features/groups/components/share-panel";
 import {
   useDisableUserShare,
   useEnableUserShare,
   useUserShareState,
 } from "@/features/groups/hooks/use-user-share";
-import { useSession } from "@/lib/auth-session";
+import { useSession } from "@/hooks/use-session";
 import { bundleShareImageUrl, shareImageOptions } from "@/lib/share-image";
 import { shareLinkUrl } from "@/lib/share-links";
 import { getSiteUrl } from "@/lib/site-config";

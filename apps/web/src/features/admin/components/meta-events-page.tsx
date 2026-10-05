@@ -1,4 +1,5 @@
 import { formatDay } from "@openrift/shared/format-date";
+import { pluralize } from "@openrift/shared/strings";
 import type { AdminMetaEvent } from "@openrift/shared/types/api/meta";
 import { META_EVENT_SORTS } from "@openrift/shared/types/enums";
 import { getRouteApi, Link } from "@tanstack/react-router";
@@ -7,7 +8,7 @@ import { useState } from "react";
 
 import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Pager } from "@/components/ui/pager";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
@@ -150,13 +151,14 @@ function EventRowActions({
         label="View"
         ariaLabel={`Open ${row.name} in the public archive`}
       />
-      <Button
-        variant="ghost"
-        render={<Link to="/admin/meta/$eventId" params={{ eventId: row.id }} />}
+      <Link
+        to="/admin/meta/$eventId"
+        params={{ eventId: row.id }}
+        className={buttonVariants({ variant: "ghost" })}
       >
         <LayersIcon />
         Standings
-      </Button>
+      </Link>
       <Button variant="ghost" onClick={() => onEdit(row)}>
         Edit
       </Button>
@@ -220,7 +222,7 @@ export function MetaEventsPage() {
             title: `Delete "${event.name}"?`,
             description:
               event.playerRowCount > 0
-                ? `This also deletes the ${event.playerRowCount} archived ${event.playerRowCount === 1 ? "player" : "players"} and the ${event.deckCount} ${event.deckCount === 1 ? "deck" : "decks"} under them, permalinks included. This cannot be undone.`
+                ? `This also deletes the ${event.playerRowCount} archived ${pluralize(event.playerRowCount, "player")} and the ${event.deckCount} ${pluralize(event.deckCount, "deck")} under them, permalinks included. This cannot be undone.`
                 : "This cannot be undone.",
           }),
         }}

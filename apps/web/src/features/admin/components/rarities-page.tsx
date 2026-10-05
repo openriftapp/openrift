@@ -2,25 +2,25 @@ import {
   ColorCell,
   ColorInput,
   ColorPreviewCell,
-  LabelAddInput,
+  DraftTextInput,
   LabelCell,
-  LabelInput,
   SlugAddInput,
   SlugCell,
   validateHexColor,
   validateSlugAndLabel,
   WellKnownCell,
 } from "@/features/admin/components/admin-crud-shared";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminColumnDef } from "@/features/admin/components/admin-table";
-import { flatReorder } from "@/features/admin/lib/admin-reorder";
 import {
   useCreateRarity,
   useDeleteRarity,
   useRarities,
   useReorderRarities,
   useUpdateRarity,
-} from "@/hooks/use-rarities";
+} from "@/features/admin/hooks/use-rarities";
+import { flatReorder } from "@/features/admin/lib/admin-reorder";
 
 interface RarityRow {
   slug: string;
@@ -49,8 +49,8 @@ const columns: AdminColumnDef<RarityRow, RarityDraft>[] = [
     width: "w-40",
     sortValue: (rarity) => rarity.label,
     cell: <LabelCell<RarityRow> />,
-    editCell: <LabelInput<RarityDraft> />,
-    addCell: <LabelAddInput<RarityDraft> placeholder="New Rarity" />,
+    editCell: <DraftTextInput<RarityDraft> field="label" />,
+    addCell: <DraftTextInput<RarityDraft> field="label" placeholder="New Rarity" />,
   },
   {
     header: "Color",
@@ -85,7 +85,7 @@ export function RaritiesPage() {
       data={rarities}
       getRowKey={(rarity) => rarity.slug}
       emptyText="No rarities yet."
-      title="Rarities"
+      topBar={(actions) => <AdminPageTopBar title="Rarities" actions={actions} />}
       add={{
         emptyDraft: { slug: "", label: "", color: "#A6A6A6" },
         onSave: (draft) =>

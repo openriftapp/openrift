@@ -2,13 +2,13 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import { fixTypography } from "@openrift/shared/fix-typography";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
-import { useNavigate } from "@tanstack/react-router";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
+import { PageDescription } from "@/components/layout/page-top-bar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Combobox,
@@ -28,28 +28,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useCreatePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
 import type { CreatePrintingBody } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
+import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
+import { useLanguages } from "@/features/admin/hooks/use-languages";
+import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { setSlugFromShortCode, shortCodeFromPublicCode } from "@/features/admin/lib/printing-codes";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import { buildChannelTree, leafChannels } from "@/features/cards/lib/distribution-channel-tree";
 import { printingFormDefaults } from "@/features/cards/lib/printing-form-defaults";
 import { CardTextInput } from "@/features/contribute/components/card-text-input";
-import { useDistributionChannels } from "@/hooks/use-distribution-channels";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
-import { useLanguages } from "@/hooks/use-languages";
-import { useMarkers } from "@/hooks/use-markers";
+import { errorText } from "@/lib/error-text";
 import { cn } from "@/lib/utils";
 
-export function CreatePrintingPage({
-  cardSlug,
-  duplicateFrom,
-}: {
-  cardSlug: string;
-  duplicateFrom?: string;
-}) {
+const routeApi = getRouteApi("/_app/_authenticated/admin/cards_/$cardSlug_/printings/create");
+
+export function CreatePrintingPage() {
+  const { cardSlug } = routeApi.useParams();
+  const { duplicateFrom } = routeApi.useSearch();
   const navigate = useNavigate();
   const createPrinting = useCreatePrinting();
   const { data: cardDetail, isLoading } = useAdminCardDetail(cardSlug) as {
@@ -175,290 +175,286 @@ export function CreatePrintingPage({
           void navigate({ to: "/admin/cards/$cardSlug", params: { cardSlug } });
         },
         onError: (error) => {
-          setErrorMsg(error instanceof Error ? error.message : "Failed to create printing");
+          setErrorMsg(errorText(error, "Failed to create printing"));
         },
       },
     );
   }
 
+  const topBar = <AdminPageTopBar title={source ? "Duplicate printing" : "Create new printing"} />;
+
   if (isLoading) {
-    return <p className="text-muted-foreground">Loading…</p>;
+    return (
+      <>
+        {topBar}
+        <p className="text-muted-foreground">Loading…</p>
+      </>
+    );
   }
   if (!card) {
-    return <p className="text-muted-foreground">Card not found.</p>;
+    return (
+      <>
+        {topBar}
+        <p className="text-muted-foreground">Card not found.</p>
+      </>
+    );
   }
 
   return (
-    <div className="max-w-4xl">
-      <Card>
-        <CardHeader>
-          <CardTitle>{source ? "Duplicate printing" : "Create new printing"}</CardTitle>
-          {source && (
-            <CardDescription>
-              Duplicating <span className="font-medium">{source.expectedPrintingId}</span> for{" "}
-              <span className="font-medium">{card.name}</span>. Update fields as needed.
-            </CardDescription>
-          )}
-        </CardHeader>
+    <div className="max-w-4xl space-y-4">
+      {topBar}
+      {source && (
+        <PageDescription>
+          Duplicating <span className="font-medium">{source.expectedPrintingId}</span> for{" "}
+          <span className="font-medium">{card.name}</span>. Update fields as needed.
+        </PageDescription>
+      )}
 
-        <CardContent>
-          <FieldGroup>
-            <div className="grid gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
-              <Field>
-                <FieldLabel>Language</FieldLabel>
-                <Select value={language} onValueChange={(value) => value && setLanguage(value)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue>
-                      {(value: string) => languages.find((l) => l.code === value)?.name ?? value}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {languages.map((l) => (
-                      <SelectItem key={l.code} value={l.code}>
-                        {l.name} ({l.code})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="create-printing-public-code">Public code *</FieldLabel>
-                <Input
-                  id="create-printing-public-code"
-                  value={publicCode}
-                  onChange={(e) => setPublicCode(e.target.value)}
-                  placeholder="e.g. OGN-202/298"
-                  className="font-mono"
-                />
-                <FieldDescription>
-                  {derivedShortCode === null
-                    ? "The short code and the set are read off this."
-                    : `Saved as ${derivedShortCode} in ${derivedSetId ?? "no set"}.`}
-                </FieldDescription>
-              </Field>
-            </div>
+      <FieldGroup>
+        <div className="grid gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
+          <Field>
+            <FieldLabel>Language</FieldLabel>
+            <Select value={language} onValueChange={(value) => value && setLanguage(value)}>
+              <SelectTrigger className="w-full">
+                <SelectValue>
+                  {(value: string) => languages.find((l) => l.code === value)?.name ?? value}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {languages.map((l) => (
+                  <SelectItem key={l.code} value={l.code}>
+                    {l.name} ({l.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="create-printing-public-code">Public code *</FieldLabel>
+            <Input
+              id="create-printing-public-code"
+              value={publicCode}
+              onChange={(e) => setPublicCode(e.target.value)}
+              placeholder="e.g. OGN-202/298"
+              className="font-mono"
+            />
+            <FieldDescription>
+              {derivedShortCode === null
+                ? "The short code and the set are read off this."
+                : `Saved as ${derivedShortCode} in ${derivedSetId ?? "no set"}.`}
+            </FieldDescription>
+          </Field>
+        </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field>
-                <FieldLabel>Rarity</FieldLabel>
-                <Select value={rarity} onValueChange={(value) => value && setRarity(value)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue>
-                      {(value: string) => enumLabel(labels.rarities, value)}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {orders.rarities.map((slug) => (
-                      <SelectItem key={slug} value={slug}>
-                        {enumLabel(labels.rarities, slug)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel>Art variant</FieldLabel>
-                <Select value={artVariant} onValueChange={(value) => value && setArtVariant(value)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue>
-                      {(value: string) => enumLabel(labels.artVariants, value)}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {orders.artVariants.map((slug) => (
-                      <SelectItem key={slug} value={slug}>
-                        {enumLabel(labels.artVariants, slug)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel>Finish</FieldLabel>
-                <Select value={finish} onValueChange={(value) => value && setFinish(value)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue>
-                      {(value: string) => enumLabel(labels.finishes, value)}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {orders.finishes.map((slug) => (
-                      <SelectItem key={slug} value={slug}>
-                        {enumLabel(labels.finishes, slug)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field>
+            <FieldLabel>Rarity</FieldLabel>
+            <Select value={rarity} onValueChange={(value) => value && setRarity(value)}>
+              <SelectTrigger className="w-full">
+                <SelectValue>{(value: string) => enumLabel(labels.rarities, value)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {orders.rarities.map((slug) => (
+                  <SelectItem key={slug} value={slug}>
+                    {enumLabel(labels.rarities, slug)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field>
+            <FieldLabel>Art variant</FieldLabel>
+            <Select value={artVariant} onValueChange={(value) => value && setArtVariant(value)}>
+              <SelectTrigger className="w-full">
+                <SelectValue>{(value: string) => enumLabel(labels.artVariants, value)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {orders.artVariants.map((slug) => (
+                  <SelectItem key={slug} value={slug}>
+                    {enumLabel(labels.artVariants, slug)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field>
+            <FieldLabel>Finish</FieldLabel>
+            <Select value={finish} onValueChange={(value) => value && setFinish(value)}>
+              <SelectTrigger className="w-full">
+                <SelectValue>{(value: string) => enumLabel(labels.finishes, value)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {orders.finishes.map((slug) => (
+                  <SelectItem key={slug} value={slug}>
+                    {enumLabel(labels.finishes, slug)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field>
-                <FieldLabel>Size</FieldLabel>
-                <Select value={size} onValueChange={(value) => value && setSize(value)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue>
-                      {(value: string) => enumLabel(labels.cardSizes, value)}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {orders.cardSizes.map((slug) => (
-                      <SelectItem key={slug} value={slug}>
-                        {enumLabel(labels.cardSizes, slug)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field orientation="horizontal" className="sm:self-end">
-                <Checkbox
-                  id="create-printing-signed"
-                  checked={isSigned}
-                  onCheckedChange={setIsSigned}
-                />
-                <FieldLabel htmlFor="create-printing-signed">Signed</FieldLabel>
-              </Field>
-              <Field orientation="horizontal" className="sm:self-end">
-                <Checkbox
-                  id="create-printing-overnumbered"
-                  checked={isOvernumbered}
-                  onCheckedChange={setIsOvernumbered}
-                />
-                <FieldLabel htmlFor="create-printing-overnumbered">Overnumbered</FieldLabel>
-              </Field>
-            </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field>
+            <FieldLabel>Size</FieldLabel>
+            <Select value={size} onValueChange={(value) => value && setSize(value)}>
+              <SelectTrigger className="w-full">
+                <SelectValue>{(value: string) => enumLabel(labels.cardSizes, value)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {orders.cardSizes.map((slug) => (
+                  <SelectItem key={slug} value={slug}>
+                    {enumLabel(labels.cardSizes, slug)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field orientation="horizontal" className="sm:self-end">
+            <Checkbox
+              id="create-printing-signed"
+              checked={isSigned}
+              onCheckedChange={setIsSigned}
+            />
+            <FieldLabel htmlFor="create-printing-signed">Signed</FieldLabel>
+          </Field>
+          <Field orientation="horizontal" className="sm:self-end">
+            <Checkbox
+              id="create-printing-overnumbered"
+              checked={isOvernumbered}
+              onCheckedChange={setIsOvernumbered}
+            />
+            <FieldLabel htmlFor="create-printing-overnumbered">Overnumbered</FieldLabel>
+          </Field>
+        </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field>
-                <FieldLabel>Markers</FieldLabel>
-                <MultiSelectDropdown
-                  options={markers
-                    .map((m) => ({ value: m.slug, label: m.label }))
-                    .toSorted((a, b) => a.label.localeCompare(b.label))}
-                  selected={selectedMarkerSlugs}
-                  onChange={setSelectedMarkerSlugs}
-                  emptyOptionsText="No markers defined"
-                  placeholder="— select markers —"
-                  searchPlaceholder="Search markers…"
-                />
-              </Field>
-              <Field>
-                <FieldLabel>Distribution channels</FieldLabel>
-                <MultiSelectDropdown
-                  options={channelOptions}
-                  selected={selectedChannelSlugs}
-                  onChange={setSelectedChannelSlugs}
-                  emptyOptionsText="No channels defined"
-                  placeholder="— select channels —"
-                  searchPlaceholder="Search channels…"
-                />
-              </Field>
-            </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field>
+            <FieldLabel>Markers</FieldLabel>
+            <MultiSelectDropdown
+              options={markers
+                .map((m) => ({ value: m.slug, label: m.label }))
+                .toSorted((a, b) => a.label.localeCompare(b.label))}
+              selected={selectedMarkerSlugs}
+              onChange={setSelectedMarkerSlugs}
+              emptyOptionsText="No markers defined"
+              placeholder="— select markers —"
+              searchPlaceholder="Search markers…"
+            />
+          </Field>
+          <Field>
+            <FieldLabel>Distribution channels</FieldLabel>
+            <MultiSelectDropdown
+              options={channelOptions}
+              selected={selectedChannelSlugs}
+              onChange={setSelectedChannelSlugs}
+              emptyOptionsText="No channels defined"
+              placeholder="— select channels —"
+              searchPlaceholder="Search channels…"
+            />
+          </Field>
+        </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor="create-printing-artist">Artist *</FieldLabel>
-                <Input
-                  id="create-printing-artist"
-                  value={artist}
-                  onChange={(e) => setArtist(e.target.value)}
-                  placeholder="e.g. Jane Doe"
-                />
-              </Field>
-            </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="create-printing-artist">Artist *</FieldLabel>
+            <Input
+              id="create-printing-artist"
+              value={artist}
+              onChange={(e) => setArtist(e.target.value)}
+              placeholder="e.g. Jane Doe"
+            />
+          </Field>
+        </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor="create-printing-printed-name">Printed name</FieldLabel>
-                <Input
-                  id="create-printing-printed-name"
-                  value={printedName}
-                  onChange={(e) => setPrintedName(e.target.value)}
-                  placeholder="Leave blank to use card name"
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="create-printing-printed-year">Printed year</FieldLabel>
-                <Input
-                  id="create-printing-printed-year"
-                  value={printedYear}
-                  onChange={(e) => setPrintedYear(e.target.value)}
-                  placeholder="e.g. 2025"
-                  inputMode="numeric"
-                />
-              </Field>
-            </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="create-printing-printed-name">Printed name</FieldLabel>
+            <Input
+              id="create-printing-printed-name"
+              value={printedName}
+              onChange={(e) => setPrintedName(e.target.value)}
+              placeholder="Leave blank to use card name"
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="create-printing-printed-year">Printed year</FieldLabel>
+            <Input
+              id="create-printing-printed-year"
+              value={printedYear}
+              onChange={(e) => setPrintedYear(e.target.value)}
+              placeholder="e.g. 2025"
+              inputMode="numeric"
+            />
+          </Field>
+        </div>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,18rem)_1fr]">
-              <Field className="lg:sticky lg:top-20 lg:self-start">
-                <FieldLabel htmlFor="create-printing-image">Reference image</FieldLabel>
-                {imageUrl.trim() ? (
-                  <img
-                    src={imageUrl.trim()}
-                    alt="Card reference"
-                    className="max-h-[70vh] w-full rounded-md object-contain"
-                  />
-                ) : (
-                  <div className="text-muted-foreground border-input flex h-48 items-center justify-center rounded-md border border-dashed px-3 text-center">
-                    Paste an image URL to preview the card while you type.
-                  </div>
-                )}
-                <Input
-                  id="create-printing-image"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="Image URL — https://…"
-                />
-              </Field>
-              <div className="space-y-4">
-                <CardTextInput
-                  label="Printed rules text"
-                  value={printedRulesText}
-                  onChange={setPrintedRulesText}
-                  rows={3}
-                  reformat={reformatRules}
-                />
-                <CardTextInput
-                  label="Printed effect text"
-                  value={printedEffectText}
-                  onChange={setPrintedEffectText}
-                  rows={3}
-                  reformat={reformatRules}
-                />
-                <CardTextInput
-                  label="Flavor text"
-                  variant="flavor"
-                  value={flavorText}
-                  onChange={setFlavorText}
-                  rows={2}
-                  reformat={reformatFlavor}
-                />
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,18rem)_1fr]">
+          <Field className="lg:sticky lg:top-20 lg:self-start">
+            <FieldLabel htmlFor="create-printing-image">Reference image</FieldLabel>
+            {imageUrl.trim() ? (
+              <img
+                src={imageUrl.trim()}
+                alt="Card reference"
+                className="max-h-[70vh] w-full rounded-md object-contain"
+              />
+            ) : (
+              <div className="text-muted-foreground border-input flex h-48 items-center justify-center rounded-md border border-dashed px-3 text-center">
+                Paste an image URL to preview the card while you type.
               </div>
-            </div>
-
-            {errorMsg && (
-              <Alert variant="destructive">
-                <AlertDescription>{errorMsg}</AlertDescription>
-              </Alert>
             )}
+            <Input
+              id="create-printing-image"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="Image URL — https://…"
+            />
+          </Field>
+          <div className="space-y-4">
+            <CardTextInput
+              label="Printed rules text"
+              value={printedRulesText}
+              onChange={setPrintedRulesText}
+              rows={3}
+              reformat={reformatRules}
+            />
+            <CardTextInput
+              label="Printed effect text"
+              value={printedEffectText}
+              onChange={setPrintedEffectText}
+              rows={3}
+              reformat={reformatRules}
+            />
+            <CardTextInput
+              label="Flavor text"
+              variant="flavor"
+              value={flavorText}
+              onChange={setFlavorText}
+              rows={2}
+              reformat={reformatFlavor}
+            />
+          </div>
+        </div>
 
-            <div className="flex gap-2">
-              <Button disabled={!canSubmit} onClick={handleSubmit}>
-                <PlusIcon className="size-4" />
-                Create printing
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() =>
-                  void navigate({ to: "/admin/cards/$cardSlug", params: { cardSlug } })
-                }
-              >
-                Cancel
-              </Button>
-            </div>
-          </FieldGroup>
-        </CardContent>
-      </Card>
+        {errorMsg && (
+          <Alert variant="destructive">
+            <AlertDescription>{errorMsg}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="flex gap-2">
+          <Button disabled={!canSubmit} onClick={handleSubmit}>
+            <PlusIcon className="size-4" />
+            Create printing
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => void navigate({ to: "/admin/cards/$cardSlug", params: { cardSlug } })}
+          >
+            Cancel
+          </Button>
+        </div>
+      </FieldGroup>
     </div>
   );
 }

@@ -14,7 +14,7 @@ import {
   publicUserBundleListQueryOptions,
   publicUserBundleQueryOptions,
 } from "@/features/groups/lib/user-share-queries";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 

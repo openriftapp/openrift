@@ -6,33 +6,27 @@ import {
 } from "@openrift/shared/contracts/admin/job-runs";
 import { formatDayTimeLocal, formatRelativeTime } from "@openrift/shared/format-date";
 import { getRouteApi } from "@tanstack/react-router";
-import { ChevronDownIcon, ChevronRightIcon, LoaderIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
 
+import { Eyebrow } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pager } from "@/components/ui/pager";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
+import { AdminTable } from "@/features/admin/components/admin-table";
 import { JobStatusBadge } from "@/features/admin/components/job-status-badge";
 import { RefreshCountdownButton } from "@/features/admin/components/refresh-countdown-button";
 import { useAdminJobRuns } from "@/features/admin/hooks/use-job-runs";
+import { useCancelRegenerateImages } from "@/features/admin/hooks/use-rehost";
 import type { JobRunsSearch } from "@/features/admin/lib/admin-job-runs-search";
-import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import { summarizeRunResult } from "@/features/admin/lib/job-run-display";
 import {
   jobRunsParamsFromSearch,
   jobRunsRefreshIntervalMs,
 } from "@/features/admin/lib/job-runs-queries";
-import { useCancelRegenerateImages } from "@/hooks/use-rehost";
 import { formatDuration } from "@/lib/format-duration";
 import type { JobRunView } from "@/lib/server-fns/api-types";
 
@@ -206,164 +200,174 @@ export function JobRunsPage() {
         />
       </div>
 
-      <Table className={ADMIN_TABLE_CLASS}>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-8" />
-            <TableHead>Kind</TableHead>
-            <TableHead className="w-28">Trigger</TableHead>
-            <TableHead className="w-28">Status</TableHead>
-            <TableHead className="w-44">Started</TableHead>
-            <TableHead className="w-32">Duration</TableHead>
-            <TableHead>Result</TableHead>
-            <TableHead className="w-28 text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {runs.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={8} className="text-muted-foreground h-24 text-center">
-                {total === 0 ? "No job runs yet." : "No runs match the current filters."}
-              </TableCell>
-            </TableRow>
-          )}
-          {runs.map((run) => {
-            const showDetails = run.errorMessage !== null || hasResult(run.result);
-            const isOpen = expanded.has(run.id);
-            return (
-              <JobRunRow
-                key={run.id}
-                run={run}
-                showDetails={showDetails}
-                isOpen={isOpen}
-                onToggle={() => toggleExpanded(run.id)}
-              />
-            );
-          })}
-        </TableBody>
-      </Table>
-
-      <Pager
-        page={page}
-        totalPages={totalPages}
-        onPageChange={(next) =>
-          void navigate({
-            search: (prev) => ({ ...prev, page: next === 1 ? undefined : next }),
-            replace: true,
-          })
+      <AdminTable
+        columns={[
+          {
+            header: "",
+            id: "expand",
+            width: "w-8",
+            cell: <ExpandCell expanded={expanded} onToggle={toggleExpanded} />,
+          },
+          { header: "Kind", cell: <KindCell /> },
+          { header: "Trigger", width: "w-28", cell: <TriggerCell /> },
+          { header: "Status", width: "w-28", cell: <StatusCell /> },
+          { header: "Started", width: "w-44", cell: <StartedCell /> },
+          { header: "Duration", width: "w-32", cell: <DurationCell /> },
+          { header: "Result", wrap: true, cell: <ResultCell /> },
+        ]}
+        data={runs}
+        getRowKey={(run) => run.id}
+        emptyText={total === 0 ? "No job runs yet." : "No runs match the current filters."}
+        // A no-op run succeeded but found nothing to do, so it renders dimmed.
+        rowClassName={(run) => (run.noop === true ? "text-muted-foreground" : undefined)}
+        renderExpanded={(run) =>
+          expanded.has(run.id) && hasDetails(run) ? <RunDetails run={run} /> : null
         }
-        label="Job run pages"
+        actions={<CancelCell />}
+        footer={
+          <Pager
+            page={page}
+            totalPages={totalPages}
+            onPageChange={(next) =>
+              void navigate({
+                search: (prev) => ({ ...prev, page: next === 1 ? undefined : next }),
+                replace: true,
+              })
+            }
+            label="Job run pages"
+          />
+        }
       />
     </div>
   );
 }
 
-function JobRunRow({
-  run,
-  showDetails,
-  isOpen,
+function hasDetails(run: JobRunView): boolean {
+  return run.errorMessage !== null || hasResult(run.result);
+}
+
+function ExpandCell({
+  row: run,
+  expanded,
   onToggle,
-}: {
-  run: JobRunView;
-  showDetails: boolean;
-  isOpen: boolean;
-  onToggle: () => void;
+}: AdminCellSlotProps<JobRunView> & {
+  expanded: Set<string>;
+  onToggle: (id: string) => void;
 }) {
+  if (!run || !hasDetails(run)) {
+    return null;
+  }
+  const isOpen = expanded.has(run.id);
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="size-7"
+      onClick={() => onToggle(run.id)}
+      aria-expanded={isOpen}
+      aria-label={isOpen ? "Hide details" : "Show details"}
+    >
+      {isOpen ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
+    </Button>
+  );
+}
+
+function KindCell({ row: run }: AdminCellSlotProps<JobRunView>) {
+  return <span className="font-mono">{run?.kind}</span>;
+}
+
+function TriggerCell({ row: run }: AdminCellSlotProps<JobRunView>) {
+  return run ? <TriggerBadge trigger={run.trigger} /> : null;
+}
+
+function StatusCell({ row: run }: AdminCellSlotProps<JobRunView>) {
+  if (!run) {
+    return null;
+  }
+  return (
+    <div className="flex items-center gap-1.5">
+      <JobStatusBadge status={run.status} />
+      {run.noop === true && (
+        <Badge variant="outline" className="text-muted-foreground">
+          no-op
+        </Badge>
+      )}
+    </div>
+  );
+}
+
+function StartedCell({ row: run }: AdminCellSlotProps<JobRunView>) {
+  if (!run) {
+    return null;
+  }
+  return (
+    <span className="font-mono" title={formatDayTimeLocal(run.startedAt)}>
+      {formatRelativeTime(run.startedAt, { seconds: true })}
+    </span>
+  );
+}
+
+function DurationCell({ row: run }: AdminCellSlotProps<JobRunView>) {
+  if (!run) {
+    return null;
+  }
+  return run.durationMs === null ? (
+    <span className="text-muted-foreground">—</span>
+  ) : (
+    <span className="font-mono">{formatDuration(run.durationMs)}</span>
+  );
+}
+
+function ResultCell({ row: run }: AdminCellSlotProps<JobRunView>) {
+  if (!run) {
+    return null;
+  }
+  return run.errorMessage === null ? (
+    <span className="text-muted-foreground">{summarizeRunResult(run.result)}</span>
+  ) : (
+    <span className="text-destructive">{run.errorMessage}</span>
+  );
+}
+
+function CancelCell({ row: run }: AdminCellSlotProps<JobRunView>) {
   const cancelRegen = useCancelRegenerateImages();
-  const canCancel = run.status === "running" && CANCELLABLE_KINDS.has(run.kind);
+  if (!run || run.status !== "running" || !CANCELLABLE_KINDS.has(run.kind)) {
+    return null;
+  }
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      pending={cancelRegen.isPending}
+      onClick={() => cancelRegen.mutate()}
+    >
+      Cancel
+    </Button>
+  );
+}
 
-  // A no-op run succeeded but found nothing to do, so it renders dimmed.
-  const isNoop = run.noop === true;
-
+function RunDetails({ run }: { run: JobRunView }) {
   return (
     <>
-      <TableRow className={isNoop ? "text-muted-foreground" : undefined}>
-        <TableCell className="p-0 pl-2">
-          {showDetails ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7"
-              onClick={onToggle}
-              aria-expanded={isOpen}
-              aria-label={isOpen ? "Hide details" : "Show details"}
-            >
-              {isOpen ? (
-                <ChevronDownIcon className="size-4" />
-              ) : (
-                <ChevronRightIcon className="size-4" />
-              )}
-            </Button>
-          ) : null}
-        </TableCell>
-        <TableCell className="font-mono">{run.kind}</TableCell>
-        <TableCell>
-          <TriggerBadge trigger={run.trigger} />
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-1.5">
-            <JobStatusBadge status={run.status} />
-            {isNoop && (
-              <Badge variant="outline" className="text-muted-foreground">
-                no-op
-              </Badge>
-            )}
-          </div>
-        </TableCell>
-        <TableCell>
-          <span className="font-mono" title={formatDayTimeLocal(run.startedAt)}>
-            {formatRelativeTime(run.startedAt, { seconds: true })}
-          </span>
-        </TableCell>
-        <TableCell className="font-mono">
-          {run.durationMs === null ? (
-            <span className="text-muted-foreground">—</span>
-          ) : (
-            formatDuration(run.durationMs)
-          )}
-        </TableCell>
-        <TableCell className="whitespace-normal">
-          {run.errorMessage === null ? (
-            <span className="text-muted-foreground">{summarizeRunResult(run.result)}</span>
-          ) : (
-            <span className="text-destructive">{run.errorMessage}</span>
-          )}
-        </TableCell>
-        <TableCell className="p-1">
-          {canCancel && (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={cancelRegen.isPending}
-              onClick={() => cancelRegen.mutate()}
-            >
-              {cancelRegen.isPending ? <LoaderIcon className="size-3.5 animate-spin" /> : "Cancel"}
-            </Button>
-          )}
-        </TableCell>
-      </TableRow>
-      {isOpen && showDetails && (
-        <TableRow>
-          <TableCell />
-          <TableCell colSpan={7} className="whitespace-normal">
-            {run.errorMessage !== null && (
-              <div className="mb-2">
-                <div className="text-muted-foreground uppercase">Error</div>
-                <pre className="bg-muted text-destructive overflow-x-auto rounded-md p-2 font-mono">
-                  {run.errorMessage}
-                </pre>
-              </div>
-            )}
-            {hasResult(run.result) && (
-              <div>
-                <div className="text-muted-foreground uppercase">Result</div>
-                <pre className="bg-muted overflow-x-auto rounded-md p-2 font-mono">
-                  {JSON.stringify(run.result, null, 2)}
-                </pre>
-              </div>
-            )}
-          </TableCell>
-        </TableRow>
+      {run.errorMessage !== null && (
+        <div className="mb-2">
+          <Eyebrow as="p" className="mb-0">
+            Error
+          </Eyebrow>
+          <pre className="bg-muted text-destructive overflow-x-auto rounded-md p-2 font-mono">
+            {run.errorMessage}
+          </pre>
+        </div>
+      )}
+      {hasResult(run.result) && (
+        <div>
+          <Eyebrow as="p" className="mb-0">
+            Result
+          </Eyebrow>
+          <pre className="bg-muted overflow-x-auto rounded-md p-2 font-mono">
+            {JSON.stringify(run.result, null, 2)}
+          </pre>
+        </div>
       )}
     </>
   );

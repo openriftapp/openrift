@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { adminAccessQueryOptions } from "@/features/admin/lib/admin-queries";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 
 export function useAdminAccess() {
   const userId = useUserId();

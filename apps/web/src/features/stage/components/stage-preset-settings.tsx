@@ -17,7 +17,7 @@ import { useCreateStagePreset, useStagePresets } from "@/features/stage/hooks/us
 import { captureStagePreset } from "@/features/stage/lib/stage-preset-apply";
 import { usePresentationStore } from "@/features/stage/stores/presentation-store";
 import { applyStagePresetConfig } from "@/features/stage/stores/stage-preset-actions";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 

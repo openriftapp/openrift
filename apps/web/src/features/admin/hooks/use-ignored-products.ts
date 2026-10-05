@@ -1,10 +1,11 @@
 import { adminIgnoredProductsContract } from "@openrift/shared/contracts/admin/ignored-products";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { useMutation, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { ignoredProductsQueryOptions } from "@/features/admin/lib/ignored-products-queries";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -50,17 +51,11 @@ const unignoreProductFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminIgnoredProductsContract, context.cookie).unignore(body);
   });
 
+const UNIGNORE_INVALIDATES = [adminKeys.ignoredProducts, adminKeys.unifiedMappings.all] as const;
+
 export function useUnignoreProduct() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (input: UnignoreInput) => unignoreProductFn({ data: input }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: adminKeys.ignoredProducts,
-      });
-      void queryClient.invalidateQueries({
-        queryKey: adminKeys.unifiedMappings.all,
-      });
-    },
+    invalidates: UNIGNORE_INVALIDATES,
   });
 }

@@ -1,34 +1,20 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
-import { XIcon } from "lucide-react";
 import { Suspense, lazy, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useCardDetailActionHost } from "@/features/cards/components/card-detail/card-detail-action-host";
 import { CardDetailActions } from "@/features/cards/components/card-detail/card-detail-actions";
+import {
+  CardDetailDialogShell,
+  CardDetailDrawerShell,
+} from "@/features/cards/components/card-detail/card-detail-shells";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { useCardDetailNavigation } from "@/features/cards/hooks/use-selection-detail";
-import type { OverlayHistoryKey } from "@/features/stage/hooks/use-overlay-history-entry";
+import type { OverlayHistoryKey } from "@/features/cards/hooks/use-overlay-history-entry";
 import {
   closeOverlayHistoryEntry,
   useOverlayHistoryEntry,
-} from "@/features/stage/hooks/use-overlay-history-entry";
+} from "@/features/cards/hooks/use-overlay-history-entry";
+import { useCardDetailNavigation } from "@/features/cards/hooks/use-selection-detail";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
@@ -159,141 +145,35 @@ function CardDetailOverlayContent({
     />
   ) : undefined;
 
+  const detailProps = {
+    printing: selectedCard,
+    showImages,
+    onPrevCard: handlePrevCard,
+    onNextCard: handleNextCard,
+    onTagClick: handleTagClick,
+    onKeywordClick: handleKeywordClick,
+    printings: siblingPrintings,
+    onSelectPrinting: handleSelectPrinting,
+    actions,
+  };
+  const after = allowCollectionEdits ? hosts : undefined;
+
   if (isMobile) {
     return (
-      <Drawer
-        open
-        onOpenChange={(next) => {
-          if (!next) {
-            handleClose();
-          }
-        }}
-      >
-        <DrawerContent
-          className="data-[swipe-direction=down]:h-[calc(100dvh-env(safe-area-inset-top,0px))] data-[swipe-direction=down]:max-h-none"
-          style={tint}
-        >
-          <DrawerHeader className="sr-only">
-            <DrawerTitle>{m.card_detail_overlay_title()}</DrawerTitle>
-            <DrawerDescription>{m.card_detail_overlay_description()}</DrawerDescription>
-          </DrawerHeader>
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-            <Suspense fallback={<CardDetailPaneSkeleton />}>
-              <CardDetail
-                printing={selectedCard}
-                onClose={handleClose}
-                showImages={showImages}
-                onPrevCard={handlePrevCard}
-                onNextCard={handleNextCard}
-                onTagClick={handleTagClick}
-                onKeywordClick={handleKeywordClick}
-                printings={siblingPrintings}
-                onSelectPrinting={handleSelectPrinting}
-                actions={actions}
-              />
-            </Suspense>
-          </div>
-          {allowCollectionEdits && hosts}
-        </DrawerContent>
-      </Drawer>
+      <CardDetailDrawerShell onClose={handleClose} style={tint} after={after}>
+        <CardDetail {...detailProps} onClose={handleClose} />
+      </CardDetailDrawerShell>
     );
   }
 
   return (
-    <Dialog
-      open
-      onOpenChange={(next) => {
-        if (!next) {
-          handleClose();
-        }
-      }}
+    <CardDetailDialogShell
+      onClose={handleClose}
+      style={tint}
+      onKeyDown={handleKeyDown}
+      after={after}
     >
-      <DialogContent
-        className="sm:max-w-[860px]"
-        style={tint}
-        onKeyDown={handleKeyDown}
-        // aria-label matches the pane and the drawer so one label finds the close control everywhere.
-        showCloseButton={false}
-      >
-        <DialogClose
-          render={<Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />}
-          aria-label={m.card_detail_close()}
-        >
-          <XIcon className="size-4" />
-        </DialogClose>
-        <DialogHeader className="sr-only">
-          <DialogTitle>{m.card_detail_overlay_title()}</DialogTitle>
-          <DialogDescription>{m.card_detail_overlay_description()}</DialogDescription>
-        </DialogHeader>
-        <Suspense fallback={<CardDetailModalSkeleton />}>
-          <CardDetail
-            printing={selectedCard}
-            layout="modal"
-            showImages={showImages}
-            onPrevCard={handlePrevCard}
-            onNextCard={handleNextCard}
-            onTagClick={handleTagClick}
-            onKeywordClick={handleKeywordClick}
-            printings={siblingPrintings}
-            onSelectPrinting={handleSelectPrinting}
-            actions={actions}
-            navLabel={navLabel}
-          />
-        </Suspense>
-        {allowCollectionEdits && hosts}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/**
- * Mirrors the two-column arrangement: a full-width `aspect-card` block inside
- * an 860px dialog would open the dialog ~1150px tall and then snap it down.
- */
-function CardDetailModalSkeleton() {
-  return (
-    <div className="@container flex flex-col gap-4">
-      <div className="space-y-1.5">
-        <Skeleton className="h-6 w-56" />
-        <Skeleton className="h-4 w-32" />
-      </div>
-      <div className="grid gap-5 @2xl:grid-cols-[340px_minmax(0,1fr)]">
-        <Skeleton className="aspect-card w-full rounded-xl" />
-        <div className="min-w-0 space-y-4">
-          <div className="flex gap-1.5">
-            <Skeleton className="h-7 w-16 rounded-md" />
-            <Skeleton className="h-7 w-16 rounded-md" />
-            <Skeleton className="h-7 w-16 rounded-md" />
-          </div>
-          <Skeleton className="h-20 w-full rounded-lg" />
-          <Skeleton className="h-12 w-full rounded-lg" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CardDetailPaneSkeleton() {
-  return (
-    <div className="bg-background rounded-lg px-3">
-      <div className="p-4">
-        <div className="flex items-center gap-2">
-          <Skeleton className="size-8 rounded-md" />
-          <div className="space-y-1.5">
-            <Skeleton className="h-5 w-36" />
-            <Skeleton className="h-3.5 w-24" />
-          </div>
-        </div>
-      </div>
-      <div className="space-y-4 p-4">
-        <Skeleton className="aspect-card w-full rounded-xl" />
-        <div className="flex justify-center gap-1.5">
-          <Skeleton className="h-7 w-16 rounded-md" />
-          <Skeleton className="h-7 w-16 rounded-md" />
-          <Skeleton className="h-7 w-16 rounded-md" />
-        </div>
-        <Skeleton className="h-20 w-full rounded-lg" />
-      </div>
-    </div>
+      <CardDetail {...detailProps} layout="modal" navLabel={navLabel} />
+    </CardDetailDialogShell>
   );
 }

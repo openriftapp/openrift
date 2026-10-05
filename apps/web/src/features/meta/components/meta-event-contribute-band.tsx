@@ -1,9 +1,9 @@
 import type { MetaEventDetail } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { MetaContributeBandShell } from "@/features/meta/components/meta-contribute-band";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 
 export function MetaEventContributeBand({
@@ -35,17 +35,17 @@ export function MetaEventContributeBand({
       description={body}
       action={
         userId === null ? (
-          <Button
-            render={
-              <Link to="/login" search={{ redirect: `/meta/${slug}/submit`, email: undefined }} />
-            }
+          <Link
+            to="/login"
+            search={{ redirect: `/meta/${slug}/submit`, email: undefined }}
+            className={buttonVariants()}
           >
             {m.meta_event_contribute_sign_in()}
-          </Button>
+          </Link>
         ) : (
-          <Button render={<Link to="/meta/$slug/submit" params={{ slug }} />}>
+          <Link to="/meta/$slug/submit" params={{ slug }} className={buttonVariants()}>
             {m.meta_event_contribute_add()}
-          </Button>
+          </Link>
         )
       }
     />

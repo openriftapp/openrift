@@ -13,6 +13,8 @@ import { MetaPlayerHero } from "./meta-player-hero";
 const LUX = {
   cardId: "legend-lux",
   name: "Lux, Lady of Luminosity",
+  character: "Lux",
+  epithet: "Lady of Luminosity",
   slug: "lady-of-luminosity",
   imageId: "img-lux",
   domains: ["calm"],

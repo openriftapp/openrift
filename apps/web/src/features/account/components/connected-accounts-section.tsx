@@ -1,9 +1,11 @@
+import { LinkIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { siDiscord, siGoogle } from "simple-icons";
 
 import { SettingsRow } from "@/components/layout/settings-row";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BrandGlyph } from "@/components/ui/brand-glyph";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { authClient } from "@/features/account/lib/auth-client";
@@ -74,7 +76,7 @@ export function ConnectedAccountsSection() {
   return (
     <SettingsSection title={m.profile_connected_title()}>
       {loading ? (
-        <p className="text-muted-foreground text-sm">{m.profile_connected_loading()}</p>
+        <p className="text-muted-foreground text-sm">{m.common_loading()}</p>
       ) : (
         <>
           {error && (
@@ -90,9 +92,7 @@ export function ConnectedAccountsSection() {
                 key={provider.id}
                 label={
                   <span className="flex items-center gap-2">
-                    <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-                      <path d={provider.icon.path} fill="currentColor" />
-                    </svg>
+                    <BrandGlyph icon={provider.icon} fallback={LinkIcon} />
                     {provider.name}
                   </span>
                 }

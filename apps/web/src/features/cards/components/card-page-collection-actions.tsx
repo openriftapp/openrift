@@ -1,5 +1,5 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { PackageIcon } from "lucide-react";
 
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -7,7 +7,7 @@ import { useCardDetailActionHost } from "@/features/cards/components/card-detail
 import { PrintingCountActions } from "@/features/cards/components/printing-count-actions";
 import { WishlistButton } from "@/features/cards/components/wishlist-heart";
 import { useTileOwnedCounts } from "@/features/collections/hooks/use-owned-count";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 
 export function ownedSummary(ownedCount: number, cardTotal: number): string {

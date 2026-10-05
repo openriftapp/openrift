@@ -1,7 +1,7 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { copyHasMetadata } from "@openrift/shared/copy-metadata";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 

@@ -1,12 +1,14 @@
+import { zoneLabel } from "@openrift/shared/deck-zones";
+import { straightenApostrophes } from "@openrift/shared/strings";
 import type { ListKind } from "@openrift/shared/types/api/list";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { straightenApostrophes } from "@openrift/shared/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowDownLeftIcon, HeartIcon, LockIcon, ShoppingCartIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 
 import { CardmarketWantsLink } from "@/components/cardmarket-wants-link";
 import { CopyTextButton } from "@/components/copy-text-button";
+import { MarketplaceIcon } from "@/components/marketplace-icon";
 import { MarketplaceLink } from "@/components/marketplace-link";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +24,7 @@ import { textLinkVariants } from "@/components/ui/text-link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetailOverlay } from "@/features/cards/components/card-detail-overlay";
+import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { useMarketplaceInfo } from "@/features/cards/hooks/use-marketplace-info";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
 import {
@@ -29,13 +32,10 @@ import {
   missingCardsToWants,
 } from "@/features/decks/lib/deck-missing-export";
 import type { CardOwnership } from "@/features/decks/lib/deck-ownership-types";
-import { zoneLabel } from "@/features/decks/lib/deck-zone-labels";
 import { AddToWishlistDialog } from "@/features/lists/components/add-to-wishlist-dialog";
 import { CreateListDialog } from "@/features/lists/components/create-list-dialog";
-import { useEnumOrders } from "@/hooks/use-enums";
 import { formatCardmarketWants } from "@/lib/export-text";
 import { formatterForMarketplace } from "@/lib/format";
-import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -55,26 +55,15 @@ interface DeckMissingCardsDialogProps {
 function CardIdentity({
   card,
   printing,
-  rarityLabel,
   onOpenDetail,
 }: {
   card: CardOwnership;
   printing: CardOwnership["displayPrinting"];
-  rarityLabel: string | undefined;
   onOpenDetail: (printingId: string) => void;
 }) {
   const content = (
     <>
-      {printing && (
-        <img
-          src={getFilterIconPath("rarities", printing.rarity)}
-          alt={rarityLabel}
-          title={rarityLabel}
-          width={28}
-          height={28}
-          className="size-3.5 shrink-0"
-        />
-      )}
+      {printing && <RarityIcon rarity={printing.rarity} labelled className="size-3.5" />}
       <span className="text-muted-foreground font-mono">{printing?.shortCode ?? "--"}</span>
       <span>{card.displayName}</span>
     </>
@@ -152,7 +141,6 @@ function MissingCardsDialogBody({
   const navigate = useNavigate();
   const fmt = formatterForMarketplace(marketplace);
   const meta = MARKETPLACE_META[marketplace];
-  const { labels: enumLabels } = useEnumOrders();
   const showImages = useDisplayStore((s) => s.showImages);
 
   const sorted = missingCards.toSorted((a, b) => {
@@ -220,7 +208,7 @@ function MissingCardsDialogBody({
               : m.decks_overview_missing_title({ count: totalMissing })}
           </DialogTitle>
           <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
-            <img src={meta.icon} alt="" className="h-3 invert dark:invert-0" />
+            <MarketplaceIcon marketplace={marketplace} />
             {m.decks_overview_prices_from({ marketplace: meta.label })}
           </div>
         </DialogHeader>
@@ -254,7 +242,6 @@ function MissingCardsDialogBody({
                         <CardIdentity
                           card={card}
                           printing={printing}
-                          rarityLabel={printing ? enumLabels.rarities[printing.rarity] : undefined}
                           onOpenDetail={setDetailPrintingId}
                         />
                         {card.locked > 0 && (

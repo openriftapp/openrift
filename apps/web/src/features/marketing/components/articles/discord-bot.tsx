@@ -6,9 +6,9 @@ import {
   MessageSquareTextIcon,
   SlashSquareIcon,
 } from "lucide-react";
-import type { ReactNode } from "react";
 
 import { Heading } from "@/components/heading";
+import { PROSE_MARKUP } from "@/components/message-markup";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
@@ -23,10 +23,7 @@ export default function DiscordBotArticle() {
       <section>
         <Heading className="mb-2">{m.help_discord_bot_add_heading()}</Heading>
         <p className="text-muted-foreground">
-          <ParaglideMessage
-            message={m.help_discord_bot_add_intro}
-            markup={{ strong: ({ children }) => <span className="font-medium">{children}</span> }}
-          />
+          <ParaglideMessage message={m.help_discord_bot_add_intro} markup={PROSE_MARKUP} />
         </p>
         <div className="mt-3 space-y-2">
           <StepRow
@@ -72,10 +69,7 @@ export default function DiscordBotArticle() {
           />
         </div>
         <p className="text-muted-foreground mt-3">
-          <ParaglideMessage
-            message={m.help_discord_bot_card_numbers}
-            markup={{ code: ({ children }) => <InlineCode>{children}</InlineCode> }}
-          />
+          <ParaglideMessage message={m.help_discord_bot_card_numbers} markup={PROSE_MARKUP} />
         </p>
       </section>
 
@@ -111,20 +105,14 @@ export default function DiscordBotArticle() {
           />
         </div>
         <p className="text-muted-foreground mt-3">
-          <ParaglideMessage
-            message={m.help_discord_bot_rule_inline}
-            markup={{ code: ({ children }) => <InlineCode>{children}</InlineCode> }}
-          />
+          <ParaglideMessage message={m.help_discord_bot_rule_inline} markup={PROSE_MARKUP} />
         </p>
       </section>
 
       <section>
         <Heading className="mb-2">{m.help_discord_bot_mention_heading()}</Heading>
         <p className="text-muted-foreground">
-          <ParaglideMessage
-            message={m.help_discord_bot_mention}
-            markup={{ code: ({ children }) => <InlineCode>{children}</InlineCode> }}
-          />
+          <ParaglideMessage message={m.help_discord_bot_mention} markup={PROSE_MARKUP} />
         </p>
       </section>
 
@@ -134,8 +122,4 @@ export default function DiscordBotArticle() {
       </Alert>
     </div>
   );
-}
-
-function InlineCode({ children }: { children: ReactNode }) {
-  return <code className="bg-muted rounded-md px-1 py-0.5 font-mono text-sm">{children}</code>;
 }

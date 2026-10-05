@@ -1,5 +1,5 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckListItemResponse, DeckResponse } from "@openrift/shared/types/api/deck";
-import { useLiveQuery } from "@tanstack/react-db";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronRightIcon, CircleHelpIcon, PlusIcon, SwordsIcon, UploadIcon } from "lucide-react";
 import { useState } from "react";
@@ -10,11 +10,8 @@ import {
   PAGE_TOP_BAR_STICKY,
   PageTopBar,
   PageTopBarActions,
-  PageTopBarButton,
-  PageTopBarIconButton,
   PageTopBarPrimaryButton,
   PageTopBarTitle,
-  useMeasuredHeight,
 } from "@/components/layout/page-top-bar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -42,8 +39,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { useDeckFolders } from "@/features/decks/hooks/use-deck-folders";
 import { useDeckListFilters } from "@/features/decks/hooks/use-deck-list-filters";
-import { useCreateDeck, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
-import { useDecksCollection } from "@/features/decks/hooks/use-decks-collections";
+import { useCreateDeck, useDeckList, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
 import { useLocalDecks } from "@/features/decks/hooks/use-local-decks";
 import type { CollapsedDeckEntry } from "@/features/decks/lib/deck-family";
 import { collapseFamilies } from "@/features/decks/lib/deck-family";
@@ -74,7 +70,8 @@ import {
 import { useDeckFormatList, useEnumOrders } from "@/hooks/use-enums";
 import { useHeaderHeight } from "@/hooks/use-header-height";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { useUserId } from "@/lib/auth-session";
+import { useMeasuredHeight } from "@/hooks/use-measured-height";
+import { useUserId } from "@/hooks/use-session";
 import { cn, PAGE_WIDTH, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -146,7 +143,7 @@ function CreateDeckDialog({
                 }}
               >
                 <SelectTrigger id="deck-format">
-                  <SelectValue>{(value: string) => formatLabels[value] ?? value}</SelectValue>
+                  <SelectValue>{(value: string) => enumLabel(formatLabels, value)}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {formats.map((entry) => (
@@ -206,11 +203,7 @@ function GroupHeader({ label, count }: { label: string; count: number }) {
 export function DeckListPage() {
   // Non-suspense: a logged-out visitor has no decks store to suspend on.
   const userId = useUserId();
-  const decksCollection = useDecksCollection();
-  const { data: serverRows } = useLiveQuery({
-    query: (q) => (decksCollection ? q.from({ deck: decksCollection }) : null),
-  });
-  const serverItems = serverRows ?? [];
+  const serverItems = useDeckList() ?? [];
 
   const hydrated = useHydrated();
   const localDecks = useLocalDecks();
@@ -388,16 +381,18 @@ export function DeckListPage() {
         <PageTopBar>
           <PageTopBarTitle>{m.decks_list_title()}</PageTopBarTitle>
           <PageTopBarActions>
-            <PageTopBarIconButton
+            <Link
+              to="/help/$slug"
+              params={{ slug: "deck-building" }}
               aria-label={m.decks_list_help_aria()}
-              render={<Link to="/help/$slug" params={{ slug: "deck-building" }} />}
+              className={buttonVariants({ variant: "ghost", size: "icon" })}
             >
               <CircleHelpIcon className="size-4" />
-            </PageTopBarIconButton>
-            <PageTopBarButton render={<Link to="/decks/import" />}>
+            </Link>
+            <Link to="/decks/import" className={buttonVariants({ variant: "ghost" })}>
               <UploadIcon className="size-4" />
               {m.decks_list_import()}
-            </PageTopBarButton>
+            </Link>
             <PageTopBarPrimaryButton onClick={() => setCreateOpen(true)}>
               <PlusIcon className="size-4" />
               {m.decks_list_new_deck()}

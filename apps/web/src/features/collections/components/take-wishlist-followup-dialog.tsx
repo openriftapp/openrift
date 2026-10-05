@@ -90,7 +90,7 @@ export function TakeWishlistFollowUpDialog({
             </div>
           )}
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
               {single
                 ? m.collections_dialog_take_wishlist_keep()
                 : m.collections_dialog_take_wishlist_keep_all()}

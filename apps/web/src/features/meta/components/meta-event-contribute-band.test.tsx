@@ -6,7 +6,7 @@ import { metaEvent } from "@/test/meta-event-fixtures";
 
 const session = vi.hoisted(() => ({ userId: null as string | null }));
 
-vi.mock("@/lib/auth-session", () => ({ useUserId: () => session.userId }));
+vi.mock("@/hooks/use-session", () => ({ useUserId: () => session.userId }));
 
 vi.mock("@tanstack/react-router", async () => {
   const fixtures = await import("@/test/meta-event-fixtures");

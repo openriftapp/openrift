@@ -1,16 +1,18 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type {
   DeckCheckChangeSummary,
   DeckCheckEntryDetailResponse,
 } from "@openrift/shared/types/api/deck-check";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { RefreshCwIcon, WandSparklesIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -31,32 +33,34 @@ import { m } from "@/paraglide/messages.js";
 export function ChangeBanner({ summary }: { summary: DeckCheckChangeSummary }) {
   const describe = (line: { name: string; quantity: number }) => `${line.quantity}× ${line.name}`;
   return (
-    <div className="border-destructive/40 bg-destructive-soft flex flex-col gap-1 rounded-md border p-3 text-sm">
-      <span className="font-medium">{m.tournaments_deck_check_change_banner_title()}</span>
-      {summary.added.length > 0 ? (
-        <span>
-          {m.tournaments_deck_check_change_added({
-            lines: summary.added.map((line) => describe(line)).join(", "),
-          })}
-        </span>
-      ) : null}
-      {summary.removed.length > 0 ? (
-        <span>
-          {m.tournaments_deck_check_change_removed({
-            lines: summary.removed.map((line) => describe(line)).join(", "),
-          })}
-        </span>
-      ) : null}
-      {summary.changed.length > 0 ? (
-        <span>
-          {m.tournaments_deck_check_change_changed({
-            lines: summary.changed
-              .map((line) => `${line.name} ${line.oldQuantity}× → ${line.newQuantity}×`)
-              .join(", "),
-          })}
-        </span>
-      ) : null}
-    </div>
+    <Alert variant="destructive">
+      <AlertTitle>{m.tournaments_deck_check_change_banner_title()}</AlertTitle>
+      <AlertDescription className="flex flex-col gap-1">
+        {summary.added.length > 0 ? (
+          <span>
+            {m.tournaments_deck_check_change_added({
+              lines: summary.added.map((line) => describe(line)).join(", "),
+            })}
+          </span>
+        ) : null}
+        {summary.removed.length > 0 ? (
+          <span>
+            {m.tournaments_deck_check_change_removed({
+              lines: summary.removed.map((line) => describe(line)).join(", "),
+            })}
+          </span>
+        ) : null}
+        {summary.changed.length > 0 ? (
+          <span>
+            {m.tournaments_deck_check_change_changed({
+              lines: summary.changed
+                .map((line) => `${line.name} ${line.oldQuantity}× → ${line.newQuantity}×`)
+                .join(", "),
+            })}
+          </span>
+        ) : null}
+      </AlertDescription>
+    </Alert>
   );
 }
 
@@ -98,27 +102,29 @@ export function FindingsBanner({
   }
 
   return (
-    <div className="border-warning/40 bg-warning-soft flex flex-col gap-2 rounded-md border p-3 text-sm">
-      <span className="font-medium">{m.tournaments_deck_check_findings_title()}</span>
-      <ul className="list-disc pl-5">
-        {unmatched.length > 0 ? (
-          <li>{m.tournaments_deck_check_unmatched_finding({ count: unmatched.length })}</li>
-        ) : null}
-        {suggestions.length > 0 ? (
-          <li>{m.tournaments_deck_check_mis_zoned_finding({ count: suggestions.length })}</li>
-        ) : null}
-        {detail.violations.map((violation) => (
-          <li key={`${violation.zone}:${violation.code}:${violation.cardId ?? ""}`}>
-            {violation.message}
-          </li>
-        ))}
-      </ul>
-      <div className="flex flex-wrap gap-2">
+    <Alert variant="warning">
+      <AlertTitle>{m.tournaments_deck_check_findings_title()}</AlertTitle>
+      <AlertDescription>
+        <ul className="list-disc pl-5">
+          {unmatched.length > 0 ? (
+            <li>{m.tournaments_deck_check_unmatched_finding({ count: unmatched.length })}</li>
+          ) : null}
+          {suggestions.length > 0 ? (
+            <li>{m.tournaments_deck_check_mis_zoned_finding({ count: suggestions.length })}</li>
+          ) : null}
+          {detail.violations.map((violation) => (
+            <li key={`${violation.zone}:${violation.code}:${violation.cardId ?? ""}`}>
+              {violation.message}
+            </li>
+          ))}
+        </ul>
+      </AlertDescription>
+      <div className="mt-1 flex flex-wrap gap-2">
         {unmatched.length > 0 ? (
           <Button
             size="sm"
             variant="outline"
-            disabled={reResolve.isPending}
+            pending={reResolve.isPending}
             title={m.tournaments_deck_check_re_resolve_title()}
             onClick={() => void handleReResolve()}
           >
@@ -142,7 +148,7 @@ export function FindingsBanner({
           onOpenChange={setFixZonesOpen}
         />
       ) : null}
-    </div>
+    </Alert>
   );
 }
 
@@ -229,9 +235,7 @@ function FixZonesDialog({
             ))}
           </ul>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              {m.common_cancel()}
-            </Button>
+            <DialogCancel />
             <Button type="submit" disabled={applyZoneFixes.isPending || selected.size === 0}>
               {applyZoneFixes.isPending
                 ? m.tournaments_deck_check_applying()

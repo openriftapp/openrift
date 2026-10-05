@@ -3,8 +3,8 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { ShowMoreButton } from "@/components/show-more-button";
 import { CountPill } from "@/components/ui/count-pill";
-import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
@@ -51,14 +51,12 @@ export function MissingImagesList({ items }: MissingImagesListProps) {
         ))}
       </RowList>
       {items.length > VISIBLE_LIMIT && (
-        <ExpandToggle
+        <ShowMoreButton
+          count={items.length}
           expanded={showAll}
-          chevronPosition="end"
           onClick={() => setShowAll(!showAll)}
-          className="text-muted-foreground hover:text-foreground self-start text-sm"
-        >
-          {showAll ? m.contribute_show_fewer() : m.contribute_show_all({ count: items.length })}
-        </ExpandToggle>
+          className="mt-0"
+        />
       )}
     </div>
   );

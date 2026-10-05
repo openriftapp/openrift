@@ -2,7 +2,7 @@ import { compareRuleNumbers, RULE_REFERENCE_REGEX } from "@openrift/shared/rules
 import type { RulePageEntry, RuleSourceResponse } from "@openrift/shared/types/api/rules";
 
 import { ruleSearchText } from "@/features/rules/lib/rule-text";
-import { hasVisibleRuleChanges } from "@/features/rules/lib/rules-markdown";
+import { hasVisibleRuleChanges } from "@/features/rules/lib/rules-markdown-diff";
 import { m } from "@/paraglide/messages.js";
 
 export type ChangeKind = "new" | "changed" | "moved" | "replaced" | "removed";

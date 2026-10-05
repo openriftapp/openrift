@@ -45,13 +45,13 @@ describe("CardTableRow", () => {
 
     const withoutNotes = render(<CardTableRow {...props} />);
     expect(withoutNotes.queryByLabelText("Reveal stream")).toBeNull();
-    expect(withoutNotes.queryByLabelText("Printing note")).toBeNull();
+    expect(withoutNotes.queryByLabelText(/Printing note/u)).toBeNull();
     withoutNotes.unmount();
 
     const withNotes = render(
       <CardTableRow {...props} options={{ columns: ["image", "name", "notes"] }} />,
     );
-    expect(withNotes.getByLabelText("Printing note")).not.toBeNull();
+    expect(withNotes.getByLabelText(/Printing note/u)).not.toBeNull();
     expect(withNotes.getByLabelText("Reveal stream").getAttribute("href")).toBe(
       "https://youtu.be/abc",
     );

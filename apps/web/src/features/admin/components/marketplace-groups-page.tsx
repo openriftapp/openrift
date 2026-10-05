@@ -13,15 +13,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TextLink } from "@/components/ui/text-link";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { CountBadge } from "@/features/admin/components/count-badge";
-import type { MarketplaceGroup } from "@/features/admin/hooks/use-marketplace-groups";
 import {
   useMarketplaceGroups,
   useUpdateMarketplaceGroup,
 } from "@/features/admin/hooks/use-marketplace-groups";
 import { useSets } from "@/features/cards/hooks/use-sets";
+import type { MarketplaceGroup } from "@/lib/server-fns/api-types";
 
 const groupKindItems: { value: MarketplaceGroupKind; label: string }[] = [
   { value: "basic", label: "Basic" },
@@ -283,7 +284,7 @@ export function MarketplaceGroupsPage() {
       data={groups}
       getRowKey={(g) => `${g.marketplace}:${g.groupId}`}
       emptyText="No groups yet. They appear after a price scrape runs."
-      title="Marketplace Groups"
+      topBar={(actions) => <AdminPageTopBar title="Marketplace Groups" actions={actions} />}
     />
   );
 }

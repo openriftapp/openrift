@@ -1,3 +1,7 @@
+import { centsToDollars } from "@openrift/shared/money";
+
+import { ValueWithUnpriced } from "@/features/cards/components/value-with-unpriced";
+
 interface CollectionValueSummaryProps {
   valueCents: number | null | undefined;
   unpricedCount: number | null | undefined;
@@ -14,11 +18,10 @@ export function CollectionValueSummary({
     return null;
   }
   return (
-    <span className="text-muted-foreground min-w-0 truncate text-xs">
-      {formatValue(valueCents / 100)}
-      {unpricedCount ? (
-        <span className="text-muted-foreground/60 ml-1">({unpricedCount} unpriced)</span>
-      ) : null}
-    </span>
+    <ValueWithUnpriced
+      value={formatValue(centsToDollars(valueCents))}
+      unpriced={unpricedCount ?? 0}
+      className="min-w-0 truncate"
+    />
   );
 }

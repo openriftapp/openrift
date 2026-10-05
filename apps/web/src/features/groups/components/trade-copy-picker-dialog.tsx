@@ -20,14 +20,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
-import type { CopyMarker } from "@/features/collections/components/copy-indicators";
-import { copyMarkers } from "@/features/collections/components/copy-indicators";
+import type { CopyMarker } from "@/features/collections/lib/copy-indicators";
+import { copyMarkers } from "@/features/collections/lib/copy-indicators";
 import {
   tradeCopyOptionsQueryOptions,
   useAcceptTrade,
 } from "@/features/groups/hooks/use-card-trades";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 
 export interface TradeAcceptTarget {
@@ -265,7 +265,7 @@ function CopyPickerBody({
           {selectionHint(selectedIds.size, quantity)}
         </p>
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" disabled={pending} onClick={onCancel}>
+          <Button variant="outline" disabled={pending} onClick={onCancel}>
             {m.common_cancel()}
           </Button>
           <Button type="submit" disabled={pending || !ready}>

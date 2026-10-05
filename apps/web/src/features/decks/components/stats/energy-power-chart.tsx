@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import { useState } from "react";
 import { Bar, BarChart, Cell, LabelList, XAxis } from "recharts";
 
@@ -105,7 +106,7 @@ function buildChartConfig(
     }
     const isMulti = others.length > 0;
     config[`${prefix}_${stack.key}`] = {
-      label: stack.domains.map((domain) => domainLabels[domain]).join(" + "),
+      label: stack.domains.map((domain) => enumLabel(domainLabels, domain)).join(" + "),
       color: isMulti ? "#737373" : getDomainColor(first, colors),
       ...(isMulti && {
         gradient: stack.domains.map((domain) => getDomainColor(domain, colors)),

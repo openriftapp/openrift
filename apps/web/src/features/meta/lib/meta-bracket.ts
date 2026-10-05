@@ -5,6 +5,7 @@ import type {
   MetaEventPlayer,
 } from "@openrift/shared/types/api/meta";
 
+import { bracketRoundLabel } from "@/lib/bracket-round-label";
 import { m } from "@/paraglide/messages.js";
 
 export interface MetaBracketSeat {
@@ -13,12 +14,12 @@ export interface MetaBracketSeat {
   gamesWon: number | null;
 }
 
-export interface MetaBracketMatch {
+interface MetaBracketMatch {
   key: string;
   seats: [MetaBracketSeat, MetaBracketSeat];
 }
 
-export interface MetaBracketRound {
+interface MetaBracketRound {
   label: string;
   matches: MetaBracketMatch[];
   isFinal: boolean;
@@ -42,15 +43,6 @@ export function bracketPlayers(
     }
   }
   return [...byId.values()];
-}
-
-function roundLabel(fromEnd: number): string {
-  const labels = [
-    m.meta_bracket_round_final(),
-    m.meta_bracket_round_semifinals(),
-    m.meta_bracket_round_quarterfinals(),
-  ];
-  return labels[fromEnd] ?? m.meta_bracket_top_n({ size: String(2 ** (fromEnd + 1)) });
 }
 
 function toBracketMatch(match: MetaEventMatch): MetaBracketMatch {
@@ -147,7 +139,7 @@ export function metaEventBracket(
   return {
     title: m.meta_bracket_top_n({ size: String(phase?.rankRequired ?? 2 ** rounds.length) }),
     rounds: rounds.map((round, index) => ({
-      label: roundLabel(lastIndex - index),
+      label: bracketRoundLabel(lastIndex - index),
       matches: round.map((match) => toBracketMatch(match)),
       // A last round with a third-place match beside the final isn't marked:
       // nothing in the payload says which of the two is which.

@@ -1,6 +1,7 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 
 import { Heading } from "@/components/heading";
+import { PROSE_MARKUP, linkMarkup } from "@/components/message-markup";
 import { Code } from "@/components/ui/code";
 import {
   Table,
@@ -70,12 +71,7 @@ export default function TournamentDecklistApiArticle() {
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
-        <ParaglideMessage
-          message={m.help_tournament_api_intro}
-          markup={{
-            strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-          }}
-        />
+        <ParaglideMessage message={m.help_tournament_api_intro} markup={PROSE_MARKUP} />
       </p>
 
       <section>
@@ -111,16 +107,13 @@ export default function TournamentDecklistApiArticle() {
           <ParaglideMessage
             message={m.help_tournament_api_keys}
             markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              link: ({ children }) => <TextLink href="/profile">{children}</TextLink>,
+              strong: PROSE_MARKUP.strong,
+              link: linkMarkup("/profile"),
             }}
           />
         </p>
         <p className="text-muted-foreground mt-2">
-          <ParaglideMessage
-            message={m.help_tournament_api_keys_format}
-            markup={{ code: ({ children }) => <Code>{children}</Code> }}
-          />
+          <ParaglideMessage message={m.help_tournament_api_keys_format} markup={PROSE_MARKUP} />
         </p>
       </section>
 
@@ -130,9 +123,9 @@ export default function TournamentDecklistApiArticle() {
           <ParaglideMessage
             message={m.help_tournament_api_push_intro}
             markup={{
-              code: ({ children }) => <Code>{children}</Code>,
-              code2: ({ children }) => <Code>{children}</Code>,
-              code3: ({ children }) => <Code>{children}</Code>,
+              code: PROSE_MARKUP.code,
+              code2: PROSE_MARKUP.code,
+              code3: PROSE_MARKUP.code,
             }}
           />
         </p>
@@ -148,7 +141,7 @@ export default function TournamentDecklistApiArticle() {
             <Code>externalId</Code>
             <ParaglideMessage
               message={m.help_tournament_api_field_external_id}
-              markup={{ code: ({ children }) => <Code>{children}</Code> }}
+              markup={PROSE_MARKUP}
             />
           </li>
           <li>
@@ -156,24 +149,21 @@ export default function TournamentDecklistApiArticle() {
             <ParaglideMessage
               message={m.help_tournament_api_field_player_name}
               markup={{
-                code: ({ children }) => <Code>{children}</Code>,
-                code2: ({ children }) => <Code>{children}</Code>,
+                code: PROSE_MARKUP.code,
+                code2: PROSE_MARKUP.code,
               }}
             />
           </li>
           <li>
             <Code>allowDeckPublishing</Code>, <Code>allowNameSharing</Code>,{" "}
             <Code>allowRiotIdSharing</Code>
-            <ParaglideMessage
-              message={m.help_tournament_api_field_consent}
-              markup={{ code: ({ children }) => <Code>{children}</Code> }}
-            />
+            <ParaglideMessage message={m.help_tournament_api_field_consent} markup={PROSE_MARKUP} />
           </li>
           <li>
             <Code>withdrawn</Code>
             <ParaglideMessage
               message={m.help_tournament_api_field_withdrawn}
-              markup={{ code: ({ children }) => <Code>{children}</Code> }}
+              markup={PROSE_MARKUP}
             />
           </li>
           <li>
@@ -185,16 +175,16 @@ export default function TournamentDecklistApiArticle() {
           <ParaglideMessage
             message={m.help_tournament_api_sections}
             markup={{
-              code: ({ children }) => <Code>{children}</Code>,
-              code2: ({ children }) => <Code>{children}</Code>,
-              code3: ({ children }) => <Code>{children}</Code>,
-              code4: ({ children }) => <Code>{children}</Code>,
-              code5: ({ children }) => <Code>{children}</Code>,
-              code6: ({ children }) => <Code>{children}</Code>,
-              code7: ({ children }) => <Code>{children}</Code>,
-              code8: ({ children }) => <Code>{children}</Code>,
-              code9: ({ children }) => <Code>{children}</Code>,
-              code10: ({ children }) => <Code>{children}</Code>,
+              code: PROSE_MARKUP.code,
+              code2: PROSE_MARKUP.code,
+              code3: PROSE_MARKUP.code,
+              code4: PROSE_MARKUP.code,
+              code5: PROSE_MARKUP.code,
+              code6: PROSE_MARKUP.code,
+              code7: PROSE_MARKUP.code,
+              code8: PROSE_MARKUP.code,
+              code9: PROSE_MARKUP.code,
+              code10: PROSE_MARKUP.code,
             }}
           />
         </p>
@@ -203,10 +193,7 @@ export default function TournamentDecklistApiArticle() {
       <section>
         <Heading className="mb-2">{m.help_tournament_api_changes_heading()}</Heading>
         <p className="text-muted-foreground">
-          <ParaglideMessage
-            message={m.help_tournament_api_changes}
-            markup={{ code: ({ children }) => <Code>{children}</Code> }}
-          />
+          <ParaglideMessage message={m.help_tournament_api_changes} markup={PROSE_MARKUP} />
         </p>
         <p className="text-muted-foreground mt-2">{m.help_tournament_api_changes_replace()}</p>
       </section>
@@ -214,20 +201,14 @@ export default function TournamentDecklistApiArticle() {
       <section>
         <Heading className="mb-2">{m.help_tournament_api_response_heading()}</Heading>
         <p className="text-muted-foreground">
-          <ParaglideMessage
-            message={m.help_tournament_api_response}
-            markup={{ code: ({ children }) => <Code>{children}</Code> }}
-          />
+          <ParaglideMessage message={m.help_tournament_api_response} markup={PROSE_MARKUP} />
         </p>
         <pre className="bg-muted mt-3 overflow-x-auto rounded-md p-3 text-sm">
           {EXAMPLE_RESPONSE}
         </pre>
         <p className="text-muted-foreground mt-3">
           <Code>entryId</Code>{" "}
-          <ParaglideMessage
-            message={m.help_tournament_api_response_entry}
-            markup={{ code: ({ children }) => <Code>{children}</Code> }}
-          />
+          <ParaglideMessage message={m.help_tournament_api_response_entry} markup={PROSE_MARKUP} />
         </p>
         <p className="text-muted-foreground mt-2">{m.help_tournament_api_response_stable_link()}</p>
       </section>
@@ -235,10 +216,7 @@ export default function TournamentDecklistApiArticle() {
       <section>
         <Heading className="mb-2">{m.help_tournament_api_limits_heading()}</Heading>
         <p className="text-muted-foreground">
-          <ParaglideMessage
-            message={m.help_tournament_api_limits}
-            markup={{ code: ({ children }) => <Code>{children}</Code> }}
-          />
+          <ParaglideMessage message={m.help_tournament_api_limits} markup={PROSE_MARKUP} />
         </p>
         <div className="mt-3">
           <Table>
@@ -269,8 +247,8 @@ export default function TournamentDecklistApiArticle() {
           <ParaglideMessage
             message={m.help_tournament_api_reference}
             markup={{
-              link: ({ children }) => <TextLink href="/api/doc">{children}</TextLink>,
-              link2: ({ children }) => <TextLink href="/api/ui">{children}</TextLink>,
+              link: linkMarkup("/api/doc"),
+              link2: linkMarkup("/api/ui"),
               link3: ({ children }) => (
                 <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
                   {children}

@@ -11,6 +11,7 @@ import type { DomainCount } from "@/features/decks/hooks/use-deck-stats";
 import { useDeckStats } from "@/features/decks/hooks/use-deck-stats";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { getDomainColor } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -104,7 +105,7 @@ function DeckStatsBody({ stats }: { stats: ReturnType<typeof useDeckStats> }) {
 export function DeckStatsPanel({ deckId }: { deckId: string }) {
   // Recharts warns when it renders into a zero-sized container, so stay
   // collapsed while the sidebar is display:none on mobile.
-  const defaultOpen = globalThis.matchMedia("(min-width: 768px)").matches;
+  const defaultOpen = !useIsMobile();
   const cards = useDeckCards(deckId);
   const stats = useDeckStats(cards);
   const domainColors = useDomainColors();

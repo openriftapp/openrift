@@ -4,6 +4,8 @@
  */
 import { html2canvas } from "html2canvas-pro";
 
+import { downloadBlob } from "@/lib/download";
+
 /** px */
 export const CARD_EXPORT_WIDTH = 750;
 
@@ -70,17 +72,6 @@ async function captureCardPng(element: HTMLElement): Promise<Blob> {
     throw new Error("Failed to rasterize the card.");
   }
   return blob;
-}
-
-function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
 }
 
 async function copyImageToClipboard(blob: Blob): Promise<boolean> {

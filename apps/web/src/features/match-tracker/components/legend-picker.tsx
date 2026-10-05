@@ -1,6 +1,7 @@
 import { CheckIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 
+import { SearchInput } from "@/components/search-input";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Pressable } from "@/components/ui/pressable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -91,11 +92,11 @@ function LegendGrid({
   return (
     <div className="flex min-h-0 flex-col gap-3">
       <div className="flex items-center gap-2">
-        <Input
+        <SearchInput
           value={query}
+          onValueChange={setQuery}
           placeholder={m.tracker_legend_search()}
-          aria-label={m.tracker_legend_search()}
-          onChange={(event) => setQuery(event.target.value)}
+          className="flex-1"
         />
         {selectedCardId !== null && (
           <Button variant="outline" size="sm" onClick={onClear}>
@@ -104,9 +105,9 @@ function LegendGrid({
         )}
       </div>
       {shown.length === 0 ? (
-        <p className="text-muted-foreground py-6 text-center text-sm">
-          {m.tracker_legend_no_match({ query })}
-        </p>
+        <Empty>
+          <EmptyDescription>{m.tracker_legend_no_match({ query })}</EmptyDescription>
+        </Empty>
       ) : (
         <div className="grid min-h-0 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
           {shown.map((option) => (

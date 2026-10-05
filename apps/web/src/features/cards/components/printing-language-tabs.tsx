@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -70,7 +71,7 @@ export function PrintingLanguageTabs({
               <TabsTrigger
                 key={language}
                 value={language}
-                title={languageLabels[language] ?? language}
+                title={enumLabel(languageLabels, language)}
                 className="font-mono"
               >
                 {language}

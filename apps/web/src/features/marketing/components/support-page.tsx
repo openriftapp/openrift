@@ -1,17 +1,19 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { enumLabel } from "@openrift/shared/enum-label";
-import { CopyIcon, HeartIcon } from "lucide-react";
+import { ExternalLinkIcon, HeartIcon } from "lucide-react";
 import { Suspense } from "react";
 import { siDiscord, siGithub, siGithubsponsors, siKofi, siX } from "simple-icons";
 
+import { CopyTextButton } from "@/components/copy-text-button";
 import { Heading } from "@/components/heading";
 import { PageHero } from "@/components/layout/page-hero";
 import { MarketplaceLink } from "@/components/marketplace-link";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { BrandGlyph } from "@/components/ui/brand-glyph";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TextLink } from "@/components/ui/text-link";
 import { CardText } from "@/features/cards/components/card-text";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { ShareButton } from "@/features/marketing/components/share-button";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { getFilterIconPath } from "@/lib/icons";
 import { getSiteUrl } from "@/lib/site-config";
@@ -38,14 +40,6 @@ function tiers(): SupportTier[] {
   ];
 }
 
-function SimpleIcon({ icon, className }: { icon: { path: string }; className?: string }) {
-  return (
-    <svg role="img" viewBox="0 0 24 24" className={cn("size-4 fill-current", className)}>
-      <path d={icon.path} />
-    </svg>
-  );
-}
-
 function TierCard({ tier, label }: { tier: SupportTier; label: string }) {
   const rarityIcon = getFilterIconPath("rarities", tier.rarity, { size: "full" });
   return (
@@ -65,54 +59,6 @@ function TierCard({ tier, label }: { tier: SupportTier; label: string }) {
         </CardDescription>
       </CardHeader>
     </Card>
-  );
-}
-
-/** One share action: a link out when `href` is set, a plain action otherwise. */
-export function ShareButton({
-  label,
-  icon,
-  onClick,
-  href,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  onClick?: () => void;
-  href?: string;
-}) {
-  // Button-styled anchor, not Button-in-<a> (invalid) or BaseUI's `render` escape
-  // hatch (it stamps role="button" on the anchor, so it stops announcing as a link).
-  if (href) {
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noreferrer"
-        className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full gap-2")}
-      >
-        {icon}
-        {label}
-      </a>
-    );
-  }
-
-  return (
-    <Button variant="outline" size="lg" className="w-full gap-2" onClick={onClick}>
-      {icon}
-      {label}
-    </Button>
-  );
-}
-
-function CopyButton({ text, label, icon }: { text: string; label: string; icon: React.ReactNode }) {
-  const { copied, copy } = useCopyToClipboard();
-
-  return (
-    <ShareButton
-      label={copied ? m.marketing_support_copied() : label}
-      icon={icon}
-      onClick={() => void copy(text)}
-    />
   );
 }
 
@@ -153,7 +99,7 @@ export function SupportPage() {
               rel="noreferrer"
               className={cn(buttonVariants(), "gap-2")}
             >
-              <SimpleIcon icon={siKofi} className="size-4" />
+              <BrandGlyph icon={siKofi} fallback={ExternalLinkIcon} />
               {m.marketing_support_kofi()}
             </a>
             <a
@@ -162,7 +108,7 @@ export function SupportPage() {
               rel="noreferrer"
               className={cn(buttonVariants({ variant: "outline" }), "gap-2")}
             >
-              <SimpleIcon icon={siGithubsponsors} className="size-4" />
+              <BrandGlyph icon={siGithubsponsors} fallback={ExternalLinkIcon} />
               {m.marketing_support_sponsor()}
             </a>
           </div>
@@ -175,18 +121,20 @@ export function SupportPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <ShareButton
               label={m.marketing_support_star_github()}
-              icon={<SimpleIcon icon={siGithub} />}
+              icon={<BrandGlyph icon={siGithub} fallback={ExternalLinkIcon} />}
               href={SOCIAL_LINKS.githubRepo}
             />
             <ShareButton
               label={m.marketing_support_share_x()}
-              icon={<SimpleIcon icon={siX} />}
+              icon={<BrandGlyph icon={siX} fallback={ExternalLinkIcon} />}
               href={`https://x.com/intent/tweet?text=${tweetText}`}
             />
-            <CopyButton
+            <CopyTextButton
               label={m.marketing_support_share_copy()}
-              icon={<CopyIcon className="size-4" />}
-              text={shareText}
+              value={shareText}
+              normalizeLineBreaks={false}
+              size="lg"
+              className="w-full gap-2"
             />
           </div>
         </section>
@@ -235,7 +183,7 @@ export function SupportPage() {
             rel="noreferrer"
             className={cn(buttonVariants(), "gap-2 bg-[#5865F2] text-white [a]:hover:bg-[#4752C4]")}
           >
-            <SimpleIcon icon={siDiscord} className="size-4" />
+            <BrandGlyph icon={siDiscord} fallback={ExternalLinkIcon} />
             {m.marketing_support_join_discord()}
           </a>
         </section>

@@ -1,6 +1,7 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
 import { CheckIcon, ShoppingCartIcon } from "lucide-react";
 
@@ -22,7 +23,7 @@ import { useDismissSuggestions } from "@/features/groups/hooks/use-trade-dismiss
 import type { TradeMarketCard } from "@/features/groups/lib/trade-market";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 

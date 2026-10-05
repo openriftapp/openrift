@@ -1,7 +1,12 @@
-import type { PodRoundResponse } from "@openrift/shared/types/api/pod-tournament";
+import type { GroupStageView, PodRoundResponse } from "@openrift/shared/types/api/pod-tournament";
 import { describe, expect, it } from "vitest";
 
-import { bestFinishPerLegend, latestSnapshotRound, playerRunRounds } from "./player-run";
+import {
+  bestFinishPerLegend,
+  latestSnapshotRound,
+  legendsByPlayer,
+  playerRunRounds,
+} from "./player-run";
 
 function round(
   roundNumber: number,
@@ -26,6 +31,8 @@ function round(
         {
           playerId: a,
           displayName: a,
+          image: null,
+          gravatarHash: null,
           teamId: null,
           gamePoints: 2,
           placement: placeA,
@@ -34,6 +41,8 @@ function round(
         {
           playerId: b,
           displayName: b,
+          image: null,
+          gravatarHash: null,
           teamId: null,
           gamePoints: 1,
           placement: placeB,
@@ -102,5 +111,30 @@ describe("bestFinishPerLegend", () => {
       { legendCardId: "jinx", playerId: "p1", displayName: "P1", place: 1, playerCount: 2 },
       { legendCardId: "sett", playerId: "p3", displayName: "P3", place: 3, playerCount: 1 },
     ]);
+  });
+});
+
+describe("legendsByPlayer", () => {
+  it("carries each standing's legend name parts by player", () => {
+    const standing = {
+      playerId: "p1",
+      legendCardId: "jinx",
+      legendName: "Jinx, Loose Cannon",
+      legendCharacter: "Jinx",
+      legendEpithet: "Loose Cannon",
+    };
+    const groupStage = {
+      groups: [{ standings: [standing] }],
+    } as unknown as GroupStageView;
+    expect(legendsByPlayer(groupStage).get("p1")).toStrictEqual({
+      legendCardId: "jinx",
+      legendName: "Jinx, Loose Cannon",
+      legendCharacter: "Jinx",
+      legendEpithet: "Loose Cannon",
+    });
+  });
+
+  it("is empty without a group stage", () => {
+    expect(legendsByPlayer(null).size).toBe(0);
   });
 });

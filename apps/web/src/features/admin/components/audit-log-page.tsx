@@ -1,11 +1,12 @@
 import { formatDayTime } from "@openrift/shared/format-date";
 import { Link } from "@tanstack/react-router";
-import { LoaderIcon, RefreshCwIcon } from "lucide-react";
+import { RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
 
+import { Disclosure } from "@/components/disclosure";
 import { PageDescription, PageTopBarButton } from "@/components/layout/page-top-bar";
+import { ShowMoreButton } from "@/components/show-more-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -13,23 +14,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { TextLink } from "@/components/ui/text-link";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
+import { AdminTable } from "@/features/admin/components/admin-table";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
 import {
   useAuditActions,
   useAuditActors,
   useAuditEvents,
 } from "@/features/admin/hooks/use-admin-audit";
-import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import { formatAuditChanges } from "@/features/admin/lib/audit-changes";
 import type { AdminAuditEventResponse } from "@/lib/server-fns/api-types";
 import { cn } from "@/lib/utils";
@@ -37,8 +31,8 @@ import { cn } from "@/lib/utils";
 const ALL_ACTORS = "__all__";
 const ALL_ACTIONS = "__all_actions__";
 
-// Values longer than this collapse behind a <details> expander so a pasted
-// rules text doesn't blow up the table row.
+// Values longer than this collapse behind a disclosure so a pasted rules text
+// doesn't blow up the table row.
 const LONG_VALUE = 80;
 
 function ChangeValue({ value }: { value: string | null }) {
@@ -49,65 +43,83 @@ function ChangeValue({ value }: { value: string | null }) {
     return <span className="break-all">{value}</span>;
   }
   return (
-    <details className="inline">
-      <summary className="text-muted-foreground inline cursor-pointer select-none">
-        {value.slice(0, LONG_VALUE)}…
-      </summary>
+    <Disclosure
+      variant="plain"
+      title={<span className="break-all">{value.slice(0, LONG_VALUE)}…</span>}
+    >
       <span className="break-all">{value}</span>
-    </details>
+    </Disclosure>
   );
 }
 
-function AuditEventRow({ event }: { event: AdminAuditEventResponse }) {
-  const changes = formatAuditChanges(event.oldValues, event.newValues);
+function WhenCell({ row: event }: AdminCellSlotProps<AdminAuditEventResponse>) {
+  if (!event) {
+    return null;
+  }
   return (
-    <TableRow>
-      <TableCell className="align-top font-mono text-sm whitespace-nowrap" title={event.createdAt}>
-        {formatDayTime(event.createdAt)}
-      </TableCell>
-      <TableCell className="align-top">
-        {event.actorName ?? event.actorEmail ?? event.actorUserId}
-      </TableCell>
-      <TableCell className="align-top">
-        <Badge variant="secondary" className="font-mono">
-          {event.action}
-        </Badge>
-      </TableCell>
-      <TableCell className="align-top">
-        {event.cardSlug ? (
-          <TextLink
-            variant="inherit"
-            render={<Link to="/admin/cards/$cardSlug" params={{ cardSlug: event.cardSlug }} />}
-          >
-            {event.entityLabel ?? event.cardSlug}
-          </TextLink>
-        ) : (
-          <span className="text-muted-foreground">
-            {event.entityLabel ?? event.entityId ?? "—"}
-          </span>
-        )}
-      </TableCell>
-      <TableCell className="align-top">
-        {changes.length === 0 ? (
-          <span className="text-muted-foreground/60">—</span>
-        ) : (
-          <ul className="space-y-1">
-            {changes.map((change) => (
-              <li key={change.field} className="text-sm">
-                <span className="text-muted-foreground font-mono">{change.field}:</span>{" "}
-                {change.from !== null && (
-                  <>
-                    <ChangeValue value={change.from} />
-                    <span className="text-muted-foreground"> &rarr; </span>
-                  </>
-                )}
-                <ChangeValue value={change.to} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </TableCell>
-    </TableRow>
+    <span className="font-mono text-sm" title={event.createdAt}>
+      {formatDayTime(event.createdAt)}
+    </span>
+  );
+}
+
+function ActorCell({ row: event }: AdminCellSlotProps<AdminAuditEventResponse>) {
+  return event ? <span>{event.actorName ?? event.actorEmail ?? event.actorUserId}</span> : null;
+}
+
+function ActionCell({ row: event }: AdminCellSlotProps<AdminAuditEventResponse>) {
+  if (!event) {
+    return null;
+  }
+  return (
+    <Badge variant="secondary" className="font-mono">
+      {event.action}
+    </Badge>
+  );
+}
+
+function EntityCell({ row: event }: AdminCellSlotProps<AdminAuditEventResponse>) {
+  if (!event) {
+    return null;
+  }
+  if (event.cardSlug) {
+    return (
+      <TextLink
+        variant="inherit"
+        render={<Link to="/admin/cards/$cardSlug" params={{ cardSlug: event.cardSlug }} />}
+      >
+        {event.entityLabel ?? event.cardSlug}
+      </TextLink>
+    );
+  }
+  return (
+    <span className="text-muted-foreground">{event.entityLabel ?? event.entityId ?? "—"}</span>
+  );
+}
+
+function ChangesCell({ row: event }: AdminCellSlotProps<AdminAuditEventResponse>) {
+  if (!event) {
+    return null;
+  }
+  const changes = formatAuditChanges(event.oldValues, event.newValues);
+  if (changes.length === 0) {
+    return <span className="text-muted-foreground/60">—</span>;
+  }
+  return (
+    <ul className="space-y-1">
+      {changes.map((change) => (
+        <li key={change.field} className="text-sm">
+          <span className="text-muted-foreground font-mono">{change.field}:</span>{" "}
+          {change.from !== null && (
+            <>
+              <ChangeValue value={change.from} />
+              <span className="text-muted-foreground"> &rarr; </span>
+            </>
+          )}
+          <ChangeValue value={change.to} />
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -200,42 +212,31 @@ export function AuditLogPage() {
         />
       </div>
 
-      <Table className={cn("table-fixed", ADMIN_TABLE_CLASS)}>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-40">When</TableHead>
-            <TableHead className="w-40">Actor</TableHead>
-            <TableHead className="w-52">Action</TableHead>
-            <TableHead className="w-56">Entity</TableHead>
-            <TableHead>Changes</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={5} className="text-muted-foreground h-24 text-center">
-                {events.isPending ? "Loading…" : "No audit events match the filters."}
-              </TableCell>
-            </TableRow>
-          )}
-          {rows.map((event) => (
-            <AuditEventRow key={event.id} event={event} />
-          ))}
-        </TableBody>
-      </Table>
-
-      {events.hasNextPage && (
-        <div className="flex justify-center">
-          <Button
-            variant="outline"
-            onClick={() => void events.fetchNextPage()}
-            disabled={events.isFetchingNextPage}
-          >
-            {events.isFetchingNextPage && <LoaderIcon className="size-4 animate-spin" />}
-            Load more
-          </Button>
-        </div>
-      )}
+      <AdminTable
+        layout="fixed"
+        columns={[
+          { header: "When", width: "w-40", cell: <WhenCell /> },
+          { header: "Actor", width: "w-40", cell: <ActorCell /> },
+          { header: "Action", width: "w-52", cell: <ActionCell /> },
+          { header: "Entity", width: "w-56", cell: <EntityCell /> },
+          { header: "Changes", wrap: true, cell: <ChangesCell /> },
+        ]}
+        data={rows}
+        getRowKey={(event) => event.id}
+        rowClassName={() => "[&>td]:align-top"}
+        emptyText={events.isPending ? "Loading…" : "No audit events match the filters."}
+        footer={
+          events.hasNextPage && (
+            <ShowMoreButton
+              className="mt-0"
+              pending={events.isFetchingNextPage}
+              onClick={() => void events.fetchNextPage()}
+            >
+              Load more
+            </ShowMoreButton>
+          )
+        }
+      />
     </div>
   );
 }

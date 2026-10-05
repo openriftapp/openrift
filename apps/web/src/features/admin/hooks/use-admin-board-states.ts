@@ -6,9 +6,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { adminBoardStatesQueryOptions } from "@/features/admin/lib/board-states-queries";
 import { boardStatesKeys } from "@/features/rules/lib/rules-query-keys";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 export function useAdminBoardStates() {
   return useSuspenseQuery(adminBoardStatesQueryOptions);

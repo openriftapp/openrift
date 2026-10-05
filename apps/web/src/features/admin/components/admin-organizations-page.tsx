@@ -1,3 +1,4 @@
+import { pluralize } from "@openrift/shared/strings";
 import type { OrganizationSummaryResponse } from "@openrift/shared/types/api/tournament";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -5,10 +6,10 @@ import { toast } from "sonner";
 
 import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -112,7 +113,7 @@ function EditOrgDialog({ org }: { org: OrganizationSummaryResponse }) {
             </div>
           </div>
           <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+            <DialogCancel />
             <Button type="submit" disabled={!slug.trim() || !name.trim() || updateOrg.isPending}>
               Save
             </Button>
@@ -145,19 +146,19 @@ function OrgRow({ org }: { org: OrganizationSummaryResponse }) {
           </Badge>
         </span>
         <span className="text-muted-foreground text-sm">
-          Owner {org.ownerName ?? "(no display name)"} · {org.memberCount} member
-          {org.memberCount === 1 ? "" : "s"}
+          Owner {org.ownerName ?? "(no display name)"} · {org.memberCount}{" "}
+          {pluralize(org.memberCount, "member")}
         </span>
       </span>
       <span className="-mr-2 flex items-center gap-1">
         <EditOrgDialog org={org} />
-        <Button
-          size="sm"
-          variant="ghost"
-          render={<Link to="/organizations/$id" params={{ id: org.id }} />}
+        <Link
+          to="/organizations/$id"
+          params={{ id: org.id }}
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
         >
           Members
-        </Button>
+        </Link>
         {confirming ? (
           <>
             <Button

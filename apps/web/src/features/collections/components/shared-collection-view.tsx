@@ -1,15 +1,17 @@
+import { centsToDollars } from "@openrift/shared/money";
 import type { PublicCollectionDetailResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
+import { PackageIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Suspense, useState } from "react";
 
+import { EmptyState } from "@/components/empty-state";
 import {
   PAGE_TOP_BAR_STICKY,
   PageDescription,
   PageTopBar,
   PageTopBarHeightContext,
   PageTopBarTitle,
-  useMeasuredHeight,
 } from "@/components/layout/page-top-bar";
 import { TopBarBreadcrumbSeparator } from "@/components/layout/top-bar-breadcrumb";
 import {
@@ -22,14 +24,15 @@ import { CardViewer } from "@/features/cards/components/card-viewer";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { StaticCountTableActions } from "@/features/cards/components/static-count-table-actions";
+import { ValueWithUnpriced } from "@/features/cards/components/value-with-unpriced";
 import { useCardData } from "@/features/cards/hooks/use-card-data";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
-import { FilterSearchProvider } from "@/features/cards/lib/search-schemas";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
 import { maxOwnedCount } from "@/features/collections/lib/owned-bucket";
 import { OnLoanChip } from "@/features/groups/components/on-loan-chip";
@@ -37,9 +40,11 @@ import { useChannelRegistry } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
-import { useSession } from "@/lib/auth-session";
+import { useMeasuredHeight } from "@/hooks/use-measured-height";
+import { useSession } from "@/hooks/use-session";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { formatterForMarketplace } from "@/lib/format";
+import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -90,7 +95,9 @@ export function SharedCollectionView({
 
   const { collection, owner } = data;
   const valueLabel =
-    collection.totalValueCents === null ? null : formatValue(collection.totalValueCents / 100);
+    collection.totalValueCents === null
+      ? null
+      : formatValue(centsToDollars(collection.totalValueCents));
 
   return (
     <FilterSearchProvider value={search}>
@@ -105,22 +112,19 @@ export function SharedCollectionView({
                 <span className="text-muted-foreground hidden shrink-0 items-baseline gap-x-1.5 text-xs sm:flex">
                   <span>{m.collections_shared_by({ name: owner.displayName })}</span>
                   {valueLabel !== null && (
-                    <span>
-                      · {valueLabel}
-                      {collection.unpricedCopyCount ? (
-                        <span className="text-muted-foreground/60 ml-1">
-                          {m.collections_shared_unpriced({
-                            count: collection.unpricedCopyCount,
-                          })}
-                        </span>
-                      ) : null}
-                    </span>
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <ValueWithUnpriced
+                        value={valueLabel}
+                        unpriced={collection.unpricedCopyCount ?? 0}
+                      />
+                    </>
                   )}
                 </span>
               </div>
             </PageTopBar>
           </div>
-          <div className="flex min-w-0 flex-1 flex-col px-3 pb-3">
+          <div className={cn(PAGE_PADDING_NO_TOP, "flex min-w-0 flex-1 flex-col")}>
             {notice}
             {collection.description ? (
               <PageDescription className="pt-2 pb-4">{collection.description}</PageDescription>
@@ -295,7 +299,9 @@ function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }
   );
 
   if (collectionPrintings.length === 0) {
-    return <p className="text-muted-foreground py-3 text-sm">{m.collections_shared_empty()}</p>;
+    return (
+      <EmptyState className="flex-1" icon={PackageIcon} title={m.collections_shared_empty()} />
+    );
   }
 
   return (

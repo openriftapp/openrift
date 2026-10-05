@@ -7,12 +7,11 @@ import type {
   TournamentParticipantListResponse,
   TournamentStaffInviteLandingResponse,
 } from "@openrift/shared/types/api/tournament";
-import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { tournamentsKeys } from "@/features/tournaments/lib/tournaments-query-keys";
-import { notFoundError } from "@/lib/server-fns/api-error";
+import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -25,19 +24,9 @@ const fetchTournaments = createServerFn({ method: "GET" })
 const fetchTournamentDetail = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: id }): Promise<TournamentDetailResponse> => {
-    // 404 maps to the sentinel the route boundary expects; other errors propagate.
-    const { error, data } = await safe(
-      apiOrpcClient(tournamentsContract, context.cookie).get({ id }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ context, data: id }): Promise<TournamentDetailResponse> =>
+    orNotFound(apiOrpcClient(tournamentsContract, context.cookie).get({ id })),
+  );
 
 const fetchGroupTournaments = createServerFn({ method: "GET" })
   .validator((input: string) => input)
@@ -49,50 +38,24 @@ const fetchGroupTournaments = createServerFn({ method: "GET" })
 const fetchParticipants = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: id }): Promise<TournamentParticipantListResponse> => {
-    // Map the deleted-tournament 404 to the sentinel like the other fetchers,
-    // so a stale tab polling a gone tournament doesn't spam Sentry with raw
-    // ORPCErrors.
-    const { error, data } = await safe(
-      apiOrpcClient(tournamentsContract, context.cookie).listParticipants({ id }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ context, data: id }): Promise<TournamentParticipantListResponse> =>
+    orNotFound(apiOrpcClient(tournamentsContract, context.cookie).listParticipants({ id })),
+  );
 
 const fetchSubmitLanding = createServerFn({ method: "GET" })
   .validator((input: string) => input)
-  .handler(async ({ data: token }): Promise<PublicTournamentLandingResponse> => {
-    const { error, data } = await safe(apiOrpcClient(publicTournamentsContract).landing({ token }));
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+  .handler(({ data: token }): Promise<PublicTournamentLandingResponse> =>
+    orNotFound(apiOrpcClient(publicTournamentsContract).landing({ token })),
+  );
 
 const fetchStaffInviteLanding = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data: token }): Promise<TournamentStaffInviteLandingResponse> => {
-    const { error, data } = await safe(
+  .handler(({ context, data: token }): Promise<TournamentStaffInviteLandingResponse> =>
+    orNotFound(
       apiOrpcClient(publicTournamentsContract, context.cookie).staffInviteLanding({ token }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return data;
-  });
+    ),
+  );
 
 export function tournamentsQueryOptions(userId: string) {
   return queryOptions({

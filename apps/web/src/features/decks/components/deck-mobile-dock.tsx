@@ -1,3 +1,5 @@
+import { totalQuantity } from "@openrift/shared/deck-rules";
+import { ZONE_LABELS, zoneExpected } from "@openrift/shared/deck-zones";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { Redo2Icon, Undo2Icon } from "lucide-react";
 
@@ -8,7 +10,6 @@ import { useDeckUndo } from "@/features/decks/components/deck-undo-controls";
 import { useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import { lastChange } from "@/features/decks/lib/deck-last-change";
-import { ZONE_LABELS, zoneExpected } from "@/features/decks/lib/deck-zone-labels";
 import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -45,9 +46,7 @@ export function DeckMobileDock({ deckId, zone }: { deckId: string; zone: DeckZon
     state.deckId === deckId ? state.past.at(-1) : undefined,
   );
 
-  const count = cards
-    .filter((card) => card.zone === zone)
-    .reduce((sum, card) => sum + card.quantity, 0);
+  const count = totalQuantity(cards.filter((card) => card.zone === zone));
   const expected = zoneExpected(zone, data.deck.format, cards);
   const change = previous ? lastChange(previous, cards) : null;
 

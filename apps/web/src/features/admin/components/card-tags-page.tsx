@@ -1,7 +1,9 @@
+import { matchesTextQuery } from "@openrift/shared/search-fold";
 import type { ClassifiedCardTag, TagCategoryResponse } from "@openrift/shared/types/api/admin";
 import { useState } from "react";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
+import { SearchInput } from "@/components/search-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -280,9 +282,8 @@ function ClassificationSection({
     ...categories.map((cat) => ({ value: cat.id, label: cat.label })),
   ];
 
-  const query = filter.trim().toLowerCase();
   const visible = tags
-    .filter((tag) => (query ? tag.tag.toLowerCase().includes(query) : true))
+    .filter((tag) => matchesTextQuery(filter, [tag.tag]))
     .filter((tag) => (unclassifiedOnly ? tag.categoryId === null : true))
     // Unclassified tags first, then alphabetical.
     .toSorted(
@@ -320,7 +321,7 @@ function ClassificationSection({
       columns={columns}
       data={visible}
       getRowKey={(t) => t.tag}
-      emptyText={query || unclassifiedOnly ? "No tags match." : "No printed tags found."}
+      emptyText={filter.trim() || unclassifiedOnly ? "No tags match." : "No printed tags found."}
       toolbar={
         <div className="space-y-3">
           <PageDescription>
@@ -328,11 +329,11 @@ function ClassificationSection({
             filters until classified here.
           </PageDescription>
           <div className="flex flex-wrap items-center gap-2">
-            <Input
+            <SearchInput
               value={filter}
-              onChange={(e) => setFilter(e.target.value)}
+              onValueChange={setFilter}
               placeholder="Filter tags…"
-              className="h-8 w-56"
+              className="w-56"
             />
             <Toggle
               variant="outline"

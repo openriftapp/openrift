@@ -30,7 +30,7 @@ export const helpArticles = new Map<string, HelpArticle>([
       description:
         "The story behind the app: why it exists, what it does differently, where it is still catching up, and what it runs on.",
       icon: ScaleIcon,
-      component: () => import("./articles/why-openrift"),
+      component: () => import("@/features/marketing/components/articles/why-openrift"),
     },
   ],
   [
@@ -41,7 +41,7 @@ export const helpArticles = new Map<string, HelpArticle>([
       description:
         "A short visual primer on the rules: how to win, what's in your deck, how a turn flows, and how battlefields are fought over.",
       icon: BookOpenIcon,
-      component: () => import("./articles/how-to-play"),
+      component: () => import("@/features/marketing/components/articles/how-to-play"),
       featureFlag: "help-how-to-play",
     },
   ],
@@ -52,7 +52,7 @@ export const helpArticles = new Map<string, HelpArticle>([
       title: "Cards, Printings & Copies",
       description: "What a card, a printing, and a copy are, and how the three levels connect.",
       icon: LayersIcon,
-      component: () => import("./articles/cards-printings-copies"),
+      component: () => import("@/features/marketing/components/articles/cards-printings-copies"),
     },
   ],
   [
@@ -63,7 +63,7 @@ export const helpArticles = new Map<string, HelpArticle>([
       description:
         "Organize cards by where they physically are (deck boxes, binders, or lent to friends) and control which are available for deck building.",
       icon: LibraryIcon,
-      component: () => import("./articles/collections"),
+      component: () => import("@/features/marketing/components/articles/collections"),
     },
   ],
   [
@@ -74,7 +74,7 @@ export const helpArticles = new Map<string, HelpArticle>([
       description:
         "Move collections between OpenRift and other Riftbound tools (Piltover Archive, RiftCore, and more) using CSV.",
       icon: ArrowRightLeftIcon,
-      component: () => import("./articles/import-export"),
+      component: () => import("@/features/marketing/components/articles/import-export"),
     },
   ],
   [
@@ -85,7 +85,7 @@ export const helpArticles = new Map<string, HelpArticle>([
       description:
         "Send the decklist you're looking at on another site straight to OpenRift, and see what you own and want on a Cardmarket seller's offers.",
       icon: PuzzleIcon,
-      component: () => import("./articles/browser-extension"),
+      component: () => import("@/features/marketing/components/articles/browser-extension"),
     },
   ],
   [
@@ -96,7 +96,7 @@ export const helpArticles = new Map<string, HelpArticle>([
       description:
         "Build, fill, and price the wishlists and tradelists that power group trading, including per-card overrides and the three list kinds.",
       icon: HeartIcon,
-      component: () => import("./articles/lists"),
+      component: () => import("@/features/marketing/components/articles/lists"),
     },
   ],
   [
@@ -107,7 +107,7 @@ export const helpArticles = new Map<string, HelpArticle>([
       description:
         "Set up a closed circle of friends to share wishlists and tradelists, pool cards into shared collections, and see who has what you want.",
       icon: UsersIcon,
-      component: () => import("./articles/groups"),
+      component: () => import("@/features/marketing/components/articles/groups"),
     },
   ],
   [
@@ -118,7 +118,7 @@ export const helpArticles = new Map<string, HelpArticle>([
       description:
         "Plan your deck by picking cards, filling zones, and validating against Constructed format rules.",
       icon: SwordsIcon,
-      component: () => import("./articles/deck-building"),
+      component: () => import("@/features/marketing/components/articles/deck-building"),
     },
   ],
   [
@@ -129,7 +129,7 @@ export const helpArticles = new Map<string, HelpArticle>([
       description:
         "Print proxy PDFs from your decks for playtesting, with card images or text placeholders.",
       icon: PrinterIcon,
-      component: () => import("./articles/proxy-printing"),
+      component: () => import("@/features/marketing/components/articles/proxy-printing"),
     },
   ],
   [
@@ -140,7 +140,7 @@ export const helpArticles = new Map<string, HelpArticle>([
       description:
         "Add the OpenRift bot to your Discord server to look up cards, unfurl deck codes, and quote rules right from chat.",
       icon: BotIcon,
-      component: () => import("./articles/discord-bot"),
+      component: () => import("@/features/marketing/components/articles/discord-bot"),
     },
   ],
   [
@@ -151,7 +151,7 @@ export const helpArticles = new Map<string, HelpArticle>([
       description:
         "Put cards in front of an audience: a full-screen show for window capture, or a transparent browser source you paste into OBS.",
       icon: MonitorPlayIcon,
-      component: () => import("./articles/stage"),
+      component: () => import("@/features/marketing/components/articles/stage"),
     },
   ],
   [
@@ -162,7 +162,7 @@ export const helpArticles = new Map<string, HelpArticle>([
       description:
         "Rank cards on a drag-and-drop board, then share it as a link, download it as an image, or rank live on stream.",
       icon: ListOrderedIcon,
-      component: () => import("./articles/tier-lists"),
+      component: () => import("@/features/marketing/components/articles/tier-lists"),
     },
   ],
   [
@@ -173,7 +173,7 @@ export const helpArticles = new Map<string, HelpArticle>([
       description:
         "Add one command to Nightbot, StreamElements, or Fossabot so viewers can look up any card from your stream chat.",
       icon: MessageSquareIcon,
-      component: () => import("./articles/chat-commands"),
+      component: () => import("@/features/marketing/components/articles/chat-commands"),
     },
   ],
   [
@@ -184,7 +184,7 @@ export const helpArticles = new Map<string, HelpArticle>([
       description:
         "Push entrant decklists from your registration system into a tournament's deck check: API keys, the payload, claim links, and limits.",
       icon: WebhookIcon,
-      component: () => import("./articles/tournament-decklist-api"),
+      component: () => import("@/features/marketing/components/articles/tournament-decklist-api"),
     },
   ],
 ]);

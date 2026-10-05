@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -248,7 +248,7 @@ export function DeckCoverDialog({
         </div>
 
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
+          <DialogCancel />
           <Button type="button" onClick={handleSave} disabled={isPending}>
             {m.common_save()}
           </Button>

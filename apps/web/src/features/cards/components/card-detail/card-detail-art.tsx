@@ -1,5 +1,5 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { getOrientation } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import { useCardTilt } from "@/features/cards/hooks/use-card-tilt";

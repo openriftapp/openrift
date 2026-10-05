@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, Share2Icon } from "lucide-react";
 import { useState } from "react";
 
+import { Eyebrow } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { CardLink } from "@/components/ui/card-link";
@@ -65,9 +66,9 @@ function TradeSuggestionRows({
     <ul className="flex flex-col gap-1.5">
       {rows.map((row) => (
         <li key={row.key} className="flex items-center gap-3">
-          <span className="text-success w-32 shrink-0 text-xs font-medium tracking-wide uppercase">
+          <Eyebrow as="span" className="text-success mb-0 w-32 shrink-0 text-xs">
             {row.label}
-          </span>
+          </Eyebrow>
           <CardArtThumbStack
             items={row.side.printingIds.map((printingId) => ({
               key: printingId,

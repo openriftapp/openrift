@@ -5,13 +5,13 @@ import { CheckIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageTopBar, PageTopBarSticky, PageTopBarTitle } from "@/components/layout/page-top-bar";
-import { Button } from "@/components/ui/button";
+import { SignedOutAuthButtons } from "@/components/signed-out-cta";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SignedOutAuthButtons } from "@/features/account/components/signed-out-cta";
 import { useClaimStaffInvite } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useTournamentStaffInviteLanding } from "@/features/tournaments/hooks/use-tournaments";
 import { staffRoleLabels } from "@/features/tournaments/lib/tournament-display";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -47,7 +47,7 @@ function StaffInviteAction({
     );
   }
   return (
-    <Button onClick={onConfirm} disabled={pending}>
+    <Button onClick={onConfirm} pending={pending}>
       {role === "judge"
         ? m.tournaments_staff_invite_accept_judge()
         : m.tournaments_staff_invite_accept_organizer()}
@@ -109,9 +109,12 @@ export function TournamentStaffInvitePage({ token }: { token: string }) {
               onConfirm={() => void handleConfirm()}
             />
             {userId ? (
-              <Button variant="ghost" render={<Link to="/tournaments" />} className="w-fit">
+              <Link
+                to="/tournaments"
+                className={buttonVariants({ variant: "ghost", className: "w-fit" })}
+              >
                 {m.tournaments_staff_invite_go_to_tournaments()}
-              </Button>
+              </Link>
             ) : null}
           </CardContent>
         </Card>

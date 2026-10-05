@@ -1,13 +1,19 @@
 import type { PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { StandingsTable } from "./standings-table";
+
+vi.mock("@/features/tournaments/hooks/use-region-label", () => ({
+  useRegionLabel: () => (slug: string) => slug.toUpperCase(),
+}));
 
 function makeRow(playerId: string, overrides: Partial<PodStandingRow> = {}): PodStandingRow {
   return {
     playerId,
     displayName: `Player ${playerId}`,
+    image: null,
+    gravatarHash: null,
     status: "active",
     droppedAfterRound: null,
     teamId: null,
@@ -83,7 +89,6 @@ describe("StandingsTable", () => {
       <StandingsTable
         standings={[makeRow("a", { displayName: "Ezreal", region: "emea" })]}
         regionsEnabled
-        regionLabel={(slug) => slug.toUpperCase()}
       />,
     );
     const [row] = tableRows();

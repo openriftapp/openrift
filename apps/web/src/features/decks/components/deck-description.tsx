@@ -1,12 +1,12 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { LinkHost } from "@openrift/shared/link-hosts";
 import { resolveLinkHost } from "@openrift/shared/link-hosts";
 import type { DeckLink } from "@openrift/shared/types/api/deck";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { ExternalLinkIcon, PlayIcon } from "lucide-react";
 import { Suspense } from "react";
 
 import { MarkdownText } from "@/components/markdown-text";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { useFullCatalog } from "@/features/cards/hooks/use-cards";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
@@ -118,13 +118,12 @@ export function DeckLinkChips({ links }: { links: readonly DeckLink[] }) {
   return (
     <div className="flex flex-wrap gap-2">
       {resolved.map(({ link, host }) => (
-        <Button
+        <a
+          href={link.url}
+          target="_blank"
+          rel="noreferrer"
           key={link.url}
-          variant="outline"
-          size="sm"
-          className="w-fit"
-          // oxlint-disable-next-line jsx-a11y/anchor-has-content, jsx-a11y/control-has-associated-label -- text label is inside the Button children
-          render={<a href={link.url} target="_blank" rel="noreferrer" />}
+          className={buttonVariants({ variant: "outline", size: "sm", className: "w-fit" })}
         >
           {host.kind === "video" ? (
             <PlayIcon className="size-4" />
@@ -132,7 +131,7 @@ export function DeckLinkChips({ links }: { links: readonly DeckLink[] }) {
             <ExternalLinkIcon className="size-4" />
           )}
           {link.title ?? host.label}
-        </Button>
+        </a>
       ))}
     </div>
   );

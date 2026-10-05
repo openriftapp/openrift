@@ -1,5 +1,6 @@
 import type { MetaDeckFacetsResponse } from "@openrift/shared/types/api/meta";
 
+import { MultiSelectCombobox } from "@/components/multi-select-combobox";
 import {
   Select,
   SelectContent,
@@ -7,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MultiSelectCombobox } from "@/features/cards/components/multi-select-combobox";
 import type { MetaDeckCostFilterData } from "@/features/meta/components/meta-deck-cost-filter";
 import { MetaDeckCostFilter } from "@/features/meta/components/meta-deck-cost-filter";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";

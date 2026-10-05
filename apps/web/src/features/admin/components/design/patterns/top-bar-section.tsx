@@ -43,7 +43,7 @@ export function TopBarSection() {
             <PageTopBar>
               <PageTopBarBack to="/admin" aria-label="Back to admin" />
               <PageTopBarTitle>Summoner Skirmish</PageTopBarTitle>
-              <Badge variant="muted" className="ml-2">
+              <Badge variant="neutral" className="ml-2">
                 Running
               </Badge>
               <PageTopBarActions>

@@ -1,11 +1,11 @@
 import { matchesCardQuery } from "@openrift/shared/card-search";
 import { formatRelativeTime } from "@openrift/shared/format-date";
 import type { PriceAssignBucket } from "@openrift/shared/price-assign-buckets";
+import { formatShortCodesArray } from "@openrift/shared/printing-code";
+import { pluralize } from "@openrift/shared/strings";
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
-import { formatShortCodesArray } from "@openrift/shared/utils";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { ImagePlusIcon, LoaderIcon, StarIcon } from "lucide-react";
+import { ImagePlusIcon, StarIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -26,12 +26,11 @@ import { CardNameCell } from "@/features/admin/components/card-name-cell";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
 import { DraftRowActions } from "@/features/admin/components/draft-row-actions";
 import {
-  acceptFavoritesFn,
+  useAcceptAllCards,
   useAcceptFavoritePrintings,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAllCards } from "@/features/admin/hooks/use-admin-card-queries";
 import { useCardsTableSort } from "@/features/admin/hooks/use-cards-table-sort";
-import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type { AdminCardListStatus, CardIssue } from "@/features/admin/lib/card-attention";
 import {
   ANY_ISSUE,
@@ -135,13 +134,13 @@ const SORT_VALUES: Record<string, (row: CardsRow) => string | number> = {
 
 function AcceptFavoriteButton({ cardSlug, codes }: { cardSlug: string; codes: string[] }) {
   const acceptFavorite = useAcceptFavoritePrintings();
-  const title = `Accept ${codes.length} trusted printing${codes.length === 1 ? "" : "s"}: ${formatShortCodesArray(codes).join(", ")}`;
+  const title = `Accept ${codes.length} trusted ${pluralize(codes.length, "printing")}: ${formatShortCodesArray(codes).join(", ")}`;
 
   return (
     <Button
       variant="outline"
       size="sm"
-      disabled={acceptFavorite.isPending}
+      pending={acceptFavorite.isPending}
       aria-label={title}
       title={title}
       onClick={(event) => {
@@ -155,7 +154,7 @@ function AcceptFavoriteButton({ cardSlug, codes }: { cardSlug: string; codes: st
             };
             if (result.printingsCreated > 0 && result.skipped.length === 0) {
               toast.success(
-                `Accepted ${result.printingsCreated} printing${result.printingsCreated === 1 ? "" : "s"}`,
+                `Accepted ${result.printingsCreated} ${pluralize(result.printingsCreated, "printing")}`,
               );
             } else if (result.printingsCreated > 0 && result.skipped.length > 0) {
               toast.warning(
@@ -172,7 +171,7 @@ function AcceptFavoriteButton({ cardSlug, codes }: { cardSlug: string; codes: st
         });
       }}
     >
-      {acceptFavorite.isPending ? <LoaderIcon className="animate-spin" /> : <StarIcon />}
+      <StarIcon />
       {codes.length}
     </Button>
   );
@@ -319,7 +318,6 @@ export function AdminCardsTable({
   setOptions: { value: string; label: string }[];
   isAdmin: boolean;
 }) {
-  const queryClient = useQueryClient();
   const { data: allCards } = useAllCards();
   const [acceptAllProgress, setAcceptAllProgress] = useState<{
     done: number;
@@ -468,34 +466,7 @@ export function AdminCardsTable({
     });
   }
 
-  const acceptAllCards = useMutation({
-    mutationFn: async (names: string[]) => {
-      let done = 0;
-      let failed = 0;
-      setAcceptAllProgress({ done: 0, total: names.length });
-
-      for (const name of names) {
-        try {
-          await acceptFavoritesFn({ data: { name } });
-        } catch {
-          failed++;
-        }
-        done++;
-        setAcceptAllProgress({ done, total: names.length });
-      }
-
-      setAcceptAllProgress(null);
-      return { accepted: done - failed, failed };
-    },
-    onSuccess: (result) => {
-      void queryClient.invalidateQueries({ queryKey: [...adminKeys.cards.all] });
-      if (result.failed === 0) {
-        toast.success(`Accepted ${result.accepted} new cards`);
-      } else {
-        toast.warning(`Accepted ${result.accepted}, failed ${result.failed}`);
-      }
-    },
-  });
+  const acceptAllCards = useAcceptAllCards(setAcceptAllProgress);
 
   const progressLabel = acceptAllProgress
     ? `${acceptAllProgress.done}/${acceptAllProgress.total}`
@@ -626,7 +597,7 @@ export function AdminCardsTable({
           {isAdmin && acceptableCards > 0 && (
             <Button
               variant="outline"
-              disabled={acceptAllCards.isPending}
+              pending={acceptAllCards.isPending}
               onClick={() => {
                 const names = data
                   .filter((r) => !r.cardSlug && r.hasFavorite)
@@ -634,22 +605,13 @@ export function AdminCardsTable({
                 acceptAllCards.mutate(names);
               }}
             >
-              {acceptAllCards.isPending ? (
-                <>
-                  <LoaderIcon className="size-3 animate-spin" />
-                  {progressLabel}
-                </>
-              ) : (
-                <>
-                  <ImagePlusIcon className="size-3" />
-                  Accept new cards ({acceptableCards})
-                </>
-              )}
+              <ImagePlusIcon className="size-3" />
+              {acceptAllCards.isPending ? progressLabel : `Accept new cards (${acceptableCards})`}
             </Button>
           )}
 
           <p className="text-muted-foreground ml-auto text-sm">
-            {rows.length} card{rows.length === 1 ? "" : "s"}
+            {rows.length} {pluralize(rows.length, "card")}
           </p>
         </div>
       }

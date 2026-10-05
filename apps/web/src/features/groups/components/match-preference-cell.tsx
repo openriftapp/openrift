@@ -5,17 +5,17 @@ import type {
 } from "@openrift/shared/types/api/trade-preferences";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 
+import { Eyebrow } from "@/components/heading";
 import { TextLink } from "@/components/ui/text-link";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
-import { formatterForMarketplace } from "@/lib/format";
-import { m } from "@/paraglide/messages.js";
-
 import {
   formatAbsolutePrice,
   pricePrefShortLabel,
   tradeTypeLabel,
-} from "./trade-preference-labels";
+} from "@/features/groups/lib/trade-preference-labels";
+import { formatterForMarketplace } from "@/lib/format";
+import { m } from "@/paraglide/messages.js";
 
 const PREF_TO_MARKETPLACE: Record<TradePricePref, Marketplace | null> = {
   cm_lowest: "cardmarket",
@@ -41,9 +41,9 @@ export function MatchPreferenceCell({
   const typeNode = pref.tradeType ? tradeTypeLabel(pref.tradeType) : null;
   return (
     <div className="flex min-w-0 flex-col gap-0.5 px-2 py-1">
-      <span className="text-muted-foreground text-2xs font-medium tracking-wide uppercase">
+      <Eyebrow as="span" className="text-2xs mb-0">
         {label}
-      </span>
+      </Eyebrow>
       <span className="text-xs whitespace-nowrap">
         {priceNode ?? m.trades_not_set()}
         {typeNode ? <span className="text-muted-foreground"> · {typeNode}</span> : null}

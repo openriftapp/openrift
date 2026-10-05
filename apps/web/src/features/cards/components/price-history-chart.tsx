@@ -2,85 +2,37 @@ import { formatDay } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import type { AnySnapshot } from "@openrift/shared/types/api/pricing";
 import type { Marketplace, TimeRange } from "@openrift/shared/types/pricing";
-import { CircleXIcon, Loader2Icon } from "lucide-react";
+import { CircleXIcon } from "lucide-react";
 import { useState } from "react";
 import { Area, CartesianGrid, ComposedChart, Line, ReferenceLine, XAxis, YAxis } from "recharts";
 
 import { MarketplaceIcon } from "@/components/marketplace-icon";
-import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { ChartConfig } from "@/components/ui/chart";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
+import { Spinner } from "@/components/ui/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  TIME_RANGES,
-  timeRangeLabel,
-} from "@/features/cards/components/price-history-chart-constants";
 import { PriceTrend } from "@/features/cards/components/price-trend";
 import { usePriceHistory } from "@/features/cards/hooks/use-price-history";
+import { TIME_RANGES, timeRangeLabel } from "@/features/cards/lib/price-history-chart-constants";
 import { priceHistoryPoint } from "@/features/cards/lib/price-history-points";
 import { formatterForMarketplace } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
-function buildChartConfig() {
+function headlineLabel(source: Marketplace): string {
+  if (source === "cardtrader") {
+    return m.card_detail_chart_zero();
+  }
+  return source === "cardnexus" ? m.card_detail_chart_low() : m.card_detail_chart_market();
+}
+
+function buildChartConfig(source: Marketplace) {
   return {
-    value: { label: m.card_detail_chart_market(), color: "var(--chart-1)" },
+    value: { label: headlineLabel(source), color: "var(--chart-1)" },
     low: { label: m.card_detail_chart_low(), color: "var(--chart-2)" },
   } satisfies ChartConfig;
-}
-
-interface PriceHistoryTooltipContentProps {
-  active?: boolean;
-  payload?: { payload: { date: string; value: number | null; low: number | null } }[];
-  source: Marketplace;
-  currencyFormatter: (value: number) => string;
-}
-
-function PriceHistoryTooltipContent({
-  active,
-  payload,
-  source,
-  currencyFormatter,
-}: PriceHistoryTooltipContentProps) {
-  const snap = payload?.[0]?.payload;
-  if (!active || !snap) {
-    return null;
-  }
-  const headlineLabel =
-    source === "cardtrader"
-      ? m.card_detail_chart_zero()
-      : source === "cardnexus"
-        ? m.card_detail_chart_low()
-        : m.card_detail_chart_market();
-  return (
-    <div className="border-border/50 bg-background rounded-lg border px-2.5 py-1.5 text-xs shadow-md">
-      <p className="mb-1 font-medium">{formatDay(snap.date)}</p>
-      <div className="space-y-0.5">
-        {snap.value !== null && snap.value !== undefined && (
-          <div className="flex items-center gap-2">
-            <span
-              className="size-2 rounded-full"
-              style={{ backgroundColor: "var(--color-value)" }}
-            />
-            <span className="text-muted-foreground">{headlineLabel}</span>
-            <span className="ml-auto font-mono font-medium tabular-nums">
-              {currencyFormatter(snap.value)}
-            </span>
-          </div>
-        )}
-        {snap.low !== null && snap.low !== undefined && (
-          <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full" style={{ backgroundColor: "var(--color-low)" }} />
-            <span className="text-muted-foreground">{m.card_detail_chart_low()}</span>
-            <span className="ml-auto font-mono font-medium tabular-nums">
-              {currencyFormatter(snap.low)}
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 }
 
 interface PriceHistoryChartProps {
@@ -150,7 +102,7 @@ export function PriceHistoryChart({
   }, []);
 
   const btnSize = "sm" as const;
-  const chartConfig = buildChartConfig();
+  const chartConfig = buildChartConfig(source);
 
   return (
     <div className="space-y-3">
@@ -220,7 +172,7 @@ export function PriceHistoryChart({
       {/* Full chart-height placeholder avoids a layout jump when the history loads. */}
       {isLoading && (
         <div className="flex aspect-[2.5/1] w-full items-center justify-center">
-          <Loader2Icon className="text-muted-foreground size-5 animate-spin" />
+          <Spinner className="text-muted-foreground size-5" />
         </div>
       )}
 
@@ -286,7 +238,32 @@ export function PriceHistoryChart({
             />
             <ChartTooltip
               content={
-                <PriceHistoryTooltipContent source={source} currencyFormatter={currencyFormatter} />
+                <ChartTooltipContent
+                  labelFormatter={(_, payload) => {
+                    const point: unknown = payload[0]?.payload;
+                    const date =
+                      typeof point === "object" && point !== null && "date" in point
+                        ? point.date
+                        : undefined;
+                    return typeof date === "string" ? formatDay(date) : null;
+                  }}
+                  formatter={(value, name) =>
+                    typeof value === "number" ? (
+                      <>
+                        <span
+                          className="size-2.5 shrink-0 rounded-sm"
+                          style={{ backgroundColor: `var(--color-${name})` }}
+                        />
+                        <span className="text-muted-foreground">
+                          {chartConfig[name === "low" ? "low" : "value"].label}
+                        </span>
+                        <span className="text-foreground ml-auto font-mono font-medium tabular-nums">
+                          {currencyFormatter(value)}
+                        </span>
+                      </>
+                    ) : null
+                  }
+                />
               }
             />
             <Area

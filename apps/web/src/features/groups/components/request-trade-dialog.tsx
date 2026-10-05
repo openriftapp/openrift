@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
-  DialogClose,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -195,7 +195,7 @@ export function RequestTradeDialog({
           )}
 
           <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
+            <DialogCancel />
             <Button type="submit" disabled={pending || !ready}>
               {verb}
             </Button>

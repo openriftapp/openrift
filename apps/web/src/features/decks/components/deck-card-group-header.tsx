@@ -1,3 +1,6 @@
+import { totalQuantity } from "@openrift/shared/deck-rules";
+
+import { CardIcon } from "@/components/card-icon";
 import type { DeckCardGroup, DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import { getTypeIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
@@ -20,7 +23,7 @@ export function DeckCardGroupHeader({
   if (group.label === null) {
     return null;
   }
-  const count = group.cards.reduce((sum, card) => sum + card.quantity, 0);
+  const count = totalQuantity(group.cards);
   const iconPath = groupBy === "type" ? getTypeIconPath(group.key, []) : undefined;
   return (
     <div
@@ -30,7 +33,7 @@ export function DeckCardGroupHeader({
         className,
       )}
     >
-      {iconPath && <img src={iconPath} alt="" className="size-3.5 brightness-0 dark:invert" />}
+      {iconPath && <CardIcon src={iconPath} className="size-3.5" />}
       <span className={truncate ? "truncate" : "whitespace-nowrap"}>
         {group.label} <span className="text-muted-foreground/60">· {count}</span>
       </span>

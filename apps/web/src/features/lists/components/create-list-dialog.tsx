@@ -1,22 +1,25 @@
 import type { ListIntent, ListKind, ListResponse } from "@openrift/shared/types/api/list";
 import type { Currency, TradePreference } from "@openrift/shared/types/api/trade-preferences";
-import { ChevronDownIcon, CopyIcon, SquareIcon, SquareStackIcon } from "lucide-react";
+import { CopyIcon, SquareIcon, SquareStackIcon } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 import { useState } from "react";
 
+import { Disclosure } from "@/components/disclosure";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { TradePreferenceEditor } from "@/features/groups/components/trade-preference-editor";
 import { useShareListWithFriendGroup } from "@/features/groups/hooks/use-friend-group-sharing";
 import { useFriendGroupsList } from "@/features/groups/hooks/use-friend-groups";
@@ -140,7 +143,6 @@ export function CreateListDialog({
   const [tradeDefaults, setTradeDefaults] = useState<TradePreference>(EMPTY_TRADE_PREFERENCE);
   const [currency, setCurrency] = useState<Currency>(defaultCurrency);
   const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(new Set());
-  const [tradePrefsOpen, setTradePrefsOpen] = useState(false);
   const createList = useCreateList();
   const bulkAdd = useBulkAddListEntries();
   const shareWithGroup = useShareListWithFriendGroup();
@@ -158,7 +160,6 @@ export function CreateListDialog({
       setTradeDefaults(EMPTY_TRADE_PREFERENCE);
       setCurrency(defaultCurrency);
       setSelectedGroupIds(new Set());
-      setTradePrefsOpen(false);
     }
     onOpenChange(next);
   };
@@ -220,105 +221,87 @@ export function CreateListDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            handleSubmit();
-          }}
-        >
-          <Input
-            autoFocus // oxlint-disable-line jsx-a11y/no-autofocus -- intentional inside dialog
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder={m.lists_create_name_placeholder()}
-          />
-          {availableKinds.length > 1 && (
-            <div className="flex flex-col gap-1">
-              {availableKinds.map((option) => {
-                const meta = KIND_OPTIONS[option];
-                const Icon = meta.icon;
-                const isSelected = kind === option;
-                return (
-                  <Pressable
-                    key={option}
-                    className={cn(
-                      "flex items-start gap-2 rounded-md border px-3 py-2 text-sm",
-                      isSelected
-                        ? "border-primary bg-primary/5"
-                        : "hover:bg-muted border-transparent",
-                    )}
-                    onClick={() => setKind(option)}
-                  >
-                    <Icon className="mt-0.5 size-4 shrink-0" />
-                    <div className="flex-1">
-                      <div className="font-medium">{kindLabel(meta.kind)}</div>
-                      <div className="text-muted-foreground text-xs">
-                        {kindHints?.[option] ?? kindHint(intent, option)}
-                      </div>
-                    </div>
-                  </Pressable>
-                );
-              })}
-            </div>
-          )}
-          {groups.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <div className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                {m.lists_create_group_visibility()}
-              </div>
-              <div className="text-muted-foreground text-xs">
-                {intent === "organize"
-                  ? m.lists_create_group_hint_organize()
-                  : m.lists_create_group_hint_trade()}
-              </div>
-              <ul className="flex flex-col gap-2">
-                {groups.map((group) => {
-                  const checkboxId = `create-list-group-${group.id}`;
-                  const isSelected = selectedGroupIds.has(group.id);
+        <DialogForm onSubmit={handleSubmit}>
+          <div className="flex flex-col gap-4">
+            <Input
+              autoFocus // oxlint-disable-line jsx-a11y/no-autofocus -- intentional inside dialog
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder={m.lists_create_name_placeholder()}
+            />
+            {availableKinds.length > 1 && (
+              <div className="flex flex-col gap-1">
+                {availableKinds.map((option) => {
+                  const meta = KIND_OPTIONS[option];
+                  const Icon = meta.icon;
+                  const isSelected = kind === option;
                   return (
-                    <li key={group.id} className="flex items-center gap-2">
-                      <Checkbox
-                        id={checkboxId}
-                        checked={isSelected}
-                        disabled={createList.isPending || bulkAdd.isPending}
-                        onCheckedChange={(checked) => {
-                          setSelectedGroupIds((prev) => {
-                            const next = new Set(prev);
-                            if (checked === false) {
-                              next.delete(group.id);
-                            } else {
-                              next.add(group.id);
-                            }
-                            return next;
-                          });
-                        }}
-                      />
-                      <label htmlFor={checkboxId} className="cursor-pointer text-sm">
-                        {group.name}
-                      </label>
-                    </li>
+                    <Pressable
+                      key={option}
+                      className={cn(
+                        "flex items-start gap-2 rounded-md border px-3 py-2 text-sm",
+                        isSelected
+                          ? "border-primary bg-primary/5"
+                          : "hover:bg-muted border-transparent",
+                      )}
+                      onClick={() => setKind(option)}
+                    >
+                      <Icon className="mt-0.5 size-4 shrink-0" />
+                      <div className="flex-1">
+                        <div className="font-medium">{kindLabel(meta.kind)}</div>
+                        <div className="text-muted-foreground text-xs">
+                          {kindHints?.[option] ?? kindHint(intent, option)}
+                        </div>
+                      </div>
+                    </Pressable>
                   );
                 })}
-              </ul>
-            </div>
-          )}
-          {supportsPrefs && (
-            <Collapsible open={tradePrefsOpen} onOpenChange={setTradePrefsOpen}>
-              <CollapsibleTrigger
-                type="button"
-                className="text-muted-foreground hover:text-foreground flex w-full cursor-pointer items-center gap-1.5 text-xs font-medium tracking-wide uppercase"
-              >
-                <ChevronDownIcon
-                  className={cn(
-                    "size-3.5 shrink-0 transition-transform",
-                    tradePrefsOpen && "rotate-180",
-                  )}
-                />
-                {m.lists_create_trade_preferences()}
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="flex flex-col gap-2 pt-2">
+              </div>
+            )}
+            {groups.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <SectionHeading as="h3" className="text-xs">
+                  {m.lists_create_group_visibility()}
+                </SectionHeading>
+                <div className="text-muted-foreground text-xs">
+                  {intent === "organize"
+                    ? m.lists_create_group_hint_organize()
+                    : m.lists_create_group_hint_trade()}
+                </div>
+                <ul className="flex flex-col gap-2">
+                  {groups.map((group) => {
+                    const checkboxId = `create-list-group-${group.id}`;
+                    const isSelected = selectedGroupIds.has(group.id);
+                    return (
+                      <li key={group.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={checkboxId}
+                          checked={isSelected}
+                          disabled={createList.isPending || bulkAdd.isPending}
+                          onCheckedChange={(checked) => {
+                            setSelectedGroupIds((prev) => {
+                              const next = new Set(prev);
+                              if (checked === false) {
+                                next.delete(group.id);
+                              } else {
+                                next.add(group.id);
+                              }
+                              return next;
+                            });
+                          }}
+                        />
+                        <label htmlFor={checkboxId} className="cursor-pointer text-sm">
+                          {group.name}
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+            {supportsPrefs && (
+              <Disclosure variant="plain" title={m.lists_create_trade_preferences()}>
+                <div className="flex flex-col gap-2">
                   <div className="text-muted-foreground text-xs">
                     {m.lists_create_trade_defaults_hint()}
                   </div>
@@ -331,32 +314,27 @@ export function CreateListDialog({
                     idPrefix="create-list"
                   />
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => handleOpenChange(false)}
-              disabled={createList.isPending || bulkAdd.isPending || shareWithGroup.isPending}
-            >
-              {m.common_cancel()}
-            </Button>
-            <Button
-              type="submit"
-              disabled={
-                !name.trim() ||
-                createList.isPending ||
-                bulkAdd.isPending ||
-                shareWithGroup.isPending ||
-                absoluteNeedsAmount
-              }
-            >
-              {m.common_create()}
-            </Button>
-          </DialogFooter>
-        </form>
+              </Disclosure>
+            )}
+            <DialogFooter>
+              <DialogCancel
+                disabled={createList.isPending || bulkAdd.isPending || shareWithGroup.isPending}
+              />
+              <Button
+                type="submit"
+                disabled={
+                  !name.trim() ||
+                  createList.isPending ||
+                  bulkAdd.isPending ||
+                  shareWithGroup.isPending ||
+                  absoluteNeedsAmount
+                }
+              >
+                {m.common_create()}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogForm>
       </DialogContent>
     </Dialog>
   );

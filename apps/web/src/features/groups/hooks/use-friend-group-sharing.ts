@@ -5,18 +5,17 @@ import type {
   FriendGroupSharedCollectionDetailResponse,
   FriendGroupSharedListDetailResponse,
 } from "@openrift/shared/types/api/friend-group";
-import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { collectionsKeys } from "@/features/collections/lib/collections-query-keys";
 import { friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
-import { useRequiredUserId } from "@/lib/auth-session";
-import { notFoundError } from "@/lib/server-fns/api-error";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useRequiredUserId } from "@/hooks/use-session";
+import { orNotFound } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 const fetchShareableLists = createServerFn({ method: "GET" })
   .validator((input: string) => input)
@@ -28,18 +27,9 @@ const fetchShareableLists = createServerFn({ method: "GET" })
 const fetchSharedList = createServerFn({ method: "GET" })
   .validator((input: { slug: string; listId: string }) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data }): Promise<FriendGroupSharedListDetailResponse> => {
-    const { error, data: result } = await safe(
-      apiOrpcClient(friendGroupsContract, context.cookie).getSharedList(data),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return result;
-  });
+  .handler(({ context, data }): Promise<FriendGroupSharedListDetailResponse> =>
+    orNotFound(apiOrpcClient(friendGroupsContract, context.cookie).getSharedList(data)),
+  );
 
 const fetchShareableCollections = createServerFn({ method: "GET" })
   .validator((input: string) => input)
@@ -51,18 +41,9 @@ const fetchShareableCollections = createServerFn({ method: "GET" })
 const fetchSharedCollection = createServerFn({ method: "GET" })
   .validator((input: { slug: string; collectionId: string }) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data }): Promise<FriendGroupSharedCollectionDetailResponse> => {
-    const { error, data: result } = await safe(
-      apiOrpcClient(friendGroupsContract, context.cookie).getSharedCollection(data),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw notFoundError();
-      }
-      throw error;
-    }
-    return result;
-  });
+  .handler(({ context, data }): Promise<FriendGroupSharedCollectionDetailResponse> =>
+    orNotFound(apiOrpcClient(friendGroupsContract, context.cookie).getSharedCollection(data)),
+  );
 
 function friendGroupSharedListQueryOptions(userId: string, slug: string, listId: string) {
   return queryOptions({

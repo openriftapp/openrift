@@ -4,7 +4,7 @@ import { UsersIcon } from "lucide-react";
 import { Suspense } from "react";
 
 import { EmptyState } from "@/components/empty-state";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { useGroupTrades, useUserTrades } from "@/features/groups/hooks/use-card-trades";
 import {
   useFriendGroupMatches,
@@ -12,7 +12,7 @@ import {
   useFriendGroups,
 } from "@/features/groups/hooks/use-friend-groups";
 import { buildTradeHubCards } from "@/features/groups/lib/trade-hub";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
 
 import { ShareYourListsBand, TradeHubMemberCard } from "./trade-hub";
@@ -68,9 +68,9 @@ function TradeHub({ slug, data }: { slug: string; data: FriendGroupDetailRespons
         title={m.trades_invite_title()}
         description={m.trades_invite_description()}
       >
-        <Button render={<Link to="/groups/$slug/members" params={{ slug }} />}>
+        <Link to="/groups/$slug/members" params={{ slug }} className={buttonVariants()}>
           {m.trades_view_members()}
-        </Button>
+        </Link>
       </EmptyState>
     );
   }

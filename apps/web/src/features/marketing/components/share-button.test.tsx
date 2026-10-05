@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { ShareButton } from "./support-page";
+import { ShareButton } from "./share-button";
 
 const ICON = <svg aria-hidden="true" />;
 

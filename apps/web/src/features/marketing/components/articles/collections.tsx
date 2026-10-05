@@ -14,11 +14,11 @@ import {
   Trash2Icon,
 } from "lucide-react";
 
-import { Heading } from "@/components/heading";
+import { Eyebrow, Heading } from "@/components/heading";
+import { PROSE_MARKUP, linkMarkup } from "@/components/message-markup";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
-import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard } from "@/features/marketing/components/article-cards";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -31,9 +31,9 @@ export default function CollectionsArticle() {
       <Callout>
         <div className="flex flex-col gap-3 text-sm sm:flex-row">
           <div className="bg-background flex flex-col gap-1.5 rounded-lg p-3 sm:w-48">
-            <span className="text-muted-foreground text-2xs mb-1 font-medium tracking-wide uppercase">
+            <Eyebrow as="span" className="text-2xs mb-1 font-medium">
               {m.help_collections_mock_collections()}
-            </span>
+            </Eyebrow>
             <SidebarItem
               icon={<PackageIcon className="size-3.5" />}
               label={m.help_collections_mock_all_cards()}
@@ -93,10 +93,8 @@ export default function CollectionsArticle() {
           <ParaglideMessage
             message={m.help_collections_physical_p2}
             markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              link: ({ children }) => (
-                <TextLink href="/help/cards-printings-copies">{children}</TextLink>
-              ),
+              strong: PROSE_MARKUP.strong,
+              link: linkMarkup("/help/cards-printings-copies"),
             }}
           />
         </p>
@@ -112,7 +110,7 @@ export default function CollectionsArticle() {
             <p>
               <ParaglideMessage
                 message={m.help_collections_availability_p1}
-                markup={{ em: ({ children }) => <em>{children}</em> }}
+                markup={PROSE_MARKUP}
               />
             </p>
             <p>{m.help_collections_availability_p2()}</p>
@@ -126,18 +124,13 @@ export default function CollectionsArticle() {
           <ParaglideMessage
             message={m.help_collections_start_p1}
             markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong: PROSE_MARKUP.strong,
+              strong2: PROSE_MARKUP.strong,
             }}
           />
         </p>
         <p className="text-muted-foreground mt-2">
-          <ParaglideMessage
-            message={m.help_collections_start_p2}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_collections_start_p2} markup={PROSE_MARKUP} />
         </p>
       </section>
 
@@ -166,12 +159,7 @@ export default function CollectionsArticle() {
         </div>
 
         <p className="text-muted-foreground mt-3">
-          <ParaglideMessage
-            message={m.help_collections_adding_done}
-            markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-            }}
-          />
+          <ParaglideMessage message={m.help_collections_adding_done} markup={PROSE_MARKUP} />
         </p>
       </section>
 
@@ -221,9 +209,9 @@ export default function CollectionsArticle() {
           <ParaglideMessage
             message={m.help_collections_sidebar_p1}
             markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              strong3: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong: PROSE_MARKUP.strong,
+              strong2: PROSE_MARKUP.strong,
+              strong3: PROSE_MARKUP.strong,
             }}
           />
         </p>
@@ -231,8 +219,8 @@ export default function CollectionsArticle() {
           <ParaglideMessage
             message={m.help_collections_sidebar_p2}
             markup={{
-              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
-              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong: PROSE_MARKUP.strong,
+              strong2: PROSE_MARKUP.strong,
             }}
           />
         </p>

@@ -1,21 +1,16 @@
 import { useDraggable } from "@dnd-kit/core";
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { DeckZone } from "@openrift/shared/types/enums";
-import { legendDisplayName } from "@openrift/shared/utils";
-import { ImageOffIcon, MinusIcon, PinIcon, PlusIcon, XIcon } from "lucide-react";
+import { ImageOffIcon, PinIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { InlineCountStepper } from "@/components/ui/inline-count-stepper";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AFTER_BORDER, CornerRibbon } from "@/features/cards/components/card-thumbnail";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { DeckCardPrintingMenu } from "@/features/decks/components/deck-card-printing-menu";
-import {
-  LANDSCAPE_THUMB_CLASS,
-  LANDSCAPE_THUMB_STYLE,
-  PORTRAIT_THUMB_CLASS,
-  PORTRAIT_THUMB_STYLE,
-} from "@/features/decks/components/deck-thumb-metrics";
 import { OwnershipBand } from "@/features/decks/components/ownership-band";
 import { useDeckBuilderActions } from "@/features/decks/hooks/use-deck-builder";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
@@ -23,6 +18,12 @@ import { cardInteractiveProps, deckCardDragData } from "@/features/decks/lib/dec
 import { DRAG_SOURCE_ZONES } from "@/features/decks/lib/deck-dnd-data";
 import { STEPPER_ZONES } from "@/features/decks/lib/deck-overview-derive";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
+import {
+  LANDSCAPE_THUMB_CLASS,
+  LANDSCAPE_THUMB_STYLE,
+  PORTRAIT_THUMB_CLASS,
+  PORTRAIT_THUMB_STYLE,
+} from "@/features/decks/lib/deck-thumb-metrics";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -114,49 +115,20 @@ function ThumbEditControls({
         </TooltipContent>
       </Tooltip>
       {showStepper && (
-        <span
+        <InlineCountStepper
+          size="xs"
           className={cn(
-            "bg-background/90 text-foreground absolute right-1 bottom-1 items-center gap-0.5 rounded-full p-0.5",
+            "bg-background/90 text-foreground absolute right-1 bottom-1 gap-0.5 rounded-full p-0.5",
             reveal,
           )}
-        >
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  className="size-5"
-                  aria-label={m.decks_editor_remove_one_copy({ card: cardName })}
-                  onClick={decrement}
-                />
-              }
-            >
-              <MinusIcon className="size-3" />
-            </TooltipTrigger>
-            <TooltipContent>{m.decks_editor_shift_remove_all()}</TooltipContent>
-          </Tooltip>
-          <span className="min-w-3 text-center text-xs leading-none font-medium tabular-nums">
-            {card.quantity}
-          </span>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  className="size-5"
-                  disabled={addRoom <= 0}
-                  aria-label={m.decks_editor_add_one_copy({ card: cardName })}
-                  onClick={increment}
-                />
-              }
-            >
-              <PlusIcon className="size-3" />
-            </TooltipTrigger>
-            {addRoom > 0 && <TooltipContent>{m.decks_editor_shift_add_max()}</TooltipContent>}
-          </Tooltip>
-        </span>
+          count={card.quantity}
+          decrementLabel={m.decks_editor_remove_one_copy({ card: cardName })}
+          incrementLabel={m.decks_editor_add_one_copy({ card: cardName })}
+          onDecrement={decrement}
+          onIncrement={addRoom > 0 ? increment : undefined}
+          decrementTooltip={m.decks_editor_shift_remove_all()}
+          incrementTooltip={addRoom > 0 ? m.decks_editor_shift_add_max() : undefined}
+        />
       )}
     </>
   );

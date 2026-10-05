@@ -2,9 +2,10 @@ import type { TournamentDetailResponse } from "@openrift/shared/types/api/tourna
 
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { NameField } from "@/features/tournaments/components/settings/name-field";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useServerSeededState } from "@/hooks/use-server-seeded-state";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
 export function NameSection({
@@ -17,14 +18,6 @@ export function NameSection({
   const updateTournament = useUpdateTournament();
   const [name, setName] = useServerSeededState(detail.name);
 
-  async function save() {
-    try {
-      await updateTournament.mutateAsync({ id: detail.id, name: name.trim() });
-    } catch {
-      // Reported by the global mutation error toast (see reportMutationError).
-    }
-  }
-
   return (
     <SettingsSection
       id="name"
@@ -32,19 +25,15 @@ export function NameSection({
       description={m.tournaments_settings_name_description()}
     >
       <div className="flex max-w-sm gap-2">
-        <Input
-          id="t-rename"
-          value={name}
-          maxLength={120}
-          disabled={locked}
-          aria-label={m.tournaments_settings_name_aria()}
-          onChange={(event) => setName(event.target.value)}
-        />
+        <NameField id="t-rename" value={name} disabled={locked} onChange={setName} />
         <Button
-          disabled={
-            locked || !name.trim() || name.trim() === detail.name || updateTournament.isPending
+          disabled={locked || !name.trim() || name.trim() === detail.name}
+          pending={updateTournament.isPending}
+          onClick={() =>
+            void runReportedMutation(() =>
+              updateTournament.mutateAsync({ id: detail.id, name: name.trim() }),
+            )
           }
-          onClick={() => void save()}
         >
           {m.common_save()}
         </Button>

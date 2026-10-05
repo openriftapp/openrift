@@ -1,6 +1,6 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import {
   BookOpenIcon,
   ChevronDownIcon,
@@ -15,11 +15,11 @@ import { Button } from "@/components/ui/button";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { PrintingVariantLabel } from "@/features/cards/components/printing-label";
+import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { useCollectionsList } from "@/features/collections/hooks/use-collections";
 import { useOwnedCollectionsByVariants } from "@/features/collections/hooks/use-owned-count";
 import type { VariantPopoverIntent } from "@/features/collections/stores/add-mode-store";
 import { formatCardId } from "@/lib/format";
-import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -268,7 +268,6 @@ export function VariantLocationsPopover({
       }}
     >
       {visibleGroups.map((group, groupIndex) => {
-        const rarityIcon = getFilterIconPath("rarities", group.printing.rarity);
         const expanded = !collapsible || expandedVariants.has(group.printing.id);
         const onVariantSelect = collapsible ? () => toggleVariant(group.printing.id) : undefined;
         return (
@@ -291,13 +290,10 @@ export function VariantLocationsPopover({
                     siblings={printings}
                     code={
                       <>
-                        {hasMixedRarities && rarityIcon && (
-                          <img
-                            src={rarityIcon}
-                            alt={group.printing.rarity}
-                            title={group.printing.rarity}
-                            width={28}
-                            height={28}
+                        {hasMixedRarities && (
+                          <RarityIcon
+                            rarity={group.printing.rarity}
+                            labelled
                             className="size-3.5"
                           />
                         )}

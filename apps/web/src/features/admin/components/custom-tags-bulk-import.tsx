@@ -1,6 +1,8 @@
+import { pluralize } from "@openrift/shared/strings";
 import type { CustomTagResponse } from "@openrift/shared/types/api/admin";
 import { useState } from "react";
 
+import { Disclosure } from "@/components/disclosure";
 import {
   SectionHeader,
   SectionHeaderDescription,
@@ -38,7 +40,7 @@ export function BulkImport({ tags }: { tags: CustomTagResponse[] }) {
   const plan: BulkImportPlan = planCustomTagBulkImport(text, allCards);
 
   const selectedTag = tags.find((t) => t.id === tagId);
-  const canImport = selectedTag !== undefined && plan.cardIds.length > 0 && !mutation.isPending;
+  const canImport = selectedTag !== undefined && plan.cardIds.length > 0;
 
   const tagsByCategory = Map.groupBy(tags, (t) => t.categoryLabel);
   const tagItems = tags.map((tag) => ({ value: tag.id, label: tag.label }));
@@ -124,15 +126,17 @@ export function BulkImport({ tags }: { tags: CustomTagResponse[] }) {
       <BulkImportPreview plan={plan} />
 
       <div className="flex items-center gap-3">
-        <Button disabled={!canImport} onClick={() => void handleImport()}>
-          {mutation.isPending
-            ? "Importing…"
-            : `Import ${plan.cardIds.length} card${plan.cardIds.length === 1 ? "" : "s"}`}
+        <Button
+          disabled={!canImport}
+          pending={mutation.isPending}
+          onClick={() => void handleImport()}
+        >
+          Import {plan.cardIds.length} {pluralize(plan.cardIds.length, "card")}
         </Button>
         {result && (
           <p className="text-sm">
             Added <span className="font-semibold">{result.added}</span> of {result.matched} matched
-            card{result.matched === 1 ? "" : "s"} to{" "}
+            {pluralize(result.matched, "card")} to{" "}
             <span className="font-semibold">{result.tagLabel}</span>
             {result.added < result.matched && (
               <span className="text-muted-foreground">
@@ -160,47 +164,51 @@ function BulkImportPreview({ plan }: { plan: BulkImportPlan }) {
   return (
     <div className="space-y-2 text-sm">
       <p>
-        Matched <span className="font-semibold">{plan.matched.length}</span> card
-        {plan.matched.length === 1 ? "" : "s"}.
+        Matched <span className="font-semibold">{plan.matched.length}</span>{" "}
+        {pluralize(plan.matched.length, "card")}.
       </p>
       {plan.unmatched.length > 0 && (
-        <details className="text-muted-foreground">
-          <summary className="cursor-pointer">
-            Unmatched: {plan.unmatched.length} name{plan.unmatched.length === 1 ? "" : "s"}
-          </summary>
-          <ul className="mt-1 list-disc pl-5">
+        <Disclosure
+          variant="plain"
+          title={`Unmatched: ${plan.unmatched.length} ${pluralize(plan.unmatched.length, "name")}`}
+          className="text-muted-foreground"
+        >
+          <ul className="list-disc pl-5">
             {plan.unmatched.map((name, i) => (
               <li key={`${name}-${i}`} className="font-mono">
                 {name}
               </li>
             ))}
           </ul>
-        </details>
+        </Disclosure>
       )}
       {plan.ambiguous.length > 0 && (
-        <details className="text-muted-foreground">
-          <summary className="cursor-pointer">
-            Ambiguous: {plan.ambiguous.length} name
-            {plan.ambiguous.length === 1 ? "" : "s"} (skipped)
-          </summary>
-          <ul className="mt-1 list-disc pl-5">
+        <Disclosure
+          variant="plain"
+          title={`Ambiguous: ${plan.ambiguous.length} ${pluralize(plan.ambiguous.length, "name")} (skipped)`}
+          className="text-muted-foreground"
+        >
+          <ul className="list-disc pl-5">
             {plan.ambiguous.map((a, i) => (
               <li key={`${a.name}-${i}`} className="font-mono">
                 {a.name} ({a.matches.length} matches)
               </li>
             ))}
           </ul>
-        </details>
+        </Disclosure>
       )}
       {plan.warnings.length > 0 && (
-        <details className="text-muted-foreground">
-          <summary className="cursor-pointer">Skipped lines: {plan.warnings.length}</summary>
-          <ul className="mt-1 list-disc pl-5">
+        <Disclosure
+          variant="plain"
+          title={`Skipped lines: ${plan.warnings.length}`}
+          className="text-muted-foreground"
+        >
+          <ul className="list-disc pl-5">
             {plan.warnings.map((w, i) => (
               <li key={i}>{w}</li>
             ))}
           </ul>
-        </details>
+        </Disclosure>
       )}
     </div>
   );

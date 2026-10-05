@@ -1,6 +1,5 @@
-import { normalizeNameForIdentity } from "@openrift/shared/utils";
-
-import { parseDeckImportData } from "@/features/decks/lib/deck-import-parsers";
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
+import { parseDeckImportData } from "@openrift/shared/deck-codecs/parse";
 
 export interface MinimalCard {
   id: string;

@@ -12,10 +12,10 @@ import {
   metaEventEmptyStatus,
   metaEventHasArchivedResults,
   metaEventSeoTitle,
+  metaOpponentFinishLine,
   metaPlayerClaimChips,
   metaShownLabel,
   recordSortValue,
-  splitLegendName,
   standingsGaps,
 } from "./meta-format";
 
@@ -96,48 +96,6 @@ describe("joinNames", () => {
 
   it("prints nothing for an empty list", () => {
     expect(joinNames([])).toBe("");
-  });
-});
-
-describe("splitLegendName", () => {
-  it("splits the composed name into champion and title", () => {
-    expect(splitLegendName("Lux, Lady of Luminosity")).toEqual({
-      champion: "Lux",
-      title: "Lady of Luminosity",
-    });
-  });
-
-  it("splits on the first comma only, so a title may hold its own", () => {
-    expect(splitLegendName("Azir, Emperor of the Sands, Ascended")).toEqual({
-      champion: "Azir",
-      title: "Emperor of the Sands, Ascended",
-    });
-  });
-
-  it("treats an untagged legend as all champion", () => {
-    expect(splitLegendName("Emperor of the Sands")).toEqual({
-      champion: "Emperor of the Sands",
-      title: null,
-    });
-  });
-
-  it("does not split on a comma with no space after it", () => {
-    expect(splitLegendName("Lux,Lady")).toEqual({ champion: "Lux,Lady", title: null });
-  });
-
-  // Known limitation, safe on today's data: every catalogue Legend is
-  // champion-tagged, and the four printed with a comma carry the ", Starter"
-  // qualifier that legendDisplayName trims before composing. An untagged Legend
-  // whose printed name kept a comma would reach here and be read as a pair.
-  it("reads an untagged comma name as a pair, which the composer never produces", () => {
-    expect(splitLegendName("Dark Child, Starter")).toEqual({
-      champion: "Dark Child",
-      title: "Starter",
-    });
-  });
-
-  it("has no halves to find in an empty name", () => {
-    expect(splitLegendName("")).toEqual({ champion: "", title: null });
   });
 });
 
@@ -370,6 +328,33 @@ describe("formatRank", () => {
     expect(formatRank(1, false)).toBe("1er");
     expect(formatRank(2, false)).toBe("2e");
     expect(formatRank(8, true)).toBe("Top 8");
+  });
+});
+
+describe("metaOpponentFinishLine", () => {
+  const baseGetLocale = getLocale;
+
+  afterEach(() => {
+    overwriteGetLocale(baseGetLocale);
+  });
+
+  const opponent = { rank: 3, rankIsTier: false, wins: 5, losses: 2, draws: 1 };
+
+  it("joins the finish and the record", () => {
+    expect(metaOpponentFinishLine(opponent)).toBe("finished 3rd · 5-2-1");
+  });
+
+  it("leaves the record out when the source has none", () => {
+    expect(metaOpponentFinishLine({ ...opponent, wins: null })).toBe("finished 3rd");
+  });
+
+  it("is null when the round had no opponent", () => {
+    expect(metaOpponentFinishLine(undefined)).toBeNull();
+  });
+
+  it("uses the active locale's ordinal", () => {
+    overwriteGetLocale(() => "de");
+    expect(metaOpponentFinishLine(opponent)).toBe("beendet als 3. · 5-2-1");
   });
 });
 

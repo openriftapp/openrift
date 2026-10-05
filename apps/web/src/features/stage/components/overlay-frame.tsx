@@ -1,3 +1,5 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { getOrientation } from "@openrift/shared/card-orientation";
 import type {
   OverlayCorner,
   OverlayPayload,
@@ -6,7 +8,6 @@ import type {
 } from "@openrift/shared/contracts/overlay";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { useEffect, useState } from "react";
 
 import { QrCode } from "@/components/ui/qr-code";

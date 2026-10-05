@@ -1,3 +1,4 @@
+import { getOrientation } from "@openrift/shared/card-orientation";
 import { earliestRelease } from "@openrift/shared/set-release";
 import type {
   AdminCardDetailResponse,
@@ -5,7 +6,6 @@ import type {
   AdminPrintingResponse,
 } from "@openrift/shared/types/api/admin";
 import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
-import { getOrientation } from "@openrift/shared/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRightIcon, PlusIcon } from "lucide-react";
@@ -13,7 +13,7 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { Heading } from "@/components/heading";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminCardMarketplaceSection } from "@/features/admin/components/admin-card-marketplace-section";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -494,23 +494,19 @@ export function ExistingCardDetailPage({
                   {allExpanded ? "Collapse all" : "Expand all"}
                 </Button>
                 {isAdmin && (
-                  <Button
-                    variant="default"
-                    render={
-                      <Link
-                        to="/admin/cards/$cardSlug/printings/create"
-                        params={{ cardSlug: cardId }}
-                      />
-                    }
+                  <Link
+                    to="/admin/cards/$cardSlug/printings/create"
+                    params={{ cardSlug: cardId }}
+                    className={buttonVariants()}
                   >
                     <PlusIcon />
                     Create printing
-                  </Button>
+                  </Link>
                 )}
               </div>
               {filteredPrintings.length > 0 && (
                 <div className="overflow-hidden rounded-md border">
-                  {printingsByLanguage.map(([language, languagePrintings]) => (
+                  {printingsByLanguage.map(({ language, printings: languagePrintings }) => (
                     <div key={language}>
                       <PrintingLanguageHeader code={language} className="px-3 pt-4 pb-2" />
                       {languagePrintings.map((printing) => (

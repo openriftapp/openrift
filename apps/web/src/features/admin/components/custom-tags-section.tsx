@@ -1,23 +1,15 @@
-import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
 import type {
   CustomTagCategoryResponse,
   CustomTagResponse,
 } from "@openrift/shared/types/api/admin";
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
-import { DialogForm } from "@/components/ui/dialog-form";
-import { Input } from "@/components/ui/input";
-import { DescriptionInput } from "@/features/admin/components/admin-crud-shared";
+import {
+  DescriptionInput,
+  DraftTextInput,
+  SlugAddInput,
+} from "@/features/admin/components/admin-crud-shared";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type {
   AdminCellSlotProps,
@@ -76,47 +68,6 @@ function TagCardCountCell({ row }: AdminCellSlotProps<CustomTagResponse>) {
   return <span className="font-mono text-sm">{row.cardCount}</span>;
 }
 
-function TagSlugAddInput({ draft, setDraft }: AdminDraftSlotProps<CustomTagDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.slug}
-      onChange={(e) => setDraft((prev) => ({ ...prev, slug: e.target.value.toLowerCase() }))}
-      placeholder="bandle-city"
-      className="h-8 w-48 font-mono"
-    />
-  );
-}
-
-function TagLabelInput({ draft, setDraft }: AdminDraftSlotProps<CustomTagDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.label}
-      onChange={(e) => setDraft((prev) => ({ ...prev, label: e.target.value }))}
-      className="h-8"
-    />
-  );
-}
-
-function TagLabelAddInput({ draft, setDraft }: AdminDraftSlotProps<CustomTagDraft>) {
-  if (!draft || !setDraft) {
-    return null;
-  }
-  return (
-    <Input
-      value={draft.label}
-      onChange={(e) => setDraft((prev) => ({ ...prev, label: e.target.value }))}
-      placeholder="Bandle City"
-      className="h-8"
-    />
-  );
-}
-
 interface TagCategorySelectProps extends AdminDraftSlotProps<CustomTagDraft> {
   items: { value: string; label: string }[];
 }
@@ -145,27 +96,15 @@ export function TagClearCardsAction({
     return null;
   }
   return (
-    <AlertDialog>
-      <AlertDialogTrigger render={<Button variant="ghost" />}>Clear</AlertDialogTrigger>
-      <AlertDialogContent>
-        <DialogForm onSubmit={() => void onClear(row)}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Clear “{row.label}”?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Removes this tag from{" "}
-              {row.cardCount === 1 ? "its 1 card" : `all ${row.cardCount} cards`}. The tag itself is
-              kept, so it can be filled again later.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogPrimitive.Close render={<Button type="submit" variant="destructive" />}>
-              Clear
-            </AlertDialogPrimitive.Close>
-          </AlertDialogFooter>
-        </DialogForm>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmActionButton
+      title={`Clear “${row.label}”?`}
+      description={`Removes this tag from ${row.cardCount === 1 ? "its 1 card" : `all ${row.cardCount} cards`}. The tag itself is kept, so it can be filled again later.`}
+      confirmLabel="Clear"
+      onConfirm={() => onClear(row)}
+      trigger={<Button variant="ghost" />}
+    >
+      Clear
+    </ConfirmActionButton>
   );
 }
 
@@ -189,14 +128,14 @@ export function TagsSection({
       header: "Slug",
       sortValue: (t) => t.slug,
       cell: <TagSlugCell />,
-      addCell: <TagSlugAddInput />,
+      addCell: <SlugAddInput<CustomTagDraft> placeholder="bandle-city" width="w-48" />,
     },
     {
       header: "Label",
       sortValue: (t) => t.label,
       cell: <TagLabelCell />,
-      editCell: <TagLabelInput />,
-      addCell: <TagLabelAddInput />,
+      editCell: <DraftTextInput<CustomTagDraft> field="label" />,
+      addCell: <DraftTextInput<CustomTagDraft> field="label" placeholder="Bandle City" />,
     },
     {
       header: "Category",

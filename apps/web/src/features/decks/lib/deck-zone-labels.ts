@@ -4,15 +4,6 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 import { m } from "@/paraglide/messages.js";
 
-export {
-  REQUIRED_ZONES,
-  ZONE_LABELS,
-  isZoneShown,
-  requiredZoneProgress,
-  zoneExpected,
-  zoneLabel,
-} from "@openrift/shared/deck-zones";
-
 /** Prefer `zoneEmptyHint` — this misses the Custom-Region battlefield override. */
 export function zoneEmptyHints(): Record<DeckZone, string> {
   return {

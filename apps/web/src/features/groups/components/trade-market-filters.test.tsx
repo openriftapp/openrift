@@ -20,7 +20,7 @@ vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({ printingsById: { "p-1": printing } }),
 }));
 vi.mock("@/components/user-avatar", () => ({ UserAvatar: () => null }));
-vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => mobile.value }));
+vi.mock("@/hooks/use-is-mobile", () => ({ useIsMobile: () => mobile.value }));
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ to, children, className }: { to: string; children?: ReactNode; className?: string }) => (
     <a href={to} className={className}>

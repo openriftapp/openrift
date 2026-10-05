@@ -39,9 +39,11 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-vi.mock("@/hooks/use-markers", () => ({ useMarkers: () => ({ data: { markers: [] } }) }));
+vi.mock("@/features/admin/hooks/use-markers", () => ({
+  useMarkers: () => ({ data: { markers: [] } }),
+}));
 
-vi.mock("@/hooks/use-languages", () => ({
+vi.mock("@/features/admin/hooks/use-languages", () => ({
   useLanguages: () => ({ data: { languages: [{ code: "EN", name: "English" }] } }),
 }));
 
@@ -100,11 +102,11 @@ describe("CardOverviewSection", () => {
   it("links each filled field to its row under fields and printings", () => {
     renderSection();
 
-    expect(screen.getByRole("button", { name: "Edit Name" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Edit Name" })).toHaveAttribute(
       "href",
       "/admin/cards/fury-rune?set=unl&section=printings&focusField=name",
     );
-    expect(screen.queryByRole("button", { name: "Edit Might" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Edit Might" })).toBeNull();
   });
 
   it("opens the printing a tile names", async () => {

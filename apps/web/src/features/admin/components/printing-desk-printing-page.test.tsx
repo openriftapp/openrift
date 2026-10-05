@@ -47,11 +47,11 @@ vi.mock("@/features/admin/hooks/use-admin-printing-citations", () => ({
   useUpdatePrintingCitation: () => ({ mutate: vi.fn() }),
 }));
 
-vi.mock("@/hooks/use-distribution-channels", () => ({
+vi.mock("@/features/admin/hooks/use-distribution-channels", () => ({
   useDistributionChannels: () => ({ data: { distributionChannels: [] } }),
 }));
 
-vi.mock("@/hooks/use-markers", () => ({
+vi.mock("@/features/admin/hooks/use-markers", () => ({
   useMarkers: () => ({ data: { markers: [{ id: "m-1", slug: "stamped", label: "Stamped" }] } }),
 }));
 
@@ -72,7 +72,7 @@ vi.mock("@/features/cards/lib/card-detail-queries", () => ({
   freshCardDetailQueryOptions: () => ({ queryKey: ["card-detail"] }),
 }));
 
-vi.mock("@/lib/auth-session", () => ({
+vi.mock("@/hooks/use-session", () => ({
   useSession: () => ({ data: { user: { name: "Nexus Scout" } } }),
 }));
 

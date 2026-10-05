@@ -191,7 +191,7 @@ export function FieldsSection() {
         >
           <DemoGrid>
             <Demo name="DatePicker" hint="The picker a form reaches for.">
-              <DatePicker value={date} onChange={setDate} onClear={() => setDate(undefined)} />
+              <DatePicker value={date} onValueChange={setDate} onClear={() => setDate(undefined)} />
             </Demo>
             <Demo name="Calendar" hint="The month grid inside the picker.">
               <Calendar mode="single" className="rounded-md border" />

@@ -3,10 +3,7 @@ import type { CutSize } from "@openrift/shared/pairing/group-cut-types";
 import type { FinalStandingRow, PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 
 import type { PodiumSeat } from "@/components/ui/podium";
-import {
-  formatPlayerRecord,
-  formatScore,
-} from "@/features/tournaments/components/standings-display";
+import { formatPlayerRecord, formatScore } from "@/features/tournaments/lib/standings-display";
 import { m } from "@/paraglide/messages.js";
 
 export function exitLabel(row: FinalStandingRow, cutSize: CutSize): string {
@@ -41,6 +38,8 @@ export function finalStandingsSeats(
       key: row.playerId,
       rank: row.place,
       name: row.displayName,
+      image: standing?.image ?? null,
+      gravatarHash: standing?.gravatarHash ?? null,
       score: standing === undefined ? "" : formatScore(standing.score),
       hint: [record, exitLabel(row, cutSize)].filter((part) => part !== null).join(" · "),
     };

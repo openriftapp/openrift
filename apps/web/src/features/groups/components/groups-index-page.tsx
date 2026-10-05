@@ -44,7 +44,7 @@ import { tradeVolumeLabel } from "@/features/groups/lib/friend-group-activity";
 import { deriveGroupSlug, groupSlugError } from "@/features/groups/lib/group-slug";
 import type { GroupSuggestionStrip } from "@/features/groups/lib/trade-derivation";
 import { groupSuggestionStripsBySlug } from "@/features/groups/lib/trade-derivation";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { markdownTeaser } from "@/lib/markdown-teaser";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";

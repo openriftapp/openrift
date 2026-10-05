@@ -16,11 +16,9 @@ import { CardLink } from "@/components/ui/card-link";
 import { ContributeHero } from "@/features/contribute/components/contribute-hero";
 import { MyMissingImagesSection } from "@/features/contribute/components/my-missing-images-section";
 import { YourSubmissionsCard } from "@/features/contribute/components/your-submissions-card";
-import { cornerClip } from "@/features/marketing/components/clip-frame";
+import { HeroCta } from "@/features/marketing/components/hero-cta";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-const CTA_CLIP = cornerClip(12);
 
 function steps(): { title: string; description: string }[] {
   return [
@@ -37,13 +35,9 @@ export function ContributeChooser() {
         title={m.contribute_chooser_hero_title()}
         lead={m.contribute_chooser_hero_lead()}
         action={
-          <Link
-            to="/contribute/image"
-            className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring font-heading mt-2 inline-flex h-11 items-center px-7 font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
-            style={{ clipPath: CTA_CLIP }}
-          >
+          <HeroCta to="/contribute/image" className="mt-2">
             {m.contribute_add_missing_image()}
-          </Link>
+          </HeroCta>
         }
       />
 

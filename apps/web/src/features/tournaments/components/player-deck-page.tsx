@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 import { EmptyState } from "@/components/empty-state";
 import { PageTopBarButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
 import {
@@ -107,7 +108,10 @@ function PlayerDeckBody({ data }: { data: PlayerDeckCheckEntryDetailResponse }) 
       </div>
 
       {entry.state === "withdrawn" ? (
-        <Banner>{m.tournaments_my_deck_withdrawn_banner()}</Banner>
+        <Alert variant="warning">
+          <TriangleAlertIcon />
+          <AlertDescription>{m.tournaments_my_deck_withdrawn_banner()}</AlertDescription>
+        </Alert>
       ) : null}
       {entry.playerMessage ? (
         <Callout className="text-sm">
@@ -118,11 +122,14 @@ function PlayerDeckBody({ data }: { data: PlayerDeckCheckEntryDetailResponse }) 
         </Callout>
       ) : null}
       {entry.state === "editable" && entry.windowOpen ? (
-        <Banner>
-          {m.tournaments_my_deck_not_submitted_banner({
-            deadline: closesAt ? m.tournaments_my_deck_before_deadline({ time: closesAt }) : "",
-          })}
-        </Banner>
+        <Alert variant="warning">
+          <TriangleAlertIcon />
+          <AlertDescription>
+            {m.tournaments_my_deck_not_submitted_banner({
+              deadline: closesAt ? m.tournaments_my_deck_before_deadline({ time: closesAt }) : "",
+            })}
+          </AlertDescription>
+        </Alert>
       ) : null}
       {entry.state === "submitted" && entry.windowOpen ? (
         <p className="text-muted-foreground text-sm">
@@ -156,15 +163,18 @@ function PlayerDeckBody({ data }: { data: PlayerDeckCheckEntryDetailResponse }) 
         {entry.canEdit ? m.tournaments_my_deck_can_edit_note() : ""}
       </p>
       {data.violations.length > 0 ? (
-        <Banner>
-          <ul className="flex list-disc flex-col gap-1 pl-5">
-            {data.violations.map((violation) => (
-              <li key={`${violation.zone}:${violation.code}:${violation.cardId ?? ""}`}>
-                {violation.message}
-              </li>
-            ))}
-          </ul>
-        </Banner>
+        <Alert variant="warning">
+          <TriangleAlertIcon />
+          <AlertDescription>
+            <ul className="flex list-disc flex-col gap-1 pl-5">
+              {data.violations.map((violation) => (
+                <li key={`${violation.zone}:${violation.code}:${violation.cardId ?? ""}`}>
+                  {violation.message}
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       <DeckMetaSummary data={data} />
@@ -214,15 +224,6 @@ function sharingSummary(allowPublish: boolean, allowName: boolean, allowRiotId: 
     return m.tournaments_my_deck_sharing_riot_only();
   }
   return m.tournaments_my_deck_sharing_anonymous();
-}
-
-function Banner({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="border-warning/40 bg-warning-soft flex items-start gap-2 rounded-md border p-3 text-sm">
-      <TriangleAlertIcon className="text-warning mt-0.5 size-4 shrink-0" />
-      <div className="min-w-0 flex-1">{children}</div>
-    </div>
-  );
 }
 
 function DeckMetaSummary({ data }: { data: PlayerDeckCheckEntryDetailResponse }) {
@@ -375,7 +376,7 @@ function SaveToDecksButton({ data }: { data: PlayerDeckCheckEntryDetailResponse 
   };
 
   return (
-    <PageTopBarButton disabled={isSaving} onClick={save}>
+    <PageTopBarButton pending={isSaving} onClick={save}>
       {m.tournaments_my_deck_save_to_decks()}
     </PageTopBarButton>
   );
@@ -406,7 +407,7 @@ function PlayerDeckActions({
           allowNameSharing={entry.allowNameSharing}
           allowRiotIdSharing={entry.allowRiotIdSharing}
         />
-        <PageTopBarPrimaryButton disabled={submit.isPending} onClick={() => submit.mutate(ref)}>
+        <PageTopBarPrimaryButton pending={submit.isPending} onClick={() => submit.mutate(ref)}>
           {m.tournaments_my_deck_submit_for_review()}
         </PageTopBarPrimaryButton>
       </>
@@ -414,24 +415,21 @@ function PlayerDeckActions({
   }
   if (entry.canUnlock) {
     return (
-      <PageTopBarButton disabled={unlock.isPending} onClick={() => unlock.mutate(ref)}>
+      <PageTopBarButton pending={unlock.isPending} onClick={() => unlock.mutate(ref)}>
         {m.tournaments_my_deck_unlock_to_edit()}
       </PageTopBarButton>
     );
   }
   if (entry.unlockRequested) {
     return (
-      <PageTopBarButton
-        disabled={cancelRequest.isPending}
-        onClick={() => cancelRequest.mutate(ref)}
-      >
+      <PageTopBarButton pending={cancelRequest.isPending} onClick={() => cancelRequest.mutate(ref)}>
         {m.tournaments_my_deck_cancel_unlock_request()}
       </PageTopBarButton>
     );
   }
   if (entry.canRequestUnlock) {
     return (
-      <PageTopBarButton disabled={unlock.isPending} onClick={() => unlock.mutate(ref)}>
+      <PageTopBarButton pending={unlock.isPending} onClick={() => unlock.mutate(ref)}>
         {m.tournaments_my_deck_request_unlock()}
       </PageTopBarButton>
     );

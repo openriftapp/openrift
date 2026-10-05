@@ -40,6 +40,29 @@ describe("groupPrintingsByLanguage", () => {
     expect(groups.at(-1)?.printings).toEqual([klingon]);
   });
 
+  it("sorts several unknown languages alphabetically after the known ones", () => {
+    const sc = stubPrinting({ id: "p-sc", language: "SC" });
+    const jp = stubPrinting({ id: "p-jp", language: "JP" });
+    const groups = groupPrintingsByLanguage([sc, jp, en], ["EN", "DE"]);
+
+    expect(groups.map((group) => group.language)).toEqual(["EN", "JP", "SC"]);
+  });
+
+  it("groups any shape that carries a language", () => {
+    const groups = groupPrintingsByLanguage(
+      [
+        { id: "a", language: "DE" },
+        { id: "b", language: "EN" },
+      ],
+      ["EN", "DE"],
+    );
+
+    expect(groups).toEqual([
+      { language: "EN", printings: [{ id: "b", language: "EN" }] },
+      { language: "DE", printings: [{ id: "a", language: "DE" }] },
+    ]);
+  });
+
   it("keeps every printing of a language together, in input order", () => {
     const enAlt = stubPrinting({ id: "p-en-alt", language: "EN" });
     const groups = groupPrintingsByLanguage([en, de, enAlt], ["EN", "DE"]);

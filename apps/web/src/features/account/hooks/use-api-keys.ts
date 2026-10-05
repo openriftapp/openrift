@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { authClient } from "@/features/account/lib/auth-client";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 
 /** A listed key: the server strips the hashed `key` field from list responses. */
 export type ApiKeySummary = Omit<ApiKey, "key">;

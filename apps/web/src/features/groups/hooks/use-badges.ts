@@ -1,10 +1,10 @@
 import { badgesContract } from "@openrift/shared/contracts/badges";
 import type { BadgesResponse } from "@openrift/shared/types/api/badges";
-import { useQuery } from "@tanstack/react-query";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { badgesKeys } from "@/features/groups/lib/groups-query-keys";
-import { useUserId } from "@/lib/auth-session";
+import { useUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -23,9 +23,8 @@ export function useBadges() {
   const userId = useUserId();
   return useQuery({
     queryKey: badgesKeys.all(userId ?? ""),
-    queryFn: () => fetchBadges(),
+    queryFn: userId === null ? skipToken : () => fetchBadges(),
     refetchInterval: 120_000,
     refetchOnWindowFocus: true,
-    enabled: userId !== null,
   });
 }

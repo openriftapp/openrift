@@ -6,13 +6,13 @@ import { cn } from "@/lib/utils";
 
 // `competitive` pins `text-primary`/`border-primary`: the dark palette's default
 // outline color is amber, which would collide with `premier`'s gold.
-const TIER_STYLE: Record<MetaEventTier, { variant: "outline" | "muted"; className: string }> = {
+const TIER_STYLE: Record<MetaEventTier, { variant: "outline" | "neutral"; className: string }> = {
   premier: { variant: "outline", className: "border-border-accent text-border-accent" },
   competitive: {
     variant: "outline",
     className: "border-primary text-primary",
   },
-  local: { variant: "muted", className: "" },
+  local: { variant: "neutral", className: "" },
 };
 
 export function MetaTierBadge({ tier, className }: { tier: MetaEventTier; className?: string }) {

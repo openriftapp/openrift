@@ -26,13 +26,13 @@ export function DeckFolderChips({
   return (
     <div className={cn("flex min-w-0 flex-wrap items-center gap-1", className)}>
       {shown.map((name) => (
-        <Badge key={name} variant="muted" className="max-w-full">
+        <Badge key={name} variant="neutral" className="max-w-full">
           <span className="truncate">{name}</span>
         </Badge>
       ))}
       {hidden.length > 0 && (
         <Tooltip>
-          <TooltipTrigger render={<Badge variant="muted" />}>+{hidden.length}</TooltipTrigger>
+          <TooltipTrigger render={<Badge variant="neutral" />}>+{hidden.length}</TooltipTrigger>
           <TooltipContent>{hidden.join(", ")}</TooltipContent>
         </Tooltip>
       )}

@@ -21,8 +21,8 @@ import {
   updateCopyMetadata,
   waitForInsert,
 } from "@/features/collections/lib/copies-write";
+import { useUserId } from "@/hooks/use-session";
 import { trackEvent } from "@/lib/analytics";
-import { useUserId } from "@/lib/auth-session";
 import { reportMutationError } from "@/lib/query-client";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { m } from "@/paraglide/messages.js";

@@ -1,5 +1,5 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 
 import { PrintingCountActions } from "@/features/cards/components/printing-count-actions";
 import { WishlistButton } from "@/features/cards/components/wishlist-heart";

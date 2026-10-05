@@ -43,6 +43,8 @@ const LUX: MetaPlayerLegendEntry = {
   legend: {
     cardId: "legend-lux",
     name: "Lux, Lady of Luminosity",
+    character: "Lux",
+    epithet: "Lady of Luminosity",
     slug: "lady-of-luminosity",
     imageId: "img-lux",
     domains: ["calm"],
@@ -57,6 +59,8 @@ const VI: MetaPlayerLegendEntry = {
   legend: {
     cardId: "legend-vi",
     name: "Vi, Piltover's Enforcer",
+    character: "Vi",
+    epithet: "Piltover's Enforcer",
     slug: "piltovers-enforcer",
     imageId: null,
     domains: ["fury"],

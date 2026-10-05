@@ -42,6 +42,8 @@ const DECK: MetaDeckSummary = {
   format: "standard",
   legendCardId: "card-kennen",
   legendName: "Kennen, Heart of the Tempest",
+  legendCharacter: "Kennen",
+  legendEpithet: "Heart of the Tempest",
   legendSlug: "kennen",
   legendArchiveSlug: "kennen-heart-of-the-tempest",
   legendImageId: null,

@@ -54,11 +54,17 @@ vi.mock("@/features/meta/hooks/use-meta-submissions", () => ({
 
 // The calendar popover has its own test; here the date only has to be typed.
 vi.mock("@/components/ui/date-picker", () => ({
-  DatePicker: ({ value, onChange }: { value?: string; onChange?: (iso: string) => void }) => (
+  DatePicker: ({
+    value,
+    onValueChange,
+  }: {
+    value?: string;
+    onValueChange?: (iso: string) => void;
+  }) => (
     <input
       aria-label="Day it was played"
       value={value ?? ""}
-      onChange={(event) => onChange?.(event.target.value)}
+      onChange={(event) => onValueChange?.(event.target.value)}
     />
   ),
 }));

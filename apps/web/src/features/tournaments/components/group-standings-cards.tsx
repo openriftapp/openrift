@@ -3,14 +3,13 @@ import type {
   GroupQualificationRowView,
   GroupStageGroupView,
   GroupStageView,
-  GroupStandingRowView,
 } from "@openrift/shared/types/api/pod-tournament";
 import { TriangleAlertIcon } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
-import { RankBand } from "@/components/ui/rank-band";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import {
   Table,
@@ -20,7 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserAvatar } from "@/components/user-avatar";
+import { PlayerChip } from "@/features/tournaments/components/player-chip";
+import { StandingsRankCell } from "@/features/tournaments/components/standings-rank-cell";
 import { TournamentLegend } from "@/features/tournaments/components/tournament-legend";
 import {
   cutLineExplanation,
@@ -29,6 +29,7 @@ import {
   groupCutTierLabels,
   groupPlaceLabel,
 } from "@/features/tournaments/lib/group-cut-display";
+import { formatMatchRecord } from "@/features/tournaments/lib/standings-display";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -37,29 +38,28 @@ function DecidedByBadge({ tier }: { tier: GroupCutTierView | null }) {
     return null;
   }
   return (
-    <Badge variant={tier === "meta_pending" ? "warning" : "muted"}>
+    <Badge variant={tier === "meta_pending" ? "warning" : "neutral"}>
       {groupCutTierLabels()[tier]}
     </Badge>
   );
 }
 
-function RankMark({ place }: { place: number }) {
+function SeedBadge({ seed }: { seed: number | null }) {
+  if (seed === null) {
+    return null;
+  }
   return (
-    <RankBand rank={place} text={String(place)} filled={false} className="min-w-10 rounded-md" />
+    <Badge variant="outline" className="tabular-nums">
+      #{seed}
+    </Badge>
   );
 }
 
-function PlayerCell({ row }: { row: Pick<GroupStandingRowView, "displayName" | "status"> }) {
+function GwRate({ rate }: { rate: number | null }) {
   return (
-    <div className="flex min-w-0 items-center gap-2">
-      <UserAvatar name={row.displayName} size="sm" className="shrink-0" />
-      <span className="truncate font-medium">{row.displayName}</span>
-      {row.status === "dropped" ? (
-        <span className="text-muted-foreground shrink-0 text-sm">
-          {m.tournaments_group_dropped_marker()}
-        </span>
-      ) : null}
-    </div>
+    <span className="tabular-nums" title={m.tournaments_group_col_gw()}>
+      {m.tournaments_group_col_gw()} {formatWinRate(rate)}
+    </span>
   );
 }
 
@@ -85,48 +85,73 @@ export function GroupStandingsCard({ group }: { group: GroupStageGroupView }) {
         </div>
         <p className="text-muted-foreground text-sm">{groupDescription(group)}</p>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-14">#</TableHead>
-            <TableHead>{m.tournaments_group_col_player()}</TableHead>
-            <TableHead>{m.tournaments_group_col_legend()}</TableHead>
-            <TableHead className="text-right">{m.tournaments_group_col_points()}</TableHead>
-            <TableHead className="text-right">{m.tournaments_standings_col_record()}</TableHead>
-            <TableHead className="text-right">{m.tournaments_group_col_gw()}</TableHead>
-            <TableHead>{m.tournaments_group_decided_by_head()}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {group.standings.map((row) => (
-            <TableRow key={row.playerId} className={cn(row.status === "dropped" && "opacity-50")}>
-              <TableCell>
-                <RankMark place={row.place} />
-              </TableCell>
-              <TableCell>
-                <PlayerCell row={row} />
-              </TableCell>
-              <TableCell>
+      <RowList variant="divided" className="sm:hidden">
+        {group.standings.map((row) => (
+          <RowListItem key={row.playerId} className={cn(row.status === "dropped" && "opacity-50")}>
+            <StandingsRankCell rank={row.place} />
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <PlayerChip name={row.displayName} dropped={row.status === "dropped"} />
+              {row.legendCardId === null && row.legendName === null ? null : (
                 <TournamentLegend
                   legendCardId={row.legendCardId}
-                  legendName={row.legendName}
+                  fallback={row}
                   className="text-sm"
                 />
-              </TableCell>
-              <TableCell className="text-right font-semibold tabular-nums">{row.points}</TableCell>
-              <TableCell className="text-right tabular-nums">
-                {row.wins}-{row.losses}-{row.draws}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatWinRate(row.gameWinRate)}
-              </TableCell>
-              <TableCell>
+              )}
+              <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 text-sm">
+                <span className="tabular-nums">{formatMatchRecord(row)}</span>
+                <GwRate rate={row.gameWinRate} />
                 <DecidedByBadge tier={row.decidedBy} />
-              </TableCell>
+              </div>
+            </div>
+            <span className="shrink-0 font-semibold tabular-nums">{row.points}</span>
+          </RowListItem>
+        ))}
+      </RowList>
+      <div className="hidden sm:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-14">#</TableHead>
+              <TableHead>{m.tournaments_group_col_player()}</TableHead>
+              <TableHead>{m.tournaments_group_col_legend()}</TableHead>
+              <TableHead className="text-right">{m.tournaments_group_col_points()}</TableHead>
+              <TableHead className="text-right">{m.tournaments_standings_col_record()}</TableHead>
+              <TableHead className="text-right">{m.tournaments_group_col_gw()}</TableHead>
+              <TableHead>{m.tournaments_group_decided_by_head()}</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {group.standings.map((row) => (
+              <TableRow key={row.playerId} className={cn(row.status === "dropped" && "opacity-50")}>
+                <TableCell>
+                  <StandingsRankCell rank={row.place} />
+                </TableCell>
+                <TableCell>
+                  <PlayerChip name={row.displayName} dropped={row.status === "dropped"} />
+                </TableCell>
+                <TableCell>
+                  <TournamentLegend
+                    legendCardId={row.legendCardId}
+                    fallback={row}
+                    className="text-sm"
+                  />
+                </TableCell>
+                <TableCell className="text-right font-semibold tabular-nums">
+                  {row.points}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">{formatMatchRecord(row)}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatWinRate(row.gameWinRate)}
+                </TableCell>
+                <TableCell>
+                  <DecidedByBadge tier={row.decidedBy} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </section>
   );
 }
@@ -144,7 +169,7 @@ function PlaceTierChips({
         <SectionHeading as="h3" size="sm">
           {groupPlaceLabel(rows[0]?.place ?? 0)}
         </SectionHeading>
-        <Badge variant={qualified ? "success" : "muted"}>
+        <Badge variant={qualified ? "success" : "neutral"}>
           {qualified ? m.tournaments_group_tier_all_in() : m.tournaments_group_tier_none_in()}
         </Badge>
       </div>
@@ -171,79 +196,113 @@ function PlaceTierTable({
   legendTiebreak: boolean;
 }) {
   const firstOutIndex = rows.findIndex((row) => !row.qualified);
+  const isCutLine = (index: number) => index === firstOutIndex && index > 0;
   return (
     <div className="flex flex-col gap-2">
       <SectionHeading as="h3" size="sm">
         {groupPlaceLabel(rows[0]?.place ?? 0)}
       </SectionHeading>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-12">{m.tournaments_group_col_seed()}</TableHead>
-            <TableHead>{m.tournaments_group_col_player()}</TableHead>
-            <TableHead>{m.tournaments_group_col_group()}</TableHead>
-            <TableHead className="text-right">{m.tournaments_group_col_mw()}</TableHead>
-            <TableHead className="text-right">{m.tournaments_group_col_gw()}</TableHead>
-            {legendTiebreak ? (
-              <>
-                <TableHead className="text-right">
-                  {m.tournaments_group_col_legend_count()}
-                </TableHead>
-                <TableHead className="text-right">{m.tournaments_group_col_meta_share()}</TableHead>
-              </>
-            ) : null}
-            <TableHead>{m.tournaments_group_decided_by_head()}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((row, index) => (
-            <TableRow
-              key={row.playerId}
-              data-cut-line={index === firstOutIndex && index > 0 ? "" : undefined}
-              className={cn(
-                !row.qualified && "text-muted-foreground",
-                index === firstOutIndex && index > 0 && "border-t-primary/60 border-t-2",
-              )}
-            >
-              <TableCell>
-                {row.seed === null ? null : (
-                  <Badge variant="outline" className="tabular-nums">
-                    #{row.seed}
-                  </Badge>
-                )}
-              </TableCell>
-              <TableCell>
-                <div className="flex min-w-0 items-center gap-2">
-                  <UserAvatar name={row.displayName} size="sm" className="shrink-0" />
-                  <span className="truncate font-medium">{row.displayName}</span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge variant="muted">{row.groupLabel}</Badge>
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatWinRate(row.matchWinRate)}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatWinRate(row.gameWinRate)}
-              </TableCell>
+      <RowList className="sm:hidden">
+        {rows.map((row, index) => (
+          <RowListItem
+            key={row.playerId}
+            data-cut-line={isCutLine(index) ? "" : undefined}
+            className={cn(
+              !row.qualified && "text-muted-foreground",
+              isCutLine(index) && "border-t-primary/60 border-t-2 pt-2",
+            )}
+          >
+            <SeedBadge seed={row.seed} />
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <PlayerChip name={row.displayName}>
+                <Badge variant="neutral">{row.groupLabel}</Badge>
+              </PlayerChip>
+              <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 text-sm">
+                <span className="tabular-nums" title={m.tournaments_group_col_mw()}>
+                  {m.tournaments_group_col_mw()} {formatWinRate(row.matchWinRate)}
+                </span>
+                <GwRate rate={row.gameWinRate} />
+                {legendTiebreak ? (
+                  <>
+                    <span className="tabular-nums">
+                      {m.tournaments_group_col_legend_count()} {row.legendCount ?? "-"}
+                    </span>
+                    <span className="tabular-nums">
+                      {m.tournaments_group_col_meta_share()} {formatMetaShare(row.metaShare)}
+                    </span>
+                  </>
+                ) : null}
+                <DecidedByBadge tier={row.decidedBy} />
+              </div>
+            </div>
+          </RowListItem>
+        ))}
+      </RowList>
+      <div className="hidden sm:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">{m.tournaments_group_col_seed()}</TableHead>
+              <TableHead>{m.tournaments_group_col_player()}</TableHead>
+              <TableHead>{m.tournaments_group_col_group()}</TableHead>
+              <TableHead className="text-right">{m.tournaments_group_col_mw()}</TableHead>
+              <TableHead className="text-right">{m.tournaments_group_col_gw()}</TableHead>
               {legendTiebreak ? (
                 <>
-                  <TableCell className="text-right tabular-nums">
-                    {row.legendCount ?? "-"}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatMetaShare(row.metaShare)}
-                  </TableCell>
+                  <TableHead className="text-right">
+                    {m.tournaments_group_col_legend_count()}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {m.tournaments_group_col_meta_share()}
+                  </TableHead>
                 </>
               ) : null}
-              <TableCell>
-                <DecidedByBadge tier={row.decidedBy} />
-              </TableCell>
+              <TableHead>{m.tournaments_group_decided_by_head()}</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row, index) => (
+              <TableRow
+                key={row.playerId}
+                data-cut-line={isCutLine(index) ? "" : undefined}
+                className={cn(
+                  !row.qualified && "text-muted-foreground",
+                  isCutLine(index) && "border-t-primary/60 border-t-2",
+                )}
+              >
+                <TableCell>
+                  <SeedBadge seed={row.seed} />
+                </TableCell>
+                <TableCell>
+                  <PlayerChip name={row.displayName} />
+                </TableCell>
+                <TableCell>
+                  <Badge variant="neutral">{row.groupLabel}</Badge>
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatWinRate(row.matchWinRate)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatWinRate(row.gameWinRate)}
+                </TableCell>
+                {legendTiebreak ? (
+                  <>
+                    <TableCell className="text-right tabular-nums">
+                      {row.legendCount ?? "-"}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatMetaShare(row.metaShare)}
+                    </TableCell>
+                  </>
+                ) : null}
+                <TableCell>
+                  <DecidedByBadge tier={row.decidedBy} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

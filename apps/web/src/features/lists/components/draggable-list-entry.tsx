@@ -1,7 +1,7 @@
 import { useDraggable } from "@dnd-kit/core";
 import type { ReactNode } from "react";
 
-import type { ListEntryDragData } from "@/features/collections/components/dnd-types";
+import type { ListEntryDragData } from "@/features/collections/lib/dnd-types";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 
 interface DraggableListEntryProps {

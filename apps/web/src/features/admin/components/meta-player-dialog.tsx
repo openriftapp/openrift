@@ -1,9 +1,10 @@
-import { formatRank } from "@openrift/shared/meta-standings";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { formatRankEnglish } from "@openrift/shared/meta-standings";
+import { pluralize } from "@openrift/shared/strings";
 import type { AdminMetaPlayer } from "@openrift/shared/types/api/meta";
 import type { Card } from "@openrift/shared/types/catalog";
 import type { DeckZone, MetaListStatus } from "@openrift/shared/types/enums";
 import { META_LIST_STATUSES } from "@openrift/shared/types/enums";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useDebouncedValue } from "@tanstack/react-pacer";
 import { XIcon } from "lucide-react";
@@ -369,7 +370,7 @@ export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: Meta
                     size="xs"
                     onClick={() => set("rank", String(rank))}
                   >
-                    {formatRank(rank, draft.rankIsTier)}
+                    {formatRankEnglish(rank, draft.rankIsTier)}
                   </Button>
                 ))}
               </div>
@@ -502,9 +503,9 @@ export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: Meta
                 <p>
                   Read as a {parsed.detected}:{" "}
                   <span className="font-medium">
-                    {summary.copies} {summary.copies === 1 ? "copy" : "copies"}
+                    {summary.copies} {pluralize(summary.copies, "copy", "copies")}
                   </span>{" "}
-                  across {summary.rows} {summary.rows === 1 ? "row" : "rows"}.
+                  across {summary.rows} {pluralize(summary.rows, "row")}.
                 </p>
                 <p className="text-muted-foreground">
                   {zoneOrder
@@ -533,9 +534,8 @@ export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: Meta
                     {parsed.unresolved.length > 0 && (
                       <>
                         <p>
-                          {parsed.unresolved.length} line
-                          {parsed.unresolved.length === 1 ? "" : "s"} matched no card and will be
-                          dropped:
+                          {parsed.unresolved.length} {pluralize(parsed.unresolved.length, "line")}{" "}
+                          matched no card and will be dropped:
                         </p>
                         <ul className="list-inside list-disc">
                           {parsed.unresolved.map((line) => (

@@ -1,18 +1,18 @@
-import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
+import { normalizeNameForIdentity } from "@openrift/shared/card-name";
+import type {
+  AdminMarketplaceName,
+  MappingPrintingResponse,
+  StagedProductResponse,
+  UnifiedMappingGroupResponse,
+} from "@openrift/shared/types/api/admin";
 import {
   ALL_MARKETPLACES,
   LANGUAGE_KEYED_MARKETPLACES,
   marketplaceCarriesLanguage,
 } from "@openrift/shared/types/pricing";
-import { normalizeNameForIdentity } from "@openrift/shared/utils";
 import { marketplaceFinish, WellKnown } from "@openrift/shared/well-known";
 
-import type {
-  MappingGroup,
-  MappingPrinting,
-  StagedProduct,
-  UnifiedMappingGroup,
-} from "@/features/admin/lib/price-mappings-types";
+import type { MappingGroup } from "@/features/admin/lib/price-mappings-types";
 
 const SUGGESTION_THRESHOLD = 100;
 
@@ -23,7 +23,7 @@ const WEAK_MATCH_SCORE = 50;
 const PRICE_PREMIUM_THRESHOLD_CENTS = 10_000;
 
 interface Suggestion {
-  product: StagedProduct;
+  product: StagedProductResponse;
   score: number;
 }
 
@@ -59,8 +59,8 @@ function extractSuffix(productName: string, cardName: string): string | null {
 type PriceRank = "cheapest" | "priciest";
 
 function scorePrintingProduct(
-  printing: MappingPrinting,
-  product: StagedProduct,
+  printing: MappingPrintingResponse,
+  product: StagedProductResponse,
   cardName: string,
   enforceLanguage: boolean,
   crossLanguageShortCodes: ReadonlySet<string>,
@@ -170,17 +170,18 @@ function computeSuggestions(
   }
 
   interface Pair {
-    printing: MappingPrinting;
-    product: StagedProduct;
+    printing: MappingPrintingResponse;
+    product: StagedProductResponse;
     score: number;
   }
   // Language is part of the key: on CardTrader two products can share an
   // (externalId, finish) pair but differ in language (EN vs SC SKUs).
-  const productKey = (product: StagedProduct): string =>
+  const productKey = (product: StagedProductResponse): string =>
     `${product.externalId}|${product.finish}|${product.language ?? ""}`;
   // This 2-tuple key is used where evidence is meant to carry across
   // languages (cross-language and price-rank hints).
-  const productKey2 = (product: StagedProduct): string => `${product.externalId}|${product.finish}`;
+  const productKey2 = (product: StagedProductResponse): string =>
+    `${product.externalId}|${product.finish}`;
   const emptyShortCodes: ReadonlySet<string> = new Set();
   // Must see the full bucket (staged + assigned): accepting one suggestion
   // moves a product to assigned, which would otherwise erase a 2-product bucket's signal.
@@ -242,12 +243,12 @@ function computeSuggestions(
 }
 
 function buildPriceRankEvidence(
-  products: readonly StagedProduct[],
+  products: readonly StagedProductResponse[],
 ): ReadonlyMap<string, PriceRank> {
-  const productKey = (p: StagedProduct): string => `${p.externalId}|${p.finish}`;
-  const priceOf = (p: StagedProduct): number | null =>
+  const productKey = (p: StagedProductResponse): string => `${p.externalId}|${p.finish}`;
+  const priceOf = (p: StagedProductResponse): number | null =>
     p.lowCents ?? p.marketCents ?? p.midCents ?? null;
-  const bucketKey = (p: StagedProduct): string =>
+  const bucketKey = (p: StagedProductResponse): string =>
     `${p.finish}::${p.language ?? ""}::${p.groupKind ?? ""}`;
 
   const byBucket = Map.groupBy(products, bucketKey);
@@ -262,7 +263,8 @@ function buildPriceRankEvidence(
     if (priceA === null || priceB === null || priceA === priceB) {
       continue;
     }
-    const [cheap, pricey]: [StagedProduct, StagedProduct] = priceA < priceB ? [a, b] : [b, a];
+    const [cheap, pricey]: [StagedProductResponse, StagedProductResponse] =
+      priceA < priceB ? [a, b] : [b, a];
     out.set(productKey(cheap), "cheapest");
     out.set(productKey(pricey), "priciest");
   }
@@ -273,7 +275,7 @@ function buildPriceRankEvidence(
  * Two printings are siblings when they share every identity axis except
  * language; language-aggregate marketplaces sell one SKU covering all of them.
  */
-function allSiblings(printings: MappingPrinting[]): boolean {
+function allSiblings(printings: MappingPrintingResponse[]): boolean {
   const [first, ...rest] = printings;
   if (!first) {
     return true;
@@ -320,7 +322,7 @@ export function productSuggestionKey(
  * marketplace view, run once per marketplace.
  */
 export function computeProductSuggestions(
-  group: UnifiedMappingGroup,
+  group: UnifiedMappingGroupResponse,
 ): Map<string, ProductSuggestion[]> {
   const out = new Map<string, ProductSuggestion[]>();
   for (const marketplace of ALL_MARKETPLACES) {
@@ -352,7 +354,7 @@ export function computeProductSuggestions(
  * whatever printings a sibling SKU on the same externalId is already mapped to.
  */
 function computeWeakProductSuggestions(
-  group: UnifiedMappingGroup,
+  group: UnifiedMappingGroupResponse,
 ): Map<string, ProductSuggestion[]> {
   const out = new Map<string, ProductSuggestion[]>();
   const cardPrintingFinishes = new Set(
@@ -416,7 +418,7 @@ function computeWeakProductSuggestions(
  * sibling SKU should resolve to the same short_code.
  */
 function buildCrossLanguageEvidence(
-  group: UnifiedMappingGroup,
+  group: UnifiedMappingGroupResponse,
   marketplace: AdminMarketplaceName,
 ): ReadonlyMap<string, ReadonlySet<string>> {
   const assignments = group[marketplace].assignments;
@@ -442,7 +444,7 @@ function buildCrossLanguageEvidence(
 }
 
 function toMarketplaceGroup(
-  group: UnifiedMappingGroup,
+  group: UnifiedMappingGroupResponse,
   marketplace: AdminMarketplaceName,
 ): MappingGroup {
   const mkData = group[marketplace];

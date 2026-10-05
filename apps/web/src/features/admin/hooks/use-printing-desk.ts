@@ -16,9 +16,9 @@ import {
   deskPrintingsQueryOptions,
 } from "@/features/admin/lib/printing-desk-queries";
 import { cardsKeys, catalogKeys, promosKeys } from "@/features/cards/lib/cards-query-keys";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
 /** Plain, not suspense: switching the list mode must not throw the whole page back to its pending state. */
 export function useDeskPrintings(mode: DeskListMode) {

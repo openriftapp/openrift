@@ -1,5 +1,5 @@
 import { enumLabel } from "@openrift/shared/enum-label";
-import { slugifyName } from "@openrift/shared/utils";
+import { slugifyName } from "@openrift/shared/strings";
 import { useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
@@ -19,6 +19,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useCreateCard } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { errorText } from "@/lib/error-text";
 
 type NumField = "might" | "energy" | "power" | "mightBonus";
 
@@ -104,7 +105,7 @@ export function CreateCardPage() {
           });
         },
         onError: (error) => {
-          setErrorMsg(error instanceof Error ? error.message : "Failed to create card");
+          setErrorMsg(errorText(error, "Failed to create card"));
         },
       },
     );

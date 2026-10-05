@@ -12,6 +12,7 @@ import { CardLink } from "@/components/ui/card-link";
 import { TextLink } from "@/components/ui/text-link";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { DeskSegmented, DeskThumb } from "@/features/admin/components/printing-desk-shared";
+import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { useDeskCardPrintings } from "@/features/admin/hooks/use-printing-desk";
 import {
   basePrintingForLanguage,
@@ -20,7 +21,6 @@ import {
 import { imageCountText } from "@/features/admin/lib/printing-desk-filter";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
-import { useMarkers } from "@/hooks/use-markers";
 
 export function PrintingDeskCardPage({ cardSlug }: { cardSlug: string }) {
   const { data } = useDeskCardPrintings(cardSlug);
@@ -129,8 +129,8 @@ function PrintingTile({
       <DeskThumb row={printing} className="w-full" variant="400w" />
       <p className="font-mono text-sm">{formatPrintingCode(printing.publicCode)}</p>
       <div className="flex flex-wrap gap-1">
-        <Badge variant="muted">{rarityLabel}</Badge>
-        <Badge variant="muted">{finishLabel}</Badge>
+        <Badge variant="neutral">{rarityLabel}</Badge>
+        <Badge variant="neutral">{finishLabel}</Badge>
         {printing.markerSlugs.map((slug) => (
           <Badge key={slug}>{markerLabels.get(slug) ?? slug}</Badge>
         ))}

@@ -1,7 +1,7 @@
 import type { CardType, DeckZone } from "@openrift/shared/types/enums";
 import { describe, expect, it } from "vitest";
 
-import { curveOutRate, deckCompositionSeed, mulberry32 } from "@/features/decks/lib/deck-curve-out";
+import { curveOutRate, deckCompositionSeed } from "@/features/decks/lib/deck-curve-out";
 import { stubDeckBuilderCard } from "@/test/factories";
 
 function mainCard(cost: { energy: number | null; power?: number | null }, quantity = 1) {
@@ -13,19 +13,6 @@ function mainCard(cost: { energy: number | null; power?: number | null }, quanti
     quantity,
   });
 }
-
-describe("mulberry32", () => {
-  it("is deterministic for a seed and stays in [0, 1)", () => {
-    const a = mulberry32(42);
-    const b = mulberry32(42);
-    for (let index = 0; index < 100; index++) {
-      const value = a();
-      expect(value).toBe(b());
-      expect(value).toBeGreaterThanOrEqual(0);
-      expect(value).toBeLessThan(1);
-    }
-  });
-});
 
 describe("deckCompositionSeed", () => {
   it("ignores entry order and non-main zones", () => {

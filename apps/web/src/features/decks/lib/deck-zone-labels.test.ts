@@ -1,17 +1,15 @@
-import { ZONE_EXPECTED } from "@openrift/shared/deck-zones";
+import {
+  ZONE_EXPECTED,
+  ZONE_LABELS,
+  requiredZoneProgress,
+  zoneExpected,
+  zoneLabel,
+} from "@openrift/shared/deck-zones";
 import type { DeckFormat } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { describe, expect, it } from "vitest";
 
-import {
-  requiredZoneProgress,
-  ZONE_LABELS,
-  zoneEmptyHint,
-  zoneEmptyHints,
-  zoneEmptyReadOnlyLabel,
-  zoneExpected,
-  zoneLabel,
-} from "./deck-zone-labels";
+import { zoneEmptyHint, zoneEmptyHints, zoneEmptyReadOnlyLabel } from "./deck-zone-labels";
 
 describe("zoneLabel", () => {
   it("returns the canonical descriptive label for known zones", () => {

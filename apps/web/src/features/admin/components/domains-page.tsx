@@ -2,25 +2,25 @@ import {
   ColorCell,
   ColorInput,
   ColorPreviewCell,
-  LabelAddInput,
+  DraftTextInput,
   LabelCell,
-  LabelInput,
   SlugAddInput,
   SlugCell,
   validateHexColor,
   validateSlugAndLabel,
   WellKnownCell,
 } from "@/features/admin/components/admin-crud-shared";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminColumnDef } from "@/features/admin/components/admin-table";
-import { flatReorder } from "@/features/admin/lib/admin-reorder";
 import {
   useCreateDomain,
   useDeleteDomain,
   useDomains,
   useReorderDomains,
   useUpdateDomain,
-} from "@/hooks/use-domains";
+} from "@/features/admin/hooks/use-domains";
+import { flatReorder } from "@/features/admin/lib/admin-reorder";
 
 interface DomainRow {
   slug: string;
@@ -49,8 +49,8 @@ const columns: AdminColumnDef<DomainRow, DomainDraft>[] = [
     width: "w-40",
     sortValue: (domain) => domain.label,
     cell: <LabelCell<DomainRow> />,
-    editCell: <LabelInput<DomainDraft> />,
-    addCell: <LabelAddInput<DomainDraft> placeholder="New Domain" />,
+    editCell: <DraftTextInput<DomainDraft> field="label" />,
+    addCell: <DraftTextInput<DomainDraft> field="label" placeholder="New Domain" />,
   },
   {
     header: "Color",
@@ -85,7 +85,7 @@ export function DomainsPage() {
       data={domains}
       getRowKey={(domain) => domain.slug}
       emptyText="No domains yet."
-      title="Domains"
+      topBar={(actions) => <AdminPageTopBar title="Domains" actions={actions} />}
       add={{
         emptyDraft: { slug: "", label: "", color: "#737373" },
         onSave: (draft) =>

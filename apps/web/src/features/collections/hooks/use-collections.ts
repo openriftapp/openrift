@@ -18,11 +18,11 @@ import { useCopiesCollection } from "@/features/collections/hooks/use-copies-col
 import { startSyncIfNeeded } from "@/features/collections/lib/collection-cleanup";
 import { getCollectionsCollection } from "@/features/collections/lib/collections-collection";
 import { compareCollections } from "@/features/collections/lib/collections-order";
-import { publicCollectionQueryOptions } from "@/features/collections/lib/collections-query";
+import { publicCollectionQueryOptions } from "@/features/collections/lib/collections-queries";
 import { reorderCollections } from "@/features/collections/lib/collections-write";
 import type { CopiesCollection } from "@/features/collections/lib/copies-write";
 import { friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
-import { useRequiredUserId } from "@/lib/auth-session";
+import { useRequiredUserId } from "@/hooks/use-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 

@@ -6,16 +6,15 @@ import type {
 import { resolveEffectiveTradePreference } from "@openrift/shared/types/api/trade-preferences";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
-import { m } from "@/paraglide/messages.js";
-
-import { TRADE_TYPE_ICON } from "./trade-preference-icon";
+import { TRADE_TYPE_ICON } from "@/features/groups/lib/trade-preference-icon";
 import {
   PRICE_PREF_ABBR,
   formatAbsolutePrice,
   pricePrefShortLabel,
   tradeTypeShortLabel,
-} from "./trade-preference-labels";
+} from "@/features/groups/lib/trade-preference-labels";
+import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface ReadOnlyProps {
   effective: EffectiveTradePreference;

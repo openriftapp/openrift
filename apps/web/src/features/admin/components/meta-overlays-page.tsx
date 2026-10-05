@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { PageDescription, PageTopBarButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { MetaIgnoredSourcesDialog } from "@/features/admin/components/meta-ignored-sources-dialog";
 import { MetaOverlayUploadDialog } from "@/features/admin/components/meta-overlay-upload-dialog";
@@ -20,29 +20,7 @@ import {
   totalTriageCount,
 } from "@/features/meta/lib/meta-review-queue";
 
-function TriageChip({
-  active,
-  count,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  count: number;
-  onClick: () => void;
-  children: string;
-}) {
-  return (
-    <Button
-      variant={active ? "secondary" : "outline"}
-      size="sm"
-      aria-pressed={active}
-      onClick={onClick}
-    >
-      {children}
-      <Badge variant={active ? "count" : "muted"}>{count}</Badge>
-    </Button>
-  );
-}
+const ALL = "all";
 
 export function MetaOverlaysPage() {
   const { data } = useAdminMetaOverlays();
@@ -95,29 +73,28 @@ export function MetaOverlaysPage() {
         <p className="text-muted-foreground">Nothing waiting.</p>
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-2">
-            <TriageChip
-              active={triage === null}
-              count={total}
-              onClick={() => {
-                setPicked(null);
-              }}
-            >
+          <ToggleGroup
+            variant="outline"
+            size="sm"
+            spacing={2}
+            className="flex-wrap"
+            value={[triage ?? ALL]}
+            aria-label="Review filter"
+            onValueChange={([next]) => {
+              setPicked(META_REVIEW_TRIAGE.find((key) => key === next) ?? null);
+            }}
+          >
+            <ToggleGroupItem value={ALL}>
               All
-            </TriageChip>
+              <Badge variant={triage === null ? "count" : "neutral"}>{total}</Badge>
+            </ToggleGroupItem>
             {META_REVIEW_TRIAGE.filter((key) => counts[key] > 0).map((key) => (
-              <TriageChip
-                key={key}
-                active={triage === key}
-                count={counts[key]}
-                onClick={() => {
-                  setPicked(key);
-                }}
-              >
+              <ToggleGroupItem key={key} value={key}>
                 {META_REVIEW_TRIAGE_LABELS[key]}
-              </TriageChip>
+                <Badge variant={triage === key ? "count" : "neutral"}>{counts[key]}</Badge>
+              </ToggleGroupItem>
             ))}
-          </div>
+          </ToggleGroup>
           {corrections.data?.hasMore === true && (
             <p className="text-muted-foreground text-sm">
               Only the oldest corrections are shown. Close some out and the rest appear.

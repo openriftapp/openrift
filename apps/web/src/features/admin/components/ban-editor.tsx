@@ -67,7 +67,7 @@ export function BanEditor({
         <Label>Banned from</Label>
         <DatePicker
           value={draft.bannedAt || null}
-          onChange={(bannedAt) => onChange({ bannedAt })}
+          onValueChange={(bannedAt) => onChange({ bannedAt })}
           className="w-44"
         />
       </div>

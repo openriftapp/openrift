@@ -1,12 +1,10 @@
-import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import { OrnamentBase } from "@/components/ui/ornament";
 import { CardText } from "@/features/cards/components/card-text";
+import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { useDomainColors } from "@/hooks/use-domain-colors";
-import { useEnumOrders } from "@/hooks/use-enums";
 import { getDomainGradientStyle } from "@/lib/domain";
-import { getFilterIconPath } from "@/lib/icons";
 import { htmlLangTag } from "@/lib/language-tag";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -51,14 +49,12 @@ export function CardDetailText({
 }) {
   const { card } = printing;
   const domainColors = useDomainColors();
-  const { labels } = useEnumOrders();
   const hasEffect =
     Boolean(printing.printedEffectText) || (card.mightBonus !== null && card.mightBonus > 0);
   const hasFlavor = showFlavorText && Boolean(printing.flavorText);
   if (!printing.printedRulesText && !hasEffect && !hasFlavor) {
     return null;
   }
-  const rarityIcon = getFilterIconPath("rarities", printing.rarity);
   const textLang = htmlLangTag(printing.language);
 
   return (
@@ -132,16 +128,7 @@ export function CardDetailText({
         {hasFlavor && <CardDetailFlavorText printing={printing} />}
       </div>
       <OrnamentBase surfaceClassName="bg-muted/30" aria-hidden={false}>
-        {rarityIcon && (
-          <img
-            src={rarityIcon}
-            alt={enumLabel(labels.rarities, printing.rarity)}
-            title={enumLabel(labels.rarities, printing.rarity)}
-            width={28}
-            height={28}
-            className="size-4"
-          />
-        )}
+        <RarityIcon rarity={printing.rarity} labelled className="size-4" />
       </OrnamentBase>
     </div>
   );
