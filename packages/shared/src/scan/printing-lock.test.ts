@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { ArtTrack } from "./accept";
 import type { PrintingLockDeps } from "./printing-lock";
-import { PRINTING_ATTEMPTS, createPrintingLock } from "./printing-lock";
+import {
+  PRINTING_ATTEMPTS,
+  createPrintingLock,
+  createPrintingReader,
+  unanimousPick,
+} from "./printing-lock";
 import { printingCard } from "./test-images";
 
 const ART = "art-lux";
@@ -165,5 +170,46 @@ describe("createPrintingLock", () => {
     expect(taken.at(-1)).toBe(false);
     lock.restart(track);
     expect(lock.takeAttempt(track)).toBe(true);
+  });
+});
+
+describe("createPrintingReader", () => {
+  it("picks the printing in a single read, without waiting for a second frame", async () => {
+    const read = createPrintingReader(printingDeps({ "p-en": 1, "p-sc": 9 }));
+
+    const result = await read(ART, "p-sc", printingCard(1), 0);
+
+    expect(result?.picked?.key).toBe("p-en");
+  });
+
+  it("reads nothing for an artwork with a single printing", async () => {
+    const read = createPrintingReader(printingDeps({ "p-en": 1 }));
+
+    expect(await read(ART, "p-en", printingCard(1), 0)).toBeUndefined();
+  });
+});
+
+describe("unanimousPick", () => {
+  const lookups = { labelOf: (key: string) => key.split("#")[0] ?? key };
+
+  it("accepts a pick whose look-alikes share its label and markers", () => {
+    const picked = {
+      key: "p-en#1",
+      margin: 0.2,
+      indistinguishable: ["p-en#2"],
+      via: "name" as const,
+    };
+    expect(unanimousPick(picked, { ...lookups, identityOf: () => ({ markers: "" }) })).toBe(true);
+  });
+
+  it("rejects a pick whose look-alike carries another marker", () => {
+    const picked = {
+      key: "p-en#1",
+      margin: 0.2,
+      indistinguishable: ["p-en#2"],
+      via: "name" as const,
+    };
+    const identityOf = (key: string) => ({ markers: key.endsWith("2") ? "promo" : "" });
+    expect(unanimousPick(picked, { ...lookups, identityOf })).toBe(false);
   });
 });

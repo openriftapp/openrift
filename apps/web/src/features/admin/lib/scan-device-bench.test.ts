@@ -35,6 +35,7 @@ function signalsAt(frames: Record<number, Partial<PlacementSignal>>): ReplayDeps
 
 function outcome(overrides: Partial<FrameOutcome> = {}): FrameOutcome {
   return {
+    counted: [],
     candidate: null,
     ranked: [],
     winner: null,

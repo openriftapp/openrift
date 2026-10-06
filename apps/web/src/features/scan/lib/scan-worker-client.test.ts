@@ -93,6 +93,7 @@ const READY: ScanWorkerReady = {
 };
 
 const OUTCOME: FrameOutcome = {
+  counted: [],
   candidate: null,
   ranked: [],
   winner: null,

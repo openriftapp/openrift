@@ -35,6 +35,7 @@ export interface BoardReadCard {
   key: string;
   artKey: string;
   label: string;
+  resolved: boolean;
   /** Empty when the read was confident. */
   alternatives: string[];
 }
@@ -54,6 +55,7 @@ export function boardReadCards(
     key: card.key,
     artKey: card.artKey,
     label: labelOf(card.key),
+    resolved: card.printingResolved,
     alternatives: card.confident ? [] : card.alternatives,
   }));
 }

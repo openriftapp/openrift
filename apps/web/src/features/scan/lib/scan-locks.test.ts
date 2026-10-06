@@ -173,11 +173,18 @@ describe("boardReadCards", () => {
           distance: 0.1,
           confident: true,
           alternatives: ["k2"],
+          printingResolved: true,
         },
       ],
       (key) => `label ${key}`,
     );
-    expect(card).toEqual({ key: "k1", artKey: "a1", label: "label k1", alternatives: [] });
+    expect(card).toEqual({
+      key: "k1",
+      artKey: "a1",
+      label: "label k1",
+      resolved: true,
+      alternatives: [],
+    });
   });
 
   it("carries the alternatives of an uncertain card", () => {
@@ -191,6 +198,7 @@ describe("boardReadCards", () => {
           rivalScore: 0.82,
           distance: 0.55,
           confident: false,
+          printingResolved: false,
           alternatives: ["k2"],
         },
       ],

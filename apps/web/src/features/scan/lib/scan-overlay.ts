@@ -21,6 +21,8 @@ export const BRACKET_FRACTION = 0.18;
 
 export const RETICLE_COLOR = "rgba(74, 222, 128, 0.95)";
 export const GUIDE_COLOR = "rgba(255, 255, 255, 0.18)";
+export const COUNTED_COLOR = "rgba(74, 222, 128, 0.55)";
+export const COUNTED_FILL = "rgba(74, 222, 128, 0.12)";
 
 export function stepToward(current: number, target: number, factor: number, snap: number): number {
   const delta = target - current;

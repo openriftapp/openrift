@@ -26,7 +26,10 @@ vi.mock("@/features/scan/lib/scan-embedder", () => ({
   measuredEmbedMsPerImage: () => 40,
 }));
 vi.mock("@/features/scan/lib/scan-reference-image", () => ({ fetchReference: vi.fn() }));
-vi.mock("@/features/scan/lib/scan-session", () => ({ createConfiguredScanSession }));
+vi.mock("@/features/scan/lib/scan-session", () => ({
+  createConfiguredScanSession,
+  catalogLookups: () => ({ artKeyOf: (key: string) => key }),
+}));
 vi.mock("@openrift/shared/scan/session-options", async (importOriginal) => ({
   ...(await importOriginal<typeof SessionOptionsModule>()),
   gatesForBank: () => ({ confidentDistance: 0.3, rotationFallbackDistance: 0.45 }),

@@ -7,10 +7,13 @@ import type { AlignedOptions } from "./accept";
 import { DEFAULT_ALIGNED_OPTIONS, pickAlignedWinner } from "./accept";
 import type { AlignedVerifier } from "./aligned-verify";
 import { createAlignedVerifier } from "./aligned-verify";
+import type { PrintingIdentity } from "./disambiguate";
 import { distinctWholeOutlines, samePosition } from "./distinct-outlines";
 import type { CardEmbedder, EmbedBank } from "./embed";
 import { rankCardEmbedding } from "./embed";
 import { mapQuad } from "./geometry";
+import type { PrintingReader } from "./printing-lock";
+import { createPrintingReader, unanimousPick } from "./printing-lock";
 import { SESSION_UNWARP_HEIGHT, SESSION_UNWARP_WIDTH } from "./session-options";
 import type { CardCandidate, Quad, RgbaImage } from "./types";
 import { unwarpCard, unwarpQuad } from "./unwarp";
@@ -89,6 +92,7 @@ export interface BoardCard {
   distance: number;
   confident: boolean;
   alternatives: string[];
+  printingResolved: boolean;
 }
 
 export interface BoardDeps {
@@ -97,6 +101,9 @@ export interface BoardDeps {
   embedImageSize: number;
   artKeyOf: (key: string) => string;
   fetchReference: (key: string) => Promise<RgbaImage | null>;
+  /** Both given, the read also picks each card's printing. */
+  labelOf?: (key: string) => string;
+  identityOf?: (key: string) => PrintingIdentity | undefined;
 }
 
 export interface BoardOptions {
@@ -135,10 +142,27 @@ export function boardOptionsFor(
   };
 }
 
+async function readPrinting(
+  readPrintingOf: PrintingReader | null,
+  winner: { key: string; artKey: string },
+  crop: RgbaImage,
+  rotation: number,
+  deps: BoardDeps,
+): Promise<string | null> {
+  const { labelOf, identityOf } = deps;
+  if (!readPrintingOf || !labelOf || !identityOf) {
+    return null;
+  }
+  const read = await readPrintingOf(winner.artKey, winner.key, crop, rotation);
+  const picked = read?.picked;
+  return picked && unanimousPick(picked, { labelOf, identityOf }) ? picked.key : null;
+}
+
 async function identifyOutline(
   photo: RgbaImage,
   quad: Quad,
   verify: AlignedVerifier,
+  readPrintingOf: PrintingReader | null,
   deps: BoardDeps,
   options: BoardOptions,
 ): Promise<BoardCard | null> {
@@ -189,8 +213,12 @@ async function identifyOutline(
           ].map((key) => [deps.artKeyOf(key), key] as const),
         ).values(),
       ];
+  const rotation = ranked.find((entry) => entry.key === winner.key)?.rotation ?? 0;
+  const printing = confident
+    ? await readPrinting(readPrintingOf, winner, crop, rotation, deps)
+    : null;
   return {
-    key: winner.key,
+    key: printing ?? winner.key,
     artKey: winner.artKey,
     quad,
     score,
@@ -198,6 +226,7 @@ async function identifyOutline(
     distance,
     confident,
     alternatives,
+    printingResolved: printing !== null,
   };
 }
 
@@ -209,12 +238,14 @@ export async function identifyBoard(
   options: BoardOptions,
 ): Promise<BoardCard[]> {
   const verify = createAlignedVerifier(deps.fetchReference);
+  const { identityOf } = deps;
+  const readPrintingOf = identityOf ? createPrintingReader({ ...deps, identityOf }) : null;
   const cards: BoardCard[] = [];
   for (const outline of outlines.toSorted((a, b) => b.score - a.score)) {
     if (cards.some((card) => samePosition(outline.quad, card.quad))) {
       continue;
     }
-    const card = await identifyOutline(photo, outline.quad, verify, deps, options);
+    const card = await identifyOutline(photo, outline.quad, verify, readPrintingOf, deps, options);
     if (card) {
       cards.push(card);
     }

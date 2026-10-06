@@ -10,6 +10,7 @@ import type {
   FrameOutlineLabel,
   FrameOutlineLabels,
   OutlineLabelPoint,
+  OutlineLabelQuad,
 } from "@/features/admin/lib/outline-labels";
 import {
   addCard,
@@ -20,6 +21,7 @@ import {
   outlineLabelsFromProposals,
   outlineLabelsFromSaved,
   mergeOpenedOutlineLabels,
+  moveCard,
   moveCorner,
   removeCard,
   serializeOutlineLabels,
@@ -65,7 +67,11 @@ export function OutlineLabelPage() {
   const [margin, setMargin] = useState(0);
   const [openError, setOpenError] = useState<string | null>(null);
   const [keptAutosave, setKeptAutosave] = useState(0);
-  const dragRef = useRef<{ card: number; corner: number } | null>(null);
+  const dragRef = useRef<
+    | { card: number; corner: number }
+    | { card: number; from: OutlineLabelPoint; original: OutlineLabelQuad }
+    | null
+  >(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   const frame = frames[current];
@@ -143,7 +149,7 @@ export function OutlineLabelPage() {
     setSize(null);
   }
 
-  function toImage(event: ReactPointerEvent<SVGSVGElement>): OutlineLabelPoint | null {
+  function toImage(event: { clientX: number; clientY: number }): OutlineLabelPoint | null {
     const svg = svgRef.current;
     if (!svg || !size) {
       return null;
@@ -165,13 +171,29 @@ export function OutlineLabelPage() {
     if (!drag || !point) {
       return;
     }
-    update(moveCorner(label, drag.card, drag.corner, point));
+    if ("corner" in drag) {
+      update(moveCorner(label, drag.card, drag.corner, point));
+      return;
+    }
+    const by = { x: point.x - drag.from.x, y: point.y - drag.from.y };
+    update(moveCard(label, drag.card, drag.original, by));
   }
 
   function startDrag(event: ReactPointerEvent<SVGElement>, card: number, corner: number): void {
     event.stopPropagation();
     dragRef.current = { card, corner };
     setSelected(card);
+    svgRef.current?.setPointerCapture(event.pointerId);
+  }
+
+  function startCardDrag(event: ReactPointerEvent<SVGElement>, card: number): void {
+    const from = toImage(event);
+    const original = label.cards[card];
+    setSelected(card);
+    if (!from || !original) {
+      return;
+    }
+    dragRef.current = { card, from, original };
     svgRef.current?.setPointerCapture(event.pointerId);
   }
 
@@ -239,10 +261,11 @@ export function OutlineLabelPage() {
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-4 pb-12")}>
         <PageDescription>
           Open the frame folder: every image plus proposals.json, and a saved scan-labels.json to
-          continue. Drag each corner onto the card&apos;s outer edge, add cards that have no
-          outline, remove outlines that are not a card, then mark the frame done. A frame counts for
-          training only once every card in it is outlined. Keys: n and p move between frames, d
-          marks done, a adds a card, Delete removes the selected one.
+          continue. Drag each corner onto the card&apos;s outer edge, or drag inside an outline to
+          move the whole card. Add cards that have no outline, remove outlines that are not a card,
+          then mark the frame done. A frame counts for training only once every card in it is
+          outlined. Keys: n and p move between frames, d marks done, a adds a card, Delete removes
+          the selected one.
         </PageDescription>
         <div className="flex flex-col gap-2">
           <Label htmlFor="label-files">Frames</Label>
@@ -334,13 +357,14 @@ export function OutlineLabelPage() {
                     <g key={card}>
                       <polygon
                         points={quad.map((point) => `${point.x},${point.y}`).join(" ")}
-                        className={
+                        className={cn(
+                          "cursor-grab",
                           selected === card
                             ? "fill-warning-soft stroke-warning"
-                            : "fill-success-soft stroke-success"
-                        }
+                            : "fill-success-soft stroke-success",
+                        )}
                         strokeWidth={stroke}
-                        onPointerDown={() => setSelected(card)}
+                        onPointerDown={(event) => startCardDrag(event, card)}
                       />
                       {quad.map((point, corner) => (
                         <circle

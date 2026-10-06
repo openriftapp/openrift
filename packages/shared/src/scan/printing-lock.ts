@@ -44,10 +44,23 @@ interface PrintingLock {
   ) => Promise<PrintingReadout | undefined>;
 }
 
-export function createPrintingLock(deps: PrintingLockDeps): PrintingLock {
+export interface PrintingRead {
+  scores: PrintingScore[];
+  picked: PrintingResolution | null;
+}
+
+export type PrintingReader = (
+  artKey: string,
+  typeKey: string,
+  card: RgbaImage,
+  rotation: number,
+) => Promise<PrintingRead | undefined>;
+
+/** Compares one crop against every printing of its artwork; undefined when the artwork has one printing. */
+export function createPrintingReader(
+  deps: Pick<PrintingLockDeps, "bank" | "artKeyOf" | "identityOf" | "fetchReference">,
+): PrintingReader {
   const signatureCache = new Map<string, PrintingSignature | null>();
-  const votes = new Map<ArtTrack, { key: string; streak: number }>();
-  const attempts = new Map<ArtTrack, number>();
 
   async function referenceSignatures(
     keys: readonly string[],
@@ -75,21 +88,58 @@ export function createPrintingLock(deps: PrintingLockDeps): PrintingLock {
     return signatures;
   }
 
+  return async (artKey, typeKey, card, rotation) => {
+    const keys = [...new Set(deps.bank.keys.filter((key) => deps.artKeyOf(key) === artKey))];
+    if (keys.length < 2) {
+      return;
+    }
+    let aligned = card;
+    for (let turn = 0; turn < rotation; turn++) {
+      aligned = rotateRgbaCw(aligned);
+    }
+    const band = textBandForType(deps.identityOf(typeKey)?.type);
+    const query = printingSignature(aligned, band);
+    if (!query) {
+      return;
+    }
+    const signatures = await referenceSignatures(keys, band);
+    const scores: PrintingScore[] = [];
+    for (const [key, signature] of signatures) {
+      if (signature) {
+        scores.push({ key, score: bestShiftCorrelation(query.name, signature.name).score });
+      }
+    }
+    scores.sort((first, second) => second.score - first.score);
+    return { scores, picked: resolvePrinting(query, signatures, deps.identityOf) };
+  };
+}
+
+/** Same-code marker variants share a label, so a pick only stands when their markers agree too. */
+export function unanimousPick(
+  picked: PrintingResolution,
+  deps: Pick<PrintingLockDeps, "labelOf" | "identityOf">,
+): boolean {
+  const pickedLabel = deps.labelOf(picked.key);
+  const pickedMarkers = deps.identityOf(picked.key)?.markers;
+  return picked.indistinguishable.every(
+    (key) => deps.labelOf(key) === pickedLabel && deps.identityOf(key)?.markers === pickedMarkers,
+  );
+}
+
+export function createPrintingLock(deps: PrintingLockDeps): PrintingLock {
+  const read = createPrintingReader(deps);
+  const votes = new Map<ArtTrack, { key: string; streak: number }>();
+  const attempts = new Map<ArtTrack, number>();
+
   function vote(track: ArtTrack, picked: PrintingResolution): void {
     // Duplicate renders of one printing vote as one.
     const pickedClass = new Set([picked.key, ...picked.indistinguishable]);
     const previous = votes.get(track);
     const streak = previous && pickedClass.has(previous.key) ? previous.streak + 1 : 1;
     votes.set(track, { key: picked.key, streak });
-    // Same-code marker variants share a label, so their markers must agree too.
-    const pickedLabel = deps.labelOf(picked.key);
-    const pickedMarkers = deps.identityOf(picked.key)?.markers;
-    const unanimous = picked.indistinguishable.every(
-      (key) => deps.labelOf(key) === pickedLabel && deps.identityOf(key)?.markers === pickedMarkers,
-    );
-    if (streak >= AGREEING_FRAMES && unanimous) {
+    if (streak >= AGREEING_FRAMES && unanimousPick(picked, deps)) {
       track.key = picked.key;
-      track.label = pickedLabel;
+      track.label = deps.labelOf(picked.key);
       track.printingResolved = true;
     }
   }
@@ -110,34 +160,16 @@ export function createPrintingLock(deps: PrintingLockDeps): PrintingLock {
     },
 
     async disambiguate(track, card, rotation) {
-      const keys = [
-        ...new Set(deps.bank.keys.filter((key) => deps.artKeyOf(key) === track.artKey)),
-      ];
-      if (keys.length < 2) {
+      const result = await read(track.artKey, track.key, card, rotation);
+      if (!result) {
         return;
       }
-      let aligned = card;
-      for (let turn = 0; turn < rotation; turn++) {
-        aligned = rotateRgbaCw(aligned);
+      if (result.picked !== null) {
+        vote(track, result.picked);
       }
-      const band = textBandForType(deps.identityOf(track.key)?.type);
-      const query = printingSignature(aligned, band);
-      if (!query) {
-        return;
-      }
-      const signatures = await referenceSignatures(keys, band);
-      const scores: PrintingScore[] = [];
-      for (const [key, signature] of signatures) {
-        if (signature) {
-          scores.push({ key, score: bestShiftCorrelation(query.name, signature.name).score });
-        }
-      }
-      scores.sort((a, b) => b.score - a.score);
-      const picked = resolvePrinting(query, signatures, deps.identityOf);
-      if (picked !== null) {
-        vote(track, picked);
-      }
-      return scores.length > 0 ? { scores, margin: picked?.margin, via: picked?.via } : undefined;
+      return result.scores.length > 0
+        ? { scores: result.scores, margin: result.picked?.margin, via: result.picked?.via }
+        : undefined;
     },
   };
 }

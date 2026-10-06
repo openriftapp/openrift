@@ -253,7 +253,7 @@ export function resolveBoardRead(
       });
       continue;
     }
-    const resolution = resolveLock({ ...card, resolved: false }, index, preferredLanguage);
+    const resolution = resolveLock(card, index, preferredLanguage);
     if (resolution.kind === "unknown") {
       result.unknown.push(card.label);
     } else if (resolution.kind === "picker") {

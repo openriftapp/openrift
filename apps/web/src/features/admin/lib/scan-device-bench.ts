@@ -307,7 +307,7 @@ export async function replayClip(deps: ReplayDeps): Promise<ReplayResult> {
         framesToLock: 0,
         score: Math.round(card.score * 100),
         rivalScore: Math.round(card.rivalScore * 100),
-        printingResolved: false,
+        printingResolved: card.printingResolved,
         multiPrinting: deps.multiPrinting(card.artKey),
         arrivedAt: null,
         source: "board",

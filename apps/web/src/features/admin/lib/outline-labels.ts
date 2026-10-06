@@ -86,6 +86,23 @@ export function moveCorner(
   };
 }
 
+/** Places the card's outline at `original` shifted by `by`, so a long drag never accumulates rounding. */
+export function moveCard(
+  label: FrameOutlineLabel,
+  card: number,
+  original: OutlineLabelQuad,
+  by: OutlineLabelPoint,
+): FrameOutlineLabel {
+  return {
+    ...label,
+    cards: label.cards.map((quad, index) =>
+      index === card
+        ? (original.map((point) => ({ x: point.x + by.x, y: point.y + by.y })) as OutlineLabelQuad)
+        : quad,
+    ),
+  };
+}
+
 export function addCard(
   label: FrameOutlineLabel,
   width: number,

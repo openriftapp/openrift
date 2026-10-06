@@ -1458,6 +1458,7 @@ describe("useCardScanner", () => {
         quad: outlines[0]!.quad,
         score: 0.9,
         rivalScore: 0,
+        printingResolved: false,
         distance: 0.05,
         confident: true,
         alternatives: [],

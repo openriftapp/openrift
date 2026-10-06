@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { createTablePlaces, onCountedPlace, placeFor, shiftTable } from "./table-places";
+import {
+  countedQuads,
+  createTablePlaces,
+  onCountedPlace,
+  placeFor,
+  shiftTable,
+} from "./table-places";
 import type { Quad } from "./types";
 
 const frame = { width: 480, height: 848 };
@@ -69,5 +75,26 @@ describe("placeFor", () => {
     const counted = new Set(first ? [first.key] : []);
     expect(onCountedPlace(places, counted, card(125, 400))).toBe(true);
     expect(onCountedPlace(places, counted, card(300, 400))).toBe(false);
+  });
+});
+
+describe("countedQuads", () => {
+  it("returns counted outlines where they now lie in the frame", () => {
+    const places = createTablePlaces();
+    const place = placeFor(places, "ahri", card(200, 400), frame);
+    placeFor(places, "jinx", card(300, 400), frame);
+    shiftTable(places, { x: 50, y: 0 });
+
+    const quads = countedQuads(places, new Set([place?.key ?? ""]), frame);
+
+    expect(quads).toEqual([card(250, 400)]);
+  });
+
+  it("leaves out counted cards the camera has moved past", () => {
+    const places = createTablePlaces();
+    const place = placeFor(places, "ahri", card(200, 400), frame);
+    shiftTable(places, { x: -400, y: 0 });
+
+    expect(countedQuads(places, new Set([place?.key ?? ""]), frame)).toEqual([]);
   });
 });

@@ -239,6 +239,7 @@ export function useScanFrames(options: ScanFramesOptions): ScanFrames {
     options.setOverlayTarget({
       quad: outcome.winner === null ? null : (outcome.candidate?.quad ?? null),
       guide: !outcome.sweeping,
+      counted: outcome.counted,
       frameWidth: frame.width,
       frameHeight: frame.height,
       turns,

@@ -5,6 +5,7 @@ import { frameLogLine, printingLogLine } from "./scan-frame-log";
 
 function outcome(overrides: Partial<FrameOutcome> = {}): FrameOutcome {
   return {
+    counted: [],
     candidate: null,
     ranked: [{ key: "OGN-001-en", distance: 0.1234, rotation: 2 }],
     winner: null,

@@ -35,7 +35,13 @@ import {
 } from "./session-options";
 import type { SweepSurvey } from "./sweep";
 import { SWEEP_OPTIONS, createSweepTracker } from "./sweep";
-import { createTablePlaces, onCountedPlace, placeFor, shiftTable } from "./table-places";
+import {
+  countedQuads,
+  createTablePlaces,
+  onCountedPlace,
+  placeFor,
+  shiftTable,
+} from "./table-places";
 import type { CardCandidate, Quad, RgbaImage } from "./types";
 import { unwarpCard } from "./unwarp";
 
@@ -70,6 +76,8 @@ export interface FrameOutcome {
   sweeping: boolean;
   still: boolean;
   survey?: CardCandidate[];
+  /** Every card counted so far that lies in this frame. */
+  counted: Quad[];
   /** Milliseconds; `crop` is the part of `embed` spent cutting out and focus-checking crops. */
   timings: {
     detect: number;
@@ -91,6 +99,11 @@ export interface ScanSession {
   state: AcceptState;
   /** Lets every locked track lock again once the placement detector reports a new card in the guide. */
   rearm: () => void;
+  /** Counts the cards a board read found in `still`, so they stay marked as the camera moves. */
+  noteBoard: (
+    cards: readonly { artKey: string; quad: Quad }[],
+    still: { width: number; height: number },
+  ) => void;
 }
 
 const EMPTY_OUTCOME = {
@@ -149,6 +162,7 @@ export function createScanSession(
   let noWinnerStreak = 0;
   let absentStreak = 0;
   let cardInGuide = false;
+  let lastFrame: { width: number; height: number } | null = null;
 
   function resetAim(): void {
     lastWinnerQuad = null;
@@ -386,6 +400,40 @@ export function createScanSession(
     seconds: number,
     now: () => number = () => Date.now(),
   ): Promise<FrameOutcome> {
+    lastFrame = { width: frame.width, height: frame.height };
+    const outcome = await processOnce(frame, frameIndex, seconds, now);
+    return { ...outcome, counted: countedQuads(tablePlaces, countedPlaces, lastFrame) };
+  }
+
+  function noteBoard(
+    cards: readonly { artKey: string; quad: Quad }[],
+    still: { width: number; height: number },
+  ): void {
+    if (!lastFrame || still.width <= 0) {
+      return;
+    }
+    const scale = lastFrame.width / still.width;
+    for (const card of cards) {
+      const [a, b, c, d] = card.quad;
+      const quad: Quad = [
+        { x: a.x * scale, y: a.y * scale },
+        { x: b.x * scale, y: b.y * scale },
+        { x: c.x * scale, y: c.y * scale },
+        { x: d.x * scale, y: d.y * scale },
+      ];
+      const place = placeFor(tablePlaces, card.artKey, quad, lastFrame);
+      if (place) {
+        countedPlaces.add(place.key);
+      }
+    }
+  }
+
+  async function processOnce(
+    frame: RgbaImage,
+    frameIndex: number,
+    seconds: number,
+    now: () => number,
+  ): Promise<Omit<FrameOutcome, "counted">> {
     const startedAt = now();
     const still = trackCamera(frame, seconds);
     const guide = centeredGuideQuad(frame.width, frame.height);
@@ -506,6 +554,7 @@ export function createScanSession(
   return {
     processFrame,
     state,
+    noteBoard,
     rearm: () => {
       rearmLockedTracks(state);
       // lastWinnerRotation stays: cards dealt onto a pile land the same way

@@ -91,6 +91,17 @@ export interface ScanEngine {
   detectBoard: (frame: RgbaImage) => Promise<CardCandidate[]>;
 }
 
+export function catalogLookups(loaded: LoadedScanBank) {
+  return {
+    artKeyOf: (key: string) => loaded.artKeys.get(key) ?? key,
+    labelOf: (key: string) => describeKey(loaded.labels, key),
+    identityOf: (key: string) => {
+      const label = loaded.labels[key];
+      return label && { ...label, markers: label.markers ?? undefined };
+    },
+  };
+}
+
 export function createConfiguredScanSession(
   engine: ScanEngine,
   loaded: LoadedScanBank,
@@ -100,12 +111,7 @@ export function createConfiguredScanSession(
     {
       embedder: engine.embedder,
       bank: loaded.bank,
-      artKeyOf: (key) => loaded.artKeys.get(key) ?? key,
-      labelOf: (key) => describeKey(loaded.labels, key),
-      identityOf: (key) => {
-        const label = loaded.labels[key];
-        return label && { ...label, markers: label.markers ?? undefined };
-      },
+      ...catalogLookups(loaded),
       embedImageSize: engine.embedImageSize,
       fetchReference,
       detectCard: engine.detectCard,

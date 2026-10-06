@@ -10,6 +10,7 @@ import {
   outlineLabelsFromProposals,
   outlineLabelsFromSaved,
   mergeOpenedOutlineLabels,
+  moveCard,
   moveCorner,
   removeCard,
   serializeOutlineLabels,
@@ -137,6 +138,13 @@ describe("editing", () => {
     expect(moved.cards[0]?.[2]).toEqual({ x: 12, y: 15 });
     expect(moved.cards[0]?.[0]).toEqual({ x: 0, y: 0 });
     expect(label.cards[0]?.[2]).toEqual({ x: 10, y: 14 });
+  });
+
+  it("moves a whole card from where the drag started, keeping its shape", () => {
+    const first = moveCard(label, 0, quad, { x: 3, y: 1 });
+    const moved = moveCard(first, 0, quad, { x: 5, y: -2 });
+    expect(moved.cards[0]).toEqual(quad.map((point) => ({ x: point.x + 5, y: point.y - 2 })));
+    expect(label.cards[0]).toEqual(quad);
   });
 
   it("adds an upright card outline in the middle of the image", () => {

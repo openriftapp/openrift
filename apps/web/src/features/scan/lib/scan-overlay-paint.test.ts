@@ -1,7 +1,12 @@
 import type { Quad } from "@openrift/shared/scan/types";
 import { describe, expect, it, vi } from "vitest";
 
-import { GUIDE_COLOR, RETICLE_COLOR, RETICLE_HOLD_FRAMES } from "@/features/scan/lib/scan-overlay";
+import {
+  COUNTED_COLOR,
+  GUIDE_COLOR,
+  RETICLE_COLOR,
+  RETICLE_HOLD_FRAMES,
+} from "@/features/scan/lib/scan-overlay";
 import type { OverlayTarget } from "@/features/scan/lib/scan-overlay-paint";
 import {
   createDrawState,
@@ -25,6 +30,8 @@ function fakeContext() {
     lineWidth: 0,
     lineCap: "butt",
     strokeStyle: "",
+    fillStyle: "",
+    fill: () => calls.push("fill"),
     clearRect: () => calls.push("clearRect"),
     beginPath: () => calls.push("beginPath"),
     closePath: () => calls.push("closePath"),
@@ -59,6 +66,7 @@ function target(overrides: Partial<OverlayTarget> = {}): OverlayTarget {
   return {
     quad: rect(20, 40, 100, 200),
     guide: rect(10, 20, 120, 240),
+    counted: [],
     frameWidth: 200,
     frameHeight: 400,
     turns: 0,
@@ -94,6 +102,20 @@ describe("paintOverlay", () => {
     expect(strokes.at(-1)?.dash).toEqual([]);
     // A sharp frame draws the widest brackets.
     expect(strokes.at(-1)?.width).toBe(4);
+  });
+
+  it("outlines every counted card besides the one being matched", () => {
+    const { context, calls, strokes } = fakeContext();
+
+    paintOverlay(
+      fakeCanvas(),
+      context,
+      target({ counted: [rect(0, 0, 40, 60), rect(100, 0, 40, 60)] }),
+      createDrawState(),
+    );
+
+    expect(strokes.filter((stroke) => stroke.style === COUNTED_COLOR)).toHaveLength(2);
+    expect(calls.filter((call) => call === "fill")).toHaveLength(2);
   });
 
   it("draws the guide alone when the frame matched nothing", () => {

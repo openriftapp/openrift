@@ -154,6 +154,16 @@ describe("identifyBoard", () => {
     expect(cards).toMatchObject([{ key: "a", confident: true, alternatives: [] }]);
   });
 
+  it("leaves the printing open without catalogue lookups", async () => {
+    const cards = await identifyBoard(
+      photo,
+      [candidate(at)],
+      boardDeps({ a: 0, b: 0.01 }, (key) => Promise.resolve(key === "a" ? match : unrelated)),
+      OPTIONS,
+    );
+    expect(cards).toMatchObject([{ key: "a", printingResolved: false }]);
+  });
+
   it("a failed rival keeps the card in the picker", async () => {
     const cards = await identifyBoard(
       photo,

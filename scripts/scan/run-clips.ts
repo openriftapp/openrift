@@ -287,7 +287,12 @@ async function runClip(
             catchUpSession.processFrame(image, index, seconds, now),
         }
       : {}),
-    readBoard: (still) => readBoard(still, detectBoard, deps, boardOptions),
+    readBoard: async (still) => {
+      // The app's worker does the same after every board read.
+      const cards = await readBoard(still, detectBoard, deps, boardOptions);
+      session.noteBoard(cards, still);
+      return cards;
+    },
     loadStill: (index) => loadStill(clip, index, fps),
     rearm: () => session.rearm(),
     multiPrinting: (artKey) => multiPrinting.has(artKey),

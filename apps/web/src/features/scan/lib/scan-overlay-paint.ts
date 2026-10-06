@@ -9,6 +9,8 @@ import type { Point, Quad } from "@openrift/shared/scan/types";
 
 import {
   BRACKET_FRACTION,
+  COUNTED_COLOR,
+  COUNTED_FILL,
   GUIDE_COLOR,
   RETICLE_COLOR,
   RETICLE_HOLD_FRAMES,
@@ -38,6 +40,7 @@ import {
 export interface OverlayTarget {
   quad: Quad | null;
   guide: Quad | null;
+  counted: readonly Quad[];
   frameWidth: number;
   frameHeight: number;
   turns: number;
@@ -54,6 +57,7 @@ export interface OverlayDrawState {
   points: Point[];
   mapped: Point[];
   guide: Point[];
+  marked: Point[];
   smoothed: Point[];
   smoothing: boolean;
   held: Point[];
@@ -78,6 +82,7 @@ export function createDrawState(): OverlayDrawState {
     points: corners(),
     mapped: corners(),
     guide: corners(),
+    marked: corners(),
     smoothed: corners(),
     smoothing: false,
     held: corners(),
@@ -223,6 +228,25 @@ export function paintOverlay(
       context.lineWidth = 2;
       context.lineCap = "butt";
       context.strokeStyle = GUIDE_COLOR;
+      context.stroke();
+    }
+  }
+
+  for (const quad of target.counted) {
+    mapQuad(quad, mapping, state.marked);
+    const [start, ...rest] = state.marked;
+    if (start) {
+      context.beginPath();
+      context.moveTo(start.x, start.y);
+      for (const point of rest) {
+        context.lineTo(point.x, point.y);
+      }
+      context.closePath();
+      context.fillStyle = COUNTED_FILL;
+      context.fill();
+      context.lineWidth = 2;
+      context.lineCap = "butt";
+      context.strokeStyle = COUNTED_COLOR;
       context.stroke();
     }
   }

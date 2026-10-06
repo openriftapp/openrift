@@ -17,7 +17,7 @@ import {
 } from "@/features/scan/lib/scan-embedder";
 import { fetchReference } from "@/features/scan/lib/scan-reference-image";
 import type { ScanEngine } from "@/features/scan/lib/scan-session";
-import { createConfiguredScanSession } from "@/features/scan/lib/scan-session";
+import { catalogLookups, createConfiguredScanSession } from "@/features/scan/lib/scan-session";
 import type {
   DownloadPart,
   ScanWorkerErrorCode,
@@ -98,7 +98,7 @@ async function readStill(still: RgbaImage): Promise<BoardCard[]> {
       embedder: engine.embedder,
       bank: bank.bank,
       embedImageSize: engine.embedImageSize,
-      artKeyOf: (key) => bank.artKeys.get(key) ?? key,
+      ...catalogLookups(bank),
       fetchReference,
     },
     boardOptionsFor(gates, bank.canonical),
@@ -196,7 +196,9 @@ async function handle(request: ScanWorkerRequest): Promise<void> {
         width: request.width,
         height: request.height,
       };
-      post({ type: "board", id: request.id, cards: await readStill(still) });
+      const cards = await readStill(still);
+      sessions.get("live")?.noteBoard(cards, still);
+      post({ type: "board", id: request.id, cards });
       return;
     }
 

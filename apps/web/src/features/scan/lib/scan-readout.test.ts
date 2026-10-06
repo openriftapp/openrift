@@ -13,6 +13,7 @@ function ranked(count: number) {
 
 function outcome(overrides: Partial<FrameOutcome> = {}): FrameOutcome {
   return {
+    counted: [],
     candidate: null,
     ranked: ranked(2),
     winner: null,

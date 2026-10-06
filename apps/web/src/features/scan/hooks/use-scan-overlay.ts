@@ -19,6 +19,7 @@ export interface ScanOverlayOptions {
 export interface ScanOverlayTargetInput {
   quad: Quad | null;
   guide: boolean;
+  counted?: readonly Quad[];
   frameWidth: number;
   frameHeight: number;
   turns: number;
@@ -76,6 +77,7 @@ export function useScanOverlay(options: ScanOverlayOptions): ScanOverlay {
     overlayTargetRef.current = {
       quad: input.quad,
       guide: input.guide ? centeredGuideQuad(input.frameWidth, input.frameHeight) : null,
+      counted: input.counted ?? [],
       frameWidth: input.frameWidth,
       frameHeight: input.frameHeight,
       turns: input.turns,

@@ -11,6 +11,8 @@ export interface TablePlace {
   x: number;
   y: number;
   size: number;
+  /** Table coordinates. */
+  quad: Quad;
 }
 
 export interface TablePlaces {
@@ -55,18 +57,48 @@ export function placeFor(
     }
   }
   const whole = !touchesFrameEdge(quad, frame.width, frame.height, EDGE_MARGIN);
+  const onTable = shiftQuad(quad, places.offsetX, places.offsetY);
   if (nearest && (nearest.distance <= Math.max(size, nearest.place.size) * SAME_PLACE || !whole)) {
     if (whole) {
-      Object.assign(nearest.place, { x, y, size });
+      Object.assign(nearest.place, { x, y, size, quad: onTable });
     }
     return nearest.place;
   }
   if (!whole) {
     return null;
   }
-  const place = { key: `${artKey}#${known.length}`, x, y, size };
+  const place = { key: `${artKey}#${known.length}`, x, y, size, quad: onTable };
   places.byArt.set(artKey, [...known, place]);
   return place;
+}
+
+function shiftQuad(quad: Quad, dx: number, dy: number): Quad {
+  const [a, b, c, d] = quad;
+  return [
+    { x: a.x + dx, y: a.y + dy },
+    { x: b.x + dx, y: b.y + dy },
+    { x: c.x + dx, y: c.y + dy },
+    { x: d.x + dx, y: d.y + dy },
+  ];
+}
+
+/** Outlines of the counted places whose centre lies in the current frame, in frame coordinates. */
+export function countedQuads(
+  places: TablePlaces,
+  counted: ReadonlySet<string>,
+  frame: { width: number; height: number },
+): Quad[] {
+  const quads: Quad[] = [];
+  for (const known of places.byArt.values()) {
+    for (const place of known) {
+      const x = place.x - places.offsetX;
+      const y = place.y - places.offsetY;
+      if (counted.has(place.key) && x >= 0 && y >= 0 && x <= frame.width && y <= frame.height) {
+        quads.push(shiftQuad(place.quad, -places.offsetX, -places.offsetY));
+      }
+    }
+  }
+  return quads;
 }
 
 /** Whether the outline lies on a place already counted, whatever its artwork. */

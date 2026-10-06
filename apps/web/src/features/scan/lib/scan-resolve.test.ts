@@ -380,7 +380,7 @@ describe("resolveBoardRead", () => {
 
   it("adds confident cards straight away", () => {
     const result = resolveBoardRead(
-      [{ key: "img-ahri", artKey: "art-ahri", label: "Ahri", alternatives: [] }],
+      [{ key: "img-ahri", artKey: "art-ahri", label: "Ahri", resolved: false, alternatives: [] }],
       index,
       artKeyOf,
       nameOf,
@@ -396,6 +396,7 @@ describe("resolveBoardRead", () => {
           key: "img-ahri",
           artKey: "art-ahri",
           label: "Ahri",
+          resolved: false,
           alternatives: ["img-teemo"],
         },
       ],
@@ -413,7 +414,15 @@ describe("resolveBoardRead", () => {
 
   it("reports cards the catalog does not know", () => {
     const result = resolveBoardRead(
-      [{ key: "img-missing", artKey: "art-missing", label: "Missing", alternatives: [] }],
+      [
+        {
+          key: "img-missing",
+          artKey: "art-missing",
+          label: "Missing",
+          resolved: false,
+          alternatives: [],
+        },
+      ],
       index,
       artKeyOf,
       nameOf,
