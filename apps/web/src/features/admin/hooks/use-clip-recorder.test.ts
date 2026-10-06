@@ -1,6 +1,8 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { FrameLogEntry } from "@/features/scan/lib/scan-frame-log";
+
 import { useClipRecorder } from "./use-clip-recorder";
 
 type Listener = (event: { data: Blob }) => void;
@@ -59,15 +61,45 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+const restart = vi.fn(() => Promise.resolve());
+
+function frame(sweeping: boolean): FrameLogEntry {
+  return {
+    grabbedAt: performance.now(),
+    sweeping,
+    still: false,
+    cardInGuide: false,
+    outlines: null,
+    winner: null,
+    score: 0,
+    locked: null,
+    suppressed: null,
+    board: null,
+  };
+}
+
 describe("useClipRecorder", () => {
-  it("start without a camera stream sets an error", () => {
+  it("restarts the scanner before it records, so the clip starts a fresh session", async () => {
+    const order: string[] = [];
+    const { result } = renderHook(() => useClipRecorder(videoRef(new FakeMediaStream())));
+    await act(() =>
+      result.current.start(() => {
+        order.push(`restart while ${FakeRecorder.instances.at(-1)?.state ?? "no recorder"}`);
+        return Promise.resolve();
+      }),
+    );
+    expect(order).toEqual(["restart while inactive"]);
+    expect(FakeRecorder.instances.at(-1)?.state).toBe("recording");
+  });
+
+  it("start without a camera stream sets an error", async () => {
     const { result } = renderHook(() => useClipRecorder(videoRef(null)));
-    act(() => result.current.start());
+    await act(() => result.current.start(restart));
     expect(result.current.recording).toBe(false);
     expect(result.current.error).toMatch(/camera/u);
   });
 
-  it("start reports a browser that supports none of the recording formats", () => {
+  it("start reports a browser that supports none of the recording formats", async () => {
     class NoFormatRecorder extends FakeRecorder {
       static override isTypeSupported(): boolean {
         return false;
@@ -76,14 +108,14 @@ describe("useClipRecorder", () => {
     vi.stubGlobal("MediaRecorder", NoFormatRecorder);
     const { result } = renderHook(() => useClipRecorder(videoRef(new FakeMediaStream())));
 
-    act(() => result.current.start());
+    await act(() => result.current.start(restart));
 
     expect(result.current.recording).toBe(false);
     expect(result.current.error).toBe("This browser cannot record video.");
     expect(FakeRecorder.instances).toHaveLength(0);
   });
 
-  it("start reports why the browser refused to create a recorder", () => {
+  it("start reports why the browser refused to create a recorder", async () => {
     class RefusingRecorder {
       static isTypeSupported(): boolean {
         return true;
@@ -96,7 +128,7 @@ describe("useClipRecorder", () => {
     vi.stubGlobal("MediaRecorder", RefusingRecorder);
     const { result } = renderHook(() => useClipRecorder(videoRef(new FakeMediaStream())));
 
-    act(() => result.current.start());
+    await act(() => result.current.start(restart));
 
     expect(result.current.recording).toBe(false);
     expect(result.current.error).toBe("Unsupported bitrate");
@@ -105,7 +137,7 @@ describe("useClipRecorder", () => {
 
   it("stop yields the clip and its metadata", async () => {
     const { result } = renderHook(() => useClipRecorder(videoRef(new FakeMediaStream())));
-    act(() => result.current.start());
+    await act(() => result.current.start(restart));
     expect(result.current.recording).toBe(true);
     act(() => result.current.stop(context));
 
@@ -133,7 +165,7 @@ describe("useClipRecorder", () => {
       share: () => Promise.reject(new DOMException("dismissed", "AbortError")),
     });
     const { result } = renderHook(() => useClipRecorder(videoRef(new FakeMediaStream())));
-    act(() => result.current.start());
+    await act(() => result.current.start(restart));
     act(() => result.current.stop(context));
     const pending = result.current.pending;
 
@@ -143,12 +175,12 @@ describe("useClipRecorder", () => {
     expect(result.current.pending).toBe(pending);
   });
 
-  it("a recording the browser ends on its own reports the lost clip", () => {
+  it("a recording the browser ends on its own reports the lost clip", async () => {
     const { result } = renderHook(() => useClipRecorder(videoRef(new FakeMediaStream())));
-    act(() => result.current.start());
+    await act(() => result.current.start(restart));
     act(() => result.current.stop(context));
     act(() => result.current.discard());
-    act(() => result.current.start());
+    await act(() => result.current.start(restart));
 
     act(() => FakeRecorder.instances.at(-1)?.stop());
 
@@ -159,16 +191,16 @@ describe("useClipRecorder", () => {
 
   it("records the share of frames noted as sweeping", async () => {
     const { result } = renderHook(() => useClipRecorder(videoRef(new FakeMediaStream())));
-    act(() => result.current.noteFrame(true));
-    act(() => result.current.start());
+    act(() => result.current.noteFrame(frame(true)));
+    await act(() => result.current.start(restart));
     act(() => {
-      result.current.noteFrame(true);
-      result.current.noteFrame(false);
-      result.current.noteFrame(false);
-      result.current.noteFrame(false);
+      result.current.noteFrame(frame(true));
+      result.current.noteFrame(frame(false));
+      result.current.noteFrame(frame(false));
+      result.current.noteFrame(frame(false));
     });
     act(() => result.current.stop(context));
-    act(() => result.current.noteFrame(true));
+    act(() => result.current.noteFrame(frame(true)));
 
     const meta = result.current.pending?.[1];
     expect(JSON.parse((await meta?.text()) ?? "null").sweepShare).toBe(0.25);
@@ -176,7 +208,7 @@ describe("useClipRecorder", () => {
 
   it("records a zero share when no frame was noted", async () => {
     const { result } = renderHook(() => useClipRecorder(videoRef(new FakeMediaStream())));
-    act(() => result.current.start());
+    await act(() => result.current.start(restart));
     act(() => result.current.stop(context));
 
     const meta = result.current.pending?.[1];

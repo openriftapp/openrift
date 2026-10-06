@@ -10,22 +10,21 @@ import {
   deriveAimHint,
 } from "@/features/scan/lib/scan-aim-hint";
 import type { ScanBankInfo } from "@/features/scan/lib/scan-bank";
+import type { PendingFrame } from "@/features/scan/lib/scan-catchup";
 import { LOCK_VIBRATION_MS } from "@/features/scan/lib/scan-feedback";
-import { frameLogLine, printingLogLine } from "@/features/scan/lib/scan-frame-log";
+import { frameLogEntry, frameLogLine, printingLogLine } from "@/features/scan/lib/scan-frame-log";
 import type { LockedCard, ScannerEvents } from "@/features/scan/lib/scan-locks";
 import { appendLock, lockFromTrack, resolvePrintingIn } from "@/features/scan/lib/scan-locks";
+import type { FrameDecision, ScanLoop } from "@/features/scan/lib/scan-loop";
 import {
   IDLE_PACE_DELAY_MS,
   PAUSED_POLL_MS,
   createFpsWindow,
-  nextIdlePace,
   publishDue,
-  settleBlocksFrame,
   shouldPaceFrame,
 } from "@/features/scan/lib/scan-pacing";
 import type { ScannerReadout } from "@/features/scan/lib/scan-readout";
 import { EMPTY_READOUT, aimHintInputFor, buildReadout } from "@/features/scan/lib/scan-readout";
-import { suppressedLock } from "@/features/scan/lib/scan-recent-adds";
 import type { ScanRun } from "@/features/scan/lib/scan-run";
 import type { ScannerSettings } from "@/features/scan/lib/scan-session";
 import { lockRunForMode } from "@/features/scan/lib/scan-session";
@@ -44,8 +43,8 @@ export interface ScanFramesOptions {
   settingsRef: RefObject<ScannerSettings>;
   eventsRef: RefObject<ScannerEvents | undefined>;
   runRef: RefObject<ScanRun>;
+  loop: () => ScanLoop<PendingFrame>;
   setFrameInFlight: (frame: Promise<unknown>) => void;
-  idleGate: number;
   grabFrame: (video: HTMLVideoElement) => RgbaImage | null;
   hasSession: () => boolean;
   processFrame: (
@@ -70,8 +69,7 @@ export interface ScanFrames {
 }
 
 export function useScanFrames(options: ScanFramesOptions): ScanFrames {
-  const { bank, videoRef, runningRef, runGenerationRef, settingsRef, eventsRef, runRef, idleGate } =
-    options;
+  const { bank, videoRef, runningRef, runGenerationRef, settingsRef, eventsRef, runRef } = options;
   const locksRef = useRef<LockedCard[]>([]);
   const lastPublishRef = useRef(0);
   const fpsRef = useRef(createFpsWindow());
@@ -116,27 +114,15 @@ export function useScanFrames(options: ScanFramesOptions): ScanFrames {
     );
   }
 
-  function noteLock(outcome: FrameOutcome) {
-    const track = outcome.locked;
+  function noteLock(outcome: FrameOutcome, decision: FrameDecision) {
+    const track = decision.lock;
+    if (decision.suppressed) {
+      console.log(`[scan] lock of ${outcome.locked?.label} suppressed (${decision.suppressed})`);
+    }
     if (!track) {
       return;
     }
     const run = runRef.current;
-    const suppressed = suppressedLock({
-      artKey: track.artKey,
-      singleMode: run.mode === "single",
-      sweeping: outcome.sweeping,
-      placedSinceLock: run.pile.placedSinceLock(),
-      relock: run.relock,
-      recentBoardAdds: run.recentBoardAdds,
-      now: performance.now(),
-    });
-    if (suppressed) {
-      console.log(`[scan] lock of ${track.label} suppressed (${suppressed})`);
-      return;
-    }
-    run.relock.note(track.artKey, performance.now());
-    run.pile.noteLock(performance.now());
     const lock = lockFromTrack({
       track,
       tapped: run.mode === "capture",
@@ -145,8 +131,6 @@ export function useScanFrames(options: ScanFramesOptions): ScanFrames {
       at: Date.now(),
     });
     locksRef.current = appendLock(locksRef.current, lock);
-    run.tally.noteNamed();
-    run.update({ pendingFrame: null });
     const aimSeconds = run.aimStreaks.take(track.artKey, performance.now());
     const aimPart = aimSeconds === null ? "" : `, aim-to-lock ${aimSeconds.toFixed(2)}s`;
     console.log(
@@ -203,10 +187,11 @@ export function useScanFrames(options: ScanFramesOptions): ScanFrames {
       return;
     }
     const run = runRef.current;
-    if (!run.sweeping && settleBlocksFrame(run.settling, performance.now(), run.capturing)) {
+    if (options.loop().frameBlocked(performance.now())) {
       return;
     }
     const turns = run.rotation.turns();
+    const grabbedAt = performance.now();
     const frame = options.grabFrame(video);
     if (!frame) {
       return;
@@ -227,28 +212,20 @@ export function useScanFrames(options: ScanFramesOptions): ScanFrames {
       return;
     }
     const rankedTop = outcome.ranked[0];
-    const plausible =
-      outcome.winner !== null || (rankedTop !== undefined && rankedTop.distance <= idleGate);
-    run.update({ sweeping: outcome.sweeping, still: outcome.still, cardInGuide: plausible });
-    eventsRef.current?.onFrame?.({ sweeping: outcome.sweeping });
-    // Before noteLock, so the guide emptying and this frame's lock are judged
-    // in the order they happened.
-    run.relock.observe(plausible, performance.now());
+    const decision = options.loop().noteOutcome(outcome, performance.now());
     let aimAgeSeconds = 0;
     let aim: ScannerReadout["aim"] = null;
     if (rankedTop) {
       const topArt = bank?.artKeys.get(rankedTop.key) ?? rankedTop.key;
       aimAgeSeconds = run.aimStreaks.touch(topArt, performance.now());
-      if (rankedTop.distance <= idleGate) {
+      if (decision.cardInGuide) {
         aim = { artKey: topArt, key: rankedTop.key, seconds: aimAgeSeconds };
       }
     }
 
-    noteLock(outcome);
+    noteLock(outcome, decision);
     notePrinting(outcome);
     noteWinnerRotation(outcome);
-
-    run.update({ idlePace: nextIdlePace(run.idlePace, plausible, outcome.timings.total) });
 
     console.log(frameLogLine(frameIndex, outcome, aimAgeSeconds));
 
@@ -270,13 +247,8 @@ export function useScanFrames(options: ScanFramesOptions): ScanFrames {
       lockRun,
     });
     publish(outcome, aim, runLength, lockRun, areaFraction, outcome.locked !== null);
-    if (outcome.survey) {
-      await options.noteBoardSurvey(outcome.survey, frame, {
-        cardInGuide: plausible,
-        settling: run.settling.disturbed,
-        sweeping: outcome.sweeping,
-      });
-    }
+    const board = await options.noteBoardSurvey(outcome, frame);
+    eventsRef.current?.onFrame?.(frameLogEntry(grabbedAt, outcome, decision, board));
   }
 
   function startLoop(): void {

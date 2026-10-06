@@ -41,6 +41,7 @@ import type { ScanServing } from "@/features/scan/hooks/use-scan-serving";
 import { useScanServing } from "@/features/scan/hooks/use-scan-serving";
 import type { CameraInfo, CameraInfoEntry } from "@/features/scan/lib/camera-info";
 import { describeKey, isLandscapeKey } from "@/features/scan/lib/scan-bank";
+import type { FrameLogEntry } from "@/features/scan/lib/scan-frame-log";
 import type { LockedCard } from "@/features/scan/lib/scan-locks";
 import type { ScannerReadout } from "@/features/scan/lib/scan-readout";
 import type { ScannerSettings } from "@/features/scan/lib/scan-session";
@@ -402,9 +403,9 @@ export function ScanTestPage() {
     threads,
   } = engine;
 
-  const frameSinkRef = useRef<((sweeping: boolean) => void) | null>(null);
+  const frameSinkRef = useRef<((frame: FrameLogEntry) => void) | null>(null);
   const scannerEvents = {
-    onFrame: (frame: { sweeping: boolean }) => frameSinkRef.current?.(frame.sweeping),
+    onFrame: (frame: FrameLogEntry) => frameSinkRef.current?.(frame),
   };
 
   // Destructured before any JSX: member access on the hook's return object
@@ -418,6 +419,7 @@ export function ScanTestPage() {
     cameraInfo,
     start,
     stop,
+    restart,
     capture,
     clearHistory,
   } = useCardScanner(engine, settings, scannerEvents);
@@ -474,7 +476,7 @@ export function ScanTestPage() {
     if (recording) {
       stopRecording(recorderContext());
     } else {
-      startRecording();
+      void startRecording(restart);
     }
   }
   function handleSaveClip() {

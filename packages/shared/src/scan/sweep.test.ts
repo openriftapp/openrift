@@ -131,6 +131,40 @@ describe("createSweepTracker — empty guide", () => {
   });
 });
 
+describe("createSweepTracker — ending a sweep", () => {
+  const frame = blankFrame(300, 200);
+  const guide: Quad = boxQuad(100, 0, 100, 140);
+  const several = [outline(boxQuad(100, 10, 30, 42)), outline(boxQuad(150, 10, 30, 42))];
+  const FPS = 20;
+
+  async function secondsUntilSweepEnds(motionWhileHeld: number): Promise<number | null> {
+    const tracker = createSweepTracker(() => Promise.resolve(several));
+    let frameIndex = 0;
+    for (; !tracker.active && frameIndex < FPS; frameIndex++) {
+      tracker.noteMotion(0.02, false, frameIndex / FPS);
+      await tracker.survey(frame, guide, frameIndex / FPS, false);
+    }
+    expect(tracker.active).toBe(true);
+    for (let held = 0; held < 3 * FPS; held++, frameIndex++) {
+      tracker.noteMotion(motionWhileHeld, false, frameIndex / FPS);
+      if (tracker.endsSweep(several, guide)) {
+        return held / FPS;
+      }
+    }
+    return null;
+  }
+
+  it("ends within about a second once the camera is held still over several cards", async () => {
+    const endedAfter = await secondsUntilSweepEnds(0.001);
+    expect(endedAfter).not.toBeNull();
+    expect(endedAfter).toBeLessThanOrEqual(SWEEP_OPTIONS.settleSeconds + 0.1);
+  });
+
+  it("keeps sweeping while the camera pans slowly over several cards", async () => {
+    expect(await secondsUntilSweepEnds(0.004)).toBeNull();
+  });
+});
+
 describe("createSweepTracker — survey cadence", () => {
   const frame = blankFrame(300, 200);
   const guide: Quad = boxQuad(100, 0, 100, 140);

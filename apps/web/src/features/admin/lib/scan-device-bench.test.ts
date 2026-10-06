@@ -9,6 +9,7 @@ import {
   everyNthFrame,
   frameWindows,
   realtimePacing,
+  recordedPacing,
   replayClip,
   summarizeSpeed,
 } from "@/features/admin/lib/scan-device-bench";
@@ -557,6 +558,23 @@ describe("replayClip", () => {
       expect(result.catchUpRuns).toBe(0);
       expect(result.processed).toBe(60);
     });
+  });
+});
+
+describe("recordedPacing", () => {
+  it("processes the clip frame nearest each frame the phone grabbed, and nothing else", async () => {
+    const processed: number[] = [];
+    await replayClip(
+      deps({
+        loadFrame: indexedFrame,
+        process: async (frame) => {
+          processed.push(frame.width);
+          return outcome();
+        },
+        pacing: recordedPacing([0.01, 0.26, 0.29, 0.71], 10),
+      }),
+    );
+    expect(processed).toEqual([0, 3, 7]);
   });
 });
 

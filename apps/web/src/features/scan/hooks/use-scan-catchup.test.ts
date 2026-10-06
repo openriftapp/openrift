@@ -6,8 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ScanCatchUpOptions } from "@/features/scan/hooks/use-scan-catchup";
 import { useScanCatchUp } from "@/features/scan/hooks/use-scan-catchup";
-import type { IdentifyAttempt } from "@/features/scan/lib/scan-catchup";
+import type { IdentifyAttempt, PendingFrame } from "@/features/scan/lib/scan-catchup";
 import type { LockedCard } from "@/features/scan/lib/scan-locks";
+import { createScanLoop } from "@/features/scan/lib/scan-loop";
 import { createScanRun } from "@/features/scan/lib/scan-run";
 
 const FRAME: RgbaImage = { data: new Uint8ClampedArray(4), width: 1, height: 1 };
@@ -24,9 +25,15 @@ function mount(processFrame: ScanCatchUpOptions["processFrame"]) {
   const onLock = vi.fn<(lock: LockedCard) => void>();
   const runGenerationRef = { current: 0 };
   const run = createScanRun("single");
+  const loop = createScanLoop<PendingFrame>({
+    run: () => run,
+    idleGate: () => 0.5,
+    readBoard: async () => null,
+  });
   const hook = renderHook(() =>
     useScanCatchUp({
       bank: null,
+      loop: () => loop,
       videoRef: { current: document.createElement("video") },
       runningRef: { current: true },
       runGenerationRef,

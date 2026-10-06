@@ -1,5 +1,6 @@
 import { formatFileStamp } from "@openrift/shared/format-date";
 
+import type { FrameLogEntry } from "@/features/scan/lib/scan-frame-log";
 import type { LockedCard } from "@/features/scan/lib/scan-locks";
 import type { ScannerMode } from "@/features/scan/lib/scan-session";
 
@@ -35,6 +36,11 @@ interface ClipLock {
   score: number;
 }
 
+/** `seconds` from the start of the recording to the frame's grab. */
+export interface ClipFrame extends Omit<FrameLogEntry, "grabbedAt"> {
+  seconds: number;
+}
+
 export interface ClipMeta {
   version: 1;
   recordedAt: string;
@@ -47,6 +53,7 @@ export interface ClipMeta {
   locks: ClipLock[];
   /** Fraction 0..1 of processed frames the session reported as sweeping. */
   sweepShare?: number;
+  frames?: ClipFrame[];
 }
 
 export interface ClipMetaInput {
@@ -58,7 +65,7 @@ export interface ClipMetaInput {
   userAgent: string;
   camera: Record<string, unknown>;
   locks: readonly LockedCard[];
-  frames?: { processed: number; sweeping: number };
+  frames?: ClipFrame[];
 }
 
 export interface FileSharer {
@@ -117,7 +124,10 @@ export function buildClipMeta(input: ClipMetaInput): ClipMeta {
       ? {}
       : {
           sweepShare:
-            input.frames.processed === 0 ? 0 : input.frames.sweeping / input.frames.processed,
+            input.frames.length === 0
+              ? 0
+              : input.frames.filter((frame) => frame.sweeping).length / input.frames.length,
+          frames: input.frames,
         }),
   };
 }

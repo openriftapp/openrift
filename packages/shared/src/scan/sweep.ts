@@ -26,6 +26,10 @@ export interface SweepOptions {
   stillSeconds: number;
   /** Frame widths per processed frame. */
   stillMotion: number;
+  /** Seconds. */
+  settleSeconds: number;
+  /** Frame widths per second. */
+  settleMotion: number;
   accept: AcceptOptions;
 }
 
@@ -42,6 +46,8 @@ export const SWEEP_OPTIONS: SweepOptions = {
   emptyGuideBackoffFrames: 7,
   stillSeconds: 3,
   stillMotion: 0.00025,
+  settleSeconds: 1,
+  settleMotion: 0.06,
   accept: { lockRun: 4, maxGapFrames: 6 },
 };
 
@@ -148,7 +154,8 @@ export function createSweepTracker(
   let emptyGuideSkips = 0;
   let lastSurveyAt = Number.NEGATIVE_INFINITY;
   let still = false;
-  const recentMotion: { seconds: number; motion: number }[] = [];
+  let settled = false;
+  const recentMotion: { seconds: number; motion: number; rate: number }[] = [];
 
   function cameraStill(seconds: number): boolean {
     const first = recentMotion[0];
@@ -161,6 +168,17 @@ export function createSweepTracker(
     return median < SWEEP_OPTIONS.stillMotion * (still ? STILL_EXIT_FACTOR : 1);
   }
 
+  function cameraSettled(seconds: number): boolean {
+    const since = seconds - SWEEP_OPTIONS.settleSeconds;
+    const window = recentMotion.filter((entry) => entry.seconds >= since);
+    const first = window[0];
+    if (!first || seconds - first.seconds < SWEEP_OPTIONS.settleSeconds * STILL_WINDOW_MIN_SHARE) {
+      return false;
+    }
+    const rates = window.map((entry) => entry.rate).toSorted((a, b) => a - b);
+    return (rates[Math.floor(rates.length / 2)] ?? Infinity) < SWEEP_OPTIONS.settleMotion;
+  }
+
   return {
     get active() {
       return active;
@@ -168,11 +186,15 @@ export function createSweepTracker(
 
     noteMotion(motion, lost, seconds) {
       motionSinceSurvey += motion;
-      recentMotion.push({ seconds, motion: lost ? 1 : motion });
+      const previous = recentMotion.at(-1);
+      const elapsed = previous ? seconds - previous.seconds : 0;
+      const rate = lost ? Infinity : elapsed > 0 ? motion / elapsed : Infinity;
+      recentMotion.push({ seconds, motion: lost ? 1 : motion, rate });
       while ((recentMotion[0]?.seconds ?? seconds) < seconds - SWEEP_OPTIONS.stillSeconds) {
         recentMotion.shift();
       }
       still = cameraStill(seconds);
+      settled = cameraSettled(seconds);
       return still;
     },
 
@@ -213,7 +235,7 @@ export function createSweepTracker(
       const view = sweepView(outlines, guide, SWEEP_OPTIONS.aimedShare);
       const several = view.cards >= SWEEP_OPTIONS.minCards || (view.cards > 0 && !view.aimed);
       exitStreak = several ? 0 : exitStreak + 1;
-      if (exitStreak < SWEEP_OPTIONS.exitFrames) {
+      if (exitStreak < SWEEP_OPTIONS.exitFrames && !settled) {
         return false;
       }
       active = false;

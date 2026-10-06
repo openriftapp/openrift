@@ -1,9 +1,12 @@
 import type { BoardCard } from "@openrift/shared/scan/board";
+import type { FrameOutcome } from "@openrift/shared/scan/session";
 import { centeredGuideQuad } from "@openrift/shared/scan/session-options";
 import type { CardCandidate } from "@openrift/shared/scan/types";
 import { renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { PendingFrame } from "@/features/scan/lib/scan-catchup";
+import { createScanLoop } from "@/features/scan/lib/scan-loop";
 import { createScanRun } from "@/features/scan/lib/scan-run";
 
 import { useScanBoard } from "./use-scan-board";
@@ -13,7 +16,6 @@ vi.mock("@/features/scan/lib/scan-frame-grab", () => ({
 }));
 
 const FRAME = { width: 640, height: 480 };
-const QUIET = { cardInGuide: false, settling: false, sweeping: false };
 
 function twoCardsInGuide(): CardCandidate[] {
   const [topLeft, , bottomRight] = centeredGuideQuad(FRAME.width, FRAME.height);
@@ -32,19 +34,24 @@ function twoCardsInGuide(): CardCandidate[] {
   }));
 }
 
+function survey(): FrameOutcome {
+  return { survey: twoCardsInGuide(), sweeping: false } as FrameOutcome;
+}
+
 function renderBoard({ readBoard }: { readBoard: () => Promise<BoardCard[] | null> }) {
   const onBoardRead = vi.fn();
+  const run = createScanRun("single");
+  const loop = createScanLoop<PendingFrame>({ run: () => run, idleGate: () => 0.5, readBoard });
   const hook = renderHook(() =>
     useScanBoard({
       bank: null,
       videoRef: { current: document.createElement("video") },
-      runGenerationRef: { current: 0 },
-      runRef: { current: createScanRun("single") },
+      runRef: { current: run },
       eventsRef: { current: { onBoardRead } },
-      readBoard,
+      loop: () => loop,
     }),
   );
-  return { hook, onBoardRead };
+  return { hook, onBoardRead, run };
 }
 
 const boardCard = { key: "k-a", artKey: "art-a" } as BoardCard;
@@ -59,9 +66,9 @@ describe("useScanBoard", () => {
     const readBoard = vi.fn(() => Promise.resolve([boardCard]));
     const { hook, onBoardRead } = renderBoard({ readBoard });
 
-    await hook.result.current.noteSurvey(twoCardsInGuide(), FRAME, QUIET);
+    await hook.result.current.noteSurvey(survey(), FRAME);
     expect(readBoard).not.toHaveBeenCalled();
-    await hook.result.current.noteSurvey(twoCardsInGuide(), FRAME, QUIET);
+    await hook.result.current.noteSurvey(survey(), FRAME);
 
     expect(readBoard).toHaveBeenCalledTimes(1);
     expect(onBoardRead).toHaveBeenCalledTimes(1);
@@ -69,11 +76,11 @@ describe("useScanBoard", () => {
 
   it("ignores surveys while a card is being aimed", async () => {
     const readBoard = vi.fn(() => Promise.resolve([boardCard]));
-    const { hook } = renderBoard({ readBoard });
-    const aimed = { ...QUIET, cardInGuide: true };
+    const { hook, run } = renderBoard({ readBoard });
+    run.update({ cardInGuide: true });
 
-    await hook.result.current.noteSurvey(twoCardsInGuide(), FRAME, aimed);
-    await hook.result.current.noteSurvey(twoCardsInGuide(), FRAME, aimed);
+    await hook.result.current.noteSurvey(survey(), FRAME);
+    await hook.result.current.noteSurvey(survey(), FRAME);
 
     expect(readBoard).not.toHaveBeenCalled();
   });
@@ -83,8 +90,8 @@ describe("useScanBoard", () => {
     const readBoard = vi.fn(() => Promise.resolve(null));
     const { hook, onBoardRead } = renderBoard({ readBoard });
 
-    await hook.result.current.noteSurvey(twoCardsInGuide(), FRAME, QUIET);
-    await hook.result.current.noteSurvey(twoCardsInGuide(), FRAME, QUIET);
+    await hook.result.current.noteSurvey(survey(), FRAME);
+    await hook.result.current.noteSurvey(survey(), FRAME);
 
     expect(readBoard).toHaveBeenCalledTimes(1);
     expect(onBoardRead).not.toHaveBeenCalled();
@@ -95,10 +102,8 @@ describe("useScanBoard", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { hook } = renderBoard({ readBoard });
 
-    await hook.result.current.noteSurvey(twoCardsInGuide(), FRAME, QUIET);
-    await expect(
-      hook.result.current.noteSurvey(twoCardsInGuide(), FRAME, QUIET),
-    ).resolves.toBeUndefined();
+    await hook.result.current.noteSurvey(survey(), FRAME);
+    await expect(hook.result.current.noteSurvey(survey(), FRAME)).resolves.toBeNull();
 
     expect(readBoard).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledOnce();

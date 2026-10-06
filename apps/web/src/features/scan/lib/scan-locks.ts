@@ -5,6 +5,7 @@ import type { CardLabels } from "@openrift/shared/scan/labels";
 import type { FrameOutcome } from "@openrift/shared/scan/session";
 
 import { describeKey } from "@/features/scan/lib/scan-bank";
+import type { FrameLogEntry } from "@/features/scan/lib/scan-frame-log";
 
 export const LOCK_HISTORY_LIMIT = 30;
 
@@ -42,7 +43,7 @@ export interface ScannerEvents {
   onLock?: (lock: LockedCard) => void;
   onLockResolved?: (update: { artKey: string; key: string; label: string }) => void;
   onBoardRead?: (cards: BoardReadCard[]) => void;
-  onFrame?: (frame: { sweeping: boolean }) => void;
+  onFrame?: (frame: FrameLogEntry) => void;
 }
 
 export function boardReadCards(

@@ -17,6 +17,7 @@ import {
   TRUTH_DIR,
   argValue,
   extractClipFrames,
+  fullResolutionRecording,
   hasFlag,
 } from "./lib";
 
@@ -64,29 +65,36 @@ if (
 }
 
 fs.mkdirSync(RECORDINGS_DIR, { recursive: true });
-execFileSync(
-  "ffmpeg",
-  [
-    "-v",
-    "error",
-    "-y",
-    "-i",
-    video,
-    "-an",
-    "-vf",
-    `fps=${DEFAULT_FPS},scale='if(gt(iw,ih),${LONG_SIDE},-2)':'if(gt(iw,ih),-2,${LONG_SIDE})'`,
-    "-c:v",
-    "libx264",
-    "-crf",
-    "20",
-    "-preset",
-    "slow",
-    "-pix_fmt",
-    "yuv420p",
-    archive,
-  ],
-  { stdio: "inherit" },
+function encode(filter: string, out: string): void {
+  execFileSync(
+    "ffmpeg",
+    [
+      "-v",
+      "error",
+      "-y",
+      "-i",
+      video as string,
+      "-an",
+      "-vf",
+      filter,
+      "-c:v",
+      "libx264",
+      "-crf",
+      "20",
+      "-preset",
+      "slow",
+      "-pix_fmt",
+      "yuv420p",
+      out,
+    ],
+    { stdio: "inherit" },
+  );
+}
+encode(
+  `fps=${DEFAULT_FPS},scale='if(gt(iw,ih),${LONG_SIDE},-2)':'if(gt(iw,ih),-2,${LONG_SIDE})'`,
+  archive,
 );
+encode(`fps=${DEFAULT_FPS}`, fullResolutionRecording(name));
 fs.copyFileSync(metaFile, path.join(RECORDINGS_DIR, `${name}.recording.json`));
 const frames = extractClipFrames(name);
 

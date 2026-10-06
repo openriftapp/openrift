@@ -1,26 +1,20 @@
 import { lockIdOf } from "@openrift/shared/scan/accept";
 import type { BenchLock, TimingSummary } from "@openrift/shared/scan/bench-score";
 import { summarize } from "@openrift/shared/scan/bench-score";
-import { cardsInGuide } from "@openrift/shared/scan/cards-in-guide";
+import type { BoardCard } from "@openrift/shared/scan/board";
 import type { PlacementSignal } from "@openrift/shared/scan/placement";
-import { createPlacementHold } from "@openrift/shared/scan/placement";
 import type { FrameOutcome } from "@openrift/shared/scan/session";
-import { centeredGuideQuad } from "@openrift/shared/scan/session-options";
 import type { Quad, RgbaImage } from "@openrift/shared/scan/types";
 
-import {
-  boardSurveyCounts,
-  boardTriggerStart,
-  noteBoardSurvey,
-} from "@/features/scan/lib/scan-board-trigger";
 import type { PendingFrame } from "@/features/scan/lib/scan-catchup";
 import {
   catchUpVerdict,
   createCatchUpQueue,
   shouldRunCatchUp,
 } from "@/features/scan/lib/scan-catchup";
-import { IDLE_PACE_DELAY_MS, nextIdlePace, shouldPaceFrame } from "@/features/scan/lib/scan-pacing";
-import { suppressedLock } from "@/features/scan/lib/scan-recent-adds";
+import type { BoardReadResult, FrameDecision } from "@/features/scan/lib/scan-loop";
+import { createScanLoop } from "@/features/scan/lib/scan-loop";
+import { IDLE_PACE_DELAY_MS, shouldPaceFrame } from "@/features/scan/lib/scan-pacing";
 import { createScanRun } from "@/features/scan/lib/scan-run";
 
 export interface ReplayPacing {
@@ -35,6 +29,25 @@ export function everyNthFrame(stride: number): ReplayPacing {
     ran: ({ index }) => {
       next = index + stride;
     },
+  };
+}
+
+/** Processes the frames a phone processed while recording, given their grab times in seconds. */
+export function recordedPacing(grabs: readonly number[], fps: number): ReplayPacing {
+  const halfFrame = 0.5 / fps;
+  let next = 0;
+  return {
+    ready: (_index, seconds) => {
+      const due = grabs[next];
+      if (due === undefined || seconds + halfFrame < due) {
+        return false;
+      }
+      while ((grabs[next] ?? Infinity) <= seconds + halfFrame) {
+        next++;
+      }
+      return true;
+    },
+    ran: () => null,
   };
 }
 
@@ -68,6 +81,8 @@ export interface ReplayFrame {
   /** Its pixels may already belong to `process`; only the size is safe to read. */
   frame: RgbaImage;
   outcome: FrameOutcome;
+  decision: FrameDecision;
+  board: BoardReadResult | null;
 }
 
 type ProcessFrame = (frame: RgbaImage, index: number, seconds: number) => Promise<FrameOutcome>;
@@ -80,6 +95,8 @@ export interface ReplayDeps {
   /** Takes ownership of the frame; it must not be read afterwards. */
   process: ProcessFrame;
   catchUp?: ProcessFrame;
+  readBoard?: (still: RgbaImage) => Promise<BoardCard[] | null>;
+  loadStill?: (index: number) => Promise<RgbaImage>;
   rearm: () => void;
   multiPrinting: (artKey: string) => boolean;
   labelOf: (key: string) => string;
@@ -113,13 +130,21 @@ function cardHeight([a, b, c, d]: Quad): number {
   return Math.round(Math.max(Math.hypot(d.x - a.x, d.y - a.y), Math.hypot(c.x - b.x, c.y - b.y)));
 }
 
-/** The app's frame loop around the scan session (use-card-scanner and the hooks it wires up). */
+interface ReplayPending extends PendingFrame {
+  arrivedAt: number;
+}
+
+/** Drives the app's frame loop (scan-loop.ts) over a clip. */
 export async function replayClip(deps: ReplayDeps): Promise<ReplayResult> {
   const behaviour = { ...APP_BEHAVIOUR, ...deps.behaviour };
   const { pacing, catchUp } = deps;
-  const hold = createPlacementHold();
   const run = createScanRun("single");
-  const boardTrigger = boardTriggerStart();
+  const loop = createScanLoop<ReplayPending>({
+    run: () => run,
+    idleGate: () => deps.idleGate,
+    readBoard: async (still) => (deps.readBoard ? await deps.readBoard(still) : null),
+    relockGuard: behaviour.relockGuard,
+  });
   const catchUpQueue = createCatchUpQueue();
   const catchUpArrivals = new Map<string, number>();
   const stageTotals = { detect: 0, embed: 0, verify: 0, printing: 0 };
@@ -142,46 +167,33 @@ export async function replayClip(deps: ReplayDeps): Promise<ReplayResult> {
 
   let wasDisturbed = false;
   let lastArrivalAt: number | null = null;
-  let settle: { at: number; pending: PendingFrame | null; arrivedAt: number } | null = null;
-  let pendingArrivedAt = 0;
   let enqueued = 0;
 
   function watchPlacement(frame: RgbaImage, signal: PlacementSignal, seconds: number): void {
     const now = seconds * 1000;
-    if (!run.still || run.sweeping) {
-      return;
-    }
-    if (run.tally.takeMiss(now)) {
+    const { missed, missedFrame, confirmed } = loop.observePlacement(signal, now, () =>
+      catchUp
+        ? {
+            frame: { ...frame, data: new Uint8ClampedArray(frame.data) },
+            thumbnail: null,
+            arrivedAt: lastArrivalAt ?? seconds,
+          }
+        : null,
+    );
+    if (missed) {
       result.missedPlacements++;
-      const pending = run.pendingFrame;
-      run.pendingFrame = null;
-      if (pending) {
-        enqueued++;
-        const id = `catchup-${enqueued}`;
-        catchUpArrivals.set(id, pendingArrivedAt);
-        catchUpQueue.push({ id, frame: pending.frame, thumbnail: null, at: now });
+    }
+    if (missedFrame && catchUp) {
+      enqueued++;
+      const id = `catchup-${enqueued}`;
+      catchUpArrivals.set(id, missedFrame.arrivedAt);
+      catchUpQueue.push({ id, frame: missedFrame.frame, thumbnail: null, at: now });
+    }
+    if (confirmed) {
+      result.placements++;
+      if (behaviour.rearm) {
+        deps.rearm();
       }
-    }
-    if (signal.placed) {
-      settle = {
-        at: now,
-        pending: catchUp
-          ? { frame: { ...frame, data: new Uint8ClampedArray(frame.data) }, thumbnail: null }
-          : null,
-        arrivedAt: lastArrivalAt ?? seconds,
-      };
-    }
-    if (!hold.observe(signal, seconds) || !settle || run.pile.lockedSince(settle.at)) {
-      return;
-    }
-    result.placements++;
-    run.tally.notePlacement(now);
-    run.pile.notePlacement();
-    run.pendingFrame = settle.pending;
-    pendingArrivedAt = settle.arrivedAt;
-    settle = null;
-    if (behaviour.rearm) {
-      deps.rearm();
     }
   }
 
@@ -206,8 +218,7 @@ export async function replayClip(deps: ReplayDeps): Promise<ReplayResult> {
     if (verdict !== "add" || !outcome.winner) {
       return;
     }
-    run.tally.noteRecovered();
-    run.relock.note(outcome.winner.artKey, seconds * 1000);
+    loop.noteCatchUpAdd(outcome.winner.artKey, seconds * 1000);
     locks.push({
       seconds,
       key: outcome.winner.key,
@@ -223,29 +234,14 @@ export async function replayClip(deps: ReplayDeps): Promise<ReplayResult> {
     });
   }
 
-  function noteLock(outcome: FrameOutcome, seconds: number): void {
-    const track = outcome.locked;
+  function noteLock(outcome: FrameOutcome, decision: FrameDecision, seconds: number): void {
+    if (decision.suppressed) {
+      result.suppressedRelocks++;
+    }
+    const track = decision.lock;
     if (!track) {
       return;
     }
-    const now = seconds * 1000;
-    const suppressed = suppressedLock({
-      artKey: track.artKey,
-      singleMode: behaviour.relockGuard,
-      sweeping: outcome.sweeping,
-      placedSinceLock: run.pile.placedSinceLock(),
-      relock: run.relock,
-      recentBoardAdds: run.recentBoardAdds,
-      now,
-    });
-    if (suppressed) {
-      result.suppressedRelocks++;
-      return;
-    }
-    run.relock.note(track.artKey, now);
-    run.pile.noteLock(now);
-    run.tally.noteNamed();
-    run.pendingFrame = null;
     const previous = locks.at(-1);
     const lock: BenchLock = {
       seconds,
@@ -287,19 +283,37 @@ export async function replayClip(deps: ReplayDeps): Promise<ReplayResult> {
     }
   }
 
-  function noteSurvey(outcome: FrameOutcome, frame: RgbaImage, settling: boolean, seconds: number) {
-    const counts = boardSurveyCounts({
-      cardInGuide: run.cardInGuide,
-      settling,
-      sweeping: outcome.sweeping,
-    });
-    if (!outcome.survey || !behaviour.boardReads || !counts) {
-      return;
+  async function noteSurvey(
+    outcome: FrameOutcome,
+    frame: RgbaImage,
+    index: number,
+    seconds: number,
+  ): Promise<BoardReadResult | null> {
+    if (!behaviour.boardReads || !loop.boardReadDue(outcome, frame, seconds * 1000)) {
+      return null;
     }
-    const cards = cardsInGuide(outcome.survey, centeredGuideQuad(frame.width, frame.height), frame);
-    if (noteBoardSurvey(boardTrigger, cards.length, seconds * 1000)) {
-      result.boardReads.push(seconds);
+    result.boardReads.push(seconds);
+    if (!deps.readBoard) {
+      return null;
     }
+    const still = await (deps.loadStill ?? deps.loadFrame)(index);
+    const board = await loop.readBoard(still, () => seconds * 1000);
+    for (const card of board?.fresh ?? []) {
+      locks.push({
+        seconds,
+        key: card.key,
+        artKey: card.artKey,
+        label: deps.labelOf(card.key),
+        framesToLock: 0,
+        score: Math.round(card.score * 100),
+        rivalScore: Math.round(card.rivalScore * 100),
+        printingResolved: false,
+        multiPrinting: deps.multiPrinting(card.artKey),
+        arrivedAt: null,
+        source: "board",
+      });
+    }
+    return board;
   }
 
   for (let index = 0; index < deps.frameCount; index++) {
@@ -329,7 +343,7 @@ export async function replayClip(deps: ReplayDeps): Promise<ReplayResult> {
       await runCatchUp(index, seconds);
       continue;
     }
-    if (signal.disturbed && behaviour.skipDisturbed && !run.sweeping) {
+    if (behaviour.skipDisturbed && loop.frameBlocked(seconds * 1000)) {
       result.skipped++;
       continue;
     }
@@ -338,32 +352,25 @@ export async function replayClip(deps: ReplayDeps): Promise<ReplayResult> {
     const outcome = await deps.process(frame, result.processed, seconds);
     const elapsedMs = deps.now() - startedAt;
     result.processed++;
-    run.sweeping = outcome.sweeping;
-    run.still = outcome.still;
-    result.sweepFrames += run.sweeping ? 1 : 0;
-    result.stillFrames += run.still ? 1 : 0;
+    const decision = loop.noteOutcome(outcome, seconds * 1000);
+    result.sweepFrames += outcome.sweeping ? 1 : 0;
+    result.stillFrames += outcome.still ? 1 : 0;
     result.frameMs.push(elapsedMs);
     stageTotals.detect += outcome.timings.detect;
     stageTotals.embed += outcome.timings.embed;
     stageTotals.verify += outcome.timings.verify;
     stageTotals.printing += outcome.timings.printing ?? 0;
 
-    const top = outcome.ranked[0];
-    run.cardInGuide =
-      outcome.winner !== null || (top !== undefined && top.distance <= deps.idleGate);
-    run.relock.observe(run.cardInGuide, seconds * 1000);
-    run.idlePace = nextIdlePace(run.idlePace, run.cardInGuide, outcome.timings.total);
+    noteLock(outcome, decision, seconds);
+    notePrinting(outcome);
+    const board = await noteSurvey(outcome, frame, index, seconds);
     pacing.ran({
       index,
       seconds,
-      elapsedMs,
+      elapsedMs: deps.now() - startedAt,
       idlePaced: shouldPaceFrame(run.idlePace, run.sweeping),
     });
-
-    noteLock(outcome, seconds);
-    notePrinting(outcome);
-    noteSurvey(outcome, frame, signal.disturbed, seconds);
-    deps.onFrame?.({ index, seconds, frame, outcome });
+    deps.onFrame?.({ index, seconds, frame, outcome, decision, board });
   }
 
   const divisor = Math.max(1, result.processed);

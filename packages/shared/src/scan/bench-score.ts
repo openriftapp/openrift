@@ -51,7 +51,7 @@ export interface BenchLock {
   multiPrinting: boolean;
   /** Seconds. */
   arrivedAt: number | null;
-  source: "live" | "second-look";
+  source: "live" | "second-look" | "board";
   printingVia?: "name" | "code" | "stamp";
   printingMargin?: number;
   /** Frame pixels. */

@@ -21,12 +21,14 @@ import { LOCK_VIBRATION_MS } from "@/features/scan/lib/scan-feedback";
 import { guideRectIn, snapshotVideoRect } from "@/features/scan/lib/scan-flight";
 import type { ScannerEvents } from "@/features/scan/lib/scan-locks";
 import { lockFromWinner } from "@/features/scan/lib/scan-locks";
+import type { ScanLoop } from "@/features/scan/lib/scan-loop";
 import type { ScanRun } from "@/features/scan/lib/scan-run";
 import type { SessionKind } from "@/features/scan/lib/scan-worker-protocol";
 import { errorText } from "@/lib/error-text";
 
 export interface ScanCatchUpOptions {
   bank: ScanBankInfo | null;
+  loop: () => ScanLoop<PendingFrame>;
   videoRef: RefObject<HTMLVideoElement | null>;
   runningRef: RefObject<boolean>;
   runGenerationRef: RefObject<number>;
@@ -92,13 +94,11 @@ export function useScanCatchUp(options: ScanCatchUpOptions): ScanCatchUp {
     return { outcome, verdict };
   }
 
-  function addWinner(outcome: FrameOutcome): void {
+  function emitLock(outcome: FrameOutcome): void {
     const winner = outcome.winner;
-    if (!winner) {
-      return;
+    if (winner) {
+      eventsRef.current?.onLock?.(lockFromWinner(winner, outcome, bank?.labels ?? {}, Date.now()));
     }
-    runRef.current.relock.note(winner.artKey, performance.now());
-    eventsRef.current?.onLock?.(lockFromWinner(winner, outcome, bank?.labels ?? {}, Date.now()));
   }
 
   function enqueue(frame: PendingFrame, at: number): void {
@@ -136,11 +136,9 @@ export function useScanCatchUp(options: ScanCatchUpOptions): ScanCatchUp {
     if (!look || look.verdict === "discard") {
       return;
     }
-    if (look.verdict === "add") {
-      // Must decrement by one, not reset: other cards from the same burst
-      // may still be genuinely unaccounted for.
-      runRef.current.tally.noteRecovered();
-      addWinner(look.outcome);
+    if (look.verdict === "add" && look.outcome.winner) {
+      options.loop().noteCatchUpAdd(look.outcome.winner.artKey, performance.now());
+      emitLock(look.outcome);
       return;
     }
     const candidates = shortlist(look.outcome.ranked);
@@ -175,9 +173,10 @@ export function useScanCatchUp(options: ScanCatchUpOptions): ScanCatchUp {
     if (!look) {
       return { snapshot, identified: false, candidates: [] };
     }
-    if (look.verdict === "add") {
+    if (look.verdict === "add" && look.outcome.winner) {
       navigator.vibrate?.(LOCK_VIBRATION_MS);
-      addWinner(look.outcome);
+      runRef.current.relock.note(look.outcome.winner.artKey, performance.now());
+      emitLock(look.outcome);
       return { snapshot, identified: true, candidates: [] };
     }
     return { snapshot, identified: false, candidates: shortlist(look.outcome.ranked) };

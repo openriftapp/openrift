@@ -25,6 +25,7 @@ Paths are relative to `data/image-recognition-test/`.
 | Path                         | Contents                                                                           |
 | ---------------------------- | ---------------------------------------------------------------------------------- |
 | `recordings/<clip>.mp4`      | The archived clip at constant 30 fps, plus `<clip>.recording.json` from the phone. |
+| `recordings/<clip>.full.mp4` | The same clip at camera resolution, for the stills board reads see.                |
 | `clips/full/<clip>/NNNN.jpg` | Extracted frames, a cache of the recording.                                        |
 | `truth/<clip>.json`          | The clip's truth file: split, mode label, cards, copies and printings.             |
 | `boards/boards.json`         | Still photos for `run-boards`, each paired with a truth file.                      |
@@ -48,7 +49,9 @@ Two more workflow scripts work on photos:
 
 ## run-clips flags
 
-`run-clips` builds its sessions from the scanner's own plans in `apps/web/src/features/scan/lib/scan-session.ts`. Every clip replays through the same plan, whatever its truth file's mode label. Only `--slow-device` and `--set` change that plan.
+`run-clips` builds its sessions from the scanner's own plans in `apps/web/src/features/scan/lib/scan-session.ts` and drives them with the app's own frame loop (`apps/web/src/features/scan/lib/scan-loop.ts`), board reads included. Every clip replays through the same plan, whatever its truth file's mode label. Only `--slow-device` and `--set` change that plan.
+
+A recording made on `/admin/scan` restarts the scanner when recording starts and logs every frame the phone processed. `run-clips` then processes the same frames and prints where the phone and the replay decided differently (`phone vs bench`). `--all-frames` processes every frame instead.
 
 Selection and output:
 
@@ -96,8 +99,9 @@ App behaviour around the session:
 | `--no-skip-disturbed` | Process frames while a card is still moving into place.             |
 | `--no-relock-guard`   | Allow a repeat lock of one artwork with no card placed in between.  |
 | `--drop-to <fps>`     | Process at most this many frames per second, as a slow device does. |
+| `--all-frames`        | Process every frame, not the frames the recording logged.           |
 
-Board reads are counted, not replayed: `run-clips` reports when the several-cards trigger would read the board, and `run-boards` covers board reads on photos.
+Board reads run on the full-resolution still of the frame that triggered them, or on the archived frame when the clip has no `.full.mp4`. `run-boards` covers board reads on photos.
 
 ## Probes
 

@@ -15,8 +15,10 @@ import type {
 } from "../../apps/web/src/features/admin/lib/scan-device-bench.js";
 import {
   everyNthFrame,
+  recordedPacing,
   replayClip,
 } from "../../apps/web/src/features/admin/lib/scan-device-bench.js";
+import type { ClipFrame, ClipMeta } from "../../apps/web/src/features/admin/lib/scan-recorder.js";
 import type { ScanPrintingIndex } from "../../apps/web/src/features/scan/lib/scan-resolve.js";
 import type {
   BenchClipResult,
@@ -29,6 +31,7 @@ import {
   scoreClip,
   summarize,
 } from "../../packages/shared/src/scan/bench-score.js";
+import { boardOptionsFor, readBoard } from "../../packages/shared/src/scan/board.js";
 import type { EmbedBank } from "../../packages/shared/src/scan/embed.js";
 import { toGray } from "../../packages/shared/src/scan/image.js";
 import { createPlacementDetector } from "../../packages/shared/src/scan/placement.js";
@@ -49,6 +52,7 @@ import { CANONICAL_BANK, EMBED_SIZE, MODEL_FILE, loadEmbedBank, nodeEmbedder } f
 import {
   CLIPS,
   DEFAULT_FPS,
+  RECORDINGS_DIR,
   REPO_ROOT,
   argValue,
   hasFlag,
@@ -56,6 +60,7 @@ import {
   listReferenceImages,
   loadClipTruth,
   loadImage,
+  loadStill,
   positiveIntArg,
 } from "./lib";
 import { createPlacementStats, recordPlacement } from "./placement-stats";
@@ -87,6 +92,7 @@ interface ReplayContext {
   catchUp: boolean;
   behaviour: Partial<ReplayBehaviour>;
   dropTo: number | null;
+  allFrames: boolean;
   minSightings: number;
 }
 
@@ -132,6 +138,53 @@ function noteSighting(
   sightings.set(key, { key, label: describe(catalog, key), firstSeen: seconds, count: 1 });
 }
 
+/** The frames the phone processed, when the recording logged them. */
+function recordedFrames(clip: string): ClipFrame[] | null {
+  const file = path.join(RECORDINGS_DIR, `${clip}.recording.json`);
+  if (!fs.existsSync(file)) {
+    return null;
+  }
+  const meta = JSON.parse(fs.readFileSync(file, "utf-8")) as ClipMeta;
+  return meta.frames && meta.frames.length > 0 ? meta.frames : null;
+}
+
+type FrameFacts = Pick<ClipFrame, "seconds" | "sweeping" | "cardInGuide" | "locked" | "board">;
+
+function factsLine(facts: FrameFacts, catalog: Catalog): string {
+  const board = facts.board
+    ? ` board ${facts.board.read.length}/${facts.board.fresh.length} new`
+    : "";
+  const lock = facts.locked ? ` LOCK ${describe(catalog, facts.locked)}` : "";
+  return `${facts.sweeping ? "sweep" : "aim"}${facts.cardInGuide ? " in-guide" : ""}${lock}${board}`;
+}
+
+/** Lines where the phone and the replay took different decisions on the same frame. */
+function diffRecording(
+  phone: readonly ClipFrame[],
+  bench: readonly FrameFacts[],
+  catalog: Catalog,
+): string[] {
+  const lines: string[] = [];
+  for (const recorded of phone) {
+    const replayed = bench.reduce<FrameFacts | null>(
+      (best, entry) =>
+        best === null ||
+        Math.abs(entry.seconds - recorded.seconds) < Math.abs(best.seconds - recorded.seconds)
+          ? entry
+          : best,
+      null,
+    );
+    const phoneLine = factsLine(recorded, catalog);
+    const benchLine = replayed ? factsLine(replayed, catalog) : "not processed";
+    if (phoneLine !== benchLine) {
+      lines.push(
+        `    ${recorded.seconds.toFixed(2)}s phone: ${phoneLine.padEnd(48)} bench: ${benchLine}\n`,
+      );
+    }
+  }
+  return lines;
+}
+
 function traceLine(catalog: Catalog, frame: number, outcome: FrameOutcome): string {
   const top = outcome.ranked[0];
   const ranked = top
@@ -168,10 +221,32 @@ async function runClip(
   const sightings = new Map<string, Sighting>();
   let refusedFrames = 0;
 
-  function observe({ index, seconds, frame, outcome }: ReplayFrame): void {
+  function observe({ index, seconds, frame, outcome, decision, board }: ReplayFrame): void {
     refusedFrames += outcome.refused ? 1 : 0;
+    benchFacts.push({
+      seconds,
+      sweeping: outcome.sweeping,
+      cardInGuide: decision.cardInGuide,
+      locked: decision.lock?.key ?? null,
+      board: board
+        ? { read: board.read.map((card) => card.key), fresh: board.fresh.map((card) => card.key) }
+        : null,
+    });
     if (context.trace) {
-      process.stdout.write(traceLine(catalog, index, outcome));
+      const flags = [
+        outcome.sweeping ? "SWEEP" : "",
+        outcome.still ? "still" : "",
+        decision.cardInGuide ? "in-guide" : "",
+        outcome.survey ? `survey ${outcome.survey.length}` : "",
+        decision.suppressed ? `suppressed ${decision.suppressed}` : "",
+        decision.lock ? `LOCK ${describe(catalog, decision.lock.key)}` : "",
+        board
+          ? `BOARD ${board.read.length} read, new: ${board.fresh.map((card) => describe(catalog, card.key)).join(", ")}`
+          : "",
+      ].filter((part) => part !== "");
+      process.stdout.write(
+        `${traceLine(catalog, index, outcome).trimEnd()} ${seconds.toFixed(2)}s ${flags.join(" | ")}\n`,
+      );
     }
     const top = outcome.ranked[0];
     if (context.attribute && top) {
@@ -196,6 +271,10 @@ async function runClip(
   }
 
   const now = () => performance.now();
+  const phoneFrames = context.allFrames || context.dropTo ? null : recordedFrames(clip);
+  const grabs = phoneFrames?.map((entry) => entry.seconds) ?? null;
+  const benchFacts: FrameFacts[] = [];
+  const boardOptions = boardOptionsFor(options.gates, CANONICAL_BANK);
   const replay = await replayClip({
     frameCount: frames.length,
     fps,
@@ -208,16 +287,26 @@ async function runClip(
             catchUpSession.processFrame(image, index, seconds, now),
         }
       : {}),
+    readBoard: (still) => readBoard(still, detectBoard, deps, boardOptions),
+    loadStill: (index) => loadStill(clip, index, fps),
     rearm: () => session.rearm(),
     multiPrinting: (artKey) => multiPrinting.has(artKey),
     labelOf: (key) => describe(catalog, key),
     idleGate: options.gates.rotationFallbackDistance,
     now,
-    pacing: everyNthFrame(context.dropTo ? Math.max(1, Math.round(fps / context.dropTo)) : 1),
+    pacing: grabs
+      ? recordedPacing(grabs, fps)
+      : everyNthFrame(context.dropTo ? Math.max(1, Math.round(fps / context.dropTo)) : 1),
     behaviour: context.behaviour,
     onFrame: observe,
   });
 
+  if (phoneFrames) {
+    const diff = diffRecording(phoneFrames, benchFacts, catalog);
+    process.stdout.write(
+      `  phone vs bench: ${diff.length} of ${phoneFrames.length} recorded frames decided differently\n${diff.slice(0, 40).join("")}`,
+    );
+  }
   const nearLocks = [...session.state.values()]
     .filter((track) => track.lockedAt === null && track.sightings >= 3)
     .map((track) => ({
@@ -302,6 +391,7 @@ async function main(): Promise<void> {
       relockGuard: !hasFlag("--no-relock-guard"),
     },
     dropTo,
+    allFrames: hasFlag("--all-frames"),
     minSightings,
   };
 

@@ -5,8 +5,11 @@ import { cameraErrorMessage } from "@/features/scan/lib/camera-error";
 import type { CameraInfo } from "@/features/scan/lib/camera-info";
 import { readCameraInfo } from "@/features/scan/lib/camera-info";
 import { acquireScannerStream } from "@/features/scan/lib/scan-camera";
+import type { PendingFrame } from "@/features/scan/lib/scan-catchup";
 import { grabRotatedFrame } from "@/features/scan/lib/scan-frame-grab";
 import type { ScannerEvents } from "@/features/scan/lib/scan-locks";
+import type { ScanLoop } from "@/features/scan/lib/scan-loop";
+import { createScanLoop } from "@/features/scan/lib/scan-loop";
 import { createScanRun } from "@/features/scan/lib/scan-run";
 import type { ScannerMode, ScannerSettings } from "@/features/scan/lib/scan-session";
 import { lockRunForMode } from "@/features/scan/lib/scan-session";
@@ -37,12 +40,30 @@ export function useCardScanner(
   const settingsRef = useRef(settings);
   const eventsRef = useRef(events);
   const runRef = useRef(createScanRun(settings.mode));
+  const idleGateRef = useRef(engine.idleGate);
+  const readBoardRef = useRef(engine.readBoard);
+  const loopRef = useRef<ScanLoop<PendingFrame> | null>(null);
   const preparedBankRef = useRef<string | null>(null);
 
   const [active, setActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Deliberately kept past stop().
   const [cameraInfo, setCameraInfo] = useState<CameraInfo | null>(null);
+
+  function loop(): ScanLoop<PendingFrame> {
+    if (!loopRef.current) {
+      loopRef.current = createScanLoop<PendingFrame>({
+        run: () => runRef.current,
+        idleGate: () => idleGateRef.current,
+        readBoard: async (still) => {
+          const generation = runGenerationRef.current;
+          const cards = await readBoardRef.current(still);
+          return generation === runGenerationRef.current ? cards : null;
+        },
+      });
+    }
+    return loopRef.current;
+  }
 
   function grabFrame(video: HTMLVideoElement): RgbaImage | null {
     // Written long-hand: the React Compiler cannot lower `??=` and bails out of
@@ -62,6 +83,7 @@ export function useCardScanner(
 
   const catchUp = useScanCatchUp({
     bank: engine.bank,
+    loop,
     videoRef,
     runningRef,
     runGenerationRef,
@@ -74,16 +96,15 @@ export function useCardScanner(
   const board = useScanBoard({
     bank: engine.bank,
     videoRef,
-    runGenerationRef,
     runRef,
     eventsRef,
-    readBoard: engine.readBoard,
+    loop,
   });
 
   const placements = useScanPlacements({
     videoRef,
     runGenerationRef,
-    runRef,
+    loop,
     grabFrame,
     rearm: engine.rearm,
     onMiss: catchUp.enqueue,
@@ -97,10 +118,10 @@ export function useCardScanner(
     settingsRef,
     eventsRef,
     runRef,
+    loop,
     setFrameInFlight: (frame: Promise<unknown>) => {
       frameInFlightRef.current = frame;
     },
-    idleGate: engine.idleGate,
     grabFrame,
     hasSession: engine.hasSession,
     processFrame: engine.processFrame,
@@ -116,6 +137,11 @@ export function useCardScanner(
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  useEffect(() => {
+    idleGateRef.current = engine.idleGate;
+    readBoardRef.current = engine.readBoard;
+  }, [engine.idleGate, engine.readBoard]);
 
   // Same treatment for the lock callbacks: consumers pass fresh closures per
   // render, and the loop must always call the latest without restarting.
@@ -137,7 +163,7 @@ export function useCardScanner(
 
   function launch(generation: number): void {
     const mode = runRef.current.mode;
-    board.reset();
+    loop().reset();
     placements.begin(generation);
     overlay.begin(generation);
     const video = videoRef.current;
@@ -281,7 +307,7 @@ export function useCardScanner(
     }
   }
 
-  async function switchMode(mode: ScannerMode): Promise<void> {
+  async function switchMode(mode: ScannerMode, fresh = false): Promise<void> {
     runGenerationRef.current++;
     const generation = runGenerationRef.current;
     runRef.current.update({ mode, switching: true });
@@ -308,10 +334,21 @@ export function useCardScanner(
       return;
     }
     preparedBankRef.current = engine.bankKey;
-    console.log(`[scan] MODE ${mode}`);
-    runRef.current.resetSession(performance.now());
-    catchUp.clearQueue();
+    console.log(`[scan] MODE ${mode}${fresh ? " (restart)" : ""}`);
+    if (fresh) {
+      runRef.current.reset(performance.now());
+      catchUp.reset();
+    } else {
+      runRef.current.resetSession(performance.now());
+      catchUp.clearQueue();
+    }
     launch(generation);
+  }
+
+  async function restart(): Promise<void> {
+    if (runningRef.current) {
+      await switchMode(runRef.current.mode, true);
+    }
   }
 
   const onModeChange = useEffectEvent((mode: ScannerMode) => {
@@ -348,6 +385,7 @@ export function useCardScanner(
     cameraInfo,
     start,
     stop,
+    restart,
     capture: frames.capture,
     identifyNow: catchUp.identifyNow,
     clearHistory: frames.clearHistory,

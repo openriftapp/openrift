@@ -224,6 +224,7 @@ export async function runBench(job: BenchJob): Promise<BenchRun> {
         detector.observe(toGray(frame), centeredGuideQuad(frame.width, frame.height)),
       process: (frame, index, seconds) => client.processFrame("live", frame, index, seconds),
       catchUp: (frame, index, seconds) => client.processFrame("catchUp", frame, index, seconds),
+      readBoard: (still) => client.readBoard(still),
       rearm: () => client.rearm(),
       multiPrinting: (artKey) => multiPrinting.has(artKey),
       labelOf: (key) => describeKey(bank.labels, key),

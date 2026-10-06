@@ -63,6 +63,41 @@ export function hasFlag(name: string): boolean {
 export const TRUTH_DIR = path.join(DATA_DIR, "truth");
 export const RECORDINGS_DIR = path.join(DATA_DIR, "recordings");
 
+export function fullResolutionRecording(clip: string): string {
+  return path.join(RECORDINGS_DIR, `${clip}.full.mp4`);
+}
+
+/** The still a board read of frame `index` sees: full camera resolution when the clip kept it. */
+export async function loadStill(clip: string, index: number, fps: number): Promise<RgbaImage> {
+  const recording = fullResolutionRecording(clip);
+  if (!fs.existsSync(recording)) {
+    return await loadImage(path.join(CLIPS, clip, `${String(index + 1).padStart(4, "0")}.jpg`));
+  }
+  const cached = path.join(CACHE_DIR, "stills", clip, `${String(index + 1).padStart(4, "0")}.jpg`);
+  if (!fs.existsSync(cached)) {
+    fs.mkdirSync(path.dirname(cached), { recursive: true });
+    execFileSync(
+      "ffmpeg",
+      [
+        "-v",
+        "error",
+        "-y",
+        "-ss",
+        (index / fps).toFixed(4),
+        "-i",
+        recording,
+        "-frames:v",
+        "1",
+        "-q:v",
+        "2",
+        cached,
+      ],
+      { stdio: "inherit" },
+    );
+  }
+  return await loadImage(cached);
+}
+
 /** Frames under `clips/full` cache the archived recording. A plain decode reproduces them byte for byte. */
 export function extractClipFrames(clip: string): number {
   const outDir = path.join(CLIPS, clip);

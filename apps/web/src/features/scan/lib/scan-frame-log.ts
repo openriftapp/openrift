@@ -5,6 +5,8 @@
 
 import type { FrameOutcome } from "@openrift/shared/scan/session";
 
+import type { BoardReadResult, FrameDecision } from "@/features/scan/lib/scan-loop";
+
 const PRINTING_SCORES_SHOWN = 4;
 
 export function frameLogLine(
@@ -39,4 +41,40 @@ export function printingLogLine(outcome: FrameOutcome): string | null {
       ? "abstained"
       : `picked via ${outcome.printingVia} margin ${outcome.printingMargin.toFixed(3)}`;
   return `[scan] PRINTING ${update.label} ${verdict} | band ${summary}`;
+}
+
+export interface FrameLogEntry {
+  /** performance.now() milliseconds when the frame was grabbed. */
+  grabbedAt: number;
+  sweeping: boolean;
+  still: boolean;
+  cardInGuide: boolean;
+  outlines: number | null;
+  winner: string | null;
+  score: number;
+  locked: string | null;
+  suppressed: "relock" | "board" | null;
+  board: { read: string[]; fresh: string[] } | null;
+}
+
+export function frameLogEntry(
+  grabbedAt: number,
+  outcome: FrameOutcome,
+  decision: FrameDecision,
+  board: BoardReadResult | null,
+): FrameLogEntry {
+  return {
+    grabbedAt,
+    sweeping: outcome.sweeping,
+    still: outcome.still,
+    cardInGuide: decision.cardInGuide,
+    outlines: outcome.survey?.length ?? null,
+    winner: outcome.winner?.key ?? null,
+    score: outcome.winner?.score ?? outcome.bestScore,
+    locked: decision.lock?.key ?? null,
+    suppressed: decision.suppressed,
+    board: board
+      ? { read: board.read.map((card) => card.key), fresh: board.fresh.map((card) => card.key) }
+      : null,
+  };
 }

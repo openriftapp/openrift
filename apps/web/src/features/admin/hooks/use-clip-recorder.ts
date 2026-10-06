@@ -9,6 +9,8 @@ import {
   pickRecordingMimeType,
   recordingExtension,
 } from "@/features/admin/lib/scan-recorder";
+import type { ClipFrame } from "@/features/admin/lib/scan-recorder";
+import type { FrameLogEntry } from "@/features/scan/lib/scan-frame-log";
 import type { LockedCard } from "@/features/scan/lib/scan-locks";
 import type { ScannerMode } from "@/features/scan/lib/scan-session";
 import { downloadBlob } from "@/lib/download";
@@ -27,9 +29,9 @@ export interface ClipRecorder {
   recording: boolean;
   pending: File[] | null;
   error: string | null;
-  start: () => void;
+  start: (restart: () => Promise<void>) => Promise<void>;
   stop: (context: ClipRecorderContext) => void;
-  noteFrame: (sweeping: boolean) => void;
+  noteFrame: (frame: FrameLogEntry) => void;
   save: () => Promise<void>;
   discard: () => void;
 }
@@ -45,7 +47,8 @@ function createRecorder(stream: MediaStream, mimeType: string): MediaRecorder | 
 export function useClipRecorder(videoRef: RefObject<HTMLVideoElement | null>): ClipRecorder {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const contextRef = useRef<ClipRecorderContext | null>(null);
-  const framesRef = useRef({ processed: 0, sweeping: 0 });
+  const framesRef = useRef<ClipFrame[]>([]);
+  const startedAtRef = useRef(0);
   const [recording, setRecording] = useState(false);
   const [pending, setPending] = useState<File[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +64,7 @@ export function useClipRecorder(videoRef: RefObject<HTMLVideoElement | null>): C
     [],
   );
 
-  function start(): void {
+  async function start(restart: () => Promise<void>): Promise<void> {
     const stream = videoRef.current?.srcObject;
     if (!(stream instanceof MediaStream) || typeof MediaRecorder === "undefined") {
       setError("Start the camera first; this browser may not support recording.");
@@ -105,7 +108,7 @@ export function useClipRecorder(videoRef: RefObject<HTMLVideoElement | null>): C
         userAgent: navigator.userAgent,
         camera: { ...camera },
         locks: context.locks,
-        frames: { ...framesRef.current },
+        frames: framesRef.current,
       });
       setPending([
         new File(chunks, `${base}.${recordingExtension(mimeType)}`, { type: mimeType }),
@@ -115,11 +118,13 @@ export function useClipRecorder(videoRef: RefObject<HTMLVideoElement | null>): C
       ]);
       setRecording(false);
     });
-    recorderRef.current = recorder;
-    contextRef.current = null;
-    framesRef.current = { processed: 0, sweeping: 0 };
     setError(null);
     setPending(null);
+    await restart();
+    recorderRef.current = recorder;
+    contextRef.current = null;
+    framesRef.current = [];
+    startedAtRef.current = performance.now();
     recorder.start(RECORDER_TIMESLICE);
     setRecording(true);
   }
@@ -130,14 +135,12 @@ export function useClipRecorder(videoRef: RefObject<HTMLVideoElement | null>): C
     recorderRef.current = null;
   }
 
-  function noteFrame(sweeping: boolean): void {
+  function noteFrame(frame: FrameLogEntry): void {
     if (recorderRef.current === null) {
       return;
     }
-    framesRef.current.processed += 1;
-    if (sweeping) {
-      framesRef.current.sweeping += 1;
-    }
+    const { grabbedAt, ...entry } = frame;
+    framesRef.current.push({ seconds: (grabbedAt - startedAtRef.current) / 1000, ...entry });
   }
 
   async function save(): Promise<void> {

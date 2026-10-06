@@ -7,6 +7,7 @@ import {
   pickRecordingMimeType,
   recordingExtension,
 } from "@/features/admin/lib/scan-recorder";
+import type { ClipFrame } from "@/features/admin/lib/scan-recorder";
 import type { LockedCard } from "@/features/scan/lib/scan-locks";
 
 function lock(at: number, key = "ahri"): LockedCard {
@@ -112,6 +113,21 @@ describe("deliverFiles", () => {
   });
 });
 
+function clipFrame(seconds: number, sweeping: boolean): ClipFrame {
+  return {
+    seconds,
+    sweeping,
+    still: false,
+    cardInGuide: false,
+    outlines: null,
+    winner: null,
+    score: 0,
+    locked: null,
+    suppressed: null,
+    board: null,
+  };
+}
+
 describe("buildClipMeta", () => {
   const base = {
     startedAt: 10_000,
@@ -148,13 +164,15 @@ describe("buildClipMeta", () => {
     expect(meta.camera).toEqual({ width: 1920, deviceId: "abc", torch: false });
   });
 
-  it("reports the share of frames spent sweeping", () => {
-    const meta = buildClipMeta({ ...base, frames: { processed: 40, sweeping: 10 } });
+  it("reports the share of frames spent sweeping and keeps every frame", () => {
+    const frames = [true, false, false, false].map((sweeping, index) => clipFrame(index, sweeping));
+    const meta = buildClipMeta({ ...base, frames });
     expect(meta.sweepShare).toBe(0.25);
+    expect(meta.frames).toEqual(frames);
   });
 
   it("reports a zero share when no frame was processed", () => {
-    expect(buildClipMeta({ ...base, frames: { processed: 0, sweeping: 0 } }).sweepShare).toBe(0);
+    expect(buildClipMeta({ ...base, frames: [] }).sweepShare).toBe(0);
   });
 
   it("omits the share when frames were not counted", () => {
