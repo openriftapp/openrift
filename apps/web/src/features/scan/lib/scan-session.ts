@@ -22,6 +22,8 @@ export interface ScannerSettings {
   paused: boolean;
   processingSize: number;
   candidatesToTry: number;
+  boardReads: boolean;
+  zoom: number;
 }
 
 export const DEFAULT_SCANNER_SETTINGS: ScannerSettings = {
@@ -29,6 +31,9 @@ export const DEFAULT_SCANNER_SETTINGS: ScannerSettings = {
   paused: false,
   processingSize: 848,
   candidatesToTry: DEFAULT_SESSION_OPTIONS.candidatesToTry,
+  // Off until a detector dropout no longer makes a read count every card again.
+  boardReads: false,
+  zoom: 1,
 };
 
 const SINGLE_MODE_TOP_K = 4;
@@ -72,6 +77,8 @@ export function scanSessionPlans(input: ScanSessionPlanInput): {
               relockOnlyAfterRearm: true,
             },
       sweep: mode === "single",
+      // Sweeps count cards again whenever their tracked place drifts on a phone.
+      enterSweeps: false,
     },
     catchUp: {
       candidatesToTry,

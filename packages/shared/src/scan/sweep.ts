@@ -145,6 +145,7 @@ interface SweepTracker {
 
 export function createSweepTracker(
   detectBoard?: (frame: RgbaImage) => Promise<CardCandidate[]>,
+  enter = true,
 ): SweepTracker {
   let active = false;
   let surveyStreak = 0;
@@ -222,7 +223,7 @@ export function createSweepTracker(
       }
       const view = sweepView(outlines, guide, SWEEP_OPTIONS.aimedShare);
       surveyStreak = view.cards >= SWEEP_OPTIONS.minCards ? surveyStreak + 1 : 0;
-      if (surveyStreak < SWEEP_OPTIONS.enterSurveys) {
+      if (!enter || surveyStreak < SWEEP_OPTIONS.enterSurveys) {
         return { outlines, started: false };
       }
       active = true;

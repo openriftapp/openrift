@@ -33,6 +33,8 @@ import {
   stepToward,
 } from "@/features/scan/lib/scan-overlay";
 
+import { videoLayoutBox } from "./scan-zoom";
+
 /**
  * Quads are in rotated-frame pixels, not canvas pixels: a resize between
  * processed frames must remap them, not leave the reticle at the old scale.
@@ -138,9 +140,9 @@ function aimAt(target: OverlayTarget, state: OverlayDrawState): void {
 }
 
 export function syncOverlaySize(canvas: HTMLCanvasElement, video: HTMLVideoElement): void {
-  const rect = video.getBoundingClientRect();
-  const width = Math.round(rect.width);
-  const height = Math.round(rect.height);
+  const box = videoLayoutBox(video);
+  const width = Math.round(box.width);
+  const height = Math.round(box.height);
   if (canvas.width !== width || canvas.height !== height) {
     canvas.width = width;
     canvas.height = height;

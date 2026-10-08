@@ -38,7 +38,13 @@ function survey(): FrameOutcome {
   return { survey: twoCardsInGuide(), sweeping: false } as FrameOutcome;
 }
 
-function renderBoard({ readBoard }: { readBoard: () => Promise<BoardCard[] | null> }) {
+function renderBoard({
+  readBoard,
+  enabled = true,
+}: {
+  readBoard: () => Promise<BoardCard[] | null>;
+  enabled?: boolean;
+}) {
   const onBoardRead = vi.fn();
   const run = createScanRun("single");
   const loop = createScanLoop<PendingFrame>({ run: () => run, idleGate: () => 0.5, readBoard });
@@ -49,6 +55,8 @@ function renderBoard({ readBoard }: { readBoard: () => Promise<BoardCard[] | nul
       runRef: { current: run },
       eventsRef: { current: { onBoardRead } },
       loop: () => loop,
+      enabled: () => enabled,
+      zoom: () => 1,
     }),
   );
   return { hook, onBoardRead, run };
@@ -72,6 +80,16 @@ describe("useScanBoard", () => {
 
     expect(readBoard).toHaveBeenCalledTimes(1);
     expect(onBoardRead).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores surveys while board reads are switched off", async () => {
+    const readBoard = vi.fn(() => Promise.resolve([boardCard]));
+    const { hook } = renderBoard({ readBoard, enabled: false });
+
+    await hook.result.current.noteSurvey(survey(), FRAME);
+    await hook.result.current.noteSurvey(survey(), FRAME);
+
+    expect(readBoard).not.toHaveBeenCalled();
   });
 
   it("ignores surveys while a card is being aimed", async () => {

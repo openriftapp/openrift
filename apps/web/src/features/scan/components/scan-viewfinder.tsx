@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 interface ScanViewfinderProps {
   videoRef: RefObject<HTMLVideoElement | null>;
   overlayRef: RefObject<HTMLCanvasElement | null>;
+  zoom: number;
   active: boolean;
   immersive: boolean;
   shutter: boolean;
@@ -24,6 +25,7 @@ interface ScanViewfinderProps {
 export function ScanViewfinder({
   videoRef,
   overlayRef,
+  zoom,
   active,
   immersive,
   shutter,
@@ -39,7 +41,13 @@ export function ScanViewfinder({
   return (
     <>
       {/* oxlint-disable-next-line jsx-a11y/media-has-caption -- live camera preview, no audio track */}
-      <video ref={videoRef} className="h-full w-full object-cover" playsInline muted />
+      <video
+        ref={videoRef}
+        className="h-full w-full object-cover"
+        style={zoom > 1 ? { transform: `scale(${zoom})` } : undefined}
+        playsInline
+        muted
+      />
       <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full" />
       <ScanGhostPreview
         imageId={ghostImageId}

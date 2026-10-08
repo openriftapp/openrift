@@ -66,8 +66,9 @@ describe("scanSessionPlans", () => {
     }
   });
 
-  it("lets the continuous scan sweep and count on its own, but not a tap or the catch-up pass", () => {
+  it("tracks the camera in the continuous scan without entering sweeps, and not on a tap or the catch-up pass", () => {
     expect(plansFor("single").live.sweep).toBe(true);
+    expect(plansFor("single").live.enterSweeps).toBe(false);
     expect(plansFor("capture").live.sweep).toBe(false);
     expect(plansFor("single").catchUp.sweep).toBeUndefined();
   });

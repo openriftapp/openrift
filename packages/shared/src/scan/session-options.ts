@@ -19,6 +19,7 @@ export interface ScanSessionOptions {
   rotationPairOnly: boolean;
   accept: AcceptOptions;
   sweep: boolean;
+  enterSweeps: boolean;
 }
 
 export function centeredGuideQuad(width: number, height: number): Quad {
@@ -72,6 +73,7 @@ export const DEFAULT_SESSION_OPTIONS: ScanSessionOptions = {
   rotationPairOnly: false,
   accept: { lockRun: 4, maxGapFrames: 6 },
   sweep: false,
+  enterSweeps: true,
 };
 
 export function gatesForBank(bank: EmbedBank): EncoderGates {

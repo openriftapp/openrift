@@ -163,6 +163,16 @@ describe("createSweepTracker — ending a sweep", () => {
   it("keeps sweeping while the camera pans slowly over several cards", async () => {
     expect(await secondsUntilSweepEnds(0.004)).toBeNull();
   });
+
+  it("still surveys but never starts a sweep when told not to enter one", async () => {
+    const tracker = createSweepTracker(() => Promise.resolve(several), false);
+    for (let frameIndex = 0; frameIndex < FPS; frameIndex++) {
+      tracker.noteMotion(0.02, false, frameIndex / FPS);
+      const survey = await tracker.survey(frame, guide, frameIndex / FPS, false);
+      expect(survey?.started ?? false).toBe(false);
+    }
+    expect(tracker.active).toBe(false);
+  });
 });
 
 describe("createSweepTracker — survey cadence", () => {

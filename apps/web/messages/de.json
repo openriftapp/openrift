@@ -5340,6 +5340,8 @@
   "scan_settings_sounds_description": "Ein Ticken, wenn eine Karte erkannt wird",
   "scan_settings_tap_label": "Zum Scannen tippen",
   "scan_settings_tap_description": "Für langsame Geräte: nur beim Tippen erkennen",
+  "scan_settings_zoom_label": "Zoom",
+  "scan_settings_zoom_description": "Handy weiter weg von den Karten halten",
   "scan_language_any": "Alle Sprachen",
   "scan_tips_light": "Gutes Licht",
   "scan_tips_fill": "Rahmen ausfüllen",

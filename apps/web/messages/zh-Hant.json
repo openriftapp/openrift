@@ -5339,6 +5339,8 @@
   "scan_settings_sounds_description": "辨識到卡牌時發出提示聲",
   "scan_settings_tap_label": "點擊才掃描",
   "scan_settings_tap_description": "適合較慢的裝置：只在你點擊時辨識",
+  "scan_settings_zoom_label": "放大",
+  "scan_settings_zoom_description": "手機可以離卡牌更遠",
   "scan_language_any": "任何語言",
   "scan_tips_light": "光線充足",
   "scan_tips_fill": "填滿取景框",

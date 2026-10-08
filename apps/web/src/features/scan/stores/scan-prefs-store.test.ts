@@ -38,6 +38,18 @@ describe("useScanPrefsStore", () => {
     expect(useScanPrefsStore.getState().cardLanguage).toBeNull();
   });
 
+  it("defaults zoom to 1x and stores a change", () => {
+    expect(useScanPrefsStore.getState().zoom).toBe(1);
+    useScanPrefsStore.getState().setZoom(2);
+    expect(useScanPrefsStore.getState().zoom).toBe(2);
+  });
+
+  it("keeps a persisted zoom step and drops an unknown one", () => {
+    const merge = useScanPrefsStore.persist.getOptions().merge;
+    expect(merge?.({ zoom: 1.5 }, useScanPrefsStore.getState())?.zoom).toBe(1.5);
+    expect(merge?.({ zoom: 7 }, useScanPrefsStore.getState())?.zoom).toBe(1);
+  });
+
   it("defaults tap-to-scan off and stores a change", () => {
     expect(useScanPrefsStore.getState().tapToScan).toBe(false);
     useScanPrefsStore.getState().setTapToScan(true);

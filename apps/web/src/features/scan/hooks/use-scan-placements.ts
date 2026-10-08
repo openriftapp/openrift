@@ -10,12 +10,14 @@ import type { PendingFrame } from "@/features/scan/lib/scan-catchup";
 import { guideRectIn, snapshotVideoRect } from "@/features/scan/lib/scan-flight";
 import { grabWatchFrame } from "@/features/scan/lib/scan-frame-grab";
 import type { ScanLoop } from "@/features/scan/lib/scan-loop";
+import { videoLayoutBox } from "@/features/scan/lib/scan-zoom";
 
 export interface ScanPlacementsOptions {
   videoRef: RefObject<HTMLVideoElement | null>;
   runGenerationRef: RefObject<number>;
   loop: () => ScanLoop<PendingFrame>;
   grabFrame: (video: HTMLVideoElement) => RgbaImage | null;
+  zoom: () => number;
   rearm: () => void;
   onMiss: (pending: PendingFrame, now: number) => void;
 }
@@ -38,7 +40,7 @@ export function useScanPlacements(options: ScanPlacementsOptions): ScanPlacement
     if (!watchCanvasRef.current) {
       watchCanvasRef.current = document.createElement("canvas");
     }
-    const pixels = grabWatchFrame(video, watchCanvasRef.current);
+    const pixels = grabWatchFrame(video, watchCanvasRef.current, options.zoom());
     if (!pixels) {
       return;
     }
@@ -48,7 +50,7 @@ export function useScanPlacements(options: ScanPlacementsOptions): ScanPlacement
     const { missedFrame, confirmed } = loop().observePlacement(signal, now, () => {
       const frame = options.grabFrame(video);
       return frame
-        ? { frame, thumbnail: snapshotVideoRect(video, guideRectIn(video.getBoundingClientRect())) }
+        ? { frame, thumbnail: snapshotVideoRect(video, guideRectIn(videoLayoutBox(video))) }
         : null;
     });
     if (missedFrame) {

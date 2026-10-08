@@ -5339,6 +5339,8 @@
   "scan_settings_sounds_description": "카드를 인식하면 딸깍 소리가 납니다",
   "scan_settings_tap_label": "탭해서 스캔",
   "scan_settings_tap_description": "느린 기기용: 탭할 때만 인식합니다",
+  "scan_settings_zoom_label": "확대",
+  "scan_settings_zoom_description": "휴대폰을 카드에서 더 멀리 들고 스캔합니다",
   "scan_language_any": "모든 언어",
   "scan_tips_light": "밝은 조명",
   "scan_tips_fill": "화면 가득 채우기",

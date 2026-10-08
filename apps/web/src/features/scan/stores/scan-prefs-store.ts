@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { SCAN_ZOOMS } from "@/features/scan/lib/scan-zoom";
+
 const DEFAULT_SCAN_LANGUAGE = "EN";
 
 const LEGACY_IDENTIFY_ONLY = "identify-only";
@@ -14,6 +16,12 @@ interface ScanPrefsState {
   setCardLanguage: (value: string | null) => void;
   tapToScan: boolean;
   setTapToScan: (value: boolean) => void;
+  zoom: number;
+  setZoom: (value: number) => void;
+}
+
+function isScanZoom(value: unknown): value is number {
+  return SCAN_ZOOMS.some((zoom) => zoom === value);
 }
 
 function mergeDestination(raw: Record<string, unknown>, current: string | null): string | null {
@@ -41,6 +49,8 @@ export const useScanPrefsStore = create<ScanPrefsState>()(
       setCardLanguage: (value) => set({ cardLanguage: value }),
       tapToScan: false,
       setTapToScan: (value) => set({ tapToScan: value }),
+      zoom: 1,
+      setZoom: (value) => set({ zoom: value }),
     }),
     {
       name: "openrift-scan-prefs",
@@ -49,6 +59,7 @@ export const useScanPrefsStore = create<ScanPrefsState>()(
         destinationCollectionId: state.destinationCollectionId,
         cardLanguage: state.cardLanguage,
         tapToScan: state.tapToScan,
+        zoom: state.zoom,
       }),
       merge: (persisted, current) => {
         const raw = (persisted as Record<string, unknown>) ?? {};
@@ -63,6 +74,7 @@ export const useScanPrefsStore = create<ScanPrefsState>()(
           destinationCollectionId: mergeDestination(raw, current.destinationCollectionId),
           cardLanguage: language,
           tapToScan: typeof raw.tapToScan === "boolean" ? raw.tapToScan : current.tapToScan,
+          zoom: isScanZoom(raw.zoom) ? raw.zoom : current.zoom,
         };
       },
     },

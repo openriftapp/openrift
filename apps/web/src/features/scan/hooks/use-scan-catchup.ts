@@ -24,6 +24,7 @@ import { lockFromWinner } from "@/features/scan/lib/scan-locks";
 import type { ScanLoop } from "@/features/scan/lib/scan-loop";
 import type { ScanRun } from "@/features/scan/lib/scan-run";
 import type { SessionKind } from "@/features/scan/lib/scan-worker-protocol";
+import { videoLayoutBox } from "@/features/scan/lib/scan-zoom";
 import { errorText } from "@/lib/error-text";
 
 export interface ScanCatchUpOptions {
@@ -159,7 +160,7 @@ export function useScanCatchUp(options: ScanCatchUpOptions): ScanCatchUp {
     if (!video || !runningRef.current) {
       return { snapshot: null, identified: false, candidates: [] };
     }
-    const snapshot = snapshotVideoRect(video, guideRectIn(video.getBoundingClientRect()));
+    const snapshot = snapshotVideoRect(video, guideRectIn(videoLayoutBox(video)));
     onSnapshot?.(snapshot);
     const frame = options.grabFrame(video);
     if (!frame) {

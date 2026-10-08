@@ -49,6 +49,7 @@ import {
 import { describeLastScan, shouldPromptResume } from "@/features/scan/lib/scan-resume";
 import type { ScannerMode, ScannerSettings } from "@/features/scan/lib/scan-session";
 import { DEFAULT_SCANNER_SETTINGS } from "@/features/scan/lib/scan-session";
+import { videoLayoutBox } from "@/features/scan/lib/scan-zoom";
 import { useScanPrefsStore } from "@/features/scan/stores/scan-prefs-store";
 import type { ScanSessionRow } from "@/features/scan/stores/scan-session-store";
 import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
@@ -73,6 +74,8 @@ export function ScanPage() {
   const cardLanguage = useScanPrefsStore((state) => state.cardLanguage);
   const setCardLanguage = useScanPrefsStore((state) => state.setCardLanguage);
   const tapToScan = useScanPrefsStore((state) => state.tapToScan);
+  const zoom = useScanPrefsStore((state) => state.zoom);
+  const setZoom = useScanPrefsStore((state) => state.setZoom);
   const setTapToScan = useScanPrefsStore((state) => state.setTapToScan);
   const languageLabels = useLanguageLabels();
 
@@ -118,8 +121,8 @@ export function ScanPage() {
     if (!video) {
       return;
     }
-    const box = video.getBoundingClientRect();
-    const guide = guideRectIn({ width: box.width, height: box.height });
+    const box = videoLayoutBox(video);
+    const guide = guideRectIn(box);
     const image = snapshotVideoRect(video, guide);
     if (image === null) {
       return;
@@ -254,6 +257,9 @@ export function ScanPage() {
   if (settings.paused !== detailOpen) {
     setSettings((previous) => ({ ...previous, paused: detailOpen }));
   }
+  if (settings.zoom !== zoom) {
+    setSettings((previous) => ({ ...previous, zoom }));
+  }
 
   function addSearchedPrinting(printing: Printing) {
     if (!muted) {
@@ -385,6 +391,8 @@ export function ScanPage() {
     onMutedChange: setMuted,
     tapToScan,
     onTapToScanChange: setTapToScan,
+    zoom,
+    onZoomChange: setZoom,
     deviceTooSlow,
   };
 
@@ -432,6 +440,7 @@ export function ScanPage() {
           <ScanViewfinder
             videoRef={videoRef}
             overlayRef={overlayRef}
+            zoom={zoom}
             active={active}
             immersive={immersive}
             shutter={shutter}

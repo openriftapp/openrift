@@ -10,6 +10,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { SCAN_ZOOMS } from "@/features/scan/lib/scan-zoom";
+import { formatCount } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 
 interface LanguageItem {
@@ -25,6 +27,8 @@ export interface ScanSettingsProps {
   onMutedChange: (value: boolean) => void;
   tapToScan: boolean;
   onTapToScanChange: (value: boolean) => void;
+  zoom: number;
+  onZoomChange: (value: number) => void;
   deviceTooSlow: boolean;
 }
 
@@ -43,8 +47,14 @@ export function ScanSettingsMenu({
   onMutedChange,
   tapToScan,
   onTapToScanChange,
+  zoom,
+  onZoomChange,
   deviceTooSlow,
 }: ScanSettingsMenuProps) {
+  const zoomItems = SCAN_ZOOMS.map((step) => ({
+    value: String(step),
+    label: `${formatCount(step)}×`,
+  }));
   return (
     <Popover>
       <PopoverTrigger render={trigger}>{triggerContent}</PopoverTrigger>
@@ -96,6 +106,32 @@ export function ScanSettingsMenu({
             disabled={deviceTooSlow}
             onCheckedChange={onTapToScanChange}
           />
+        </SettingsRow>
+
+        <SettingsRow
+          label={m.scan_settings_zoom_label()}
+          description={m.scan_settings_zoom_description()}
+        >
+          <Select
+            items={zoomItems}
+            value={String(zoom)}
+            onValueChange={(value) => {
+              if (value) {
+                onZoomChange(Number(value));
+              }
+            }}
+          >
+            <SelectTrigger aria-label={m.scan_settings_zoom_label()} className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {zoomItems.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </SettingsRow>
       </PopoverContent>
     </Popover>

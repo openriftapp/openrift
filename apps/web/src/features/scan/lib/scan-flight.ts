@@ -2,6 +2,8 @@ import { centeredGuideQuad } from "@openrift/shared/scan/session-options";
 
 import { clamp } from "@/lib/math";
 
+import { videoLayoutBox, zoomRegion } from "./scan-zoom";
+
 export interface FlightRect {
   x: number;
   y: number;
@@ -121,11 +123,12 @@ export function snapshotVideoRect(
   rect: FlightRect,
   longSide = SNAPSHOT_LONG_SIDE_PX,
 ): string | null {
-  const box = video.getBoundingClientRect();
+  const box = videoLayoutBox(video);
+  const source = zoomRegion(video.videoWidth, video.videoHeight, box.zoom);
   const crop = videoCropRect(
     rect,
     { width: box.width, height: box.height },
-    { width: video.videoWidth, height: video.videoHeight },
+    { width: source.width, height: source.height },
   );
   if (crop === null) {
     return null;
@@ -143,7 +146,17 @@ export function snapshotVideoRect(
     return null;
   }
   try {
-    context.drawImage(video, crop.x, crop.y, crop.width, crop.height, 0, 0, width, height);
+    context.drawImage(
+      video,
+      source.x + crop.x,
+      source.y + crop.y,
+      crop.width,
+      crop.height,
+      0,
+      0,
+      width,
+      height,
+    );
     return canvas.toDataURL("image/jpeg", SNAPSHOT_QUALITY);
   } catch {
     return null;

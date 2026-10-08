@@ -152,7 +152,7 @@ export function createScanSession(
   const embedInput = new Float32Array(4 * 3 * embedImageSize * embedImageSize);
   const verify = createAlignedVerifier(deps.fetchReference);
   const printingLock = createPrintingLock(deps);
-  const sweep = opts.sweep ? createSweepTracker(deps.detectBoard) : null;
+  const sweep = opts.sweep ? createSweepTracker(deps.detectBoard, opts.enterSweeps) : null;
   const tablePlaces = createTablePlaces();
   const countedPlaces = new Set<string>();
   const shiftTracker = createShiftTracker();

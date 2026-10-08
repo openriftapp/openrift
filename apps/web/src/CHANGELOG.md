@@ -1,11 +1,16 @@
 # Changelog
 
+## 2026-10-08
+
+### Highlights
+
+- feat(Collection): **Zoom for the card scanner** — the scanner settings have a 1.5× and 2× zoom, so you can hold the phone further from the cards.
+
 ## 2026-10-05
 
 ### Highlights
 
-- feat(Collection): **Several cards in one scan** — hold the phone over cards lying side by side and all of them are added and marked on screen, with a question only for unsure ones.
-- feat(Collection): **One automatic scanning mode** — the scanner follows sweeps over a table and counts copies dealt under a still phone, replacing Count every copy.
+- feat(Collection): **One automatic scanning mode** — the scanner counts copies dealt under a still phone, replacing Count every copy.
 - feat(Collection): **Faster card scanner** — single cards are recognised faster, the scanner starts sooner and adds fewer wrong cards.
 - feat(App): **Dialogs and menus look the same everywhere** — deleting a deck, list, collection, tier list or group asks in the same red confirm dialog with an outlined Cancel, right-click menus and menu section labels match across cards, lists, collections and decks, and copy buttons show Copied in place.
 - feat(Tournaments): **Player photos in standings** — standings, pairings and group tables show profile pictures, and group and final standings switch to a compact list on phones.

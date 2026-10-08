@@ -19,6 +19,8 @@ export interface ScanBoardOptions {
   runRef: RefObject<ScanRun>;
   eventsRef: RefObject<ScannerEvents | undefined>;
   loop: () => ScanLoop<PendingFrame>;
+  enabled: () => boolean;
+  zoom: () => number;
 }
 
 export interface ScanBoard {
@@ -29,7 +31,7 @@ export interface ScanBoard {
 }
 
 export function useScanBoard(options: ScanBoardOptions): ScanBoard {
-  const { bank, videoRef, runRef, eventsRef, loop } = options;
+  const { bank, videoRef, runRef, eventsRef, loop, enabled, zoom } = options;
   const stillCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   function grabStill(video: HTMLVideoElement): RgbaImage | null {
@@ -41,6 +43,7 @@ export function useScanBoard(options: ScanBoardOptions): ScanBoard {
       stillCanvasRef.current,
       Math.max(video.videoWidth, video.videoHeight),
       runRef.current.rotation.turns(),
+      zoom(),
     );
   }
 
@@ -71,7 +74,7 @@ export function useScanBoard(options: ScanBoardOptions): ScanBoard {
     outcome: FrameOutcome,
     frame: { width: number; height: number },
   ): Promise<BoardReadResult | null> {
-    if (!loop().boardReadDue(outcome, frame, performance.now())) {
+    if (!enabled() || !loop().boardReadDue(outcome, frame, performance.now())) {
       return null;
     }
     try {

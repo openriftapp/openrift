@@ -97,6 +97,15 @@ describe("grabRotatedFrame", () => {
     const frame = grabRotatedFrame(fakeVideo(640, 480), canvas, 320, 1);
     expect(frame?.data).toHaveLength(240 * 320 * 4);
   });
+
+  it("grabs only the centre the zoomed preview shows, at full resolution", () => {
+    const { canvas, draws } = fakeCanvas();
+    const frame = grabRotatedFrame(fakeVideo(1920, 1080), canvas, 848, 0, 2);
+    expect(frame).toMatchObject({ width: 848, height: 477 });
+    expect(draws.find((draw) => draw.op === "drawImage")?.args).toEqual([
+      480, 270, 960, 540, 0, 0, 848, 477,
+    ]);
+  });
 });
 
 describe("grabWatchFrame", () => {
@@ -127,5 +136,11 @@ describe("grabWatchFrame", () => {
   it("gives up when the canvas hands out no 2d context", () => {
     const { canvas } = fakeCanvas(false);
     expect(grabWatchFrame(fakeVideo(640, 480), canvas)).toBeNull();
+  });
+
+  it("watches only the centre the zoomed preview shows", () => {
+    const { canvas, draws } = fakeCanvas();
+    grabWatchFrame(fakeVideo(640, 480), canvas, 2);
+    expect(draws[0]?.args.slice(0, 4)).toEqual([160, 120, 320, 240]);
   });
 });

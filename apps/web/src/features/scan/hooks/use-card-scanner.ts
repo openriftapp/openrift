@@ -13,6 +13,7 @@ import { createScanLoop } from "@/features/scan/lib/scan-loop";
 import { createScanRun } from "@/features/scan/lib/scan-run";
 import type { ScannerMode, ScannerSettings } from "@/features/scan/lib/scan-session";
 import { lockRunForMode } from "@/features/scan/lib/scan-session";
+import { zoomRegion } from "@/features/scan/lib/scan-zoom";
 import { errorText } from "@/lib/error-text";
 import { m } from "@/paraglide/messages.js";
 
@@ -76,6 +77,7 @@ export function useCardScanner(
       workCanvasRef.current,
       settingsRef.current.processingSize,
       runRef.current.rotation.turns(),
+      settingsRef.current.zoom,
     );
   }
 
@@ -99,6 +101,8 @@ export function useCardScanner(
     runRef,
     eventsRef,
     loop,
+    enabled: () => settingsRef.current.boardReads,
+    zoom: () => settingsRef.current.zoom,
   });
 
   const placements = useScanPlacements({
@@ -106,6 +110,7 @@ export function useCardScanner(
     runGenerationRef,
     loop,
     grabFrame,
+    zoom: () => settingsRef.current.zoom,
     rearm: engine.rearm,
     onMiss: catchUp.enqueue,
   });
@@ -168,15 +173,16 @@ export function useCardScanner(
     overlay.begin(generation);
     const video = videoRef.current;
     if (video) {
+      const source = zoomRegion(video.videoWidth, video.videoHeight, settingsRef.current.zoom);
       const scale = Math.min(
         1,
-        settingsRef.current.processingSize / Math.max(video.videoWidth, video.videoHeight),
+        settingsRef.current.processingSize / Math.max(source.width, source.height),
       );
       overlay.setTarget({
         quad: null,
         guide: true,
-        frameWidth: Math.round(video.videoWidth * scale),
-        frameHeight: Math.round(video.videoHeight * scale),
+        frameWidth: Math.round(source.width * scale),
+        frameHeight: Math.round(source.height * scale),
         turns: 0,
         focus: 0,
         runLength: 0,

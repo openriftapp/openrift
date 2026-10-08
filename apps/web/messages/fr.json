@@ -5340,6 +5340,8 @@
   "scan_settings_sounds_description": "Un tic quand une carte est reconnue",
   "scan_settings_tap_label": "Toucher pour scanner",
   "scan_settings_tap_description": "Pour les appareils lents : reconnaître seulement quand vous touchez",
+  "scan_settings_zoom_label": "Zoom",
+  "scan_settings_zoom_description": "Tenir le téléphone plus loin des cartes",
   "scan_language_any": "Toutes les langues",
   "scan_tips_light": "Bonne lumière",
   "scan_tips_fill": "Remplir le cadre",

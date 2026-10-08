@@ -231,7 +231,9 @@ export async function runBench(job: BenchJob): Promise<BenchRun> {
       idleGate,
       now: () => performance.now(),
       pacing: realtimePacing(),
-      behaviour: { boardReads: assets.boardDetectorUrl !== null },
+      behaviour: {
+        boardReads: DEFAULT_SCANNER_SETTINGS.boardReads && assets.boardDetectorUrl !== null,
+      },
     });
     const groups = truthGroups(entry.truth, bank.keys, bankArts, identityOf);
     const { locks, score } = scoreClip(groupTruth(entry.truth, groups), replay.locks, identityOf);

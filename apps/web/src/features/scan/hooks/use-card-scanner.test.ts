@@ -1434,6 +1434,7 @@ describe("useCardScanner", () => {
   });
 
   describe("board reads", () => {
+    const BOARD_READ_SETTINGS: ScannerSettings = { ...DEFAULT_SCANNER_SETTINGS, boardReads: true };
     const [guideTopLeft, , guideBottomRight] = centeredGuideQuad(640, 480);
     const cardWidth = (guideBottomRight.x - guideTopLeft.x) / 3;
     const cardHeight = (guideBottomRight.y - guideTopLeft.y) / 3;
@@ -1470,7 +1471,10 @@ describe("useCardScanner", () => {
       readBoardCards = () =>
         Promise.resolve([boardCard("k-a", "art-a"), boardCard("k-b", "art-b")]);
       cardPresent();
-      const { hook, onLock, onBoardRead } = await mountReadyScanner({ boardDetector: true });
+      const { hook, onLock, onBoardRead } = await mountReadyScanner({
+        boardDetector: true,
+        settings: BOARD_READ_SETTINGS,
+      });
       await act(async () => {
         await hook.result.current.start();
       });
@@ -1488,7 +1492,10 @@ describe("useCardScanner", () => {
       surveyOutlines = outlines;
       readBoardCards = () => Promise.resolve([boardCard("k-b", "art-b")]);
       cardAbsent();
-      const { hook, onLock, onBoardRead } = await mountReadyScanner({ boardDetector: true });
+      const { hook, onLock, onBoardRead } = await mountReadyScanner({
+        boardDetector: true,
+        settings: BOARD_READ_SETTINGS,
+      });
       await act(async () => {
         await hook.result.current.start();
       });
@@ -1508,7 +1515,10 @@ describe("useCardScanner", () => {
       surveyOutlines = outlines;
       readBoardCards = vi.fn(() => read.promise);
       cardAbsent();
-      const { hook, onBoardRead } = await mountReadyScanner({ boardDetector: true });
+      const { hook, onBoardRead } = await mountReadyScanner({
+        boardDetector: true,
+        settings: BOARD_READ_SETTINGS,
+      });
       await act(async () => {
         await hook.result.current.start();
       });
@@ -1539,6 +1549,22 @@ describe("useCardScanner", () => {
       await runFrames(6);
 
       expect(readBoard).not.toHaveBeenCalled();
+    });
+
+    it("never reads the board with board reads switched off", async () => {
+      const readBoard = vi.fn(() => Promise.resolve([boardCard("k-b", "art-b")]));
+      readBoardCards = readBoard;
+      surveyOutlines = outlines;
+      cardAbsent();
+      const { hook, onBoardRead } = await mountReadyScanner({ boardDetector: true });
+      await act(async () => {
+        await hook.result.current.start();
+      });
+
+      await runFrames(6);
+
+      expect(readBoard).not.toHaveBeenCalled();
+      expect(onBoardRead).not.toHaveBeenCalled();
     });
   });
 

@@ -1,5 +1,7 @@
 import type { RgbaImage } from "@openrift/shared/scan/types";
 
+import { zoomRegion } from "./scan-zoom";
+
 export const WATCH_LONG_SIDE = 128;
 
 function sizedContext(
@@ -19,14 +21,16 @@ export function grabRotatedFrame(
   canvas: HTMLCanvasElement,
   processingSize: number,
   turns: number,
+  zoom = 1,
 ): RgbaImage | null {
   const { videoWidth, videoHeight } = video;
   if (videoWidth === 0 || videoHeight === 0) {
     return null;
   }
-  const scale = Math.min(1, processingSize / Math.max(videoWidth, videoHeight));
-  const width = Math.round(videoWidth * scale);
-  const height = Math.round(videoHeight * scale);
+  const source = zoomRegion(videoWidth, videoHeight, zoom);
+  const scale = Math.min(1, processingSize / Math.max(source.width, source.height));
+  const width = Math.round(source.width * scale);
+  const height = Math.round(source.height * scale);
 
   const rotatedWidth = turns % 2 === 1 ? height : width;
   const rotatedHeight = turns % 2 === 1 ? width : height;
@@ -43,7 +47,7 @@ export function grabRotatedFrame(
     context.translate(0, rotatedHeight);
   }
   context.rotate((turns * Math.PI) / 2);
-  context.drawImage(video, 0, 0, width, height);
+  context.drawImage(video, source.x, source.y, source.width, source.height, 0, 0, width, height);
   context.restore();
   const data = context.getImageData(0, 0, rotatedWidth, rotatedHeight);
   return { data: data.data, width: rotatedWidth, height: rotatedHeight };
@@ -56,21 +60,23 @@ export function grabRotatedFrame(
 export function grabWatchFrame(
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement,
+  zoom = 1,
   longSide = WATCH_LONG_SIDE,
 ): RgbaImage | null {
   const { videoWidth, videoHeight } = video;
   if (videoWidth === 0 || videoHeight === 0) {
     return null;
   }
-  const scale = Math.min(1, longSide / Math.max(videoWidth, videoHeight));
-  const width = Math.max(1, Math.round(videoWidth * scale));
-  const height = Math.max(1, Math.round(videoHeight * scale));
+  const source = zoomRegion(videoWidth, videoHeight, zoom);
+  const scale = Math.min(1, longSide / Math.max(source.width, source.height));
+  const width = Math.max(1, Math.round(source.width * scale));
+  const height = Math.max(1, Math.round(source.height * scale));
 
   const context = sizedContext(canvas, width, height);
   if (!context) {
     return null;
   }
-  context.drawImage(video, 0, 0, width, height);
+  context.drawImage(video, source.x, source.y, source.width, source.height, 0, 0, width, height);
   const pixels = context.getImageData(0, 0, width, height);
   return { data: pixels.data, width, height };
 }
