@@ -41,7 +41,7 @@ export interface BoardReadResult {
   fresh: BoardCard[];
 }
 
-export interface PlacementDecision<T> {
+interface PlacementDecision<T> {
   /** A placement went unnamed; `missedFrame` is its settle frame when one was kept. */
   missed: boolean;
   missedFrame: T | null;
