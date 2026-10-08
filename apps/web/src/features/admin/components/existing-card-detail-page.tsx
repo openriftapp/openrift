@@ -83,10 +83,15 @@ function MissingCard({ identifier, children }: { identifier: string; children: R
   );
 }
 
+function foldKeys(detail: AdminCardDetailResponse): string[] {
+  const groups = buildPrintingGroups(detail.candidatePrintingGroups, detail.candidatePrintings);
+  return [...detail.printings.map((p) => p.id), ...groups.map((g) => g.groupKey)];
+}
+
 /** Every printing and ambiguous-source group except the first printing, which stays open. */
 function defaultCollapsedKeys(detail: AdminCardDetailResponse): string[] {
-  const groups = buildPrintingGroups(detail.candidatePrintingGroups, detail.candidatePrintings);
-  return [...detail.printings.slice(1).map((p) => p.id), ...groups.map((g) => g.groupKey)];
+  const first = detail.printings[0]?.id;
+  return foldKeys(detail).filter((key) => key !== first);
 }
 
 export function ExistingCardDetailPage({
@@ -162,7 +167,7 @@ export function ExistingCardDetailPage({
     getStoredCollapsedPrintings(state, cardId),
   );
   const togglePrintingFold = useAdminCardFoldStore((state) => state.togglePrinting);
-  const expandPrintingFold = useAdminCardFoldStore((state) => state.expandPrinting);
+  const focusPrintingFold = useAdminCardFoldStore((state) => state.focusPrinting);
   const setCollapsedForCard = useAdminCardFoldStore((state) => state.setCollapsedForCard);
   const initCollapsedForCard = useAdminCardFoldStore((state) => state.initCollapsedForCard);
   // A link from the list that focuses a marketplace variant means the printings.
@@ -183,7 +188,10 @@ export function ExistingCardDetailPage({
   }
 
   function revealPrinting(printingId: string): void {
-    expandPrintingFold(cardId, printingId);
+    if (!existingData) {
+      return;
+    }
+    focusPrintingFold(cardId, printingId, foldKeys(existingData));
     void (async () => {
       await goToSection("printings");
       requestAnimationFrame(() => {
@@ -204,7 +212,7 @@ export function ExistingCardDetailPage({
     if (!group) {
       return;
     }
-    expandPrintingFold(cardId, group.groupKey);
+    focusPrintingFold(cardId, group.groupKey, foldKeys(existingData));
     void (async () => {
       await goToSection("printings");
       requestAnimationFrame(() => {
@@ -264,13 +272,13 @@ export function ExistingCardDetailPage({
     }
     const id = printing.id;
     pendingScrollTarget.current = null;
-    expandPrintingFold(cardId, id);
+    focusPrintingFold(cardId, id, foldKeys(existingData));
     requestAnimationFrame(() => {
       document
         .querySelector(`[data-printing-id="${id}"]`)
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
-  }, [existingData, cardId, expandPrintingFold]);
+  }, [existingData, cardId, focusPrintingFold]);
 
   // Cardmarket rows apply to all siblings, so any matching finish works there;
   // other marketplaces also require a language match.
@@ -295,13 +303,13 @@ export function ExistingCardDetailPage({
       return;
     }
     focusHandledRef.current = true;
-    expandPrintingFold(cardId, match.id);
+    focusPrintingFold(cardId, match.id, foldKeys(existingData));
     requestAnimationFrame(() => {
       document
         .querySelector(`[data-printing-id="${match.id}"]`)
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
-  }, [existingData, focusMarketplace, focusFinish, focusLanguage, cardId, expandPrintingFold]);
+  }, [existingData, focusMarketplace, focusFinish, focusLanguage, cardId, focusPrintingFold]);
 
   if (isError) {
     return (

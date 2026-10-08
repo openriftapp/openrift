@@ -51,29 +51,29 @@ describe("useAdminCardFoldStore", () => {
     });
   });
 
-  describe("expandPrinting", () => {
-    it("removes a printing id from the collapsed set", () => {
-      const { togglePrinting, expandPrinting } = useAdminCardFoldStore.getState();
-      togglePrinting("ahri-inquisitive", "printing-1");
-      togglePrinting("ahri-inquisitive", "printing-2");
+  describe("focusPrinting", () => {
+    it("opens only the focused key and collapses every other one", () => {
+      useAdminCardFoldStore
+        .getState()
+        .setCollapsedForCard("ahri-inquisitive", new Set(["printing-3"]));
 
-      expandPrinting("ahri-inquisitive", "printing-1");
+      useAdminCardFoldStore
+        .getState()
+        .focusPrinting("ahri-inquisitive", "printing-2", [
+          "printing-1",
+          "printing-2",
+          "printing-3",
+        ]);
 
-      const collapsed = collapsedOf("ahri-inquisitive");
-      expect(collapsed.has("printing-1")).toBe(false);
-      expect(collapsed.has("printing-2")).toBe(true);
+      expect([...collapsedOf("ahri-inquisitive")].toSorted()).toEqual(["printing-1", "printing-3"]);
     });
 
-    it("is a no-op when the printing is already expanded", () => {
-      const before = useAdminCardFoldStore.getState().collapsedByCard;
-      useAdminCardFoldStore.getState().expandPrinting("ahri-inquisitive", "printing-1");
-      expect(useAdminCardFoldStore.getState().collapsedByCard).toBe(before);
-    });
+    it("seeds an unvisited card", () => {
+      useAdminCardFoldStore
+        .getState()
+        .focusPrinting("never-visited", "printing-1", ["printing-1", "group-a"]);
 
-    it("is a no-op for an unknown card", () => {
-      const before = useAdminCardFoldStore.getState().collapsedByCard;
-      useAdminCardFoldStore.getState().expandPrinting("never-visited", "printing-1");
-      expect(useAdminCardFoldStore.getState().collapsedByCard).toBe(before);
+      expect([...collapsedOf("never-visited")]).toEqual(["group-a"]);
     });
   });
 

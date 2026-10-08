@@ -6,7 +6,7 @@ interface AdminCardFoldState {
   collapsedByCard: Record<string, Set<string>>;
   collapsedSections: Set<AdminCardSectionId>;
   togglePrinting: (cardId: string, printingId: string) => void;
-  expandPrinting: (cardId: string, printingId: string) => void;
+  focusPrinting: (cardId: string, key: string, allKeys: readonly string[]) => void;
   setCollapsedForCard: (cardId: string, collapsed: Set<string>) => void;
   initCollapsedForCard: (cardId: string, collapsed: Set<string>) => void;
   toggleSection: (sectionId: AdminCardSectionId) => void;
@@ -42,16 +42,13 @@ export const useAdminCardFoldStore = create<AdminCardFoldState>()((set) => ({
       return { collapsedByCard: { ...state.collapsedByCard, [cardId]: next } };
     }),
 
-  expandPrinting: (cardId, printingId) =>
-    set((state) => {
-      const current = state.collapsedByCard[cardId];
-      if (!current || !current.has(printingId)) {
-        return state;
-      }
-      const next = new Set(current);
-      next.delete(printingId);
-      return { collapsedByCard: { ...state.collapsedByCard, [cardId]: next } };
-    }),
+  focusPrinting: (cardId, key, allKeys) =>
+    set((state) => ({
+      collapsedByCard: {
+        ...state.collapsedByCard,
+        [cardId]: new Set(allKeys.filter((other) => other !== key)),
+      },
+    })),
 
   setCollapsedForCard: (cardId, collapsed) =>
     set((state) => ({
