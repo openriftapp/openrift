@@ -371,7 +371,7 @@ describe.skipIf(!ctx)("Card-sources query routes (integration)", () => {
       expect(sorted[2].name).toBe("CSQ Test Card");
     });
 
-    it("returns correct shape (id, slug, name, type, types, setSlugs, shortCodes)", async () => {
+    it("returns correct shape (id, slug, name, type, types, tags, setSlugs, shortCodes)", async () => {
       const res = await app.fetch(adminReq("GET", "/cards/all-cards"));
       const json = await readJson(res);
 
@@ -390,6 +390,7 @@ describe.skipIf(!ctx)("Card-sources query routes (integration)", () => {
         "setSlugs",
         "shortCodes",
         "slug",
+        "tags",
         "type",
         "types",
       ]);
