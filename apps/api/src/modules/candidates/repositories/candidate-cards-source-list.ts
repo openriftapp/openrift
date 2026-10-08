@@ -22,7 +22,7 @@ import {
 export function candidateSourceListRepo(db: Kysely<Database>) {
   return {
     listAllCards(): Promise<
-      (Pick<Selectable<CardsTable>, "id" | "slug" | "name" | "type"> & {
+      (Pick<Selectable<CardsTable>, "id" | "slug" | "name" | "type" | "tags"> & {
         types: string[];
         setSlugs: string[];
         shortCodes: string[];
@@ -37,6 +37,7 @@ export function candidateSourceListRepo(db: Kysely<Database>) {
           "c.slug",
           "c.name",
           "c.type",
+          "c.tags",
           // Correlated subquery so the printings/sets join above doesn't
           // multiply the type rows.
           sql<string[]>`(
@@ -59,7 +60,7 @@ export function candidateSourceListRepo(db: Kysely<Database>) {
             )
             .as("shortCodes"),
         ])
-        .groupBy(["c.id", "c.slug", "c.name", "c.type"])
+        .groupBy(["c.id", "c.slug", "c.name", "c.type", "c.tags"])
         .orderBy("c.slug")
         .execute();
     },

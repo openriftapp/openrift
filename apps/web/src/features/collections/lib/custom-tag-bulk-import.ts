@@ -1,9 +1,12 @@
-import { normalizeNameForIdentity } from "@openrift/shared/card-name";
+import { cardSearchAltNames } from "@openrift/shared/card-name";
+import { buildCardIndex, resolveCard } from "@openrift/shared/card-search";
 import { parseDeckImportData } from "@openrift/shared/deck-codecs/parse";
 
 export interface MinimalCard {
   id: string;
   name: string;
+  types: string[];
+  tags: string[];
   shortCodes?: readonly string[];
 }
 
@@ -16,26 +19,22 @@ export interface BulkImportPlan {
 }
 
 /**
- * Reuses the deck importer's text parser and `normalizeNameForIdentity`
- * helper, so a card resolvable in the deck importer also resolves here.
+ * Reuses the deck importer's text parser and `resolveCard`, so a card
+ * resolvable in the deck importer also resolves here.
  */
 export function planCustomTagBulkImport(text: string, allCards: MinimalCard[]): BulkImportPlan {
   const { entries, warnings } = parseDeckImportData(text, "text");
 
-  const byNormalizedName = new Map<string, MinimalCard[]>();
   const byShortCode = new Map<string, MinimalCard>();
   for (const card of allCards) {
     for (const shortCode of card.shortCodes ?? []) {
       byShortCode.set(shortCode.toLowerCase(), card);
     }
-    const key = normalizeNameForIdentity(card.name);
-    const existing = byNormalizedName.get(key);
-    if (existing) {
-      existing.push(card);
-    } else {
-      byNormalizedName.set(key, [card]);
-    }
   }
+  const nameIndex = buildCardIndex(
+    allCards.map((card) => ({ ...card, slug: card.id, altNames: cardSearchAltNames(card) })),
+    new Map(),
+  );
 
   const matched: { cardId: string; name: string }[] = [];
   const seenIds = new Set<string>();
@@ -47,19 +46,21 @@ export function planCustomTagBulkImport(text: string, allCards: MinimalCard[]): 
     if (!name) {
       continue;
     }
-    const byCode = entry.shortCode ? byShortCode.get(entry.shortCode.toLowerCase()) : undefined;
-    const hits = byCode ? [byCode] : (byNormalizedName.get(normalizeNameForIdentity(name)) ?? []);
-    const [card] = hits;
+    let card = entry.shortCode ? byShortCode.get(entry.shortCode.toLowerCase()) : undefined;
     if (card === undefined) {
-      unmatched.push(name);
-      continue;
-    }
-    if (hits.length > 1) {
-      ambiguous.push({
-        name,
-        matches: hits.map((hit) => ({ cardId: hit.id, name: hit.name })),
-      });
-      continue;
+      const resolution = resolveCard(nameIndex, name);
+      if (resolution.status === "unmatched") {
+        unmatched.push(name);
+        continue;
+      }
+      if (resolution.status === "ambiguous") {
+        ambiguous.push({
+          name,
+          matches: resolution.candidates.map((hit) => ({ cardId: hit.id, name: hit.name })),
+        });
+        continue;
+      }
+      card = resolution.card;
     }
     if (!seenIds.has(card.id)) {
       seenIds.add(card.id);

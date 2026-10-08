@@ -4,11 +4,17 @@ import type { MinimalCard } from "./custom-tag-bulk-import";
 import { planCustomTagBulkImport } from "./custom-tag-bulk-import";
 
 const CARDS: MinimalCard[] = [
-  { id: "card-1", name: "Brazen Buccaneer" },
-  { id: "card-2", name: "Riptide Rex" },
-  { id: "card-3", name: "Miss Fortune, Buccaneer", shortCodes: ["OGN-246", "OGN-246a"] },
-  { id: "card-4", name: "Miss Fortune, Captain" },
-  { id: "card-5", name: "Pouty Poro" },
+  { id: "card-1", name: "Brazen Buccaneer", types: [], tags: [] },
+  { id: "card-2", name: "Riptide Rex", types: [], tags: [] },
+  {
+    id: "card-3",
+    name: "Miss Fortune, Buccaneer",
+    types: [],
+    tags: [],
+    shortCodes: ["OGN-246", "OGN-246a"],
+  },
+  { id: "card-4", name: "Miss Fortune, Captain", types: [], tags: [] },
+  { id: "card-5", name: "Pouty Poro", types: [], tags: [] },
 ];
 
 describe("planCustomTagBulkImport", () => {
@@ -33,7 +39,7 @@ describe("planCustomTagBulkImport", () => {
     expect(plan.cardIds).toEqual(["card-1"]);
   });
 
-  it("ignores case and punctuation variation via normalizeNameForIdentity", () => {
+  it("ignores case and punctuation variation", () => {
     const plan = planCustomTagBulkImport("1 miss fortune buccaneer", CARDS);
     expect(plan.cardIds).toEqual(["card-3"]);
   });
@@ -52,8 +58,8 @@ describe("planCustomTagBulkImport", () => {
 
   it("surfaces ambiguous names instead of silently picking one", () => {
     const collision: MinimalCard[] = [
-      { id: "a", name: "Mystery Card" },
-      { id: "b", name: "Mystery Card" },
+      { id: "a", name: "Mystery Card", types: [], tags: [] },
+      { id: "b", name: "Mystery Card", types: [], tags: [] },
     ];
     const plan = planCustomTagBulkImport("1 Mystery Card", collision);
     expect(plan.cardIds).toEqual([]);
@@ -108,8 +114,8 @@ describe("planCustomTagBulkImport", () => {
 
   it("disambiguates a shared name by short code", () => {
     const collision: MinimalCard[] = [
-      { id: "a", name: "Mystery Card", shortCodes: ["OGN-001"] },
-      { id: "b", name: "Mystery Card", shortCodes: ["SFD-001"] },
+      { id: "a", name: "Mystery Card", types: [], tags: [], shortCodes: ["OGN-001"] },
+      { id: "b", name: "Mystery Card", types: [], tags: [], shortCodes: ["SFD-001"] },
     ];
     const plan = planCustomTagBulkImport("1x Mystery Card · SFD-001", collision);
     expect(plan.cardIds).toEqual(["b"]);
@@ -118,5 +124,18 @@ describe("planCustomTagBulkImport", () => {
   it("falls back to the name when the short code is unknown", () => {
     const plan = planCustomTagBulkImport("1x Pouty Poro · XYZ-999", CARDS);
     expect(plan.cardIds).toEqual(["card-5"]);
+  });
+
+  it("resolves a Legend written with its champion name", () => {
+    const legends: MinimalCard[] = [
+      { id: "fiora", name: "Grand Duelist", types: ["legend"], tags: ["Fiora"] },
+      { id: "annie", name: "Dark Child, Starter", types: ["legend"], tags: ["Annie"] },
+    ];
+    const plan = planCustomTagBulkImport(
+      "1 Fiora, Grand Duelist\n1 Annie, Dark Child\n1 Grand Duelist",
+      legends,
+    );
+    expect(plan.cardIds).toEqual(["fiora", "annie"]);
+    expect(plan.unmatched).toEqual([]);
   });
 });

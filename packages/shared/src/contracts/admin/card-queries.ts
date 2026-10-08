@@ -19,6 +19,7 @@ const allCardsItemSchema = z.object({
   name: z.string(),
   type: z.string(),
   types: z.array(z.string()),
+  tags: z.array(z.string()),
   setSlugs: z.array(z.string()),
   shortCodes: z.array(z.string()),
 });
