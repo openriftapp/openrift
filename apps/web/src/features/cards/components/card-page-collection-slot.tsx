@@ -8,6 +8,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useSession } from "@/hooks/use-session";
 import { useSignInSearch } from "@/hooks/use-sign-in-search";
+import { trackSignupCta } from "@/lib/analytics";
 import { m } from "@/paraglide/messages.js";
 
 const CardPageCollectionActions = lazy(async () => {
@@ -53,6 +54,7 @@ function TrackCollectionNudge() {
           to="/signup"
           search={search}
           className={buttonVariants({ variant: "outline", size: "sm" })}
+          onClick={() => trackSignupCta("card-page")}
         >
           {m.card_detail_nudge_signup()}
         </Link>

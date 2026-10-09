@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldGroup, FieldSeparator } from "@/components/ui/field";
 import { authClient } from "@/features/account/lib/auth-client";
+import { socialNewUserCallbackURL } from "@/lib/analytics";
 import { isPreview } from "@/lib/api-base";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -67,7 +68,11 @@ export function SocialAuthButtons({ redirectTo }: { redirectTo?: string }) {
 
   async function signInWith(provider: "google" | "discord") {
     try {
-      await authClient.signIn.social({ provider, callbackURL });
+      await authClient.signIn.social({
+        provider,
+        callbackURL,
+        newUserCallbackURL: socialNewUserCallbackURL(callbackURL, provider),
+      });
     } catch {
       toast.error(m.auth_social_provider_failed());
     }

@@ -130,7 +130,7 @@ export function GroupsJoinPage({ code = "" }: GroupsJoinPageProps) {
         ) : preview.data ? (
           <div className="flex flex-col gap-3">
             <p className="text-muted-foreground text-sm">{m.groups_join_signed_out()}</p>
-            <SignedOutAuthButtons signInLabel={m.groups_join_sign_in_label()} />
+            <SignedOutAuthButtons source="group-join" signInLabel={m.groups_join_sign_in_label()} />
           </div>
         ) : null}
       </div>

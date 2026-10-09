@@ -32,7 +32,10 @@ function StaffInviteAction({
     return (
       <>
         <p className="text-muted-foreground text-sm">{m.tournaments_staff_invite_signin_hint()}</p>
-        <SignedOutAuthButtons signInLabel={m.tournaments_staff_invite_signin_label()} />
+        <SignedOutAuthButtons
+          source="tournament-staff-invite"
+          signInLabel={m.tournaments_staff_invite_signin_label()}
+        />
       </>
     );
   }

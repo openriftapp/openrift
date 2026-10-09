@@ -22,6 +22,7 @@ import {
   UsersIcon,
   LayoutDashboardIcon,
 } from "lucide-react";
+import { useEffect } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -32,6 +33,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { trackAuthGate, trackSignupCta } from "@/lib/analytics";
 import type { LockedFeatureKey, NavBadgeCounts, NavItemConfig } from "@/lib/nav-items";
 import { m } from "@/paraglide/messages.js";
 
@@ -308,6 +310,11 @@ export function SignInRequiredDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const feature = featureKey ? lockedFeatures()[featureKey] : null;
+  useEffect(() => {
+    if (featureKey) {
+      trackAuthGate(featureKey);
+    }
+  }, [featureKey]);
   return (
     <Dialog open={Boolean(feature)} onOpenChange={onOpenChange}>
       {feature && (
@@ -332,7 +339,10 @@ export function SignInRequiredDialog({
               to="/signup"
               search={{ redirect: feature.to, email: undefined }}
               className={buttonVariants({ variant: "default" })}
-              onClick={() => onOpenChange(false)}
+              onClick={() => {
+                trackSignupCta("nav-gate");
+                onOpenChange(false);
+              }}
             >
               {m.common_sign_up()}
             </Link>

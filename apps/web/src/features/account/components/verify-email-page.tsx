@@ -1,6 +1,6 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, getRouteApi } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter, getRouteApi } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { AuthPageLayout } from "@/components/layout/auth-page-layout";
@@ -10,6 +10,7 @@ import { Field, FieldError } from "@/components/ui/field";
 import { AuthFormCard } from "@/features/account/components/auth-form-shell";
 import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-input";
 import { authClient } from "@/features/account/lib/auth-client";
+import { routeTemplate, trackSignupComplete } from "@/lib/analytics";
 import { otpErrorMessage } from "@/lib/auth-errors";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
@@ -19,6 +20,7 @@ const routeApi = getRouteApi("/_app/verify-email");
 export function VerifyEmailPage() {
   const { email, redirect: redirectTo } = routeApi.useSearch();
   const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [otp, setOtp] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -41,6 +43,10 @@ export function VerifyEmailPage() {
       setError(otpErrorMessage(result.error));
       return;
     }
+    trackSignupComplete(
+      "email",
+      routeTemplate(redirectTo, (pathname) => router.matchRoutes(pathname)),
+    );
     // better-auth set the cookie, but the ["session"] query cache still holds
     // null from before verification.
     await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });

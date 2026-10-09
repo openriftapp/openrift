@@ -143,6 +143,18 @@ The site settings system is generic (any kebab-case key works), but only the key
 
 **Analytics:** When both Umami settings are configured, the web app injects a `<script>` tag pointing to `{umami-url}/script.js` with the `data-website-id` attribute. Removing either setting disables analytics.
 
+Custom events go through `trackEvent` in `apps/web/src/lib/analytics.ts`. Events fired before the script loads are queued (up to 20) and sent on load. Property values are route patterns (`/cards/$cardSlug`) or fixed slugs, never raw URLs or user data. The signup events:
+
+| Event                | Fired when                                                                                             | Properties                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| `signup-cta`         | A signed-out visitor clicks a link to `/signup`                                                        | `source`                                              |
+| `signup-prompt-view` | A shared-page sign-up prompt is shown                                                                  | `source`                                              |
+| `auth-gate`          | A signed-out visitor tries an account-only feature                                                     | `feature`                                             |
+| `signup-submit`      | The email sign-up form succeeds (before verification)                                                  | `method`, `from`, `cta`, `first_path`, `first_source` |
+| `signup-verified`    | Email verification succeeds, a code sign-in creates an account, or a Google/Discord account is created | `method`, `from`, `cta`, `first_path`, `first_source` |
+
+`from` is the page the visitor returns to after signing up. `cta` is the last `signup-cta` source in the tab. `first_path` and `first_source` are the landing page and its UTM source or referrer host, stored in localStorage on the first visit. Social signups are detected through Better Auth's `newUserCallbackURL`, which appends `?signup=<provider>`; the `Analytics` component fires the event and strips the parameter. A code sign-in on `/login` creates the account on first use; it counts as a signup when the returned `createdAt` is under 10 minutes old.
+
 **Discord notifications:** Webhook URLs are configured via environment variables (`DISCORD_WEBHOOK_*`, see above), **not** site settings. When configured, a cron job flushes pending printing events to Discord every 15 minutes. New printings are posted to the new-printings channel; field changes (with before/after values) are posted to the changes channel. Events are consolidated per printing within each flush window to reduce noise.
 
 To add a new site setting that code actually reads, use `useSiteSettingValue("your-key")` on the frontend or query the `site_settings` table on the API side. Also add the key to the `KNOWN_SETTINGS` array in `apps/web/src/features/admin/components/site-settings-page.tsx` so it appears in the admin UI.

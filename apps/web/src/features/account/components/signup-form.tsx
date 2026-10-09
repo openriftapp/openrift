@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import type { Control } from "react-hook-form";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
@@ -10,6 +10,7 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input";
 import { AuthFormCard, SocialAuthButtons } from "@/features/account/components/auth-form-shell";
 import { signUp } from "@/features/account/lib/auth-client";
+import { routeTemplate, trackSignupSubmit } from "@/lib/analytics";
 import { setServerError } from "@/lib/auth-errors";
 import { m } from "@/paraglide/messages.js";
 
@@ -40,6 +41,7 @@ export function SignupForm({
   emailPlaceholder: string;
 }) {
   const navigate = useNavigate();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const form = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema()),
@@ -59,6 +61,10 @@ export function SignupForm({
       setServerError(form, error);
       return;
     }
+    trackSignupSubmit(
+      "email",
+      routeTemplate(redirectTo, (pathname) => router.matchRoutes(pathname)),
+    );
     void navigate({ to: "/verify-email", search: { email: values.email, redirect: redirectTo } });
   }
 

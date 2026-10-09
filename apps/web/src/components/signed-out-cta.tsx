@@ -1,10 +1,12 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { useEffect } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/hooks/use-session";
+import { trackSignupCta, trackSignupPromptView } from "@/lib/analytics";
 import { m } from "@/paraglide/messages.js";
 
 /**
@@ -12,9 +14,11 @@ import { m } from "@/paraglide/messages.js";
  * came from, so a token in the URL survives the trip through login.
  */
 export function SignedOutAuthButtons({
+  source,
   signInLabel,
   signUpLabel,
 }: {
+  source: string;
   signInLabel?: string;
   signUpLabel?: string;
 }) {
@@ -25,7 +29,12 @@ export function SignedOutAuthButtons({
       <Link to="/login" search={search} className={buttonVariants()}>
         {signInLabel ?? m.common_sign_in()}
       </Link>
-      <Link to="/signup" search={search} className={buttonVariants({ variant: "ghost" })}>
+      <Link
+        to="/signup"
+        search={search}
+        className={buttonVariants({ variant: "ghost" })}
+        onClick={() => trackSignupCta(source)}
+      >
         {signUpLabel ?? m.auth_create_account()}
       </Link>
     </div>
@@ -36,10 +45,24 @@ export function SignedOutAuthButtons({
  * Gated on hydration because these pages are SSR'd behind a shared public
  * cache, so anything per-viewer has to be resolved on the client.
  */
-export function PublicShareCta({ title, children }: { title: string; children: ReactNode }) {
+export function PublicShareCta({
+  source,
+  title,
+  children,
+}: {
+  source: string;
+  title: string;
+  children: ReactNode;
+}) {
   const hydrated = useHydrated();
   const userId = useUserId();
-  if (!hydrated || userId) {
+  const visible = hydrated && !userId;
+  useEffect(() => {
+    if (visible) {
+      trackSignupPromptView(source);
+    }
+  }, [visible, source]);
+  if (!visible) {
     return null;
   }
   return (
@@ -48,7 +71,7 @@ export function PublicShareCta({ title, children }: { title: string; children: R
         <span className="font-medium">{title}</span>
         <span className="text-muted-foreground">{children}</span>
       </div>
-      <SignedOutAuthButtons signUpLabel={m.auth_create_free_account()} />
+      <SignedOutAuthButtons source={source} signUpLabel={m.auth_create_free_account()} />
     </Card>
   );
 }

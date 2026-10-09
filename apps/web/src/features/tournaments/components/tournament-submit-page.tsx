@@ -28,7 +28,10 @@ function SignedOutJoinState({ data }: { data: PublicTournamentLandingResponse })
           ? m.tournaments_submit_signin_deck()
           : m.tournaments_submit_signin_spot()}
       </p>
-      <SignedOutAuthButtons signInLabel={m.tournaments_submit_signin_label()} />
+      <SignedOutAuthButtons
+        source="tournament-submit"
+        signInLabel={m.tournaments_submit_signin_label()}
+      />
     </>
   );
 }

@@ -21,6 +21,7 @@ import { landingSummaryQueryOptions } from "@/features/marketing/lib/landing-sum
 import { landingThumbnailCards } from "@/features/marketing/lib/landing-thumbnails";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { useSession } from "@/hooks/use-session";
+import { trackSignupCta } from "@/lib/analytics";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -113,6 +114,7 @@ function ClosingBlock({ signedOut }: { signedOut: boolean }) {
               to="/signup"
               search={{ redirect: undefined, email: undefined }}
               variant="outline"
+              onClick={() => trackSignupCta("features-page")}
             >
               {m.card_detail_nudge_signup()}
             </HeroCta>

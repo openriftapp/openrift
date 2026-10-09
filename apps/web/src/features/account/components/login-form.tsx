@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import type { Control, UseFormReturn } from "react-hook-form";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
@@ -14,6 +14,7 @@ import { TextLink } from "@/components/ui/text-link";
 import { AuthFormCard, SocialAuthButtons } from "@/features/account/components/auth-form-shell";
 import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-input";
 import { authClient, signIn } from "@/features/account/lib/auth-client";
+import { isNewAccount, routeTemplate, trackSignupComplete, trackSignupCta } from "@/lib/analytics";
 import { otpErrorMessage, requestOtpErrorMessage, setServerError } from "@/lib/auth-errors";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
@@ -228,6 +229,7 @@ function OtpSignIn({
   emailPlaceholder: string;
 }) {
   const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<"email" | "code">("email");
   const [otp, setOtp] = useState("");
@@ -275,6 +277,12 @@ function OtpSignIn({
     if (result.error) {
       setOtpError(otpErrorMessage(result.error));
       return;
+    }
+    if (isNewAccount(result.data.user.createdAt)) {
+      trackSignupComplete(
+        "email-code",
+        routeTemplate(redirectTo, (pathname) => router.matchRoutes(pathname)),
+      );
     }
     await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
     void navigate({ to: (redirectTo as "/collections") ?? "/collections" });
@@ -398,7 +406,11 @@ function SignupLink({
 }) {
   const email = useWatch({ control, name: "email" });
   return (
-    <Link to="/signup" search={{ redirect: redirectTo, email: email || undefined }}>
+    <Link
+      to="/signup"
+      search={{ redirect: redirectTo, email: email || undefined }}
+      onClick={() => trackSignupCta("login-form")}
+    >
       {m.common_sign_up()}
     </Link>
   );

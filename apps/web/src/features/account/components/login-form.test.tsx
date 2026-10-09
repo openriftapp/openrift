@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const shellRenders = { card: 0, social: 0 };
 const navigate = vi.fn();
@@ -31,6 +31,7 @@ vi.mock("@tanstack/react-router", () => ({
     );
   },
   useNavigate: () => navigate,
+  useRouter: () => ({ matchRoutes: () => [] }),
 }));
 
 vi.mock("@/features/account/lib/auth-client", () => ({
@@ -78,6 +79,7 @@ function activeEmailInput() {
 
 const sendVerificationOtp = vi.mocked(authClient.emailOtp.sendVerificationOtp);
 const signInEmail = vi.mocked(signIn.email);
+const signInEmailOtp = vi.mocked(authClient.signIn.emailOtp);
 
 describe("LoginForm", () => {
   beforeEach(() => {
@@ -159,6 +161,53 @@ describe("LoginForm", () => {
     await user.click(screen.getByRole("button", { name: "Send code" }));
 
     expect(screen.getByRole("button", { name: "Verify" })).toBeInTheDocument();
+  });
+
+  describe("code sign-in tracking", () => {
+    const track = vi.fn();
+
+    beforeEach(() => {
+      track.mockClear();
+      vi.stubGlobal("umami", { track });
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    async function signInWithCode(createdAt: string) {
+      const user = userEvent.setup();
+      sendVerificationOtp.mockResolvedValue({ error: null });
+      signInEmailOtp.mockResolvedValue({ data: { user: { createdAt } }, error: null } as never);
+      renderLoginForm();
+      await user.click(screen.getByRole("tab", { name: "Email code" }));
+      await user.type(activeEmailInput(), "jinx@example.com");
+      await user.click(screen.getByRole("button", { name: "Send code" }));
+      const codeInput = document.querySelector<HTMLInputElement>(
+        'input[autocomplete="one-time-code"]',
+      );
+      if (!codeInput) {
+        throw new Error("no code input");
+      }
+      await user.type(codeInput, "123456");
+      await user.click(screen.getByRole("button", { name: "Verify" }));
+    }
+
+    it("counts a code sign-in that just created the account as a signup", async () => {
+      await signInWithCode(new Date().toISOString());
+
+      expect(track).toHaveBeenCalledWith(
+        "signup-verified",
+        expect.objectContaining({ method: "email-code" }),
+      );
+    });
+
+    it("does not count a code sign-in to an existing account", async () => {
+      await signInWithCode("2025-01-01T00:00:00.000Z");
+
+      expect(signInEmailOtp).toHaveBeenCalled();
+      expect(track).not.toHaveBeenCalledWith("signup-verified", expect.anything());
+    });
   });
 
   it("sends a verification code and routes to the page that can take it", async () => {

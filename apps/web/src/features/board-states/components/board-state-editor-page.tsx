@@ -50,6 +50,7 @@ import { unknownRuleRefs, useKnownRules } from "@/features/rules/hooks/use-known
 import { ruleVersionsQueryOptions } from "@/features/rules/lib/rules-queries";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/hooks/use-session";
+import { trackAuthGate } from "@/lib/analytics";
 import { shareLinkUrl } from "@/lib/share-links";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -255,6 +256,7 @@ function DraftEditor() {
     if (!userId) {
       saveDraft({ ...meta, document: result.document });
       markClean();
+      trackAuthGate("board-state-save");
       await navigate({ to: "/login", search: { redirect: "/board-states/new", email: undefined } });
       return;
     }

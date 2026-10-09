@@ -33,7 +33,11 @@ export function SharedListPage() {
     <FilterSearchProvider value={search}>
       <SharedListContent
         data={data}
-        notice={<PublicShareCta title={cta.title}>{cta.body}</PublicShareCta>}
+        notice={
+          <PublicShareCta source="shared-list" title={cta.title}>
+            {cta.body}
+          </PublicShareCta>
+        }
       />
     </FilterSearchProvider>
   );

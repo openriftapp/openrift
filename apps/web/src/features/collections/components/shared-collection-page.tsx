@@ -20,7 +20,7 @@ export function SharedCollectionPage() {
       notice={
         <>
           <SharedCollectionAccessRedirect collectionId={data.collection.id} />
-          <PublicShareCta title={m.collections_share_cta_title()}>
+          <PublicShareCta source="shared-collection" title={m.collections_share_cta_title()}>
             {m.collections_share_cta_body()}
           </PublicShareCta>
         </>

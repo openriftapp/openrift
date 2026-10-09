@@ -24,7 +24,10 @@ export function UserProfileOverlap({
       return null;
     }
     return (
-      <PublicShareCta title={m.user_profile_cta_title({ name: owner.displayName })}>
+      <PublicShareCta
+        source="user-profile"
+        title={m.user_profile_cta_title({ name: owner.displayName })}
+      >
         {m.user_profile_cta_body()}
       </PublicShareCta>
     );
