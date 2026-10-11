@@ -47,7 +47,7 @@ const importRulesFn = createServerFn({ method: "POST" })
   .validator((input: ImportRulesInput) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
-    const result = await apiOrpcClient(adminRulesContract, context.cookie).import({
+    const result = await apiOrpcClient(adminRulesContract, context.cookie).saveVersion({
       kind: data.kind,
       language: data.language,
       version: data.version,

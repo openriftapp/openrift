@@ -9,10 +9,8 @@ const NON_ADMIN_ID = "a0000000-0049-4000-a000-000000000001";
 const adminCtx = createTestContext(ADMIN_ID);
 const nonAdminCtx = createTestContext(NON_ADMIN_ID);
 
-// Order matters: CORE_VERSION is imported first, so COLLISION_VERSION must
-// sort lexicographically after it to clear the chronological-version check.
+// These sort after every real version, so saving them never re-types real versions.
 const CORE_VERSION = "ar-int-core";
-const COLLISION_VERSION = "ar-int-zcollision";
 const TOURNAMENT_VERSION = "ar-int-tournament";
 
 const SAMPLE_CONTENT = ["100. # Setup", "100.1. Players begin with seven cards in hand."].join(
@@ -28,104 +26,81 @@ describe.skipIf(!adminCtx)("Admin rules routes (integration)", () => {
   afterAll(async () => {
     await db
       .deleteFrom("ruleVersions")
-      .where("version", "in", [COLLISION_VERSION, CORE_VERSION, TOURNAMENT_VERSION])
+      .where("version", "in", [CORE_VERSION, TOURNAMENT_VERSION])
       .execute();
   });
 
   describe("admin-only access control", () => {
-    it("POST /admin/rules/import returns 403 for non-admin", async () => {
+    it("PUT /admin/rules/{kind}/{language}/versions/{version} returns 403 for non-admin", async () => {
       const res = await nonAdminApp.fetch(
-        adminReq("POST", "/rules/import", {
-          kind: "core",
-          version: "ar-int-forbidden",
-          content: SAMPLE_CONTENT,
-        }),
+        adminReq("PUT", "/rules/core/en/versions/ar-int-forbidden", { content: SAMPLE_CONTENT }),
       );
       expect(res.status).toBe(403);
     });
   });
 
-  describe("POST /admin/rules/import", () => {
-    it("imports a core ruleset", async () => {
+  describe("PUT /admin/rules/{kind}/{language}/versions/{version}", () => {
+    it("creates a core ruleset", async () => {
       const res = await app.fetch(
-        adminReq("POST", "/rules/import", {
-          kind: "core",
-          version: CORE_VERSION,
-          content: SAMPLE_CONTENT,
-        }),
+        adminReq("PUT", `/rules/core/en/versions/${CORE_VERSION}`, { content: SAMPLE_CONTENT }),
       );
-      expect(res.status).toBe(201);
+      expect(res.status).toBe(200);
       const json = await readJson(res);
-      expect(json.kind).toBe("core");
-      expect(json.version).toBe(CORE_VERSION);
-      expect(json.added).toBe(2);
+      expect(json).toMatchObject({
+        kind: "core",
+        language: "en",
+        version: CORE_VERSION,
+        status: "created",
+        rulesCount: 2,
+      });
     });
 
-    it("imports a tournament ruleset under the same version string without collision", async () => {
+    it("creates a tournament ruleset under the same version string without collision", async () => {
       const res = await app.fetch(
-        adminReq("POST", "/rules/import", {
-          kind: "tournament",
-          version: CORE_VERSION,
+        adminReq("PUT", `/rules/tournament/en/versions/${CORE_VERSION}`, {
           content: SAMPLE_CONTENT,
         }),
       );
-      expect(res.status).toBe(201);
-      const json = await readJson(res);
-      expect(json.kind).toBe("tournament");
-      expect(json.version).toBe(CORE_VERSION);
+      expect(res.status).toBe(200);
+      expect(await readJson(res)).toMatchObject({ kind: "tournament", status: "created" });
     });
 
-    it("rejects duplicate (kind, version)", async () => {
-      const first = await app.fetch(
-        adminReq("POST", "/rules/import", {
-          kind: "core",
-          version: COLLISION_VERSION,
-          content: SAMPLE_CONTENT,
-        }),
+    it("reports identical rules as unchanged and replaces changed ones", async () => {
+      const same = await app.fetch(
+        adminReq("PUT", `/rules/core/en/versions/${CORE_VERSION}`, { content: SAMPLE_CONTENT }),
       );
-      expect(first.status).toBe(201);
+      expect(await readJson(same)).toMatchObject({ status: "unchanged" });
 
-      const second = await app.fetch(
-        adminReq("POST", "/rules/import", {
-          kind: "core",
-          version: COLLISION_VERSION,
-          content: SAMPLE_CONTENT,
+      const changed = await app.fetch(
+        adminReq("PUT", `/rules/core/en/versions/${CORE_VERSION}`, {
+          content: `${SAMPLE_CONTENT}\n100.2. Players draw one card each turn.`,
         }),
       );
-      expect(second.status).toBe(409);
+      expect(await readJson(changed)).toMatchObject({ status: "updated", rulesCount: 3 });
+
+      const rows = await db
+        .selectFrom("rules")
+        .select("ruleNumber")
+        .where("kind", "=", "core")
+        .where("language", "=", "en")
+        .where("version", "=", CORE_VERSION)
+        .orderBy("sortOrder")
+        .execute();
+      expect(rows.map((row) => row.ruleNumber)).toEqual(["100", "100.1", "100.2"]);
     });
 
     it("rejects an invalid kind", async () => {
       const res = await app.fetch(
-        adminReq("POST", "/rules/import", {
-          kind: "bogus",
-          version: "ar-int-bogus",
-          content: SAMPLE_CONTENT,
-        }),
+        adminReq("PUT", "/rules/bogus/en/versions/ar-int-bogus", { content: SAMPLE_CONTENT }),
       );
       expect(res.status).toBe(400);
-    });
-
-    it("rejects a version older than the latest existing one for that kind", async () => {
-      const res = await app.fetch(
-        adminReq("POST", "/rules/import", {
-          kind: "core",
-          version: "ar-int-aaa",
-          content: SAMPLE_CONTENT,
-        }),
-      );
-      expect(res.status).toBe(400);
-      const body = await readJson(res);
-      expect(body.message).toMatch(/older|chronological/iu);
     });
   });
 
   describe("DELETE /admin/rules/{kind}/{language}/versions/{version}", () => {
     it("deletes only the specified kind", async () => {
       await app.fetch(
-        adminReq("POST", "/rules/import", {
-          kind: "tournament",
-          version: TOURNAMENT_VERSION,
+        adminReq("PUT", `/rules/tournament/en/versions/${TOURNAMENT_VERSION}`, {
           content: SAMPLE_CONTENT,
         }),
       );

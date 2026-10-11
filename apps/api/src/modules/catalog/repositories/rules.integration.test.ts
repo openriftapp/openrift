@@ -14,12 +14,14 @@ describe.skipIf(!ctx)("rulesRepo (integration)", () => {
   const sharedVersion = "test-kind-0044-shared";
   const langVersion = "test-lang-0044-b";
   const langPrevVersion = "test-lang-0044-a";
+  const changesPrevVersion = "0000-test-chg-0044-a";
+  const changesVersion = "0000-test-chg-0044-b";
   const koPrintingId = crypto.randomUUID();
 
   afterAll(async () => {
     await repo.deleteVersion("core", "en", sharedVersion);
     await repo.deleteVersion("tournament", "en", sharedVersion);
-    for (const version of [langVersion, langPrevVersion]) {
+    for (const version of [langVersion, langPrevVersion, changesVersion, changesPrevVersion]) {
       await repo.deleteVersion("core", "fr", version);
       await repo.deleteVersion("core", "en", version);
     }
@@ -27,17 +29,9 @@ describe.skipIf(!ctx)("rulesRepo (integration)", () => {
     await db.deleteFrom("keywords").where("name", "=", "RULES-0044-Shield").execute();
   });
 
-  it("createVersion + insertRules scopes rows by kind", async () => {
-    await repo.createVersion({
-      kind: "core",
-      language: "en",
-      version: sharedVersion,
-    });
-    await repo.createVersion({
-      kind: "tournament",
-      language: "en",
-      version: sharedVersion,
-    });
+  it("upsertVersion + insertRules scopes rows by kind", async () => {
+    await repo.upsertVersion({ kind: "core", language: "en", version: sharedVersion }, {});
+    await repo.upsertVersion({ kind: "tournament", language: "en", version: sharedVersion }, {});
 
     await repo.insertRules([
       {
@@ -104,8 +98,8 @@ describe.skipIf(!ctx)("rulesRepo (integration)", () => {
 
   it("deleteVersion only removes the specified kind", async () => {
     const tempVersion = "test-kind-0044-delete";
-    await repo.createVersion({ kind: "core", language: "en", version: tempVersion });
-    await repo.createVersion({ kind: "tournament", language: "en", version: tempVersion });
+    await repo.upsertVersion({ kind: "core", language: "en", version: tempVersion }, {});
+    await repo.upsertVersion({ kind: "tournament", language: "en", version: tempVersion }, {});
 
     await repo.deleteVersion("core", "en", tempVersion);
 
@@ -116,8 +110,8 @@ describe.skipIf(!ctx)("rulesRepo (integration)", () => {
   });
 
   it("keeps languages isolated", async () => {
-    await repo.createVersion({ kind: "core", language: "en", version: langVersion });
-    await repo.createVersion({ kind: "core", language: "fr", version: langVersion });
+    await repo.upsertVersion({ kind: "core", language: "en", version: langVersion }, {});
+    await repo.upsertVersion({ kind: "core", language: "fr", version: langVersion }, {});
     const base = {
       kind: "core" as const,
       version: langVersion,
@@ -150,51 +144,105 @@ describe.skipIf(!ctx)("rulesRepo (integration)", () => {
     expect(translations.map((t) => t.language)).toEqual(["fr"]);
   });
 
-  it("listChangesAtVersion skips unchanged rows and removed rules without text in the language", async () => {
-    await repo.createVersion({ kind: "core", language: "en", version: langPrevVersion });
-    await repo.insertRules(
-      ["901.1", "901.2", "901.3"].map((ruleNumber, index) => ({
-        kind: "core" as const,
-        language: "en" as const,
-        version: langPrevVersion,
-        ruleNumber,
-        sortOrder: index,
-        depth: 0,
-        ruleType: "text" as const,
-        content: `Old ${ruleNumber}.`,
-        changeType: "added" as const,
-      })),
-    );
-    const next = (
+  it("listChangesAtVersion compares with the previous version of the same language", async () => {
+    const row = (
       language: "en" | "fr",
+      version: string,
       ruleNumber: string,
-      changeType: "modified" | "removed" | "unchanged",
+      content: string,
+      changeType: "added" | "modified" | "unchanged",
       sortOrder: number,
     ) => ({
       kind: "core" as const,
       language,
-      version: langVersion,
+      version,
       ruleNumber,
       sortOrder,
       depth: 0,
       ruleType: "text" as const,
-      content: changeType === "removed" ? "" : `New ${ruleNumber}.`,
+      content,
       changeType,
     });
+    await repo.upsertVersion({ kind: "core", language: "en", version: changesPrevVersion }, {});
     await repo.insertRules([
-      next("fr", "901.1", "modified", 0),
-      next("fr", "901.2", "removed", 1),
-      next("fr", "901.3", "unchanged", 2),
+      row("en", changesPrevVersion, "901.1", "Old 901.1.", "added", 0),
+      row("en", changesPrevVersion, "901.2", "Old 901.2.", "added", 1),
+      row("en", changesPrevVersion, "901.3", "Old 901.3.", "added", 2),
+    ]);
+    await repo.upsertVersion({ kind: "core", language: "en", version: changesVersion }, {});
+    await repo.upsertVersion({ kind: "core", language: "fr", version: changesVersion }, {});
+    await repo.insertRules([
+      row("en", changesVersion, "901.1", "New 901.1.", "modified", 0),
+      row("en", changesVersion, "901.3", "Old 901.3.", "unchanged", 1),
+      row("en", changesVersion, "901.4", "New 901.4.", "added", 2),
+      row("fr", changesVersion, "901.1", "Nouveau 901.1.", "modified", 0),
+      row("fr", changesVersion, "901.3", "Ancien 901.3.", "unchanged", 1),
     ]);
 
-    const changes = await repo.listChangesAtVersion("core", "fr", langVersion);
+    const english = await repo.listChangesAtVersion("core", "en", changesVersion);
+    const french = await repo.listChangesAtVersion("core", "fr", changesVersion);
 
-    expect(changes.modified).toEqual(["901.1"]);
-    expect(changes.added).toEqual(expect.not.arrayContaining(["901.3"]));
-    expect(Object.keys(changes.current)).toContain("901.1");
-    expect(Object.keys(changes.current)).not.toContain("901.3");
-    expect(changes.modifiedPrev).toEqual({});
-    expect(changes.removed).toEqual([]);
+    expect(english.added).toEqual(["901.4"]);
+    expect(english.modified).toEqual(["901.1"]);
+    expect(english.current).toEqual({ "901.1": "New 901.1.", "901.4": "New 901.4." });
+    expect(english.modifiedPrev).toEqual({ "901.1": "Old 901.1." });
+    expect(english.removed).toEqual([
+      expect.objectContaining({
+        ruleNumber: "901.2",
+        content: "Old 901.2.",
+        version: changesVersion,
+        changeType: "removed",
+      }),
+    ]);
+    expect(french.modified).toEqual(["901.1"]);
+    expect(french.modifiedPrev).toEqual({});
+    expect(french.removed).toEqual([]);
+  });
+
+  it("listAtVersion reads the latest version at or before the requested one", async () => {
+    const between = `${changesPrevVersion}-between`;
+    const english = await repo.listAtVersion("core", "en", between);
+    const french = await repo.listAtVersion("core", "fr", between);
+
+    expect(english.map((r) => r.ruleNumber)).toEqual(["901.1", "901.2", "901.3"]);
+    expect(english.every((r) => r.version === changesPrevVersion)).toBe(true);
+    expect(french).toEqual([]);
+  });
+
+  it("listChangesAtVersion is empty for a version the language does not have", async () => {
+    const between = `${changesPrevVersion}-between`;
+    const empty = { added: [], modified: [], current: {}, modifiedPrev: {}, removed: [] };
+
+    expect(await repo.listChangesAtVersion("core", "en", between)).toEqual(empty);
+    expect(await repo.listChangesAtVersion("core", "fr", between)).toEqual(empty);
+  });
+
+  it("listSnapshot and setChangeType work on one version only", async () => {
+    await repo.setChangeType("core", "en", changesVersion, "added", ["901.3"]);
+
+    const current = await repo.listSnapshot("core", "en", changesVersion);
+    const previous = await repo.listSnapshot("core", "en", changesPrevVersion);
+
+    expect(current.map((r) => [r.ruleNumber, r.changeType])).toEqual([
+      ["901.1", "modified"],
+      ["901.3", "added"],
+      ["901.4", "added"],
+    ]);
+    expect(previous.map((r) => r.changeType)).toEqual(["added", "added", "added"]);
+    expect(await repo.previousVersion("core", "en", changesVersion)).toBe(changesPrevVersion);
+  });
+
+  it("upsertVersion keeps details that are left out", async () => {
+    const version = "test-kind-0044-upsert";
+    await repo.upsertVersion({ kind: "core", language: "en", version }, { label: "Origins" });
+    await repo.upsertVersion({ kind: "core", language: "en", version }, { comments: "Note" });
+
+    expect(await repo.getVersion("core", "en", version)).toMatchObject({
+      label: "Origins",
+      comments: "Note",
+    });
+
+    await repo.deleteVersion("core", "en", version);
   });
 
   it("listKeywordLabels lists English names and the language's labels", async () => {

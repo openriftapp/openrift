@@ -19,120 +19,131 @@ const PRINTING_LANGUAGE: Record<Exclude<RuleLanguage, "en">, string> = {
 };
 
 export function rulesRepo(db: Kysely<Database>) {
+  async function previousVersion(kind: RuleKind, language: RuleLanguage, version: string) {
+    const row = await db
+      .selectFrom("ruleVersions")
+      .select((eb) => eb.fn.max("version").as("version"))
+      .where("kind", "=", kind)
+      .where("language", "=", language)
+      .where("version", "<", version)
+      .executeTakeFirst();
+    return row?.version ?? undefined;
+  }
+
   return {
-    /** Sorted by natural rule-number order in JS: `sort_order` is per-version and collides across versions. */
     async listLatest(kind: RuleKind, language: RuleLanguage) {
       const rows = await db
         .selectFrom("rules")
         .selectAll()
         .where("kind", "=", kind)
         .where("language", "=", language)
-        .where("changeType", "!=", "removed")
-        .where(
-          "id",
-          "in",
-          db
-            .selectFrom("rules as r2")
-            .select("r2.id")
-            .distinctOn("r2.ruleNumber")
-            .where("r2.kind", "=", kind)
-            .where("r2.language", "=", language)
-            .orderBy("r2.ruleNumber")
-            .orderBy("r2.version", "desc"),
+        .where("version", "=", (eb) =>
+          eb
+            .selectFrom("ruleVersions")
+            .select((inner) => inner.fn.max("version").as("version"))
+            .where("kind", "=", kind)
+            .where("language", "=", language),
         )
         .execute();
       return rows.toSorted((a, b) => compareRuleNumbers(a.ruleNumber, b.ruleNumber));
     },
 
-    /**
-     * Rows are sorted by natural rule-number order in JS — `sort_order` is
-     * per-version and collides across versions, so it can't be used here.
-     */
     async listAtVersion(kind: RuleKind, language: RuleLanguage, version: string) {
       const rows = await db
         .selectFrom("rules")
         .selectAll()
         .where("kind", "=", kind)
         .where("language", "=", language)
-        .where("changeType", "!=", "removed")
-        .where("version", "<=", version)
-        .where(
-          "id",
-          "in",
-          db
-            .selectFrom("rules as r2")
-            .select("r2.id")
-            .distinctOn("r2.ruleNumber")
-            .where("r2.kind", "=", kind)
-            .where("r2.language", "=", language)
-            .where("r2.version", "<=", version)
-            .orderBy("r2.ruleNumber")
-            .orderBy("r2.version", "desc"),
+        .where("version", "=", (eb) =>
+          eb
+            .selectFrom("ruleVersions")
+            .select((inner) => inner.fn.max("version").as("version"))
+            .where("kind", "=", kind)
+            .where("language", "=", language)
+            .where("version", "<=", version),
         )
         .execute();
       return rows.toSorted((a, b) => compareRuleNumbers(a.ruleNumber, b.ruleNumber));
     },
 
     /**
-     * A translation's first version has no earlier text in its own language, so
-     * its removed rules have nothing to show and are left out.
+     * Changes against the language's previous version. A translation's first
+     * version has no earlier text in its own language, so nothing shows as removed.
      */
     async listChangesAtVersion(kind: RuleKind, language: RuleLanguage, version: string) {
+      const stored = await db
+        .selectFrom("ruleVersions")
+        .select("version")
+        .where("kind", "=", kind)
+        .where("language", "=", language)
+        .where("version", "=", version)
+        .executeTakeFirst();
+      if (!stored) {
+        return { added: [], modified: [], current: {}, modifiedPrev: {}, removed: [] };
+      }
       const changeRows = await db
         .selectFrom("rules")
         .selectAll()
         .where("kind", "=", kind)
         .where("language", "=", language)
         .where("version", "=", version)
-        .where("changeType", "!=", "unchanged")
+        .where("changeType", "in", ["added", "modified"])
         .orderBy("sortOrder")
         .execute();
-
-      const ruleNumbersNeedingPrev = changeRows
-        .filter((r) => r.changeType === "modified" || r.changeType === "removed")
+      const previous = await previousVersion(kind, language, version);
+      const modifiedNumbers = changeRows
+        .filter((r) => r.changeType === "modified")
         .map((r) => r.ruleNumber);
 
       const prevByNumber = new Map<string, string>();
-      if (ruleNumbersNeedingPrev.length > 0) {
+      if (previous !== undefined && modifiedNumbers.length > 0) {
         const prevRows = await db
           .selectFrom("rules")
           .select(["ruleNumber", "content"])
-          .where(
-            "id",
-            "in",
-            db
-              .selectFrom("rules as r3")
-              .select("r3.id")
-              .distinctOn("r3.ruleNumber")
-              .where("r3.kind", "=", kind)
-              .where("r3.language", "=", language)
-              .where("r3.ruleNumber", "in", ruleNumbersNeedingPrev)
-              .where("r3.version", "<", version)
-              .orderBy("r3.ruleNumber")
-              .orderBy("r3.version", "desc"),
-          )
+          .where("kind", "=", kind)
+          .where("language", "=", language)
+          .where("version", "=", previous)
+          .where("ruleNumber", "in", modifiedNumbers)
           .execute();
         for (const row of prevRows) {
           prevByNumber.set(row.ruleNumber, row.content);
         }
       }
 
+      const removedRows =
+        previous === undefined
+          ? []
+          : await db
+              .selectFrom("rules as p")
+              .selectAll("p")
+              .where("p.kind", "=", kind)
+              .where("p.language", "=", language)
+              .where("p.version", "=", previous)
+              .where(({ not, exists, selectFrom }) =>
+                not(
+                  exists(
+                    selectFrom("rules as c")
+                      .select("c.id")
+                      .where("c.kind", "=", kind)
+                      .where("c.language", "=", language)
+                      .where("c.version", "=", version)
+                      .whereRef("c.ruleNumber", "=", "p.ruleNumber"),
+                  ),
+                ),
+              )
+              .orderBy("p.sortOrder")
+              .execute();
+
       return {
         added: changeRows.filter((r) => r.changeType === "added").map((r) => r.ruleNumber),
-        modified: changeRows.filter((r) => r.changeType === "modified").map((r) => r.ruleNumber),
-        current: Object.fromEntries(
-          changeRows
-            .filter((r) => r.changeType !== "removed")
-            .map((r) => [r.ruleNumber, r.content]),
-        ),
+        modified: modifiedNumbers,
+        current: Object.fromEntries(changeRows.map((r) => [r.ruleNumber, r.content])),
         modifiedPrev: Object.fromEntries(
-          changeRows
-            .filter((r) => r.changeType === "modified" && prevByNumber.has(r.ruleNumber))
-            .map((r) => [r.ruleNumber, prevByNumber.get(r.ruleNumber) ?? ""]),
+          modifiedNumbers
+            .filter((ruleNumber) => prevByNumber.has(ruleNumber))
+            .map((ruleNumber) => [ruleNumber, prevByNumber.get(ruleNumber) ?? ""]),
         ),
-        removed: changeRows
-          .filter((r) => r.changeType === "removed" && prevByNumber.has(r.ruleNumber))
-          .map((r) => ({ ...r, content: prevByNumber.get(r.ruleNumber) ?? "" })),
+        removed: removedRows.map((r) => ({ ...r, version, changeType: "removed" as const })),
       };
     },
 
@@ -226,24 +237,27 @@ export function rulesRepo(db: Kysely<Database>) {
       return query.orderBy("version", "asc").orderBy("language", "asc").execute();
     },
 
-    createVersion(values: {
-      kind: RuleKind;
-      language: RuleLanguage;
-      version: string;
-      comments?: string | null;
-      label?: string | null;
-      documentVersion?: string | null;
-    }) {
+    /** Creates the version, or on an existing one stamps `importedAt` and sets the details that are not `undefined`. */
+    upsertVersion(
+      key: { kind: RuleKind; language: RuleLanguage; version: string },
+      details: { comments?: string | null; label?: string | null; documentVersion?: string | null },
+    ) {
+      const set = Object.fromEntries(
+        Object.entries(details).filter(([, value]) => value !== undefined),
+      );
       return db
         .insertInto("ruleVersions")
         .values({
-          kind: values.kind,
-          language: values.language,
-          version: values.version,
-          comments: values.comments ?? null,
-          label: values.label ?? null,
-          documentVersion: values.documentVersion ?? null,
+          ...key,
+          comments: details.comments ?? null,
+          label: details.label ?? null,
+          documentVersion: details.documentVersion ?? null,
         })
+        .onConflict((oc) =>
+          oc
+            .columns(["kind", "language", "version"])
+            .doUpdateSet({ ...set, importedAt: new Date() }),
+        )
         .returningAll()
         .executeTakeFirstOrThrow();
     },
@@ -272,15 +286,47 @@ export function rulesRepo(db: Kysely<Database>) {
       return inserted;
     },
 
-    listChangeTypesAtVersion(kind: RuleKind, language: RuleLanguage, version: string) {
+    deleteRules(kind: RuleKind, language: RuleLanguage, version: string) {
       return db
-        .selectFrom("rules")
-        .select(["ruleNumber", "changeType"])
+        .deleteFrom("rules")
         .where("kind", "=", kind)
         .where("language", "=", language)
         .where("version", "=", version)
         .execute();
     },
+
+    listSnapshot(kind: RuleKind, language: RuleLanguage, version: string) {
+      return db
+        .selectFrom("rules")
+        .select(["ruleNumber", "ruleType", "content", "depth", "sortOrder", "changeType"])
+        .where("kind", "=", kind)
+        .where("language", "=", language)
+        .where("version", "=", version)
+        .orderBy("sortOrder")
+        .execute();
+    },
+
+    async setChangeType(
+      kind: RuleKind,
+      language: RuleLanguage,
+      version: string,
+      changeType: RuleChangeType,
+      ruleNumbers: readonly string[],
+    ) {
+      if (ruleNumbers.length === 0) {
+        return;
+      }
+      await db
+        .updateTable("rules")
+        .set({ changeType })
+        .where("kind", "=", kind)
+        .where("language", "=", language)
+        .where("version", "=", version)
+        .where("ruleNumber", "in", [...ruleNumbers])
+        .execute();
+    },
+
+    previousVersion,
 
     getVersion(kind: RuleKind, language: RuleLanguage, version: string) {
       return db

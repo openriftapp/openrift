@@ -28,17 +28,12 @@ export const adminRulesContract = {
   listVersions: authedRoute
     .route({ method: "GET", path: `${RULES}/versions`, tags: [TAG] })
     .output(z.object({ versions: z.array(adminRuleVersionSchema) })),
-  import: authedRoute
-    .route({ method: "POST", path: `${RULES}/import`, tags: [TAG], successStatus: 201 })
-    .errors({
-      CONFLICT: { message: "Rules version already exists" },
-      BAD_REQUEST: { message: "Invalid rules content or version order" },
-    })
+  /** Creates or replaces a version. Details left out keep their stored value. */
+  saveVersion: authedRoute
+    .route({ method: "PUT", path: `${RULES}/{kind}/{language}/versions/{version}`, tags: [TAG] })
+    .errors({ BAD_REQUEST: { message: "Invalid rules content" } })
     .input(
-      z.object({
-        kind: ruleKindSchema,
-        language: ruleLanguageSchema.default("en"),
-        version: z.string().min(1),
+      withParams(versionParamSchema, {
         comments: z.string().nullable().optional(),
         label: z.string().min(1).nullable().optional(),
         documentVersion: z.string().min(1).nullable().optional(),
@@ -46,10 +41,8 @@ export const adminRulesContract = {
       }),
     )
     .output(
-      z.object({
-        kind: ruleKindSchema,
-        language: ruleLanguageSchema,
-        version: z.string(),
+      versionParamSchema.extend({
+        status: z.enum(["created", "updated", "unchanged"]),
         rulesCount: z.number(),
         added: z.number(),
         modified: z.number(),

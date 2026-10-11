@@ -380,6 +380,25 @@ describe("buildChangeKindMap", () => {
     expect(map.get("100.4")).toBe("removed");
   });
 
+  it("gives no badge to a rule the version carries over unchanged", () => {
+    const rules = [
+      rule({ ruleNumber: "100.1", changeType: "unchanged" }),
+      rule({ ruleNumber: "100.2", changeType: "modified" }),
+    ];
+
+    const map = buildChangeKindMap(
+      rules,
+      changes({}),
+      VERSION,
+      noMoves,
+      noDisplaced,
+      noMovedTombstones,
+      noSilent,
+    );
+
+    expect([...map]).toEqual([["100.2", "changed"]]);
+  });
+
   it("prefers moved over new for a rule that received moved content", () => {
     const rules = [rule({ ruleNumber: "100.1", changeType: "added" })];
 

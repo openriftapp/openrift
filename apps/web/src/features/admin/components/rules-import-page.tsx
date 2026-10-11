@@ -45,6 +45,12 @@ const KIND_LABELS: Record<RuleKind, string> = {
   tournament: "Tournament",
 };
 
+const RESULT_STATUS_LABELS = {
+  created: "Imported",
+  updated: "Replaced",
+  unchanged: "No changes to",
+} as const;
+
 const KIND_ITEMS: { value: RuleKind; label: string }[] = [
   { value: "core", label: "Core" },
   { value: "tournament", label: "Tournament" },
@@ -75,6 +81,7 @@ export function RulesImportPage() {
     kind: RuleKind;
     language: RuleLanguage;
     version: string;
+    status: "created" | "updated" | "unchanged";
     rulesCount: number;
     added: number;
     modified: number;
@@ -87,9 +94,9 @@ export function RulesImportPage() {
       kind,
       language,
       version: version.trim(),
-      comments: comments.trim() || null,
-      label: label.trim() || null,
-      documentVersion: documentVersion.trim() || null,
+      comments: comments.trim() || undefined,
+      label: label.trim() || undefined,
+      documentVersion: documentVersion.trim() || undefined,
       content,
     };
     try {
@@ -132,7 +139,8 @@ export function RulesImportPage() {
           <SectionHeaderDescription>
             Paste rules as one per line: <code>{"<rule_number>. <markdown>"}</code>. Use{" "}
             <code># Heading</code> for titles, <code>## Subheading</code> for subtitles, and a
-            literal <code>\n</code> inside a line for hard newlines.
+            literal <code>\n</code> inside a line for hard newlines. Importing an existing version
+            replaces its rules; empty number, name and comments keep the stored ones.
           </SectionHeaderDescription>
         </SectionHeaderGroup>
       </SectionHeader>
@@ -254,7 +262,7 @@ export function RulesImportPage() {
         {result && (
           <div className="bg-muted rounded-md p-3 text-sm">
             <p className="font-semibold">
-              {`Imported ${KIND_LABELS[result.kind]} v${result.version} (${DISPLAY_LOCALE_LABELS[result.language]})`}
+              {`${RESULT_STATUS_LABELS[result.status]} ${KIND_LABELS[result.kind]} v${result.version} (${DISPLAY_LOCALE_LABELS[result.language]})`}
             </p>
             <p>
               {result.rulesCount} rules total: {result.added} added, {result.modified} modified,{" "}
