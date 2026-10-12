@@ -174,16 +174,14 @@ export function ErrataPage() {
   });
   const [setSlug, setSetSlug] = useState(ALL_SETS);
   const [view, setView] = useState<ErrataView>("side");
-  const [toggled, setToggled] = useState<ReadonlySet<string>>(new Set());
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
 
   const filtering = query.trim() !== "" || setSlug !== ALL_SETS;
   const groups = groupErrata(data, { query, setSlug: setSlug === ALL_SETS ? null : setSlug });
   const visibleGroups = groups.filter((group) => group.entries.length > 0);
-  const firstGroupId = groups.at(0)?.id;
-  const isOpen = (group: ErrataGroup) =>
-    filtering || (group.id === firstGroupId) !== toggled.has(group.id);
+  const isOpen = (group: ErrataGroup) => filtering || !collapsed.has(group.id);
   const toggle = (id: string) =>
-    setToggled((current) => {
+    setCollapsed((current) => {
       const next = new Set(current);
       if (next.has(id)) {
         next.delete(id);
@@ -200,13 +198,9 @@ export function ErrataPage() {
       if (groupId === null) {
         return;
       }
-      setToggled((current) => {
+      setCollapsed((current) => {
         const next = new Set(current);
-        if (groupId === firstGroupId) {
-          next.delete(groupId);
-        } else {
-          next.add(groupId);
-        }
+        next.delete(groupId);
         return next;
       });
       requestAnimationFrame(() => document.querySelector(`#${CSS.escape(slug)}`)?.scrollIntoView());
@@ -214,7 +208,7 @@ export function ErrataPage() {
     openLinkedCard();
     globalThis.addEventListener("hashchange", openLinkedCard);
     return () => globalThis.removeEventListener("hashchange", openLinkedCard);
-  }, [data, firstGroupId]);
+  }, [data]);
 
   const setCounts = countErrataBySet(data.entries);
   const setItems: Record<string, string> = {

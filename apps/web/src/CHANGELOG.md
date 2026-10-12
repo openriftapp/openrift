@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-12
+
+### Other
+
+- fix(Cards): **Every errata update open** — the errata page opens with all updates expanded instead of only the newest.
+
 ## 2026-10-08
 
 ### Highlights

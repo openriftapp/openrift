@@ -1,6 +1,6 @@
 import type { ErrataEntry, ErrataListResponse } from "@openrift/shared/contracts/errata";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -112,13 +112,24 @@ function renderPage() {
 }
 
 describe("ErrataPage", () => {
-  it("opens the newest update and keeps collapsed updates in the markup", () => {
+  it("opens every update on load", () => {
     const { container } = renderPage();
 
     expect(container.querySelector("#vendetta-errata-updates-list")).not.toHaveAttribute("hidden");
-    const collapsed = container.querySelector("#origins-card-errata-list");
-    expect(collapsed).toHaveAttribute("hidden");
-    expect(collapsed).toHaveTextContent("Arise");
+    expect(container.querySelector("#origins-card-errata-list")).not.toHaveAttribute("hidden");
+  });
+
+  it("collapses an update and keeps its entries in the markup", async () => {
+    const user = userEvent.setup();
+    const { container } = renderPage();
+
+    const toggle = container.querySelector("[aria-controls='origins-card-errata-list']");
+    await user.click(toggle as HTMLElement);
+
+    const origins = container.querySelector("#origins-card-errata-list");
+    expect(origins).toHaveAttribute("hidden");
+    expect(origins).toHaveTextContent("Arise");
+    expect(container.querySelector("#vendetta-errata-updates-list")).not.toHaveAttribute("hidden");
   });
 
   it("leads with the hero title and fans out the newest update's cards", () => {
@@ -211,9 +222,17 @@ describe("ErrataPage", () => {
     );
   });
 
-  it("opens a collapsed update when the address links to one of its cards", () => {
-    globalThis.location.hash = "#arise";
+  it("reopens a collapsed update when the address links to one of its cards", async () => {
+    const user = userEvent.setup();
     const { container } = renderPage();
+    await user.click(
+      container.querySelector("[aria-controls='origins-card-errata-list']") as HTMLElement,
+    );
+
+    act(() => {
+      globalThis.location.hash = "#arise";
+      globalThis.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
 
     expect(container.querySelector("#origins-card-errata-list")).not.toHaveAttribute("hidden");
     globalThis.location.hash = "";
