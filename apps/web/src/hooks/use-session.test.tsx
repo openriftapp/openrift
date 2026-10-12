@@ -3,6 +3,8 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+let requestCookie = "better-auth.session_token=abc";
+
 vi.mock("@tanstack/react-start", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
@@ -10,7 +12,7 @@ vi.mock("@tanstack/react-start", async (importOriginal) => ({
       middleware: () => chain,
       validator: () => chain,
       handler: (fn: (args: { context: { cookie: string } }) => unknown) => () =>
-        fn({ context: { cookie: "openrift.session=abc" } }),
+        fn({ context: { cookie: requestCookie } }),
     };
     return chain;
   },
@@ -56,6 +58,7 @@ function makeWrapper(routeUserId?: string) {
 }
 
 beforeEach(() => {
+  requestCookie = "better-auth.session_token=abc";
   fetchApi.mockReset();
 });
 
@@ -80,10 +83,21 @@ describe("useSession", () => {
     expect(result.current.data).toBeNull();
     expect(fetchApi).toHaveBeenCalledWith({
       errorTitle: "Couldn't load session",
-      cookie: "openrift.session=abc",
+      cookie: "better-auth.session_token=abc",
       path: "/api/auth/get-session",
       acceptStatuses: [401],
     });
+  });
+
+  it("answers null without calling the API when the request has no session cookie", async () => {
+    requestCookie = "theme=dark";
+    const { Wrapper } = makeWrapper();
+
+    const { result } = renderHook(() => useSession(), { wrapper: Wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toBeNull();
+    expect(fetchApi).not.toHaveBeenCalled();
   });
 
   it("surfaces an unexpected API failure as a query error", async () => {

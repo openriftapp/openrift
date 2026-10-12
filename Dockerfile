@@ -51,7 +51,8 @@ RUN --mount=type=secret,id=sentry_auth_token \
 FROM oven/bun:1.4.2 AS api
 
 # wget for the compose healthcheck (busybox provided it on alpine; debian slim has neither wget nor curl)
-RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends wget libjemalloc2 && rm -rf /var/lib/apt/lists/* \
+ && ln -s /usr/lib/*-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so.2
 
 WORKDIR /app
 
@@ -76,6 +77,10 @@ COPY --from=build /app/packages/shared/src ./packages/shared/src
 COPY --from=build /app/apps/api/src ./apps/api/src
 COPY --from=build /app/apps/web/src/CHANGELOG.md ./apps/web/src/CHANGELOG.md
 COPY --from=build /app/.build-id /app/.build-id
+# glibc malloc keeps the render workers' freed native memory (sharp, resvg);
+# jemalloc with short decay returns it to the OS.
+ENV LD_PRELOAD=/usr/local/lib/libjemalloc.so.2
+ENV MALLOC_CONF=narenas:2,background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:0
 EXPOSE 3000
 CMD ["bun", "run", "apps/api/src/index.ts"]
 

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 // Capture the options passed to postgres() so we can test the date type overrides
 type FnRef = (...args: unknown[]) => unknown;
 let capturedOptions:
-  | { max?: number; types?: { date?: { serialize: FnRef; parse: FnRef } } }
+  | { max?: number; prepare?: boolean; types?: { date?: { serialize: FnRef; parse: FnRef } } }
   | undefined;
 vi.mock("postgres", () => ({
   default: (_url: string, opts?: typeof capturedOptions) => {
@@ -27,6 +27,11 @@ describe("connection pool", () => {
   it("sets an explicit max pool size", () => {
     createDb("postgres://localhost/test");
     expect(capturedOptions?.max).toBe(20);
+  });
+
+  it("disables server-side prepared statements", () => {
+    createDb("postgres://localhost/test");
+    expect(capturedOptions?.prepare).toBe(false);
   });
 });
 

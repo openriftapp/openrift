@@ -25,6 +25,7 @@ export interface RenderPoolOptions {
   workers: number;
   queueLimit: number;
   timeoutMs: number;
+  idleMs: number;
   createWorker: CreateRenderWorker;
 }
 
@@ -54,6 +55,7 @@ const DEFAULTS: RenderPoolOptions = {
   workers: 2,
   queueLimit: 6,
   timeoutMs: 30_000,
+  idleMs: 30_000,
   createWorker: spawnWorker,
 };
 
@@ -101,6 +103,15 @@ function clearTimer(slot: Slot): void {
   }
 }
 
+function armIdle(slot: Slot): void {
+  if (slot.handle !== null && slot.current === null && slot.timer === null) {
+    slot.timer = setTimeout(() => {
+      slot.timer = null;
+      recycle(slot);
+    }, options.idleMs);
+  }
+}
+
 function settle(slot: Slot, settleCurrent: (pending: Pending) => void): void {
   const pending = slot.current;
   clearTimer(slot);
@@ -109,6 +120,7 @@ function settle(slot: Slot, settleCurrent: (pending: Pending) => void): void {
     settleCurrent(pending);
   }
   pump();
+  armIdle(slot);
 }
 
 function handleReply(slot: Slot, response: RenderResponse): void {
@@ -142,6 +154,7 @@ function onTimeout(slot: Slot): void {
 }
 
 function assign(slot: Slot, pending: Pending): void {
+  clearTimer(slot);
   slot.current = pending;
   const onReply = (response: RenderResponse): void => handleReply(slot, response);
   const onFailure = (error: Error): void => handleFailure(slot, error);
@@ -204,6 +217,7 @@ export function configureRenderPool(next: Partial<RenderPoolOptions>): void {
     workers: atLeastOne(merged.workers, DEFAULTS.workers),
     queueLimit: atLeastOne(merged.queueLimit, DEFAULTS.queueLimit),
     timeoutMs: atLeastOne(merged.timeoutMs, DEFAULTS.timeoutMs),
+    idleMs: atLeastOne(merged.idleMs, DEFAULTS.idleMs),
   };
 }
 

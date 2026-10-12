@@ -67,6 +67,7 @@ export function createConfig(env: Record<string, string | undefined>) {
       workers: Number(env.RENDER_WORKERS ?? 2),
       queueLimit: Number(env.RENDER_QUEUE_LIMIT ?? 6),
       timeoutMs: Number(env.RENDER_TIMEOUT_MS ?? 30_000),
+      idleMs: Number(env.RENDER_IDLE_MS ?? 30_000),
     },
 
     logRequests: env.LOG_REQUESTS === "true",

@@ -12,6 +12,9 @@ export function createDb(connectionString: string) {
     postgres: postgres(connectionString, {
       // Explicit so a postgres.js default change can't shift pool size silently.
       max: 20,
+      // kysely-postgres-js 5 prepares every query and a backend keeps each plan; postgres.js
+      // never recycles a connection reserved when max_lifetime expires (porsager/postgres#1255).
+      prepare: false,
       types: {
         // date (OID 1082) returns "2024-01-15" strings; timestamps (1114, 1184)
         // stay native Date objects.

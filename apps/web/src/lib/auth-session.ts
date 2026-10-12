@@ -29,9 +29,19 @@ type SessionData = {
   user: SessionUser;
 } | null;
 
+// Matches both the dev name and the `__Secure-` prefixed production name.
+const SESSION_COOKIE = /(?:^|;\s*)(?:__Secure-)?better-auth\.session_token=[^;\s]/u;
+
+export function hasSessionCookie(cookie: string): boolean {
+  return SESSION_COOKIE.test(cookie);
+}
+
 const getServerSession = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(async ({ context }): Promise<SessionData> => {
+    if (!hasSessionCookie(context.cookie)) {
+      return null;
+    }
     // 401 is the expected state for unauthenticated users; other non-ok
     // statuses still surface as errors.
     const res = await fetchApi({

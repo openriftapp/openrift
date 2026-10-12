@@ -190,4 +190,54 @@ describe("renderImage", () => {
     expect(() => worker.reply({ id: staleId, ok: true, png: PNG })).not.toThrow();
     expect(renderPoolStats()).toMatchObject({ active: 0, queued: 0 });
   });
+
+  it("terminates a worker left idle past the idle timeout", async () => {
+    vi.useFakeTimers();
+    configureRenderPool({ workers: 1, idleMs: 500, createWorker: workers.create });
+    const pending = start();
+    const worker = workers.all[0]!;
+    worker.reply({ id: worker.received[0]!.id, ok: true, png: PNG });
+    await pending;
+
+    vi.advanceTimersByTime(499);
+    expect(worker.terminated()).toBe(false);
+
+    vi.advanceTimersByTime(1);
+    expect(worker.terminated()).toBe(true);
+  });
+
+  it("keeps a worker that gets new work before the idle timeout", async () => {
+    vi.useFakeTimers();
+    configureRenderPool({ workers: 1, idleMs: 500, createWorker: workers.create });
+    const first = start();
+    const worker = workers.all[0]!;
+    worker.reply({ id: worker.received[0]!.id, ok: true, png: PNG });
+    await first;
+
+    vi.advanceTimersByTime(400);
+    const second = start();
+    vi.advanceTimersByTime(400);
+
+    expect(worker.terminated()).toBe(false);
+    expect(workers.all).toHaveLength(1);
+    worker.reply({ id: worker.received[1]!.id, ok: true, png: PNG });
+    await expect(second).resolves.toEqual(Buffer.from(PNG));
+  });
+
+  it("spawns a fresh worker for a job after an idle termination", async () => {
+    vi.useFakeTimers();
+    configureRenderPool({ workers: 1, idleMs: 500, createWorker: workers.create });
+    const first = start();
+    const worker = workers.all[0]!;
+    worker.reply({ id: worker.received[0]!.id, ok: true, png: PNG });
+    await first;
+    vi.advanceTimersByTime(500);
+
+    const second = start();
+
+    const replacement = workers.all.at(-1)!;
+    expect(replacement).not.toBe(worker);
+    replacement.reply({ id: replacement.received[0]!.id, ok: true, png: PNG });
+    await expect(second).resolves.toEqual(Buffer.from(PNG));
+  });
 });
