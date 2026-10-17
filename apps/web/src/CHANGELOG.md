@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-17
+
+### Other
+
+- feat(Decks): **Plus on zone names** — the zone names in the deck sidebar show a plus, so it is clear that clicking one opens the card browser.
+
 ## 2026-10-12
 
 ### Other

@@ -3,7 +3,7 @@ import { copyLimitFor, totalQuantity } from "@openrift/shared/deck-rules";
 import { ZONE_LABELS, zoneExpected } from "@openrift/shared/deck-zones";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
-import { AlertTriangleIcon, BanIcon } from "lucide-react";
+import { AlertTriangleIcon, BanIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 
 import { CardIcon } from "@/components/card-icon";
@@ -229,7 +229,18 @@ export function DeckZoneSection({
       {/* Two separate controls, never nested: the chevron collapses the
           section, the label opens the zone in the main area. */}
       <DeckZoneHeader
-        label={zoneLabel}
+        label={
+          <>
+            {zoneLabel}
+            <PlusIcon
+              data-slot="deck-zone-add-icon"
+              className={cn(
+                "ml-1 inline-block size-3.5 align-middle opacity-50 transition-opacity group-hover/zone-label:opacity-100 group-focus-visible/zone-label:opacity-100",
+                isActive && "opacity-100",
+              )}
+            />
+          </>
+        }
         className="gap-1.5"
         leading={
           <ExpandToggle
