@@ -5,6 +5,7 @@
 ### Other
 
 - feat(Decks): **Plus on zone names** — the zone names in the deck sidebar show a plus, so it is clear that clicking one opens the card browser.
+- fix(Decks): **Steady deck rows on hover** — rows in the deck editor list keep their height when the add and remove buttons appear.
 
 ## 2026-10-12
 

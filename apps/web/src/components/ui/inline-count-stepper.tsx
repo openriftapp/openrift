@@ -14,6 +14,11 @@ const BUTTON_SIZE: Record<InlineCountStepperSize, "icon-xs" | "icon-sm"> = {
   sm: "icon-sm",
 };
 
+const BUTTON_CLASS: Record<InlineCountStepperSize, string | undefined> = {
+  xs: "size-5",
+  sm: undefined,
+};
+
 const COUNT_CLASS: Record<InlineCountStepperSize, string> = {
   xs: "min-w-4 text-xs",
   sm: "min-w-5 text-sm",
@@ -79,7 +84,7 @@ function InlineCountStepper({
           size={BUTTON_SIZE[size]}
           aria-label={decrementLabel}
           disabled={!onDecrement}
-          className={cn(bulkDecrement && bulkClass)}
+          className={cn(BUTTON_CLASS[size], bulkDecrement && bulkClass)}
           onClick={(event) => {
             event.stopPropagation();
             onDecrement?.(event);
@@ -96,7 +101,7 @@ function InlineCountStepper({
           size={BUTTON_SIZE[size]}
           aria-label={incrementLabel}
           disabled={!onIncrement}
-          className={cn(bulkIncrement && bulkClass)}
+          className={cn(BUTTON_CLASS[size], bulkIncrement && bulkClass)}
           onClick={(event) => {
             event.stopPropagation();
             onIncrement?.(event);

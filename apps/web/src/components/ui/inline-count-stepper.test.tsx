@@ -23,6 +23,21 @@ describe("InlineCountStepper", () => {
     expect(onIncrement).toHaveBeenCalledOnce();
   });
 
+  it("keeps xs buttons within a text-sm line so dense rows keep their height", () => {
+    render(
+      <InlineCountStepper
+        size="xs"
+        count={1}
+        decrementLabel="Remove a copy"
+        incrementLabel="Add a copy"
+        onDecrement={vi.fn()}
+        onIncrement={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Remove a copy" })).toHaveClass("size-5");
+    expect(screen.getByRole("button", { name: "Add a copy" })).toHaveClass("size-5");
+  });
+
   it("keeps clicks from reaching the surrounding row", () => {
     const onRowClick = vi.fn();
     render(
