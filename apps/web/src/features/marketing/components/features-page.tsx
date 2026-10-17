@@ -19,6 +19,7 @@ import { HeroCta } from "@/features/marketing/components/hero-cta";
 import { featureChapters } from "@/features/marketing/lib/features-chapters";
 import { landingSummaryQueryOptions } from "@/features/marketing/lib/landing-summary-queries";
 import { landingThumbnailCards } from "@/features/marketing/lib/landing-thumbnails";
+import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { useSession } from "@/hooks/use-session";
 import { trackSignupCta } from "@/lib/analytics";
@@ -138,6 +139,7 @@ export function FeaturesPage() {
   const { data } = useQuery(landingSummaryQueryOptions);
   const { data: session, isPending } = useSession();
   const router = useRouter();
+  const scannerEnabled = useFeatureEnabled("scanner");
   const [topBarSlot, setTopBarSlot] = useState<HTMLDivElement | null>(null);
   const topBarHeight = useMeasuredHeight(topBarSlot);
   const thumbnailUrls = (data?.thumbnailIds ?? []).map((id) => imageUrl(id, "400w"));
@@ -191,14 +193,18 @@ export function FeaturesPage() {
           vignette: <ImportVignette />,
           flip: true,
         },
-        {
-          id: "scan",
-          title: m.marketing_features_scan_title(),
-          description: m.marketing_features_scan_description(),
-          action: sectionAction(m.marketing_features_action_open_scanner(), "/scan"),
-          vignette: <ScanVignette cards={thumbnailCards.slice(8, 12)} />,
-          emphasis: true,
-        },
+        ...(scannerEnabled
+          ? [
+              {
+                id: "scan",
+                title: m.marketing_features_scan_title(),
+                description: m.marketing_features_scan_description(),
+                action: sectionAction(m.marketing_features_action_open_scanner(), "/scan"),
+                vignette: <ScanVignette cards={thumbnailCards.slice(8, 12)} />,
+                emphasis: true,
+              },
+            ]
+          : []),
         {
           id: "collections",
           title: m.marketing_features_collections_title(),

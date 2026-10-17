@@ -29,6 +29,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { ResolvedViewPrefsProvider } from "@/hooks/use-view-prefs";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { featureFlagsQueryOptions } from "@/lib/feature-flags";
+import { getOperatorLinks } from "@/lib/operator-links";
 import { runtimeConfigScript } from "@/lib/runtime-config";
 import { organizationJsonLd } from "@/lib/seo";
 import {
@@ -125,7 +126,6 @@ export const Route = createRootRouteWithContext<{
         { name: "apple-mobile-web-app-capable", content: "yes" },
         { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
         { name: "impact-site-verification", content: "5a360cf2-9e98-4886-8c05-4e2e1a39ce0e" },
-        // Layer 1 of 3 (see also /robots.txt in server.ts and X-Robots-Tag in preview nginx).
         ...(isPreview
           ? [{ name: "robots", content: "noindex, nofollow" } as Record<string, string>]
           : []),
@@ -217,6 +217,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   const { resolvedTheme, resolvedPalette, sentryDsn, appEnv } = Route.useRouteContext();
   const { data: siteSettings } = useSuspenseQuery(siteSettingsQueryOptions);
   const umamiOrigin = safeOrigin(siteSettings["umami-url"]);
+  const operatorLinks = getOperatorLinks();
 
   return (
     // suppressHydrationWarning: THEME_SCRIPT may adjust the class for "auto"
@@ -231,7 +232,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         {/* No crossOrigin: Umami's script.js loads as a non-CORS <script>. */}
         {umamiOrigin && <link rel="preconnect" href={umamiOrigin} />}
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
-        <script dangerouslySetInnerHTML={{ __html: runtimeConfigScript({ sentryDsn, appEnv }) }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: runtimeConfigScript({ sentryDsn, appEnv, ...operatorLinks }),
+          }}
+        />
         <HeadContent />
       </head>
       <body className="overflow-x-clip">

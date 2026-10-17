@@ -4,6 +4,7 @@ import { implement } from "@orpc/server";
 
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { isScanAvailable } from "../lib/scan-available.js";
 import { bankFileName, labelsFileName } from "../services/scan-bank.js";
 
 const os = implement(scanContract).$context<ApiContext>().use(requireUser);
@@ -15,7 +16,7 @@ export const scanRouter = {
     const current = await scanIndex.get();
     const detectorUrl = scan.detectorFile ? `/media/scan/${scan.detectorFile}` : null;
     return {
-      available: current !== null && detectorUrl !== null,
+      available: isScanAvailable(current, scan),
       formatVersion: current?.formatVersion ?? null,
       bankHash: current?.bankHash ?? null,
       entryCount: current?.entryCount ?? null,

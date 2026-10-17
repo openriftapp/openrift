@@ -1,6 +1,8 @@
 import type { AppEnv } from "@openrift/shared/app-env";
 
-interface RuntimeConfig {
+import type { OperatorLinks } from "./operator-links";
+
+interface RuntimeConfig extends OperatorLinks {
   sentryDsn: string;
   appEnv: AppEnv;
 }

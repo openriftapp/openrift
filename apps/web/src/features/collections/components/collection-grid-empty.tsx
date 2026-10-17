@@ -9,6 +9,7 @@ import {
 
 import { EmptyState } from "@/components/empty-state";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 
@@ -25,6 +26,7 @@ export function CollectionGridEmpty({
   addTarget,
   onBrowseLibrary,
 }: CollectionGridEmptyProps) {
+  const scannerEnabled = useFeatureEnabled("scanner");
   return (
     <EmptyState
       className="flex-1"
@@ -50,10 +52,12 @@ export function CollectionGridEmpty({
               <LibraryBigIcon />
               {m.collections_grid_empty_browse_add()}
             </Button>
-            <Link to="/scan" className={buttonVariants({ variant: "ghost" })}>
-              <CameraIcon />
-              {m.collections_grid_empty_scan()}
-            </Link>
+            {scannerEnabled && (
+              <Link to="/scan" className={buttonVariants({ variant: "ghost" })}>
+                <CameraIcon />
+                {m.collections_grid_empty_scan()}
+              </Link>
+            )}
             <Button
               variant="ghost"
               onClick={() => useCommandPaletteStore.getState().openQuickAdd("add")}

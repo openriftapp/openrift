@@ -19,6 +19,10 @@ vi.mock("@tanstack/react-router", () => ({
   createLink: (component: unknown) => component,
 }));
 
+vi.mock("@/hooks/use-feature-flags", () => ({
+  useFeatureEnabled: () => true,
+}));
+
 // Select mode has its own tests; here it would only add buttons to look past.
 vi.mock("@/features/cards/components/select-mode-actions", () => ({
   SelectModeActions: () => null,

@@ -41,4 +41,16 @@ describe("runtimeConfigScript", () => {
     expect(script).toContain("\\u2028");
     expect(script).toContain("\\u2029");
   });
+
+  it("carries the operator's legal page URLs and omits unset ones", () => {
+    const script = runtimeConfigScript({
+      sentryDsn: "",
+      appEnv: "production",
+      legalNoticeUrl: "https://example.com/legal-notice",
+      privacyPolicyUrl: undefined,
+    });
+    expect(script).toBe(
+      'globalThis.__OPENRIFT_CONFIG__={"sentryDsn":"","appEnv":"production","legalNoticeUrl":"https://example.com/legal-notice"};',
+    );
+  });
 });

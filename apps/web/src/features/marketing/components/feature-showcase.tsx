@@ -6,6 +6,7 @@ import { OrnamentRule } from "@/components/ui/ornament";
 import { Reveal } from "@/features/marketing/components/reveal";
 import { ScanVignette } from "@/features/marketing/components/scan-vignette";
 import type { LandingThumbnailCard } from "@/features/marketing/lib/landing-thumbnails";
+import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -20,14 +21,19 @@ export function FeatureShowcase({
   scanCards: LandingThumbnailCard[];
   thumbnailUrls: string[];
 }) {
+  const scannerEnabled = useFeatureEnabled("scanner");
   const features = [
-    {
-      title: m.marketing_showcase_scan_title(),
-      description: m.marketing_showcase_scan_description(),
-      cta: m.marketing_showcase_scan_cta(),
-      to: "/scan",
-      vignette: <ScanVignette cards={scanCards} />,
-    },
+    ...(scannerEnabled
+      ? [
+          {
+            title: m.marketing_showcase_scan_title(),
+            description: m.marketing_showcase_scan_description(),
+            cta: m.marketing_showcase_scan_cta(),
+            to: "/scan",
+            vignette: <ScanVignette cards={scanCards} />,
+          },
+        ]
+      : []),
     {
       title: m.marketing_showcase_collection_title(),
       description: m.marketing_showcase_collection_description(),

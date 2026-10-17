@@ -14,7 +14,9 @@ interface ImportMeta {
  * Available before hydration so `initSentry()` can read the DSN at script-load time.
  */
 // oxlint-disable-next-line no-var, vars-on-top -- `declare var` is the documented way to type a `globalThis` property
-declare var __OPENRIFT_CONFIG__: { sentryDsn?: string; appEnv?: string } | undefined;
+declare var __OPENRIFT_CONFIG__:
+  | { sentryDsn?: string; appEnv?: string; legalNoticeUrl?: string; privacyPolicyUrl?: string }
+  | undefined;
 
 declare module "virtual:latest-milestone" {
   import type { LatestMilestone } from "@/features/marketing/lib/milestone-banner";

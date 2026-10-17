@@ -6,6 +6,7 @@
   "footer_support_us": "Support us",
   "footer_developers": "Developers",
   "footer_riot_disclaimer": "OpenRift was created under Riot Games' \"Legal Jibber Jabber\" policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project. Links to TCGPlayer, CardTrader and CardNexus are affiliate links.",
+  "footer_unofficial_instance": "This is a self-hosted copy of OpenRift, not run by the OpenRift team. Visit {#link}openrift.app{/link} for the official site.",
   "locale_switcher_label": "Language",
   "profile_account_title": "Account Info",
   "profile_account_description": "Your name is what shows on shared lists.",

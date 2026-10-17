@@ -60,6 +60,10 @@ if ((await repos.featureFlags.isEnabled("deck-builder")) === false) {
 }
 ```
 
+### Computed flags
+
+`scanner` has no row. The feature-flags endpoint computes it from the scan setup (a built reference bank and a configured card detector) and it overrides any stored row with that key.
+
 ## Behavior for unknown flags
 
 The two sides differ, and the difference is the whole reason the API snippet above compares against `false`:

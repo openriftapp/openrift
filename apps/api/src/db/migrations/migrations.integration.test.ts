@@ -5,10 +5,12 @@ import { resolve } from "node:path";
 
 import type { Logger } from "@openrift/shared/logger";
 import type { Kysely } from "kysely";
-import { sql } from "kysely";
+import { CamelCasePlugin, sql } from "kysely";
 import { Migrator } from "kysely/migration";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { validateWellKnownSlugs } from "../../modules/catalog/lib/validate-well-known.js";
+import { wellKnownRepo } from "../../modules/catalog/repositories/well-known.js";
 import { setupTestDb } from "../../test/integration-setup.js";
 import { migrate, rollback } from "../migrate.js";
 import { loadMigrations } from "../migration-files.js";
@@ -49,6 +51,25 @@ describe.skipIf(!DATABASE_URL)("migrations up/down cycle", () => {
 
   it("re-applies all migrations from scratch", async () => {
     await migrate(db, log);
+  });
+});
+
+describe.skipIf(!DATABASE_URL)("fresh migrate seeds the well-known reference rows", () => {
+  let db: Kysely<Database>;
+  let teardown: () => Promise<void>;
+
+  beforeAll(async () => {
+    // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by describe.skipIf
+    ({ db, teardown } = await setupTestDb(DATABASE_URL!, "migration_well_known"));
+  });
+
+  afterAll(async () => {
+    await teardown();
+  });
+
+  it("passes the API startup check without any seed data", async () => {
+    const repo = wellKnownRepo(db.withPlugin(new CamelCasePlugin()));
+    await expect(validateWellKnownSlugs(repo)).resolves.toBeUndefined();
   });
 });
 

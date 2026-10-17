@@ -94,13 +94,19 @@ Every container exits on its own within its stop timeout, so a deploy never wait
 
 ### Other Configuration
 
-| Variable      | Default  | Description                                       |
-| ------------- | -------- | ------------------------------------------------- |
-| `IMAGE_TAG`   | `latest` | GHCR image tag (`preview`, `latest`, or `v1.2.3`) |
-| `SMTP_PORT`   | `465`    | SMTP port for email verification                  |
-| `SMTP_SECURE` | `true`   | Use TLS for SMTP                                  |
+| Variable             | Default  | Description                                                       |
+| -------------------- | -------- | ----------------------------------------------------------------- |
+| `IMAGE_TAG`          | `latest` | GHCR image tag (`preview`, `latest`, or `v1.2.3`)                 |
+| `SMTP_PORT`          | `465`    | SMTP port for email verification                                  |
+| `SMTP_SECURE`        | `true`   | Use TLS for SMTP                                                  |
+| `LEGAL_NOTICE_URL`   | unset    | Self-hosted instances: footer link to the operator's legal page   |
+| `PRIVACY_POLICY_URL` | unset    | Self-hosted instances: footer link to the operator's privacy page |
 
 Job schedules (price refreshes, changelog post, meta syncs, trade digest) are managed on `/admin/jobs`, not through env vars. See [settings.md](settings.md#scheduled-jobs).
+
+## Self-hosted instances
+
+Only `openrift.app` (`OFFICIAL_HOST` in `apps/web/src/lib/official-host.ts`) is treated as the official instance. Every other host gets `X-Robots-Tag: noindex`, no sitemap, a footer note linking to openrift.app, and no `/legal-notice` or `/privacy-policy` pages, since those name the official site's operator. The footer links `LEGAL_NOTICE_URL` and `PRIVACY_POLICY_URL` instead when they are set.
 
 ## Regular Deploys
 

@@ -6,6 +6,7 @@
   "footer_support_us": "후원하기",
   "footer_developers": "개발자",
   "footer_riot_disclaimer": "OpenRift는 Riot Games의 \"Legal Jibber Jabber\" 정책에 따라 Riot Games가 소유한 에셋을 사용하여 제작되었습니다. Riot Games는 이 프로젝트를 보증하거나 후원하지 않습니다. TCGPlayer, CardTrader, CardNexus로 연결되는 링크는 제휴 링크입니다.",
+  "footer_unofficial_instance": "이 사이트는 OpenRift 팀이 운영하지 않는 자체 호스팅 OpenRift 사본입니다. 공식 사이트는 {#link}openrift.app{/link}입니다.",
   "locale_switcher_label": "언어",
   "profile_account_title": "계정 정보",
   "profile_account_description": "공유 목록에는 이 이름이 표시됩니다.",

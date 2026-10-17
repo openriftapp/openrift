@@ -8,8 +8,8 @@ import {
   visiblePrimaryItems,
 } from "./nav-items";
 
-const flagsOn = { glossary: true, "board-states": true };
-const flagsOff = { glossary: false, "board-states": false };
+const flagsOn = { glossary: true, "board-states": true, scanner: true };
+const flagsOff = { glossary: false, "board-states": false, scanner: false };
 
 describe("primaryNavItems", () => {
   const visible = (flags: typeof flagsOn, mobile: boolean) =>
@@ -25,6 +25,11 @@ describe("primaryNavItems", () => {
       "/meta",
       "/groups",
     ]);
+  });
+
+  it("shows the mobile scan entry only while the scanner is available", () => {
+    expect(visible(flagsOn, true)).toContain("/scan");
+    expect(visible(flagsOff, true)).not.toContain("/scan");
   });
 });
 
@@ -53,6 +58,15 @@ describe("visibleMoreSections", () => {
       (s) => s.label === "Play",
     );
     expect(play?.items.map((i) => i.to)).not.toContain("/glossary");
+  });
+
+  it("drops the desktop scan entry while the scanner is unavailable", () => {
+    const organize = (flags: typeof flagsOn) =>
+      visibleMoreSections({ flags, mobile: false })
+        .find((s) => s.label === "Organize")
+        ?.items.map((i) => i.to);
+    expect(organize(flagsOn)).toContain("/scan");
+    expect(organize(flagsOff)).not.toContain("/scan");
   });
 
   it("lists Trades under Organize in both menus", () => {

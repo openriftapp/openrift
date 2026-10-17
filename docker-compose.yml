@@ -99,6 +99,10 @@ services:
       # and SITE_URL in its own .env.
       APP_ENV: "${APP_ENV:-production}"
       SITE_URL: "${SITE_URL}"
+      # Self-hosted instances only: the official site's legal pages are hidden on
+      # other hosts, and the footer links these instead. Unset hides the link.
+      LEGAL_NOTICE_URL: "${LEGAL_NOTICE_URL-}"
+      PRIVACY_POLICY_URL: "${PRIVACY_POLICY_URL-}"
       # Sentry DSN shared by the SSR Node process and the browser SDK (the
       # browser receives it inlined into the SSR shell). The api service
       # also reads this via env_file to derive its tunnel forwarding target.

@@ -6,6 +6,7 @@
   "footer_support_us": "支持我們",
   "footer_developers": "開發者",
   "footer_riot_disclaimer": "OpenRift 是依照 Riot Games 的「Legal Jibber Jabber」政策，使用 Riot Games 擁有的素材所製作。Riot Games 並未認可或贊助本專案。連往 TCGPlayer、CardTrader 與 CardNexus 的連結為聯盟連結。",
+  "footer_unofficial_instance": "這是 OpenRift 的自架副本，並非由 OpenRift 團隊營運。官方網站請前往 {#link}openrift.app{/link}。",
   "locale_switcher_label": "語言",
   "profile_account_title": "帳號資訊",
   "profile_account_description": "你的名稱會顯示在分享出去的清單上。",

@@ -843,11 +843,13 @@ export function Header() {
   const { data: session, isPending } = useSession();
   const glossaryEnabled = useFeatureEnabled("glossary");
   const boardStatesEnabled = useFeatureEnabled("board-states");
+  const scannerEnabled = useFeatureEnabled("scanner");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [lockedFeature, setLockedFeature] = useState<LockedFeatureKey | null>(null);
   const navFlags: NavFlags = {
     glossary: glossaryEnabled,
     "board-states": boardStatesEnabled,
+    scanner: scannerEnabled,
   };
   const isLoggedIn = Boolean(session?.user);
   const { data: badges } = useBadges();

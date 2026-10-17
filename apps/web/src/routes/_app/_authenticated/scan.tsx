@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RouteErrorFallback } from "@/components/error-message";
 import { catalogQueryOptions, loadCatalogTail } from "@/features/cards/lib/catalog-queries";
 import { CollectionPending } from "@/features/collections/components/collection-pending";
+import { requireScanner } from "@/features/scan/lib/scanner-flag";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
@@ -11,6 +12,9 @@ export const Route = createFileRoute("/_app/_authenticated/scan")({
   ssr: false,
   staticData: { hideFooter: true },
   head: () => seoHead({ siteUrl: getSiteUrl(), title: "Scan cards", noIndex: true }),
+  beforeLoad: async ({ context }) => {
+    await requireScanner(context.queryClient);
+  },
   loader: async ({ context }) => {
     const { getCollectionsCollection } =
       await import("@/features/collections/lib/collections-collection");

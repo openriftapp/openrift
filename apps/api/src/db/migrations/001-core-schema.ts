@@ -3238,6 +3238,7 @@ INSERT INTO public.domains (slug, label, sort_order, is_well_known, color) VALUE
 INSERT INTO public.finishes (slug, label, sort_order, is_well_known) VALUES
 	('normal', 'Normal', 0, true),
 	('foil', 'Foil', 1, true),
+	('metal', 'Metal', 2, true),
 	('metal-deluxe', 'Metal Deluxe', 3, true);
 
 INSERT INTO public.formats (id, name, created_at) VALUES

@@ -64,8 +64,9 @@ SCAN_BOARD_DETECTOR_FILE=scan-board-detector-v2.onnx
 ```
 
 The encoder name defaults to `scan-encoder-v2.onnx`, and `SCAN_ENCODER_FILE`
-changes it. Without the card detector the scan manifest reports the scanner as
-unavailable. Without the board detector it scans single cards, and board reads, sweeps and the admin
+changes it. Until the card detector is configured and a reference bank is
+built, the scanner is unavailable and every entry point to it (nav, collection
+links, marketing sections, `/scan`) is hidden. Without the board detector it scans single cards, and board reads, sweeps and the admin
 straighten tool are off. Build the reference bank once from the admin scan
 page after the encoder is in place. The offline bench under `scripts/scan/`
 has its own setup, described in `scripts/scan/README.md`.

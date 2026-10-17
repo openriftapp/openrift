@@ -105,7 +105,14 @@ export function primaryNavItems(): NavItemConfig[] {
   return [
     { label: m.nav_cards(), to: "/cards", icon: LayersIcon, keepSearch: true },
     { label: m.nav_collection(), to: "/collections", icon: LibraryIcon, lockedKey: "collections" },
-    { label: m.nav_scan(), to: "/scan", icon: CameraIcon, lockedKey: "scan", platform: "mobile" },
+    {
+      label: m.nav_scan(),
+      to: "/scan",
+      icon: CameraIcon,
+      lockedKey: "scan",
+      flag: "scanner",
+      platform: "mobile",
+    },
     // Decks are available logged out, so this entry is a plain link for everyone.
     { label: m.nav_decks(), to: "/decks", icon: BookOpenIcon },
     // Only here, not also under Explore: the mobile sheet renders both lists,
@@ -156,6 +163,7 @@ export function moreNavSections(): NavSectionConfig[] {
           to: "/scan",
           icon: CameraIcon,
           lockedKey: "scan",
+          flag: "scanner",
           platform: "desktop",
           description: m.nav_scan_description(),
         },

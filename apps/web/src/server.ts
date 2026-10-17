@@ -9,6 +9,7 @@ import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 
 import { helpArticleList } from "./features/marketing/components/articles";
 import { deriveSetEras } from "./features/meta/lib/meta-scope";
+import { isIndexableRequest, NOINDEX_ROBOTS_TXT, withNoindex } from "./lib/indexing";
 import {
   browserLocaleForPageRequest,
   localeEntryRedirect,
@@ -34,13 +35,6 @@ function getSiteUrl(): string {
   // Must stay in sync with runtime-config.ts.
   return process.env.SITE_URL ?? "http://localhost:5173";
 }
-
-function isPreview(): boolean {
-  return process.env.APP_ENV === "preview";
-}
-
-// Layer 2 of 3 (see __root.tsx meta + nginx X-Robots-Tag).
-const PREVIEW_ROBOTS_TXT = "User-agent: *\nDisallow: /\n";
 
 function buildProdRobotsTxt(): string {
   return [
@@ -130,11 +124,12 @@ async function sitemapResponse(pathname: string): Promise<Response | null> {
 export default createServerEntry({
   async fetch(request: Request) {
     const url = new URL(request.url);
+    const indexable = isIndexableRequest(request);
     if (url.pathname === "/health") {
       return new Response("ok", { status: 200 });
     }
     if (url.pathname === "/robots.txt") {
-      return new Response(isPreview() ? PREVIEW_ROBOTS_TXT : buildProdRobotsTxt(), {
+      return new Response(indexable ? buildProdRobotsTxt() : NOINDEX_ROBOTS_TXT, {
         headers: {
           "Content-Type": "text/plain; charset=utf-8",
           "Cache-Control": "public, max-age=3600",
@@ -142,6 +137,9 @@ export default createServerEntry({
       });
     }
     if (url.pathname === SITEMAP_INDEX_PATH || url.pathname.startsWith("/sitemap-")) {
+      if (!indexable) {
+        return new Response("Not found", { status: 404 });
+      }
       try {
         const sitemap = await sitemapResponse(url.pathname);
         if (sitemap !== null) {
@@ -171,10 +169,11 @@ export default createServerEntry({
       }),
     );
     const tHandler = LOG_SSR_TIMINGS ? performance.now() : 0;
-    const finalResponse = applyPageCacheControl(
+    const cachedResponse = applyPageCacheControl(
       request,
       browserLocale === null ? response : withLocaleCookieResponse(response, browserLocale),
     );
+    const finalResponse = indexable ? cachedResponse : withNoindex(cachedResponse);
     if (LOG_SSR_TIMINGS) {
       const tEnd = performance.now();
       // oxlint-disable-next-line no-console -- opt-in SSR timing instrumentation, see LOG_SSR_TIMINGS flag above.

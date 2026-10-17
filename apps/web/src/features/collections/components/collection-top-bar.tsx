@@ -32,6 +32,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { SelectModeActions } from "@/features/cards/components/select-mode-actions";
 import { CollectionValueSummary } from "@/features/collections/components/collection-value-summary";
 import { deckBoxLabel } from "@/features/decks/lib/deck-box-label";
+import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { m } from "@/paraglide/messages.js";
 
 interface CollectionTopBarProps {
@@ -90,6 +91,7 @@ export function CollectionTopBar({
   onExport,
 }: CollectionTopBarProps) {
   const canAdd = Boolean(addTarget) && mode === "browse" && showAddActions;
+  const scannerEnabled = useFeatureEnabled("scanner");
   const shareInBar = canShare && mode === "browse";
   const boxLabel = deckBoxLabel(homeDecks);
   const singleHomeDeck = homeDecks.length === 1 ? homeDecks[0] : undefined;
@@ -125,7 +127,7 @@ export function CollectionTopBar({
 
       <PageTopBarActions>
         <div className="flex items-center gap-2">
-          {canAdd && (
+          {canAdd && scannerEnabled && (
             <>
               <Tooltip>
                 <TooltipTrigger
