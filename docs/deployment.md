@@ -106,7 +106,7 @@ Job schedules (price refreshes, changelog post, meta syncs, trade digest) are ma
 
 ## Self-hosted instances
 
-Only `openrift.app` (`OFFICIAL_HOST` in `apps/web/src/lib/official-host.ts`) is treated as the official instance. Every other host gets `X-Robots-Tag: noindex`, no sitemap, a footer note linking to openrift.app, and no `/legal-notice` or `/privacy-policy` pages, since those name the official site's operator. The footer links `LEGAL_NOTICE_URL` and `PRIVACY_POLICY_URL` instead when they are set.
+Only `openrift.app` (`OFFICIAL_HOST` in `apps/web/src/lib/official-host.ts`) is indexable. Every other host, including preview, gets `X-Robots-Tag: noindex` and no sitemap. Hosts outside `openrift.app` and its subdomains also get a footer note linking to openrift.app and no `/legal-notice` or `/privacy-policy` pages, since those name the official site's operator. The footer links `LEGAL_NOTICE_URL` and `PRIVACY_POLICY_URL` instead when they are set.
 
 ## Regular Deploys
 

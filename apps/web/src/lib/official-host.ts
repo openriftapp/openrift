@@ -8,7 +8,11 @@ export function isOfficialHostname(hostname: string): boolean {
   return hostname === OFFICIAL_HOST;
 }
 
+export function isOfficialDomain(hostname: string): boolean {
+  return isOfficialHostname(hostname) || hostname.endsWith(`.${OFFICIAL_HOST}`);
+}
+
 // The dev server counts as official so the legal pages and footer can be worked on locally.
 export const isOfficialInstance = createIsomorphicFn()
-  .server(() => import.meta.env.DEV || isOfficialHostname(new URL(getRequest().url).hostname))
-  .client(() => import.meta.env.DEV || isOfficialHostname(globalThis.location.hostname));
+  .server(() => import.meta.env.DEV || isOfficialDomain(new URL(getRequest().url).hostname))
+  .client(() => import.meta.env.DEV || isOfficialDomain(globalThis.location.hostname));
