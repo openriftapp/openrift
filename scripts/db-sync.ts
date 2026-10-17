@@ -5,9 +5,6 @@
  *
  * Usage: bun db:sync [--yes]
  */
-import type { Kysely } from "kysely";
-import type { z } from "zod";
-
 import {
   readSyncState,
   writeCatalogSync,
@@ -21,7 +18,6 @@ import {
   buildRulesSync,
 } from "../apps/api/src/db/catalog-sync.js";
 import { createDb } from "../apps/api/src/db/connect.js";
-import type { Database } from "../apps/api/src/db/tables.js";
 import { catalogResponseSchema } from "../packages/shared/src/contracts/catalog.js";
 import { initResponseSchema } from "../packages/shared/src/contracts/init.js";
 import {
@@ -52,7 +48,7 @@ function print(line = ""): void {
   process.stdout.write(`${line}\n`);
 }
 
-async function fetchJson<T extends z.ZodType>(path: string, schema: T): Promise<z.infer<T>> {
+async function fetchJson<T>(path: string, schema: { parse: (value: unknown) => T }): Promise<T> {
   const response = await fetch(`${sourceUrl}${path}`);
   if (!response.ok) {
     throw new Error(`GET ${sourceUrl}${path} failed with ${response.status}`);
@@ -109,7 +105,7 @@ function confirm(): boolean {
   return answer?.trim() === expected;
 }
 
-async function sync(database: Kysely<Database>): Promise<void> {
+async function sync(database: ReturnType<typeof createDb>["db"]): Promise<void> {
   const state = await readSyncState(database);
   if ((state.cards > 0 || state.ruleVersions > 0) && state.markerSource === null) {
     throw new Error(
