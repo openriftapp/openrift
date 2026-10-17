@@ -6,6 +6,7 @@
 
 - feat(Decks): **Plus on zone names** — the zone names in the deck sidebar show a plus, so it is clear that clicking one opens the card browser.
 - fix(Decks): **Steady deck rows on hover** — rows in the deck editor list keep their height when the add and remove buttons appear.
+- fix(Cards): **Filter drawer stays open while cards load** — on phones, the Options drawer no longer closes by itself when you open it before the card list has finished loading.
 
 ## 2026-10-12
 

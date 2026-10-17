@@ -6,6 +6,7 @@ import { expect, test } from "../../fixtures/test.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, TEST_USERS, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
+import { waitForHydrated } from "../../helpers/hydration.js";
 
 function loadDb() {
   const state: E2eState = JSON.parse(readFileSync(STATE_FILE, "utf-8"));
@@ -154,6 +155,7 @@ test.describe("profile shell", () => {
 
       // The active TOC link carries font-medium; there's no aria-current yet.
       const sharingLink = nav.getByRole("link", { name: "Public profile", exact: true });
+      await waitForHydrated(sharingLink);
       await expect(sharingLink).toHaveClass(/font-medium/u);
 
       const preferencesLink = nav.getByRole("link", { name: "Preferences", exact: true });

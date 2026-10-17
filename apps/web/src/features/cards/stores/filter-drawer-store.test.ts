@@ -12,25 +12,25 @@ afterEach(() => {
 
 describe("useFilterDrawerStore", () => {
   it("starts closed and never-opened", () => {
-    expect(useFilterDrawerStore.getState().open).toBe(false);
+    expect(useFilterDrawerStore.getState().openOn).toBeNull();
     expect(useFilterDrawerStore.getState().openedOnce).toBe(false);
   });
 
-  it("opening sets both open and openedOnce", () => {
-    useFilterDrawerStore.getState().setOpen(true);
-    expect(useFilterDrawerStore.getState().open).toBe(true);
+  it("opening records the pathname and sets openedOnce", () => {
+    useFilterDrawerStore.getState().setOpen(true, "/cards");
+    expect(useFilterDrawerStore.getState().openOn).toBe("/cards");
     expect(useFilterDrawerStore.getState().openedOnce).toBe(true);
   });
 
-  it("closing keeps openedOnce latched", () => {
-    useFilterDrawerStore.getState().setOpen(true);
-    useFilterDrawerStore.getState().setOpen(false);
-    expect(useFilterDrawerStore.getState().open).toBe(false);
+  it("closing clears the pathname and keeps openedOnce latched", () => {
+    useFilterDrawerStore.getState().setOpen(true, "/cards");
+    useFilterDrawerStore.getState().setOpen(false, "/cards");
+    expect(useFilterDrawerStore.getState().openOn).toBeNull();
     expect(useFilterDrawerStore.getState().openedOnce).toBe(true);
   });
 
   it("closing before any open leaves openedOnce false", () => {
-    useFilterDrawerStore.getState().setOpen(false);
+    useFilterDrawerStore.getState().setOpen(false, "/cards");
     expect(useFilterDrawerStore.getState().openedOnce).toBe(false);
   });
 });

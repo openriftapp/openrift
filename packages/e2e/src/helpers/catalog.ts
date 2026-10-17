@@ -10,7 +10,10 @@ export function cardImage(page: Page, name: string): Locator {
   return page.getByRole("img", { name });
 }
 
+// The SSR preview shows the first row before the catalog loads, then the live
+// browser replaces it and its toolbar; only the live grid renders [data-index] rows.
 export async function waitForCatalogLoaded(page: Page, cardName = "Annie, Fiery") {
+  await page.locator("[data-index]").first().waitFor({ state: "attached", timeout: 30_000 });
   await scrollUntilVisible(page, cardImage(page, cardName));
 }
 

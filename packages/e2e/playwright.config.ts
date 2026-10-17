@@ -10,6 +10,9 @@ export default defineConfig({
   // The CPU-derived default overloads the Vite dev server and tests time out
   // on slow on-demand compiles; two workers stay reliable locally.
   workers: process.env.CI ? 1 : 2,
+  // Each test's fresh browser context spends up to ~20s hydrating its first dev-server page.
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
   reporter: "html",
 
   globalSetup: "./src/global-setup.ts",

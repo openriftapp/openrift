@@ -6,6 +6,7 @@ import { expect } from "@playwright/test";
 import type { E2eState } from "./constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "./constants.js";
 import { connectToDb } from "./db.js";
+import { waitForHydrated } from "./hydration.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -16,14 +17,7 @@ export function loadDb(): Sql {
 
 export async function waitForHydration(page: Page) {
   // button/input fall back for the reset-password page, which has no <form>.
-  await page.locator("form, button, input").first().waitFor({ state: "attached" });
-  await page.waitForFunction(
-    () => {
-      const el = document.querySelector("form, button, input");
-      return el !== null && Object.keys(el).some((key) => key.startsWith("__react"));
-    },
-    { timeout: 10_000 },
-  );
+  await waitForHydrated(page.locator("form, button, input").first());
 }
 
 export async function signUp(request: APIRequestContext, email: string, password: string) {

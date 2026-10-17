@@ -78,7 +78,6 @@ test.describe("landing page", () => {
   test("renders the feature showcase and the closing sections", async ({ page }) => {
     await page.goto("/");
     const sections = [
-      "Scan cards with your camera",
       "A collection that keeps itself current",
       "See who has what you need",
       "Know what your cards are worth",
@@ -91,10 +90,20 @@ test.describe("landing page", () => {
     }
   });
 
+  test("hides the scanner showcase row while the scanner is unavailable", async ({ page }) => {
+    // The E2E database has no scan index, so the API reports the scanner as off.
+    await page.goto("/");
+    await expect(
+      page.getByRole("heading", { name: "A collection that keeps itself current", level: 2 }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Scan cards with your camera", level: 2 }),
+    ).toHaveCount(0);
+  });
+
   test("showcase rows navigate to their targets", async ({ page }) => {
     // Unauthenticated redirects put the target URL-encoded in the query string.
     const rows: { name: RegExp; url: RegExp }[] = [
-      { name: /scan cards with your camera/iu, url: /\/scan/u },
       { name: /a collection that keeps itself current/iu, url: /\/collections/u },
       { name: /see who has what you need/iu, url: /\/groups/u },
       { name: /know what your cards are worth/iu, url: /\/cards/u },

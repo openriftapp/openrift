@@ -4,13 +4,15 @@ import { create } from "zustand";
 // (faceted filter counts are the expensive case). Viewport facts, not
 // preferences: reset on navigation, mean nothing on the next visit.
 interface FilterDrawerState {
-  open: boolean;
+  /** Pathname the drawer is open on, null while closed. */
+  openOn: string | null;
   openedOnce: boolean;
-  setOpen: (open: boolean) => void;
+  setOpen: (open: boolean, pathname: string) => void;
 }
 
 export const useFilterDrawerStore = create<FilterDrawerState>()((set) => ({
-  open: false,
+  openOn: null,
   openedOnce: false,
-  setOpen: (open) => set((state) => ({ open, openedOnce: state.openedOnce || open })),
+  setOpen: (open, pathname) =>
+    set((state) => ({ openOn: open ? pathname : null, openedOnce: state.openedOnce || open })),
 }));

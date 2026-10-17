@@ -8,7 +8,7 @@ import { useSmUp } from "@/hooks/use-sm-up";
  */
 export function useFilterCountsVisible(): boolean {
   const smUp = useSmUp();
-  const drawerOpen = useFilterDrawerStore((state) => state.open);
+  const drawerOpen = useFilterDrawerStore((state) => state.openOn !== null);
   const drawerOpenDeferred = useDeferredValue(drawerOpen);
   return smUp || drawerOpenDeferred;
 }

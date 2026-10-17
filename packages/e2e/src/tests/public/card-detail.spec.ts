@@ -5,6 +5,7 @@ import { expect, test } from "@playwright/test";
 
 import { API_BASE_URL, WEB_BASE_URL } from "../../helpers/constants.js";
 import { dockDetailPane } from "../../helpers/detail-pane.js";
+import { waitForHydrated } from "../../helpers/hydration.js";
 
 const SEED_CARD_SLUG = "annie-fiery";
 const SEED_CARD_NAME = "Annie, Fiery";
@@ -414,14 +415,11 @@ test.describe("card detail route — info panel", () => {
 
     await expect(page.getByText("Printed name", { exact: true })).toBeHidden();
 
-    // Printings can share a publicCode, so target by id. Retry: a pre-hydration
-    // click can land before onClick attaches, leaving state unchanged.
+    // Printings can share a publicCode, so target by id.
     const altButton = page.locator(`button[data-printing-id="${altPrinting.id}"]`);
-    const printedNameRow = page.getByText("Printed name", { exact: true });
-    await expect(async () => {
-      await altButton.click();
-      await expect(printedNameRow).toBeVisible({ timeout: 500 });
-    }).toPass({ timeout: 5000 });
+    await waitForHydrated(altButton);
+    await altButton.click();
+    await expect(page.getByText("Printed name", { exact: true })).toBeVisible();
     await expect(page.getByText(altPrinting.printedName)).toBeVisible();
   });
 
@@ -638,12 +636,10 @@ test.describe("card detail route — printings list", () => {
     await expect(languageRow).toContainText("English");
 
     const altButton = page.locator(`button[data-printing-id="${altLang.id}"]`);
-    await expect(altButton).toBeVisible();
+    await waitForHydrated(altButton);
+    await altButton.click();
     // The localized label map isn't shipped to the test; only assert "English" no longer matches.
-    await expect(async () => {
-      await altButton.click();
-      await expect(languageRow).not.toContainText("English", { timeout: 500 });
-    }).toPass({ timeout: 5000 });
+    await expect(languageRow).not.toContainText("English");
   });
 
   test("foil and promo badges appear on the matching printing button", async ({ page }) => {

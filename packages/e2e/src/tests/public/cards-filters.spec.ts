@@ -2,6 +2,7 @@ import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 import { cardImage, waitForCatalogLoaded } from "../../helpers/catalog.js";
+import { waitForHydrated } from "../../helpers/hydration.js";
 import { scrollUntilVisible } from "../../helpers/virtualized.js";
 
 // Seed data: set OGS "Proving Grounds"; Annie, Fiery is a Fury Unit, Firestorm
@@ -13,22 +14,13 @@ import { scrollUntilVisible } from "../../helpers/virtualized.js";
 const CARDS_URL = "/cards";
 const FOOTER_BUTTON = /^(?:Done|Show \d+ (?:cards?|printings?))$/u;
 
-/**
- * Opens the mobile filter drawer, retrying the trigger until it appears (the
- * toolbar handlers wire up a beat after the grid hydrates).
- */
+// A second click on Options while the drawer animates in closes it again, so click once after hydration.
 async function openFilterDrawer(page: Page): Promise<Locator> {
-  const drawer = page.locator('[data-slot="drawer-content"]');
-  const dialog = page.getByRole("dialog", { name: "Options" });
   const options = page.getByRole("button", { name: "Options" });
-  // The panel stays mounted while closed, so check the dialog and click only while it is shut.
-  await expect(async () => {
-    if (!(await dialog.isVisible())) {
-      await options.click({ timeout: 2000 });
-    }
-    await expect(dialog).toBeVisible({ timeout: 4000 });
-  }).toPass({ timeout: 30_000 });
-  return drawer;
+  await waitForHydrated(options);
+  await options.click();
+  await expect(page.getByRole("dialog", { name: "Options" })).toBeVisible();
+  return page.locator('[data-slot="drawer-content"]');
 }
 
 /**

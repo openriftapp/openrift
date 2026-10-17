@@ -386,6 +386,10 @@ export function DisplayOptionsPopover({
   );
 }
 
+function currentPathname(): string {
+  return globalThis.location?.pathname ?? "";
+}
+
 export function MobileOptionsDrawer({
   doneLabel,
   children,
@@ -395,8 +399,21 @@ export function MobileOptionsDrawer({
   children?: ReactNode;
   className?: string;
 }) {
+  // /cards swaps its SSR preview toolbar for the live one, remounting this drawer; the store keeps it open.
+  const open = useFilterDrawerStore(
+    (state) => state.openOn !== null && state.openOn === currentPathname(),
+  );
   const openedOnce = useFilterDrawerStore((state) => state.openedOnce);
   const setDrawerOpen = useFilterDrawerStore((state) => state.setOpen);
+  useEffect(
+    () => () => {
+      const { openOn, setOpen } = useFilterDrawerStore.getState();
+      if (openOn !== null && openOn !== currentPathname()) {
+        setOpen(false, currentPathname());
+      }
+    },
+    [],
+  );
   const smUp = useSmUp();
   const [idlePremounted, setIdlePremounted] = useState(false);
   useEffect(() => {
@@ -414,7 +431,11 @@ export function MobileOptionsDrawer({
     return () => clearTimeout(timer);
   }, [smUp, idlePremounted]);
   return (
-    <Drawer showSwipeHandle onOpenChange={setDrawerOpen}>
+    <Drawer
+      showSwipeHandle
+      open={open}
+      onOpenChange={(next) => setDrawerOpen(next, currentPathname())}
+    >
       <Tooltip>
         <TooltipTrigger
           render={
