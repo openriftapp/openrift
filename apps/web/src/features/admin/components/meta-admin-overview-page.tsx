@@ -22,6 +22,7 @@ import {
   metaSyncAlerts,
   overlayCountsForProvider,
 } from "@/features/meta/lib/meta-catalog-display";
+import { useMountedAt } from "@/hooks/use-mounted-at";
 
 export function MetaSourceSyncSection({ source }: { source: MetaSource }) {
   const { data } = useMetaSyncStatus(source);
@@ -79,7 +80,7 @@ export function MetaAdminOverviewPage() {
   const topdeck = useMetaSyncStatus("topdeck");
   const overlays = useAdminMetaOverlays();
 
-  const now = new Date();
+  const now = useMountedAt();
   const alerts = [
     ...sourceAlerts("uvsgames", uvsgames.data, overlays.data.overlays, now),
     ...sourceAlerts("playloltcg", playloltcg.data, overlays.data.overlays, now),

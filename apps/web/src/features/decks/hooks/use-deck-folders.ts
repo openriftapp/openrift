@@ -51,7 +51,7 @@ export function useCreateDeckFolder() {
         createdAt: now,
         updatedAt: now,
       };
-      await collection.insert(row).isPersisted.promise;
+      await collection.insert(row).when("settled");
       return collection.get(row.id) ?? row;
     },
   });
@@ -66,9 +66,11 @@ export function useRenameDeckFolder() {
       if (!collection.has(id)) {
         return;
       }
-      await collection.update(id, (draft) => {
-        draft.name = name;
-      }).isPersisted.promise;
+      await collection
+        .update(id, (draft) => {
+          draft.name = name;
+        })
+        .when("settled");
     },
   });
 }
@@ -82,7 +84,7 @@ export function useRemoveDeckFolder() {
       if (!collection.has(id)) {
         return;
       }
-      await collection.delete(id).isPersisted.promise;
+      await collection.delete(id).when("settled");
     },
   });
 }
@@ -93,7 +95,7 @@ export function useReorderDeckFolders() {
   return useMutation({
     mutationFn: async ({ orderedIds }: { orderedIds: string[] }) => {
       const collection = await loadedFolders(queryClient, userId);
-      await reorderDeckFolders(collection, orderedIds).isPersisted.promise;
+      await reorderDeckFolders(collection, orderedIds).when("settled");
     },
   });
 }
@@ -109,9 +111,11 @@ export function useSetDeckFolders() {
       if (!decks.has(id)) {
         return;
       }
-      await decks.update(id, (draft) => {
-        draft.folderIds = folderIds;
-      }).isPersisted.promise;
+      await decks
+        .update(id, (draft) => {
+          draft.folderIds = folderIds;
+        })
+        .when("settled");
     },
   });
 }

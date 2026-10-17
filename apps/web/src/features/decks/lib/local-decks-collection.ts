@@ -97,10 +97,10 @@ function legacyDecks(): LocalDeck[] {
 }
 
 async function ignoreWriteFailure(write: {
-  isPersisted: { promise: Promise<unknown> };
+  when: (state: "settled") => Promise<unknown>;
 }): Promise<void> {
   try {
-    await write.isPersisted.promise;
+    await write.when("settled");
   } catch {
     // The storage wrapper has already shown the quota toast.
   }
@@ -140,7 +140,7 @@ async function migrateLegacyDecks(): Promise<void> {
   const stored: string[] = [];
   if (rows.length > 0) {
     try {
-      await localDecks.insert(rows).isPersisted.promise;
+      await localDecks.insert(rows).when("settled");
       stored.push(...rows.map((deck) => deck.id));
     } catch {
       // Storage refused the write, so these ids stay unclaimed and the next load retries them.

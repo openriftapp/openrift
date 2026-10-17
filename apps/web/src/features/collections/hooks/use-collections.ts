@@ -156,7 +156,7 @@ export function useCreateCollection() {
     mutationFn: async (input: CreateCollectionInput): Promise<CollectionResponse> => {
       const collection = await loadedCollections(queryClient, userId);
       const row = optimisticCollection(queryClient, userId, collection.toArray, input);
-      await collection.insert(row).isPersisted.promise;
+      await collection.insert(row).when("settled");
       return collection.get(row.id) ?? row;
     },
   });
@@ -179,14 +179,16 @@ export function useUpdateCollection() {
       if (!collection.has(id)) {
         return;
       }
-      await collection.update(id, (draft) => {
-        if (name !== undefined) {
-          draft.name = name;
-        }
-        if (description !== undefined) {
-          draft.description = description;
-        }
-      }).isPersisted.promise;
+      await collection
+        .update(id, (draft) => {
+          if (name !== undefined) {
+            draft.name = name;
+          }
+          if (description !== undefined) {
+            draft.description = description;
+          }
+        })
+        .when("settled");
     },
   });
 }
@@ -204,9 +206,11 @@ export function useSetCollectionDeckbuilding() {
       if (!collection.has(id)) {
         return;
       }
-      await collection.update(id, (draft) => {
-        draft.availableForDeckbuilding = available;
-      }).isPersisted.promise;
+      await collection
+        .update(id, (draft) => {
+          draft.availableForDeckbuilding = available;
+        })
+        .when("settled");
     },
   });
 }
@@ -224,9 +228,11 @@ export function useSetCollectionSidebarHidden() {
       if (!collection.has(id)) {
         return;
       }
-      await collection.update(id, (draft) => {
-        draft.sidebarHidden = hidden;
-      }).isPersisted.promise;
+      await collection
+        .update(id, (draft) => {
+          draft.sidebarHidden = hidden;
+        })
+        .when("settled");
     },
   });
 }
@@ -238,7 +244,7 @@ export function useReorderCollections() {
   return useMutation({
     mutationFn: async ({ orderedIds }: { orderedIds: string[] }) => {
       const collection = await loadedCollections(queryClient, userId);
-      await reorderCollections(collection, orderedIds).isPersisted.promise;
+      await reorderCollections(collection, orderedIds).when("settled");
     },
   });
 }
@@ -252,9 +258,11 @@ export function useShareCollection() {
       if (!collection.has(collectionId)) {
         return;
       }
-      await collection.update(collectionId, (draft) => {
-        draft.isPublic = true;
-      }).isPersisted.promise;
+      await collection
+        .update(collectionId, (draft) => {
+          draft.isPublic = true;
+        })
+        .when("settled");
     },
   });
 }
@@ -268,10 +276,12 @@ export function useUnshareCollection() {
       if (!collection.has(collectionId)) {
         return;
       }
-      await collection.update(collectionId, (draft) => {
-        draft.isPublic = false;
-        draft.shareToken = null;
-      }).isPersisted.promise;
+      await collection
+        .update(collectionId, (draft) => {
+          draft.isPublic = false;
+          draft.shareToken = null;
+        })
+        .when("settled");
     },
   });
 }
@@ -287,7 +297,7 @@ export function useDeleteCollection() {
     mutationFn: async (id: string) => {
       const collection = await loadedCollections(queryClient, userId);
       if (collection.has(id)) {
-        await collection.delete(id).isPersisted.promise;
+        await collection.delete(id).when("settled");
       }
       return id;
     },
@@ -321,13 +331,13 @@ export function useResetCollections() {
 
   return useMutation({
     mutationFn: () => resetCollectionsFn(),
-    onSuccess: () => {
+    onSuccess: async () => {
       // Drop personal copies from the synced store immediately; group-owned copies survive.
       if (copiesCollection) {
         const personal = copiesCollection.toArray.filter((copy) => copy.groupId === null);
         if (personal.length > 0) {
           startSyncIfNeeded(copiesCollection);
-          copiesCollection.utils.writeDelete(personal.map((copy) => copy.id));
+          await copiesCollection.utils.writeDelete(personal.map((copy) => copy.id));
         }
       }
       // Invalidates the whole cache: the wipe touches nearly every user-scoped surface.

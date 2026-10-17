@@ -133,10 +133,10 @@ function listItemFor(deck: DeckResponse): DeckListItemResponse {
 
 // Upsert, not update: during a create the row `get` returns is the optimistic
 // one, which synced state does not hold yet, and an update of it would throw.
-function mergeDeck(collection: DecksCollection, deck: DeckResponse): void {
+async function mergeDeck(collection: DecksCollection, deck: DeckResponse): Promise<void> {
   const row = collection.get(deck.id);
   const listItem = listItemFor(deck);
-  collection.utils.writeUpsert(
+  await collection.utils.writeUpsert(
     row ? { ...row, deck: { ...row.deck, ...listItem.deck } } : listItem,
   );
 }
@@ -184,13 +184,16 @@ async function persistDeckUpdate(
 
   const patch = row.patch ?? patchFor(original, modified);
   if (Object.keys(patch).length > 0) {
-    mergeDeck(collection, await client.update({ id, ...patch }));
+    await mergeDeck(collection, await client.update({ id, ...patch }));
   }
   if (modified.isPinned !== original.isPinned) {
-    mergeDeck(collection, await client.setPinned({ id, isPinned: modified.isPinned }));
+    await mergeDeck(collection, await client.setPinned({ id, isPinned: modified.isPinned }));
   }
   if (modified.archivedAt !== original.archivedAt) {
-    mergeDeck(collection, await client.setArchived({ id, archived: modified.archivedAt !== null }));
+    await mergeDeck(
+      collection,
+      await client.setArchived({ id, archived: modified.archivedAt !== null }),
+    );
   }
   if (modified.isPublic !== original.isPublic) {
     const share = modified.isPublic
@@ -199,19 +202,19 @@ async function persistDeckUpdate(
     if (!modified.isPublic) {
       await client.unshare({ id });
     }
-    collection.utils.writeUpdate({
+    await collection.utils.writeUpdate({
       ...row.updated,
       deck: { ...modified, isPublic: share.isPublic, shareToken: share.shareToken },
     });
   }
   if (modified.predecessorDeckId !== original.predecessorDeckId) {
-    mergeDeck(
+    await mergeDeck(
       collection,
       await client.setPredecessor({ id, predecessorDeckId: modified.predecessorDeckId }),
     );
   }
   if (modified.isPrimary && !original.isPrimary) {
-    mergeDeck(collection, await client.promotePrimary({ id }));
+    await mergeDeck(collection, await client.promotePrimary({ id }));
     // Promotion reorders the family, so rows other than this one change too.
     void context.queryClient.invalidateQueries({
       queryKey: decksKeys.syncedStore(context.userId),
@@ -221,7 +224,7 @@ async function persistDeckUpdate(
   const folderIds = row.updated.folderIds;
   if (folderIds !== row.original.folderIds) {
     await browserApiOrpcClient(deckFoldersContract).setForDeck({ id, folderIds });
-    collection.utils.writeUpdate({ ...row.updated, folderIds });
+    await collection.utils.writeUpdate({ ...row.updated, folderIds });
     void context.queryClient.invalidateQueries({ queryKey: deckFoldersKeys.all(context.userId) });
   }
 }
@@ -251,7 +254,7 @@ export async function persistDeckMutations(
           format: deck.format,
           ...(deck.formatConfig === null ? {} : { formatConfig: deck.formatConfig }),
         });
-        mergeDeck(collection, created);
+        await mergeDeck(collection, created);
       } else if (mutation.type === "delete") {
         // A deck already gone on the server still has to leave the store, or the
         // optimistic delete rolls back and the row returns.
@@ -259,7 +262,7 @@ export async function persistDeckMutations(
         if (error && !(isDefinedError(error) && error.code === "NOT_FOUND")) {
           throw error;
         }
-        collection.utils.writeDelete([id]);
+        await collection.utils.writeDelete([id]);
       } else if ("deck" in mutation.original) {
         await persistDeckUpdate(
           collection,
@@ -345,12 +348,10 @@ export async function persistDeckCardMutations(
       const stored = cards.map((card) => ({ deckId, ...card }));
       const storedKeys = new Set(stored.map((card) => deckCardKey(card)));
       const gone = goneKeys(rows, mutations, deckId, storedKeys);
-      collection.utils.writeBatch(() => {
-        collection.utils.writeUpsert(stored);
-        if (gone.length > 0) {
-          writeSkippingMissing(gone, (keys) => collection.utils.writeDelete(keys));
-        }
-      });
+      await collection.utils.writeUpsert(stored);
+      if (gone.length > 0) {
+        await writeSkippingMissing(gone, (keys) => collection.utils.writeDelete(keys));
+      }
       // The deck's card counts, validity and value live on its list row.
       void context.queryClient.invalidateQueries({
         queryKey: decksKeys.syncedStore(context.userId),

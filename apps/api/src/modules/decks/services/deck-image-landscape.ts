@@ -2,7 +2,6 @@ import type { Io } from "../../../io.js";
 import {
   CARD_ASPECT,
   COLORS,
-  baselineNudge,
   cardTile,
   element,
   qrDataUri,
@@ -190,7 +189,7 @@ export async function renderLandscapeDeckImage(
     {
       display: "flex",
       flexDirection: "row",
-      alignItems: "flex-end",
+      alignItems: "baseline",
       ...(input.resultLine === undefined ? { flexGrow: 1 } : {}),
     },
     element(
@@ -218,40 +217,29 @@ export async function renderLandscapeDeckImage(
             lineHeight: 1,
             fontWeight: 600,
             color: COLORS.gold,
-            transform: `translateY(${baselineNudge(canvas.titleSize, canvas.bylineSize)}px)`,
           },
           // "by Name", not "· Name": the middle-dot glyph floats off the title baseline at this size.
           `by ${input.ownerName}`,
         )
       : false,
     element("div", { display: "flex", flexGrow: 1, minWidth: 24 }),
+    // The group's baseline is the metadata run's, and the glyphs centre on that run.
     element(
       "div",
-      {
-        display: "flex",
-        flexShrink: 0,
-        fontSize: canvas.metaSize,
-        lineHeight: 1,
-        color: COLORS.muted,
-        transform: `translateY(${baselineNudge(canvas.titleSize, canvas.metaSize)}px)`,
-      },
-      deckMetaLabel(input.formatLabel, mainCardCount, sideboardCount),
+      { display: "flex", flexDirection: "row", alignItems: "center", flexShrink: 0 },
+      element(
+        "div",
+        { display: "flex", fontSize: canvas.metaSize, lineHeight: 1, color: COLORS.muted },
+        deckMetaLabel(input.formatLabel, mainCardCount, sideboardCount),
+      ),
+      domainIcons.length > 0
+        ? element(
+            "div",
+            { display: "flex", flexDirection: "row", alignItems: "center", marginLeft: 14, gap: 6 },
+            ...domainIcons,
+          )
+        : false,
     ),
-    domainIcons.length > 0
-      ? element(
-          "div",
-          {
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            marginLeft: 14,
-            gap: 6,
-            // Glyphs center on the metadata run, not its baseline: offset by the run's nudge plus half the glyph/text height difference.
-            transform: `translateY(${baselineNudge(canvas.titleSize, canvas.metaSize) + (canvas.domainIcon - canvas.metaSize) / 2}px)`,
-          },
-          ...domainIcons,
-        )
-      : false,
   );
 
   const titleRow = element(

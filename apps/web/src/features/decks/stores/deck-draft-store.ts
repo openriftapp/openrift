@@ -105,7 +105,7 @@ async function runSave(queryClient: QueryClient, userId: string, entry: DraftEnt
     const collection = getDeckCardsCollection(queryClient, userId);
     await collection.preload();
     await withTimeout(
-      saveDeckCards(collection, entry.deckId, cards, { queryClient, userId }).isPersisted.promise,
+      saveDeckCards(collection, entry.deckId, cards, { queryClient, userId }).when("settled"),
       { label: m.decks_editor_timeout_save(), abortController: controller },
     );
 

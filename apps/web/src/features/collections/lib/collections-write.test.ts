@@ -139,8 +139,9 @@ describe("persisting collection writes", () => {
   it("creates a collection with its client id and takes the row from the refetch", async () => {
     const collection = await collectionsOnServer([]);
 
-    await collection.insert(stubCollection({ id: "col-1", name: "Summoner Skirmish" })).isPersisted
-      .promise;
+    await collection
+      .insert(stubCollection({ id: "col-1", name: "Summoner Skirmish" }))
+      .when("settled");
 
     expect(writes()).toEqual([
       {
@@ -162,9 +163,11 @@ describe("persisting collection writes", () => {
   it("refetches after a write, so the store holds server state", async () => {
     const collection = await collectionsOnServer([stubCollection({ id: "col-1", name: "Old" })]);
 
-    await collection.update("col-1", (draft) => {
-      draft.name = "New";
-    }).isPersisted.promise;
+    await collection
+      .update("col-1", (draft) => {
+        draft.name = "New";
+      })
+      .when("settled");
 
     expect(sent.at(-1)?.method).toBe("GET");
   });
@@ -172,9 +175,11 @@ describe("persisting collection writes", () => {
   it("sends a rename to the update endpoint", async () => {
     const collection = await collectionsOnServer([stubCollection({ id: "col-1", name: "Old" })]);
 
-    await collection.update("col-1", (draft) => {
-      draft.name = "New";
-    }).isPersisted.promise;
+    await collection
+      .update("col-1", (draft) => {
+        draft.name = "New";
+      })
+      .when("settled");
 
     expect(writes()).toEqual([
       { method: "PATCH", path: "/api/v1/collections/col-1", body: { name: "New" } },
@@ -188,10 +193,12 @@ describe("persisting collection writes", () => {
   it("sends the deck-building and sidebar flags to their own endpoints", async () => {
     const collection = await collectionsOnServer([stubCollection({ id: "col-1" })]);
 
-    await collection.update("col-1", (draft) => {
-      draft.availableForDeckbuilding = false;
-      draft.sidebarHidden = true;
-    }).isPersisted.promise;
+    await collection
+      .update("col-1", (draft) => {
+        draft.availableForDeckbuilding = false;
+        draft.sidebarHidden = true;
+      })
+      .when("settled");
 
     expect(writes()).toEqual([
       {
@@ -216,7 +223,7 @@ describe("persisting collection writes", () => {
       stubCollection({ id: "trades", sortOrder: 2 }),
     ]);
 
-    await reorderCollections(collection, ["inbox", "trades", "binder"]).isPersisted.promise;
+    await reorderCollections(collection, ["inbox", "trades", "binder"]).when("settled");
 
     expect(writes()).toEqual([
       {
@@ -234,9 +241,11 @@ describe("persisting collection writes", () => {
   it("stores the share token the API issues", async () => {
     const collection = await collectionsOnServer([stubCollection({ id: "col-1" })]);
 
-    await collection.update("col-1", (draft) => {
-      draft.isPublic = true;
-    }).isPersisted.promise;
+    await collection
+      .update("col-1", (draft) => {
+        draft.isPublic = true;
+      })
+      .when("settled");
 
     await vi.waitFor(() => {
       expect(collection.get("col-1")).toMatchObject({ isPublic: true, shareToken: "token-1" });
@@ -255,7 +264,7 @@ describe("persisting collection writes", () => {
       stubCollection({ id: "pool", groupId: "group-1" }),
     ]);
 
-    await collection.delete("pool").isPersisted.promise;
+    await collection.delete("pool").when("settled");
 
     expect(writes()).toEqual([
       { method: "DELETE", path: "/api/v1/collections/pool", body: undefined },
@@ -271,9 +280,11 @@ describe("persisting collection writes", () => {
     respond = () => Response.json({ message: "boom" }, { status: 500 });
 
     await expect(
-      collection.update("col-1", (draft) => {
-        draft.name = "New";
-      }).isPersisted.promise,
+      collection
+        .update("col-1", (draft) => {
+          draft.name = "New";
+        })
+        .when("settled"),
     ).rejects.toThrow();
 
     expect(collection.get("col-1")?.name).toBe("Old");

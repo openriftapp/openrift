@@ -6,11 +6,8 @@ import type { Io } from "../../../io.js";
 import { CARD_MEDIA_DIR } from "../../catalog/services/images/paths.js";
 
 /**
- * satori speaks a CSS subset: every container with more than one child needs
- * an explicit `display: "flex"`, the default flex direction is `row`, and
- * colors must be concrete (no oklch). Raster sources (WebP card art, SVG
- * glyphs) cannot be embedded by satori directly, so each is transcoded to a
- * PNG data URI with sharp first.
+ * Raster sources (WebP card art, SVG glyphs) cannot be embedded by satori
+ * directly, so each is transcoded to a PNG data URI with sharp first.
  */
 
 // Concrete approximations of the site's dark theme (apps/web/src/index.css).
@@ -54,7 +51,8 @@ export function element(
     (child): child is Element | string => child !== false && child !== null && child !== undefined,
   );
   const childProp = kept.length === 0 ? undefined : kept.length === 1 ? kept[0] : kept;
-  return { type, props: { style, children: childProp } };
+  // satori defaults to CSS's content-box; every template sizes its boxes border-box.
+  return { type, props: { style: { boxSizing: "border-box", ...style }, children: childProp } };
 }
 
 interface SatoriFont {
@@ -282,18 +280,6 @@ export function cardTile(
  */
 export function elideTitle(title: string, max: number): string {
   return title.length > max ? `${title.slice(0, max - 1).trimEnd()}…` : title;
-}
-
-const BASELINE_ERROR_SLOPE_LH1 = 0.14;
-
-/**
- * satori bottom-aligns flex children; apply as `translateY` on the smaller
- * run, in a `flex-end` row, both runs at `lineHeight: 1`.
- */
-export function baselineNudge(largerFontSize: number, smallerFontSize: number): number {
-  const gap = largerFontSize - smallerFontSize;
-  // A plain 0 here keeps `-0` out of the emitted `translateY(-0px)`.
-  return gap <= 0 ? 0 : -Math.round(gap * BASELINE_ERROR_SLOPE_LH1);
 }
 
 /**

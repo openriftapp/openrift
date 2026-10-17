@@ -60,10 +60,10 @@ export function groupIdForCollection(
 
 /** Resolves with the add's failure, or null once it is stored. */
 async function failureOf(transaction: {
-  isPersisted: { promise: Promise<unknown> };
+  when: (state: "settled") => Promise<unknown>;
 }): Promise<unknown> {
   try {
-    await transaction.isPersisted.promise;
+    await transaction.when("settled");
     return null;
   } catch (error) {
     return error ?? new Error("Copy add failed");
@@ -85,7 +85,7 @@ async function forgetWhenSettled(
 export function trackPendingInserts(
   collection: CopiesCollection,
   ids: readonly string[],
-  transaction: { isPersisted: { promise: Promise<unknown> } },
+  transaction: { when: (state: "settled") => Promise<unknown> },
 ): void {
   const pending = pendingInsertsOf(collection);
   const settled = failureOf(transaction);
@@ -188,16 +188,19 @@ function isMissingRowError(error: unknown): boolean {
 
 // An earlier chunk's store write can flush a refetch that already removed a later chunk's row,
 // and a batched write then refuses every row in it.
-export function writeSkippingMissing<T>(items: readonly T[], write: (batch: T[]) => void): void {
+export async function writeSkippingMissing<T>(
+  items: readonly T[],
+  write: (batch: T[]) => Promise<void>,
+): Promise<void> {
   try {
-    write([...items]);
+    await write([...items]);
   } catch (error) {
     if (!isMissingRowError(error)) {
       throw error;
     }
     for (const item of items) {
       try {
-        write([item]);
+        await write([item]);
       } catch (itemError) {
         if (!isMissingRowError(itemError)) {
           throw itemError;
@@ -270,7 +273,7 @@ async function persistInserts(
           ),
         ),
       );
-      collection.utils.writeUpsert(items);
+      await collection.utils.writeUpsert(items);
       for (const item of items) {
         const entry = pending.get(item.id);
         if (entry) {
@@ -315,7 +318,7 @@ async function persistUpdates(
       await send(m.collections_copies_timeout_move(), (signal) =>
         browserApiOrpcClient(copiesContract).move({ copyIds: chunk, toCollectionId }, { signal }),
       );
-      writeSkippingMissing(
+      await writeSkippingMissing(
         chunk.map((id) => ({ id, collectionId: toCollectionId, groupId })),
         (rows) => collection.utils.writeUpdate(rows),
       );
@@ -327,7 +330,7 @@ async function persistUpdates(
       await send(m.collections_copies_timeout_update(), (signal) =>
         browserApiOrpcClient(copiesContract).update({ copyIds: chunk, patch }, { signal }),
       );
-      writeSkippingMissing(
+      await writeSkippingMissing(
         chunk.map((id) => ({ id, ...patch })),
         (rows) => collection.utils.writeUpdate(rows),
       );
@@ -343,7 +346,7 @@ async function persistDeletes(
     await send(m.collections_copies_timeout_dispose(), (signal) =>
       browserApiOrpcClient(copiesContract).dispose({ copyIds: chunk }, { signal }),
     );
-    writeSkippingMissing(chunk, (ids) => collection.utils.writeDelete(ids));
+    await writeSkippingMissing(chunk, (ids) => collection.utils.writeDelete(ids));
   });
 }
 

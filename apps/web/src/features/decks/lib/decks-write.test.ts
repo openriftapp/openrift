@@ -152,8 +152,7 @@ describe("persisting deck writes", () => {
   it("sends a new deck with the client id, so a replay resolves to the same deck", async () => {
     const collection = await decksOnServer([]);
 
-    await collection.insert(stubDeckRow({ id: "deck-9", name: "Bandle Beatdown" })).isPersisted
-      .promise;
+    await collection.insert(stubDeckRow({ id: "deck-9", name: "Bandle Beatdown" })).when("settled");
 
     expect(writes()).toEqual([
       {
@@ -174,7 +173,7 @@ describe("persisting deck writes", () => {
   it("removes a deleted deck from the store", async () => {
     const collection = await decksOnServer([stubDeckRow({ id: "deck-1" })]);
 
-    await collection.delete("deck-1").isPersisted.promise;
+    await collection.delete("deck-1").when("settled");
 
     expect(writes()).toEqual([{ method: "DELETE", path: "/api/v1/decks/deck-1", body: undefined }]);
     expect(collection.has("deck-1")).toBe(false);
@@ -190,7 +189,7 @@ describe("persisting deck writes", () => {
           )
         : succeed(request);
 
-    await collection.delete("deck-1").isPersisted.promise;
+    await collection.delete("deck-1").when("settled");
 
     expect(collection.has("deck-1")).toBe(false);
   });
@@ -198,9 +197,11 @@ describe("persisting deck writes", () => {
   it("stores the share token the API issues", async () => {
     const collection = await decksOnServer([stubDeckRow({ id: "deck-1" })]);
 
-    await collection.update("deck-1", (draft) => {
-      draft.deck = { ...draft.deck, isPublic: true };
-    }).isPersisted.promise;
+    await collection
+      .update("deck-1", (draft) => {
+        draft.deck = { ...draft.deck, isPublic: true };
+      })
+      .when("settled");
 
     await vi.waitFor(() => {
       expect(collection.get("deck-1")?.deck).toMatchObject({
@@ -213,7 +214,7 @@ describe("persisting deck writes", () => {
   it("sends only the fields an edit changed", async () => {
     const collection = await decksOnServer([stubDeckRow({ id: "deck-1", name: "Old" })]);
 
-    await updateDeck(collection, "deck-1", { name: "New" }).isPersisted.promise;
+    await updateDeck(collection, "deck-1", { name: "New" }).when("settled");
 
     expect(writes()).toEqual([
       { method: "PATCH", path: "/api/v1/decks/deck-1", body: { name: "New" } },
@@ -223,9 +224,11 @@ describe("persisting deck writes", () => {
   it("keeps the saved folder membership on the row once the write settles", async () => {
     const collection = await decksOnServer([stubDeckRow({ id: "deck-1" })]);
 
-    await collection.update("deck-1", (draft) => {
-      draft.folderIds = ["folder-1"];
-    }).isPersisted.promise;
+    await collection
+      .update("deck-1", (draft) => {
+        draft.folderIds = ["folder-1"];
+      })
+      .when("settled");
 
     expect(writes()).toEqual([
       { method: "PUT", path: "/api/v1/decks/deck-1/folders", body: { folderIds: ["folder-1"] } },
@@ -250,7 +253,7 @@ describe("persisting deck card writes", () => {
     await saveDeckCards(collection, "deck-1", [card("card-a", 2), card("card-b", 1)], {
       queryClient,
       userId,
-    }).isPersisted.promise;
+    }).when("settled");
 
     expect(writes().map((request) => [request.method, request.path])).toEqual([
       ["PUT", "/api/v1/decks/deck-1/cards"],
@@ -267,7 +270,7 @@ describe("persisting deck card writes", () => {
     await saveDeckCards(collection, "deck-1", [card("card-a", 3), card("card-b", 1)], {
       queryClient,
       userId,
-    }).isPersisted.promise;
+    }).when("settled");
 
     expect(sentCards()).toEqual([card("card-a", 3), card("card-b", 1)]);
     await vi.waitFor(() => {
@@ -283,9 +286,11 @@ describe("persisting deck card writes", () => {
       { deckId: "deck-1", ...card("card-b", 1) },
     ]);
 
-    await collection.update(deckCardKey({ deckId: "deck-1", ...card("card-a", 1) }), (draft) => {
-      draft.quantity = 3;
-    }).isPersisted.promise;
+    await collection
+      .update(deckCardKey({ deckId: "deck-1", ...card("card-a", 1) }), (draft) => {
+        draft.quantity = 3;
+      })
+      .when("settled");
 
     expect(sentCards()).toEqual([card("card-a", 3), card("card-b", 1)]);
   });
@@ -293,7 +298,7 @@ describe("persisting deck card writes", () => {
   it("sends a card inserted on the collection", async () => {
     const collection = await deckCardsOnServer([{ deckId: "deck-1", ...card("card-a", 1) }]);
 
-    await collection.insert({ deckId: "deck-1", ...card("card-b", 2) }).isPersisted.promise;
+    await collection.insert({ deckId: "deck-1", ...card("card-b", 2) }).when("settled");
 
     expect(sentCards()).toEqual([card("card-a", 1), card("card-b", 2)]);
   });
@@ -305,7 +310,7 @@ describe("persisting deck card writes", () => {
     ]);
     const deleted = deckCardKey({ deckId: "deck-1", ...card("card-b", 1) });
 
-    await collection.delete(deleted).isPersisted.promise;
+    await collection.delete(deleted).when("settled");
 
     expect(sentCards()).toEqual([card("card-a", 1)]);
     await vi.waitFor(() => {
@@ -323,7 +328,7 @@ describe("persisting deck card writes", () => {
     await saveDeckCards(collection, "deck-1", [card("card-a", 2), card("card-b", 1)], {
       queryClient,
       userId,
-    }).isPersisted.promise;
+    }).when("settled");
 
     await vi.waitFor(() => {
       expect(collection.toArray.map((row) => row.cardId)).toEqual(["card-a"]);
@@ -334,7 +339,7 @@ describe("persisting deck card writes", () => {
     const collection = await deckCardsOnServer([{ deckId: "deck-1", ...card("card-a", 1) }]);
     storedCards = [];
 
-    await saveDeckCards(collection, "deck-1", [], { queryClient, userId }).isPersisted.promise;
+    await saveDeckCards(collection, "deck-1", [], { queryClient, userId }).when("settled");
 
     expect(sentCards()).toEqual([]);
     await vi.waitFor(() => {
@@ -352,7 +357,7 @@ describe("persisting deck card writes", () => {
     await saveDeckCards(collection, "deck-1", [card("card-a", 3)], {
       queryClient,
       userId,
-    }).isPersisted.promise;
+    }).when("settled");
 
     expect(writes().map((request) => request.path)).toEqual(["/api/v1/decks/deck-1/cards"]);
     await vi.waitFor(() => {

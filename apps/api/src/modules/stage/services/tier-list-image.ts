@@ -10,7 +10,6 @@ import {
   CARD_ASPECT,
   COLORS,
   TILE_BORDER,
-  baselineNudge,
   cardRadiusPx,
   cardTile,
   element,
@@ -480,7 +479,7 @@ function landscapeTitle(
     },
     element(
       "div",
-      { display: "flex", flexDirection: "row", alignItems: "flex-end", flexGrow: 1 },
+      { display: "flex", flexDirection: "row", alignItems: "baseline", flexGrow: 1 },
       element(
         "div",
         {
@@ -505,7 +504,6 @@ function landscapeTitle(
               lineHeight: 1,
               fontWeight: 600,
               color: COLORS.gold,
-              transform: `translateY(${baselineNudge(canvas.titleSize, canvas.bylineSize)}px)`,
             },
             `by ${input.ownerName}`,
           )
@@ -519,7 +517,6 @@ function landscapeTitle(
           fontSize: canvas.metaSize,
           lineHeight: 1,
           color: COLORS.muted,
-          transform: `translateY(${baselineNudge(canvas.titleSize, canvas.metaSize)}px)`,
         },
         rankedLabel(rankedCount),
       ),
@@ -583,7 +580,6 @@ function verticalTitle(
           lineHeight: 1,
           color: COLORS.muted,
         },
-        // Row is centre-aligned, not bottom-aligned, so this needs no baselineNudge.
         rankedLabel(rankedCount),
       ),
     ),

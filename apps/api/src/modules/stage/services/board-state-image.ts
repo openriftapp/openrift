@@ -129,6 +129,12 @@ export function measurePieceHeight(document: BoardDocument, boardH: number): num
   return Math.max(24, Math.min(72, Math.floor(unitH - ZONE_LABEL_SIZE - 14)));
 }
 
+/** The keyword row is drawn only when the name keeps one full line; 10px is the tile's border and padding. */
+export function keywordsFit(piece: BoardPiece, tileH: number, fontSize: number): boolean {
+  const rows = (piece.might !== 0 || piece.damage > 0 ? 1 : 0) + 2;
+  return tileH - 10 >= rows * fontSize * 1.2 + fontSize * 1.1;
+}
+
 function upperLabel(text: string, color = "rgba(255,255,255,0.5)"): Element {
   return element(
     "div",
@@ -182,6 +188,7 @@ function pieceTile(piece: BoardPiece, pieceH: number, numeral?: number): Element
       backgroundColor: COLORS.surface,
       border: `2px solid ${piece.highlight ? COLORS.gold : color}`,
       overflow: "hidden",
+      lineHeight: 1.2,
     },
     element(
       "div",
@@ -210,6 +217,7 @@ function pieceTile(piece: BoardPiece, pieceH: number, numeral?: number): Element
         display: "flex",
         flexGrow: 1,
         flexShrink: 1,
+        minHeight: Math.ceil(fontSize * 1.1),
         fontSize,
         lineHeight: 1.1,
         color: COLORS.text,
@@ -218,9 +226,17 @@ function pieceTile(piece: BoardPiece, pieceH: number, numeral?: number): Element
       pieceText(piece, Math.max(6, Math.floor((width / fontSize) * 2.5))),
     ),
     piece.keywords.length > 0 &&
+      keywordsFit(piece, height, fontSize) &&
       element(
         "div",
-        { display: "flex", flexDirection: "row", gap: 2, overflow: "hidden" },
+        {
+          display: "flex",
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: 2,
+          height: Math.ceil(fontSize * 1.2),
+          overflow: "hidden",
+        },
         ...piece.keywords.slice(0, 2).map((keyword) => keywordBadge(keyword, fontSize)),
       ),
     element(

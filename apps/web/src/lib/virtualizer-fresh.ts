@@ -17,6 +17,7 @@ export function useWindowVirtualizerFresh<TItemElement extends Element>(
 } {
   // eslint-disable-next-line react-compiler/react-compiler -- see file header
   "use no memo";
+  // oxlint-disable-next-line react/incompatible-library -- see file header
   const virtualizer = useWindowVirtualizer(options);
   return {
     virtualizer,

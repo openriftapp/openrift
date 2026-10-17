@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { defaultIo } from "../../../io.js";
 import {
   chainEntryText,
+  keywordsFit,
   measurePieceHeight,
   pieceNumerals,
   pieceText,
@@ -187,6 +188,20 @@ describe("measurePieceHeight", () => {
         2000,
       ),
     ).toBe(72);
+  });
+});
+
+describe("keywordsFit", () => {
+  it("keeps keywords on a full-size tile", () => {
+    expect(keywordsFit(piece({ might: -2 }), 72, 13)).toBe(true);
+  });
+
+  it("drops keywords when they would squeeze the name off a small tile", () => {
+    expect(keywordsFit(piece({ might: -2 }), 48, 9)).toBe(false);
+  });
+
+  it("finds room for keywords on a small tile without a stats row", () => {
+    expect(keywordsFit(piece(), 48, 9)).toBe(true);
   });
 });
 

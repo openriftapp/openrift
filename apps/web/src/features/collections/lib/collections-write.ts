@@ -83,7 +83,7 @@ async function persistDelete(
   const moved = copies.toArray.filter((copy) => copy.collectionId === id);
   if (inboxId !== undefined && moved.length > 0) {
     startSyncIfNeeded(copies);
-    writeSkippingMissing(
+    await writeSkippingMissing(
       moved.map((copy) => ({ id: copy.id, collectionId: inboxId, groupId: null })),
       (rows) => copies.utils.writeUpdate(rows),
     );

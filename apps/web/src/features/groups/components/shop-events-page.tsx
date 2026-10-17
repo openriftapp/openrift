@@ -23,6 +23,7 @@ import {
   filterShopEventsByRange,
   groupShopEventsByDay,
 } from "@/features/groups/lib/shop-events";
+import { useMountedAt } from "@/hooks/use-mounted-at";
 import { m } from "@/paraglide/messages.js";
 
 const ALL_SHOPS = "all";
@@ -59,6 +60,7 @@ export function ShopEventsContent({
   const { data: feed } = useFriendGroupShopEvents(slug);
   const [shopFilter, setShopFilter] = useState<string>(ALL_SHOPS);
   const [range, setRange] = useState<ShopEventRange>("upcoming");
+  const now = useMountedAt();
 
   if (feed.shops.length === 0) {
     return (
@@ -87,7 +89,7 @@ export function ShopEventsContent({
 
   const selectedStoreId = shopFilter === ALL_SHOPS ? null : Number(shopFilter);
   const events = filterShopEventsByRange(filterShopEvents(feed.items, selectedStoreId), range);
-  const days = groupShopEventsByDay(events, new Date(), range === "past" ? "desc" : "asc");
+  const days = groupShopEventsByDay(events, now, range === "past" ? "desc" : "asc");
   const windowLabel = rangeWindowLabel(range, feed.pastDays, feed.horizonDays);
 
   return (

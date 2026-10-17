@@ -2,44 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Io } from "../../../io.js";
 import { defaultIo } from "../../../io.js";
-import {
-  CARD_RADIUS_FRACTION,
-  baselineNudge,
-  cardRadiusPx,
-  tileArtDataUri,
-} from "./share-image-core.js";
-
-describe("baselineNudge", () => {
-  // Offsets are measured off rendered PNGs at `lineHeight: 1`, the value every caller pins.
-  it("matches the measured offset for the title / byline pairing", () => {
-    expect(baselineNudge(34, 22)).toBe(-2);
-  });
-
-  it("matches the measured offset for the title / metadata pairing", () => {
-    expect(baselineNudge(34, 20)).toBe(-2);
-  });
-
-  it("matches the measured offset for the overflow tile's pairing", () => {
-    expect(baselineNudge(34, 21)).toBe(-2);
-  });
-
-  it("scales with the gap, not with either size on its own", () => {
-    expect(baselineNudge(200, 20)).toBe(-25);
-    expect(baselineNudge(100, 20)).toBe(-11);
-    expect(baselineNudge(40, 20)).toBe(-3);
-  });
-
-  it("leaves equally-sized runs alone, since their boxes already agree", () => {
-    expect(baselineNudge(26, 26)).toBe(0);
-  });
-
-  it("never pushes the smaller run down", () => {
-    for (let size = 8; size <= 60; size++) {
-      expect(baselineNudge(size, size)).toBe(0);
-      expect(baselineNudge(size + 10, size)).toBeLessThan(0);
-    }
-  });
-});
+import { CARD_RADIUS_FRACTION, cardRadiusPx, tileArtDataUri } from "./share-image-core.js";
 
 describe("cardRadiusPx", () => {
   it("rounds to 5% of the tile's short edge", () => {

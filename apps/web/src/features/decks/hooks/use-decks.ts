@@ -243,7 +243,7 @@ export function useCreateDeck() {
       if (existing) {
         return existing.deck;
       }
-      await collection.insert(row).isPersisted.promise;
+      await collection.insert(row).when("settled");
       return collection.get(row.deck.id)?.deck ?? row.deck;
     },
   });
@@ -261,7 +261,7 @@ export function useDeleteDeck() {
       if (!collection.has(deckId)) {
         return;
       }
-      await collection.delete(deckId).isPersisted.promise;
+      await collection.delete(deckId).when("settled");
       // The deck-cards delta keys on live decks, so a deleted deck's rows never leave on their own.
       const cards = getDeckCardsCollection(queryClient, userId);
       const keys = cards.toArray
@@ -269,7 +269,7 @@ export function useDeleteDeck() {
         .map((row) => deckCardKey(row));
       if (keys.length > 0) {
         startSyncIfNeeded(cards);
-        cards.utils.writeDelete(keys);
+        await cards.utils.writeDelete(keys);
       }
     },
   });
@@ -297,7 +297,7 @@ export function useSaveDeckCards() {
       }
       const collection = getDeckCardsCollection(queryClient, userId);
       await collection.preload();
-      await applyDeckCards(collection, deckId, cards, { queryClient, userId }).isPersisted.promise;
+      await applyDeckCards(collection, deckId, cards, { queryClient, userId }).when("settled");
     },
   });
 }
@@ -331,7 +331,7 @@ export function useUpdateDeck() {
       if (!collection.has(deckId)) {
         return;
       }
-      await updateDeck(collection, deckId, fields).isPersisted.promise;
+      await updateDeck(collection, deckId, fields).when("settled");
     },
   });
 }
@@ -376,9 +376,11 @@ export function useSetDeckPinned() {
       if (!collection.has(deckId)) {
         return;
       }
-      await collection.update(deckId, (draft) => {
-        draft.deck = { ...draft.deck, isPinned };
-      }).isPersisted.promise;
+      await collection
+        .update(deckId, (draft) => {
+          draft.deck = { ...draft.deck, isPinned };
+        })
+        .when("settled");
     },
   });
 }
@@ -392,9 +394,11 @@ export function useSetDeckArchived() {
       if (!collection.has(deckId)) {
         return;
       }
-      await collection.update(deckId, (draft) => {
-        draft.deck = { ...draft.deck, archivedAt: archived ? new Date().toISOString() : null };
-      }).isPersisted.promise;
+      await collection
+        .update(deckId, (draft) => {
+          draft.deck = { ...draft.deck, archivedAt: archived ? new Date().toISOString() : null };
+        })
+        .when("settled");
     },
   });
 }
@@ -482,9 +486,11 @@ export function useSetDeckPredecessor() {
       if (!collection.has(deckId)) {
         return;
       }
-      await collection.update(deckId, (draft) => {
-        draft.deck = { ...draft.deck, predecessorDeckId };
-      }).isPersisted.promise;
+      await collection
+        .update(deckId, (draft) => {
+          draft.deck = { ...draft.deck, predecessorDeckId };
+        })
+        .when("settled");
       // The rail and lineage list read every member's pointer, not just this row's.
       void queryClient.invalidateQueries({ queryKey: decksKeys.syncedStore(userId) });
     },
@@ -500,9 +506,11 @@ export function usePromoteDeckPrimary() {
       if (!collection.has(deckId)) {
         return;
       }
-      await collection.update(deckId, (draft) => {
-        draft.deck = { ...draft.deck, isPrimary: true };
-      }).isPersisted.promise;
+      await collection
+        .update(deckId, (draft) => {
+          draft.deck = { ...draft.deck, isPrimary: true };
+        })
+        .when("settled");
     },
   });
 }
@@ -555,9 +563,11 @@ function useSetDeckPublic(isPublic: boolean) {
       if (!collection.has(deckId)) {
         return;
       }
-      await collection.update(deckId, (draft) => {
-        draft.deck = { ...draft.deck, isPublic };
-      }).isPersisted.promise;
+      await collection
+        .update(deckId, (draft) => {
+          draft.deck = { ...draft.deck, isPublic };
+        })
+        .when("settled");
     },
   });
 }

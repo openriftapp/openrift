@@ -7,7 +7,6 @@ import {
   CARD_ASPECT,
   COLORS,
   QR_SIZE,
-  baselineNudge,
   cardRadiusPx,
   cardTile,
   element,
@@ -189,7 +188,6 @@ function markCell(
               color: COLORS.muted,
               fontSize: Math.round(moreFont * 0.62),
               fontWeight: 600,
-              transform: `translateY(${baselineNudge(moreFont, Math.round(moreFont * 0.62))}px)`,
             },
             "more",
           ),
@@ -211,11 +209,9 @@ function countLabel(input: ShareImageInput): string {
 }
 
 function titleRow(input: ShareImageInput): Element {
-  // All three runs share one flex-end row: separately centered boxes of
-  // different heights would leave their baselines offset.
   const runs = element(
     "div",
-    { display: "flex", flexDirection: "row", alignItems: "flex-end", flexGrow: 1 },
+    { display: "flex", flexDirection: "row", alignItems: "baseline", flexGrow: 1 },
     element(
       "div",
       {
@@ -240,7 +236,6 @@ function titleRow(input: ShareImageInput): Element {
             lineHeight: 1,
             fontWeight: 600,
             color: COLORS.gold,
-            transform: `translateY(${baselineNudge(TITLE_SIZE, BYLINE_SIZE)}px)`,
           },
           `by ${input.ownerName}`,
         )
@@ -254,7 +249,6 @@ function titleRow(input: ShareImageInput): Element {
         fontSize: META_SIZE,
         lineHeight: 1,
         color: COLORS.muted,
-        transform: `translateY(${baselineNudge(TITLE_SIZE, META_SIZE)}px)`,
       },
       `${input.intentLabel} · ${countLabel(input)}`,
     ),

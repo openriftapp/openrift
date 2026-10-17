@@ -44,7 +44,6 @@ import {
   pairingFromRoundsChoice,
   parseScheduleInput,
 } from "@/features/tournaments/lib/tournament-display";
-import { useHydrated } from "@/hooks/use-hydrated";
 import { localTimeZoneLabel, splitUtcToLocalDateTime } from "@/lib/date-time-input";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -80,25 +79,14 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
   );
   const [selfRegistration, setSelfRegistration] = useState(false);
   const [groupId, setGroupId] = useState(initialGroupId);
-  const [schedule, setSchedule] = useState<ScheduleInput>({
-    startDate: "",
-    startTime: "",
-    endDate: "",
-    endTime: "",
+  // Reads the viewer's clock, which only works because the route is `ssr: "data-only"`.
+  const [schedule, setSchedule] = useState<ScheduleInput>(() => {
+    const nowLocal = splitUtcToLocalDateTime(new Date().toISOString());
+    return { startDate: nowLocal.date, startTime: nowLocal.time, endDate: "", endTime: "" };
   });
   const [closeDate, setCloseDate] = useState("");
   const [closeTime, setCloseTime] = useState("");
   const [lockMode, setLockMode] = useState<TournamentListLockMode>("at_deadline");
-
-  // Prefill the start to the current local time, once, on the first hydrated
-  // render — reading the clock during the SSR pass would mismatch the client's.
-  const hydrated = useHydrated();
-  const [startPrefilled, setStartPrefilled] = useState(false);
-  if (hydrated && !startPrefilled) {
-    const nowLocal = splitUtcToLocalDateTime(new Date().toISOString());
-    setStartPrefilled(true);
-    setSchedule((current) => ({ ...current, startDate: nowLocal.date, startTime: nowLocal.time }));
-  }
 
   const wantsDeck = deckSubmission !== "none";
   const { pairingStyle, matchFormat, format } = pairingsEnabled

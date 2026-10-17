@@ -3,6 +3,7 @@ import { CheckIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import type { MetaCoverageRow } from "@/features/meta/lib/meta-catalog-display";
+import { useMountedAt } from "@/hooks/use-mounted-at";
 
 function coverageRecheckHint(row: MetaCoverageRow, now: Date): string {
   if (row.triage !== "accepted") {
@@ -38,8 +39,8 @@ function CoverageChip({
 }
 
 export function MetaCoverageChips({ row, now }: { row: MetaCoverageRow; now?: Date }) {
-  // React Compiler cannot lower a destructuring default whose value is a call.
-  const at = now ?? new Date();
+  const mountedAt = useMountedAt();
+  const at = now ?? mountedAt;
 
   if (row.triage !== "accepted") {
     return null;

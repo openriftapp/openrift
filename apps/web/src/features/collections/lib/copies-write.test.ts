@@ -91,8 +91,9 @@ describe("persisting copy writes", () => {
     });
     const collection = getCopiesCollection(queryClient, userId);
 
-    await collection.insert(stubCopy({ id: "c1", printingId: "p1", collectionId: "col-1" }))
-      .isPersisted.promise;
+    await collection
+      .insert(stubCopy({ id: "c1", printingId: "p1", collectionId: "col-1" }))
+      .when("settled");
 
     expect(collection.get("c1")?.collectionId).toBe("col-1");
   });
@@ -100,8 +101,9 @@ describe("persisting copy writes", () => {
   it("sends added copies with their client ids and stores the rows the API returns", async () => {
     const collection = await copiesOnServer([]);
 
-    await collection.insert(stubCopy({ id: "c1", printingId: "p1", collectionId: "col-1" }))
-      .isPersisted.promise;
+    await collection
+      .insert(stubCopy({ id: "c1", printingId: "p1", collectionId: "col-1" }))
+      .when("settled");
 
     expect(sent).toEqual([
       {
@@ -115,15 +117,17 @@ describe("persisting copy writes", () => {
   it("sends only the details a new copy has set", async () => {
     const collection = await copiesOnServer([]);
 
-    await collection.insert(
-      stubCopy({
-        id: "c1",
-        printingId: "p1",
-        collectionId: "col-1",
-        condition: "NM",
-        isAltered: true,
-      }),
-    ).isPersisted.promise;
+    await collection
+      .insert(
+        stubCopy({
+          id: "c1",
+          printingId: "p1",
+          collectionId: "col-1",
+          condition: "NM",
+          isAltered: true,
+        }),
+      )
+      .when("settled");
 
     expect(sent[0]?.body).toEqual({
       copies: [
@@ -135,7 +139,7 @@ describe("persisting copy writes", () => {
   it("sends a detail edit's whole patch so grader and grade travel together", async () => {
     const collection = await copiesOnServer([stubCopy({ id: "c1", grader: "PSA", grade: 9 })]);
 
-    await updateCopyMetadata(collection, ["c1"], { grader: "PSA", grade: 10 }).isPersisted.promise;
+    await updateCopyMetadata(collection, ["c1"], { grader: "PSA", grade: 10 }).when("settled");
 
     expect(sent).toEqual([
       {
@@ -159,7 +163,7 @@ describe("persisting copy writes", () => {
       }
     });
 
-    await expect(move.isPersisted.promise).rejects.toThrow();
+    await expect(move.when("settled")).rejects.toThrow();
     expect(sent).toHaveLength(2);
     expect(collection.get("c0")?.collectionId).toBe("dest");
     expect(collection.get("c499")?.collectionId).toBe("dest");
@@ -171,7 +175,7 @@ describe("persisting copy writes", () => {
     const collection = await copiesOnServer(ids.map((id) => stubCopy({ id })));
     respond = (request) => (sent.length === 2 ? fail() : succeed(request));
 
-    await expect(collection.delete(ids).isPersisted.promise).rejects.toThrow();
+    await expect(collection.delete(ids).when("settled")).rejects.toThrow();
 
     expect(sent).toHaveLength(2);
     expect(collection.has("c0")).toBe(false);
@@ -190,7 +194,7 @@ describe("persisting copy writes", () => {
     expect(sent).toEqual([]);
 
     await add.commit();
-    await move.isPersisted.promise;
+    await move.when("settled");
 
     expect(sent.map((request) => request.path)).toEqual(["/api/v1/copies", "/api/v1/copies/move"]);
     // Confirmed rows reach synced state on the tick after the transaction settles.
@@ -232,7 +236,7 @@ describe("persisting copy writes", () => {
     const removal = collection.delete("c1");
 
     await expect(add.commit()).rejects.toThrow();
-    await removal.isPersisted.promise;
+    await removal.when("settled");
 
     expect(sent.map((request) => request.path)).toEqual(["/api/v1/copies"]);
     expect(collection.has("c1")).toBe(false);
@@ -270,7 +274,7 @@ describe("persisting copy writes", () => {
       return succeed(request);
     };
 
-    await collection.delete(["c1", "c2"]).isPersisted.promise;
+    await collection.delete(["c1", "c2"]).when("settled");
 
     expect(collection.toArray).toEqual([]);
   });
@@ -290,7 +294,7 @@ describe("persisting copy writes", () => {
       return succeed(request);
     };
 
-    await collection.delete(rows.map((row) => row.id)).isPersisted.promise;
+    await collection.delete(rows.map((row) => row.id)).when("settled");
 
     await vi.waitFor(() => expect(collection.toArray).toEqual([]));
   });
@@ -300,12 +304,14 @@ describe("persisting copy writes", () => {
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
     const invalidatedKeys = () => invalidate.mock.calls.map(([filters]) => filters?.queryKey);
 
-    await updateCopyMetadata(collection, ["c1"], { condition: "mint" }).isPersisted.promise;
+    await updateCopyMetadata(collection, ["c1"], { condition: "mint" }).when("settled");
     expect(invalidatedKeys()).not.toContainEqual(["collections", userId]);
 
-    await collection.update("c1", (draft) => {
-      draft.collectionId = "dest";
-    }).isPersisted.promise;
+    await collection
+      .update("c1", (draft) => {
+        draft.collectionId = "dest";
+      })
+      .when("settled");
     expect(invalidatedKeys()).toContainEqual(["collections", userId]);
   });
 });
@@ -353,7 +359,7 @@ describe("confirmed writes survive a copies refetch that started before them", (
       return succeed(request);
     };
 
-    await collection.insert(row).isPersisted.promise;
+    await collection.insert(row).when("settled");
     await landLateRefetch(release, refetching);
 
     expect(collection.toArray.map((copy) => copy.id).toSorted()).toEqual(["added", "existing"]);
@@ -368,9 +374,11 @@ describe("confirmed writes survive a copies refetch that started before them", (
       return succeed(request);
     };
 
-    await collection.update("c1", (draft) => {
-      draft.collectionId = "dest";
-    }).isPersisted.promise;
+    await collection
+      .update("c1", (draft) => {
+        draft.collectionId = "dest";
+      })
+      .when("settled");
     await landLateRefetch(release, refetching);
 
     expect(collection.get("c1")?.collectionId).toBe("dest");
@@ -385,7 +393,7 @@ describe("confirmed writes survive a copies refetch that started before them", (
       return succeed(request);
     };
 
-    await updateCopyMetadata(collection, ["c1"], { condition: "mint" }).isPersisted.promise;
+    await updateCopyMetadata(collection, ["c1"], { condition: "mint" }).when("settled");
     await landLateRefetch(release, refetching);
 
     expect(collection.get("c1")?.condition).toBe("mint");
@@ -400,7 +408,7 @@ describe("confirmed writes survive a copies refetch that started before them", (
       return succeed(request);
     };
 
-    await collection.delete("c1").isPersisted.promise;
+    await collection.delete("c1").when("settled");
     await landLateRefetch(release, refetching);
 
     expect(collection.has("c1")).toBe(false);

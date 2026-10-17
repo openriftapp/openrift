@@ -167,7 +167,7 @@ export function useMoveCopies() {
           draft.groupId = groupId;
         }
       });
-      await transaction.isPersisted.promise;
+      await transaction.when("settled");
     },
   });
 }
@@ -191,7 +191,7 @@ export function useUpdateCopies() {
       if (present.length === 0) {
         return;
       }
-      await updateCopyMetadata(collection, present, patch).isPersisted.promise;
+      await updateCopyMetadata(collection, present, patch).when("settled");
     },
   });
 }
@@ -211,7 +211,7 @@ export function useDisposeCopies() {
       if (present.length === 0) {
         return;
       }
-      await collection.delete(present).isPersisted.promise;
+      await collection.delete(present).when("settled");
       trackEvent("collection-remove", { count: present.length });
     },
   });

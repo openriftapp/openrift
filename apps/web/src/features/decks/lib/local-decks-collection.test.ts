@@ -196,7 +196,7 @@ describe("legacy import runs once", () => {
     const collection = getLocalDecksCollection();
     const ids = collection.toArray.map((deck) => deck.id);
     expect(ids.length).toBeGreaterThan(0);
-    await collection.delete(ids).isPersisted.promise;
+    await collection.delete(ids).when("settled");
 
     const reloaded = await reloadModule();
 
@@ -211,7 +211,7 @@ describe("concurrent preloads", () => {
     await setup.preloadLocalDecks();
     const existing = setup.getLocalDecksCollection().toArray.map((deck) => deck.id);
     if (existing.length > 0) {
-      await setup.getLocalDecksCollection().delete(existing).isPersisted.promise;
+      await setup.getLocalDecksCollection().delete(existing).when("settled");
     }
     localStorage.removeItem("openrift-local-decks-migrated");
 
@@ -285,7 +285,7 @@ describe("a legacy import the browser refuses", () => {
     const collection = getLocalDecksCollection();
     const ids = collection.toArray.map((deck) => deck.id);
     if (ids.length > 0) {
-      await collection.delete(ids).isPersisted.promise;
+      await collection.delete(ids).when("settled");
     }
     localStorage.removeItem(MIGRATED_KEY);
     const write = Storage.prototype.setItem.bind(localStorage);

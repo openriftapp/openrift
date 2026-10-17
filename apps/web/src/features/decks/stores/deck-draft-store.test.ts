@@ -34,7 +34,7 @@ function clearLocalDecks() {
 // `vi.hoisted` keeps the spy available to the hoisted `vi.mock` factory below.
 const { saveDeckCardsSpy } = vi.hoisted(() => ({
   saveDeckCardsSpy: vi.fn((..._args: unknown[]) => ({
-    isPersisted: { promise: Promise.resolve() },
+    when: () => Promise.resolve(),
   })),
 }));
 vi.mock("@/features/decks/lib/decks-write", () => ({
@@ -221,7 +221,7 @@ describe("resetDeckDraft", () => {
   it("leaves no error behind when it aborts an in-flight save", async () => {
     saveDeckCardsSpy.mockImplementationOnce(() => ({
       // oxlint-disable-next-line promise/avoid-new -- a save that never settles, so the reset's abort is what ends it
-      isPersisted: { promise: new Promise<void>(() => {}) },
+      when: () => new Promise<void>(() => {}),
     }));
     hydrateDeckDraft(queryClient, userA, "deck-reset-inflight", []);
     getDeckDraftCollection(queryClient, userA, "deck-reset-inflight").insert(
