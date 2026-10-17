@@ -11,7 +11,7 @@
       "ignoreDependencies": ["@piltoverarchive/riftbound-deck-codes", "@fontsource/chakra-petch"]
     },
     "apps/api": {
-      "entry": ["src/app.ts"],
+      "entry": ["src/app.ts", "src/db/catalog-sync.ts", "src/db/catalog-sync-writer.ts"],
       "ignore": ["src/test/**", "src/db/migrations/*.ts"],
       "ignoreDependencies": ["swagger-ui-dist"]
     },

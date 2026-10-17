@@ -33,24 +33,32 @@ const MEDIA_MIME_TYPES: Record<string, string> = {
   ".png": "image/png",
 };
 
-const serveMediaPlugin: Plugin = {
-  name: "serve-media",
-  configureServer(server) {
-    server.middlewares.use("/media", (req, res, _next) => {
-      const filePath = path.join(mediaDir, req.url?.split("?")[0] ?? "");
-      if (!existsSync(filePath)) {
-        // Must 404 here, not fall through to next(): that routes the request
-        // through the full SSR pipeline for every missing thumbnail.
-        res.statusCode = 404;
-        res.end();
-        return;
-      }
-      const ext = path.extname(filePath).toLowerCase();
-      res.setHeader("Content-Type", MEDIA_MIME_TYPES[ext] ?? "application/octet-stream");
-      createReadStream(filePath).pipe(res);
-    });
-  },
-};
+function serveMediaPlugin(fallbackOrigin?: string): Plugin {
+  return {
+    name: "serve-media",
+    configureServer(server) {
+      server.middlewares.use("/media", (req, res, _next) => {
+        const filePath = path.join(mediaDir, req.url?.split("?")[0] ?? "");
+        if (!existsSync(filePath)) {
+          if (fallbackOrigin) {
+            res.statusCode = 302;
+            res.setHeader("Location", `${fallbackOrigin}/media${req.url ?? ""}`);
+            res.end();
+            return;
+          }
+          // Must 404 here, not fall through to next(): that routes the request
+          // through the full SSR pipeline for every missing thumbnail.
+          res.statusCode = 404;
+          res.end();
+          return;
+        }
+        const ext = path.extname(filePath).toLowerCase();
+        res.setHeader("Content-Type", MEDIA_MIME_TYPES[ext] ?? "application/octet-stream");
+        createReadStream(filePath).pipe(res);
+      });
+    },
+  };
+}
 
 const DEVICE_RUNS_DIR = path.join(repoRoot, "data/image-recognition-test/device-runs");
 /** Bytes. */
@@ -302,7 +310,7 @@ export default defineConfig(({ mode, command }) => {
             },
           ]
         : []),
-      serveMediaPlugin,
+      serveMediaPlugin(env.CATALOG_SOURCE_URL?.replace(/\/$/u, "")),
       saveDeviceRunPlugin,
       // Compiles messages/*.json into src/paraglide. Remaining options live in
       // project.inlang/paraglide.config.ts so the CLI reads the same setup.

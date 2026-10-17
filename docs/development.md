@@ -20,6 +20,9 @@ docker compose up db -d
 # Run database migrations
 bun db:migrate
 
+# Copy the public card catalog, rules and prices from openrift.app (see "Card data")
+bun db:sync
+
 # Start all dev servers
 bun dev
 ```
@@ -67,6 +70,31 @@ straighten tool are off. Build the reference bank once from the admin scan
 page after the encoder is in place. The offline bench under `scripts/scan/`
 has its own setup, described in `scripts/scan/README.md`.
 
+## Card data
+
+A fresh database has no cards. `bun db:sync` copies the public data of the OpenRift instance in `CATALOG_SOURCE_URL` (openrift.app in `.env.example`) into the database in `DATABASE_URL`. Run it after `bun db:migrate`, and again whenever you want the latest cards, rules or prices.
+
+What it copies:
+
+- **Catalog** from `/api/v1/init` and `/api/v1/catalog`: sets, cards, printings, errata, bans, tokens, tags, custom tags, keywords, markers, distribution channels and image records. Card, set, printing and image ids match the source, so card links and deck codes work the same as on openrift.app.
+- **Rules** from `/api/v1/rules/versions` and `/api/v1/rules`: every core and tournament version in every language.
+- **Latest prices** from `/api/v1/prices` and `/api/v1/prices/marketplace-info`: one snapshot per marketplace product. There is no price history.
+
+It does not copy users, decks, collections, lists, groups, tournaments, the meta archive, sealed products or image files. When a card image is missing from `./media`, the web dev server redirects the request to `CATALOG_SOURCE_URL`, so images load from the source.
+
+**Updates.** Later runs update every copied row from the source. Local changes to cards, printings, tags, rules or prices are overwritten, for example edits made in the admin card editor. Rows the source no longer has stay in place, because user data may reference them. Users, decks, collections and lists are never touched.
+
+**Confirmation.** Each run first prints the target database, the source, and whether this is a first sync or an update. It then asks you to type `yes`. For a database whose host is not `localhost`, `127.0.0.1` or `::1` it prints a warning and asks you to type the database name instead, and `--yes` does not skip that. Outside a terminal, a local run needs `--yes` and a non-local run refuses:
+
+```bash
+bun db:sync          # prints the plan, asks for "yes"
+bun db:sync --yes    # local database only: skips the question
+```
+
+**Safety check.** The first sync records the source URL in the `site_settings` row `dev.catalog-sync-source`. If a database already has cards or rules but no such row, `db:sync` refuses to run. That protects a restored production dump or any catalog maintained through the admin tools, where an overwrite would replace curated data with the public subset. To sync such a database anyway, start from an empty one: drop it, migrate, then run `db:sync`.
+
+Each part (catalog, rules, prices) is written in its own transaction. If a run fails partway, run it again: the earlier parts are already in place and are updated again.
+
 ## Database
 
 PostgreSQL runs in Docker. Data persists in a bind mount at `./data/postgres` — to wipe it, stop the container and remove the directory: `docker compose down && rm -rf ./data/postgres`.
@@ -74,6 +102,7 @@ PostgreSQL runs in Docker. Data persists in a bind mount at `./data/postgres` �
 ```bash
 bun db:migrate    # Run pending migrations
 bun db:rollback   # Roll back the last migration
+bun db:sync       # Copy or update the public catalog, rules and prices (see "Card data")
 bun make-admin -- <email>  # Grant admin role to a user
 bun db:dev-sanitize        # Sanitize a restored production dump (local DB only)
 ```
@@ -100,11 +129,11 @@ docker exec openrift-db-1 psql -U openrift -c "SELECT count(*) FROM cards;"
 
 **"Failed to load cards" in the browser**
 
-| Cause                         | Fix                                                                                                                                             |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Database not running          | `docker compose up db -d`                                                                                                                       |
-| Migrations not applied        | `bun db:migrate`                                                                                                                                |
-| Database empty (no card data) | Import the catalog from the admin panel (`/admin`) — there is no CLI seed command. Grant yourself admin with `bun make-admin -- <email>` first. |
+| Cause                         | Fix                       |
+| ----------------------------- | ------------------------- |
+| Database not running          | `docker compose up db -d` |
+| Migrations not applied        | `bun db:migrate`          |
+| Database empty (no card data) | `bun db:sync`             |
 
 ## Linting and Formatting
 

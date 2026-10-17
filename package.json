@@ -26,6 +26,7 @@
     "db:migrate": "bun run --cwd packages/shared db:migrate",
     "db:schema": "bun --env-file=.env scripts/db-schema.ts",
     "db:cleanup": "bun --env-file=.env scripts/db-cleanup.ts",
+    "db:sync": "bun --env-file=.env scripts/db-sync.ts",
     "db:dev-sanitize": "bun --env-file=.env scripts/sanitize-dev-db.ts",
     "db:rollback": "bun run --cwd packages/shared db:rollback",
     "make-admin": "bun run --cwd packages/shared make-admin --",
