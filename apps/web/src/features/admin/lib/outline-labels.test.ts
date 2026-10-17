@@ -12,6 +12,8 @@ import {
   mergeOpenedOutlineLabels,
   moveCard,
   moveCorner,
+  moveEdge,
+  nearestCorner,
   removeCard,
   serializeOutlineLabels,
   serializeStoredOutlineLabels,
@@ -50,8 +52,8 @@ describe("outlineLabelsFromSaved", () => {
 describe("outlineLabelMargin", () => {
   const size = { width: 300, height: 600 };
 
-  it("leaves a third of the long side around a frame whose outlines lie inside", () => {
-    expect(outlineLabelMargin([quad], size)).toBe(200);
+  it("leaves a twelfth of the long side around a frame whose outlines lie inside", () => {
+    expect(outlineLabelMargin([quad], size)).toBe(50);
   });
 
   it("grows to reach a corner drawn past the frame's edge", () => {
@@ -61,7 +63,7 @@ describe("outlineLabelMargin", () => {
       { x: 10, y: 640 },
       { x: -150, y: 640 },
     ];
-    expect(outlineLabelMargin([cutOff], size)).toBe(350);
+    expect(outlineLabelMargin([cutOff], size)).toBe(200);
   });
 });
 
@@ -152,6 +154,51 @@ describe("editing", () => {
     const card = added.cards[1];
     expect(added.cards).toHaveLength(2);
     expect(card?.[3].y && card[0].y ? card[3].y - card[0].y : 0).toBeCloseTo(100, 6);
+  });
+
+  it("centres an added card on a given point", () => {
+    const card = addCard(label, 1000, 500, { x: 200, y: 300 }).cards[1];
+    const centre = card ? card.reduce((sum, point) => sum + point.x, 0) / 4 : 0;
+    const middle = card ? card.reduce((sum, point) => sum + point.y, 0) / 4 : 0;
+    expect(centre).toBeCloseTo(200, 6);
+    expect(middle).toBeCloseTo(300, 6);
+  });
+
+  it("moves both corners of a dragged edge and leaves the others", () => {
+    const original = label.cards[0];
+    if (!original) {
+      throw new Error("fixture has a card");
+    }
+    const moved = moveEdge(label, 0, 3, original, { x: -5, y: 0 }).cards[0];
+    expect(moved?.[3]).toEqual({ x: original[3].x - 5, y: original[3].y });
+    expect(moved?.[0]).toEqual({ x: original[0].x - 5, y: original[0].y });
+    expect(moved?.[1]).toEqual(original[1]);
+    expect(moved?.[2]).toEqual(original[2]);
+  });
+
+  it("finds the corner closest to a point across every card", () => {
+    const far: OutlineLabelQuad = [
+      { x: 500, y: 500 },
+      { x: 600, y: 500 },
+      { x: 600, y: 640 },
+      { x: 500, y: 640 },
+    ];
+    expect(nearestCorner([quad, far], { x: 590, y: 650 })).toEqual({ card: 1, corner: 2 });
+  });
+
+  it("finds no corner when every corner is out of reach", () => {
+    const card: OutlineLabelQuad = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 100, y: 140 },
+      { x: 0, y: 140 },
+    ];
+    expect(nearestCorner([card], { x: 50, y: 70 })).toBeNull();
+    expect(nearestCorner([card], { x: 20, y: 20 })).toEqual({ card: 0, corner: 0 });
+  });
+
+  it("finds no corner on a frame without cards", () => {
+    expect(nearestCorner([], { x: 0, y: 0 })).toBeNull();
   });
 
   it("removes a card", () => {

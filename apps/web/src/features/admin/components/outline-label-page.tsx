@@ -3,6 +3,12 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -23,6 +29,8 @@ import {
   mergeOpenedOutlineLabels,
   moveCard,
   moveCorner,
+  moveEdge,
+  nearestCorner,
   removeCard,
   serializeOutlineLabels,
   serializeStoredOutlineLabels,
@@ -32,6 +40,7 @@ import { downloadText } from "@/lib/download";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 
 const EMPTY_LABEL: FrameOutlineLabel = { cards: [], done: false };
+const ZOOMS = [1, 1.5, 2, 3, 4];
 
 interface Frame {
   name: string;
@@ -67,9 +76,11 @@ export function OutlineLabelPage() {
   const [margin, setMargin] = useState(0);
   const [openError, setOpenError] = useState<string | null>(null);
   const [keptAutosave, setKeptAutosave] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const [menuCard, setMenuCard] = useState<number | null>(null);
   const dragRef = useRef<
     | { card: number; corner: number }
-    | { card: number; from: OutlineLabelPoint; original: OutlineLabelQuad }
+    | { card: number; edge?: number; from: OutlineLabelPoint; original: OutlineLabelQuad }
     | null
   >(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -176,24 +187,51 @@ export function OutlineLabelPage() {
       return;
     }
     const by = { x: point.x - drag.from.x, y: point.y - drag.from.y };
-    update(moveCard(label, drag.card, drag.original, by));
+    update(
+      drag.edge === undefined
+        ? moveCard(label, drag.card, drag.original, by)
+        : moveEdge(label, drag.card, drag.edge, drag.original, by),
+    );
   }
 
   function startDrag(event: ReactPointerEvent<SVGElement>, card: number, corner: number): void {
     event.stopPropagation();
+    if (event.button !== 0) {
+      return;
+    }
     dragRef.current = { card, corner };
     setSelected(card);
     svgRef.current?.setPointerCapture(event.pointerId);
   }
 
-  function startCardDrag(event: ReactPointerEvent<SVGElement>, card: number): void {
+  function startCardDrag(event: ReactPointerEvent<SVGElement>, card: number, edge?: number): void {
+    event.stopPropagation();
     const from = toImage(event);
     const original = label.cards[card];
     setSelected(card);
-    if (!from || !original) {
+    if (event.button !== 0 || !from || !original) {
       return;
     }
-    dragRef.current = { card, from, original };
+    dragRef.current = { card, edge, from, original };
+    svgRef.current?.setPointerCapture(event.pointerId);
+  }
+
+  function snapNearestCorner(event: ReactPointerEvent<SVGSVGElement>): void {
+    if (
+      event.button !== 0 ||
+      event.target instanceof SVGCircleElement ||
+      event.target instanceof SVGLineElement
+    ) {
+      return;
+    }
+    const point = toImage(event);
+    const nearest = point ? nearestCorner(label.cards, point) : null;
+    if (!point || !nearest) {
+      return;
+    }
+    update(moveCorner(label, nearest.card, nearest.corner, point));
+    dragRef.current = nearest;
+    setSelected(nearest.card);
     svgRef.current?.setPointerCapture(event.pointerId);
   }
 
@@ -211,9 +249,9 @@ export function OutlineLabelPage() {
     }
   }
 
-  function add(): void {
+  function add(center?: OutlineLabelPoint): void {
     if (size) {
-      update(addCard(label, size.width, size.height));
+      update(addCard(label, size.width, size.height, center));
       setSelected(label.cards.length);
     }
   }
@@ -223,6 +261,25 @@ export function OutlineLabelPage() {
       update(removeCard(label, selected));
       setSelected(null);
     }
+  }
+
+  function copyPrevious(): void {
+    const previous = frames[current - 1];
+    const source = previous ? labels[previous.name] : undefined;
+    if (source) {
+      update({
+        ...label,
+        cards: source.cards.map((quad) => quad.map((point) => ({ ...point })) as OutlineLabelQuad),
+      });
+      setSelected(null);
+    }
+  }
+
+  function zoomBy(step: number): void {
+    setZoom((value) => {
+      const index = ZOOMS.indexOf(value) + step;
+      return ZOOMS[Math.max(0, Math.min(ZOOMS.length - 1, index))] ?? value;
+    });
   }
 
   function save(): void {
@@ -239,10 +296,16 @@ export function OutlineLabelPage() {
       go(current - 1);
     } else if (event.key === "d") {
       toggleDone();
+    } else if (event.key === "c") {
+      copyPrevious();
     } else if (event.key === "a") {
       add();
     } else if (event.key === "Delete" || event.key === "Backspace") {
       remove();
+    } else if (event.key === "+" || event.key === "=") {
+      zoomBy(1);
+    } else if (event.key === "-") {
+      zoomBy(-1);
     }
   });
 
@@ -252,20 +315,22 @@ export function OutlineLabelPage() {
     return () => globalThis.removeEventListener("keydown", listener);
   }, []);
 
-  const handle = size ? Math.max(6, size.width * 0.012) : 6;
-  const stroke = size ? Math.max(2, size.width * 0.003) : 2;
+  const handle = (size ? Math.max(6, size.width * 0.012) : 6) / zoom;
+  const stroke = (size ? Math.max(2, size.width * 0.003) : 2) / zoom;
 
   return (
     <>
       <AdminPageTopBar title="Outline Labels" />
-      <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-4 pb-12")}>
+      <div className={cn(PAGE_WIDTH.full, "px-safe flex flex-col gap-4 pb-12")}>
         <PageDescription>
           Open the frame folder: every image plus proposals.json, and a saved scan-labels.json to
-          continue. Drag each corner onto the card&apos;s outer edge, or drag inside an outline to
-          move the whole card. Add cards that have no outline, remove outlines that are not a card,
-          then mark the frame done. A frame counts for training only once every card in it is
-          outlined. Keys: n and p move between frames, d marks done, a adds a card, Delete removes
-          the selected one.
+          continue. A click or drag near a corner moves that corner there. Drag inside an outline to
+          move the whole card, or drag an edge to move its two corners. Add cards that have no
+          outline, remove outlines that are not a card, then mark the frame done. A frame counts for
+          training only once every card in it is outlined. Keys: n and p move between frames, d
+          marks done, c copies the previous frame&apos;s outlines, a or a right click on the image
+          adds a card, a right click on an outline deletes it, Delete removes the selected one, +
+          and - zoom.
         </PageDescription>
         <div className="flex flex-col gap-2">
           <Label htmlFor="label-files">Frames</Label>
@@ -298,7 +363,10 @@ export function OutlineLabelPage() {
               >
                 Next
               </Button>
-              <Button variant="outline" onClick={add} disabled={!size}>
+              <Button variant="outline" onClick={copyPrevious} disabled={current === 0}>
+                Use previous frame
+              </Button>
+              <Button variant="outline" onClick={() => add()} disabled={!size}>
                 Add card
               </Button>
               <Button variant="outline" onClick={remove} disabled={selected === null}>
@@ -310,11 +378,18 @@ export function OutlineLabelPage() {
               <Button variant="outline" onClick={save}>
                 Save labels
               </Button>
+              <Button variant="outline" onClick={() => zoomBy(-1)} disabled={zoom === ZOOMS[0]}>
+                Zoom out
+              </Button>
+              <Button variant="outline" onClick={() => zoomBy(1)} disabled={zoom === ZOOMS.at(-1)}>
+                Zoom in
+              </Button>
+              <span className="text-muted-foreground text-sm">{zoom}x</span>
               <span className="text-muted-foreground text-sm">
                 {frame.name}: frame {current + 1} of {frames.length}, {doneCount(labels)} done
               </span>
             </div>
-            <div>
+            <div className="overflow-auto">
               <img
                 src={frame.url}
                 alt=""
@@ -329,61 +404,123 @@ export function OutlineLabelPage() {
                 }}
               />
               {size ? (
-                <svg
-                  ref={svgRef}
-                  viewBox={`${-margin} ${-margin} ${size.width + 2 * margin} ${size.height + 2 * margin}`}
-                  className="bg-muted block touch-none"
-                  style={{
-                    aspectRatio: `${size.width + 2 * margin} / ${size.height + 2 * margin}`,
-                    width: `min(100%, calc(75vh * ${(size.width + 2 * margin) / (size.height + 2 * margin)}))`,
-                  }}
-                  role="application"
-                  aria-label="Card outlines"
-                  onPointerMove={handleMove}
-                  onPointerUp={endDrag}
-                  onPointerCancel={endDrag}
-                >
-                  <image href={frame.url} width={size.width} height={size.height} />
-                  <rect
-                    width={size.width}
-                    height={size.height}
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={stroke / 2}
-                    strokeDasharray={`${stroke * 4} ${stroke * 4}`}
-                  />
-                  {label.cards.map((quad, card) => (
-                    // oxlint-disable-next-line react/no-array-index-key -- outlines have no identity beyond their position
-                    <g key={card}>
-                      <polygon
-                        points={quad.map((point) => `${point.x},${point.y}`).join(" ")}
-                        className={cn(
-                          "cursor-grab",
-                          selected === card
-                            ? "fill-warning-soft stroke-warning"
-                            : "fill-success-soft stroke-success",
-                        )}
-                        strokeWidth={stroke}
-                        onPointerDown={(event) => startCardDrag(event, card)}
+                <ContextMenu>
+                  <ContextMenuTrigger className="block">
+                    {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- drawing canvas; the a, d and Delete keys cover its mouse actions */}
+                    <svg
+                      ref={svgRef}
+                      viewBox={`${-margin} ${-margin} ${size.width + 2 * margin} ${size.height + 2 * margin}`}
+                      className="bg-muted block touch-none"
+                      style={{
+                        aspectRatio: `${size.width + 2 * margin} / ${size.height + 2 * margin}`,
+                        width: `calc(${zoom} * min(100%, calc(85vh * ${(size.width + 2 * margin) / (size.height + 2 * margin)})))`,
+                        maxWidth: "none",
+                      }}
+                      role="application"
+                      aria-label="Card outlines"
+                      onPointerDown={snapNearestCorner}
+                      onPointerMove={handleMove}
+                      onPointerUp={endDrag}
+                      onPointerCancel={endDrag}
+                      onContextMenu={(event) => {
+                        if (
+                          event.target instanceof SVGPolygonElement ||
+                          event.target instanceof SVGLineElement
+                        ) {
+                          return;
+                        }
+                        event.preventDefault();
+                        event.stopPropagation();
+                        add(toImage(event) ?? undefined);
+                      }}
+                    >
+                      <image href={frame.url} width={size.width} height={size.height} />
+                      <rect
+                        width={size.width}
+                        height={size.height}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={stroke / 2}
+                        strokeDasharray={`${stroke * 4} ${stroke * 4}`}
                       />
-                      {quad.map((point, corner) => (
-                        <circle
-                          // oxlint-disable-next-line react/no-array-index-key -- a card always has the same four corners
-                          key={corner}
-                          cx={point.x}
-                          cy={point.y}
-                          r={handle}
-                          strokeWidth={stroke / 2}
-                          className={cn(
-                            "stroke-foreground cursor-move",
-                            corner === 0 ? "fill-destructive" : "fill-background",
-                          )}
-                          onPointerDown={(event) => startDrag(event, card, corner)}
-                        />
+                      {label.cards.map((quad, card) => (
+                        // oxlint-disable-next-line react/no-array-index-key -- outlines have no identity beyond their position
+                        <g key={card}>
+                          <polygon
+                            points={quad.map((point) => `${point.x},${point.y}`).join(" ")}
+                            className={cn(
+                              "cursor-grab",
+                              selected === card
+                                ? "fill-warning-soft stroke-warning"
+                                : "fill-success-soft stroke-success",
+                            )}
+                            strokeWidth={stroke}
+                            onPointerDown={(event) => {
+                              const point = toImage(event);
+                              if (event.shiftKey || !point || !nearestCorner(label.cards, point)) {
+                                startCardDrag(event, card);
+                              }
+                            }}
+                            onContextMenu={() => {
+                              setSelected(card);
+                              setMenuCard(card);
+                            }}
+                          />
+                          {quad.map((point, edge) => {
+                            const next = quad[(edge + 1) % 4] ?? point;
+                            return (
+                              <line
+                                // oxlint-disable-next-line react/no-array-index-key -- a card always has the same four edges
+                                key={edge}
+                                x1={point.x}
+                                y1={point.y}
+                                x2={next.x}
+                                y2={next.y}
+                                stroke="transparent"
+                                strokeWidth={handle * 1.5}
+                                className="cursor-pointer"
+                                onPointerDown={(event) => startCardDrag(event, card, edge)}
+                                onContextMenu={() => {
+                                  setSelected(card);
+                                  setMenuCard(card);
+                                }}
+                              />
+                            );
+                          })}
+                          {quad.map((point, corner) => (
+                            <circle
+                              // oxlint-disable-next-line react/no-array-index-key -- a card always has the same four corners
+                              key={corner}
+                              cx={point.x}
+                              cy={point.y}
+                              r={handle}
+                              strokeWidth={stroke / 2}
+                              className={cn(
+                                "stroke-foreground cursor-move",
+                                corner === 0 ? "fill-destructive" : "fill-background",
+                              )}
+                              onPointerDown={(event) => startDrag(event, card, corner)}
+                            />
+                          ))}
+                        </g>
                       ))}
-                    </g>
-                  ))}
-                </svg>
+                    </svg>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    <ContextMenuItem
+                      variant="destructive"
+                      onClick={() => {
+                        if (menuCard !== null) {
+                          update(removeCard(label, menuCard));
+                          setSelected(null);
+                          setMenuCard(null);
+                        }
+                      }}
+                    >
+                      Delete card
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
               ) : null}
             </div>
           </>

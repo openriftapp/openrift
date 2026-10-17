@@ -103,15 +103,61 @@ export function moveCard(
   };
 }
 
+export function moveEdge(
+  label: FrameOutlineLabel,
+  card: number,
+  edge: number,
+  original: OutlineLabelQuad,
+  by: OutlineLabelPoint,
+): FrameOutlineLabel {
+  const moved = new Set([edge, (edge + 1) % 4]);
+  return {
+    ...label,
+    cards: label.cards.map((quad, index) =>
+      index === card
+        ? (original.map((point, corner) =>
+            moved.has(corner) ? { x: point.x + by.x, y: point.y + by.y } : point,
+          ) as OutlineLabelQuad)
+        : quad,
+    ),
+  };
+}
+
+export function nearestCorner(
+  cards: readonly OutlineLabelQuad[],
+  point: OutlineLabelPoint,
+  reach = 0.3,
+): { card: number; corner: number } | null {
+  let best: { card: number; corner: number } | null = null;
+  let bestDistance = Infinity;
+  cards.forEach((quad, card) => {
+    const side = Math.min(
+      ...quad.map((corner, index) => {
+        const next = quad[(index + 1) % 4] ?? corner;
+        return Math.hypot(next.x - corner.x, next.y - corner.y);
+      }),
+    );
+    quad.forEach((corner, index) => {
+      const distance = Math.hypot(corner.x - point.x, corner.y - point.y);
+      if (distance <= side * reach && distance < bestDistance) {
+        bestDistance = distance;
+        best = { card, corner: index };
+      }
+    });
+  });
+  return best;
+}
+
 export function addCard(
   label: FrameOutlineLabel,
   width: number,
   height: number,
+  center: OutlineLabelPoint = { x: width / 2, y: height / 2 },
 ): FrameOutlineLabel {
   const cardHeight = height / 5;
   const cardWidth = cardHeight * CARD_ASPECT;
-  const left = (width - cardWidth) / 2;
-  const top = (height - cardHeight) / 2;
+  const left = center.x - cardWidth / 2;
+  const top = center.y - cardHeight / 2;
   const quad: OutlineLabelQuad = [
     { x: left, y: top },
     { x: left + cardWidth, y: top },
@@ -140,7 +186,7 @@ export function outlineLabelMargin(
       point.y - size.height,
     );
   }
-  return Math.round(overshoot + Math.max(size.width, size.height) / 3);
+  return Math.round(overshoot + Math.max(size.width, size.height) / 12);
 }
 
 export function serializeOutlineLabels(labels: FrameOutlineLabels): string {
