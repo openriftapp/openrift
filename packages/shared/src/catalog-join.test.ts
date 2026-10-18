@@ -115,12 +115,17 @@ describe("joinCatalogPrintings double-sided", () => {
   it("names the other side on each entry", () => {
     const [bird, gold] = joinCatalogPrintings(doubleSided(GOLD_ID));
     expect(bird!.otherSide).toEqual({
+      faceId: "face-gold",
       cardId: GOLD_ID,
       cardName: "Gold",
       cardSlug: "gold",
       imageId: "img-gold",
     });
-    expect(gold!.otherSide).toMatchObject({ cardId: CARD_ID, cardName: "Bird" });
+    expect(gold!.otherSide).toMatchObject({
+      faceId: "printing-1",
+      cardId: CARD_ID,
+      cardName: "Bird",
+    });
   });
 
   it("keeps a printing with the same card on both sides as two entries of that card", () => {

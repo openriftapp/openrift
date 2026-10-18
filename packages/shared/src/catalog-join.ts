@@ -50,6 +50,7 @@ export function joinCatalog(catalog: CatalogResponse): {
         ...(other && otherCard
           ? {
               otherSide: {
+                faceId: other.faceId ?? printingId,
                 cardId: other.cardId,
                 cardName: otherCard.name,
                 cardSlug: otherCard.slug,

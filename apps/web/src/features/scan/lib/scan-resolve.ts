@@ -55,6 +55,7 @@ export function buildScanPrintingIndex(
  */
 function baseKeyOf(printing: Printing): string {
   return [
+    printing.otherSide?.faceId ?? "",
     printing.shortCode,
     printing.artVariant,
     printing.size,

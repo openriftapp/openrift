@@ -127,6 +127,7 @@ const SIDE_COLUMNS = [
 
 const OTHER_SIDE = sql<PrintingOtherSide | null>`(
   SELECT json_strip_nulls(json_build_object(
+    'faceId', ofc.id,
     'cardId', oc.id,
     'cardName', oc.name,
     'cardSlug', oc.slug,

@@ -50,6 +50,29 @@ describe("resolveLock", () => {
     expect(resolution).toEqual({ kind: "auto", printing, finishSiblings: [] });
   });
 
+  it("asks which printing when a scanned side is on two double-sided printings", () => {
+    const shared = { shortCode: "SGN-T01", cardId: "bird", faceId: "face-bird" };
+    const withGold = withImage(
+      stubPrinting({
+        printingId: "p-gold",
+        ...shared,
+        otherSide: { faceId: "face-gold", cardId: "gold", cardName: "Gold", cardSlug: "gold" },
+      }),
+      "img-bird",
+    );
+    const withBrush = withImage(
+      stubPrinting({
+        printingId: "p-brush",
+        ...shared,
+        otherSide: { faceId: "face-brush", cardId: "brush", cardName: "Brush", cardSlug: "brush" },
+      }),
+      "img-bird",
+    );
+    const index = buildScanPrintingIndex([withGold, withBrush], stubBank({ "img-bird": "art-1" }));
+    const resolution = resolveLock(lock("img-bird", true), index);
+    expect(resolution.kind).toBe("picker");
+  });
+
   it("auto-adds the normal finish of a finish-only group and lists the foil sibling", () => {
     const shared = { shortCode: "OGN-001", cardId: "card-1" };
     const foil = withImage(

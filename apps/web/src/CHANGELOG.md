@@ -4,6 +4,7 @@
 
 ### Highlights
 
+- feat(Cards): **Double-sided tokens** — a token printed with another token on its other side is one card in your collection, and both sides show up in search.
 - feat(Collection): **Tap reads every card in view** — in Tap to scan, one tap adds a whole binder page or a card held far away.
 - fix(Collection): **More binder cards scanned** — cards in a binder page that the scanner used to skip are now picked up when you hold the phone over them.
 

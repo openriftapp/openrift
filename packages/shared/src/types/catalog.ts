@@ -112,6 +112,7 @@ export interface PrintingImage {
 export type PrintingSide = 1 | 2;
 
 export interface PrintingOtherSide {
+  faceId: string;
   cardId: string;
   cardName: string;
   cardSlug: string;

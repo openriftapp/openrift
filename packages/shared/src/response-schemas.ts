@@ -228,6 +228,7 @@ export const catalogCardResponseSchema = z.object({
 export const printingSideSchema = z.union([z.literal(1), z.literal(2)]);
 
 export const printingOtherSideSchema = z.object({
+  faceId: z.string().meta({ examples: ["019cfc3b-03d3-7dac-86c9-27900cd43727"] }),
   cardId: z.string().meta({ examples: ["019cfc3b-0389-744b-837c-792fd586300e"] }),
   cardName: z.string().meta({ examples: ["Gold"] }),
   cardSlug: z.string().meta({ examples: ["gold"] }),

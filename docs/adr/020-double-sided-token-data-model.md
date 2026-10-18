@@ -322,23 +322,20 @@ After this every printing has one face, so the catalog payload and every page be
 
 ### Pair merge
 
-Input: a curated list of physical printings per set, each naming its two sides by today's single-sided printings. The 39 commented printings and the candidate sources' " // " names are the starting point; the regular-token combinations vary by set and are assigned by the catalog maintainer.
+Input: a curated list of physical printings, each naming its two sides by the slugs of today's single-sided printings. The 39 commented printings and the candidate sources' " // " names are the starting point. The regular-token combinations vary by set and are assigned by the catalog maintainer. `scripts/pair-merge.ts` reads the list, prints what it would move, and writes only with `--apply`.
 
 The list also gives every existing single-sided token printing exactly one **home**, the physical printing its copies and references move to:
 
 - A side printing that the list puts on one physical printing has that printing as its home.
 - A side printing that the list puts on several (SGN-T01 Bird) gets a home chosen by the maintainer, by default the physical printing that marketplaces sell under that side's name.
 
-Per set, in one transaction:
+The whole list runs in one transaction:
 
-1. Create the faces and the two-faced printings. A side on several printings reuses one face.
+1. Create the two-faced printings from the side printings' faces. A side on several printings is one face on all of them. The physical fields come from the first side's printing.
 2. Each merged printing gets its slug from `printings_set_slug`.
-3. Move every copy of each side printing to its home, with collection events recorded. The copies of both sides of a pair add up.
-4. Move each side printing's `marketplace_product_variants` to its home, unless the list maps the listing to another printing. Drop duplicates when both sides map to the same product, and re-check the foil/non-foil match against the derived physical finish.
-5. Re-key every other reference to a side printing (collection events, list entries, deck-slot preferences, trade suggestion dismissals) to its home.
-6. Delete the side printings. Their URLs 301 to the card pages.
-
-Owners of copies that came from a side on several printings get a notice: the copies sit on the default printing and can be moved to the right one.
+3. Move every copy of each side printing to its home. Its collection events move with it, so the copy keeps its history. The copies of both sides of a pair add up.
+4. Move every other reference to a side printing to its home: marketplace listings, list entries, deck-slot preferences, loans, trades, trade suggestion dismissals, products, distribution channels and citations. Rows that collide on the home's unique keys merge: quantities add up and duplicates drop.
+5. Delete the side printings. Their URLs 301 to the card pages.
 
 Afterwards every printing is a physical card that exists, and no single-sided token printing remains.
 

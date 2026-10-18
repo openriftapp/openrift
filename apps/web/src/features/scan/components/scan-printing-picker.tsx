@@ -64,7 +64,11 @@ export function ScanPrintingPicker({
               printing={candidate}
               // Full candidate set, not the tab's: the variant label needs every sibling.
               siblings={candidates}
-              name={legendDisplayName(candidate.card)}
+              name={
+                candidate.otherSide
+                  ? `${legendDisplayName(candidate.card)} // ${candidate.otherSide.cardName}`
+                  : legendDisplayName(candidate.card)
+              }
               right={
                 isCurrent ? (
                   <span className="text-muted-foreground shrink-0 text-xs">

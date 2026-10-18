@@ -36,7 +36,7 @@ describe("computeFilterCounts", () => {
   ];
 
   it("counts a double-sided printing once when both sides match", () => {
-    const otherSide = { cardId: "c9", cardName: "Gold", cardSlug: "gold" };
+    const otherSide = { faceId: "f9", cardId: "c9", cardName: "Gold", cardSlug: "gold" };
     const pair = [
       makePrinting({ printingId: "p9", side: 1, cardId: "c8", rarity: "common", otherSide }),
       makePrinting({ printingId: "p9", side: 2, cardId: "c9", rarity: "common", otherSide }),
