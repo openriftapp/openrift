@@ -34,7 +34,7 @@ Tournament view:
 ## What it does
 
 - **Comprehensive catalog.** The goal is every card and promo in every available language. Today that means English, Chinese, French, and Korean printings, plus around 800 promos tracked down to the stamp and where each one was handed out.
-- **Card scanner.** Point your phone (or webcam) at a card to look it up or add it to your collection. Recognition runs on your own device in under a second, works offline, and has no usage limits.
+- **Card scanner.** Point your phone (or webcam) at a card to look it up or add it to your collection. Recognition runs on your own device in under a second, your camera feed never leaves it, and there are no usage limits. [How the scanner works](docs/scanner.md).
 - **Accurate price tracking.** Daily prices from TCGplayer, Cardmarket, and CardTrader, side by side, with history charts.
 - **One card, one place.** Collections map to the real world: a deck box, a binder, a card lent to a friend. Each copy lives in exactly one, so the app always mirrors what's actually on your shelf.
 - **Wishlists and tradelists.** Track the cards you want and the spares you'd part with, and share either by link with anyone. Lists can also fill themselves from rules (a playset of every card, every surplus common beyond two playsets) and stay current on their own.
@@ -72,6 +72,7 @@ OpenRift is a TypeScript monorepo: a TanStack Start + customized shadcn/ui front
 - [Development](docs/development.md) lists the prerequisites, setup, and commands.
 - [Deployment](docs/deployment.md) walks through VPS setup, Docker Compose, and CI/CD.
 - [Contributing](docs/contributing.md) explains code style, conventions, and the changelog.
+- [Card Scanner](docs/scanner.md) explains the on-device recognition pipeline and how changes to it are measured.
 - [Translating](docs/translating.md) covers the translation workflow, voice, and terminology.
 
 On the AI question: Claude does some of the typing, because it is way faster at that than I am (and I already have quite some typing experience accumulated over the last 20+ years of software development).

@@ -1,6 +1,6 @@
 # Scan bench scripts
 
-Offline tools for the card scanner. They replay recorded clips and photos through the same shared session code the browser runs, score the result against hand-checked truth files, and compare runs. Each script is run with `bun` from the repository root. Clips, truth files and detector models live outside this repo. The scripts expect them under `data/image-recognition-test/`.
+Offline tools for the card scanner. They replay recorded clips and photos through the same shared session code the browser runs, score the result against hand-checked truth files, and compare runs. Each script is run with `bun` from the repository root. Clips, truth files and detector models live outside this repo. The scripts expect them under `data/image-recognition-test/`. [docs/scanner.md](../../docs/scanner.md) describes the pipeline they measure.
 
 ## Setup
 
