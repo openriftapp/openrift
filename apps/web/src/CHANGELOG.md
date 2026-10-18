@@ -11,6 +11,7 @@
 
 - fix(Collection): **Promo cards recognised more often** — the scanner now finds the promo stamp even when the card sits a little off in the frame, so fewer promos are added as the regular printing.
 - fix(Collection): **Fewer printing questions** — the scanner adds the regular printing instead of asking when the only other choices are an oversized or promo version.
+- fix(Meta): **No empty legend images** — the events list no longer shows a broken image next to winners whose legend is unknown.
 
 ## 2026-10-17
 

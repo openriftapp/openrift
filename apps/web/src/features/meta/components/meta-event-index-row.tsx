@@ -131,28 +131,33 @@ function WinnerLine({ winners }: { winners: readonly MetaEventFinish[] }) {
   );
 }
 
+type MetaEventLegend = NonNullable<MetaEventFinish["legend"]>;
+
 function LegendThumbs({ winners }: { winners: readonly MetaEventFinish[] }) {
-  const first = winners.at(0);
-  if (winners.length === 1 && first) {
-    return <LegendThumb winner={first} />;
+  const legends = winners.flatMap((winner) => (winner.legend === null ? [] : [winner.legend]));
+  const first = legends.at(0);
+  if (first === undefined) {
+    return null;
+  }
+  if (legends.length === 1) {
+    return <LegendThumb legend={first} />;
   }
   return (
     <span className="flex shrink-0 items-center -space-x-2">
-      {winners.map((winner, index) => (
-        <LegendThumb key={`${winner.playerName}-${String(index)}`} winner={winner} />
+      {legends.map((legend, index) => (
+        <LegendThumb key={`${legend.cardId}-${String(index)}`} legend={legend} />
       ))}
     </span>
   );
 }
 
-function LegendThumb({ winner }: { winner: MetaEventFinish }) {
-  const champion = winner.legend === null ? "" : (winner.legend.character ?? winner.legend.epithet);
+function LegendThumb({ legend }: { legend: MetaEventLegend }) {
   return (
     <CardArtThumb
       shape="square"
-      imageId={winner.legend?.imageId ?? null}
-      domains={winner.legend?.domains}
-      alt={champion}
+      imageId={legend.imageId}
+      domains={legend.domains}
+      alt={legend.character ?? legend.epithet}
       loading="lazy"
       className="rounded-xs"
     />

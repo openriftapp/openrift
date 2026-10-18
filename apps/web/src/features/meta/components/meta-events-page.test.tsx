@@ -295,6 +295,16 @@ describe("MetaEventsPage", () => {
     expect(screen.getAllByText("A. Gruber").length).toBeGreaterThan(0);
   });
 
+  it("shows the winner's legend next to the name", () => {
+    renderPage([event({ topFinishes: [winner("A. Gruber")] })]);
+    expect(eventList().querySelector('[data-slot="card-art-thumb"]')).not.toBeNull();
+  });
+
+  it("leaves out the legend thumbnail when the archive does not know the winner's legend", () => {
+    renderPage([event({ topFinishes: [{ ...winner("A. Gruber"), legend: null }] })]);
+    expect(eventList().querySelector('[data-slot="card-art-thumb"]')).toBeNull();
+  });
+
   it("names both players an event recorded two first places for", () => {
     renderPage([event({ topFinishes: [winner("A. Gruber"), winner("M. Álvarez")] })]);
     expect(screen.getAllByText("A. Gruber and M. Álvarez").length).toBeGreaterThan(0);
