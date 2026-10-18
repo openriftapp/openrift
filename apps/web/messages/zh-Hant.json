@@ -8256,7 +8256,7 @@
   "marketing_features_import_title": "隨處匯入，隨時匯出",
   "marketing_features_import_description": "從別的工具搬過來，或只是想試試看？你可以貼上純文字清單，或上傳來自 Piltover Archive、RiftCore 或 RiftMana 的 CSV，開始建立你的 OpenRift 收藏。不用轉檔，也不用重打。若哪天想離開，也可以把收藏匯出回那些格式（還有更多格式）。",
   "marketing_features_scan_title": "用手機掃描卡牌",
-  "marketing_features_scan_description": "把相機對準卡牌，它就會出現在你裝置上的清單裡，附上價格以及你是否已經擁有。掃完後按一個按鈕就能把整份清單加進收藏。掃描器可離線運作，不容易被不良光線干擾，在現代手機上辨識一張卡不到一秒。也支援桌機的網路攝影機。沒有使用次數限制，而且完全免費。",
+  "marketing_features_scan_description": "把相機對準卡牌，它就會出現在你裝置上的清單裡，附上價格以及你是否已經擁有。掃完後按一個按鈕就能把整份清單加進收藏。辨識在你自己的裝置上進行，相機畫面不會離開裝置。掃描器不容易被不良光線干擾，在現代手機上辨識一張卡不到一秒。也支援桌機的網路攝影機。沒有使用次數限制，而且完全免費。",
   "marketing_features_collections_title": "無限收藏，依你的方式整理",
   "marketing_features_collections_description": "想建幾個就建幾個：卡冊、收納抽屜、鞋盒、牌盒。可以分開檢視，也可以全部一起看。再也不會忘記那張卡放在哪裡。",
   "marketing_features_lists_title": "會自己維護的清單",

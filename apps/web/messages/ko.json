@@ -8256,7 +8256,7 @@
   "marketing_features_import_title": "어디서든 가져오고, 언제든 내보내세요",
   "marketing_features_import_description": "다른 도구에서 옮겨 오거나 그냥 한번 써 보고 싶으신가요? 일반 텍스트 목록을 붙여넣거나 Piltover Archive, RiftCore, RiftMana의 CSV를 올리면 OpenRift 컬렉션을 바로 시작할 수 있습니다. 변환할 것도, 다시 입력할 것도 없습니다. 언제든 떠나고 싶다면 컬렉션을 그 형식(그리고 더 많은 형식)으로 다시 내보낼 수 있습니다.",
   "marketing_features_scan_title": "휴대폰으로 카드를 스캔하세요",
-  "marketing_features_scan_description": "카메라를 카드에 비추면 기기의 목록에 가격과 보유 여부가 함께 나타납니다. 다 끝나면 버튼 하나로 목록 전체를 컬렉션에 추가합니다. 스캐너는 오프라인에서도 작동하고, 조명이 나빠도 쉽게 속지 않으며, 요즘 휴대폰에서는 카드를 1초 안에 인식합니다. 데스크톱 웹캠에서도 됩니다. 사용 제한 없이 완전 무료입니다.",
+  "marketing_features_scan_description": "카메라를 카드에 비추면 기기의 목록에 가격과 보유 여부가 함께 나타납니다. 다 끝나면 버튼 하나로 목록 전체를 컬렉션에 추가합니다. 인식은 사용자의 기기에서 이루어지므로 카메라 화면이 기기 밖으로 나가지 않습니다. 스캐너는 조명이 나빠도 쉽게 속지 않으며, 요즘 휴대폰에서는 카드를 1초 안에 인식합니다. 데스크톱 웹캠에서도 됩니다. 사용 제한 없이 완전 무료입니다.",
   "marketing_features_collections_title": "컬렉션은 무제한, 정리는 내 방식대로",
   "marketing_features_collections_description": "바인더, 보관함, 신발 상자, 덱 박스 등 원하는 만큼 만드세요. 따로 볼 수도 있고 한꺼번에 볼 수도 있습니다. 그 카드를 어디에 뒀는지 다시는 헷갈리지 않습니다.",
   "marketing_features_lists_title": "스스로 관리되는 목록",
