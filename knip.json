@@ -26,7 +26,8 @@
         "src/instrument.server.mjs",
         "src/tracing.server.ts",
         "src/components/error-fallback.tsx",
-        "nitro/*.ts"
+        "nitro/*.ts",
+        "project.inlang/paraglide.config.ts"
       ],
       "ignore": ["src/components/ui/**", "public/sw.js", "src/test/paraglide-en.js"],
       "ignoreDependencies": ["flag-icons"]
