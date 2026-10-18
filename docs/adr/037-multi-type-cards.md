@@ -77,6 +77,5 @@ Primary type (`types[0]`) has exactly one job: deck list sort order (`TYPE_GROUP
 
 ## More Information
 
-- ADR-020 (double-sided tokens) is the precedent for extending the card model additively while keeping existing read paths stable.
 - The `card_super_types` join table and its `overlaps`/fan-out consumers are the implementation template throughout.
 - Revisit the scalar `cards.type` column if a future cleanup pass wants to remove the redundancy; nothing in this ADR depends on it long-term beyond deck sort convenience.

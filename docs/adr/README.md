@@ -36,6 +36,7 @@ The MADR documentation is available at <https://adr.github.io/madr/> while gener
 - **[ADR-017](017-trade-preferences.md)**: Trade Preferences on Shared Lists
 - **[ADR-018](018-user-share-bundle.md)**: User Share Bundle for Wish + Trade Lists
 - **[ADR-019](019-trade-execution.md)**: In-App Trade Execution for Friend Groups (supersedes ADR-013's "no trade execution" and "notifications deferred" stances)
+- **[ADR-020](020-double-sided-token-data-model.md)**: Double-Sided Token Data Model
 - **[ADR-021](021-match-tracker.md)**: Local Match Tracker for Points and XP
 - **[ADR-022](022-ffa-pod-pairing.md)**: FFA Pod Pairing for Multiplayer Tournaments
 - **[ADR-023](023-card-designer.md)**: Card Designer for Custom Riftbound Cards
@@ -68,7 +69,6 @@ The MADR documentation is available at <https://adr.github.io/madr/> while gener
 ### Proposed
 
 - **[ADR-015](015-preconstructed-product-catalog.md)**: Preconstructed Product Catalog
-- **[ADR-020](020-double-sided-token-data-model.md)**: Double-Sided Token Data Model
 - **[ADR-039](039-card-lending.md)**: Card Lending Ledger
 - **[ADR-043](043-zod-mini-on-the-boot-path.md)**: zod/mini on the Boot Path, Classic zod Everywhere Else
 - **[ADR-045](045-borrowed-cards-in-deck-boxes.md)**: Borrowed Cards in Deck Boxes (undecided; placement rows vs. flagged copies)

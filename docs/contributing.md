@@ -85,6 +85,17 @@ Row-to-response mapping is called a **presenter**, and it lives in `lib/<domain>
 
 **Logging.** A service that logs takes the request-scoped logger (ADR-010) as a parameter: `context.log` in an oRPC handler, `c.get("log")` in a Hono route; it does not create its own with `createLogger`. A scheduled job receives the logger derived from its job kind.
 
+## Card vocabulary
+
+In specs, ADRs, tickets, changelog entries and code identifiers, the words follow the tables:
+
+- **card**: the gameplay card, a `cards` row (Bird, Gold, Recruit).
+- **printing**: the physical piece of cardboard, a `printings` row. The unit users own, price and trade. Say "physical card" where "printing" reads badly, never bare "card".
+- **face**: one printed side of a printing, a `faces` row in ADR-020. Internal only, never in user copy.
+- **copy**: one printing a user owns, a `copies` row.
+
+A double-sided token is one printing with two faces and two cards.
+
 ## Displaying card names
 
 A Riftbound Legend is stored under its epithet (`Emperor of the Sands`) with the champion in a tag (`Azir`), but players call it `Azir, Emperor of the Sands`. **`legendDisplayName` in `packages/shared/src/card-name.ts` is the only place that composes that label.** It takes `{ name, types, tags }`; a deck row spells those fields `cardName` / `cardTypes` / `tags`, so reshape at the call site rather than adding a second entry point. `compareCardDisplayName` is the sort comparator over the same rule.
