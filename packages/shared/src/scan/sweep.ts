@@ -52,6 +52,8 @@ export const SWEEP_OPTIONS: SweepOptions = {
 };
 
 export const SWEEP_MIN_SCORE = 0.5;
+const LONE_UPRIGHT_MIN_SCORE = 0.8;
+const LONE_UPRIGHT_MIN_WINNER = { score: 70, focus: 26 };
 const STILL_EXIT_FACTOR = 8;
 const STILL_WINDOW_MIN_SHARE = 0.8;
 const MAX_EMPTY_GUIDE_OUTLINES = 2;
@@ -87,6 +89,11 @@ export function sweepView(
   return { cards, aimed };
 }
 
+function isUpright(quad: Quad): boolean {
+  const bounds = boundingBox(quad);
+  return bounds.maxY - bounds.minY >= bounds.maxX - bounds.minX;
+}
+
 export function emptyGuideOutlines(
   outlines: readonly CardCandidate[],
   guide: Quad,
@@ -107,9 +114,8 @@ export function emptyGuideOutlines(
         frame.height,
         frame.width * FRAME_EDGE_MARGIN,
       );
-      const bounds = boundingBox(outline.quad);
-      const upright = bounds.maxY - bounds.minY >= bounds.maxX - bounds.minX;
-      if (cut || (upright && !several)) {
+      const upright = isUpright(outline.quad);
+      if (cut || (upright && !several && outline.score < LONE_UPRIGHT_MIN_SCORE)) {
         return false;
       }
       const center = quadCenter(outline.quad);
@@ -117,6 +123,11 @@ export function emptyGuideOutlines(
         center.x >= box.minX && center.x <= box.maxX && center.y >= box.minY && center.y <= box.maxY
       );
     })
+    .map((outline) =>
+      isUpright(outline.quad) && !several
+        ? { ...outline, minWinner: LONE_UPRIGHT_MIN_WINNER }
+        : outline,
+    )
     .toSorted((a, b) => quadArea(b.quad) - quadArea(a.quad))
     .slice(0, MAX_EMPTY_GUIDE_OUTLINES);
 }

@@ -98,6 +98,7 @@ App behaviour around the session:
 | `--no-rearm`          | Do not re-arm the session on a confirmed placement.                 |
 | `--no-skip-disturbed` | Process frames while a card is still moving into place.             |
 | `--no-relock-guard`   | Allow a repeat lock of one artwork with no card placed in between.  |
+| `--no-board-reads`    | Skip board reads, as the shipped app does by default.               |
 | `--drop-to <fps>`     | Process at most this many frames per second, as a slow device does. |
 | `--all-frames`        | Process every frame, not the frames the recording logged.           |
 

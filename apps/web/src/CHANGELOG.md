@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-18
+
+### Highlights
+
+- fix(Collection): **More binder cards scanned** — cards in a binder page that the scanner used to skip are now picked up when you hold the phone over them.
+
 ## 2026-10-17
 
 ### Other

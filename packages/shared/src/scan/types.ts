@@ -54,4 +54,6 @@ export interface CardCandidate {
   quad: Quad;
   areaFraction: number;
   score: number;
+  /** `score` is a percent. */
+  minWinner?: { score: number; focus: number };
 }

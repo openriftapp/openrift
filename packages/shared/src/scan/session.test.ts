@@ -687,6 +687,36 @@ describe("createScanSession — automatic sweep", { timeout: 20_000 }, () => {
     expect(outcome.winner?.key).toBe("k-a");
   });
 
+  it("finds no winner when the match falls short of the candidate's minimum", async () => {
+    const sideways = rotateRgbaCw(cardTexture(1));
+    const outlined = { ...sidewaysOutline(sideways), minWinner: { score: 101, focus: 0 } };
+    const session = createScanSession(
+      testDeps({
+        detectCard: () => Promise.resolve([]),
+        detectBoard: () => Promise.resolve([outlined]),
+      }),
+      testOptions({ sweep: true }),
+    );
+    const outcome = await session.processFrame(sideways, 0, 0, frozenClock);
+    expect(outcome.candidate?.minWinner?.score).toBe(101);
+    expect(outcome.winner).toBeNull();
+  });
+
+  it("finds no winner on a blurry crop of a candidate that asks for a minimum", async () => {
+    const sideways = rotateRgbaCw(cardTexture(1));
+    const outlined = { ...sidewaysOutline(sideways), minWinner: { score: 0, focus: 26 } };
+    const session = createScanSession(
+      testDeps({
+        detectCard: () => Promise.resolve([]),
+        detectBoard: () => Promise.resolve([outlined]),
+      }),
+      testOptions({ sweep: true }),
+    );
+    const outcome = await session.processFrame(sideways, 0, 0, frozenClock);
+    expect(outcome.focus).toBeLessThan(26);
+    expect(outcome.winner).toBeNull();
+  });
+
   it("keeps a counted card's lock when a sweep comes back to it", async () => {
     const lefts = [40, 240];
     let offset = 0;

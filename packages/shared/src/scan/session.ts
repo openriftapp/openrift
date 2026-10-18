@@ -490,7 +490,12 @@ export function createScanSession(
 
     const verifyStartedAt = now();
     const verification = await verify(best.card, best.ranked);
-    const decision = pickAlignedWinner(verification.scores, deps.artKeyOf, DEFAULT_ALIGNED_OPTIONS);
+    const picked = pickAlignedWinner(verification.scores, deps.artKeyOf, DEFAULT_ALIGNED_OPTIONS);
+    const minWinner = best.candidate.minWinner;
+    const shortOfMinimum =
+      minWinner !== undefined &&
+      (best.focus < minWinner.focus || (picked.winner?.score ?? 0) < minWinner.score);
+    const decision = picked.winner && shortOfMinimum ? { ...picked, winner: null } : picked;
     if (failureCouldChangeWinner(verification.failed, decision.winner, best.ranked)) {
       return {
         ...EMPTY_OUTCOME,
@@ -514,7 +519,8 @@ export function createScanSession(
     const verifyMs = now() - verifyStartedAt;
 
     const printingStartedAt = now();
-    const printing = await settlePrinting(locked, stateKey, best.card);
+    const printing =
+      minWinner === undefined ? await settlePrinting(locked, stateKey, best.card) : { track: null };
     const printingMs = now() - printingStartedAt;
     const winnerTrack = stateKey ? state.get(stateKey) : undefined;
 

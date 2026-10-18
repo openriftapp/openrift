@@ -394,6 +394,7 @@ async function main(): Promise<void> {
       rearm: !hasFlag("--no-rearm"),
       skipDisturbed: !hasFlag("--no-skip-disturbed"),
       relockGuard: !hasFlag("--no-relock-guard"),
+      boardReads: !hasFlag("--no-board-reads"),
     },
     dropTo,
     allFrames: hasFlag("--all-frames"),

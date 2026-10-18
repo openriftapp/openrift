@@ -68,8 +68,15 @@ describe("emptyGuideOutlines", () => {
     expect(emptyGuideOutlines([box(80, 0, 140, 100)], guide, 0.3, FRAME)).toEqual([]);
   });
 
-  it("leaves a lone upright card to the guide detector", () => {
-    expect(emptyGuideOutlines([box(105, 5, 90, 130)], guide, 0.3, FRAME)).toEqual([]);
+  it("leaves a weakly outlined lone upright card to the guide detector", () => {
+    expect(emptyGuideOutlines([box(105, 10, 90, 125, 0.7)], guide, 0.3, FRAME)).toEqual([]);
+  });
+
+  it("tries a confidently outlined lone upright card but asks a stronger match of it", () => {
+    const upright = box(105, 10, 90, 125, 0.9);
+    expect(emptyGuideOutlines([upright], guide, 0.3, FRAME)).toEqual([
+      { ...upright, minWinner: { score: 70, focus: 26 } },
+    ]);
   });
 
   it("tries an upright card while others are in view", () => {
