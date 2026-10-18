@@ -42,10 +42,11 @@ function cardSrcSet(imageId: string): string {
   return `${imageUrl(imageId, "120w")} 120w, ${imageUrl(imageId, "240w")} 240w, ${imageUrl(imageId, "400w")} 400w, ${imageUrl(imageId, "full")} 800w`;
 }
 
+// No preserve-3d on tilt or fan surfaces: Firefox's compositor plane-splits the
+// flat children, drawing a hairline seam and mis-sorting the ribbon.
 const TILT_STYLE = {
   transform:
     "perspective(800px) rotateX(var(--foil-rotate-x, 0deg)) rotateY(var(--foil-rotate-y, 0deg))",
-  transformStyle: "preserve-3d",
 } as const;
 
 export const AFTER_BORDER =
@@ -124,7 +125,7 @@ function PlainImageShell({ children }: { children: ReactNode }) {
   );
 }
 
-// Caller keeps overflow-hidden and the preserve-3d transform on separate elements
+// Caller keeps overflow-hidden and the transform on separate elements
 // around this, or Firefox mis-sizes the rotated-image overlay on stacked layers.
 // data-loaded is written directly by the load handler, not React state, so a
 // filter swap of ~25 images doesn't re-render each cell; key={thumbnailUrl} resets it.
@@ -565,13 +566,12 @@ export const CardThumbnail = memo(function CardThumbnail({
               (onSiblingClick ?? onClick)(sibling);
             }}
           >
-            {/* preserve-3d must sit on this element and overflow-hidden on a separate
+            {/* The transform sits on this element and overflow-hidden on a separate
                 child below, or Firefox mis-sizes and clips the rotated overlay. */}
             <div
               className={cn(SHELL_INNER_CLASS, "origin-bottom")}
               style={{
                 borderRadius: CARD_BORDER_RADIUS,
-                transformStyle: "preserve-3d",
                 translate: `calc((1 - var(--fan, 0)) * ${closedDepth * fanStep}px) calc((1 - var(--fan, 0)) * ${closedDepth * fanStep}px)`,
                 rotate: `calc(var(--fan, 0) * ${depth * fanAngle}deg)`,
                 opacity: hiddenWhenClosed ? "var(--fan, 0)" : undefined,

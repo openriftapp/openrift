@@ -93,15 +93,14 @@ function FanCard({
             )}
           >
             {/* overflow-hidden must live below the tilt, and can't share its
-                element with preserve-3d (Firefox mis-sizes absolute
-                descendants when both combine; see CardImage). */}
+                element (Firefox mis-sizes absolute descendants when both
+                combine; see CardImage). */}
             <div
               ref={innerRef}
               style={{
                 borderRadius: "5% / 3.6%",
                 transform:
                   "perspective(1000px) rotateX(var(--foil-rotate-x, 0deg)) rotateY(var(--foil-rotate-y, 0deg))",
-                transformStyle: "preserve-3d",
               }}
             >
               <div
