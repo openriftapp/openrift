@@ -4,6 +4,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
 
 import { CardPlaceholderImage } from "@/features/cards/components/card-placeholder-image";
+import { CornerRibbon } from "@/features/cards/components/card-thumbnail";
 import { FallbackArtBadges } from "@/features/cards/components/fallback-art-badges";
 import { FoilOverlay } from "@/features/cards/components/foil-overlay";
 import { SuggestImageNotice } from "@/features/cards/components/suggest-image-notice";
@@ -70,7 +71,7 @@ export function CardImage({
   };
   return (
     // overflow-hidden must be below the tilt element, not combined with it:
-    // Firefox mis-sizes absolute descendants when overflow-hidden and a 3D transform share a node.
+    // Firefox mis-sizes absolute descendants when overflow-hidden and preserve-3d share a node.
     <div className="relative">
       <div
         ref={innerRef}
@@ -80,6 +81,7 @@ export function CardImage({
           borderRadius: "5% / 3.6%",
           transform:
             "perspective(1000px) rotateX(var(--foil-rotate-x, 0deg)) rotateY(var(--foil-rotate-y, 0deg))",
+          transformStyle: "preserve-3d",
         }}
       >
         <div className="relative overflow-hidden" style={{ borderRadius: "inherit" }}>
@@ -153,14 +155,9 @@ export function CardImage({
         </div>
         {showFoil && <FoilOverlay active shimmer={showShimmer} />}
         {!printing.setReleased && (
-          <div
-            className="@container pointer-events-none absolute inset-0 z-30 overflow-hidden rounded-[inherit]"
-            title={m.card_detail_not_released()}
-          >
-            <div className="bg-warning text-warning-foreground absolute top-[18cqi] -right-[22cqi] w-[90cqi] rotate-[45deg] py-[1.5cqi] text-center text-[6cqi] font-black tracking-wider uppercase shadow-md select-none">
-              {m.card_detail_preview_badge()}
-            </div>
-          </div>
+          <CornerRibbon tone="caution" title={m.card_detail_not_released()}>
+            {m.card_detail_preview_badge()}
+          </CornerRibbon>
         )}
       </div>
     </div>
