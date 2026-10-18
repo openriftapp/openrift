@@ -1,32 +1,59 @@
-import type { Kysely } from "kysely";
+import type { Insertable, Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import type { FacesTable } from "../../../db/tables/catalog.js";
 
 /**
- * ADR-020 pair merge: builds double-sided printings from existing single-sided ones and moves
- * everything that pointed at a single-sided printing to its home, then deletes it.
+ * ADR-020 pair merge: builds double-sided printings and moves everything that pointed at a
+ * single-sided side printing to its home, then deletes it.
  */
+
+/**
+ * A side is the slug of a single-sided printing (which moves into the new printing), an
+ * existing face found by a printing that shows it and its short code, or a face the list creates.
+ */
+export type PairMergeSide = string | { faceOf: string; code: string } | { newFace: string };
+
+/** A new face copies an existing one and overrides the printed fields that differ. */
+export interface PairMergeNewFace {
+  copyOf: { faceOf: string; code: string };
+  setSlug?: string;
+  shortCode?: string;
+  publicCode?: string;
+  language?: string;
+  finish?: string;
+  markerSlugs?: string[];
+  artist?: string;
+}
+
 export interface PairMergeList {
-  printings: {
-    key: string;
-    /** Slugs of two single-sided printings; each contributes its side. */
-    sides: [string, string];
-    size?: string;
-  }[];
-  /** For a side printing listed on several physical printings: the key of its home. */
+  printings: { key: string; sides: [PairMergeSide, PairMergeSide]; size?: string }[];
+  newFaces?: Record<string, PairMergeNewFace>;
   homes?: Record<string, string>;
 }
 
 export interface PairMergeSourceReport {
   slug: string;
   home: string;
+  defaultHome: boolean;
   moved: Record<string, number>;
 }
 
+export interface PairMergeOwnerReport {
+  slug: string;
+  home: string;
+  userId: string | null;
+  groupId: string | null;
+  email: string | null;
+  copies: number;
+}
+
 export interface PairMergeReport {
-  created: { key: string; sides: [string, string] }[];
+  created: { key: string }[];
+  newFaces: string[];
   sources: PairMergeSourceReport[];
+  owners: PairMergeOwnerReport[];
 }
 
 interface SourceRow {
@@ -37,7 +64,7 @@ interface SourceRow {
   size: string;
 }
 
-/** Tables whose rows move to the home printing; `merge` rows collide on a unique key there. */
+/** Tables whose rows move to the home printing; rows that collide on `conflict` merge. */
 const MOVES: { table: string; column: string; conflict?: string; sum?: string }[] = [
   { table: "copies", column: "printing_id" },
   { table: "collection_events", column: "printing_id" },
@@ -77,11 +104,25 @@ export class PairMergeError extends Error {
   override name = "PairMergeError";
 }
 
+function sideLabel(side: PairMergeSide): string {
+  if (typeof side === "string") {
+    return side;
+  }
+  return "newFace" in side ? `new:${side.newFace}` : `${side.faceOf}:${side.code}`;
+}
+
 async function loadSources(
   db: Kysely<Database>,
   list: PairMergeList,
 ): Promise<Map<string, SourceRow>> {
-  const slugs = [...new Set(list.printings.flatMap((entry) => entry.sides))];
+  const slugs = [
+    ...new Set(
+      list.printings.flatMap((entry) => entry.sides.filter((side) => typeof side === "string")),
+    ),
+  ];
+  if (slugs.length === 0) {
+    return new Map();
+  }
   const rows = await db
     .selectFrom("printings")
     .select(["id", "slug", "face1Id", "face2Id", "size"])
@@ -99,33 +140,53 @@ async function loadSources(
   return bySlug;
 }
 
-function resolveHomes(list: PairMergeList): Map<string, string> {
+async function findFace(
+  db: Kysely<Database>,
+  ref: { faceOf: string; code: string },
+): Promise<string> {
+  const row = await db
+    .selectFrom("printings as p")
+    .innerJoin("faces as f", (join) =>
+      join.on((eb) =>
+        eb.or([eb("f.id", "=", eb.ref("p.face1Id")), eb("f.id", "=", eb.ref("p.face2Id"))]),
+      ),
+    )
+    .select("f.id")
+    .where("p.slug", "=", ref.faceOf)
+    .where("f.shortCode", "=", ref.code)
+    .executeTakeFirst();
+  if (!row) {
+    throw new PairMergeError(`No ${ref.code} side on ${ref.faceOf}`);
+  }
+  return row.id;
+}
+
+function resolveHomes(list: PairMergeList): Map<string, { key: string; defaulted: boolean }> {
   const keys = new Set(list.printings.map((entry) => entry.key));
   if (keys.size !== list.printings.length) {
     throw new PairMergeError("Printing keys must be unique");
   }
   const entriesBySlug = new Map<string, string[]>();
   for (const entry of list.printings) {
-    if (entry.sides[0] === entry.sides[1]) {
-      throw new PairMergeError(`${entry.key}: the two sides must be different printings`);
+    if (sideLabel(entry.sides[0]) === sideLabel(entry.sides[1])) {
+      throw new PairMergeError(`${entry.key}: the two sides must be different`);
     }
-    for (const slug of entry.sides) {
-      entriesBySlug.set(slug, [...(entriesBySlug.get(slug) ?? []), entry.key]);
+    for (const side of entry.sides) {
+      if (typeof side === "string") {
+        entriesBySlug.set(side, [...(entriesBySlug.get(side) ?? []), entry.key]);
+      }
     }
   }
-  const homes = new Map<string, string>();
+  const homes = new Map<string, { key: string; defaulted: boolean }>();
   for (const [slug, entryKeys] of entriesBySlug) {
     const chosen = list.homes?.[slug];
-    if (chosen !== undefined) {
-      if (!entryKeys.includes(chosen)) {
-        throw new PairMergeError(`${slug}: home ${chosen} does not show this side`);
-      }
-      homes.set(slug, chosen);
-    } else if (entryKeys.length === 1) {
-      homes.set(slug, entryKeys[0] ?? "");
-    } else {
-      throw new PairMergeError(`${slug} is on ${entryKeys.join(", ")}; name its home`);
+    if (chosen !== undefined && !entryKeys.includes(chosen)) {
+      throw new PairMergeError(`${slug}: home ${chosen} does not show this side`);
     }
+    homes.set(slug, {
+      key: chosen ?? entryKeys[0] ?? "",
+      defaulted: chosen === undefined && entryKeys.length > 1,
+    });
   }
   return homes;
 }
@@ -142,6 +203,22 @@ async function countMoves(db: Kysely<Database>, sourceId: string): Promise<Recor
     }
   }
   return moved;
+}
+
+async function ownersOf(
+  db: Kysely<Database>,
+  sourceId: string,
+): Promise<Omit<PairMergeOwnerReport, "slug" | "home">[]> {
+  const { rows } = await sql<Omit<PairMergeOwnerReport, "slug" | "home">>`
+    SELECT col.user_id AS "userId", col.group_id AS "groupId", u.email, count(*)::int AS copies
+    FROM copies cp
+    JOIN collections col ON col.id = cp.collection_id
+    LEFT JOIN users u ON u.id = col.user_id
+    WHERE cp.printing_id = ${sourceId}
+    GROUP BY col.user_id, col.group_id, u.email
+    ORDER BY u.email NULLS LAST
+  `.execute(db);
+  return rows;
 }
 
 async function moveReferences(
@@ -175,23 +252,94 @@ async function moveReferences(
   }
 }
 
+async function checkFaceRefs(db: Kysely<Database>, list: PairMergeList): Promise<void> {
+  for (const entry of list.printings) {
+    for (const side of entry.sides) {
+      if (typeof side !== "string") {
+        if ("newFace" in side) {
+          if (list.newFaces?.[side.newFace] === undefined) {
+            throw new PairMergeError(`${entry.key}: unknown new face ${side.newFace}`);
+          }
+        } else {
+          await findFace(db, side);
+        }
+      }
+    }
+  }
+  for (const spec of Object.values(list.newFaces ?? {})) {
+    await findFace(db, spec.copyOf);
+  }
+}
+
 export async function planPairMerge(
   db: Kysely<Database>,
   list: PairMergeList,
 ): Promise<PairMergeReport> {
   const sources = await loadSources(db, list);
   const homes = resolveHomes(list);
+  await checkFaceRefs(db, list);
   const report: PairMergeReport = {
-    created: list.printings.map((entry) => ({ key: entry.key, sides: entry.sides })),
+    created: list.printings.map((entry) => ({ key: entry.key })),
+    newFaces: Object.keys(list.newFaces ?? {}),
     sources: [],
+    owners: [],
   };
   for (const [slug, home] of homes) {
     const source = sources.get(slug);
-    if (source) {
-      report.sources.push({ slug, home, moved: await countMoves(db, source.id) });
+    if (!source) {
+      continue;
+    }
+    report.sources.push({
+      slug,
+      home: home.key,
+      defaultHome: home.defaulted,
+      moved: await countMoves(db, source.id),
+    });
+    if (home.defaulted) {
+      for (const owner of await ownersOf(db, source.id)) {
+        report.owners.push({ slug, home: home.key, ...owner });
+      }
     }
   }
   return report;
+}
+
+async function createFace(db: Kysely<Database>, spec: PairMergeNewFace): Promise<string> {
+  const sourceId = await findFace(db, spec.copyOf);
+  const {
+    id: _id,
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    ...source
+  } = await db.selectFrom("faces").selectAll().where("id", "=", sourceId).executeTakeFirstOrThrow();
+  let setId = source.setId;
+  if (spec.setSlug !== undefined) {
+    const set = await db
+      .selectFrom("sets")
+      .select("id")
+      .where("slug", "=", spec.setSlug)
+      .executeTakeFirst();
+    if (!set) {
+      throw new PairMergeError(`Unknown set ${spec.setSlug}`);
+    }
+    setId = set.id;
+  }
+  const values: Insertable<FacesTable> = {
+    ...source,
+    setId,
+    shortCode: spec.shortCode ?? source.shortCode,
+    publicCode: spec.publicCode ?? source.publicCode,
+    language: spec.language ?? source.language,
+    finish: spec.finish ?? source.finish,
+    markerSlugs: spec.markerSlugs ?? source.markerSlugs,
+    artist: spec.artist ?? source.artist,
+  } as Insertable<FacesTable>;
+  const created = await db
+    .insertInto("faces")
+    .values(values)
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  return created.id;
 }
 
 /** Runs the whole merge in one transaction; any failure leaves the catalog untouched. */
@@ -203,32 +351,42 @@ export async function applyPairMerge(
     const report = await planPairMerge(trx, list);
     const sources = await loadSources(trx, list);
     const homes = resolveHomes(list);
+    const newFaceIds = new Map<string, string>();
+    for (const [name, spec] of Object.entries(list.newFaces ?? {})) {
+      newFaceIds.set(name, await createFace(trx, spec));
+    }
+    const faceIdOf = (side: PairMergeSide): Promise<string> | string => {
+      if (typeof side === "string") {
+        return (sources.get(side) as SourceRow).face1Id;
+      }
+      return "newFace" in side ? (newFaceIds.get(side.newFace) as string) : findFace(trx, side);
+    };
     const homeIdByKey = new Map<string, string>();
     for (const entry of list.printings) {
-      const [first, second] = entry.sides.map((slug) => sources.get(slug)) as [
-        SourceRow,
-        SourceRow,
-      ];
-      const physical = await trx
-        .selectFrom("printings")
-        .select(["releasedAt", "releasePrecision", "announcedAt", "comment"])
-        .where("id", "=", first.id)
-        .executeTakeFirstOrThrow();
+      const sourceSide = entry.sides.find((side) => typeof side === "string");
+      const source = sourceSide === undefined ? undefined : sources.get(sourceSide);
+      const physical = source
+        ? await trx
+            .selectFrom("printings")
+            .select(["releasedAt", "releasePrecision", "announcedAt", "comment"])
+            .where("id", "=", source.id)
+            .executeTakeFirstOrThrow()
+        : {};
       const created = await trx
         .insertInto("printings")
         .values({
-          face1Id: first.face1Id,
-          face2Id: second.face1Id,
-          size: entry.size ?? first.size,
+          face1Id: await faceIdOf(entry.sides[0]),
+          face2Id: await faceIdOf(entry.sides[1]),
+          size: entry.size ?? source?.size ?? "standard",
           ...physical,
         })
         .returning("id")
         .executeTakeFirstOrThrow();
       homeIdByKey.set(entry.key, created.id);
     }
-    for (const [slug, homeKey] of homes) {
+    for (const [slug, home] of homes) {
       const source = sources.get(slug);
-      const homeId = homeIdByKey.get(homeKey);
+      const homeId = homeIdByKey.get(home.key);
       if (source && homeId) {
         await moveReferences(trx, source.id, homeId);
         await trx.deleteFrom("printings").where("id", "=", source.id).execute();

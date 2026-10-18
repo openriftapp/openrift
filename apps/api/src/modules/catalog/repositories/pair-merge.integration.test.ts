@@ -164,9 +164,22 @@ describe.skipIf(!ctx)("pair merge (integration)", () => {
     await db.deleteFrom("users").where("id", "=", USER_ID).execute();
   });
 
-  it("refuses a side on several printings without a named home", async () => {
+  it("refuses an unknown printing slug", async () => {
+    await expect(
+      planPairMerge(db, { printings: [{ key: "x", sides: ["pmg-nope", slugs["PMG-T05"]!] }] }),
+    ).rejects.toBeInstanceOf(PairMergeError);
+  });
+
+  it("defaults the home to the first printing and lists the owners that move there", async () => {
     const { homes: _homes, ...withoutHomes } = list();
-    await expect(planPairMerge(db, withoutHomes)).rejects.toBeInstanceOf(PairMergeError);
+    const report = await planPairMerge(db, withoutHomes);
+    expect(report.sources.find((source) => source.slug === slugs["PMG-T01"])).toMatchObject({
+      home: "bird-gold",
+      defaultHome: true,
+    });
+    expect(report.owners).toEqual([
+      expect.objectContaining({ slug: slugs["PMG-T01"], userId: USER_ID, copies: 2 }),
+    ]);
   });
 
   it("plans the moves without writing", async () => {
@@ -233,5 +246,45 @@ describe.skipIf(!ctx)("pair merge (integration)", () => {
       .where("deckId", "=", deckId)
       .executeTakeFirstOrThrow();
     expect(deckCard.preferredPrintingId).toBe(birdGold);
+  });
+
+  it("pairs an existing side with a side the list creates", async () => {
+    const birdGold = await db
+      .selectFrom("printings as p")
+      .innerJoin("faces as f1", "f1.id", "p.face1Id")
+      .select("p.slug")
+      .where("f1.shortCode", "=", "PMG-T01")
+      .executeTakeFirstOrThrow();
+    const report = await applyPairMerge(db, {
+      newFaces: {
+        "gold-foil": {
+          copyOf: { faceOf: birdGold.slug, code: "PMG-T05" },
+          shortCode: "PMG-T09",
+          publicCode: "PMG-T09",
+          finish: "foil",
+        },
+      },
+      printings: [
+        {
+          key: "gold-gold",
+          sides: [{ faceOf: birdGold.slug, code: "PMG-T05" }, { newFace: "gold-foil" }],
+        },
+      ],
+    });
+    expect(report.newFaces).toEqual(["gold-foil"]);
+
+    const created = await db
+      .selectFrom("printings as p")
+      .innerJoin("faces as f1", "f1.id", "p.face1Id")
+      .innerJoin("faces as f2", "f2.id", "p.face2Id")
+      .select(["f1.shortCode as code1", "f2.shortCode as code2", "f2.finish", "f2.cardId"])
+      .where("f1.shortCode", "=", "PMG-T05")
+      .executeTakeFirstOrThrow();
+    expect(created).toEqual({
+      code1: "PMG-T05",
+      code2: "PMG-T09",
+      finish: "foil",
+      cardId: cardIds.Gold,
+    });
   });
 });
