@@ -16,7 +16,7 @@ describe("sortCards", () => {
 
   const printings = [
     makePrinting({
-      id: "SET1-003:epic:normal:",
+      printingId: "SET1-003:epic:normal:",
       shortCode: "SET1-003",
       rarity: "epic",
       cardId: "SET1-003",
@@ -35,7 +35,7 @@ describe("sortCards", () => {
       },
     }),
     makePrinting({
-      id: "SET1-001:rare:normal:",
+      printingId: "SET1-001:rare:normal:",
       shortCode: "SET1-001",
       rarity: "common",
       cardId: "SET1-001",
@@ -54,7 +54,7 @@ describe("sortCards", () => {
       },
     }),
     makePrinting({
-      id: "SET1-002:common:foil:",
+      printingId: "SET1-002:common:foil:",
       shortCode: "SET1-002",
       rarity: "rare",
       cardId: "SET1-002",
@@ -87,7 +87,7 @@ describe("sortCards", () => {
 
   it("files a Legend under its champion, not its stored epithet", () => {
     const azir = makePrinting({
-      id: "SET1-004:epic:normal:",
+      printingId: "SET1-004:epic:normal:",
       shortCode: "SET1-004",
       rarity: "epic",
       cardId: "SET1-004",
@@ -125,7 +125,7 @@ describe("sortCards", () => {
     // "AAA" sorts ahead of "SET1" alphabetically, but Set Alpha comes first in
     // the catalog, so its printings lead.
     const beta = makePrinting({
-      id: "AAA-001:common:normal:",
+      printingId: "AAA-001:common:normal:",
       shortCode: "AAA-001",
       setId: SET_BETA_ID,
       cardId: "AAA-001",
@@ -136,7 +136,7 @@ describe("sortCards", () => {
 
   it("sorts a supplemental set's printings after the main sets", () => {
     const promo = makePrinting({
-      id: "PRM-001:common:normal:",
+      printingId: "PRM-001:common:normal:",
       shortCode: "PRM-001",
       setId: SET_PROMO_ID,
       cardId: "PRM-001",
@@ -150,7 +150,7 @@ describe("sortCards", () => {
 
   it("sorts a printing from an unknown set last", () => {
     const stray = makePrinting({
-      id: "ZZZ-001:common:normal:",
+      printingId: "ZZZ-001:common:normal:",
       shortCode: "AAA-001",
       setId: "set-not-in-catalog",
       cardId: "ZZZ-001",
@@ -161,7 +161,7 @@ describe("sortCards", () => {
 
   it("breaks a name tie by set order, then card number", () => {
     const reprint = makePrinting({
-      id: "AAA-009:common:normal:",
+      printingId: "AAA-009:common:normal:",
       shortCode: "AAA-009",
       setId: SET_BETA_ID,
       cardId: "AAA-009",

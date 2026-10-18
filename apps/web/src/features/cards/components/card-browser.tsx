@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useSearch } from "@tanstack/react-router";
 import { PackageIcon } from "lucide-react";
@@ -65,7 +66,7 @@ function CatalogActionsCell({ printing, view, printingsByCardId }: CatalogAction
       printing={printing}
       siblingIds={
         view === "cards"
-          ? printingsByCardId.get(printing.cardId)?.map((sibling) => sibling.id)
+          ? printingsByCardId.get(printing.cardId)?.map((sibling) => sibling.printingId)
           : undefined
       }
     />
@@ -208,7 +209,7 @@ export function CardBrowser() {
   });
 
   const items: CardViewerItem[] = sortedCards.map((printing) => ({
-    id: printing.id,
+    id: sideKey(printing),
     printing,
   }));
 
@@ -227,7 +228,7 @@ export function CardBrowser() {
 
   const handleSiblingClick = (printing: Printing) => {
     handleGridCardClick(printing);
-    useSiblingOverrideStore.getState().setOverride("cards", printing.cardId, printing.id);
+    useSiblingOverrideStore.getState().setOverride("cards", printing.cardId, printing.printingId);
   };
 
   // Hiding counts only affects the tile display: the right-click menu and
@@ -248,7 +249,7 @@ export function CardBrowser() {
       ? tileSiblings(printing, printingsByCardId.get(printing.cardId), groupBy)
       : undefined;
     const ownedVariantCount =
-      tile?.filter((sibling) => (ownedCountByPrinting?.[sibling.id] ?? 0) > 0).length ?? 0;
+      tile?.filter((sibling) => (ownedCountByPrinting?.[sibling.printingId] ?? 0) > 0).length ?? 0;
     if (ownedVariantCount > 1 && openVariantsForTile && anchorEl) {
       openVariantsForTile(printing, anchorEl, "remove");
       return;
@@ -289,7 +290,7 @@ export function CardBrowser() {
     // Looked up against the tile's representative printing, not the cell's
     // overridden one, so the heart stays steady while variants are cycled.
     const cardWishEntries = isLoggedIn
-      ? wish.entriesForPrinting(cardId, item.printing.id)
+      ? wish.entriesForPrinting(cardId, item.printing.printingId)
       : undefined;
 
     return (
@@ -350,7 +351,7 @@ export function CardBrowser() {
           printing={printing}
           siblings={detailPanePrintingsByCardId.get(printing.cardId)}
           showCount={canAdd}
-          wishEntries={wish.entriesForPrinting(printing.cardId, printing.id)}
+          wishEntries={wish.entriesForPrinting(printing.cardId, printing.printingId)}
           onAddToWishlist={setWishTarget}
         />
       )

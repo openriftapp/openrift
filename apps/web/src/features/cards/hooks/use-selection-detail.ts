@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
@@ -59,7 +60,7 @@ export function useCardDetailNavigation({
   // Bumps selectedIndex onto the picked printing when it is also a grid tile,
   // so arrow-key nav and grid highlighting follow it; otherwise leaves the index alone.
   const handleSelectPrinting = (printing: Printing) => {
-    const idx = items.findIndex((item) => item.printing.id === printing.id);
+    const idx = items.findIndex((item) => sideKey(item.printing) === sideKey(printing));
     if (idx === -1) {
       setSelectedCard(printing);
     } else {
@@ -102,7 +103,7 @@ export function useCardDetailNavigation({
       }
       event.preventDefault();
       event.stopPropagation();
-      const idx = siblingPrintings.findIndex((p) => p.id === selectedCard.id);
+      const idx = siblingPrintings.findIndex((p) => sideKey(p) === sideKey(selectedCard));
       const next =
         event.key === "ArrowUp"
           ? idx > 0

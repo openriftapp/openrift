@@ -27,7 +27,7 @@ function stubItem(overrides: Partial<DeckListItemResponse> = {}): DeckListItemRe
       createdAt: "2026-08-01T10:00:00.000Z",
       updatedAt: "2026-08-09T18:30:00.000Z",
       coverCardId: null,
-      coverPrintingId: null,
+      coverFaceId: null,
       coverPosition: null,
       collectionId: null,
       ...overrides.deck,

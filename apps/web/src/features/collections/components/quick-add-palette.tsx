@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { imageUrl } from "@openrift/shared/image-url";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 import {
@@ -211,7 +212,7 @@ function PaletteInner({
 
   const handleUndo = async (printing: Printing) => {
     // Session-only: takes back what this session added, never a copy the user already owned.
-    const entry = useAddModeStore.getState().addedItems.get(printing.id);
+    const entry = useAddModeStore.getState().addedItems.get(printing.printingId);
     if (!entry || entry.copyIds.length === 0) {
       return;
     }
@@ -237,12 +238,12 @@ function PaletteInner({
   const selectedPrinting = expandedCard?.printings[expandedIndex];
   const selectedSourceCount =
     inMoveMode && moveFrom === MOVE_FROM_ANYWHERE && selectedPrinting
-      ? move.sourcesFor(selectedPrinting.id).length
+      ? move.sourcesFor(selectedPrinting.printingId).length
       : 0;
   const canUndoSelected = selectedPrinting
     ? inMoveMode
-      ? move.movedCount(selectedPrinting.id) > 0
-      : (addedItems.get(selectedPrinting.id)?.quantity ?? 0) > 0
+      ? move.movedCount(selectedPrinting.printingId) > 0
+      : (addedItems.get(selectedPrinting.printingId)?.quantity ?? 0) > 0
     : false;
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -272,7 +273,7 @@ function PaletteInner({
         // Step back through source chips first; Left only collapses the card
         // once at the leftmost chip.
         if (inMoveMode && moveFrom === MOVE_FROM_ANYWHERE && selectedPrinting) {
-          const sources = move.sourcesFor(selectedPrinting.id);
+          const sources = move.sourcesFor(selectedPrinting.printingId);
           const activeSource = Math.min(move.sourceIndex, sources.length - 1);
           if (activeSource > 0) {
             move.setSourceIndex(activeSource - 1);
@@ -285,7 +286,7 @@ function PaletteInner({
       if (expandedCardId) {
         // Clamps at the last source chip; no wrap.
         if (inMoveMode && moveFrom === MOVE_FROM_ANYWHERE && selectedPrinting) {
-          const sources = move.sourcesFor(selectedPrinting.id);
+          const sources = move.sourcesFor(selectedPrinting.printingId);
           if (sources.length > 1) {
             event.preventDefault();
             move.setSourceIndex(
@@ -528,19 +529,21 @@ function PaletteInner({
                   {card.printings.map((printing, printingIndex) => {
                     const isPrintingSelected = printingIndex === expandedIndex;
                     // Optimistic adds are already reflected here (temp copy row); don't add sessionAdded on top.
-                    const ownedForPrinting = ownedCountByPrinting?.[printing.id] ?? 0;
-                    const addedEntry = addedItems.get(printing.id);
+                    const ownedForPrinting = ownedCountByPrinting?.[printing.printingId] ?? 0;
+                    const addedEntry = addedItems.get(printing.printingId);
                     const sessionAdded =
                       (addedEntry?.quantity ?? 0) + (addedEntry?.pendingCount ?? 0);
-                    const movableForPrinting = move.movableCounts?.[printing.id] ?? 0;
-                    const movedThisSession = move.movedCount(printing.id);
+                    const movableForPrinting = move.movableCounts?.[printing.printingId] ?? 0;
+                    const movedThisSession = move.movedCount(printing.printingId);
                     const sources =
-                      inMoveMode && isPrintingSelected ? move.sourcesFor(printing.id) : null;
-                    const price = prices.get(printing.id, favoriteMarketplace);
+                      inMoveMode && isPrintingSelected
+                        ? move.sourcesFor(printing.printingId)
+                        : null;
+                    const price = prices.get(printing.printingId, favoriteMarketplace);
                     const cardName = legendDisplayName(printing.card);
                     return (
                       <div
-                        key={printing.id}
+                        key={sideKey(printing)}
                         data-selected={isPrintingSelected}
                         className={cn(
                           "group rounded-md transition-colors",

@@ -23,7 +23,7 @@ function stubMember(overrides: Partial<DeckSummaryResponse> & { id: string }): D
     createdAt: "2026-08-01T00:00:00.000Z",
     updatedAt: "2026-08-01T00:00:00.000Z",
     coverCardId: null,
-    coverPrintingId: null,
+    coverFaceId: null,
     coverPosition: null,
     collectionId: null,
     familyId: "family-1",

@@ -151,7 +151,7 @@ function DragPreview({
   const printings = printingsByCardId.get(dragged.cardId);
   // Undefined only for a cards-view pool cell, which stands for the card, not a printing.
   const shown = dragged.printingId
-    ? printings?.find((printing) => printing.id === dragged.printingId)
+    ? printings?.find((printing) => printing.printingId === dragged.printingId)
     : printings?.[0];
   return (
     <CardDragGhost

@@ -180,7 +180,7 @@ function PublicDeckContent({
               format: data.deck.format,
               formatConfig: data.deck.formatConfig,
               coverCardId: data.deck.coverCardId,
-              coverPrintingId: data.deck.coverPrintingId,
+              coverFaceId: data.deck.coverFaceId,
               coverPosition: data.deck.coverPosition,
               links: data.deck.links,
             }}

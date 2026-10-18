@@ -24,7 +24,7 @@ localStorage.setItem(
           formatConfig: null,
           cards: [{ zone: "main", cardId: "card-a", quantity: 2, preferredPrintingId: null }],
           coverCardId: null,
-          coverPrintingId: null,
+          coverFaceId: null,
           coverPosition: null,
           links: [],
           createdAt: "2026-08-01T00:00:00.000Z",

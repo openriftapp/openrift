@@ -144,7 +144,7 @@ export function useCollectionGridActions({
               : `Took ${takenQuantity}× ${legendDisplayName(printing.card)}`,
           );
           useCollectionOverlayStore.getState().setTakeConfirm(null);
-          const matches = wish.entriesForPrinting(printing.cardId, printing.id);
+          const matches = wish.entriesForPrinting(printing.cardId, printing.printingId);
           if (matches.length > 0) {
             useCollectionOverlayStore
               .getState()

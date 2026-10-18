@@ -5,6 +5,7 @@ import type {
 import type {
   catalogCardResponseValueSchema,
   catalogPrintingResponseValueSchema,
+  catalogPrintingSide2Schema,
   catalogResponseSchema,
 } from "@openrift/shared/contracts/catalog";
 import type { landingSummaryResponseSchema } from "@openrift/shared/contracts/landing-summary";
@@ -33,6 +34,7 @@ export type CatalogPrintingResponse = z.infer<typeof catalogPrintingResponseSche
 /** Wire-only value shapes for `GET /catalog` — identity lives in the map key, not the value. */
 export type CatalogResponseCardValue = z.infer<typeof catalogCardResponseValueSchema>;
 export type CatalogResponsePrintingValue = z.infer<typeof catalogPrintingResponseValueSchema>;
+export type CatalogPrintingSideValue = z.infer<typeof catalogPrintingSide2Schema>;
 
 export type CatalogResponse = z.infer<typeof catalogResponseSchema>;
 

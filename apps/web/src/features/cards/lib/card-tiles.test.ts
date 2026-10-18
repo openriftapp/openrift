@@ -51,7 +51,7 @@ describe("dedupeToCardsViewTiles", () => {
     const a = stubPrinting({ cardId: "card-1", setId: "set-ogn" });
     const b = stubPrinting({ cardId: "card-1", setId: "set-unl" });
     const result = dedupeToCardsViewTiles([a, b], "none");
-    expect(result.map((p) => p.id)).toEqual([a.id]);
+    expect(result.map((p) => p.printingId)).toEqual([a.printingId]);
   });
 
   it("keeps one printing per (card, set) when grouping by set", () => {
@@ -59,7 +59,7 @@ describe("dedupeToCardsViewTiles", () => {
     const ognB = stubPrinting({ cardId: "card-1", setId: "set-ogn" });
     const unl = stubPrinting({ cardId: "card-1", setId: "set-unl" });
     const result = dedupeToCardsViewTiles([ognA, ognB, unl], "set");
-    expect(result.map((p) => p.id)).toEqual([ognA.id, unl.id]);
+    expect(result.map((p) => p.printingId)).toEqual([ognA.printingId, unl.printingId]);
   });
 
   it("keeps one printing per (card, rarity) when grouping by rarity", () => {
@@ -67,14 +67,14 @@ describe("dedupeToCardsViewTiles", () => {
     const rareA = stubPrinting({ cardId: "card-1", rarity: "rare" });
     const rareB = stubPrinting({ cardId: "card-1", rarity: "rare" });
     const result = dedupeToCardsViewTiles([common, rareA, rareB], "rarity");
-    expect(result.map((p) => p.id)).toEqual([common.id, rareA.id]);
+    expect(result.map((p) => p.printingId)).toEqual([common.printingId, rareA.printingId]);
   });
 
   it("preserves first-occurrence order", () => {
     const unl = stubPrinting({ cardId: "card-1", setId: "set-unl" });
     const ogn = stubPrinting({ cardId: "card-1", setId: "set-ogn" });
     const result = dedupeToCardsViewTiles([unl, ogn], "set");
-    expect(result.map((p) => p.id)).toEqual([unl.id, ogn.id]);
+    expect(result.map((p) => p.printingId)).toEqual([unl.printingId, ogn.printingId]);
   });
 });
 
@@ -90,16 +90,18 @@ describe("tileSiblings", () => {
     const ogn = stubPrinting({ cardId: "card-1", setId: "set-ogn" });
     const ognAlt = stubPrinting({ cardId: "card-1", setId: "set-ogn" });
     const unl = stubPrinting({ cardId: "card-1", setId: "set-unl" });
-    expect(tileSiblings(ogn, [ogn, ognAlt, unl], "set")?.map((p) => p.id)).toEqual([
-      ogn.id,
-      ognAlt.id,
+    expect(tileSiblings(ogn, [ogn, ognAlt, unl], "set")?.map((p) => p.printingId)).toEqual([
+      ogn.printingId,
+      ognAlt.printingId,
     ]);
   });
 
   it("narrows to the representative's rarity when grouping by rarity", () => {
     const common = stubPrinting({ cardId: "card-1", rarity: "common" });
     const rare = stubPrinting({ cardId: "card-1", rarity: "rare" });
-    expect(tileSiblings(rare, [common, rare], "rarity")?.map((p) => p.id)).toEqual([rare.id]);
+    expect(tileSiblings(rare, [common, rare], "rarity")?.map((p) => p.printingId)).toEqual([
+      rare.printingId,
+    ]);
   });
 
   it("passes undefined through", () => {

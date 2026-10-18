@@ -1,5 +1,6 @@
 import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
 import type { SearchablePrintingCodes } from "@openrift/shared/card-search";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 export interface PrintingSearchRow {
@@ -30,13 +31,13 @@ function rowFor(printing: Printing, id: string, slug: string): PrintingSearchRow
   };
 }
 
-/** One row per printing, keyed by printing id and findable by its own codes. */
+/** One row per printing side, keyed by its side key and findable by its own codes. */
 export function printingSearchRows(
   printings: readonly Printing[],
 ): SearchIndexRows<PrintingSearchRow> {
   return {
-    rows: printings.map((printing) => rowFor(printing, printing.id, printing.shortCode)),
-    codesByRowId: new Map(printings.map((printing) => [printing.id, codesOf(printing)])),
+    rows: printings.map((printing) => rowFor(printing, sideKey(printing), printing.shortCode)),
+    codesByRowId: new Map(printings.map((printing) => [sideKey(printing), codesOf(printing)])),
   };
 }
 

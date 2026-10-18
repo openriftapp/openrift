@@ -1238,7 +1238,7 @@ describe("POST /cards/:cardId/accept-printing", () => {
       expect.objectContaining({ shortCode: "FD" }),
       ["cp-1", "cp-2"],
       mockIo,
-      { requireNew: true },
+      { requireNew: true, secondFaceId: null },
     );
     expect(mockRelinkCandidatePrintings).toHaveBeenCalled();
   });

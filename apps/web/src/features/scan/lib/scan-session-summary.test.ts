@@ -4,9 +4,9 @@ import { stubPrinting } from "@/test/factories";
 
 import { computeScanSessionSummary } from "./scan-session-summary";
 
-const p1 = stubPrinting({ id: "p1", cardId: "c1" });
-const p2 = stubPrinting({ id: "p2", cardId: "c2" });
-const p3 = stubPrinting({ id: "p3", cardId: "c3" });
+const p1 = stubPrinting({ printingId: "p1", cardId: "c1" });
+const p2 = stubPrinting({ printingId: "p2", cardId: "c2" });
+const p3 = stubPrinting({ printingId: "p3", cardId: "c3" });
 
 const prices: Record<string, number> = { p1: 2.5, p2: 10, p3: 1 };
 

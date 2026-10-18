@@ -1,6 +1,7 @@
 import type {
   CatalogCardResponse,
   CatalogPrintingResponse,
+  CatalogPrintingSideValue,
 } from "@openrift/shared/types/api/catalog";
 import type {
   DistributionChannelKind,
@@ -21,7 +22,10 @@ interface PrintingDecorations {
 type CardRow = Awaited<ReturnType<Repos["catalog"]["cardsByIds"]>>[number];
 type CardBanRow = Awaited<ReturnType<Repos["catalog"]["cardBansByCardIds"]>>[number];
 type CardErrataRow = Awaited<ReturnType<Repos["catalog"]["cardErrataByCardIds"]>>[number];
-type PrintingRow = Awaited<ReturnType<Repos["catalog"]["printingsBySetId"]>>[number];
+type SideRow = Awaited<ReturnType<Repos["catalog"]["printings"]>>[number];
+type PrintingRow = Awaited<ReturnType<Repos["catalog"]["printingsBySetId"]>>[number] & {
+  slug?: string;
+};
 type PrintingImageRow = Awaited<
   ReturnType<Repos["catalog"]["printingImagesByPrintingIds"]>
 >[number];
@@ -114,12 +118,10 @@ export function resolveFallbackArt(row: {
 
 /** The credit key stays absent unless set: most of the catalogue is uncredited and every visitor downloads it. */
 export function toCatalogPrintingImage(row: {
-  face: PrintingImage["face"];
   imageId: string;
   credit: string | null;
 }): PrintingImage {
   return {
-    face: row.face,
     imageId: row.imageId,
     ...(row.credit === null ? {} : { credit: row.credit }),
   };
@@ -177,26 +179,69 @@ export function buildCardsResponse(
   );
 }
 
+export function sideImageKey(row: { printingId: string; side: number }): string {
+  return `${row.printingId}:${row.side}`;
+}
+
+export function presentSide(
+  row: SideRow,
+  images: readonly PrintingImageRow[],
+  markerBySlug: ReadonlyMap<string, Marker>,
+): CatalogPrintingSideValue {
+  return {
+    faceId: row.faceId,
+    cardId: row.cardId,
+    setId: row.setId,
+    shortCode: row.shortCode,
+    rarity: row.rarity,
+    artVariant: row.artVariant,
+    isSigned: row.isSigned,
+    isOvernumbered: row.isOvernumbered,
+    markers: resolveMarkers(row.markerSlugs, markerBySlug),
+    finish: row.finish,
+    images: images.map((image) => toCatalogPrintingImage(image)),
+    artist: row.artist,
+    publicCode: row.publicCode,
+    printedRulesText: row.printedRulesText,
+    printedEffectText: row.printedEffectText,
+    flavorText: row.flavorText,
+    printedName: row.printedName,
+    printedYear: row.printedYear,
+    language: row.language,
+    canonicalRank: row.canonicalRank,
+    ...resolveFallbackArt(row),
+  };
+}
+
+export function presentPrintingFields(
+  row: SideRow,
+  decorations: Pick<PrintingDecorations, "channelsByPrinting" | "citationsByPrinting">,
+): Pick<
+  CatalogPrintingResponse,
+  "size" | "comment" | "hasFoilTwin" | "distributionChannels" | "citations"
+> {
+  const citations = decorations.citationsByPrinting.get(row.printingId);
+  return {
+    size: row.size,
+    comment: row.comment,
+    ...resolveFoilTwin(row),
+    distributionChannels: decorations.channelsByPrinting.get(row.printingId) ?? [],
+    ...(citations === undefined ? {} : { citations }),
+  };
+}
+
 export function buildPrintingsResponse(
   printingRows: readonly PrintingRow[],
   imageRows: readonly PrintingImageRow[],
   decorations: PrintingDecorations,
 ): CatalogPrintingResponse[] {
-  const { markerBySlug, channelsByPrinting, citationsByPrinting } = decorations;
-  const imagesByPrinting = Map.groupBy(imageRows, (r) => r.printingId);
-
-  return printingRows.map(
-    ({ markerSlugs, fallbackArtMode, fallbackImageId, hasFoilTwin, ...rest }) => {
-      const citations = citationsByPrinting.get(rest.id);
-      return {
-        ...rest,
-        ...resolveFallbackArt({ fallbackArtMode, fallbackImageId }),
-        ...resolveFoilTwin({ hasFoilTwin }),
-        markers: resolveMarkers(markerSlugs, markerBySlug),
-        distributionChannels: channelsByPrinting.get(rest.id) ?? [],
-        ...(citations === undefined ? {} : { citations }),
-        images: (imagesByPrinting.get(rest.id) ?? []).map((image) => toCatalogPrintingImage(image)),
-      };
-    },
-  );
+  const imagesBySide = Map.groupBy(imageRows, sideImageKey);
+  return printingRows.map((row) => ({
+    printingId: row.printingId,
+    side: row.side,
+    ...(row.otherSide === null ? {} : { otherSide: row.otherSide }),
+    ...(row.slug === undefined ? {} : { slug: row.slug }),
+    ...presentSide(row, imagesBySide.get(sideImageKey(row)) ?? [], decorations.markerBySlug),
+    ...presentPrintingFields(row, decorations),
+  }));
 }

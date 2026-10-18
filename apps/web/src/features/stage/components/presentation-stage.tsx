@@ -186,7 +186,7 @@ export function PresentationStage({
   return (
     <>
       {userId !== null && current && !editing && (
-        <StageOverlayPushKey printingId={current.printing.id} />
+        <StageOverlayPushKey printingId={current.printing.printingId} />
       )}
       {userId !== null && <StageOverlayHideKey />}
       {/* Always mounted when a board exists; enabled/paused control the sync, so editing

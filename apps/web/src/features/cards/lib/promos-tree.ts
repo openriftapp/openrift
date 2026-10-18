@@ -35,7 +35,7 @@ export function buildPromoTree(
       const printings = printingsByChannelId.get(channel.id) ?? [];
       const subtreePrintingIds = new Set<string>();
       for (const printing of printings) {
-        subtreePrintingIds.add(printing.id);
+        subtreePrintingIds.add(printing.printingId);
       }
       for (const child of children) {
         for (const id of child.subtreePrintingIds) {

@@ -35,7 +35,7 @@ function poolDetailActions(printing: Printing, view: "cards" | "printings") {
     <PoolCardStrip
       cardId={printing.cardId}
       cardName={printing.card.name}
-      printingId={view === "printings" ? printing.id : undefined}
+      printingId={view === "printings" ? printing.printingId : undefined}
     />
   );
 }
@@ -54,7 +54,7 @@ function PoolCardCell({
   const rowIndex = useTierListBuilderStore((state) => state.rowIndexByCardId.get(cardId) ?? null);
   const isMobile = useIsMobile();
 
-  const printingId = view === "printings" ? item.printing.id : undefined;
+  const printingId = view === "printings" ? item.printing.printingId : undefined;
   const dragData: PoolCardDragData = { type: "tier-pool-card", cardId, printingId };
   // Destructure before JSX: member access on the hook's return object in render
   // makes the React Compiler bail.

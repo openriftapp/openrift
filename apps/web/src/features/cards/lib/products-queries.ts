@@ -68,7 +68,7 @@ function enrichProductDetail(response: ProductDetailResponse): EnrichedProductDe
       card,
     };
     printings.push(printing);
-    printingsById[printing.id] = printing;
+    printingsById[printing.printingId] = printing;
   }
   return {
     product: response.product,

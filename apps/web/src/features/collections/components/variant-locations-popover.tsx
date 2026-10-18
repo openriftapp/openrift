@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 import {
@@ -70,7 +71,7 @@ export function buildVariantGroups(
   const breakdownByPrinting = new Map((breakdown ?? []).map((entry) => [entry.printingId, entry]));
 
   return printings.map((printing) => {
-    const entry = breakdownByPrinting.get(printing.id);
+    const entry = breakdownByPrinting.get(printing.printingId);
     const locations = [...(entry?.collections ?? [])].sort(
       (left, right) =>
         (collectionIndex.get(left.collectionId) ?? Number.MAX_SAFE_INTEGER) -
@@ -139,12 +140,15 @@ export function VariantLocationsPopover({
 
   const isAddPage = addCollectionTarget !== null;
   const addGroup = addCollectionTarget
-    ? groups.find((group) => group.printing.id === addCollectionTarget.id)
+    ? groups.find((group) => group.printing.printingId === addCollectionTarget.printingId)
     : undefined;
 
   const preferredPrinting =
-    groups.find((group) => group.printing.id === initialHighlightId)?.printing ?? printings[0];
-  const preferredGroup = groups.find((group) => group.printing.id === preferredPrinting?.id);
+    groups.find((group) => group.printing.printingId === initialHighlightId)?.printing ??
+    printings[0];
+  const preferredGroup = groups.find(
+    (group) => group.printing.printingId === preferredPrinting?.printingId,
+  );
   const preferredLocation = preferredGroup?.locations[0];
   const initialId =
     preferredPrinting === undefined
@@ -161,7 +165,7 @@ export function VariantLocationsPopover({
   const setHighlightedId = isAddPage ? setAddHighlightedId : setMainHighlightedId;
 
   const [expandedVariants, setExpandedVariants] = useState<Set<string>>(
-    () => new Set(preferredPrinting ? [preferredPrinting.id] : []),
+    () => new Set(preferredPrinting ? [preferredPrinting.printingId] : []),
   );
   const toggleVariant = (printingId: string) => {
     setExpandedVariants((previous) => {
@@ -268,10 +272,12 @@ export function VariantLocationsPopover({
       }}
     >
       {visibleGroups.map((group, groupIndex) => {
-        const expanded = !collapsible || expandedVariants.has(group.printing.id);
-        const onVariantSelect = collapsible ? () => toggleVariant(group.printing.id) : undefined;
+        const expanded = !collapsible || expandedVariants.has(group.printing.printingId);
+        const onVariantSelect = collapsible
+          ? () => toggleVariant(group.printing.printingId)
+          : undefined;
         return (
-          <Fragment key={group.printing.id}>
+          <Fragment key={sideKey(group.printing)}>
             <PickerRow
               value={variantRowValue(group.printing)}
               onSelect={onVariantSelect}
@@ -416,13 +422,13 @@ export function VariantLocationsPopover({
 
 // cmdk round-trips these values back through onKeyDown as opaque strings; resolve via actionByValue, don't parse them.
 function variantRowValue(printing: Printing): string {
-  return `variant::${printing.id}`;
+  return `variant::${printing.printingId}`;
 }
 
 function locationRowValue(printing: Printing, collectionId: string): string {
-  return `location::${printing.id}::${collectionId}`;
+  return `location::${printing.printingId}::${collectionId}`;
 }
 
 function addRowValue(printing: Printing): string {
-  return `add::${printing.id}`;
+  return `add::${printing.printingId}`;
 }

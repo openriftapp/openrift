@@ -30,7 +30,7 @@ const typographyTargetSchema = z.discriminatedUnion("entity", [
     field: z.enum(CARD_TYPOGRAPHY_FIELDS),
   }),
   z.object({
-    entity: z.literal("printing"),
+    entity: z.literal("face"),
     id: z.uuid(),
     field: z.enum(PRINTING_TYPOGRAPHY_FIELDS),
   }),

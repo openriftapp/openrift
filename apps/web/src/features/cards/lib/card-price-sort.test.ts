@@ -16,9 +16,9 @@ function groupByCardId(printings: Printing[]): Map<string, Printing[]> {
 
 describe("computePriceRanges", () => {
   it("spans the cheapest and dearest priced printing of each card", () => {
-    const cheap = stubPrinting({ id: "p1", cardId: "c1" });
-    const dear = stubPrinting({ id: "p2", cardId: "c1" });
-    const other = stubPrinting({ id: "p3", cardId: "c2" });
+    const cheap = stubPrinting({ printingId: "p1", cardId: "c1" });
+    const dear = stubPrinting({ printingId: "p2", cardId: "c1" });
+    const other = stubPrinting({ printingId: "p3", cardId: "c2" });
     const prices = stubPriceLookup({
       p1: { tcgplayer: 2 },
       p2: { tcgplayer: 11.5 },
@@ -36,7 +36,7 @@ describe("computePriceRanges", () => {
   });
 
   it("omits a card whose printings are all unpriced", () => {
-    const printing = stubPrinting({ id: "p1", cardId: "c1" });
+    const printing = stubPrinting({ printingId: "p1", cardId: "c1" });
 
     const ranges = computePriceRanges(groupByCardId([printing]), stubPriceLookup({}), "tcgplayer");
 
@@ -44,8 +44,8 @@ describe("computePriceRanges", () => {
   });
 
   it("ignores unpriced printings of a card that has a priced one", () => {
-    const priced = stubPrinting({ id: "p1", cardId: "c1" });
-    const unpriced = stubPrinting({ id: "p2", cardId: "c1" });
+    const priced = stubPrinting({ printingId: "p1", cardId: "c1" });
+    const unpriced = stubPrinting({ printingId: "p2", cardId: "c1" });
 
     const ranges = computePriceRanges(
       groupByCardId([priced, unpriced]),
@@ -57,7 +57,7 @@ describe("computePriceRanges", () => {
   });
 
   it("reads the requested marketplace, not whichever price exists", () => {
-    const printing = stubPrinting({ id: "p1", cardId: "c1" });
+    const printing = stubPrinting({ printingId: "p1", cardId: "c1" });
     const prices = stubPriceLookup({ p1: { tcgplayer: 3, cardmarket: 9 } });
 
     expect(computePriceRanges(groupByCardId([printing]), prices, "cardmarket").get("c1")).toEqual({
@@ -67,8 +67,8 @@ describe("computePriceRanges", () => {
   });
 
   it("keeps a zero price rather than treating it as absent", () => {
-    const free = stubPrinting({ id: "p1", cardId: "c1" });
-    const paid = stubPrinting({ id: "p2", cardId: "c1" });
+    const free = stubPrinting({ printingId: "p1", cardId: "c1" });
+    const paid = stubPrinting({ printingId: "p2", cardId: "c1" });
     const prices = stubPriceLookup({ p1: { tcgplayer: 0 }, p2: { tcgplayer: 5 } });
 
     expect(computePriceRanges(groupByCardId([free, paid]), prices, "tcgplayer").get("c1")).toEqual({
@@ -81,7 +81,7 @@ describe("computePriceRanges", () => {
 describe("buildSortCardsOptions", () => {
   const sets = [{ id: "s1" }];
   const rarityOrder = ["common", "rare"];
-  const getPrice = (printing: Printing) => (printing.id === "priced" ? 42 : undefined);
+  const getPrice = (printing: Printing) => (printing.printingId === "priced" ? 42 : undefined);
   const ranges = new Map<string, PriceRange>([["c1", { min: 2, max: 11 }]]);
 
   const build = (overrides: Partial<Parameters<typeof buildSortCardsOptions>[0]> = {}) =>
@@ -117,13 +117,15 @@ describe("buildSortCardsOptions", () => {
   it("falls back to the printing's own price when its card has no range", () => {
     const options = build();
 
-    expect(options.getPrice?.(stubPrinting({ id: "priced", cardId: "unranged" }))).toBe(42);
+    expect(options.getPrice?.(stubPrinting({ printingId: "priced", cardId: "unranged" }))).toBe(42);
   });
 
   it("reports null, not undefined, for an unpriced printing outside the ranges", () => {
     const options = build();
 
-    expect(options.getPrice?.(stubPrinting({ id: "unpriced", cardId: "unranged" }))).toBeNull();
+    expect(
+      options.getPrice?.(stubPrinting({ printingId: "unpriced", cardId: "unranged" })),
+    ).toBeNull();
   });
 
   it("uses the raw lookup when there are no ranges (printings view)", () => {

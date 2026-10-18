@@ -882,6 +882,7 @@
   "cards_clear_all_filters": "Alle Filter zurücksetzen",
   "cards_flag_oversized": "Übergroß",
   "cards_flag_overnumbered": "Übernummeriert",
+  "cards_printing_double_sided": "Doppelseitig, mit {name}",
   "cards_flag_signed": "Signiert",
   "cards_flag_banned": "Gesperrt",
   "cards_flag_errata": "Errata",

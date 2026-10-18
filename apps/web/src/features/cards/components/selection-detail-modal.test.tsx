@@ -100,7 +100,7 @@ afterEach(() => {
 
 function renderModal(
   items: ReturnType<typeof stubCardViewerItem>[],
-  actions?: (printing: { id: string }) => ReactNode,
+  actions?: (printing: { printingId: string }) => ReactNode,
 ) {
   return render(
     <SelectionDetailModal
@@ -173,9 +173,11 @@ describe("SelectionDetailModal", () => {
   it("renders the surface's action row for the shown card", async () => {
     const items = [stubCardViewerItem()];
     selectFirst(items);
-    renderModal(items, (printing) => <div>actions for {printing.id}</div>);
+    renderModal(items, (printing) => <div>actions for {printing.printingId}</div>);
 
-    expect(await screen.findByText(`actions for ${items[0]!.printing.id}`)).toBeInTheDocument();
+    expect(
+      await screen.findByText(`actions for ${items[0]!.printing.printingId}`),
+    ).toBeInTheDocument();
   });
 
   describe("keyboard navigation", () => {

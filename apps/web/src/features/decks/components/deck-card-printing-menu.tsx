@@ -60,7 +60,7 @@ export function DeckCardPrintingMenu({ deckId, card, children }: DeckCardPrintin
       card.cardId,
       card.zone,
       card.preferredPrintingId,
-      printing.id,
+      printing.printingId,
       countFor(event),
     );
   };

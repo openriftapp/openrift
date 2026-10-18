@@ -46,8 +46,8 @@ export function computeDragSelectionSummary({
       continue;
     }
     count++;
-    if (printings.length < 3 && !seen.has(item.printing.id)) {
-      seen.add(item.printing.id);
+    if (printings.length < 3 && !seen.has(item.printing.printingId)) {
+      seen.add(item.printing.printingId);
       printings.push(item.printing);
     }
   }

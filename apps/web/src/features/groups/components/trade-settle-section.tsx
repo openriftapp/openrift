@@ -97,7 +97,7 @@ function TallyRow({
         <div className="flex min-w-0 items-baseline gap-1.5">
           {/* The quantity rides inside the button: a nested inline-block clips without an ellipsis. */}
           <CardDetailNameButton
-            printingId={printing?.id}
+            printingId={printing?.printingId}
             sequence={sequence}
             className="min-w-0 truncate font-medium"
           >

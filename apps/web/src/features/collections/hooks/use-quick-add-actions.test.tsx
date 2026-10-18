@@ -50,7 +50,7 @@ describe("useQuickAddActions swallows expected dispose failures", () => {
 
   it("handleDisposeFromCollection resolves when the dispose mutation rejects", async () => {
     const printing = stubPrinting();
-    copies = [personalCopy(printing.id)];
+    copies = [personalCopy(printing.printingId)];
     const { result } = renderHook(() => useQuickAddActions(COLLECTION_ID, COLLECTION_ID));
 
     await expect(
@@ -61,7 +61,7 @@ describe("useQuickAddActions swallows expected dispose failures", () => {
 
   it("tryUndoAdd resolves to 'done' when the single-collection dispose rejects", async () => {
     const printing = stubPrinting();
-    copies = [personalCopy(printing.id)];
+    copies = [personalCopy(printing.printingId)];
     const { result } = renderHook(() => useQuickAddActions(COLLECTION_ID, COLLECTION_ID));
 
     await expect(result.current.tryUndoAdd?.(printing)).resolves.toBe("done");
@@ -94,7 +94,7 @@ describe("useQuickAddActions handleQuickAdd quantity", () => {
     await result.current.handleQuickAdd?.(printing);
 
     expect(batchedAdd).toHaveBeenCalledOnce();
-    expect(batchedAdd).toHaveBeenCalledWith(printing.id, COLLECTION_ID);
+    expect(batchedAdd).toHaveBeenCalledWith(printing.printingId, COLLECTION_ID);
   });
 
   it("adds `quantity` copies, each recorded for undo", async () => {
@@ -104,7 +104,7 @@ describe("useQuickAddActions handleQuickAdd quantity", () => {
     await result.current.handleQuickAdd?.(printing, undefined, 3);
 
     expect(batchedAdd).toHaveBeenCalledTimes(3);
-    expect(useAddModeStore.getState().addedItems.get(printing.id)?.copyIds).toEqual([
+    expect(useAddModeStore.getState().addedItems.get(printing.printingId)?.copyIds).toEqual([
       "copy-1",
       "copy-2",
       "copy-3",

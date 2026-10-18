@@ -53,7 +53,7 @@ export function TierCardPrintingMenu({
           printings={printings}
           activePrintingId={pinnedPrintingId}
           hoverProps={hoverProps}
-          onSelect={(printing) => setPrinting(cardId, printing.id)}
+          onSelect={(printing) => setPrinting(cardId, printing.printingId)}
           onSelectDefault={() => setPrinting(cardId, null)}
         />
       </ContextMenuContent>

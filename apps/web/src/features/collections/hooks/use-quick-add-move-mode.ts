@@ -136,7 +136,7 @@ export function useQuickAddMoveMode({
     inMoveMode ? moveHistory.filter((entry) => entry.printingId === printingId).length : 0;
 
   const moveOne = async (printing: Printing, sourceCollectionId?: string) => {
-    const sources = sourcesFor(printing.id);
+    const sources = sourcesFor(printing.printingId);
     const source = sourceCollectionId
       ? sources.find((s) => s.collectionId === sourceCollectionId)
       : sources[Math.min(sourceIndex, sources.length - 1)];
@@ -146,7 +146,7 @@ export function useQuickAddMoveMode({
     }
     const record: MoveRecord = {
       copyId,
-      printingId: printing.id,
+      printingId: printing.printingId,
       fromCollectionId: source.collectionId,
     };
     setMoveHistory((prev) => [...prev, record]);
@@ -158,7 +158,7 @@ export function useQuickAddMoveMode({
           card: legendDisplayName(printing.card),
           collection: collectionDisplayName(moveTo),
         }),
-        { id: `palette-move-${printing.id}` },
+        { id: `palette-move-${printing.printingId}` },
       );
       if (onMoved) {
         onMoved();
@@ -170,7 +170,7 @@ export function useQuickAddMoveMode({
   };
 
   const undoMove = async (printing: Printing) => {
-    const record = moveHistory.findLast((entry) => entry.printingId === printing.id);
+    const record = moveHistory.findLast((entry) => entry.printingId === printing.printingId);
     if (!record) {
       return;
     }
@@ -185,7 +185,7 @@ export function useQuickAddMoveMode({
           card: legendDisplayName(printing.card),
           collection: collectionDisplayName(record.fromCollectionId),
         }),
-        { id: `palette-move-${printing.id}` },
+        { id: `palette-move-${printing.printingId}` },
       );
       if (onMoved) {
         onMoved();

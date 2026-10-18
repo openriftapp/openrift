@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { EMPTY_TRADE_PREFERENCE, stubPrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
-const printingOnList = stubPrinting({ id: "printing-1", cardId: "card-1" });
-const printingOffList = stubPrinting({ id: "printing-2", cardId: "card-1" });
+const printingOnList = stubPrinting({ printingId: "printing-1", cardId: "card-1" });
+const printingOffList = stubPrinting({ printingId: "printing-2", cardId: "card-1" });
 
 const cardKindListDetail = {
   list: {
@@ -38,7 +38,7 @@ const printingKindListDetail = {
     {
       id: "entry-1",
       kind: "printing",
-      printingId: printingOnList.id,
+      printingId: printingOnList.printingId,
       cardId: "card-1",
       cardName: "Test Card",
       quantity: 1,
@@ -61,7 +61,7 @@ const copyKindListDetail = {
       id: null,
       kind: "copy",
       copyId: "copy-1",
-      printingId: printingOnList.id,
+      printingId: printingOnList.printingId,
       cardId: "card-1",
       cardName: "Test Card",
       quantity: 1,
@@ -141,8 +141,8 @@ vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({
     allPrintings: [printingOnList, printingOffList],
     printingsById: {
-      [printingOnList.id]: printingOnList,
-      [printingOffList.id]: printingOffList,
+      [printingOnList.printingId]: printingOnList,
+      [printingOffList.printingId]: printingOffList,
     },
     printingsByCardId: new Map([["card-1", [printingOnList, printingOffList]]]),
     sets: [],

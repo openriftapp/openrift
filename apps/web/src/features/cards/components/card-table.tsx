@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
 import type { ReactElement, ReactNode } from "react";
@@ -245,7 +246,9 @@ export function CardTable({
     const rowIndex = rows.findIndex(
       (row) =>
         row.kind === "cards" &&
-        row.items.some((item) => item.id === selectedItemId || item.printing.id === selectedItemId),
+        row.items.some(
+          (item) => item.id === selectedItemId || sideKey(item.printing) === selectedItemId,
+        ),
     );
     if (rowIndex === -1) {
       return;
@@ -366,7 +369,7 @@ export function CardTable({
                           printing={item.printing}
                           itemId={item.id}
                           isSelected={
-                            item.id === selectedItemId || item.printing.id === selectedItemId
+                            item.id === selectedItemId || sideKey(item.printing) === selectedItemId
                           }
                           isPicked={picked}
                           selectionCell={

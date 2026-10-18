@@ -135,6 +135,9 @@ function row(overrides: Partial<DeskPrintingRow> = {}): DeskPrintingRow {
     releasePrecision: null,
     comment: null,
     imageCount: 0,
+    faceId: "face-1",
+    secondSide: null,
+    sharedWith: [],
     activeImageFileId: null,
     activeImageUrl: null,
     createdAt: "2026-09-01T10:00:00.000Z",
@@ -152,6 +155,9 @@ const released = row({
   releasedAt: "2020-01-01",
   releasePrecision: "day",
   imageCount: 2,
+  faceId: "face-1",
+  secondSide: null,
+  sharedWith: [],
 });
 
 beforeEach(() => {
@@ -276,6 +282,9 @@ const withImage = row({
   cardSlug: "jinx-loose-cannon",
   publicCode: "OGN-303",
   imageCount: 1,
+  faceId: "face-1",
+  secondSide: null,
+  sharedWith: [],
   activeImageFileId: "img-3",
   activeImageUrl: "/media/cards/img-3",
 });
@@ -286,6 +295,9 @@ const alsoWithImage = row({
   cardSlug: "vi-piltover-enforcer",
   publicCode: "OGN-404",
   imageCount: 1,
+  faceId: "face-1",
+  secondSide: null,
+  sharedWith: [],
   activeImageFileId: "img-4",
   activeImageUrl: "/media/cards/img-4",
 });

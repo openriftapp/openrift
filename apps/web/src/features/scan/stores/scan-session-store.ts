@@ -80,7 +80,7 @@ function toPersisted(state: ScanSessionState): PersistedScanSession {
     if (row.count <= 0) {
       continue;
     }
-    rows.push({ printingId: row.printing.id, count: row.count });
+    rows.push({ printingId: row.printing.printingId, count: row.count });
   }
   return { rows, scans: state.scans, lastScanAt: state.lastScanAt, pending: state.pending };
 }
@@ -126,10 +126,10 @@ export const useScanSessionStore = create<ScanSessionState>()(
       add: (printing) =>
         set((state) => {
           const next = new Map(state.rows);
-          const existing = state.rows.get(printing.id);
+          const existing = state.rows.get(printing.printingId);
           // delete + set keeps insertion order = most recently scanned last.
-          next.delete(printing.id);
-          next.set(printing.id, { printing, count: (existing?.count ?? 0) + 1 });
+          next.delete(printing.printingId);
+          next.set(printing.printingId, { printing, count: (existing?.count ?? 0) + 1 });
           return { rows: next, scans: state.scans + 1, lastScanAt: Date.now(), resumed: null };
         }),
 
@@ -155,7 +155,7 @@ export const useScanSessionStore = create<ScanSessionState>()(
       move: (fromPrintingId, to) =>
         set((state) => {
           const from = state.rows.get(fromPrintingId);
-          if (!from || from.count <= 0 || fromPrintingId === to.id) {
+          if (!from || from.count <= 0 || fromPrintingId === to.printingId) {
             return state;
           }
           const fromCount = from.count - 1;
@@ -164,15 +164,15 @@ export const useScanSessionStore = create<ScanSessionState>()(
             if (key === fromPrintingId) {
               if (fromCount > 0) {
                 next.set(key, { ...row, count: fromCount });
-              } else if (!state.rows.has(to.id)) {
-                next.set(to.id, { printing: to, count: 1 });
+              } else if (!state.rows.has(to.printingId)) {
+                next.set(to.printingId, { printing: to, count: 1 });
               }
               continue;
             }
-            next.set(key, key === to.id ? { printing: to, count: row.count + 1 } : row);
+            next.set(key, key === to.printingId ? { printing: to, count: row.count + 1 } : row);
           }
-          if (!next.has(to.id)) {
-            next.set(to.id, { printing: to, count: 1 });
+          if (!next.has(to.printingId)) {
+            next.set(to.printingId, { printing: to, count: 1 });
           }
           return { rows: next };
         }),
@@ -196,8 +196,8 @@ export const useScanSessionStore = create<ScanSessionState>()(
             if (row.count <= 0) {
               continue;
             }
-            const existing = next.get(row.printing.id);
-            next.set(row.printing.id, {
+            const existing = next.get(row.printing.printingId);
+            next.set(row.printing.printingId, {
               printing: existing?.printing ?? row.printing,
               count: (existing?.count ?? 0) + row.count,
             });
@@ -229,7 +229,7 @@ export const useScanSessionStore = create<ScanSessionState>()(
               continue;
             }
             cards += persistedRow.count;
-            next.set(printing.id, { printing, count: persistedRow.count });
+            next.set(printing.printingId, { printing, count: persistedRow.count });
           }
           // Cards scanned before the restore ran are newer than anything in the
           // payload, so they re-append behind the restored rows.

@@ -61,7 +61,7 @@ describe("kindToView", () => {
 });
 
 describe("resolveEntryPrinting", () => {
-  const printing = stubPrinting({ id: "p1", cardId: "c1" });
+  const printing = stubPrinting({ printingId: "p1", cardId: "c1" });
   const printingsById: Record<string, Printing> = { p1: printing };
   const printingsByCardId = new Map([["c1", [printing]]]);
 
@@ -94,8 +94,8 @@ describe("resolveEntryPrinting", () => {
 });
 
 describe("collectListPrintings", () => {
-  const printingA = stubPrinting({ id: "pa", cardId: "ca" });
-  const printingB = stubPrinting({ id: "pb", cardId: "cb" });
+  const printingA = stubPrinting({ printingId: "pa", cardId: "ca" });
+  const printingB = stubPrinting({ printingId: "pb", cardId: "cb" });
   const printingsById: Record<string, Printing> = { pa: printingA, pb: printingB };
   const printingsByCardId = new Map([
     ["ca", [printingA]],
@@ -146,8 +146,8 @@ describe("selectableEntryIds", () => {
 
   it("returns one id per tile, in display order", () => {
     const items = [
-      { id: "e1", printing: stubPrinting({ id: "pa" }) },
-      { id: "e3", printing: stubPrinting({ id: "pc" }) },
+      { id: "e1", printing: stubPrinting({ printingId: "pa" }) },
+      { id: "e3", printing: stubPrinting({ printingId: "pc" }) },
     ];
     const entryByItemId = new Map([
       ["e1", first],
@@ -158,8 +158,8 @@ describe("selectableEntryIds", () => {
 
   it("gives rule-produced entries a tile-scoped id", () => {
     const items = [
-      { id: "e1", printing: stubPrinting({ id: "pa" }) },
-      { id: "copy-2", printing: stubPrinting({ id: "pb" }) },
+      { id: "e1", printing: stubPrinting({ printingId: "pa" }) },
+      { id: "copy-2", printing: stubPrinting({ printingId: "pb" }) },
     ];
     const entryByItemId = new Map([
       ["e1", first],
@@ -169,7 +169,7 @@ describe("selectableEntryIds", () => {
   });
 
   it("skips tiles with no entry behind them", () => {
-    const items = [{ id: "pz", printing: stubPrinting({ id: "pz" }) }];
+    const items = [{ id: "pz", printing: stubPrinting({ printingId: "pz" }) }];
     expect(selectableEntryIds(items, new Map())).toEqual([]);
   });
 

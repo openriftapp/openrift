@@ -95,7 +95,7 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
           <AlertTitle>{m.contribute_image_success_title()}</AlertTitle>
           <AlertDescription>{m.contribute_submit_success_body()}</AlertDescription>
         </Alert>
-        <MoreMissingImages currentPrintingId={printing.id} />
+        <MoreMissingImages currentPrintingId={printing.printingId} />
       </div>
     );
   }

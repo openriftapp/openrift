@@ -1,4 +1,4 @@
-import type { CardFace } from "@openrift/shared/types/enums";
+import type { PrintingOtherSide, PrintingSide } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely, NotNull, Selectable } from "kysely";
 import { sql } from "kysely";
@@ -12,7 +12,7 @@ type PrintingCodeRow = Pick<Selectable<FacesTable>, "cardId" | "shortCode" | "pu
 
 export interface CatalogPrintingImageRow {
   printingId: string;
-  face: CardFace;
+  side: PrintingSide;
   imageId: string;
   credit: string | null;
 }
@@ -43,8 +43,8 @@ export interface ScanReferenceRow {
  * and distribution channels are resolved separately by the route layer using
  * the catalog's `markersList()` and the distribution-channels repo.
  *
- * One row per printing side, from the `printing_sides_ordered` view; `id` is
- * the printing's id. `canonicalRank` is the side's integer sort key.
+ * One row per printing side, from the `printing_sides_ordered` view.
+ * `canonicalRank` is the side's integer sort key.
  * Clients sort by this integer and get language-first, set-order, shortCode,
  * non-promo-first, finish-sort-order semantics in one compare. User language
  * preference overrides the language axis post-query.
@@ -76,7 +76,9 @@ type CatalogPrintingRow = Pick<
   | "fallbackArtMode"
   | "canonicalRank"
 > & {
-  id: string;
+  printingId: string;
+  side: PrintingSide;
+  faceId: string;
   /** See {@link Printing.hasFoilTwin}; from `mv_printing_foil_twins`. */
   hasFoilTwin: boolean;
   /**
@@ -88,11 +90,16 @@ type CatalogPrintingRow = Pick<
   fallbackImageId: string | null;
 };
 
+/** Reads that return a subset of sides carry the other side's card, since its row may be missing. */
+type CatalogPrintingSubsetRow = CatalogPrintingRow & { otherSide: PrintingOtherSide | null };
+
 /** Only the card detail read carries the slug; the bulk read is one row per printing of every card. */
-type CatalogPrintingDetailRow = CatalogPrintingRow & { slug: string };
+type CatalogPrintingDetailRow = CatalogPrintingSubsetRow & { slug: string };
 
 const SIDE_COLUMNS = [
-  "s.printingId as id",
+  "s.printingId",
+  sql<PrintingSide>`s.position`.as("side"),
+  "s.faceId",
   "s.cardId",
   "s.setId",
   "s.shortCode",
@@ -118,8 +125,27 @@ const SIDE_COLUMNS = [
   fallbackImageId("s"),
 ] as const;
 
+const OTHER_SIDE = sql<PrintingOtherSide | null>`(
+  SELECT json_strip_nulls(json_build_object(
+    'cardId', oc.id,
+    'cardName', oc.name,
+    'cardSlug', oc.slug,
+    'imageId', CASE WHEN oif.rehosted_url IS NOT NULL THEN oif.id END
+  ))
+  FROM printings op
+  JOIN faces ofc ON ofc.id = CASE WHEN s.position = 1 THEN op.face2_id ELSE op.face1_id END
+  JOIN cards oc ON oc.id = ofc.card_id
+  LEFT JOIN face_images ofi ON ofi.face_id = ofc.id AND ofi.is_active
+  LEFT JOIN image_files oif ON oif.id = ofi.image_file_id
+  WHERE op.id = s.printing_id
+)`.as("otherSide");
+
 function selectSides(db: Kysely<Database>) {
   return db.selectFrom("printingSidesOrdered as s").select(SIDE_COLUMNS).orderBy("s.canonicalRank");
+}
+
+function selectSideSubset(db: Kysely<Database>) {
+  return selectSides(db).select(OTHER_SIDE);
 }
 
 function selectPrintingImages(db: Kysely<Database>) {
@@ -129,7 +155,7 @@ function selectPrintingImages(db: Kysely<Database>) {
     .innerJoin("imageFiles as ci", "ci.id", "fi.imageFileId")
     .select([
       "s.printingId",
-      sql<CardFace>`CASE WHEN s.position = 1 THEN 'front' ELSE 'back' END`.as("face"),
+      sql<PrintingSide>`s.position`.as("side"),
       imageId("ci").as("imageId"),
       "ci.credit",
     ])
@@ -195,6 +221,7 @@ export function catalogPrintingsRepo(db: Kysely<Database>) {
         .innerJoin("languages as l", "l.code", "s.language")
         .select([
           ...SIDE_COLUMNS.filter((column) => column !== "s.canonicalRank"),
+          OTHER_SIDE,
           "s.slug",
           sql<number>`(row_number() OVER (
             ORDER BY
@@ -221,15 +248,15 @@ export function catalogPrintingsRepo(db: Kysely<Database>) {
       return selectPrintingImages(db).where("s.cardId", "=", cardId).execute();
     },
 
-    printingsBySetId(setId: string): Promise<CatalogPrintingRow[]> {
-      return selectSides(db).where("s.setId", "=", setId).execute();
+    printingsBySetId(setId: string): Promise<CatalogPrintingSubsetRow[]> {
+      return selectSideSubset(db).where("s.setId", "=", setId).execute();
     },
 
-    printingsByCardIds(cardIds: string[]): Promise<CatalogPrintingRow[]> {
+    printingsByCardIds(cardIds: string[]): Promise<CatalogPrintingSubsetRow[]> {
       if (cardIds.length === 0) {
         return Promise.resolve([]);
       }
-      return selectSides(db).where("s.cardId", "in", cardIds).execute();
+      return selectSideSubset(db).where("s.cardId", "in", cardIds).execute();
     },
 
     printingImagesByCardIds(cardIds: string[]): Promise<CatalogPrintingImageRow[]> {
@@ -239,11 +266,11 @@ export function catalogPrintingsRepo(db: Kysely<Database>) {
       return selectPrintingImages(db).where("s.cardId", "in", cardIds).execute();
     },
 
-    printingsByIds(ids: string[]): Promise<CatalogPrintingRow[]> {
+    printingsByIds(ids: string[]): Promise<CatalogPrintingSubsetRow[]> {
       if (ids.length === 0) {
         return Promise.resolve([]);
       }
-      return selectSides(db).where("s.printingId", "in", ids).execute();
+      return selectSideSubset(db).where("s.printingId", "in", ids).execute();
     },
 
     printingImagesBySetId(setId: string): Promise<CatalogPrintingImageRow[]> {
@@ -350,8 +377,8 @@ export function catalogPrintingsRepo(db: Kysely<Database>) {
       return selectPrintingImages(db).where("s.printingId", "in", printingIds).execute();
     },
 
-    channelDistributedPrintings(): Promise<CatalogPrintingRow[]> {
-      return selectSides(db)
+    channelDistributedPrintings(): Promise<CatalogPrintingSubsetRow[]> {
+      return selectSideSubset(db)
         .where((eb) =>
           eb.exists(
             eb

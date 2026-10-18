@@ -130,8 +130,8 @@ export function selectionDragFields(
   const seen = new Set<string>();
   for (const id of selectionIds) {
     const printing = printingByEntryId.get(id);
-    if (printing && !seen.has(printing.id) && previewPrintings.length < PREVIEW_FAN) {
-      seen.add(printing.id);
+    if (printing && !seen.has(printing.printingId) && previewPrintings.length < PREVIEW_FAN) {
+      seen.add(printing.printingId);
       previewPrintings.push(printing);
     }
   }

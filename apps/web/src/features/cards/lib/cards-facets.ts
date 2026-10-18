@@ -4,6 +4,7 @@ import { getAvailableFilters } from "@openrift/shared/filters-available";
 import type { FilterCounts } from "@openrift/shared/filters-counts";
 import { computeFilterCounts } from "@openrift/shared/filters-counts";
 import { priceLookupFromMap } from "@openrift/shared/price-lookup";
+import { countPrintings } from "@openrift/shared/printing-side";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { InitResponse } from "@openrift/shared/types/api/init";
 import type { PricesResponse } from "@openrift/shared/types/api/pricing";
@@ -53,7 +54,7 @@ export function extractCatalogFacets(
 ): AvailableFilters {
   const { allPrintings, sets } = enrichCatalog(catalog);
   const lookup = priceLookupFromMap(prices.prices);
-  const getPrice = (printing: Printing) => lookup.get(printing.id, SSR_MARKETPLACE);
+  const getPrice = (printing: Printing) => lookup.get(printing.printingId, SSR_MARKETPLACE);
   return getAvailableFilters(allPrintings, { orders, sets, getPrice });
 }
 
@@ -160,16 +161,18 @@ export function extractCardCounts(
   const { allPrintings } = enrichCatalog(catalog);
   const view = search.view ?? SSR_DEFAULT_VIEW;
   const lookup = priceLookupFromMap(prices.prices);
-  const getPrice = (printing: Printing) => lookup.get(printing.id, SSR_MARKETPLACE);
+  const getPrice = (printing: Printing) => lookup.get(printing.printingId, SSR_MARKETPLACE);
   const filters = searchToFilters(search);
   const filtered = filterCards(allPrintings, filters, { getPrice });
 
   const totalCards =
     view === "cards"
       ? new Set(allPrintings.map((printing) => printing.cardId)).size
-      : allPrintings.length;
+      : countPrintings(allPrintings);
   const filteredCount =
-    view === "cards" ? new Set(filtered.map((printing) => printing.cardId)).size : filtered.length;
+    view === "cards"
+      ? new Set(filtered.map((printing) => printing.cardId)).size
+      : countPrintings(filtered);
 
   return { totalCards, filteredCount };
 }
@@ -315,7 +318,7 @@ export const fetchCardFilterCounts = createServerFn({ method: "GET" })
     ]);
     const { allPrintings } = enrichCatalog(catalog);
     const lookup = priceLookupFromMap(prices.prices);
-    const getPrice = (printing: Printing) => lookup.get(printing.id, SSR_MARKETPLACE);
+    const getPrice = (printing: Printing) => lookup.get(printing.printingId, SSR_MARKETPLACE);
     const view = data.view ?? SSR_DEFAULT_VIEW;
     const counts = computeFilterCounts(allPrintings, searchToFilters(data), {
       countBy: view === "cards" ? "card" : "printing",

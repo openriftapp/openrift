@@ -285,8 +285,11 @@ export function computeDeckBoxPlan({
     if (!pinnedByCard.has(card.cardId)) {
       pinnedByCard.set(card.cardId, card.preferredPrintingId);
     }
+    // A double-sided copy with both of its cards in the deck fills the side-1 card's slot.
     for (const printing of printingsByCardId.get(card.cardId) ?? []) {
-      printingById.set(printing.id, printing);
+      if (printing.side === 1 || !printingById.has(printing.printingId)) {
+        printingById.set(printing.printingId, printing);
+      }
     }
   }
 
@@ -301,9 +304,9 @@ export function computeDeckBoxPlan({
     }
     const seen = siblingsByCard.get(cardId);
     if (seen) {
-      seen.set(printing.id, printing);
+      seen.set(printing.printingId, printing);
     } else {
-      siblingsByCard.set(cardId, new Map([[printing.id, printing]]));
+      siblingsByCard.set(cardId, new Map([[printing.printingId, printing]]));
     }
   };
   for (const copy of copies) {

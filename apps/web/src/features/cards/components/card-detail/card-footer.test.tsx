@@ -45,7 +45,7 @@ describe("CardFooter chart lazy boundary", () => {
   it("renders the Suspense fallback then resolves the lazy chart when a price exists", async () => {
     const printing = stubPrinting();
     render(<CardFooter printing={printing} />, {
-      wrapper: makeWrapper({ [printing.id]: { cardtrader: 4.5 } }),
+      wrapper: makeWrapper({ [printing.printingId]: { cardtrader: 4.5 } }),
     });
     const skeleton = await screen.findByTestId("price-chart-skeleton");
     // The chart is React.lazy; under the full suite's parallel load the
@@ -56,7 +56,7 @@ describe("CardFooter chart lazy boundary", () => {
   it("puts the chart above the buy row", async () => {
     const printing = stubPrinting();
     const { container } = render(<CardFooter printing={printing} />, {
-      wrapper: makeWrapper({ [printing.id]: { cardtrader: 4.5 } }),
+      wrapper: makeWrapper({ [printing.printingId]: { cardtrader: 4.5 } }),
     });
     await screen.findByText("CardTrader", undefined, { timeout: 5000 });
 
@@ -74,7 +74,7 @@ describe("CardFooter image credit", () => {
   afterEach(() => resetDisplay());
 
   it("shows no credit line when the front image carries none", () => {
-    const printing = stubPrinting({ images: [{ face: "front", imageId: "img-1" }] });
+    const printing = stubPrinting({ images: [{ imageId: "img-1" }] });
     render(<CardFooter printing={printing} />, { wrapper: makeWrapper({}) });
 
     expect(screen.queryByText(/^Image credit:/u)).toBeNull();
@@ -82,7 +82,7 @@ describe("CardFooter image credit", () => {
 
   it("credits the front image's maker", () => {
     const printing = stubPrinting({
-      images: [{ face: "front", imageId: "img-1", credit: "Zaun Photo Club" }],
+      images: [{ imageId: "img-1", credit: "Zaun Photo Club" }],
     });
     render(<CardFooter printing={printing} />, { wrapper: makeWrapper({}) });
 
@@ -91,7 +91,7 @@ describe("CardFooter image credit", () => {
 
   it("renders the credit as plain text, never a link", () => {
     const printing = stubPrinting({
-      images: [{ face: "front", imageId: "img-1", credit: "Zaun Photo Club" }],
+      images: [{ imageId: "img-1", credit: "Zaun Photo Club" }],
     });
     render(<CardFooter printing={printing} />, { wrapper: makeWrapper({}) });
 
@@ -100,10 +100,7 @@ describe("CardFooter image credit", () => {
 
   it("ignores a credit that only the back image carries", () => {
     const printing = stubPrinting({
-      images: [
-        { face: "front", imageId: "img-1" },
-        { face: "back", imageId: "img-2", credit: "Zaun Photo Club" },
-      ],
+      images: [{ imageId: "img-1" }, { imageId: "img-2", credit: "Zaun Photo Club" }],
     });
     render(<CardFooter printing={printing} />, { wrapper: makeWrapper({}) });
 

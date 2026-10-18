@@ -5,7 +5,7 @@ import { useBuildableCount } from "@/features/meta/hooks/use-buildable-count";
 
 export interface MetaOwnedCards {
   ownedByPrinting: Readonly<Record<string, number>>;
-  printingsByCardId: ReadonlyMap<string, readonly { id: string }[]>;
+  printingsByCardId: ReadonlyMap<string, readonly { printingId: string }[]>;
 }
 
 /**

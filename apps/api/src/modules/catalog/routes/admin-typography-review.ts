@@ -19,7 +19,7 @@ interface TypographyDiff {
   proposed: string;
 }
 
-type PrintingTarget = Extract<TypographyTarget, { entity: "printing" }>;
+type PrintingTarget = Extract<TypographyTarget, { entity: "face" }>;
 
 interface TextFieldConfig<TField> {
   field: TField;
@@ -125,7 +125,12 @@ export const adminTypographyReviewRouter = {
     }
 
     const printings = await catalog.printings();
+    const seenFaces = new Set<string>();
     for (const printing of printings) {
+      if (seenFaces.has(printing.faceId)) {
+        continue;
+      }
+      seenFaces.add(printing.faceId);
       for (const { field, options } of printingTextFields) {
         const current = printing[field];
         if (current === null) {
@@ -134,7 +139,7 @@ export const adminTypographyReviewRouter = {
         const proposed = fixTypography(current, { ...options, costKeywords });
         if (proposed !== current) {
           diffs.push({
-            target: { entity: "printing", id: printing.id, field },
+            target: { entity: "face", id: printing.faceId, field },
             name: cardNameById.get(printing.cardId) ?? printing.shortCode,
             current,
             proposed,
@@ -181,10 +186,9 @@ export const adminTypographyReviewRouter = {
     }
 
     const { id, field } = target;
-    const printing = await catalog.getPrintingById(id);
-    if (!printing) {
+    const updated = await mut.updateFaceById(id, printingUpdateFor(field, proposed));
+    if (!updated) {
       throw errors.NOT_FOUND({ message: "Printing not found" });
     }
-    await mut.updatePrintingById(id, printingUpdateFor(field, proposed));
   }),
 };

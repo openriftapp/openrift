@@ -57,7 +57,7 @@ function makePrinting(
     distributionChannels: [],
     finish: "normal",
     size: "standard",
-    images: [{ face: "front", imageId: "019d6c25-b081-74b3-a901-64da4ae0aaaa" }],
+    images: [{ imageId: "019d6c25-b081-74b3-a901-64da4ae0aaaa" }],
     artist: "Test Artist",
     publicCode: "ogn-001",
     printedRulesText: null,
@@ -167,7 +167,7 @@ describe("extractFirstRow", () => {
     const cards = { "card-1": makeCard() };
     const printings = {
       "p-1": makePrinting({
-        images: [{ face: "back", imageId: "019d6c25-b081-74b3-a901-64da4ae0bbbb" }],
+        images: [{ imageId: "019d6c25-b081-74b3-a901-64da4ae0bbbb" }],
       }),
     };
     const result = extractFirstRow(makeCatalog(cards, printings), NO_FILTERS, 10);
@@ -213,6 +213,7 @@ describe("extractFirstRow", () => {
     const [card] = extractFirstRow(makeCatalog(cards, printings), NO_FILTERS, 1);
     expect(card).toEqual({
       printingId: "p-1",
+      side: 1,
       cardName: "Garen, the Might of Demacia",
       setSlug: "OGN",
       imageId: "019d6c25-b081-74b3-a901-64da4ae0aaaa",

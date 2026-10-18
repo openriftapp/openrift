@@ -35,17 +35,17 @@ const { ProductContentsPreview } = await import("./product-contents-preview");
 
 const PRINTINGS = [
   stubPrinting({
-    id: "p1",
+    printingId: "p1",
     cardId: "c1",
     publicCode: "OGN-001/298",
-    images: [{ face: "front", imageId: "img-1" }],
+    images: [{ imageId: "img-1" }],
     card: { slug: "jinx-rebel", name: "Jinx, Rebel", types: ["unit"] },
   }),
   stubPrinting({
-    id: "p2",
+    printingId: "p2",
     cardId: "c2",
     publicCode: "OGN-002/298",
-    images: [{ face: "front", imageId: "img-2" }],
+    images: [{ imageId: "img-2" }],
     card: { slug: "hextech-ray", name: "Hextech Ray", types: ["spell"] },
   }),
 ];
@@ -90,7 +90,7 @@ describe("ProductContentsPreview", () => {
   });
 
   it("falls back to a placeholder box and keeps the link when a printing has no image", () => {
-    const noArt = [stubPrinting({ id: "p3", images: [], card: { slug: "artless" } })];
+    const noArt = [stubPrinting({ printingId: "p3", images: [], card: { slug: "artless" } })];
     const { container } = render(
       <ProductContentsPreview printings={noArt} quantityByPrintingId={{}} />,
     );

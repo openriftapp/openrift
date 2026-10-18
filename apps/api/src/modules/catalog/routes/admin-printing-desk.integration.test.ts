@@ -106,7 +106,12 @@ afterAll(async () => {
   const printingIds = [basePrintingId, createdPrintingId, grantPrintingId].filter(Boolean);
   if (printingIds.length > 0) {
     await db.deleteFrom("printingCitations").where("printingId", "in", printingIds).execute();
-    await db.deleteFrom("faceImages").where("faceId", "in", printingIds).execute();
+    await db
+      .deleteFrom("faceImages")
+      .where("faceId", "in", (eb) =>
+        eb.selectFrom("printings").select("face1Id").where("id", "in", printingIds),
+      )
+      .execute();
     await db
       .deleteFrom("imageFiles")
       .where("id", "in", [baseImageFileId, promoImageFileId].filter(Boolean))
@@ -147,6 +152,15 @@ function body(over: Record<string, unknown> = {}) {
   };
 }
 
+async function faceOf(db: NonNullable<typeof adminCtx>["db"], printingId: string) {
+  const row = await db
+    .selectFrom("printings")
+    .select("face1Id")
+    .where("id", "=", printingId)
+    .executeTakeFirstOrThrow();
+  return row.face1Id;
+}
+
 async function seedImage(db: NonNullable<typeof adminCtx>["db"], printingId: string) {
   const file = await db
     .insertInto("imageFiles")
@@ -155,7 +169,7 @@ async function seedImage(db: NonNullable<typeof adminCtx>["db"], printingId: str
     .executeTakeFirstOrThrow();
   const image = await db
     .insertInto("faceImages")
-    .values({ faceId: printingId, imageFileId: file.id, isActive: true })
+    .values({ faceId: await faceOf(db, printingId), imageFileId: file.id, isActive: true })
     .returning("id")
     .executeTakeFirstOrThrow();
   return { imageId: image.id, imageFileId: file.id };
@@ -169,7 +183,7 @@ async function seedInactiveImage(db: NonNullable<typeof adminCtx>["db"], printin
     .executeTakeFirstOrThrow();
   const image = await db
     .insertInto("faceImages")
-    .values({ faceId: printingId, imageFileId: file.id, isActive: false })
+    .values({ faceId: await faceOf(db, printingId), imageFileId: file.id, isActive: false })
     .returning("id")
     .executeTakeFirstOrThrow();
   return { imageId: image.id, imageFileId: file.id };
@@ -195,16 +209,23 @@ describe.skipIf(!adminCtx)("Admin printing-desk routes (integration)", () => {
       const row = await db
         .selectFrom("faces")
         .selectAll()
-        .where("id", "=", createdPrintingId)
+        .where("id", "=", (eb) =>
+          eb.selectFrom("printings").select("face1Id").where("id", "=", createdPrintingId),
+        )
         .executeTakeFirstOrThrow();
       expect(row).toMatchObject({
         shortCode: "PDK-P01",
         finish: "foil",
         artist: "PDK Base Artist",
         printedRulesText: "Draw a card.",
-        comment: "Handed out on stage.",
         markerSlugs: ["pdk-prerelease"],
       });
+      const printing = await db
+        .selectFrom("printings")
+        .select("comment")
+        .where("id", "=", createdPrintingId)
+        .executeTakeFirstOrThrow();
+      expect(printing.comment).toBe("Handed out on stage.");
     });
 
     it("records a printing.create event naming the actor", async () => {
@@ -236,7 +257,9 @@ describe.skipIf(!adminCtx)("Admin printing-desk routes (integration)", () => {
       const row = await db
         .selectFrom("faces")
         .select(["shortCode", "publicCode"])
-        .where("id", "=", printingId)
+        .where("id", "=", (eb) =>
+          eb.selectFrom("printings").select("face1Id").where("id", "=", printingId),
+        )
         .executeTakeFirstOrThrow();
       expect(row).toEqual({ shortCode: "PDK-TBA-pdk-poro-snack", publicCode: "PDK-TBA" });
 
@@ -365,7 +388,9 @@ describe.skipIf(!adminCtx)("Admin printing-desk routes (integration)", () => {
       const row = await db
         .selectFrom("faces")
         .select(["artist", "shortCode"])
-        .where("id", "=", createdPrintingId)
+        .where("id", "=", (eb) =>
+          eb.selectFrom("printings").select("face1Id").where("id", "=", createdPrintingId),
+        )
         .executeTakeFirstOrThrow();
       expect(row).toEqual({ artist: "PDK Guest Artist", shortCode: "PDK-P01" });
     });
@@ -379,7 +404,9 @@ describe.skipIf(!adminCtx)("Admin printing-desk routes (integration)", () => {
       const row = await db
         .selectFrom("faces")
         .select("markerSlugs")
-        .where("id", "=", createdPrintingId)
+        .where("id", "=", (eb) =>
+          eb.selectFrom("printings").select("face1Id").where("id", "=", createdPrintingId),
+        )
         .executeTakeFirstOrThrow();
       expect(row.markerSlugs).toEqual([]);
     });

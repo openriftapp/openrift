@@ -138,7 +138,7 @@ The physical piece of cardboard, the unit of ownership, price and trade. It show
 | `created_at`        | timestamptz | not null, default now()                             |
 | `updated_at`        | timestamptz | not null, default now()                             |
 
-`face1_id` and `face2_id` are display order, not front and back: a trigger puts the face whose short code sorts first in `face1_id`. `uq_printings_identity` is `UNIQUE NULLS NOT DISTINCT (face1_id, face2_id, size)`. A printing has no stored finish; it is foil if any face is foil.
+`face1_id` and `face2_id` are display order, not front and back. A trigger puts the face whose short code sorts first in `face1_id`, and another generates the slug on insert and again when the faces change. `uq_printings_identity` is `UNIQUE NULLS NOT DISTINCT (face1_id, face2_id, size)`. A printing has no stored finish. It is foil if any face is foil.
 
 The view `printing_sides_ordered` has one row per printing side with the printing's columns, the side's `position`, its face's columns, `canonical_rank` and `has_foil_twin`. Per-card queries read it; per-printing queries join `printings` to `faces` on `face1_id`.
 

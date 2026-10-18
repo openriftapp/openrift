@@ -54,7 +54,7 @@ function lowestPriceForCard(
   }
   let min = Infinity;
   for (const printing of printings) {
-    const candidate = prices.get(printing.id, marketplace);
+    const candidate = prices.get(printing.printingId, marketplace);
     if (candidate !== undefined && candidate < min) {
       min = candidate;
     }

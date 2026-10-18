@@ -160,7 +160,7 @@ export function resolveLock(
     ...new Map(
       keys
         .flatMap((key) => index.byImageId.get(key) ?? [])
-        .map((printing) => [printing.id, printing] as const),
+        .map((printing) => [printing.printingId, printing] as const),
     ).values(),
   ];
   let candidates = printingsFor(lock.resolved ? [lock.key] : artKeys);
@@ -192,7 +192,7 @@ export function resolveLock(
   return {
     kind: "auto",
     printing,
-    finishSiblings: group.filter((sibling) => sibling.id !== printing.id),
+    finishSiblings: group.filter((sibling) => sibling.printingId !== printing.printingId),
   };
 }
 
@@ -205,7 +205,9 @@ export function printingsByCardId(
 
 /** Stable picker order: language, then set code, then finish (normal first via canonical rank). */
 export function sortForPicker(candidates: readonly Printing[]): Printing[] {
-  const unique = [...new Map(candidates.map((printing) => [printing.id, printing])).values()];
+  const unique = [
+    ...new Map(candidates.map((printing) => [printing.printingId, printing])).values(),
+  ];
   return unique.toSorted(
     (a, b) =>
       a.language.localeCompare(b.language) ||

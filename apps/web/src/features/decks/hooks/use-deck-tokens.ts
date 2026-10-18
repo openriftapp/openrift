@@ -20,9 +20,7 @@ function tokenPrinting(
   if (!candidates) {
     return undefined;
   }
-  const withArt = candidates.filter((printing) =>
-    printing.images.some((image) => image.face === "front"),
-  );
+  const withArt = candidates.filter((printing) => printing.images.length > 0);
   return preferredPrinting(withArt, languageOrder) ?? preferredPrinting(candidates, languageOrder);
 }
 

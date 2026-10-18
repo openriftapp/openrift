@@ -41,7 +41,9 @@ const validCard = {
 };
 
 const validPrinting = {
-  id: "019cfc3b-03d3-7dac-86c9-27900cd43727",
+  printingId: "019cfc3b-03d3-7dac-86c9-27900cd43727",
+  side: 1,
+  faceId: "019cfc3b-03d3-7dac-86c9-27900cd43727",
   shortCode: "OGN-202",
   setId: "019cfc3b-0369-7890-a450-7859471cc3f6",
   rarity: "Epic",
@@ -52,7 +54,7 @@ const validPrinting = {
   distributionChannels: [],
   finish: "foil",
   size: "standard",
-  images: [{ face: "front", imageId: "019d02f1-d14f-769f-9295-9852db692dbe" }],
+  images: [{ imageId: "019d02f1-d14f-769f-9295-9852db692dbe" }],
   artist: "Kudos Productions",
   publicCode: "OGN-202/298",
   printedRulesText: null,
@@ -144,13 +146,10 @@ describe("catalogPrintingResponseSchema", () => {
     ).toBe(false);
   });
 
-  it("rejects a card face outside front and back", () => {
-    expect(
-      catalogPrintingResponseSchema.safeParse({
-        ...validPrinting,
-        images: [{ face: "side", imageId: "019d02f1-d14f-769f-9295-9852db692dbe" }],
-      }).success,
-    ).toBe(false);
+  it("rejects a side other than 1 and 2", () => {
+    expect(catalogPrintingResponseSchema.safeParse({ ...validPrinting, side: 3 }).success).toBe(
+      false,
+    );
   });
 });
 

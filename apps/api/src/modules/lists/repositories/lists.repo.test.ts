@@ -324,7 +324,7 @@ function tableDb(rowsByTable: Record<string, Record<string, unknown>[]>): Kysely
  */
 function catalogPrinting(id: string, cardId: string): Printing {
   return makePrinting({
-    id,
+    printingId: id,
     cardId,
     shortCode: id,
     publicCode: "PUB",

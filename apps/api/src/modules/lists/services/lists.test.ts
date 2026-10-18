@@ -54,6 +54,7 @@ interface OwnedCopy {
   copyId: string;
   printingId: string;
   cardId: string;
+  cardIds: string[];
 }
 
 interface MockOverrides {
@@ -63,7 +64,7 @@ interface MockOverrides {
   bulkResult?: { inserted: number; updated: number };
   deleteCount?: number;
   ownedCopies?: OwnedCopy[];
-  printings?: { id: string; cardId: string }[];
+  printings?: { id: string; cardIds: string[] }[];
 }
 
 function createMockRepos(overrides: MockOverrides = {}) {
@@ -242,7 +243,7 @@ describe("moveListEntries", () => {
       source,
       destination,
       entries,
-      printings: [{ id: "p-1", cardId: "card-1" }],
+      printings: [{ id: "p-1", cardIds: ["card-1"] }],
     });
 
     await moveListEntries(
@@ -268,7 +269,7 @@ describe("moveListEntries", () => {
       source,
       destination,
       entries,
-      printings: [{ id: "p-other", cardId: "card-2" }],
+      printings: [{ id: "p-other", cardIds: ["card-2"] }],
     });
 
     await expect(
@@ -298,8 +299,8 @@ describe("moveListEntries", () => {
       destination,
       entries,
       ownedCopies: [
-        { copyId: "copy-1", printingId: "p-1", cardId: "card-1" },
-        { copyId: "copy-2", printingId: "p-1", cardId: "card-1" },
+        { copyId: "copy-1", printingId: "p-1", cardId: "card-1", cardIds: ["card-1"] },
+        { copyId: "copy-2", printingId: "p-1", cardId: "card-1", cardIds: ["card-1"] },
       ],
     });
 
@@ -330,7 +331,7 @@ describe("moveListEntries", () => {
       source,
       destination,
       entries,
-      ownedCopies: [{ copyId: "copy-2", printingId: "p-2", cardId: "card-1" }],
+      ownedCopies: [{ copyId: "copy-2", printingId: "p-2", cardId: "card-1", cardIds: ["card-1"] }],
     });
 
     await expect(

@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { create } from "zustand";
@@ -43,7 +44,7 @@ function findAnchorIndex(
     }
   }
   if (findBy === "printing") {
-    return items.findIndex((item) => item.printing.id === printing.id);
+    return items.findIndex((item) => sideKey(item.printing) === sideKey(printing));
   }
   if (anchor?.zone === undefined) {
     return items.findIndex((item) => item.printing.cardId === printing.cardId);
@@ -86,7 +87,7 @@ export const useSelectionStore = create<SelectionState>()((set, get) => ({
     }
 
     const byPrinting = items.findIndex(
-      (item) => inZone(item) && item.printing.id === selectedCard.id,
+      (item) => inZone(item) && sideKey(item.printing) === sideKey(selectedCard),
     );
     const moved =
       byPrinting === -1

@@ -28,12 +28,12 @@ export function makePrinting(
 ): Printing {
   const { card, ...printing } = overrides;
   return stubPrinting({
-    id: "00000000-0000-0000-0000-000000000001",
+    printingId: "00000000-0000-0000-0000-000000000001",
     cardId: "00000000-0000-0000-0000-000000000001",
     shortCode: "SET1-001",
     setId: "00000000-0000-0000-0000-0000000000a1",
     setSlug: "Set Alpha",
-    images: [{ face: "front", imageId: "019d6c25-b081-74b3-a901-64da4ae01dab" }],
+    images: [{ imageId: "019d6c25-b081-74b3-a901-64da4ae01dab" }],
     artist: "Jane Doe",
     publicCode: "ABCD",
     card: {

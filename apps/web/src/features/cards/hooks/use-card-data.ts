@@ -4,6 +4,7 @@ import type { FilterCounts } from "@openrift/shared/filters-counts";
 import { computeFilterCounts } from "@openrift/shared/filters-counts";
 import { sortCards } from "@openrift/shared/filters-sort";
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
+import { countPrintings } from "@openrift/shared/printing-side";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { DistributionChannel, Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -75,22 +76,27 @@ function buildOwnedCounts(
   const map = new Map<string, number>();
   if (view === "cards") {
     const countByTile = new Map<string, number>();
+    const counted = new Set<string>();
     for (const p of allPrintings) {
-      const count = ownedCountByPrinting[p.id] ?? 0;
       const key = cardsViewTileKey(p, groupBy);
+      if (counted.has(`${key}|${p.printingId}`)) {
+        continue;
+      }
+      counted.add(`${key}|${p.printingId}`);
+      const count = ownedCountByPrinting[p.printingId] ?? 0;
       countByTile.set(key, (countByTile.get(key) ?? 0) + count);
     }
     for (const p of displayCards) {
       const count = countByTile.get(cardsViewTileKey(p, groupBy)) ?? 0;
       if (count > 0) {
-        map.set(p.id, count);
+        map.set(p.printingId, count);
       }
     }
   } else {
     for (const p of allPrintings) {
-      const count = ownedCountByPrinting[p.id] ?? 0;
+      const count = ownedCountByPrinting[p.printingId] ?? 0;
       if (count > 0) {
-        map.set(p.id, count);
+        map.set(p.printingId, count);
       }
     }
   }
@@ -178,7 +184,7 @@ export function useCatalogFilterMeta({
   const setDisplayLabel = (slug: string) => setSlugToName.get(slug) ?? slug;
 
   const lookup = prices ?? EMPTY_PRICE_LOOKUP;
-  const getPrice = (p: Printing) => lookup.get(p.id, favoriteMarketplace);
+  const getPrice = (p: Printing) => lookup.get(p.printingId, favoriteMarketplace);
 
   const availableFilters = getAvailableFilters(allPrintings, {
     orders,
@@ -278,7 +284,7 @@ export function useCardData({
   }
 
   const lookup = prices ?? EMPTY_PRICE_LOOKUP;
-  const getPrice = (p: Printing) => lookup.get(p.id, favoriteMarketplace);
+  const getPrice = (p: Printing) => lookup.get(p.printingId, favoriteMarketplace);
 
   // allPrintings arrives pre-sorted (userLanguageRank, canonicalRank); the
   // dedup/group below relies on filterCards preserving that order.
@@ -334,12 +340,16 @@ export function useCardData({
     : undefined;
 
   const totalUniqueCards =
-    view === "cards" ? new Set(allPrintings.map((c) => c.cardId)).size : allPrintings.length;
+    view === "cards"
+      ? new Set(allPrintings.map((c) => c.cardId)).size
+      : countPrintings(allPrintings);
 
   // In cards+set mode, displayCards has one entry per (cardId, setId), so its
   // length over-counts cards. Match the unit of totalUniqueCards.
   const filteredCount =
-    view === "cards" ? new Set(displayCards.map((p) => p.cardId)).size : displayCards.length;
+    view === "cards"
+      ? new Set(displayCards.map((p) => p.cardId)).size
+      : countPrintings(displayCards);
 
   return {
     ...meta,

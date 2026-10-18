@@ -5,6 +5,7 @@ import type {
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatPrintingCode, isTbaCode } from "@openrift/shared/printing-code";
 import { formatReleasePeriod, normalizeToPeriodStart } from "@openrift/shared/set-release";
+import type { Printing } from "@openrift/shared/types/catalog";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
@@ -29,6 +30,7 @@ import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar"
 import { PrintingDeskChannelPicker } from "@/features/admin/components/printing-desk-channel-picker";
 import { PrintingDeskMarkerPicker } from "@/features/admin/components/printing-desk-marker-picker";
 import { DeskSegmented, DeskThumb } from "@/features/admin/components/printing-desk-shared";
+import { SideSearch } from "@/features/admin/components/side-search";
 import {
   useCreateDeskPrinting,
   useDeskCardPrintings,
@@ -181,6 +183,7 @@ function usePrintingDeskFormState({
     existing?.releasePrecision === "quarter" ? "month" : (existing?.releasePrecision ?? "day"),
   );
   const [comment, setComment] = useState(existing?.comment ?? "");
+  const [secondSide, setSecondSide] = useState<Printing | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   const artist = artistOverride ?? base?.artist ?? "";
@@ -219,13 +222,19 @@ function usePrintingDeskFormState({
     };
 
     const basePrintingId = base?.printingId;
+    const secondSideFaceId = secondSide?.faceId;
     try {
       if (existing) {
         await updatePrinting.mutateAsync({ printingId: existing.printingId, ...fields });
         onSaved(existing.printingId);
         return;
       }
-      const created = await createPrinting.mutateAsync({ ...fields, cardId, basePrintingId });
+      const created = await createPrinting.mutateAsync({
+        ...fields,
+        cardId,
+        basePrintingId,
+        secondSideFaceId,
+      });
       onSaved(created.printingId);
     } catch (error) {
       setFormError(errorText(error, "Could not save the printing."));
@@ -262,6 +271,9 @@ function usePrintingDeskFormState({
     setPrecision,
     comment,
     setComment,
+    isCreate: existing === null,
+    secondSide,
+    setSecondSide,
     release,
     error: formError,
     canSubmit,
@@ -477,6 +489,27 @@ function PrintingDeskFields({
               <FieldDescription>{formatReleasePeriod(form.release)}</FieldDescription>
             )}
           </Field>
+
+          {form.isCreate && (
+            <Field className="@3xl/desk-form:col-span-2">
+              <FieldLabel htmlFor="desk-second-side">Second side</FieldLabel>
+              {form.secondSide ? (
+                <div className="flex items-center gap-2">
+                  {form.secondSide.card.name} · {formatPrintingCode(form.secondSide.publicCode)}
+                  <Button variant="ghost" size="xs" onClick={() => form.setSecondSide(null)}>
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <SideSearch id="desk-second-side" onPick={(side) => form.setSecondSide(side)} />
+                  <FieldDescription>
+                    For a double-sided token, the side printed on the back of this one.
+                  </FieldDescription>
+                </>
+              )}
+            </Field>
+          )}
 
           <Field className="@3xl/desk-form:col-span-2">
             <FieldLabel htmlFor="desk-note">Note</FieldLabel>

@@ -2,6 +2,7 @@ import type {
   DeskCreateInput,
   DeskCreateOutput,
   DeskSetImageFaceInput,
+  DeskSetSecondSideInput,
   DeskUpdateInput,
 } from "@openrift/shared/contracts/admin/printing-desk";
 import { adminPrintingDeskContract } from "@openrift/shared/contracts/admin/printing-desk";
@@ -64,6 +65,34 @@ export function useCreateDeskPrinting() {
 export function useUpdateDeskPrinting() {
   return useMutationWithInvalidation<void, DeskUpdateInput>({
     mutationFn: (vars) => updateDeskPrintingFn({ data: vars }),
+    invalidates: [adminKeys.printingDesk.all, ...PUBLIC_CATALOG_KEYS],
+  });
+}
+
+const setDeskSecondSideFn = createServerFn({ method: "POST" })
+  .validator((input: DeskSetSecondSideInput) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminPrintingDeskContract, context.cookie).setSecondSide(data);
+  });
+
+export function useSetDeskSecondSide() {
+  return useMutationWithInvalidation<void, DeskSetSecondSideInput>({
+    mutationFn: (vars) => setDeskSecondSideFn({ data: vars }),
+    invalidates: [adminKeys.printingDesk.all, ...PUBLIC_CATALOG_KEYS],
+  });
+}
+
+const removeDeskSecondSideFn = createServerFn({ method: "POST" })
+  .validator((input: { printingId: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminPrintingDeskContract, context.cookie).removeSecondSide(data);
+  });
+
+export function useRemoveDeskSecondSide() {
+  return useMutationWithInvalidation<void, { printingId: string }>({
+    mutationFn: (vars) => removeDeskSecondSideFn({ data: vars }),
     invalidates: [adminKeys.printingDesk.all, ...PUBLIC_CATALOG_KEYS],
   });
 }

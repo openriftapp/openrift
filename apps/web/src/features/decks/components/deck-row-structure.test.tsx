@@ -58,7 +58,7 @@ const ITEM: DeckListItemResponse = {
     createdAt: "2026-08-01T00:00:00.000Z",
     updatedAt: "2026-08-02T00:00:00.000Z",
     coverCardId: null,
-    coverPrintingId: null,
+    coverFaceId: null,
     coverPosition: null,
     collectionId: null,
     familyId: "fam-1",

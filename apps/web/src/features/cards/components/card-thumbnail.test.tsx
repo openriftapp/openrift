@@ -60,7 +60,7 @@ const baseDisplay: CardThumbnailDisplay = {
 function makePrintingWithImage(slug: string): Printing {
   return stubPrinting({
     card: { slug },
-    images: [{ face: "front", imageId: `${slug}-image-id-aa` }],
+    images: [{ imageId: `${slug}-image-id-aa` }],
   });
 }
 
@@ -112,7 +112,7 @@ describe("CardThumbnail siblings", () => {
       card: { slug: "RB1-001" },
       shortCode: "RB1-001F",
       finish: WellKnown.finish.FOIL,
-      images: [{ face: "front", imageId: "RB1-001-foil-image-id-aa" }],
+      images: [{ imageId: "RB1-001-foil-image-id-aa" }],
     });
     const { container } = render(
       <CardThumbnail
@@ -554,7 +554,7 @@ describe("CardThumbnail label", () => {
         tags: ["Azir"],
       },
       printedName: "Emperor of the Sands",
-      images: [{ face: "front", imageId: "SFD-197-image-id-aa" }],
+      images: [{ imageId: "SFD-197-image-id-aa" }],
     });
     const { container, getByAltText } = render(
       <CardThumbnail printing={printing} onClick={() => {}} showImages display={baseDisplay} />,
@@ -575,7 +575,7 @@ describe("CardThumbnail localized label", () => {
         tags: ["Azir"],
       },
       printedName: "沙漠皇帝",
-      images: [{ face: "front", imageId: "SFD-197-image-id-aa" }],
+      images: [{ imageId: "SFD-197-image-id-aa" }],
     });
     const { container } = render(
       <CardThumbnail printing={printing} onClick={() => {}} showImages display={baseDisplay} />,

@@ -32,7 +32,7 @@ function node(
   printings: Printing[],
   children: ChannelNode[] = [],
 ): ChannelNode {
-  const ids = new Set(printings.map((printing) => printing.id));
+  const ids = new Set(printings.map((printing) => printing.printingId));
   for (const child of children) {
     for (const childId of child.subtreePrintingIds) {
       ids.add(childId);

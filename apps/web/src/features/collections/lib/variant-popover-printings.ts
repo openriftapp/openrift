@@ -23,7 +23,7 @@ export function resolveVariantPopoverPrintings(
     languageScopedPrintingsByCardId.get(popover.cardId);
   return printings?.filter((printing) => {
     if (popover.printingId) {
-      return printing.id === popover.printingId;
+      return printing.printingId === popover.printingId;
     }
     return !popover.setId || printing.setId === popover.setId;
   });

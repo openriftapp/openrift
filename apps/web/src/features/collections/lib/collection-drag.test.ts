@@ -20,8 +20,8 @@ function stackedGrid(copyIdsByPrinting: string[][]): {
   for (const copyIds of copyIdsByPrinting) {
     const printing = stubPrinting();
     printings.push(printing);
-    stackByItemId.set(printing.id, { printingId: printing.id, printing, copyIds });
-    items.push({ id: printing.id, printing });
+    stackByItemId.set(printing.printingId, { printingId: printing.printingId, printing, copyIds });
+    items.push({ id: printing.printingId, printing });
   }
   return { items, stackByItemId, printings };
 }
@@ -34,7 +34,7 @@ function copiesGrid(copyIdsByPrinting: string[][]): {
   const stackByItemId = new Map<string, StackedEntry>();
   for (const copyIds of copyIdsByPrinting) {
     const printing = stubPrinting();
-    const entry: StackedEntry = { printingId: printing.id, printing, copyIds };
+    const entry: StackedEntry = { printingId: printing.printingId, printing, copyIds };
     for (const copyId of copyIds) {
       stackByItemId.set(copyId, entry);
       items.push({ id: copyId, printing });

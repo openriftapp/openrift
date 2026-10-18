@@ -160,7 +160,7 @@ export async function createDeskPrinting(
   userId: string,
   input: DeskCreateInput,
 ): Promise<string> {
-  const { cardId, basePrintingId, codeTba, ...fields } = input;
+  const { cardId, basePrintingId, codeTba, secondSideFaceId, ...fields } = input;
 
   const card = await repos.catalogMutations.getCardById(cardId);
   assertFound(card, "Card not found");
@@ -219,21 +219,34 @@ export async function createDeskPrinting(
       },
       [],
       io,
-      { requireNew: true },
+      { requireNew: true, secondFaceId: secondSideFaceId ?? null },
     );
   } catch (error) {
     throw asIdentityConflict(error);
   }
 
-  // `acceptPrinting` runs the public code through `appendSetTotal`, which would
-  // turn a TBA code into "<SET>-TBA/<total>"; the desk's TBA code stays unnumbered.
   await repos.printingDesk.updatePrintingDeskFields(printingId, {
     announcedAt: fields.announcedAt,
     releasedAt: release.releasedAt,
     releasePrecision: release.releasePrecision,
     comment: fields.comment,
-    ...(codeTba ? { publicCode: tbaPublicCode(set.slug) } : {}),
   });
+  // `acceptPrinting` runs the public code through `appendSetTotal`, which would
+  // turn a TBA code into "<SET>-TBA/<total>"; the desk's TBA code stays unnumbered.
+  if (codeTba) {
+    const face = await repos.catalogMutations.findFaceIdByIdentity({
+      cardId,
+      shortCode,
+      finish: fields.finish,
+      markerSlugs: fields.markerSlugs,
+      language: fields.language,
+    });
+    if (face) {
+      await repos.catalogMutations.updateFaceById(face.id, {
+        publicCode: tbaPublicCode(set.slug),
+      });
+    }
+  }
 
   await recordAdminEvent(repos, userId, {
     action: "printing.create",
@@ -270,6 +283,43 @@ type UpdateRepos = Pick<
   | "sets"
 >;
 
+export async function setDeskSecondSide(
+  repos: Pick<Repos, "adminEvents" | "catalog" | "printingDesk">,
+  adminAccess: AdminAccess | null,
+  userId: string,
+  input: { printingId: string; faceId: string | null },
+): Promise<void> {
+  const { printingId, faceId } = input;
+  const before = await repos.printingDesk.getFaceLinks(printingId);
+  assertFound(before, "Printing not found");
+  await assertDeskPrintingScope(repos, adminAccess, userId, printingId);
+
+  if (faceId !== null) {
+    assertFound(await repos.printingDesk.findFace(faceId), "Side not found");
+    if (faceId === before.face1Id) {
+      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "The two sides must be different");
+    }
+  }
+
+  try {
+    await repos.printingDesk.setSecondFace(printingId, faceId);
+  } catch (error) {
+    throw asIdentityConflict(error);
+  }
+
+  await recordAdminEvent(repos, userId, {
+    action: "printing.update",
+    entityType: "printing",
+    entityId: printingId,
+    entityLabel: printingId,
+    cardSlug: null,
+    oldValues: { face2Id: before.face2Id },
+    newValues: { face2Id: faceId },
+  });
+
+  await repos.catalog.refreshCatalogViews();
+}
+
 export async function updateDeskPrinting(
   transact: Transact,
   repos: UpdateRepos,
@@ -277,11 +327,18 @@ export async function updateDeskPrinting(
   userId: string,
   input: DeskUpdateInput,
 ): Promise<void> {
-  const { printingId, codeTba, shortCode, markerSlugs, distributionChannelSlugs, ...fields } =
-    input;
+  const {
+    printingId,
+    side = 1,
+    codeTba,
+    shortCode,
+    markerSlugs,
+    distributionChannelSlugs,
+    ...fields
+  } = input;
 
-  const before = await repos.printingDesk.getFullPrinting(printingId);
-  assertFound(before, "Printing not found");
+  const before = await repos.printingDesk.getFullPrinting(printingId, side);
+  assertFound(before, side === 1 ? "Printing not found" : "The printing has no second side");
   await assertDeskPrintingScope(repos, adminAccess, userId, printingId);
 
   const channelsBefore =
@@ -323,16 +380,16 @@ export async function updateDeskPrinting(
       patch.publicCode = tbaPublicCode(set.slug);
     } else {
       const nextShortCode = shortCode ?? before.shortCode;
-      const total = await repos.catalogMutations.getSetPrintedTotalForPrinting(printingId);
+      const total = await repos.sets.getPrintedTotal(String(patch.setId ?? before.setId));
       patch.shortCode = nextShortCode;
       patch.publicCode = appendSetTotal(nextShortCode, total?.printedTotal ?? null);
     }
   }
 
   try {
-    await repos.printingDesk.updatePrintingDeskFields(printingId, patch);
+    await repos.printingDesk.updatePrintingDeskFields(printingId, patch, side);
     if (markerSlugs !== undefined) {
-      await updatePrintingMarkers(transact, printingId, markerSlugs);
+      await updatePrintingMarkers(transact, printingId, markerSlugs, side);
     }
     if (distributionChannelSlugs !== undefined) {
       await updatePrintingDistributionChannels(repos, printingId, distributionChannelSlugs);

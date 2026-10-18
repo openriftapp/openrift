@@ -79,12 +79,12 @@ interface PrintingEntryPayload {
 
 export function entryForPrinting(
   listKind: "card" | "printing",
-  printing: { id: string; cardId: string },
+  printing: { printingId: string; cardId: string },
   quantity: number,
 ): PrintingEntryPayload {
   const safeQuantity = Math.max(1, Math.floor(quantity));
   return listKind === "printing"
-    ? { printingId: printing.id, quantity: safeQuantity }
+    ? { printingId: printing.printingId, quantity: safeQuantity }
     : { cardId: printing.cardId, quantity: safeQuantity };
 }
 

@@ -220,7 +220,7 @@ async function resolveTradelistHoldersForCard(
       ruleByList.get(list.listId) ?? [],
       copyMeta,
     )) {
-      if (entry.cardId !== scope.cardId) {
+      if (!entry.cardIds.includes(scope.cardId)) {
         continue;
       }
       let byPrinting = printingsByOwner.get(entry.ownerUserId);

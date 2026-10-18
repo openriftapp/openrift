@@ -174,7 +174,7 @@ export function findDerivedArtPrinting(
   printingImages: readonly AdminPrintingImageResponse[],
 ): AdminPrintingResponse | null {
   const candidates = printings.map((p) => ({
-    id: p.id,
+    printingId: p.id,
     cardId: p.cardId,
     language: p.language,
     canonicalRank: p.canonicalRank,
@@ -187,13 +187,13 @@ export function findDerivedArtPrinting(
     markers: p.markerSlugs.map((slug) => ({ id: slug, slug, label: slug, description: null })),
     images: printingImages
       .filter((img) => img.printingId === p.id && img.isActive && img.rehostedUrl !== null)
-      .map((img) => ({ face: img.face, imageId: img.imageFileId })),
+      .map((img) => ({ imageId: img.imageFileId })),
   }));
-  const subject = candidates.find((c) => c.id === printing.id);
+  const subject = candidates.find((c) => c.printingId === printing.id);
   if (!subject) {
     return null;
   }
-  const sourceId = findStandardArtFallback(subject, candidates)?.printing?.id;
+  const sourceId = findStandardArtFallback(subject, candidates)?.printing?.printingId;
   return printings.find((p) => p.id === sourceId) ?? null;
 }
 

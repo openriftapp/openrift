@@ -78,11 +78,11 @@ export function StageDndContext({ children }: { children: ReactNode }) {
       return;
     }
     if (drop.type === "stage-queue-slot") {
-      insertAt(drag.printing.id, drop.index);
+      insertAt(drag.printing.printingId, drop.index);
       return;
     }
     if (drop.type === "stage-queue") {
-      add(drag.printing.id);
+      add(drag.printing.printingId);
     }
   };
 

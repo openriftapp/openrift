@@ -1,4 +1,5 @@
 import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useMemo, useState } from "react";
 
@@ -22,7 +23,7 @@ export function ScanIdentifySearch({ allPrintings, onPick }: ScanIdentifySearchP
   const searchable = useMemo(
     () =>
       allPrintings.map((printing) => ({
-        id: printing.id,
+        id: sideKey(printing),
         slug: printing.shortCode,
         name: legendDisplayName(printing.card),
         altNames: cardSearchAltNames(printing.card, [printing.printedName]),
@@ -34,7 +35,7 @@ export function ScanIdentifySearch({ allPrintings, onPick }: ScanIdentifySearchP
     () =>
       new Map(
         allPrintings.map((printing) => [
-          printing.id,
+          printing.printingId,
           [{ shortCode: printing.shortCode, publicCode: printing.publicCode }],
         ]),
       ),

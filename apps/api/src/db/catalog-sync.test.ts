@@ -96,7 +96,7 @@ function makePrinting(): CatalogPrinting {
     citations: [{ id: "00000000-0000-7000-8000-000000000008", label: "Unboxing", sourceUrl: null }],
     finish: "normal",
     size: "standard",
-    images: [{ face: "front", imageId: IMAGE_ID, credit: "tester" }],
+    images: [{ imageId: IMAGE_ID, credit: "tester" }],
     artist: "Test Artist",
     publicCode: "TST-001/010",
     printedRulesText: null,
@@ -218,6 +218,42 @@ describe("buildCatalogSync", () => {
       fallbackImageFileId: FALLBACK_IMAGE_ID,
       markerSlugs: ["promo"],
     });
+  });
+
+  it("shares one face between printings with one printed identity when the payload has no face ids", () => {
+    const oversizedId = "00000000-0000-7000-8000-0000000000f2";
+    const rows = buildCatalogSync(
+      makeInit(),
+      makeCatalog({
+        printings: {
+          [oversizedId]: { ...makePrinting(), size: "oversized" },
+          [PRINTING_ID]: makePrinting(),
+        },
+      }),
+    );
+
+    expect(rows.faces.map((face) => face.id)).toEqual([PRINTING_ID]);
+    expect(rows.printings.map((printing) => printing.face1Id)).toEqual([PRINTING_ID, PRINTING_ID]);
+  });
+
+  it("keeps the payload's face ids and second sides", () => {
+    const rows = buildCatalogSync(
+      makeInit(),
+      makeCatalog({
+        printings: {
+          [PRINTING_ID]: {
+            ...makePrinting(),
+            faceId: "face-1",
+            side2: { ...makePrinting(), faceId: "face-2", shortCode: "TST-T05" },
+          },
+        },
+      }),
+    );
+
+    expect(rows.faces.map((face) => face.id)).toEqual(["face-1", "face-2"]);
+    expect(rows.printings).toEqual([
+      expect.objectContaining({ id: PRINTING_ID, face1Id: "face-1", face2Id: "face-2" }),
+    ]);
   });
 
   it("dedupes an image shared by two printings", () => {

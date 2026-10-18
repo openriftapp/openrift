@@ -60,7 +60,7 @@ import { m } from "@/paraglide/messages.js";
 
 function recordScanned(printing: Printing): void {
   useScanSessionStore.getState().add(printing);
-  appendScanJournal({ type: "scan", printingId: printing.id });
+  appendScanJournal({ type: "scan", printingId: printing.printingId });
 }
 
 export function ScanPage() {
@@ -321,7 +321,7 @@ export function ScanPage() {
   }
 
   function handleRemoveOne(row: ScanSessionRow) {
-    useScanSessionStore.getState().remove(row.printing.id);
+    useScanSessionStore.getState().remove(row.printing.printingId);
   }
 
   const { adding, failedCount, resetFailedCount, addAll, followUp, dismissFollowUp } =

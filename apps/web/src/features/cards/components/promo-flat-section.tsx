@@ -1,3 +1,5 @@
+import { sideKey, countPrintings } from "@openrift/shared/printing-side";
+
 import { PromoCardThumbnail } from "@/features/cards/components/promo-card-thumbnail";
 import { PromoListView } from "@/features/cards/components/promo-list-view";
 import { SectionDivider } from "@/features/cards/components/promo-section-divider";
@@ -22,12 +24,16 @@ export function FlatSection({
   }
   return (
     <section id={item.sectionId} style={{ scrollMarginTop: `${stickyOffset}px` }}>
-      <SectionDivider title={item.title} count={sortedPrintings.length} anchorId={item.sectionId} />
+      <SectionDivider
+        title={item.title}
+        count={countPrintings(sortedPrintings)}
+        anchorId={item.sectionId}
+      />
       {viewMode === "grid" ? (
         <div {...grid}>
           {sortedPrintings.map((printing) => (
             <PromoCardThumbnail
-              key={printing.id}
+              key={sideKey(printing)}
               printing={printing}
               showImages={showImages}
               display={display}

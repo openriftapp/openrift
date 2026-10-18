@@ -93,13 +93,13 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
   const cardSequence = groups
     .flatMap((group) => group.rows)
     .filter((row) => row.kind === "card")
-    .map((row) => row.card.defaultPrinting.id);
+    .map((row) => row.card.defaultPrinting.printingId);
 
   const handleSelect = (row: PaletteRow) => {
     if (row.kind === "card") {
       // Hidden, not closed, so dismissing the detail restores this list and query.
       hidePalette();
-      onOpenCard(row.card.defaultPrinting.id, cardSequence);
+      onOpenCard(row.card.defaultPrinting.printingId, cardSequence);
       return;
     }
     if (row.kind === "quickAdd") {

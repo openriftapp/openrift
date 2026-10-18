@@ -19,12 +19,12 @@ function cachedFallback(printing: Printing, candidates: Printing[]): StandardArt
   }
   // Stored values are StandardArtFallback | null, never undefined, so a
   // plain get() distinguishes "cached null" from "not cached yet".
-  const cached = byPrinting.get(printing.id);
+  const cached = byPrinting.get(printing.printingId);
   if (cached !== undefined) {
     return cached;
   }
   const result = findStandardArtFallback(printing, candidates);
-  byPrinting.set(printing.id, result);
+  byPrinting.set(printing.printingId, result);
   return result;
 }
 

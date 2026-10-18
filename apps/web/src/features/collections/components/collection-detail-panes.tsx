@@ -43,7 +43,7 @@ function useDetailWiring({
             printing={printing}
             siblings={printingsByCardId.get(printing.cardId)}
             collectionId={collectionId}
-            wishEntries={wish.entriesForPrinting(printing.cardId, printing.id)}
+            wishEntries={wish.entriesForPrinting(printing.cardId, printing.printingId)}
             onAddToWishlist={onAddToWishlist}
           />
         )

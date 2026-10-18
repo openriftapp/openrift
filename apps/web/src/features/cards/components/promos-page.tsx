@@ -1,6 +1,7 @@
 import { filterCards } from "@openrift/shared/filters";
 import { getAvailableFilters } from "@openrift/shared/filters-available";
 import { sortCards } from "@openrift/shared/filters-sort";
+import { sideKey, countPrintings } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { SortDirection, SortOption } from "@openrift/shared/types/search";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -135,14 +136,14 @@ function PromosBrowser() {
   // Keyed off price presence, not an EN assumption: Cardmarket/TCGplayer are
   // EN-only with no language field, but CardTrader prices per-language variants.
   const priceFilterEnabled = activePrintings.some(
-    (p) => display.prices.get(p.id, display.favoriteMarketplace) !== undefined,
+    (p) => display.prices.get(p.printingId, display.favoriteMarketplace) !== undefined,
   );
 
   const availableFilters = getAvailableFilters(activePrintings, {
     orders: enumOrders,
     sets: promoSets,
     channels: data.channels,
-    getPrice: (p) => display.prices.get(p.id, display.favoriteMarketplace),
+    getPrice: (p) => display.prices.get(p.printingId, display.favoriteMarketplace),
   });
 
   const sortBy = filterState.sort as SortOption;
@@ -152,7 +153,7 @@ function PromosBrowser() {
       sortDir,
       sets: promoSets,
       rarityOrder: enumOrders.rarities,
-      getPrice: (p) => display.prices.get(p.id, display.favoriteMarketplace),
+      getPrice: (p) => display.prices.get(p.printingId, display.favoriteMarketplace),
     });
   const cardFilters = {
     ...filters,
@@ -160,7 +161,7 @@ function PromosBrowser() {
     price: priceFilterEnabled ? ranges.price : { min: null, max: null },
   };
   const initialMatches = filterCards(activePrintings, cardFilters, {
-    getPrice: (p) => display.prices.get(p.id, display.favoriteMarketplace),
+    getPrice: (p) => display.prices.get(p.printingId, display.favoriteMarketplace),
   });
   const matchedPrintings =
     !ownedFilterActive || !isLoggedIn || !ownedCountByPrinting
@@ -169,7 +170,7 @@ function PromosBrowser() {
   const grouping = asPromoGrouping(filterState.groupBy);
 
   const selectionItems: CardViewerItem[] = matchedPrintings.map((printing) => ({
-    id: printing.id,
+    id: sideKey(printing),
     printing,
   }));
 
@@ -280,11 +281,11 @@ function PromosBrowser() {
           <CardBrowserLayout
             toolbar={
               <BrowserToolbar
-                totalCards={activePrintings.length}
-                filteredCount={matchedPrintings.length}
+                totalCards={countPrintings(activePrintings)}
+                filteredCount={countPrintings(matchedPrintings)}
                 mobileDoneLabel={
                   hasActiveFilters
-                    ? m.promos_show_count({ count: matchedPrintings.length })
+                    ? m.promos_show_count({ count: countPrintings(matchedPrintings) })
                     : undefined
                 }
                 hideViewToggle

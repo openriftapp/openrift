@@ -31,7 +31,7 @@ export function VariantLocationsPopoverHost({
   viewCollectionId,
 }: VariantLocationsPopoverHostProps) {
   const variantPopover = useAddModeStore((s) => s.variantPopover);
-  const selectedCardId = useSelectionStore((s) => s.selectedCard?.id);
+  const selectedCardId = useSelectionStore((s) => s.selectedCard?.printingId);
   const [addCollectionTarget, setAddCollectionTarget] = useState<Printing | null>(null);
 
   const [lastPopoverCardId, setLastPopoverCardId] = useState(variantPopover?.cardId);

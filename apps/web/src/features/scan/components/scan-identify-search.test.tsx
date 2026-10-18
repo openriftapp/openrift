@@ -33,8 +33,8 @@ function makeWrapper() {
   return Wrapper;
 }
 
-const yasuo = stubPrinting({ id: "p-yasuo", card: { name: "Yasuo", slug: "yasuo" } });
-const jinx = stubPrinting({ id: "p-jinx", card: { name: "Jinx", slug: "jinx" } });
+const yasuo = stubPrinting({ printingId: "p-yasuo", card: { name: "Yasuo", slug: "yasuo" } });
+const jinx = stubPrinting({ printingId: "p-jinx", card: { name: "Jinx", slug: "jinx" } });
 
 describe("ScanIdentifySearch", () => {
   it("shows nothing before a query is typed", () => {

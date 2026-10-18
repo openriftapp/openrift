@@ -34,7 +34,7 @@ export function CardDetailLinks({ card, printing }: { card: Card; printing?: Pri
       {printing && (
         <Link
           to="/contribute/card/$cardSlug/printing/$printingId"
-          params={{ cardSlug: card.slug, printingId: printing.id }}
+          params={{ cardSlug: card.slug, printingId: printing.printingId }}
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
         >
           <LayersIcon className="size-3" />

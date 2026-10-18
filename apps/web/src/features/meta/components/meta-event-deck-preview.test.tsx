@@ -13,7 +13,7 @@ const state = vi.hoisted(() => ({
   owned: undefined as
     | {
         ownedByPrinting: Record<string, number>;
-        printingsByCardId: Map<string, { id: string }[]>;
+        printingsByCardId: Map<string, { printingId: string }[]>;
       }
     | undefined,
 }));
@@ -237,9 +237,9 @@ describe("MetaEventDeckPreview", () => {
     state.owned = {
       ownedByPrinting: { "p-ruin": 1, "p-ruin-foil": 1, "p-punch": 8 },
       printingsByCardId: new Map([
-        ["card-ruin", [{ id: "p-ruin" }, { id: "p-ruin-foil" }]],
-        ["card-punch", [{ id: "p-punch" }]],
-        ["card-squire", [{ id: "p-squire" }]],
+        ["card-ruin", [{ printingId: "p-ruin" }, { printingId: "p-ruin-foil" }]],
+        ["card-punch", [{ printingId: "p-punch" }]],
+        ["card-squire", [{ printingId: "p-squire" }]],
       ]),
     };
   });

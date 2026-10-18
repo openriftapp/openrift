@@ -11,39 +11,39 @@ import {
 } from "./presentation-queue";
 
 function catalog(...printings: Printing[]): Record<string, Printing> {
-  return Object.fromEntries(printings.map((printing) => [printing.id, printing]));
+  return Object.fromEntries(printings.map((printing) => [printing.printingId, printing]));
 }
 
 describe("resolveQueuePrintings", () => {
   it("resolves ids in the order they were given, not catalog order", () => {
-    const a = stubPrinting({ id: "a" });
-    const b = stubPrinting({ id: "b" });
-    const c = stubPrinting({ id: "c" });
+    const a = stubPrinting({ printingId: "a" });
+    const b = stubPrinting({ printingId: "b" });
+    const c = stubPrinting({ printingId: "c" });
 
     const result = resolveQueuePrintings(["c", "a", "b"], catalog(a, b, c));
 
-    expect(result.map((printing) => printing.id)).toEqual(["c", "a", "b"]);
+    expect(result.map((printing) => printing.printingId)).toEqual(["c", "a", "b"]);
   });
 
   it("drops ids the catalog doesn't know instead of leaving holes", () => {
-    const a = stubPrinting({ id: "a" });
+    const a = stubPrinting({ printingId: "a" });
 
     const result = resolveQueuePrintings(["a", "gone", "also-gone"], catalog(a));
 
-    expect(result.map((printing) => printing.id)).toEqual(["a"]);
+    expect(result.map((printing) => printing.printingId)).toEqual(["a"]);
   });
 
   it("keeps a repeated id — coming back to a card is legitimate", () => {
-    const a = stubPrinting({ id: "a" });
-    const b = stubPrinting({ id: "b" });
+    const a = stubPrinting({ printingId: "a" });
+    const b = stubPrinting({ printingId: "b" });
 
     const result = resolveQueuePrintings(["a", "b", "a"], catalog(a, b));
 
-    expect(result.map((printing) => printing.id)).toEqual(["a", "b", "a"]);
+    expect(result.map((printing) => printing.printingId)).toEqual(["a", "b", "a"]);
   });
 
   it("caps the queue at MAX_QUEUE_LENGTH", () => {
-    const a = stubPrinting({ id: "a" });
+    const a = stubPrinting({ printingId: "a" });
     const ids = Array.from({ length: MAX_QUEUE_LENGTH + 10 }, () => "a");
 
     expect(resolveQueuePrintings(ids, catalog(a))).toHaveLength(MAX_QUEUE_LENGTH);

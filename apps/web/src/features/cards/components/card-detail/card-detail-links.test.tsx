@@ -60,7 +60,7 @@ describe("CardDetailLinks", () => {
     render(
       <CardDetailLinks
         card={stubCard({ slug: "yasuo" })}
-        printing={stubPrinting({ id: "p1", card: { slug: "yasuo" } })}
+        printing={stubPrinting({ printingId: "p1", card: { slug: "yasuo" } })}
       />,
     );
     expect(screen.getByRole("link", { name: "Fix this printing" })).toHaveAttribute(

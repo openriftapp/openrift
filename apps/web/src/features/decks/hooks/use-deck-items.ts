@@ -45,12 +45,12 @@ export function useDeckItems(cards: DeckBuilderCard[]): UseDeckItemsResult {
       if (!printing) {
         continue;
       }
-      items.push({ id: `${zone}:${printing.id}`, printing, zone });
+      items.push({ id: `${zone}:${printing.printingId}`, printing, zone });
     }
   }
 
   for (const token of tokens) {
-    items.push({ id: `token:${token.printing.id}`, printing: token.printing });
+    items.push({ id: `token:${token.printing.printingId}`, printing: token.printing });
   }
 
   return { items, printingsByCardId };

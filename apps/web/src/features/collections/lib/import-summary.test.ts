@@ -10,7 +10,7 @@ import {
   summarizeMatchedEntries,
 } from "./import-summary";
 
-const STUB_PRINTING = { id: "p1", shortCode: "OGS-001" } as Printing;
+const STUB_PRINTING = { printingId: "p1", shortCode: "OGS-001" } as Printing;
 
 function makeEntry(quantity: number): ImportEntry {
   return {

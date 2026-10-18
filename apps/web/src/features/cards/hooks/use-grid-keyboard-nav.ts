@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useEffect } from "react";
 
@@ -75,7 +76,7 @@ export function useGridKeyboardNav({ items, siblingPrintings }: UseGridKeyboardN
         e.preventDefault();
         // Anchors the variant×collection popover to the tile's displayed printing,
         // which can differ from selectedCard after an Up/Down cycle.
-        const tileId = items[selectedIndex]?.printing.id;
+        const tileId = items[selectedIndex]?.printing.printingId;
         const tileEl = tileId
           ? document.querySelector<HTMLElement>(`[data-printing-id="${tileId}"]`)
           : null;
@@ -105,7 +106,7 @@ export function useGridKeyboardNav({ items, siblingPrintings }: UseGridKeyboardN
           return;
         }
         e.preventDefault();
-        const idx = siblingPrintings.findIndex((p) => p.id === selectedCard.id);
+        const idx = siblingPrintings.findIndex((p) => sideKey(p) === sideKey(selectedCard));
         const next =
           e.key === "ArrowUp"
             ? idx > 0
@@ -118,7 +119,7 @@ export function useGridKeyboardNav({ items, siblingPrintings }: UseGridKeyboardN
         if (!sibling) {
           return;
         }
-        const siblingIdx = items.findIndex((i) => i.printing.id === sibling.id);
+        const siblingIdx = items.findIndex((i) => sideKey(i.printing) === sideKey(sibling));
         const siblingItem = items[siblingIdx];
         if (siblingItem) {
           navigateToIndex(siblingIdx, sibling, siblingItem.zone);

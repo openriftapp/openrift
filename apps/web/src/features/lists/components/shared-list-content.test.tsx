@@ -7,8 +7,8 @@ import { EMPTY_TRADE_PREFERENCE, stubPrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
 // Two catalog printings of the same card; only the first is on the list.
-const printingOnList = stubPrinting({ id: "printing-1", cardId: "card-1" });
-const printingOffList = stubPrinting({ id: "printing-2", cardId: "card-1" });
+const printingOnList = stubPrinting({ printingId: "printing-1", cardId: "card-1" });
+const printingOffList = stubPrinting({ printingId: "printing-2", cardId: "card-1" });
 
 function mutationStub() {
   return { mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false, variables: undefined };
@@ -26,8 +26,8 @@ vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({
     allPrintings: [printingOnList, printingOffList],
     printingsById: {
-      [printingOnList.id]: printingOnList,
-      [printingOffList.id]: printingOffList,
+      [printingOnList.printingId]: printingOnList,
+      [printingOffList.printingId]: printingOffList,
     },
     printingsByCardId: new Map([["card-1", [printingOnList, printingOffList]]]),
     sets: [],
@@ -179,7 +179,7 @@ const printingKindList: PublicListDetailResponse = {
       id: "entry-1",
       listId: "list-1",
       kind: "printing",
-      printingId: printingOnList.id,
+      printingId: printingOnList.printingId,
       quantity: 1,
       ruleQuantity: 0,
       tradeOverride: EMPTY_TRADE_PREFERENCE,
@@ -208,7 +208,7 @@ const reservedCopyTradelist: PublicListDetailResponse = {
       listId: "list-1",
       kind: "copy",
       copyId: "copy-1",
-      printingId: printingOnList.id,
+      printingId: printingOnList.printingId,
       quantity: 1,
       ruleQuantity: 0,
       tradeOverride: EMPTY_TRADE_PREFERENCE,

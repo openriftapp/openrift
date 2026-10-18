@@ -167,7 +167,7 @@ export function buildListImportPayload(
 ): ListImportPayloadEntry[] {
   return readyEntries.map((entry) =>
     listKind === "printing"
-      ? { printingId: entry.resolvedPrinting?.id ?? "", quantity: entry.entry.quantity }
+      ? { printingId: entry.resolvedPrinting?.printingId ?? "", quantity: entry.entry.quantity }
       : { cardId: entry.resolvedPrinting?.cardId ?? "", quantity: entry.entry.quantity },
   );
 }

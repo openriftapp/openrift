@@ -1,6 +1,7 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageUrl } from "@openrift/shared/image-url";
+import { indexByPrinting } from "@openrift/shared/printing-side";
 import { setIndexById, UNKNOWN_SET_INDEX } from "@openrift/shared/set-order";
 import type { DeckCheckEntryCardResponse } from "@openrift/shared/types/api/deck-check";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -82,7 +83,7 @@ export function CardChecklist({
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<HoveredPreview | null>(null);
 
-  const printingById = new Map(allPrintings.map((printing) => [printing.id, printing]));
+  const printingById = indexByPrinting(allPrintings);
   const setIndexes = setIndexById(sets);
   const identify = (printingId: string | null) => {
     const printing = printingId ? printingById.get(printingId) : undefined;
@@ -99,7 +100,7 @@ export function CardChecklist({
   };
 
   const handleHover = (printing: Printing | null) => {
-    const front = printing?.images.find((image) => image.face === "front");
+    const front = printing?.images[0];
     setHovered(
       printing && front
         ? {
@@ -647,7 +648,7 @@ function ChecklistCell({
     );
 
   const printing = card.resolvedPrintingId
-    ? allPrintings.find((candidate) => candidate.id === card.resolvedPrintingId)
+    ? allPrintings.find((candidate) => candidate.printingId === card.resolvedPrintingId)
     : undefined;
 
   if (!printing || card.matchStatus !== "matched") {

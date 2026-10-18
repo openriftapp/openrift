@@ -6,9 +6,24 @@ import { stubPrinting } from "@/test/factories";
 
 const CARD_ID = "card-unyielding";
 
-const enNormal = stubPrinting({ id: "en-normal", cardId: CARD_ID, language: "EN", setId: "ogn" });
-const enFoil = stubPrinting({ id: "en-foil", cardId: CARD_ID, language: "EN", setId: "ogn" });
-const enOtherSet = stubPrinting({ id: "en-other", cardId: CARD_ID, language: "EN", setId: "sup" });
+const enNormal = stubPrinting({
+  printingId: "en-normal",
+  cardId: CARD_ID,
+  language: "EN",
+  setId: "ogn",
+});
+const enFoil = stubPrinting({
+  printingId: "en-foil",
+  cardId: CARD_ID,
+  language: "EN",
+  setId: "ogn",
+});
+const enOtherSet = stubPrinting({
+  printingId: "en-other",
+  cardId: CARD_ID,
+  language: "EN",
+  setId: "sup",
+});
 
 function mapOf(printings: Printing[]): Map<string, Printing[]> {
   const map = new Map<string, Printing[]>();

@@ -1,6 +1,7 @@
 import { copyLimitFor, totalQuantity } from "@openrift/shared/deck-rules";
 import { isSingleSlotZone } from "@openrift/shared/deck-zones";
 import { imageUrl } from "@openrift/shared/image-url";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { DeckResponse } from "@openrift/shared/types/api/deck";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
@@ -131,7 +132,7 @@ function DeckActionsCell({
   const cardId = printing.cardId;
   const deckQty =
     view === "printings"
-      ? (deckQuantityByCell.get(printing.id) ?? 0)
+      ? (deckQuantityByCell.get(printing.printingId) ?? 0)
       : (deckQuantityByCard.get(cardId) ?? 0);
   const isInActiveSingleZone =
     isSingleCardZone &&
@@ -140,7 +141,7 @@ function DeckActionsCell({
     <DeckTableActions
       printing={printing}
       deckQuantity={deckQty}
-      maxReached={isMaxReached({ id: printing.id, printing })}
+      maxReached={isMaxReached({ id: sideKey(printing), printing })}
       {...(isSingleCardZone
         ? singleZoneAddAction(singleCardZoneOccupied && !isInActiveSingleZone)
         : {})}
@@ -255,7 +256,7 @@ function DeckOverviewForEditor({
           format: deck.format,
           formatConfig: deck.formatConfig,
           coverCardId: deck.coverCardId,
-          coverPrintingId: deck.coverPrintingId,
+          coverFaceId: deck.coverFaceId,
           coverPosition: deck.coverPosition,
           links: deck.links,
           collectionId: deck.collectionId,
@@ -400,15 +401,15 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
 
   const deckQuantityByCell = buildDeckQuantityByCell(
     deckCards,
-    (cardId) => getPreferredPrinting(cardId)?.id,
+    (cardId) => getPreferredPrinting(cardId)?.printingId,
   );
   const deckQtyForCell = (printing: Printing): number =>
     view === "printings"
-      ? (deckQuantityByCell.get(printing.id) ?? 0)
+      ? (deckQuantityByCell.get(printing.printingId) ?? 0)
       : (deckQuantityByCard.get(printing.cardId) ?? 0);
 
   const items: CardViewerItem[] = deferredCards.map((printing) => ({
-    id: printing.id,
+    id: sideKey(printing),
     printing,
   }));
 
@@ -428,8 +429,8 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
       ...catalogCardToDeckBuilderCard(printing.cardId, printing.card),
       preferredPrintingId: cellPreferredPrintingId(
         view,
-        printing.id,
-        getPreferredPrinting(printing.cardId)?.id,
+        printing.printingId,
+        getPreferredPrinting(printing.cardId)?.printingId,
       ),
     };
 
@@ -451,7 +452,11 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
     const cardId = printing.cardId;
     const cellPrintingId =
       view === "printings"
-        ? cellPreferredPrintingId(view, printing.id, getPreferredPrinting(cardId)?.id)
+        ? cellPreferredPrintingId(
+            view,
+            printing.printingId,
+            getPreferredPrinting(cardId)?.printingId,
+          )
         : undefined;
     const matchesCell = (card: DeckBuilderCard): boolean =>
       card.cardId === cardId &&
@@ -548,9 +553,9 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
     return (
       <DeckAddStrip
         printing={printing}
-        ownedCount={ownedCounts?.get(printing.id) ?? 0}
+        ownedCount={ownedCounts?.get(printing.printingId) ?? 0}
         deckQuantity={deckQty}
-        maxReached={isMaxReached({ id: printing.id, printing })}
+        maxReached={isMaxReached({ id: sideKey(printing), printing })}
         {...(isSingleCardZone
           ? singleZoneAddAction(singleCardZoneOccupied && !isInActiveSingleZone)
           : {})}
@@ -571,7 +576,7 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
 
   const renderCard = (item: CardViewerItem, ctx: CardRenderContext) => {
     const cardId = item.printing.cardId;
-    const ownedCount = ownedCounts?.get(item.printing.id) ?? 0;
+    const ownedCount = ownedCounts?.get(item.printing.printingId) ?? 0;
     const deckQty = deckQtyForCell(item.printing);
 
     return (
@@ -592,12 +597,12 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
             ...catalogCardToDeckBuilderCard(item.printing.cardId, item.printing.card),
             preferredPrintingId: cellPreferredPrintingId(
               view,
-              item.printing.id,
-              getPreferredPrinting(cardId)?.id,
+              item.printing.printingId,
+              getPreferredPrinting(cardId)?.printingId,
             ),
           },
         }}
-        dragId={`browser-card-${item.printing.id}`}
+        dragId={`browser-card-${item.printing.printingId}`}
         strip={deckStripFor(item.printing)}
         contextMenu={<DeckCardDetailMenu onViewDetail={() => handleCardClick(item.printing)} />}
       />

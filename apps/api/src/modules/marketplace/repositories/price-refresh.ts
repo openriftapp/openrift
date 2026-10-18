@@ -46,13 +46,15 @@ export function priceRefreshRepo(db: Db) {
   return {
     allPrintingsForPriceMatch() {
       return withFace1(db.selectFrom("printings as p"))
+        .leftJoin("faces as f2", "f2.id", "p.face2Id")
         .select([
           "p.id",
           "pf.cardId",
           "pf.setId",
           "pf.shortCode",
+          "f2.shortCode as face2ShortCode",
           "pf.publicCode",
-          "pf.finish",
+          sql<string>`CASE WHEN f2.finish = 'foil' THEN 'foil' ELSE pf.finish END`.as("finish"),
           "pf.artVariant",
           "pf.isSigned",
           "pf.isOvernumbered",

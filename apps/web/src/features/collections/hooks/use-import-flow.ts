@@ -210,7 +210,7 @@ export function useImportFlow() {
     for (const entry of importableEntries) {
       for (let count = 0; count < entry.entry.quantity; count++) {
         copies.push({
-          printingId: entry.resolvedPrinting?.id ?? "",
+          printingId: entry.resolvedPrinting?.printingId ?? "",
           collectionId: targetCollectionId,
           ...entry.entry.metadata,
         });

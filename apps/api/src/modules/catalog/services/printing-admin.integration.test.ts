@@ -287,7 +287,9 @@ describe.skipIf(!ctx)("acceptPrinting requireNew (integration)", () => {
     const created = await db
       .selectFrom("faces")
       .select("finish")
-      .where("id", "=", newId)
+      .where("id", "=", (eb) =>
+        eb.selectFrom("printings").select("face1Id").where("id", "=", newId),
+      )
       .executeTakeFirstOrThrow();
     expect(created.finish).toBe("foil");
   });

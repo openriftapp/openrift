@@ -6,7 +6,7 @@ import type { Marker, Printing } from "./types/catalog.js";
 
 function makePrinting(overrides: Partial<Printing> = {}): Printing {
   return stubPrinting({
-    id: "00000000-0000-0000-0000-000000000001",
+    printingId: "00000000-0000-0000-0000-000000000001",
     cardId: "00000000-0000-0000-0000-000000000001",
     shortCode: "SET1-001",
     setId: "00000000-0000-0000-0000-0000000000a1",
@@ -116,81 +116,88 @@ describe("isStandardPrinting", () => {
 });
 
 describe("findStandardArtFallback", () => {
-  const frontImage = (imageId: string) => [{ face: "front" as const, imageId }];
+  const frontImage = (imageId: string) => [{ imageId }];
 
   it("prefers the same-language standard printing over the EN one", () => {
-    const target = makePrinting({ id: "p-target", language: "SC", artVariant: "altart" });
+    const target = makePrinting({ printingId: "p-target", language: "SC", artVariant: "altart" });
     const scStandard = makePrinting({
-      id: "p-sc",
+      printingId: "p-sc",
       language: "SC",
       canonicalRank: 5,
       images: frontImage("img-sc"),
     });
     const enStandard = makePrinting({
-      id: "p-en",
+      printingId: "p-en",
       language: "EN",
       canonicalRank: 1,
       images: frontImage("img-en"),
     });
     const result = findStandardArtFallback(target, [target, enStandard, scStandard]);
-    expect(result?.printing?.id).toBe("p-sc");
+    expect(result?.printing?.printingId).toBe("p-sc");
     expect(result?.image.imageId).toBe("img-sc");
   });
 
   it("falls back to the EN standard printing when the language has none with an image", () => {
-    const target = makePrinting({ id: "p-target", language: "SC" });
-    const scStandardNoImage = makePrinting({ id: "p-sc", language: "SC", images: [] });
-    const enStandard = makePrinting({ id: "p-en", language: "EN", images: frontImage("img-en") });
+    const target = makePrinting({ printingId: "p-target", language: "SC" });
+    const scStandardNoImage = makePrinting({ printingId: "p-sc", language: "SC", images: [] });
+    const enStandard = makePrinting({
+      printingId: "p-en",
+      language: "EN",
+      images: frontImage("img-en"),
+    });
     const result = findStandardArtFallback(target, [target, scStandardNoImage, enStandard]);
-    expect(result?.printing?.id).toBe("p-en");
+    expect(result?.printing?.printingId).toBe("p-en");
   });
 
   it("never returns the printing itself even when it already has an image", () => {
-    const target = makePrinting({ id: "p-target", language: "EN", images: frontImage("img-a") });
+    const target = makePrinting({
+      printingId: "p-target",
+      language: "EN",
+      images: frontImage("img-a"),
+    });
     expect(findStandardArtFallback(target, [target])).toBeNull();
   });
 
   it("ignores non-standard candidates (alt art, markers, metal)", () => {
-    const target = makePrinting({ id: "p-target", language: "EN" });
+    const target = makePrinting({ printingId: "p-target", language: "EN" });
     const altArt = makePrinting({
-      id: "p-alt",
+      printingId: "p-alt",
       artVariant: "altart",
       images: frontImage("img-alt"),
     });
-    const promo = makePrinting({ id: "p-promo", markers: [aMarker], images: frontImage("img-p") });
-    const metal = makePrinting({ id: "p-metal", finish: "metal", images: frontImage("img-m") });
+    const promo = makePrinting({
+      printingId: "p-promo",
+      markers: [aMarker],
+      images: frontImage("img-p"),
+    });
+    const metal = makePrinting({
+      printingId: "p-metal",
+      finish: "metal",
+      images: frontImage("img-m"),
+    });
     expect(findStandardArtFallback(target, [target, altArt, promo, metal])).toBeNull();
   });
 
-  it("skips standard printings whose image list lacks a front face", () => {
-    const target = makePrinting({ id: "p-target", language: "EN" });
-    const backOnly = makePrinting({
-      id: "p-back",
-      images: [{ face: "back", imageId: "img-back" }],
-    });
-    expect(findStandardArtFallback(target, [target, backOnly])).toBeNull();
-  });
-
   it("picks the lowest canonicalRank among same-language standard candidates", () => {
-    const target = makePrinting({ id: "p-target", language: "EN" });
+    const target = makePrinting({ printingId: "p-target", language: "EN" });
     const reprint = makePrinting({
-      id: "p-reprint",
+      printingId: "p-reprint",
       canonicalRank: 9,
       images: frontImage("img-r"),
     });
     const canonical = makePrinting({
-      id: "p-canon",
+      printingId: "p-canon",
       canonicalRank: 2,
       images: frontImage("img-c"),
     });
     const result = findStandardArtFallback(target, [target, reprint, canonical]);
-    expect(result?.printing?.id).toBe("p-canon");
+    expect(result?.printing?.printingId).toBe("p-canon");
   });
 
   it("does not fall back across cards", () => {
-    const target = makePrinting({ id: "p-target", cardId: "card-a", language: "EN" });
+    const target = makePrinting({ printingId: "p-target", cardId: "card-a", language: "EN" });
     const otherCard = makePrinting({
-      id: "p-other",
+      printingId: "p-other",
       cardId: "card-b",
       images: frontImage("img-o"),
     });
@@ -198,76 +205,75 @@ describe("findStandardArtFallback", () => {
   });
 
   it("returns null when there are no candidates at all", () => {
-    expect(findStandardArtFallback(makePrinting({ id: "p-target" }), [])).toBeNull();
+    expect(findStandardArtFallback(makePrinting({ printingId: "p-target" }), [])).toBeNull();
   });
 
   describe("admin override", () => {
     it("suppresses the substitute entirely in `none` mode", () => {
-      const target = makePrinting({ id: "p-target", fallbackArtMode: "none" });
-      const standard = makePrinting({ id: "p-std", images: frontImage("img-std") });
+      const target = makePrinting({ printingId: "p-target", fallbackArtMode: "none" });
+      const standard = makePrinting({ printingId: "p-std", images: frontImage("img-std") });
       expect(findStandardArtFallback(target, [target, standard])).toBeNull();
     });
 
     it("shows the pinned image instead of the standard printing's", () => {
       const target = makePrinting({
-        id: "p-target",
+        printingId: "p-target",
         artVariant: "altart",
         fallbackArtMode: "pinned",
         fallbackImageId: "img-pinned",
       });
-      const standard = makePrinting({ id: "p-std", images: frontImage("img-std") });
+      const standard = makePrinting({ printingId: "p-std", images: frontImage("img-std") });
       const result = findStandardArtFallback(target, [target, standard]);
       expect(result?.image.imageId).toBe("img-pinned");
     });
 
     it("names the sibling printing a pinned image came from", () => {
       const target = makePrinting({
-        id: "p-target",
+        printingId: "p-target",
         fallbackArtMode: "pinned",
         fallbackImageId: "img-alt",
       });
       const altArt = makePrinting({
-        id: "p-alt",
+        printingId: "p-alt",
         artVariant: "altart",
         images: frontImage("img-alt"),
       });
       const result = findStandardArtFallback(target, [target, altArt]);
-      expect(result?.printing?.id).toBe("p-alt");
+      expect(result?.printing?.printingId).toBe("p-alt");
       expect(result?.image.imageId).toBe("img-alt");
     });
 
     it("resolves a pin to a null printing when no sibling carries that image", () => {
       const target = makePrinting({
-        id: "p-target",
+        printingId: "p-target",
         fallbackArtMode: "pinned",
         fallbackImageId: "img-uploaded",
       });
-      const standard = makePrinting({ id: "p-std", images: frontImage("img-std") });
+      const standard = makePrinting({ printingId: "p-std", images: frontImage("img-std") });
       const result = findStandardArtFallback(target, [target, standard]);
       expect(result?.printing).toBeNull();
-      expect(result?.image).toEqual({ face: "front", imageId: "img-uploaded" });
+      expect(result?.image).toEqual({ imageId: "img-uploaded" });
     });
 
-    it("shows a pinned back-face scan in the front slot", () => {
+    it("shows a pinned scan of another printing", () => {
       const target = makePrinting({
-        id: "p-target",
+        printingId: "p-target",
         fallbackArtMode: "pinned",
         fallbackImageId: "img-back",
       });
       const backOnly = makePrinting({
-        id: "p-back",
-        images: [{ face: "back", imageId: "img-back" }],
+        printingId: "p-back",
+        images: [{ imageId: "img-back" }],
       });
       const result = findStandardArtFallback(target, [target, backOnly]);
-      expect(result?.image.face).toBe("front");
-      expect(result?.printing?.id).toBe("p-back");
+      expect(result?.printing?.printingId).toBe("p-back");
     });
 
     it("derives as usual when a pin arrives without a servable image", () => {
-      const target = makePrinting({ id: "p-target", fallbackArtMode: "pinned" });
-      const standard = makePrinting({ id: "p-std", images: frontImage("img-std") });
+      const target = makePrinting({ printingId: "p-target", fallbackArtMode: "pinned" });
+      const standard = makePrinting({ printingId: "p-std", images: frontImage("img-std") });
       const result = findStandardArtFallback(target, [target, standard]);
-      expect(result?.printing?.id).toBe("p-std");
+      expect(result?.printing?.printingId).toBe("p-std");
     });
   });
 });

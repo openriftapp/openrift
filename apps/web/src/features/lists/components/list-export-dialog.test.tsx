@@ -7,8 +7,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EMPTY_TRADE_PREFERENCE, stubCopy, stubPrinting } from "@/test/factories";
 
-const viPrinting = stubPrinting({ id: "p-vi", cardId: "card-vi", card: { name: "Vi" } });
-const jinxPrinting = stubPrinting({ id: "p-jinx", cardId: "card-jinx", card: { name: "Jinx" } });
+const viPrinting = stubPrinting({ printingId: "p-vi", cardId: "card-vi", card: { name: "Vi" } });
+const jinxPrinting = stubPrinting({
+  printingId: "p-jinx",
+  cardId: "card-jinx",
+  card: { name: "Jinx" },
+});
 
 vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => "user-1",
@@ -16,7 +20,7 @@ vi.mock("@/hooks/use-session", () => ({
 
 vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({
-    printingsById: { [viPrinting.id]: viPrinting, [jinxPrinting.id]: jinxPrinting },
+    printingsById: { [viPrinting.printingId]: viPrinting, [jinxPrinting.printingId]: jinxPrinting },
     sets: [{ id: viPrinting.setId, setType: "main" }],
   }),
 }));
@@ -61,7 +65,7 @@ function cardEntry(id: string, cardId: string, cardName: string): ListEntryDetai
 
 function printingFields(printing: Printing) {
   return {
-    printingId: printing.id,
+    printingId: printing.printingId,
     cardName: printing.card.name,
     setId: printing.setId,
     rarity: printing.rarity,
@@ -200,8 +204,8 @@ describe("ListExportDialog", () => {
   it("writes copy metadata into a copy list's CSV", async () => {
     const user = userEvent.setup();
     copies = [
-      stubCopy({ id: "copy-1", printingId: viPrinting.id, condition: "near-mint" }),
-      stubCopy({ id: "copy-2", printingId: jinxPrinting.id, condition: "played" }),
+      stubCopy({ id: "copy-1", printingId: viPrinting.printingId, condition: "near-mint" }),
+      stubCopy({ id: "copy-2", printingId: jinxPrinting.printingId, condition: "played" }),
     ];
     setup(
       [copyEntry("e-1", "copy-1", viPrinting), copyEntry("e-2", "copy-2", jinxPrinting)],

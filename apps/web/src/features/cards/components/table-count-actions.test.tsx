@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { stubPrinting } from "@/test/factories";
 
 const cardId = "card-chaos-rune";
-const printingX = stubPrinting({ id: "p-x", cardId, card: { name: "Chaos Rune" } });
+const printingX = stubPrinting({ printingId: "p-x", cardId, card: { name: "Chaos Rune" } });
 
 let ownedByPrinting: Record<string, number> = {};
 

@@ -40,11 +40,11 @@ function makeDeckSnapshot() {
     }),
   ];
   const printings = [
-    makePrinting({ id: "p-legend", cardId: "c-legend", shortCode: "OGN-003" }),
-    makePrinting({ id: "p-champ", cardId: "c-champ", shortCode: "OGN-007" }),
-    makePrinting({ id: "p-unit", cardId: "c-unit", shortCode: "OGN-100" }),
-    makePrinting({ id: "p-rune", cardId: "c-rune", shortCode: "OGN-200" }),
-    makePrinting({ id: "p-bf", cardId: "c-bf", shortCode: "OGN-220" }),
+    makePrinting({ printingId: "p-legend", cardId: "c-legend", shortCode: "OGN-003" }),
+    makePrinting({ printingId: "p-champ", cardId: "c-champ", shortCode: "OGN-007" }),
+    makePrinting({ printingId: "p-unit", cardId: "c-unit", shortCode: "OGN-100" }),
+    makePrinting({ printingId: "p-rune", cardId: "c-rune", shortCode: "OGN-200" }),
+    makePrinting({ printingId: "p-bf", cardId: "c-bf", shortCode: "OGN-220" }),
   ];
   return buildSnapshot(
     makeCatalogResponse(cards, printings),
@@ -81,7 +81,7 @@ describe("resolveDeckEntries", () => {
       ["Fury Rune", "runes"],
       ["Sunken Temple", "battlefield"],
     ]);
-    expect(deck.rows[1]!.printing.id).toBe("p-unit");
+    expect(deck.rows[1]!.printing.printingId).toBe("p-unit");
   });
 
   it("prefers the entry's explicit zone over inference", () => {

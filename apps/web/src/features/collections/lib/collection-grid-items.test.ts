@@ -9,12 +9,12 @@ const owned = stubPrinting();
 const unowned = stubPrinting();
 
 const stack: StackedEntry = {
-  printingId: owned.id,
+  printingId: owned.printingId,
   printing: owned,
   copyIds: ["c1", "c2"],
 };
 
-const stackByPrintingId = new Map([[owned.id, stack]]);
+const stackByPrintingId = new Map([[owned.printingId, stack]]);
 const collectionIdByCopyId = new Map([
   ["c1", "box-1"],
   ["c2", "box-2"],
@@ -30,9 +30,9 @@ describe("buildCollectionGridItems", () => {
       true,
     );
 
-    expect(items.map((item) => item.id)).toEqual([owned.id, unowned.id]);
-    expect(stackByItemId.get(owned.id)).toBe(stack);
-    expect(stackByItemId.has(unowned.id)).toBe(false);
+    expect(items.map((item) => item.id)).toEqual([owned.printingId, unowned.printingId]);
+    expect(stackByItemId.get(owned.printingId)).toBe(stack);
+    expect(stackByItemId.has(unowned.printingId)).toBe(false);
   });
 
   it("drops unowned printings outside library mode", () => {
@@ -45,7 +45,7 @@ describe("buildCollectionGridItems", () => {
     );
 
     expect(items).toHaveLength(1);
-    expect(items[0]?.id).toBe(owned.id);
+    expect(items[0]?.id).toBe(owned.printingId);
   });
 
   it("expands a stack into one item per copy when unstacked", () => {
@@ -74,8 +74,8 @@ describe("copyIdsShareOneCard", () => {
   const first = stubPrinting();
   const second = stubPrinting();
   const stacks: StackedEntry[] = [
-    { printingId: first.id, printing: first, copyIds: ["a1", "a2"] },
-    { printingId: second.id, printing: second, copyIds: ["b1"] },
+    { printingId: first.printingId, printing: first, copyIds: ["a1", "a2"] },
+    { printingId: second.printingId, printing: second, copyIds: ["b1"] },
   ];
 
   it("is true for a single copy", () => {

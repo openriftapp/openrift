@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { GroupByField } from "@openrift/shared/types/search";
 import type { ReactNode } from "react";
 import { Fragment, memo, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -304,7 +305,7 @@ export function CardGrid({
     for (const [i, row] of rows.entries()) {
       if (
         row.kind === "cards" &&
-        row.items.some((item) => item.id === cardId || item.printing.id === cardId)
+        row.items.some((item) => item.id === cardId || sideKey(item.printing) === cardId)
       ) {
         const vItems = virtualizerRef.current.getVirtualItems();
         const vItem = vItems.find((vi) => vi.index === i);

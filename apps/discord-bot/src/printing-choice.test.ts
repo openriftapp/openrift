@@ -26,9 +26,9 @@ function snapshotWith(printings = defaultPrintings()) {
 
 function defaultPrintings() {
   return [
-    makePrinting({ id: "p1", cardId: "c1", canonicalRank: 1 }),
+    makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1 }),
     makePrinting({
-      id: "p2",
+      printingId: "p2",
       cardId: "c1",
       canonicalRank: 2,
       setId: "set-2",
@@ -36,7 +36,7 @@ function defaultPrintings() {
       publicCode: "SFB-011/120",
     }),
     makePrinting({
-      id: "p3",
+      printingId: "p3",
       cardId: "c1",
       canonicalRank: 3,
       shortCode: "OGN-202",
@@ -48,8 +48,8 @@ function defaultPrintings() {
 
 function finishPrintings() {
   return [
-    makePrinting({ id: "p1", cardId: "c1", canonicalRank: 1, finish: "normal" }),
-    makePrinting({ id: "p2", cardId: "c1", canonicalRank: 2, finish: "foil" }),
+    makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1, finish: "normal" }),
+    makePrinting({ printingId: "p2", cardId: "c1", canonicalRank: 2, finish: "foil" }),
   ];
 }
 
@@ -68,8 +68,14 @@ describe("printingChoices", () => {
 
   it("labels the language even when every printing shares a non-EN one", () => {
     const printings = [
-      makePrinting({ id: "p1", cardId: "c1", canonicalRank: 1, language: "DE" }),
-      makePrinting({ id: "p2", cardId: "c1", canonicalRank: 2, language: "DE", setId: "set-2" }),
+      makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1, language: "DE" }),
+      makePrinting({
+        printingId: "p2",
+        cardId: "c1",
+        canonicalRank: 2,
+        language: "DE",
+        setId: "set-2",
+      }),
     ];
     const names = printingChoices(snapshotWith(printings), card, "").map((c) => c.name);
     expect(names[0]).toBe("OGN-202/298 · Origins · DE (default)");
@@ -85,9 +91,9 @@ describe("printingChoices", () => {
 
   it("names the other variant attributes the site's picker names", () => {
     const printings = [
-      makePrinting({ id: "p1", cardId: "c1", canonicalRank: 1 }),
+      makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1 }),
       makePrinting({
-        id: "p2",
+        printingId: "p2",
         cardId: "c1",
         canonicalRank: 2,
         artVariant: "altart",
@@ -101,7 +107,7 @@ describe("printingChoices", () => {
   });
 
   it("omits the variant label for a card with a single plain printing", () => {
-    const printings = [makePrinting({ id: "p1", cardId: "c1", canonicalRank: 1 })];
+    const printings = [makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1 })];
     expect(printingChoices(snapshotWith(printings), card, "")[0]?.name).toBe(
       "OGN-202/298 · Origins (default)",
     );
@@ -124,7 +130,7 @@ describe("printingChoices", () => {
 
   it("caps the choices at Discord's limit of 25", () => {
     const many = Array.from({ length: 30 }, (_, i) =>
-      makePrinting({ id: `p${i}`, cardId: "c1", canonicalRank: i + 1 }),
+      makePrinting({ printingId: `p${i}`, cardId: "c1", canonicalRank: i + 1 }),
     );
     expect(printingChoices(snapshotWith(many), card, "")).toHaveLength(25);
   });
@@ -132,26 +138,26 @@ describe("printingChoices", () => {
 
 describe("resolvePrinting", () => {
   it("returns the default printing for empty input", () => {
-    expect(resolvePrinting(snapshotWith(), card, undefined)?.id).toBe("p1");
-    expect(resolvePrinting(snapshotWith(), card, "  ")?.id).toBe("p1");
+    expect(resolvePrinting(snapshotWith(), card, undefined)?.printingId).toBe("p1");
+    expect(resolvePrinting(snapshotWith(), card, "  ")?.printingId).toBe("p1");
   });
 
   it("resolves a printing id from autocomplete", () => {
-    expect(resolvePrinting(snapshotWith(), card, "p2")?.id).toBe("p2");
+    expect(resolvePrinting(snapshotWith(), card, "p2")?.printingId).toBe("p2");
   });
 
   it("resolves short codes and public codes case-insensitively", () => {
-    expect(resolvePrinting(snapshotWith(), card, "sfb-011")?.id).toBe("p2");
-    expect(resolvePrinting(snapshotWith(), card, "SFB-011/120")?.id).toBe("p2");
+    expect(resolvePrinting(snapshotWith(), card, "sfb-011")?.printingId).toBe("p2");
+    expect(resolvePrinting(snapshotWith(), card, "SFB-011/120")?.printingId).toBe("p2");
   });
 
   it("resolves codes typed without separators, like the site's search", () => {
-    expect(resolvePrinting(snapshotWith(), card, "sfb011")?.id).toBe("p2");
-    expect(resolvePrinting(snapshotWith(), card, "sfb011120")?.id).toBe("p2");
+    expect(resolvePrinting(snapshotWith(), card, "sfb011")?.printingId).toBe("p2");
+    expect(resolvePrinting(snapshotWith(), card, "sfb011120")?.printingId).toBe("p2");
   });
 
   it("falls back to the default printing for unrecognized input", () => {
-    expect(resolvePrinting(snapshotWith(), card, "nonsense")?.id).toBe("p1");
+    expect(resolvePrinting(snapshotWith(), card, "nonsense")?.printingId).toBe("p1");
   });
 
   it("returns undefined for a card without printings", () => {

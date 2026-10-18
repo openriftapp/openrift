@@ -23,7 +23,7 @@ export function makePrinting(overrides: Partial<CatalogPrinting> = {}): CatalogP
   return makeCatalogPrinting({
     shortCode: "OGN-202",
     rarity: "Epic",
-    images: [{ face: "front", imageId: "0197f00d00aa" }],
+    images: [{ imageId: "0197f00d00aa" }],
     artist: "Kudos Productions",
     publicCode: "OGN-202/298",
     printedYear: 2025,
@@ -51,7 +51,9 @@ export function makeCatalogResponse(
   return {
     sets,
     cards: Object.fromEntries(cards.map(({ id, ...card }) => [id, card])),
-    printings: Object.fromEntries(printings.map(({ id, ...printing }) => [id, printing])),
+    printings: Object.fromEntries(
+      printings.map(({ printingId: id, ...printing }) => [id, printing]),
+    ),
     totalCopies: printings.length,
     customTagAssignments: {},
   };

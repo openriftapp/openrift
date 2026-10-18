@@ -1,8 +1,6 @@
-import { joinCatalog } from "@openrift/shared/catalog-join";
-import type {
-  CatalogResponse,
-  CatalogResponsePrintingValue,
-} from "@openrift/shared/types/api/catalog";
+import { joinCatalog, joinCatalogCards, joinPrintingSides } from "@openrift/shared/catalog-join";
+import { indexByPrinting } from "@openrift/shared/printing-side";
+import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { DeckCatalogSubset } from "@openrift/shared/types/api/deck";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { context, propagation } from "@opentelemetry/api";
@@ -219,19 +217,23 @@ export function enrichCatalog(catalog: CatalogResponse): UseCardsResult {
 }
 
 function enrichCatalogInner(catalog: CatalogResponse): UseCardsResult {
-  const { cardsById, printings: allPrintings } = joinCatalog(catalog);
+  const { cardsById, printings } = joinCatalog(catalog);
+  return buildCardsResult(cardsById, printings, catalog.sets);
+}
 
-  const printingsById: Record<string, Printing> = {};
-  for (const printing of allPrintings) {
-    printingsById[printing.id] = printing;
-  }
+function buildCardsResult(
+  cardsById: Record<string, Card>,
+  allPrintings: Printing[],
+  sets: CatalogResponse["sets"],
+): UseCardsResult {
+  const printingsById = Object.fromEntries(indexByPrinting(allPrintings));
 
   return {
     allPrintings,
     cardsById,
     printingsById,
     printingsByCardId: Map.groupBy(allPrintings, (p) => p.cardId),
-    sets: catalog.sets,
+    sets,
   };
 }
 
@@ -242,17 +244,12 @@ export function enrichCatalogSubset(subset: DeckCatalogSubset): UseCardsResult {
   if (cached) {
     return cached;
   }
-  const printings: Record<string, CatalogResponsePrintingValue> = {};
-  for (const { id, ...rest } of subset.printings) {
-    printings[id] = rest;
-  }
-  const result = enrichCatalogInner({
-    sets: subset.sets,
-    cards: subset.cards,
-    printings,
-    totalCopies: 0,
-    customTagAssignments: {},
-  });
+  const cardsById = joinCatalogCards(subset.cards);
+  const result = buildCardsResult(
+    cardsById,
+    joinPrintingSides(subset.printings, subset.sets, cardsById),
+    subset.sets,
+  );
   enrichSubsetCache.set(subset, result);
   return result;
 }

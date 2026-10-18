@@ -113,7 +113,7 @@ function SideCell({
     >
       <CardMiniRow
         className="self-stretch"
-        imageId={printing?.images.find((image) => image.face === "front")?.imageId}
+        imageId={printing?.images[0]?.imageId}
         landscape={card ? getOrientation(card.types) === "landscape" : false}
         domains={card?.domains}
         domainColors={display.domainColors}
@@ -593,7 +593,7 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
 
   const hoveredPrinting =
     hoveredCardId !== null && !isMobile ? (getPreferredPrinting(hoveredCardId) ?? null) : null;
-  const hoveredImage = hoveredPrinting?.images.find((image) => image.face === "front") ?? null;
+  const hoveredImage = hoveredPrinting?.images[0] ?? null;
   const hoveredCard =
     hoveredPrinting && hoveredImage
       ? {

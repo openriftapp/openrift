@@ -9,12 +9,12 @@ import { stubPrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
 const jinx = stubPrinting({
-  id: "p-1",
+  printingId: "p-1",
   language: "FR",
   finish: "foil",
   card: { name: "Jinx, Rebel" },
 });
-const star = stubPrinting({ id: "p-2", card: { name: "Falling Star" } });
+const star = stubPrinting({ printingId: "p-2", card: { name: "Falling Star" } });
 
 const markOrdered = vi.hoisted(() => vi.fn());
 const copy = vi.hoisted(() => vi.fn());
@@ -23,7 +23,7 @@ vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({
     printingsById: { "p-1": jinx, "p-2": star },
     printingsByCardId: new Map([
-      [star.cardId, [star, stubPrinting({ id: "p-3", cardId: star.cardId })]],
+      [star.cardId, [star, stubPrinting({ printingId: "p-3", cardId: star.cardId })]],
     ]),
   }),
 }));

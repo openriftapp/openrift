@@ -154,7 +154,7 @@ describe("filterCards search folding", () => {
   // the minus in "-1", and keywords are hyphenated.
   const printings = [
     makePrinting({
-      id: "OGN-101",
+      printingId: "OGN-101",
       shortCode: "OGN-101",
       artist: "黯荧岛Dark Glow",
       printedRulesText: "Give a unit −1 :rb_might:. [Equip] a Gear.",
@@ -167,7 +167,7 @@ describe("filterCards search folding", () => {
       },
     }),
     makePrinting({
-      id: "OGN-269",
+      printingId: "OGN-269",
       shortCode: "OGN-269",
       artist: "Jane Doe",
       printedName: "波比，扶弱使者",
@@ -180,7 +180,7 @@ describe("filterCards search folding", () => {
       },
     }),
     makePrinting({
-      id: "OGN-400",
+      printingId: "OGN-400",
       shortCode: "OGN-400",
       artist: "Jane Doe",
       printedRulesText: "Equip a Gear to deal 1 damage.",

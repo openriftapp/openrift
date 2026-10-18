@@ -34,7 +34,7 @@ export function CollectionActionsCell({
       siblingIds={
         dataView === "cards"
           ? tileSiblings(printing, catalogPrintingsByCardId.get(printing.cardId), tileGroupBy)?.map(
-              (sibling) => sibling.id,
+              (sibling) => sibling.printingId,
             )
           : undefined
       }

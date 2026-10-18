@@ -1,5 +1,6 @@
 import type { ProductDetailResponse } from "@openrift/shared/contracts/products";
 import { imageUrl } from "@openrift/shared/image-url";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
 import { Suspense, useState } from "react";
@@ -61,7 +62,7 @@ function ProductQuantityCell({
   if (!printing) {
     return null;
   }
-  return <StaticCountTableActions count={quantityByPrintingId[printing.id] ?? 0} />;
+  return <StaticCountTableActions count={quantityByPrintingId[printing.printingId] ?? 0} />;
 }
 
 // Products are curated fixed sets: distribution/marker/tag filters add noise.
@@ -299,7 +300,10 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
     ? PRODUCT_HIDDEN_FILTER_SECTIONS_AUTHED
     : PRODUCT_HIDDEN_FILTER_SECTIONS;
 
-  const items: CardViewerItem[] = sortedCards.map((printing) => ({ id: printing.id, printing }));
+  const items: CardViewerItem[] = sortedCards.map((printing) => ({
+    id: sideKey(printing),
+    printing,
+  }));
 
   const handleCardClick = (printing: Printing) => {
     useSelectionStore.getState().selectCard(printing, items, "printing");
@@ -322,7 +326,7 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
       showImages={showImages}
       view="printings"
       onClick={handleCardClick}
-      strip={<CardCountStrip count={quantityByPrintingId[item.printing.id] ?? 0} />}
+      strip={<CardCountStrip count={quantityByPrintingId[item.printing.printingId] ?? 0} />}
     />
   );
 

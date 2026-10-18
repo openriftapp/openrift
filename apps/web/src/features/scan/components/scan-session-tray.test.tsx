@@ -28,9 +28,9 @@ import { stubInitResponse } from "@/test/init-fixtures";
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { createStoreResetter } from "@/test/store-helpers";
 
-const english = stubPrinting({ id: "p-en", card: { name: "Yasuo" } });
+const english = stubPrinting({ printingId: "p-en", card: { name: "Yasuo" } });
 const german = stubPrinting({
-  id: "p-de",
+  printingId: "p-de",
   cardId: english.cardId,
   language: "DE",
   card: { name: "Yasuo" },
@@ -84,7 +84,7 @@ describe("ScanSessionTray", () => {
 
   it("names the language of the printing a row was swapped to", () => {
     useScanSessionStore.getState().add(english);
-    useScanSessionStore.getState().move(english.id, german);
+    useScanSessionStore.getState().move(english.printingId, german);
     renderTray();
 
     const button = screen.getByRole("button", { name: /change the printing/iu });

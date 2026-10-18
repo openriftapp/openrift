@@ -274,7 +274,7 @@ function PrintingSelect({ piece, actions }: { piece: BoardPiece; actions: BoardP
     return null;
   }
   const items = printings.map((printing) => ({
-    value: printing.id,
+    value: printing.printingId,
     label: formatPrintingCode(printing.publicCode),
   }));
   return (
@@ -282,7 +282,7 @@ function PrintingSelect({ piece, actions }: { piece: BoardPiece; actions: BoardP
       {m.board_states_editor_printing()}
       <Select
         items={items}
-        value={card.printingId ?? printings[0]?.id ?? ""}
+        value={card.printingId ?? printings[0]?.printingId ?? ""}
         onValueChange={(next) => {
           if (typeof next === "string") {
             actions.setPrinting(next);

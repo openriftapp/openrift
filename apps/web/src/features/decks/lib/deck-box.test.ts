@@ -62,7 +62,7 @@ function inputFor({
     copies,
     homeCollectionId: BOX,
     printingsByCardId: new Map([[cardId, printings]]),
-    printingsById: Object.fromEntries(printings.map((printing) => [printing.id, printing])),
+    printingsById: Object.fromEntries(printings.map((printing) => [printing.printingId, printing])),
     collections: COLLECTIONS,
     otherDeckNeeds,
     languageOrder: ["EN", "DE"],
@@ -76,7 +76,7 @@ function inputFor({
 describe("computeDeckBoxPlan", () => {
   it("stands a copy already in the box up as a settled slot", () => {
     const printing = stubPrinting({ cardId: "card-1", shortCode: "OGS-005" });
-    const copy = stubCopy({ printingId: printing.id, collectionId: BOX });
+    const copy = stubCopy({ printingId: printing.printingId, collectionId: BOX });
     const plan = computeDeckBoxPlan(inputFor({ printings: [printing], copies: [copy] }));
     expect(plan.neededTotal).toBe(1);
     expect(plan.inBoxTotal).toBe(1);
@@ -92,8 +92,8 @@ describe("computeDeckBoxPlan", () => {
         quantity: 2,
         printings: [printing],
         copies: [
-          stubCopy({ printingId: printing.id, collectionId: BINDER }),
-          stubCopy({ printingId: printing.id, collectionId: SHOEBOX }),
+          stubCopy({ printingId: printing.printingId, collectionId: BINDER }),
+          stubCopy({ printingId: printing.printingId, collectionId: SHOEBOX }),
         ],
       }),
     );
@@ -117,9 +117,9 @@ describe("computeDeckBoxPlan", () => {
         ["card-2", [second]],
       ]),
       copies: [
-        stubCopy({ printingId: first.id, collectionId: BINDER }),
-        stubCopy({ printingId: first.id, collectionId: BINDER }),
-        stubCopy({ printingId: second.id, collectionId: BINDER }),
+        stubCopy({ printingId: first.printingId, collectionId: BINDER }),
+        stubCopy({ printingId: first.printingId, collectionId: BINDER }),
+        stubCopy({ printingId: second.printingId, collectionId: BINDER }),
       ],
     });
     expect(plan.slots.map((slot) => slot.copy?.shortCode)).toEqual([
@@ -139,7 +139,7 @@ describe("computeDeckBoxPlan", () => {
         stubDeckBuilderCard({ cardId: "card-1", quantity: 2, zone: "main" }),
         stubDeckBuilderCard({ cardId: "card-1", quantity: 1, zone: "sideboard" }),
       ],
-      copies: [stubCopy({ printingId: printing.id, collectionId: BOX })],
+      copies: [stubCopy({ printingId: printing.printingId, collectionId: BOX })],
     });
     expect(plan.neededTotal).toBe(3);
     expect(plan.slots.map((slot) => slot.state)).toEqual(["in-box", "missing", "missing"]);
@@ -153,16 +153,16 @@ describe("computeDeckBoxPlan", () => {
     const plan = computeDeckBoxPlan(
       inputFor({
         printings: [pinned, english, german],
-        preferredPrintingId: pinned.id,
+        preferredPrintingId: pinned.printingId,
         copies: [
-          stubCopy({ printingId: german.id, collectionId: BINDER }),
-          stubCopy({ printingId: english.id, collectionId: BINDER }),
-          stubCopy({ printingId: pinned.id, collectionId: BINDER }),
+          stubCopy({ printingId: german.printingId, collectionId: BINDER }),
+          stubCopy({ printingId: english.printingId, collectionId: BINDER }),
+          stubCopy({ printingId: pinned.printingId, collectionId: BINDER }),
         ],
       }),
     );
-    expect(plan.slots[0]?.copy?.printingId).toBe(pinned.id);
-    expect(plan.slots[0]?.alternatives[0]?.copy.printingId).toBe(english.id);
+    expect(plan.slots[0]?.copy?.printingId).toBe(pinned.printingId);
+    expect(plan.slots[0]?.alternatives[0]?.copy.printingId).toBe(english.printingId);
   });
 
   it("plays the beaters: never a graded copy, worst condition first", () => {
@@ -171,9 +171,14 @@ describe("computeDeckBoxPlan", () => {
       inputFor({
         printings: [printing],
         copies: [
-          stubCopy({ printingId: printing.id, collectionId: BINDER, grader: "psa", grade: 9 }),
-          stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "mint" }),
-          stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" }),
+          stubCopy({
+            printingId: printing.printingId,
+            collectionId: BINDER,
+            grader: "psa",
+            grade: 9,
+          }),
+          stubCopy({ printingId: printing.printingId, collectionId: BINDER, condition: "mint" }),
+          stubCopy({ printingId: printing.printingId, collectionId: BINDER, condition: "played" }),
         ],
       }),
     );
@@ -189,8 +194,8 @@ describe("computeDeckBoxPlan", () => {
       inputFor({
         printings: [printing],
         copies: [
-          stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "mint" }),
-          stubCopy({ printingId: printing.id, collectionId: BINDER }),
+          stubCopy({ printingId: printing.printingId, collectionId: BINDER, condition: "mint" }),
+          stubCopy({ printingId: printing.printingId, collectionId: BINDER }),
         ],
       }),
     );
@@ -199,7 +204,7 @@ describe("computeDeckBoxPlan", () => {
 
   it("reports a lent-out copy as blocked rather than missing", () => {
     const printing = stubPrinting({ cardId: "card-1" });
-    const copy = stubCopy({ printingId: printing.id, collectionId: BINDER, onLoan: true });
+    const copy = stubCopy({ printingId: printing.printingId, collectionId: BINDER, onLoan: true });
     const plan = computeDeckBoxPlan(inputFor({ printings: [printing], copies: [copy] }));
     expect(plan.slots).toHaveLength(1);
     expect(plan.slots[0]?.state).toBe("blocked");
@@ -213,7 +218,7 @@ describe("computeDeckBoxPlan", () => {
     const plan = computeDeckBoxPlan(
       inputFor({
         printings: [printing],
-        copies: [stubCopy({ printingId: printing.id, collectionId: BOX, onLoan: true })],
+        copies: [stubCopy({ printingId: printing.printingId, collectionId: BOX, onLoan: true })],
       }),
     );
     expect(plan.inBoxTotal).toBe(0);
@@ -228,8 +233,8 @@ describe("computeDeckBoxPlan", () => {
         quantity: 2,
         printings: [printing],
         copies: [
-          stubCopy({ printingId: printing.id, collectionId: BINDER, onLoan: true }),
-          stubCopy({ printingId: printing.id, collectionId: BINDER, reserved: true }),
+          stubCopy({ printingId: printing.printingId, collectionId: BINDER, onLoan: true }),
+          stubCopy({ printingId: printing.printingId, collectionId: BINDER, reserved: true }),
         ],
       }),
     );
@@ -241,7 +246,9 @@ describe("computeDeckBoxPlan", () => {
     const plan = computeDeckBoxPlan(
       inputFor({
         printings: [printing],
-        copies: [stubCopy({ printingId: printing.id, collectionId: SHOEBOX, groupId: "group-1" })],
+        copies: [
+          stubCopy({ printingId: printing.printingId, collectionId: SHOEBOX, groupId: "group-1" }),
+        ],
       }),
     );
     expect(plan.slots.map((slot) => slot.state)).toEqual(["missing"]);
@@ -262,7 +269,7 @@ describe("computeDeckBoxPlan", () => {
       inputFor({
         zone: "overflow",
         printings: [printing],
-        copies: [stubCopy({ printingId: printing.id, collectionId: BINDER })],
+        copies: [stubCopy({ printingId: printing.printingId, collectionId: BINDER })],
       }),
     );
     expect(plan.neededTotal).toBe(0);
@@ -272,8 +279,16 @@ describe("computeDeckBoxPlan", () => {
 
   it("honours a hand-picked copy over the ranking", () => {
     const printing = stubPrinting({ cardId: "card-1" });
-    const worn = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" });
-    const mint = stubCopy({ printingId: printing.id, collectionId: SHOEBOX, condition: "mint" });
+    const worn = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BINDER,
+      condition: "played",
+    });
+    const mint = stubCopy({
+      printingId: printing.printingId,
+      collectionId: SHOEBOX,
+      condition: "mint",
+    });
     const plan = computeDeckBoxPlan(
       inputFor({
         printings: [printing],
@@ -286,7 +301,11 @@ describe("computeDeckBoxPlan", () => {
 
   it("falls back to the ranking when a hand-picked copy is gone", () => {
     const printing = stubPrinting({ cardId: "card-1" });
-    const worn = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" });
+    const worn = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BINDER,
+      condition: "played",
+    });
     const plan = computeDeckBoxPlan(
       inputFor({
         printings: [printing],
@@ -304,10 +323,10 @@ describe("computeDeckBoxPlan", () => {
         quantity: 3,
         printings: [printing],
         copies: [
-          stubCopy({ printingId: printing.id, collectionId: BOX }),
-          stubCopy({ printingId: printing.id, collectionId: BINDER }),
-          stubCopy({ printingId: printing.id, collectionId: BINDER }),
-          stubCopy({ printingId: printing.id, collectionId: BINDER }),
+          stubCopy({ printingId: printing.printingId, collectionId: BOX }),
+          stubCopy({ printingId: printing.printingId, collectionId: BINDER }),
+          stubCopy({ printingId: printing.printingId, collectionId: BINDER }),
+          stubCopy({ printingId: printing.printingId, collectionId: BINDER }),
         ],
       }),
     );
@@ -318,11 +337,15 @@ describe("computeDeckBoxPlan", () => {
 
   it("offers copies that are the same choice as a single entry", () => {
     const printing = stubPrinting({ cardId: "card-1" });
-    const worn = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" });
+    const worn = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BINDER,
+      condition: "played",
+    });
     const shelf = [
-      stubCopy({ printingId: printing.id, collectionId: SHOEBOX }),
-      stubCopy({ printingId: printing.id, collectionId: SHOEBOX }),
-      stubCopy({ printingId: printing.id, collectionId: SHOEBOX }),
+      stubCopy({ printingId: printing.printingId, collectionId: SHOEBOX }),
+      stubCopy({ printingId: printing.printingId, collectionId: SHOEBOX }),
+      stubCopy({ printingId: printing.printingId, collectionId: SHOEBOX }),
     ];
     const plan = computeDeckBoxPlan(inputFor({ printings: [printing], copies: [worn, ...shelf] }));
     expect(plan.slots[0]?.copy?.copyId).toBe(worn.id);
@@ -338,10 +361,10 @@ describe("computeDeckBoxPlan", () => {
       inputFor({
         printings: [printing, other],
         copies: [
-          stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" }),
-          stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "good" }),
-          stubCopy({ printingId: printing.id, collectionId: SHOEBOX, condition: "good" }),
-          stubCopy({ printingId: other.id, collectionId: BINDER, condition: "good" }),
+          stubCopy({ printingId: printing.printingId, collectionId: BINDER, condition: "played" }),
+          stubCopy({ printingId: printing.printingId, collectionId: BINDER, condition: "good" }),
+          stubCopy({ printingId: printing.printingId, collectionId: SHOEBOX, condition: "good" }),
+          stubCopy({ printingId: other.printingId, collectionId: BINDER, condition: "good" }),
         ],
       }),
     );
@@ -355,8 +378,8 @@ describe("computeDeckBoxPlan", () => {
       inputFor({
         printings: [printing],
         copies: [
-          stubCopy({ printingId: printing.id, collectionId: BINDER }),
-          stubCopy({ printingId: printing.id, collectionId: BINDER }),
+          stubCopy({ printingId: printing.printingId, collectionId: BINDER }),
+          stubCopy({ printingId: printing.printingId, collectionId: BINDER }),
         ],
       }),
     );
@@ -366,8 +389,16 @@ describe("computeDeckBoxPlan", () => {
 
   it("never offers a slot the copy another slot of the same card holds", () => {
     const printing = stubPrinting({ cardId: "card-1" });
-    const worn = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" });
-    const good = stubCopy({ printingId: printing.id, collectionId: SHOEBOX, condition: "good" });
+    const worn = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BINDER,
+      condition: "played",
+    });
+    const good = stubCopy({
+      printingId: printing.printingId,
+      collectionId: SHOEBOX,
+      condition: "good",
+    });
     const plan = computeDeckBoxPlan(
       inputFor({ quantity: 2, printings: [printing], copies: [worn, good] }),
     );
@@ -377,9 +408,21 @@ describe("computeDeckBoxPlan", () => {
 
   it("takes a hand-picked copy alongside the best of the rest", () => {
     const printing = stubPrinting({ cardId: "card-1" });
-    const worn = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" });
-    const good = stubCopy({ printingId: printing.id, collectionId: SHOEBOX, condition: "good" });
-    const mint = stubCopy({ printingId: printing.id, collectionId: SHOEBOX, condition: "mint" });
+    const worn = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BINDER,
+      condition: "played",
+    });
+    const good = stubCopy({
+      printingId: printing.printingId,
+      collectionId: SHOEBOX,
+      condition: "good",
+    });
+    const mint = stubCopy({
+      printingId: printing.printingId,
+      collectionId: SHOEBOX,
+      condition: "mint",
+    });
     const plan = computeDeckBoxPlan(
       inputFor({
         quantity: 2,
@@ -393,10 +436,26 @@ describe("computeDeckBoxPlan", () => {
 
   it("keeps a hand-picked copy once another copy of the card is in the box", () => {
     const printing = stubPrinting({ cardId: "card-1" });
-    const worn = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" });
-    const good = stubCopy({ printingId: printing.id, collectionId: SHOEBOX, condition: "good" });
-    const mint = stubCopy({ printingId: printing.id, collectionId: SHOEBOX, condition: "mint" });
-    const boxed = stubCopy({ printingId: printing.id, collectionId: BOX, condition: "good" });
+    const worn = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BINDER,
+      condition: "played",
+    });
+    const good = stubCopy({
+      printingId: printing.printingId,
+      collectionId: SHOEBOX,
+      condition: "good",
+    });
+    const mint = stubCopy({
+      printingId: printing.printingId,
+      collectionId: SHOEBOX,
+      condition: "mint",
+    });
+    const boxed = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BOX,
+      condition: "good",
+    });
     const plan = computeDeckBoxPlan(
       inputFor({
         quantity: 3,
@@ -415,8 +474,8 @@ describe("computeDeckBoxPlan", () => {
       inputFor({
         printings: [printing],
         copies: [
-          stubCopy({ printingId: printing.id, collectionId: BOX }),
-          stubCopy({ printingId: printing.id, collectionId: BOX }),
+          stubCopy({ printingId: printing.printingId, collectionId: BOX }),
+          stubCopy({ printingId: printing.printingId, collectionId: BOX }),
         ],
       }),
     );
@@ -450,9 +509,21 @@ describe("computeDeckBoxPlan", () => {
 describe("computeDeckBoxPlan rows", () => {
   it("keeps a ticked copy in the row that was ticked", () => {
     const printing = stubPrinting({ cardId: "card-1" });
-    const worn = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" });
-    const good = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "good" });
-    const ticked = stubCopy({ printingId: printing.id, collectionId: BOX, condition: "mint" });
+    const worn = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BINDER,
+      condition: "played",
+    });
+    const good = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BINDER,
+      condition: "good",
+    });
+    const ticked = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BOX,
+      condition: "mint",
+    });
     const plan = computeDeckBoxPlan(
       inputFor({
         quantity: 3,
@@ -467,8 +538,8 @@ describe("computeDeckBoxPlan rows", () => {
 
   it("keeps an unticked copy in its row", () => {
     const printing = stubPrinting({ cardId: "card-1" });
-    const unticked = stubCopy({ printingId: printing.id, collectionId: BINDER });
-    const kept = stubCopy({ printingId: printing.id, collectionId: BOX });
+    const unticked = stubCopy({ printingId: printing.printingId, collectionId: BINDER });
+    const kept = stubCopy({ printingId: printing.printingId, collectionId: BOX });
     const plan = computeDeckBoxPlan(
       inputFor({
         quantity: 2,
@@ -482,9 +553,21 @@ describe("computeDeckBoxPlan rows", () => {
 
   it("swaps only the row a copy was picked for", () => {
     const printing = stubPrinting({ cardId: "card-1" });
-    const worn = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" });
-    const good = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "good" });
-    const mint = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "mint" });
+    const worn = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BINDER,
+      condition: "played",
+    });
+    const good = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BINDER,
+      condition: "good",
+    });
+    const mint = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BINDER,
+      condition: "mint",
+    });
     const plan = computeDeckBoxPlan(
       inputFor({
         quantity: 2,
@@ -500,8 +583,16 @@ describe("computeDeckBoxPlan rows", () => {
 describe("computeDeckBoxPlan collections", () => {
   it("takes copies from collections in sidebar order", () => {
     const printing = stubPrinting({ cardId: "card-1" });
-    const worn = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" });
-    const mint = stubCopy({ printingId: printing.id, collectionId: SHOEBOX, condition: "mint" });
+    const worn = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BINDER,
+      condition: "played",
+    });
+    const mint = stubCopy({
+      printingId: printing.printingId,
+      collectionId: SHOEBOX,
+      condition: "mint",
+    });
     const plan = computeDeckBoxPlan({
       ...inputFor({ printings: [printing], copies: [worn, mint] }),
       collections: [COLLECTIONS[0], COLLECTIONS[2], COLLECTIONS[1]].filter((c) => c !== undefined),
@@ -511,8 +602,16 @@ describe("computeDeckBoxPlan collections", () => {
 
   it("offers copies from collections kept out of deckbuilding last", () => {
     const printing = stubPrinting({ cardId: "card-1" });
-    const traded = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" });
-    const mint = stubCopy({ printingId: printing.id, collectionId: SHOEBOX, condition: "mint" });
+    const traded = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BINDER,
+      condition: "played",
+    });
+    const mint = stubCopy({
+      printingId: printing.printingId,
+      collectionId: SHOEBOX,
+      condition: "mint",
+    });
     const plan = computeDeckBoxPlan({
       ...inputFor({ printings: [printing], copies: [traded, mint] }),
       collections: COLLECTIONS.map((collection) =>
@@ -526,12 +625,12 @@ describe("computeDeckBoxPlan collections", () => {
   it("still prefers the deck's pinned printing over an earlier collection", () => {
     const plain = stubPrinting({ cardId: "card-1" });
     const pinned = stubPrinting({ cardId: "card-1", shortCode: "OGS-005b" });
-    const wanted = stubCopy({ printingId: pinned.id, collectionId: SHOEBOX });
+    const wanted = stubCopy({ printingId: pinned.printingId, collectionId: SHOEBOX });
     const plan = computeDeckBoxPlan(
       inputFor({
         printings: [plain, pinned],
-        preferredPrintingId: pinned.id,
-        copies: [stubCopy({ printingId: plain.id, collectionId: BINDER }), wanted],
+        preferredPrintingId: pinned.printingId,
+        copies: [stubCopy({ printingId: plain.printingId, collectionId: BINDER }), wanted],
       }),
     );
     expect(plan.slots[0]?.copy?.copyId).toBe(wanted.id);
@@ -542,9 +641,9 @@ describe("computeDeckBoxPlan finish", () => {
   it("builds the deck from the plain copies and sweeps the foil", () => {
     const plain = stubPrinting({ cardId: "card-1", finish: "normal" });
     const foil = stubPrinting({ cardId: "card-1", finish: "foil" });
-    const first = stubCopy({ printingId: plain.id, collectionId: BOX });
-    const second = stubCopy({ printingId: plain.id, collectionId: BOX });
-    const shiny = stubCopy({ printingId: foil.id, collectionId: BOX });
+    const first = stubCopy({ printingId: plain.printingId, collectionId: BOX });
+    const second = stubCopy({ printingId: plain.printingId, collectionId: BOX });
+    const shiny = stubCopy({ printingId: foil.printingId, collectionId: BOX });
     const plan = computeDeckBoxPlan(
       inputFor({ quantity: 2, printings: [plain, foil], copies: [shiny, first, second] }),
     );
@@ -555,8 +654,12 @@ describe("computeDeckBoxPlan finish", () => {
   it("prefers the plain copy over a foil in better condition", () => {
     const plain = stubPrinting({ cardId: "card-1", finish: "normal" });
     const foil = stubPrinting({ cardId: "card-1", finish: "foil" });
-    const worn = stubCopy({ printingId: plain.id, collectionId: BINDER, condition: "played" });
-    const mint = stubCopy({ printingId: foil.id, collectionId: BINDER, condition: "mint" });
+    const worn = stubCopy({
+      printingId: plain.printingId,
+      collectionId: BINDER,
+      condition: "played",
+    });
+    const mint = stubCopy({ printingId: foil.printingId, collectionId: BINDER, condition: "mint" });
     const plan = computeDeckBoxPlan(inputFor({ printings: [plain, foil], copies: [mint, worn] }));
     expect(plan.slots[0]?.copy?.copyId).toBe(worn.id);
   });
@@ -568,24 +671,24 @@ describe("computeDeckBoxPlan finish", () => {
       inputFor({
         printings: [foil, metal],
         copies: [
-          stubCopy({ printingId: metal.id, collectionId: BINDER }),
-          stubCopy({ printingId: foil.id, collectionId: BINDER }),
+          stubCopy({ printingId: metal.printingId, collectionId: BINDER }),
+          stubCopy({ printingId: foil.printingId, collectionId: BINDER }),
         ],
       }),
     );
-    expect(plan.slots[0]?.copy?.printingId).toBe(foil.id);
-    expect(plan.slots[0]?.alternatives[0]?.copy.printingId).toBe(metal.id);
+    expect(plan.slots[0]?.copy?.printingId).toBe(foil.printingId);
+    expect(plan.slots[0]?.alternatives[0]?.copy.printingId).toBe(metal.printingId);
   });
 
   it("still honours the deck's pinned printing when it is the premium one", () => {
     const plain = stubPrinting({ cardId: "card-1", finish: "normal" });
     const foil = stubPrinting({ cardId: "card-1", finish: "foil" });
-    const shiny = stubCopy({ printingId: foil.id, collectionId: BINDER });
+    const shiny = stubCopy({ printingId: foil.printingId, collectionId: BINDER });
     const plan = computeDeckBoxPlan(
       inputFor({
         printings: [plain, foil],
-        preferredPrintingId: foil.id,
-        copies: [stubCopy({ printingId: plain.id, collectionId: BINDER }), shiny],
+        preferredPrintingId: foil.printingId,
+        copies: [stubCopy({ printingId: plain.printingId, collectionId: BINDER }), shiny],
       }),
     );
     expect(plan.slots[0]?.copy?.copyId).toBe(shiny.id);
@@ -596,8 +699,8 @@ describe("computeDeckBoxPlan settled slots", () => {
   it("offers the box's spare copies as a swap for a settled row", () => {
     const plain = stubPrinting({ cardId: "card-1", finish: "normal" });
     const foil = stubPrinting({ cardId: "card-1", finish: "foil" });
-    const kept = stubCopy({ printingId: plain.id, collectionId: BOX });
-    const shiny = stubCopy({ printingId: foil.id, collectionId: BOX });
+    const kept = stubCopy({ printingId: plain.printingId, collectionId: BOX });
+    const shiny = stubCopy({ printingId: foil.printingId, collectionId: BOX });
     const plan = computeDeckBoxPlan(inputFor({ printings: [plain, foil], copies: [kept, shiny] }));
     expect(plan.slots[0]?.state).toBe("in-box");
     expect(plan.slots[0]?.copy?.copyId).toBe(kept.id);
@@ -609,7 +712,7 @@ describe("computeDeckBoxPlan settled slots", () => {
     const plan = computeDeckBoxPlan(
       inputFor({
         printings: [printing],
-        copies: [stubCopy({ printingId: printing.id, collectionId: BOX })],
+        copies: [stubCopy({ printingId: printing.printingId, collectionId: BOX })],
       }),
     );
     expect(plan.slots[0]?.alternatives).toEqual([]);
@@ -621,8 +724,8 @@ describe("computeDeckBoxPlan settled slots", () => {
       inputFor({
         printings: [printing],
         copies: [
-          stubCopy({ printingId: printing.id, collectionId: BOX }),
-          stubCopy({ printingId: printing.id, collectionId: BOX }),
+          stubCopy({ printingId: printing.printingId, collectionId: BOX }),
+          stubCopy({ printingId: printing.printingId, collectionId: BOX }),
         ],
         otherDeckNeeds: new Map([["card-1", 1]]),
       }),
@@ -633,8 +736,8 @@ describe("computeDeckBoxPlan settled slots", () => {
   it("hands the deck a hand-picked copy and sweeps the one it displaces", () => {
     const plain = stubPrinting({ cardId: "card-1", finish: "normal" });
     const foil = stubPrinting({ cardId: "card-1", finish: "foil" });
-    const kept = stubCopy({ printingId: plain.id, collectionId: BOX });
-    const shiny = stubCopy({ printingId: foil.id, collectionId: BOX });
+    const kept = stubCopy({ printingId: plain.printingId, collectionId: BOX });
+    const shiny = stubCopy({ printingId: foil.printingId, collectionId: BOX });
     const plan = computeDeckBoxPlan(
       inputFor({
         printings: [plain, foil],
@@ -651,15 +754,15 @@ describe("computeDeckBoxPlan extras", () => {
   it("reports a card in the box that the deck doesn't run", () => {
     const deckPrinting = stubPrinting({ cardId: "card-1" });
     const strayPrinting = stubPrinting({ cardId: "card-2", card: { name: "Ice Golem" } });
-    const stray = stubCopy({ printingId: strayPrinting.id, collectionId: BOX });
+    const stray = stubCopy({ printingId: strayPrinting.printingId, collectionId: BOX });
     const plan = computeDeckBoxPlan({
       ...inputFor({
         printings: [deckPrinting],
-        copies: [stubCopy({ printingId: deckPrinting.id, collectionId: BOX }), stray],
+        copies: [stubCopy({ printingId: deckPrinting.printingId, collectionId: BOX }), stray],
       }),
       printingsById: {
-        [deckPrinting.id]: deckPrinting,
-        [strayPrinting.id]: strayPrinting,
+        [deckPrinting.printingId]: deckPrinting,
+        [strayPrinting.printingId]: strayPrinting,
       },
     });
     expect(plan.extraCount).toBe(1);
@@ -673,8 +776,16 @@ describe("computeDeckBoxPlan extras", () => {
 
   it("reports copies past what the deck needs, offering the nicest ones", () => {
     const printing = stubPrinting({ cardId: "card-1" });
-    const worn = stubCopy({ printingId: printing.id, collectionId: BOX, condition: "played" });
-    const mint = stubCopy({ printingId: printing.id, collectionId: BOX, condition: "mint" });
+    const worn = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BOX,
+      condition: "played",
+    });
+    const mint = stubCopy({
+      printingId: printing.printingId,
+      collectionId: BOX,
+      condition: "mint",
+    });
     const plan = computeDeckBoxPlan(inputFor({ printings: [printing], copies: [worn, mint] }));
     expect(plan.slots[0]?.copy?.copyId).toBe(worn.id);
     expect(plan.extras[0]?.copies.map((copy) => copy.copyId)).toEqual([mint.id]);
@@ -686,8 +797,8 @@ describe("computeDeckBoxPlan extras", () => {
       inputFor({
         printings: [printing],
         copies: [
-          stubCopy({ printingId: printing.id, collectionId: BOX }),
-          stubCopy({ printingId: printing.id, collectionId: BOX }),
+          stubCopy({ printingId: printing.printingId, collectionId: BOX }),
+          stubCopy({ printingId: printing.printingId, collectionId: BOX }),
         ],
         otherDeckNeeds: new Map([["card-1", 1]]),
       }),
@@ -701,11 +812,13 @@ describe("computeDeckBoxPlan extras", () => {
     const plan = computeDeckBoxPlan({
       ...inputFor({
         printings: [deckPrinting],
-        copies: [stubCopy({ printingId: strayPrinting.id, collectionId: BOX, onLoan: true })],
+        copies: [
+          stubCopy({ printingId: strayPrinting.printingId, collectionId: BOX, onLoan: true }),
+        ],
       }),
       printingsById: {
-        [deckPrinting.id]: deckPrinting,
-        [strayPrinting.id]: strayPrinting,
+        [deckPrinting.printingId]: deckPrinting,
+        [strayPrinting.printingId]: strayPrinting,
       },
     });
     expect(plan.extras).toEqual([]);
@@ -729,8 +842,8 @@ describe("computeDeckBoxPlan sibling printings", () => {
         quantity: 2,
         printings: [printing],
         copies: [
-          stubCopy({ printingId: printing.id, collectionId: BOX }),
-          stubCopy({ printingId: printing.id, collectionId: BINDER }),
+          stubCopy({ printingId: printing.printingId, collectionId: BOX }),
+          stubCopy({ printingId: printing.printingId, collectionId: BINDER }),
         ],
       }),
     );
@@ -745,8 +858,8 @@ describe("computeDeckBoxPlan sibling printings", () => {
       inputFor({
         printings: [english, german],
         copies: [
-          stubCopy({ printingId: english.id, collectionId: BINDER }),
-          stubCopy({ printingId: german.id, collectionId: SHOEBOX }),
+          stubCopy({ printingId: english.printingId, collectionId: BINDER }),
+          stubCopy({ printingId: german.printingId, collectionId: SHOEBOX }),
         ],
       }),
     );
@@ -761,8 +874,8 @@ describe("computeDeckBoxPlan sibling printings", () => {
       inputFor({
         printings: [english, german],
         copies: [
-          stubCopy({ printingId: english.id, collectionId: BOX }),
-          stubCopy({ printingId: german.id, collectionId: BINDER, onLoan: true }),
+          stubCopy({ printingId: english.printingId, collectionId: BOX }),
+          stubCopy({ printingId: german.printingId, collectionId: BINDER, onLoan: true }),
         ],
       }),
     );
@@ -775,7 +888,7 @@ describe("computeDeckBoxPlan sibling printings", () => {
     const alone = computeDeckBoxPlan(
       inputFor({
         printings: [foil, plain],
-        copies: [stubCopy({ printingId: foil.id, collectionId: BINDER })],
+        copies: [stubCopy({ printingId: foil.printingId, collectionId: BINDER })],
       }),
     );
     expect(labelFor(alone, "card-1").rest).toEqual([]);
@@ -785,8 +898,8 @@ describe("computeDeckBoxPlan sibling printings", () => {
         quantity: 2,
         printings: [foil, plain],
         copies: [
-          stubCopy({ printingId: foil.id, collectionId: BINDER }),
-          stubCopy({ printingId: plain.id, collectionId: BINDER }),
+          stubCopy({ printingId: foil.printingId, collectionId: BINDER }),
+          stubCopy({ printingId: plain.printingId, collectionId: BINDER }),
         ],
       }),
     );
@@ -808,12 +921,12 @@ describe("computeDeckBoxPlan sibling printings", () => {
         ["card-2", [plain]],
       ]),
       printingsById: Object.fromEntries(
-        [english, german, plain].map((printing) => [printing.id, printing]),
+        [english, german, plain].map((printing) => [printing.printingId, printing]),
       ),
       copies: [
-        stubCopy({ printingId: english.id, collectionId: BINDER }),
-        stubCopy({ printingId: german.id, collectionId: BINDER }),
-        stubCopy({ printingId: plain.id, collectionId: BINDER }),
+        stubCopy({ printingId: english.printingId, collectionId: BINDER }),
+        stubCopy({ printingId: german.printingId, collectionId: BINDER }),
+        stubCopy({ printingId: plain.printingId, collectionId: BINDER }),
       ],
     });
     expect(plan.siblingPrintingsByCardId.get("card-2")).toEqual([plain]);
@@ -829,12 +942,15 @@ describe("computeDeckBoxPlan sibling printings", () => {
       ...inputFor({
         printings: [deckPrinting],
         copies: [
-          stubCopy({ printingId: strayEnglish.id, collectionId: BOX }),
-          stubCopy({ printingId: strayGerman.id, collectionId: BOX }),
+          stubCopy({ printingId: strayEnglish.printingId, collectionId: BOX }),
+          stubCopy({ printingId: strayGerman.printingId, collectionId: BOX }),
         ],
       }),
       printingsById: Object.fromEntries(
-        [deckPrinting, strayEnglish, strayGerman].map((printing) => [printing.id, printing]),
+        [deckPrinting, strayEnglish, strayGerman].map((printing) => [
+          printing.printingId,
+          printing,
+        ]),
       ),
     });
     expect(plan.extraCount).toBe(2);

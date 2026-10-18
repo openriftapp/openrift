@@ -34,11 +34,11 @@ export function useFilteredListEntries(
 
   const kept = filterCards(listPrintings, filters, {
     keywordReverseMap,
-    getPrice: (printing) => prices.get(printing.id, favoriteMarketplace),
+    getPrice: (printing) => prices.get(printing.printingId, favoriteMarketplace),
   });
 
   return {
     hasActiveFilters,
-    filteredEntries: kept.flatMap((printing) => entriesByPrintingId.get(printing.id) ?? []),
+    filteredEntries: kept.flatMap((printing) => entriesByPrintingId.get(printing.printingId) ?? []),
   };
 }

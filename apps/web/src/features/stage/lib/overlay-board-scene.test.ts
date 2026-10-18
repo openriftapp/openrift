@@ -13,7 +13,7 @@ const cardsById: Record<string, Card> = Object.fromEntries(
 );
 
 const printingsByCardId = new Map<string, Printing[]>(
-  CARD_IDS.map((id) => [id, [stubPrinting({ id: `p-${id}`, cardId: id })]]),
+  CARD_IDS.map((id) => [id, [stubPrinting({ printingId: `p-${id}`, cardId: id })]]),
 );
 
 function board(overrides: Partial<OverlayBoard> = {}): OverlayBoard {

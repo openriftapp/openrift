@@ -5,8 +5,8 @@ import { describe, expect, it, vi } from "vitest";
 import { stubPrinting } from "@/test/factories";
 
 const cardId = "card-chaos-rune";
-const printingX = stubPrinting({ id: "p-x", cardId, card: { name: "Chaos Rune" } });
-const printingY = stubPrinting({ id: "p-y", cardId, card: { name: "Chaos Rune" } });
+const printingX = stubPrinting({ printingId: "p-x", cardId, card: { name: "Chaos Rune" } });
+const printingY = stubPrinting({ printingId: "p-y", cardId, card: { name: "Chaos Rune" } });
 
 vi.mock("@/features/cards/components/printing-count-actions", () => ({
   PrintingCountActions: ({

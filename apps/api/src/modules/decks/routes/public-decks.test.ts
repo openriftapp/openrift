@@ -99,7 +99,7 @@ const dbDeck = {
   isPublic: true,
   shareToken: "tok-abc",
   coverCardId: null,
-  coverPrintingId: null,
+  coverFaceId: null,
   coverPosition: null,
   links: [],
   createdAt: NOW,

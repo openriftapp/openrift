@@ -9,6 +9,7 @@ import {
   assertImageUploader,
   createDeskPrinting,
   imagesDeletableBy,
+  setDeskSecondSide,
   updateDeskPrinting,
 } from "./printing-desk.js";
 
@@ -49,6 +50,13 @@ const BASE_PRINTING = {
   releasePrecision: null,
 };
 
+const FACE_LINKS: Record<string, { face1Id: string; face2Id: string | null }> = {
+  bird: { face1Id: "face-bird", face2Id: null },
+  gold: { face1Id: "face-gold", face2Id: null },
+  paired: { face1Id: "face-bird", face2Id: "face-gold" },
+  birdReprint: { face1Id: "face-bird", face2Id: null },
+};
+
 function makeRepos() {
   return {
     adminEvents: {
@@ -60,6 +68,8 @@ function makeRepos() {
     catalogMutations: {
       getCardById: vi.fn(() => Promise.resolve(CARD)),
       getSetPrintedTotalForPrinting: vi.fn(() => Promise.resolve({ printedTotal: 298 })),
+      findFaceIdByIdentity: vi.fn(() => Promise.resolve({ id: "new-face" })),
+      updateFaceById: vi.fn(() => Promise.resolve(true)),
     },
     distributionChannels: {
       listForPrintingIds: vi.fn(() => Promise.resolve([{ channelSlug: "nexus-night-2026-09" }])),
@@ -71,10 +81,16 @@ function makeRepos() {
       getFullPrinting: vi.fn(() => Promise.resolve(BASE_PRINTING)),
       getBasePrinting: vi.fn(() => Promise.resolve(BASE_PRINTING)),
       updatePrintingDeskFields: vi.fn(() => Promise.resolve()),
+      getFaceLinks: vi.fn((id: string) =>
+        Promise.resolve(FACE_LINKS[id] as { face1Id: string; face2Id: string | null } | undefined),
+      ),
+      setSecondFace: vi.fn(() => Promise.resolve()),
+      findFace: vi.fn((id: string) => Promise.resolve(id === "face-missing" ? undefined : { id })),
     },
     printingEvents: {},
     printingImages: {},
     sets: {
+      getPrintedTotal: vi.fn(() => Promise.resolve({ printedTotal: 298 })),
       getRef: vi.fn((id: string) =>
         Promise.resolve(SET_SLUGS[id] ? { slug: SET_SLUGS[id], name: "Set" } : undefined),
       ),
@@ -127,10 +143,9 @@ describe("createDeskPrinting", () => {
       publicCode: "OGN-TBA",
     });
     // appendSetTotal would otherwise write "OGN-TBA/<set total>".
-    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
-      "new-printing",
-      expect.objectContaining({ publicCode: "OGN-TBA" }),
-    );
+    expect(repos.catalogMutations.updateFaceById).toHaveBeenCalledWith("new-face", {
+      publicCode: "OGN-TBA",
+    });
   });
 
   it("leaves a real code alone and writes no public-code override", async () => {
@@ -140,10 +155,7 @@ describe("createDeskPrinting", () => {
       shortCode: "OGN-P01",
       publicCode: "OGN-P01",
     });
-    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
-      "new-printing",
-      expect.not.objectContaining({ publicCode: expect.anything() }),
-    );
+    expect(repos.catalogMutations.updateFaceById).not.toHaveBeenCalled();
   });
 
   it("rejects a create with no code and no TBA flag", async () => {
@@ -262,9 +274,13 @@ describe("updateDeskPrinting", () => {
   it("writes only the fields the caller sent", async () => {
     await update(repos, FULL_ADMIN, { comment: "Handed out at the skirmish." });
 
-    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith("p-1", {
-      comment: "Handed out at the skirmish.",
-    });
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
+      "p-1",
+      {
+        comment: "Handed out at the skirmish.",
+      },
+      1,
+    );
     expect(updatePrintingMarkers).not.toHaveBeenCalled();
     expect(updatePrintingDistributionChannels).not.toHaveBeenCalled();
   });
@@ -275,7 +291,7 @@ describe("updateDeskPrinting", () => {
       distributionChannelSlugs: ["skirmish-2026"],
     });
 
-    expect(updatePrintingMarkers).toHaveBeenCalledWith(transact, "p-1", ["prerelease"]);
+    expect(updatePrintingMarkers).toHaveBeenCalledWith(transact, "p-1", ["prerelease"], 1);
     expect(updatePrintingDistributionChannels).toHaveBeenCalledWith(repos, "p-1", [
       "skirmish-2026",
     ]);
@@ -284,10 +300,14 @@ describe("updateDeskPrinting", () => {
   it("recomputes both codes when the TBA flag is set", async () => {
     await update(repos, FULL_ADMIN, { codeTba: true });
 
-    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith("p-1", {
-      shortCode: "OGN-TBA-poro-snack",
-      publicCode: "OGN-TBA",
-    });
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
+      "p-1",
+      {
+        shortCode: "OGN-TBA-poro-snack",
+        publicCode: "OGN-TBA",
+      },
+      1,
+    );
   });
 
   it("rewrites a TBA code when the printing moves to another set", async () => {
@@ -299,37 +319,53 @@ describe("updateDeskPrinting", () => {
 
     await update(repos, FULL_ADMIN, { setId: SFD_SET_ID });
 
-    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith("p-1", {
-      setId: SFD_SET_ID,
-      shortCode: "SFD-TBA-poro-snack",
-      publicCode: "SFD-TBA",
-    });
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
+      "p-1",
+      {
+        setId: SFD_SET_ID,
+        shortCode: "SFD-TBA-poro-snack",
+        publicCode: "SFD-TBA",
+      },
+      1,
+    );
   });
 
   it("leaves a real code alone when the printing moves to another set", async () => {
     await update(repos, FULL_ADMIN, { setId: SFD_SET_ID });
 
-    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith("p-1", {
-      setId: SFD_SET_ID,
-    });
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
+      "p-1",
+      {
+        setId: SFD_SET_ID,
+      },
+      1,
+    );
   });
 
   it("appends the set total to a real code and leaves TBA unnumbered", async () => {
     await update(repos, FULL_ADMIN, { codeTba: false, shortCode: "OGN-P02" });
 
-    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith("p-1", {
-      shortCode: "OGN-P02",
-      publicCode: "OGN-P02/298",
-    });
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
+      "p-1",
+      {
+        shortCode: "OGN-P02",
+        publicCode: "OGN-P02/298",
+      },
+      1,
+    );
   });
 
   it("snaps a coarse release date", async () => {
     await update(repos, FULL_ADMIN, { releasedAt: "2026-11-20", releasePrecision: "year" });
 
-    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith("p-1", {
-      releasedAt: "2026-01-01",
-      releasePrecision: "year",
-    });
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
+      "p-1",
+      {
+        releasedAt: "2026-01-01",
+        releasePrecision: "year",
+      },
+      1,
+    );
   });
 
   it("clears a stored release date when both fields are sent as null", async () => {
@@ -341,10 +377,14 @@ describe("updateDeskPrinting", () => {
 
     await update(repos, FULL_ADMIN, { releasedAt: null, releasePrecision: null });
 
-    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith("p-1", {
-      releasedAt: null,
-      releasePrecision: null,
-    });
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
+      "p-1",
+      {
+        releasedAt: null,
+        releasePrecision: null,
+      },
+      1,
+    );
   });
 
   it("clears a stored announcement date when null is sent", async () => {
@@ -355,9 +395,13 @@ describe("updateDeskPrinting", () => {
 
     await update(repos, FULL_ADMIN, { announcedAt: null });
 
-    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith("p-1", {
-      announcedAt: null,
-    });
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
+      "p-1",
+      {
+        announcedAt: null,
+      },
+      1,
+    );
   });
 
   it("records the update event with old and new values", async () => {
@@ -527,5 +571,49 @@ describe("assertDeskImageFileScope", () => {
     await expect(
       assertDeskImageFileScope(repos as unknown as Repos, GRANT_HOLDER, "user-1", "if-1"),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("setDeskSecondSide", () => {
+  function pair(printingId: string, faceId: string | null, access = FULL_ADMIN) {
+    return setDeskSecondSide(repos as unknown as Repos, access, "user-1", {
+      printingId,
+      faceId,
+    });
+  }
+
+  it("puts the face on the second side", async () => {
+    await pair("bird", "face-gold");
+    expect(repos.printingDesk.setSecondFace).toHaveBeenCalledWith("bird", "face-gold");
+    expect(repos.catalog.refreshCatalogViews).toHaveBeenCalled();
+  });
+
+  it("reuses a face that another double-sided printing already shows", async () => {
+    await pair("gold", "face-bird");
+    expect(repos.printingDesk.setSecondFace).toHaveBeenCalledWith("gold", "face-bird");
+  });
+
+  it("clears the second side", async () => {
+    await pair("paired", null);
+    expect(repos.printingDesk.setSecondFace).toHaveBeenCalledWith("paired", null);
+  });
+
+  it("rejects the printing's own first side", async () => {
+    await expect(pair("bird", "face-bird")).rejects.toMatchObject({ status: 400 });
+    expect(repos.printingDesk.setSecondFace).not.toHaveBeenCalled();
+  });
+
+  it("404s an unknown face", async () => {
+    await expect(pair("bird", "face-missing")).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("404s an unknown printing", async () => {
+    await expect(pair("missing", "face-gold")).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("403s a grant holder outside the desk", async () => {
+    await expect(pair("bird", "face-gold", GRANT_HOLDER)).rejects.toMatchObject({
+      status: 403,
+    });
   });
 });

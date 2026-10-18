@@ -1,13 +1,4 @@
-import type {
-  ArtVariant,
-  CardFace,
-  CardSize,
-  CardType,
-  Domain,
-  Finish,
-  Rarity,
-  SuperType,
-} from "./enums.js";
+import type { ArtVariant, CardSize, CardType, Domain, Finish, Rarity, SuperType } from "./enums.js";
 
 export interface Marker {
   id: string;
@@ -113,14 +104,27 @@ export interface Card {
 }
 
 export interface PrintingImage {
-  face: CardFace;
   imageId: string;
   /** Omitted when the image maker is unrecorded, which is most of the catalogue. */
   credit?: string;
 }
 
+export type PrintingSide = 1 | 2;
+
+export interface PrintingOtherSide {
+  cardId: string;
+  cardName: string;
+  cardSlug: string;
+  imageId?: string;
+}
+
+/** One printed side of a printing. A double-sided printing is two entries sharing `printingId`. */
 export interface Printing {
-  id: string;
+  printingId: string;
+  side: PrintingSide;
+  faceId: string;
+  /** Present exactly when the printing is double-sided. */
+  otherSide?: PrintingOtherSide;
   cardId: string;
   /** Permalink segment, on the card detail payload only. See the wire schema. */
   slug?: string;

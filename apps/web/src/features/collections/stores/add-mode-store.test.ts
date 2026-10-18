@@ -20,7 +20,7 @@ afterEach(() => {
 describe("useAddModeStore", () => {
   describe("incrementPending", () => {
     it("creates a new entry with pendingCount 1", () => {
-      const printing = stubPrinting({ id: "p1" });
+      const printing = stubPrinting({ printingId: "p1" });
       useAddModeStore.getState().incrementPending(printing);
 
       const entry = useAddModeStore.getState().addedItems.get("p1");
@@ -31,7 +31,7 @@ describe("useAddModeStore", () => {
     });
 
     it("increments pendingCount for existing entries", () => {
-      const printing = stubPrinting({ id: "p1" });
+      const printing = stubPrinting({ printingId: "p1" });
       useAddModeStore.getState().incrementPending(printing);
       useAddModeStore.getState().incrementPending(printing);
 
@@ -39,8 +39,8 @@ describe("useAddModeStore", () => {
     });
 
     it("moves entry to the end of the map (most recently touched)", () => {
-      const p1 = stubPrinting({ id: "p1" });
-      const p2 = stubPrinting({ id: "p2" });
+      const p1 = stubPrinting({ printingId: "p1" });
+      const p2 = stubPrinting({ printingId: "p2" });
 
       useAddModeStore.getState().incrementPending(p1);
       useAddModeStore.getState().incrementPending(p2);
@@ -53,7 +53,7 @@ describe("useAddModeStore", () => {
 
   describe("decrementPending", () => {
     it("decrements pendingCount", () => {
-      const printing = stubPrinting({ id: "p1" });
+      const printing = stubPrinting({ printingId: "p1" });
       useAddModeStore.getState().incrementPending(printing);
       useAddModeStore.getState().incrementPending(printing);
       useAddModeStore.getState().decrementPending("p1");
@@ -62,7 +62,7 @@ describe("useAddModeStore", () => {
     });
 
     it("removes entry when both pending and quantity are 0", () => {
-      const printing = stubPrinting({ id: "p1" });
+      const printing = stubPrinting({ printingId: "p1" });
       useAddModeStore.getState().incrementPending(printing);
       useAddModeStore.getState().decrementPending("p1");
 
@@ -70,7 +70,7 @@ describe("useAddModeStore", () => {
     });
 
     it("keeps entry when quantity > 0 even if pending reaches 0", () => {
-      const printing = stubPrinting({ id: "p1" });
+      const printing = stubPrinting({ printingId: "p1" });
       useAddModeStore.getState().incrementPending(printing);
       useAddModeStore.getState().recordAdd(printing, "copy-1");
       useAddModeStore.getState().decrementPending("p1");
@@ -88,7 +88,7 @@ describe("useAddModeStore", () => {
     });
 
     it("does nothing when pendingCount is already 0", () => {
-      const printing = stubPrinting({ id: "p1" });
+      const printing = stubPrinting({ printingId: "p1" });
       useAddModeStore.getState().recordAdd(printing, "copy-1");
 
       const before = useAddModeStore.getState();
@@ -99,7 +99,7 @@ describe("useAddModeStore", () => {
 
   describe("recordAdd", () => {
     it("increments quantity and records copyId", () => {
-      const printing = stubPrinting({ id: "p1" });
+      const printing = stubPrinting({ printingId: "p1" });
       useAddModeStore.getState().recordAdd(printing, "copy-1");
 
       const entry = useAddModeStore.getState().addedItems.get("p1");
@@ -108,7 +108,7 @@ describe("useAddModeStore", () => {
     });
 
     it("accumulates multiple adds", () => {
-      const printing = stubPrinting({ id: "p1" });
+      const printing = stubPrinting({ printingId: "p1" });
       useAddModeStore.getState().recordAdd(printing, "copy-1");
       useAddModeStore.getState().recordAdd(printing, "copy-2");
 
@@ -120,7 +120,7 @@ describe("useAddModeStore", () => {
 
   describe("recordUndo", () => {
     it("decrements quantity and removes last copyId", () => {
-      const printing = stubPrinting({ id: "p1" });
+      const printing = stubPrinting({ printingId: "p1" });
       useAddModeStore.getState().recordAdd(printing, "copy-1");
       useAddModeStore.getState().recordAdd(printing, "copy-2");
       useAddModeStore.getState().recordUndo("p1");
@@ -131,7 +131,7 @@ describe("useAddModeStore", () => {
     });
 
     it("removes entry when last copy is undone and no pending", () => {
-      const printing = stubPrinting({ id: "p1" });
+      const printing = stubPrinting({ printingId: "p1" });
       useAddModeStore.getState().recordAdd(printing, "copy-1");
       useAddModeStore.getState().recordUndo("p1");
 
@@ -139,7 +139,7 @@ describe("useAddModeStore", () => {
     });
 
     it("keeps entry when copies are gone but pending remains", () => {
-      const printing = stubPrinting({ id: "p1" });
+      const printing = stubPrinting({ printingId: "p1" });
       useAddModeStore.getState().incrementPending(printing);
       useAddModeStore.getState().recordAdd(printing, "copy-1");
       useAddModeStore.getState().recordUndo("p1");
@@ -199,7 +199,7 @@ describe("useAddModeStore", () => {
 
   describe("reset", () => {
     it("clears all state", () => {
-      const printing = stubPrinting({ id: "p1" });
+      const printing = stubPrinting({ printingId: "p1" });
       useAddModeStore.getState().recordAdd(printing, "copy-1");
       useAddModeStore.getState().openVariants("card-1", document.createElement("button"), "add");
 

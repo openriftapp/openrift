@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getPlaysetSize } from "@openrift/shared/playset";
+import { countPrintings, uniquePrintings } from "@openrift/shared/printing-side";
 import type { CompletionScopePreference } from "@openrift/shared/types/api/preferences";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -90,8 +91,11 @@ function computeForCards(
   }
 
   const ownedSlugs = new Set<string>();
+  const sidesByPrinting = Map.groupBy(scopedPrintings, (printing) => printing.printingId);
   for (const stack of stacks) {
-    ownedSlugs.add(stack.printing.card.slug);
+    for (const side of sidesByPrinting.get(stack.printingId) ?? [stack.printing]) {
+      ownedSlugs.add(side.card.slug);
+    }
   }
 
   const printingsByCard = Map.groupBy(scopedPrintings, (printing) => printing.card.slug);
@@ -109,7 +113,7 @@ function computeForCards(
     let cardName = slug;
     for (const printing of cardPrintings) {
       cardName = legendDisplayName(printing.card);
-      const price = prices.get(printing.id, marketplace);
+      const price = prices.get(printing.printingId, marketplace);
       if (price !== undefined && (cheapest === undefined || price < cheapest)) {
         cheapest = price;
         cheapestPrinting = printing;
@@ -141,11 +145,11 @@ function computeForPrintings(
   const missingItems: MissingItem[] = [];
   let unpricedMissing = 0;
 
-  for (const printing of scopedPrintings) {
-    if (ownedPrintingIds.has(printing.id)) {
+  for (const printing of uniquePrintings(scopedPrintings)) {
+    if (ownedPrintingIds.has(printing.printingId)) {
       continue;
     }
-    const price = prices.get(printing.id, marketplace);
+    const price = prices.get(printing.printingId, marketplace);
     if (price === undefined) {
       unpricedMissing++;
     } else {
@@ -157,7 +161,7 @@ function computeForPrintings(
     }
   }
 
-  const totalItems = scopedPrintings.length;
+  const totalItems = countPrintings(scopedPrintings);
   const ownedItems = ownedPrintingIds.size;
   return buildCurve(missingItems, totalItems, ownedItems, unpricedMissing);
 }
@@ -180,9 +184,14 @@ function computeForCopies(
   }
 
   const ownedCopiesBySlug = new Map<string, number>();
+  const sidesByPrinting = Map.groupBy(scopedPrintings, (printing) => printing.printingId);
   for (const stack of stacks) {
-    const slug = stack.printing.card.slug;
-    ownedCopiesBySlug.set(slug, (ownedCopiesBySlug.get(slug) ?? 0) + stack.copyIds.length);
+    const slugs = new Set(
+      (sidesByPrinting.get(stack.printingId) ?? [stack.printing]).map((side) => side.card.slug),
+    );
+    for (const slug of slugs) {
+      ownedCopiesBySlug.set(slug, (ownedCopiesBySlug.get(slug) ?? 0) + stack.copyIds.length);
+    }
   }
 
   const printingsByCard = Map.groupBy(scopedPrintings, (printing) => printing.card.slug);
@@ -210,7 +219,7 @@ function computeForCopies(
     let cheapest: number | undefined;
     let cheapestPrinting: Printing | undefined;
     for (const printing of cardPrintings) {
-      const price = prices.get(printing.id, marketplace);
+      const price = prices.get(printing.printingId, marketplace);
       if (price !== undefined && (cheapest === undefined || price < cheapest)) {
         cheapest = price;
         cheapestPrinting = printing;

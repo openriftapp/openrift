@@ -1,4 +1,5 @@
 import { sortCards } from "@openrift/shared/filters-sort";
+import { indexByPrinting } from "@openrift/shared/printing-side";
 import type { SetOrderInfo } from "@openrift/shared/set-order";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -53,7 +54,7 @@ export function buildStacks(
   );
   const stackByPrintingId = new Map(stacks.map((stack) => [stack.printingId, stack]));
   return sortedCards
-    .map((card) => stackByPrintingId.get(card.id))
+    .map((card) => stackByPrintingId.get(card.printingId))
     .filter((stack): stack is StackedEntry => stack !== undefined);
 }
 
@@ -61,10 +62,7 @@ export function useStackedCopies(collectionId?: string): UseStackedCopiesResult 
   const { data: copies, isReady } = useCopies(collectionId);
   const { allPrintings, sets } = useCards();
 
-  const printingById = new Map<string, Printing>();
-  for (const printing of allPrintings) {
-    printingById.set(printing.id, printing);
-  }
+  const printingById = indexByPrinting(allPrintings);
 
   const sortedStacks = buildStacks(copies, printingById, sets, collectionId);
   const totalCopies = sortedStacks.reduce((sum, stack) => sum + stack.copyIds.length, 0);

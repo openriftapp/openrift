@@ -33,7 +33,7 @@ const LABELS: EnumLabels = {
 };
 
 function item(printing: ReturnType<typeof stubPrinting>): CardViewerItem {
-  return { id: printing.id, printing };
+  return { id: printing.printingId, printing };
 }
 
 describe("isPrintingsOnlyGrouping", () => {

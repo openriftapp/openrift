@@ -172,7 +172,11 @@ export function TradeMarketSheet({
       >
         {printing === undefined ? null : (
           <>
-            <SheetCardHeader printing={printing} price={priceOf(printing.id)} listLine={listLine} />
+            <SheetCardHeader
+              printing={printing}
+              price={priceOf(printing.printingId)}
+              listLine={listLine}
+            />
             <div className="flex flex-col gap-5 px-4 pb-6">
               {card === null ? (
                 <p>{m.trades_market_no_source()}</p>

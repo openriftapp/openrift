@@ -1,6 +1,7 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 import { PaletteIcon, TagIcon } from "lucide-react";
@@ -46,9 +47,9 @@ export function CardPagePrintings({
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {group.map((printing) => (
                 <PrintingCard
-                  key={printing.id}
+                  key={sideKey(printing)}
                   printing={printing}
-                  isSelected={printing.id === selectedPrintingId}
+                  isSelected={printing.printingId === selectedPrintingId}
                   onSelect={() => onSelect(printing)}
                 />
               ))}
@@ -69,7 +70,7 @@ function PrintingCard({
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const frontImage = printing.images.find((i) => i.face === "front");
+  const frontImage = printing.images[0];
   const showArtVariant = printing.artVariant !== WellKnown.artVariant.NORMAL;
   const { labels } = useEnumOrders();
 
@@ -101,6 +102,13 @@ function PrintingCard({
       </span>,
     );
   }
+  if (printing.otherSide) {
+    badges.push(
+      <span key="double-sided" className="text-muted-foreground text-xs">
+        {m.cards_printing_double_sided({ name: printing.otherSide.cardName })}
+      </span>,
+    );
+  }
   if (printing.isOvernumbered) {
     badges.push(
       <span key="overnumbered" className="text-muted-foreground text-xs">
@@ -128,7 +136,7 @@ function PrintingCard({
     <Pressable
       onClick={onSelect}
       aria-pressed={isSelected}
-      data-printing-id={printing.id}
+      data-printing-id={printing.printingId}
       className="block w-full rounded-lg"
     >
       <CardPanel

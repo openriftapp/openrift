@@ -10,7 +10,12 @@ interface TableCountActionsProps {
 }
 
 export function TableCountActions({ printing, collectionId, siblingIds }: TableCountActionsProps) {
-  const { count, totalCount } = useTileOwnedCounts(printing.id, siblingIds, true, collectionId);
+  const { count, totalCount } = useTileOwnedCounts(
+    printing.printingId,
+    siblingIds,
+    true,
+    collectionId,
+  );
 
   return (
     <CountWithAddControls printing={printing} ownedCount={count} totalOwnedCount={totalCount} />

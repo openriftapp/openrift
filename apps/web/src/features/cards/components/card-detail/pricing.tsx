@@ -23,7 +23,7 @@ export function PricingSection({
   range?: TimeRange;
 }) {
   const marketplaceOrder = useDisplayStore((s) => s.marketplaceOrder);
-  const { data: history } = usePriceHistory(printing.id, range);
+  const { data: history } = usePriceHistory(printing.printingId, range);
   const prices = usePrices();
 
   function latestPrice(marketplace: Marketplace): number | null {
@@ -47,7 +47,7 @@ export function PricingSection({
     const productId = slice?.productId ?? null;
     const url = productId ? links.productUrl(productId, printing.language) : null;
 
-    const value = prices.get(printing.id, marketplace) ?? latestPrice(marketplace);
+    const value = prices.get(printing.printingId, marketplace) ?? latestPrice(marketplace);
 
     if (value !== null && value !== undefined) {
       chips.push({ marketplace, value, url });

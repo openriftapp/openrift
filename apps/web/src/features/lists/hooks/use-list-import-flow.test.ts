@@ -69,7 +69,7 @@ describe("promoteToExact", () => {
 
 describe("buildListImportPayload", () => {
   it("sends cardId for card-kind lists", () => {
-    const printing = stubPrinting({ id: "printing-1", cardId: "card-1" });
+    const printing = stubPrinting({ printingId: "printing-1", cardId: "card-1" });
     const entries = [
       matched({ status: "exact", resolvedPrinting: printing, candidates: [printing] }),
     ];
@@ -77,7 +77,7 @@ describe("buildListImportPayload", () => {
   });
 
   it("sends printingId for printing-kind lists", () => {
-    const printing = stubPrinting({ id: "printing-1", cardId: "card-1" });
+    const printing = stubPrinting({ printingId: "printing-1", cardId: "card-1" });
     const entries = [
       matched({ status: "exact", resolvedPrinting: printing, candidates: [printing] }),
     ];
@@ -87,7 +87,7 @@ describe("buildListImportPayload", () => {
   });
 
   it("carries each row's quantity through", () => {
-    const printing = stubPrinting({ id: "printing-9", cardId: "card-9" });
+    const printing = stubPrinting({ printingId: "printing-9", cardId: "card-9" });
     const entries = [
       matched({
         status: "exact",

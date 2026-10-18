@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { ComponentType, ReactNode, Ref } from "react";
 
@@ -104,7 +105,10 @@ export function PickerCardBrowser({
     channels,
   });
 
-  const items: CardViewerItem[] = sortedCards.map((printing) => ({ id: printing.id, printing }));
+  const items: CardViewerItem[] = sortedCards.map((printing) => ({
+    id: sideKey(printing),
+    printing,
+  }));
   const detailPanePrintingsByCardId = filterPrintingsByLanguages(
     catalogPrintingsByCardId,
     filters.languages,

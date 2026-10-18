@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type {
   ListEntryDetailResponse,
   ListKind,
@@ -203,7 +204,7 @@ export function useListEntryBrowserSelection({
   const gridSelectedId =
     indexAnchor?.id ??
     (selectedCard
-      ? (items.find((item) => item.printing.id === selectedCard.id)?.id ??
+      ? (items.find((item) => sideKey(item.printing) === sideKey(selectedCard))?.id ??
         (view === "cards"
           ? items.find((item) => item.printing.cardId === selectedCard.cardId)?.id
           : undefined))
@@ -214,7 +215,7 @@ export function useListEntryBrowserSelection({
 
   const handleSiblingClick = (printing: Printing) => {
     handleCardClick(printing);
-    useSiblingOverrideStore.getState().setOverride("list", printing.cardId, printing.id);
+    useSiblingOverrideStore.getState().setOverride("list", printing.cardId, printing.printingId);
   };
 
   const handleSearchAndClose = (query: string) => {
@@ -235,12 +236,12 @@ export function useListEntryBrowserSelection({
     const entryShape =
       kind === "card"
         ? { cardId: printing.cardId, quantity: bump }
-        : { printingId: printing.id, quantity: bump };
+        : { printingId: printing.printingId, quantity: bump };
     bulkAddEntries.mutate({ listId, entries: [entryShape] });
   };
 
   const handleDecrement = (printing: Printing) => {
-    const key = kind === "card" ? printing.cardId : printing.id;
+    const key = kind === "card" ? printing.cardId : printing.printingId;
     const entry = entryByKey.get(key);
     // Rule-derived entries (null id) can't be decremented.
     if (!entry || entry.id === null || entry.quantity <= 1) {

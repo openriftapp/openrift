@@ -47,7 +47,7 @@ export function DeckEditorDialogs({
 }: DeckEditorDialogsProps) {
   const navigate = useNavigate();
   const deleteDeck = useDeleteDeck();
-  const { getPreferredFrontImage } = usePreferredPrinting();
+  const { getPreferredFrontImage, getFaceImage, faceOf } = usePreferredPrinting();
   const quickAddOpen = useCommandPaletteStore((state) => state.quickAddOpen);
   const setQuickAddOpen = useCommandPaletteStore((state) => state.setQuickAddOpen);
   const { open, setDialogOpen } = dialogs;
@@ -178,12 +178,17 @@ export function DeckEditorDialogs({
         deckId={deckId}
         cards={cards}
         coverCardId={deck.coverCardId}
-        coverPrintingId={deck.coverPrintingId}
+        coverFaceId={deck.coverFaceId}
         coverPosition={deck.coverPosition}
         getThumbnail={(cardId, preferredPrintingId) => {
           const id = getPreferredFrontImage(cardId, preferredPrintingId)?.imageId;
           return id ? imageUrl(id, "400w") : undefined;
         }}
+        getCoverThumbnail={(cardId, faceId) => {
+          const id = getFaceImage(cardId, faceId)?.imageId;
+          return id ? imageUrl(id, "400w") : undefined;
+        }}
+        faceOf={faceOf}
       />
     </>
   );

@@ -83,7 +83,7 @@ function deckRow(id: string): DeckListItemResponse {
       createdAt: "2026-09-01T00:00:00.000Z",
       updatedAt: "2026-09-01T00:00:00.000Z",
       coverCardId: null,
-      coverPrintingId: null,
+      coverFaceId: null,
       coverPosition: null,
       collectionId: null,
       familyId: null,

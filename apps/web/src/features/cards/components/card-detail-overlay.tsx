@@ -114,7 +114,7 @@ function CardDetailOverlayContent({
     },
     navigateToIndex: (_index, printing) => {
       setPicked(null);
-      onOpenPrintingIdChange(printing.id);
+      onOpenPrintingIdChange(printing.printingId);
     },
   });
 
@@ -134,7 +134,7 @@ function CardDetailOverlayContent({
     <CardDetailActions
       printing={selectedCard}
       siblings={printingsByCardId.get(selectedCard.cardId)}
-      wishEntries={wish.entriesForPrinting(selectedCard.cardId, selectedCard.id)}
+      wishEntries={wish.entriesForPrinting(selectedCard.cardId, selectedCard.printingId)}
       onAddToWishlist={setWishTarget}
       onIncrement={addCopy}
       onDecrement={removeCopy}

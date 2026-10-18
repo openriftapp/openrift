@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 1kjfLb5Ob4JIRTk0itgqDwqxb4cTN1uBFjyVUUVWDuXJlSlymF2G1QcRiRbbwoY
+\restrict ejCpsBSVexIak93LRcfEIUkSKLhjQfhDvPGkqPyVDlxrdHfvfVhbR65D1IaJBm6
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -149,6 +149,27 @@ CREATE FUNCTION public.cards_set_norm_name() RETURNS trigger
       RETURN NEW;
     END;
     $$;
+
+
+--
+-- Name: check_deck_card_printing(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.check_deck_card_printing() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+  BEGIN
+    IF NEW.preferred_printing_id IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM printings p
+      JOIN faces f ON f.id IN (p.face1_id, p.face2_id)
+      WHERE p.id = NEW.preferred_printing_id AND f.card_id = NEW.card_id
+    ) THEN
+      RAISE EXCEPTION 'printing % does not show card %', NEW.preferred_printing_id, NEW.card_id
+        USING ERRCODE = 'foreign_key_violation';
+    END IF;
+    RETURN NEW;
+  END
+  $$;
 
 
 --
@@ -789,7 +810,12 @@ CREATE FUNCTION public.trg_printings_set_slug() RETURNS trigger
       candidate text;
       n int := 1;
     BEGIN
-      IF NEW.slug IS NOT NULL AND NEW.slug <> '' THEN
+      IF TG_OP = 'UPDATE' THEN
+        IF NEW.face1_id IS NOT DISTINCT FROM OLD.face1_id
+           AND NEW.face2_id IS NOT DISTINCT FROM OLD.face2_id THEN
+          RETURN NEW;
+        END IF;
+      ELSIF NEW.slug IS NOT NULL AND NEW.slug <> '' THEN
         RETURN NEW;
       END IF;
       SELECT * INTO f1 FROM faces WHERE id = NEW.face1_id;
@@ -813,7 +839,7 @@ CREATE FUNCTION public.trg_printings_set_slug() RETURNS trigger
         base := 'printing';
       END IF;
       candidate := base;
-      WHILE EXISTS (SELECT 1 FROM printings WHERE slug = candidate) LOOP
+      WHILE EXISTS (SELECT 1 FROM printings WHERE slug = candidate AND id <> NEW.id) LOOP
         n := n + 1;
         candidate := base || '-' || n;
       END LOOP;
@@ -1794,7 +1820,6 @@ CREATE TABLE public.decks (
     format_config jsonb,
     odds_config jsonb,
     cover_card_id uuid,
-    cover_printing_id uuid,
     cover_position smallint,
     collection_id uuid,
     links jsonb DEFAULT '[]'::jsonb NOT NULL,
@@ -1803,6 +1828,7 @@ CREATE TABLE public.decks (
     is_primary boolean DEFAULT false NOT NULL,
     is_draft boolean DEFAULT false NOT NULL,
     updated_xid xid8 DEFAULT pg_current_xact_id() NOT NULL,
+    cover_face_id uuid,
     CONSTRAINT chk_decks_format_config_shape CHECK (((format_config IS NULL) OR (jsonb_typeof(format_config) = 'object'::text))),
     CONSTRAINT chk_decks_links_shape CHECK (((links IS NULL) OR (jsonb_typeof(links) = 'array'::text))),
     CONSTRAINT chk_decks_name_not_empty CHECK ((name <> ''::text)),
@@ -3077,6 +3103,7 @@ CREATE TABLE public.printings (
     slug text NOT NULL,
     face1_id uuid NOT NULL,
     face2_id uuid,
+    CONSTRAINT chk_printings_distinct_faces CHECK (((face2_id IS NULL) OR (face2_id <> face1_id))),
     CONSTRAINT chk_printings_no_empty_comment CHECK ((comment <> ''::text)),
     CONSTRAINT chk_printings_release_period_start CHECK (((released_at IS NULL) OR (release_precision = 'day'::public.release_precision) OR ((release_precision = 'month'::public.release_precision) AND (EXTRACT(day FROM released_at) = (1)::numeric)) OR ((release_precision = 'quarter'::public.release_precision) AND (EXTRACT(day FROM released_at) = (1)::numeric) AND (EXTRACT(month FROM released_at) = ANY (ARRAY[(1)::numeric, (4)::numeric, (7)::numeric, (10)::numeric]))) OR ((release_precision = 'year'::public.release_precision) AND (EXTRACT(doy FROM released_at) = (1)::numeric)))),
     CONSTRAINT chk_printings_release_precision CHECK (((released_at IS NULL) = (release_precision IS NULL))),
@@ -5792,6 +5819,14 @@ ALTER TABLE ONLY public.decks
 
 
 --
+-- Name: faces uq_faces_id_card; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faces
+    ADD CONSTRAINT uq_faces_id_card UNIQUE (id, card_id);
+
+
+--
 -- Name: faces uq_faces_identity; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7666,7 +7701,7 @@ CREATE TRIGGER printings_order_faces BEFORE INSERT OR UPDATE OF face1_id, face2_
 -- Name: printings printings_set_slug; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER printings_set_slug BEFORE INSERT ON public.printings FOR EACH ROW EXECUTE FUNCTION public.trg_printings_set_slug();
+CREATE TRIGGER printings_set_slug BEFORE INSERT OR UPDATE OF face1_id, face2_id ON public.printings FOR EACH ROW EXECUTE FUNCTION public.trg_printings_set_slug();
 
 
 --
@@ -7723,6 +7758,13 @@ CREATE TRIGGER trg_cards_norm_name BEFORE INSERT OR UPDATE OF name ON public.car
 --
 
 CREATE TRIGGER trg_conditions_protect_well_known BEFORE DELETE OR UPDATE ON public.conditions FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+
+--
+-- Name: deck_cards trg_deck_cards_printing_card; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_deck_cards_printing_card BEFORE INSERT OR UPDATE OF card_id, preferred_printing_id ON public.deck_cards FOR EACH ROW EXECUTE FUNCTION public.check_deck_card_printing();
 
 
 --
@@ -8906,11 +8948,11 @@ ALTER TABLE ONLY public.decks
 
 
 --
--- Name: decks decks_cover_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: decks decks_cover_face_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.decks
-    ADD CONSTRAINT decks_cover_printing_id_fkey FOREIGN KEY (cover_printing_id) REFERENCES public.printings(id) ON DELETE SET NULL;
+    ADD CONSTRAINT decks_cover_face_id_fkey FOREIGN KEY (cover_face_id) REFERENCES public.faces(id) ON DELETE SET NULL;
 
 
 --
@@ -9031,6 +9073,14 @@ ALTER TABLE ONLY public.deck_folder_entries
 
 ALTER TABLE ONLY public.deck_folder_entries
     ADD CONSTRAINT fk_deck_folder_entries_folder_user FOREIGN KEY (folder_id, user_id) REFERENCES public.deck_folders(id, user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: decks fk_decks_cover_face_card; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT fk_decks_cover_face_card FOREIGN KEY (cover_face_id, cover_card_id) REFERENCES public.faces(id, card_id);
 
 
 --
@@ -10261,5 +10311,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 1kjfLb5Ob4JIRTk0itgqDwqxb4cTN1uBFjyVUUVWDuXJlSlymF2G1QcRiRbbwoY
+\unrestrict ejCpsBSVexIak93LRcfEIUkSKLhjQfhDvPGkqPyVDlxrdHfvfVhbR65D1IaJBm6
 

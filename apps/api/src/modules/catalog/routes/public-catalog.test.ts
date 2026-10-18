@@ -71,7 +71,9 @@ const dbCard = {
 };
 
 const dbPrintingRow = {
-  id: "OGS-001:rare:normal:",
+  printingId: "OGS-001:rare:normal:",
+  side: 1,
+  faceId: "OGS-001:rare:normal:",
   slug: "OGS-001:rare:normal:",
   cardId: "OGS-001",
   setId: "OGS",
@@ -97,7 +99,8 @@ const dbPrintingRow = {
 
 const dbImage = {
   printingId: "OGS-001:rare:normal:",
-  face: "front",
+  side: 1,
+  faceId: "OGS-001:rare:normal:",
   imageId: "019d6c25-b081-74b3-a901-64da4ae012ab",
 };
 
@@ -238,7 +241,7 @@ describe("GET /api/v1/catalog", () => {
     const res = await app.request("/api/v1/catalog");
     const json = await readJson(res);
     expect(json.printings["OGS-001:rare:normal:"].images).toEqual([
-      { face: "front", imageId: "019d6c25-b081-74b3-a901-64da4ae012ab" },
+      { imageId: "019d6c25-b081-74b3-a901-64da4ae012ab" },
     ]);
   });
 
@@ -275,7 +278,9 @@ describe("GET /api/v1/catalog", () => {
     const secondCard = { ...dbCard, id: "S2-001", slug: "S2-001" };
     const secondRow = {
       ...dbPrintingRow,
-      id: "S2-001:rare:normal",
+      printingId: "S2-001:rare:normal",
+      side: 1,
+      faceId: "S2-001:rare:normal",
       slug: "S2-001:rare:normal",
       cardId: "S2-001",
       shortCode: "S2-001",
@@ -321,7 +326,9 @@ describe("GET /api/v1/catalog", () => {
   describe("language split", () => {
     const scPrintingRow = {
       ...dbPrintingRow,
-      id: "OGS-001:rare:normal::SC",
+      printingId: "OGS-001:rare:normal::SC",
+      side: 1,
+      faceId: "OGS-001:rare:normal::SC",
       slug: "OGS-001:rare:normal::SC",
       language: "SC",
     };
@@ -386,19 +393,35 @@ describe("GET /api/v1/catalog", () => {
     });
   });
 
-  it("returns multiple images for a single printing", async () => {
+  it("nests a double-sided printing's second side under side2", async () => {
     seedDefaults({
+      printings: [
+        dbPrintingRow,
+        {
+          ...dbPrintingRow,
+          side: 2,
+          faceId: "face-2",
+          cardId: "OGS-002",
+          shortCode: "OGS-002",
+          canonicalRank: 2,
+        },
+      ],
       printingImages: [
-        { printingId: "OGS-001:rare:normal:", face: "front", imageId: "front-uuid" },
-        { printingId: "OGS-001:rare:normal:", face: "back", imageId: "back-uuid" },
+        { printingId: "OGS-001:rare:normal:", side: 1, imageId: "front-uuid" },
+        { printingId: "OGS-001:rare:normal:", side: 2, imageId: "back-uuid" },
       ],
     });
     const res = await app.request("/api/v1/catalog");
     const json = await readJson(res);
     const printing = json.printings["OGS-001:rare:normal:"];
-    expect(printing.images).toHaveLength(2);
-    expect(printing.images[0]).toEqual({ face: "front", imageId: "front-uuid" });
-    expect(printing.images[1]).toEqual({ face: "back", imageId: "back-uuid" });
+    expect(printing.cardId).toBe("OGS-001");
+    expect(printing.images).toEqual([{ imageId: "front-uuid" }]);
+    expect(printing.side2).toMatchObject({
+      cardId: "OGS-002",
+      shortCode: "OGS-002",
+      images: [{ imageId: "back-uuid" }],
+    });
+    expect(printing.side2).not.toHaveProperty("size");
   });
 
   it("handles printing with no images", async () => {

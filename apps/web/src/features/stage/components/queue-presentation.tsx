@@ -20,7 +20,7 @@ export function QueuePresentation({
 
   // A printing may repeat in the queue; the id includes position so React keys don't collide.
   const items: PresentationItem[] = resolveQueuePrintings(printingIds, printingsById).map(
-    (printing, position) => ({ id: `${position}:${printing.id}`, printing }),
+    (printing, position) => ({ id: `${position}:${printing.printingId}`, printing }),
   );
 
   return (

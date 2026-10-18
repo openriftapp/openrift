@@ -221,7 +221,7 @@ export function listEntriesRepo(db: Kysely<Database>) {
       userId: string,
       copyIds: readonly string[],
       personalOnly: boolean,
-    ): Promise<{ copyId: string; printingId: string; cardId: string }[]> {
+    ): Promise<{ copyId: string; printingId: string; cardId: string; cardIds: string[] }[]> {
       if (copyIds.length === 0) {
         return Promise.resolve([]);
       }
@@ -232,7 +232,14 @@ export function listEntriesRepo(db: Kysely<Database>) {
         .leftJoin("friendGroupMembers as gm", (join) =>
           join.onRef("gm.groupId", "=", "col.groupId").on("gm.userId", "=", userId),
         )
-        .select(["cp.id as copyId", "cp.printingId", "pf.cardId"])
+        .select([
+          "cp.id as copyId",
+          "cp.printingId",
+          "pf.cardId",
+          sql<string[]>`ARRAY(
+          SELECT DISTINCT f.card_id FROM faces f WHERE f.id IN (p.face1_id, p.face2_id)
+        )`.as("cardIds"),
+        ])
         .where("cp.id", "in", [...copyIds])
         .where((eb) =>
           personalOnly
@@ -242,12 +249,18 @@ export function listEntriesRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    printingCardIds(printingIds: readonly string[]): Promise<{ id: string; cardId: string }[]> {
+    printingCardIds(printingIds: readonly string[]): Promise<{ id: string; cardIds: string[] }[]> {
       if (printingIds.length === 0) {
         return Promise.resolve([]);
       }
-      return withFace1(db.selectFrom("printings as p"))
-        .select(["p.id", "pf.cardId"])
+      return db
+        .selectFrom("printings as p")
+        .select([
+          "p.id",
+          sql<string[]>`ARRAY(
+          SELECT DISTINCT f.card_id FROM faces f WHERE f.id IN (p.face1_id, p.face2_id)
+        )`.as("cardIds"),
+        ])
         .where("p.id", "in", [...printingIds])
         .execute();
     },

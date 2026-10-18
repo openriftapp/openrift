@@ -12,8 +12,8 @@ import { createStoreResetter } from "@/test/store-helpers";
 // Two printings of one card — the /collections "printings" view renders each
 // as its own cell, both sharing a cardId (e.g. "Chaos Rune" + "Chaos Rune SFD").
 const cardId = "card-chaos-rune";
-const printingX = stubPrinting({ id: "p-x", cardId, card: { name: "Chaos Rune" } });
-const printingY = stubPrinting({ id: "p-y", cardId, card: { name: "Chaos Rune" } });
+const printingX = stubPrinting({ printingId: "p-x", cardId, card: { name: "Chaos Rune" } });
+const printingY = stubPrinting({ printingId: "p-y", cardId, card: { name: "Chaos Rune" } });
 
 // Owned copies per printing, all in the same collection.
 const copiesByPrinting: Record<string, string[]> = {

@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
 import type { ReactNode } from "react";
@@ -60,10 +61,11 @@ export function BrowserCardViewer({
   const gridSelectedId =
     indexAnchor?.id ??
     (selectedCard
-      ? (renderedCards.find((c) => c.id === selectedCard.id)?.id ??
+      ? (renderedCards.find((c) => sideKey(c) === sideKey(selectedCard))?.printingId ??
         (view === "cards"
-          ? (renderedCards.find((c) => c.cardId === selectedCard.cardId)?.id ?? selectedCard.id)
-          : selectedCard.id))
+          ? (renderedCards.find((c) => c.cardId === selectedCard.cardId)?.printingId ??
+            selectedCard.printingId)
+          : selectedCard.printingId))
       : undefined);
 
   useEffect(() => {

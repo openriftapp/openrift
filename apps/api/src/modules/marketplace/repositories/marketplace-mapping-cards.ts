@@ -175,7 +175,12 @@ export function marketplaceMappingCardsRepo(db: Db) {
 
     printingFinishesAndLanguages(printingIds: string[]) {
       return withFace1(db.selectFrom("printings as p"))
-        .select(["p.id", "pf.finish", "pf.language"])
+        .leftJoin("faces as f2", "f2.id", "p.face2Id")
+        .select([
+          "p.id",
+          sql<string>`CASE WHEN f2.finish = 'foil' THEN 'foil' ELSE pf.finish END`.as("finish"),
+          "pf.language",
+        ])
         .where("p.id", "in", printingIds)
         .execute();
     },

@@ -84,7 +84,7 @@ function PlateBody({ champion }: { champion: Champion }) {
   const { printingsByCardId } = useCards();
   const printing =
     champion.legendCardId === null ? undefined : printingsByCardId.get(champion.legendCardId)?.[0];
-  const image = printing?.images.find((entry) => entry.face === "front");
+  const image = printing?.images[0];
   const art = image === undefined ? null : imageUrl(image.imageId, "400w");
   return (
     <>

@@ -84,9 +84,9 @@ function PrintingPicker({
     return null;
   }
   const items = printings.map((printing) => {
-    const price = priceOf(printing.id);
+    const price = priceOf(printing.printingId);
     return {
-      value: printing.id,
+      value: printing.printingId,
       label: [
         printing.shortCode,
         enumLabel(labels.finishes, printing.finish),

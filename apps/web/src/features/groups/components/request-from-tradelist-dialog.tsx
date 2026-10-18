@@ -105,7 +105,8 @@ function RequestBody({
   const options = listTargetOptions(shareable.items, "wish");
 
   const existingMatch = matches.othersHaveYourWants.find(
-    (row) => row.printingId === printing.id && row.counterpartyUserId === counterpartyUserId,
+    (row) =>
+      row.printingId === printing.printingId && row.counterpartyUserId === counterpartyUserId,
   );
 
   const createList = useCreateList();
@@ -144,7 +145,7 @@ function RequestBody({
           groupSlug,
           counterpartyUserId,
           role: "receiver",
-          printingId: printing.id,
+          printingId: printing.printingId,
           quantity,
         });
       } else {
@@ -173,7 +174,7 @@ function RequestBody({
           groupSlug,
           counterpartyUserId,
           role: "receiver",
-          printingId: printing.id,
+          printingId: printing.printingId,
           quantity,
         });
       }

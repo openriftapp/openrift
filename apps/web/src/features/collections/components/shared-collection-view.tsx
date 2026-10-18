@@ -1,4 +1,5 @@
 import { centsToDollars } from "@openrift/shared/money";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { PublicCollectionDetailResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { PackageIcon } from "lucide-react";
@@ -60,7 +61,7 @@ function SharedCollectionCountCell({
   if (!printing) {
     return null;
   }
-  return <StaticCountTableActions count={countByPrintingId[printing.id] ?? 0} />;
+  return <StaticCountTableActions count={countByPrintingId[printing.printingId] ?? 0} />;
 }
 
 // "owned" means the viewer's own personal collections, not this shared one,
@@ -239,7 +240,10 @@ function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }
     ? SHARED_HIDDEN_FILTER_SECTIONS_AUTHED
     : SHARED_HIDDEN_FILTER_SECTIONS;
 
-  const items: CardViewerItem[] = sortedCards.map((printing) => ({ id: printing.id, printing }));
+  const items: CardViewerItem[] = sortedCards.map((printing) => ({
+    id: sideKey(printing),
+    printing,
+  }));
   const findBy: "card" | "printing" = view === "cards" && groupBy !== "set" ? "card" : "printing";
 
   const handleCardClick = (printing: Printing) => {
@@ -255,7 +259,7 @@ function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }
 
   const renderCard = (item: CardViewerItem, ctx: CardRenderContext) => {
     const cardId = item.printing.cardId;
-    const onLoan = onLoanByPrintingId[item.printing.id] ?? 0;
+    const onLoan = onLoanByPrintingId[item.printing.printingId] ?? 0;
     return (
       <CardCell
         printing={item.printing}
@@ -268,7 +272,7 @@ function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }
         priceRange={priceRangeByCardId?.get(cardId)}
         strip={
           <CardCountStrip
-            count={countByPrintingId[item.printing.id] ?? 0}
+            count={countByPrintingId[item.printing.printingId] ?? 0}
             extras={onLoan > 0 ? <OnLoanChip count={onLoan} /> : undefined}
           />
         }

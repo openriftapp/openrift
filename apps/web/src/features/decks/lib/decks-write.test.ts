@@ -40,7 +40,7 @@ function deckFields(overrides: Partial<DeckResponse> = {}): DeckResponse {
     archivedAt: null,
     oddsConfig: null,
     coverCardId: null,
-    coverPrintingId: null,
+    coverFaceId: null,
     coverPosition: null,
     links: [],
     collectionId: null,

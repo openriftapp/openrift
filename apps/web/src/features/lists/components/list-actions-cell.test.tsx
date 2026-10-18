@@ -37,17 +37,17 @@ vi.mock("@tanstack/react-router", () => ({
 
 // Two printings of one card: the wish entry names the card, the trade lands on
 // the printing the entry never mentions.
-const wished = stubPrinting({ id: "printing-a1", cardId: "card-a" });
-const wishedSibling = stubPrinting({ id: "printing-a2", cardId: "card-a" });
+const wished = stubPrinting({ printingId: "printing-a1", cardId: "card-a" });
+const wishedSibling = stubPrinting({ printingId: "printing-a2", cardId: "card-a" });
 
 const CATALOG: Record<string, Printing> = {
-  [wished.id]: wished,
-  [wishedSibling.id]: wishedSibling,
+  [wished.printingId]: wished,
+  [wishedSibling.printingId]: wishedSibling,
 };
 
 function annotation(overrides: Partial<CardTradeLiveAnnotation> = {}): CardTradeLiveAnnotation {
   return {
-    printingId: wished.id,
+    printingId: wished.printingId,
     role: "giver",
     phase: "reserved",
     tradeCount: 1,
@@ -79,7 +79,7 @@ const copyRow: ListEntryDetailResponse = {
   ...ENTRY_BASE,
   kind: "copy",
   copyId: "copy-1",
-  printingId: wished.id,
+  printingId: wished.printingId,
   ...PRINTING_FIELDS,
   reserved: true,
   onLoan: false,
@@ -102,7 +102,7 @@ function stubTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeRespons
       gravatarHash: "hash",
       contactMethods: [],
     },
-    printingId: wished.id,
+    printingId: wished.printingId,
     cardId: "card-a",
     quantity: 1,
     status: "reserved",
@@ -172,7 +172,7 @@ describe("ListActionsCell trade status", () => {
   // Wish lists are card- or printing-kind and carry no `reserved` flag.
   it("gives a card-kind wish row the incoming status of any printing of the card", () => {
     renderCell(wishRow, [
-      annotation({ printingId: wishedSibling.id, role: "receiver", phase: "reserved" }),
+      annotation({ printingId: wishedSibling.printingId, role: "receiver", phase: "reserved" }),
     ]);
     expect(screen.getByText("Reserved")).toBeInTheDocument();
   });
@@ -185,8 +185,8 @@ describe("ListActionsCell trade status", () => {
   it("links a reserved wish row to the trade sheet of the person holding it", () => {
     renderCell(
       wishRow,
-      [annotation({ printingId: wishedSibling.id, role: "receiver", phase: "reserved" })],
-      [stubTrade({ printingId: wishedSibling.id })],
+      [annotation({ printingId: wishedSibling.printingId, role: "receiver", phase: "reserved" })],
+      [stubTrade({ printingId: wishedSibling.printingId })],
     );
     expect(screen.getByRole("link")).toHaveAttribute("href", "/trades/user-2");
   });
@@ -194,8 +194,8 @@ describe("ListActionsCell trade status", () => {
   it("leaves the row unlinked when the trade is on a printing the chip doesn't show", () => {
     renderCell(
       wishRow,
-      [annotation({ printingId: wishedSibling.id, role: "receiver", phase: "reserved" })],
-      [stubTrade({ printingId: wished.id })],
+      [annotation({ printingId: wishedSibling.printingId, role: "receiver", phase: "reserved" })],
+      [stubTrade({ printingId: wished.printingId })],
     );
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(screen.getByText("Reserved")).toBeInTheDocument();

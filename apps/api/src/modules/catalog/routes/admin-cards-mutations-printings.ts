@@ -103,7 +103,7 @@ export const adminCardMutationsPrintingsRouter = {
   acceptPrinting: os.acceptPrinting.handler(async ({ input, context }) => {
     const { catalogMutations, printingImages, markers, distributionChannels, printingEvents } =
       context.repos;
-    const { cardId, printingFields, candidatePrintingIds } = input;
+    const { cardId, printingFields, candidatePrintingIds, secondSideFaceId } = input;
 
     const scope = await reviewableProviderScope(
       context.adminAccess,
@@ -131,7 +131,7 @@ export const adminCardMutationsPrintingsRouter = {
       printingFields,
       candidatePrintingIds,
       context.io,
-      { requireNew: true },
+      { requireNew: true, secondFaceId: secondSideFaceId ?? null },
     );
 
     const card = await catalogMutations.getCardById(cardId);
@@ -141,7 +141,7 @@ export const adminCardMutationsPrintingsRouter = {
       entityId: printingId,
       entityLabel: printingFields.shortCode,
       cardSlug: card?.slug ?? null,
-      newValues: { printingFields, candidatePrintingIds },
+      newValues: { printingFields, candidatePrintingIds, secondSideFaceId },
     });
 
     // A brand-new printing has no rank row yet, and may complete an existing

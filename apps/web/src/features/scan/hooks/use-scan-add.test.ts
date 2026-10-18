@@ -55,8 +55,8 @@ describe("useScanAdd", () => {
     addMock.mockImplementation((printingId, collectionId, copyId) =>
       Promise.resolve(stubCopy({ id: copyId, printingId, collectionId })),
     );
-    const printingA = stubPrinting({ id: "printing-a" });
-    const printingB = stubPrinting({ id: "printing-b" });
+    const printingA = stubPrinting({ printingId: "printing-a" });
+    const printingB = stubPrinting({ printingId: "printing-b" });
     useScanSessionStore.getState().add(printingA);
     useScanSessionStore.getState().add(printingB);
     useScanSessionStore.getState().add(printingB);
@@ -85,8 +85,8 @@ describe("useScanAdd", () => {
         ? Promise.reject(new Error("network error"))
         : Promise.resolve(stubCopy({ id: copyId, printingId, collectionId })),
     );
-    const good = stubPrinting({ id: "printing-good" });
-    const bad = stubPrinting({ id: "printing-bad" });
+    const good = stubPrinting({ printingId: "printing-good" });
+    const bad = stubPrinting({ printingId: "printing-bad" });
     useScanSessionStore.getState().add(good);
     useScanSessionStore.getState().add(bad);
     const { result } = renderHook(() => useScanAdd(collections()));

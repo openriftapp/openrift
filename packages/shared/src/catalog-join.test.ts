@@ -74,10 +74,71 @@ function catalog(overrides: Partial<CatalogResponse> = {}): CatalogResponse {
   } as CatalogResponse;
 }
 
+const GOLD_ID = "00000000-0000-0000-0000-000000000002";
+
+describe("joinCatalogPrintings double-sided", () => {
+  function doubleSided(side2CardId: string) {
+    return catalog({
+      cards: {
+        [CARD_ID]: card({ name: "Bird", slug: "bird" }),
+        [GOLD_ID]: card({ name: "Gold", slug: "gold" }),
+      },
+      printings: {
+        "printing-1": printingValue({
+          images: [{ imageId: "img-bird" }],
+          side2: {
+            ...printingValue({ cardId: side2CardId, shortCode: "SET1-T05" }),
+            faceId: "face-gold",
+            images: [{ imageId: "img-gold" }],
+          },
+        }),
+      },
+    } as Partial<CatalogResponse>);
+  }
+
+  it("expands a double-sided printing into one entry per side", () => {
+    const sides = joinCatalogPrintings(doubleSided(GOLD_ID));
+    expect(sides.map((side) => [side.printingId, side.side, side.cardId])).toEqual([
+      ["printing-1", 1, CARD_ID],
+      ["printing-1", 2, GOLD_ID],
+    ]);
+  });
+
+  it("gives each side its own printed attributes and the physical ones of the printing", () => {
+    const [bird, gold] = joinCatalogPrintings(doubleSided(GOLD_ID));
+    expect(gold!.shortCode).toBe("SET1-T05");
+    expect(gold!.images).toEqual([{ imageId: "img-gold" }]);
+    expect(gold!.size).toBe(bird!.size);
+    expect(gold!.card.name).toBe("Gold");
+  });
+
+  it("names the other side on each entry", () => {
+    const [bird, gold] = joinCatalogPrintings(doubleSided(GOLD_ID));
+    expect(bird!.otherSide).toEqual({
+      cardId: GOLD_ID,
+      cardName: "Gold",
+      cardSlug: "gold",
+      imageId: "img-gold",
+    });
+    expect(gold!.otherSide).toMatchObject({ cardId: CARD_ID, cardName: "Bird" });
+  });
+
+  it("keeps a printing with the same card on both sides as two entries of that card", () => {
+    const sides = joinCatalogPrintings(doubleSided(CARD_ID));
+    expect(sides.map((side) => side.cardId)).toEqual([CARD_ID, CARD_ID]);
+  });
+
+  it("leaves a single-sided printing without otherSide", () => {
+    const [printing] = joinCatalogPrintings(catalog());
+    expect(printing!.side).toBe(1);
+    expect(printing).not.toHaveProperty("otherSide");
+  });
+});
+
 describe("joinCatalogPrintings", () => {
   it("restores the map key as the printing id", () => {
     const [printing] = joinCatalogPrintings(catalog());
-    expect(printing!.id).toBe("printing-1");
+    expect(printing!.printingId).toBe("printing-1");
   });
 
   it("attaches the parent set's slug and the printing's card", () => {
@@ -112,8 +173,8 @@ describe("joinCatalogPrintings", () => {
         },
       } as Partial<CatalogResponse>),
     );
-    expect(joined.find((p) => p.id === "en")?.setReleased).toBe(true);
-    expect(joined.find((p) => p.id === "fr")?.setReleased).toBe(false);
+    expect(joined.find((p) => p.printingId === "en")?.setReleased).toBe(true);
+    expect(joined.find((p) => p.printingId === "fr")?.setReleased).toBe(false);
   });
 
   it("treats a language with no release entry as unreleased", () => {

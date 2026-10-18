@@ -317,7 +317,7 @@ function DeckEditorContent({
     hovered && !isMobile && !suppressHoverPreview
       ? (getPreferredPrinting(hovered.id, hovered.preferredPrintingId) ?? null)
       : null;
-  const hoveredFrontImage = hoveredPrinting?.images.find((image) => image.face === "front") ?? null;
+  const hoveredFrontImage = hoveredPrinting?.images[0] ?? null;
   const hoveredCard =
     hoveredPrinting && hoveredFrontImage
       ? {

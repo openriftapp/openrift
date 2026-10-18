@@ -5,7 +5,7 @@ import { stubPrinting } from "@/test/factories";
 import { cardSearchRows, printingSearchRows } from "./card-search-rows";
 
 const first = stubPrinting({
-  id: "p-1",
+  printingId: "p-1",
   cardId: "card-1",
   shortCode: "OGN-001",
   publicCode: "ogn-001",
@@ -13,13 +13,13 @@ const first = stubPrinting({
   card: { name: "Fireball" },
 });
 const second = stubPrinting({
-  id: "p-2",
+  printingId: "p-2",
   cardId: "card-1",
   shortCode: "OGN-001a",
   publicCode: "ogn-001a",
   card: { name: "Fireball" },
 });
-const other = stubPrinting({ id: "p-3", cardId: "card-2", card: { name: "Shield" } });
+const other = stubPrinting({ printingId: "p-3", cardId: "card-2", card: { name: "Shield" } });
 
 describe("printingSearchRows", () => {
   it("builds one row per printing with its own codes", () => {

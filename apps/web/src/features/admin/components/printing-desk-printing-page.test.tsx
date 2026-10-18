@@ -31,6 +31,12 @@ vi.mock("@/features/admin/hooks/use-printing-desk", () => ({
   useDeskPrinting: () => ({ data: { printing: row(), images: state.images } }),
   useSetDeskImageFace: () => ({ mutate: vi.fn() }),
   useUpdateDeskImage: () => ({ mutate: vi.fn() }),
+  useSetDeskSecondSide: () => ({ mutate: vi.fn(), isPending: false }),
+  useRemoveDeskSecondSide: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
+vi.mock("@/features/cards/hooks/use-cards", () => ({
+  useCards: () => ({ allPrintings: [] }),
 }));
 
 vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => ({
@@ -103,6 +109,9 @@ function row(): DeskPrintingRow {
     releasePrecision: null,
     comment: null,
     imageCount: 0,
+    faceId: "face-1",
+    secondSide: null,
+    sharedWith: [],
     activeImageFileId: null,
     activeImageUrl: null,
     createdAt: "2026-09-01T10:00:00.000Z",

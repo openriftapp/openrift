@@ -621,6 +621,7 @@ export const adminCardMutationsContract = {
       cardIdParam.extend({
         printingFields: acceptPrintingFieldsSchema,
         candidatePrintingIds: z.array(z.string()),
+        secondSideFaceId: z.uuid().optional(),
       }),
     )
     .output(z.object({ printingId: z.string() })),

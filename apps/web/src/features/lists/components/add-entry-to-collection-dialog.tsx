@@ -1,4 +1,5 @@
 import { MAX_COPIES_PER_ADD } from "@openrift/shared/contracts/copies";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useQueryClient } from "@tanstack/react-query";
@@ -106,7 +107,7 @@ export function AddEntryToCollectionDialogBody({
   isPending,
 }: AddEntryToCollectionDialogBodyProps) {
   const [printingHighlight, setPrintingHighlight] = useState("");
-  const [printingId, setPrintingId] = useState(subject.printing.id);
+  const [printingId, setPrintingId] = useState(subject.printing.printingId);
   const [collectionId, setCollectionId] = useState(
     () =>
       fixedCollection?.id ??
@@ -143,13 +144,13 @@ export function AddEntryToCollectionDialogBody({
           <PickerList highlightedId={printingHighlight} onHighlightChange={setPrintingHighlight}>
             {printings.map((printing) => (
               <PickerRow
-                key={printing.id}
-                value={printing.id}
-                onSelect={() => setPrintingId(printing.id)}
-                className={cn("px-3 py-2", printingId === printing.id && SELECTED_ROW)}
+                key={sideKey(printing)}
+                value={printing.printingId}
+                onSelect={() => setPrintingId(printing.printingId)}
+                className={cn("px-3 py-2", printingId === printing.printingId && SELECTED_ROW)}
               >
                 <ImportPrintingLabel printing={printing} className="min-w-0 flex-1 truncate" />
-                {printingId === printing.id && <CheckIcon className="size-4 shrink-0" />}
+                {printingId === printing.printingId && <CheckIcon className="size-4 shrink-0" />}
               </PickerRow>
             ))}
           </PickerList>
@@ -217,7 +218,7 @@ export function AddEntriesToCollectionDialogBody({
       null,
   );
   const [printingIds, setPrintingIds] = useState(() =>
-    subjects.map((subject) => subject.printing.id),
+    subjects.map((subject) => subject.printing.printingId),
   );
 
   const canPickPrinting = subjects[0]?.sourceKind === "card";
@@ -229,7 +230,7 @@ export function AddEntriesToCollectionDialogBody({
       onConfirm({
         collectionId,
         picks: subjects.map((subject, index) => ({
-          printingId: printingIds[index] ?? subject.printing.id,
+          printingId: printingIds[index] ?? subject.printing.printingId,
           quantity: Math.max(subject.totalQuantity, 1),
         })),
       });
@@ -253,12 +254,12 @@ export function AddEntriesToCollectionDialogBody({
         {subjects.map((subject, index) => {
           const printings = printingsByCardId.get(subject.printing.cardId) ?? [subject.printing];
           const items = printings.map((printing) => ({
-            value: printing.id,
+            value: printing.printingId,
             label: printingLabel(printing),
           }));
           return (
             <div
-              key={`${subject.printing.id}-${index}`}
+              key={`${subject.printing.printingId}-${index}`}
               className="flex items-center gap-2 px-1 py-0.5"
             >
               <span className="text-muted-foreground w-8 shrink-0 text-right font-mono text-sm">
@@ -268,7 +269,7 @@ export function AddEntriesToCollectionDialogBody({
               {canPickPrinting && printings.length > 1 ? (
                 <Select
                   items={items}
-                  value={printingIds[index] ?? subject.printing.id}
+                  value={printingIds[index] ?? subject.printing.printingId}
                   onValueChange={(next) =>
                     setPrintingIds((current) =>
                       current.map((id, at) => (at === index ? String(next) : id)),
@@ -293,7 +294,9 @@ export function AddEntriesToCollectionDialogBody({
                 </Select>
               ) : (
                 <ImportPrintingLabel
-                  printing={printings.find((p) => p.id === printingIds[index]) ?? subject.printing}
+                  printing={
+                    printings.find((p) => p.printingId === printingIds[index]) ?? subject.printing
+                  }
                   className="max-w-44 min-w-0 shrink-0 truncate"
                 />
               )}
@@ -434,7 +437,7 @@ export function AddEntryToCollectionDialog({
         {request && (
           <Suspense fallback={null}>
             <ConnectedBody
-              key={`${request.subjects.map((subject) => subject.printing.id).join(",")}-${request.collectionId ?? ""}`}
+              key={`${request.subjects.map((subject) => subject.printing.printingId).join(",")}-${request.collectionId ?? ""}`}
               request={request}
               listId={listId}
               onClose={onClose}

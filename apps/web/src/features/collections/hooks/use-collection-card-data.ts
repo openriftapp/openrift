@@ -3,6 +3,7 @@ import { getAvailableFilters } from "@openrift/shared/filters-available";
 import { computeFilterCounts } from "@openrift/shared/filters-counts";
 import { sortCards } from "@openrift/shared/filters-sort";
 import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select";
+import { countPrintings, uniquePrintings } from "@openrift/shared/printing-side";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { DistributionChannel, Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -91,7 +92,7 @@ export function useCollectionCardData({
   const setSlugToName = new Map(sets.map((set) => [set.slug, set.name]));
   const setDisplayLabel = (slug: string) => setSlugToName.get(slug) ?? slug;
 
-  const getPrice = (p: Printing) => prices.get(p.id, favoriteMarketplace);
+  const getPrice = (p: Printing) => prices.get(p.printingId, favoriteMarketplace);
 
   // `languageOrder` prop wins (collection UIs can narrow further); otherwise
   // fall back to the user's display-store pref, otherwise the DB default.
@@ -141,7 +142,7 @@ export function useCollectionCardData({
   if (ownedCardTotalOverride) {
     ownedFilterCounts = {};
     for (const printing of collectionPrintings) {
-      ownedFilterCounts[printing.id] = ownedCardTotalOverride[printing.cardId] ?? 0;
+      ownedFilterCounts[printing.printingId] = ownedCardTotalOverride[printing.cardId] ?? 0;
     }
     ownedFilterBucketBy = "printing";
   } else {
@@ -219,14 +220,14 @@ export function useCollectionCardData({
   // Must come from `filteredCards`, not `sortedCards`: cards view dedupes to
   // one representative printing per tile, but selecting a tile grabs every
   // printing's copies, so "select all" needs every printing too.
-  const selectableCopyIds = filteredCards.flatMap(
-    (printing) => stackByPrintingId.get(printing.id)?.copyIds ?? [],
+  const selectableCopyIds = uniquePrintings(filteredCards).flatMap(
+    (printing) => stackByPrintingId.get(printing.printingId)?.copyIds ?? [],
   );
 
   const totalUniqueCards =
     view === "cards"
       ? new Set(collectionPrintings.map((p) => p.cardId)).size
-      : collectionPrintings.length;
+      : countPrintings(collectionPrintings);
 
   return {
     availableFilters,

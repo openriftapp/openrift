@@ -48,13 +48,13 @@ export function collectListPrintings(
     if (!printing) {
       continue;
     }
-    const existing = entriesByPrintingId.get(printing.id);
+    const existing = entriesByPrintingId.get(printing.printingId);
     if (existing) {
       existing.push(entry);
       continue;
     }
     listPrintings.push(printing);
-    entriesByPrintingId.set(printing.id, [entry]);
+    entriesByPrintingId.set(printing.printingId, [entry]);
   }
   return { listPrintings, entriesByPrintingId };
 }
@@ -87,10 +87,10 @@ export function buildItems(
   const entryByItemId = new Map<string, ListEntryDetailResponse>();
   if (view === "copies") {
     for (const printing of sortedCards) {
-      const entriesForPrinting = entriesByPrintingId.get(printing.id) ?? [];
+      const entriesForPrinting = entriesByPrintingId.get(printing.printingId) ?? [];
       for (const entry of entriesForPrinting) {
         // Rule-derived copy entries have no entry id, so fall back to the copyId.
-        const itemId = entry.id ?? (entry.kind === "copy" ? entry.copyId : printing.id);
+        const itemId = entry.id ?? (entry.kind === "copy" ? entry.copyId : printing.printingId);
         items.push({ id: itemId, printing });
         entryByItemId.set(itemId, entry);
       }
@@ -98,10 +98,10 @@ export function buildItems(
     return { items, entryByItemId };
   }
   for (const printing of sortedCards) {
-    const first = entriesByPrintingId.get(printing.id)?.[0];
-    items.push({ id: printing.id, printing });
+    const first = entriesByPrintingId.get(printing.printingId)?.[0];
+    items.push({ id: printing.printingId, printing });
     if (first) {
-      entryByItemId.set(printing.id, first);
+      entryByItemId.set(printing.printingId, first);
     }
   }
   return { items, entryByItemId };
@@ -112,7 +112,7 @@ export function buildItemsFromCatalog(sortedCards: Printing[]): {
   entryByItemId: Map<string, ListEntryDetailResponse>;
 } {
   const items: CardViewerItem[] = sortedCards.map((printing) => ({
-    id: printing.id,
+    id: printing.printingId,
     printing,
   }));
   // Empty on purpose: add mode reads quantities via the kind-keyed entryByKey map instead.

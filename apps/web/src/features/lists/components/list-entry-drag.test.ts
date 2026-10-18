@@ -36,8 +36,8 @@ function printingEntry(
   };
 }
 
-const printingA = stubPrinting({ id: "pa" });
-const printingB = stubPrinting({ id: "pb" });
+const printingA = stubPrinting({ printingId: "pa" });
+const printingB = stubPrinting({ printingId: "pb" });
 
 const entryByItemId = new Map([
   ["i1", printingEntry("e1", "pa", "Chaos Rune", 2)],

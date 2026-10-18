@@ -60,11 +60,11 @@ describe("buildPromoTree", () => {
     const dallas = stubChannel({ id: "dallas", label: "Dallas", parentId: "parent" });
 
     const shared = stubPrinting({
-      id: "shared",
+      printingId: "shared",
       distributionChannels: [linkTo(houston), linkTo(dallas)],
     });
     const houstonOnly = stubPrinting({
-      id: "houston-only",
+      printingId: "houston-only",
       distributionChannels: [linkTo(houston)],
     });
 
@@ -83,9 +83,18 @@ describe("buildPromoTree", () => {
     const wave1 = stubChannel({ id: "wave1", label: "Wave 1", parentId: "root" });
     const wave2 = stubChannel({ id: "wave2", label: "Wave 2", parentId: "root" });
 
-    const both = stubPrinting({ id: "both", distributionChannels: [linkTo(wave1), linkTo(wave2)] });
-    const wave1Only = stubPrinting({ id: "wave1-only", distributionChannels: [linkTo(wave1)] });
-    const wave2Only = stubPrinting({ id: "wave2-only", distributionChannels: [linkTo(wave2)] });
+    const both = stubPrinting({
+      printingId: "both",
+      distributionChannels: [linkTo(wave1), linkTo(wave2)],
+    });
+    const wave1Only = stubPrinting({
+      printingId: "wave1-only",
+      distributionChannels: [linkTo(wave1)],
+    });
+    const wave2Only = stubPrinting({
+      printingId: "wave2-only",
+      distributionChannels: [linkTo(wave2)],
+    });
 
     const tree = buildPromoTree([root, wave1, wave2], indexByChannel([both, wave1Only, wave2Only]));
 

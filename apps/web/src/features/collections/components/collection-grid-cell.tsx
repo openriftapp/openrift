@@ -91,18 +91,21 @@ export const CollectionGridCell = memo(function CollectionGridCell({
     inCardsView,
   });
 
-  const siblingIds = inCardsView && siblings ? siblings.map((s) => s.id) : [displayPrinting.id];
+  const siblingIds =
+    inCardsView && siblings ? siblings.map((s) => s.printingId) : [displayPrinting.printingId];
   const {
     count: ownedCount,
     total: cardTotalInCollection,
     totalCount: totalInCollection,
-  } = useTileOwnedCounts(displayPrinting.id, siblingIds, true, collectionId);
+  } = useTileOwnedCounts(displayPrinting.printingId, siblingIds, true, collectionId);
 
   const { data: cardCopies } = useCopyRowsForPrintings(siblingIds, true, collectionId);
   const cardCopyIds = cardCopies?.map((copy) => copy.id);
 
   const onLoanCopies = stacked ? (cardCopies?.filter((copy) => copy.onLoan) ?? []) : [];
-  const onLoanCount = onLoanCopies.filter((copy) => copy.printingId === displayPrinting.id).length;
+  const onLoanCount = onLoanCopies.filter(
+    (copy) => copy.printingId === displayPrinting.printingId,
+  ).length;
   const onLoanChip =
     onLoanCopies.length > 0 ? (
       <OnLoanChip count={onLoanCount} totalCount={inCardsView ? onLoanCopies.length : undefined} />
@@ -112,7 +115,7 @@ export const CollectionGridCell = memo(function CollectionGridCell({
   const tradeStatus = tileTradeStatus({
     annotations: liveTrades?.annotations,
     copies: cardCopies,
-    printingId: displayPrinting.id,
+    printingId: displayPrinting.printingId,
     siblingIds,
     withSiblingTotal: inCardsView,
     isGroupCollection: sourceCollectionIsGroup,
@@ -234,7 +237,7 @@ export const CollectionGridCell = memo(function CollectionGridCell({
         totalCount={totalInCollection}
         pillOverride={
           <OwnedCollectionsPopover
-            printingId={displayPrinting.id}
+            printingId={displayPrinting.printingId}
             cardName={legendDisplayName(displayPrinting.card)}
             shortCode={displayPrinting.shortCode}
             count={ownedCount}

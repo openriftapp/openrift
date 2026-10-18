@@ -24,7 +24,7 @@ beforeEach(() => {
 });
 
 function illustrated(cardId: string, language = "EN"): Printing {
-  return stubPrinting({ cardId, language, images: [{ face: "front", imageId: `${cardId}-art` }] });
+  return stubPrinting({ cardId, language, images: [{ imageId: `${cardId}-art` }] });
 }
 
 function registerToken(cardId: string, name: string, printings?: Printing[]): void {

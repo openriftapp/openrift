@@ -64,7 +64,7 @@ function makePrinting(
     distributionChannels: [],
     finish: "normal",
     size: "standard",
-    images: [{ face: "front", imageId: "019d6c25-b081-74b3-a901-64da4ae0aaaa" }],
+    images: [{ imageId: "019d6c25-b081-74b3-a901-64da4ae0aaaa" }],
     artist: "Test Artist",
     publicCode: "ogn-001",
     printedRulesText: null,
@@ -336,7 +336,7 @@ describe("extractCatalogFacets ↔ useCardData parity", () => {
 
     const enriched = enrichCatalog(catalog);
     const lookup = priceLookupFromMap(prices.prices);
-    const getPrice = (printing: Printing) => lookup.get(printing.id, "cardtrader");
+    const getPrice = (printing: Printing) => lookup.get(printing.printingId, "cardtrader");
     const clientFacets = getAvailableFilters(enriched.allPrintings, {
       orders: ORDERS,
       sets: enriched.sets,

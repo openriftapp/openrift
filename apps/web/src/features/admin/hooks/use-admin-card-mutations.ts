@@ -227,6 +227,7 @@ const acceptPrintingGroupFn = createServerFn({ method: "POST" })
       cardId: string;
       printingFields: AcceptPrintingBody["printingFields"];
       candidatePrintingIds: string[];
+      secondSideFaceId?: string;
     }) => input,
   )
   .middleware([withCookies])
@@ -235,6 +236,7 @@ const acceptPrintingGroupFn = createServerFn({ method: "POST" })
       cardId: data.cardId,
       printingFields: data.printingFields,
       candidatePrintingIds: data.candidatePrintingIds,
+      secondSideFaceId: data.secondSideFaceId,
     }),
   );
 
@@ -523,13 +525,15 @@ export function useAcceptPrintingGroup(invalidates: Scope = defaultScope) {
       cardId,
       printingFields,
       candidatePrintingIds,
+      secondSideFaceId,
     }: {
       cardId: string;
       printingFields: AcceptPrintingBody["printingFields"];
       candidatePrintingIds: string[];
+      secondSideFaceId?: string;
     }) =>
       acceptPrintingGroupFn({
-        data: { cardId, printingFields, candidatePrintingIds },
+        data: { cardId, printingFields, candidatePrintingIds, secondSideFaceId },
       }),
     invalidates,
   });

@@ -30,14 +30,14 @@ const PriceHistoryChart = lazy(async () => {
 });
 
 export function PriceHistorySection({ printing }: { printing: Printing }) {
-  const { data } = usePriceHistory(printing.id, "all");
+  const { data } = usePriceHistory(printing.printingId, "all");
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
   const [range, setRange] = useState<TimeRange>("30d");
   const marketplaceOrder = useDisplayStore((s) => s.marketplaceOrder);
   const [source, setSource] = useState<Marketplace>(marketplaceOrder[0]);
   const { labels } = useEnumOrders();
 
-  const { data: rangeData } = usePriceHistory(printing.id, range);
+  const { data: rangeData } = usePriceHistory(printing.printingId, range);
 
   const hasAnyData =
     data &&
@@ -184,7 +184,7 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
         <div className="min-w-0 xl:flex-1 xl:basis-0">
           <Suspense fallback={<Skeleton className="aspect-[2.5/1] w-full rounded-lg" />}>
             <PriceHistoryChart
-              printingId={printing.id}
+              printingId={printing.printingId}
               range={effectiveRange}
               onRangeChange={setRange}
               source={source}

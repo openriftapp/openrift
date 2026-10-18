@@ -155,7 +155,7 @@ const dbDeck = {
   isPinned: false,
   archivedAt: null,
   coverCardId: null,
-  coverPrintingId: null,
+  coverFaceId: null,
   coverPosition: null,
   links: [],
   collectionId: null,
@@ -877,6 +877,45 @@ describe("PUT /api/v1/decks/:id/cards — returned cards", () => {
       DECK_ID,
       cards.map((card) => ({ ...card, preferredPrintingId: null })),
     );
+  });
+
+  it("returns 400 when a preferred printing does not show its card", async () => {
+    mockRepo.getIdAndFormat.mockResolvedValue({ id: DECK_ID, format: "freeform" });
+    mockRepo.replaceCards.mockRejectedValue(Object.assign(new Error("fk"), { code: "23503" }));
+    const res = await app.request(`/api/v1/decks/${DECK_ID}/cards`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cards: [
+          {
+            cardId: "c0000000-0001-4000-a000-000000000001",
+            zone: "main",
+            quantity: 1,
+            preferredPrintingId: "p0000000-0001-4000-a000-000000000001",
+          },
+        ],
+      }),
+    });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("PATCH /api/v1/decks/:id — cover face", () => {
+  beforeEach(() => {
+    mockRepo.update.mockReset();
+  });
+
+  it("returns 400 when the cover face does not show the cover card", async () => {
+    mockRepo.update.mockRejectedValue(Object.assign(new Error("fk"), { code: "23503" }));
+    const res = await app.request(`/api/v1/decks/${DECK_ID}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        coverCardId: "c0000000-0001-4000-a000-000000000001",
+        coverFaceId: "f0000000-0001-4000-a000-000000000001",
+      }),
+    });
+    expect(res.status).toBe(400);
   });
 });
 

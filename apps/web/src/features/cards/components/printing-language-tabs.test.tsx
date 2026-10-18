@@ -15,7 +15,7 @@ import { PrintingLanguageTabs } from "./printing-language-tabs";
 const renderList = (printings: Printing[]) => (
   <div>
     {printings.map((printing) => (
-      <span key={printing.id}>{printing.shortCode}</span>
+      <span key={printing.printingId}>{printing.shortCode}</span>
     ))}
   </div>
 );

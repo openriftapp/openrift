@@ -119,8 +119,8 @@ describe("getAvailableFilters", () => {
 
   it("surfaces card sizes in canonical order", () => {
     const result = getAvailableFilters([
-      makePrinting({ id: "ovr", size: "oversized" }),
-      makePrinting({ id: "std", size: "standard" }),
+      makePrinting({ printingId: "ovr", size: "oversized" }),
+      makePrinting({ printingId: "std", size: "standard" }),
     ]);
     expect(result.cardSizes).toEqual(["standard", "oversized"]);
   });

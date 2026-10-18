@@ -147,7 +147,6 @@ export const imageIdSchema = z
   .meta({ examples: ["019d02f1-d14f-769f-9295-9852db692dbe"] });
 
 const printingImageSchema = z.object({
-  face: cardFaceSchema,
   imageId: imageIdSchema,
   credit: z
     .string()
@@ -226,8 +225,21 @@ export const catalogCardResponseSchema = z.object({
   bans: z.array(cardBanSchema).meta({ examples: [[]] }),
 });
 
+export const printingSideSchema = z.union([z.literal(1), z.literal(2)]);
+
+export const printingOtherSideSchema = z.object({
+  cardId: z.string().meta({ examples: ["019cfc3b-0389-744b-837c-792fd586300e"] }),
+  cardName: z.string().meta({ examples: ["Gold"] }),
+  cardSlug: z.string().meta({ examples: ["gold"] }),
+  imageId: imageIdSchema.optional(),
+});
+
+// One entry per printed side: a double-sided printing appears twice, once per side.
 export const catalogPrintingResponseSchema = z.object({
-  id: z.string().meta({ examples: ["019cfc3b-03d3-7dac-86c9-27900cd43727"] }),
+  printingId: z.string().meta({ examples: ["019cfc3b-03d3-7dac-86c9-27900cd43727"] }),
+  side: printingSideSchema.meta({ examples: [1] }),
+  faceId: z.string().meta({ examples: ["019cfc3b-03d3-7dac-86c9-27900cd43727"] }),
+  otherSide: printingOtherSideSchema.optional(),
   // Card detail only: the browse payload is one row per printing of every card.
   slug: z
     .string()

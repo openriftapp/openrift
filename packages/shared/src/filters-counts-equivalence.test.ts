@@ -319,7 +319,8 @@ function buildCatalog(count: number): { printings: Printing[]; prices: WeakMap<P
     const card = cards[i % cardCount] as Card;
     const set = pickOne(SETS, r);
     const printing = {
-      id: `printing-${i}`,
+      printingId: `printing-${i}`,
+      side: 1 as const,
       cardId: `card-${i % cardCount}`,
       shortCode: `${set}-${String(i).padStart(3, "0")}`,
       setId: `set-${set}`,
@@ -333,7 +334,7 @@ function buildCatalog(count: number): { printings: Printing[]; prices: WeakMap<P
       distributionChannels: pickOne(CHANNELS, r),
       finish: pickOne(FINISHES, r),
       size: pickOne(SIZES, r),
-      images: r() > 0.85 ? [] : [{ face: "front" as const, imageId: `image-${i}` }],
+      images: r() > 0.85 ? [] : [{ imageId: `image-${i}` }],
       artist: "Artist",
       publicCode: `pub-${i}`,
       printedRulesText: null,

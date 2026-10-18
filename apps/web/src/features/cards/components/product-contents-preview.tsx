@@ -1,5 +1,6 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageUrl } from "@openrift/shared/image-url";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
 
@@ -75,7 +76,7 @@ export function ProductContentsPreview({
       gridSlot={
         <ul className={cn(GRID_COLS, "pt-4")}>
           {printings.map((printing) => (
-            <li key={printing.id} className="rounded-lg p-1.5">
+            <li key={sideKey(printing)} className="rounded-lg p-1.5">
               <Link
                 to="/cards/$cardSlug/{-$printingSlug}"
                 params={{ cardSlug: printing.card.slug }}
@@ -89,9 +90,9 @@ export function ProductContentsPreview({
                   <div className="truncate font-medium">{printing.card.name}</div>
                   <div className="text-muted-foreground truncate">
                     {printing.publicCode}
-                    {quantityByPrintingId[printing.id] === undefined
+                    {quantityByPrintingId[printing.printingId] === undefined
                       ? null
-                      : ` · ×${quantityByPrintingId[printing.id]}`}
+                      : ` · ×${quantityByPrintingId[printing.printingId]}`}
                   </div>
                 </div>
               </Link>

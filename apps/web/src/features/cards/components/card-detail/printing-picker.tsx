@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
 
@@ -33,7 +34,8 @@ export function PrintingPicker({
   // Keyed on printing id so switching printings resets the tab without an effect.
   const [picked, setPicked] = useState<{ language: string; forPrintingId: string } | null>(null);
 
-  const pickedLanguage = picked?.forPrintingId === current.id ? picked.language : current.language;
+  const pickedLanguage =
+    picked?.forPrintingId === current.printingId ? picked.language : current.language;
 
   return (
     <div className="space-y-2">
@@ -41,7 +43,9 @@ export function PrintingPicker({
         printings={printings}
         languageOrder={languageOrder.map((entry) => entry.code)}
         activeLanguage={pickedLanguage}
-        onLanguageChange={(next) => setPicked({ language: next, forPrintingId: current.id })}
+        onLanguageChange={(next) =>
+          setPicked({ language: next, forPrintingId: current.printingId })
+        }
         header={<PickerHeading />}
       >
         {(shown) => (
@@ -79,7 +83,7 @@ function PrintingList({
   // One query for the whole list: a popover per row would each subscribe to
   // the entire copies collection.
   const { data: owned } = useOwnedCountsForPrintings(
-    printings.map((p) => p.id),
+    printings.map((p) => p.printingId),
     true,
     collectionId,
   );
@@ -87,10 +91,10 @@ function PrintingList({
   return (
     <div className="space-y-1">
       {printings.map((p) => {
-        const isActive = p.id === current.id;
+        const isActive = sideKey(p) === sideKey(current);
         return (
           <div
-            key={p.id}
+            key={sideKey(p)}
             // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- can't use <button>; the row contains the OwnedCollectionsPopover trigger button, and nested buttons are invalid HTML
             role="button"
             tabIndex={0}
@@ -113,11 +117,11 @@ function PrintingList({
               right={
                 <>
                   <OwnedCollectionsPopover
-                    printingId={p.id}
+                    printingId={p.printingId}
                     cardName={legendDisplayName(p.card)}
                     shortCode={p.shortCode}
-                    count={owned?.totals[p.id] ?? 0}
-                    totalCount={owned?.allTotals[p.id] ?? 0}
+                    count={owned?.totals[p.printingId] ?? 0}
+                    totalCount={owned?.allTotals[p.printingId] ?? 0}
                   />
                   <PrintingPrices printing={p} />
                 </>
@@ -135,9 +139,10 @@ function PrintingPrices({ printing }: { printing: Printing }) {
   const prices = usePrices();
 
   const marketplace = marketplaceOrder.find(
-    (candidate) => prices.get(printing.id, candidate) !== undefined,
+    (candidate) => prices.get(printing.printingId, candidate) !== undefined,
   );
-  const value = marketplace === undefined ? undefined : prices.get(printing.id, marketplace);
+  const value =
+    marketplace === undefined ? undefined : prices.get(printing.printingId, marketplace);
 
   if (marketplace === undefined || value === undefined) {
     return null;

@@ -22,7 +22,7 @@ function indexOf(
   );
   const byCard = new Map<string, CatalogPrinting[]>();
   for (const [position, overrides] of printings.entries()) {
-    const printing = makePrinting({ id: `printing-${position}`, ...overrides });
+    const printing = makePrinting({ printingId: `printing-${position}`, ...overrides });
     byCard.set(printing.cardId, [...(byCard.get(printing.cardId) ?? []), printing]);
   }
   return buildScanIndex(cards, byCard);

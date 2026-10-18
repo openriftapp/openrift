@@ -4,9 +4,9 @@ import { stubPrinting } from "@/test/factories";
 
 import { groupPrintingsByLanguage } from "./printing-languages";
 
-const en = stubPrinting({ id: "p-en", language: "EN" });
-const de = stubPrinting({ id: "p-de", language: "DE" });
-const fr = stubPrinting({ id: "p-fr", language: "FR" });
+const en = stubPrinting({ printingId: "p-en", language: "EN" });
+const de = stubPrinting({ printingId: "p-de", language: "DE" });
+const fr = stubPrinting({ printingId: "p-fr", language: "FR" });
 
 describe("groupPrintingsByLanguage", () => {
   it("returns nothing for an empty list", () => {
@@ -33,7 +33,7 @@ describe("groupPrintingsByLanguage", () => {
   });
 
   it("appends languages the taxonomy does not know rather than dropping them", () => {
-    const klingon = stubPrinting({ id: "p-tlh", language: "TLH" });
+    const klingon = stubPrinting({ printingId: "p-tlh", language: "TLH" });
     const groups = groupPrintingsByLanguage([klingon, en], ["EN", "DE"]);
 
     expect(groups.map((group) => group.language)).toEqual(["EN", "TLH"]);
@@ -41,8 +41,8 @@ describe("groupPrintingsByLanguage", () => {
   });
 
   it("sorts several unknown languages alphabetically after the known ones", () => {
-    const sc = stubPrinting({ id: "p-sc", language: "SC" });
-    const jp = stubPrinting({ id: "p-jp", language: "JP" });
+    const sc = stubPrinting({ printingId: "p-sc", language: "SC" });
+    const jp = stubPrinting({ printingId: "p-jp", language: "JP" });
     const groups = groupPrintingsByLanguage([sc, jp, en], ["EN", "DE"]);
 
     expect(groups.map((group) => group.language)).toEqual(["EN", "JP", "SC"]);
@@ -64,10 +64,13 @@ describe("groupPrintingsByLanguage", () => {
   });
 
   it("keeps every printing of a language together, in input order", () => {
-    const enAlt = stubPrinting({ id: "p-en-alt", language: "EN" });
+    const enAlt = stubPrinting({ printingId: "p-en-alt", language: "EN" });
     const groups = groupPrintingsByLanguage([en, de, enAlt], ["EN", "DE"]);
 
-    expect(groups[0]?.printings.map((printing) => printing.id)).toEqual(["p-en", "p-en-alt"]);
-    expect(groups[1]?.printings.map((printing) => printing.id)).toEqual(["p-de"]);
+    expect(groups[0]?.printings.map((printing) => printing.printingId)).toEqual([
+      "p-en",
+      "p-en-alt",
+    ]);
+    expect(groups[1]?.printings.map((printing) => printing.printingId)).toEqual(["p-de"]);
   });
 });

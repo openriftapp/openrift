@@ -16,7 +16,7 @@ export interface LocalDeckPatch {
   format?: DeckFormat;
   formatConfig?: DeckFormatConfig | null;
   coverCardId?: string | null;
-  coverPrintingId?: string | null;
+  coverFaceId?: string | null;
   coverPosition?: number | null;
   links?: DeckLink[];
 }
@@ -29,7 +29,7 @@ export interface LocalDeck {
   formatConfig: DeckFormatConfig | null;
   cards: LocalDeckCard[];
   coverCardId: string | null;
-  coverPrintingId: string | null;
+  coverFaceId: string | null;
   coverPosition: number | null;
   links: DeckLink[];
   createdAt: string;

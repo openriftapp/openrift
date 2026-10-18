@@ -88,7 +88,7 @@ export function CollectionGridToolbar({
       filteredCount={
         view === "copies"
           ? sortedCards.reduce(
-              (sum, card) => sum + (stackByPrintingId.get(card.id)?.copyIds.length ?? 0),
+              (sum, card) => sum + (stackByPrintingId.get(card.printingId)?.copyIds.length ?? 0),
               0,
             )
           : filteredCardCount

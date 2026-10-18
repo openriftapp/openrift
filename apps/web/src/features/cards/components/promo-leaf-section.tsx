@@ -1,3 +1,5 @@
+import { sideKey } from "@openrift/shared/printing-side";
+
 import { PromoCardThumbnail } from "@/features/cards/components/promo-card-thumbnail";
 import { PromoListView } from "@/features/cards/components/promo-list-view";
 import { ParentAnchors, SectionDivider } from "@/features/cards/components/promo-section-divider";
@@ -33,7 +35,7 @@ export function LeafSection({
         <div {...grid}>
           {sortedPrintings.map((printing) => (
             <PromoCardThumbnail
-              key={printing.id}
+              key={sideKey(printing)}
               printing={printing}
               showImages={showImages}
               display={display}

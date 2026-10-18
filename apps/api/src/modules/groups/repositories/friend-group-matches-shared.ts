@@ -47,6 +47,7 @@ export interface SupplyEntry {
   notesPublic: string | null;
   printingId: string;
   cardId: string;
+  cardIds: string[];
   sellEntryId: string | null;
   sellListId: string;
   sellListName: string;
@@ -355,6 +356,7 @@ function netDemandAgainstPromises(
 export interface CopyMeta {
   printingId: string;
   cardId: string;
+  cardIds: string[];
   createdAt: Date;
   reserved: boolean;
   loaned: boolean;
@@ -382,6 +384,9 @@ export async function loadCopyMeta(
       "cp.id",
       "cp.printingId",
       "pf.cardId",
+      sql<string[]>`ARRAY(
+        SELECT DISTINCT f.card_id FROM faces f WHERE f.id IN (p.face1_id, p.face2_id)
+      )`.as("cardIds"),
       "cp.createdAt",
       "cp.isAltered",
       "cp.condition",
@@ -397,6 +402,7 @@ export async function loadCopyMeta(
     meta.set(row.id, {
       printingId: row.printingId,
       cardId: row.cardId,
+      cardIds: row.cardIds,
       createdAt: row.createdAt,
       reserved: row.reserved,
       loaned: row.loaned,
@@ -472,6 +478,7 @@ export function buildSupply(
       notesPublic: meta.notesPublic,
       printingId: meta.printingId,
       cardId: meta.cardId,
+      cardIds: meta.cardIds,
       sellEntryId: entry.id,
       sellListId: list.listId,
       sellListName: list.listName,

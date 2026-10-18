@@ -102,12 +102,12 @@ export function stubPrinting(
 ): Printing {
   // Drawn before the card so a fixture's generated ids stay stable
   // regardless of what the shared defaults do.
-  const id = overrides.id ?? nextId();
+  const id = overrides.printingId ?? nextId();
   const cardId = overrides.cardId ?? nextId();
   const { card: cardOverrides, ...printingOverrides } = overrides;
   const card = stubCard(cardOverrides);
   return makePrinting({
-    id,
+    printingId: id,
     cardId,
     shortCode: card.slug,
     setId: nextId(),
@@ -141,7 +141,7 @@ export function stubCardViewerItem(
   overrides: Omit<Partial<Printing>, "card"> & { card?: Partial<Card> } = {},
 ): CardViewerItem {
   const printing = stubPrinting(overrides);
-  return { id: printing.id, printing };
+  return { id: printing.printingId, printing };
 }
 
 /**

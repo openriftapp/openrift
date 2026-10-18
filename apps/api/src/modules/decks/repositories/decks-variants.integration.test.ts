@@ -281,7 +281,7 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
           selection: ["removal"],
         },
         coverCardId: CARD_FURY_UNIT.id,
-        coverPrintingId: PRINTING_1.id,
+        coverFaceId: PRINTING_1.id,
         coverPosition: 40,
         collectionId,
         links: [{ url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", title: "Guide" }],
@@ -295,7 +295,7 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
       expect(copy.oddsConfig?.selection).toEqual(["removal"]);
       expect(copy.oddsConfig?.customGroups[0]?.key).toBe("removal");
       expect(copy.coverCardId).toBe(CARD_FURY_UNIT.id);
-      expect(copy.coverPrintingId).toBe(PRINTING_1.id);
+      expect(copy.coverFaceId).toBe(PRINTING_1.id);
       expect(copy.coverPosition).toBe(40);
       expect(copy.links).toEqual([
         { url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", title: "Guide" },

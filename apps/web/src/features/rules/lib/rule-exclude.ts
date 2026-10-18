@@ -34,7 +34,7 @@ function wishRuleMatches(
   if (target.kind === "card") {
     return matched.some((printing) => printing.cardId === target.cardId);
   }
-  return matched.some((printing) => printing.id === target.printingId);
+  return matched.some((printing) => printing.printingId === target.printingId);
 }
 
 /**

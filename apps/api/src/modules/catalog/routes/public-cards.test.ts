@@ -69,7 +69,9 @@ const dbCard = {
 };
 
 const dbPrinting = {
-  id: PRINTING_ID,
+  printingId: PRINTING_ID,
+  side: 1,
+  faceId: PRINTING_ID,
   shortCode: "OGN-202",
   setId: SET_ID,
   rarity: "Epic",
@@ -136,7 +138,7 @@ describe("GET /api/v1/cards/:cardSlug", () => {
     expect(json.card.errata).toBeNull();
     expect(json.card.bans).toEqual([]);
     expect(json.printings).toHaveLength(1);
-    expect(json.printings[0].id).toBe(PRINTING_ID);
+    expect(json.printings[0].printingId).toBe(PRINTING_ID);
     expect(json.printings[0].markers).toEqual([]);
     expect(json.printings[0].distributionChannels).toEqual([]);
     expect(json.printings[0].images).toEqual([]);

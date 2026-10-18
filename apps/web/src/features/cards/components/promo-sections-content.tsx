@@ -1,3 +1,4 @@
+import { countPrintings } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
 import { useEffect } from "react";
@@ -71,7 +72,7 @@ export function PromoSectionsContent({
       : flatRenderItems.map((item) => ({
           id: item.sectionId,
           label: item.title,
-          count: item.section.printings.length,
+          count: countPrintings(item.section.printings),
         }));
   const activeSectionId = useActiveSection(sectionEntries, stickyOffset);
   const activeSection = sectionEntries.find((entry) => entry.id === activeSectionId) ?? null;

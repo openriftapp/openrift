@@ -17,7 +17,7 @@ const validDeck: LocalDeck = {
   formatConfig: { tagSlugs: ["bandle-city"] },
   cards: sampleCards,
   coverCardId: null,
-  coverPrintingId: null,
+  coverFaceId: null,
   coverPosition: null,
   links: [],
   createdAt: "2026-07-01T00:00:00.000Z",
@@ -141,5 +141,14 @@ describe("sanitizeDecks", () => {
     });
 
     expect(decks.abc!.links[0]?.url).toBe("https://youtu.be/abc123");
+  });
+
+  it("carries a cover saved under the printing id over as the face id", () => {
+    const { coverFaceId: _coverFaceId, ...withoutFace } = validDeck;
+    const decks = sanitizeDecks({
+      abc: { ...withoutFace, coverCardId: "card-a", coverPrintingId: "printing-a" },
+    });
+
+    expect(decks.abc!.coverFaceId).toBe("printing-a");
   });
 });

@@ -29,7 +29,9 @@ const card: CardDetailResponse["card"] = {
 
 function makePrinting(id: string, language: string, frontImageId: string): CatalogPrintingResponse {
   return {
-    id,
+    printingId: id,
+    side: 1,
+    faceId: id,
     slug: `${language.toLowerCase()}-ogn-202-normal-standard`,
     cardId: "card-1",
     setId: "set-1",
@@ -42,7 +44,7 @@ function makePrinting(id: string, language: string, frontImageId: string): Catal
     distributionChannels: [],
     finish: "normal",
     size: "standard",
-    images: [{ face: "front", imageId: frontImageId }],
+    images: [{ imageId: frontImageId }],
     artist: "",
     publicCode: "OGN-202/298",
     printedRulesText: null,

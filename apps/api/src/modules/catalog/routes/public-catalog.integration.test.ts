@@ -218,7 +218,7 @@ describe.skipIf(!ctx)("Catalog route (integration)", () => {
       expect(printing).toBeDefined();
       expect(Array.isArray(printing.images)).toBe(true);
       expect(printing.images.length).toBeGreaterThan(0);
-      expect(printing.images[0].face).toBe("front");
+      expect(printing.images[0].imageId).toEqual(expect.any(String));
     });
 
     describe("language split", () => {

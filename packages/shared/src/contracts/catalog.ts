@@ -9,7 +9,39 @@ import { z } from "zod";
 // Wire-only shapes for /catalog: identity lives in the map key, not the value.
 export const catalogCardResponseValueSchema = catalogCardResponseSchema.omit({ id: true });
 
-export const catalogPrintingResponseValueSchema = catalogPrintingResponseSchema.omit({ id: true });
+export const catalogPrintingSide2Schema = catalogPrintingResponseSchema.pick({
+  faceId: true,
+  cardId: true,
+  setId: true,
+  shortCode: true,
+  rarity: true,
+  artVariant: true,
+  isSigned: true,
+  isOvernumbered: true,
+  markers: true,
+  finish: true,
+  images: true,
+  artist: true,
+  publicCode: true,
+  printedRulesText: true,
+  printedEffectText: true,
+  flavorText: true,
+  printedName: true,
+  printedYear: true,
+  language: true,
+  canonicalRank: true,
+  fallbackArtMode: true,
+  fallbackImageId: true,
+});
+
+// The value carries side 1, whose `faceId` is omitted when it equals the printing id. A
+// double-sided printing adds its second side as `side2`.
+export const catalogPrintingResponseValueSchema = catalogPrintingResponseSchema
+  .omit({ printingId: true, side: true, otherSide: true })
+  .extend({
+    faceId: catalogPrintingResponseSchema.shape.faceId.optional(),
+    side2: catalogPrintingSide2Schema.optional(),
+  });
 
 export const catalogResponseSchema = z.object({
   sets: z.array(catalogSetResponseSchema),

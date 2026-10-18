@@ -6,8 +6,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { stubCopy, stubPrinting } from "@/test/factories";
 
-const yasuo = stubPrinting({ id: "p-yasuo", cardId: "card-yasuo", card: { name: "Yasuo" } });
-const jinx = stubPrinting({ id: "p-jinx", cardId: "card-jinx", card: { name: "Jinx" } });
+const yasuo = stubPrinting({
+  printingId: "p-yasuo",
+  cardId: "card-yasuo",
+  card: { name: "Yasuo" },
+});
+const jinx = stubPrinting({ printingId: "p-jinx", cardId: "card-jinx", card: { name: "Jinx" } });
 
 vi.mock("@/hooks/use-session", () => ({
   useRequiredUserId: () => "user-1",
@@ -16,7 +20,7 @@ vi.mock("@/hooks/use-session", () => ({
 vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({
     allPrintings: [yasuo, jinx],
-    printingsById: { [yasuo.id]: yasuo, [jinx.id]: jinx },
+    printingsById: { [yasuo.printingId]: yasuo, [jinx.printingId]: jinx },
     sets: [],
   }),
 }));
@@ -49,11 +53,11 @@ vi.mock("sonner", () => ({ toast: { success: (...args: unknown[]) => toastSucces
 const { CollectionExportDialog } = await import("./collection-export-dialog");
 
 const YASUO_STACK: StackedEntry = {
-  printingId: yasuo.id,
+  printingId: yasuo.printingId,
   printing: yasuo,
   copyIds: ["c-1", "c-2"],
 };
-const JINX_STACK: StackedEntry = { printingId: jinx.id, printing: jinx, copyIds: ["c-3"] };
+const JINX_STACK: StackedEntry = { printingId: jinx.printingId, printing: jinx, copyIds: ["c-3"] };
 
 let downloadedBlobs: Blob[] = [];
 
@@ -184,21 +188,21 @@ describe("CollectionExportDialog", () => {
   it("formats a CardTrader wishlist with one line per printing", async () => {
     const user = userEvent.setup();
     const altJinx = stubPrinting({
-      id: "p-jinx-alt",
+      printingId: "p-jinx-alt",
       cardId: "card-jinx",
       shortCode: "OGN-030a",
       card: { name: "Jinx" },
     });
     const baseJinx = stubPrinting({
-      id: "p-jinx-base",
+      printingId: "p-jinx-base",
       cardId: "card-jinx",
       shortCode: "OGN-030",
       card: { name: "Jinx" },
     });
     setup({
       stacks: [
-        { printingId: altJinx.id, printing: altJinx, copyIds: ["c-1"] },
-        { printingId: baseJinx.id, printing: baseJinx, copyIds: ["c-2", "c-3"] },
+        { printingId: altJinx.printingId, printing: altJinx, copyIds: ["c-1"] },
+        { printingId: baseJinx.printingId, printing: baseJinx, copyIds: ["c-2", "c-3"] },
       ],
     });
     await chooseFormat(user, "CardTrader wishlist");
@@ -229,7 +233,7 @@ describe("CollectionExportDialog", () => {
   it("offers a detailed text list with code, language and variant per printing", async () => {
     const user = userEvent.setup();
     const foilJinx = stubPrinting({
-      id: "p-jinx-foil",
+      printingId: "p-jinx-foil",
       cardId: "card-jinx",
       shortCode: "OGN-002",
       finish: "foil",
@@ -237,7 +241,10 @@ describe("CollectionExportDialog", () => {
       card: { name: "Jinx" },
     });
     setup({
-      stacks: [YASUO_STACK, { printingId: foilJinx.id, printing: foilJinx, copyIds: ["c-3"] }],
+      stacks: [
+        YASUO_STACK,
+        { printingId: foilJinx.printingId, printing: foilJinx, copyIds: ["c-3"] },
+      ],
     });
     await chooseFormat(user, "Text list (with details)");
 
@@ -249,9 +256,9 @@ describe("CollectionExportDialog", () => {
     const user = userEvent.setup();
     queryResult = {
       data: [
-        stubCopy({ id: "c-1", printingId: yasuo.id, condition: "near-mint" }),
-        stubCopy({ id: "c-2", printingId: yasuo.id, condition: "played" }),
-        stubCopy({ id: "c-3", printingId: jinx.id, condition: "near-mint" }),
+        stubCopy({ id: "c-1", printingId: yasuo.printingId, condition: "near-mint" }),
+        stubCopy({ id: "c-2", printingId: yasuo.printingId, condition: "played" }),
+        stubCopy({ id: "c-3", printingId: jinx.printingId, condition: "near-mint" }),
       ],
       isReady: true,
     };

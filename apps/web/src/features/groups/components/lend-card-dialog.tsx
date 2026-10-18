@@ -61,7 +61,7 @@ export function LendCardDialog({
   function confirm(): void {
     createLoan.mutate(
       {
-        printingId: printing.id,
+        printingId: printing.printingId,
         quantity,
         borrowerUserId: freeText ? undefined : borrower,
         borrowerName: freeText ? trimmedName : undefined,

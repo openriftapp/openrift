@@ -58,7 +58,7 @@ describe("useCardData", () => {
       ...baseParams(),
       allPrintings: [ownedCommon, unownedRare],
       ownedFilter: ["partial", "full", "extra"] as const,
-      ownedCountByPrinting: { [ownedCommon.id]: 1, [unownedRare.id]: 0 },
+      ownedCountByPrinting: { [ownedCommon.printingId]: 1, [unownedRare.printingId]: 0 },
     };
 
     const { result } = renderHook(() => useCardData(params));
@@ -110,7 +110,7 @@ describe("useCardData", () => {
       ...baseParams(),
       allPrintings: [a, b],
       ownedFilter: [],
-      ownedCountByPrinting: { [a.id]: 1, [b.id]: 0 },
+      ownedCountByPrinting: { [a.printingId]: 1, [b.printingId]: 0 },
     };
 
     const { result } = renderHook(() => useCardData(params));
@@ -127,13 +127,13 @@ describe("useCardData", () => {
       ...baseParams(),
       allPrintings: [owned, unowned],
       ownedFilter: ["none"] as const,
-      ownedCountByPrinting: { [owned.id]: 2, [unowned.id]: 0 },
+      ownedCountByPrinting: { [owned.printingId]: 2, [unowned.printingId]: 0 },
     };
 
     const { result } = renderHook(() => useCardData(params));
 
     expect(result.current.sortedCards).toHaveLength(1);
-    expect(result.current.sortedCards[0]?.id).toBe(unowned.id);
+    expect(result.current.sortedCards[0]?.printingId).toBe(unowned.printingId);
   });
 
   it("filters by 'full' — only cards with exactly the playset size match", () => {
@@ -145,12 +145,16 @@ describe("useCardData", () => {
       ...baseParams(),
       allPrintings: [full, partial, extra],
       ownedFilter: ["full"] as const,
-      ownedCountByPrinting: { [full.id]: 3, [partial.id]: 1, [extra.id]: 5 },
+      ownedCountByPrinting: {
+        [full.printingId]: 3,
+        [partial.printingId]: 1,
+        [extra.printingId]: 5,
+      },
     };
 
     const { result } = renderHook(() => useCardData(params));
 
-    expect(result.current.sortedCards.map((p) => p.id)).toEqual([full.id]);
+    expect(result.current.sortedCards.map((p) => p.printingId)).toEqual([full.printingId]);
   });
 
   it("filters by 'partial' — only cards above zero but below a full playset match", () => {
@@ -162,12 +166,16 @@ describe("useCardData", () => {
       ...baseParams(),
       allPrintings: [empty, partial, full],
       ownedFilter: ["partial"] as const,
-      ownedCountByPrinting: { [empty.id]: 0, [partial.id]: 1, [full.id]: 3 },
+      ownedCountByPrinting: {
+        [empty.printingId]: 0,
+        [partial.printingId]: 1,
+        [full.printingId]: 3,
+      },
     };
 
     const { result } = renderHook(() => useCardData(params));
 
-    expect(result.current.sortedCards.map((p) => p.id)).toEqual([partial.id]);
+    expect(result.current.sortedCards.map((p) => p.printingId)).toEqual([partial.printingId]);
   });
 
   it("filters by 'extra' — only cards beyond a full playset match", () => {
@@ -178,12 +186,12 @@ describe("useCardData", () => {
       ...baseParams(),
       allPrintings: [full, extra],
       ownedFilter: ["extra"] as const,
-      ownedCountByPrinting: { [full.id]: 3, [extra.id]: 7 },
+      ownedCountByPrinting: { [full.printingId]: 3, [extra.printingId]: 7 },
     };
 
     const { result } = renderHook(() => useCardData(params));
 
-    expect(result.current.sortedCards.map((p) => p.id)).toEqual([extra.id]);
+    expect(result.current.sortedCards.map((p) => p.printingId)).toEqual([extra.printingId]);
   });
 
   it("OR's multiple selected buckets", () => {
@@ -195,13 +203,17 @@ describe("useCardData", () => {
       ...baseParams(),
       allPrintings: [empty, partial, extra],
       ownedFilter: ["none", "extra"] as const,
-      ownedCountByPrinting: { [empty.id]: 0, [partial.id]: 1, [extra.id]: 5 },
+      ownedCountByPrinting: {
+        [empty.printingId]: 0,
+        [partial.printingId]: 1,
+        [extra.printingId]: 5,
+      },
     };
 
     const { result } = renderHook(() => useCardData(params));
 
-    expect(result.current.sortedCards.map((p) => p.id).toSorted()).toEqual(
-      [empty.id, extra.id].toSorted(),
+    expect(result.current.sortedCards.map((p) => p.printingId).toSorted()).toEqual(
+      [empty.printingId, extra.printingId].toSorted(),
     );
   });
 
@@ -215,12 +227,12 @@ describe("useCardData", () => {
       allPrintings: [one, three, five],
       ownedCountMin: 2,
       ownedCountMax: 4,
-      ownedCountByPrinting: { [one.id]: 1, [three.id]: 3, [five.id]: 5 },
+      ownedCountByPrinting: { [one.printingId]: 1, [three.printingId]: 3, [five.printingId]: 5 },
     };
 
     const { result } = renderHook(() => useCardData(params));
 
-    expect(result.current.sortedCards.map((p) => p.id)).toEqual([three.id]);
+    expect(result.current.sortedCards.map((p) => p.printingId)).toEqual([three.printingId]);
   });
 
   it("treats an open-ended copies-owned min as 'that many and up'", () => {
@@ -232,12 +244,12 @@ describe("useCardData", () => {
       allPrintings: [two, ten],
       ownedCountMin: 3,
       ownedCountMax: null,
-      ownedCountByPrinting: { [two.id]: 2, [ten.id]: 10 },
+      ownedCountByPrinting: { [two.printingId]: 2, [ten.printingId]: 10 },
     };
 
     const { result } = renderHook(() => useCardData(params));
 
-    expect(result.current.sortedCards.map((p) => p.id)).toEqual([ten.id]);
+    expect(result.current.sortedCards.map((p) => p.printingId)).toEqual([ten.printingId]);
   });
 
   it("narrows non-owned facet counts to the copies-owned range", () => {
@@ -249,7 +261,7 @@ describe("useCardData", () => {
       allPrintings: [inRange, outOfRange],
       ownedCountMin: 2,
       ownedCountMax: null,
-      ownedCountByPrinting: { [inRange.id]: 4, [outOfRange.id]: 1 },
+      ownedCountByPrinting: { [inRange.printingId]: 4, [outOfRange.printingId]: 1 },
     };
 
     const { result } = renderHook(() => useCardData(params));
@@ -267,12 +279,12 @@ describe("useCardData", () => {
       ...baseParams(),
       allPrintings: [ownedVariant, unownedVariant],
       ownedFilter: ["partial", "full", "extra"] as const,
-      ownedCountByPrinting: { [ownedVariant.id]: 1, [unownedVariant.id]: 0 },
+      ownedCountByPrinting: { [ownedVariant.printingId]: 1, [unownedVariant.printingId]: 0 },
     };
 
     const { result } = renderHook(() => useCardData(params));
 
-    expect(result.current.sortedCards.map((p) => p.id)).toEqual([ownedVariant.id]);
+    expect(result.current.sortedCards.map((p) => p.printingId)).toEqual([ownedVariant.printingId]);
   });
 
   it("dedupes to one printing per cardId in cards view by default", () => {
@@ -346,9 +358,9 @@ describe("useCardData", () => {
         view: "cards",
         groupBy: "set",
         ownedCountByPrinting: {
-          [ognNormal.id]: 5,
-          [ognAltart.id]: 1,
-          [unlNormal.id]: 0,
+          [ognNormal.printingId]: 5,
+          [ognAltart.printingId]: 1,
+          [unlNormal.printingId]: 0,
         },
       }),
     );
@@ -359,8 +371,8 @@ describe("useCardData", () => {
 
     expect(ognTile).toBeDefined();
     expect(unlTile).toBeDefined();
-    expect(ognTile && ownedCounts?.get(ognTile.id)).toBe(6);
-    expect(unlTile && ownedCounts?.get(unlTile.id)).toBeUndefined();
+    expect(ognTile && ownedCounts?.get(ognTile.printingId)).toBe(6);
+    expect(unlTile && ownedCounts?.get(unlTile.printingId)).toBeUndefined();
   });
 
   it("attributes owned counts per rarity when grouping by rarity in cards view", () => {
@@ -374,7 +386,7 @@ describe("useCardData", () => {
         allPrintings: [common, rare],
         view: "cards",
         groupBy: "rarity",
-        ownedCountByPrinting: { [common.id]: 4, [rare.id]: 0 },
+        ownedCountByPrinting: { [common.printingId]: 4, [rare.printingId]: 0 },
       }),
     );
 
@@ -384,8 +396,8 @@ describe("useCardData", () => {
 
     expect(commonTile).toBeDefined();
     expect(rareTile).toBeDefined();
-    expect(commonTile && ownedCounts?.get(commonTile.id)).toBe(4);
-    expect(rareTile && ownedCounts?.get(rareTile.id)).toBeUndefined();
+    expect(commonTile && ownedCounts?.get(commonTile.printingId)).toBe(4);
+    expect(rareTile && ownedCounts?.get(rareTile.printingId)).toBeUndefined();
   });
 
   it("sums owned counts across all printings on the single tile in cards view (no set grouping)", () => {
@@ -398,13 +410,13 @@ describe("useCardData", () => {
         ...baseParams(),
         allPrintings: [ognPrinting, unlPrinting],
         view: "cards",
-        ownedCountByPrinting: { [ognPrinting.id]: 2, [unlPrinting.id]: 1 },
+        ownedCountByPrinting: { [ognPrinting.printingId]: 2, [unlPrinting.printingId]: 1 },
       }),
     );
 
     expect(result.current.sortedCards).toHaveLength(1);
     const tile = result.current.sortedCards[0];
-    expect(tile && result.current.ownedCounts?.get(tile.id)).toBe(3);
+    expect(tile && result.current.ownedCounts?.get(tile.printingId)).toBe(3);
   });
 
   it("filteredCount equals printing count in printings view", () => {

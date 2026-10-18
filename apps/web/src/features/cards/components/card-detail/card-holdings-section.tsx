@@ -13,8 +13,8 @@ export function CardHoldingsSection({
   printing: Printing;
   printings?: readonly Printing[];
 }) {
-  const siblingIds = (printings ?? []).map((sibling) => sibling.id);
-  const lines = useCardHoldingLines(siblingIds.length > 0 ? siblingIds : [printing.id]);
+  const siblingIds = (printings ?? []).map((sibling) => sibling.printingId);
+  const lines = useCardHoldingLines(siblingIds.length > 0 ? siblingIds : [printing.printingId]);
 
   if (lines.length === 0) {
     return null;

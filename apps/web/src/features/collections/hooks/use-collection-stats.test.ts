@@ -51,9 +51,12 @@ function stubStack(
   const { copyCount = 1, ...printingOverrides } = overrides;
   const printing = stubPrinting(printingOverrides);
   return {
-    printingId: printing.id,
+    printingId: printing.printingId,
     printing,
-    copyIds: Array.from({ length: copyCount }, (_, index) => `copy-${printing.id}-${index}`),
+    copyIds: Array.from(
+      { length: copyCount },
+      (_, index) => `copy-${printing.printingId}-${index}`,
+    ),
   };
 }
 
@@ -242,6 +245,62 @@ describe("computeCollectionStats", () => {
 });
 
 describe("computeCompletion", () => {
+  it("counts a double-sided copy for the card on each side, and its printing once", () => {
+    const bird = stubPrinting({
+      printingId: "p-pair",
+      cardId: "bird",
+      card: { slug: "bird" },
+      setId: "set-1",
+    });
+    const gold = stubPrinting({
+      printingId: "p-pair",
+      side: 2,
+      cardId: "gold",
+      card: { slug: "gold" },
+      setId: "set-1",
+    });
+    const stack: StackedEntry = { printingId: "p-pair", printing: bird, copyIds: ["copy-1"] };
+    const input = {
+      stacks: [stack],
+      scopedPrintings: [bird, gold],
+      scope: {},
+      sets: [stubSet({ id: "set-1" })],
+      groupBy: "set" as const,
+      orders: ORDERS,
+    };
+
+    const cards = computeCompletion({ ...input, countMode: "cards" });
+    expect(cards[0]).toMatchObject({ owned: 2, total: 2 });
+
+    const printings = computeCompletion({ ...input, countMode: "printings" });
+    expect(printings[0]).toMatchObject({ owned: 1, total: 1 });
+  });
+
+  it("counts a printing with the same card on both sides once toward that card's playset", () => {
+    const front = stubPrinting({
+      printingId: "p-buff",
+      cardId: "buff",
+      card: { slug: "buff" },
+      setId: "set-1",
+    });
+    const back = { ...front, side: 2 as const };
+    const stack: StackedEntry = {
+      printingId: "p-buff",
+      printing: front,
+      copyIds: ["copy-1", "copy-2"],
+    };
+    const [entry] = computeCompletion({
+      stacks: [stack],
+      scopedPrintings: [front, back],
+      scope: {},
+      sets: [stubSet({ id: "set-1" })],
+      groupBy: "set",
+      countMode: "copies",
+      orders: ORDERS,
+    });
+    expect(entry?.owned).toBe(2);
+  });
+
   it("computes set completion by cards with deduplication", () => {
     const stack1 = stubStack({ card: { slug: "fireball" }, setId: "set-1" });
     const stack2 = stubStack({ card: { slug: "fireball" }, setId: "set-1" });
@@ -313,9 +372,9 @@ describe("computeCompletion", () => {
     const catalogOnly = stubPrinting({ rarity: "common", card: { slug: "d" }, setId: "set-1" });
 
     const stacks: StackedEntry[] = [
-      { printingId: printing1.id, printing: printing1, copyIds: ["c1", "c2", "c3"] },
-      { printingId: printing2.id, printing: printing2, copyIds: ["c4", "c5"] },
-      { printingId: printing3.id, printing: printing3, copyIds: ["c6"] },
+      { printingId: printing1.printingId, printing: printing1, copyIds: ["c1", "c2", "c3"] },
+      { printingId: printing2.printingId, printing: printing2, copyIds: ["c4", "c5"] },
+      { printingId: printing3.printingId, printing: printing3, copyIds: ["c6"] },
     ];
     const allPrintings = [printing1, printing2, printing3, catalogOnly];
 

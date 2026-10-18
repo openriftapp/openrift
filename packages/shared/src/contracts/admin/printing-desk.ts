@@ -36,6 +36,29 @@ export const deskPrintingFieldsSchema = z
   })
   .strict();
 
+export const deskSharedPrintingSchema = z.object({
+  printingId: z.string(),
+  slug: z.string(),
+  cardSlug: z.string(),
+  publicCode: z.string(),
+});
+
+export const deskSecondSideSchema = z.object({
+  faceId: z.string(),
+  cardName: z.string(),
+  cardSlug: z.string(),
+  setId: z.string(),
+  setName: z.string(),
+  shortCode: z.string(),
+  publicCode: z.string(),
+  rarity: z.string(),
+  finish: z.string(),
+  language: z.string(),
+  artist: z.string(),
+  markerSlugs: z.array(z.string()),
+  sharedWith: z.array(deskSharedPrintingSchema),
+});
+
 export const deskPrintingRowSchema = z.object({
   printingId: z.string(),
   slug: z.string(),
@@ -60,6 +83,9 @@ export const deskPrintingRowSchema = z.object({
   releasePrecision: deskReleasePrecisionSchema.nullable(),
   comment: z.string().nullable(),
   imageCount: z.number(),
+  faceId: z.string(),
+  secondSide: deskSecondSideSchema.nullable(),
+  sharedWith: z.array(deskSharedPrintingSchema),
   activeImageFileId: z.string().nullable(),
   activeImageUrl: z.string().nullable(),
   createdAt: isoDateTime,
@@ -118,11 +144,16 @@ const deskGetOutputSchema = z.object({
 const deskCreateInputSchema = deskPrintingFieldsSchema.extend({
   cardId: z.uuid(),
   basePrintingId: z.uuid().optional(),
+  secondSideFaceId: z.uuid().optional(),
 });
 const deskCreateOutputSchema = z.object({ printingId: z.string() });
 
+const deskSetSecondSideInputSchema = printingIdParam.extend({ faceId: z.uuid() }).strict();
+
+/** `side: 2` sends the printed fields to the second side; physical fields ignore it. */
 const deskUpdateInputSchema = printingIdParam
   .extend(deskPrintingFieldsSchema.partial().shape)
+  .extend({ side: z.union([z.literal(1), z.literal(2)]).optional() })
   .strict();
 
 export const adminPrintingDeskContract = {
@@ -171,6 +202,35 @@ export const adminPrintingDeskContract = {
     })
     .input(deskUpdateInputSchema),
 
+  setSecondSide: authedRoute
+    .route({
+      method: "PUT",
+      path: `${BASE}/printings/{printingId}/second-side`,
+      tags: [TAG],
+      successStatus: 204,
+    })
+    .errors({
+      NOT_FOUND: { message: "Printing not found" },
+      BAD_REQUEST: { message: "The two sides must be different" },
+      CONFLICT: { message: "Printing already exists" },
+      FORBIDDEN: { message: "That printing is outside the desk" },
+    })
+    .input(deskSetSecondSideInputSchema),
+
+  removeSecondSide: authedRoute
+    .route({
+      method: "DELETE",
+      path: `${BASE}/printings/{printingId}/second-side`,
+      tags: [TAG],
+      successStatus: 204,
+    })
+    .errors({
+      NOT_FOUND: { message: "Printing not found" },
+      CONFLICT: { message: "Printing already exists" },
+      FORBIDDEN: { message: "That printing is outside the desk" },
+    })
+    .input(printingIdParam),
+
   // Not ownership-gated: the credit belongs to the file, and any grant holder
   // may correct it. Omit a field to leave it unchanged; `null` clears it.
   updateImage: authedRoute
@@ -204,6 +264,9 @@ export type AdminPrintingDeskContract = typeof adminPrintingDeskContract;
 export type DeskReleasePrecision = z.infer<typeof deskReleasePrecisionSchema>;
 export type DeskPrintingFields = z.infer<typeof deskPrintingFieldsSchema>;
 export type DeskPrintingRow = z.infer<typeof deskPrintingRowSchema>;
+export type DeskSecondSide = z.infer<typeof deskSecondSideSchema>;
+export type DeskSharedPrinting = z.infer<typeof deskSharedPrintingSchema>;
+export type DeskSetSecondSideInput = z.infer<typeof deskSetSecondSideInputSchema>;
 export type DeskImage = z.infer<typeof deskImageSchema>;
 export type DeskCard = z.infer<typeof deskCardSchema>;
 export type DeskListInput = z.infer<typeof deskListInputSchema>;

@@ -53,8 +53,8 @@ function printingBreakdown(
     return null;
   }
   const siblings = snapshot.printingsByCardId.get(card.id) ?? [];
-  const byId = new Map(siblings.map((printing) => [printing.id, printing]));
-  const rank = new Map(siblings.map((printing, index) => [printing.id, index]));
+  const byId = new Map(siblings.map((printing) => [printing.printingId, printing]));
+  const rank = new Map(siblings.map((printing, index) => [printing.printingId, index]));
   // A printing the cached catalog hasn't seen yet sorts last, not dropped.
   const ordered = printings.toSorted(
     (first, second) =>
@@ -158,7 +158,7 @@ function resolveEmbedArt(
   printing: CatalogPrinting | undefined,
   snapshot: CatalogSnapshot,
 ): { imageId?: string; fallbackNote?: string } {
-  const ownImage = printing?.images.find((image) => image.face === "front");
+  const ownImage = printing?.images[0];
   if (!printing || ownImage) {
     return { imageId: ownImage?.imageId };
   }
@@ -262,7 +262,7 @@ export function cardTextFields(
 export function buildCardEmbed(input: CardEmbedInput): APIEmbed {
   const { card, printing, snapshot, siteUrl } = input;
   const { imageId, fallbackNote } = resolveEmbedArt(card, printing, snapshot);
-  const priceMap = printing ? snapshot.prices[printing.id] : undefined;
+  const priceMap = printing ? snapshot.prices[printing.printingId] : undefined;
 
   const priceFields = ALL_MARKETPLACES.flatMap((marketplace) => {
     const cents = priceMap?.[marketplace];

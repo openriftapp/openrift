@@ -139,7 +139,7 @@ export async function fetchDeckImage(
         deckName: deckTitle(deck),
         cards: deck.rows.map((row) => ({
           cardId: row.card.id,
-          preferredPrintingId: row.printing.id,
+          preferredPrintingId: row.printing.printingId,
           quantity: row.entry.quantity,
           zone: row.zone,
         })),

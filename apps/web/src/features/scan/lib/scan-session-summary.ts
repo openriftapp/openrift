@@ -34,16 +34,16 @@ export function computeScanSessionSummary(
       continue;
     }
     cards += row.count;
-    const value = deps.priceOf(row.printing.id);
+    const value = deps.priceOf(row.printing.printingId);
     if (value === undefined) {
       unpricedCards += row.count;
     } else {
       totalValue += value * row.count;
     }
-    if (deps.isWished(row.printing.cardId, row.printing.id)) {
+    if (deps.isWished(row.printing.cardId, row.printing.printingId)) {
       wishedCards += row.count;
     }
-    if (deps.ownedBefore !== null && deps.ownedBefore(row.printing.id) === 0) {
+    if (deps.ownedBefore !== null && deps.ownedBefore(row.printing.printingId) === 0) {
       newCards += row.count;
     }
   }

@@ -21,13 +21,13 @@ const SET = {
 };
 
 const DECK_PRINTING = stubPrinting({
-  id: "p-deck",
+  printingId: "p-deck",
   cardId: "card-deck",
   setId: SET_ID,
   card: { name: "Kennen Stormcaller" },
 });
 const OFF_DECK_PRINTING = stubPrinting({
-  id: "p-off",
+  printingId: "p-off",
   cardId: "card-off",
   setId: SET_ID,
   card: { name: "Yasuo Windrider" },
@@ -53,7 +53,7 @@ const FULL_CATALOG = {
   },
   printings: Object.fromEntries(
     [DECK_PRINTING, OFF_DECK_PRINTING].map((printing) => {
-      const { id, ...value } = toWirePrinting(printing);
+      const { printingId: id, ...value } = toWirePrinting(printing);
       return [id, value];
     }),
   ),

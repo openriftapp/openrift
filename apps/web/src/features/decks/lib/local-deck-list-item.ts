@@ -52,7 +52,7 @@ export function localDeckToListItem(
       isPinned: false,
       archivedAt: null,
       coverCardId: localDeck.coverCardId,
-      coverPrintingId: localDeck.coverPrintingId,
+      coverFaceId: localDeck.coverFaceId,
       coverPosition: localDeck.coverPosition,
       createdAt: localDeck.createdAt,
       updatedAt: localDeck.updatedAt,

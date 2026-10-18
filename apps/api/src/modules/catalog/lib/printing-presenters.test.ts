@@ -50,7 +50,10 @@ const MARKER: Marker = {
 
 function printingRow(id: string, overrides: Record<string, unknown> = {}) {
   return {
-    id,
+    printingId: id,
+    side: 1,
+    faceId: id,
+    otherSide: null,
     cardId: "card-1",
     setId: "set-1",
     shortCode: "OGN-202",
@@ -143,7 +146,7 @@ describe("buildPrintingsResponse", () => {
 
     const [printing] = buildPrintingsResponse(
       [printingRow("p-1")],
-      [{ printingId: "p-1", face: "front", imageId: "img-1", credit: null } as never],
+      [{ printingId: "p-1", side: 1, imageId: "img-1", credit: null } as never],
       {
         markerBySlug: MARKERS,
         channelsByPrinting: new Map([["p-1", [link]]]),
@@ -153,24 +156,23 @@ describe("buildPrintingsResponse", () => {
 
     expect(printing!.markers).toEqual([MARKER]);
     expect(printing!.distributionChannels).toEqual([link]);
-    expect(printing!.images).toEqual([{ face: "front", imageId: "img-1" }]);
+    expect(printing!.images).toEqual([{ imageId: "img-1" }]);
     expect(printing!.citations).toEqual([citation("c-1")]);
   });
 });
 
 describe("toCatalogPrintingImage", () => {
-  const row = { face: "front" as const, imageId: "img-1", credit: null };
+  const row = { imageId: "img-1", credit: null };
 
   it("omits the credit key for an uncredited file", () => {
     const image = toCatalogPrintingImage(row);
 
-    expect(image).toEqual({ face: "front", imageId: "img-1" });
+    expect(image).toEqual({ imageId: "img-1" });
     expect(Object.hasOwn(image, "credit")).toBe(false);
   });
 
   it("carries the credit when it is set", () => {
     expect(toCatalogPrintingImage({ ...row, credit: "gamesnight" })).toEqual({
-      face: "front",
       imageId: "img-1",
       credit: "gamesnight",
     });

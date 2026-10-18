@@ -18,7 +18,7 @@ export function addJobsFor(rows: readonly { printing: Printing; count: number }[
   const jobs: ScanAddJob[] = [];
   for (const row of rows) {
     for (let i = 0; i < row.count; i++) {
-      jobs.push({ id: uuidv7(), printingId: row.printing.id });
+      jobs.push({ id: uuidv7(), printingId: row.printing.printingId });
     }
   }
   return jobs;
@@ -36,9 +36,9 @@ export function reconcileJobs(
   }
   const jobs: ScanAddJob[] = [];
   for (const row of rows) {
-    const ids = available.get(row.printing.id) ?? [];
+    const ids = available.get(row.printing.printingId) ?? [];
     for (let i = 0; i < row.count; i++) {
-      jobs.push({ id: ids[i] ?? uuidv7(), printingId: row.printing.id });
+      jobs.push({ id: ids[i] ?? uuidv7(), printingId: row.printing.printingId });
     }
   }
   return jobs;

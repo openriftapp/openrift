@@ -28,7 +28,7 @@ export function collectLegendOptions(printings: readonly Printing[]): LegendOpti
     if (!printing.card.types.includes(WellKnown.cardType.LEGEND)) {
       continue;
     }
-    const front = printing.images.find((image) => image.face === "front");
+    const front = printing.images[0];
     const name = legendDisplayName(printing.card);
     byCardId.set(printing.cardId, {
       cardId: printing.cardId,

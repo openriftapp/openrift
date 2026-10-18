@@ -131,7 +131,8 @@ export function computeCompletion(input: CompletionInput): CompletionEntry[] {
 
   const totalByKey = buildTotals(scopedPrintings, groupBy, countMode);
 
-  const ownedByKey = buildOwned(scopedStacks, groupBy, countMode);
+  const sidesByPrinting = Map.groupBy(scopedPrintings, (printing) => printing.printingId);
+  const ownedByKey = buildOwned(scopedStacks, sidesByPrinting, groupBy, countMode);
 
   const entries = keyOrder
     .filter((key) => totalByKey.has(key))
@@ -224,13 +225,13 @@ function buildTotals(
   countMode: CompletionCountMode,
 ): Map<string, number> {
   if (countMode === "printings") {
-    const result = new Map<string, number>();
+    const printingsByKey = new Map<string, Set<string>>();
     for (const printing of scopedPrintings) {
       for (const key of getGroupKey(printing, groupBy)) {
-        result.set(key, (result.get(key) ?? 0) + 1);
+        getOrCreate(printingsByKey, key).add(printing.printingId);
       }
     }
-    return result;
+    return mapSetSize(printingsByKey);
   }
 
   const cardsByKey = new Map<string, Set<string>>();
@@ -266,9 +267,13 @@ function buildTotals(
 
 function buildOwned(
   stacks: StackedEntry[],
+  sidesByPrinting: ReadonlyMap<string, readonly Printing[]>,
   groupBy: CompletionGroupBy,
   countMode: CompletionCountMode,
 ): Map<string, number> {
+  // A double-sided copy counts for the card on each of its sides.
+  const sidesOf = (stack: StackedEntry) =>
+    sidesByPrinting.get(stack.printingId) ?? [stack.printing];
   if (countMode === "printings") {
     const ownedByKey = new Map<string, Set<string>>();
     for (const stack of stacks) {
@@ -282,8 +287,10 @@ function buildOwned(
   if (countMode === "cards") {
     const ownedByKey = new Map<string, Set<string>>();
     for (const stack of stacks) {
-      for (const key of getGroupKey(stack.printing, groupBy)) {
-        getOrCreate(ownedByKey, key).add(stack.printing.card.slug);
+      for (const side of sidesOf(stack)) {
+        for (const key of getGroupKey(side, groupBy)) {
+          getOrCreate(ownedByKey, key).add(side.card.slug);
+        }
       }
     }
     return mapSetSize(ownedByKey);
@@ -291,10 +298,12 @@ function buildOwned(
 
   const copiesByKeyAndSlug = new Map<string, Map<string, number>>();
   for (const stack of stacks) {
-    for (const key of getGroupKey(stack.printing, groupBy)) {
-      const slugMap = getOrCreate2(copiesByKeyAndSlug, key);
-      const slug = stack.printing.card.slug;
-      slugMap.set(slug, (slugMap.get(slug) ?? 0) + stack.copyIds.length);
+    for (const side of uniqueCardSides(sidesOf(stack))) {
+      for (const key of getGroupKey(side, groupBy)) {
+        const slugMap = getOrCreate2(copiesByKeyAndSlug, key);
+        const slug = side.card.slug;
+        slugMap.set(slug, (slugMap.get(slug) ?? 0) + stack.copyIds.length);
+      }
     }
   }
 
@@ -676,6 +685,13 @@ export function filterStacksByScope(
   }
   return stacks.filter((stack) =>
     matchesScope(stack.printing, scope, customTagAssignments?.[stack.printing.cardId]),
+  );
+}
+
+/** Buff on both sides is one Buff per copy. */
+function uniqueCardSides(sides: readonly Printing[]): Printing[] {
+  return sides.filter(
+    (side, index) => sides.findIndex((other) => other.cardId === side.cardId) === index,
   );
 }
 

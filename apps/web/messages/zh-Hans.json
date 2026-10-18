@@ -882,6 +882,7 @@
   "cards_clear_all_filters": "清除所有筛选",
   "cards_flag_oversized": "超大尺寸",
   "cards_flag_overnumbered": "超编",
+  "cards_printing_double_sided": "双面卡，另含{name}",
   "cards_flag_signed": "签名",
   "cards_flag_banned": "已禁用",
   "cards_flag_errata": "勘误",

@@ -39,7 +39,7 @@ describe("computeDeckOwnership", () => {
     const printingId = "printing-1";
 
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 3, zone: "main" })];
-    const printings = [stubPrinting({ id: printingId, cardId })];
+    const printings = [stubPrinting({ printingId, cardId })];
     const owned = { [printingId]: 3 };
 
     const result = computeDeckOwnership(
@@ -68,9 +68,9 @@ describe("computeDeckOwnership", () => {
       stubDeckBuilderCard({ cardId: "side-1", quantity: 2, zone: "sideboard" }),
     ];
     const printings = [
-      stubPrinting({ id: "printing-rune", cardId: "rune-1" }),
-      stubPrinting({ id: "printing-unit", cardId: "unit-1" }),
-      stubPrinting({ id: "printing-side", cardId: "side-1" }),
+      stubPrinting({ printingId: "printing-rune", cardId: "rune-1" }),
+      stubPrinting({ printingId: "printing-unit", cardId: "unit-1" }),
+      stubPrinting({ printingId: "printing-side", cardId: "side-1" }),
     ];
     const owned = { "printing-rune": 12, "printing-unit": 1, "printing-side": 2 };
 
@@ -98,9 +98,9 @@ describe("computeDeckOwnership", () => {
       stubDeckBuilderCard({ cardId: "spare-1", quantity: 4, zone: "overflow" }),
     ];
     const printings = [
-      stubPrinting({ id: "printing-unit", cardId: "unit-1" }),
-      stubPrinting({ id: "printing-side", cardId: "side-1" }),
-      stubPrinting({ id: "printing-spare", cardId: "spare-1" }),
+      stubPrinting({ printingId: "printing-unit", cardId: "unit-1" }),
+      stubPrinting({ printingId: "printing-side", cardId: "side-1" }),
+      stubPrinting({ printingId: "printing-spare", cardId: "spare-1" }),
     ];
     const owned = { "printing-unit": 2, "printing-side": 0, "printing-spare": 0 };
 
@@ -125,9 +125,9 @@ describe("computeDeckOwnership", () => {
       stubDeckBuilderCard({ cardId, quantity: 2, zone: "main", preferredPrintingId: "fancy" }),
     ];
     const printings = [
-      stubPrinting({ id: "fancy", cardId, language: "EN" }),
-      stubPrinting({ id: "cheap-en", cardId, language: "EN" }),
-      stubPrinting({ id: "cheaper-sc", cardId, language: "SC" }),
+      stubPrinting({ printingId: "fancy", cardId, language: "EN" }),
+      stubPrinting({ printingId: "cheap-en", cardId, language: "EN" }),
+      stubPrinting({ printingId: "cheaper-sc", cardId, language: "SC" }),
     ];
     const prices = stubPriceLookup({
       fancy: { tcgplayer: 5000 },
@@ -149,8 +149,8 @@ describe("computeDeckOwnership", () => {
     const cardId = "card-1";
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 1, zone: "main" })];
     const printings = [
-      stubPrinting({ id: "en-unpriced", cardId, language: "EN" }),
-      stubPrinting({ id: "sc-priced", cardId, language: "SC" }),
+      stubPrinting({ printingId: "en-unpriced", cardId, language: "EN" }),
+      stubPrinting({ printingId: "sc-priced", cardId, language: "SC" }),
     ];
     const prices = stubPriceLookup({ "sc-priced": { tcgplayer: 250 } });
 
@@ -165,7 +165,7 @@ describe("computeDeckOwnership", () => {
     const printingId = "printing-1";
 
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 3, zone: "main" })];
-    const printings = [stubPrinting({ id: printingId, cardId })];
+    const printings = [stubPrinting({ printingId, cardId })];
     const owned = { [printingId]: 1 };
 
     const result = computeDeckOwnership(
@@ -198,7 +198,7 @@ describe("computeDeckOwnership", () => {
 
     const result = computeDeckOwnership(
       deckCards,
-      [stubPrinting({ id: "printing-1", cardId })],
+      [stubPrinting({ printingId: "printing-1", cardId })],
       {},
       "tcgplayer",
       EMPTY_PRICE_LOOKUP,
@@ -214,10 +214,10 @@ describe("computeDeckOwnership", () => {
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 2, zone: "main" })];
     const printings = [
       stubPrinting({
-        id: "p1",
+        printingId: "p1",
         cardId,
         card: { slug: "azir-emperor" },
-        images: [{ face: "front", imageId: "img-1" }],
+        images: [{ imageId: "img-1" }],
       }),
     ];
 
@@ -238,7 +238,9 @@ describe("computeDeckOwnership", () => {
   it("flags Battlefields as landscape so their art is rotated for display", () => {
     const cardId = "field-1";
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 1, zone: "battlefield" })];
-    const printings = [stubPrinting({ id: "p1", cardId, card: { types: ["battlefield"] } })];
+    const printings = [
+      stubPrinting({ printingId: "p1", cardId, card: { types: ["battlefield"] } }),
+    ];
 
     const result = computeDeckOwnership(
       deckCards,
@@ -295,7 +297,10 @@ describe("computeDeckOwnership", () => {
     const cardId = "card-1";
 
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 3, zone: "main" })];
-    const printings = [stubPrinting({ id: "p1", cardId }), stubPrinting({ id: "p2", cardId })];
+    const printings = [
+      stubPrinting({ printingId: "p1", cardId }),
+      stubPrinting({ printingId: "p2", cardId }),
+    ];
     const owned = { p1: 1, p2: 2 };
 
     const result = computeDeckOwnership(
@@ -319,7 +324,7 @@ describe("computeDeckOwnership", () => {
       stubDeckBuilderCard({ cardId, quantity: 2, zone: "main" }),
       stubDeckBuilderCard({ cardId, quantity: 2, zone: "sideboard" }),
     ];
-    const printings = [stubPrinting({ id: printingId, cardId })];
+    const printings = [stubPrinting({ printingId, cardId })];
     const owned = { [printingId]: 3 };
 
     const result = computeDeckOwnership(
@@ -341,8 +346,8 @@ describe("computeDeckOwnership", () => {
 
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 2, zone: "main" })];
     const printings = [
-      stubPrinting({ id: "p1", cardId, language: "EN" }),
-      stubPrinting({ id: "p2", cardId, language: "DE" }),
+      stubPrinting({ printingId: "p1", cardId, language: "EN" }),
+      stubPrinting({ printingId: "p2", cardId, language: "DE" }),
     ];
     const owned = { p1: 1 };
     const prices = stubPriceLookup({
@@ -365,8 +370,8 @@ describe("computeDeckOwnership", () => {
       stubDeckBuilderCard({ cardId, quantity: 1, zone: "main", preferredPrintingId: "p-en" }),
     ];
     const printings = [
-      stubPrinting({ id: "p-en", cardId, language: "EN", shortCode: "OGN-001-EN" }),
-      stubPrinting({ id: "p-sc", cardId, language: "SC", shortCode: "OGN-001-SC" }),
+      stubPrinting({ printingId: "p-en", cardId, language: "EN", shortCode: "OGN-001-EN" }),
+      stubPrinting({ printingId: "p-sc", cardId, language: "SC", shortCode: "OGN-001-SC" }),
     ];
     const prices = stubPriceLookup({
       "p-en": { cardtrader: 500 },
@@ -395,8 +400,8 @@ describe("computeDeckOwnership", () => {
       stubDeckBuilderCard({ cardId, quantity: 1, zone: "legend", preferredPrintingId: "metal" }),
     ];
     const printings = [
-      stubPrinting({ id: "metal", cardId, language: "EN" }),
-      stubPrinting({ id: "plain", cardId, language: "EN" }),
+      stubPrinting({ printingId: "metal", cardId, language: "EN" }),
+      stubPrinting({ printingId: "plain", cardId, language: "EN" }),
     ];
     const prices = stubPriceLookup({
       metal: { tcgplayer: 15_000 },
@@ -419,8 +424,8 @@ describe("computeDeckOwnership", () => {
 
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 1, zone: "main" })];
     const printings = [
-      stubPrinting({ id: "p1", cardId, language: "EN", shortCode: "OGN-001" }),
-      stubPrinting({ id: "p2", cardId, language: "DE", shortCode: "OGN-002" }),
+      stubPrinting({ printingId: "p1", cardId, language: "EN", shortCode: "OGN-001" }),
+      stubPrinting({ printingId: "p2", cardId, language: "DE", shortCode: "OGN-002" }),
     ];
     const prices = stubPriceLookup({
       p1: { tcgplayer: 5 },
@@ -445,8 +450,8 @@ describe("computeDeckOwnership", () => {
     const cardId = "card-1";
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 1, zone: "main" })];
     const printings = [
-      stubPrinting({ id: "p1", cardId, language: "EN", shortCode: "OGN-001" }),
-      stubPrinting({ id: "p2", cardId, language: "SC", shortCode: "OGN-001-SC" }),
+      stubPrinting({ printingId: "p1", cardId, language: "EN", shortCode: "OGN-001" }),
+      stubPrinting({ printingId: "p2", cardId, language: "SC", shortCode: "OGN-001-SC" }),
     ];
     const prices = stubPriceLookup({ p2: { tcgplayer: 3 } });
 
@@ -460,7 +465,7 @@ describe("computeDeckOwnership", () => {
     const cardId = "card-1";
 
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 1, zone: "main" })];
-    const printings = [stubPrinting({ id: "p1", cardId })];
+    const printings = [stubPrinting({ printingId: "p1", cardId })];
 
     const result = computeDeckOwnership(
       deckCards,
@@ -479,7 +484,7 @@ describe("computeDeckOwnership", () => {
     const cardId = "card-1";
 
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 1, zone: "main" })];
-    const printings = [stubPrinting({ id: "p1", cardId })];
+    const printings = [stubPrinting({ printingId: "p1", cardId })];
     const prices = stubPriceLookup({
       p1: { tcgplayer: 10, cardmarket: 8 },
     });
@@ -494,7 +499,7 @@ describe("computeDeckOwnership", () => {
     const printingId = "printing-1";
 
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 4, zone: "main" })];
-    const printings = [stubPrinting({ id: printingId, cardId })];
+    const printings = [stubPrinting({ printingId, cardId })];
     const available = { [printingId]: 1 };
     const borrowed = { [printingId]: 2 };
 
@@ -528,7 +533,7 @@ describe("computeDeckOwnership", () => {
       stubDeckBuilderCard({ cardId, quantity: 2, zone: "main" }),
       stubDeckBuilderCard({ cardId, quantity: 2, zone: "sideboard" }),
     ];
-    const printings = [stubPrinting({ id: printingId, cardId })];
+    const printings = [stubPrinting({ printingId, cardId })];
     const borrowed = { [printingId]: 3 };
 
     const result = computeDeckOwnership(
@@ -554,7 +559,7 @@ describe("computeDeckOwnership", () => {
     const printingId = "printing-1";
 
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 4, zone: "main" })];
-    const printings = [stubPrinting({ id: printingId, cardId })];
+    const printings = [stubPrinting({ printingId, cardId })];
     const available = { [printingId]: 2 };
     const locked = { [printingId]: 2 };
 
@@ -584,7 +589,7 @@ describe("computeDeckOwnership", () => {
     const printingId = "printing-1";
 
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 3, zone: "main" })];
-    const printings = [stubPrinting({ id: printingId, cardId })];
+    const printings = [stubPrinting({ printingId, cardId })];
     const available = { [printingId]: 2 };
     const locked = { [printingId]: 4 };
 
@@ -610,7 +615,7 @@ describe("computeDeckOwnership", () => {
       stubDeckBuilderCard({ cardId, quantity: 2, zone: "main" }),
       stubDeckBuilderCard({ cardId, quantity: 2, zone: "sideboard" }),
     ];
-    const printings = [stubPrinting({ id: printingId, cardId })];
+    const printings = [stubPrinting({ printingId, cardId })];
     const available = { [printingId]: 1 };
     const locked = { [printingId]: 2 };
 
@@ -641,7 +646,7 @@ describe("computeDeckOwnership", () => {
     const printingId = "printing-1";
 
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 2, zone: "main" })];
-    const printings = [stubPrinting({ id: printingId, cardId })];
+    const printings = [stubPrinting({ printingId, cardId })];
 
     const result = computeDeckOwnership(
       deckCards,
@@ -661,7 +666,7 @@ describe("computeDeckOwnership", () => {
     const printingId = "printing-1";
 
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 3, zone: "main" })];
-    const printings = [stubPrinting({ id: printingId, cardId })];
+    const printings = [stubPrinting({ printingId, cardId })];
 
     const result = computeDeckOwnership(
       deckCards,
@@ -687,7 +692,7 @@ describe("computeDeckOwnership", () => {
     const printingId = "printing-1";
 
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 4, zone: "main" })];
-    const printings = [stubPrinting({ id: printingId, cardId })];
+    const printings = [stubPrinting({ printingId, cardId })];
 
     const result = computeDeckOwnership(
       deckCards,
@@ -719,7 +724,7 @@ describe("computeDeckOwnership", () => {
       stubDeckBuilderCard({ cardId, quantity: 2, zone: "main" }),
       stubDeckBuilderCard({ cardId, quantity: 2, zone: "sideboard" }),
     ];
-    const printings = [stubPrinting({ id: printingId, cardId })];
+    const printings = [stubPrinting({ printingId, cardId })];
 
     const result = computeDeckOwnership(
       deckCards,
@@ -745,7 +750,7 @@ describe("computeDeckOwnership", () => {
     const printingId = "printing-1";
 
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 2, zone: "main" })];
-    const printings = [stubPrinting({ id: printingId, cardId })];
+    const printings = [stubPrinting({ printingId, cardId })];
     const prices = stubPriceLookup({ [printingId]: { tcgplayer: 250 } });
 
     const result = computeDeckOwnership(
@@ -769,7 +774,7 @@ describe("computeDeckOwnership", () => {
     const printingId = "printing-1";
 
     const deckCards = [stubDeckBuilderCard({ cardId, quantity: 2, zone: "main" })];
-    const printings = [stubPrinting({ id: printingId, cardId })];
+    const printings = [stubPrinting({ printingId, cardId })];
 
     const result = computeDeckOwnership(
       deckCards,
@@ -791,9 +796,9 @@ describe("computeDeckOwnership", () => {
       stubDeckBuilderCard({ cardId: "c", cardName: "Gamma", quantity: 1, zone: "sideboard" }),
     ];
     const printings = [
-      stubPrinting({ id: "pa", cardId: "a" }),
-      stubPrinting({ id: "pb", cardId: "b" }),
-      stubPrinting({ id: "pc", cardId: "c" }),
+      stubPrinting({ printingId: "pa", cardId: "a" }),
+      stubPrinting({ printingId: "pb", cardId: "b" }),
+      stubPrinting({ printingId: "pc", cardId: "c" }),
     ];
     const owned = { pa: 3, pb: 0 };
     const prices = stubPriceLookup({
@@ -819,9 +824,9 @@ describe("computeDeckOwnership", () => {
       stubDeckBuilderCard({ cardId: "s", quantity: 2, zone: "sideboard" }),
     ];
     const printings = [
-      stubPrinting({ id: "pl", cardId: "l" }),
-      stubPrinting({ id: "pa", cardId: "a" }),
-      stubPrinting({ id: "ps", cardId: "s" }),
+      stubPrinting({ printingId: "pl", cardId: "l" }),
+      stubPrinting({ printingId: "pa", cardId: "a" }),
+      stubPrinting({ printingId: "ps", cardId: "s" }),
     ];
     const prices = stubPriceLookup({
       pl: { tcgplayer: 20 },
@@ -843,9 +848,9 @@ describe("computeDeckOwnership", () => {
       stubDeckBuilderCard({ cardId: "s", quantity: 2, zone: "sideboard" }),
     ];
     const printings = [
-      stubPrinting({ id: "pl", cardId: "l" }),
-      stubPrinting({ id: "pa", cardId: "a" }),
-      stubPrinting({ id: "ps", cardId: "s" }),
+      stubPrinting({ printingId: "pl", cardId: "l" }),
+      stubPrinting({ printingId: "pa", cardId: "a" }),
+      stubPrinting({ printingId: "ps", cardId: "s" }),
     ];
     const prices = stubPriceLookup({
       pl: { tcgplayer: 20 },
@@ -869,7 +874,7 @@ describe("computeDeckOwnership", () => {
 
   it("reports a zero sideboard value when the deck has no sideboard", () => {
     const deckCards = [stubDeckBuilderCard({ cardId: "a", quantity: 2, zone: "main" })];
-    const printings = [stubPrinting({ id: "pa", cardId: "a" })];
+    const printings = [stubPrinting({ printingId: "pa", cardId: "a" })];
     const prices = stubPriceLookup({ pa: { tcgplayer: 7 } });
 
     const result = computeDeckOwnership(deckCards, printings, {}, "tcgplayer", prices, EN_FIRST);
@@ -884,8 +889,8 @@ describe("computeDeckOwnership", () => {
       stubDeckBuilderCard({ cardId: "z", cardName: "Zed", quantity: 4, zone: "overflow" }),
     ];
     const printings = [
-      stubPrinting({ id: "pa", cardId: "a" }),
-      stubPrinting({ id: "pz", cardId: "z" }),
+      stubPrinting({ printingId: "pa", cardId: "a" }),
+      stubPrinting({ printingId: "pz", cardId: "z" }),
     ];
     const prices = stubPriceLookup({
       pa: { tcgplayer: 10 },
@@ -916,7 +921,7 @@ describe("computeDeckOwnership", () => {
 
   it("still exposes a per-row entry for overflow cards", () => {
     const deckCards = [stubDeckBuilderCard({ cardId: "z", quantity: 2, zone: "overflow" })];
-    const printings = [stubPrinting({ id: "pz", cardId: "z" })];
+    const printings = [stubPrinting({ printingId: "pz", cardId: "z" })];
     const prices = stubPriceLookup({ pz: { tcgplayer: 9 } });
 
     const result = computeDeckOwnership(
@@ -940,7 +945,7 @@ describe("computeDeckOwnership", () => {
       stubDeckBuilderCard({ cardId, quantity: 1, zone: "overflow" }),
       stubDeckBuilderCard({ cardId, quantity: 1, zone: "main" }),
     ];
-    const printings = [stubPrinting({ id: "p1", cardId })];
+    const printings = [stubPrinting({ printingId: "p1", cardId })];
 
     const result = computeDeckOwnership(
       deckCards,

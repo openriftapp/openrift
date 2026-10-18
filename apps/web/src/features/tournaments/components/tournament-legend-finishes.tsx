@@ -16,7 +16,7 @@ function FinishTile({ entry, cutSize }: { entry: LegendFinish; cutSize: number |
   if (printing === undefined) {
     return null;
   }
-  const image = printing.images.find((face) => face.face === "front");
+  const image = printing.images[0];
   return (
     <LegendFinishTile
       rank={entry.place}

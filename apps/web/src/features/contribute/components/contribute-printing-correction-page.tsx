@@ -19,7 +19,7 @@ export function ContributePrintingCorrectionPage() {
   const { data } = useSuspenseQuery(cardDetailQueryOptions(cardSlug));
   const { labels } = useEnumOrders();
   const languageLabels = useLanguageLabels();
-  const printing = data.printings.find((p) => p.id === printingId);
+  const printing = data.printings.find((p) => p.printingId === printingId);
   if (!printing) {
     throw notFound();
   }

@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { ListIntent } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -108,7 +109,10 @@ export function MoveEntryDialogBody({
   const text = modeCopy(mode);
   const [highlightedId, setHighlightedId] = useState("");
   const [printingId, setPrintingId] = useState(
-    () => printings.find((p) => p.id === currentPrintingId)?.id ?? printings.at(0)?.id ?? null,
+    () =>
+      printings.find((p) => p.printingId === currentPrintingId)?.printingId ??
+      printings.at(0)?.printingId ??
+      null,
   );
   const [copyIds, setCopyIds] = useState(
     () => new Set(copies.slice(0, quantity).map((option) => option.copy.id)),
@@ -173,13 +177,13 @@ export function MoveEntryDialogBody({
           <PickerList highlightedId={highlightedId} onHighlightChange={setHighlightedId}>
             {printings.map((printing) => (
               <PickerRow
-                key={printing.id}
-                value={printing.id}
-                onSelect={() => setPrintingId(printing.id)}
-                className={cn("px-3 py-2", printingId === printing.id && SELECTED_ROW)}
+                key={sideKey(printing)}
+                value={printing.printingId}
+                onSelect={() => setPrintingId(printing.printingId)}
+                className={cn("px-3 py-2", printingId === printing.printingId && SELECTED_ROW)}
               >
                 <ImportPrintingLabel printing={printing} className="min-w-0 flex-1 truncate" />
-                {printingId === printing.id && <CheckIcon className="size-4 shrink-0" />}
+                {printingId === printing.printingId && <CheckIcon className="size-4 shrink-0" />}
               </PickerRow>
             ))}
           </PickerList>
@@ -256,10 +260,10 @@ export function ConnectedMoveEntryDialogBody({
   const cardPrintings = printingsByCardId.get(subject.printing.cardId) ?? [subject.printing];
   const candidatePrintings = subject.sourceKind === "printing" ? [subject.printing] : cardPrintings;
   const { data: copyRows } = useCopyRowsForPrintings(
-    candidatePrintings.map((p) => p.id),
+    candidatePrintings.map((p) => p.printingId),
     pick === "copies",
   );
-  const printingById = new Map(candidatePrintings.map((p) => [p.id, p]));
+  const printingById = new Map(candidatePrintings.map((p) => [p.printingId, p]));
   const copies: MoveEntryCopyOption[] = (copyRows ?? []).flatMap((copy) => {
     const printing = printingById.get(copy.printingId);
     if (!printing) {
@@ -276,7 +280,7 @@ export function ConnectedMoveEntryDialogBody({
       sourceIntent={subject.sourceIntent}
       target={{ name: target.listName, intent: target.listIntent }}
       pick={pick}
-      currentPrintingId={subject.printing.id}
+      currentPrintingId={subject.printing.printingId}
       printings={cardPrintings}
       copies={copies}
       quantity={subject.totalQuantity}

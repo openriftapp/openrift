@@ -7,8 +7,8 @@ import { stubPrinting } from "@/test/factories";
 
 import { entryToExcludeTarget, excludeEntryFromRules } from "./rule-exclude";
 
-const commonA: Printing = stubPrinting({ id: "p-a", cardId: "card-a", rarity: "common" });
-const rareB: Printing = stubPrinting({ id: "p-b", cardId: "card-b", rarity: "rare" });
+const commonA: Printing = stubPrinting({ printingId: "p-a", cardId: "card-a", rarity: "common" });
+const rareB: Printing = stubPrinting({ printingId: "p-b", cardId: "card-b", rarity: "rare" });
 const catalog = [commonA, rareB];
 
 function wishRule(overrides: Partial<Extract<ListRule, { kind: "wish" }>> = {}): ListRule {

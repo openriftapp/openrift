@@ -179,8 +179,8 @@ function SharedListGrid({
   const offerChoicesForPrinting = (printing: Printing): OfferablePrintingChoice[] => {
     const candidatePrintingIds =
       list.kind === "printing"
-        ? [printing.id]
-        : (printingsByCardId.get(printing.cardId) ?? []).map((candidate) => candidate.id);
+        ? [printing.printingId]
+        : (printingsByCardId.get(printing.cardId) ?? []).map((candidate) => candidate.printingId);
     return offerablePrintings(candidatePrintingIds, copyIdsByPrinting).map((entry) => ({
       printing: printingsById[entry.printingId] ?? printing,
       copyIds: entry.copyIds,
@@ -207,7 +207,7 @@ function SharedListGrid({
     if (exchange?.mode !== "request") {
       return;
     }
-    const pending = pendingByPrinting.get(printing.id);
+    const pending = pendingByPrinting.get(printing.printingId);
     if (pending === undefined) {
       setRequestPrinting(printing);
       return;
@@ -227,7 +227,7 @@ function SharedListGrid({
     if (exchange?.mode !== "request") {
       return;
     }
-    const pending = pendingByPrinting.get(printing.id);
+    const pending = pendingByPrinting.get(printing.printingId);
     if (pending === undefined) {
       return;
     }
@@ -260,7 +260,7 @@ function SharedListGrid({
   );
 
   const { data: ownedCounts } = useOwnedCountsForPrintings(
-    listPrintings.map((printing) => printing.id),
+    listPrintings.map((printing) => printing.printingId),
     exchange?.mode === "request",
   );
 
@@ -301,10 +301,11 @@ function SharedListGrid({
   const requestedItemIds = new Set<string>();
   if (view === "copies") {
     for (const sortedPrinting of sortedCards) {
-      let remainingRequested = pendingByPrinting.get(sortedPrinting.id)?.quantity ?? 0;
-      for (const entry of entriesByPrintingId.get(sortedPrinting.id) ?? []) {
+      let remainingRequested = pendingByPrinting.get(sortedPrinting.printingId)?.quantity ?? 0;
+      for (const entry of entriesByPrintingId.get(sortedPrinting.printingId) ?? []) {
         // Rule-derived copy entries have no entry id; fall back to copyId for the tile key.
-        const itemId = entry.id ?? (entry.kind === "copy" ? entry.copyId : sortedPrinting.id);
+        const itemId =
+          entry.id ?? (entry.kind === "copy" ? entry.copyId : sortedPrinting.printingId);
         items.push({ id: itemId, printing: sortedPrinting });
         entryByItemId.set(itemId, entry);
         const reserved = entry.kind === "copy" && entry.reserved;
@@ -316,10 +317,10 @@ function SharedListGrid({
     }
   } else {
     for (const sortedPrinting of sortedCards) {
-      items.push({ id: sortedPrinting.id, printing: sortedPrinting });
-      const first = entriesByPrintingId.get(sortedPrinting.id)?.[0];
+      items.push({ id: sortedPrinting.printingId, printing: sortedPrinting });
+      const first = entriesByPrintingId.get(sortedPrinting.printingId)?.[0];
       if (first) {
-        entryByItemId.set(sortedPrinting.id, first);
+        entryByItemId.set(sortedPrinting.printingId, first);
       }
     }
   }
@@ -351,18 +352,18 @@ function SharedListGrid({
     const alreadyRequested = exchange?.mode === "request" && requestedItemIds.has(item.id);
     let strip: React.ReactNode;
     if (exchange?.mode === "request") {
-      const ownedCount = ownedCounts?.totals[item.printing.id] ?? 0;
+      const ownedCount = ownedCounts?.totals[item.printing.printingId] ?? 0;
       const ownedSlot =
         ownedCount > 0 ? (
           <OwnedCollectionsPopover
-            printingId={item.printing.id}
+            printingId={item.printing.printingId}
             cardName={legendDisplayName(item.printing.card)}
             shortCode={item.printing.shortCode}
             count={ownedCount}
             align="start"
           />
         ) : undefined;
-      const wishEntries = wish.entriesForPrinting(item.printing.cardId, item.printing.id);
+      const wishEntries = wish.entriesForPrinting(item.printing.cardId, item.printing.printingId);
       const wishSlot = wishEntries.length > 0 ? <WishlistHeart entries={wishEntries} /> : undefined;
       strip = (
         <RequestStrip
@@ -518,7 +519,9 @@ function SharedListGrid({
             }}
             printing={requestPrinting}
             availableHint={
-              requestPrinting ? (entriesByPrintingId.get(requestPrinting.id)?.length ?? 1) : 1
+              requestPrinting
+                ? (entriesByPrintingId.get(requestPrinting.printingId)?.length ?? 1)
+                : 1
             }
             groupSlug={exchange.groupSlug}
             groupName={exchange.groupName}

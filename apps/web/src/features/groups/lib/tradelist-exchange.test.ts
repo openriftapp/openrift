@@ -86,7 +86,7 @@ describe("listTargetOptions", () => {
 });
 
 describe("entryForPrinting", () => {
-  const printing = { id: "printing-9", cardId: "card-9" };
+  const printing = { printingId: "printing-9", cardId: "card-9" };
 
   it("keys card-kind lists by card id", () => {
     expect(entryForPrinting("card", printing, 2)).toEqual({ cardId: "card-9", quantity: 2 });

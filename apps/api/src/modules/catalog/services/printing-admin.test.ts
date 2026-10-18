@@ -76,7 +76,7 @@ describe("updatePrintingMarkers", () => {
 
     await updatePrintingMarkers(mockTransact(trxRepos), "p-uuid", []);
 
-    expect(setForPrinting).toHaveBeenCalledWith("p-uuid", []);
+    expect(setForPrinting).toHaveBeenCalledWith("p-uuid", [], 1);
   });
 
   it("syncs markers via the join table for a non-empty slug list", async () => {
@@ -97,7 +97,7 @@ describe("updatePrintingMarkers", () => {
 
     await updatePrintingMarkers(mockTransact(trxRepos), "p-uuid", ["promo"]);
 
-    expect(setForPrinting).toHaveBeenCalledWith("p-uuid", ["m-1"]);
+    expect(setForPrinting).toHaveBeenCalledWith("p-uuid", ["m-1"], 1);
   });
 });
 
@@ -409,14 +409,17 @@ describe("acceptPrinting", () => {
       { requireNew: true },
     );
 
-    expect(findPrintingIdByIdentity).toHaveBeenCalledWith({
-      cardId: "card-uuid",
-      shortCode: "OGN-001",
-      finish: "foil",
-      size: "oversized",
-      language: "DE",
-      markerSlugs: ["promo"],
-    });
+    expect(findPrintingIdByIdentity).toHaveBeenCalledWith(
+      {
+        cardId: "card-uuid",
+        shortCode: "OGN-001",
+        finish: "foil",
+        size: "oversized",
+        language: "DE",
+        markerSlugs: ["promo"],
+      },
+      null,
+    );
   });
 
   it("keeps upserting without requireNew so ingest re-runs stay idempotent", async () => {
@@ -444,6 +447,54 @@ describe("acceptPrinting", () => {
     expect(result).toBe("existing-uuid");
     expect(findPrintingIdByIdentity).not.toHaveBeenCalled();
     expect(upsertPrinting).toHaveBeenCalledTimes(1);
+  });
+
+  it("creates a double-sided printing on an existing second face", async () => {
+    const repos = baseRepos();
+    repos.catalogMutations = {
+      ...repos.catalogMutations,
+      findFaceIdByIdentity: vi.fn(async () => undefined),
+    } as typeof repos.catalogMutations;
+    const trxRepos = withTrxExtras(repos);
+
+    await acceptPrinting(
+      mockTransact(trxRepos),
+      repos as any,
+      "card-uuid",
+      { shortCode: "SGN-T01", setId: "sgn", rarity: "common", artist: "A", publicCode: "T01" },
+      ["cp-1"],
+      io,
+      { requireNew: true, secondFaceId: "face-gold" },
+    );
+
+    expect(repos.catalogMutations.findPrintingIdByIdentity).toHaveBeenCalledWith(
+      expect.objectContaining({ shortCode: "SGN-T01" }),
+      "face-gold",
+    );
+    expect(trxRepos.catalogMutations.upsertPrinting).toHaveBeenCalledWith(
+      expect.objectContaining({ shortCode: "SGN-T01" }),
+      "face-gold",
+    );
+  });
+
+  it("rejects a second face that is the printing's own side", async () => {
+    const repos = baseRepos();
+    repos.catalogMutations = {
+      ...repos.catalogMutations,
+      findFaceIdByIdentity: vi.fn(async () => ({ id: "face-bird" })),
+    } as typeof repos.catalogMutations;
+
+    await expect(
+      acceptPrinting(
+        mockTransact(withTrxExtras(repos)),
+        repos as any,
+        "card-uuid",
+        { shortCode: "SGN-T01", setId: "sgn", rarity: "common", artist: "A", publicCode: "T01" },
+        [],
+        io,
+        { secondFaceId: "face-bird" },
+      ),
+    ).rejects.toMatchObject({ status: 400 });
   });
 
   it("creates a printing and syncs marker/channel joins", async () => {
@@ -480,7 +531,10 @@ describe("acceptPrinting", () => {
     );
 
     expect(result).toBe("p-uuid");
-    expect(trxRepos.markers.setForPrinting).toHaveBeenCalledWith("p-uuid", ["m-1"]);
+    expect(trxRepos.catalogMutations.upsertPrinting).toHaveBeenCalledWith(
+      expect.objectContaining({ markerSlugs: ["promo"] }),
+      null,
+    );
     expect(trxRepos.distributionChannels.setForPrinting).toHaveBeenCalledWith("p-uuid", [
       { channelId: "ch-1" },
     ]);

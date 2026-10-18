@@ -22,17 +22,17 @@ export function useCellDisplayState({
   inCardsView: boolean;
 }): { displayPrinting: Printing; isSelected: boolean; isFlashing: boolean } {
   const isSelected = useGridFocusStore(
-    (s) => s.selectedItemId === itemId || s.selectedItemId === printing.id,
+    (s) => s.selectedItemId === itemId || s.selectedItemId === printing.printingId,
   );
   const isFlashing = useGridFocusStore(
-    (s) => s.flashCardId === itemId || s.flashCardId === printing.id,
+    (s) => s.flashCardId === itemId || s.flashCardId === printing.printingId,
   );
   const overrideId = useSiblingOverrideStore((s) =>
     inCardsView ? s.overrides[scope].get(printing.cardId) : undefined,
   );
   const displayPrinting =
     overrideId && siblings
-      ? (siblings.find((sibling) => sibling.id === overrideId) ?? printing)
+      ? (siblings.find((sibling) => sibling.printingId === overrideId) ?? printing)
       : printing;
   return { displayPrinting, isSelected, isFlashing };
 }

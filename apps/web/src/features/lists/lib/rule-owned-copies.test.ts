@@ -12,10 +12,10 @@ describe("ownedCopiesFromCounts", () => {
 
   it("expands a count into that many rows for the printing", () => {
     const printing = stubPrinting();
-    const printingsById: Record<string, Printing> = { [printing.id]: printing };
-    const rows = ownedCopiesFromCounts({ [printing.id]: 3 }, printingsById);
+    const printingsById: Record<string, Printing> = { [printing.printingId]: printing };
+    const rows = ownedCopiesFromCounts({ [printing.printingId]: 3 }, printingsById);
     expect(rows).toHaveLength(3);
-    expect(rows.every((row) => row.printingId === printing.id)).toBe(true);
+    expect(rows.every((row) => row.printingId === printing.printingId)).toBe(true);
     expect(new Set(rows.map((row) => row.copyId)).size).toBe(3);
   });
 
@@ -28,13 +28,13 @@ describe("ownedCopiesFromCounts", () => {
 describe("ownedCopiesFromCopyList", () => {
   it("keeps a copy owned personally", () => {
     const printing = stubPrinting();
-    const copy = stubCopy({ printingId: printing.id, groupId: null });
-    const printingsById: Record<string, Printing> = { [printing.id]: printing };
+    const copy = stubCopy({ printingId: printing.printingId, groupId: null });
+    const printingsById: Record<string, Printing> = { [printing.printingId]: printing };
     const rows = ownedCopiesFromCopyList([copy], printingsById);
     expect(rows).toEqual([
       {
         copyId: copy.id,
-        printingId: printing.id,
+        printingId: printing.printingId,
         cardId: printing.cardId,
         collectionId: copy.collectionId,
         reserved: false,
@@ -44,8 +44,8 @@ describe("ownedCopiesFromCopyList", () => {
 
   it("drops a group-shared copy", () => {
     const printing = stubPrinting();
-    const copy = stubCopy({ printingId: printing.id, groupId: "group-1" });
-    const printingsById: Record<string, Printing> = { [printing.id]: printing };
+    const copy = stubCopy({ printingId: printing.printingId, groupId: "group-1" });
+    const printingsById: Record<string, Printing> = { [printing.printingId]: printing };
     expect(ownedCopiesFromCopyList([copy], printingsById)).toEqual([]);
   });
 

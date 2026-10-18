@@ -65,7 +65,7 @@ export function TradeRow({
           {/* Truncation lives on the button, not a wrapping span: a nested button
               inside a truncating span clips without an ellipsis. */}
           <CardDetailNameButton
-            printingId={printing?.id}
+            printingId={printing?.printingId}
             sequence={sequence}
             className="min-w-0 truncate font-medium"
           >

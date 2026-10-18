@@ -12,7 +12,7 @@ export function SuggestImageNotice({ printing }: { printing: Printing }) {
     <div className="@container pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
       <Link
         to="/contribute/card/$cardSlug/printing/$printingId/image"
-        params={{ cardSlug: printing.card.slug, printingId: printing.id }}
+        params={{ cardSlug: printing.card.slug, printingId: printing.printingId }}
         title={m.card_detail_suggest_image_title()}
         className="bg-background/90 hover:bg-primary group/notice pointer-events-auto flex flex-col items-center rounded-[2cqi] px-[5cqi] py-[2cqi] text-center shadow-md transition-colors"
       >

@@ -27,9 +27,11 @@ interface DeckCoverDialogProps {
   onOpenChange: (open: boolean) => void;
   cards: DeckBuilderCard[];
   coverCardId: string | null;
-  coverPrintingId: string | null;
+  coverFaceId: string | null;
   coverPosition: number | null;
   getThumbnail: (cardId: string, preferredPrintingId: string | null) => string | undefined;
+  getCoverThumbnail: (cardId: string, faceId: string | null) => string | undefined;
+  faceOf: (cardId: string, preferredPrintingId: string | null) => string | null;
 }
 
 export function DeckCoverDialog({
@@ -38,19 +40,20 @@ export function DeckCoverDialog({
   onOpenChange,
   cards,
   coverCardId,
-  coverPrintingId,
+  coverFaceId,
   coverPosition,
   getThumbnail,
+  getCoverThumbnail,
+  faceOf,
 }: DeckCoverDialogProps) {
   const { update, isPending } = useUpdateDeckMeta(deckId);
   const [draftCardId, setDraftCardId] = useState<string | null>(coverCardId);
-  const [draftPrintingId, setDraftPrintingId] = useState<string | null>(coverPrintingId);
+  const [draftFaceId, setDraftFaceId] = useState<string | null>(coverFaceId);
   const [draftPosition, setDraftPosition] = useState(coverPosition ?? DEFAULT_POSITION);
 
   // Legend-derived default is the leading tile: `cards` is passed in that order.
   const seen = new Set<string>();
-  const choices: { cardId: string; printingId: string | null; name: string; thumbnail: string }[] =
-    [];
+  const choices: { cardId: string; faceId: string | null; name: string; thumbnail: string }[] = [];
   for (const card of cards) {
     const key = `${card.cardId}|${card.preferredPrintingId ?? ""}`;
     if (seen.has(key)) {
@@ -61,14 +64,14 @@ export function DeckCoverDialog({
     if (thumbnail) {
       choices.push({
         cardId: card.cardId,
-        printingId: card.preferredPrintingId,
+        faceId: faceOf(card.cardId, card.preferredPrintingId),
         name: card.cardName,
         thumbnail,
       });
     }
   }
 
-  const draftThumb = draftCardId === null ? undefined : getThumbnail(draftCardId, draftPrintingId);
+  const draftThumb = draftCardId === null ? undefined : getCoverThumbnail(draftCardId, draftFaceId);
 
   // Measurements are frozen at pointer-down so the art tracks the cursor 1:1.
   const previewRef = useRef<HTMLImageElement>(null);
@@ -126,7 +129,7 @@ export function DeckCoverDialog({
   const handleSave = () => {
     if (draftCardId === null) {
       update(
-        { coverCardId: null, coverPrintingId: null, coverPosition: null },
+        { coverCardId: null, coverFaceId: null, coverPosition: null },
         { onSuccess: () => onOpenChange(false) },
       );
       return;
@@ -134,7 +137,7 @@ export function DeckCoverDialog({
     update(
       {
         coverCardId: draftCardId,
-        coverPrintingId: draftPrintingId,
+        coverFaceId: draftFaceId,
         coverPosition: draftPosition,
       },
       { onSuccess: () => onOpenChange(false) },
@@ -147,7 +150,7 @@ export function DeckCoverDialog({
       onOpenChange={(nextOpen) => {
         if (nextOpen) {
           setDraftCardId(coverCardId);
-          setDraftPrintingId(coverPrintingId);
+          setDraftFaceId(coverFaceId);
           setDraftPosition(coverPosition ?? DEFAULT_POSITION);
         }
         onOpenChange(nextOpen);
@@ -218,14 +221,13 @@ export function DeckCoverDialog({
               {m.decks_dialog_cover_legend_default()}
             </Pressable>
             {choices.map((choice) => {
-              const isActive =
-                draftCardId === choice.cardId && draftPrintingId === choice.printingId;
+              const isActive = draftCardId === choice.cardId && draftFaceId === choice.faceId;
               return (
                 <Pressable
-                  key={`${choice.cardId}|${choice.printingId ?? ""}`}
+                  key={`${choice.cardId}|${choice.faceId ?? ""}`}
                   onClick={() => {
                     setDraftCardId(choice.cardId);
-                    setDraftPrintingId(choice.printingId);
+                    setDraftFaceId(choice.faceId);
                   }}
                   aria-pressed={isActive}
                   className={cn(

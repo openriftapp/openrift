@@ -74,8 +74,8 @@ vi.mock("@/features/collections/components/annotated-dispose-dialog", () => ({
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { CardPageCollectionActions, ownedSummary } from "./card-page-collection-actions";
 
-const printing = stubPrinting({ id: "printing-1", cardId: "card-1" });
-const sibling = stubPrinting({ id: "printing-2", cardId: "card-1", finish: "foil" });
+const printing = stubPrinting({ printingId: "printing-1", cardId: "card-1" });
+const sibling = stubPrinting({ printingId: "printing-2", cardId: "card-1", finish: "foil" });
 
 function stubActions(overrides: Record<string, unknown> = {}) {
   return {

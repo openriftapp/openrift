@@ -54,7 +54,7 @@ export const setsRouter = {
     ]);
 
     const cardIds = [...new Set(printingRows.map((p) => p.cardId))];
-    const printingIds = printingRows.map((p) => p.id);
+    const printingIds = printingRows.map((p) => p.printingId);
     const [cardRows, banRows, errataRows, decorations] = await Promise.all([
       catalog.cardsByIds(cardIds),
       catalog.cardBansByCardIds(cardIds),

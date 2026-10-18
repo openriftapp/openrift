@@ -16,7 +16,7 @@ type StandardCheckFields = Pick<
 type FallbackCandidateFields = StandardCheckFields &
   Pick<
     Printing,
-    | "id"
+    | "printingId"
     | "cardId"
     | "language"
     | "canonicalRank"
@@ -122,9 +122,9 @@ function resolvePinnedArt<T extends FallbackCandidateFields>(
   candidates: readonly T[],
 ): StandardArtFallback<T> {
   const source = candidates.find(
-    (c) => c.id !== printing.id && c.images.some((img) => img.imageId === imageId),
+    (c) => c.printingId !== printing.printingId && c.images.some((img) => img.imageId === imageId),
   );
-  return { printing: source ?? null, image: { face: "front", imageId } };
+  return { printing: source ?? null, image: { imageId } };
 }
 
 // An admin override takes precedence over the derived search: "none"
@@ -141,7 +141,12 @@ export function findStandardArtFallback<T extends FallbackCandidateFields>(
     return resolvePinnedArt(printing.fallbackImageId, printing, candidates);
   }
   const ranked = candidates
-    .filter((c) => c.id !== printing.id && c.cardId === printing.cardId && isStandardPrinting(c))
+    .filter(
+      (c) =>
+        c.printingId !== printing.printingId &&
+        c.cardId === printing.cardId &&
+        isStandardPrinting(c),
+    )
     .toSorted((a, b) => a.canonicalRank - b.canonicalRank);
   const languages =
     printing.language === WellKnown.language.EN
@@ -152,7 +157,7 @@ export function findStandardArtFallback<T extends FallbackCandidateFields>(
       if (candidate.language !== language) {
         continue;
       }
-      const image = candidate.images.find((img) => img.face === "front");
+      const image = candidate.images[0];
       if (image) {
         return { printing: candidate, image };
       }

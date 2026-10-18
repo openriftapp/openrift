@@ -110,15 +110,20 @@ describe("useQuickAddMoveMode", () => {
   it("counts only copies outside the target, and drops reserved ones", async () => {
     const printing = stubPrinting();
     copies = [
-      stubCopy({ id: "c1", printingId: printing.id, collectionId: BINDER.id }),
-      stubCopy({ id: "c2", printingId: printing.id, collectionId: INBOX.id }),
-      stubCopy({ id: "c3", printingId: printing.id, collectionId: DECKBOX.id }),
-      stubCopy({ id: "c4", printingId: printing.id, collectionId: BINDER.id, reserved: true }),
+      stubCopy({ id: "c1", printingId: printing.printingId, collectionId: BINDER.id }),
+      stubCopy({ id: "c2", printingId: printing.printingId, collectionId: INBOX.id }),
+      stubCopy({ id: "c3", printingId: printing.printingId, collectionId: DECKBOX.id }),
+      stubCopy({
+        id: "c4",
+        printingId: printing.printingId,
+        collectionId: BINDER.id,
+        reserved: true,
+      }),
     ];
     const { result } = renderMoveMode();
 
-    expect(result.current.movableCounts?.[printing.id]).toBe(2);
-    expect(result.current.sourcesFor(printing.id).map((s) => s.collectionId)).toEqual([
+    expect(result.current.movableCounts?.[printing.printingId]).toBe(2);
+    expect(result.current.sourcesFor(printing.printingId).map((s) => s.collectionId)).toEqual([
       INBOX.id,
       BINDER.id,
     ]);
@@ -127,8 +132,8 @@ describe("useQuickAddMoveMode", () => {
   it("moves from the active source and records the move for undo", async () => {
     const printing = stubPrinting();
     copies = [
-      stubCopy({ id: "c1", printingId: printing.id, collectionId: INBOX.id }),
-      stubCopy({ id: "c2", printingId: printing.id, collectionId: BINDER.id }),
+      stubCopy({ id: "c1", printingId: printing.printingId, collectionId: INBOX.id }),
+      stubCopy({ id: "c2", printingId: printing.printingId, collectionId: BINDER.id }),
     ];
     const { result } = renderMoveMode();
 
@@ -140,14 +145,14 @@ describe("useQuickAddMoveMode", () => {
       copyIds: ["c1"],
       toCollectionId: DECKBOX.id,
     });
-    expect(result.current.movedCount(printing.id)).toBe(1);
+    expect(result.current.movedCount(printing.printingId)).toBe(1);
   });
 
   it("moves from the collection a source chip names, not the active one", async () => {
     const printing = stubPrinting();
     copies = [
-      stubCopy({ id: "c1", printingId: printing.id, collectionId: INBOX.id }),
-      stubCopy({ id: "c2", printingId: printing.id, collectionId: BINDER.id }),
+      stubCopy({ id: "c1", printingId: printing.printingId, collectionId: INBOX.id }),
+      stubCopy({ id: "c2", printingId: printing.printingId, collectionId: BINDER.id }),
     ];
     const { result } = renderMoveMode();
 
@@ -163,7 +168,7 @@ describe("useQuickAddMoveMode", () => {
 
   it("rolls the history back when the move rejects, so undo has nothing to replay", async () => {
     const printing = stubPrinting();
-    copies = [stubCopy({ id: "c1", printingId: printing.id, collectionId: INBOX.id })];
+    copies = [stubCopy({ id: "c1", printingId: printing.printingId, collectionId: INBOX.id })];
     moveMutateAsync.mockRejectedValue(new Error("This card is reserved in an active trade."));
     const { result } = renderMoveMode();
 
@@ -171,18 +176,18 @@ describe("useQuickAddMoveMode", () => {
       await result.current.moveOne(printing);
     });
 
-    expect(result.current.movedCount(printing.id)).toBe(0);
+    expect(result.current.movedCount(printing.printingId)).toBe(0);
   });
 
   it("sends the copy back where it came from, and restores the record when that rejects", async () => {
     const printing = stubPrinting();
-    copies = [stubCopy({ id: "c1", printingId: printing.id, collectionId: BINDER.id })];
+    copies = [stubCopy({ id: "c1", printingId: printing.printingId, collectionId: BINDER.id })];
     const { result } = renderMoveMode();
 
     await act(async () => {
       await result.current.moveOne(printing);
     });
-    expect(result.current.movedCount(printing.id)).toBe(1);
+    expect(result.current.movedCount(printing.printingId)).toBe(1);
 
     moveMutateAsync.mockRejectedValue(new Error("nope"));
     await act(async () => {
@@ -193,13 +198,13 @@ describe("useQuickAddMoveMode", () => {
       copyIds: ["c1"],
       toCollectionId: BINDER.id,
     });
-    expect(result.current.movedCount(printing.id)).toBe(1);
+    expect(result.current.movedCount(printing.printingId)).toBe(1);
 
     moveMutateAsync.mockResolvedValue(undefined);
     await act(async () => {
       await result.current.undoMove(printing);
     });
-    expect(result.current.movedCount(printing.id)).toBe(0);
+    expect(result.current.movedCount(printing.printingId)).toBe(0);
   });
 
   it("does nothing when there is no copy to move or nothing left to undo", async () => {

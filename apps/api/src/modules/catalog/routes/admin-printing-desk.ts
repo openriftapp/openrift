@@ -11,6 +11,7 @@ import {
   assertDeskPrintingScope,
   createDeskPrinting,
   imagesDeletableBy,
+  setDeskSecondSide,
   updateDeskPrinting,
 } from "../services/printing-desk.js";
 
@@ -93,6 +94,17 @@ export const adminPrintingDeskRouter = {
       context.userId,
       input,
     );
+  }),
+
+  setSecondSide: os.setSecondSide.handler(async ({ input, context }): Promise<void> => {
+    await setDeskSecondSide(context.repos, context.adminAccess, context.userId, input);
+  }),
+
+  removeSecondSide: os.removeSecondSide.handler(async ({ input, context }): Promise<void> => {
+    await setDeskSecondSide(context.repos, context.adminAccess, context.userId, {
+      printingId: input.printingId,
+      faceId: null,
+    });
   }),
 
   updateImage: os.updateImage.handler(async ({ input, context }): Promise<void> => {

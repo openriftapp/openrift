@@ -8,19 +8,23 @@ import { EMPTY_TRADE_PREFERENCE, stubPrinting } from "@/test/factories";
 
 // "Vi" has a normal and a foil printing so the card-kind resolution path
 // has more than one candidate to pick from.
-const viNormal = stubPrinting({ id: "p-vi", cardId: "card-vi", card: { name: "Vi" } });
+const viNormal = stubPrinting({ printingId: "p-vi", cardId: "card-vi", card: { name: "Vi" } });
 const viFoil = stubPrinting({
-  id: "p-vi-foil",
+  printingId: "p-vi-foil",
   cardId: "card-vi",
   finish: "foil",
   card: { name: "Vi" },
 });
-const jinx = stubPrinting({ id: "p-jinx", cardId: "card-jinx", card: { name: "Jinx" } });
+const jinx = stubPrinting({ printingId: "p-jinx", cardId: "card-jinx", card: { name: "Jinx" } });
 
 vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({
     allPrintings: [viNormal, viFoil, jinx],
-    printingsById: { [viNormal.id]: viNormal, [viFoil.id]: viFoil, [jinx.id]: jinx },
+    printingsById: {
+      [viNormal.printingId]: viNormal,
+      [viFoil.printingId]: viFoil,
+      [jinx.printingId]: jinx,
+    },
     printingsByCardId: new Map<string, Printing[]>([
       ["card-vi", [viNormal, viFoil]],
       ["card-jinx", [jinx]],
@@ -68,7 +72,7 @@ function printingEntry(id: string, printing: Printing, printingId?: string) {
     ...baseEntry,
     id,
     kind: "printing",
-    printingId: printingId ?? printing.id,
+    printingId: printingId ?? printing.printingId,
     cardName: printing.card.name,
     ...printingFields(printing),
   } satisfies ListEntryDetailResponse;

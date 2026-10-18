@@ -24,7 +24,7 @@ export const Route = createFileRoute(
       ...cardDetailQueryOptions(params.cardSlug),
       staleTime: "static",
     });
-    if (!data.printings.some((p) => p.id === params.printingId)) {
+    if (!data.printings.some((p) => p.printingId === params.printingId)) {
       throw notFound();
     }
   },

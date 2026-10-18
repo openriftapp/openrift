@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { PlusSquareIcon } from "lucide-react";
 import { Suspense, useState } from "react";
@@ -118,7 +119,7 @@ function OfferBody({
 
   const existingMatch = matches.othersWantYourHaves.find(
     (row) =>
-      row.printingId === chosenPrinting.printing.id &&
+      row.printingId === chosenPrinting.printing.printingId &&
       row.counterpartyUserId === counterpartyUserId,
   );
 
@@ -171,7 +172,7 @@ function OfferBody({
         groupSlug,
         counterpartyUserId,
         role: "giver",
-        printingId: chosenPrinting.printing.id,
+        printingId: chosenPrinting.printing.printingId,
         quantity: effectiveQuantity,
       });
       toast.success(m.trades_offered_toast({ card: cardName, name: counterpartyName }));
@@ -194,7 +195,7 @@ function OfferBody({
         >
           {choices.map((choice, index) => (
             <RadioOptionRow
-              key={choice.printing.id}
+              key={sideKey(choice.printing)}
               value={String(index)}
               title={choice.printing.shortCode}
               meta={

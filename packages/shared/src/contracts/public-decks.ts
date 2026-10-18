@@ -43,7 +43,7 @@ export const publicDeckResponseSchema = z.object({
   updatedAt: z.string(),
   oddsConfig: deckOddsConfigSchema.nullable(),
   coverCardId: z.string().nullable(),
-  coverPrintingId: z.string().nullable(),
+  coverFaceId: z.string().nullable(),
   coverPosition: z.number().int().nullable(),
   links: z.array(deckLinkSchema),
 });

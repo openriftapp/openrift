@@ -143,7 +143,9 @@ export function useCollectionGridSelection({
 
   const handleSiblingClick = (printing: Printing) => {
     handleGridCardClick(printing);
-    useSiblingOverrideStore.getState().setOverride("collection", printing.cardId, printing.id);
+    useSiblingOverrideStore
+      .getState()
+      .setOverride("collection", printing.cardId, printing.printingId);
   };
 
   const toggleStackForItem = (itemId: string, stack: StackedEntry) => {
@@ -199,7 +201,7 @@ export function useCollectionGridSelection({
     // Lend targets one printing, never the multi-selection: a loan row is a
     // single printing + quantity.
     if (action === "lend") {
-      const lendStack = (printing && stackByPrintingId.get(printing.id)) ?? stack;
+      const lendStack = (printing && stackByPrintingId.get(printing.printingId)) ?? stack;
       setLendTarget({
         printing: lendStack.printing,
         maxQuantity: stacked ? lendStack.copyIds.length : 1,

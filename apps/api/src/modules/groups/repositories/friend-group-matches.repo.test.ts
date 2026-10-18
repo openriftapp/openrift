@@ -108,7 +108,7 @@ function makeCatalogPrinting(
   overrides: { type?: string; keywords?: string[]; artVariant?: string } = {},
 ): Printing {
   return makePrinting({
-    id,
+    printingId: id,
     cardId,
     shortCode: id,
     artVariant: overrides.artVariant,
@@ -204,7 +204,7 @@ function demandEntry(overrides: Record<string, unknown> = {}): Record<string, un
 }
 
 function copyRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-  return {
+  const row: Record<string, unknown> = {
     id: "cp-1",
     printingId: "prt-1",
     cardId: "crd-1",
@@ -218,6 +218,7 @@ function copyRow(overrides: Record<string, unknown> = {}): Record<string, unknow
     notesPublic: null,
     ...overrides,
   };
+  return { cardIds: [row.cardId], ...row };
 }
 
 function userRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -314,6 +315,16 @@ describe("friendGroupMatchesRepo (ADR-034 app-level matcher)", () => {
     const rows = await repo.othersHaveYourWants({ groupId: "g", viewerUserId: "viewer" });
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ condition: null, grader: "psa", grade: 9 });
+  });
+
+  it("matches a wish for the card on a double-sided copy's other side", async () => {
+    const repo = friendGroupMatchesRepo(
+      makeDb(baselineQueues({ copy: { cardId: "crd-bird", cardIds: ["crd-bird", "crd-1"] } })),
+      PROVIDERS,
+    );
+    const rows = await repo.othersHaveYourWants({ groupId: "g", viewerUserId: "viewer" });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ cardId: "crd-1", printingId: "prt-1" });
   });
 
   it("never matches the viewer with themselves", async () => {

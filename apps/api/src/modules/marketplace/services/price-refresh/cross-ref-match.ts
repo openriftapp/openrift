@@ -23,7 +23,7 @@ type PriceMatchPrinting = Awaited<
 
 function printingIdentity(p: PriceMatchPrinting): string {
   const slugKey = [...p.markerSlugs].sort().join(",");
-  return `${p.cardId}|${p.setId}|${p.shortCode}|${p.finish}|${p.artVariant}|${p.isSigned}|${p.isOvernumbered}|${slugKey}`;
+  return `${p.cardId}|${p.setId}|${p.shortCode}|${p.face2ShortCode ?? ""}|${p.finish}|${p.artVariant}|${p.isSigned}|${p.isOvernumbered}|${slugKey}`;
 }
 
 /**

@@ -17,6 +17,6 @@ export function usePrintingChoices(
     return allPrintings;
   }
   return allPrintings.filter(
-    (printing) => languages.includes(printing.language) || printing.id === pinnedPrintingId,
+    (printing) => languages.includes(printing.language) || printing.printingId === pinnedPrintingId,
   );
 }

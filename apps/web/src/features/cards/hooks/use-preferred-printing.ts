@@ -13,6 +13,8 @@ interface PreferredPrintingHelpers {
     cardId: string,
     preferredPrintingId?: string | null,
   ) => PrintingImage | undefined;
+  getFaceImage: (cardId: string, faceId?: string | null) => PrintingImage | undefined;
+  faceOf: (cardId: string, printingId?: string | null) => string | null;
 }
 
 export function usePreferredPrinting(): PreferredPrintingHelpers {
@@ -30,7 +32,7 @@ export function usePreferredPrinting(): PreferredPrintingHelpers {
       return undefined;
     }
     if (preferredPrintingId) {
-      const match = candidates.find((p) => p.id === preferredPrintingId);
+      const match = candidates.find((p) => p.printingId === preferredPrintingId);
       if (match) {
         return match;
       }
@@ -43,8 +45,18 @@ export function usePreferredPrinting(): PreferredPrintingHelpers {
     preferredPrintingId?: string | null,
   ): PrintingImage | undefined => {
     const printing = getPreferredPrinting(cardId, preferredPrintingId);
-    return printing?.images.find((img) => img.face === "front");
+    return printing?.images[0];
   };
 
-  return { getPreferredPrinting, getPreferredFrontImage };
+  const getFaceImage = (cardId: string, faceId?: string | null): PrintingImage | undefined => {
+    const side = faceId
+      ? printingsByCardId.get(cardId)?.find((candidate) => candidate.faceId === faceId)
+      : undefined;
+    return side?.images[0] ?? getPreferredFrontImage(cardId);
+  };
+
+  const faceOf = (cardId: string, printingId?: string | null): string | null =>
+    getPreferredPrinting(cardId, printingId)?.faceId ?? null;
+
+  return { getPreferredPrinting, getPreferredFrontImage, getFaceImage, faceOf };
 }

@@ -43,7 +43,7 @@ export function tierRowsToQueue(
       view.printing
         ? [
             {
-              id: stopId(rowIndex, position, view.printing.id),
+              id: stopId(rowIndex, position, view.printing.printingId),
               printing: view.printing,
               contextLabel: row.label,
               rowIndex,
@@ -86,7 +86,7 @@ export function revealedRows(
   return rows.map((row, rowIndex) => ({
     ...row,
     cards: row.cards.filter((view, position) =>
-      view.printing ? placed.has(stopId(rowIndex, position, view.printing.id)) : false,
+      view.printing ? placed.has(stopId(rowIndex, position, view.printing.printingId)) : false,
     ),
   }));
 }
@@ -107,7 +107,7 @@ export function resolveTierRows(
       }
       const printings = printingsByCardId.get(entry.cardId);
       const pinned = entry.printingId
-        ? printings?.find((printing) => printing.id === entry.printingId)
+        ? printings?.find((printing) => printing.printingId === entry.printingId)
         : undefined;
       return [
         {

@@ -1021,7 +1021,9 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       const printing = await db
         .selectFrom("faces")
         .select(["id", "rarity", "artist"])
-        .where("id", "=", json.printingId)
+        .where("id", "=", (eb) =>
+          eb.selectFrom("printings").select("face1Id").where("id", "=", json.printingId),
+        )
         .executeTakeFirst();
       expect(printing).toBeDefined();
       // oxlint-disable-next-line typescript/no-non-null-assertion -- asserted above
@@ -1129,7 +1131,9 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       const p = await db
         .selectFrom("faces")
         .select(["isSigned", "markerSlugs"])
-        .where("id", "=", json.printingId)
+        .where("id", "=", (eb) =>
+          eb.selectFrom("printings").select("face1Id").where("id", "=", json.printingId),
+        )
         .executeTakeFirstOrThrow();
       expect(p.isSigned).toBe(true);
       expect(p.markerSlugs).toEqual([PROMO_MARKER_SLUG]);

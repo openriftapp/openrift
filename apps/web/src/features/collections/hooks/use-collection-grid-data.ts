@@ -77,7 +77,7 @@ export function useCollectionGridData({
   const personalCardTotals: Record<string, number> = {};
   if (isGroupCollection && ownedCountByPrinting) {
     for (const printing of allPrintings) {
-      const owned = ownedCountByPrinting[printing.id];
+      const owned = ownedCountByPrinting[printing.printingId];
       if (owned) {
         personalCardTotals[printing.cardId] = (personalCardTotals[printing.cardId] ?? 0) + owned;
       }
@@ -176,7 +176,7 @@ export function useCollectionGridData({
     ? activeSortedCards.filter((printing) =>
         dataView === "cards"
           ? boxWants.wantsCard(wantedBoxId, printing.cardId)
-          : boxWants.fulfillable(wantedBoxId, printing.id) > 0,
+          : boxWants.fulfillable(wantedBoxId, printing.printingId) > 0,
       )
     : activeSortedCards;
   const printingsByCardId = showLibrary ? catalogPrintingsByCardId : collectionPrintingsByCardId;

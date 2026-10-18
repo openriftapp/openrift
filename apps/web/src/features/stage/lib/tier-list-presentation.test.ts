@@ -9,7 +9,7 @@ function view(cardId: string, withPrinting = true): TierCardView {
   return {
     cardId,
     card: stubCard({ name: cardId }),
-    printing: withPrinting ? stubPrinting({ id: `p-${cardId}`, cardId }) : undefined,
+    printing: withPrinting ? stubPrinting({ printingId: `p-${cardId}`, cardId }) : undefined,
     pinnedPrintingId: null,
   };
 }
@@ -24,7 +24,7 @@ describe("tierRowsToQueue", () => {
 
     const queue = tierRowsToQueue(rows);
 
-    expect(queue.map((stop) => stop.printing.id)).toEqual(["p-a", "p-b", "p-c"]);
+    expect(queue.map((stop) => stop.printing.printingId)).toEqual(["p-a", "p-b", "p-c"]);
   });
 
   it("carries the tier label as the corner marker's context", () => {
@@ -40,7 +40,7 @@ describe("tierRowsToQueue", () => {
 
     const queue = tierRowsToQueue(rows, "worst-first");
 
-    expect(queue.map((stop) => stop.printing.id)).toEqual(["p-c", "p-b", "p-a"]);
+    expect(queue.map((stop) => stop.printing.printingId)).toEqual(["p-c", "p-b", "p-a"]);
   });
 
   it("keeps board coordinates when the run climbs, so cards still place by rank", () => {
@@ -56,7 +56,7 @@ describe("tierRowsToQueue", () => {
 
     const queue = tierRowsToQueue(rows);
 
-    expect(queue.map((stop) => stop.printing.id)).toEqual(["p-a"]);
+    expect(queue.map((stop) => stop.printing.printingId)).toEqual(["p-a"]);
   });
 
   it("gives every stop a distinct id", () => {

@@ -38,12 +38,12 @@ export function CardPageCollectionActions({
   const { inbox, canAdd, addCopy, removeCopy, wish, setWishTarget, hosts } =
     useCardDetailActionHost({ printingsByCardId, enabled });
 
-  const siblingIds = siblings.map((sibling) => sibling.id);
+  const siblingIds = siblings.map((sibling) => sibling.printingId);
   const {
     count: ownedCount,
     totalCount,
     total: cardTotal,
-  } = useTileOwnedCounts(printing.id, siblingIds, enabled);
+  } = useTileOwnedCounts(printing.printingId, siblingIds, enabled);
   const cardName = legendDisplayName(printing.card);
 
   return (
@@ -54,7 +54,7 @@ export function CardPageCollectionActions({
           <p className="text-muted-foreground text-sm">{ownedSummary(ownedCount, cardTotal)}</p>
           <div className="flex shrink-0 items-center gap-2">
             <WishlistButton
-              entries={wish.entriesForPrinting(printing.cardId, printing.id)}
+              entries={wish.entriesForPrinting(printing.cardId, printing.printingId)}
               cardName={cardName}
               onAdd={() => setWishTarget(printing)}
               align="end"

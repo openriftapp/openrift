@@ -90,7 +90,7 @@ D. **Keep `printings` (narrowed schema); introduce `faces` as internal-only.** N
 - Good, because existing printing URLs carry over unchanged: no current slug is shared by two cards, so the per-card slugs are already unique across the catalog.
 - Good, because attributes live at their correct level: gameplay properties on `cards`, printed-side properties on `faces`, physical-product properties on `printings`, ownership on `copies`.
 - Bad, because a face is shared mutable state: an edit to SGN-T01 Bird changes two physical cards. Intended, but the admin pages must show every printing a face is on.
-- Bad, because the database no longer guarantees that a deck slot's preferred printing carries the slot's card. The deck write path checks it, and the read path falls back to the default printing on a mismatch.
+- Bad, because a trigger on `deck_cards`, not a foreign key, guarantees that a deck slot's preferred printing shows the slot's card.
 - Bad, because "faces of a printing" reads two columns, so queries union or join twice.
 - Bad, because `printings` keeps its name but most of its columns move down to `faces`: developers with the old mental model will reach for `printings.short_code` and find it gone.
 - Bad, because the client dataset shape changes to one entry per printing side, and any surface that counts printings must count distinct `printing_id`.
@@ -164,7 +164,7 @@ Printing URLs stay `/cards/$cardSlug/$printingSlug`:
 
 - `printings.slug` is `UNIQUE` across the catalog and replaces `uq_printings_card_slug`. A double-sided printing has one slug, valid under each of its cards: P2 Bird // Gold is `/cards/bird/<slug>` and `/cards/gold/<slug>`.
 - The route resolves the slug to a printing and checks that the card is on one of its faces. Any other combination, an unknown slug included, 301s to the bare card page, as an unknown slug does now.
-- `printings_set_slug` keeps generating slugs. The base joins language, the faces' collector codes in display order, physical finish, markers and size (`en-unl-t02-unl-t05-normal-standard` for a double-sided printing, today's form for a single-sided one), with the existing `-2` suffix on collision.
+- `printings_set_slug` generates the slug on insert and again when a printing's faces change. The base joins language, the faces' collector codes in display order, physical finish, markers and size (`en-unl-t02-unl-t05-normal-standard` for a double-sided printing, today's form for a single-sided one), with the existing `-2` suffix on collision.
 - Printing URLs are not canonical (the canonical URL and the sitemap use the bare card page), so a slug that goes away costs a redirect, not a search listing.
 
 ### Image storage
@@ -177,6 +177,8 @@ ADR-009 ships the catalog to the browser and filters client-side, today as one e
 
 - A single-sided printing produces exactly today's entry.
 - A double-sided printing produces two entries, each carrying its face's printed attributes plus the pairing (the shared `printing_id`, the paired card's name, its display position, and the printing slug).
+- An entry has no `id`. It carries `printingId`, `side` (1 or 2), `faceId` and, when double-sided, `otherSide` (the other side's card and image). Lookups by printing id answer with side 1, list keys use the side key (`<printingId>` or `<printingId>:2`), and a lookup that knows the card picks the side showing it.
+- On the wire the catalog map stays keyed by printing id. The value holds side 1 and nests side 2 as `side2` with only its printed attributes; `faceId` is omitted when it equals the printing id, which holds for every printing created as single-sided, so single-sided printings cost no extra bytes. Endpoints that return arrays send one element per side with `otherSide` filled in by the server.
 - Filters (language, rarity, finish, ...) keep operating per entry unchanged, and both sides become searchable, which is requirement 1.
 - Owned counts key on `printing_id`, so both entries of one printing show the same count. Any surface that counts printings, copies or value (stats, totals, "N printings" badges, collection value) must count distinct `printing_id`, not entries.
 
@@ -211,10 +213,10 @@ What changes for users:
 
 - **Cards list page**: unchanged.
 - **Card detail page**: the printings list annotates double-sided printings with their pairing.
-- **Add printing flow**: pick or create the first face, optionally pick or create a second. Single-sided printings collapse to one screen, visually almost identical to today. Picking an existing face is how a recurring side is reused.
+- **Add printing flow**: the form creates the printing's own side and can pick an existing side, by its code, as the second. Single-sided printings look as before. Picking an existing face is how a recurring side is reused. A second side that does not exist yet is added as a printing of its card first.
 - **Printing detail page**: for two-faced printings, renders both sides with their own face-edit panels. Each panel lists the other printings that share the face.
 - **Printing Desk (ADR-047) and the card admin pages**: edit printed attributes per face and physical attributes per printing.
-- **Candidate review queue**: `candidate_printings` keeps one row per source product. A candidate whose name contains " // " is offered as one two-faced printing, and the reviewer confirms or edits each side's code and finish before accepting. A "pair candidates" action combines two single-side candidates the same way.
+- **Candidate review queue**: `candidate_printings` keeps one row per source product. "Add double-sided" accepts a candidate as a printing whose other side is an existing side picked by its code, which is how a candidate named "Bird // Gold" is accepted.
 
 ## Pros and Cons of the Options
 
@@ -294,7 +296,7 @@ Constraints worth specifying at schema time:
 
 ## Migration shape
 
-Two separate changes. The schema migration is mechanical and changes no behaviour; the pair merge is a data migration that needs curated input.
+Three separate changes. The schema migration is mechanical and changes no behaviour. The double-sided features make the code handle two sides. The pair merge is a data migration that needs curated input.
 
 ### Schema migration
 
@@ -306,7 +308,17 @@ Two separate changes. The schema migration is mechanical and changes no behaviou
 6. Update repositories (`apps/api/src/modules/*/repositories/`), server functions, route handlers and `packages/shared` types to read through `faces`.
 7. Regenerate `docs/schema.sql` (`bun db:schema`).
 
-After this every printing has one face, so the catalog payload and every page behave as before. The payload change to one entry per printing side, `decks.cover_printing_id` becoming `cover_face_id`, the pairing annotation, the two-side printing detail and the admin pairing flows follow in their own changes. The cover moves with the payload because the client picks covers from catalog entries, which carry no face id yet.
+After this every printing has one face, so the catalog payload and every page behave as before.
+
+### Double-sided features
+
+1. The catalog payload and every array endpoint switch to one entry per printing side, as described under Client dataset shape.
+2. `decks.cover_printing_id` becomes `cover_face_id`, backfilled from the face of the cover printing that shows the cover card. `(cover_face_id, cover_card_id)` references `faces (id, card_id)`.
+3. A `deck_cards` trigger rejects a preferred printing that does not show the slot's card on a face.
+4. `printings_set_slug` regenerates the slug when a printing's faces change.
+5. Matching goes through both faces: trade matching, list moves, owned counts per card and collection completion count a double-sided copy for the card on each side, and once for a card on both sides.
+6. Card pages annotate double-sided printings, and the card page links to the other side.
+7. The Printing Desk and the candidate queue create double-sided printings by picking an existing side as the second side. The desk edits each side in its own panel and lists the other printings that show it.
 
 ### Pair merge
 
@@ -335,7 +347,7 @@ Afterwards every printing is a physical card that exists, and no single-sided to
 Every `printing_id` consumer in today's schema:
 
 - **Stay per-physical, keyed on `printing_id`, untouched:** `copies`, `collection_events`, `list_entries`, `product_printings`, `marketplace_product_variants` (and through it `marketplace_product_prices`, `marketplace_product_card_overrides`), `printing_link_overrides`, `printing_sources`, `printing_distribution_channels`, `printing_events`, `printing_citations`, `cardmarket_sync_state`, `trade_suggestion_dismissals`, `meta_event_player_overlay_cards.preferred_printing_id`.
-- **Card and printing as separate FKs:** `deck_cards`. The card is the slot (legality, copy limits, missing counts); the printing is the user's optional preferred version, which drives the slot's price and splits a slot by version. `card_id → cards` and `preferred_printing_id → printings` stay; the composite `fk_deck_cards_printing_card` goes. The deck write path rejects a preferred printing without the slot's card on a face, and `use-deck-ownership.ts` already falls back to the default printing when the preferred one is not among the card's printings.
+- **Card and printing as separate FKs:** `deck_cards`. The card is the slot (legality, copy limits, missing counts); the printing is the user's optional preferred version, which drives the slot's price and splits a slot by version. `card_id → cards` and `preferred_printing_id → printings` stay; the composite `fk_deck_cards_printing_card` goes. A trigger on `deck_cards` rejects a preferred printing without the slot's card on a face, and `use-deck-ownership.ts` already falls back to the default printing when the preferred one is not among the card's printings.
 - **Printing replaced by a face:** `decks.cover_printing_id` becomes `cover_face_id`. The cover is an image, and a face determines both its art and its card. `(cover_face_id, cover_card_id)` references `faces (id, card_id)`; a null face means the card's default art.
 - **Printing dropped, computed at read time:** `deck_check_entry_cards.resolved_printing_id`. Nobody chooses it: card resolution stores the card's canonical printing as a thumbnail. The legend fan and the meta archive handoff (`authenticated-tournament-archive-lists.ts`, which passes it on as the preferred printing) look up the canonical printing of `resolved_card_id` when they read.
 - **Per-physical, `card_id` dropped:** `loans`, `card_trades`. Their `card_id` is copied from `printings.card_id` when the row is written. A Bird // Gold printing is both a Bird and a Gold, so one stored card undercounts it. Borrowed counts per card (`borrowedCountByCard`) and trade matching against card wants (`friend-group-matches-view.ts`, keyed on the supply printing's card) go through the printing's faces. The wish a trade fulfils stays reachable through `receiver_wish_entry_id`.

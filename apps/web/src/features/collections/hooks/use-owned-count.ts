@@ -65,7 +65,7 @@ export function aggregateScopedTotals(
 } {
   const allTotals = aggregateTotals(copies);
   let allTotal = 0;
-  for (const id of printingIds) {
+  for (const id of new Set(printingIds)) {
     allTotal += allTotals[id] ?? 0;
   }
   if (collectionId === undefined) {
@@ -78,7 +78,7 @@ export function aggregateScopedTotals(
     }
   }
   let total = 0;
-  for (const id of printingIds) {
+  for (const id of new Set(printingIds)) {
     total += totals[id] ?? 0;
   }
   return { totals, total, allTotals, allTotal };
@@ -335,7 +335,7 @@ export function useOwnedCollections(
 }
 
 export interface OwnedBreakdownVariant {
-  id: string;
+  printingId: string;
   shortCode: string;
   finish: Finish;
 }
@@ -355,7 +355,7 @@ export function aggregateByVariant(
 ): VariantCollectionBreakdownEntry[] {
   const buckets = new Map<string, Map<string, number>>();
   for (const variant of variants) {
-    buckets.set(variant.id, new Map());
+    buckets.set(variant.printingId, new Map());
   }
   for (const copy of copies) {
     if (copy.groupId !== null && copy.collectionId !== viewCollectionId) {
@@ -369,7 +369,7 @@ export function aggregateByVariant(
   }
   const result: VariantCollectionBreakdownEntry[] = [];
   for (const variant of variants) {
-    const bucket = buckets.get(variant.id);
+    const bucket = buckets.get(variant.printingId);
     if (!bucket || bucket.size === 0) {
       continue;
     }
@@ -382,7 +382,7 @@ export function aggregateByVariant(
       });
     }
     result.push({
-      printingId: variant.id,
+      printingId: variant.printingId,
       shortCode: variant.shortCode,
       finish: variant.finish,
       collections,

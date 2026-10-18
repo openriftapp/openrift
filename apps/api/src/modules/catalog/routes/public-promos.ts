@@ -41,7 +41,7 @@ export const promosRouter = {
     const printingRows = allPrintingRows.filter((p) => p.language === input.language);
 
     const cardIds = [...new Set(printingRows.map((p) => p.cardId))];
-    const printingIds = printingRows.map((p) => p.id);
+    const printingIds = printingRows.map((p) => p.printingId);
     const referencedSetIds = new Set(printingRows.map((p) => p.setId));
     const sets = allSets.filter((set) => referencedSetIds.has(set.id));
 

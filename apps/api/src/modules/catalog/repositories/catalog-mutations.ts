@@ -59,8 +59,10 @@ const FACE_FIELDS = new Set<string>([
 export type FullPrintingRow = Selectable<PrintingsTable> &
   Omit<Selectable<FacesTable>, "id" | "createdAt" | "updatedAt" | "comment">;
 
-export function selectFullPrintings(db: Kysely<Database>) {
-  return withFace1(db.selectFrom("printings as p"))
+export function selectFullPrintings(db: Kysely<Database>, side: 1 | 2 = 1) {
+  return db
+    .selectFrom("printings as p")
+    .innerJoin("faces as pf", "pf.id", side === 1 ? "p.face1Id" : "p.face2Id")
     .selectAll("p")
     .select([
       "pf.cardId",
@@ -85,10 +87,11 @@ export function selectFullPrintings(db: Kysely<Database>) {
     ]);
 }
 
-export async function updatePrintingAndFace1(
+export async function updatePrintingAndFace(
   db: Kysely<Database>,
   id: string,
   updates: PrintingUpdate,
+  side: 1 | 2 = 1,
 ): Promise<void> {
   const printingUpdates: Record<string, unknown> = {};
   const faceUpdates: Record<string, unknown> = {};
@@ -101,11 +104,20 @@ export async function updatePrintingAndFace1(
   if (Object.keys(faceUpdates).length > 0) {
     const row = await db
       .selectFrom("printings")
-      .select("face1Id")
+      .select(["face1Id", "face2Id"])
       .where("id", "=", id)
       .executeTakeFirst();
-    if (row) {
-      await db.updateTable("faces").set(faceUpdates).where("id", "=", row.face1Id).execute();
+    const faceId = side === 1 ? row?.face1Id : row?.face2Id;
+    if (faceId) {
+      await db.updateTable("faces").set(faceUpdates).where("id", "=", faceId).execute();
+      if ("shortCode" in faceUpdates) {
+        // The display-order trigger fires on face columns only; touching them re-sorts the sides.
+        await db
+          .updateTable("printings")
+          .set((eb) => ({ face1Id: eb.ref("face1Id") }))
+          .where((eb) => eb.or([eb("face1Id", "=", faceId), eb("face2Id", "=", faceId)]))
+          .execute();
+      }
     }
   }
 }
@@ -125,24 +137,49 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       .executeTakeFirst();
   }
 
+  /** Matches the pair in either order: the display-order trigger may have swapped it. */
+  function findPrintingIdByFaces(
+    faceId: string,
+    secondFaceId: string | null,
+    size: string,
+  ): Promise<{ id: string } | undefined> {
+    return db
+      .selectFrom("printings")
+      .select("id")
+      .where("size", "=", size)
+      .where((eb) =>
+        secondFaceId === null
+          ? eb.and([eb("face1Id", "=", faceId), eb("face2Id", "is", null)])
+          : eb.or([
+              eb.and([eb("face1Id", "=", faceId), eb("face2Id", "=", secondFaceId)]),
+              eb.and([eb("face1Id", "=", secondFaceId), eb("face2Id", "=", faceId)]),
+            ]),
+      )
+      .executeTakeFirst();
+  }
+
   async function findPrintingIdByIdentity(
     identity: PrintingIdentity,
+    secondFaceId: string | null = null,
   ): Promise<{ id: string } | undefined> {
     const face = await findFaceIdByIdentity(identity);
     if (!face) {
       return undefined;
     }
-    return db
-      .selectFrom("printings")
-      .select("id")
-      .where("face1Id", "=", face.id)
-      .where("face2Id", "is", null)
-      .where("size", "=", identity.size)
-      .executeTakeFirst();
+    return findPrintingIdByFaces(face.id, secondFaceId, identity.size);
   }
 
   function updatePrintingById(id: string, updates: PrintingUpdate): Promise<void> {
-    return updatePrintingAndFace1(db, id, updates);
+    return updatePrintingAndFace(db, id, updates);
+  }
+
+  async function updateFaceById(id: string, updates: Updateable<FacesTable>): Promise<boolean> {
+    const result = await db
+      .updateTable("faces")
+      .set(updates)
+      .where("id", "=", id)
+      .executeTakeFirst();
+    return result.numUpdatedRows > 0n;
   }
 
   function facesOnlyOn(printingIds: string[]) {
@@ -183,6 +220,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
 
   return {
     findPrintingIdByIdentity,
+    findFaceIdByIdentity,
 
     getPrintingDifferentiatorsById(id: string) {
       return withFace1(db.selectFrom("printings as p"))
@@ -404,6 +442,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
     },
 
     updatePrintingById,
+    updateFaceById,
 
     /**
      * `field` is constrained to a real column so a caller's field allowlist is
@@ -433,26 +472,29 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
     },
 
     // Select-then-write: the identity constraints are DEFERRABLE, which ON CONFLICT rejects as arbiters.
-    async upsertPrinting(values: {
-      cardId: string;
-      setId: string;
-      shortCode: string;
-      rarity: Rarity;
-      artVariant: ArtVariant;
-      isSigned: boolean;
-      isOvernumbered: boolean;
-      markerSlugs: string[];
-      finish: Finish;
-      size: CardSize;
-      artist: string;
-      publicCode: string;
-      printedRulesText: string | null;
-      printedEffectText: string | null;
-      flavorText: string | null;
-      language: string;
-      printedName: string | null;
-      printedYear: number | null;
-    }): Promise<string> {
+    async upsertPrinting(
+      values: {
+        cardId: string;
+        setId: string;
+        shortCode: string;
+        rarity: Rarity;
+        artVariant: ArtVariant;
+        isSigned: boolean;
+        isOvernumbered: boolean;
+        markerSlugs: string[];
+        finish: Finish;
+        size: CardSize;
+        artist: string;
+        publicCode: string;
+        printedRulesText: string | null;
+        printedEffectText: string | null;
+        flavorText: string | null;
+        language: string;
+        printedName: string | null;
+        printedYear: number | null;
+      },
+      secondFaceId: string | null = null,
+    ): Promise<string> {
       const { size, ...faceValues } = values;
       const existingFace = await findFaceIdByIdentity(values);
       let faceId: string;
@@ -479,19 +521,13 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
           .executeTakeFirstOrThrow();
         faceId = inserted.id;
       }
-      const existing = await db
-        .selectFrom("printings")
-        .select("id")
-        .where("face1Id", "=", faceId)
-        .where("face2Id", "is", null)
-        .where("size", "=", size)
-        .executeTakeFirst();
+      const existing = await findPrintingIdByFaces(faceId, secondFaceId, size);
       if (existing) {
         return existing.id;
       }
       const result = await db
         .insertInto("printings")
-        .values({ face1Id: faceId, size })
+        .values({ face1Id: faceId, face2Id: secondFaceId, size })
         .returning("id")
         .executeTakeFirstOrThrow();
       return result.id;

@@ -1,5 +1,6 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageUrl } from "@openrift/shared/image-url";
+import { sideKey } from "@openrift/shared/printing-side";
 import { WellKnown } from "@openrift/shared/well-known";
 import { ImageOffIcon } from "lucide-react";
 import { useState } from "react";
@@ -31,7 +32,7 @@ import { m } from "@/paraglide/messages.js";
 import { useSelectionStore } from "@/stores/selection-store";
 
 function tokenImageUrl(entry: DeckTokenEntry, size: "120w" | "400w"): string | undefined {
-  const front = entry.printing.images.find((image) => image.face === "front");
+  const front = entry.printing.images[0];
   return front ? imageUrl(front.imageId, size) : undefined;
 }
 
@@ -61,13 +62,16 @@ function TokenThumb({
   const isLandscape = entry.card.types.includes(WellKnown.cardType.BATTLEFIELD);
   // Tokens have no zone, so a null selected zone with a matching printing means this thumb.
   const isSelected = useSelectionStore(
-    (state) => state.selectedZone === null && state.selectedCard?.id === entry.printing.id,
+    (state) =>
+      state.selectedZone === null &&
+      state.selectedCard !== null &&
+      sideKey(state.selectedCard) === sideKey(entry.printing),
   );
 
   return (
     <div
       {...rowActivateProps(onSelect)}
-      onMouseEnter={() => onHoverCard?.(entry.printing.cardId, entry.printing.id)}
+      onMouseEnter={() => onHoverCard?.(entry.printing.cardId, entry.printing.printingId)}
       onMouseLeave={() => onHoverCard?.(null)}
       title={tokenTitle(entry)}
       style={{
@@ -115,7 +119,7 @@ function TokenRow({
   return (
     <div
       {...rowActivateProps(onSelect)}
-      onMouseEnter={() => onHoverCard?.(entry.printing.cardId, entry.printing.id)}
+      onMouseEnter={() => onHoverCard?.(entry.printing.cardId, entry.printing.printingId)}
       onMouseLeave={() => onHoverCard?.(null)}
       title={tokenTitle(entry)}
       className="hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm"

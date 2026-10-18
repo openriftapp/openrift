@@ -1,4 +1,8 @@
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
+import type {
+  DeskSecondSide,
+  DeskSharedPrinting,
+} from "@openrift/shared/contracts/admin/printing-desk";
 import type { ReleasePrecision } from "@openrift/shared/set-release";
 import type { CardFace } from "@openrift/shared/types/enums";
 import type { Kysely } from "kysely";
@@ -11,7 +15,7 @@ import {
   withFace1,
 } from "../../../repositories/query-helpers.js";
 import type { FullPrintingRow, PrintingUpdate } from "./catalog-mutations.js";
-import { selectFullPrintings, updatePrintingAndFace1 } from "./catalog-mutations.js";
+import { selectFullPrintings, updatePrintingAndFace } from "./catalog-mutations.js";
 
 export interface DeskPrintingRow {
   printingId: string;
@@ -37,6 +41,9 @@ export interface DeskPrintingRow {
   releasePrecision: ReleasePrecision | null;
   comment: string | null;
   imageCount: number;
+  faceId: string;
+  secondSide: DeskSecondSide | null;
+  sharedWith: DeskSharedPrinting[];
   activeImageFileId: string | null;
   activeImageUrl: string | null;
   createdAt: Date;
@@ -105,6 +112,27 @@ export function printingDeskRepo(db: Kysely<Database>) {
 
   const notPromo = sql<boolean>`NOT ${isPromo}`;
 
+  const sharedWith = (faceColumn: "face1_id" | "face2_id") => sql<DeskSharedPrinting[]>`(
+    SELECT coalesce(json_agg(json_build_object(
+      'printingId', o.id, 'slug', o.slug, 'cardSlug', oc.slug, 'publicCode', osf.public_code
+    ) ORDER BY o.slug), '[]')
+    FROM printings o
+    JOIN faces osf ON osf.id = o.face1_id
+    JOIN cards oc ON oc.id = osf.card_id
+    WHERE o.id <> p.id AND ${sql.ref(`p.${faceColumn}`)} IN (o.face1_id, o.face2_id)
+  )`;
+
+  const secondSide = sql<DeskSecondSide | null>`(
+    SELECT json_build_object(
+      'faceId', f2.id, 'cardName', c2.name, 'cardSlug', c2.slug, 'setId', f2.set_id,
+      'setName', s2.name, 'shortCode', f2.short_code, 'publicCode', f2.public_code,
+      'rarity', f2.rarity, 'finish', f2.finish, 'language', f2.language, 'artist', f2.artist,
+      'markerSlugs', f2.marker_slugs, 'sharedWith', ${sharedWith("face2_id")}
+    )
+    FROM faces f2 JOIN cards c2 ON c2.id = f2.card_id JOIN sets s2 ON s2.id = f2.set_id
+    WHERE f2.id = p.face2_id
+  )`.as("secondSide");
+
   function rowQuery() {
     return joinFaceImage(withFace1(db.selectFrom("printings as p")), "pf.id")
       .innerJoin("cards as c", "c.id", "pf.cardId")
@@ -137,17 +165,24 @@ export function printingDeskRepo(db: Kysely<Database>) {
         "p.updatedAt",
         channelSlugs,
         imageCount,
+        "pf.id as faceId",
+        secondSide,
+        sharedWith("face1_id").as("sharedWith"),
         isPromo.as("isPromo"),
       ])
       .orderBy("p.updatedAt", "desc");
   }
 
   return {
-    async updatePrintingDeskFields(printingId: string, patch: PrintingUpdate): Promise<void> {
+    async updatePrintingDeskFields(
+      printingId: string,
+      patch: PrintingUpdate,
+      side: 1 | 2 = 1,
+    ): Promise<void> {
       if (Object.keys(patch).length === 0) {
         return;
       }
-      await updatePrintingAndFace1(db, printingId, patch);
+      await updatePrintingAndFace(db, printingId, patch, side);
     },
 
     /** Empty `printingIds` short-circuits: Postgres rejects `WHERE id IN ()`. */
@@ -162,7 +197,35 @@ export function printingDeskRepo(db: Kysely<Database>) {
     },
 
     listDeskPrintingsForCard(cardId: string): Promise<DeskPrintingRow[]> {
-      return rowQuery().where("pf.cardId", "=", cardId).execute();
+      return rowQuery()
+        .where(
+          sql<boolean>`EXISTS (
+            SELECT 1 FROM faces cf WHERE cf.id IN (p.face1_id, p.face2_id) AND cf.card_id = ${cardId}
+          )`,
+        )
+        .execute();
+    },
+
+    getFaceLinks(
+      printingId: string,
+    ): Promise<{ face1Id: string; face2Id: string | null } | undefined> {
+      return db
+        .selectFrom("printings")
+        .select(["face1Id", "face2Id"])
+        .where("id", "=", printingId)
+        .executeTakeFirst();
+    },
+
+    findFace(faceId: string): Promise<{ id: string } | undefined> {
+      return db.selectFrom("faces").select("id").where("id", "=", faceId).executeTakeFirst();
+    },
+
+    async setSecondFace(printingId: string, faceId: string | null): Promise<void> {
+      await db
+        .updateTable("printings")
+        .set({ face2Id: faceId })
+        .where("id", "=", printingId)
+        .execute();
     },
 
     getDeskPrinting(printingId: string): Promise<DeskPrintingRow | undefined> {
@@ -278,8 +341,8 @@ export function printingDeskRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    getFullPrinting(printingId: string): Promise<FullPrintingRow | undefined> {
-      return selectFullPrintings(db).where("p.id", "=", printingId).executeTakeFirst();
+    getFullPrinting(printingId: string, side: 1 | 2 = 1): Promise<FullPrintingRow | undefined> {
+      return selectFullPrintings(db, side).where("p.id", "=", printingId).executeTakeFirst();
     },
 
     getImageCredit(imageFileId: string): Promise<DeskImageCreditRow | undefined> {

@@ -3,7 +3,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 
-const CATALOG_SHAPE_VERSION = "4";
+const CATALOG_SHAPE_VERSION = "5";
 
 /**
  * Excludes the current date; only {@link catalogContentVersion} folds that in.

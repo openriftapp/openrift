@@ -1,3 +1,4 @@
+import { sideKey, countPrintings } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Fragment } from "react";
 
@@ -118,7 +119,7 @@ function CompactBranchGrid({
       <div {...grid}>
         {entries.map(({ printing, leafLabel, anchorId }) => (
           <div
-            key={`${leafLabel}-${printing.id}`}
+            key={`${leafLabel}-${printing.printingId}`}
             id={anchorId}
             style={anchorId ? { scrollMarginTop: `${stickyOffset}px` } : undefined}
           >
@@ -183,13 +184,13 @@ function CompactBranchTable({
                   <CardTableGroupHeader
                     columns={columns}
                     name={child.channel.label}
-                    count={printings.length}
+                    count={countPrintings(printings)}
                     anchorId={anchorId}
                   />
                 )}
                 {printings.map((printing) => (
                   <CardTableRow
-                    key={printing.id}
+                    key={sideKey(printing)}
                     printing={printing}
                     actionsColumn={actionsColumn}
                     columns={columns}
@@ -201,7 +202,7 @@ function CompactBranchTable({
                     onRowClick={onCardClick}
                     actionsCell={
                       ownedCounts ? (
-                        <StaticCountTableActions count={ownedCounts[printing.id] ?? 0} />
+                        <StaticCountTableActions count={ownedCounts[printing.printingId] ?? 0} />
                       ) : undefined
                     }
                   />
@@ -225,9 +226,9 @@ function CompactBranchTable({
               <div className="flex flex-col gap-2">
                 {printings.map((printing) => (
                   <PromoMobileCard
-                    key={printing.id}
+                    key={sideKey(printing)}
                     printing={printing}
-                    ownedCount={ownedCounts?.[printing.id] ?? 0}
+                    ownedCount={ownedCounts?.[printing.printingId] ?? 0}
                     showOwnedCount={ownedCounts !== undefined}
                     onClick={onCardClick}
                   />

@@ -41,9 +41,9 @@ export function PrintingCountActions({
   addLabel?: string;
 }) {
   const hydrated = useHydrated();
-  const siblingIds = siblings?.map((sibling) => sibling.id);
+  const siblingIds = siblings?.map((sibling) => sibling.printingId);
   const queried = useTileOwnedCounts(
-    printing.id,
+    printing.printingId,
     siblingIds,
     hydrated && count === undefined,
     collectionId,
@@ -61,7 +61,7 @@ export function PrintingCountActions({
       pillOverride={
         ownedCount > 0 ? (
           <OwnedCollectionsPopover
-            printingId={printing.id}
+            printingId={printing.printingId}
             cardName={cardName}
             shortCode={printing.shortCode}
             count={ownedCount}

@@ -21,7 +21,7 @@ export function WishlistPickerHost({
   }
 
   const entriesFor = (kind: ListKind) =>
-    kind === "card" ? [{ cardId: target.cardId }] : [{ printingId: target.id }];
+    kind === "card" ? [{ cardId: target.cardId }] : [{ printingId: target.printingId }];
   const cardName = legendDisplayName(target.card);
 
   const close = () => {

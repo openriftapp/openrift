@@ -105,7 +105,7 @@ export function tradeAnnotationByCopyId(
   const byPrinting = groupTradeAnnotationsByPrinting(annotations ?? []);
   const byCopy = new Map<string, CardTradeLiveAnnotation>();
   for (const [copyId, printing] of printingByCopyId) {
-    const annotation = collapseTradeAnnotations(byPrinting.get(printing.id) ?? []);
+    const annotation = collapseTradeAnnotations(byPrinting.get(printing.printingId) ?? []);
     if (annotation) {
       byCopy.set(copyId, annotation);
     }

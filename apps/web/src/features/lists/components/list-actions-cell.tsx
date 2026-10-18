@@ -47,7 +47,7 @@ export function ListActionsCell({
   if (!printing || !itemId) {
     return null;
   }
-  const entry = entryByItemId.get(itemId) ?? entriesByPrintingId.get(printing.id)?.[0];
+  const entry = entryByItemId.get(itemId) ?? entriesByPrintingId.get(printing.printingId)?.[0];
   if (!entry) {
     return null;
   }

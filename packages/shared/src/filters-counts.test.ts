@@ -6,34 +6,46 @@ import { emptyFilters, makePrinting } from "./filters-test-helpers.js";
 describe("computeFilterCounts", () => {
   const sample = [
     makePrinting({
-      id: "p1",
+      printingId: "p1",
       cardId: "c1",
       language: "EN",
       rarity: "common",
       card: { slug: "c1", domains: ["fury"] },
     }),
     makePrinting({
-      id: "p2",
+      printingId: "p2",
       cardId: "c1",
       language: "DE",
       rarity: "common",
       card: { slug: "c1", domains: ["fury"] },
     }),
     makePrinting({
-      id: "p3",
+      printingId: "p3",
       cardId: "c2",
       language: "EN",
       rarity: "rare",
       card: { slug: "c2", domains: ["calm"] },
     }),
     makePrinting({
-      id: "p4",
+      printingId: "p4",
       cardId: "c3",
       language: "JA",
       rarity: "rare",
       card: { slug: "c3", domains: ["mind", "body"] },
     }),
   ];
+
+  it("counts a double-sided printing once when both sides match", () => {
+    const otherSide = { cardId: "c9", cardName: "Gold", cardSlug: "gold" };
+    const pair = [
+      makePrinting({ printingId: "p9", side: 1, cardId: "c8", rarity: "common", otherSide }),
+      makePrinting({ printingId: "p9", side: 2, cardId: "c9", rarity: "common", otherSide }),
+    ];
+    const counts = computeFilterCounts([...sample, ...pair], emptyFilters(), {
+      countBy: "printing",
+    });
+    expect(counts.rarities.get("common")).toBe(3);
+  });
 
   it("counts printings per option when no filters are active", () => {
     const counts = computeFilterCounts(sample, emptyFilters(), { countBy: "printing" });
@@ -81,8 +93,8 @@ describe("computeFilterCounts", () => {
 
   it("counts the standard flag over the matching subset", () => {
     const cards = [
-      makePrinting({ id: "s1", cardId: "s1", rarity: "common", finish: "normal" }),
-      makePrinting({ id: "s2", cardId: "s2", rarity: "common", finish: "foil" }),
+      makePrinting({ printingId: "s1", cardId: "s1", rarity: "common", finish: "normal" }),
+      makePrinting({ printingId: "s2", cardId: "s2", rarity: "common", finish: "foil" }),
     ];
     const counts = computeFilterCounts(cards, emptyFilters(), { countBy: "printing" });
     expect(counts.flags.standard).toBe(1);
@@ -132,7 +144,7 @@ describe("computeFilterCounts", () => {
     };
     const markerChannelSample = [
       makePrinting({
-        id: "p1",
+        printingId: "p1",
         cardId: "c1",
         rarity: "common",
         markers: [{ id: "m1", slug: "promo", label: "Promo", description: null }],
@@ -141,7 +153,7 @@ describe("computeFilterCounts", () => {
         ],
       }),
       makePrinting({
-        id: "p2",
+        printingId: "p2",
         cardId: "c2",
         rarity: "rare",
         markers: [
@@ -153,7 +165,7 @@ describe("computeFilterCounts", () => {
         ],
       }),
       makePrinting({
-        id: "p3",
+        printingId: "p3",
         cardId: "c3",
         rarity: "rare",
         markers: [],
@@ -195,13 +207,13 @@ describe("computeFilterCounts", () => {
   describe("flags", () => {
     const flagSample = [
       makePrinting({
-        id: "p-signed",
+        printingId: "p-signed",
         cardId: "c-signed",
         isSigned: true,
         card: { slug: "c-signed", bans: [], errata: null },
       }),
       makePrinting({
-        id: "p-plain",
+        printingId: "p-plain",
         cardId: "c-plain",
         isSigned: false,
         card: {
@@ -224,7 +236,7 @@ describe("computeFilterCounts", () => {
         },
       }),
       makePrinting({
-        id: "p-promo",
+        printingId: "p-promo",
         cardId: "c-promo",
         isSigned: false,
         images: [],
@@ -271,19 +283,19 @@ describe("computeFilterCounts", () => {
   describe("presence counts", () => {
     const presenceSample = [
       makePrinting({
-        id: "pm1",
+        printingId: "pm1",
         cardId: "cm1",
         markers: [{ id: "1", slug: "promo", label: "Promo", description: null }],
         card: { slug: "cm1", keywords: ["Shield"] },
       }),
       makePrinting({
-        id: "pm2",
+        printingId: "pm2",
         cardId: "cm2",
         markers: [{ id: "2", slug: "top-8", label: "Top 8", description: null }],
         card: { slug: "cm2", keywords: [] },
       }),
       makePrinting({
-        id: "pm3",
+        printingId: "pm3",
         cardId: "cm3",
         markers: [],
         card: { slug: "cm3", keywords: [] },
@@ -325,19 +337,19 @@ describe("computeFilterCounts", () => {
   describe("ranges", () => {
     const rangeSample = [
       makePrinting({
-        id: "rp1",
+        printingId: "rp1",
         cardId: "rc1",
         rarity: "common",
         card: { slug: "rc1", energy: 1, might: 2, power: 3 },
       }),
       makePrinting({
-        id: "rp2",
+        printingId: "rp2",
         cardId: "rc2",
         rarity: "rare",
         card: { slug: "rc2", energy: 5, might: 4, power: 7 },
       }),
       makePrinting({
-        id: "rp3",
+        printingId: "rp3",
         cardId: "rc3",
         rarity: "rare",
         card: { slug: "rc3", energy: null, might: null, power: null },

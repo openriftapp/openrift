@@ -12,10 +12,10 @@ import { stubCollection, stubCopy, stubPrinting } from "@/test/factories";
 const HOME = "col-home";
 const CARD = "card-x";
 
-const printing: Printing = stubPrinting({ id: "printing-x", cardId: CARD });
+const printing: Printing = stubPrinting({ printingId: "printing-x", cardId: CARD });
 
 function copyInBox(id: string): CopyResponse {
-  return stubCopy({ id, printingId: printing.id, collectionId: HOME });
+  return stubCopy({ id, printingId: printing.printingId, collectionId: HOME });
 }
 
 function cardRow(deckId: string, quantity: number, zone: DeckZone = WellKnown.deckZone.MAIN) {
@@ -55,7 +55,7 @@ vi.mock("@/features/decks/hooks/use-decks-collections", () => ({
 vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({
     printingsByCardId: new Map([[CARD, [printing]]]),
-    printingsById: { [printing.id]: printing },
+    printingsById: { [printing.printingId]: printing },
   }),
 }));
 vi.mock("@/hooks/use-effective-language-order", () => ({

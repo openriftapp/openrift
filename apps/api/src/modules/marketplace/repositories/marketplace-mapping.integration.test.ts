@@ -196,11 +196,8 @@ describe.skipIf(!ctx)("marketplaceMappingRepo (integration)", () => {
         // Same identity as the English printing but a different physical
         // product, so no marketplace SKU may reach it.
         const oversized = await sql<{ id: string }>`
-          INSERT INTO printings (card_id, set_id, short_code, rarity, art_variant, is_signed,
-            is_overnumbered, marker_slugs, finish, size, artist, public_code, language)
-          SELECT card_id, set_id, short_code, rarity, art_variant, is_signed,
-            is_overnumbered, marker_slugs, finish, 'oversized', artist, public_code, language
-          FROM printings WHERE id = ${enPrintingId}
+          INSERT INTO printings (face1_id, size)
+          SELECT face1_id, 'oversized' FROM printings WHERE id = ${enPrintingId}
           RETURNING id
         `.execute(trx);
         const oversizedId = oversized.rows[0]?.id;

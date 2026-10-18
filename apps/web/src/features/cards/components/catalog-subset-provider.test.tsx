@@ -44,8 +44,8 @@ function toCatalog(printings: Printing[]): CatalogResponse {
     cards: Object.fromEntries(printings.map((p) => [p.cardId, p.card])),
     printings: Object.fromEntries(
       printings.map((p) => {
-        const { id: _id, ...value } = toWirePrinting(p);
-        return [p.id, value];
+        const { printingId: _id, ...value } = toWirePrinting(p);
+        return [p.printingId, value];
       }),
     ),
     totalCopies: 0,
@@ -54,13 +54,13 @@ function toCatalog(printings: Printing[]): CatalogResponse {
 }
 
 const DECK_PRINTING = stubPrinting({
-  id: "p-deck",
+  printingId: "p-deck",
   cardId: "card-deck",
   setId: SET_ID,
   card: { name: "Kennen, Stormcaller" },
 });
 const OFF_DECK_PRINTING = stubPrinting({
-  id: "p-off",
+  printingId: "p-off",
   cardId: "card-off",
   setId: SET_ID,
   card: { name: "Yasuo, Windrider" },
@@ -88,7 +88,7 @@ describe("CatalogSubsetProvider", () => {
   it("serves useCards from the subset without ever creating the catalogue query", () => {
     const { client, result } = setup(useCards);
 
-    expect(result.current.printingsByCardId.get("card-deck")?.[0]?.id).toBe("p-deck");
+    expect(result.current.printingsByCardId.get("card-deck")?.[0]?.printingId).toBe("p-deck");
     expect(result.current.printingsById["p-deck"]?.card.name).toBe("Kennen, Stormcaller");
     expect(result.current.cardsById["card-deck"]?.name).toBe("Kennen, Stormcaller");
     expect(result.current.sets.map((set) => set.slug)).toEqual(["rb1"]);
@@ -134,7 +134,7 @@ describe("the deck detail pane's inputs", () => {
       ),
     });
 
-    expect(result.current.items.map((item) => item.printing.id)).toEqual(["p-deck"]);
+    expect(result.current.items.map((item) => item.printing.printingId)).toEqual(["p-deck"]);
     expect(client.getQueryState(catalogKeys.all)).toBeUndefined();
   });
 });
@@ -154,7 +154,7 @@ describe("enrichCatalogSubset", () => {
     const joined = (source: typeof fromSubset) =>
       source.allPrintings
         .map((printing) => ({
-          id: printing.id,
+          id: printing.printingId,
           setSlug: printing.setSlug,
           setReleased: printing.setReleased,
           cardName: printing.card.name,

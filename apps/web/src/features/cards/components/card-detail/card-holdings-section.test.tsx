@@ -53,14 +53,14 @@ describe("CardHoldingsSection", () => {
   });
 
   it("asks about the detail's sibling printings when the surface supplies them", () => {
-    const printing = stubPrinting({ id: "p1" });
-    const sibling = stubPrinting({ id: "p2" });
+    const printing = stubPrinting({ printingId: "p1" });
+    const sibling = stubPrinting({ printingId: "p2" });
     render(<CardHoldingsSection printing={printing} printings={[printing, sibling]} />);
     expect(printingIdsSeen.at(-1)).toEqual(["p1", "p2"]);
   });
 
   it("falls back to the printing on screen when there are no siblings", () => {
-    render(<CardHoldingsSection printing={stubPrinting({ id: "p1" })} printings={[]} />);
+    render(<CardHoldingsSection printing={stubPrinting({ printingId: "p1" })} printings={[]} />);
     expect(printingIdsSeen.at(-1)).toEqual(["p1"]);
   });
 });

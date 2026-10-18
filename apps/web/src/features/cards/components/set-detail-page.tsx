@@ -1,5 +1,6 @@
 import { imageUrl } from "@openrift/shared/image-url";
 import { deduplicateByCard } from "@openrift/shared/printing-select";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate, getRouteApi } from "@tanstack/react-router";
@@ -92,7 +93,7 @@ export function SetDetailPage() {
         <div className={SET_GRID}>
           {uniquePrintings.map((printing) => (
             <CardThumbnail
-              key={printing.id}
+              key={sideKey(printing)}
               printing={printing}
               onClick={handleCardClick}
               showImages={showImages}

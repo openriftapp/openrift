@@ -42,6 +42,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { PrintingDeskEditFields } from "@/features/admin/components/printing-desk-form-page";
+import { SecondSideCard } from "@/features/admin/components/printing-desk-second-side-card";
 import { DeskSegmented, DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
 import { StraightenImageDialog } from "@/features/admin/components/straighten-image-dialog";
 import {
@@ -256,6 +257,7 @@ export function PrintingDeskPrintingPage({ printingId }: { printingId: string })
             </CardContent>
           </Card>
 
+          <SecondSideCard printing={printing} />
           <LinksCard printingId={printingId} />
         </div>
 
@@ -276,7 +278,7 @@ export function PrintingDeskPrintingPage({ printingId }: { printingId: string })
 
 function CardPagePreview({ cardSlug, printingId }: { cardSlug: string; printingId: string }) {
   const { data } = useSuspenseQuery(freshCardDetailQueryOptions(cardSlug));
-  const printing = data.printings.find((entry) => entry.id === printingId);
+  const printing = data.printings.find((entry) => entry.printingId === printingId);
 
   if (!printing) {
     return (

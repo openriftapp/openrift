@@ -99,7 +99,7 @@ export function CardDetailPage() {
             <CardPageFactRows
               card={card}
               printing={selectedPrinting}
-              products={data.productsByPrinting.get(selectedPrinting.id) ?? []}
+              products={data.productsByPrinting.get(selectedPrinting.printingId) ?? []}
             />
           </div>
         </div>
@@ -108,7 +108,7 @@ export function CardDetailPage() {
 
         <CardPagePrintings
           printings={printings}
-          selectedPrintingId={selectedPrinting.id}
+          selectedPrintingId={selectedPrinting.printingId}
           onSelect={selectPrinting}
         />
 

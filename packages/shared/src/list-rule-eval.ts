@@ -1,5 +1,6 @@
 import { filterCards } from "./filters.js";
 import { getPlaysetSize } from "./playset.js";
+import { indexByPrinting } from "./printing-side.js";
 import { isStandardPrinting } from "./standard.js";
 import type { EntrySource, ListKind } from "./types/api/list.js";
 import type { PriceLookup } from "./types/api/pricing.js";
@@ -73,7 +74,7 @@ function rulePriceResolver(
   if (!priceLookup || marketplace === undefined) {
     return undefined;
   }
-  return (printing) => priceLookup.get(printing.id, marketplace);
+  return (printing) => priceLookup.get(printing.printingId, marketplace);
 }
 
 /**
@@ -122,10 +123,10 @@ function wishRuleTargets(
   const matchedPrintings = new Map<string, Set<string>>();
   if (listKind === "printing") {
     for (const printing of matched) {
-      if (excluded.has(printing.id)) {
+      if (excluded.has(printing.printingId)) {
         continue;
       }
-      targets.set(printing.id, resolveQuantity(rule.quantity, printing.card));
+      targets.set(printing.printingId, resolveQuantity(rule.quantity, printing.card));
     }
     return { targets, matchedPrintings, netPrintings: matchedPrintings };
   }
@@ -138,9 +139,9 @@ function wishRuleTargets(
     }
     const printings = matchedPrintings.get(printing.cardId);
     if (printings) {
-      printings.add(printing.id);
+      printings.add(printing.printingId);
     } else {
-      matchedPrintings.set(printing.cardId, new Set([printing.id]));
+      matchedPrintings.set(printing.cardId, new Set([printing.printingId]));
     }
   }
   const relaxPrice = rule.netOwned === true && ruleFiltersOnPrice(rule);
@@ -164,7 +165,7 @@ function wishRuleTargets(
     if (!targets.has(printing.cardId)) {
       continue;
     }
-    unionInto(netPrintings, printing.cardId, [printing.id]);
+    unionInto(netPrintings, printing.cardId, [printing.printingId]);
   }
   return { targets, matchedPrintings, netPrintings };
 }
@@ -325,7 +326,7 @@ export function ownedCopyPrintingScope(
         customTagAssignments: ctx.customTagAssignments,
         getPrice: rulePriceResolver(rule, ctx),
       })) {
-        scope.add(printing.id);
+        scope.add(printing.printingId);
       }
       continue;
     }
@@ -360,7 +361,7 @@ function tradeRulePools(
     filterCards(ctx.catalog, rule.filter, {
       customTagAssignments: ctx.customTagAssignments,
       getPrice: rulePriceResolver(rule, ctx),
-    }).map((printing) => printing.id),
+    }).map((printing) => printing.printingId),
   );
   const excludedCopies = new Set(rule.excludeCopyIds);
   const candidates = (ctx.ownedCopies ?? []).filter(
@@ -405,13 +406,12 @@ function combineTradeRules(
   mode: TradeRuleCombine,
 ): VirtualEntry[] {
   const cardById = new Map<string, Card>();
-  const printingById = new Map<string, Printing>();
   for (const printing of ctx.catalog) {
     if (!cardById.has(printing.cardId)) {
       cardById.set(printing.cardId, printing.card);
     }
-    printingById.set(printing.id, printing);
   }
+  const printingById = indexByPrinting(ctx.catalog);
   const pooled = rules.map((rule) => ({
     keepPer: rule.keepPer ?? "card",
     pool: tradeRulePools(rule, ctx, cardById, printingById),

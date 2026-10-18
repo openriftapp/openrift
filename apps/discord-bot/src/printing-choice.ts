@@ -19,7 +19,7 @@ function orderedPrintings(snapshot: CatalogSnapshot, card: CatalogCard): Catalog
   if (!fallback) {
     return [];
   }
-  return [fallback, ...printings.filter((printing) => printing.id !== fallback.id)];
+  return [fallback, ...printings.filter((printing) => printing.printingId !== fallback.printingId)];
 }
 
 export function printingVariantParts(
@@ -63,7 +63,7 @@ export function printingChoices(
   const folded = foldForSearch(query);
   const choices = printings.map((printing, index) => ({
     name: printingLabel(snapshot, printing, printings, index === 0),
-    value: printing.id,
+    value: printing.printingId,
   }));
   const filtered = folded
     ? choices.filter((choice) => foldForSearch(choice.name).includes(folded))
@@ -84,7 +84,7 @@ export function resolvePrinting(
   const printings = snapshot.printingsByCardId.get(card.id) ?? [];
   const codeIndex = buildCodeIndex(printings.map((printing) => ({ card, printing })));
   return (
-    printings.find((printing) => printing.id === query) ??
+    printings.find((printing) => printing.printingId === query) ??
     lookupCode(codeIndex, query)?.printing ??
     fallback
   );

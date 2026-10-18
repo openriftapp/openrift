@@ -22,7 +22,13 @@ function stubSet(overrides: Partial<CatalogSetResponse> = {}): CatalogSetRespons
 function toCatalogPrinting(
   printing: ReturnType<typeof stubPrinting>,
 ): CatalogResponsePrintingValue {
-  const { id: _id, card: _card, setSlug: _setSlug, setReleased: _setReleased, ...rest } = printing;
+  const {
+    printingId: _id,
+    card: _card,
+    setSlug: _setSlug,
+    setReleased: _setReleased,
+    ...rest
+  } = printing;
   return rest;
 }
 
@@ -38,7 +44,7 @@ function buildCatalog(
         return [p.cardId, { slug: p.card.slug, ...cardWithoutSlug }];
       }),
     ),
-    printings: Object.fromEntries(printings.map((p) => [p.id, toCatalogPrinting(p)])),
+    printings: Object.fromEntries(printings.map((p) => [p.printingId, toCatalogPrinting(p)])),
     totalCopies: printings.length,
     customTagAssignments: {},
   };
@@ -56,7 +62,7 @@ describe("resolveProxyCards", () => {
       setId: "set-1",
       shortCode: "RB1-001",
       language: "EN",
-      images: [{ face: "front", imageId: "en-image-id-aa" }],
+      images: [{ imageId: "en-image-id-aa" }],
       card,
     });
     const scPrinting = stubPrinting({
@@ -64,18 +70,18 @@ describe("resolveProxyCards", () => {
       setId: "set-1",
       shortCode: "RB1-001",
       language: "SC",
-      images: [{ face: "front", imageId: "sc-image-id-bb" }],
+      images: [{ imageId: "sc-image-id-bb" }],
       card,
     });
     const catalog = buildCatalog([stubSet({ id: "set-1" })], [enPrinting, scPrinting]);
     const deckCards = [
-      stubDeckBuilderCard({ cardId: "card-1", preferredPrintingId: scPrinting.id }),
+      stubDeckBuilderCard({ cardId: "card-1", preferredPrintingId: scPrinting.printingId }),
     ];
 
     const proxies = resolveProxyCards(deckCards, catalog, ["EN"]);
 
     expect(proxies).toHaveLength(1);
-    expect(proxies[0]!.printingId).toBe(scPrinting.id);
+    expect(proxies[0]!.printingId).toBe(scPrinting.printingId);
     expect(proxies[0]!.imageFullUrl).toBe("/media/cards/bb/sc-image-id-bb-full.webp");
   });
 
@@ -86,7 +92,7 @@ describe("resolveProxyCards", () => {
       setId: "set-2",
       shortCode: "RB1-002",
       language: "SC",
-      images: [{ face: "front", imageId: "sc-image-id-bb" }],
+      images: [{ imageId: "sc-image-id-bb" }],
       card,
     });
     const frPrinting = stubPrinting({
@@ -94,7 +100,7 @@ describe("resolveProxyCards", () => {
       setId: "set-2",
       shortCode: "RB1-002",
       language: "FR",
-      images: [{ face: "front", imageId: "fr-image-id-cc" }],
+      images: [{ imageId: "fr-image-id-cc" }],
       card,
     });
     const enPrinting = stubPrinting({
@@ -102,7 +108,7 @@ describe("resolveProxyCards", () => {
       setId: "set-2",
       shortCode: "RB1-002",
       language: "EN",
-      images: [{ face: "front", imageId: "en-image-id-aa" }],
+      images: [{ imageId: "en-image-id-aa" }],
       card,
     });
     const catalog = buildCatalog([stubSet({ id: "set-2" })], [scPrinting, frPrinting, enPrinting]);
@@ -110,7 +116,7 @@ describe("resolveProxyCards", () => {
 
     const proxies = resolveProxyCards(deckCards, catalog, ["EN"]);
 
-    expect(proxies[0]!.printingId).toBe(enPrinting.id);
+    expect(proxies[0]!.printingId).toBe(enPrinting.printingId);
     expect(proxies[0]!.imageFullUrl).toBe("/media/cards/aa/en-image-id-aa-full.webp");
   });
 
@@ -121,7 +127,7 @@ describe("resolveProxyCards", () => {
       setId: "set-3",
       shortCode: "RB1-003",
       language: "EN",
-      images: [{ face: "front", imageId: "en-image-id-aa" }],
+      images: [{ imageId: "en-image-id-aa" }],
       card,
     });
     const scPrinting = stubPrinting({
@@ -129,7 +135,7 @@ describe("resolveProxyCards", () => {
       setId: "set-3",
       shortCode: "RB1-003",
       language: "SC",
-      images: [{ face: "front", imageId: "sc-image-id-bb" }],
+      images: [{ imageId: "sc-image-id-bb" }],
       card,
     });
     const catalog = buildCatalog([stubSet({ id: "set-3" })], [enPrinting, scPrinting]);
@@ -138,25 +144,28 @@ describe("resolveProxyCards", () => {
         cardId: "card-3",
         zone: "main",
         quantity: 2,
-        preferredPrintingId: enPrinting.id,
+        preferredPrintingId: enPrinting.printingId,
       }),
       stubDeckBuilderCard({
         cardId: "card-3",
         zone: "sideboard",
         quantity: 1,
-        preferredPrintingId: scPrinting.id,
+        preferredPrintingId: scPrinting.printingId,
       }),
     ];
 
     const proxies = resolveProxyCards(deckCards, catalog, ["EN"]);
 
     expect(proxies).toHaveLength(3);
-    expect(proxies.slice(0, 2).map((p) => p.printingId)).toEqual([enPrinting.id, enPrinting.id]);
+    expect(proxies.slice(0, 2).map((p) => p.printingId)).toEqual([
+      enPrinting.printingId,
+      enPrinting.printingId,
+    ]);
     expect(proxies.slice(0, 2).map((p) => p.imageFullUrl)).toEqual([
       "/media/cards/aa/en-image-id-aa-full.webp",
       "/media/cards/aa/en-image-id-aa-full.webp",
     ]);
-    expect(proxies[2]!.printingId).toBe(scPrinting.id);
+    expect(proxies[2]!.printingId).toBe(scPrinting.printingId);
     expect(proxies[2]!.imageFullUrl).toBe("/media/cards/bb/sc-image-id-bb-full.webp");
   });
 

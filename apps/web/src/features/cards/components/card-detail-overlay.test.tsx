@@ -99,7 +99,7 @@ vi.mock("@/features/cards/components/card-detail/card-detail", () => ({
     actions?: ReactNode;
   }) => (
     <div>
-      <div>showing {printing.id}</div>
+      <div>showing {printing.printingId}</div>
       {navLabel ? <div>{navLabel}</div> : null}
       {actions}
     </div>
@@ -125,8 +125,10 @@ vi.mock("@/features/cards/components/card-detail/card-detail-actions", () => ({
 const { CardDetailOverlay } = await import("./card-detail-overlay");
 
 function seedCatalog(count: number): Printing[] {
-  const printings = Array.from({ length: count }, (_, i) => stubPrinting({ id: `printing-${i}` }));
-  catalog.printingsById = Object.fromEntries(printings.map((p) => [p.id, p]));
+  const printings = Array.from({ length: count }, (_, i) =>
+    stubPrinting({ printingId: `printing-${i}` }),
+  );
+  catalog.printingsById = Object.fromEntries(printings.map((p) => [p.printingId, p]));
   catalog.printingsByCardId = new Map(printings.map((p) => [p.cardId, [p]]));
   return printings;
 }
@@ -139,7 +141,7 @@ function renderOverlay(
 ) {
   const result = render(
     <CardDetailOverlay
-      printingIds={printings.map((p) => p.id)}
+      printingIds={printings.map((p) => p.printingId)}
       openPrintingId={openPrintingId}
       onOpenPrintingIdChange={onOpenPrintingIdChange}
       showImages={false}
@@ -165,7 +167,7 @@ describe("CardDetailOverlay", () => {
 
   it("stays read-only unless the host opts in", async () => {
     const printings = seedCatalog(1);
-    renderOverlay(printings, printings[0]!.id);
+    renderOverlay(printings, printings[0]!.printingId);
 
     expect(await screen.findByText(/showing/u)).toBeInTheDocument();
     expect(screen.queryByTestId("detail-actions")).not.toBeInTheDocument();
@@ -173,38 +175,38 @@ describe("CardDetailOverlay", () => {
 
   it("offers the collection actions when the host opts in", async () => {
     const printings = seedCatalog(1);
-    renderOverlay(printings, printings[0]!.id, vi.fn(), true);
+    renderOverlay(printings, printings[0]!.printingId, vi.fn(), true);
 
     expect(await screen.findByTestId("detail-actions")).toBeInTheDocument();
   });
 
   it("shows the card for the opened row", async () => {
     const printings = seedCatalog(3);
-    renderOverlay(printings, printings[1]!.id);
+    renderOverlay(printings, printings[1]!.printingId);
 
-    expect(await screen.findByText(`showing ${printings[1]!.id}`)).toBeInTheDocument();
+    expect(await screen.findByText(`showing ${printings[1]!.printingId}`)).toBeInTheDocument();
   });
 
   it("renders the drawer on phones and the dialog on desktop", async () => {
     const printings = seedCatalog(2);
     isMobile.mockReturnValue(true);
-    renderOverlay(printings, printings[0]!.id);
+    renderOverlay(printings, printings[0]!.printingId);
 
-    expect(await screen.findByText(`showing ${printings[0]!.id}`)).toBeInTheDocument();
+    expect(await screen.findByText(`showing ${printings[0]!.printingId}`)).toBeInTheDocument();
     expect(screen.queryByText("1 / 2")).not.toBeInTheDocument();
   });
 
   it("counts position against the host's rows, not the whole catalog", async () => {
     const printings = seedCatalog(5);
-    renderOverlay(printings.slice(0, 3), printings[1]!.id);
+    renderOverlay(printings.slice(0, 3), printings[1]!.printingId);
 
     expect(await screen.findByText("2 / 3")).toBeInTheDocument();
   });
 
   it("leaves out prev/next for a host that opens one card at a time", async () => {
     const printings = seedCatalog(3);
-    const { onOpenPrintingIdChange } = renderOverlay([], printings[1]!.id);
-    const inside = await screen.findByText(`showing ${printings[1]!.id}`);
+    const { onOpenPrintingIdChange } = renderOverlay([], printings[1]!.printingId);
+    const inside = await screen.findByText(`showing ${printings[1]!.printingId}`);
 
     fireEvent.keyDown(inside, { key: "ArrowRight" });
 
@@ -214,18 +216,18 @@ describe("CardDetailOverlay", () => {
 
   it("steps through the host's rows with the arrow keys", async () => {
     const printings = seedCatalog(3);
-    const { onOpenPrintingIdChange } = renderOverlay(printings, printings[1]!.id);
-    const inside = await screen.findByText(`showing ${printings[1]!.id}`);
+    const { onOpenPrintingIdChange } = renderOverlay(printings, printings[1]!.printingId);
+    const inside = await screen.findByText(`showing ${printings[1]!.printingId}`);
 
     fireEvent.keyDown(inside, { key: "ArrowRight" });
 
-    expect(onOpenPrintingIdChange).toHaveBeenCalledWith(printings[2]!.id);
+    expect(onOpenPrintingIdChange).toHaveBeenCalledWith(printings[2]!.printingId);
   });
 
   it("stays put at the ends of the list", async () => {
     const printings = seedCatalog(3);
-    const { onOpenPrintingIdChange } = renderOverlay(printings, printings[0]!.id);
-    const inside = await screen.findByText(`showing ${printings[0]!.id}`);
+    const { onOpenPrintingIdChange } = renderOverlay(printings, printings[0]!.printingId);
+    const inside = await screen.findByText(`showing ${printings[0]!.printingId}`);
 
     fireEvent.keyDown(inside, { key: "ArrowLeft" });
 
@@ -236,7 +238,7 @@ describe("CardDetailOverlay", () => {
     const user = userEvent.setup();
     const printings = seedCatalog(2);
     const back = vi.spyOn(history, "back");
-    renderOverlay(printings, printings[0]!.id);
+    renderOverlay(printings, printings[0]!.printingId);
 
     await user.click(await screen.findByRole("button", { name: "dismiss" }));
 
@@ -246,8 +248,8 @@ describe("CardDetailOverlay", () => {
 
   it("closes on a browser back navigation", async () => {
     const printings = seedCatalog(2);
-    const { onOpenPrintingIdChange } = renderOverlay(printings, printings[0]!.id);
-    await screen.findByText(`showing ${printings[0]!.id}`);
+    const { onOpenPrintingIdChange } = renderOverlay(printings, printings[0]!.printingId);
+    await screen.findByText(`showing ${printings[0]!.printingId}`);
 
     globalThis.dispatchEvent(new PopStateEvent("popstate"));
 
@@ -257,16 +259,16 @@ describe("CardDetailOverlay", () => {
   it("pushes one history entry per open, however often the parent re-renders", async () => {
     const printings = seedCatalog(2);
     const pushState = vi.spyOn(history, "pushState");
-    const { rerender } = renderOverlay(printings, printings[0]!.id);
-    await screen.findByText(`showing ${printings[0]!.id}`);
+    const { rerender } = renderOverlay(printings, printings[0]!.printingId);
+    await screen.findByText(`showing ${printings[0]!.printingId}`);
     const afterOpen = pushState.mock.calls.length;
     expect(afterOpen).toBeGreaterThan(0);
 
     for (let i = 0; i < 3; i++) {
       rerender(
         <CardDetailOverlay
-          printingIds={printings.map((p) => p.id)}
-          openPrintingId={printings[0]!.id}
+          printingIds={printings.map((p) => p.printingId)}
+          openPrintingId={printings[0]!.printingId}
           onOpenPrintingIdChange={() => {}}
           showImages={false}
           onSearchAndClose={() => {}}

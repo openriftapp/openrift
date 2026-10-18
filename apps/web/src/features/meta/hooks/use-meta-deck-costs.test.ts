@@ -4,7 +4,7 @@ import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let cardIndex: MetaDeckCardIndexResponse = { cards: [], decks: [] };
-let printingsByCardId = new Map<string, { id: string; language: string }[]>();
+let printingsByCardId = new Map<string, { printingId: string; language: string }[]>();
 let ownedByPrinting: Record<string, number> | undefined = {};
 let priceMap: Record<string, Record<string, number>> = {};
 let requestedEnabled: boolean | undefined;
@@ -49,11 +49,11 @@ describe("useMetaDeckCosts", () => {
       [
         "card-a",
         [
-          { id: "print-a1", language: "en" },
-          { id: "print-a2", language: "de" },
+          { printingId: "print-a1", language: "en" },
+          { printingId: "print-a2", language: "de" },
         ],
       ],
-      ["card-b", [{ id: "print-b1", language: "en" }]],
+      ["card-b", [{ printingId: "print-b1", language: "en" }]],
     ]);
     priceMap = {
       "print-a1": { cardtrader: 500 },

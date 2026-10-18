@@ -76,7 +76,9 @@ const dbCard = {
 };
 
 const dbPrinting = {
-  id: PRINTING_ID,
+  printingId: PRINTING_ID,
+  side: 1,
+  faceId: PRINTING_ID,
   shortCode: "OGN-202",
   setId: SET_ID,
   rarity: "Epic",
@@ -155,7 +157,7 @@ describe("GET /api/v1/sets/:setSlug", () => {
     mockCatalogRepo.setBySlug.mockResolvedValue(dbSet);
     mockCatalogRepo.printingsBySetId.mockResolvedValue([dbPrinting]);
     mockCatalogRepo.printingImagesBySetId.mockResolvedValue([
-      { printingId: PRINTING_ID, face: "front", imageId: "abc" },
+      { printingId: PRINTING_ID, side: 1, imageId: "abc" },
     ]);
     mockCatalogRepo.cardsByIds.mockResolvedValue([dbCard]);
     mockCatalogRepo.cardBansByCardIds.mockResolvedValue([]);
@@ -168,12 +170,14 @@ describe("GET /api/v1/sets/:setSlug", () => {
     expect(json.cards[CARD_ID]).toMatchObject({ slug: "jinx-rebel", errata: null, bans: [] });
     expect(json.printings).toHaveLength(1);
     expect(json.printings[0]).toMatchObject({
-      id: PRINTING_ID,
+      printingId: PRINTING_ID,
+      side: 1,
+      faceId: PRINTING_ID,
       shortCode: "OGN-202",
       markers: [],
       distributionChannels: [],
     });
-    expect(json.printings[0].images).toEqual([{ face: "front", imageId: "abc" }]);
+    expect(json.printings[0].images).toEqual([{ imageId: "abc" }]);
     expect(mockCatalogRepo.setBySlug).toHaveBeenCalledWith("OGN");
   });
 

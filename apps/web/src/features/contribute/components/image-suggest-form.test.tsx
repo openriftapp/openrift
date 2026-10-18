@@ -61,7 +61,7 @@ import { MISSING_IMAGE_ENUMS, stubInitResponse } from "@/test/init-fixtures";
 const UPLOADED_URL = "/media/submissions/11111111-2222-3333-4444-555555555555.jpg";
 
 const printing = stubPrinting({
-  id: "printing-1",
+  printingId: "printing-1",
   publicCode: "OGN-066/298",
   finish: "normal",
   language: "EN",

@@ -12,12 +12,15 @@ import {
 describe("buildSnapshot", () => {
   it("reattaches map keys as ids on cards and printings", () => {
     const snapshot = buildSnapshot(
-      makeCatalogResponse([makeCard({ id: "c1" })], [makePrinting({ id: "p1", cardId: "c1" })]),
+      makeCatalogResponse(
+        [makeCard({ id: "c1" })],
+        [makePrinting({ printingId: "p1", cardId: "c1" })],
+      ),
       makePricesResponse(),
       makeInitResponse(),
     );
     expect(snapshot.cards.map((c) => c.id)).toEqual(["c1"]);
-    expect(snapshot.printingsByCardId.get("c1")?.map((p) => p.id)).toEqual(["p1"]);
+    expect(snapshot.printingsByCardId.get("c1")?.map((p) => p.printingId)).toEqual(["p1"]);
   });
 
   it("groups printings per card sorted by canonical rank", () => {
@@ -25,14 +28,14 @@ describe("buildSnapshot", () => {
       makeCatalogResponse(
         [makeCard({ id: "c1" })],
         [
-          makePrinting({ id: "p2", cardId: "c1", canonicalRank: 2 }),
-          makePrinting({ id: "p1", cardId: "c1", canonicalRank: 1 }),
+          makePrinting({ printingId: "p2", cardId: "c1", canonicalRank: 2 }),
+          makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1 }),
         ],
       ),
       makePricesResponse(),
       makeInitResponse(),
     );
-    expect(snapshot.printingsByCardId.get("c1")?.map((p) => p.id)).toEqual(["p1", "p2"]);
+    expect(snapshot.printingsByCardId.get("c1")?.map((p) => p.printingId)).toEqual(["p1", "p2"]);
   });
 
   it("indexes sets by id and carries prices + currencies through", () => {
@@ -74,34 +77,14 @@ describe("representativePrinting", () => {
       makeCatalogResponse(
         [makeCard({ id: "c1" })],
         [
-          makePrinting({ id: "p1", cardId: "c1", canonicalRank: 1, images: [] }),
-          makePrinting({ id: "p2", cardId: "c1", canonicalRank: 2 }),
+          makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1, images: [] }),
+          makePrinting({ printingId: "p2", cardId: "c1", canonicalRank: 2 }),
         ],
       ),
       makePricesResponse(),
       makeInitResponse(),
     );
-    expect(representativePrinting(snapshot, "c1")?.id).toBe("p2");
-  });
-
-  it("falls back to the first printing when none has a front image", () => {
-    const snapshot = buildSnapshot(
-      makeCatalogResponse(
-        [makeCard({ id: "c1" })],
-        [
-          makePrinting({ id: "p1", cardId: "c1", canonicalRank: 1, images: [] }),
-          makePrinting({
-            id: "p2",
-            cardId: "c1",
-            canonicalRank: 2,
-            images: [{ face: "back", imageId: "0197f00d00bb" }],
-          }),
-        ],
-      ),
-      makePricesResponse(),
-      makeInitResponse(),
-    );
-    expect(representativePrinting(snapshot, "c1")?.id).toBe("p1");
+    expect(representativePrinting(snapshot, "c1")?.printingId).toBe("p2");
   });
 
   it("returns undefined for a card without printings", () => {

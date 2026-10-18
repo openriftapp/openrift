@@ -6,14 +6,14 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { stubCopy, stubPrinting } from "@/test/factories";
 
 vi.mock("@/features/cards/components/printing-label", () => ({
-  ImportPrintingLabel: ({ printing }: { printing: Printing }) => <span>{printing.id}</span>,
+  ImportPrintingLabel: ({ printing }: { printing: Printing }) => <span>{printing.printingId}</span>,
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
 const { MoveEntryDialogBody } = await import("./move-entry-dialog");
 
-const printingA = stubPrinting({ id: "p-a" });
-const printingB = stubPrinting({ id: "p-b" });
+const printingA = stubPrinting({ printingId: "p-a" });
+const printingB = stubPrinting({ printingId: "p-b" });
 
 function renderBody(props: Partial<Parameters<typeof MoveEntryDialogBody>[0]> = {}) {
   const onConfirm = vi.fn();

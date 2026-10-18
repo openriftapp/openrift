@@ -108,7 +108,7 @@ export const ListGridCell = memo(function ListGridCell({
     inCardsView,
   });
 
-  const key = kind === "card" ? printing.cardId : displayPrinting.id;
+  const key = kind === "card" ? printing.cardId : displayPrinting.printingId;
   const entry = useListEntriesStore((s) =>
     showLibrary ? s.entryByKey.get(key) : s.entryByItemId.get(itemId),
   );

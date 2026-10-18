@@ -281,7 +281,7 @@ async function runMatchQuery(
   const result: (MatchRow & { matchedAt?: Date })[] = [];
   for (const supplyEntry of supply) {
     const matches = [
-      ...(demandByCard.get(supplyEntry.cardId) ?? []),
+      ...supplyEntry.cardIds.flatMap((cardId) => demandByCard.get(cardId) ?? []),
       ...(demandByPrinting.get(supplyEntry.printingId) ?? []),
     ];
     for (const demandEntry of matches) {
@@ -319,7 +319,10 @@ async function runMatchQuery(
         grade: supplyEntry.grade,
         notesPublic: supplyEntry.notesPublic,
         printingId: supplyEntry.printingId,
-        cardId: supplyEntry.cardId,
+        cardId:
+          demandEntry.kind === "card" && demandEntry.cardId
+            ? demandEntry.cardId
+            : supplyEntry.cardId,
         cardName: detail.cardName,
         setId: detail.setId,
         rarity: detail.rarity,

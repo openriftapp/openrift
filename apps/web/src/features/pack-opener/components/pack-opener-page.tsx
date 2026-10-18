@@ -358,7 +358,7 @@ function SinglePackResult({
   autoReveal: boolean;
 }) {
   const { data } = useSuspenseQuery(publicSetDetailQueryOptions(setSlug));
-  const imagesByPrintingId = new Map(data.printings.map((p) => [p.id, p.images] as const));
+  const imagesByPrintingId = new Map(data.printings.map((p) => [p.printingId, p.images] as const));
   const [statsVisible, setStatsVisible] = useState(autoReveal);
   // Reset during render, not an effect, so the gate is armed before this render paints.
   const [gateArmedFor, setGateArmedFor] = useState({ pack, autoReveal });
@@ -392,7 +392,7 @@ function BulkPackResult({
   autoReveal: boolean;
 }) {
   const { data } = useSuspenseQuery(publicSetDetailQueryOptions(setSlug));
-  const imagesByPrintingId = new Map(data.printings.map((p) => [p.id, p.images] as const));
+  const imagesByPrintingId = new Map(data.printings.map((p) => [p.printingId, p.images] as const));
   const [revealedCount, setRevealedCount] = useState(autoReveal ? packs.length : 0);
   // Reset during render, not an effect, so the gate is armed before this render paints.
   const [countArmedFor, setCountArmedFor] = useState({ packs, autoReveal });

@@ -48,14 +48,14 @@ describe("buildPromoTreeFromMatches", () => {
       makeChannel({ id: "leaf", slug: "leaf", label: "Leaf", parentId: "root" }),
     ];
     const printings = [
-      stubPrinting({ id: "p1", distributionChannels: [makeChannelLink("leaf")] }),
-      stubPrinting({ id: "p2", distributionChannels: [makeChannelLink("leaf")] }),
+      stubPrinting({ printingId: "p1", distributionChannels: [makeChannelLink("leaf")] }),
+      stubPrinting({ printingId: "p2", distributionChannels: [makeChannelLink("leaf")] }),
     ];
     const tree = buildPromoTreeFromMatches(printings, channels);
     expect(tree).toHaveLength(1);
     expect(tree[0]!.channel.id).toBe("root");
     expect(tree[0]!.subtreePrintingIds.size).toBe(2);
-    expect(tree[0]!.children[0]!.printings.map((p) => p.id)).toEqual(["p1", "p2"]);
+    expect(tree[0]!.children[0]!.printings.map((p) => p.printingId)).toEqual(["p1", "p2"]);
   });
 
   it("returns empty leaves when no printings match", () => {

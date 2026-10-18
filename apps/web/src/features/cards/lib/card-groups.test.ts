@@ -36,7 +36,7 @@ const LABELS: EnumLabels = {
 
 function item(setId: string): CardViewerItem {
   const printing = stubPrinting({ setId });
-  return { id: printing.id, printing };
+  return { id: printing.printingId, printing };
 }
 
 const setOrder: GroupInfo[] = [

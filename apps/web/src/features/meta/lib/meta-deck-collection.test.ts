@@ -69,8 +69,8 @@ describe("decodeMetaDeckCardIndex", () => {
 
 describe("ownedCountsByCardId", () => {
   const printings = new Map([
-    ["card-a", [{ id: "print-a1" }, { id: "print-a2" }]],
-    ["card-b", [{ id: "print-b1" }]],
+    ["card-a", [{ printingId: "print-a1" }, { printingId: "print-a2" }]],
+    ["card-b", [{ printingId: "print-b1" }]],
   ]);
 
   it("sums a card's copies across its printings", () => {
@@ -94,13 +94,13 @@ describe("cheapestPriceByCardId", () => {
     [
       "card-a",
       [
-        { id: "print-en", language: "en" },
-        { id: "print-en-alt", language: "en" },
-        { id: "print-de", language: "de" },
+        { printingId: "print-en", language: "en" },
+        { printingId: "print-en-alt", language: "en" },
+        { printingId: "print-de", language: "de" },
       ],
     ],
-    ["card-b", [{ id: "print-b-fr", language: "fr" }]],
-    ["card-c", [{ id: "print-c", language: "en" }]],
+    ["card-b", [{ printingId: "print-b-fr", language: "fr" }]],
+    ["card-c", [{ printingId: "print-c", language: "en" }]],
   ]);
 
   it("takes the cheapest printing in the reader's languages", () => {
@@ -243,7 +243,9 @@ describe("metaDeckCosts", () => {
 });
 
 describe("metaCardOwnershipBand", () => {
-  const printings = new Map([["card-a", [{ id: "p-en" }, { id: "p-foil" }, { id: "p-fr" }]]]);
+  const printings = new Map([
+    ["card-a", [{ printingId: "p-en" }, { printingId: "p-foil" }, { printingId: "p-fr" }]],
+  ]);
 
   it("fills the displayed printing first, then the card's other printings", () => {
     const band = metaCardOwnershipBand(

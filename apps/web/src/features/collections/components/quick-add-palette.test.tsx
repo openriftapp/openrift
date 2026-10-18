@@ -56,7 +56,7 @@ function renderPalette(printing: Printing) {
       collectionId={COLLECTION_ID}
       collectionName="Deckbox"
       printingsByCardId={new Map([[printing.cardId, [printing]]])}
-      ownedCountByPrinting={{ [printing.id]: 1 }}
+      ownedCountByPrinting={{ [printing.printingId]: 1 }}
     />,
   );
 }
@@ -88,7 +88,7 @@ describe("QuickAddPalette undo confirms before destroying recorded copy details"
     copies = [
       stubCopy({
         id: COPY_ID,
-        printingId: printing.id,
+        printingId: printing.printingId,
         collectionId: COLLECTION_ID,
         grader: "psa",
         grade: 9.5,
@@ -103,12 +103,14 @@ describe("QuickAddPalette undo confirms before destroying recorded copy details"
 
     expect(await screen.findByText("Remove this copy?")).toBeInTheDocument();
     expect(disposeMutateAsync).not.toHaveBeenCalled();
-    expect(useAddModeStore.getState().addedItems.get(printing.id)?.quantity).toBe(1);
+    expect(useAddModeStore.getState().addedItems.get(printing.printingId)?.quantity).toBe(1);
   });
 
   it("disposes without asking when the copy carries no recorded details", async () => {
     const printing = stubPrinting({ card: { name: "Ahri" } });
-    copies = [stubCopy({ id: COPY_ID, printingId: printing.id, collectionId: COLLECTION_ID })];
+    copies = [
+      stubCopy({ id: COPY_ID, printingId: printing.printingId, collectionId: COLLECTION_ID }),
+    ];
     useAddModeStore.getState().recordAdd(printing, COPY_ID);
 
     renderPalette(printing);
@@ -123,7 +125,9 @@ describe("QuickAddPalette undo confirms before destroying recorded copy details"
 
   it("never removes a copy this session did not add", async () => {
     const printing = stubPrinting({ card: { name: "Zed" } });
-    copies = [stubCopy({ id: COPY_ID, printingId: printing.id, collectionId: COLLECTION_ID })];
+    copies = [
+      stubCopy({ id: COPY_ID, printingId: printing.printingId, collectionId: COLLECTION_ID }),
+    ];
 
     renderPalette(printing);
     openPrintingRow("Zed");

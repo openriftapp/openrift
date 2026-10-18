@@ -33,7 +33,7 @@ vi.mock("@/features/cards/hooks/use-cards", () => ({
 }));
 
 const savedTiers: TierRow[] = [
-  { label: "S", cards: [{ cardId: "card-a", printingId: printingA.id }] },
+  { label: "S", cards: [{ cardId: "card-a", printingId: printingA.printingId }] },
   { label: "A", cards: [] },
 ];
 

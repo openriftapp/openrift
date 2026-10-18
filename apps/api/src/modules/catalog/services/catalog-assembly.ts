@@ -9,10 +9,9 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import type { Repos } from "../../../deps.js";
 import {
   loadPrintingDecorations,
-  resolveFallbackArt,
-  resolveFoilTwin,
-  resolveMarkers,
-  toCatalogPrintingImage,
+  presentPrintingFields,
+  presentSide,
+  sideImageKey,
 } from "../lib/printing-presenters.js";
 
 /**
@@ -44,10 +43,9 @@ export async function assembleCatalogResponse(repos: Repos): Promise<CatalogResp
     repos.customTags.assignmentsByCard(),
   ]);
 
-  const { markerBySlug, channelsByPrinting, citationsByPrinting } = await loadPrintingDecorations(
-    repos,
-    printingRows.map((p) => p.id),
-  );
+  const decorations = await loadPrintingDecorations(repos, [
+    ...new Set(printingRows.map((p) => p.printingId)),
+  ]);
 
   const bansByCard = Map.groupBy(banRows, (r) => r.cardId);
 
@@ -78,29 +76,26 @@ export async function assembleCatalogResponse(repos: Repos): Promise<CatalogResp
     };
   }
 
-  const imagesByPrinting = Map.groupBy(imageRows, (r) => r.printingId);
+  const imagesBySide = Map.groupBy(imageRows, sideImageKey);
+  const presentRowSide = (row: (typeof printingRows)[number]) =>
+    presentSide(row, imagesBySide.get(sideImageKey(row)) ?? [], decorations.markerBySlug);
 
   const printings: Record<string, CatalogResponsePrintingValue> = {};
-  for (const {
-    id,
-    markerSlugs,
-    fallbackArtMode,
-    fallbackImageId,
-    hasFoilTwin,
-    ...rest
-  } of printingRows) {
-    const citations = citationsByPrinting.get(id);
-    printings[id] = {
-      ...rest,
-      ...resolveFallbackArt({ fallbackArtMode, fallbackImageId }),
-      ...resolveFoilTwin({ hasFoilTwin }),
-      markers: resolveMarkers(markerSlugs, markerBySlug),
-      distributionChannels: channelsByPrinting.get(id) ?? [],
-      // Must be omitted, not an empty array (see `buildPrintingsResponse`):
-      // every visitor downloads this bundle, so an uncited printing costs no bytes.
-      ...(citations === undefined ? {} : { citations }),
-      images: (imagesByPrinting.get(id) ?? []).map((image) => toCatalogPrintingImage(image)),
-    };
+  for (const row of printingRows) {
+    if (row.side === 1) {
+      const { faceId, ...side } = presentRowSide(row);
+      printings[row.printingId] = {
+        ...side,
+        ...(faceId === row.printingId ? {} : { faceId }),
+        ...presentPrintingFields(row, decorations),
+      };
+    }
+  }
+  for (const row of printingRows) {
+    const printing = printings[row.printingId];
+    if (row.side === 2 && printing) {
+      printing.side2 = presentRowSide(row);
+    }
   }
 
   return {

@@ -11,7 +11,11 @@ import type { InitResponse } from "@openrift/shared/types/api/init";
 import type { PricesResponse } from "@openrift/shared/types/api/pricing";
 
 export type CatalogCard = CatalogResponseCardValue & { id: string };
-export type CatalogPrinting = CatalogResponsePrintingValue & { id: string };
+/** One printed side; a double-sided printing contributes an entry to each of its cards. */
+export type CatalogPrinting = Omit<CatalogResponsePrintingValue, "side2"> & {
+  printingId: string;
+  side: 1 | 2;
+};
 
 export interface EnumLabels extends VariantLabelEnumLabels, CardStatLabels {
   deckZones: Record<string, string>;
@@ -40,10 +44,16 @@ export function buildSnapshot(
 ): CatalogSnapshot {
   const cards = Object.entries(catalog.cards).map(([id, card]) => ({ id, ...card }));
   const printingsByCardId = new Map<string, CatalogPrinting[]>();
-  for (const [id, printing] of Object.entries(catalog.printings)) {
-    const list = printingsByCardId.get(printing.cardId) ?? [];
-    list.push({ id, ...printing });
-    printingsByCardId.set(printing.cardId, list);
+  for (const [printingId, { side2, ...printing }] of Object.entries(catalog.printings)) {
+    const sides: CatalogPrinting[] = [{ ...printing, printingId, side: 1 }];
+    if (side2 !== undefined) {
+      sides.push({ ...printing, ...side2, printingId, side: 2 });
+    }
+    for (const side of sides) {
+      const list = printingsByCardId.get(side.cardId) ?? [];
+      list.push(side);
+      printingsByCardId.set(side.cardId, list);
+    }
   }
   for (const list of printingsByCardId.values()) {
     list.sort((a, b) => a.canonicalRank - b.canonicalRank);
@@ -69,7 +79,7 @@ export function representativePrinting(
   if (!printings?.length) {
     return undefined;
   }
-  return printings.find((p) => p.images.some((image) => image.face === "front")) ?? printings[0];
+  return printings.find((p) => p.images.length > 0) ?? printings[0];
 }
 
 export class CatalogCache {

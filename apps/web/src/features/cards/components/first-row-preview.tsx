@@ -1,5 +1,6 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
+import { sideKey } from "@openrift/shared/printing-side";
 import { getRouteApi } from "@tanstack/react-router";
 
 import { OrnamentRule } from "@/components/ui/ornament";
@@ -125,7 +126,7 @@ export function FirstRowPreview() {
                   // Must mirror <CardRowContent>'s cell shape (wrapper padding, image, label spacer)
                   // or the SSR cells render a different size and hydration shifts the grid.
                   <div
-                    key={card.printingId}
+                    key={sideKey(card)}
                     className={cn("rounded-lg p-0.75", visibilityForIndex(i))}
                   >
                     {card.rotated ? (

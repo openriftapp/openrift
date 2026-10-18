@@ -44,8 +44,16 @@ const {
   useOwnedCountsForPrintings,
 } = await import("./use-owned-count");
 
-const v1: OwnedBreakdownVariant = { id: "p1", shortCode: "OGN-001", finish: "normal" as Finish };
-const v2: OwnedBreakdownVariant = { id: "p2", shortCode: "OGN-001p", finish: "foil" as Finish };
+const v1: OwnedBreakdownVariant = {
+  printingId: "p1",
+  shortCode: "OGN-001",
+  finish: "normal" as Finish,
+};
+const v2: OwnedBreakdownVariant = {
+  printingId: "p2",
+  shortCode: "OGN-001p",
+  finish: "foil" as Finish,
+};
 
 function copy(printingId: string, collectionId: string, onLoan = false): CopyResponse {
   return stubCopy({

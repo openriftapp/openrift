@@ -510,13 +510,15 @@ describe("collectOwnershipBandSources", () => {
   it("sums a card's copies across its printings and resolves each entry's art", () => {
     const unpinned = stubDeckBuilderCard({ cardId: CARD, quantity: 1 });
     const pinned = stubDeckBuilderCard({ cardId: CARD, quantity: 1, preferredPrintingId: FOIL });
-    const printings = new Map([[CARD, [{ id: STANDARD }, { id: FOIL }]]]);
+    const printings = new Map([[CARD, [{ printingId: STANDARD }, { printingId: FOIL }]]]);
 
     const sources = collectOwnershipBandSources(
       [unpinned, pinned],
       printings,
       (cardId, preferredPrintingId) =>
-        preferredPrintingId ? { id: preferredPrintingId } : { id: `${cardId}-default` },
+        preferredPrintingId
+          ? { printingId: preferredPrintingId }
+          : { printingId: `${cardId}-default` },
       { [STANDARD]: 2, [FOIL]: 1 },
       { [FOIL]: 1 },
     );

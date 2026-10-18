@@ -139,7 +139,7 @@ export function CopyDetailsDialog({
 function distinctPrintings(printingByCopyId: Map<string, Printing>): Printing[] {
   const byId = new Map<string, Printing>();
   for (const printing of printingByCopyId.values()) {
-    byId.set(printing.id, printing);
+    byId.set(printing.printingId, printing);
   }
   return [...byId.values()];
 }

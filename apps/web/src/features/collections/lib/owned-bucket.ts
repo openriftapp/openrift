@@ -1,4 +1,5 @@
 import { getPlaysetSize } from "@openrift/shared/playset";
+import { ownedTotalsByCard } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import type { OwnedBucket } from "@/features/cards/lib/search-schemas";
@@ -32,17 +33,15 @@ export function applyOwnedBucketFilter(
     return cards.filter((printing) =>
       selectedSet.has(
         bucketFor(
-          ownedCountByPrinting[printing.id] ?? 0,
+          ownedCountByPrinting[printing.printingId] ?? 0,
           getPlaysetSize(printing.card.types, printing.card.keywords),
         ),
       ),
     );
   }
-  const totalByCard = new Map<string, number>();
+  const totalByCard = ownedTotalsByCard(cards, ownedCountByPrinting);
   const cardById = new Map<string, Printing["card"]>();
   for (const printing of cards) {
-    const count = ownedCountByPrinting[printing.id] ?? 0;
-    totalByCard.set(printing.cardId, (totalByCard.get(printing.cardId) ?? 0) + count);
     if (!cardById.has(printing.cardId)) {
       cardById.set(printing.cardId, printing.card);
     }
@@ -75,15 +74,11 @@ export function applyOwnedCountFilter(
   const upperBound = max ?? Infinity;
   if (bucketBy === "printing") {
     return cards.filter((printing) => {
-      const count = ownedCountByPrinting[printing.id] ?? 0;
+      const count = ownedCountByPrinting[printing.printingId] ?? 0;
       return count >= lowerBound && count <= upperBound;
     });
   }
-  const totalByCard = new Map<string, number>();
-  for (const printing of cards) {
-    const count = ownedCountByPrinting[printing.id] ?? 0;
-    totalByCard.set(printing.cardId, (totalByCard.get(printing.cardId) ?? 0) + count);
-  }
+  const totalByCard = ownedTotalsByCard(cards, ownedCountByPrinting);
   return cards.filter((printing) => {
     const total = totalByCard.get(printing.cardId) ?? 0;
     return total >= lowerBound && total <= upperBound;
@@ -99,7 +94,7 @@ export function maxOwnedCount(
   let max = 0;
   if (bucketBy === "printing") {
     for (const printing of cards) {
-      const count = ownedCountByPrinting[printing.id] ?? 0;
+      const count = ownedCountByPrinting[printing.printingId] ?? 0;
       if (count > max) {
         max = count;
       }
@@ -108,7 +103,7 @@ export function maxOwnedCount(
   }
   const totalByCard = new Map<string, number>();
   for (const printing of cards) {
-    const count = ownedCountByPrinting[printing.id] ?? 0;
+    const count = ownedCountByPrinting[printing.printingId] ?? 0;
     totalByCard.set(printing.cardId, (totalByCard.get(printing.cardId) ?? 0) + count);
   }
   for (const total of totalByCard.values()) {

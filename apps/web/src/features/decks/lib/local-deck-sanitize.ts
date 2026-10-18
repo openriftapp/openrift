@@ -71,6 +71,13 @@ function sanitizeLinks(candidate: Record<string, unknown>): DeckLink[] {
 }
 
 /** Ids written before the store moved off the `local:` prefix keep the uuid they wrapped, so a bookmark can redirect to it. */
+// Decks saved before covers named a face stored the printing id, which is the face id of
+// every printing that existed then.
+function storedCoverFaceId(candidate: Record<string, unknown>): string | null {
+  const stored = candidate.coverFaceId ?? candidate.coverPrintingId;
+  return typeof stored === "string" ? stored : null;
+}
+
 export function bareLocalDeckId(id: string): string {
   return id.startsWith(LOCAL_DECK_PREFIX) ? id.slice(LOCAL_DECK_PREFIX.length) : id;
 }
@@ -104,8 +111,7 @@ export function sanitizeDecks(raw: unknown): Record<string, LocalDeck> {
           : null,
       cards: sanitizeCards(candidate.cards),
       coverCardId: typeof candidate.coverCardId === "string" ? candidate.coverCardId : null,
-      coverPrintingId:
-        typeof candidate.coverPrintingId === "string" ? candidate.coverPrintingId : null,
+      coverFaceId: storedCoverFaceId(candidate),
       coverPosition:
         typeof candidate.coverPosition === "number" &&
         Number.isInteger(candidate.coverPosition) &&

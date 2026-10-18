@@ -52,13 +52,13 @@ export function decodeMetaDeckCardIndex(index: {
 /** Summed over every printing: the archive records which card was played, not which printing. */
 export function ownedCountsByCardId(
   ownedByPrinting: Readonly<Record<string, number>>,
-  printingsByCardId: ReadonlyMap<string, readonly { id: string }[]>,
+  printingsByCardId: ReadonlyMap<string, readonly { printingId: string }[]>,
 ): Map<string, number> {
   const owned = new Map<string, number>();
   for (const [cardId, printings] of printingsByCardId) {
     let total = 0;
-    for (const printing of printings) {
-      total += ownedByPrinting[printing.id] ?? 0;
+    for (const printingId of new Set(printings.map((printing) => printing.printingId))) {
+      total += ownedByPrinting[printingId] ?? 0;
     }
     if (total > 0) {
       owned.set(cardId, total);
@@ -69,7 +69,7 @@ export function ownedCountsByCardId(
 
 /** Currency major units. A card with no priced printing has no entry. */
 export function cheapestPriceByCardId(
-  printingsByCardId: ReadonlyMap<string, readonly { id: string; language: string }[]>,
+  printingsByCardId: ReadonlyMap<string, readonly { printingId: string; language: string }[]>,
   prices: PriceLookup,
   marketplace: Marketplace,
   languageOrder: readonly string[],
@@ -83,7 +83,7 @@ export function cheapestPriceByCardId(
     for (const pool of pools) {
       let best: number | undefined;
       for (const printing of pool) {
-        const price = prices.get(printing.id, marketplace);
+        const price = prices.get(printing.printingId, marketplace);
         if (price !== undefined && (best === undefined || price < best)) {
           best = price;
         }
@@ -154,13 +154,13 @@ export function metaCardOwnershipBand(
   card: { cardId: string; quantity: number },
   displayedPrintingId: string | null,
   ownedByPrinting: Readonly<Record<string, number>>,
-  printingsByCardId: ReadonlyMap<string, readonly { id: string }[]>,
+  printingsByCardId: ReadonlyMap<string, readonly { printingId: string }[]>,
 ): OwnershipBandSegments {
   let ownedOfDisplayed = 0;
   let ownedOfOthers = 0;
   for (const printing of printingsByCardId.get(card.cardId) ?? []) {
-    const owned = ownedByPrinting[printing.id] ?? 0;
-    if (printing.id === displayedPrintingId) {
+    const owned = ownedByPrinting[printing.printingId] ?? 0;
+    if (printing.printingId === displayedPrintingId) {
       ownedOfDisplayed += owned;
     } else {
       ownedOfOthers += owned;

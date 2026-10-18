@@ -31,10 +31,10 @@ function cardEntry(cardId: string, quantity: number): ListEntryDetailResponse {
 
 function printingEntry(printing: Printing, quantity: number): ListEntryDetailResponse {
   return {
-    id: `entry-${printing.id}`,
+    id: `entry-${printing.printingId}`,
     listId: "list-1",
     kind: "printing",
-    printingId: printing.id,
+    printingId: printing.printingId,
     cardName: "Test",
     quantity,
     setId: printing.setId,
@@ -51,11 +51,11 @@ function printingEntry(printing: Printing, quantity: number): ListEntryDetailRes
 
 function copyEntry(printing: Printing, quantity: number): ListEntryDetailResponse {
   return {
-    id: `copy-${printing.id}`,
+    id: `copy-${printing.printingId}`,
     listId: "list-1",
     kind: "copy",
-    copyId: `copy-id-${printing.id}`,
-    printingId: printing.id,
+    copyId: `copy-id-${printing.printingId}`,
+    printingId: printing.printingId,
     cardName: "Test",
     quantity,
     setId: printing.setId,
@@ -89,8 +89,8 @@ describe("computeListValue", () => {
     const result = computeListValue({
       entries: [printingEntry(p1, 2), printingEntry(p2, 3)],
       prices: stubPriceLookup({
-        [p1.id]: { cardtrader: 1.5 },
-        [p2.id]: { cardtrader: 4 },
+        [p1.printingId]: { cardtrader: 1.5 },
+        [p2.printingId]: { cardtrader: 4 },
       }),
       marketplace: "cardtrader",
       printingsByCardId: new Map(),
@@ -104,7 +104,7 @@ describe("computeListValue", () => {
     const result = computeListValue({
       entries: [printingEntry(p1, 2), printingEntry(p2, 5)],
       prices: stubPriceLookup({
-        [p1.id]: { cardtrader: 1.5 },
+        [p1.printingId]: { cardtrader: 1.5 },
       }),
       marketplace: "cardtrader",
       printingsByCardId: new Map(),
@@ -120,9 +120,9 @@ describe("computeListValue", () => {
     const result = computeListValue({
       entries: [cardEntry(cardId, 4)],
       prices: stubPriceLookup({
-        [cheap.id]: { cardtrader: 1.25 },
-        [mid.id]: { cardtrader: 3 },
-        [pricey.id]: { cardtrader: 7.5 },
+        [cheap.printingId]: { cardtrader: 1.25 },
+        [mid.printingId]: { cardtrader: 3 },
+        [pricey.printingId]: { cardtrader: 7.5 },
       }),
       marketplace: "cardtrader",
       printingsByCardId: new Map([[cardId, [cheap, mid, pricey]]]),
@@ -159,7 +159,7 @@ describe("computeListValue", () => {
     const result = computeListValue({
       entries: [copyEntry(p1, 1), copyEntry(p2, 1)],
       prices: stubPriceLookup({
-        [p1.id]: { cardtrader: 2 },
+        [p1.printingId]: { cardtrader: 2 },
       }),
       marketplace: "cardtrader",
       printingsByCardId: new Map(),
@@ -170,7 +170,7 @@ describe("computeListValue", () => {
   it("respects the chosen marketplace when prices differ", () => {
     const p = stubPrinting();
     const lookup = stubPriceLookup({
-      [p.id]: { tcgplayer: 5, cardmarket: 4, cardtrader: 3 },
+      [p.printingId]: { tcgplayer: 5, cardmarket: 4, cardtrader: 3 },
     });
     expect(
       computeListValue({
@@ -198,8 +198,8 @@ describe("computeListValue", () => {
     const result = computeListValue({
       entries: [cardEntry(cardId, 2), printingEntry(printing, 3), copyEntry(copy, 1)],
       prices: stubPriceLookup({
-        [cardP.id]: { cardtrader: 0.5 },
-        [printing.id]: { cardtrader: 2 },
+        [cardP.printingId]: { cardtrader: 0.5 },
+        [printing.printingId]: { cardtrader: 2 },
       }),
       marketplace: "cardtrader",
       printingsByCardId: new Map([[cardId, [cardP]]]),

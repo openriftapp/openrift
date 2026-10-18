@@ -23,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { MobileOptionsDrawer } from "@/features/cards/components/options-bar";
 import type { SortGroupOption } from "@/features/cards/components/sort-group-controls";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { useResponsiveColumns } from "@/features/cards/hooks/use-responsive-columns";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
@@ -95,7 +96,7 @@ interface DeckOverviewProps {
     format: DeckFormat;
     formatConfig: DeckFormatConfig | null;
     coverCardId?: string | null;
-    coverPrintingId?: string | null;
+    coverFaceId?: string | null;
     coverPosition?: number | null;
     links?: readonly DeckLink[];
     collectionId?: string | null;
@@ -154,6 +155,7 @@ export function DeckOverview({
   const championIdentifierTags = useChampionIdentifierTags();
   const { labels: enumLabels, orders: enumOrders } = useEnumOrders();
   const { sets } = useCards();
+  const { getFaceImage } = usePreferredPrinting();
   const violations = validateDeck({
     format: deck.format,
     formatConfig: deck.formatConfig,
@@ -173,9 +175,16 @@ export function DeckOverview({
   const coverEntry = deck.coverCardId
     ? cards.find((card) => card.cardId === deck.coverCardId)
     : undefined;
+  const coverFaceImageId =
+    deck.coverCardId && deck.coverFaceId
+      ? getFaceImage(deck.coverCardId, deck.coverFaceId)?.imageId
+      : undefined;
   const coverThumb = deck.coverCardId
-    ? (getThumbnail(deck.coverCardId, deck.coverPrintingId ?? null) ??
-      (coverEntry ? getThumbnail(coverEntry.cardId, coverEntry.preferredPrintingId) : undefined))
+    ? coverFaceImageId
+      ? imageUrl(coverFaceImageId, "400w")
+      : coverEntry
+        ? getThumbnail(coverEntry.cardId, coverEntry.preferredPrintingId)
+        : getThumbnail(deck.coverCardId, null)
     : undefined;
   const hasLegend = legendCard !== undefined;
   const introDismissed = useOnboardingStore((state) =>

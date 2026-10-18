@@ -34,7 +34,7 @@ const LABELS = snapshotWithPrices().labels;
 describe("fallbackArtDifferences", () => {
   it("mirrors the site's badge order: language, markers, art variant, overnumbered, signed, finish", () => {
     const printing = makePrinting({
-      id: "p-noimg",
+      printingId: "p-noimg",
       images: [],
       language: "DE",
       markers: [{ id: "m1", slug: "promo", label: "Promo", description: null }],
@@ -303,8 +303,8 @@ describe("buildCardEmbed", () => {
       makeCatalogResponse(
         [makeCard()],
         [
-          makePrinting({ id: "printing-1", canonicalRank: 1 }),
-          makePrinting({ id: "printing-2", canonicalRank: 2, artVariant: "altart" }),
+          makePrinting({ printingId: "printing-1", canonicalRank: 1 }),
+          makePrinting({ printingId: "printing-2", canonicalRank: 2, artVariant: "altart" }),
         ],
       ),
       makePricesResponse(),
@@ -404,8 +404,8 @@ describe("buildCardEmbed", () => {
       makeCatalogResponse(
         [makeCard()],
         [
-          makePrinting({ id: "printing-1", canonicalRank: 1 }),
-          makePrinting({ id: "printing-2", canonicalRank: 2, finish: "foil" }),
+          makePrinting({ printingId: "printing-1", canonicalRank: 1 }),
+          makePrinting({ printingId: "printing-2", canonicalRank: 2, finish: "foil" }),
         ],
       ),
       makePricesResponse(),
@@ -472,8 +472,8 @@ describe("buildCardEmbed", () => {
       makeCatalogResponse(
         [makeCard()],
         [
-          makePrinting({ id: "p-standard", canonicalRank: 1 }),
-          makePrinting({ id: "p-noimg", canonicalRank: 2, images: [], isSigned: true }),
+          makePrinting({ printingId: "p-standard", canonicalRank: 1 }),
+          makePrinting({ printingId: "p-noimg", canonicalRank: 2, images: [], isSigned: true }),
         ],
       ),
       makePricesResponse(),
@@ -481,7 +481,7 @@ describe("buildCardEmbed", () => {
     );
     const embed = buildCardEmbed({
       card: snapshot.cards[0]!,
-      printing: snapshot.printingsByCardId.get("card-1")!.find((p) => p.id === "p-noimg"),
+      printing: snapshot.printingsByCardId.get("card-1")!.find((p) => p.printingId === "p-noimg"),
       snapshot,
       siteUrl: SITE,
     });
@@ -494,8 +494,8 @@ describe("buildCardEmbed", () => {
       makeCatalogResponse(
         [makeCard()],
         [
-          makePrinting({ id: "p-standard", canonicalRank: 1 }),
-          makePrinting({ id: "p-noimg", canonicalRank: 2, images: [] }),
+          makePrinting({ printingId: "p-standard", canonicalRank: 1 }),
+          makePrinting({ printingId: "p-noimg", canonicalRank: 2, images: [] }),
         ],
       ),
       makePricesResponse(),
@@ -503,7 +503,7 @@ describe("buildCardEmbed", () => {
     );
     const embed = buildCardEmbed({
       card: snapshot.cards[0]!,
-      printing: snapshot.printingsByCardId.get("card-1")!.find((p) => p.id === "p-noimg"),
+      printing: snapshot.printingsByCardId.get("card-1")!.find((p) => p.printingId === "p-noimg"),
       snapshot,
       siteUrl: SITE,
     });
@@ -516,9 +516,9 @@ describe("buildCardEmbed", () => {
       makeCatalogResponse(
         [makeCard()],
         [
-          makePrinting({ id: "p-standard", canonicalRank: 1 }),
+          makePrinting({ printingId: "p-standard", canonicalRank: 1 }),
           makePrinting({
-            id: "p-noimg",
+            printingId: "p-noimg",
             canonicalRank: 2,
             images: [],
             fallbackArtMode: "pinned",
@@ -531,7 +531,7 @@ describe("buildCardEmbed", () => {
     );
     const embed = buildCardEmbed({
       card: snapshot.cards[0]!,
-      printing: snapshot.printingsByCardId.get("card-1")!.find((p) => p.id === "p-noimg"),
+      printing: snapshot.printingsByCardId.get("card-1")!.find((p) => p.printingId === "p-noimg"),
       snapshot,
       siteUrl: SITE,
     });
@@ -541,7 +541,7 @@ describe("buildCardEmbed", () => {
 
   it("omits image and note when no standard printing has an image", () => {
     const snapshot = buildSnapshot(
-      makeCatalogResponse([makeCard()], [makePrinting({ id: "p-noimg", images: [] })]),
+      makeCatalogResponse([makeCard()], [makePrinting({ printingId: "p-noimg", images: [] })]),
       makePricesResponse(),
       makeInitResponse(),
     );

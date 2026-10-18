@@ -1,4 +1,5 @@
 import { enumLabel } from "@openrift/shared/enum-label";
+import { sideKey } from "@openrift/shared/printing-side";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Suspense, useState } from "react";
@@ -54,12 +55,12 @@ function PrintingChoices({ cardSlug }: { cardSlug: string }) {
   return (
     <RowList>
       {data.printings.map((printing) => (
-        <RowListItem key={printing.id}>
+        <RowListItem key={sideKey(printing)}>
           <RowListLink
             render={
               <Link
                 to="/contribute/card/$cardSlug/printing/$printingId/image"
-                params={{ cardSlug, printingId: printing.id }}
+                params={{ cardSlug, printingId: printing.printingId }}
               />
             }
             className="justify-between"

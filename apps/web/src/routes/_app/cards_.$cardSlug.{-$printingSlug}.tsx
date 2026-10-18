@@ -163,7 +163,7 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
     const marketplaceOffers = MARKETPLACE_OFFER_CONFIG.flatMap(({ key, seller, currency }) => {
       // priceLookup returns major units (cents are converted at this boundary).
       const prices = data.printings
-        .map((printing) => priceLookup.get(printing.id, key))
+        .map((printing) => priceLookup.get(printing.printingId, key))
         .filter((price): price is number => price !== undefined && price > 0);
       if (prices.length === 0) {
         return [];

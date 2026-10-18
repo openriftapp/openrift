@@ -28,6 +28,7 @@ import type { z } from "zod";
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
+import { isForeignKeyViolation } from "../../../lib/pg-errors.js";
 import { enableShare } from "../../../lib/share-token.js";
 import {
   decodeXidKeyset,
@@ -118,7 +119,7 @@ const patchFields: FieldMapping<DeckUpdateInput> = {
   formatConfig: "formatConfig",
   oddsConfig: "oddsConfig",
   coverCardId: "coverCardId",
-  coverPrintingId: "coverPrintingId",
+  coverFaceId: "coverFaceId",
   coverPosition: "coverPosition",
   links: "links",
   collectionId: "collectionId",
@@ -383,7 +384,15 @@ export const decksRouter = {
       normalized.formatConfig = null;
     }
     const updates = buildPatchUpdates<DeckUpdateInput>(normalized, patchFields);
-    const row = await decks.update(input.id, userId, updates);
+    let row;
+    try {
+      row = await decks.update(input.id, userId, updates);
+    } catch (error) {
+      if (isForeignKeyViolation(error)) {
+        throw errors.BAD_REQUEST({ message: "The cover must show the cover card" });
+      }
+      throw error;
+    }
     assertFound(row, "Not found");
     return toDeck(row);
   }),
@@ -401,15 +410,26 @@ export const decksRouter = {
     const deck = await decks.getIdAndFormat(input.id, userId);
     assertFound(deck, "Not found");
 
-    await decks.replaceCards(
-      input.id,
-      input.cards.map((card) => ({
-        cardId: card.cardId,
-        zone: card.zone as DeckZone,
-        quantity: card.quantity,
-        preferredPrintingId: card.preferredPrintingId ?? null,
-      })),
-    );
+    try {
+      await decks.replaceCards(
+        input.id,
+        input.cards.map((card) => ({
+          cardId: card.cardId,
+          zone: card.zone as DeckZone,
+          quantity: card.quantity,
+          preferredPrintingId: card.preferredPrintingId ?? null,
+        })),
+      );
+    } catch (error) {
+      if (isForeignKeyViolation(error)) {
+        throw new AppError(
+          400,
+          ERROR_CODES.BAD_REQUEST,
+          "A preferred printing must show its card on one side",
+        );
+      }
+      throw error;
+    }
 
     const cardRows = await decks.cardsForDeck(input.id, userId);
     return { cards: cardRows.map((r) => toDeckCard(r)) };

@@ -77,7 +77,9 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
     const printings = await repo.printings();
     expect(printings.length).toBeGreaterThan(0);
     const first = printings[0];
-    expect(first).toHaveProperty("id");
+    expect(first).toHaveProperty("printingId");
+    expect(first).toHaveProperty("side");
+    expect(first).toHaveProperty("faceId");
     expect(first).toHaveProperty("cardId");
     expect(first).toHaveProperty("setId");
     expect(first).toHaveProperty("rarity");
@@ -105,7 +107,7 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
     expect(Array.isArray(images)).toBe(true);
     if (images.length > 0) {
       expect(images[0]).toHaveProperty("printingId");
-      expect(images[0]).toHaveProperty("face");
+      expect(images[0]).toHaveProperty("side");
       expect(images[0]).toHaveProperty("imageId");
     }
   });
@@ -113,9 +115,9 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
   it("getPrintingById returns the printing id for existing printing", async () => {
     const printings = await repo.printings();
     const first = printings[0];
-    const result = await repo.getPrintingById(first!.id);
+    const result = await repo.getPrintingById(first!.printingId);
     expect(result).toBeDefined();
-    expect(result!.id).toBe(first!.id);
+    expect(result!.id).toBe(first!.printingId);
   });
 
   it("getPrintingById returns undefined for nonexistent id", async () => {

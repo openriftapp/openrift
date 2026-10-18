@@ -10,7 +10,7 @@ import { stubPrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
 const PRINTING = stubPrinting({
-  images: [{ face: "front", imageId: "img-1" }],
+  images: [{ imageId: "img-1" }],
   card: { name: "Garen" },
 });
 
@@ -51,7 +51,7 @@ vi.mock("@tanstack/react-router", () => ({
 
 vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({
-    printingsById: { [PRINTING.id]: PRINTING },
+    printingsById: { [PRINTING.printingId]: PRINTING },
     cardsById: { [PRINTING.cardId]: PRINTING.card },
     printingsByCardId: new Map([[PRINTING.cardId, [PRINTING]]]),
   }),
@@ -134,7 +134,7 @@ afterEach(resetQueue);
 describe("OverlayOutputPanel card size", () => {
   beforeEach(() => {
     mockUpdateSettings.mockReset();
-    channelShowing(PRINTING.id);
+    channelShowing(PRINTING.printingId);
   });
 
   it("resizes the preview while the thumb is being dragged", () => {
@@ -167,12 +167,12 @@ describe("OverlayOutputPanel card size", () => {
 });
 
 describe("OverlayOutputPanel walk controls", () => {
-  const QUEUE = [PRINTING.id, "p-2", "p-3"];
+  const QUEUE = [PRINTING.printingId, "p-2", "p-3"];
 
   beforeEach(() => {
     mockPushCard.mockReset();
     usePresentQueueStore.getState().load(QUEUE);
-    channelShowing(PRINTING.id);
+    channelShowing(PRINTING.printingId);
   });
 
   it("steps forward from the live card", () => {
@@ -193,7 +193,7 @@ describe("OverlayOutputPanel walk controls", () => {
 
     fireEvent.click(getByLabelText("Push the previous queued card"));
 
-    expect(mockPushCard).toHaveBeenCalledWith({ printingId: PRINTING.id });
+    expect(mockPushCard).toHaveBeenCalledWith({ printingId: PRINTING.printingId });
   });
 
   it("disables the ends rather than wrapping around", () => {
@@ -214,7 +214,7 @@ describe("OverlayOutputPanel walk controls", () => {
 
     fireEvent.click(getByLabelText("Push the next queued card"));
 
-    expect(mockPushCard).toHaveBeenCalledWith({ printingId: PRINTING.id });
+    expect(mockPushCard).toHaveBeenCalledWith({ printingId: PRINTING.printingId });
   });
 
   it("offers the first queued card while an off-queue search is live", () => {
@@ -225,7 +225,7 @@ describe("OverlayOutputPanel walk controls", () => {
 
     fireEvent.click(getByLabelText("Push the next queued card"));
 
-    expect(mockPushCard).toHaveBeenCalledWith({ printingId: PRINTING.id });
+    expect(mockPushCard).toHaveBeenCalledWith({ printingId: PRINTING.printingId });
   });
 
   it("renders no walk controls without a queue", () => {
@@ -242,7 +242,7 @@ describe("OverlayOutputPanel clear", () => {
   });
 
   it("takes whatever is up off stream", () => {
-    channelShowing(PRINTING.id);
+    channelShowing(PRINTING.printingId);
     const { getByText } = render(<OverlayOutputPanel />);
 
     fireEvent.click(getByText("Clear"));
@@ -271,7 +271,7 @@ describe("OverlayOutputPanel curtain", () => {
   });
 
   it("drops the curtain over what is up", () => {
-    channelShowing(PRINTING.id);
+    channelShowing(PRINTING.printingId);
     const { getByText } = render(<OverlayOutputPanel />);
 
     fireEvent.click(getByText("Hide"));
@@ -280,7 +280,7 @@ describe("OverlayOutputPanel curtain", () => {
   });
 
   it("offers to raise it again once it is down", () => {
-    channelShowing(PRINTING.id, null, true);
+    channelShowing(PRINTING.printingId, null, true);
     const { getByText } = render(<OverlayOutputPanel />);
 
     fireEvent.click(getByText("Show"));
@@ -297,7 +297,7 @@ describe("OverlayOutputPanel curtain", () => {
   });
 
   it("does not read as live while hidden", () => {
-    channelShowing(PRINTING.id, null, true);
+    channelShowing(PRINTING.printingId, null, true);
     const { getByText, queryByText } = render(<OverlayOutputPanel />);
 
     expect(queryByText("● Live")).toBeNull();
@@ -305,14 +305,14 @@ describe("OverlayOutputPanel curtain", () => {
   });
 
   it("says a hidden card is still held, so the empty preview explains itself", () => {
-    channelShowing(PRINTING.id, null, true);
+    channelShowing(PRINTING.printingId, null, true);
     const { getByText } = render(<OverlayOutputPanel />);
 
     expect(getByText("Garen (hidden)")).toBeTruthy();
   });
 
   it("keeps Clear reachable while hidden, since hiding is not ending", () => {
-    channelShowing(PRINTING.id, null, true);
+    channelShowing(PRINTING.printingId, null, true);
     const { getByText } = render(<OverlayOutputPanel />);
 
     expect(getByText("Clear").closest("button")?.hasAttribute("disabled")).toBe(false);

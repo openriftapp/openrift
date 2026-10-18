@@ -24,7 +24,9 @@ function queueDetailActions(printing: Printing) {
 
 /** Subscribes only to its own printing's count: subscribing to the whole queue would re-render every cell on any add. */
 function QueueCardStrip({ printing }: { printing: Printing }) {
-  const queued = usePresentQueueStore((state) => state.countByPrintingId.get(printing.id) ?? 0);
+  const queued = usePresentQueueStore(
+    (state) => state.countByPrintingId.get(printing.printingId) ?? 0,
+  );
   const isFull = usePresentQueueStore((state) => state.ids.length >= MAX_QUEUE_LENGTH);
   const add = usePresentQueueStore((state) => state.add);
   const removePrinting = usePresentQueueStore((state) => state.removePrinting);
@@ -35,7 +37,7 @@ function QueueCardStrip({ printing }: { printing: Printing }) {
         queued > 0 && (
           <StripIconButton
             aria-label={m.stage_queue_remove_aria({ name: legendDisplayName(printing.card) })}
-            onClick={() => removePrinting(printing.id)}
+            onClick={() => removePrinting(printing.printingId)}
           >
             <MinusIcon className="size-3" />
           </StripIconButton>
@@ -53,7 +55,7 @@ function QueueCardStrip({ printing }: { printing: Printing }) {
         <StripIconButton
           aria-label={m.stage_queue_add_aria({ name: legendDisplayName(printing.card) })}
           disabled={isFull}
-          onClick={() => add(printing.id)}
+          onClick={() => add(printing.printingId)}
         >
           <PlusIcon className="size-3" />
         </StripIconButton>
@@ -73,7 +75,7 @@ function QueueCardCell({
   onClick,
 }: PickerCellProps) {
   const queued = usePresentQueueStore(
-    (state) => (state.countByPrintingId.get(item.printing.id) ?? 0) > 0,
+    (state) => (state.countByPrintingId.get(item.printing.printingId) ?? 0) > 0,
   );
   const isFull = usePresentQueueStore((state) => state.ids.length >= MAX_QUEUE_LENGTH);
   const isMobile = useIsMobile();
@@ -82,7 +84,7 @@ function QueueCardCell({
   // Destructure before JSX: member access on the hook's return object in
   // render makes the React Compiler bail.
   const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
-    id: `stage-pool-card-${item.printing.id}`,
+    id: `stage-pool-card-${item.printing.printingId}`,
     data: dragData,
     disabled: isMobile || isFull,
   });

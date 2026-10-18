@@ -32,7 +32,7 @@ async function catalogSubsetForCards(
   ]);
   const decorations = await loadPrintingDecorations(
     repos,
-    printingRows.map((row) => row.id),
+    printingRows.map((row) => row.printingId),
   );
   return {
     sets,

@@ -52,7 +52,7 @@ function makeItem(overrides: DeckOverrides = {}): DeckListItemWithNames {
       format: overrides.format ?? "constructed",
       formatConfig: null,
       coverCardId: null,
-      coverPrintingId: null,
+      coverFaceId: null,
       coverPosition: null,
       collectionId: null,
       familyId: overrides.familyId ?? null,

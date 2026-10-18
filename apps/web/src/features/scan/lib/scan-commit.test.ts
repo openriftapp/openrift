@@ -14,28 +14,28 @@ describe("addJobsFor", () => {
   it("emits one job per copy, in list order", () => {
     resetIdCounter();
     const jobs = addJobsFor([
-      { printing: stubPrinting({ id: "p1" }), count: 2 },
-      { printing: stubPrinting({ id: "p2" }), count: 1 },
+      { printing: stubPrinting({ printingId: "p1" }), count: 2 },
+      { printing: stubPrinting({ printingId: "p2" }), count: 1 },
     ]);
 
     expect(jobs.map((job) => job.printingId)).toEqual(["p1", "p1", "p2"]);
   });
 
   it("mints a distinct uuid per job so the server can dedupe a replay", () => {
-    const jobs = addJobsFor([{ printing: stubPrinting({ id: "p1" }), count: 3 }]);
+    const jobs = addJobsFor([{ printing: stubPrinting({ printingId: "p1" }), count: 3 }]);
 
     expect(jobs.every((job) => UUID.test(job.id))).toBe(true);
     expect(new Set(jobs.map((job) => job.id)).size).toBe(3);
   });
 
   it("skips rows with nothing to add", () => {
-    expect(addJobsFor([{ printing: stubPrinting({ id: "p1" }), count: 0 }])).toEqual([]);
+    expect(addJobsFor([{ printing: stubPrinting({ printingId: "p1" }), count: 0 }])).toEqual([]);
   });
 });
 
 describe("reconcileJobs", () => {
-  const p1 = stubPrinting({ id: "p1" });
-  const p2 = stubPrinting({ id: "p2" });
+  const p1 = stubPrinting({ printingId: "p1" });
+  const p2 = stubPrinting({ printingId: "p2" });
 
   it("replays the same ids when the list has not moved", () => {
     const pending = [
@@ -97,7 +97,7 @@ describe("reconcileJobs", () => {
 
 describe("addInChunks", () => {
   it("hands each job's minted id to the caller, so a retry can reuse it", async () => {
-    const jobs = addJobsFor([{ printing: stubPrinting({ id: "p1" }), count: 2 }]);
+    const jobs = addJobsFor([{ printing: stubPrinting({ printingId: "p1" }), count: 2 }]);
     const seen: ScanAddJob[] = [];
 
     await addInChunks(jobs, (job) => {
@@ -109,7 +109,7 @@ describe("addInChunks", () => {
   });
 
   it("splits a list past the contract cap into sequential requests", async () => {
-    const jobs = addJobsFor([{ printing: stubPrinting({ id: "p1" }), count: 1200 }]);
+    const jobs = addJobsFor([{ printing: stubPrinting({ printingId: "p1" }), count: 1200 }]);
     const inFlight: number[] = [];
     let open = 0;
 
@@ -127,8 +127,8 @@ describe("addInChunks", () => {
 
   it("keeps the outcomes aligned with the jobs across chunk boundaries", async () => {
     const jobs = addJobsFor([
-      { printing: stubPrinting({ id: "p1" }), count: 500 },
-      { printing: stubPrinting({ id: "p2" }), count: 2 },
+      { printing: stubPrinting({ printingId: "p1" }), count: 500 },
+      { printing: stubPrinting({ printingId: "p2" }), count: 2 },
     ]);
 
     const outcomes = await addInChunks(jobs, (job) => Promise.resolve({ id: job.id }));
@@ -142,7 +142,7 @@ describe("addInChunks", () => {
   });
 
   it("settles a rejected chunk instead of throwing, and still runs the next one", async () => {
-    const jobs = addJobsFor([{ printing: stubPrinting({ id: "p1" }), count: 501 }]);
+    const jobs = addJobsFor([{ printing: stubPrinting({ printingId: "p1" }), count: 501 }]);
     let call = 0;
 
     const outcomes = await addInChunks(jobs, () => {

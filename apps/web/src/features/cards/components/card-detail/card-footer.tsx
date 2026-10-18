@@ -33,8 +33,8 @@ export function CardFooter({
   const marketplaceOrder = useDisplayStore((s) => s.marketplaceOrder);
   const favorite = marketplaceOrder[0];
   const prices = usePrices();
-  const hasPrice = showPrices && prices.get(printing.id, favorite) !== undefined;
-  const frontImage = printing.images.find((image) => image.face === "front") ?? printing.images[0];
+  const hasPrice = showPrices && prices.get(printing.printingId, favorite) !== undefined;
+  const frontImage = printing.images[0] ?? printing.images[0];
 
   return (
     <div className="mt-2 space-y-2">
@@ -45,7 +45,7 @@ export function CardFooter({
       {frontImage?.credit !== undefined && <ImageCreditLine credit={frontImage.credit} />}
       {hasPrice && (
         <Suspense fallback={<ChartSkeleton />}>
-          <PriceHistoryChart printingId={printing.id} />
+          <PriceHistoryChart printingId={printing.printingId} />
         </Suspense>
       )}
       {showPrices && <PricingSection printing={printing} />}

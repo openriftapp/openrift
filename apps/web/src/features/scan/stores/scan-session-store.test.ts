@@ -23,14 +23,14 @@ const state = () => useScanSessionStore.getState();
 describe("useScanSessionStore", () => {
   describe("add", () => {
     it("creates a row with a count of one", () => {
-      state().add(stubPrinting({ id: "p1" }));
+      state().add(stubPrinting({ printingId: "p1" }));
 
       expect(state().rows.get("p1")?.count).toBe(1);
       expect(state().scans).toBe(1);
     });
 
     it("counts a second reading of the same printing", () => {
-      const printing = stubPrinting({ id: "p1" });
+      const printing = stubPrinting({ printingId: "p1" });
       state().add(printing);
       state().add(printing);
 
@@ -40,9 +40,9 @@ describe("useScanSessionStore", () => {
     });
 
     it("moves an existing row to the end of the list", () => {
-      const first = stubPrinting({ id: "p1" });
+      const first = stubPrinting({ printingId: "p1" });
       state().add(first);
-      state().add(stubPrinting({ id: "p2" }));
+      state().add(stubPrinting({ printingId: "p2" }));
       state().add(first);
 
       expect([...state().rows.keys()]).toEqual(["p2", "p1"]);
@@ -50,7 +50,7 @@ describe("useScanSessionStore", () => {
 
     it("stamps the scan time and clears the resumed banner", () => {
       useScanSessionStore.setState({ resumed: { cards: 3, lastScanAt: 42 } });
-      state().add(stubPrinting({ id: "p1" }));
+      state().add(stubPrinting({ printingId: "p1" }));
 
       expect(state().resumed).toBeNull();
       expect(state().lastScanAt).not.toBeNull();
@@ -59,7 +59,7 @@ describe("useScanSessionStore", () => {
 
   describe("remove", () => {
     it("takes one off the count", () => {
-      const printing = stubPrinting({ id: "p1" });
+      const printing = stubPrinting({ printingId: "p1" });
       state().add(printing);
       state().add(printing);
       state().remove("p1");
@@ -68,24 +68,24 @@ describe("useScanSessionStore", () => {
     });
 
     it("deletes a row that reaches zero", () => {
-      state().add(stubPrinting({ id: "p1" }));
+      state().add(stubPrinting({ printingId: "p1" }));
       state().remove("p1");
 
       expect(state().rows.has("p1")).toBe(false);
     });
 
     it("leaves the row where it is in the list", () => {
-      const first = stubPrinting({ id: "p1" });
+      const first = stubPrinting({ printingId: "p1" });
       state().add(first);
       state().add(first);
-      state().add(stubPrinting({ id: "p2" }));
+      state().add(stubPrinting({ printingId: "p2" }));
       state().remove("p1");
 
       expect([...state().rows.keys()]).toEqual(["p1", "p2"]);
     });
 
     it("does nothing for an unknown printing", () => {
-      state().add(stubPrinting({ id: "p1" }));
+      state().add(stubPrinting({ printingId: "p1" }));
       const before = state().rows;
       state().remove("missing");
 
@@ -93,7 +93,7 @@ describe("useScanSessionStore", () => {
     });
 
     it("does not count as a scan", () => {
-      state().add(stubPrinting({ id: "p1" }));
+      state().add(stubPrinting({ printingId: "p1" }));
       state().remove("p1");
 
       expect(state().scans).toBe(1);
@@ -102,47 +102,47 @@ describe("useScanSessionStore", () => {
 
   describe("move", () => {
     it("takes one off the source and adds one to a new printing", () => {
-      state().add(stubPrinting({ id: "p1" }));
-      state().move("p1", stubPrinting({ id: "p2" }));
+      state().add(stubPrinting({ printingId: "p1" }));
+      state().move("p1", stubPrinting({ printingId: "p2" }));
 
       expect(state().rows.has("p1")).toBe(false);
       expect(state().rows.get("p2")?.count).toBe(1);
     });
 
     it("takes the source row's place when the source empties", () => {
-      state().add(stubPrinting({ id: "p1" }));
-      state().add(stubPrinting({ id: "p3" }));
-      state().move("p1", stubPrinting({ id: "p2" }));
+      state().add(stubPrinting({ printingId: "p1" }));
+      state().add(stubPrinting({ printingId: "p3" }));
+      state().move("p1", stubPrinting({ printingId: "p2" }));
 
       expect([...state().rows.keys()]).toEqual(["p2", "p3"]);
     });
 
     it("appends the target when the source still has copies", () => {
-      const first = stubPrinting({ id: "p1" });
+      const first = stubPrinting({ printingId: "p1" });
       state().add(first);
       state().add(first);
-      state().add(stubPrinting({ id: "p3" }));
-      state().move("p1", stubPrinting({ id: "p2" }));
+      state().add(stubPrinting({ printingId: "p3" }));
+      state().move("p1", stubPrinting({ printingId: "p2" }));
 
       expect([...state().rows.keys()]).toEqual(["p1", "p3", "p2"]);
       expect(state().rows.get("p1")?.count).toBe(1);
     });
 
     it("merges into an existing target row without moving it", () => {
-      state().add(stubPrinting({ id: "p1" }));
-      state().add(stubPrinting({ id: "p2" }));
-      state().add(stubPrinting({ id: "p3" }));
-      state().move("p3", stubPrinting({ id: "p1" }));
+      state().add(stubPrinting({ printingId: "p1" }));
+      state().add(stubPrinting({ printingId: "p2" }));
+      state().add(stubPrinting({ printingId: "p3" }));
+      state().move("p3", stubPrinting({ printingId: "p1" }));
 
       expect([...state().rows.keys()]).toEqual(["p1", "p2"]);
       expect(state().rows.get("p1")?.count).toBe(2);
     });
 
     it("merges into an existing target and drops the emptied source in one call", () => {
-      state().add(stubPrinting({ id: "p1" }));
-      state().add(stubPrinting({ id: "p2" }));
-      state().add(stubPrinting({ id: "p3" }));
-      state().move("p2", stubPrinting({ id: "p3" }));
+      state().add(stubPrinting({ printingId: "p1" }));
+      state().add(stubPrinting({ printingId: "p2" }));
+      state().add(stubPrinting({ printingId: "p3" }));
+      state().move("p2", stubPrinting({ printingId: "p3" }));
 
       expect([...state().rows.keys()]).toEqual(["p1", "p3"]);
       expect(state().rows.get("p3")?.count).toBe(2);
@@ -150,17 +150,17 @@ describe("useScanSessionStore", () => {
     });
 
     it("does nothing for an unknown source or a move onto itself", () => {
-      state().add(stubPrinting({ id: "p1" }));
+      state().add(stubPrinting({ printingId: "p1" }));
       const before = state().rows;
-      state().move("missing", stubPrinting({ id: "p2" }));
-      state().move("p1", stubPrinting({ id: "p1" }));
+      state().move("missing", stubPrinting({ printingId: "p2" }));
+      state().move("p1", stubPrinting({ printingId: "p1" }));
 
       expect(state().rows).toBe(before);
     });
 
     it("does not count as a scan", () => {
-      state().add(stubPrinting({ id: "p1" }));
-      state().move("p1", stubPrinting({ id: "p2" }));
+      state().add(stubPrinting({ printingId: "p1" }));
+      state().move("p1", stubPrinting({ printingId: "p2" }));
 
       expect(state().scans).toBe(1);
     });
@@ -168,10 +168,10 @@ describe("useScanSessionStore", () => {
 
   describe("take", () => {
     it("empties the list when every copy was confirmed", () => {
-      const first = stubPrinting({ id: "p1" });
+      const first = stubPrinting({ printingId: "p1" });
       state().add(first);
       state().add(first);
-      state().add(stubPrinting({ id: "p2" }));
+      state().add(stubPrinting({ printingId: "p2" }));
       state().take(
         new Map([
           ["p1", 2],
@@ -183,10 +183,10 @@ describe("useScanSessionStore", () => {
     });
 
     it("keeps what the server did not confirm", () => {
-      const first = stubPrinting({ id: "p1" });
+      const first = stubPrinting({ printingId: "p1" });
       state().add(first);
       state().add(first);
-      state().add(stubPrinting({ id: "p2" }));
+      state().add(stubPrinting({ printingId: "p2" }));
       state().take(new Map([["p1", 1]]));
 
       expect(state().rows.get("p1")?.count).toBe(1);
@@ -194,7 +194,7 @@ describe("useScanSessionStore", () => {
     });
 
     it("ignores counts for printings that left the list", () => {
-      state().add(stubPrinting({ id: "p1" }));
+      state().add(stubPrinting({ printingId: "p1" }));
       state().take(
         new Map([
           ["p1", 1],
@@ -207,7 +207,7 @@ describe("useScanSessionStore", () => {
     });
 
     it("keeps copies scanned after the snapshot was taken", () => {
-      const printing = stubPrinting({ id: "p1" });
+      const printing = stubPrinting({ printingId: "p1" });
       state().add(printing);
       const confirmed = new Map([["p1", 1]]);
       state().add(printing);
@@ -219,17 +219,17 @@ describe("useScanSessionStore", () => {
 
   describe("putBack", () => {
     it("adds the counts back onto rows that are still there", () => {
-      state().add(stubPrinting({ id: "p1" }));
-      state().putBack([{ printing: stubPrinting({ id: "p1" }), count: 2 }]);
+      state().add(stubPrinting({ printingId: "p1" }));
+      state().putBack([{ printing: stubPrinting({ printingId: "p1" }), count: 2 }]);
 
       expect(state().rows.get("p1")?.count).toBe(3);
     });
 
     it("appends missing rows in the order given", () => {
-      state().add(stubPrinting({ id: "p1" }));
+      state().add(stubPrinting({ printingId: "p1" }));
       state().putBack([
-        { printing: stubPrinting({ id: "p2" }), count: 1 },
-        { printing: stubPrinting({ id: "p3" }), count: 4 },
+        { printing: stubPrinting({ printingId: "p2" }), count: 1 },
+        { printing: stubPrinting({ printingId: "p3" }), count: 4 },
       ]);
 
       expect([...state().rows.keys()]).toEqual(["p1", "p2", "p3"]);
@@ -237,13 +237,13 @@ describe("useScanSessionStore", () => {
     });
 
     it("ignores rows with nothing to put back", () => {
-      state().putBack([{ printing: stubPrinting({ id: "p1" }), count: 0 }]);
+      state().putBack([{ printing: stubPrinting({ printingId: "p1" }), count: 0 }]);
 
       expect(state().rows.size).toBe(0);
     });
 
     it("does not count as a scan", () => {
-      state().putBack([{ printing: stubPrinting({ id: "p1" }), count: 1 }]);
+      state().putBack([{ printing: stubPrinting({ printingId: "p1" }), count: 1 }]);
 
       expect(state().scans).toBe(0);
     });
@@ -251,23 +251,23 @@ describe("useScanSessionStore", () => {
 
   describe("clear", () => {
     it("empties the list and hands back what was in it", () => {
-      const first = stubPrinting({ id: "p1" });
+      const first = stubPrinting({ printingId: "p1" });
       state().add(first);
       state().add(first);
-      state().add(stubPrinting({ id: "p2" }));
+      state().add(stubPrinting({ printingId: "p2" }));
 
       const cleared = state().clear();
 
       expect(state().rows.size).toBe(0);
-      expect(cleared.map((row) => [row.printing.id, row.count])).toEqual([
+      expect(cleared.map((row) => [row.printing.printingId, row.count])).toEqual([
         ["p1", 2],
         ["p2", 1],
       ]);
     });
 
     it("puts everything back through putBack", () => {
-      state().add(stubPrinting({ id: "p1" }));
-      state().add(stubPrinting({ id: "p2" }));
+      state().add(stubPrinting({ printingId: "p1" }));
+      state().add(stubPrinting({ printingId: "p2" }));
       const cleared = state().clear();
       state().putBack(cleared);
 
@@ -284,7 +284,7 @@ describe("useScanSessionStore", () => {
 
   describe("reset", () => {
     it("clears the rows, the scan count, the timestamp and any staged restore", () => {
-      state().add(stubPrinting({ id: "p1" }));
+      state().add(stubPrinting({ printingId: "p1" }));
       useScanSessionStore.setState({
         restored: {
           rows: [{ printingId: "p2", count: 1 }],
@@ -326,7 +326,7 @@ describe("useScanSessionStore", () => {
     });
 
     it("drops the jobs when the list is cleared", () => {
-      state().add(stubPrinting({ id: "p1" }));
+      state().add(stubPrinting({ printingId: "p1" }));
       state().setPending(pending);
       state().clear();
 
@@ -344,10 +344,10 @@ describe("useScanSessionStore", () => {
   describe("persistence", () => {
     describe("partialize", () => {
       it("stores one entry per printing with its count", () => {
-        const first = stubPrinting({ id: "p1" });
+        const first = stubPrinting({ printingId: "p1" });
         state().add(first);
         state().add(first);
-        state().add(stubPrinting({ id: "p2" }));
+        state().add(stubPrinting({ printingId: "p2" }));
 
         const partialize = useScanSessionStore.persist.getOptions().partialize;
         const persisted = partialize?.(state());
@@ -372,7 +372,7 @@ describe("useScanSessionStore", () => {
       });
 
       it("stores the jobs of an add that has not finished", () => {
-        state().add(stubPrinting({ id: "p1" }));
+        state().add(stubPrinting({ printingId: "p1" }));
         state().setPending({
           batchId: "batch-1",
           collectionId: "col-1",
@@ -535,7 +535,7 @@ describe("useScanSessionStore", () => {
 
     describe("restore", () => {
       const lookupFrom = (printings: Printing[]) => {
-        const byId = new Map(printings.map((printing) => [printing.id, printing]));
+        const byId = new Map(printings.map((printing) => [printing.printingId, printing]));
         return (id: string) => byId.get(id);
       };
 
@@ -552,7 +552,9 @@ describe("useScanSessionStore", () => {
           },
         });
 
-        state().restore(lookupFrom([stubPrinting({ id: "p1" }), stubPrinting({ id: "p2" })]));
+        state().restore(
+          lookupFrom([stubPrinting({ printingId: "p1" }), stubPrinting({ printingId: "p2" })]),
+        );
 
         expect(state().resumed).toEqual({ cards: 5, lastScanAt: 42 });
         expect([...state().rows.keys()]).toEqual(["p1", "p2"]);
@@ -575,15 +577,15 @@ describe("useScanSessionStore", () => {
           },
         });
 
-        state().restore(lookupFrom([stubPrinting({ id: "p1" })]));
+        state().restore(lookupFrom([stubPrinting({ printingId: "p1" })]));
 
         expect(state().resumed).toEqual({ cards: 2, lastScanAt: null });
         expect([...state().rows.keys()]).toEqual(["p1"]);
       });
 
       it("keeps cards scanned before the restore as the newest rows", () => {
-        const p1 = stubPrinting({ id: "p1" });
-        const p2 = stubPrinting({ id: "p2" });
+        const p1 = stubPrinting({ printingId: "p1" });
+        const p2 = stubPrinting({ printingId: "p2" });
         state().add(p1);
         state().add(p2);
         useScanSessionStore.setState({
@@ -617,7 +619,7 @@ describe("useScanSessionStore", () => {
           },
         });
 
-        state().restore(lookupFrom([stubPrinting({ id: "p1" })]));
+        state().restore(lookupFrom([stubPrinting({ printingId: "p1" })]));
 
         expect(state().pending).toEqual({
           batchId: "batch-1",
@@ -655,7 +657,7 @@ describe("useScanSessionStore", () => {
             pending: null,
           },
         });
-        state().restore(lookupFrom([stubPrinting({ id: "p1" })]));
+        state().restore(lookupFrom([stubPrinting({ printingId: "p1" })]));
         state().dismissResumed();
 
         expect(state().resumed).toBeNull();

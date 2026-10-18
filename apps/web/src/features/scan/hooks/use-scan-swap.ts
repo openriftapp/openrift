@@ -23,17 +23,17 @@ export function useScanSwap(printingsByCard: ReadonlyMap<string, Printing[]>): S
         artKey: "",
         label: legendDisplayName(row.printing.card),
         candidates: sortForPicker(printingsByCard.get(row.printing.cardId) ?? []),
-        currentId: row.printing.id,
+        currentId: row.printing.printingId,
       }
     : null;
 
   function pick(printing: Printing) {
     const current = row;
     setRow(null);
-    if (!current || printing.id === current.printing.id) {
+    if (!current || printing.printingId === current.printing.printingId) {
       return;
     }
-    useScanSessionStore.getState().move(current.printing.id, printing);
+    useScanSessionStore.getState().move(current.printing.printingId, printing);
   }
 
   function dismiss() {

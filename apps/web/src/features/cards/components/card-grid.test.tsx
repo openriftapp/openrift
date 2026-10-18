@@ -69,7 +69,7 @@ function makeSet(index: number): GroupInfo {
 
 function makeItems(setId: string, count: number): CardViewerItem[] {
   return Array.from({ length: count }, (_, index) =>
-    stubCardViewerItem({ id: `${setId}-printing-${index}`, setId }),
+    stubCardViewerItem({ printingId: `${setId}-printing-${index}`, setId }),
   );
 }
 

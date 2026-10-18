@@ -10,12 +10,12 @@ import { createStoreResetter } from "@/test/store-helpers";
 
 import { useGridKeyboardNav } from "./use-grid-keyboard-nav";
 
-const p1 = { id: "p1", cardId: "c1" } as Printing;
-const p2 = { id: "p2", cardId: "c2" } as Printing;
+const p1 = { printingId: "p1", cardId: "c1" } as Printing;
+const p2 = { printingId: "p2", cardId: "c2" } as Printing;
 
 const items: CardViewerItem[] = [
-  { id: p1.id, printing: p1 },
-  { id: p2.id, printing: p2 },
+  { id: p1.printingId, printing: p1 },
+  { id: p2.printingId, printing: p2 },
 ];
 
 let resetSelection: () => void;
@@ -185,7 +185,7 @@ describe("useGridKeyboardNav: +/-", () => {
     // Mock the tile in the DOM so the anchor lookup succeeds — mirrors
     // CardThumbnail's `data-printing-id`.
     const tile = document.createElement("div");
-    tile.dataset.printingId = p2.id;
+    tile.dataset.printingId = p2.printingId;
     document.body.append(tile);
 
     renderHook(() => useGridKeyboardNav({ items }));

@@ -13,6 +13,7 @@ import { AttentionChangeList } from "@/features/admin/components/attention-chang
 import { MissingFieldsDialog } from "@/features/admin/components/missing-fields-dialog";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { PrintingTargetMenu } from "@/features/admin/components/printing-target-menu";
+import { SideSearch } from "@/features/admin/components/side-search";
 import {
   useAcceptPrintingGroup,
   useCheckAllCandidatePrintings,
@@ -42,6 +43,7 @@ import { printingBlockTitle } from "@/features/admin/lib/printing-summary";
 interface PendingAdd {
   candidate: CandidatePrintingResponse;
   missing: RequiredPrintingField[];
+  secondSideFaceId?: string;
 }
 
 function summaryText(changedFields: number, newPrintings: number): string {
@@ -78,6 +80,7 @@ export function SourceBlock({
   const acceptPrintingGroup = useAcceptPrintingGroup(scope);
   const linkCandidatePrintings = useLinkCandidatePrintings(scope);
   const [pendingAdd, setPendingAdd] = useState<PendingAdd | null>(null);
+  const [pairingId, setPairingId] = useState<string | null>(null);
 
   const isPending = checkCard.isPending || checkPrintings.isPending;
   const cardId = detail.card?.id;
@@ -107,7 +110,11 @@ export function SourceBlock({
     }
   }
 
-  function addPrinting(candidate: CandidatePrintingResponse, overrides?: PrintingFieldOverrides) {
+  function addPrinting(
+    candidate: CandidatePrintingResponse,
+    overrides?: PrintingFieldOverrides,
+    secondSideFaceId?: string,
+  ) {
     if (cardId === undefined) {
       return;
     }
@@ -115,6 +122,7 @@ export function SourceBlock({
       cardId,
       printingFields: buildPrintingFieldsFromCandidate(candidate, overrides),
       candidatePrintingIds: unlinkedGroupCandidates(detail, candidate.id).map((entry) => entry.id),
+      secondSideFaceId,
     });
   }
 
@@ -125,13 +133,14 @@ export function SourceBlock({
     });
   }
 
-  function startAdd(candidate: CandidatePrintingResponse) {
+  function startAdd(candidate: CandidatePrintingResponse, secondSideFaceId?: string) {
+    setPairingId(null);
     const missing = missingPrintingFields(buildPrintingFieldsFromCandidate(candidate));
     if (missing.length === 0) {
-      addPrinting(candidate);
+      addPrinting(candidate, undefined, secondSideFaceId);
       return;
     }
-    setPendingAdd({ candidate, missing });
+    setPendingAdd({ candidate, missing, secondSideFaceId });
   }
 
   function entryBody(entry: AttentionSourceEntry) {
@@ -155,37 +164,49 @@ export function SourceBlock({
           (renderUnlinked === undefined ? (
             <ul className="flex flex-col">
               {unlinked.map((candidate) => (
-                <li
-                  key={candidate.id}
-                  className="hover:bg-muted/50 flex items-center gap-3 rounded-md px-2 py-1.5"
-                >
-                  {candidate.imageUrl !== null && (
-                    <PrintingImageBox
-                      url={candidate.imageUrl}
-                      alt={candidate.shortCode}
-                      landscape={landscape}
-                      className={landscape ? "w-11 shrink-0" : "w-8 shrink-0"}
-                      iconClassName="size-3"
-                    />
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm">{candidate.shortCode}</span>
-                    <span className="text-muted-foreground block truncate text-xs">
-                      {candidateRowSummary(candidate)}
+                <li key={candidate.id} className="hover:bg-muted/50 rounded-md px-2 py-1.5">
+                  <div className="flex items-center gap-3">
+                    {candidate.imageUrl !== null && (
+                      <PrintingImageBox
+                        url={candidate.imageUrl}
+                        alt={candidate.shortCode}
+                        landscape={landscape}
+                        className={landscape ? "w-11 shrink-0" : "w-8 shrink-0"}
+                        iconClassName="size-3"
+                      />
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm">{candidate.shortCode}</span>
+                      <span className="text-muted-foreground block truncate text-xs">
+                        {candidateRowSummary(candidate)}
+                      </span>
                     </span>
-                  </span>
-                  <Button
-                    size="xs"
-                    disabled={cardId === undefined || acceptPrintingGroup.isPending}
-                    onClick={() => startAdd(candidate)}
-                  >
-                    Add printing
-                  </Button>
-                  <PrintingTargetMenu
-                    label="Link to existing…"
-                    targets={printingTargets}
-                    onPick={(printingId) => linkCandidate(candidate, printingId)}
-                  />
+                    <Button
+                      size="xs"
+                      disabled={cardId === undefined || acceptPrintingGroup.isPending}
+                      onClick={() => startAdd(candidate)}
+                    >
+                      Add printing
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      disabled={cardId === undefined || acceptPrintingGroup.isPending}
+                      onClick={() => setPairingId(pairingId === candidate.id ? null : candidate.id)}
+                    >
+                      Add double-sided…
+                    </Button>
+                    <PrintingTargetMenu
+                      label="Link to existing…"
+                      targets={printingTargets}
+                      onPick={(printingId) => linkCandidate(candidate, printingId)}
+                    />
+                  </div>
+                  {pairingId === candidate.id && (
+                    <div className="mt-2 pl-11">
+                      <SideSearch onPick={(side) => startAdd(candidate, side.faceId)} />
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -247,7 +268,7 @@ export function SourceBlock({
           const candidate = pendingAdd?.candidate;
           setPendingAdd(null);
           if (candidate !== undefined) {
-            addPrinting(candidate, overrides);
+            addPrinting(candidate, overrides, pendingAdd?.secondSideFaceId);
           }
         }}
       />

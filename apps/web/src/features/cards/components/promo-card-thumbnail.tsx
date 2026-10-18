@@ -36,7 +36,7 @@ export function PromoCardThumbnail({
   ownedCounts: Record<string, number> | undefined;
   onClick: (printing: Printing) => void;
 }) {
-  const ownedCount = ownedCounts?.[printing.id] ?? 0;
+  const ownedCount = ownedCounts?.[printing.printingId] ?? 0;
   return (
     <CardThumbnail
       printing={printing}

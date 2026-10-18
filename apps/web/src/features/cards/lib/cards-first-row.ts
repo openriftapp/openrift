@@ -6,6 +6,7 @@ import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select
 import { setIndexById, UNKNOWN_SET_INDEX } from "@openrift/shared/set-order";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
+import type { PrintingSide } from "@openrift/shared/types/catalog";
 import type { GroupByField, SortOption } from "@openrift/shared/types/search";
 import { createServerFn } from "@tanstack/react-start";
 import { getCookie } from "@tanstack/react-start/server";
@@ -24,6 +25,7 @@ import {
 
 export interface FirstRowCard {
   printingId: string;
+  side: PrintingSide;
   cardName: string;
   setSlug: string;
   imageId: string;
@@ -88,12 +90,13 @@ export function extractFirstRow(
     if (result.length >= limit) {
       break;
     }
-    const front = printing.images.find((img) => img.face === "front") ?? printing.images[0];
+    const front = printing.images[0] ?? printing.images[0];
     if (!front) {
       continue;
     }
     result.push({
-      printingId: printing.id,
+      printingId: printing.printingId,
+      side: printing.side,
       cardName: legendDisplayName(printing.card),
       setSlug: printing.setSlug,
       imageId: front.imageId,

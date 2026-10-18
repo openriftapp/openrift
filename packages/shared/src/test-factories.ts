@@ -13,7 +13,10 @@ import type { Card, Printing } from "./types/catalog.js";
 export type CatalogCardFixture = CatalogResponseCardValue & { id: string };
 
 /** The wire printing as `/catalog` sends it, carrying its own id. */
-export type CatalogPrintingFixture = CatalogResponsePrintingValue & { id: string };
+export type CatalogPrintingFixture = CatalogResponsePrintingValue & {
+  printingId: string;
+  side: 1 | 2;
+};
 
 // Drops undefined-valued keys, so a caller forwarding its own optional
 // override doesn't clobber the default with an explicit undefined.
@@ -62,7 +65,8 @@ export function makeCatalogPrinting(
   partial: Partial<CatalogPrintingFixture> = {},
 ): CatalogPrintingFixture {
   return {
-    id: "printing-1",
+    printingId: "printing-1",
+    side: 1,
     cardId: "card-1",
     shortCode: "SET-001",
     setId: "set-1",
@@ -98,8 +102,10 @@ export function makePrinting(
   partial: Omit<Partial<Printing>, "card"> & { card?: Partial<Card> } = {},
 ): Printing {
   const { card, setSlug, setReleased, ...printing } = defined(partial);
+  const fixture = makeCatalogPrinting(printing);
   return {
-    ...makeCatalogPrinting(printing),
+    ...fixture,
+    faceId: fixture.faceId ?? fixture.printingId,
     setSlug: setSlug ?? "set-alpha",
     setReleased: setReleased ?? true,
     card: makeCard(card),

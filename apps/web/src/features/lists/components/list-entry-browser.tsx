@@ -1,3 +1,4 @@
+import { countPrintings } from "@openrift/shared/printing-side";
 import type {
   CardTradeLiveAnnotation,
   CardTradeResponse,
@@ -238,10 +239,10 @@ export function ListEntryBrowser({
   const totalDisplay = view === "copies" && !showLibrary ? items.length : totalUniqueCards;
   const filteredDisplay = view === "copies" && !showLibrary ? items.length : filteredCount;
   const totalListItems = showLibrary
-    ? allPrintings.length
+    ? countPrintings(allPrintings)
     : view === "copies"
       ? entries.length
-      : listPrintings.length;
+      : countPrintings(listPrintings);
 
   const showLibraryButton =
     kind === "copy" ? null : (

@@ -62,7 +62,9 @@ export function resolveCardMetaPrinting<T extends CatalogPrintingResponse>(
   languageOrder: readonly string[],
 ): T | undefined {
   const linked = printingRef
-    ? printings.find((printing) => printing.slug === printingRef || printing.id === printingRef)
+    ? printings.find(
+        (printing) => printing.slug === printingRef || printing.printingId === printingRef,
+      )
     : undefined;
   return linked ?? pickCardMetaPrinting(printings, languageOrder);
 }
@@ -114,9 +116,9 @@ export function buildCardMetaDescription(
 }
 
 export function frontImageId(
-  printing: { images: readonly { face: string; imageId: string }[] } | undefined,
+  printing: { images: readonly { imageId: string }[] } | undefined,
 ): string | null {
-  return printing?.images.find((image) => image.face === "front")?.imageId ?? null;
+  return printing?.images[0]?.imageId ?? null;
 }
 
 export interface PrintingArt {

@@ -7,15 +7,15 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { stubPrinting } from "@/test/factories";
 
 vi.mock("@/features/cards/components/printing-label", () => ({
-  ImportPrintingLabel: ({ printing }: { printing: Printing }) => <span>{printing.id}</span>,
+  ImportPrintingLabel: ({ printing }: { printing: Printing }) => <span>{printing.printingId}</span>,
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
 const { AddEntriesToCollectionDialogBody, AddEntryToCollectionDialogBody } =
   await import("./add-entry-to-collection-dialog");
 
-const printingA = stubPrinting({ id: "p-a" });
-const printingB = stubPrinting({ id: "p-b" });
+const printingA = stubPrinting({ printingId: "p-a" });
+const printingB = stubPrinting({ printingId: "p-b" });
 
 function stubCollection(overrides: Partial<CollectionResponse>): CollectionResponse {
   return {
@@ -157,7 +157,7 @@ function renderMultiBody(
           fixedCollection={binder}
           collections={[binder, inbox]}
           printingsByCardId={new Map()}
-          printingLabel={(printing) => printing.id}
+          printingLabel={(printing) => printing.printingId}
           onConfirm={onConfirm}
           onCancel={() => {}}
           isPending={false}

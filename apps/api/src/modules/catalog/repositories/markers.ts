@@ -83,7 +83,11 @@ export function markersRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    async setForPrinting(printingId: string, markerIds: readonly string[]): Promise<void> {
+    async setForPrinting(
+      printingId: string,
+      markerIds: readonly string[],
+      side: 1 | 2 = 1,
+    ): Promise<void> {
       await db
         .updateTable("faces")
         .set({
@@ -93,7 +97,10 @@ export function markersRepo(db: Kysely<Database>) {
           )`,
         })
         .where("id", "=", (eb) =>
-          eb.selectFrom("printings").select("face1Id").where("printings.id", "=", printingId),
+          eb
+            .selectFrom("printings")
+            .select(side === 1 ? "face1Id" : "face2Id")
+            .where("printings.id", "=", printingId),
         )
         .execute();
     },

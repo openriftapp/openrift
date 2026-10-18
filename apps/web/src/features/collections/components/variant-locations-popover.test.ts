@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { buildVariantGroups, ownedCountInCollection } from "./variant-locations-popover";
 
-const printing = (id: string) => ({ id, cardId: "c1" }) as Printing;
+const printing = (id: string) => ({ printingId: id, cardId: "c1" }) as Printing;
 
 const makeCollection = (id: string, name: string, extra?: Partial<CollectionResponse>) =>
   ({ id, name, groupId: null, isInbox: false, ...extra }) as CollectionResponse;
@@ -84,7 +84,7 @@ describe("buildVariantGroups", () => {
       personalCollections,
     );
 
-    expect(groups.map((group) => group.printing.id)).toEqual(["p1", "p2"]);
+    expect(groups.map((group) => group.printing.printingId)).toEqual(["p1", "p2"]);
     expect(groups[0]!.total).toBe(0);
     expect(groups[1]!.total).toBe(1);
   });

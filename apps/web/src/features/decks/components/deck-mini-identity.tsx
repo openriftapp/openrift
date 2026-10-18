@@ -77,12 +77,12 @@ export function DeckMiniIdentity({
     <span className={cn("flex min-w-0 items-center gap-2.5 overflow-hidden p-2", className)}>
       <span className="relative block h-9 w-12 shrink-0">
         <FanSlot
-          imageId={legend?.images.find((image) => image.face === "front")?.imageId}
+          imageId={legend?.images[0]?.imageId}
           alt={legendName}
           className="left-0 -rotate-7"
         />
         <FanSlot
-          imageId={champion?.images.find((image) => image.face === "front")?.imageId}
+          imageId={champion?.images[0]?.imageId}
           alt={champion ? legendDisplayName(champion.card) : m.decks_zone_champion_alt()}
           className="right-0 rotate-7"
         />

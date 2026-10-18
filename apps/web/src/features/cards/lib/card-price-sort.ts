@@ -24,7 +24,7 @@ export function computePriceRanges(
     let min = Infinity;
     let max = -Infinity;
     for (const printing of printings) {
-      const price = prices.get(printing.id, marketplace);
+      const price = prices.get(printing.printingId, marketplace);
       if (price !== undefined) {
         min = Math.min(min, price);
         max = Math.max(max, price);

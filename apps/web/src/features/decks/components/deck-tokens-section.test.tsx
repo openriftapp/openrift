@@ -50,17 +50,17 @@ const INIT = {
 };
 
 const SOURCE_PRINTING = stubPrinting({
-  id: "p-source",
+  printingId: "p-source",
   cardId: SOURCE_CARD_ID,
   setId: SET_ID,
-  images: [{ face: "front", imageId: "img-source" }],
+  images: [{ imageId: "img-source" }],
   card: { name: "Kennen Stormcaller", tokenCardIds: [TOKEN_CARD_ID] },
 });
 const TOKEN_PRINTING = stubPrinting({
-  id: "p-token",
+  printingId: "p-token",
   cardId: TOKEN_CARD_ID,
   setId: SET_ID,
-  images: [{ face: "front", imageId: "img-token" }],
+  images: [{ imageId: "img-token" }],
   card: { name: "Sand Soldier", superTypes: ["token"] },
 });
 

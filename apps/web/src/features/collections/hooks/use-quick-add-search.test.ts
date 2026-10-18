@@ -83,13 +83,13 @@ describe("useQuickAddSearch", () => {
 
   it("sums ownedCount only over language-filtered printings", () => {
     const ahriEn = stubPrinting({
-      id: "printing-en",
+      printingId: "printing-en",
       cardId: "card-ahri",
       language: "EN",
       card: { name: "Ahri" },
     });
     const ahriJa = stubPrinting({
-      id: "printing-ja",
+      printingId: "printing-ja",
       cardId: "card-ahri",
       language: "JA",
       card: { name: "Ahri" },

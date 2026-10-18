@@ -1,10 +1,8 @@
-import { joinCatalogCards } from "@openrift/shared/catalog-join";
-import { todayUtc } from "@openrift/shared/format-date";
+import { joinCatalog } from "@openrift/shared/catalog-join";
 import { imageUrl } from "@openrift/shared/image-url";
 import { preferredPrinting } from "@openrift/shared/printing-select";
-import { isReleasedIn } from "@openrift/shared/set-release";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
-import type { Card, Printing } from "@openrift/shared/types/catalog";
+import type { Card } from "@openrift/shared/types/catalog";
 import type { Rarity } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { jsPDF } from "jspdf";
@@ -61,33 +59,8 @@ export function resolveProxyCards(
   catalog: CatalogResponse,
   languageOrder: readonly string[],
 ): ProxyCard[] {
-  const setsById = new Map(catalog.sets.map((set) => [set.id, set]));
-  const today = todayUtc();
-  const cardsById = joinCatalogCards(catalog.cards, today);
-
-  type EnrichedPrinting = Printing & { id: string; setSlug: string };
-  const printingById = new Map<string, EnrichedPrinting>();
-  const printingsByCardId = new Map<string, EnrichedPrinting[]>();
-  for (const [id, printing] of Object.entries(catalog.printings)) {
-    const set = setsById.get(printing.setId);
-    const card = cardsById[printing.cardId];
-    if (set && card) {
-      const enriched: EnrichedPrinting = {
-        ...printing,
-        id,
-        setSlug: set.slug,
-        setReleased: isReleasedIn(set.releases, printing.language, today),
-        card,
-      };
-      printingById.set(id, enriched);
-      let group = printingsByCardId.get(printing.cardId);
-      if (!group) {
-        group = [];
-        printingsByCardId.set(printing.cardId, group);
-      }
-      group.push(enriched);
-    }
-  }
+  const { cardsById, printings } = joinCatalog(catalog);
+  const printingsByCardId = Map.groupBy(printings, (printing) => printing.cardId);
 
   const result: ProxyCard[] = [];
   for (const deckCard of deckCards) {
@@ -95,16 +68,10 @@ export function resolveProxyCards(
     if (!card) {
       continue;
     }
-    let printing: EnrichedPrinting | undefined;
-    if (deckCard.preferredPrintingId) {
-      printing = printingById.get(deckCard.preferredPrintingId);
-    }
-    if (!printing) {
-      const candidates = printingsByCardId.get(deckCard.cardId);
-      if (candidates) {
-        printing = preferredPrinting(candidates, languageOrder) as EnrichedPrinting | undefined;
-      }
-    }
+    const candidates = printingsByCardId.get(deckCard.cardId) ?? [];
+    const printing =
+      candidates.find((side) => side.printingId === deckCard.preferredPrintingId) ??
+      preferredPrinting(candidates, languageOrder);
 
     const firstImageId = printing?.images[0]?.imageId ?? null;
     const imageFullUrl = firstImageId ? imageUrl(firstImageId, "full") : null;
@@ -115,7 +82,7 @@ export function resolveProxyCards(
     for (let copy = 0; copy < deckCard.quantity; copy++) {
       result.push({
         cardId: deckCard.cardId,
-        printingId: printing?.id ?? null,
+        printingId: printing?.printingId ?? null,
         name: card.name,
         imageFullUrl,
         card,

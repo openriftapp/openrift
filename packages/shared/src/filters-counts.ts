@@ -282,13 +282,15 @@ export function computeFilterCounts(
   const hasPrefixes = terms.some((t) => t.field !== null);
   const getPrice = options.getPrice;
   const byCard = options.countBy === "card";
+  // Two entries of one double-sided printing count once, which needs the keyed counters.
+  const keyed = byCard || printings.some((printing) => printing.otherSide !== undefined);
   const presence = filters.presence;
 
   const dimCounts: Map<string, number>[] = COUNTABLE_DIMENSIONS.map(() => new Map());
   const dimCardIds: (Map<string, Set<number>> | null)[] = COUNTABLE_DIMENSIONS.map(() =>
-    byCard ? new Map() : null,
+    keyed ? new Map() : null,
   );
-  const cardIndexes = byCard ? new Map<string, number>() : null;
+  const cardIndexes = keyed ? new Map<string, number>() : null;
   const dims: PreparedDimension[] = COUNTABLE_DIMENSIONS.map((d, i) => ({
     clear: DIMENSION_CLEARS[d.key],
     scalar: d.scalar ?? null,
@@ -298,12 +300,12 @@ export function computeFilterCounts(
     cardIds: dimCardIds[i] ?? null,
   }));
   const flagCounters = {
-    signed: makeCounter(byCard),
-    overnumbered: makeCounter(byCard),
-    banned: makeCounter(byCard),
-    errata: makeCounter(byCard),
-    noImage: makeCounter(byCard),
-    standard: makeCounter(byCard),
+    signed: makeCounter(keyed),
+    overnumbered: makeCounter(keyed),
+    banned: makeCounter(keyed),
+    errata: makeCounter(keyed),
+    noImage: makeCounter(keyed),
+    standard: makeCounter(keyed),
   };
   // Each flag chip cycles null → true → false → null; the count reflects
   // whichever state the chip's label is currently advertising.
@@ -316,7 +318,7 @@ export function computeFilterCounts(
     noImage: filters.hasNoImage !== false,
   };
   const presenceCounters = Object.fromEntries(
-    PRESENCE_DIMENSIONS.map((d) => [d, { any: makeCounter(byCard), none: makeCounter(byCard) }]),
+    PRESENCE_DIMENSIONS.map((d) => [d, { any: makeCounter(keyed), none: makeCounter(keyed) }]),
   ) as Record<PresenceDimension, { any: MatchCounter; none: MatchCounter }>;
   const statBounds = {
     energy: { min: Infinity, max: -Infinity, any: false } as BoundsAcc,
@@ -530,10 +532,11 @@ export function computeFilterCounts(
     const oneFailAtMost = (fail & (fail - 1)) === 0;
     let cardIndex = 0;
     if (cardIndexes) {
-      const known = cardIndexes.get(printing.cardId);
+      const key = byCard ? printing.cardId : printing.printingId;
+      const known = cardIndexes.get(key);
       if (known === undefined) {
         cardIndex = cardIndexes.size;
-        cardIndexes.set(printing.cardId, cardIndex);
+        cardIndexes.set(key, cardIndex);
       } else {
         cardIndex = known;
       }

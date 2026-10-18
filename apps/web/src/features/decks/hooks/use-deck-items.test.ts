@@ -48,7 +48,7 @@ beforeEach(() => {
 
 function registerPrinting(cardId: string, cardOverrides: Parameters<typeof stubPrinting>[0] = {}) {
   const printing = stubPrinting({ cardId, ...cardOverrides });
-  printings.set(printing.id, printing);
+  printings.set(printing.printingId, printing);
   return printing;
 }
 
@@ -109,9 +109,9 @@ describe("useDeckItems", () => {
         id: item.id,
       })),
     ).toEqual([
-      { cardId: "shared", zone: "main", id: `main:${shared.id}` },
+      { cardId: "shared", zone: "main", id: `main:${shared.printingId}` },
       { cardId: "only-main", zone: "main", id: expect.stringMatching(/^main:/u) },
-      { cardId: "shared", zone: "sideboard", id: `sideboard:${shared.id}` },
+      { cardId: "shared", zone: "sideboard", id: `sideboard:${shared.printingId}` },
     ]);
   });
 
@@ -153,7 +153,7 @@ describe("useDeckItems", () => {
     expect(result.current.items.map((item) => ({ id: item.id, zone: item.zone }))).toEqual([
       { id: expect.stringMatching(/^main:/u), zone: "main" },
       { id: expect.stringMatching(/^main:/u), zone: "main" },
-      { id: `token:${token.id}`, zone: undefined },
+      { id: `token:${token.printingId}`, zone: undefined },
     ]);
   });
 

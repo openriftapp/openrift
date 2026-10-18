@@ -1,5 +1,6 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { enumLabel } from "@openrift/shared/enum-label";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 import { AlertTriangleIcon, CheckCircle2Icon, SearchIcon, XCircleIcon } from "lucide-react";
@@ -187,16 +188,19 @@ function VariantPicker({
   const { hoveredId, popupRef, hoverProps, reset } = usePrintingChoiceHover();
   return (
     <Select
-      value={resolved?.id ?? ""}
+      value={resolved?.printingId ?? ""}
       onOpenChange={(open) => !open && reset()}
       onValueChange={(value) => {
-        const printing = candidates.find((candidate) => candidate.id === value);
+        const printing = candidates.find((candidate) => candidate.printingId === value);
         if (printing) {
           onSelect(printing);
         }
       }}
       items={Object.fromEntries(
-        candidates.map((printing) => [printing.id, formatImportPrintingLabel(printing, labels)]),
+        candidates.map((printing) => [
+          printing.printingId,
+          formatImportPrintingLabel(printing, labels),
+        ]),
       )}
     >
       <SelectTrigger size="sm" className="h-7 w-auto text-xs">
@@ -205,10 +209,10 @@ function VariantPicker({
       <SelectContent ref={popupRef} className="w-auto">
         {candidates.map((printing) => (
           <SelectItem
-            key={printing.id}
-            value={printing.id}
+            key={sideKey(printing)}
+            value={printing.printingId}
             className="py-1.5"
-            {...hoverProps(printing.id)}
+            {...hoverProps(printing.printingId)}
           >
             <PrintingRowContent printing={printing} siblings={candidates} />
           </SelectItem>

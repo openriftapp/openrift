@@ -53,6 +53,7 @@ function renderPreview() {
 function makeCard(i: number, setSlug = "OGN"): FirstRowCard {
   return {
     printingId: `p-${i}`,
+    side: 1,
     cardName: `Card ${i}`,
     setSlug,
     imageId: `019d6c25-b081-74b3-a901-64da4ae0p-${i}`,

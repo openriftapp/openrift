@@ -7,7 +7,7 @@ import { CardTableRow, getCardTableColumns, getCardTableMinWidth } from "./card-
 
 describe("CardTableRow", () => {
   it("renders data-printing-id on the row so keyboard `-` can anchor the dispose picker to it", () => {
-    const printing = stubPrinting({ id: "p-row-1" });
+    const printing = stubPrinting({ printingId: "p-row-1" });
     const { container } = render(
       <CardTableRow
         printing={printing}
@@ -28,7 +28,7 @@ describe("CardTableRow", () => {
 
   it("renders the printing's note and citation links only when the surface asks for the column", () => {
     const printing = stubPrinting({
-      id: "p-row-2",
+      printingId: "p-row-2",
       comment: "Handed out at the launch event",
       citations: [{ id: "c-1", label: "Reveal stream", sourceUrl: "https://youtu.be/abc" }],
     });
@@ -59,7 +59,7 @@ describe("CardTableRow", () => {
 
   it("names the printing's channel, counting the ones the cell has no room for", () => {
     const printing = stubPrinting({
-      id: "p-row-3",
+      printingId: "p-row-3",
       distributionChannels: [
         {
           channel: {

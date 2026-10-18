@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_app/contribute_/card_/$cardSlug_/printin
       ...cardDetailQueryOptions(params.cardSlug),
       staleTime: "static",
     });
-    if (!data.printings.some((p) => p.id === params.printingId)) {
+    if (!data.printings.some((p) => p.printingId === params.printingId)) {
       throw notFound();
     }
   },

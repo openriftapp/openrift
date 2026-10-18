@@ -7,13 +7,13 @@ import { NONE } from "./types/search.js";
 describe("filterCards", () => {
   const printings = [
     makePrinting({
-      id: "SET1-001:rare:normal:",
+      printingId: "SET1-001:rare:normal:",
       shortCode: "SET1-001",
       setSlug: "Set Alpha",
       rarity: "rare",
       artVariant: "normal",
       finish: "normal",
-      images: [{ face: "front", imageId: "019d6c25-b081-74b3-a901-64da4ae01dab" }],
+      images: [{ imageId: "019d6c25-b081-74b3-a901-64da4ae01dab" }],
       artist: "Alice",
       cardId: "SET1-001",
       card: {
@@ -37,13 +37,13 @@ describe("filterCards", () => {
       },
     }),
     makePrinting({
-      id: "SET1-002:common:foil:",
+      printingId: "SET1-002:common:foil:",
       shortCode: "SET1-002",
       setSlug: "Set Alpha",
       rarity: "common",
       artVariant: "normal",
       finish: "foil",
-      images: [{ face: "front", imageId: "019d6c25-b081-74b3-a901-64da4ae01dab" }],
+      images: [{ imageId: "019d6c25-b081-74b3-a901-64da4ae01dab" }],
       artist: "Bob",
       cardId: "SET1-002",
       card: {
@@ -67,13 +67,13 @@ describe("filterCards", () => {
       },
     }),
     makePrinting({
-      id: "SET2-001:epic:normal:",
+      printingId: "SET2-001:epic:normal:",
       shortCode: "SET2-001a",
       setSlug: "Set Beta",
       rarity: "epic",
       artVariant: "altart",
       finish: "normal",
-      images: [{ face: "front", imageId: "019d6c25-b081-74b3-a901-64da4ae01dab" }],
+      images: [{ imageId: "019d6c25-b081-74b3-a901-64da4ae01dab" }],
       artist: "Carol",
       cardId: "SET2-001",
       card: {
@@ -183,20 +183,44 @@ describe("filterCards", () => {
 
   it("filters by language", () => {
     const catalog = [
-      makePrinting({ id: "en-printing", language: "EN", card: { slug: "c1", name: "Alpha" } }),
-      makePrinting({ id: "de-printing", language: "DE", card: { slug: "c2", name: "Beta" } }),
-      makePrinting({ id: "ja-printing", language: "JA", card: { slug: "c3", name: "Gamma" } }),
+      makePrinting({
+        printingId: "en-printing",
+        language: "EN",
+        card: { slug: "c1", name: "Alpha" },
+      }),
+      makePrinting({
+        printingId: "de-printing",
+        language: "DE",
+        card: { slug: "c2", name: "Beta" },
+      }),
+      makePrinting({
+        printingId: "ja-printing",
+        language: "JA",
+        card: { slug: "c3", name: "Gamma" },
+      }),
     ];
     const result = filterCards(catalog, emptyFilters({ languages: ["EN"] }));
     expect(result).toHaveLength(1);
-    expect(result[0]!.id).toBe("en-printing");
+    expect(result[0]!.printingId).toBe("en-printing");
   });
 
   it("filters by multiple languages (OR)", () => {
     const catalog = [
-      makePrinting({ id: "en-printing", language: "EN", card: { slug: "c1", name: "Alpha" } }),
-      makePrinting({ id: "de-printing", language: "DE", card: { slug: "c2", name: "Beta" } }),
-      makePrinting({ id: "ja-printing", language: "JA", card: { slug: "c3", name: "Gamma" } }),
+      makePrinting({
+        printingId: "en-printing",
+        language: "EN",
+        card: { slug: "c1", name: "Alpha" },
+      }),
+      makePrinting({
+        printingId: "de-printing",
+        language: "DE",
+        card: { slug: "c2", name: "Beta" },
+      }),
+      makePrinting({
+        printingId: "ja-printing",
+        language: "JA",
+        card: { slug: "c3", name: "Gamma" },
+      }),
     ];
     const result = filterCards(catalog, emptyFilters({ languages: ["EN", "DE"] }));
     expect(result).toHaveLength(2);
@@ -204,8 +228,16 @@ describe("filterCards", () => {
 
   it("shows all printings when languages filter is empty", () => {
     const catalog = [
-      makePrinting({ id: "en-printing", language: "EN", card: { slug: "c1", name: "Alpha" } }),
-      makePrinting({ id: "de-printing", language: "DE", card: { slug: "c2", name: "Beta" } }),
+      makePrinting({
+        printingId: "en-printing",
+        language: "EN",
+        card: { slug: "c1", name: "Alpha" },
+      }),
+      makePrinting({
+        printingId: "de-printing",
+        language: "DE",
+        card: { slug: "c2", name: "Beta" },
+      }),
     ];
     const result = filterCards(catalog, emptyFilters({ languages: [] }));
     expect(result).toHaveLength(2);
@@ -230,17 +262,17 @@ describe("filterCards", () => {
 
   it("matches multi-type cards under every type they carry", () => {
     const unitGear = makePrinting({
-      id: "p-dual",
+      printingId: "p-dual",
       cardId: "c-dual",
       card: { name: "Hexcore Carrier", type: "unit", types: ["unit", "gear"] },
     });
     const all = [...printings, unitGear];
     const byUnit = filterCards(all, emptyFilters({ types: ["unit"] }));
     const byGear = filterCards(all, emptyFilters({ types: ["gear"] }));
-    expect(byUnit.map((p) => p.id)).toContain("p-dual");
-    expect(byGear.map((p) => p.id)).toContain("p-dual");
+    expect(byUnit.map((p) => p.printingId)).toContain("p-dual");
+    expect(byGear.map((p) => p.printingId)).toContain("p-dual");
     const excluded = filterCards(all, emptyFilters({ typesExclude: ["gear"] }));
-    expect(excluded.map((p) => p.id)).not.toContain("p-dual");
+    expect(excluded.map((p) => p.printingId)).not.toContain("p-dual");
   });
 
   it("filters by superType", () => {
@@ -330,10 +362,10 @@ describe("filterCards", () => {
   });
 
   it("filters by card size", () => {
-    const standard = makePrinting({ id: "std", size: "standard" });
-    const oversized = makePrinting({ id: "ovr", size: "oversized" });
+    const standard = makePrinting({ printingId: "std", size: "standard" });
+    const oversized = makePrinting({ printingId: "ovr", size: "oversized" });
     const result = filterCards([standard, oversized], emptyFilters({ cardSizes: ["oversized"] }));
-    expect(result.map((p) => p.id)).toEqual(["ovr"]);
+    expect(result.map((p) => p.printingId)).toEqual(["ovr"]);
   });
 
   it("filters by isSigned", () => {

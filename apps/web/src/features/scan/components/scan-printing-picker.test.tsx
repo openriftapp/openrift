@@ -35,9 +35,9 @@ function makeWrapper() {
   return Wrapper;
 }
 
-const normal = stubPrinting({ id: "p-normal", finish: "normal", card: { name: "Yasuo" } });
+const normal = stubPrinting({ printingId: "p-normal", finish: "normal", card: { name: "Yasuo" } });
 const foil = stubPrinting({
-  id: "p-foil",
+  printingId: "p-foil",
   finish: "foil",
   cardId: normal.cardId,
   card: { name: "Yasuo" },

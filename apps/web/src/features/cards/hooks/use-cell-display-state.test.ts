@@ -16,8 +16,8 @@ afterEach(() => {
   resetOverrides();
 });
 
-const front = stubPrinting({ id: "p-front", cardId: "card-1" });
-const sibling = stubPrinting({ id: "p-sibling", cardId: "card-1" });
+const front = stubPrinting({ printingId: "p-front", cardId: "card-1" });
+const sibling = stubPrinting({ printingId: "p-sibling", cardId: "card-1" });
 
 describe("useCellDisplayState", () => {
   it("shows the cell's own printing with no focus or flash by default", () => {

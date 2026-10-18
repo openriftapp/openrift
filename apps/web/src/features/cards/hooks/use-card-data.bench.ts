@@ -92,7 +92,9 @@ function buildFixture() {
       throw new Error("fixture indexing out of range");
     }
     return {
-      id: `printing-${i}`,
+      printingId: `printing-${i}`,
+      side: 1,
+      faceId: `printing-${i}`,
       cardId: card.id,
       shortCode: `${set.slug}-${String(i).padStart(3, "0")}`,
       setId: set.id,
@@ -153,7 +155,7 @@ const SCENARIOS = {
 
 const printingsCollection = createCollection(
   localOnlyCollectionOptions<Printing>({
-    getKey: (p) => p.id,
+    getKey: (p) => p.printingId,
     initialData: fixture.printings,
   }),
 );

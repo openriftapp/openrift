@@ -12,7 +12,7 @@ beforeEach(() => {
 
 function copy(collectionId?: string): CardViewerItem {
   const printing = stubPrinting({});
-  return { id: `copy-${printing.id}`, printing, collectionId };
+  return { id: `copy-${printing.printingId}`, printing, collectionId };
 }
 
 const collectionOrder: GroupInfo[] = [

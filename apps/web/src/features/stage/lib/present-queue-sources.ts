@@ -11,7 +11,7 @@ function preferredPrintingId(
   if (pinnedId !== null && printingsById[pinnedId]) {
     return pinnedId;
   }
-  return printingsByCardId.get(cardId)?.[0]?.id ?? null;
+  return printingsByCardId.get(cardId)?.[0]?.printingId ?? null;
 }
 
 /** Quantity is ignored: a playset of three is one stop on the walk, not three. */
@@ -48,7 +48,7 @@ export function listPrintingIds(
     const id =
       entry.kind === "card"
         ? preferredPrintingId(entry.cardId, null, printingsByCardId, printingsById)
-        : (printingsById[entry.printingId]?.id ?? null);
+        : (printingsById[entry.printingId]?.printingId ?? null);
     if (id !== null && !seen.has(id)) {
       seen.add(id);
       ids.push(id);

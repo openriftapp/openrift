@@ -88,7 +88,10 @@ export function useScanAdd(collections: CollectionResponse[]): ScanAdd {
     }
 
     const confirmedRows = rowsNow
-      .map((row) => ({ printing: row.printing, count: confirmed.get(row.printing.id) ?? 0 }))
+      .map((row) => ({
+        printing: row.printing,
+        count: confirmed.get(row.printing.printingId) ?? 0,
+      }))
       .filter((row) => row.count > 0);
     const added = jobs.length - failed;
     const collectionName =
@@ -109,7 +112,7 @@ export function useScanAdd(collections: CollectionResponse[]): ScanAdd {
       .map((row) => ({
         printing: row.printing,
         taken: row.count,
-        entries: wish.entriesForPrinting(row.printing.cardId, row.printing.id),
+        entries: wish.entriesForPrinting(row.printing.cardId, row.printing.printingId),
       }))
       .filter((item) => item.entries.length > 0);
     if (followUps.length > 0) {

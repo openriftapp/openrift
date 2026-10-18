@@ -10,7 +10,7 @@ const dismiss = vi.hoisted(() => vi.fn());
 const restore = vi.hoisted(() => vi.fn());
 const mobile = vi.hoisted(() => ({ value: false }));
 
-const printing = stubPrinting({ id: "p-1", cardId: "c-1", card: { name: "Jinx, Rebel" } });
+const printing = stubPrinting({ printingId: "p-1", cardId: "c-1", card: { name: "Jinx, Rebel" } });
 
 vi.mock("@/features/groups/hooks/use-trade-dismissals", () => ({
   useDismissSuggestions: () => ({ mutate: dismiss, isPending: false }),

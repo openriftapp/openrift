@@ -34,7 +34,7 @@ function makePrinting(
 ): Printing {
   const { type, keywords, ...printing } = overrides;
   return stubPrinting({
-    id,
+    printingId: id,
     cardId,
     shortCode: id,
     publicCode: "PUB",

@@ -2,6 +2,7 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { REQUIRED_ZONES, isCountedZone } from "@openrift/shared/deck-zones";
 import { preferredPrinting } from "@openrift/shared/printing-select";
+import { ownedTotalsByCard } from "@openrift/shared/printing-side";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
@@ -19,7 +20,7 @@ import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order"
 
 function toOwnershipPrinting(printing: Printing): OwnershipPrinting {
   return {
-    id: printing.id,
+    id: printing.printingId,
     language: printing.language,
     shortCode: printing.shortCode,
     setId: printing.setId,
@@ -79,20 +80,14 @@ export function computeDeckOwnership(
     }
   }
 
-  const ownedByCardId = new Map<string, number>();
-  if (ownedCountByPrinting) {
-    for (const printing of allPrintings) {
-      const count = ownedCountByPrinting[printing.id] ?? 0;
-      if (count > 0) {
-        ownedByCardId.set(printing.cardId, (ownedByCardId.get(printing.cardId) ?? 0) + count);
-      }
-    }
-  }
+  const ownedByCardId = ownedCountByPrinting
+    ? ownedTotalsByCard(allPrintings, ownedCountByPrinting)
+    : new Map<string, number>();
 
   const lockedByCardId = new Map<string, number>();
   if (lockedCountByPrinting) {
     for (const printing of allPrintings) {
-      const count = lockedCountByPrinting[printing.id] ?? 0;
+      const count = lockedCountByPrinting[printing.printingId] ?? 0;
       if (count > 0) {
         lockedByCardId.set(printing.cardId, (lockedByCardId.get(printing.cardId) ?? 0) + count);
       }
@@ -102,7 +97,7 @@ export function computeDeckOwnership(
   const borrowedByCardId = new Map<string, number>();
   if (borrowedCountByPrinting) {
     for (const printing of allPrintings) {
-      const count = borrowedCountByPrinting[printing.id] ?? 0;
+      const count = borrowedCountByPrinting[printing.printingId] ?? 0;
       if (count > 0) {
         borrowedByCardId.set(printing.cardId, (borrowedByCardId.get(printing.cardId) ?? 0) + count);
       }
@@ -112,7 +107,7 @@ export function computeDeckOwnership(
   const incomingByCardId = new Map<string, number>();
   if (incomingCountByPrinting) {
     for (const printing of allPrintings) {
-      const count = incomingCountByPrinting[printing.id] ?? 0;
+      const count = incomingCountByPrinting[printing.printingId] ?? 0;
       if (count > 0) {
         incomingByCardId.set(printing.cardId, (incomingByCardId.get(printing.cardId) ?? 0) + count);
       }
@@ -122,7 +117,7 @@ export function computeDeckOwnership(
   const loanedByCardId = new Map<string, number>();
   if (lockedReasonCountByPrinting?.loaned) {
     for (const printing of allPrintings) {
-      const count = lockedReasonCountByPrinting.loaned[printing.id] ?? 0;
+      const count = lockedReasonCountByPrinting.loaned[printing.printingId] ?? 0;
       if (count > 0) {
         loanedByCardId.set(printing.cardId, (loanedByCardId.get(printing.cardId) ?? 0) + count);
       }
@@ -132,7 +127,7 @@ export function computeDeckOwnership(
   const reservedByCardId = new Map<string, number>();
   if (lockedReasonCountByPrinting?.reserved) {
     for (const printing of allPrintings) {
-      const count = lockedReasonCountByPrinting.reserved[printing.id] ?? 0;
+      const count = lockedReasonCountByPrinting.reserved[printing.printingId] ?? 0;
       if (count > 0) {
         reservedByCardId.set(printing.cardId, (reservedByCardId.get(printing.cardId) ?? 0) + count);
       }
@@ -142,7 +137,7 @@ export function computeDeckOwnership(
   const excludedByCardId = new Map<string, number>();
   if (lockedReasonCountByPrinting?.excluded) {
     for (const printing of allPrintings) {
-      const count = lockedReasonCountByPrinting.excluded[printing.id] ?? 0;
+      const count = lockedReasonCountByPrinting.excluded[printing.printingId] ?? 0;
       if (count > 0) {
         excludedByCardId.set(printing.cardId, (excludedByCardId.get(printing.cardId) ?? 0) + count);
       }
@@ -221,7 +216,7 @@ export function computeDeckOwnership(
 
     if (!ownedPrintingByCardId.has(card.cardId) && ownedCountByPrinting) {
       const ownedCandidates = candidates.filter(
-        (candidate) => (ownedCountByPrinting[candidate.id] ?? 0) > 0,
+        (candidate) => (ownedCountByPrinting[candidate.printingId] ?? 0) > 0,
       );
       const bestOwned = preferredPrinting(ownedCandidates, languageOrder);
       if (bestOwned) {
@@ -231,14 +226,14 @@ export function computeDeckOwnership(
 
     let resolvedPrinting: Printing | undefined;
     if (card.preferredPrintingId) {
-      resolvedPrinting = candidates.find((p) => p.id === card.preferredPrintingId);
+      resolvedPrinting = candidates.find((p) => p.printingId === card.preferredPrintingId);
     }
     if (!resolvedPrinting) {
       resolvedPrinting = preferredPrinting(candidates, languageOrder);
     }
 
     const displayPrice = resolvedPrinting
-      ? prices.get(resolvedPrinting.id, marketplace)
+      ? prices.get(resolvedPrinting.printingId, marketplace)
       : undefined;
     const displayPrinting = resolvedPrinting ? toOwnershipPrinting(resolvedPrinting) : undefined;
 
@@ -251,7 +246,7 @@ export function computeDeckOwnership(
       ];
       for (const pool of pools) {
         for (const candidate of pool) {
-          const price = prices.get(candidate.id, marketplace);
+          const price = prices.get(candidate.printingId, marketplace);
           if (price !== undefined && (cheapestPrice === undefined || price < cheapestPrice)) {
             cheapestPrice = price;
             cheapestResolved = candidate;

@@ -47,10 +47,10 @@ export const useAddModeStore = create<AddModeState>()((set) => ({
   incrementPending: (printing) =>
     set((state) => {
       const next = new Map(state.addedItems);
-      const existing = state.addedItems.get(printing.id);
+      const existing = state.addedItems.get(printing.printingId);
       // delete + set preserves insertion order (most recently touched last)
-      next.delete(printing.id);
-      next.set(printing.id, {
+      next.delete(printing.printingId);
+      next.set(printing.printingId, {
         printing,
         quantity: existing?.quantity ?? 0,
         copyIds: existing?.copyIds ?? [],
@@ -78,10 +78,10 @@ export const useAddModeStore = create<AddModeState>()((set) => ({
   recordAdd: (printing, copyId) =>
     set((state) => {
       const next = new Map(state.addedItems);
-      const existing = state.addedItems.get(printing.id);
+      const existing = state.addedItems.get(printing.printingId);
       // delete + set preserves insertion order (most recently touched last)
-      next.delete(printing.id);
-      next.set(printing.id, {
+      next.delete(printing.printingId);
+      next.set(printing.printingId, {
         printing,
         quantity: (existing?.quantity ?? 0) + 1,
         copyIds: [...(existing?.copyIds ?? []), copyId],

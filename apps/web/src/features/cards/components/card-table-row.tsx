@@ -325,7 +325,7 @@ export function CardTableRow({
     <div
       {...rowActivateProps(handleClick)}
       role="row"
-      data-printing-id={printing.id}
+      data-printing-id={printing.printingId}
       className={cn(
         "grid cursor-pointer items-center gap-3 text-sm transition-colors outline-none",
         isPicked ? "bg-border-accent/15" : isSelected ? "bg-muted/50" : "hover:bg-muted/50",

@@ -12,7 +12,13 @@ import { stubPrinting } from "@/test/factories";
 const SET_ID = "00000000-0000-0000-0000-00000000set1";
 
 function toCatalogValue(printing: Printing) {
-  const { id: _id, setSlug: _slug, setReleased: _released, card: _card, ...value } = printing;
+  const {
+    printingId: _id,
+    setSlug: _slug,
+    setReleased: _released,
+    card: _card,
+    ...value
+  } = printing;
   return { ...value, setId: SET_ID };
 }
 
@@ -29,7 +35,7 @@ function makeCatalog(printings: Printing[]): CatalogResponse {
       },
     ],
     cards: Object.fromEntries(printings.map((p) => [p.cardId, p.card])),
-    printings: Object.fromEntries(printings.map((p) => [p.id, toCatalogValue(p)])),
+    printings: Object.fromEntries(printings.map((p) => [p.printingId, toCatalogValue(p)])),
     totalCopies: 0,
     customTagAssignments: {},
   } as unknown as CatalogResponse;
@@ -50,25 +56,25 @@ function setup(catalog?: CatalogResponse) {
 describe("useStandardArtFallback", () => {
   it("resolves fallback art from the cached catalog", () => {
     const target = stubPrinting({
-      id: "p-target",
+      printingId: "p-target",
       cardId: "card-1",
       language: "SC",
       images: [],
     });
     const enStandard = stubPrinting({
-      id: "p-en",
+      printingId: "p-en",
       cardId: "card-1",
       language: "EN",
-      images: [{ face: "front", imageId: "img-en" }],
+      images: [{ imageId: "img-en" }],
     });
     const { result } = setup(makeCatalog([target, enStandard]));
     const fallback = result.current(target);
-    expect(fallback?.printing?.id).toBe("p-en");
+    expect(fallback?.printing?.printingId).toBe("p-en");
     expect(fallback?.image.imageId).toBe("img-en");
   });
 
   it("returns null for cards without a usable standard printing", () => {
-    const target = stubPrinting({ id: "p-target", cardId: "card-1", images: [] });
+    const target = stubPrinting({ printingId: "p-target", cardId: "card-1", images: [] });
     const { result } = setup(makeCatalog([target]));
     expect(result.current(target)).toBeNull();
   });

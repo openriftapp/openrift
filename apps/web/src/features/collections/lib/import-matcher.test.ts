@@ -4,8 +4,12 @@ import { describe, expect, it } from "vitest";
 import { matchEntries } from "./import-matcher";
 import type { ImportEntry } from "./import-parsers";
 
-function makePrinting(overrides: Partial<Printing> & { id: string; shortCode: string }): Printing {
+function makePrinting(
+  overrides: Partial<Printing> & { printingId: string; shortCode: string },
+): Printing {
   return {
+    side: 1,
+    faceId: overrides.printingId,
     cardId: "card-1",
     setId: "set-1",
     setSlug: "ogn",
@@ -67,22 +71,22 @@ function makeEntry(overrides: Partial<ImportEntry>): ImportEntry {
 }
 
 describe("matchEntries — language narrowing", () => {
-  const enPrinting = makePrinting({ id: "en-1", shortCode: "OGN-001", language: "EN" });
-  const scPrinting = makePrinting({ id: "sc-1", shortCode: "OGN-001", language: "SC" });
+  const enPrinting = makePrinting({ printingId: "en-1", shortCode: "OGN-001", language: "EN" });
+  const scPrinting = makePrinting({ printingId: "sc-1", shortCode: "OGN-001", language: "SC" });
   const allPrintings = [enPrinting, scPrinting];
 
   it("resolves to exact match when entry language matches one printing", () => {
     const entries = [makeEntry({ language: "EN" })];
     const results = matchEntries(entries, allPrintings);
     expect(results[0]!.status).toBe("exact");
-    expect(results[0]!.resolvedPrinting?.id).toBe("en-1");
+    expect(results[0]!.resolvedPrinting?.printingId).toBe("en-1");
   });
 
   it("resolves to the SC printing when entry language is SC", () => {
     const entries = [makeEntry({ language: "SC" })];
     const results = matchEntries(entries, allPrintings);
     expect(results[0]!.status).toBe("exact");
-    expect(results[0]!.resolvedPrinting?.id).toBe("sc-1");
+    expect(results[0]!.resolvedPrinting?.printingId).toBe("sc-1");
   });
 
   it("falls back to all candidates when entry has no language", () => {
@@ -109,25 +113,25 @@ describe("matchEntries — language narrowing", () => {
 
 describe("matchEntries — language + finish combination", () => {
   const enNormal = makePrinting({
-    id: "en-normal",
+    printingId: "en-normal",
     shortCode: "OGN-001",
     language: "EN",
     finish: "normal",
   });
   const enFoil = makePrinting({
-    id: "en-foil",
+    printingId: "en-foil",
     shortCode: "OGN-001",
     language: "EN",
     finish: "foil",
   });
   const scNormal = makePrinting({
-    id: "sc-normal",
+    printingId: "sc-normal",
     shortCode: "OGN-001",
     language: "SC",
     finish: "normal",
   });
   const scFoil = makePrinting({
-    id: "sc-foil",
+    printingId: "sc-foil",
     shortCode: "OGN-001",
     language: "SC",
     finish: "foil",
@@ -138,34 +142,34 @@ describe("matchEntries — language + finish combination", () => {
     const entries = [makeEntry({ language: "EN", finish: "foil" })];
     const results = matchEntries(entries, allPrintings);
     expect(results[0]!.status).toBe("exact");
-    expect(results[0]!.resolvedPrinting?.id).toBe("en-foil");
+    expect(results[0]!.resolvedPrinting?.printingId).toBe("en-foil");
   });
 
   it("narrows by language then finish for SC foil", () => {
     const entries = [makeEntry({ language: "SC", finish: "foil" })];
     const results = matchEntries(entries, allPrintings);
     expect(results[0]!.status).toBe("exact");
-    expect(results[0]!.resolvedPrinting?.id).toBe("sc-foil");
+    expect(results[0]!.resolvedPrinting?.printingId).toBe("sc-foil");
   });
 });
 
 describe("matchEntries — fallbackLanguage", () => {
-  const enPrinting = makePrinting({ id: "en-1", shortCode: "OGN-001", language: "EN" });
-  const scPrinting = makePrinting({ id: "sc-1", shortCode: "OGN-001", language: "SC" });
+  const enPrinting = makePrinting({ printingId: "en-1", shortCode: "OGN-001", language: "EN" });
+  const scPrinting = makePrinting({ printingId: "sc-1", shortCode: "OGN-001", language: "SC" });
   const allPrintings = [enPrinting, scPrinting];
 
   it("uses fallbackLanguage when entry has no language", () => {
     const entries = [makeEntry({ language: undefined })];
     const results = matchEntries(entries, allPrintings, "EN");
     expect(results[0]!.status).toBe("exact");
-    expect(results[0]!.resolvedPrinting?.id).toBe("en-1");
+    expect(results[0]!.resolvedPrinting?.printingId).toBe("en-1");
   });
 
   it("entry language takes precedence over fallbackLanguage", () => {
     const entries = [makeEntry({ language: "SC" })];
     const results = matchEntries(entries, allPrintings, "EN");
     expect(results[0]!.status).toBe("exact");
-    expect(results[0]!.resolvedPrinting?.id).toBe("sc-1");
+    expect(results[0]!.resolvedPrinting?.printingId).toBe("sc-1");
   });
 
   it("falls back to all candidates when fallbackLanguage matches nothing", () => {
@@ -178,14 +182,14 @@ describe("matchEntries — fallbackLanguage", () => {
 
 describe("matchEntries — isPromo flag", () => {
   const basePrinting = makePrinting({
-    id: "base",
+    printingId: "base",
     shortCode: "OGN-001",
     finish: "foil",
     markers: [],
     distributionChannels: [],
   });
   const promoPrinting = makePrinting({
-    id: "promo-nexus",
+    printingId: "promo-nexus",
     shortCode: "OGN-001",
     finish: "foil",
     markers: [{ id: "pt-nexus", slug: "nexus", label: "Nexus", description: null }],
@@ -196,12 +200,12 @@ describe("matchEntries — isPromo flag", () => {
     const entries = [makeEntry({ finish: "foil", language: "EN", isPromo: true })];
     const results = matchEntries(entries, [basePrinting, promoPrinting]);
     expect(results[0]!.status).toBe("exact");
-    expect(results[0]!.resolvedPrinting?.id).toBe("promo-nexus");
+    expect(results[0]!.resolvedPrinting?.printingId).toBe("promo-nexus");
   });
 
   it("returns needs-review with promo candidates when multiple promos exist", () => {
     const promoRelease = makePrinting({
-      id: "promo-release",
+      printingId: "promo-release",
       shortCode: "OGN-001",
       finish: "foil",
       markers: [{ id: "pt-release", slug: "release", label: "Release", description: null }],
@@ -225,7 +229,7 @@ describe("matchEntries — isPromo flag", () => {
     const entries = [makeEntry({ finish: "foil", language: "EN" })];
     const results = matchEntries(entries, [basePrinting, promoPrinting]);
     expect(results[0]!.status).toBe("exact");
-    expect(results[0]!.resolvedPrinting?.id).toBe("base");
+    expect(results[0]!.resolvedPrinting?.printingId).toBe("base");
   });
 });
 
@@ -233,14 +237,14 @@ describe("matchEntries — multi-marker promo slugs", () => {
   const nexusMarker = { id: "pt-nexus", slug: "nexus", label: "Nexus", description: null };
   const releaseMarker = { id: "pt-release", slug: "release", label: "Release", description: null };
   const singleMarkerPromo = makePrinting({
-    id: "promo-nexus",
+    printingId: "promo-nexus",
     shortCode: "OGN-001",
     finish: "foil",
     markers: [nexusMarker],
     distributionChannels: [],
   });
   const multiMarkerPromo = makePrinting({
-    id: "promo-nexus-release",
+    printingId: "promo-nexus-release",
     shortCode: "OGN-001",
     finish: "foil",
     markers: [nexusMarker, releaseMarker],
@@ -251,7 +255,7 @@ describe("matchEntries — multi-marker promo slugs", () => {
     const entries = [makeEntry({ finish: "foil", language: "EN", promoSlug: "release+nexus" })];
     const results = matchEntries(entries, [singleMarkerPromo, multiMarkerPromo]);
     expect(results[0]!.status).toBe("exact");
-    expect(results[0]!.resolvedPrinting?.id).toBe("promo-nexus-release");
+    expect(results[0]!.resolvedPrinting?.printingId).toBe("promo-nexus-release");
   });
 
   it("needs review when a single-slug promo matches multiple multi-marker printings", () => {
@@ -263,9 +267,9 @@ describe("matchEntries — multi-marker promo slugs", () => {
 });
 
 describe("matchEntries — overnumbered flag on a name match", () => {
-  const inTotal = makePrinting({ id: "in-total", shortCode: "OGN-100" });
+  const inTotal = makePrinting({ printingId: "in-total", shortCode: "OGN-100" });
   const overnumbered = makePrinting({
-    id: "overnumbered",
+    printingId: "overnumbered",
     shortCode: "OGN-300",
     isOvernumbered: true,
   });
@@ -274,20 +278,20 @@ describe("matchEntries — overnumbered flag on a name match", () => {
   it("picks the overnumbered printing when the source says so", () => {
     const entries = [makeEntry({ sourceCode: "", isOvernumbered: true })];
     const results = matchEntries(entries, both);
-    expect(results[0]!.resolvedPrinting?.id).toBe("overnumbered");
+    expect(results[0]!.resolvedPrinting?.printingId).toBe("overnumbered");
   });
 
   it("picks the in-total printing when the source rules overnumbering out", () => {
     const entries = [makeEntry({ sourceCode: "", isOvernumbered: false })];
     const results = matchEntries(entries, both);
-    expect(results[0]!.resolvedPrinting?.id).toBe("in-total");
+    expect(results[0]!.resolvedPrinting?.printingId).toBe("in-total");
   });
 
   it("leaves both as candidates when the source does not say", () => {
     const entries = [makeEntry({ sourceCode: "" })];
     const results = matchEntries(entries, both);
     expect(results[0]!.resolvedPrinting).toBeNull();
-    expect(results[0]!.candidates.map((printing) => printing.id)).toEqual([
+    expect(results[0]!.candidates.map((printing) => printing.printingId)).toEqual([
       "in-total",
       "overnumbered",
     ]);
@@ -296,7 +300,7 @@ describe("matchEntries — overnumbered flag on a name match", () => {
 
 describe("matchEntries — Legend colloquial names", () => {
   const legend = makePrinting({
-    id: "ogn-100",
+    printingId: "ogn-100",
     shortCode: "OGN-100",
     card: {
       slug: "emperor-of-the-sands",
@@ -324,7 +328,7 @@ describe("matchEntries — Legend colloquial names", () => {
     const entries = [makeEntry({ cardName: "Azir, Emperor of the Sands", sourceCode: "" })];
     const results = matchEntries(entries, [legend]);
     expect(results[0]!.status).toBe("needs-review");
-    expect(results[0]!.resolvedPrinting?.id).toBe("ogn-100");
+    expect(results[0]!.resolvedPrinting?.printingId).toBe("ogn-100");
     expect(results[0]!.suggestedName).toBe("Azir, Emperor of the Sands");
   });
 
@@ -332,7 +336,7 @@ describe("matchEntries — Legend colloquial names", () => {
     const entries = [makeEntry({ cardName: "Emperor of the Sands", sourceCode: "" })];
     const results = matchEntries(entries, [legend]);
     expect(results[0]!.status).toBe("needs-review");
-    expect(results[0]!.resolvedPrinting?.id).toBe("ogn-100");
+    expect(results[0]!.resolvedPrinting?.printingId).toBe("ogn-100");
   });
 
   it("does not resolve when the tag prefix names a different champion", () => {
@@ -344,34 +348,38 @@ describe("matchEntries — Legend colloquial names", () => {
 
 describe("matchEntries — code lookup", () => {
   it("matches a code that differs only in punctuation and case", () => {
-    const printing = makePrinting({ id: "p-1", shortCode: "OGN-001" });
+    const printing = makePrinting({ printingId: "p-1", shortCode: "OGN-001" });
     const [result] = matchEntries([makeEntry({ sourceCode: "ogn 001" })], [printing]);
     expect(result?.status).toBe("exact");
-    expect(result?.resolvedPrinting?.id).toBe("p-1");
+    expect(result?.resolvedPrinting?.printingId).toBe("p-1");
   });
 
   it("matches a public code", () => {
-    const printing = makePrinting({ id: "p-1", shortCode: "OGN-001", publicCode: "OGN-001/298" });
+    const printing = makePrinting({
+      printingId: "p-1",
+      shortCode: "OGN-001",
+      publicCode: "OGN-001/298",
+    });
     const [result] = matchEntries([makeEntry({ sourceCode: "OGN-001/298" })], [printing]);
-    expect(result?.resolvedPrinting?.id).toBe("p-1");
+    expect(result?.resolvedPrinting?.printingId).toBe("p-1");
   });
 
   it("prefers the exact code over a code that squashes to the same key", () => {
-    const starred = makePrinting({ id: "star", shortCode: "T1S-003*" });
-    const plain = makePrinting({ id: "plain", shortCode: "T1S-003" });
+    const starred = makePrinting({ printingId: "star", shortCode: "T1S-003*" });
+    const plain = makePrinting({ printingId: "plain", shortCode: "T1S-003" });
     const [result] = matchEntries([makeEntry({ sourceCode: "T1S-003" })], [starred, plain]);
-    expect(result?.resolvedPrinting?.id).toBe("plain");
+    expect(result?.resolvedPrinting?.printingId).toBe("plain");
   });
 
   it("does not pick a printing when two codes squash to the same key", () => {
-    const starred = makePrinting({ id: "star", shortCode: "T1S-003*" });
-    const plain = makePrinting({ id: "plain", shortCode: "T1S-003" });
+    const starred = makePrinting({ printingId: "star", shortCode: "T1S-003*" });
+    const plain = makePrinting({ printingId: "plain", shortCode: "T1S-003" });
     const [result] = matchEntries([makeEntry({ sourceCode: "T1S003" })], [starred, plain]);
     expect(result?.status).not.toBe("exact");
   });
 
   it("leaves an unknown code unresolved", () => {
-    const printing = makePrinting({ id: "p-1", shortCode: "OGN-001" });
+    const printing = makePrinting({ printingId: "p-1", shortCode: "OGN-001" });
     const [result] = matchEntries(
       [makeEntry({ sourceCode: "XYZ-999", cardName: "Nobody" })],
       [printing],

@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { MouseEvent, PointerEvent, ReactNode, RefObject } from "react";
 import { useRef } from "react";
@@ -43,13 +44,14 @@ export function PrintingChoicePreview({
   printings: readonly Printing[];
   anchorRef: RefObject<HTMLElement | null>;
 }) {
-  const hovered = hoveredId === null ? undefined : printings.find((p) => p.id === hoveredId);
+  const hovered =
+    hoveredId === null ? undefined : printings.find((p) => p.printingId === hoveredId);
   if (!hovered) {
     return null;
   }
   // Remount per printing: an imageless entry unmounts the preview, and without
   // a fresh key the position effect won't re-run for the next hover.
-  return <PrintingHoverPreview key={hovered.id} printing={hovered} anchorRef={anchorRef} />;
+  return <PrintingHoverPreview key={sideKey(hovered)} printing={hovered} anchorRef={anchorRef} />;
 }
 
 /**
@@ -96,13 +98,15 @@ export function PrintingChoiceMenuSection({
         )}
         {printings.map((printing) => (
           <ContextMenuItem
-            key={printing.id}
-            className={cn(printing.id === activePrintingId && "bg-muted ring-border ring-1")}
+            key={sideKey(printing)}
+            className={cn(
+              printing.printingId === activePrintingId && "bg-muted ring-border ring-1",
+            )}
             onClick={(event) => {
               event.stopPropagation();
               onSelect(printing, event);
             }}
-            {...hoverProps(printing.id)}
+            {...hoverProps(printing.printingId)}
           >
             <PrintingRowContent printing={printing} siblings={printings} />
           </ContextMenuItem>

@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -48,10 +49,10 @@ export function ScanPrintingPicker({
   const renderList = (items: Printing[]) => (
     <div className="flex min-h-0 flex-col gap-1 overflow-y-auto">
       {items.map((candidate) => {
-        const isCurrent = candidate.id === request?.currentId;
+        const isCurrent = candidate.printingId === request?.currentId;
         return (
           <Pressable
-            key={candidate.id}
+            key={sideKey(candidate)}
             aria-current={isCurrent ? "true" : undefined}
             className={cn(
               "hover:bg-muted flex w-full items-center rounded-md px-2 py-1.5",
@@ -83,7 +84,7 @@ export function ScanPrintingPicker({
       // Keyed on the request so a new one re-derives its default tab.
       // Candidates arrive sorted language-first; no order is passed separately.
       <PrintingLanguageTabs
-        key={`${request.label}:${candidates[0]?.id}`}
+        key={`${request.label}:${candidates[0]?.printingId}`}
         printings={candidates}
         defaultLanguage={defaultLanguage}
         className="min-h-0"

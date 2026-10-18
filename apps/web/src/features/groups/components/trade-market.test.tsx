@@ -11,14 +11,22 @@ import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { stubPrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
-const jinx = stubPrinting({ id: "p-jinx", cardId: "c-jinx", card: { name: "Jinx, Rebel" } });
+const jinx = stubPrinting({
+  printingId: "p-jinx",
+  cardId: "c-jinx",
+  card: { name: "Jinx, Rebel" },
+});
 const star = stubPrinting({
-  id: "p-star",
+  printingId: "p-star",
   cardId: "c-star",
   card: { name: "Grove of the God-Willow", types: ["battlefield"] },
-  images: [{ face: "front", imageId: "grove-image-id-aa" }],
+  images: [{ imageId: "grove-image-id-aa" }],
 });
-const leona = stubPrinting({ id: "p-leona", cardId: "c-leona", card: { name: "Leona, Zealot" } });
+const leona = stubPrinting({
+  printingId: "p-leona",
+  cardId: "c-leona",
+  card: { name: "Leona, Zealot" },
+});
 
 function stubRow(overrides: Partial<FriendGroupMatchRow> = {}): FriendGroupMatchRow {
   return {

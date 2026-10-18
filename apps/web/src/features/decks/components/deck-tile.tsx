@@ -216,7 +216,7 @@ export function DeckTile({
     requiredTotal,
   } = item;
   const isLocal = useIsLocalDeck(deck.id);
-  const { getPreferredPrinting, getPreferredFrontImage } = usePreferredPrinting();
+  const { getPreferredPrinting, getPreferredFrontImage, getFaceImage } = usePreferredPrinting();
   const { all: customTags } = useCustomTagList();
 
   const legendCard = legendCardId ? getPreferredPrinting(legendCardId)?.card : undefined;
@@ -224,7 +224,7 @@ export function DeckTile({
   const legendImage = legendCardId ? (getPreferredFrontImage(legendCardId) ?? null) : null;
   const championImage = championCardId ? (getPreferredFrontImage(championCardId) ?? null) : null;
   const coverImage = deck.coverCardId
-    ? (getPreferredFrontImage(deck.coverCardId, deck.coverPrintingId ?? undefined) ?? null)
+    ? (getFaceImage(deck.coverCardId, deck.coverFaceId) ?? null)
     : null;
 
   const domainColors = useDomainColors();

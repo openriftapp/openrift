@@ -93,7 +93,7 @@ export async function moveListEntries(
             row &&
             (source.kind === "printing"
               ? row.printingId === entry.printingId
-              : row.cardId === entry.cardId);
+              : entry.cardId !== null && row.cardIds.includes(entry.cardId));
           if (!matches) {
             throw badRequest("Picked copies must be yours and match the entry");
           }
@@ -116,9 +116,9 @@ export async function moveListEntries(
         return { entry, printingId };
       });
       const printings = await trxRepos.lists.printingCardIds(picks.map((pick) => pick.printingId));
-      const cardByPrintingId = new Map(printings.map((row) => [row.id, row.cardId]));
+      const cardsByPrintingId = new Map(printings.map((row) => [row.id, row.cardIds]));
       insertable = picks.map(({ entry, printingId }) => {
-        if (cardByPrintingId.get(printingId) !== entry.cardId) {
+        if (entry.cardId === null || !cardsByPrintingId.get(printingId)?.includes(entry.cardId)) {
           throw badRequest("Picked printing must belong to the entry's card");
         }
         return {

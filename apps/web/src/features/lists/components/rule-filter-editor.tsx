@@ -310,7 +310,7 @@ export function RuleFilterEditor({
         allPrintings,
         { ...value, price: { min: null, max: null } },
         { customTagAssignments },
-      ).filter((printing) => prices.get(printing.id, shownMarketplace) === undefined).length
+      ).filter((printing) => prices.get(printing.printingId, shownMarketplace) === undefined).length
     : 0;
 
   const patchPrice = (price: FilterRange) => {

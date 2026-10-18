@@ -168,7 +168,7 @@ export function createLocalDeck(format: DeckFormat, name?: string): string {
     formatConfig: null,
     cards: [],
     coverCardId: null,
-    coverPrintingId: null,
+    coverFaceId: null,
     coverPosition: null,
     links: [],
     createdAt: stamp,
@@ -200,8 +200,8 @@ export function updateLocalDeck(id: string, patch: LocalDeckPatch): void {
     if (patch.coverCardId !== undefined) {
       draft.coverCardId = patch.coverCardId;
     }
-    if (patch.coverPrintingId !== undefined) {
-      draft.coverPrintingId = patch.coverPrintingId;
+    if (patch.coverFaceId !== undefined) {
+      draft.coverFaceId = patch.coverFaceId;
     }
     if (patch.coverPosition !== undefined) {
       draft.coverPosition = patch.coverPosition;

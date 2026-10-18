@@ -12,16 +12,22 @@ import { renderVerticalDeckImage } from "./deck-image-vertical.js";
 export type { DeckImageCard, DeckImageCardRef, DeckImageInput } from "./deck-image-parts.js";
 export { splitDeckZones, truncateTitle } from "./deck-image-parts.js";
 
-/** Honors the pinned cover printing the same way the web resolves it. */
+/** Honors the pinned cover face the same way the web resolves it. */
 export async function resolveCoverImageId(
   repos: Pick<Repos, "canonicalPrintings">,
-  deck: { coverCardId: string | null; coverPrintingId: string | null },
+  deck: { coverCardId: string | null; coverFaceId: string | null },
 ): Promise<string | null> {
   if (!deck.coverCardId) {
     return null;
   }
+  const faceImageId = deck.coverFaceId
+    ? await repos.canonicalPrintings.faceImageId(deck.coverFaceId)
+    : null;
+  if (faceImageId) {
+    return faceImageId;
+  }
   const metas = await repos.canonicalPrintings.resolvePrintingMetaForRows([
-    { cardId: deck.coverCardId, preferredPrintingId: deck.coverPrintingId },
+    { cardId: deck.coverCardId, preferredPrintingId: null },
   ]);
   return metas[0]?.imageId ?? null;
 }

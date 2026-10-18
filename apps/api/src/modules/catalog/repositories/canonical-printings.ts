@@ -139,6 +139,14 @@ export function canonicalPrintingsRepo(db: Kysely<Database>) {
      * neither a preferred nor a canonical printing exists. One entry per
      * input row, in input order.
      */
+    async faceImageId(faceId: string): Promise<string | null> {
+      const row = await joinFaceImage(db.selectFrom("faces as f"), "f.id")
+        .select(imageId("imgf").as("imageId"))
+        .where("f.id", "=", faceId)
+        .executeTakeFirst();
+      return row?.imageId ?? null;
+    },
+
     async resolvePrintingMetaForRows(
       rows: DeckRowForShortCode[],
     ): Promise<ResolvedRowPrintingMeta[]> {

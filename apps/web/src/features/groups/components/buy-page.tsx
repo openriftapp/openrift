@@ -89,7 +89,7 @@ export function BuyPage() {
   const cartKeys = new Set(items.map((item) => item.key));
   const wantedByKey = new Map(wanted.map((item) => [item.key, item]));
   const shownPrintingId = (item: WantedCard): string | undefined =>
-    item.printingId ?? printingsByCardId.get(item.cardId)?.[0]?.id;
+    item.printingId ?? printingsByCardId.get(item.cardId)?.[0]?.printingId;
   const priceValue = (printingId: string | undefined) =>
     printingId === undefined ? undefined : prices.get(printingId, display.favoriteMarketplace);
   const nameOf = (item: WantedCard): string => {

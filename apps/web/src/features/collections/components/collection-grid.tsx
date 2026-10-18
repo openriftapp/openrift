@@ -286,7 +286,7 @@ export function CollectionGrid({
     // `undefined` (not an empty array) for cards the viewer doesn't want, so
     // the cell's memo holds across renders.
     const wishEntries = isGroupCollection
-      ? wish.entriesForPrinting(item.printing.cardId, item.printing.id)
+      ? wish.entriesForPrinting(item.printing.cardId, item.printing.printingId)
       : undefined;
     return (
       <CollectionGridCell

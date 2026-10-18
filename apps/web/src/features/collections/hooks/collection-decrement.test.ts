@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { buildOnDecrement } from "./collection-decrement";
 
-const printing = { id: "p1", cardId: "c1", setId: "set-ogn" } as Printing;
+const printing = { printingId: "p1", cardId: "c1", setId: "set-ogn" } as Printing;
 
 // Flush the async escalation IIFE inside onDecrement (await tryUndoAdd → maybe
 // open the popover). Two microtask turns cover the single await plus its
@@ -89,8 +89,8 @@ describe("buildOnDecrement", () => {
   });
 
   it("buckets owned variants per tile when grouped by set", async () => {
-    const ognTile = { id: "p1", cardId: "c1", setId: "set-ogn" } as Printing;
-    const unlTile = { id: "p3", cardId: "c1", setId: "set-unl" } as Printing;
+    const ognTile = { printingId: "p1", cardId: "c1", setId: "set-ogn" } as Printing;
+    const unlTile = { printingId: "p3", cardId: "c1", setId: "set-unl" } as Printing;
     const anchor = document.createElement("button");
     const ownedPrintingIdsByTile = new Map([
       ["c1|set-ogn", ["p1", "p2"]],

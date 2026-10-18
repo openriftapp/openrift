@@ -37,7 +37,7 @@ export const cardsRouter = {
     ]);
 
     const setIds = [...new Set(printingRows.map((p) => p.setId))];
-    const printingIds = printingRows.map((p) => p.id);
+    const printingIds = printingRows.map((p) => p.printingId);
     const [sets, decorations] = await Promise.all([
       catalog.setsByIds(setIds),
       loadPrintingDecorations(repos, printingIds),

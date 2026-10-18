@@ -65,7 +65,7 @@ export function CardDragGhost({
           // Placement lives on this wrapper: CardArtThumb sets its own `style`
           // for corner radius and takes no override.
           <span
-            key={printing?.id ?? "placeholder"}
+            key={printing?.printingId ?? "placeholder"}
             className="absolute top-0 left-0 w-full"
             style={{
               transform: `translate(${offset.x * width}px, ${offset.y * width}px) rotate(${offset.rotate}deg)`,

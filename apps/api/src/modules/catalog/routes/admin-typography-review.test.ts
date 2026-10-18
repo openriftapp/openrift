@@ -16,6 +16,7 @@ const mockCatalog = {
 const mockMutations = {
   updateCardById: vi.fn(),
   updatePrintingById: vi.fn(),
+  updateFaceById: vi.fn(),
 };
 
 const mockCardErrata = {
@@ -57,7 +58,9 @@ const baseCard = {
 };
 
 const basePrinting = {
-  id: PRINTING_ID,
+  printingId: PRINTING_ID,
+  side: 1,
+  faceId: PRINTING_ID,
   cardId: CARD_ID,
   setId: "set-id",
   shortCode: "SET-001",
@@ -119,7 +122,7 @@ describe("GET /api/admin/v1/typography-review", () => {
     const res = await app.request("/api/admin/v1/typography-review");
     const json = await readJson(res);
     expect(json.diffs).toContainEqual({
-      target: { entity: "printing", id: PRINTING_ID, field: "printedName" },
+      target: { entity: "face", id: PRINTING_ID, field: "printedName" },
       name: baseCard.name,
       current: "Jinx's Wrath",
       proposed: "Jinx’s Wrath",
@@ -243,21 +246,20 @@ describe("POST /api/admin/v1/typography-review/accept", () => {
     );
   });
 
-  it("writes a printing field through the typed printing update", async () => {
-    mockCatalog.getPrintingById.mockResolvedValue(basePrinting);
-    mockMutations.updatePrintingById.mockResolvedValue(undefined);
+  it("writes a printed field onto the face", async () => {
+    mockMutations.updateFaceById.mockResolvedValue(true);
 
     const res = await app.request("/api/admin/v1/typography-review/accept", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        target: { entity: "printing", id: PRINTING_ID, field: "flavorText" },
+        target: { entity: "face", id: PRINTING_ID, field: "flavorText" },
         proposed: "Jinx’s laugh",
       }),
     });
 
     expect(res.status).toBe(204);
-    expect(mockMutations.updatePrintingById).toHaveBeenCalledWith(PRINTING_ID, {
+    expect(mockMutations.updateFaceById).toHaveBeenCalledWith(PRINTING_ID, {
       flavorText: "Jinx’s laugh",
     });
   });
@@ -267,14 +269,14 @@ describe("POST /api/admin/v1/typography-review/accept", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        target: { entity: "printing", id: PRINTING_ID, field: "tags" },
+        target: { entity: "face", id: PRINTING_ID, field: "tags" },
         proposed: "anything",
       }),
     });
 
     expect(res.status).toBe(400);
     expect(mockCatalog.getPrintingById).not.toHaveBeenCalled();
-    expect(mockMutations.updatePrintingById).not.toHaveBeenCalled();
+    expect(mockMutations.updateFaceById).not.toHaveBeenCalled();
   });
 
   it("rejects an arbitrary printings column", async () => {
@@ -282,12 +284,12 @@ describe("POST /api/admin/v1/typography-review/accept", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        target: { entity: "printing", id: PRINTING_ID, field: "cardId" },
+        target: { entity: "face", id: PRINTING_ID, field: "cardId" },
         proposed: "a0000000-0001-4000-a000-0000000000cc",
       }),
     });
 
     expect(res.status).toBe(400);
-    expect(mockMutations.updatePrintingById).not.toHaveBeenCalled();
+    expect(mockMutations.updateFaceById).not.toHaveBeenCalled();
   });
 });

@@ -28,12 +28,12 @@ const PRINTING = stubPrinting({
   publicCode: "ogn-042",
   printedRulesText: "Deal 2 damage.",
   flavorText: "For Demacia.",
-  images: [{ face: "front", imageId: "img-1" }],
+  images: [{ imageId: "img-1" }],
   card: { name: "Garen", energy: 3, power: 4, might: 5 },
 });
 
 function payload(overrides: Partial<OverlayPayload> = {}): OverlayPayload {
-  return { ...DEFAULT_OVERLAY_PAYLOAD, printingId: PRINTING.id, ...overrides };
+  return { ...DEFAULT_OVERLAY_PAYLOAD, printingId: PRINTING.printingId, ...overrides };
 }
 
 function cluster(container: HTMLElement): HTMLElement {
@@ -182,7 +182,7 @@ describe("OverlayFrame plate contents", () => {
     const { getByText, queryByText } = render(
       <OverlayFrame
         payload={payload({
-          printingId: errataPrinting.id,
+          printingId: errataPrinting.printingId,
           plateFields: { ...DEFAULT_OVERLAY_PAYLOAD.plateFields, rulesText: true },
         })}
         printing={errataPrinting}
@@ -269,9 +269,9 @@ function row(label: string, ...cardIds: string[]) {
       cardId,
       card: stubCard({ name: cardId }),
       printing: stubPrinting({
-        id: `p-${cardId}`,
+        printingId: `p-${cardId}`,
         cardId,
-        images: [{ face: "front", imageId: `img-${cardId}` }],
+        images: [{ imageId: `img-${cardId}` }],
       }),
       pinnedPrintingId: null,
     })),

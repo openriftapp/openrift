@@ -1,5 +1,5 @@
 import { imageUrl } from "@openrift/shared/image-url";
-import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
+import type { CatalogPrintingSideValue, CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { InitResponse } from "@openrift/shared/types/api/init";
 import type { MarketplaceInfoResponse, PricesResponse } from "@openrift/shared/types/api/pricing";
 import type { RulesListResponse, RuleVersionResponse } from "@openrift/shared/types/api/rules";
@@ -109,12 +109,18 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
 
   const cards = Object.entries(catalog.cards);
   const printings = Object.entries(catalog.printings);
-  const faceIdByPrinting = new Map<string, string>();
+  // A payload without face ids comes from an API that predates them; printings sharing a printed
+  // identity share one face then, keyed by the first such printing, standard size first.
+  const face1IdByPrinting = new Map<string, string>();
   const faceIdByIdentity = new Map<string, string>();
-  for (const [id, printing] of printings.toSorted(
+  for (const [printingId, printing] of printings.toSorted(
     ([idA, a], [idB, b]) =>
       Number(b.size === "standard") - Number(a.size === "standard") || idA.localeCompare(idB),
   )) {
+    if (printing.faceId !== undefined || printing.side2 !== undefined) {
+      face1IdByPrinting.set(printingId, printing.faceId ?? printingId);
+      continue;
+    }
     const identity = JSON.stringify([
       printing.cardId,
       printing.shortCode,
@@ -122,11 +128,17 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
       printing.markers.map((marker) => marker.slug).toSorted(),
       printing.language,
     ]);
-    const faceId = faceIdByIdentity.get(identity) ?? id;
+    const faceId = faceIdByIdentity.get(identity) ?? printingId;
     faceIdByIdentity.set(identity, faceId);
-    faceIdByPrinting.set(id, faceId);
+    face1IdByPrinting.set(printingId, faceId);
   }
-  const facePrintings = printings.filter(([id]) => faceIdByPrinting.get(id) === id);
+  const sides: CatalogPrintingSideValue[] = printings.flatMap(
+    ([printingId, { side2, faceId: _faceId, ...printing }]) => [
+      { ...printing, faceId: face1IdByPrinting.get(printingId) ?? printingId },
+      ...(side2 === undefined ? [] : [side2]),
+    ],
+  );
+  const faceSides = [...new Map(sides.map((side) => [side.faceId, side])).values()];
   const customTagsBySlug = new Map(init.customTags.map((tag) => [tag.slug, tag]));
   const customTagCategories = new Map<string, Row<"customTagCategories">>();
   for (const tag of init.customTags) {
@@ -152,12 +164,12 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
       imageFiles.set(id, { id, rehostedUrl: rehostedUrl(id), credit: credit ?? null });
     }
   };
-  for (const [, printing] of printings) {
-    for (const image of printing.images) {
+  for (const face of sides) {
+    for (const image of face.images) {
       addImageFile(image.imageId, image.credit);
     }
-    if (printing.fallbackImageId !== undefined) {
-      addImageFile(printing.fallbackImageId);
+    if (face.fallbackImageId !== undefined) {
+      addImageFile(face.fallbackImageId);
     }
   }
 
@@ -289,8 +301,8 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
         .map((customTagSlug) => ({ cardId, customTagSlug })),
     ),
     imageFiles: [...imageFiles.values()],
-    faces: facePrintings.map(([id, printing]) => ({
-      id,
+    faces: faceSides.map((printing) => ({
+      id: printing.faceId,
       cardId: printing.cardId,
       setId: printing.setId,
       shortCode: printing.shortCode,
@@ -311,12 +323,17 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
       fallbackArtMode: printing.fallbackArtMode ?? "auto",
       fallbackImageFileId: printing.fallbackImageId ?? null,
     })),
-    faceImages: facePrintings.flatMap(([faceId, printing]) =>
-      printing.images.map((image) => ({ faceId, imageFileId: image.imageId, isActive: true })),
+    faceImages: faceSides.flatMap((face) =>
+      face.images.map((image) => ({
+        faceId: face.faceId,
+        imageFileId: image.imageId,
+        isActive: true,
+      })),
     ),
     printings: printings.map(([id, printing]) => ({
       id,
-      face1Id: faceIdByPrinting.get(id) ?? id,
+      face1Id: face1IdByPrinting.get(id) ?? id,
+      face2Id: printing.side2?.faceId ?? null,
       size: printing.size as CardSize,
       comment: printing.comment,
     })),

@@ -21,7 +21,7 @@ afterEach(() => {
   resetStore();
 });
 
-const printing = { id: "p1" } as Printing;
+const printing = { printingId: "p1" } as Printing;
 
 describe("useCardRowActionsStore", () => {
   it("starts with no handlers registered", () => {
@@ -85,7 +85,7 @@ describe("useCardRowActionsStore", () => {
   it("dispatchContextAction forwards the displayed printing for printing-scoped actions", () => {
     const onContextAction = vi.fn();
     useCardRowActionsStore.getState().setHandlers("collection", { onContextAction });
-    const foilPrinting = stubPrinting({ id: "p-foil" });
+    const foilPrinting = stubPrinting({ printingId: "p-foil" });
     dispatchContextAction("item-1", "lend", foilPrinting);
     expect(onContextAction).toHaveBeenCalledWith("item-1", "lend", foilPrinting);
   });

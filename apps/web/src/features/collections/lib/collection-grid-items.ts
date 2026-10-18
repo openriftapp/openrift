@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
@@ -23,17 +24,17 @@ export function buildCollectionGridItems(
 
   if (showLibrary) {
     const items = renderedCards.map((printing) => {
-      const stack = stackByPrintingId.get(printing.id);
+      const stack = stackByPrintingId.get(printing.printingId);
       if (stack) {
-        stackByItemId.set(printing.id, stack);
+        stackByItemId.set(sideKey(printing), stack);
       }
-      return { id: printing.id, printing };
+      return { id: sideKey(printing), printing };
     });
     return { items, stackByItemId };
   }
 
   const owned = renderedCards
-    .map((printing) => ({ printing, stack: stackByPrintingId.get(printing.id) }))
+    .map((printing) => ({ printing, stack: stackByPrintingId.get(printing.printingId) }))
     .filter(
       (entry): entry is { printing: Printing; stack: StackedEntry } => entry.stack !== undefined,
     );

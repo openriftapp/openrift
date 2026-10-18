@@ -14,14 +14,14 @@ function stubBank(artKeys: Record<string, string>): { artKeys: Map<string, strin
 }
 
 function withImage(printing: Printing, imageId: string): Printing {
-  return { ...printing, images: [{ face: "front", imageId }] };
+  return { ...printing, images: [{ imageId }] };
 }
 
 describe("buildScanPrintingIndex", () => {
   it("maps every image id to its printings and groups keys by artwork", () => {
-    const normal = withImage(stubPrinting({ id: "p1", finish: "normal" }), "img-a");
-    const foil = withImage(stubPrinting({ id: "p2", finish: "foil" }), "img-a");
-    const other = withImage(stubPrinting({ id: "p3" }), "img-b");
+    const normal = withImage(stubPrinting({ printingId: "p1", finish: "normal" }), "img-a");
+    const foil = withImage(stubPrinting({ printingId: "p2", finish: "foil" }), "img-a");
+    const other = withImage(stubPrinting({ printingId: "p3" }), "img-b");
     const index = buildScanPrintingIndex(
       [normal, foil, other],
       stubBank({ "img-a": "art-1", "img-b": "art-2" }),
@@ -44,7 +44,7 @@ describe("resolveLock", () => {
   const lock = (key: string, resolved: boolean) => ({ key, artKey: "art-1", resolved });
 
   it("auto-adds the only printing of a resolved lock", () => {
-    const printing = withImage(stubPrinting({ id: "p1" }), "img-a");
+    const printing = withImage(stubPrinting({ printingId: "p1" }), "img-a");
     const index = buildScanPrintingIndex([printing], stubBank({ "img-a": "art-1" }));
     const resolution = resolveLock(lock("img-a", true), index);
     expect(resolution).toEqual({ kind: "auto", printing, finishSiblings: [] });
@@ -52,62 +52,65 @@ describe("resolveLock", () => {
 
   it("auto-adds the normal finish of a finish-only group and lists the foil sibling", () => {
     const shared = { shortCode: "OGN-001", cardId: "card-1" };
-    const foil = withImage(stubPrinting({ id: "p-foil", finish: "foil", ...shared }), "img-a");
+    const foil = withImage(
+      stubPrinting({ printingId: "p-foil", finish: "foil", ...shared }),
+      "img-a",
+    );
     const normal = withImage(
-      stubPrinting({ id: "p-normal", finish: "normal", ...shared }),
+      stubPrinting({ printingId: "p-normal", finish: "normal", ...shared }),
       "img-a",
     );
     const index = buildScanPrintingIndex([foil, normal], stubBank({ "img-a": "art-1" }));
     const resolution = resolveLock(lock("img-a", true), index);
     expect(resolution.kind).toBe("auto");
     if (resolution.kind === "auto") {
-      expect(resolution.printing.id).toBe("p-normal");
-      expect(resolution.finishSiblings.map((sibling) => sibling.id)).toEqual(["p-foil"]);
+      expect(resolution.printing.printingId).toBe("p-normal");
+      expect(resolution.finishSiblings.map((sibling) => sibling.printingId)).toEqual(["p-foil"]);
     }
   });
 
   it("falls back to canonical rank when the group has no normal finish", () => {
     const shared = { shortCode: "OGN-002", cardId: "card-2" };
     const metal = withImage(
-      stubPrinting({ id: "p-metal", finish: "metal", canonicalRank: 2, ...shared }),
+      stubPrinting({ printingId: "p-metal", finish: "metal", canonicalRank: 2, ...shared }),
       "img-a",
     );
     const foil = withImage(
-      stubPrinting({ id: "p-foil", finish: "foil", canonicalRank: 1, ...shared }),
+      stubPrinting({ printingId: "p-foil", finish: "foil", canonicalRank: 1, ...shared }),
       "img-a",
     );
     const index = buildScanPrintingIndex([metal, foil], stubBank({ "img-a": "art-1" }));
     const resolution = resolveLock(lock("img-a", true), index);
     expect(resolution.kind).toBe("auto");
     if (resolution.kind === "auto") {
-      expect(resolution.printing.id).toBe("p-foil");
+      expect(resolution.printing.printingId).toBe("p-foil");
     }
   });
 
   it("auto-adds the standard printing of a resolved lock whose render an oversized one shares", () => {
     const standard = withImage(
-      stubPrinting({ id: "p-std", shortCode: "OGN-003", size: "standard" }),
+      stubPrinting({ printingId: "p-std", shortCode: "OGN-003", size: "standard" }),
       "img-a",
     );
     const oversized = withImage(
-      stubPrinting({ id: "p-big", shortCode: "OGN-003", size: "oversized" }),
+      stubPrinting({ printingId: "p-big", shortCode: "OGN-003", size: "oversized" }),
       "img-a",
     );
     const index = buildScanPrintingIndex([standard, oversized], stubBank({ "img-a": "art-1" }));
     const resolution = resolveLock(lock("img-a", true), index);
     expect(resolution.kind).toBe("auto");
     if (resolution.kind === "auto") {
-      expect(resolution.printing.id).toBe("p-std");
+      expect(resolution.printing.printingId).toBe("p-std");
     }
   });
 
   it("sends a resolved lock to the picker when an overnumbered sibling shares the render", () => {
     const inTotal = withImage(
-      stubPrinting({ id: "p-in", shortCode: "OGN-003", isOvernumbered: false }),
+      stubPrinting({ printingId: "p-in", shortCode: "OGN-003", isOvernumbered: false }),
       "img-a",
     );
     const overnumbered = withImage(
-      stubPrinting({ id: "p-over", shortCode: "OGN-303", isOvernumbered: true }),
+      stubPrinting({ printingId: "p-over", shortCode: "OGN-303", isOvernumbered: true }),
       "img-a",
     );
     const index = buildScanPrintingIndex([inTotal, overnumbered], stubBank({ "img-a": "art-1" }));
@@ -119,8 +122,8 @@ describe("resolveLock", () => {
   });
 
   it("offers every printing of every render of the artwork for an unresolved lock", () => {
-    const en = withImage(stubPrinting({ id: "p-en", language: "EN" }), "img-en");
-    const de = withImage(stubPrinting({ id: "p-de", language: "DE" }), "img-de");
+    const en = withImage(stubPrinting({ printingId: "p-en", language: "EN" }), "img-en");
+    const de = withImage(stubPrinting({ printingId: "p-de", language: "DE" }), "img-de");
     const index = buildScanPrintingIndex(
       [en, de],
       stubBank({ "img-en": "art-1", "img-de": "art-1" }),
@@ -128,14 +131,17 @@ describe("resolveLock", () => {
     const resolution = resolveLock(lock("img-en", false), index);
     expect(resolution.kind).toBe("picker");
     if (resolution.kind === "picker") {
-      expect(resolution.candidates.map((candidate) => candidate.id)).toEqual(["p-de", "p-en"]);
+      expect(resolution.candidates.map((candidate) => candidate.printingId)).toEqual([
+        "p-de",
+        "p-en",
+      ]);
     }
   });
 
   it("resolves a language-only ambiguity to the preferred language", () => {
     const shared = { shortCode: "OGN-006", cardId: "card-6" };
-    const en = withImage(stubPrinting({ id: "p-en", language: "EN", ...shared }), "img-en");
-    const sc = withImage(stubPrinting({ id: "p-sc", language: "SC", ...shared }), "img-sc");
+    const en = withImage(stubPrinting({ printingId: "p-en", language: "EN", ...shared }), "img-en");
+    const sc = withImage(stubPrinting({ printingId: "p-sc", language: "SC", ...shared }), "img-sc");
     const index = buildScanPrintingIndex(
       [en, sc],
       stubBank({ "img-en": "art-1", "img-sc": "art-1" }),
@@ -143,22 +149,22 @@ describe("resolveLock", () => {
     const resolution = resolveLock(lock("img-en", false), index, "EN");
     expect(resolution.kind).toBe("auto");
     if (resolution.kind === "auto") {
-      expect(resolution.printing.id).toBe("p-en");
+      expect(resolution.printing.printingId).toBe("p-en");
     }
   });
 
   it("keeps the finish default and siblings within the preferred language", () => {
     const shared = { shortCode: "OGN-007", cardId: "card-7" };
     const enFoil = withImage(
-      stubPrinting({ id: "p-en-foil", finish: "foil", language: "EN", ...shared }),
+      stubPrinting({ printingId: "p-en-foil", finish: "foil", language: "EN", ...shared }),
       "img-en",
     );
     const enNormal = withImage(
-      stubPrinting({ id: "p-en-normal", finish: "normal", language: "EN", ...shared }),
+      stubPrinting({ printingId: "p-en-normal", finish: "normal", language: "EN", ...shared }),
       "img-en",
     );
     const sc = withImage(
-      stubPrinting({ id: "p-sc", finish: "normal", language: "SC", ...shared }),
+      stubPrinting({ printingId: "p-sc", finish: "normal", language: "SC", ...shared }),
       "img-sc",
     );
     const index = buildScanPrintingIndex(
@@ -168,15 +174,15 @@ describe("resolveLock", () => {
     const resolution = resolveLock(lock("img-en", false), index, "EN");
     expect(resolution.kind).toBe("auto");
     if (resolution.kind === "auto") {
-      expect(resolution.printing.id).toBe("p-en-normal");
-      expect(resolution.finishSiblings.map((sibling) => sibling.id)).toEqual(["p-en-foil"]);
+      expect(resolution.printing.printingId).toBe("p-en-normal");
+      expect(resolution.finishSiblings.map((sibling) => sibling.printingId)).toEqual(["p-en-foil"]);
     }
   });
 
   it("still asks when the preferred language is not among the candidates", () => {
     const shared = { shortCode: "OGN-008", cardId: "card-8" };
-    const sc = withImage(stubPrinting({ id: "p-sc", language: "SC", ...shared }), "img-sc");
-    const de = withImage(stubPrinting({ id: "p-de", language: "DE", ...shared }), "img-de");
+    const sc = withImage(stubPrinting({ printingId: "p-sc", language: "SC", ...shared }), "img-sc");
+    const de = withImage(stubPrinting({ printingId: "p-de", language: "DE", ...shared }), "img-de");
     const index = buildScanPrintingIndex(
       [sc, de],
       stubBank({ "img-sc": "art-1", "img-de": "art-1" }),
@@ -186,15 +192,20 @@ describe("resolveLock", () => {
 
   it("still asks when more than the language separates the candidates", () => {
     const en = withImage(
-      stubPrinting({ id: "p-en", language: "EN", shortCode: "OGN-009", cardId: "card-9" }),
+      stubPrinting({ printingId: "p-en", language: "EN", shortCode: "OGN-009", cardId: "card-9" }),
       "img-en",
     );
     const enAlt = withImage(
-      stubPrinting({ id: "p-en-alt", language: "EN", shortCode: "ALT-009", cardId: "card-9" }),
+      stubPrinting({
+        printingId: "p-en-alt",
+        language: "EN",
+        shortCode: "ALT-009",
+        cardId: "card-9",
+      }),
       "img-en",
     );
     const sc = withImage(
-      stubPrinting({ id: "p-sc", language: "SC", shortCode: "OGN-009", cardId: "card-9" }),
+      stubPrinting({ printingId: "p-sc", language: "SC", shortCode: "OGN-009", cardId: "card-9" }),
       "img-sc",
     );
     const index = buildScanPrintingIndex(
@@ -206,8 +217,8 @@ describe("resolveLock", () => {
 
   it("overrides a resolved lock's language with the stated one", () => {
     const shared = { shortCode: "OGN-010", cardId: "card-10" };
-    const sc = withImage(stubPrinting({ id: "p-sc", language: "SC", ...shared }), "img-sc");
-    const en = withImage(stubPrinting({ id: "p-en", language: "EN", ...shared }), "img-en");
+    const sc = withImage(stubPrinting({ printingId: "p-sc", language: "SC", ...shared }), "img-sc");
+    const en = withImage(stubPrinting({ printingId: "p-en", language: "EN", ...shared }), "img-en");
     const index = buildScanPrintingIndex(
       [sc, en],
       stubBank({ "img-sc": "art-1", "img-en": "art-1" }),
@@ -215,14 +226,14 @@ describe("resolveLock", () => {
     const resolution = resolveLock(lock("img-sc", true), index, "EN");
     expect(resolution.kind).toBe("auto");
     if (resolution.kind === "auto") {
-      expect(resolution.printing.id).toBe("p-en");
+      expect(resolution.printing.printingId).toBe("p-en");
     }
   });
 
   it("keeps the engine's language read when no language is stated", () => {
     const shared = { shortCode: "OGN-010", cardId: "card-10" };
-    const sc = withImage(stubPrinting({ id: "p-sc", language: "SC", ...shared }), "img-sc");
-    const en = withImage(stubPrinting({ id: "p-en", language: "EN", ...shared }), "img-en");
+    const sc = withImage(stubPrinting({ printingId: "p-sc", language: "SC", ...shared }), "img-sc");
+    const en = withImage(stubPrinting({ printingId: "p-en", language: "EN", ...shared }), "img-en");
     const index = buildScanPrintingIndex(
       [sc, en],
       stubBank({ "img-sc": "art-1", "img-en": "art-1" }),
@@ -230,14 +241,14 @@ describe("resolveLock", () => {
     const resolution = resolveLock(lock("img-sc", true), index);
     expect(resolution.kind).toBe("auto");
     if (resolution.kind === "auto") {
-      expect(resolution.printing.id).toBe("p-sc");
+      expect(resolution.printing.printingId).toBe("p-sc");
     }
   });
 
   it("keeps the engine's pick when the stated language has no such printing", () => {
     const shared = { shortCode: "OGN-011", cardId: "card-11" };
-    const sc = withImage(stubPrinting({ id: "p-sc", language: "SC", ...shared }), "img-sc");
-    const de = withImage(stubPrinting({ id: "p-de", language: "DE", ...shared }), "img-de");
+    const sc = withImage(stubPrinting({ printingId: "p-sc", language: "SC", ...shared }), "img-sc");
+    const de = withImage(stubPrinting({ printingId: "p-de", language: "DE", ...shared }), "img-de");
     const index = buildScanPrintingIndex(
       [sc, de],
       stubBank({ "img-sc": "art-1", "img-de": "art-1" }),
@@ -245,17 +256,20 @@ describe("resolveLock", () => {
     const resolution = resolveLock(lock("img-sc", true), index, "EN");
     expect(resolution.kind).toBe("auto");
     if (resolution.kind === "auto") {
-      expect(resolution.printing.id).toBe("p-sc");
+      expect(resolution.printing.printingId).toBe("p-sc");
     }
   });
 
   it("auto-adds the unmarked printing when a promo stamp is the only other difference", () => {
     const shared = { shortCode: "OGN-012", cardId: "card-12" };
-    const normal = withImage(stubPrinting({ id: "p-normal", ...shared }), "img-a");
-    const foil = withImage(stubPrinting({ id: "p-foil", finish: "foil", ...shared }), "img-a");
+    const normal = withImage(stubPrinting({ printingId: "p-normal", ...shared }), "img-a");
+    const foil = withImage(
+      stubPrinting({ printingId: "p-foil", finish: "foil", ...shared }),
+      "img-a",
+    );
     const promo = withImage(
       stubPrinting({
-        id: "p-promo",
+        printingId: "p-promo",
         finish: "foil",
         markers: [{ id: "m-promo", slug: "promo", label: "Promo", description: null }],
         ...shared,
@@ -266,24 +280,24 @@ describe("resolveLock", () => {
     const resolution = resolveLock(lock("img-a", false), index, "EN");
     expect(resolution.kind).toBe("auto");
     if (resolution.kind === "auto") {
-      expect(resolution.printing.id).toBe("p-normal");
-      expect(resolution.finishSiblings.map((sibling) => sibling.id)).toEqual(["p-foil"]);
+      expect(resolution.printing.printingId).toBe("p-normal");
+      expect(resolution.finishSiblings.map((sibling) => sibling.printingId)).toEqual(["p-foil"]);
     }
   });
 
   it("settles markers and language together", () => {
     const shared = { shortCode: "OGN-013", cardId: "card-13" };
-    const en = withImage(stubPrinting({ id: "p-en", language: "EN", ...shared }), "img-en");
+    const en = withImage(stubPrinting({ printingId: "p-en", language: "EN", ...shared }), "img-en");
     const enPromo = withImage(
       stubPrinting({
-        id: "p-en-promo",
+        printingId: "p-en-promo",
         language: "EN",
         markers: [{ id: "m-promo", slug: "promo", label: "Promo", description: null }],
         ...shared,
       }),
       "img-en",
     );
-    const sc = withImage(stubPrinting({ id: "p-sc", language: "SC", ...shared }), "img-sc");
+    const sc = withImage(stubPrinting({ printingId: "p-sc", language: "SC", ...shared }), "img-sc");
     const index = buildScanPrintingIndex(
       [en, enPromo, sc],
       stubBank({ "img-en": "art-1", "img-sc": "art-1" }),
@@ -291,47 +305,47 @@ describe("resolveLock", () => {
     const resolution = resolveLock(lock("img-en", false), index, "EN");
     expect(resolution.kind).toBe("auto");
     if (resolution.kind === "auto") {
-      expect(resolution.printing.id).toBe("p-en");
+      expect(resolution.printing.printingId).toBe("p-en");
     }
   });
 
   it("auto-adds the standard printing when an oversized one shares its code", () => {
     const shared = { shortCode: "OGN-279", cardId: "card-279" };
-    const standard = withImage(stubPrinting({ id: "p-standard", ...shared }), "img-a");
+    const standard = withImage(stubPrinting({ printingId: "p-standard", ...shared }), "img-a");
     const oversized = withImage(
-      stubPrinting({ id: "p-oversized", size: "oversized", ...shared }),
+      stubPrinting({ printingId: "p-oversized", size: "oversized", ...shared }),
       "img-a",
     );
     const index = buildScanPrintingIndex([standard, oversized], stubBank({ "img-a": "art-1" }));
     const resolution = resolveLock(lock("img-a", false), index, "EN");
     expect(resolution.kind).toBe("auto");
     if (resolution.kind === "auto") {
-      expect(resolution.printing.id).toBe("p-standard");
+      expect(resolution.printing.printingId).toBe("p-standard");
     }
   });
 
   it("auto-adds an oversized printing when the artwork has no standard one", () => {
     const shared = { shortCode: "OGN-280", cardId: "card-280", size: "oversized" as const };
-    const oversized = withImage(stubPrinting({ id: "p-oversized", ...shared }), "img-a");
+    const oversized = withImage(stubPrinting({ printingId: "p-oversized", ...shared }), "img-a");
     const foil = withImage(
-      stubPrinting({ id: "p-oversized-foil", finish: "foil", ...shared }),
+      stubPrinting({ printingId: "p-oversized-foil", finish: "foil", ...shared }),
       "img-a",
     );
     const index = buildScanPrintingIndex([oversized, foil], stubBank({ "img-a": "art-1" }));
     const resolution = resolveLock(lock("img-a", false), index, "EN");
     expect(resolution.kind).toBe("auto");
     if (resolution.kind === "auto") {
-      expect(resolution.printing.id).toBe("p-oversized");
+      expect(resolution.printing.printingId).toBe("p-oversized");
     }
   });
 
   it("still asks between unmarked printings from different sets", () => {
     const promo = { id: "m-promo", slug: "promo", label: "Promo", description: null };
     const printings = [
-      stubPrinting({ id: "p-ogn", shortCode: "OGN-214a", cardId: "card-rune" }),
-      stubPrinting({ id: "p-sfd", shortCode: "SFD-R06a", cardId: "card-rune" }),
+      stubPrinting({ printingId: "p-ogn", shortCode: "OGN-214a", cardId: "card-rune" }),
+      stubPrinting({ printingId: "p-sfd", shortCode: "SFD-R06a", cardId: "card-rune" }),
       stubPrinting({
-        id: "p-sfd-promo",
+        printingId: "p-sfd-promo",
         shortCode: "SFD-R06b",
         cardId: "card-rune",
         markers: [promo],
@@ -345,7 +359,7 @@ describe("resolveLock", () => {
   it("auto-adds the unmarked printing when the marked variant is from another set", () => {
     const promo = withImage(
       stubPrinting({
-        id: "p-promo",
+        printingId: "p-promo",
         shortCode: "PRM-001",
         cardId: "card-14",
         markers: [{ id: "m-promo", slug: "promo", label: "Promo", description: null }],
@@ -353,19 +367,19 @@ describe("resolveLock", () => {
       "img-a",
     );
     const normal = withImage(
-      stubPrinting({ id: "p-normal", shortCode: "OGN-014", cardId: "card-14" }),
+      stubPrinting({ printingId: "p-normal", shortCode: "OGN-014", cardId: "card-14" }),
       "img-a",
     );
     const index = buildScanPrintingIndex([promo, normal], stubBank({ "img-a": "art-1" }));
     const resolution = resolveLock(lock("img-a", false), index, "EN");
     expect(resolution.kind).toBe("auto");
     if (resolution.kind === "auto") {
-      expect(resolution.printing.id).toBe("p-normal");
+      expect(resolution.printing.printingId).toBe("p-normal");
     }
   });
 
   it("auto-adds an unresolved lock whose artwork has only one printing anyway", () => {
-    const only = withImage(stubPrinting({ id: "p1" }), "img-a");
+    const only = withImage(stubPrinting({ printingId: "p1" }), "img-a");
     const index = buildScanPrintingIndex([only], stubBank({ "img-a": "art-1" }));
     const resolution = resolveLock(lock("img-a", false), index);
     expect(resolution).toEqual({ kind: "auto", printing: only, finishSiblings: [] });
@@ -374,16 +388,19 @@ describe("resolveLock", () => {
   it("auto-adds the normal finish for an unresolved single-render artwork with a foil pair", () => {
     const shared = { shortCode: "OGN-005", cardId: "card-5" };
     const normal = withImage(
-      stubPrinting({ id: "p-normal", finish: "normal", ...shared }),
+      stubPrinting({ printingId: "p-normal", finish: "normal", ...shared }),
       "img-a",
     );
-    const foil = withImage(stubPrinting({ id: "p-foil", finish: "foil", ...shared }), "img-a");
+    const foil = withImage(
+      stubPrinting({ printingId: "p-foil", finish: "foil", ...shared }),
+      "img-a",
+    );
     const index = buildScanPrintingIndex([normal, foil], stubBank({ "img-a": "art-1" }));
     const resolution = resolveLock(lock("img-a", false), index);
     expect(resolution.kind).toBe("auto");
     if (resolution.kind === "auto") {
-      expect(resolution.printing.id).toBe("p-normal");
-      expect(resolution.finishSiblings.map((sibling) => sibling.id)).toEqual(["p-foil"]);
+      expect(resolution.printing.printingId).toBe("p-normal");
+      expect(resolution.finishSiblings.map((sibling) => sibling.printingId)).toEqual(["p-foil"]);
     }
   });
 
@@ -396,32 +413,32 @@ describe("resolveLock", () => {
 
 describe("printingsByCardId", () => {
   it("groups every printing of a card together, whatever sets them apart", () => {
-    const normal = stubPrinting({ id: "p-normal", cardId: "card-4", shortCode: "OGN-004" });
+    const normal = stubPrinting({ printingId: "p-normal", cardId: "card-4", shortCode: "OGN-004" });
     const german = stubPrinting({
-      id: "p-de",
+      printingId: "p-de",
       cardId: "card-4",
       shortCode: "OGN-004",
       language: "DE",
     });
-    const promo = stubPrinting({ id: "p-promo", cardId: "card-4", shortCode: "OGN-004-P" });
-    const other = stubPrinting({ id: "p-other", cardId: "card-9" });
+    const promo = stubPrinting({ printingId: "p-promo", cardId: "card-4", shortCode: "OGN-004-P" });
+    const other = stubPrinting({ printingId: "p-other", cardId: "card-9" });
     const byCard = printingsByCardId([normal, german, promo, other]);
-    expect(byCard.get("card-4")?.map((printing) => printing.id)).toEqual([
+    expect(byCard.get("card-4")?.map((printing) => printing.printingId)).toEqual([
       "p-normal",
       "p-de",
       "p-promo",
     ]);
-    expect(byCard.get("card-9")?.map((printing) => printing.id)).toEqual(["p-other"]);
+    expect(byCard.get("card-9")?.map((printing) => printing.printingId)).toEqual(["p-other"]);
   });
 });
 
 describe("resolveBoardRead", () => {
   const ahri = withImage(
-    stubPrinting({ id: "p-ahri", cardId: "c-ahri", shortCode: "OGN-066" }),
+    stubPrinting({ printingId: "p-ahri", cardId: "c-ahri", shortCode: "OGN-066" }),
     "img-ahri",
   );
   const teemo = withImage(
-    stubPrinting({ id: "p-teemo", cardId: "c-teemo", shortCode: "OGN-100" }),
+    stubPrinting({ printingId: "p-teemo", cardId: "c-teemo", shortCode: "OGN-100" }),
     "img-teemo",
   );
   const artKeys = { "img-ahri": "art-ahri", "img-teemo": "art-teemo" };
@@ -436,7 +453,7 @@ describe("resolveBoardRead", () => {
       artKeyOf,
       nameOf,
     );
-    expect(result.added.map((printing) => printing.id)).toEqual(["p-ahri"]);
+    expect(result.added.map((printing) => printing.printingId)).toEqual(["p-ahri"]);
     expect(result.pickers).toEqual([]);
   });
 
@@ -457,10 +474,9 @@ describe("resolveBoardRead", () => {
     );
     expect(result.added).toEqual([]);
     expect(result.pickers[0]?.label).toBe("Ahri / Teemo");
-    expect(result.pickers[0]?.candidates.map((printing) => printing.id).toSorted()).toEqual([
-      "p-ahri",
-      "p-teemo",
-    ]);
+    expect(result.pickers[0]?.candidates.map((printing) => printing.printingId).toSorted()).toEqual(
+      ["p-ahri", "p-teemo"],
+    );
   });
 
   it("reports cards the catalog does not know", () => {

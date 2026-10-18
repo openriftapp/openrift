@@ -40,7 +40,9 @@ const baseCard: CardDetailResponse["card"] = {
 
 function makePrinting(rulesText: string | null): CatalogPrintingResponse {
   return {
-    id: "p-1",
+    printingId: "p-1",
+    side: 1,
+    faceId: "p-1",
     cardId: "card-1",
     setId: "set-1",
     shortCode: "OGN-202",
@@ -201,15 +203,12 @@ describe("buildCardPriceLine", () => {
 });
 
 describe("frontImageId", () => {
-  it("returns the front face's image id, skipping other faces", () => {
+  it("returns the side's first image id", () => {
     const printing: CatalogPrintingResponse = {
       ...makePrinting(null),
-      images: [
-        { face: "back", imageId: "back-id" },
-        { face: "front", imageId: "front-id" },
-      ],
+      images: [{ imageId: "first-id" }, { imageId: "second-id" }],
     };
-    expect(frontImageId(printing)).toBe("front-id");
+    expect(frontImageId(printing)).toBe("first-id");
   });
 
   it("returns null when the printing has no front image", () => {
@@ -225,14 +224,14 @@ describe("getCardFrontImageFullUrl", () => {
   it("returns the front image full URL when the printing has one", () => {
     const printingWithImages: CatalogPrintingResponse = {
       ...makePrinting(null),
-      id: "p-2",
+      printingId: "p-2",
       images: [
-        { face: "back", imageId: "019d6c25-b081-74b3-a901-64da4ae0bbbb" },
-        { face: "front", imageId: "019d6c25-b081-74b3-a901-64da4ae0aaaa" },
+        { imageId: "019d6c25-b081-74b3-a901-64da4ae0bbbb" },
+        { imageId: "019d6c25-b081-74b3-a901-64da4ae0aaaa" },
       ],
     };
     expect(getCardFrontImageFullUrl(printingWithImages)).toBe(
-      "/media/cards/aa/019d6c25-b081-74b3-a901-64da4ae0aaaa-full.webp",
+      "/media/cards/bb/019d6c25-b081-74b3-a901-64da4ae0bbbb-full.webp",
     );
   });
 
@@ -253,35 +252,61 @@ describe("pickCardMetaPrinting", () => {
   });
 
   it("prefers the EN printing even when printings[0] is in another language", () => {
-    const ja: CatalogPrintingResponse = { ...makePrinting("JA text"), id: "p-ja", language: "JA" };
-    const en: CatalogPrintingResponse = { ...makePrinting("EN text"), id: "p-en", language: "EN" };
-    expect(pickCardMetaPrinting([ja, en], LANG_ORDER)?.id).toBe("p-en");
+    const ja: CatalogPrintingResponse = {
+      ...makePrinting("JA text"),
+      printingId: "p-ja",
+      language: "JA",
+    };
+    const en: CatalogPrintingResponse = {
+      ...makePrinting("EN text"),
+      printingId: "p-en",
+      language: "EN",
+    };
+    expect(pickCardMetaPrinting([ja, en], LANG_ORDER)?.printingId).toBe("p-en");
   });
 
   it("falls back to the first printing when none match the preferred language", () => {
-    const ja: CatalogPrintingResponse = { ...makePrinting(null), id: "p-ja", language: "JA" };
-    const de: CatalogPrintingResponse = { ...makePrinting(null), id: "p-de", language: "DE" };
+    const ja: CatalogPrintingResponse = {
+      ...makePrinting(null),
+      printingId: "p-ja",
+      language: "JA",
+    };
+    const de: CatalogPrintingResponse = {
+      ...makePrinting(null),
+      printingId: "p-de",
+      language: "DE",
+    };
     const picked = pickCardMetaPrinting([ja, de], ["EN"]);
     expect(picked).toBeDefined();
-    expect([ja.id, de.id]).toContain(picked?.id);
+    expect([ja.printingId, de.printingId]).toContain(picked?.printingId);
   });
 });
 
 describe("resolveCardMetaPrinting", () => {
   const LANG_ORDER = ["EN", "DE", "JA"] as const;
-  const en: CatalogPrintingResponse = { ...makePrinting("EN text"), id: "p-en", language: "EN" };
-  const ja: CatalogPrintingResponse = { ...makePrinting("JA text"), id: "p-ja", language: "JA" };
+  const en: CatalogPrintingResponse = {
+    ...makePrinting("EN text"),
+    printingId: "p-en",
+    language: "EN",
+  };
+  const ja: CatalogPrintingResponse = {
+    ...makePrinting("JA text"),
+    printingId: "p-ja",
+    language: "JA",
+  };
 
   it("returns the pinned printing even when it isn't the language-preferred one", () => {
-    expect(resolveCardMetaPrinting([en, ja], "p-ja", LANG_ORDER)?.id).toBe("p-ja");
+    expect(resolveCardMetaPrinting([en, ja], "p-ja", LANG_ORDER)?.printingId).toBe("p-ja");
   });
 
   it("falls back to the preferred printing when printingId is undefined", () => {
-    expect(resolveCardMetaPrinting([ja, en], undefined, LANG_ORDER)?.id).toBe("p-en");
+    expect(resolveCardMetaPrinting([ja, en], undefined, LANG_ORDER)?.printingId).toBe("p-en");
   });
 
   it("falls back to the preferred printing when printingId matches nothing", () => {
-    expect(resolveCardMetaPrinting([ja, en], "does-not-exist", LANG_ORDER)?.id).toBe("p-en");
+    expect(resolveCardMetaPrinting([ja, en], "does-not-exist", LANG_ORDER)?.printingId).toBe(
+      "p-en",
+    );
   });
 
   it("returns undefined when there are no printings", () => {
@@ -292,14 +317,14 @@ describe("resolveCardMetaPrinting", () => {
 describe("printingArt", () => {
   it("flags battlefield art as landscape", () => {
     const printing = stubPrinting({
-      images: [{ face: "front", imageId: "bf-id" }],
+      images: [{ imageId: "bf-id" }],
       card: { type: "battlefield", types: ["battlefield"] },
     });
     expect(printingArt(printing)).toEqual({ imageId: "bf-id", landscape: true });
   });
 
   it("keeps other cards portrait", () => {
-    const printing = stubPrinting({ images: [{ face: "front", imageId: "unit-id" }] });
+    const printing = stubPrinting({ images: [{ imageId: "unit-id" }] });
     expect(printingArt(printing)).toEqual({ imageId: "unit-id", landscape: false });
   });
 

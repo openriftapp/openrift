@@ -25,7 +25,7 @@ export function PrintingHoverPreview({
   anchorRef: RefObject<HTMLElement | null>;
   cursorX?: number;
 }) {
-  const front = printing.images.find((image) => image.face === "front");
+  const front = printing.images[0];
   return (
     <ImageHoverPreview
       thumbnailUrl={front ? imageUrl(front.imageId, "400w") : null}

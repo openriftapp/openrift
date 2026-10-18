@@ -73,12 +73,12 @@ export const BrowserCardCell = memo(function BrowserCardCell({
     inCardsView,
   });
 
-  const siblingIds = siblings?.map((sibling) => sibling.id);
+  const siblingIds = siblings?.map((sibling) => sibling.printingId);
   const {
     count: ownedCount,
     total: cardTotal,
     totalCount,
-  } = useTileOwnedCounts(displayPrinting.id, siblingIds, showStrip);
+  } = useTileOwnedCounts(displayPrinting.printingId, siblingIds, showStrip);
 
   const openLocations =
     canAdd && (ownedCount > 0 || (inCardsView && (siblings?.length ?? 0) > 1))
@@ -105,7 +105,7 @@ export const BrowserCardCell = memo(function BrowserCardCell({
         pillOverride={
           openLocations ? undefined : (
             <OwnedCollectionsPopover
-              printingId={displayPrinting.id}
+              printingId={displayPrinting.printingId}
               cardName={cardName}
               shortCode={displayPrinting.shortCode}
               count={ownedCount}

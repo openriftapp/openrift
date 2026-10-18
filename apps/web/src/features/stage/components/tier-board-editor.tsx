@@ -281,7 +281,7 @@ function BoardCard({ view, rowIndex, position, width, tapToAssign, onHoverCard }
   const dragData: BoardCardDragData = {
     type: "tier-board-card",
     cardId: view.cardId,
-    printingId: view.printing?.id,
+    printingId: view.printing?.printingId,
   };
   const dropData: TierCardDropData = { type: "tier-card", cardId: view.cardId, rowIndex, position };
 

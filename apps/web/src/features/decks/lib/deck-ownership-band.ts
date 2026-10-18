@@ -52,7 +52,7 @@ export interface OwnershipBandSources {
 }
 
 interface PrintingRef {
-  id: string;
+  printingId: string;
 }
 
 /**
@@ -77,9 +77,9 @@ export function collectOwnershipBandSources(
       let locked = 0;
       let borrowed = 0;
       for (const printing of printingsByCardId.get(card.cardId) ?? []) {
-        total += availableByPrinting[printing.id] ?? 0;
-        locked += lockedByPrinting[printing.id] ?? 0;
-        borrowed += borrowedByPrinting[printing.id] ?? 0;
+        total += availableByPrinting[printing.printingId] ?? 0;
+        locked += lockedByPrinting[printing.printingId] ?? 0;
+        borrowed += borrowedByPrinting[printing.printingId] ?? 0;
       }
       availableByCardId[card.cardId] = total;
       lockedByCardId[card.cardId] = locked;
@@ -87,7 +87,7 @@ export function collectOwnershipBandSources(
     }
     const displayed = resolvePrinting(card.cardId, card.preferredPrintingId);
     if (displayed) {
-      displayedPrintingIdByCardKey[getDeckCardKey(card)] = displayed.id;
+      displayedPrintingIdByCardKey[getDeckCardKey(card)] = displayed.printingId;
     }
   }
   return {

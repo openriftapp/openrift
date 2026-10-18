@@ -136,7 +136,7 @@ describe("PrintingPicker", () => {
 
   it("counts what the given collection holds, with the wider total beside it", () => {
     ownedMock.mockReturnValue({ data: { totals: { "p-x": 1 }, allTotals: { "p-x": 3 } } });
-    const printing = stubPrinting({ id: "p-x" });
+    const printing = stubPrinting({ printingId: "p-x" });
 
     const { container } = render(
       <PrintingPicker
@@ -153,7 +153,7 @@ describe("PrintingPicker", () => {
   });
 
   it("scopes the owned query to the given collection", () => {
-    const printing = stubPrinting({ id: "p-x" });
+    const printing = stubPrinting({ printingId: "p-x" });
 
     render(
       <PrintingPicker
@@ -168,7 +168,7 @@ describe("PrintingPicker", () => {
   });
 
   it("counts across every collection when none is given", () => {
-    const printing = stubPrinting({ id: "p-x" });
+    const printing = stubPrinting({ printingId: "p-x" });
 
     render(<PrintingPicker current={printing} printings={[printing]} onSelect={() => {}} />);
 

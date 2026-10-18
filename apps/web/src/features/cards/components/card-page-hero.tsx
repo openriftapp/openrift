@@ -4,11 +4,13 @@ import { imageUrl } from "@openrift/shared/image-url";
 import { findStandardArtFallback } from "@openrift/shared/standard";
 import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { Printing } from "@openrift/shared/types/catalog";
+import { Link } from "@tanstack/react-router";
 
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { CardPlaceholderImage } from "@/features/cards/components/card-placeholder-image";
 import { FallbackArtBadges } from "@/features/cards/components/fallback-art-badges";
 import { SuggestImageNotice } from "@/features/cards/components/suggest-image-notice";
+import { m } from "@/paraglide/messages.js";
 
 export function CardPageHero({
   card,
@@ -19,7 +21,7 @@ export function CardPageHero({
   printing: Printing;
   siblings: Printing[];
 }) {
-  const frontImage = printing.images.find((i) => i.face === "front");
+  const frontImage = printing.images[0];
   const isLandscape = getOrientation(card.types) === "landscape";
   const heroWidth = isLandscape ? 558 : 400;
   const heroHeight = isLandscape ? 400 : 558;
@@ -81,6 +83,24 @@ export function CardPageHero({
         />
       ) : (
         heroFallback
+      )}
+      {printing.otherSide && (
+        <Link
+          to="/cards/$cardSlug/{-$printingSlug}"
+          params={{ cardSlug: printing.otherSide.cardSlug, printingSlug: printing.slug }}
+          className="text-muted-foreground hover:text-foreground mt-3 flex items-center gap-3 text-sm"
+        >
+          {printing.otherSide.imageId && (
+            <img
+              src={imageUrl(printing.otherSide.imageId, "120w")}
+              alt=""
+              width={48}
+              height={67}
+              className="w-12 shrink-0 rounded-md"
+            />
+          )}
+          {m.cards_printing_double_sided({ name: printing.otherSide.cardName })}
+        </Link>
       )}
     </div>
   );

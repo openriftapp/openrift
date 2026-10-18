@@ -6,7 +6,7 @@ import { cardLinkVariants } from "@/components/ui/card-link";
 import { cn } from "@/lib/utils";
 
 export function metaFrontImage(imageId: string | null): PrintingImage | null {
-  return imageId === null ? null : { face: "front", imageId };
+  return imageId === null ? null : { imageId };
 }
 
 // Any element taking its own clicks inside here must itself be positioned

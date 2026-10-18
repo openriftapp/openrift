@@ -59,7 +59,7 @@ const SETS = [{ id: "set-origins", setType: "main" as const }];
 
 describe("stacksFromListEntries", () => {
   it("merges entries of the same printing into one stack with quantity-many copy ids", () => {
-    const printing = stubPrinting({ id: "p1", shortCode: "OGN-001" });
+    const printing = stubPrinting({ printingId: "p1", shortCode: "OGN-001" });
     const printingsById: Record<string, Printing> = { p1: printing };
     const stacks = stacksFromListEntries(
       [printingListEntry("e1", "p1", 2), printingListEntry("e2", "p1", 1)],
@@ -74,8 +74,8 @@ describe("stacksFromListEntries", () => {
 
   it("sorts stacks by card ID like a collection export", () => {
     const printingsById: Record<string, Printing> = {
-      p1: stubPrinting({ id: "p1", shortCode: "OGN-042" }),
-      p2: stubPrinting({ id: "p2", shortCode: "OGN-001" }),
+      p1: stubPrinting({ printingId: "p1", shortCode: "OGN-042" }),
+      p2: stubPrinting({ printingId: "p2", shortCode: "OGN-001" }),
     };
     const stacks = stacksFromListEntries(
       [printingListEntry("e1", "p1", 1), printingListEntry("e2", "p2", 1)],
@@ -87,7 +87,7 @@ describe("stacksFromListEntries", () => {
 
   it("skips card-kind entries and printings missing from the catalog", () => {
     const printingsById: Record<string, Printing> = {
-      p1: stubPrinting({ id: "p1", shortCode: "OGN-001" }),
+      p1: stubPrinting({ printingId: "p1", shortCode: "OGN-001" }),
     };
     const stacks = stacksFromListEntries(
       [
@@ -188,7 +188,7 @@ describe("hasReservedCopies", () => {
 
 describe("withoutReservedCopies", () => {
   const printingsById: Record<string, Printing> = {
-    p1: stubPrinting({ id: "p1", shortCode: "OGN-004" }),
+    p1: stubPrinting({ printingId: "p1", shortCode: "OGN-004" }),
   };
   const binder: ListEntryDetailResponse[] = [
     copyEntry("e1", "Cleave", { printingId: "p1", shortCode: "OGN-004" }),

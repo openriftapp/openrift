@@ -77,9 +77,9 @@ export function stacksFromListEntries(
 
   const sorted = sortCards([...printings.values()], "id", { sets });
   return sorted.map((printing) => ({
-    printingId: printing.id,
+    printingId: printing.printingId,
     printing,
-    copyIds: copyIdsByPrinting.get(printing.id) ?? [],
+    copyIds: copyIdsByPrinting.get(printing.printingId) ?? [],
   }));
 }
 

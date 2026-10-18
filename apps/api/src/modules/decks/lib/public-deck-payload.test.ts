@@ -25,7 +25,7 @@ const DECK: SharedDeckRow = {
     updatedAt: new Date("2026-08-01T00:00:00.000Z"),
     oddsConfig: null,
     coverCardId: null,
-    coverPrintingId: null,
+    coverFaceId: null,
     coverPosition: null,
     links: [],
     isPublic: true,
@@ -67,7 +67,10 @@ function cardRow(id: string, tokenCardIds: string[] = []) {
 
 function printingRow(id: string, cardId: string) {
   return {
-    id,
+    printingId: id,
+    side: 1,
+    faceId: id,
+    otherSide: null,
     cardId,
     setId: "s0000000-0001-4000-a000-000000000001",
     shortCode: "OGN-202",
@@ -159,7 +162,11 @@ describe("buildPublicDeckDetail", () => {
     );
 
     expect(printingsByCardIds).toHaveBeenCalledWith([CARD_ID, TOKEN_CARD_ID]);
-    expect(payload.catalog.printings.map((printing) => printing.id)).toEqual(["p-1", "p-2", "p-3"]);
+    expect(payload.catalog.printings.map((printing) => printing.printingId)).toEqual([
+      "p-1",
+      "p-2",
+      "p-3",
+    ]);
     expect(payload.catalog.printings[0]).toMatchObject({ cardId: CARD_ID, shortCode: "OGN-202" });
   });
 

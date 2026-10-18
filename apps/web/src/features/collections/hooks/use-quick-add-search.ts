@@ -79,7 +79,7 @@ export function useQuickAddSearch(
       let ownedCount = 0;
       if (ownedCountByPrinting) {
         for (const printing of row.printings) {
-          ownedCount += ownedCountByPrinting[printing.id] ?? 0;
+          ownedCount += ownedCountByPrinting[printing.printingId] ?? 0;
         }
       }
       return {

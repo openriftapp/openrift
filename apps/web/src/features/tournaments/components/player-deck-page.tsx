@@ -299,7 +299,7 @@ function PlayerCardCell({ card }: { card: DeckCheckEntryCardResponse }) {
   const display = useCardThumbnailDisplay();
 
   const printing = card.resolvedPrintingId
-    ? allPrintings.find((candidate) => candidate.id === card.resolvedPrintingId)
+    ? allPrintings.find((candidate) => candidate.printingId === card.resolvedPrintingId)
     : undefined;
 
   if (!printing || card.matchStatus !== "matched") {

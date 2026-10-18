@@ -102,7 +102,7 @@ export function ScanSessionTray({
   const domainColors = useDomainColors();
   const newestFirst = [...rows.values()].toReversed();
   // Also the order the detail overlay's prev/next steps through.
-  const sequence = newestFirst.map((row) => row.printing.id);
+  const sequence = newestFirst.map((row) => row.printing.printingId);
   const { openId, toggle } = useScanTrayDisclosure(sequence, scans);
 
   // Streams in without suspending: a price fetch must never blank the camera page.
@@ -112,7 +112,12 @@ export function ScanSessionTray({
   const wish = useWishEntries(true);
   const { data: owned } = useOwnedCountsForPrintings(sequence, hydrated);
   const ownedTotals = owned
-    ? new Map(newestFirst.map((row) => [row.printing.id, owned.allTotals[row.printing.id] ?? 0]))
+    ? new Map(
+        newestFirst.map((row) => [
+          row.printing.printingId,
+          owned.allTotals[row.printing.printingId] ?? 0,
+        ]),
+      )
     : null;
   const formatValue = formatterForMarketplace(marketplace);
   const summary = computeScanSessionSummary(newestFirst, {
@@ -164,21 +169,21 @@ export function ScanSessionTray({
 
   const renderRow = (row: ScanSessionRow) => (
     <TrayRow
-      key={row.printing.id}
+      key={row.printing.printingId}
       row={row}
       sequence={sequence}
       siblings={printingsByCard.get(row.printing.cardId)}
       rarityLabels={labels.rarities}
       domainColors={domainColors}
-      open={openId === row.printing.id}
+      open={openId === row.printing.printingId}
       onToggle={toggle}
       onAddOne={onAddOne}
       onRemoveOne={onRemoveOne}
       onChangePrinting={onChangePrinting}
-      price={prices?.get(row.printing.id, marketplace)}
+      price={prices?.get(row.printing.printingId, marketplace)}
       formatValue={formatValue}
-      wishEntries={wish.entriesForPrinting(row.printing.cardId, row.printing.id)}
-      owned={ownedTotals ? (ownedTotals.get(row.printing.id) ?? 0) : null}
+      wishEntries={wish.entriesForPrinting(row.printing.cardId, row.printing.printingId)}
+      owned={ownedTotals ? (ownedTotals.get(row.printing.printingId) ?? 0) : null}
     />
   );
 
@@ -380,7 +385,7 @@ function TrayRow({
         // The panel is unmounted when closed, so its id does not exist yet.
         aria-controls={open ? actionsId : undefined}
         aria-label={m.scan_tray_row_show_actions({ name })}
-        onClick={() => onToggle(printing.id)}
+        onClick={() => onToggle(printing.printingId)}
       />
       <div className="pointer-events-none relative flex w-full items-center gap-2">
         <CardMiniRow
@@ -450,7 +455,7 @@ function TrayRow({
           {openCardDetail ? (
             <Button
               variant="outline"
-              onClick={() => openCardDetail({ printingId: printing.id, sequence })}
+              onClick={() => openCardDetail({ printingId: printing.printingId, sequence })}
               aria-label={m.scan_tray_row_details_label({ name })}
             >
               <InfoIcon />

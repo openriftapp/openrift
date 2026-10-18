@@ -255,8 +255,8 @@ describe("tileTradeStatus", () => {
 });
 
 describe("tradeAnnotationByCopyId", () => {
-  const printingOne = stubPrinting({ id: "p-1" });
-  const printingTwo = stubPrinting({ id: "p-2" });
+  const printingOne = stubPrinting({ printingId: "p-1" });
+  const printingTwo = stubPrinting({ printingId: "p-2" });
 
   it("gives every copy of a printing that printing's annotation", () => {
     const byCopy = tradeAnnotationByCopyId(

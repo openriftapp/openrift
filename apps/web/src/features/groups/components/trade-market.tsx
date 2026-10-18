@@ -158,7 +158,7 @@ export function TradeMarket() {
   const cartKeys = new Set(cartItems.map((item) => item.key));
 
   const shownPrintingId = (item: WantedCard): string | undefined =>
-    item.printingId ?? printingsByCardId.get(item.cardId)?.[0]?.id;
+    item.printingId ?? printingsByCardId.get(item.cardId)?.[0]?.printingId;
   const toggleCart = (item: WantedCard) => {
     if (cartKeys.has(item.key)) {
       removeItems(userId, [item.key]);
@@ -329,7 +329,11 @@ export function TradeMarket() {
                         }
                         selected={picked?.kind === "wanted" && picked.wanted.key === item.key}
                         onClick={() =>
-                          setPicked({ kind: "wanted", wanted: item, printingId: printing.id })
+                          setPicked({
+                            kind: "wanted",
+                            wanted: item,
+                            printingId: printing.printingId,
+                          })
                         }
                         belowLabel={
                           <span className="text-muted-foreground mt-1 block px-1.5 text-sm">

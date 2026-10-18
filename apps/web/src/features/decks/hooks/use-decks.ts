@@ -118,7 +118,7 @@ function newDeckRow(input: {
       createdAt: now,
       updatedAt: now,
       coverCardId: null,
-      coverPrintingId: null,
+      coverFaceId: null,
       coverPosition: null,
       collectionId: null,
       familyId: null,
@@ -162,7 +162,7 @@ function localDeckDetail(
       archivedAt: null,
       oddsConfig: null,
       coverCardId: deck?.coverCardId ?? null,
-      coverPrintingId: deck?.coverPrintingId ?? null,
+      coverFaceId: deck?.coverFaceId ?? null,
       coverPosition: deck?.coverPosition ?? null,
       links: deck?.links ?? [],
       collectionId: null,
@@ -318,7 +318,7 @@ export function useUpdateDeck() {
       formatConfig?: DeckFormatConfig | null;
       oddsConfig?: DeckOddsConfig | null;
       coverCardId?: string | null;
-      coverPrintingId?: string | null;
+      coverFaceId?: string | null;
       coverPosition?: number | null;
       links?: DeckLink[];
       collectionId?: string | null;
@@ -343,7 +343,7 @@ export interface DeckMetaPatch {
   format?: DeckFormat;
   formatConfig?: DeckFormatConfig | null;
   coverCardId?: string | null;
-  coverPrintingId?: string | null;
+  coverFaceId?: string | null;
   coverPosition?: number | null;
   links?: DeckLink[];
 }

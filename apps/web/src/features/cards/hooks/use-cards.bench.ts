@@ -108,7 +108,15 @@ function buildFixture(): Printing[] {
     if (!card || !setSlug) {
       throw new Error("fixture indexing out of range");
     }
-    printings.push({ ...raw, id: `printing-${i}`, setSlug, setReleased: true, card });
+    printings.push({
+      ...raw,
+      printingId: `printing-${i}`,
+      side: 1,
+      faceId: `printing-${i}`,
+      setSlug,
+      setReleased: true,
+      card,
+    });
   }
   return printings;
 }

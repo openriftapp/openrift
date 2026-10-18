@@ -10,8 +10,8 @@ import { stubPrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
 const cardId = "card-chaos-rune";
-const printingX = stubPrinting({ id: "p-x", cardId, card: { name: "Chaos Rune" } });
-const printingY = stubPrinting({ id: "p-y", cardId, card: { name: "Chaos Rune" } });
+const printingX = stubPrinting({ printingId: "p-x", cardId, card: { name: "Chaos Rune" } });
+const printingY = stubPrinting({ printingId: "p-y", cardId, card: { name: "Chaos Rune" } });
 
 let ownedByPrinting: Record<string, number> = {};
 

@@ -17,7 +17,7 @@ export function ImageSuggestPage() {
   const { cardSlug, printingId } = routeApi.useParams();
   const { data } = useSuspenseQuery(cardDetailQueryOptions(cardSlug));
   const { labels } = useEnumOrders();
-  const printing = data.printings.find((p) => p.id === printingId);
+  const printing = data.printings.find((p) => p.printingId === printingId);
   if (!printing) {
     throw notFound();
   }

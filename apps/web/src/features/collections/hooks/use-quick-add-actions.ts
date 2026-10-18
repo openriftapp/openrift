@@ -70,7 +70,7 @@ export function useQuickAddActions(
     const { copy, printing, sessionUndo } = pendingAnnotatedDispose;
     setPendingAnnotatedDispose(null);
     if (sessionUndo) {
-      useAddModeStore.getState().recordUndo(printing.id);
+      useAddModeStore.getState().recordUndo(printing.printingId);
     }
     try {
       await disposeCopies.mutateAsync({ copyIds: [copy.id] });
@@ -88,15 +88,15 @@ export function useQuickAddActions(
   const cancelAnnotatedDispose = () => setPendingAnnotatedDispose(null);
 
   const addToCollection = async (printing: Printing, collectionId: string) => {
-    pendingPrintingsRef.current.set(printing.id, printing);
+    pendingPrintingsRef.current.set(printing.printingId, printing);
     useAddModeStore.getState().incrementPending(printing);
     try {
-      const real = await batchedAdd.add(printing.id, collectionId);
+      const real = await batchedAdd.add(printing.printingId, collectionId);
       useAddModeStore.getState().recordAdd(printing, real.id);
     } catch {
       // Global onError toasts; swallow so it doesn't surface as an uncaught promise.
     }
-    useAddModeStore.getState().decrementPending(printing.id);
+    useAddModeStore.getState().decrementPending(printing.printingId);
   };
 
   // Adds are issued individually; useBatchedAddCopies coalesces them into one request.
@@ -115,7 +115,7 @@ export function useQuickAddActions(
   // can escalate to the variant×collection popover.
   const tryUndoAdd = addTarget
     ? async (printing: Printing): Promise<"done" | "ambiguous"> => {
-        const entry = useAddModeStore.getState().addedItems.get(printing.id);
+        const entry = useAddModeStore.getState().addedItems.get(printing.printingId);
         const sessionCopyId = entry?.copyIds.at(-1);
         if (sessionCopyId) {
           // Even a copy added this session may have been annotated since;
@@ -125,7 +125,7 @@ export function useQuickAddActions(
             setPendingAnnotatedDispose({ copy: sessionCopy, printing, sessionUndo: true });
             return "done";
           }
-          useAddModeStore.getState().recordUndo(printing.id);
+          useAddModeStore.getState().recordUndo(printing.printingId);
           try {
             await disposeCopies.mutateAsync({ copyIds: [sessionCopyId] });
             if (onDisposed) {
@@ -139,7 +139,11 @@ export function useQuickAddActions(
         if (!copiesCollection) {
           return "done";
         }
-        const decision = decideRemoval(copiesCollection.toArray, printing.id, viewCollectionId);
+        const decision = decideRemoval(
+          copiesCollection.toArray,
+          printing.printingId,
+          viewCollectionId,
+        );
         if (decision.kind === "none") {
           return "done";
         }
@@ -170,7 +174,7 @@ export function useQuickAddActions(
       return;
     }
     const copies = copiesCollection.toArray.filter(
-      (c) => c.printingId === printing.id && c.collectionId === fromCollectionId,
+      (c) => c.printingId === printing.printingId && c.collectionId === fromCollectionId,
     );
     const candidate = pickRemovalCopy(copies);
     if (!candidate) {
@@ -223,7 +227,7 @@ export function useQuickAddActions(
             anchorEl,
             intent,
             scopeToSet ? printing.setId : undefined,
-            scopeToPrinting ? printing.id : undefined,
+            scopeToPrinting ? printing.printingId : undefined,
           );
       }
     : undefined;

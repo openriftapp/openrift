@@ -27,7 +27,7 @@ afterEach(() => {
 
 describe("useCardDeepLink", () => {
   it("selects the linked printing and strips the param from the URL", () => {
-    const item = stubCardViewerItem({ id: "p1" });
+    const item = stubCardViewerItem({ printingId: "p1" });
     renderHook(() =>
       useCardDeepLink({
         linkedPrintingId: "p1",
@@ -36,12 +36,12 @@ describe("useCardDeepLink", () => {
       }),
     );
 
-    expect(useSelectionStore.getState().selectedCard?.id).toBe("p1");
+    expect(useSelectionStore.getState().selectedCard?.printingId).toBe("p1");
     expect(navigateMock).toHaveBeenCalledTimes(1);
   });
 
   it("passes resetScroll: false so the router does not wipe the CardGrid scroll (regression)", () => {
-    const item = stubCardViewerItem({ id: "p1" });
+    const item = stubCardViewerItem({ printingId: "p1" });
     renderHook(() =>
       useCardDeepLink({
         linkedPrintingId: "p1",
@@ -74,7 +74,7 @@ describe("useCardDeepLink", () => {
   });
 
   it("runs at most once even if items change after the first call", () => {
-    const item = stubCardViewerItem({ id: "p1" });
+    const item = stubCardViewerItem({ printingId: "p1" });
     const { rerender } = renderHook<
       void,
       { printingsById: Record<string, ReturnType<typeof stubPrinting>> }
@@ -90,7 +90,7 @@ describe("useCardDeepLink", () => {
 
     expect(navigateMock).toHaveBeenCalledTimes(1);
 
-    const other = stubCardViewerItem({ id: "p2" });
+    const other = stubCardViewerItem({ printingId: "p2" });
     rerender({ printingsById: { p1: item.printing, p2: other.printing } });
 
     expect(navigateMock).toHaveBeenCalledTimes(1);

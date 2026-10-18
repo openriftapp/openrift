@@ -224,7 +224,7 @@ async function embedForCard(
   }
   const printing = resolvePrinting(snapshot, card, printingInput);
   const [marketplaceInfo, tradelists] = await Promise.all([
-    marketplaceInfoFor(ctx.api, printing?.id),
+    marketplaceInfoFor(ctx.api, printing?.printingId),
     fetchTradelistHolders(ctx.api, guildId, card.id),
   ]);
   const embed = buildCardEmbed({
@@ -235,7 +235,7 @@ async function embedForCard(
     siteUrl: ctx.env.siteUrl,
     tradelists,
   });
-  return { embed, printingId: printing?.id };
+  return { embed, printingId: printing?.printingId };
 }
 
 /** Stat line and card text are left off the embed because the artwork already shows them; this opens them on demand. */
@@ -262,7 +262,9 @@ async function handleDetailsButton(ctx: BotContext, interaction: ButtonInteracti
     return;
   }
   const printing = parsed.printingId
-    ? snapshot.printingsByCardId.get(card.id)?.find((entry) => entry.id === parsed.printingId)
+    ? snapshot.printingsByCardId
+        .get(card.id)
+        ?.find((entry) => entry.printingId === parsed.printingId)
     : undefined;
   await interaction.reply({
     embeds: [

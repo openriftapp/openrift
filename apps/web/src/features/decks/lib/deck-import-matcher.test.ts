@@ -81,13 +81,13 @@ describe("matchDeckEntries", () => {
 
   describe("shortCode lookup language independence", () => {
     const enPrinting = stubPrinting({
-      id: "printing-en",
+      printingId: "printing-en",
       shortCode: "OGN-001",
       language: "EN",
       card: { name: "Test Card", type: "unit" },
     });
     const scPrinting = stubPrinting({
-      id: "printing-sc",
+      printingId: "printing-sc",
       shortCode: "OGN-001",
       language: "SC",
       cardId: enPrinting.cardId,

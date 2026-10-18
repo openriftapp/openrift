@@ -154,7 +154,7 @@ describe("useCards", () => {
     const printingA = enriched.printingsById[PRINTING_A_ID];
     const printingB = enriched.printingsById[PRINTING_B_ID];
 
-    expect(printingA?.id).toBe(PRINTING_A_ID);
+    expect(printingA?.printingId).toBe(PRINTING_A_ID);
     expect(printingA?.cardId).toBe(CARD_A_ID);
     expect(printingA?.card.name).toBe("Card A");
     expect(printingB?.card.name).toBe("Card B");

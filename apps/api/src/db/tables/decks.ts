@@ -18,7 +18,7 @@ export interface DecksTable {
   isPinned: Generated<boolean>;
   archivedAt: Date | null;
   coverCardId: string | null;
-  coverPrintingId: string | null;
+  coverFaceId: string | null;
   coverPosition: number | null;
   links: ColumnType<DeckLink[], DeckLink[] | undefined, DeckLink[]>;
   collectionId: string | null;

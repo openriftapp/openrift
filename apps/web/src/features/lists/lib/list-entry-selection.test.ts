@@ -52,8 +52,8 @@ function copyEntry(id: string | null, copyId: string): ListEntryDetailResponse {
   };
 }
 
-const printingA = stubPrinting({ id: "pa" });
-const printingB = stubPrinting({ id: "pb" });
+const printingA = stubPrinting({ printingId: "pa" });
+const printingB = stubPrinting({ printingId: "pb" });
 
 const manual = printingEntry("e1", "pa", "Chaos Rune", 2);
 const ruleDerived = printingEntry(null, "pb", "Ionian Blade", 3);

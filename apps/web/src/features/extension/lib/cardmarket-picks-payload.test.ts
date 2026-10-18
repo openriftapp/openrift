@@ -67,7 +67,7 @@ describe("picksToResolveRows", () => {
 
 describe("matchedEntriesFromPicks", () => {
   it("marks a placed pick exact and an unplaced one unresolved, keeping pick order", () => {
-    const printing = stubPrinting({ id: PRINTING_ID });
+    const printing = stubPrinting({ printingId: PRINTING_ID });
     const entries = matchedEntriesFromPicks(
       PAYLOAD,
       {

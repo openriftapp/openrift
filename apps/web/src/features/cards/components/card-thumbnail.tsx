@@ -4,6 +4,7 @@ import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
 import { formatPrintingVariantLabel } from "@openrift/shared/printing-label";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { StandardArtFallback } from "@openrift/shared/standard";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Domain, Rarity } from "@openrift/shared/types/enums";
@@ -463,7 +464,7 @@ export const CardThumbnail = memo(function CardThumbnail({
     finishes: finishLabels,
     cardSizes: sizeLabels,
   };
-  const favoritePrice = prices.get(printing.id, favoriteMarketplace);
+  const favoritePrice = prices.get(printing.printingId, favoriteMarketplace);
   const isFoilCard = printing.finish === WellKnown.finish.FOIL;
   const finishTitle = enumLabel(finishLabels, printing.finish);
   const rarityTitle = enumLabel(rarityLabels, printing.rarity);
@@ -471,7 +472,9 @@ export const CardThumbnail = memo(function CardThumbnail({
   const sizeLabel = enumLabel(sizeLabels, printing.size);
   const tiltEnabled = cardTilt && !coarsePointer;
   const ImageShell = tiltEnabled ? TiltImageShell : PlainImageShell;
-  const otherPrintings = siblings ? siblings.filter((s) => s.id !== printing.id).toReversed() : [];
+  const otherPrintings = siblings
+    ? siblings.filter((s) => sideKey(s) !== sideKey(printing)).toReversed()
+    : [];
   const fanStep = cardWidth === undefined ? 2 : Math.max(1, cardWidth * 0.01);
   const fanAngle = fancyFan ? 8 : 1.5;
   const [fanReady, setFanReady] = useState(false);
@@ -551,7 +554,7 @@ export const CardThumbnail = memo(function CardThumbnail({
         return (
           // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- decorative layer beside the card's own click target; keyboard nav handled by the grid
           <div
-            key={sibling.id}
+            key={sideKey(sibling)}
             className={cn(
               "pointer-events-none absolute inset-0",
               fanReady && "pointer-events-auto cursor-pointer",
@@ -780,12 +783,12 @@ export const CardThumbnail = memo(function CardThumbnail({
   if (dragData) {
     return (
       <DraggableTileWrapper
-        dragId={dragId ?? `card-${printing.id}`}
+        dragId={dragId ?? `card-${printing.printingId}`}
         dragData={dragData}
         className={wrapperClassName}
         onMouseEnter={fanMouseEnter}
         onMouseLeave={fanMouseLeave}
-        printingId={printing.id}
+        printingId={printing.printingId}
       >
         {wrapperContent}
       </DraggableTileWrapper>
@@ -794,7 +797,7 @@ export const CardThumbnail = memo(function CardThumbnail({
 
   return (
     <div
-      data-printing-id={printing.id}
+      data-printing-id={printing.printingId}
       className={wrapperClassName}
       onMouseEnter={fanMouseEnter}
       onMouseLeave={fanMouseLeave}

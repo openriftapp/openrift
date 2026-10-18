@@ -39,9 +39,9 @@ const { useCollectionCardData } = await import("./use-collection-card-data");
 
 function makeStack(printing: ReturnType<typeof stubPrinting>): StackedEntry {
   return {
-    printingId: printing.id,
+    printingId: printing.printingId,
     printing,
-    copyIds: [`copy-${printing.id}`],
+    copyIds: [`copy-${printing.printingId}`],
   };
 }
 
@@ -217,10 +217,10 @@ describe("useCollectionCardData", () => {
     const extra = stubPrinting({ card: { slug: "extra-card" } });
     mockStacks.mockReturnValue({
       stacks: [
-        { printingId: partial.id, printing: partial, copyIds: ["c-p1"] },
-        { printingId: full.id, printing: full, copyIds: ["c-f1", "c-f2", "c-f3"] },
+        { printingId: partial.printingId, printing: partial, copyIds: ["c-p1"] },
+        { printingId: full.printingId, printing: full, copyIds: ["c-f1", "c-f2", "c-f3"] },
         {
-          printingId: extra.id,
+          printingId: extra.printingId,
           printing: extra,
           copyIds: ["c-e1", "c-e2", "c-e3", "c-e4"],
         },
@@ -232,24 +232,32 @@ describe("useCollectionCardData", () => {
     const partialResult = renderHook(() =>
       useCollectionCardData({ ...baseParams(), ownedFilter: ["partial"] }),
     );
-    expect(partialResult.result.current.sortedCards.map((p) => p.id)).toEqual([partial.id]);
+    expect(partialResult.result.current.sortedCards.map((p) => p.printingId)).toEqual([
+      partial.printingId,
+    ]);
 
     const fullResult = renderHook(() =>
       useCollectionCardData({ ...baseParams(), ownedFilter: ["full"] }),
     );
-    expect(fullResult.result.current.sortedCards.map((p) => p.id)).toEqual([full.id]);
+    expect(fullResult.result.current.sortedCards.map((p) => p.printingId)).toEqual([
+      full.printingId,
+    ]);
 
     const extraResult = renderHook(() =>
       useCollectionCardData({ ...baseParams(), ownedFilter: ["extra"] }),
     );
-    expect(extraResult.result.current.sortedCards.map((p) => p.id)).toEqual([extra.id]);
+    expect(extraResult.result.current.sortedCards.map((p) => p.printingId)).toEqual([
+      extra.printingId,
+    ]);
   });
 
   it("buckets the owned filter by ownedCardTotalOverride (group bulk box personal playset)", () => {
     const cardId = "card-ballista";
     const normal = stubPrinting({ cardId, card: { slug: "ballista" } });
     mockStacks.mockReturnValue({
-      stacks: [{ printingId: normal.id, printing: normal, copyIds: ["box-1", "box-2", "box-3"] }],
+      stacks: [
+        { printingId: normal.printingId, printing: normal, copyIds: ["box-1", "box-2", "box-3"] },
+      ],
       totalCopies: 3,
       isReady: true,
     });
@@ -270,7 +278,7 @@ describe("useCollectionCardData", () => {
         ownedCardTotalOverride: { [cardId]: 3 },
       }),
     );
-    expect(full.result.current.sortedCards.map((p) => p.id)).toEqual([normal.id]);
+    expect(full.result.current.sortedCards.map((p) => p.printingId)).toEqual([normal.printingId]);
     expect(full.result.current.ownedCountMax).toBe(3);
 
     const shortfall = renderHook(() =>
@@ -280,12 +288,14 @@ describe("useCollectionCardData", () => {
         ownedCardTotalOverride: { [cardId]: 1 },
       }),
     );
-    expect(shortfall.result.current.sortedCards.map((p) => p.id)).toEqual([normal.id]);
+    expect(shortfall.result.current.sortedCards.map((p) => p.printingId)).toEqual([
+      normal.printingId,
+    ]);
 
     const scoped = renderHook(() =>
       useCollectionCardData({ ...baseParams(), ownedFilter: ["full"] }),
     );
-    expect(scoped.result.current.sortedCards.map((p) => p.id)).toEqual([normal.id]);
+    expect(scoped.result.current.sortedCards.map((p) => p.printingId)).toEqual([normal.printingId]);
   });
 
   it("leaves results untouched when ownedFilter is empty", () => {
@@ -309,9 +319,13 @@ describe("useCollectionCardData", () => {
     const five = stubPrinting({ card: { slug: "five-card" } });
     mockStacks.mockReturnValue({
       stacks: [
-        { printingId: one.id, printing: one, copyIds: ["c-1"] },
-        { printingId: three.id, printing: three, copyIds: ["c-3a", "c-3b", "c-3c"] },
-        { printingId: five.id, printing: five, copyIds: ["c-5a", "c-5b", "c-5c", "c-5d", "c-5e"] },
+        { printingId: one.printingId, printing: one, copyIds: ["c-1"] },
+        { printingId: three.printingId, printing: three, copyIds: ["c-3a", "c-3b", "c-3c"] },
+        {
+          printingId: five.printingId,
+          printing: five,
+          copyIds: ["c-5a", "c-5b", "c-5c", "c-5d", "c-5e"],
+        },
       ],
       totalCopies: 9,
       isReady: true,
@@ -320,12 +334,14 @@ describe("useCollectionCardData", () => {
     const inRange = renderHook(() =>
       useCollectionCardData({ ...baseParams(), ownedCountMin: 2, ownedCountMax: 4 }),
     );
-    expect(inRange.result.current.sortedCards.map((p) => p.id)).toEqual([three.id]);
+    expect(inRange.result.current.sortedCards.map((p) => p.printingId)).toEqual([three.printingId]);
 
     const openEnded = renderHook(() =>
       useCollectionCardData({ ...baseParams(), ownedCountMin: 5, ownedCountMax: null }),
     );
-    expect(openEnded.result.current.sortedCards.map((p) => p.id)).toEqual([five.id]);
+    expect(openEnded.result.current.sortedCards.map((p) => p.printingId)).toEqual([
+      five.printingId,
+    ]);
   });
 
   it("exposes selectableCopyIds for only the filtered printings", () => {
@@ -333,8 +349,8 @@ describe("useCollectionCardData", () => {
     const sc = stubPrinting({ language: "SC" });
     mockStacks.mockReturnValue({
       stacks: [
-        { printingId: en.id, printing: en, copyIds: ["c-en-1", "c-en-2"] },
-        { printingId: sc.id, printing: sc, copyIds: ["c-sc-1"] },
+        { printingId: en.printingId, printing: en, copyIds: ["c-en-1", "c-en-2"] },
+        { printingId: sc.printingId, printing: sc, copyIds: ["c-sc-1"] },
       ],
       totalCopies: 3,
       isReady: true,
@@ -353,8 +369,8 @@ describe("useCollectionCardData", () => {
     const sc = stubPrinting({ language: "SC" });
     mockStacks.mockReturnValue({
       stacks: [
-        { printingId: en.id, printing: en, copyIds: ["c-en-1", "c-en-2"] },
-        { printingId: sc.id, printing: sc, copyIds: ["c-sc-1"] },
+        { printingId: en.printingId, printing: en, copyIds: ["c-en-1", "c-en-2"] },
+        { printingId: sc.printingId, printing: sc, copyIds: ["c-sc-1"] },
       ],
       totalCopies: 3,
       isReady: true,
@@ -371,8 +387,8 @@ describe("useCollectionCardData", () => {
     const sc = stubPrinting({ cardId, language: "SC" });
     mockStacks.mockReturnValue({
       stacks: [
-        { printingId: en.id, printing: en, copyIds: ["c-en-1", "c-en-2"] },
-        { printingId: sc.id, printing: sc, copyIds: ["c-sc-1"] },
+        { printingId: en.printingId, printing: en, copyIds: ["c-en-1", "c-en-2"] },
+        { printingId: sc.printingId, printing: sc, copyIds: ["c-sc-1"] },
       ],
       totalCopies: 3,
       isReady: true,
@@ -391,8 +407,12 @@ describe("useCollectionCardData", () => {
     const five = stubPrinting({ card: { slug: "five-card" } });
     mockStacks.mockReturnValue({
       stacks: [
-        { printingId: one.id, printing: one, copyIds: ["c-1"] },
-        { printingId: five.id, printing: five, copyIds: ["c-5a", "c-5b", "c-5c", "c-5d", "c-5e"] },
+        { printingId: one.printingId, printing: one, copyIds: ["c-1"] },
+        {
+          printingId: five.printingId,
+          printing: five,
+          copyIds: ["c-5a", "c-5b", "c-5c", "c-5d", "c-5e"],
+        },
       ],
       totalCopies: 6,
       isReady: true,
@@ -408,9 +428,13 @@ describe("useCollectionCardData", () => {
     const extra = stubPrinting({ card: { slug: "extra-card" } });
     mockStacks.mockReturnValue({
       stacks: [
-        { printingId: partialLow.id, printing: partialLow, copyIds: ["c-pl1"] },
-        { printingId: partialHigh.id, printing: partialHigh, copyIds: ["c-ph1", "c-ph2"] },
-        { printingId: extra.id, printing: extra, copyIds: ["c-e1", "c-e2", "c-e3", "c-e4"] },
+        { printingId: partialLow.printingId, printing: partialLow, copyIds: ["c-pl1"] },
+        { printingId: partialHigh.printingId, printing: partialHigh, copyIds: ["c-ph1", "c-ph2"] },
+        {
+          printingId: extra.printingId,
+          printing: extra,
+          copyIds: ["c-e1", "c-e2", "c-e3", "c-e4"],
+        },
       ],
       totalCopies: 7,
       isReady: true,
@@ -431,7 +455,7 @@ describe("useCollectionCardData", () => {
     mockStacks.mockReturnValue({
       stacks: [
         {
-          printingId: normal.id,
+          printingId: normal.printingId,
           printing: normal,
           copyIds: ["box-1", "box-2", "box-3", "box-4", "box-5"],
         },
@@ -451,8 +475,12 @@ describe("useCollectionCardData", () => {
     const rare = stubPrinting({ rarity: "rare", card: { slug: "rare-card" } });
     mockStacks.mockReturnValue({
       stacks: [
-        { printingId: common.id, printing: common, copyIds: ["c-1"] },
-        { printingId: rare.id, printing: rare, copyIds: ["c-5a", "c-5b", "c-5c", "c-5d", "c-5e"] },
+        { printingId: common.printingId, printing: common, copyIds: ["c-1"] },
+        {
+          printingId: rare.printingId,
+          printing: rare,
+          copyIds: ["c-5a", "c-5b", "c-5c", "c-5d", "c-5e"],
+        },
       ],
       totalCopies: 6,
       isReady: true,

@@ -1,9 +1,10 @@
 import type { PackPrinting } from "@openrift/shared/pack-opener/types";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 export function toPackPrinting(p: Printing): PackPrinting {
   return {
-    id: p.id,
+    id: sideKey(p),
     cardId: p.cardId,
     cardName: p.card.name,
     cardSlug: p.card.slug,

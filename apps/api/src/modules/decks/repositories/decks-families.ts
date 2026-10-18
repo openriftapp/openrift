@@ -59,7 +59,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
             formatConfig: source.formatConfig,
             oddsConfig: source.oddsConfig,
             coverCardId: source.coverCardId,
-            coverPrintingId: source.coverPrintingId,
+            coverFaceId: source.coverFaceId,
             coverPosition: source.coverPosition,
             // No home collection: a variant is a deck of its own, and every
             // deck stored in a box reserves that box's copies against the
