@@ -2,7 +2,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createRepos } from "../../../deps.js";
 import { OGS_SET } from "../../../test/fixtures/constants.js";
-import { createDbContext } from "../../../test/integration-context.js";
+import {
+  createDbContext,
+  deletePrintingsById,
+  insertPrinting,
+} from "../../../test/integration-context.js";
 
 const OWNER_ID = crypto.randomUUID();
 const ctx = createDbContext(OWNER_ID);
@@ -36,8 +40,8 @@ describe.skipIf(!ctx)("tournament summary extras (integration)", () => {
     // Dependency order: printingImages -> printings -> cards, then imageFiles.
     // None of these FKs cascade, so a card cannot go before its printing.
     if (printingIds.length > 0) {
-      await db.deleteFrom("printingImages").where("printingId", "in", printingIds).execute();
-      await db.deleteFrom("printings").where("id", "in", printingIds).execute();
+      await db.deleteFrom("faceImages").where("faceId", "in", printingIds).execute();
+      await deletePrintingsById(db, printingIds);
     }
     if (cardIds.length > 0) {
       await db.deleteFrom("cards").where("id", "in", cardIds).execute();
@@ -111,27 +115,23 @@ describe.skipIf(!ctx)("tournament summary extras (integration)", () => {
       .returning("id")
       .executeTakeFirstOrThrow();
     cardIds.push(card.id);
-    const printing = await db
-      .insertInto("printings")
-      .values({
-        cardId: card.id,
-        setId: OGS_SET.id,
-        shortCode: `EXT-${counter}`,
-        rarity: "epic",
-        artVariant: "normal",
-        isSigned: false,
-        finish: "normal",
-        artist: "Test Artist",
-        publicCode: `OGS-9${String(counter).padStart(2, "0")}`,
-        printedRulesText: null,
-        printedEffectText: null,
-        flavorText: null,
-        comment: null,
-        size: "standard",
-        language: "EN",
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const printing = await insertPrinting(db, {
+      cardId: card.id,
+      setId: OGS_SET.id,
+      shortCode: `EXT-${counter}`,
+      rarity: "epic",
+      artVariant: "normal",
+      isSigned: false,
+      finish: "normal",
+      artist: "Test Artist",
+      publicCode: `OGS-9${String(counter).padStart(2, "0")}`,
+      printedRulesText: null,
+      printedEffectText: null,
+      flavorText: null,
+      comment: null,
+      size: "standard",
+      language: "EN",
+    });
     printingIds.push(printing.id);
     const imageFile = await db
       .insertInto("imageFiles")
@@ -143,8 +143,8 @@ describe.skipIf(!ctx)("tournament summary extras (integration)", () => {
       .executeTakeFirstOrThrow();
     imageFileIds.push(imageFile.id);
     await db
-      .insertInto("printingImages")
-      .values({ printingId: printing.id, imageFileId: imageFile.id, face: "front", isActive: true })
+      .insertInto("faceImages")
+      .values({ faceId: printing.id, imageFileId: imageFile.id, isActive: true })
       .execute();
     return { cardId: card.id, printingId: printing.id };
   }

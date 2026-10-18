@@ -7,6 +7,7 @@ import type {
   CandidateCardsTable,
   CandidatePrintingsTable,
 } from "../../../db/tables/candidates.js";
+import { withFace1 } from "../../../repositories/query-helpers.js";
 
 type Db = Kysely<Database>;
 
@@ -70,9 +71,8 @@ export function ingestRepo(db: Db) {
         language: string;
       }[]
     > {
-      return db
-        .selectFrom("printings")
-        .select(["id", "shortCode", "finish", "markerSlugs", "language"])
+      return withFace1(db.selectFrom("printings as p"))
+        .select(["p.id", "pf.shortCode", "pf.finish", "pf.markerSlugs", "pf.language"])
         .execute();
     },
 

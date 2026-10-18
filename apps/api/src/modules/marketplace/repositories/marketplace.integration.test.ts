@@ -153,7 +153,7 @@ describe.skipIf(!ctx)("marketplaceRepo (integration)", () => {
     // reprints). Override every other printing of the card with a high
     // future-dated price so the cheapest-EN / cheapest-SC math stays exact.
     const otherPrintings = await db
-      .selectFrom("printings")
+      .selectFrom("faces")
       .select("id")
       .where("cardId", "=", CARD_FURY_RUNE.id)
       .where("id", "not in", [runeEnPrintingId, runeScPrintingId])

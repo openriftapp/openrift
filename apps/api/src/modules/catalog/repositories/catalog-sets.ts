@@ -29,7 +29,7 @@ function releasesJson() {
 /** The placeholder set is admin scaffolding until a printing lands in it. */
 function isPublicSet() {
   return sql<SqlBool>`(sets.slug <> ${TBA_SET_SLUG} OR EXISTS (
-    SELECT 1 FROM printings WHERE printings.set_id = sets.id
+    SELECT 1 FROM faces WHERE faces.set_id = sets.id
   ))`;
 }
 

@@ -1,7 +1,7 @@
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { imageId, joinFrontImage } from "../../../repositories/query-helpers.js";
+import { imageId, joinFaceImage, withFace1 } from "../../../repositories/query-helpers.js";
 
 const MAX_RETRIES = 5;
 
@@ -40,15 +40,18 @@ export function printingEventsRepo(db: Kysely<Database>) {
     },
 
     async listPending(): Promise<EnrichedPrintingEvent[]> {
-      return await joinFrontImage(
-        db
-          .selectFrom("printingEvents as pe")
-          .innerJoin("printings as p", "p.id", "pe.printingId")
-          .innerJoin("cards as c", "c.id", "p.cardId")
-          .innerJoin("sets as s", "s.id", "p.setId")
-          .leftJoin("finishes as fi", "fi.slug", "p.finish")
-          .leftJoin("rarities as r", "r.slug", "p.rarity")
-          .leftJoin("languages as lng", "lng.code", "p.language"),
+      return await joinFaceImage(
+        withFace1(
+          db
+            .selectFrom("printingEvents as pe")
+            .innerJoin("printings as p", "p.id", "pe.printingId"),
+        )
+          .innerJoin("cards as c", "c.id", "pf.cardId")
+          .innerJoin("sets as s", "s.id", "pf.setId")
+          .leftJoin("finishes as fi", "fi.slug", "pf.finish")
+          .leftJoin("rarities as r", "r.slug", "pf.rarity")
+          .leftJoin("languages as lng", "lng.code", "pf.language"),
+        "pf.id",
       )
         .select([
           "pe.id",
@@ -57,13 +60,13 @@ export function printingEventsRepo(db: Kysely<Database>) {
           "c.name as cardName",
           "c.slug as cardSlug",
           "s.name as setName",
-          "p.shortCode",
-          "p.rarity",
+          "pf.shortCode",
+          "pf.rarity",
           "r.label as rarityLabel",
-          "p.finish",
+          "pf.finish",
           "fi.label as finishLabel",
-          "p.artist",
-          "p.language",
+          "pf.artist",
+          "pf.language",
           "lng.name as languageName",
           imageId("imgf").as("frontImageId"),
         ])
@@ -76,15 +79,18 @@ export function printingEventsRepo(db: Kysely<Database>) {
       if (statuses.length === 0) {
         return [];
       }
-      return await joinFrontImage(
-        db
-          .selectFrom("printingEvents as pe")
-          .innerJoin("printings as p", "p.id", "pe.printingId")
-          .innerJoin("cards as c", "c.id", "p.cardId")
-          .innerJoin("sets as s", "s.id", "p.setId")
-          .leftJoin("finishes as fi", "fi.slug", "p.finish")
-          .leftJoin("rarities as r", "r.slug", "p.rarity")
-          .leftJoin("languages as lng", "lng.code", "p.language"),
+      return await joinFaceImage(
+        withFace1(
+          db
+            .selectFrom("printingEvents as pe")
+            .innerJoin("printings as p", "p.id", "pe.printingId"),
+        )
+          .innerJoin("cards as c", "c.id", "pf.cardId")
+          .innerJoin("sets as s", "s.id", "pf.setId")
+          .leftJoin("finishes as fi", "fi.slug", "pf.finish")
+          .leftJoin("rarities as r", "r.slug", "pf.rarity")
+          .leftJoin("languages as lng", "lng.code", "pf.language"),
+        "pf.id",
       )
         .select([
           "pe.id",
@@ -95,13 +101,13 @@ export function printingEventsRepo(db: Kysely<Database>) {
           "c.name as cardName",
           "c.slug as cardSlug",
           "s.name as setName",
-          "p.shortCode",
-          "p.rarity",
+          "pf.shortCode",
+          "pf.rarity",
           "r.label as rarityLabel",
-          "p.finish",
+          "pf.finish",
           "fi.label as finishLabel",
-          "p.artist",
-          "p.language",
+          "pf.artist",
+          "pf.language",
           "lng.name as languageName",
           imageId("imgf").as("frontImageId"),
         ])

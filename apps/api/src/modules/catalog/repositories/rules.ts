@@ -180,12 +180,9 @@ export function rulesRepo(db: Kysely<Database>) {
         .innerJoinLateral(
           (eb) =>
             eb
-              .selectFrom("printingsOrdered as po")
-              .innerJoin("printingImages as pi", (join) =>
-                join
-                  .onRef("pi.printingId", "=", "po.id")
-                  .on("pi.face", "=", "front")
-                  .on("pi.isActive", "=", true),
+              .selectFrom("printingSidesOrdered as po")
+              .innerJoin("faceImages as pi", (join) =>
+                join.onRef("pi.faceId", "=", "po.faceId").on("pi.isActive", "=", true),
               )
               .innerJoin("imageFiles as ci", "ci.id", "pi.imageFileId")
               .select(imageId("ci").as("imageId"))
@@ -194,7 +191,7 @@ export function rulesRepo(db: Kysely<Database>) {
               .where("po.language", "in", [printingLanguage, "EN"])
               .orderBy(sql`po.language = ${printingLanguage}`, "desc")
               .orderBy("po.canonicalRank")
-              .orderBy("po.id")
+              .orderBy("po.printingId")
               .limit(1)
               .as("p"),
           (join) => join.onTrue(),
@@ -209,13 +206,13 @@ export function rulesRepo(db: Kysely<Database>) {
         return db.selectFrom("cards").select(["name", "slug"]).execute();
       }
       return db
-        .selectFrom("printings")
-        .innerJoin("cards", "cards.id", "printings.cardId")
-        .select(["printings.printedName as name", "cards.slug"])
-        .distinctOn("printings.printedName")
-        .where("printings.language", "=", PRINTING_LANGUAGE[language])
-        .where("printings.printedName", "is not", null)
-        .orderBy("printings.printedName")
+        .selectFrom("faces")
+        .innerJoin("cards", "cards.id", "faces.cardId")
+        .select(["faces.printedName as name", "cards.slug"])
+        .distinctOn("faces.printedName")
+        .where("faces.language", "=", PRINTING_LANGUAGE[language])
+        .where("faces.printedName", "is not", null)
+        .orderBy("faces.printedName")
         .orderBy("cards.slug")
         .$narrowType<{ name: string }>()
         .execute();

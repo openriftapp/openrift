@@ -5,7 +5,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { ProductsTable } from "../../../db/tables/marketplace.js";
-import { imageId, requireFrontImage } from "../../../repositories/query-helpers.js";
+import { imageId, requireFaceImage } from "../../../repositories/query-helpers.js";
 
 export interface ProductWithCounts extends Selectable<ProductsTable> {
   printingCount: number;
@@ -124,12 +124,12 @@ export function productsRepo(db: Kysely<Database>) {
       }
       // One row per (product, card): the best printing per card, so
       // variant-heavy cards can't fill the whole fan with the same art.
-      const bestPerCard = requireFrontImage(
+      const bestPerCard = requireFaceImage(
         db
           .selectFrom("productPrintings as pp")
-          .innerJoin("printings as pr", "pr.id", "pp.printingId")
+          .innerJoin("printingSidesOrdered as pr", "pr.printingId", "pp.printingId")
           .innerJoin("cards as c", "c.id", "pr.cardId"),
-        "pp.printingId",
+        "pr.faceId",
       )
         .leftJoin("cardTypes as ct", "ct.slug", "c.type")
         .leftJoin("rarities as r", "r.slug", "pr.rarity")
@@ -189,7 +189,7 @@ export function productsRepo(db: Kysely<Database>) {
     productsForCard(cardId: string): Promise<ProductForPrintingRow[]> {
       return db
         .selectFrom("productPrintings as pp")
-        .innerJoin("printings as pr", "pr.id", "pp.printingId")
+        .innerJoin("printingSidesOrdered as pr", "pr.printingId", "pp.printingId")
         .innerJoin("products as p", "p.id", "pp.productId")
         .select(["pp.printingId", "p.slug", "p.name", "pp.quantity"])
         .where("pr.cardId", "=", cardId)

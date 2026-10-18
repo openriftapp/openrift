@@ -206,7 +206,6 @@ describe.skipIf(!ctx)("trade match digest (integration)", () => {
       receiverUserId: DIGEST_ID,
       initiator: "receiver",
       printingId: PRINTING_1.id,
-      cardId: CARD_FURY_UNIT.id,
       quantity: 1,
       receiverWishEntryId: null,
       lastActorUserId: DIGEST_ID,

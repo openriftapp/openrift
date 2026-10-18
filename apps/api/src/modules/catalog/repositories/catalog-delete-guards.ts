@@ -34,21 +34,25 @@ export function catalogDeleteGuardsRepo(db: Kysely<Database>) {
     async countForCard(cardId: string): Promise<CardDeleteBlockers> {
       const result = await sql<CardDeleteBlockers>`
         SELECT
-          (SELECT count(*) FROM copies c
-             JOIN printings p ON p.id = c.printing_id
+          (SELECT count(DISTINCT c.id) FROM copies c
+             JOIN printing_sides_ordered p ON p.printing_id = c.printing_id
             WHERE p.card_id = ${cardId})::int AS "copies",
-          (SELECT count(*) FROM collection_events ce
-             JOIN printings p ON p.id = ce.printing_id
+          (SELECT count(DISTINCT ce.id) FROM collection_events ce
+             JOIN printing_sides_ordered p ON p.printing_id = ce.printing_id
             WHERE p.card_id = ${cardId})::int AS "collectionEvents",
           (SELECT count(*) FROM deck_cards WHERE card_id = ${cardId})::int AS "deckCards",
           (SELECT count(*) FROM list_entries WHERE card_id = ${cardId})::int AS "listEntries",
-          (SELECT count(*) FROM loans WHERE card_id = ${cardId})::int AS "loans",
-          (SELECT count(*) FROM card_trades WHERE card_id = ${cardId})::int AS "cardTrades",
-          (SELECT count(*) FROM marketplace_product_variants v
-             JOIN printings p ON p.id = v.printing_id
+          (SELECT count(DISTINCT l.id) FROM loans l
+             JOIN printing_sides_ordered p ON p.printing_id = l.printing_id
+            WHERE p.card_id = ${cardId})::int AS "loans",
+          (SELECT count(DISTINCT t.id) FROM card_trades t
+             JOIN printing_sides_ordered p ON p.printing_id = t.printing_id
+            WHERE p.card_id = ${cardId})::int AS "cardTrades",
+          (SELECT count(DISTINCT v.id) FROM marketplace_product_variants v
+             JOIN printing_sides_ordered p ON p.printing_id = v.printing_id
             WHERE p.card_id = ${cardId})::int AS "marketplaceProductVariants",
-          (SELECT count(*) FROM product_printings pp
-             JOIN printings p ON p.id = pp.printing_id
+          (SELECT count(DISTINCT (pp.product_id, pp.printing_id)) FROM product_printings pp
+             JOIN printing_sides_ordered p ON p.printing_id = pp.printing_id
             WHERE p.card_id = ${cardId})::int AS "productPrintings"
       `.execute(db);
       const [blockers] = result.rows;

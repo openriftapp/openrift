@@ -72,7 +72,7 @@ export function cardTokensRepo(db: Kysely<Database>) {
       .executeTakeFirst();
 
     const printings = await db
-      .selectFrom("printings")
+      .selectFrom("faces")
       .select(["printedRulesText", "printedEffectText"])
       .where("cardId", "=", cardId)
       .where("language", "=", WellKnown.language.EN)
@@ -94,19 +94,18 @@ export function cardTokensRepo(db: Kysely<Database>) {
     recomputeForCard,
 
     async recomputeForPrintingCard(printingId: string): Promise<void> {
-      const row = await db
-        .selectFrom("printings")
-        .select(["printings.cardId"])
-        .where("printings.id", "=", printingId)
-        .executeTakeFirst();
-
-      if (!row) {
-        return;
-      }
+      const rows = await db
+        .selectFrom("printingSidesOrdered")
+        .select("cardId")
+        .distinct()
+        .where("printingId", "=", printingId)
+        .execute();
 
       // Not `this.recomputeForCard`: instrumentRepo rebinds these methods onto
       // a new object, so a `this` reference here would not survive the wrapping.
-      await recomputeForCard(row.cardId);
+      for (const row of rows) {
+        await recomputeForCard(row.cardId);
+      }
     },
 
     /** Runs as one transaction so readers never see a half-rebuilt table. */
@@ -122,7 +121,7 @@ export function cardTokensRepo(db: Kysely<Database>) {
       const errataByCard = new Map(errata.map((row) => [row.cardId, row]));
 
       const printings = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select(["cardId", "printedRulesText", "printedEffectText"])
         .where("language", "=", WellKnown.language.EN)
         .execute();

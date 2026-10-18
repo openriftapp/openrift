@@ -7,7 +7,6 @@ import type {
 } from "@openrift/shared/types/api/rules";
 import type {
   ArtVariant,
-  CardFace,
   CardSize,
   CardType,
   FallbackArtMode,
@@ -81,30 +80,39 @@ export interface CardErrataTable {
   createdAt: CreatedAt;
 }
 
-export interface PrintingsTable {
+export interface FacesTable {
   id: Generated<string>;
   cardId: string;
   setId: string;
-  slug: Generated<string>;
   shortCode: string;
-  rarity: Rarity;
-  artVariant: ArtVariant;
-  isSigned: Generated<boolean>;
-  isOvernumbered: Generated<boolean>;
-  markerSlugs: Generated<string[]>;
-  finish: Finish;
-  size: Generated<CardSize>;
-  artist: string;
   publicCode: string;
+  artVariant: ArtVariant;
+  artist: string;
+  printedName: string | null;
   printedRulesText: string | null;
   printedEffectText: string | null;
   flavorText: string | null;
-  comment: string | null;
   language: Generated<string>;
-  printedName: string | null;
+  rarity: Rarity;
   printedYear: number | null;
+  finish: Finish;
+  isSigned: Generated<boolean>;
+  isOvernumbered: Generated<boolean>;
+  markerSlugs: Generated<string[]>;
   fallbackArtMode: Generated<FallbackArtMode>;
   fallbackImageFileId: string | null;
+  comment: string | null;
+  createdAt: CreatedAt;
+  updatedAt: UpdatedAt;
+}
+
+export interface PrintingsTable {
+  id: Generated<string>;
+  face1Id: string;
+  face2Id: string | null;
+  slug: Generated<string>;
+  size: Generated<CardSize>;
+  comment: string | null;
   announcedAt: string | null;
   releasedAt: string | null;
   releasePrecision: ReleasePrecision | null;
@@ -129,10 +137,9 @@ export interface ImageFilesTable {
   updatedAt: UpdatedAt;
 }
 
-export interface PrintingImagesTable {
+export interface FaceImagesTable {
   id: Generated<string>;
-  printingId: string;
-  face: Generated<CardFace>;
+  faceId: string;
   imageFileId: string;
   isActive: Generated<boolean>;
   createdAt: CreatedAt;
@@ -162,11 +169,6 @@ export interface MarkersTable {
   sortOrder: Generated<number>;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
-}
-
-export interface PrintingMarkersTable {
-  printingId: string;
-  markerId: string;
 }
 
 export interface CustomTagCategoriesTable {

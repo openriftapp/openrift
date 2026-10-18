@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   adminReq,
   createTestContext,
+  deletePrintingsById,
+  insertPrintings,
   syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
@@ -59,50 +61,42 @@ if (ctx) {
 
   await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", ordinal: 0 }).execute();
 
-  const [printingRow] = await db
-    .insertInto("printings")
-    .values({
-      cardId,
-      setId,
-      shortCode: "CSM-001",
-      rarity: "common",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "normal",
-      artist: "Artist A",
-      publicCode: "CSM",
-      printedRulesText: "Flash",
-      printedEffectText: null,
-      flavorText: null,
-      comment: null,
-      size: "standard",
-      language: "EN",
-    })
-    .returning("id")
-    .execute();
+  const [printingRow] = await insertPrintings(db, {
+    cardId,
+    setId,
+    shortCode: "CSM-001",
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "normal",
+    artist: "Artist A",
+    publicCode: "CSM",
+    printedRulesText: "Flash",
+    printedEffectText: null,
+    flavorText: null,
+    comment: null,
+    size: "standard",
+    language: "EN",
+  });
   printingId = printingRow!.id;
 
-  const [printing2Row] = await db
-    .insertInto("printings")
-    .values({
-      cardId,
-      setId,
-      shortCode: "CSM-002",
-      rarity: "rare",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "foil",
-      artist: "Artist A",
-      publicCode: "CSM",
-      printedRulesText: null,
-      printedEffectText: null,
-      flavorText: null,
-      comment: null,
-      size: "standard",
-      language: "EN",
-    })
-    .returning("id")
-    .execute();
+  const [printing2Row] = await insertPrintings(db, {
+    cardId,
+    setId,
+    shortCode: "CSM-002",
+    rarity: "rare",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "foil",
+    artist: "Artist A",
+    publicCode: "CSM",
+    printedRulesText: null,
+    printedEffectText: null,
+    flavorText: null,
+    comment: null,
+    size: "standard",
+    language: "EN",
+  });
   printing2Id = printing2Row!.id;
 
   const [csRow] = await db
@@ -718,7 +712,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const row = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("artist")
         .where("id", "=", printingId)
         .executeTakeFirstOrThrow();
@@ -735,14 +729,14 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const row = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("rarity")
         .where("id", "=", printingId)
         .executeTakeFirstOrThrow();
       expect(row.rarity).toBe("rare");
 
       await db
-        .updateTable("printings")
+        .updateTable("faces")
         .set({ rarity: "common" })
         .where("id", "=", printingId)
         .execute();
@@ -768,14 +762,14 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const row = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("finish")
         .where("id", "=", printingId)
         .executeTakeFirstOrThrow();
       expect(row.finish).toBe("foil");
 
       await db
-        .updateTable("printings")
+        .updateTable("faces")
         .set({ finish: "normal" })
         .where("id", "=", printingId)
         .execute();
@@ -830,51 +824,44 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       // succeed — the uq_printings_variant constraint includes language.
       const promoMarker = await db
         .selectFrom("markers")
-        .select("id")
+        .select(["id", "slug"])
         .where("slug", "=", PROMO_MARKER_SLUG)
         .executeTakeFirstOrThrow();
 
-      const [enRow] = await db
-        .insertInto("printings")
-        .values({
-          cardId,
-          setId,
-          shortCode: "CSM-LANG-UQ",
-          rarity: "common",
-          artVariant: "normal",
-          isSigned: false,
-          finish: "normal",
-          artist: "Artist A",
-          publicCode: "CSM",
-          language: "EN",
-          size: "standard",
-        })
-        .returning("id")
-        .execute();
+      const [enRow] = await insertPrintings(db, {
+        cardId,
+        setId,
+        shortCode: "CSM-LANG-UQ",
+        rarity: "common",
+        artVariant: "normal",
+        isSigned: false,
+        finish: "normal",
+        artist: "Artist A",
+        publicCode: "CSM",
+        language: "EN",
+        size: "standard",
+      });
 
-      // Stamp the EN row with the promo marker (trigger keeps marker_slugs in sync).
+      // Stamp the EN row's face with the promo marker.
       await db
-        .insertInto("printingMarkers")
-        .values({ printingId: enRow!.id, markerId: promoMarker.id })
+        .updateTable("faces")
+        .set({ markerSlugs: [promoMarker.slug] })
+        .where("id", "=", enRow!.faceId)
         .execute();
 
-      const [scRow] = await db
-        .insertInto("printings")
-        .values({
-          cardId,
-          setId,
-          shortCode: "CSM-LANG-UQ",
-          rarity: "common",
-          artVariant: "normal",
-          isSigned: false,
-          finish: "normal",
-          artist: "Artist A",
-          publicCode: "CSM",
-          language: "SC",
-          size: "standard",
-        })
-        .returning("id")
-        .execute();
+      const [scRow] = await insertPrintings(db, {
+        cardId,
+        setId,
+        shortCode: "CSM-LANG-UQ",
+        rarity: "common",
+        artVariant: "normal",
+        isSigned: false,
+        finish: "normal",
+        artist: "Artist A",
+        publicCode: "CSM",
+        language: "SC",
+        size: "standard",
+      });
 
       const res = await app.fetch(
         adminReq("POST", `${P}/printing/${scRow!.id}/accept-field`, {
@@ -885,13 +872,13 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const updated = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("markerSlugs")
         .where("id", "=", scRow!.id)
         .executeTakeFirstOrThrow();
       expect(updated.markerSlugs).toEqual([PROMO_MARKER_SLUG]);
 
-      await db.deleteFrom("printings").where("id", "in", [enRow!.id, scRow!.id]).execute();
+      await deletePrintingsById(db, [enRow!.id, scRow!.id]);
     });
   });
 
@@ -1032,7 +1019,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       expect(json.printingId).toBeTypeOf("string");
 
       const printing = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select(["id", "rarity", "artist"])
         .where("id", "=", json.printingId)
         .executeTakeFirst();
@@ -1140,7 +1127,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       expect(json.printingId).toBeTypeOf("string");
 
       const p = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select(["isSigned", "markerSlugs"])
         .where("id", "=", json.printingId)
         .executeTakeFirstOrThrow();
@@ -1469,14 +1456,14 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
 
       // Verify the value was set (typography may have changed quotes)
       const row = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("printedRulesText")
         .where("id", "=", printingId)
         .executeTakeFirstOrThrow();
       expect(row.printedRulesText).toBeDefined();
 
       await db
-        .updateTable("printings")
+        .updateTable("faces")
         .set({ printedRulesText: "Flash" })
         .where("id", "=", printingId)
         .execute();
@@ -1493,7 +1480,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       expect(res.status).toBe(204);
 
       await db
-        .updateTable("printings")
+        .updateTable("faces")
         .set({ printedEffectText: null })
         .where("id", "=", printingId)
         .execute();
@@ -1510,7 +1497,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       expect(res.status).toBe(204);
 
       await db
-        .updateTable("printings")
+        .updateTable("faces")
         .set({ flavorText: null })
         .where("id", "=", printingId)
         .execute();
@@ -1528,14 +1515,14 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
 
       // The set has printedTotal=2, so publicCode should be appended
       const row = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("publicCode")
         .where("id", "=", printingId)
         .executeTakeFirstOrThrow();
       expect(row.publicCode).toBeDefined();
 
       await db
-        .updateTable("printings")
+        .updateTable("faces")
         .set({ publicCode: "CSM" })
         .where("id", "=", printingId)
         .execute();
@@ -1571,13 +1558,12 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const row = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("markerSlugs")
         .where("id", "=", printingId)
         .executeTakeFirstOrThrow();
       expect(row.markerSlugs).toEqual([PROMO_MARKER_SLUG]);
 
-      // Restore: clear markers via the same route (handles printing_markers cleanup)
       const restoreRes = await app.fetch(
         adminReq("POST", `${P}/printing/${printingId}/accept-field`, {
           field: "markerSlugs",
@@ -1600,27 +1586,23 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
 
   describe("DELETE /printing/:printingId", () => {
     it("deletes a printing and cleans up related data", async () => {
-      const [disposablePrinting] = await db
-        .insertInto("printings")
-        .values({
-          cardId,
-          setId,
-          shortCode: "CSM-DELETE-TEST",
-          rarity: "common",
-          artVariant: "normal",
-          isSigned: false,
-          finish: "normal",
-          artist: "Del Artist",
-          publicCode: "CSM",
-          printedRulesText: null,
-          printedEffectText: null,
-          flavorText: null,
-          comment: null,
-          size: "standard",
-          language: "EN",
-        })
-        .returning("id")
-        .execute();
+      const [disposablePrinting] = await insertPrintings(db, {
+        cardId,
+        setId,
+        shortCode: "CSM-DELETE-TEST",
+        rarity: "common",
+        artVariant: "normal",
+        isSigned: false,
+        finish: "normal",
+        artist: "Del Artist",
+        publicCode: "CSM",
+        printedRulesText: null,
+        printedEffectText: null,
+        flavorText: null,
+        comment: null,
+        size: "standard",
+        language: "EN",
+      });
 
       const [cardImage] = await db
         .insertInto("imageFiles")
@@ -1628,10 +1610,9 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
         .returning("id")
         .execute();
       await db
-        .insertInto("printingImages")
+        .insertInto("faceImages")
         .values({
-          printingId: disposablePrinting!.id,
-          face: "front",
+          faceId: disposablePrinting!.id,
           imageFileId: cardImage!.id,
           isActive: true,
         })
@@ -1664,7 +1645,7 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const row = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("id")
         .where("id", "=", disposablePrinting!.id)
         .executeTakeFirst();

@@ -44,7 +44,7 @@ export function languagesRepo(db: Kysely<Database>) {
 
     isInUse(code: string) {
       return db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("id")
         .where("language", "=", code)
         .limit(1)

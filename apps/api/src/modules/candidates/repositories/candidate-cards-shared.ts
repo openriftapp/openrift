@@ -5,7 +5,7 @@ import type { Database } from "../../../db/tables.js";
 
 /**
  * Canonical ORDER BY keys for candidate-printing queries, mirroring the
- * printings_ordered view's canonical_rank (language, set, short code,
+ * printing_sides_ordered view's canonical_rank (language, set, short code,
  * markerless before markered, marker sort order, finish, size) so candidate
  * printings sort the same everywhere accepted printings do. The query must
  * alias candidate_printings as `ps` and LEFT-join languages as `l`, sets as

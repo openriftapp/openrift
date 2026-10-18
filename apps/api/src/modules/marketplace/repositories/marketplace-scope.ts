@@ -52,11 +52,11 @@ export const STANDARD = sql`(
   AND p.is_signed = false
   AND cardinality(p.marker_slugs) = 0
   AND p.rarity <> ${WellKnown.rarity.SHOWCASE}
-  AND p.size = ${WellKnown.cardSize.STANDARD}
+  AND pr.size = ${WellKnown.cardSize.STANDARD}
   AND CASE
     WHEN p.rarity IN (${STANDARD_LOW_RARITIES}) THEN p.finish = ${WellKnown.finish.NORMAL}
     WHEN p.finish = ${WellKnown.finish.FOIL} THEN true
     ELSE p.finish = ${WellKnown.finish.NORMAL}
-      AND NOT EXISTS (SELECT 1 FROM mv_printing_foil_twins t WHERE t.printing_id = p.id)
+      AND NOT EXISTS (SELECT 1 FROM mv_printing_foil_twins t WHERE t.printing_id = pr.id)
   END
 )`;

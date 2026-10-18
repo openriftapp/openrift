@@ -1,10 +1,12 @@
 import type { Kysely, Selectable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import type { CardsTable, PrintingsTable } from "../../../db/tables/catalog.js";
-import { joinFrontImage } from "../../../repositories/query-helpers.js";
+import type { CardsTable } from "../../../db/tables/catalog.js";
+import type { PrintingSidesOrderedView } from "../../../db/tables/views.js";
+import { joinFaceImage } from "../../../repositories/query-helpers.js";
 
-export interface ExportPrintingRow extends Selectable<PrintingsTable> {
+export interface ExportPrintingRow extends PrintingSidesOrderedView {
+  id: string;
   setSlug: string;
   setName: string;
   imageId: string | null;
@@ -36,20 +38,20 @@ export function candidateExportRepo(db: Kysely<Database>) {
     },
 
     exportPrintings(): Promise<ExportPrintingRow[]> {
-      return joinFrontImage(
-        db.selectFrom("printings").innerJoin("sets", "sets.id", "printings.setId"),
-        "printings",
+      return joinFaceImage(
+        db.selectFrom("printingSidesOrdered as p").innerJoin("sets", "sets.id", "p.setId"),
+        "p.faceId",
       )
-        .selectAll("printings")
+        .selectAll("p")
         .select([
+          "p.printingId as id",
           "sets.slug as setSlug",
           "sets.name as setName",
           "pi.id as imageId",
           "imgf.rehostedUrl",
           "imgf.originalUrl",
         ])
-        .innerJoin("printingsOrdered as po", "po.id", "printings.id")
-        .orderBy("po.canonicalRank")
+        .orderBy("p.canonicalRank")
         .execute();
     },
   };

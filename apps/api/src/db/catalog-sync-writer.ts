@@ -139,7 +139,6 @@ export async function writeCatalogSync(
     ]);
 
     await upsertChunked(trx, "markers", rows.markers, ["slug"]);
-    const markerIds = bySlug(await trx.selectFrom("markers").select(["id", "slug"]).execute());
 
     const channelIds = new Map<string, string>();
     for (const { parentSlug, ...row } of rows.distributionChannels) {
@@ -191,6 +190,7 @@ export async function writeCatalogSync(
 
     const setIds = rows.sets.map((set) => set.id as string);
     const cardIds = rows.cards.map((card) => card.id as string);
+    const faceIds = rows.faces.map((face) => face.id as string);
     const printingIds = rows.printings.map((printing) => printing.id as string);
 
     await upsertChunked(trx, "sets", rows.sets, ["id"]);
@@ -213,18 +213,9 @@ export async function writeCatalogSync(
       })),
     );
     await upsertChunked(trx, "imageFiles", rows.imageFiles, ["id"]);
+    await upsertChunked(trx, "faces", rows.faces, ["id"]);
+    await replaceChildren(trx, "faceImages", "faceId", faceIds, rows.faceImages);
     await upsertChunked(trx, "printings", rows.printings, ["id"]);
-    await replaceChildren(trx, "printingImages", "printingId", printingIds, rows.printingImages);
-    await replaceChildren(
-      trx,
-      "printingMarkers",
-      "printingId",
-      printingIds,
-      rows.printingMarkers.map(({ printingId, markerSlug }) => ({
-        printingId,
-        markerId: resolve(markerIds, markerSlug, "marker"),
-      })),
-    );
     await replaceChildren(
       trx,
       "printingDistributionChannels",
@@ -246,7 +237,7 @@ export async function writeCatalogSync(
   });
 
   await sql`REFRESH MATERIALIZED VIEW mv_card_aggregates`.execute(database);
-  await sql`REFRESH MATERIALIZED VIEW mv_printings_canonical_rank`.execute(database);
+  await sql`REFRESH MATERIALIZED VIEW mv_printing_sides_canonical_rank`.execute(database);
   await sql`REFRESH MATERIALIZED VIEW mv_printing_foil_twins`.execute(database);
 }
 

@@ -6,7 +6,18 @@ import type { Database } from "../../../db/tables.js";
 import type { DeckCheckEntryCardsTable } from "../../../db/tables/tournaments.js";
 import { inTransaction } from "../../../repositories/query-helpers.js";
 
-export type DeckCheckEntryCard = Selectable<DeckCheckEntryCardsTable>;
+export type DeckCheckEntryCard = Selectable<DeckCheckEntryCardsTable> & {
+  resolvedPrintingId: string | null;
+};
+
+function resolvedPrintingId(alias: string) {
+  return sql<string | null>`(
+    SELECT s.printing_id FROM printing_sides_ordered s
+    WHERE s.card_id = ${sql.ref(`${alias}.resolvedCardId`)}
+    ORDER BY s.canonical_rank, s.printing_id
+    LIMIT 1
+  )`.as("resolvedPrintingId");
+}
 
 export interface NewDeckCheckEntryCard {
   sortOrder: number;
@@ -36,6 +47,7 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
       return db
         .selectFrom("deckCheckEntryCards")
         .selectAll()
+        .select(resolvedPrintingId("deckCheckEntryCards"))
         .where("entryId", "=", entryId)
         .orderBy("sortOrder", "asc")
         .execute();
@@ -46,7 +58,18 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
       if (cards.length > 0) {
         await db
           .insertInto("deckCheckEntryCards")
-          .values(cards.map((card) => ({ ...card, entryId })))
+          .values(
+            cards.map((card) => ({
+              entryId,
+              sortOrder: card.sortOrder,
+              rawName: card.rawName,
+              section: card.section,
+              zone: card.zone,
+              quantity: card.quantity,
+              resolvedCardId: card.resolvedCardId,
+              matchStatus: card.matchStatus,
+            })),
+          )
           .execute();
       }
     },
@@ -62,7 +85,6 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
         .set({
           rawName,
           resolvedCardId: resolution.resolvedCardId,
-          resolvedPrintingId: resolution.resolvedPrintingId,
           matchStatus: resolution.matchStatus,
         })
         .where("id", "=", cardId)
@@ -108,7 +130,6 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
         const resolutionColumns = {
           rawName: name,
           resolvedCardId: resolution.resolvedCardId,
-          resolvedPrintingId: resolution.resolvedPrintingId,
           matchStatus: resolution.matchStatus,
         };
 
@@ -224,7 +245,6 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
             zone,
             quantity: moveCount,
             resolvedCardId: resolution.resolvedCardId,
-            resolvedPrintingId: resolution.resolvedPrintingId,
             matchStatus: resolution.matchStatus,
           })
           .execute();
@@ -367,6 +387,7 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
           .selectFrom("deckCheckEntryCards as c")
           .innerJoin("deckCheckEntries as en", "en.id", "c.entryId")
           .selectAll("c")
+          .select(resolvedPrintingId("c"))
           .where("en.tournamentId", "=", tournamentId)
           // An editable entry's list is invisible to officials, so the
           // event-wide re-resolve leaves its lines alone too.
@@ -381,7 +402,6 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
         .updateTable("deckCheckEntryCards")
         .set({
           resolvedCardId: resolution.resolvedCardId,
-          resolvedPrintingId: resolution.resolvedPrintingId,
           matchStatus: resolution.matchStatus,
         })
         .where("id", "=", cardId)

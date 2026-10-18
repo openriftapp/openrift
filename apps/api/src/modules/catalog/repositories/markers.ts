@@ -1,7 +1,8 @@
 import type { Kysely } from "kysely";
+import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { inTransaction, reorderBySortOrder } from "../../../repositories/query-helpers.js";
+import { reorderBySortOrder } from "../../../repositories/query-helpers.js";
 
 export function markersRepo(db: Kysely<Database>) {
   return {
@@ -73,25 +74,28 @@ export function markersRepo(db: Kysely<Database>) {
 
     isInUse(id: string) {
       return db
-        .selectFrom("printingMarkers")
-        .select("printingId")
-        .where("markerId", "=", id)
+        .selectFrom("faces")
+        .select("faces.id")
+        .where(
+          sql<boolean>`faces.marker_slugs @> ARRAY[(SELECT m.slug FROM markers m WHERE m.id = ${id})]`,
+        )
         .limit(1)
         .executeTakeFirst();
     },
 
     async setForPrinting(printingId: string, markerIds: readonly string[]): Promise<void> {
-      const run = async (trx: Kysely<Database>): Promise<void> => {
-        await trx.deleteFrom("printingMarkers").where("printingId", "=", printingId).execute();
-        if (markerIds.length === 0) {
-          return;
-        }
-        await trx
-          .insertInto("printingMarkers")
-          .values(markerIds.map((markerId) => ({ printingId, markerId })))
-          .execute();
-      };
-      await inTransaction(db, run);
+      await db
+        .updateTable("faces")
+        .set({
+          markerSlugs: sql<string[]>`COALESCE(
+            (SELECT array_agg(m.slug) FROM markers m WHERE m.id = ANY(${[...markerIds]}::uuid[])),
+            '{}'::text[]
+          )`,
+        })
+        .where("id", "=", (eb) =>
+          eb.selectFrom("printings").select("face1Id").where("printings.id", "=", printingId),
+        )
+        .execute();
     },
   };
 }

@@ -6,7 +6,7 @@ import { printingImagesRepo } from "./printing-images.js";
 
 const ctx = createDbContext("a0000000-0034-4000-a000-000000000001");
 
-describe.skipIf(!ctx)("printingImagesRepo (integration)", () => {
+describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
   const { db } = ctx!;
   const repo = printingImagesRepo(db);
 
@@ -18,14 +18,13 @@ describe.skipIf(!ctx)("printingImagesRepo (integration)", () => {
 
   afterAll(async () => {
     if (createdImageIds.length > 0) {
-      await db.deleteFrom("printingImages").where("id", "in", createdImageIds).execute();
+      await db.deleteFrom("faceImages").where("id", "in", createdImageIds).execute();
     }
     await db.deleteFrom("imageFiles").where("originalUrl", "in", [DEDUPE_URL, RACE_URL]).execute();
     await db
-      .updateTable("printingImages")
+      .updateTable("faceImages")
       .set({ isActive: true })
-      .where("printingId", "=", seedPrintingId)
-      .where("face", "=", "front")
+      .where("faceId", "=", seedPrintingId)
       .execute();
   });
 
@@ -148,7 +147,7 @@ describe.skipIf(!ctx)("printingImagesRepo (integration)", () => {
     expect(files).toHaveLength(1);
   });
 
-  it("deleteOrphanedImageFiles removes image_files no printing_images row points at", async () => {
+  it("deleteOrphanedImageFiles removes image_files no face_images row points at", async () => {
     // Table-wide delete; runs in a rolled-back transaction so it doesn't
     // touch other integration files' fixtures in the shared database.
     await expect(

@@ -185,11 +185,7 @@ describe.skipIf(!ctx)("marketplaceAdminRepo (integration)", () => {
         .returning("id")
         .executeTakeFirstOrThrow();
 
-      const card = await db
-        .selectFrom("printings")
-        .select("cardId")
-        .limit(1)
-        .executeTakeFirstOrThrow();
+      const card = await db.selectFrom("faces").select("cardId").limit(1).executeTakeFirstOrThrow();
 
       await repo.upsertStagingCardOverride({
         marketplace,

@@ -173,8 +173,8 @@ export function keywordsRepo(db: Kysely<Database>) {
       }[]
     > {
       return db
-        .selectFrom("printings as en")
-        .innerJoin("printings as other", (jb) =>
+        .selectFrom("faces as en")
+        .innerJoin("faces as other", (jb) =>
           jb
             .onRef("other.cardId", "=", "en.cardId")
             .on("other.language", "!=", WellKnown.language.EN),
@@ -207,36 +207,35 @@ export function keywordsRepo(db: Kysely<Database>) {
     // table is never read by the extractor and needs no recompute hook.
 
     /**
-     * Recompute keywords for the card that owns the given printing by scanning
-     * all sibling printings' text plus any card-level errata text.
+     * Recompute keywords for each card on the given printing by scanning all
+     * of that card's English faces plus any card-level errata text.
      */
     async recomputeForPrintingCard(printingId: string): Promise<void> {
-      const row = await db
-        .selectFrom("printings")
-        .select(["printings.cardId"])
-        .where("printings.id", "=", printingId)
-        .executeTakeFirst();
-
-      if (!row) {
-        return;
-      }
-
-      const errata = await db
-        .selectFrom("cardErrata")
-        .select(["correctedRulesText", "correctedEffectText"])
-        .where("cardId", "=", row.cardId)
-        .executeTakeFirst();
-
-      const siblings = await db
-        .selectFrom("printings")
-        .select(["printedRulesText", "printedEffectText"])
-        .where("cardId", "=", row.cardId)
-        .where("language", "=", WellKnown.language.EN)
+      const rows = await db
+        .selectFrom("printingSidesOrdered")
+        .select("cardId")
+        .distinct()
+        .where("printingId", "=", printingId)
         .execute();
 
-      const keywords = deriveKeywords({ errata, printings: siblings });
+      for (const { cardId } of rows) {
+        const errata = await db
+          .selectFrom("cardErrata")
+          .select(["correctedRulesText", "correctedEffectText"])
+          .where("cardId", "=", cardId)
+          .executeTakeFirst();
 
-      await db.updateTable("cards").set({ keywords }).where("id", "=", row.cardId).execute();
+        const siblings = await db
+          .selectFrom("faces")
+          .select(["printedRulesText", "printedEffectText"])
+          .where("cardId", "=", cardId)
+          .where("language", "=", WellKnown.language.EN)
+          .execute();
+
+        const keywords = deriveKeywords({ errata, printings: siblings });
+
+        await db.updateTable("cards").set({ keywords }).where("id", "=", cardId).execute();
+      }
     },
 
     async recomputeAll(): Promise<{ totalCards: number; updated: number }> {
@@ -250,7 +249,7 @@ export function keywordsRepo(db: Kysely<Database>) {
       const errataByCard = new Map(errata.map((e) => [e.cardId, e]));
 
       const printings = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select(["cardId", "printedRulesText", "printedEffectText"])
         .where("language", "=", WellKnown.language.EN)
         .execute();

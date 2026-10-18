@@ -8,7 +8,12 @@ import {
   PRINTING_3,
   PRINTING_4,
 } from "../../../test/fixtures/constants.js";
-import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
+import {
+  createDbContext,
+  deletePrintingsById,
+  insertPrinting,
+  seedTestUser,
+} from "../../../test/integration-context.js";
 import { friendGroupsRepo } from "../../groups/repositories/friend-groups.js";
 import { collectionDeckbuildingPrefsRepo } from "./collection-deckbuilding-prefs.js";
 import { collectionsRepo } from "./collections.js";
@@ -835,8 +840,8 @@ describe.skipIf(!coverCtx)("copies coverPrintingsAcross (integration)", () => {
     }
     // Dependency order: printingImages -> printings -> cards, then imageFiles.
     if (printingIds.length > 0) {
-      await db.deleteFrom("printingImages").where("printingId", "in", printingIds).execute();
-      await db.deleteFrom("printings").where("id", "in", printingIds).execute();
+      await db.deleteFrom("faceImages").where("faceId", "in", printingIds).execute();
+      await deletePrintingsById(db, printingIds);
     }
     if (cardIds.length > 0) {
       await db.deleteFrom("cards").where("id", "in", cardIds).execute();
@@ -867,27 +872,23 @@ describe.skipIf(!coverCtx)("copies coverPrintingsAcross (integration)", () => {
       .returning("id")
       .executeTakeFirstOrThrow();
     cardIds.push(card.id);
-    const printing = await db
-      .insertInto("printings")
-      .values({
-        cardId: card.id,
-        setId: OGS_SET.id,
-        shortCode: `CVR-${userId.slice(0, 4)}-${counter}`,
-        rarity: "common",
-        artVariant: "normal",
-        isSigned: false,
-        finish: "normal",
-        artist: "Test Artist",
-        publicCode: `OGS-8${String(counter).padStart(2, "0")}`,
-        printedRulesText: null,
-        printedEffectText: null,
-        flavorText: null,
-        comment: null,
-        size: "standard",
-        language: "EN",
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const printing = await insertPrinting(db, {
+      cardId: card.id,
+      setId: OGS_SET.id,
+      shortCode: `CVR-${userId.slice(0, 4)}-${counter}`,
+      rarity: "common",
+      artVariant: "normal",
+      isSigned: false,
+      finish: "normal",
+      artist: "Test Artist",
+      publicCode: `OGS-8${String(counter).padStart(2, "0")}`,
+      printedRulesText: null,
+      printedEffectText: null,
+      flavorText: null,
+      comment: null,
+      size: "standard",
+      language: "EN",
+    });
     printingIds.push(printing.id);
     if (image === "none") {
       return { printingId: printing.id, imageId: null };
@@ -903,8 +904,8 @@ describe.skipIf(!coverCtx)("copies coverPrintingsAcross (integration)", () => {
       .executeTakeFirstOrThrow();
     imageFileIds.push(imageFile.id);
     await db
-      .insertInto("printingImages")
-      .values({ printingId: printing.id, imageFileId: imageFile.id, face: "front", isActive: true })
+      .insertInto("faceImages")
+      .values({ faceId: printing.id, imageFileId: imageFile.id, isActive: true })
       .execute();
     return { printingId: printing.id, imageId: image === "rehosted" ? imageFile.id : null };
   }

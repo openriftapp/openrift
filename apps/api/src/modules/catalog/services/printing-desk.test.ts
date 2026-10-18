@@ -424,7 +424,7 @@ describe("updateDeskPrinting", () => {
     repos.printingDesk.updatePrintingDeskFields.mockRejectedValue(
       Object.assign(new Error("duplicate"), {
         code: "23505",
-        constraint_name: "uq_printings_variant",
+        constraint_name: "uq_faces_variant",
       }),
     );
 

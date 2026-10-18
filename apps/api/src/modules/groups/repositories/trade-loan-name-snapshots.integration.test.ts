@@ -59,7 +59,6 @@ describe.skipIf(!ctx)("deleted-user name snapshots (integration)", () => {
         receiverUserId: LEAVER_ID,
         initiator: "receiver",
         printingId: PRINTING_1.id,
-        cardId: PRINTING_1.cardId,
         quantity: 1,
         status: "completed",
         acceptedAt: new Date("2026-03-01T00:00:00Z"),
@@ -79,7 +78,6 @@ describe.skipIf(!ctx)("deleted-user name snapshots (integration)", () => {
         receiverUserId: RECEIVER_ID,
         initiator: "giver",
         printingId: PRINTING_1.id,
-        cardId: PRINTING_1.cardId,
         quantity: 1,
         status: "pending",
         expiresAt: new Date("2099-01-01T00:00:00Z"),
@@ -94,7 +92,6 @@ describe.skipIf(!ctx)("deleted-user name snapshots (integration)", () => {
         lenderUserId: LENDER_ID,
         borrowerUserId: LEAVER_ID,
         printingId: PRINTING_1.id,
-        cardId: PRINTING_1.cardId,
         quantity: 2,
       })
       .returning("id")

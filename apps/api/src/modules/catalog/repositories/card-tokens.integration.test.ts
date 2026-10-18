@@ -1,6 +1,11 @@
 import { afterAll, describe, expect, it } from "vitest";
 
-import { createDbContext, refreshCardAggregates } from "../../../test/integration-context.js";
+import {
+  createDbContext,
+  deletePrintingsByFace,
+  insertPrintings,
+  refreshCardAggregates,
+} from "../../../test/integration-context.js";
 import { cardTokensRepo } from "./card-tokens.js";
 
 // Uses the shared integration database. Requires INTEGRATION_DB_URL.
@@ -33,27 +38,23 @@ async function seedPrinting(
   shortCode: string,
   opts: { printedRulesText: string; language?: string },
 ): Promise<string> {
-  const [printing] = await ctx!.db
-    .insertInto("printings")
-    .values({
-      cardId,
-      setId,
-      shortCode,
-      rarity: "common",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "normal",
-      size: "standard",
-      artist: "CTK Artist",
-      publicCode: shortCode,
-      printedRulesText: opts.printedRulesText,
-      printedEffectText: null,
-      flavorText: null,
-      comment: null,
-      language: opts.language ?? "EN",
-    })
-    .returning("id")
-    .execute();
+  const [printing] = await insertPrintings(ctx!.db, {
+    cardId,
+    setId,
+    shortCode,
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "normal",
+    size: "standard",
+    artist: "CTK Artist",
+    publicCode: shortCode,
+    printedRulesText: opts.printedRulesText,
+    printedEffectText: null,
+    flavorText: null,
+    comment: null,
+    language: opts.language ?? "EN",
+  });
   return printing!.id;
 }
 
@@ -86,7 +87,7 @@ if (ctx) {
   await seedPrinting(plainId, "CTK-002", { printedRulesText: "Draw a card." });
 
   afterAll(async () => {
-    await db.deleteFrom("printings").where("setId", "=", setId).execute();
+    await deletePrintingsByFace(db, "setId", "=", setId);
     await db
       .deleteFrom("cards")
       .where("id", "in", [spriteId, buffId, summonerId, plainId])
@@ -120,7 +121,7 @@ describe.skipIf(!ctx)("cardTokensRepo derivation", () => {
     await repo.recomputeAll();
 
     await ctx!.db
-      .updateTable("printings")
+      .updateTable("faces")
       .set({ printedRulesText: "Buff a friendly unit." })
       .where("id", "=", spritePrintingId)
       .execute();
@@ -129,7 +130,7 @@ describe.skipIf(!ctx)("cardTokensRepo derivation", () => {
     expect(await tokensFor(summonerId)).toEqual([buffId]);
 
     await ctx!.db
-      .updateTable("printings")
+      .updateTable("faces")
       .set({ printedRulesText: "Play a 3 :rb_might: Sprite unit token." })
       .where("id", "=", spritePrintingId)
       .execute();

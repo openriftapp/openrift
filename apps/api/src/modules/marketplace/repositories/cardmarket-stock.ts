@@ -27,9 +27,10 @@ export function cardmarketStockRepo(db: Kysely<Database>) {
         .selectFrom("marketplaceProducts as p")
         .leftJoin("marketplaceProductVariants as v", "v.marketplaceProductId", "p.id")
         .leftJoin("printings as pr", "pr.id", "v.printingId")
+        .leftJoin("faces as prf", "prf.id", "pr.face1Id")
         .where("p.marketplace", "=", CARDMARKET)
         .where("p.externalId", "in", [...new Set(externalIds)])
-        .select(["p.externalId", "p.finish", "p.productName", "v.printingId", "pr.language"])
+        .select(["p.externalId", "p.finish", "p.productName", "v.printingId", "prf.language"])
         .execute();
     },
   };

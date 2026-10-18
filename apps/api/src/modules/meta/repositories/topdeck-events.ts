@@ -363,7 +363,7 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
       const map = new Map<string, { cardId: string; name: string; type: string }>();
       for (const batch of keyBatches([...new Set(shortCodes)])) {
         const rows = await db
-          .selectFrom("printings as p")
+          .selectFrom("faces as p")
           .innerJoin("cards as c", "c.id", "p.cardId")
           .where("p.language", "=", "EN")
           .where("p.shortCode", "in", batch)

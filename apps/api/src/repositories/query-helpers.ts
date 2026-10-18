@@ -13,7 +13,12 @@ import type {
 import { sql } from "kysely";
 
 import type { Database } from "../db/tables.js";
-import type { ImageFilesTable, PrintingImagesTable, PrintingsTable } from "../db/tables/catalog.js";
+import type {
+  FaceImagesTable,
+  FacesTable,
+  ImageFilesTable,
+  PrintingsTable,
+} from "../db/tables/catalog.js";
 import type { CopiesTable } from "../db/tables/collections.js";
 import { parseKeysetCursor } from "../lib/keyset-cursor.js";
 
@@ -186,68 +191,64 @@ export function keysetCursorPredicate(
   return sql<SqlBool>`(${sargableBound} and (${truncatedTime} < ${time} or (${truncatedTime} = ${time} and ${tieBreak})))`;
 }
 
-interface FrontImageTables {
-  pi: PrintingImagesTable;
+/** Joins only the first face, as `faceAlias` (default `pf`) on `printingAlias` (default `p`). */
+export function withFace1<
+  DB extends Record<PrintingAlias, { face1Id: unknown }>,
+  TB extends keyof DB,
+  O,
+  PrintingAlias extends string = "p",
+  FaceAlias extends string = "pf",
+>(
+  qb: SelectQueryBuilder<DB, TB, O>,
+  printingAlias?: PrintingAlias,
+  faceAlias?: FaceAlias,
+): SelectQueryBuilder<DB & Record<FaceAlias, FacesTable>, TB | FaceAlias, O> {
+  const face1Id = `${printingAlias ?? "p"}.face1Id` as "p.face1Id";
+  const alias = (faceAlias ?? "pf") as "pf";
+  return (qb as unknown as SelectQueryBuilder<Database & { p: PrintingsTable }, "p", O>).innerJoin(
+    `faces as ${alias}`,
+    `${alias}.id`,
+    face1Id,
+  ) as unknown as SelectQueryBuilder<DB & Record<FaceAlias, FacesTable>, TB | FaceAlias, O>;
+}
+
+interface FaceImageTables {
+  pi: FaceImagesTable;
   imgf: ImageFilesTable;
 }
 
-/**
- * Left-joins the active front-face image of the printing aliased `printingAlias`
- * (default `p`), exposing it as `pi` (printing_images) and `imgf` (image_files).
- * Left, not inner, so a printing with no artwork still yields its row — pair it
- * with `imageId("imgf")` to get the nullable image id, or read `imgf.rehostedUrl` directly.
- *
- * The query must already have `printings` (or `printings_ordered`) under that
- * alias; the generic constraint enforces that much, and the internal casts are
- * what let one helper serve every root table. Callers therefore must not
- * already use the `pi` or `imgf` aliases.
- */
-export function joinFrontImage<
-  DB extends Record<Alias, { id: unknown }>,
-  TB extends keyof DB,
-  O,
-  Alias extends string = "p",
->(
+/** Left-joins the face's active image as `pi` and `imgf`; the query must not already use those aliases. */
+export function joinFaceImage<DB extends Database, TB extends keyof DB, O>(
   qb: SelectQueryBuilder<DB, TB, O>,
-  printingAlias?: Alias,
-): SelectQueryBuilder<DB & FrontImageTables, TB | "pi" | "imgf", O> {
-  const printingId = `${printingAlias ?? "p"}.id` as "p.id";
-  return (qb as unknown as SelectQueryBuilder<Database & { p: PrintingsTable }, "p", O>)
-    .leftJoin("printingImages as pi", (join) =>
-      join
-        .onRef("pi.printingId", "=", printingId)
-        .on("pi.face", "=", "front")
-        .on("pi.isActive", "=", true),
+  faceIdRef: StringReference<DB, TB>,
+): SelectQueryBuilder<DB & FaceImageTables, TB | "pi" | "imgf", O> {
+  return (qb as unknown as SelectQueryBuilder<Database & { src: { faceId: string } }, "src", O>)
+    .leftJoin("faceImages as pi", (join) =>
+      join.onRef("pi.faceId", "=", faceIdRef as never).on("pi.isActive", "=", true),
     )
     .leftJoin("imageFiles as imgf", "imgf.id", "pi.imageFileId") as unknown as SelectQueryBuilder<
-    DB & FrontImageTables,
+    DB & FaceImageTables,
     TB | "pi" | "imgf",
     O
   >;
 }
 
-interface RequiredFrontImageTables {
-  pim: PrintingImagesTable;
+interface RequiredFaceImageTables {
+  pim: FaceImagesTable;
   imgf: ImageFilesTable;
 }
 
-/**
- * Drops rows whose printing has no active front image. Exposes the joins as
- * `pim`/`imgf`; never combine with {@link joinFrontImage} in the same query.
- */
-export function requireFrontImage<DB extends Database, TB extends keyof DB, O>(
+/** Inner variant of {@link joinFaceImage}, exposing `pim` and `imgf`; never combine the two. */
+export function requireFaceImage<DB extends Database, TB extends keyof DB, O>(
   qb: SelectQueryBuilder<DB, TB, O>,
-  printingIdRef: StringReference<DB, TB>,
-): SelectQueryBuilder<DB & RequiredFrontImageTables, TB | "pim" | "imgf", O> {
-  return (qb as unknown as SelectQueryBuilder<Database & { src: { printingId: string } }, "src", O>)
-    .innerJoin("printingImages as pim", (join) =>
-      join
-        .onRef("pim.printingId", "=", printingIdRef as never)
-        .on("pim.face", "=", "front")
-        .on("pim.isActive", "=", true),
+  faceIdRef: StringReference<DB, TB>,
+): SelectQueryBuilder<DB & RequiredFaceImageTables, TB | "pim" | "imgf", O> {
+  return (qb as unknown as SelectQueryBuilder<Database & { src: { faceId: string } }, "src", O>)
+    .innerJoin("faceImages as pim", (join) =>
+      join.onRef("pim.faceId", "=", faceIdRef as never).on("pim.isActive", "=", true),
     )
     .innerJoin("imageFiles as imgf", "imgf.id", "pim.imageFileId") as unknown as SelectQueryBuilder<
-    DB & RequiredFrontImageTables,
+    DB & RequiredFaceImageTables,
     TB | "pim" | "imgf",
     O
   >;
@@ -264,12 +265,11 @@ export function cardTypesColumn() {
 }
 
 export function selectCopyWithCard(db: Kysely<Database>) {
-  return joinFrontImage(
-    db
-      .selectFrom("copies as cp")
-      .innerJoin("printings as p", "p.id", "cp.printingId")
-      .innerJoin("cards as c", "c.id", "p.cardId")
+  return joinFaceImage(
+    withFace1(db.selectFrom("copies as cp").innerJoin("printings as p", "p.id", "cp.printingId"))
+      .innerJoin("cards as c", "c.id", "pf.cardId")
       .leftJoin("mvCardAggregates as mca", "mca.cardId", "c.id"),
+    "pf.id",
   );
 }
 
@@ -290,22 +290,22 @@ export async function printingDetailsByIds(
   if (ids.length === 0) {
     return new Map();
   }
-  const rows = await joinFrontImage(
-    db
-      .selectFrom("printings as p")
-      .innerJoin("cards as card", "card.id", "p.cardId")
+  const rows = await joinFaceImage(
+    withFace1(db.selectFrom("printings as p"))
+      .innerJoin("cards as card", "card.id", "pf.cardId")
       .leftJoin("mvCardAggregates as mca", "mca.cardId", "card.id"),
+    "pf.id",
   )
     .select([
       "p.id",
       "card.name as name",
       cardTypesColumn(),
       "card.tags as tags",
-      "p.setId",
-      "p.rarity",
-      "p.finish",
-      "p.shortCode",
-      "p.language",
+      "pf.setId",
+      "pf.rarity",
+      "pf.finish",
+      "pf.shortCode",
+      "pf.language",
       imageId("imgf").as("imageId"),
     ])
     .where("p.id", "in", ids)

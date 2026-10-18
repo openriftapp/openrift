@@ -19,12 +19,13 @@ import {
   imageId,
   imageUrlWithOriginal,
   inTransaction,
-  joinFrontImage,
+  joinFaceImage,
   keysetCursorPredicate,
   offsetPage,
   reorderBySortOrder,
-  requireFrontImage,
+  requireFaceImage,
   selectCopyWithCard,
+  withFace1,
 } from "./query-helpers.js";
 
 const compileDb = new Kysely<Database>({
@@ -62,58 +63,78 @@ describe("imageUrlWithOriginal", () => {
   });
 });
 
-describe("joinFrontImage", () => {
-  it("left-joins the active front image of the p-aliased printing", () => {
-    const { sql, parameters } = joinFrontImage(compileDb.selectFrom("printings as p"))
-      .select(["p.id", imageId("imgf").as("imageId")])
+describe("withFace1", () => {
+  it("inner-joins the first face of the p-aliased printing as pf", () => {
+    const { sql } = withFace1(compileDb.selectFrom("printings as p"))
+      .select(["p.id", "pf.cardId"])
+      .compile();
+
+    expect(sql).toContain('inner join "faces" as "pf" on "pf"."id" = "p"."face1_id"');
+  });
+
+  it("joins off a printing and face under custom aliases", () => {
+    const { sql } = withFace1(compileDb.selectFrom("printings as pr"), "pr", "prf")
+      .select("prf.shortCode")
+      .compile();
+
+    expect(sql).toContain('inner join "faces" as "prf" on "prf"."id" = "pr"."face1_id"');
+  });
+});
+
+describe("joinFaceImage", () => {
+  it("left-joins the active image of the referenced face", () => {
+    const { sql, parameters } = joinFaceImage(compileDb.selectFrom("faces as f"), "f.id")
+      .select(["f.id", imageId("imgf").as("imageId")])
       .compile();
 
     expect(sql).toContain(
-      'left join "printing_images" as "pi" on "pi"."printing_id" = "p"."id" and "pi"."face" = $1 and "pi"."is_active" = $2',
+      'left join "face_images" as "pi" on "pi"."face_id" = "f"."id" and "pi"."is_active" = $1',
     );
     expect(sql).toContain(
       'left join "image_files" as "imgf" on "imgf"."id" = "pi"."image_file_id"',
     );
-    expect(parameters).toEqual(["front", true]);
+    expect(parameters).toEqual([true]);
   });
 
-  it("keeps rows whose printing has no image (left, not inner)", () => {
-    const { sql } = joinFrontImage(compileDb.selectFrom("printings as p")).select("p.id").compile();
+  it("keeps rows whose face has no image (left, not inner)", () => {
+    const { sql } = joinFaceImage(compileDb.selectFrom("faces as f"), "f.id")
+      .select("f.id")
+      .compile();
 
     expect(sql).not.toContain("inner join");
   });
 
-  it("resolves p against a view as readily as the base table", () => {
-    const { sql } = joinFrontImage(compileDb.selectFrom("printingsOrdered as p"))
-      .select("p.id")
+  it("resolves a face reference on the per-side view", () => {
+    const { sql } = joinFaceImage(compileDb.selectFrom("printingSidesOrdered as s"), "s.faceId")
+      .select("s.printingId")
       .compile();
 
-    expect(sql).toContain('from "printings_ordered" as "p"');
-    expect(sql).toContain('"pi"."printing_id" = "p"."id"');
+    expect(sql).toContain('from "printing_sides_ordered" as "s"');
+    expect(sql).toContain('"pi"."face_id" = "s"."face_id"');
   });
 });
 
-describe("requireFrontImage", () => {
-  it("inner-joins the front image off the given printing reference", () => {
-    const { sql, parameters } = requireFrontImage(
-      compileDb.selectFrom("copies as cp"),
-      "cp.printingId",
+describe("requireFaceImage", () => {
+  it("inner-joins the active image off the given face reference", () => {
+    const { sql, parameters } = requireFaceImage(
+      compileDb.selectFrom("printings as p"),
+      "p.face1Id",
     )
-      .select(["cp.id", "imgf.id as imageId"])
+      .select(["p.id", "imgf.id as imageId"])
       .compile();
 
     expect(sql).toContain(
-      'inner join "printing_images" as "pim" on "pim"."printing_id" = "cp"."printing_id" and "pim"."face" = $1 and "pim"."is_active" = $2',
+      'inner join "face_images" as "pim" on "pim"."face_id" = "p"."face1_id" and "pim"."is_active" = $1',
     );
     expect(sql).toContain(
       'inner join "image_files" as "imgf" on "imgf"."id" = "pim"."image_file_id"',
     );
-    expect(parameters).toEqual(["front", true]);
+    expect(parameters).toEqual([true]);
   });
 
-  it("drops rows whose printing has no image (inner, not left)", () => {
-    const { sql } = requireFrontImage(compileDb.selectFrom("copies as cp"), "cp.printingId")
-      .select("cp.id")
+  it("drops rows whose face has no image (inner, not left)", () => {
+    const { sql } = requireFaceImage(compileDb.selectFrom("printings as p"), "p.face1Id")
+      .select("p.id")
       .compile();
 
     expect(sql).not.toContain("left join");
@@ -128,8 +149,9 @@ describe("selectCopyWithCard", () => {
 
     expect(sql).toContain('from "copies" as "cp"');
     expect(sql).toContain('inner join "printings" as "p" on "p"."id" = "cp"."printing_id"');
-    expect(sql).toContain('inner join "cards" as "c" on "c"."id" = "p"."card_id"');
-    expect(sql).toContain('left join "printing_images" as "pi"');
+    expect(sql).toContain('inner join "faces" as "pf" on "pf"."id" = "p"."face1_id"');
+    expect(sql).toContain('inner join "cards" as "c" on "c"."id" = "pf"."card_id"');
+    expect(sql).toContain('left join "face_images" as "pi"');
     expect(sql).toContain('left join "image_files" as "imgf"');
   });
 });
@@ -389,15 +411,5 @@ describe("offsetPage", () => {
     await expect(
       offsetPage(recording.db.selectFrom("jobRuns").select("id"), { limit: 1, offset: 0 }),
     ).rejects.toThrow("db down");
-  });
-});
-
-describe("joinFrontImage alias", () => {
-  it("joins off a printing under a custom alias", () => {
-    const { sql: text } = joinFrontImage(compileDb.selectFrom("printings as pr"), "pr")
-      .select("pr.id")
-      .compile();
-
-    expect(text).toContain('"pi"."printing_id" = "pr"."id"');
   });
 });

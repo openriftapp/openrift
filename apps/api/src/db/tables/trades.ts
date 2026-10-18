@@ -13,7 +13,6 @@ export interface CardTradesTable {
   receiverName: string | null;
   initiator: CardTradeInitiator;
   printingId: string;
-  cardId: string;
   quantity: number;
   status: Generated<CardTradeStatus>;
   receiverWishEntryId: string | null;

@@ -67,11 +67,11 @@ async function findPrintingIdForCard(cardName: string): Promise<string> {
   const sql = loadDb();
   try {
     const rows = (await sql`
-      SELECT p.id
-      FROM printings p
+      SELECT p.printing_id AS id
+      FROM printing_sides_ordered p
       JOIN cards c ON c.id = p.card_id
       WHERE c.name = ${cardName}
-      ORDER BY p.id
+      ORDER BY p.printing_id
       LIMIT 1
     `) as { id: string }[];
     if (rows.length === 0) {

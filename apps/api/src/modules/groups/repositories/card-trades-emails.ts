@@ -63,7 +63,7 @@ export function cardTradeEmailsRepo(db: Kysely<Database>) {
           t.group_id,
           g.slug AS group_slug,
           g.name AS group_name,
-          t.card_id,
+          tpf.card_id,
           t.printing_id,
           t.quantity,
           t.initiator,
@@ -71,6 +71,8 @@ export function cardTradeEmailsRepo(db: Kysely<Database>) {
           (CASE WHEN t.initiator = 'giver' THEN t.giver_user_id ELSE t.receiver_user_id END) AS sender_user_id,
           (CASE WHEN t.initiator = 'giver' THEN t.receiver_user_id ELSE t.giver_user_id END) AS recipient_user_id
         FROM card_trades t
+        JOIN printings tp ON tp.id = t.printing_id
+        JOIN faces tpf ON tpf.id = tp.face1_id
         JOIN friend_groups g ON g.id = t.group_id
         WHERE t.status = 'pending'
           AND t.request_email_sent_at IS NULL
@@ -117,7 +119,7 @@ export function cardTradeEmailsRepo(db: Kysely<Database>) {
           t.group_id,
           g.slug AS group_slug,
           g.name AS group_name,
-          t.card_id,
+          tpf.card_id,
           t.quantity,
           (CASE WHEN t.status = 'reserved' THEN 'reserved' ELSE t.status END) AS event,
           t.last_actor_user_id AS actor_user_id,
@@ -125,6 +127,8 @@ export function cardTradeEmailsRepo(db: Kysely<Database>) {
                 THEN t.receiver_user_id ELSE t.giver_user_id END) AS recipient_user_id,
           t.updated_at AS event_at
         FROM card_trades t
+        JOIN printings tp ON tp.id = t.printing_id
+        JOIN faces tpf ON tpf.id = tp.face1_id
         JOIN friend_groups g ON g.id = t.group_id
         WHERE t.last_actor_user_id IS NOT NULL
           AND (

@@ -3,7 +3,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { imageId, joinFrontImage } from "../../../repositories/query-helpers.js";
+import { imageId, joinFaceImage } from "../../../repositories/query-helpers.js";
 
 const ERRATA_COLUMNS = [
   "announcementId",
@@ -112,9 +112,9 @@ export function cardErrataRepo(db: Kysely<Database>) {
         .innerJoin("mvCardAggregates as mca", "mca.cardId", "cards.id")
         .leftJoinLateral(
           (eb) =>
-            joinFrontImage(
-              eb.selectFrom("printingsOrdered as po").innerJoin("sets", "sets.id", "po.setId"),
-              "po",
+            joinFaceImage(
+              eb.selectFrom("printingSidesOrdered as po").innerJoin("sets", "sets.id", "po.setId"),
+              "po.faceId",
             )
               .select([
                 "po.shortCode",
@@ -130,7 +130,7 @@ export function cardErrataRepo(db: Kysely<Database>) {
               .orderBy(PRINTED_MATCHES_CORRECTED)
               .orderBy("po.canonicalRank")
               .orderBy("po.shortCode")
-              .orderBy("po.id")
+              .orderBy("po.printingId")
               .limit(1)
               .as("p"),
           (join) => join.onTrue(),

@@ -4,6 +4,8 @@ import { createTransact } from "../../../deps.js";
 import type { Io } from "../../../io.js";
 import {
   createDbContext,
+  deletePrintingsByFace,
+  insertPrintings,
   seedTestUser,
   syncCardCardTypes,
 } from "../../../test/integration-context.js";
@@ -65,23 +67,19 @@ describe.skipIf(!ctx)("deleteCard (integration)", () => {
       .values({ cardId, normName: "card admin alias" })
       .execute();
 
-    const [printingRow] = await db
-      .insertInto("printings")
-      .values({
-        cardId,
-        setId,
-        shortCode: "CADM-001",
-        rarity: "common",
-        artVariant: "normal",
-        isSigned: false,
-        finish: "normal",
-        artist: "Test",
-        publicCode: "CADM-001",
-        language: "EN",
-        size: "standard",
-      })
-      .returning("id")
-      .execute();
+    const [printingRow] = await insertPrintings(db, {
+      cardId,
+      setId,
+      shortCode: "CADM-001",
+      rarity: "common",
+      artVariant: "normal",
+      isSigned: false,
+      finish: "normal",
+      artist: "Test",
+      publicCode: "CADM-001",
+      language: "EN",
+      size: "standard",
+    });
     printingId = printingRow!.id;
 
     const [collectionRow] = await db
@@ -111,7 +109,7 @@ describe.skipIf(!ctx)("deleteCard (integration)", () => {
     // the copy, card, and printings.
     await db.deleteFrom("copies").where("id", "=", copyId).execute();
     await db.deleteFrom("collections").where("id", "=", collectionId).execute();
-    await db.deleteFrom("printings").where("cardId", "=", cardId).execute();
+    await deletePrintingsByFace(db, "cardId", "=", cardId);
     await db.deleteFrom("cards").where("id", "=", cardId).execute();
     await db.deleteFrom("sets").where("id", "=", setId).execute();
     await db.deleteFrom("users").where("id", "=", USER_ID).execute();
@@ -153,7 +151,7 @@ describe.skipIf(!ctx)("deleteCard (integration)", () => {
     expect(card).toBeUndefined();
 
     const printings = await db
-      .selectFrom("printings")
+      .selectFrom("faces")
       .select("id")
       .where("cardId", "=", cardId)
       .execute();

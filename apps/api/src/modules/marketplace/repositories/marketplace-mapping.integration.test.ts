@@ -415,7 +415,7 @@ describe.skipIf(!ctx)("marketplaceMappingRepo (integration)", () => {
   describe("variantsForCard", () => {
     it("returns one row per (printing, variant) for the card", async () => {
       const printing = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select(["id", "cardId", "language"])
         .where("id", "=", enPrintingId)
         .executeTakeFirstOrThrow();

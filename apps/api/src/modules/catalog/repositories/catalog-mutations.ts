@@ -12,14 +12,14 @@ import { sql } from "kysely";
 import type { Kysely, Selectable, Updateable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import type { CardsTable, PrintingsTable } from "../../../db/tables/catalog.js";
-import { inTransaction } from "../../../repositories/query-helpers.js";
+import type { CardsTable, FacesTable, PrintingsTable } from "../../../db/tables/catalog.js";
+import { inTransaction, withFace1 } from "../../../repositories/query-helpers.js";
 
 /**
- * The field set the `uq_printings_identity` unique constraint covers — the key
- * `upsertPrinting` matches an existing row on. `findPrintingIdByIdentity` and
- * the upsert share it so a caller checking "does this already exist?" cannot
- * drift from what the upsert actually treats as the same printing.
+ * A single-sided printing's identity: its face's `uq_faces_identity` columns
+ * plus the printing's size. `findPrintingIdByIdentity` and `upsertPrinting`
+ * share it so a caller checking "does this already exist?" cannot drift from
+ * what the upsert actually treats as the same printing.
  */
 export interface PrintingIdentity {
   cardId: string;
@@ -30,53 +30,186 @@ export interface PrintingIdentity {
   language: string;
 }
 
+type FaceFields = Omit<Updateable<FacesTable>, "id" | "createdAt" | "updatedAt" | "comment">;
+
+export type PrintingUpdate = Updateable<PrintingsTable> & FaceFields;
+
+const FACE_FIELDS = new Set<string>([
+  "cardId",
+  "setId",
+  "shortCode",
+  "publicCode",
+  "artVariant",
+  "artist",
+  "printedName",
+  "printedRulesText",
+  "printedEffectText",
+  "flavorText",
+  "language",
+  "rarity",
+  "printedYear",
+  "finish",
+  "isSigned",
+  "isOvernumbered",
+  "markerSlugs",
+  "fallbackArtMode",
+  "fallbackImageFileId",
+] satisfies (keyof FaceFields)[]);
+
+export type FullPrintingRow = Selectable<PrintingsTable> &
+  Omit<Selectable<FacesTable>, "id" | "createdAt" | "updatedAt" | "comment">;
+
+export function selectFullPrintings(db: Kysely<Database>) {
+  return withFace1(db.selectFrom("printings as p"))
+    .selectAll("p")
+    .select([
+      "pf.cardId",
+      "pf.setId",
+      "pf.shortCode",
+      "pf.publicCode",
+      "pf.artVariant",
+      "pf.artist",
+      "pf.printedName",
+      "pf.printedRulesText",
+      "pf.printedEffectText",
+      "pf.flavorText",
+      "pf.language",
+      "pf.rarity",
+      "pf.printedYear",
+      "pf.finish",
+      "pf.isSigned",
+      "pf.isOvernumbered",
+      "pf.markerSlugs",
+      "pf.fallbackArtMode",
+      "pf.fallbackImageFileId",
+    ]);
+}
+
+export async function updatePrintingAndFace1(
+  db: Kysely<Database>,
+  id: string,
+  updates: PrintingUpdate,
+): Promise<void> {
+  const printingUpdates: Record<string, unknown> = {};
+  const faceUpdates: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(updates)) {
+    (FACE_FIELDS.has(key) ? faceUpdates : printingUpdates)[key] = value;
+  }
+  if (Object.keys(printingUpdates).length > 0) {
+    await db.updateTable("printings").set(printingUpdates).where("id", "=", id).execute();
+  }
+  if (Object.keys(faceUpdates).length > 0) {
+    const row = await db
+      .selectFrom("printings")
+      .select("face1Id")
+      .where("id", "=", id)
+      .executeTakeFirst();
+    if (row) {
+      await db.updateTable("faces").set(faceUpdates).where("id", "=", row.face1Id).execute();
+    }
+  }
+}
+
 export function catalogMutationsRepo(db: Kysely<Database>) {
-  function findPrintingIdByIdentity(
-    identity: PrintingIdentity,
+  function findFaceIdByIdentity(
+    identity: Omit<PrintingIdentity, "size">,
   ): Promise<{ id: string } | undefined> {
     return db
-      .selectFrom("printings")
+      .selectFrom("faces")
       .select("id")
       .where("cardId", "=", identity.cardId)
       .where("shortCode", "=", identity.shortCode)
       .where("finish", "=", identity.finish)
-      .where("size", "=", identity.size)
       .where("markerSlugs", "=", sql<string[]>`${[...identity.markerSlugs].sort()}::text[]`)
       .where("language", "=", identity.language)
       .executeTakeFirst();
+  }
+
+  async function findPrintingIdByIdentity(
+    identity: PrintingIdentity,
+  ): Promise<{ id: string } | undefined> {
+    const face = await findFaceIdByIdentity(identity);
+    if (!face) {
+      return undefined;
+    }
+    return db
+      .selectFrom("printings")
+      .select("id")
+      .where("face1Id", "=", face.id)
+      .where("face2Id", "is", null)
+      .where("size", "=", identity.size)
+      .executeTakeFirst();
+  }
+
+  function updatePrintingById(id: string, updates: PrintingUpdate): Promise<void> {
+    return updatePrintingAndFace1(db, id, updates);
+  }
+
+  function facesOnlyOn(printingIds: string[]) {
+    return db
+      .selectFrom("faces as f")
+      .select("f.id")
+      .where((eb) =>
+        eb.and([
+          eb.exists(
+            eb
+              .selectFrom("printings as mine")
+              .select("mine.id")
+              .where("mine.id", "in", printingIds)
+              .where((inner) =>
+                inner.or([
+                  inner("mine.face1Id", "=", inner.ref("f.id")),
+                  inner("mine.face2Id", "=", inner.ref("f.id")),
+                ]),
+              ),
+          ),
+          eb.not(
+            eb.exists(
+              eb
+                .selectFrom("printings as other")
+                .select("other.id")
+                .where("other.id", "not in", printingIds)
+                .where((inner) =>
+                  inner.or([
+                    inner("other.face1Id", "=", inner.ref("f.id")),
+                    inner("other.face2Id", "=", inner.ref("f.id")),
+                  ]),
+                ),
+            ),
+          ),
+        ]),
+      );
   }
 
   return {
     findPrintingIdByIdentity,
 
     getPrintingDifferentiatorsById(id: string) {
-      return db
-        .selectFrom("printings")
+      return withFace1(db.selectFrom("printings as p"))
         .select([
-          "id",
-          "finish",
-          "artVariant",
-          "isSigned",
-          "isOvernumbered",
-          "markerSlugs",
-          "rarity",
+          "p.id",
+          "pf.finish",
+          "pf.artVariant",
+          "pf.isSigned",
+          "pf.isOvernumbered",
+          "pf.markerSlugs",
+          "pf.rarity",
         ])
-        .where("id", "=", id)
+        .where("p.id", "=", id)
         .executeTakeFirst();
     },
 
     getPrintingById(
       id: string,
     ): Promise<{ id: string; shortCode: string; finish: string; language: string } | undefined> {
-      return db
-        .selectFrom("printings")
-        .select(["id", "shortCode", "finish", "language"])
-        .where("id", "=", id)
+      return withFace1(db.selectFrom("printings as p"))
+        .select(["p.id", "pf.shortCode", "pf.finish", "pf.language"])
+        .where("p.id", "=", id)
         .executeTakeFirst();
     },
 
-    getFullPrintingById(id: string): Promise<Selectable<PrintingsTable> | undefined> {
-      return db.selectFrom("printings").selectAll().where("id", "=", id).executeTakeFirst();
+    getFullPrintingById(id: string): Promise<FullPrintingRow | undefined> {
+      return selectFullPrintings(db).where("p.id", "=", id).executeTakeFirst();
     },
 
     getFullCardById(id: string): Promise<Selectable<CardsTable> | undefined> {
@@ -91,7 +224,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
     ): Promise<{ cardId: string } | undefined> {
       const sortedSlugs = [...markerSlugs].sort();
       return db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("cardId")
         .where("shortCode", "=", shortCode)
         .where("finish", "=", finish)
@@ -103,39 +236,43 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
     getSetPrintedTotalForPrinting(
       printingId: string,
     ): Promise<{ printedTotal: number | null } | undefined> {
-      return db
-        .selectFrom("printings")
-        .innerJoin("sets", "sets.id", "printings.setId")
+      return withFace1(db.selectFrom("printings as p"))
+        .innerJoin("sets", "sets.id", "pf.setId")
         .select("sets.printedTotal")
-        .where("printings.id", "=", printingId)
+        .where("p.id", "=", printingId)
         .executeTakeFirst();
     },
 
     getPrintingIdsByCardId(cardId: string): Promise<{ id: string }[]> {
-      return db.selectFrom("printings").select("id").where("cardId", "=", cardId).execute();
+      return db
+        .selectFrom("printingSidesOrdered")
+        .select("printingId as id")
+        .distinct()
+        .where("cardId", "=", cardId)
+        .execute();
     },
 
     getPrintingTextsForCardId(
       cardId: string,
-    ): Promise<Pick<Selectable<PrintingsTable>, "printedRulesText" | "printedEffectText">[]> {
+    ): Promise<Pick<Selectable<FacesTable>, "printedRulesText" | "printedEffectText">[]> {
       return db
-        .selectFrom("printings")
-        .select(["printings.printedRulesText", "printings.printedEffectText"])
-        .where("printings.cardId", "=", cardId)
-        .where("printings.language", "=", WellKnown.language.EN)
+        .selectFrom("faces")
+        .select(["faces.printedRulesText", "faces.printedEffectText"])
+        .where("faces.cardId", "=", cardId)
+        .where("faces.language", "=", WellKnown.language.EN)
         .execute();
     },
 
     getPrintingTextsByCardIds(
       cardIds: string[],
     ): Promise<
-      Pick<Selectable<PrintingsTable>, "cardId" | "printedRulesText" | "printedEffectText">[]
+      Pick<Selectable<FacesTable>, "cardId" | "printedRulesText" | "printedEffectText">[]
     > {
       if (cardIds.length === 0) {
         return Promise.resolve([]);
       }
       return db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select(["cardId", "printedRulesText", "printedEffectText"])
         .where("cardId", "in", cardIds)
         .where("language", "=", WellKnown.language.EN)
@@ -266,40 +403,36 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       return db.deleteFrom("cards").where("id", "=", id).returning("id").executeTakeFirst();
     },
 
-    async updatePrintingById(id: string, updates: Updateable<PrintingsTable>): Promise<void> {
-      await db.updateTable("printings").set(updates).where("id", "=", id).execute();
-    },
+    updatePrintingById,
 
     /**
      * `field` is constrained to a real column so a caller's field allowlist is
-     * checked against `printings` at compile time; `value` stays `unknown`
-     * because callers validate it per-field against the shared field rules.
+     * checked against `printings` and `faces` at compile time; `value` stays
+     * `unknown` because callers validate it per-field against the shared field rules.
      */
     async updatePrintingFieldById(
       id: string,
-      field: keyof Updateable<PrintingsTable> & string,
+      field: keyof PrintingUpdate & string,
       value: unknown,
     ): Promise<void> {
-      await db
-        .updateTable("printings")
-        .set({ [field]: value })
+      await updatePrintingById(id, { [field]: value });
+    },
+
+    async deletePrintingById(id: string): Promise<{ id: string } | undefined> {
+      const orphans = await facesOnlyOn([id]).execute();
+      const orphanFaces = orphans.map((face) => face.id);
+      const deleted = await db
+        .deleteFrom("printings")
         .where("id", "=", id)
-        .execute();
+        .returning("id")
+        .executeTakeFirst();
+      if (deleted && orphanFaces.length > 0) {
+        await db.deleteFrom("faces").where("id", "in", orphanFaces).execute();
+      }
+      return deleted;
     },
 
-    deletePrintingById(id: string): Promise<{ id: string } | undefined> {
-      return db.deleteFrom("printings").where("id", "=", id).returning("id").executeTakeFirst();
-    },
-
-    /**
-     * `markerSlugs` is set on the printing directly; callers are responsible
-     * for syncing the `printing_markers` join afterwards (the maintenance
-     * trigger keeps marker_slugs canonical once the join is populated).
-     *
-     * Manual select-then-insert/update because the matching unique constraint
-     * (`uq_printings_identity`) is DEFERRABLE INITIALLY DEFERRED and Postgres
-     * rejects deferrable constraints as ON CONFLICT arbiters.
-     */
+    // Select-then-write: the identity constraints are DEFERRABLE, which ON CONFLICT rejects as arbiters.
     async upsertPrinting(values: {
       cardId: string;
       setId: string;
@@ -320,11 +453,12 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       printedName: string | null;
       printedYear: number | null;
     }): Promise<string> {
-      const sortedSlugs = [...values.markerSlugs].sort();
-      const existing = await findPrintingIdByIdentity(values);
-      if (existing) {
+      const { size, ...faceValues } = values;
+      const existingFace = await findFaceIdByIdentity(values);
+      let faceId: string;
+      if (existingFace) {
         await db
-          .updateTable("printings")
+          .updateTable("faces")
           .set({
             artist: values.artist,
             publicCode: values.publicCode,
@@ -334,13 +468,30 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
             printedName: values.printedName,
             printedYear: values.printedYear,
           })
-          .where("id", "=", existing.id)
+          .where("id", "=", existingFace.id)
           .execute();
+        faceId = existingFace.id;
+      } else {
+        const inserted = await db
+          .insertInto("faces")
+          .values(faceValues)
+          .returning("id")
+          .executeTakeFirstOrThrow();
+        faceId = inserted.id;
+      }
+      const existing = await db
+        .selectFrom("printings")
+        .select("id")
+        .where("face1Id", "=", faceId)
+        .where("face2Id", "is", null)
+        .where("size", "=", size)
+        .executeTakeFirst();
+      if (existing) {
         return existing.id;
       }
       const result = await db
         .insertInto("printings")
-        .values({ ...values, markerSlugs: sortedSlugs })
+        .values({ face1Id: faceId, size })
         .returning("id")
         .executeTakeFirstOrThrow();
       return result.id;
@@ -348,8 +499,8 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
 
     deletePrintingImagesByPrintingId(printingId: string): Promise<{ imageFileId: string }[]> {
       return db
-        .deleteFrom("printingImages")
-        .where("printingId", "=", printingId)
+        .deleteFrom("faceImages")
+        .where("faceId", "in", facesOnlyOn([printingId]))
         .returning("imageFileId")
         .execute();
     },
@@ -365,10 +516,10 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
     },
 
     async isImageFileReferenced(imageFileId: string): Promise<boolean> {
-      // Must count both a printing's own scan and its substitute-art pin by another printing,
+      // Must count both a face's own scan and its substitute-art pin by another face,
       // or the orphan sweep deletes a file still on screen.
       const result = await db
-        .selectFrom("printingImages")
+        .selectFrom("faceImages")
         .select((eb) => eb.fn.countAll<number>().as("count"))
         .where("imageFileId", "=", imageFileId)
         .executeTakeFirstOrThrow();
@@ -376,7 +527,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
         return true;
       }
       const pin = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("id")
         .where("fallbackImageFileId", "=", imageFileId)
         .limit(1)

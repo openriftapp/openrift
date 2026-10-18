@@ -168,8 +168,11 @@ describe("buildCatalogSync", () => {
 
     expect(rows.sets).toEqual([expect.objectContaining({ id: SET_ID, slug: "TST", sortOrder: 0 })]);
     expect(rows.cards).toEqual([expect.objectContaining({ id: CARD_ID, slug: "test-unit" })]);
-    expect(rows.printings).toEqual([
+    expect(rows.faces).toEqual([
       expect.objectContaining({ id: PRINTING_ID, cardId: CARD_ID, setId: SET_ID }),
+    ]);
+    expect(rows.printings).toEqual([
+      expect.objectContaining({ id: PRINTING_ID, face1Id: PRINTING_ID }),
     ]);
   });
 
@@ -207,10 +210,10 @@ describe("buildCatalogSync", () => {
         credit: null,
       },
     ]);
-    expect(rows.printingImages).toEqual([
-      { printingId: PRINTING_ID, imageFileId: IMAGE_ID, face: "front", isActive: true },
+    expect(rows.faceImages).toEqual([
+      { faceId: PRINTING_ID, imageFileId: IMAGE_ID, isActive: true },
     ]);
-    expect(rows.printings[0]).toMatchObject({
+    expect(rows.faces[0]).toMatchObject({
       fallbackArtMode: "pinned",
       fallbackImageFileId: FALLBACK_IMAGE_ID,
       markerSlugs: ["promo"],
@@ -222,7 +225,7 @@ describe("buildCatalogSync", () => {
     const rows = buildCatalogSync(makeInit(), catalog);
 
     expect(rows.imageFiles.filter((file) => file.id === IMAGE_ID)).toHaveLength(1);
-    expect(rows.printingImages).toHaveLength(2);
+    expect(rows.faceImages).toHaveLength(2);
   });
 
   it("defaults the fallback art mode to auto", () => {
@@ -232,7 +235,7 @@ describe("buildCatalogSync", () => {
       makeCatalog({ printings: { [PRINTING_ID]: printing } }),
     );
 
-    expect(rows.printings[0]).toMatchObject({ fallbackArtMode: "auto", fallbackImageFileId: null });
+    expect(rows.faces[0]).toMatchObject({ fallbackArtMode: "auto", fallbackImageFileId: null });
   });
 
   it("orders distribution channels parents first and links children by slug", () => {

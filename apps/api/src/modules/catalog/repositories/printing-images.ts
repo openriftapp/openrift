@@ -1,12 +1,44 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
 import type { CardFace, FallbackArtMode } from "@openrift/shared/types/enums";
-import type { Kysely } from "kysely";
+import type { Kysely, RawBuilder } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 
+function printingFaceId(printingId: string, face: CardFace): RawBuilder<string | null> {
+  return sql<string | null>`(
+    SELECT CASE WHEN ${face} = 'back' THEN p.face2_id ELSE p.face1_id END
+    FROM printings p WHERE p.id = ${printingId}
+  )`;
+}
+
+const IMAGE_PRINTING_ID = sql<string>`(
+  SELECT p.id FROM printings p
+  WHERE p.face1_id = fi.face_id OR p.face2_id = fi.face_id
+  ORDER BY (p.face1_id = fi.face_id) DESC, p.id
+  LIMIT 1
+)`;
+
+const IMAGE_FACE = sql<CardFace>`(
+  SELECT CASE WHEN p.face1_id = fi.face_id THEN 'front' ELSE 'back' END
+  FROM printings p
+  WHERE p.face1_id = fi.face_id OR p.face2_id = fi.face_id
+  ORDER BY (p.face1_id = fi.face_id) DESC, p.id
+  LIMIT 1
+)`;
+
 export function printingImagesRepo(db: Kysely<Database>) {
+  async function requireFaceId(printingId: string, face: CardFace): Promise<string> {
+    const row = await db
+      .selectNoFrom(printingFaceId(printingId, face).as("faceId"))
+      .executeTakeFirstOrThrow();
+    if (!row.faceId) {
+      throw new Error(`printing ${printingId} has no ${face} side`);
+    }
+    return row.faceId;
+  }
+
   /** `ON CONFLICT`'s `where` must match `idx_image_files_original_url`'s partial predicate. */
   async function findOrCreateImageFile(originalUrl: string): Promise<string> {
     const inserted = await db
@@ -32,9 +64,9 @@ export function printingImagesRepo(db: Kysely<Database>) {
         return new Set();
       }
       const rows = await db
-        .selectFrom("printingImages as pi")
-        .innerJoin("printings as p", "p.id", "pi.printingId")
-        .innerJoin("cards as c", "c.id", "p.cardId")
+        .selectFrom("faceImages as pi")
+        .innerJoin("faces as f", "f.id", "pi.faceId")
+        .innerJoin("cards as c", "c.id", "f.cardId")
         .select(["pi.imageFileId", "c.type"])
         .where("pi.imageFileId", "in", [...imageIds])
         .distinct()
@@ -50,10 +82,10 @@ export function printingImagesRepo(db: Kysely<Database>) {
       imageId: string,
     ): Promise<{ id: string; printingId: string; rehostedUrl: string | null } | undefined> {
       return db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as imgf", "imgf.id", "printingImages.imageFileId")
-        .select(["printingImages.id", "printingImages.printingId", "imgf.rehostedUrl"])
-        .where("printingImages.id", "=", imageId)
+        .selectFrom("faceImages as fi")
+        .innerJoin("imageFiles as imgf", "imgf.id", "fi.imageFileId")
+        .select(["fi.id", IMAGE_PRINTING_ID.as("printingId"), "imgf.rehostedUrl"])
+        .where("fi.id", "=", imageId)
         .executeTakeFirst();
     },
 
@@ -61,35 +93,35 @@ export function printingImagesRepo(db: Kysely<Database>) {
       imageId: string,
     ): Promise<{ id: string; rehostedUrl: string | null; originalUrl: string | null } | undefined> {
       return db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as imgf", "imgf.id", "printingImages.imageFileId")
-        .select(["printingImages.id", "imgf.rehostedUrl", "imgf.originalUrl"])
-        .where("printingImages.id", "=", imageId)
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as imgf", "imgf.id", "faceImages.imageFileId")
+        .select(["faceImages.id", "imgf.rehostedUrl", "imgf.originalUrl"])
+        .where("faceImages.id", "=", imageId)
         .executeTakeFirst();
     },
 
     getForActivate(imageId: string) {
       return db
-        .selectFrom("printingImages")
-        .select(["printingImages.id", "printingImages.printingId", "printingImages.face"])
-        .where("printingImages.id", "=", imageId)
+        .selectFrom("faceImages as fi")
+        .select(["fi.id", IMAGE_PRINTING_ID.as("printingId"), IMAGE_FACE.as("face")])
+        .where("fi.id", "=", imageId)
         .executeTakeFirst();
     },
 
     getForRehost(imageId: string) {
       return db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as imgf", "imgf.id", "printingImages.imageFileId")
+        .selectFrom("faceImages as fi")
+        .innerJoin("imageFiles as imgf", "imgf.id", "fi.imageFileId")
         .select([
-          "printingImages.id",
-          "printingImages.printingId",
-          "printingImages.imageFileId",
+          "fi.id",
+          IMAGE_PRINTING_ID.as("printingId"),
+          "fi.imageFileId",
           "imgf.originalUrl",
           "imgf.rotation",
           "imgf.needsTrim",
           "imgf.quad",
         ])
-        .where("printingImages.id", "=", imageId)
+        .where("fi.id", "=", imageId)
         .executeTakeFirst();
     },
 
@@ -134,12 +166,12 @@ export function printingImagesRepo(db: Kysely<Database>) {
     },
 
     async deleteById(imageId: string): Promise<void> {
-      await db.deleteFrom("printingImages").where("id", "=", imageId).execute();
+      await db.deleteFrom("faceImages").where("id", "=", imageId).execute();
     },
 
     async getImageFileId(imageId: string): Promise<string | undefined> {
       const row = await db
-        .selectFrom("printingImages")
+        .selectFrom("faceImages")
         .select("imageFileId")
         .where("id", "=", imageId)
         .executeTakeFirst();
@@ -176,38 +208,42 @@ export function printingImagesRepo(db: Kysely<Database>) {
 
     async setActive(imageId: string, active: boolean): Promise<void> {
       await db
-        .updateTable("printingImages")
+        .updateTable("faceImages")
         .set({ isActive: active })
         .where("id", "=", imageId)
         .execute();
     },
 
-    /** Keeps the active flag unless the target face already has an active image. */
     async setFace(imageId: string, face: CardFace): Promise<void> {
+      const image = await db
+        .selectFrom("faceImages as fi")
+        .select(["fi.faceId", IMAGE_PRINTING_ID.as("printingId")])
+        .where("fi.id", "=", imageId)
+        .executeTakeFirstOrThrow();
+      const targetFaceId = await requireFaceId(image.printingId, face);
+      if (targetFaceId === image.faceId) {
+        return;
+      }
       await db
-        .updateTable("printingImages")
+        .updateTable("faceImages")
         .set({
-          face,
+          faceId: targetFaceId,
           isActive: sql<boolean>`is_active AND NOT EXISTS (
-            SELECT 1 FROM printing_images other
-            WHERE other.printing_id = printing_images.printing_id
-              AND other.face = ${face}
+            SELECT 1 FROM face_images other
+            WHERE other.face_id = ${targetFaceId}
               AND other.is_active
-              AND other.id <> printing_images.id
+              AND other.id <> face_images.id
           )`,
         })
         .where("id", "=", imageId)
-        .where("face", "!=", face)
         .execute();
     },
 
-    /** One active image per printing and face, which is what `idx_printing_images_active` enforces. */
     async deactivateActiveFace(printingId: string, face: CardFace = "front"): Promise<void> {
       await db
-        .updateTable("printingImages")
+        .updateTable("faceImages")
         .set({ isActive: false })
-        .where("printingId", "=", printingId)
-        .where("face", "=", face)
+        .where("faceId", "=", await requireFaceId(printingId, face))
         .where("isActive", "=", true)
         .execute();
     },
@@ -229,10 +265,9 @@ export function printingImagesRepo(db: Kysely<Database>) {
       }
 
       const row = await db
-        .insertInto("printingImages")
+        .insertInto("faceImages")
         .values({
-          printingId,
-          face,
+          faceId: await requireFaceId(printingId, face),
           imageFileId,
           isActive: mode === "main",
         })
@@ -266,11 +301,10 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .execute();
 
       await db
-        .insertInto("printingImages")
+        .insertInto("faceImages")
         .values({
           id: values.id,
-          printingId: values.printingId,
-          face,
+          faceId: await requireFaceId(values.printingId, face),
           isActive: values.mode === "main",
           imageFileId: values.id,
         })
@@ -289,7 +323,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
 
     listUnrehosted(limit: number) {
       return db
-        .selectFrom("printingImages as pi")
+        .selectFrom("faceImages as pi")
         .innerJoin("imageFiles as imgf", "imgf.id", "pi.imageFileId")
         .select([
           "imgf.id as imageId",
@@ -298,7 +332,6 @@ export function printingImagesRepo(db: Kysely<Database>) {
           "imgf.needsTrim",
           "imgf.quad",
         ])
-        .where("pi.face", "=", "front")
         .where("imgf.rehostedUrl", "is", null)
         .where("imgf.originalUrl", "is not", null)
         .groupBy(["imgf.id", "imgf.originalUrl", "imgf.rotation", "imgf.needsTrim", "imgf.quad"])
@@ -308,11 +341,9 @@ export function printingImagesRepo(db: Kysely<Database>) {
 
     rehostStatusBySet() {
       return db
-        .selectFrom("printings")
-        .innerJoin("sets", "sets.id", "printings.setId")
-        .leftJoin("printingImages as pi", (jb) =>
-          jb.onRef("pi.printingId", "=", "printings.id").on("pi.face", "=", "front"),
-        )
+        .selectFrom("faces")
+        .innerJoin("sets", "sets.id", "faces.setId")
+        .leftJoin("faceImages as pi", "pi.faceId", "faces.id")
         .leftJoin("imageFiles as imgf", "imgf.id", "pi.imageFileId")
         .select([
           "sets.slug as setId",
@@ -379,14 +410,14 @@ export function printingImagesRepo(db: Kysely<Database>) {
 
     /**
      * Guards file deletion: disk files are only removed when no *other*
-     * printing image still points at the same image_file.
+     * face image still points at the same image_file.
      */
     async countOthersByImageFileId(
       imageFileId: string,
       excludePrintingImageId: string,
     ): Promise<number> {
       const result = await db
-        .selectFrom("printingImages")
+        .selectFrom("faceImages")
         .select((eb) => eb.fn.countAll<number>().as("count"))
         .where("imageFileId", "=", imageFileId)
         .where("id", "!=", excludePrintingImageId)
@@ -397,8 +428,8 @@ export function printingImagesRepo(db: Kysely<Database>) {
     listAllRehostedWithContext() {
       return db
         .selectFrom("imageFiles as imgf")
-        .innerJoin("printingImages as pi", "pi.imageFileId", "imgf.id")
-        .innerJoin("printings as p", "p.id", "pi.printingId")
+        .innerJoin("faceImages as pi", "pi.imageFileId", "imgf.id")
+        .innerJoin("faces as p", "p.id", "pi.faceId")
         .innerJoin("sets as s", "s.id", "p.setId")
         .innerJoin("cards as c", "c.id", "p.cardId")
         .select([
@@ -445,14 +476,14 @@ export function printingImagesRepo(db: Kysely<Database>) {
     },
 
     /**
-     * How many printings pin this image file as their substitute art.
-     * Deleting a printing image consults this before removing the files behind
-     * it: the `printing_images` row is going, but a pin on the same
+     * How many faces pin this image file as their substitute art.
+     * Deleting a face image consults this before removing the files behind
+     * it: the `face_images` row is going, but a pin on the same
      * `image_files` row keeps the file on screen somewhere else.
      */
     async countPinsByImageFileId(imageFileId: string): Promise<number> {
       const row = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select((eb) => eb.fn.countAll<number>().as("count"))
         .where("fallbackImageFileId", "=", imageFileId)
         .executeTakeFirstOrThrow();
@@ -469,32 +500,32 @@ export function printingImagesRepo(db: Kysely<Database>) {
       | undefined
     > {
       return db
-        .selectFrom("printings")
-        .select(["id", "shortCode", "fallbackArtMode", "fallbackImageFileId"])
-        .where("id", "=", printingId)
+        .selectFrom("printings as p")
+        .innerJoin("faces as f", "f.id", "p.face1Id")
+        .select(["p.id", "f.shortCode", "f.fallbackArtMode", "f.fallbackImageFileId"])
+        .where("p.id", "=", printingId)
         .executeTakeFirst();
     },
 
-    /** `chk_printings_fallback_pinned_has_image` requires mode and file to agree; write both together. */
     async setFallbackArt(
       printingId: string,
       mode: FallbackArtMode,
       imageFileId: string | null,
     ): Promise<void> {
       await db
-        .updateTable("printings")
+        .updateTable("faces")
         .set({
           fallbackArtMode: mode,
           fallbackImageFileId: mode === "pinned" ? imageFileId : null,
         })
-        .where("id", "=", printingId)
+        .where("id", "=", await requireFaceId(printingId, "front"))
         .execute();
     },
 
     /**
-     * Shares {@link findOrCreateImageFile} with the printing-image path, so
-     * pinning art already stored under another printing reuses that row instead
-     * of duplicating the file.
+     * Shares {@link findOrCreateImageFile} with the face-image path, so pinning
+     * art already stored under another face reuses that row instead of
+     * duplicating the file.
      */
     imageFileForUrl(originalUrl: string): Promise<string> {
       return findOrCreateImageFile(originalUrl);
@@ -514,8 +545,8 @@ export function printingImagesRepo(db: Kysely<Database>) {
 
     /**
      * The unattached row is the point: a file pinned as substitute art is not a
-     * scan of the printing that shows it, and giving it a `printing_images` row
-     * would make the printing look scanned to the missing-images report, the
+     * scan of the face that shows it, and giving it a `face_images` row
+     * would make the face look scanned to the missing-images report, the
      * contribute prompt and the catalog alike. Same id-equals-path-basename rule
      * as {@link insertUploadedImage}, which `regenerateFromOrig` depends on.
      */
@@ -546,8 +577,8 @@ export function printingImagesRepo(db: Kysely<Database>) {
 
     /**
      * Delete orphaned image_files rows that nothing references — neither a
-     * printing_images row nor a printing's pinned fallback art. A pinned file
-     * usually *is* some printing's image too, but one uploaded purely as a
+     * face_images row nor a face's pinned fallback art. A pinned file
+     * usually *is* some face's image too, but one uploaded purely as a
      * substitute is not, and it is exactly as live as any other.
      */
     async deleteOrphanedImageFiles(): Promise<number> {
@@ -557,9 +588,9 @@ export function printingImagesRepo(db: Kysely<Database>) {
           eb.not(
             eb.exists(
               eb
-                .selectFrom("printingImages")
-                .select("printingImages.id")
-                .whereRef("printingImages.imageFileId", "=", "imageFiles.id"),
+                .selectFrom("faceImages")
+                .select("faceImages.id")
+                .whereRef("faceImages.imageFileId", "=", "imageFiles.id"),
             ),
           ),
         )
@@ -567,9 +598,9 @@ export function printingImagesRepo(db: Kysely<Database>) {
           eb.not(
             eb.exists(
               eb
-                .selectFrom("printings")
-                .select("printings.id")
-                .whereRef("printings.fallbackImageFileId", "=", "imageFiles.id"),
+                .selectFrom("faces")
+                .select("faces.id")
+                .whereRef("faces.fallbackImageFileId", "=", "imageFiles.id"),
             ),
           ),
         )

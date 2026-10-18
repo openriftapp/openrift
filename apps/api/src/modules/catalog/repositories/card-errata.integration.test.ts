@@ -1,6 +1,11 @@
 import { afterAll, describe, expect, it } from "vitest";
 
-import { createDbContext, refreshCardAggregates } from "../../../test/integration-context.js";
+import {
+  createDbContext,
+  deletePrintingsByFace,
+  insertPrintings,
+  refreshCardAggregates,
+} from "../../../test/integration-context.js";
 import { cardErrataRepo } from "./card-errata.js";
 import { catalogCardsRepo } from "./catalog-cards.js";
 
@@ -24,26 +29,23 @@ async function seedCard(name: string, slug: string): Promise<string> {
 }
 
 async function seedPrinting(cardId: string, shortCode: string, printedRulesText: string) {
-  await ctx!.db
-    .insertInto("printings")
-    .values({
-      cardId,
-      setId,
-      shortCode,
-      rarity: "common",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "normal",
-      size: "standard",
-      artist: "ERA Artist",
-      publicCode: shortCode,
-      printedRulesText,
-      printedEffectText: null,
-      flavorText: null,
-      comment: null,
-      language: "EN",
-    })
-    .execute();
+  await insertPrintings(ctx!.db, {
+    cardId,
+    setId,
+    shortCode,
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "normal",
+    size: "standard",
+    artist: "ERA Artist",
+    publicCode: shortCode,
+    printedRulesText,
+    printedEffectText: null,
+    flavorText: null,
+    comment: null,
+    language: "EN",
+  });
 }
 
 if (ctx) {
@@ -88,7 +90,7 @@ if (ctx) {
   afterAll(async () => {
     await db.deleteFrom("cardErrata").where("cardId", "in", [announcedId, unannouncedId]).execute();
     await db.deleteFrom("errataAnnouncements").where("id", "=", announcementId).execute();
-    await db.deleteFrom("printings").where("setId", "=", setId).execute();
+    await deletePrintingsByFace(db, "setId", "=", setId);
     await db.deleteFrom("cards").where("id", "in", [announcedId, unannouncedId]).execute();
     await db.deleteFrom("sets").where("id", "=", setId).execute();
     await refreshCardAggregates(db);

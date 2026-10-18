@@ -7,7 +7,7 @@ import { catalogRepo } from "./catalog.js";
 const ctx = createDbContext("a0000000-0041-4000-a000-000000000001");
 
 /**
- * `printings_ordered` coalesces an unranked printing to this. Other parallel
+ * `printing_sides_ordered` coalesces an unranked printing to this. Other parallel
  * integration files insert printings after the once-per-run view refresh.
  */
 const UNRANKED_SENTINEL = 2_147_483_647;
@@ -149,11 +149,11 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
       return;
     }
     const rows = await db
-      .selectFrom("printingImages")
-      .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-      .innerJoin("printings", "printings.id", "printingImages.printingId")
-      .innerJoin("cards", "cards.id", "printings.cardId")
-      .select(["ci.id as imageId", "cards.name as name", "printings.shortCode as shortCode"])
+      .selectFrom("faceImages")
+      .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
+      .innerJoin("faces", "faces.id", "faceImages.faceId")
+      .innerJoin("cards", "cards.id", "faces.cardId")
+      .select(["ci.id as imageId", "cards.name as name", "faces.shortCode as shortCode"])
       .execute();
     const byImageId = new Map(rows.map((r) => [r.imageId, r]));
     for (const thumb of summary.thumbnails) {
@@ -185,7 +185,8 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
       for (const printing of section.printings) {
         const link = await db
           .selectFrom("printingDistributionChannels as pdc")
-          .innerJoin("printings as p", "p.id", "pdc.printingId")
+          .innerJoin("printings as pr", "pr.id", "pdc.printingId")
+          .innerJoin("faces as p", "p.id", "pr.face1Id")
           .select("p.shortCode")
           .where("pdc.channelId", "in", channelIds)
           .where("p.shortCode", "=", printing.shortCode)
@@ -232,13 +233,12 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
       return;
     }
     const battlefieldRows = await db
-      .selectFrom("printingImages")
-      .innerJoin("printings", "printings.id", "printingImages.printingId")
-      .innerJoin("cards", "cards.id", "printings.cardId")
-      .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
+      .selectFrom("faceImages")
+      .innerJoin("faces", "faces.id", "faceImages.faceId")
+      .innerJoin("cards", "cards.id", "faces.cardId")
+      .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
       .select(["ci.id as imageId"])
-      .where("printingImages.face", "=", "front")
-      .where("printingImages.isActive", "=", true)
+      .where("faceImages.isActive", "=", true)
       .where("ci.rehostedUrl", "is not", null)
       .where("cards.type", "=", "battlefield")
       .execute();
@@ -254,14 +254,13 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
       return;
     }
     const nonEnglishRows = await db
-      .selectFrom("printingImages")
-      .innerJoin("printings", "printings.id", "printingImages.printingId")
-      .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
+      .selectFrom("faceImages")
+      .innerJoin("faces", "faces.id", "faceImages.faceId")
+      .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
       .select(["ci.id as imageId"])
-      .where("printingImages.face", "=", "front")
-      .where("printingImages.isActive", "=", true)
+      .where("faceImages.isActive", "=", true)
       .where("ci.rehostedUrl", "is not", null)
-      .where("printings.language", "!=", "EN")
+      .where("faces.language", "!=", "EN")
       .execute();
     const nonEnglishImageIds = new Set(nonEnglishRows.map((r) => r.imageId));
     for (const thumb of summary.thumbnails) {
@@ -275,16 +274,15 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
       return;
     }
     const legendRows = await db
-      .selectFrom("printingImages")
-      .innerJoin("printings", "printings.id", "printingImages.printingId")
-      .innerJoin("cards", "cards.id", "printings.cardId")
-      .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
+      .selectFrom("faceImages")
+      .innerJoin("faces", "faces.id", "faceImages.faceId")
+      .innerJoin("cards", "cards.id", "faces.cardId")
+      .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
       .select(["ci.id as imageId"])
-      .where("printingImages.face", "=", "front")
-      .where("printingImages.isActive", "=", true)
+      .where("faceImages.isActive", "=", true)
       .where("ci.rehostedUrl", "is not", null)
       .where("cards.type", "=", "legend")
-      .where("printings.language", "=", "EN")
+      .where("faces.language", "=", "EN")
       .execute();
     const legendImageIds = new Set(legendRows.map((r) => r.imageId));
     for (const id of ids) {
@@ -298,10 +296,10 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
       return;
     }
     const cardRows = await db
-      .selectFrom("printingImages")
-      .innerJoin("printings", "printings.id", "printingImages.printingId")
-      .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-      .select(["ci.id as imageId", "printings.cardId as cardId"])
+      .selectFrom("faceImages")
+      .innerJoin("faces", "faces.id", "faceImages.faceId")
+      .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
+      .select(["ci.id as imageId", "faces.cardId as cardId"])
       .where("ci.id", "in", ids)
       .execute();
     const cardIds = cardRows.map((r) => r.cardId);

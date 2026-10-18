@@ -671,7 +671,6 @@ describe.skipIf(!ctx)("friendGroupsRepo (integration)", () => {
         receiverUserId: OUTSIDER_ID,
         initiator: "giver",
         printingId: PRINTING_1.id,
-        cardId: CARD_FURY_UNIT.id,
         quantity: 1,
         status: "pending",
         // A CHECK constraint requires a TTL on every pending trade.

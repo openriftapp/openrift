@@ -148,7 +148,7 @@ export function setsRepo(db: Kysely<Database>) {
 
     async cardCount(setId: string): Promise<number> {
       const { count } = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select((eb) => eb.cast<number>(eb.fn.count("cardId").distinct(), "integer").as("count"))
         .where("setId", "=", setId)
         .executeTakeFirstOrThrow();
@@ -157,8 +157,10 @@ export function setsRepo(db: Kysely<Database>) {
 
     async printingCount(setId: string): Promise<number> {
       const { count } = await db
-        .selectFrom("printings")
-        .select((eb) => eb.cast<number>(eb.fn.countAll(), "integer").as("count"))
+        .selectFrom("printingSidesOrdered")
+        .select((eb) =>
+          eb.cast<number>(eb.fn.count("printingId").distinct(), "integer").as("count"),
+        )
         .where("setId", "=", setId)
         .executeTakeFirstOrThrow();
       return count;
@@ -166,7 +168,7 @@ export function setsRepo(db: Kysely<Database>) {
 
     cardCountsBySet(): Promise<{ setId: string; cardCount: number }[]> {
       return db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select((eb) => [
           "setId" as const,
           eb.cast<number>(eb.fn.count("cardId").distinct(), "integer").as("cardCount"),
@@ -177,10 +179,10 @@ export function setsRepo(db: Kysely<Database>) {
 
     printingCountsBySet(): Promise<{ setId: string; printingCount: number }[]> {
       return db
-        .selectFrom("printings")
+        .selectFrom("printingSidesOrdered")
         .select((eb) => [
           "setId" as const,
-          eb.cast<number>(eb.fn.countAll(), "integer").as("printingCount"),
+          eb.cast<number>(eb.fn.count("printingId").distinct(), "integer").as("printingCount"),
         ])
         .groupBy("setId")
         .execute();

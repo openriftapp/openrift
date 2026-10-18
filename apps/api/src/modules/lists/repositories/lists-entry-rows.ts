@@ -9,9 +9,10 @@ import type { PrintingDetail } from "../../../repositories/query-helpers.js";
 import {
   cardTypesColumn,
   imageId,
-  joinFrontImage,
+  joinFaceImage,
   printingDetailsByIds,
   selectCopyWithCard,
+  withFace1,
 } from "../../../repositories/query-helpers.js";
 import type { ListEntryRow } from "./lists-shared.js";
 import { tradeOverrideFromRow } from "./lists-shared.js";
@@ -175,11 +176,11 @@ async function copyDetailsByIds(
       "c.name as name",
       cardTypesColumn(),
       "c.tags as tags",
-      "p.setId",
-      "p.rarity",
-      "p.finish",
-      "p.shortCode",
-      "p.language",
+      "pf.setId",
+      "pf.rarity",
+      "pf.finish",
+      "pf.shortCode",
+      "pf.language",
       imageId("imgf").as("imageId"),
       "ctc.copyId as reservedByTradeCopyId",
       "lc.copyId as pinnedByLoanCopyId",
@@ -249,12 +250,13 @@ async function printingEntryQuery(
   db: Kysely<Database>,
   scope: { listId: string; userId?: string },
 ): Promise<ListEntryRow[]> {
-  let q = joinFrontImage(
-    db
-      .selectFrom("listEntries as le")
-      .innerJoin("printings as p", "p.id", "le.printingId")
-      .innerJoin("cards as card", "card.id", "p.cardId")
+  let q = joinFaceImage(
+    withFace1(
+      db.selectFrom("listEntries as le").innerJoin("printings as p", "p.id", "le.printingId"),
+    )
+      .innerJoin("cards as card", "card.id", "pf.cardId")
       .leftJoin("mvCardAggregates as mca", "mca.cardId", "card.id"),
+    "pf.id",
   ).where("le.listId", "=", scope.listId);
   if (scope.userId !== undefined) {
     q = q.where("le.userId", "=", scope.userId);
@@ -271,11 +273,11 @@ async function printingEntryQuery(
       "card.name as name",
       cardTypesColumn(),
       "card.tags as tags",
-      "p.setId",
-      "p.rarity",
-      "p.finish",
-      "p.shortCode",
-      "p.language",
+      "pf.setId",
+      "pf.rarity",
+      "pf.finish",
+      "pf.shortCode",
+      "pf.language",
       imageId("imgf").as("imageId"),
     ])
     .execute();
@@ -302,13 +304,16 @@ async function copyEntryQuery(
   db: Kysely<Database>,
   scope: { listId: string; userId?: string },
 ): Promise<ListEntryRow[]> {
-  let q = joinFrontImage(
-    db
-      .selectFrom("listEntries as le")
-      .innerJoin("copies as cp", "cp.id", "le.copyId")
-      .innerJoin("printings as p", "p.id", "cp.printingId")
-      .innerJoin("cards as card", "card.id", "p.cardId")
+  let q = joinFaceImage(
+    withFace1(
+      db
+        .selectFrom("listEntries as le")
+        .innerJoin("copies as cp", "cp.id", "le.copyId")
+        .innerJoin("printings as p", "p.id", "cp.printingId"),
+    )
+      .innerJoin("cards as card", "card.id", "pf.cardId")
       .leftJoin("mvCardAggregates as mca", "mca.cardId", "card.id"),
+    "pf.id",
   )
     // UNIQUE copy_id: at most one live trade per copy, so this join can't multiply rows.
     .leftJoin("cardTradeCopies as ctc", "ctc.copyId", "cp.id")
@@ -330,11 +335,11 @@ async function copyEntryQuery(
       "card.name as name",
       cardTypesColumn(),
       "card.tags as tags",
-      "p.setId",
-      "p.rarity",
-      "p.finish",
-      "p.shortCode",
-      "p.language",
+      "pf.setId",
+      "pf.rarity",
+      "pf.finish",
+      "pf.shortCode",
+      "pf.language",
       imageId("imgf").as("imageId"),
       "cp.collectionId",
       "cp.printingId",

@@ -37,7 +37,6 @@ import {
   tournamentStatusSchema,
 } from "@openrift/shared/contracts/tournaments";
 import {
-  cardFaceSchema,
   currencyResponseSchema,
   deckCheckEntryStateSchema,
   deckCheckMatchStatusSchema,
@@ -132,8 +131,7 @@ const ENUM_CHECKS: Record<string, readonly string[]> = {
   chk_pod_rounds_status: podRoundStatusSchema.options,
   chk_pods_result_status: podResultStatusSchema.options,
   chk_printing_events_status: printingEventStatusSchema.options,
-  chk_printing_images_face: cardFaceSchema.options,
-  chk_printings_fallback_art_mode: fallbackArtModeSchema.options,
+  chk_faces_fallback_art_mode: fallbackArtModeSchema.options,
   rule_versions_kind_check: RULE_KINDS,
   rule_versions_language_check: RULE_LANGUAGES,
   rules_change_type_check: RULE_CHANGE_TYPES,

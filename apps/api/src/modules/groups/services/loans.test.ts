@@ -14,7 +14,7 @@ function reposWithPinError(error: unknown): Repos {
       lockByIds: vi.fn(async (ids: string[]) => ids),
     },
     loans: {
-      printingCardId: vi.fn(async () => "card-1"),
+      printingExists: vi.fn(async () => true),
       listUnclaimedCopyIds: vi.fn(async () => ["copy-1", "copy-2"]),
       create: vi.fn(async () => ({ id: "loan-1" })),
       pinCopies: vi.fn(async () => {
@@ -58,7 +58,7 @@ describe("createLoan cross-claim with a concurrent trade accept", () => {
         lockByIds: vi.fn(async (ids: string[]) => ids),
       },
       loans: {
-        printingCardId: vi.fn(async () => "card-1"),
+        printingExists: vi.fn(async () => true),
         listUnclaimedCopyIds: vi.fn(async () => ["copy-1"]),
         create,
         pinCopies,

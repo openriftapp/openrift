@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 7ocx4L4EsR7MerQFHJ4Te6tcK2cwEeZRJfqlvk2Fm5iUIfQbT7w8hJql5yQXWyx
+\restrict 1kjfLb5Ob4JIRTk0itgqDwqxb4cTN1uBFjyVUUVWDuXJlSlymF2G1QcRiRbbwoY
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -345,25 +345,6 @@ CREATE FUNCTION public.rebalance_organization_owner() RETURNS trigger
 
 
 --
--- Name: recompute_printing_marker_slugs(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.recompute_printing_marker_slugs(target_printing_id uuid) RETURNS void
-    LANGUAGE sql
-    AS $$
-      UPDATE printings
-      SET marker_slugs = COALESCE(
-        (SELECT array_agg(m.slug ORDER BY m.slug)
-         FROM printing_markers pm
-         JOIN markers m ON m.id = pm.marker_id
-         WHERE pm.printing_id = target_printing_id),
-        '{}'::text[]
-      )
-      WHERE id = target_printing_id;
-    $$;
-
-
---
 -- Name: set_updated_at(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -692,19 +673,56 @@ CREATE FUNCTION public.trg_distribution_channels_validate() RETURNS trigger
 
 
 --
+-- Name: trg_faces_normalize_markers(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.trg_faces_normalize_markers() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      unknown_slug text;
+    BEGIN
+      NEW.marker_slugs := COALESCE(
+        (SELECT array_agg(DISTINCT s.marker ORDER BY s.marker) FROM unnest(NEW.marker_slugs) AS s(marker)),
+        '{}'::text[]
+      );
+      SELECT s.marker INTO unknown_slug FROM unnest(NEW.marker_slugs) AS s(marker)
+        WHERE NOT EXISTS (SELECT 1 FROM markers m WHERE m.slug = s.marker) LIMIT 1;
+      IF unknown_slug IS NOT NULL THEN
+        RAISE EXCEPTION 'unknown marker %', unknown_slug;
+      END IF;
+      RETURN NEW;
+    END;
+    $$;
+
+
+--
+-- Name: trg_markers_guard_delete(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.trg_markers_guard_delete() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF EXISTS (SELECT 1 FROM faces WHERE marker_slugs @> ARRAY[OLD.slug]) THEN
+        RAISE EXCEPTION 'marker % is still used by a face', OLD.slug;
+      END IF;
+      RETURN OLD;
+    END;
+    $$;
+
+
+--
 -- Name: trg_markers_slug_change(); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.trg_markers_slug_change() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
-    DECLARE
-      affected_id uuid;
     BEGIN
       IF NEW.slug IS DISTINCT FROM OLD.slug THEN
-        FOR affected_id IN SELECT printing_id FROM printing_markers WHERE marker_id = NEW.id LOOP
-          PERFORM recompute_printing_marker_slugs(affected_id);
-        END LOOP;
+        UPDATE faces SET marker_slugs = array_replace(marker_slugs, OLD.slug, NEW.slug)
+          WHERE marker_slugs @> ARRAY[OLD.slug];
       END IF;
       RETURN NEW;
     END;
@@ -729,20 +747,28 @@ CREATE FUNCTION public.trg_printing_distribution_channels_validate() RETURNS tri
 
 
 --
--- Name: trg_printing_markers_sync(); Type: FUNCTION; Schema: public; Owner: -
+-- Name: trg_printings_order_faces(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.trg_printing_markers_sync() RETURNS trigger
+CREATE FUNCTION public.trg_printings_order_faces() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
+    DECLARE
+      code_1 text;
+      code_2 text;
+      swap uuid;
     BEGIN
-      IF TG_OP = 'DELETE' THEN
-        PERFORM recompute_printing_marker_slugs(OLD.printing_id);
-        RETURN OLD;
-      ELSE
-        PERFORM recompute_printing_marker_slugs(NEW.printing_id);
+      IF NEW.face2_id IS NULL THEN
         RETURN NEW;
       END IF;
+      SELECT short_code INTO code_1 FROM faces WHERE id = NEW.face1_id;
+      SELECT short_code INTO code_2 FROM faces WHERE id = NEW.face2_id;
+      IF code_2 < code_1 OR (code_2 = code_1 AND NEW.face2_id < NEW.face1_id) THEN
+        swap := NEW.face1_id;
+        NEW.face1_id := NEW.face2_id;
+        NEW.face2_id := swap;
+      END IF;
+      RETURN NEW;
     END;
     $$;
 
@@ -755,6 +781,10 @@ CREATE FUNCTION public.trg_printings_set_slug() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
     DECLARE
+      f1 faces%ROWTYPE;
+      f2 faces%ROWTYPE;
+      physical_finish text;
+      markers text[];
       base text;
       candidate text;
       n int := 1;
@@ -762,12 +792,19 @@ CREATE FUNCTION public.trg_printings_set_slug() RETURNS trigger
       IF NEW.slug IS NOT NULL AND NEW.slug <> '' THEN
         RETURN NEW;
       END IF;
+      SELECT * INTO f1 FROM faces WHERE id = NEW.face1_id;
+      IF NEW.face2_id IS NOT NULL THEN
+        SELECT * INTO f2 FROM faces WHERE id = NEW.face2_id;
+      END IF;
+      physical_finish := CASE WHEN f2.finish = 'foil' THEN 'foil' ELSE f1.finish END;
+      markers := ARRAY(SELECT DISTINCT unnest(f1.marker_slugs || COALESCE(f2.marker_slugs, '{}')) ORDER BY 1);
       base := trim(BOTH '-' FROM regexp_replace(
         lower(
-          coalesce(NEW.language, '') || '-' ||
-          coalesce(NEW.short_code, '') || '-' ||
-          coalesce(NEW.finish, '') || '-' ||
-          array_to_string(coalesce(NEW.marker_slugs, '{}'), '-') || '-' ||
+          coalesce(f1.language, '') || '-' ||
+          coalesce(f1.short_code, '') || '-' ||
+          coalesce(f2.short_code || '-', '') ||
+          coalesce(physical_finish, '') || '-' ||
+          array_to_string(markers, '-') || '-' ||
           coalesce(NEW.size, '')
         ),
         '[^a-z0-9]+', '-', 'g'
@@ -776,9 +813,7 @@ CREATE FUNCTION public.trg_printings_set_slug() RETURNS trigger
         base := 'printing';
       END IF;
       candidate := base;
-      WHILE EXISTS (
-        SELECT 1 FROM printings WHERE card_id = NEW.card_id AND slug = candidate
-      ) LOOP
+      WHILE EXISTS (SELECT 1 FROM printings WHERE slug = candidate) LOOP
         n := n + 1;
         candidate := base || '-' || n;
       END LOOP;
@@ -1258,7 +1293,6 @@ CREATE TABLE public.card_trades (
     receiver_user_id text,
     initiator text NOT NULL,
     printing_id uuid NOT NULL,
-    card_id uuid NOT NULL,
     quantity integer NOT NULL,
     status text DEFAULT 'pending'::text NOT NULL,
     receiver_wish_entry_id uuid,
@@ -1596,7 +1630,6 @@ CREATE TABLE public.deck_check_entry_cards (
     zone text NOT NULL,
     quantity integer NOT NULL,
     resolved_card_id uuid,
-    resolved_printing_id uuid,
     match_status text NOT NULL,
     found_copies boolean[] DEFAULT '{}'::boolean[] NOT NULL,
     CONSTRAINT chk_deck_check_entry_cards_found CHECK ((cardinality(found_copies) <= quantity)),
@@ -1830,6 +1863,61 @@ CREATE TABLE public.errata_announcements (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT chk_errata_announcements_name_not_empty CHECK ((name <> ''::text)),
     CONSTRAINT chk_errata_announcements_url_not_empty CHECK ((url <> ''::text))
+);
+
+
+--
+-- Name: face_images; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.face_images (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    face_id uuid NOT NULL,
+    image_file_id uuid NOT NULL,
+    is_active boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: faces; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.faces (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    card_id uuid NOT NULL,
+    set_id uuid NOT NULL,
+    short_code text NOT NULL,
+    public_code text NOT NULL,
+    art_variant text NOT NULL,
+    artist text NOT NULL,
+    printed_name text,
+    printed_rules_text text,
+    printed_effect_text text,
+    flavor_text text,
+    language text DEFAULT 'EN'::text NOT NULL,
+    rarity text NOT NULL,
+    printed_year smallint,
+    finish text NOT NULL,
+    is_signed boolean DEFAULT false NOT NULL,
+    is_overnumbered boolean DEFAULT false NOT NULL,
+    marker_slugs text[] DEFAULT '{}'::text[] NOT NULL,
+    fallback_art_mode text DEFAULT 'auto'::text NOT NULL,
+    fallback_image_file_id uuid,
+    comment text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_faces_artist_not_empty CHECK ((artist <> ''::text)),
+    CONSTRAINT chk_faces_fallback_art_mode CHECK ((fallback_art_mode = ANY (ARRAY['auto'::text, 'pinned'::text, 'none'::text]))),
+    CONSTRAINT chk_faces_fallback_pinned_has_image CHECK (((fallback_art_mode = 'pinned'::text) = (fallback_image_file_id IS NOT NULL))),
+    CONSTRAINT chk_faces_no_empty_comment CHECK ((comment <> ''::text)),
+    CONSTRAINT chk_faces_no_empty_flavor_text CHECK ((flavor_text <> ''::text)),
+    CONSTRAINT chk_faces_no_empty_printed_effect_text CHECK ((printed_effect_text <> ''::text)),
+    CONSTRAINT chk_faces_no_empty_printed_name CHECK ((printed_name <> ''::text)),
+    CONSTRAINT chk_faces_no_empty_printed_rules_text CHECK ((printed_rules_text <> ''::text)),
+    CONSTRAINT chk_faces_public_code_not_empty CHECK ((public_code <> ''::text)),
+    CONSTRAINT chk_faces_short_code_not_empty CHECK ((short_code <> ''::text))
 );
 
 
@@ -2300,7 +2388,6 @@ CREATE TABLE public.loans (
     borrower_user_id text,
     borrower_name text,
     printing_id uuid NOT NULL,
-    card_id uuid NOT NULL,
     quantity integer NOT NULL,
     returned_quantity integer DEFAULT 0 NOT NULL,
     status text DEFAULT 'active'::text NOT NULL,
@@ -2979,46 +3066,20 @@ CREATE MATERIALIZED VIEW public.mv_latest_printing_prices AS
 --
 
 CREATE TABLE public.printings (
-    short_code text NOT NULL,
-    rarity text NOT NULL,
-    art_variant text NOT NULL,
-    is_signed boolean DEFAULT false NOT NULL,
-    finish text NOT NULL,
-    artist text NOT NULL,
-    public_code text NOT NULL,
-    printed_rules_text text,
-    printed_effect_text text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    flavor_text text,
     id uuid DEFAULT uuidv7() NOT NULL,
-    card_id uuid NOT NULL,
-    set_id uuid NOT NULL,
     comment text,
-    language text DEFAULT 'EN'::text NOT NULL,
-    printed_name text,
-    marker_slugs text[] DEFAULT '{}'::text[] NOT NULL,
-    printed_year smallint,
     size text DEFAULT 'standard'::text NOT NULL,
-    fallback_art_mode text DEFAULT 'auto'::text NOT NULL,
-    fallback_image_file_id uuid,
-    is_overnumbered boolean DEFAULT false NOT NULL,
     released_at date,
     release_precision public.release_precision,
     announced_at date,
     slug text NOT NULL,
-    CONSTRAINT chk_printings_artist_not_empty CHECK ((artist <> ''::text)),
-    CONSTRAINT chk_printings_fallback_art_mode CHECK ((fallback_art_mode = ANY (ARRAY['auto'::text, 'pinned'::text, 'none'::text]))),
-    CONSTRAINT chk_printings_fallback_pinned_has_image CHECK (((fallback_art_mode = 'pinned'::text) = (fallback_image_file_id IS NOT NULL))),
+    face1_id uuid NOT NULL,
+    face2_id uuid,
     CONSTRAINT chk_printings_no_empty_comment CHECK ((comment <> ''::text)),
-    CONSTRAINT chk_printings_no_empty_flavor_text CHECK ((flavor_text <> ''::text)),
-    CONSTRAINT chk_printings_no_empty_printed_effect_text CHECK ((printed_effect_text <> ''::text)),
-    CONSTRAINT chk_printings_no_empty_printed_name CHECK ((printed_name <> ''::text)),
-    CONSTRAINT chk_printings_no_empty_printed_rules_text CHECK ((printed_rules_text <> ''::text)),
-    CONSTRAINT chk_printings_public_code_not_empty CHECK ((public_code <> ''::text)),
     CONSTRAINT chk_printings_release_period_start CHECK (((released_at IS NULL) OR (release_precision = 'day'::public.release_precision) OR ((release_precision = 'month'::public.release_precision) AND (EXTRACT(day FROM released_at) = (1)::numeric)) OR ((release_precision = 'quarter'::public.release_precision) AND (EXTRACT(day FROM released_at) = (1)::numeric) AND (EXTRACT(month FROM released_at) = ANY (ARRAY[(1)::numeric, (4)::numeric, (7)::numeric, (10)::numeric]))) OR ((release_precision = 'year'::public.release_precision) AND (EXTRACT(doy FROM released_at) = (1)::numeric)))),
     CONSTRAINT chk_printings_release_precision CHECK (((released_at IS NULL) = (release_precision IS NULL))),
-    CONSTRAINT chk_printings_short_code_not_empty CHECK ((short_code <> ''::text)),
     CONSTRAINT chk_printings_slug_not_empty CHECK ((slug <> ''::text))
 );
 
@@ -3028,11 +3089,15 @@ CREATE TABLE public.printings (
 --
 
 CREATE MATERIALIZED VIEW public.mv_printing_foil_twins AS
- SELECT id AS printing_id
-   FROM public.printings p
-  WHERE ((finish <> 'foil'::text) AND (EXISTS ( SELECT 1
-           FROM public.printings q
-          WHERE ((q.card_id = p.card_id) AND (q.short_code = p.short_code) AND (q.language = p.language) AND (q.size = p.size) AND (q.art_variant = p.art_variant) AND (q.is_signed = p.is_signed) AND (q.is_overnumbered = p.is_overnumbered) AND (q.marker_slugs = p.marker_slugs) AND (q.finish = 'foil'::text)))))
+ SELECT p.id AS printing_id
+   FROM ((public.printings p
+     JOIN public.faces a1 ON ((a1.id = p.face1_id)))
+     LEFT JOIN public.faces a2 ON ((a2.id = p.face2_id)))
+  WHERE ((a1.finish <> 'foil'::text) AND (COALESCE(a2.finish, ''::text) <> 'foil'::text) AND (EXISTS ( SELECT 1
+           FROM ((public.printings q
+             JOIN public.faces b1 ON ((b1.id = q.face1_id)))
+             LEFT JOIN public.faces b2 ON ((b2.id = q.face2_id)))
+          WHERE ((q.size = p.size) AND ((b1.finish = 'foil'::text) OR (b2.finish = 'foil'::text)) AND (b1.card_id = a1.card_id) AND (b1.short_code = a1.short_code) AND (b1.language = a1.language) AND (b1.art_variant = a1.art_variant) AND (b1.is_signed = a1.is_signed) AND (b1.is_overnumbered = a1.is_overnumbered) AND (b1.marker_slugs = a1.marker_slugs) AND ((b2.id IS NULL) = (a2.id IS NULL)) AND ((a2.id IS NULL) OR ((b2.card_id = a2.card_id) AND (b2.short_code = a2.short_code) AND (b2.language = a2.language) AND (b2.art_variant = a2.art_variant) AND (b2.is_signed = a2.is_signed) AND (b2.is_overnumbered = a2.is_overnumbered) AND (b2.marker_slugs = a2.marker_slugs)))))))
   WITH NO DATA;
 
 
@@ -3056,19 +3121,32 @@ CREATE TABLE public.sets (
 
 
 --
--- Name: mv_printings_canonical_rank; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+-- Name: mv_printing_sides_canonical_rank; Type: MATERIALIZED VIEW; Schema: public; Owner: -
 --
 
-CREATE MATERIALIZED VIEW public.mv_printings_canonical_rank AS
- SELECT p.id AS printing_id,
-    (row_number() OVER (ORDER BY l.sort_order, s.sort_order, p.short_code, (array_length(p.marker_slugs, 1) IS NOT NULL), COALESCE(( SELECT min(m.sort_order) AS min
+CREATE MATERIALIZED VIEW public.mv_printing_sides_canonical_rank AS
+ SELECT s.printing_id,
+    s."position",
+    (row_number() OVER (ORDER BY l.sort_order, st.sort_order, f.short_code, (array_length(f.marker_slugs, 1) IS NOT NULL), COALESCE(( SELECT min(m.sort_order) AS min
            FROM public.markers m
-          WHERE (m.slug = ANY (p.marker_slugs))), 0), f.sort_order, cs.sort_order))::integer AS canonical_rank
-   FROM ((((public.printings p
-     JOIN public.sets s ON ((s.id = p.set_id)))
-     JOIN public.finishes f ON ((f.slug = p.finish)))
-     JOIN public.card_sizes cs ON ((cs.slug = p.size)))
-     JOIN public.languages l ON ((l.code = p.language)))
+          WHERE (m.slug = ANY (f.marker_slugs))), 0), fi.sort_order, cs.sort_order, s."position"))::integer AS canonical_rank
+   FROM (((((( SELECT printings.id AS printing_id,
+            1 AS "position",
+            printings.face1_id AS face_id,
+            printings.size
+           FROM public.printings
+        UNION ALL
+         SELECT printings.id,
+            2,
+            printings.face2_id,
+            printings.size
+           FROM public.printings
+          WHERE (printings.face2_id IS NOT NULL)) s
+     JOIN public.faces f ON ((f.id = s.face_id)))
+     JOIN public.sets st ON ((st.id = f.set_id)))
+     JOIN public.finishes fi ON ((fi.slug = f.finish)))
+     JOIN public.card_sizes cs ON ((cs.slug = s.size)))
+     JOIN public.languages l ON ((l.code = f.language)))
   WITH NO DATA;
 
 
@@ -3346,22 +3424,6 @@ CREATE TABLE public.printing_events (
 
 
 --
--- Name: printing_images; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.printing_images (
-    id uuid DEFAULT uuidv7() NOT NULL,
-    face text DEFAULT 'front'::text NOT NULL,
-    is_active boolean DEFAULT false NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    printing_id uuid NOT NULL,
-    image_file_id uuid CONSTRAINT printing_images_card_image_id_not_null NOT NULL,
-    CONSTRAINT chk_printing_images_face CHECK ((face = ANY (ARRAY['front'::text, 'back'::text])))
-);
-
-
---
 -- Name: printing_link_overrides; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3376,53 +3438,57 @@ CREATE TABLE public.printing_link_overrides (
 
 
 --
--- Name: printing_markers; Type: TABLE; Schema: public; Owner: -
+-- Name: printing_sides_ordered; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE TABLE public.printing_markers (
-    printing_id uuid NOT NULL,
-    marker_id uuid NOT NULL
-);
-
-
---
--- Name: printings_ordered; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.printings_ordered AS
- SELECT p.short_code,
-    p.rarity,
-    p.art_variant,
-    p.is_signed,
-    p.finish,
-    p.artist,
-    p.public_code,
-    p.printed_rules_text,
-    p.printed_effect_text,
-    p.created_at,
-    p.updated_at,
-    p.flavor_text,
-    p.id,
-    p.card_id,
-    p.set_id,
-    p.comment,
-    p.language,
-    p.printed_name,
-    p.marker_slugs,
-    p.printed_year,
+CREATE VIEW public.printing_sides_ordered AS
+ SELECT s.printing_id,
+    s."position",
+    f.id AS face_id,
+    f.card_id,
+    f.set_id,
+    f.short_code,
+    f.public_code,
+    f.art_variant,
+    f.artist,
+    f.printed_name,
+    f.printed_rules_text,
+    f.printed_effect_text,
+    f.flavor_text,
+    f.language,
+    f.rarity,
+    f.printed_year,
+    f.finish,
+    f.is_signed,
+    f.is_overnumbered,
+    f.marker_slugs,
+    f.fallback_art_mode,
+    f.fallback_image_file_id,
+    f.comment AS face_comment,
+    p.slug,
     p.size,
-    p.fallback_art_mode,
-    p.fallback_image_file_id,
-    p.is_overnumbered,
     p.released_at,
     p.release_precision,
     p.announced_at,
-    p.slug,
+    p.comment,
+    p.created_at,
+    p.updated_at,
     COALESCE(r.canonical_rank, 2147483647) AS canonical_rank,
     (t.printing_id IS NOT NULL) AS has_foil_twin
-   FROM ((public.printings p
-     LEFT JOIN public.mv_printings_canonical_rank r ON ((r.printing_id = p.id)))
-     LEFT JOIN public.mv_printing_foil_twins t ON ((t.printing_id = p.id)));
+   FROM ((((( SELECT printings.id AS printing_id,
+            1 AS "position",
+            printings.face1_id AS face_id
+           FROM public.printings
+        UNION ALL
+         SELECT printings.id,
+            2,
+            printings.face2_id
+           FROM public.printings
+          WHERE (printings.face2_id IS NOT NULL)) s
+     JOIN public.printings p ON ((p.id = s.printing_id)))
+     JOIN public.faces f ON ((f.id = s.face_id)))
+     LEFT JOIN public.mv_printing_sides_canonical_rank r ON (((r.printing_id = s.printing_id) AND (r."position" = s."position"))))
+     LEFT JOIN public.mv_printing_foil_twins t ON ((t.printing_id = s.printing_id)));
 
 
 --
@@ -4766,6 +4832,22 @@ ALTER TABLE ONLY public.errata_announcements
 
 
 --
+-- Name: face_images face_images_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.face_images
+    ADD CONSTRAINT face_images_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: faces faces_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faces
+    ADD CONSTRAINT faces_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: feature_flags feature_flags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5358,27 +5440,11 @@ ALTER TABLE ONLY public.printing_events
 
 
 --
--- Name: printing_images printing_images_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printing_images
-    ADD CONSTRAINT printing_images_pkey PRIMARY KEY (id);
-
-
---
 -- Name: printing_link_overrides printing_link_overrides_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.printing_link_overrides
     ADD CONSTRAINT printing_link_overrides_pkey PRIMARY KEY (external_id, finish, provider);
-
-
---
--- Name: printing_markers printing_markers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printing_markers
-    ADD CONSTRAINT printing_markers_pkey PRIMARY KEY (printing_id, marker_id);
 
 
 --
@@ -5726,6 +5792,22 @@ ALTER TABLE ONLY public.decks
 
 
 --
+-- Name: faces uq_faces_identity; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faces
+    ADD CONSTRAINT uq_faces_identity UNIQUE NULLS NOT DISTINCT (card_id, short_code, finish, marker_slugs, language) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: faces uq_faces_variant; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faces
+    ADD CONSTRAINT uq_faces_variant UNIQUE (short_code, art_variant, is_signed, is_overnumbered, marker_slugs, rarity, finish, language) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
 -- Name: friend_group_calendar_feeds uq_friend_group_calendar_feeds_member_kind; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5830,27 +5912,19 @@ ALTER TABLE ONLY public.pods
 
 
 --
--- Name: printings uq_printings_id_card; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printings
-    ADD CONSTRAINT uq_printings_id_card UNIQUE (id, card_id);
-
-
---
 -- Name: printings uq_printings_identity; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.printings
-    ADD CONSTRAINT uq_printings_identity UNIQUE NULLS NOT DISTINCT (card_id, short_code, finish, marker_slugs, language, size) DEFERRABLE INITIALLY DEFERRED;
+    ADD CONSTRAINT uq_printings_identity UNIQUE NULLS NOT DISTINCT (face1_id, face2_id, size) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
--- Name: printings uq_printings_variant; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: printings uq_printings_slug; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.printings
-    ADD CONSTRAINT uq_printings_variant UNIQUE (short_code, art_variant, is_signed, is_overnumbered, marker_slugs, rarity, finish, language, size) DEFERRABLE INITIALLY DEFERRED;
+    ADD CONSTRAINT uq_printings_slug UNIQUE (slug);
 
 
 --
@@ -6483,6 +6557,55 @@ CREATE INDEX idx_distribution_channels_parent_id ON public.distribution_channels
 
 
 --
+-- Name: idx_face_images_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_face_images_active ON public.face_images USING btree (face_id) WHERE (is_active = true);
+
+
+--
+-- Name: idx_face_images_face; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_face_images_face ON public.face_images USING btree (face_id);
+
+
+--
+-- Name: idx_face_images_image_file; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_face_images_image_file ON public.face_images USING btree (image_file_id);
+
+
+--
+-- Name: idx_faces_card_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_faces_card_id ON public.faces USING btree (card_id);
+
+
+--
+-- Name: idx_faces_fallback_image_file; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_faces_fallback_image_file ON public.faces USING btree (fallback_image_file_id) WHERE (fallback_image_file_id IS NOT NULL);
+
+
+--
+-- Name: idx_faces_marker_slugs; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_faces_marker_slugs ON public.faces USING gin (marker_slugs);
+
+
+--
+-- Name: idx_faces_set_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_faces_set_id ON public.faces USING btree (set_id);
+
+
+--
 -- Name: idx_fg_discord_links_group; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6826,10 +6949,10 @@ CREATE UNIQUE INDEX idx_mv_printing_foil_twins_pk ON public.mv_printing_foil_twi
 
 
 --
--- Name: idx_mv_printings_canonical_rank_pk; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_mv_printing_sides_canonical_rank_pk; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_mv_printings_canonical_rank_pk ON public.mv_printings_canonical_rank USING btree (printing_id);
+CREATE UNIQUE INDEX idx_mv_printing_sides_canonical_rank_pk ON public.mv_printing_sides_canonical_rank USING btree (printing_id, "position");
 
 
 --
@@ -6910,34 +7033,6 @@ CREATE INDEX idx_printing_events_status_created ON public.printing_events USING 
 
 
 --
--- Name: idx_printing_images_active; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_printing_images_active ON public.printing_images USING btree (printing_id, face) WHERE (is_active = true);
-
-
---
--- Name: idx_printing_images_image_file; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_printing_images_image_file ON public.printing_images USING btree (image_file_id);
-
-
---
--- Name: idx_printing_images_printing_face; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_printing_images_printing_face ON public.printing_images USING btree (printing_id, face);
-
-
---
--- Name: idx_printing_markers_marker_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_printing_markers_marker_id ON public.printing_markers USING btree (marker_id);
-
-
---
 -- Name: idx_printing_sources_printing_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6945,31 +7040,17 @@ CREATE INDEX idx_printing_sources_printing_id ON public.candidate_printings USIN
 
 
 --
--- Name: idx_printings_card_id; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_printings_face1; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_printings_card_id ON public.printings USING btree (card_id);
-
-
---
--- Name: idx_printings_fallback_image_file; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_printings_fallback_image_file ON public.printings USING btree (fallback_image_file_id) WHERE (fallback_image_file_id IS NOT NULL);
+CREATE INDEX idx_printings_face1 ON public.printings USING btree (face1_id);
 
 
 --
--- Name: idx_printings_marker_slugs; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_printings_face2; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_printings_marker_slugs ON public.printings USING gin (marker_slugs);
-
-
---
--- Name: idx_printings_set_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_printings_set_id ON public.printings USING btree (set_id);
+CREATE INDEX idx_printings_face2 ON public.printings USING btree (face2_id) WHERE (face2_id IS NOT NULL);
 
 
 --
@@ -7393,13 +7474,6 @@ CREATE UNIQUE INDEX uq_printing_citations_url ON public.printing_citations USING
 
 
 --
--- Name: uq_printings_card_slug; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX uq_printings_card_slug ON public.printings USING btree (card_id, slug);
-
-
---
 -- Name: uq_stage_presets_user_name; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -7533,6 +7607,13 @@ CREATE TRIGGER distribution_channels_validate BEFORE INSERT OR UPDATE ON public.
 
 
 --
+-- Name: faces faces_normalize_markers; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER faces_normalize_markers BEFORE INSERT OR UPDATE OF marker_slugs ON public.faces FOR EACH ROW EXECUTE FUNCTION public.trg_faces_normalize_markers();
+
+
+--
 -- Name: keywords keywords_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -7544,6 +7625,13 @@ CREATE TRIGGER keywords_set_updated_at BEFORE UPDATE ON public.keywords FOR EACH
 --
 
 CREATE TRIGGER loan_copies_touch_copy AFTER INSERT OR DELETE ON public.loan_copies FOR EACH ROW EXECUTE FUNCTION public.trg_touch_pinned_copy();
+
+
+--
+-- Name: markers markers_guard_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER markers_guard_delete BEFORE DELETE ON public.markers FOR EACH ROW EXECUTE FUNCTION public.trg_markers_guard_delete();
 
 
 --
@@ -7568,10 +7656,10 @@ CREATE TRIGGER printing_events_set_updated_at BEFORE UPDATE ON public.printing_e
 
 
 --
--- Name: printing_markers printing_markers_sync_iud; Type: TRIGGER; Schema: public; Owner: -
+-- Name: printings printings_order_faces; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER printing_markers_sync_iud AFTER INSERT OR DELETE OR UPDATE ON public.printing_markers FOR EACH ROW EXECUTE FUNCTION public.trg_printing_markers_sync();
+CREATE TRIGGER printings_order_faces BEFORE INSERT OR UPDATE OF face1_id, face2_id ON public.printings FOR EACH ROW EXECUTE FUNCTION public.trg_printings_order_faces();
 
 
 --
@@ -7841,6 +7929,20 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.distribution_channels 
 
 
 --
+-- Name: face_images trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.face_images FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: faces trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.faces FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
 -- Name: feature_flags trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -8013,13 +8115,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.playloltcg_event_check
 --
 
 CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.playloltcg_shops FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
-
-
---
--- Name: printing_images trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.printing_images FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -8483,14 +8578,6 @@ ALTER TABLE ONLY public.card_trade_settlement_requests
 
 
 --
--- Name: card_trades card_trades_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.card_trades
-    ADD CONSTRAINT card_trades_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
-
-
---
 -- Name: card_trades card_trades_giver_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -8699,14 +8786,6 @@ ALTER TABLE ONLY public.deck_check_entry_cards
 
 
 --
--- Name: deck_check_entry_cards deck_check_entry_cards_printing_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_entry_cards
-    ADD CONSTRAINT deck_check_entry_cards_printing_fkey FOREIGN KEY (resolved_printing_id) REFERENCES public.printings(id) ON DELETE SET NULL;
-
-
---
 -- Name: deck_check_entry_cards deck_check_entry_cards_zone_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -8851,11 +8930,35 @@ ALTER TABLE ONLY public.distribution_channels
 
 
 --
--- Name: card_trades fk_card_trades_printing_card; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: face_images face_images_face_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.card_trades
-    ADD CONSTRAINT fk_card_trades_printing_card FOREIGN KEY (printing_id, card_id) REFERENCES public.printings(id, card_id);
+ALTER TABLE ONLY public.face_images
+    ADD CONSTRAINT face_images_face_id_fkey FOREIGN KEY (face_id) REFERENCES public.faces(id);
+
+
+--
+-- Name: faces faces_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faces
+    ADD CONSTRAINT faces_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
+
+
+--
+-- Name: faces faces_language_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faces
+    ADD CONSTRAINT faces_language_fk FOREIGN KEY (language) REFERENCES public.languages(code) ON UPDATE CASCADE;
+
+
+--
+-- Name: faces faces_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faces
+    ADD CONSTRAINT faces_set_id_fkey FOREIGN KEY (set_id) REFERENCES public.sets(id);
 
 
 --
@@ -8907,27 +9010,11 @@ ALTER TABLE ONLY public.copies
 
 
 --
--- Name: deck_cards fk_deck_cards_printing_card; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_cards
-    ADD CONSTRAINT fk_deck_cards_printing_card FOREIGN KEY (preferred_printing_id, card_id) REFERENCES public.printings(id, card_id);
-
-
---
 -- Name: deck_cards fk_deck_cards_zone; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.deck_cards
     ADD CONSTRAINT fk_deck_cards_zone FOREIGN KEY (zone) REFERENCES public.deck_zones(slug);
-
-
---
--- Name: deck_check_entry_cards fk_deck_check_entry_cards_printing_card; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.deck_check_entry_cards
-    ADD CONSTRAINT fk_deck_check_entry_cards_printing_card FOREIGN KEY (resolved_printing_id, resolved_card_id) REFERENCES public.printings(id, card_id);
 
 
 --
@@ -8947,14 +9034,6 @@ ALTER TABLE ONLY public.deck_folder_entries
 
 
 --
--- Name: decks fk_decks_cover_printing_card; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.decks
-    ADD CONSTRAINT fk_decks_cover_printing_card FOREIGN KEY (cover_printing_id, cover_card_id) REFERENCES public.printings(id, card_id);
-
-
---
 -- Name: decks fk_decks_format; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -8968,6 +9047,46 @@ ALTER TABLE ONLY public.decks
 
 ALTER TABLE ONLY public.decks
     ADD CONSTRAINT fk_decks_predecessor_deck FOREIGN KEY (predecessor_deck_id) REFERENCES public.decks(id) ON DELETE SET NULL;
+
+
+--
+-- Name: face_images fk_face_images_image_file; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.face_images
+    ADD CONSTRAINT fk_face_images_image_file FOREIGN KEY (image_file_id) REFERENCES public.image_files(id);
+
+
+--
+-- Name: faces fk_faces_art_variant; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faces
+    ADD CONSTRAINT fk_faces_art_variant FOREIGN KEY (art_variant) REFERENCES public.art_variants(slug);
+
+
+--
+-- Name: faces fk_faces_fallback_image_file; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faces
+    ADD CONSTRAINT fk_faces_fallback_image_file FOREIGN KEY (fallback_image_file_id) REFERENCES public.image_files(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: faces fk_faces_finish; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faces
+    ADD CONSTRAINT fk_faces_finish FOREIGN KEY (finish) REFERENCES public.finishes(slug);
+
+
+--
+-- Name: faces fk_faces_rarity; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faces
+    ADD CONSTRAINT fk_faces_rarity FOREIGN KEY (rarity) REFERENCES public.rarities(slug);
 
 
 --
@@ -9027,14 +9146,6 @@ ALTER TABLE ONLY public.list_entries
 
 
 --
--- Name: loans fk_loans_printing_card; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.loans
-    ADD CONSTRAINT fk_loans_printing_card FOREIGN KEY (printing_id, card_id) REFERENCES public.printings(id, card_id);
-
-
---
 -- Name: meta_player_links fk_meta_player_links_player; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9048,46 +9159,6 @@ ALTER TABLE ONLY public.meta_player_links
 
 ALTER TABLE ONLY public.printing_link_overrides
     ADD CONSTRAINT fk_plo_printing_id FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
-
-
---
--- Name: printing_images fk_printing_images_image_file; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printing_images
-    ADD CONSTRAINT fk_printing_images_image_file FOREIGN KEY (image_file_id) REFERENCES public.image_files(id);
-
-
---
--- Name: printings fk_printings_art_variant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printings
-    ADD CONSTRAINT fk_printings_art_variant FOREIGN KEY (art_variant) REFERENCES public.art_variants(slug);
-
-
---
--- Name: printings fk_printings_fallback_image_file; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printings
-    ADD CONSTRAINT fk_printings_fallback_image_file FOREIGN KEY (fallback_image_file_id) REFERENCES public.image_files(id) ON DELETE RESTRICT;
-
-
---
--- Name: printings fk_printings_finish; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printings
-    ADD CONSTRAINT fk_printings_finish FOREIGN KEY (finish) REFERENCES public.finishes(slug);
-
-
---
--- Name: printings fk_printings_rarity; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printings
-    ADD CONSTRAINT fk_printings_rarity FOREIGN KEY (rarity) REFERENCES public.rarities(slug);
 
 
 --
@@ -9264,14 +9335,6 @@ ALTER TABLE ONLY public.loan_copies
 
 ALTER TABLE ONLY public.loans
     ADD CONSTRAINT loans_borrower_user_id_fkey FOREIGN KEY (borrower_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
-
---
--- Name: loans loans_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.loans
-    ADD CONSTRAINT loans_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
 
 
 --
@@ -9779,30 +9842,6 @@ ALTER TABLE ONLY public.printing_distribution_channels
 
 
 --
--- Name: printing_images printing_images_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printing_images
-    ADD CONSTRAINT printing_images_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id);
-
-
---
--- Name: printing_markers printing_markers_marker_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printing_markers
-    ADD CONSTRAINT printing_markers_marker_id_fkey FOREIGN KEY (marker_id) REFERENCES public.markers(id) ON DELETE RESTRICT;
-
-
---
--- Name: printing_markers printing_markers_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printing_markers
-    ADD CONSTRAINT printing_markers_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
-
-
---
 -- Name: candidate_printings printing_sources_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9811,27 +9850,19 @@ ALTER TABLE ONLY public.candidate_printings
 
 
 --
--- Name: printings printings_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: printings printings_face1_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.printings
-    ADD CONSTRAINT printings_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
+    ADD CONSTRAINT printings_face1_id_fkey FOREIGN KEY (face1_id) REFERENCES public.faces(id);
 
 
 --
--- Name: printings printings_language_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.printings
-    ADD CONSTRAINT printings_language_fk FOREIGN KEY (language) REFERENCES public.languages(code) ON UPDATE CASCADE;
-
-
---
--- Name: printings printings_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: printings printings_face2_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.printings
-    ADD CONSTRAINT printings_set_id_fkey FOREIGN KEY (set_id) REFERENCES public.sets(id);
+    ADD CONSTRAINT printings_face2_id_fkey FOREIGN KEY (face2_id) REFERENCES public.faces(id);
 
 
 --
@@ -10230,5 +10261,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 7ocx4L4EsR7MerQFHJ4Te6tcK2cwEeZRJfqlvk2Fm5iUIfQbT7w8hJql5yQXWyx
+\unrestrict 1kjfLb5Ob4JIRTk0itgqDwqxb4cTN1uBFjyVUUVWDuXJlSlymF2G1QcRiRbbwoY
 

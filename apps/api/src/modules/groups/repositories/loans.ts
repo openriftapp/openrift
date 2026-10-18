@@ -5,7 +5,11 @@ import { sql } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import type { LoansTable } from "../../../db/tables/loans.js";
 import { gravatarHashForEmail } from "../../../lib/gravatar.js";
-import { notPinnedToLoan, notReservedByTrade } from "../../../repositories/query-helpers.js";
+import {
+  notPinnedToLoan,
+  notReservedByTrade,
+  withFace1,
+} from "../../../repositories/query-helpers.js";
 
 /** Raw loan row, for the service layer's authorization / state checks. */
 export type Loan = Selectable<LoansTable>;
@@ -42,7 +46,6 @@ export interface NewLoan {
   borrowerUserId: string | null;
   borrowerName: string | null;
   printingId: string;
-  cardId: string;
   quantity: number;
 }
 
@@ -51,8 +54,7 @@ export interface NewLoan {
  * join and no contact-method loading.
  */
 function loanDtoBaseQuery(db: Kysely<Database>) {
-  return db
-    .selectFrom("loans as l")
+  return withFace1(db.selectFrom("loans as l").innerJoin("printings as p", "p.id", "l.printingId"))
     .innerJoin("users as lenderUser", "lenderUser.id", "l.lenderUserId")
     .leftJoin("users as borrowerUser", "borrowerUser.id", "l.borrowerUserId")
     .select([
@@ -61,7 +63,7 @@ function loanDtoBaseQuery(db: Kysely<Database>) {
       "l.borrowerUserId",
       "l.borrowerName",
       "l.printingId",
-      "l.cardId",
+      "pf.cardId",
       "l.quantity",
       "l.returnedQuantity",
       "l.borrowerReturnedQuantity",
@@ -96,7 +98,6 @@ export function loansRepo(db: Kysely<Database>) {
           borrowerUserId: values.borrowerUserId,
           borrowerName: values.borrowerName,
           printingId: values.printingId,
-          cardId: values.cardId,
           quantity: values.quantity,
         })
         .returningAll()
@@ -156,30 +157,37 @@ export function loansRepo(db: Kysely<Database>) {
      * client's `aggregateBorrowedCounts`.
      */
     async borrowedCountByCard(userId: string): Promise<Map<string, number>> {
-      const rows = await db
-        .selectFrom("loans")
-        .select((eb) => [
-          "cardId",
-          eb
-            .cast<number>(eb.fn.sum(sql`quantity - returned_quantity`), "integer")
-            .as("outstanding"),
+      const loanCards = db
+        .selectFrom("loans as l")
+        .innerJoin("printingSidesOrdered as s", "s.printingId", "l.printingId")
+        .select([
+          "l.id",
+          "s.cardId",
+          sql<number>`l.quantity - l.returned_quantity`.as("outstanding"),
         ])
-        .where("borrowerUserId", "=", userId)
-        .where("status", "=", "active")
-        .where("acknowledgedAt", "is not", null)
-        .groupBy("cardId")
-        .having(sql`sum(quantity - returned_quantity)`, ">", 0)
+        .distinct()
+        .where("l.borrowerUserId", "=", userId)
+        .where("l.status", "=", "active")
+        .where("l.acknowledgedAt", "is not", null);
+      const rows = await db
+        .selectFrom(loanCards.as("lc"))
+        .select((eb) => [
+          "lc.cardId",
+          eb.cast<number>(eb.fn.sum("lc.outstanding"), "integer").as("outstanding"),
+        ])
+        .groupBy("lc.cardId")
+        .having(sql`sum(lc.outstanding)`, ">", 0)
         .execute();
       return new Map(rows.map((row) => [row.cardId, row.outstanding]));
     },
 
-    async printingCardId(printingId: string): Promise<string | undefined> {
+    async printingExists(printingId: string): Promise<boolean> {
       const row = await db
         .selectFrom("printings")
-        .select("cardId")
+        .select("id")
         .where("id", "=", printingId)
         .executeTakeFirst();
-      return row?.cardId;
+      return row !== undefined;
     },
 
     /**

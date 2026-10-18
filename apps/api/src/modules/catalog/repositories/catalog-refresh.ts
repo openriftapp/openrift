@@ -14,7 +14,9 @@ export function catalogRefreshRepo(db: Kysely<Database>) {
      * `sort_order` of sets / finishes / card_sizes / languages / markers.
      */
     async refreshCanonicalRank(): Promise<void> {
-      await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_printings_canonical_rank`.execute(db);
+      await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_printing_sides_canonical_rank`.execute(
+        db,
+      );
     },
 
     /** Add any new catalog-derived materialized view here; callers refresh them as a set. */
@@ -23,7 +25,7 @@ export function catalogRefreshRepo(db: Kysely<Database>) {
       // object, so a `this` reference here would not survive the wrapping.
       await Promise.all([
         sql`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_card_aggregates`.execute(db),
-        sql`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_printings_canonical_rank`.execute(db),
+        sql`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_printing_sides_canonical_rank`.execute(db),
         sql`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_printing_foil_twins`.execute(db),
       ]);
     },

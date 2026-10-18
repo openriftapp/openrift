@@ -2,7 +2,11 @@ import type { IngestCard, IngestPrinting } from "@openrift/shared/contracts/admi
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTransact } from "../../../deps.js";
-import { createTestContext, syncCardCardTypes } from "../../../test/integration-context.js";
+import {
+  createTestContext,
+  insertPrinting,
+  syncCardCardTypes,
+} from "../../../test/integration-context.js";
 import { ingestCandidates } from "./ingest-candidates.js";
 
 // A test spells only the fields it asserts on; these helpers fill the rest
@@ -137,7 +141,7 @@ describe.skipIf(!ctx)("ingestCandidates integration", () => {
     // uq_printings_identity is DEFERRABLE and so cannot be used as an
     // ON CONFLICT arbiter; do a select-or-insert dance instead.
     const existingPrinting = await db
-      .selectFrom("printings")
+      .selectFrom("faces")
       .select("id")
       .where("cardId", "=", seedCardId)
       .where("shortCode", "=", "IGT-001")
@@ -147,26 +151,22 @@ describe.skipIf(!ctx)("ingestCandidates integration", () => {
     if (existingPrinting) {
       seedPrintingId = existingPrinting.id;
     } else {
-      const insertedPrinting = await db
-        .insertInto("printings")
-        .values({
-          cardId: seedCardId,
-          setId: seedSetId,
-          shortCode: "IGT-001",
-          rarity: "common",
-          artVariant: "normal",
-          isSigned: false,
-          finish: "normal",
-          size: "standard",
-          language: "EN",
-          artist: "Test Artist",
-          publicCode: "IGT-001/010",
-          printedRulesText: null,
-          printedEffectText: null,
-          flavorText: null,
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
+      const insertedPrinting = await insertPrinting(db, {
+        cardId: seedCardId,
+        setId: seedSetId,
+        shortCode: "IGT-001",
+        rarity: "common",
+        artVariant: "normal",
+        isSigned: false,
+        finish: "normal",
+        size: "standard",
+        language: "EN",
+        artist: "Test Artist",
+        publicCode: "IGT-001/010",
+        printedRulesText: null,
+        printedEffectText: null,
+        flavorText: null,
+      });
       seedPrintingId = insertedPrinting.id;
     }
 

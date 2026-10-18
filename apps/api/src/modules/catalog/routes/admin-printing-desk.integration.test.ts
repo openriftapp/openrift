@@ -3,6 +3,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   adminReq,
   createTestContext,
+  deletePrintingsById,
+  insertPrinting,
   seedTestUser,
   syncCardCardTypes,
 } from "../../../test/integration-context.js";
@@ -68,24 +70,20 @@ if (adminCtx) {
   cardUuid = card.id;
   await syncCardCardTypes(db);
 
-  const base = await db
-    .insertInto("printings")
-    .values({
-      cardId: cardUuid,
-      setId: setUuid,
-      shortCode: "PDK-001",
-      rarity: "common",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "normal",
-      artist: "PDK Base Artist",
-      publicCode: "PDK-001/120",
-      printedRulesText: "Draw a card.",
-      flavorText: "Crunchy.",
-      language: "EN",
-    })
-    .returning("id")
-    .executeTakeFirstOrThrow();
+  const base = await insertPrinting(db, {
+    cardId: cardUuid,
+    setId: setUuid,
+    shortCode: "PDK-001",
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "normal",
+    artist: "PDK Base Artist",
+    publicCode: "PDK-001/120",
+    printedRulesText: "Draw a card.",
+    flavorText: "Crunchy.",
+    language: "EN",
+  });
   basePrintingId = base.id;
 
   await db
@@ -108,19 +106,18 @@ afterAll(async () => {
   const printingIds = [basePrintingId, createdPrintingId, grantPrintingId].filter(Boolean);
   if (printingIds.length > 0) {
     await db.deleteFrom("printingCitations").where("printingId", "in", printingIds).execute();
-    await db.deleteFrom("printingImages").where("printingId", "in", printingIds).execute();
+    await db.deleteFrom("faceImages").where("faceId", "in", printingIds).execute();
     await db
       .deleteFrom("imageFiles")
       .where("id", "in", [baseImageFileId, promoImageFileId].filter(Boolean))
       .execute();
     await db.deleteFrom("adminEvents").where("entityId", "in", printingIds).execute();
     await db.deleteFrom("adminEvents").where("actorUserId", "in", [ADMIN_ID, GRANT_ID]).execute();
-    await db.deleteFrom("printingMarkers").where("printingId", "in", printingIds).execute();
     await db
       .deleteFrom("printingDistributionChannels")
       .where("printingId", "in", printingIds)
       .execute();
-    await db.deleteFrom("printings").where("id", "in", printingIds).execute();
+    await deletePrintingsById(db, printingIds);
   }
   await db.deleteFrom("distributionChannels").where("slug", "=", "pdk-skirmish").execute();
   await db.deleteFrom("markers").where("slug", "=", "pdk-prerelease").execute();
@@ -157,8 +154,8 @@ async function seedImage(db: NonNullable<typeof adminCtx>["db"], printingId: str
     .returning("id")
     .executeTakeFirstOrThrow();
   const image = await db
-    .insertInto("printingImages")
-    .values({ printingId, face: "front", imageFileId: file.id, isActive: true })
+    .insertInto("faceImages")
+    .values({ faceId: printingId, imageFileId: file.id, isActive: true })
     .returning("id")
     .executeTakeFirstOrThrow();
   return { imageId: image.id, imageFileId: file.id };
@@ -171,8 +168,8 @@ async function seedInactiveImage(db: NonNullable<typeof adminCtx>["db"], printin
     .returning("id")
     .executeTakeFirstOrThrow();
   const image = await db
-    .insertInto("printingImages")
-    .values({ printingId, face: "front", imageFileId: file.id, isActive: false })
+    .insertInto("faceImages")
+    .values({ faceId: printingId, imageFileId: file.id, isActive: false })
     .returning("id")
     .executeTakeFirstOrThrow();
   return { imageId: image.id, imageFileId: file.id };
@@ -196,7 +193,7 @@ describe.skipIf(!adminCtx)("Admin printing-desk routes (integration)", () => {
       expect(createdPrintingId).toEqual(expect.any(String));
 
       const row = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .selectAll()
         .where("id", "=", createdPrintingId)
         .executeTakeFirstOrThrow();
@@ -237,19 +234,18 @@ describe.skipIf(!adminCtx)("Admin printing-desk routes (integration)", () => {
 
       const { printingId } = await readJson(res);
       const row = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select(["shortCode", "publicCode"])
         .where("id", "=", printingId)
         .executeTakeFirstOrThrow();
       expect(row).toEqual({ shortCode: "PDK-TBA-pdk-poro-snack", publicCode: "PDK-TBA" });
 
       await db.deleteFrom("adminEvents").where("entityId", "=", printingId).execute();
-      await db.deleteFrom("printingMarkers").where("printingId", "=", printingId).execute();
       await db
         .deleteFrom("printingDistributionChannels")
         .where("printingId", "=", printingId)
         .execute();
-      await db.deleteFrom("printings").where("id", "=", printingId).execute();
+      await deletePrintingsById(db, printingId);
     });
 
     it("snaps a coarse release date to the start of its period", async () => {
@@ -367,7 +363,7 @@ describe.skipIf(!adminCtx)("Admin printing-desk routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const row = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select(["artist", "shortCode"])
         .where("id", "=", createdPrintingId)
         .executeTakeFirstOrThrow();
@@ -381,7 +377,7 @@ describe.skipIf(!adminCtx)("Admin printing-desk routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const row = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("markerSlugs")
         .where("id", "=", createdPrintingId)
         .executeTakeFirstOrThrow();

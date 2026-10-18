@@ -129,7 +129,8 @@ export function candidatePrintingLinksRepo(db: Kysely<Database>) {
     > {
       return db
         .selectFrom("printingLinkOverrides as plo")
-        .innerJoin("printings as p", "p.id", "plo.printingId")
+        .innerJoin("printings as pr", "pr.id", "plo.printingId")
+        .innerJoin("faces as p", "p.id", "pr.face1Id")
         .innerJoin("cards as c", "c.id", "p.cardId")
         .select([
           "plo.provider",

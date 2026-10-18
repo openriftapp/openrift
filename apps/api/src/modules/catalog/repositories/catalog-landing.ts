@@ -65,22 +65,22 @@ export function catalogLandingRepo(db: Kysely<Database>) {
           .select(sql<string>`COUNT(*)`.as("count"))
           .executeTakeFirstOrThrow(),
         db
-          .selectFrom("printingImages")
-          .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-          .innerJoin("printings", "printings.id", "printingImages.printingId")
-          .innerJoin("cards", "cards.id", "printings.cardId")
-          .leftJoin("finishes as fin", "fin.slug", "printings.finish")
-          .leftJoin("artVariants as av", "av.slug", "printings.artVariant")
+          .selectFrom("faceImages as fi")
+          .innerJoin("imageFiles as ci", "ci.id", "fi.imageFileId")
+          .innerJoin("printingSidesOrdered as s", "s.faceId", "fi.faceId")
+          .innerJoin("cards", "cards.id", "s.cardId")
+          .leftJoin("finishes as fin", "fin.slug", "s.finish")
+          .leftJoin("artVariants as av", "av.slug", "s.artVariant")
           .leftJoin("mvLatestPrintingPrices as pr", (join) =>
             join
-              .onRef("pr.printingId", "=", "printings.id")
+              .onRef("pr.printingId", "=", "s.printingId")
               .on("pr.marketplace", "=", PRICE_MARKETPLACE),
           )
           .select([
             imageId("ci").as("imageId"),
-            "printings.rarity as rarity",
+            "s.rarity as rarity",
             "cards.name as name",
-            "printings.shortCode as shortCode",
+            "s.shortCode as shortCode",
             "pr.headlineCents as priceCents",
             sql<
               string[]
@@ -90,24 +90,23 @@ export function catalogLandingRepo(db: Kysely<Database>) {
             sql<string | null>`nullif(
               concat_ws(
                 ' · ',
-                case when printings.art_variant <> ${WellKnown.artVariant.NORMAL} then av.label end,
-                case when printings.is_overnumbered then 'Overnumbered' end,
-                case when printings.finish <> ${WellKnown.finish.NORMAL} then fin.label end
+                case when s.art_variant <> ${WellKnown.artVariant.NORMAL} then av.label end,
+                case when s.is_overnumbered then 'Overnumbered' end,
+                case when s.finish <> ${WellKnown.finish.NORMAL} then fin.label end
               ),
               ''
             )`.as("variantLabel"),
           ])
-          .where("printingImages.face", "=", "front")
-          .where("printingImages.isActive", "=", true)
+          .where("fi.isActive", "=", true)
           .where(sql`${imageId("ci")}`, "is not", null)
           .where("cards.type", "!=", WellKnown.cardType.BATTLEFIELD)
           // EN only: the landing hero shows these large, and mixed-language
           // card faces read as noise to first-time visitors.
-          .where("printings.language", "=", WellKnown.language.EN)
+          .where("s.language", "=", WellKnown.language.EN)
           .orderBy(
             sql`coalesce(pr.headline_cents, 0) not between ${PRICE_BAND_CENTS.min} and ${PRICE_BAND_CENTS.max}`,
           )
-          .orderBy(sql`md5(printing_images.printing_id::text || current_date::text)`)
+          .orderBy(sql`md5(s.printing_id::text || s.position::text || current_date::text)`)
           .limit(sampleSize)
           .$narrowType<{ imageId: NotNull }>()
           .execute(),
@@ -139,23 +138,22 @@ export function catalogLandingRepo(db: Kysely<Database>) {
      */
     async landingLegendThumbnails(sampleSize: number): Promise<string[]> {
       const rows = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-        .innerJoin("printings", "printings.id", "printingImages.printingId")
-        .innerJoin("cards", "cards.id", "printings.cardId")
+        .selectFrom("faceImages as fi")
+        .innerJoin("imageFiles as ci", "ci.id", "fi.imageFileId")
+        .innerJoin("faces as f", "f.id", "fi.faceId")
+        .innerJoin("cards", "cards.id", "f.cardId")
         .select([imageId("ci").as("imageId"), "cards.id as cardId"])
-        .where("printingImages.face", "=", "front")
-        .where("printingImages.isActive", "=", true)
+        .where("fi.isActive", "=", true)
         .where(sql`${imageId("ci")}`, "is not", null)
         .where("cards.type", "=", WellKnown.cardType.LEGEND)
         // EN only, for the same reason the general sample is EN only: mixed
         // language faces read as noise in a miniature.
-        .where("printings.language", "=", WellKnown.language.EN)
+        .where("f.language", "=", WellKnown.language.EN)
         // DISTINCT ON has to be ordered by its own key first, so this picks the
         // day's printing within each card but leaves the cards in id order.
         .distinctOn("cards.id")
         .orderBy("cards.id")
-        .orderBy(sql`md5(printing_images.printing_id::text || current_date::text)`)
+        .orderBy(sql`md5(f.id::text || current_date::text)`)
         .$narrowType<{ imageId: NotNull }>()
         .execute();
       // Which legends the sample lands on is therefore a JS step: rotate the
@@ -198,13 +196,12 @@ export function catalogLandingRepo(db: Kysely<Database>) {
           JOIN channel_paths cp ON cp.id = c.parent_id
         ),
         channel_printings AS (
-          SELECT pdc.channel_id, p.id AS printing_id, f.id AS image_id,
+          SELECT pdc.channel_id, p.printing_id, f.id AS image_id,
                  c.name, p.short_code, p.rarity, p.marker_slugs
           FROM printing_distribution_channels pdc
-          JOIN printings p ON p.id = pdc.printing_id
+          JOIN printing_sides_ordered p ON p.printing_id = pdc.printing_id
           JOIN cards c ON c.id = p.card_id
-          JOIN printing_images pi
-            ON pi.printing_id = p.id AND pi.face = 'front' AND pi.is_active
+          JOIN face_images pi ON pi.face_id = p.face_id AND pi.is_active
           JOIN image_files f ON f.id = pi.image_file_id AND f.rehosted_url IS NOT NULL
           WHERE p.language = ${WellKnown.language.EN}
             AND c.type <> ${WellKnown.cardType.BATTLEFIELD}

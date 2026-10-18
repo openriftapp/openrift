@@ -110,7 +110,8 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
       why: "printing.distributionChannels",
       statements: [touch("distribution_channels")],
     },
-    { table: "printing_images", why: "printing.images", statements: [touch("printing_images")] },
+    { table: "faces", why: "printing fields", statements: [touch("faces")] },
+    { table: "face_images", why: "printing.images", statements: [touch("face_images")] },
     {
       table: "image_files",
       why: "printing.images credit",
@@ -176,9 +177,8 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
     expect(after).not.toBe(before);
   });
 
-  // Both junctions below have no updated_at/timestamp column.
+  // The junction below has no updated_at/timestamp column.
   const SWAPS: { table: string; other: string; column: string }[] = [
-    { table: "printing_markers", other: "markers", column: "marker_id" },
     {
       table: "printing_distribution_channels",
       other: "distribution_channels",

@@ -60,7 +60,7 @@ Facts the model has to hold:
 2. **Two paired printings linked by `paired_printing_id`.** Keep one printing per card, add a symmetric pair link, and teach the collection write path that owning one implies owning the other.
 3. **A `faces` layer joined many-to-many via `printing_faces`.** Split `printings` into a thin physical aggregator plus per-side `faces` rows; one face row can be shared between printings.
 4. **A `faces` layer as plain children of `printings`.** Each face belongs to exactly one printing (`faces.printing_id`). No sharing.
-5. **Shared `faces` referenced by two columns on `printings`.** A face is a printed side identity; a printing references `face_1_id` and an optional `face_2_id`.
+5. **Shared `faces` referenced by two columns on `printings`.** A face is a printed side identity; a printing references `face1_id` and an optional `face2_id`.
 
 ### Naming (assuming a faces layer)
 
@@ -71,13 +71,13 @@ D. **Keep `printings` (narrowed schema); introduce `faces` as internal-only.** N
 
 ## Decision Outcome
 
-**Model shape: shared faces referenced by two columns (option 5).** A face is one printed side, identified by its printed attributes; a printing is one piece of cardboard with one or two faces. The catalog already holds sides printed on several physical cards (SGN-T01 and SGN-T02 Bird), and any token side can recur across a set's printings, so sharing has to be supported, and option 4 would duplicate those sides and break the identity indexes. Option 5 shares faces with plain indexes on both levels: face identity on `faces`, "no two printings with the same sides" as `UNIQUE (face_1_id, face_2_id, size)` on `printings`. Option 3 shares too, but its printing-level uniqueness sits behind a join where no index reaches.
+**Model shape: shared faces referenced by two columns (option 5).** A face is one printed side, identified by its printed attributes; a printing is one piece of cardboard with one or two faces. The catalog already holds sides printed on several physical cards (SGN-T01 and SGN-T02 Bird), and any token side can recur across a set's printings, so sharing has to be supported, and option 4 would duplicate those sides and break the identity indexes. Option 5 shares faces with plain indexes on both levels: face identity on `faces`, "no two printings with the same sides" as `UNIQUE (face1_id, face2_id, size)` on `printings`. Option 3 shares too, but its printing-level uniqueness sits behind a join where no index reaches.
 
 **Card links through the faces.** A printing's cards are the cards of its faces. No table stores them separately; tables that name a card and a printing reference each on its own.
 
 **Slugs: one per printing.** `printings.slug` is unique across the catalog and valid under the path of each card on the printing.
 
-**No front/back.** `face_1_id` and `face_2_id` mean display order and nothing else. `face_1` is the side whose printed collector code sorts first, derivable from the product with no human judgment.
+**No front/back.** `face1_id` and `face2_id` mean display order and nothing else. `face1` is the side whose printed collector code sorts first, derivable from the product with no human judgment.
 
 **Naming: keep `printings`, introduce `faces` as an internal-only term (option D).** OpenRift already uses `cards` and `printings` precisely in the UI: cards are the gameplay-level identity, printings are the physical thing users own and see. The narrowing of the `printings` table matches the meaning users already attach to the word. `faces` never appears in user copy, and neither do "front" or "back".
 
@@ -97,7 +97,7 @@ D. **Keep `printings` (narrowed schema); introduce `faces` as internal-only.** N
 
 ### Confirmation
 
-- Schema review against `docs/schema.sql` after the migration: `printings` reduced to the physical-product set plus `face_1_id`/`face_2_id`; `faces` holds the printed-side set and both identity indexes; `printings.slug` is unique; `face_markers` replaces `printing_markers`; `printing_images` renamed to `face_images` keyed by `face_id`.
+- Schema review against `docs/schema.sql` after the migration: `printings` reduced to the physical-product set plus `face1_id`/`face2_id`; `faces` holds the printed-side set and both identity indexes; `printings.slug` is unique; markers live only in `faces.marker_slugs`; `printing_images` renamed to `face_images` keyed by `face_id`.
 - Repository-level audit: no callsite reads moved columns from `printings` directly.
 - User-facing copy audit: "face", "front", and "back" appear in no user-visible string for this feature; pairing copy is neutral ("double-sided, with Bird").
 - Functional check: importing SGN T01+T05 and T01+T03 yields three faces and two printings sharing the Bird face; the owned Bird count sums copies of both printings; a Buff // Buff copy counts once for Buff.
@@ -108,7 +108,7 @@ D. **Keep `printings` (narrowed schema); introduce `faces` as internal-only.** N
 
 ```
 cards  ←  faces  ←  printings  ←  copies
-              (face_1_id, face_2_id)
+              (face1_id, face2_id)
 ```
 
 - **`cards`** (existing, unchanged): abstract gameplay identity. One row per card name. Holds gameplay properties.
@@ -122,7 +122,7 @@ cards  ←  faces  ←  printings  ←  copies
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `cards`     | (unchanged)                                                                                                                                                                                                                                                                            |
 | `faces`     | card_id, set_id, short_code, public_code, art_variant, artist, printed_name, printed_rules_text, printed_effect_text, flavor_text, language, rarity, printed_year, finish, is_signed, is_overnumbered, marker_slugs, fallback_art_mode, fallback_image_file_id, comment, → face_images |
-| `printings` | face_1_id, face_2_id, slug, size, released_at, release_precision, announced_at, comment                                                                                                                                                                                                |
+| `printings` | face1_id, face2_id, slug, size, released_at, release_precision, announced_at, comment                                                                                                                                                                                                  |
 | `copies`    | (unchanged)                                                                                                                                                                                                                                                                            |
 
 Everything printed on a side moves to `faces`: set, codes, art, artist, printed text, language, rarity, year, finish, signed and overnumbered status, markers, and the fallback-art choice. The set is part of the printed collector code (every printing's set matches its code prefix), so a printing with an SGN side and an OGN side has one face in each set. Rarity is printed via a symbol on each side; language and printed year are per side too.
@@ -135,8 +135,8 @@ A printing has no stored finish. Where a physical finish is needed (marketplace 
 
 A double-sided token has no front. Neither the rules nor the physical object privileges a side, so any front/back assignment would store an arbitrary decision as if it were a fact. The face columns therefore mean display order only:
 
-- `face_1` is the side whose printed collector code sorts first, ties broken by face id. A `BEFORE INSERT OR UPDATE` trigger on `printings` puts the two face columns in this order, so a pair has one column order and the printing identity index sees it once.
-- Single-sided printings have `face_2_id` null.
+- `face1` is the side whose printed collector code sorts first, ties broken by face id. A `BEFORE INSERT OR UPDATE` trigger on `printings` puts the two face columns in this order, so a pair has one column order and the printing identity index sees it once.
+- Single-sided printings have `face2_id` null.
 - The display name of a double-sided printing joins both card names in display order with " // " ("Bird // Gold").
 - User copy describes the pairing neutrally: a card's printings list annotates a double-sided entry as "double-sided, with Bird", never "back of Bird".
 
@@ -152,13 +152,13 @@ SGN-T01 Bird is one printed side on two physical cards, and any token side can r
 
 Today `uq_printings_identity` is `UNIQUE NULLS NOT DISTINCT (card_id, short_code, finish, marker_slugs, language, size)` and `uq_printings_variant` is `UNIQUE (short_code, art_variant, is_signed, is_overnumbered, marker_slugs, rarity, finish, language, size)`, both on `printings`. Other work (ADR-015) leans on "finish is part of a printing's identity".
 
-Both port to `faces` without `size`. Since a shared side is one face row, they hold for SGN-T01 and every other recurring side. Printing identity becomes `UNIQUE NULLS NOT DISTINCT (face_1_id, face_2_id, size)` on `printings`.
+Both port to `faces` without `size`. Since a shared side is one face row, they hold for SGN-T01 and every other recurring side. Printing identity becomes `UNIQUE NULLS NOT DISTINCT (face1_id, face2_id, size)` on `printings`.
 
 `size` stays on `printings`. If an oversized variant ever shares every printed attribute with a standard side, it shares the face, and the printing index tells the two products apart by `size`.
 
 ### Card links and slugs
 
-A printing's cards are the distinct cards of `face_1` and `face_2` (Buff // Buff has one). "Every printing of Bird" is `faces` where `card_id` is Bird, joined to `printings` on `face_1_id` or `face_2_id`; both columns are indexed. `uq_printings_id_card` and the composite FKs onto it go away.
+A printing's cards are the distinct cards of `face1` and `face2` (Buff // Buff has one). "Every printing of Bird" is `faces` where `card_id` is Bird, joined to `printings` on `face1_id` or `face2_id`; both columns are indexed. `uq_printings_id_card` and the composite FKs onto it go away.
 
 Printing URLs stay `/cards/$cardSlug/$printingSlug`:
 
@@ -186,9 +186,11 @@ A card's thumbnail is the image of its face on whichever printing the existing p
 
 ### Materialized views
 
-- `mv_printing_foil_twins` becomes face-level: a face has a foil twin when a face of the same card with every other identity attribute equal is foil.
-- `mv_printings_canonical_rank` ranks (printing, card) pairs read from the face columns, using the face of that card for the printed sort keys, its set included.
+- `mv_printing_foil_twins` stays per printing: a non-foil printing has a foil twin when a foil printing of the same size has faces that match its faces in every identity attribute except finish.
+- `mv_printing_sides_canonical_rank` ranks printing sides, keyed by `(printing_id, position)`, using that side's face for the printed sort keys, its set included.
 - `mv_daily_printing_prices` and `mv_latest_printing_prices` stay per printing.
+
+The view `printing_sides_ordered` replaces `printings_ordered`. It has one row per printing side: the printing's columns, the side's `position` (1 or 2), its face's columns, `canonical_rank` and `has_foil_twin`. Per-card reads ("every printing of Bird", canonical printing, thumbnails) go through it. Per-printing reads join `printings` to `faces` on `face1_id`.
 
 ### User-facing vocabulary
 
@@ -258,7 +260,7 @@ Option C (`print_units`) was rejected because "print" vs "printing" is one lette
 
 ## Schema
 
-Sketch only; exact migration SQL drafted at implementation time.
+Summary of migration 337. The full DDL is in `docs/schema.sql`.
 
 ```
 cards            (unchanged)
@@ -268,16 +270,15 @@ faces            id, card_id, set_id, short_code, public_code, art_variant,
                  flavor_text, language, rarity, printed_year, finish,
                  is_signed, is_overnumbered, marker_slugs, fallback_art_mode,
                  fallback_image_file_id, comment, created_at, updated_at
-                 UNIQUE (id, card_id)
                  UNIQUE NULLS NOT DISTINCT (card_id, short_code, finish,
                                             marker_slugs, language)
                  UNIQUE (short_code, art_variant, is_signed, is_overnumbered,
                          marker_slugs, rarity, finish, language)
-printings        id, face_1_id NOT NULL → faces, face_2_id → faces,
+printings        id, face1_id NOT NULL → faces, face2_id → faces,
                  slug, size, released_at, release_precision, announced_at,
                  comment, created_at, updated_at
-                 UNIQUE NULLS NOT DISTINCT (face_1_id, face_2_id, size)
-                 INDEX (face_1_id), INDEX (face_2_id)
+                 UNIQUE NULLS NOT DISTINCT (face1_id, face2_id, size)
+                 INDEX (face1_id), INDEX (face2_id)
 face_images      (renamed from printing_images) id, face_id, is_active,
                  image_file_id, created_at, updated_at
 copies           (unchanged)
@@ -286,7 +287,8 @@ copies           (unchanged)
 Constraints worth specifying at schema time:
 
 - `printings.slug` is `UNIQUE`.
-- `faces (id, card_id)` is `UNIQUE`, as the FK target of a deck cover's `(cover_face_id, cover_card_id)`.
+- `faces (id, card_id)` is `UNIQUE`, as the FK target of a deck cover's `(cover_face_id, cover_card_id)`. It arrives with the cover column.
+- `faces.marker_slugs` holds markers sorted and deduplicated. A trigger rejects unknown slugs, deleting a marker in use is refused, and a marker slug rename rewrites the arrays.
 - The face check constraints (`chk_printings_*` on printed columns and fallback art) move with their columns.
 - `face_images` unique indexes mirror today's `printing_images` indexes, keyed by `face_id`, minus the dropped `face` column.
 
@@ -297,14 +299,14 @@ Two separate changes. The schema migration is mechanical and changes no behaviou
 ### Schema migration
 
 1. Create `faces` and `face_images`.
-2. Backfill: one face per existing printing with the moved columns, `face_1_id` pointing at it, its `printing_images` rows re-keyed to `face_images` (current data holds zero back images, so the mapping is 1:1), and its `printing_markers` rows re-keyed to `face_markers`.
-3. Drop `fk_deck_cards_printing_card` (the deck write path checks the pair); drop `card_id` from `loans` and `card_trades`; replace `decks.cover_printing_id` with `cover_face_id`; drop `deck_check_entry_cards.resolved_printing_id`; drop `uq_printings_id_card`, and replace `uq_printings_card_slug` with `UNIQUE (slug)`.
+2. Backfill: one face per existing printing with the moved columns, `face1_id` pointing at it, its `printing_images` rows re-keyed to `face_images` (current data holds zero back images, so the mapping is 1:1). Printings whose printed attributes are identical share one face (the standard and oversized printing of a battlefield). `printing_markers` is dropped, and `faces.marker_slugs` carries the markers.
+3. Drop `fk_deck_cards_printing_card` and `fk_decks_cover_printing_card` (the write paths check the pair); drop `card_id` from `loans` and `card_trades`; drop `deck_check_entry_cards.resolved_printing_id`; drop `uq_printings_id_card`, and replace `uq_printings_card_slug` with `UNIQUE (slug)`.
 4. Port the identity indexes and the two printed-attribute materialized views.
 5. Drop migrated columns from `printings`; drop `printing_images`.
 6. Update repositories (`apps/api/src/modules/*/repositories/`), server functions, route handlers and `packages/shared` types to read through `faces`.
 7. Regenerate `docs/schema.sql` (`bun db:schema`).
 
-After this every printing has one face, so the catalog payload and every page behave as before. The payload change to one entry per printing side, the pairing annotation, the two-side printing detail and the admin pairing flows follow in their own changes.
+After this every printing has one face, so the catalog payload and every page behave as before. The payload change to one entry per printing side, `decks.cover_printing_id` becoming `cover_face_id`, the pairing annotation, the two-side printing detail and the admin pairing flows follow in their own changes. The cover moves with the payload because the client picks covers from catalog entries, which carry no face id yet.
 
 ### Pair merge
 
@@ -337,7 +339,7 @@ Every `printing_id` consumer in today's schema:
 - **Printing replaced by a face:** `decks.cover_printing_id` becomes `cover_face_id`. The cover is an image, and a face determines both its art and its card. `(cover_face_id, cover_card_id)` references `faces (id, card_id)`; a null face means the card's default art.
 - **Printing dropped, computed at read time:** `deck_check_entry_cards.resolved_printing_id`. Nobody chooses it: card resolution stores the card's canonical printing as a thumbnail. The legend fan and the meta archive handoff (`authenticated-tournament-archive-lists.ts`, which passes it on as the preferred printing) look up the canonical printing of `resolved_card_id` when they read.
 - **Per-physical, `card_id` dropped:** `loans`, `card_trades`. Their `card_id` is copied from `printings.card_id` when the row is written. A Bird // Gold printing is both a Bird and a Gold, so one stored card undercounts it. Borrowed counts per card (`borrowedCountByCard`) and trade matching against card wants (`friend-group-matches-view.ts`, keyed on the supply printing's card) go through the printing's faces. The wish a trade fulfils stays reachable through `receiver_wish_entry_id`.
-- **Per-face:** `printing_markers` becomes `face_markers (face_id, marker_id)`, and `recompute_printing_marker_slugs` rebuilds `faces.marker_slugs` from it.
+- **Per-face:** markers are printed on a side, so they are `faces.marker_slugs`. `printing_markers` and `recompute_printing_marker_slugs` go away.
 - **Follow their column to `faces`:** `art_variants` is the lookup table behind `art_variant`, so its FK moves with the column.
 - **Unaffected:** `card_errata` is keyed on `card_id`, and `candidate_printings` and `ignored_candidate_printings` keep their shape (see Admin UI changes).
 

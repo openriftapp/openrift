@@ -200,7 +200,7 @@ export async function createTrade(
   if (!primaryMatch) {
     throw new AppError(409, ERROR_CODES.CONFLICT, "That card is no longer available to trade");
   }
-  const { buyEntryId: receiverWishEntryId, cardId, buyQuantity: demandQuantity } = primaryMatch;
+  const { buyEntryId: receiverWishEntryId, buyQuantity: demandQuantity } = primaryMatch;
 
   // Must run before the supply check: its own pending offer holds the copy,
   // which would pass the supply check and mask this one.
@@ -248,7 +248,6 @@ export async function createTrade(
       receiverUserId,
       initiator: role,
       printingId,
-      cardId,
       quantity,
       receiverWishEntryId,
       lastActorUserId: callerUserId,

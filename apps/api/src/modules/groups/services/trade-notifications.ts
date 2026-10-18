@@ -112,7 +112,7 @@ export async function sendTradeRequestEmail(
     const initiatorName = dto.counterparty.name;
     const initiatorContact = formatContactMethodsSummary(dto.counterparty.contactMethods);
 
-    const cards = await repos.catalog.cardsByIds([trade.cardId]);
+    const cards = await repos.catalog.cardsByIds([row.cardId]);
     const cardName = cards[0]?.name ?? null;
 
     // One trade, so it links to the counterparty's person-level sheet.

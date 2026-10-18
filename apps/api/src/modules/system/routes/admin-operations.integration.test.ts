@@ -7,6 +7,7 @@ import {
   adminReq,
   createTestContext,
   createUnauthenticatedTestContext,
+  insertPrintings,
   syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
@@ -104,27 +105,23 @@ async function seedMarketplaceData(marketplace: Marketplace) {
     .values({ cardId: card!.id, domainSlug: "mind", ordinal: 0 })
     .execute();
 
-  const [printing] = await db
-    .insertInto("printings")
-    .values({
-      cardId: card!.id,
-      setId: set!.id,
-      shortCode: `OPS-${marketplace}-${suffix}`,
-      rarity: "common",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "normal",
-      artist: "Test Artist",
-      publicCode: "OPS",
-      printedRulesText: null,
-      printedEffectText: null,
-      flavorText: null,
-      comment: null,
-      size: "standard",
-      language: "EN",
-    })
-    .returning("id")
-    .execute();
+  const [printing] = await insertPrintings(db, {
+    cardId: card!.id,
+    setId: set!.id,
+    shortCode: `OPS-${marketplace}-${suffix}`,
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "normal",
+    artist: "Test Artist",
+    publicCode: "OPS",
+    printedRulesText: null,
+    printedEffectText: null,
+    flavorText: null,
+    comment: null,
+    size: "standard",
+    language: "EN",
+  });
 
   const ordinal = MARKETPLACE_ORDINAL[marketplace];
   const baseGroupId = 90_000 + suffix * 10 + ordinal;

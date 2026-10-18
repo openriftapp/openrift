@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   adminReq,
   createTestContext,
+  insertPrintings,
   refreshCardAggregates,
   syncCardCardTypes,
 } from "../../../test/integration-context.js";
@@ -111,50 +112,42 @@ if (ctx) {
     ])
     .execute();
 
-  const [printing1] = await db
-    .insertInto("printings")
-    .values({
-      cardId: card1Id,
-      setId,
-      shortCode: "CSQ-001",
-      rarity: "common",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "normal",
-      artist: "Artist A",
-      publicCode: "CSQ",
-      printedRulesText: "Flash",
-      printedEffectText: null,
-      flavorText: null,
-      comment: "Curator note on the printing.",
-      size: "standard",
-      language: "EN",
-    })
-    .returning("id")
-    .execute();
+  const [printing1] = await insertPrintings(db, {
+    cardId: card1Id,
+    setId,
+    shortCode: "CSQ-001",
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "normal",
+    artist: "Artist A",
+    publicCode: "CSQ",
+    printedRulesText: "Flash",
+    printedEffectText: null,
+    flavorText: null,
+    comment: "Curator note on the printing.",
+    size: "standard",
+    language: "EN",
+  });
   printing1Id = printing1!.id;
 
-  const [printing2] = await db
-    .insertInto("printings")
-    .values({
-      cardId: card3Id,
-      setId,
-      shortCode: "CSQ-003",
-      rarity: "uncommon",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "normal",
-      artist: "Artist C",
-      publicCode: "CSQ",
-      printedRulesText: null,
-      printedEffectText: null,
-      flavorText: null,
-      comment: null,
-      size: "standard",
-      language: "EN",
-    })
-    .returning("id")
-    .execute();
+  const [printing2] = await insertPrintings(db, {
+    cardId: card3Id,
+    setId,
+    shortCode: "CSQ-003",
+    rarity: "uncommon",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "normal",
+    artist: "Artist C",
+    publicCode: "CSQ",
+    printedRulesText: null,
+    printedEffectText: null,
+    flavorText: null,
+    comment: null,
+    size: "standard",
+    language: "EN",
+  });
   printing2Id = printing2!.id;
 
   const [csqImageFile] = await db
@@ -163,10 +156,9 @@ if (ctx) {
     .returning("id")
     .execute();
   await db
-    .insertInto("printingImages")
+    .insertInto("faceImages")
     .values({
-      printingId: printing1Id,
-      face: "front",
+      faceId: printing1Id,
       imageFileId: csqImageFile!.id,
       isActive: true,
     })

@@ -9,7 +9,7 @@ export function raritiesRepo(db: Kysely<Database>) {
     table: "rarities",
     isInUse: (slug) =>
       db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("id")
         .where("rarity", "=", slug as Rarity)
         .limit(1)

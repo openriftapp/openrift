@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   adminReq,
   createTestContext,
+  insertPrintings,
   refreshCardAggregates,
   syncCardCardTypes,
 } from "../../../test/integration-context.js";
@@ -49,27 +50,23 @@ if (ctx) {
 
   await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", ordinal: 0 }).execute();
 
-  const [printingRow] = await db
-    .insertInto("printings")
-    .values({
-      cardId,
-      setId,
-      shortCode: "UNM-001",
-      rarity: "common",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "normal",
-      artist: "Test Artist",
-      publicCode: "UNM",
-      printedRulesText: null,
-      printedEffectText: null,
-      flavorText: null,
-      comment: null,
-      size: "standard",
-      language: "EN",
-    })
-    .returning("id")
-    .execute();
+  const [printingRow] = await insertPrintings(db, {
+    cardId,
+    setId,
+    shortCode: "UNM-001",
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "normal",
+    artist: "Test Artist",
+    publicCode: "UNM",
+    printedRulesText: null,
+    printedEffectText: null,
+    flavorText: null,
+    comment: null,
+    size: "standard",
+    language: "EN",
+  });
   printingId = printingRow!.id;
 
   const [secondCardRow] = await db
@@ -95,27 +92,23 @@ if (ctx) {
     .values({ cardId: secondCardId, domainSlug: "chaos", ordinal: 0 })
     .execute();
 
-  await db
-    .insertInto("printings")
-    .values({
-      cardId: secondCardId,
-      setId,
-      shortCode: "UNM-002",
-      rarity: "rare",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "normal",
-      artist: "Test Artist",
-      publicCode: "UNM",
-      printedRulesText: null,
-      printedEffectText: null,
-      flavorText: null,
-      comment: null,
-      size: "standard",
-      language: "EN",
-    })
-    .returning("id")
-    .execute();
+  await insertPrintings(db, {
+    cardId: secondCardId,
+    setId,
+    shortCode: "UNM-002",
+    rarity: "rare",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "normal",
+    artist: "Test Artist",
+    publicCode: "UNM",
+    printedRulesText: null,
+    printedEffectText: null,
+    flavorText: null,
+    comment: null,
+    size: "standard",
+    language: "EN",
+  });
 
   await db
     .insertInto("marketplaceGroups")

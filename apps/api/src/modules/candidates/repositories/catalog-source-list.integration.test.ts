@@ -1,6 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
+import {
+  createDbContext,
+  deletePrintingsById,
+  insertPrintings,
+  seedTestUser,
+} from "../../../test/integration-context.js";
 import { candidateCardsRepo } from "./candidate-cards.js";
 
 const ctx = createDbContext("a0000000-0051-4000-a000-000000000001");
@@ -131,8 +136,8 @@ describe.skipIf(!ctx)("catalog source list queries (integration)", () => {
       .executeTakeFirstOrThrow();
     imageFileIds.push(file.id);
     await db
-      .insertInto("printingImages")
-      .values({ printingId, imageFileId: file.id, face: "front", isActive })
+      .insertInto("faceImages")
+      .values({ faceId: printingId, imageFileId: file.id, isActive })
       .execute();
   }
 
@@ -187,14 +192,11 @@ describe.skipIf(!ctx)("catalog source list queries (integration)", () => {
       .values({ id: CARD_ID, slug: "cl51-fixture", name: CARD_NAME, type: "unit" })
       .execute();
 
-    await db
-      .insertInto("printings")
-      .values([
-        printing(P_FIRST, SET_FIRST, "CL51A-001", "EN"),
-        printing(P_INACTIVE, SET_FIRST, "CL51A-002", "FR"),
-        printing(P_LATER, SET_LATER, "CL51B-001", "EN"),
-      ])
-      .execute();
+    await insertPrintings(db, [
+      printing(P_FIRST, SET_FIRST, "CL51A-001", "EN"),
+      printing(P_INACTIVE, SET_FIRST, "CL51A-002", "FR"),
+      printing(P_LATER, SET_LATER, "CL51B-001", "EN"),
+    ]);
 
     await frontImage(P_LATER, true);
     await frontImage(P_INACTIVE, false);
@@ -316,9 +318,9 @@ describe.skipIf(!ctx)("catalog source list queries (integration)", () => {
     await db.deleteFrom("ignoredCandidateCards").where("provider", "in", PROVIDERS).execute();
     await db.deleteFrom("candidatePrintings").where("id", "in", CP_IDS).execute();
     await db.deleteFrom("candidateCards").where("id", "in", CC_IDS).execute();
-    await db.deleteFrom("printingImages").where("printingId", "in", PRINTING_IDS).execute();
+    await db.deleteFrom("faceImages").where("faceId", "in", PRINTING_IDS).execute();
     await db.deleteFrom("imageFiles").where("id", "in", imageFileIds).execute();
-    await db.deleteFrom("printings").where("id", "in", PRINTING_IDS).execute();
+    await deletePrintingsById(db, PRINTING_IDS);
     await db.deleteFrom("cards").where("id", "=", CARD_ID).execute();
     await db.deleteFrom("sets").where("id", "in", SET_IDS).execute();
     await db.deleteFrom("providerSettings").where("provider", "in", PROVIDERS).execute();

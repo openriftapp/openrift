@@ -3,7 +3,11 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { imageUrlWithOriginal, joinFrontImage } from "../../../repositories/query-helpers.js";
+import {
+  imageUrlWithOriginal,
+  joinFaceImage,
+  withFace1,
+} from "../../../repositories/query-helpers.js";
 
 type Db = Kysely<Database>;
 
@@ -11,18 +15,19 @@ export function marketplaceMappingCardsRepo(db: Db) {
   return {
     allCardsWithPrintings(marketplace: Marketplace) {
       return (
-        joinFrontImage(
+        joinFaceImage(
           db
             .selectFrom("cards as c")
-            .innerJoin("printings as p", "p.cardId", "c.id")
+            .innerJoin("printingSidesOrdered as p", "p.cardId", "c.id")
             .innerJoin("sets as s", "s.id", "p.setId")
             .innerJoin("mvCardAggregates as mca", "mca.cardId", "c.id")
-            .leftJoin("marketplaceProductVariants as mpv", "mpv.printingId", "p.id")
+            .leftJoin("marketplaceProductVariants as mpv", "mpv.printingId", "p.printingId")
             .leftJoin("marketplaceProducts as mp", (join) =>
               join
                 .onRef("mp.id", "=", "mpv.marketplaceProductId")
                 .on("mp.marketplace", "=", marketplace),
             ),
+          "p.faceId",
         )
           .select([
             "c.id as cardId",
@@ -32,7 +37,7 @@ export function marketplaceMappingCardsRepo(db: Db) {
             "mca.superTypes",
             "c.energy",
             "c.might",
-            "p.id as printingId",
+            "p.printingId",
             "s.slug as setId",
             "p.shortCode",
             "p.rarity",
@@ -65,7 +70,7 @@ export function marketplaceMappingCardsRepo(db: Db) {
           // this the suggestion algorithm picked an arbitrary language when
           // two printings tied on score.
           .orderBy("p.language")
-          .orderBy("p.id")
+          .orderBy("p.printingId")
           .execute()
       );
     },
@@ -79,13 +84,13 @@ export function marketplaceMappingCardsRepo(db: Db) {
      * a slug → id lookup before this query.
      */
     allCardsWithPrintingsUnified(cardIdentifier?: string) {
-      let query = joinFrontImage(
+      let query = joinFaceImage(
         db
           .selectFrom("cards as c")
-          .innerJoin("printings as p", "p.cardId", "c.id")
+          .innerJoin("printingSidesOrdered as p", "p.cardId", "c.id")
           .innerJoin("sets as s", "s.id", "p.setId")
           .innerJoin("mvCardAggregates as mca", "mca.cardId", "c.id")
-          .leftJoin("marketplaceProductVariants as mpv", "mpv.printingId", "p.id")
+          .leftJoin("marketplaceProductVariants as mpv", "mpv.printingId", "p.printingId")
           .leftJoin("marketplaceProducts as mp", "mp.id", "mpv.marketplaceProductId")
           .leftJoin("marketplaceGroups as mg", (join) =>
             join
@@ -93,6 +98,7 @@ export function marketplaceMappingCardsRepo(db: Db) {
               .onRef("mg.groupId", "=", "mp.groupId"),
           )
           .leftJoin("sets as gs", "gs.id", "mg.setId"),
+        "p.faceId",
       ).select([
         "c.id as cardId",
         "c.slug as cardSlug",
@@ -101,7 +107,7 @@ export function marketplaceMappingCardsRepo(db: Db) {
         "mca.superTypes",
         "c.energy",
         "c.might",
-        "p.id as printingId",
+        "p.printingId",
         "s.slug as setId",
         "p.shortCode",
         "p.rarity",
@@ -140,7 +146,7 @@ export function marketplaceMappingCardsRepo(db: Db) {
           // Same tiebreakers as `allCardsWithPrintings` — keep printings in a
           // stable EN-before-SC order so suggestion ranking is deterministic.
           .orderBy("p.language")
-          .orderBy("p.id")
+          .orderBy("p.printingId")
           .execute()
       );
     },
@@ -160,7 +166,7 @@ export function marketplaceMappingCardsRepo(db: Db) {
           s.name as "setName",
           COALESCE(array_agg(p.short_code ORDER BY p.short_code) FILTER (WHERE p.short_code IS NOT NULL), ARRAY[]::text[]) as "shortCodes"
         FROM cards c
-        INNER JOIN printings p ON p.card_id = c.id
+        INNER JOIN faces p ON p.card_id = c.id
         INNER JOIN sets s ON s.id = p.set_id
         GROUP BY c.id, c.slug, c.name, s.name
       `.execute(db);
@@ -168,10 +174,9 @@ export function marketplaceMappingCardsRepo(db: Db) {
     },
 
     printingFinishesAndLanguages(printingIds: string[]) {
-      return db
-        .selectFrom("printings")
-        .select(["id", "finish", "language"])
-        .where("id", "in", printingIds)
+      return withFace1(db.selectFrom("printings as p"))
+        .select(["p.id", "pf.finish", "pf.language"])
+        .where("p.id", "in", printingIds)
         .execute();
     },
 

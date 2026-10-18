@@ -266,11 +266,10 @@ export function catalogCardsRepo(db: Kysely<Database>) {
           SELECT
             p.rarity,
             CASE WHEN imgf.rehosted_url IS NOT NULL THEN imgf.id ELSE NULL END AS image_id
-          FROM printings p
+          FROM printing_sides_ordered p
           JOIN languages l ON l.code = p.language
           JOIN sets s ON s.id = p.set_id
-          LEFT JOIN printing_images pi
-            ON pi.printing_id = p.id AND pi.face = 'front' AND pi.is_active
+          LEFT JOIN face_images pi ON pi.face_id = p.face_id AND pi.is_active
           LEFT JOIN image_files imgf ON imgf.id = pi.image_file_id
           WHERE p.card_id = top_cards.id
           ORDER BY (imgf.rehosted_url IS NOT NULL) DESC, l.sort_order, s.sort_order, p.short_code

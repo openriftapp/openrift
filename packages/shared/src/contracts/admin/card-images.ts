@@ -33,7 +33,7 @@ export type ImageOriginalOutput = z.infer<typeof imageOriginalOutputSchema>;
 
 /**
  * The `fallbackArt` verbs manage substitute artwork for a printing with no
- * scan of its own. They never touch `printing_images`: recording a substitute
+ * scan of its own. They never touch `face_images`: recording a substitute
  * there would make the printing count as photographed everywhere coverage is
  * tracked.
  */

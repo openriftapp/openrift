@@ -2,7 +2,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createRepos } from "../../../deps.js";
 import { CARDS, OGS_SET, PRINTINGS } from "../../../test/fixtures/constants.js";
-import { createDbContext, syncCardCardTypes } from "../../../test/integration-context.js";
+import {
+  createDbContext,
+  deletePrintingsById,
+  insertPrinting,
+  syncCardCardTypes,
+} from "../../../test/integration-context.js";
 
 const USER_ID = "a0000000-0197-4000-a000-000000000002";
 const ctx = createDbContext(USER_ID);
@@ -126,27 +131,23 @@ describe.skipIf(!ctx)("products repo coverCards (integration)", () => {
 
   async function makePrinting(cardId: string, rarity: string, publicCode: string): Promise<string> {
     counter += 1;
-    const printing = await db
-      .insertInto("printings")
-      .values({
-        cardId,
-        setId: OGS_SET.id,
-        shortCode: `COV-${counter}`,
-        rarity,
-        artVariant: "normal",
-        isSigned: false,
-        finish: "normal",
-        artist: "Test Artist",
-        publicCode,
-        printedRulesText: null,
-        printedEffectText: null,
-        flavorText: null,
-        comment: null,
-        size: "standard",
-        language: "EN",
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const printing = await insertPrinting(db, {
+      cardId,
+      setId: OGS_SET.id,
+      shortCode: `COV-${counter}`,
+      rarity,
+      artVariant: "normal",
+      isSigned: false,
+      finish: "normal",
+      artist: "Test Artist",
+      publicCode,
+      printedRulesText: null,
+      printedEffectText: null,
+      flavorText: null,
+      comment: null,
+      size: "standard",
+      language: "EN",
+    });
     printingIds.push(printing.id);
     return printing.id;
   }
@@ -166,8 +167,8 @@ describe.skipIf(!ctx)("products repo coverCards (integration)", () => {
       .executeTakeFirstOrThrow();
     imageFileIds.push(imageFile.id);
     await db
-      .insertInto("printingImages")
-      .values({ printingId, imageFileId: imageFile.id, face: "front", isActive: active })
+      .insertInto("faceImages")
+      .values({ faceId: printingId, imageFileId: imageFile.id, isActive: active })
       .execute();
     return imageFile.id;
   }
@@ -243,8 +244,8 @@ describe.skipIf(!ctx)("products repo coverCards (integration)", () => {
       await db.deleteFrom("products").where("id", "in", productIds).execute();
     }
     if (printingIds.length > 0) {
-      await db.deleteFrom("printingImages").where("printingId", "in", printingIds).execute();
-      await db.deleteFrom("printings").where("id", "in", printingIds).execute();
+      await db.deleteFrom("faceImages").where("faceId", "in", printingIds).execute();
+      await deletePrintingsById(db, printingIds);
     }
     if (imageFileIds.length > 0) {
       await db.deleteFrom("imageFiles").where("id", "in", imageFileIds).execute();

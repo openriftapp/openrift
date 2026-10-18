@@ -1,7 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CARD_FURY_UNIT, OGS_SET, PRINTING_1 } from "../../../test/fixtures/constants.js";
-import { createTestContext, req } from "../../../test/integration-context.js";
+import {
+  createTestContext,
+  deletePrintingsById,
+  insertPrintings,
+  req,
+} from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
 const USER_ID = "a0000000-0024-4000-a000-000000000001";
@@ -22,27 +27,23 @@ describe.skipIf(!ctx)("Catalog route (integration)", () => {
   let imageFileId = "";
 
   beforeAll(async () => {
-    const [imagePrinting] = await db
-      .insertInto("printings")
-      .values({
-        cardId: CARD_FURY_UNIT.id,
-        setId: SEED_SET_ID,
-        shortCode: "CAT-IMG-001",
-        rarity: "common",
-        artVariant: "normal",
-        isSigned: false,
-        finish: "normal",
-        artist: "Catalog Image Test",
-        publicCode: "CAT",
-        printedRulesText: null,
-        printedEffectText: null,
-        flavorText: null,
-        comment: null,
-        size: "standard",
-        language: "EN",
-      })
-      .returning("id")
-      .execute();
+    const [imagePrinting] = await insertPrintings(db, {
+      cardId: CARD_FURY_UNIT.id,
+      setId: SEED_SET_ID,
+      shortCode: "CAT-IMG-001",
+      rarity: "common",
+      artVariant: "normal",
+      isSigned: false,
+      finish: "normal",
+      artist: "Catalog Image Test",
+      publicCode: "CAT",
+      printedRulesText: null,
+      printedEffectText: null,
+      flavorText: null,
+      comment: null,
+      size: "standard",
+      language: "EN",
+    });
     imagePrintingId = imagePrinting!.id;
 
     // The public catalog only surfaces images with a non-null rehosted_url.
@@ -57,8 +58,8 @@ describe.skipIf(!ctx)("Catalog route (integration)", () => {
     imageFileId = imageFile!.id;
 
     await db
-      .insertInto("printingImages")
-      .values({ printingId: imagePrintingId, face: "front", imageFileId, isActive: true })
+      .insertInto("faceImages")
+      .values({ faceId: imagePrintingId, imageFileId, isActive: true })
       .execute();
 
     const existing = await db
@@ -134,11 +135,11 @@ describe.skipIf(!ctx)("Catalog route (integration)", () => {
 
   afterAll(async () => {
     if (imageFileId) {
-      await db.deleteFrom("printingImages").where("imageFileId", "=", imageFileId).execute();
+      await db.deleteFrom("faceImages").where("imageFileId", "=", imageFileId).execute();
       await db.deleteFrom("imageFiles").where("id", "=", imageFileId).execute();
     }
     if (imagePrintingId) {
-      await db.deleteFrom("printings").where("id", "=", imagePrintingId).execute();
+      await deletePrintingsById(db, imagePrintingId);
     }
     if (productId) {
       await db

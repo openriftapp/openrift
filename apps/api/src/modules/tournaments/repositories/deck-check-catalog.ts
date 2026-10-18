@@ -17,14 +17,14 @@ export function deckCheckCatalogRepo(db: Kysely<Database>) {
         return thumbnailByCard;
       }
       const printingRows = await db
-        .selectFrom("printingsOrdered")
-        .select(["id", "cardId"])
+        .selectFrom("printingSidesOrdered")
+        .select(["printingId", "cardId"])
         .where("cardId", "in", cardIds)
         .orderBy("canonicalRank", "asc")
         .execute();
       for (const row of printingRows) {
         if (!thumbnailByCard.has(row.cardId)) {
-          thumbnailByCard.set(row.cardId, row.id);
+          thumbnailByCard.set(row.cardId, row.printingId);
         }
       }
       return thumbnailByCard;
@@ -37,7 +37,7 @@ export function deckCheckCatalogRepo(db: Kysely<Database>) {
         return new Map();
       }
       const rows = await db
-        .selectFrom("printings as p")
+        .selectFrom("faces as p")
         .innerJoin("cards as c", "c.id", "p.cardId")
         .innerJoin("mvCardAggregates as mca", "mca.cardId", "c.id")
         .select(["p.shortCode", "c.id", "c.name", "mca.types"])
@@ -113,7 +113,7 @@ export function deckCheckCatalogRepo(db: Kysely<Database>) {
         return new Map();
       }
       const rows = await db
-        .selectFrom("printings as p")
+        .selectFrom("faces as p")
         .innerJoin("sets as s", "s.id", "p.setId")
         .select(["p.cardId", "s.slug"])
         .where("p.cardId", "in", cardIds)

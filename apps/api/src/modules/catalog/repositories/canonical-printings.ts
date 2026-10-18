@@ -3,7 +3,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { imageId, joinFrontImage } from "../../../repositories/query-helpers.js";
+import { imageId, joinFaceImage } from "../../../repositories/query-helpers.js";
 
 interface DeckRowForShortCode {
   cardId: string;
@@ -38,9 +38,13 @@ interface ResolvedRowPrintingMeta extends DeckRowForShortCode {
  *   4. Non-promo first
  *   5. Normal finish before foil
  */
+function sideKey(printingId: string, cardId: string): string {
+  return `${printingId}|${cardId}`;
+}
+
 export function canonicalPrintingsRepo(db: Kysely<Database>) {
   function baseQuery() {
-    return db.selectFrom("printings as p").innerJoin("sets as s", "s.id", "p.setId");
+    return db.selectFrom("printingSidesOrdered as p").innerJoin("sets as s", "s.id", "p.setId");
   }
 
   /**
@@ -81,19 +85,23 @@ export function canonicalPrintingsRepo(db: Kysely<Database>) {
       const preferredMap = new Map<string, string>();
       if (preferredIds.length > 0) {
         const preferredRows = await db
-          .selectFrom("printings")
-          .select(["id", "shortCode"])
-          .where("id", "in", preferredIds)
+          .selectFrom("printingSidesOrdered")
+          .select(["printingId", "cardId", "shortCode"])
+          .where("printingId", "in", preferredIds)
           .execute();
         for (const row of preferredRows) {
-          preferredMap.set(row.id, row.shortCode);
+          preferredMap.set(sideKey(row.printingId, row.cardId), row.shortCode);
         }
       }
 
       const cardIdsNeedingCanonical = [
         ...new Set(
           rows
-            .filter((r) => !r.preferredPrintingId || !preferredMap.has(r.preferredPrintingId))
+            .filter(
+              (r) =>
+                !r.preferredPrintingId ||
+                !preferredMap.has(sideKey(r.preferredPrintingId, r.cardId)),
+            )
             .map((r) => r.cardId),
         ),
       ];
@@ -113,7 +121,7 @@ export function canonicalPrintingsRepo(db: Kysely<Database>) {
 
       return rows.map((row) => {
         const fromPreferred = row.preferredPrintingId
-          ? preferredMap.get(row.preferredPrintingId)
+          ? preferredMap.get(sideKey(row.preferredPrintingId, row.cardId))
           : undefined;
         return {
           cardId: row.cardId,
@@ -149,29 +157,39 @@ export function canonicalPrintingsRepo(db: Kysely<Database>) {
       ];
       const preferredMap = new Map<string, PrintingMetaRow>();
       if (preferredIds.length > 0) {
-        const preferredRows = await joinFrontImage(db.selectFrom("printings as p"))
-          .select(["p.id as printingId", "p.shortCode", imageId("imgf").as("imageId")])
-          .where("p.id", "in", preferredIds)
+        const preferredRows = await joinFaceImage(
+          db.selectFrom("printingSidesOrdered as p"),
+          "p.faceId",
+        )
+          .select(["p.printingId", "p.cardId", "p.shortCode", imageId("imgf").as("imageId")])
+          .where("p.printingId", "in", preferredIds)
           .execute();
         for (const row of preferredRows) {
-          preferredMap.set(row.printingId, row as PrintingMetaRow);
+          preferredMap.set(sideKey(row.printingId, row.cardId), row);
         }
       }
 
       const cardIdsNeedingCanonical = [
         ...new Set(
           rows
-            .filter((r) => !r.preferredPrintingId || !preferredMap.has(r.preferredPrintingId))
+            .filter(
+              (r) =>
+                !r.preferredPrintingId ||
+                !preferredMap.has(sideKey(r.preferredPrintingId, r.cardId)),
+            )
             .map((r) => r.cardId),
         ),
       ];
       const canonicalMap = new Map<string, PrintingMetaRow>();
       if (cardIdsNeedingCanonical.length > 0) {
-        // Use the `printings_ordered` view (canonicalRank pre-computed) instead
-        // of appendCanonicalOrder so the left-joined image tables don't break
+        // Ordered by the view's precomputed canonicalRank instead of
+        // appendCanonicalOrder so the left-joined image tables don't break
         // appendCanonicalOrder's generic constraint on the query shape.
-        const canonicalRows = await joinFrontImage(db.selectFrom("printingsOrdered as p"))
-          .select(["p.cardId", "p.id as printingId", "p.shortCode", imageId("imgf").as("imageId")])
+        const canonicalRows = await joinFaceImage(
+          db.selectFrom("printingSidesOrdered as p"),
+          "p.faceId",
+        )
+          .select(["p.cardId", "p.printingId", "p.shortCode", imageId("imgf").as("imageId")])
           .where("p.cardId", "in", cardIdsNeedingCanonical)
           .distinctOn("p.cardId")
           .orderBy("p.cardId")
@@ -188,7 +206,7 @@ export function canonicalPrintingsRepo(db: Kysely<Database>) {
 
       return rows.map((row) => {
         const fromPreferred = row.preferredPrintingId
-          ? preferredMap.get(row.preferredPrintingId)
+          ? preferredMap.get(sideKey(row.preferredPrintingId, row.cardId))
           : undefined;
         const meta = fromPreferred ?? canonicalMap.get(row.cardId);
         if (!meta) {

@@ -2,12 +2,13 @@ import type { ActivityAction, CardType } from "@openrift/shared/types/enums";
 import type { Kysely, Selectable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import type { PrintingsTable } from "../../../db/tables/catalog.js";
+import type { FacesTable } from "../../../db/tables/catalog.js";
 import type { CollectionEventsTable } from "../../../db/tables/collections.js";
 import {
   imageId,
-  joinFrontImage,
+  joinFaceImage,
   keysetCursorPredicate,
+  withFace1,
 } from "../../../repositories/query-helpers.js";
 
 type CollectionEventRow = Pick<
@@ -22,7 +23,7 @@ type CollectionEventRow = Pick<
   | "toCollectionName"
   | "createdAt"
 > &
-  Pick<Selectable<PrintingsTable>, "shortCode" | "rarity"> & {
+  Pick<Selectable<FacesTable>, "shortCode" | "rarity"> & {
     imageId: string | null;
     cardName: string;
     cardTypes: CardType[];
@@ -33,12 +34,15 @@ type CollectionEventRow = Pick<
 export function collectionEventsRepo(db: Kysely<Database>) {
   return {
     listForUser(userId: string, limit: number, cursor?: string): Promise<CollectionEventRow[]> {
-      let query = joinFrontImage(
-        db
-          .selectFrom("collectionEvents as ce")
-          .innerJoin("printings as p", "p.id", "ce.printingId")
-          .innerJoin("cards as card", "card.id", "p.cardId")
+      let query = joinFaceImage(
+        withFace1(
+          db
+            .selectFrom("collectionEvents as ce")
+            .innerJoin("printings as p", "p.id", "ce.printingId"),
+        )
+          .innerJoin("cards as card", "card.id", "pf.cardId")
           .innerJoin("mvCardAggregates as mca", "mca.cardId", "card.id"),
+        "pf.id",
       )
         .select([
           "ce.id",
@@ -51,8 +55,8 @@ export function collectionEventsRepo(db: Kysely<Database>) {
           "ce.toCollectionName",
           "ce.createdAt",
           imageId("imgf").as("imageId"),
-          "p.shortCode",
-          "p.rarity",
+          "pf.shortCode",
+          "pf.rarity",
           "card.name as cardName",
           "mca.types as cardTypes",
           "mca.superTypes as cardSuperTypes",

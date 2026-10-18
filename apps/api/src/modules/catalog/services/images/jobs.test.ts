@@ -208,7 +208,7 @@ describe("rehostSingleImage", () => {
 
   it("rehosts an image file with no printing image behind it", async () => {
     // Substitute art pinned from a URL has an image_files row and deliberately
-    // no printing_images row, so it can only be reached by file id.
+    // no face_images row, so it can only be reached by file id.
     const repo = makeRehostRepo({ originalUrl: "https://example.com/pinned.png" });
 
     await rehostImageFile(mockIo, repo, "00594247-a18a-4efd-8998-105449a4cf40");

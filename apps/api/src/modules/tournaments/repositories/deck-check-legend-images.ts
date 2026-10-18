@@ -3,7 +3,28 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { imageId, requireFrontImage } from "../../../repositories/query-helpers.js";
+import { imageId } from "../../../repositories/query-helpers.js";
+
+function canonicalSideOf(column: "face_id" | "printing_id") {
+  return sql<string>`(
+    SELECT ${sql.ref(`s.${column}`)} FROM printing_sides_ordered s
+    WHERE s.card_id = c.resolved_card_id
+    ORDER BY s.canonical_rank, s.printing_id
+    LIMIT 1
+  )`;
+}
+
+function withResolvedCardImage(db: Kysely<Database>) {
+  return db
+    .selectFrom("deckCheckEntries as en")
+    .innerJoin("deckCheckEntryCards as c", "c.entryId", "en.id")
+    .innerJoin("faceImages as pim", (join) =>
+      join
+        .on(sql<boolean>`pim.face_id = ${canonicalSideOf("face_id")}`)
+        .on("pim.isActive", "=", true),
+    )
+    .innerJoin("imageFiles as imgf", "imgf.id", "pim.imageFileId");
+}
 
 export function deckCheckLegendImagesRepo(db: Kysely<Database>) {
   return {
@@ -16,15 +37,10 @@ export function deckCheckLegendImagesRepo(db: Kysely<Database>) {
       }
       // One row per (tournament, legend card): the earliest-submitted entry's
       // printing, so one popular legend can't fill the fan several times.
-      const bestPerCard = requireFrontImage(
-        db
-          .selectFrom("deckCheckEntries as en")
-          .innerJoin("deckCheckEntryCards as c", "c.entryId", "en.id"),
-        "c.resolvedPrintingId",
-      )
+      const bestPerCard = withResolvedCardImage(db)
         .select([
           "en.tournamentId",
-          "c.resolvedPrintingId as printingId",
+          canonicalSideOf("printing_id").as("printingId"),
           imageId("imgf").as("imageId"),
           "en.submittedAt",
           "en.createdAt",
@@ -38,7 +54,6 @@ export function deckCheckLegendImagesRepo(db: Kysely<Database>) {
         .where("en.allowDeckPublishing", "=", true)
         .where("en.withdrawnAt", "is", null)
         .where("c.zone", "=", WellKnown.deckZone.LEGEND)
-        .where("c.resolvedPrintingId", "is not", null)
         .where(sql`${imageId("imgf")}`, "is not", null);
       // Fan slots are ranked over the deduped rows only, so a repeat legend
       // never burns a slot that a distinct one should get.
@@ -69,12 +84,7 @@ export function deckCheckLegendImagesRepo(db: Kysely<Database>) {
       if (participantIds.length === 0) {
         return new Map();
       }
-      const rows = await requireFrontImage(
-        db
-          .selectFrom("deckCheckEntries as en")
-          .innerJoin("deckCheckEntryCards as c", "c.entryId", "en.id"),
-        "c.resolvedPrintingId",
-      )
+      const rows = await withResolvedCardImage(db)
         .select([
           "en.participantId",
           imageId("imgf").as("imageId"),

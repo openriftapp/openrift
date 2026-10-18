@@ -4,6 +4,7 @@ import type { Io } from "../../../io.js";
 import {
   adminReq,
   createTestContext,
+  insertPrintings,
   refreshCardAggregates,
   syncCardCardTypes,
 } from "../../../test/integration-context.js";
@@ -96,27 +97,23 @@ if (ctx) {
     .values({ cardId: card!.id, domainSlug: "mind", ordinal: 0 })
     .execute();
 
-  const [printing] = await db
-    .insertInto("printings")
-    .values({
-      cardId: card!.id,
-      setId: set!.id,
-      shortCode: "CSI-001",
-      rarity: "common",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "normal",
-      artist: "Test Artist",
-      publicCode: "CSI",
-      printedRulesText: null,
-      printedEffectText: null,
-      flavorText: null,
-      comment: null,
-      size: "standard",
-      language: "EN",
-    })
-    .returning("id")
-    .execute();
+  const [printing] = await insertPrintings(db, {
+    cardId: card!.id,
+    setId: set!.id,
+    shortCode: "CSI-001",
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "normal",
+    artist: "Test Artist",
+    publicCode: "CSI",
+    printedRulesText: null,
+    printedEffectText: null,
+    flavorText: null,
+    comment: null,
+    size: "standard",
+    language: "EN",
+  });
   printingId = printing!.id;
 
   const [cs] = await db
@@ -260,11 +257,11 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const images = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-        .selectAll("printingImages")
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
+        .selectAll("faceImages")
         .select("ci.originalUrl")
-        .where("printingImages.printingId", "=", printingId)
+        .where("faceImages.faceId", "=", printingId)
         .execute();
       expect(images.length).toBeGreaterThanOrEqual(1);
 
@@ -332,10 +329,10 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const images = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-        .selectAll("printingImages")
-        .where("printingImages.printingId", "=", printingId)
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
+        .selectAll("faceImages")
+        .where("faceImages.faceId", "=", printingId)
         .where("ci.originalUrl", "=", "https://example.com/csi-test-alt.png")
         .execute();
       expect(images.length).toBe(1);
@@ -386,7 +383,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const image = await db
-        .selectFrom("printingImages")
+        .selectFrom("faceImages")
         .select("isActive")
         .where("id", "=", additionalImageId)
         .executeTakeFirst();
@@ -394,7 +391,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(image!.isActive).toBe(true);
 
       const prev = await db
-        .selectFrom("printingImages")
+        .selectFrom("faceImages")
         .select("isActive")
         .where("id", "=", mainImageId)
         .executeTakeFirst();
@@ -411,7 +408,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const image = await db
-        .selectFrom("printingImages")
+        .selectFrom("faceImages")
         .select("isActive")
         .where("id", "=", additionalImageId)
         .executeTakeFirst();
@@ -431,12 +428,12 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
   describe("POST /admin/cards/printing-images/:imageId/activate (rehosted)", () => {
     it("does not change rehostedUrls when swapping active images", async () => {
       const mainCardImageId = await db
-        .selectFrom("printingImages")
+        .selectFrom("faceImages")
         .select("imageFileId")
         .where("id", "=", mainImageId)
         .executeTakeFirstOrThrow();
       const additionalCardImageId = await db
-        .selectFrom("printingImages")
+        .selectFrom("faceImages")
         .select("imageFileId")
         .where("id", "=", additionalImageId)
         .executeTakeFirstOrThrow();
@@ -449,7 +446,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
         .where("id", "=", mainCardImageId.imageFileId)
         .execute();
       await db
-        .updateTable("printingImages")
+        .updateTable("faceImages")
         .set({ isActive: true })
         .where("id", "=", mainImageId)
         .execute();
@@ -459,7 +456,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
         .where("id", "=", additionalCardImageId.imageFileId)
         .execute();
       await db
-        .updateTable("printingImages")
+        .updateTable("faceImages")
         .set({ isActive: false })
         .where("id", "=", additionalImageId)
         .execute();
@@ -472,10 +469,10 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const newActive = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-        .select(["printingImages.isActive", "ci.rehostedUrl"])
-        .where("printingImages.id", "=", additionalImageId)
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
+        .select(["faceImages.isActive", "ci.rehostedUrl"])
+        .where("faceImages.id", "=", additionalImageId)
         .executeTakeFirst();
       // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted by skipIf
       expect(newActive!.isActive).toBe(true);
@@ -483,10 +480,10 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(newActive!.rehostedUrl).toBe(additionalUrl);
 
       const demoted = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-        .select(["printingImages.isActive", "ci.rehostedUrl"])
-        .where("printingImages.id", "=", mainImageId)
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
+        .select(["faceImages.isActive", "ci.rehostedUrl"])
+        .where("faceImages.id", "=", mainImageId)
         .executeTakeFirst();
       // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted by skipIf
       expect(demoted!.isActive).toBe(false);
@@ -505,10 +502,10 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const image = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-        .select(["printingImages.isActive", "ci.rehostedUrl"])
-        .where("printingImages.id", "=", additionalImageId)
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
+        .select(["faceImages.isActive", "ci.rehostedUrl"])
+        .where("faceImages.id", "=", additionalImageId)
         .executeTakeFirst();
       // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted by skipIf
       expect(image!.isActive).toBe(false);
@@ -518,7 +515,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
 
     it("activates an image without rehostedUrl", async () => {
       const mainCardImageId = await db
-        .selectFrom("printingImages")
+        .selectFrom("faceImages")
         .select("imageFileId")
         .where("id", "=", mainImageId)
         .executeTakeFirstOrThrow();
@@ -529,10 +526,9 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
         .execute();
 
       await db
-        .updateTable("printingImages")
+        .updateTable("faceImages")
         .set({ isActive: false })
-        .where("printingId", "=", printingId)
-        .where("face", "=", "front")
+        .where("faceId", "=", printingId)
         .execute();
 
       const res = await app.fetch(
@@ -543,10 +539,10 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const image = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-        .select(["printingImages.isActive", "ci.rehostedUrl"])
-        .where("printingImages.id", "=", mainImageId)
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
+        .select(["faceImages.isActive", "ci.rehostedUrl"])
+        .where("faceImages.id", "=", mainImageId)
         .executeTakeFirst();
       // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted by skipIf
       expect(image!.isActive).toBe(true);
@@ -564,10 +560,10 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(json.rehostedUrl).toBeTypeOf("string");
 
       const image = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
         .select("ci.rehostedUrl")
-        .where("printingImages.id", "=", mainImageId)
+        .where("faceImages.id", "=", mainImageId)
         .executeTakeFirst();
       // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
       expect(image!.rehostedUrl).toBeTypeOf("string");
@@ -581,10 +577,9 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
         .returning("id")
         .execute();
       const [noUrlImage] = await db
-        .insertInto("printingImages")
+        .insertInto("faceImages")
         .values({
-          printingId,
-          face: "front",
+          faceId: printingId,
           imageFileId: noUrlCardImage!.id,
           isActive: false,
         })
@@ -599,7 +594,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       const json = await readJson(res);
       expect(json.message).toBe("Image has no original URL to rehost");
 
-      await db.deleteFrom("printingImages").where("id", "=", noUrlImage!.id).execute();
+      await db.deleteFrom("faceImages").where("id", "=", noUrlImage!.id).execute();
     });
 
     it("returns 404 for non-existent image", async () => {
@@ -613,10 +608,10 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
     it("unrehosts a rehosted image", async () => {
       // mainImageId was rehosted in the previous describe block
       const before = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
         .select("ci.rehostedUrl")
-        .where("printingImages.id", "=", mainImageId)
+        .where("faceImages.id", "=", mainImageId)
         .executeTakeFirst();
       // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
       expect(before!.rehostedUrl).toBeTypeOf("string");
@@ -627,10 +622,10 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const after = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
         .select("ci.rehostedUrl")
-        .where("printingImages.id", "=", mainImageId)
+        .where("faceImages.id", "=", mainImageId)
         .executeTakeFirst();
       // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
       expect(after!.rehostedUrl).toBeNull();
@@ -662,7 +657,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const image = await db
-        .selectFrom("printingImages")
+        .selectFrom("faceImages")
         .select("id")
         .where("id", "=", additionalImageId)
         .executeTakeFirst();
@@ -672,7 +667,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
     it("deletes a printing image that has a rehostedUrl", async () => {
       // A rehostedUrl on the card_image exercises the deleteRehostFiles path.
       const mainCardImageRow = await db
-        .selectFrom("printingImages")
+        .selectFrom("faceImages")
         .select("imageFileId")
         .where("id", "=", mainImageId)
         .executeTakeFirstOrThrow();
@@ -686,7 +681,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const image = await db
-        .selectFrom("printingImages")
+        .selectFrom("faceImages")
         .select("id")
         .where("id", "=", mainImageId)
         .executeTakeFirst();
@@ -711,11 +706,11 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const images = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-        .selectAll("printingImages")
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
+        .selectAll("faceImages")
         .select("ci.originalUrl")
-        .where("printingImages.printingId", "=", printingId)
+        .where("faceImages.faceId", "=", printingId)
         .where("ci.originalUrl", "=", "https://i.imgur.com/csi-new-image.png")
         .execute();
       expect(images.length).toBe(1);
@@ -732,10 +727,10 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const images = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-        .selectAll("printingImages")
-        .where("printingImages.printingId", "=", printingId)
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
+        .selectAll("faceImages")
+        .where("faceImages.faceId", "=", printingId)
         .where("ci.originalUrl", "=", "https://images.tcgplayer.com/csi-another-image.png")
         .execute();
       expect(images.length).toBe(1);
@@ -770,11 +765,11 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(res.status).toBe(204);
 
       const images = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-        .selectAll("printingImages")
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
+        .selectAll("faceImages")
         .select("ci.originalUrl")
-        .where("printingImages.printingId", "=", printingId)
+        .where("faceImages.faceId", "=", printingId)
         .where("ci.originalUrl", "=", "https://www.reddit.com/csi-additional-image.png")
         .execute();
       expect(images.length).toBe(1);
@@ -810,11 +805,11 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(json.rehostedUrl).toContain("/media/cards/");
 
       const images = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-        .selectAll("printingImages")
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
+        .selectAll("faceImages")
         .select("ci.rehostedUrl")
-        .where("printingImages.printingId", "=", printingId)
+        .where("faceImages.faceId", "=", printingId)
         .where("ci.rehostedUrl", "=", json.rehostedUrl)
         .execute();
       expect(images.length).toBe(1);
@@ -838,11 +833,11 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(json.rehostedUrl).toBeTypeOf("string");
 
       const images = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-        .selectAll("printingImages")
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
+        .selectAll("faceImages")
         .select("ci.rehostedUrl")
-        .where("printingImages.printingId", "=", printingId)
+        .where("faceImages.faceId", "=", printingId)
         .where("ci.rehostedUrl", "=", json.rehostedUrl)
         .execute();
       expect(images.length).toBe(1);
@@ -865,10 +860,10 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       expect(json.rehostedUrl).toBeTypeOf("string");
 
       const images = await db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
-        .selectAll("printingImages")
-        .where("printingImages.printingId", "=", printingId)
+        .selectFrom("faceImages")
+        .innerJoin("imageFiles as ci", "ci.id", "faceImages.imageFileId")
+        .selectAll("faceImages")
+        .where("faceImages.faceId", "=", printingId)
         .where("ci.rehostedUrl", "=", json.rehostedUrl)
         .execute();
       expect(images.length).toBe(1);

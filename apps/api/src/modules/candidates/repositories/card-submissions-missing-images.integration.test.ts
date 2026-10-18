@@ -1,7 +1,12 @@
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
+import {
+  createDbContext,
+  deletePrintingsById,
+  insertPrintings,
+  seedTestUser,
+} from "../../../test/integration-context.js";
 import { cardSubmissionsRepo } from "./card-submissions.js";
 
 const userId = crypto.randomUUID();
@@ -15,7 +20,6 @@ const NO_IMAGE = crypto.randomUUID();
 const NO_IMAGE_LATER_SET = crypto.randomUUID();
 const HAS_IMAGE = crypto.randomUUID();
 const INACTIVE_IMAGE = crypto.randomUUID();
-const BACK_IMAGE_ONLY = crypto.randomUUID();
 const PENDING_SUBMISSION = crypto.randomUUID();
 const SETTLED_SUBMISSION = crypto.randomUUID();
 const GROUP_ONLY = crypto.randomUUID();
@@ -50,7 +54,7 @@ describe.skipIf(!ctx)("missingImagesForUser (integration)", () => {
     };
   }
 
-  async function activeImage(printingId: string, face: "front" | "back", isActive: boolean) {
+  async function activeImage(printingId: string, isActive: boolean) {
     const file = await db
       .insertInto("imageFiles")
       .values({ rehostedUrl: `/media/cards/aa/${crypto.randomUUID()}` })
@@ -58,8 +62,8 @@ describe.skipIf(!ctx)("missingImagesForUser (integration)", () => {
       .executeTakeFirstOrThrow();
     imageFileIds.push(file.id);
     await db
-      .insertInto("printingImages")
-      .values({ printingId, imageFileId: file.id, face, isActive })
+      .insertInto("faceImages")
+      .values({ faceId: printingId, imageFileId: file.id, isActive })
       .execute();
   }
 
@@ -123,24 +127,19 @@ describe.skipIf(!ctx)("missingImagesForUser (integration)", () => {
       })
       .execute();
 
-    await db
-      .insertInto("printings")
-      .values([
-        printing(NO_IMAGE, "MIS-002"),
-        printing(NO_IMAGE_LATER_SET, "MIS-001", { setId: laterSetId }),
-        printing(HAS_IMAGE, "MIS-003"),
-        printing(INACTIVE_IMAGE, "MIS-004"),
-        printing(BACK_IMAGE_ONLY, "MIS-005"),
-        printing(PENDING_SUBMISSION, "MIS-006"),
-        printing(SETTLED_SUBMISSION, "MIS-007"),
-        printing(GROUP_ONLY, "MIS-008"),
-        printing(OTHER_USER_ONLY, "MIS-009"),
-      ])
-      .execute();
+    await insertPrintings(db, [
+      printing(NO_IMAGE, "MIS-002"),
+      printing(NO_IMAGE_LATER_SET, "MIS-001", { setId: laterSetId }),
+      printing(HAS_IMAGE, "MIS-003"),
+      printing(INACTIVE_IMAGE, "MIS-004"),
+      printing(PENDING_SUBMISSION, "MIS-006"),
+      printing(SETTLED_SUBMISSION, "MIS-007"),
+      printing(GROUP_ONLY, "MIS-008"),
+      printing(OTHER_USER_ONLY, "MIS-009"),
+    ]);
 
-    await activeImage(HAS_IMAGE, "front", true);
-    await activeImage(INACTIVE_IMAGE, "front", false);
-    await activeImage(BACK_IMAGE_ONLY, "back", true);
+    await activeImage(HAS_IMAGE, true);
+    await activeImage(INACTIVE_IMAGE, false);
     await imageSubmission(PENDING_SUBMISSION, "pending");
     await imageSubmission(SETTLED_SUBMISSION, "rejected");
 
@@ -170,7 +169,6 @@ describe.skipIf(!ctx)("missingImagesForUser (integration)", () => {
         { collectionId, printingId: NO_IMAGE_LATER_SET },
         { collectionId, printingId: HAS_IMAGE },
         { collectionId, printingId: INACTIVE_IMAGE },
-        { collectionId, printingId: BACK_IMAGE_ONLY },
         { collectionId, printingId: PENDING_SUBMISSION },
         { collectionId, printingId: SETTLED_SUBMISSION },
         { collectionId: groupCollectionId, printingId: GROUP_ONLY },
@@ -185,7 +183,6 @@ describe.skipIf(!ctx)("missingImagesForUser (integration)", () => {
       NO_IMAGE_LATER_SET,
       HAS_IMAGE,
       INACTIVE_IMAGE,
-      BACK_IMAGE_ONLY,
       PENDING_SUBMISSION,
       SETTLED_SUBMISSION,
       GROUP_ONLY,
@@ -206,9 +203,9 @@ describe.skipIf(!ctx)("missingImagesForUser (integration)", () => {
       .where("candidateCardId", "in", candidateCardIds)
       .execute();
     await db.deleteFrom("candidateCards").where("id", "in", candidateCardIds).execute();
-    await db.deleteFrom("printingImages").where("printingId", "in", printingIds).execute();
+    await db.deleteFrom("faceImages").where("faceId", "in", printingIds).execute();
     await db.deleteFrom("imageFiles").where("id", "in", imageFileIds).execute();
-    await db.deleteFrom("printings").where("id", "in", printingIds).execute();
+    await deletePrintingsById(db, printingIds);
     await db.deleteFrom("cards").where("id", "=", cardId).execute();
     await db.deleteFrom("sets").where("id", "in", [setId, laterSetId]).execute();
     await db.deleteFrom("users").where("id", "in", [userId, otherUserId]).execute();
@@ -221,7 +218,6 @@ describe.skipIf(!ctx)("missingImagesForUser (integration)", () => {
     expect(mine.map((row) => row.printingId)).toStrictEqual([
       NO_IMAGE,
       INACTIVE_IMAGE,
-      BACK_IMAGE_ONLY,
       SETTLED_SUBMISSION,
       NO_IMAGE_LATER_SET,
     ]);

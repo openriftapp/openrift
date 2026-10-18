@@ -3,7 +3,12 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { cardTypesColumn, imageId, joinFrontImage } from "../../../repositories/query-helpers.js";
+import {
+  cardTypesColumn,
+  imageId,
+  joinFaceImage,
+  withFace1,
+} from "../../../repositories/query-helpers.js";
 import type { Tournament } from "../../tournaments/repositories/tournaments-shared.js";
 
 export interface CollectionSummary {
@@ -45,9 +50,9 @@ export function userProfileRepo(db: Kysely<Database>) {
       const row = await db
         .selectFrom("copies as c")
         .innerJoin("collections as col", "col.id", "c.collectionId")
-        .innerJoin("printings as p", "p.id", "c.printingId")
+        .innerJoin("printingSidesOrdered as p", "p.printingId", "c.printingId")
         .select((eb) => [
-          eb.cast<number>(eb.fn.countAll(), "integer").as("copies"),
+          eb.cast<number>(eb.fn.count("c.id").distinct(), "integer").as("copies"),
           sql<number>`count(distinct p.card_id)::int`.as("uniqueCards"),
         ])
         .where("col.userId", "=", userId)
@@ -144,8 +149,9 @@ export function userProfileRepo(db: Kysely<Database>) {
     ): Promise<Map<string, string[]>> {
       const previews = await Promise.all(
         collectionIds.map(async (collectionId) => {
-          const rows = await joinFrontImage(
+          const rows = await joinFaceImage(
             db.selectFrom("copies as c").innerJoin("printings as p", "p.id", "c.printingId"),
+            "p.face1Id",
           )
             .select(imageId("imgf").as("imageId"))
             .where("c.collectionId", "=", collectionId)
@@ -166,10 +172,9 @@ export function userProfileRepo(db: Kysely<Database>) {
       if (printingIds.length === 0) {
         return new Map();
       }
-      const rows = await db
-        .selectFrom("printings")
-        .select(["id", "cardId"])
-        .where("id", "in", [...printingIds])
+      const rows = await withFace1(db.selectFrom("printings as p"))
+        .select(["p.id", "pf.cardId"])
+        .where("p.id", "in", [...printingIds])
         .execute();
       return new Map(rows.map((row) => [row.id, row.cardId]));
     },

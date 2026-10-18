@@ -2,7 +2,12 @@ import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PRINTING_1 } from "../../../test/fixtures/constants.js";
-import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
+import {
+  createDbContext,
+  deletePrintingsById,
+  insertPrintings,
+  seedTestUser,
+} from "../../../test/integration-context.js";
 import { friendGroupsRepo } from "../../groups/repositories/friend-groups.js";
 import { marketplaceRepo } from "../../marketplace/repositories/marketplace.js";
 
@@ -34,31 +39,29 @@ describe.skipIf(!ctx)("collection value history (integration)", () => {
 
   beforeAll(async () => {
     const seedPrinting = await db
-      .selectFrom("printings")
+      .selectFrom("faces")
       .select(["cardId", "setId", "artist"])
       .where("id", "=", PRINTING_1.id)
       .executeTakeFirstOrThrow();
 
-    await db
-      .insertInto("printings")
-      .values(
-        [
-          { id: normalPrintingId, shortCode: "VH-001", publicCode: "VH-001/002" },
-          { id: ctPrintingId, shortCode: "VH-002", publicCode: "VH-002/002" },
-        ].map((p) => ({
-          ...p,
-          cardId: seedPrinting.cardId,
-          setId: seedPrinting.setId,
-          artist: seedPrinting.artist,
-          rarity: "common",
-          artVariant: "normal",
-          isSigned: false,
-          finish: "normal",
-          size: "standard",
-          language: "EN",
-        })),
-      )
-      .execute();
+    await insertPrintings(
+      db,
+      [
+        { id: normalPrintingId, shortCode: "VH-001", publicCode: "VH-001/002" },
+        { id: ctPrintingId, shortCode: "VH-002", publicCode: "VH-002/002" },
+      ].map((p) => ({
+        ...p,
+        cardId: seedPrinting.cardId,
+        setId: seedPrinting.setId,
+        artist: seedPrinting.artist,
+        rarity: "common",
+        artVariant: "normal",
+        isSigned: false,
+        finish: "normal",
+        size: "standard",
+        language: "EN",
+      })),
+    );
 
     await seedTestUser(db, { id: userId });
 
@@ -260,7 +263,7 @@ describe.skipIf(!ctx)("collection value history (integration)", () => {
       DELETE FROM marketplace_groups
       WHERE (marketplace, group_id) IN ((${mpTcg}, ${tcgGroupId}), ('cardtrader', ${ctGroupId}))
     `.execute(db);
-    await db.deleteFrom("printings").where("id", "in", [normalPrintingId, ctPrintingId]).execute();
+    await deletePrintingsById(db, [normalPrintingId, ctPrintingId]);
     await repo.refreshLatestPrices();
   });
 

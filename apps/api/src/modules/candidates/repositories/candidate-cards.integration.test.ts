@@ -235,10 +235,9 @@ describe.skipIf(!ctx)("candidateCardsRepo (integration)", () => {
 
   it("listCardsWithMissingImages returns cards lacking active front images", async () => {
     await db
-      .updateTable("printingImages")
+      .updateTable("faceImages")
       .set({ isActive: false })
-      .where("printingId", "=", SEED_PRINTING_ANNIE_ID)
-      .where("face", "=", "front")
+      .where("faceId", "=", SEED_PRINTING_ANNIE_ID)
       .where("isActive", "=", true)
       .execute();
 
@@ -257,10 +256,9 @@ describe.skipIf(!ctx)("candidateCardsRepo (integration)", () => {
     expect(annie?.byLanguage.find((e) => e.language === "EN")?.count).toBeGreaterThan(0);
 
     await db
-      .updateTable("printingImages")
+      .updateTable("faceImages")
       .set({ isActive: true })
-      .where("printingId", "=", SEED_PRINTING_ANNIE_ID)
-      .where("face", "=", "front")
+      .where("faceId", "=", SEED_PRINTING_ANNIE_ID)
       .execute();
   });
 

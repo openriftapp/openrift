@@ -4,43 +4,30 @@ import { createRecordingDb } from "../../../test/recording-db.js";
 import { markersRepo } from "./markers.js";
 
 describe("markersRepo.setForPrinting", () => {
-  it("runs the delete and the insert in one transaction", async () => {
-    const { db, queries, events } = createRecordingDb();
+  it("writes the markers onto the printing's first face in one statement", async () => {
+    const { db, queries } = createRecordingDb();
 
     await markersRepo(db).setForPrinting("printing-1", ["marker-a", "marker-b"]);
 
-    expect(events).toEqual(["begin", "commit"]);
-    expect(queries).toHaveLength(2);
-    expect(queries[0]).toContain('delete from "printing_markers"');
-    expect(queries[1]).toContain('insert into "printing_markers"');
+    expect(queries).toHaveLength(1);
+    expect(queries[0]).toContain('update "faces" set "marker_slugs"');
+    expect(queries[0]).toContain('select "face1_id" from "printings"');
   });
 
-  it("rolls back when the insert fails, keeping the old markers", async () => {
-    const { db, events } = createRecordingDb([[], new Error("foreign key violation")]);
-
-    await expect(markersRepo(db).setForPrinting("printing-1", ["marker-a"])).rejects.toThrow(
-      "foreign key violation",
-    );
-    expect(events).toEqual(["begin", "rollback"]);
-  });
-
-  it("clears the printing's markers when the new set is empty", async () => {
-    const { db, queries, events } = createRecordingDb();
+  it("clears the face's markers when the new set is empty", async () => {
+    const { db, queries } = createRecordingDb();
 
     await markersRepo(db).setForPrinting("printing-1", []);
 
     expect(queries).toHaveLength(1);
-    expect(queries[0]).toContain('delete from "printing_markers"');
-    expect(events).toEqual(["begin", "commit"]);
+    expect(queries[0]).toContain("'{}'::text[]");
   });
 
-  it("reuses an open transaction instead of nesting", async () => {
-    const { db, events } = createRecordingDb();
+  it("surfaces a rejected marker unchanged", async () => {
+    const { db } = createRecordingDb([new Error("unknown marker no-such")]);
 
-    await db.transaction().execute(async (trx) => {
-      await markersRepo(trx).setForPrinting("printing-1", ["marker-a"]);
-    });
-
-    expect(events).toEqual(["begin", "commit"]);
+    await expect(markersRepo(db).setForPrinting("printing-1", ["marker-a"])).rejects.toThrow(
+      "unknown marker no-such",
+    );
   });
 });

@@ -175,9 +175,10 @@ for (const [key, { code, finish }] of Object.entries(CARDS) as [
   { code: string; finish: string },
 ][]) {
   const row = await db
-    .selectFrom("printings as p")
+    .selectFrom("printings as pr")
+    .innerJoin("faces as p", "p.id", "pr.face1Id")
     .innerJoin("cards as c", "c.id", "p.cardId")
-    .select(["p.id", "p.cardId", "c.name"])
+    .select(["pr.id", "p.cardId", "c.name"])
     .where("p.publicCode", "=", code)
     .where("p.finish", "=", finish)
     .where("p.language", "=", "EN")
@@ -391,14 +392,15 @@ const loanerCollection = await db
 let loanerCopies = 0;
 for (const [i, entry] of LOANER_DECK.cards.entries()) {
   const row = await db
-    .selectFrom("printings as p")
+    .selectFrom("printings as pr")
+    .innerJoin("faces as p", "p.id", "pr.face1Id")
     .innerJoin("cards as c", "c.id", "p.cardId")
-    .innerJoin("printingImages as pi", "pi.printingId", "p.id")
-    .select("p.id")
-    .distinctOn("p.id")
+    .innerJoin("faceImages as pi", "pi.faceId", "p.id")
+    .select("pr.id")
+    .distinctOn("pr.id")
     .where("c.name", "=", entry.name)
     .where("p.language", "=", "EN")
-    .orderBy("p.id", "asc")
+    .orderBy("pr.id", "asc")
     .executeTakeFirst();
   if (!row) {
     console.error(`Loaner deck: no EN printing with an image for "${entry.name}".`);
@@ -421,9 +423,10 @@ for (const [i, entry] of LOANER_DECK.cards.entries()) {
 
 // Ordered by public code (not random()) so a re-run seeds the same pile.
 const bulkPrintings = await db
-  .selectFrom("printings as p")
-  .innerJoin("printingImages as pi", "pi.printingId", "p.id")
-  .select(["p.id", "p.publicCode"])
+  .selectFrom("printings as pr")
+  .innerJoin("faces as p", "p.id", "pr.face1Id")
+  .innerJoin("faceImages as pi", "pi.faceId", "p.id")
+  .select(["pr.id", "p.publicCode"])
   .distinct()
   .where("p.language", "=", "EN")
   .orderBy("p.publicCode", "asc")
@@ -642,7 +645,6 @@ for (const t of TRADES) {
       receiverUserId: uid(t.receiver),
       initiator: t.initiator,
       printingId: printingRow.id,
-      cardId: printingRow.cardId,
       quantity: 1,
       status: t.status,
       lastActorUserId: uid(t.initiator === "giver" ? t.giver : t.receiver),

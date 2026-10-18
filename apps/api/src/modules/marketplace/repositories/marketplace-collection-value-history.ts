@@ -116,7 +116,7 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
       }
       if (scope.cardSizes?.length) {
         const vals = sql.join(scope.cardSizes.map((val) => sql`${val}`));
-        scopeClauses.push(sql`AND p.size IN (${vals})`);
+        scopeClauses.push(sql`AND pr.size IN (${vals})`);
       }
       if (scope.keywordsPresence) {
         scopeClauses.push(
@@ -198,7 +198,8 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
             )::text AS acquired_on
           FROM copies cp
           INNER JOIN collections col ON col.id = cp.collection_id
-          INNER JOIN printings p ON p.id = cp.printing_id
+          INNER JOIN printings pr ON pr.id = cp.printing_id
+          INNER JOIN faces p ON p.id = pr.face1_id
           INNER JOIN cards c ON c.id = p.card_id
           INNER JOIN sets s ON s.id = p.set_id
           WHERE ${anchorCollectionClause}
@@ -249,7 +250,8 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
           )::text AS "acquiredOn",
           ce.created_at AS "createdAt"
         FROM collection_events ce
-        INNER JOIN printings p ON p.id = ce.printing_id
+        INNER JOIN printings pr ON pr.id = ce.printing_id
+        INNER JOIN faces p ON p.id = pr.face1_id
         INNER JOIN cards c ON c.id = p.card_id
         INNER JOIN sets s ON s.id = p.set_id
         LEFT JOIN collections cf ON cf.id = ce.from_collection_id

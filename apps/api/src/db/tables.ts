@@ -40,8 +40,8 @@ import type {
   PrintingCitationsTable,
   PrintingDistributionChannelsTable,
   PrintingEventsTable,
-  PrintingImagesTable,
-  PrintingMarkersTable,
+  FaceImagesTable,
+  FacesTable,
   PrintingsTable,
   RuleVersionsTable,
   RulesTable,
@@ -189,7 +189,7 @@ import type {
   MvDailyPrintingPricesView,
   MvLatestPrintingPricesView,
   MvPrintingFoilTwinsView,
-  PrintingsOrderedView,
+  PrintingSidesOrderedView,
 } from "./tables/views.js";
 
 export interface Database {
@@ -199,6 +199,7 @@ export interface Database {
   cardErrata: CardErrataTable;
   errataAnnouncements: ErrataAnnouncementsTable;
   printings: PrintingsTable;
+  faces: FacesTable;
 
   marketplaceGroups: MarketplaceGroupsTable;
   marketplaceProducts: MarketplaceProductsTable;
@@ -338,12 +339,11 @@ export interface Database {
   printingLinkOverrides: PrintingLinkOverridesTable;
 
   imageFiles: ImageFilesTable;
-  printingImages: PrintingImagesTable;
+  faceImages: FaceImagesTable;
 
   languages: LanguagesTable;
 
   markers: MarkersTable;
-  printingMarkers: PrintingMarkersTable;
   distributionChannels: DistributionChannelsTable;
   printingDistributionChannels: PrintingDistributionChannelsTable;
 
@@ -409,5 +409,5 @@ export interface Database {
   mvCardAggregates: MvCardAggregatesView;
   mvPrintingFoilTwins: MvPrintingFoilTwinsView;
 
-  printingsOrdered: PrintingsOrderedView;
+  printingSidesOrdered: PrintingSidesOrderedView;
 }

@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 
-import { createDbContext } from "../../../test/integration-context.js";
+import { createDbContext, deletePrintingsByFace } from "../../../test/integration-context.js";
 import { setsRepo } from "./sets.js";
 
 const ctx = createDbContext("a0000000-0042-4000-a000-000000000001");
@@ -13,7 +13,7 @@ describe.skipIf(!ctx)("setsRepo (integration)", () => {
 
   afterAll(async () => {
     if (createdSetIds.length > 0) {
-      await db.deleteFrom("printings").where("setId", "in", createdSetIds).execute();
+      await deletePrintingsByFace(db, "setId", "in", createdSetIds);
       // `set_releases` cascades from `sets`, but delete explicitly so a failed
       // run doesn't leave rows behind for the next one.
       await db.deleteFrom("setReleases").where("setId", "in", createdSetIds).execute();

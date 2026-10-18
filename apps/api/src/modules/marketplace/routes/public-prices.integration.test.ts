@@ -1,7 +1,12 @@
 import { sql } from "kysely";
 import { describe, expect, it } from "vitest";
 
-import { createTestContext, req, syncCardCardTypes } from "../../../test/integration-context.js";
+import {
+  createTestContext,
+  insertPrintings,
+  req,
+  syncCardCardTypes,
+} from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
 const USER_ID = "a0000000-0023-4000-a000-000000000001";
@@ -43,50 +48,42 @@ if (ctx) {
 
   await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", ordinal: 0 }).execute();
 
-  const [printingRow] = await db
-    .insertInto("printings")
-    .values({
-      cardId,
-      setId,
-      shortCode: "PRC-001",
-      rarity: "common",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "normal",
-      artist: "Test Artist",
-      publicCode: "PRC",
-      printedRulesText: null,
-      printedEffectText: null,
-      flavorText: null,
-      comment: null,
-      size: "standard",
-      language: "EN",
-    })
-    .returning("id")
-    .execute();
+  const [printingRow] = await insertPrintings(db, {
+    cardId,
+    setId,
+    shortCode: "PRC-001",
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "normal",
+    artist: "Test Artist",
+    publicCode: "PRC",
+    printedRulesText: null,
+    printedEffectText: null,
+    flavorText: null,
+    comment: null,
+    size: "standard",
+    language: "EN",
+  });
   printingId = printingRow!.id;
 
-  const [printingNoSourceRow] = await db
-    .insertInto("printings")
-    .values({
-      cardId,
-      setId,
-      shortCode: "PRC-002",
-      rarity: "common",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "normal",
-      artist: "Test Artist",
-      publicCode: "PRC",
-      printedRulesText: null,
-      printedEffectText: null,
-      flavorText: null,
-      comment: null,
-      size: "standard",
-      language: "EN",
-    })
-    .returning("id")
-    .execute();
+  const [printingNoSourceRow] = await insertPrintings(db, {
+    cardId,
+    setId,
+    shortCode: "PRC-002",
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "normal",
+    artist: "Test Artist",
+    publicCode: "PRC",
+    printedRulesText: null,
+    printedEffectText: null,
+    flavorText: null,
+    comment: null,
+    size: "standard",
+    language: "EN",
+  });
   printingNoSourceId = printingNoSourceRow!.id;
 
   // TCG has no per-language SKU axis, so language=null on the product row.

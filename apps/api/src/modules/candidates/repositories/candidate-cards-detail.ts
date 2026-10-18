@@ -100,9 +100,9 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
 
     printingsForDetail(cardId: string) {
       return db
-        .selectFrom("printingsOrdered")
+        .selectFrom("printingSidesOrdered")
         .select([
-          "id",
+          "printingId as id",
           "cardId",
           "setId",
           "shortCode",
@@ -254,23 +254,24 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         return Promise.resolve([]);
       }
       return db
-        .selectFrom("printingImages")
-        .innerJoin("imageFiles as ci", "ci.id", "printingImages.imageFileId")
+        .selectFrom("printingSidesOrdered as s")
+        .innerJoin("faceImages as fi", "fi.faceId", "s.faceId")
+        .innerJoin("imageFiles as ci", "ci.id", "fi.imageFileId")
         .select([
-          "printingImages.id",
-          "printingImages.printingId",
-          "printingImages.imageFileId",
-          "printingImages.face",
+          "fi.id",
+          "s.printingId",
+          "fi.imageFileId",
+          sql<CardFace>`CASE WHEN s.position = 1 THEN 'front' ELSE 'back' END`.as("face"),
           "ci.originalUrl",
           "ci.rehostedUrl",
           "ci.rotation",
           "ci.needsTrim",
           "ci.quad",
           "ci.fingerprint",
-          "printingImages.isActive",
+          "fi.isActive",
         ])
-        .where("printingImages.printingId", "in", printingIds)
-        .orderBy("printingImages.createdAt", "asc")
+        .where("s.printingId", "in", printingIds)
+        .orderBy("fi.createdAt", "asc")
         .execute();
     },
 
@@ -433,10 +434,10 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         db
           .selectFrom("candidatePrintings")
           .innerJoin("candidateCards", "candidateCards.id", "candidatePrintings.candidateCardId")
-          .innerJoin("printings", "printings.id", "candidatePrintings.printingId")
+          .innerJoin("printingSidesOrdered as s", "s.printingId", "candidatePrintings.printingId")
           .select("candidateCards.provider")
           .distinct()
-          .where("printings.cardId", "=", cardId)
+          .where("s.cardId", "=", cardId)
           .execute(),
       ]);
       return [...new Set([...byAlias, ...byPrinting].map((r) => r.provider))];

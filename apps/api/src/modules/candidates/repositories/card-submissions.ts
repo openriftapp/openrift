@@ -10,7 +10,7 @@ import type {
   CardSubmissionsTable,
 } from "../../../db/tables/candidates.js";
 import { buildPrintingLinkKey } from "../../../lib/printing-link-key.js";
-import { joinFrontImage, listOwnedByUser } from "../../../repositories/query-helpers.js";
+import { joinFaceImage, listOwnedByUser } from "../../../repositories/query-helpers.js";
 import { notHiddenSource, notIgnoredCard, notIgnoredPrinting } from "./candidate-cards-shared.js";
 
 export type CardSubmissionRow = Selectable<CardSubmissionsTable>;
@@ -353,7 +353,7 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
       const printings = new Map<string, LivePrintingSnapshot>();
       if (shortCodes.length > 0) {
         const upperCodes = shortCodes.map((code) => code.toUpperCase());
-        const rows = await joinFrontImage(db.selectFrom("printings as p"))
+        const rows = await joinFaceImage(db.selectFrom("printingSidesOrdered as p"), "p.faceId")
           .select([
             "p.shortCode",
             "p.finish",
@@ -412,11 +412,11 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
       const rows = await db
         .selectFrom("copies as cp")
         .innerJoin("collections as col", "col.id", "cp.collectionId")
-        .innerJoin("printings as p", "p.id", "cp.printingId")
+        .innerJoin("printingSidesOrdered as p", "p.printingId", "cp.printingId")
         .innerJoin("cards as c", "c.id", "p.cardId")
         .innerJoin("sets as s", "s.id", "p.setId")
         .select((eb) => [
-          "p.id as printingId",
+          "p.printingId",
           "c.slug as cardSlug",
           "c.name as cardName",
           "s.slug as setSlug",
@@ -431,11 +431,10 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
           eb.not(
             eb.exists(
               eb
-                .selectFrom("printingImages as pi")
+                .selectFrom("faceImages as pi")
                 .select("pi.id")
-                .whereRef("pi.printingId", "=", "p.id")
-                .where("pi.isActive", "=", true)
-                .where("pi.face", "=", "front"),
+                .whereRef("pi.faceId", "=", "p.faceId")
+                .where("pi.isActive", "=", true),
             ),
           ),
         )
@@ -446,14 +445,14 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
                 .selectFrom("candidatePrintings as cnp")
                 .innerJoin("cardSubmissions as cs", "cs.candidateCardId", "cnp.candidateCardId")
                 .select("cnp.id")
-                .whereRef("cnp.printingId", "=", "p.id")
+                .whereRef("cnp.printingId", "=", "p.printingId")
                 .where("cs.kind", "=", "image")
                 .where("cs.status", "=", "pending"),
             ),
           ),
         )
         .groupBy([
-          "p.id",
+          "p.printingId",
           "c.slug",
           "c.name",
           "s.slug",

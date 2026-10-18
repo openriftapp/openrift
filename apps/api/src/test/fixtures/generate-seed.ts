@@ -99,7 +99,7 @@ const sets = await sql<Record<string, unknown>[]>`
   WHERE slug = ${SET_SLUG}
      OR id IN (
        SELECT DISTINCT p.set_id
-       FROM printings p
+       FROM printing_sides_ordered p
        JOIN cards c ON c.id = p.card_id
        WHERE c.slug = ANY(${EXTRA_CARD_SLUGS})
      )
@@ -118,7 +118,7 @@ const cards = await sql<Record<string, unknown>[]>`
     c.might, c.energy, c.power, c.might_bonus, c.keywords,
     c.tags, c.norm_name
   FROM cards c
-  JOIN printings p ON p.card_id = c.id
+  JOIN printing_sides_ordered p ON p.card_id = c.id
   JOIN sets s ON s.id = p.set_id
   WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
   ORDER BY c.slug
@@ -128,7 +128,7 @@ const cardSuperTypes = await sql<Record<string, unknown>[]>`
   SELECT DISTINCT cst.card_id, cst.super_type_slug
   FROM card_super_types cst
   JOIN cards c ON c.id = cst.card_id
-  JOIN printings p ON p.card_id = c.id
+  JOIN printing_sides_ordered p ON p.card_id = c.id
   JOIN sets s ON s.id = p.set_id
   WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
   ORDER BY cst.card_id, cst.super_type_slug
@@ -138,7 +138,7 @@ const cardCardTypes = await sql<Record<string, unknown>[]>`
   SELECT DISTINCT cct.card_id, cct.type_slug, cct.position
   FROM card_card_types cct
   JOIN cards c ON c.id = cct.card_id
-  JOIN printings p ON p.card_id = c.id
+  JOIN printing_sides_ordered p ON p.card_id = c.id
   JOIN sets s ON s.id = p.set_id
   WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
   ORDER BY cct.card_id, cct.position
@@ -148,22 +148,43 @@ const cardDomains = await sql<Record<string, unknown>[]>`
   SELECT DISTINCT cd.card_id, cd.domain_slug, cd.ordinal
   FROM card_domains cd
   JOIN cards c ON c.id = cd.card_id
-  JOIN printings p ON p.card_id = c.id
+  JOIN printing_sides_ordered p ON p.card_id = c.id
   JOIN sets s ON s.id = p.set_id
   WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
   ORDER BY cd.card_id, cd.ordinal
 `;
 
 const printings = await sql<Record<string, unknown>[]>`
-  SELECT p.id, p.card_id, p.set_id, p.short_code, p.rarity,
-    p.art_variant, p.is_signed, p.is_overnumbered, p.finish, p.artist, p.public_code,
-    p.printed_rules_text, p.printed_effect_text, p.flavor_text, p.comment,
-    p.marker_slugs, p.language, p.printed_name, p.printed_year
-  FROM printings p
+  SELECT p.printing_id AS id, p.card_id, p.short_code, p.rarity, p.finish, p.marker_slugs,
+    p.language
+  FROM printing_sides_ordered p
   JOIN sets s ON s.id = p.set_id
   JOIN cards c ON c.id = p.card_id
   WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
-  ORDER BY p.short_code
+  ORDER BY p.short_code, p.printing_id, p.position
+`;
+
+const faces = await sql<Record<string, unknown>[]>`
+  SELECT DISTINCT f.id, f.card_id, f.set_id, f.short_code, f.rarity,
+    f.art_variant, f.is_signed, f.is_overnumbered, f.finish, f.artist, f.public_code,
+    f.printed_rules_text, f.printed_effect_text, f.flavor_text, f.comment,
+    f.marker_slugs, f.language, f.printed_name, f.printed_year
+  FROM faces f
+  JOIN printing_sides_ordered p ON p.face_id = f.id
+  JOIN sets s ON s.id = p.set_id
+  JOIN cards c ON c.id = p.card_id
+  WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
+  ORDER BY f.short_code, f.id
+`;
+
+const printingRows = await sql<Record<string, unknown>[]>`
+  SELECT DISTINCT pr.id, pr.face1_id, pr.face2_id, pr.size, pr.comment
+  FROM printings pr
+  JOIN printing_sides_ordered p ON p.printing_id = pr.id
+  JOIN sets s ON s.id = p.set_id
+  JOIN cards c ON c.id = p.card_id
+  WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
+  ORDER BY pr.id
 `;
 
 const marketplaceGroups = await sql<Record<string, unknown>[]>`
@@ -177,7 +198,7 @@ const marketplaceProducts = await sql<Record<string, unknown>[]>`
     mp.finish, mp.language
   FROM marketplace_products mp
   JOIN marketplace_product_variants mpv ON mpv.marketplace_product_id = mp.id
-  JOIN printings p ON p.id = mpv.printing_id
+  JOIN printing_sides_ordered p ON p.printing_id = mpv.printing_id
   JOIN sets s ON s.id = p.set_id
   JOIN cards c ON c.id = p.card_id
   WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
@@ -188,7 +209,7 @@ const marketplaceProductVariants = await sql<Record<string, unknown>[]>`
   SELECT mpv.id, mpv.marketplace_product_id, mpv.printing_id
   FROM marketplace_product_variants mpv
   JOIN marketplace_products mp ON mp.id = mpv.marketplace_product_id
-  JOIN printings p ON p.id = mpv.printing_id
+  JOIN printing_sides_ordered p ON p.printing_id = mpv.printing_id
   JOIN sets s ON s.id = p.set_id
   JOIN cards c ON c.id = p.card_id
   WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
@@ -199,7 +220,7 @@ const distributionChannels = await sql<Record<string, unknown>[]>`
   SELECT DISTINCT dc.id, dc.slug, dc.label, dc.kind
   FROM distribution_channels dc
   JOIN printing_distribution_channels pdc ON pdc.channel_id = dc.id
-  JOIN printings p ON p.id = pdc.printing_id
+  JOIN printing_sides_ordered p ON p.printing_id = pdc.printing_id
   JOIN sets s ON s.id = p.set_id
   JOIN cards c ON c.id = p.card_id
   WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
@@ -209,33 +230,22 @@ const distributionChannels = await sql<Record<string, unknown>[]>`
 const markers = await sql<Record<string, unknown>[]>`
   SELECT DISTINCT m.id, m.slug, m.label, m.description, m.sort_order
   FROM markers m
-  JOIN printing_markers pm ON pm.marker_id = m.id
-  JOIN printings p ON p.id = pm.printing_id
+  JOIN printing_sides_ordered p ON m.slug = ANY(p.marker_slugs)
   JOIN sets s ON s.id = p.set_id
   JOIN cards c ON c.id = p.card_id
   WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
   ORDER BY m.slug
 `;
 
-const printingMarkers = await sql<Record<string, unknown>[]>`
-  SELECT pm.printing_id, pm.marker_id
-  FROM printing_markers pm
-  JOIN markers m ON m.id = pm.marker_id
-  JOIN printings p ON p.id = pm.printing_id
-  JOIN sets s ON s.id = p.set_id
-  JOIN cards c ON c.id = p.card_id
-  WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
-  ORDER BY pm.printing_id, m.slug
-`;
-
 const printingDistributionChannels = await sql<Record<string, unknown>[]>`
   SELECT pdc.printing_id, pdc.channel_id, pdc.distribution_note
   FROM printing_distribution_channels pdc
   JOIN distribution_channels dc ON dc.id = pdc.channel_id
-  JOIN printings p ON p.id = pdc.printing_id
+  JOIN printing_sides_ordered p ON p.printing_id = pdc.printing_id
   JOIN sets s ON s.id = p.set_id
   JOIN cards c ON c.id = p.card_id
   WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
+  GROUP BY pdc.printing_id, pdc.channel_id, pdc.distribution_note, dc.slug
   ORDER BY pdc.printing_id, dc.slug
 `;
 
@@ -243,7 +253,7 @@ const cardNameAliases = await sql<Record<string, unknown>[]>`
   SELECT DISTINCT cna.card_id, cna.norm_name
   FROM card_name_aliases cna
   JOIN cards c ON c.id = cna.card_id
-  JOIN printings p ON p.card_id = c.id
+  JOIN printing_sides_ordered p ON p.card_id = c.id
   JOIN sets s ON s.id = p.set_id
   WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
   ORDER BY cna.card_id
@@ -313,17 +323,17 @@ const keywordTranslations = await sql<Record<string, unknown>[]>`
 
 console.log("Querying images, snapshots, rules...");
 
-const printingImages = await sql<Record<string, unknown>[]>`
-  SELECT pi.id, pi.printing_id, pi.image_file_id, pi.face, pi.is_active
-  FROM printing_images pi
-  JOIN printings p ON p.id = pi.printing_id
+const faceImages = await sql<Record<string, unknown>[]>`
+  SELECT DISTINCT fi.id, fi.face_id, fi.image_file_id, fi.is_active
+  FROM face_images fi
+  JOIN printing_sides_ordered p ON p.face_id = fi.face_id
   JOIN sets s ON s.id = p.set_id
   JOIN cards c ON c.id = p.card_id
   WHERE s.slug = ${SET_SLUG} OR c.slug = ANY(${EXTRA_CARD_SLUGS})
-  ORDER BY pi.printing_id, pi.face
+  ORDER BY fi.face_id, fi.id
 `;
 
-const imageFileIds = printingImages.map((pi) => pi.image_file_id as string);
+const imageFileIds = faceImages.map((fi) => fi.image_file_id as string);
 const rawImageFiles =
   imageFileIds.length > 0
     ? await sql<Record<string, unknown>[]>`
@@ -353,7 +363,7 @@ const marketplaceProductPrices = await sql<Record<string, unknown>[]>`
     WHERE EXISTS (
       SELECT 1
       FROM marketplace_product_variants mpv
-      JOIN printings p ON p.id = mpv.printing_id
+      JOIN printing_sides_ordered p ON p.printing_id = mpv.printing_id
       JOIN sets s ON s.id = p.set_id
       JOIN cards c ON c.id = p.card_id
       WHERE mpv.marketplace_product_id = pp.marketplace_product_id
@@ -472,11 +482,11 @@ const seedSql = [
   "-- Printings and images",
   toUpsert("distribution_channels", distributionChannels, ["slug"]),
   toUpsert("markers", markers, ["slug"]),
-  toInsert("printings", printings),
-  toInsert("printing_markers", printingMarkers),
-  toInsert("printing_distribution_channels", printingDistributionChannels),
   toInsert("image_files", imageFiles),
-  toInsert("printing_images", printingImages),
+  toInsert("faces", faces),
+  toInsert("printings", printingRows),
+  toInsert("printing_distribution_channels", printingDistributionChannels),
+  toInsert("face_images", faceImages),
   "",
   "-- Card bans",
   toInsert("card_bans", syntheticCardBans),
@@ -502,7 +512,7 @@ console.log(
     `    ${deckFormats.length} deck formats, ${deckZones.length} deck zones, ${keywords.length} keywords, ${keywordTranslations.length} keyword translations`,
     `  Catalog: ${sets.length} sets, ${setReleases.length} set releases, ${cards.length} cards, ${cardCardTypes.length} card types (junction), ${cardSuperTypes.length} card super types, ${cardDomains.length} card domains,`,
     `    ${cardNameAliases.length} aliases, ${syntheticCardErrata.length} errata (synthetic), ${distributionChannels.length} distribution channels`,
-    `  Printings: ${printings.length} printings, ${imageFiles.length} image files, ${printingImages.length} printing images, ${printingMarkers.length} marker links, ${printingDistributionChannels.length} channel links`,
+    `  Printings: ${faces.length} faces, ${printingRows.length} printings, ${imageFiles.length} image files, ${faceImages.length} face images, ${printingDistributionChannels.length} channel links`,
     `  Bans: ${syntheticCardBans.length} card bans (synthetic)`,
     `  Marketplace: ${marketplaceGroups.length} groups, ${marketplaceProducts.length} products, ${marketplaceProductVariants.length} variants, ${marketplaceProductPrices.length} prices`,
     `  Feature flags: ${syntheticFeatureFlags.length} (synthetic, all enabled)`,

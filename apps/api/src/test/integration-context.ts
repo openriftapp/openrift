@@ -3,12 +3,13 @@
  */
 
 import { createLogger } from "@openrift/shared/logger";
-import type { Kysely } from "kysely";
+import type { Insertable, Kysely } from "kysely";
 import { sql } from "kysely";
 
 import { createApp } from "../app.js";
 import { createDb } from "../db/connect.js";
 import type { Database } from "../db/tables.js";
+import type { FacesTable, PrintingsTable } from "../db/tables/catalog.js";
 import type { Services } from "../deps.js";
 import type { Io } from "../io.js";
 
@@ -148,9 +149,119 @@ export async function refreshCardAggregates(db: Db): Promise<void> {
   await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_card_aggregates`.execute(db);
 }
 
-/** Call before asserting `printings_ordered` order; an unranked printing sorts last. */
+/** Call before asserting `printing_sides_ordered` order; an unranked printing sorts last. */
 export async function refreshCanonicalRank(db: Db): Promise<void> {
-  await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_printings_canonical_rank`.execute(db);
+  await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_printing_sides_canonical_rank`.execute(db);
+}
+
+export type TestPrintingValues = Omit<Insertable<FacesTable>, "id" | "comment"> &
+  Omit<Insertable<PrintingsTable>, "face1Id" | "face2Id">;
+
+const PRINTING_COLUMNS = new Set([
+  "id",
+  "slug",
+  "size",
+  "comment",
+  "announcedAt",
+  "releasedAt",
+  "releasePrecision",
+  "createdAt",
+  "updatedAt",
+]);
+
+export async function insertPrintings(
+  db: Db,
+  values: TestPrintingValues | readonly TestPrintingValues[],
+): Promise<{ id: string; faceId: string }[]> {
+  const inserted: { id: string; faceId: string }[] = [];
+  for (const value of Array.isArray(values) ? values : [values]) {
+    const printing: Record<string, unknown> = {};
+    const face: Record<string, unknown> = {};
+    for (const [key, field] of Object.entries(value)) {
+      (PRINTING_COLUMNS.has(key) ? printing : face)[key] = field;
+    }
+    if (printing.id !== undefined) {
+      face.id = printing.id;
+    }
+    const { id: faceId } = await db
+      .insertInto("faces")
+      .values(face as Insertable<FacesTable>)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const { id } = await db
+      .insertInto("printings")
+      .values({
+        ...(printing as Omit<Insertable<PrintingsTable>, "face1Id">),
+        id: faceId,
+        face1Id: faceId,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    inserted.push({ id, faceId });
+  }
+  return inserted;
+}
+
+export async function insertPrinting(
+  db: Db,
+  value: TestPrintingValues,
+): Promise<{ id: string; faceId: string }> {
+  const [inserted] = await insertPrintings(db, value);
+  if (!inserted) {
+    throw new Error("printing insert returned no row");
+  }
+  return inserted;
+}
+
+export async function deletePrintingsById(db: Db, ids: string | readonly string[]): Promise<void> {
+  const printingIds = typeof ids === "string" ? [ids] : [...ids];
+  if (printingIds.length === 0) {
+    return;
+  }
+  const rows = await db
+    .selectFrom("printings")
+    .select(["face1Id", "face2Id"])
+    .where("id", "in", printingIds)
+    .execute();
+  const faceIds = rows.flatMap((row) => (row.face2Id ? [row.face1Id, row.face2Id] : [row.face1Id]));
+  await db.deleteFrom("printings").where("id", "in", printingIds).execute();
+  if (faceIds.length === 0) {
+    return;
+  }
+  const stillShown = await db
+    .selectFrom("printings")
+    .select(["face1Id", "face2Id"])
+    .where((eb) => eb.or([eb("face1Id", "in", faceIds), eb("face2Id", "in", faceIds)]))
+    .execute();
+  const kept = new Set(stillShown.flatMap((row) => [row.face1Id, row.face2Id]));
+  const orphaned = faceIds.filter((id) => !kept.has(id));
+  if (orphaned.length > 0) {
+    await db.deleteFrom("faceImages").where("faceId", "in", orphaned).execute();
+    await db.deleteFrom("faces").where("id", "in", orphaned).execute();
+  }
+}
+
+export async function deletePrintingsByFace(
+  db: Db,
+  column: "cardId" | "setId" | "shortCode",
+  operator: "=" | "in",
+  value: string | readonly string[],
+): Promise<void> {
+  const faces = await db
+    .selectFrom("faces")
+    .select("id")
+    .where(column, operator, value as string)
+    .execute();
+  const faceIds = faces.map((face) => face.id);
+  if (faceIds.length === 0) {
+    return;
+  }
+  await db.deleteFrom("faceImages").where("faceId", "in", faceIds).execute();
+  await db
+    .deleteFrom("printings")
+    .where((eb) => eb.or([eb("face1Id", "in", faceIds), eb("face2Id", "in", faceIds)]))
+    .execute();
+  await db.deleteFrom("faces").where("id", "in", faceIds).execute();
 }
 
 /** Call before refreshing the MV when inserting cards directly (bypassing the repos),

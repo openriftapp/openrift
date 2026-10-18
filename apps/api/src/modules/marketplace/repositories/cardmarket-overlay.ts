@@ -69,9 +69,9 @@ export function cardmarketOverlayRepo(db: Kysely<Database>) {
           FROM resolved r
           WHERE r.printing_id IS NOT NULL
           UNION ALL
-          SELECT r.want_id, r.quantity, pr.id
+          SELECT DISTINCT r.want_id, r.quantity, pr.printing_id
           FROM resolved r
-          JOIN printings pr ON pr.card_id = r.card_id
+          JOIN printing_sides_ordered pr ON pr.card_id = r.card_id
           WHERE r.card_id IS NOT NULL
         ),
         wanted AS (
@@ -106,9 +106,10 @@ export function cardmarketOverlayRepo(db: Kysely<Database>) {
             )::int AS price_cents
           FROM marketplace_products p
           JOIN marketplace_product_variants v ON v.marketplace_product_id = p.id
-          JOIN printings pr ON pr.id = v.printing_id
+          JOIN printings pr0 ON pr0.id = v.printing_id
+          JOIN faces pr ON pr.id = pr0.face1_id
           JOIN mv_latest_printing_prices mvp
-            ON mvp.printing_id = pr.id AND mvp.marketplace = ${CARDTRADER}
+            ON mvp.printing_id = pr0.id AND mvp.marketplace = ${CARDTRADER}
           WHERE p.marketplace = ${CARDMARKET} AND p.finish IN ('normal', 'foil')
           GROUP BY p.external_id, p.finish
         ),

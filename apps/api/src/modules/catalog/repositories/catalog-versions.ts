@@ -3,7 +3,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 
-const CATALOG_SHAPE_VERSION = "3";
+const CATALOG_SHAPE_VERSION = "4";
 
 /**
  * Excludes the current date; only {@link catalogContentVersion} folds that in.
@@ -16,6 +16,8 @@ const STORED_CATALOG_AGGREGATES = sql<string>`
       coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM cards)::text, '') || '|' ||
       coalesce((SELECT count(*) FROM printings)::text, '') || ':' ||
       coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM printings)::text, '') || '|' ||
+      coalesce((SELECT count(*) FROM faces)::text, '') || ':' ||
+      coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM faces)::text, '') || '|' ||
       coalesce((SELECT count(*) FROM sets)::text, '') || ':' ||
       coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM sets)::text, '') || '|' ||
       coalesce((SELECT md5(string_agg(id::text || ':' || banned_at::text || ':' || coalesce(unbanned_at::text, '') || ':' || coalesce(reason, ''), ',' ORDER BY id)) FROM card_bans), '') || '|' ||
@@ -23,7 +25,6 @@ const STORED_CATALOG_AGGREGATES = sql<string>`
       coalesce((SELECT md5(string_agg(id::text || ':' || name || ':' || published_on::text || ':' || url, ',' ORDER BY id)) FROM errata_announcements), '') || '|' ||
       coalesce((SELECT count(*) FROM markers)::text, '') || ':' ||
       coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM markers)::text, '') || '|' ||
-      coalesce((SELECT count(*) FROM printing_markers)::text, '') || '|' ||
       coalesce((SELECT count(*) FROM distribution_channels)::text, '') || ':' ||
       coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM distribution_channels)::text, '') || '|' ||
       coalesce((SELECT count(*) FROM printing_distribution_channels)::text, '') || '|' ||
@@ -54,7 +55,7 @@ export function catalogVersionsRepo(db: Kysely<Database>) {
     },
 
     /**
-     * `printing_markers`, `printing_distribution_channels`, and `printing_citations` have no `updated_at`, so they are content-hashed.
+     * `printing_distribution_channels` and `printing_citations` have no `updated_at`, so they are content-hashed.
      * Any new `CatalogResponse` field must be added to this token or the `immutable` ETag goes stale. Excludes `current_date`.
      */
     async catalogResponseVersion(): Promise<string> {
@@ -62,12 +63,9 @@ export function catalogVersionsRepo(db: Kysely<Database>) {
         hashedToken(db, STORED_CATALOG_AGGREGATES),
         sql<{ token: string }>`
           SELECT md5(
-            coalesce((SELECT count(*) FROM printing_images)::text, '') || ':' ||
-            coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM printing_images)::text, '') || '|' ||
+            coalesce((SELECT count(*) FROM face_images)::text, '') || ':' ||
+            coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM face_images)::text, '') || '|' ||
             coalesce((SELECT count(*) FROM copies)::text, '') || '|' ||
-            coalesce((SELECT md5(string_agg(
-              printing_id::text || ':' || marker_id::text, ',' ORDER BY printing_id, marker_id
-            )) FROM printing_markers), '') || '|' ||
             coalesce((SELECT md5(string_agg(
               printing_id::text || ':' || channel_id::text || ':' || coalesce(distribution_note, ''),
               ',' ORDER BY printing_id, channel_id

@@ -221,12 +221,14 @@ export function cardTradeReadsRepo(db: Kysely<Database>) {
     async recentCompletedInGroup(groupId: string, limit: number): Promise<CompletedTradeFeedRow[]> {
       const rows = await db
         .selectFrom("cardTrades as t")
+        .innerJoin("printings as tp", "tp.id", "t.printingId")
+        .innerJoin("faces as tpf", "tpf.id", "tp.face1Id")
         .leftJoin("users as giver", "giver.id", "t.giverUserId")
         .leftJoin("users as receiver", "receiver.id", "t.receiverUserId")
         .select([
           "t.id as tradeId",
           "t.printingId",
-          "t.cardId",
+          "tpf.cardId",
           "t.quantity",
           "t.completedAt",
           "t.giverUserId",

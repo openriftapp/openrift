@@ -9,7 +9,6 @@ export interface LoansTable {
   borrowerUserId: string | null;
   borrowerName: string | null;
   printingId: string;
-  cardId: string;
   quantity: number;
   returnedQuantity: Generated<number>;
   borrowerReturnedQuantity: Generated<number>;

@@ -11,15 +11,16 @@ const CACHE_FILE = path.join(CACHE_DIR, "printings.json");
 
 const QUERY = `
   select coalesce(json_agg(row_to_json(t)), '[]'::json) from (
-    select p.id, p.card_id as "cardId", p.short_code as "shortCode", s.slug as "setSlug",
+    select p.printing_id as id, p.card_id as "cardId", p.short_code as "shortCode", s.slug as "setSlug",
            p.art_variant as "artVariant", p.is_signed as "isSigned",
            p.is_overnumbered as "isOvernumbered", p.marker_slugs as "markerSlugs",
            p.finish, p.size, p.language, p.public_code as "publicCode",
            p.canonical_rank as "canonicalRank",
-           coalesce((select json_agg(pi.image_file_id) from printing_images pi
-                     where pi.printing_id = p.id and pi.face = 'front'), '[]'::json) as "imageIds"
-    from printings_ordered p
+           coalesce((select json_agg(pi.image_file_id) from face_images pi
+                     where pi.face_id = p.face_id), '[]'::json) as "imageIds"
+    from printing_sides_ordered p
     join sets s on s.id = p.set_id
+    where p.position = 1
   ) t
 `;
 

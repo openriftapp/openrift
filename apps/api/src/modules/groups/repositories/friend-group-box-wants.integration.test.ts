@@ -137,14 +137,13 @@ describe.skipIf(!ctx)("friendGroupMatchesRepo.boxWantsForViewer (integration)", 
     return list;
   }
 
-  async function loanOut(lenderUserId: string, copyId: string, printingId: string, cardId: string) {
+  async function loanOut(lenderUserId: string, copyId: string, printingId: string) {
     const loan = await db
       .insertInto("loans")
       .values({
         lenderUserId,
         borrowerName: "Ekko",
         printingId,
-        cardId,
         quantity: 1,
         status: "active",
       })
@@ -212,7 +211,7 @@ describe.skipIf(!ctx)("friendGroupMatchesRepo.boxWantsForViewer (integration)", 
     const takeable = await addCopy(box.id, PRINTING_1.id);
     await wantCard(VIEWER_ID, CARD_FURY_UNIT.id, 3);
 
-    await loanOut(MEMBER_ID, loaned.id, PRINTING_1.id, CARD_FURY_UNIT.id);
+    await loanOut(MEMBER_ID, loaned.id, PRINTING_1.id);
     expect(takeable.id).not.toBe(loaned.id);
 
     expect(await boxWants(group.id)).toEqual([
@@ -241,7 +240,6 @@ describe.skipIf(!ctx)("friendGroupMatchesRepo.boxWantsForViewer (integration)", 
         receiverUserId: VIEWER_ID,
         initiator: "giver",
         printingId: PRINTING_2.id,
-        cardId: CARD_FURY_SPELL.id,
         quantity: 1,
         status: "reserved",
         // A CHECK constraint requires acceptedAt whenever status is "reserved".
@@ -275,7 +273,6 @@ describe.skipIf(!ctx)("friendGroupMatchesRepo.boxWantsForViewer (integration)", 
         receiverUserId: VIEWER_ID,
         initiator: "giver",
         printingId: PRINTING_1.id,
-        cardId: CARD_FURY_UNIT.id,
         quantity: 1,
         status: "reserved",
         acceptedAt: new Date(),

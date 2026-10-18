@@ -86,11 +86,11 @@ async function seedSameCardCopies(
   const sql = loadDb();
   try {
     const picked = (await sql`
-      SELECT p.id AS printing_id, c.name AS card_name
-      FROM printings p
+      SELECT p.printing_id, c.name AS card_name
+      FROM printing_sides_ordered p
       JOIN cards c ON c.id = p.card_id
       WHERE c.name ~ '^[A-Za-z][A-Za-z ]*$'
-      ORDER BY c.name, p.id
+      ORDER BY c.name, p.printing_id
       LIMIT 1
     `) as { printing_id: string; card_name: string }[];
     if (picked.length === 0) {

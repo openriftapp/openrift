@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   adminReq,
   createTestContext,
+  deletePrintingsByFace,
+  insertPrintings,
   syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
@@ -309,26 +311,23 @@ describe.skipIf(!ctx)("Admin catalog routes (integration)", () => {
         .values({ cardId: tempCard!.id, domainSlug: "mind", ordinal: 0 })
         .execute();
 
-      await testDb
-        .insertInto("printings")
-        .values({
-          cardId: tempCard!.id,
-          setId: tempSetId,
-          shortCode: "CAT-PRINT-001",
-          rarity: "common",
-          artVariant: "normal",
-          isSigned: false,
-          finish: "normal",
-          artist: "Test",
-          publicCode: "CAT",
-          printedRulesText: null,
-          printedEffectText: null,
-          flavorText: null,
-          comment: null,
-          size: "standard",
-          language: "EN",
-        })
-        .execute();
+      await insertPrintings(testDb, {
+        cardId: tempCard!.id,
+        setId: tempSetId,
+        shortCode: "CAT-PRINT-001",
+        rarity: "common",
+        artVariant: "normal",
+        isSigned: false,
+        finish: "normal",
+        artist: "Test",
+        publicCode: "CAT",
+        printedRulesText: null,
+        printedEffectText: null,
+        flavorText: null,
+        comment: null,
+        size: "standard",
+        language: "EN",
+      });
 
       const delRes = await app.fetch(adminReq("DELETE", `/sets/${tempSetId}`));
       expect(delRes.status).toBe(409);
@@ -336,7 +335,7 @@ describe.skipIf(!ctx)("Admin catalog routes (integration)", () => {
       expect(delJson.code).toBe("CONFLICT");
       expect(delJson.message).toContain("printing");
 
-      await testDb.deleteFrom("printings").where("shortCode", "=", "CAT-PRINT-001").execute();
+      await deletePrintingsByFace(testDb, "shortCode", "=", "CAT-PRINT-001");
       await testDb.deleteFrom("cardDomains").where("cardId", "=", tempCard!.id).execute();
       await testDb.deleteFrom("cards").where("slug", "=", "CAT-PRINT-001").execute();
       await app.fetch(adminReq("DELETE", `/sets/${tempSetId}`));

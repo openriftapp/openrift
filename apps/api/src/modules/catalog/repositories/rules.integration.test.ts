@@ -1,7 +1,11 @@
 import { afterAll, describe, expect, it } from "vitest";
 
 import { PRINTING_1 } from "../../../test/fixtures/constants.js";
-import { createDbContext } from "../../../test/integration-context.js";
+import {
+  createDbContext,
+  deletePrintingsById,
+  insertPrintings,
+} from "../../../test/integration-context.js";
 import { rulesRepo } from "./rules.js";
 
 const ctx = createDbContext("a0000000-0044-4000-a000-000000000001");
@@ -25,7 +29,7 @@ describe.skipIf(!ctx)("rulesRepo (integration)", () => {
       await repo.deleteVersion("core", "fr", version);
       await repo.deleteVersion("core", "en", version);
     }
-    await db.deleteFrom("printings").where("id", "=", koPrintingId).execute();
+    await deletePrintingsById(db, koPrintingId);
     await db.deleteFrom("keywords").where("name", "=", "RULES-0044-Shield").execute();
   });
 
@@ -272,7 +276,7 @@ describe.skipIf(!ctx)("rulesRepo (integration)", () => {
 
   it("listCardNames returns printed names for a non-English language", async () => {
     const seedPrinting = await db
-      .selectFrom("printings")
+      .selectFrom("faces")
       .select(["cardId", "setId", "artist"])
       .where("id", "=", PRINTING_1.id)
       .executeTakeFirstOrThrow();
@@ -281,24 +285,21 @@ describe.skipIf(!ctx)("rulesRepo (integration)", () => {
       .select("slug")
       .where("id", "=", seedPrinting.cardId)
       .executeTakeFirstOrThrow();
-    await db
-      .insertInto("printings")
-      .values({
-        id: koPrintingId,
-        cardId: seedPrinting.cardId,
-        setId: seedPrinting.setId,
-        artist: seedPrinting.artist,
-        shortCode: "RK-0044",
-        publicCode: "RK-0044/001",
-        rarity: "common",
-        artVariant: "normal",
-        isSigned: false,
-        finish: "normal",
-        size: "standard",
-        language: "KR",
-        printedName: "룰 테스트 0044",
-      })
-      .execute();
+    await insertPrintings(db, {
+      id: koPrintingId,
+      cardId: seedPrinting.cardId,
+      setId: seedPrinting.setId,
+      artist: seedPrinting.artist,
+      shortCode: "RK-0044",
+      publicCode: "RK-0044/001",
+      rarity: "common",
+      artVariant: "normal",
+      isSigned: false,
+      finish: "normal",
+      size: "standard",
+      language: "KR",
+      printedName: "룰 테스트 0044",
+    });
 
     const ko = await repo.listCardNames("ko");
 

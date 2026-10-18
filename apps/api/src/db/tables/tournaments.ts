@@ -202,7 +202,6 @@ export interface DeckCheckEntryCardsTable {
   zone: string;
   quantity: number;
   resolvedCardId: string | null;
-  resolvedPrintingId: string | null;
   matchStatus: DeckCheckMatchStatus;
   foundCopies: Generated<(boolean | null)[]>;
 }

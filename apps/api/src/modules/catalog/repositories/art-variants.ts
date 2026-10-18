@@ -9,7 +9,7 @@ export function artVariantsRepo(db: Kysely<Database>) {
     table: "artVariants",
     isInUse: (slug) =>
       db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("id")
         .where("artVariant", "=", slug as ArtVariant)
         .limit(1)

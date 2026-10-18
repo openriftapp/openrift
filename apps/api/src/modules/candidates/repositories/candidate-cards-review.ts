@@ -283,13 +283,13 @@ export function candidateReviewRepo(db: Kysely<Database>) {
       const now = new Date();
       const linkedByPrintingId = db
         .selectFrom("candidatePrintings")
-        .innerJoin("printings", "printings.id", "candidatePrintings.printingId")
+        .innerJoin("printingSidesOrdered as s", "s.printingId", "candidatePrintings.printingId")
         .select("candidatePrintings.candidateCardId")
-        .where("printings.cardId", "=", cardId);
+        .where("s.cardId", "=", cardId);
 
       // Short-code linking matches the display query's logic.
       const printingShortCodes = db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("shortCode")
         .where("cardId", "=", cardId);
       const linkedByShortCode = db

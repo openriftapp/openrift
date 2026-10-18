@@ -79,6 +79,8 @@ export interface LiveCardTrade extends CardTrade {
 export function tradeDtoBaseQuery(db: Kysely<Database>) {
   return db
     .selectFrom("cardTrades as t")
+    .innerJoin("printings as tp", "tp.id", "t.printingId")
+    .innerJoin("faces as tpf", "tpf.id", "tp.face1Id")
     .leftJoin("friendGroups as g", "g.id", "t.groupId")
     .leftJoin("users as giverUser", "giverUser.id", "t.giverUserId")
     .leftJoin("users as receiverUser", "receiverUser.id", "t.receiverUserId")
@@ -92,7 +94,7 @@ export function tradeDtoBaseQuery(db: Kysely<Database>) {
       "t.receiverUserId",
       "t.initiator",
       "t.printingId",
-      "t.cardId",
+      "tpf.cardId",
       "t.quantity",
       "t.status",
       "t.lastActorUserId",

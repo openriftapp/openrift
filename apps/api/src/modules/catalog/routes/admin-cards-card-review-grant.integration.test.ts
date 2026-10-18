@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   adminReq,
   createTestContext,
+  insertPrintings,
   refreshCardAggregates,
   syncCardCardTypes,
 } from "../../../test/integration-context.js";
@@ -115,27 +116,23 @@ if (adminCtx && grantCtx) {
     ])
     .execute();
 
-  const [printing1] = await db
-    .insertInto("printings")
-    .values({
-      cardId: card1Id,
-      setId: set!.id,
-      shortCode: "CRG-001",
-      rarity: "common",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "normal",
-      artist: "CRG Artist",
-      publicCode: "CRG",
-      printedRulesText: null,
-      printedEffectText: null,
-      flavorText: null,
-      comment: null,
-      size: "standard",
-      language: "EN",
-    })
-    .returning("id")
-    .execute();
+  const [printing1] = await insertPrintings(db, {
+    cardId: card1Id,
+    setId: set!.id,
+    shortCode: "CRG-001",
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "normal",
+    artist: "CRG Artist",
+    publicCode: "CRG",
+    printedRulesText: null,
+    printedEffectText: null,
+    flavorText: null,
+    comment: null,
+    size: "standard",
+    language: "EN",
+  });
   printing1Id = printing1!.id;
 
   const candidateCard = (provider: string, name: string, externalId: string) => ({

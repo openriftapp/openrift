@@ -63,12 +63,12 @@ describe("printingImagesRepo", () => {
   });
 
   it("deactivateActiveFace defaults to the front", async () => {
-    const db = createMockDb([]);
+    const db = createMockDb([{ faceId: "f-1" }]);
     await expect(printingImagesRepo(db).deactivateActiveFace("p-1")).resolves.toBeUndefined();
   });
 
   it("deactivateActiveFace takes the face to clear", async () => {
-    const db = createMockDb([]);
+    const db = createMockDb([{ faceId: "f-2" }]);
     await expect(
       printingImagesRepo(db).deactivateActiveFace("p-1", "back"),
     ).resolves.toBeUndefined();
@@ -80,21 +80,21 @@ describe("printingImagesRepo", () => {
   });
 
   it("insertImage main mode deactivates and inserts", async () => {
-    const db = createMockDb([{ id: "pi-new" }]);
+    const db = createMockDb([{ id: "pi-new", faceId: "f-1" }]);
     expect(
       await printingImagesRepo(db).insertImage("p-1", "https://example.com/img.jpg", "main"),
     ).toBe("pi-new");
   });
 
   it("insertImage additional mode inserts as inactive", async () => {
-    const db = createMockDb([{ id: "pi-new" }]);
+    const db = createMockDb([{ id: "pi-new", faceId: "f-1" }]);
     expect(
       await printingImagesRepo(db).insertImage("p-1", "https://example.com/img.jpg", "additional"),
     ).toBe("pi-new");
   });
 
   it("insertUploadedImage main mode deactivates and inserts", async () => {
-    const db = createMockDb([]);
+    const db = createMockDb([{ faceId: "f-1" }]);
     await expect(
       printingImagesRepo(db).insertUploadedImage({
         id: "pi-new",
@@ -106,7 +106,7 @@ describe("printingImagesRepo", () => {
   });
 
   it("insertUploadedImage stores a back face with its credit", async () => {
-    const db = createMockDb([]);
+    const db = createMockDb([{ faceId: "f-2" }]);
     await expect(
       printingImagesRepo(db).insertUploadedImage({
         id: "pi-new",
@@ -120,7 +120,7 @@ describe("printingImagesRepo", () => {
   });
 
   it("insertUploadedImage additional mode inserts without deactivating", async () => {
-    const db = createMockDb([]);
+    const db = createMockDb([{ faceId: "f-1" }]);
     await expect(
       printingImagesRepo(db).insertUploadedImage({
         id: "pi-new",

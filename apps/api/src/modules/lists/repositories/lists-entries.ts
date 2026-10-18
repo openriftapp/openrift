@@ -4,6 +4,7 @@ import { DeleteResult, sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { ListEntriesTable } from "../../../db/tables/lists.js";
+import { withFace1 } from "../../../repositories/query-helpers.js";
 
 export interface BulkUpsertResult {
   inserted: number;
@@ -224,14 +225,14 @@ export function listEntriesRepo(db: Kysely<Database>) {
       if (copyIds.length === 0) {
         return Promise.resolve([]);
       }
-      return db
-        .selectFrom("copies as cp")
-        .innerJoin("printings as p", "p.id", "cp.printingId")
+      return withFace1(
+        db.selectFrom("copies as cp").innerJoin("printings as p", "p.id", "cp.printingId"),
+      )
         .innerJoin("collections as col", "col.id", "cp.collectionId")
         .leftJoin("friendGroupMembers as gm", (join) =>
           join.onRef("gm.groupId", "=", "col.groupId").on("gm.userId", "=", userId),
         )
-        .select(["cp.id as copyId", "cp.printingId", "p.cardId"])
+        .select(["cp.id as copyId", "cp.printingId", "pf.cardId"])
         .where("cp.id", "in", [...copyIds])
         .where((eb) =>
           personalOnly
@@ -245,10 +246,9 @@ export function listEntriesRepo(db: Kysely<Database>) {
       if (printingIds.length === 0) {
         return Promise.resolve([]);
       }
-      return db
-        .selectFrom("printings")
-        .select(["id", "cardId"])
-        .where("id", "in", [...printingIds])
+      return withFace1(db.selectFrom("printings as p"))
+        .select(["p.id", "pf.cardId"])
+        .where("p.id", "in", [...printingIds])
         .execute();
     },
 
@@ -363,7 +363,9 @@ export function listEntriesRepo(db: Kysely<Database>) {
         .selectFrom("listEntries as le")
         .leftJoin("copies as cp", "cp.id", "le.copyId")
         .leftJoin("printings as ep", "ep.id", "le.printingId")
+        .leftJoin("faces as epf", "epf.id", "ep.face1Id")
         .leftJoin("printings as cpp", "cpp.id", "cp.printingId")
+        .leftJoin("faces as cppf", "cppf.id", "cpp.face1Id")
         .select((eb) => [
           "le.id",
           "le.kind",
@@ -375,7 +377,7 @@ export function listEntriesRepo(db: Kysely<Database>) {
           "le.priceAbsoluteCents",
           "le.tradeType",
           eb.fn.coalesce("le.printingId", "cp.printingId").as("resolvedPrintingId"),
-          eb.fn.coalesce("le.cardId", "ep.cardId", "cpp.cardId").as("resolvedCardId"),
+          eb.fn.coalesce("le.cardId", "epf.cardId", "cppf.cardId").as("resolvedCardId"),
         ])
         .where("le.listId", "=", listId)
         .where("le.userId", "=", userId)

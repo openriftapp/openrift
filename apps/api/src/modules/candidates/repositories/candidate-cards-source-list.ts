@@ -7,11 +7,7 @@ import type {
   CandidateCardsTable,
   CandidatePrintingsTable,
 } from "../../../db/tables/candidates.js";
-import type {
-  CardNameAliasesTable,
-  CardsTable,
-  PrintingsTable,
-} from "../../../db/tables/catalog.js";
+import type { CardNameAliasesTable, CardsTable, FacesTable } from "../../../db/tables/catalog.js";
 import {
   CANONICAL_CANDIDATE_PRINTING_ORDER,
   notHiddenSource,
@@ -30,7 +26,7 @@ export function candidateSourceListRepo(db: Kysely<Database>) {
     > {
       return db
         .selectFrom("cards as c")
-        .leftJoin("printings as p", "p.cardId", "c.id")
+        .leftJoin("faces as p", "p.cardId", "c.id")
         .leftJoin("sets as s", "s.id", "p.setId")
         .select((eb) => [
           "c.id",
@@ -107,12 +103,12 @@ export function candidateSourceListRepo(db: Kysely<Database>) {
     },
 
     listPrintingsForSourceList(): Promise<
-      (Pick<Selectable<PrintingsTable>, "cardId" | "shortCode" | "language"> & {
+      (Pick<Selectable<FacesTable>, "cardId" | "shortCode" | "language"> & {
         setSlug: string | null;
       })[]
     > {
       return db
-        .selectFrom("printingsOrdered as p")
+        .selectFrom("printingSidesOrdered as p")
         .leftJoin("sets as s", "s.id", "p.setId")
         .select(["p.cardId", "p.shortCode", "p.language", "s.slug as setSlug"])
         .orderBy("p.canonicalRank")
@@ -121,7 +117,7 @@ export function candidateSourceListRepo(db: Kysely<Database>) {
 
     async listCardsWithMissingImages(): Promise<MissingImageCard[]> {
       const rows = await db
-        .selectFrom("printings as p")
+        .selectFrom("printingSidesOrdered as p")
         .innerJoin("cards as c", "c.id", "p.cardId")
         .select((eb) => [
           "p.cardId",
@@ -134,10 +130,9 @@ export function candidateSourceListRepo(db: Kysely<Database>) {
           eb.not(
             eb.exists(
               eb
-                .selectFrom("printingImages as pi")
+                .selectFrom("faceImages as pi")
                 .select(sql.lit(1).as("one"))
-                .whereRef("pi.printingId", "=", "p.id")
-                .where("pi.face", "=", "front")
+                .whereRef("pi.faceId", "=", "p.faceId")
                 .where("pi.isActive", "=", true),
             ),
           ),
@@ -191,7 +186,7 @@ export function candidateSourceListRepo(db: Kysely<Database>) {
 
     async distinctArtists(): Promise<string[]> {
       const rows = await db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("artist")
         .distinct()
         .orderBy("artist")

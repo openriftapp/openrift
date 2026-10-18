@@ -7,7 +7,6 @@ import { appendSetTotal } from "@openrift/shared/fix-typography";
 import { isTbaCode, tbaPublicCode, tbaShortCode } from "@openrift/shared/printing-code";
 import { normalizeToPeriodStart } from "@openrift/shared/set-release";
 import { WellKnown } from "@openrift/shared/well-known";
-import type { Updateable } from "kysely";
 
 import type { PrintingsTable } from "../../../db/tables/catalog.js";
 import type { Repos, Transact } from "../../../deps.js";
@@ -17,6 +16,7 @@ import { assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import type { PrintingUpdate } from "../repositories/catalog-mutations.js";
 import {
   acceptPrinting,
   updatePrintingDistributionChannels,
@@ -32,7 +32,8 @@ interface DeskRelease {
 function asIdentityConflict(error: unknown): unknown {
   if (
     isUniqueViolationOn(error, "uq_printings_identity") ||
-    isUniqueViolationOn(error, "uq_printings_variant")
+    isUniqueViolationOn(error, "uq_faces_identity") ||
+    isUniqueViolationOn(error, "uq_faces_variant")
   ) {
     return new AppError(
       409,
@@ -289,7 +290,7 @@ export async function updateDeskPrinting(
       : await repos.distributionChannels.listForPrintingIds([printingId]);
   const beforeChannelSlugs = channelsBefore.map((row) => row.channelSlug);
 
-  const patch: Updateable<PrintingsTable> = {};
+  const patch: PrintingUpdate = {};
   for (const field of SCALAR_FIELDS) {
     if (fields[field] !== undefined) {
       patch[field] = fields[field] as never;

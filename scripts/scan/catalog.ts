@@ -40,11 +40,10 @@ const QUERY = `
          p.art_variant as art_variant,
          p.is_overnumbered as is_overnumbered,
          array_to_string(p.marker_slugs, '+') as markers
-  from printing_images pi
-  join printings p on p.id = pi.printing_id
+  from face_images pi
+  join faces p on p.id = pi.face_id
   join cards c on c.id = p.card_id
   join sets s on s.id = p.set_id
-  where pi.face = 'front'
 `;
 
 export function loadCatalog(refresh = false): Map<string, CardIdentity> {

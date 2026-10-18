@@ -18,6 +18,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { BoxWantDemand } from "../../../lib/box-want-allocation.js";
+import { withFace1 } from "../../../repositories/query-helpers.js";
 import type { ListRuleProviders } from "../../lists/repositories/lists-rules.js";
 
 export interface SharedListRow {
@@ -239,19 +240,26 @@ async function loadPromisedIncoming(
   if (ownerIds.length === 0) {
     return { byPrinting, byCard };
   }
+  const printingCards = db
+    .selectFrom("printingSidesOrdered")
+    .select(["printingId", "cardId"])
+    .distinct()
+    .as("pc");
   const rows = await db
-    .selectFrom("cardTrades")
+    .selectFrom("cardTrades as t")
+    .innerJoin(printingCards, "pc.printingId", "t.printingId")
     .select((eb) => [
-      "receiverUserId",
-      "printingId",
-      "cardId",
-      eb.cast<number>(eb.fn.sum(eb.ref("quantity")), "integer").as("quantity"),
+      "t.receiverUserId",
+      "t.printingId",
+      "pc.cardId",
+      eb.cast<number>(eb.fn.sum(eb.ref("t.quantity")), "integer").as("quantity"),
     ])
-    .where("receiverUserId", "in", ownerIds)
-    .where("status", "in", ["reserved", "completed"])
-    .where("receiverSyncAppliedAt", "is", null)
-    .groupBy(["receiverUserId", "printingId", "cardId"])
+    .where("t.receiverUserId", "in", ownerIds)
+    .where("t.status", "in", ["reserved", "completed"])
+    .where("t.receiverSyncAppliedAt", "is", null)
+    .groupBy(["t.receiverUserId", "t.printingId", "pc.cardId"])
     .execute();
+  const countedPrintings = new Set<string>();
   for (const row of rows) {
     // The `receiverUserId in ownerIds` filter above rules NULL out; the column
     // is nullable only for a party who has deleted their account.
@@ -259,7 +267,10 @@ async function loadPromisedIncoming(
       continue;
     }
     const printingKey = promisedKey(row.receiverUserId, row.printingId);
-    byPrinting.set(printingKey, (byPrinting.get(printingKey) ?? 0) + row.quantity);
+    if (!countedPrintings.has(printingKey)) {
+      countedPrintings.add(printingKey);
+      byPrinting.set(printingKey, (byPrinting.get(printingKey) ?? 0) + row.quantity);
+    }
     const cardKey = promisedKey(row.receiverUserId, row.cardId);
     byCard.set(cardKey, (byCard.get(cardKey) ?? 0) + row.quantity);
   }
@@ -362,15 +373,15 @@ export async function loadCopyMeta(
   if (copyIds.length === 0) {
     return meta;
   }
-  const rows = await db
-    .selectFrom("copies as cp")
-    .innerJoin("printings as p", "p.id", "cp.printingId")
+  const rows = await withFace1(
+    db.selectFrom("copies as cp").innerJoin("printings as p", "p.id", "cp.printingId"),
+  )
     .leftJoin("cardTradeCopies as ctc", "ctc.copyId", "cp.id")
     .leftJoin("loanCopies as lc", "lc.copyId", "cp.id")
     .select([
       "cp.id",
       "cp.printingId",
-      "p.cardId",
+      "pf.cardId",
       "cp.createdAt",
       "cp.isAltered",
       "cp.condition",

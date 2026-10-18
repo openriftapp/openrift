@@ -2,7 +2,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createRepos, createTransact } from "../../../deps.js";
 import type { Io } from "../../../io.js";
-import { createDbContext, syncCardCardTypes } from "../../../test/integration-context.js";
+import {
+  createDbContext,
+  deletePrintingsByFace,
+  deletePrintingsById,
+  insertPrintings,
+  syncCardCardTypes,
+} from "../../../test/integration-context.js";
 import { acceptPrinting, updatePrintingMarkers } from "./printing-admin.js";
 
 // Editing one sibling printing's markers must not trip the
@@ -71,66 +77,56 @@ describe.skipIf(!ctx)("updatePrintingMarkers (integration)", () => {
     await db.insertInto("cardDomains").values({ cardId, domainSlug: "fury", ordinal: 0 }).execute();
 
     // Printing A: empty marker_slugs (the sibling that causes the collision).
-    const [emptyRow] = await db
-      .insertInto("printings")
-      .values({
-        cardId,
-        setId,
-        shortCode: SHORT_CODE,
-        rarity: "common",
-        artVariant: "normal",
-        isSigned: false,
-        finish: "foil",
-        artist: "Test",
-        publicCode: SHORT_CODE,
-        language: "EN",
-        size: "standard",
-      })
-      .returning("id")
-      .execute();
+    const [emptyRow] = await insertPrintings(db, {
+      cardId,
+      setId,
+      shortCode: SHORT_CODE,
+      rarity: "common",
+      artVariant: "normal",
+      isSigned: false,
+      finish: "foil",
+      artist: "Test",
+      publicCode: SHORT_CODE,
+      language: "EN",
+      size: "standard",
+    });
     printingEmptyId = emptyRow!.id;
 
     // Printing B: same identity columns as A but distinguished by a marker.
     // Insert with default empty markers first, then attach a marker row —
     // the sync trigger repopulates marker_slugs to ['promo'], making B
     // distinct from A under `uq_printings_identity`.
-    const [markerRow] = await db
-      .insertInto("printings")
-      .values({
-        cardId,
-        setId,
-        shortCode: SHORT_CODE,
-        rarity: "common",
-        artVariant: "normal",
-        isSigned: false,
-        finish: "foil",
-        artist: "Test",
-        publicCode: SHORT_CODE,
-        language: "EN",
-        // Set directly; no sibling row with ['promo'] exists yet so no clash.
-        markerSlugs: ["promo"],
-        size: "standard",
-      })
-      .returning("id")
-      .execute();
+    const [markerRow] = await insertPrintings(db, {
+      cardId,
+      setId,
+      shortCode: SHORT_CODE,
+      rarity: "common",
+      artVariant: "normal",
+      isSigned: false,
+      finish: "foil",
+      artist: "Test",
+      publicCode: SHORT_CODE,
+      language: "EN",
+      // Set directly; no sibling row with ['promo'] exists yet so no clash.
+      markerSlugs: ["promo"],
+      size: "standard",
+    });
     printingWithMarkerId = markerRow!.id;
 
     const promoMarker = await db
       .selectFrom("markers")
-      .select("id")
+      .select(["id", "slug"])
       .where("slug", "=", "promo")
       .executeTakeFirstOrThrow();
     await db
-      .insertInto("printingMarkers")
-      .values({ printingId: printingWithMarkerId, markerId: promoMarker.id })
+      .updateTable("faces")
+      .set({ markerSlugs: [promoMarker.slug] })
+      .where("id", "=", printingWithMarkerId)
       .execute();
   });
 
   afterAll(async () => {
-    await db
-      .deleteFrom("printings")
-      .where("id", "in", [printingEmptyId, printingWithMarkerId])
-      .execute();
+    await deletePrintingsById(db, [printingEmptyId, printingWithMarkerId]);
     await db.deleteFrom("cards").where("id", "=", cardId).execute();
     await db.deleteFrom("sets").where("id", "=", setId).execute();
   });
@@ -145,14 +141,14 @@ describe.skipIf(!ctx)("updatePrintingMarkers (integration)", () => {
     ).resolves.toBeUndefined();
 
     const updated = await db
-      .selectFrom("printings")
+      .selectFrom("faces")
       .select("markerSlugs")
       .where("id", "=", printingWithMarkerId)
       .executeTakeFirstOrThrow();
     expect(updated.markerSlugs).toEqual(["nexus", "promo"]);
 
     const untouched = await db
-      .selectFrom("printings")
+      .selectFrom("faces")
       .select("markerSlugs")
       .where("id", "=", printingEmptyId)
       .executeTakeFirstOrThrow();
@@ -231,28 +227,24 @@ describe.skipIf(!ctx)("acceptPrinting requireNew (integration)", () => {
 
     await db.insertInto("cardDomains").values({ cardId, domainSlug: "fury", ordinal: 0 }).execute();
 
-    const [printingRow] = await db
-      .insertInto("printings")
-      .values({
-        cardId,
-        setId,
-        shortCode: SHORT_CODE,
-        rarity: "common",
-        artVariant: "normal",
-        isSigned: false,
-        finish: "normal",
-        artist: "Original Artist",
-        publicCode: `${SHORT_CODE}/1`,
-        language: "EN",
-        size: "standard",
-      })
-      .returning("id")
-      .execute();
+    const [printingRow] = await insertPrintings(db, {
+      cardId,
+      setId,
+      shortCode: SHORT_CODE,
+      rarity: "common",
+      artVariant: "normal",
+      isSigned: false,
+      finish: "normal",
+      artist: "Original Artist",
+      publicCode: `${SHORT_CODE}/1`,
+      language: "EN",
+      size: "standard",
+    });
     printingId = printingRow!.id;
   });
 
   afterAll(async () => {
-    await db.deleteFrom("printings").where("cardId", "=", cardId).execute();
+    await deletePrintingsByFace(db, "cardId", "=", cardId);
     await db.deleteFrom("cards").where("id", "=", cardId).execute();
     await db.deleteFrom("sets").where("id", "=", setId).execute();
   });
@@ -273,7 +265,7 @@ describe.skipIf(!ctx)("acceptPrinting requireNew (integration)", () => {
     ).rejects.toThrow(`This card already has a printing with short code "${SHORT_CODE}"`);
 
     const unchanged = await db
-      .selectFrom("printings")
+      .selectFrom("faces")
       .select("artist")
       .where("id", "=", printingId)
       .executeTakeFirstOrThrow();
@@ -293,7 +285,7 @@ describe.skipIf(!ctx)("acceptPrinting requireNew (integration)", () => {
 
     expect(newId).not.toBe(printingId);
     const created = await db
-      .selectFrom("printings")
+      .selectFrom("faces")
       .select("finish")
       .where("id", "=", newId)
       .executeTakeFirstOrThrow();
@@ -312,7 +304,7 @@ describe.skipIf(!ctx)("acceptPrinting requireNew (integration)", () => {
 
     expect(sameId).toBe(printingId);
     const updated = await db
-      .selectFrom("printings")
+      .selectFrom("faces")
       .select("artist")
       .where("id", "=", printingId)
       .executeTakeFirstOrThrow();

@@ -252,8 +252,8 @@ export async function bootstrapSeededTestDb(
       await sql`REFRESH MATERIALIZED VIEW mv_daily_printing_prices`;
       await sql`REFRESH MATERIALIZED VIEW mv_latest_printing_prices`;
       // Without this every seeded printing falls back to the sentinel rank
-      // and `printings_ordered` returns them in arbitrary order.
-      await sql`REFRESH MATERIALIZED VIEW mv_printings_canonical_rank`;
+      // and `printing_sides_ordered` returns them in arbitrary order.
+      await sql`REFRESH MATERIALIZED VIEW mv_printing_sides_canonical_rank`;
       // Without this, printings look like they have no foil twin.
       await sql`REFRESH MATERIALIZED VIEW mv_printing_foil_twins`;
     }

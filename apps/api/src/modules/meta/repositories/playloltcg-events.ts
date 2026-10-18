@@ -482,7 +482,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
         return new Map();
       }
       const rows = await db
-        .selectFrom("printings as p")
+        .selectFrom("faces as p")
         .innerJoin("cards as c", "c.id", "p.cardId")
         .where("p.language", "=", "SC")
         .where("p.shortCode", "in", [...new Set(shortCodes)])

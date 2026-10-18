@@ -406,7 +406,7 @@ describe.skipIf(!ownerCtx)("deck-check ingest push (integration, ADR-033)", () =
     } finally {
       await db
         .updateTable("deckCheckEntryCards")
-        .set({ resolvedCardId: null, resolvedPrintingId: null, matchStatus: "unmatched" })
+        .set({ resolvedCardId: null, matchStatus: "unmatched" })
         .where("resolvedCardId", "=", inserted.id)
         .execute();
       await syncCardCardTypes(db);

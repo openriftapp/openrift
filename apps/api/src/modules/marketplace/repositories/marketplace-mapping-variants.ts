@@ -5,6 +5,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
+import { withFace1 } from "../../../repositories/query-helpers.js";
 
 type Db = Kysely<Database>;
 
@@ -33,29 +34,35 @@ const siblingLanguageGuard =
 /**
  * Sibling rows a language-aggregate product should have but doesn't. Migration
  * 107's identity plus `size`, which it omitted: an oversized demo card of the
- * same short code is a separate SKU, never a language sibling.
+ * same short code is a separate SKU, never a language sibling. Single-sided
+ * printings only: `source` and `sibling` are the printings' only faces.
  */
 const missingSiblingVariants = sql`
-  SELECT DISTINCT mpv.marketplace_product_id, sibling.id AS printing_id
+  SELECT DISTINCT mpv.marketplace_product_id, sibling_printing.id AS printing_id
   FROM marketplace_product_variants mpv
   JOIN marketplace_products mp ON mp.id = mpv.marketplace_product_id
-  JOIN printings source ON source.id = mpv.printing_id
-  JOIN printings sibling
+  JOIN printings source_printing
+    ON source_printing.id = mpv.printing_id AND source_printing.face2_id IS NULL
+  JOIN faces source ON source.id = source_printing.face1_id
+  JOIN faces sibling
     ON sibling.card_id = source.card_id
     AND sibling.short_code = source.short_code
     AND sibling.finish = source.finish
     AND sibling.art_variant = source.art_variant
     AND sibling.is_signed = source.is_signed
     AND sibling.marker_slugs = source.marker_slugs
-    AND sibling.size = source.size
-    AND sibling.id <> source.id
+  JOIN printings sibling_printing
+    ON sibling_printing.face1_id = sibling.id
+    AND sibling_printing.face2_id IS NULL
+    AND sibling_printing.size = source_printing.size
+    AND sibling_printing.id <> source_printing.id
   WHERE mp.language IS NULL
     AND ${siblingLanguageGuard}
     AND NOT EXISTS (
       SELECT 1
       FROM marketplace_product_variants existing
       WHERE existing.marketplace_product_id = mpv.marketplace_product_id
-        AND existing.printing_id = sibling.id
+        AND existing.printing_id = sibling_printing.id
     )
 `;
 
@@ -263,10 +270,9 @@ export function marketplaceMappingVariantsRepo(db: Db) {
     },
 
     getPrintingFinishAndLanguage(printingId: string) {
-      return db
-        .selectFrom("printings")
-        .select(["finish", "language"])
-        .where("id", "=", printingId)
+      return withFace1(db.selectFrom("printings as p"))
+        .select(["pf.finish", "pf.language"])
+        .where("p.id", "=", printingId)
         .executeTakeFirstOrThrow();
     },
 
@@ -302,17 +308,17 @@ export function marketplaceMappingVariantsRepo(db: Db) {
       }[]
     > {
       return db
-        .selectFrom("printings as p")
-        .innerJoin("marketplaceProductVariants as mpv", "mpv.printingId", "p.id")
+        .selectFrom("printingSidesOrdered as p")
+        .innerJoin("marketplaceProductVariants as mpv", "mpv.printingId", "p.printingId")
         .innerJoin("marketplaceProducts as mp", "mp.id", "mpv.marketplaceProductId")
         .select([
-          "p.id as targetPrintingId",
+          "p.printingId as targetPrintingId",
           "mp.marketplace as marketplace",
           "mp.externalId as externalId",
           "mp.productName as productName",
           "mp.finish as finish",
           "mp.language as variantLanguage",
-          "p.id as ownerPrintingId",
+          "p.printingId as ownerPrintingId",
           "p.language as ownerLanguage",
         ])
         .where("p.cardId", "=", cardId)

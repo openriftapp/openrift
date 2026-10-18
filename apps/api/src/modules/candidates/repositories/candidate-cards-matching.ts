@@ -121,30 +121,31 @@ export function candidateMatchingRepo(db: Kysely<Database>) {
               select array_agg(dc.slug)
               from printing_distribution_channels pdc
               join distribution_channels dc on dc.id = pdc.channel_id
-              where pdc.printing_id = p.id
+              where pdc.printing_id = pr.id
             ), '{}'::text[]),
-            'finish', p.finish, 'size', p.size, 'artist', p.artist,
+            'finish', p.finish, 'size', pr.size, 'artist', p.artist,
             'publicCode', p.public_code, 'printedRulesText', p.printed_rules_text,
             'printedEffectText', p.printed_effect_text, 'flavorText', p.flavor_text,
             'language', p.language, 'printedName', p.printed_name,
             'printedYear', p.printed_year,
             'imageUrls', coalesce((
               select array_remove(array_agg(u), null)
-              from printing_images pi
+              from face_images pi
               join image_files imgf on imgf.id = pi.image_file_id
               cross join lateral unnest(array[imgf.original_url, imgf.rehosted_url]) as u
-              where pi.printing_id = p.id and pi.face = 'front' and pi.is_active
+              where pi.face_id = p.id and pi.is_active
             ), '{}'::text[]),
             'imageFingerprints', coalesce((
               select array_agg(imgf.fingerprint)
-              from printing_images pi
+              from face_images pi
               join image_files imgf on imgf.id = pi.image_file_id
-              where pi.printing_id = p.id and pi.face = 'front' and pi.is_active
+              where pi.face_id = p.id and pi.is_active
             ), '{}'::text[])
           ) as live
         from candidate_printings cp
         join candidate_cards cc on cc.id = cp.candidate_card_id
-        join printings p on p.id = cp.printing_id
+        join printings pr on pr.id = cp.printing_id
+        join faces p on p.id = pr.face1_id
         join sets s on s.id = p.set_id
         where cp.checked_at is null
           and cc.provider <> ${excludeProvider}

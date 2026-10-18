@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   adminReq,
   createTestContext,
+  insertPrintings,
   refreshCardAggregates,
   syncCardCardTypes,
 } from "../../../test/integration-context.js";
@@ -49,50 +50,42 @@ if (ctx) {
 
   await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", ordinal: 0 }).execute();
 
-  const [printingRow] = await db
-    .insertInto("printings")
-    .values({
-      cardId,
-      setId,
-      shortCode: "MKM-001",
-      rarity: "common",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "normal",
-      artist: "Test Artist",
-      publicCode: "MKM",
-      printedRulesText: null,
-      printedEffectText: null,
-      flavorText: null,
-      comment: null,
-      size: "standard",
-      language: "EN",
-    })
-    .returning("id")
-    .execute();
+  const [printingRow] = await insertPrintings(db, {
+    cardId,
+    setId,
+    shortCode: "MKM-001",
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "normal",
+    artist: "Test Artist",
+    publicCode: "MKM",
+    printedRulesText: null,
+    printedEffectText: null,
+    flavorText: null,
+    comment: null,
+    size: "standard",
+    language: "EN",
+  });
   printingId = printingRow!.id;
 
-  await db
-    .insertInto("printings")
-    .values({
-      cardId,
-      setId,
-      shortCode: "MKM-001",
-      rarity: "common",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "foil",
-      artist: "Test Artist",
-      publicCode: "MKM",
-      printedRulesText: null,
-      printedEffectText: null,
-      flavorText: null,
-      comment: null,
-      size: "standard",
-      language: "EN",
-    })
-    .returning("id")
-    .execute();
+  await insertPrintings(db, {
+    cardId,
+    setId,
+    shortCode: "MKM-001",
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "foil",
+    artist: "Test Artist",
+    publicCode: "MKM",
+    printedRulesText: null,
+    printedEffectText: null,
+    flavorText: null,
+    comment: null,
+    size: "standard",
+    language: "EN",
+  });
 
   await db
     .insertInto("marketplaceGroups")

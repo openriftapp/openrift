@@ -9,7 +9,7 @@ export function finishesRepo(db: Kysely<Database>) {
     table: "finishes",
     isInUse: (slug) =>
       db
-        .selectFrom("printings")
+        .selectFrom("faces")
         .select("id")
         .where("finish", "=", slug as Finish)
         .limit(1)

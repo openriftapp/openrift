@@ -2,7 +2,12 @@ import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PRINTING_1 } from "../../../test/fixtures/constants.js";
-import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
+import {
+  createDbContext,
+  deletePrintingsById,
+  insertPrintings,
+  seedTestUser,
+} from "../../../test/integration-context.js";
 import { marketplaceRepo } from "../../marketplace/repositories/marketplace.js";
 
 const userId = crypto.randomUUID();
@@ -34,33 +39,31 @@ describe.skipIf(!ctx)("collection value baseline (integration)", () => {
 
   beforeAll(async () => {
     const seedPrinting = await db
-      .selectFrom("printings")
+      .selectFrom("faces")
       .select(["cardId", "setId", "artist"])
       .where("id", "=", PRINTING_1.id)
       .executeTakeFirstOrThrow();
 
-    await db
-      .insertInto("printings")
-      .values(
-        [
-          { id: risingPrintingId, shortCode: "VB-001", publicCode: "VB-001/004" },
-          { id: flatPrintingId, shortCode: "VB-002", publicCode: "VB-002/004" },
-          { id: latePrintingId, shortCode: "VB-003", publicCode: "VB-003/004" },
-          { id: midPrintingId, shortCode: "VB-004", publicCode: "VB-004/004" },
-        ].map((p) => ({
-          ...p,
-          cardId: seedPrinting.cardId,
-          setId: seedPrinting.setId,
-          artist: seedPrinting.artist,
-          rarity: "common",
-          artVariant: "normal",
-          isSigned: false,
-          finish: "normal",
-          size: "standard",
-          language: "EN",
-        })),
-      )
-      .execute();
+    await insertPrintings(
+      db,
+      [
+        { id: risingPrintingId, shortCode: "VB-001", publicCode: "VB-001/004" },
+        { id: flatPrintingId, shortCode: "VB-002", publicCode: "VB-002/004" },
+        { id: latePrintingId, shortCode: "VB-003", publicCode: "VB-003/004" },
+        { id: midPrintingId, shortCode: "VB-004", publicCode: "VB-004/004" },
+      ].map((p) => ({
+        ...p,
+        cardId: seedPrinting.cardId,
+        setId: seedPrinting.setId,
+        artist: seedPrinting.artist,
+        rarity: "common",
+        artVariant: "normal",
+        isSigned: false,
+        finish: "normal",
+        size: "standard",
+        language: "EN",
+      })),
+    );
 
     await seedTestUser(db, { id: userId });
 
@@ -191,10 +194,12 @@ describe.skipIf(!ctx)("collection value baseline (integration)", () => {
       DELETE FROM marketplace_groups
       WHERE marketplace = ${marketplace} AND group_id = ${groupId}
     `.execute(db);
-    await db
-      .deleteFrom("printings")
-      .where("id", "in", [risingPrintingId, flatPrintingId, latePrintingId, midPrintingId])
-      .execute();
+    await deletePrintingsById(db, [
+      risingPrintingId,
+      flatPrintingId,
+      latePrintingId,
+      midPrintingId,
+    ]);
     await repo.refreshLatestPrices();
   });
 

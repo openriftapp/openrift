@@ -60,7 +60,7 @@ period so the period-end maths and the display formatter never have to guess.
 
 ### `cards`
 
-Game card identity — one row per unique card. Stats and rules live here; physical product details (art, rarity, finish) live in `printings`.
+Game card identity — one row per unique card. Stats and rules live here; printed details (art, rarity, finish) live in `faces`.
 
 | Column        | Type        | Constraints                                              |
 | ------------- | ----------- | -------------------------------------------------------- |
@@ -83,70 +83,89 @@ Stats are nullable with type-specific semantics: `might` is only set for Units, 
 
 **Domains and super-types** are no longer array columns on `cards` — they were normalized into the `card_domains` and `card_super_types` junction tables (see [Reference Tables](#reference-tables) below). The API still surfaces them as arrays on the `Card` type.
 
-**Rules and effect text** do not live on `cards`. Printing-specific text is stored on `printings` (`printed_rules_text` / `printed_effect_text`), and admin-authored corrections live in the `card_errata` table (surfaced as `correctedRulesText` / `correctedEffectText`).
+**Rules and effect text** do not live on `cards`. Printed text is stored on `faces` (`printed_rules_text` / `printed_effect_text`), and admin-authored corrections live in the `card_errata` table (surfaced as `correctedRulesText` / `correctedEffectText`).
+
+### `faces`
+
+One printed side of a physical card: set, collector code, art, printed text, language, rarity, finish and markers. A face belongs to exactly one card and can sit on several printings (ADR-020).
+
+| Column                   | Type        | Constraints                                                              |
+| ------------------------ | ----------- | ------------------------------------------------------------------------ |
+| `id`                     | uuid        | primary key, default uuidv7()                                            |
+| `card_id`                | uuid        | not null, FK → cards.id                                                  |
+| `set_id`                 | uuid        | not null, FK → sets.id                                                   |
+| `short_code`             | text        | not null                                                                 |
+| `public_code`            | text        | not null                                                                 |
+| `rarity`                 | text        | not null, FK → rarities.slug                                             |
+| `art_variant`            | text        | not null, FK → art_variants.slug                                         |
+| `is_signed`              | boolean     | not null, default false                                                  |
+| `is_overnumbered`        | boolean     | not null, default false. Collector number past the set's `printed_total` |
+| `finish`                 | text        | not null, FK → finishes.slug                                             |
+| `language`               | text        | not null, default 'EN', FK → languages.code                              |
+| `marker_slugs`           | text[]      | not null, default '{}'. Sorted, deduplicated, validated by trigger       |
+| `artist`                 | text        | not null                                                                 |
+| `printed_name`           | text        | nullable                                                                 |
+| `printed_rules_text`     | text        | nullable                                                                 |
+| `printed_effect_text`    | text        | nullable                                                                 |
+| `flavor_text`            | text        | nullable                                                                 |
+| `printed_year`           | smallint    | nullable. Year stamped on the side                                       |
+| `fallback_art_mode`      | text        | not null, default 'auto' (auto, pinned, none)                            |
+| `fallback_image_file_id` | uuid        | nullable, FK → image_files.id. Set exactly when the mode is pinned       |
+| `comment`                | text        | nullable. Admin notes about the side                                     |
+| `created_at`             | timestamptz | not null, default now()                                                  |
+| `updated_at`             | timestamptz | not null, default now()                                                  |
+
+Two deferrable unique constraints enforce side identity:
+
+- `uq_faces_identity`: `UNIQUE NULLS NOT DISTINCT (card_id, short_code, finish, marker_slugs, language)`
+- `uq_faces_variant`: `UNIQUE (short_code, art_variant, is_signed, is_overnumbered, marker_slugs, rarity, finish, language)`
 
 ### `printings`
 
-Physical product variations of a game card (art, rarity, finish, etc.). One card can have many printings across sets and variants.
+The physical piece of cardboard, the unit of ownership, price and trade. It shows one face, or two for a double-sided token.
 
-| Column                | Type        | Constraints                                                                                                       |
-| --------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------- |
-| `id`                  | uuid        | primary key, default uuidv7()                                                                                     |
-| `card_id`             | uuid        | not null, FK → cards.id                                                                                           |
-| `set_id`              | uuid        | not null, FK → sets.id                                                                                            |
-| `short_code`          | text        | not null                                                                                                          |
-| `public_code`         | text        | not null                                                                                                          |
-| `rarity`              | text        | not null (Common, Uncommon, Rare, Epic, Showcase)                                                                 |
-| `art_variant`         | text        | not null (normal, altart, ultimate)                                                                               |
-| `is_signed`           | boolean     | not null, default false                                                                                           |
-| `is_overnumbered`     | boolean     | not null, default false — collector number past the set's `printed_total`                                         |
-| `finish`              | text        | not null (normal, foil)                                                                                           |
-| `language`            | text        | not null, default 'EN'                                                                                            |
-| `marker_slugs`        | text[]      | not null, default '{}' — denormalized, sorted, GIN-indexed mirror of `printing_markers` (kept in sync by trigger) |
-| `artist`              | text        | not null                                                                                                          |
-| `printed_name`        | text        | nullable (localized/printed card name)                                                                            |
-| `printed_rules_text`  | text        | nullable (may differ from card's canonical text)                                                                  |
-| `printed_effect_text` | text        | nullable                                                                                                          |
-| `flavor_text`         | text        | nullable                                                                                                          |
-| `printed_year`        | smallint    | nullable — year stamped on the physical card                                                                      |
-| `comment`             | text        | nullable — admin notes                                                                                            |
-| `created_at`          | timestamptz | not null, default now()                                                                                           |
-| `updated_at`          | timestamptz | not null, default now()                                                                                           |
+| Column              | Type        | Constraints                                         |
+| ------------------- | ----------- | --------------------------------------------------- |
+| `id`                | uuid        | primary key, default uuidv7()                       |
+| `face1_id`          | uuid        | not null, FK → faces.id                             |
+| `face2_id`          | uuid        | nullable, FK → faces.id                             |
+| `slug`              | text        | not null, unique catalog-wide, generated by trigger |
+| `size`              | text        | not null, default 'standard', FK → card_sizes.slug  |
+| `released_at`       | date        | nullable                                            |
+| `release_precision` | enum        | nullable. Set exactly when `released_at` is set     |
+| `announced_at`      | date        | nullable                                            |
+| `comment`           | text        | nullable. Admin notes about the physical card       |
+| `created_at`        | timestamptz | not null, default now()                             |
+| `updated_at`        | timestamptz | not null, default now()                             |
 
-There is no `slug` column on `printings` (only `cards` has a slug). Promo/distribution classification is no longer a single `promo_type_id` FK — it now lives in the `markers` / `printing_markers` and `distribution_channels` / `printing_distribution_channels` tables (see [Reference Tables](#reference-tables)).
+`face1_id` and `face2_id` are display order, not front and back: a trigger puts the face whose short code sorts first in `face1_id`. `uq_printings_identity` is `UNIQUE NULLS NOT DISTINCT (face1_id, face2_id, size)`. A printing has no stored finish; it is foil if any face is foil.
 
-Indexes: `card_id`, `set_id`, `rarity`, plus a GIN index on `marker_slugs`. Two deferrable unique constraints enforce identity and variant uniqueness:
+The view `printing_sides_ordered` has one row per printing side with the printing's columns, the side's `position`, its face's columns, `canonical_rank` and `has_foil_twin`. Per-card queries read it; per-printing queries join `printings` to `faces` on `face1_id`.
 
-- `uq_printings_identity` — `UNIQUE NULLS NOT DISTINCT (card_id, short_code, finish, marker_slugs, language)`
-- `uq_printings_variant` — `UNIQUE (short_code, art_variant, is_signed, marker_slugs, rarity, finish, language)`
+All FKs use `NO ACTION` on delete. Deleting a card or set is blocked while faces reference it, and a face is blocked while printings reference it. Printings are the primary unit of ownership (collections, wishlists) so they must never be silently removed.
 
-All FKs use `NO ACTION` on delete — deleting a card or set is blocked while printings reference it. This is intentional: printings are the primary unit of ownership (collections, wishlists) so they must never be silently removed.
+### `face_images`
 
-### `printing_images`
+Images of a face. A shared face shows the same images on every printing it is on.
 
-Image data for printings, supporting multiple providers (e.g. gallery, rehosted CDN) and faces (front, back).
+| Column          | Type        | Constraints                   |
+| --------------- | ----------- | ----------------------------- |
+| `id`            | uuid        | primary key, default uuidv7() |
+| `face_id`       | uuid        | not null, FK → faces.id       |
+| `image_file_id` | uuid        | not null, FK → image_files.id |
+| `is_active`     | boolean     | not null, default false       |
+| `created_at`    | timestamptz | not null, default now()       |
+| `updated_at`    | timestamptz | not null, default now()       |
 
-| Column         | Type        | Constraints                             |
-| -------------- | ----------- | --------------------------------------- |
-| `id`           | uuid        | primary key, default uuidv7()           |
-| `printing_id`  | uuid        | not null, FK → printings.id             |
-| `face`         | text        | not null, default 'front' (front, back) |
-| `provider`     | text        | not null                                |
-| `original_url` | text        | nullable                                |
-| `rehosted_url` | text        | nullable                                |
-| `is_active`    | boolean     | not null, default false                 |
-| `created_at`   | timestamptz | not null, default now()                 |
-| `updated_at`   | timestamptz | not null, default now()                 |
-
-CHECK constraint ensures at least one of `original_url` or `rehosted_url` is set. Unique partial index ensures at most one active image per `(printing_id, face)`. Unique index on `(printing_id, face, provider)`.
+A unique partial index allows at most one active image per face.
 
 ### Reference Tables
 
-The old single `promo_types` lookup + `printings.promo_type_id` FK was replaced (migration `091-promos-rework`) by two orthogonal concepts: **markers** (variant/promo tags like "prerelease") and **distribution channels** (how a printing was distributed, a hierarchy of events/products). Each is a lookup table joined to printings through a junction table. Card domains and super-types were likewise normalized into junction tables (migration `062-reference-tables`).
+The old single `promo_types` lookup + `printings.promo_type_id` FK was replaced (migration `091-promos-rework`) by two orthogonal concepts: **markers** (variant/promo tags like "prerelease") and **distribution channels** (how a printing was distributed, a hierarchy of events/products). Distribution channels join printings through a junction table; markers are stored on faces. Card domains and super-types were likewise normalized into junction tables (migration `062-reference-tables`).
 
-#### `markers` and `printing_markers`
+#### `markers`
 
-`markers` is a lookup of variant/promo tags (`id`, `slug` unique, `label`, `description` nullable, `sort_order`, timestamps). `printing_markers` is the junction (`printing_id`, `marker_id`). The sorted set of slugs for each printing is denormalized onto `printings.marker_slugs` (GIN-indexed) by trigger for fast filtering.
+`markers` is a lookup of variant/promo tags (`id`, `slug` unique, `label`, `description` nullable, `sort_order`, timestamps). Faces reference markers by slug in `faces.marker_slugs`. Triggers reject unknown slugs, refuse to delete a marker in use, and rewrite the arrays when a marker slug changes.
 
 #### `distribution_channels` and `printing_distribution_channels`
 

@@ -5,6 +5,8 @@ import { createRepos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import {
   createDbContext,
+  deletePrintingsById,
+  insertPrintings,
   seedTestUser,
   syncCardCardTypes,
 } from "../../../test/integration-context.js";
@@ -82,23 +84,19 @@ if (ctx) {
     .returning("id")
     .execute();
   setId = set!.id;
-  const [printing] = await db
-    .insertInto("printings")
-    .values({
-      cardId: addedCardId,
-      setId,
-      shortCode: "MOR-001",
-      rarity: "common",
-      artVariant: "normal",
-      isSigned: false,
-      finish: "normal",
-      size: "standard",
-      artist: "MOR Artist",
-      publicCode: "MOR-001",
-      language: "EN",
-    })
-    .returning("id")
-    .execute();
+  const [printing] = await insertPrintings(db, {
+    cardId: addedCardId,
+    setId,
+    shortCode: "MOR-001",
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    finish: "normal",
+    size: "standard",
+    artist: "MOR Artist",
+    publicCode: "MOR-001",
+    language: "EN",
+  });
   addedPrintingId = printing!.id;
 
   afterAll(async () => {
@@ -120,7 +118,7 @@ if (ctx) {
       .where("activityShopId", "in", createdShopIds)
       .execute();
     await db.deleteFrom("playloltcgEvents").where("activityShopId", "in", createdShopIds).execute();
-    await db.deleteFrom("printings").where("id", "=", addedPrintingId).execute();
+    await deletePrintingsById(db, addedPrintingId);
     await db.deleteFrom("sets").where("id", "=", setId).execute();
     await db.deleteFrom("cards").where("id", "in", createdCardIds).execute();
     await db.deleteFrom("users").where("id", "in", createdUserIds).execute();

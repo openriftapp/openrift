@@ -26,12 +26,12 @@ select coalesce(json_agg(r), '[]') from (
   select distinct on (ci.id) ci.id::text as "imageId", c.name, s.slug as "setSlug",
          p.public_code as "publicCode", p.language, c.type as "cardType",
          p.art_variant as "artVariant", p.is_overnumbered as "isOvernumbered", p.artist
-  from printing_images pi
+  from face_images pi
   join image_files ci on ci.id = pi.image_file_id
-  join printings p on p.id = pi.printing_id
+  join faces p on p.id = pi.face_id
   join cards c on c.id = p.card_id
   join sets s on s.id = p.set_id
-  where pi.face = 'front' and pi.is_active and ci.rehosted_url is not null
+  where pi.is_active and ci.rehosted_url is not null
   order by ci.id, p.id
 ) r`;
 

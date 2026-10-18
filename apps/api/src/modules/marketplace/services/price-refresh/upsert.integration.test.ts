@@ -1,7 +1,11 @@
 import type { Logger } from "@openrift/shared/logger";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { createTestContext, syncCardCardTypes } from "../../../../test/integration-context.js";
+import {
+  createTestContext,
+  insertPrintings,
+  syncCardCardTypes,
+} from "../../../../test/integration-context.js";
 import { priceRefreshRepo } from "../../repositories/price-refresh.js";
 import type { PriceUpsertConfig, StagingRow } from "./types.js";
 import { upsertPriceData } from "./upsert.js";
@@ -64,44 +68,40 @@ describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
       .onConflict((oc) => oc.columns(["marketplace", "groupId"]).doNothing())
       .execute();
 
-    const insertedPrintings = await db
-      .insertInto("printings")
-      .values([
-        {
-          cardId,
-          setId,
-          shortCode: "UPS-001",
-          rarity: "common",
-          artVariant: "normal",
-          isSigned: false,
-          finish: "normal",
-          size: "standard",
-          language: "EN",
-          artist: "Test Artist",
-          publicCode: "UPS-001/100",
-          printedRulesText: "Test rules",
-          printedEffectText: null,
-          flavorText: null,
-        },
-        {
-          cardId,
-          setId,
-          shortCode: "UPS-001",
-          rarity: "common",
-          artVariant: "normal",
-          isSigned: false,
-          finish: "foil",
-          size: "standard",
-          language: "EN",
-          artist: "Test Artist",
-          publicCode: "UPS-001/100",
-          printedRulesText: "Test rules",
-          printedEffectText: null,
-          flavorText: null,
-        },
-      ])
-      .returning("id")
-      .execute();
+    const insertedPrintings = await insertPrintings(db, [
+      {
+        cardId,
+        setId,
+        shortCode: "UPS-001",
+        rarity: "common",
+        artVariant: "normal",
+        isSigned: false,
+        finish: "normal",
+        size: "standard",
+        language: "EN",
+        artist: "Test Artist",
+        publicCode: "UPS-001/100",
+        printedRulesText: "Test rules",
+        printedEffectText: null,
+        flavorText: null,
+      },
+      {
+        cardId,
+        setId,
+        shortCode: "UPS-001",
+        rarity: "common",
+        artVariant: "normal",
+        isSigned: false,
+        finish: "foil",
+        size: "standard",
+        language: "EN",
+        artist: "Test Artist",
+        publicCode: "UPS-001/100",
+        printedRulesText: "Test rules",
+        printedEffectText: null,
+        flavorText: null,
+      },
+    ]);
     printingId = insertedPrintings[0]!.id;
     printingId2 = insertedPrintings[1]!.id;
 

@@ -12,7 +12,6 @@ export interface NewCardTrade {
   receiverUserId: string;
   initiator: CardTradeInitiator;
   printingId: string;
-  cardId: string;
   quantity: number;
   receiverWishEntryId: string | null;
   lastActorUserId: string;
@@ -46,7 +45,6 @@ export function cardTradeWritesRepo(db: Kysely<Database>) {
           receiverUserId: values.receiverUserId,
           initiator: values.initiator,
           printingId: values.printingId,
-          cardId: values.cardId,
           quantity: values.quantity,
           receiverWishEntryId: values.receiverWishEntryId,
           lastActorUserId: values.lastActorUserId,
@@ -100,7 +98,6 @@ export function cardTradeWritesRepo(db: Kysely<Database>) {
           receiverUserId: from.receiverUserId,
           initiator: from.initiator,
           printingId: from.printingId,
-          cardId: from.cardId,
           quantity: values.quantity,
           // Sets status directly to "reserved": no request/reserved email is sent.
           status: "reserved",

@@ -13,7 +13,7 @@ import {
   keysetCursorPredicate,
   notPinnedToLoan,
   notReservedByTrade,
-  requireFrontImage,
+  requireFaceImage,
   selectCopyWithCard,
 } from "../../../repositories/query-helpers.js";
 
@@ -555,7 +555,7 @@ export function copiesRepo(db: Kysely<Database>) {
         db
           .selectFrom("copies as cp")
           .innerJoin("collections as col", "col.id", "cp.collectionId")
-          .innerJoin("printings as p", "p.id", "cp.printingId")
+          .innerJoin("printingSidesOrdered as p", "p.printingId", "cp.printingId")
           .leftJoin("friendGroupMembers as gm", (join) =>
             join.onRef("gm.groupId", "=", "col.groupId").on("gm.userId", "=", userId),
           )
@@ -565,7 +565,7 @@ export function copiesRepo(db: Kysely<Database>) {
           .select((eb) => [
             "p.cardId" as const,
             "cp.printingId" as const,
-            eb.cast<number>(eb.fn.countAll(), "integer").as("count"),
+            eb.cast<number>(eb.fn.count("cp.id").distinct(), "integer").as("count"),
           ])
           .where((eb) => eb.or([eb("col.userId", "=", userId), eb("gm.userId", "=", userId)]))
           .where(deckbuildingAvailableSql(exemptCollectionId), "=", true)
@@ -585,7 +585,7 @@ export function copiesRepo(db: Kysely<Database>) {
       const rows = await db
         .selectFrom("copies as cp")
         .innerJoin("collections as col", "col.id", "cp.collectionId")
-        .innerJoin("printings as p", "p.id", "cp.printingId")
+        .innerJoin("printingSidesOrdered as p", "p.printingId", "cp.printingId")
         .leftJoin("friendGroupMembers as gm", (join) =>
           join.onRef("gm.groupId", "=", "col.groupId").on("gm.userId", "=", userId),
         )
@@ -594,7 +594,7 @@ export function copiesRepo(db: Kysely<Database>) {
         )
         .select((eb) => [
           "p.cardId" as const,
-          eb.cast<number>(eb.fn.countAll(), "integer").as("count"),
+          eb.cast<number>(eb.fn.count("cp.id").distinct(), "integer").as("count"),
         ])
         .where((eb) => eb.or([eb("col.userId", "=", userId), eb("gm.userId", "=", userId)]))
         .where(deckbuildingAvailableSql(exemptCollectionId), "=", true)
@@ -621,7 +621,7 @@ export function copiesRepo(db: Kysely<Database>) {
       const rows = await db
         .selectFrom("copies as cp")
         .innerJoin("collections as col", "col.id", "cp.collectionId")
-        .innerJoin("printings as p", "p.id", "cp.printingId")
+        .innerJoin("printingSidesOrdered as p", "p.printingId", "cp.printingId")
         .leftJoin("friendGroupMembers as gm", (join) =>
           join.onRef("gm.groupId", "=", "col.groupId").on("gm.userId", "=", userId),
         )
@@ -631,7 +631,7 @@ export function copiesRepo(db: Kysely<Database>) {
         .select((eb) => [
           "cp.collectionId" as const,
           "p.cardId" as const,
-          eb.cast<number>(eb.fn.countAll(), "integer").as("count"),
+          eb.cast<number>(eb.fn.count("cp.id").distinct(), "integer").as("count"),
         ])
         .where("cp.collectionId", "in", [...new Set(collectionIds)])
         .where((eb) => eb.or([eb("col.userId", "=", userId), eb("gm.userId", "=", userId)]))
@@ -670,7 +670,7 @@ export function copiesRepo(db: Kysely<Database>) {
       let query = db
         .selectFrom("copies as cp")
         .innerJoin("collections as col", "col.id", "cp.collectionId")
-        .innerJoin("printings as p", "p.id", "cp.printingId")
+        .innerJoin("printingSidesOrdered as p", "p.printingId", "cp.printingId")
         // A copy is pinned to at most one live trade (UNIQUE copy_id), so
         // this join can't multiply rows. Its presence means the copy is
         // reserved.
@@ -682,6 +682,7 @@ export function copiesRepo(db: Kysely<Database>) {
           "cp.collectionId as collectionId",
           sql<boolean>`(ctc.copy_id is not null)`.as("reserved"),
         ])
+        .distinct()
         .where("col.userId", "=", userId);
       if (printingIds !== undefined) {
         query = query.where("cp.printingId", "in", printingIds);
@@ -752,7 +753,10 @@ export function copiesRepo(db: Kysely<Database>) {
       }
       // One row per (collection, printing) with its copy count; the image
       // joins are inner so imageless printings don't burn a cover slot.
-      const perPrinting = requireFrontImage(db.selectFrom("copies as cp"), "cp.printingId")
+      const perPrinting = requireFaceImage(
+        db.selectFrom("copies as cp").innerJoin("printings as p", "p.id", "cp.printingId"),
+        "p.face1Id",
+      )
         .select([
           "cp.collectionId",
           "cp.printingId",

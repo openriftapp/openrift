@@ -75,8 +75,7 @@ export function createLoan(transact: Transact, input: CreateLoanInput): Promise<
       assertExisted(shared, "Borrower not found in your groups");
     }
 
-    const cardId = await trxRepos.loans.printingCardId(printingId);
-    assertFound(cardId, "Printing not found");
+    assertExisted(await trxRepos.loans.printingExists(printingId), "Printing not found");
 
     const unclaimed = await trxRepos.loans.listUnclaimedCopyIds(
       lenderUserId,
@@ -108,7 +107,6 @@ export function createLoan(transact: Transact, input: CreateLoanInput): Promise<
       borrowerUserId: borrowerUserId ?? null,
       borrowerName: borrowerName ?? null,
       printingId,
-      cardId,
       quantity,
     });
     try {

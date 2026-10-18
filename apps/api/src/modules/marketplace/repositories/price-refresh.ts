@@ -4,6 +4,7 @@ import { sql } from "kysely";
 
 import { buildDistinctWhere } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
+import { withFace1 } from "../../../repositories/query-helpers.js";
 
 type Db = Kysely<Database>;
 
@@ -44,20 +45,19 @@ export function skuKey(externalId: number, finish: string, language: string | nu
 export function priceRefreshRepo(db: Db) {
   return {
     allPrintingsForPriceMatch() {
-      return db
-        .selectFrom("printings")
+      return withFace1(db.selectFrom("printings as p"))
         .select([
-          "id",
-          "cardId",
-          "setId",
-          "shortCode",
-          "publicCode",
-          "finish",
-          "artVariant",
-          "isSigned",
-          "isOvernumbered",
-          "language",
-          "markerSlugs",
+          "p.id",
+          "pf.cardId",
+          "pf.setId",
+          "pf.shortCode",
+          "pf.publicCode",
+          "pf.finish",
+          "pf.artVariant",
+          "pf.isSigned",
+          "pf.isOvernumbered",
+          "pf.language",
+          "pf.markerSlugs",
         ])
         .execute();
     },

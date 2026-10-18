@@ -175,9 +175,9 @@ export function marketplacePricesRepo(db: Kysely<Database>) {
             ),
             MIN(mvp.headline_cents)
           ) AS headline_cents
-          FROM printings p
+          FROM printing_sides_ordered p
           INNER JOIN mv_latest_printing_prices mvp
-            ON mvp.printing_id = p.id AND mvp.marketplace = ${marketplace}
+            ON mvp.printing_id = p.printing_id AND mvp.marketplace = ${marketplace}
           WHERE p.card_id = dc.card_id
         ) cheapest ON true
         WHERE dc.zone <> ${WellKnown.deckZone.OVERFLOW}

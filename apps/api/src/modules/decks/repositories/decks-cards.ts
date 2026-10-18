@@ -71,10 +71,9 @@ export function decksCardsRepo(db: Kysely<Database>) {
           "mca.superTypes",
           sql<string | null>`(
             SELECT COALESCE(ci.rehosted_url, ci.original_url)
-            FROM printings p
+            FROM printing_sides_ordered p
             JOIN sets s ON s.id = p.set_id
-            JOIN printing_images pi ON pi.printing_id = p.id
-              AND pi.face = 'front' AND pi.is_active = true
+            JOIN face_images pi ON pi.face_id = p.face_id AND pi.is_active = true
             JOIN image_files ci ON ci.id = pi.image_file_id
             WHERE p.card_id = dc.card_id
             ORDER BY
