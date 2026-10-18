@@ -74,7 +74,6 @@ function frame(sweeping: boolean): FrameLogEntry {
     score: 0,
     locked: null,
     suppressed: null,
-    board: null,
   };
 }
 

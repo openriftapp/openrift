@@ -84,7 +84,7 @@ describe("resolveLock", () => {
     }
   });
 
-  it("sends a resolved lock to the picker when the render is shared beyond finish", () => {
+  it("auto-adds the standard printing of a resolved lock whose render an oversized one shares", () => {
     const standard = withImage(
       stubPrinting({ id: "p-std", shortCode: "OGN-003", size: "standard" }),
       "img-a",
@@ -95,9 +95,9 @@ describe("resolveLock", () => {
     );
     const index = buildScanPrintingIndex([standard, oversized], stubBank({ "img-a": "art-1" }));
     const resolution = resolveLock(lock("img-a", true), index);
-    expect(resolution.kind).toBe("picker");
-    if (resolution.kind === "picker") {
-      expect(resolution.candidates).toHaveLength(2);
+    expect(resolution.kind).toBe("auto");
+    if (resolution.kind === "auto") {
+      expect(resolution.printing.id).toBe("p-std");
     }
   });
 
@@ -295,7 +295,54 @@ describe("resolveLock", () => {
     }
   });
 
-  it("still asks when the marked variant is from another set", () => {
+  it("auto-adds the standard printing when an oversized one shares its code", () => {
+    const shared = { shortCode: "OGN-279", cardId: "card-279" };
+    const standard = withImage(stubPrinting({ id: "p-standard", ...shared }), "img-a");
+    const oversized = withImage(
+      stubPrinting({ id: "p-oversized", size: "oversized", ...shared }),
+      "img-a",
+    );
+    const index = buildScanPrintingIndex([standard, oversized], stubBank({ "img-a": "art-1" }));
+    const resolution = resolveLock(lock("img-a", false), index, "EN");
+    expect(resolution.kind).toBe("auto");
+    if (resolution.kind === "auto") {
+      expect(resolution.printing.id).toBe("p-standard");
+    }
+  });
+
+  it("auto-adds an oversized printing when the artwork has no standard one", () => {
+    const shared = { shortCode: "OGN-280", cardId: "card-280", size: "oversized" as const };
+    const oversized = withImage(stubPrinting({ id: "p-oversized", ...shared }), "img-a");
+    const foil = withImage(
+      stubPrinting({ id: "p-oversized-foil", finish: "foil", ...shared }),
+      "img-a",
+    );
+    const index = buildScanPrintingIndex([oversized, foil], stubBank({ "img-a": "art-1" }));
+    const resolution = resolveLock(lock("img-a", false), index, "EN");
+    expect(resolution.kind).toBe("auto");
+    if (resolution.kind === "auto") {
+      expect(resolution.printing.id).toBe("p-oversized");
+    }
+  });
+
+  it("still asks between unmarked printings from different sets", () => {
+    const promo = { id: "m-promo", slug: "promo", label: "Promo", description: null };
+    const printings = [
+      stubPrinting({ id: "p-ogn", shortCode: "OGN-214a", cardId: "card-rune" }),
+      stubPrinting({ id: "p-sfd", shortCode: "SFD-R06a", cardId: "card-rune" }),
+      stubPrinting({
+        id: "p-sfd-promo",
+        shortCode: "SFD-R06b",
+        cardId: "card-rune",
+        markers: [promo],
+      }),
+    ].map((printing) => withImage(printing, "img-a"));
+    const index = buildScanPrintingIndex(printings, stubBank({ "img-a": "art-1" }));
+    const resolution = resolveLock(lock("img-a", false), index, "EN");
+    expect(resolution.kind).toBe("picker");
+  });
+
+  it("auto-adds the unmarked printing when the marked variant is from another set", () => {
     const promo = withImage(
       stubPrinting({
         id: "p-promo",
@@ -310,7 +357,11 @@ describe("resolveLock", () => {
       "img-a",
     );
     const index = buildScanPrintingIndex([promo, normal], stubBank({ "img-a": "art-1" }));
-    expect(resolveLock(lock("img-a", false), index, "EN").kind).toBe("picker");
+    const resolution = resolveLock(lock("img-a", false), index, "EN");
+    expect(resolution.kind).toBe("auto");
+    if (resolution.kind === "auto") {
+      expect(resolution.printing.id).toBe("p-normal");
+    }
   });
 
   it("auto-adds an unresolved lock whose artwork has only one printing anyway", () => {

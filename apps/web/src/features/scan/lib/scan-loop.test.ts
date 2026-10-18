@@ -2,15 +2,13 @@ import type { ArtTrack } from "@openrift/shared/scan/accept";
 import type { BoardCard } from "@openrift/shared/scan/board";
 import type { PlacementSignal } from "@openrift/shared/scan/placement";
 import type { FrameOutcome } from "@openrift/shared/scan/session";
-import { centeredGuideQuad } from "@openrift/shared/scan/session-options";
-import type { CardCandidate, RgbaImage } from "@openrift/shared/scan/types";
+import type { RgbaImage } from "@openrift/shared/scan/types";
 import { describe, expect, it, vi } from "vitest";
 
 import type { PendingFrame } from "@/features/scan/lib/scan-catchup";
 import { createScanLoop } from "@/features/scan/lib/scan-loop";
 import { createScanRun } from "@/features/scan/lib/scan-run";
 
-const FRAME = { width: 640, height: 480 };
 const STILL: RgbaImage = { data: new Uint8ClampedArray(4), width: 1, height: 1 };
 
 function setup(readBoard: () => Promise<BoardCard[] | null> = () => Promise.resolve(null)) {
@@ -33,23 +31,6 @@ function outcome(patch: Partial<FrameOutcome> = {}): FrameOutcome {
     timings: { total: 30 },
     ...patch,
   } as FrameOutcome;
-}
-
-function twoCardsInGuide(): CardCandidate[] {
-  const [topLeft, , bottomRight] = centeredGuideQuad(FRAME.width, FRAME.height);
-  const width = (bottomRight.x - topLeft.x) / 3;
-  const height = (bottomRight.y - topLeft.y) / 3;
-  const top = topLeft.y + 10;
-  return [topLeft.x + 10, bottomRight.x - 10 - width].map((left) => ({
-    quad: [
-      { x: left, y: top },
-      { x: left + width, y: top },
-      { x: left + width, y: top + height },
-      { x: left, y: top + height },
-    ],
-    areaFraction: 0,
-    score: 0.9,
-  }));
 }
 
 function card(artKey: string): BoardCard {
@@ -86,26 +67,16 @@ describe("createScanLoop — frames", () => {
   });
 });
 
-describe("createScanLoop — board reads", () => {
-  it("reads after two quiet surveys of several cards and holds those artworks back from sweeps", async () => {
+describe("createScanLoop — tap reads", () => {
+  it("returns every card read and holds those artworks back from sweeps", async () => {
     const { run, loop } = setup(() => Promise.resolve([card("art-a"), card("art-b")]));
-    const surveyed = outcome({ survey: twoCardsInGuide() });
-    expect(loop.boardReadDue(surveyed, FRAME, 0)).toBe(false);
-    expect(loop.boardReadDue(surveyed, FRAME, 1000)).toBe(true);
 
-    const result = await loop.readBoard(STILL, () => 1000);
+    const read = await loop.readBoard(STILL, () => 1000);
 
-    expect(result?.fresh.map((entry) => entry.artKey)).toEqual(["art-a", "art-b"]);
+    expect(read?.map((entry) => entry.artKey)).toEqual(["art-a", "art-b"]);
     const swept = loop.noteOutcome(outcome({ sweeping: true, locked: track("art-a") }), 2000);
     expect(swept.suppressed).toBe("board");
     expect(run.recentBoardAdds.seen("art-b", 2000)).toBe(true);
-  });
-
-  it("never reads while a sweep runs", () => {
-    const { loop } = setup();
-    const sweeping = outcome({ survey: twoCardsInGuide(), sweeping: true });
-    expect(loop.boardReadDue(sweeping, FRAME, 0)).toBe(false);
-    expect(loop.boardReadDue(sweeping, FRAME, 1000)).toBe(false);
   });
 
   it("notes nothing when the read no longer belongs to the session", async () => {
@@ -114,12 +85,12 @@ describe("createScanLoop — board reads", () => {
     expect(run.recentBoardAdds.seen("art-a", 0)).toBe(false);
   });
 
-  it("does not add an artwork twice when the same view is read again", async () => {
+  it("returns the same artworks again when the same view is read twice", async () => {
     const { loop } = setup(() => Promise.resolve([card("art-a")]));
     const first = await loop.readBoard(STILL, () => 0);
     const second = await loop.readBoard(STILL, () => 10);
-    expect(first?.fresh).toHaveLength(1);
-    expect(second?.fresh).toHaveLength(0);
+    expect(first).toHaveLength(1);
+    expect(second).toHaveLength(1);
   });
 });
 

@@ -5,19 +5,11 @@ import type { ArtTrack } from "@openrift/shared/scan/accept";
  * the decisions a phone takes.
  */
 import type { BoardCard } from "@openrift/shared/scan/board";
-import { cardsInGuide } from "@openrift/shared/scan/cards-in-guide";
 import type { PlacementSignal } from "@openrift/shared/scan/placement";
 import { createPlacementHold } from "@openrift/shared/scan/placement";
 import type { FrameOutcome } from "@openrift/shared/scan/session";
-import { centeredGuideQuad } from "@openrift/shared/scan/session-options";
 import type { RgbaImage } from "@openrift/shared/scan/types";
 
-import {
-  boardSurveyCounts,
-  boardTriggerStart,
-  freshBoardCards,
-  noteBoardSurvey,
-} from "@/features/scan/lib/scan-board-trigger";
 import type { PendingFrame } from "@/features/scan/lib/scan-catchup";
 import { nextIdlePace, settleBlocksFrame } from "@/features/scan/lib/scan-pacing";
 import { suppressedLock } from "@/features/scan/lib/scan-recent-adds";
@@ -36,11 +28,6 @@ export interface FrameDecision {
   suppressed: "relock" | "board" | null;
 }
 
-export interface BoardReadResult {
-  read: BoardCard[];
-  fresh: BoardCard[];
-}
-
 interface PlacementDecision<T> {
   /** A placement went unnamed; `missedFrame` is its settle frame when one was kept. */
   missed: boolean;
@@ -51,12 +38,7 @@ interface PlacementDecision<T> {
 export interface ScanLoop<T extends PendingFrame> {
   frameBlocked: (now: number) => boolean;
   noteOutcome: (outcome: FrameOutcome, now: number) => FrameDecision;
-  boardReadDue: (
-    outcome: FrameOutcome,
-    frame: { width: number; height: number },
-    now: number,
-  ) => boolean;
-  readBoard: (still: RgbaImage, now: () => number) => Promise<BoardReadResult | null>;
+  readBoard: (still: RgbaImage, now: () => number) => Promise<BoardCard[] | null>;
   observePlacement: (
     signal: PlacementSignal,
     now: number,
@@ -67,7 +49,6 @@ export interface ScanLoop<T extends PendingFrame> {
 }
 
 export function createScanLoop<T extends PendingFrame>(deps: ScanLoopDeps): ScanLoop<T> {
-  let trigger = boardTriggerStart();
   let hold = createPlacementHold();
   let settle: { at: number; pending: T | null } | null = null;
 
@@ -109,37 +90,18 @@ export function createScanLoop<T extends PendingFrame>(deps: ScanLoopDeps): Scan
     return { cardInGuide, lock: track, suppressed: null };
   }
 
-  function boardReadDue(
-    outcome: FrameOutcome,
-    frame: { width: number; height: number },
-    now: number,
-  ): boolean {
-    const run = deps.run();
-    const counts = boardSurveyCounts({
-      cardInGuide: run.cardInGuide,
-      settling: run.settling.disturbed,
-      sweeping: outcome.sweeping,
-    });
-    if (!outcome.survey || !counts) {
-      return false;
-    }
-    const cards = cardsInGuide(outcome.survey, centeredGuideQuad(frame.width, frame.height), frame);
-    return noteBoardSurvey(trigger, cards.length, now);
-  }
-
-  async function readBoard(still: RgbaImage, now: () => number): Promise<BoardReadResult | null> {
+  async function readBoard(still: RgbaImage, now: () => number): Promise<BoardCard[] | null> {
     const read = await deps.readBoard(still);
     if (read === null) {
       return null;
     }
     const run = deps.run();
-    const fresh = freshBoardCards(trigger, read).filter((card) => run.relock.allows(card.artKey));
     const addedAt = now();
-    for (const card of fresh) {
+    for (const card of read) {
       run.recentBoardAdds.note(card.artKey, addedAt);
       run.relock.note(card.artKey, addedAt);
     }
-    return { read, fresh };
+    return read;
   }
 
   function observePlacement(
@@ -187,7 +149,6 @@ export function createScanLoop<T extends PendingFrame>(deps: ScanLoopDeps): Scan
   }
 
   function reset(): void {
-    trigger = boardTriggerStart();
     hold = createPlacementHold();
     settle = null;
   }
@@ -195,7 +156,6 @@ export function createScanLoop<T extends PendingFrame>(deps: ScanLoopDeps): Scan
   return {
     frameBlocked,
     noteOutcome,
-    boardReadDue,
     readBoard,
     observePlacement,
     noteCatchUpAdd,

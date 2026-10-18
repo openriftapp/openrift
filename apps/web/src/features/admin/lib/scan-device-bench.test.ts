@@ -1,7 +1,7 @@
 import type { ArtTrack } from "@openrift/shared/scan/accept";
 import type { PlacementSignal } from "@openrift/shared/scan/placement";
 import type { FrameOutcome } from "@openrift/shared/scan/session";
-import type { Quad, RgbaImage } from "@openrift/shared/scan/types";
+import type { RgbaImage } from "@openrift/shared/scan/types";
 import { describe, expect, it } from "vitest";
 
 import type { ReplayDeps } from "@/features/admin/lib/scan-device-bench";
@@ -354,44 +354,6 @@ describe("replayClip", () => {
       printingVia: "code",
       printingMargin: 0.2,
       printingCardHeight: 90,
-    });
-  });
-
-  describe("board reads", () => {
-    const board = {
-      survey: [
-        { x: 110, y: 120 },
-        { x: 210, y: 120 },
-      ].map(({ x, y }) => ({
-        quad: [
-          { x, y },
-          { x: x + 80, y },
-          { x: x + 80, y: y + 110 },
-          { x, y: y + 110 },
-        ] as const satisfies Quad,
-        areaFraction: 0.1,
-        score: 1,
-      })),
-    };
-    const frame: RgbaImage = { data: new Uint8ClampedArray(4), width: 400, height: 400 };
-
-    it("counts a board read after two surveys with several cards in an empty guide", async () => {
-      const result = await replayClip(
-        deps({ frameCount: 3, loadFrame: async () => frame, process: async () => outcome(board) }),
-      );
-      expect(result.boardReads).toEqual([0.1]);
-    });
-
-    it("counts none without a board detector", async () => {
-      const result = await replayClip(
-        deps({
-          frameCount: 3,
-          loadFrame: async () => frame,
-          process: async () => outcome(board),
-          behaviour: { boardReads: false },
-        }),
-      );
-      expect(result.boardReads).toEqual([]);
     });
   });
 

@@ -13,7 +13,7 @@ import type { BoardCard } from "../../packages/shared/src/scan/board.js";
 import { boardOptionsFor, readBoard } from "../../packages/shared/src/scan/board.js";
 import { gatesForBank } from "../../packages/shared/src/scan/session-options.js";
 import { createBoardDetector } from "./board-model";
-import { applyArtGroups, loadCatalog } from "./catalog";
+import { applyArtGroups, describe, loadCatalog } from "./catalog";
 import { CANONICAL_BANK, EMBED_SIZE, loadEmbedBank, nodeEmbedder } from "./embed-bank";
 import {
   DATA_DIR,
@@ -73,6 +73,18 @@ async function main(modelFile: string): Promise<void> {
       bank,
       embedImageSize: EMBED_SIZE,
       artKeyOf: (key: string) => catalog.get(key)?.artKey ?? key,
+      labelOf: (key: string) => describe(catalog, key),
+      identityOf: (key: string) => {
+        const identity = catalog.get(key);
+        return (
+          identity && {
+            type: identity.cardType,
+            code: identity.publicCode,
+            markers: identity.markers ?? undefined,
+            language: identity.language,
+          }
+        );
+      },
       fetchReference: async (key: string) => {
         const reference = references.get(key);
         return reference ? await loadImage(reference) : null;

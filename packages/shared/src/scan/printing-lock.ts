@@ -13,6 +13,8 @@ import {
 } from "./disambiguate";
 import type { EmbedBank } from "./embed";
 import { rotateRgbaCw } from "./image";
+import type { StampPair } from "./stamp-search";
+import { showsStamp, stampPair, stampScores } from "./stamp-search";
 import type { RgbaImage } from "./types";
 
 const AGREEING_FRAMES = 2;
@@ -61,6 +63,67 @@ export function createPrintingReader(
   deps: Pick<PrintingLockDeps, "bank" | "artKeyOf" | "identityOf" | "fetchReference">,
 ): PrintingReader {
   const signatureCache = new Map<string, PrintingSignature | null>();
+  const stampPairs = new Map<string, StampPair | null>();
+
+  async function referenceImage(key: string): Promise<RgbaImage | null> {
+    try {
+      return await deps.fetchReference(key);
+    } catch {
+      return null;
+    }
+  }
+
+  async function pairFor(plainKey: string, markedKey: string): Promise<StampPair | null> {
+    const cacheKey = `${plainKey}|${markedKey}`;
+    if (!stampPairs.has(cacheKey)) {
+      const [plain, marked] = await Promise.all([
+        referenceImage(plainKey),
+        referenceImage(markedKey),
+      ]);
+      stampPairs.set(cacheKey, plain && marked ? stampPair(plain, marked) : null);
+    }
+    return stampPairs.get(cacheKey) ?? null;
+  }
+
+  async function stampedPick(
+    keys: readonly string[],
+    picked: PrintingResolution | null,
+    typeKey: string,
+    card: RgbaImage,
+  ): Promise<PrintingResolution | null> {
+    const markersOf = (key: string) => deps.identityOf(key)?.markers;
+    if (picked && markersOf(picked.key) !== "") {
+      return null;
+    }
+    const language = deps.identityOf(picked?.key ?? typeKey)?.language;
+    const plainKeys = keys.filter((key) => markersOf(key) === "");
+    const markedKeys = keys.filter((key) => Boolean(markersOf(key)));
+    const plainKey =
+      picked?.key ??
+      plainKeys.find((key) => deps.identityOf(key)?.language === language) ??
+      plainKeys[0];
+    const sameLanguage = markedKeys.filter((key) => deps.identityOf(key)?.language === language);
+    const candidates = picked && sameLanguage.length > 0 ? sameLanguage : markedKeys;
+    // The stamp tells marked from plain, not one set's promo from another's.
+    const sets = new Set(candidates.map((key) => deps.identityOf(key)?.code?.split("-")[0]));
+    if (!plainKey || candidates.length === 0 || sets.size !== 1) {
+      return null;
+    }
+    let best: { key: string; marked: number; plain: number } | null = null;
+    for (const key of candidates) {
+      const pair = await pairFor(plainKey, key);
+      if (!pair) {
+        continue;
+      }
+      const scores = stampScores(card, pair);
+      if (showsStamp(scores) && (!best || scores.marked > best.marked)) {
+        best = { key, marked: scores.marked, plain: scores.plain };
+      }
+    }
+    return best
+      ? { key: best.key, margin: best.marked - best.plain, indistinguishable: [], via: "stamp" }
+      : null;
+  }
 
   async function referenceSignatures(
     keys: readonly string[],
@@ -110,7 +173,8 @@ export function createPrintingReader(
       }
     }
     scores.sort((first, second) => second.score - first.score);
-    return { scores, picked: resolvePrinting(query, signatures, deps.identityOf) };
+    const picked = resolvePrinting(query, signatures, deps.identityOf);
+    return { scores, picked: (await stampedPick(keys, picked, typeKey, aligned)) ?? picked };
   };
 }
 

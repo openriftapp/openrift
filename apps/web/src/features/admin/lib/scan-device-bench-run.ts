@@ -199,7 +199,7 @@ async function openBenchPack({ assets, labels, client, onProgress }: BenchJob): 
 
 /** Replays the clips from `export-bench-pack.ts`; the result matches `run-clips.ts --json`. */
 export async function runBench(job: BenchJob): Promise<BenchRun> {
-  const { assets, client, onProgress } = job;
+  const { client, onProgress } = job;
   const { clips: entries, bank, plans, idleGate, meta, canvas } = await openBenchPack(job);
   const identityOf = identityLookup(bank);
   const multiPrinting = multiPrintingArts(bank.keys, identityOf);
@@ -224,16 +224,12 @@ export async function runBench(job: BenchJob): Promise<BenchRun> {
         detector.observe(toGray(frame), centeredGuideQuad(frame.width, frame.height)),
       process: (frame, index, seconds) => client.processFrame("live", frame, index, seconds),
       catchUp: (frame, index, seconds) => client.processFrame("catchUp", frame, index, seconds),
-      readBoard: (still) => client.readBoard(still),
       rearm: () => client.rearm(),
       multiPrinting: (artKey) => multiPrinting.has(artKey),
       labelOf: (key) => describeKey(bank.labels, key),
       idleGate,
       now: () => performance.now(),
       pacing: realtimePacing(),
-      behaviour: {
-        boardReads: DEFAULT_SCANNER_SETTINGS.boardReads && assets.boardDetectorUrl !== null,
-      },
     });
     const groups = truthGroups(entry.truth, bank.keys, bankArts, identityOf);
     const { locks, score } = scoreClip(groupTruth(entry.truth, groups), replay.locks, identityOf);

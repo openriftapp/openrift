@@ -22,7 +22,6 @@ export interface ScannerSettings {
   paused: boolean;
   processingSize: number;
   candidatesToTry: number;
-  boardReads: boolean;
   zoom: number;
 }
 
@@ -31,8 +30,6 @@ export const DEFAULT_SCANNER_SETTINGS: ScannerSettings = {
   paused: false,
   processingSize: 848,
   candidatesToTry: DEFAULT_SESSION_OPTIONS.candidatesToTry,
-  // Off until a detector dropout no longer makes a read count every card again.
-  boardReads: false,
   zoom: 1,
 };
 

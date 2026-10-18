@@ -51,7 +51,7 @@ Reference renders for verification are the regular card images the rest of the s
 
 ## The frame pipeline
 
-The app has two modes. **Scan** processes frames continuously and adds a card once it is sure. **Tap** processes exactly one frame per tap. Both run the same pipeline:
+The app has two modes. **Scan** processes frames continuously and adds a card once it is sure. **Tap** reads every card on one full-resolution still per tap (see Tap reads below), and falls back to one framed card when that still holds none. Both run the same pipeline:
 
 ```text
 camera frame (848 px long side)
@@ -201,7 +201,7 @@ Every change to the scanner is measured on recorded clips before it ships. The t
 
 - **Recording.** The admin page `/admin/scan` records a camera session together with a log of every frame the phone processed and every decision it made.
 - **Truth.** Each clip has a hand-checked truth file: which cards, how many copies, and which printings.
-- **Replay.** `run-clips.ts` replays each clip through the same session plans and the same frame loop (`apps/web/src/features/scan/lib/scan-loop.ts`) the app uses, on the frames the phone actually processed, and prints where the replay decided differently from the phone. The bench also runs board reads, which the app has switched off.
+- **Replay.** `run-clips.ts` replays each clip through the same session plans and the same frame loop (`apps/web/src/features/scan/lib/scan-loop.ts`) the app uses, on the frames the phone actually processed, and prints where the replay decided differently from the phone. `run-boards.ts` scores tap reads on photos and on stills extracted from the recordings.
 - **Gate.** `compare-runs.ts` fails a candidate that finds fewer cards or printings than the baseline on any clip, or that is more than 25% slower on a single-card clip.
 
 The score that matters first is **wrong locks**. A change that finds more cards but adds one wrong card does not ship.
@@ -220,18 +220,17 @@ These were built or measured, and lost. They are listed so they are not tried ag
 - **Whole-band correlation for printings.** See the 0.905 vs 0.826 example above.
 - **Small colour fingerprints** (a downscaled colour grid per card, compared by cosine similarity). Measured as a matcher on the same clips, they cannot reject: wrong matches scored 0.81 to 0.99 and right ones 0.90 to 0.99, so no threshold separates them.
 
+## Tap reads
+
+A tap tiles one full-resolution still through the board detector and verifies and resolves every outline on its own (`packages/shared/src/scan/board.ts`). Confident cards are added and unsure ones go to the picker. Every tap adds everything it reads, so tapping the same cards twice adds them twice. The read only runs on a tap: read automatically, a detector dropout made the next read count every card again.
+
 ## Built, not enabled
 
-The engine can read several cards at once. Two paths exist and are tested in the bench, but are switched off in the app (`enterSweeps` and `boardReads` in `apps/web/src/features/scan/lib/scan-session.ts`):
-
-- **Sweeps.** When the board detector sees two or more cards and the camera is moving, the session reads every card in view and tracks where each counted card lies on the table, using whole-frame shift estimation, so a card the camera returns to is not counted again.
-- **Board reads.** When the camera holds still over several cards, one full-resolution still is tiled through the board detector and every outline is verified and resolved on its own.
-
-Both work on recordings. On a phone, tracked positions drift and a detector dropout makes the next read count every card again. They stay off until that is fixed.
+**Sweeps** (`enterSweeps` in `apps/web/src/features/scan/lib/scan-session.ts`). When the board detector sees two or more cards and the camera is moving, the session reads every card in view and tracks where each counted card lies on the table, using whole-frame shift estimation, so a card the camera returns to is not counted again. It works on recordings. On a phone, tracked positions drift, so it stays off.
 
 ## Known gaps
 
-- Cards far from the camera (well under half the guide) are not found. This is a detector limit.
+- In Scan mode, cards far from the camera (well under half the guide) are not found. This is a card detector limit. A tap reads them.
 - Stacked and overlapping cards are best effort.
 - Landscape battlefields have no printing resolution and use the picker.
 - Two printings with the same artwork, code and stamp area (some judge and event promos) can only be told apart in the picker.
@@ -255,7 +254,7 @@ Both work on recordings. On a phone, tracked positions drift and a detector drop
 | `packages/shared/src/scan/placement.ts`                      | Placement watcher                                                   |
 | `packages/shared/src/scan/sweep.ts`                          | Board-detector fallback in the guide; sweep entry (off in the app)  |
 | `packages/shared/src/scan/frame-shift.ts`, `table-places.ts` | Camera shift between frames, positions of counted cards             |
-| `packages/shared/src/scan/board.ts`                          | Board reads from one still (off in the app)                         |
+| `packages/shared/src/scan/board.ts`                          | Tap reads: every card on one still                                  |
 | `apps/web/src/workers/scan-worker.ts`                        | The worker hosting models and sessions                              |
 | `apps/web/src/features/scan/lib/scan-session.ts`             | Modes and the session plans the app runs                            |
 | `apps/web/src/features/scan/lib/scan-loop.ts`                | What the app does with each frame's outcome (shared with the bench) |

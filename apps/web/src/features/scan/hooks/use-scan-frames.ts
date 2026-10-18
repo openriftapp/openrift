@@ -56,7 +56,7 @@ export interface ScanFramesOptions {
   setOverlayTarget: (input: ScanOverlayTargetInput) => void;
   shouldCatchUp: (settling: boolean, cardInGuide: boolean) => boolean;
   runCatchUp: () => Promise<void>;
-  noteBoardSurvey: ScanBoard["noteSurvey"];
+  readTap: ScanBoard["readTap"];
   onError: (message: string) => void;
 }
 
@@ -247,8 +247,7 @@ export function useScanFrames(options: ScanFramesOptions): ScanFrames {
       lockRun,
     });
     publish(outcome, aim, runLength, lockRun, areaFraction, outcome.locked !== null);
-    const board = await options.noteBoardSurvey(outcome, frame);
-    eventsRef.current?.onFrame?.(frameLogEntry(grabbedAt, outcome, decision, board));
+    eventsRef.current?.onFrame?.(frameLogEntry(grabbedAt, outcome, decision));
   }
 
   function startLoop(): void {
@@ -285,13 +284,20 @@ export function useScanFrames(options: ScanFramesOptions): ScanFrames {
     requestAnimationFrame(loop);
   }
 
+  async function readTapOrFrame(): Promise<void> {
+    if (await options.readTap()) {
+      return;
+    }
+    await runFrame();
+  }
+
   async function capture(): Promise<void> {
     const run = runRef.current;
     if (!runningRef.current || run.capturing || run.switching) {
       return;
     }
     run.update({ capturing: true });
-    const inFlight = runFrame();
+    const inFlight = readTapOrFrame();
     options.setFrameInFlight(inFlight);
     try {
       await inFlight;

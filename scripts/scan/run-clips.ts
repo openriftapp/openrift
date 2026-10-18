@@ -31,7 +31,6 @@ import {
   scoreClip,
   summarize,
 } from "../../packages/shared/src/scan/bench-score.js";
-import { boardOptionsFor, readBoard } from "../../packages/shared/src/scan/board.js";
 import type { EmbedBank } from "../../packages/shared/src/scan/embed.js";
 import { toGray } from "../../packages/shared/src/scan/image.js";
 import { createPlacementDetector } from "../../packages/shared/src/scan/placement.js";
@@ -60,7 +59,6 @@ import {
   listReferenceImages,
   loadClipTruth,
   loadImage,
-  loadStill,
   positiveIntArg,
 } from "./lib";
 import { createPlacementStats, recordPlacement } from "./placement-stats";
@@ -148,14 +146,11 @@ function recordedFrames(clip: string): ClipFrame[] | null {
   return meta.frames && meta.frames.length > 0 ? meta.frames : null;
 }
 
-type FrameFacts = Pick<ClipFrame, "seconds" | "sweeping" | "cardInGuide" | "locked" | "board">;
+type FrameFacts = Pick<ClipFrame, "seconds" | "sweeping" | "cardInGuide" | "locked">;
 
 function factsLine(facts: FrameFacts, catalog: Catalog): string {
-  const board = facts.board
-    ? ` board ${facts.board.read.length}/${facts.board.fresh.length} new`
-    : "";
   const lock = facts.locked ? ` LOCK ${describe(catalog, facts.locked)}` : "";
-  return `${facts.sweeping ? "sweep" : "aim"}${facts.cardInGuide ? " in-guide" : ""}${lock}${board}`;
+  return `${facts.sweeping ? "sweep" : "aim"}${facts.cardInGuide ? " in-guide" : ""}${lock}`;
 }
 
 /** Lines where the phone and the replay took different decisions on the same frame. */
@@ -221,16 +216,13 @@ async function runClip(
   const sightings = new Map<string, Sighting>();
   let refusedFrames = 0;
 
-  function observe({ index, seconds, frame, outcome, decision, board }: ReplayFrame): void {
+  function observe({ index, seconds, frame, outcome, decision }: ReplayFrame): void {
     refusedFrames += outcome.refused ? 1 : 0;
     benchFacts.push({
       seconds,
       sweeping: outcome.sweeping,
       cardInGuide: decision.cardInGuide,
       locked: decision.lock?.key ?? null,
-      board: board
-        ? { read: board.read.map((card) => card.key), fresh: board.fresh.map((card) => card.key) }
-        : null,
     });
     if (context.trace) {
       const flags = [
@@ -240,9 +232,6 @@ async function runClip(
         outcome.survey ? `survey ${outcome.survey.length}` : "",
         decision.suppressed ? `suppressed ${decision.suppressed}` : "",
         decision.lock ? `LOCK ${describe(catalog, decision.lock.key)}` : "",
-        board
-          ? `BOARD ${board.read.length} read, new: ${board.fresh.map((card) => describe(catalog, card.key)).join(", ")}`
-          : "",
       ].filter((part) => part !== "");
       process.stdout.write(
         `${traceLine(catalog, index, outcome).trimEnd()} ${seconds.toFixed(2)}s ${flags.join(" | ")}\n`,
@@ -274,7 +263,6 @@ async function runClip(
   const phoneFrames = context.allFrames || context.dropTo ? null : recordedFrames(clip);
   const grabs = phoneFrames?.map((entry) => entry.seconds) ?? null;
   const benchFacts: FrameFacts[] = [];
-  const boardOptions = boardOptionsFor(options.gates, CANONICAL_BANK);
   const replay = await replayClip({
     frameCount: frames.length,
     fps,
@@ -287,13 +275,6 @@ async function runClip(
             catchUpSession.processFrame(image, index, seconds, now),
         }
       : {}),
-    readBoard: async (still) => {
-      // The app's worker does the same after every board read.
-      const cards = await readBoard(still, detectBoard, deps, boardOptions);
-      session.noteBoard(cards, still);
-      return cards;
-    },
-    loadStill: (index) => loadStill(clip, index, fps),
     rearm: () => session.rearm(),
     multiPrinting: (artKey) => multiPrinting.has(artKey),
     labelOf: (key) => describe(catalog, key),
@@ -328,7 +309,6 @@ async function runClip(
     refusedFrames,
     sweepFrames: replay.sweepFrames,
     stillFrames: replay.stillFrames,
-    boardReads: replay.boardReads,
     placements: replay.placements,
     missedPlacements: replay.missedPlacements,
     catchUpRuns: replay.catchUpRuns,
@@ -394,7 +374,6 @@ async function main(): Promise<void> {
       rearm: !hasFlag("--no-rearm"),
       skipDisturbed: !hasFlag("--no-skip-disturbed"),
       relockGuard: !hasFlag("--no-relock-guard"),
-      boardReads: !hasFlag("--no-board-reads"),
     },
     dropTo,
     allFrames: hasFlag("--all-frames"),
@@ -402,7 +381,6 @@ async function main(): Promise<void> {
   };
 
   const results: BenchClipResult[] = [];
-  let boardReads = 0;
   for (const clip of listClips()) {
     if (only && clip !== only) {
       continue;
@@ -423,7 +401,6 @@ async function main(): Promise<void> {
       verbose: hasFlag("--verbose"),
     });
     results.push(replay.result);
-    boardReads += replay.boardReads.length;
   }
 
   const totals = results.reduce(
@@ -435,8 +412,7 @@ async function main(): Promise<void> {
     { found: 0, expected: 0, wrong: 0 },
   );
   process.stdout.write(
-    `\nTOTAL found ${totals.found}/${totals.expected}, wrong locks ${totals.wrong}, ` +
-      `board reads ${boardReads}\n`,
+    `\nTOTAL found ${totals.found}/${totals.expected}, wrong locks ${totals.wrong}\n`,
   );
 
   if (jsonOut) {

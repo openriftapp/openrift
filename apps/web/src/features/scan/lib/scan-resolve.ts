@@ -1,4 +1,5 @@
 import type { Printing } from "@openrift/shared/types/catalog";
+import { WellKnown } from "@openrift/shared/well-known";
 
 import type { BoardReadCard } from "@/features/scan/lib/scan-locks";
 
@@ -95,16 +96,16 @@ function defaultOfFinishGroup(group: readonly Printing[]): Printing {
   return canonical;
 }
 
-/**
- * Drops marked printings when markers are the sole difference: the
- * disambiguation stage already reports a marker when it sees one.
- */
-function withoutMarkerOnlyVariants(candidates: readonly Printing[]): readonly Printing[] {
-  if (Map.groupBy(candidates, baseKeyOf).size > 1) {
-    return candidates;
-  }
+/** The disambiguation stage reports a marker when it sees one, so an unread marker means plain. */
+function withoutMarkedVariants(candidates: readonly Printing[]): readonly Printing[] {
   const plain = candidates.filter((printing) => printing.markers.length === 0);
   return plain.length > 0 ? plain : candidates;
+}
+
+/** No scan can tell card size. */
+function withoutOversizedVariants(candidates: readonly Printing[]): readonly Printing[] {
+  const standard = candidates.filter((printing) => printing.size !== WellKnown.cardSize.OVERSIZED);
+  return standard.length > 0 ? standard : candidates;
 }
 
 /**
@@ -173,7 +174,7 @@ export function resolveLock(
   // several languages would not settle both at once.
   let narrowed: readonly Printing[] = candidates;
   if (Map.groupBy(narrowed, variantKeyOf).size > 1) {
-    narrowed = withoutMarkerOnlyVariants(narrowed);
+    narrowed = withoutMarkedVariants(withoutOversizedVariants(narrowed));
   }
   if (preferredLanguage !== undefined && Map.groupBy(narrowed, variantKeyOf).size > 1) {
     const agnosticGroups = Map.groupBy(narrowed, languageAgnosticKeyOf);

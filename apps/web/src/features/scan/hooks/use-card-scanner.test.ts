@@ -374,11 +374,6 @@ function cardAtAcceptFloor(): void {
   currentScore = (key) => (key === "k-a" ? DEFAULT_ALIGNED_OPTIONS.minScore : 0);
 }
 
-function otherCardPresent(): void {
-  setDistances(bankState, { "k-a": 0.9, "k-b": 0.05 });
-  currentScore = (key) => (key === "k-b" ? 0.9 : 0);
-}
-
 function cardAbsent(): void {
   setDistances(bankState, { "k-a": 0.9, "k-b": 0.9 });
   currentScore = () => 0;
@@ -1433,8 +1428,8 @@ describe("useCardScanner", () => {
     });
   });
 
-  describe("board reads", () => {
-    const BOARD_READ_SETTINGS: ScannerSettings = { ...DEFAULT_SCANNER_SETTINGS, boardReads: true };
+  describe("tap reads", () => {
+    const captureSettings: ScannerSettings = { ...DEFAULT_SCANNER_SETTINGS, mode: "capture" };
     const [guideTopLeft, , guideBottomRight] = centeredGuideQuad(640, 480);
     const cardWidth = (guideBottomRight.x - guideTopLeft.x) / 3;
     const cardHeight = (guideBottomRight.y - guideTopLeft.y) / 3;
@@ -1466,92 +1461,117 @@ describe("useCardScanner", () => {
       };
     }
 
-    it("reads the board after two surveys with several cards and skips the card just added", async () => {
-      surveyOutlines = outlines;
+    async function tapOnce(hook: Awaited<ReturnType<typeof mountReadyScanner>>["hook"]) {
+      advance(200);
+      await act(async () => {
+        await hook.result.current.capture();
+        await flushAsync();
+      });
+    }
+
+    it("adds every card a tap reads without waiting for a framed lock", async () => {
       readBoardCards = () =>
         Promise.resolve([boardCard("k-a", "art-a"), boardCard("k-b", "art-b")]);
       cardPresent();
       const { hook, onLock, onBoardRead } = await mountReadyScanner({
         boardDetector: true,
-        settings: BOARD_READ_SETTINGS,
+        settings: captureSettings,
       });
       await act(async () => {
         await hook.result.current.start();
       });
 
-      await runFrames(4);
-      expect(onLock).toHaveBeenCalledTimes(1);
-      cardAbsent();
-      await runFrames(3);
+      await tapOnce(hook);
 
       expect(onBoardRead).toHaveBeenCalledTimes(1);
-      expect(onBoardRead.mock.calls[0]![0].map((lock) => lock.key)).toEqual(["k-b"]);
-    });
-
-    it("does not add a card a board read just added when it is aimed at afterwards", async () => {
-      surveyOutlines = outlines;
-      readBoardCards = () => Promise.resolve([boardCard("k-b", "art-b")]);
-      cardAbsent();
-      const { hook, onLock, onBoardRead } = await mountReadyScanner({
-        boardDetector: true,
-        settings: BOARD_READ_SETTINGS,
-      });
-      await act(async () => {
-        await hook.result.current.start();
-      });
-      await runFrames(3);
-      expect(onBoardRead).toHaveBeenCalledTimes(1);
-
-      surveyOutlines = null;
-      await runFrames(9);
-      otherCardPresent();
-      await runFrames(6);
-
+      expect(onBoardRead.mock.calls[0]![0].map((lock) => lock.key)).toEqual(["k-a", "k-b"]);
       expect(onLock).not.toHaveBeenCalled();
     });
 
-    it("reports nothing from a read whose run was stopped before it finished", async () => {
+    it("adds the same cards again on a second tap", async () => {
+      readBoardCards = () =>
+        Promise.resolve([boardCard("k-a", "art-a"), boardCard("k-b", "art-b")]);
+      cardAbsent();
+      const { hook, onBoardRead } = await mountReadyScanner({
+        boardDetector: true,
+        settings: captureSettings,
+      });
+      await act(async () => {
+        await hook.result.current.start();
+      });
+
+      await tapOnce(hook);
+      await tapOnce(hook);
+
+      expect(onBoardRead).toHaveBeenCalledTimes(2);
+      expect(onBoardRead.mock.calls[1]![0].map((lock) => lock.key)).toEqual(["k-a", "k-b"]);
+    });
+
+    it("falls back to the framed card when the tap reads no card", async () => {
+      readBoardCards = () => Promise.resolve([]);
+      cardPresent();
+      const { hook, onLock, onBoardRead } = await mountReadyScanner({
+        boardDetector: true,
+        settings: captureSettings,
+      });
+      await act(async () => {
+        await hook.result.current.start();
+      });
+
+      await tapOnce(hook);
+
+      expect(onBoardRead).not.toHaveBeenCalled();
+      expect(onLock).toHaveBeenCalledTimes(1);
+    });
+
+    it("falls back to the framed card when the tap read fails", async () => {
+      readBoardCards = () => Promise.reject(new Error("no board detector"));
+      cardPresent();
+      const { hook, onLock, onBoardRead } = await mountReadyScanner({
+        boardDetector: true,
+        settings: captureSettings,
+      });
+      await act(async () => {
+        await hook.result.current.start();
+      });
+
+      await tapOnce(hook);
+
+      expect(onBoardRead).not.toHaveBeenCalled();
+      expect(onLock).toHaveBeenCalledTimes(1);
+    });
+
+    it("reports nothing from a tap read whose run was stopped before it finished", async () => {
       const read = deferred<BoardCard[]>();
-      surveyOutlines = outlines;
       readBoardCards = vi.fn(() => read.promise);
       cardAbsent();
       const { hook, onBoardRead } = await mountReadyScanner({
         boardDetector: true,
-        settings: BOARD_READ_SETTINGS,
+        settings: captureSettings,
       });
       await act(async () => {
         await hook.result.current.start();
       });
 
-      await runFrames(6);
+      advance(200);
+      let tap!: Promise<void>;
+      act(() => {
+        tap = hook.result.current.capture();
+      });
       expect(readBoardCards).toHaveBeenCalledTimes(1);
       act(() => {
         hook.result.current.stop();
       });
       read.resolve([boardCard("k-b", "art-b")]);
       await act(async () => {
+        await tap;
         await flushAsync();
       });
 
       expect(onBoardRead).not.toHaveBeenCalled();
     });
 
-    it("never reads the board without a board detector", async () => {
-      const readBoard = vi.fn(() => Promise.resolve([boardCard("k-b", "art-b")]));
-      readBoardCards = readBoard;
-      surveyOutlines = outlines;
-      cardAbsent();
-      const { hook } = await mountReadyScanner();
-      await act(async () => {
-        await hook.result.current.start();
-      });
-
-      await runFrames(6);
-
-      expect(readBoard).not.toHaveBeenCalled();
-    });
-
-    it("never reads the board with board reads switched off", async () => {
+    it("never reads the board while scanning on its own", async () => {
       const readBoard = vi.fn(() => Promise.resolve([boardCard("k-b", "art-b")]));
       readBoardCards = readBoard;
       surveyOutlines = outlines;

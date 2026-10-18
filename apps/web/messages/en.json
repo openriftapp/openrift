@@ -5343,7 +5343,7 @@
   "scan_settings_sounds_label": "Sounds",
   "scan_settings_sounds_description": "A tick when a card is recognised",
   "scan_settings_tap_label": "Tap to scan",
-  "scan_settings_tap_description": "For slow devices: recognise only when you tap",
+  "scan_settings_tap_description": "Reads every card in view on each tap, for binder pages and slow devices",
   "scan_settings_zoom_label": "Zoom",
   "scan_settings_zoom_description": "Hold the phone further from the cards",
   "scan_language_any": "Any language",

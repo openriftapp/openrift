@@ -1,4 +1,3 @@
-import type { FrameOutcome } from "@openrift/shared/scan/session";
 import type { RgbaImage } from "@openrift/shared/scan/types";
 import type { RefObject } from "react";
 import { useRef } from "react";
@@ -10,7 +9,7 @@ import { LOCK_VIBRATION_MS } from "@/features/scan/lib/scan-feedback";
 import { grabRotatedFrame } from "@/features/scan/lib/scan-frame-grab";
 import type { ScannerEvents } from "@/features/scan/lib/scan-locks";
 import { boardReadCards } from "@/features/scan/lib/scan-locks";
-import type { BoardReadResult, ScanLoop } from "@/features/scan/lib/scan-loop";
+import type { ScanLoop } from "@/features/scan/lib/scan-loop";
 import type { ScanRun } from "@/features/scan/lib/scan-run";
 
 export interface ScanBoardOptions {
@@ -19,19 +18,15 @@ export interface ScanBoardOptions {
   runRef: RefObject<ScanRun>;
   eventsRef: RefObject<ScannerEvents | undefined>;
   loop: () => ScanLoop<PendingFrame>;
-  enabled: () => boolean;
   zoom: () => number;
 }
 
 export interface ScanBoard {
-  noteSurvey: (
-    outcome: FrameOutcome,
-    frame: { width: number; height: number },
-  ) => Promise<BoardReadResult | null>;
+  readTap: () => Promise<boolean>;
 }
 
 export function useScanBoard(options: ScanBoardOptions): ScanBoard {
-  const { bank, videoRef, runRef, eventsRef, loop, enabled, zoom } = options;
+  const { bank, videoRef, runRef, eventsRef, loop, zoom } = options;
   const stillCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   function grabStill(video: HTMLVideoElement): RgbaImage | null {
@@ -47,43 +42,30 @@ export function useScanBoard(options: ScanBoardOptions): ScanBoard {
     );
   }
 
-  async function readBoard(): Promise<BoardReadResult | null> {
+  async function readTap(): Promise<boolean> {
     const video = videoRef.current;
     const still = video ? grabStill(video) : null;
     if (!still) {
-      return null;
+      return false;
     }
     const startedAt = performance.now();
-    const result = await loop().readBoard(still, () => performance.now());
-    if (!result) {
-      return null;
-    }
-    const { read, fresh } = result;
-    console.log(
-      `[scan] BOARD read ${read.length} cards (${fresh.length} new) from ${still.width}x${still.height} in ${(performance.now() - startedAt).toFixed(0)}ms`,
-    );
-    if (fresh.length > 0) {
-      const labels = bank?.labels ?? {};
-      navigator.vibrate?.(LOCK_VIBRATION_MS);
-      eventsRef.current?.onBoardRead?.(boardReadCards(fresh, (key) => describeKey(labels, key)));
-    }
-    return result;
-  }
-
-  async function noteSurvey(
-    outcome: FrameOutcome,
-    frame: { width: number; height: number },
-  ): Promise<BoardReadResult | null> {
-    if (!enabled() || !loop().boardReadDue(outcome, frame, performance.now())) {
-      return null;
-    }
+    let read: Awaited<ReturnType<ScanLoop<PendingFrame>["readBoard"]>> = null;
     try {
-      return await readBoard();
+      read = await loop().readBoard(still, () => performance.now());
     } catch (error) {
       console.warn("[scan] board read failed", error);
-      return null;
     }
+    if (!read || read.length === 0) {
+      return false;
+    }
+    console.log(
+      `[scan] BOARD read ${read.length} cards from ${still.width}x${still.height} in ${(performance.now() - startedAt).toFixed(0)}ms`,
+    );
+    const labels = bank?.labels ?? {};
+    navigator.vibrate?.(LOCK_VIBRATION_MS);
+    eventsRef.current?.onBoardRead?.(boardReadCards(read, (key) => describeKey(labels, key)));
+    return true;
   }
 
-  return { noteSurvey };
+  return { readTap };
 }

@@ -124,7 +124,6 @@ function clipFrame(seconds: number, sweeping: boolean): ClipFrame {
     score: 0,
     locked: null,
     suppressed: null,
-    board: null,
   };
 }
 

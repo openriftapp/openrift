@@ -4,7 +4,13 @@
 
 ### Highlights
 
+- feat(Collection): **Tap reads every card in view** — in Tap to scan, one tap adds a whole binder page or a card held far away.
 - fix(Collection): **More binder cards scanned** — cards in a binder page that the scanner used to skip are now picked up when you hold the phone over them.
+
+### Other
+
+- fix(Collection): **Promo cards recognised more often** — the scanner now finds the promo stamp even when the card sits a little off in the frame, so fewer promos are added as the regular printing.
+- fix(Collection): **Fewer printing questions** — the scanner adds the regular printing instead of asking when the only other choices are an oversized or promo version.
 
 ## 2026-10-17
 

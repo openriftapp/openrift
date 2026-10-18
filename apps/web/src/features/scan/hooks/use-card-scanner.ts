@@ -101,7 +101,6 @@ export function useCardScanner(
     runRef,
     eventsRef,
     loop,
-    enabled: () => settingsRef.current.boardReads,
     zoom: () => settingsRef.current.zoom,
   });
 
@@ -133,7 +132,7 @@ export function useCardScanner(
     setOverlayTarget: overlay.setTarget,
     shouldCatchUp: catchUp.shouldRun,
     runCatchUp: catchUp.run,
-    noteBoardSurvey: board.noteSurvey,
+    readTap: board.readTap,
     onError: setError,
   });
 

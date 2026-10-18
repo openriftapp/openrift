@@ -115,3 +115,49 @@ export function boxQuad(left: number, top: number, width: number, height: number
 export function outline(quad: Quad, score = 1): CardCandidate {
   return { quad, areaFraction: 0.1, score };
 }
+
+const STAMP_CARD_WIDTH = 384;
+const STAMP_CARD_HEIGHT = 528;
+
+export function stampCard({
+  stamp,
+  shiftX = 0,
+  shiftY = 0,
+}: {
+  stamp: boolean;
+  shiftX?: number;
+  shiftY?: number;
+}) {
+  const image: RgbaImage = {
+    data: new Uint8ClampedArray(STAMP_CARD_WIDTH * STAMP_CARD_HEIGHT * 4),
+    width: STAMP_CARD_WIDTH,
+    height: STAMP_CARD_HEIGHT,
+  };
+  const centerX = STAMP_CARD_WIDTH / 2 + shiftX;
+  const gemY = STAMP_CARD_HEIGHT * 0.93 + shiftY;
+  for (let y = 0; y < STAMP_CARD_HEIGHT; y++) {
+    for (let x = 0; x < STAMP_CARD_WIDTH; x++) {
+      let value = 40;
+      if (Math.abs(y - gemY) < 2) {
+        value = 160;
+      }
+      if (Math.hypot(x - centerX, y - gemY) < 9) {
+        value = 230;
+      }
+      if (stamp) {
+        const radius = Math.hypot(x - centerX, y - gemY);
+        const angle = Math.atan2(gemY - y, x - centerX);
+        const bar = Math.floor((angle / Math.PI) * 9) % 2 === 0;
+        if (radius > 14 && radius < 24 && angle > 0.2 && angle < Math.PI - 0.2 && bar) {
+          value = 220;
+        }
+      }
+      const index = (y * STAMP_CARD_WIDTH + x) * 4;
+      image.data[index] = value;
+      image.data[index + 1] = value;
+      image.data[index + 2] = value;
+      image.data[index + 3] = 255;
+    }
+  }
+  return image;
+}

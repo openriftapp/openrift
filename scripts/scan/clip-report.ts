@@ -30,8 +30,6 @@ export interface ClipReplay {
   refusedFrames: number;
   sweepFrames: number;
   stillFrames: number;
-  /** Seconds. */
-  boardReads: number[];
   placements: number;
   missedPlacements: number;
   catchUpRuns: number;
@@ -83,10 +81,6 @@ export function reportClip(replay: ClipReplay, options: ReportOptions): void {
   const missed =
     (score.missed.length > 0 ? `  missed: ${score.missed.join(", ")}\n` : "") +
     (options.attribute ? attributionLines(replay) : "");
-  const boardReadsAt =
-    replay.boardReads.length > 0
-      ? ` at ${replay.boardReads.map((at) => `${at.toFixed(1)}s`).join(", ")}`
-      : "";
   process.stdout.write(
     `\n${result.clip} [${truth.split}, ${truth.mode}${truth.reviewed ? "" : ", UNREVIEWED"}]: ` +
       `${result.frames} frames, ${result.processed} processed, ${replay.skipped} skipped, ` +
@@ -104,8 +98,7 @@ export function reportClip(replay: ClipReplay, options: ReportOptions): void {
       `${replay.stillFrames} still frames\n` +
       `  placements: detector saw ${replay.placements}, ${replay.missedPlacements} went unlocked, ` +
       `${replay.catchUpRuns} second looks run, ` +
-      `${replay.recoveredAsk} left for the user${options.catchUp ? "" : " (second look OFF)"}\n` +
-      `  board reads: ${replay.boardReads.length}${boardReadsAt}\n`,
+      `${replay.recoveredAsk} left for the user${options.catchUp ? "" : " (second look OFF)"}\n`,
   );
   for (const lock of result.locks) {
     const flag = lock.verdict === "correct" ? "" : `  <-- ${lock.verdict.toUpperCase()}`;

@@ -5,7 +5,7 @@
 
 import type { FrameOutcome } from "@openrift/shared/scan/session";
 
-import type { BoardReadResult, FrameDecision } from "@/features/scan/lib/scan-loop";
+import type { FrameDecision } from "@/features/scan/lib/scan-loop";
 
 const PRINTING_SCORES_SHOWN = 4;
 
@@ -54,14 +54,12 @@ export interface FrameLogEntry {
   score: number;
   locked: string | null;
   suppressed: "relock" | "board" | null;
-  board: { read: string[]; fresh: string[] } | null;
 }
 
 export function frameLogEntry(
   grabbedAt: number,
   outcome: FrameOutcome,
   decision: FrameDecision,
-  board: BoardReadResult | null,
 ): FrameLogEntry {
   return {
     grabbedAt,
@@ -73,8 +71,5 @@ export function frameLogEntry(
     score: outcome.winner?.score ?? outcome.bestScore,
     locked: decision.lock?.key ?? null,
     suppressed: decision.suppressed,
-    board: board
-      ? { read: board.read.map((card) => card.key), fresh: board.fresh.map((card) => card.key) }
-      : null,
   };
 }

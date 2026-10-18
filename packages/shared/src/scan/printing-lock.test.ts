@@ -8,7 +8,7 @@ import {
   createPrintingReader,
   unanimousPick,
 } from "./printing-lock";
-import { printingCard } from "./test-images";
+import { printingCard, stampCard } from "./test-images";
 
 const ART = "art-lux";
 
@@ -180,6 +180,58 @@ describe("createPrintingReader", () => {
     const result = await read(ART, "p-sc", printingCard(1), 0);
 
     expect(result?.picked?.key).toBe("p-en");
+  });
+
+  it("names the promo printing when the stamp search finds its stamp off-centre", async () => {
+    const references = new Map([
+      ["p-plain", stampCard({ stamp: false })],
+      ["p-promo", stampCard({ stamp: true })],
+    ]);
+    const read = createPrintingReader({
+      bank: { keys: [...references.keys()], vectors: new Float32Array(0) },
+      artKeyOf: () => ART,
+      identityOf: (key) => ({ markers: key === "p-promo" ? "promo" : "" }),
+      fetchReference: (key) => Promise.resolve(references.get(key) ?? null),
+    });
+
+    const promo = await read(ART, "p-plain", stampCard({ stamp: true, shiftX: 14, shiftY: -9 }), 0);
+    const plain = await read(
+      ART,
+      "p-plain",
+      stampCard({ stamp: false, shiftX: 14, shiftY: -9 }),
+      0,
+    );
+
+    expect(promo?.picked).toMatchObject({ key: "p-promo", via: "stamp" });
+    expect(plain?.picked?.key).not.toBe("p-promo");
+  });
+
+  it("leaves the set open when the stamped printings come from several sets", async () => {
+    const references = new Map([
+      ["p-plain", stampCard({ stamp: false })],
+      ["p-promo-sfd", stampCard({ stamp: true })],
+      ["p-promo-unl", stampCard({ stamp: true })],
+    ]);
+    const codes: Record<string, string> = {
+      "p-plain": "SFD-R03a",
+      "p-promo-sfd": "SFD-R03b",
+      "p-promo-unl": "UNL-R03b-P",
+    };
+    const read = createPrintingReader({
+      bank: { keys: [...references.keys()], vectors: new Float32Array(0) },
+      artKeyOf: () => ART,
+      identityOf: (key) => ({ code: codes[key], markers: key === "p-plain" ? "" : "promo" }),
+      fetchReference: (key) => Promise.resolve(references.get(key) ?? null),
+    });
+
+    const result = await read(
+      ART,
+      "p-plain",
+      stampCard({ stamp: true, shiftX: 14, shiftY: -9 }),
+      0,
+    );
+
+    expect(result?.picked?.via).not.toBe("stamp");
   });
 
   it("reads nothing for an artwork with a single printing", async () => {

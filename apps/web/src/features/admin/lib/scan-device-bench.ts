@@ -1,7 +1,6 @@
 import { lockIdOf } from "@openrift/shared/scan/accept";
 import type { BenchLock, TimingSummary } from "@openrift/shared/scan/bench-score";
 import { summarize } from "@openrift/shared/scan/bench-score";
-import type { BoardCard } from "@openrift/shared/scan/board";
 import type { PlacementSignal } from "@openrift/shared/scan/placement";
 import type { FrameOutcome } from "@openrift/shared/scan/session";
 import type { Quad, RgbaImage } from "@openrift/shared/scan/types";
@@ -12,7 +11,7 @@ import {
   createCatchUpQueue,
   shouldRunCatchUp,
 } from "@/features/scan/lib/scan-catchup";
-import type { BoardReadResult, FrameDecision } from "@/features/scan/lib/scan-loop";
+import type { FrameDecision } from "@/features/scan/lib/scan-loop";
 import { createScanLoop } from "@/features/scan/lib/scan-loop";
 import { IDLE_PACE_DELAY_MS, shouldPaceFrame } from "@/features/scan/lib/scan-pacing";
 import { createScanRun } from "@/features/scan/lib/scan-run";
@@ -65,14 +64,12 @@ export interface ReplayBehaviour {
   rearm: boolean;
   skipDisturbed: boolean;
   relockGuard: boolean;
-  boardReads: boolean;
 }
 
 const APP_BEHAVIOUR: ReplayBehaviour = {
   rearm: true,
   skipDisturbed: true,
   relockGuard: true,
-  boardReads: true,
 };
 
 export interface ReplayFrame {
@@ -82,7 +79,6 @@ export interface ReplayFrame {
   frame: RgbaImage;
   outcome: FrameOutcome;
   decision: FrameDecision;
-  board: BoardReadResult | null;
 }
 
 type ProcessFrame = (frame: RgbaImage, index: number, seconds: number) => Promise<FrameOutcome>;
@@ -95,8 +91,6 @@ export interface ReplayDeps {
   /** Takes ownership of the frame; it must not be read afterwards. */
   process: ProcessFrame;
   catchUp?: ProcessFrame;
-  readBoard?: (still: RgbaImage) => Promise<BoardCard[] | null>;
-  loadStill?: (index: number) => Promise<RgbaImage>;
   rearm: () => void;
   multiPrinting: (artKey: string) => boolean;
   labelOf: (key: string) => string;
@@ -117,8 +111,6 @@ export interface ReplayResult {
   sweepFrames: number;
   stillFrames: number;
   suppressedRelocks: number;
-  /** Seconds. */
-  boardReads: number[];
   placements: number;
   missedPlacements: number;
   catchUpRuns: number;
@@ -142,7 +134,7 @@ export async function replayClip(deps: ReplayDeps): Promise<ReplayResult> {
   const loop = createScanLoop<ReplayPending>({
     run: () => run,
     idleGate: () => deps.idleGate,
-    readBoard: async (still) => (deps.readBoard ? await deps.readBoard(still) : null),
+    readBoard: () => Promise.resolve(null),
     relockGuard: behaviour.relockGuard,
   });
   const catchUpQueue = createCatchUpQueue();
@@ -155,7 +147,6 @@ export async function replayClip(deps: ReplayDeps): Promise<ReplayResult> {
     sweepFrames: 0,
     stillFrames: 0,
     suppressedRelocks: 0,
-    boardReads: [],
     placements: 0,
     missedPlacements: 0,
     catchUpRuns: 0,
@@ -283,39 +274,6 @@ export async function replayClip(deps: ReplayDeps): Promise<ReplayResult> {
     }
   }
 
-  async function noteSurvey(
-    outcome: FrameOutcome,
-    frame: RgbaImage,
-    index: number,
-    seconds: number,
-  ): Promise<BoardReadResult | null> {
-    if (!behaviour.boardReads || !loop.boardReadDue(outcome, frame, seconds * 1000)) {
-      return null;
-    }
-    result.boardReads.push(seconds);
-    if (!deps.readBoard) {
-      return null;
-    }
-    const still = await (deps.loadStill ?? deps.loadFrame)(index);
-    const board = await loop.readBoard(still, () => seconds * 1000);
-    for (const card of board?.fresh ?? []) {
-      locks.push({
-        seconds,
-        key: card.key,
-        artKey: card.artKey,
-        label: deps.labelOf(card.key),
-        framesToLock: 0,
-        score: Math.round(card.score * 100),
-        rivalScore: Math.round(card.rivalScore * 100),
-        printingResolved: card.printingResolved,
-        multiPrinting: deps.multiPrinting(card.artKey),
-        arrivedAt: null,
-        source: "board",
-      });
-    }
-    return board;
-  }
-
   for (let index = 0; index < deps.frameCount; index++) {
     const seconds = index / deps.fps;
     const frame = await deps.loadFrame(index);
@@ -363,14 +321,13 @@ export async function replayClip(deps: ReplayDeps): Promise<ReplayResult> {
 
     noteLock(outcome, decision, seconds);
     notePrinting(outcome);
-    const board = await noteSurvey(outcome, frame, index, seconds);
     pacing.ran({
       index,
       seconds,
       elapsedMs: deps.now() - startedAt,
       idlePaced: shouldPaceFrame(run.idlePace, run.sweeping),
     });
-    deps.onFrame?.({ index, seconds, frame, outcome, decision, board });
+    deps.onFrame?.({ index, seconds, frame, outcome, decision });
   }
 
   const divisor = Math.max(1, result.processed);
