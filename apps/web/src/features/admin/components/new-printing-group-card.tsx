@@ -1,4 +1,5 @@
 import { appendSetTotal } from "@openrift/shared/fix-typography";
+import { setSlugFromShortCode, shortCodeFromPublicCode } from "@openrift/shared/printing-code";
 import { formatPrintingLabel } from "@openrift/shared/printing-label";
 import { pluralize, stringifyUnknown } from "@openrift/shared/strings";
 import type {
@@ -35,7 +36,6 @@ import { PrintingImageBox } from "@/features/admin/components/printing-image-box
 import { PrintingSourceActions } from "@/features/admin/components/printing-source-actions";
 import type { PrintingGroup } from "@/features/admin/lib/candidate-printing-groups";
 import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
-import { setSlugFromShortCode, shortCodeFromPublicCode } from "@/features/admin/lib/printing-codes";
 
 /** The grids ask for the public code only; the short code and the set follow it. */
 function withDerivedCodes(record: Record<string, unknown>): Record<string, unknown> {

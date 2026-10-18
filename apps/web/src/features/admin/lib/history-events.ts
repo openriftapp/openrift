@@ -44,6 +44,7 @@ const ACTION_SENTENCES: Record<string, string> = {
   "candidates.upload": "Uploaded fresh data from a source",
   "card-submission.accept": "Accepted a contributor submission",
   "card-submission.create-card": "Created the card from a contributor submission",
+  "card-submission.move": "Moved a contributor submission to this card",
   "card-submission.reject": "Rejected a contributor submission",
   "card-submission.resolution": "Wrote back to the contributor",
   "card.accept-favorites": "Created the card from trusted sources",

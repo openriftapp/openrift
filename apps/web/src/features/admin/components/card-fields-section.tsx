@@ -7,7 +7,13 @@ import type {
   CandidatePrintingResponse,
   ProviderSettingResponse,
 } from "@openrift/shared/types/api/admin";
-import { BanIcon, CheckCheckIcon, CopyCheckIcon, MessageSquareIcon } from "lucide-react";
+import {
+  ArrowRightIcon,
+  BanIcon,
+  CheckCheckIcon,
+  CopyCheckIcon,
+  MessageSquareIcon,
+} from "lucide-react";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
@@ -18,6 +24,7 @@ import type {
   FieldDef,
 } from "@/features/admin/components/candidate-field-defs";
 import { CandidateSpreadsheet } from "@/features/admin/components/candidate-spreadsheet";
+import { MoveSubmissionDialog } from "@/features/admin/components/move-submission-dialog";
 import { SubmissionResolutionDialog } from "@/features/admin/components/submission-resolution-dialog";
 import {
   useAcceptCardField,
@@ -41,6 +48,7 @@ interface CardSourceColumnActionsProps {
   }) => void;
   onIgnoreSource: (input: { provider: string; externalId: string }) => void;
   onResolveSubmission: (candidateCardId: string, mode: "reject" | "reply") => void;
+  onMoveSubmission: (candidateCardId: string) => void;
   isAdmin: boolean;
 }
 
@@ -51,6 +59,7 @@ function CardSourceColumnActions({
   onAcceptField,
   onIgnoreSource,
   onResolveSubmission,
+  onMoveSubmission,
   isAdmin,
 }: CardSourceColumnActionsProps) {
   if (!row) {
@@ -83,6 +92,12 @@ function CardSourceColumnActions({
         <DropdownMenuItem onClick={() => onResolveSubmission(cardRow.id, "reply")}>
           <MessageSquareIcon className="mr-2" />
           Reply to contributor
+        </DropdownMenuItem>
+      )}
+      {isAdmin && isUserSubmission && (
+        <DropdownMenuItem onClick={() => onMoveSubmission(cardRow.id)}>
+          <ArrowRightIcon className="mr-2" />
+          Move to another card…
         </DropdownMenuItem>
       )}
       {isAdmin && (
@@ -135,6 +150,7 @@ export function CardFieldsSection({
     candidateCardId: string;
     mode: "reject" | "reply";
   } | null>(null);
+  const [moving, setMoving] = useState<string | null>(null);
 
   const uncheckedCount = sources.filter((s) => !s.checkedAt).length;
   const submitters = buildSourceSubmitters(sources);
@@ -202,9 +218,20 @@ export function CardFieldsSection({
             onResolveSubmission={(candidateCardId, mode) =>
               setResolution({ candidateCardId, mode })
             }
+            onMoveSubmission={setMoving}
             isAdmin={isAdmin}
           />
         }
+      />
+      <MoveSubmissionDialog
+        candidateCardId={moving}
+        submitterName={sources.find((source) => source.id === moving)?.submittedByName ?? null}
+        scope={{ cardSlug: card.slug }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMoving(null);
+          }
+        }}
       />
       <SubmissionResolutionDialog
         candidateCardId={resolution?.candidateCardId ?? null}

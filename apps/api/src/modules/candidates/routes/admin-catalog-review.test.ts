@@ -33,6 +33,7 @@ const repos = {
     getByExternalId: vi.fn(),
     resolve: vi.fn(),
     setResolutionMessage: vi.fn(),
+    setCard: vi.fn(),
     candidatePrintingImageUrls: vi.fn(),
   },
   candidateCards: {
@@ -42,6 +43,8 @@ const repos = {
     candidateCardById: vi.fn(),
     checkCandidateCard: vi.fn(),
     checkCandidatePrintingsForCard: vi.fn(),
+    moveCandidateCardToCard: vi.fn(),
+    removePrintingLinkOverridesForCandidateCard: vi.fn(),
   },
   catalogMutations: {
     getFullCardById: vi.fn(),
@@ -302,6 +305,38 @@ describe(`POST ${BASE}/submissions/{id}/reject`, () => {
     });
 
     const res = await post(`${BASE}/submissions/cc-1/reject`, { note: null });
+    expect(res.status).toBe(409);
+  });
+});
+
+describe(`POST ${BASE}/submissions/{id}/move`, () => {
+  beforeEach(resetDefaults);
+
+  it("moves the submission and returns the new card's slug", async () => {
+    repos.catalogMutations.getFullCardById.mockResolvedValue({
+      id: "card-9",
+      name: "Ekko",
+      normName: "ekko",
+      slug: "ekko",
+    });
+
+    const res = await post(`${BASE}/submissions/cc-1/move`, { cardId: "card-9" });
+
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ cardSlug: "ekko" });
+    expect(repos.candidateCards.moveCandidateCardToCard).toHaveBeenCalledWith("cc-1", {
+      name: "Ekko",
+      normName: "ekko",
+    });
+  });
+
+  it("returns 409 for an already settled submission", async () => {
+    repos.cardSubmissions.getByCandidateCardId.mockResolvedValue({
+      ...pendingSubmission,
+      status: "rejected",
+    });
+
+    const res = await post(`${BASE}/submissions/cc-1/move`, { cardId: "card-9" });
     expect(res.status).toBe(409);
   });
 });

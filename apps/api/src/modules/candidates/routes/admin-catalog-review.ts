@@ -9,6 +9,7 @@ import { buildReviewQueue } from "../services/review-queue.js";
 import {
   acceptSubmission,
   createCardFromCandidate,
+  moveSubmission,
   rejectSubmission,
 } from "../services/submission-review.js";
 
@@ -63,6 +64,20 @@ export const adminCatalogReviewRouter = {
       candidateCardId: input.candidateCardId,
       reason: input.reason,
       note: input.note,
+      adminUserId: context.userId,
+      scope,
+      now: new Date(),
+    });
+  }),
+
+  moveSubmission: os.moveSubmission.handler(async ({ input, context }) => {
+    const scope = await reviewableProviderScope(
+      context.adminAccess,
+      context.repos.providerSettings,
+    );
+    return await moveSubmission(context.transact, context.repos, {
+      candidateCardId: input.candidateCardId,
+      cardId: input.cardId,
       adminUserId: context.userId,
       scope,
       now: new Date(),

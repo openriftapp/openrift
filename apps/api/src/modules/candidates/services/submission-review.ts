@@ -83,6 +83,14 @@ export interface RejectSubmissionArgs extends ReviewerArgs {
   note: string | null;
 }
 
+export interface MoveSubmissionArgs extends ReviewerArgs {
+  cardId: string;
+}
+
+export interface MoveSubmissionResult {
+  cardSlug: string;
+}
+
 export interface CreateCardFromCandidateArgs extends ReviewerArgs {
   cardFields: CreateCardBody;
   printings: NewPrintingPick[];
@@ -353,6 +361,41 @@ export async function rejectSubmission(
     entityLabel: candidate.name,
     newValues: { candidateCardId, reason, note },
   });
+}
+
+export async function moveSubmission(
+  transact: Transact,
+  repos: Repos,
+  args: MoveSubmissionArgs,
+): Promise<MoveSubmissionResult> {
+  const { candidateCardId, adminUserId, cardId } = args;
+  const candidate = await loadCandidate(repos, args);
+  const submission = await loadPendingSubmission(repos, candidateCardId);
+  const card = await repos.catalogMutations.getFullCardById(cardId);
+  assertFound(card, "Card not found");
+  if (card.normName === candidate.normName) {
+    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Submission is already on this card");
+  }
+
+  await transact(async (trx) => {
+    await trx.candidateCards.removePrintingLinkOverridesForCandidateCard(candidateCardId);
+    await trx.candidateCards.moveCandidateCardToCard(candidateCardId, {
+      name: card.name,
+      normName: card.normName,
+    });
+    await trx.cardSubmissions.setCard(submission.id, { name: card.name, slug: card.slug });
+  });
+
+  await recordAdminEvent(repos, adminUserId, {
+    action: "card-submission.move",
+    entityType: "card",
+    entityId: card.id,
+    entityLabel: card.name,
+    cardSlug: card.slug,
+    newValues: { candidateCardId, from: candidate.name },
+  });
+
+  return { cardSlug: card.slug };
 }
 
 /**

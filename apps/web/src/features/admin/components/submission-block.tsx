@@ -7,14 +7,21 @@ import { formatRelativeTime } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { useHotkey } from "@tanstack/react-hotkeys";
-import { CheckIcon, MessageSquareIcon } from "lucide-react";
+import { ArrowRightIcon, CheckIcon, EllipsisVerticalIcon, MessageSquareIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Kbd } from "@/components/ui/kbd";
 import { AttentionChangeList } from "@/features/admin/components/attention-change-list";
+import { MoveSubmissionDialog } from "@/features/admin/components/move-submission-dialog";
 import { RejectSubmissionDialog } from "@/features/admin/components/reject-submission-dialog";
 import { SendNoteDialog } from "@/features/admin/components/send-note-dialog";
 import { useLinkCandidatePrintings } from "@/features/admin/hooks/use-admin-card-mutations";
@@ -31,6 +38,7 @@ import {
   unlinkedGroupCandidates,
 } from "@/features/admin/lib/candidate-groups";
 import { printingBlockTitle } from "@/features/admin/lib/printing-summary";
+import { cn } from "@/lib/utils";
 
 interface SettledRow {
   key: string;
@@ -87,32 +95,71 @@ function SettledCard({ settled }: { settled: SettledResult }) {
   );
 }
 
+const KIND_LABELS: Record<AttentionSubmission["kind"], string> = {
+  correction: "Correction",
+  image: "Image",
+  "new-printing": "New printing",
+};
+
 function BlockHeader({
   submission,
   kindLabel,
   total,
   who,
   queueItem,
+  onSendNote,
+  onMove,
 }: {
   submission: AttentionSubmission;
   kindLabel: string;
   total: number;
   who: string;
   queueItem: ReviewQueueItem | undefined;
+  onSendNote: () => void;
+  onMove: () => void;
 }) {
   return (
-    <div className="bg-muted flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
-      <Badge variant={submission.kind === "image" ? "info" : "warning"}>{kindLabel}</Badge>
-      <span className="font-medium">
-        {total} {pluralize(total, "change")} from {who}
-      </span>
+    <div className="bg-muted flex flex-wrap items-center gap-2 px-3 py-1.5 text-sm">
+      <Badge variant={submission.kind === "correction" ? "warning" : "info"}>{kindLabel}</Badge>
+      <span className="font-medium">{who}</span>
+      {total > 1 && (
+        <span className="text-muted-foreground">
+          {total} {pluralize(total, "change")}
+        </span>
+      )}
       {queueItem && (
         <span className="text-muted-foreground text-xs">
           {formatRelativeTime(queueItem.createdAt)}
         </span>
       )}
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button variant="ghost" size="icon" className="ml-auto" aria-label="More actions">
+              <EllipsisVerticalIcon />
+            </Button>
+          }
+        />
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={onSendNote}>
+            <MessageSquareIcon />
+            Send a note
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onMove}>
+            <ArrowRightIcon />
+            Move to another card…
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
+}
+
+function acceptLabel(ticked: number, total: number): string {
+  if (ticked === 0) {
+    return "Mark as not applied";
+  }
+  return total === 1 ? "Accept" : `Accept ${ticked} of ${total}`;
 }
 
 interface SubmissionBlockProps {
@@ -124,6 +171,8 @@ interface SubmissionBlockProps {
   onOpenNewPrinting?: (candidatePrintingId: string) => void;
   onOpenPrinting?: (printingId: string) => void;
   blockedNewPrintings?: ReadonlyMap<string, string>;
+  repeatedNewPrintings?: ReadonlySet<string>;
+  hotkeyEnabled?: boolean;
 }
 
 export function SubmissionBlock({
@@ -135,6 +184,8 @@ export function SubmissionBlock({
   onOpenNewPrinting,
   onOpenPrinting,
   blockedNewPrintings,
+  repeatedNewPrintings,
+  hotkeyEnabled = true,
 }: SubmissionBlockProps) {
   const acceptSubmission = useAcceptSubmission(scope);
   const linkCandidatePrintings = useLinkCandidatePrintings(
@@ -145,6 +196,7 @@ export function SubmissionBlock({
   const [settled, setSettled] = useState<SettledResult | null>(null);
   const [rejecting, setRejecting] = useState(false);
   const [replying, setReplying] = useState(false);
+  const [moving, setMoving] = useState(false);
 
   const printingTargets = detail.printings.map((printing) => ({
     id: printing.id,
@@ -158,13 +210,14 @@ export function SubmissionBlock({
   const tickKeys = submissionTickKeys(submission).filter((key) => !blockedKeys.has(key));
   const ticked = new Set(tickKeys.filter((key) => !unticked.has(key)));
   const total = tickKeys.length;
-  const kindLabel = submission.kind === "image" ? "Image" : "Correction";
+  const selectable = total > 1;
+  const kindLabel = KIND_LABELS[submission.kind];
   const who = submission.submitterName ?? "a contributor";
 
   // oxlint-disable-next-line no-empty-function -- default no-op until the effect below installs the real handler
   const acceptRef = useRef<() => void>(() => {});
   useHotkey("Mod+Enter", () => acceptRef.current(), {
-    enabled: settled === null && !acceptSubmission.isPending,
+    enabled: hotkeyEnabled && settled === null && !acceptSubmission.isPending,
   });
 
   function linkGroup(group: AttentionGroup, printingId: string) {
@@ -225,13 +278,17 @@ export function SubmissionBlock({
 
   return (
     <>
-      <div className="overflow-hidden rounded-md border">
+      <div
+        className={cn("overflow-hidden rounded-md border", hotkeyEnabled && "border-primary/50")}
+      >
         <BlockHeader
           submission={submission}
           kindLabel={kindLabel}
           total={total}
           who={who}
           queueItem={queueItem}
+          onSendNote={() => setReplying(true)}
+          onMove={() => setMoving(true)}
         />
 
         <div className="space-y-3 p-3">
@@ -245,6 +302,7 @@ export function SubmissionBlock({
           <AttentionChangeList
             groups={submission.groups}
             landscape={getOrientation(detail.card?.types ?? []) === "landscape"}
+            selectable={selectable}
             ticked={ticked}
             edits={edits}
             onToggle={(key) =>
@@ -265,30 +323,28 @@ export function SubmissionBlock({
             onOpenNewPrinting={onOpenNewPrinting}
             onOpenPrinting={onOpenPrinting}
             blockedNewPrintings={blockedNewPrintings}
+            repeatedNewPrintings={repeatedNewPrintings}
           />
 
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              variant="ghost"
-              title="Writes a message the contributor sees. Nothing is accepted or rejected."
-              onClick={() => setReplying(true)}
-            >
-              <MessageSquareIcon />
-              Send a note
-              <span className="text-muted-foreground">(no decision)</span>
-            </Button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <Button variant="ghost" className="text-destructive" onClick={() => setRejecting(true)}>
               Reject
             </Button>
-            <p className="text-muted-foreground min-w-0 flex-1 text-xs">
-              Accepting applies the ticked rows, marks this source checked and tells {who} what
-              happened.
-            </p>
-            <Button disabled={acceptSubmission.isPending} onClick={() => void runAccept()}>
-              {ticked.size === 0 ? "Mark as not applied" : `Accept ${ticked.size} of ${total}`}
-              <Kbd className="bg-background/20 pointer-events-none ml-1.5 leading-none text-inherit opacity-60">
-                Ctrl ↵
-              </Kbd>
+            <Button
+              disabled={acceptSubmission.isPending}
+              title={
+                selectable
+                  ? `Applies the ticked rows, marks this source checked and tells ${who} what happened.`
+                  : `Applies this, marks the source checked and tells ${who}.`
+              }
+              onClick={() => void runAccept()}
+            >
+              {acceptLabel(ticked.size, total)}
+              {hotkeyEnabled && (
+                <Kbd className="bg-background/20 pointer-events-none ml-1.5 leading-none text-inherit opacity-60">
+                  Ctrl ↵
+                </Kbd>
+              )}
             </Button>
           </div>
         </div>
@@ -305,6 +361,16 @@ export function SubmissionBlock({
           }
         }}
         onRejected={onSettled}
+      />
+      <MoveSubmissionDialog
+        candidateCardId={moving ? submission.candidateCardId : null}
+        submitterName={submission.submitterName}
+        scope={scope}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMoving(false);
+          }
+        }}
       />
       <SendNoteDialog
         candidateCardId={replying ? submission.candidateCardId : null}

@@ -142,6 +142,55 @@ describe("buildAttentionSubmissions", () => {
     expect(groups[0]?.changes).toEqual([]);
   });
 
+  it("compares a new printing with the closest existing printing in its language", () => {
+    const source = makeCandidateCard({ name: "Lux, Lady of Luminosity" });
+    const otherLanguage = makeAdminPrinting({ shortCode: "OGN-042-P", language: "FR" });
+    const distant = makeAdminPrinting({
+      shortCode: "OGN-007",
+      artist: "Someone Else",
+      rarity: "rare",
+      canonicalRank: 0,
+    });
+    const near = makeAdminPrinting({
+      shortCode: "OGN-042",
+      publicCode: "OGN-042/300",
+      markerSlugs: ["promo"],
+      canonicalRank: 1,
+    });
+    const detail = makeAdminCardDetail({
+      card: makeAdminCard({ name: source.name }),
+      sources: [source],
+      printings: [otherLanguage, distant, near],
+      candidatePrintings: [
+        makeCandidatePrinting({
+          candidateCardId: source.id,
+          printingId: null,
+          shortCode: "OGN-042-P",
+          publicCode: "OGN-042-P",
+        }),
+      ],
+    });
+    const submission = buildAttentionSubmissions(detail, [])[0];
+    const closest = submission?.groups[0]?.closest;
+    expect(submission?.kind).toBe("new-printing");
+    expect(closest?.printing.id).toBe(near.id);
+    expect(closest?.differingLabels).toEqual(["Markers", "Public code"]);
+    expect(closest?.rows.find((row) => row.field === "shortCode")).toMatchObject({
+      incoming: "OGN-042",
+      differs: false,
+    });
+  });
+
+  it("has no closest printing when the card has none", () => {
+    const source = makeCandidateCard({ name: "Lux, Lady of Luminosity" });
+    const detail = makeAdminCardDetail({
+      card: makeAdminCard({ name: source.name }),
+      sources: [source],
+      candidatePrintings: [makeCandidatePrinting({ candidateCardId: source.id, printingId: null })],
+    });
+    expect(buildAttentionSubmissions(detail, [])[0]?.groups[0]?.closest).toBeNull();
+  });
+
   it("calls a submission an image when only the image differs", () => {
     const source = makeCandidateCard({ name: "Lux, Lady of Luminosity" });
     const printing = makeAdminPrinting();

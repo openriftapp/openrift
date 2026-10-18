@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
-import type { CandidatePrintingResponse } from "@openrift/shared/types/api/admin";
+import type {
+  AdminPrintingResponse,
+  CandidatePrintingResponse,
+} from "@openrift/shared/types/api/admin";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -47,6 +50,7 @@ const cardGroup: AttentionGroup = {
   ],
   unchangedFields: ["Domains"],
   summary: null,
+  closest: null,
 };
 
 const newPrintingGroup: AttentionGroup = {
@@ -61,6 +65,7 @@ const newPrintingGroup: AttentionGroup = {
   changes: [],
   unchangedFields: [],
   summary: "foil · epic · Riot Artist",
+  closest: null,
 };
 
 const linkedPrintingGroup: AttentionGroup = {
@@ -84,6 +89,7 @@ const linkedPrintingGroup: AttentionGroup = {
   ],
   unchangedFields: [],
   summary: null,
+  closest: null,
 };
 
 const printingTargets = [
@@ -218,9 +224,72 @@ describe("AttentionChangeList", () => {
     });
 
     expect(screen.getByText(/OGN-042::foil/u)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Review it below instead" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open in Fields & printings" }));
     expect(onOpenNewPrinting).toHaveBeenCalledWith("cp1");
-    expect(screen.queryByText("foil · epic · Riot Artist")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the summary when the card has no printing to compare with", () => {
+    renderList({ groups: [newPrintingGroup], ticked: new Set(["new-printing:cp1"]) });
+    expect(screen.getByText("foil · epic · Riot Artist")).toBeInTheDocument();
+  });
+
+  it("compares a new printing with the closest existing one and flags a near match", () => {
+    renderList({
+      groups: [
+        {
+          ...newPrintingGroup,
+          closest: {
+            printing: {
+              id: "prt-1",
+              expectedPrintingId: "EN:OGN-042:promo:foil",
+              language: "EN",
+            } as AdminPrintingResponse,
+            rows: [
+              {
+                field: "shortCode",
+                label: "Short code",
+                incoming: "OGN-042-P",
+                existing: "OGN-042",
+                differs: true,
+              },
+              {
+                field: "finish",
+                label: "Finish",
+                incoming: "foil",
+                existing: "foil",
+                differs: false,
+              },
+            ],
+            differingLabels: ["Short code"],
+          },
+        },
+      ],
+      ticked: new Set(["new-printing:cp1"]),
+    });
+
+    expect(screen.getByText("OGN-042-P")).toBeInTheDocument();
+    expect(screen.getByText("OGN-042")).toBeInTheDocument();
+    expect(
+      screen.getByText("Differs only in short code. This may be the existing printing."),
+    ).toBeInTheDocument();
+  });
+
+  it("drops the checkbox when the block is not selectable", () => {
+    renderList({
+      groups: [newPrintingGroup],
+      ticked: new Set(["new-printing:cp1"]),
+      selectable: false,
+    });
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("marks a new printing that an earlier submission already proposed", () => {
+    renderList({
+      groups: [newPrintingGroup],
+      ticked: new Set(["new-printing:cp1"]),
+      repeatedNewPrintings: new Set(["new-printing:cp1"]),
+    });
+    expect(screen.getByText("Same printing as a submission above.")).toBeInTheDocument();
   });
 
   it("replaces the tick with the reason when the printing cannot be created as sent", () => {

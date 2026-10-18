@@ -1,5 +1,6 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import { fixTypography } from "@openrift/shared/fix-typography";
+import { setSlugFromShortCode, shortCodeFromPublicCode } from "@openrift/shared/printing-code";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
@@ -35,7 +36,6 @@ import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-querie
 import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
 import { useLanguages } from "@/features/admin/hooks/use-languages";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
-import { setSlugFromShortCode, shortCodeFromPublicCode } from "@/features/admin/lib/printing-codes";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import { buildChannelTree, leafChannels } from "@/features/cards/lib/distribution-channel-tree";
 import { printingFormDefaults } from "@/features/cards/lib/printing-form-defaults";

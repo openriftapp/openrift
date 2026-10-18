@@ -256,6 +256,14 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
      * misclick on reject is recoverable and the contributor's page follows.
      * Clears the accepted card but keeps any note the admin wrote.
      */
+    async setCard(id: string, card: { name: string; slug: string }): Promise<void> {
+      await db
+        .updateTable("cardSubmissions")
+        .set({ cardName: card.name, cardSlug: card.slug })
+        .where("id", "=", id)
+        .execute();
+    },
+
     async reopen(id: string): Promise<void> {
       await db
         .updateTable("cardSubmissions")

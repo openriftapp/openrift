@@ -4,6 +4,8 @@ import type {
   AcceptSubmissionResponse,
   CreateCardFromCandidateInput,
   CreateCardFromCandidateResponse,
+  MoveSubmissionInput,
+  MoveSubmissionResponse,
   RejectSubmissionInput,
 } from "@openrift/shared/contracts/admin/catalog-review";
 import { useQuery } from "@tanstack/react-query";
@@ -37,6 +39,13 @@ const rejectSubmissionFn = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminCatalogReviewContract, context.cookie).rejectSubmission(data);
   });
+
+const moveSubmissionFn = createServerFn({ method: "POST" })
+  .validator((input: MoveSubmissionInput) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<MoveSubmissionResponse> =>
+    apiOrpcClient(adminCatalogReviewContract, context.cookie).moveSubmission(data),
+  );
 
 const createCardFromCandidateFn = createServerFn({ method: "POST" })
   .validator((input: CreateCardFromCandidateInput) => input)
@@ -81,6 +90,16 @@ export function useRejectSubmission(scope: SettleScope = {}) {
       await rejectSubmissionFn({ data: input });
     },
     invalidates: (input) => settleKeys(input.candidateCardId, scope),
+  });
+}
+
+export function useMoveSubmission(scope: SettleScope = {}) {
+  return useMutationWithInvalidation({
+    mutationFn: (input: MoveSubmissionInput) => moveSubmissionFn({ data: input }),
+    invalidates: (input, data) => [
+      ...settleKeys(input.candidateCardId, { ...scope, cardSlug: data.cardSlug }),
+      ...(scope.cardSlug ? [adminKeys.cards.detail(scope.cardSlug)] : []),
+    ],
   });
 }
 

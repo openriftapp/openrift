@@ -1,5 +1,5 @@
 import { PencilIcon, TriangleAlertIcon } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,7 +11,11 @@ import { PrintingIdLabel } from "@/features/admin/components/printing-id-label";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { PrintingTargetMenu } from "@/features/admin/components/printing-target-menu";
 import type { PrintingTarget } from "@/features/admin/components/printing-target-menu";
-import type { AttentionChange, AttentionGroup } from "@/features/admin/lib/attention-items";
+import type {
+  AttentionChange,
+  AttentionGroup,
+  ClosestPrinting,
+} from "@/features/admin/lib/attention-items";
 import { formatFieldValue } from "@/features/admin/lib/catalog-field-labels";
 import { CardText } from "@/features/cards/components/card-text";
 import { textDiff } from "@/lib/text-diff";
@@ -146,6 +150,7 @@ interface ChangeRowProps {
   editedValue: unknown;
   isEditing: boolean;
   readOnly: boolean;
+  selectable: boolean;
   onToggle: () => void;
   onToggleEdit: () => void;
   onEdit: (value: unknown) => void;
@@ -159,6 +164,7 @@ function ChangeRow({
   editedValue,
   isEditing,
   readOnly,
+  selectable,
   onToggle,
   onToggleEdit,
   onEdit,
@@ -175,7 +181,7 @@ function ChangeRow({
       )}
     >
       <div className="flex items-start gap-3">
-        {readOnly ? (
+        {readOnly || !selectable ? (
           <span className="w-36 shrink-0 text-sm">{change.label}</span>
         ) : (
           <>
@@ -262,17 +268,123 @@ function ChangeRow({
   );
 }
 
-function NewPrintingLink({
-  candidatePrintingId,
-  onOpen,
-}: {
-  candidatePrintingId: string;
-  onOpen: (candidatePrintingId: string) => void;
-}) {
+function ClosestPrintingTable({ closest }: { closest: ClosestPrinting }) {
   return (
-    <Button variant="link" className="shrink-0" onClick={() => onOpen(candidatePrintingId)}>
-      Review it below instead
-    </Button>
+    <div className="grid grid-cols-[8rem_minmax(0,1fr)_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
+      <span />
+      <span className="text-muted-foreground text-xs">Incoming</span>
+      <span className="text-muted-foreground flex min-w-0 items-center gap-1 text-xs">
+        <span className="shrink-0">Closest existing</span>
+        <PrintingIdLabel
+          label={closest.printing.expectedPrintingId}
+          language={closest.printing.language}
+        />
+      </span>
+      {closest.rows.map((row) => (
+        <Fragment key={row.field}>
+          <span className="text-muted-foreground">{row.label}</span>
+          <span className={cn("line-clamp-3 min-w-0", row.differs && "text-warning font-medium")}>
+            {formatFieldValue(row.incoming)}
+          </span>
+          <span className="text-muted-foreground line-clamp-3 min-w-0">
+            {formatFieldValue(row.existing)}
+          </span>
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+
+function closestHint(closest: ClosestPrinting): string {
+  const labels = closest.differingLabels;
+  if (labels.length === 0) {
+    return "Matches this existing printing in every field that was sent.";
+  }
+  const list =
+    labels.length === 1
+      ? (labels[0] ?? "")
+      : `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}`;
+  return `Differs only in ${list.toLowerCase()}. This may be the existing printing.`;
+}
+
+const CLOSE_MATCH_MAX_DIFFERENCES = 2;
+
+function NewPrintingRow({
+  group,
+  landscape,
+  isTicked,
+  selectable,
+  blocker,
+  isRepeat,
+  onToggle,
+}: {
+  group: AttentionGroup;
+  landscape: boolean;
+  isTicked: boolean;
+  selectable: boolean;
+  blocker: string | undefined;
+  isRepeat: boolean;
+  onToggle: () => void;
+}) {
+  const closest = group.closest;
+  const checkboxId = `attention-${group.key}`;
+  return (
+    <li className="flex flex-col gap-3 rounded-md px-3 py-2">
+      {blocker === undefined ? (
+        selectable && (
+          <div className="flex items-center gap-3">
+            <Checkbox
+              id={checkboxId}
+              checked={isTicked}
+              className="shrink-0"
+              onCheckedChange={onToggle}
+            />
+            <label htmlFor={checkboxId} className="cursor-pointer text-sm">
+              Create this printing
+            </label>
+          </div>
+        )
+      ) : (
+        <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
+          <TriangleAlertIcon className="text-warning size-4 shrink-0" />
+          Cannot be created as sent: {blocker}. Accepting leaves it alone.
+        </p>
+      )}
+      <div className="flex items-start gap-4">
+        {group.imageUrl === null ? (
+          <PrintingImageBox
+            url={null}
+            alt="No image sent"
+            landscape={landscape}
+            className={cn("shrink-0", landscape ? "w-32" : "w-24")}
+          />
+        ) : (
+          <ImageZoom
+            url={group.imageUrl}
+            alt="Incoming image"
+            className={cn("shrink-0", landscape ? "w-32" : "w-24")}
+          >
+            <PrintingImageBox url={group.imageUrl} alt="Incoming image" landscape={landscape} />
+          </ImageZoom>
+        )}
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          {closest === null ? (
+            <p className="text-sm">{group.summary}</p>
+          ) : (
+            <ClosestPrintingTable closest={closest} />
+          )}
+          {closest !== null && closest.differingLabels.length <= CLOSE_MATCH_MAX_DIFFERENCES && (
+            <p className="text-warning flex items-center gap-1.5 text-sm">
+              <TriangleAlertIcon className="size-4 shrink-0" />
+              {closestHint(closest)}
+            </p>
+          )}
+          {isRepeat && (
+            <p className="text-muted-foreground text-sm">Same printing as a submission above.</p>
+          )}
+        </div>
+      </div>
+    </li>
   );
 }
 
@@ -281,6 +393,7 @@ interface AttentionChangeListProps {
   ticked?: ReadonlySet<string>;
   edits?: ReadonlyMap<string, unknown>;
   readOnly?: boolean;
+  selectable?: boolean;
   landscape?: boolean;
   onToggle?: (key: string) => void;
   onEdit?: (key: string, value: unknown) => void;
@@ -290,6 +403,7 @@ interface AttentionChangeListProps {
   onOpenNewPrinting?: (candidatePrintingId: string) => void;
   onOpenPrinting?: (printingId: string) => void;
   blockedNewPrintings?: ReadonlyMap<string, string>;
+  repeatedNewPrintings?: ReadonlySet<string>;
 }
 
 export function AttentionChangeList({
@@ -297,6 +411,7 @@ export function AttentionChangeList({
   ticked = EMPTY_TICKED,
   edits = EMPTY_EDITS,
   readOnly = false,
+  selectable = true,
   landscape = false,
   onToggle,
   onEdit,
@@ -306,6 +421,7 @@ export function AttentionChangeList({
   onOpenNewPrinting,
   onOpenPrinting,
   blockedNewPrintings,
+  repeatedNewPrintings,
 }: AttentionChangeListProps) {
   const [editing, setEditing] = useState<ReadonlySet<string>>(() => new Set());
 
@@ -339,6 +455,27 @@ export function AttentionChangeList({
                     </span>
                   ))}
               </SectionHeading>
+              {group.kind === "new-printing" && onOpenNewPrinting && group.candidate && (
+                <Button
+                  variant="link"
+                  className="shrink-0"
+                  onClick={() => {
+                    if (group.candidate !== null) {
+                      onOpenNewPrinting(group.candidate.id);
+                    }
+                  }}
+                >
+                  Open in Fields &amp; printings
+                </Button>
+              )}
+              {group.kind === "new-printing" && onLinkGroup && (
+                <PrintingTargetMenu
+                  label="Link to existing…"
+                  className="shrink-0"
+                  targets={printingTargets}
+                  onPick={(printingId) => onLinkGroup(group, printingId)}
+                />
+              )}
               {onMoveGroup && group.kind === "printing" && (
                 <PrintingTargetMenu
                   label="Move to another printing…"
@@ -350,43 +487,15 @@ export function AttentionChangeList({
             </div>
             <ul>
               {group.kind === "new-printing" ? (
-                <li className="flex items-center gap-3 rounded-md px-3 py-2">
-                  {blocker === undefined ? (
-                    <>
-                      <Checkbox
-                        id={`attention-${group.key}`}
-                        checked={ticked.has(group.key)}
-                        className="shrink-0"
-                        onCheckedChange={() => onToggle?.(group.key)}
-                      />
-                      <label
-                        htmlFor={`attention-${group.key}`}
-                        className="min-w-0 flex-1 cursor-pointer text-sm"
-                      >
-                        Ticked, accepting creates this printing exactly as it was sent.
-                      </label>
-                    </>
-                  ) : (
-                    <p className="text-muted-foreground flex min-w-0 flex-1 items-center gap-1.5 text-sm">
-                      <TriangleAlertIcon className="text-warning size-4 shrink-0" />
-                      Cannot be created as sent: {blocker}. Accepting leaves it alone.
-                    </p>
-                  )}
-                  {onOpenNewPrinting && group.candidate && (
-                    <NewPrintingLink
-                      candidatePrintingId={group.candidate.id}
-                      onOpen={onOpenNewPrinting}
-                    />
-                  )}
-                  {onLinkGroup && (
-                    <PrintingTargetMenu
-                      label="Link to existing…"
-                      className="shrink-0"
-                      targets={printingTargets}
-                      onPick={(printingId) => onLinkGroup(group, printingId)}
-                    />
-                  )}
-                </li>
+                <NewPrintingRow
+                  group={group}
+                  landscape={landscape}
+                  isTicked={ticked.has(group.key)}
+                  selectable={selectable}
+                  blocker={blocker}
+                  isRepeat={repeatedNewPrintings?.has(group.key) ?? false}
+                  onToggle={() => onToggle?.(group.key)}
+                />
               ) : (
                 group.changes.map((change) => (
                   <ChangeRow
@@ -398,6 +507,7 @@ export function AttentionChangeList({
                     editedValue={edits.get(change.key)}
                     isEditing={editing.has(change.key)}
                     readOnly={readOnly}
+                    selectable={selectable}
                     onToggle={() => onToggle?.(change.key)}
                     onToggleEdit={() =>
                       setEditing((prev) => {

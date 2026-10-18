@@ -89,6 +89,14 @@ export const rejectSubmissionInputSchema = candidateCardIdParam.extend({
   note: z.string().trim().min(1).max(2000).nullable(),
 });
 
+export const moveSubmissionInputSchema = candidateCardIdParam.extend({
+  cardId: z.string().min(1),
+});
+
+export const moveSubmissionResponseSchema = z.object({
+  cardSlug: z.string(),
+});
+
 export const createCardFromCandidateInputSchema = candidateCardIdParam.extend({
   cardFields: cardFieldsSchema,
   printings: z.array(newPrintingPickSchema).default([]),
@@ -146,6 +154,15 @@ export const adminCatalogReviewContract = {
       CONFLICT: { message: "Submission already settled" },
     })
     .input(rejectSubmissionInputSchema),
+  moveSubmission: authedRoute
+    .route({ method: "POST", path: `${CATALOG}/submissions/{candidateCardId}/move`, tags: [TAG] })
+    .errors({
+      NOT_FOUND: { message: "Submission not found" },
+      BAD_REQUEST: { message: "Submission is already on this card" },
+      CONFLICT: { message: "Submission already settled" },
+    })
+    .input(moveSubmissionInputSchema)
+    .output(moveSubmissionResponseSchema),
   catalogSources: authedRoute
     .route({ method: "GET", path: `${CATALOG}/sources`, tags: [TAG] })
     .output(catalogSourcesResponseSchema),
@@ -171,6 +188,8 @@ export type ReviewQueueKind = z.infer<typeof reviewQueueKindSchema>;
 export type AcceptSubmissionInput = z.input<typeof acceptSubmissionInputSchema>;
 export type AcceptSubmissionResponse = z.infer<typeof acceptSubmissionResponseSchema>;
 export type RejectSubmissionInput = z.input<typeof rejectSubmissionInputSchema>;
+export type MoveSubmissionInput = z.input<typeof moveSubmissionInputSchema>;
+export type MoveSubmissionResponse = z.infer<typeof moveSubmissionResponseSchema>;
 export type CreateCardFromCandidateInput = z.input<typeof createCardFromCandidateInputSchema>;
 export type CreateCardFromCandidateResponse = z.infer<typeof createCardFromCandidateResponseSchema>;
 export type CatalogSource = z.infer<typeof catalogSourceSchema>;

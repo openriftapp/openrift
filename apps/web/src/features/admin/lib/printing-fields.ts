@@ -1,8 +1,7 @@
 import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import type { AcceptPrintingBody } from "@openrift/shared/contracts/admin/card-mutations";
+import { setSlugFromShortCode, shortCodeFromPublicCode } from "@openrift/shared/printing-code";
 import type { CandidatePrintingResponse } from "@openrift/shared/types/api/admin";
-
-import { setSlugFromShortCode, shortCodeFromPublicCode } from "@/features/admin/lib/printing-codes";
 
 type AcceptPrintingFields = AcceptPrintingBody["printingFields"];
 

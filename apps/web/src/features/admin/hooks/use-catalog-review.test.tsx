@@ -23,8 +23,13 @@ vi.mock("@/lib/server-fns/middleware", () => ({
   withCookies: () => {},
 }));
 
-const { settleKeys, useAcceptSubmission, useCreateCardFromCandidate, useRejectSubmission } =
-  await import("./use-catalog-review");
+const {
+  settleKeys,
+  useAcceptSubmission,
+  useCreateCardFromCandidate,
+  useMoveSubmission,
+  useRejectSubmission,
+} = await import("./use-catalog-review");
 
 const CANDIDATE = "019cfc3b-0388-743b-8b2e-7e64f56850c3";
 
@@ -111,6 +116,23 @@ describe("useRejectSubmission", () => {
       "unmatched",
       "jinx-loose-cannon",
     ]);
+  });
+});
+
+describe("useMoveSubmission", () => {
+  it("invalidates both the card it left and the card it moved to", async () => {
+    const { client } = makeClient();
+    const { result } = renderHook(() => useMoveSubmission({ cardSlug: "sprite" }), {
+      wrapper: wrap(client),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({ candidateCardId: CANDIDATE, cardId: "card-9" });
+    });
+
+    const keys = invalidatedKeys(client);
+    expect(keys).toContainEqual(["admin", "cards", "detail", "sprite"]);
+    expect(keys).toContainEqual(["admin", "cards", "detail", "OGN-042"]);
   });
 });
 

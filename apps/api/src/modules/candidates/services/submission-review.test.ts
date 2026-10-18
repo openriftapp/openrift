@@ -6,6 +6,7 @@ import type { Io } from "../../../io.js";
 import {
   acceptSubmission,
   createCardFromCandidate,
+  moveSubmission,
   rejectSubmission,
 } from "./submission-review.js";
 
@@ -35,12 +36,15 @@ function createRepos(overrides: Record<string, unknown> = {}) {
       getByExternalId: vi.fn().mockResolvedValue(pendingSubmission),
       resolve: vi.fn(),
       setResolutionMessage: vi.fn(),
+      setCard: vi.fn(),
       candidatePrintingImageUrls: vi.fn().mockResolvedValue([]),
     },
     candidateCards: {
       candidateCardById: vi.fn().mockResolvedValue(candidate),
       checkCandidateCard: vi.fn(),
       checkCandidatePrintingsForCard: vi.fn(),
+      moveCandidateCardToCard: vi.fn(),
+      removePrintingLinkOverridesForCandidateCard: vi.fn(),
     },
     catalogMutations: {
       getFullCardById: vi.fn().mockResolvedValue({ id: "card-1", name: "Jinx", slug: "jinx" }),
@@ -365,6 +369,76 @@ describe("acceptSubmission", () => {
       }),
     ).rejects.toMatchObject({ status: 403 });
     expect(repos.cardSubmissions.resolve).not.toHaveBeenCalled();
+  });
+});
+
+describe("moveSubmission", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  const ekko = { id: "card-9", name: "Ekko", normName: "ekko", slug: "ekko" };
+
+  it("points the candidate and the ledger row at the picked card", async () => {
+    const repos = createRepos();
+    vi.mocked(repos.catalogMutations.getFullCardById).mockResolvedValue(ekko as never);
+
+    const result = await moveSubmission(transactOn(repos), repos, {
+      ...baseArgs,
+      cardId: "card-9",
+    });
+
+    expect(result).toEqual({ cardSlug: "ekko" });
+    expect(repos.candidateCards.moveCandidateCardToCard).toHaveBeenCalledWith("cc-1", {
+      name: "Ekko",
+      normName: "ekko",
+    });
+    expect(repos.cardSubmissions.setCard).toHaveBeenCalledWith("sub-1", {
+      name: "Ekko",
+      slug: "ekko",
+    });
+    expect(repos.candidateCards.removePrintingLinkOverridesForCandidateCard).toHaveBeenCalledWith(
+      "cc-1",
+    );
+    expect(repos.adminEvents.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "card-submission.move", cardSlug: "ekko" }),
+    );
+  });
+
+  it("refuses to move a submission onto the card it already belongs to", async () => {
+    const repos = createRepos();
+    vi.mocked(repos.catalogMutations.getFullCardById).mockResolvedValue({
+      ...ekko,
+      name: "Jinx",
+      normName: "jinx",
+    } as never);
+
+    await expect(
+      moveSubmission(transactOn(repos), repos, { ...baseArgs, cardId: "card-1" }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(repos.candidateCards.moveCandidateCardToCard).not.toHaveBeenCalled();
+  });
+
+  it("refuses a settled submission", async () => {
+    const repos = createRepos();
+    vi.mocked(repos.cardSubmissions.getByCandidateCardId).mockResolvedValue({
+      ...pendingSubmission,
+      status: "accepted",
+    } as never);
+
+    await expect(
+      moveSubmission(transactOn(repos), repos, { ...baseArgs, cardId: "card-9" }),
+    ).rejects.toBeInstanceOf(AppError);
+    expect(repos.candidateCards.moveCandidateCardToCard).not.toHaveBeenCalled();
+  });
+
+  it("refuses a card that does not exist", async () => {
+    const repos = createRepos();
+    vi.mocked(repos.catalogMutations.getFullCardById).mockResolvedValue(undefined);
+
+    await expect(
+      moveSubmission(transactOn(repos), repos, { ...baseArgs, cardId: "missing" }),
+    ).rejects.toMatchObject({ status: 404 });
   });
 });
 

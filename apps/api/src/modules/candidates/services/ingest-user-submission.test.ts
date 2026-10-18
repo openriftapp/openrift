@@ -62,6 +62,25 @@ describe("buildUserSubmissionCard", () => {
     expect(card.printings[0]!.public_code).toBe("OGN-066/298");
   });
 
+  it("drops a promo or language suffix from the short_code", () => {
+    const card = buildUserSubmissionCard(
+      submission({ printings: [{ public_code: "SGN-T07-P-SC" }] }),
+      USER_ID,
+      STAMP,
+    );
+    expect(card.printings[0]!.short_code).toBe("SGN-T07");
+    expect(card.printings[0]!.public_code).toBe("SGN-T07-P-SC");
+  });
+
+  it("keeps a promo apart from its base printing that shares the short code", () => {
+    const card = buildUserSubmissionCard(
+      submission({ printings: [{ public_code: "SGN-T07" }, { public_code: "SGN-T07-P" }] }),
+      USER_ID,
+      STAMP,
+    );
+    expect(card.printings[0]!.external_id).not.toBe(card.printings[1]!.external_id);
+  });
+
   it("namespaces each printing external_id by slug, stamp, user, finish and language", () => {
     const card = buildUserSubmissionCard(submission(), USER_ID, STAMP);
     expect(card.printings[0]!.external_id).toBe(

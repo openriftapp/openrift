@@ -68,9 +68,23 @@ export function CardAttentionSection({
     }
   }
 
+  const repeatedNewPrintings = new Set<string>();
+  const seenPrintingLabels = new Set<string>();
+  for (const submission of submissions) {
+    for (const group of submission.groups) {
+      if (group.kind !== "new-printing" || group.printingLabel === null) {
+        continue;
+      }
+      if (seenPrintingLabels.has(group.printingLabel)) {
+        repeatedNewPrintings.add(group.key);
+      }
+      seenPrintingLabels.add(group.printingLabel);
+    }
+  }
+
   return (
     <section className="space-y-4">
-      {submissions.map((submission) => (
+      {submissions.map((submission, index) => (
         <SubmissionBlock
           key={submission.candidateCardId}
           detail={detail}
@@ -82,6 +96,8 @@ export function CardAttentionSection({
           onOpenNewPrinting={onOpenNewPrinting}
           onOpenPrinting={onOpenPrinting}
           blockedNewPrintings={blockedNewPrintings}
+          repeatedNewPrintings={repeatedNewPrintings}
+          hotkeyEnabled={index === 0}
         />
       ))}
 

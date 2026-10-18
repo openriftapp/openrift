@@ -22,7 +22,10 @@ import {
   DIFFED_FIELDS,
   PRINTING_FIELD_LABELS,
 } from "@/features/admin/lib/catalog-field-labels";
-import { summarizeCandidatePrinting } from "@/features/admin/lib/printing-fields";
+import {
+  buildPrintingFieldsFromCandidate,
+  summarizeCandidatePrinting,
+} from "@/features/admin/lib/printing-fields";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 
 type AttentionChangeKind = "value" | "text" | "image";
@@ -50,6 +53,21 @@ export interface AttentionGroup {
   changes: AttentionChange[];
   unchangedFields: string[];
   summary: string | null;
+  closest: ClosestPrinting | null;
+}
+
+interface ClosestPrintingRow {
+  field: string;
+  label: string;
+  incoming: unknown;
+  existing: unknown;
+  differs: boolean;
+}
+
+export interface ClosestPrinting {
+  printing: AdminPrintingResponse;
+  rows: ClosestPrintingRow[];
+  differingLabels: string[];
 }
 
 export interface AttentionSubmission {
@@ -57,7 +75,7 @@ export interface AttentionSubmission {
   provider: string;
   submitterName: string | null;
   note: string | null;
-  kind: "correction" | "image";
+  kind: "correction" | "image" | "new-printing";
   groups: AttentionGroup[];
 }
 
@@ -188,6 +206,7 @@ function buildCardGroup(
     changes,
     unchangedFields,
     summary: null,
+    closest: null,
   };
 }
 
@@ -244,12 +263,75 @@ function buildLinkedPrintingGroup(
     changes,
     unchangedFields,
     summary: null,
+    closest: null,
   };
+}
+
+const CLOSEST_FIELDS = COMPARABLE_PRINTING_FIELDS.filter((field) => field !== "setId");
+
+function closestPrintingRows(
+  incoming: Record<string, unknown>,
+  printing: AdminPrintingResponse,
+  accept: AcceptTransforms,
+): ClosestPrintingRow[] {
+  const existing = printing as unknown as Record<string, unknown>;
+  const printedTotal = accept.setTotals[printing.setSlug] ?? null;
+  return CLOSEST_FIELDS.flatMap((field) => {
+    const incomingValue = normalizeProvidedPrintingValue(field, incoming[field], {
+      costKeywords: accept.costKeywords,
+      printedTotal,
+    });
+    const existingValue = existing[field] ?? null;
+    if (!hasFieldValue(incomingValue) && !hasFieldValue(existingValue)) {
+      return [];
+    }
+    return [
+      {
+        field,
+        label: PRINTING_FIELD_LABELS[field],
+        incoming: incomingValue ?? null,
+        existing: existingValue,
+        differs:
+          (hasFieldValue(incomingValue) || Array.isArray(incomingValue)) &&
+          !sameFieldValue(existingValue, incomingValue, field),
+      },
+    ];
+  });
+}
+
+function findClosestPrinting(
+  candidate: CandidatePrintingResponse,
+  printings: readonly AdminPrintingResponse[],
+  accept: AcceptTransforms,
+): ClosestPrinting | null {
+  const incoming = buildPrintingFieldsFromCandidate(candidate) as Record<string, unknown>;
+  const ranked = printings
+    .map((printing) => {
+      const rows = closestPrintingRows(incoming, printing, accept);
+      return {
+        printing,
+        rows,
+        differingLabels: rows.filter((row) => row.differs).map((row) => row.label),
+        otherLanguage: printing.language !== candidate.language,
+      };
+    })
+    .toSorted(
+      (a, b) =>
+        Number(a.otherLanguage) - Number(b.otherLanguage) ||
+        a.differingLabels.length - b.differingLabels.length ||
+        a.printing.canonicalRank - b.printing.canonicalRank,
+    );
+  const best = ranked[0];
+  return best === undefined
+    ? null
+    : { printing: best.printing, rows: best.rows, differingLabels: best.differingLabels };
 }
 
 function buildNewPrintingGroup(
   candidate: CandidatePrintingResponse,
   apiGroup: CandidatePrintingGroupResponse | undefined,
+  printings: readonly AdminPrintingResponse[],
+  accept: AcceptTransforms,
 ): AttentionGroup {
   return {
     key: `new-printing:${candidate.id}`,
@@ -258,11 +340,12 @@ function buildNewPrintingGroup(
     printingLabel: apiGroup?.expectedPrintingId ?? candidate.shortCode,
     language: apiGroup?.language ?? candidate.language,
     printingId: null,
-    imageUrl: null,
+    imageUrl: hasFieldValue(candidate.imageUrl) ? candidate.imageUrl : null,
     candidate,
     changes: [],
     unchangedFields: [],
     summary: summarizeCandidatePrinting(candidate),
+    closest: findClosestPrinting(candidate, printings, accept),
   };
 }
 
@@ -292,7 +375,14 @@ export function buildAttentionSubmissions(
           continue;
         }
         if (candidate.printingId === null) {
-          groups.push(buildNewPrintingGroup(candidate, groupByCandidateId.get(candidate.id)));
+          groups.push(
+            buildNewPrintingGroup(
+              candidate,
+              groupByCandidateId.get(candidate.id),
+              detail.printings,
+              accept,
+            ),
+          );
           continue;
         }
         const printing = printingsById.get(candidate.printingId);
@@ -311,12 +401,19 @@ export function buildAttentionSubmissions(
         changes.every((change) => change.kind === "image") &&
         groups.every((group) => group.kind !== "new-printing");
 
+      const onlyNewPrintings =
+        groups.length > 0 && groups.every((group) => group.kind === "new-printing");
+
       return {
         candidateCardId: source.id,
         provider: source.provider,
         submitterName: source.submittedByName,
         note: source.submissionNote,
-        kind: onlyImages ? ("image" as const) : ("correction" as const),
+        kind: onlyImages
+          ? ("image" as const)
+          : onlyNewPrintings
+            ? ("new-printing" as const)
+            : ("correction" as const),
         groups,
       };
     })

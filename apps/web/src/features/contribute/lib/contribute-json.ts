@@ -266,8 +266,7 @@ export function buildContributionJson(
   const printings = state.printings.map((printing, index) => {
     const finish = trimToNull(printing.finish) ?? WellKnown.finish.NORMAL;
     const language = (trimToNull(printing.language) ?? "EN").toLowerCase();
-    const shortCode = trimToNull(printing.publicCode)?.split("/", 1)[0];
-    const disambiguator = shortCode || index.toString();
+    const disambiguator = trimToNull(printing.publicCode)?.split("/", 1)[0] || index.toString();
     const printingExternalId = `community:${state.slug}:${disambiguator}--${dateStamp}:${finish}:${language}`;
     return buildPrintingJson(printing, printingExternalId, cardName);
   });

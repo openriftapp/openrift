@@ -2,6 +2,31 @@ import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 
+async function deletePins(
+  db: Kysely<Database>,
+  rows: readonly { externalId: string; finish: string | null; provider: string }[],
+): Promise<void> {
+  if (rows.length === 0) {
+    return;
+  }
+  await db
+    .deleteFrom("printingLinkOverrides")
+    .where((eb) =>
+      eb.or(
+        rows.map((row) =>
+          eb.and([
+            eb("externalId", "=", row.externalId),
+            eb("finish", "=", row.finish ?? ""),
+            // The '' wildcard row would keep re-pinning this candidate on
+            // the next ingest, so an unlink removes it too.
+            eb("provider", "in", [row.provider, ""]),
+          ]),
+        ),
+      ),
+    )
+    .execute();
+}
+
 export function candidatePrintingLinksRepo(db: Kysely<Database>) {
   return {
     async linkCandidatePrintings(
@@ -77,25 +102,17 @@ export function candidatePrintingLinksRepo(db: Kysely<Database>) {
         .select(["cp.externalId", "cp.finish", "cc.provider"])
         .where("cp.id", "in", candidatePrintingIds)
         .execute();
-      if (rows.length === 0) {
-        return;
-      }
-      await db
-        .deleteFrom("printingLinkOverrides")
-        .where((eb) =>
-          eb.or(
-            rows.map((row) =>
-              eb.and([
-                eb("externalId", "=", row.externalId),
-                eb("finish", "=", row.finish ?? ""),
-                // The '' wildcard row would keep re-pinning this candidate on
-                // the next ingest, so an unlink removes it too.
-                eb("provider", "in", [row.provider, ""]),
-              ]),
-            ),
-          ),
-        )
+      await deletePins(db, rows);
+    },
+
+    async removePrintingLinkOverridesForCandidateCard(candidateCardId: string): Promise<void> {
+      const rows = await db
+        .selectFrom("candidatePrintings as cp")
+        .innerJoin("candidateCards as cc", "cc.id", "cp.candidateCardId")
+        .select(["cp.externalId", "cp.finish", "cc.provider"])
+        .where("cp.candidateCardId", "=", candidateCardId)
         .execute();
+      await deletePins(db, rows);
     },
 
     listPrintingLinkOverrides(): Promise<

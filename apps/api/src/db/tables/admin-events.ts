@@ -33,6 +33,7 @@ export type AdminEventAction =
   | "card-submission.accept"
   | "card-submission.reject"
   | "card-submission.create-card"
+  | "card-submission.move"
   | "image.set-from-candidate"
   | "image.activate"
   | "image.rotate"

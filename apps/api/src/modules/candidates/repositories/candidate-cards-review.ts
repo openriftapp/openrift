@@ -226,6 +226,36 @@ export function candidateReviewRepo(db: Kysely<Database>) {
       return { card, printings };
     },
 
+    async moveCandidateCardToCard(
+      candidateCardId: string,
+      card: { name: string; normName: string },
+    ): Promise<void> {
+      await db
+        .updateTable("candidateCards")
+        .set({
+          name: card.name,
+          normName: card.normName,
+          types: [],
+          superTypes: [],
+          domains: [],
+          might: null,
+          energy: null,
+          power: null,
+          mightBonus: null,
+          tags: [],
+          rulesText: null,
+          effectText: null,
+          checkedAt: null,
+        })
+        .where("id", "=", candidateCardId)
+        .execute();
+      await db
+        .updateTable("candidatePrintings")
+        .set({ printingId: null, checkedAt: null })
+        .where("candidateCardId", "=", candidateCardId)
+        .execute();
+    },
+
     checkCandidateCard(candidateCardId: string): Promise<UpdateResult> {
       return db
         .updateTable("candidateCards")

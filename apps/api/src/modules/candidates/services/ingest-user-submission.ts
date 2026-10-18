@@ -11,6 +11,7 @@ import type {
  * candidate card with a per-submission-unique `external_id` and never deletes.
  * Payload mapping and link resolution are shared with candidate-fields.ts / candidate-links.ts.
  */
+import { shortCodeFromPublicCode } from "@openrift/shared/printing-code";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Insertable } from "kysely";
 
@@ -52,10 +53,11 @@ export function buildUserSubmissionCard(
   const cardExternalId = `${slug}--${dateStamp}--${userId}`;
 
   const printings: IngestPrinting[] = input.printings.map((printing, index) => {
-    const shortCode = printing.public_code.split("/", 1)[0] || printing.public_code;
+    const shortCode = shortCodeFromPublicCode(printing.public_code) ?? printing.public_code;
     const finishForId = printing.finish ?? WellKnown.finish.NORMAL;
     const languageForId = (printing.language ?? WellKnown.language.EN).toLowerCase();
-    const disambiguator = shortCode || index.toString();
+    // The full code keeps a promo apart from its base printing, which shares the short code.
+    const disambiguator = printing.public_code.split("/", 1)[0] || index.toString();
     const externalId = `${slug}:${disambiguator}--${dateStamp}--${userId}:${finishForId}:${languageForId}`;
     return {
       short_code: shortCode,
