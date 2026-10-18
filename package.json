@@ -59,7 +59,7 @@
     "@tanstack/devtools-vite": "0.8.5",
     "@tanstack/react-devtools": "0.10.13",
     "@tanstack/react-pacer-devtools": "0.14.0",
-    "@tanstack/react-query-devtools": "5.104.3",
+    "@tanstack/react-query-devtools": "5.104.4",
     "knip": "6.41.0",
     "lcov-result-merger": "6.0.0",
     "lefthook": "2.2.2",
@@ -73,10 +73,10 @@
   },
   "overrides": {
     "@hono/node-server": "2.1.5",
-    "@tanstack/query-core": "5.104.3",
+    "@tanstack/query-core": "5.104.4",
     "hono": "4.13.13",
     "html2canvas": "npm:html2canvas-pro@2.5.2",
-    "kysely": "0.29.6"
+    "kysely": "0.29.7"
   },
   "packageManager": "bun@1.4.3",
   "//overrides": {
@@ -84,7 +84,7 @@
     "@tanstack/query-core": "Dedupe: query-db-collection and router-ssr-query peer-resolve an older query-core; TS treats identical-but-different-path type copies as distinct, collapsing createCollection generics to Record<string, unknown>.",
     "hono, @hono/node-server": "shadcn's MCP SDK brings its own hono stack. The pins dedupe it onto the version apps/api uses and keep node-server off the 1.19.x line, whose serve-static path traversal on Windows is unpatched before 1.19.15.",
     "html2canvas": "Redirect jspdf's optional html2canvas dep to html2canvas-pro (the version we already use directly). Keep this pin in step with html2canvas-pro in apps/web: dependabot does not treat an npm: alias as the same package, so a mismatch silently ships both versions as separate chunks. Enforced by scripts/check-override-pins.ts.",
-    "kysely": "0.29.6"
+    "kysely": "0.29.7"
   },
   "trustedDependencies": [
     "@swc/core",
