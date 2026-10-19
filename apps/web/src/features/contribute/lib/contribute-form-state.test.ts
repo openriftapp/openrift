@@ -146,6 +146,23 @@ describe("contributeFormReducer", () => {
       expect(state.activePrinting).toBe(1);
     });
 
+    it("makes the copy a new printing, not a second claim on the source's printing", () => {
+      const base = start(withCodes("A"));
+      const prefilled = {
+        ...base,
+        form: {
+          ...base.form,
+          printings: [{ ...base.form.printings[0]!, printingId: "printing-a" }],
+        },
+      };
+      const state = contributeFormReducer(prefilled, { type: "duplicatePrinting", index: 0 });
+
+      expect(state.form.printings.map((printing) => printing.printingId)).toEqual([
+        "printing-a",
+        null,
+      ]);
+    });
+
     it("leaves the state alone for an index outside the list", () => {
       const before = start(withCodes("A"));
 

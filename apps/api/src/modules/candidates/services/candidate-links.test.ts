@@ -159,4 +159,44 @@ describe("resolvePrintingLink", () => {
     });
     expect(resolvePrintingLink(index, candidate())).toBe("printing-uuid");
   });
+
+  it("links a claimed printing that shares the composite key with another printing", () => {
+    const index = makeIndex({
+      printings: [{ ...FIREBALL_PRINTING, id: "promo-uuid" }, FIREBALL_PRINTING],
+    });
+    expect(resolvePrintingLink(index, candidate({ claimedPrintingId: "promo-uuid" }))).toBe(
+      "promo-uuid",
+    );
+  });
+
+  it("links a claimed printing whose fields match no key", () => {
+    expect(
+      resolvePrintingLink(
+        makeIndex(),
+        candidate({ claimedPrintingId: "claimed-uuid", finish: null, shortCode: "OGN-999" }),
+      ),
+    ).toBe("claimed-uuid");
+  });
+
+  it("lets a manual link override win over a claimed printing", () => {
+    const index = makeIndex({
+      linkOverrides: [
+        {
+          externalId: "ext-1",
+          finish: "normal",
+          provider: "test-provider",
+          printingId: "override-uuid",
+        },
+      ],
+    });
+    expect(resolvePrintingLink(index, candidate({ claimedPrintingId: "claimed-uuid" }))).toBe(
+      "override-uuid",
+    );
+  });
+
+  it("falls back to the key when no printing is claimed", () => {
+    expect(resolvePrintingLink(makeIndex(), candidate({ claimedPrintingId: null }))).toBe(
+      "printing-uuid",
+    );
+  });
 });

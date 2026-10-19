@@ -21,6 +21,7 @@ export interface ProposedCard {
 
 /** The proposed printing values, in the shape `candidate_printings` stores them. */
 export interface ProposedPrinting {
+  printingId?: string | null;
   shortCode: string;
   /** Part of the printing's identity, not a compared field. */
   finish?: string | null;
@@ -203,6 +204,7 @@ export function candidateReviewRepo(db: Kysely<Database>) {
       const printings = await db
         .selectFrom("candidatePrintings")
         .select([
+          "printingId",
           "shortCode",
           // Identity, not compared: a short code alone does not distinguish a
           // card's finishes and languages from one another.

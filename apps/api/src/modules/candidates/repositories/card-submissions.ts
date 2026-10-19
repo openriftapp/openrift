@@ -41,6 +41,10 @@ interface LiveCardSnapshot {
 }
 
 export interface LivePrintingSnapshot {
+  key: string;
+  shortCode: string;
+  finish: string;
+  markerSlugs: string[];
   rarity: string | null;
   artist: string | null;
   artVariant: string | null;
@@ -66,6 +70,7 @@ export interface LiveSnapshot {
    * compares against an arbitrary sibling.
    */
   printings: Map<string, LivePrintingSnapshot>;
+  printingsById: Map<string, LivePrintingSnapshot[]>;
 }
 
 /**
@@ -329,7 +334,7 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
      */
     async liveSnapshot(
       cardId: string | null,
-      shortCodes: string[],
+      lookup: { shortCodes: string[]; printingIds: string[] },
     ): Promise<{ snapshot: LiveSnapshot; cardSlug: string | null }> {
       const cardRow = cardId
         ? ((await db
@@ -351,10 +356,13 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
         : null;
 
       const printings = new Map<string, LivePrintingSnapshot>();
-      if (shortCodes.length > 0) {
+      const printingsById = new Map<string, LivePrintingSnapshot[]>();
+      const { shortCodes, printingIds } = lookup;
+      if (shortCodes.length > 0 || printingIds.length > 0) {
         const upperCodes = shortCodes.map((code) => code.toUpperCase());
         const rows = await joinFaceImage(db.selectFrom("printingSidesOrdered as p"), "p.faceId")
           .select([
+            "p.printingId",
             "p.shortCode",
             "p.finish",
             "p.markerSlugs",
@@ -371,10 +379,17 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
             "p.language",
             "imgf.rehostedUrl",
           ])
-          // Compared case-insensitively on both sides: source casing drifts
-          // ("VEN-sp3" vs "VEN-SP3") and the link key already uppercases.
-          .where(sql<boolean>`upper(p.short_code) = ANY(${upperCodes})`)
+          .where((eb) =>
+            eb.or([
+              // Compared case-insensitively on both sides: source casing drifts
+              // ("VEN-sp3" vs "VEN-SP3") and the link key already uppercases.
+              sql<boolean>`upper(p.short_code) = ANY(${upperCodes})`,
+              ...(printingIds.length > 0 ? [eb("p.printingId", "in", printingIds)] : []),
+            ]),
+          )
+          .orderBy("p.position")
           .execute();
+        const requestedIds = new Set(printingIds);
         for (const row of rows) {
           // Keyed by the full printing identity, not the short code: eight rows
           // can share one short code across finishes and languages, and keying
@@ -385,7 +400,11 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
             markerSlugs: row.markerSlugs,
             language: row.language,
           });
-          printings.set(key, {
+          const side: LivePrintingSnapshot = {
+            key,
+            shortCode: row.shortCode,
+            finish: row.finish,
+            markerSlugs: row.markerSlugs,
             rarity: row.rarity,
             artist: row.artist,
             artVariant: row.artVariant,
@@ -400,11 +419,15 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
             // "Has artwork the site can actually show", which is the thing an
             // image suggestion is offering to fix.
             hasImage: row.rehostedUrl !== null,
-          });
+          };
+          printings.set(key, side);
+          if (requestedIds.has(row.printingId)) {
+            printingsById.set(row.printingId, [...(printingsById.get(row.printingId) ?? []), side]);
+          }
         }
       }
 
-      return { snapshot: { card, printings }, cardSlug: cardRow?.slug ?? null };
+      return { snapshot: { card, printings, printingsById }, cardSlug: cardRow?.slug ?? null };
     },
 
     // Group collections drop out on their own: `collections.user_id` is null on them.

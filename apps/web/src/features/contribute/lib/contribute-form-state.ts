@@ -121,7 +121,7 @@ export function contributeFormReducer(
       }
       const printings = [
         ...state.form.printings.slice(0, action.index + 1),
-        { ...source },
+        { ...source, printingId: null },
         ...state.form.printings.slice(action.index + 1),
       ];
       return { ...state, form: { ...state.form, printings }, activePrinting: action.index + 1 };

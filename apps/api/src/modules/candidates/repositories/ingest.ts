@@ -76,6 +76,17 @@ export function ingestRepo(db: Db) {
         .execute();
     },
 
+    printingSideCards(printingIds: string[]): Promise<{ printingId: string; cardId: string }[]> {
+      if (printingIds.length === 0) {
+        return Promise.resolve([]);
+      }
+      return db
+        .selectFrom("printingSidesOrdered")
+        .select(["printingId", "cardId"])
+        .where("printingId", "in", printingIds)
+        .execute();
+    },
+
     async candidatePrintingsByCandidateCardIds(
       candidateCardIds: string[],
     ): Promise<Selectable<CandidatePrintingsTable>[]> {

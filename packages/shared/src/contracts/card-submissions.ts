@@ -11,7 +11,9 @@ export const USER_SUBMISSION_PROVIDER = "usersubmission";
 
 /** The server generates `external_id` (`<slug>--<dateStamp>--<userId>`); it never trusts the client for it. */
 export const cardSubmissionCardSchema = contributionCardSchema.omit({ external_id: true });
-export const cardSubmissionPrintingSchema = contributionPrintingSchema.omit({ external_id: true });
+export const cardSubmissionPrintingSchema = contributionPrintingSchema
+  .omit({ external_id: true })
+  .extend({ printing_id: z.uuid().optional() });
 
 export const cardSubmissionSchema = z
   .object({

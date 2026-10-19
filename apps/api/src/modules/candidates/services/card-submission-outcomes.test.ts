@@ -49,6 +49,7 @@ function stubRepos(options: StubOptions = {}) {
               }
             : null,
           printings: new Map(),
+          printingsById: new Map(),
         },
         cardSlug: options.liveCard?.slug ?? null,
       })),

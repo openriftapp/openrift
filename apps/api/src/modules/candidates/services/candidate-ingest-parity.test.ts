@@ -1,4 +1,3 @@
-import type { IngestCard } from "@openrift/shared/contracts/admin/card-mutations";
 import type { CardSubmissionInput } from "@openrift/shared/contracts/card-submissions";
 /* oxlint-disable no-restricted-imports -- api has no @/ alias */
 import { formatCompactUtcStamp } from "@openrift/shared/format-date";
@@ -84,7 +83,7 @@ async function linkedPrintingIds(
     cardSubmissions: {
       countRecentByUser: vi.fn().mockResolvedValue(0),
       liveSnapshot: vi.fn().mockResolvedValue({
-        snapshot: { card: null, printings: new Map() },
+        snapshot: { card: null, printings: new Map(), printingsById: new Map() },
         cardSlug: null,
       }),
       insert: vi.fn().mockResolvedValue("new-submission-id"),
@@ -99,7 +98,7 @@ async function linkedPrintingIds(
 }
 
 async function bothPaths(input: CardSubmissionInput, catalog: Catalog = {}) {
-  const card: IngestCard = buildUserSubmissionCard(input, USER_ID, formatCompactUtcStamp(NOW));
+  const card = buildUserSubmissionCard(input, USER_ID, formatCompactUtcStamp(NOW));
 
   const [submissionIds, batchIds] = await Promise.all([
     linkedPrintingIds(catalog, (transact) =>

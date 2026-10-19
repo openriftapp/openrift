@@ -184,7 +184,11 @@ async function attachCandidateImage(
   if (!imageUrl) {
     throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Candidate printing has no image URL");
   }
-  const imageId = await trx.printingImages.insertImage(args.printingId, imageUrl, "main");
+  const face = await trx.printingImages.faceForShortCode(
+    args.printingId,
+    candidatePrinting.shortCode,
+  );
+  const imageId = await trx.printingImages.insertImage(args.printingId, imageUrl, "main", face);
   assertFound(imageId, "Candidate printing image could not be attached");
   return imageId;
 }

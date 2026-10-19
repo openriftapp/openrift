@@ -123,6 +123,8 @@ export function resolvePrintingLink(
     language: string | null;
     /** Whether the owning candidate card resolved to a live card. */
     cardLinked: boolean;
+    /** Trusted as-is: the caller must verify it belongs to the linked card. */
+    claimedPrintingId?: string | null;
   },
 ): string | null {
   const override =
@@ -131,6 +133,9 @@ export function resolvePrintingLink(
     ) ?? index.printingIdByOverrideKey.get(`:${candidate.externalId}:${candidate.finish ?? ""}`);
   if (override) {
     return override;
+  }
+  if (candidate.claimedPrintingId) {
+    return candidate.claimedPrintingId;
   }
   if (!candidate.cardLinked || !candidate.finish) {
     return null;

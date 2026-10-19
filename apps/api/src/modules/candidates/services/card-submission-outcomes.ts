@@ -82,10 +82,10 @@ export async function resolveCheckedSubmissions(
     const liveCard = await repos.cardSubmissions.liveCardByNormName(
       normalizeNameForIdentity(proposal.card.name),
     );
-    const { snapshot } = await repos.cardSubmissions.liveSnapshot(
-      liveCard?.id ?? null,
-      proposal.printings.map((printing) => printing.shortCode),
-    );
+    const { snapshot } = await repos.cardSubmissions.liveSnapshot(liveCard?.id ?? null, {
+      shortCodes: proposal.printings.map((printing) => printing.shortCode),
+      printingIds: proposal.printings.flatMap((printing) => printing.printingId ?? []),
+    });
     const currentDiff = computeProposedDiff(proposal, snapshot);
     const adopted = adoptedFields(submission.proposedDiff, currentDiff);
 

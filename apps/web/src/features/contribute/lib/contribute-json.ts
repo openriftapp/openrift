@@ -56,6 +56,7 @@ export interface ContributeFormCard {
 }
 
 export interface ContributeFormPrinting {
+  printingId: string | null;
   setId: string | null;
   setName: string | null;
   rarity: string | null;
@@ -109,6 +110,7 @@ function emptyCard(): ContributeFormCard {
 
 export function emptyPrinting(): ContributeFormPrinting {
   return {
+    printingId: null,
     setId: null,
     setName: null,
     rarity: null,
@@ -317,7 +319,9 @@ export function buildSubmissionPayload(
     .map((printing) => {
       const printingJson = buildPrintingJson(printing, "", cardName);
       delete printingJson.external_id;
-      return printingJson;
+      return printing.printingId === null
+        ? printingJson
+        : { ...printingJson, printing_id: printing.printingId };
     });
   const trimmedNote = submissionNote?.trim() ? submissionNote.trim() : null;
   return {
@@ -347,6 +351,10 @@ export function buildImagePatchState(args: {
     printings: [
       {
         ...emptyPrinting(),
+        printingId: args.printing.printingId,
+        markerSlugs: args.printing.markers.map((marker) => marker.slug),
+        isSigned: args.printing.isSigned,
+        isOvernumbered: args.printing.isOvernumbered,
         setId: args.setSlug,
         setName: args.setName,
         finish: args.printing.finish || null,
@@ -381,6 +389,7 @@ export function prefillFromCard(
       tags: [...card.tags],
     },
     printings: printings.map((p) => ({
+      printingId: p.printingId,
       setId: setSlugById.get(p.setId) ?? null,
       setName: setNameById.get(p.setId) ?? null,
       rarity: p.rarity || null,

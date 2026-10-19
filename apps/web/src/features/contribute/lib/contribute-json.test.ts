@@ -1,3 +1,4 @@
+import { cardSubmissionSchema } from "@openrift/shared/contracts/card-submissions";
 import { describe, expect, it } from "vitest";
 
 import { stubCard, stubPrinting } from "@/test/factories";
@@ -13,6 +14,25 @@ import {
 } from "./contribute-json";
 
 const STAMP = "20260501-1200";
+const PROMO_PRINTING_ID = "0199a000-0000-7000-8000-000000000002";
+const PROMO_MARKER = { id: "promo", slug: "promo", label: "Promo", description: null };
+
+function promoImageState(imageUrl = "https://example.com/rad-132.png"): ContributeFormState {
+  return buildImagePatchState({
+    cardName: "Heimerdinger, Inventor",
+    cardSlug: "heimerdinger-inventor",
+    printing: stubPrinting({
+      printingId: PROMO_PRINTING_ID,
+      publicCode: "RAD-132/221",
+      finish: "foil",
+      language: "EN",
+      markers: [PROMO_MARKER],
+    }),
+    setSlug: "rad",
+    setName: "Radiant",
+    imageUrl,
+  });
+}
 
 function fullState(): ContributeFormState {
   return {
@@ -30,6 +50,7 @@ function fullState(): ContributeFormState {
     },
     printings: [
       {
+        printingId: null,
         setId: "ogn",
         setName: "Origins",
         rarity: "rare",
@@ -279,6 +300,26 @@ describe("buildSubmissionPayload", () => {
     expect(buildSubmissionPayload(fullState(), null).submissionNote).toBeNull();
   });
 
+  it("names the existing printing a row stands for, and leaves new rows unnamed", () => {
+    const state = fullState();
+    state.printings = [
+      { ...state.printings[0]!, printingId: PROMO_PRINTING_ID },
+      { ...state.printings[0]!, printingId: null },
+    ];
+    const payload = buildSubmissionPayload(state, null);
+    expect(payload.printings[0]!.printing_id).toBe(PROMO_PRINTING_ID);
+    expect(payload.printings[1]).not.toHaveProperty("printing_id");
+  });
+
+  it("produces an image payload the submission contract accepts with its printing id", () => {
+    const parsed = cardSubmissionSchema.parse(buildSubmissionPayload(promoImageState(), null));
+    expect(parsed.printings[0]).toMatchObject({
+      printing_id: PROMO_PRINTING_ID,
+      marker_slugs: ["promo"],
+      public_code: "RAD-132/221",
+    });
+  });
+
   describe("against a baseline", () => {
     it("sends only the printing the contributor edited", () => {
       const baseline = fullState();
@@ -375,6 +416,31 @@ describe("buildSubmissionPayload", () => {
 });
 
 describe("buildImagePatchState", () => {
+  it("names the exact printing and its markers, so a promo is not mistaken for its base", () => {
+    expect(promoImageState().printings[0]).toMatchObject({
+      printingId: PROMO_PRINTING_ID,
+      markerSlugs: ["promo"],
+    });
+  });
+
+  it("carries the signed and overnumbered flags of the printing", () => {
+    const state = buildImagePatchState({
+      cardName: "Heimerdinger, Inventor",
+      cardSlug: "heimerdinger-inventor",
+      printing: stubPrinting({ publicCode: "RAD-132/221", isSigned: true, isOvernumbered: true }),
+      setSlug: "rad",
+      setName: "Radiant",
+      imageUrl: "https://example.com/rad-132.png",
+    });
+    expect(state.printings[0]).toMatchObject({ isSigned: true, isOvernumbered: true });
+  });
+
+  it("keeps the printing id out of the contribution file, which has no such field", () => {
+    const state = promoImageState();
+    expect(validateContribution(state).ok).toBe(true);
+    expect(buildContributionJson(state, STAMP).printings[0]).not.toHaveProperty("printing_id");
+  });
+
   it("only fills the fields needed to identify the printing plus the image URL", () => {
     const printing = stubPrinting({
       publicCode: "OGN-066/298",
@@ -513,6 +579,7 @@ describe("prefillFromCatalogCard", () => {
     expect(state.printings).toHaveLength(1);
     expect(state.printings[0]?.setId).toBe("ogn");
     expect(state.printings[0]?.setName).toBe("Origins");
+    expect(state.printings[0]?.printingId).toBe(printing.printingId);
   });
 
   it("returns no printings when the catalog has none for the card", () => {

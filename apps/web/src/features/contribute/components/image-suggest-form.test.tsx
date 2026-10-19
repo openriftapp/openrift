@@ -126,6 +126,7 @@ describe("ImageSuggestForm", () => {
 
     expect(submitState.mutate).toHaveBeenCalledTimes(1);
     expect(submitState.mutate.mock.calls[0]![0].printings[0].image_url).toBe(UPLOADED_URL);
+    expect(submitState.mutate.mock.calls[0]![0].printings[0].printing_id).toBe("printing-1");
   });
 
   it("explains a rejected upload in the contributor's words", async () => {

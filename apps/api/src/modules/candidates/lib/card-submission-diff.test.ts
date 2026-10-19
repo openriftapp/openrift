@@ -15,6 +15,10 @@ const LIVE_CARD = {
 };
 
 const LIVE_PRINTING: LivePrintingSnapshot = {
+  key: "OGN-042:normal::EN",
+  shortCode: "OGN-042",
+  finish: "normal",
+  markerSlugs: [],
   rarity: "rare",
   artist: "Riot Games",
   artVariant: "standard",
@@ -56,6 +60,7 @@ function liveSnapshot(overrides: Partial<LivePrintingSnapshot> = {}): LiveSnapsh
   return {
     card: LIVE_CARD,
     printings: new Map([[EN_NORMAL, { ...LIVE_PRINTING, ...overrides }]]),
+    printingsById: new Map(),
   };
 }
 
@@ -111,6 +116,7 @@ describe("computeProposedDiff", () => {
         [EN_NORMAL, { ...LIVE_PRINTING, artist: "Fixed Artist" }],
         [FR_NORMAL, { ...LIVE_PRINTING, printedName: "Jinx (FR)" }],
       ]),
+      printingsById: new Map(),
     };
     const diff = computeProposedDiff(
       {
@@ -155,7 +161,7 @@ describe("computeProposedDiff", () => {
   it("marks the whole card new when nothing matched", () => {
     const diff = computeProposedDiff(
       { card: { name: "Brand New" }, printings: [proposedPrinting({ shortCode: "OGN-999" })] },
-      { card: null, printings: new Map() },
+      { card: null, printings: new Map(), printingsById: new Map() },
     );
     expect(diff).toEqual(["card.new", "printing.OGN-999:normal::EN.new"]);
   });
@@ -205,6 +211,189 @@ describe("computeProposedDiff", () => {
       liveSnapshot(),
     );
     expect(different).toEqual(["card.tags"]);
+  });
+});
+
+describe("computeProposedDiff with a linked printing", () => {
+  const PROMO_KEY = "OGN-042:normal:promo:EN";
+  const BASE = { ...LIVE_PRINTING, hasImage: true };
+  const PROMO: LivePrintingSnapshot = {
+    ...LIVE_PRINTING,
+    key: PROMO_KEY,
+    markerSlugs: ["promo"],
+    hasImage: false,
+  };
+
+  function promoSnapshot(): LiveSnapshot {
+    return {
+      card: LIVE_CARD,
+      printings: new Map([
+        [EN_NORMAL, BASE],
+        [PROMO_KEY, PROMO],
+      ]),
+      printingsById: new Map([
+        ["base-id", [BASE]],
+        ["promo-id", [PROMO]],
+      ]),
+    };
+  }
+
+  it("compares an image against the linked promo, not the base printing sharing its short code", () => {
+    const diff = computeProposedDiff(
+      {
+        card: { name: "Jinx" },
+        printings: [
+          proposedPrinting({
+            printingId: "promo-id",
+            markerSlugs: ["promo"],
+            imageUrl: "https://example.test/promo.png",
+          }),
+        ],
+      },
+      promoSnapshot(),
+    );
+    expect(diff).toEqual([`printing.${PROMO_KEY}.image`]);
+  });
+
+  it("uses the linked printing even when the proposal's markers would key to the base", () => {
+    const diff = computeProposedDiff(
+      {
+        card: { name: "Jinx" },
+        printings: [
+          proposedPrinting({ printingId: "promo-id", imageUrl: "https://example.test/promo.png" }),
+        ],
+      },
+      promoSnapshot(),
+    );
+    expect(diff).toEqual([`printing.${PROMO_KEY}.markerSlugs`, `printing.${PROMO_KEY}.image`]);
+  });
+
+  it("keys an unlinked proposal by its fields", () => {
+    const diff = computeProposedDiff(
+      {
+        card: { name: "Jinx" },
+        printings: [proposedPrinting({ imageUrl: "https://example.test/promo.png" })],
+      },
+      promoSnapshot(),
+    );
+    expect(diff).toEqual([]);
+  });
+
+  it("compares the side of a two-sided printing whose short code was proposed", () => {
+    const front: LivePrintingSnapshot = {
+      ...LIVE_PRINTING,
+      key: "SGN-T01:normal::EN",
+      shortCode: "SGN-T01",
+      hasImage: true,
+    };
+    const back: LivePrintingSnapshot = {
+      ...LIVE_PRINTING,
+      key: "SGN-T05:normal::EN",
+      shortCode: "SGN-T05",
+      hasImage: false,
+    };
+    const diff = computeProposedDiff(
+      {
+        card: { name: "Jinx" },
+        printings: [
+          proposedPrinting({
+            printingId: "pair-id",
+            shortCode: "sgn-t05",
+            imageUrl: "https://example.test/back.png",
+          }),
+        ],
+      },
+      {
+        card: LIVE_CARD,
+        printings: new Map([
+          [front.key, front],
+          [back.key, back],
+        ]),
+        printingsById: new Map([["pair-id", [front, back]]]),
+      },
+    );
+    expect(diff).toEqual(["printing.SGN-T05:normal::EN.image"]);
+  });
+
+  it("records only the image for a linked signed, overnumbered printing", () => {
+    const signed: LivePrintingSnapshot = {
+      ...PROMO,
+      isSigned: true,
+      isOvernumbered: true,
+    };
+    const diff = computeProposedDiff(
+      {
+        card: { name: "Jinx" },
+        printings: [
+          proposedPrinting({
+            printingId: "signed-id",
+            markerSlugs: ["promo"],
+            isSigned: true,
+            isOvernumbered: true,
+            imageUrl: "https://example.test/signed.png",
+          }),
+        ],
+      },
+      {
+        card: LIVE_CARD,
+        printings: new Map([[PROMO_KEY, signed]]),
+        printingsById: new Map([["signed-id", [signed]]]),
+      },
+    );
+    expect(diff).toEqual([`printing.${PROMO_KEY}.image`]);
+  });
+
+  it("reports corrections to the linked printing's identity fields", () => {
+    const diff = computeProposedDiff(
+      {
+        card: { name: "Jinx" },
+        printings: [
+          proposedPrinting({
+            printingId: "base-id",
+            shortCode: "OGN-043",
+            finish: "foil",
+            language: "FR",
+            markerSlugs: ["promo"],
+          }),
+        ],
+      },
+      promoSnapshot(),
+    );
+    expect(diff).toEqual([
+      `printing.${EN_NORMAL}.shortCode`,
+      `printing.${EN_NORMAL}.finish`,
+      `printing.${EN_NORMAL}.language`,
+      `printing.${EN_NORMAL}.markerSlugs`,
+    ]);
+  });
+
+  it("compares a linked printing that carries no finish", () => {
+    const diff = computeProposedDiff(
+      {
+        card: { name: "Jinx" },
+        printings: [
+          proposedPrinting({
+            printingId: "promo-id",
+            finish: null,
+            markerSlugs: ["promo"],
+            imageUrl: "https://example.test/promo.png",
+          }),
+        ],
+      },
+      promoSnapshot(),
+    );
+    expect(diff).toEqual([`printing.${PROMO_KEY}.image`]);
+  });
+
+  it("falls back to the key when the linked printing is no longer live", () => {
+    const diff = computeProposedDiff(
+      {
+        card: { name: "Jinx" },
+        printings: [proposedPrinting({ printingId: "deleted-id", artist: "Someone Else" })],
+      },
+      promoSnapshot(),
+    );
+    expect(diff).toEqual([`printing.${EN_NORMAL}.artist`]);
   });
 });
 

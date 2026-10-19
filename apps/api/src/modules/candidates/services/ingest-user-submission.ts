@@ -26,6 +26,7 @@ import {
   candidatePrintingValidatorInput,
 } from "../lib/candidate-fields.js";
 import { computeProposedDiff } from "../lib/card-submission-diff.js";
+import type { ingestRepo } from "../repositories/ingest.js";
 import {
   loadCandidateLinkIndex,
   resolveCardIdByName,
@@ -36,6 +37,16 @@ import {
 const USER_SUBMISSION_DAILY_LIMIT = 200;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+type IngestRepo = ReturnType<typeof ingestRepo>;
+
+export interface UserSubmissionPrinting extends IngestPrinting {
+  printing_id: string | null;
+}
+
+export interface UserSubmissionCard extends Omit<IngestCard, "printings"> {
+  printings: UserSubmissionPrinting[];
+}
 
 /**
  * Map a validated user-submission payload to the candidate `IngestCard` shape,
@@ -48,16 +59,17 @@ export function buildUserSubmissionCard(
   input: CardSubmissionInput,
   userId: string,
   dateStamp: string,
-): IngestCard {
+): UserSubmissionCard {
   const { slug, card } = input;
   const cardExternalId = `${slug}--${dateStamp}--${userId}`;
 
-  const printings: IngestPrinting[] = input.printings.map((printing, index) => {
+  const printings: UserSubmissionPrinting[] = input.printings.map((printing, index) => {
     const shortCode = shortCodeFromPublicCode(printing.public_code) ?? printing.public_code;
     const finishForId = printing.finish ?? WellKnown.finish.NORMAL;
     const languageForId = (printing.language ?? WellKnown.language.EN).toLowerCase();
-    // The full code keeps a promo apart from its base printing, which shares the short code.
-    const disambiguator = printing.public_code.split("/", 1)[0] || index.toString();
+    // Printings sharing a public code (marker variants, two-sided pairs) stay apart by printing id.
+    const disambiguator =
+      printing.printing_id ?? (printing.public_code.split("/", 1)[0] || index.toString());
     const externalId = `${slug}:${disambiguator}--${dateStamp}--${userId}:${finishForId}:${languageForId}`;
     return {
       short_code: shortCode,
@@ -84,6 +96,7 @@ export function buildUserSubmissionCard(
       // The contribution form doesn't ask for the printed year; only provider
       // uploads carry it.
       printed_year: null,
+      printing_id: printing.printing_id ?? null,
     };
   });
 
@@ -134,6 +147,23 @@ export function inferSubmissionKind(card: IngestCard, cardLinked: boolean): Card
 }
 
 /**
+ * A client-claimed printing id counts only when one of its sides belongs to the
+ * resolved card; anything else (a renamed card, a forged id) falls back to the key.
+ */
+async function ownedClaimedPrintingIds(
+  repo: Pick<IngestRepo, "printingSideCards">,
+  printings: UserSubmissionPrinting[],
+  liveCardId: string | null,
+): Promise<Set<string>> {
+  const claimedIds = printings.flatMap((printing) => printing.printing_id ?? []);
+  if (liveCardId === null || claimedIds.length === 0) {
+    return new Set();
+  }
+  const sides = await repo.printingSideCards(claimedIds);
+  return new Set(sides.filter((side) => side.cardId === liveCardId).map((side) => side.printingId));
+}
+
+/**
  * Outcome of an in-app submission. Discriminated so the route can map it to a
  * typed oRPC error without this service depending on oRPC.
  */
@@ -145,7 +175,7 @@ export type UserSubmissionResult =
 interface IngestUserSubmissionArgs {
   userId: string;
   submissionNote: string | null;
-  card: IngestCard;
+  card: UserSubmissionCard;
   /** "Now", passed in so the 24h window and any test are deterministic. */
   now: Date;
 }
@@ -207,6 +237,8 @@ export function ingestUserSubmission(
     const liveCardId = resolveCardIdByName(linkIndex, card.name);
     const cardLinked = liveCardId !== null;
 
+    const ownedClaims = await ownedClaimedPrintingIds(repo, card.printings, liveCardId);
+
     const candidateCardFields = buildCandidateCardFields(card);
     const cardInsert: Insertable<CandidateCardsTable> = {
       provider: USER_SUBMISSION_PROVIDER,
@@ -217,11 +249,8 @@ export function ingestUserSubmission(
     const candidateCardId = await repo.insertCandidateCard(cardInsert);
 
     const printingEntries = card.printings.map((printing) => ({
-      printing,
       fields: buildCandidatePrintingFields(printing),
-    }));
-    for (const { printing, fields } of printingEntries) {
-      const resolvedPrintingId = resolvePrintingLink(linkIndex, {
+      printingId: resolvePrintingLink(linkIndex, {
         provider: USER_SUBMISSION_PROVIDER,
         externalId: printing.external_id,
         shortCode: printing.short_code,
@@ -229,22 +258,29 @@ export function ingestUserSubmission(
         markerSlugs: printing.marker_slugs,
         language: printing.language,
         cardLinked,
-      });
-
-      await repo.insertCandidatePrinting({
-        candidateCardId,
-        printingId: resolvedPrintingId,
-        ...fields,
-      });
+        claimedPrintingId:
+          printing.printing_id !== null && ownedClaims.has(printing.printing_id)
+            ? printing.printing_id
+            : null,
+      }),
+    }));
+    for (const { fields, printingId } of printingEntries) {
+      await repo.insertCandidatePrinting({ candidateCardId, printingId, ...fields });
     }
 
     // A submission that changes nothing against the live catalog records an empty diff and resolves as already_correct, not an accept.
-    const { snapshot, cardSlug } = await submissions.liveSnapshot(
-      liveCardId,
-      card.printings.map((printing) => printing.short_code),
-    );
+    const { snapshot, cardSlug } = await submissions.liveSnapshot(liveCardId, {
+      shortCodes: card.printings.map((printing) => printing.short_code),
+      printingIds: printingEntries.flatMap((entry) => entry.printingId ?? []),
+    });
     const proposedDiff = computeProposedDiff(
-      { card: candidateCardFields, printings: printingEntries.map((entry) => entry.fields) },
+      {
+        card: candidateCardFields,
+        printings: printingEntries.map((entry) => ({
+          ...entry.fields,
+          printingId: entry.printingId,
+        })),
+      },
       snapshot,
     );
     await submissions.insert({

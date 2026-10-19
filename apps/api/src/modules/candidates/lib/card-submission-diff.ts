@@ -1,14 +1,13 @@
 /**
  * What a user submission actually proposed to change, expressed as field paths.
- *
  * Not compared: `domains`/`superTypes` (junction tables), `setId` (slug vs uuid),
- * and rules/effect text (not `cards` columns).
- *
- * Printings are identified by `buildPrintingLinkKey`; do not hand-roll this key.
+ * and rules/effect text (not `cards` columns). Printings match by linked printing
+ * id, else by `buildPrintingLinkKey` (never hand-roll it); paths always use the
+ * matched live side's key.
  */
 import { buildPrintingLinkKey } from "../../../lib/printing-link-key.js";
 import type { ProposedCard, ProposedPrinting } from "../repositories/candidate-cards-review.js";
-import type { LiveSnapshot } from "../repositories/card-submissions.js";
+import type { LivePrintingSnapshot, LiveSnapshot } from "../repositories/card-submissions.js";
 
 /** Blank-ish proposals say "I have nothing to offer here", not "make it empty". */
 function isEmpty(value: unknown): boolean {
@@ -24,6 +23,10 @@ function sameText(a: string | null | undefined, b: string | null | undefined): b
   return (a ?? "").trim().toLowerCase() === (b ?? "").trim().toLowerCase();
 }
 
+function sameSlugs(a: string[], b: string[]): boolean {
+  return a.toSorted().join(",") === b.toSorted().join(",");
+}
+
 function sameTags(a: string[], b: string[]): boolean {
   if (a.length !== b.length) {
     return false;
@@ -31,6 +34,19 @@ function sameTags(a: string[], b: string[]): boolean {
   const left = a.map((t) => t.toLowerCase()).toSorted();
   const right = b.map((t) => t.toLowerCase()).toSorted();
   return left.every((tag, index) => tag === right[index]);
+}
+
+/** A two-sided printing has one row per side; the short code says which one was proposed. */
+function linkedSide(
+  printing: ProposedPrinting,
+  live: LiveSnapshot,
+): LivePrintingSnapshot | undefined {
+  const sides = printing.printingId ? live.printingsById.get(printing.printingId) : undefined;
+  if (!sides) {
+    return undefined;
+  }
+  const shortCode = printing.shortCode.toUpperCase();
+  return sides.find((side) => side.shortCode.toUpperCase() === shortCode) ?? sides[0];
 }
 
 /**
@@ -76,26 +92,44 @@ export function computeProposedDiff(
   }
 
   for (const printing of proposed.printings) {
-    // Without a finish the printing cannot be identified among its siblings.
-    // Skipping is deliberate: calling it new would add a field that can never
-    // be adopted, which pins the submission to not_applied forever.
-    if (isEmpty(printing.finish)) {
-      continue;
+    const linked = linkedSide(printing, live);
+    let livePrinting: LivePrintingSnapshot | undefined;
+    let key: string;
+    if (linked) {
+      livePrinting = linked;
+      key = linked.key;
+      if (printing.shortCode.toUpperCase() !== linked.shortCode.toUpperCase()) {
+        diff.push(`printing.${key}.shortCode`);
+      }
+      if (!isEmpty(printing.finish) && printing.finish !== linked.finish) {
+        diff.push(`printing.${key}.finish`);
+      }
+      if (!isEmpty(printing.language) && !sameText(printing.language, linked.language)) {
+        diff.push(`printing.${key}.language`);
+      }
+      if (printing.markerSlugs && !sameSlugs(printing.markerSlugs, linked.markerSlugs)) {
+        diff.push(`printing.${key}.markerSlugs`);
+      }
+    } else {
+      // Without a finish the printing cannot be identified among its siblings.
+      // Skipping is deliberate: calling it new would add a field that can never
+      // be adopted, which pins the submission to not_applied forever.
+      if (isEmpty(printing.finish)) {
+        continue;
+      }
+      key = buildPrintingLinkKey({
+        shortCode: printing.shortCode,
+        finish: printing.finish ?? "",
+        markerSlugs: printing.markerSlugs ?? [],
+        language: printing.language ?? null,
+      });
+      livePrinting = live.printings.get(key);
     }
-    const key = buildPrintingLinkKey({
-      shortCode: printing.shortCode,
-      finish: printing.finish ?? "",
-      markerSlugs: printing.markerSlugs ?? [],
-      language: printing.language ?? null,
-    });
-    const livePrinting = live.printings.get(key);
     if (!livePrinting) {
       // An unmatched printing is entirely new, whether or not the card exists.
       diff.push(`printing.${key}.new`);
       continue;
     }
-    // `language` is absent on purpose: it is part of the key above, so a live
-    // match already agrees on it and comparing it can only ever produce noise.
     const texts = [
       ["rarity", printing.rarity, livePrinting.rarity],
       ["artist", printing.artist, livePrinting.artist],

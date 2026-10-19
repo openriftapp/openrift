@@ -467,6 +467,20 @@ export function printingImagesRepo(db: Kysely<Database>) {
       return rows.map((r) => r.rehostedUrl);
     },
 
+    async faceForShortCode(printingId: string, shortCode: string): Promise<CardFace> {
+      const row = await db
+        .selectFrom("printings as p")
+        .innerJoin("faces as f1", "f1.id", "p.face1Id")
+        .leftJoin("faces as f2", "f2.id", "p.face2Id")
+        .select(["f1.shortCode as frontShortCode", "f2.shortCode as backShortCode"])
+        .where("p.id", "=", printingId)
+        .executeTakeFirst();
+      const code = shortCode.toUpperCase();
+      return row?.backShortCode?.toUpperCase() === code && row.frontShortCode.toUpperCase() !== code
+        ? "back"
+        : "front";
+    },
+
     getCandidatePrintingById(id: string) {
       return db
         .selectFrom("candidatePrintings")
