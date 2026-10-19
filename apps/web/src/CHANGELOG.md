@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-19
+
+### Highlights
+
+- feat(Cards): **Printings by language** — the card page lists each printing once with a column per language, showing the art, price and how many you own for every language it was printed in. Your copies of the selected printing now sit next to its details.
+
 ## 2026-10-18
 
 ### Highlights

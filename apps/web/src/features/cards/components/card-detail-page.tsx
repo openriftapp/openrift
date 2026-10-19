@@ -96,6 +96,7 @@ export function CardDetailPage() {
 
           <div className="flex min-w-0 flex-1 flex-col gap-6">
             <CardPageInfoTable card={card} printing={selectedPrinting} sets={sets} />
+            <CollectionSlot printing={selectedPrinting} siblings={printings} />
             <CardPageFactRows
               card={card}
               printing={selectedPrinting}
@@ -103,8 +104,6 @@ export function CardDetailPage() {
             />
           </div>
         </div>
-
-        <CollectionSlot printing={selectedPrinting} siblings={printings} />
 
         <CardPagePrintings
           printings={printings}

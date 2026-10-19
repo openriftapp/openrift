@@ -608,16 +608,27 @@ test.describe("card detail route — rules / effect / flavor / errata / bans", (
 });
 
 test.describe("card detail route — printings list", () => {
-  test("multi-language printings group under language headers", async ({ page }) => {
+  test("printings that differ only in language share one row", async ({ page }) => {
     const detail = await fetchCardDetail(SEED_CARD_SLUG);
-    const languages = new Set(detail.printings.map((p) => p.language));
-    test.skip(languages.size < 2, "expected the seed card to span multiple languages");
+    const en = detail.printings.find((p) => p.language === "EN");
+    const sibling = detail.printings.find(
+      (p) =>
+        p.language !== "EN" &&
+        en !== undefined &&
+        p.shortCode === en.shortCode &&
+        p.finish === en.finish &&
+        p.artVariant === en.artVariant &&
+        p.markers.length === 0 &&
+        en.markers.length === 0,
+    );
+    test.skip(!en || !sibling, "expected an EN printing with a same-design sibling language");
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
-    // The heading combines a LanguageChip with the label: text reads "EN English".
-    const headings = page.getByRole("heading", { level: 3 });
-    await expect(headings.filter({ hasText: /English/u }).first()).toBeVisible();
+    const row = page
+      .getByRole("listitem")
+      .filter({ has: page.locator(`button[data-printing-id="${en?.id}"]`) });
+    await expect(row.locator(`button[data-printing-id="${sibling?.id}"]`)).toBeVisible();
   });
 
   test("clicking a sibling printing updates the info panel", async ({ page }) => {
@@ -630,8 +641,6 @@ test.describe("card detail route — printings list", () => {
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
-    // getByText("EN") also matches the "English" group heading; scope to the
-    // info panel's Language row.
     const languageRow = infoRow(page, "Language").first();
     await expect(languageRow).toContainText("English");
 
@@ -642,7 +651,7 @@ test.describe("card detail route — printings list", () => {
     await expect(languageRow).not.toContainText("English");
   });
 
-  test("foil and promo badges appear on the matching printing button", async ({ page }) => {
+  test("foil and promo badges appear on the matching printing row", async ({ page }) => {
     const detail = await fetchCardDetail(SEED_CARD_SLUG);
     const foilPromo = detail.printings.find((p) => p.finish === "foil" && p.markers.length > 0);
     const foilMarker = foilPromo?.markers[0];
@@ -653,10 +662,11 @@ test.describe("card detail route — printings list", () => {
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
-    const button = page.locator(`button[data-printing-id="${foilPromo.id}"]`);
-    await expect(button).toBeVisible();
-    await expect(button.getByText("Foil", { exact: true })).toBeVisible();
-    await expect(button.getByText(foilMarker.label)).toBeVisible();
+    const row = page
+      .getByRole("listitem")
+      .filter({ has: page.locator(`button[data-printing-id="${foilPromo.id}"]`) });
+    await expect(row.getByText("Foil", { exact: true })).toBeVisible();
+    await expect(row.getByText(foilMarker.label)).toBeVisible();
   });
 
   test("default-selected printing matches the EN language preference", async ({ page }) => {
