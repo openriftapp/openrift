@@ -1,4 +1,4 @@
-import { sideKey } from "@openrift/shared/printing-side";
+import { countPrintings, sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useSearch } from "@tanstack/react-router";
 import { PackageIcon } from "lucide-react";
@@ -228,7 +228,7 @@ export function CardBrowser() {
 
   const handleSiblingClick = (printing: Printing) => {
     handleGridCardClick(printing);
-    useSiblingOverrideStore.getState().setOverride("cards", printing.cardId, printing.printingId);
+    useSiblingOverrideStore.getState().setOverride("cards", printing.cardId, sideKey(printing));
   };
 
   // Hiding counts only affects the tile display: the right-click menu and
@@ -248,8 +248,9 @@ export function CardBrowser() {
     const tile = inCardsView
       ? tileSiblings(printing, printingsByCardId.get(printing.cardId), groupBy)
       : undefined;
-    const ownedVariantCount =
-      tile?.filter((sibling) => (ownedCountByPrinting?.[sibling.printingId] ?? 0) > 0).length ?? 0;
+    const ownedVariantCount = countPrintings(
+      tile?.filter((sibling) => (ownedCountByPrinting?.[sibling.printingId] ?? 0) > 0) ?? [],
+    );
     if (ownedVariantCount > 1 && openVariantsForTile && anchorEl) {
       openVariantsForTile(printing, anchorEl, "remove");
       return;

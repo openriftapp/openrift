@@ -307,6 +307,7 @@ export async function ingestCandidates(
           finish: p.finish,
           markerSlugs: p.marker_slugs,
           language: p.language,
+          size: p.size,
           cardLinked,
         });
 

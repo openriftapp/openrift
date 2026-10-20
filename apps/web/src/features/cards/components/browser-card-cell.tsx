@@ -111,6 +111,7 @@ export const BrowserCardCell = memo(function BrowserCardCell({
               count={ownedCount}
               totalCount={totalCount}
               siblings={inCardsView ? siblings : undefined}
+              otherSideName={displayPrinting.otherSide?.cardName}
             />
           )
         }

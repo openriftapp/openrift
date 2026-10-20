@@ -327,14 +327,14 @@ Input: a curated list of physical printings, each naming its two sides by the sl
 The list also gives every existing single-sided token printing exactly one **home**, the physical printing its copies and references move to:
 
 - A side printing that the list puts on one physical printing has that printing as its home.
-- A side printing that the list puts on several (SGN-T01 Bird) gets a home chosen by the maintainer, by default the physical printing that marketplaces sell under that side's name.
+- A side printing that the list puts on several (SGN-T01 Bird) gets a home chosen by the maintainer in the list's `homes` map. Without one, the home is the first printing in the list that shows the side, and the dry run names the owners whose copies move there.
 
 The whole list runs in one transaction:
 
 1. Create the two-faced printings from the side printings' faces. A side on several printings is one face on all of them. The physical fields come from the first side's printing.
 2. Each merged printing gets its slug from `printings_set_slug`.
 3. Move every copy of each side printing to its home. Its collection events move with it, so the copy keeps its history. The copies of both sides of a pair add up.
-4. Move every other reference to a side printing to its home: marketplace listings, list entries, deck-slot preferences, loans, trades, trade suggestion dismissals, products, distribution channels and citations. Rows that collide on the home's unique keys merge: quantities add up and duplicates drop.
+4. Move every other reference to a side printing to its home: marketplace listings, link overrides, list entries, deck-slot preferences, loans, trades, trade suggestion dismissals, Cardmarket sync state, products, distribution channels and citations. Rows that collide on the home's unique keys merge: quantities and sync counts add up, a product keeps the larger quantity because both sides listed the same physical card, duplicates drop, and a trade that pointed at a dropped wish entry points at the surviving one. Two live trades between the same users for sides that share a home cannot merge, so the merge refuses until they are settled.
 5. Delete the side printings. Their URLs 301 to the card pages.
 
 Afterwards every printing is a physical card that exists, and no single-sided token printing remains.
@@ -354,5 +354,5 @@ Every `printing_id` consumer in today's schema:
 
 ## More Information
 
-- ADR-005 (Collection Tracking Data Model) defines `copies` and the event-based ownership ledger that this change must remain compatible with. No changes to `copies` semantics are required; the pair merge writes collection events for every moved copy.
+- ADR-005 (Collection Tracking Data Model) defines `copies` and the event-based ownership ledger that this change must remain compatible with. No changes to `copies` semantics are required; the pair merge moves each copy with its collection events.
 - The decision to keep `printings` as the table name is conditional on the user-facing vocabulary staying as it is today.

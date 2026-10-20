@@ -105,6 +105,28 @@ describe("useQuickAddSearch", () => {
     expect(results[0]!.ownedCount).toBe(2);
   });
 
+  it("finds a double-sided printing by its second card and counts its copies once", () => {
+    const bird = stubPrinting({
+      printingId: "pair",
+      side: 1,
+      cardId: "bird",
+      card: { name: "Bird" },
+    });
+    const gold = stubPrinting({
+      printingId: "pair",
+      side: 2,
+      cardId: "gold",
+      card: { name: "Gold" },
+    });
+    const map = groupByCardId([bird, gold]);
+
+    const results = search("gold", map, { ownedCountByPrinting: { pair: 2 } });
+
+    expect(results.map((r) => r.cardId)).toEqual(["gold"]);
+    expect(results[0]!.defaultPrinting).toBe(gold);
+    expect(results[0]!.ownedCount).toBe(2);
+  });
+
   it("respects the limit", () => {
     const map = groupByCardId([
       stubPrinting({ cardId: "c1", card: { name: "Ahri One" } }),

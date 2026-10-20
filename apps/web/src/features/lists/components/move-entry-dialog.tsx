@@ -1,4 +1,5 @@
-import { sideKey } from "@openrift/shared/printing-side";
+import { legendDisplayName } from "@openrift/shared/card-name";
+import { sideKey, uniquePrintings } from "@openrift/shared/printing-side";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { ListIntent } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -27,7 +28,7 @@ import type {
   MovePick,
   MoveResolution,
 } from "@/features/lists/lib/list-move";
-import { movePickFor } from "@/features/lists/lib/list-move";
+import { hasTwoCards, movePickFor } from "@/features/lists/lib/list-move";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -81,6 +82,7 @@ interface MoveEntryDialogBodyProps {
   pick: MovePick;
   currentPrintingId: string;
   printings: Printing[];
+  cardOptions: { cardId: string; name: string }[];
   copies: MoveEntryCopyOption[];
   quantity: number;
   onConfirm: (resolution: MoveResolution | null) => void;
@@ -100,6 +102,7 @@ export function MoveEntryDialogBody({
   pick,
   currentPrintingId,
   printings,
+  cardOptions,
   copies,
   quantity,
   onConfirm,
@@ -114,6 +117,7 @@ export function MoveEntryDialogBody({
       printings.at(0)?.printingId ??
       null,
   );
+  const [cardId, setCardId] = useState(() => cardOptions.at(0)?.cardId ?? null);
   const [copyIds, setCopyIds] = useState(
     () => new Set(copies.slice(0, quantity).map((option) => option.copy.id)),
   );
@@ -134,6 +138,7 @@ export function MoveEntryDialogBody({
     !isPending &&
     (pick === "none" ||
       (pick === "printing" && printingId !== null) ||
+      (pick === "card" && cardId !== null) ||
       (pick === "copies" && copyIds.size > 0));
 
   const submit = () => {
@@ -146,6 +151,10 @@ export function MoveEntryDialogBody({
     }
     if (pick === "copies") {
       onConfirm({ copyIds: [...copyIds] });
+      return;
+    }
+    if (pick === "card") {
+      onConfirm({ cardId: cardId ?? undefined });
       return;
     }
     onConfirm(null);
@@ -184,6 +193,24 @@ export function MoveEntryDialogBody({
               >
                 <ImportPrintingLabel printing={printing} className="min-w-0 flex-1 truncate" />
                 {printingId === printing.printingId && <CheckIcon className="size-4 shrink-0" />}
+              </PickerRow>
+            ))}
+          </PickerList>
+        </div>
+      )}
+      {pick === "card" && (
+        <div className="space-y-2">
+          <p className="text-sm">{m.lists_move_pick_card_hint({ list: target.name })}</p>
+          <PickerList highlightedId={highlightedId} onHighlightChange={setHighlightedId}>
+            {cardOptions.map((option) => (
+              <PickerRow
+                key={option.cardId}
+                value={option.cardId}
+                onSelect={() => setCardId(option.cardId)}
+                className={cn("px-3 py-2", cardId === option.cardId && SELECTED_ROW)}
+              >
+                <span className="min-w-0 flex-1 truncate">{option.name}</span>
+                {cardId === option.cardId && <CheckIcon className="size-4 shrink-0" />}
               </PickerRow>
             ))}
           </PickerList>
@@ -254,10 +281,12 @@ export function ConnectedMoveEntryDialogBody({
   onCancel,
   isPending,
 }: ConnectedBodyProps) {
-  const pick = movePickFor(subject.sourceKind, target.listKind);
+  const pick = movePickFor(subject.sourceKind, target.listKind, hasTwoCards(subject.printing));
   const { printingsByCardId } = useCards();
   const collectionsById = useCollectionsMap();
-  const cardPrintings = printingsByCardId.get(subject.printing.cardId) ?? [subject.printing];
+  const cardPrintings = uniquePrintings(
+    printingsByCardId.get(subject.printing.cardId) ?? [subject.printing],
+  );
   const candidatePrintings = subject.sourceKind === "printing" ? [subject.printing] : cardPrintings;
   const { data: copyRows } = useCopyRowsForPrintings(
     candidatePrintings.map((p) => p.printingId),
@@ -282,6 +311,17 @@ export function ConnectedMoveEntryDialogBody({
       pick={pick}
       currentPrintingId={subject.printing.printingId}
       printings={cardPrintings}
+      cardOptions={
+        subject.printing.otherSide
+          ? [
+              { cardId: subject.printing.cardId, name: legendDisplayName(subject.printing.card) },
+              {
+                cardId: subject.printing.otherSide.cardId,
+                name: subject.printing.otherSide.cardName,
+              },
+            ]
+          : []
+      }
       copies={copies}
       quantity={subject.totalQuantity}
       onConfirm={onConfirm}

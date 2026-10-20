@@ -26,6 +26,7 @@ import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
 
 const cardDetailSearchSchema = z.object({
   printingId: z.string().optional(),
+  side: z.preprocess((value) => (Number(value) === 2 ? 2 : undefined), z.literal(2).optional()),
 });
 
 interface CardDetailLoaderData {
@@ -61,6 +62,7 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
       data.printings,
       match.params.printingSlug ?? match.search.printingId,
       loaded.languageOrder,
+      match.search.side,
     );
     const imageUrl = toAbsoluteUrl(siteUrl, getCardFrontImageFullUrl(metaPrinting));
     const description = buildCardMetaDescription(

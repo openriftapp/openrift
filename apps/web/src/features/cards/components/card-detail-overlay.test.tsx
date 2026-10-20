@@ -32,7 +32,11 @@ vi.mock("@/hooks/use-is-mobile", () => ({
   useIsMobile: () => isMobile(),
 }));
 
-const catalog = { printingsById: {} as Record<string, Printing>, printingsByCardId: new Map() };
+const catalog = {
+  printingsById: {} as Record<string, Printing>,
+  printingsBySideKey: {} as Record<string, Printing>,
+  printingsByCardId: new Map(),
+};
 vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => catalog,
 }));
@@ -129,6 +133,7 @@ function seedCatalog(count: number): Printing[] {
     stubPrinting({ printingId: `printing-${i}` }),
   );
   catalog.printingsById = Object.fromEntries(printings.map((p) => [p.printingId, p]));
+  catalog.printingsBySideKey = catalog.printingsById;
   catalog.printingsByCardId = new Map(printings.map((p) => [p.cardId, [p]]));
   return printings;
 }

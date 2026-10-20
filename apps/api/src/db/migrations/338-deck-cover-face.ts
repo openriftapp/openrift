@@ -12,11 +12,14 @@ const UP = [
   `UPDATE decks d SET cover_face_id = (
      SELECT f.id FROM printings p
      JOIN faces f ON f.id IN (p.face1_id, p.face2_id)
-     WHERE p.id = d.cover_printing_id AND f.card_id = d.cover_card_id
+     WHERE p.id = d.cover_printing_id AND (d.cover_card_id IS NULL OR f.card_id = d.cover_card_id)
      ORDER BY f.id = p.face1_id DESC
      LIMIT 1
    )
    WHERE d.cover_printing_id IS NOT NULL`,
+  `UPDATE decks d SET cover_card_id = f.card_id
+   FROM faces f
+   WHERE f.id = d.cover_face_id AND d.cover_card_id IS NULL`,
   `ALTER TABLE decks
     ADD CONSTRAINT decks_cover_face_id_fkey FOREIGN KEY (cover_face_id) REFERENCES faces(id) ON DELETE SET NULL`,
   `ALTER TABLE decks

@@ -51,6 +51,16 @@ describe("buildBoxWantsLookup", () => {
     expect(lookup.wantedCardCount("box-1")).toBe(1);
   });
 
+  it("counts a double-sided copy wanted for both its cards once", () => {
+    const lookup = buildBoxWantsLookup([
+      row("box-1", "p-pair", "c-bird"),
+      row("box-1", "p-pair", "c-gold"),
+    ]);
+
+    expect(lookup.fulfillable("box-1", "p-pair")).toBe(1);
+    expect(lookup.wantedCardCount("box-1")).toBe(2);
+  });
+
   it("picks the box holding the most wanted cards", () => {
     const lookup = buildBoxWantsLookup([
       row("box-1", "p-1", "c-1"),

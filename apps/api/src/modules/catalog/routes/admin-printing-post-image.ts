@@ -1,3 +1,4 @@
+import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { formatPostDate, postDateFromQuery } from "@openrift/shared/printing-post-date";
 import {
@@ -8,7 +9,9 @@ import {
 } from "@openrift/shared/printing-post-image";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Hono } from "hono";
+import { z } from "zod";
 
+import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { pngResponse } from "../../../lib/http-response.js";
 import { siteHostFromOrigin } from "../../../lib/site-url.js";
@@ -30,10 +33,14 @@ export function mountAdminPrintingPostImage(app: Hono<{ Variables: Variables }>)
     const config = c.get("config");
     const printingId = c.req.param("printingId");
 
-    const printing = await repos.printingDesk.getPostImageRow(printingId);
+    const requestedImageFileId = c.req.query("imageFileId");
+    if (requestedImageFileId !== undefined && !z.uuid().safeParse(requestedImageFileId).success) {
+      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "imageFileId must be a uuid");
+    }
+    const printing = await repos.printingDesk.getPostImageRow(printingId, requestedImageFileId);
     assertFound(printing, "Printing not found");
 
-    const imageFileId = c.req.query("imageFileId") ?? printing.activeImageFileId;
+    const imageFileId = requestedImageFileId ?? printing.activeImageFileId;
     const label = postImageLabelFromQuery(c.req.query("label"));
     const aspect = postImageAspectFromQuery(c.req.query("aspect"));
     const scale = postImageScaleFromQuery(c.req.query("scale"));

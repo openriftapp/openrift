@@ -8,6 +8,7 @@ import {
   applyTradeSync,
   createTrade,
   listTradeCopyOptions,
+  otherCardWishDecrements,
   setTradeQuantity,
   skipTradeSync,
 } from "./card-trades.js";
@@ -438,6 +439,50 @@ describe("createTrade beyond the wished quantity", () => {
   });
 });
 
+describe("createTrade on a double-sided printing", () => {
+  it("binds the wish for the card the request names", async () => {
+    const { repos, create } = supplyRepos({ [GROUP.id]: ["copy-1"] });
+    vi.mocked(repos.friendGroupMatches.othersHaveYourWants).mockResolvedValue([
+      MATCH_ROW,
+      { ...MATCH_ROW, cardId: "card-2", buyEntryId: "wish-2", buyQuantity: 1 },
+    ] as never);
+
+    await createTrade(repos, {
+      callerUserId: "receiver-1",
+      groupSlug: GROUP.slug,
+      counterpartyUserId: "giver-1",
+      role: "receiver",
+      printingId: MATCH_ROW.printingId,
+      cardId: "card-2",
+      quantity: 1,
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ receiverWishEntryId: "wish-2", cardId: "card-2" }),
+    );
+  });
+});
+
+describe("createTrade on a printing wish from the second side", () => {
+  it("binds the printing wish when no row names the requested card", async () => {
+    const { repos, create } = supplyRepos({ [GROUP.id]: ["copy-1"] });
+
+    await createTrade(repos, {
+      callerUserId: "receiver-1",
+      groupSlug: GROUP.slug,
+      counterpartyUserId: "giver-1",
+      role: "receiver",
+      printingId: MATCH_ROW.printingId,
+      cardId: "card-2",
+      quantity: 1,
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ receiverWishEntryId: "wish-1", cardId: "card-1" }),
+    );
+  });
+});
+
 describe("createTrade with requested copies", () => {
   it("stores the copies the requester asked for", async () => {
     const { repos, create, setRequestedCopies } = supplyRepos({
@@ -811,5 +856,24 @@ describe("listTradeCopyOptions", () => {
     );
 
     expect((result as AppError).status).toBe(409);
+  });
+});
+
+describe("otherCardWishDecrements", () => {
+  it("spreads the received copies over each card's wishes, oldest first", () => {
+    expect(
+      otherCardWishDecrements(
+        [
+          { id: "gold-old", cardId: "gold", quantity: 1 },
+          { id: "gold-new", cardId: "gold", quantity: 3 },
+          { id: "brush", cardId: "brush", quantity: 5 },
+        ],
+        2,
+      ),
+    ).toEqual([
+      { entryId: "gold-old", by: 1 },
+      { entryId: "gold-new", by: 1 },
+      { entryId: "brush", by: 2 },
+    ]);
   });
 });

@@ -1,4 +1,5 @@
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { CardFilters } from "@openrift/shared/types/search";
 import { EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
 import { renderHook } from "@testing-library/react";
@@ -429,5 +430,39 @@ describe("useCardData", () => {
 
     expect(result.current.filteredCount).toBe(2);
     expect(result.current.totalUniqueCards).toBe(2);
+  });
+});
+
+describe("useCardData owned counts on double-sided printings", () => {
+  const bird = stubPrinting({ printingId: "pair", side: 1, cardId: "bird", shortCode: "T-001" });
+  const gold = stubPrinting({ printingId: "pair", side: 2, cardId: "gold", shortCode: "T-005" });
+  const soloGold = stubPrinting({ printingId: "solo", cardId: "gold", shortCode: "T-006" });
+
+  it("gives each side of a printing the printing's copies in printings view", () => {
+    const { result } = renderHook(() =>
+      useCardData({
+        ...baseParams(),
+        allPrintings: [bird, gold],
+        ownedCountByPrinting: { pair: 2 },
+      }),
+    );
+
+    expect(result.current.ownedCounts?.get("pair")).toBe(2);
+    expect(result.current.ownedCounts?.get("pair:2")).toBe(2);
+  });
+
+  it("adds a pair's copies to each of its cards in cards view", () => {
+    const { result } = renderHook(() =>
+      useCardData({
+        ...baseParams(),
+        view: "cards",
+        allPrintings: [bird, gold, soloGold],
+        ownedCountByPrinting: { pair: 2, solo: 1 },
+      }),
+    );
+    const tiles = new Map(result.current.sortedCards.map((p) => [p.cardId, sideKey(p)]));
+
+    expect(result.current.ownedCounts?.get(tiles.get("bird")!)).toBe(2);
+    expect(result.current.ownedCounts?.get(tiles.get("gold")!)).toBe(3);
   });
 });

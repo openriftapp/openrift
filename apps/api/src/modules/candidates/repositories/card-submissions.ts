@@ -440,6 +440,7 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
         .innerJoin("sets as s", "s.id", "p.setId")
         .select((eb) => [
           "p.printingId",
+          sql<1 | 2>`p.position`.as("side"),
           "c.slug as cardSlug",
           "c.name as cardName",
           "s.slug as setSlug",
@@ -476,6 +477,7 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
         )
         .groupBy([
           "p.printingId",
+          "p.position",
           "c.slug",
           "c.name",
           "s.slug",

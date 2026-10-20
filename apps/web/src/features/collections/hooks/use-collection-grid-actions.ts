@@ -1,9 +1,9 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
 import { copyHasMetadata } from "@openrift/shared/copy-metadata";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import type { CollectionContextAction } from "@/features/cards/stores/card-row-actions-store";
 import {
   useCopyListMemberships,
@@ -13,6 +13,7 @@ import {
 import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
 import { copyIdsShareOneCard } from "@/features/collections/lib/collection-grid-items";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
+import { stackSideForTile } from "@/features/collections/lib/stacked-entry";
 import { useCollectionOverlayStore } from "@/features/collections/stores/collection-overlay-store";
 import type { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
 
@@ -111,7 +112,7 @@ export function useCollectionGridActions({
 
   // Reuses the move pipeline (member -> inbox); no trade record since a free
   // pile has no reciprocation.
-  const handleTake = (itemId: string, count: number) => {
+  const handleTake = (itemId: string, count: number, tilePrinting?: Printing) => {
     const stack = stackByItemId.get(itemId);
     if (!stack || !inboxId) {
       return;
@@ -121,9 +122,11 @@ export function useCollectionGridActions({
       return;
     }
     const initialQuantity = Math.min(Math.max(1, count), availableCopyIds.length);
-    useCollectionOverlayStore
-      .getState()
-      .setTakeConfirm({ printing: stack.printing, availableCopyIds, initialQuantity });
+    useCollectionOverlayStore.getState().setTakeConfirm({
+      printing: tilePrinting ?? stackSideForTile(stack, itemId),
+      availableCopyIds,
+      initialQuantity,
+    });
   };
 
   const performTake = (quantity: number) => {
@@ -140,11 +143,11 @@ export function useCollectionGridActions({
         onSuccess: () => {
           toast.success(
             takenQuantity === 1
-              ? `Took ${legendDisplayName(printing.card)}`
-              : `Took ${takenQuantity}× ${legendDisplayName(printing.card)}`,
+              ? `Took ${printingDisplayName(printing)}`
+              : `Took ${takenQuantity}× ${printingDisplayName(printing)}`,
           );
           useCollectionOverlayStore.getState().setTakeConfirm(null);
-          const matches = wish.entriesForPrinting(printing.cardId, printing.printingId);
+          const matches = wish.entriesForCopy(printing);
           if (matches.length > 0) {
             useCollectionOverlayStore
               .getState()

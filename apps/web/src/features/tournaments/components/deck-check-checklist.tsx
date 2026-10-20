@@ -1,7 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageUrl } from "@openrift/shared/image-url";
-import { indexByPrinting } from "@openrift/shared/printing-side";
 import { setIndexById, UNKNOWN_SET_INDEX } from "@openrift/shared/set-order";
 import type { DeckCheckEntryCardResponse } from "@openrift/shared/types/api/deck-check";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -30,6 +29,7 @@ import {
   useRemoveTournamentDeckCheckCard,
   useTickTournamentDeckCheckCard,
 } from "@/features/tournaments/hooks/use-tournament-deck-check";
+import { resolvedSide } from "@/features/tournaments/lib/deck-check-side";
 import type { DeckCheckSort } from "@/features/tournaments/lib/deck-check-sort";
 import { sortDeckCheckCards } from "@/features/tournaments/lib/deck-check-sort";
 import type { DeckCheckDisplayMode } from "@/features/tournaments/stores/deck-check-view-store";
@@ -78,15 +78,14 @@ export function CardChecklist({
 }) {
   const { zoneLabels } = useZoneOrder();
   const { orders } = useEnumOrders();
-  const { allPrintings, sets } = useCards();
+  const { printingsById, printingsByCardId, sets } = useCards();
   const isMobile = useIsMobile();
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<HoveredPreview | null>(null);
 
-  const printingById = indexByPrinting(allPrintings);
   const setIndexes = setIndexById(sets);
-  const identify = (printingId: string | null) => {
-    const printing = printingId ? printingById.get(printingId) : undefined;
+  const identify = (card: DeckCheckEntryCardResponse) => {
+    const printing = resolvedSide(card, printingsById, printingsByCardId);
     return printing
       ? {
           name: legendDisplayName(printing.card),
@@ -150,7 +149,7 @@ export function CardChecklist({
             label={zoneLabels[zone]}
             cards={zoneCards(zone)}
             displayMode="list"
-            printingById={printingById}
+            printingOf={(card) => resolvedSide(card, printingsById, printingsByCardId)}
             onHover={handleHover}
             columns={columns}
             cellWidth={cellWidth}
@@ -253,7 +252,7 @@ function ZoneSection({
   label,
   cards,
   displayMode,
-  printingById,
+  printingOf,
   onHover,
   columns,
   cellWidth,
@@ -269,7 +268,7 @@ function ZoneSection({
   label: string;
   cards: DeckCheckEntryCardResponse[];
   displayMode: DeckCheckDisplayMode;
-  printingById?: Map<string, Printing>;
+  printingOf?: (card: DeckCheckEntryCardResponse) => Printing | undefined;
   onHover?: (printing: Printing | null) => void;
   columns: number;
   cellWidth: number;
@@ -314,9 +313,7 @@ function ZoneSection({
                 entryId={entryId}
                 card={card}
                 copyIndex={copyIndex}
-                printing={
-                  card.resolvedPrintingId ? printingById?.get(card.resolvedPrintingId) : undefined
-                }
+                printing={printingOf?.(card)}
                 onHover={onHover}
                 locked={locked}
                 fixLocked={fixLocked}
@@ -551,7 +548,7 @@ function ChecklistCell({
   tickLocked: boolean;
   onStale: () => void;
 }) {
-  const { allPrintings } = useCards();
+  const { printingsById, printingsByCardId } = useCards();
   const display = useCardThumbnailDisplay();
   const tickCard = useTickTournamentDeckCheckCard();
   const removeCard = useRemoveTournamentDeckCheckCard();
@@ -647,9 +644,7 @@ function ChecklistCell({
       </>
     );
 
-  const printing = card.resolvedPrintingId
-    ? allPrintings.find((candidate) => candidate.printingId === card.resolvedPrintingId)
-    : undefined;
+  const printing = resolvedSide(card, printingsById, printingsByCardId);
 
   if (!printing || card.matchStatus !== "matched") {
     return (

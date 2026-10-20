@@ -48,6 +48,7 @@ const createTradeFn = createServerFn({ method: "POST" })
       counterpartyUserId: string;
       role: CardTradeRole;
       printingId: string;
+      cardId?: string;
       quantity: number;
       copyIds?: string[];
     }) => input,
@@ -230,6 +231,7 @@ export function useCreateTrade() {
       counterpartyUserId: string;
       role: CardTradeRole;
       printingId: string;
+      cardId?: string;
       quantity: number;
       copyIds?: string[];
     }

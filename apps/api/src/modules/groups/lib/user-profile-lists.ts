@@ -32,7 +32,7 @@ export interface ProfileListRepos {
     listForUser: (userId: string, intent?: ListIntent) => Promise<ListRef[]>;
   };
   userProfile: {
-    cardIdsForPrintings: (printingIds: readonly string[]) => Promise<Map<string, string>>;
+    cardIdsForPrintings: (printingIds: readonly string[]) => Promise<Map<string, string[]>>;
   };
   canonicalPrintings: {
     resolvePrintingMetaForRows: (
@@ -41,14 +41,14 @@ export interface ProfileListRepos {
   };
 }
 
-function cardIdOf(row: ListEntryRow, cardByPrinting: Map<string, string>): string | null {
-  return row.kind === "card" ? row.cardId : (cardByPrinting.get(row.printingId) ?? null);
+function cardIdsOf(row: ListEntryRow, cardsByPrinting: Map<string, string[]>): string[] {
+  return row.kind === "card" ? [row.cardId] : (cardsByPrinting.get(row.printingId) ?? []);
 }
 
 function cardIdsByPrinting(
   repos: Pick<ProfileListRepos, "userProfile">,
   rows: readonly ListEntryRow[],
-): Promise<Map<string, string>> {
+): Promise<Map<string, string[]>> {
   const printingIds = [
     ...new Set(rows.flatMap((row) => (row.kind === "card" ? [] : [row.printingId]))),
   ];
@@ -99,8 +99,7 @@ export async function expandOwnerLists(
       ]);
       const cardIds = new Set<string>();
       for (const row of rows) {
-        const cardId = cardIdOf(row, cardByPrinting);
-        if (cardId !== null) {
+        for (const cardId of cardIdsOf(row, cardByPrinting)) {
           cardIds.add(cardId);
         }
       }
@@ -128,8 +127,7 @@ async function viewerCardSet(
       const rows = await repos.lists.entriesWithDetails(list.id, list.kind, viewerUserId);
       const cardByPrinting = await cardIdsByPrinting(repos, rows);
       for (const row of rows) {
-        const cardId = cardIdOf(row, cardByPrinting);
-        if (cardId !== null) {
+        for (const cardId of cardIdsOf(row, cardByPrinting)) {
           cards.add(cardId);
         }
       }

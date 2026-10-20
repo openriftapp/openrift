@@ -51,7 +51,9 @@ vi.mock("@tanstack/react-router", () => ({
 
 vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({
+    allPrintings: [PRINTING],
     printingsById: { [PRINTING.printingId]: PRINTING },
+    printingsBySideKey: { [PRINTING.printingId]: PRINTING },
     cardsById: { [PRINTING.cardId]: PRINTING.card },
     printingsByCardId: new Map([[PRINTING.cardId, [PRINTING]]]),
   }),

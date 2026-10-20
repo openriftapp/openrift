@@ -194,7 +194,7 @@ describe("ImageSuggestForm", () => {
   it("drops the printing just submitted from the list", () => {
     submitState.isSuccess = true;
     missingImages.items = [
-      stubMissingImagePrinting(1, { cardName: "Ahri, Alluring" }),
+      stubMissingImagePrinting(1, { cardSlug: "ahri-alluring", cardName: "Ahri, Alluring" }),
       stubMissingImagePrinting(2, { cardName: "Yasuo, Windchaser" }),
     ];
     renderForm();

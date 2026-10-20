@@ -123,6 +123,7 @@ function PrintingTile({
         <Link
           to="/admin/printing-desk/printings/$printingId"
           params={{ printingId: printing.printingId }}
+          search={printing.side === 2 ? { side: 2 } : {}}
         />
       }
     >

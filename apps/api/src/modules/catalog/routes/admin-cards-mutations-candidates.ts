@@ -183,7 +183,7 @@ export const adminCardMutationsCandidatesRouter = {
       const ps = await candidateCards.getCandidatePrintingById(id);
       assertFound(ps, "Candidate printing not found");
 
-      const target = await mut.getPrintingDifferentiatorsById(printingId);
+      const target = await mut.getPrintingDifferentiatorsById(printingId, ps.shortCode);
       assertFound(target, "Target printing not found");
 
       await candidateCards.copyCandidatePrinting(ps, target);

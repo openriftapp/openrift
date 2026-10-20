@@ -125,6 +125,7 @@ export function stubMissingImagePrinting(
 ): MissingImagePrinting {
   return {
     printingId: `printing-${index}`,
+    side: 1,
     cardSlug: `card-${index}`,
     cardName: `Card ${index}`,
     setSlug: "ogn",
@@ -183,6 +184,7 @@ export function stubDeckBuilderCard(overrides: Partial<DeckBuilderCard> = {}): D
 
 export function stubCardOwnership(overrides: Partial<CardOwnership> = {}): CardOwnership {
   const name = overrides.cardName ?? "Test Card";
+  const displayPrintingId = nextId();
   return {
     cardId: nextId(),
     cardName: name,
@@ -202,7 +204,8 @@ export function stubCardOwnership(overrides: Partial<CardOwnership> = {}): CardO
     cheapestPrice: undefined,
     cheapestPrinting: undefined,
     displayPrinting: {
-      id: nextId(),
+      id: displayPrintingId,
+      sideKey: displayPrintingId,
       language: "EN",
       shortCode: "OGN-001",
       setId: "set-origins",
@@ -342,6 +345,8 @@ export function makeAdminPrinting(
 ): AdminPrintingResponse {
   return {
     id: nextId(),
+    side: 1,
+    faceId: "face-1",
     cardId: nextId(),
     setId: "set-origins",
     setName: "Origins",

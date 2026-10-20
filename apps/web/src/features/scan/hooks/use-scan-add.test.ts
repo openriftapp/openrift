@@ -25,6 +25,7 @@ vi.mock("@/features/collections/hooks/use-copies", () => ({
 vi.mock("@/features/groups/hooks/use-wish-entries", () => ({
   useWishEntries: () => ({
     entriesForPrinting: () => [],
+    entriesForCopy: () => [],
     matches: () => false,
     wishedQuantity: () => 0,
   }),

@@ -94,6 +94,7 @@ describe("buildAcceptSubmissionInput", () => {
     expect(input.printingFields).toEqual([
       {
         printingId: printing.id,
+        faceId: printing.faceId,
         field: "artist",
         value: "Reviewed Artist",
         source: "manual",
@@ -125,7 +126,13 @@ describe("buildAcceptSubmissionInput", () => {
       edits: new Map(),
     });
     expect(input.printingFields).toEqual([
-      { printingId: printing.id, field: "artist", value: "New Artist", source: "provider" },
+      {
+        printingId: printing.id,
+        faceId: printing.faceId,
+        field: "artist",
+        value: "New Artist",
+        source: "provider",
+      },
     ]);
     expect(input.cardFields).toEqual([]);
   });
@@ -162,7 +169,9 @@ describe("buildAcceptSubmissionInput", () => {
       ticked: new Set(submissionTickKeys(submission)),
       edits: new Map(),
     });
-    expect(input.images).toEqual([{ candidatePrintingId: candidate.id, printingId: printing.id }]);
+    expect(input.images).toEqual([
+      { candidatePrintingId: candidate.id, printingId: printing.id, faceId: printing.faceId },
+    ]);
     expect(input.printingFields).toEqual([]);
   });
 

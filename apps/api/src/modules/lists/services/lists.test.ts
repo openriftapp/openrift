@@ -217,6 +217,49 @@ describe("moveListEntries", () => {
     ]);
   });
 
+  it("narrows a double-sided printing entry onto a card list only with a picked card", async () => {
+    const source = buildList({ id: "list-p", kind: "printing", intent: "wish" });
+    const destination = buildList({ id: "list-c", kind: "card", intent: "wish" });
+    const entries = [
+      buildEntry({ id: "entry-1", kind: "printing", printingId: "pair", resolvedCardId: "bird" }),
+    ];
+    const printings = [{ id: "pair", cardIds: ["bird", "gold"] }];
+
+    const unpicked = createMockRepos({ source, destination, entries, printings });
+    await expect(
+      moveListEntries(unpicked.repos, mockTransact(unpicked.repos), "user-1", "list-p", "list-c", [
+        "entry-1",
+      ]),
+    ).rejects.toThrow(/Pick which card/u);
+
+    const picked = createMockRepos({ source, destination, entries, printings });
+    await moveListEntries(
+      picked.repos,
+      mockTransact(picked.repos),
+      "user-1",
+      "list-p",
+      "list-c",
+      ["entry-1"],
+      [{ entryId: "entry-1", cardId: "gold" }],
+    );
+    expect(firstInsert(picked.bulkCreateEntries)[1]).toEqual([
+      expect.objectContaining({ kind: "card", cardId: "gold" }),
+    ]);
+
+    const foreign = createMockRepos({ source, destination, entries, printings });
+    await expect(
+      moveListEntries(
+        foreign.repos,
+        mockTransact(foreign.repos),
+        "user-1",
+        "list-p",
+        "list-c",
+        ["entry-1"],
+        [{ entryId: "entry-1", cardId: "brush" }],
+      ),
+    ).rejects.toThrow(/Picked card/u);
+  });
+
   it("rejects group-shared copies moving onto a wish or trade list", async () => {
     const source = buildList({ id: "list-a", kind: "copy", intent: "organize" });
     const destination = buildList({ id: "list-b", kind: "printing", intent: "trade" });

@@ -9,10 +9,11 @@ const printingRow = (printingId: string, imageId: string | null) =>
 const copyRow = (printingId: string, imageId: string | null) =>
   ({ kind: "copy", printingId, imageId }) as never;
 
-const PRINTING_CARD: Record<string, string> = {
-  "pr-1": "card-1",
-  "pr-2": "card-2",
-  "pr-3": "card-3",
+const PRINTING_CARD: Record<string, string[]> = {
+  "pr-1": ["card-1"],
+  "pr-2": ["card-2"],
+  "pr-3": ["card-3"],
+  "pr-pair": ["bird", "gold"],
 };
 
 function repos(overrides: Partial<ProfileListRepos["lists"]> = {}): ProfileListRepos {
@@ -25,7 +26,7 @@ function repos(overrides: Partial<ProfileListRepos["lists"]> = {}): ProfileListR
     },
     userProfile: {
       cardIdsForPrintings: vi.fn((ids: readonly string[]) =>
-        Promise.resolve(new Map(ids.map((id) => [id, PRINTING_CARD[id] ?? "card-x"]))),
+        Promise.resolve(new Map(ids.map((id) => [id, PRINTING_CARD[id] ?? ["card-x"]]))),
       ),
     },
     canonicalPrintings: {
@@ -57,6 +58,15 @@ describe("expandOwnerLists", () => {
 
     expect(list.entryCount).toBe(3);
     expect([...list.cardIds].toSorted()).toEqual(["card-1", "card-2"]);
+  });
+
+  it("counts both cards of a double-sided printing entry", async () => {
+    const r = repos({
+      entriesWithDetailsAnon: vi.fn().mockResolvedValue([printingRow("pr-pair", null)]),
+    });
+    const expanded = await expandOwnerLists(r, [{ id: "l-1", kind: "printing" }]);
+
+    expect([...expanded.get("l-1")!.cardIds].toSorted()).toEqual(["bird", "gold"]);
   });
 
   it("builds the preview row from entry order, skipping entries without art", async () => {

@@ -152,7 +152,7 @@ export function QueueSourcePicker({ onAdd }: { onAdd: (source: QueueSource) => v
   const pickDeck = async (deckId: string, name: string) => {
     setBusyId(deckId);
     const cards = await loadDeckCards(queryClient, userId ?? "", deckId);
-    onAdd({ label: name, printingIds: deckPrintingIds(cards, printingsByCardId, printingsById) });
+    onAdd({ label: name, printingIds: deckPrintingIds(cards, printingsByCardId) });
     setBusyId(null);
     setOpenSource(null);
   };

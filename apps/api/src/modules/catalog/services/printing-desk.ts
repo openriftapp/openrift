@@ -87,6 +87,51 @@ export async function assertDeskPrintingScope(
   );
 }
 
+/** A side shown on several printings is shared by all of them, so each must be in scope. */
+export async function assertFaceScope(
+  repos: Pick<Repos, "adminEvents" | "printingDesk">,
+  adminAccess: AdminAccess | null,
+  userId: string,
+  faceId: string,
+): Promise<void> {
+  if (adminAccess?.isAdmin) {
+    return;
+  }
+  for (const printingId of await repos.printingDesk.printingIdsShowingFace(faceId)) {
+    await assertDeskPrintingScope(repos, adminAccess, userId, printingId);
+  }
+}
+
+export async function assertImageScope(
+  repos: Pick<Repos, "adminEvents" | "printingDesk" | "printingImages">,
+  adminAccess: AdminAccess | null,
+  userId: string,
+  imageId: string,
+): Promise<void> {
+  if (adminAccess?.isAdmin) {
+    return;
+  }
+  const faceId = await repos.printingImages.faceIdOfImage(imageId);
+  assertFound(faceId, "Printing image not found");
+  await assertFaceScope(repos, adminAccess, userId, faceId);
+}
+
+export async function assertPrintingSideScope(
+  repos: Pick<Repos, "adminEvents" | "printingDesk">,
+  adminAccess: AdminAccess | null,
+  userId: string,
+  printingId: string,
+  face: "front" | "back",
+): Promise<void> {
+  const links = await repos.printingDesk.getFaceLinks(printingId);
+  assertFound(links, "Printing not found");
+  const faceId = face === "back" ? links.face2Id : links.face1Id;
+  if (faceId === null) {
+    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "That printing has no second side");
+  }
+  await assertFaceScope(repos, adminAccess, userId, faceId);
+}
+
 /** An image file can hang on several printings; every one of them must be in scope. */
 export async function assertDeskImageFileScope(
   repos: Pick<Repos, "adminEvents" | "printingDesk">,
@@ -170,7 +215,7 @@ export async function createDeskPrinting(
   assertFound(set, "Set not found");
 
   const base = basePrintingId
-    ? await repos.printingDesk.getFullPrinting(basePrintingId)
+    ? await repos.printingDesk.getFullPrintingForCard(basePrintingId, cardId)
     : await repos.printingDesk.getBasePrinting(cardId, fields.language);
 
   const artist = fields.artist ?? base?.artist;
@@ -283,26 +328,62 @@ type UpdateRepos = Pick<
   | "sets"
 >;
 
+/** A side change redefines the printing; data users hold on it moves through the pair merge. */
+async function assertNoUserReferences(
+  repos: Pick<Repos, "printingDesk">,
+  printingId: string,
+): Promise<void> {
+  const counts = await repos.printingDesk.userReferenceCounts(printingId);
+  const held = Object.entries(counts).filter(([, count]) => count > 0);
+  if (held.length > 0) {
+    throw new AppError(
+      409,
+      ERROR_CODES.CONFLICT,
+      `This printing has ${held.map(([noun, count]) => `${count} ${REFERENCE_NOUNS[noun as keyof typeof counts]}`).join(", ")}. Changing its sides would change what they are.`,
+    );
+  }
+}
+
+const REFERENCE_NOUNS = {
+  copies: "copies",
+  listEntries: "list entries",
+  trades: "trades",
+  loans: "loans",
+  listings: "marketplace listings",
+  products: "product contents",
+  metaPicks: "meta deck picks",
+  syncStates: "Cardmarket sync rows",
+  linkOverrides: "link overrides",
+  dismissals: "dismissed trade suggestions",
+  deckSlots: "deck slots",
+  history: "collection history events",
+} as const;
+
 export async function setDeskSecondSide(
+  transact: Transact,
   repos: Pick<Repos, "adminEvents" | "catalog" | "printingDesk">,
   adminAccess: AdminAccess | null,
   userId: string,
-  input: { printingId: string; faceId: string | null },
+  input: { printingId: string; faceId: string },
 ): Promise<void> {
   const { printingId, faceId } = input;
-  const before = await repos.printingDesk.getFaceLinks(printingId);
-  assertFound(before, "Printing not found");
+  assertFound(await repos.printingDesk.getFaceLinks(printingId), "Printing not found");
   await assertDeskPrintingScope(repos, adminAccess, userId, printingId);
-
-  if (faceId !== null) {
-    assertFound(await repos.printingDesk.findFace(faceId), "Side not found");
-    if (faceId === before.face1Id) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "The two sides must be different");
-    }
-  }
+  assertFound(await repos.printingDesk.findFace(faceId), "Side not found");
 
   try {
-    await repos.printingDesk.setSecondFace(printingId, faceId);
+    await transact(async (trxRepos) => {
+      // The row lock holds off new copies and trades until the change commits.
+      const locked = await trxRepos.printingDesk.lockFaceLinks(printingId);
+      if (faceId === locked.face1Id) {
+        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "The two sides must be different");
+      }
+      if (locked.face2Id !== null) {
+        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Remove the current second side first");
+      }
+      await assertNoUserReferences(trxRepos, printingId);
+      await trxRepos.printingDesk.setSecondFace(printingId, faceId);
+    });
   } catch (error) {
     throw asIdentityConflict(error);
   }
@@ -313,11 +394,84 @@ export async function setDeskSecondSide(
     entityId: printingId,
     entityLabel: printingId,
     cardSlug: null,
-    oldValues: { face2Id: before.face2Id },
+    oldValues: { face2Id: null },
     newValues: { face2Id: faceId },
   });
 
   await repos.catalog.refreshCatalogViews();
+}
+
+export async function removeDeskSide(
+  transact: Transact,
+  repos: Pick<Repos, "adminEvents" | "catalog" | "printingDesk">,
+  adminAccess: AdminAccess | null,
+  userId: string,
+  input: { printingId: string; faceId: string },
+): Promise<void> {
+  const { printingId, faceId } = input;
+  assertFound(await repos.printingDesk.getFaceLinks(printingId), "Printing not found");
+  await assertDeskPrintingScope(repos, adminAccess, userId, printingId);
+
+  let before: { face1Id: string; face2Id: string | null } | undefined;
+  try {
+    await transact(async (trxRepos) => {
+      const locked = await trxRepos.printingDesk.lockFaceLinks(printingId);
+      if (locked.face2Id === null || (faceId !== locked.face1Id && faceId !== locked.face2Id)) {
+        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "That side is not on the printing");
+      }
+      await assertNoUserReferences(trxRepos, printingId);
+      // A side left on no printing is deleted, which would clear the decks using it as a cover.
+      const showing = await trxRepos.printingDesk.printingIdsShowingFace(faceId);
+      const onlyHere = showing.length <= 1;
+      const covers = onlyHere ? await trxRepos.printingDesk.deckCoversShowingFace(faceId) : 0;
+      if (covers > 0) {
+        throw new AppError(
+          409,
+          ERROR_CODES.CONFLICT,
+          `${covers} ${covers === 1 ? "deck uses" : "decks use"} this side as a cover.`,
+        );
+      }
+      await trxRepos.printingDesk.dropFace(printingId, faceId);
+      before = locked;
+    });
+  } catch (error) {
+    throw asIdentityConflict(error);
+  }
+
+  await recordAdminEvent(repos, userId, {
+    action: "printing.update",
+    entityType: "printing",
+    entityId: printingId,
+    entityLabel: printingId,
+    cardSlug: null,
+    oldValues: { face1Id: before?.face1Id ?? null, face2Id: before?.face2Id ?? null },
+    newValues: { removedFaceId: faceId },
+  });
+
+  await repos.catalog.refreshCatalogViews();
+}
+
+const PRINTING_ONLY_FIELDS = new Set([
+  "releasedAt",
+  "releasePrecision",
+  "announcedAt",
+  "comment",
+  "size",
+  "distributionChannelSlugs",
+]);
+
+async function assertSharedSideScope(
+  repos: Pick<Repos, "adminEvents" | "printingDesk">,
+  adminAccess: AdminAccess | null,
+  userId: string,
+  printingId: string,
+  side: 1 | 2,
+): Promise<void> {
+  const links = await repos.printingDesk.getFaceLinks(printingId);
+  const faceId = side === 1 ? links?.face1Id : links?.face2Id;
+  if (faceId) {
+    await assertFaceScope(repos, adminAccess, userId, faceId);
+  }
 }
 
 export async function updateDeskPrinting(
@@ -340,6 +494,14 @@ export async function updateDeskPrinting(
   const before = await repos.printingDesk.getFullPrinting(printingId, side);
   assertFound(before, side === 1 ? "Printing not found" : "The printing has no second side");
   await assertDeskPrintingScope(repos, adminAccess, userId, printingId);
+  const editsSide =
+    markerSlugs !== undefined ||
+    codeTba !== undefined ||
+    shortCode !== undefined ||
+    Object.keys(fields).some((key) => !PRINTING_ONLY_FIELDS.has(key));
+  if (editsSide && !adminAccess?.isAdmin) {
+    await assertSharedSideScope(repos, adminAccess, userId, printingId, side);
+  }
 
   const channelsBefore =
     distributionChannelSlugs === undefined
@@ -387,13 +549,16 @@ export async function updateDeskPrinting(
   }
 
   try {
-    await repos.printingDesk.updatePrintingDeskFields(printingId, patch, side);
-    if (markerSlugs !== undefined) {
-      await updatePrintingMarkers(transact, printingId, markerSlugs, side);
-    }
-    if (distributionChannelSlugs !== undefined) {
-      await updatePrintingDistributionChannels(repos, printingId, distributionChannelSlugs);
-    }
+    await transact(async (trxRepos) => {
+      // Markers first: a short-code change can re-sort the sides, after which `side` names the other one.
+      if (markerSlugs !== undefined) {
+        await updatePrintingMarkers((fn) => fn(trxRepos), printingId, markerSlugs, side);
+      }
+      await trxRepos.printingDesk.updatePrintingDeskFields(printingId, patch, side);
+      if (distributionChannelSlugs !== undefined) {
+        await updatePrintingDistributionChannels(trxRepos, printingId, distributionChannelSlugs);
+      }
+    });
   } catch (error) {
     throw asIdentityConflict(error);
   }

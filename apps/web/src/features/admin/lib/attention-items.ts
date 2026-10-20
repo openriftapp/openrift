@@ -27,6 +27,7 @@ import {
   summarizeCandidatePrinting,
 } from "@/features/admin/lib/printing-fields";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
+import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
 
 type AttentionChangeKind = "value" | "text" | "image";
 
@@ -48,6 +49,7 @@ export interface AttentionGroup {
   printingLabel: string | null;
   language: string | null;
   printingId: string | null;
+  faceId?: string;
   imageUrl: string | null;
   candidate: CandidatePrintingResponse | null;
   changes: AttentionChange[];
@@ -103,10 +105,10 @@ export interface AttentionSourceBlock {
 }
 
 function activeImageUrl(
-  printingId: string,
+  printing: AdminPrintingResponse,
   images: readonly AdminPrintingImageResponse[],
 ): string | null {
-  const active = images.find((image) => image.printingId === printingId && image.isActive);
+  const active = imagesOnSide(images, printing).find((image) => image.isActive);
   if (!active) {
     return null;
   }
@@ -114,17 +116,17 @@ function activeImageUrl(
 }
 
 function displayImageUrl(
-  printingId: string,
+  printing: AdminPrintingResponse,
   images: readonly AdminPrintingImageResponse[],
 ): string | null {
-  const active = images.find((image) => image.printingId === printingId && image.isActive);
+  const active = imagesOnSide(images, printing).find((image) => image.isActive);
   return active === undefined ? null : printingImageDisplayUrl(active);
 }
 
 function primaryImageUrl(detail: AdminCardDetailResponse): string | null {
   const ranked = detail.printings.toSorted((a, b) => a.canonicalRank - b.canonicalRank);
   for (const printing of ranked) {
-    const url = displayImageUrl(printing.id, detail.printingImages);
+    const url = displayImageUrl(printing, detail.printingImages);
     if (url !== null) {
       return url;
     }
@@ -231,7 +233,7 @@ function buildLinkedPrintingGroup(
       }),
   );
 
-  const currentImage = activeImageUrl(printing.id, images);
+  const currentImage = activeImageUrl(printing, images);
   if (
     hasFieldValue(candidate.imageUrl) &&
     candidate.imageUrl !== currentImage &&
@@ -241,7 +243,7 @@ function buildLinkedPrintingGroup(
       key: `${groupKey}:imageUrl`,
       field: "imageUrl",
       label: IMAGE_CHANGE_LABELS[candidate.imageMatch ?? "unknown"],
-      current: displayImageUrl(printing.id, images),
+      current: displayImageUrl(printing, images),
       proposed: candidate.imageUrl,
       kind: "image",
     });
@@ -258,7 +260,8 @@ function buildLinkedPrintingGroup(
     printingLabel: printing.expectedPrintingId,
     language: printing.language,
     printingId: printing.id,
-    imageUrl: displayImageUrl(printing.id, images),
+    faceId: printing.faceId,
+    imageUrl: displayImageUrl(printing, images),
     candidate,
     changes,
     unchangedFields,

@@ -1,4 +1,3 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 
@@ -7,6 +6,7 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/compone
 import { Pressable } from "@/components/ui/pressable";
 import { PrintingLanguageTabs } from "@/features/cards/components/printing-language-tabs";
 import { PrintingRowContent } from "@/features/cards/components/printing-row";
+import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import type { PickerRequest } from "@/features/scan/lib/scan-resolve";
 import { useScanPrefsStore } from "@/features/scan/stores/scan-prefs-store";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -64,11 +64,7 @@ export function ScanPrintingPicker({
               printing={candidate}
               // Full candidate set, not the tab's: the variant label needs every sibling.
               siblings={candidates}
-              name={
-                candidate.otherSide
-                  ? `${legendDisplayName(candidate.card)} // ${candidate.otherSide.cardName}`
-                  : legendDisplayName(candidate.card)
-              }
+              name={printingDisplayName(candidate)}
               right={
                 isCurrent ? (
                   <span className="text-muted-foreground shrink-0 text-xs">

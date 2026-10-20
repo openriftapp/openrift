@@ -41,6 +41,13 @@ describe("resolveVariantPopoverPrintings", () => {
     expect(resolveVariantPopoverPrintings(catalog, catalog, null)).toBeUndefined();
   });
 
+  it("lists a printing with the card on both sides once", () => {
+    const front = stubPrinting({ printingId: "rioter", side: 1, cardId: CARD_ID });
+    const back = stubPrinting({ printingId: "rioter", side: 2, cardId: CARD_ID });
+    const catalog = mapOf([front, back]);
+    expect(resolveVariantPopoverPrintings(catalog, catalog, { cardId: CARD_ID })).toEqual([front]);
+  });
+
   it("uses the catalog projection when the card is present there", () => {
     const catalog = mapOf([enNormal, enFoil]);
     const languageScoped = mapOf([enNormal, enFoil, enOtherSet]);

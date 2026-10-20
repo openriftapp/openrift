@@ -357,5 +357,11 @@ describe("stepSequence", () => {
   it("has nothing to step through for a single distinct printing", () => {
     expect(stepSequence([stubTrade({ id: "a" }), stubTrade({ id: "b" })])).toBeUndefined();
     expect(stepSequence([])).toBeUndefined();
+    expect(
+      stepSequence(
+        [stubTrade({ id: "a", printingId: "pair" }), stubTrade({ id: "b", printingId: "pair" })],
+        (trade) => (trade.id === "a" ? "pair" : "pair:2"),
+      ),
+    ).toEqual(["pair", "pair:2"]);
   });
 });

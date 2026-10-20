@@ -95,7 +95,7 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
           <AlertTitle>{m.contribute_image_success_title()}</AlertTitle>
           <AlertDescription>{m.contribute_submit_success_body()}</AlertDescription>
         </Alert>
-        <MoreMissingImages currentPrintingId={printing.printingId} />
+        <MoreMissingImages current={{ printingId: printing.printingId, cardSlug: card.slug }} />
       </div>
     );
   }
@@ -171,12 +171,12 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
   );
 }
 
-function MoreMissingImages({ currentPrintingId }: { currentPrintingId: string }) {
+function MoreMissingImages({ current }: { current: { printingId: string; cardSlug: string } }) {
   const { data } = useMyMissingImages();
   if (data === undefined) {
     return null;
   }
-  const remaining = otherMissingImages(data.items, currentPrintingId);
+  const remaining = otherMissingImages(data.items, current);
   if (remaining.length === 0) {
     return <p className="text-muted-foreground">{m.contribute_image_all_done()}</p>;
   }

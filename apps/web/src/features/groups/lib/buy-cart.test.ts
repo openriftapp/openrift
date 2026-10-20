@@ -5,7 +5,9 @@ import type { BuyCartItem } from "./buy-cart";
 import {
   cartCardLines,
   cartFor,
+  cartCopyCount,
   cartItemForWanted,
+  cartPurchaseItems,
   cartTotal,
   fileOrder,
   findOrderedCollection,
@@ -58,6 +60,39 @@ describe("cartItemForWanted", () => {
 
   it("gives up when a card wish has no printing to show", () => {
     expect(cartItemForWanted(cardWish, undefined)).toBeNull();
+  });
+});
+
+describe("cartPurchaseItems", () => {
+  const bird: BuyCartItem = { key: "card:bird", cardId: "bird", printingId: "pair", quantity: 1 };
+  const gold: BuyCartItem = { key: "card:gold", cardId: "gold", printingId: "pair", quantity: 2 };
+
+  it("buys a double-sided printing wished for under both cards once, at the larger count", () => {
+    expect(cartPurchaseItems([bird, gold, JINX])).toEqual([gold, JINX]);
+  });
+
+  it("adds up wishes for the same card on one printing", () => {
+    const printingWish: BuyCartItem = { ...bird, key: "printing:pair", quantity: 2 };
+
+    expect(cartPurchaseItems([bird, printingWish, gold])).toEqual([{ ...bird, quantity: 3 }]);
+  });
+
+  it("counts the merged copies", () => {
+    expect(cartCopyCount([bird, gold, JINX])).toBe(3);
+  });
+
+  it("prices and files the merged copies", async () => {
+    expect(cartTotal([bird, gold], () => 100)).toEqual({ total: 200, unpriced: 0 });
+    const addCopies = vi.fn(async () => []);
+    await fileOrder(
+      { collectionId: async () => "col", addCopies, decrementEntries: vi.fn(async () => null) },
+      [bird, gold],
+      new Map(),
+    );
+    expect(addCopies).toHaveBeenCalledWith([
+      { printingId: "pair", collectionId: "col" },
+      { printingId: "pair", collectionId: "col" },
+    ]);
   });
 });
 

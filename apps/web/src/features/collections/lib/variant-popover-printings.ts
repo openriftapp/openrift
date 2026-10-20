@@ -1,3 +1,4 @@
+import { uniquePrintings } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 export interface VariantPopoverScope {
@@ -21,10 +22,11 @@ export function resolveVariantPopoverPrintings(
   const printings =
     catalogPrintingsByCardId.get(popover.cardId) ??
     languageScopedPrintingsByCardId.get(popover.cardId);
-  return printings?.filter((printing) => {
+  const matching = printings?.filter((printing) => {
     if (popover.printingId) {
       return printing.printingId === popover.printingId;
     }
     return !popover.setId || printing.setId === popover.setId;
   });
+  return matching === undefined ? undefined : uniquePrintings(matching);
 }

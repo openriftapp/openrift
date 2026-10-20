@@ -125,6 +125,27 @@ describe("computeDragSelectionSummary", () => {
     expect(result.count).toBe(2);
     expect(result.printings).toHaveLength(1);
   });
+
+  it("counts both side tiles of one printing once in the printings view", () => {
+    const bird = stubPrinting({ printingId: "pair", side: 1 });
+    const gold = stubPrinting({ printingId: "pair", side: 2 });
+    const stack = { printingId: "pair", printing: bird, sides: [bird, gold], copyIds: ["c1"] };
+    const result = computeDragSelectionSummary({
+      mode: "select",
+      selected: new Set(["c1"]),
+      items: [
+        { id: "pair", printing: bird },
+        { id: "pair:2", printing: gold },
+      ],
+      stackByItemId: new Map([
+        ["pair", stack],
+        ["pair:2", stack],
+      ]),
+      stacked: true,
+      countPrintings: true,
+    });
+    expect(result.count).toBe(1);
+  });
 });
 
 describe("dragSelectionNoun", () => {

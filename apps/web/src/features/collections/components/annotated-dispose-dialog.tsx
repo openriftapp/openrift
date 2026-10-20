@@ -1,4 +1,3 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 
@@ -11,6 +10,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import type { PendingAnnotatedDispose } from "@/features/collections/hooks/use-quick-add-actions";
 import { useEnumOrders } from "@/hooks/use-enums";
 import type { EnumLabels } from "@/lib/enum-labels";
@@ -80,11 +80,11 @@ export function AnnotatedDisposeDialog({
             {pending
               ? details.length > 0
                 ? m.collections_dialog_annotated_body_with_details({
-                    card: legendDisplayName(pending.printing.card),
+                    card: printingDisplayName(pending.printing),
                     details: details.join(", "),
                   })
                 : m.collections_dialog_annotated_body({
-                    card: legendDisplayName(pending.printing.card),
+                    card: printingDisplayName(pending.printing),
                   })
               : ""}
           </AlertDialogDescription>

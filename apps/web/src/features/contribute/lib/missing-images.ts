@@ -2,7 +2,9 @@ import type { MissingImagePrinting } from "@openrift/shared/contracts/card-submi
 
 export function otherMissingImages(
   items: readonly MissingImagePrinting[],
-  currentPrintingId: string,
+  current: { printingId: string; cardSlug: string },
 ): MissingImagePrinting[] {
-  return items.filter((item) => item.printingId !== currentPrintingId);
+  return items.filter(
+    (item) => item.printingId !== current.printingId || item.cardSlug !== current.cardSlug,
+  );
 }

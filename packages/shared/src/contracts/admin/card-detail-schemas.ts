@@ -1,5 +1,5 @@
 import { imageQuadSchema } from "@openrift/shared/contracts/admin/card-images";
-import { cardFaceSchema } from "@openrift/shared/response-schemas";
+import { cardFaceSchema, printingSideSchema } from "@openrift/shared/response-schemas";
 import { marketplaceEnum } from "@openrift/shared/schemas";
 import { z } from "zod";
 
@@ -123,6 +123,8 @@ export const adminPrintingDistributionChannelResponseSchema = z.object({
 
 export const adminPrintingResponseSchema = z.object({
   id: z.string(),
+  side: printingSideSchema,
+  faceId: z.string(),
   cardId: z.string(),
   setId: z.string(),
   setName: z.string().nullable(),

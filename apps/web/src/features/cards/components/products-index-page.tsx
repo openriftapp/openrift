@@ -39,7 +39,10 @@ function ProductCoverFan({
         <CardFanOutline />
       ) : (
         <CardFan
-          covers={coverCards.map((cover) => ({ key: cover.printingId, imageId: cover.imageId }))}
+          covers={coverCards.map((cover, index) => ({
+            key: `${cover.printingId}-${index}`,
+            imageId: cover.imageId,
+          }))}
           priority={priority}
         />
       )}

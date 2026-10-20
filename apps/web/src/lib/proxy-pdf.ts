@@ -50,7 +50,9 @@ export interface ProxyCard {
 
 /** Two deck rows pinned to different printings of the same card must render distinct images. */
 export function proxyRenderKey(proxyCard: ProxyCard): string {
-  return proxyCard.printingId ?? proxyCard.cardId;
+  return proxyCard.printingId === null
+    ? proxyCard.cardId
+    : `${proxyCard.printingId}:${proxyCard.cardId}`;
 }
 
 /** Picks the same printing the deck UI shows: an explicit `preferredPrintingId` wins, else the language preference. */

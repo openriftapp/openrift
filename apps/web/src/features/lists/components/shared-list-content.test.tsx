@@ -83,7 +83,7 @@ vi.mock("@/features/collections/hooks/use-owned-count", () => ({
 }));
 
 vi.mock("@/features/groups/hooks/use-wish-entries", () => ({
-  useWishEntries: () => ({ entriesForPrinting: () => [] }),
+  useWishEntries: () => ({ entriesForPrinting: () => [], entriesForCopy: () => [] }),
 }));
 
 vi.mock("@/features/cards/hooks/use-card-thumbnail-display", () => ({

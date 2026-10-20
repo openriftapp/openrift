@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
@@ -22,17 +23,17 @@ export function useCellDisplayState({
   inCardsView: boolean;
 }): { displayPrinting: Printing; isSelected: boolean; isFlashing: boolean } {
   const isSelected = useGridFocusStore(
-    (s) => s.selectedItemId === itemId || s.selectedItemId === printing.printingId,
+    (s) => s.selectedItemId === itemId || s.selectedItemId === sideKey(printing),
   );
   const isFlashing = useGridFocusStore(
-    (s) => s.flashCardId === itemId || s.flashCardId === printing.printingId,
+    (s) => s.flashCardId === itemId || s.flashCardId === sideKey(printing),
   );
   const overrideId = useSiblingOverrideStore((s) =>
     inCardsView ? s.overrides[scope].get(printing.cardId) : undefined,
   );
   const displayPrinting =
     overrideId && siblings
-      ? (siblings.find((sibling) => sibling.printingId === overrideId) ?? printing)
+      ? (siblings.find((sibling) => sideKey(sibling) === overrideId) ?? printing)
       : printing;
   return { displayPrinting, isSelected, isFlashing };
 }

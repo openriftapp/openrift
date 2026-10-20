@@ -15,13 +15,14 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { UserAvatar } from "@/components/user-avatar";
 import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { printingArt } from "@/features/cards/lib/card-meta";
+import { printingArt, printingDisplayName } from "@/features/cards/lib/card-meta";
 import { useFriendGroupActivity } from "@/features/groups/hooks/use-friend-groups";
 import {
   buildActivityDays,
   distinctPrintingIds,
 } from "@/features/groups/lib/friend-group-activity";
 import { LIST_INTENT_ICON, listIntentNoun } from "@/features/groups/lib/list-intent-meta";
+import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import { useRequiredUserId } from "@/hooks/use-session";
 import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
@@ -144,14 +145,23 @@ function TradeBatchRow({ slug, batch }: { slug: string; batch: TradeBatch }) {
 }
 
 function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivityEvent }) {
-  const { cardsById, printingsById } = useCards();
+  const { cardsById, printingsById, printingsByCardId } = useCards();
   const viewerId = useRequiredUserId();
 
-  const cardName = (cardId: string): string =>
-    cardsById[cardId]?.name ?? m.groups_activity_a_card();
-  const thumb = (printingId: string): ReactNode => (
+  const cardName = (subject: { cardId: string; printingId: string }): string => {
+    const printing = tradePrinting(subject, printingsByCardId, printingsById);
+    return printing
+      ? printingDisplayName(printing)
+      : (cardsById[subject.cardId]?.name ?? m.groups_activity_a_card());
+  };
+  const thumb = (subject: { cardId: string; printingId: string }): ReactNode => (
     <CardArtThumbStack
-      items={[{ key: printingId, ...printingArt(printingsById[printingId]) }]}
+      items={[
+        {
+          key: subject.printingId,
+          ...printingArt(tradePrinting(subject, printingsByCardId, printingsById)),
+        },
+      ]}
       thumbClassName="w-6"
     />
   );
@@ -176,13 +186,13 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
                   ? m.groups_activity_you()
                   : (event.giverName ?? m.groups_activity_a_member()),
               quantity: event.quantity,
-              card: cardName(event.cardId),
+              card: cardName(event),
               receiver:
                 event.receiverUserId === viewerId
                   ? m.groups_activity_you_object()
                   : (event.receiverName ?? m.groups_a_member()),
             }),
-            thumb(event.printingId),
+            thumb(event),
           )}
         </RowListLink>
       );
@@ -194,9 +204,9 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
           {text(
             m.groups_activity_match({
               member: event.counterpartyName ?? m.groups_activity_a_member(),
-              card: cardName(event.cardId),
+              card: cardName(event),
             }),
-            thumb(event.printingId),
+            thumb(event),
           )}
         </RowListLink>
       );

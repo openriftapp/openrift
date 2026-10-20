@@ -79,6 +79,16 @@ const LABELS: CsvExportLabels = {
 };
 
 describe("generateExportCSV", () => {
+  it("writes one row for a double-sided stack, named by both cards", () => {
+    const bird = makeStack({ shortCode: "OGN-T01", name: "Bird", copyCount: 2 });
+    const gold = makeStack({ shortCode: "OGN-T05", name: "Gold" }).printing;
+    const csv = generateExportCSV([{ ...bird, sides: [bird.printing, gold] }]);
+    const lines = csv.split("\n");
+
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toMatch(/^OGN-T01,Bird \/\/ Gold,.*,2,/u);
+  });
+
   it("includes the Promo and metadata columns in headers", () => {
     const csv = generateExportCSV([]);
     const headers = csv.split("\n")[0];

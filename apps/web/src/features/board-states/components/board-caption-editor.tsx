@@ -148,8 +148,12 @@ export function BoardCaptionEditor({
     if (!card) {
       return null;
     }
-    const byPrinting = card.printingId ? printingsById[card.printingId] : undefined;
-    return frontImageId(byPrinting ?? printingsByCardId.get(card.cardId)?.[0]);
+    const sides = printingsByCardId.get(card.cardId);
+    const byPrinting = card.printingId
+      ? (sides?.find((printing) => printing.printingId === card.printingId) ??
+        printingsById[card.printingId])
+      : undefined;
+    return frontImageId(byPrinting ?? sides?.[0]);
   }
 
   function insert(target: MentionTarget) {

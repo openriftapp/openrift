@@ -155,7 +155,7 @@ function SharedCollectionBody({ data }: { data: PublicCollectionDetailResponse }
 
 function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }) {
   const { items: copies } = data;
-  const { printingsById, sets, printingsByCardId: catalogAllPrintingsByCardId } = useCards();
+  const { allPrintings, sets, printingsByCardId: catalogAllPrintingsByCardId } = useCards();
   const display = useCardThumbnailDisplay();
   const showImages = useDisplayStore((state) => state.showImages);
   const channels = useChannelRegistry();
@@ -179,13 +179,9 @@ function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }
       onLoanByPrintingId[copy.printingId] = (onLoanByPrintingId[copy.printingId] ?? 0) + 1;
     }
   }
-  const collectionPrintings: Printing[] = [];
-  for (const printingId of Object.keys(countByPrintingId)) {
-    const printing = printingsById[printingId];
-    if (printing) {
-      collectionPrintings.push(printing);
-    }
-  }
+  const collectionPrintings: Printing[] = allPrintings.filter(
+    (printing) => countByPrintingId[printing.printingId] !== undefined,
+  );
 
   // Only feed the owned map into useCardData when an owned/copies filter is
   // active, so the ref stays stable and the grid doesn't churn on inventory updates.

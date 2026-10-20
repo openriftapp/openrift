@@ -161,6 +161,7 @@ describe("formatPrintingVariantLabelParts", () => {
     expect(formatPrintingVariantLabelParts(stub(), undefined, TEST_LABELS)).toEqual({
       language: null,
       rest: [],
+      otherSide: null,
     });
   });
 
@@ -171,10 +172,12 @@ describe("formatPrintingVariantLabelParts", () => {
     expect(formatPrintingVariantLabelParts(sc, siblings, TEST_LABELS)).toEqual({
       language: "SC",
       rest: [],
+      otherSide: null,
     });
     expect(formatPrintingVariantLabelParts(en, siblings, TEST_LABELS)).toEqual({
       language: "EN",
       rest: [],
+      otherSide: null,
     });
   });
 
@@ -184,6 +187,7 @@ describe("formatPrintingVariantLabelParts", () => {
     expect(formatPrintingVariantLabelParts(p, siblings, TEST_LABELS)).toEqual({
       language: "SC",
       rest: ["Alt Art", "Signed"],
+      otherSide: null,
     });
   });
 
@@ -193,7 +197,40 @@ describe("formatPrintingVariantLabelParts", () => {
     expect(formatPrintingVariantLabelParts(p, siblings, TEST_LABELS)).toEqual({
       language: null,
       rest: ["Alt Art"],
+      otherSide: null,
     });
+  });
+
+  it("names the other side of a double-sided printing", () => {
+    const p = stub({ otherSide: { cardName: "Buff", shortCode: "OGN" } });
+    expect(formatPrintingVariantLabelParts(p, [p], TEST_LABELS).otherSide).toBe("Buff");
+    expect(formatPrintingVariantLabel(p, [p], TEST_LABELS)).toBe("with Buff");
+  });
+
+  it("adds the other side's code when a sibling's other side has the same name", () => {
+    const first = stub({ otherSide: { cardName: "Recruit", shortCode: "OGN-271" } });
+    const second = stub({ otherSide: { cardName: "Recruit", shortCode: "OGN-272" } });
+    const sprite = stub({ otherSide: { cardName: "Sprite", shortCode: "OGN-274" } });
+    const siblings = [first, second, sprite];
+    expect(formatPrintingVariantLabelParts(first, siblings, TEST_LABELS).otherSide).toBe(
+      "Recruit (OGN-271)",
+    );
+    expect(formatPrintingVariantLabelParts(sprite, siblings, TEST_LABELS).otherSide).toBe("Sprite");
+  });
+
+  it("omits the other side's code when the same-named other side belongs to a different code", () => {
+    const ogn = stub({ shortCode: "OGN", otherSide: { cardName: "Sprite", shortCode: "OGN-274" } });
+    const unl = stub({
+      shortCode: "UNL-T04",
+      otherSide: { cardName: "Sprite", shortCode: "UNL-T07" },
+    });
+    const siblings = [ogn, unl];
+    expect(formatPrintingVariantLabelParts(ogn, siblings, TEST_LABELS).otherSide).toBe("Sprite");
+    expect(formatPrintingVariantLabelParts(unl, siblings, TEST_LABELS).otherSide).toBe("Sprite");
+  });
+
+  it("has no other side for a single-sided printing", () => {
+    expect(formatPrintingVariantLabelParts(stub(), undefined, TEST_LABELS).otherSide).toBeNull();
   });
 });
 

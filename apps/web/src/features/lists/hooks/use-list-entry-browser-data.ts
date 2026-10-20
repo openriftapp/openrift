@@ -32,7 +32,7 @@ export function useListEntryBrowserData({
   entries,
   showLibrary,
 }: UseListEntryBrowserDataParams) {
-  const { allPrintings, printingsById, printingsByCardId, sets } = useCards();
+  const { allPrintings, printingsById, printingsByCardId, sets, sidesByPrinting } = useCards();
   const display = useCardThumbnailDisplay();
   const showImages = useDisplayStore((state) => state.showImages);
   const channels = useChannelRegistry();
@@ -46,10 +46,11 @@ export function useListEntryBrowserData({
   // useCardData and CardCell only support "cards" | "printings"; "copies" expands per-entry below.
   const dataView: "cards" | "printings" = view === "copies" ? "printings" : view;
 
-  const { listPrintings, entriesByPrintingId } = collectListPrintings(
+  const { listPrintings, entriesBySideKey } = collectListPrintings(
     entries,
     printingsById,
     printingsByCardId,
+    sidesByPrinting,
   );
 
   const {
@@ -122,7 +123,7 @@ export function useListEntryBrowserData({
 
   const { items, entryByItemId } = showLibrary
     ? buildItemsFromCatalog(sortedCards)
-    : buildItems(view, sortedCards, entriesByPrintingId);
+    : buildItems(view, sortedCards, entriesBySideKey);
 
   const entryByKey = buildEntryByKey(kind, entries);
   const printingByEntryId = buildPrintingByEntryId(items, entryByItemId);
@@ -144,7 +145,7 @@ export function useListEntryBrowserData({
     view,
     dataView,
     listPrintings,
-    entriesByPrintingId,
+    entriesBySideKey,
     filteredPrintingsByCardId,
     priceRangeByCardId,
     availableFilters,

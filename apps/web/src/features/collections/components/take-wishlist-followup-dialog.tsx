@@ -38,6 +38,15 @@ export function TakeWishlistFollowUpDialog({
 
   const isPending = removeEntry.isPending || updateEntry.isPending;
   const single = entries.length === 1;
+  const spansCards =
+    printing?.otherSide !== undefined &&
+    new Set(entries.flatMap((entry) => (entry.cardId ? [entry.cardId] : []))).size > 1;
+  const cardNameOf = (entry: WishEntryFlat): string | undefined =>
+    entry.cardId === printing?.cardId
+      ? printing?.card.name
+      : entry.cardId === printing?.otherSide?.cardId
+        ? printing?.otherSide?.cardName
+        : undefined;
 
   const applyRemoval = async () => {
     const chosen = entries.filter((entry) => selectedIds.has(entry.entryId));
@@ -84,7 +93,11 @@ export function TakeWishlistFollowUpDialog({
                       })
                     }
                   />
-                  <span className="truncate">{entry.listName}</span>
+                  <span className="truncate">
+                    {spansCards && cardNameOf(entry)
+                      ? `${entry.listName} · ${cardNameOf(entry)}`
+                      : entry.listName}
+                  </span>
                 </label>
               ))}
             </div>

@@ -3,12 +3,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import {
-  cardTypesColumn,
-  imageId,
-  joinFaceImage,
-  withFace1,
-} from "../../../repositories/query-helpers.js";
+import { cardTypesColumn, imageId, joinFaceImage } from "../../../repositories/query-helpers.js";
 import type { Tournament } from "../../tournaments/repositories/tournaments-shared.js";
 
 export interface CollectionSummary {
@@ -168,15 +163,21 @@ export function userProfileRepo(db: Kysely<Database>) {
       return new Map(previews);
     },
 
-    async cardIdsForPrintings(printingIds: readonly string[]): Promise<Map<string, string>> {
+    async cardIdsForPrintings(printingIds: readonly string[]): Promise<Map<string, string[]>> {
       if (printingIds.length === 0) {
         return new Map();
       }
-      const rows = await withFace1(db.selectFrom("printings as p"))
-        .select(["p.id", "pf.cardId"])
-        .where("p.id", "in", [...printingIds])
+      const rows = await db
+        .selectFrom("printingSidesOrdered")
+        .select(["printingId", "cardId"])
+        .distinct()
+        .where("printingId", "in", [...printingIds])
         .execute();
-      return new Map(rows.map((row) => [row.id, row.cardId]));
+      const cards = new Map<string, string[]>();
+      for (const row of rows) {
+        cards.set(row.printingId, [...(cards.get(row.printingId) ?? []), row.cardId]);
+      }
+      return cards;
     },
   };
 }

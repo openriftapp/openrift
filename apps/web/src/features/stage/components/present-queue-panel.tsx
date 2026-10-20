@@ -11,7 +11,7 @@ import { m } from "@/paraglide/messages.js";
 
 /** The whole list is a drop target: a card released anywhere over it goes on the end, over a stop it goes there instead. */
 export function PresentQueuePanel({ onAdd }: { onAdd: (source: QueueSource) => void }) {
-  const { printingsById, printingsByCardId } = useCards();
+  const { printingsBySideKey, printingsByCardId } = useCards();
   const ids = usePresentQueueStore((state) => state.ids);
   const reorder = usePresentQueueStore((state) => state.reorder);
   const { setNodeRef, isOver } = useDroppable({ id: "stage-queue", data: { type: "stage-queue" } });
@@ -33,7 +33,7 @@ export function PresentQueuePanel({ onAdd }: { onAdd: (source: QueueSource) => v
         ) : (
           <QueueList
             ids={ids}
-            printingsById={printingsById}
+            printingsById={printingsBySideKey}
             printingsByCardId={printingsByCardId}
             onChange={reorder}
           />

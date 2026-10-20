@@ -69,10 +69,12 @@ function collect(
         ),
     );
     for (const row of rows) {
-      let card = byPrinting.get(row.printingId);
+      // A double-sided printing matched for each of its cards is a tile per card.
+      const key = `${row.printingId}|${row.cardId}`;
+      let card = byPrinting.get(key);
       if (card === undefined) {
         card = { printingId: row.printingId, cardId: row.cardId, sources: new Map(), rows: [] };
-        byPrinting.set(row.printingId, card);
+        byPrinting.set(key, card);
       }
       card.rows.push({ ...row, groupSlug: group.slug });
       const source = card.sources.get(row.counterpartyUserId);
@@ -102,7 +104,7 @@ function finish(cards: Map<string, MutableCard>, direction: MatchDirection): Tra
   }));
 }
 
-/** One entry per printing and direction, pooled across groups; live trades already cover their rows. */
+/** One entry per printing, card and direction, pooled across groups; live trades already cover their rows. */
 export function buildTradeMarket(
   groups: readonly TradeMarketGroup[],
   trades: readonly CardTradeResponse[],

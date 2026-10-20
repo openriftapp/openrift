@@ -29,7 +29,7 @@ export function ListExportDialog({
   open,
   onOpenChange,
 }: ListExportDialogProps) {
-  const { printingsById, sets } = useCards();
+  const { sidesByPrinting, printingsById, sets } = useCards();
   const [applyFilters, setApplyFilters] = useState(true);
   const [excludeReserved, setExcludeReserved] = useState(true);
 
@@ -54,7 +54,7 @@ export function ListExportDialog({
         }
       : {
           mode: "printings",
-          stacks: stacksFromListEntries(exportEntries, printingsById, sets),
+          stacks: stacksFromListEntries(exportEntries, printingsById, sets, sidesByPrinting),
           ...(kind === "copy"
             ? { copiesById: new Map(copies.map((copy) => [copy.id, copy])) }
             : {}),

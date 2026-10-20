@@ -20,12 +20,14 @@ import { Input } from "@/components/ui/input";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { RadioOptionRow } from "@/components/ui/radio-option-row";
+import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import { useCreateTrade } from "@/features/groups/hooks/use-card-trades";
 import {
   useFriendGroupShareableLists,
   useShareListWithFriendGroup,
 } from "@/features/groups/hooks/use-friend-group-sharing";
 import { useFriendGroupMatches } from "@/features/groups/hooks/use-friend-groups";
+import { matchOnPrinting } from "@/features/groups/lib/trade-printing";
 import { listTargetOptions, preferredListId } from "@/features/groups/lib/tradelist-exchange";
 import { useBulkAddListEntries, useCreateList } from "@/features/lists/hooks/use-lists";
 import { m } from "@/paraglide/messages.js";
@@ -115,12 +117,12 @@ function OfferBody({
   const [choiceIndex, setChoiceIndex] = useState(0);
   const chosenPrinting = choices[choiceIndex] ?? choices[0];
   const ownedCount = chosenPrinting.copyIds.length;
-  const cardName = chosenPrinting.printing.card.name;
+  const cardName = printingDisplayName(chosenPrinting.printing);
 
-  const existingMatch = matches.othersWantYourHaves.find(
-    (row) =>
-      row.printingId === chosenPrinting.printing.printingId &&
-      row.counterpartyUserId === counterpartyUserId,
+  const existingMatch = matchOnPrinting(
+    matches.othersWantYourHaves,
+    chosenPrinting.printing,
+    counterpartyUserId,
   );
 
   const matchCap = existingMatch ? existingMatch.buyQuantity : wantQuantity;
@@ -144,6 +146,7 @@ function OfferBody({
 
   const sendOffer = async () => {
     const newListName = newName.trim() || m.trades_default_tradelist_name();
+    const tradeCardId = existingMatch?.cardId ?? chosenPrinting.printing.cardId;
     try {
       const copyIds = chosenPrinting.copyIds.slice(0, effectiveQuantity);
       if (!existingMatch) {
@@ -173,6 +176,7 @@ function OfferBody({
         counterpartyUserId,
         role: "giver",
         printingId: chosenPrinting.printing.printingId,
+        cardId: tradeCardId,
         quantity: effectiveQuantity,
       });
       toast.success(m.trades_offered_toast({ card: cardName, name: counterpartyName }));

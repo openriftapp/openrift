@@ -19,6 +19,26 @@ describe("ownedCopiesFromCounts", () => {
     expect(new Set(rows.map((row) => row.copyId)).size).toBe(3);
   });
 
+  it("gives a double-sided copy a row for the card on each side", () => {
+    const pair = stubPrinting({
+      printingId: "pair",
+      cardId: "bird",
+      otherSide: {
+        faceId: "f",
+        cardId: "gold",
+        cardName: "Gold",
+        cardSlug: "gold",
+        shortCode: "T",
+      },
+    });
+    expect(
+      ownedCopiesFromCounts({ pair: 1 }, { pair }).map((row) => [row.copyId, row.cardId]),
+    ).toEqual([
+      ["pair#0", "bird"],
+      ["pair#0", "gold"],
+    ]);
+  });
+
   it("skips a printing id no longer in the catalog", () => {
     const rows = ownedCopiesFromCounts({ "missing-printing": 2 }, {});
     expect(rows).toEqual([]);

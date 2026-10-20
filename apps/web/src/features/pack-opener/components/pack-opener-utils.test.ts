@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { stubPrinting } from "@/test/factories";
 
-import { isBoosterEligible } from "./pack-opener-utils";
+import { boosterPrintings, isBoosterEligible } from "./pack-opener-utils";
 
 describe("isBoosterEligible", () => {
   it("accepts a normal card with no markers", () => {
@@ -23,5 +23,19 @@ describe("isBoosterEligible", () => {
 
   it("rejects a multi-type card that includes 'other' as a secondary type", () => {
     expect(isBoosterEligible(stubPrinting({ card: { types: ["unit", "other"] } }))).toBe(false);
+  });
+});
+
+describe("boosterPrintings", () => {
+  it("keeps one entry per printing for a double-sided token", () => {
+    const bird = stubPrinting({ printingId: "pair", side: 1, card: { types: ["token"] } });
+    const gold = stubPrinting({ printingId: "pair", side: 2, card: { types: ["token"] } });
+    const single = stubPrinting({ printingId: "single", card: { types: ["unit"] } });
+    expect(boosterPrintings([bird, gold, single], "EN")).toEqual([bird, single]);
+  });
+
+  it("drops printings in another language", () => {
+    const french = stubPrinting({ language: "FR", card: { types: ["unit"] } });
+    expect(boosterPrintings([french], "EN")).toEqual([]);
   });
 });

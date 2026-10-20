@@ -30,8 +30,8 @@ export function useDeskCardPrintings(cardSlug: string) {
   return useSuspenseQuery(deskCardPrintingsQueryOptions(cardSlug));
 }
 
-export function useDeskPrinting(printingId: string) {
-  return useSuspenseQuery(deskPrintingQueryOptions(printingId));
+export function useDeskPrinting(printingId: string, side: 1 | 2 = 1) {
+  return useSuspenseQuery(deskPrintingQueryOptions(printingId, side));
 }
 
 const createDeskPrintingFn = createServerFn({ method: "POST" })
@@ -84,14 +84,14 @@ export function useSetDeskSecondSide() {
 }
 
 const removeDeskSecondSideFn = createServerFn({ method: "POST" })
-  .validator((input: { printingId: string }) => input)
+  .validator((input: DeskSetSecondSideInput) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminPrintingDeskContract, context.cookie).removeSecondSide(data);
   });
 
 export function useRemoveDeskSecondSide() {
-  return useMutationWithInvalidation<void, { printingId: string }>({
+  return useMutationWithInvalidation<void, DeskSetSecondSideInput>({
     mutationFn: (vars) => removeDeskSecondSideFn({ data: vars }),
     invalidates: [adminKeys.printingDesk.all, ...PUBLIC_CATALOG_KEYS],
   });

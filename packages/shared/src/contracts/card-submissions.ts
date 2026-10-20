@@ -80,6 +80,7 @@ export const cardSubmissionImageUploadResponseSchema = z.object({ url: z.string(
 
 export const missingImagePrintingSchema = z.object({
   printingId: z.string(),
+  side: z.union([z.literal(1), z.literal(2)]),
   cardSlug: z.string(),
   cardName: z.string(),
   setSlug: z.string(),

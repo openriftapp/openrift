@@ -2,7 +2,7 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { REQUIRED_ZONES, isCountedZone } from "@openrift/shared/deck-zones";
 import { preferredPrinting } from "@openrift/shared/printing-select";
-import { ownedTotalsByCard } from "@openrift/shared/printing-side";
+import { ownedTotalsByCard, sideKey } from "@openrift/shared/printing-side";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
@@ -16,11 +16,13 @@ import type {
   DeckOwnershipData,
   OwnershipPrinting,
 } from "@/features/decks/lib/deck-ownership-types";
+import { coveredByPairPartner } from "@/features/decks/lib/pair-copy-cover";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 
 function toOwnershipPrinting(printing: Printing): OwnershipPrinting {
   return {
     id: printing.printingId,
+    sideKey: sideKey(printing),
     language: printing.language,
     shortCode: printing.shortCode,
     setId: printing.setId,
@@ -84,65 +86,29 @@ export function computeDeckOwnership(
     ? ownedTotalsByCard(allPrintings, ownedCountByPrinting)
     : new Map<string, number>();
 
-  const lockedByCardId = new Map<string, number>();
-  if (lockedCountByPrinting) {
-    for (const printing of allPrintings) {
-      const count = lockedCountByPrinting[printing.printingId] ?? 0;
-      if (count > 0) {
-        lockedByCardId.set(printing.cardId, (lockedByCardId.get(printing.cardId) ?? 0) + count);
-      }
-    }
-  }
+  const lockedByCardId = lockedCountByPrinting
+    ? ownedTotalsByCard(allPrintings, lockedCountByPrinting)
+    : new Map<string, number>();
 
-  const borrowedByCardId = new Map<string, number>();
-  if (borrowedCountByPrinting) {
-    for (const printing of allPrintings) {
-      const count = borrowedCountByPrinting[printing.printingId] ?? 0;
-      if (count > 0) {
-        borrowedByCardId.set(printing.cardId, (borrowedByCardId.get(printing.cardId) ?? 0) + count);
-      }
-    }
-  }
+  const borrowedByCardId = borrowedCountByPrinting
+    ? ownedTotalsByCard(allPrintings, borrowedCountByPrinting)
+    : new Map<string, number>();
 
-  const incomingByCardId = new Map<string, number>();
-  if (incomingCountByPrinting) {
-    for (const printing of allPrintings) {
-      const count = incomingCountByPrinting[printing.printingId] ?? 0;
-      if (count > 0) {
-        incomingByCardId.set(printing.cardId, (incomingByCardId.get(printing.cardId) ?? 0) + count);
-      }
-    }
-  }
+  const incomingByCardId = incomingCountByPrinting
+    ? ownedTotalsByCard(allPrintings, incomingCountByPrinting)
+    : new Map<string, number>();
 
-  const loanedByCardId = new Map<string, number>();
-  if (lockedReasonCountByPrinting?.loaned) {
-    for (const printing of allPrintings) {
-      const count = lockedReasonCountByPrinting.loaned[printing.printingId] ?? 0;
-      if (count > 0) {
-        loanedByCardId.set(printing.cardId, (loanedByCardId.get(printing.cardId) ?? 0) + count);
-      }
-    }
-  }
+  const loanedByCardId = lockedReasonCountByPrinting?.loaned
+    ? ownedTotalsByCard(allPrintings, lockedReasonCountByPrinting.loaned)
+    : new Map<string, number>();
 
-  const reservedByCardId = new Map<string, number>();
-  if (lockedReasonCountByPrinting?.reserved) {
-    for (const printing of allPrintings) {
-      const count = lockedReasonCountByPrinting.reserved[printing.printingId] ?? 0;
-      if (count > 0) {
-        reservedByCardId.set(printing.cardId, (reservedByCardId.get(printing.cardId) ?? 0) + count);
-      }
-    }
-  }
+  const reservedByCardId = lockedReasonCountByPrinting?.reserved
+    ? ownedTotalsByCard(allPrintings, lockedReasonCountByPrinting.reserved)
+    : new Map<string, number>();
 
-  const excludedByCardId = new Map<string, number>();
-  if (lockedReasonCountByPrinting?.excluded) {
-    for (const printing of allPrintings) {
-      const count = lockedReasonCountByPrinting.excluded[printing.printingId] ?? 0;
-      if (count > 0) {
-        excludedByCardId.set(printing.cardId, (excludedByCardId.get(printing.cardId) ?? 0) + count);
-      }
-    }
-  }
+  const excludedByCardId = lockedReasonCountByPrinting?.excluded
+    ? ownedTotalsByCard(allPrintings, lockedReasonCountByPrinting.excluded)
+    : new Map<string, number>();
 
   // Claims are tracked per zone in iteration order; locked copies use a separate tracker.
   const claimedByCardId = new Map<string, number>();
@@ -172,6 +138,17 @@ export function computeDeckOwnership(
   let missingMainValueCents = 0;
   let missingSideboardValueCents = 0;
   let missingAsDisplayedValueCents = 0;
+
+  const valued: {
+    zone: DeckZone;
+    cardId: string;
+    quantity: number;
+    shortfall: number;
+    valuePerCopy: number | undefined;
+    valuePrintingId: string | undefined;
+    displayPrice: number | undefined;
+    displayPrintingId: string | undefined;
+  }[] = [];
 
   // Overflow rows must be processed after every other zone.
   const orderedCards = deckCards.toSorted(
@@ -310,25 +287,75 @@ export function computeDeckOwnership(
       missingCards.push(entry);
     }
 
-    const valuePerCopy = cheapestPrice ?? displayPrice;
+    valued.push({
+      zone: card.zone,
+      cardId: card.cardId,
+      quantity: card.quantity,
+      shortfall,
+      valuePerCopy: cheapestPrice ?? displayPrice,
+      valuePrintingId:
+        cheapestPrice === undefined ? resolvedPrinting?.printingId : cheapestResolved?.printingId,
+      displayPrice,
+      displayPrintingId: resolvedPrinting?.printingId,
+    });
+  }
+
+  const priced = (
+    rows: typeof valued,
+    printingOf: (row: (typeof valued)[number]) => string | undefined,
+    amountOf: (row: (typeof valued)[number]) => number,
+  ) =>
+    coveredByPairPartner(
+      rows.map((row) => ({
+        cardId: row.cardId,
+        printingId: printingOf(row),
+        amount: amountOf(row),
+      })),
+    );
+  const valueCovered = priced(
+    valued,
+    (row) => row.valuePrintingId,
+    (row) => row.quantity,
+  );
+  const missingCovered = priced(
+    valued,
+    (row) => row.valuePrintingId,
+    (row) => row.shortfall,
+  );
+  const displayCovered = priced(
+    valued,
+    (row) => row.displayPrintingId,
+    (row) => row.quantity,
+  );
+  const displayMissingCovered = priced(
+    valued,
+    (row) => row.displayPrintingId,
+    (row) => row.shortfall,
+  );
+  valued.forEach((row, index) => {
+    const { valuePerCopy, displayPrice } = row;
     if (valuePerCopy !== undefined) {
       hasPrices = true;
-      deckValueCents += valuePerCopy * card.quantity;
-      if (card.zone === WellKnown.deckZone.SIDEBOARD) {
-        sideboardValueCents += valuePerCopy * card.quantity;
-        missingSideboardValueCents += valuePerCopy * shortfall;
+      const value = valueCovered[index] ? 0 : valuePerCopy * row.quantity;
+      const missing = missingCovered[index] ? 0 : valuePerCopy * row.shortfall;
+      deckValueCents += value;
+      if (row.zone === WellKnown.deckZone.SIDEBOARD) {
+        sideboardValueCents += value;
+        missingSideboardValueCents += missing;
       } else {
-        mainValueCents += valuePerCopy * card.quantity;
-        missingMainValueCents += valuePerCopy * shortfall;
+        mainValueCents += value;
+        missingMainValueCents += missing;
       }
-      missingValueCents += valuePerCopy * shortfall;
+      missingValueCents += missing;
     }
     if (displayPrice !== undefined) {
       hasPrices = true;
-      asDisplayedValueCents += displayPrice * card.quantity;
-      missingAsDisplayedValueCents += displayPrice * shortfall;
+      asDisplayedValueCents += displayCovered[index] ? 0 : displayPrice * row.quantity;
+      missingAsDisplayedValueCents += displayMissingCovered[index]
+        ? 0
+        : displayPrice * row.shortfall;
     }
-  }
+  });
 
   return {
     byCardZone,

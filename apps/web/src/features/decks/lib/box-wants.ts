@@ -17,13 +17,15 @@ export interface BoxWantsLookup {
 const KEY_SEPARATOR = ":";
 
 export function buildBoxWantsLookup(items: readonly BoxWantRow[]): BoxWantsLookup {
-  const quantityByPrinting = new Map<string, number>();
+  const quantityByPrintingCard = new Map<string, Map<string, number>>();
   const cardsByCollection = new Map<string, Set<string>>();
   const allCards = new Set<string>();
 
   for (const item of items) {
     const key = `${item.collectionId}${KEY_SEPARATOR}${item.printingId}`;
-    quantityByPrinting.set(key, (quantityByPrinting.get(key) ?? 0) + item.fulfillableQuantity);
+    const byCard = quantityByPrintingCard.get(key) ?? new Map<string, number>();
+    byCard.set(item.cardId, (byCard.get(item.cardId) ?? 0) + item.fulfillableQuantity);
+    quantityByPrintingCard.set(key, byCard);
     const cards = cardsByCollection.get(item.collectionId);
     if (cards) {
       cards.add(item.cardId);
@@ -33,8 +35,13 @@ export function buildBoxWantsLookup(items: readonly BoxWantRow[]): BoxWantsLooku
     allCards.add(item.cardId);
   }
 
+  // A double-sided copy has a row per card, each counting the same copies.
   const fulfillable = (collectionId: string, printingId: string) =>
-    quantityByPrinting.get(`${collectionId}${KEY_SEPARATOR}${printingId}`) ?? 0;
+    Math.max(
+      0,
+      ...(quantityByPrintingCard.get(`${collectionId}${KEY_SEPARATOR}${printingId}`)?.values() ??
+        []),
+    );
 
   const wantedCardCount = (collectionId?: string) =>
     collectionId === undefined ? allCards.size : (cardsByCollection.get(collectionId)?.size ?? 0);

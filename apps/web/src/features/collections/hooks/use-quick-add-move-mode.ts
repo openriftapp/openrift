@@ -1,9 +1,9 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import { useCopies, useMoveCopies } from "@/features/collections/hooks/use-copies";
 import type { MoveSource } from "@/features/collections/lib/move-sources";
 import {
@@ -155,7 +155,7 @@ export function useQuickAddMoveMode({
       // Toast id is stable per printing, so a held Enter replaces it.
       toast.success(
         m.collections_copies_quick_moved({
-          card: legendDisplayName(printing.card),
+          card: printingDisplayName(printing),
           collection: collectionDisplayName(moveTo),
         }),
         { id: `palette-move-${printing.printingId}` },
@@ -182,7 +182,7 @@ export function useQuickAddMoveMode({
       });
       toast.success(
         m.collections_copies_quick_moved_back({
-          card: legendDisplayName(printing.card),
+          card: printingDisplayName(printing),
           collection: collectionDisplayName(record.fromCollectionId),
         }),
         { id: `palette-move-${printing.printingId}` },

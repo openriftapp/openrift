@@ -168,7 +168,16 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
         );
       }
 
-      const scopeFragment = scopeClauses.length > 0 ? sql.join(scopeClauses, sql` `) : sql``;
+      // A double-sided printing is in scope when either of its sides matches.
+      const scopeFragment =
+        scopeClauses.length > 0
+          ? sql`AND EXISTS (
+              SELECT 1 FROM faces p
+              JOIN cards c ON c.id = p.card_id
+              JOIN sets s ON s.id = p.set_id
+              WHERE p.id IN (pr.face1_id, pr.face2_id) ${sql.join(scopeClauses, sql` `)}
+            )`
+          : sql``;
 
       // In all-collections mode the anchor is personal copies only. Copies in a
       // friend-group collection belong to the group, and `buildStacks` in the
@@ -199,9 +208,6 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
           FROM copies cp
           INNER JOIN collections col ON col.id = cp.collection_id
           INNER JOIN printings pr ON pr.id = cp.printing_id
-          INNER JOIN faces p ON p.id = pr.face1_id
-          INNER JOIN cards c ON c.id = p.card_id
-          INNER JOIN sets s ON s.id = p.set_id
           WHERE ${anchorCollectionClause}
             ${scopeFragment}
         ) held
@@ -251,9 +257,6 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
           ce.created_at AS "createdAt"
         FROM collection_events ce
         INNER JOIN printings pr ON pr.id = ce.printing_id
-        INNER JOIN faces p ON p.id = pr.face1_id
-        INNER JOIN cards c ON c.id = p.card_id
-        INNER JOIN sets s ON s.id = p.set_id
         LEFT JOIN collections cf ON cf.id = ce.from_collection_id
         LEFT JOIN collections ctc ON ctc.id = ce.to_collection_id
         WHERE ce.user_id = ${userId}

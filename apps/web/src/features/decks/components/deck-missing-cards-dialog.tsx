@@ -75,7 +75,7 @@ function CardIdentity({
 
   return (
     <Pressable
-      onClick={() => onOpenDetail(printing.id)}
+      onClick={() => onOpenDetail(printing.sideKey)}
       className={cn(
         textLinkVariants({ variant: "muted" }),
         "inline-flex items-center gap-1.5 rounded-sm",
@@ -155,10 +155,11 @@ function MissingCardsDialogBody({
 
   // Rows deep-link to the completion printing (cheapest one that fills the
   // shortfall), not the deck's displayed pin.
-  const rowPrintingIds = sorted.flatMap((card) => {
+  const rowPrintings = sorted.flatMap((card) => {
     const printing = card.cheapestPrinting ?? card.displayPrinting;
-    return printing ? [printing.id] : [];
+    return printing ? [printing] : [];
   });
+  const rowPrintingIds = rowPrintings.map((printing) => printing.id);
 
   const { data: marketplaceInfo } = useMarketplaceInfo(open ? rowPrintingIds : []);
 
@@ -335,7 +336,7 @@ function MissingCardsDialogBody({
         </DialogFooter>
       </DialogContent>
       <CardDetailOverlay
-        printingIds={rowPrintingIds}
+        printingIds={rowPrintings.map((printing) => printing.sideKey)}
         openPrintingId={detailPrintingId}
         onOpenPrintingIdChange={setDetailPrintingId}
         showImages={showImages}

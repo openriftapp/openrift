@@ -112,6 +112,26 @@ describe("joinCatalogPrintings double-sided", () => {
     expect(gold!.card.name).toBe("Gold");
   });
 
+  it("does not give side 2 the fallback art pinned on side 1", () => {
+    const { side2, ...rest } = doubleSided(GOLD_ID).printings["printing-1"]!;
+    const [bird, gold] = joinCatalogPrintings(
+      catalog({
+        cards: doubleSided(GOLD_ID).cards,
+        printings: {
+          "printing-1": {
+            ...rest,
+            fallbackArtMode: "pinned",
+            fallbackImageId: "img-pinned",
+            side2: { ...side2!, images: [] },
+          },
+        },
+      } as Partial<CatalogResponse>),
+    );
+    expect(bird!.fallbackArtMode).toBe("pinned");
+    expect(gold!.fallbackArtMode).toBeUndefined();
+    expect(gold!.fallbackImageId).toBeUndefined();
+  });
+
   it("names the other side on each entry", () => {
     const [bird, gold] = joinCatalogPrintings(doubleSided(GOLD_ID));
     expect(bird!.otherSide).toEqual({
@@ -119,6 +139,7 @@ describe("joinCatalogPrintings double-sided", () => {
       cardId: GOLD_ID,
       cardName: "Gold",
       cardSlug: "gold",
+      shortCode: "SET1-T05",
       imageId: "img-gold",
     });
     expect(gold!.otherSide).toMatchObject({

@@ -25,7 +25,7 @@ export function sortDeckCheckCards<T extends DeckCheckSortableCard>(
   cards: T[],
   sortBy: DeckCheckSort,
   sortDir: "asc" | "desc",
-  identify: (printingId: string | null) => DeckCheckCardIdentity | undefined,
+  identify: (card: T) => DeckCheckCardIdentity | undefined,
   domainOrder: readonly string[] = [],
 ): T[] {
   if (sortBy === "deck") {
@@ -36,8 +36,8 @@ export function sortDeckCheckCards<T extends DeckCheckSortableCard>(
 
   if (sortBy === "name") {
     return cards.toSorted((a, b) => {
-      const aName = identify(a.resolvedPrintingId)?.name ?? a.rawName;
-      const bName = identify(b.resolvedPrintingId)?.name ?? b.rawName;
+      const aName = identify(a)?.name ?? a.rawName;
+      const bName = identify(b)?.name ?? b.rawName;
       return dir * aName.localeCompare(bName) || a.sortOrder - b.sortOrder;
     });
   }
@@ -51,8 +51,8 @@ export function sortDeckCheckCards<T extends DeckCheckSortableCard>(
       return rank === -1 ? domainOrder.length : rank;
     };
     return cards.toSorted((a, b) => {
-      const aIdentity = identify(a.resolvedPrintingId);
-      const bIdentity = identify(b.resolvedPrintingId);
+      const aIdentity = identify(a);
+      const bIdentity = identify(b);
       if (aIdentity === undefined && bIdentity === undefined) {
         return a.sortOrder - b.sortOrder;
       }
@@ -82,8 +82,8 @@ export function sortDeckCheckCards<T extends DeckCheckSortableCard>(
       return aRank === bRank ? 0 : aRank < bRank ? -1 : 1;
     };
     return cards.toSorted((a, b) => {
-      const aIdentity = identify(a.resolvedPrintingId);
-      const bIdentity = identify(b.resolvedPrintingId);
+      const aIdentity = identify(a);
+      const bIdentity = identify(b);
       if (aIdentity === undefined && bIdentity === undefined) {
         return a.sortOrder - b.sortOrder;
       }
@@ -108,8 +108,8 @@ export function sortDeckCheckCards<T extends DeckCheckSortableCard>(
   // sortBy === "id": by set order then printing short code, unmatched lines
   // pinned to the end.
   return cards.toSorted((a, b) => {
-    const aIdentity = identify(a.resolvedPrintingId);
-    const bIdentity = identify(b.resolvedPrintingId);
+    const aIdentity = identify(a);
+    const bIdentity = identify(b);
     if (aIdentity === undefined && bIdentity === undefined) {
       return a.sortOrder - b.sortOrder;
     }

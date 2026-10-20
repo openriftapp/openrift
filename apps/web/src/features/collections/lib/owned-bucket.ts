@@ -1,5 +1,5 @@
 import { getPlaysetSize } from "@openrift/shared/playset";
-import { ownedTotalsByCard } from "@openrift/shared/printing-side";
+import { ownedTotalsByCard, sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import type { OwnedBucket } from "@/features/cards/lib/search-schemas";
@@ -15,6 +15,11 @@ export function bucketFor(total: number, playsetSize: number): OwnedBucket {
     return "full";
   }
   return "extra";
+}
+
+/** In printing mode a side key's own count wins, so each side of a pair can be judged apart. */
+function printingCount(printing: Printing, counts: Record<string, number>): number {
+  return counts[sideKey(printing)] ?? counts[printing.printingId] ?? 0;
 }
 
 /**
@@ -33,7 +38,7 @@ export function applyOwnedBucketFilter(
     return cards.filter((printing) =>
       selectedSet.has(
         bucketFor(
-          ownedCountByPrinting[printing.printingId] ?? 0,
+          printingCount(printing, ownedCountByPrinting),
           getPlaysetSize(printing.card.types, printing.card.keywords),
         ),
       ),
@@ -74,7 +79,7 @@ export function applyOwnedCountFilter(
   const upperBound = max ?? Infinity;
   if (bucketBy === "printing") {
     return cards.filter((printing) => {
-      const count = ownedCountByPrinting[printing.printingId] ?? 0;
+      const count = printingCount(printing, ownedCountByPrinting);
       return count >= lowerBound && count <= upperBound;
     });
   }
@@ -94,19 +99,14 @@ export function maxOwnedCount(
   let max = 0;
   if (bucketBy === "printing") {
     for (const printing of cards) {
-      const count = ownedCountByPrinting[printing.printingId] ?? 0;
+      const count = printingCount(printing, ownedCountByPrinting);
       if (count > max) {
         max = count;
       }
     }
     return max;
   }
-  const totalByCard = new Map<string, number>();
-  for (const printing of cards) {
-    const count = ownedCountByPrinting[printing.printingId] ?? 0;
-    totalByCard.set(printing.cardId, (totalByCard.get(printing.cardId) ?? 0) + count);
-  }
-  for (const total of totalByCard.values()) {
+  for (const total of ownedTotalsByCard(cards, ownedCountByPrinting).values()) {
     if (total > max) {
       max = total;
     }

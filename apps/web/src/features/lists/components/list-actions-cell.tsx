@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { ListEntryDetailResponse, ListKind } from "@openrift/shared/types/api/list";
 import type { Currency, TradePreference } from "@openrift/shared/types/api/trade-preferences";
 
@@ -14,7 +15,7 @@ import { entryToExcludeTarget } from "@/features/rules/lib/rule-exclude";
 interface ListActionsCellProps extends TableRowSlotProps {
   kind: ListKind;
   entryByItemId: Map<string, ListEntryDetailResponse>;
-  entriesByPrintingId: Map<string, ListEntryDetailResponse[]>;
+  entriesBySideKey: Map<string, ListEntryDetailResponse[]>;
   tradeIndex: ListTradeIndex;
   supportsTradePrefs: boolean;
   listTradeDefaults: TradePreference;
@@ -32,7 +33,7 @@ export function ListActionsCell({
   itemId,
   kind,
   entryByItemId,
-  entriesByPrintingId,
+  entriesBySideKey,
   tradeIndex,
   supportsTradePrefs,
   listTradeDefaults,
@@ -47,7 +48,7 @@ export function ListActionsCell({
   if (!printing || !itemId) {
     return null;
   }
-  const entry = entryByItemId.get(itemId) ?? entriesByPrintingId.get(printing.printingId)?.[0];
+  const entry = entryByItemId.get(itemId) ?? entriesBySideKey.get(sideKey(printing))?.[0];
   if (!entry) {
     return null;
   }

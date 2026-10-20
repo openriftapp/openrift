@@ -1,4 +1,5 @@
 import { filterCards } from "@openrift/shared/filters";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { ListEntryDetailResponse } from "@openrift/shared/types/api/list";
 
 import { useFilterValues } from "@/features/cards/hooks/use-card-filters";
@@ -20,16 +21,17 @@ export interface FilteredListEntries {
 export function useFilteredListEntries(
   entries: readonly ListEntryDetailResponse[],
 ): FilteredListEntries {
-  const { printingsById, printingsByCardId } = useCards();
+  const { sidesByPrinting, printingsById, printingsByCardId } = useCards();
   const { filters, hasActiveFilters } = useFilterValues();
   const keywordReverseMap = useKeywordReverseMap();
   const prices = usePrices();
   const favoriteMarketplace = useDisplayStore((state) => state.marketplaceOrder[0]);
 
-  const { listPrintings, entriesByPrintingId } = collectListPrintings(
+  const { listPrintings, entriesBySideKey } = collectListPrintings(
     entries,
     printingsById,
     printingsByCardId,
+    sidesByPrinting,
   );
 
   const kept = filterCards(listPrintings, filters, {
@@ -39,6 +41,8 @@ export function useFilteredListEntries(
 
   return {
     hasActiveFilters,
-    filteredEntries: kept.flatMap((printing) => entriesByPrintingId.get(printing.printingId) ?? []),
+    filteredEntries: [
+      ...new Set(kept.flatMap((printing) => entriesBySideKey.get(sideKey(printing)) ?? [])),
+    ],
   };
 }

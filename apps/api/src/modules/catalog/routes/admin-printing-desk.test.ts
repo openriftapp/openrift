@@ -10,8 +10,16 @@ const mockPrintingDesk = {
   updateImageCredit: vi.fn(),
   isDeskPrinting: vi.fn(),
   nonDeskPrintingIdsForImageFile: vi.fn(),
+  printingIdsShowingFace: vi.fn(),
+  getFaceLinks: vi.fn(),
 };
-const mockPrintingImages = { getForActivate: vi.fn(), setFace: vi.fn() };
+const mockPrintingImages = {
+  getForActivate: vi.fn(),
+  setFace: vi.fn(),
+  sideOnPrinting: vi.fn(),
+  faceIdOfImage: vi.fn(),
+};
+const ON_PRINTING = "d0000000-0001-4000-a000-000000000001";
 const mockCatalog = { refreshCatalogViews: vi.fn() };
 const mockAdminEvents = { insert: vi.fn(), wasPrintingCreatedBy: vi.fn() };
 
@@ -46,11 +54,11 @@ function patchImage(body: unknown, imageFileId = IMAGE_FILE_ID) {
   });
 }
 
-function patchFace(body: unknown, printingImageId = PRINTING_IMAGE_ID) {
+function patchFace(body: Record<string, unknown>, printingImageId = PRINTING_IMAGE_ID) {
   return app.request(`/api/admin/v1/printing-desk/printing-images/${printingImageId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ printingId: ON_PRINTING, ...body }),
   });
 }
 
@@ -60,9 +68,13 @@ beforeEach(() => {
   mockPrintingDesk.getImageCredit.mockResolvedValue({ credit: "gamesnight" });
   mockPrintingImages.getForActivate.mockResolvedValue({
     id: PRINTING_IMAGE_ID,
-    printingId: "d0000000-0001-4000-a000-000000000001",
+    printingId: ON_PRINTING,
     face: "front",
   });
+  mockPrintingImages.sideOnPrinting.mockResolvedValue("front");
+  mockPrintingImages.faceIdOfImage.mockResolvedValue("face-1");
+  mockPrintingDesk.printingIdsShowingFace.mockResolvedValue([ON_PRINTING]);
+  mockPrintingDesk.getFaceLinks.mockResolvedValue({ face1Id: "face-1", face2Id: "face-2" });
 });
 
 describe("PATCH /printing-desk/images/:imageFileId", () => {
@@ -127,7 +139,8 @@ describe("PATCH /printing-desk/printing-images/:printingImageId", () => {
     const res = await patchFace({ face: "back" });
 
     expect(res.status).toBe(204);
-    expect(mockPrintingImages.setFace).toHaveBeenCalledWith(PRINTING_IMAGE_ID, "back");
+    expect(mockPrintingImages.setFace).toHaveBeenCalledWith(PRINTING_IMAGE_ID, "back", ON_PRINTING);
+    expect(mockPrintingImages.sideOnPrinting).toHaveBeenCalledWith(PRINTING_IMAGE_ID, ON_PRINTING);
     expect(mockCatalog.refreshCatalogViews).toHaveBeenCalled();
   });
 
@@ -154,8 +167,17 @@ describe("PATCH /printing-desk/printing-images/:printingImageId", () => {
     expect(mockCatalog.refreshCatalogViews).not.toHaveBeenCalled();
   });
 
+  it("400s moving an image to a second side the printing does not have", async () => {
+    mockPrintingDesk.getFaceLinks.mockResolvedValue({ face1Id: "face-1", face2Id: null });
+
+    const res = await patchFace({ face: "back" });
+
+    expect(res.status).toBe(400);
+    expect(mockPrintingImages.setFace).not.toHaveBeenCalled();
+  });
+
   it("404s on an unknown printing image", async () => {
-    mockPrintingImages.getForActivate.mockResolvedValue(undefined);
+    mockPrintingImages.sideOnPrinting.mockResolvedValue(undefined);
 
     const res = await patchFace({ face: "back" }, UNKNOWN_ID);
 
@@ -168,6 +190,20 @@ describe("grant holder scope", () => {
   beforeEach(() => {
     adminAccess = GRANT_HOLDER;
     mockAdminEvents.wasPrintingCreatedBy.mockResolvedValue(false);
+  });
+
+  it("403s moving an image onto a side a printing outside the desk also shows", async () => {
+    mockPrintingDesk.isDeskPrinting.mockImplementation((id: string) =>
+      Promise.resolve(id === ON_PRINTING),
+    );
+    mockPrintingDesk.printingIdsShowingFace.mockImplementation((faceId: string) =>
+      Promise.resolve(faceId === "face-2" ? [ON_PRINTING, "p-base"] : [ON_PRINTING]),
+    );
+
+    const res = await patchFace({ face: "back" });
+
+    expect(res.status).toBe(403);
+    expect(mockPrintingImages.setFace).not.toHaveBeenCalled();
   });
 
   it("403s a credit edit on a file shared with a printing outside the desk", async () => {
@@ -204,5 +240,20 @@ describe("grant holder scope", () => {
 
     expect(res.status).toBe(204);
     expect(mockPrintingImages.setFace).toHaveBeenCalled();
+  });
+
+  it("403s moving an image on a side a printing outside the desk also shows", async () => {
+    mockPrintingDesk.isDeskPrinting.mockImplementation((id: string) =>
+      Promise.resolve(id === ON_PRINTING),
+    );
+    mockPrintingDesk.printingIdsShowingFace.mockResolvedValue([
+      ON_PRINTING,
+      "d0000000-0001-4000-a000-000000000009",
+    ]);
+
+    const res = await patchFace({ face: "back" });
+
+    expect(res.status).toBe(403);
+    expect(mockPrintingImages.setFace).not.toHaveBeenCalled();
   });
 });

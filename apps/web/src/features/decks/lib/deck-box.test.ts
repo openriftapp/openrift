@@ -85,6 +85,18 @@ describe("computeDeckBoxPlan", () => {
     expect(plan.missingCount).toBe(0);
   });
 
+  it("files a double-sided box copy under the deck's card when that card is side 2", () => {
+    const bird = stubPrinting({ printingId: "pair", side: 1, cardId: "bird" });
+    const gold = stubPrinting({ printingId: "pair", side: 2, cardId: "gold" });
+    const copy = stubCopy({ printingId: "pair", collectionId: BOX });
+    const plan = computeDeckBoxPlan({
+      ...inputFor({ printings: [gold], copies: [copy], cardId: "gold", cardName: "Gold" }),
+      printingsById: { pair: bird },
+    });
+    expect(plan.slots.map((slot) => slot.state)).toEqual(["in-box"]);
+    expect(plan.missingCount).toBe(0);
+  });
+
   it("names the collection each copy waits in", () => {
     const printing = stubPrinting({ cardId: "card-1", shortCode: "OGS-005" });
     const plan = computeDeckBoxPlan(
@@ -848,7 +860,7 @@ describe("computeDeckBoxPlan sibling printings", () => {
       }),
     );
     expect(plan.siblingPrintingsByCardId.get("card-1")).toEqual([printing]);
-    expect(labelFor(plan, "card-1")).toEqual({ language: null, rest: [] });
+    expect(labelFor(plan, "card-1")).toEqual({ language: null, rest: [], otherSide: null });
   });
 
   it("gathers both printings when a card's copies span two languages", () => {

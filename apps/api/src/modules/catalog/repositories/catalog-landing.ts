@@ -207,7 +207,7 @@ export function catalogLandingRepo(db: Kysely<Database>) {
             AND c.type <> ${WellKnown.cardType.BATTLEFIELD}
         ),
         sections AS (
-          SELECT cp.id, cp.path, count(*)::int AS printing_count,
+          SELECT cp.id, cp.path, count(DISTINCT chp.printing_id)::int AS printing_count,
                  md5(cp.id::text || current_date::text) AS sort_key
           FROM channel_printings chp
           JOIN channel_paths cp

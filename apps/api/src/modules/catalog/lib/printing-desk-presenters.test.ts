@@ -28,6 +28,7 @@ const row: DeskPrintingRow = {
   comment: null,
   imageCount: 2,
   faceId: "face-1",
+  side: 1,
   secondSide: null,
   sharedWith: [],
   activeImageFileId: "img1",

@@ -40,21 +40,22 @@ function annotationKey(input: {
  */
 export function buildListTradeIndex(
   annotations: readonly CardTradeLiveAnnotation[],
-  printingsById: Record<string, Printing>,
+  printingsByPrinting: ReadonlyMap<string, readonly Printing[]>,
   trades: readonly CardTradeResponse[],
 ): ListTradeIndex {
   const byPrinting = groupTradeAnnotationsByPrinting(annotations);
   const byCard = new Map<string, CardTradeLiveAnnotation[]>();
   for (const [printingId, group] of byPrinting) {
-    const cardId = printingsById[printingId]?.cardId;
-    if (cardId === undefined) {
-      continue;
-    }
-    const existing = byCard.get(cardId);
-    if (existing) {
-      existing.push(...group);
-    } else {
-      byCard.set(cardId, [...group]);
+    const cardIds = new Set(
+      (printingsByPrinting.get(printingId) ?? []).map((printing) => printing.cardId),
+    );
+    for (const cardId of cardIds) {
+      const existing = byCard.get(cardId);
+      if (existing) {
+        existing.push(...group);
+      } else {
+        byCard.set(cardId, [...group]);
+      }
     }
   }
   const tradesByAnnotation = new Map<string, CardTradeResponse[]>();

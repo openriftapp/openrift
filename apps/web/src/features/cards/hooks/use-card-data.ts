@@ -4,7 +4,7 @@ import type { FilterCounts } from "@openrift/shared/filters-counts";
 import { computeFilterCounts } from "@openrift/shared/filters-counts";
 import { sortCards } from "@openrift/shared/filters-sort";
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
-import { countPrintings } from "@openrift/shared/printing-side";
+import { countPrintings, sideKey } from "@openrift/shared/printing-side";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { DistributionChannel, Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -89,14 +89,14 @@ function buildOwnedCounts(
     for (const p of displayCards) {
       const count = countByTile.get(cardsViewTileKey(p, groupBy)) ?? 0;
       if (count > 0) {
-        map.set(p.printingId, count);
+        map.set(sideKey(p), count);
       }
     }
   } else {
     for (const p of allPrintings) {
       const count = ownedCountByPrinting[p.printingId] ?? 0;
       if (count > 0) {
-        map.set(p.printingId, count);
+        map.set(sideKey(p), count);
       }
     }
   }

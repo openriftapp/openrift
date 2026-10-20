@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -80,7 +81,7 @@ function toPersisted(state: ScanSessionState): PersistedScanSession {
     if (row.count <= 0) {
       continue;
     }
-    rows.push({ printingId: row.printing.printingId, count: row.count });
+    rows.push({ printingId: sideKey(row.printing), count: row.count });
   }
   return { rows, scans: state.scans, lastScanAt: state.lastScanAt, pending: state.pending };
 }

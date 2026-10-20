@@ -30,7 +30,7 @@ vi.mock("@tanstack/react-router", () => ({
   },
 }));
 
-const { compareMatchTradeGroups, groupTradeMatches, resolveMatchRows } =
+const { bulkTradeRequests, compareMatchTradeGroups, groupTradeMatches, resolveMatchRows } =
   await import("./match-row-card");
 type DirectedMatch = Parameters<typeof groupTradeMatches>[0][number];
 type AggregatedMatch = Omit<DirectedMatch, "direction">;
@@ -91,6 +91,29 @@ function makeMatch(): AggregatedMatch {
 function makeDirected(overrides: Partial<DirectedMatch> = {}): DirectedMatch {
   return { ...makeMatch(), direction: "incoming", ...overrides };
 }
+
+describe("bulkTradeRequests", () => {
+  it("requests a double-sided printing once, at the larger wished count", () => {
+    const groups = groupTradeMatches([
+      makeDirected({ printingId: "pair", cardId: "bird", buyEntryId: "w-bird", buyQuantity: 1 }),
+      makeDirected({
+        printingId: "pair",
+        cardId: "gold",
+        buyEntryId: "w-gold",
+        buyQuantity: 2,
+        availableCount: 3,
+      }),
+      makeDirected({ printingId: "solo", cardId: "brush", buyEntryId: "w-brush" }),
+    ]);
+
+    const requests = bulkTradeRequests(groups);
+
+    expect(requests.map((request) => [request.variant.cardId, request.quantity])).toEqual([
+      ["gold", 2],
+      ["brush", 1],
+    ]);
+  });
+});
 
 describe("groupTradeMatches", () => {
   it("collapses a card-level wish's variants from one member into a single group", () => {
@@ -196,7 +219,7 @@ describe("resolveMatchRows", () => {
   type ListRow = Parameters<typeof resolveMatchRows>[0][number];
 
   function resolve(rows: ListRow[]) {
-    return resolveMatchRows(rows, {}, {}, [], LABELS, "rift-crew");
+    return resolveMatchRows(rows, {}, {}, [], LABELS, "rift-crew", new Map());
   }
 
   function makeListRow(overrides: Partial<ListRow> = {}): ListRow {

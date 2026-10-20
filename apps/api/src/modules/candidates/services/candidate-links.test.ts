@@ -13,6 +13,7 @@ const FIREBALL_PRINTING = {
   finish: "normal",
   markerSlugs: [],
   language: "EN",
+  size: "standard",
 };
 
 function makeIndex({
@@ -75,6 +76,50 @@ describe("resolveCardIdByName", () => {
 describe("resolvePrintingLink", () => {
   it("links on the composite key", () => {
     expect(resolvePrintingLink(makeIndex(), candidate())).toBe("printing-uuid");
+  });
+
+  it("links a side shown on one double-sided printing to that printing", () => {
+    const pair = {
+      id: "pair-uuid",
+      shortCode: "UNL-T05",
+      finish: "normal",
+      markerSlugs: [],
+      language: "EN",
+      size: "standard",
+    };
+    const index = makeIndex({ printings: [FIREBALL_PRINTING, pair] });
+    expect(resolvePrintingLink(index, candidate({ shortCode: "UNL-T05" }))).toBe("pair-uuid");
+  });
+
+  it("tells a standard and an oversized printing of one side apart by size", () => {
+    const side = { shortCode: "OGN-279", finish: "normal", markerSlugs: [], language: "EN" };
+    const index = makeIndex({
+      printings: [
+        { id: "standard", ...side, size: "standard" },
+        { id: "oversized", ...side, size: "oversized" },
+      ],
+    });
+    expect(resolvePrintingLink(index, candidate({ shortCode: "OGN-279", size: "oversized" }))).toBe(
+      "oversized",
+    );
+    expect(resolvePrintingLink(index, candidate({ shortCode: "OGN-279" }))).toBe("standard");
+  });
+
+  it("leaves a side shared by several printings unlinked", () => {
+    const side = {
+      shortCode: "OGN",
+      finish: "normal",
+      markerSlugs: [],
+      language: "EN",
+      size: "standard",
+    };
+    const index = makeIndex({
+      printings: [
+        { id: "recruit-buff", ...side },
+        { id: "sprite-buff", ...side },
+      ],
+    });
+    expect(resolvePrintingLink(index, candidate({ shortCode: "OGN" }))).toBeNull();
   });
 
   it("links a lowercase short code to an uppercase live printing", () => {

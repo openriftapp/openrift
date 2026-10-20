@@ -10,6 +10,7 @@ import {
   buildDeckQuantityByCell,
   buildMoveRows,
   cellPreferredPrintingId,
+  deckCellKey,
   getAllowedMoveTargets,
   isCardAllowedInZone,
   isCardBanned,
@@ -477,8 +478,8 @@ describe("buildDeckQuantityByCell", () => {
       [{ cardId: "card-a", quantity: 2, preferredPrintingId: "a-alt" }],
       defaultFor,
     );
-    expect(byCell.get("a-alt")).toBe(2);
-    expect(byCell.get("a-default")).toBeUndefined();
+    expect(byCell.get(deckCellKey("card-a", "a-alt"))).toBe(2);
+    expect(byCell.get(deckCellKey("card-a", "a-default"))).toBeUndefined();
   });
 
   it("attributes a default-art (null) row to the card's canonical printing cell", () => {
@@ -486,7 +487,7 @@ describe("buildDeckQuantityByCell", () => {
       [{ cardId: "card-a", quantity: 3, preferredPrintingId: null }],
       defaultFor,
     );
-    expect(byCell.get("a-default")).toBe(3);
+    expect(byCell.get(deckCellKey("card-a", "a-default"))).toBe(3);
   });
 
   it("merges a null row and a row pinned to the same default printing", () => {
@@ -497,7 +498,7 @@ describe("buildDeckQuantityByCell", () => {
       ],
       defaultFor,
     );
-    expect(byCell.get("a-default")).toBe(3);
+    expect(byCell.get(deckCellKey("card-a", "a-default"))).toBe(3);
   });
 
   it("keeps distinct printings of the same card on separate cells", () => {
@@ -508,8 +509,17 @@ describe("buildDeckQuantityByCell", () => {
       ],
       defaultFor,
     );
-    expect(byCell.get("a-default")).toBe(2);
-    expect(byCell.get("a-alt")).toBe(1);
+    expect(byCell.get(deckCellKey("card-a", "a-default"))).toBe(2);
+    expect(byCell.get(deckCellKey("card-a", "a-alt"))).toBe(1);
+  });
+
+  it("counts each card of a double-sided printing on its own cell", () => {
+    const byCell = buildDeckQuantityByCell(
+      [{ cardId: "card-a", quantity: 3, preferredPrintingId: "pair" }],
+      defaultFor,
+    );
+    expect(byCell.get(deckCellKey("card-a", "pair"))).toBe(3);
+    expect(byCell.get(deckCellKey("card-b", "pair"))).toBeUndefined();
   });
 
   it("sums copies of the same printing across zones", () => {
@@ -520,7 +530,7 @@ describe("buildDeckQuantityByCell", () => {
       ],
       defaultFor,
     );
-    expect(byCell.get("a-alt")).toBe(3);
+    expect(byCell.get(deckCellKey("card-a", "a-alt"))).toBe(3);
   });
 
   it("skips a null-art row when the card has no resolvable default printing", () => {

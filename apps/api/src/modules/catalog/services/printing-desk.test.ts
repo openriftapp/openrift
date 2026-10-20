@@ -9,6 +9,7 @@ import {
   assertImageUploader,
   createDeskPrinting,
   imagesDeletableBy,
+  removeDeskSide,
   setDeskSecondSide,
   updateDeskPrinting,
 } from "./printing-desk.js";
@@ -76,15 +77,25 @@ function makeRepos() {
     },
     markers: {},
     printingDesk: {
-      isDeskPrinting: vi.fn(() => Promise.resolve(false)),
+      isDeskPrinting: vi.fn((_id: string) => Promise.resolve(false)),
       nonDeskPrintingIdsForImageFile: vi.fn(() => Promise.resolve([] as string[])),
       getFullPrinting: vi.fn(() => Promise.resolve(BASE_PRINTING)),
+      getFullPrintingForCard: vi.fn(() => Promise.resolve(BASE_PRINTING)),
       getBasePrinting: vi.fn(() => Promise.resolve(BASE_PRINTING)),
       updatePrintingDeskFields: vi.fn(() => Promise.resolve()),
       getFaceLinks: vi.fn((id: string) =>
         Promise.resolve(FACE_LINKS[id] as { face1Id: string; face2Id: string | null } | undefined),
       ),
       setSecondFace: vi.fn(() => Promise.resolve()),
+      printingIdsShowingFace: vi.fn((): Promise<string[]> => Promise.resolve([])),
+      deckCoversShowingFace: vi.fn(() => Promise.resolve(0)),
+      lockFaceLinks: vi.fn((id: string) =>
+        Promise.resolve(FACE_LINKS[id] as { face1Id: string; face2Id: string | null }),
+      ),
+      dropFace: vi.fn(() => Promise.resolve()),
+      userReferenceCounts: vi.fn(() =>
+        Promise.resolve({ copies: 0, listEntries: 0, trades: 0, loans: 0, listings: 0 }),
+      ),
       findFace: vi.fn((id: string) => Promise.resolve(id === "face-missing" ? undefined : { id })),
     },
     printingEvents: {},
@@ -186,9 +197,12 @@ describe("createDeskPrinting", () => {
     await expect(create(repos)).rejects.toThrow("artist is required");
   });
 
-  it("reads the base printing by id when one is named", async () => {
+  it("reads the named base printing's side that shows the card", async () => {
     await create(repos, { basePrintingId: "base-9" });
-    expect(repos.printingDesk.getFullPrinting).toHaveBeenCalledWith("base-9");
+    expect(repos.printingDesk.getFullPrintingForCard).toHaveBeenCalledWith(
+      "base-9",
+      expect.any(String),
+    );
     expect(repos.printingDesk.getBasePrinting).not.toHaveBeenCalled();
   });
 
@@ -264,7 +278,8 @@ const FULL_ADMIN = { isAdmin: true, sections: [] } as unknown as AdminAccess;
 const GRANT_HOLDER = { isAdmin: false, sections: ["printing-desk"] } as unknown as AdminAccess;
 
 function update(targetRepos: FakeRepos, access: AdminAccess, patch: Record<string, unknown>) {
-  return updateDeskPrinting(transact, targetRepos as unknown as Repos, access, "user-1", {
+  const viaRepos = ((fn) => fn(targetRepos as unknown as Repos)) as Transact;
+  return updateDeskPrinting(viaRepos, targetRepos as unknown as Repos, access, "user-1", {
     printingId: "p-1",
     ...patch,
   } as never);
@@ -291,10 +306,45 @@ describe("updateDeskPrinting", () => {
       distributionChannelSlugs: ["skirmish-2026"],
     });
 
-    expect(updatePrintingMarkers).toHaveBeenCalledWith(transact, "p-1", ["prerelease"], 1);
+    expect(updatePrintingMarkers).toHaveBeenCalledWith(
+      expect.any(Function),
+      "p-1",
+      ["prerelease"],
+      1,
+    );
     expect(updatePrintingDistributionChannels).toHaveBeenCalledWith(repos, "p-1", [
       "skirmish-2026",
     ]);
+  });
+
+  it("403s a grant holder editing a side another out-of-scope printing shows", async () => {
+    repos.printingDesk.getFaceLinks.mockResolvedValue({ face1Id: "face-1", face2Id: null });
+    repos.printingDesk.printingIdsShowingFace.mockResolvedValue(["p-1", "base-set"]);
+    repos.printingDesk.isDeskPrinting.mockImplementation((id: string) =>
+      Promise.resolve(id === "p-1"),
+    );
+    await expect(update(repos, GRANT_HOLDER, { artist: "New" })).rejects.toMatchObject({
+      status: 403,
+    });
+  });
+
+  it("lets a grant holder change a shared printing's release date", async () => {
+    repos.printingDesk.printingIdsShowingFace.mockResolvedValue(["p-1", "base-set"]);
+    repos.printingDesk.isDeskPrinting.mockImplementation((id: string) =>
+      Promise.resolve(id === "p-1"),
+    );
+    await expect(
+      update(repos, GRANT_HOLDER, { releasedAt: "2026-05-01", releasePrecision: "day" }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("writes markers before a code change can re-sort the sides", async () => {
+    await update(repos, FULL_ADMIN, { side: 2, shortCode: "OGN-T01", markerSlugs: ["promo"] });
+
+    const markerCall = vi.mocked(updatePrintingMarkers).mock.invocationCallOrder[0]!;
+    const fieldsCall = repos.printingDesk.updatePrintingDeskFields.mock.invocationCallOrder[0]!;
+    expect(markerCall).toBeLessThan(fieldsCall);
+    expect(updatePrintingMarkers).toHaveBeenCalledWith(expect.any(Function), "p-1", ["promo"], 2);
   });
 
   it("recomputes both codes when the TBA flag is set", async () => {
@@ -575,8 +625,9 @@ describe("assertDeskImageFileScope", () => {
 });
 
 describe("setDeskSecondSide", () => {
-  function pair(printingId: string, faceId: string | null, access = FULL_ADMIN) {
-    return setDeskSecondSide(repos as unknown as Repos, access, "user-1", {
+  function pair(printingId: string, faceId: string, access = FULL_ADMIN) {
+    const viaRepos = ((fn) => fn(repos as unknown as Repos)) as Transact;
+    return setDeskSecondSide(viaRepos, repos as unknown as Repos, access, "user-1", {
       printingId,
       faceId,
     });
@@ -593,9 +644,20 @@ describe("setDeskSecondSide", () => {
     expect(repos.printingDesk.setSecondFace).toHaveBeenCalledWith("gold", "face-bird");
   });
 
-  it("clears the second side", async () => {
-    await pair("paired", null);
-    expect(repos.printingDesk.setSecondFace).toHaveBeenCalledWith("paired", null);
+  it("refuses a second side on a printing users already hold", async () => {
+    repos.printingDesk.userReferenceCounts.mockResolvedValue({
+      copies: 1,
+      listEntries: 0,
+      trades: 0,
+      loans: 0,
+      listings: 0,
+    });
+    await expect(pair("bird", "face-gold")).rejects.toMatchObject({ status: 409 });
+    expect(repos.printingDesk.setSecondFace).not.toHaveBeenCalled();
+  });
+
+  it("refuses to replace an existing second side", async () => {
+    await expect(pair("paired", "face-brush")).rejects.toMatchObject({ status: 400 });
   });
 
   it("rejects the printing's own first side", async () => {
@@ -615,5 +677,51 @@ describe("setDeskSecondSide", () => {
     await expect(pair("bird", "face-gold", GRANT_HOLDER)).rejects.toMatchObject({
       status: 403,
     });
+  });
+});
+
+describe("removeDeskSide", () => {
+  function remove(printingId: string, faceId: string) {
+    const viaRepos = ((fn) => fn(repos as unknown as Repos)) as Transact;
+    return removeDeskSide(viaRepos, repos as unknown as Repos, FULL_ADMIN, "user-1", {
+      printingId,
+      faceId,
+    });
+  }
+
+  it("drops the named side, including the one stored first", async () => {
+    await remove("paired", "face-bird");
+    expect(repos.printingDesk.dropFace).toHaveBeenCalledWith("paired", "face-bird");
+    expect(repos.catalog.refreshCatalogViews).toHaveBeenCalled();
+  });
+
+  it("refuses while users hold or point at the printing", async () => {
+    repos.printingDesk.userReferenceCounts.mockResolvedValue({
+      copies: 3,
+      listEntries: 0,
+      trades: 0,
+      loans: 0,
+      listings: 2,
+    });
+    await expect(remove("paired", "face-gold")).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringContaining("3 copies, 2 marketplace listings"),
+    });
+    expect(repos.printingDesk.dropFace).not.toHaveBeenCalled();
+  });
+
+  it("refuses dropping a side only this printing shows while a deck uses it as a cover", async () => {
+    repos.printingDesk.printingIdsShowingFace.mockResolvedValue(["paired"]);
+    repos.printingDesk.deckCoversShowingFace.mockResolvedValue(2);
+    await expect(remove("paired", "face-gold")).rejects.toMatchObject({ status: 409 });
+    expect(repos.printingDesk.dropFace).not.toHaveBeenCalled();
+  });
+
+  it("rejects a side the printing does not show", async () => {
+    await expect(remove("paired", "face-other")).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("rejects a single-sided printing", async () => {
+    await expect(remove("bird", "face-bird")).rejects.toMatchObject({ status: 400 });
   });
 });

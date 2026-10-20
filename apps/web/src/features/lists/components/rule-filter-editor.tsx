@@ -1,6 +1,7 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import { filterCards } from "@openrift/shared/filters";
 import { getAvailableFilters } from "@openrift/shared/filters-available";
+import { countPrintings } from "@openrift/shared/printing-side";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import type {
   CardFilters,
@@ -306,11 +307,13 @@ export function RuleFilterEditor({
   // Printings matching the filter but with no price on the chosen marketplace
   // are silently dropped; this count is surfaced under the row so it isn't mistaken for a bug.
   const pricelessMatchCount = priceActive
-    ? filterCards(
-        allPrintings,
-        { ...value, price: { min: null, max: null } },
-        { customTagAssignments },
-      ).filter((printing) => prices.get(printing.printingId, shownMarketplace) === undefined).length
+    ? countPrintings(
+        filterCards(
+          allPrintings,
+          { ...value, price: { min: null, max: null } },
+          { customTagAssignments },
+        ).filter((printing) => prices.get(printing.printingId, shownMarketplace) === undefined),
+      )
     : 0;
 
   const patchPrice = (price: FilterRange) => {

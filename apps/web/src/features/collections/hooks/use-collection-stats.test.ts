@@ -85,6 +85,22 @@ describe("computeCollectionStats", () => {
     expect(stats.typeBreakdown).toEqual([]);
   });
 
+  it("counts both cards of a double-sided copy as unique cards", () => {
+    const bird = stubPrinting({ printingId: "pair", side: 1, card: { slug: "bird" } });
+    const gold = stubPrinting({ printingId: "pair", side: 2, card: { slug: "gold" } });
+    const stats = computeCollectionStats({
+      stacks: [{ printingId: "pair", printing: bird, sides: [bird, gold], copyIds: ["c1"] }],
+      totalCopies: 1,
+      sets: [stubSet()],
+      prices: EMPTY_PRICE_LOOKUP,
+      marketplace: "tcgplayer",
+      orders: ORDERS,
+    });
+
+    expect(stats.uniqueCards).toBe(2);
+    expect(stats.uniquePrintings).toBe(1);
+  });
+
   it("computes hero stats for a single stack", () => {
     const stack = stubStack({
       copyCount: 3,
@@ -336,6 +352,35 @@ describe("computeCompletion", () => {
 
     expect(printings[0]!.owned).toBe(3);
     expect(printings[0]!.total).toBe(5);
+  });
+
+  it("counts an owned double-sided printing under the set of each side in printings mode", () => {
+    const bird = stubPrinting({
+      printingId: "pair",
+      side: 1,
+      setId: "set-a",
+      card: { slug: "bird" },
+    });
+    const gold = stubPrinting({
+      printingId: "pair",
+      side: 2,
+      setId: "set-b",
+      card: { slug: "gold" },
+    });
+    const entries = computeCompletion({
+      stacks: [{ printingId: "pair", printing: bird, sides: [bird, gold], copyIds: ["c1"] }],
+      scopedPrintings: [bird, gold],
+      scope: {},
+      sets: [stubSet({ id: "set-a", slug: "a" }), stubSet({ id: "set-b", slug: "b" })],
+      groupBy: "set",
+      countMode: "printings",
+      orders: ORDERS,
+    });
+
+    expect(entries.map((entry) => [entry.key, entry.owned, entry.total])).toEqual([
+      ["set-a", 1, 1],
+      ["set-b", 1, 1],
+    ]);
   });
 
   it("sorts set completion with main sets before supplemental", () => {
@@ -671,6 +716,13 @@ describe("filterStacksByScope", () => {
   it("returns all stacks when scope is empty", () => {
     const stacks = [stubStack({ language: "EN" }), stubStack({ language: "JA" })];
     expect(filterStacksByScope(stacks, {})).toHaveLength(2);
+  });
+
+  it("keeps a double-sided stack when its second side matches", () => {
+    const bird = stubPrinting({ printingId: "pair", side: 1, language: "EN" });
+    const gold = stubPrinting({ printingId: "pair", side: 2, language: "JA" });
+    const pair = { printingId: "pair", printing: bird, sides: [bird, gold], copyIds: ["c1"] };
+    expect(filterStacksByScope([pair], { languages: ["JA"] })).toEqual([pair]);
   });
 
   it("keeps only stacks whose printing matches", () => {

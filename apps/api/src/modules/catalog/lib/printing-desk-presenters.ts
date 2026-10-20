@@ -34,6 +34,7 @@ export function toDeskPrintingRow(
     comment: row.comment,
     imageCount: row.imageCount,
     faceId: row.faceId,
+    side: row.side,
     secondSide: row.secondSide,
     sharedWith: row.sharedWith,
     activeImageFileId: row.activeImageFileId,

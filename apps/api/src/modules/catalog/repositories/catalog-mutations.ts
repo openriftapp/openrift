@@ -30,12 +30,15 @@ export interface PrintingIdentity {
   language: string;
 }
 
-type FaceFields = Omit<Updateable<FacesTable>, "id" | "createdAt" | "updatedAt" | "comment">;
+/** A side never changes card: printings, deck slots and copies all assume it. */
+type FaceFields = Omit<
+  Updateable<FacesTable>,
+  "id" | "cardId" | "createdAt" | "updatedAt" | "comment"
+>;
 
 export type PrintingUpdate = Updateable<PrintingsTable> & FaceFields;
 
 const FACE_FIELDS = new Set<string>([
-  "cardId",
   "setId",
   "shortCode",
   "publicCode",
@@ -110,14 +113,6 @@ export async function updatePrintingAndFace(
     const faceId = side === 1 ? row?.face1Id : row?.face2Id;
     if (faceId) {
       await db.updateTable("faces").set(faceUpdates).where("id", "=", faceId).execute();
-      if ("shortCode" in faceUpdates) {
-        // The display-order trigger fires on face columns only; touching them re-sorts the sides.
-        await db
-          .updateTable("printings")
-          .set((eb) => ({ face1Id: eb.ref("face1Id") }))
-          .where((eb) => eb.or([eb("face1Id", "=", faceId), eb("face2Id", "=", faceId)]))
-          .execute();
-      }
     }
   }
 }
@@ -222,18 +217,40 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
     findPrintingIdByIdentity,
     findFaceIdByIdentity,
 
-    getPrintingDifferentiatorsById(id: string) {
-      return withFace1(db.selectFrom("printings as p"))
+    /** The side `faceId` is on now; a short-code edit may have re-sorted the pair. */
+    async sideOfFace(printingId: string, faceId: string): Promise<1 | 2 | undefined> {
+      const row = await db
+        .selectFrom("printings")
+        .select(["face1Id", "face2Id"])
+        .where("id", "=", printingId)
+        .executeTakeFirst();
+      if (row?.face1Id === faceId) {
+        return 1;
+      }
+      return row?.face2Id === faceId ? 2 : undefined;
+    },
+
+    findFaceById(id: string): Promise<{ id: string } | undefined> {
+      return db.selectFrom("faces").select("id").where("id", "=", id).executeTakeFirst();
+    },
+
+    /** The side whose short code is `shortCode`; side 1 when neither matches. */
+    getPrintingDifferentiatorsById(id: string, shortCode?: string) {
+      return db
+        .selectFrom("printingSidesOrdered as s")
         .select([
-          "p.id",
-          "pf.finish",
-          "pf.artVariant",
-          "pf.isSigned",
-          "pf.isOvernumbered",
-          "pf.markerSlugs",
-          "pf.rarity",
+          "s.printingId as id",
+          "s.finish",
+          "s.artVariant",
+          "s.isSigned",
+          "s.isOvernumbered",
+          "s.markerSlugs",
+          "s.rarity",
         ])
-        .where("p.id", "=", id)
+        .where("s.printingId", "=", id)
+        .orderBy(sql`upper(s.short_code) = upper(${shortCode ?? null}) DESC NULLS LAST`)
+        .orderBy("s.position")
+        .limit(1)
         .executeTakeFirst();
     },
 
@@ -246,8 +263,8 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    getFullPrintingById(id: string): Promise<FullPrintingRow | undefined> {
-      return selectFullPrintings(db).where("p.id", "=", id).executeTakeFirst();
+    getFullPrintingById(id: string, side: 1 | 2 = 1): Promise<FullPrintingRow | undefined> {
+      return selectFullPrintings(db, side).where("p.id", "=", id).executeTakeFirst();
     },
 
     getFullCardById(id: string): Promise<Selectable<CardsTable> | undefined> {
@@ -273,8 +290,11 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
 
     getSetPrintedTotalForPrinting(
       printingId: string,
+      side: 1 | 2 = 1,
     ): Promise<{ printedTotal: number | null } | undefined> {
-      return withFace1(db.selectFrom("printings as p"))
+      return db
+        .selectFrom("printings as p")
+        .innerJoin("faces as pf", "pf.id", side === 1 ? "p.face1Id" : "p.face2Id")
         .innerJoin("sets", "sets.id", "pf.setId")
         .select("sets.printedTotal")
         .where("p.id", "=", printingId)
@@ -453,8 +473,9 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       id: string,
       field: keyof PrintingUpdate & string,
       value: unknown,
+      side: 1 | 2 = 1,
     ): Promise<void> {
-      await updatePrintingById(id, { [field]: value });
+      await updatePrintingAndFace(db, id, { [field]: value }, side);
     },
 
     async deletePrintingById(id: string): Promise<{ id: string } | undefined> {
@@ -497,8 +518,22 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
     ): Promise<string> {
       const { size, ...faceValues } = values;
       const existingFace = await findFaceIdByIdentity(values);
-      let faceId: string;
-      if (existingFace) {
+      if (!existingFace) {
+        const inserted = await db
+          .insertInto("faces")
+          .values(faceValues)
+          .returning("id")
+          .executeTakeFirstOrThrow();
+        const result = await db
+          .insertInto("printings")
+          .values({ face1Id: inserted.id, face2Id: secondFaceId, size })
+          .returning("id")
+          .executeTakeFirstOrThrow();
+        return result.id;
+      }
+      const faceId = existingFace.id;
+      const existing = await findPrintingIdByFaces(faceId, secondFaceId, size);
+      if (existing) {
         await db
           .updateTable("faces")
           .set({
@@ -510,19 +545,8 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
             printedName: values.printedName,
             printedYear: values.printedYear,
           })
-          .where("id", "=", existingFace.id)
+          .where("id", "=", faceId)
           .execute();
-        faceId = existingFace.id;
-      } else {
-        const inserted = await db
-          .insertInto("faces")
-          .values(faceValues)
-          .returning("id")
-          .executeTakeFirstOrThrow();
-        faceId = inserted.id;
-      }
-      const existing = await findPrintingIdByFaces(faceId, secondFaceId, size);
-      if (existing) {
         return existing.id;
       }
       const result = await db

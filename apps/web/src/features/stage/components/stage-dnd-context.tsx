@@ -18,6 +18,7 @@ import {
   restrictToVerticalAxis,
   snapCenterToCursor,
 } from "@dnd-kit/modifiers";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -78,11 +79,11 @@ export function StageDndContext({ children }: { children: ReactNode }) {
       return;
     }
     if (drop.type === "stage-queue-slot") {
-      insertAt(drag.printing.printingId, drop.index);
+      insertAt(sideKey(drag.printing), drop.index);
       return;
     }
     if (drop.type === "stage-queue") {
-      add(drag.printing.printingId);
+      add(sideKey(drag.printing));
     }
   };
 

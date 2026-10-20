@@ -166,7 +166,9 @@ export const ListGridCell = memo(function ListGridCell({
       }
     : undefined;
   const dragId =
-    editableEntryId === null ? `list-rule-entry-${itemId}` : `list-entry-${editableEntryId}`;
+    editableEntryId === null
+      ? `list-rule-entry-${itemId}`
+      : `list-entry-${editableEntryId}-${itemId}`;
   const wrap =
     !showLibrary && dragData ? <DraggableListEntry id={dragId} data={dragData} /> : undefined;
 
@@ -286,7 +288,7 @@ function buildStrip({
               return;
             }
             if (manualPart <= 1) {
-              dispatchRemoveEntry(entry.id, legendDisplayName(displayPrinting.card));
+              dispatchRemoveEntry(entry.id, entry.cardName);
             } else {
               dispatchEntryQuantityChange(entry.id, manualPart - 1);
             }

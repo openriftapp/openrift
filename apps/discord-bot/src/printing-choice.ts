@@ -27,11 +27,18 @@ export function printingVariantParts(
   printing: CatalogPrinting,
   siblings: CatalogPrinting[],
 ): string[] {
-  const { language, rest } = formatPrintingVariantLabelParts(printing, siblings, snapshot.labels);
+  const { language, rest, otherSide } = formatPrintingVariantLabelParts(
+    printing,
+    siblings,
+    snapshot.labels,
+  );
   // formatPrintingVariantLabelParts omits language when siblings agree; add it back
   // for a card printed solely in one non-English language.
   const shown = language ?? (printing.language === "EN" ? null : printing.language);
   const parts = shown ? [shown, ...rest] : [...rest];
+  if (otherSide) {
+    parts.push(`with ${otherSide}`);
+  }
   if (parts.length === 0 && siblings.length > 1) {
     parts.push("Standard");
   }

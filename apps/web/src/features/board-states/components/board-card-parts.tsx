@@ -48,7 +48,12 @@ export interface ZoneDropData {
 }
 
 export function cardImageId(card: BoardCardRef, catalog: UseCardsResult): string | undefined {
-  const preferred = card.printingId ? catalog.printingsById[card.printingId] : undefined;
+  const preferred = card.printingId
+    ? (catalog.printingsByCardId
+        .get(card.cardId)
+        ?.find((candidate) => candidate.printingId === card.printingId) ??
+      catalog.printingsById[card.printingId])
+    : undefined;
   const printing =
     preferred && frontImageId(preferred) !== null
       ? preferred

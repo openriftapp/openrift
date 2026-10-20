@@ -359,6 +359,13 @@ describe("useScanSessionStore", () => {
         expect(persisted?.lastScanAt).not.toBeNull();
       });
 
+      it("stores a second side under its side key", () => {
+        state().add(stubPrinting({ printingId: "pair", side: 2, cardId: "gold" }));
+
+        const partialize = useScanSessionStore.persist.getOptions().partialize;
+        expect(partialize?.(state())?.rows).toEqual([{ printingId: "pair:2", count: 1 }]);
+      });
+
       it("passes a staged payload through unchanged until restore runs", () => {
         const staged = {
           rows: [{ printingId: "p1", count: 2 }],

@@ -326,6 +326,10 @@ function CardImageContent({
   );
 }
 
+function inDisplayOrder(side: 1 | 2, own: string, other: string): string {
+  return side === 1 ? `${own} // ${other}` : `${other} // ${own}`;
+}
+
 function displayCard(printing: Printing) {
   return {
     ...printing.card,
@@ -379,6 +383,7 @@ function DraggableTileWrapper({
   onMouseEnter,
   onMouseLeave,
   printingId,
+  tileSideKey,
   children,
 }: {
   dragId: string;
@@ -387,6 +392,7 @@ function DraggableTileWrapper({
   onMouseEnter: (() => void) | undefined;
   onMouseLeave: (() => void) | undefined;
   printingId: string;
+  tileSideKey: string;
   children: ReactNode;
 }) {
   const isMobile = useIsMobile();
@@ -400,6 +406,7 @@ function DraggableTileWrapper({
     <div
       ref={setNodeRef}
       data-printing-id={printingId}
+      data-side-key={tileSideKey}
       className={cn(className, isDragging && "opacity-40", enableDrag && "select-none")}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -622,7 +629,7 @@ export const CardThumbnail = memo(function CardThumbnail({
                 {sibling.finish === WellKnown.finish.FOIL && gridFoil && <FoilOverlay active dim />}
                 {showSiblingFaces && (
                   <PrintingSpine
-                    label={`${formatCardId(sibling)} · ${formatPrintingVariantLabel(sibling, siblings, variantLabels)}`}
+                    label={`${formatCardId(sibling)} · ${formatPrintingVariantLabel(sibling, siblings, variantLabels, (name) => m.cards_printing_with_side({ name }))}`}
                   />
                 )}
               </div>
@@ -699,12 +706,21 @@ export const CardThumbnail = memo(function CardThumbnail({
       </span>
     );
 
+  const labelOtherSide = view === "cards" ? undefined : printing.otherSide;
   const labelSection = (
     // ⚠ mt-2.5 is mirrored as LABEL_WRAPPER_MT in card-grid.tsx — update both together
     <CardMetaLabel
       className="relative z-10 mt-2.5"
-      shortCode={printing.shortCode}
-      name={displayName}
+      shortCode={
+        labelOtherSide
+          ? inDisplayOrder(printing.side, printing.shortCode, labelOtherSide.shortCode)
+          : printing.shortCode
+      }
+      name={
+        labelOtherSide
+          ? inDisplayOrder(printing.side, displayName, labelOtherSide.cardName)
+          : displayName
+      }
       rarity={printing.rarity}
       rarityTitle={rarityTitle}
       finish={printing.finish}
@@ -794,6 +810,7 @@ export const CardThumbnail = memo(function CardThumbnail({
         onMouseEnter={fanMouseEnter}
         onMouseLeave={fanMouseLeave}
         printingId={printing.printingId}
+        tileSideKey={sideKey(printing)}
       >
         {wrapperContent}
       </DraggableTileWrapper>
@@ -803,6 +820,7 @@ export const CardThumbnail = memo(function CardThumbnail({
   return (
     <div
       data-printing-id={printing.printingId}
+      data-side-key={sideKey(printing)}
       className={wrapperClassName}
       onMouseEnter={fanMouseEnter}
       onMouseLeave={fanMouseLeave}

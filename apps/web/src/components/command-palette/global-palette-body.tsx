@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { sideKey } from "@openrift/shared/printing-side";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Command as CommandPrimitive } from "cmdk";
@@ -93,13 +94,13 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
   const cardSequence = groups
     .flatMap((group) => group.rows)
     .filter((row) => row.kind === "card")
-    .map((row) => row.card.defaultPrinting.printingId);
+    .map((row) => sideKey(row.card.defaultPrinting));
 
   const handleSelect = (row: PaletteRow) => {
     if (row.kind === "card") {
       // Hidden, not closed, so dismissing the detail restores this list and query.
       hidePalette();
-      onOpenCard(row.card.defaultPrinting.printingId, cardSequence);
+      onOpenCard(sideKey(row.card.defaultPrinting), cardSequence);
       return;
     }
     if (row.kind === "quickAdd") {
@@ -185,9 +186,10 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
 
 function PaletteRowContent({ row }: { row: PaletteRow }) {
   if (row.kind === "card") {
+    const { otherSide: _otherSide, ...printing } = row.card.defaultPrinting;
     return (
       <PrintingRowContent
-        printing={row.card.defaultPrinting}
+        printing={printing}
         siblings={row.card.printings}
         name={legendDisplayName(row.card.defaultPrinting.card)}
       />

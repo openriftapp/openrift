@@ -3,7 +3,7 @@ import { makePrinting } from "@openrift/shared/test-factories";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
 import type { Kysely } from "kysely";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { Database } from "../../../db/tables.js";
 import { createMockDb } from "../../../test/mock-db.js";
@@ -274,6 +274,21 @@ describe("listsRepo", () => {
       updated: 0,
       skipped: 2,
     });
+  });
+
+  it("bulkCreateEntriesFromCopies files a double-sided copy under the dragged tile's card", async () => {
+    const repo = listsRepo(createMockDb([]));
+    repo.ownedCopyTargets = vi.fn(async () => [
+      { copyId: "c1", printingId: "pair", cardId: "bird", cardIds: ["bird", "gold"] },
+    ]) as never;
+    const bulkCreateEntries = vi.fn(async () => ({ inserted: 1, updated: 0 }));
+    repo.bulkCreateEntries = bulkCreateEntries as never;
+
+    await repo.bulkCreateEntriesFromCopies("lst-1", "card", "u1", ["c1"], false, "gold");
+
+    expect(bulkCreateEntries).toHaveBeenCalledWith("card", [
+      expect.objectContaining({ cardId: "gold" }),
+    ]);
   });
 
   it("updateEntry returns the updated entry", async () => {

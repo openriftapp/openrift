@@ -24,7 +24,6 @@ function createMockMappingRepo(overrides: Record<string, unknown> = {}) {
     productsByExternalIds: vi.fn().mockResolvedValue([]),
     upsertProductVariants: vi.fn().mockResolvedValue([]),
     getVariantForPrinting: vi.fn().mockResolvedValue(undefined),
-    getPrintingFinishAndLanguage: vi.fn().mockResolvedValue({ finish: "normal", language: "EN" }),
     deleteVariantById: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };

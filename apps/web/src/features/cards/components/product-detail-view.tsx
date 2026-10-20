@@ -229,7 +229,7 @@ function ProductDetailBody({ data }: { data: EnrichedProductDetail }) {
 }
 
 function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
-  const { printingsById, sets } = data;
+  const { sets } = data;
   // The detail pane lists every printing of the clicked card from the global
   // catalog, not just the ones in this product.
   const { printingsByCardId: catalogAllPrintingsByCardId } = useCards();
@@ -248,14 +248,12 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
   const view = "printings" as const;
 
   const quantityByPrintingId: Record<string, number> = {};
-  const productPrintings: Printing[] = [];
   for (const content of data.contents) {
     quantityByPrintingId[content.printingId] = content.quantity;
-    const printing = printingsById[content.printingId];
-    if (printing) {
-      productPrintings.push(printing);
-    }
   }
+  const productPrintings: Printing[] = data.printings.filter(
+    (printing) => quantityByPrintingId[printing.printingId] !== undefined,
+  );
 
   // Feed the owned map into useCardData only when an owned filter is active.
   const ownedFilterActive =

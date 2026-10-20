@@ -76,10 +76,13 @@ export function collectOwnershipBandSources(
       let total = 0;
       let locked = 0;
       let borrowed = 0;
-      for (const printing of printingsByCardId.get(card.cardId) ?? []) {
-        total += availableByPrinting[printing.printingId] ?? 0;
-        locked += lockedByPrinting[printing.printingId] ?? 0;
-        borrowed += borrowedByPrinting[printing.printingId] ?? 0;
+      const printingIds = new Set(
+        (printingsByCardId.get(card.cardId) ?? []).map((printing) => printing.printingId),
+      );
+      for (const printingId of printingIds) {
+        total += availableByPrinting[printingId] ?? 0;
+        locked += lockedByPrinting[printingId] ?? 0;
+        borrowed += borrowedByPrinting[printingId] ?? 0;
       }
       availableByCardId[card.cardId] = total;
       lockedByCardId[card.cardId] = locked;

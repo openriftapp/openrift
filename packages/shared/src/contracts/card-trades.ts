@@ -26,6 +26,7 @@ export const createCardTradeSchema = z.object({
   counterpartyUserId: z.string().min(1),
   role: cardTradeSideSchema,
   printingId: z.uuid(),
+  cardId: z.uuid().optional(),
   quantity: z.number().int().min(1),
   copyIds: z.array(z.uuid()).min(1).max(100).optional(),
 });

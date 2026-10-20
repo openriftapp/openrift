@@ -1,12 +1,14 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 
 import { CardRow } from "@/components/ui/card-list";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetailNameButton } from "@/features/cards/components/card-detail-opener";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { frontImageId } from "@/features/cards/lib/card-meta";
+import { frontImageId, printingDisplayName } from "@/features/cards/lib/card-meta";
+import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import { useEnumOrders } from "@/hooks/use-enums";
 
 import { TradeRowActions } from "./trade-row-actions";
@@ -26,17 +28,17 @@ export function TradeRow({
   redundantStatus,
 }: {
   trade: CardTradeResponse;
-  /** The printing ids of the block this row sits in, for the detail's prev/next. */
+  /** The side keys of the block this row sits in, for the detail's prev/next. */
   sequence?: string[];
   /** Suppresses the badge for this one status, since the host's heading already says it. */
   redundantStatus?: TradeBadgeState;
 }) {
-  const { cardsById, printingsById } = useCards();
+  const { cardsById, printingsById, printingsByCardId } = useCards();
   const { labels } = useEnumOrders();
 
   const card = cardsById[trade.cardId];
-  const printing = printingsById[trade.printingId];
-  const cardName = card?.name ?? "Card";
+  const printing = tradePrinting(trade, printingsByCardId, printingsById);
+  const cardName = printing ? printingDisplayName(printing) : (card?.name ?? "Card");
   const imageId = frontImageId(printing);
 
   const incoming = trade.role === "receiver";
@@ -65,7 +67,7 @@ export function TradeRow({
           {/* Truncation lives on the button, not a wrapping span: a nested button
               inside a truncating span clips without an ellipsis. */}
           <CardDetailNameButton
-            printingId={printing?.printingId}
+            printingId={printing ? sideKey(printing) : undefined}
             sequence={sequence}
             className="min-w-0 truncate font-medium"
           >

@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { frontImageId } from "@/features/cards/lib/card-meta";
+import { cn } from "@/lib/utils";
 
 /** Fixed strip frame keeps row height stable when landscape and portrait cards mix in one list. */
 export function PrintingThumbnail({
@@ -14,7 +15,7 @@ export function PrintingThumbnail({
   printing: Printing;
   className?: string;
 }) {
-  return (
+  const thumb = (
     <CardArtThumb
       shape="strip"
       imageId={frontImageId(printing)}
@@ -24,6 +25,20 @@ export function PrintingThumbnail({
       className={className ?? "h-10"}
       loading="lazy"
     />
+  );
+  if (!printing.otherSide) {
+    return thumb;
+  }
+  return (
+    <span className="relative mr-1 inline-flex shrink-0">
+      <CardArtThumb
+        shape="strip"
+        imageId={printing.otherSide.imageId}
+        className={cn(className ?? "h-10", "absolute -top-1 left-1 opacity-70")}
+        loading="lazy"
+      />
+      {thumb}
+    </span>
   );
 }
 
@@ -39,7 +54,8 @@ export function PreferredPrintingThumbnail({
   if (!printing) {
     return <CardArtThumb shape="strip" className={className ?? "h-10"} />;
   }
-  return <PrintingThumbnail printing={printing} className={className} />;
+  const { otherSide: _otherSide, ...cardPrinting } = printing;
+  return <PrintingThumbnail printing={cardPrinting} className={className} />;
 }
 
 export function cardSearchLeading(cardId: string): ReactNode {

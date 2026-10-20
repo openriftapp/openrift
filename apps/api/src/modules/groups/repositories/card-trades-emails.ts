@@ -9,7 +9,6 @@ export interface QueuedRequestEmailRow {
   groupId: string;
   groupSlug: string;
   groupName: string;
-  cardId: string;
   printingId: string;
   quantity: number;
   initiator: CardTradeInitiator;
@@ -28,7 +27,7 @@ export interface QueuedStatusEmailRow {
   groupId: string;
   groupSlug: string;
   groupName: string;
-  cardId: string;
+  printingId: string;
   quantity: number;
   /** Which transition fired — drives the per-line copy and the marker to claim. */
   event: TradeStatusEmailEvent;
@@ -63,7 +62,6 @@ export function cardTradeEmailsRepo(db: Kysely<Database>) {
           t.group_id,
           g.slug AS group_slug,
           g.name AS group_name,
-          tpf.card_id,
           t.printing_id,
           t.quantity,
           t.initiator,
@@ -119,7 +117,7 @@ export function cardTradeEmailsRepo(db: Kysely<Database>) {
           t.group_id,
           g.slug AS group_slug,
           g.name AS group_name,
-          tpf.card_id,
+          t.printing_id,
           t.quantity,
           (CASE WHEN t.status = 'reserved' THEN 'reserved' ELSE t.status END) AS event,
           t.last_actor_user_id AS actor_user_id,

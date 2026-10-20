@@ -1,4 +1,4 @@
-import { sideKey } from "@openrift/shared/printing-side";
+import { sideKey, uniquePrintings } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { MouseEvent, PointerEvent, ReactNode, RefObject } from "react";
 import { useRef } from "react";
@@ -76,7 +76,8 @@ export function PrintingChoiceMenuSection({
   onSelect: (printing: Printing, event: MouseEvent) => void;
   onSelectDefault?: (event: MouseEvent) => void;
 }) {
-  if (printings.length === 0) {
+  const choices = uniquePrintings(printings);
+  if (choices.length === 0) {
     return null;
   }
   return (
@@ -96,7 +97,7 @@ export function PrintingChoiceMenuSection({
             {m.cards_printing_menu_use_default()}
           </ContextMenuItem>
         )}
-        {printings.map((printing) => (
+        {choices.map((printing) => (
           <ContextMenuItem
             key={sideKey(printing)}
             className={cn(

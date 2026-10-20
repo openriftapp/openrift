@@ -30,10 +30,13 @@ const fetchDeskCardPrintings = createServerFn({ method: "GET" })
   );
 
 const fetchDeskPrinting = createServerFn({ method: "GET" })
-  .validator((input: { printingId: string }) => input)
+  .validator((input: { printingId: string; side: 1 | 2 }) => input)
   .middleware([withCookies])
   .handler(({ context, data }): Promise<DeskGetOutput> =>
-    apiOrpcClient(adminPrintingDeskContract, context.cookie).get({ printingId: data.printingId }),
+    apiOrpcClient(adminPrintingDeskContract, context.cookie).get({
+      printingId: data.printingId,
+      side: data.side,
+    }),
   );
 
 export const deskPrintingsQueryOptions = (mode: DeskListMode) =>
@@ -50,9 +53,10 @@ export const deskCardPrintingsQueryOptions = (cardSlug: string) =>
     staleTime: 60 * 1000,
   });
 
-export const deskPrintingQueryOptions = (printingId: string) =>
+/** `side` picks which card of a double-sided printing the page is about. */
+export const deskPrintingQueryOptions = (printingId: string, side: 1 | 2 = 1) =>
   queryOptions({
-    queryKey: adminKeys.printingDesk.printing(printingId),
-    queryFn: () => fetchDeskPrinting({ data: { printingId } }),
+    queryKey: [...adminKeys.printingDesk.printing(printingId), side] as const,
+    queryFn: () => fetchDeskPrinting({ data: { printingId, side } }),
     staleTime: 60 * 1000,
   });

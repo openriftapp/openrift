@@ -1,4 +1,3 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
 import { Link } from "@tanstack/react-router";
 import { BellIcon, CheckIcon, ChevronRightIcon, ShoppingCartIcon, UsersIcon } from "lucide-react";
 import { Suspense } from "react";
@@ -14,13 +13,14 @@ import { UserAvatar } from "@/components/user-avatar";
 import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
 import { CardDetailOverlayProvider } from "@/features/cards/components/card-detail-opener";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { printingArt } from "@/features/cards/lib/card-meta";
+import { printingArt, printingDisplayName } from "@/features/cards/lib/card-meta";
 import { TradeMarket } from "@/features/groups/components/trade-market";
 import { useUserTrades } from "@/features/groups/hooks/use-card-trades";
 import { useFriendGroupsList } from "@/features/groups/hooks/use-friend-groups";
 import { cartFor } from "@/features/groups/lib/buy-cart";
 import { distinctPrintingIds } from "@/features/groups/lib/friend-group-activity";
 import { needsYouLine, nextMoveLabel } from "@/features/groups/lib/trade-hub";
+import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import type { TradesIndexPerson } from "@/features/groups/lib/trades-index";
 import { buildTradesIndex } from "@/features/groups/lib/trades-index";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
@@ -97,13 +97,13 @@ function PeopleGrid({ people, showGroups }: { people: TradesIndexPerson[]; showG
 }
 
 function YourMoveRow({ person }: { person: TradesIndexPerson }) {
-  const { cardsById } = useCards();
+  const { printingsById, printingsByCardId } = useCards();
   const action = needsYouLine(person.needsYou);
   const cardNames = [
     ...new Set(
       person.needsYou.flatMap((trade) => {
-        const card = cardsById[trade.cardId];
-        return card === undefined ? [] : [legendDisplayName(card)];
+        const printing = tradePrinting(trade, printingsByCardId, printingsById);
+        return printing === undefined ? [] : [printingDisplayName(printing)];
       }),
     ),
   ].join(", ");

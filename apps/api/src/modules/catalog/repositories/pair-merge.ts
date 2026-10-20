@@ -54,6 +54,7 @@ export interface PairMergeReport {
   newFaces: string[];
   sources: PairMergeSourceReport[];
   owners: PairMergeOwnerReport[];
+  productsToReview: { slug: string; home: string; product: string; quantity: number }[];
 }
 
 interface SourceRow {
@@ -64,8 +65,17 @@ interface SourceRow {
   size: string;
 }
 
-/** Tables whose rows move to the home printing; rows that collide on `conflict` merge. */
-const MOVES: { table: string; column: string; conflict?: string; sum?: string }[] = [
+/**
+ * Tables whose rows move to the home printing; rows that collide on `conflict` merge, adding
+ * up `sum` and keeping the larger `max` (both sides list the same physical card in a product).
+ */
+const MOVES: {
+  table: string;
+  column: string;
+  conflict?: string;
+  sum?: string[];
+  max?: string[];
+}[] = [
   { table: "copies", column: "printing_id" },
   { table: "collection_events", column: "printing_id" },
   { table: "card_trades", column: "printing_id" },
@@ -73,14 +83,19 @@ const MOVES: { table: string; column: string; conflict?: string; sum?: string }[
   { table: "printing_events", column: "printing_id" },
   { table: "candidate_printings", column: "printing_id" },
   { table: "meta_event_player_overlay_cards", column: "preferred_printing_id" },
-  { table: "list_entries", column: "printing_id", conflict: "list_id", sum: "quantity" },
+  { table: "list_entries", column: "printing_id", conflict: "list_id", sum: ["quantity"] },
   {
     table: "deck_cards",
     column: "preferred_printing_id",
     conflict: "deck_id, card_id, zone",
-    sum: "quantity",
+    sum: ["quantity"],
   },
-  { table: "product_printings", column: "printing_id", conflict: "product_id", sum: "quantity" },
+  {
+    table: "product_printings",
+    column: "printing_id",
+    conflict: "product_id",
+    max: ["quantity"],
+  },
   {
     table: "marketplace_product_variants",
     column: "printing_id",
@@ -97,7 +112,17 @@ const MOVES: { table: string; column: string; conflict?: string; sum?: string }[
     table: "cardmarket_sync_state",
     column: "printing_id",
     conflict: "user_id, condition, is_altered",
+    sum: ["intent_base", "observed_base", "unmanaged"],
   },
+  { table: "printing_link_overrides", column: "printing_id" },
+];
+
+/** jsonb columns that name printings by id; a uuid only ever matches itself, so a text swap is exact. */
+const JSON_REFERENCES: { table: string; column: string }[] = [
+  { table: "lists", column: "rules" },
+  { table: "board_states", column: "document" },
+  { table: "tier_lists", column: "tiers" },
+  { table: "overlay_channels", column: "payload" },
 ];
 
 export class PairMergeError extends Error {
@@ -161,7 +186,9 @@ async function findFace(
   return row.id;
 }
 
-function resolveHomes(list: PairMergeList): Map<string, { key: string; defaulted: boolean }> {
+function resolveHomes(
+  list: PairMergeList,
+): Map<string, { key: string; defaulted: boolean; shared: boolean }> {
   const keys = new Set(list.printings.map((entry) => entry.key));
   if (keys.size !== list.printings.length) {
     throw new PairMergeError("Printing keys must be unique");
@@ -177,7 +204,7 @@ function resolveHomes(list: PairMergeList): Map<string, { key: string; defaulted
       }
     }
   }
-  const homes = new Map<string, { key: string; defaulted: boolean }>();
+  const homes = new Map<string, { key: string; defaulted: boolean; shared: boolean }>();
   for (const [slug, entryKeys] of entriesBySlug) {
     const chosen = list.homes?.[slug];
     if (chosen !== undefined && !entryKeys.includes(chosen)) {
@@ -186,6 +213,7 @@ function resolveHomes(list: PairMergeList): Map<string, { key: string; defaulted
     homes.set(slug, {
       key: chosen ?? entryKeys[0] ?? "",
       defaulted: chosen === undefined && entryKeys.length > 1,
+      shared: entryKeys.length > 1,
     });
   }
   return homes;
@@ -193,6 +221,16 @@ function resolveHomes(list: PairMergeList): Map<string, { key: string; defaulted
 
 async function countMoves(db: Kysely<Database>, sourceId: string): Promise<Record<string, number>> {
   const moved: Record<string, number> = {};
+  for (const { table, column } of JSON_REFERENCES) {
+    const { rows } = await sql<{ count: number }>`
+      SELECT count(*)::int AS count FROM ${sql.table(table)}
+      WHERE strpos(${sql.ref(column)}::text, ${sourceId}) > 0
+    `.execute(db);
+    const count = rows[0]?.count ?? 0;
+    if (count > 0) {
+      moved[`${table}.${column}`] = count;
+    }
+  }
   for (const { table, column } of MOVES) {
     const { rows } = await sql<{ count: number }>`
       SELECT count(*)::int AS count FROM ${sql.table(table)} WHERE ${sql.ref(column)} = ${sourceId}
@@ -225,8 +263,21 @@ async function moveReferences(
   db: Kysely<Database>,
   sourceId: string,
   homeId: string,
+  homeSideKey: string,
 ): Promise<void> {
-  for (const { table, column, conflict, sum } of MOVES) {
+  // The overlay's shown card is a side key; the cards inside a pushed board stay printing ids.
+  await sql`
+    UPDATE overlay_channels SET payload = jsonb_set(payload, '{printingId}', to_jsonb(${homeSideKey}::text))
+    WHERE payload->>'printingId' = ${sourceId}
+  `.execute(db);
+  for (const { table, column } of JSON_REFERENCES) {
+    const ref = sql.ref(column);
+    await sql`
+      UPDATE ${sql.table(table)} SET ${ref} = replace(${ref}::text, ${sourceId}, ${homeId})::jsonb
+      WHERE strpos(${ref}::text, ${sourceId}) > 0
+    `.execute(db);
+  }
+  for (const { table, column, conflict, sum, max } of MOVES) {
     const target = sql.table(table);
     const ref = sql.ref(column);
     if (conflict !== undefined) {
@@ -235,11 +286,27 @@ async function moveReferences(
         keys.map((key) => sql`h.${sql.ref(key)} = s.${sql.ref(key)}`),
         sql` AND `,
       );
-      if (sum !== undefined) {
+      if (sum !== undefined || max !== undefined) {
+        const sets = sql.join([
+          ...(sum ?? []).map(
+            (field) => sql`${sql.ref(field)} = h.${sql.ref(field)} + s.${sql.ref(field)}`,
+          ),
+          ...(max ?? []).map(
+            (field) => sql`${sql.ref(field)} = GREATEST(h.${sql.ref(field)}, s.${sql.ref(field)})`,
+          ),
+        ]);
         await sql`
-          UPDATE ${target} h SET ${sql.ref(sum)} = h.${sql.ref(sum)} + s.${sql.ref(sum)}
+          UPDATE ${target} h SET ${sets}
           FROM ${target} s
           WHERE h.${ref} = ${homeId} AND s.${ref} = ${sourceId} AND ${matches}
+        `.execute(db);
+      }
+      if (table === "list_entries") {
+        await sql`
+          UPDATE card_trades t SET receiver_wish_entry_id = h.id
+          FROM list_entries s, list_entries h
+          WHERE t.receiver_wish_entry_id = s.id
+            AND s.printing_id = ${sourceId} AND h.printing_id = ${homeId} AND h.list_id = s.list_id
         `.execute(db);
       }
       await sql`
@@ -249,6 +316,47 @@ async function moveReferences(
       `.execute(db);
     }
     await sql`UPDATE ${target} SET ${ref} = ${homeId} WHERE ${ref} = ${sourceId}`.execute(db);
+  }
+  // Each side's pending announcement would post the merged printing again.
+  await sql`
+    DELETE FROM printing_events e
+    WHERE e.printing_id = ${homeId} AND e.status = 'pending'
+      AND EXISTS (
+        SELECT 1 FROM printing_events o
+        WHERE o.printing_id = ${homeId} AND o.status = 'pending' AND o.id < e.id
+      )
+  `.execute(db);
+}
+
+/** `uq_card_trades_live` allows one live trade per pair of users and printing. */
+async function checkLiveTrades(
+  db: Kysely<Database>,
+  sources: Map<string, SourceRow>,
+  homes: Map<string, { key: string }>,
+): Promise<void> {
+  const sourceIdsByHome = new Map<string, string[]>();
+  for (const [slug, home] of homes) {
+    const source = sources.get(slug);
+    if (source) {
+      sourceIdsByHome.set(home.key, [...(sourceIdsByHome.get(home.key) ?? []), source.id]);
+    }
+  }
+  for (const [home, sourceIds] of sourceIdsByHome) {
+    if (sourceIds.length < 2) {
+      continue;
+    }
+    const { rows } = await sql<{ count: number }>`
+      SELECT count(*)::int AS count FROM card_trades
+      WHERE printing_id IN (${sql.join(sourceIds)})
+        AND (status = 'pending' OR (status = 'reserved' AND giver_sync_applied_at IS NULL AND receiver_sync_applied_at IS NULL))
+      GROUP BY group_id, giver_user_id, receiver_user_id
+      HAVING count(*) > 1
+    `.execute(db);
+    if (rows.length > 0) {
+      throw new PairMergeError(
+        `${home}: ${rows.length} pair(s) of users have a live trade for more than one of its sides; settle them first`,
+      );
+    }
   }
 }
 
@@ -278,11 +386,13 @@ export async function planPairMerge(
   const sources = await loadSources(db, list);
   const homes = resolveHomes(list);
   await checkFaceRefs(db, list);
+  await checkLiveTrades(db, sources, homes);
   const report: PairMergeReport = {
     created: list.printings.map((entry) => ({ key: entry.key })),
     newFaces: Object.keys(list.newFaces ?? {}),
     sources: [],
     owners: [],
+    productsToReview: [],
   };
   for (const [slug, home] of homes) {
     const source = sources.get(slug);
@@ -298,6 +408,23 @@ export async function planPairMerge(
     if (home.defaulted) {
       for (const owner of await ownersOf(db, source.id)) {
         report.owners.push({ slug, home: home.key, ...owner });
+      }
+    }
+    if (home.shared) {
+      const products = await db
+        .selectFrom("productPrintings as pp")
+        .innerJoin("products as pr", "pr.id", "pp.productId")
+        .select(["pr.slug", "pp.quantity"])
+        .where("pp.printingId", "=", source.id)
+        .where("pp.quantity", ">", 1)
+        .execute();
+      for (const product of products) {
+        report.productsToReview.push({
+          slug,
+          home: home.key,
+          product: product.slug,
+          quantity: product.quantity,
+        });
       }
     }
   }
@@ -348,6 +475,18 @@ export async function applyPairMerge(
   list: PairMergeList,
 ): Promise<PairMergeReport> {
   return await db.transaction().execute(async (trx) => {
+    // Holds off writes that reference the side printings until they are moved and deleted.
+    const sourceSlugs = list.printings.flatMap((entry) =>
+      entry.sides.filter((side) => typeof side === "string"),
+    );
+    if (sourceSlugs.length > 0) {
+      await trx
+        .selectFrom("printings")
+        .select("id")
+        .where("slug", "in", sourceSlugs)
+        .forUpdate()
+        .execute();
+    }
     const report = await planPairMerge(trx, list);
     const sources = await loadSources(trx, list);
     const homes = resolveHomes(list);
@@ -388,7 +527,13 @@ export async function applyPairMerge(
       const source = sources.get(slug);
       const homeId = homeIdByKey.get(home.key);
       if (source && homeId) {
-        await moveReferences(trx, source.id, homeId);
+        const homeFaces = await trx
+          .selectFrom("printings")
+          .select("face2Id")
+          .where("id", "=", homeId)
+          .executeTakeFirstOrThrow();
+        const homeSideKey = homeFaces.face2Id === source.face1Id ? `${homeId}:2` : homeId;
+        await moveReferences(trx, source.id, homeId, homeSideKey);
         await trx.deleteFrom("printings").where("id", "=", source.id).execute();
       }
     }

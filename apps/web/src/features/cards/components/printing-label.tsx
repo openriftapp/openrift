@@ -7,6 +7,7 @@ import { LanguageChip } from "@/components/language-chip";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatImportPrintingLabelParts } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface LabelPiece {
   key: string;
@@ -50,8 +51,8 @@ export function PrintingVariantLabel({
   className?: string;
 }): ReactNode {
   const { labels } = useEnumOrders();
-  const { language, rest } = formatPrintingVariantLabelParts(printing, siblings, labels);
-  const isPlain = !language && rest.length === 0;
+  const { language, rest, otherSide } = formatPrintingVariantLabelParts(printing, siblings, labels);
+  const isPlain = !language && rest.length === 0 && !otherSide;
   if (isPlain && code === undefined) {
     return fallback;
   }
@@ -64,6 +65,9 @@ export function PrintingVariantLabel({
   }
   for (const part of rest) {
     pieces.push({ key: part, node: part });
+  }
+  if (otherSide) {
+    pieces.push({ key: "other-side", node: m.cards_printing_with_side({ name: otherSide }) });
   }
   if (isPlain) {
     pieces.push({ key: "fallback", node: fallback });

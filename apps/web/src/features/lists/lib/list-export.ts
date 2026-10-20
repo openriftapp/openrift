@@ -56,6 +56,7 @@ export function stacksFromListEntries(
   entries: readonly ListEntryDetailResponse[],
   printingsById: Readonly<Record<string, Printing>>,
   sets: readonly SetOrderInfo[],
+  sidesByPrinting: ReadonlyMap<string, Printing[]> = new Map(),
 ): StackedEntry[] {
   const copyIdsByPrinting = new Map<string, string[]>();
   const printings = new Map<string, Printing>();
@@ -76,11 +77,15 @@ export function stacksFromListEntries(
   }
 
   const sorted = sortCards([...printings.values()], "id", { sets });
-  return sorted.map((printing) => ({
-    printingId: printing.printingId,
-    printing,
-    copyIds: copyIdsByPrinting.get(printing.printingId) ?? [],
-  }));
+  return sorted.map((printing) => {
+    const sides = sidesByPrinting.get(printing.printingId);
+    return {
+      printingId: printing.printingId,
+      printing,
+      ...(sides && sides.length > 1 ? { sides: sides.toSorted((a, b) => a.side - b.side) } : {}),
+      copyIds: copyIdsByPrinting.get(printing.printingId) ?? [],
+    };
+  });
 }
 
 export interface SharePricing {

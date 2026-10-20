@@ -26,7 +26,7 @@ function HeroBandContent({ tournament }: { tournament: TournamentSummaryResponse
     return (
       <CardFan
         covers={tournament.coverLegends.map((legend) => ({
-          key: legend.printingId,
+          key: `${legend.printingId}:${legend.imageId}`,
           imageId: legend.imageId,
         }))}
         size="lg"

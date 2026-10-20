@@ -38,6 +38,7 @@ import { useProviderSettings } from "@/features/admin/hooks/use-provider-setting
 import type { CandidateSpreadsheetRow } from "@/features/admin/lib/candidate-rows";
 import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
 import { buildSourceSubmitters } from "@/features/admin/lib/candidate-submitter";
+import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
 import { useDistinctArtists } from "@/features/cards/hooks/use-distinct-artists";
 import { buildChannelTree, leafChannels } from "@/features/cards/lib/distribution-channel-tree";
 import { useEnumOrders } from "@/hooks/use-enums";
@@ -185,8 +186,8 @@ export function findDerivedArtPrinting(
     finish: p.finish,
     size: p.size,
     markers: p.markerSlugs.map((slug) => ({ id: slug, slug, label: slug, description: null })),
-    images: printingImages
-      .filter((img) => img.printingId === p.id && img.isActive && img.rehostedUrl !== null)
+    images: imagesOnSide(printingImages, p)
+      .filter((img) => img.isActive && img.rehostedUrl !== null)
       .map((img) => ({ imageId: img.imageFileId })),
   }));
   const subject = candidates.find((c) => c.printingId === printing.id);

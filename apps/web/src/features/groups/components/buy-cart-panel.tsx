@@ -1,4 +1,3 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import {
@@ -7,6 +6,7 @@ import {
   cardnexusCartWizardUrl,
   tcgplayerMassEntryUrl,
 } from "@openrift/shared/marketplace";
+import { uniquePrintings } from "@openrift/shared/printing-side";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { Link } from "@tanstack/react-router";
 import { CheckIcon, PuzzleIcon, ShoppingCartIcon, XIcon } from "lucide-react";
@@ -30,15 +30,18 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useMarketplaceInfo } from "@/features/cards/hooks/use-marketplace-info";
 import { usePrices } from "@/features/cards/hooks/use-prices";
-import { frontImageId } from "@/features/cards/lib/card-meta";
+import { frontImageId, printingDisplayName } from "@/features/cards/lib/card-meta";
 import { useMarkOrdered } from "@/features/groups/hooks/use-mark-ordered";
 import type { BuyCartItem } from "@/features/groups/lib/buy-cart";
 import {
   cartCardLines,
+  cartCopyCount,
+  cartPurchaseItems,
   cartTotal,
   cartWizardLines,
   massEntryLines,
 } from "@/features/groups/lib/buy-cart";
+import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
 import { BUY_CART_MARKETPLACES, useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
@@ -79,7 +82,7 @@ function PrintingPicker({
 }) {
   const { printingsByCardId } = useCards();
   const { labels } = useEnumOrders();
-  const printings = printingsByCardId.get(item.cardId) ?? [];
+  const printings = uniquePrintings(printingsByCardId.get(item.cardId) ?? []);
   if (!item.key.startsWith("card:") || printings.length < 2) {
     return null;
   }
@@ -132,9 +135,9 @@ function CartRow({
   onRemove: () => void;
   onPrintingChange: (printingId: string) => void;
 }) {
-  const { printingsById } = useCards();
-  const printing = printingsById[item.printingId];
-  const name = printing === undefined ? "" : legendDisplayName(printing.card);
+  const { printingsById, printingsByCardId } = useCards();
+  const printing = tradePrinting(item, printingsByCardId, printingsById);
+  const name = printing === undefined ? "" : printingDisplayName(printing);
   return (
     <li className="flex items-center gap-3 border-b py-2 last:border-b-0">
       <CardArtThumb
@@ -219,7 +222,7 @@ function HandoffButton({
         <>
           <Button className="w-full" disabled>
             <ShoppingCartIcon />
-            {cta(items.reduce((sum, item) => sum + item.quantity, 0))}
+            {cta(cartCopyCount(items))}
           </Button>
           {marketplaceInfo === undefined ? null : (
             <p className="text-muted-foreground text-sm">{unlistedNote}</p>
@@ -313,7 +316,7 @@ export function BuyCartPanel({
   wantedByKey: ReadonlyMap<string, WantedCard>;
   wantedReady: boolean;
 }) {
-  const { printingsById } = useCards();
+  const { printingsById, printingsByCardId } = useCards();
   const prices = usePrices();
   const formatPrice = formatterForMarketplace("cardtrader");
   const marketplace = useBuyCartStore((state) => state.marketplace);
@@ -330,11 +333,11 @@ export function BuyCartPanel({
     return value === undefined ? null : formatPrice(value);
   };
   const nameOf = (item: BuyCartItem): string => {
-    const printing = printingsById[item.printingId];
-    return printing === undefined ? "" : legendDisplayName(printing.card);
+    const printing = tradePrinting(item, printingsByCardId, printingsById);
+    return printing === undefined ? "" : printingDisplayName(printing);
   };
   const { total, unpriced } = cartTotal(items, priceValue);
-  const count = items.reduce((sum, item) => sum + item.quantity, 0);
+  const count = cartCopyCount(items);
 
   const fileOrder = async () => {
     const done = await markOrdered(items, wantedByKey);
@@ -394,13 +397,20 @@ export function BuyCartPanel({
         <>
           <div className="flex flex-col gap-2">
             <ul className="flex flex-col">
-              {items.map((item) => (
+              {cartPurchaseItems(items).map((item) => (
                 <CartRow
                   key={item.key}
                   item={item}
                   price={priceOf(item.printingId)}
                   priceOf={priceOf}
-                  onRemove={() => removeItems(userId, [item.key])}
+                  onRemove={() =>
+                    removeItems(
+                      userId,
+                      items
+                        .filter((other) => other.printingId === item.printingId)
+                        .map((other) => other.key),
+                    )
+                  }
                   onPrintingChange={(printingId) => setPrinting(userId, item.key, printingId)}
                 />
               ))}

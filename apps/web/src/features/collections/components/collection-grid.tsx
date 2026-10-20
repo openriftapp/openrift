@@ -99,12 +99,7 @@ export function CollectionGrid({
     collectionId === undefined && view === "copies" && !showLibrary;
   const groupBy =
     isCopiesOnlyGrouping(rawGroupBy) && !collectionGroupingAvailable ? "set" : rawGroupBy;
-  const {
-    allPrintings,
-    cardsById,
-    sets,
-    printingsByCardId: catalogAllPrintingsByCardId,
-  } = useCards();
+  const { allPrintings, sets, printingsByCardId: catalogAllPrintingsByCardId } = useCards();
   const prices = display.prices;
 
   useSeedLanguagesFromPrefs(filters.languages);
@@ -514,7 +509,6 @@ export function CollectionGrid({
               collections={collections}
               collectionId={collectionId}
               sourceCollectionIsGroup={sourceCollectionIsGroup}
-              cardsById={cardsById}
               onAdded={clearSelection}
             />
           </BrowserCardViewer>

@@ -69,6 +69,24 @@ describe("PrintingVariantLabel", () => {
     });
     expect(container.textContent).toBe("Standard");
   });
+
+  it("names the other side in place of the fallback", () => {
+    const printing = stubPrinting({
+      otherSide: {
+        faceId: "face-buff",
+        cardId: "buff",
+        cardName: "Buff",
+        cardSlug: "buff",
+        shortCode: "OGN",
+      },
+    });
+    const { container } = render(
+      <PrintingVariantLabel printing={printing} code={<span>OGN-271</span>} />,
+      { wrapper: makeWrapper() },
+    );
+    expect(container.textContent).toContain("with Buff");
+    expect(container.textContent).not.toContain("Standard");
+  });
 });
 
 describe("ImportPrintingLabel", () => {

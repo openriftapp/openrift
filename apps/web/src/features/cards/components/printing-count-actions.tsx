@@ -66,6 +66,7 @@ export function PrintingCountActions({
             shortCode={printing.shortCode}
             count={ownedCount}
             totalCount={widerTotal}
+            otherSideName={printing.otherSide?.cardName}
             siblings={breakdownSiblings}
           />
         ) : undefined

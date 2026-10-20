@@ -1,4 +1,5 @@
 import type { ListDetailResponse } from "@openrift/shared/types/api/list";
+import type { Printing } from "@openrift/shared/types/catalog";
 import { useQueries, useQuery } from "@tanstack/react-query";
 
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
@@ -12,9 +13,12 @@ export interface WishMembership {
    * printing of the card; a printing-kind wish matches the exact printing.
    */
   entriesForPrinting: (cardId: string, printingId: string) => WishEntryFlat[];
+  entriesForCopy: (printing: CopyPrinting) => WishEntryFlat[];
   matches: (cardId: string, printingId: string) => boolean;
   wishedQuantity: (cardId: string, printingId: string) => number;
 }
+
+type CopyPrinting = Pick<Printing, "cardId" | "printingId" | "otherSide">;
 
 export function buildWishMembership(details: readonly ListDetailResponse[]): WishMembership {
   const byCardId = new Map<string, WishEntryFlat[]>();
@@ -60,8 +64,14 @@ export function buildWishMembership(details: readonly ListDetailResponse[]): Wis
     ...(byCardId.get(cardId) ?? []),
     ...(byPrintingId.get(printingId) ?? []),
   ];
+  const entriesForCopy = (printing: CopyPrinting): WishEntryFlat[] => [
+    ...(byCardId.get(printing.cardId) ?? []),
+    ...(printing.otherSide ? (byCardId.get(printing.otherSide.cardId) ?? []) : []),
+    ...(byPrintingId.get(printing.printingId) ?? []),
+  ];
   return {
     entriesForPrinting,
+    entriesForCopy,
     matches: (cardId, printingId) => byCardId.has(cardId) || byPrintingId.has(printingId),
     wishedQuantity: (cardId, printingId) =>
       entriesForPrinting(cardId, printingId).reduce((sum, entry) => sum + entry.quantity, 0),

@@ -50,7 +50,7 @@ interface CollectionRowHandlers {
    */
   onContextAction?: (itemId: string, action: CollectionContextAction, printing?: Printing) => void;
   /** Claim `count` copies from the shared group collection; wired up only when group-owned. */
-  onTake?: (itemId: string, count: number) => void;
+  onTake?: (itemId: string, count: number, printing?: Printing) => void;
 }
 
 /** Handlers only /lists registers. */
@@ -156,8 +156,8 @@ export function dispatchContextAction(
   useCardRowActionsStore.getState().handlers.onContextAction?.(itemId, action, printing);
 }
 
-export function dispatchTake(itemId: string, count: number): void {
-  useCardRowActionsStore.getState().handlers.onTake?.(itemId, count);
+export function dispatchTake(itemId: string, count: number, printing?: Printing): void {
+  useCardRowActionsStore.getState().handlers.onTake?.(itemId, count, printing);
 }
 
 export function dispatchEntryQuantityChange(entryId: string, quantity: number): void {

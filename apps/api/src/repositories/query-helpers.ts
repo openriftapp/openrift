@@ -264,6 +264,30 @@ export function cardTypesColumn() {
   return sql<CardType[]>`coalesce(mca.types, '{}')`.as("types");
 }
 
+/** Requires `printings as p` joined through its first side; null on a single-sided printing. */
+export function secondSideCardName() {
+  return sql<string | null>`(
+    SELECT sc.name FROM faces sf JOIN cards sc ON sc.id = sf.card_id WHERE sf.id = p.face2_id
+  )`.as("secondSideName");
+}
+
+/** `cardName` with " // <second card>" when the printing under `printings` is double-sided. */
+export function pairedCardNameSql(cardName: string, printings = "p") {
+  return sql<string>`${sql.ref(cardName)} || coalesce(' // ' || (
+    SELECT sc.name FROM faces sf JOIN cards sc ON sc.id = sf.card_id
+    WHERE sf.id = ${sql.ref(`${printings}.face2_id`)}
+  ), '')`;
+}
+
+export function pairedCardName(
+  row: Parameters<typeof legendDisplayName>[0] & {
+    secondSideName: string | null;
+  },
+): string {
+  const name = legendDisplayName(row);
+  return row.secondSideName === null ? name : `${name} // ${row.secondSideName}`;
+}
+
 export function selectCopyWithCard(db: Kysely<Database>) {
   return joinFaceImage(
     withFace1(db.selectFrom("copies as cp").innerJoin("printings as p", "p.id", "cp.printingId"))
@@ -301,6 +325,7 @@ export async function printingDetailsByIds(
       "card.name as name",
       cardTypesColumn(),
       "card.tags as tags",
+      secondSideCardName(),
       "pf.setId",
       "pf.rarity",
       "pf.finish",
@@ -314,7 +339,7 @@ export async function printingDetailsByIds(
     rows.map((row) => [
       row.id,
       {
-        cardName: legendDisplayName(row),
+        cardName: pairedCardName(row),
         setId: row.setId,
         rarity: row.rarity,
         finish: row.finish,
@@ -464,4 +489,53 @@ export function notPinnedToLoan<DB extends { cp: { id: unknown } }, TB extends k
       scoped.selectFrom("loanCopies as lc").select("lc.copyId").whereRef("lc.copyId", "=", "cp.id"),
     ),
   );
+}
+
+export async function printingSideDetailsByIds(
+  db: Kysely<Database>,
+  ids: string[],
+): Promise<Map<string, Map<string, PrintingDetail>>> {
+  if (ids.length === 0) {
+    return new Map();
+  }
+  const rows = await joinFaceImage(
+    db
+      .selectFrom("printingSidesOrdered as s")
+      .innerJoin("cards as card", "card.id", "s.cardId")
+      .leftJoin("mvCardAggregates as mca", "mca.cardId", "card.id"),
+    "s.faceId",
+  )
+    .select([
+      "s.printingId",
+      "s.cardId",
+      "card.name as name",
+      cardTypesColumn(),
+      "card.tags as tags",
+      "s.setId",
+      "s.rarity",
+      "s.finish",
+      "s.shortCode",
+      "s.language",
+      imageId("imgf").as("imageId"),
+    ])
+    .where("s.printingId", "in", ids)
+    .orderBy("s.position")
+    .execute();
+  const details = new Map<string, Map<string, PrintingDetail>>();
+  for (const row of rows) {
+    const sides = details.get(row.printingId) ?? new Map<string, PrintingDetail>();
+    if (!sides.has(row.cardId)) {
+      sides.set(row.cardId, {
+        cardName: legendDisplayName(row),
+        setId: row.setId,
+        rarity: row.rarity,
+        finish: row.finish,
+        shortCode: row.shortCode,
+        language: row.language,
+        imageId: row.imageId,
+      });
+    }
+    details.set(row.printingId, sides);
+  }
+  return details;
 }

@@ -1,6 +1,6 @@
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
-import type { Card } from "@openrift/shared/types/catalog";
 
+import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import { DisposeDialog } from "@/features/collections/components/dispose-dialog";
 import { MoveDialog } from "@/features/collections/components/move-dialog";
 import type { CollectionGridActions } from "@/features/collections/hooks/use-collection-grid-actions";
@@ -12,7 +12,6 @@ interface CollectionGridActionDialogsProps {
   collections: CollectionResponse[];
   collectionId: string | undefined;
   sourceCollectionIsGroup: boolean;
-  cardsById: Record<string, Card>;
   onAdded: () => void;
 }
 
@@ -21,7 +20,6 @@ export function CollectionGridActionDialogs({
   collections,
   collectionId,
   sourceCollectionIsGroup,
-  cardsById,
   onAdded,
 }: CollectionGridActionDialogsProps) {
   const lendTarget = actions.lendTarget;
@@ -76,7 +74,7 @@ export function CollectionGridActionDialogs({
             }
           }}
           printing={lendTarget.printing}
-          cardName={cardsById[lendTarget.printing.cardId]?.name ?? "this card"}
+          cardName={printingDisplayName(lendTarget.printing)}
           maxQuantity={lendTarget.maxQuantity}
           contextCollectionId={collectionId}
         />

@@ -103,39 +103,71 @@ describe("collectListPrintings", () => {
   ]);
 
   it("returns empty results for no entries", () => {
-    const { listPrintings, entriesByPrintingId } = collectListPrintings(
+    const { listPrintings, entriesBySideKey } = collectListPrintings(
       [],
       printingsById,
       printingsByCardId,
     );
     expect(listPrintings).toEqual([]);
-    expect(entriesByPrintingId.size).toBe(0);
+    expect(entriesBySideKey.size).toBe(0);
+  });
+
+  it("lists both sides of a double-sided printing entry once", () => {
+    const front = stubPrinting({ printingId: "pa", side: 1, cardId: "ca" });
+    const back = stubPrinting({ printingId: "pa", side: 2, cardId: "gold" });
+    const entry = printingEntry("e1", "pa");
+    const { listPrintings, entriesBySideKey } = collectListPrintings(
+      [entry],
+      { pa: front },
+      printingsByCardId,
+      new Map([["pa", [front, back]]]),
+    );
+    expect(listPrintings).toEqual([front, back]);
+    expect(entriesBySideKey.get("pa")).toEqual([entry]);
+  });
+
+  it("keeps card entries for both cards of one double-sided printing apart", () => {
+    const front = stubPrinting({ printingId: "pair", side: 1, cardId: "bird" });
+    const back = stubPrinting({ printingId: "pair", side: 2, cardId: "gold" });
+    const bird = cardEntry("e1", "bird");
+    const gold = cardEntry("e2", "gold");
+    const { listPrintings, entriesBySideKey } = collectListPrintings(
+      [bird, gold],
+      { pair: front },
+      new Map([
+        ["bird", [front]],
+        ["gold", [back]],
+      ]),
+    );
+    expect(listPrintings).toEqual([front, back]);
+    expect(entriesBySideKey.get("pair")).toEqual([bird]);
+    expect(entriesBySideKey.get("pair:2")).toEqual([gold]);
   });
 
   it("dedupes printings and groups entries per printing in entry order", () => {
     const first = printingEntry("e1", "pa");
     const second = copyEntry("e2", "copy-1", "pa");
     const third = printingEntry("e3", "pb");
-    const { listPrintings, entriesByPrintingId } = collectListPrintings(
+    const { listPrintings, entriesBySideKey } = collectListPrintings(
       [first, second, third],
       printingsById,
       printingsByCardId,
     );
     expect(listPrintings).toEqual([printingA, printingB]);
-    expect(entriesByPrintingId.get("pa")).toEqual([first, second]);
-    expect(entriesByPrintingId.get("pb")).toEqual([third]);
+    expect(entriesBySideKey.get("pa")).toEqual([first, second]);
+    expect(entriesBySideKey.get("pb")).toEqual([third]);
   });
 
   it("skips entries whose printing cannot be resolved", () => {
     const resolvable = cardEntry("e1", "ca");
     const unresolvable = printingEntry("e2", "missing");
-    const { listPrintings, entriesByPrintingId } = collectListPrintings(
+    const { listPrintings, entriesBySideKey } = collectListPrintings(
       [resolvable, unresolvable],
       printingsById,
       printingsByCardId,
     );
     expect(listPrintings).toEqual([printingA]);
-    expect(entriesByPrintingId.size).toBe(1);
+    expect(entriesBySideKey.size).toBe(1);
   });
 });
 
@@ -166,6 +198,24 @@ describe("selectableEntryIds", () => {
       ["copy-2", ruleProduced],
     ]);
     expect(selectableEntryIds(items, entryByItemId)).toEqual(["e1", "rule:copy-2"]);
+  });
+
+  it("returns one id for both side tiles of a double-sided entry", () => {
+    const pairEntry = printingEntry("e9", "pair");
+    const ruleEntry = { ...printingEntry("x", "rule-pair"), id: null };
+    const items = [
+      { id: "pair", printing: stubPrinting({ printingId: "pair", side: 1 }) },
+      { id: "pair:2", printing: stubPrinting({ printingId: "pair", side: 2 }) },
+      { id: "rule-pair", printing: stubPrinting({ printingId: "rule-pair", side: 1 }) },
+      { id: "rule-pair:2", printing: stubPrinting({ printingId: "rule-pair", side: 2 }) },
+    ];
+    const entryByItemId = new Map([
+      ["pair", pairEntry],
+      ["pair:2", pairEntry],
+      ["rule-pair", ruleEntry],
+      ["rule-pair:2", ruleEntry],
+    ]);
+    expect(selectableEntryIds(items, entryByItemId)).toEqual(["e9", "rule:rule-pair"]);
   });
 
   it("skips tiles with no entry behind them", () => {

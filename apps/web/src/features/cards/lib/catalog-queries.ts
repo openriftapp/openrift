@@ -1,5 +1,5 @@
 import { joinCatalog, joinCatalogCards, joinPrintingSides } from "@openrift/shared/catalog-join";
-import { indexByPrinting } from "@openrift/shared/printing-side";
+import { indexByPrinting, indexBySideKey } from "@openrift/shared/printing-side";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { DeckCatalogSubset } from "@openrift/shared/types/api/deck";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
@@ -47,6 +47,9 @@ export interface UseCardsResult {
   allPrintings: Printing[];
   cardsById: Record<string, Card>;
   printingsById: Record<string, Printing>;
+  /** Side 1 under the bare printing id, side 2 under `<printingId>:2`. */
+  printingsBySideKey: Record<string, Printing>;
+  sidesByPrinting: Map<string, Printing[]>;
   printingsByCardId: Map<string, Printing[]>;
   sets: GroupInfo[];
 }
@@ -221,17 +224,25 @@ function enrichCatalogInner(catalog: CatalogResponse): UseCardsResult {
   return buildCardsResult(cardsById, printings, catalog.sets);
 }
 
-function buildCardsResult(
+export function buildCardsResult(
   cardsById: Record<string, Card>,
   allPrintings: Printing[],
   sets: CatalogResponse["sets"],
 ): UseCardsResult {
   const printingsById = Object.fromEntries(indexByPrinting(allPrintings));
+  const sidesByPrinting = new Map(
+    [...Map.groupBy(allPrintings, (p) => p.printingId)].map(([id, sides]) => [
+      id,
+      sides.toSorted((a, b) => a.side - b.side),
+    ]),
+  );
 
   return {
     allPrintings,
     cardsById,
     printingsById,
+    printingsBySideKey: indexBySideKey(allPrintings),
+    sidesByPrinting,
     printingsByCardId: Map.groupBy(allPrintings, (p) => p.cardId),
     sets,
   };

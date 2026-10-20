@@ -119,14 +119,16 @@ export function PrintingDeskCreatePage({ cardSlug }: { cardSlug: string }) {
 /** Loads the form's own data, so the printing page pays for it only once the viewer edits. */
 export function PrintingDeskEditFields({
   printingId,
+  side = 1,
   onSaved,
   onCancel,
 }: {
   printingId: string;
+  side?: 1 | 2;
   onSaved: () => void;
   onCancel: () => void;
 }) {
-  const { data } = useDeskPrinting(printingId);
+  const { data } = useDeskPrinting(printingId, side);
   const card = useDeskCardPrintings(data.printing.cardSlug);
 
   const form = usePrintingDeskFormState({
@@ -225,7 +227,11 @@ function usePrintingDeskFormState({
     const secondSideFaceId = secondSide?.faceId;
     try {
       if (existing) {
-        await updatePrinting.mutateAsync({ printingId: existing.printingId, ...fields });
+        await updatePrinting.mutateAsync({
+          printingId: existing.printingId,
+          side: existing.side,
+          ...fields,
+        });
         onSaved(existing.printingId);
         return;
       }

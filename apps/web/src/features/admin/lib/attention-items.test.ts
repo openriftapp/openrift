@@ -66,7 +66,13 @@ describe("buildAttentionSubmissions", () => {
     const lead = makeAdminPrinting({ canonicalRank: 1 });
     const other = makeAdminPrinting({ canonicalRank: 2 });
     const image = (printingId: string, originalUrl: string, isActive = true) =>
-      ({ printingId, originalUrl, rehostedUrl: null, isActive }) as AdminPrintingImageResponse;
+      ({
+        printingId,
+        face: "front",
+        originalUrl,
+        rehostedUrl: null,
+        isActive,
+      }) as AdminPrintingImageResponse;
     const detail = makeAdminCardDetail({
       card: makeAdminCard({ name: "Lux, Lady of Luminosity" }),
       sources: [makeCandidateCard({ name: "Lux, Lady of Light" })],
@@ -404,6 +410,7 @@ describe("buildAttentionSources image comparison", () => {
     const detail = detailWith("art");
     const image = {
       printingId: detail.printings[0]?.id ?? "",
+      face: "front",
       originalUrl: "https://cdn.test/lux.png",
       rehostedUrl: "/media/cards/lux",
       isActive: true,

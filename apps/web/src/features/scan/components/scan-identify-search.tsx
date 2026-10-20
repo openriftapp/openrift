@@ -35,7 +35,7 @@ export function ScanIdentifySearch({ allPrintings, onPick }: ScanIdentifySearchP
     () =>
       new Map(
         allPrintings.map((printing) => [
-          printing.printingId,
+          sideKey(printing),
           [{ shortCode: printing.shortCode, publicCode: printing.publicCode }],
         ]),
       ),

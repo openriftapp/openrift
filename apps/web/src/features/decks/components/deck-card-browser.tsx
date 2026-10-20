@@ -46,6 +46,7 @@ import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
   buildDeckQuantityByCell,
+  deckCellKey,
   canAddRune,
   catalogCardToDeckBuilderCard,
   cellPreferredPrintingId,
@@ -132,7 +133,7 @@ function DeckActionsCell({
   const cardId = printing.cardId;
   const deckQty =
     view === "printings"
-      ? (deckQuantityByCell.get(printing.printingId) ?? 0)
+      ? (deckQuantityByCell.get(deckCellKey(cardId, printing.printingId)) ?? 0)
       : (deckQuantityByCard.get(cardId) ?? 0);
   const isInActiveSingleZone =
     isSingleCardZone &&
@@ -405,7 +406,7 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
   );
   const deckQtyForCell = (printing: Printing): number =>
     view === "printings"
-      ? (deckQuantityByCell.get(printing.printingId) ?? 0)
+      ? (deckQuantityByCell.get(deckCellKey(printing.cardId, printing.printingId)) ?? 0)
       : (deckQuantityByCard.get(printing.cardId) ?? 0);
 
   const items: CardViewerItem[] = deferredCards.map((printing) => ({
@@ -553,7 +554,7 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
     return (
       <DeckAddStrip
         printing={printing}
-        ownedCount={ownedCounts?.get(printing.printingId) ?? 0}
+        ownedCount={ownedCounts?.get(sideKey(printing)) ?? 0}
         deckQuantity={deckQty}
         maxReached={isMaxReached({ id: sideKey(printing), printing })}
         {...(isSingleCardZone
@@ -576,7 +577,7 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
 
   const renderCard = (item: CardViewerItem, ctx: CardRenderContext) => {
     const cardId = item.printing.cardId;
-    const ownedCount = ownedCounts?.get(item.printing.printingId) ?? 0;
+    const ownedCount = ownedCounts?.get(sideKey(item.printing)) ?? 0;
     const deckQty = deckQtyForCell(item.printing);
 
     return (
@@ -602,7 +603,7 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
             ),
           },
         }}
-        dragId={`browser-card-${item.printing.printingId}`}
+        dragId={`browser-card-${sideKey(item.printing)}`}
         strip={deckStripFor(item.printing)}
         contextMenu={<DeckCardDetailMenu onViewDetail={() => handleCardClick(item.printing)} />}
       />

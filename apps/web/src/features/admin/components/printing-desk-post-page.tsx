@@ -52,6 +52,7 @@ import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar"
 import { DeskSegmented } from "@/features/admin/components/printing-desk-shared";
 import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
+import { deskFaceOptions, deskPrintingName } from "@/features/admin/lib/desk-face-options";
 import { printingDeskCardUrl } from "@/features/admin/lib/printing-desk-csv";
 import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { deskPrintingQueryOptions } from "@/features/admin/lib/printing-desk-queries";
@@ -88,11 +89,6 @@ const ASPECT_OPTIONS = [
   { value: "portrait", label: "Portrait 4:5" },
   { value: "story", label: "Story 9:16" },
 ] as const satisfies readonly { value: PostImageAspect; label: string }[];
-
-const FACE_TEXT: Record<DeskImage["face"], string> = {
-  front: "Front",
-  back: "Back",
-};
 
 interface PrintingDeskPostPageProps {
   slides: readonly PostSlide[];
@@ -182,6 +178,15 @@ function PostComposer({
   const results = useSuspenseQueries({
     queries: printingIds.map((printingId) => deskPrintingQueryOptions(printingId)),
   });
+  const pairIds = printingIds.filter(
+    (_printingId, position) => results[position]?.data.printing.secondSide,
+  );
+  const secondSides = useSuspenseQueries({
+    queries: pairIds.map((printingId) => deskPrintingQueryOptions(printingId, 2)),
+  });
+  const secondSideByPrinting = new Map(
+    pairIds.map((printingId, position) => [printingId, secondSides[position]?.data.printing]),
+  );
 
   const [selected, setSelected] = useState(0);
   const [showCredit, setShowCredit] = useState(true);
@@ -202,11 +207,15 @@ function PostComposer({
     if (data === undefined) {
       return [];
     }
+    const image = data.images.find((candidate) => candidate.imageFileId === slide.imageFileId);
     return [
       {
         slide,
-        printing: data.printing,
-        image: data.images.find((image) => image.imageFileId === slide.imageFileId) ?? null,
+        printing:
+          image?.face === "back"
+            ? (secondSideByPrinting.get(slide.printingId) ?? data.printing)
+            : data.printing,
+        image: image ?? null,
       },
     ];
   });
@@ -330,7 +339,7 @@ function PostComposer({
   }
   const caption = buildPrintingsPostCaption(
     [...firstByPrinting.values()].map((entry) => ({
-      cardName: entry.printing.cardName,
+      cardName: deskPrintingName(entry.printing),
       publicCode: entry.printing.publicCode,
       finishLabel: enumLabel(labels.finishes, entry.printing.finish),
       channelLabel: channelLabelFor(entry.printing),
@@ -466,7 +475,14 @@ function PostComposer({
                                 {candidate.printing.cardName}
                               </span>
                               <span className="text-muted-foreground block truncate text-xs">
-                                {[FACE_TEXT[candidate.image.face], candidate.image.credit]
+                                {[
+                                  candidate.printing.secondSide
+                                    ? deskFaceOptions(candidate.printing).find(
+                                        (option) => option.value === candidate.image.face,
+                                      )?.label
+                                    : null,
+                                  candidate.image.credit,
+                                ]
                                   .filter(
                                     (part) =>
                                       part !== null && part !== undefined && part.length > 0,

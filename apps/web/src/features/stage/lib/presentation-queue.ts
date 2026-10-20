@@ -9,14 +9,17 @@ export interface PresentationItem {
 /** 120 ids (~5.4KB encoded in the URL) stays under nginx's default 8KB `large_client_header_buffers`. */
 export const MAX_QUEUE_LENGTH = 120;
 
-/** Repeated ids are kept, not deduped: a creator may legitimately return to a card later in the run. */
+/**
+ * Ids are side keys; a bare printing id names side 1. Repeated ids are kept, not deduped: a
+ * creator may legitimately return to a card later in the run.
+ */
 export function resolveQueuePrintings(
   ids: readonly string[],
-  printingsById: Record<string, Printing>,
+  printingsBySideKey: Record<string, Printing>,
 ): Printing[] {
   const resolved: Printing[] = [];
   for (const id of ids.slice(0, MAX_QUEUE_LENGTH)) {
-    const printing = printingsById[id];
+    const printing = printingsBySideKey[id];
     if (printing) {
       resolved.push(printing);
     }

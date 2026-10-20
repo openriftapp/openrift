@@ -19,6 +19,7 @@ import type { PackPrinting } from "./types";
 
 function p(overrides: Partial<PackPrinting> & { id: string }): PackPrinting {
   return {
+    printingId: overrides.id,
     cardId: overrides.id,
     cardName: overrides.id,
     cardSlug: overrides.id,

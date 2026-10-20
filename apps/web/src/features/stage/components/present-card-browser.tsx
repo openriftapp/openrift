@@ -1,5 +1,6 @@
 import { useDraggable } from "@dnd-kit/core";
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { MinusIcon, PlusIcon } from "lucide-react";
 
@@ -25,7 +26,7 @@ function queueDetailActions(printing: Printing) {
 /** Subscribes only to its own printing's count: subscribing to the whole queue would re-render every cell on any add. */
 function QueueCardStrip({ printing }: { printing: Printing }) {
   const queued = usePresentQueueStore(
-    (state) => state.countByPrintingId.get(printing.printingId) ?? 0,
+    (state) => state.countByPrintingId.get(sideKey(printing)) ?? 0,
   );
   const isFull = usePresentQueueStore((state) => state.ids.length >= MAX_QUEUE_LENGTH);
   const add = usePresentQueueStore((state) => state.add);
@@ -37,7 +38,7 @@ function QueueCardStrip({ printing }: { printing: Printing }) {
         queued > 0 && (
           <StripIconButton
             aria-label={m.stage_queue_remove_aria({ name: legendDisplayName(printing.card) })}
-            onClick={() => removePrinting(printing.printingId)}
+            onClick={() => removePrinting(sideKey(printing))}
           >
             <MinusIcon className="size-3" />
           </StripIconButton>
@@ -55,7 +56,7 @@ function QueueCardStrip({ printing }: { printing: Printing }) {
         <StripIconButton
           aria-label={m.stage_queue_add_aria({ name: legendDisplayName(printing.card) })}
           disabled={isFull}
-          onClick={() => add(printing.printingId)}
+          onClick={() => add(sideKey(printing))}
         >
           <PlusIcon className="size-3" />
         </StripIconButton>
@@ -75,7 +76,7 @@ function QueueCardCell({
   onClick,
 }: PickerCellProps) {
   const queued = usePresentQueueStore(
-    (state) => (state.countByPrintingId.get(item.printing.printingId) ?? 0) > 0,
+    (state) => (state.countByPrintingId.get(sideKey(item.printing)) ?? 0) > 0,
   );
   const isFull = usePresentQueueStore((state) => state.ids.length >= MAX_QUEUE_LENGTH);
   const isMobile = useIsMobile();
@@ -84,7 +85,7 @@ function QueueCardCell({
   // Destructure before JSX: member access on the hook's return object in
   // render makes the React Compiler bail.
   const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
-    id: `stage-pool-card-${item.printing.printingId}`,
+    id: `stage-pool-card-${sideKey(item.printing)}`,
     data: dragData,
     disabled: isMobile || isFull,
   });

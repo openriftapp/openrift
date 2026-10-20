@@ -26,12 +26,13 @@ export function MissingImagesList({ items }: MissingImagesListProps) {
     <div className="flex flex-col gap-3">
       <RowList>
         {visible.map((item) => (
-          <RowListItem key={item.printingId}>
+          <RowListItem key={`${item.printingId}:${item.side}`}>
             <RowListLink
               render={
                 <Link
                   to="/contribute/card/$cardSlug/printing/$printingId/image"
                   params={{ cardSlug: item.cardSlug, printingId: item.printingId }}
+                  search={item.side === 2 ? { side: 2 } : {}}
                 />
               }
               className="justify-between"

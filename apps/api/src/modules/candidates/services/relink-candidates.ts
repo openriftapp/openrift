@@ -31,6 +31,7 @@ export async function relinkCandidatePrintings(repos: {
       finish: cp.finish,
       markerSlugs: cp.markerSlugs,
       language: cp.language,
+      size: cp.size,
       cardLinked: resolveCardIdByName(linkIndex, cp.cardName) !== null,
     });
 

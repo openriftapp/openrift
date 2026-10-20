@@ -1,6 +1,7 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
+import { sideKey } from "@openrift/shared/printing-side";
 import { setIndexById, UNKNOWN_SET_INDEX } from "@openrift/shared/set-order";
 import type { CardTradeResponse, CardTradeStatus } from "@openrift/shared/types/api/card-trade";
 import type { FriendGroupMatchRow } from "@openrift/shared/types/api/friend-group";
@@ -44,6 +45,7 @@ import {
   groupMatchCopyConditions,
   summarizeMatchCopies,
 } from "@/features/groups/lib/trade-derivation";
+import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import { useMatchVariantsFoldStore } from "@/features/groups/stores/match-variants-fold-store";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useMouseHover } from "@/hooks/use-mouse-hover";
@@ -153,6 +155,7 @@ function MatchRowTradeAction({
               counterpartyUserId: match.counterpartyUserId,
               role,
               printingId: match.printingId,
+              cardId: match.cardId,
               quantity,
               copyIds,
             },
@@ -191,13 +194,14 @@ export function resolveMatchRows(
   sets: ReturnType<typeof useCards>["sets"],
   labels: ReturnType<typeof useEnumOrders>["labels"],
   fallbackGroupSlug: string,
+  printingsByCardId: ReturnType<typeof useCards>["printingsByCardId"],
 ): ResolvedMatchRow[] {
   const setsById = new Map(sets.map((set) => [set.id, set]));
   const setIndexes = setIndexById(sets);
   return rows.map((row) => {
     const card = cardsById[row.cardId];
     const set = setsById.get(row.setId);
-    const printing = printingsById[row.printingId] ?? null;
+    const printing = tradePrinting(row, printingsByCardId, printingsById) ?? null;
     const groupSlug = row.groupSlug ?? fallbackGroupSlug;
     return {
       ...row,
@@ -395,7 +399,7 @@ function MatchRow({
 
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <CardDetailNameButton
-            printingId={match.printing ? match.printingId : undefined}
+            printingId={match.printing ? sideKey(match.printing) : undefined}
             className="max-w-full self-start truncate font-medium"
           >
             {match.cardName}
@@ -438,7 +442,7 @@ function MatchRow({
 function aggregateMatches(rows: ResolvedMatchRow[]): AggregatedMatch[] {
   const aggregated = new Map<string, AggregatedMatch>();
   for (const row of rows) {
-    const key = `${row.groupSlug}\0${row.buyEntryId}\0${row.counterpartyListId}\0${row.printingId}`;
+    const key = `${row.groupSlug}\0${row.buyEntryId}\0${row.cardId}\0${row.counterpartyListId}\0${row.printingId}`;
     const copy: RequestableCopy = {
       copyId: row.copyId,
       condition: row.condition,
@@ -691,22 +695,42 @@ function isBulkRequestable(group: MatchTradeGroup): boolean {
   );
 }
 
+/** One request per printing: a double-sided printing wished for under both cards asks for the larger count. */
+export function bulkTradeRequests(
+  groups: readonly MatchTradeGroup[],
+): { variant: DirectedMatch; quantity: number }[] {
+  const byPrinting = new Map<string, { variant: DirectedMatch; quantity: number }>();
+  for (const group of groups) {
+    if (!isBulkRequestable(group)) {
+      continue;
+    }
+    const variant = group.variants[0];
+    const key = `${variant.groupSlug}\0${variant.counterpartyUserId}\0${variant.printingId}`;
+    const quantity = maxTradeQuantity(group.buyQuantity, group.totalAvailable);
+    const existing = byPrinting.get(key);
+    if (!existing || quantity > existing.quantity) {
+      byPrinting.set(key, { variant, quantity });
+    }
+  }
+  return [...byPrinting.values()];
+}
+
 function BulkRequestRow({ groups }: { groups: MatchTradeGroup[] }) {
   const createTrade = useCreateTrade();
-  const requestable = groups.filter((group) => isBulkRequestable(group));
-  if (requestable.length < 2) {
+  const requests = bulkTradeRequests(groups);
+  if (requests.length < 2) {
     return null;
   }
 
   function requestAll(): void {
-    for (const group of requestable) {
-      const variant = group.variants[0];
+    for (const { variant, quantity } of requests) {
       createTrade.mutate({
         groupSlug: variant.groupSlug,
         counterpartyUserId: variant.counterpartyUserId,
         role: "receiver",
         printingId: variant.printingId,
-        quantity: maxTradeQuantity(group.buyQuantity, group.totalAvailable),
+        cardId: variant.cardId,
+        quantity,
       });
     }
   }
@@ -714,7 +738,7 @@ function BulkRequestRow({ groups }: { groups: MatchTradeGroup[] }) {
   return (
     <div className="flex items-center justify-end">
       <Button size="sm" variant="outline" onClick={requestAll}>
-        Request all ({requestable.length})
+        Request all ({requests.length})
       </Button>
     </div>
   );
@@ -823,13 +847,13 @@ export function MatchPersonList({
   onHide?: (counterpartyUserId: string) => void;
   hidePending?: boolean;
 }) {
-  const { cardsById, printingsById, sets } = useCards();
+  const { cardsById, printingsById, printingsByCardId, sets } = useCards();
   const { labels } = useEnumOrders();
   const liveTradeByKey = useLiveTradeByKey(rows, groupSlug);
   const printingIds = [...new Set(rows.map((row) => row.printingId))];
   const { data: marketplaceInfo } = useMarketplaceInfo(printingIds);
   const matches = aggregateMatches(
-    resolveMatchRows(rows, cardsById, printingsById, sets, labels, groupSlug),
+    resolveMatchRows(rows, cardsById, printingsById, sets, labels, groupSlug, printingsByCardId),
   ).map((match): DirectedMatch => ({ ...match, direction }));
 
   return (
@@ -851,7 +875,7 @@ export function MatchPersonList({
 }
 
 export function MatchTradeList({ incoming, outgoing, groupSlug }: MatchTradeListProps) {
-  const { cardsById, printingsById, sets } = useCards();
+  const { cardsById, printingsById, printingsByCardId, sets } = useCards();
   const { labels } = useEnumOrders();
   const liveTradeByKey = useLiveTradeByKey([...incoming, ...outgoing], groupSlug);
 
@@ -859,10 +883,26 @@ export function MatchTradeList({ incoming, outgoing, groupSlug }: MatchTradeList
   const { data: marketplaceInfo } = useMarketplaceInfo(printingIds);
 
   const incomingRows = aggregateMatches(
-    resolveMatchRows(incoming, cardsById, printingsById, sets, labels, groupSlug),
+    resolveMatchRows(
+      incoming,
+      cardsById,
+      printingsById,
+      sets,
+      labels,
+      groupSlug,
+      printingsByCardId,
+    ),
   ).map((match): DirectedMatch => ({ ...match, direction: "incoming" }));
   const outgoingRows = aggregateMatches(
-    resolveMatchRows(outgoing, cardsById, printingsById, sets, labels, groupSlug),
+    resolveMatchRows(
+      outgoing,
+      cardsById,
+      printingsById,
+      sets,
+      labels,
+      groupSlug,
+      printingsByCardId,
+    ),
   ).map((match): DirectedMatch => ({ ...match, direction: "outgoing" }));
   const groups = groupTradeMatches([...incomingRows, ...outgoingRows]).toSorted(
     compareMatchTradeGroups,

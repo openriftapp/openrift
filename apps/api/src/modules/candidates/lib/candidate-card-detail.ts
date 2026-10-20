@@ -132,8 +132,11 @@ async function buildDetailResponse(
   const printingIds = printings.map((p) => p.id);
   const printingImages =
     printingIds.length > 0 ? await repo.printingImagesForDetail(printingIds) : [];
+  const cardFaces = new Set(printings.map((p) => `${p.id}:${p.side === 2 ? "back" : "front"}`));
   const liveFingerprintsByPrinting = Map.groupBy(
-    printingImages.filter((image) => image.face === "front" && image.isActive),
+    printingImages.filter(
+      (image) => image.isActive && cardFaces.has(`${image.printingId}:${image.face}`),
+    ),
     (image) => image.printingId,
   );
 

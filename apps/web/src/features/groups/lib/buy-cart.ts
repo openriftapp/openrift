@@ -34,11 +34,39 @@ export function cartItemForWanted(
   return { key: wanted.key, cardId: wanted.cardId, printingId, quantity: wanted.quantity };
 }
 
+/**
+ * The copies to buy: wishes for one card add up, and one double-sided copy fills a wish for each
+ * of its cards, so a printing takes its largest per-card total.
+ */
+export function cartPurchaseItems(items: readonly BuyCartItem[]): BuyCartItem[] {
+  const totalByCard = new Map<string, BuyCartItem>();
+  for (const item of items) {
+    const key = `${item.printingId}\0${item.cardId}`;
+    const existing = totalByCard.get(key);
+    totalByCard.set(
+      key,
+      existing ? { ...existing, quantity: existing.quantity + item.quantity } : item,
+    );
+  }
+  const byPrinting = new Map<string, BuyCartItem>();
+  for (const item of totalByCard.values()) {
+    const existing = byPrinting.get(item.printingId);
+    if (!existing || item.quantity > existing.quantity) {
+      byPrinting.set(item.printingId, item);
+    }
+  }
+  return [...byPrinting.values()];
+}
+
+export function cartCopyCount(items: readonly BuyCartItem[]): number {
+  return cartPurchaseItems(items).reduce((sum, item) => sum + item.quantity, 0);
+}
+
 export function cartCardLines(
   items: readonly BuyCartItem[],
   nameOf: (item: BuyCartItem) => string,
 ): CardLine[] {
-  return items.map((item) => ({ name: nameOf(item), quantity: item.quantity }));
+  return cartPurchaseItems(items).map((item) => ({ name: nameOf(item), quantity: item.quantity }));
 }
 
 export function massEntryLines(
@@ -47,7 +75,7 @@ export function massEntryLines(
 ): { lines: MassEntryLine[]; unlisted: BuyCartItem[] } {
   const lines: MassEntryLine[] = [];
   const unlisted: BuyCartItem[] = [];
-  for (const item of items) {
+  for (const item of cartPurchaseItems(items)) {
     const productId = productIdOf(item.printingId);
     if (productId === null || productId === undefined) {
       unlisted.push(item);
@@ -65,7 +93,7 @@ export function cartWizardLines(
 ): { lines: CartWizardLine[]; unlisted: BuyCartItem[] } {
   const lines: CartWizardLine[] = [];
   const unlisted: BuyCartItem[] = [];
-  for (const item of items) {
+  for (const item of cartPurchaseItems(items)) {
     const productId = productIdOf(item.printingId);
     if (productId === null || productId === undefined) {
       unlisted.push(item);
@@ -88,7 +116,7 @@ export function cartTotal(
 ): { total: number; unpriced: number } {
   let total = 0;
   let unpriced = 0;
-  for (const item of items) {
+  for (const item of cartPurchaseItems(items)) {
     const price = priceOf(item.printingId);
     if (price === undefined) {
       unpriced += item.quantity;
@@ -119,7 +147,7 @@ export async function fileOrder(
   wantedByKey: ReadonlyMap<string, WantedCard>,
 ): Promise<void> {
   const collectionId = await deps.collectionId();
-  const copies = items.flatMap((item) =>
+  const copies = cartPurchaseItems(items).flatMap((item) =>
     Array.from({ length: item.quantity }, () => ({ printingId: item.printingId, collectionId })),
   );
   for (let start = 0; start < copies.length; start += COPIES_PER_REQUEST) {

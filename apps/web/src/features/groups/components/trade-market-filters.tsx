@@ -1,4 +1,3 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
 import type { TradeSuggestionDismissal } from "@openrift/shared/types/api/card-trade";
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, EyeOffIcon } from "lucide-react";
@@ -16,6 +15,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { UserAvatar } from "@/components/user-avatar";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import {
   useDismissSuggestions,
   useRestoreSuggestion,
@@ -173,7 +173,7 @@ export function HiddenSuggestions({
         <ul className="flex flex-col">
           {dismissals.map((dismissal) => {
             const printing = printingsById[dismissal.printingId];
-            const card = printing === undefined ? "" : legendDisplayName(printing.card);
+            const card = printing === undefined ? "" : printingDisplayName(printing);
             const name = names.get(dismissal.counterpartyUserId) ?? m.trades_member_fallback();
             return (
               <li

@@ -226,18 +226,22 @@ export function useBulkAddListEntries() {
 // The server derives the right entry shape from the list's kind, so the client
 // just passes raw copy IDs.
 const bulkAddCopiesToListFn = createServerFn({ method: "POST" })
-  .validator((input: { listId: string; copyIds: string[] }) => input)
+  .validator((input: { listId: string; copyIds: string[]; cardId?: string }) => input)
   .middleware([withCookies])
   .handler(({ context, data }): Promise<ListBulkAddResponse> =>
     apiOrpcClient(listsContract, context.cookie).bulkAddFromCopies({
       id: data.listId,
       copyIds: data.copyIds,
+      cardId: data.cardId,
     }),
   );
 
 export function useBulkAddCopiesToList() {
   const userId = useRequiredUserId();
-  return useMutationWithInvalidation<ListBulkAddResponse, { listId: string; copyIds: string[] }>({
+  return useMutationWithInvalidation<
+    ListBulkAddResponse,
+    { listId: string; copyIds: string[]; cardId?: string }
+  >({
     mutationFn: (vars) => bulkAddCopiesToListFn({ data: vars }),
     invalidates: (variables) => [listsKeys.all(userId), listsKeys.detail(userId, variables.listId)],
   });

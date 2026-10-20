@@ -68,7 +68,9 @@ function enrichProductDetail(response: ProductDetailResponse): EnrichedProductDe
       card,
     };
     printings.push(printing);
-    printingsById[printing.printingId] = printing;
+    if (printing.side === 1 || printingsById[printing.printingId] === undefined) {
+      printingsById[printing.printingId] = printing;
+    }
   }
   return {
     product: response.product,

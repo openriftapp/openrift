@@ -69,7 +69,7 @@ export async function sendTradeMatchDigest(
   for (const recipient of recipients) {
     const groups = await repos.friendGroups.listGroupsForUser(recipient.userId);
     const pending: PendingGroup[] = [];
-    const cardIds = new Set<string>();
+    const printingIds = new Set<string>();
 
     for (const group of groups) {
       const rows = await repos.friendGroupMatches.recentIncomingMatchesForFeed({
@@ -82,7 +82,7 @@ export async function sendTradeMatchDigest(
         continue;
       }
       for (const row of rows) {
-        cardIds.add(row.cardId);
+        printingIds.add(row.printingId);
       }
       const members = await repos.friendGroups.listMembers(group.id);
       const labelByUser = new Map<string, string | null>();
@@ -96,14 +96,13 @@ export async function sendTradeMatchDigest(
       continue;
     }
 
-    const cards = await repos.catalog.cardsByIds([...cardIds]);
-    const nameByCard = new Map(cards.map((card) => [card.id, card.name]));
+    const nameByPrinting = await repos.catalog.printingNamesByIds([...printingIds]);
 
     const sections: DigestGroupSection[] = pending.map((group) => ({
       groupName: group.name,
       tradesUrl: appBaseUrl + groupPath(group.slug, "trades"),
       matches: group.rows.map((row) => ({
-        cardName: nameByCard.get(row.cardId) ?? null,
+        cardName: nameByPrinting.get(row.printingId) ?? null,
         counterpartyLabel: group.labelByUser.get(row.counterpartyUserId) ?? null,
       })),
     }));

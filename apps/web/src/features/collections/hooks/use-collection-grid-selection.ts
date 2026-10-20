@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
 import { useEffect } from "react";
@@ -13,8 +14,13 @@ import {
   computeDragSelectionSummary,
   dragSelectionNoun,
 } from "@/features/collections/lib/collection-drag";
+import {
+  buildCardsViewTileIndex,
+  EMPTY_TILE_INDEX,
+} from "@/features/collections/lib/collection-grid-items";
 import { resolveContextActionTarget } from "@/features/collections/lib/stack-selection";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
+import { stackSides } from "@/features/collections/lib/stacked-entry";
 import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
 import type { VariantPopoverIntent } from "@/features/collections/stores/add-mode-store";
 import { useCollectionOverlayStore } from "@/features/collections/stores/collection-overlay-store";
@@ -56,7 +62,7 @@ interface UseCollectionGridSelectionParams {
   handleQuickAdd: ReturnType<typeof useQuickAddActions>["handleQuickAdd"];
   tryUndoAdd: ReturnType<typeof useQuickAddActions>["tryUndoAdd"];
   handleOpenVariants: ReturnType<typeof useQuickAddActions>["handleOpenVariants"];
-  handleTake: (itemId: string, count: number) => void;
+  handleTake: (itemId: string, count: number, printing?: Printing) => void;
   setLendTarget: (target: { printing: Printing; maxQuantity: number } | null) => void;
   openAction: (action: CollectionContextAction, copyIds: string[]) => void;
 }
@@ -88,25 +94,9 @@ export function useCollectionGridSelection({
 }: UseCollectionGridSelectionParams) {
   // Keyed by tile (cardId, or cardId|set / cardId|rarity when split) so a card
   // owned across sets keeps each set tile's copies separate.
-  const allCopyIdsByTile = new Map<string, string[]>();
-  const allPrintingIdsByTile = new Map<string, string[]>();
-  if (dataView === "cards") {
-    for (const stack of stacks) {
-      const tileKey = cardsViewTileKey(stack.printing, tileGroupBy);
-      const copyIds = allCopyIdsByTile.get(tileKey);
-      if (copyIds) {
-        copyIds.push(...stack.copyIds);
-      } else {
-        allCopyIdsByTile.set(tileKey, [...stack.copyIds]);
-      }
-      const printingIds = allPrintingIdsByTile.get(tileKey);
-      if (printingIds) {
-        printingIds.push(stack.printingId);
-      } else {
-        allPrintingIdsByTile.set(tileKey, [stack.printingId]);
-      }
-    }
-  }
+  const { allCopyIdsByTile, allPrintingIdsByTile } =
+    dataView === "cards" ? buildCardsViewTileIndex(stacks, tileGroupBy) : EMPTY_TILE_INDEX;
+  const printingByItemId = new Map(items.map((item) => [item.id, item.printing]));
 
   // Multiple cells can share a cardId when split into tiles, so selection
   // must navigate by printing to land on the tile the user clicked.
@@ -121,6 +111,7 @@ export function useCollectionGridSelection({
     items,
     stackByItemId,
     stacked,
+    countPrintings: view === "printings",
   });
   const dragNoun = dragSelectionNoun(view);
   useEffect(() => {
@@ -145,13 +136,14 @@ export function useCollectionGridSelection({
     handleGridCardClick(printing);
     useSiblingOverrideStore
       .getState()
-      .setOverride("collection", printing.cardId, printing.printingId);
+      .setOverride("collection", printing.cardId, sideKey(printing));
   };
 
   const toggleStackForItem = (itemId: string, stack: StackedEntry) => {
     if (stacked) {
+      const tilePrinting = printingByItemId.get(itemId) ?? stack.printing;
       const cardCopyIds =
-        allCopyIdsByTile.get(cardsViewTileKey(stack.printing, tileGroupBy)) ?? stack.copyIds;
+        allCopyIdsByTile.get(cardsViewTileKey(tilePrinting, tileGroupBy)) ?? stack.copyIds;
       toggleStack(cardCopyIds);
     } else {
       toggleSelect(itemId);
@@ -203,13 +195,14 @@ export function useCollectionGridSelection({
     if (action === "lend") {
       const lendStack = (printing && stackByPrintingId.get(printing.printingId)) ?? stack;
       setLendTarget({
-        printing: lendStack.printing,
+        printing: printing ?? lendStack.printing,
         maxQuantity: stacked ? lendStack.copyIds.length : 1,
       });
       return;
     }
+    const tilePrinting = printing ?? printingByItemId.get(itemId) ?? stack.printing;
     const cardCopyIds = stacked
-      ? (allCopyIdsByTile.get(cardsViewTileKey(stack.printing, tileGroupBy)) ?? stack.copyIds)
+      ? (allCopyIdsByTile.get(cardsViewTileKey(tilePrinting, tileGroupBy)) ?? stack.copyIds)
       : [itemId];
     // Copy details always targets the clicked tile (never the selection): the
     // dialog edits one copy at a time, so selection narrowing doesn't apply.
@@ -219,13 +212,17 @@ export function useCollectionGridSelection({
       for (const entry of stacks) {
         for (const copyId of entry.copyIds) {
           if (idSet.has(copyId)) {
-            printingByCopyId.set(copyId, entry.printing);
+            printingByCopyId.set(
+              copyId,
+              stackSides(entry).find((side) => side.cardId === tilePrinting.cardId) ??
+                entry.printing,
+            );
           }
         }
       }
       useCollectionOverlayStore.getState().setCopyDetailsTarget({
         copyIds: cardCopyIds,
-        cardName: legendDisplayName(stack.printing.card),
+        cardName: legendDisplayName(tilePrinting.card),
         printingByCopyId,
       });
       return;

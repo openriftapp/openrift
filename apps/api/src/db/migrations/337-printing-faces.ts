@@ -103,6 +103,12 @@ const UP = [
     FROM printing_images pi
     JOIN printing_face_map m ON m.printing_id = pi.printing_id
     ORDER BY m.face_id, pi.image_file_id, (pi.printing_id = m.face_id) DESC, pi.created_at, pi.id`,
+  // Printings that now share a face may each have had their own active image; the oldest stays.
+  `UPDATE face_images fi SET is_active = false
+    WHERE fi.is_active AND EXISTS (
+      SELECT 1 FROM face_images o
+      WHERE o.face_id = fi.face_id AND o.is_active AND (o.created_at, o.id) < (fi.created_at, fi.id)
+    )`,
   `CREATE UNIQUE INDEX idx_face_images_active ON face_images USING btree (face_id) WHERE (is_active = true)`,
   `CREATE INDEX idx_face_images_face ON face_images USING btree (face_id)`,
   `CREATE INDEX idx_face_images_image_file ON face_images USING btree (image_file_id)`,
@@ -386,6 +392,8 @@ const DOWN = [
       marker_slugs = f.marker_slugs, fallback_art_mode = f.fallback_art_mode,
       fallback_image_file_id = f.fallback_image_file_id
     FROM faces f WHERE f.id = p.face1_id`,
+  `UPDATE printings p SET comment = concat_ws(E'\n', p.comment, f.comment)
+    FROM faces f WHERE f.id = p.face1_id AND f.comment IS NOT NULL`,
   `ALTER TABLE printings
     ALTER COLUMN card_id SET NOT NULL,
     ALTER COLUMN set_id SET NOT NULL,

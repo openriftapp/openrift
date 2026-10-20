@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   countPrintings,
   indexByPrinting,
+  indexBySideKey,
   ownedTotalsByCard,
+  printingOnSide,
   sideKey,
   uniquePrintings,
 } from "./printing-side";
@@ -30,6 +32,29 @@ describe("countPrintings", () => {
 describe("uniquePrintings", () => {
   it("keeps the first entry of each printing", () => {
     expect(uniquePrintings([birdSide, goldSide, single])).toEqual([birdSide, single]);
+  });
+});
+
+describe("indexBySideKey", () => {
+  it("keeps both sides of a printing, even with the same card on each", () => {
+    expect(indexBySideKey([birdSide, goldSide, buffFront, buffBack])).toEqual({
+      "p-1": birdSide,
+      "p-1:2": goldSide,
+      "p-2": buffFront,
+      "p-2:2": buffBack,
+    });
+  });
+});
+
+describe("printingOnSide", () => {
+  it("picks the requested side of a card printed on both sides", () => {
+    expect(printingOnSide([buffFront, buffBack], "p-2", 2)).toBe(buffBack);
+    expect(printingOnSide([buffFront, buffBack], "p-2")).toBe(buffFront);
+  });
+
+  it("falls back to the only row a card has on the printing", () => {
+    expect(printingOnSide([goldSide], "p-1")).toBe(goldSide);
+    expect(printingOnSide([goldSide], "p-9")).toBeUndefined();
   });
 });
 

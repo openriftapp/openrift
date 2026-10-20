@@ -1,6 +1,7 @@
 import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
 import type { SearchablePrintingCodes } from "@openrift/shared/card-search";
 import { buildCardIndex, searchCards } from "@openrift/shared/card-search";
+import { uniquePrintings } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useMemo } from "react";
 
@@ -78,7 +79,7 @@ export function useQuickAddSearch(
     return searchCards(index, query, limit).map((row) => {
       let ownedCount = 0;
       if (ownedCountByPrinting) {
-        for (const printing of row.printings) {
+        for (const printing of uniquePrintings(row.printings)) {
           ownedCount += ownedCountByPrinting[printing.printingId] ?? 0;
         }
       }

@@ -57,15 +57,18 @@ export function TradeCardmarketExportDialog({
   open,
   onOpenChange,
 }: TradeCardmarketExportDialogProps) {
-  const { cardsById } = useCards();
+  const { printingsById } = useCards();
 
   const wantsFor = (role: CardTradeResponse["role"]): string =>
     formatCardmarketWants(
       trades
         .filter((trade) => trade.role === role)
         .map((trade) => {
-          const card = cardsById[trade.cardId];
-          return { name: card ? legendDisplayName(card) : "", quantity: trade.quantity };
+          const printing = printingsById[trade.printingId];
+          return {
+            name: printing ? legendDisplayName(printing.card) : "",
+            quantity: trade.quantity,
+          };
         })
         // A trade for a card missing from the catalog (shouldn't happen) would
         // otherwise emit an empty line that breaks the Cardmarket import.

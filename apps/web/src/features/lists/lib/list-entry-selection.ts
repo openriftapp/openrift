@@ -7,7 +7,7 @@ import {
   ruleSelectionItemId,
 } from "@/features/lists/lib/list-entries";
 import type { AddEntryToCollectionSubject, RuleEntryRef } from "@/features/lists/lib/list-move";
-import { ruleEntryRef } from "@/features/lists/lib/list-move";
+import { hasTwoCards, ruleEntryRef } from "@/features/lists/lib/list-move";
 
 const PREVIEW_FAN = 3;
 
@@ -60,7 +60,17 @@ export function entrySelectionEntry(
   entryByItemId: EntryMap,
 ): ListEntryDetailResponse | undefined {
   if (isRuleSelectionId(id)) {
-    return entryByItemId.get(ruleSelectionItemId(id));
+    const direct = entryByItemId.get(ruleSelectionItemId(id));
+    if (direct) {
+      return direct;
+    }
+    // Only the side-2 tile may be on screen, and both sides share the side-1 id.
+    for (const [itemId, entry] of entryByItemId) {
+      if (entrySelectionId(itemId, entry) === id) {
+        return entry;
+      }
+    }
+    return undefined;
   }
   for (const entry of entryByItemId.values()) {
     if (entry.id === id) {
@@ -120,7 +130,13 @@ export function selectionDragFields(
   selectionIds: readonly string[],
   entryByItemId: EntryMap,
   printingByEntryId: PrintingMap,
-): { entryIds: string[]; copyIds: string[]; totalQuantity: number; previewPrintings: Printing[] } {
+): {
+  entryIds: string[];
+  copyIds: string[];
+  totalQuantity: number;
+  previewPrintings: Printing[];
+  selectionHasTwoCards: boolean;
+} {
   const byId = entriesForSelection(selectionIds, entryByItemId);
   const entries = selectionIds.flatMap((id) => {
     const entry = byId.get(id);
@@ -140,6 +156,7 @@ export function selectionDragFields(
     copyIds: entries.flatMap((entry) => (entry.kind === "copy" ? [entry.copyId] : [])),
     totalQuantity: entries.reduce((sum, entry) => sum + entry.quantity, 0),
     previewPrintings,
+    selectionHasTwoCards: selectionIds.some((id) => hasTwoCards(printingByEntryId.get(id))),
   };
 }
 

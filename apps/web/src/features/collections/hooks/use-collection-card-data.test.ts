@@ -251,6 +251,45 @@ describe("useCollectionCardData", () => {
     ]);
   });
 
+  it("buckets each card of a double-sided box printing on its own total", () => {
+    const bird = stubPrinting({
+      printingId: "pair",
+      side: 1,
+      cardId: "bird",
+      card: { slug: "bird" },
+    });
+    const gold = stubPrinting({
+      printingId: "pair",
+      side: 2,
+      cardId: "gold",
+      card: { slug: "gold" },
+    });
+    mockStacks.mockReturnValue({
+      stacks: [{ printingId: "pair", printing: bird, sides: [bird, gold], copyIds: ["box-1"] }],
+      totalCopies: 1,
+      isReady: true,
+    });
+
+    const full = renderHook(() =>
+      useCollectionCardData({
+        ...baseParams(),
+        ownedFilter: ["full"],
+        ownedCardTotalOverride: { bird: 3, gold: 1 },
+      }),
+    );
+    expect(full.result.current.sortedCards.map((p) => p.cardId)).toEqual(["bird"]);
+    expect(full.result.current.ownedCountMax).toBe(3);
+
+    const partial = renderHook(() =>
+      useCollectionCardData({
+        ...baseParams(),
+        ownedFilter: ["partial"],
+        ownedCardTotalOverride: { bird: 3, gold: 1 },
+      }),
+    );
+    expect(partial.result.current.sortedCards.map((p) => p.cardId)).toEqual(["gold"]);
+  });
+
   it("buckets the owned filter by ownedCardTotalOverride (group bulk box personal playset)", () => {
     const cardId = "card-ballista";
     const normal = stubPrinting({ cardId, card: { slug: "ballista" } });

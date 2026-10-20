@@ -155,6 +155,9 @@ export function marketplacePricesRepo(db: Kysely<Database>) {
      * with per-language prices (CardTrader) — without it a cheap foreign
      * printing drags the tile below what the deck page shows. An empty list
      * means "no language preference" and prices at the plain cheapest.
+     *
+     * Cards priced at the same double-sided printing share its copies: the deck pays for the
+     * larger card's count once, not for each card.
      */
     async deckValues(
       userId: string,
@@ -163,25 +166,42 @@ export function marketplacePricesRepo(db: Kysely<Database>) {
     ): Promise<Map<string, number>> {
       const preferredLanguages = [...(languages ?? [])];
       const rows = await sql<{ deckId: string; totalValueCents: number }>`
+        WITH priced AS (
+          SELECT dc.deck_id, dc.card_id, dc.quantity, cheapest.printing_id, cheapest.headline_cents
+          FROM deck_cards dc
+          INNER JOIN decks d ON d.id = dc.deck_id AND d.user_id = ${userId}
+          LEFT JOIN LATERAL (
+            SELECT p.printing_id, mvp.headline_cents
+            FROM printing_sides_ordered p
+            INNER JOIN mv_latest_printing_prices mvp
+              ON mvp.printing_id = p.printing_id AND mvp.marketplace = ${marketplace}
+            WHERE p.card_id = dc.card_id
+            ORDER BY
+              (p.language = ANY(${preferredLanguages}::text[])) DESC,
+              mvp.headline_cents,
+              p.printing_id
+            LIMIT 1
+          ) cheapest ON true
+          WHERE dc.zone <> ${WellKnown.deckZone.OVERFLOW}
+        ),
+        per_card AS (
+          SELECT deck_id, printing_id, card_id, SUM(quantity) AS quantity,
+            MAX(headline_cents) AS headline_cents
+          FROM priced
+          WHERE printing_id IS NOT NULL
+          GROUP BY deck_id, printing_id, card_id
+        ),
+        per_printing AS (
+          SELECT deck_id, MAX(quantity) * MAX(headline_cents) AS value_cents
+          FROM per_card
+          GROUP BY deck_id, printing_id
+        )
         SELECT
-          dc.deck_id AS "deckId",
-          COALESCE(SUM(dc.quantity * cheapest.headline_cents), 0)::int AS "totalValueCents"
-        FROM deck_cards dc
-        INNER JOIN decks d ON d.id = dc.deck_id AND d.user_id = ${userId}
-        LEFT JOIN LATERAL (
-          SELECT COALESCE(
-            MIN(mvp.headline_cents) FILTER (
-              WHERE p.language = ANY(${preferredLanguages}::text[])
-            ),
-            MIN(mvp.headline_cents)
-          ) AS headline_cents
-          FROM printing_sides_ordered p
-          INNER JOIN mv_latest_printing_prices mvp
-            ON mvp.printing_id = p.printing_id AND mvp.marketplace = ${marketplace}
-          WHERE p.card_id = dc.card_id
-        ) cheapest ON true
-        WHERE dc.zone <> ${WellKnown.deckZone.OVERFLOW}
-        GROUP BY dc.deck_id
+          decks.deck_id AS "deckId",
+          COALESCE(SUM(per_printing.value_cents), 0)::int AS "totalValueCents"
+        FROM (SELECT DISTINCT deck_id FROM priced) decks
+        LEFT JOIN per_printing ON per_printing.deck_id = decks.deck_id
+        GROUP BY decks.deck_id
       `.execute(db);
 
       return new Map(rows.rows.map((row) => [row.deckId, row.totalValueCents]));

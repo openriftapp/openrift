@@ -327,7 +327,7 @@ export function computeDeckBoxPlan({
       if (copy.onLoan || copy.reserved) {
         continue;
       }
-      const cardId = printingsById[copy.printingId]?.cardId;
+      const cardId = (deckPrinting ?? printingsById[copy.printingId])?.cardId;
       if (cardId === undefined) {
         continue;
       }

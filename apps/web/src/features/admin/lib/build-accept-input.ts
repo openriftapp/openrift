@@ -48,7 +48,11 @@ export function buildAcceptSubmissionInput(
 
       if (change.field === "imageUrl") {
         if (group.printingId && group.candidate) {
-          images.push({ candidatePrintingId: group.candidate.id, printingId: group.printingId });
+          images.push({
+            candidatePrintingId: group.candidate.id,
+            printingId: group.printingId,
+            faceId: group.faceId,
+          });
           includedKeys.add(change.key);
         }
         continue;
@@ -63,6 +67,7 @@ export function buildAcceptSubmissionInput(
       if (group.printingId && isAcceptPrintingField(change.field)) {
         printingFields.push({
           printingId: group.printingId,
+          faceId: group.faceId,
           field: change.field,
           value,
           source: isEdited ? "manual" : "provider",

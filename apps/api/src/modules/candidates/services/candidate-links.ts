@@ -5,6 +5,7 @@
  * and overlay ingest; the key and gate must not be duplicated elsewhere.
  */
 import { normalizeNameForIdentity } from "@openrift/shared/card-name";
+import { WellKnown } from "@openrift/shared/well-known";
 
 import { buildPrintingLinkKey } from "../../../lib/printing-link-key.js";
 import type { ingestRepo } from "../repositories/ingest.js";
@@ -21,6 +22,8 @@ export interface CardNameIndex {
 export interface CandidateLinkIndex extends CardNameIndex {
   /** {@link buildPrintingLinkKey} output to live printing id. */
   printingIdByKey: Map<string, string>;
+  /** The same key plus `|<size>`, for a side shared by a standard and an oversized printing. */
+  printingIdBySizedKey: Map<string, string>;
   /**
    * `"<provider>:<externalId>:<finish>"` to the manually pinned live printing
    * id. Provider '' is the wildcard for rows that predate provider scoping;
@@ -43,6 +46,7 @@ interface CandidateLinkSources extends CardNameSources {
     finish: string;
     markerSlugs: string[];
     language: string;
+    size: string;
   }[];
   linkOverrides: readonly {
     externalId: string;
@@ -67,10 +71,30 @@ function buildCardNameIndex(sources: CardNameSources): CardNameIndex {
   };
 }
 
+/** A side shared by several printings leaves its key unlinked: the candidate could be any of them. */
+function printingIdsByUniqueKey(
+  printings: CandidateLinkSources["printings"],
+  keyOf: (printing: CandidateLinkSources["printings"][number]) => string,
+): Map<string, string> {
+  const idsByKey = Map.groupBy(printings, keyOf);
+  const unique = new Map<string, string>();
+  for (const [key, matches] of idsByKey) {
+    const [first, ...rest] = new Set(matches.map((printing) => printing.id));
+    if (first !== undefined && rest.length === 0) {
+      unique.set(key, first);
+    }
+  }
+  return unique;
+}
+
 export function buildCandidateLinkIndex(sources: CandidateLinkSources): CandidateLinkIndex {
   return {
     ...buildCardNameIndex(sources),
-    printingIdByKey: new Map(sources.printings.map((p) => [buildPrintingLinkKey(p), p.id])),
+    printingIdByKey: printingIdsByUniqueKey(sources.printings, (p) => buildPrintingLinkKey(p)),
+    printingIdBySizedKey: printingIdsByUniqueKey(
+      sources.printings,
+      (p) => `${buildPrintingLinkKey(p)}|${p.size}`,
+    ),
     printingIdByOverrideKey: new Map(
       sources.linkOverrides.map((r) => [`${r.provider}:${r.externalId}:${r.finish}`, r.printingId]),
     ),
@@ -121,6 +145,7 @@ export function resolvePrintingLink(
     finish: string | null;
     markerSlugs: readonly string[];
     language: string | null;
+    size?: string | null;
     /** Whether the owning candidate card resolved to a live card. */
     cardLinked: boolean;
     /** Trusted as-is: the caller must verify it belongs to the linked card. */
@@ -146,5 +171,6 @@ export function resolvePrintingLink(
     markerSlugs: candidate.markerSlugs,
     language: candidate.language,
   });
-  return index.printingIdByKey.get(key) ?? null;
+  const size = candidate.size ?? WellKnown.cardSize.STANDARD;
+  return index.printingIdBySizedKey.get(`${key}|${size}`) ?? index.printingIdByKey.get(key) ?? null;
 }

@@ -8,6 +8,7 @@ import type {
 import { PIECE_KINDS } from "@openrift/shared/board-state";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
+import { uniquePrintings } from "@openrift/shared/printing-side";
 import type { Card } from "@openrift/shared/types/catalog";
 import { ChevronDownIcon, ShapesIcon } from "lucide-react";
 import { useState } from "react";
@@ -269,7 +270,7 @@ function GenericPieces({
 function PrintingSelect({ piece, actions }: { piece: BoardPiece; actions: BoardPieceActions }) {
   const { printingsByCardId } = useCards();
   const card = piece.card;
-  const printings = card ? (printingsByCardId.get(card.cardId) ?? []) : [];
+  const printings = card ? uniquePrintings(printingsByCardId.get(card.cardId) ?? []) : [];
   if (!card || printings.length < 2) {
     return null;
   }

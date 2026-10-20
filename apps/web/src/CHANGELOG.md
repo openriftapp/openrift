@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-20
+
+### Highlights
+
+- feat(Cards): **Each side of a double-sided token** — both sides of a double-sided token get their own tile, with their own name and art. One copy counts for both cards, fills a wish for each of them, and trades name both cards.
+
 ## 2026-10-19
 
 ### Highlights

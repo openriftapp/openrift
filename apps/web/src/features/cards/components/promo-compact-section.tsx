@@ -119,7 +119,7 @@ function CompactBranchGrid({
       <div {...grid}>
         {entries.map(({ printing, leafLabel, anchorId }) => (
           <div
-            key={`${leafLabel}-${printing.printingId}`}
+            key={`${leafLabel}-${sideKey(printing)}`}
             id={anchorId}
             style={anchorId ? { scrollMarginTop: `${stickyOffset}px` } : undefined}
           >

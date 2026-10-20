@@ -69,7 +69,11 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
 
   const card = cardsById[loan.cardId];
   const printing = printingsById[loan.printingId];
-  const cardName = card?.name ?? m.loans_card_fallback();
+  const cardName = card
+    ? printing?.otherSide
+      ? `${card.name} // ${printing.otherSide.cardName}`
+      : card.name
+    : m.loans_card_fallback();
   const imageId = frontImageId(printing);
 
   const lending = loan.role === "lender";

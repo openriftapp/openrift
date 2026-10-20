@@ -29,34 +29,69 @@ export function wantedCardKey(kind: "card" | "printing", id: string): string {
   return `${kind}:${id}`;
 }
 
+/**
+ * Copies left per card on the printing. A double-sided copy is both of its cards, so a wish for
+ * each card can count it; a printing wish uses the copy whole.
+ */
 interface Supply {
   printingId: string;
-  cardId: string;
-  remaining: number;
+  remaining: Map<string, number>;
 }
+
+function supplyOf(printingId: string, cardIds: readonly string[], quantity: number): Supply {
+  return { printingId, remaining: new Map(cardIds.map((cardId) => [cardId, quantity])) };
+}
+
+type CardIdsOfPrinting = (printingId: string) => readonly string[];
 
 function isLiveIncoming(trade: CardTradeResponse): boolean {
   return trade.role === "receiver" && cardTradeLivePhase(trade) !== null;
 }
 
-function tradeSupply(trades: readonly CardTradeResponse[]): Supply[] {
-  return trades
-    .filter((trade) => isLiveIncoming(trade))
-    .map((trade) => ({
-      printingId: trade.printingId,
-      cardId: trade.cardId,
-      remaining: trade.quantity,
-    }));
+function supplyCardIds(
+  printingId: string,
+  cardId: string,
+  cardIdsOfPrinting: CardIdsOfPrinting,
+): readonly string[] {
+  const sides = cardIdsOfPrinting(printingId);
+  return sides.includes(cardId) ? sides : [cardId, ...sides];
 }
 
-function orderedSupply(copies: readonly OrderedCopy[]): Supply[] {
+function tradeSupply(
+  trades: readonly CardTradeResponse[],
+  cardIdsOfPrinting: CardIdsOfPrinting,
+): Supply[] {
+  return trades
+    .filter((trade) => isLiveIncoming(trade))
+    .map((trade) =>
+      supplyOf(
+        trade.printingId,
+        supplyCardIds(trade.printingId, trade.cardId, cardIdsOfPrinting),
+        trade.quantity,
+      ),
+    );
+}
+
+function orderedSupply(
+  copies: readonly OrderedCopy[],
+  cardIdsOfPrinting: CardIdsOfPrinting,
+): Supply[] {
   const byPrinting = new Map<string, Supply>();
   for (const copy of copies) {
     const supply = byPrinting.get(copy.printingId);
     if (supply === undefined) {
-      byPrinting.set(copy.printingId, { ...copy, remaining: 1 });
+      byPrinting.set(
+        copy.printingId,
+        supplyOf(
+          copy.printingId,
+          supplyCardIds(copy.printingId, copy.cardId, cardIdsOfPrinting),
+          1,
+        ),
+      );
     } else {
-      supply.remaining += 1;
+      for (const [cardId, count] of supply.remaining) {
+        supply.remaining.set(cardId, count + 1);
+      }
     }
   }
   return [...byPrinting.values()];
@@ -81,13 +116,22 @@ function take(wanted: WantedCard, supply: Supply[], max: number): number {
     if (left <= 0) {
       break;
     }
-    const fits =
-      wanted.kind === "printing"
-        ? item.printingId === wanted.printingId
-        : item.cardId === wanted.cardId;
-    if (fits) {
-      const taken = Math.min(left, item.remaining);
-      item.remaining -= taken;
+    if (wanted.kind === "printing") {
+      if (item.printingId !== wanted.printingId) {
+        continue;
+      }
+      const taken = Math.min(left, ...item.remaining.values());
+      for (const [cardId, count] of item.remaining) {
+        item.remaining.set(cardId, count - taken);
+      }
+      left -= taken;
+    } else {
+      const available = item.remaining.get(wanted.cardId);
+      if (available === undefined) {
+        continue;
+      }
+      const taken = Math.min(left, available);
+      item.remaining.set(wanted.cardId, available - taken);
       left -= taken;
     }
   }
@@ -101,7 +145,7 @@ function take(wanted: WantedCard, supply: Supply[], max: number): number {
 export function buildWantedCards(
   details: readonly ListDetailResponse[],
   trades: readonly CardTradeResponse[],
-  cardIdOfPrinting: (printingId: string) => string | undefined,
+  cardIdsOfPrinting: CardIdsOfPrinting,
   orderedCopies: readonly OrderedCopy[] = [],
 ): WantedCard[] {
   const reserved = reservedByEntry(trades);
@@ -111,7 +155,7 @@ export function buildWantedCards(
       if (entry.kind === "copy") {
         continue;
       }
-      const cardId = entry.kind === "card" ? entry.cardId : cardIdOfPrinting(entry.printingId);
+      const cardId = entry.kind === "card" ? entry.cardId : cardIdsOfPrinting(entry.printingId)[0];
       if (cardId === undefined) {
         continue;
       }
@@ -151,8 +195,8 @@ export function buildWantedCards(
     }
   }
 
-  const incoming = tradeSupply(trades);
-  const ordered = orderedSupply(orderedCopies);
+  const incoming = tradeSupply(trades, cardIdsOfPrinting);
+  const ordered = orderedSupply(orderedCopies, cardIdsOfPrinting);
   const printingFirst = [...byKey.values()].toSorted(
     (a, b) => Number(a.kind === "card") - Number(b.kind === "card"),
   );

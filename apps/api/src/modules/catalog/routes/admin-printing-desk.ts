@@ -9,8 +9,11 @@ import { toDeskImages, toDeskPrintingRow } from "../lib/printing-desk-presenters
 import {
   assertDeskImageFileScope,
   assertDeskPrintingScope,
+  assertImageScope,
+  assertPrintingSideScope,
   createDeskPrinting,
   imagesDeletableBy,
+  removeDeskSide,
   setDeskSecondSide,
   updateDeskPrinting,
 } from "../services/printing-desk.js";
@@ -54,7 +57,7 @@ export const adminPrintingDeskRouter = {
 
   get: os.get.handler(async ({ input, context }) => {
     const { adminEvents, printingDesk } = context.repos;
-    const row = await printingDesk.getDeskPrinting(input.printingId);
+    const row = await printingDesk.getDeskPrinting(input.printingId, input.side === 2 ? 2 : 1);
     assertFound(row, "Printing not found");
 
     const createdByMe = await adminEvents.wasPrintingCreatedBy(input.printingId, context.userId);
@@ -97,14 +100,23 @@ export const adminPrintingDeskRouter = {
   }),
 
   setSecondSide: os.setSecondSide.handler(async ({ input, context }): Promise<void> => {
-    await setDeskSecondSide(context.repos, context.adminAccess, context.userId, input);
+    await setDeskSecondSide(
+      context.transact,
+      context.repos,
+      context.adminAccess,
+      context.userId,
+      input,
+    );
   }),
 
   removeSecondSide: os.removeSecondSide.handler(async ({ input, context }): Promise<void> => {
-    await setDeskSecondSide(context.repos, context.adminAccess, context.userId, {
-      printingId: input.printingId,
-      faceId: null,
-    });
+    await removeDeskSide(
+      context.transact,
+      context.repos,
+      context.adminAccess,
+      context.userId,
+      input,
+    );
   }),
 
   updateImage: os.updateImage.handler(async ({ input, context }): Promise<void> => {
@@ -128,28 +140,32 @@ export const adminPrintingDeskRouter = {
 
   setImageFace: os.setImageFace.handler(async ({ input, context }): Promise<void> => {
     const { printingImages } = context.repos;
-    const { printingImageId, face } = input;
+    const { printingImageId, printingId, face } = input;
 
-    const image = await printingImages.getForActivate(printingImageId);
-    assertFound(image, "Printing image not found");
-    await assertDeskPrintingScope(
+    // The side is relative to the printing on screen: a shared side is front on one, back on another.
+    const current = await printingImages.sideOnPrinting(printingImageId, printingId);
+    assertFound(current, "Printing image not found");
+    await assertDeskPrintingScope(context.repos, context.adminAccess, context.userId, printingId);
+    await assertImageScope(context.repos, context.adminAccess, context.userId, printingImageId);
+
+    if (current === face) {
+      return;
+    }
+    await assertPrintingSideScope(
       context.repos,
       context.adminAccess,
       context.userId,
-      image.printingId,
+      printingId,
+      face,
     );
 
-    if (image.face === face) {
-      return;
-    }
-
-    await printingImages.setFace(printingImageId, face);
+    await printingImages.setFace(printingImageId, face, printingId);
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "image.face",
       entityType: "image",
       entityId: printingImageId,
-      oldValues: { face: image.face },
+      oldValues: { face: current },
       newValues: { face },
     });
 

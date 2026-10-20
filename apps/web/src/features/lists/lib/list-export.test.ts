@@ -2,6 +2,7 @@ import type { ListEntryDetailResponse } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
+import { stackCardName } from "@/features/collections/lib/stacked-entry";
 import { formatCardmarketWants } from "@/lib/export-text";
 import { EMPTY_TRADE_PREFERENCE, stubPrinting } from "@/test/factories";
 
@@ -70,6 +71,19 @@ describe("stacksFromListEntries", () => {
     expect(stacks[0]!.printingId).toBe("p1");
     expect(stacks[0]!.printing).toBe(printing);
     expect(stacks[0]!.copyIds).toHaveLength(3);
+  });
+
+  it("carries both sides of a double-sided printing in display order", () => {
+    const bird = stubPrinting({ printingId: "pair", side: 1, card: { name: "Bird" } });
+    const gold = stubPrinting({ printingId: "pair", side: 2, card: { name: "Gold" } });
+    const [stack] = stacksFromListEntries(
+      [printingListEntry("e1", "pair", 1)],
+      { pair: bird },
+      SETS,
+      new Map([["pair", [gold, bird]]]),
+    );
+    expect(stack!.sides).toEqual([bird, gold]);
+    expect(stackCardName(stack!)).toBe("Bird // Gold");
   });
 
   it("sorts stacks by card ID like a collection export", () => {

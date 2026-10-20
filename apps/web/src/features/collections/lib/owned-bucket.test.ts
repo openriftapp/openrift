@@ -212,6 +212,13 @@ describe("maxOwnedCount", () => {
     expect(maxOwnedCount([variantA, variantB, other], counts)).toBe(5);
   });
 
+  it("counts a printing with the card on both sides once in card mode", () => {
+    const front = stubPrinting({ printingId: "pair", side: 1, cardId: "buff" });
+    const back = stubPrinting({ printingId: "pair", side: 2, cardId: "buff" });
+
+    expect(maxOwnedCount([front, back], { pair: 2 })).toBe(2);
+  });
+
   it("returns the largest single-printing count in printing mode", () => {
     const cardId = "card-foo";
     const variantA = stubPrinting({ cardId });

@@ -245,6 +245,7 @@ export const listsRouter = {
         userId,
         input.copyIds,
         personalOnly,
+        input.cardId,
       );
     },
   ),

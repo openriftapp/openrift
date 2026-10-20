@@ -30,6 +30,7 @@ import { usePrintingsByLanguage } from "@/features/admin/hooks/use-printings-by-
 import { hasValue } from "@/features/admin/lib/candidate-cell-values";
 import { firstPrintingSetLabel } from "@/features/admin/lib/card-overview";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
+import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
 import type { OverviewSourceGroup } from "@/features/admin/lib/source-groups";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { RarityIcon } from "@/features/cards/components/rarity-icon";
@@ -65,8 +66,8 @@ function PrintingTile({
   landscape: boolean;
   onOpen: (printingId: string) => void;
 }) {
-  const image = detail.printingImages.find(
-    (candidate) => candidate.printingId === printing.id && candidate.isActive,
+  const image = imagesOnSide(detail.printingImages, printing).find(
+    (candidate) => candidate.isActive,
   );
 
   return (

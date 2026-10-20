@@ -21,7 +21,7 @@ export interface BoxWantDemand {
 
 export interface BoxAvailablePrinting {
   printingId: string;
-  cardId: string;
+  cardIds: readonly string[];
   quantity: number;
 }
 
@@ -38,12 +38,16 @@ export interface BoxWantRow {
   fulfillableQuantity: number;
 }
 
-function accepts(entry: BoxWantDemand, printingId: string, cardId: string): boolean {
+/** The cards of `printingId` that `entry` takes from: all of them for a printing want. */
+function acceptedCards(entry: BoxWantDemand, printingId: string, cardIds: string[]): string[] {
   // Must apply the same printing gate as the match view applies to a supply copy.
   if (entry.acceptablePrintingIds !== null && !entry.acceptablePrintingIds.has(printingId)) {
-    return false;
+    return [];
   }
-  return entry.kind === "printing" ? entry.printingId === printingId : entry.cardId === cardId;
+  if (entry.kind === "printing") {
+    return entry.printingId === printingId ? cardIds : [];
+  }
+  return cardIds.filter((cardId) => cardId === entry.cardId);
 }
 
 /**
@@ -56,47 +60,55 @@ export function allocateBoxWants(
 ): BoxWantRow[] {
   const rows: BoxWantRow[] = [];
   for (const box of availableByCollection) {
-    const remaining = new Map<string, { cardId: string; quantity: number }>();
+    // A double-sided copy fills one want per card, so each card of a printing has its own pool.
+    const remaining = new Map<string, Map<string, number>>();
     for (const printing of box.printings) {
-      const slot = remaining.get(printing.printingId);
-      if (slot) {
-        slot.quantity += printing.quantity;
-      } else {
-        remaining.set(printing.printingId, {
-          cardId: printing.cardId,
-          quantity: printing.quantity,
-        });
+      const byCard = remaining.get(printing.printingId) ?? new Map<string, number>();
+      for (const cardId of printing.cardIds) {
+        byCard.set(cardId, (byCard.get(cardId) ?? 0) + printing.quantity);
       }
+      remaining.set(printing.printingId, byCard);
     }
-    const taken = new Map<string, number>();
+    const taken = new Map<string, Map<string, number>>();
     for (const entry of demand) {
       let want = entry.buyQuantity;
       if (want <= 0) {
         continue;
       }
-      for (const [printingId, slot] of remaining) {
+      for (const [printingId, byCard] of remaining) {
         if (want <= 0) {
           break;
         }
-        if (slot.quantity <= 0 || !accepts(entry, printingId, slot.cardId)) {
+        const cards = acceptedCards(entry, printingId, [...byCard.keys()]);
+        const available = Math.min(...cards.map((cardId) => byCard.get(cardId) ?? 0));
+        if (cards.length === 0 || available <= 0) {
           continue;
         }
-        const take = Math.min(want, slot.quantity);
-        slot.quantity -= take;
+        const take = Math.min(want, available);
         want -= take;
-        taken.set(printingId, (taken.get(printingId) ?? 0) + take);
+        for (const cardId of cards) {
+          byCard.set(cardId, (byCard.get(cardId) ?? 0) - take);
+        }
+        // A printing want takes the copy for all its cards but is one wanted card, listed first.
+        const [listed] = cards;
+        if (listed !== undefined) {
+          const takenByCard = taken.get(printingId) ?? new Map<string, number>();
+          takenByCard.set(listed, (takenByCard.get(listed) ?? 0) + take);
+          taken.set(printingId, takenByCard);
+        }
       }
     }
     // Emit in the box's own printing order so the result is stable.
-    for (const [printingId, slot] of remaining) {
-      const quantity = taken.get(printingId) ?? 0;
-      if (quantity > 0) {
-        rows.push({
-          collectionId: box.collectionId,
-          printingId,
-          cardId: slot.cardId,
-          fulfillableQuantity: quantity,
-        });
+    for (const printingId of remaining.keys()) {
+      for (const [cardId, quantity] of taken.get(printingId) ?? []) {
+        if (quantity > 0) {
+          rows.push({
+            collectionId: box.collectionId,
+            printingId,
+            cardId,
+            fulfillableQuantity: quantity,
+          });
+        }
       }
     }
   }

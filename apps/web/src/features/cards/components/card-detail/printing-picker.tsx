@@ -122,6 +122,7 @@ function PrintingList({
                     shortCode={p.shortCode}
                     count={owned?.totals[p.printingId] ?? 0}
                     totalCount={owned?.allTotals[p.printingId] ?? 0}
+                    otherSideName={p.otherSide?.cardName}
                   />
                   <PrintingPrices printing={p} />
                 </>

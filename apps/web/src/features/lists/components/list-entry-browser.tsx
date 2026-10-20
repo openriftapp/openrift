@@ -106,7 +106,7 @@ export function ListEntryBrowser({
     view,
     dataView,
     listPrintings,
-    entriesByPrintingId,
+    entriesBySideKey,
     filteredPrintingsByCardId,
     priceRangeByCardId,
     availableFilters,
@@ -125,12 +125,12 @@ export function ListEntryBrowser({
 
   // Trade annotations name a printing; card-kind wish entries need the
   // catalog to map that printing back to the card the entry wants.
-  const { printingsById } = useCards();
+  const { sidesByPrinting } = useCards();
   const { data: liveTrades } = useLiveTradesByPrinting();
   const { data: userTrades } = useUserTrades();
   const tradeIndex = buildListTradeIndex(
     liveTrades?.annotations ?? NO_TRADE_ANNOTATIONS,
-    printingsById,
+    sidesByPrinting,
     userTrades?.items ?? NO_TRADES,
   );
 
@@ -157,6 +157,7 @@ export function ListEntryBrowser({
     setMoveOpen,
     moveMode,
     moveSubject,
+    actionHasTwoCards,
     handleBulkMove,
     moveEntries,
     movePending,
@@ -352,7 +353,7 @@ export function ListEntryBrowser({
               <ListActionsCell
                 kind={kind}
                 entryByItemId={entryByItemId}
-                entriesByPrintingId={entriesByPrintingId}
+                entriesBySideKey={entriesBySideKey}
                 tradeIndex={tradeIndex}
                 supportsTradePrefs={supportsTradePrefs}
                 listTradeDefaults={listTradeDefaults}
@@ -427,6 +428,7 @@ export function ListEntryBrowser({
             lists={moveTargetLists}
             source={{ kind, intent }}
             subject={moveSubject}
+            selectionHasTwoCards={actionHasTwoCards}
             onConfirm={handleBulkMove}
             isPending={movePending}
           />

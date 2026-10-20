@@ -76,9 +76,9 @@ export function useGridKeyboardNav({ items, siblingPrintings }: UseGridKeyboardN
         e.preventDefault();
         // Anchors the variant×collection popover to the tile's displayed printing,
         // which can differ from selectedCard after an Up/Down cycle.
-        const tileId = items[selectedIndex]?.printing.printingId;
-        const tileEl = tileId
-          ? document.querySelector<HTMLElement>(`[data-printing-id="${tileId}"]`)
+        const tile = items[selectedIndex]?.printing;
+        const tileEl = tile
+          ? document.querySelector<HTMLElement>(`[data-side-key="${sideKey(tile)}"]`)
           : null;
         handlers.onDecrement(selectedCard, tileEl ?? undefined);
         return;

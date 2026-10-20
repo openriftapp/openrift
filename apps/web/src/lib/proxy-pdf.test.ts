@@ -6,7 +6,7 @@ import type {
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { sortCardsLikeSidebar } from "@/features/decks/lib/deck-card-order";
-import { resolveProxyCards } from "@/lib/proxy-pdf";
+import { proxyRenderKey, resolveProxyCards } from "@/lib/proxy-pdf";
 import { resetIdCounter, stubCard, stubDeckBuilderCard, stubPrinting } from "@/test/factories";
 
 function stubSet(overrides: Partial<CatalogSetResponse> = {}): CatalogSetResponse {
@@ -216,5 +216,15 @@ describe("resolveProxyCards", () => {
     const proxies = resolveProxyCards(ordered, catalog, ["EN"]);
 
     expect(proxies.map((p) => p.name)).toEqual(["legend", "Warrior", "Bolt"]);
+  });
+});
+
+describe("proxyRenderKey", () => {
+  it("keeps the two cards of a double-sided printing apart", () => {
+    const base = { printingId: "pair" } as Parameters<typeof proxyRenderKey>[0];
+
+    expect(proxyRenderKey({ ...base, cardId: "bird" })).not.toBe(
+      proxyRenderKey({ ...base, cardId: "gold" }),
+    );
   });
 });

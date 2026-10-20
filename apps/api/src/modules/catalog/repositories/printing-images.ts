@@ -214,13 +214,45 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    async setFace(imageId: string, face: CardFace): Promise<void> {
+    async faceIdOfImage(imageId: string): Promise<string | undefined> {
+      const row = await db
+        .selectFrom("faceImages")
+        .select("faceId")
+        .where("id", "=", imageId)
+        .executeTakeFirst();
+      return row?.faceId;
+    },
+
+    /** The image's side as `printingId` shows it; undefined when that printing doesn't show it. */
+    async sideOnPrinting(imageId: string, printingId: string): Promise<CardFace | undefined> {
+      const row = await db
+        .selectFrom("faceImages as fi")
+        .innerJoin("printings as p", (join) =>
+          join
+            .on("p.id", "=", printingId)
+            .on((eb) =>
+              eb.or([
+                eb("p.face1Id", "=", eb.ref("fi.faceId")),
+                eb("p.face2Id", "=", eb.ref("fi.faceId")),
+              ]),
+            ),
+        )
+        .select(["fi.faceId", "p.face2Id"])
+        .where("fi.id", "=", imageId)
+        .executeTakeFirst();
+      if (!row) {
+        return undefined;
+      }
+      return row.face2Id === row.faceId ? "back" : "front";
+    },
+
+    async setFace(imageId: string, face: CardFace, printingId: string): Promise<void> {
       const image = await db
         .selectFrom("faceImages as fi")
-        .select(["fi.faceId", IMAGE_PRINTING_ID.as("printingId")])
+        .select(["fi.faceId"])
         .where("fi.id", "=", imageId)
         .executeTakeFirstOrThrow();
-      const targetFaceId = await requireFaceId(image.printingId, face);
+      const targetFaceId = await requireFaceId(printingId, face);
       if (targetFaceId === image.faceId) {
         return;
       }
@@ -239,6 +271,15 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .execute();
     },
 
+    async sideOfFace(printingId: string, faceId: string): Promise<CardFace> {
+      const row = await db
+        .selectFrom("printings")
+        .select("face2Id")
+        .where("id", "=", printingId)
+        .executeTakeFirstOrThrow();
+      return row.face2Id === faceId ? "back" : "front";
+    },
+
     async deactivateActiveFace(printingId: string, face: CardFace = "front"): Promise<void> {
       await db
         .updateTable("faceImages")
@@ -246,6 +287,26 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .where("faceId", "=", await requireFaceId(printingId, face))
         .where("isActive", "=", true)
         .execute();
+    },
+
+    /** The side of the linked printing whose card the candidate names; front when neither does. */
+    async candidateFace(candidatePrintingId: string): Promise<CardFace> {
+      const { rows } = await sql<{ face: CardFace }>`
+        SELECT CASE WHEN s.position = 2 THEN 'back' ELSE 'front' END AS face
+        FROM candidate_printings cp
+        JOIN candidate_cards cc ON cc.id = cp.candidate_card_id
+        JOIN printing_sides_ordered s ON s.printing_id = cp.printing_id
+        WHERE cp.id = ${candidatePrintingId}
+        ORDER BY
+          EXISTS (
+            SELECT 1 FROM card_name_aliases a
+            WHERE a.card_id = s.card_id AND a.norm_name = cc.norm_name
+          ) DESC,
+          upper(s.short_code) = upper(cp.short_code) DESC,
+          s.position
+        LIMIT 1
+      `.execute(db);
+      return rows[0]?.face ?? "front";
     },
 
     async insertImage(
@@ -504,7 +565,10 @@ export function printingImagesRepo(db: Kysely<Database>) {
       return Number(row.count);
     },
 
-    getFallbackArt(printingId: string): Promise<
+    getFallbackArt(
+      printingId: string,
+      face: CardFace = "front",
+    ): Promise<
       | {
           id: string;
           shortCode: string;
@@ -515,7 +579,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
     > {
       return db
         .selectFrom("printings as p")
-        .innerJoin("faces as f", "f.id", "p.face1Id")
+        .innerJoin("faces as f", "f.id", face === "back" ? "p.face2Id" : "p.face1Id")
         .select(["p.id", "f.shortCode", "f.fallbackArtMode", "f.fallbackImageFileId"])
         .where("p.id", "=", printingId)
         .executeTakeFirst();
@@ -525,6 +589,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
       printingId: string,
       mode: FallbackArtMode,
       imageFileId: string | null,
+      face: CardFace = "front",
     ): Promise<void> {
       await db
         .updateTable("faces")
@@ -532,7 +597,7 @@ export function printingImagesRepo(db: Kysely<Database>) {
           fallbackArtMode: mode,
           fallbackImageFileId: mode === "pinned" ? imageFileId : null,
         })
-        .where("id", "=", await requireFaceId(printingId, "front"))
+        .where("id", "=", await requireFaceId(printingId, face))
         .execute();
     },
 

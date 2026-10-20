@@ -63,7 +63,7 @@ async function loadGroupBoxContents(
     } else {
       printings.set(meta.printingId, {
         printingId: meta.printingId,
-        cardId: meta.cardId,
+        cardIds: meta.cardIds,
         quantity: 1,
       });
     }

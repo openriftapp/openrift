@@ -58,15 +58,15 @@ export function BrowserCardViewer({
     selectedIndex >= 0 && selectedIndex < items.length ? items[selectedIndex] : undefined;
 
   // Falls back to cardId in cards-only view, where chevron-picked variants aren't in the grid items.
+  const gridSelectedCard = selectedCard
+    ? (renderedCards.find((c) => sideKey(c) === sideKey(selectedCard)) ??
+      (view === "cards"
+        ? renderedCards.find((c) => c.cardId === selectedCard.cardId)
+        : undefined) ??
+      selectedCard)
+    : undefined;
   const gridSelectedId =
-    indexAnchor?.id ??
-    (selectedCard
-      ? (renderedCards.find((c) => sideKey(c) === sideKey(selectedCard))?.printingId ??
-        (view === "cards"
-          ? (renderedCards.find((c) => c.cardId === selectedCard.cardId)?.printingId ??
-            selectedCard.printingId)
-          : selectedCard.printingId))
-      : undefined);
+    indexAnchor?.id ?? (gridSelectedCard ? sideKey(gridSelectedCard) : undefined);
 
   useEffect(() => {
     useGridFocusStore.getState().setSelectedItemId(gridSelectedId ?? null);

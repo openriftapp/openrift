@@ -5,7 +5,7 @@ import type {
 } from "@openrift/shared/contracts/admin/printing-desk";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatPrintingCode, isTbaCode } from "@openrift/shared/printing-code";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { PencilIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -44,6 +44,20 @@ import { errorText } from "@/lib/error-text";
 export function SecondSideCard({ printing }: { printing: DeskPrintingRow }) {
   const setSecondSide = useSetDeskSecondSide();
   const removeSecondSide = useRemoveDeskSecondSide();
+  const navigate = useNavigate();
+  // The printing keeps one side, now side 1, so a page on side 2 would have nothing to show.
+  const removeSide = (faceId: string) =>
+    removeSecondSide.mutate(
+      { printingId: printing.printingId, faceId },
+      {
+        onSuccess: () =>
+          void navigate({
+            to: "/admin/printing-desk/printings/$printingId",
+            params: { printingId: printing.printingId },
+            search: {},
+          }),
+      },
+    );
   const [editing, setEditing] = useState(false);
   const second = printing.secondSide;
 
@@ -59,25 +73,37 @@ export function SecondSideCard({ printing }: { printing: DeskPrintingRow }) {
           <CardAction>
             <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
               <PencilIcon />
-              Edit second side
+              Edit other side
             </Button>
           </CardAction>
         )}
       </CardHeader>
       <CardContent className="space-y-4">
         <section className="space-y-1">
-          <h3 className="font-medium">First side</h3>
+          <h3 className="font-medium">{`${printing.cardName}'s side`}</h3>
           <p>
             {printing.cardName} · {formatPrintingCode(printing.publicCode)}
           </p>
           <SharedWith printings={printing.sharedWith} />
+          {second && printing.canEdit && (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={removeSecondSide.isPending}
+              onClick={() => removeSide(printing.faceId)}
+            >
+              <XIcon />
+              Remove this side
+            </Button>
+          )}
         </section>
 
         <section className="space-y-2">
-          <h3 className="font-medium">Second side</h3>
+          <h3 className="font-medium">Other side</h3>
           {second && editing ? (
             <SecondSideEditFields
               printingId={printing.printingId}
+              physicalSide={printing.side === 1 ? 2 : 1}
               side={second}
               onDone={() => setEditing(false)}
             />
@@ -90,10 +116,10 @@ export function SecondSideCard({ printing }: { printing: DeskPrintingRow }) {
                   variant="ghost"
                   size="sm"
                   disabled={removeSecondSide.isPending}
-                  onClick={() => removeSecondSide.mutate({ printingId: printing.printingId })}
+                  onClick={() => removeSide(second.faceId)}
                 >
                   <XIcon />
-                  Make single-sided
+                  Remove this side
                 </Button>
               )}
             </>
@@ -109,6 +135,16 @@ export function SecondSideCard({ printing }: { printing: DeskPrintingRow }) {
             <p className="text-muted-foreground">None.</p>
           )}
         </section>
+        {removeSecondSide.error && (
+          <p className="text-destructive">
+            {errorText(removeSecondSide.error, "Could not remove the side.")}
+          </p>
+        )}
+        {setSecondSide.error && (
+          <p className="text-destructive">
+            {errorText(setSecondSide.error, "Could not add the side.")}
+          </p>
+        )}
       </CardContent>
     </Card>
   );
@@ -139,6 +175,7 @@ function SharedWith({ printings }: { printings: readonly DeskSharedPrinting[] })
           <Link
             to="/admin/printing-desk/printings/$printingId"
             params={{ printingId: shared.printingId }}
+            search={shared.side === 2 ? { side: 2 } : {}}
             className="underline"
           >
             {formatPrintingCode(shared.publicCode)}
@@ -152,10 +189,12 @@ function SharedWith({ printings }: { printings: readonly DeskSharedPrinting[] })
 
 function SecondSideEditFields({
   printingId,
+  physicalSide,
   side,
   onDone,
 }: {
   printingId: string;
+  physicalSide: 1 | 2;
   side: DeskSecondSide;
   onDone: () => void;
 }) {
@@ -181,7 +220,7 @@ function SecondSideEditFields({
     setFormError(null);
     const update = {
       printingId,
-      side: 2 as const,
+      side: physicalSide,
       markerSlugs,
       codeTba,
       shortCode: codeTba ? undefined : shortCode.trim(),

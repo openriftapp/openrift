@@ -38,6 +38,7 @@ import {
   tradeGroupKey,
   withoutLiveTradeMatches,
 } from "@/features/groups/lib/trade-derivation";
+import { tradeSideKey } from "@/features/groups/lib/trade-printing";
 import { splitTradeLedger, stepSequence } from "@/features/groups/lib/trade-sheet";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -58,10 +59,13 @@ function LedgerSection({
   /** Dropped from rows' own badges when the section heading already says it. */
   redundantStatus?: TradeBadgeState;
 }) {
+  const { printingsById, printingsByCardId } = useCards();
   if (trades.length === 0) {
     return null;
   }
-  const sequence = stepSequence(trades);
+  const sequence = stepSequence(trades, (trade) =>
+    tradeSideKey(trade, printingsByCardId, printingsById),
+  );
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -85,10 +89,13 @@ function LedgerSection({
 }
 
 function HistoryFold({ trades }: { trades: CardTradeResponse[] }) {
+  const { printingsById, printingsByCardId } = useCards();
   if (trades.length === 0) {
     return null;
   }
-  const sequence = stepSequence(trades);
+  const sequence = stepSequence(trades, (trade) =>
+    tradeSideKey(trade, printingsByCardId, printingsById),
+  );
   return (
     <Disclosure
       variant="heading"

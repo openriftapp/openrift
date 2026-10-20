@@ -6,8 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
 import { setPreferredCatalogLanguages } from "@/features/cards/lib/catalog-languages";
 import { seedCatalogVersion } from "@/features/cards/lib/catalog-version";
+import { stubPrinting } from "@/test/factories";
 
 import {
+  buildCardsResult,
   catalogQueryOptions,
   hasPrintingsOutside,
   loadCatalogTail,
@@ -142,5 +144,18 @@ describe("split fetch + tail merge", () => {
     queryClient.setQueryData(catalogKeys.all, wireCatalog({ p1: { language: "EN" } }));
     await loadCatalogTail(queryClient);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("buildCardsResult", () => {
+  it("indexes every side by side key and groups the sides of each printing", () => {
+    const gold = stubPrinting({ printingId: "pair", side: 2, cardId: "gold" });
+    const bird = stubPrinting({ printingId: "pair", side: 1, cardId: "bird" });
+    const single = stubPrinting({ printingId: "single", cardId: "brush" });
+    const result = buildCardsResult({}, [gold, bird, single], []);
+
+    expect(result.printingsBySideKey).toEqual({ pair: bird, "pair:2": gold, single });
+    expect(result.sidesByPrinting.get("pair")).toEqual([bird, gold]);
+    expect(result.printingsById.pair).toBe(bird);
   });
 });

@@ -10,6 +10,8 @@ export interface VariantLabelPrinting {
   isSigned: boolean;
   isOvernumbered: boolean;
   markers: readonly { slug: string; label: string }[];
+  shortCode?: string;
+  otherSide?: { cardName: string; shortCode: string };
 }
 
 export interface VariantLabelEnumLabels {
@@ -21,6 +23,7 @@ export interface VariantLabelEnumLabels {
 export interface PrintingVariantLabelParts {
   language: string | null;
   rest: string[];
+  otherSide: string | null;
 }
 
 export function formatPrintingVariantLabelParts(
@@ -52,16 +55,37 @@ export function formatPrintingVariantLabelParts(
   if (printing.markers.length > 0 && !allSame((c) => c.markers.map((m) => m.slug).join("+"))) {
     rest.push(printing.markers.map((m) => m.label).join(" + "));
   }
-  return { language, rest };
+  return { language, rest, otherSide: otherSideLabel(printing, siblings) };
+}
+
+function otherSideLabel(
+  printing: VariantLabelPrinting,
+  siblings: readonly VariantLabelPrinting[] | undefined,
+): string | null {
+  const other = printing.otherSide;
+  if (!other) {
+    return null;
+  }
+  const nameRepeats = siblings?.some(
+    (s) =>
+      s.shortCode === printing.shortCode &&
+      s.otherSide?.cardName === other.cardName &&
+      s.otherSide.shortCode !== other.shortCode,
+  );
+  return nameRepeats ? `${other.cardName} (${other.shortCode})` : other.cardName;
 }
 
 export function formatPrintingVariantLabel(
   printing: VariantLabelPrinting,
   siblings: readonly VariantLabelPrinting[] | undefined,
   labels: VariantLabelEnumLabels,
+  withOtherSide: (name: string) => string = (name) => `with ${name}`,
 ): string {
-  const { language, rest } = formatPrintingVariantLabelParts(printing, siblings, labels);
-  const parts = language ? [`[${language}]`, ...rest] : rest;
+  const { language, rest, otherSide } = formatPrintingVariantLabelParts(printing, siblings, labels);
+  const parts = [...(language ? [`[${language}]`] : []), ...rest];
+  if (otherSide) {
+    parts.push(withOtherSide(otherSide));
+  }
   return parts.length > 0 ? parts.join(" · ") : "Standard";
 }
 

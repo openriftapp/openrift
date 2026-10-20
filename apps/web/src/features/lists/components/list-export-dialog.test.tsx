@@ -20,6 +20,7 @@ vi.mock("@/hooks/use-session", () => ({
 
 vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({
+    allPrintings: [viPrinting, jinxPrinting],
     printingsById: { [viPrinting.printingId]: viPrinting, [jinxPrinting.printingId]: jinxPrinting },
     sets: [{ id: viPrinting.setId, setType: "main" }],
   }),

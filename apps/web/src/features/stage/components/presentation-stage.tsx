@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
@@ -186,7 +187,7 @@ export function PresentationStage({
   return (
     <>
       {userId !== null && current && !editing && (
-        <StageOverlayPushKey printingId={current.printing.printingId} />
+        <StageOverlayPushKey printingId={sideKey(current.printing)} />
       )}
       {userId !== null && <StageOverlayHideKey />}
       {/* Always mounted when a board exists; enabled/paused control the sync, so editing

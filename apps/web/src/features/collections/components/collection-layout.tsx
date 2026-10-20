@@ -59,6 +59,7 @@ import type {
 } from "@/features/lists/lib/list-move";
 import {
   entryAddsCopies,
+  hasTwoCards,
   moveNeedsDialog,
   movePickFor,
   ruleEntryCopyInputs,
@@ -260,7 +261,11 @@ export function CollectionLayout() {
     // The trim (one/n/whole stack) only shows up on copy-kind lists; the server
     // derives the entry shape from the list's kind and dedupes.
     bulkAddCopiesToList.mutate(
-      { listId: dropData.listId, copyIds: resolveDropCopyIds(dragData, modifier) },
+      {
+        listId: dropData.listId,
+        copyIds: resolveDropCopyIds(dragData, modifier),
+        cardId: dragData.fromSelection ? undefined : dragData.printing.cardId,
+      },
       {
         onSuccess: (result) => {
           const listName = dropData.listName;
@@ -356,9 +361,10 @@ export function CollectionLayout() {
     }
     // Picking one printing or copy only makes sense per card, so a multi-tile
     // drag onto a wider-kind list has nothing sensible to ask for.
+    const twoCards = dragData.selectionHasTwoCards ?? hasTwoCards(dragData.printing);
     if (
       dragData.selectionIds.length > 1 &&
-      movePickFor(dragData.sourceKind, dropData.listKind) !== "none"
+      movePickFor(dragData.sourceKind, dropData.listKind, twoCards) !== "none"
     ) {
       toast.info(m.lists_move_pick_one_at_a_time());
       return;
@@ -367,6 +373,7 @@ export function CollectionLayout() {
       moveNeedsDialog(
         { kind: dragData.sourceKind, intent: dragData.sourceIntent },
         { kind: dropData.listKind, intent: dropData.listIntent },
+        hasTwoCards(dragData.printing),
       )
     ) {
       setPendingMove({ mode, subject: dragData, target: dropData, drag: dragData });

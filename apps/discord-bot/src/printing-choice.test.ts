@@ -81,6 +81,35 @@ describe("printingChoices", () => {
     expect(names[0]).toBe("OGN-202/298 · Origins · DE (default)");
   });
 
+  it("names the other side of each double-sided printing", () => {
+    const catalog = makeCatalogResponse(
+      [
+        card,
+        makeCard({ id: "recruit", name: "Recruit" }),
+        makeCard({ id: "sprite", name: "Sprite" }),
+      ],
+      [
+        makePrinting({ printingId: "p1", cardId: "c1", canonicalRank: 1 }),
+        makePrinting({ printingId: "p2", cardId: "c1", canonicalRank: 2 }),
+      ],
+    );
+    const { side: _side, printingId: _id, ...sideFields } = makePrinting();
+    catalog.printings.p1 = {
+      ...catalog.printings.p1!,
+      side2: { ...sideFields, cardId: "recruit", shortCode: "OGN-271", faceId: "f1" },
+    } as never;
+    catalog.printings.p2 = {
+      ...catalog.printings.p2!,
+      side2: { ...sideFields, cardId: "sprite", shortCode: "OGN-274", faceId: "f2" },
+    } as never;
+    const snapshot = buildSnapshot(catalog, makePricesResponse(), makeInitResponse());
+    const names = printingChoices(snapshot, card, "").map((c) => c.name);
+    expect(names).toEqual([
+      "OGN-202/298 · Origins · with Recruit (default)",
+      "OGN-202/298 · Origins · with Sprite",
+    ]);
+  });
+
   it("tells a foil printing from its standard twin in the same set", () => {
     const names = printingChoices(snapshotWith(finishPrintings()), card, "").map((c) => c.name);
     expect(names).toEqual([

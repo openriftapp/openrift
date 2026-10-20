@@ -65,6 +65,8 @@ import {
   useUpdateDeskImage,
 } from "@/features/admin/hooks/use-printing-desk";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import type { DeskFaceOption } from "@/features/admin/lib/desk-face-options";
+import { deskFaceOptions } from "@/features/admin/lib/desk-face-options";
 import { deskImageBust, deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { deskPrintingPeriod } from "@/features/admin/lib/printing-desk-status";
 import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
@@ -90,15 +92,15 @@ const DESK_IMAGE_SCOPE = [
 ] as const;
 
 type Rotation = 0 | 90 | 180 | 270;
-type Face = "front" | "back";
 
-const FACE_OPTIONS = [
-  { value: "front", label: "Front" },
-  { value: "back", label: "Back" },
-] as const satisfies readonly { value: Face; label: string }[];
-
-export function PrintingDeskPrintingPage({ printingId }: { printingId: string }) {
-  const { data } = useDeskPrinting(printingId);
+export function PrintingDeskPrintingPage({
+  printingId,
+  side = 1,
+}: {
+  printingId: string;
+  side?: 1 | 2;
+}) {
+  const { data } = useDeskPrinting(printingId, side);
   const { data: channelData } = useDistributionChannels();
   const { data: session } = useSession();
   const uploadImage = useUploadPrintingImage(DESK_IMAGE_SCOPE);
@@ -113,8 +115,16 @@ export function PrintingDeskPrintingPage({ printingId }: { printingId: string })
     .map((slug) => channelPaths.get(slug) ?? slug)
     .join(", ");
   const uploaderName = session?.user.name ?? "";
-  const activeFront = data.images.find((image) => image.face === "front" && image.isActive) ?? null;
-  const postImage = activeFront ?? data.images.at(0) ?? null;
+  const sideOptions = deskFaceOptions(printing);
+  const [firstSide, otherSide] = sideOptions;
+  const uploadHint =
+    firstSide && otherSide
+      ? `Everything lands on ${firstSide.label}, switch a row to ${otherSide.label} below.`
+      : "";
+  const pageFace = printing.side === 2 ? "back" : "front";
+  const activeOnPage =
+    data.images.find((image) => image.face === pageFace && image.isActive) ?? null;
+  const postImage = activeOnPage ?? data.images.at(0) ?? null;
   const postSlides =
     postImage === null
       ? null
@@ -126,7 +136,13 @@ export function PrintingDeskPrintingPage({ printingId }: { printingId: string })
     for (const file of files) {
       setUploading((current) => [...current, file.name]);
       try {
-        await uploadImage.mutateAsync({ printingId, file, mode: "additional", credit });
+        await uploadImage.mutateAsync({
+          printingId,
+          file,
+          mode: "additional",
+          face: pageFace,
+          credit,
+        });
       } catch (error) {
         setUploadError(errorText(error, `Could not upload ${file.name}.`));
       }
@@ -181,7 +197,7 @@ export function PrintingDeskPrintingPage({ printingId }: { printingId: string })
                 disabled={uploading.length > 0}
                 icon={<UploadIcon className="text-muted-foreground size-5" />}
                 label="Drop images here or click to choose"
-                hint="JPG, PNG or WebP, up to 50 MB each. Landscape is fine, battlefields get turned for you. Everything lands as a front, switch a row to Back below."
+                hint={`JPG, PNG or WebP, up to 50 MB each. Landscape is fine, battlefields get turned for you. ${uploadHint}`.trim()}
                 onFiles={(files) => void handleFiles(files)}
               />
 
@@ -204,7 +220,7 @@ export function PrintingDeskPrintingPage({ printingId }: { printingId: string })
                 </p>
               ) : (
                 <>
-                  {FACE_OPTIONS.map((option) => {
+                  {sideOptions.map((option) => {
                     const images = data.images.filter((image) => image.face === option.value);
                     if (images.length === 0) {
                       return null;
@@ -227,7 +243,11 @@ export function PrintingDeskPrintingPage({ printingId }: { printingId: string })
                           )}
                         </div>
                         <RadioGroup
-                          aria-label={`Active ${option.label.toLowerCase()} image`}
+                          aria-label={
+                            sideOptions.length > 1
+                              ? `Active image for ${option.label}`
+                              : "Active image"
+                          }
                           value={activeId}
                           onValueChange={(value) => {
                             if (typeof value === "string" && value !== "") {
@@ -239,8 +259,10 @@ export function PrintingDeskPrintingPage({ printingId }: { printingId: string })
                           {images.map((image) => (
                             <DeskImageRow
                               key={image.printingImageId}
+                              printingId={printingId}
                               image={image}
                               cardName={printing.cardName}
+                              sideOptions={sideOptions}
                               landscape={getOrientation([printing.cardType]) === "landscape"}
                             />
                           ))}
@@ -324,6 +346,7 @@ function DetailsCard({
           <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
             <PrintingDeskEditFields
               printingId={printing.printingId}
+              side={printing.side}
               onSaved={() => setEditing(false)}
               onCancel={() => setEditing(false)}
             />
@@ -385,12 +408,16 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 function DeskImageRow({
+  printingId,
   image,
   cardName,
+  sideOptions,
   landscape,
 }: {
+  printingId: string;
   image: DeskImage;
   cardName: string;
+  sideOptions: DeskFaceOption[];
   landscape: boolean;
 }) {
   const rotateImage = useRotatePrintingImage(DESK_IMAGE_SCOPE);
@@ -449,14 +476,16 @@ function DeskImageRow({
         )}
 
         <div className="space-y-1 text-sm">
-          <DeskSegmented
-            ariaLabel="Side"
-            value={image.face}
-            onChange={(next) =>
-              setFace.mutate({ printingImageId: image.printingImageId, face: next })
-            }
-            options={FACE_OPTIONS}
-          />
+          {sideOptions.length > 1 && (
+            <DeskSegmented
+              ariaLabel="Side"
+              value={image.face}
+              onChange={(next) =>
+                setFace.mutate({ printingImageId: image.printingImageId, printingId, face: next })
+              }
+              options={sideOptions}
+            />
+          )}
           <p className="text-muted-foreground text-xs">Turned {image.rotation}°</p>
         </div>
 

@@ -1,7 +1,13 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
-import { entryAddsCopies, moveNeedsDialog, movePickFor, ruleEntryCopyInputs } from "./list-move";
+import {
+  entryAddsCopies,
+  hasTwoCards,
+  moveNeedsDialog,
+  movePickFor,
+  ruleEntryCopyInputs,
+} from "./list-move";
 
 describe("movePickFor", () => {
   it("needs nothing for same or narrower kinds", () => {
@@ -14,6 +20,12 @@ describe("movePickFor", () => {
     expect(movePickFor("card", "printing")).toBe("printing");
     expect(movePickFor("card", "copy")).toBe("copies");
     expect(movePickFor("printing", "copy")).toBe("copies");
+  });
+
+  it("needs a card when a double-sided printing narrows onto a card list", () => {
+    expect(movePickFor("printing", "card", true)).toBe("card");
+    expect(movePickFor("copy", "card", true)).toBe("card");
+    expect(movePickFor("printing", "printing", true)).toBe("none");
   });
 });
 
@@ -43,6 +55,14 @@ describe("ruleEntryCopyInputs", () => {
         null,
       ),
     ).toEqual([{ cardId: "card-1", quantity: 3 }]);
+  });
+
+  it("copies the picked card of a double-sided printing", () => {
+    expect(
+      ruleEntryCopyInputs({ ...base, ruleEntry: { kind: "printing", printingId: "p1" } }, "card", {
+        cardId: "card-2",
+      }),
+    ).toEqual([{ cardId: "card-2", quantity: 3 }]);
   });
 
   it("keeps the entry's own printing or copy when the target kind is not wider", () => {
@@ -91,5 +111,19 @@ describe("entryAddsCopies", () => {
 
   it("rejects copy entries, which already point at copies you own", () => {
     expect(entryAddsCopies("copy")).toBe(false);
+  });
+});
+
+describe("hasTwoCards", () => {
+  it("is true only when the other side shows a different card", () => {
+    const other = { faceId: "f", cardSlug: "x", cardName: "X", shortCode: "X" };
+    expect(
+      hasTwoCards({ cardId: "bird", otherSide: { ...other, cardId: "gold" } } as Printing),
+    ).toBe(true);
+    expect(
+      hasTwoCards({ cardId: "buff", otherSide: { ...other, cardId: "buff" } } as Printing),
+    ).toBe(false);
+    expect(hasTwoCards({ cardId: "bird" } as Printing)).toBe(false);
+    expect(hasTwoCards(undefined)).toBe(false);
   });
 });

@@ -2,6 +2,7 @@ import { buildPool } from "@openrift/shared/pack-opener/pools";
 import { openPacks } from "@openrift/shared/pack-opener/sample";
 import type { PackPool, PackResult } from "@openrift/shared/pack-opener/types";
 import { isPoolOpenable } from "@openrift/shared/pack-opener/types";
+import { sideKey } from "@openrift/shared/printing-side";
 import { mathRandom } from "@openrift/shared/random";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -32,6 +33,7 @@ import {
 } from "@/features/cards/lib/public-sets-queries";
 import { PackBulkGrid, PackHeading } from "@/features/pack-opener/components/pack-bulk-grid";
 import {
+  boosterPrintings,
   isBoosterEligible,
   toPackPrinting,
 } from "@/features/pack-opener/components/pack-opener-utils";
@@ -44,19 +46,23 @@ import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 function poolFromPrintings(printings: readonly Printing[], language: string): PackPool {
-  const eligible = printings.filter((p) => isBoosterEligible(p) && p.language === language);
-  return buildPool(eligible.map((p) => toPackPrinting(p)));
+  return buildPool(boosterPrintings(printings, language).map((p) => toPackPrinting(p)));
 }
 
 /** Sorted language codes with at least 20 booster-eligible printings, so a single stray printing doesn't surface as its own language. */
 function languagesWithEnoughPrintings(printings: readonly Printing[]): string[] {
-  const counts = new Map<string, number>();
+  const printingIdsByLanguage = new Map<string, Set<string>>();
   for (const p of printings) {
     if (!isBoosterEligible(p)) {
       continue;
     }
-    counts.set(p.language, (counts.get(p.language) ?? 0) + 1);
+    const ids = printingIdsByLanguage.get(p.language) ?? new Set<string>();
+    ids.add(p.printingId);
+    printingIdsByLanguage.set(p.language, ids);
   }
+  const counts = new Map(
+    [...printingIdsByLanguage].map(([language, ids]) => [language, ids.size] as const),
+  );
   return [...counts.entries()]
     .filter(([, n]) => n >= 20)
     .map(([code]) => code)
@@ -358,7 +364,7 @@ function SinglePackResult({
   autoReveal: boolean;
 }) {
   const { data } = useSuspenseQuery(publicSetDetailQueryOptions(setSlug));
-  const imagesByPrintingId = new Map(data.printings.map((p) => [p.printingId, p.images] as const));
+  const imagesByPrintingId = new Map(data.printings.map((p) => [sideKey(p), p.images] as const));
   const [statsVisible, setStatsVisible] = useState(autoReveal);
   // Reset during render, not an effect, so the gate is armed before this render paints.
   const [gateArmedFor, setGateArmedFor] = useState({ pack, autoReveal });
@@ -392,7 +398,7 @@ function BulkPackResult({
   autoReveal: boolean;
 }) {
   const { data } = useSuspenseQuery(publicSetDetailQueryOptions(setSlug));
-  const imagesByPrintingId = new Map(data.printings.map((p) => [p.printingId, p.images] as const));
+  const imagesByPrintingId = new Map(data.printings.map((p) => [sideKey(p), p.images] as const));
   const [revealedCount, setRevealedCount] = useState(autoReveal ? packs.length : 0);
   // Reset during render, not an effect, so the gate is armed before this render paints.
   const [countArmedFor, setCountArmedFor] = useState({ packs, autoReveal });

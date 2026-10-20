@@ -103,6 +103,8 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         .selectFrom("printingSidesOrdered")
         .select([
           "printingId as id",
+          sql<1 | 2>`position`.as("side"),
+          "faceId",
           "cardId",
           "setId",
           "shortCode",

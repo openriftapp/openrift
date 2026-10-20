@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_app/sets_/$setSlug")({
 
     const cardCount = new Set(data.printings.map((p) => p.cardId)).size;
     const setPath = `/sets/${data.set.slug}`;
-    const description = `${data.set.name} contains ${cardCount} unique cards and ${data.printings.length} printings. Browse the complete set on OpenRift.`;
+    const description = `${data.set.name} contains ${cardCount} unique cards and ${new Set(data.printings.map((p) => p.printingId)).size} printings. Browse the complete set on OpenRift.`;
     const head = seoHead({
       siteUrl,
       title: `${data.set.name} - Riftbound Card Set`,

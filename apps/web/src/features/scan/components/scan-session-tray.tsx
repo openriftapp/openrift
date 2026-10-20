@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -103,6 +104,7 @@ export function ScanSessionTray({
   const newestFirst = [...rows.values()].toReversed();
   // Also the order the detail overlay's prev/next steps through.
   const sequence = newestFirst.map((row) => row.printing.printingId);
+  const detailSequence = newestFirst.map((row) => sideKey(row.printing));
   const { openId, toggle } = useScanTrayDisclosure(sequence, scans);
 
   // Streams in without suspending: a price fetch must never blank the camera page.
@@ -122,7 +124,7 @@ export function ScanSessionTray({
   const formatValue = formatterForMarketplace(marketplace);
   const summary = computeScanSessionSummary(newestFirst, {
     priceOf: (printingId) => prices?.get(printingId, marketplace),
-    isWished: wish.matches,
+    isWished: (printing) => wish.entriesForCopy(printing).length > 0,
     ownedBefore: ownedTotals ? (printingId) => ownedTotals.get(printingId) ?? 0 : null,
   });
 
@@ -171,7 +173,7 @@ export function ScanSessionTray({
     <TrayRow
       key={row.printing.printingId}
       row={row}
-      sequence={sequence}
+      sequence={detailSequence}
       siblings={printingsByCard.get(row.printing.cardId)}
       rarityLabels={labels.rarities}
       domainColors={domainColors}
@@ -182,7 +184,7 @@ export function ScanSessionTray({
       onChangePrinting={onChangePrinting}
       price={prices?.get(row.printing.printingId, marketplace)}
       formatValue={formatValue}
-      wishEntries={wish.entriesForPrinting(row.printing.cardId, row.printing.printingId)}
+      wishEntries={wish.entriesForCopy(row.printing)}
       owned={ownedTotals ? (ownedTotals.get(row.printing.printingId) ?? 0) : null}
     />
   );
@@ -455,7 +457,7 @@ function TrayRow({
           {openCardDetail ? (
             <Button
               variant="outline"
-              onClick={() => openCardDetail({ printingId: printing.printingId, sequence })}
+              onClick={() => openCardDetail({ printingId: sideKey(printing), sequence })}
               aria-label={m.scan_tray_row_details_label({ name })}
             >
               <InfoIcon />

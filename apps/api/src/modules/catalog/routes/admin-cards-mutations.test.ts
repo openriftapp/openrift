@@ -63,6 +63,7 @@ const mockMut = {
   replaceCardDomainsById: vi.fn(),
   replaceCardSuperTypesById: vi.fn(),
   getFullPrintingById: vi.fn(),
+  sideOfFace: vi.fn(),
   getFullCardById: vi.fn(),
   updatePrintingFieldById: vi.fn(),
   getSetPrintedTotalForPrinting: vi.fn(),
@@ -472,7 +473,7 @@ describe("POST /cards/candidate-printings/:id/copy", () => {
   });
 
   it("returns 204 on successful copy", async () => {
-    const candidatePrinting = { id: "cp-1", name: "Fire Dragon" };
+    const candidatePrinting = { id: "cp-1", name: "Fire Dragon", shortCode: "OGN-T05" };
     const targetPrinting = { id: "p-2", slug: "p-2" };
     mockCandidateCards.getCandidatePrintingById.mockResolvedValue(candidatePrinting);
     mockMut.getPrintingDifferentiatorsById.mockResolvedValue(targetPrinting);
@@ -484,6 +485,7 @@ describe("POST /cards/candidate-printings/:id/copy", () => {
       body: JSON.stringify({ printingId: "p-2" }),
     });
     expect(res.status).toBe(204);
+    expect(mockMut.getPrintingDifferentiatorsById).toHaveBeenCalledWith("p-2", "OGN-T05");
     expect(mockCandidateCards.copyCandidatePrinting).toHaveBeenCalledWith(
       candidatePrinting,
       targetPrinting,
@@ -1003,7 +1005,38 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
       body: JSON.stringify({ field: "artist", value: "Alice" }),
     });
     expect(res.status).toBe(204);
-    expect(mockMut.updatePrintingFieldById).toHaveBeenCalledWith(PRINTING_ID, "artist", "Alice");
+    expect(mockMut.updatePrintingFieldById).toHaveBeenCalledWith(PRINTING_ID, "artist", "Alice", 1);
+  });
+
+  it("writes to the side the face is on now, after a re-sort", async () => {
+    mockMut.sideOfFace.mockResolvedValue(1);
+    mockMut.updatePrintingFieldById.mockResolvedValue(undefined);
+
+    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        field: "artist",
+        value: "Alice",
+        side: 2,
+        faceId: "d0000000-0001-4000-a000-0000000000f1",
+      }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockMut.updatePrintingFieldById).toHaveBeenCalledWith(PRINTING_ID, "artist", "Alice", 1);
+  });
+
+  it("writes to the second side when the row is side 2", async () => {
+    mockMut.updatePrintingFieldById.mockResolvedValue(undefined);
+
+    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "artist", value: "Alice", side: 2 }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockMut.getFullPrintingById).toHaveBeenCalledWith(PRINTING_ID, 2);
+    expect(mockMut.updatePrintingFieldById).toHaveBeenCalledWith(PRINTING_ID, "artist", "Alice", 2);
   });
 
   it("returns 400 when field is not in the writable-column enum", async () => {
@@ -1024,7 +1057,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
       body: JSON.stringify({ field: "markerSlugs", value: ["promo"] }),
     });
     expect(res.status).toBe(204);
-    expect(mockUpdatePrintingMarkers).toHaveBeenCalledWith(mockTransact, PRINTING_ID, ["promo"]);
+    expect(mockUpdatePrintingMarkers).toHaveBeenCalledWith(mockTransact, PRINTING_ID, ["promo"], 1);
     expect(mockMut.updatePrintingFieldById).not.toHaveBeenCalled();
   });
 
@@ -1045,6 +1078,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
       PRINTING_ID,
       "printedRulesText",
       "Fixed text",
+      1,
     );
   });
 
@@ -1077,6 +1111,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
       PRINTING_ID,
       "setId",
       "set-uuid-1",
+      1,
     );
   });
 

@@ -321,6 +321,7 @@ export async function acceptPrintingDeferringRehost(
   }
 
   if (secondFaceId !== null) {
+    assertFound(await mut.findFaceById(secondFaceId), "Second side not found");
     const firstFace = await mut.findFaceIdByIdentity({
       cardId,
       shortCode: printingFields.shortCode,
@@ -430,9 +431,18 @@ export async function acceptPrintingDeferringRehost(
     await trxRepos.cardTokens.recomputeForPrintingCard(insertedId);
 
     if (printingFields.imageUrl) {
+      const face = await trxRepos.catalogMutations.findFaceIdByIdentity({
+        cardId,
+        shortCode: printingFields.shortCode,
+        finish,
+        markerSlugs,
+        language,
+      });
       insertedImageId = await trxRepos.printingImages.insertImage(
         insertedId,
         printingFields.imageUrl,
+        "main",
+        face ? await trxRepos.printingImages.sideOfFace(insertedId, face.id) : "front",
       );
     }
 

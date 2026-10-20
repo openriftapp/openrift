@@ -502,7 +502,10 @@ describe.skipIf(!adminCtx)("Admin printing-desk routes (integration)", () => {
 
     it("403s moving a base-set image to the other side", async () => {
       const res = await grantApp.fetch(
-        adminReq("PATCH", `/printing-desk/printing-images/${baseImageId}`, { face: "back" }),
+        adminReq("PATCH", `/printing-desk/printing-images/${baseImageId}`, {
+          printingId: basePrintingId,
+          face: "back",
+        }),
       );
       expect(res.status).toBe(403);
     });

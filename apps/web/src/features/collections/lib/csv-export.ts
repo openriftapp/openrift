@@ -8,6 +8,7 @@ import { isAlwaysFoilRarity, WellKnown } from "@openrift/shared/well-known";
 
 import { conditionShortCode } from "@/features/collections/lib/condition-codes";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
+import { stackCardName } from "@/features/collections/lib/stacked-entry";
 import { languageNameForCode } from "@/lib/language-names";
 
 export interface CsvExportLabels {
@@ -143,7 +144,7 @@ export function generateExportCSV(
       const { copy } = group;
       const row = [
         printing.shortCode,
-        straightenApostrophes(legendDisplayName(printing.card)),
+        straightenApostrophes(stackCardName(stack)),
         printing.rarity,
         printing.card.types.join(" / "),
         printing.card.domains.join(" / "),

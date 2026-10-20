@@ -1,4 +1,5 @@
 import type { Kysely } from "kysely";
+import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 
@@ -16,14 +17,24 @@ export function candidateFingerprintsRepo(db: Kysely<Database>) {
         .select((eb) => [
           "cp.id",
           "cp.imageUrl",
+          // The side whose card the candidate names; side 1 when neither does.
           eb
-            .selectFrom("printings as p")
-            .innerJoin("faceImages as pi", "pi.faceId", "p.face1Id")
+            .selectFrom("printingSidesOrdered as s")
+            .innerJoin("faceImages as pi", "pi.faceId", "s.faceId")
             .innerJoin("imageFiles as imgf", "imgf.id", "pi.imageFileId")
             .select("imgf.fingerprint")
-            .whereRef("p.id", "=", "cp.printingId")
+            .whereRef("s.printingId", "=", "cp.printingId")
             .where("pi.isActive", "=", true)
             .where("imgf.fingerprint", "is not", null)
+            .orderBy(
+              sql`EXISTS (
+                SELECT 1 FROM card_name_aliases a
+                JOIN candidate_cards cc ON cc.norm_name = a.norm_name
+                WHERE a.card_id = s.card_id AND cc.id = cp.candidate_card_id
+              ) DESC`,
+            )
+            .orderBy(sql`upper(s.short_code) = upper(cp.short_code) DESC`)
+            .orderBy("s.position")
             .limit(1)
             .as("liveFingerprint"),
         ])

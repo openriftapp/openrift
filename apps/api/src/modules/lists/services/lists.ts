@@ -131,11 +131,35 @@ export async function moveListEntries(
         };
       });
     } else {
+      const narrowing = entries.flatMap((entry) =>
+        destination.kind === "card" && entry.cardId === null && entry.resolvedPrintingId !== null
+          ? [entry.resolvedPrintingId]
+          : [],
+      );
+      const narrowedPrintings = await trxRepos.lists.printingCardIds(narrowing);
+      const cardIdsByPrinting = new Map(narrowedPrintings.map((row) => [row.id, row.cardIds]));
+      const cardFor = (entry: MoveEntry): string | null => {
+        if (entry.cardId !== null || entry.resolvedPrintingId === null) {
+          return entry.resolvedCardId;
+        }
+        const cardIds = cardIdsByPrinting.get(entry.resolvedPrintingId) ?? [];
+        const picked = resolutionById.get(entry.id)?.cardId;
+        if (picked !== undefined) {
+          if (!cardIds.includes(picked)) {
+            throw badRequest("Picked card must be on the entry's printing");
+          }
+          return picked;
+        }
+        if (cardIds.length > 1) {
+          throw badRequest("Pick which card of the double-sided printing to keep");
+        }
+        return entry.resolvedCardId;
+      };
       insertable = entries.map((entry) => {
         const target =
           destination.kind === "printing"
             ? { cardId: null, printingId: entry.resolvedPrintingId, copyId: null }
-            : { cardId: entry.resolvedCardId, printingId: null, copyId: null };
+            : { cardId: cardFor(entry), printingId: null, copyId: null };
         if (target.cardId === null && target.printingId === null) {
           throw badRequest("Entry target could not be resolved");
         }

@@ -61,6 +61,54 @@ describe("computeDeckOwnership", () => {
     expect(entry?.shortfall).toBe(0);
   });
 
+  it("counts a double-sided copy for each of its cards and links the missing side", () => {
+    const deckCards = [
+      stubDeckBuilderCard({ cardId: "bird", quantity: 1, zone: "main" }),
+      stubDeckBuilderCard({ cardId: "gold", quantity: 2, zone: "main" }),
+    ];
+    const printings = [
+      stubPrinting({ printingId: "pair", side: 1, cardId: "bird" }),
+      stubPrinting({ printingId: "pair", side: 2, cardId: "gold" }),
+    ];
+
+    const result = computeDeckOwnership(
+      deckCards,
+      printings,
+      { pair: 1 },
+      "tcgplayer",
+      EMPTY_PRICE_LOOKUP,
+      EN_FIRST,
+    );
+
+    expect(result.byCardZone.get("bird:main")?.shortfall).toBe(0);
+    expect(result.byCardZone.get("gold:main")?.shortfall).toBe(1);
+    expect(result.missingCards.map((card) => card.displayPrinting?.sideKey)).toEqual(["pair:2"]);
+  });
+
+  it("prices a double-sided printing once for both of its cards", () => {
+    const deckCards = [
+      stubDeckBuilderCard({ cardId: "bird", quantity: 1, zone: "main" }),
+      stubDeckBuilderCard({ cardId: "gold", quantity: 2, zone: "main" }),
+    ];
+    const printings = [
+      stubPrinting({ printingId: "pair", side: 1, cardId: "bird" }),
+      stubPrinting({ printingId: "pair", side: 2, cardId: "gold" }),
+    ];
+
+    const result = computeDeckOwnership(
+      deckCards,
+      printings,
+      {},
+      "tcgplayer",
+      stubPriceLookup({ pair: { tcgplayer: 100 } }),
+      EN_FIRST,
+    );
+
+    expect(result.deckValueCents).toBe(200);
+    expect(result.missingValueCents).toBe(200);
+    expect(result.asDisplayedValueCents).toBe(200);
+  });
+
   it("counts the deck proper (runes included, sideboard excluded) for the required-zone basis", () => {
     const deckCards = [
       stubDeckBuilderCard({ cardId: "rune-1", quantity: 12, zone: "runes" }),
@@ -382,6 +430,7 @@ describe("computeDeckOwnership", () => {
     const [entry] = result.missingCards;
     expect(entry?.displayPrinting).toEqual({
       id: "p-en",
+      sideKey: "p-en",
       language: "EN",
       shortCode: "OGN-001-EN",
       setId: "00000000-0000-0000-0000-000000000002",
@@ -436,6 +485,7 @@ describe("computeDeckOwnership", () => {
     const [entry] = result.missingCards;
     expect(entry?.displayPrinting).toEqual({
       id: "p1",
+      sideKey: "p1",
       language: "EN",
       shortCode: "OGN-001",
       setId: "00000000-0000-0000-0000-000000000002",

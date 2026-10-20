@@ -31,7 +31,9 @@ export function joinCatalog(catalog: CatalogResponse): {
 
   const printings: Printing[] = [];
   for (const [printingId, { side2, ...value }] of Object.entries(catalog.printings)) {
-    const sides = side2 === undefined ? [value] : [value, { ...value, ...side2 }];
+    // The fallback-art keys are omitted for `auto`, so side 2 must not inherit side 1's.
+    const { fallbackArtMode: _mode, fallbackImageId: _image, ...physical } = value;
+    const sides = side2 === undefined ? [value] : [value, { ...physical, ...side2 }];
     const cards = sides.map((side) => cardsById[side.cardId]);
     sides.forEach((side, index) => {
       const set = setsById.get(side.setId);
@@ -54,6 +56,7 @@ export function joinCatalog(catalog: CatalogResponse): {
                 cardId: other.cardId,
                 cardName: otherCard.name,
                 cardSlug: otherCard.slug,
+                shortCode: other.shortCode,
                 ...(otherImageId === undefined ? {} : { imageId: otherImageId }),
               },
             }

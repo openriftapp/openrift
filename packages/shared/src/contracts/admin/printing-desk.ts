@@ -38,6 +38,7 @@ export const deskPrintingFieldsSchema = z
 
 export const deskSharedPrintingSchema = z.object({
   printingId: z.string(),
+  side: z.union([z.literal(1), z.literal(2)]),
   slug: z.string(),
   cardSlug: z.string(),
   publicCode: z.string(),
@@ -84,6 +85,7 @@ export const deskPrintingRowSchema = z.object({
   comment: z.string().nullable(),
   imageCount: z.number(),
   faceId: z.string(),
+  side: z.union([z.literal(1), z.literal(2)]),
   secondSide: deskSecondSideSchema.nullable(),
   sharedWith: z.array(deskSharedPrintingSchema),
   activeImageFileId: z.string().nullable(),
@@ -117,7 +119,7 @@ const deskUpdateImageInputSchema = z
   .strict();
 
 const deskSetImageFaceInputSchema = z
-  .object({ printingImageId: z.uuid(), face: z.enum(["front", "back"]) })
+  .object({ printingImageId: z.uuid(), printingId: z.uuid(), face: z.enum(["front", "back"]) })
   .strict();
 
 export const deskCardSchema = z.object({
@@ -172,7 +174,7 @@ export const adminPrintingDeskContract = {
   get: authedRoute
     .route({ method: "GET", path: `${BASE}/printings/{printingId}`, tags: [TAG] })
     .errors({ NOT_FOUND: { message: "Printing not found" } })
-    .input(printingIdParam)
+    .input(printingIdParam.extend({ side: z.coerce.number().int().min(1).max(2).optional() }))
     .output(deskGetOutputSchema),
 
   create: authedRoute
@@ -212,7 +214,7 @@ export const adminPrintingDeskContract = {
     .errors({
       NOT_FOUND: { message: "Printing not found" },
       BAD_REQUEST: { message: "The two sides must be different" },
-      CONFLICT: { message: "Printing already exists" },
+      CONFLICT: { message: "Users hold or point at this printing" },
       FORBIDDEN: { message: "That printing is outside the desk" },
     })
     .input(deskSetSecondSideInputSchema),
@@ -226,10 +228,11 @@ export const adminPrintingDeskContract = {
     })
     .errors({
       NOT_FOUND: { message: "Printing not found" },
-      CONFLICT: { message: "Printing already exists" },
+      BAD_REQUEST: { message: "That side is not on the printing" },
+      CONFLICT: { message: "Users hold or point at this printing" },
       FORBIDDEN: { message: "That printing is outside the desk" },
     })
-    .input(printingIdParam),
+    .input(deskSetSecondSideInputSchema),
 
   // Not ownership-gated: the credit belongs to the file, and any grant holder
   // may correct it. Omit a field to leave it unchanged; `null` clears it.

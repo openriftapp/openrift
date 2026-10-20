@@ -25,12 +25,47 @@ function printingWant(printingId: string, quantity: number): BoxWantDemand {
 
 function box(
   collectionId: string,
-  printings: { printingId: string; cardId: string; quantity: number }[],
+  printings: { printingId: string; cardId: string; cardIds?: string[]; quantity: number }[],
 ): BoxCollectionAvailability {
-  return { collectionId, printings };
+  return {
+    collectionId,
+    printings: printings.map(({ cardId, cardIds, ...printing }) => ({
+      ...printing,
+      cardIds: cardIds ?? [cardId],
+    })),
+  };
 }
 
 describe("allocateBoxWants", () => {
+  it("fills a want for each card of a double-sided copy", () => {
+    const rows = allocateBoxWants(
+      [cardWant("crd-gold", 1), cardWant("crd-bird", 1)],
+      [
+        box("col-1", [
+          { printingId: "prt-pair", cardId: "", cardIds: ["crd-bird", "crd-gold"], quantity: 1 },
+        ]),
+      ],
+    );
+    expect(rows).toEqual([
+      { collectionId: "col-1", printingId: "prt-pair", cardId: "crd-gold", fulfillableQuantity: 1 },
+      { collectionId: "col-1", printingId: "prt-pair", cardId: "crd-bird", fulfillableQuantity: 1 },
+    ]);
+  });
+
+  it("takes a double-sided copy once for a printing want", () => {
+    const rows = allocateBoxWants(
+      [printingWant("prt-pair", 2), cardWant("crd-gold", 1)],
+      [
+        box("col-1", [
+          { printingId: "prt-pair", cardId: "", cardIds: ["crd-bird", "crd-gold"], quantity: 2 },
+        ]),
+      ],
+    );
+    expect(rows).toEqual([
+      { collectionId: "col-1", printingId: "prt-pair", cardId: "crd-bird", fulfillableQuantity: 2 },
+    ]);
+  });
+
   it("fulfills a card want from the box's copies of that card", () => {
     const rows = allocateBoxWants(
       [cardWant("crd-1", 2)],

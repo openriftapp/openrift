@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
 import { LinkIcon } from "lucide-react";
@@ -326,6 +327,7 @@ export function CardTableRow({
       {...rowActivateProps(handleClick)}
       role="row"
       data-printing-id={printing.printingId}
+      data-side-key={sideKey(printing)}
       className={cn(
         "grid cursor-pointer items-center gap-3 text-sm transition-colors outline-none",
         isPicked ? "bg-border-accent/15" : isSelected ? "bg-muted/50" : "hover:bg-muted/50",

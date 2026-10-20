@@ -79,6 +79,11 @@ const NAME_MAP = new Map([
 ]);
 
 describe("aggregateByVariant", () => {
+  it("lists a printing with the card on both sides once", () => {
+    const result = aggregateByVariant([copy("p1", "c-import")], [v1, v1], new Map());
+    expect(result).toHaveLength(1);
+  });
+
   it("buckets copies per variant and sums per collection", () => {
     const copies = [
       copy("p1", "c-import"),

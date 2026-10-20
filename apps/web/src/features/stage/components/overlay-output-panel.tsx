@@ -170,7 +170,7 @@ function WalkControls({
 // Mounted only while signed in: every channel hook here needs a session.
 export function OverlayOutputPanel() {
   const { data: channel } = useOverlayChannel();
-  const { cardsById, printingsById, printingsByCardId } = useCards();
+  const { printingsBySideKey, cardsById, printingsByCardId } = useCards();
   const pushCard = usePushOverlayCard();
   const clearOverlay = useClearOverlay();
   const setHidden = useSetOverlayHidden();
@@ -199,7 +199,7 @@ export function OverlayOutputPanel() {
           payload={
             draftScale === null ? channel.payload : { ...channel.payload, scale: draftScale }
           }
-          printing={livePrintingId === null ? undefined : printingsById[livePrintingId]}
+          printing={livePrintingId === null ? undefined : printingsBySideKey[livePrintingId]}
           board={boardScene}
           controls={
             <div className="flex shrink-0 items-center gap-2">

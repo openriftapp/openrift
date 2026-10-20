@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
@@ -31,7 +32,7 @@ const routeApi = getRouteApi("/_app/cards_/$cardSlug/{-$printingSlug}");
 
 export function CardDetailPage() {
   const { cardSlug, printingSlug } = routeApi.useParams();
-  const { printingId: linkedPrintingId } = routeApi.useSearch();
+  const { printingId: linkedPrintingId, side } = routeApi.useSearch();
   const navigate = useNavigate();
   const { data } = useSuspenseQuery(cardDetailQueryOptions(cardSlug));
   const { card, sets } = data;
@@ -49,6 +50,7 @@ export function CardDetailPage() {
     printings,
     printingSlug ?? linkedPrintingId,
     effectiveLanguageOrder,
+    side,
   );
 
   // Mirrored into the path; the route's `head()` reads it for deep-link unfurls.
@@ -57,7 +59,16 @@ export function CardDetailPage() {
     void navigate({
       to: "/cards/$cardSlug/{-$printingSlug}",
       params: { cardSlug, printingSlug: printing.slug },
-      search: (prev) => ({ ...prev, printingId: undefined }),
+      // Only a printing showing this card on both sides needs the side in the URL.
+      search: (prev) => ({
+        ...prev,
+        printingId: undefined,
+        side:
+          printing.side === 2 &&
+          printings.some((other) => other.printingId === printing.printingId && other.side === 1)
+            ? (2 as const)
+            : undefined,
+      }),
       replace: true,
     });
   };
@@ -107,7 +118,7 @@ export function CardDetailPage() {
 
         <CardPagePrintings
           printings={printings}
-          selectedPrintingId={selectedPrinting.printingId}
+          selectedSideKey={sideKey(selectedPrinting)}
           onSelect={selectPrinting}
         />
 

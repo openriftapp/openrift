@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -45,12 +46,12 @@ export function useDeckItems(cards: DeckBuilderCard[]): UseDeckItemsResult {
       if (!printing) {
         continue;
       }
-      items.push({ id: `${zone}:${printing.printingId}`, printing, zone });
+      items.push({ id: `${zone}:${sideKey(printing)}`, printing, zone });
     }
   }
 
   for (const token of tokens) {
-    items.push({ id: `token:${token.printing.printingId}`, printing: token.printing });
+    items.push({ id: `token:${sideKey(token.printing)}`, printing: token.printing });
   }
 
   return { items, printingsByCardId };

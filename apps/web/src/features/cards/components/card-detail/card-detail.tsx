@@ -12,6 +12,7 @@ import { m } from "@/paraglide/messages.js";
 import { CardDetailArt } from "./card-detail-art";
 import { CardDetailHeading } from "./card-detail-heading";
 import { CardDetailLinks } from "./card-detail-links";
+import { CardDetailOtherSide } from "./card-detail-other-side";
 import { CardDetailStats } from "./card-detail-stats";
 import { CardDetailText } from "./card-detail-text";
 import { CardFooter } from "./card-footer";
@@ -105,6 +106,14 @@ export function CardDetail({
     />
   ) : null;
   const text = <CardDetailText printing={printing} onKeywordClick={onKeywordClick} />;
+  const otherSide =
+    printing.otherSide && onSelectPrinting ? (
+      <CardDetailOtherSide
+        printing={printing}
+        otherSide={printing.otherSide}
+        onSelect={onSelectPrinting}
+      />
+    ) : null;
 
   if (layout === "modal") {
     return (
@@ -121,6 +130,7 @@ export function CardDetail({
         <div className="grid gap-5 @2xl:grid-cols-[340px_minmax(0,1fr)]">
           <div className="space-y-3">
             <CardDetailArt printing={printing} showImages={showImages} />
+            {otherSide}
             {hasNav && (
               <div className="flex items-center justify-between gap-2">
                 <Button
@@ -227,6 +237,7 @@ export function CardDetail({
         {hasUpcomingBans && <BanAlert bans={card.upcomingBans} upcoming />}
 
         <CardDetailArt printing={printing} showImages={showImages} />
+        {otherSide}
 
         <div className="flex items-start gap-2">
           {hasNav && (

@@ -61,6 +61,7 @@ import { toastFieldAccepted } from "@/features/admin/lib/accept-undo";
 import { getProviderLabel } from "@/features/admin/lib/candidate-rows";
 import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
+import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
 import { printingKindLabel } from "@/features/admin/lib/printing-summary";
 import {
   getStoredCollapsedPrintings,
@@ -186,8 +187,9 @@ export function PrintingReviewCard({
 
   const allSources = candidatePrintings.filter((ps) => ps.printingId === printingId);
   const ownImages = printingImages.filter((pi) => pi.printingId === printingId);
-  const activeImage = ownImages.find((pi) => pi.isActive);
-  const ownImageUrls = new Set(ownImages.map((image) => image.originalUrl));
+  const sideImages = imagesOnSide(ownImages, printing);
+  const activeImage = sideImages.find((pi) => pi.isActive);
+  const ownImageUrls = new Set(sideImages.map((image) => image.originalUrl));
   const thumbnailUrl = activeImage ? printingImageDisplayUrl(activeImage) : null;
   const summaryLabels = {
     rarities: labels.rarities,
@@ -361,8 +363,9 @@ export function PrintingReviewCard({
                 field.key === "imageUrl" ? (
                   <PrintingImageSwitcher
                     printingId={printingId}
+                    face={printing.side === 2 ? "back" : "front"}
                     printingLabel={printingLabel}
-                    images={ownImages}
+                    images={sideImages}
                     providerSettings={providerSettings}
                     siblingImages={siblingImages}
                     derivedArtLabel={derivedArtPrinting?.expectedPrintingId ?? null}
@@ -401,6 +404,7 @@ export function PrintingReviewCard({
                 const previousValue = printingWithImage[field];
                 acceptPrintingField.mutate({
                   printingId,
+                  faceId: printing.faceId,
                   field,
                   value,
                   source: "provider",
@@ -415,6 +419,7 @@ export function PrintingReviewCard({
                   onUndo: (previous) =>
                     acceptPrintingField.mutate({
                       printingId,
+                      faceId: printing.faceId,
                       field,
                       value: previous,
                       source: "manual",
@@ -425,7 +430,7 @@ export function PrintingReviewCard({
                 if (value === undefined || !isAcceptPrintingField(field)) {
                   return;
                 }
-                acceptPrintingField.mutate({ printingId, field, value });
+                acceptPrintingField.mutate({ printingId, faceId: printing.faceId, field, value });
               }}
               onCheck={isAdmin ? (id) => checkPrintingSource.mutate(id) : undefined}
               onUncheck={isAdmin ? (id) => uncheckPrintingSource.mutate(id) : undefined}

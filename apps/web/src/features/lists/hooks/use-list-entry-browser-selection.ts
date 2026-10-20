@@ -48,7 +48,7 @@ import type {
   MoveMode,
   MoveResolution,
 } from "@/features/lists/lib/list-move";
-import { ruleEntryCopyInputs, ruleEntryRef } from "@/features/lists/lib/list-move";
+import { hasTwoCards, ruleEntryCopyInputs, ruleEntryRef } from "@/features/lists/lib/list-move";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import type { RuleExcludeTarget } from "@/features/rules/lib/rule-exclude";
 import { excludeEntryFromRules } from "@/features/rules/lib/rule-exclude";
@@ -215,7 +215,7 @@ export function useListEntryBrowserSelection({
 
   const handleSiblingClick = (printing: Printing) => {
     handleCardClick(printing);
-    useSiblingOverrideStore.getState().setOverride("list", printing.cardId, printing.printingId);
+    useSiblingOverrideStore.getState().setOverride("list", printing.cardId, sideKey(printing));
   };
 
   const handleSearchAndClose = (query: string) => {
@@ -314,6 +314,8 @@ export function useListEntryBrowserSelection({
       setRemoveOpen(true);
     }
   };
+
+  const actionHasTwoCards = actionEntryIds.some((id) => hasTwoCards(printingByEntryId.get(id)));
 
   // A wider-kind target needs a printing or copies picked, which only makes sense per card.
   const moveSubject: MoveEntrySubject | null = (() => {
@@ -509,6 +511,7 @@ export function useListEntryBrowserSelection({
     setMoveOpen,
     moveMode,
     moveSubject,
+    actionHasTwoCards,
     handleBulkMove,
     moveEntries,
     movePending: moveEntries.isPending || bulkAddEntries.isPending,

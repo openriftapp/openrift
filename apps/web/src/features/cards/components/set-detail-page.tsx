@@ -1,6 +1,6 @@
 import { imageUrl } from "@openrift/shared/image-url";
 import { deduplicateByCard } from "@openrift/shared/printing-select";
-import { sideKey } from "@openrift/shared/printing-side";
+import { countPrintings, sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate, getRouteApi } from "@tanstack/react-router";
@@ -77,7 +77,11 @@ export function SetDetailPage() {
         <PageHeroStats
           stats={[
             { key: "cards", label: m.hero_stat_cards(), value: uniquePrintings.length },
-            { key: "printings", label: m.hero_stat_printings(), value: data.printings.length },
+            {
+              key: "printings",
+              label: m.hero_stat_printings(),
+              value: countPrintings(data.printings),
+            },
           ]}
         />
         <Link

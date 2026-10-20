@@ -25,9 +25,10 @@ export async function normalizePrintingFieldValue(
     field: AcceptPrintingField;
     value: unknown;
     source: PrintingFieldSource;
+    side?: 1 | 2;
   },
 ): Promise<unknown> {
-  const { printingId, field, value, source } = args;
+  const { printingId, field, value, source, side = 1 } = args;
 
   let normalized: unknown = value;
   if (field === "rarity" && typeof value === "string") {
@@ -48,7 +49,7 @@ export async function normalizePrintingFieldValue(
       : [];
     const setTotal =
       field === "publicCode"
-        ? await repos.catalogMutations.getSetPrintedTotalForPrinting(printingId)
+        ? await repos.catalogMutations.getSetPrintedTotalForPrinting(printingId, side)
         : null;
     normalized = normalizeProvidedPrintingValue(field, normalized, {
       costKeywords,
@@ -63,9 +64,9 @@ export async function normalizePrintingFieldValue(
 export async function writePrintingField(
   transact: Transact,
   repos: WriteRepos,
-  args: { printingId: string; field: AcceptPrintingField; value: unknown },
+  args: { printingId: string; field: AcceptPrintingField; value: unknown; side?: 1 | 2 },
 ): Promise<{ auditValue: unknown }> {
-  const { printingId, field, value } = args;
+  const { printingId, field, value, side = 1 } = args;
   const mut = repos.catalogMutations;
 
   if (field === "markerSlugs" || field === "distributionChannelSlugs") {
@@ -73,7 +74,7 @@ export async function writePrintingField(
       ? (value as string[]).filter((s) => typeof s === "string")
       : [];
     await (field === "markerSlugs"
-      ? updatePrintingMarkers(transact, printingId, newSlugs)
+      ? updatePrintingMarkers(transact, printingId, newSlugs, side)
       : updatePrintingDistributionChannels(
           { catalogMutations: mut, distributionChannels: repos.distributionChannels },
           printingId,
@@ -90,7 +91,7 @@ export async function writePrintingField(
   }
 
   try {
-    await mut.updatePrintingFieldById(printingId, field, written);
+    await mut.updatePrintingFieldById(printingId, field, written, side);
   } catch (error: unknown) {
     throw asFieldWriteError(error, field, written);
   }

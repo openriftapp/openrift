@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { sideKey } from "@openrift/shared/printing-side";
 import type {
   ListEntryDetailResponse,
   ListKind,
@@ -48,6 +49,7 @@ import {
   useUserTrades,
 } from "@/features/groups/hooks/use-card-trades";
 import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
+import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import {
   offerablePrintings,
   pendingRequestsByPrinting,
@@ -158,7 +160,7 @@ function SharedListGrid({
   exchange?: ListExchangeContext;
 }) {
   const { entries, list } = data;
-  const { printingsById, printingsByCardId, sets } = useCards();
+  const { sidesByPrinting, printingsById, printingsByCardId, sets } = useCards();
   const display = useCardThumbnailDisplay();
   const showImages = useDisplayStore((state) => state.showImages);
   const channels = useChannelRegistry();
@@ -182,7 +184,12 @@ function SharedListGrid({
         ? [printing.printingId]
         : (printingsByCardId.get(printing.cardId) ?? []).map((candidate) => candidate.printingId);
     return offerablePrintings(candidatePrintingIds, copyIdsByPrinting).map((entry) => ({
-      printing: printingsById[entry.printingId] ?? printing,
+      printing:
+        tradePrinting(
+          { cardId: printing.cardId, printingId: entry.printingId },
+          printingsByCardId,
+          printingsById,
+        ) ?? printing,
       copyIds: entry.copyIds,
     }));
   };
@@ -253,10 +260,11 @@ function SharedListGrid({
   const view: "cards" | "printings" | "copies" = kindToView(list.kind);
   const dataView: "cards" | "printings" = view === "copies" ? "printings" : view;
 
-  const { listPrintings, entriesByPrintingId } = collectListPrintings(
+  const { listPrintings, entriesBySideKey } = collectListPrintings(
     entries,
     printingsById,
     printingsByCardId,
+    sidesByPrinting,
   );
 
   const { data: ownedCounts } = useOwnedCountsForPrintings(
@@ -300,9 +308,14 @@ function SharedListGrid({
   // marked "Reserved").
   const requestedItemIds = new Set<string>();
   if (view === "copies") {
+    const seenPrintings = new Set<string>();
     for (const sortedPrinting of sortedCards) {
+      if (seenPrintings.has(sortedPrinting.printingId)) {
+        continue;
+      }
+      seenPrintings.add(sortedPrinting.printingId);
       let remainingRequested = pendingByPrinting.get(sortedPrinting.printingId)?.quantity ?? 0;
-      for (const entry of entriesByPrintingId.get(sortedPrinting.printingId) ?? []) {
+      for (const entry of entriesBySideKey.get(sideKey(sortedPrinting)) ?? []) {
         // Rule-derived copy entries have no entry id; fall back to copyId for the tile key.
         const itemId =
           entry.id ?? (entry.kind === "copy" ? entry.copyId : sortedPrinting.printingId);
@@ -317,10 +330,10 @@ function SharedListGrid({
     }
   } else {
     for (const sortedPrinting of sortedCards) {
-      items.push({ id: sortedPrinting.printingId, printing: sortedPrinting });
-      const first = entriesByPrintingId.get(sortedPrinting.printingId)?.[0];
+      items.push({ id: sideKey(sortedPrinting), printing: sortedPrinting });
+      const first = entriesBySideKey.get(sideKey(sortedPrinting))?.[0];
       if (first) {
-        entryByItemId.set(sortedPrinting.printingId, first);
+        entryByItemId.set(sideKey(sortedPrinting), first);
       }
     }
   }
@@ -361,9 +374,10 @@ function SharedListGrid({
             shortCode={item.printing.shortCode}
             count={ownedCount}
             align="start"
+            otherSideName={item.printing.otherSide?.cardName}
           />
         ) : undefined;
-      const wishEntries = wish.entriesForPrinting(item.printing.cardId, item.printing.printingId);
+      const wishEntries = wish.entriesForCopy(item.printing);
       const wishSlot = wishEntries.length > 0 ? <WishlistHeart entries={wishEntries} /> : undefined;
       strip = (
         <RequestStrip
@@ -519,9 +533,7 @@ function SharedListGrid({
             }}
             printing={requestPrinting}
             availableHint={
-              requestPrinting
-                ? (entriesByPrintingId.get(requestPrinting.printingId)?.length ?? 1)
-                : 1
+              requestPrinting ? (entriesBySideKey.get(sideKey(requestPrinting))?.length ?? 1) : 1
             }
             groupSlug={exchange.groupSlug}
             groupName={exchange.groupName}

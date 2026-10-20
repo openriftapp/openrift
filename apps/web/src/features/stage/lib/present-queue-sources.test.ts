@@ -24,7 +24,7 @@ describe("deckPrintingIds", () => {
     const first = stubPrinting({ printingId: "p1", cardId: "c1" });
     const second = stubPrinting({ printingId: "p2", cardId: "c1" });
 
-    const ids = deckPrintingIds([deckCard("c1")], byCardId(first, second), byId(first, second));
+    const ids = deckPrintingIds([deckCard("c1")], byCardId(first, second));
 
     expect(ids).toEqual(["p1"]);
   });
@@ -33,7 +33,7 @@ describe("deckPrintingIds", () => {
     const first = stubPrinting({ printingId: "p1", cardId: "c1" });
     const promo = stubPrinting({ printingId: "p2", cardId: "c1" });
 
-    const ids = deckPrintingIds([deckCard("c1", "p2")], byCardId(first, promo), byId(first, promo));
+    const ids = deckPrintingIds([deckCard("c1", "p2")], byCardId(first, promo));
 
     expect(ids).toEqual(["p2"]);
   });
@@ -41,7 +41,7 @@ describe("deckPrintingIds", () => {
   it("falls back to the first printing when the pinned one is gone", () => {
     const first = stubPrinting({ printingId: "p1", cardId: "c1" });
 
-    const ids = deckPrintingIds([deckCard("c1", "removed")], byCardId(first), byId(first));
+    const ids = deckPrintingIds([deckCard("c1", "removed")], byCardId(first));
 
     expect(ids).toEqual(["p1"]);
   });
@@ -52,14 +52,25 @@ describe("deckPrintingIds", () => {
     const ids = deckPrintingIds(
       [deckCard("c1"), deckCard("c1"), deckCard("gone")],
       byCardId(printing),
-      byId(printing),
     );
 
     expect(ids).toEqual(["p1"]);
   });
 
+  it("names the side of a double-sided pinned printing that shows the card", () => {
+    const bird = stubPrinting({ printingId: "pair", side: 1, cardId: "bird" });
+    const gold = stubPrinting({ printingId: "pair", side: 2, cardId: "gold" });
+
+    const ids = deckPrintingIds(
+      [deckCard("bird", "pair"), deckCard("gold", "pair")],
+      byCardId(bird, gold),
+    );
+
+    expect(ids).toEqual(["pair", "pair:2"]);
+  });
+
   it("returns nothing for an empty deck", () => {
-    expect(deckPrintingIds([], new Map(), {})).toEqual([]);
+    expect(deckPrintingIds([], new Map())).toEqual([]);
   });
 });
 

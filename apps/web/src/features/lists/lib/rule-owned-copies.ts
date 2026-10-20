@@ -2,6 +2,14 @@ import type { OwnedCopyRow } from "@openrift/shared/list-rule-eval";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 
+/** One row per card, like the server: a double-sided copy counts for the card on each side. */
+function cardIdsOf(printing: Printing): string[] {
+  const other = printing.otherSide?.cardId;
+  return other === undefined || other === printing.cardId
+    ? [printing.cardId]
+    : [printing.cardId, other];
+}
+
 /**
  * For the net-owned live preview only; the server uses real copies. The
  * evaluator only counts by printing/card, so collection/reserved are unused.
@@ -20,13 +28,15 @@ export function ownedCopiesFromCounts(
       continue;
     }
     for (let copyIndex = 0; copyIndex < count; copyIndex++) {
-      rows.push({
-        copyId: `${printingId}#${copyIndex}`,
-        printingId,
-        cardId: printing.cardId,
-        collectionId: "",
-        reserved: false,
-      });
+      for (const cardId of cardIdsOf(printing)) {
+        rows.push({
+          copyId: `${printingId}#${copyIndex}`,
+          printingId,
+          cardId,
+          collectionId: "",
+          reserved: false,
+        });
+      }
     }
   }
   return rows;
@@ -46,13 +56,15 @@ export function ownedCopiesFromCopyList(
     if (!printing) {
       continue;
     }
-    rows.push({
-      copyId: copy.id,
-      printingId: copy.printingId,
-      cardId: printing.cardId,
-      collectionId: copy.collectionId,
-      reserved: false,
-    });
+    for (const cardId of cardIdsOf(printing)) {
+      rows.push({
+        copyId: copy.id,
+        printingId: copy.printingId,
+        cardId,
+        collectionId: copy.collectionId,
+        reserved: false,
+      });
+    }
   }
   return rows;
 }

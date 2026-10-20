@@ -229,6 +229,7 @@ describe.skipIf(!ctx)("missingImagesForUser (integration)", () => {
 
     expect(row).toStrictEqual({
       printingId: NO_IMAGE,
+      side: 1,
       cardSlug: "missing-images-card",
       cardName: "Missing Images Card",
       setSlug: "MIS",

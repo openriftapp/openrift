@@ -22,6 +22,7 @@ import {
   joinFaceImage,
   keysetCursorPredicate,
   offsetPage,
+  pairedCardName,
   reorderBySortOrder,
   requireFaceImage,
   selectCopyWithCard,
@@ -411,5 +412,19 @@ describe("offsetPage", () => {
     await expect(
       offsetPage(recording.db.selectFrom("jobRuns").select("id"), { limit: 1, offset: 0 }),
     ).rejects.toThrow("db down");
+  });
+});
+
+describe("pairedCardName", () => {
+  it("joins both cards of a double-sided printing in display order", () => {
+    expect(pairedCardName({ name: "Bird", types: [], tags: [], secondSideName: "Gold" })).toBe(
+      "Bird // Gold",
+    );
+  });
+
+  it("names a single-sided printing by its card alone", () => {
+    expect(pairedCardName({ name: "Bird", types: [], tags: [], secondSideName: null })).toBe(
+      "Bird",
+    );
   });
 });

@@ -40,10 +40,10 @@ vi.mock("@tanstack/react-router", () => ({
 const wished = stubPrinting({ printingId: "printing-a1", cardId: "card-a" });
 const wishedSibling = stubPrinting({ printingId: "printing-a2", cardId: "card-a" });
 
-const CATALOG: Record<string, Printing> = {
-  [wished.printingId]: wished,
-  [wishedSibling.printingId]: wishedSibling,
-};
+const CATALOG = new Map<string, Printing[]>([
+  [wished.printingId, [wished]],
+  [wishedSibling.printingId, [wishedSibling]],
+]);
 
 function annotation(overrides: Partial<CardTradeLiveAnnotation> = {}): CardTradeLiveAnnotation {
   return {
@@ -131,7 +131,7 @@ function renderCell(
       itemId="item-1"
       kind={entry.kind === "copy" ? "copy" : "card"}
       entryByItemId={new Map([["item-1", entry]])}
-      entriesByPrintingId={new Map()}
+      entriesBySideKey={new Map()}
       tradeIndex={buildListTradeIndex(annotations, CATALOG, trades)}
       supportsTradePrefs={false}
       listTradeDefaults={EMPTY_TRADE_PREFERENCE}

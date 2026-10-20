@@ -9,7 +9,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 const KIND_RANK: Record<ListKind, number> = { card: 0, printing: 1, copy: 2 };
 
 export type MoveMode = "move" | "copy";
-export type MovePick = "none" | "printing" | "copies";
+export type MovePick = "none" | "printing" | "copies" | "card";
 export type MoveResolution = Omit<MoveListEntriesResolution, "entryId">;
 
 /** A rule-derived entry has no `list_entries` row; a copy adds a fresh entry from these ids. */
@@ -51,7 +51,12 @@ export function ruleEntryCopyInputs(
     const printingId = ruleEntry.printingId ?? resolution?.printingId;
     return printingId ? [{ printingId, quantity: totalQuantity }] : [];
   }
-  return [{ cardId: printing.cardId, quantity: totalQuantity }];
+  return [{ cardId: resolution?.cardId ?? printing.cardId, quantity: totalQuantity }];
+}
+
+/** A printing with a different card on each side, so a card list has to be told which one. */
+export function hasTwoCards(printing: Printing | undefined): boolean {
+  return printing?.otherSide !== undefined && printing.otherSide.cardId !== printing.cardId;
 }
 
 /** The entry being moved; a `ListEntryDragData` satisfies it directly. */
@@ -74,10 +79,17 @@ export interface MoveEntryTarget {
   listIntent: ListIntent;
 }
 
-/** What the user must supply for a list-entry move: nothing for same-or-narrower kinds. */
-export function movePickFor(sourceKind: ListKind, targetKind: ListKind): MovePick {
+/**
+ * What the user must supply for a list-entry move: nothing for same-or-narrower kinds, except
+ * the card when a two-card printing (`doubleSided`) narrows onto a card list.
+ */
+export function movePickFor(
+  sourceKind: ListKind,
+  targetKind: ListKind,
+  doubleSided = false,
+): MovePick {
   if (KIND_RANK[targetKind] <= KIND_RANK[sourceKind]) {
-    return "none";
+    return targetKind === "card" && sourceKind !== "card" && doubleSided ? "card" : "none";
   }
   return targetKind === "copy" ? "copies" : "printing";
 }
@@ -85,8 +97,11 @@ export function movePickFor(sourceKind: ListKind, targetKind: ListKind): MovePic
 export function moveNeedsDialog(
   source: { kind: ListKind; intent: ListIntent },
   target: { kind: ListKind; intent: ListIntent },
+  doubleSided = false,
 ): boolean {
-  return source.intent !== target.intent || movePickFor(source.kind, target.kind) !== "none";
+  return (
+    source.intent !== target.intent || movePickFor(source.kind, target.kind, doubleSided) !== "none"
+  );
 }
 
 /**

@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { RadioOptionRow } from "@/components/ui/radio-option-row";
+import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import { useCreateTrade } from "@/features/groups/hooks/use-card-trades";
 import {
   useFriendGroupShareableLists,
@@ -26,6 +27,7 @@ import {
 } from "@/features/groups/hooks/use-friend-group-sharing";
 import { useFriendGroupMatches } from "@/features/groups/hooks/use-friend-groups";
 import { listKindNoun } from "@/features/groups/lib/list-intent-meta";
+import { matchOnPrinting } from "@/features/groups/lib/trade-printing";
 import {
   entryForPrinting,
   listTargetOptions,
@@ -104,10 +106,7 @@ function RequestBody({
   const { data: matches } = useFriendGroupMatches(groupSlug);
   const options = listTargetOptions(shareable.items, "wish");
 
-  const existingMatch = matches.othersHaveYourWants.find(
-    (row) =>
-      row.printingId === printing.printingId && row.counterpartyUserId === counterpartyUserId,
-  );
+  const existingMatch = matchOnPrinting(matches.othersHaveYourWants, printing, counterpartyUserId);
 
   const createList = useCreateList();
   const bulkAdd = useBulkAddListEntries();
@@ -126,7 +125,7 @@ function RequestBody({
   const [selectedId, setSelectedId] = useState<string>(() => preferredListId(options) ?? NEW_LIST);
   const [newName, setNewName] = useState<string>(m.trades_default_wishlist_name());
 
-  const cardName = printing.card.name;
+  const cardName = printingDisplayName(printing);
   const chosen = options.find((option) => option.listId === selectedId);
   const NewKindIcon = LIST_KIND_ICON[requestListKind()];
   // New lists are always private; an unshared existing list needs the same
@@ -146,6 +145,7 @@ function RequestBody({
           counterpartyUserId,
           role: "receiver",
           printingId: printing.printingId,
+          cardId: existingMatch.cardId,
           quantity,
         });
       } else {
@@ -175,6 +175,7 @@ function RequestBody({
           counterpartyUserId,
           role: "receiver",
           printingId: printing.printingId,
+          cardId: printing.cardId,
           quantity,
         });
       }

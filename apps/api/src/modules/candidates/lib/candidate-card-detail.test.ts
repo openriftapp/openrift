@@ -5,6 +5,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppError } from "../../../errors.js";
+import {
+  encodeFingerprint,
+  MARK_STORED_HEIGHT,
+  MARK_STORED_WIDTH,
+} from "../../../lib/image-fingerprint.js";
 import { buildCardDetail, buildUnmatchedDetail } from "./candidate-card-detail.js";
 import { buildCandidateCardList } from "./candidate-card-list.js";
 
@@ -794,6 +799,55 @@ describe("buildCardDetail", () => {
 
     const result = await buildCardDetail(repo, mpRepo(), "x");
     expect(result.candidatePrintingGroups).toHaveLength(0);
+  });
+
+  it("matches a linked candidate's art against the side showing this card", async () => {
+    const fingerprint = (seed: number) =>
+      encodeFingerprint({
+        landscape: false,
+        hash: Uint8Array.from([seed, seed, seed, seed, 0, 0, 0, 0]),
+        mark: new Uint8Array(MARK_STORED_WIDTH * MARK_STORED_HEIGHT).fill(seed),
+      });
+    const image = (face: "front" | "back", seed: number) => ({
+      id: `img-${face}`,
+      printingId: "pair",
+      imageFileId: `file-${face}`,
+      face,
+      originalUrl: null,
+      rehostedUrl: null,
+      rotation: 0,
+      needsTrim: false,
+      quad: null,
+      isActive: true,
+      fingerprint: fingerprint(seed),
+    });
+    const repo = createMockRepo({
+      cardForDetailBySlug: vi.fn().mockResolvedValue(matchedCard),
+      cardNameAliases: vi.fn().mockResolvedValue([{ normName: "x" }]),
+      candidateCardsForDetail: vi
+        .fn()
+        .mockResolvedValue([{ id: "cc-1", provider: "gallery", checkedAt: null }]),
+      candidatePrintingsForDetail: vi.fn().mockResolvedValue([
+        {
+          id: "cp-1",
+          candidateCardId: "cc-1",
+          printingId: "pair",
+          markerSlugs: [],
+          imageFingerprint: fingerprint(200),
+          checkedAt: null,
+        },
+      ]),
+      printingsForDetail: vi
+        .fn()
+        .mockResolvedValue([
+          { id: "pair", side: 2, setId: "s1", markerSlugs: [], canonicalRank: 1 },
+        ]),
+      printingImagesForDetail: vi.fn().mockResolvedValue([image("front", 7), image("back", 200)]),
+    });
+
+    const result = await buildCardDetail(repo, mpRepo(), "x");
+
+    expect(result.candidatePrintings[0]?.imageMatch).toBe("same");
   });
 
   it("resolves finish from rarity when finish is null", async () => {

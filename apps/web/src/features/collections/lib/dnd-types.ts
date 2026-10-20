@@ -39,6 +39,7 @@ export interface ListEntryDragData {
   printing: Printing;
   /** The overlay fan; empty until a selection drag resolves. */
   previewPrintings: Printing[];
+  selectionHasTwoCards?: boolean;
   cardName: string;
 }
 

@@ -1,4 +1,3 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
 import { imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
@@ -33,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { PrintingRowContent } from "@/features/cards/components/printing-row";
 import { usePrices } from "@/features/cards/hooks/use-prices";
+import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import { useQuickAddActions } from "@/features/collections/hooks/use-quick-add-actions";
 import { useQuickAddMoveMode } from "@/features/collections/hooks/use-quick-add-move-mode";
 import { useQuickAddSearch } from "@/features/collections/hooks/use-quick-add-search";
@@ -151,7 +151,7 @@ function PaletteInner({
     cancelAnnotatedDispose,
     disposeIsPending,
   } = useQuickAddActions(collectionId, collectionId, (printing) => {
-    toast.success(m.collections_copies_quick_removed({ card: legendDisplayName(printing.card) }));
+    toast.success(m.collections_copies_quick_removed({ card: printingDisplayName(printing) }));
     inputRef.current?.focus();
   });
 
@@ -540,7 +540,7 @@ function PaletteInner({
                         ? move.sourcesFor(printing.printingId)
                         : null;
                     const price = prices.get(printing.printingId, favoriteMarketplace);
-                    const cardName = legendDisplayName(printing.card);
+                    const cardName = printingDisplayName(printing);
                     return (
                       <div
                         key={sideKey(printing)}

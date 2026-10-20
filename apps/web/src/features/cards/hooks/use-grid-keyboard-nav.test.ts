@@ -10,8 +10,8 @@ import { createStoreResetter } from "@/test/store-helpers";
 
 import { useGridKeyboardNav } from "./use-grid-keyboard-nav";
 
-const p1 = { printingId: "p1", cardId: "c1" } as Printing;
-const p2 = { printingId: "p2", cardId: "c2" } as Printing;
+const p1 = { printingId: "p1", side: 1, cardId: "c1" } as Printing;
+const p2 = { printingId: "p2", side: 1, cardId: "c2" } as Printing;
 
 const items: CardViewerItem[] = [
   { id: p1.printingId, printing: p1 },
@@ -183,15 +183,37 @@ describe("useGridKeyboardNav: +/-", () => {
     useSelectionStore.getState().selectCard(p2, items, "printing");
 
     // Mock the tile in the DOM so the anchor lookup succeeds — mirrors
-    // CardThumbnail's `data-printing-id`.
+    // CardThumbnail's `data-side-key`.
     const tile = document.createElement("div");
-    tile.dataset.printingId = p2.printingId;
+    tile.dataset.sideKey = p2.printingId;
     document.body.append(tile);
 
     renderHook(() => useGridKeyboardNav({ items }));
     press("-");
 
     expect(onDecrement).toHaveBeenCalledWith(p2, tile);
+  });
+
+  it("`-` anchors a second side to its own tile", () => {
+    const onDecrement = vi.fn();
+    useCardRowActionsStore.getState().setHandlers("collection", { onDecrement });
+    const bird = { ...p2, printingId: "pair", side: 1 as const };
+    const gold = { ...p2, printingId: "pair", side: 2 as const, cardId: "gold" };
+    const pairItems = [
+      { id: "pair", printing: bird },
+      { id: "pair:2", printing: gold },
+    ];
+    useSelectionStore.getState().selectCard(gold, pairItems, "printing");
+    const birdTile = document.createElement("div");
+    birdTile.dataset.sideKey = "pair";
+    const goldTile = document.createElement("div");
+    goldTile.dataset.sideKey = "pair:2";
+    document.body.append(birdTile, goldTile);
+
+    renderHook(() => useGridKeyboardNav({ items: pairItems }));
+    press("-");
+
+    expect(onDecrement).toHaveBeenCalledWith(gold, goldTile);
   });
 
   it("`-` passes undefined anchor when the tile element isn't in the DOM", () => {

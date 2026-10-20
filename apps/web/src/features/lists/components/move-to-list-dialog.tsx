@@ -17,7 +17,7 @@ import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { ConnectedMoveEntryDialogBody } from "@/features/lists/components/move-entry-dialog";
 import type { MoveEntrySubject, MoveMode, MoveResolution } from "@/features/lists/lib/list-move";
-import { moveNeedsDialog, movePickFor } from "@/features/lists/lib/list-move";
+import { hasTwoCards, moveNeedsDialog, movePickFor } from "@/features/lists/lib/list-move";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -60,6 +60,7 @@ interface MoveToListDialogProps {
   source: { kind: ListKind; intent: ListIntent };
   /** The single entry being moved, or null for a multi-entry action. */
   subject: MoveEntrySubject | null;
+  selectionHasTwoCards?: boolean;
   onConfirm: (toList: ListResponse, resolution: MoveResolution | null) => void;
   isPending: boolean;
 }
@@ -75,6 +76,7 @@ export function MoveToListDialog({
   lists,
   source,
   subject,
+  selectionHasTwoCards = false,
   onConfirm,
   isPending,
 }: MoveToListDialogProps) {
@@ -93,7 +95,7 @@ export function MoveToListDialog({
 
   const isCopy = mode === "copy";
   const needsSingle = (list: ListResponse) =>
-    subject === null && movePickFor(source.kind, list.kind) !== "none";
+    subject === null && movePickFor(source.kind, list.kind, selectionHasTwoCards) !== "none";
   const byIntent = Map.groupBy(lists, (list) => list.intent);
 
   const proceed = () => {
@@ -101,7 +103,7 @@ export function MoveToListDialog({
     if (!list || needsSingle(list)) {
       return;
     }
-    if (moveNeedsDialog(source, list)) {
+    if (moveNeedsDialog(source, list, hasTwoCards(subject?.printing))) {
       setTarget(list);
       return;
     }

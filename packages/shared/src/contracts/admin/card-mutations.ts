@@ -7,7 +7,7 @@ import {
   printingFieldRules,
   setFieldRules,
 } from "@openrift/shared/db-field-rules";
-import { diffValueSchema } from "@openrift/shared/response-schemas";
+import { diffValueSchema, printingSideSchema } from "@openrift/shared/response-schemas";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
@@ -155,6 +155,8 @@ const acceptPrintingFieldBodySchema = z.object({
   field: z.enum(ACCEPT_PRINTING_FIELDS),
   value: z.unknown(),
   source: z.enum(["provider", "manual"]).default("manual"),
+  side: printingSideSchema.default(1),
+  faceId: z.uuid().optional(),
 });
 
 export type AcceptCardFieldBody = z.infer<typeof acceptCardFieldBodySchema>;

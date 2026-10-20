@@ -36,17 +36,18 @@ export function CollectionMissingImagesCallout() {
           {m.collections_stats_missing_images_add({ count })}
         </Link>
       }
-      onDismiss={() => dismiss(items.map((item) => item.printingId))}
+      onDismiss={() => dismiss([...new Set(items.map((item) => item.printingId))])}
       dismissLabel={m.collections_stats_missing_images_dismiss()}
     >
       {preview.map((item, index) => (
-        <Fragment key={item.printingId}>
+        <Fragment key={`${item.printingId}:${item.side}`}>
           {index > 0 ? " · " : null}
           <TextLink
             render={
               <Link
                 to="/contribute/card/$cardSlug/printing/$printingId/image"
                 params={{ cardSlug: item.cardSlug, printingId: item.printingId }}
+                search={item.side === 2 ? { side: 2 } : {}}
               />
             }
           >

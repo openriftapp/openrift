@@ -192,6 +192,7 @@ export function productsRepo(db: Kysely<Database>) {
         .innerJoin("printingSidesOrdered as pr", "pr.printingId", "pp.printingId")
         .innerJoin("products as p", "p.id", "pp.productId")
         .select(["pp.printingId", "p.slug", "p.name", "pp.quantity"])
+        .distinct()
         .where("pr.cardId", "=", cardId)
         .orderBy("p.name")
         .execute();

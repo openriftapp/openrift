@@ -1,4 +1,4 @@
-import { sideKey } from "@openrift/shared/printing-side";
+import { countPrintings, sideKey } from "@openrift/shared/printing-side";
 
 import { PromoCardThumbnail } from "@/features/cards/components/promo-card-thumbnail";
 import { PromoListView } from "@/features/cards/components/promo-list-view";
@@ -27,7 +27,7 @@ export function LeafSection({
       <ParentAnchors ids={item.parentAnchorIds} stickyOffset={stickyOffset} />
       <SectionDivider
         title={item.title}
-        count={sortedPrintings.length}
+        count={countPrintings(sortedPrintings)}
         description={item.node.channel.description}
         anchorId={item.sectionId}
       />

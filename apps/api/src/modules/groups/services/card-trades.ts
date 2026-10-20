@@ -39,6 +39,7 @@ export interface CreateTradeInput {
   counterpartyUserId: string;
   role: CardTradeRole;
   printingId: string;
+  cardId?: string;
   quantity: number;
   copyIds?: string[];
 }
@@ -167,8 +168,16 @@ export async function createTrade(
   input: CreateTradeInput,
   emailDeps?: EmailDeps,
 ): Promise<CardTradeResponse> {
-  const { callerUserId, groupSlug, counterpartyUserId, role, printingId, quantity, copyIds } =
-    input;
+  const {
+    callerUserId,
+    groupSlug,
+    counterpartyUserId,
+    role,
+    printingId,
+    cardId,
+    quantity,
+    copyIds,
+  } = input;
 
   if (counterpartyUserId === callerUserId) {
     throw new AppError(400, ERROR_CODES.BAD_REQUEST, "You cannot trade with yourself");
@@ -196,7 +205,10 @@ export async function createTrade(
           viewerUserId: callerUserId,
           counterpartyUserId,
         });
-  const [primaryMatch] = matchRows.filter((row) => row.printingId === printingId);
+  // A double-sided printing can match a wish for each of its cards; `cardId` picks the one asked
+  // for, and a printing wish matches through side 1's card.
+  const onPrinting = matchRows.filter((row) => row.printingId === printingId);
+  const primaryMatch = onPrinting.find((row) => row.cardId === cardId) ?? onPrinting[0];
   if (!primaryMatch) {
     throw new AppError(409, ERROR_CODES.CONFLICT, "That card is no longer available to trade");
   }
@@ -248,6 +260,7 @@ export async function createTrade(
       receiverUserId,
       initiator: role,
       printingId,
+      cardId: primaryMatch.cardId,
       quantity,
       receiverWishEntryId,
       lastActorUserId: callerUserId,
@@ -605,6 +618,24 @@ async function tradeProvenanceNote(trxRepos: Repos, trade: LiveCardTrade): Promi
     : `Traded from ${name} on ${formatDay(new Date())}`;
 }
 
+/** Each card's wishes, oldest first, absorb up to `quantity` copies between them. */
+export function otherCardWishDecrements(
+  entries: readonly { id: string; cardId: string; quantity: number }[],
+  quantity: number,
+): { entryId: string; by: number }[] {
+  const remainingByCard = new Map<string, number>();
+  const decrements: { entryId: string; by: number }[] = [];
+  for (const entry of entries) {
+    const remaining = remainingByCard.get(entry.cardId) ?? quantity;
+    const by = Math.min(remaining, entry.quantity);
+    if (by > 0) {
+      decrements.push({ entryId: entry.id, by });
+    }
+    remainingByCard.set(entry.cardId, remaining - by);
+  }
+  return decrements;
+}
+
 async function applyReceiverSync(
   trxRepos: Repos,
   trade: LiveCardTrade,
@@ -651,6 +682,16 @@ async function applyReceiverSync(
   // Atomic decrement so a concurrent wishlist edit isn't clobbered; the repo
   // deletes the entry at zero, and a deleted entry is a no-op here.
   if (trade.receiverWishEntryId !== null) {
+    // A double-sided copy also fills the receiver's wish for its other card.
+    const others = await trxRepos.lists.otherCardWishesForPrinting({
+      userId: trade.receiverUserId,
+      groupId: trade.groupId,
+      printingId: trade.printingId,
+      entryId: trade.receiverWishEntryId,
+    });
+    for (const { entryId, by } of otherCardWishDecrements(others, trade.quantity)) {
+      await trxRepos.lists.decrementEntryQuantity(entryId, trade.receiverUserId, by);
+    }
     await trxRepos.lists.decrementEntryQuantity(
       trade.receiverWishEntryId,
       trade.receiverUserId,

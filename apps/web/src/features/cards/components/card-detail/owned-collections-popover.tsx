@@ -30,6 +30,7 @@ interface OwnedCollectionsPopoverProps {
   count?: number;
   siblings?: readonly OwnedBreakdownVariant[];
   totalCount?: number;
+  otherSideName?: string;
   align?: PopoverPrimitive.Positioner.Props["align"];
 }
 
@@ -40,6 +41,7 @@ export function OwnedCollectionsPopover({
   count,
   siblings,
   totalCount,
+  otherSideName,
   align = "end",
 }: OwnedCollectionsPopoverProps) {
   const { data: session } = useSession();
@@ -80,6 +82,11 @@ export function OwnedCollectionsPopover({
       <PopoverContent side="bottom" align={align} className="w-60 p-0">
         <div className="px-3 pt-2.5 pb-1">
           <SectionHeading as="h3">{m.card_detail_owned_collections_title()}</SectionHeading>
+          {otherSideName && otherSideName !== cardName && !groupByVariant && (
+            <p className="text-muted-foreground mt-1 text-xs">
+              {m.card_detail_owned_both_sides({ name: cardName, other: otherSideName })}
+            </p>
+          )}
         </div>
         {groupByVariant ? (
           <OwnedVariantBreakdown variants={variantBreakdown ?? []} />

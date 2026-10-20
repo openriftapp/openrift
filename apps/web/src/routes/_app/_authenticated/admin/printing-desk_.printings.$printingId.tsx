@@ -12,10 +12,13 @@ export const Route = createFileRoute(
   "/_app/_authenticated/admin/printing-desk_/printings/$printingId",
 )({
   head: () => adminSeoHead("Printing"),
-  loader: async ({ context, params }) => {
+  validateSearch: (search: Record<string, unknown>): { side?: 2 } =>
+    Number(search.side) === 2 ? { side: 2 } : {},
+  loaderDeps: ({ search }) => ({ side: search.side === 2 ? (2 as const) : (1 as const) }),
+  loader: async ({ context, params, deps }) => {
     await Promise.all([
       context.queryClient.query({
-        ...deskPrintingQueryOptions(params.printingId),
+        ...deskPrintingQueryOptions(params.printingId, deps.side),
         staleTime: "static",
       }),
       context.queryClient.query({

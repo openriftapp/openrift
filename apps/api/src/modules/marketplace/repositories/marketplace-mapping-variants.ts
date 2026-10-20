@@ -5,7 +5,6 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
-import { withFace1 } from "../../../repositories/query-helpers.js";
 
 type Db = Kysely<Database>;
 
@@ -269,13 +268,6 @@ export function marketplaceMappingVariantsRepo(db: Db) {
       return { inserted: result.rows.length };
     },
 
-    getPrintingFinishAndLanguage(printingId: string) {
-      return withFace1(db.selectFrom("printings as p"))
-        .select(["pf.finish", "pf.language"])
-        .where("p.id", "=", printingId)
-        .executeTakeFirstOrThrow();
-    },
-
     /**
      * The parent product row + its price history are left in place on purpose
      * — they represent a known upstream SKU and survive unmap, so a later
@@ -321,6 +313,7 @@ export function marketplaceMappingVariantsRepo(db: Db) {
           "p.printingId as ownerPrintingId",
           "p.language as ownerLanguage",
         ])
+        .distinct()
         .where("p.cardId", "=", cardId)
         .execute();
     },

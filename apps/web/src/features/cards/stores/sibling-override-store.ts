@@ -5,7 +5,7 @@ export type SiblingOverrideScope = "cards" | "collection" | "list";
 
 interface SiblingOverrideState {
   overrides: Record<SiblingOverrideScope, Map<string, string>>;
-  setOverride: (scope: SiblingOverrideScope, cardId: string, printingId: string) => void;
+  setOverride: (scope: SiblingOverrideScope, cardId: string, printingSideKey: string) => void;
   clearScope: (scope: SiblingOverrideScope) => void;
 }
 
@@ -15,11 +15,11 @@ interface SiblingOverrideState {
  */
 export const useSiblingOverrideStore = create<SiblingOverrideState>()((set) => ({
   overrides: { cards: new Map(), collection: new Map(), list: new Map() },
-  setOverride: (scope, cardId, printingId) =>
+  setOverride: (scope, cardId, printingSideKey) =>
     set((state) => ({
       overrides: {
         ...state.overrides,
-        [scope]: new Map(state.overrides[scope]).set(cardId, printingId),
+        [scope]: new Map(state.overrides[scope]).set(cardId, printingSideKey),
       },
     })),
   clearScope: (scope) =>

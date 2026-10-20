@@ -37,6 +37,7 @@ interface CardFieldPick {
 
 interface PrintingFieldPick {
   printingId: string;
+  faceId?: string;
   field: AcceptPrintingField;
   value: unknown;
   source: PrintingFieldSource;
@@ -50,6 +51,17 @@ interface NewPrintingPick {
 interface ImagePick {
   candidatePrintingId: string;
   printingId: string;
+  faceId?: string;
+}
+
+/** The side a review pick names by face; a re-sort since the page loaded may have moved it. */
+async function sideOfPick(trx: Repos, pick: { printingId: string; faceId?: string }) {
+  if (pick.faceId === undefined) {
+    return 1;
+  }
+  const side = await trx.catalogMutations.sideOfFace(pick.printingId, pick.faceId);
+  assertFound(side, "That side is not on the printing");
+  return side;
 }
 
 interface ReviewerArgs {
@@ -172,10 +184,7 @@ async function partitionNewPrintings(
   return { usable, skipped };
 }
 
-async function attachCandidateImage(
-  trx: Repos,
-  args: { candidatePrintingId: string; printingId: string },
-): Promise<string> {
+async function attachCandidateImage(trx: Repos, args: ImagePick): Promise<string> {
   const candidatePrinting = await trx.printingImages.getCandidatePrintingById(
     args.candidatePrintingId,
   );
@@ -184,10 +193,12 @@ async function attachCandidateImage(
   if (!imageUrl) {
     throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Candidate printing has no image URL");
   }
-  const face = await trx.printingImages.faceForShortCode(
-    args.printingId,
-    candidatePrinting.shortCode,
-  );
+  const face =
+    args.faceId === undefined
+      ? await trx.printingImages.faceForShortCode(args.printingId, candidatePrinting.shortCode)
+      : (await sideOfPick(trx, args)) === 2
+        ? "back"
+        : "front";
   const imageId = await trx.printingImages.insertImage(args.printingId, imageUrl, "main", face);
   assertFound(imageId, "Candidate printing image could not be attached");
   return imageId;
@@ -241,16 +252,19 @@ export async function acceptSubmission(
     }
 
     for (const pick of printingFields) {
+      const side = await sideOfPick(trx, pick);
       const value = await normalizePrintingFieldValue(trx, {
         printingId: pick.printingId,
         field: pick.field,
         value: pick.value,
         source: pick.source,
+        side,
       });
       await writePrintingField(inner, trx, {
         printingId: pick.printingId,
         field: pick.field,
         value,
+        side,
       });
       count += 1;
     }

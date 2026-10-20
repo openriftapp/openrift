@@ -1,4 +1,4 @@
-import { indexByPrinting } from "@openrift/shared/printing-side";
+import { indexBySideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useEffect } from "react";
 
@@ -10,9 +10,10 @@ export function useScanSessionRestore(allPrintings: Printing[]): void {
     if (allPrintings.length === 0) {
       return;
     }
-    const byId = indexByPrinting(allPrintings);
+    // Rows persist the scanned side's key; a bare printing id is side 1.
+    const bySideKey = indexBySideKey(allPrintings);
     const staged = useScanSessionStore.getState().restored !== null;
-    useScanSessionStore.getState().restore((printingId) => byId.get(printingId));
+    useScanSessionStore.getState().restore((key) => bySideKey[key]);
     const after = useScanSessionStore.getState();
     let cards = 0;
     for (const row of after.rows.values()) {

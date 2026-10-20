@@ -6,6 +6,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { BrowserToolbar } from "@/features/cards/components/card-browser-filter-scaffold";
 import { defaultGroupByOptions } from "@/features/cards/components/options-bar";
 import { groupByLabel } from "@/features/cards/lib/group-by-field";
+import { filteredCollectionCount } from "@/features/collections/lib/collection-grid-items";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { m } from "@/paraglide/messages.js";
 
@@ -75,24 +76,17 @@ export function CollectionGridToolbar({
     </Toggle>
   ) : null;
 
-  // In cards+set / cards+rarity, a card splits into one tile per section, so
-  // sortedCards over-counts; count distinct cardIds instead.
-  const filteredCardCount =
-    dataView === "cards"
-      ? new Set(sortedCards.map((card) => card.cardId)).size
-      : sortedCards.length;
+  const filteredCardCount = filteredCollectionCount(
+    sortedCards,
+    dataView,
+    dataView,
+    stackByPrintingId,
+  );
 
   return (
     <BrowserToolbar
       totalCards={view === "copies" ? totalCopies : totalUniqueCards}
-      filteredCount={
-        view === "copies"
-          ? sortedCards.reduce(
-              (sum, card) => sum + (stackByPrintingId.get(card.printingId)?.copyIds.length ?? 0),
-              0,
-            )
-          : filteredCardCount
-      }
+      filteredCount={filteredCollectionCount(sortedCards, view, dataView, stackByPrintingId)}
       mobileDoneLabel={
         hasActiveFilters
           ? dataView === "cards"

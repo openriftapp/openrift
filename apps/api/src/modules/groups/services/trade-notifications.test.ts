@@ -80,7 +80,6 @@ function flushRepos(): Repos {
     groupId: "group-1",
     groupSlug: "skirmish",
     groupName: "Summoner Skirmish",
-    cardId: "card-1",
     printingId: "printing-1",
     quantity: 1,
     initiator: "receiver" as const,
@@ -108,7 +107,7 @@ function flushRepos(): Repos {
       listMembers: async () => [{ userId: "user-9", userName: "Nine" }],
     },
     catalog: {
-      cardsByIds: async () => [{ id: "card-1", name: "Jinx" }],
+      printingNamesByIds: async (ids: string[]) => new Map(ids.map((id) => [id, "Jinx"])),
     },
   } as unknown as Repos;
 }

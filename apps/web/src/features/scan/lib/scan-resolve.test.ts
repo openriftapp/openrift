@@ -56,7 +56,13 @@ describe("resolveLock", () => {
       stubPrinting({
         printingId: "p-gold",
         ...shared,
-        otherSide: { faceId: "face-gold", cardId: "gold", cardName: "Gold", cardSlug: "gold" },
+        otherSide: {
+          faceId: "face-gold",
+          cardId: "gold",
+          cardName: "Gold",
+          cardSlug: "gold",
+          shortCode: "T05",
+        },
       }),
       "img-bird",
     );
@@ -64,7 +70,13 @@ describe("resolveLock", () => {
       stubPrinting({
         printingId: "p-brush",
         ...shared,
-        otherSide: { faceId: "face-brush", cardId: "brush", cardName: "Brush", cardSlug: "brush" },
+        otherSide: {
+          faceId: "face-brush",
+          cardId: "brush",
+          cardName: "Brush",
+          cardSlug: "brush",
+          shortCode: "T06",
+        },
       }),
       "img-bird",
     );

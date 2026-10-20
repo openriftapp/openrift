@@ -16,7 +16,7 @@ const NO_COLLECTION = "";
 
 export function useWantedCards(enabled: boolean): { wanted: WantedCard[]; ready: boolean } {
   const userId = useRequiredUserId();
-  const { printingsById } = useCards();
+  const { printingsById, sidesByPrinting } = useCards();
   const { data: lists } = useQuery({ ...listsQueryOptions(userId, "wish"), enabled });
   const details = useQueries({
     queries: enabled ? (lists ?? []).map((list) => listDetailQueryOptions(userId, list.id)) : [],
@@ -36,7 +36,7 @@ export function useWantedCards(enabled: boolean): { wanted: WantedCard[]; ready:
   const wanted = buildWantedCards(
     details.items,
     trades?.items ?? [],
-    (printingId) => printingsById[printingId]?.cardId,
+    (printingId) => (sidesByPrinting.get(printingId) ?? []).map((printing) => printing.cardId),
     orderedCopies.flatMap((copy) => {
       const cardId = printingsById[copy.printingId]?.cardId;
       return cardId === undefined ? [] : [{ printingId: copy.printingId, cardId }];

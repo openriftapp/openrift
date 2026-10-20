@@ -131,6 +131,7 @@ const OTHER_SIDE = sql<PrintingOtherSide | null>`(
     'cardId', oc.id,
     'cardName', oc.name,
     'cardSlug', oc.slug,
+    'shortCode', ofc.short_code,
     'imageId', CASE WHEN oif.rehosted_url IS NOT NULL THEN oif.id END
   ))
   FROM printings op

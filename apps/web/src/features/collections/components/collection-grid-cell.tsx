@@ -162,7 +162,7 @@ export const CollectionGridCell = memo(function CollectionGridCell({
             variant="ghost"
             onClick={(event) => {
               event.stopPropagation();
-              dispatchTake(itemId, 1);
+              dispatchTake(itemId, 1, displayPrinting);
             }}
             aria-label={m.collections_cell_take_copy_of({
               name: legendDisplayName(displayPrinting.card),
@@ -242,6 +242,7 @@ export const CollectionGridCell = memo(function CollectionGridCell({
             shortCode={displayPrinting.shortCode}
             count={ownedCount}
             totalCount={totalInCollection}
+            otherSideName={displayPrinting.otherSide?.cardName}
             siblings={inCardsView ? siblings : undefined}
           />
         }

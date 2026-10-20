@@ -4,6 +4,7 @@ import { XIcon } from "lucide-react";
 
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import { useCopies } from "@/features/collections/hooks/use-copies";
 import { useRuleEditorStore } from "@/features/rules/stores/rule-editor-store";
 import { m } from "@/paraglide/messages.js";
@@ -55,9 +56,13 @@ export function RuleExclusions({
       <span className="text-muted-foreground text-sm">{m.lists_rule_excluded()}</span>
       <div className="flex flex-wrap gap-1.5">
         {excludeIds.map((id) => {
-          const card =
-            kind === "card" ? printingsByCardId.get(id)?.[0]?.card : printingsById[id]?.card;
-          const label = card ? legendDisplayName(card) : m.lists_rule_removed_card();
+          const printing = kind === "card" ? undefined : printingsById[id];
+          const card = kind === "card" ? printingsByCardId.get(id)?.[0]?.card : undefined;
+          const label = printing
+            ? printingDisplayName(printing)
+            : card
+              ? legendDisplayName(card)
+              : m.lists_rule_removed_card();
           return (
             <ExclusionChip key={id} label={label} onRemove={() => toggleExcludeId(index, id)} />
           );
@@ -83,8 +88,8 @@ function CopyExclusions({ index, copyIds }: { index: number; copyIds: string[] }
       <div className="flex flex-wrap gap-1.5">
         {copyIds.map((copyId) => {
           const printingId = printingIdByCopyId.get(copyId);
-          const card = printingId ? printingsById[printingId]?.card : undefined;
-          const label = card ? legendDisplayName(card) : m.lists_rule_removed_copy();
+          const printing = printingId ? printingsById[printingId] : undefined;
+          const label = printing ? printingDisplayName(printing) : m.lists_rule_removed_copy();
           return (
             <ExclusionChip
               key={copyId}

@@ -43,6 +43,7 @@ import {
   useUnlockMyTournamentDeck,
 } from "@/features/tournaments/hooks/use-deck-check-player";
 import { deckCardsFromCheckEntry } from "@/features/tournaments/lib/deck-check-save";
+import { resolvedSide } from "@/features/tournaments/lib/deck-check-side";
 import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
 
@@ -295,12 +296,10 @@ function PlayerCardGrid({ cards }: { cards: DeckCheckEntryCardResponse[] }) {
 }
 
 function PlayerCardCell({ card }: { card: DeckCheckEntryCardResponse }) {
-  const { allPrintings } = useCards();
+  const { printingsById, printingsByCardId } = useCards();
   const display = useCardThumbnailDisplay();
 
-  const printing = card.resolvedPrintingId
-    ? allPrintings.find((candidate) => candidate.printingId === card.resolvedPrintingId)
-    : undefined;
+  const printing = resolvedSide(card, printingsById, printingsByCardId);
 
   if (!printing || card.matchStatus !== "matched") {
     return (

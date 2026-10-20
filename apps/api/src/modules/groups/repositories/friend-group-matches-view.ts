@@ -5,7 +5,7 @@ import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { gravatarHashForEmail } from "../../../lib/gravatar.js";
-import { printingDetailsByIds } from "../../../repositories/query-helpers.js";
+import { printingSideDetailsByIds } from "../../../repositories/query-helpers.js";
 import type { ListRuleProviders } from "../../lists/repositories/lists-rules.js";
 import {
   assembleDemand,
@@ -274,7 +274,7 @@ async function runMatchQuery(
     isOthersHave ? supply.map((s) => s.ownerUserId) : demand.map((d) => d.ownerUserId),
   );
   const users = await loadUsers(db, [...counterpartyIds]);
-  const printingDetails = await printingDetailsByIds(db, [
+  const printingDetails = await printingSideDetailsByIds(db, [
     ...new Set(supply.map((entry) => entry.printingId)),
   ]);
 
@@ -284,22 +284,30 @@ async function runMatchQuery(
       ...supplyEntry.cardIds.flatMap((cardId) => demandByCard.get(cardId) ?? []),
       ...(demandByPrinting.get(supplyEntry.printingId) ?? []),
     ];
-    for (const demandEntry of matches) {
-      if (supplyEntry.ownerUserId === demandEntry.ownerUserId) {
-        continue;
-      }
-      // A rule-produced card want only accepts printings its filters matched —
-      // a copy of the right card in an excluded printing (overnumbered variant,
-      // other language) is not a match.
+    // A rule-produced card want only accepts printings its filters matched —
+    // a copy of the right card in an excluded printing (overnumbered variant,
+    // other language) is not a match.
+    const eligible = matches.filter(
+      (demandEntry) =>
+        supplyEntry.ownerUserId !== demandEntry.ownerUserId &&
+        (demandEntry.acceptablePrintingIds === null ||
+          demandEntry.acceptablePrintingIds.has(supplyEntry.printingId)),
+    );
+    const cardByWanter = wantedCardPerWanter(eligible, supplyEntry.cardId);
+    for (const demandEntry of eligible) {
       if (
-        demandEntry.acceptablePrintingIds !== null &&
-        !demandEntry.acceptablePrintingIds.has(supplyEntry.printingId)
+        demandEntry.kind === "card" &&
+        demandEntry.cardId &&
+        cardByWanter.get(demandEntry.ownerUserId) !== demandEntry.cardId
       ) {
         continue;
       }
       const counterparty = isOthersHave ? supplyEntry : demandEntry;
       const profile = users.get(counterparty.ownerUserId);
-      const detail = printingDetails.get(supplyEntry.printingId);
+      const cardId =
+        demandEntry.kind === "card" && demandEntry.cardId ? demandEntry.cardId : supplyEntry.cardId;
+      const sides = printingDetails.get(supplyEntry.printingId);
+      const detail = sides?.get(cardId) ?? sides?.values().next().value;
       if (!detail) {
         continue;
       }
@@ -319,10 +327,7 @@ async function runMatchQuery(
         grade: supplyEntry.grade,
         notesPublic: supplyEntry.notesPublic,
         printingId: supplyEntry.printingId,
-        cardId:
-          demandEntry.kind === "card" && demandEntry.cardId
-            ? demandEntry.cardId
-            : supplyEntry.cardId,
+        cardId,
         cardName: detail.cardName,
         setId: detail.setId,
         rarity: detail.rarity,
@@ -357,6 +362,42 @@ async function runMatchQuery(
     );
     return byCounterparty === 0 ? first.cardName.localeCompare(second.cardName) : byCounterparty;
   });
+}
+
+/**
+ * One double-sided copy meeting a member's wants for both of its cards is one match, under the
+ * card they want more of; a tie goes to `firstCardId`.
+ */
+export function wantedCardPerWanter(
+  demand: readonly {
+    kind: string;
+    cardId: string | null;
+    ownerUserId: string;
+    buyQuantity: number;
+  }[],
+  firstCardId: string,
+): Map<string, string> {
+  const totals = new Map<string, Map<string, number>>();
+  for (const entry of demand) {
+    if (entry.kind !== "card" || !entry.cardId) {
+      continue;
+    }
+    const byCard = totals.get(entry.ownerUserId) ?? new Map<string, number>();
+    byCard.set(entry.cardId, (byCard.get(entry.cardId) ?? 0) + entry.buyQuantity);
+    totals.set(entry.ownerUserId, byCard);
+  }
+  const chosen = new Map<string, string>();
+  for (const [wanter, byCard] of totals) {
+    const ranked = [...byCard].toSorted(
+      ([cardA, a], [cardB, b]) =>
+        b - a || Number(cardB === firstCardId) - Number(cardA === firstCardId),
+    );
+    const [top] = ranked;
+    if (top) {
+      chosen.set(wanter, top[0]);
+    }
+  }
+  return chosen;
 }
 
 export function friendGroupMatchViewRepo(db: Kysely<Database>, providers?: ListRuleProviders) {

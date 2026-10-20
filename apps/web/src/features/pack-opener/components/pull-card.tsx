@@ -61,7 +61,7 @@ export function PullCard({ pull, image, className, shimmer = true }: PullCardPro
     <Link
       to="/cards/$cardSlug/{-$printingSlug}"
       params={{ cardSlug: printing.cardSlug }}
-      search={{ printingId: printing.id }}
+      search={{ printingId: printing.printingId }}
       className={cn("group block", className)}
     >
       <div

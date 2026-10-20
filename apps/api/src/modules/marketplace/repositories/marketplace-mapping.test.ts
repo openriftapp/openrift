@@ -137,12 +137,6 @@ describe("marketplaceMappingRepo", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("getPrintingFinishAndLanguage returns finish and language by printingId", async () => {
-    const row = { finish: "foil", language: "EN" };
-    const db = createMockDb([row]);
-    expect(await marketplaceMappingRepo(db).getPrintingFinishAndLanguage("p1")).toEqual(row);
-  });
-
   it("deleteVariantById deletes a variant (parent product left behind)", async () => {
     const db = createMockDb({ numDeletedRows: 1n });
     await expect(marketplaceMappingRepo(db).deleteVariantById("var-1")).resolves.toBe(true);

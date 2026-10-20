@@ -112,7 +112,7 @@ export function useScanAdd(collections: CollectionResponse[]): ScanAdd {
       .map((row) => ({
         printing: row.printing,
         taken: row.count,
-        entries: wish.entriesForPrinting(row.printing.cardId, row.printing.printingId),
+        entries: wish.entriesForCopy(row.printing),
       }))
       .filter((item) => item.entries.length > 0);
     if (followUps.length > 0) {

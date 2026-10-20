@@ -247,6 +247,29 @@ describe("evaluateListRule — wish", () => {
     });
     expect(out.map((entry) => entry.cardId)).toEqual(["c1"]);
   });
+
+  it("counts a double-sided owned copy once against a netOwned wish", () => {
+    const pair = [
+      makePrinting("pair", "bird", { side: 1 }),
+      makePrinting("pair", "gold", { side: 2 }),
+    ];
+    const ownedCopies = ["a", "b"].flatMap((copyId) => [
+      ownedCopy({ copyId, printingId: "pair", cardId: "bird" }),
+      ownedCopy({ copyId, printingId: "pair", cardId: "gold" }),
+    ]);
+    const out = evaluateListRule(
+      {
+        kind: "wish",
+        filter: filters(),
+        quantity: { mode: "fixed", n: 3 },
+        excludeIds: [],
+        netOwned: true,
+      } as ListRule,
+      "printing",
+      { catalog: pair, ownedCopies },
+    );
+    expect(out).toEqual([expect.objectContaining({ printingId: "pair", quantity: 1 })]);
+  });
 });
 
 describe("evaluateListRule — trade", () => {
@@ -499,6 +522,46 @@ describe("evaluateListRule — trade", () => {
       { catalog: twoPrintings, ownedCopies },
     );
     expect(perCard).toHaveLength(4);
+  });
+
+  it("keepPer printing counts a double-sided copy once", () => {
+    const pair = [
+      makePrinting("pair", "bird", { side: 1 }),
+      makePrinting("pair", "gold", { side: 2 }),
+    ];
+    const ownedCopies = ["a", "b", "c", "d"].flatMap((copyId) => [
+      ownedCopy({ copyId, printingId: "pair", cardId: "bird" }),
+      ownedCopy({ copyId, printingId: "pair", cardId: "gold" }),
+    ]);
+    const out = evaluateListRule(
+      tradeRule({ keepPer: "printing", keepPerCard: { mode: "fixed", n: 3 } }),
+      "copy",
+      { catalog: pair, ownedCopies },
+    );
+    expect(out.map((entry) => entry.copyId)).toEqual(["d"]);
+  });
+
+  it("pools a double-sided copy only under the card the filter matched", () => {
+    const pairCatalog = [
+      makePrinting("pair", "bird", { side: 1, type: "unit" }),
+      makePrinting("pair", "gold", { side: 2, type: "gear" }),
+      makePrinting("solo", "gold", { type: "gear" }),
+    ];
+    const ownedCopies = [
+      ...["a1", "a2", "a3"].map((copyId) =>
+        ownedCopy({ copyId, printingId: "solo", cardId: "gold" }),
+      ),
+      ...["p1", "p2", "p3"].flatMap((copyId) => [
+        ownedCopy({ copyId, printingId: "pair", cardId: "bird" }),
+        ownedCopy({ copyId, printingId: "pair", cardId: "gold" }),
+      ]),
+    ];
+    const out = evaluateListRule(
+      tradeRule({ filter: filters({ types: ["gear"] }), keepPerCard: { mode: "fixed", n: 3 } }),
+      "copy",
+      { catalog: pairCatalog, ownedCopies },
+    );
+    expect(out.map((entry) => entry.copyId)).toEqual(["p1", "p2", "p3"]);
   });
 
   it("UC4: keep two playsets, trade the rest", () => {

@@ -658,6 +658,7 @@ describe("POST /api/v1/lists/:id/entries/from-copies", () => {
       USER_ID,
       [COPY_ID],
       true,
+      undefined,
     );
   });
 

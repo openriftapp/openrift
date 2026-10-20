@@ -14,6 +14,7 @@ import {
   applyPairMerge,
   planPairMerge,
 } from "../apps/api/src/modules/catalog/repositories/pair-merge.js";
+import { marketplacePricesRepo } from "../apps/api/src/modules/marketplace/repositories/marketplace-prices.js";
 import { requireEnv } from "./env.js";
 
 const args = process.argv.slice(2);
@@ -40,6 +41,7 @@ try {
   const report = apply ? await applyPairMerge(db, list) : await planPairMerge(db, list);
   if (apply) {
     await catalogRefreshRepo(db).refreshCatalogViews();
+    await marketplacePricesRepo(db).refreshLatestPrices();
   }
   console.log(
     `${apply ? "Created" : "Would create"} ${report.created.length} double-sided printing(s) and ${report.newFaces.length} new side(s).`,
@@ -52,6 +54,11 @@ try {
     console.log(`${source.slug} -> ${home}${moved ? `: ${moved}` : ""}`);
   }
   console.log(`${report.owners.length} owner row(s) with copies on a default home.`);
+  for (const item of report.productsToReview) {
+    console.log(
+      `Review product ${item.product}: ${item.quantity}x ${item.slug} all go to ${item.home}.`,
+    );
+  }
   if (ownersFile) {
     const header = "slug,home,user_id,group_id,email,copies";
     const lines = report.owners.map((owner) =>

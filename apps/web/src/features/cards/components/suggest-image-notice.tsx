@@ -13,6 +13,7 @@ export function SuggestImageNotice({ printing }: { printing: Printing }) {
       <Link
         to="/contribute/card/$cardSlug/printing/$printingId/image"
         params={{ cardSlug: printing.card.slug, printingId: printing.printingId }}
+        search={printing.side === 2 ? { side: 2 } : {}}
         title={m.card_detail_suggest_image_title()}
         className="bg-background/90 hover:bg-primary group/notice pointer-events-auto flex flex-col items-center rounded-[2cqi] px-[5cqi] py-[2cqi] text-center shadow-md transition-colors"
       >

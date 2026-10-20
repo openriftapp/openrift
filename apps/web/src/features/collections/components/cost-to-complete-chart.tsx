@@ -14,7 +14,7 @@ import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import type { PrintingArt } from "@/features/cards/lib/card-meta";
-import { printingArt } from "@/features/cards/lib/card-meta";
+import { printingArt, printingDisplayName } from "@/features/cards/lib/card-meta";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
 import type { CustomTagAssignments } from "@/features/collections/hooks/use-collection-stats";
 import {
@@ -41,7 +41,7 @@ interface MilestonePoint {
   label: string;
 }
 
-interface CostToCompleteData {
+export interface CostToCompleteData {
   curve: CurvePoint[];
   milestones: MilestonePoint[];
   startPercent: number;
@@ -63,7 +63,7 @@ interface ComputeInput {
   marketplace: Marketplace;
 }
 
-function computeCostToComplete(input: ComputeInput): CostToCompleteData {
+export function computeCostToComplete(input: ComputeInput): CostToCompleteData {
   "use memo";
   const { allPrintings, stacks, scope, countMode, prices, marketplace } = input;
 
@@ -102,11 +102,14 @@ function computeForCards(
 
   const missingItems: MissingItem[] = [];
   let unpricedMissing = 0;
+  // Buying a double-sided printing also completes its other card.
+  const handled = new Set<string>();
 
   for (const slug of allCardSlugs) {
-    if (ownedSlugs.has(slug)) {
+    if (ownedSlugs.has(slug) || handled.has(slug)) {
       continue;
     }
+    handled.add(slug);
     const cardPrintings = printingsByCard.get(slug) ?? [];
     let cheapest: number | undefined;
     let cheapestPrinting: Printing | undefined;
@@ -121,9 +124,23 @@ function computeForCards(
     }
     if (cheapest === undefined) {
       unpricedMissing++;
-    } else {
-      missingItems.push({ label: cardName, price: cheapest, art: printingArt(cheapestPrinting) });
+      continue;
     }
+    const other = cheapestPrinting?.otherSide?.cardSlug;
+    const coversOther =
+      other !== undefined &&
+      allCardSlugs.has(other) &&
+      !ownedSlugs.has(other) &&
+      !handled.has(other);
+    if (coversOther) {
+      handled.add(other);
+    }
+    missingItems.push({
+      label: coversOther && cheapestPrinting ? printingDisplayName(cheapestPrinting) : cardName,
+      price: cheapest,
+      art: printingArt(cheapestPrinting),
+      covers: coversOther ? 2 : 1,
+    });
   }
 
   const totalItems = allCardSlugs.size;
@@ -154,7 +171,7 @@ function computeForPrintings(
       unpricedMissing++;
     } else {
       missingItems.push({
-        label: legendDisplayName(printing.card),
+        label: printingDisplayName(printing),
         price,
         art: printingArt(printing),
       });
@@ -200,6 +217,18 @@ function computeForCopies(
   let unpricedMissing = 0;
   let totalItems = 0;
   let ownedItems = 0;
+  // Copies of a double-sided printing bought for one card also fill its other card's playset.
+  const freeCopies = new Map<string, number>();
+  const handled = new Set<string>();
+  const stillNeeded = (slug: string): number => {
+    const card = allCardSlugs.get(slug);
+    if (!card || !countsInPlaysetMode(card) || handled.has(slug)) {
+      return 0;
+    }
+    const target = getPlaysetSize(card.types, card.keywords);
+    const owned = Math.min(ownedCopiesBySlug.get(slug) ?? 0, target);
+    return Math.max(0, target - owned - (freeCopies.get(slug) ?? 0));
+  };
 
   for (const [slug, card] of allCardSlugs) {
     if (!countsInPlaysetMode(card)) {
@@ -207,7 +236,8 @@ function computeForCopies(
     }
     const target = getPlaysetSize(card.types, card.keywords);
     const owned = Math.min(ownedCopiesBySlug.get(slug) ?? 0, target);
-    const missing = target - owned;
+    const missing = stillNeeded(slug);
+    handled.add(slug);
     totalItems += target;
     ownedItems += owned;
 
@@ -230,8 +260,19 @@ function computeForCopies(
       unpricedMissing += missing;
     } else {
       const art = printingArt(cheapestPrinting);
+      const other = cheapestPrinting?.otherSide?.cardSlug;
+      const covered = other === undefined ? 0 : Math.min(missing, stillNeeded(other));
+      if (other !== undefined && covered > 0) {
+        freeCopies.set(other, (freeCopies.get(other) ?? 0) + covered);
+      }
       for (let index = 0; index < missing; index++) {
-        missingItems.push({ label: card.name, price: cheapest, art });
+        missingItems.push({
+          label:
+            index < covered && cheapestPrinting ? printingDisplayName(cheapestPrinting) : card.name,
+          price: cheapest,
+          art,
+          covers: index < covered ? 2 : 1,
+        });
       }
     }
   }
@@ -243,6 +284,7 @@ interface MissingItem {
   label: string;
   price: number;
   art: PrintingArt;
+  covers?: number;
 }
 
 function buildCurve(
@@ -262,7 +304,7 @@ function buildCurve(
 
   for (const item of missingItems) {
     cumulativeCost += item.price;
-    currentOwned++;
+    currentOwned += item.covers ?? 1;
     const percent = totalItems > 0 ? (currentOwned / totalItems) * 100 : 0;
     curve.push({
       cost: cumulativeCost,
@@ -273,8 +315,7 @@ function buildCurve(
     });
   }
 
-  const maxPricedPercent =
-    totalItems > 0 ? ((ownedItems + missingItems.length) / totalItems) * 100 : 0;
+  const maxPricedPercent = totalItems > 0 ? (currentOwned / totalItems) * 100 : 0;
 
   const milestoneThresholds = [25, 50, 75, 90, 95, 100];
   const milestones: MilestonePoint[] = [];

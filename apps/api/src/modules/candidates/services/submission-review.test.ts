@@ -51,6 +51,7 @@ function createRepos(overrides: Record<string, unknown> = {}) {
       getCardBySlug: vi.fn().mockResolvedValue({ id: "card-9", name: "Ekko" }),
       updateCardById: vi.fn(),
       updatePrintingFieldById: vi.fn(),
+      sideOfFace: vi.fn().mockResolvedValue(2),
       acceptNewCardFromSources: vi.fn(),
       syncSelfAliasOnRename: vi.fn(),
     },
@@ -61,7 +62,15 @@ function createRepos(overrides: Record<string, unknown> = {}) {
     cardTokens: { recomputeForPrintingCard: vi.fn() },
     catalog: { refreshCatalogViews: vi.fn(), refreshCardAggregates: vi.fn() },
     ignoredCandidates: { ignoreCard: vi.fn() },
-    printingImages: { originalUrlsInUse: vi.fn().mockResolvedValue(new Set()) },
+    printingImages: {
+      originalUrlsInUse: vi.fn().mockResolvedValue(new Set()),
+      getCandidatePrintingById: vi
+        .fn()
+        .mockResolvedValue({ imageUrl: "https://example.test/gold.png", shortCode: "OGN-T05" }),
+      faceForShortCode: vi.fn().mockResolvedValue("back"),
+      insertImage: vi.fn().mockResolvedValue("image-1"),
+      getForRehost: vi.fn().mockResolvedValue(undefined),
+    },
     ingest: {
       allUnlinkedCandidatePrintings: vi.fn().mockResolvedValue([]),
       allCardNorms: vi.fn().mockResolvedValue([]),
@@ -258,6 +267,7 @@ describe("acceptSubmission", () => {
       "p-1",
       "printedRulesText",
       "It’s ready…",
+      1,
     );
   });
 
@@ -281,8 +291,94 @@ describe("acceptSubmission", () => {
       "p-1",
       "printedRulesText",
       "It's ready...",
+      1,
     );
     expect(repos.keywords.listCostKeywords).not.toHaveBeenCalled();
+  });
+
+  it("writes a printing pick to the side its face is on", async () => {
+    const repos = createRepos();
+
+    await acceptSubmission(transactOn(repos), repos, io, {
+      ...baseArgs,
+      ...noPicks,
+      printingFields: [
+        {
+          printingId: "p-1",
+          faceId: "face-gold",
+          field: "artist",
+          value: "Gold Artist",
+          source: "manual",
+        },
+      ],
+    });
+
+    expect(repos.catalogMutations.sideOfFace).toHaveBeenCalledWith("p-1", "face-gold");
+    expect(repos.catalogMutations.updatePrintingFieldById).toHaveBeenCalledWith(
+      "p-1",
+      "artist",
+      "Gold Artist",
+      2,
+    );
+  });
+
+  it("normalizes a printing pick against the side its face is on", async () => {
+    const repos = createRepos();
+    vi.mocked(repos.catalogMutations).getSetPrintedTotalForPrinting = vi
+      .fn()
+      .mockResolvedValue({ printedTotal: 10 }) as never;
+
+    await acceptSubmission(transactOn(repos), repos, io, {
+      ...baseArgs,
+      ...noPicks,
+      printingFields: [
+        {
+          printingId: "p-1",
+          faceId: "face-gold",
+          field: "publicCode",
+          value: "OGN-T05",
+          source: "provider",
+        },
+      ],
+    });
+
+    expect(repos.catalogMutations.getSetPrintedTotalForPrinting).toHaveBeenCalledWith("p-1", 2);
+  });
+
+  it("attaches a candidate image to the side the reviewer picked", async () => {
+    const repos = createRepos();
+
+    await acceptSubmission(transactOn(repos), repos, io, {
+      ...baseArgs,
+      ...noPicks,
+      images: [{ candidatePrintingId: "cp-1", printingId: "p-1", faceId: "face-gold" }],
+    });
+
+    expect(repos.printingImages.insertImage).toHaveBeenCalledWith(
+      "p-1",
+      "https://example.test/gold.png",
+      "main",
+      "back",
+    );
+    expect(repos.printingImages.faceForShortCode).not.toHaveBeenCalled();
+  });
+
+  it("attaches a candidate image by its short code when no side was picked", async () => {
+    const repos = createRepos();
+
+    await acceptSubmission(transactOn(repos), repos, io, {
+      ...baseArgs,
+      ...noPicks,
+      images: [{ candidatePrintingId: "cp-1", printingId: "p-1" }],
+    });
+
+    expect(repos.printingImages.faceForShortCode).toHaveBeenCalledWith("p-1", "OGN-T05");
+    expect(repos.printingImages.insertImage).toHaveBeenCalledWith(
+      "p-1",
+      "https://example.test/gold.png",
+      "main",
+      "back",
+    );
   });
 
   it("reads the card once for a run of card picks", async () => {

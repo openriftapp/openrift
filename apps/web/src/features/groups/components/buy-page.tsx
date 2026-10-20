@@ -26,6 +26,7 @@ import type { BuyCartItem } from "@/features/groups/lib/buy-cart";
 import { cartFor, cartItemForWanted } from "@/features/groups/lib/buy-cart";
 import type { TradeMarketSource } from "@/features/groups/lib/trade-market";
 import { sortByValue, wantedSources } from "@/features/groups/lib/trade-market";
+import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { useRequiredUserId } from "@/hooks/use-session";
@@ -94,7 +95,10 @@ export function BuyPage() {
     printingId === undefined ? undefined : prices.get(printingId, display.favoriteMarketplace);
   const nameOf = (item: WantedCard): string => {
     const printingId = shownPrintingId(item);
-    const printing = printingId === undefined ? undefined : printingsById[printingId];
+    const printing =
+      printingId === undefined
+        ? undefined
+        : tradePrinting({ cardId: item.cardId, printingId }, printingsByCardId, printingsById);
     return printing === undefined ? "" : legendDisplayName(printing.card);
   };
   const sourcesByKey = new Map(
@@ -216,7 +220,14 @@ export function BuyPage() {
             <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
               {shown.map((item) => {
                 const printingId = shownPrintingId(item);
-                const printing = printingId === undefined ? undefined : printingsById[printingId];
+                const printing =
+                  printingId === undefined
+                    ? undefined
+                    : tradePrinting(
+                        { cardId: item.cardId, printingId },
+                        printingsByCardId,
+                        printingsById,
+                      );
                 if (printing === undefined) {
                   return null;
                 }

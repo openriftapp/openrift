@@ -21,6 +21,7 @@ import { frontImageId } from "@/features/cards/lib/card-meta";
 import { MatchPersonList } from "@/features/groups/components/match-row-card";
 import { useDismissSuggestions } from "@/features/groups/hooks/use-trade-dismissals";
 import type { TradeMarketCard } from "@/features/groups/lib/trade-market";
+import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -127,7 +128,7 @@ export function TradeMarketSheet({
 }) {
   const isMobile = useIsMobile();
   const dismiss = useDismissSuggestions();
-  const { printingsById } = useCards();
+  const { printingsById, printingsByCardId } = useCards();
 
   const printingId =
     selection === null
@@ -135,7 +136,16 @@ export function TradeMarketSheet({
       : selection.kind === "market"
         ? selection.card.printingId
         : selection.printingId;
-  const printing = printingId === null ? undefined : printingsById[printingId];
+  const cardId =
+    selection === null
+      ? null
+      : selection.kind === "market"
+        ? selection.card.cardId
+        : selection.wanted.cardId;
+  const printing =
+    printingId === null || cardId === null
+      ? undefined
+      : tradePrinting({ cardId, printingId }, printingsByCardId, printingsById);
   const card = selection?.kind === "market" ? selection.card : null;
   const wanted =
     selection === null

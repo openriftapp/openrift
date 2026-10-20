@@ -8,6 +8,7 @@ import {
   imageId,
   joinFaceImage,
   keysetCursorPredicate,
+  pairedCardNameSql,
   withFace1,
 } from "../../../repositories/query-helpers.js";
 
@@ -57,7 +58,7 @@ export function collectionEventsRepo(db: Kysely<Database>) {
           imageId("imgf").as("imageId"),
           "pf.shortCode",
           "pf.rarity",
-          "card.name as cardName",
+          pairedCardNameSql("card.name").as("cardName"),
           "mca.types as cardTypes",
           "mca.superTypes as cardSuperTypes",
           "card.tags as tags",

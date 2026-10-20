@@ -1,7 +1,12 @@
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { imageId, joinFaceImage, withFace1 } from "../../../repositories/query-helpers.js";
+import {
+  imageId,
+  joinFaceImage,
+  pairedCardNameSql,
+  withFace1,
+} from "../../../repositories/query-helpers.js";
 
 const MAX_RETRIES = 5;
 
@@ -57,7 +62,7 @@ export function printingEventsRepo(db: Kysely<Database>) {
           "pe.id",
           "pe.printingId",
           "pe.createdAt",
-          "c.name as cardName",
+          pairedCardNameSql("c.name").as("cardName"),
           "c.slug as cardSlug",
           "s.name as setName",
           "pf.shortCode",
@@ -98,7 +103,7 @@ export function printingEventsRepo(db: Kysely<Database>) {
           "pe.createdAt",
           "pe.status",
           "pe.retryCount",
-          "c.name as cardName",
+          pairedCardNameSql("c.name").as("cardName"),
           "c.slug as cardSlug",
           "s.name as setName",
           "pf.shortCode",

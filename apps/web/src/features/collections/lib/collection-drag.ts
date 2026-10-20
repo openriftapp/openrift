@@ -9,6 +9,7 @@ interface DragSelectionArgs {
   items: CardViewerItem[];
   stackByItemId: Map<string, StackedEntry>;
   stacked: boolean;
+  countPrintings?: boolean;
 }
 
 /** Fan + count for a select-mode drag overlay. */
@@ -27,13 +28,14 @@ export function computeDragSelectionSummary({
   items,
   stackByItemId,
   stacked,
+  countPrintings = false,
 }: DragSelectionArgs): DragSelectionSummary {
   if (mode !== "select" || selected.size === 0) {
     return { printings: [], count: 0 };
   }
   const printings: Printing[] = [];
   const seen = new Set<string>();
-  let count = 0;
+  const counted = new Set<string>();
   for (const item of items) {
     const stack = stackByItemId.get(item.id);
     if (!stack) {
@@ -45,13 +47,13 @@ export function computeDragSelectionSummary({
     if (!hasSelectedCopy) {
       continue;
     }
-    count++;
+    counted.add(countPrintings ? item.printing.printingId : item.id);
     if (printings.length < 3 && !seen.has(item.printing.printingId)) {
       seen.add(item.printing.printingId);
       printings.push(item.printing);
     }
   }
-  return { printings, count };
+  return { printings, count: counted.size };
 }
 
 export function dragSelectionNoun(view: "cards" | "printings" | "copies"): string {

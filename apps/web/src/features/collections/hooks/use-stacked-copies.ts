@@ -25,6 +25,7 @@ export function buildStacks(
   printingById: ReadonlyMap<string, Printing>,
   sets: readonly SetOrderInfo[],
   collectionId?: string,
+  sidesByPrinting?: ReadonlyMap<string, Printing[]>,
 ): StackedEntry[] {
   const personalOnly = collectionId === undefined;
   const stacks: StackedEntry[] = [];
@@ -41,7 +42,13 @@ export function buildStacks(
     if (existing) {
       existing.copyIds.push(copy.id);
     } else {
-      const entry: StackedEntry = { printingId: copy.printingId, printing, copyIds: [copy.id] };
+      const sides = sidesByPrinting?.get(copy.printingId);
+      const entry: StackedEntry = {
+        printingId: copy.printingId,
+        printing,
+        ...(sides && sides.length > 1 ? { sides } : {}),
+        copyIds: [copy.id],
+      };
       stackMap.set(copy.printingId, entry);
       stacks.push(entry);
     }
@@ -60,11 +67,11 @@ export function buildStacks(
 
 export function useStackedCopies(collectionId?: string): UseStackedCopiesResult {
   const { data: copies, isReady } = useCopies(collectionId);
-  const { allPrintings, sets } = useCards();
+  const { allPrintings, sets, sidesByPrinting } = useCards();
 
   const printingById = indexByPrinting(allPrintings);
 
-  const sortedStacks = buildStacks(copies, printingById, sets, collectionId);
+  const sortedStacks = buildStacks(copies, printingById, sets, collectionId, sidesByPrinting);
   const totalCopies = sortedStacks.reduce((sum, stack) => sum + stack.copyIds.length, 0);
   const collectionIdByCopyId = new Map(copies.map((copy) => [copy.id, copy.collectionId]));
 

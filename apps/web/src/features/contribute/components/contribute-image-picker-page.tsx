@@ -61,6 +61,7 @@ function PrintingChoices({ cardSlug }: { cardSlug: string }) {
               <Link
                 to="/contribute/card/$cardSlug/printing/$printingId/image"
                 params={{ cardSlug, printingId: printing.printingId }}
+                search={printing.side === 2 ? { side: 2 } : {}}
               />
             }
             className="justify-between"

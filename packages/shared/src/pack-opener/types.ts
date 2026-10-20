@@ -1,5 +1,6 @@
 export interface PackPrinting {
   id: string;
+  printingId: string;
   cardId: string;
   cardName: string;
   cardSlug: string;

@@ -1,3 +1,4 @@
+import { ownedTotalsByCard } from "@openrift/shared/printing-side";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -74,15 +75,10 @@ export function useCollectionGridData({
   // own, not the box's own stock.
   const currentCollection = collectionId ? collectionsMap.get(collectionId) : undefined;
   const isGroupCollection = Boolean(currentCollection?.groupId);
-  const personalCardTotals: Record<string, number> = {};
-  if (isGroupCollection && ownedCountByPrinting) {
-    for (const printing of allPrintings) {
-      const owned = ownedCountByPrinting[printing.printingId];
-      if (owned) {
-        personalCardTotals[printing.cardId] = (personalCardTotals[printing.cardId] ?? 0) + owned;
-      }
-    }
-  }
+  const personalCardTotals: Record<string, number> =
+    isGroupCollection && ownedCountByPrinting
+      ? Object.fromEntries(ownedTotalsByCard(allPrintings, ownedCountByPrinting))
+      : {};
 
   // The wants endpoint is group-scoped; resolve the slug from the groups list.
   const groupId = currentCollection?.groupId ?? undefined;

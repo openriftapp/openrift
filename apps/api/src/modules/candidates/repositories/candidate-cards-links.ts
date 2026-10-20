@@ -1,6 +1,7 @@
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { pairedCardNameSql } from "../../../repositories/query-helpers.js";
 
 async function deletePins(
   db: Kysely<Database>,
@@ -139,7 +140,7 @@ export function candidatePrintingLinksRepo(db: Kysely<Database>) {
           "plo.printingId",
           "p.shortCode",
           "c.slug as cardSlug",
-          "c.name as cardName",
+          pairedCardNameSql("c.name", "pr").as("cardName"),
           "plo.createdAt",
         ])
         .orderBy("plo.createdAt", "desc")

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ejCpsBSVexIak93LRcfEIUkSKLhjQfhDvPGkqPyVDlxrdHfvfVhbR65D1IaJBm6
+\restrict BoFffV6nX3we7eFCNSt2WFhtHl74o5WJXvRqSTFhPNTc2Z6UQDaxpEPBzxZPR2n
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -138,6 +138,36 @@ CREATE FUNCTION public.card_name_aliases_set_norm_name() RETURNS trigger
 
 
 --
+-- Name: card_trades_card(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.card_trades_card() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+  BEGIN
+    IF NEW.card_id IS NULL THEN
+      NEW.card_id := coalesce(
+        (
+          SELECT le.card_id FROM list_entries le
+          JOIN printings p ON p.id = NEW.printing_id
+          JOIN faces wf ON wf.card_id = le.card_id AND wf.id IN (p.face1_id, p.face2_id)
+          WHERE le.id = NEW.receiver_wish_entry_id
+          LIMIT 1
+        ),
+        (SELECT f.card_id FROM printings p JOIN faces f ON f.id = p.face1_id WHERE p.id = NEW.printing_id)
+      );
+    ELSIF NOT EXISTS (
+      SELECT 1 FROM printings p JOIN faces f ON f.id IN (p.face1_id, p.face2_id)
+      WHERE p.id = NEW.printing_id AND f.card_id = NEW.card_id
+    ) THEN
+      RAISE EXCEPTION 'card % is not on printing %', NEW.card_id, NEW.printing_id;
+    END IF;
+    RETURN NEW;
+  END;
+  $$;
+
+
+--
 -- Name: cards_set_norm_name(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -168,6 +198,32 @@ CREATE FUNCTION public.check_deck_card_printing() RETURNS trigger
         USING ERRCODE = 'foreign_key_violation';
     END IF;
     RETURN NEW;
+  END
+  $$;
+
+
+--
+-- Name: fold_deck_cards_off_deleted_printing(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.fold_deck_cards_off_deleted_printing() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+  BEGIN
+    UPDATE deck_cards plain SET quantity = plain.quantity + dc.quantity
+    FROM deck_cards dc
+    WHERE dc.preferred_printing_id = OLD.id
+      AND plain.deck_id = dc.deck_id AND plain.card_id = dc.card_id AND plain.zone = dc.zone
+      AND plain.preferred_printing_id IS NULL;
+    DELETE FROM deck_cards dc
+    WHERE dc.preferred_printing_id = OLD.id
+      AND EXISTS (
+        SELECT 1 FROM deck_cards plain
+        WHERE plain.deck_id = dc.deck_id AND plain.card_id = dc.card_id AND plain.zone = dc.zone
+          AND plain.preferred_printing_id IS NULL
+      );
+    UPDATE deck_cards SET preferred_printing_id = NULL WHERE preferred_printing_id = OLD.id;
+    RETURN OLD;
   END
   $$;
 
@@ -362,6 +418,57 @@ CREATE FUNCTION public.rebalance_organization_owner() RETURNS trigger
     END LOOP;
     RETURN OLD;
   END;
+  $$;
+
+
+--
+-- Name: release_deck_cards_off_printing(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.release_deck_cards_off_printing() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+  BEGIN
+    UPDATE deck_cards plain SET quantity = plain.quantity + dc.quantity
+    FROM deck_cards dc
+    WHERE dc.preferred_printing_id = NEW.id
+      AND NOT EXISTS (
+        SELECT 1 FROM faces f WHERE f.id IN (NEW.face1_id, NEW.face2_id) AND f.card_id = dc.card_id
+      )
+      AND plain.deck_id = dc.deck_id AND plain.card_id = dc.card_id AND plain.zone = dc.zone
+      AND plain.preferred_printing_id IS NULL;
+    DELETE FROM deck_cards dc
+    WHERE dc.preferred_printing_id = NEW.id
+      AND NOT EXISTS (
+        SELECT 1 FROM faces f WHERE f.id IN (NEW.face1_id, NEW.face2_id) AND f.card_id = dc.card_id
+      )
+      AND EXISTS (
+        SELECT 1 FROM deck_cards plain
+        WHERE plain.deck_id = dc.deck_id AND plain.card_id = dc.card_id AND plain.zone = dc.zone
+          AND plain.preferred_printing_id IS NULL
+      );
+    UPDATE deck_cards dc SET preferred_printing_id = NULL
+    WHERE dc.preferred_printing_id = NEW.id
+      AND NOT EXISTS (
+        SELECT 1 FROM faces f WHERE f.id IN (NEW.face1_id, NEW.face2_id) AND f.card_id = dc.card_id
+      );
+    RETURN NULL;
+  END
+  $$;
+
+
+--
+-- Name: resort_printings_on_face_code(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.resort_printings_on_face_code() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+  BEGIN
+    UPDATE printings SET face1_id = face1_id
+    WHERE face2_id IS NOT NULL AND NEW.id IN (face1_id, face2_id);
+    RETURN NULL;
+  END
   $$;
 
 
@@ -1337,6 +1444,7 @@ CREATE TABLE public.card_trades (
     giver_name text,
     receiver_name text,
     group_name text,
+    card_id uuid NOT NULL,
     CONSTRAINT chk_card_trades_closed_shape CHECK (((status = ANY (ARRAY['declined'::text, 'cancelled'::text, 'expired'::text])) = (closed_at IS NOT NULL))),
     CONSTRAINT chk_card_trades_completed_shape CHECK (((status = 'completed'::text) = (completed_at IS NOT NULL))),
     CONSTRAINT chk_card_trades_distinct_parties CHECK ((giver_user_id <> receiver_user_id)),
@@ -7740,6 +7848,13 @@ CREATE TRIGGER trg_card_sizes_protect_well_known BEFORE DELETE OR UPDATE ON publ
 
 
 --
+-- Name: card_trades trg_card_trades_card; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_card_trades_card BEFORE INSERT OR UPDATE OF card_id, printing_id ON public.card_trades FOR EACH ROW EXECUTE FUNCTION public.card_trades_card();
+
+
+--
 -- Name: card_types trg_card_types_protect_well_known; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -7786,6 +7901,13 @@ CREATE TRIGGER trg_deck_zones_protect_well_known BEFORE DELETE OR UPDATE ON publ
 --
 
 CREATE TRIGGER trg_domains_protect_well_known BEFORE DELETE OR UPDATE ON public.domains FOR EACH ROW EXECUTE FUNCTION public.protect_well_known();
+
+
+--
+-- Name: faces trg_faces_resort_printings; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_faces_resort_printings AFTER UPDATE OF short_code ON public.faces FOR EACH ROW WHEN ((old.short_code IS DISTINCT FROM new.short_code)) EXECUTE FUNCTION public.resort_printings_on_face_code();
 
 
 --
@@ -7842,6 +7964,20 @@ CREATE CONSTRAINT TRIGGER trg_organizations_owner_guard AFTER INSERT ON public.o
 --
 
 CREATE TRIGGER trg_prevent_nonempty_collection_delete BEFORE DELETE ON public.collections FOR EACH ROW EXECUTE FUNCTION public.prevent_nonempty_collection_delete();
+
+
+--
+-- Name: printings trg_printings_fold_deck_cards; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_printings_fold_deck_cards BEFORE DELETE ON public.printings FOR EACH ROW EXECUTE FUNCTION public.fold_deck_cards_off_deleted_printing();
+
+
+--
+-- Name: printings trg_printings_release_deck_cards; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_printings_release_deck_cards AFTER UPDATE OF face1_id, face2_id ON public.printings FOR EACH ROW WHEN (((old.face1_id IS DISTINCT FROM new.face1_id) OR (old.face2_id IS DISTINCT FROM new.face2_id))) EXECUTE FUNCTION public.release_deck_cards_off_printing();
 
 
 --
@@ -8617,6 +8753,14 @@ ALTER TABLE ONLY public.card_trade_settlement_requests
 
 ALTER TABLE ONLY public.card_trade_settlement_requests
     ADD CONSTRAINT card_trade_settlement_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: card_trades card_trades_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_trades
+    ADD CONSTRAINT card_trades_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.cards(id);
 
 
 --
@@ -10311,5 +10455,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ejCpsBSVexIak93LRcfEIUkSKLhjQfhDvPGkqPyVDlxrdHfvfVhbR65D1IaJBm6
+\unrestrict BoFffV6nX3we7eFCNSt2WFhtHl74o5WJXvRqSTFhPNTc2Z6UQDaxpEPBzxZPR2n
 

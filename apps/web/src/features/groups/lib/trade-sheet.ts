@@ -3,9 +3,13 @@ import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 
 import { sortNeedsYou } from "./trade-hub";
 
-export function stepSequence(trades: readonly CardTradeResponse[]): string[] | undefined {
-  const printingIds = [...new Set(trades.map((trade) => trade.printingId))];
-  return printingIds.length > 1 ? printingIds : undefined;
+/** `keyOf` names the stop; a side key keeps both cards of a double-sided printing apart. */
+export function stepSequence(
+  trades: readonly CardTradeResponse[],
+  keyOf: (trade: CardTradeResponse) => string = (trade) => trade.printingId,
+): string[] | undefined {
+  const keys = [...new Set(trades.map((trade) => keyOf(trade)))];
+  return keys.length > 1 ? keys : undefined;
 }
 
 export interface TradeLedger {

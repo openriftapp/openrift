@@ -154,6 +154,7 @@ describe("GET /card-submissions/missing-images", () => {
   it("returns the signed-in user's printings without artwork", async () => {
     const item = {
       printingId: "00000000-0000-4000-a000-000000000009",
+      side: 1,
       cardSlug: "jinx",
       cardName: "Jinx",
       setSlug: "origins",

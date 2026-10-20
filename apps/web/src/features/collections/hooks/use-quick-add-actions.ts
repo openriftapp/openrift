@@ -1,10 +1,10 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
 import { copyHasMetadata } from "@openrift/shared/copy-metadata";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import type { CardRowClickModifiers } from "@/features/cards/stores/card-row-actions-store";
 import { useBatchedAddCopies, useDisposeCopies } from "@/features/collections/hooks/use-copies";
 import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
@@ -40,7 +40,7 @@ export function useQuickAddActions(
     onBatchSuccess: (printingIds) => {
       const msg = summarizeBatchAdd(printingIds, (id) => {
         const printing = pendingPrintingsRef.current.get(id);
-        return printing ? legendDisplayName(printing.card) : undefined;
+        return printing ? printingDisplayName(printing) : undefined;
       });
       if (msg) {
         toast.success(msg);

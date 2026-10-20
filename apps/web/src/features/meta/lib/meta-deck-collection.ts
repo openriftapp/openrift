@@ -158,9 +158,12 @@ export function metaCardOwnershipBand(
 ): OwnershipBandSegments {
   let ownedOfDisplayed = 0;
   let ownedOfOthers = 0;
-  for (const printing of printingsByCardId.get(card.cardId) ?? []) {
-    const owned = ownedByPrinting[printing.printingId] ?? 0;
-    if (printing.printingId === displayedPrintingId) {
+  const printingIds = new Set(
+    (printingsByCardId.get(card.cardId) ?? []).map((printing) => printing.printingId),
+  );
+  for (const printingId of printingIds) {
+    const owned = ownedByPrinting[printingId] ?? 0;
+    if (printingId === displayedPrintingId) {
       ownedOfDisplayed += owned;
     } else {
       ownedOfOthers += owned;

@@ -1,5 +1,5 @@
 import { MAX_COPIES_PER_ADD } from "@openrift/shared/contracts/copies";
-import { sideKey } from "@openrift/shared/printing-side";
+import { sideKey, uniquePrintings } from "@openrift/shared/printing-side";
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useQueryClient } from "@tanstack/react-query";
@@ -252,7 +252,9 @@ export function AddEntriesToCollectionDialogBody({
       {canPickPrinting && <p className="text-sm">{m.lists_add_to_collection_pick_printings()}</p>}
       <div className="max-h-56 space-y-1 overflow-y-auto">
         {subjects.map((subject, index) => {
-          const printings = printingsByCardId.get(subject.printing.cardId) ?? [subject.printing];
+          const printings = uniquePrintings(
+            printingsByCardId.get(subject.printing.cardId) ?? [subject.printing],
+          );
           const items = printings.map((printing) => ({
             value: printing.printingId,
             label: printingLabel(printing),
@@ -394,7 +396,7 @@ function ConnectedBody({
 
   const printings =
     subject.sourceKind === "card"
-      ? (printingsByCardId.get(subject.printing.cardId) ?? [subject.printing])
+      ? uniquePrintings(printingsByCardId.get(subject.printing.cardId) ?? [subject.printing])
       : [subject.printing];
 
   return (

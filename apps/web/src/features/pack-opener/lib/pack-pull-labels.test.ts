@@ -16,6 +16,7 @@ function makePull(slot: PackPull["slot"], overrides: Partial<PackPrinting> = {})
     slot,
     printing: {
       id: "00000000-0000-0000-0000-000000000001",
+      printingId: "00000000-0000-0000-0000-000000000001",
       cardId: "00000000-0000-0000-0000-000000000002",
       cardName: "Test Card",
       cardSlug: "test-card",

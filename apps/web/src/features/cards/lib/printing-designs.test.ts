@@ -57,6 +57,7 @@ describe("groupPrintingDesigns", () => {
       cardId,
       cardName: cardId,
       cardSlug: cardId,
+      shortCode: "VEN-T05",
     });
 
     expect(
@@ -73,7 +74,13 @@ describe("groupPrintingDesigns", () => {
   });
 
   it("merges a design whose card sits on a different side per language", () => {
-    const otherSide = { faceId: "face-buff", cardId: "buff", cardName: "Buff", cardSlug: "buff" };
+    const otherSide = {
+      faceId: "face-buff",
+      cardId: "buff",
+      cardName: "Buff",
+      cardSlug: "buff",
+      shortCode: "OGN-272",
+    };
 
     expect(
       codes([

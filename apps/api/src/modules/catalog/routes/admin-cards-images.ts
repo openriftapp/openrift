@@ -22,7 +22,12 @@ import {
   processAndSave,
   regenerateFromOrig,
 } from "../services/images/variants.js";
-import { assertDeskPrintingScope, assertImageUploader } from "../services/printing-desk.js";
+import {
+  assertDeskPrintingScope,
+  assertImageScope,
+  assertImageUploader,
+  assertPrintingSideScope,
+} from "../services/printing-desk.js";
 
 const os = implement(adminCardImagesContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -51,8 +56,9 @@ export const adminCardImagesRouter = {
       throw errors.BAD_REQUEST({ message: "Candidate printing has no image URL" });
     }
 
+    const face = await printingImages.candidateFace(id);
     const imageId = await context.transact((trxRepos) =>
-      trxRepos.printingImages.insertImage(ps.printingId as string, ps.imageUrl, mode),
+      trxRepos.printingImages.insertImage(ps.printingId as string, ps.imageUrl, mode, face),
     );
 
     if (imageId) {
@@ -82,6 +88,7 @@ export const adminCardImagesRouter = {
 
     const { adminAccess, userId } = context;
     await assertDeskPrintingScope(context.repos, adminAccess, userId, image.printingId);
+    await assertImageScope(context.repos, adminAccess, userId, imageId);
     await assertImageUploader(context.repos, adminAccess, userId, imageId);
 
     const imageFileId = await printingImages.getImageFileId(imageId);
@@ -120,6 +127,7 @@ export const adminCardImagesRouter = {
       context.userId,
       image.printingId,
     );
+    await assertImageScope(context.repos, context.adminAccess, context.userId, imageId);
 
     await transact(async (trxRepos) => {
       if (active) {
@@ -227,6 +235,7 @@ export const adminCardImagesRouter = {
       context.userId,
       image.printingId,
     );
+    await assertImageScope(context.repos, context.adminAccess, context.userId, imageId);
 
     await printingImages.setRotation(image.imageFileId, rotation);
     await regenerateFromOrig(
@@ -285,6 +294,7 @@ export const adminCardImagesRouter = {
       context.userId,
       image.printingId,
     );
+    await assertImageScope(context.repos, context.adminAccess, context.userId, imageId);
 
     // Stored only once the pipeline accepted the corners, so a rejected quad
     // leaves the variants and the row agreeing with each other.
@@ -319,6 +329,7 @@ export const adminCardImagesRouter = {
       context.userId,
       image.printingId,
     );
+    await assertImageScope(context.repos, context.adminAccess, context.userId, imageId);
 
     return ensureOriginalOnDisk(
       context.io,
@@ -332,7 +343,7 @@ export const adminCardImagesRouter = {
 
   addImageUrl: os.addImageUrl.handler(async ({ input, context, errors }): Promise<void> => {
     const { catalog } = context.repos;
-    const { printingId, url: rawUrl, mode: rawMode } = input;
+    const { printingId, url: rawUrl, mode: rawMode, face } = input;
 
     if (!rawUrl?.trim()) {
       throw errors.BAD_REQUEST({ message: "url is required" });
@@ -340,12 +351,19 @@ export const adminCardImagesRouter = {
 
     const printing = await catalog.getPrintingById(printingId);
     assertFound(printing, "Printing not found");
+    await assertPrintingSideScope(
+      context.repos,
+      context.adminAccess,
+      context.userId,
+      printing.id,
+      face ?? "front",
+    );
 
     const mode = rawMode ?? "main";
     const url = rawUrl.trim();
 
     await context.transact(async (trxRepos) => {
-      await trxRepos.printingImages.insertImage(printing.id, url, mode);
+      await trxRepos.printingImages.insertImage(printing.id, url, mode, face);
     });
 
     await recordAdminEvent(context.repos, context.userId, {
@@ -363,6 +381,13 @@ export const adminCardImagesRouter = {
     const printing = await catalog.getPrintingById(printingId);
     assertFound(printing, "Printing not found");
     await assertDeskPrintingScope(context.repos, context.adminAccess, context.userId, printing.id);
+    await assertPrintingSideScope(
+      context.repos,
+      context.adminAccess,
+      context.userId,
+      printing.id,
+      rawFace ?? "front",
+    );
 
     const requested = rawMode === "additional" ? ("additional" as const) : ("main" as const);
     // A grant holder's upload never takes over the live art; activating stays a separate step.
@@ -406,9 +431,9 @@ export const adminCardImagesRouter = {
 
   setFallbackArt: os.setFallbackArt.handler(async ({ input, context, errors }): Promise<void> => {
     const { printingImages } = context.repos;
-    const { printingId, mode, imageFileId } = input;
+    const { printingId, mode, imageFileId, face } = input;
 
-    const current = await printingImages.getFallbackArt(printingId);
+    const current = await printingImages.getFallbackArt(printingId, face);
     assertFound(current, "Printing not found");
 
     if (mode === "pinned" && !imageFileId) {
@@ -422,7 +447,7 @@ export const adminCardImagesRouter = {
       assertFound(file, "Image file not found");
     }
 
-    await printingImages.setFallbackArt(printingId, mode, imageFileId ?? null);
+    await printingImages.setFallbackArt(printingId, mode, imageFileId ?? null, face);
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "printing.fallback-art",
@@ -440,18 +465,18 @@ export const adminCardImagesRouter = {
   addFallbackArtUrl: os.addFallbackArtUrl.handler(
     async ({ input, context, errors }): Promise<void> => {
       const { printingImages } = context.repos;
-      const { printingId, url: rawUrl } = input;
+      const { printingId, url: rawUrl, face } = input;
 
       if (!rawUrl?.trim()) {
         throw errors.BAD_REQUEST({ message: "url is required" });
       }
 
-      const current = await printingImages.getFallbackArt(printingId);
+      const current = await printingImages.getFallbackArt(printingId, face);
       assertFound(current, "Printing not found");
 
       const url = rawUrl.trim();
       const imageFileId = await printingImages.imageFileForUrl(url);
-      await printingImages.setFallbackArt(printingId, "pinned", imageFileId);
+      await printingImages.setFallbackArt(printingId, "pinned", imageFileId, face);
 
       // Best-effort: the catalog reports fallbackArtMode "auto" until the retry lands if this fails.
       await rehostImageFile(context.io, printingImages, imageFileId);
@@ -472,9 +497,9 @@ export const adminCardImagesRouter = {
 
   uploadFallbackArt: os.uploadFallbackArt.handler(async ({ input, context, errors }) => {
     const { printingImages } = context.repos;
-    const { printingId, file } = input;
+    const { printingId, file, face } = input;
 
-    const current = await printingImages.getFallbackArt(printingId);
+    const current = await printingImages.getFallbackArt(printingId, face);
     assertFound(current, "Printing not found");
 
     const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
@@ -494,7 +519,7 @@ export const adminCardImagesRouter = {
 
     await context.transact(async (trxRepos) => {
       await trxRepos.printingImages.insertUnattachedImageFile({ id: imageFileId, rehostedUrl });
-      await trxRepos.printingImages.setFallbackArt(printingId, "pinned", imageFileId);
+      await trxRepos.printingImages.setFallbackArt(printingId, "pinned", imageFileId, face);
     });
 
     await recordAdminEvent(context.repos, context.userId, {

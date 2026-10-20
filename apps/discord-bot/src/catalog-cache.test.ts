@@ -23,6 +23,34 @@ describe("buildSnapshot", () => {
     expect(snapshot.printingsByCardId.get("c1")?.map((p) => p.printingId)).toEqual(["p1"]);
   });
 
+  it("gives side 2 its own fallback art and lists a card on both sides once", () => {
+    const catalog = makeCatalogResponse(
+      [makeCard({ id: "bird" }), makeCard({ id: "gold" })],
+      [makePrinting({ printingId: "pair", cardId: "bird" })],
+    );
+    const { side: _side, printingId: _id, ...sideFields } = makePrinting({ cardId: "gold" });
+    catalog.printings.pair = {
+      ...catalog.printings.pair!,
+      fallbackArtMode: "pinned",
+      fallbackImageId: "img-pinned",
+      side2: { ...sideFields, faceId: "face-gold" },
+    } as never;
+    const pair = buildSnapshot(catalog, makePricesResponse(), makeInitResponse());
+    expect(pair.printingsByCardId.get("bird")?.[0]?.fallbackArtMode).toBe("pinned");
+    expect(pair.printingsByCardId.get("gold")?.[0]?.fallbackArtMode).toBeUndefined();
+
+    const buffCatalog = makeCatalogResponse(
+      [makeCard({ id: "buff" })],
+      [makePrinting({ printingId: "rioter", cardId: "buff" })],
+    );
+    buffCatalog.printings.rioter = {
+      ...buffCatalog.printings.rioter!,
+      side2: { ...sideFields, cardId: "buff", faceId: "face-plain" },
+    } as never;
+    const buff = buildSnapshot(buffCatalog, makePricesResponse(), makeInitResponse());
+    expect(buff.printingsByCardId.get("buff")?.map((p) => p.printingId)).toEqual(["rioter"]);
+  });
+
   it("groups printings per card sorted by canonical rank", () => {
     const snapshot = buildSnapshot(
       makeCatalogResponse(

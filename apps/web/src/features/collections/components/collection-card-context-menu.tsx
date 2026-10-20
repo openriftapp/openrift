@@ -48,11 +48,14 @@ export function CollectionCardContextMenu({
         <>
           {canTake && (
             <>
-              <CardMenuItem icon={HandIcon} onSelect={() => dispatchTake(itemId, 1)}>
+              <CardMenuItem icon={HandIcon} onSelect={() => dispatchTake(itemId, 1, lendPrinting)}>
                 {m.collections_menu_take_one()}
               </CardMenuItem>
               {takeAllCount !== undefined && takeAllCount > 1 && (
-                <CardMenuItem icon={HandIcon} onSelect={() => dispatchTake(itemId, takeAllCount)}>
+                <CardMenuItem
+                  icon={HandIcon}
+                  onSelect={() => dispatchTake(itemId, takeAllCount, lendPrinting)}
+                >
                   {m.collections_menu_take_many({ count: takeAllCount })}
                 </CardMenuItem>
               )}

@@ -55,6 +55,7 @@ const cardFieldPickSchema = z.object({
 
 const printingFieldPickSchema = z.object({
   printingId: z.string().min(1),
+  faceId: z.uuid().optional(),
   field: z.enum(ACCEPT_PRINTING_FIELDS),
   value: z.unknown(),
   source: z.enum(["provider", "manual"]).default("provider"),
@@ -68,6 +69,7 @@ const newPrintingPickSchema = z.object({
 const imagePickSchema = z.object({
   candidatePrintingId: z.string().min(1),
   printingId: z.string().min(1),
+  faceId: z.uuid().optional(),
 });
 
 export const acceptSubmissionInputSchema = candidateCardIdParam.extend({

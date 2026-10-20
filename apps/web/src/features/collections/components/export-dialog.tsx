@@ -28,6 +28,7 @@ import {
   csvExportFilename,
   csvExportLabels,
 } from "@/features/collections/lib/csv-export";
+import { stackCardName } from "@/features/collections/lib/stacked-entry";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { downloadCsv } from "@/lib/download";
@@ -98,7 +99,7 @@ function detailedLines(stacks: readonly StackedEntry[], labels: EnumLabels): Det
     const { printing } = stack;
     const { rest } = formatPrintingVariantLabelParts(printing, undefined, labels);
     return {
-      name: legendDisplayName(printing.card),
+      name: stackCardName(stack),
       quantity: stack.copyIds.length,
       details: [formatCardId(printing), printing.language, ...rest],
     };

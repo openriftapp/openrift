@@ -66,7 +66,7 @@ export function PackStats({ packs, prices, marketplace }: PackStatsProps) {
     for (const pull of pack.pulls) {
       const rarity = packRarityKey(pull);
       rarityCounts[rarity] = (rarityCounts[rarity] ?? 0) + 1;
-      const value = marketplace ? prices.get(pull.printing.id, marketplace) : undefined;
+      const value = marketplace ? prices.get(pull.printing.printingId, marketplace) : undefined;
       if (value !== undefined) {
         totalValue += value;
         valuedCount++;

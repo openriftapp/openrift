@@ -56,17 +56,23 @@ export function pickCardMetaPrinting<T extends CatalogPrintingResponse>(
  * `printingRef` is the permalink slug from the path, or the uuid the older
  * `?printingId=` links still carry.
  */
+/** `side` picks between the sides of a printing that shows the card on both. */
 export function resolveCardMetaPrinting<T extends CatalogPrintingResponse>(
   printings: readonly T[],
   printingRef: string | undefined,
   languageOrder: readonly string[],
+  side?: 1 | 2,
 ): T | undefined {
   const linked = printingRef
-    ? printings.find(
+    ? printings.filter(
         (printing) => printing.slug === printingRef || printing.printingId === printingRef,
       )
-    : undefined;
-  return linked ?? pickCardMetaPrinting(printings, languageOrder);
+    : [];
+  return (
+    linked.find((printing) => printing.side === (side ?? 1)) ??
+    linked[0] ??
+    pickCardMetaPrinting(printings, languageOrder)
+  );
 }
 
 // Strips rules-text markup so emoji shortcodes (`:rb_energy_2:`), `[keyword:foo]`
@@ -124,6 +130,19 @@ export function frontImageId(
 export interface PrintingArt {
   imageId: string | null;
   landscape: boolean;
+}
+
+/** A double-sided printing is named by both of its cards, side 1 first. */
+export function printingDisplayName(
+  printing: Pick<Printing, "card" | "side" | "otherSide">,
+): string {
+  const name = legendDisplayName(printing.card);
+  if (!printing.otherSide) {
+    return name;
+  }
+  return printing.side === 2
+    ? `${printing.otherSide.cardName} // ${name}`
+    : `${name} // ${printing.otherSide.cardName}`;
 }
 
 export function printingArt(printing: Printing | undefined): PrintingArt {

@@ -120,6 +120,8 @@ const acceptPrintingFieldFn = createServerFn({ method: "POST" })
   .validator(
     (input: {
       printingId: string;
+      side?: 1 | 2;
+      faceId?: string;
       field: AcceptPrintingField;
       value: unknown;
       source?: "provider" | "manual";
@@ -129,6 +131,8 @@ const acceptPrintingFieldFn = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminCardMutationsContract, context.cookie).acceptPrintingField({
       printingId: data.printingId,
+      side: data.side,
+      faceId: data.faceId,
       field: data.field,
       value: data.value,
       source: data.source,
@@ -356,16 +360,20 @@ export function useAcceptPrintingField(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
     mutationFn: async ({
       printingId,
+      side = 1,
+      faceId,
       field,
       value,
       source = "manual",
     }: {
       printingId: string;
+      side?: 1 | 2;
+      faceId?: string;
       field: AcceptPrintingField;
       value: unknown;
       source?: "provider" | "manual";
     }) => {
-      await acceptPrintingFieldFn({ data: { printingId, field, value, source } });
+      await acceptPrintingFieldFn({ data: { printingId, side, faceId, field, value, source } });
     },
     invalidates,
   });

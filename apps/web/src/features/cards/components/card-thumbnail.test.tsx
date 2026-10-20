@@ -563,6 +563,70 @@ describe("CardThumbnail label", () => {
     expect(container.textContent).toContain("Azir, Emperor of the Sands");
     expect(getByAltText("Azir, Emperor of the Sands")).not.toBeNull();
   });
+
+  it("names both sides of a double-sided printing outside the cards view", () => {
+    const printing = stubPrinting({
+      shortCode: "OGN",
+      card: { name: "Buff" },
+      otherSide: {
+        faceId: "face-recruit",
+        cardId: "recruit",
+        cardName: "Recruit",
+        cardSlug: "recruit",
+        shortCode: "OGN-271",
+      },
+    });
+    const { container, rerender } = render(
+      <CardThumbnail
+        printing={printing}
+        onClick={() => {}}
+        showImages={false}
+        display={baseDisplay}
+        view="printings"
+      />,
+      { wrapper: makeWrapper() },
+    );
+    expect(container.textContent).toContain("OGN // OGN-271");
+    expect(container.textContent).toContain("Buff // Recruit");
+
+    rerender(
+      <CardThumbnail
+        printing={printing}
+        onClick={() => {}}
+        showImages={false}
+        display={baseDisplay}
+        view="cards"
+      />,
+    );
+    expect(container.textContent).not.toContain("Recruit");
+  });
+
+  it("names the two sides in display order on a side-2 tile", () => {
+    const printing = stubPrinting({
+      side: 2,
+      shortCode: "OGN",
+      card: { name: "Buff" },
+      otherSide: {
+        faceId: "face-recruit",
+        cardId: "recruit",
+        cardName: "Recruit",
+        cardSlug: "recruit",
+        shortCode: "OGN-271",
+      },
+    });
+    const { container } = render(
+      <CardThumbnail
+        printing={printing}
+        onClick={() => {}}
+        showImages={false}
+        display={baseDisplay}
+        view="printings"
+      />,
+      { wrapper: makeWrapper() },
+    );
+    expect(container.textContent).toContain("OGN-271 // OGN");
+    expect(container.textContent).toContain("Recruit // Buff");
+  });
 });
 
 describe("CardThumbnail localized label", () => {

@@ -14,6 +14,7 @@ import {
   getCardFrontImageFullUrl,
   pickCardMetaPrinting,
   printingArt,
+  printingDisplayName,
   resolveCardMetaPrinting,
 } from "./card-meta";
 
@@ -330,5 +331,54 @@ describe("printingArt", () => {
 
   it("returns no art for a printing missing from the catalog", () => {
     expect(printingArt(undefined)).toEqual({ imageId: null, landscape: false });
+  });
+});
+
+describe("printingDisplayName", () => {
+  it("names a double-sided printing by both cards", () => {
+    const bird = stubPrinting({
+      card: { name: "Bird" },
+      otherSide: {
+        faceId: "f",
+        cardId: "gold",
+        cardName: "Gold",
+        cardSlug: "gold",
+        shortCode: "T-05",
+      },
+    });
+    expect(printingDisplayName(bird)).toBe("Bird // Gold");
+    expect(printingDisplayName({ ...bird, otherSide: undefined })).toBe("Bird");
+  });
+
+  it("puts side 1's card first when shown from side 2", () => {
+    const gold = stubPrinting({
+      side: 2,
+      card: { name: "Gold" },
+      otherSide: {
+        faceId: "f",
+        cardId: "bird",
+        cardName: "Bird",
+        cardSlug: "bird",
+        shortCode: "T-01",
+      },
+    });
+    expect(printingDisplayName(gold)).toBe("Bird // Gold");
+  });
+});
+
+describe("resolveCardMetaPrinting on a card printed on both sides", () => {
+  const front = stubPrinting({ printingId: "buff-pair", slug: "ogn-t09", side: 1, cardId: "buff" });
+  const back = stubPrinting({ printingId: "buff-pair", slug: "ogn-t09", side: 2, cardId: "buff" });
+
+  it("picks the side named in the URL", () => {
+    expect(resolveCardMetaPrinting([front, back], "ogn-t09", ["EN"], 2)).toBe(back);
+  });
+
+  it("defaults to side 1", () => {
+    expect(resolveCardMetaPrinting([front, back], "ogn-t09", ["EN"])).toBe(front);
+  });
+
+  it("falls back to the only side showing the card", () => {
+    expect(resolveCardMetaPrinting([back], "ogn-t09", ["EN"])).toBe(back);
   });
 });

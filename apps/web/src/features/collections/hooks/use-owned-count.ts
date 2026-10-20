@@ -368,11 +368,14 @@ export function aggregateByVariant(
     bucket.set(copy.collectionId, (bucket.get(copy.collectionId) ?? 0) + 1);
   }
   const result: VariantCollectionBreakdownEntry[] = [];
+  // A card on both sides of one printing lists that printing once.
+  const listed = new Set<string>();
   for (const variant of variants) {
     const bucket = buckets.get(variant.printingId);
-    if (!bucket || bucket.size === 0) {
+    if (!bucket || bucket.size === 0 || listed.has(variant.printingId)) {
       continue;
     }
+    listed.add(variant.printingId);
     const collections: CopyCollectionBreakdownEntry[] = [];
     for (const [collectionId, count] of bucket) {
       collections.push({

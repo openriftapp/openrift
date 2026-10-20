@@ -26,6 +26,21 @@ function copy(id: string, printingId: string, collectionId: string, groupId: str
 }
 
 describe("buildStacks", () => {
+  it("carries every side of a double-sided printing", () => {
+    const bird = stubPrinting({ printingId: "pr-pair", side: 1, cardId: "bird" });
+    const gold = stubPrinting({ printingId: "pr-pair", side: 2, cardId: "gold" });
+    const stacks = buildStacks(
+      [copy("c-1", "pr-pair", "col-personal")],
+      new Map([["pr-pair", bird]]),
+      SETS,
+      undefined,
+      new Map([["pr-pair", [bird, gold]]]),
+    );
+    expect(stacks).toEqual([
+      { printingId: "pr-pair", printing: bird, sides: [bird, gold], copyIds: ["c-1"] },
+    ]);
+  });
+
   it("excludes group-collection copies on the unscoped (All Cards) aggregate", () => {
     const copies = [
       ...Array.from({ length: 9 }, (_unused, index) =>

@@ -121,6 +121,7 @@ export const bulkCreateListEntriesSchema = z.object({
 
 export const bulkAddCopiesToListSchema = z.object({
   copyIds: z.array(z.uuid()).min(1).max(500),
+  cardId: z.uuid().optional(),
 });
 
 /**
@@ -139,6 +140,7 @@ export const moveListEntriesSchema = z.object({
       z.object({
         entryId: z.uuid(),
         printingId: z.uuid().optional(),
+        cardId: z.uuid().optional(),
         copyIds: z.array(z.uuid()).min(1).max(100).optional(),
       }),
     )

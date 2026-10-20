@@ -29,6 +29,7 @@ function renderBody(props: Partial<Parameters<typeof MoveEntryDialogBody>[0]> = 
           pick="none"
           currentPrintingId="p-a"
           printings={[printingA, printingB]}
+          cardOptions={[]}
           copies={[]}
           quantity={1}
           onConfirm={onConfirm}
@@ -55,6 +56,20 @@ describe("MoveEntryDialogBody", () => {
     fireEvent.click(screen.getByText("p-b"));
     fireEvent.click(screen.getByRole("button", { name: "Move" }));
     expect(onConfirm).toHaveBeenCalledWith({ printingId: "p-b" });
+  });
+
+  it("asks which card of a double-sided printing a card list keeps", () => {
+    const { onConfirm } = renderBody({
+      pick: "card",
+      sourceIntent: "trade",
+      cardOptions: [
+        { cardId: "bird", name: "Bird" },
+        { cardId: "gold", name: "Gold" },
+      ],
+    });
+    fireEvent.click(screen.getByText("Gold"));
+    fireEvent.click(screen.getByRole("button", { name: "Move" }));
+    expect(onConfirm).toHaveBeenCalledWith({ cardId: "gold" });
   });
 
   it("preselects the entry's quantity worth of copies and toggles on click", () => {

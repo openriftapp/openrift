@@ -257,6 +257,16 @@ describe("metaCardOwnershipBand", () => {
     expect(band).toEqual({ exact: 1, other: 1, borrowed: 0, locked: 0, missing: 1 });
   });
 
+  it("counts a printing with the card on both sides once", () => {
+    const band = metaCardOwnershipBand(
+      { cardId: "buff", quantity: 3 },
+      "p-pair",
+      { "p-pair": 1 },
+      new Map([["buff", [{ printingId: "p-pair" }, { printingId: "p-pair" }]]]),
+    );
+    expect(band).toEqual({ exact: 1, other: 0, borrowed: 0, locked: 0, missing: 2 });
+  });
+
   it("caps at the quantity the list plays", () => {
     const band = metaCardOwnershipBand(
       { cardId: "card-a", quantity: 2 },

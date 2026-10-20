@@ -257,6 +257,7 @@ export function ingestUserSubmission(
         finish: printing.finish,
         markerSlugs: printing.marker_slugs,
         language: printing.language,
+        size: printing.size,
         cardLinked,
         claimedPrintingId:
           printing.printing_id !== null && ownedClaims.has(printing.printing_id)

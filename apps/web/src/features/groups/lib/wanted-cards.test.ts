@@ -92,8 +92,11 @@ function incomingTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeRes
   };
 }
 
-const cardOf = (printingId: string) =>
-  ({ "printing-2": "card-2", "printing-3": "card-3" })[printingId];
+const SIDES: Record<string, string[]> = {
+  "printing-2": ["card-2"],
+  "printing-3": ["card-3"],
+};
+const cardOf = (printingId: string) => SIDES[printingId] ?? [];
 
 describe("buildWantedCards", () => {
   it("sums one card across lists and remembers where it was wished", () => {
@@ -163,6 +166,33 @@ describe("buildWantedCards", () => {
       cardOf,
     );
     expect(wanted.map((card) => card.quantity)).toEqual([1]);
+  });
+
+  it("nets a card wish against an incoming double-sided printing showing it on side 2", () => {
+    const sides = (printingId: string) => (printingId === "pair" ? ["bird", "gold"] : []);
+    expect(
+      buildWantedCards(
+        [wishList("list-1", "Wants", [cardEntry({ cardId: "gold" })])],
+        [incomingTrade({ printingId: "pair", cardId: "bird" })],
+        sides,
+      ),
+    ).toEqual([]);
+  });
+
+  it("lets one incoming double-sided copy cover a wish for each of its cards", () => {
+    const sides = (printingId: string) => (printingId === "pair" ? ["bird", "gold"] : []);
+    expect(
+      buildWantedCards(
+        [
+          wishList("list-1", "Wants", [
+            cardEntry({ id: "e-bird", cardId: "bird" }),
+            cardEntry({ id: "e-gold", cardId: "gold" }),
+          ]),
+        ],
+        [incomingTrade({ printingId: "pair", cardId: "bird" })],
+        sides,
+      ),
+    ).toEqual([]);
   });
 
   it("drops a wish a live trade fully covers", () => {

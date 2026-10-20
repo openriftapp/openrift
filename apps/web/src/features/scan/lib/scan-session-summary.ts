@@ -15,7 +15,7 @@ export interface ScanSessionSummaryData {
 
 interface ScanSummaryDeps {
   priceOf: (printingId: string) => number | undefined;
-  isWished: (cardId: string, printingId: string) => boolean;
+  isWished: (printing: Printing) => boolean;
   ownedBefore: ((printingId: string) => number) | null;
 }
 
@@ -40,7 +40,7 @@ export function computeScanSessionSummary(
     } else {
       totalValue += value * row.count;
     }
-    if (deps.isWished(row.printing.cardId, row.printing.printingId)) {
+    if (deps.isWished(row.printing)) {
       wishedCards += row.count;
     }
     if (deps.ownedBefore !== null && deps.ownedBefore(row.printing.printingId) === 0) {

@@ -1,4 +1,5 @@
 import { enumLabel } from "@openrift/shared/enum-label";
+import { printingOnSide } from "@openrift/shared/printing-side";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { notFound, getRouteApi } from "@tanstack/react-router";
 
@@ -15,9 +16,10 @@ const routeApi = getRouteApi("/_app/contribute_/card_/$cardSlug_/printing_/$prin
 
 export function ImageSuggestPage() {
   const { cardSlug, printingId } = routeApi.useParams();
+  const { side } = routeApi.useSearch();
   const { data } = useSuspenseQuery(cardDetailQueryOptions(cardSlug));
   const { labels } = useEnumOrders();
-  const printing = data.printings.find((p) => p.printingId === printingId);
+  const printing = printingOnSide(data.printings, printingId, side);
   if (!printing) {
     throw notFound();
   }

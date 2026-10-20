@@ -96,7 +96,7 @@ function digestRepos(): Repos {
       ],
     },
     catalog: {
-      cardsByIds: async () => [{ id: "card-1", name: "Jinx" }],
+      printingNamesByIds: async (ids: string[]) => new Map(ids.map((id) => [id, "Jinx"])),
     },
   } as unknown as Repos;
 }

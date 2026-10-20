@@ -55,6 +55,41 @@ describe("useCellDisplayState", () => {
     expect(result.current.isFlashing).toBe(true);
   });
 
+  it("leaves a second side unselected when its printing's first side is selected", () => {
+    const gold = stubPrinting({ printingId: "p-front", side: 2, cardId: "card-2" });
+    const { result } = renderHook(() =>
+      useCellDisplayState({
+        printing: gold,
+        itemId: "copy-1",
+        siblings: undefined,
+        scope: "cards",
+        inCardsView: false,
+      }),
+    );
+    act(() => {
+      useGridFocusStore.getState().setSelectedItemId("p-front");
+      useGridFocusStore.getState().setFlashCardId("p-front");
+    });
+    expect(result.current.isSelected).toBe(false);
+    expect(result.current.isFlashing).toBe(false);
+  });
+
+  it("swaps in the second side when a card is on both sides of one printing", () => {
+    const buff = stubPrinting({ printingId: "p-buff", side: 1, cardId: "card-buff" });
+    const buffBack = stubPrinting({ printingId: "p-buff", side: 2, cardId: "card-buff" });
+    useSiblingOverrideStore.getState().setOverride("cards", "card-buff", "p-buff:2");
+    const { result } = renderHook(() =>
+      useCellDisplayState({
+        printing: buff,
+        itemId: "p-buff",
+        siblings: [buff, buffBack],
+        scope: "cards",
+        inCardsView: true,
+      }),
+    );
+    expect(result.current.displayPrinting).toBe(buffBack);
+  });
+
   it("swaps in the overridden sibling for its own scope in the cards view", () => {
     useSiblingOverrideStore.getState().setOverride("list", "card-1", "p-sibling");
     const { result, rerender } = renderHook(

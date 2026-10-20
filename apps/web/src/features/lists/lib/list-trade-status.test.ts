@@ -28,11 +28,11 @@ const alphaOne = stubPrinting({ printingId: "printing-a1", cardId: "card-a" });
 const alphaTwo = stubPrinting({ printingId: "printing-a2", cardId: "card-a" });
 const beta = stubPrinting({ printingId: "printing-b1", cardId: "card-b" });
 
-const CATALOG: Record<string, Printing> = {
-  [alphaOne.printingId]: alphaOne,
-  [alphaTwo.printingId]: alphaTwo,
-  [beta.printingId]: beta,
-};
+const CATALOG = new Map<string, Printing[]>([
+  [alphaOne.printingId, [alphaOne]],
+  [alphaTwo.printingId, [alphaTwo]],
+  [beta.printingId, [beta]],
+]);
 
 function annotation(overrides: Partial<CardTradeLiveAnnotation> = {}): CardTradeLiveAnnotation {
   return {
@@ -85,6 +85,18 @@ function copyEntry(printingId: string, reserved: boolean): ListEntryDetailRespon
 }
 
 describe("buildListTradeIndex", () => {
+  it("files a double-sided printing's annotation under both of its cards", () => {
+    const bird = stubPrinting({ printingId: "pair", side: 1, cardId: "bird" });
+    const gold = stubPrinting({ printingId: "pair", side: 2, cardId: "gold" });
+    const index = buildListTradeIndex(
+      [annotation({ printingId: "pair" })],
+      new Map([["pair", [bird, gold]]]),
+      NO_TRADES,
+    );
+    expect(index.byCard.get("bird")).toHaveLength(1);
+    expect(index.byCard.get("gold")).toHaveLength(1);
+  });
+
   it("returns empty lookups for no annotations", () => {
     const index = buildListTradeIndex([], CATALOG, NO_TRADES);
     expect(index.byPrinting.size).toBe(0);

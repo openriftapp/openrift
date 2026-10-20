@@ -33,6 +33,7 @@ import { describeIncompleteList, unknownZoneCounts } from "@/features/meta/lib/m
 import { metaCardOwnershipBand } from "@/features/meta/lib/meta-deck-collection";
 import { deckRuneSplit, deckTypeSplit } from "@/features/meta/lib/meta-deck-composition";
 import { metaDeckCopyFields } from "@/features/meta/lib/meta-deck-copy";
+import { deckCardDetailKeys } from "@/features/meta/lib/meta-deck-side-keys";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useSignInSearch } from "@/hooks/use-sign-in-search";
@@ -67,17 +68,19 @@ function zoneCards(
 
 function StripCard({
   card,
+  detailKey,
   sequence,
   sideboard,
   band,
 }: {
   card: PublicDeckCardResponse;
+  detailKey: string | null;
   sequence: string[];
   sideboard?: boolean;
   band?: OwnershipBandSegments;
 }) {
   const openCardDetail = useOpenCardDetail();
-  const printingId = printingIdOf(card);
+  const printingId = detailKey;
   const label = card.quantity > 1 ? `${card.quantity}× ${card.cardName}` : card.cardName;
   const art = (
     <>
@@ -152,8 +155,11 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
     { key: "main", cards: main, sideboard: false },
     { key: "sideboard", cards: sideboard, sideboard: true },
   ].filter((group) => group.cards.length > 0);
+  const detailKeyOf = deckCardDetailKeys(data.catalog.printings);
+  const detailKeyFor = (card: PublicDeckCardResponse) =>
+    detailKeyOf({ cardId: card.cardId, printingId: printingIdOf(card) });
   const sequence = [...lead, ...main, ...sideboard]
-    .map((card) => printingIdOf(card))
+    .map((card) => detailKeyFor(card))
     .filter((id) => id !== null);
 
   const types = deckTypeSplit(data.cards);
@@ -193,6 +199,7 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
               <StripCard
                 key={card.cardId}
                 card={card}
+                detailKey={detailKeyFor(card)}
                 sequence={sequence}
                 sideboard={group.sideboard}
                 band={bandFor(card)}

@@ -15,6 +15,7 @@ export type CatalogCard = CatalogResponseCardValue & { id: string };
 export type CatalogPrinting = Omit<CatalogResponsePrintingValue, "side2"> & {
   printingId: string;
   side: 1 | 2;
+  otherSide?: { cardName: string; shortCode: string };
 };
 
 export interface EnumLabels extends VariantLabelEnumLabels, CardStatLabels {
@@ -47,11 +48,25 @@ export function buildSnapshot(
   for (const [printingId, { side2, ...printing }] of Object.entries(catalog.printings)) {
     const sides: CatalogPrinting[] = [{ ...printing, printingId, side: 1 }];
     if (side2 !== undefined) {
-      sides.push({ ...printing, ...side2, printingId, side: 2 });
+      // The fallback-art keys are omitted for `auto`, so side 2 must not inherit side 1's.
+      const { fallbackArtMode: _mode, fallbackImageId: _image, ...physical } = printing;
+      sides.push({ ...physical, ...side2, printingId, side: 2 });
+      const [front, back] = sides as [CatalogPrinting, CatalogPrinting];
+      front.otherSide = {
+        cardName: catalog.cards[back.cardId]?.name ?? "",
+        shortCode: back.shortCode,
+      };
+      back.otherSide = {
+        cardName: catalog.cards[front.cardId]?.name ?? "",
+        shortCode: front.shortCode,
+      };
     }
     for (const side of sides) {
       const list = printingsByCardId.get(side.cardId) ?? [];
-      list.push(side);
+      // A card on both sides is one printing of that card.
+      if (!list.some((listed) => listed.printingId === printingId)) {
+        list.push(side);
+      }
       printingsByCardId.set(side.cardId, list);
     }
   }

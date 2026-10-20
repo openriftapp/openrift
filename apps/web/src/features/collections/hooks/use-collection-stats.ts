@@ -1,4 +1,3 @@
-import { legendDisplayName } from "@openrift/shared/card-name";
 import {
   includes,
   matchesCustomTags,
@@ -30,6 +29,7 @@ import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-quer
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
 import { useStackedCopies } from "@/features/collections/hooks/use-stacked-copies";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
+import { stackCardName, stackSides } from "@/features/collections/lib/stacked-entry";
 import type {
   CompletionCountMode,
   CompletionGroupBy,
@@ -277,8 +277,10 @@ function buildOwned(
   if (countMode === "printings") {
     const ownedByKey = new Map<string, Set<string>>();
     for (const stack of stacks) {
-      for (const key of getGroupKey(stack.printing, groupBy)) {
-        getOrCreate(ownedByKey, key).add(stack.printingId);
+      for (const side of sidesOf(stack)) {
+        for (const key of getGroupKey(side, groupBy)) {
+          getOrCreate(ownedByKey, key).add(stack.printingId);
+        }
       }
     }
     return mapSetSize(ownedByKey);
@@ -332,9 +334,10 @@ function indexCardsBySlug(
 ): Map<string, { types: CardType[]; keywords: string[] }> {
   const bySlug = new Map<string, { types: CardType[]; keywords: string[] }>();
   for (const stack of stacks) {
-    const { card } = stack.printing;
-    if (!bySlug.has(card.slug)) {
-      bySlug.set(card.slug, { types: card.types, keywords: card.keywords });
+    for (const { card } of stackSides(stack)) {
+      if (!bySlug.has(card.slug)) {
+        bySlug.set(card.slug, { types: card.types, keywords: card.keywords });
+      }
     }
   }
   return bySlug;
@@ -363,7 +366,9 @@ export function computeCollectionStats(input: ComputeInput): Omit<CollectionStat
   const pricedStacks: { stack: StackedEntry; price: number }[] = [];
 
   for (const stack of stacks) {
-    uniqueCardSlugs.add(stack.printing.card.slug);
+    for (const side of stackSides(stack)) {
+      uniqueCardSlugs.add(side.card.slug);
+    }
     uniquePrintingIds.add(stack.printingId);
     const price = prices.get(stack.printingId, marketplace);
     if (price === undefined) {
@@ -382,7 +387,7 @@ export function computeCollectionStats(input: ComputeInput): Omit<CollectionStat
     .map(({ stack, price }) => {
       const { imageId: firstImageId, landscape } = printingArt(stack.printing);
       return {
-        name: legendDisplayName(stack.printing.card),
+        name: stackCardName(stack),
         printingId: stack.printingId,
         price,
         setSlug: stack.printing.setSlug,
@@ -684,7 +689,9 @@ export function filterStacksByScope(
     return stacks;
   }
   return stacks.filter((stack) =>
-    matchesScope(stack.printing, scope, customTagAssignments?.[stack.printing.cardId]),
+    stackSides(stack).some((side) =>
+      matchesScope(side, scope, customTagAssignments?.[side.cardId]),
+    ),
   );
 }
 

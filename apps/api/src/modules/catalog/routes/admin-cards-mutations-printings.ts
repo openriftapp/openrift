@@ -52,9 +52,11 @@ export const adminCardMutationsPrintingsRouter = {
 
   acceptPrintingField: os.acceptPrintingField.handler(async ({ input, context }): Promise<void> => {
     const { catalogMutations: mut } = context.repos;
-    const { printingId, field, value, source } = input;
+    const { printingId, field, value, source, faceId } = input;
+    const side = faceId === undefined ? input.side : await mut.sideOfFace(printingId, faceId);
+    assertFound(side, "That side is not on the printing");
 
-    const printingBefore = await mut.getFullPrintingById(printingId);
+    const printingBefore = await mut.getFullPrintingById(printingId, side);
     assertFound(printingBefore, "Printing not found");
 
     const scope = await reviewableProviderScope(
@@ -73,6 +75,7 @@ export const adminCardMutationsPrintingsRouter = {
       field,
       value,
       source,
+      side,
     });
 
     // Audit snapshot: distributionChannelSlugs lives only in a junction table
@@ -95,6 +98,7 @@ export const adminCardMutationsPrintingsRouter = {
       printingId,
       field,
       value: normalizedValue,
+      side,
     });
 
     await auditEvent(auditValue);

@@ -131,14 +131,6 @@ export function canonicalPrintingsRepo(db: Kysely<Database>) {
       });
     },
 
-    /**
-     * Resolves the printing metadata (id, short code, image id) for each deck
-     * row: the preferred printing when set, otherwise the card's canonical
-     * default. `imageId` is null when the resolved printing has no active
-     * front image; the whole row is all nulls except the input pair when
-     * neither a preferred nor a canonical printing exists. One entry per
-     * input row, in input order.
-     */
     async faceImageId(faceId: string): Promise<string | null> {
       const row = await joinFaceImage(db.selectFrom("faces as f"), "f.id")
         .select(imageId("imgf").as("imageId"))

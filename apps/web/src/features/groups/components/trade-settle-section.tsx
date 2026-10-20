@@ -1,5 +1,6 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
+import { sideKey } from "@openrift/shared/printing-side";
 import type {
   CardTradeCopyOptionsResponse,
   CardTradeResponse,
@@ -23,7 +24,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetailNameButton } from "@/features/cards/components/card-detail-opener";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { frontImageId } from "@/features/cards/lib/card-meta";
+import { frontImageId, printingDisplayName } from "@/features/cards/lib/card-meta";
 import { TradeAddTargetDialog } from "@/features/groups/components/trade-add-target-dialog";
 import { TradeSettleCopyPickerDialog } from "@/features/groups/components/trade-copy-picker-dialog";
 import { TradeRow } from "@/features/groups/components/trade-row";
@@ -37,6 +38,7 @@ import {
   useApplyTradeSync,
 } from "@/features/groups/hooks/use-card-trades";
 import { useTradeAddTarget } from "@/features/groups/hooks/use-trade-add-target";
+import { tradePrinting, tradeSideKey } from "@/features/groups/lib/trade-printing";
 import type {
   PendingSettleChoice,
   SettleBatchResult,
@@ -70,14 +72,16 @@ function TallyRow({
   sequence?: string[];
   disabled: boolean;
 }) {
-  const { cardsById, printingsById } = useCards();
+  const { cardsById, printingsById, printingsByCardId } = useCards();
   const { labels } = useEnumOrders();
   const counts = useTradeTallyStore((state) => state.counts);
   const setCount = useTradeTallyStore((state) => state.setCount);
 
   const card = cardsById[trade.cardId];
-  const printing = printingsById[trade.printingId];
-  const cardName = card?.name ?? m.trades_card_fallback();
+  const printing = tradePrinting(trade, printingsByCardId, printingsById);
+  const cardName = printing
+    ? printingDisplayName(printing)
+    : (card?.name ?? m.trades_card_fallback());
   const count = talliedCount(counts, trade.id, trade.quantity);
 
   return (
@@ -97,7 +101,7 @@ function TallyRow({
         <div className="flex min-w-0 items-baseline gap-1.5">
           {/* The quantity rides inside the button: a nested inline-block clips without an ellipsis. */}
           <CardDetailNameButton
-            printingId={printing?.printingId}
+            printingId={printing ? sideKey(printing) : undefined}
             sequence={sequence}
             className="min-w-0 truncate font-medium"
           >
@@ -166,7 +170,11 @@ function CommitSummary({
 export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) {
   const userId = useRequiredUserId();
   const queryClient = useQueryClient();
-  const { cardsById } = useCards();
+  const { cardsById, printingsById, printingsByCardId } = useCards();
+  const tradeDisplayName = (trade: { cardId: string; printingId: string }) => {
+    const printing = tradePrinting(trade, printingsByCardId, printingsById);
+    return printing ? printingDisplayName(printing) : cardsById[trade.cardId]?.name;
+  };
   const applySync = useApplyTradeSync();
   const target = useTradeAddTarget();
   const counts = useTradeTallyStore((state) => state.counts);
@@ -177,7 +185,9 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
   const [targetOpen, setTargetOpen] = useState(false);
   const [pendingChoices, setPendingChoices] = useState<PendingSettleChoice[]>([]);
 
-  const sequence = stepSequence(trades);
+  const sequence = stepSequence(trades, (trade) =>
+    tradeSideKey(trade, printingsByCardId, printingsById),
+  );
   const hasSavedCount = trades.some((trade) => counts[trade.id] !== undefined);
   const steps: SettleStep[] = trades.flatMap((trade) => {
     const quantity = talliedCount(counts, trade.id, trade.quantity);
@@ -354,7 +364,7 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
               setPendingChoices((rest) => rest.slice(1));
             },
           }}
-          cardName={cardsById[choice.trade.cardId]?.name ?? m.trades_this_card()}
+          cardName={tradeDisplayName(choice.trade) ?? m.trades_this_card()}
         />
       )}
     </section>

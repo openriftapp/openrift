@@ -68,6 +68,37 @@ describe("buildWishMembership", () => {
     });
   });
 
+  it("meets a wish for either card of a double-sided copy", () => {
+    const entry = (id: string, cardId: string) => ({
+      id,
+      listId: "list-1",
+      quantity: 1,
+      tradeOverride: EMPTY_PREF,
+      ruleQuantity: 0,
+      source: "manual" as const,
+      kind: "card" as const,
+      cardId,
+      cardName: cardId,
+    });
+    const membership = buildWishMembership([
+      wishList("list-1", "Wants", "card", [entry("e-bird", "bird"), entry("e-gold", "gold")]),
+    ]);
+    const bird = {
+      cardId: "bird",
+      printingId: "pair",
+      otherSide: {
+        faceId: "f",
+        cardId: "gold",
+        cardName: "Gold",
+        cardSlug: "gold",
+        shortCode: "T-05",
+      },
+    };
+
+    expect(membership.entriesForCopy(bird).map((e) => e.entryId)).toEqual(["e-bird", "e-gold"]);
+    expect(membership.entriesForCopy({ ...bird, otherSide: undefined })).toHaveLength(1);
+  });
+
   it("matches a printing-kind wish only against the exact printing", () => {
     const membership = buildWishMembership([
       wishList("list-2", "Foils", "printing", [

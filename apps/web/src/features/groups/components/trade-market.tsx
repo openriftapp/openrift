@@ -40,6 +40,7 @@ import {
   marketPeople,
   sortByValue,
 } from "@/features/groups/lib/trade-market";
+import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
 import { wantedMatchesPrinting } from "@/features/groups/lib/wanted-cards";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
@@ -91,7 +92,12 @@ function EmptyTab({ tab, searching }: { tab: MarketTab; searching: boolean }) {
 }
 
 type MarketPick =
-  | { kind: "market"; direction: TradeMarketCard["direction"]; printingId: string }
+  | {
+      kind: "market";
+      direction: TradeMarketCard["direction"];
+      printingId: string;
+      cardId: string;
+    }
   | Extract<TradeMarketSelection, { kind: "wanted" }>;
 
 function BuyAllCallout({
@@ -139,8 +145,8 @@ export function TradeMarket() {
     const value = prices.get(printingId, "cardtrader");
     return value === undefined ? null : formatPrice(value);
   };
-  const nameOf = (printingId: string): string => {
-    const printing = printingsById[printingId];
+  const nameOf = (ref: { cardId: string; printingId: string }): string => {
+    const printing = tradePrinting(ref, printingsByCardId, printingsById);
     return printing === undefined ? "" : legendDisplayName(printing.card);
   };
 
@@ -183,25 +189,30 @@ export function TradeMarket() {
       !market.incoming.some((card) => wantedMatchesPrinting(item, card.cardId, card.printingId)),
   );
 
-  const matchesQuery = (printingId: string | undefined) =>
-    query.trim().length === 0 || matchesCardQuery(query, [printingId ? nameOf(printingId) : ""]);
-  const byValue = <T,>(items: readonly T[], printingOf: (item: T) => string | undefined) =>
+  type PrintingRef = { cardId: string; printingId: string } | undefined;
+  const matchesQuery = (ref: PrintingRef) =>
+    query.trim().length === 0 || matchesCardQuery(query, [ref ? nameOf(ref) : ""]);
+  const byValue = <T,>(items: readonly T[], refOf: (item: T) => PrintingRef) =>
     sortByValue(
-      items.filter((item) => matchesQuery(printingOf(item))),
+      items.filter((item) => matchesQuery(refOf(item))),
       (item) => {
-        const printingId = printingOf(item);
-        return printingId === undefined
+        const ref = refOf(item);
+        return ref === undefined
           ? undefined
-          : prices.get(printingId, display.favoriteMarketplace);
+          : prices.get(ref.printingId, display.favoriteMarketplace);
       },
       (item) => {
-        const printingId = printingOf(item);
-        return printingId === undefined ? "" : nameOf(printingId);
+        const ref = refOf(item);
+        return ref === undefined ? "" : nameOf(ref);
       },
     );
+  const wantedRef = (item: WantedCard): PrintingRef => {
+    const printingId = shownPrintingId(item);
+    return printingId === undefined ? undefined : { cardId: item.cardId, printingId };
+  };
 
-  const marketCards = byValue(tab === "give" ? outgoing : incoming, (card) => card.printingId);
-  const buyCards = byValue(buyable, shownPrintingId);
+  const marketCards = byValue(tab === "give" ? outgoing : incoming, (card) => card);
+  const buyCards = byValue(buyable, wantedRef);
   const buyItems = buyCards.flatMap((item): BuyCartItem[] => {
     const cartItem = cartItemForWanted(item, shownPrintingId(item));
     return cartItem === null ? [] : [cartItem];
@@ -211,7 +222,7 @@ export function TradeMarket() {
   const pickedCard =
     picked?.kind === "market"
       ? (picked.direction === "incoming" ? incoming : outgoing).find(
-          (card) => card.printingId === picked.printingId,
+          (card) => card.printingId === picked.printingId && card.cardId === picked.cardId,
         )
       : undefined;
   const selection: TradeMarketSelection | null =
@@ -305,9 +316,11 @@ export function TradeMarket() {
                 )}
                 <div className={GRID}>
                   {buyCards.map((item) => {
-                    const printingId = shownPrintingId(item);
+                    const ref = wantedRef(item);
                     const printing =
-                      printingId === undefined ? undefined : printingsById[printingId];
+                      ref === undefined
+                        ? undefined
+                        : tradePrinting(ref, printingsByCardId, printingsById);
                     if (printing === undefined) {
                       return null;
                     }
@@ -351,13 +364,13 @@ export function TradeMarket() {
           ) : (
             <div className={GRID}>
               {marketCards.map((card) => {
-                const printing = printingsById[card.printingId];
+                const printing = tradePrinting(card, printingsByCardId, printingsById);
                 if (printing === undefined) {
                   return null;
                 }
                 return (
                   <CardThumbnail
-                    key={`${card.direction}:${card.printingId}`}
+                    key={`${card.direction}:${card.printingId}:${card.cardId}`}
                     printing={printing}
                     showImages={showImages}
                     display={display}
@@ -366,6 +379,7 @@ export function TradeMarket() {
                     selected={
                       picked?.kind === "market" &&
                       picked.printingId === card.printingId &&
+                      picked.cardId === card.cardId &&
                       picked.direction === card.direction
                     }
                     onClick={() =>
@@ -373,6 +387,7 @@ export function TradeMarket() {
                         kind: "market",
                         direction: card.direction,
                         printingId: card.printingId,
+                        cardId: card.cardId,
                       })
                     }
                     belowLabel={

@@ -89,13 +89,16 @@ const ensurePrintingImageOriginalFn = createServerFn({ method: "POST" })
   );
 
 const addImageFromUrlFn = createServerFn({ method: "POST" })
-  .validator((input: { printingId: string; url: string; mode?: string }) => input)
+  .validator(
+    (input: { printingId: string; url: string; mode?: string; face?: "front" | "back" }) => input,
+  )
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminCardImagesContract, context.cookie).addImageUrl({
       printingId: data.printingId,
       url: data.url,
       mode: data.mode as "main" | "additional" | undefined,
+      face: data.face,
     });
   });
 
@@ -111,8 +114,12 @@ const setCandidatePrintingImageFn = createServerFn({ method: "POST" })
 
 const setFallbackArtFn = createServerFn({ method: "POST" })
   .validator(
-    (input: { printingId: string; mode: "auto" | "pinned" | "none"; imageFileId?: string }) =>
-      input,
+    (input: {
+      printingId: string;
+      mode: "auto" | "pinned" | "none";
+      imageFileId?: string;
+      face?: "front" | "back";
+    }) => input,
   )
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
@@ -120,7 +127,7 @@ const setFallbackArtFn = createServerFn({ method: "POST" })
   });
 
 const addFallbackArtUrlFn = createServerFn({ method: "POST" })
-  .validator((input: { printingId: string; url: string }) => input)
+  .validator((input: { printingId: string; url: string; face?: "front" | "back" }) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminCardImagesContract, context.cookie).addFallbackArtUrl(data);
@@ -128,8 +135,13 @@ const addFallbackArtUrlFn = createServerFn({ method: "POST" })
 
 const uploadFallbackArtFn = createServerFn({ method: "POST" })
   .validator(
-    (input: { printingId: string; fileName: string; fileType: string; fileBase64: string }) =>
-      input,
+    (input: {
+      printingId: string;
+      fileName: string;
+      fileType: string;
+      fileBase64: string;
+      face?: "front" | "back";
+    }) => input,
   )
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
@@ -137,6 +149,9 @@ const uploadFallbackArtFn = createServerFn({ method: "POST" })
     const blob = new Blob([fileBytes], { type: data.fileType });
     const formData = new FormData();
     formData.append("file", blob, data.fileName);
+    if (data.face) {
+      formData.append("face", data.face);
+    }
     // FormData body — can't use fetchApi helper (it JSON.stringify's bodies).
     const res = await fetch(
       `${getApiUrl()}/api/admin/v1/cards/printing/${encodeURIComponent(data.printingId)}/fallback-art/upload`,
@@ -242,6 +257,7 @@ export function useAddImageFromUrl(invalidates: Scope = defaultScope) {
       printingId: string;
       url: string;
       mode?: "main" | "additional";
+      face?: "front" | "back";
     }) => addImageFromUrlFn({ data: { printingId, ...body } }),
     invalidates,
   });
@@ -355,6 +371,7 @@ export function useSetFallbackArt(invalidates: Scope = defaultScope) {
       printingId: string;
       mode: "auto" | "pinned" | "none";
       imageFileId?: string;
+      face?: "front" | "back";
     }) => {
       await setFallbackArtFn({ data: input });
     },
@@ -364,7 +381,7 @@ export function useSetFallbackArt(invalidates: Scope = defaultScope) {
 
 export function useAddFallbackArtUrl(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async (input: { printingId: string; url: string }) => {
+    mutationFn: async (input: { printingId: string; url: string; face?: "front" | "back" }) => {
       await addFallbackArtUrlFn({ data: input });
     },
     invalidates,
@@ -373,10 +390,19 @@ export function useAddFallbackArtUrl(invalidates: Scope = defaultScope) {
 
 export function useUploadFallbackArt(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
-    mutationFn: async ({ printingId, file }: { printingId: string; file: File }) =>
+    mutationFn: async ({
+      printingId,
+      file,
+      face,
+    }: {
+      printingId: string;
+      file: File;
+      face?: "front" | "back";
+    }) =>
       uploadFallbackArtFn({
         data: {
           printingId,
+          face,
           fileName: file.name,
           fileType: file.type,
           fileBase64: await toBase64(file),

@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Suspense, lazy, useState } from "react";
 
@@ -65,7 +66,8 @@ function CardDetailOverlayContent({
   historyKey,
   allowCollectionEdits = false,
 }: CardDetailOverlayProps) {
-  const { printingsById, printingsByCardId } = useCards();
+  // Ids are side keys, so a card shown only as a second side opens on that side.
+  const { printingsBySideKey, printingsByCardId } = useCards();
   const { inbox, canAdd, addCopy, removeCopy, wish, setWishTarget, hosts } =
     useCardDetailActionHost({ printingsByCardId, enabled: allowCollectionEdits });
   const isMobile = useIsMobile();
@@ -75,13 +77,13 @@ function CardDetailOverlayContent({
   const [picked, setPicked] = useState<{ forPrintingId: string; printing: Printing } | null>(null);
 
   const items: CardViewerItem[] = printingIds.flatMap((id) => {
-    const printing = printingsById[id];
+    const printing = printingsBySideKey[id];
     return printing ? [{ id, printing }] : [];
   });
 
   const selectedIndex = items.findIndex((item) => item.id === openPrintingId);
   const pickedPrinting = picked?.forPrintingId === openPrintingId ? picked.printing : undefined;
-  const rowPrinting = openPrintingId === null ? undefined : printingsById[openPrintingId];
+  const rowPrinting = openPrintingId === null ? undefined : printingsBySideKey[openPrintingId];
   const selectedCard = pickedPrinting ?? rowPrinting ?? null;
 
   const handleClose = () => {
@@ -114,7 +116,7 @@ function CardDetailOverlayContent({
     },
     navigateToIndex: (_index, printing) => {
       setPicked(null);
-      onOpenPrintingIdChange(printing.printingId);
+      onOpenPrintingIdChange(sideKey(printing));
     },
   });
 

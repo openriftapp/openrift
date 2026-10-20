@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 import type { Database } from "../../../db/tables.js";
 import { gravatarHashForEmail } from "../../../lib/gravatar.js";
 import type { ListRuleProviders } from "../../lists/repositories/lists-rules.js";
+import { wantedCardPerWanter } from "./friend-group-matches-view.js";
 import { friendGroupMatchesRepo } from "./friend-group-matches.js";
 
 // The matcher expands at the app level, not in a single SQL join. This fake
@@ -227,7 +228,9 @@ function userRow(overrides: Record<string, unknown> = {}): Record<string, unknow
 
 function printingRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
+    printingId: overrides.id ?? "prt-1",
     id: "prt-1",
+    cardId: "crd-1",
     name: "Annie, Fiery",
     types: ["unit"],
     tags: [],
@@ -248,7 +251,7 @@ function baselineQueues(overrides: { reserved?: boolean; copy?: Record<string, u
     listEntries: [[supplyEntry()], [demandEntry({ quantity: 2 })]],
     copies: [[copyRow({ reserved: overrides.reserved ?? false, ...overrides.copy })]],
     users: [[userRow()]],
-    printings: [[printingRow()]],
+    printingSidesOrdered: [[printingRow()]],
   };
 }
 
@@ -325,6 +328,18 @@ describe("friendGroupMatchesRepo (ADR-034 app-level matcher)", () => {
     const rows = await repo.othersHaveYourWants({ groupId: "g", viewerUserId: "viewer" });
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ cardId: "crd-1", printingId: "prt-1" });
+  });
+
+  it("lists a double-sided copy once when the member wants both of its cards", async () => {
+    const queues = baselineQueues({ copy: { cardId: "crd-bird", cardIds: ["crd-bird", "crd-1"] } });
+    queues.listEntries[1] = [
+      demandEntry({ id: "e-w1", cardId: "crd-bird" }),
+      demandEntry({ id: "e-w2", cardId: "crd-1" }),
+    ];
+    const repo = friendGroupMatchesRepo(makeDb(queues), PROVIDERS);
+    const rows = await repo.othersHaveYourWants({ groupId: "g", viewerUserId: "viewer" });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ cardId: "crd-bird", printingId: "prt-1" });
   });
 
   it("never matches the viewer with themselves", async () => {
@@ -464,7 +479,7 @@ describe("friendGroupMatchesRepo — pending-offer claims", () => {
       ],
       copies: [[copyRow(), copyRow({ id: "cp-2" })]],
       users: [[userRow()]],
-      printings: [[printingRow()]],
+      printingSidesOrdered: [[printingRow()]],
       cardTrades: [[]] as Rows[],
     };
   }
@@ -581,7 +596,7 @@ describe("friendGroupMatchesRepo — sorting and counterparty scoping", () => {
           userRow({ id: "bob", name: "Bob", email: "bob@x.com" }),
         ],
       ],
-      printings: [
+      printingSidesOrdered: [
         [
           printingRow({ id: "prt-beta", name: "Beta" }),
           printingRow({ id: "prt-alpha-a", name: "Alpha" }),
@@ -717,7 +732,7 @@ describe("friendGroupMatchesRepo — recentIncomingMatchesForFeed", () => {
       copyRow({ id: "cp-a", printingId: "prt-a", cardId: "crd-a" }),
       copyRow({ id: "cp-b", printingId: "prt-b", cardId: "crd-b" }),
     ];
-    queues.printings[0] = [
+    queues.printingSidesOrdered[0] = [
       printingRow({ id: "prt-a", name: "Alpha" }),
       printingRow({ id: "prt-b", name: "Beta" }),
     ];
@@ -747,7 +762,7 @@ describe("friendGroupMatchesRepo — recentIncomingMatchesForFeed", () => {
       copyRow({ id: "cp-2", printingId: "prt-2", cardId: "crd-2" }),
       copyRow({ id: "cp-3", printingId: "prt-3", cardId: "crd-3" }),
     ];
-    queues.printings[0] = [
+    queues.printingSidesOrdered[0] = [
       printingRow({ id: "prt-1", name: "One" }),
       printingRow({ id: "prt-2", name: "Two" }),
       printingRow({ id: "prt-3", name: "Three" }),
@@ -785,7 +800,7 @@ describe("friendGroupMatchesRepo — dynamic rules (ADR-034)", () => {
       listEntries: [[supplyEntry({ id: "e-t", copyId: "cp-1" })], []],
       copies: [[copyRow({ id: "cp-1", printingId: "prt-1", cardId: "crd-1" })]],
       users: [[userRow({ id: "seller", name: "Alice", email: "a@x.com" })]],
-      printings: [[printingRow({ id: "prt-1", name: "Annie, Fiery" })]],
+      printingSidesOrdered: [[printingRow({ id: "prt-1", name: "Annie, Fiery" })]],
     };
     const providers = providersWith({ catalog: [makeCatalogPrinting("prt-1", "crd-1")] });
     const repo = friendGroupMatchesRepo(makeDb(queues), providers);
@@ -796,6 +811,71 @@ describe("friendGroupMatchesRepo — dynamic rules (ADR-034)", () => {
       cardId: "crd-1",
       sellEntryId: "e-t",
       buyEntryId: null, // rule-derived demand has no list_entries row
+    });
+  });
+
+  it("lets a filtered-out want for one card leave a double-sided copy to the other card's want", async () => {
+    const queues = {
+      friendGroupListShares: [
+        [tradeShare({ ownerUserId: "seller" })],
+        [
+          wishShare({
+            ownerUserId: "viewer",
+            rules: [
+              {
+                kind: "wish",
+                filter: filters({ finishesExclude: ["foil"] }),
+                quantity: { mode: "fixed", n: 1 },
+                excludeIds: [],
+              },
+            ],
+          }),
+        ],
+      ],
+      listEntries: [
+        [supplyEntry({ id: "e-t", copyId: "cp-1" })],
+        [demandEntry({ id: "e-gold", cardId: "crd-1" })],
+      ],
+      copies: [
+        [
+          copyRow({
+            id: "cp-1",
+            printingId: "prt-1",
+            cardId: "crd-bird",
+            cardIds: ["crd-bird", "crd-1"],
+          }),
+        ],
+      ],
+      users: [[userRow({ id: "seller", name: "Alice", email: "a@x.com" })]],
+      printingSidesOrdered: [
+        [
+          printingRow({ id: "prt-1", cardId: "crd-bird", name: "Bird", imageId: "img-bird" }),
+          printingRow({
+            id: "prt-1",
+            cardId: "crd-1",
+            name: "Gold",
+            imageId: "img-gold",
+            rarity: "rare",
+          }),
+        ],
+      ],
+    };
+    const providers = providersWith({
+      catalog: [
+        makeCatalogPrinting("prt-x", "crd-bird"),
+        { ...makeCatalogPrinting("prt-1", "crd-bird"), finish: "foil" },
+        { ...makeCatalogPrinting("prt-1", "crd-1"), side: 2, finish: "foil" },
+      ],
+    });
+    const repo = friendGroupMatchesRepo(makeDb(queues), providers);
+    const rows = await repo.othersHaveYourWants({ groupId: "g", viewerUserId: "viewer" });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      cardId: "crd-1",
+      buyEntryId: "e-gold",
+      cardName: "Gold",
+      imageId: "img-gold",
+      rarity: "rare",
     });
   });
 
@@ -828,7 +908,7 @@ describe("friendGroupMatchesRepo — dynamic rules (ADR-034)", () => {
         ],
       ],
       users: [[userRow({ id: "seller", name: "Alice", email: "a@x.com" })]],
-      printings: [[printingRow({ id: "prt-1", name: "Annie, Fiery" })]],
+      printingSidesOrdered: [[printingRow({ id: "prt-1", name: "Annie, Fiery" })]],
     };
     const providers = providersWith({
       catalog: [makeCatalogPrinting("prt-1", "crd-1")],
@@ -893,7 +973,7 @@ describe("friendGroupMatchesRepo — dynamic rules (ADR-034)", () => {
         ],
       ],
       users: [[userRow({ id: "seller", name: "Alice", email: "a@x.com" })]],
-      printings: [
+      printingSidesOrdered: [
         [
           printingRow({ id: "prt-1", name: "Annie, Fiery" }),
           printingRow({ id: "prt-2", name: "Braum, Steadfast" }),
@@ -956,7 +1036,7 @@ describe("friendGroupMatchesRepo — dynamic rules (ADR-034)", () => {
         ],
       ],
       users: [[userRow({ id: "seller", name: "Alice", email: "a@x.com" })]],
-      printings: [
+      printingSidesOrdered: [
         [printingRow({ id: "prt-1", name: "Annie" }), printingRow({ id: "prt-2", name: "Lux" })],
       ],
     };
@@ -1009,7 +1089,7 @@ describe("friendGroupMatchesRepo — dynamic rules (ADR-034)", () => {
         ],
       ],
       users: [[userRow({ id: "seller", name: "Alice", email: "a@x.com" })]],
-      printings: [
+      printingSidesOrdered: [
         [
           printingRow({ id: "prt-1", name: "Annie, Fiery" }),
           printingRow({ id: "prt-2", name: "Annie, Fiery" }),
@@ -1050,7 +1130,7 @@ describe("friendGroupMatchesRepo — dynamic rules (ADR-034)", () => {
       listEntries: [[supplyEntry({ id: "e-s1", copyId: "cp-1" })], []],
       copies: [[copyRow({ id: "cp-1", printingId: "prt-1", cardId: "crd-1" })]],
       users: [[userRow({ id: "seller", name: "Alice", email: "a@x.com" })]],
-      printings: [[printingRow({ id: "prt-1", name: "Annie, Fiery" })]],
+      printingSidesOrdered: [[printingRow({ id: "prt-1", name: "Annie, Fiery" })]],
     };
     const providers = providersWith({
       catalog: [
@@ -1104,7 +1184,7 @@ describe("friendGroupMatchesRepo — dynamic rules (ADR-034)", () => {
         ],
       ],
       users: [[userRow({ id: "seller", name: "Alice", email: "a@x.com" })]],
-      printings: [
+      printingSidesOrdered: [
         [printingRow({ id: "prt-1", name: "Annie" }), printingRow({ id: "prt-2", name: "Lux" })],
       ],
     };
@@ -1145,7 +1225,7 @@ describe("friendGroupMatchesRepo — dynamic rules (ADR-034)", () => {
         ],
       ],
       users: [[userRow({ id: "seller", name: "Alice", email: "a@x.com" })]],
-      printings: [[printingRow({ id: "prt-1", name: "Annie" })]],
+      printingSidesOrdered: [[printingRow({ id: "prt-1", name: "Annie" })]],
     };
     const providers = providersWith({
       catalog: [makeCatalogPrinting("prt-1", "crd-1")],
@@ -1196,7 +1276,7 @@ describe("friendGroupMatchesRepo — dynamic rules (ADR-034)", () => {
       ],
       copies: [[copyRow({ id: "cp-s1", printingId: "prt-1", cardId: "crd-1" })]],
       users: [[userRow({ id: "seller", name: "Alice", email: "a@x.com" })]],
-      printings: [[printingRow({ id: "prt-1", name: "Annie" })]],
+      printingSidesOrdered: [[printingRow({ id: "prt-1", name: "Annie" })]],
     };
     const providers = providersWith({ catalog: [makeCatalogPrinting("prt-1", "crd-1")] });
     const repo = friendGroupMatchesRepo(makeDb(queues), providers);
@@ -1386,3 +1466,24 @@ const _typecheckRules: ListRule[] = [
   },
 ];
 void _typecheckRules;
+
+describe("wantedCardPerWanter", () => {
+  const want = (ownerUserId: string, cardId: string, buyQuantity: number) => ({
+    kind: "card",
+    cardId,
+    ownerUserId,
+    buyQuantity,
+  });
+
+  it("matches a pair copy under the card the member wants more of", () => {
+    expect(
+      wantedCardPerWanter([want("u-1", "bird", 1), want("u-1", "gold", 3)], "bird").get("u-1"),
+    ).toBe("gold");
+  });
+
+  it("breaks a tie toward the first side's card", () => {
+    expect(
+      wantedCardPerWanter([want("u-1", "gold", 2), want("u-1", "bird", 2)], "bird").get("u-1"),
+    ).toBe("bird");
+  });
+});

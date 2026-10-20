@@ -129,6 +129,21 @@ describe("buildTradeMarket", () => {
     expect(market.incoming.map((card) => card.printingId)).toEqual(["printing-1", "printing-2"]);
   });
 
+  it("gives a double-sided printing a card per side it was matched for", () => {
+    const market = buildTradeMarket(
+      [
+        stubGroup({
+          incoming: [
+            stubRow({ printingId: "pair", cardId: "bird" }),
+            stubRow({ printingId: "pair", cardId: "gold", copyId: "copy-2" }),
+          ],
+        }),
+      ],
+      [],
+    );
+    expect(market.incoming.map((card) => card.cardId)).toEqual(["bird", "gold"]);
+  });
+
   it("drops rows a live trade already covers", () => {
     const market = buildTradeMarket([stubGroup({ incoming: [stubRow()] })], [stubLiveTrade()]);
     expect(market.incoming).toEqual([]);

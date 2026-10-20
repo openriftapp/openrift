@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { ListEntryDetailResponse, ListKind } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
 
@@ -37,26 +38,30 @@ export function collectListPrintings(
   entries: readonly ListEntryDetailResponse[],
   printingsById: Record<string, Printing>,
   printingsByCardId: ReadonlyMap<string, Printing[]>,
+  sidesByPrinting: ReadonlyMap<string, readonly Printing[]> = new Map(),
 ): {
   listPrintings: Printing[];
-  entriesByPrintingId: Map<string, ListEntryDetailResponse[]>;
+  entriesBySideKey: Map<string, ListEntryDetailResponse[]>;
 } {
   const listPrintings: Printing[] = [];
-  const entriesByPrintingId = new Map<string, ListEntryDetailResponse[]>();
+  const entriesBySideKey = new Map<string, ListEntryDetailResponse[]>();
   for (const entry of entries) {
     const printing = resolveEntryPrinting(entry, printingsById, printingsByCardId);
     if (!printing) {
       continue;
     }
-    const existing = entriesByPrintingId.get(printing.printingId);
-    if (existing) {
-      existing.push(entry);
-      continue;
+    const sides = entry.kind === "card" ? undefined : sidesByPrinting.get(printing.printingId);
+    for (const side of sides && sides.length > 1 ? sides : [printing]) {
+      const existing = entriesBySideKey.get(sideKey(side));
+      if (existing) {
+        existing.push(entry);
+      } else {
+        listPrintings.push(side);
+        entriesBySideKey.set(sideKey(side), [entry]);
+      }
     }
-    listPrintings.push(printing);
-    entriesByPrintingId.set(printing.printingId, [entry]);
   }
-  return { listPrintings, entriesByPrintingId };
+  return { listPrintings, entriesBySideKey };
 }
 
 export function resolveEntryPrinting(
@@ -78,7 +83,7 @@ export function resolveEntryPrinting(
 export function buildItems(
   view: "cards" | "printings" | "copies",
   sortedCards: Printing[],
-  entriesByPrintingId: Map<string, ListEntryDetailResponse[]>,
+  entriesBySideKey: Map<string, ListEntryDetailResponse[]>,
 ): {
   items: CardViewerItem[];
   entryByItemId: Map<string, ListEntryDetailResponse>;
@@ -86,8 +91,13 @@ export function buildItems(
   const items: CardViewerItem[] = [];
   const entryByItemId = new Map<string, ListEntryDetailResponse>();
   if (view === "copies") {
+    const seenPrintings = new Set<string>();
     for (const printing of sortedCards) {
-      const entriesForPrinting = entriesByPrintingId.get(printing.printingId) ?? [];
+      if (seenPrintings.has(printing.printingId)) {
+        continue;
+      }
+      seenPrintings.add(printing.printingId);
+      const entriesForPrinting = entriesBySideKey.get(sideKey(printing)) ?? [];
       for (const entry of entriesForPrinting) {
         // Rule-derived copy entries have no entry id, so fall back to the copyId.
         const itemId = entry.id ?? (entry.kind === "copy" ? entry.copyId : printing.printingId);
@@ -98,10 +108,10 @@ export function buildItems(
     return { items, entryByItemId };
   }
   for (const printing of sortedCards) {
-    const first = entriesByPrintingId.get(printing.printingId)?.[0];
-    items.push({ id: printing.printingId, printing });
+    const first = entriesBySideKey.get(sideKey(printing))?.[0];
+    items.push({ id: sideKey(printing), printing });
     if (first) {
-      entryByItemId.set(printing.printingId, first);
+      entryByItemId.set(sideKey(printing), first);
     }
   }
   return { items, entryByItemId };
@@ -112,7 +122,7 @@ export function buildItemsFromCatalog(sortedCards: Printing[]): {
   entryByItemId: Map<string, ListEntryDetailResponse>;
 } {
   const items: CardViewerItem[] = sortedCards.map((printing) => ({
-    id: printing.printingId,
+    id: sideKey(printing),
     printing,
   }));
   // Empty on purpose: add mode reads quantities via the kind-keyed entryByKey map instead.
@@ -124,9 +134,14 @@ const RULE_SELECTION_PREFIX = "rule:";
 /**
  * Rule-derived entries have no `list_entries` row, so the selection tracks
  * them by tile id instead; the row actions refuse a selection holding one.
+ * Both side tiles of a printing entry share the side-1 tile's id.
  */
 export function entrySelectionId(itemId: string, entry: ListEntryDetailResponse): string {
-  return entry.id ?? `${RULE_SELECTION_PREFIX}${itemId}`;
+  if (entry.id !== null) {
+    return entry.id;
+  }
+  const tileId = entry.kind === "printing" ? itemId.replace(/:2$/u, "") : itemId;
+  return `${RULE_SELECTION_PREFIX}${tileId}`;
 }
 
 export function isRuleSelectionId(id: string): boolean {
@@ -141,10 +156,11 @@ export function selectableEntryIds(
   items: readonly CardViewerItem[],
   entryByItemId: ReadonlyMap<string, ListEntryDetailResponse>,
 ): string[] {
-  return items.flatMap((item) => {
+  const ids = items.flatMap((item) => {
     const entry = entryByItemId.get(item.id);
     return entry ? [entrySelectionId(item.id, entry)] : [];
   });
+  return [...new Set(ids)];
 }
 
 export function resolveCopyMoveTarget(

@@ -685,8 +685,11 @@ function CopyDetails({
   labels: BoxRowLabels;
   siblings: readonly VariantLabelPrinting[];
 }) {
-  const { language, rest } = formatPrintingVariantLabelParts(copy, siblings, labels);
+  const { language, rest, otherSide } = formatPrintingVariantLabelParts(copy, siblings, labels);
   const parts: string[] = language === null ? [...rest] : [language, ...rest];
+  if (otherSide) {
+    parts.push(m.cards_printing_with_side({ name: otherSide }));
+  }
   if (copy.grade !== null) {
     parts.push(m.decks_overview_box_graded({ grade: copy.grade }));
   } else if (copy.condition !== null) {

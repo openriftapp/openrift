@@ -28,12 +28,13 @@ export function MissingImagesTiles({ items }: MissingImagesTilesProps) {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {visible.map((item) => (
           <CardLink
-            key={item.printingId}
+            key={`${item.printingId}:${item.side}`}
             size="sm"
             render={
               <Link
                 to="/contribute/card/$cardSlug/printing/$printingId/image"
                 params={{ cardSlug: item.cardSlug, printingId: item.printingId }}
+                search={item.side === 2 ? { side: 2 } : {}}
               />
             }
           >

@@ -2,6 +2,7 @@ import type { Rarity } from "@openrift/shared/types/enums";
 
 export interface OwnershipPrinting {
   id: string;
+  sideKey: string;
   language: string;
   shortCode: string;
   setId: string;

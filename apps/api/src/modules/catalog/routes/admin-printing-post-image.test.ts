@@ -102,11 +102,16 @@ describe("GET printing-desk post-image.png", () => {
   });
 
   it("passes the requested image, label, aspect and scale through", async () => {
-    await app.request(url("?imageFileId=chosen&label=announced&aspect=story&scale=2"));
+    await app.request(
+      url("?imageFileId=b0000000-0001-4000-a000-000000000009&label=announced&aspect=story&scale=2"),
+    );
 
     expect(renderMock).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ imageFileId: "chosen", label: "announced" }),
+      expect.objectContaining({
+        imageFileId: "b0000000-0001-4000-a000-000000000009",
+        label: "announced",
+      }),
       "story",
       2,
     );
@@ -168,9 +173,11 @@ describe("GET printing-desk post-image.png", () => {
   });
 
   it("credits the maker recorded on the chosen image file", async () => {
-    await app.request(url("?imageFileId=chosen"));
+    await app.request(url("?imageFileId=b0000000-0001-4000-a000-000000000009"));
 
-    expect(mockPrintingDesk.getImageCredit).toHaveBeenCalledWith("chosen");
+    expect(mockPrintingDesk.getImageCredit).toHaveBeenCalledWith(
+      "b0000000-0001-4000-a000-000000000009",
+    );
     expect(renderMock.mock.calls[0]?.[1]).toMatchObject({ imageCredit: "gamesnight" });
   });
 
@@ -204,6 +211,13 @@ describe("GET printing-desk post-image.png", () => {
     mockPrintingDesk.getPostImageRow.mockResolvedValue({ ...printingRow, publicCode: "OGN-TBA" });
     await app.request(url());
     expect(renderMock.mock.calls[0]?.[1]).toMatchObject({ publicCode: "Code TBA" });
+  });
+
+  it("400s a malformed image file id", async () => {
+    const res = await app.request(url("?imageFileId=not-a-uuid"));
+
+    expect(res.status).toBe(400);
+    expect(mockPrintingDesk.getPostImageRow).not.toHaveBeenCalled();
   });
 
   it("404s on an unknown printing", async () => {

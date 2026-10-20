@@ -38,8 +38,8 @@ const catalogue: Record<string, DeckCheckCardIdentity> = {
 
 const DOMAIN_ORDER = ["fury", "calm", "mind", "body", "chaos", "order", "colorless"];
 
-const identify = (printingId: string | null): DeckCheckCardIdentity | undefined =>
-  printingId ? catalogue[printingId] : undefined;
+const identify = (card: TestCard): DeckCheckCardIdentity | undefined =>
+  card.resolvedPrintingId ? catalogue[card.resolvedPrintingId] : undefined;
 
 const cards: TestCard[] = [
   { sortOrder: 0, rawName: "Zed", resolvedPrintingId: "p-zed" },
@@ -96,7 +96,7 @@ describe("sortDeckCheckCards", () => {
         power: 4,
       },
     };
-    const promoIdentify = (printingId: string | null) =>
+    const promoIdentify = ({ resolvedPrintingId: printingId }: TestCard) =>
       printingId ? withPromo[printingId] : undefined;
     const mixed: TestCard[] = [
       { sortOrder: 0, rawName: "Promo Ahri", resolvedPrintingId: "p-promo" },
@@ -188,7 +188,7 @@ describe("sortDeckCheckCards", () => {
         power: 1,
       },
     };
-    const sameDomainIdentify = (printingId: string | null) =>
+    const sameDomainIdentify = ({ resolvedPrintingId: printingId }: TestCard) =>
       printingId ? sameDomain[printingId] : undefined;
     const furyCards: TestCard[] = [
       { sortOrder: 0, rawName: "Brand", resolvedPrintingId: "p-b" },
@@ -233,7 +233,7 @@ describe("sortDeckCheckCards", () => {
         power: 1,
       },
     };
-    const exoticIdentify = (printingId: string | null) =>
+    const exoticIdentify = ({ resolvedPrintingId: printingId }: TestCard) =>
       printingId ? exotic[printingId] : undefined;
     const mixed: TestCard[] = [
       { sortOrder: 0, rawName: "Exotic", resolvedPrintingId: "p-exotic" },
@@ -284,7 +284,7 @@ describe("sortDeckCheckCards", () => {
         power: 2,
       },
     };
-    const sameEnergyIdentify = (printingId: string | null) =>
+    const sameEnergyIdentify = ({ resolvedPrintingId: printingId }: TestCard) =>
       printingId ? sameEnergy[printingId] : undefined;
     const sameEnergyCards: TestCard[] = [
       { sortOrder: 0, rawName: "Vi", resolvedPrintingId: "p-high" },
@@ -315,7 +315,7 @@ describe("sortDeckCheckCards", () => {
         power: null,
       },
     };
-    const nullIdentify = (printingId: string | null) =>
+    const nullIdentify = ({ resolvedPrintingId: printingId }: TestCard) =>
       printingId ? withNull[printingId] : undefined;
     const nullCards: TestCard[] = [
       { sortOrder: 0, rawName: "Howling Abyss", resolvedPrintingId: "p-null" },

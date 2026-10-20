@@ -7,7 +7,6 @@ import type {
   CandidateCardsTable,
   CandidatePrintingsTable,
 } from "../../../db/tables/candidates.js";
-import { withFace1 } from "../../../repositories/query-helpers.js";
 
 type Db = Kysely<Database>;
 
@@ -69,10 +68,12 @@ export function ingestRepo(db: Db) {
         finish: string;
         markerSlugs: string[];
         language: string;
+        size: string;
       }[]
     > {
-      return withFace1(db.selectFrom("printings as p"))
-        .select(["p.id", "pf.shortCode", "pf.finish", "pf.markerSlugs", "pf.language"])
+      return db
+        .selectFrom("printingSidesOrdered")
+        .select(["printingId as id", "shortCode", "finish", "markerSlugs", "language", "size"])
         .execute();
     },
 
@@ -108,6 +109,7 @@ export function ingestRepo(db: Db) {
         markerSlugs: string[];
         language: string | null;
         externalId: string;
+        size: string | null;
         cardName: string;
         provider: string;
       }[]
@@ -121,6 +123,7 @@ export function ingestRepo(db: Db) {
           "cp.finish",
           "cp.markerSlugs",
           "cp.language",
+          "cp.size",
           "cp.externalId",
           "cc.name as cardName",
           "cc.provider",

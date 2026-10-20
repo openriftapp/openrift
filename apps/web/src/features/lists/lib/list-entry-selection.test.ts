@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { EMPTY_TRADE_PREFERENCE, stubPrinting } from "@/test/factories";
 
 import {
+  entrySelectionEntry,
   hasRuleSelection,
   listSelectionSubjects,
   orderedSelectedEntryIds,
@@ -66,6 +67,13 @@ const printingByEntryId = new Map<string, Printing>([
   ["rule:i2", printingB],
 ]);
 
+describe("entrySelectionEntry", () => {
+  it("finds a rule entry shown only by its side-2 tile", () => {
+    const rule = printingEntry(null, "pair", "Gold", 1);
+    expect(entrySelectionEntry("rule:pair", new Map([["pair:2", rule]]))).toBe(rule);
+  });
+});
+
 describe("orderedSelectedEntryIds", () => {
   it("returns selected ids in grid order, rule entries included", () => {
     const selected = new Set(["rule:i2", "e1"]);
@@ -121,6 +129,27 @@ describe("selectionDragFields", () => {
     expect(fields.entryIds).toEqual(["e1"]);
     expect(fields.totalQuantity).toBe(5);
     expect(fields.previewPrintings).toEqual([printingA, printingB]);
+  });
+
+  it("notices a two-card printing anywhere in the selection", () => {
+    const pair = stubPrinting({
+      printingId: "pair",
+      cardId: "bird",
+      otherSide: {
+        faceId: "f",
+        cardId: "gold",
+        cardName: "Gold",
+        cardSlug: "gold",
+        shortCode: "T",
+      },
+    });
+    const withPair = new Map([...printingByEntryId, ["e1", pair]]);
+    expect(
+      selectionDragFields(["rule:i2", "e1"], entryByItemId, withPair).selectionHasTwoCards,
+    ).toBe(true);
+    expect(
+      selectionDragFields(["e1", "rule:i2"], entryByItemId, printingByEntryId).selectionHasTwoCards,
+    ).toBe(false);
   });
 
   it("collects the copy ids of selected copy entries", () => {

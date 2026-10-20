@@ -3,7 +3,7 @@ import { getAvailableFilters } from "@openrift/shared/filters-available";
 import { computeFilterCounts } from "@openrift/shared/filters-counts";
 import { sortCards } from "@openrift/shared/filters-sort";
 import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select";
-import { countPrintings, uniquePrintings } from "@openrift/shared/printing-side";
+import { countPrintings, sideKey, uniquePrintings } from "@openrift/shared/printing-side";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { DistributionChannel, Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -22,6 +22,7 @@ import {
   applyOwnedCountFilter,
   maxOwnedCount,
 } from "@/features/collections/lib/owned-bucket";
+import { stackSides } from "@/features/collections/lib/stacked-entry";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { useEnumOrders } from "@/hooks/use-enums";
 import type { GroupInfo } from "@/lib/card-group-types";
@@ -88,7 +89,7 @@ export function useCollectionCardData({
   const deferredOwnedCountMin = useDeferredValue(countsEnabled ? ownedCountMin : null);
   const deferredOwnedCountMax = useDeferredValue(countsEnabled ? ownedCountMax : null);
 
-  const collectionPrintings = stacks.map((stack) => stack.printing);
+  const collectionPrintings = stacks.flatMap((stack) => stackSides(stack));
   const setSlugToName = new Map(sets.map((set) => [set.slug, set.name]));
   const setDisplayLabel = (slug: string) => setSlugToName.get(slug) ?? slug;
 
@@ -141,8 +142,9 @@ export function useCollectionCardData({
   let ownedFilterBucketBy: "card" | "printing";
   if (ownedCardTotalOverride) {
     ownedFilterCounts = {};
+    // Keyed per side, so each card of a double-sided printing is judged on its own total.
     for (const printing of collectionPrintings) {
-      ownedFilterCounts[printing.printingId] = ownedCardTotalOverride[printing.cardId] ?? 0;
+      ownedFilterCounts[sideKey(printing)] = ownedCardTotalOverride[printing.cardId] ?? 0;
     }
     ownedFilterBucketBy = "printing";
   } else {

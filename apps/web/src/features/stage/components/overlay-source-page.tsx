@@ -32,7 +32,7 @@ export function OverlaySourcePage() {
 // would just produce a frame hydration immediately replaces.
 function OverlaySourceCanvas({ token, presetId }: { token: string; presetId?: string }) {
   const { data } = useOverlayState(token, presetId);
-  const { cardsById, printingsById, printingsByCardId } = useCards();
+  const { printingsBySideKey, cardsById, printingsByCardId } = useCards();
 
   if (!data) {
     return null;
@@ -44,7 +44,7 @@ function OverlaySourceCanvas({ token, presetId }: { token: string; presetId?: st
     <div className="fixed inset-0">
       <OverlayFrame
         payload={data.payload}
-        printing={printingId === null ? undefined : printingsById[printingId]}
+        printing={printingId === null ? undefined : printingsBySideKey[printingId]}
         board={
           pushedBoard === null
             ? undefined

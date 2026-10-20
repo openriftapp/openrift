@@ -140,9 +140,9 @@ export async function flushTradeStatusEmails(
     }
 
     let actorLabel: string | null | undefined;
-    const cardIds = new Set<string>();
+    const printingIds = new Set<string>();
     for (const row of claimedRows) {
-      cardIds.add(row.cardId);
+      printingIds.add(row.printingId);
       if (actorLabel === undefined) {
         if (!labelsByGroup.has(row.groupId)) {
           const members = await repos.friendGroups.listMembers(row.groupId);
@@ -156,8 +156,7 @@ export async function flushTradeStatusEmails(
       }
     }
 
-    const cards = await repos.catalog.cardsByIds([...cardIds]);
-    const nameByCard = new Map(cards.map((card) => [card.id, card.name]));
+    const nameByPrinting = await repos.catalog.printingNamesByIds([...printingIds]);
 
     const sections: TradeStatusUpdateGroup[] = [];
     const sectionByGroup = new Map<string, TradeStatusUpdateGroup>();
@@ -173,7 +172,7 @@ export async function flushTradeStatusEmails(
         sections.push(section);
       }
       section.updates.push({
-        cardName: nameByCard.get(row.cardId) ?? null,
+        cardName: nameByPrinting.get(row.printingId) ?? null,
         quantity: row.quantity,
         event: row.event,
       });

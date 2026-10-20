@@ -189,10 +189,12 @@ const SEQUENCE = ["p-champion", "p-battlefield", "p-punch", "p-ruin", "p-gadget"
 function metaDeck(
   meta: Partial<MetaDeckDetailResponse["meta"]> = {},
   cards = CARDS,
+  catalogPrintings: { printingId: string; side: 1 | 2; cardId: string }[] = [],
 ): MetaDeckDetailResponse {
   return {
     deck: { name: "Azir Control", format: "constructed", formatConfig: null, links: [] },
     cards,
+    catalog: { sets: [], cards: {}, printings: catalogPrintings },
     owner: { displayName: "Nova", gravatarHash: null },
     plan: null,
     planCardMeta: [],
@@ -340,6 +342,22 @@ describe("MetaEventDeckPreview", () => {
     expect(state.openCardDetail).toHaveBeenCalledWith({
       printingId: "p-ruin",
       sequence: SEQUENCE,
+    });
+  });
+
+  it("opens the side a double-sided printing shows the card on", async () => {
+    const user = userEvent.setup();
+    state.deck = metaDeck({}, CARDS, [
+      { printingId: "p-ruin", side: 1, cardId: "card-other" },
+      { printingId: "p-ruin", side: 2, cardId: "card-ruin" },
+    ]);
+    renderPreview();
+
+    await user.click(screen.getByRole("button", { name: "3× Ruin Runner" }));
+
+    expect(state.openCardDetail).toHaveBeenCalledWith({
+      printingId: "p-ruin:2",
+      sequence: SEQUENCE.map((id) => (id === "p-ruin" ? "p-ruin:2" : id)),
     });
   });
 

@@ -57,7 +57,7 @@ describe("computeScanSessionSummary", () => {
       ],
       {
         priceOf: (id) => prices[id],
-        isWished: (cardId) => cardId === "c1",
+        isWished: (printing) => printing.cardId === "c1",
         ownedBefore: null,
       },
     );
@@ -68,7 +68,7 @@ describe("computeScanSessionSummary", () => {
   it("matches a wish on the printing as well as the card", () => {
     const summary = computeScanSessionSummary([{ printing: p2, count: 1 }], {
       priceOf: (id) => prices[id],
-      isWished: (_cardId, printingId) => printingId === "p2",
+      isWished: (printing) => printing.printingId === "p2",
       ownedBefore: null,
     });
 

@@ -233,11 +233,18 @@ describe("acceptPrinting", () => {
         getPrintingCardIdByComposite: vi.fn(async () => null),
         findPrintingIdByIdentity: vi.fn(async () => null),
         upsertPrinting: vi.fn(async () => "p-uuid"),
+        findFaceIdByIdentity: vi.fn(async (): Promise<{ id: string } | undefined> => ({
+          id: "face-1",
+        })),
+        findFaceById: vi.fn(async (): Promise<{ id: string } | undefined> => ({ id: "face-x" })),
       },
       candidateCards: {
         linkAndCheckCandidatePrintings: vi.fn(async () => {}),
       },
-      printingImages: { insertImage: vi.fn(async () => "pi-1") },
+      printingImages: {
+        insertImage: vi.fn(async () => "pi-1"),
+        sideOfFace: vi.fn(async () => "front"),
+      },
       markers: {
         listBySlugs: vi.fn(async () => []),
         setForPrinting: vi.fn(async () => {}),
@@ -453,7 +460,7 @@ describe("acceptPrinting", () => {
     const repos = baseRepos();
     repos.catalogMutations = {
       ...repos.catalogMutations,
-      findFaceIdByIdentity: vi.fn(async () => undefined),
+      findFaceIdByIdentity: vi.fn(async (): Promise<{ id: string } | undefined> => undefined),
     } as typeof repos.catalogMutations;
     const trxRepos = withTrxExtras(repos);
 
@@ -495,6 +502,23 @@ describe("acceptPrinting", () => {
         { secondFaceId: "face-bird" },
       ),
     ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("404s a second side that does not exist", async () => {
+    const repos = baseRepos();
+    repos.catalogMutations.findFaceById = vi.fn(async () => undefined);
+
+    await expect(
+      acceptPrinting(
+        mockTransact(withTrxExtras(repos)),
+        repos as any,
+        "card-uuid",
+        { shortCode: "SGN-T01", setId: "sgn", rarity: "common", artist: "A", publicCode: "T01" },
+        [],
+        io,
+        { secondFaceId: "face-missing" },
+      ),
+    ).rejects.toMatchObject({ status: 404 });
   });
 
   it("creates a printing and syncs marker/channel joins", async () => {
@@ -541,6 +565,8 @@ describe("acceptPrinting", () => {
     expect(repos.printingImages.insertImage).toHaveBeenCalledWith(
       "p-uuid",
       "https://example.com/img.png",
+      "main",
+      "front",
     );
     expect(repos.candidateCards.linkAndCheckCandidatePrintings).toHaveBeenCalledWith(
       ["cp-1"],
@@ -646,6 +672,36 @@ describe("acceptPrinting", () => {
         io,
       ),
     ).rejects.toThrow("Invalid rarity");
+  });
+
+  it("puts the image on the accepted card's side when it sorts second", async () => {
+    const repos = baseRepos();
+    repos.printingImages.sideOfFace = vi.fn(async () => "back");
+    const transact = mockTransact(withTrxExtras(repos));
+
+    await acceptPrinting(
+      transact,
+      repos as any,
+      "card-slug",
+      {
+        shortCode: "UNL-T05",
+        setId: "unl",
+        artist: "A",
+        publicCode: "UNL-T05",
+        imageUrl: "https://example.com/gold.png",
+      },
+      [],
+      io,
+      { secondFaceId: "face-bird" },
+    );
+
+    expect(repos.printingImages.sideOfFace).toHaveBeenCalledWith("p-uuid", "face-1");
+    expect(repos.printingImages.insertImage).toHaveBeenCalledWith(
+      "p-uuid",
+      "https://example.com/gold.png",
+      "main",
+      "back",
+    );
   });
 
   it("does not insert image when imageUrl is absent", async () => {

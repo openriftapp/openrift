@@ -29,6 +29,7 @@ function printing(printingId: string, language: string): DeskPrintingRow {
     comment: null,
     imageCount: 0,
     faceId: "face-1",
+    side: 1,
     secondSide: null,
     sharedWith: [],
     activeImageFileId: null,

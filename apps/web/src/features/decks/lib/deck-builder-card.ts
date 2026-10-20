@@ -305,6 +305,11 @@ export function cellPreferredPrintingId(
   return printingId === defaultPrintingId ? null : printingId;
 }
 
+/** A double-sided printing is a cell per card, so the key names both. */
+export function deckCellKey(cardId: string, printingId: string): string {
+  return `${printingId}|${cardId}`;
+}
+
 /**
  * A pinned row counts on its printing's cell; a default-art (null) row
  * counts on the card's canonical printing cell.
@@ -319,7 +324,8 @@ export function buildDeckQuantityByCell(
     if (!cellId) {
       continue;
     }
-    byCell.set(cellId, (byCell.get(cellId) ?? 0) + card.quantity);
+    const key = deckCellKey(card.cardId, cellId);
+    byCell.set(key, (byCell.get(key) ?? 0) + card.quantity);
   }
   return byCell;
 }

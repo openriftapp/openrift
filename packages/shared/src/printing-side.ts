@@ -18,6 +18,22 @@ export function uniquePrintings<T extends Pick<Printing, "printingId">>(
   });
 }
 
+export function indexBySideKey<T extends Pick<Printing, "printingId" | "side">>(
+  entries: readonly T[],
+): Record<string, T> {
+  return Object.fromEntries(entries.map((entry) => [sideKey(entry), entry]));
+}
+
+/** The row for `side` of a printing, else its only row: a card printed on both sides lists it twice. */
+export function printingOnSide<T extends Pick<Printing, "printingId" | "side">>(
+  entries: readonly T[],
+  printingId: string,
+  side?: 1 | 2,
+): T | undefined {
+  const onPrinting = entries.filter((entry) => entry.printingId === printingId);
+  return onPrinting.find((entry) => entry.side === (side ?? 1)) ?? onPrinting[0];
+}
+
 /** Indexes entries by printing id; a double-sided printing answers with side 1. */
 export function indexByPrinting<T extends Pick<Printing, "printingId" | "side">>(
   entries: readonly T[],

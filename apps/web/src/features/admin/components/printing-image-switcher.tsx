@@ -73,6 +73,7 @@ export interface SiblingImage {
 
 export function PrintingImageSwitcher({
   printingId,
+  face,
   printingLabel,
   images,
   siblingImages,
@@ -84,6 +85,7 @@ export function PrintingImageSwitcher({
   isAdmin,
 }: {
   printingId: string;
+  face: "front" | "back";
   printingLabel: string;
   images: AdminPrintingImageResponse[];
   siblingImages: SiblingImage[];
@@ -131,8 +133,7 @@ export function PrintingImageSwitcher({
   const selectedImage = images.find((img) => img.id === selectedId);
 
   const activeImage = images.find((img) => img.isActive);
-  // Substitute art fills the front slot only, so an active back-only scan still needs it.
-  const activeFrontImage = images.find((img) => img.isActive && img.face === "front");
+  const activeSideImage = images.find((img) => img.isActive && img.face === face);
   const pinnedSibling = siblingImages.find((s) => s.imageFileId === fallbackImageFileId);
   const effectiveImage = selectedImage ?? (selectedId ? null : activeImage);
   const effectiveUrl = effectiveImage ? getDisplayUrl(effectiveImage) : null;
@@ -299,7 +300,7 @@ export function PrintingImageSwitcher({
                   </DropdownMenuItem>
                 </>
               )}
-              {isAdmin && !activeFrontImage && (
+              {isAdmin && !activeSideImage && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setShowFallbackUrlInput(true)}>
@@ -365,7 +366,7 @@ export function PrintingImageSwitcher({
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) {
-            uploadPrintingImage.mutate({ printingId, file, mode: "main" });
+            uploadPrintingImage.mutate({ printingId, file, mode: "main", face });
             e.target.value = "";
           }
         }}
@@ -388,6 +389,7 @@ export function PrintingImageSwitcher({
                   printingId,
                   url: urlValue.trim(),
                   mode: "main",
+                  face,
                 },
                 {
                   onSuccess: () => {
@@ -412,8 +414,8 @@ export function PrintingImageSwitcher({
         </div>
       )}
 
-      {/* Shown only while the printing has no active front image; a pin persists and reactivates if that image is later removed. */}
-      {!activeFrontImage && (
+      {/* Shown only while this side has no active image; a pin persists and reactivates if that image is later removed. */}
+      {!activeSideImage && (
         <div className="space-y-1 pt-4">
           <div className="flex min-h-6 items-center gap-1">
             <span className="text-muted-foreground shrink-0 text-xs">Substitute</span>
@@ -452,7 +454,7 @@ export function PrintingImageSwitcher({
                 disabled={setFallbackArt.isPending}
                 onValueChange={(next) => {
                   if (next === "auto" || next === "none") {
-                    setFallbackArt.mutate({ printingId, mode: next });
+                    setFallbackArt.mutate({ printingId, mode: next, face });
                     return;
                   }
                   if (typeof next === "string" && next.startsWith("pin:")) {
@@ -460,6 +462,7 @@ export function PrintingImageSwitcher({
                       printingId,
                       mode: "pinned",
                       imageFileId: next.slice("pin:".length),
+                      face,
                     });
                   }
                 }}
@@ -490,7 +493,7 @@ export function PrintingImageSwitcher({
                 disabled={!fallbackUrlValue.trim() || addFallbackArtUrl.isPending}
                 onClick={() => {
                   addFallbackArtUrl.mutate(
-                    { printingId, url: fallbackUrlValue.trim() },
+                    { printingId, url: fallbackUrlValue.trim(), face },
                     {
                       onSuccess: () => {
                         setFallbackUrlValue("");
@@ -525,7 +528,7 @@ export function PrintingImageSwitcher({
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) {
-            uploadFallbackArt.mutate({ printingId, file });
+            uploadFallbackArt.mutate({ printingId, file, face });
             e.target.value = "";
           }
         }}

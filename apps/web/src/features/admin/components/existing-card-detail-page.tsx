@@ -519,7 +519,7 @@ export function ExistingCardDetailPage({
                       <PrintingLanguageHeader code={language} className="px-3 pt-4 pb-2" />
                       {languagePrintings.map((printing) => (
                         <PrintingReviewCard
-                          key={printing.id}
+                          key={`${printing.id}:${printing.side}`}
                           printing={printing}
                           cardId={cardId}
                           printings={printings}

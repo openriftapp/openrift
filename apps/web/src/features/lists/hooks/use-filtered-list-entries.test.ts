@@ -16,18 +16,34 @@ const viFoil = stubPrinting({
   card: { name: "Vi" },
 });
 const jinx = stubPrinting({ printingId: "p-jinx", cardId: "card-jinx", card: { name: "Jinx" } });
+const bird = stubPrinting({
+  printingId: "p-pair",
+  side: 1,
+  cardId: "card-bird",
+  card: { name: "Bird" },
+});
+const gold = stubPrinting({
+  printingId: "p-pair",
+  side: 2,
+  cardId: "card-gold",
+  card: { name: "Gold" },
+});
 
 vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({
-    allPrintings: [viNormal, viFoil, jinx],
+    allPrintings: [viNormal, viFoil, jinx, bird, gold],
     printingsById: {
       [viNormal.printingId]: viNormal,
       [viFoil.printingId]: viFoil,
       [jinx.printingId]: jinx,
+      [bird.printingId]: bird,
     },
+    sidesByPrinting: new Map<string, Printing[]>([["p-pair", [bird, gold]]]),
     printingsByCardId: new Map<string, Printing[]>([
       ["card-vi", [viNormal, viFoil]],
       ["card-jinx", [jinx]],
+      ["card-bird", [bird]],
+      ["card-gold", [gold]],
     ]),
     sets: [],
   }),
@@ -142,6 +158,18 @@ describe("useFilteredListEntries", () => {
     ];
 
     const { result } = renderFiltered(entries, { search: "Vi" });
+
+    expect(idsOf(result.current.filteredEntries)).toEqual(["e-1", "e-2"]);
+  });
+
+  it("keeps a double-sided entry once when its second card matches", () => {
+    const entries = [
+      printingEntry("e-1", bird),
+      copyEntry("e-2", bird),
+      printingEntry("e-3", jinx),
+    ];
+
+    const { result } = renderFiltered(entries, { search: "Gold" });
 
     expect(idsOf(result.current.filteredEntries)).toEqual(["e-1", "e-2"]);
   });

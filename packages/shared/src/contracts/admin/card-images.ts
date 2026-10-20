@@ -149,7 +149,13 @@ export const adminCardImagesContract = {
       NOT_FOUND: { message: "Printing not found" },
       BAD_REQUEST: { message: "Image URL is required" },
     })
-    .input(printingIdParam.extend({ url: z.string(), mode: modeSchema.optional() })),
+    .input(
+      printingIdParam.extend({
+        url: z.string(),
+        mode: modeSchema.optional(),
+        face: cardFaceSchema.optional(),
+      }),
+    ),
   uploadImage: authedRoute
     .route({
       method: "POST",
@@ -185,6 +191,7 @@ export const adminCardImagesContract = {
       printingIdParam.extend({
         mode: z.enum(["auto", "pinned", "none"]),
         imageFileId: z.uuid().optional(),
+        face: cardFaceSchema.optional(),
       }),
     ),
   addFallbackArtUrl: authedRoute
@@ -198,7 +205,7 @@ export const adminCardImagesContract = {
       NOT_FOUND: { message: "Printing not found" },
       BAD_REQUEST: { message: "Image URL is required" },
     })
-    .input(printingIdParam.extend({ url: z.string() })),
+    .input(printingIdParam.extend({ url: z.string(), face: cardFaceSchema.optional() })),
   uploadFallbackArt: authedRoute
     .route({
       method: "POST",
@@ -209,7 +216,8 @@ export const adminCardImagesContract = {
       NOT_FOUND: { message: "Printing not found" },
       PAYLOAD_TOO_LARGE: { message: "File exceeds 50 MB limit" },
     })
-    .input(printingIdParam.extend({ file: z.instanceof(File) }))
+    // `face` rides the multipart body beside `file`.
+    .input(printingIdParam.extend({ file: z.instanceof(File), face: cardFaceSchema.optional() }))
     .output(rehostedUrlOutput),
 };
 

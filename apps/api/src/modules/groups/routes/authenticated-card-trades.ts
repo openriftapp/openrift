@@ -47,6 +47,7 @@ export const cardTradesRouter = {
       counterpartyUserId: input.counterpartyUserId,
       role: input.role,
       printingId: input.printingId,
+      cardId: input.cardId,
       quantity: input.quantity,
       copyIds: input.copyIds,
     });

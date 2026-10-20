@@ -139,6 +139,7 @@ export function listEntriesRepo(db: Kysely<Database>) {
       userId: string,
       copyIds: readonly string[],
       personalOnly: boolean,
+      preferredCardId?: string,
     ): Promise<{ added: number; updated: number; skipped: number }> {
       if (copyIds.length === 0) {
         return { added: 0, updated: 0, skipped: 0 };
@@ -185,15 +186,20 @@ export function listEntriesRepo(db: Kysely<Database>) {
       } else {
         const seen = new Set<string>();
         for (const row of owned) {
-          if (seen.has(row.cardId)) {
+          // A double-sided copy dropped from one card's tile lists that card.
+          const cardId =
+            preferredCardId !== undefined && row.cardIds.includes(preferredCardId)
+              ? preferredCardId
+              : row.cardId;
+          if (seen.has(cardId)) {
             continue;
           }
-          seen.add(row.cardId);
+          seen.add(cardId);
           values.push({
             listId,
             userId,
             kind: "card",
-            cardId: row.cardId,
+            cardId,
             printingId: null,
             copyId: null,
             quantity: 1,
@@ -279,6 +285,37 @@ export function listEntriesRepo(db: Kysely<Database>) {
         .where("userId", "=", userId)
         .returningAll()
         .executeTakeFirst();
+    },
+
+    /**
+     * The user's card wishes, in lists shared with `groupId`, for the cards of `printingId` other
+     * than the card of `entryId`; empty unless `entryId` is a card wish. Oldest first.
+     */
+    otherCardWishesForPrinting(args: {
+      userId: string;
+      groupId: string;
+      printingId: string;
+      entryId: string;
+    }): Promise<{ id: string; cardId: string; quantity: number }[]> {
+      return db
+        .selectFrom("listEntries as le")
+        .innerJoin("lists as l", "l.id", "le.listId")
+        .innerJoin("friendGroupListShares as s", "s.listId", "le.listId")
+        .innerJoin("printingSidesOrdered as side", "side.cardId", "le.cardId")
+        .innerJoin("listEntries as bound", (join) =>
+          join.on("bound.id", "=", args.entryId).on("bound.kind", "=", "card"),
+        )
+        .select(["le.id", "le.cardId", "le.quantity"])
+        .$narrowType<{ cardId: string }>()
+        .where("le.userId", "=", args.userId)
+        .where("le.kind", "=", "card")
+        .where("l.intent", "=", "wish")
+        .where("s.groupId", "=", args.groupId)
+        .where("side.printingId", "=", args.printingId)
+        .whereRef("le.cardId", "<>", "bound.cardId")
+        .orderBy("le.createdAt")
+        .orderBy("le.id")
+        .execute();
     },
 
     /**

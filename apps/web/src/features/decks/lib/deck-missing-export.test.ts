@@ -69,6 +69,7 @@ describe("missingCardsToListEntries", () => {
       shortfall: 1,
       cheapestPrinting: {
         id: "cheap-printing",
+        sideKey: "cheap-printing",
         language: "EN",
         shortCode: "OGN-002",
         setId: "set-origins",

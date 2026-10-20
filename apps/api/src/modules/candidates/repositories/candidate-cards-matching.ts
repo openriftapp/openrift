@@ -145,7 +145,19 @@ export function candidateMatchingRepo(db: Kysely<Database>) {
         from candidate_printings cp
         join candidate_cards cc on cc.id = cp.candidate_card_id
         join printings pr on pr.id = cp.printing_id
-        join faces p on p.id = pr.face1_id
+        -- The side whose card the candidate names; side 1 when neither does.
+        join lateral (
+          select f.* from faces f
+          where f.id in (pr.face1_id, pr.face2_id)
+          order by
+            exists (
+              select 1 from card_name_aliases a
+              where a.card_id = f.card_id and a.norm_name = cc.norm_name
+            ) desc,
+            upper(f.short_code) = upper(cp.short_code) desc,
+            f.id = pr.face1_id desc
+          limit 1
+        ) p on true
         join sets s on s.id = p.set_id
         where cp.checked_at is null
           and cc.provider <> ${excludeProvider}

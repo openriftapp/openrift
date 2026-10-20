@@ -5,6 +5,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { CardBansTable, CardErrataTable, CardsTable } from "../../../db/tables/catalog.js";
+import { printingDetailsByIds } from "../../../repositories/query-helpers.js";
 
 export type CatalogCardRow = Omit<
   Selectable<CardsTable>,
@@ -286,6 +287,12 @@ export function catalogCardsRepo(db: Kysely<Database>) {
 
     cardErrataByCardId(cardId: string): Promise<CatalogCardErrataRow | undefined> {
       return selectCardErrata(db).where("cardErrata.cardId", "=", cardId).executeTakeFirst();
+    },
+
+    /** A double-sided printing is named by both of its cards. */
+    async printingNamesByIds(ids: string[]): Promise<Map<string, string>> {
+      const details = await printingDetailsByIds(db, ids);
+      return new Map([...details].map(([id, detail]) => [id, detail.cardName]));
     },
 
     cardsByIds(ids: string[]): Promise<CatalogCardRow[]> {

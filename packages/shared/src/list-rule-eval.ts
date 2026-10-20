@@ -126,7 +126,14 @@ function wishRuleTargets(
       if (excluded.has(printing.printingId)) {
         continue;
       }
-      targets.set(printing.printingId, resolveQuantity(rule.quantity, printing.card));
+      // Both sides of a double-sided printing match; the larger playset of its cards wins.
+      targets.set(
+        printing.printingId,
+        Math.max(
+          targets.get(printing.printingId) ?? 0,
+          resolveQuantity(rule.quantity, printing.card),
+        ),
+      );
     }
     return { targets, matchedPrintings, netPrintings: matchedPrintings };
   }
@@ -172,17 +179,20 @@ function wishRuleTargets(
 
 /**
  * Reserved copies (pinned to a live outgoing trade) don't count as owned,
- * so they can't suppress a netOwned shortfall.
+ * so they can't suppress a netOwned shortfall. A double-sided copy has a row
+ * per card but is one copy of its printing.
  */
 function ownedCountsByPrinting(ctx: RuleEvalContext): Map<string, number> {
-  const byPrinting = new Map<string, number>();
+  const copiesByPrinting = new Map<string, Set<string>>();
   for (const copy of ctx.ownedCopies ?? []) {
     if (copy.reserved) {
       continue;
     }
-    byPrinting.set(copy.printingId, (byPrinting.get(copy.printingId) ?? 0) + 1);
+    const copies = copiesByPrinting.get(copy.printingId) ?? new Set<string>();
+    copies.add(copy.copyId);
+    copiesByPrinting.set(copy.printingId, copies);
   }
-  return byPrinting;
+  return new Map([...copiesByPrinting].map(([printingId, copies]) => [printingId, copies.size]));
 }
 
 function unionInto(map: Map<string, Set<string>>, key: string, printings: Iterable<string>): void {
@@ -361,13 +371,13 @@ function tradeRulePools(
     filterCards(ctx.catalog, rule.filter, {
       customTagAssignments: ctx.customTagAssignments,
       getPrice: rulePriceResolver(rule, ctx),
-    }).map((printing) => printing.printingId),
+    }).map((printing) => `${printing.printingId}:${printing.cardId}`),
   );
   const excludedCopies = new Set(rule.excludeCopyIds);
   const candidates = (ctx.ownedCopies ?? []).filter(
     (copy) =>
       (rule.collectionIds === null || rule.collectionIds.includes(copy.collectionId)) &&
-      passing.has(copy.printingId) &&
+      passing.has(`${copy.printingId}:${copy.cardId}`) &&
       !excludedCopies.has(copy.copyId),
   );
   const compare = copyKeepComparator(printingById, ctx.enumOrders);
@@ -375,10 +385,13 @@ function tradeRulePools(
   const grouped = Map.groupBy(candidates, (copy) =>
     rule.keepPer === "printing" ? copy.printingId : copy.cardId,
   );
-  for (const [key, copies] of grouped) {
-    // Every copy in a group shares one card (a printing belongs to one card),
-    // so the playset size is well-defined for both groupings.
-    const card = cardById.get(copies[0]?.cardId ?? "");
+  for (const [key, rows] of grouped) {
+    // A double-sided copy has a row per card; a printing pool counts the copy once and takes
+    // its playset size from side 1's card.
+    const copies = [...new Map(rows.map((copy) => [copy.copyId, copy])).values()];
+    const cardId =
+      rule.keepPer === "printing" ? (printingById.get(key)?.cardId ?? copies[0]?.cardId) : key;
+    const card = cardById.get(cardId ?? "");
     if (!card) {
       continue;
     }

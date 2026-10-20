@@ -531,6 +531,22 @@ describe("collectOwnershipBandSources", () => {
     });
   });
 
+  it("counts a copy of a printing with the card on both sides once", () => {
+    const card = stubDeckBuilderCard({ cardId: CARD, quantity: 1 });
+    const printings = new Map([[CARD, [{ printingId: STANDARD }, { printingId: STANDARD }]]]);
+
+    const sources = collectOwnershipBandSources(
+      [card],
+      printings,
+      () => ({ printingId: STANDARD }),
+      { [STANDARD]: 1 },
+      { [STANDARD]: 1 },
+    );
+
+    expect(sources.availableByCardId).toEqual({ [CARD]: 1 });
+    expect(sources.lockedByCardId).toEqual({ [CARD]: 1 });
+  });
+
   it("reports zero for a card with no printings and skips unresolvable entries", () => {
     const card = stubDeckBuilderCard({ cardId: CARD, quantity: 1 });
 

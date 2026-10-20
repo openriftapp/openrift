@@ -1,6 +1,6 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { enumLabel } from "@openrift/shared/enum-label";
-import { sideKey } from "@openrift/shared/printing-side";
+import { sideKey, uniquePrintings } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 import { AlertTriangleIcon, CheckCircle2Icon, SearchIcon, XCircleIcon } from "lucide-react";
@@ -176,7 +176,7 @@ function formatEntrySpecialties(
 }
 
 function VariantPicker({
-  candidates,
+  candidates: allCandidates,
   resolved,
   onSelect,
 }: {
@@ -184,6 +184,7 @@ function VariantPicker({
   resolved: Printing | null;
   onSelect: (printing: Printing) => void;
 }) {
+  const candidates = uniquePrintings(allCandidates);
   const { labels } = useEnumOrders();
   const { hoveredId, popupRef, hoverProps, reset } = usePrintingChoiceHover();
   return (

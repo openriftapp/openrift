@@ -1,6 +1,7 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 import { PaletteIcon, TagIcon } from "lucide-react";
@@ -29,7 +30,7 @@ import { useDisplayStore } from "@/stores/display-store";
 interface MatrixProps {
   languages: string[];
   designs: PrintingDesign[];
-  selectedPrintingId: string;
+  selectedSideKey: string;
   onSelect: (printing: Printing) => void;
 }
 
@@ -40,11 +41,11 @@ interface CellStats {
 
 export function CardPagePrintings({
   printings,
-  selectedPrintingId,
+  selectedSideKey,
   onSelect,
 }: {
   printings: Printing[];
-  selectedPrintingId: string;
+  selectedSideKey: string;
   onSelect: (printing: Printing) => void;
 }) {
   const hydrated = useHydrated();
@@ -53,7 +54,7 @@ export function CardPagePrintings({
   }
   const props: MatrixProps = {
     ...groupPrintingDesigns(printings),
-    selectedPrintingId,
+    selectedSideKey,
     onSelect,
   };
   return (
@@ -101,7 +102,7 @@ function LivePrintingMatrix(props: MatrixProps) {
 function PrintingMatrix({
   languages,
   designs,
-  selectedPrintingId,
+  selectedSideKey,
   onSelect,
   stats,
 }: MatrixProps & { stats?: CellStats }) {
@@ -125,7 +126,7 @@ function PrintingMatrix({
       <ul>
         {designs.map((design) => {
           const hasSelected = [...design.byLanguage.values()].some(
-            (printing) => printing.printingId === selectedPrintingId,
+            (printing) => sideKey(printing) === selectedSideKey,
           );
           return (
             <li
@@ -155,7 +156,7 @@ function PrintingMatrix({
                       key={language}
                       printing={printing}
                       languageLabel={enumLabel(languageLabels, language)}
-                      isSelected={printing.printingId === selectedPrintingId}
+                      isSelected={sideKey(printing) === selectedSideKey}
                       onSelect={() => onSelect(printing)}
                       stats={stats}
                     />

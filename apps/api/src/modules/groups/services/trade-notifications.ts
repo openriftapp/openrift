@@ -112,8 +112,8 @@ export async function sendTradeRequestEmail(
     const initiatorName = dto.counterparty.name;
     const initiatorContact = formatContactMethodsSummary(dto.counterparty.contactMethods);
 
-    const cards = await repos.catalog.cardsByIds([row.cardId]);
-    const cardName = cards[0]?.name ?? null;
+    const names = await repos.catalog.printingNamesByIds([row.printingId]);
+    const cardName = names.get(row.printingId) ?? null;
 
     // One trade, so it links to the counterparty's person-level sheet.
     if (dto.counterparty.userId === null) {
@@ -248,9 +248,9 @@ export async function flushCoalescedTradeRequests(
     }
 
     let senderLabel: string | null | undefined;
-    const cardIds = new Set<string>();
+    const printingIds = new Set<string>();
     for (const row of claimedRows) {
-      cardIds.add(row.cardId);
+      printingIds.add(row.printingId);
       if (senderLabel === undefined) {
         if (!labelsByGroup.has(row.groupId)) {
           const members = await repos.friendGroups.listMembers(row.groupId);
@@ -264,8 +264,7 @@ export async function flushCoalescedTradeRequests(
       }
     }
 
-    const cards = await repos.catalog.cardsByIds([...cardIds]);
-    const nameByCard = new Map(cards.map((card) => [card.id, card.name]));
+    const nameByPrinting = await repos.catalog.printingNamesByIds([...printingIds]);
 
     // One section per group: a pair can share more than one group.
     const sections: CoalescedRequestGroup[] = [];
@@ -282,7 +281,7 @@ export async function flushCoalescedTradeRequests(
         sections.push(section);
       }
       section.requests.push({
-        cardName: nameByCard.get(row.cardId) ?? null,
+        cardName: nameByPrinting.get(row.printingId) ?? null,
         quantity: row.quantity,
         // receiver-initiated = the sender wants your card; giver-initiated = offer.
         kind: row.initiator === "receiver" ? "wants" : "offers",

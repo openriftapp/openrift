@@ -52,6 +52,8 @@ const mockEnsureOriginalOnDisk = vi.mocked(ensureOriginalOnDisk);
 const mockImageRehostedUrl = vi.mocked(imageRehostedUrl);
 
 const mockPrintingImages = {
+  faceIdOfImage: vi.fn(),
+  candidateFace: vi.fn(),
   getCandidatePrintingById: vi.fn(),
   getIdAndRehostedUrl: vi.fn(),
   getImageFileId: vi.fn(),
@@ -98,7 +100,11 @@ const mockAdminEvents = {
   imageIdsUploadedBy: vi.fn(),
   wasPrintingCreatedBy: vi.fn(),
 };
-const mockPrintingDesk = { isDeskPrinting: vi.fn() };
+const mockPrintingDesk = {
+  isDeskPrinting: vi.fn(),
+  getFaceLinks: vi.fn(),
+  printingIdsShowingFace: vi.fn(),
+};
 
 const FULL_ADMIN = { isAdmin: true, sections: [] };
 const GRANT_HOLDER = { isAdmin: false, sections: ["printing-desk"] };
@@ -130,6 +136,7 @@ describe("POST /candidate-printings/:id/set-image", () => {
     vi.resetAllMocks();
     adminAccess = FULL_ADMIN;
     mockTransact.mockImplementation(async (cb) => cb({ printingImages: mockTrxPrintingImages }));
+    mockPrintingImages.candidateFace.mockResolvedValue("back");
   });
 
   it("returns 204 and rehosts image on success", async () => {
@@ -151,6 +158,7 @@ describe("POST /candidate-printings/:id/set-image", () => {
       "printing-1",
       "https://example.com/img.png",
       "main",
+      "back",
     );
     expect(mockRehostSingleImage).toHaveBeenCalledWith(mockIo, mockPrintingImages, "image-id-1");
   });
@@ -174,6 +182,7 @@ describe("POST /candidate-printings/:id/set-image", () => {
       "printing-1",
       "https://example.com/img.png",
       "additional",
+      "back",
     );
   });
 
@@ -823,6 +832,7 @@ describe("POST /printing/:printingId/add-image-url", () => {
     vi.resetAllMocks();
     adminAccess = FULL_ADMIN;
     mockTransact.mockImplementation(async (cb) => cb({ printingImages: mockTrxPrintingImages }));
+    mockPrintingDesk.getFaceLinks.mockResolvedValue({ face1Id: "face-1", face2Id: null });
   });
 
   it("inserts with default mode", async () => {
@@ -838,6 +848,7 @@ describe("POST /printing/:printingId/add-image-url", () => {
       "printing-1",
       "https://i.imgur.com/img.png",
       "main",
+      undefined,
     );
   });
 
@@ -854,6 +865,7 @@ describe("POST /printing/:printingId/add-image-url", () => {
       "printing-1",
       "https://images.tcgplayer.com/img.png",
       "additional",
+      undefined,
     );
   });
 
@@ -888,6 +900,23 @@ describe("POST /printing/:printingId/upload-image", () => {
     vi.resetAllMocks();
     adminAccess = FULL_ADMIN;
     mockTransact.mockImplementation(async (cb) => cb({ printingImages: mockTrxPrintingImages }));
+    mockPrintingDesk.getFaceLinks.mockResolvedValue({ face1Id: "face-1", face2Id: "face-2" });
+  });
+
+  it("400s a second-side upload to a single-sided printing", async () => {
+    mockCatalog.getPrintingById.mockResolvedValue({ id: "printing-1" });
+    mockPrintingDesk.getFaceLinks.mockResolvedValue({ face1Id: "face-1", face2Id: null });
+    const formData = new FormData();
+    formData.append("file", new File(["image-data"], "card.png", { type: "image/png" }));
+    formData.append("face", "back");
+
+    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/upload-image`, {
+      method: "POST",
+      body: formData,
+    });
+
+    expect(res.status).toBe(400);
+    expect(mockProcessAndSave).not.toHaveBeenCalled();
   });
 
   it("returns 200 with rehosted url on success", async () => {
@@ -1046,6 +1075,24 @@ describe("POST /printing/:printingId/fallback-art", () => {
       PRINTING_ID,
       "pinned",
       IMAGE_FILE_ID,
+      undefined,
+    );
+  });
+
+  it("sets the fallback art of the side the review card shows", async () => {
+    const res = await app.request(FALLBACK_ART, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "none", face: "back" }),
+    });
+
+    expect(res.status).toBe(204);
+    expect(mockPrintingImages.getFallbackArt).toHaveBeenCalledWith(PRINTING_ID, "back");
+    expect(mockPrintingImages.setFallbackArt).toHaveBeenCalledWith(
+      PRINTING_ID,
+      "none",
+      null,
+      "back",
     );
   });
 
@@ -1057,7 +1104,12 @@ describe("POST /printing/:printingId/fallback-art", () => {
     });
 
     expect(res.status).toBe(204);
-    expect(mockPrintingImages.setFallbackArt).toHaveBeenCalledWith(PRINTING_ID, "auto", null);
+    expect(mockPrintingImages.setFallbackArt).toHaveBeenCalledWith(
+      PRINTING_ID,
+      "auto",
+      null,
+      undefined,
+    );
   });
 
   it("suppresses the substitute in none mode", async () => {
@@ -1068,7 +1120,12 @@ describe("POST /printing/:printingId/fallback-art", () => {
     });
 
     expect(res.status).toBe(204);
-    expect(mockPrintingImages.setFallbackArt).toHaveBeenCalledWith(PRINTING_ID, "none", null);
+    expect(mockPrintingImages.setFallbackArt).toHaveBeenCalledWith(
+      PRINTING_ID,
+      "none",
+      null,
+      undefined,
+    );
   });
 
   it("returns 400 when pinning without an image file", async () => {
@@ -1143,6 +1200,7 @@ describe("POST /printing/:printingId/fallback-art/from-url", () => {
       PRINTING_ID,
       "pinned",
       IMAGE_FILE_ID,
+      undefined,
     );
     expect(mockRehostImageFile).toHaveBeenCalledWith(mockIo, mockPrintingImages, IMAGE_FILE_ID);
   });
@@ -1187,6 +1245,7 @@ describe("POST /printing/:printingId/fallback-art/upload", () => {
       PRINTING_ID,
       "pinned",
       "mock-uuid-v7",
+      undefined,
     );
   });
 });
@@ -1201,7 +1260,24 @@ describe("grant holder scope", () => {
     mockPrintingDesk.isDeskPrinting.mockImplementation((id: string) =>
       Promise.resolve(id === PROMO_ID),
     );
+    mockPrintingDesk.getFaceLinks.mockResolvedValue({ face1Id: "face-promo", face2Id: null });
+    mockPrintingDesk.printingIdsShowingFace.mockResolvedValue([PROMO_ID]);
+    mockPrintingImages.faceIdOfImage.mockResolvedValue("face-promo");
     mockAdminEvents.wasPrintingCreatedBy.mockResolvedValue(false);
+  });
+
+  it("403s activating an image on a side a printing outside the desk also shows", async () => {
+    mockPrintingImages.getForActivate.mockResolvedValue({ printingId: PROMO_ID, face: "front" });
+    mockPrintingDesk.printingIdsShowingFace.mockResolvedValue([
+      PROMO_ID,
+      "00000000-0000-4000-a000-000000000009",
+    ]);
+    const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/activate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: true }),
+    });
+    expect(res.status).toBe(403);
   });
 
   function uploadTo(printingId: string, mode?: string) {
@@ -1215,6 +1291,19 @@ describe("grant holder scope", () => {
       body: formData,
     });
   }
+
+  it("403s an upload to a side a printing outside the desk also shows", async () => {
+    mockCatalog.getPrintingById.mockResolvedValue({ id: PROMO_ID });
+    mockPrintingDesk.printingIdsShowingFace.mockResolvedValue([
+      PROMO_ID,
+      "00000000-0000-4000-a000-000000000009",
+    ]);
+
+    const res = await uploadTo(PROMO_ID);
+
+    expect(res.status).toBe(403);
+    expect(mockProcessAndSave).not.toHaveBeenCalled();
+  });
 
   it("403s an upload to a printing outside the desk", async () => {
     mockCatalog.getPrintingById.mockResolvedValue({ id: PRINTING_ID });
