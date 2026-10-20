@@ -8,7 +8,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 
 const MAX_MATCHES = 8;
 
-/** Finds an existing printed side by its code. Each side is offered once, however many printings show it. */
+/** Finds an existing face by its code. Each face is offered once, however many printings show it. */
 export function SideSearch({
   id,
   excludeFaceIds = [],
@@ -46,7 +46,7 @@ export function SideSearch({
     <div className="space-y-2">
       <Input
         id={id}
-        aria-label="Code of the other side"
+        aria-label="Code of the other face"
         value={query}
         placeholder="SGN-T05"
         disabled={disabled}

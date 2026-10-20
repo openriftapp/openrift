@@ -17,11 +17,15 @@ export function matchesDeskFilter(row: DeskPrintingRow, filter: DeskFilter): boo
   if (filter.status !== "any" && deskPrintingStatus(row) !== filter.status) {
     return false;
   }
+  const back = row.secondSide;
   return matchesTextQuery(filter.query, [
     row.cardName,
     row.cardSlug,
     formatPrintingCode(row.publicCode),
     row.publicCode,
+    ...(back
+      ? [back.cardName, back.cardSlug, formatPrintingCode(back.publicCode), back.publicCode]
+      : []),
   ]);
 }
 

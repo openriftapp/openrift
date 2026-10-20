@@ -1,7 +1,6 @@
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay, formatDayTimeLocal, formatRelativeTime } from "@openrift/shared/format-date";
-import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { pluralize } from "@openrift/shared/strings";
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, DownloadIcon, PlusIcon, Share2Icon } from "lucide-react";
@@ -44,6 +43,7 @@ import { useIsAdmin } from "@/features/admin/hooks/use-admin";
 import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { useDeskPrintings } from "@/features/admin/hooks/use-printing-desk";
+import { deskPrintingCodes, deskPrintingName } from "@/features/admin/lib/desk-face-options";
 import {
   buildPrintingDeskCsv,
   printingDeskCsvFilename,
@@ -310,11 +310,11 @@ function DeskPrintingListRow({
       <div className="min-w-0 flex-1">
         {/* The ::after resolves against the row, the only positioned ancestor. */}
         <Link
-          to="/admin/printing-desk/printings/$printingId"
+          to="/admin/printings/$printingId"
           params={{ printingId: row.printingId }}
           className="block truncate rounded-md font-medium outline-none after:absolute after:inset-0"
         >
-          {row.cardName}
+          {deskPrintingName(row)}
         </Link>
         <div className="mt-0.5 flex flex-wrap items-center gap-1">
           {row.markerSlugs.map((slug) => (
@@ -326,7 +326,7 @@ function DeskPrintingListRow({
       </div>
 
       <span className="hidden w-40 shrink-0 truncate font-mono text-sm sm:block">
-        {formatPrintingCode(row.publicCode)}
+        {deskPrintingCodes(row)}
       </span>
       <span className="text-muted-foreground hidden w-28 shrink-0 truncate text-sm lg:block">
         {finishLabel}

@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
 import { Badge } from "@/components/ui/badge";
-import type { CardSection } from "@/features/admin/lib/card-sections";
+import type { NavCardSection } from "@/features/admin/lib/card-sections";
 import { CARD_SECTION_LABELS, DEFAULT_CARD_SECTION } from "@/features/admin/lib/card-sections";
 import { cn } from "@/lib/utils";
 
@@ -18,9 +18,9 @@ export function CardSectionNav({
   search,
 }: {
   cardSlug: string;
-  sections: readonly CardSection[];
-  section: CardSection;
-  counts: Partial<Record<CardSection, CardSectionCount>>;
+  sections: readonly NavCardSection[];
+  section: NavCardSection;
+  counts: Partial<Record<NavCardSection, CardSectionCount>>;
   search: Record<string, unknown>;
 }) {
   return (

@@ -121,10 +121,18 @@ export const adminPrintingDistributionChannelResponseSchema = z.object({
   distributionNote: z.string().nullable(),
 });
 
+export const adminPrintingOtherFaceSchema = z.object({
+  faceId: z.string(),
+  cardName: z.string(),
+  cardSlug: z.string(),
+  publicCode: z.string(),
+});
+
 export const adminPrintingResponseSchema = z.object({
   id: z.string(),
   side: printingSideSchema,
   faceId: z.string(),
+  otherFace: adminPrintingOtherFaceSchema.nullable(),
   cardId: z.string(),
   setId: z.string(),
   setName: z.string().nullable(),

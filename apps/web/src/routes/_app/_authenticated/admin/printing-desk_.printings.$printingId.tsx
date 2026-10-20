@@ -1,34 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { RouteErrorFallback } from "@/components/error-message";
-import { AdminPending } from "@/features/admin/components/admin-route-components";
-import { adminDistributionChannelsQueryOptions } from "@/features/admin/lib/distribution-channels-queries";
-import { adminMarkersQueryOptions } from "@/features/admin/lib/markers-queries";
-import { deskPrintingQueryOptions } from "@/features/admin/lib/printing-desk-queries";
-import { initQueryOptions } from "@/lib/init-queries";
-import { adminSeoHead } from "@/lib/seo";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute(
   "/_app/_authenticated/admin/printing-desk_/printings/$printingId",
 )({
-  head: () => adminSeoHead("Printing"),
-  validateSearch: (search: Record<string, unknown>): { side?: 2 } =>
-    Number(search.side) === 2 ? { side: 2 } : {},
-  loaderDeps: ({ search }) => ({ side: search.side === 2 ? (2 as const) : (1 as const) }),
-  loader: async ({ context, params, deps }) => {
-    await Promise.all([
-      context.queryClient.query({
-        ...deskPrintingQueryOptions(params.printingId, deps.side),
-        staleTime: "static",
-      }),
-      context.queryClient.query({
-        ...adminDistributionChannelsQueryOptions,
-        staleTime: "static",
-      }),
-      context.queryClient.query({ ...adminMarkersQueryOptions, staleTime: "static" }),
-      context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
-    ]);
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/admin/printings/$printingId",
+      params: { printingId: params.printingId },
+      replace: true,
+    });
   },
-  pendingComponent: AdminPending,
-  errorComponent: RouteErrorFallback,
 });

@@ -114,7 +114,7 @@ describe("CardOverviewSection", () => {
     const user = userEvent.setup();
     renderSection({ onOpenPrinting });
 
-    await user.click(screen.getByTitle("Open UNL-131 in Printings"));
+    await user.click(screen.getByTitle("Open UNL-131 in Fields & faces"));
 
     expect(onOpenPrinting).toHaveBeenCalledWith("p-1");
   });

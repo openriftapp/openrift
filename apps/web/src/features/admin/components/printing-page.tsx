@@ -5,9 +5,11 @@ import { formatDay } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import type { AdminPrintingCitation } from "@openrift/shared/types/api/admin";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
+  CopyIcon,
   CropIcon,
+  EllipsisVerticalIcon,
   ExternalLinkIcon,
   LinkIcon,
   PencilIcon,
@@ -17,9 +19,11 @@ import {
   Share2Icon,
   Trash2Icon,
   UploadIcon,
+  XIcon,
 } from "lucide-react";
 import { Suspense, useRef, useState } from "react";
 
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { PageTopBarBack, PageTopBarButton } from "@/components/layout/page-top-bar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +38,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Dropzone } from "@/components/ui/dropzone";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -41,10 +51,17 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import {
+  PrintingHistoryCard,
+  PrintingMarketplaceCard,
+  PrintingSourcesCard,
+} from "@/features/admin/components/printing-admin-sections";
 import { PrintingDeskEditFields } from "@/features/admin/components/printing-desk-form-page";
-import { SecondSideCard } from "@/features/admin/components/printing-desk-second-side-card";
 import { DeskSegmented, DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
+import { SideSearch } from "@/features/admin/components/side-search";
 import { StraightenImageDialog } from "@/features/admin/components/straighten-image-dialog";
+import { useAdminAccess } from "@/features/admin/hooks/use-admin";
+import { useDeletePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
 import {
   useActivatePrintingImage,
   useDeletePrintingImage,
@@ -61,14 +78,18 @@ import { useDistributionChannels } from "@/features/admin/hooks/use-distribution
 import { useMarkers } from "@/features/admin/hooks/use-markers";
 import {
   useDeskPrinting,
+  useRemoveDeskSecondSide,
   useSetDeskImageFace,
+  useSetDeskSecondSide,
   useUpdateDeskImage,
 } from "@/features/admin/hooks/use-printing-desk";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type { DeskFaceOption } from "@/features/admin/lib/desk-face-options";
-import { deskFaceOptions } from "@/features/admin/lib/desk-face-options";
+import { deskFaceOptions, deskPrintingName } from "@/features/admin/lib/desk-face-options";
 import { deskImageBust, deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { deskPrintingPeriod } from "@/features/admin/lib/printing-desk-status";
+import type { PrintingFace } from "@/features/admin/lib/printing-faces";
+import { printingFaces } from "@/features/admin/lib/printing-faces";
 import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
 import { sourceBrand } from "@/features/admin/lib/source-brand";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
@@ -93,194 +114,86 @@ const DESK_IMAGE_SCOPE = [
 
 type Rotation = 0 | 90 | 180 | 270;
 
-export function PrintingDeskPrintingPage({
-  printingId,
-  side = 1,
-}: {
-  printingId: string;
-  side?: 1 | 2;
-}) {
-  const { data } = useDeskPrinting(printingId, side);
+export function PrintingPage({ printingId }: { printingId: string }) {
+  const { data } = useDeskPrinting(printingId, 1);
+  const { data: access } = useAdminAccess();
   const { data: channelData } = useDistributionChannels();
-  const { data: session } = useSession();
-  const uploadImage = useUploadPrintingImage(DESK_IMAGE_SCOPE);
-  const activateImage = useActivatePrintingImage(DESK_IMAGE_SCOPE);
 
-  const [uploading, setUploading] = useState<string[]>([]);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-
+  const isAdmin = access?.isAdmin === true;
+  const canOpenCardPages = isAdmin || (access?.sections ?? []).includes("card-review");
   const printing = data.printing;
+  const faces = printingFaces(printing);
   const channelPaths = buildChannelBreadcrumbsBySlug(channelData.distributionChannels);
   const channelPath = printing.distributionChannelSlugs
     .map((slug) => channelPaths.get(slug) ?? slug)
     .join(", ");
-  const uploaderName = session?.user.name ?? "";
-  const sideOptions = deskFaceOptions(printing);
-  const [firstSide, otherSide] = sideOptions;
-  const uploadHint =
-    firstSide && otherSide
-      ? `Everything lands on ${firstSide.label}, switch a row to ${otherSide.label} below.`
-      : "";
-  const pageFace = printing.side === 2 ? "back" : "front";
-  const activeOnPage =
-    data.images.find((image) => image.face === pageFace && image.isActive) ?? null;
-  const postImage = activeOnPage ?? data.images.at(0) ?? null;
+  const activeFront = data.images.find((image) => image.face === "front" && image.isActive) ?? null;
+  const postImage = activeFront ?? data.images.at(0) ?? null;
   const postSlides =
     postImage === null
       ? null
       : encodePostSlides([{ printingId, imageFileId: postImage.imageFileId }]);
 
-  async function handleFiles(files: File[]) {
-    setUploadError(null);
-    const credit = uploaderName.length > 0 ? uploaderName : undefined;
-    for (const file of files) {
-      setUploading((current) => [...current, file.name]);
-      try {
-        await uploadImage.mutateAsync({
-          printingId,
-          file,
-          mode: "additional",
-          face: pageFace,
-          credit,
-        });
-      } catch (error) {
-        setUploadError(errorText(error, `Could not upload ${file.name}.`));
-      }
-      setUploading((current) => current.filter((name) => name !== file.name));
-    }
-  }
-
   return (
     <div className="space-y-4">
       <AdminPageTopBar
-        title={printing.cardName}
+        title={deskPrintingName(printing)}
         back={<PageTopBarBack to="/admin/printing-desk" />}
         actions={
-          postSlides === null ? (
-            <PageTopBarButton disabled>
-              <Share2Icon />
-              Make a post
-            </PageTopBarButton>
-          ) : (
-            <Link
-              to="/admin/printing-desk/post"
-              search={{ slides: postSlides }}
-              className={buttonVariants({ variant: "ghost" })}
-            >
-              <Share2Icon />
-              Make a post
-            </Link>
-          )
+          <>
+            {postSlides === null ? (
+              <PageTopBarButton disabled>
+                <Share2Icon />
+                Make a post
+              </PageTopBarButton>
+            ) : (
+              <Link
+                to="/admin/printing-desk/post"
+                search={{ slides: postSlides }}
+                className={buttonVariants({ variant: "ghost" })}
+              >
+                <Share2Icon />
+                Make a post
+              </Link>
+            )}
+            {isAdmin && <PrintingActionsMenu printing={printing} />}
+          </>
         }
       />
 
       <div className="flex flex-wrap items-center gap-2">
         {channelPath.length > 0 && <Badge variant="neutral">{channelPath}</Badge>}
         <Badge variant="outline" className="font-mono">
-          {formatPrintingCode(printing.publicCode)}
+          {faces.map((face) => formatPrintingCode(face.publicCode)).join(" // ")}
         </Badge>
         <DeskStatusBadge row={printing} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="space-y-4">
-          <DetailsCard printing={printing} channelPath={channelPath} />
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Images</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Dropzone
-                multiple
-                accept="image/*"
-                disabled={uploading.length > 0}
-                icon={<UploadIcon className="text-muted-foreground size-5" />}
-                label="Drop images here or click to choose"
-                hint={`JPG, PNG or WebP, up to 50 MB each. Landscape is fine, battlefields get turned for you. ${uploadHint}`.trim()}
-                onFiles={(files) => void handleFiles(files)}
+        <div className="min-w-0 space-y-4">
+          <div className="grid gap-4 xl:grid-cols-2">
+            {faces.map((face) => (
+              <FaceCard
+                key={face.faceId}
+                printing={printing}
+                face={face}
+                images={data.images}
+                faceCount={faces.length}
+                canOpenCardPages={canOpenCardPages}
               />
+            ))}
+            {faces.length === 1 && printing.canEdit && <AddFaceCard printing={printing} />}
+          </div>
 
-              {uploading.map((name) => (
-                <p key={name} className="text-muted-foreground flex items-center gap-2 text-sm">
-                  <Spinner />
-                  Uploading {name}…
-                </p>
-              ))}
-
-              {uploadError && (
-                <Alert variant="destructive">
-                  <AlertDescription>{uploadError}</AlertDescription>
-                </Alert>
-              )}
-
-              {data.images.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  No images yet. The card page falls back to the base printing&apos;s art.
-                </p>
-              ) : (
-                <>
-                  {sideOptions.map((option) => {
-                    const images = data.images.filter((image) => image.face === option.value);
-                    if (images.length === 0) {
-                      return null;
-                    }
-                    const activeId = images.find((image) => image.isActive)?.printingImageId ?? "";
-                    return (
-                      <div key={option.value} className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium">{option.label}</p>
-                          {activeId !== "" && (
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              onClick={() =>
-                                activateImage.mutate({ imageId: activeId, active: false })
-                              }
-                            >
-                              Clear
-                            </Button>
-                          )}
-                        </div>
-                        <RadioGroup
-                          aria-label={
-                            sideOptions.length > 1
-                              ? `Active image for ${option.label}`
-                              : "Active image"
-                          }
-                          value={activeId}
-                          onValueChange={(value) => {
-                            if (typeof value === "string" && value !== "") {
-                              activateImage.mutate({ imageId: value, active: true });
-                            }
-                          }}
-                          className="gap-2"
-                        >
-                          {images.map((image) => (
-                            <DeskImageRow
-                              key={image.printingImageId}
-                              printingId={printingId}
-                              image={image}
-                              cardName={printing.cardName}
-                              sideOptions={sideOptions}
-                              landscape={getOrientation([printing.cardType]) === "landscape"}
-                            />
-                          ))}
-                        </RadioGroup>
-                      </div>
-                    );
-                  })}
-                  <p className="text-muted-foreground text-xs">
-                    Set one active per side. The front one shows on the card page and on the promos
-                    page.
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <SecondSideCard printing={printing} />
+          <PrintingFieldsCard printing={printing} channelPath={channelPath} />
+          {isAdmin && (
+            <Suspense fallback={<Skeleton className="h-40 w-full rounded-lg" />}>
+              <PrintingSourcesCard printingId={printingId} faces={faces} />
+              <PrintingMarketplaceCard printingId={printingId} cardSlug={printing.cardSlug} />
+            </Suspense>
+          )}
           <LinksCard printingId={printingId} />
+          {isAdmin && <PrintingHistoryCard printingId={printingId} />}
         </div>
 
         <Card>
@@ -294,6 +207,326 @@ export function PrintingDeskPrintingPage({
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+function FaceCard({
+  printing,
+  face,
+  images,
+  faceCount,
+  canOpenCardPages,
+}: {
+  printing: DeskPrintingRow;
+  face: PrintingFace;
+  images: DeskImage[];
+  faceCount: number;
+  canOpenCardPages: boolean;
+}) {
+  const { labels } = useEnumOrders();
+  const languageLabels = useLanguageLabels();
+  const { data: markerData } = useMarkers();
+  const removeFace = useRemoveDeskSecondSide();
+  const [editing, setEditing] = useState(false);
+
+  const markerLabels = new Map(markerData.markers.map((marker) => [marker.slug, marker.label]));
+  const markers = face.markerSlugs.map((slug) => markerLabels.get(slug) ?? slug).join(", ");
+
+  return (
+    <Card data-face-id={face.faceId}>
+      <CardHeader>
+        <CardTitle>
+          Face {face.position} · {face.cardName}
+        </CardTitle>
+        {canOpenCardPages && (
+          <CardDescription>
+            <Link
+              to="/admin/cards/$cardSlug"
+              params={{ cardSlug: face.cardSlug }}
+              search={{ section: "printings", face: face.faceId }}
+              className="underline"
+            >
+              Review on {face.cardName}&apos;s card page
+            </Link>
+          </CardDescription>
+        )}
+        {printing.canEdit && !editing && (
+          <CardAction>
+            <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+              <PencilIcon />
+              Edit
+            </Button>
+          </CardAction>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {editing ? (
+          <Suspense fallback={<Skeleton className="h-64 w-full rounded-lg" />}>
+            <PrintingDeskEditFields
+              printingId={printing.printingId}
+              side={face.position}
+              scope="face"
+              onSaved={() => setEditing(false)}
+              onCancel={() => setEditing(false)}
+            />
+          </Suspense>
+        ) : (
+          <DefinitionList className="sm:grid-cols-[max-content_minmax(0,1fr)]">
+            <DetailRow label="Code" value={formatPrintingCode(face.publicCode)} />
+            <DetailRow label="Set" value={face.setName} />
+            <DetailRow label="Finish" value={enumLabel(labels.finishes, face.finish)} />
+            <DetailRow label="Language" value={languageLabels[face.language] ?? face.language} />
+            <DetailRow label="Rarity" value={enumLabel(labels.rarities, face.rarity)} />
+            <DetailRow label="Artist" value={face.artist} />
+            <DetailRow label="Markers" value={markers.length > 0 ? markers : "None"} />
+          </DefinitionList>
+        )}
+
+        {face.sharedWith.length > 0 && (
+          <p className="text-muted-foreground text-sm">
+            Also on{" "}
+            {face.sharedWith.map((shared, index) => (
+              <span key={shared.printingId}>
+                {index > 0 && ", "}
+                <Link
+                  to="/admin/printings/$printingId"
+                  params={{ printingId: shared.printingId }}
+                  className="underline"
+                >
+                  {formatPrintingCode(shared.publicCode)}
+                </Link>
+              </span>
+            ))}
+            . Editing this face changes those printings too.
+          </p>
+        )}
+
+        <FaceImages printing={printing} face={face} images={images} />
+
+        {faceCount > 1 && printing.canEdit && (
+          <div className="space-y-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={removeFace.isPending}
+              onClick={() =>
+                removeFace.mutate({ printingId: printing.printingId, faceId: face.faceId })
+              }
+            >
+              <XIcon />
+              Remove this face
+            </Button>
+            {removeFace.error && (
+              <p className="text-destructive text-sm">
+                {errorText(removeFace.error, "Could not remove the face.")}
+              </p>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PrintingActionsMenu({ printing }: { printing: DeskPrintingRow }) {
+  const navigate = useNavigate();
+  const deletePrinting = useDeletePrinting([
+    adminKeys.cards.all,
+    adminKeys.printingDesk.all,
+    catalogKeys.all,
+  ]);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const name = deskPrintingName(printing);
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+          <EllipsisVerticalIcon />
+          <span className="sr-only">Printing actions</span>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            render={
+              <Link
+                to="/admin/cards/$cardSlug/printings/create"
+                params={{ cardSlug: printing.cardSlug }}
+                search={{ duplicateFrom: printing.printingId }}
+              />
+            }
+          >
+            <CopyIcon className="mr-2" />
+            Duplicate printing
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            variant="destructive"
+            disabled={deletePrinting.isPending}
+            onClick={() => setDeleteOpen(true)}
+          >
+            <Trash2Icon className="mr-2" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <ConfirmActionDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={`Delete printing "${name}"?`}
+        description="This cannot be undone."
+        confirmLabel="Delete"
+        pendingLabel="Deleting…"
+        isPending={deletePrinting.isPending}
+        onConfirm={() =>
+          deletePrinting.mutate(printing.printingId, {
+            onSuccess: () =>
+              void navigate({
+                to: "/admin/cards/$cardSlug",
+                params: { cardSlug: printing.cardSlug },
+                search: { section: "printings" },
+              }),
+          })
+        }
+      />
+    </>
+  );
+}
+
+function AddFaceCard({ printing }: { printing: DeskPrintingRow }) {
+  const setSecondFace = useSetDeskSecondSide();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Face 2</CardTitle>
+        <CardDescription>
+          For a double-faced token, pick the printing&apos;s other face.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <SideSearch
+          excludeFaceIds={[printing.faceId]}
+          disabled={setSecondFace.isPending}
+          onPick={(side) =>
+            setSecondFace.mutate({ printingId: printing.printingId, faceId: side.faceId })
+          }
+        />
+        {setSecondFace.error && (
+          <p className="text-destructive text-sm">
+            {errorText(setSecondFace.error, "Could not add the face.")}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function FaceImages({
+  printing,
+  face,
+  images,
+}: {
+  printing: DeskPrintingRow;
+  face: PrintingFace;
+  images: DeskImage[];
+}) {
+  const { data: session } = useSession();
+  const uploadImage = useUploadPrintingImage(DESK_IMAGE_SCOPE);
+  const activateImage = useActivatePrintingImage(DESK_IMAGE_SCOPE);
+  const [uploading, setUploading] = useState<string[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const printingId = printing.printingId;
+  const faceImages = images.filter((image) => image.face === face.imageFace);
+  const activeId = faceImages.find((image) => image.isActive)?.printingImageId ?? "";
+  const sideOptions = deskFaceOptions(printing);
+  const uploaderName = session?.user.name ?? "";
+
+  async function handleFiles(files: File[]) {
+    setUploadError(null);
+    const credit = uploaderName.length > 0 ? uploaderName : undefined;
+    for (const file of files) {
+      setUploading((current) => [...current, file.name]);
+      try {
+        await uploadImage.mutateAsync({
+          printingId,
+          file,
+          mode: "additional",
+          face: face.imageFace,
+          credit,
+        });
+      } catch (error) {
+        setUploadError(errorText(error, `Could not upload ${file.name}.`));
+      }
+      setUploading((current) => current.filter((name) => name !== file.name));
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium">Images</p>
+        {activeId !== "" && (
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={() => activateImage.mutate({ imageId: activeId, active: false })}
+          >
+            Clear
+          </Button>
+        )}
+      </div>
+
+      <Dropzone
+        multiple
+        accept="image/*"
+        disabled={uploading.length > 0}
+        icon={<UploadIcon className="text-muted-foreground size-5" />}
+        label="Drop images here or click to choose"
+        hint="JPG, PNG or WebP, up to 50 MB each. Landscape is fine, battlefields get turned for you."
+        onFiles={(files) => void handleFiles(files)}
+      />
+
+      {uploading.map((name) => (
+        <p key={name} className="text-muted-foreground flex items-center gap-2 text-sm">
+          <Spinner />
+          Uploading {name}…
+        </p>
+      ))}
+
+      {uploadError && (
+        <Alert variant="destructive">
+          <AlertDescription>{uploadError}</AlertDescription>
+        </Alert>
+      )}
+
+      {faceImages.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          No images yet. The card page falls back to the base printing&apos;s art.
+        </p>
+      ) : (
+        <RadioGroup
+          aria-label={`Active image for ${face.cardName}`}
+          value={activeId}
+          onValueChange={(value) => {
+            if (typeof value === "string" && value !== "") {
+              activateImage.mutate({ imageId: value, active: true });
+            }
+          }}
+          className="gap-2"
+        >
+          {faceImages.map((image) => (
+            <DeskImageRow
+              key={image.printingImageId}
+              printingId={printingId}
+              image={image}
+              cardName={face.cardName}
+              sideOptions={sideOptions}
+              landscape={getOrientation([printing.cardType]) === "landscape"}
+            />
+          ))}
+        </RadioGroup>
+      )}
     </div>
   );
 }
@@ -313,7 +546,7 @@ function CardPagePreview({ cardSlug, printingId }: { cardSlug: string; printingI
   return <CardDetail printing={printing} showImages showPrices={false} />;
 }
 
-function DetailsCard({
+function PrintingFieldsCard({
   printing,
   channelPath,
 }: {
@@ -321,17 +554,14 @@ function DetailsCard({
   channelPath: string;
 }) {
   const { labels } = useEnumOrders();
-  const languageLabels = useLanguageLabels();
-  const { data: markerData } = useMarkers();
   const [editing, setEditing] = useState(false);
-
-  const markerLabels = new Map(markerData.markers.map((marker) => [marker.slug, marker.label]));
   const canEdit = printing.canEdit;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Details</CardTitle>
+        <CardTitle>Printing</CardTitle>
+        {printing.secondSide !== null && <CardDescription>Shared by both faces.</CardDescription>}
         {canEdit && !editing && (
           <CardAction>
             <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
@@ -343,10 +573,10 @@ function DetailsCard({
       </CardHeader>
       <CardContent>
         {editing ? (
-          <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
+          <Suspense fallback={<Skeleton className="h-64 w-full rounded-lg" />}>
             <PrintingDeskEditFields
               printingId={printing.printingId}
-              side={printing.side}
+              scope="printing"
               onSaved={() => setEditing(false)}
               onCancel={() => setEditing(false)}
             />
@@ -355,40 +585,20 @@ function DetailsCard({
           <>
             <DefinitionList className="sm:grid-cols-[max-content_minmax(0,1fr)_max-content_minmax(0,1fr)]">
               <DetailRow label="Channel" value={channelPath.length > 0 ? channelPath : "None"} />
-              <DetailRow label="Code" value={formatPrintingCode(printing.publicCode)} />
-              <DetailRow label="Set" value={printing.setName} />
-              <DetailRow label="Finish" value={enumLabel(labels.finishes, printing.finish)} />
-              <DetailRow
-                label="Language"
-                value={languageLabels[printing.language] ?? printing.language}
-              />
               <DetailRow label="Size" value={enumLabel(labels.cardSizes, printing.size)} />
-              <DetailRow label="Artist" value={printing.artist} />
-              {printing.announcedAt !== null && printing.announcedAt !== undefined && (
+              {printing.announcedAt !== null && (
                 <DetailRow label="Announced on" value={formatDay(printing.announcedAt)} />
               )}
               <DetailRow label="Available from" value={deskPrintingPeriod(printing)} />
             </DefinitionList>
 
-            {printing.markerSlugs.length > 0 && (
-              <div className="mt-3 flex flex-wrap items-center gap-1">
-                {printing.markerSlugs.map((slug) => (
-                  <Badge key={slug} variant="subtle">
-                    {markerLabels.get(slug) ?? slug}
-                  </Badge>
-                ))}
-              </div>
+            {printing.comment !== null && printing.comment.length > 0 && (
+              <p className="text-muted-foreground mt-3 text-sm">{printing.comment}</p>
             )}
-
-            {printing.comment !== null &&
-              printing.comment !== undefined &&
-              printing.comment.length > 0 && (
-                <p className="text-muted-foreground mt-3 text-sm">{printing.comment}</p>
-              )}
 
             {!canEdit && (
               <p className="text-muted-foreground mt-3 text-sm">
-                Not a promo. Only the admin changes these details.
+                Not a promo. Only the admin changes this printing.
               </p>
             )}
           </>
@@ -478,7 +688,7 @@ function DeskImageRow({
         <div className="space-y-1 text-sm">
           {sideOptions.length > 1 && (
             <DeskSegmented
-              ariaLabel="Side"
+              ariaLabel="Face"
               value={image.face}
               onChange={(next) =>
                 setFace.mutate({ printingImageId: image.printingImageId, printingId, face: next })
@@ -589,7 +799,7 @@ function LinksCard({ printingId }: { printingId: string }) {
     <Card>
       <CardHeader>
         <CardTitle>Links</CardTitle>
-        <CardDescription>Where the promo was shown or announced.</CardDescription>
+        <CardDescription>Where the printing was shown or announced.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         {citations.map((citation) => (

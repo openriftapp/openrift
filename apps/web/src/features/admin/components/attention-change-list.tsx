@@ -465,7 +465,7 @@ export function AttentionChangeList({
                     }
                   }}
                 >
-                  Open in Fields &amp; printings
+                  Show the face row
                 </Button>
               )}
               {group.kind === "new-printing" && onLinkGroup && (

@@ -11,6 +11,7 @@ export const ADMIN_SECTION_ROUTES = {
 
 const EXTRA_SECTION_ROUTES: Partial<Record<AdminSectionSlug, readonly `/admin/${string}`[]>> = {
   "card-review": ["/admin/review"],
+  "printing-desk": ["/admin/printings"],
 };
 
 function underRoute(pathname: string, route: string): boolean {

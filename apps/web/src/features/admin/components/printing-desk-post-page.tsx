@@ -124,7 +124,7 @@ export function PrintingDeskPostPage({ slides, label, aspect, date }: PrintingDe
         back={
           onlyPrintingId ? (
             <PageTopBarBack
-              to="/admin/printing-desk/printings/$printingId"
+              to="/admin/printings/$printingId"
               params={{ printingId: onlyPrintingId }}
             />
           ) : (

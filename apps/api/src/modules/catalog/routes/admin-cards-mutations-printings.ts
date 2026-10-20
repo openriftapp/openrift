@@ -54,7 +54,7 @@ export const adminCardMutationsPrintingsRouter = {
     const { catalogMutations: mut } = context.repos;
     const { printingId, field, value, source, faceId } = input;
     const side = faceId === undefined ? input.side : await mut.sideOfFace(printingId, faceId);
-    assertFound(side, "That side is not on the printing");
+    assertFound(side, "That face is not on the printing");
 
     const printingBefore = await mut.getFullPrintingById(printingId, side);
     assertFound(printingBefore, "Printing not found");
@@ -69,6 +69,8 @@ export const adminCardMutationsPrintingsRouter = {
         scope,
       );
     }
+
+    const faceCard = await mut.getCardById(printingBefore.cardId);
 
     const normalizedValue = await normalizePrintingFieldValue(context.repos, {
       printingId,
@@ -87,6 +89,7 @@ export const adminCardMutationsPrintingsRouter = {
         entityType: "printing",
         entityId: printingId,
         entityLabel: printingBefore.shortCode,
+        cardSlug: faceCard?.slug ?? null,
         oldValues:
           field === "distributionChannelSlugs"
             ? null

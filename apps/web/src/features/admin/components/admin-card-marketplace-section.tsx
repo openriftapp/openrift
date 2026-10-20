@@ -28,13 +28,16 @@ import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified
 import type { MarketplaceHandlers } from "./marketplace-product-entries";
 import { collectStrongMappings, collectWeakMappings } from "./marketplace-product-entries";
 import { MarketplaceProductsTable } from "./marketplace-products-table";
+import { PrintingPairNamesContext } from "./printing-pair-names";
 import { computeProductSuggestions } from "./suggest-mapping";
 
 export function AdminCardMarketplaceSection({
   cardId,
+  pairNames,
   onOpenPrinting,
 }: {
   cardId: string;
+  pairNames?: ReadonlyMap<string, string>;
   onOpenPrinting?: (printingId: string) => void;
 }) {
   const queryClient = useQueryClient();
@@ -262,30 +265,40 @@ export function AdminCardMarketplaceSection({
   const offered = strongCount > 0 ? strongCount : weakCount;
 
   return (
-    <div className="space-y-3">
-      {offered > 0 && (
-        <div className="flex justify-end">
-          <Button disabled={isSaving} onClick={() => acceptAllRef.current()}>
-            <WandSparklesIcon />
-            Accept {offered} {strongCount > 0 ? "strong" : "weak"}{" "}
-            {pluralize(offered, "suggestion")}
-            <Kbd className="bg-background/20 pointer-events-none ml-1 leading-none text-inherit opacity-60">
-              Ctrl &#8629;
-            </Kbd>
-          </Button>
-        </div>
-      )}
-      <MarketplaceProductsTable
-        group={group}
-        allCards={data.allCards}
-        handlers={handlers}
-        suggestions={suggestions}
-        onOpenPrinting={onOpenPrinting}
-      />
-      <IgnoredProductsNote />
-    </div>
+    <PrintingPairNamesContext value={pairNames ?? NO_PAIR_NAMES}>
+      <div className="space-y-3">
+        {offered > 0 && (
+          <div className="flex justify-end">
+            <Button disabled={isSaving} onClick={() => acceptAllRef.current()}>
+              <WandSparklesIcon />
+              Accept {offered} {strongCount > 0 ? "strong" : "weak"}{" "}
+              {pluralize(offered, "suggestion")}
+              <Kbd className="bg-background/20 pointer-events-none ml-1 leading-none text-inherit opacity-60">
+                Ctrl &#8629;
+              </Kbd>
+            </Button>
+          </div>
+        )}
+        <MarketplaceProductsTable
+          group={group}
+          allCards={data.allCards}
+          handlers={handlers}
+          suggestions={suggestions}
+          onOpenPrinting={onOpenPrinting}
+        />
+        {pairNames !== undefined && pairNames.size > 0 && (
+          <p className="text-muted-foreground text-sm">
+            A double-faced printing&apos;s listings are shared with its other face&apos;s card, so
+            they are unmapped on the printing&apos;s page.
+          </p>
+        )}
+        <IgnoredProductsNote />
+      </div>
+    </PrintingPairNamesContext>
   );
 }
+
+const NO_PAIR_NAMES: ReadonlyMap<string, string> = new Map();
 
 /**
  * SKU is matched by the `(externalId, finish, language)` tuple the caller

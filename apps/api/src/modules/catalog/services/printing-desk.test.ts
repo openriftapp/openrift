@@ -470,6 +470,26 @@ describe("updateDeskPrinting", () => {
     );
   });
 
+  it("files a face edit under the face's card, so its card history shows it", async () => {
+    await update(repos, FULL_ADMIN, { artist: "Guest Artist" });
+
+    expect(recordAdminEvent).toHaveBeenCalledWith(
+      repos,
+      "user-1",
+      expect.objectContaining({ cardSlug: "poro-snack" }),
+    );
+  });
+
+  it("files a printing-only edit under no card", async () => {
+    await update(repos, FULL_ADMIN, { size: "oversized" });
+
+    expect(recordAdminEvent).toHaveBeenCalledWith(
+      repos,
+      "user-1",
+      expect.objectContaining({ cardSlug: null }),
+    );
+  });
+
   it("records the marker and channel slugs on both sides of the change", async () => {
     repos.printingDesk.getFullPrinting.mockResolvedValue({
       ...BASE_PRINTING,

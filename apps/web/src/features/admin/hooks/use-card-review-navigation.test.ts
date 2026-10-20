@@ -131,7 +131,7 @@ describe("collectReviewCheckTargets", () => {
         [stubCandidatePrinting()],
         [{ candidates: [stubCandidatePrinting({ id: "cp2", printingId: null })] }],
       ),
-    ).toEqual({ cardSources: false, printingIds: [], extraCandidateIds: [] });
+    ).toEqual({ cardSources: false, candidateIdBatches: [] });
   });
 
   it("flags the card sources only when one is unchecked", () => {
@@ -140,7 +140,18 @@ describe("collectReviewCheckTargets", () => {
     ).toBe(true);
   });
 
-  it("collects only printings that still have an unchecked source", () => {
+  it("lists a printing shown on both faces of this card once", () => {
+    const targets = collectReviewCheckTargets(
+      [],
+      [stubPrinting({ id: "p1", side: 1 }), stubPrinting({ id: "p1", side: 2 })],
+      [stubCandidatePrinting({ id: "cp1", printingId: "p1", checkedAt: null })],
+      [],
+    );
+
+    expect(targets.candidateIdBatches).toEqual([["cp1"]]);
+  });
+
+  it("collects the unchecked sources of each printing by id", () => {
     const targets = collectReviewCheckTargets(
       [],
       [stubPrinting({ id: "p1" }), stubPrinting({ id: "p2" }), stubPrinting({ id: "p3" })],
@@ -152,7 +163,7 @@ describe("collectReviewCheckTargets", () => {
       [],
     );
 
-    expect(targets.printingIds).toEqual(["p1"]);
+    expect(targets.candidateIdBatches).toEqual([["cp1"]]);
   });
 
   it("collects the unchecked candidates of each ambiguous group separately", () => {
@@ -172,14 +183,13 @@ describe("collectReviewCheckTargets", () => {
       ],
     );
 
-    expect(targets.extraCandidateIds).toEqual([["a1"], ["c1"]]);
+    expect(targets.candidateIdBatches).toEqual([["a1"], ["c1"]]);
   });
 
   it("handles a card with no sources, printings or groups", () => {
     expect(collectReviewCheckTargets([], [], [], [])).toEqual({
       cardSources: false,
-      printingIds: [],
-      extraCandidateIds: [],
+      candidateIdBatches: [],
     });
   });
 });
@@ -451,8 +461,9 @@ describe("useCardReviewNavigation", () => {
     });
 
     expect(mocks.checkAllCards.mutateAsync).toHaveBeenCalledWith("card-uuid");
-    expect(mocks.checkAllPrintings.mutateAsync).toHaveBeenCalledWith({ printingId: "p1" });
+    expect(mocks.checkAllPrintings.mutateAsync).toHaveBeenCalledWith({ extraIds: ["cp1"] });
     expect(mocks.checkAllPrintings.mutateAsync).toHaveBeenCalledWith({ extraIds: ["cp2"] });
+    expect(mocks.checkAllPrintings.mutateAsync).not.toHaveBeenCalledWith({ printingId: "p1" });
     expect(mocks.navigate).toHaveBeenCalledWith(
       expect.objectContaining({ params: { cardSlug: "zed" } }),
     );

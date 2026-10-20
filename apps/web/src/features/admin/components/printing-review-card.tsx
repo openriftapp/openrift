@@ -1,5 +1,7 @@
 import { isAcceptPrintingField } from "@openrift/shared/contracts/admin/card-mutations";
 import { enumLabel } from "@openrift/shared/enum-label";
+import { formatPrintingCode } from "@openrift/shared/printing-code";
+import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
 import type {
   AdminPrintingImageResponse,
   AdminPrintingResponse,
@@ -9,6 +11,7 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import { Link } from "@tanstack/react-router";
 import {
+  ArrowRightIcon,
   CheckCheckIcon,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -60,6 +63,8 @@ import { useMarkers } from "@/features/admin/hooks/use-markers";
 import { toastFieldAccepted } from "@/features/admin/lib/accept-undo";
 import { getProviderLabel } from "@/features/admin/lib/candidate-rows";
 import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
+import type { FaceRow } from "@/features/admin/lib/face-rows";
+import { printingPairName } from "@/features/admin/lib/face-rows";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
 import { printingKindLabel } from "@/features/admin/lib/printing-summary";
@@ -95,7 +100,7 @@ function PrintingSourceColumnActions({
   const printingRow = row as CandidatePrintingResponse;
   return (
     <PrintingSourceActions
-      targets={targets}
+      targets={targets.filter((target) => target.id !== printingRow.printingId)}
       onAssign={(pid) => onAssign({ candidatePrintingIds: [row.id], printingId: pid })}
       onCopy={(pid) => onCopy({ id: row.id, printingId: pid })}
       onUnassign={() => onAssign({ candidatePrintingIds: [row.id], printingId: null })}
@@ -112,8 +117,10 @@ function PrintingSourceColumnActions({
 }
 
 interface PrintingReviewCardProps {
-  printing: AdminPrintingResponse;
+  face: FaceRow;
   cardId: string;
+  cardName: string;
+  canOpenPrintingPages: boolean;
   printings: AdminPrintingResponse[];
   candidatePrintings: CandidatePrintingResponse[];
   printingImages: AdminPrintingImageResponse[];
@@ -126,8 +133,6 @@ interface PrintingReviewCardProps {
   setTotals: Record<string, number>;
   costKeywords: readonly string[];
   invalidates: readonly (readonly unknown[])[];
-  /** True only for the card's first printing, so a card never renders every row expanded. */
-  defaultExpanded: boolean;
   /** Card-review grant holders only accept fields; triage and delete stay full-admin. */
   isAdmin: boolean;
   landscape?: boolean;
@@ -141,8 +146,10 @@ interface PrintingReviewCardProps {
  * page's `.map()` closes over nothing that changes per render.
  */
 export function PrintingReviewCard({
-  printing,
+  face,
   cardId,
+  cardName,
+  canOpenPrintingPages,
   printings,
   candidatePrintings,
   printingImages,
@@ -154,18 +161,20 @@ export function PrintingReviewCard({
   setTotals,
   costKeywords,
   invalidates,
-  defaultExpanded,
   isAdmin,
   landscape = false,
   agreedFieldsFolded,
   onAgreedFieldsFoldedChange,
 }: PrintingReviewCardProps) {
+  const printing = face.printing;
   const printingId = printing.id;
   const printingLabel = printing.expectedPrintingId;
+  const shared = face.printings.length > 1;
+  const facePrintingIds = new Set(face.printings.map((row) => row.id));
 
   const isExpanded = useAdminCardFoldStore((state) => {
     const collapsed = getStoredCollapsedPrintings(state, cardId);
-    return collapsed === undefined ? defaultExpanded : !collapsed.has(printingId);
+    return collapsed !== undefined && !collapsed.has(face.faceId);
   });
   const togglePrintingFold = useAdminCardFoldStore((state) => state.togglePrinting);
 
@@ -185,7 +194,13 @@ export function PrintingReviewCard({
   const [addingCitation, setAddingCitation] = useState(false);
   const hasCitations = (citationsData?.citations.length ?? 0) > 0;
 
-  const allSources = candidatePrintings.filter((ps) => ps.printingId === printingId);
+  const allSources = candidatePrintings.filter(
+    (ps) => ps.printingId !== null && facePrintingIds.has(ps.printingId),
+  );
+  const fields = shared
+    ? printingSourceFields.filter((field) => !isPrintingLevelField(field.key))
+    : printingSourceFields;
+  const printingOfSource = new Map(allSources.map((ps) => [ps.id, ps.printingId]));
   const ownImages = printingImages.filter((pi) => pi.printingId === printingId);
   const sideImages = imagesOnSide(ownImages, printing);
   const activeImage = sideImages.find((pi) => pi.isActive);
@@ -213,7 +228,7 @@ export function PrintingReviewCard({
   const siblingImages: SiblingImage[] = [];
   const seenImageFiles = new Set<string>();
   for (const image of printingImages) {
-    if (image.printingId === printingId || seenImageFiles.has(image.imageFileId)) {
+    if (facePrintingIds.has(image.printingId) || seenImageFiles.has(image.imageFileId)) {
       continue;
     }
     seenImageFiles.add(image.imageFileId);
@@ -227,11 +242,11 @@ export function PrintingReviewCard({
   const derivedArtPrinting = findDerivedArtPrinting(printing, printings, printingImages);
 
   return (
-    <div data-printing-id={printingId}>
+    <div data-face-id={face.faceId}>
       {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- contains nested buttons, can't use <button> */}
       <div
         className="hover:bg-muted/50 flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-sm font-medium"
-        onClick={() => togglePrintingFold(cardId, printingId)}
+        onClick={() => togglePrintingFold(cardId, face.faceId)}
       >
         <span className="flex min-w-0 flex-1 items-center gap-2">
           {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
@@ -248,6 +263,7 @@ export function PrintingReviewCard({
               {!activeImage && printing.fallbackArtMode === "pinned" && (
                 <Badge variant="destructive">substitute image</Badge>
               )}
+              {shared && <Badge variant="subtle">On {face.printings.length} printings</Badge>}
             </span>
             <span className="text-muted-foreground flex flex-wrap items-center gap-1.5 font-normal">
               <RarityIcon rarity={printing.rarity} labelled />
@@ -255,6 +271,18 @@ export function PrintingReviewCard({
               <span aria-hidden>·</span>
               <span>{printingKindLabel(printing, summaryLabels)}</span>
             </span>
+            {canOpenPrintingPages && (
+              <span className="mt-1 flex flex-wrap items-center gap-1.5 font-normal">
+                {face.printings.map((row) => (
+                  <FacePrintingLink
+                    key={row.id}
+                    printing={row}
+                    cardName={cardName}
+                    code={printing.publicCode}
+                  />
+                ))}
+              </span>
+            )}
           </span>
         </span>
         {isAdmin && uncheckedSources.length > 0 && (
@@ -282,7 +310,9 @@ export function PrintingReviewCard({
                 disabled={checkAllCandidatePrintings.isPending}
                 onClick={(e) => {
                   e.stopPropagation();
-                  checkAllCandidatePrintings.mutate({ printingId });
+                  checkAllCandidatePrintings.mutate({
+                    extraIds: uncheckedSources.map((source) => source.id),
+                  });
                 }}
               >
                 All {uncheckedSources.length}
@@ -290,7 +320,7 @@ export function PrintingReviewCard({
             )}
           </span>
         )}
-        {isAdmin && (
+        {isAdmin && !shared && (
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -346,9 +376,34 @@ export function PrintingReviewCard({
       {isExpanded && (
         <div className="flex flex-col gap-3 px-3 pb-3">
           <div className="min-w-0 flex-1 space-y-3">
+            {shared && (
+              <div className="bg-muted/50 space-y-1 rounded-md px-3 py-2 text-sm">
+                <p>
+                  Edits to this face change all {face.printings.length} printings.
+                  {canOpenPrintingPages &&
+                    " Size, release dates, channels and listings are on each printing's page."}
+                </p>
+                {allSources.length > 0 && (
+                  <p className="text-muted-foreground">
+                    {allSources.map((source, index) => {
+                      const linked = face.printings.find(
+                        (row) => row.id === printingOfSource.get(source.id),
+                      );
+                      return (
+                        <span key={source.id}>
+                          {index > 0 && " · "}
+                          {getProviderLabel(source, sourceLabels)} from{" "}
+                          {linked ? printingPairName(linked, cardName) : "this face"}
+                        </span>
+                      );
+                    })}
+                  </p>
+                )}
+              </div>
+            )}
             <CandidateSpreadsheet
               key={allSources.map((s) => s.id).join(",")}
-              fields={printingSourceFields}
+              fields={fields}
               activeRow={printingWithImage}
               candidateRows={allSources}
               providerLabels={sourceLabels}
@@ -437,12 +492,13 @@ export function PrintingReviewCard({
               columnActions={
                 isAdmin ? (
                   <PrintingSourceColumnActions
-                    targets={printings
-                      .filter((p) => p.id !== printingId)
-                      .map((p) => ({
-                        id: p.id,
-                        label: p.expectedPrintingId,
-                      }))}
+                    targets={[...new Map(printings.map((p) => [p.id, p])).values()].map((p) => ({
+                      id: p.id,
+                      label:
+                        p.otherFace === null
+                          ? p.expectedPrintingId
+                          : `${printingPairName(p, cardName)} ${p.expectedPrintingId}`,
+                    }))}
                     sourceLabels={sourceLabels}
                     onAssign={(input) => linkPrintingSources.mutate(input)}
                     onCopy={(input) => copyPrintingSource.mutate(input)}
@@ -452,7 +508,7 @@ export function PrintingReviewCard({
                 ) : undefined
               }
             />
-            {isAdmin && (
+            {isAdmin && !shared && (
               <PrintingCitationsEditor
                 printingId={printingId}
                 adding={hasCitations ? undefined : addingCitation}
@@ -463,5 +519,39 @@ export function PrintingReviewCard({
         </div>
       )}
     </div>
+  );
+}
+
+function FacePrintingLink({
+  printing,
+  cardName,
+  code,
+}: {
+  printing: AdminPrintingResponse;
+  cardName: string;
+  code: string;
+}) {
+  const other = printing.otherFace;
+  const codes =
+    other === null
+      ? formatPrintingCode(code)
+      : printing.side === 2
+        ? `${formatPrintingCode(other.publicCode)} // ${formatPrintingCode(code)}`
+        : `${formatPrintingCode(code)} // ${formatPrintingCode(other.publicCode)}`;
+  return (
+    <Link
+      to="/admin/printings/$printingId"
+      params={{ printingId: printing.id }}
+      onClick={(event) => event.stopPropagation()}
+      className="hover:border-primary inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs"
+    >
+      {other === null ? (
+        <span>Printing page</span>
+      ) : (
+        <span>{printingPairName(printing, cardName)}</span>
+      )}
+      <span className="text-muted-foreground font-mono">{codes}</span>
+      <ArrowRightIcon className="size-3" />
+    </Link>
   );
 }

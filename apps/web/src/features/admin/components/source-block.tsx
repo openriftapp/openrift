@@ -61,7 +61,6 @@ interface SourceBlockProps {
   detail: AdminCardDetailResponse;
   block: AttentionSourceBlock;
   cardSlug: string;
-  compareAction: ReactNode;
   onOpenPrinting?: (printingId: string) => void;
   renderUnlinked?: (candidateCardId: string) => ReactNode;
 }
@@ -70,7 +69,6 @@ export function SourceBlock({
   detail,
   block,
   cardSlug,
-  compareAction,
   onOpenPrinting,
   renderUnlinked,
 }: SourceBlockProps) {
@@ -194,7 +192,7 @@ export function SourceBlock({
                       disabled={cardId === undefined || acceptPrintingGroup.isPending}
                       onClick={() => setPairingId(pairingId === candidate.id ? null : candidate.id)}
                     >
-                      Add double-sided…
+                      Add double-faced…
                     </Button>
                     <PrintingTargetMenu
                       label="Link to existing…"
@@ -234,7 +232,6 @@ export function SourceBlock({
             <Button variant="outline" disabled={isPending} onClick={() => void markChecked()}>
               {isSingle ? "Mark checked" : "Mark all checked"}
             </Button>
-            {compareAction}
           </div>
         </div>
 

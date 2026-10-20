@@ -60,7 +60,7 @@ async function sideOfPick(trx: Repos, pick: { printingId: string; faceId?: strin
     return 1;
   }
   const side = await trx.catalogMutations.sideOfFace(pick.printingId, pick.faceId);
-  assertFound(side, "That side is not on the printing");
+  assertFound(side, "That face is not on the printing");
   return side;
 }
 

@@ -1,5 +1,4 @@
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
-import type { ReactNode } from "react";
 
 import type {
   CandidatePrintingFieldKey,
@@ -21,7 +20,6 @@ import { useCostKeywords } from "@/hooks/use-keyword-styles";
 export function CardAttentionSection({
   detail,
   cardSlug,
-  compareAction,
   onOpenNewPrinting,
   onOpenPrinting,
   printingFields,
@@ -29,7 +27,6 @@ export function CardAttentionSection({
 }: {
   detail: AdminCardDetailResponse;
   cardSlug: string;
-  compareAction: ReactNode;
   onOpenNewPrinting: (candidatePrintingId: string) => void;
   onOpenPrinting: (printingId: string) => void;
   printingFields: FieldDef<CandidatePrintingFieldKey>[];
@@ -107,7 +104,6 @@ export function CardAttentionSection({
           detail={detail}
           block={source}
           cardSlug={cardSlug}
-          compareAction={compareAction}
           onOpenPrinting={onOpenPrinting}
           renderUnlinked={(candidateCardId) => (
             <CardAttentionNewPrintings

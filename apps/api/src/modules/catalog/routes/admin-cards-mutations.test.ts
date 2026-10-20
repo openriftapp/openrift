@@ -1008,6 +1008,22 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
     expect(mockMut.updatePrintingFieldById).toHaveBeenCalledWith(PRINTING_ID, "artist", "Alice", 1);
   });
 
+  it("files the audit event under the edited face's card", async () => {
+    mockMut.updatePrintingFieldById.mockResolvedValue(undefined);
+    mockMut.getCardById.mockResolvedValue({ id: "card-uuid", name: "Tentacle", slug: "tentacle" });
+
+    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "artist", value: "Alice", side: 2 }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockMut.getCardById).toHaveBeenCalledWith("card-uuid");
+    expect(mockAdminEvents.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "printing.accept-field", cardSlug: "tentacle" }),
+    );
+  });
+
   it("writes to the side the face is on now, after a re-sort", async () => {
     mockMut.sideOfFace.mockResolvedValue(1);
     mockMut.updatePrintingFieldById.mockResolvedValue(undefined);

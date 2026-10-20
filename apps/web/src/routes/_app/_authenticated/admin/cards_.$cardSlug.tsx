@@ -23,6 +23,7 @@ import { adminSeoHead } from "@/lib/seo";
 
 interface CardDetailSearch {
   section?: CardSection;
+  face?: string;
   focusMarketplace?: Marketplace;
   focusFinish?: string;
   focusLanguage?: string;
@@ -43,6 +44,9 @@ export const Route = createFileRoute("/_app/_authenticated/admin/cards_/$cardSlu
       result.section = search.section;
     } else if (search.section === "fields") {
       result.section = "printings";
+    }
+    if (typeof search.face === "string" && search.face.length > 0) {
+      result.face = search.face;
     }
     const focusMarketplace = marketplaceEnum.safeParse(search.focusMarketplace);
     if (focusMarketplace.success) {

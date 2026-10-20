@@ -53,7 +53,7 @@ export const deskCardPrintingsQueryOptions = (cardSlug: string) =>
     staleTime: 60 * 1000,
   });
 
-/** `side` picks which card of a double-sided printing the page is about. */
+/** `side` picks which face of a double-faced printing the row presents. */
 export const deskPrintingQueryOptions = (printingId: string, side: 1 | 2 = 1) =>
   queryOptions({
     queryKey: [...adminKeys.printingDesk.printing(printingId), side] as const,

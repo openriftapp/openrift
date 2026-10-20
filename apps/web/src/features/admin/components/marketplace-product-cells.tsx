@@ -32,6 +32,7 @@ import {
 import { AssignToPrintingButton, RowActions } from "./marketplace-row-actions";
 import { SuggestionChip } from "./marketplace-suggestion-chip";
 import { ProductLink } from "./price-mappings-utils";
+import { usePrintingPairNames } from "./printing-pair-names";
 import type { ProductSuggestion } from "./suggest-mapping";
 
 type CellProps = AdminCellSlotProps<MarketplaceTableRow>;
@@ -118,6 +119,7 @@ export function AssignedPrintingsCell({
   suggestionsByKey: ReadonlyMap<string, RowSuggestion[]>;
   onOpenPrinting?: (printingId: string) => void;
 }) {
+  const pairNames = usePrintingPairNames();
   if (!row) {
     return null;
   }
@@ -156,20 +158,22 @@ export function AssignedPrintingsCell({
                 />
               </Pressable>
             )}
-            <ChipRemoveButton
-              aria-label={`Unassign ${formatPrintingLabel(printing.shortCode, printing.markerSlugs, printing.finish, printing.language, printing.size)}`}
-              title="Unassign"
-              disabled={handlers.isUnmappingPrinting}
-              onClick={() =>
-                handlers.onUnmapPrinting(
-                  printing.printingId,
-                  product.externalId,
-                  product.finish,
-                  product.language,
-                )
-              }
-              className="text-muted-foreground hover:text-destructive -mr-0.5 disabled:opacity-50"
-            />
+            {!pairNames.has(printing.printingId) && (
+              <ChipRemoveButton
+                aria-label={`Unassign ${formatPrintingLabel(printing.shortCode, printing.markerSlugs, printing.finish, printing.language, printing.size)}`}
+                title="Unassign"
+                disabled={handlers.isUnmappingPrinting}
+                onClick={() =>
+                  handlers.onUnmapPrinting(
+                    printing.printingId,
+                    product.externalId,
+                    product.finish,
+                    product.language,
+                  )
+                }
+                className="text-muted-foreground hover:text-destructive -mr-0.5 disabled:opacity-50"
+              />
+            )}
           </Badge>
         ))}
       </span>

@@ -224,7 +224,7 @@ describe("AttentionChangeList", () => {
     });
 
     expect(screen.getByText(/OGN-042::foil/u)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Open in Fields & printings" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show the face row" }));
     expect(onOpenNewPrinting).toHaveBeenCalledWith("cp1");
   });
 

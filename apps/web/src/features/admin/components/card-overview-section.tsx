@@ -73,7 +73,7 @@ function PrintingTile({
   return (
     <Pressable
       className="hover:bg-muted/50 w-full space-y-1.5 rounded-md p-1.5"
-      title={`Open ${printing.shortCode} in Printings`}
+      title={`Open ${printing.shortCode} in Fields & faces`}
       onClick={() => onOpen(printing.id)}
     >
       <CardArtThumb
@@ -213,7 +213,7 @@ export function CardOverviewSection({
       <div className="min-w-0 space-y-4">
         {attentionCount > 0 && (
           <section className="space-y-2">
-            <Heading level={3}>Attention</Heading>
+            <Heading level={3}>Needs a decision</Heading>
             <CardList>
               <li>
                 <Pressable

@@ -114,8 +114,25 @@ async function buildDetailResponse(
     }
   }
 
+  const pairFaces =
+    printings.length > 0
+      ? await repo.facesOfPrintings([...new Set(printings.map((p) => p.id))])
+      : [];
+  const otherFaceOf = (printingId: string, side: 1 | 2) => {
+    const other = pairFaces.find((face) => face.printingId === printingId && face.side !== side);
+    return other
+      ? {
+          faceId: other.faceId,
+          cardName: other.cardName,
+          cardSlug: other.cardSlug,
+          publicCode: other.publicCode,
+        }
+      : null;
+  };
+
   const formattedPrintings = printings.map(({ setId, ...p }) => ({
     ...p,
+    otherFace: otherFaceOf(p.id, p.side),
     setId: setSlugMap.get(setId) ?? setId,
     setName: setNameMap.get(setId) ?? null,
     setSlug: setSlugMap.get(setId) ?? setId,

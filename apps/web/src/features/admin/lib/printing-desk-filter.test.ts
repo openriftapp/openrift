@@ -67,6 +67,29 @@ describe("matchesDeskFilter", () => {
     expect(matchesDeskFilter(row(), { ...ANY, query: "ogn-101" })).toBe(true);
   });
 
+  it("matches the other side's name, slug and code", () => {
+    const doubleSided = row({
+      secondSide: {
+        faceId: "face-2",
+        cardName: "Gold",
+        cardSlug: "gold",
+        setId: "s-1",
+        setName: "Origins",
+        shortCode: "OGN-T03",
+        publicCode: "OGN-T03",
+        rarity: "common",
+        finish: "normal",
+        language: "en",
+        artist: "Kudos Productions",
+        markerSlugs: [],
+        sharedWith: [],
+      },
+    });
+    expect(matchesDeskFilter(doubleSided, { ...ANY, query: "GOLD" })).toBe(true);
+    expect(matchesDeskFilter(doubleSided, { ...ANY, query: "ogn-t03" })).toBe(true);
+    expect(matchesDeskFilter(doubleSided, { ...ANY, query: "bird" })).toBe(false);
+  });
+
   it("finds an unannounced printing by the text the row shows", () => {
     expect(matchesDeskFilter(row({ publicCode: "OGN-TBA" }), { ...ANY, query: "code tba" })).toBe(
       true,

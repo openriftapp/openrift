@@ -2,6 +2,8 @@ import { printingLabelParts } from "@openrift/shared/printing-label";
 import type { UnifiedMappingPrintingResponse } from "@openrift/shared/types/api/admin";
 import { Fragment } from "react";
 
+import { usePrintingPairNames } from "./printing-pair-names";
+
 const MATCH_CLASS = "underline decoration-2 underline-offset-2";
 
 export function PrintingLabel({
@@ -13,11 +15,12 @@ export function PrintingLabel({
   printing: Pick<
     UnifiedMappingPrintingResponse,
     "shortCode" | "markerSlugs" | "finish" | "language" | "size"
-  >;
+  > & { printingId?: string };
   highlightFinish?: string;
   highlightLanguage?: string;
   highlightMarkers?: boolean;
 }) {
+  const pairName = usePrintingPairNames().get(printing.printingId ?? "");
   const langMatches = highlightLanguage !== undefined && printing.language === highlightLanguage;
   const finishMatches = highlightFinish !== undefined && printing.finish === highlightFinish;
   const parts = printingLabelParts(
@@ -36,6 +39,7 @@ export function PrintingLabel({
   ];
   return (
     <span>
+      {pairName !== undefined && <span className="mr-1 font-sans">{pairName}</span>}
       {parts.map((part, index) => (
         // oxlint-disable-next-line react/no-array-index-key -- the parts are positional
         <Fragment key={index}>

@@ -13,7 +13,9 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { Heading } from "@/components/heading";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminCardMarketplaceSection } from "@/features/admin/components/admin-card-marketplace-section";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -56,11 +58,21 @@ import {
 } from "@/features/admin/lib/attention-items";
 import { buildPrintingGroups } from "@/features/admin/lib/candidate-printing-groups";
 import type { AdminCardListStatus } from "@/features/admin/lib/card-attention";
-import type { CardSection } from "@/features/admin/lib/card-sections";
-import { cardSectionsFor, DEFAULT_CARD_SECTION } from "@/features/admin/lib/card-sections";
+import type { CardSection, NavCardSection } from "@/features/admin/lib/card-sections";
+import {
+  cardSectionsFor,
+  DEFAULT_CARD_SECTION,
+  navSectionOf,
+} from "@/features/admin/lib/card-sections";
+import {
+  buildFaceRows,
+  faceIdsOfPrinting,
+  pairNamesByPrinting,
+} from "@/features/admin/lib/face-rows";
 import { buildOverviewSourceGroups } from "@/features/admin/lib/source-groups";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import {
+  getCollapsedSections,
   getStoredCollapsedPrintings,
   useAdminCardFoldStore,
 } from "@/features/admin/stores/admin-card-fold-store";
@@ -85,18 +97,15 @@ function MissingCard({ identifier, children }: { identifier: string; children: R
 
 function foldKeys(detail: AdminCardDetailResponse): string[] {
   const groups = buildPrintingGroups(detail.candidatePrintingGroups, detail.candidatePrintings);
-  return [...detail.printings.map((p) => p.id), ...groups.map((g) => g.groupKey)];
+  return [...new Set(detail.printings.map((p) => p.faceId)), ...groups.map((g) => g.groupKey)];
 }
 
-/** Every printing and ambiguous-source group except the first printing, which stays open. */
-function defaultCollapsedKeys(detail: AdminCardDetailResponse): string[] {
-  const first = detail.printings[0]?.id;
-  return foldKeys(detail).filter((key) => key !== first);
-}
+const NEEDS_DECISION_ID = "needs-decision";
 
 export function ExistingCardDetailPage({
   identifier,
   section,
+  face,
   focusMarketplace,
   focusFinish,
   focusLanguage,
@@ -107,6 +116,7 @@ export function ExistingCardDetailPage({
 }: {
   identifier: string;
   section?: CardSection;
+  face?: string;
   focusMarketplace?: AdminMarketplaceName;
   focusFinish?: string;
   focusLanguage?: string;
@@ -120,9 +130,14 @@ export function ExistingCardDetailPage({
   // card-review grant holders keep the per-field accept flow and image finishing;
   // triage, printing create/delete, rename, bans, errata, and marketplace stay full-admin.
   const isAdmin = access?.isAdmin === true;
+  const canOpenPrintingPages = isAdmin || (access?.sections ?? []).includes("printing-desk");
 
-  // Only refetches this card's detail and the admin card list, not every query under `admin.cards`.
-  const invalidateScope = [adminKeys.cards.detail(cardId), adminKeys.cards.list];
+  // This card's detail, the admin card list and the printing pages, not all of `admin.cards`.
+  const invalidateScope = [
+    adminKeys.cards.detail(cardId),
+    adminKeys.cards.list,
+    adminKeys.printingDesk.all,
+  ];
 
   const {
     data: existingData,
@@ -170,14 +185,34 @@ export function ExistingCardDetailPage({
   const focusPrintingFold = useAdminCardFoldStore((state) => state.focusPrinting);
   const setCollapsedForCard = useAdminCardFoldStore((state) => state.setCollapsedForCard);
   const initCollapsedForCard = useAdminCardFoldStore((state) => state.initCollapsedForCard);
-  // A link from the list that focuses a marketplace variant means the printings.
+  const decisionsFolded = useAdminCardFoldStore((state) =>
+    getCollapsedSections(state).has("attention"),
+  );
+  const toggleSectionFold = useAdminCardFoldStore((state) => state.toggleSection);
+  // A link from the list that focuses a marketplace variant or a face means the faces.
   const requestedSection: CardSection =
-    section ?? (focusMarketplace === undefined ? DEFAULT_CARD_SECTION : "printings");
+    section ??
+    (focusMarketplace === undefined && face === undefined ? DEFAULT_CARD_SECTION : "printings");
   const sections = cardSectionsFor(isAdmin);
-  const activeSection = sections.includes(requestedSection)
-    ? requestedSection
+  const requestedNavSection = navSectionOf(requestedSection);
+  const activeSection = sections.includes(requestedNavSection)
+    ? requestedNavSection
     : DEFAULT_CARD_SECTION;
   const navigate = useNavigate();
+
+  function focusFaces(detail: AdminCardDetailResponse, faceIds: readonly string[]): void {
+    setCollapsedForCard(cardId, new Set(foldKeys(detail).filter((key) => !faceIds.includes(key))));
+  }
+  function scrollToFace(faceId: string | undefined): void {
+    if (faceId === undefined) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-face-id="${faceId}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
 
   function goToSection(next: CardSection) {
     return navigate({
@@ -187,18 +222,25 @@ export function ExistingCardDetailPage({
     });
   }
 
+  function revealDecisions(): void {
+    if (decisionsFolded) {
+      toggleSectionFold("attention");
+    }
+    requestAnimationFrame(() => {
+      document
+        .querySelector(`#${NEEDS_DECISION_ID}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
   function revealPrinting(printingId: string): void {
     if (!existingData) {
       return;
     }
-    focusPrintingFold(cardId, printingId, foldKeys(existingData));
+    const faceIds = faceIdsOfPrinting(existingData.printings, printingId);
+    focusFaces(existingData, faceIds);
     void (async () => {
       await goToSection("printings");
-      requestAnimationFrame(() => {
-        document
-          .querySelector(`[data-printing-id="${printingId}"]`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
+      scrollToFace(faceIds[0]);
     })();
   }
   function revealNewPrinting(candidatePrintingId: string): void {
@@ -226,7 +268,7 @@ export function ExistingCardDetailPage({
   const { filteredPrintings, filters } = usePrintingFilters(
     existingData?.printings ?? NO_PRINTINGS,
   );
-  const printingsByLanguage = usePrintingsByLanguage(filteredPrintings);
+  const facesByLanguage = usePrintingsByLanguage(buildFaceRows(filteredPrintings));
 
   const { data: mappingsData } = useQuery({
     ...unifiedMappingsForCardQueryOptions(identifier),
@@ -251,6 +293,8 @@ export function ExistingCardDetailPage({
 
   const pendingScrollTarget = useRef<string | null>(null);
   const focusHandledRef = useRef(false);
+  const faceFocusHandledRef = useRef<string | null>(null);
+  const decisionsScrollHandledRef = useRef(false);
 
   // Seeding runs before the focus effects below, which reach into a seeded card
   // to open one row.
@@ -258,7 +302,7 @@ export function ExistingCardDetailPage({
     if (!existingData) {
       return;
     }
-    initCollapsedForCard(cardId, new Set(defaultCollapsedKeys(existingData)));
+    initCollapsedForCard(cardId, new Set(foldKeys(existingData)));
   }, [existingData, cardId, initCollapsedForCard]);
 
   useEffect(() => {
@@ -266,19 +310,42 @@ export function ExistingCardDetailPage({
     if (!targetId || !existingData) {
       return;
     }
-    const printing = existingData.printings.find((p) => p.id === targetId);
-    if (!printing) {
+    const faceIds = faceIdsOfPrinting(existingData.printings, targetId);
+    if (faceIds.length === 0) {
       return;
     }
-    const id = printing.id;
     pendingScrollTarget.current = null;
-    focusPrintingFold(cardId, id, foldKeys(existingData));
-    requestAnimationFrame(() => {
-      document
-        .querySelector(`[data-printing-id="${id}"]`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-  }, [existingData, cardId, focusPrintingFold]);
+    focusFaces(existingData, faceIds);
+    scrollToFace(faceIds[0]);
+  });
+
+  useEffect(() => {
+    if (face === undefined) {
+      faceFocusHandledRef.current = null;
+      return;
+    }
+    if (faceFocusHandledRef.current === face || !existingData) {
+      return;
+    }
+    if (!existingData.printings.some((printing) => printing.faceId === face)) {
+      return;
+    }
+    faceFocusHandledRef.current = face;
+    focusFaces(existingData, [face]);
+    scrollToFace(face);
+  });
+
+  useEffect(() => {
+    if (section !== "attention") {
+      decisionsScrollHandledRef.current = false;
+      return;
+    }
+    if (decisionsScrollHandledRef.current || !existingData) {
+      return;
+    }
+    decisionsScrollHandledRef.current = true;
+    revealDecisions();
+  });
 
   // Cardmarket rows apply to all siblings, so any matching finish works there;
   // other marketplaces also require a language match.
@@ -303,13 +370,9 @@ export function ExistingCardDetailPage({
       return;
     }
     focusHandledRef.current = true;
-    focusPrintingFold(cardId, match.id, foldKeys(existingData));
-    requestAnimationFrame(() => {
-      document
-        .querySelector(`[data-printing-id="${match.id}"]`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-  }, [existingData, focusMarketplace, focusFinish, focusLanguage, cardId, focusPrintingFold]);
+    focusFaces(existingData, [match.faceId]);
+    scrollToFace(match.faceId);
+  });
 
   if (isError) {
     return (
@@ -381,23 +444,19 @@ export function ExistingCardDetailPage({
     printings.map((printing) => [printing.id, printing.expectedPrintingId]),
   );
 
-  const sectionCounts: Partial<Record<CardSection, CardSectionCount>> = {
-    attention: { waiting: attentionTotal },
+  const faceIds = [...new Set(printings.map((p) => p.faceId))];
+  const sectionCounts: Partial<Record<NavCardSection, CardSectionCount>> = {
     printings: {
-      total: printings.length,
+      total: faceIds.length,
       waiting: sources.filter((source) => !source.checkedAt).length + ambiguousGroups.length,
     },
     marketplace: { waiting: unassignedProducts },
     bans: { total: (bansData?.length ?? 0) + (card.errata === null ? 0 : 1) },
   };
 
-  const allPrintingKeys = [
-    ...printings.map((p) => p.id),
-    ...ambiguousGroups.map((g) => g.groupKey),
-  ];
+  const allPrintingKeys = [...faceIds, ...ambiguousGroups.map((g) => g.groupKey)];
   // Until the seeding effect lands, read the folds the card is about to get.
-  const collapsedPrintings =
-    storedCollapsedPrintings ?? new Set(defaultCollapsedKeys(existingData));
+  const collapsedPrintings = storedCollapsedPrintings ?? new Set(foldKeys(existingData));
   const allExpanded =
     allPrintingKeys.length > 0 && allPrintingKeys.every((k) => !collapsedPrintings.has(k));
 
@@ -443,29 +502,35 @@ export function ExistingCardDetailPage({
             />
           )}
 
-          {activeSection === "attention" &&
-            (attentionTotal === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                Nothing needs a decision on this card.
-              </p>
-            ) : (
-              <CardAttentionSection
-                detail={existingData}
-                cardSlug={cardId}
-                compareAction={
-                  <Button variant="ghost" onClick={() => void goToSection("printings")}>
-                    Fields & printings
-                  </Button>
-                }
-                onOpenNewPrinting={revealNewPrinting}
-                onOpenPrinting={revealPrinting}
-                printingFields={printingSourceFields}
-                providerLabels={sourceLabels}
-              />
-            ))}
+          {activeSection === "printings" && attentionTotal > 0 && (
+            <section id={NEEDS_DECISION_ID} className="scroll-mt-4 space-y-3 pb-6">
+              <ExpandToggle
+                expanded={!decisionsFolded}
+                onClick={() => toggleSectionFold("attention")}
+                className="gap-2"
+              >
+                <Heading level={2}>Needs a decision</Heading>
+                <Badge variant="count">{attentionTotal}</Badge>
+              </ExpandToggle>
+              {!decisionsFolded && (
+                <CardAttentionSection
+                  detail={existingData}
+                  cardSlug={cardId}
+                  onOpenNewPrinting={revealNewPrinting}
+                  onOpenPrinting={revealPrinting}
+                  printingFields={printingSourceFields}
+                  providerLabels={sourceLabels}
+                />
+              )}
+            </section>
+          )}
 
           {activeSection === "marketplace" && (
-            <AdminCardMarketplaceSection cardId={identifier} onOpenPrinting={revealPrinting} />
+            <AdminCardMarketplaceSection
+              cardId={identifier}
+              pairNames={pairNamesByPrinting(printings, canonicalName)}
+              onOpenPrinting={revealPrinting}
+            />
           )}
 
           {activeSection === "printings" && (
@@ -486,7 +551,7 @@ export function ExistingCardDetailPage({
             <section className="space-y-3 pt-6">
               <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
                 <Heading level={2} className="mr-auto">
-                  Printings
+                  Faces
                 </Heading>
                 <PrintingFilterBar
                   {...filters}
@@ -514,13 +579,15 @@ export function ExistingCardDetailPage({
               </div>
               {filteredPrintings.length > 0 && (
                 <div className="overflow-hidden rounded-md border">
-                  {printingsByLanguage.map(({ language, printings: languagePrintings }) => (
+                  {facesByLanguage.map(({ language, printings: languageFaces }) => (
                     <div key={language}>
                       <PrintingLanguageHeader code={language} className="px-3 pt-4 pb-2" />
-                      {languagePrintings.map((printing) => (
+                      {languageFaces.map((faceRow) => (
                         <PrintingReviewCard
-                          key={`${printing.id}:${printing.side}`}
-                          printing={printing}
+                          key={faceRow.faceId}
+                          face={faceRow}
+                          cardName={canonicalName}
+                          canOpenPrintingPages={canOpenPrintingPages}
                           cardId={cardId}
                           printings={printings}
                           candidatePrintings={candidatePrintings}
@@ -533,7 +600,6 @@ export function ExistingCardDetailPage({
                           setTotals={setTotals}
                           costKeywords={costKeywords}
                           invalidates={invalidateScope}
-                          defaultExpanded={printing.id === printings[0]?.id}
                           isAdmin={isAdmin}
                           landscape={landscape}
                           agreedFieldsFolded={agreedFieldsFolded}

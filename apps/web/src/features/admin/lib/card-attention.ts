@@ -80,7 +80,7 @@ export function needsAttention(row: CandidateCardSummaryResponse, unlinked: numb
   return CARD_ISSUES.some((issue) => hasIssue(row, issue, unlinked));
 }
 
-/** Marketplace work has its own section; every other issue is decided in Attention. */
+/** Marketplace work has its own section; every other issue is decided in Fields & faces. */
 export function attentionSectionFor(
   row: CandidateCardSummaryResponse,
   unlinked: number,

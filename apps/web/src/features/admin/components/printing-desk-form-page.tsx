@@ -37,6 +37,8 @@ import {
   useDeskPrinting,
   useUpdateDeskPrinting,
 } from "@/features/admin/hooks/use-printing-desk";
+import type { DeskFieldScope } from "@/features/admin/lib/desk-field-scope";
+import { fieldsInScope } from "@/features/admin/lib/desk-field-scope";
 import {
   basePrintingForLanguage,
   defaultCardLanguage,
@@ -71,7 +73,7 @@ export function PrintingDeskCreatePage({ cardSlug }: { cardSlug: string }) {
     seedLanguage,
     existing: null,
     onSaved: (printingId) =>
-      void navigate({ to: "/admin/printing-desk/printings/$printingId", params: { printingId } }),
+      void navigate({ to: "/admin/printings/$printingId", params: { printingId } }),
   });
 
   const base = form.base;
@@ -120,11 +122,13 @@ export function PrintingDeskCreatePage({ cardSlug }: { cardSlug: string }) {
 export function PrintingDeskEditFields({
   printingId,
   side = 1,
+  scope = "all",
   onSaved,
   onCancel,
 }: {
   printingId: string;
   side?: 1 | 2;
+  scope?: DeskFieldScope;
   onSaved: () => void;
   onCancel: () => void;
 }) {
@@ -136,6 +140,7 @@ export function PrintingDeskEditFields({
     cardPrintings: card.data.printings.filter((printing) => printing.printingId !== printingId),
     seedLanguage: data.printing.language,
     existing: data.printing,
+    scope,
     onSaved,
   });
 
@@ -147,12 +152,14 @@ function usePrintingDeskFormState({
   cardPrintings,
   seedLanguage,
   existing,
+  scope = "all",
   onSaved,
 }: {
   cardId: string;
   cardPrintings: readonly DeskPrintingRow[];
   seedLanguage: string;
   existing: DeskPrintingRow | null;
+  scope?: DeskFieldScope;
   onSaved: (printingId: string) => void;
 }) {
   const createPrinting = useCreateDeskPrinting();
@@ -230,7 +237,7 @@ function usePrintingDeskFormState({
         await updatePrinting.mutateAsync({
           printingId: existing.printingId,
           side: existing.side,
-          ...fields,
+          ...fieldsInScope(fields, scope),
         });
         onSaved(existing.printingId);
         return;
@@ -278,6 +285,7 @@ function usePrintingDeskFormState({
     comment,
     setComment,
     isCreate: existing === null,
+    scope,
     secondSide,
     setSecondSide,
     release,
@@ -302,203 +310,225 @@ function PrintingDeskFields({
   const languages = useLanguageList();
   const { data: setData } = useSets();
   const { data: artistData } = useDistinctArtists();
+  const showPrinting = form.scope !== "face";
+  const showFace = form.scope !== "printing";
 
   return (
     <>
       <div className="@container/desk-form">
         <FieldGroup className="@3xl/desk-form:grid @3xl/desk-form:grid-cols-2 @3xl/desk-form:gap-x-6">
-          <div className="@3xl/desk-form:col-span-2">
-            <PrintingDeskChannelPicker
-              value={form.channelSlugs}
-              onChange={(next) => form.setChannelSlugs(next)}
-            />
-          </div>
-          <div className="@3xl/desk-form:col-span-2">
-            <PrintingDeskMarkerPicker
-              value={form.markerSlugs}
-              onChange={(next) => form.setMarkerSlugs(next)}
-            />
-          </div>
-
-          <Field>
-            <FieldLabel htmlFor="desk-code">Card code</FieldLabel>
-            <Input
-              id="desk-code"
-              value={form.shortCode}
-              disabled={form.codeTba}
-              onChange={(event) => form.setShortCode(event.target.value)}
-              placeholder="OGN-101p"
-            />
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="desk-code-tba"
-                checked={form.codeTba}
-                onCheckedChange={(checked) => form.setCodeTba(checked === true)}
+          {showPrinting && (
+            <div className="@3xl/desk-form:col-span-2">
+              <PrintingDeskChannelPicker
+                value={form.channelSlugs}
+                onChange={(next) => form.setChannelSlugs(next)}
               />
-              <FieldLabel htmlFor="desk-code-tba">Code not announced yet</FieldLabel>
             </div>
-          </Field>
+          )}
+          {showFace && (
+            <div className="@3xl/desk-form:col-span-2">
+              <PrintingDeskMarkerPicker
+                value={form.markerSlugs}
+                onChange={(next) => form.setMarkerSlugs(next)}
+              />
+            </div>
+          )}
 
-          <Field>
-            <FieldLabel htmlFor="desk-set">Set</FieldLabel>
-            <Select
-              items={setData.sets.map((set) => ({ value: set.id, label: set.name }))}
-              value={form.setId}
-              onValueChange={(value) => {
-                if (value !== null) {
-                  form.setSetId(value);
-                }
-              }}
-            >
-              <SelectTrigger id="desk-set" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {setData.sets.map((set) => (
-                  <SelectItem key={set.id} value={set.id}>
-                    {set.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
+          {showFace && (
+            <Field>
+              <FieldLabel htmlFor="desk-code">Card code</FieldLabel>
+              <Input
+                id="desk-code"
+                value={form.shortCode}
+                disabled={form.codeTba}
+                onChange={(event) => form.setShortCode(event.target.value)}
+                placeholder="OGN-101p"
+              />
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="desk-code-tba"
+                  checked={form.codeTba}
+                  onCheckedChange={(checked) => form.setCodeTba(checked === true)}
+                />
+                <FieldLabel htmlFor="desk-code-tba">Code not announced yet</FieldLabel>
+              </div>
+            </Field>
+          )}
+
+          {showFace && (
+            <Field>
+              <FieldLabel htmlFor="desk-set">Set</FieldLabel>
+              <Select
+                items={setData.sets.map((set) => ({ value: set.id, label: set.name }))}
+                value={form.setId}
+                onValueChange={(value) => {
+                  if (value !== null) {
+                    form.setSetId(value);
+                  }
+                }}
+              >
+                <SelectTrigger id="desk-set" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {setData.sets.map((set) => (
+                    <SelectItem key={set.id} value={set.id}>
+                      {set.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2 @3xl/desk-form:col-span-2">
-            <Field>
-              <FieldLabel htmlFor="desk-language">Language</FieldLabel>
-              <Select
-                items={languages.map((entry) => ({ value: entry.code, label: entry.name }))}
-                value={form.language}
-                onValueChange={(value) => {
-                  if (value !== null) {
-                    form.setLanguage(value);
-                  }
-                }}
-              >
-                <SelectTrigger id="desk-language" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {languages.map((entry) => (
-                    <SelectItem key={entry.code} value={entry.code}>
-                      {entry.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+            {showFace && (
+              <Field>
+                <FieldLabel htmlFor="desk-language">Language</FieldLabel>
+                <Select
+                  items={languages.map((entry) => ({ value: entry.code, label: entry.name }))}
+                  value={form.language}
+                  onValueChange={(value) => {
+                    if (value !== null) {
+                      form.setLanguage(value);
+                    }
+                  }}
+                >
+                  <SelectTrigger id="desk-language" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {languages.map((entry) => (
+                      <SelectItem key={entry.code} value={entry.code}>
+                        {entry.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
 
-            <Field>
-              <FieldLabel htmlFor="desk-size">Size</FieldLabel>
-              <Select
-                items={orders.cardSizes.map((slug) => ({
-                  value: slug,
-                  label: labels.cardSizes[slug],
-                }))}
-                value={form.size}
-                onValueChange={(value) => {
-                  if (value !== null) {
-                    form.setSize(value);
-                  }
-                }}
-              >
-                <SelectTrigger id="desk-size" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {orders.cardSizes.map((slug) => (
-                    <SelectItem key={slug} value={slug}>
-                      {labels.cardSizes[slug]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+            {showPrinting && (
+              <Field>
+                <FieldLabel htmlFor="desk-size">Size</FieldLabel>
+                <Select
+                  items={orders.cardSizes.map((slug) => ({
+                    value: slug,
+                    label: labels.cardSizes[slug],
+                  }))}
+                  value={form.size}
+                  onValueChange={(value) => {
+                    if (value !== null) {
+                      form.setSize(value);
+                    }
+                  }}
+                >
+                  <SelectTrigger id="desk-size" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {orders.cardSizes.map((slug) => (
+                      <SelectItem key={slug} value={slug}>
+                        {labels.cardSizes[slug]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
           </div>
 
-          <Field>
-            <FieldLabel>Finish</FieldLabel>
-            <DeskSegmented
-              ariaLabel="Finish"
-              value={form.finish}
-              onChange={(next) => form.setFinish(next)}
-              options={orders.finishes.map((slug) => ({
-                value: slug,
-                label: enumLabel(labels.finishes, slug),
-              }))}
-            />
-            <FieldDescription>
-              Metal is the Prize Wall finish, Metal (Deluxe) the Best-Of finish.
-            </FieldDescription>
-          </Field>
+          {showFace && (
+            <Field>
+              <FieldLabel>Finish</FieldLabel>
+              <DeskSegmented
+                ariaLabel="Finish"
+                value={form.finish}
+                onChange={(next) => form.setFinish(next)}
+                options={orders.finishes.map((slug) => ({
+                  value: slug,
+                  label: enumLabel(labels.finishes, slug),
+                }))}
+              />
+              <FieldDescription>
+                Metal is the Prize Wall finish, Metal (Deluxe) the Best-Of finish.
+              </FieldDescription>
+            </Field>
+          )}
 
-          <Field>
-            <FieldLabel htmlFor="desk-artist">Artist</FieldLabel>
-            {form.showArtist ? (
-              <>
-                <Input
-                  id="desk-artist"
-                  list="desk-artist-options"
-                  value={form.artist}
-                  onChange={(event) => form.setArtistOverride(event.target.value)}
-                />
-                <datalist id="desk-artist-options">
-                  {artistData.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </datalist>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center gap-2 text-sm">
-                  {form.artist}
-                  <Button variant="ghost" size="xs" onClick={() => form.setShowArtist(true)}>
-                    Change
-                  </Button>
-                </div>
-                <FieldDescription>
-                  Copied from the base printing. Change it if the promo has different art.
-                </FieldDescription>
-              </>
-            )}
-          </Field>
+          {showFace && (
+            <Field>
+              <FieldLabel htmlFor="desk-artist">Artist</FieldLabel>
+              {form.showArtist ? (
+                <>
+                  <Input
+                    id="desk-artist"
+                    list="desk-artist-options"
+                    value={form.artist}
+                    onChange={(event) => form.setArtistOverride(event.target.value)}
+                  />
+                  <datalist id="desk-artist-options">
+                    {artistData.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </datalist>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 text-sm">
+                    {form.artist}
+                    <Button variant="ghost" size="xs" onClick={() => form.setShowArtist(true)}>
+                      Change
+                    </Button>
+                  </div>
+                  <FieldDescription>
+                    Copied from the base printing. Change it if the promo has different art.
+                  </FieldDescription>
+                </>
+              )}
+            </Field>
+          )}
 
-          <Field>
-            <FieldLabel htmlFor="desk-announced-at">Announced on</FieldLabel>
-            <DatePicker
-              className="w-44"
-              value={form.announcedAt}
-              onValueChange={(next) => form.setAnnouncedAt(next)}
-              onClear={() => form.setAnnouncedAt(null)}
-            />
-          </Field>
-
-          <Field>
-            <FieldLabel htmlFor="desk-released-at">Available from</FieldLabel>
-            <div className="flex flex-wrap items-center gap-2">
+          {showPrinting && (
+            <Field>
+              <FieldLabel htmlFor="desk-announced-at">Announced on</FieldLabel>
               <DatePicker
                 className="w-44"
-                value={form.releasedAt}
-                onValueChange={(next) => form.setReleasedAt(next)}
-                onClear={() => form.setReleasedAt(null)}
+                value={form.announcedAt}
+                onValueChange={(next) => form.setAnnouncedAt(next)}
+                onClear={() => form.setAnnouncedAt(null)}
               />
-              <DeskSegmented
-                ariaLabel="How exact the date is"
-                value={form.precision}
-                onChange={(next) => form.setPrecision(next)}
-                options={PRECISION_OPTIONS}
-              />
-            </div>
-            {form.release.releasedAt !== null && form.release.precision !== "day" && (
-              <FieldDescription>{formatReleasePeriod(form.release)}</FieldDescription>
-            )}
-          </Field>
+            </Field>
+          )}
+
+          {showPrinting && (
+            <Field>
+              <FieldLabel htmlFor="desk-released-at">Available from</FieldLabel>
+              <div className="flex flex-wrap items-center gap-2">
+                <DatePicker
+                  className="w-44"
+                  value={form.releasedAt}
+                  onValueChange={(next) => form.setReleasedAt(next)}
+                  onClear={() => form.setReleasedAt(null)}
+                />
+                <DeskSegmented
+                  ariaLabel="How exact the date is"
+                  value={form.precision}
+                  onChange={(next) => form.setPrecision(next)}
+                  options={PRECISION_OPTIONS}
+                />
+              </div>
+              {form.release.releasedAt !== null && form.release.precision !== "day" && (
+                <FieldDescription>{formatReleasePeriod(form.release)}</FieldDescription>
+              )}
+            </Field>
+          )}
 
           {form.isCreate && (
             <Field className="@3xl/desk-form:col-span-2">
-              <FieldLabel htmlFor="desk-second-side">Second side</FieldLabel>
+              <FieldLabel htmlFor="desk-second-side">Second face</FieldLabel>
               {form.secondSide ? (
                 <div className="flex items-center gap-2">
                   {form.secondSide.card.name} · {formatPrintingCode(form.secondSide.publicCode)}
@@ -510,22 +540,24 @@ function PrintingDeskFields({
                 <>
                   <SideSearch id="desk-second-side" onPick={(side) => form.setSecondSide(side)} />
                   <FieldDescription>
-                    For a double-sided token, the side printed on the back of this one.
+                    For a double-faced token, the other face of this printing.
                   </FieldDescription>
                 </>
               )}
             </Field>
           )}
 
-          <Field className="@3xl/desk-form:col-span-2">
-            <FieldLabel htmlFor="desk-note">Note</FieldLabel>
-            <Textarea
-              id="desk-note"
-              value={form.comment}
-              onChange={(event) => form.setComment(event.target.value)}
-              placeholder="Handed out at the door, one per player."
-            />
-          </Field>
+          {showPrinting && (
+            <Field className="@3xl/desk-form:col-span-2">
+              <FieldLabel htmlFor="desk-note">Note</FieldLabel>
+              <Textarea
+                id="desk-note"
+                value={form.comment}
+                onChange={(event) => form.setComment(event.target.value)}
+                placeholder="Handed out at the door, one per player."
+              />
+            </Field>
+          )}
         </FieldGroup>
       </div>
 

@@ -38,13 +38,13 @@ const { SideSearch } = await import("./side-search");
 describe("SideSearch", () => {
   it("offers a side shown by several printings once", async () => {
     render(<SideSearch onPick={vi.fn()} />);
-    await userEvent.type(screen.getByLabelText("Code of the other side"), "SGN-T0");
+    await userEvent.type(screen.getByLabelText("Code of the other face"), "SGN-T0");
     expect(screen.getAllByRole("button")).toHaveLength(2);
   });
 
   it("leaves out excluded sides", async () => {
     render(<SideSearch excludeFaceIds={["face-bird"]} onPick={vi.fn()} />);
-    await userEvent.type(screen.getByLabelText("Code of the other side"), "SGN-T0");
+    await userEvent.type(screen.getByLabelText("Code of the other face"), "SGN-T0");
     expect(screen.getAllByRole("button")).toHaveLength(1);
     expect(screen.getByRole("button", { name: /Gold/u })).toBeInTheDocument();
   });
@@ -52,7 +52,7 @@ describe("SideSearch", () => {
   it("hands the picked side back and clears the query", async () => {
     const onPick = vi.fn();
     render(<SideSearch onPick={onPick} />);
-    const input = screen.getByLabelText("Code of the other side");
+    const input = screen.getByLabelText("Code of the other face");
     await userEvent.type(input, "T05");
     await userEvent.click(screen.getByRole("button", { name: /Gold/u }));
     expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ faceId: "face-gold" }));

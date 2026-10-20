@@ -36,7 +36,7 @@ const TARGET_LABELS: Record<HistoryTarget["kind"], string> = {
   bans: "Open bans & errata",
   fields: "Open the card fields",
   sources: "Open sources",
-  submissions: "Open attention",
+  submissions: "Open the decisions",
 };
 
 function isHistoryFilter(value: string | undefined): value is HistoryFilter {
@@ -50,7 +50,7 @@ function actorName(event: AdminAuditEventResponse, userId: string | null): strin
   return event.actorName ?? event.actorEmail ?? "someone";
 }
 
-function HistoryRow({
+export function HistoryRow({
   event,
   userId,
   context,

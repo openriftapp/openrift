@@ -213,7 +213,7 @@ export const adminPrintingDeskContract = {
     })
     .errors({
       NOT_FOUND: { message: "Printing not found" },
-      BAD_REQUEST: { message: "The two sides must be different" },
+      BAD_REQUEST: { message: "The two faces must be different" },
       CONFLICT: { message: "Users hold or point at this printing" },
       FORBIDDEN: { message: "That printing is outside the desk" },
     })
@@ -228,7 +228,7 @@ export const adminPrintingDeskContract = {
     })
     .errors({
       NOT_FOUND: { message: "Printing not found" },
-      BAD_REQUEST: { message: "That side is not on the printing" },
+      BAD_REQUEST: { message: "That face is not on the printing" },
       CONFLICT: { message: "Users hold or point at this printing" },
       FORBIDDEN: { message: "That printing is outside the desk" },
     })

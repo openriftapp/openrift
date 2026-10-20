@@ -321,7 +321,7 @@ export async function acceptPrintingDeferringRehost(
   }
 
   if (secondFaceId !== null) {
-    assertFound(await mut.findFaceById(secondFaceId), "Second side not found");
+    assertFound(await mut.findFaceById(secondFaceId), "Second face not found");
     const firstFace = await mut.findFaceIdByIdentity({
       cardId,
       shortCode: printingFields.shortCode,
@@ -330,7 +330,7 @@ export async function acceptPrintingDeferringRehost(
       language,
     });
     if (firstFace?.id === secondFaceId) {
-      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "The two sides must be different");
+      throw new AppError(400, ERROR_CODES.BAD_REQUEST, "The two faces must be different");
     }
   }
 

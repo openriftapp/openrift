@@ -108,6 +108,14 @@ describe("candidateCardsRepo", () => {
     expect(await candidateCardsRepo(db).printingsForDetail("c-1")).toHaveLength(1);
   });
 
+  it("facesOfPrintings returns one row per face", async () => {
+    const db = createMockDb([
+      { printingId: "p-1", side: 1 },
+      { printingId: "p-1", side: 2 },
+    ]);
+    expect(await candidateCardsRepo(db).facesOfPrintings(["p-1"])).toHaveLength(2);
+  });
+
   it("candidatePrintingsForDetail returns detail fields", async () => {
     const db = createMockDb([{ id: "cp-1" }]);
     expect(await candidateCardsRepo(db).candidatePrintingsForDetail(["cc-1"])).toHaveLength(1);

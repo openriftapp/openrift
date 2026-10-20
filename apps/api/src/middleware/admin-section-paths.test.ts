@@ -219,6 +219,8 @@ describe("sectionAllowsRequest", () => {
       "/api/admin/v1/cards/printing/some-printing-id/upload-image",
       "/api/admin/v1/cards/printing-images/some-image-id/activate",
       "/api/admin/v1/cards/printing-images/some-image-id/rotate",
+      "/api/admin/v1/cards/printing-images/some-image-id/quad",
+      "/api/admin/v1/cards/printing-images/some-image-id/original",
     ])("allows POST %s", (path) => {
       expect(sectionAllowsRequest("printing-desk", "POST", path)).toBe(true);
     });

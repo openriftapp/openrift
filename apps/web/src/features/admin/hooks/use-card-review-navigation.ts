@@ -37,13 +37,12 @@ import {
 /** Everything one "Check all & next" run has to mark as checked. */
 export interface ReviewCheckTargets {
   cardSources: boolean;
-  printingIds: string[];
-  extraCandidateIds: string[][];
+  candidateIdBatches: string[][];
 }
 
 /**
- * Collect the check-all targets for a review run. Groups stay separate from
- * printings because they are checked by id list, not by printing id.
+ * Collect the check-all targets for a review run. Printing sources go by id,
+ * never by printing: a printing also carries the sources of its other face's card.
  */
 export function collectReviewCheckTargets(
   sources: readonly CandidateCardResponse[],
@@ -51,26 +50,25 @@ export function collectReviewCheckTargets(
   candidatePrintings: readonly CandidatePrintingResponse[],
   ambiguousGroups: readonly { candidates: readonly CandidatePrintingResponse[] }[],
 ): ReviewCheckTargets {
-  const printingIds: string[] = [];
-  for (const printing of printings) {
-    const relatedSources = candidatePrintings.filter((ps) => ps.printingId === printing.id);
-    if (relatedSources.some((ps) => !ps.checkedAt)) {
-      printingIds.push(printing.id);
+  const candidateIdBatches: string[][] = [];
+  for (const printingId of new Set(printings.map((printing) => printing.id))) {
+    const uncheckedIds = candidatePrintings
+      .filter((ps) => ps.printingId === printingId && !ps.checkedAt)
+      .map((ps) => ps.id);
+    if (uncheckedIds.length > 0) {
+      candidateIdBatches.push(uncheckedIds);
     }
   }
-
-  const extraCandidateIds: string[][] = [];
   for (const group of ambiguousGroups) {
     const uncheckedIds = group.candidates.filter((s) => !s.checkedAt).map((s) => s.id);
     if (uncheckedIds.length > 0) {
-      extraCandidateIds.push(uncheckedIds);
+      candidateIdBatches.push(uncheckedIds);
     }
   }
 
   return {
     cardSources: sources.some((s) => !s.checkedAt),
-    printingIds,
-    extraCandidateIds,
+    candidateIdBatches,
   };
 }
 
@@ -254,10 +252,7 @@ export function useCardReviewNavigation({
     if (targets.cardSources) {
       promises.push(checkAllCardSources.mutateAsync(card.id));
     }
-    for (const printingId of targets.printingIds) {
-      promises.push(checkAllCandidatePrintings.mutateAsync({ printingId }));
-    }
-    for (const extraIds of targets.extraCandidateIds) {
+    for (const extraIds of targets.candidateIdBatches) {
       promises.push(checkAllCandidatePrintings.mutateAsync({ extraIds }));
     }
 

@@ -133,6 +133,22 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         .execute();
     },
 
+    facesOfPrintings(printingIds: string[]) {
+      return db
+        .selectFrom("printingSidesOrdered as ps")
+        .innerJoin("cards as c", "c.id", "ps.cardId")
+        .select([
+          "ps.printingId",
+          sql<1 | 2>`ps.position`.as("side"),
+          "ps.faceId",
+          "c.name as cardName",
+          "c.slug as cardSlug",
+          "ps.publicCode",
+        ])
+        .where("ps.printingId", "in", printingIds)
+        .execute();
+    },
+
     async candidatePrintingsForDetail(
       candidateCardIds: string[],
     ): Promise<

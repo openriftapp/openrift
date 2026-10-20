@@ -6,6 +6,7 @@ export function ExistingCardPage() {
   const { cardSlug } = useParams({ from: "/_app/_authenticated/admin/cards_/$cardSlug" });
   const {
     section,
+    face,
     focusMarketplace,
     focusFinish,
     focusLanguage,
@@ -21,6 +22,7 @@ export function ExistingCardPage() {
       key={cardSlug}
       identifier={cardSlug}
       section={section}
+      face={face}
       focusMarketplace={focusMarketplace}
       focusFinish={focusFinish}
       focusLanguage={focusLanguage}

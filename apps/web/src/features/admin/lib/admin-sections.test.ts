@@ -20,6 +20,12 @@ describe("adminSectionForPathname", () => {
     expect(adminSectionForPathname("/admin/review")).toBe("card-review");
   });
 
+  it("resolves the printing pages to the printing desk", () => {
+    expect(adminSectionForPathname("/admin/printings/0190a000-0000-7000-8000-000000000001")).toBe(
+      "printing-desk",
+    );
+  });
+
   it("matches on segment boundaries, not raw prefixes", () => {
     expect(adminSectionForPathname("/admin/card-types")).toBeNull();
     expect(adminSectionForPathname("/admin/cardsX")).toBeNull();

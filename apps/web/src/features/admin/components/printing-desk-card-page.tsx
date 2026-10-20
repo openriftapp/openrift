@@ -120,11 +120,7 @@ function PrintingTile({
     <CardLink
       className="flex flex-col gap-2 p-3"
       render={
-        <Link
-          to="/admin/printing-desk/printings/$printingId"
-          params={{ printingId: printing.printingId }}
-          search={printing.side === 2 ? { side: 2 } : {}}
-        />
+        <Link to="/admin/printings/$printingId" params={{ printingId: printing.printingId }} />
       }
     >
       <DeskThumb row={printing} className="w-full" variant="400w" />

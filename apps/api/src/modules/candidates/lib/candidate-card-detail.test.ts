@@ -30,6 +30,7 @@ function createMockRepo(overrides: Record<string, unknown> = {}) {
     candidateCardsForDetail: vi.fn().mockResolvedValue([]),
     candidatePrintingsForDetail: vi.fn().mockResolvedValue([]),
     printingsForDetail: vi.fn().mockResolvedValue([]),
+    facesOfPrintings: vi.fn().mockResolvedValue([]),
     setInfoByIds: vi.fn().mockResolvedValue([]),
     setPrintedTotalBySlugs: vi.fn().mockResolvedValue([]),
     markerSlugsByIds: vi.fn().mockResolvedValue([]),
@@ -307,6 +308,57 @@ describe("buildCardDetail", () => {
     expect(result.printings[0]!.setId).toBe("origin");
     expect(result.printings[0]!.setName).toBe("Origin Set");
     expect(result.printings[0]!.expectedPrintingId).toBe("OGN-001::normal");
+    expect(result.printings[0]!.otherFace).toBeNull();
+  });
+
+  it("names the other face of a double-faced printing", async () => {
+    const repo = createMockRepo({
+      cardForDetailBySlug: vi.fn().mockResolvedValue({ ...matchedCard, slug: "tentacle" }),
+      cardNameAliases: vi.fn().mockResolvedValue([{ normName: "tentacle" }]),
+      printingsForDetail: vi.fn().mockResolvedValue([
+        {
+          id: "p-1",
+          side: 2,
+          faceId: "f-tentacle",
+          cardId: "card-1",
+          setId: "set-uuid-1",
+          shortCode: "VEN-T06",
+          markerSlugs: [],
+          finish: "normal",
+          language: "EN",
+          size: "standard",
+          canonicalRank: 1,
+        },
+      ]),
+      facesOfPrintings: vi.fn().mockResolvedValue([
+        {
+          printingId: "p-1",
+          side: 1,
+          faceId: "f-empowered",
+          cardName: "Empowered",
+          cardSlug: "empowered",
+          publicCode: "VEN-T01",
+        },
+        {
+          printingId: "p-1",
+          side: 2,
+          faceId: "f-tentacle",
+          cardName: "Tentacle",
+          cardSlug: "tentacle",
+          publicCode: "VEN-T06",
+        },
+      ]),
+    });
+
+    const result = await buildCardDetail(repo, mpRepo(), "tentacle");
+
+    expect(repo.facesOfPrintings).toHaveBeenCalledWith(["p-1"]);
+    expect(result.printings[0]!.otherFace).toEqual({
+      faceId: "f-empowered",
+      cardName: "Empowered",
+      cardSlug: "empowered",
+      publicCode: "VEN-T01",
+    });
   });
 
   it("resolves promo type slugs for expectedPrintingId", async () => {

@@ -100,7 +100,9 @@ const SECTION_PATH_MATCHERS: Record<AdminSectionSlug, (method: string, path: str
         path === `${BASE}/markers` ||
         path === `${BASE}/distribution-channels` ||
         /^\/api\/admin\/v1\/cards\/printing\/[^/]+\/upload-image$/u.test(path) ||
-        /^\/api\/admin\/v1\/cards\/printing-images\/[^/]+\/(?:activate|rotate)$/u.test(path)
+        /^\/api\/admin\/v1\/cards\/printing-images\/[^/]+\/(?:activate|rotate|quad|original)$/u.test(
+          path,
+        )
       );
     }
     if (method === "DELETE") {

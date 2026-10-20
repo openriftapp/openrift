@@ -8,12 +8,15 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DeduplicatedSourceImage } from "@/features/admin/components/card-detail-shared";
+import type { FaceRow } from "@/features/admin/lib/face-rows";
+import { buildFaceRows } from "@/features/admin/lib/face-rows";
 import { useAdminCardFoldStore } from "@/features/admin/stores/admin-card-fold-store";
 import { createStoreResetter } from "@/test/store-helpers";
 
 const captured = vi.hoisted(() => ({
   spreadsheet: null as {
     candidateRows?: unknown[];
+    fields?: { key: string }[];
     onCellClick?: (field: string, value: unknown, candidateId: string) => void;
   } | null,
   switcher: null as {
@@ -79,7 +82,9 @@ vi.mock("@/components/language-chip", () => ({
   LanguageChip: ({ code }: { code: string }) => <span>{code}</span>,
 }));
 
-vi.mock("@tanstack/react-router", () => ({ Link: () => null }));
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children }: { children?: ReactNode }) => <a href="/admin/printings">{children}</a>,
+}));
 
 vi.mock("sonner", () => ({ toast: { success: captured.toastSuccess } }));
 
@@ -128,6 +133,10 @@ const CARD_ID = "yasuo";
 function stubPrinting(overrides: Partial<AdminPrintingResponse> = {}): AdminPrintingResponse {
   return {
     id: "p1",
+    side: 1,
+    faceId: "f1",
+    otherFace: null,
+    publicCode: "OGN-001",
     cardId: "card-1",
     expectedPrintingId: "OGN-001::foil",
     setSlug: "ogn",
@@ -173,14 +182,19 @@ function stubImage(
   } as AdminPrintingImageResponse;
 }
 
-function renderCard(
-  props: Partial<React.ComponentProps<typeof PrintingReviewCard>> = {},
-): ReturnType<typeof render> {
-  const printing = props.printing ?? stubPrinting();
+function renderCard({
+  printing = stubPrinting(),
+  ...props
+}: Partial<React.ComponentProps<typeof PrintingReviewCard>> & {
+  printing?: AdminPrintingResponse;
+} = {}): ReturnType<typeof render> {
+  const [face] = buildFaceRows([printing]) as [FaceRow];
   return render(
     <PrintingReviewCard
-      printing={printing}
+      face={face}
       cardId={CARD_ID}
+      cardName="Annie"
+      canOpenPrintingPages
       printings={[printing]}
       candidatePrintings={[]}
       printingImages={[]}
@@ -192,7 +206,6 @@ function renderCard(
       setTotals={{}}
       costKeywords={[]}
       invalidates={[]}
-      defaultExpanded
       isAdmin
       agreedFieldsFolded
       onAgreedFieldsFoldedChange={vi.fn()}
@@ -205,6 +218,7 @@ let resetStore: () => void;
 
 beforeEach(() => {
   resetStore = createStoreResetter(useAdminCardFoldStore);
+  useAdminCardFoldStore.getState().setCollapsedForCard(CARD_ID, new Set());
   captured.spreadsheet = null;
   captured.switcher = null;
   captured.checkAll.mockReset();
@@ -346,12 +360,12 @@ describe("PrintingReviewCard", () => {
     captured.spreadsheet = null;
     getByText("OGN-001::foil").click();
 
-    expect(useAdminCardFoldStore.getState().collapsedByCard[CARD_ID]?.has("p1")).toBe(true);
+    expect(useAdminCardFoldStore.getState().collapsedByCard[CARD_ID]?.has("f1")).toBe(true);
     expect(captured.spreadsheet).toBeNull();
   });
 
   it("starts collapsed when the store already has the printing folded", () => {
-    useAdminCardFoldStore.getState().togglePrinting(CARD_ID, "p1");
+    useAdminCardFoldStore.getState().togglePrinting(CARD_ID, "f1");
     renderCard();
 
     expect(captured.spreadsheet).toBeNull();
@@ -382,7 +396,7 @@ describe("PrintingReviewCard", () => {
     });
 
     getByText("All 2").click();
-    expect(captured.checkAll).toHaveBeenCalledWith({ printingId: "p1" });
+    expect(captured.checkAll).toHaveBeenCalledWith({ extraIds: ["cp1", "cp2"] });
   });
 
   it("names no source once every one of them is checked", () => {
@@ -422,8 +436,9 @@ describe("PrintingReviewCard", () => {
     expect(getByText("OGN-001::foil")).toBeTruthy();
   });
 
-  it("starts folded when it is not the card's first printing", () => {
-    renderCard({ defaultExpanded: false });
+  it("starts folded before the page seeds the card's folds", () => {
+    resetStore();
+    renderCard();
 
     expect(captured.spreadsheet).toBeNull();
   });
@@ -440,6 +455,7 @@ describe("PrintingReviewCard", () => {
 
     expect(captured.acceptField).toHaveBeenCalledWith({
       printingId: "p1",
+      faceId: "f1",
       field: "artist",
       value: "Zoya",
       source: "provider",
@@ -454,10 +470,79 @@ describe("PrintingReviewCard", () => {
     options.action.onClick();
     expect(captured.acceptField).toHaveBeenLastCalledWith({
       printingId: "p1",
+      faceId: "f1",
       field: "artist",
       value: "Base Artist",
       source: "manual",
     });
+  });
+
+  describe("a face on two printings", () => {
+    const withEmpowered = stubPrinting({
+      id: "p1",
+      side: 2,
+      otherFace: {
+        faceId: "fe",
+        cardName: "Empowered",
+        cardSlug: "empowered",
+        publicCode: "VEN-T01",
+      },
+    });
+    const withShadowClone = stubPrinting({
+      id: "p2",
+      side: 2,
+      otherFace: { faceId: "fs", cardName: "Shadow Clone", cardSlug: "x", publicCode: "VEN-T05" },
+    });
+    const [sharedFace] = buildFaceRows([withEmpowered, withShadowClone]) as [FaceRow];
+    const fields = [
+      { key: "artist", label: "Artist" },
+      { key: "size", label: "Size" },
+    ] as never[];
+
+    it("pools the sources of both printings", () => {
+      renderCard({
+        face: sharedFace,
+        printings: [withEmpowered, withShadowClone],
+        candidatePrintings: [
+          stubSource({ id: "cp1", printingId: "p1" }),
+          stubSource({ id: "cp2", printingId: "p2" }),
+          stubSource({ id: "cp3", printingId: "p9" }),
+        ],
+      });
+
+      expect(captured.spreadsheet?.candidateRows).toHaveLength(2);
+    });
+
+    it("leaves the printing fields to the printing pages", () => {
+      renderCard({ face: sharedFace, printingSourceFields: fields });
+
+      expect(captured.spreadsheet?.fields?.map((field) => field.key)).toEqual(["artist"]);
+    });
+
+    it("names both printings with their other face", () => {
+      const { getByText } = renderCard({ face: sharedFace });
+
+      expect(getByText("On 2 printings")).toBeTruthy();
+      expect(getByText("Empowered // Annie")).toBeTruthy();
+      expect(getByText("Shadow Clone // Annie")).toBeTruthy();
+    });
+
+    it("offers no printing actions, they belong to one printing", () => {
+      const { queryByText } = renderCard({ face: sharedFace });
+
+      expect(queryByText("Printing actions")).toBeNull();
+    });
+  });
+
+  it("keeps the printing fields on a face that is on one printing", () => {
+    renderCard({
+      printingSourceFields: [
+        { key: "artist", label: "Artist" },
+        { key: "size", label: "Size" },
+      ] as never[],
+    });
+
+    expect(captured.spreadsheet?.fields?.map((field) => field.key)).toEqual(["artist", "size"]);
   });
 
   it("writes an empty previous value back as null", () => {
@@ -477,6 +562,7 @@ describe("PrintingReviewCard", () => {
 
     expect(captured.acceptField).toHaveBeenLastCalledWith({
       printingId: "p1",
+      faceId: "f1",
       field: "artist",
       value: null,
       source: "manual",

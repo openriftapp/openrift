@@ -348,6 +348,7 @@ export function makeAdminPrinting(
     id: nextId(),
     side: 1,
     faceId: "face-1",
+    otherFace: null,
     cardId: nextId(),
     setId: "set-origins",
     setName: "Origins",
