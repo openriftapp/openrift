@@ -242,7 +242,10 @@ function buildLinkedPrintingGroup(
     changes.push({
       key: `${groupKey}:imageUrl`,
       field: "imageUrl",
-      label: IMAGE_CHANGE_LABELS[candidate.imageMatch ?? "unknown"],
+      label:
+        currentImage === null
+          ? IMAGE_CHANGE_LABELS.same
+          : IMAGE_CHANGE_LABELS[candidate.imageMatch ?? "unknown"],
       current: displayImageUrl(printing, images),
       proposed: candidate.imageUrl,
       kind: "image",

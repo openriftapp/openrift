@@ -50,12 +50,12 @@ export function fixTypography(text: string | null, options?: FixTypographyOption
   return result;
 }
 
-/** Excludes runes (`SET-R##`) and tokens (`SET-T##`) — they aren't numbered against the set total. */
+/** Excludes runes (`SET-R##`), tokens (`SET-T##`) and unnumbered codes, which aren't numbered against the set total. */
 export function appendSetTotal(
   publicCode: string,
   printedTotal: number | null | undefined,
 ): string {
-  if (!printedTotal || publicCode.includes("/")) {
+  if (!printedTotal || publicCode.includes("/") || !/\d/u.test(publicCode)) {
     return publicCode;
   }
   if (/^[A-Z]+-[RT]\d/u.test(publicCode)) {

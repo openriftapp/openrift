@@ -221,4 +221,8 @@ describe("appendSetTotal", () => {
   it("does not append for token codes with art variant", () => {
     expect(appendSetTotal("SFD-T03b", 221)).toBe("SFD-T03b");
   });
+
+  it("does not append for a code without a collector number", () => {
+    expect(appendSetTotal("SFD", 221)).toBe("SFD");
+  });
 });

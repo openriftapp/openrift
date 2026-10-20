@@ -51,6 +51,48 @@ describe("buildAttentionSubmissions", () => {
     expect(buildAttentionSubmissions(detail, [])).toHaveLength(0);
   });
 
+  it("reads an image for an unnumbered side without a photo as an image submission", () => {
+    const card = makeAdminCard();
+    const printing = makeAdminPrinting({ shortCode: "SFD", publicCode: "SFD", setSlug: "SFD" });
+    const source = makeCandidateCard({
+      name: card.name,
+      types: card.types,
+      domains: card.domains,
+      might: card.might,
+      energy: card.energy,
+      power: card.power,
+    });
+    const detail = makeAdminCardDetail({
+      card,
+      sources: [source],
+      printings: [printing],
+      setTotals: { SFD: 221 },
+      candidatePrintings: [
+        makeCandidatePrinting({
+          candidateCardId: source.id,
+          printingId: printing.id,
+          artist: printing.artist,
+          publicCode: printing.publicCode,
+          shortCode: printing.shortCode,
+          setId: printing.setId,
+          rarity: printing.rarity,
+          artVariant: printing.artVariant,
+          finish: printing.finish,
+          size: printing.size,
+          language: printing.language,
+          printedYear: printing.printedYear,
+          imageUrl: "https://cdn.test/buff.png",
+          imageMatch: null,
+        }),
+      ],
+    });
+    const [submission] = buildAttentionSubmissions(detail, []);
+    expect(submission?.kind).toBe("image");
+    expect(submission?.groups.flatMap((group) => group.changes.map((c) => c.label))).toEqual([
+      "Image",
+    ]);
+  });
+
   it("records unchanged fields alongside the changes", () => {
     const card = makeAdminCard({ name: "Lux, Lady of Luminosity", might: 3 });
     const detail = makeAdminCardDetail({
@@ -397,13 +439,30 @@ describe("buildAttentionSources image comparison", () => {
   });
 
   it("labels a differing image by what differs", () => {
-    const labels = (match: "art" | "mark" | null) =>
-      buildAttentionSources(detailWith(match), settings, [])[0]?.entries[0]?.groups[0]?.changes.map(
-        (change) => [change.kind, change.label],
-      );
+    const labels = (match: "art" | "mark" | null) => {
+      const detail = detailWith(match);
+      const image = {
+        printingId: detail.printings[0]?.id ?? "",
+        face: "front",
+        originalUrl: "https://cdn.test/lux.png",
+        rehostedUrl: null,
+        isActive: true,
+      } as AdminPrintingImageResponse;
+      return buildAttentionSources(
+        { ...detail, printingImages: [image] },
+        settings,
+        [],
+      )[0]?.entries[0]?.groups[0]?.changes.map((change) => [change.kind, change.label]);
+    };
     expect(labels("art")).toEqual([["image", "Image (different image)"]]);
     expect(labels("mark")).toEqual([["image", "Image (bottom mark differs)"]]);
     expect(labels(null)).toEqual([["image", "Image (not compared yet)"]]);
+  });
+
+  it("labels an image for a side without a photo as Image", () => {
+    const change = buildAttentionSources(detailWith(null), settings, [])[0]?.entries[0]?.groups[0]
+      ?.changes[0];
+    expect(change?.label).toBe("Image");
   });
 
   it("shows a rehosted live image through its display url", () => {
