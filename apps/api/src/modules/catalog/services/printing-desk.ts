@@ -88,7 +88,7 @@ export async function assertDeskPrintingScope(
 }
 
 /** A side shown on several printings is shared by all of them, so each must be in scope. */
-export async function assertFaceScope(
+async function assertFaceScope(
   repos: Pick<Repos, "adminEvents" | "printingDesk">,
   adminAccess: AdminAccess | null,
   userId: string,

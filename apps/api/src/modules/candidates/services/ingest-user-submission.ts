@@ -40,7 +40,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 type IngestRepo = ReturnType<typeof ingestRepo>;
 
-export interface UserSubmissionPrinting extends IngestPrinting {
+interface UserSubmissionPrinting extends IngestPrinting {
   printing_id: string | null;
 }
 

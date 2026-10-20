@@ -13,10 +13,10 @@ import type { FacesTable } from "../../../db/tables/catalog.js";
  * A side is the slug of a single-sided printing (which moves into the new printing), an
  * existing face found by a printing that shows it and its short code, or a face the list creates.
  */
-export type PairMergeSide = string | { faceOf: string; code: string } | { newFace: string };
+type PairMergeSide = string | { faceOf: string; code: string } | { newFace: string };
 
 /** A new face copies an existing one and overrides the printed fields that differ. */
-export interface PairMergeNewFace {
+interface PairMergeNewFace {
   copyOf: { faceOf: string; code: string };
   setSlug?: string;
   shortCode?: string;
@@ -33,14 +33,14 @@ export interface PairMergeList {
   homes?: Record<string, string>;
 }
 
-export interface PairMergeSourceReport {
+interface PairMergeSourceReport {
   slug: string;
   home: string;
   defaultHome: boolean;
   moved: Record<string, number>;
 }
 
-export interface PairMergeOwnerReport {
+interface PairMergeOwnerReport {
   slug: string;
   home: string;
   userId: string | null;

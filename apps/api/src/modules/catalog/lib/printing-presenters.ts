@@ -127,7 +127,7 @@ export function toCatalogPrintingImage(row: {
   };
 }
 
-export function resolveFoilTwin(row: {
+function resolveFoilTwin(row: {
   hasFoilTwin: boolean;
 }): Pick<CatalogPrintingResponse, "hasFoilTwin"> {
   return row.hasFoilTwin ? { hasFoilTwin: true } : {};
