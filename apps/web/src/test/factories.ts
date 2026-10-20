@@ -130,6 +130,7 @@ export function stubMissingImagePrinting(
     cardName: `Card ${index}`,
     setSlug: "ogn",
     setName: "Origins",
+    shortCode: `OGN-${index}`,
     publicCode: `OGN-${index}`,
     finish: "foil",
     language: "DE",

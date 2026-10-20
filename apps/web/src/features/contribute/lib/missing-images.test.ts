@@ -11,6 +11,7 @@ function printing(printingId: string): MissingImagePrinting {
     cardName: `Card ${printingId}`,
     setSlug: "ogn",
     setName: "Origins",
+    shortCode: `OGN-${printingId}`,
     publicCode: `OGN-${printingId}`,
     finish: "normal",
     language: "EN",

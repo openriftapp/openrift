@@ -441,6 +441,8 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
         .select((eb) => [
           "p.printingId",
           sql<1 | 2>`p.position`.as("side"),
+          "p.faceId",
+          "p.shortCode",
           "c.slug as cardSlug",
           "c.name as cardName",
           "s.slug as setSlug",
@@ -468,8 +470,15 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
               eb
                 .selectFrom("candidatePrintings as cnp")
                 .innerJoin("cardSubmissions as cs", "cs.candidateCardId", "cnp.candidateCardId")
+                .innerJoin("printings as pr", "pr.id", "cnp.printingId")
+                .innerJoin("faces as f1", "f1.id", "pr.face1Id")
+                .leftJoin("faces as f2", "f2.id", "pr.face2Id")
                 .select("cnp.id")
-                .whereRef("cnp.printingId", "=", "p.printingId")
+                // Same side choice as `faceForShortCode` when the image is accepted.
+                .where(
+                  sql<boolean>`p.face_id = CASE WHEN upper(cnp.short_code) = upper(f2.short_code)
+                    AND upper(cnp.short_code) <> upper(f1.short_code) THEN f2.id ELSE f1.id END`,
+                )
                 .where("cs.kind", "=", "image")
                 .where("cs.status", "=", "pending"),
             ),
@@ -478,6 +487,8 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
         .groupBy([
           "p.printingId",
           "p.position",
+          "p.faceId",
+          "p.shortCode",
           "c.slug",
           "c.name",
           "s.slug",
@@ -491,7 +502,16 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
         .orderBy("p.publicCode", "asc")
         .execute();
 
-      return rows.map((row) => ({ ...row, copies: Number(row.copies) }));
+      const byFace = new Map<string, MissingImagePrinting>();
+      for (const { faceId, ...row } of rows) {
+        const seen = byFace.get(faceId);
+        if (seen) {
+          seen.copies += Number(row.copies);
+        } else {
+          byFace.set(faceId, { ...row, copies: Number(row.copies) });
+        }
+      }
+      return [...byFace.values()];
     },
 
     async candidatePrintingImageUrls(candidateCardId: string): Promise<string[]> {

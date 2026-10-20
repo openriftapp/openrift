@@ -51,7 +51,7 @@ export function CollectionMissingImagesCallout() {
               />
             }
           >
-            {item.cardName}
+            {item.cardName} ({item.shortCode})
           </TextLink>
         </Fragment>
       ))}

@@ -85,6 +85,7 @@ export const missingImagePrintingSchema = z.object({
   cardName: z.string(),
   setSlug: z.string(),
   setName: z.string(),
+  shortCode: z.string(),
   publicCode: z.string(),
   finish: z.string(),
   language: z.string(),

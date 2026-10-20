@@ -6,6 +6,10 @@
 
 - feat(Cards): **Each side of a double-sided token** — both sides of a double-sided token get their own tile, with their own name and art. One copy counts for both cards, fills a wish for each of them, and trades name both cards.
 
+### Other
+
+- fix(Contribute): **Missing photos listed once, with their code** — a token side printed with several other tokens counts as one missing photo, and the collection's missing photos list names each card with its code, like Buff (SFD).
+
 ## 2026-10-19
 
 ### Highlights

@@ -159,6 +159,7 @@ describe("GET /card-submissions/missing-images", () => {
       cardName: "Jinx",
       setSlug: "origins",
       setName: "Origins",
+      shortCode: "OGN-015",
       publicCode: "OGN-015/298",
       finish: "normal",
       language: "EN",

@@ -107,11 +107,11 @@ describe("CollectionMissingImagesCallout", () => {
   it("lists the first three cards as links and counts the rest", () => {
     renderCallout([1, 2, 3, 4, 5].map((index) => stubMissingImagePrinting(index)));
 
-    expect(screen.getByRole("link", { name: "Card 1" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Card 1 (OGN-1)" })).toHaveAttribute(
       "href",
       "/contribute/card/$cardSlug/printing/$printingId/image",
     );
-    expect(screen.getByRole("link", { name: "Card 3" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Card 3 (OGN-3)" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Card 4" })).not.toBeInTheDocument();
     expect(screen.getByText(/and 2 more/u)).toBeInTheDocument();
   });
