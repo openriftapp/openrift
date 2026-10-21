@@ -65,6 +65,7 @@ export function settleKeys(
 ): (readonly unknown[])[] {
   const keys: (readonly unknown[])[] = [
     adminKeys.reviewQueue,
+    adminKeys.workspace,
     cardSubmissionsKeys.forCandidate(candidateCardId),
     adminKeys.cards.list,
   ];

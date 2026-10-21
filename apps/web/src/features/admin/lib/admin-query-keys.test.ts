@@ -12,6 +12,14 @@ const mockConfig: SourceMappingConfig = {
 };
 
 describe("adminKeys", () => {
+  it("workspace prefixes both the queue and the records lists", () => {
+    const prefix = adminKeys.workspace;
+    expect(adminKeys.workspaceQueue.slice(0, prefix.length)).toEqual(prefix);
+    expect(adminKeys.workspaceRecords({ kind: "printing" }).slice(0, prefix.length)).toEqual(
+      prefix,
+    );
+  });
+
   it("me is keyed per user so identities never share a cache slot", () => {
     expect(adminKeys.me("user-1")).toEqual(["admin", "me", "user-1"]);
     expect(adminKeys.me(null)).toEqual(["admin", "me", null]);

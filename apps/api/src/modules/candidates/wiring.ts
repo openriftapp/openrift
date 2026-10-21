@@ -7,6 +7,8 @@ import { candidateCardsRepo } from "./repositories/candidate-cards.js";
 import { cardSubmissionsRepo } from "./repositories/card-submissions.js";
 import { ignoredCandidatesRepo } from "./repositories/ignored-candidates.js";
 import { ingestRepo } from "./repositories/ingest.js";
+import { workspaceQueueRepo } from "./repositories/workspace-queue.js";
+import { workspaceRecordsRepo } from "./repositories/workspace-records.js";
 import { notifyAdminsOfCardSubmission } from "./services/card-submission-notifications.js";
 import { notifySubmitterOfCardAcceptance } from "./services/card-submission-thanks.js";
 
@@ -15,6 +17,8 @@ export interface CandidatesRepos {
   candidateCards: ReturnType<typeof candidateCardsRepo>;
   ignoredCandidates: ReturnType<typeof ignoredCandidatesRepo>;
   ingest: ReturnType<typeof ingestRepo>;
+  workspaceQueue: ReturnType<typeof workspaceQueueRepo>;
+  workspaceRecords: ReturnType<typeof workspaceRecordsRepo>;
 }
 
 export interface CandidatesServices {
@@ -28,6 +32,8 @@ export function createCandidatesRepos(db: Kysely<Database>): CandidatesRepos {
     candidateCards: candidateCardsRepo(db),
     ignoredCandidates: ignoredCandidatesRepo(db),
     ingest: ingestRepo(db),
+    workspaceQueue: workspaceQueueRepo(db),
+    workspaceRecords: workspaceRecordsRepo(db),
   };
 }
 

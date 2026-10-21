@@ -7,6 +7,13 @@ export const adminKeys = {
   sets: ["admin", "sets"] as const,
   sources: ["admin", "sources"] as const,
   reviewQueue: ["admin", "review-queue"] as const,
+  workspace: ["admin", "workspace"] as const,
+  workspaceQueue: ["admin", "workspace", "queue"] as const,
+  workspaceRecords: Object.assign(
+    (params: { kind: string; q?: string; limit?: number; cursor?: string }) =>
+      ["admin", "workspace", "records", params] as const,
+    { prefix: ["admin", "workspace", "records"] as const },
+  ),
   cards: {
     all: ["admin", "cards"] as const,
     list: ["admin", "cards", "list"] as const,

@@ -10,29 +10,40 @@ export const ADMIN_SECTION_ROUTES = {
 } as const satisfies Record<AdminSectionSlug, `/admin/${string}`>;
 
 const EXTRA_SECTION_ROUTES: Partial<Record<AdminSectionSlug, readonly `/admin/${string}`[]>> = {
-  "card-review": ["/admin/review"],
-  "printing-desk": ["/admin/printings"],
+  "card-review": ["/admin/review", "/admin/workspace"],
+  "printing-desk": ["/admin/printings", "/admin/workspace/printings"],
 };
+
+const WORKSPACE_ROOT = "/admin/workspace";
+const WORKSPACE_FACE_RECORD = /^\/admin\/workspace\/faces\/[^/]+\/[^/]+\/?$/u;
 
 function underRoute(pathname: string, route: string): boolean {
   return pathname === route || pathname.startsWith(`${route}/`);
 }
 
-/**
- * card-review's manual-create pages (`.../create`) resolve to null on
- * purpose: the admin layout guard bounces grant holders off them.
- */
-export function adminSectionForPathname(pathname: string): AdminSectionSlug | null {
-  for (const slug of ADMIN_SECTION_SLUGS) {
-    const route = ADMIN_SECTION_ROUTES[slug];
-    const extra = EXTRA_SECTION_ROUTES[slug] ?? [];
-    if (!underRoute(pathname, route) && !extra.some((r) => underRoute(pathname, r))) {
-      continue;
-    }
-    if (slug === "card-review" && pathname.endsWith("/create")) {
-      return null;
-    }
-    return slug;
+function sectionCovers(slug: AdminSectionSlug, pathname: string): boolean {
+  const extra = EXTRA_SECTION_ROUTES[slug] ?? [];
+  if (
+    underRoute(pathname, ADMIN_SECTION_ROUTES[slug]) ||
+    extra.some((r) => underRoute(pathname, r))
+  ) {
+    return true;
   }
-  return null;
+  return (
+    slug === "printing-desk" &&
+    (pathname === WORKSPACE_ROOT ||
+      pathname === `${WORKSPACE_ROOT}/` ||
+      WORKSPACE_FACE_RECORD.test(pathname))
+  );
+}
+
+/**
+ * card-review's manual-create pages (`.../create`) are left out on purpose:
+ * the admin layout guard bounces card-review holders off them.
+ */
+export function adminSectionsForPathname(pathname: string): AdminSectionSlug[] {
+  return ADMIN_SECTION_SLUGS.filter(
+    (slug) =>
+      sectionCovers(slug, pathname) && !(slug === "card-review" && pathname.endsWith("/create")),
+  );
 }

@@ -266,7 +266,7 @@ const deleteProviderFn = createServerFn({ method: "POST" })
 // slug; card-detail callers pass a narrower `invalidates` list.
 
 type Scope = readonly (readonly unknown[])[];
-const defaultScope: Scope = [adminKeys.cards.all];
+const defaultScope: Scope = [adminKeys.cards.all, adminKeys.workspace];
 
 export function useCheckCandidateCard(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
@@ -292,7 +292,8 @@ export function useCheckAllCandidateCards(invalidates?: Scope) {
       await checkAllCandidateCardsFn({ data: { cardId } });
     },
     invalidates:
-      invalidates ?? ((cardId) => [adminKeys.cards.detail(cardId), adminKeys.cards.list]),
+      invalidates ??
+      ((cardId) => [adminKeys.cards.detail(cardId), adminKeys.cards.list, adminKeys.workspace]),
   });
 }
 
@@ -332,6 +333,7 @@ export function useRenameCard() {
       adminKeys.cards.detail(cardId),
       adminKeys.cards.detail(newId),
       adminKeys.cards.list,
+      adminKeys.workspace,
       adminKeys.cards.allCards,
     ],
   });
@@ -393,6 +395,7 @@ export function useAcceptNewCard() {
     invalidates: ({ name }) => [
       adminKeys.cards.unmatched(name),
       adminKeys.cards.list,
+      adminKeys.workspace,
       adminKeys.cards.allCards,
     ],
   });
@@ -411,6 +414,7 @@ export function useCreateCard() {
     invalidates: (_variables, data) => [
       adminKeys.cards.detail(data.cardSlug),
       adminKeys.cards.list,
+      adminKeys.workspace,
       adminKeys.cards.allCards,
     ],
   });
@@ -437,7 +441,11 @@ export function useCreatePrinting() {
       printingFields: CreatePrintingBody;
     }) => createPrintingFn({ data: { cardId, printingFields } }),
     invalidates: ({ cardId, cardSlug }) => {
-      const keys: (readonly unknown[])[] = [adminKeys.cards.detail(cardId), adminKeys.cards.list];
+      const keys: (readonly unknown[])[] = [
+        adminKeys.cards.detail(cardId),
+        adminKeys.cards.list,
+        adminKeys.workspace,
+      ];
       if (cardSlug) {
         keys.push(adminKeys.cards.detail(cardSlug));
       }
@@ -454,6 +462,7 @@ export function useAcceptFavoriteNewCard() {
     invalidates: (name) => [
       adminKeys.cards.unmatched(name),
       adminKeys.cards.list,
+      adminKeys.workspace,
       adminKeys.cards.allCards,
     ],
   });
@@ -468,6 +477,7 @@ export function useLinkCard() {
       adminKeys.cards.detail(cardId),
       adminKeys.cards.unmatched(name),
       adminKeys.cards.list,
+      adminKeys.workspace,
       adminKeys.cards.allCards,
     ],
   });
@@ -523,7 +533,7 @@ export function useDeleteCard() {
     mutationFn: async (cardId: string) => {
       await deleteCardFn({ data: { cardId } });
     },
-    invalidates: [adminKeys.cards.list, adminKeys.cards.allCards],
+    invalidates: [adminKeys.cards.list, adminKeys.workspace, adminKeys.cards.allCards],
   });
 }
 
@@ -550,7 +560,12 @@ export function useAcceptPrintingGroup(invalidates: Scope = defaultScope) {
 export function useCheckProvider() {
   return useMutationWithInvalidation({
     mutationFn: (provider: string) => checkProviderFn({ data: { provider } }),
-    invalidates: [adminKeys.cards.all, adminKeys.sources, adminKeys.reviewQueue],
+    invalidates: [
+      adminKeys.cards.all,
+      adminKeys.sources,
+      adminKeys.reviewQueue,
+      adminKeys.workspace,
+    ],
   });
 }
 
@@ -580,7 +595,13 @@ export function useCheckMatchingCandidates() {
       const run = await waitForJobRun(started.runId, () => listCheckMatchingRunsFn());
       return checkMatchingResultFromRun(run);
     },
-    invalidates: [adminKeys.cards.all, adminKeys.sources, adminKeys.jobRuns, adminKeys.reviewQueue],
+    invalidates: [
+      adminKeys.cards.all,
+      adminKeys.sources,
+      adminKeys.jobRuns,
+      adminKeys.reviewQueue,
+      adminKeys.workspace,
+    ],
   });
 }
 
@@ -594,7 +615,12 @@ const relinkCandidatePrintingsFn = createServerFn({ method: "POST" })
 export function useRelinkCandidatePrintings() {
   return useMutationWithInvalidation({
     mutationFn: () => relinkCandidatePrintingsFn(),
-    invalidates: [adminKeys.cards.all, adminKeys.sources, adminKeys.reviewQueue],
+    invalidates: [
+      adminKeys.cards.all,
+      adminKeys.sources,
+      adminKeys.reviewQueue,
+      adminKeys.workspace,
+    ],
   });
 }
 
@@ -617,14 +643,23 @@ const acceptFavoritePrintingsFn = createServerFn({ method: "POST" })
 export function useAcceptFavoritePrintings() {
   return useMutationWithInvalidation({
     mutationFn: (cardSlug: string) => acceptFavoritePrintingsFn({ data: cardSlug }),
-    invalidates: (cardSlug) => [adminKeys.cards.detail(cardSlug), adminKeys.cards.list],
+    invalidates: (cardSlug) => [
+      adminKeys.cards.detail(cardSlug),
+      adminKeys.cards.list,
+      adminKeys.workspace,
+    ],
   });
 }
 
 export function useDeleteProvider() {
   return useMutationWithInvalidation({
     mutationFn: (provider: string) => deleteProviderFn({ data: { provider } }),
-    invalidates: [adminKeys.cards.all, adminKeys.sources, adminKeys.reviewQueue],
+    invalidates: [
+      adminKeys.cards.all,
+      adminKeys.sources,
+      adminKeys.reviewQueue,
+      adminKeys.workspace,
+    ],
   });
 }
 

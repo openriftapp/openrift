@@ -53,6 +53,7 @@ const PUBLIC_CATALOG_KEYS = [
   promosKeys.all,
   cardsKeys.all,
   adminKeys.cards.all,
+  adminKeys.workspace,
 ] as const;
 
 export function useCreateDeskPrinting() {

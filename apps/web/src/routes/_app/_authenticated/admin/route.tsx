@@ -2,7 +2,10 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { adminAccessQueryOptions } from "@/features/admin/lib/admin-queries";
-import { ADMIN_SECTION_ROUTES, adminSectionForPathname } from "@/features/admin/lib/admin-sections";
+import {
+  ADMIN_SECTION_ROUTES,
+  adminSectionsForPathname,
+} from "@/features/admin/lib/admin-sections";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
@@ -24,8 +27,8 @@ export const Route = createFileRoute("/_app/_authenticated/admin")({
     if (firstGranted === undefined) {
       throw redirect({ to: "/cards" });
     }
-    const section = adminSectionForPathname(location.pathname);
-    if (section === null || !access.sections.some((s) => s === section)) {
+    const sections = adminSectionsForPathname(location.pathname);
+    if (!access.sections.some((s) => sections.includes(s))) {
       throw redirect({ to: ADMIN_SECTION_ROUTES[firstGranted] });
     }
   },

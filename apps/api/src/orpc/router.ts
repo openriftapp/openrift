@@ -8,6 +8,7 @@ import { OpenAPIHandler } from "@orpc/openapi/fetch";
 
 import { adminCardSubmissionsRouter } from "../modules/candidates/routes/admin-card-submissions.js";
 import { adminCatalogReviewRouter } from "../modules/candidates/routes/admin-catalog-review.js";
+import { adminCatalogWorkspaceRouter } from "../modules/candidates/routes/admin-catalog-workspace.js";
 import { adminIgnoredCandidatesRouter } from "../modules/candidates/routes/admin-ignored-candidates.js";
 import { adminStagingCardOverridesRouter } from "../modules/candidates/routes/admin-staging-card-overrides.js";
 import { cardSubmissionsRouter } from "../modules/candidates/routes/authenticated-card-submissions.js";
@@ -138,6 +139,7 @@ const apiRouter = {
   adminCardTagsRouter,
   adminCatalogRouter,
   adminCatalogReviewRouter,
+  adminCatalogWorkspaceRouter,
   adminChangelogRouter,
   adminCoreRouter,
   adminCustomTagsRouter,

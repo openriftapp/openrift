@@ -1,3 +1,5 @@
+import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-workspace";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useMatches } from "@tanstack/react-router";
 import {
   BanIcon,
@@ -8,6 +10,7 @@ import {
   GaugeIcon,
   SquareDashedIcon,
   CloudIcon,
+  CopyIcon,
   CrownIcon,
   FileWarningIcon,
   GalleryVerticalIcon,
@@ -23,6 +26,7 @@ import {
   LayoutListIcon,
   ListChecksIcon,
   PackageIcon,
+  PackageSearchIcon,
   PaintbrushIcon,
   PaletteIcon,
   LayersIcon,
@@ -54,11 +58,34 @@ import {
 } from "@/components/ui/sidebar";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useReviewQueueWhen } from "@/features/admin/hooks/use-catalog-review";
-import { adminSectionForPathname } from "@/features/admin/lib/admin-sections";
+import { adminSectionsForPathname } from "@/features/admin/lib/admin-sections";
+import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
+import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 
 const REVIEW_PATH = "/admin/review" as const;
 
 const overviewPages = [{ to: "/admin" as const, icon: LayoutDashboardIcon, title: "Dashboard" }];
+
+const workspacePages = [
+  { to: "/admin/workspace/cards" as const, icon: GalleryVerticalIcon, title: "Cards" },
+  { to: "/admin/workspace/printings" as const, icon: LayersIcon, title: "Printings" },
+  { to: "/admin/workspace/faces" as const, icon: CopyIcon, title: "Faces" },
+];
+
+const WORKSPACE_OWNERS: Partial<Record<string, WorkspaceOwner>> = {
+  "/admin/workspace/cards": "card",
+  "/admin/workspace/printings": "printing",
+  "/admin/workspace/faces": "face",
+};
+
+const catalogInputPages = [
+  { to: "/admin/sets" as const, icon: DatabaseIcon, title: "Sets" },
+  { to: "/admin/sources" as const, icon: DatabaseIcon, title: "Sources" },
+  { to: "/admin/images" as const, icon: ImageIcon, title: "Images" },
+  { to: "/admin/products" as const, icon: PackageIcon, title: "Products" },
+  { to: "/admin/unmatched" as const, icon: PackageSearchIcon, title: "Unmatched products" },
+  { to: "/admin/ignored-sources" as const, icon: BanIcon, title: "Review Decisions" },
+];
 
 const catalogPages = [
   { to: REVIEW_PATH, icon: InboxIcon, title: "Review" },
@@ -138,30 +165,56 @@ const groups = [
   { label: "System", pages: systemPages },
 ];
 
+const workspaceGroups = [
+  { label: "Overview", pages: overviewPages },
+  { label: "Catalog", pages: workspacePages },
+  { label: "Catalog inputs", pages: catalogInputPages },
+  { label: "Taxonomy", pages: taxonomyPages },
+  { label: "Content", pages: contentPages },
+  { label: "Contribute", pages: contributePages },
+  { label: "Marketplaces", pages: marketplacePages },
+  { label: "System", pages: systemPages },
+];
+
 // The dashboard is an index route, so its match reports "/admin/" while the link is "/admin".
 function isCurrent(currentPath: string | undefined, to: string): boolean {
-  return currentPath === to || currentPath === `${to}/`;
+  if (currentPath === to || currentPath === `${to}/`) {
+    return true;
+  }
+  return WORKSPACE_OWNERS[to] !== undefined && currentPath?.startsWith(`${to}/`) === true;
 }
 
 export function AdminSidebar() {
   const matches = useMatches();
   const currentPath = matches.at(-1)?.fullPath;
   const { data: access } = useAdminAccess();
+  const workspaceEnabled = useFeatureEnabled("catalog-workspace");
 
   // Partial admins (per-section grants, no full admin role) only see the
   // sections they hold; groups left empty disappear entirely.
   const isAdmin = access?.isAdmin === true;
   const sections = access?.sections ?? [];
   const canReview = isAdmin || sections.includes("card-review");
-  const { data: reviewQueue } = useReviewQueueWhen(canReview);
+  const { data: reviewQueue } = useReviewQueueWhen(canReview && !workspaceEnabled);
+  const { data: workspaceQueue } = useQuery({
+    ...workspaceQueueQueryOptions(),
+    enabled: workspaceEnabled && canReview,
+  });
   const openReviews = reviewQueue?.counts.open ?? 0;
-  const visibleGroups = groups
+  const ownerCount = (to: string) => {
+    const owner = WORKSPACE_OWNERS[to];
+    if (owner === undefined || workspaceQueue === undefined) {
+      return 0;
+    }
+    return workspaceQueue.counts[owner].open + workspaceQueue.counts[owner].new;
+  };
+  const visibleGroups = (workspaceEnabled ? workspaceGroups : groups)
     .map((group) => ({
       ...group,
       pages: isAdmin
         ? group.pages
         : group.pages.filter((page) =>
-            sections.some((section) => section === adminSectionForPathname(page.to)),
+            adminSectionsForPathname(page.to).some((section) => sections.includes(section)),
           ),
     }))
     .filter((group) => group.pages.length > 0);
@@ -184,6 +237,11 @@ export function AdminSidebar() {
                     {page.to === REVIEW_PATH && openReviews > 0 && (
                       <Badge variant="count" className="ml-auto">
                         {openReviews}
+                      </Badge>
+                    )}
+                    {ownerCount(page.to) > 0 && (
+                      <Badge variant="count" className="ml-auto">
+                        {ownerCount(page.to)}
                       </Badge>
                     )}
                   </SidebarMenuButton>

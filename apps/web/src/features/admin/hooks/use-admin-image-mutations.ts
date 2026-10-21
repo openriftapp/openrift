@@ -175,7 +175,7 @@ const uploadCandidatesFn = createServerFn({ method: "POST" })
   );
 
 type Scope = readonly (readonly unknown[])[];
-const defaultScope: Scope = [adminKeys.cards.all];
+const defaultScope: Scope = [adminKeys.cards.all, adminKeys.workspace];
 
 export function useDeletePrintingImage(invalidates: Scope = defaultScope) {
   return useMutationWithInvalidation({
@@ -415,6 +415,11 @@ export function useUploadFallbackArt(invalidates: Scope = defaultScope) {
 export function useUploadCandidates() {
   return useMutationWithInvalidation({
     mutationFn: (payload: UploadCandidatesBody) => uploadCandidatesFn({ data: payload }),
-    invalidates: [adminKeys.cards.all, adminKeys.sources, adminKeys.reviewQueue],
+    invalidates: [
+      adminKeys.cards.all,
+      adminKeys.sources,
+      adminKeys.reviewQueue,
+      adminKeys.workspace,
+    ],
   });
 }

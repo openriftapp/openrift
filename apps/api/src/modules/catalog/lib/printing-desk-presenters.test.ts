@@ -69,6 +69,12 @@ describe("toDeskPrintingRow", () => {
     expect(toDeskPrintingRow(base, { createdByMe: false, isAdmin: false }).canEdit).toBe(false);
   });
 
+  it("lets a read-only caller edit nothing, promos included", () => {
+    expect(
+      toDeskPrintingRow(row, { createdByMe: true, isAdmin: false, readOnly: true }).canEdit,
+    ).toBe(false);
+  });
+
   it("lets the admin edit any printing", () => {
     expect(toDeskPrintingRow(base, { createdByMe: false, isAdmin: true }).canEdit).toBe(true);
   });

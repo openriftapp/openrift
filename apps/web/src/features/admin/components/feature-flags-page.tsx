@@ -68,6 +68,11 @@ const KNOWN_FLAGS: KnownFlag[] = [
     key: "board-states",
     description: "Show board states (/board-states), their header link, and the editor",
   },
+  {
+    key: "catalog-workspace",
+    description:
+      "Show the new catalog admin (Cards, Printings, Faces queues and split views) in place of Review, Cards and Printing Desk",
+  },
 ];
 
 function FlagKeyCell({ row }: AdminCellSlotProps<FeatureFlagResponse>) {

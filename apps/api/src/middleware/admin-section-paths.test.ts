@@ -69,6 +69,8 @@ describe("sectionAllowsRequest", () => {
       "/api/admin/v1/languages",
       "/api/admin/v1/distribution-channels",
       "/api/admin/v1/sets",
+      "/api/admin/v1/catalog/workspace/queue",
+      "/api/admin/v1/catalog/workspace/records",
     ])("allows GET %s", (path) => {
       expect(sectionAllowsRequest("card-review", "GET", path)).toBe(true);
     });
@@ -125,6 +127,25 @@ describe("sectionAllowsRequest", () => {
     ])("rejects unmapped catalog paths at %s", (path) => {
       expect(sectionAllowsRequest("card-review", "GET", path)).toBe(false);
       expect(sectionAllowsRequest("card-review", "POST", path)).toBe(false);
+    });
+
+    it("allows reading one desk printing but no other desk endpoint", () => {
+      const one = "/api/admin/v1/printing-desk/printings/some-printing-id";
+      expect(sectionAllowsRequest("card-review", "GET", one)).toBe(true);
+      for (const method of ["POST", "PATCH", "DELETE"]) {
+        expect(sectionAllowsRequest("card-review", method, one)).toBe(false);
+      }
+      for (const path of [
+        "/api/admin/v1/printing-desk/printings",
+        "/api/admin/v1/printing-desk/printings/some-printing-id/post-image.png",
+        "/api/admin/v1/printing-desk/printings/some-printing-id/second-side",
+        "/api/admin/v1/printing-desk/cards/some-card-slug",
+      ]) {
+        expect(sectionAllowsRequest("card-review", "GET", path)).toBe(false);
+      }
+      expect(
+        sectionAllowsRequest("card-review", "POST", "/api/admin/v1/printing-desk/printings"),
+      ).toBe(false);
     });
 
     it("allows GET on enum collections but not their POST create (same path)", () => {
@@ -209,8 +230,29 @@ describe("sectionAllowsRequest", () => {
       "/api/admin/v1/languages",
       "/api/admin/v1/finishes",
       "/api/admin/v1/distribution-channels",
+      "/api/admin/v1/catalog/workspace/queue",
+      "/api/admin/v1/catalog/workspace/records",
     ])("allows GET %s", (path) => {
       expect(sectionAllowsRequest("printing-desk", "GET", path)).toBe(true);
+    });
+
+    it.each(["/api/admin/v1/catalog/workspace/queue", "/api/admin/v1/catalog/workspace/records"])(
+      "rejects writes to %s for both review sections",
+      (path) => {
+        for (const method of ["POST", "PATCH", "DELETE"]) {
+          expect(sectionAllowsRequest("printing-desk", method, path)).toBe(false);
+          expect(sectionAllowsRequest("card-review", method, path)).toBe(false);
+        }
+      },
+    );
+
+    it("rejects the workspace endpoints for unrelated sections", () => {
+      expect(sectionAllowsRequest("products", "GET", "/api/admin/v1/catalog/workspace/queue")).toBe(
+        false,
+      );
+      expect(
+        sectionAllowsRequest("custom-tags", "GET", "/api/admin/v1/catalog/workspace/records"),
+      ).toBe(false);
     });
 
     it.each([

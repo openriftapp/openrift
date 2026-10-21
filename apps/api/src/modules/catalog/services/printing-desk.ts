@@ -62,6 +62,10 @@ function normalizeRelease(release: DeskRelease): DeskRelease {
   return { releasedAt: normalized.releasedAt, releasePrecision: normalized.precision };
 }
 
+export function canUseDesk(adminAccess: AdminAccess | null): boolean {
+  return adminAccess?.isAdmin === true || adminAccess?.sections.includes("printing-desk") === true;
+}
+
 /**
  * The desk's universe is promo printings (a marker or a distribution channel)
  * plus whatever the caller added, so a base-set printing stays admin-only.

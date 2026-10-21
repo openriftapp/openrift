@@ -21,6 +21,8 @@ import { GrowthChart, GrowthRangeToggle } from "@/features/admin/components/grow
 import { useAdminDashboard } from "@/features/admin/hooks/use-admin-dashboard";
 import type { GrowthRange } from "@/features/admin/lib/growth";
 import { GROWTH_RANGE_CAPTIONS, countAdded, toGrowthSeries } from "@/features/admin/lib/growth";
+import { CatalogWorkTile } from "@/features/catalog-workspace/components/catalog-work-tile";
+import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 
 function StatTile({
   icon: Icon,
@@ -69,6 +71,7 @@ export function DashboardPage() {
   const { data } = useAdminDashboard();
   const { app, growth } = data;
   const [range, setRange] = useState<GrowthRange>("30d");
+  const workspaceEnabled = useFeatureEnabled("catalog-workspace");
 
   return (
     <div className="space-y-4">
@@ -78,6 +81,7 @@ export function DashboardPage() {
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        {workspaceEnabled && <CatalogWorkTile />}
         <StatTile
           icon={UsersIcon}
           label="Users"

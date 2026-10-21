@@ -7,7 +7,11 @@ import type {
 
 export function toDeskPrintingRow(
   row: DeskPrintingDbRow,
-  { createdByMe, isAdmin }: { createdByMe: boolean; isAdmin: boolean },
+  {
+    createdByMe,
+    isAdmin,
+    readOnly = false,
+  }: { createdByMe: boolean; isAdmin: boolean; readOnly?: boolean },
 ): DeskPrintingRow {
   return {
     printingId: row.printingId,
@@ -41,7 +45,7 @@ export function toDeskPrintingRow(
     activeImageUrl: row.activeImageUrl,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-    canEdit: isAdmin || row.isPromo || createdByMe,
+    canEdit: !readOnly && (isAdmin || row.isPromo || createdByMe),
   };
 }
 

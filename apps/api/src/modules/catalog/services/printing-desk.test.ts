@@ -7,6 +7,7 @@ import {
   assertDeskImageFileScope,
   assertDeskPrintingScope,
   assertImageUploader,
+  canUseDesk,
   createDeskPrinting,
   imagesDeletableBy,
   removeDeskSide,
@@ -551,6 +552,15 @@ describe("updateDeskPrinting", () => {
   it("404s on a printing that does not exist", async () => {
     repos.printingDesk.getFullPrinting.mockResolvedValue(undefined as never);
     await expect(update(repos, FULL_ADMIN, { artist: "X" })).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe("canUseDesk", () => {
+  it("lets the admin and desk holders use the desk but not a card-review holder", () => {
+    expect(canUseDesk(FULL_ADMIN)).toBe(true);
+    expect(canUseDesk({ isAdmin: false, sections: ["printing-desk"] })).toBe(true);
+    expect(canUseDesk({ isAdmin: false, sections: ["card-review"] })).toBe(false);
+    expect(canUseDesk(null)).toBe(false);
   });
 });
 

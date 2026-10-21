@@ -11,6 +11,7 @@ import {
   assertDeskPrintingScope,
   assertImageScope,
   assertPrintingSideScope,
+  canUseDesk,
   createDeskPrinting,
   imagesDeletableBy,
   removeDeskSide,
@@ -62,17 +63,21 @@ export const adminPrintingDeskRouter = {
 
     const createdByMe = await adminEvents.wasPrintingCreatedBy(input.printingId, context.userId);
     const images = await printingDesk.listDeskImages(input.printingId);
-    const deletable = await imagesDeletableBy(
-      context.repos,
-      context.adminAccess,
-      context.userId,
-      images.map((image) => image.printingImageId),
-    );
+    const readOnly = !canUseDesk(context.adminAccess);
+    const deletable = readOnly
+      ? new Set<string>()
+      : await imagesDeletableBy(
+          context.repos,
+          context.adminAccess,
+          context.userId,
+          images.map((image) => image.printingImageId),
+        );
 
     return {
       printing: toDeskPrintingRow(row, {
         createdByMe,
         isAdmin: context.adminAccess?.isAdmin ?? false,
+        readOnly,
       }),
       images: toDeskImages(images, deletable),
     };

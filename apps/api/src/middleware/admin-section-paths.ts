@@ -15,6 +15,8 @@ const CARD_REVIEW_GET_EXACT = new Set([
   `${BASE}/catalog/review`,
   `${BASE}/catalog/cards`,
   `${BASE}/catalog/sources`,
+  `${BASE}/catalog/workspace/queue`,
+  `${BASE}/catalog/workspace/records`,
   `${BASE}/provider-settings`,
   `${BASE}/markers`,
   `${BASE}/languages`,
@@ -28,6 +30,8 @@ const CARD_DETAIL_SLUG_DENY = new Set(["export", "provider-stats", "provider-nam
 
 const PRINTING_DESK_GET_EXACT = new Set([
   `${BASE}/cards/all-cards`,
+  `${BASE}/catalog/workspace/queue`,
+  `${BASE}/catalog/workspace/records`,
   `${BASE}/cards/distinct-artists`,
   `${BASE}/distribution-channels`,
   `${BASE}/finishes`,
@@ -48,6 +52,10 @@ const SECTION_PATH_MATCHERS: Record<AdminSectionSlug, (method: string, path: str
         return true;
       }
       if (/^\/api\/admin\/v1\/cards\/new\/[^/]+$/u.test(path)) {
+        return true;
+      }
+      // The workspace printing record reads it; the handler denies a reviewer any edit.
+      if (/^\/api\/admin\/v1\/printing-desk\/printings\/[^/]+$/u.test(path)) {
         return true;
       }
       const detail = /^\/api\/admin\/v1\/cards\/(?<slug>[^/]+)$/u.exec(path);

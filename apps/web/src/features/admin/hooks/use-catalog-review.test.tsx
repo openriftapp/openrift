@@ -56,6 +56,7 @@ describe("settleKeys", () => {
   it("always refetches the queue, the candidate's submission and the card list", () => {
     expect(settleKeys(CANDIDATE)).toEqual([
       ["admin", "review-queue"],
+      ["admin", "workspace"],
       ["card-submissions", "candidate", CANDIDATE],
       ["admin", "cards", "list"],
     ]);
