@@ -1,5 +1,6 @@
 import { friendGroupsContract } from "@openrift/shared/contracts/friend-groups";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { parseGroupShopKey } from "@openrift/shared/group-shops";
 import type {
   FriendGroupShopEventsResponse,
   FriendGroupShopSearchResponse,
@@ -8,7 +9,7 @@ import type {
 import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
-import { assertExisted } from "../../../lib/assertions.js";
+import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import {
@@ -43,8 +44,8 @@ export const friendGroupsShopsRouter = {
         context.repos.friendGroupShops.searchShops(input.q),
         context.repos.friendGroupShops.listShops(ctx.group.id),
       ]);
-      const linkedIds = new Set(linked.map((shop) => shop.storeId));
-      return { items: results.map((shop) => presentShopSearchResult(shop, linkedIds)) };
+      const linkedKeys = new Set(linked.map((shop) => presentGroupShop(shop).shopKey));
+      return { items: results.map((shop) => presentShopSearchResult(shop, linkedKeys)) };
     },
   ),
 
@@ -52,7 +53,9 @@ export const friendGroupsShopsRouter = {
     const ctx = await loadGroupForMember(context.repos, input.slug, context.userId);
     requireRole(ctx.membership, "admin");
 
-    const exists = await context.repos.friendGroupShops.storeExists(input.storeId);
+    const key = parseGroupShopKey(input.shopKey);
+    assertFound(key, "Shop not found");
+    const exists = await context.repos.friendGroupShops.storeExists(key.source, key.storeId);
     assertExisted(exists, "Shop not found");
     const count = await context.repos.friendGroupShops.countShops(ctx.group.id);
     if (count >= MAX_SHOPS_PER_GROUP) {
@@ -64,7 +67,8 @@ export const friendGroupsShopsRouter = {
     }
     await context.repos.friendGroupShops.linkShop({
       groupId: ctx.group.id,
-      storeId: input.storeId,
+      source: key.source,
+      storeId: key.storeId,
       addedByUserId: context.userId,
     });
   }),
@@ -73,7 +77,13 @@ export const friendGroupsShopsRouter = {
     const ctx = await loadGroupForMember(context.repos, input.slug, context.userId);
     requireRole(ctx.membership, "admin");
 
-    const deleted = await context.repos.friendGroupShops.unlinkShop(ctx.group.id, input.storeId);
+    const key = parseGroupShopKey(input.shopKey);
+    assertFound(key, "Shop not found");
+    const deleted = await context.repos.friendGroupShops.unlinkShop(
+      ctx.group.id,
+      key.source,
+      key.storeId,
+    );
     assertExisted(deleted, "Shop not found");
   }),
 
@@ -91,7 +101,7 @@ export const friendGroupsShopsRouter = {
       ]);
       return {
         items: events.map((event) => presentShopEvent(event)),
-        shops: shops.map((shop) => ({ storeId: shop.storeId, name: shop.name })),
+        shops: shops.map((shop) => ({ shopKey: presentGroupShop(shop).shopKey, name: shop.name })),
         horizonDays: SHOP_EVENT_HORIZON_DAYS,
         pastDays: SHOP_EVENT_PAST_DAYS,
       };

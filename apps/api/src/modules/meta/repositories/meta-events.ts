@@ -185,6 +185,32 @@ export function metaEventsRepo(db: Kysely<Database>) {
   }
 
   return {
+    /** Live events with a store in a date window that no citation from `provider` feeds. */
+    eventsAtStoresOutside(params: {
+      dateFrom: string;
+      dateTo: string;
+      provider: string;
+    }): Promise<{ id: string; name: string; eventDate: string; organizer: string | null }[]> {
+      return db
+        .selectFrom("metaEvents as e")
+        .select(["e.id", "e.name", "e.eventDate", "e.organizer"])
+        .where("e.eventDate", ">=", params.dateFrom)
+        .where("e.eventDate", "<=", params.dateTo)
+        .where("e.organizer", "is not", null)
+        .where((eb) =>
+          eb.not(
+            eb.exists(
+              eb
+                .selectFrom("metaEventSources as s")
+                .select("s.id")
+                .whereRef("s.metaEventId", "=", "e.id")
+                .where("s.provider", "=", params.provider),
+            ),
+          ),
+        )
+        .execute();
+    },
+
     listEvents(
       filters: MetaEventFilters,
       page: { limit: number; offset: number },

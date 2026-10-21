@@ -184,7 +184,12 @@ export const META_EVENT_SORTS = [
 export const META_EVENT_SORT_DIRECTIONS = ["asc", "desc"] as const;
 
 /** The catalogued sources, the axis the admin Sync and Catalogue tabs select on. */
-export const META_CATALOG_PROVIDERS = ["uvsgames", "playloltcg", "topdeck"] as const;
+export const META_CATALOG_PROVIDERS = [
+  "uvsgames",
+  "playloltcg",
+  "topdeck",
+  "playriftbound",
+] as const;
 
 /** A source contributes to the cross-mirror review only once none of its rows is `unreviewed`. */
 export const META_CROSS_SOURCE_STATES = ["linked", "distinct", "unreviewed"] as const;
@@ -214,6 +219,28 @@ export type PlayloltcgStatus = (typeof PLAYLOLTCG_STATUSES)[number];
 export const TOPDECK_FORMATS = ["Constructed", "Limited", "Sealed", "2v2", "Free-for-All"] as const;
 
 export type TopdeckFormat = (typeof TOPDECK_FORMATS)[number];
+
+/** playriftbound's `RiftboundTournamentType`, verbatim. */
+export const PLAYRIFTBOUND_TOURNAMENT_TYPES = [
+  "LEARN_TO_PLAY",
+  "OPEN_PLAY",
+  "NEXUS_NIGHT",
+  "PRE_RIFT",
+  "SUMMONER_SKIRMISH",
+  "NEXUS_CUP",
+  "SHOWDOWN_SERIES",
+  "CHALLENGE_SERIES",
+  "REGIONAL",
+  "CONTINENTAL",
+  "WORLD_CHAMPIONSHIP",
+] as const;
+
+export type PlayriftboundTournamentType = (typeof PLAYRIFTBOUND_TOURNAMENT_TYPES)[number];
+
+/** playriftbound's `RiftboundTournamentFormat`, verbatim. */
+export const PLAYRIFTBOUND_FORMATS = ["CONSTRUCTED", "LIMITED_SEALED", "LIMITED_DRAFT"] as const;
+
+export type PlayriftboundFormat = (typeof PLAYRIFTBOUND_FORMATS)[number];
 
 export const META_CATALOG_SORTS = ["startAt", "name", "playerCount"] as const;
 

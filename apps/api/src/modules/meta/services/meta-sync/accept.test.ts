@@ -59,6 +59,7 @@ interface RecheckWrite {
 
 function fakeDeps(
   options: {
+    live?: { id: string; name: string; eventDate: string; organizer: string | null }[];
     existing?: { id: string; format: string };
     settings?: {
       autoAcceptMinPlayers: number | null;
@@ -130,6 +131,7 @@ function fakeDeps(
 
   const lifecycles: { metaEventId: string; status: string; sourceCheckedAt: Date | null }[] = [];
   const meta = {
+    eventsAtStoresOutside: () => Promise.resolve(options.live ?? []),
     setEventLifecycle: (
       metaEventId: string,
       values: { status: string; sourceCheckedAt: Date | null },
@@ -220,6 +222,7 @@ describe("autoAcceptCatalogEvents", () => {
     expect(await autoAcceptCatalogEvents(deps, [])).toEqual({
       considered: 0,
       accepted: 0,
+      held: 0,
       failed: 0,
       errors: [],
     });
@@ -232,6 +235,7 @@ describe("autoAcceptCatalogEvents", () => {
     expect(await autoAcceptCatalogEvents(deps, ["365708"])).toEqual({
       considered: 0,
       accepted: 0,
+      held: 0,
       failed: 0,
       errors: [],
     });
@@ -249,8 +253,28 @@ describe("autoAcceptCatalogEvents", () => {
 
     const summary = await autoAcceptCatalogEvents(deps, ["big", "small"]);
 
-    expect(summary).toEqual({ considered: 2, accepted: 1, failed: 0, errors: [] });
+    expect(summary).toEqual({ considered: 2, accepted: 1, held: 0, failed: 0, errors: [] });
     expect(rechecks.map((write) => write.externalId)).toEqual(["big"]);
+  });
+
+  it("holds an event another source already archived at the same store within a day", async () => {
+    const { deps, rechecks } = fakeDeps({
+      settings: { autoAcceptMinPlayers: 64, autoAcceptNotable: false, autoAcceptOfficial: false },
+      unaccepted: [catalogRow({ externalId: "twin", playerCount: 200 })],
+      live: [
+        {
+          id: "riot-live",
+          name: "Riftbound Regional Qualifier Bologna",
+          eventDate: "2026-02-20",
+          organizer: "UVS Games Organized Play",
+        },
+      ],
+    });
+
+    const summary = await autoAcceptCatalogEvents(deps, ["twin"]);
+
+    expect(summary).toMatchObject({ accepted: 0, held: 1 });
+    expect(rechecks).toHaveLength(0);
   });
 
   it("never accepts an event whose format the archive cannot file", async () => {
@@ -311,6 +335,7 @@ describe("autoAcceptCatalogBacklog", () => {
     expect(await autoAcceptCatalogBacklog(deps)).toEqual({
       considered: 0,
       accepted: 0,
+      held: 0,
       failed: 0,
       errors: [],
     });
@@ -328,7 +353,7 @@ describe("autoAcceptCatalogBacklog", () => {
 
     const summary = await autoAcceptCatalogBacklog(deps);
 
-    expect(summary).toEqual({ considered: 2, accepted: 1, failed: 0, errors: [] });
+    expect(summary).toEqual({ considered: 2, accepted: 1, held: 0, failed: 0, errors: [] });
     expect(rechecks.map((write) => write.externalId)).toEqual(["old-big"]);
     expect(reads).toContain("newKeys");
   });

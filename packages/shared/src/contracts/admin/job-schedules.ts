@@ -30,6 +30,8 @@ export const SCHEDULED_JOB_KINDS = [
   "meta.playloltcg_sync",
   "meta.playloltcg_recheck",
   "meta.topdeck_sync",
+  "meta.playriftbound_sync",
+  "meta.playriftbound_recheck",
 ] as const;
 
 export const scheduledJobKindSchema = z.enum(SCHEDULED_JOB_KINDS);

@@ -10,7 +10,6 @@ import {
   topdeckDeckId,
   topdeckEventUrl,
   topdeckFormat,
-  topdeckLocalDay,
 } from "./topdeck-catalog.js";
 
 const KISSIMMEE = -81.369;
@@ -38,23 +37,6 @@ function tournament(overrides: Record<string, unknown> = {}): Record<string, unk
 function standing(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return { name: "Ashe Ryder", id: "TUwSHoKJted", wins: 4, losses: 1, draws: 0, ...overrides };
 }
-
-describe("topdeckLocalDay", () => {
-  it("files an American evening event under the day it was played", () => {
-    const startAt = new Date("2026-01-03T00:30:00.000Z");
-    expect(topdeckLocalDay(startAt, KISSIMMEE)).toBe("2026-01-02");
-  });
-
-  it("keeps a European late-evening event on its own day", () => {
-    const startAt = new Date("2025-10-24T18:30:00.000Z");
-    expect(topdeckLocalDay(startAt, 10.33)).toBe("2025-10-24");
-  });
-
-  it("falls back to the UTC day for an event with no coordinates", () => {
-    const startAt = new Date("2026-01-03T00:30:00.000Z");
-    expect(topdeckLocalDay(startAt, null)).toBe("2026-01-03");
-  });
-});
 
 describe("topdeckFormat", () => {
   it("maps the source's constructed word onto ours", () => {

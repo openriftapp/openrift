@@ -22,7 +22,7 @@ const {
 } = vi.hoisted(() => ({
   acceptPlayloltcgEvent: vi.fn(),
   autoAcceptCatalogBacklog: vi.fn(() =>
-    Promise.resolve({ considered: 0, accepted: 0, failed: 0, errors: [] }),
+    Promise.resolve({ considered: 0, accepted: 0, held: 0, failed: 0, errors: [] }),
   ),
   autoAcceptPlayloltcgBacklog: vi.fn(() =>
     Promise.resolve({ considered: 0, accepted: 0, failed: 0, errors: [] }),
@@ -226,14 +226,33 @@ describe("POST /catalogue/sync/cancel", () => {
     expect(mockJobRuns.requestCancel).not.toHaveBeenCalled();
   });
 
-  it("refuses the playloltcg recheck, which runs without a run id to read the flag from", async () => {
+  it.each(["playloltcg", "playriftbound"])(
+    "refuses the %s recheck, which runs without a run id to read the flag from",
+    async (source) => {
+      mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID });
+
+      const res = await post("/sync/cancel", { source, job: "recheck" });
+
+      expect(res.status).toBe(400);
+      expect(mockJobRuns.getRunning).not.toHaveBeenCalled();
+      expect(mockJobRuns.requestCancel).not.toHaveBeenCalled();
+    },
+  );
+
+  it("cancels a running playriftbound sweep", async () => {
     mockJobRuns.getRunning.mockResolvedValue({ id: RUN_ID });
+    mockJobRuns.getResult.mockResolvedValue({
+      complete: false,
+      cancelRequested: false,
+      rows: 0,
+      coveredThrough: "12",
+    });
 
-    const res = await post("/sync/cancel", { source: "playloltcg", job: "recheck" });
+    const res = await post("/sync/cancel", { source: "playriftbound", job: "backfill" });
 
-    expect(res.status).toBe(400);
-    expect(mockJobRuns.getRunning).not.toHaveBeenCalled();
-    expect(mockJobRuns.requestCancel).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    expect(mockJobRuns.getRunning).toHaveBeenCalledWith("meta.playriftbound_backfill");
+    expect(mockJobRuns.requestCancel).toHaveBeenCalledWith(RUN_ID);
   });
 
   it("rejects a request that names no source or job", async () => {

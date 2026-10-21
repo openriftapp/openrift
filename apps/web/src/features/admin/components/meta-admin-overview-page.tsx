@@ -78,6 +78,7 @@ export function MetaAdminOverviewPage() {
   const uvsgames = useMetaSyncStatus("uvsgames");
   const playloltcg = useMetaSyncStatus("playloltcg");
   const topdeck = useMetaSyncStatus("topdeck");
+  const playriftbound = useMetaSyncStatus("playriftbound");
   const overlays = useAdminMetaOverlays();
 
   const now = useMountedAt();
@@ -85,6 +86,7 @@ export function MetaAdminOverviewPage() {
     ...sourceAlerts("uvsgames", uvsgames.data, overlays.data.overlays, now),
     ...sourceAlerts("playloltcg", playloltcg.data, overlays.data.overlays, now),
     ...sourceAlerts("topdeck", topdeck.data, overlays.data.overlays, now),
+    ...sourceAlerts("playriftbound", playriftbound.data, overlays.data.overlays, now),
   ];
 
   return (
@@ -97,12 +99,19 @@ export function MetaAdminOverviewPage() {
               void uvsgames.refetch();
               void playloltcg.refetch();
               void topdeck.refetch();
+              void playriftbound.refetch();
             }}
-            isFetching={uvsgames.isFetching || playloltcg.isFetching || topdeck.isFetching}
+            isFetching={
+              uvsgames.isFetching ||
+              playloltcg.isFetching ||
+              topdeck.isFetching ||
+              playriftbound.isFetching
+            }
             dataUpdatedAt={Math.min(
               uvsgames.dataUpdatedAt,
               playloltcg.dataUpdatedAt,
               topdeck.dataUpdatedAt,
+              playriftbound.dataUpdatedAt,
             )}
             intervalMs={SYNC_STATUS_POLL_MS}
           />
@@ -117,6 +126,7 @@ export function MetaAdminOverviewPage() {
       <MetaSourceSyncSection source="uvsgames" />
       <MetaSourceSyncSection source="playloltcg" />
       <MetaSourceSyncSection source="topdeck" />
+      <MetaSourceSyncSection source="playriftbound" />
 
       <section aria-label="The archive" className="space-y-4">
         <SectionHeading>The archive</SectionHeading>

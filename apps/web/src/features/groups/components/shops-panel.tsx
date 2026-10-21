@@ -1,4 +1,5 @@
 import { formatDayTimeLocal } from "@openrift/shared/format-date";
+import { GROUP_SHOP_SOURCE_LABELS } from "@openrift/shared/group-shops";
 import type { FriendGroupShopSearchResult } from "@openrift/shared/types/api/friend-group";
 import { PlusIcon, StoreIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
@@ -44,9 +45,14 @@ export function ShopsPanel({ slug }: { slug: string }) {
       {data.items.length > 0 ? (
         <RowList>
           {data.items.map((shop) => (
-            <RowListItem key={shop.storeId} className="items-start justify-between">
+            <RowListItem key={shop.shopKey} className="items-start justify-between">
               <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="font-medium">{shop.name}</span>
+                <span className="font-medium">
+                  {shop.name}{" "}
+                  <span className="text-muted-foreground text-xs font-normal">
+                    {GROUP_SHOP_SOURCE_LABELS[shop.source]}
+                  </span>
+                </span>
                 {shop.location ? (
                   <span className="text-muted-foreground text-sm">{shop.location}</span>
                 ) : null}
@@ -62,7 +68,7 @@ export function ShopsPanel({ slug }: { slug: string }) {
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => unlink.mutate({ slug, storeId: shop.storeId })}
+                onClick={() => unlink.mutate({ slug, shopKey: shop.shopKey })}
                 disabled={unlink.isPending}
               >
                 <Trash2Icon className="size-4" />
@@ -103,7 +109,7 @@ function AddShopPicker({ slug, disabled }: { slug: string; disabled: boolean }) 
         if (shop === null || shop.linked) {
           return;
         }
-        link.mutate({ slug, storeId: shop.storeId });
+        link.mutate({ slug, shopKey: shop.shopKey });
         setTerm("");
         setResetKey((key) => key + 1);
       }}
@@ -127,11 +133,15 @@ function AddShopPicker({ slug, disabled }: { slug: string; disabled: boolean }) 
         </ComboboxEmpty>
         <ComboboxList>
           {(shop: FriendGroupShopSearchResult) => (
-            <ComboboxItem key={shop.storeId} value={shop} disabled={shop.linked}>
+            <ComboboxItem key={shop.shopKey} value={shop} disabled={shop.linked}>
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="truncate font-medium">{shop.name}</span>
                 <span className="text-muted-foreground truncate text-xs">
-                  {[shop.location, m.groups_shops_upcoming_count({ count: shop.upcomingCount })]
+                  {[
+                    GROUP_SHOP_SOURCE_LABELS[shop.source],
+                    shop.location,
+                    m.groups_shops_upcoming_count({ count: shop.upcomingCount }),
+                  ]
                     .filter(Boolean)
                     .join(" · ")}
                 </span>

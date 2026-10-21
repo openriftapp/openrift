@@ -17,6 +17,7 @@ import { AppError } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
 import {
   PLAYLOLTCG_PROVIDER,
+  PLAYRIFTBOUND_PROVIDER,
   TOPDECK_PROVIDER,
   UVSGAMES_PROVIDER,
 } from "../../../lib/meta-providers.js";
@@ -33,6 +34,7 @@ import {
   toMetaSyncSettings,
 } from "../lib/meta-catalog-presenters.js";
 import { toPlayloltcgCatalogRow } from "../lib/playloltcg-catalog-presenters.js";
+import { toPlayriftboundCatalogRow } from "../lib/playriftbound-catalog-presenters.js";
 import { toTopdeckCatalogRow } from "../lib/topdeck-catalog-presenters.js";
 import type { UvsgamesListRow } from "../repositories/uvsgames-events.js";
 import { isRepromoteNoop, repromoteMetaEvents } from "../services/meta-repromote.js";
@@ -42,6 +44,8 @@ import type {
   MetaSyncDeps,
   PlayloltcgAcceptSummary,
   PlayloltcgSyncDeps,
+  PlayriftboundAcceptSummary,
+  PlayriftboundSyncDeps,
   TopdeckAcceptSummary,
   TopdeckSyncDeps,
 } from "../services/meta-sync/index.js";
@@ -70,6 +74,14 @@ import {
   backfillTopdeck,
   createTopdeckSyncDeps,
   isTopdeckSyncNoop,
+  acceptPlayriftboundEvent,
+  autoAcceptPlayriftboundBacklog,
+  backfillPlayriftbound,
+  createPlayriftboundSyncDeps,
+  fetchPlayriftboundEvent,
+  isPlayriftboundRecheckNoop,
+  isPlayriftboundSyncNoop,
+  processPlayriftboundRechecks,
 } from "../services/meta-sync/index.js";
 
 const log = createLogger("meta-sync");
@@ -81,6 +93,7 @@ const DEFAULT_LIMIT = 50;
 const BACKFILL_KIND = "meta.uvsgames_backfill";
 const PLAYLOLTCG_BACKFILL_KIND = "meta.playloltcg_backfill";
 const TOPDECK_BACKFILL_KIND = "meta.topdeck_backfill";
+const PLAYRIFTBOUND_BACKFILL_KIND = "meta.playriftbound_backfill";
 const ID_SWEEP_KIND = "meta.uvsgames_id_sweep";
 
 const CANCELLABLE_KINDS: Partial<
@@ -92,7 +105,10 @@ const CANCELLABLE_KINDS: Partial<
   "playloltcg:backfill": PLAYLOLTCG_BACKFILL_KIND,
   "playloltcg:recheck": "meta.playloltcg_recheck",
   "topdeck:backfill": TOPDECK_BACKFILL_KIND,
+  "playriftbound:backfill": PLAYRIFTBOUND_BACKFILL_KIND,
 };
+
+const UNSTOPPABLE_RECHECKS: ReadonlySet<MetaSource> = new Set(["playloltcg", "playriftbound"]);
 
 function playloltcgDeps(context: ApiContext): PlayloltcgSyncDeps {
   return createPlayloltcgSyncDeps({
@@ -119,12 +135,23 @@ function topdeckDeps(context: ApiContext): TopdeckSyncDeps {
   });
 }
 
+function playriftboundDeps(context: ApiContext): PlayriftboundSyncDeps {
+  return createPlayriftboundSyncDeps({
+    repos: context.repos,
+    transact: context.transact,
+    fetch: context.io.fetch,
+    log,
+    baseUrl: context.config.metaSync.playriftboundBaseUrl,
+  });
+}
+
 const STATUS_RUN_LIMIT = 25;
 
 const SOURCE_PROVIDER: Record<MetaSource, string> = {
   uvsgames: UVSGAMES_PROVIDER,
   playloltcg: PLAYLOLTCG_PROVIDER,
   topdeck: TOPDECK_PROVIDER,
+  playriftbound: PLAYRIFTBOUND_PROVIDER,
 };
 
 /**
@@ -138,9 +165,17 @@ function jobKindsForSource(source: MetaSource): string[] {
 const ARCHIVE_JOB_KINDS = ["meta.retier", "meta.repromote"];
 
 function isAutoAcceptNoop(
-  summary: MetaAutoAcceptSummary | PlayloltcgAcceptSummary | TopdeckAcceptSummary,
+  summary:
+    | MetaAutoAcceptSummary
+    | PlayloltcgAcceptSummary
+    | TopdeckAcceptSummary
+    | PlayriftboundAcceptSummary,
 ): boolean {
-  return summary.accepted === 0 && summary.failed === 0;
+  return (
+    summary.accepted === 0 &&
+    summary.failed === 0 &&
+    ("held" in summary ? summary.held === 0 : true)
+  );
 }
 
 function syncDeps(context: ApiContext): MetaSyncDeps {
@@ -355,6 +390,7 @@ export const adminMetaCatalogRouter = {
       uvsgames: context.repos.uvsgamesEvents,
       playloltcg: context.repos.playloltcgEvents,
       topdeck: context.repos.topdeckEvents,
+      playriftbound: context.repos.playriftboundEvents,
     }[source];
     const [overview, archive, counts, runs] = await Promise.all([
       sourceRepo.syncOverview(),
@@ -373,6 +409,9 @@ export const adminMetaCatalogRouter = {
         "meta.playloltcg_sync": context.scheduler?.isEnabled("meta.playloltcg_sync") ?? false,
         "meta.playloltcg_recheck": context.scheduler?.isEnabled("meta.playloltcg_recheck") ?? false,
         "meta.topdeck_sync": context.scheduler?.isEnabled("meta.topdeck_sync") ?? false,
+        "meta.playriftbound_sync": context.scheduler?.isEnabled("meta.playriftbound_sync") ?? false,
+        "meta.playriftbound_recheck":
+          context.scheduler?.isEnabled("meta.playriftbound_recheck") ?? false,
       },
     };
   }),
@@ -417,11 +456,11 @@ export const adminMetaCatalogRouter = {
 
   cancelRun: os.cancelRun.handler(async ({ input, context }) => {
     const { source, job } = input;
-    if (source === "playloltcg" && job === "recheck") {
+    if (job === "recheck" && UNSTOPPABLE_RECHECKS.has(source)) {
       throw new AppError(
         400,
         ERROR_CODES.BAD_REQUEST,
-        "The playloltcg recheck cannot be stopped: it runs without a run id, so nothing there reads the flag.",
+        `The ${source} recheck cannot be stopped: it runs without a run id, so nothing there reads the flag.`,
       );
     }
     const kind = CANCELLABLE_KINDS[`${source}:${job}`];
@@ -703,6 +742,133 @@ export const adminMetaCatalogRouter = {
       entityType: "meta-catalog",
       entityId: `${TOPDECK_PROVIDER}:${input.tid}`,
     });
+  }),
+
+  runPlayriftboundSync: os.runPlayriftboundSync.handler(({ context }) =>
+    runScheduledJob(context, "meta.playriftbound_sync"),
+  ),
+
+  runPlayriftboundRecheck: os.runPlayriftboundRecheck.handler(({ context }) =>
+    startJob(
+      context,
+      "meta.playriftbound_recheck",
+      playriftboundDeps,
+      (deps) => processPlayriftboundRechecks(deps, { rearm: true }),
+      isPlayriftboundRecheckNoop,
+    ),
+  ),
+
+  // The checkpoint here is a cell index.
+  runPlayriftboundBackfill: os.runPlayriftboundBackfill.handler(async ({ context }) => {
+    const previous = await context.repos.jobRuns.getLatestForResume(PLAYRIFTBOUND_BACKFILL_KIND);
+    const prior = previous?.result;
+    const cell = isResumableCheckpoint(prior) ? Number(prior.coveredThrough) : Number.NaN;
+    const resumeFrom = Number.isInteger(cell) ? cell : undefined;
+    return await startJob(
+      context,
+      PLAYRIFTBOUND_BACKFILL_KIND,
+      playriftboundDeps,
+      (deps, runId) => backfillPlayriftbound(deps, runId, { resumeFrom }),
+      isPlayriftboundSyncNoop,
+    );
+  }),
+
+  restartPlayriftboundBackfill: os.restartPlayriftboundBackfill.handler(({ context }) =>
+    startJob(
+      context,
+      PLAYRIFTBOUND_BACKFILL_KIND,
+      playriftboundDeps,
+      (deps, runId) => backfillPlayriftbound(deps, runId),
+      isPlayriftboundSyncNoop,
+    ),
+  ),
+
+  runPlayriftboundAutoAccept: os.runPlayriftboundAutoAccept.handler(({ context }) =>
+    startJob(
+      context,
+      "meta.playriftbound_auto_accept",
+      playriftboundDeps,
+      autoAcceptPlayriftboundBacklog,
+      isAutoAcceptNoop,
+    ),
+  ),
+
+  playriftboundList: os.playriftboundList.handler(async ({ input, context }) => {
+    const limit = input.limit ?? DEFAULT_LIMIT;
+    const page = input.page ?? 1;
+    const [{ rows, total }, counts] = await Promise.all([
+      context.repos.playriftboundEvents.list(
+        {
+          search: input.search,
+          triage: input.triage,
+          tournamentType: input.tournamentType,
+          format: input.format,
+          minPlayers: input.minPlayers,
+          dateFrom: input.dateFrom,
+          dateTo: input.dateTo,
+          missing: input.missing,
+          awaitingResults: input.awaitingResults,
+        },
+        { limit, offset: (page - 1) * limit },
+        { sort: input.sort, direction: input.direction },
+      ),
+      context.repos.playriftboundEvents.triageCounts(),
+    ]);
+    return { rows: rows.map((row) => toPlayriftboundCatalogRow(row)), total, page, limit, counts };
+  }),
+
+  playriftboundAccept: os.playriftboundAccept.handler(async ({ input, context }) => {
+    const row = await context.repos.playriftboundEvents.byKey(input.tournamentId);
+    assertFound(row, "Catalogue event not found");
+    const accepted = await acceptPlayriftboundEvent(playriftboundDeps(context), row);
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "meta-catalog.accept",
+      entityType: "meta-catalog",
+      entityId: `${PLAYRIFTBOUND_PROVIDER}:${row.tournamentId}`,
+      entityLabel: row.name,
+      newValues: { metaEventId: accepted.metaEventId, slug: accepted.slug },
+    });
+    return accepted;
+  }),
+
+  playriftboundDismiss: os.playriftboundDismiss.handler(async ({ input, context }) => {
+    const row = await context.repos.playriftboundEvents.byKey(input.tournamentId);
+    assertFound(row, "Catalogue event not found");
+    await context.repos.metaOverlays.ignoreEvent(PLAYRIFTBOUND_PROVIDER, row.tournamentId);
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "meta-catalog.dismiss",
+      entityType: "meta-catalog",
+      entityId: `${PLAYRIFTBOUND_PROVIDER}:${row.tournamentId}`,
+      entityLabel: row.name,
+    });
+  }),
+
+  playriftboundUndismiss: os.playriftboundUndismiss.handler(async ({ input, context }) => {
+    const removed = await context.repos.metaOverlays.unignoreEvent(
+      PLAYRIFTBOUND_PROVIDER,
+      input.tournamentId,
+    );
+    assertExisted(removed, "Ignore entry not found");
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "meta-catalog.undismiss",
+      entityType: "meta-catalog",
+      entityId: `${PLAYRIFTBOUND_PROVIDER}:${input.tournamentId}`,
+    });
+  }),
+
+  playriftboundFetchEvent: os.playriftboundFetchEvent.handler(async ({ input, context }) => {
+    const row = await context.repos.playriftboundEvents.byKey(input.tournamentId);
+    assertFound(row, "Catalogue event not found");
+    if (row.metaEventId === null) {
+      throw new AppError(
+        400,
+        ERROR_CODES.BAD_REQUEST,
+        "Accept this event before fetching its results.",
+      );
+    }
+    return await startJob(context, "meta.playriftbound_event_fetch", playriftboundDeps, (deps) =>
+      fetchPlayriftboundEvent(deps, row),
+    );
   }),
 
   // Five upstream requests at 30s each outlive the proxy's read timeout: the

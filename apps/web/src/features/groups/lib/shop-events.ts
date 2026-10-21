@@ -46,9 +46,9 @@ export function groupShopEventsByDay(
 
 export function filterShopEvents(
   events: FriendGroupShopEventResponse[],
-  storeId: number | null,
+  shopKey: string | null,
 ): FriendGroupShopEventResponse[] {
-  return storeId === null ? events : events.filter((event) => event.storeId === storeId);
+  return shopKey === null ? events : events.filter((event) => event.shopKey === shopKey);
 }
 
 /**

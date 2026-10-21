@@ -1,10 +1,6 @@
 import type { Fetch } from "../../../../io.js";
-import { metaSyncUserAgent } from "./user-agent.js";
-
-/**
- * The source's WAF answers a burst with an HTML 403 for hours afterwards, so
- * after one patient retry the client latches `blocked` and fails fast.
- */
+import type { PacingGate } from "./paced-http.js";
+import { createPacedHttp } from "./paced-http.js";
 
 /**
  * The list endpoints' safe page ceiling: bigger pages return empty. A full
@@ -14,10 +10,7 @@ export const MAX_PAGE_SIZE = 10_000;
 
 const REQUEST_SPACING_MS = 400;
 const REQUEST_JITTER_MS = 200;
-const MAX_ATTEMPTS = 3;
-const RETRY_BASE_DELAY_MS = 1000;
 const WAF_RETRY_DELAY_MS = 15_000;
-const REQUEST_TIMEOUT_MS = 30_000;
 
 export class PlayloltcgBlockedError extends Error {
   constructor(url: string, response?: string) {
@@ -51,6 +44,7 @@ export interface PlayloltcgList<T> {
 export interface PlayloltcgClientOptions {
   fetch: Fetch;
   baseUrl: string;
+  gate?: PacingGate;
   userAgent?: string;
   sleep?: (ms: number) => Promise<void>;
   random?: () => number;
@@ -72,18 +66,6 @@ export interface PlayloltcgClient {
 /** The WAF answers a burst with a 403 or an HTML interstitial, never JSON. */
 function isWafBlock(status: number, text: string): boolean {
   return status === 403 || text.trimStart().startsWith("<") || text.includes("WAF");
-}
-
-function isRetryableStatus(status: number): boolean {
-  return status >= 500 || status === 429;
-}
-
-async function settled(promise: Promise<unknown>): Promise<void> {
-  try {
-    await promise;
-  } catch {
-    // Reported to whoever made that call.
-  }
 }
 
 /** The source's envelope. `code === 0` is success; `result` shape varies by endpoint. */
@@ -110,113 +92,22 @@ function asList<T>(result: unknown): PlayloltcgList<T> {
   return { items, total };
 }
 
-/** Sequential by construction: every call awaits the previous one's spacing. */
 export function createPlayloltcgClient(options: PlayloltcgClientOptions): PlayloltcgClient {
   const baseUrl = options.baseUrl;
-  const userAgent = options.userAgent ?? metaSyncUserAgent();
-  const sleep = options.sleep ?? ((ms: number) => Bun.sleep(ms));
-  const random = options.random ?? Math.random;
-  const now = options.now ?? Date.now;
-
-  let requests = 0;
-  let blocked = false;
-  let lastStartedAt = 0;
-  let queue: Promise<unknown> = Promise.resolve();
-
-  async function pace(): Promise<void> {
-    const wait = lastStartedAt + REQUEST_SPACING_MS + random() * REQUEST_JITTER_MS - now();
-    if (wait > 0) {
-      await sleep(wait);
-    }
-    lastStartedAt = now();
-  }
-
-  async function attempt(url: string, body: PlayloltcgBody | null): Promise<unknown> {
-    if (blocked) {
-      throw new PlayloltcgBlockedError(url);
-    }
-    let lastError: Error | null = null;
-    let wafTries = 0;
-    for (let tries = 0; tries < MAX_ATTEMPTS; tries++) {
-      if (tries > 0) {
-        await sleep(RETRY_BASE_DELAY_MS * 2 ** (tries - 1) + random() * REQUEST_JITTER_MS);
-      }
-      await pace();
-      requests++;
-      const outcome = await attemptOnce(url, body);
-      if ("body" in outcome) {
-        return outcome.body;
-      }
-      lastError = outcome.error;
-      if (outcome.waf) {
-        // One patient retry, then latch: the refusal holds for hours, so
-        // further attempts in this run cannot succeed.
-        if (wafTries === 0) {
-          wafTries++;
-          await sleep(WAF_RETRY_DELAY_MS);
-          continue;
-        }
-        blocked = true;
-        throw new PlayloltcgBlockedError(url, outcome.error.message);
-      }
-      if (!outcome.retryable) {
-        throw lastError;
-      }
-    }
-    throw lastError ?? new Error(`Request failed: ${url}`);
-  }
-
-  async function attemptOnce(
-    url: string,
-    body: PlayloltcgBody | null,
-  ): Promise<{ body: unknown } | { error: Error; retryable: boolean; waf: boolean }> {
-    try {
-      const response = await options.fetch(url, {
-        method: body === null ? "GET" : "POST",
-        headers: {
-          ...(body === null ? {} : { "content-type": "application/json" }),
-          accept: "application/json",
-          "user-agent": userAgent,
-        },
-        ...(body === null ? {} : { body: JSON.stringify(body) }),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
-      const text = await response.text();
-      if (isWafBlock(response.status, text)) {
-        return {
-          error: new Error(`HTTP ${response.status}: ${text.slice(0, 200)}`),
-          retryable: false,
-          waf: true,
-        };
-      }
-      if (!response.ok) {
-        const retryable = isRetryableStatus(response.status);
-        const message = `HTTP ${response.status} for ${url}: ${text.slice(0, 200)}`;
-        return {
-          error: retryable ? new Error(message) : new PlayloltcgRefusedError(message),
-          retryable,
-          waf: false,
-        };
-      }
-      return { body: JSON.parse(text) };
-    } catch (error) {
-      return {
-        error: error instanceof Error ? error : new Error(String(error)),
-        retryable: true,
-        waf: false,
-      };
-    }
-  }
-
-  async function enqueue<T>(work: () => Promise<T>): Promise<T> {
-    const previous = queue;
-    const current = (async () => {
-      await settled(previous);
-      return await work();
-    })();
-    queue = settled(current);
-    return await current;
-  }
+  const http = createPacedHttp({
+    fetch: options.fetch,
+    gate: options.gate,
+    userAgent: options.userAgent,
+    sleep: options.sleep,
+    random: options.random,
+    now: options.now,
+    spacingMs: REQUEST_SPACING_MS,
+    jitterMs: REQUEST_JITTER_MS,
+    blockRetryDelayMs: WAF_RETRY_DELAY_MS,
+    isBlock: isWafBlock,
+    blockedError: (url, detail) => new PlayloltcgBlockedError(url, detail),
+    refusedError: (message) => new PlayloltcgRefusedError(message),
+  });
 
   function buildUrl(path: string, query?: PlayloltcgQuery): string {
     const u = new URL(path, baseUrl);
@@ -226,30 +117,42 @@ export function createPlayloltcgClient(options: PlayloltcgClientOptions): Playlo
     return u.toString();
   }
 
+  async function postJson(path: string, body: PlayloltcgBody): Promise<unknown> {
+    const url = buildUrl(path);
+    const parsed = await http.request(
+      url,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify(body),
+      },
+      (text) => JSON.parse(text) as unknown,
+    );
+    return unwrap(parsed, url);
+  }
+
   return {
-    post: <T>(path: string, body: PlayloltcgBody): Promise<T> =>
-      enqueue(async () => {
-        const url = buildUrl(path);
-        return unwrap(await attempt(url, body), url) as T;
-      }),
+    post: async <T>(path: string, body: PlayloltcgBody): Promise<T> =>
+      (await postJson(path, body)) as T,
 
-    postList: <T>(path: string, body: PlayloltcgBody): Promise<PlayloltcgList<T>> =>
-      enqueue(async () => {
-        const url = buildUrl(path);
-        return asList<T>(unwrap(await attempt(url, body), url));
-      }),
+    postList: async <T>(path: string, body: PlayloltcgBody): Promise<PlayloltcgList<T>> =>
+      asList<T>(await postJson(path, body)),
 
-    get: <T>(path: string, query?: PlayloltcgQuery): Promise<T> =>
-      enqueue(async () => {
-        const url = buildUrl(path, query);
-        return unwrap(await attempt(url, null), url) as T;
-      }),
+    get: async <T>(path: string, query?: PlayloltcgQuery): Promise<T> => {
+      const url = buildUrl(path, query);
+      const parsed = await http.request(
+        url,
+        { headers: { accept: "application/json" } },
+        (text) => JSON.parse(text) as unknown,
+      );
+      return unwrap(parsed, url) as T;
+    },
 
     get requests() {
-      return requests;
+      return http.requests;
     },
     get blocked() {
-      return blocked;
+      return http.blocked;
     },
   };
 }

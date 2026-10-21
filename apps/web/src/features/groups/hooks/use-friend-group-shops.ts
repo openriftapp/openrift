@@ -30,14 +30,14 @@ const searchShopsFn = createServerFn({ method: "GET" })
   );
 
 const linkShopFn = createServerFn({ method: "POST" })
-  .validator((input: { slug: string; storeId: number }) => input)
+  .validator((input: { slug: string; shopKey: string }) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     await apiOrpcClient(friendGroupsContract, context.cookie).linkShop(data);
   });
 
 const unlinkShopFn = createServerFn({ method: "POST" })
-  .validator((input: { slug: string; storeId: number }) => input)
+  .validator((input: { slug: string; shopKey: string }) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     await apiOrpcClient(friendGroupsContract, context.cookie).unlinkShop(data);
@@ -72,7 +72,7 @@ export function useFriendGroupShopSearch(slug: string, term: string) {
 
 export function useLinkFriendGroupShop() {
   const userId = useRequiredUserId();
-  return useMutationWithInvalidation<unknown, { slug: string; storeId: number }>({
+  return useMutationWithInvalidation<unknown, { slug: string; shopKey: string }>({
     mutationFn: (data) => linkShopFn({ data }),
     invalidates: (variables) => [
       friendGroupsKeys.shops(userId, variables.slug),
@@ -83,7 +83,7 @@ export function useLinkFriendGroupShop() {
 
 export function useUnlinkFriendGroupShop() {
   const userId = useRequiredUserId();
-  return useMutationWithInvalidation<unknown, { slug: string; storeId: number }>({
+  return useMutationWithInvalidation<unknown, { slug: string; shopKey: string }>({
     mutationFn: (data) => unlinkShopFn({ data }),
     invalidates: (variables) => [
       friendGroupsKeys.shops(userId, variables.slug),

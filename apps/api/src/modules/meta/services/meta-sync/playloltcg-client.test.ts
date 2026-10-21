@@ -102,6 +102,16 @@ describe("createPlayloltcgClient", () => {
     expect(client.requests).toBe(before);
   });
 
+  it("retries a 200 whose body is not JSON", async () => {
+    let n = 0;
+    const { client } = harness([
+      () => (n++ === 0 ? new Response("") : json({ code: 0, result: { ok: true } })),
+    ]);
+    const result = await client.post<{ ok: boolean }>("/xcx/x", {});
+    expect(result).toEqual({ ok: true });
+    expect(client.requests).toBe(2);
+  });
+
   it("retries a transient 5xx and then succeeds", async () => {
     let n = 0;
     const { client } = harness([

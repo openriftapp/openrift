@@ -69,6 +69,8 @@ export function CatalogSourceSelect({
           eventStatus: undefined,
           plStatus: undefined,
           tdFormat: undefined,
+          prType: undefined,
+          prFormat: undefined,
           decklists: undefined,
           awaitingResults: undefined,
         });

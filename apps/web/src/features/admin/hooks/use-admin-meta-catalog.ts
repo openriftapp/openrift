@@ -286,6 +286,7 @@ const syncRunInvalidates = [
   adminKeys.meta.archiveJobs,
   adminKeys.meta.catalogue,
   adminKeys.meta.playloltcgCatalogue,
+  adminKeys.meta.playriftboundCatalogue,
   adminKeys.jobRuns,
 ] as const;
 

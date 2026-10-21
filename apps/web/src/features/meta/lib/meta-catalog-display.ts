@@ -5,13 +5,20 @@ import type {
   MetaSyncStatus,
   MetaSyncTriggerResult,
   PlayloltcgCatalogRow,
+  PlayriftboundCatalogRow,
   TopdeckCatalogRow,
 } from "@openrift/shared/contracts/admin/meta-catalog";
 import { isResumableCheckpoint } from "@openrift/shared/contracts/admin/meta-catalog";
 import { formatRelativeTime } from "@openrift/shared/format-date";
+import { playriftboundFormatLabel } from "@openrift/shared/playriftbound-links";
 import type { MetaOverlayQueueRow } from "@openrift/shared/types/api/meta";
-import { PLAYLOLTCG_STATUSES, TOPDECK_FORMATS } from "@openrift/shared/types/enums";
-import type { PlayloltcgStatus } from "@openrift/shared/types/enums";
+import {
+  PLAYLOLTCG_STATUSES,
+  PLAYRIFTBOUND_FORMATS,
+  PLAYRIFTBOUND_TOURNAMENT_TYPES,
+  TOPDECK_FORMATS,
+} from "@openrift/shared/types/enums";
+import type { PlayloltcgStatus, PlayriftboundTournamentType } from "@openrift/shared/types/enums";
 
 import { summarizeRunResult } from "@/features/admin/lib/job-run-display";
 
@@ -31,6 +38,7 @@ export const META_SOURCE_LABELS: Record<MetaSource, string> = {
   uvsgames: "UVS Games",
   playloltcg: "Play LoL TCG",
   topdeck: "TopDeck.gg",
+  playriftbound: "PlayRiftbound",
 };
 
 export interface CatalogChipDisplay {
@@ -111,6 +119,49 @@ export function topdeckCoverageRow(row: TopdeckCatalogRow): MetaCoverageRow {
     nextCheckAt: null,
     startAt: row.startAt,
   };
+}
+
+const PLAYRIFTBOUND_TYPE_LABELS: Record<PlayriftboundTournamentType, string> = {
+  LEARN_TO_PLAY: "Learn to Play",
+  OPEN_PLAY: "Open Play",
+  NEXUS_NIGHT: "Nexus Night",
+  PRE_RIFT: "Pre-Rift",
+  SUMMONER_SKIRMISH: "Summoner Skirmish",
+  NEXUS_CUP: "Nexus Cup",
+  SHOWDOWN_SERIES: "Showdown Series",
+  CHALLENGE_SERIES: "Challenge Series",
+  REGIONAL: "Regional",
+  CONTINENTAL: "Continental",
+  WORLD_CHAMPIONSHIP: "World Championship",
+};
+
+export function playriftboundTypeLabel(type: string | null): string | null {
+  if (type === null) {
+    return null;
+  }
+  return PLAYRIFTBOUND_TYPE_LABELS[type as PlayriftboundTournamentType] ?? type;
+}
+
+export const PLAYRIFTBOUND_TYPE_CHOICES = PLAYRIFTBOUND_TOURNAMENT_TYPES.map((type) => ({
+  value: type,
+  label: PLAYRIFTBOUND_TYPE_LABELS[type],
+}));
+
+export const PLAYRIFTBOUND_FORMAT_CHOICES = PLAYRIFTBOUND_FORMATS.map((format) => ({
+  value: format,
+  label: playriftboundFormatLabel(format) ?? format,
+}));
+
+/** Round progress as the last fetch saw it; null before any fetch or before round one. */
+export function playriftboundRoundsText(
+  row: Pick<PlayriftboundCatalogRow, "roundCount" | "roundsPlayed" | "roundsFinalized">,
+): string | null {
+  if (row.roundsPlayed === null || row.roundsPlayed === 0) {
+    return null;
+  }
+  const planned = row.roundCount === null ? "" : ` of ${row.roundCount}`;
+  const open = row.roundsPlayed - (row.roundsFinalized ?? 0);
+  return `${row.roundsPlayed}${planned} rounds${open > 0 ? `, ${open} open` : ""}`;
 }
 
 const TRIAGE_DISPLAY: Record<MetaCatalogTriage, CatalogChipDisplay> = {

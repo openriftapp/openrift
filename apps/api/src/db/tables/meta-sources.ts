@@ -265,6 +265,96 @@ export interface TopdeckDecklistCardsTable {
   cardName: string;
 }
 
+export interface PlayriftboundOrganizersTable {
+  id: string;
+  name: string;
+  city: string | null;
+  adminArea: string | null;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  createdAt: CreatedAt;
+  updatedAt: UpdatedAt;
+}
+
+export interface PlayriftboundEventsTable {
+  tournamentId: string;
+  organizerId: string | null;
+  name: string;
+  startAt: Date;
+  tournamentType: string | null;
+  format: string | null;
+  playerFormat: string | null;
+  participantCapacity: number | null;
+  registeredCount: number | null;
+  waitlistedCount: number | null;
+  pricing: string | null;
+  entryFeeCurrency: string | null;
+  entryFeeMinor: number | null;
+  contentHash: string;
+  firstSeenAt: Generated<Date>;
+  lastSeenAt: Date;
+  missingSince: Date | null;
+  structure: string | null;
+  matchFormat: string | null;
+  roundCount: number | null;
+  roundsPlayed: number | null;
+  roundsFinalized: number | null;
+  sourceUpdatedAt: Date | null;
+  resultsFetchedAt: Date | null;
+}
+
+export interface PlayriftboundEventChecksTable {
+  tournamentId: string;
+  nextCheckAt: Date | null;
+  checkStage: Generated<number>;
+  failingSince: Date | null;
+  createdAt: CreatedAt;
+  updatedAt: UpdatedAt;
+}
+
+export interface PlayriftboundEventStandingsTable {
+  tournamentId: string;
+  teamId: string;
+  playerId: string | null;
+  playerName: string;
+  rank: number | null;
+  wins: number | null;
+  losses: number | null;
+  draws: number | null;
+  matchPoints: number | null;
+  opponentMatchWinPct: number | null;
+  gameWinPct: number | null;
+  opponentGameWinPct: number | null;
+  entryStatus: MetaEntryStatus | null;
+  fetchedAt: CreatedAt;
+}
+
+export interface PlayriftboundEventPhasesTable {
+  tournamentId: string;
+  phaseOrder: number;
+  name: string | null;
+  roundType: string;
+  roundCount: number | null;
+  maxGameWins: number | null;
+}
+
+export interface PlayriftboundEventMatchesTable {
+  tournamentId: string;
+  sourceMatchId: string;
+  roundId: string;
+  phaseOrder: Generated<number>;
+  roundNumber: number;
+  tableNumber: number | null;
+  isBye: Generated<boolean>;
+  isDraw: Generated<boolean>;
+  player1TeamId: string;
+  player2TeamId: string | null;
+  winnerTeamId: string | null;
+  gamesWonP1: number | null;
+  gamesWonP2: number | null;
+}
+
 export interface IgnoredMetaSourceEventsTable {
   provider: string;
   externalId: string;

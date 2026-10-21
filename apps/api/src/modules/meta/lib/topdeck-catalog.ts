@@ -34,21 +34,6 @@ function instant(value: unknown): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-const MS_PER_HOUR = 3_600_000;
-const DEGREES_PER_HOUR = 15;
-
-/**
- * No timezone in the source, so longitude stands in for it. Never off by
- * enough to move the day: no sampled event starts within 3h of local midnight.
- */
-export function topdeckLocalDay(startAt: Date, longitude: number | null): string {
-  if (longitude === null) {
-    return startAt.toISOString().slice(0, 10);
-  }
-  const offsetHours = Math.round(longitude / DEGREES_PER_HOUR);
-  return new Date(startAt.getTime() + offsetHours * MS_PER_HOUR).toISOString().slice(0, 10);
-}
-
 export interface TopdeckEventProjection {
   tid: string;
   name: string;

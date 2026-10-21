@@ -43,18 +43,21 @@ function toDraft(settings: MetaSyncSettings): RulesDraft {
 
 const SOURCE_INTRO: Record<MetaSource, string> = {
   uvsgames:
-    "When a crawl sees an event matching any rule below, it is accepted automatically: the live event is created and its UVS Games standings are fetched and published without review. Events you dismissed never auto-accept, whatever they match.",
+    "When a crawl sees an event matching any rule below, it is accepted automatically: the live event is created and its UVS Games standings are fetched and published without review. Events you dismissed never auto-accept, whatever they match, and neither do events that look like one another source already archived at the same store within a day.",
   playloltcg:
     "When a crawl sees an event matching the rule below, it is accepted automatically: the live event is created and its Play LoL TCG standings are fetched and published without review. Events you dismissed never auto-accept. This source publishes no event templates, so field size is the only rule it can be judged on.",
   topdeck:
     "When a crawl sees an event matching the rule below, it is accepted automatically: the live event is created and its TopDeck.gg standings and decklists are published without review. Events you dismissed never auto-accept, and neither do team events. This source publishes no event templates, so field size is the only rule it can be judged on.",
+  playriftbound:
+    "When a crawl sees an event matching the rule below, it is accepted automatically: the live event is created and its PlayRiftbound standings and pairings are fetched and published without review. Events you dismissed never auto-accept, and neither do team events. The rule reads registrations, since the field is only known once the event has run. An event that looks like one another source already archived at the same store within a day waits for review.",
 };
 
 /** The other catalogues the one shared rule also governs. */
 function otherSourceLabels(source: MetaSource): string {
-  return META_CATALOG_PROVIDERS.filter((provider) => provider !== source)
-    .map((provider) => META_SOURCE_LABELS[provider])
-    .join(" and ");
+  const labels = META_CATALOG_PROVIDERS.filter((provider) => provider !== source).map(
+    (provider) => META_SOURCE_LABELS[provider],
+  );
+  return new Intl.ListFormat("en", { type: "conjunction" }).format(labels);
 }
 
 function AutoAcceptForm({

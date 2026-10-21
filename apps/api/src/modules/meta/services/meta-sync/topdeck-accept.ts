@@ -1,5 +1,6 @@
 import { TOPDECK_PROVIDER } from "../../../../lib/meta-providers.js";
-import { topdeckEventUrl, topdeckFormat, topdeckLocalDay } from "../../lib/topdeck-catalog.js";
+import { longitudeLocalDay } from "../../lib/meta-local-day.js";
+import { topdeckEventUrl, topdeckFormat } from "../../lib/topdeck-catalog.js";
 import type { TopdeckListRow } from "../../repositories/topdeck-events.js";
 import { promoteNewEvent } from "../meta-promote.js";
 import { errorText } from "./deps.js";
@@ -35,7 +36,7 @@ export async function acceptTopdeckEvent(
 ): Promise<AcceptedTopdeckEvent> {
   return await promoteNewEvent(deps.repos, TOPDECK_PROVIDER, row.tid, {
     name: row.name.slice(0, MAX_EVENT_NAME),
-    eventDate: topdeckLocalDay(row.startAt, row.longitude),
+    eventDate: longitudeLocalDay(row.startAt, row.longitude),
     format: topdeckFormat(row.format),
     sourceUrl: topdeckEventUrl(row.tid),
   });

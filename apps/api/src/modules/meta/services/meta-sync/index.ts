@@ -25,7 +25,6 @@ export {
   fetchPlayloltcgEvent,
   isPlayloltcgRecheckNoop,
   isPlayloltcgSyncNoop,
-  playloltcgCoolingDown,
   processPlayloltcgRechecks,
   syncPlayloltcgCatalog,
 } from "./playloltcg-sync.js";
@@ -34,12 +33,33 @@ export type {
   PlayloltcgRecheckResult,
   PlayloltcgSyncResult,
 } from "./playloltcg-sync.js";
+export { jobPaused, sourceCoolingDown } from "./source-cooldown.js";
 export { createTopdeckSyncDeps } from "./topdeck-deps.js";
 export type { TopdeckSyncDeps } from "./topdeck-deps.js";
 export { acceptTopdeckEvent, autoAcceptTopdeckBacklog } from "./topdeck-accept.js";
 export type { TopdeckAcceptSummary } from "./topdeck-accept.js";
 export { backfillTopdeck, isTopdeckSyncNoop, syncTopdeckCatalog } from "./topdeck-sync.js";
 export type { TopdeckBackfillOptions, TopdeckSyncResult } from "./topdeck-sync.js";
+export { createPlayriftboundSyncDeps } from "./playriftbound-deps.js";
+export type { PlayriftboundSyncDeps } from "./playriftbound-deps.js";
+export {
+  acceptPlayriftboundEvent,
+  autoAcceptPlayriftboundBacklog,
+} from "./playriftbound-accept.js";
+export type { PlayriftboundAcceptSummary } from "./playriftbound-accept.js";
+export {
+  backfillPlayriftbound,
+  fetchPlayriftboundEvent,
+  isPlayriftboundRecheckNoop,
+  isPlayriftboundSyncNoop,
+  processPlayriftboundRechecks,
+  syncPlayriftboundCatalog,
+} from "./playriftbound-sync.js";
+export type {
+  PlayriftboundBackfillOptions,
+  PlayriftboundRecheckResult,
+  PlayriftboundSyncResult,
+} from "./playriftbound-sync.js";
 
 /**
  * The kinds every meta sync run is recorded under. The admin sync panel reads
@@ -60,6 +80,11 @@ export const META_JOB_KINDS = [
   "meta.topdeck_sync",
   "meta.topdeck_backfill",
   "meta.topdeck_auto_accept",
+  "meta.playriftbound_sync",
+  "meta.playriftbound_backfill",
+  "meta.playriftbound_recheck",
+  "meta.playriftbound_event_fetch",
+  "meta.playriftbound_auto_accept",
   "meta.retier",
   "meta.repromote",
 ] as const;

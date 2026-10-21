@@ -145,6 +145,9 @@ export const adminKeys = {
     topdeckCatalogue: ["admin", "meta", "topdeck", "catalogue"] as const,
     topdeckCatalogueList: (params: { page?: number; search?: string; triage?: string }) =>
       ["admin", "meta", "topdeck", "catalogue", "list", params] as const,
+    playriftboundCatalogue: ["admin", "meta", "playriftbound", "catalogue"] as const,
+    playriftboundCatalogueList: (params: { page?: number; search?: string; triage?: string }) =>
+      ["admin", "meta", "playriftbound", "catalogue", "list", params] as const,
     syncSettings: ["admin", "meta", "sync", "settings"] as const,
     archiveJobs: ["admin", "meta", "archive", "jobs"] as const,
     syncStatus: Object.assign(

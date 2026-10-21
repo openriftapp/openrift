@@ -80,7 +80,8 @@ export function isCatalogSyncNoop(result: MetaCatalogSyncResult): boolean {
     result.missing === 0 &&
     result.missingFound === 0 &&
     result.missingAbsent === 0 &&
-    result.autoAccepted === 0
+    result.autoAccepted === 0 &&
+    result.autoHeld === 0
   );
 }
 
@@ -370,6 +371,7 @@ async function salvageInstant(deps: MetaSyncDeps, ctx: CrawlContext, at: Date): 
 async function finish(deps: MetaSyncDeps, ctx: CrawlContext): Promise<MetaCatalogSyncResult> {
   const auto = await autoAcceptCatalogEvents(deps, [...new Set(ctx.touched)]);
   ctx.result.autoAccepted = auto.accepted;
+  ctx.result.autoHeld = auto.held;
   for (const message of auto.errors) {
     record(ctx, message);
   }
@@ -459,6 +461,7 @@ export async function syncCatalog(
 export interface RecentListingResult {
   rows: number;
   autoAccepted: number;
+  autoHeld: number;
   pulledForward: number;
   errors: string[];
 }
@@ -477,6 +480,7 @@ export async function refreshRecentListing(deps: MetaSyncDeps): Promise<RecentLi
   return {
     rows: ctx.result.rows,
     autoAccepted: auto.accepted,
+    autoHeld: auto.held,
     pulledForward,
     errors: ctx.result.errors,
   };

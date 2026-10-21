@@ -248,7 +248,7 @@ function ShopNextUp({ slug, data }: { slug: string; data: FriendGroupDetailRespo
       {upcoming.length > 0 ? (
         <RowList>
           {upcoming.slice(0, 3).map((event) => (
-            <RowListItem key={event.externalId}>
+            <RowListItem key={`${event.shopKey}:${event.externalId}`}>
               {/* oxlint-disable-next-line jsx-a11y/control-has-associated-label -- text label is inside the RowListLink children */}
               <RowListLink render={<a href={event.url} target="_blank" rel="noreferrer" />}>
                 <DateLeaf at={event.startAt} clock="local" size="sm" />

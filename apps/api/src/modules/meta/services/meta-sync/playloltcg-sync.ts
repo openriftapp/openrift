@@ -26,6 +26,7 @@ import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
 import { clock } from "./playloltcg-deps.js";
 import type { MetaSyncResultBase } from "./result.js";
 import { emptyMetaSyncResult } from "./result.js";
+import { cooldownUntil } from "./source-cooldown.js";
 
 const EVENTS_PATH = "/xcx/activityShop/page";
 const SHOPS_PATH = "/xcx/shop/searchShop";
@@ -37,7 +38,6 @@ const FUTURE_HORIZON_DAYS = 730;
 const BACKFILL_CHUNK_DAYS = 14;
 const ARCHIVE_START = new Date("2025-06-01T00:00:00Z");
 
-const COOLDOWN_HOURS = 6;
 const HOUR_MS = 60 * 60 * 1000;
 const BACKOFF_MS = 30 * 60 * 1000;
 const BLOCKED_EVENT_DEFER_MS = 24 * HOUR_MS;
@@ -112,21 +112,6 @@ function day(date: Date): string {
 
 function shift(from: Date, days: number): Date {
   return new Date(from.getTime() + days * DAY_MS);
-}
-
-function cooldownUntil(now: Date): string {
-  return new Date(now.getTime() + COOLDOWN_HOURS * HOUR_MS).toISOString();
-}
-
-export async function playloltcgCoolingDown(
-  deps: PlayloltcgSyncDeps,
-  kind: string,
-  now: Date,
-): Promise<boolean> {
-  const prior = await deps.repos.jobRuns.getLatestForResume(kind);
-  const result = prior?.result as { blockedUntil?: unknown } | null | undefined;
-  const until = result?.blockedUntil;
-  return typeof until === "string" && new Date(until).getTime() > now.getTime();
 }
 
 function markBlocked(

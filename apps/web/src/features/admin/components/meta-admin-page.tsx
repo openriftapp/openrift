@@ -7,6 +7,7 @@ import { MetaCatalogPage } from "@/features/admin/components/meta-catalog-page";
 import { MetaEventsPage } from "@/features/admin/components/meta-events-page";
 import { MetaOverlaysPage } from "@/features/admin/components/meta-overlays-page";
 import { PlayloltcgCatalogPage } from "@/features/admin/components/playloltcg-catalog-page";
+import { PlayriftboundCatalogPage } from "@/features/admin/components/playriftbound-catalog-page";
 import { TopdeckCatalogPage } from "@/features/admin/components/topdeck-catalog-page";
 import { useAdminMetaOverlays } from "@/features/admin/hooks/use-admin-meta-overlays";
 
@@ -30,6 +31,8 @@ const CLEARED_TABLE_FILTERS = {
   awaitingResults: undefined,
   plStatus: undefined,
   tdFormat: undefined,
+  prType: undefined,
+  prFormat: undefined,
   liveFormat: undefined,
   liveSource: undefined,
   liveSort: undefined,
@@ -78,6 +81,7 @@ export function MetaAdminPage() {
       <TabsContent value="catalogue" className="flex min-h-0 flex-1 flex-col">
         {source === "playloltcg" && <PlayloltcgCatalogPage />}
         {source === "topdeck" && <TopdeckCatalogPage />}
+        {source === "playriftbound" && <PlayriftboundCatalogPage />}
         {source === "uvsgames" && <MetaCatalogPage />}
       </TabsContent>
       <TabsContent value="review" className="flex min-h-0 flex-1 flex-col">

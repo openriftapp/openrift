@@ -754,6 +754,46 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(ids.has(after)).toBe(false);
     });
 
+    it("finds events at a store in the window that the given provider does not cite", async () => {
+      const options = { eventDate: "2032-02-14", organizer: "MTA Bandle Games" };
+      const other = await seedEvent(repo, "mta-outside-other", options);
+      const own = await seedEvent(repo, "mta-outside-own", options);
+      const storeless = await seedEvent(repo, "mta-outside-storeless", {
+        eventDate: "2032-02-14",
+        organizer: null,
+      });
+      const late = await seedEvent(repo, "mta-outside-late", {
+        ...options,
+        eventDate: "2032-02-16",
+      });
+      await repo.insertEventSource({
+        metaEventId: other,
+        provider: "uvsgames",
+        externalId: "mta-outside-other",
+        label: "uvsgames",
+        sourceUrl: null,
+      });
+      await repo.insertEventSource({
+        metaEventId: own,
+        provider: "playriftbound",
+        externalId: "mta-outside-own",
+        label: "playriftbound",
+        sourceUrl: null,
+      });
+
+      const rows = await repo.eventsAtStoresOutside({
+        dateFrom: "2032-02-13",
+        dateTo: "2032-02-15",
+        provider: "playriftbound",
+      });
+      const ids = rows.map((row) => row.id);
+
+      expect(ids).toContain(other);
+      expect(ids).not.toContain(own);
+      expect(ids).not.toContain(storeless);
+      expect(ids).not.toContain(late);
+    });
+
     it("pages the index and reports the whole match count", async () => {
       const slugs = ["mta-page-a", "mta-page-b", "mta-page-c"];
       for (const [index, slug] of slugs.entries()) {

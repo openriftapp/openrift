@@ -6,6 +6,7 @@ export interface MetaSyncResultBase {
   unchanged: number;
   missing: number;
   autoAccepted: number;
+  autoHeld: number;
   complete: boolean;
   coveredThrough: string | null;
   resumedFrom: string | null;
@@ -22,6 +23,7 @@ export function emptyMetaSyncResult(): MetaSyncResultBase {
     unchanged: 0,
     missing: 0,
     autoAccepted: 0,
+    autoHeld: 0,
     complete: true,
     coveredThrough: null,
     resumedFrom: null,

@@ -8,6 +8,8 @@ import {
   META_EVENT_SORTS,
   META_EVENT_SOURCE_FILTERS,
   PLAYLOLTCG_STATUSES,
+  PLAYRIFTBOUND_FORMATS,
+  PLAYRIFTBOUND_TOURNAMENT_TYPES,
 } from "@openrift/shared/types/enums";
 import type { PlayloltcgStatus } from "@openrift/shared/types/enums";
 import { z } from "zod";
@@ -31,6 +33,8 @@ export const metaSearchSchema = z.object({
     )
     .optional(),
   tdFormat: z.string().optional(),
+  prType: z.enum(PLAYRIFTBOUND_TOURNAMENT_TYPES).optional(),
+  prFormat: z.enum(PLAYRIFTBOUND_FORMATS).optional(),
   eventSort: z.enum(META_CATALOG_SORTS).optional(),
   eventDir: z.enum(META_CATALOG_SORT_DIRECTIONS).optional(),
   minPlayers: z.coerce.number().int().min(0).optional(),

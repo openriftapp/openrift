@@ -35,6 +35,11 @@ const META_SYNC_TRIGGERS = [
   "runTopdeckAutoAccept",
   "runTopdeckBackfill",
   "restartTopdeckBackfill",
+  "runPlayriftboundSync",
+  "runPlayriftboundRecheck",
+  "runPlayriftboundAutoAccept",
+  "runPlayriftboundBackfill",
+  "restartPlayriftboundBackfill",
 ] as const;
 
 export type MetaSyncTrigger = (typeof META_SYNC_TRIGGERS)[number];
@@ -144,6 +149,28 @@ export const TRIGGER_GROUPS: Record<MetaSource, TriggerEntry[]> = {
       confirm: AUTO_ACCEPT_CONFIRM,
     },
   ],
+  playriftbound: [
+    {
+      trigger: "runPlayriftboundSync",
+      label: "Sync the catalogue",
+      description:
+        "Searches around every known store for events from the last 7 days to two weeks ahead. Areas with no known store need the discovery sweep.",
+      scheduleKey: "meta.playriftbound_sync",
+    },
+    {
+      trigger: "runPlayriftboundAutoAccept",
+      label: "Auto-accept backlog",
+      description: AUTO_ACCEPT_DESCRIPTION,
+      confirm: AUTO_ACCEPT_CONFIRM,
+    },
+    {
+      trigger: "runPlayriftboundRecheck",
+      label: "Fetch results",
+      description:
+        "Re-queues the events running now, then checks each due event for changes and pulls standings and pairings for the ones that moved, important ones first, for up to five minutes.",
+      scheduleKey: "meta.playriftbound_recheck",
+    },
+  ],
 };
 
 export const BACKFILL_TRIGGERS_BY_SOURCE: Record<
@@ -213,18 +240,42 @@ export const BACKFILL_TRIGGERS_BY_SOURCE: Record<
       },
     ],
   },
+  playriftbound: {
+    idle: [
+      {
+        trigger: "runPlayriftboundBackfill",
+        label: "Discovery sweep",
+        description:
+          "Searches the whole inhabited map for stores with events, about 10,000 searches. The source keeps no history before October 2026.",
+      },
+    ],
+    resumable: [
+      {
+        trigger: "runPlayriftboundBackfill",
+        label: "Continue sweep",
+        description: "Picks up at the area the last one stopped at.",
+      },
+      {
+        trigger: "restartPlayriftboundBackfill",
+        label: "Sweep from scratch",
+        description: "The same sweep from the first area, ignoring the resume point.",
+      },
+    ],
+  },
 };
 
 export const JOB_KIND_PREFIX: Record<MetaSource, string> = {
   uvsgames: "meta.uvsgames_",
   playloltcg: "meta.playloltcg_",
   topdeck: "meta.topdeck_",
+  playriftbound: "meta.playriftbound_",
 };
 
 export const BACKFILL_KIND: Record<MetaSource, string> = {
   uvsgames: "meta.uvsgames_backfill",
   playloltcg: "meta.playloltcg_backfill",
   topdeck: "meta.topdeck_backfill",
+  playriftbound: "meta.playriftbound_backfill",
 };
 
 export const ARCHIVE_TRIGGERS: TriggerEntry[] = [

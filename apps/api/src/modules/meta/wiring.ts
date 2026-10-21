@@ -9,6 +9,8 @@ import { metaSubmissionsRepo } from "./repositories/meta-submissions.js";
 import { metaRepo } from "./repositories/meta.js";
 import { playloltcgEventsRepo } from "./repositories/playloltcg-events.js";
 import { playloltcgResultsRepo } from "./repositories/playloltcg-results.js";
+import { playriftboundEventsRepo } from "./repositories/playriftbound-events.js";
+import { playriftboundResultsRepo } from "./repositories/playriftbound-results.js";
 import { topdeckEventsRepo } from "./repositories/topdeck-events.js";
 import { topdeckResultsRepo } from "./repositories/topdeck-results.js";
 import { uvsgamesEventsRepo } from "./repositories/uvsgames-events.js";
@@ -44,6 +46,8 @@ export interface MetaRepos {
   playloltcgResults: ReturnType<typeof playloltcgResultsRepo>;
   topdeckEvents: ReturnType<typeof topdeckEventsRepo>;
   topdeckResults: ReturnType<typeof topdeckResultsRepo>;
+  playriftboundEvents: ReturnType<typeof playriftboundEventsRepo>;
+  playriftboundResults: ReturnType<typeof playriftboundResultsRepo>;
   metaSubmissions: ReturnType<typeof metaSubmissionsRepo>;
 }
 
@@ -80,6 +84,8 @@ export function createMetaRepos(db: Kysely<Database>): MetaRepos {
     playloltcgResults: playloltcgResultsRepo(db),
     topdeckEvents: topdeckEventsRepo(db),
     topdeckResults: topdeckResultsRepo(db),
+    playriftboundEvents: playriftboundEventsRepo(db),
+    playriftboundResults: playriftboundResultsRepo(db),
     metaSubmissions: metaSubmissionsRepo(db),
   };
 }

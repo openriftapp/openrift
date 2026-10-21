@@ -481,6 +481,7 @@ describe("processRechecks", () => {
     vi.mocked(refreshRecentListing).mockResolvedValueOnce({
       rows: 1200,
       autoAccepted: 3,
+      autoHeld: 0,
       pulledForward: 42,
       errors: ["2026-08-19 page 2: HTTP 502"],
     });

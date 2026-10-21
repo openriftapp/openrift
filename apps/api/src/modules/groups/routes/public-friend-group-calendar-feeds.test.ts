@@ -68,6 +68,7 @@ describe("GET /api/v1/calendar-feeds/:token.ics", () => {
     });
     mockShopsRepo.listFeedEvents.mockResolvedValue([
       {
+        source: "uvsgames",
         externalId: "9911",
         name: "Nexus Night",
         startAt: new Date("2026-09-21T17:00:00Z"),

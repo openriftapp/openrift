@@ -17,6 +17,9 @@ import {
   PLAYLOLTCG_STATUS_CHOICES,
   playloltcgCoverageRow,
   playloltcgStatusDisplay,
+  PLAYRIFTBOUND_FORMAT_CHOICES,
+  playriftboundRoundsText,
+  playriftboundTypeLabel,
   runningRunId,
   syncTriggerAnnouncement,
   TOPDECK_FORMAT_CHOICES,
@@ -164,6 +167,43 @@ describe("TOPDECK_FORMAT_CHOICES", () => {
       "2v2",
       "Free-for-All",
     ]);
+  });
+});
+
+describe("playriftbound vocabulary", () => {
+  it("labels the source's event types and formats", () => {
+    expect(playriftboundTypeLabel("SUMMONER_SKIRMISH")).toBe("Summoner Skirmish");
+    expect(playriftboundTypeLabel("PRE_RIFT")).toBe("Pre-Rift");
+    expect(PLAYRIFTBOUND_FORMAT_CHOICES.map((choice) => choice.label)).toEqual([
+      "Constructed",
+      "Sealed",
+      "Draft",
+    ]);
+  });
+
+  it("shows a value the source adds later as itself", () => {
+    expect(playriftboundTypeLabel("RIFT_INVITATIONAL")).toBe("RIFT_INVITATIONAL");
+    expect(playriftboundTypeLabel(null)).toBeNull();
+  });
+});
+
+describe("playriftboundRoundsText", () => {
+  it("says nothing before the first fetch or the first round", () => {
+    expect(
+      playriftboundRoundsText({ roundCount: 4, roundsPlayed: null, roundsFinalized: null }),
+    ).toBeNull();
+    expect(
+      playriftboundRoundsText({ roundCount: 4, roundsPlayed: 0, roundsFinalized: 0 }),
+    ).toBeNull();
+  });
+
+  it("counts rounds against the plan and names the open ones", () => {
+    expect(playriftboundRoundsText({ roundCount: 4, roundsPlayed: 3, roundsFinalized: 2 })).toBe(
+      "3 of 4 rounds, 1 open",
+    );
+    expect(playriftboundRoundsText({ roundCount: null, roundsPlayed: 3, roundsFinalized: 3 })).toBe(
+      "3 rounds",
+    );
   });
 });
 

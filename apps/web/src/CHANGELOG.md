@@ -4,6 +4,8 @@
 
 ### Highlights
 
+- feat(Meta): **Events from Riot's event platform** — store events run there can join the meta archive, with standings, pairings and tiebreakers round by round.
+- feat(Groups): **Shops on Riot's event platform** — a group can follow the stores that run their events there, and those events show up in the group's shop page and calendar feed.
 - feat(Cards): **Each side of a double-sided token** — both sides of a double-sided token get their own tile, with their own name and art. One copy counts for both cards, fills a wish for each of them, and trades name both cards.
 
 ### Other

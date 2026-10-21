@@ -272,6 +272,7 @@ describe("isTopdeckSyncNoop", () => {
       unchanged: 12,
       missing: 0,
       autoAccepted: 0,
+      autoHeld: 0,
       players: 0,
       decks: 0,
       throttled: false,

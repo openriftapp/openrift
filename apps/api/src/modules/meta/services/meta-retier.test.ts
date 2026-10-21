@@ -29,6 +29,7 @@ interface Fixture {
     playerCount: number | null;
   }[];
   playloltcg?: { metaEventId: string; activityShopId: number; playerCount: number | null }[];
+  playriftbound?: { metaEventId: string; tournamentId: string; playerCount: number | null }[];
   formatMappings?: [string, string][];
   templateTiers?: [string, MetaEventTier | null][];
   competitivePlayerFloor?: number;
@@ -58,6 +59,9 @@ function fakeRepos(fixture: Fixture): Repos {
     },
     playloltcgEvents: {
       tierInputsForLiveEvents: () => Promise.resolve(fixture.playloltcg ?? []),
+    },
+    playriftboundEvents: {
+      tierInputsForLiveEvents: () => Promise.resolve(fixture.playriftbound ?? []),
     },
     metaOverlays: {
       eventIdsClaimingField: () => Promise.resolve(fixture.tierClaims ?? []),
@@ -207,6 +211,18 @@ describe("retierMetaEvents", () => {
       ],
       playloltcg: [{ metaEventId: "two-sources", activityShopId: 77, playerCount: 300 }],
       templateTiers: [["tpl-premier", "premier"]],
+    });
+
+    const result = await retierMetaEvents(repos);
+
+    expect(result.moved).toBe(1);
+  });
+
+  it("classifies a playriftbound event by its field", async () => {
+    const repos = fakeRepos({
+      events: [{ id: "skirmish", tier: "local" }],
+      sources: [{ metaEventId: "skirmish", provider: "playriftbound", externalId: "117" }],
+      playriftbound: [{ metaEventId: "skirmish", tournamentId: "117", playerCount: 200 }],
     });
 
     const result = await retierMetaEvents(repos);

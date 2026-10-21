@@ -63,6 +63,13 @@ export interface FriendGroupShopsTable {
   createdAt: CreatedAt;
 }
 
+export interface FriendGroupPlayriftboundShopsTable {
+  groupId: string;
+  organizerId: string;
+  addedByUserId: string | null;
+  createdAt: CreatedAt;
+}
+
 export interface FriendGroupCalendarFeedsTable {
   token: string;
   groupId: string;

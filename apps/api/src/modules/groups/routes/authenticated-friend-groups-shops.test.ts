@@ -67,13 +67,16 @@ function makeApp(overrides: {
 }
 
 describe("friend-group shops route", () => {
+  const RIOT_STORE = "019f0000-0000-7000-8000-000000000001";
+
   it("GET /shops reports the linked shops and the cap", async () => {
     const { app } = makeApp({
       friendGroupShops: {
         listShops: vi.fn(() =>
           Promise.resolve([
             {
-              storeId: 42,
+              source: "uvsgames",
+              storeId: "42",
               name: "FUNtainment Berlin",
               location: "79-83 Frankfurter Allee, Berlin, 10247, DE",
               upcomingCount: 8,
@@ -89,7 +92,8 @@ describe("friend-group shops route", () => {
     expect(await readJson(res)).toEqual({
       items: [
         {
-          storeId: 42,
+          shopKey: "uvsgames:42",
+          source: "uvsgames",
           name: "FUNtainment Berlin",
           location: "79-83 Frankfurter Allee, Berlin, 10247, DE",
           upcomingCount: 8,
@@ -100,25 +104,36 @@ describe("friend-group shops route", () => {
     });
   });
 
-  it("GET /shop-events links every row back to the source listing", async () => {
+  it("GET /shop-events links every row back to its own source's listing", async () => {
     const { app } = makeApp({
       friendGroupShops: {
         listEventsInWindow: vi.fn(() =>
           Promise.resolve([
             {
+              source: "uvsgames",
               externalId: "9911",
               name: "Nexus Night",
               startAt: new Date("2026-09-11T15:00:00Z"),
-              storeId: 42,
+              storeId: "42",
               storeName: "FUNtainment Berlin",
               eventFormat: "Constructed",
+            },
+            {
+              source: "playriftbound",
+              externalId: "117000000000000001",
+              name: "Summoner Skirmish",
+              startAt: new Date("2026-09-12T15:00:00Z"),
+              storeId: RIOT_STORE,
+              storeName: "Bandle City Games",
+              eventFormat: "CONSTRUCTED",
             },
           ]),
         ),
         listShops: vi.fn(() =>
           Promise.resolve([
             {
-              storeId: 42,
+              source: "uvsgames",
+              storeId: "42",
               name: "FUNtainment Berlin",
               location: null,
               upcomingCount: 1,
@@ -132,14 +147,17 @@ describe("friend-group shops route", () => {
     const res = await app.request("/api/v1/friend-groups/playgroup/shop-events");
     expect(res.status).toBe(200);
     const body = (await readJson(res)) as {
-      items: { url: string; startAt: string }[];
-      shops: { storeId: number }[];
+      items: { url: string; startAt: string; shopKey: string }[];
+      shops: { shopKey: string }[];
       horizonDays: number;
       pastDays: number;
     };
-    expect(body.items[0]?.url).toBe("https://locator.riftbound.uvsgames.com/events/9911");
-    expect(body.items[0]?.startAt).toBe("2026-09-11T15:00:00.000Z");
-    expect(body.shops).toEqual([{ storeId: 42, name: "FUNtainment Berlin" }]);
+    expect(body.items.map((item) => item.url)).toEqual([
+      "https://locator.riftbound.uvsgames.com/events/9911",
+      "https://playriftbound.com/en-US/events/117000000000000001",
+    ]);
+    expect(body.items[1]?.shopKey).toBe(`playriftbound:${RIOT_STORE}`);
+    expect(body.shops).toEqual([{ shopKey: "uvsgames:42", name: "FUNtainment Berlin" }]);
     expect(body.horizonDays).toBe(14);
     expect(body.pastDays).toBe(30);
   });
@@ -149,14 +167,27 @@ describe("friend-group shops route", () => {
       friendGroupShops: {
         searchShops: vi.fn(() =>
           Promise.resolve([
-            { storeId: 42, name: "FUNtainment Berlin", location: null, upcomingCount: 8 },
-            { storeId: 43, name: "Dice Heart", location: null, upcomingCount: 3 },
+            {
+              source: "uvsgames",
+              storeId: "42",
+              name: "FUNtainment Berlin",
+              location: null,
+              upcomingCount: 8,
+            },
+            {
+              source: "playriftbound",
+              storeId: RIOT_STORE,
+              name: "Dice Heart",
+              location: null,
+              upcomingCount: 3,
+            },
           ]),
         ),
         listShops: vi.fn(() =>
           Promise.resolve([
             {
-              storeId: 43,
+              source: "playriftbound",
+              storeId: RIOT_STORE,
               name: "Dice Heart",
               location: null,
               upcomingCount: 3,
@@ -169,10 +200,10 @@ describe("friend-group shops route", () => {
 
     const res = await app.request("/api/v1/friend-groups/playgroup/shop-search?q=berlin");
     expect(res.status).toBe(200);
-    const body = (await readJson(res)) as { items: { storeId: number; linked: boolean }[] };
+    const body = (await readJson(res)) as { items: { shopKey: string; linked: boolean }[] };
     expect(body.items).toEqual([
-      expect.objectContaining({ storeId: 42, linked: false }),
-      expect.objectContaining({ storeId: 43, linked: true }),
+      expect.objectContaining({ shopKey: "uvsgames:42", linked: false }),
+      expect.objectContaining({ shopKey: `playriftbound:${RIOT_STORE}`, linked: true }),
     ]);
   });
 
@@ -184,9 +215,21 @@ describe("friend-group shops route", () => {
     const res = await app.request("/api/v1/friend-groups/playgroup/shops", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ storeId: 999 }),
+      body: JSON.stringify({ shopKey: "uvsgames:999" }),
     });
     expect(res.status).toBe(404);
+    expect(friendGroupShops.linkShop).not.toHaveBeenCalled();
+  });
+
+  it("POST /shops rejects a key from no known source", async () => {
+    const { app, friendGroupShops } = makeApp({ role: "admin" });
+
+    const res = await app.request("/api/v1/friend-groups/playgroup/shops", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ shopKey: "elsewhere:42" }),
+    });
+    expect(res.status).toBe(400);
     expect(friendGroupShops.linkShop).not.toHaveBeenCalled();
   });
 
@@ -198,24 +241,26 @@ describe("friend-group shops route", () => {
     const res = await app.request("/api/v1/friend-groups/playgroup/shops", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ storeId: 42 }),
+      body: JSON.stringify({ shopKey: "uvsgames:42" }),
     });
     expect(res.status).toBe(409);
     expect(friendGroupShops.linkShop).not.toHaveBeenCalled();
   });
 
-  it("POST /shops links the shop for an admin", async () => {
+  it("POST /shops links a shop from either source for an admin", async () => {
     const { app, friendGroupShops } = makeApp({ role: "admin" });
 
     const res = await app.request("/api/v1/friend-groups/playgroup/shops", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ storeId: 42 }),
+      body: JSON.stringify({ shopKey: `playriftbound:${RIOT_STORE}` }),
     });
     expect(res.status).toBe(204);
+    expect(friendGroupShops.storeExists).toHaveBeenCalledWith("playriftbound", RIOT_STORE);
     expect(friendGroupShops.linkShop).toHaveBeenCalledWith({
       groupId: GROUP_ID,
-      storeId: 42,
+      source: "playriftbound",
+      storeId: RIOT_STORE,
       addedByUserId: USER_ID,
     });
   });
@@ -226,7 +271,7 @@ describe("friend-group shops route", () => {
     const res = await app.request("/api/v1/friend-groups/playgroup/shops", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ storeId: 42 }),
+      body: JSON.stringify({ shopKey: "uvsgames:42" }),
     });
     expect(res.status).toBe(403);
     expect(friendGroupShops.linkShop).not.toHaveBeenCalled();
@@ -239,20 +284,24 @@ describe("friend-group shops route", () => {
     expect(res.status).toBe(200);
   });
 
-  it("DELETE /shops/{storeId} reports an unlinked shop as missing", async () => {
+  it("DELETE /shops/{shopKey} reports an unlinked shop as missing", async () => {
     const { app } = makeApp({
       friendGroupShops: { unlinkShop: vi.fn(() => Promise.resolve(false)) },
     });
 
-    const res = await app.request("/api/v1/friend-groups/playgroup/shops/42", { method: "DELETE" });
+    const res = await app.request("/api/v1/friend-groups/playgroup/shops/uvsgames%3A42", {
+      method: "DELETE",
+    });
     expect(res.status).toBe(404);
   });
 
-  it("DELETE /shops/{storeId} removes the link", async () => {
+  it("DELETE /shops/{shopKey} removes the link", async () => {
     const { app, friendGroupShops } = makeApp({});
 
-    const res = await app.request("/api/v1/friend-groups/playgroup/shops/42", { method: "DELETE" });
+    const res = await app.request("/api/v1/friend-groups/playgroup/shops/uvsgames%3A42", {
+      method: "DELETE",
+    });
     expect(res.status).toBe(204);
-    expect(friendGroupShops.unlinkShop).toHaveBeenCalledWith(GROUP_ID, 42);
+    expect(friendGroupShops.unlinkShop).toHaveBeenCalledWith(GROUP_ID, "uvsgames", "42");
   });
 });

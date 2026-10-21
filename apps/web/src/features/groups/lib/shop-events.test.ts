@@ -13,7 +13,7 @@ function event(overrides: Partial<FriendGroupShopEventResponse>): FriendGroupSho
     externalId: "1",
     name: "Nexus Night",
     startAt: "2026-09-11T17:00:00.000Z",
-    storeId: 1,
+    shopKey: "uvsgames:1",
     storeName: "FUNtainment Berlin",
     eventFormat: "Constructed",
     url: "https://locator.riftbound.uvsgames.com/events/1",
@@ -104,13 +104,18 @@ describe("filterShopEventsByRange", () => {
 });
 
 describe("filterShopEvents", () => {
-  const events = [event({ externalId: "a", storeId: 1 }), event({ externalId: "b", storeId: 2 })];
+  const events = [
+    event({ externalId: "a", shopKey: "uvsgames:1" }),
+    event({ externalId: "b", shopKey: "playriftbound:org-2" }),
+  ];
 
   it("keeps every event without a shop filter", () => {
     expect(filterShopEvents(events, null)).toHaveLength(2);
   });
 
   it("keeps only the chosen shop", () => {
-    expect(filterShopEvents(events, 2).map((entry) => entry.externalId)).toEqual(["b"]);
+    expect(
+      filterShopEvents(events, "playriftbound:org-2").map((entry) => entry.externalId),
+    ).toEqual(["b"]);
   });
 });

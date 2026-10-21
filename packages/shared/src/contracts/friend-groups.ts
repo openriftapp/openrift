@@ -17,6 +17,7 @@ import {
 } from "@openrift/shared/schemas";
 import { z } from "zod";
 
+import { GROUP_SHOP_SOURCES, parseGroupShopKey } from "../group-shops.js";
 import { authedRoute } from "./_base.js";
 import { cardArtSchema, nameField } from "./fields.js";
 
@@ -96,9 +97,15 @@ export const friendGroupSlugAndLinkIdParamSchema = z.object({
   linkId: z.uuid(),
 });
 
-export const friendGroupSlugAndStoreIdParamSchema = z.object({
+const groupShopKeySchema = z
+  .string()
+  .refine((key) => parseGroupShopKey(key) !== null, { message: "Unknown shop key" });
+
+const groupShopSourceSchema = z.enum(GROUP_SHOP_SOURCES);
+
+export const friendGroupSlugAndShopKeyParamSchema = z.object({
   slug: friendGroupSlugSchema,
-  storeId: z.coerce.number().int().positive(),
+  shopKey: groupShopKeySchema,
 });
 
 export const friendGroupCalendarFeedKindSchema = z.enum(["tournaments", "shop_events"]);
@@ -122,11 +129,12 @@ export const friendGroupShopSearchQuerySchema = z.object({
 });
 
 export const friendGroupLinkShopSchema = z.object({
-  storeId: z.number().int().positive(),
+  shopKey: groupShopKeySchema,
 });
 
 export const friendGroupShopResponseSchema = z.object({
-  storeId: z.number().int(),
+  shopKey: z.string(),
+  source: groupShopSourceSchema,
   name: z.string(),
   location: z.string().nullable(),
   upcomingCount: z.number().int(),
@@ -139,7 +147,8 @@ export const friendGroupShopsResponseSchema = z.object({
 });
 
 export const friendGroupShopSearchResultSchema = z.object({
-  storeId: z.number().int(),
+  shopKey: z.string(),
+  source: groupShopSourceSchema,
   name: z.string(),
   location: z.string().nullable(),
   upcomingCount: z.number().int(),
@@ -154,7 +163,7 @@ export const friendGroupShopEventResponseSchema = z.object({
   externalId: z.string(),
   name: z.string(),
   startAt: z.string(),
-  storeId: z.number().int(),
+  shopKey: z.string(),
   storeName: z.string(),
   eventFormat: z.string().nullable(),
   url: z.string(),
@@ -162,7 +171,7 @@ export const friendGroupShopEventResponseSchema = z.object({
 
 export const friendGroupShopEventsResponseSchema = z.object({
   items: z.array(friendGroupShopEventResponseSchema),
-  shops: z.array(z.object({ storeId: z.number().int(), name: z.string() })),
+  shops: z.array(z.object({ shopKey: z.string(), name: z.string() })),
   horizonDays: z.number().int(),
   pastDays: z.number().int(),
 });
@@ -702,12 +711,12 @@ export const friendGroupsContract = {
   unlinkShop: authedRoute
     .route({
       method: "DELETE",
-      path: `${FG}/{slug}/shops/{storeId}`,
+      path: `${FG}/{slug}/shops/{shopKey}`,
       tags: [TAG],
       successStatus: 204,
     })
     .errors({ NOT_FOUND: { message: "Group or shop not found" } })
-    .input(friendGroupSlugAndStoreIdParamSchema),
+    .input(friendGroupSlugAndShopKeyParamSchema),
   shopEvents: authedRoute
     .route({ method: "GET", path: `${FG}/{slug}/shop-events`, tags: [TAG] })
     .input(friendGroupSlugParamSchema)

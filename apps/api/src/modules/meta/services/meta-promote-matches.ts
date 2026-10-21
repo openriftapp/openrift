@@ -1,5 +1,5 @@
 import type { Repos } from "../../../deps.js";
-import { UVSGAMES_PROVIDER } from "../../../lib/meta-providers.js";
+import { PLAYRIFTBOUND_PROVIDER, UVSGAMES_PROVIDER } from "../../../lib/meta-providers.js";
 import type {
   MetaEventMatchRow,
   MetaEventPhaseRow,
@@ -8,14 +8,15 @@ import type {
 } from "../repositories/meta-events.js";
 import { splitSourcePlayerKey } from "./ingest-meta-overlays.js";
 import type { MetaPromoteResult } from "./meta-promote-shared.js";
+import { playriftboundStandingIdentity } from "./meta-promote-sources.js";
 
 interface EventStructure {
   phases: NewMetaEventPhase[];
   matches: NewMetaEventMatch[];
 }
 
-/** A match promotes only once both participants resolve to a live row. The uvsgames
- * mirror wins where it has data; an upload's own bracket fills the gap otherwise. */
+/** A match promotes only once both participants resolve to a live row. A mirror
+ * wins where it has data; an upload's own bracket fills the gap otherwise. */
 export async function promotePhasesAndMatches(
   repos: Repos,
   metaEventId: string,
@@ -54,11 +55,29 @@ async function mirrorStructure(
   sources: readonly { provider: string | null; externalId: string | null }[],
 ): Promise<EventStructure | null> {
   const uvs = sources.find((source) => source.provider === UVSGAMES_PROVIDER);
-  if (uvs === undefined || uvs.externalId === null) {
-    return null;
+  const uvsStructure =
+    uvs === undefined || uvs.externalId === null
+      ? null
+      : await uvsgamesStructure(repos, metaEventId, uvs.externalId);
+  if (uvsStructure !== null && uvsStructure.matches.length > 0) {
+    return uvsStructure;
   }
+  const riot = sources.find((source) => source.provider === PLAYRIFTBOUND_PROVIDER);
+  const riotStructure =
+    riot === undefined || riot.externalId === null
+      ? null
+      : await playriftboundStructure(repos, metaEventId, riot.externalId);
+  const riotHasData =
+    riotStructure !== null && (riotStructure.phases.length > 0 || riotStructure.matches.length > 0);
+  return riotHasData ? riotStructure : uvsStructure;
+}
 
-  const sourcePhases = await repos.uvsgamesResults.phases(uvs.externalId);
+async function uvsgamesStructure(
+  repos: Repos,
+  metaEventId: string,
+  externalId: string,
+): Promise<EventStructure> {
+  const sourcePhases = await repos.uvsgamesResults.phases(externalId);
   const phases = sourcePhases.map((phase) => ({
     metaEventId,
     phaseOrder: phase.phaseOrder,
@@ -69,7 +88,7 @@ async function mirrorStructure(
     maxGameWins: phase.maxGameWins,
   }));
 
-  const sourceMatches = await repos.uvsgamesResults.matches(uvs.externalId);
+  const sourceMatches = await repos.uvsgamesResults.matches(externalId);
   if (sourceMatches.length === 0) {
     return { phases, matches: [] };
   }
@@ -99,6 +118,68 @@ async function mirrorStructure(
       player2Id: player2Id ?? null,
       winnerId:
         match.winnerUvsgamesId === null ? null : (liveByUvsId.get(match.winnerUvsgamesId) ?? null),
+      gamesWonP1: match.gamesWonP1,
+      gamesWonP2: match.gamesWonP2,
+      sourceRoundId: match.roundId,
+      sourceMatchId: match.sourceMatchId,
+    });
+  }
+  return { phases, matches };
+}
+
+/** Seats are teams in the source; each resolves through its standing's identity. */
+async function playriftboundStructure(
+  repos: Repos,
+  metaEventId: string,
+  tournamentId: string,
+): Promise<EventStructure> {
+  const sourcePhases = await repos.playriftboundResults.phases(tournamentId);
+  const phases = sourcePhases.map((phase) => ({
+    metaEventId,
+    phaseOrder: phase.phaseOrder,
+    name: phase.name,
+    roundType: phase.roundType,
+    roundCount: phase.roundCount,
+    rankRequired: null,
+    maxGameWins: phase.maxGameWins,
+  }));
+
+  const sourceMatches = await repos.playriftboundResults.matches(tournamentId);
+  if (sourceMatches.length === 0) {
+    return { phases, matches: [] };
+  }
+  const standings = await repos.playriftboundResults.standings(tournamentId);
+  const players = await repos.meta.rawStandingsForEvent(metaEventId);
+  const liveByIdentity = new Map(
+    players
+      .filter((player) => player.sourceIdentity !== null)
+      .map((player) => [player.sourceIdentity as string, player.id]),
+  );
+  const liveByTeam = new Map<string, string>();
+  for (const standing of standings) {
+    const live = liveByIdentity.get(playriftboundStandingIdentity(standing));
+    if (live !== undefined) {
+      liveByTeam.set(standing.teamId, live);
+    }
+  }
+
+  const matches: NewMetaEventMatch[] = [];
+  for (const match of sourceMatches) {
+    const player1Id = liveByTeam.get(match.player1TeamId);
+    const player2Id = match.player2TeamId === null ? null : liveByTeam.get(match.player2TeamId);
+    if (player1Id === undefined || (match.player2TeamId !== null && player2Id === undefined)) {
+      continue;
+    }
+    matches.push({
+      metaEventId,
+      phaseOrder: match.phaseOrder,
+      roundNumber: match.roundNumber,
+      tableNumber: match.tableNumber,
+      isBye: match.isBye,
+      isDraw: match.isDraw,
+      player1Id,
+      player2Id: player2Id ?? null,
+      winnerId: match.winnerTeamId === null ? null : (liveByTeam.get(match.winnerTeamId) ?? null),
       gamesWonP1: match.gamesWonP1,
       gamesWonP2: match.gamesWonP2,
       sourceRoundId: match.roundId,

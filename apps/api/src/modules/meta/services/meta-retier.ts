@@ -1,7 +1,11 @@
 import type { MetaEventTier } from "@openrift/shared/types/enums";
 
 import type { Repos } from "../../../deps.js";
-import { PLAYLOLTCG_PROVIDER, UVSGAMES_PROVIDER } from "../../../lib/meta-providers.js";
+import {
+  PLAYLOLTCG_PROVIDER,
+  PLAYRIFTBOUND_PROVIDER,
+  UVSGAMES_PROVIDER,
+} from "../../../lib/meta-providers.js";
 import { classifyMetaEventTier } from "../lib/meta-event-classify.js";
 import { mapSourceFormat } from "../lib/uvsgames-catalog.js";
 import type { MetaEventSourceRow } from "../repositories/meta-sources.js";
@@ -28,6 +32,7 @@ export async function retierMetaEvents(repos: Repos): Promise<MetaRetierResult> 
     sources,
     uvsInputs,
     playloltcgInputs,
+    playriftboundInputs,
     formatMappings,
     templateTiers,
     settings,
@@ -37,6 +42,7 @@ export async function retierMetaEvents(repos: Repos): Promise<MetaRetierResult> 
     repos.meta.allSources(),
     repos.uvsgamesEvents.tierInputsForLiveEvents(),
     repos.playloltcgEvents.tierInputsForLiveEvents(),
+    repos.playriftboundEvents.tierInputsForLiveEvents(),
     repos.uvsgamesEvents.formatMappings(),
     repos.uvsgamesEvents.templateTiers(),
     repos.uvsgamesEvents.settings(),
@@ -46,6 +52,9 @@ export async function retierMetaEvents(repos: Repos): Promise<MetaRetierResult> 
 
   const uvsByKey = new Map(uvsInputs.map((row) => [row.externalId, row]));
   const playloltcgByKey = new Map(playloltcgInputs.map((row) => [String(row.activityShopId), row]));
+  const playriftboundByKey = new Map(playriftboundInputs.map((row) => [row.tournamentId, row]));
+  const sizeTier = (playerCount: number | null) =>
+    classifyMetaEventTier({ templateTier: null, playerCount: countOrNull(playerCount) }, floor);
   const claimsTier = new Set(claimed);
   const sourcesByEvent = Map.groupBy(sources, (source) => source.metaEventId);
 
@@ -54,10 +63,8 @@ export async function retierMetaEvents(repos: Repos): Promise<MetaRetierResult> 
     if (claimsTier.has(event.id)) {
       continue;
     }
-    const expected = expectedTier(
-      sourcesByEvent.get(event.id) ?? [],
-      event.tier,
-      (externalId) => {
+    const expected = expectedTier(sourcesByEvent.get(event.id) ?? [], event.tier, {
+      [UVSGAMES_PROVIDER]: (externalId) => {
         const row = uvsByKey.get(externalId);
         if (row === undefined || mapSourceFormat(formatMappings, row.eventFormat) === null) {
           return null;
@@ -73,16 +80,15 @@ export async function retierMetaEvents(repos: Repos): Promise<MetaRetierResult> 
           floor,
         );
       },
-      (externalId) => {
+      [PLAYLOLTCG_PROVIDER]: (externalId) => {
         const row = playloltcgByKey.get(externalId);
-        return row === undefined
-          ? null
-          : classifyMetaEventTier(
-              { templateTier: null, playerCount: countOrNull(row.playerCount) },
-              floor,
-            );
+        return row === undefined ? null : sizeTier(row.playerCount);
       },
-    );
+      [PLAYRIFTBOUND_PROVIDER]: (externalId) => {
+        const row = playriftboundByKey.get(externalId);
+        return row === undefined ? null : sizeTier(row.playerCount);
+      },
+    });
     if (expected !== event.tier) {
       movers.push(event.id);
     }
@@ -96,8 +102,7 @@ export async function retierMetaEvents(repos: Repos): Promise<MetaRetierResult> 
 function expectedTier(
   sources: readonly MetaEventSourceRow[],
   live: MetaEventTier,
-  uvsgamesTier: (externalId: string) => MetaEventTier | null,
-  playloltcgTier: (externalId: string) => MetaEventTier | null,
+  tierBy: Record<string, (externalId: string) => MetaEventTier | null>,
 ): MetaEventTier {
   const ordered = sources
     .filter((source) => source.provider !== null && source.externalId !== null)
@@ -106,12 +111,7 @@ function expectedTier(
   let tier = live;
   for (const source of ordered) {
     const externalId = source.externalId as string;
-    const contributed =
-      source.provider === UVSGAMES_PROVIDER
-        ? uvsgamesTier(externalId)
-        : source.provider === PLAYLOLTCG_PROVIDER
-          ? playloltcgTier(externalId)
-          : null;
+    const contributed = tierBy[source.provider as string]?.(externalId) ?? null;
     if (contributed !== null) {
       tier = contributed;
     }

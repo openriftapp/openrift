@@ -76,6 +76,7 @@ import type {
   FriendGroupListSharesTable,
   FriendGroupMemberContactsTable,
   FriendGroupMembersTable,
+  FriendGroupPlayriftboundShopsTable,
   FriendGroupShopsTable,
   FriendGroupsTable,
   UserContactMethodsTable,
@@ -103,6 +104,12 @@ import type {
   PlayloltcgEventStandingsTable,
   PlayloltcgEventsTable,
   PlayloltcgShopsTable,
+  PlayriftboundEventChecksTable,
+  PlayriftboundEventMatchesTable,
+  PlayriftboundEventPhasesTable,
+  PlayriftboundEventStandingsTable,
+  PlayriftboundEventsTable,
+  PlayriftboundOrganizersTable,
   TopdeckDecklistCardsTable,
   TopdeckDecklistsTable,
   TopdeckEventStandingsTable,
@@ -259,6 +266,12 @@ export interface Database {
   topdeckEventStandings: TopdeckEventStandingsTable;
   topdeckDecklists: TopdeckDecklistsTable;
   topdeckDecklistCards: TopdeckDecklistCardsTable;
+  playriftboundOrganizers: PlayriftboundOrganizersTable;
+  playriftboundEvents: PlayriftboundEventsTable;
+  playriftboundEventChecks: PlayriftboundEventChecksTable;
+  playriftboundEventStandings: PlayriftboundEventStandingsTable;
+  playriftboundEventPhases: PlayriftboundEventPhasesTable;
+  playriftboundEventMatches: PlayriftboundEventMatchesTable;
   metaSyncSettings: MetaSyncSettingsTable;
   metaEvents: MetaEventsTable;
   metaEventPlayers: MetaEventPlayersTable;
@@ -294,6 +307,7 @@ export interface Database {
   friendGroupListShares: FriendGroupListSharesTable;
   friendGroupCollectionShares: FriendGroupCollectionSharesTable;
   friendGroupShops: FriendGroupShopsTable;
+  friendGroupPlayriftboundShops: FriendGroupPlayriftboundShopsTable;
   friendGroupCalendarFeeds: FriendGroupCalendarFeedsTable;
 
   userContactMethods: UserContactMethodsTable;

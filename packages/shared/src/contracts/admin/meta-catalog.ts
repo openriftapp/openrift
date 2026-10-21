@@ -9,6 +9,8 @@ import {
   META_CATALOG_SORTS,
   META_CATALOG_TRIAGE,
   PLAYLOLTCG_STATUSES,
+  PLAYRIFTBOUND_FORMATS,
+  PLAYRIFTBOUND_TOURNAMENT_TYPES,
   UVSGAMES_MISSING_PROBES,
 } from "../../types/enums.js";
 import type { PlayloltcgStatus } from "../../types/enums.js";
@@ -209,6 +211,57 @@ const topdeckCatalogListResponseSchema = z.object({
 });
 
 const topdeckKeySchema = z.object({ tid: z.string().min(1) });
+
+export const playriftboundCatalogRowSchema = z.object({
+  tournamentId: z.string(),
+  name: z.string(),
+  organizerName: z.string().nullable(),
+  city: z.string().nullable(),
+  tournamentType: z.string().nullable(),
+  format: z.string().nullable(),
+  playerFormat: z.string().nullable(),
+  registeredCount: z.number().int().nullable(),
+  participantCapacity: z.number().int().nullable(),
+  startAt: isoDateTime,
+  triage: triageSchema,
+  metaEventId: z.string().nullable(),
+  metaEventSlug: z.string().nullable(),
+  fetchedAt: isoDateTime.nullable(),
+  missingSince: isoDateTime.nullable(),
+  nextCheckAt: isoDateTime.nullable(),
+  roundCount: z.number().int().nullable(),
+  roundsPlayed: z.number().int().nullable(),
+  roundsFinalized: z.number().int().nullable(),
+  stagedPlayerCount: z.number().int().nonnegative(),
+  stagedMatchCount: z.number().int().nonnegative(),
+  sourceUrl: z.string(),
+});
+
+const playriftboundCatalogListQuerySchema = z.object({
+  search: z.string().optional(),
+  tournamentType: z.enum(PLAYRIFTBOUND_TOURNAMENT_TYPES).optional(),
+  format: z.enum(PLAYRIFTBOUND_FORMATS).optional(),
+  minPlayers: z.coerce.number().int().min(0).optional(),
+  dateFrom: isoDate.optional(),
+  dateTo: isoDate.optional(),
+  triage: triageSchema.optional(),
+  missing: z.coerce.boolean().optional(),
+  awaitingResults: z.coerce.boolean().optional(),
+  sort: z.enum(META_CATALOG_SORTS).optional(),
+  direction: z.enum(META_CATALOG_SORT_DIRECTIONS).optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+});
+
+const playriftboundCatalogListResponseSchema = z.object({
+  rows: z.array(playriftboundCatalogRowSchema),
+  total: z.number().int(),
+  page: z.number().int(),
+  limit: z.number().int(),
+  counts: metaCatalogCountsSchema,
+});
+
+const playriftboundKeySchema = z.object({ tournamentId: z.string().min(1) });
 
 const acceptCatalogEventSchema = catalogKeySchema.extend({
   format: z.string().min(1).optional(),
@@ -419,7 +472,7 @@ export const adminMetaCatalogContract = {
     .input(idSweepWindowSchema)
     .output(metaSyncTriggerResultSchema),
 
-  /** The playloltcg recheck is the one job that cannot answer a Stop and is refused. */
+  /** The playloltcg and playriftbound rechecks cannot answer a Stop and are refused. */
   cancelRun: authedRoute
     .route({ method: "POST", path: `${BASE}/sync/cancel`, tags: [TAG] })
     .input(z.object({ source: metaSourceSchema, job: metaCancellableJobSchema }))
@@ -563,6 +616,82 @@ export const adminMetaCatalogContract = {
     .input(topdeckKeySchema)
     .errors({ NOT_FOUND: { message: "Ignore entry not found" } }),
 
+  runPlayriftboundSync: authedRoute
+    .route({ method: "POST", path: `${BASE}/playriftbound/sync`, tags: [TAG], successStatus: 202 })
+    .output(metaSyncTriggerResultSchema),
+
+  runPlayriftboundRecheck: authedRoute
+    .route({
+      method: "POST",
+      path: `${BASE}/playriftbound/recheck`,
+      tags: [TAG],
+      successStatus: 202,
+    })
+    .output(metaSyncTriggerResultSchema),
+
+  runPlayriftboundAutoAccept: authedRoute
+    .route({
+      method: "POST",
+      path: `${BASE}/playriftbound/auto-accept`,
+      tags: [TAG],
+      successStatus: 202,
+    })
+    .output(metaSyncTriggerResultSchema),
+
+  /** The backfill here is the discovery sweep: it walks the whole map for places with events. */
+  runPlayriftboundBackfill: authedRoute
+    .route({
+      method: "POST",
+      path: `${BASE}/playriftbound/backfill`,
+      tags: [TAG],
+      successStatus: 202,
+    })
+    .output(metaSyncTriggerResultSchema),
+
+  restartPlayriftboundBackfill: authedRoute
+    .route({
+      method: "POST",
+      path: `${BASE}/playriftbound/backfill/restart`,
+      tags: [TAG],
+      successStatus: 202,
+    })
+    .output(metaSyncTriggerResultSchema),
+
+  playriftboundList: authedRoute
+    .route({ method: "GET", path: `${BASE}/playriftbound/events`, tags: [TAG] })
+    .input(playriftboundCatalogListQuerySchema)
+    .output(playriftboundCatalogListResponseSchema),
+
+  playriftboundAccept: authedRoute
+    .route({ method: "POST", path: `${BASE}/playriftbound/events/accept`, tags: [TAG] })
+    .input(playriftboundKeySchema)
+    .errors({ NOT_FOUND: { message: "Catalogue event not found" } })
+    .output(acceptedCatalogEventSchema),
+
+  playriftboundDismiss: authedRoute
+    .route({ method: "POST", path: `${BASE}/playriftbound/events/dismiss`, tags: [TAG] })
+    .input(playriftboundKeySchema)
+    .errors({ NOT_FOUND: { message: "Catalogue event not found" } }),
+
+  playriftboundUndismiss: authedRoute
+    .route({ method: "POST", path: `${BASE}/playriftbound/events/undismiss`, tags: [TAG] })
+    .input(playriftboundKeySchema)
+    .errors({ NOT_FOUND: { message: "Ignore entry not found" } }),
+
+  playriftboundFetchEvent: authedRoute
+    .route({
+      method: "POST",
+      path: `${BASE}/playriftbound/events/fetch`,
+      tags: [TAG],
+      successStatus: 202,
+    })
+    .input(playriftboundKeySchema)
+    .errors({
+      NOT_FOUND: { message: "Catalogue event not found" },
+      BAD_REQUEST: { message: "Accept this event before fetching its results" },
+    })
+    .output(metaSyncTriggerResultSchema),
+
   fetchEvent: authedRoute
     .route({ method: "POST", path: `${BASE}/sync/fetch`, tags: [TAG] })
     .input(catalogKeySchema)
@@ -580,6 +709,10 @@ export type PlayloltcgCatalogRow = z.infer<typeof playloltcgCatalogRowSchema>;
 export type PlayloltcgCatalogListResponse = z.infer<typeof playloltcgCatalogListResponseSchema>;
 export type TopdeckCatalogRow = z.infer<typeof topdeckCatalogRowSchema>;
 export type TopdeckCatalogListResponse = z.infer<typeof topdeckCatalogListResponseSchema>;
+export type PlayriftboundCatalogRow = z.infer<typeof playriftboundCatalogRowSchema>;
+export type PlayriftboundCatalogListResponse = z.infer<
+  typeof playriftboundCatalogListResponseSchema
+>;
 export type MetaCatalogTriage = (typeof META_CATALOG_TRIAGE)[number];
 export type MetaCatalogSort = (typeof META_CATALOG_SORTS)[number];
 export type MetaCatalogSortDirection = (typeof META_CATALOG_SORT_DIRECTIONS)[number];

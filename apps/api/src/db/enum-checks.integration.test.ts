@@ -128,6 +128,7 @@ const ENUM_CHECKS: Record<string, readonly string[]> = {
   chk_meta_submissions_status: metaSubmissionStatusSchema.options,
   chk_organization_members_role: organizationRoleSchema.options,
   chk_playloltcg_decklists_fetch_status: META_SOURCE_FETCH_STATUSES,
+  chk_playriftbound_event_standings_entry_status: META_ENTRY_STATUSES,
   chk_pod_rounds_status: podRoundStatusSchema.options,
   chk_pods_result_status: podResultStatusSchema.options,
   chk_printing_events_status: printingEventStatusSchema.options,

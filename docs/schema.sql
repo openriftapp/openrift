@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict BoFffV6nX3we7eFCNSt2WFhtHl74o5WJXvRqSTFhPNTc2Z6UQDaxpEPBzxZPR2n
+\restrict tWRwrlqZAMtMzHdZo0b0xLVFGPXw00fsyYlkHagsP7acwceF2F9c9NwIEZdRqTd
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -2195,6 +2195,18 @@ CREATE TABLE public.friend_group_members (
 
 
 --
+-- Name: friend_group_playriftbound_shops; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.friend_group_playriftbound_shops (
+    group_id uuid NOT NULL,
+    organizer_id text NOT NULL,
+    added_by_user_id text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: friend_group_shops; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3450,6 +3462,154 @@ CREATE TABLE public.playloltcg_shops (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT chk_playloltcg_shops_name CHECK (((length(name) >= 1) AND (length(name) <= 200)))
+);
+
+
+--
+-- Name: playriftbound_event_checks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.playriftbound_event_checks (
+    tournament_id text NOT NULL,
+    next_check_at timestamp with time zone,
+    check_stage smallint DEFAULT 0 NOT NULL,
+    failing_since timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_playriftbound_event_checks_stage CHECK ((check_stage >= 0))
+);
+
+
+--
+-- Name: playriftbound_event_matches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.playriftbound_event_matches (
+    tournament_id text NOT NULL,
+    source_match_id text NOT NULL,
+    round_id text NOT NULL,
+    phase_order integer DEFAULT 0 NOT NULL,
+    round_number integer NOT NULL,
+    table_number integer,
+    is_bye boolean DEFAULT false NOT NULL,
+    is_draw boolean DEFAULT false NOT NULL,
+    player1_team_id text NOT NULL,
+    player2_team_id text,
+    winner_team_id text,
+    games_won_p1 smallint,
+    games_won_p2 smallint,
+    CONSTRAINT chk_playriftbound_event_matches_bye CHECK (((NOT is_bye) OR (player2_team_id IS NULL))),
+    CONSTRAINT chk_playriftbound_event_matches_round_number CHECK ((round_number >= 1)),
+    CONSTRAINT chk_playriftbound_event_matches_source_match_id CHECK ((source_match_id <> ''::text))
+);
+
+
+--
+-- Name: playriftbound_event_phases; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.playriftbound_event_phases (
+    tournament_id text NOT NULL,
+    phase_order integer NOT NULL,
+    name text,
+    round_type text NOT NULL,
+    round_count integer,
+    max_game_wins integer,
+    CONSTRAINT chk_playriftbound_event_phases_max_game_wins CHECK (((max_game_wins IS NULL) OR (max_game_wins >= 1))),
+    CONSTRAINT chk_playriftbound_event_phases_order CHECK ((phase_order >= 0)),
+    CONSTRAINT chk_playriftbound_event_phases_round_count CHECK (((round_count IS NULL) OR (round_count >= 0))),
+    CONSTRAINT chk_playriftbound_event_phases_round_type CHECK ((round_type <> ''::text))
+);
+
+
+--
+-- Name: playriftbound_event_standings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.playriftbound_event_standings (
+    tournament_id text NOT NULL,
+    team_id text NOT NULL,
+    player_id text,
+    player_name text NOT NULL,
+    rank integer,
+    wins smallint,
+    losses smallint,
+    draws smallint,
+    match_points integer,
+    opponent_match_win_pct double precision,
+    game_win_pct double precision,
+    opponent_game_win_pct double precision,
+    entry_status text,
+    fetched_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_playriftbound_event_standings_entry_status CHECK (((entry_status IS NULL) OR (entry_status = ANY (ARRAY['complete'::text, 'eliminated'::text, 'dropped'::text])))),
+    CONSTRAINT chk_playriftbound_event_standings_match_points CHECK (((match_points IS NULL) OR (match_points >= 0))),
+    CONSTRAINT chk_playriftbound_event_standings_player_name CHECK (((length(player_name) >= 1) AND (length(player_name) <= 80))),
+    CONSTRAINT chk_playriftbound_event_standings_rank CHECK (((rank IS NULL) OR (rank >= 1))),
+    CONSTRAINT chk_playriftbound_event_standings_team_id CHECK ((team_id <> ''::text)),
+    CONSTRAINT chk_playriftbound_event_standings_tiebreakers CHECK ((((opponent_match_win_pct IS NULL) OR ((opponent_match_win_pct >= (0)::double precision) AND (opponent_match_win_pct <= (1)::double precision))) AND ((game_win_pct IS NULL) OR ((game_win_pct >= (0)::double precision) AND (game_win_pct <= (1)::double precision))) AND ((opponent_game_win_pct IS NULL) OR ((opponent_game_win_pct >= (0)::double precision) AND (opponent_game_win_pct <= (1)::double precision)))))
+);
+
+
+--
+-- Name: playriftbound_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.playriftbound_events (
+    tournament_id text NOT NULL,
+    organizer_id text,
+    name text NOT NULL,
+    start_at timestamp with time zone NOT NULL,
+    tournament_type text,
+    format text,
+    player_format text,
+    participant_capacity integer,
+    registered_count integer,
+    waitlisted_count integer,
+    pricing text,
+    entry_fee_currency text,
+    entry_fee_minor integer,
+    content_hash text NOT NULL,
+    first_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_seen_at timestamp with time zone NOT NULL,
+    missing_since timestamp with time zone,
+    structure text,
+    match_format text,
+    round_count integer,
+    rounds_played integer,
+    rounds_finalized integer,
+    source_updated_at timestamp with time zone,
+    results_fetched_at timestamp with time zone,
+    CONSTRAINT chk_playriftbound_events_content_hash CHECK ((content_hash <> ''::text)),
+    CONSTRAINT chk_playriftbound_events_entry_fee_minor CHECK (((entry_fee_minor IS NULL) OR (entry_fee_minor >= 0))),
+    CONSTRAINT chk_playriftbound_events_name CHECK (((length(name) >= 1) AND (length(name) <= 200))),
+    CONSTRAINT chk_playriftbound_events_participant_capacity CHECK (((participant_capacity IS NULL) OR (participant_capacity >= 0))),
+    CONSTRAINT chk_playriftbound_events_registered_count CHECK (((registered_count IS NULL) OR (registered_count >= 0))),
+    CONSTRAINT chk_playriftbound_events_round_count CHECK (((round_count IS NULL) OR (round_count >= 0))),
+    CONSTRAINT chk_playriftbound_events_rounds_finalized CHECK (((rounds_finalized IS NULL) OR (rounds_finalized >= 0))),
+    CONSTRAINT chk_playriftbound_events_rounds_played CHECK (((rounds_played IS NULL) OR (rounds_played >= 0))),
+    CONSTRAINT chk_playriftbound_events_tournament_id CHECK ((tournament_id ~ '^[0-9]+$'::text)),
+    CONSTRAINT chk_playriftbound_events_waitlisted_count CHECK (((waitlisted_count IS NULL) OR (waitlisted_count >= 0)))
+);
+
+
+--
+-- Name: playriftbound_organizers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.playriftbound_organizers (
+    id text NOT NULL,
+    name text NOT NULL,
+    city text,
+    admin_area text,
+    address text,
+    latitude double precision,
+    longitude double precision,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_playriftbound_organizers_id CHECK ((id <> ''::text)),
+    CONSTRAINT chk_playriftbound_organizers_latitude CHECK (((latitude IS NULL) OR ((latitude >= ('-90'::integer)::double precision) AND (latitude <= (90)::double precision)))),
+    CONSTRAINT chk_playriftbound_organizers_longitude CHECK (((longitude IS NULL) OR ((longitude >= ('-180'::integer)::double precision) AND (longitude <= (180)::double precision)))),
+    CONSTRAINT chk_playriftbound_organizers_name CHECK (((length(name) >= 1) AND (length(name) <= 200)))
 );
 
 
@@ -5063,6 +5223,14 @@ ALTER TABLE ONLY public.friend_group_members
 
 
 --
+-- Name: friend_group_playriftbound_shops friend_group_playriftbound_shops_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_playriftbound_shops
+    ADD CONSTRAINT friend_group_playriftbound_shops_pkey PRIMARY KEY (group_id, organizer_id);
+
+
+--
 -- Name: friend_group_shops friend_group_shops_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5516,6 +5684,54 @@ ALTER TABLE ONLY public.playloltcg_events
 
 ALTER TABLE ONLY public.playloltcg_shops
     ADD CONSTRAINT playloltcg_shops_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: playriftbound_event_checks playriftbound_event_checks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_event_checks
+    ADD CONSTRAINT playriftbound_event_checks_pkey PRIMARY KEY (tournament_id);
+
+
+--
+-- Name: playriftbound_event_matches playriftbound_event_matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_event_matches
+    ADD CONSTRAINT playriftbound_event_matches_pkey PRIMARY KEY (tournament_id, source_match_id);
+
+
+--
+-- Name: playriftbound_event_phases playriftbound_event_phases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_event_phases
+    ADD CONSTRAINT playriftbound_event_phases_pkey PRIMARY KEY (tournament_id, phase_order);
+
+
+--
+-- Name: playriftbound_event_standings playriftbound_event_standings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_event_standings
+    ADD CONSTRAINT playriftbound_event_standings_pkey PRIMARY KEY (tournament_id, team_id);
+
+
+--
+-- Name: playriftbound_events playriftbound_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_events
+    ADD CONSTRAINT playriftbound_events_pkey PRIMARY KEY (tournament_id);
+
+
+--
+-- Name: playriftbound_organizers playriftbound_organizers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_organizers
+    ADD CONSTRAINT playriftbound_organizers_pkey PRIMARY KEY (id);
 
 
 --
@@ -6777,6 +6993,13 @@ CREATE INDEX idx_friend_group_list_shares_list ON public.friend_group_list_share
 
 
 --
+-- Name: idx_friend_group_playriftbound_shops_organizer; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_friend_group_playriftbound_shops_organizer ON public.friend_group_playriftbound_shops USING btree (organizer_id);
+
+
+--
 -- Name: idx_friend_group_shops_store; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -7138,6 +7361,27 @@ CREATE INDEX idx_playloltcg_events_shop ON public.playloltcg_events USING btree 
 --
 
 CREATE INDEX idx_playloltcg_events_start ON public.playloltcg_events USING btree (start_at);
+
+
+--
+-- Name: idx_playriftbound_event_checks_due; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_playriftbound_event_checks_due ON public.playriftbound_event_checks USING btree (next_check_at) WHERE (next_check_at IS NOT NULL);
+
+
+--
+-- Name: idx_playriftbound_events_organizer; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_playriftbound_events_organizer ON public.playriftbound_events USING btree (organizer_id);
+
+
+--
+-- Name: idx_playriftbound_events_start; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_playriftbound_events_start ON public.playriftbound_events USING btree (start_at);
 
 
 --
@@ -8296,6 +8540,20 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.playloltcg_shops FOR E
 
 
 --
+-- Name: playriftbound_event_checks trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.playriftbound_event_checks FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: playriftbound_organizers trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.playriftbound_organizers FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
 -- Name: printings trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -9436,6 +9694,30 @@ ALTER TABLE ONLY public.friend_group_members
 
 
 --
+-- Name: friend_group_playriftbound_shops friend_group_playriftbound_shops_added_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_playriftbound_shops
+    ADD CONSTRAINT friend_group_playriftbound_shops_added_by_user_id_fkey FOREIGN KEY (added_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: friend_group_playriftbound_shops friend_group_playriftbound_shops_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_playriftbound_shops
+    ADD CONSTRAINT friend_group_playriftbound_shops_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.friend_groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: friend_group_playriftbound_shops friend_group_playriftbound_shops_organizer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_playriftbound_shops
+    ADD CONSTRAINT friend_group_playriftbound_shops_organizer_id_fkey FOREIGN KEY (organizer_id) REFERENCES public.playriftbound_organizers(id) ON DELETE CASCADE;
+
+
+--
 -- Name: friend_group_shops friend_group_shops_added_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9964,6 +10246,46 @@ ALTER TABLE ONLY public.playloltcg_events
 
 
 --
+-- Name: playriftbound_event_checks playriftbound_event_checks_tournament_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_event_checks
+    ADD CONSTRAINT playriftbound_event_checks_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.playriftbound_events(tournament_id) ON DELETE CASCADE;
+
+
+--
+-- Name: playriftbound_event_matches playriftbound_event_matches_tournament_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_event_matches
+    ADD CONSTRAINT playriftbound_event_matches_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.playriftbound_events(tournament_id) ON DELETE CASCADE;
+
+
+--
+-- Name: playriftbound_event_phases playriftbound_event_phases_tournament_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_event_phases
+    ADD CONSTRAINT playriftbound_event_phases_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.playriftbound_events(tournament_id) ON DELETE CASCADE;
+
+
+--
+-- Name: playriftbound_event_standings playriftbound_event_standings_tournament_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_event_standings
+    ADD CONSTRAINT playriftbound_event_standings_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.playriftbound_events(tournament_id) ON DELETE CASCADE;
+
+
+--
+-- Name: playriftbound_events playriftbound_events_organizer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.playriftbound_events
+    ADD CONSTRAINT playriftbound_events_organizer_id_fkey FOREIGN KEY (organizer_id) REFERENCES public.playriftbound_organizers(id) ON DELETE SET NULL;
+
+
+--
 -- Name: pod_byes pod_byes_player_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10455,5 +10777,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict BoFffV6nX3we7eFCNSt2WFhtHl74o5WJXvRqSTFhPNTc2Z6UQDaxpEPBzxZPR2n
+\unrestrict tWRwrlqZAMtMzHdZo0b0xLVFGPXw00fsyYlkHagsP7acwceF2F9c9NwIEZdRqTd
 

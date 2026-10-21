@@ -38,17 +38,23 @@ import { refreshTcgplayerPrices } from "./modules/marketplace/services/price-ref
 import {
   createMetaSyncDeps,
   createPlayloltcgSyncDeps,
+  createPlayriftboundSyncDeps,
   createTopdeckSyncDeps,
   isCatalogSyncNoop,
   isPlayloltcgRecheckNoop,
   isPlayloltcgSyncNoop,
+  isPlayriftboundRecheckNoop,
+  isPlayriftboundSyncNoop,
   isRecheckNoop,
   isTopdeckSyncNoop,
-  playloltcgCoolingDown,
   processPlayloltcgRechecks,
+  processPlayriftboundRechecks,
   processRechecks,
+  jobPaused,
+  sourceCoolingDown,
   syncCatalog,
   syncPlayloltcgCatalog,
+  syncPlayriftboundCatalog,
   syncTopdeckCatalog,
 } from "./modules/meta/services/meta-sync/index.js";
 import {
@@ -107,6 +113,21 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       log: jobLog,
       baseUrl: config.metaSync.topdeckBaseUrl,
       apiKey: topdeckApiKey ?? "",
+    });
+
+  const PLAYRIFTBOUND_KINDS = [
+    "meta.playriftbound_sync",
+    "meta.playriftbound_backfill",
+    "meta.playriftbound_recheck",
+    "meta.playriftbound_event_fetch",
+  ];
+  const playriftboundDeps = (jobLog: Logger) =>
+    createPlayriftboundSyncDeps({
+      repos,
+      transact,
+      fetch: globalThis.fetch,
+      log: jobLog,
+      baseUrl: config.metaSync.playriftboundBaseUrl,
     });
 
   return [
@@ -300,10 +321,10 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       title: "PlayLoLTCG event sync",
       description: "Reads the PlayLoLTCG event list and queues anything new for a full fetch.",
       suggestedSchedule: "0 7 * * *",
-      skipCronTick: async (jobLog) => {
-        const cooling = await playloltcgCoolingDown(
-          playloltcgDeps(jobLog),
-          "meta.playloltcg_sync",
+      skipCronTick: async () => {
+        const cooling = await sourceCoolingDown(
+          repos.jobRuns,
+          ["meta.playloltcg_sync"],
           new Date(),
         );
         return cooling ? "playloltcg sync cooling down after a WAF block; skipping" : null;
@@ -317,10 +338,10 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       description:
         "Re-fetches queued PlayLoLTCG events until their results are published. Once an hour it also re-reads the last three days of the listing.",
       suggestedSchedule: "*/10 * * * *",
-      skipCronTick: async (jobLog) => {
-        const cooling = await playloltcgCoolingDown(
-          playloltcgDeps(jobLog),
-          "meta.playloltcg_recheck",
+      skipCronTick: async () => {
+        const cooling = await sourceCoolingDown(
+          repos.jobRuns,
+          ["meta.playloltcg_recheck"],
           new Date(),
         );
         return cooling
@@ -342,6 +363,43 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       unavailableReason: topdeckApiKey === null ? "TOPDECK_API_KEY is not set." : undefined,
       execute: (_runId, jobLog) => syncTopdeckCatalog(topdeckDeps(jobLog)),
       classifyNoop: isTopdeckSyncNoop,
+    }),
+    defineJob(log, {
+      kind: "meta.playriftbound_sync",
+      title: "PlayRiftbound event sync",
+      description:
+        "Searches around every known PlayRiftbound store for events from the last week to two weeks ahead.",
+      suggestedSchedule: "0 8 * * *",
+      skipCronTick: async () => {
+        const now = new Date();
+        if (await sourceCoolingDown(repos.jobRuns, PLAYRIFTBOUND_KINDS, now)) {
+          return "playriftbound sync cooling down after a refusal; skipping";
+        }
+        const paused = await jobPaused(repos.jobRuns, "meta.playriftbound_sync", now);
+        return paused ? "playriftbound sync paused after repeated failures; skipping" : null;
+      },
+      execute: (_runId, jobLog) => syncPlayriftboundCatalog(playriftboundDeps(jobLog)),
+      classifyNoop: isPlayriftboundSyncNoop,
+    }),
+    defineJob(log, {
+      kind: "meta.playriftbound_recheck",
+      title: "PlayRiftbound event recheck",
+      description:
+        "Re-fetches queued PlayRiftbound events whenever the source reports a change, until they finish. Once an hour it also re-queues the events running now.",
+      suggestedSchedule: "*/10 * * * *",
+      skipCronTick: async () => {
+        const now = new Date();
+        if (await sourceCoolingDown(repos.jobRuns, PLAYRIFTBOUND_KINDS, now)) {
+          return "playriftbound recheck cooling down after a refusal; skipping";
+        }
+        const paused = await jobPaused(repos.jobRuns, "meta.playriftbound_recheck", now);
+        return paused ? "playriftbound recheck paused after repeated failures; skipping" : null;
+      },
+      execute: (_runId, jobLog) =>
+        processPlayriftboundRechecks(playriftboundDeps(jobLog), {
+          rearm: isFirstTickOfHour(new Date()),
+        }),
+      classifyNoop: isPlayriftboundRecheckNoop,
     }),
   ];
 }

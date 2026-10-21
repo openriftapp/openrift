@@ -79,6 +79,7 @@ export function createConfig(env: Record<string, string | undefined>) {
       playloltcgBaseUrl: env.META_PLAYLOLTCG_BASE_URL ?? "https://lol-api.playloltcg.com",
       topdeckBaseUrl: env.META_TOPDECK_BASE_URL ?? "https://topdeck.gg/api/",
       topdeckApiKey: env.TOPDECK_API_KEY ?? null,
+      playriftboundBaseUrl: env.META_PLAYRIFTBOUND_BASE_URL ?? "https://playriftbound.com",
     },
 
     discordWebhooks: {

@@ -231,12 +231,12 @@ describe("OverviewContent shop rail", () => {
     externalId: "9911",
     name: "Nexus Night",
     startAt: "2026-09-11T15:00:00.000Z",
-    storeId: 42,
+    shopKey: "uvsgames:42",
     storeName: "FUNtainment Berlin",
     eventFormat: "Constructed",
     url: "https://locator.riftbound.uvsgames.com/events/9911",
   };
-  const shops = [{ storeId: 42, name: "FUNtainment Berlin" }];
+  const shops = [{ shopKey: "uvsgames:42", name: "FUNtainment Berlin" }];
 
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });

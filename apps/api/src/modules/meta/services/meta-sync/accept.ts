@@ -11,6 +11,7 @@ import type { UvsgamesListRow } from "../../repositories/uvsgames-events.js";
 import { promoteNewEvent } from "../meta-promote.js";
 import type { MetaSyncDeps } from "./deps.js";
 import { clock, errorText } from "./deps.js";
+import { sameStoreLiveEvent } from "./same-store-guard.js";
 
 export interface AcceptedCatalogEvent {
   metaEventId: string;
@@ -21,6 +22,7 @@ export interface AcceptedCatalogEvent {
 export interface MetaAutoAcceptSummary {
   considered: number;
   accepted: number;
+  held: number;
   failed: number;
   errors: string[];
 }
@@ -30,7 +32,7 @@ const SWEEP_PAGE = 1000;
 const MAX_SWEEP_ERRORS = 50;
 
 function emptySummary(): MetaAutoAcceptSummary {
-  return { considered: 0, accepted: 0, failed: 0, errors: [] };
+  return { considered: 0, accepted: 0, held: 0, failed: 0, errors: [] };
 }
 
 // Recheck is armed at `now`, not the event's own schedule, so the next
@@ -115,6 +117,15 @@ async function sweep(
         formatMapped: mapSourceFormat(vocabulary.formatMappings, row.eventFormat) !== null,
       });
       if (rule === null) {
+        continue;
+      }
+      const twin = await sameStoreLiveEvent(deps.repos, UVSGAMES_PROVIDER, {
+        name: row.name,
+        eventDate: venueLocalDay(row.startAt, row.timezone),
+        organizer: row.storeDisplayName,
+      });
+      if (twin !== undefined) {
+        summary.held++;
         continue;
       }
       const outcome = await tryAutoAccept(deps, row, rule, vocabulary.formatMappings);

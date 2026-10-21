@@ -65,6 +65,7 @@ describe("presentTournamentCalendarEvent", () => {
 
 describe("presentShopCalendarEvent", () => {
   const row = {
+    source: "uvsgames" as const,
     externalId: "48213",
     name: "Monday Nexus Night",
     startAt: new Date("2026-09-21T17:00:00Z"),
@@ -95,5 +96,19 @@ describe("presentShopCalendarEvent", () => {
   it("gives an event without an estimated end five hours", () => {
     const event = presentShopCalendarEvent({ ...row, endAtEstimate: null });
     expect(event.end).toEqual(new Date("2026-09-21T22:00:00Z"));
+  });
+
+  it("keys a playriftbound event apart from uvsgames ids and labels its format", () => {
+    const event = presentShopCalendarEvent({
+      ...row,
+      source: "playriftbound",
+      externalId: "117000000000000001",
+      endAtEstimate: null,
+      eventFormat: "CONSTRUCTED",
+    });
+    expect(event.uid).toBe("openrift-shop-event-playriftbound-117000000000000001");
+    expect(event.description).toBe(
+      "Constructed\nhttps://playriftbound.com/en-US/events/117000000000000001",
+    );
   });
 });

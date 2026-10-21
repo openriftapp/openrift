@@ -110,9 +110,16 @@ function StopRow({
   );
 }
 
-function backfillStopDescription(coveredThrough: string | null): string {
+/** The playriftbound sweep checkpoints on a map area, every other backfill on a day. */
+function coveredText(source: MetaSource, coveredThrough: string): string {
+  return source === "playriftbound"
+    ? `area ${Number(coveredThrough) + 1} of the map`
+    : formatDayTime(coveredThrough);
+}
+
+function backfillStopDescription(source: MetaSource, coveredThrough: string | null): string {
   const covered =
-    coveredThrough === null ? "" : `, covered through ${formatDayTime(coveredThrough)}`;
+    coveredThrough === null ? "" : `, covered through ${coveredText(source, coveredThrough)}`;
   return `A backfill is running${covered}. Stopping keeps everything read so far, and the next backfill carries on from there.`;
 }
 
@@ -203,7 +210,7 @@ export function TriggersCard({
           {backfill.phase === "resumable" && (
             <p className="text-muted-foreground text-sm">
               The last backfill {backfill.cancelled ? "was stopped" : "stopped early"} and covered
-              events through {formatDayTime(backfill.coveredThrough)}.
+              events through {coveredText(source, backfill.coveredThrough)}.
             </p>
           )}
           {backfill.phase !== "running" &&
@@ -221,7 +228,7 @@ export function TriggersCard({
           {backfill.phase === "running" && (
             <StopRow
               label="Stop the backfill"
-              description={backfillStopDescription(backfill.coveredThrough)}
+              description={backfillStopDescription(source, backfill.coveredThrough)}
               pending={stopping === "backfill"}
               onStop={() => void stop("backfill", "Full backfill")}
             />

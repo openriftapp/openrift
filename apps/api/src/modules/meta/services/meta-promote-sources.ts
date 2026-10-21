@@ -3,11 +3,14 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { Repos } from "../../../deps.js";
 import {
   PLAYLOLTCG_PROVIDER,
+  PLAYRIFTBOUND_PROVIDER,
   TOPDECK_PROVIDER,
   UVSGAMES_PROVIDER,
 } from "../../../lib/meta-providers.js";
 import { classifyMetaEventTier, countryFromAddress } from "../lib/meta-event-classify.js";
-import { topdeckFormat, topdeckLocalDay } from "../lib/topdeck-catalog.js";
+import { longitudeLocalDay } from "../lib/meta-local-day.js";
+import { playriftboundFormat } from "../lib/playriftbound-catalog.js";
+import { topdeckFormat } from "../lib/topdeck-catalog.js";
 import {
   mapSourceFormat,
   uvsgamesStandingIdentity,
@@ -192,7 +195,7 @@ async function topdeckFacts(
     },
     event: {
       name: listing.name.slice(0, 120),
-      eventDate: topdeckLocalDay(listing.startAt, listing.longitude),
+      eventDate: longitudeLocalDay(listing.startAt, listing.longitude),
       format: topdeckFormat(listing.format),
       playerCount,
       notes: null,
@@ -226,6 +229,76 @@ async function topdeckFacts(
         sourceDeckId: row.sourceDeckId,
         provider: TOPDECK_PROVIDER,
       })),
+  };
+}
+
+/** `o` is a prefix no other source files under; a team row has no single player id. */
+export function playriftboundStandingIdentity(row: {
+  playerId: string | null;
+  teamId: string;
+}): string {
+  return row.playerId === null ? `ot${row.teamId}` : `o${row.playerId}`;
+}
+
+async function playriftboundFacts(
+  repos: Repos,
+  externalId: string,
+  context: MetaSourceContext,
+): Promise<SourceFacts | null> {
+  const listing = await repos.playriftboundEvents.byKey(externalId);
+  if (listing === undefined) {
+    return null;
+  }
+  const allStandings = await repos.playriftboundResults.standings(externalId);
+  const standings = allStandings.filter((row) => row.rank !== null);
+  const location =
+    listing.organizerAddress === null
+      ? null
+      : listing.organizerAddress.trim().slice(0, 500) || null;
+  // Registrations count no-shows; once standings exist they are the field.
+  const playerCount =
+    standings.length > 0 ? standings.length : countOrNull(listing.registeredCount);
+
+  return {
+    raw: {
+      format: listing.format ?? undefined,
+      eventDate: listing.startAt.toISOString(),
+      tier: `${playerCount ?? 0} players`,
+      country: location ?? undefined,
+    },
+    event: {
+      name: listing.name.slice(0, 120),
+      eventDate: longitudeLocalDay(listing.startAt, listing.organizerLongitude),
+      format: playriftboundFormat(listing.format),
+      playerCount,
+      organizer: listing.organizerName === null ? null : listing.organizerName.slice(0, 120),
+      notes: null,
+      tier: classifyMetaEventTier(
+        { templateTier: null, playerCount },
+        context.competitivePlayerFloor,
+      ),
+      country: countryFromAddress(location),
+      location,
+    },
+    standings: standings.map((row) => ({
+      identity: playriftboundStandingIdentity(row),
+      legacyIdentity: legacyIdentityOf(null, row.playerName),
+      uvsgamesPlayerId: null,
+      playerName: row.playerName,
+      rank: row.rank as number,
+      rankIsTier: false,
+      wins: row.wins,
+      losses: row.losses,
+      draws: row.draws,
+      matchPoints: row.matchPoints,
+      opponentMatchWinPct: row.opponentMatchWinPct,
+      gameWinPct: row.gameWinPct,
+      opponentGameWinPct: row.opponentGameWinPct,
+      entryStatus: row.entryStatus,
+      legendName: null,
+      sourceDeckId: null,
+      provider: PLAYRIFTBOUND_PROVIDER,
+    })),
   };
 }
 
@@ -285,6 +358,9 @@ export function factsFor(
   }
   if (provider === TOPDECK_PROVIDER) {
     return topdeckFacts(repos, externalId, context);
+  }
+  if (provider === PLAYRIFTBOUND_PROVIDER) {
+    return playriftboundFacts(repos, externalId, context);
   }
   // A push provider writes overlays, not a mirror, so there is nothing here to
   // promote and its citation still stands.

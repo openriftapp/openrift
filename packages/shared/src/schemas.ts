@@ -45,6 +45,8 @@ export const isoDateTime = z.iso.datetime();
 
 export const isoDate = z.iso.date();
 
+export const POSTGRES_INTEGER_MAX = 2_147_483_647;
+
 /**
  * Merge a base param schema (e.g. {@link idParamSchema}) with a route's body or
  * query fields into a single object schema.

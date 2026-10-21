@@ -46,15 +46,16 @@ Email sending is disabled when `SMTP_HOST` is unset.
 
 Scheduling for these jobs lives in the `/admin/jobs` page (see [Scheduled Jobs](#scheduled-jobs) below), not in env vars. These variables gate or configure the jobs themselves.
 
-| Variable                   | Default                              | Description                                                                                         |
-| -------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| `CARDNEXUS_API_KEY`        |                                      | CardNexus API key, no scopes needed. Required for the CardNexus price refresh job to be enabled.    |
-| `CARDTRADER_API_TOKEN`     |                                      | CardTrader API token. Required for the CardTrader price refresh job to be enabled.                  |
-| `CHANGELOG_PATH`           | `apps/web/src/CHANGELOG.md`          | Path to the changelog file read by the changelog Discord post job.                                  |
-| `META_SYNC_BASE_URL`       | `https://api.riftbound.uvsgames.com` | Base URL of the uvsgames API the meta sync reads. Override to point at a recorded fixture server.   |
-| `META_PLAYLOLTCG_BASE_URL` | `https://lol-api.playloltcg.com`     | Base URL of the playloltcg API the meta sync reads. Override to point at a recorded fixture server. |
-| `META_TOPDECK_BASE_URL`    | `https://topdeck.gg/api/`            | Base URL of the topdeck.gg API the meta sync reads. Override to point at a recorded fixture server. |
-| `TOPDECK_API_KEY`          |                                      | topdeck.gg API key, sent as the Authorization header. Unset disables the topdeck sync job.          |
+| Variable                      | Default                              | Description                                                                                                                           |
+| ----------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `CARDNEXUS_API_KEY`           |                                      | CardNexus API key, no scopes needed. Required for the CardNexus price refresh job to be enabled.                                      |
+| `CARDTRADER_API_TOKEN`        |                                      | CardTrader API token. Required for the CardTrader price refresh job to be enabled.                                                    |
+| `CHANGELOG_PATH`              | `apps/web/src/CHANGELOG.md`          | Path to the changelog file read by the changelog Discord post job.                                                                    |
+| `META_SYNC_BASE_URL`          | `https://api.riftbound.uvsgames.com` | Base URL of the uvsgames API the meta sync reads. Override to point at a recorded fixture server.                                     |
+| `META_PLAYLOLTCG_BASE_URL`    | `https://lol-api.playloltcg.com`     | Base URL of the playloltcg API the meta sync reads. Override to point at a recorded fixture server.                                   |
+| `META_TOPDECK_BASE_URL`       | `https://topdeck.gg/api/`            | Base URL of the topdeck.gg API the meta sync reads. Override to point at a recorded fixture server.                                   |
+| `TOPDECK_API_KEY`             |                                      | topdeck.gg API key, sent as the Authorization header. Unset disables the topdeck sync job.                                            |
+| `META_PLAYRIFTBOUND_BASE_URL` | `https://playriftbound.com`          | Base URL of the playriftbound site the meta sync reads (events page and GraphQL API). Override to point at a recorded fixture server. |
 
 #### Discord Webhooks
 

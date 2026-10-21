@@ -87,8 +87,8 @@ export function ShopEventsContent({
     );
   }
 
-  const selectedStoreId = shopFilter === ALL_SHOPS ? null : Number(shopFilter);
-  const events = filterShopEventsByRange(filterShopEvents(feed.items, selectedStoreId), range);
+  const selectedShopKey = shopFilter === ALL_SHOPS ? null : shopFilter;
+  const events = filterShopEventsByRange(filterShopEvents(feed.items, selectedShopKey), range);
   const days = groupShopEventsByDay(events, now, range === "past" ? "desc" : "asc");
   const windowLabel = rangeWindowLabel(range, feed.pastDays, feed.horizonDays);
 
@@ -120,7 +120,7 @@ export function ShopEventsContent({
           >
             <ToggleGroupItem value={ALL_SHOPS}>{m.groups_shops_all_shops()}</ToggleGroupItem>
             {feed.shops.map((shop) => (
-              <ToggleGroupItem key={shop.storeId} value={String(shop.storeId)}>
+              <ToggleGroupItem key={shop.shopKey} value={shop.shopKey}>
                 {shop.name}
               </ToggleGroupItem>
             ))}
@@ -148,8 +148,8 @@ export function ShopEventsContent({
                 </SectionHeading>
                 <RowList>
                   {day.events.map((event) => (
-                    <RowListItem key={event.externalId}>
-                      <ShopEventRow event={event} showShop={selectedStoreId === null} />
+                    <RowListItem key={`${event.shopKey}:${event.externalId}`}>
+                      <ShopEventRow event={event} showShop={selectedShopKey === null} />
                     </RowListItem>
                   ))}
                 </RowList>

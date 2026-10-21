@@ -1,9 +1,9 @@
 import type { FriendGroupCalendarFeedKind } from "@openrift/shared/types/api/friend-group";
-import { uvsgamesEventUrl } from "@openrift/shared/uvsgames-links";
 
 import type { CalendarEvent } from "../../../lib/icalendar.js";
 import type { Tournament } from "../../tournaments/repositories/tournaments-shared.js";
 import type { ShopFeedEventRow } from "../repositories/friend-group-shops.js";
+import { shopEventFormat, shopEventUrl } from "./friend-group-shop-presenters.js";
 
 const FEED_NAME_SUFFIX: Record<FriendGroupCalendarFeedKind, string> = {
   tournaments: "Tournaments",
@@ -40,15 +40,20 @@ export function presentTournamentCalendarEvent(
   };
 }
 
+// uvsgames uids keep their original, unprefixed form so subscribed calendars do not duplicate them.
 export function presentShopCalendarEvent(row: ShopFeedEventRow): CalendarEvent {
-  const url = uvsgamesEventUrl(row.externalId);
+  const url = shopEventUrl(row.source, row.externalId);
+  const format = shopEventFormat(row.source, row.eventFormat);
   return {
-    uid: `openrift-shop-event-${row.externalId}`,
+    uid:
+      row.source === "uvsgames"
+        ? `openrift-shop-event-${row.externalId}`
+        : `openrift-shop-event-${row.source}-${row.externalId}`,
     start: row.startAt,
     end: eventEnd(row.startAt, row.endAtEstimate),
     summary: row.name,
     location: row.location === null ? row.storeName : `${row.storeName}, ${row.location}`,
-    description: row.eventFormat === null ? url : `${row.eventFormat}\n${url}`,
+    description: format === null ? url : `${format}\n${url}`,
     url,
   };
 }

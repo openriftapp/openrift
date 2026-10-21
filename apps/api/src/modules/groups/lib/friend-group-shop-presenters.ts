@@ -1,3 +1,9 @@
+import type { GroupShopSource } from "@openrift/shared/group-shops";
+import { groupShopKey } from "@openrift/shared/group-shops";
+import {
+  playriftboundEventUrl,
+  playriftboundFormatLabel,
+} from "@openrift/shared/playriftbound-links";
 import type {
   FriendGroupShopEventResponse,
   FriendGroupShopResponse,
@@ -12,9 +18,24 @@ import type {
   ShopSearchRow,
 } from "../repositories/friend-group-shops.js";
 
+export function shopEventUrl(source: GroupShopSource, externalId: string): string {
+  return source === "playriftbound"
+    ? playriftboundEventUrl(externalId)
+    : uvsgamesEventUrl(externalId);
+}
+
+/** uvsgames publishes a format name; playriftbound an enum value, read here as its label. */
+export function shopEventFormat(
+  source: GroupShopSource,
+  eventFormat: string | null,
+): string | null {
+  return source === "playriftbound" ? playriftboundFormatLabel(eventFormat) : eventFormat;
+}
+
 export function presentGroupShop(row: GroupShopRow): FriendGroupShopResponse {
   return {
-    storeId: row.storeId,
+    shopKey: groupShopKey(row.source, row.storeId),
+    source: row.source,
     name: row.name,
     location: row.location,
     upcomingCount: row.upcomingCount,
@@ -24,14 +45,16 @@ export function presentGroupShop(row: GroupShopRow): FriendGroupShopResponse {
 
 export function presentShopSearchResult(
   row: ShopSearchRow,
-  linkedStoreIds: ReadonlySet<number>,
+  linkedShopKeys: ReadonlySet<string>,
 ): FriendGroupShopSearchResult {
+  const shopKey = groupShopKey(row.source, row.storeId);
   return {
-    storeId: row.storeId,
+    shopKey,
+    source: row.source,
     name: row.name,
     location: row.location,
     upcomingCount: row.upcomingCount,
-    linked: linkedStoreIds.has(row.storeId),
+    linked: linkedShopKeys.has(shopKey),
   };
 }
 
@@ -40,9 +63,9 @@ export function presentShopEvent(row: ShopEventRow): FriendGroupShopEventRespons
     externalId: row.externalId,
     name: row.name,
     startAt: row.startAt.toISOString(),
-    storeId: row.storeId,
+    shopKey: groupShopKey(row.source, row.storeId),
     storeName: row.storeName,
-    eventFormat: row.eventFormat,
-    url: uvsgamesEventUrl(row.externalId),
+    eventFormat: shopEventFormat(row.source, row.eventFormat),
+    url: shopEventUrl(row.source, row.externalId),
   };
 }

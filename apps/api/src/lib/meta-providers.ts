@@ -6,6 +6,8 @@ export const PLAYLOLTCG_STATUS_FINISHED = 5;
 
 export const TOPDECK_PROVIDER = "topdeck";
 
+export const PLAYRIFTBOUND_PROVIDER = "playriftbound";
+
 export const TOURNAMENT_LIST_PROVIDER = "tournament";
 
 /**
