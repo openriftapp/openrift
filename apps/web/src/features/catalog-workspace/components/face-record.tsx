@@ -22,6 +22,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { HistoryRow } from "@/features/admin/components/card-history-section";
 import { PrintingDeskEditFields } from "@/features/admin/components/printing-desk-form-page";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
+import { SendNoteDialog } from "@/features/admin/components/send-note-dialog";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useAuditEvents } from "@/features/admin/hooks/use-admin-audit";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
@@ -58,6 +59,7 @@ import {
   discardLabel,
   formatSuggestionValue,
   primaryLabel,
+  submitterNameOf,
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { useUserId } from "@/hooks/use-session";
@@ -101,6 +103,7 @@ function ReviewFaceRecord({
   const navigation = useQueueNavigation("face");
   const [showAll, setShowAll] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [replyTo, setReplyTo] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -225,6 +228,7 @@ function ReviewFaceRecord({
         onUse={(chip) => actions.applyChip(chip)}
         onDiscard={(id) => actions.discard(id)}
         onReject={(id) => actions.reject(id)}
+        onReply={setReplyTo}
         landscape={landscape}
       />
 
@@ -323,6 +327,11 @@ function ReviewFaceRecord({
                                   ? () => actions.reject(suggestion.candidate.candidateCardId)
                                   : undefined
                               }
+                              onReply={
+                                suggestion.isContributor && isAdmin
+                                  ? () => setReplyTo(suggestion.candidate.candidateCardId)
+                                  : undefined
+                              }
                             />
                           );
                         })}
@@ -366,6 +375,15 @@ function ReviewFaceRecord({
           ))}
         </RecordSection>
       )}
+      <SendNoteDialog
+        candidateCardId={replyTo}
+        submitterName={replyTo === null ? null : submitterNameOf([detail], replyTo)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReplyTo(null);
+          }
+        }}
+      />
     </RecordPane>
   );
 }

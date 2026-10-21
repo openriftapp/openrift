@@ -67,7 +67,7 @@ export function cardTypeLine(
   return [...types, ...(domains === "" ? [] : [domains])].join(" · ");
 }
 
-export interface FaceTreePrinting {
+interface FaceTreePrinting {
   id: string;
   code: string;
   printing: AdminPrintingResponse;

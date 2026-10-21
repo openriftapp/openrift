@@ -1,3 +1,5 @@
+import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
+import { productSuggestionKey } from "@openrift/shared/marketplace-suggestions";
 import { pluralize } from "@openrift/shared/strings";
 import type {
   AdminMarketplaceName,
@@ -32,8 +34,6 @@ import {
   collectWeakMappings,
   MARKETPLACE_CONFIGS,
 } from "./marketplace-product-entries";
-import type { ProductSuggestion } from "./suggest-mapping";
-import { productSuggestionKey } from "./suggest-mapping";
 
 function AcceptSuggestionsButton({
   mappings,

@@ -124,6 +124,9 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           "printedYear",
           "language",
           "comment",
+          "releasedAt",
+          "releasePrecision",
+          "announcedAt",
           "canonicalRank",
           "fallbackArtMode",
           "fallbackImageFileId",
@@ -178,6 +181,9 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         | "language"
         | "printedName"
         | "printedYear"
+        | "releasedAt"
+        | "releasePrecision"
+        | "announcedAt"
         | "externalId"
         | "extraData"
         | "checkedAt"
@@ -218,6 +224,9 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           "ps.language",
           "ps.printedName",
           "ps.printedYear",
+          "ps.releasedAt",
+          "ps.releasePrecision",
+          "ps.announcedAt",
           "ps.externalId",
           "ps.extraData",
           "ps.checkedAt",

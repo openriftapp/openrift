@@ -66,7 +66,7 @@ export interface DraftPrintingFields {
   comment: string;
 }
 
-export type CreationTarget = "desk" | "accept";
+type CreationTarget = "desk" | "accept";
 
 export interface CreationDraft {
   target: CreationTarget;
@@ -138,9 +138,7 @@ export function emptyFaceFields(defaults: Partial<DraftFaceFields> = {}): DraftF
   };
 }
 
-export function emptyPrintingFields(
-  defaults: Partial<DraftPrintingFields> = {},
-): DraftPrintingFields {
+function emptyPrintingFields(defaults: Partial<DraftPrintingFields> = {}): DraftPrintingFields {
   return {
     distributionChannelSlugs: [],
     size: "",
@@ -152,7 +150,7 @@ export function emptyPrintingFields(
   };
 }
 
-export function emptyDraft(target: CreationTarget = "desk"): CreationDraft {
+function emptyDraft(target: CreationTarget = "desk"): CreationDraft {
   return {
     target,
     card: null,
@@ -162,7 +160,7 @@ export function emptyDraft(target: CreationTarget = "desk"): CreationDraft {
   };
 }
 
-export function faceFieldsFromDeskRow(row: DeskPrintingRow): DraftFaceFields {
+function faceFieldsFromDeskRow(row: DeskPrintingRow): DraftFaceFields {
   const codeTba = isTbaCode(row.publicCode);
   return emptyFaceFields({
     shortCode: row.shortCode,
@@ -179,34 +177,12 @@ export function faceFieldsFromDeskRow(row: DeskPrintingRow): DraftFaceFields {
   });
 }
 
-export function faceFieldsFromAdminPrinting(printing: AdminPrintingResponse): DraftFaceFields {
-  return emptyFaceFields({
-    shortCode: printing.shortCode,
-    codeTba: isTbaCode(printing.publicCode),
-    publicCode: printing.publicCode,
-    setId: printing.setId,
-    setSlug: printing.setSlug,
-    setName: printing.setName,
-    language: printing.language,
-    finish: printing.finish,
-    rarity: printing.rarity,
-    artVariant: printing.artVariant,
-    isSigned: printing.isSigned,
-    artist: printing.artist,
-    markerSlugs: [...printing.markerSlugs],
-    printedName: printing.printedName,
-    printedRulesText: printing.printedRulesText,
-    printedEffectText: printing.printedEffectText,
-    flavorText: printing.flavorText,
-  });
-}
-
-export function faceLabel(fields: DraftFaceFields): string {
+function faceLabel(fields: DraftFaceFields): string {
   const code = fields.codeTba ? "Code TBA" : fields.shortCode;
   return [code, fields.language, fields.finish].filter((part) => part.length > 0).join(" · ");
 }
 
-export function existingFaceFromDeskRow(row: DeskPrintingRow): ExistingDraftFace {
+function existingFaceFromDeskRow(row: DeskPrintingRow): ExistingDraftFace {
   const fields = faceFieldsFromDeskRow(row);
   return {
     mode: "existing",
@@ -312,7 +288,7 @@ export function draftFromDeskPrinting(
   };
 }
 
-export function faceFieldsFromCandidate(candidate: CandidatePrintingResponse): DraftFaceFields {
+function faceFieldsFromCandidate(candidate: CandidatePrintingResponse): DraftFaceFields {
   const fields = buildPrintingFieldsFromCandidate(candidate);
   return emptyFaceFields({
     shortCode: fields.shortCode,

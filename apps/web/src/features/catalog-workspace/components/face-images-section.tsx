@@ -109,6 +109,7 @@ export function FaceImagesSection({
   onUse,
   onDiscard,
   onReject,
+  onReply,
   landscape,
 }: {
   cardSlug: string;
@@ -124,6 +125,7 @@ export function FaceImagesSection({
   onUse: (chip: FaceChip) => void;
   onDiscard: (candidatePrintingId: string) => void;
   onReject: (candidateCardId: string) => void;
+  onReply: (candidateCardId: string) => void;
   landscape: boolean;
 }) {
   const scope: Scope = [
@@ -208,6 +210,9 @@ export function FaceImagesSection({
                 onDiscard={isContributor || !isAdmin ? undefined : () => onDiscard(candidate.id)}
                 discardLabel={discardLabelOf(candidate.id, provider)}
                 onReject={isContributor ? () => onReject(candidate.candidateCardId) : undefined}
+                onReply={
+                  isContributor && isAdmin ? () => onReply(candidate.candidateCardId) : undefined
+                }
                 menu={
                   isContributor ? undefined : (
                     <DropdownMenuItem

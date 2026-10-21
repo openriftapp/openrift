@@ -15,10 +15,13 @@ import type {
   WorkspaceSegment,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
+import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
 import { normalizeProvidedPrintingRecord } from "@openrift/shared/printing-value-normalize";
+import { listingOwnerId } from "@openrift/shared/workspace-listing-key";
 
 import { classifyAgainstLive } from "../../../lib/image-fingerprint.js";
+import type { UnassignedListings } from "../../marketplace/lib/unassigned-listings.js";
 import type {
   WorkspaceCardDifferenceRow,
   WorkspaceDraftRow,
@@ -46,6 +49,7 @@ export interface WorkspaceQueueSources {
   inactiveImages: WorkspaceInactiveImageRow[];
   submissions: WorkspaceSubmissionRow[];
   costKeywords: string[];
+  listings?: UnassignedListings;
 }
 
 export interface WorkspaceQueueEntry {
@@ -292,6 +296,37 @@ export function buildWorkspaceQueueEntries(sources: WorkspaceQueueSources): Work
       }),
       fields,
       row.createdAt,
+    );
+  }
+
+  for (const listing of sources.listings?.suggested ?? []) {
+    collector.add(
+      itemBase("printing", "open", "listing", listing.printingId, listing.marketplace, {
+        cardSlug: listing.cardSlug,
+        cardName: listing.cardName,
+        label: listing.printingLabel,
+        provider: marketplaceLabel(listing.marketplace),
+        isContributor: false,
+      }),
+      ["listing"],
+      listing.createdAt,
+      [listing.printingId],
+    );
+  }
+
+  for (const listing of sources.listings?.unmatched ?? []) {
+    collector.add(
+      itemBase("printing", "new", "listing", listingOwnerId(listing), null, {
+        cardSlug: listing.card?.slug ?? null,
+        cardName: listing.card?.name ?? listing.productName,
+        label: [`#${listing.externalId}`, listing.finish, listing.language]
+          .filter(Boolean)
+          .join(" "),
+        provider: marketplaceLabel(listing.marketplace),
+        isContributor: false,
+      }),
+      [],
+      listing.createdAt,
     );
   }
 

@@ -31,6 +31,8 @@ const ACTION_SENTENCES: Record<string, string> = {
   "ban.add": "Added a ban",
   "ban.delete": "Removed a ban",
   "ban.update": "Edited a ban",
+  "candidate-card.discard-same-difference":
+    "Discarded a source suggestion on every card it was made on",
   "candidate-card.ignore": "Ignored a source for this card",
   "candidate-card.unignore": "Stopped ignoring a source for this card",
   "candidate-printing.copy": "Copied an incoming row onto a printing",
@@ -289,6 +291,17 @@ export function historySentence(
       const on = text(event.newValues?.bannedAt) ?? text(event.oldValues?.bannedAt);
       const verb = event.action === "ban.add" ? "Added" : "Edited";
       return joined([verb, format === null ? "a ban" : `the ${format} ban`, on && `(${on})`]);
+    }
+    case "candidate-card.discard-same-difference": {
+      const provider = text(event.newValues?.provider);
+      const field = text(event.newValues?.field);
+      const label = field === null ? null : (FIELD_LABELS[field] ?? field);
+      return joined([
+        "Discarded",
+        provider === null ? "a source's" : `${provider}'s`,
+        label === null ? "suggestion" : `${label.toLowerCase()} suggestion`,
+        "on every card it was made on",
+      ]);
     }
     case "candidate-card.ignore":
     case "candidate-card.unignore":

@@ -1,3 +1,5 @@
+import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
+import { productSuggestionKey } from "@openrift/shared/marketplace-suggestions";
 import type {
   MarketplaceAssignmentResponse,
   StagedProductResponse,
@@ -13,8 +15,6 @@ import {
   collectWeakMappings,
   displayedProductLanguage,
 } from "./marketplace-product-entries";
-import type { ProductSuggestion } from "./suggest-mapping";
-import { productSuggestionKey } from "./suggest-mapping";
 
 function printing(
   overrides: Partial<UnifiedMappingPrintingResponse> = {},

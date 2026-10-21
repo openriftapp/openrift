@@ -31,6 +31,9 @@ export const COMPARABLE_PRINTING_FIELDS = [
   "language",
   "printedName",
   "printedYear",
+  "releasedAt",
+  "releasePrecision",
+  "announcedAt",
 ] as const satisfies readonly AcceptPrintingField[];
 
 export type ComparableCardField = (typeof COMPARABLE_CARD_FIELDS)[number];

@@ -12,12 +12,17 @@ const mockConfig: SourceMappingConfig = {
 };
 
 describe("adminKeys", () => {
-  it("workspace prefixes both the queue and the records lists", () => {
+  it("workspace prefixes the queue, the records lists and same-difference counts", () => {
     const prefix = adminKeys.workspace;
     expect(adminKeys.workspaceQueue.slice(0, prefix.length)).toEqual(prefix);
     expect(adminKeys.workspaceRecords({ kind: "printing" }).slice(0, prefix.length)).toEqual(
       prefix,
     );
+    expect(
+      adminKeys
+        .workspaceSameDifference({ provider: "gallery", field: "might", value: "4" })
+        .slice(0, prefix.length),
+    ).toEqual(prefix);
   });
 
   it("me is keyed per user so identities never share a cache slot", () => {

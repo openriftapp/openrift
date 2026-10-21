@@ -103,7 +103,10 @@ function UploadFormatHelp() {
         <Code>artist</Code>, <Code>public_code</Code>, <Code>printed_rules_text</Code>,{" "}
         <Code>printed_effect_text</Code>, <Code>image_url</Code>, <Code>flavor_text</Code>,{" "}
         <Code>language</Code>, <Code>printed_name</Code>, <Code>printed_year</Code>,{" "}
-        <Code>extra_data</Code>.
+        <Code>released_at</Code> (<Code>YYYY</Code>, <Code>YYYY-MM</Code> or <Code>YYYY-MM-DD</Code>
+        ), <Code>release_precision</Code> (<Code>day</Code>, <Code>month</Code>,{" "}
+        <Code>quarter</Code> or <Code>year</Code>; defaults to the date&apos;s shape),{" "}
+        <Code>announced_at</Code>, <Code>extra_data</Code>.
       </p>
       <p className="text-muted-foreground">
         Export the catalog to download a real file in the same format.

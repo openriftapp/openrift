@@ -17,6 +17,7 @@ const CARD_REVIEW_GET_EXACT = new Set([
   `${BASE}/catalog/sources`,
   `${BASE}/catalog/workspace/queue`,
   `${BASE}/catalog/workspace/records`,
+  `${BASE}/catalog/workspace/same-difference`,
   `${BASE}/provider-settings`,
   `${BASE}/markers`,
   `${BASE}/languages`,

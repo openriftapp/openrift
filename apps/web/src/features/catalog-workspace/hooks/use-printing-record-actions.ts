@@ -95,21 +95,35 @@ export function usePrintingRecordActions({
       return;
     }
     const field = suggestion.field;
+    const value =
+      field === "releasedAt"
+        ? {
+            releasedAt: suggestion.proposed,
+            releasePrecision: suggestion.candidate.releasePrecision,
+          }
+        : suggestion.proposed;
+    const undoValue =
+      field === "releasedAt" && model.printing !== null
+        ? {
+            releasedAt: model.printing.releasedAt,
+            releasePrecision: model.printing.releasePrecision,
+          }
+        : suggestion.current;
     if (suggestion.isContributor) {
       acceptSubmission.mutate(
         {
           candidateCardId: suggestion.candidate.candidateCardId,
-          printingFields: [{ printingId, field, value: suggestion.proposed, source: "provider" }],
+          printingFields: [{ printingId, field, value, source: "provider" }],
         },
         { onSettled: settleCards },
       );
       return;
     }
-    acceptField.mutate({ printingId, field, value: suggestion.proposed, source: "provider" });
+    acceptField.mutate({ printingId, field, value, source: "provider" });
     toastFieldAccepted({
       fieldLabel: suggestion.label,
       sourceLabel: suggestion.provider,
-      previousValue: suggestion.current,
+      previousValue: undoValue,
       onUndo: (previous) =>
         acceptField.mutate({ printingId, field, value: previous, source: "manual" }),
     });

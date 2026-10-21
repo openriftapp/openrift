@@ -56,6 +56,8 @@ export const printingFieldRules = {
   flavorText: z.string().min(1).nullable(),
   comment: z.string().min(1).nullable(),
   printedYear: z.number().int().min(1900).max(2999).nullable(),
+  releasePrecision: z.enum(["day", "month", "quarter", "year"]).nullable(),
+  announcedAt: z.iso.date().nullable(),
   language: z.string().regex(LANGUAGE_CODE_PATTERN, {
     message: "Language must be a 2-letter uppercase code (e.g. EN, SC).",
   }),

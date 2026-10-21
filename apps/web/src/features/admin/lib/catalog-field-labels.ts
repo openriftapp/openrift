@@ -35,6 +35,9 @@ export const PRINTING_FIELD_LABELS: Record<ComparablePrintingField, string> = {
   language: "Language",
   printedName: "Printed name",
   printedYear: "Printed year",
+  releasedAt: "Available from",
+  releasePrecision: "Release precision",
+  announcedAt: "Announced on",
 };
 
 export const DIFFED_FIELDS: ReadonlySet<string> = new Set([

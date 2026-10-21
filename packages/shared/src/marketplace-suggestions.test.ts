@@ -1,12 +1,12 @@
+import { describe, expect, it } from "vitest";
+
+import { computeProductSuggestions, productSuggestionKey } from "./marketplace-suggestions.js";
 import type {
   MarketplaceAssignmentResponse,
   StagedProductResponse,
   UnifiedMappingGroupResponse,
   UnifiedMappingPrintingResponse,
-} from "@openrift/shared/types/api/admin";
-import { describe, expect, it } from "vitest";
-
-import { computeProductSuggestions, productSuggestionKey } from "./suggest-mapping";
+} from "./types/api/admin.js";
 
 function printing(
   overrides: Partial<UnifiedMappingPrintingResponse> = {},

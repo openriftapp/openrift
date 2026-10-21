@@ -14,6 +14,7 @@ import {
   discardLabel,
   enterDifferenceCount,
   enterProviders,
+  sameDifferenceInput,
   suggestionByHotkey,
 } from "./suggestion-rows";
 
@@ -185,5 +186,36 @@ describe("discardLabel", () => {
       sameAsCard({ provider: "scans", name: "Jinx A", might: 1 }),
     ]).suggestions;
     expect(suggestion && discardLabel(suggestion)).toBe("Discard 2 from scans");
+  });
+});
+
+describe("sameDifferenceInput", () => {
+  it("encodes a source suggestion's provider, field and JSON value", () => {
+    const [suggestion] = build([sameAsCard({ might: 6 })]).suggestions;
+    expect(suggestion && sameDifferenceInput(suggestion)).toEqual({
+      provider: "gallery",
+      field: "might",
+      value: "6",
+    });
+  });
+
+  it("encodes list values as JSON arrays", () => {
+    const [suggestion] = build([sameAsCard({ tags: ["Zaun"] })]).suggestions;
+    expect(suggestion && sameDifferenceInput(suggestion)?.value).toBe('["Zaun"]');
+  });
+
+  it("returns null for a contributor proposal", () => {
+    expect(
+      sameDifferenceInput({
+        key: "card.might",
+        field: "might",
+        tone: "contributor",
+        sourceKey: "contributor:cc-1",
+        sourceLabel: "Ezreal",
+        value: 6,
+        candidateRowId: "cc-1",
+        rowDifferences: 1,
+      }),
+    ).toBeNull();
   });
 });

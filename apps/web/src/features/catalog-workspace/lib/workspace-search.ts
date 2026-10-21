@@ -2,7 +2,7 @@
 import { workspaceReasonSchema } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { z } from "zod";
 
-export const WORKSPACE_VIEWS = ["open", "new", "all"] as const;
+const WORKSPACE_VIEWS = ["open", "new", "all"] as const;
 
 export const WORKSPACE_SORTS = ["oldest", "newest", "card"] as const;
 

@@ -154,6 +154,61 @@ describe("buildWorkspaceQueue", () => {
     expect(repos.printingDesk.listDeskPrintings).toHaveBeenCalledWith({ promosOnly: true });
   });
 
+  it("adds listings to an admin's printing queues and counts them", async () => {
+    const loadListings = vi.fn().mockResolvedValue({
+      suggested: [
+        {
+          marketplace: "tcgplayer",
+          externalId: 7,
+          finish: "normal",
+          language: null,
+          productName: "Jinx Loose Cannon",
+          createdAt: T1,
+          printingId: "base",
+          printingLabel: "OGN-030 normal EN",
+          cardSlug: "jinx-loose-cannon",
+          cardName: "Jinx, Loose Cannon",
+          score: 150,
+          strength: "strong",
+        },
+      ],
+      unmatched: [
+        {
+          marketplace: "cardnexus",
+          externalId: 9,
+          finish: "foil",
+          language: "EN",
+          productName: "Mystery Box",
+          createdAt: T1,
+          card: null,
+        },
+      ],
+    });
+    const response = await buildWorkspaceQueue(makeRepos() as unknown as WorkspaceRepos, {
+      access: { isAdmin: true, sections: [] },
+      userId: "admin-1",
+      owner: "printing",
+      now: NOW,
+      loadListings,
+    });
+    expect(ids(response)).toContain("printing:listing:base:tcgplayer");
+    expect(ids(response)).toContain("printing:listing:listing:cardnexus:9:foil:EN");
+    expect(response.counts.printing).toEqual({ open: 4, new: 1, oldestAt: T1.toISOString() });
+  });
+
+  it("never loads listings for a card-review or desk holder", async () => {
+    const loadListings = vi.fn();
+    for (const section of ["card-review", "printing-desk"] as const) {
+      await buildWorkspaceQueue(makeRepos() as unknown as WorkspaceRepos, {
+        access: { isAdmin: false, sections: [section] },
+        userId: "helper-1",
+        now: NOW,
+        loadListings,
+      });
+    }
+    expect(loadListings).not.toHaveBeenCalled();
+  });
+
   it("drops a desk holder's items on printings outside the desk", async () => {
     const response = await buildWorkspaceQueue(makeRepos() as unknown as WorkspaceRepos, {
       access: { isAdmin: false, sections: ["printing-desk"] },

@@ -1,9 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { workspaceQueueFixture } from "@/features/catalog-workspace/lib/workspace-queue.fixture";
+import { useWorkspaceSkipStore } from "@/features/catalog-workspace/stores/workspace-skip-store";
+import { createStoreResetter } from "@/test/store-helpers";
 
 const state = vi.hoisted(() => ({
   search: {} as Record<string, unknown>,
@@ -75,14 +77,15 @@ vi.mock("@/features/catalog-workspace/lib/workspace-queries", () => ({
       return state.queue;
     },
   }),
-  workspaceRecordsQueryOptions: (input: unknown) => ({
-    queryKey: ["admin", "workspace", "records", input],
-    queryFn: () => {
-      state.recordsInputs.push(input);
+  workspaceRecordsInfiniteQueryOptions: (input: object) => ({
+    queryKey: ["admin", "workspace", "records", "infinite", input],
+    queryFn: ({ pageParam }: { pageParam?: string }) => {
+      state.recordsInputs.push({ ...input, cursor: pageParam });
+      const id = pageParam === undefined ? "f1" : "f2";
       return {
         rows: [
           {
-            id: "f1",
+            id,
             cardSlug: "jinx-loose-cannon",
             cardName: "Jinx, Loose Cannon",
             setName: "Origins",
@@ -93,9 +96,11 @@ vi.mock("@/features/catalog-workspace/lib/workspace-queries", () => ({
             updatedAt: "2026-10-20T10:00:00.000Z",
           },
         ],
-        nextCursor: "next",
+        nextCursor: pageParam === undefined ? "next" : null,
       };
     },
+    initialPageParam: undefined,
+    getNextPageParam: (last: { nextCursor: string | null }) => last.nextCursor ?? undefined,
   }),
 }));
 
@@ -107,13 +112,20 @@ function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
+let resetSkips: () => void;
+
 beforeEach(() => {
+  resetSkips = createStoreResetter(useWorkspaceSkipStore);
   state.search = {};
   state.access = { isAdmin: true, sections: [] };
   state.queue = workspaceQueueFixture;
   state.queueError = null;
   state.recordsInputs = [];
   state.deskModes = [];
+});
+
+afterEach(() => {
+  resetSkips();
 });
 
 describe("resolveView", () => {
@@ -163,6 +175,32 @@ describe("useWorkspaceQueue", () => {
     expect(result.current.search.order).toBeUndefined();
   });
 
+  it("moves skipped records to the end and prunes skips that left the queue", async () => {
+    useWorkspaceSkipStore.getState().skip("card", "card:jinx-loose-cannon");
+    useWorkspaceSkipStore.getState().skip("card", "card:viktor-herald");
+    useWorkspaceSkipStore.getState().skip("face", "face:f9");
+    const { result } = renderHook(() => useWorkspaceQueue("card"), { wrapper });
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(result.current.entries.map((entry) => entry.key)).toEqual([
+      "card:yasuo-unforgiven",
+      "card:jinx-loose-cannon",
+    ]);
+    await waitFor(() =>
+      expect(useWorkspaceSkipStore.getState().skipped).toEqual({
+        card: ["card:jinx-loose-cannon"],
+        face: ["face:f9"],
+      }),
+    );
+  });
+
+  it("keeps the skips while the queue is loading or failed", async () => {
+    state.queueError = new Error("Not found");
+    useWorkspaceSkipStore.getState().skip("card", "card:viktor-herald");
+    const { result } = renderHook(() => useWorkspaceQueue("card"), { wrapper });
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(useWorkspaceSkipStore.getState().skipped.card).toEqual(["card:viktor-herald"]);
+  });
+
   it("surfaces a failed queue request", async () => {
     state.queueError = new Error("Not found");
     const { result } = renderHook(() => useWorkspaceQueue("face"), { wrapper });
@@ -176,9 +214,46 @@ describe("useWorkspaceRecords", () => {
     state.search = { q: "  jinx " };
     const { result } = renderHook(() => useWorkspaceRecords("face", true), { wrapper });
     await waitFor(() => expect(result.current.isPending).toBe(false));
-    expect(state.recordsInputs).toEqual([{ kind: "face", q: "jinx", limit: 500 }]);
+    expect(state.recordsInputs).toEqual([
+      { kind: "face", q: "jinx", limit: 500, cursor: undefined },
+    ]);
     expect(result.current.kind).toBe("face");
-    expect(result.current.truncated).toBe(true);
+    expect(result.current.hasMore).toBe(true);
+    expect(result.current.entries.map((entry) => entry.key)).toEqual(["face:f1"]);
+  });
+
+  it("loads the next page from the cursor and stops at the end", async () => {
+    const { result } = renderHook(() => useWorkspaceRecords("printing", true), { wrapper });
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    act(() => result.current.loadMore());
+    await waitFor(() => expect(result.current.hasMore).toBe(false));
+    expect(state.recordsInputs).toEqual([
+      { kind: "printing", q: undefined, limit: 500, cursor: undefined },
+      { kind: "printing", q: undefined, limit: 500, cursor: "next" },
+    ]);
+    expect(result.current.entries.map((entry) => entry.key)).toEqual([
+      "printing:f1",
+      "printing:f2",
+    ]);
+    expect(result.current.total).toBe(2);
+  });
+
+  it("restarts paging when the search changes", async () => {
+    const { result, rerender } = renderHook(() => useWorkspaceRecords("face", true), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    act(() => result.current.loadMore());
+    await waitFor(() => expect(result.current.hasMore).toBe(false));
+    state.search = { q: "jinx" };
+    rerender();
+    await waitFor(() => expect(result.current.hasMore).toBe(true));
+    expect(state.recordsInputs.at(-1)).toEqual({
+      kind: "face",
+      q: "jinx",
+      limit: 500,
+      cursor: undefined,
+    });
     expect(result.current.entries.map((entry) => entry.key)).toEqual(["face:f1"]);
   });
 

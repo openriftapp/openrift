@@ -1,18 +1,25 @@
-import { normalizeNameForIdentity } from "@openrift/shared/card-name";
+import { normalizeNameForIdentity } from "./card-name.js";
 import type {
   AdminMarketplaceName,
+  MappingGroupHeader,
   MappingPrintingResponse,
   StagedProductResponse,
   UnifiedMappingGroupResponse,
-} from "@openrift/shared/types/api/admin";
+} from "./types/api/admin.js";
 import {
   ALL_MARKETPLACES,
   LANGUAGE_KEYED_MARKETPLACES,
   marketplaceCarriesLanguage,
-} from "@openrift/shared/types/pricing";
-import { marketplaceFinish, WellKnown } from "@openrift/shared/well-known";
+} from "./types/pricing.js";
+import { marketplaceFinish, WellKnown } from "./well-known.js";
 
-import type { MappingGroup } from "@/features/admin/lib/price-mappings-types";
+interface MappingGroup extends MappingGroupHeader {
+  printings: MappingPrintingResponse[];
+  stagedProducts: StagedProductResponse[];
+  assignedProducts: StagedProductResponse[];
+  /** Key: `${externalId}|${finish}` */
+  crossLanguageEvidence?: ReadonlyMap<string, ReadonlySet<string>>;
+}
 
 const SUGGESTION_THRESHOLD = 100;
 

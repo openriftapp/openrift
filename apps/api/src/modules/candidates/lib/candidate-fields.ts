@@ -8,6 +8,7 @@ import {
   candidateCardFieldRules,
   candidatePrintingFieldRules,
 } from "@openrift/shared/db-field-rules";
+import { parseReleaseInput } from "@openrift/shared/set-release";
 import { emptyToNull } from "@openrift/shared/strings";
 import type { Insertable } from "kysely";
 import { z } from "zod";
@@ -121,6 +122,17 @@ export function buildCandidateCardFields(card: IngestCard): CandidateCardFields 
   };
 }
 
+function releaseFields(
+  printing: IngestPrinting,
+): Pick<CandidatePrintingFields, "releasedAt" | "releasePrecision" | "announcedAt"> {
+  const release = parseReleaseInput(printing.released_at, printing.release_precision);
+  return {
+    releasedAt: release?.releasedAt ?? null,
+    releasePrecision: release?.precision ?? null,
+    announcedAt: printing.announced_at,
+  };
+}
+
 /** Marker slugs are sorted here so the stored order matches the one the link key is built from. */
 export function buildCandidatePrintingFields(printing: IngestPrinting): CandidatePrintingFields {
   return {
@@ -144,6 +156,7 @@ export function buildCandidatePrintingFields(printing: IngestPrinting): Candidat
     language: printing.language,
     printedName: printing.printed_name,
     printedYear: printing.printed_year,
+    ...releaseFields(printing),
     externalId: printing.external_id,
     extraData: jsonOrNull(printing.extra_data),
   };

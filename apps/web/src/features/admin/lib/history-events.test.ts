@@ -34,6 +34,17 @@ describe("historySentence", () => {
     expect(historySentence(event)).toBe("Changed Might bonus");
   });
 
+  it("names the source and field of a bulk discard", () => {
+    const event = makeAuditEvent({
+      action: "candidate-card.discard-same-difference",
+      entityType: "candidate-card",
+      newValues: { provider: "gallery", field: "mightBonus", value: "1" },
+    });
+    expect(historySentence(event)).toBe(
+      "Discarded gallery's might bonus suggestion on every card it was made on",
+    );
+  });
+
   it("names the printing an event was about by its full printing id", () => {
     const event = makeAuditEvent({
       action: "printing.accept",

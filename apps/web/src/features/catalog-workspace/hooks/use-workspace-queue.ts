@@ -2,7 +2,7 @@ import type {
   WorkspaceOwner,
   WorkspaceRecordRow,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useSearch } from "@tanstack/react-router";
 
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
@@ -32,16 +32,17 @@ import {
 } from "@/features/catalog-workspace/lib/owner-items";
 import {
   workspaceQueueQueryOptions,
-  workspaceRecordsQueryOptions,
+  workspaceRecordsInfiniteQueryOptions,
 } from "@/features/catalog-workspace/lib/workspace-queries";
 import type {
   WorkspaceSearch,
   WorkspaceView,
 } from "@/features/catalog-workspace/lib/workspace-search";
 import { workspaceSearchSchema } from "@/features/catalog-workspace/lib/workspace-search";
-import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
+import { useWorkspaceSkipStore } from "@/features/catalog-workspace/stores/workspace-skip-store";
+import { useScopeEffect } from "@/hooks/use-scope-effect";
 
-export const RECORDS_PAGE_SIZE = 500;
+const RECORDS_PAGE_SIZE = 500;
 
 const NO_SKIPS: string[] = [];
 
@@ -54,7 +55,7 @@ export function useWorkspaceRole(): WorkspaceRole {
   return workspaceRole(data);
 }
 
-export function useWorkspaceSearch(): WorkspaceSearchState {
+function useWorkspaceSearch(): WorkspaceSearchState {
   const raw: Record<string, unknown> = useSearch({ strict: false });
   const desk = raw.desk === "mine" || raw.desk === "promos" ? raw.desk : undefined;
   return { ...workspaceSearchSchema.parse(raw), desk };
@@ -79,10 +80,16 @@ export function useWorkspaceQueue(owner: WorkspaceOwner) {
   const search = useWorkspaceSearch();
   const view = resolveView(owner, role, search.segment);
   const query = useQuery({ ...workspaceQueueQueryOptions(), enabled: role !== "none" });
-  const skipped = useWorkspaceActionsStore((state) => state.skipped[owner] ?? NO_SKIPS);
+  const skipped = useWorkspaceSkipStore((state) => state.skipped[owner] ?? NO_SKIPS);
+  const prune = useWorkspaceSkipStore((state) => state.prune);
 
   const items = query.data ? visibleQueueItems(query.data.items, role) : [];
   const ownerGroups = groupOwnerItems(items.filter((item) => item.owner === owner));
+  useScopeEffect(query.data, (data) => {
+    if (data !== undefined && role !== "none") {
+      prune(owner, new Set(ownerGroups.map((group) => group.key)));
+    }
+  });
   const segmentGroups = view === "all" ? [] : ownerGroups.filter((group) => group.segment === view);
   const groups = sortGroups(filterGroups(segmentGroups, search), search.order ?? "oldest", skipped);
 
@@ -105,10 +112,14 @@ export function useWorkspaceQueue(owner: WorkspaceOwner) {
 interface RecordsCommon {
   entries: ListEntry[];
   total: number | null;
-  truncated: boolean;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  loadMore: () => void;
   isPending: boolean;
   error: Error | null;
 }
+
+const NO_MORE = { hasMore: false, isLoadingMore: false, loadMore: () => null };
 
 export type WorkspaceRecordsResult =
   | (RecordsCommon & { kind: "card"; rows: ReturnType<typeof filterCardSummaries> })
@@ -127,8 +138,8 @@ export function useWorkspaceRecords(
   const isDesk = role === "desk" && owner === "printing";
 
   const cards = useAdminCardListWhen(enabled && owner === "card");
-  const records = useQuery({
-    ...workspaceRecordsQueryOptions({
+  const records = useInfiniteQuery({
+    ...workspaceRecordsInfiniteQueryOptions({
       kind: owner === "face" ? "face" : "printing",
       q,
       limit: RECORDS_PAGE_SIZE,
@@ -147,7 +158,7 @@ export function useWorkspaceRecords(
       rows,
       entries: rows.map((row) => cardSummaryEntry(row)),
       total: cards.data?.length ?? null,
-      truncated: false,
+      ...NO_MORE,
       isPending: enabled && cards.isPending,
       error: cards.error,
     };
@@ -159,19 +170,25 @@ export function useWorkspaceRecords(
       rows,
       entries: rows.map((row) => deskEntry(row)),
       total: desk.data?.printings.length ?? null,
-      truncated: false,
+      ...NO_MORE,
       isPending: enabled && desk.isPending,
       error: desk.error,
     };
   }
-  const rows = records.data?.rows ?? [];
+  const rows = records.data?.pages.flatMap((page) => page.rows) ?? [];
   const recordOwner = owner === "face" ? "face" : "printing";
   return {
     kind: recordOwner,
     rows,
     entries: rows.map((row) => recordEntry(recordOwner, row)),
     total: records.data ? rows.length : null,
-    truncated: (records.data?.nextCursor ?? null) !== null,
+    hasMore: records.hasNextPage,
+    isLoadingMore: records.isFetchingNextPage,
+    loadMore: () => {
+      if (records.hasNextPage && !records.isFetchingNextPage) {
+        void records.fetchNextPage();
+      }
+    },
     isPending: enabled && records.isPending,
     error: records.error,
   };

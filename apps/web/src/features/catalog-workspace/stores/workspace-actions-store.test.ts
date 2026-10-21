@@ -35,23 +35,4 @@ describe("useWorkspaceActionsStore", () => {
     useWorkspaceActionsStore.getState().unregister(second);
     expect(useWorkspaceActionsStore.getState().actions).toBeNull();
   });
-
-  it("records skipped keys per queue, latest last, without duplicates", () => {
-    const { skip } = useWorkspaceActionsStore.getState();
-    skip("card", "card:a");
-    skip("card", "card:b");
-    skip("card", "card:a");
-    skip("face", "face:x");
-    expect(useWorkspaceActionsStore.getState().skipped).toEqual({
-      card: ["card:b", "card:a"],
-      face: ["face:x"],
-    });
-  });
-
-  it("clears the skipped keys of one queue", () => {
-    useWorkspaceActionsStore.getState().skip("card", "card:a");
-    useWorkspaceActionsStore.getState().skip("face", "face:x");
-    useWorkspaceActionsStore.getState().clearSkipped("card");
-    expect(useWorkspaceActionsStore.getState().skipped).toEqual({ card: [], face: ["face:x"] });
-  });
 });

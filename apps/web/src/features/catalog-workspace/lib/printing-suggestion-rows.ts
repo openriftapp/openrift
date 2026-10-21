@@ -3,6 +3,7 @@ import type {
   AdminCardDetailResponse,
   AdminMarketplaceName,
   AdminPrintingResponse,
+  CandidatePrintingResponse,
   StagedProductResponse,
 } from "@openrift/shared/types/api/admin";
 
@@ -95,6 +96,37 @@ export function buildPrintingSuggestions(
   }
 
   return { printing, suggestions, sources, agreeingFields, enterCandidateIds };
+}
+
+export interface PrintingCompareGroup {
+  detail: AdminCardDetailResponse;
+  face: AdminPrintingResponse;
+  candidates: CandidatePrintingResponse[];
+}
+
+export function printingCompareGroups(
+  details: readonly AdminCardDetailResponse[],
+  printingId: string,
+  hiddenProviders: ReadonlySet<string> = new Set(),
+): PrintingCompareGroup[] {
+  const groups: PrintingCompareGroup[] = [];
+  const seenFaces = new Set<string>();
+  for (const detail of details) {
+    for (const face of detail.printings) {
+      if (face.id !== printingId || seenFaces.has(face.faceId)) {
+        continue;
+      }
+      seenFaces.add(face.faceId);
+      const candidates = detail.candidatePrintings.filter(
+        (candidate) =>
+          candidate.printingId === printingId &&
+          !hiddenProviders.has(providerOf(detail, candidate.candidateCardId)) &&
+          candidateBelongsToFace(candidate, face.faceId, detail.printings),
+      );
+      groups.push({ detail, face, candidates });
+    }
+  }
+  return groups.toSorted((a, b) => a.face.side - b.face.side);
 }
 
 export interface ListingSuggestion {

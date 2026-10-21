@@ -2,11 +2,17 @@ import type { ComparablePrintingField } from "@openrift/shared/catalog-field-com
 import type { DeskImage, DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
 import { formatDay } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
+import {
+  computeProductSuggestions,
+  productSuggestionKey,
+} from "@openrift/shared/marketplace-suggestions";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
+import type { ReleasePrecision } from "@openrift/shared/set-release";
+import { formatReleasePeriod, parseReleaseInput } from "@openrift/shared/set-release";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
   ChevronRightIcon,
   CopyIcon,
@@ -32,11 +38,8 @@ import { PrintingCitationsEditor } from "@/features/admin/components/printing-ci
 import { PrintingDeskEditFields } from "@/features/admin/components/printing-desk-form-page";
 import { DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
+import { SendNoteDialog } from "@/features/admin/components/send-note-dialog";
 import { SideSearch } from "@/features/admin/components/side-search";
-import {
-  computeProductSuggestions,
-  productSuggestionKey,
-} from "@/features/admin/components/suggest-mapping";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import {
   useDeletePrinting,
@@ -58,6 +61,7 @@ import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
 import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-settings-queries";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
+import { PrintingCompareSourcesDialog } from "@/features/catalog-workspace/components/compare-sources-dialog";
 import { PrintingHistoryList } from "@/features/catalog-workspace/components/face-record";
 import { FieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
@@ -77,6 +81,7 @@ import {
   discardLabel,
   formatSuggestionValue,
   primaryLabel,
+  submitterNameOf,
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import {
   buildPrintingSuggestions,
@@ -137,8 +142,9 @@ function PrintingRecordBody({
   const labels = useValueLabels();
   const navigation = useQueueNavigation("printing");
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   const details = [first, second].filter(
     (detail): detail is AdminCardDetailResponse => detail !== undefined,
@@ -147,17 +153,18 @@ function PrintingRecordBody({
   const trusted = new Set(
     providerSettings.filter((setting) => setting.isFavorite).map((setting) => setting.provider),
   );
+  const hiddenProviders = new Set(
+    providerSettings
+      .filter((setting) => setting.isHidden || (!isAdmin && !setting.helperReviewable))
+      .map((setting) => setting.provider),
+  );
   const model = buildPrintingSuggestions(details, printingId, {
     costKeywords,
     setTotals: Object.assign({}, ...details.map((detail) => detail.setTotals)) as Record<
       string,
       number
     >,
-    hiddenProviders: new Set(
-      providerSettings
-        .filter((setting) => setting.isHidden || (!isAdmin && !setting.helperReviewable))
-        .map((setting) => setting.provider),
-    ),
+    hiddenProviders,
   });
   const group = mappingData?.group ?? null;
   const listings =
@@ -217,6 +224,26 @@ function PrintingRecordBody({
     navigation.goNext();
   };
 
+  function chipValue(
+    field: ComparablePrintingField,
+    suggestion: Extract<PrintingChip, { kind: "field" }>["suggestion"],
+  ): string {
+    if (field === "announcedAt" && typeof suggestion.proposed === "string") {
+      return formatDay(suggestion.proposed);
+    }
+    if (field === "releasedAt" && typeof suggestion.proposed === "string") {
+      const release = parseReleaseInput(suggestion.proposed, suggestion.candidate.releasePrecision);
+      return release === null ? suggestion.proposed : formatReleasePeriod(release);
+    }
+    if (field === "releasePrecision" && printing.releasedAt !== null) {
+      return formatReleasePeriod({
+        releasedAt: printing.releasedAt,
+        precision: suggestion.proposed as ReleasePrecision,
+      });
+    }
+    return formatSuggestionValue(field, suggestion.proposed, labels);
+  }
+
   function chipsFor(field: ComparablePrintingField): ReactNode {
     const own = fieldChips.filter((chip) => chip.suggestion.field === field);
     if (own.length === 0) {
@@ -229,7 +256,7 @@ function PrintingRecordBody({
           key={chip.key}
           tone={suggestion.isContributor ? "contributor" : "source"}
           sourceLabel={suggestion.isContributor ? "Contributor" : suggestion.provider}
-          value={formatSuggestionValue(field, suggestion.proposed, labels)}
+          value={chipValue(field, suggestion)}
           hotkey={hotkeyOf(chip.key)}
           pending={actions.pending}
           onUse={() => actions.applyChip(chip)}
@@ -248,10 +275,20 @@ function PrintingRecordBody({
               ? () => actions.reject(suggestion.candidate.candidateCardId)
               : undefined
           }
+          onReply={
+            suggestion.isContributor && isAdmin
+              ? () => setReplyTo(suggestion.candidate.candidateCardId)
+              : undefined
+          }
         />
       );
     });
   }
+
+  const releaseChips = [chipsFor("releasedAt"), chipsFor("releasePrecision")].filter(
+    (chips) => chips !== undefined,
+  );
+  const availableFromChips = releaseChips.length === 0 ? undefined : releaseChips;
 
   return (
     <RecordPane
@@ -336,9 +373,7 @@ function PrintingRecordBody({
               differences: source.differences,
               trusted: trusted.has(source.provider),
             }))}
-            onCompare={() =>
-              void navigate({ to: "/admin/printings/$printingId", params: { printingId } })
-            }
+            onCompare={() => setCompareOpen(true)}
           />
         )}
         {editing ? (
@@ -372,8 +407,13 @@ function PrintingRecordBody({
             <FieldRow
               label="Announced on"
               value={printing.announcedAt === null ? "Not set" : formatDay(printing.announcedAt)}
+              suggestions={chipsFor("announcedAt")}
             />
-            <FieldRow label="Available from" value={deskPrintingPeriod(printing)} />
+            <FieldRow
+              label="Available from"
+              value={deskPrintingPeriod(printing)}
+              suggestions={availableFromChips}
+            />
             <FieldRow
               label="Comment"
               value={
@@ -439,6 +479,28 @@ function PrintingRecordBody({
           <PrintingHistoryList printingId={printingId} />
         </RecordSection>
       )}
+      {compareOpen && (
+        <PrintingCompareSourcesDialog
+          open
+          onOpenChange={setCompareOpen}
+          printingId={printingId}
+          cardSlugs={slugs}
+          details={details}
+          providerSettings={providerSettings}
+          hiddenProviders={hiddenProviders}
+          costKeywords={costKeywords}
+          isAdmin={isAdmin}
+        />
+      )}
+      <SendNoteDialog
+        candidateCardId={replyTo}
+        submitterName={replyTo === null ? null : submitterNameOf(details, replyTo)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReplyTo(null);
+          }
+        }}
+      />
     </RecordPane>
   );
 }

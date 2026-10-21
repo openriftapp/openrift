@@ -3,10 +3,12 @@ import { formatDay, formatRelativeTime } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 import { DownloadIcon } from "lucide-react";
+import { useRef } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Spinner } from "@/components/ui/spinner";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
@@ -21,7 +23,6 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
 import { WorkspaceTargetLink } from "@/features/catalog-workspace/components/queue-list";
 import type { useWorkspaceRecords } from "@/features/catalog-workspace/hooks/use-workspace-queue";
-import { RECORDS_PAGE_SIZE } from "@/features/catalog-workspace/hooks/use-workspace-queue";
 import type {
   DeskMode,
   DeskRow,
@@ -33,6 +34,7 @@ import {
   deskEntry,
   recordEntry,
 } from "@/features/catalog-workspace/lib/owner-items";
+import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { downloadCsv } from "@/lib/download";
 import { getSiteUrl } from "@/lib/site-config";
 
@@ -311,9 +313,54 @@ function Toolbar({ summary, onExport }: { summary: string; onExport?: () => void
   );
 }
 
-function summaryText(count: number, noun: string, truncated: boolean): string {
-  const base = `${count.toLocaleString()} ${noun} · a row opens beside the list`;
-  return truncated ? `${base} · showing the first ${RECORDS_PAGE_SIZE}, search to narrow` : base;
+function summaryText(count: number, noun: string, hasMore: boolean): string {
+  const base = `${count.toLocaleString()} ${noun}${hasMore ? " loaded" : ""} · a row opens beside the list`;
+  return hasMore ? `${base} · more load as you scroll` : base;
+}
+
+const LOAD_MORE_MARGIN = "800px";
+
+function LoadMoreFooter({
+  hasMore,
+  isLoadingMore,
+  loadMore,
+}: {
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  loadMore: () => void;
+}) {
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useScopeEffect(hasMore && !isLoadingMore, (armed) => {
+    const sentinel = sentinelRef.current;
+    if (!armed || sentinel === null || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          loadMore();
+        }
+      },
+      { rootMargin: LOAD_MORE_MARGIN },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  });
+
+  if (!hasMore) {
+    return null;
+  }
+  return (
+    <div ref={sentinelRef} className="flex justify-center py-4">
+      {isLoadingMore ? (
+        <Spinner className="text-muted-foreground size-5" />
+      ) : (
+        <Button variant="outline" size="sm" onClick={loadMore}>
+          Load more
+        </Button>
+      )}
+    </div>
+  );
 }
 
 function todayDay(): string {
@@ -384,8 +431,15 @@ export function RecordsTable({
               summary={summaryText(
                 records.rows.length,
                 records.kind === "face" ? "faces" : "printings",
-                records.truncated,
+                records.hasMore,
               )}
+            />
+          }
+          footer={
+            <LoadMoreFooter
+              hasMore={records.hasMore}
+              isLoadingMore={records.isLoadingMore}
+              loadMore={records.loadMore}
             />
           }
         />

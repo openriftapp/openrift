@@ -36,6 +36,9 @@ export interface ComparablePrintingValues {
   language: string | null;
   printedName: string | null;
   printedYear: number | null;
+  releasedAt: string | null;
+  releasePrecision: string | null;
+  announcedAt: string | null;
 }
 
 export interface WorkspaceCardDifferenceRow {
@@ -184,7 +187,9 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
             'publicCode', cp.public_code, 'printedRulesText', cp.printed_rules_text,
             'printedEffectText', cp.printed_effect_text, 'flavorText', cp.flavor_text,
             'language', cp.language, 'printedName', cp.printed_name,
-            'printedYear', cp.printed_year, 'imageUrl', cp.image_url,
+            'printedYear', cp.printed_year, 'releasedAt', cp.released_at,
+            'releasePrecision', cp.release_precision, 'announcedAt', cp.announced_at,
+            'imageUrl', cp.image_url,
             'imageFingerprint', cp.image_fingerprint
           ) as candidate,
           jsonb_build_object(
@@ -201,7 +206,8 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
             'publicCode', p.public_code, 'printedRulesText', p.printed_rules_text,
             'printedEffectText', p.printed_effect_text, 'flavorText', p.flavor_text,
             'language', p.language, 'printedName', p.printed_name,
-            'printedYear', p.printed_year,
+            'printedYear', p.printed_year, 'releasedAt', pr.released_at,
+            'releasePrecision', pr.release_precision, 'announcedAt', pr.announced_at,
             'imageUrls', coalesce((
               select array_remove(array_agg(u), null)
               from face_images pi

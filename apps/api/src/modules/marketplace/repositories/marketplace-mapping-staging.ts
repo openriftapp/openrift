@@ -166,6 +166,57 @@ export function marketplaceMappingStagingRepo(db: Db) {
         .execute();
     },
 
+    unassignedListings() {
+      return db
+        .selectFrom("marketplaceProducts as mp")
+        .leftJoin("marketplaceProductCardOverrides as ov", "ov.marketplaceProductId", "mp.id")
+        .select([
+          "mp.marketplace as marketplace",
+          "mp.externalId as externalId",
+          "mp.productName as productName",
+          "mp.finish as finish",
+          "mp.language as language",
+          "mp.createdAt as createdAt",
+          "ov.cardId as overrideCardId",
+        ])
+        .where((eb) =>
+          eb.and([
+            eb.exists(
+              eb
+                .selectFrom("marketplaceProductPrices as p")
+                .select("p.marketplaceProductId")
+                .whereRef("p.marketplaceProductId", "=", "mp.id"),
+            ),
+            eb.not(
+              eb.exists(
+                eb
+                  .selectFrom("marketplaceProductVariants as mpv")
+                  .select("mpv.id")
+                  .whereRef("mpv.marketplaceProductId", "=", "mp.id"),
+              ),
+            ),
+            eb.not(
+              eb.exists(
+                eb
+                  .selectFrom("marketplaceIgnoredVariants as iv")
+                  .select("iv.marketplaceProductId")
+                  .whereRef("iv.marketplaceProductId", "=", "mp.id"),
+              ),
+            ),
+            eb.not(
+              eb.exists(
+                eb
+                  .selectFrom("marketplaceIgnoredProducts as ip")
+                  .select("ip.externalId")
+                  .whereRef("ip.marketplace", "=", "mp.marketplace")
+                  .whereRef("ip.externalId", "=", "mp.externalId"),
+              ),
+            ),
+          ]),
+        )
+        .execute();
+    },
+
     groupNames(marketplace: Marketplace) {
       return db
         .selectFrom("marketplaceGroups as mg")

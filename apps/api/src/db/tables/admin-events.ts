@@ -27,6 +27,7 @@ export type AdminEventAction =
   | "candidate-printing.unignore"
   | "candidate-printing.unpin"
   | "candidate-card.check-matching"
+  | "candidate-card.discard-same-difference"
   | "candidate-card.ignore"
   | "candidate-card.unignore"
   | "card-submission.resolution"

@@ -1,3 +1,8 @@
+import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
+import {
+  productSuggestionKey,
+  STRONG_MATCH_THRESHOLD,
+} from "@openrift/shared/marketplace-suggestions";
 import { formatPrintingLabel } from "@openrift/shared/printing-label";
 import type {
   AdminMarketplaceName,
@@ -10,8 +15,6 @@ import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 import type { SourceMappingConfig } from "@/features/admin/lib/price-mappings-types";
 
 import { CM_CONFIG, CN_CONFIG, CT_CONFIG, TCG_CONFIG } from "./source-configs";
-import type { ProductSuggestion } from "./suggest-mapping";
-import { productSuggestionKey, STRONG_MATCH_THRESHOLD } from "./suggest-mapping";
 
 export interface PrintingAssignment {
   externalId: number;

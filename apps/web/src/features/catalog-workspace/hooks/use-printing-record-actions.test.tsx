@@ -4,6 +4,7 @@ import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { toastFieldAccepted } from "@/features/admin/lib/accept-undo";
 import type { RecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import type { ListingSuggestion } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { buildPrintingSuggestions } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
@@ -184,5 +185,74 @@ describe("usePrintingRecordActions", () => {
       [{ externalId: 7, finish: "normal", language: null }],
       expect.objectContaining({ onSettled: expect.any(Function) }),
     );
+  });
+
+  it("sends a source's release date together with its precision", () => {
+    const source = makeCandidateCard({ provider: "provider-a" });
+    const candidate = makeCandidatePrinting({
+      candidateCardId: source.id,
+      printingId: "p1",
+      releasedAt: "2026-11-01",
+      releasePrecision: "month",
+    });
+    const detail = makeAdminCardDetail({
+      sources: [source],
+      printings: [
+        makeAdminPrinting({ id: "p1", releasedAt: "2026-01-01", releasePrecision: "year" }),
+      ],
+      candidatePrintings: [candidate],
+    });
+    const model = buildPrintingSuggestions([detail], "p1", CONTEXT);
+    const client = new QueryClient();
+    const { result } = renderHook(
+      () =>
+        usePrintingRecordActions({
+          printingId: "p1",
+          model,
+          listings: [],
+          canCheck: true,
+          canMap: true,
+        }),
+      { wrapper: wrapper(client) },
+    );
+
+    const chip = result.current.chips.find(
+      (entry) => entry.kind === "field" && entry.suggestion.field === "releasedAt",
+    );
+    result.current.applyChip(chip!);
+    expect(mocks.acceptField.current?.mutate).toHaveBeenCalledWith({
+      printingId: "p1",
+      field: "releasedAt",
+      value: { releasedAt: "2026-11-01", releasePrecision: "month" },
+      source: "provider",
+    });
+    expect(vi.mocked(toastFieldAccepted).mock.lastCall?.[0].previousValue).toEqual({
+      releasedAt: "2026-01-01",
+      releasePrecision: "year",
+    });
+  });
+
+  it("sends any other field's proposed value as is", () => {
+    const { model } = setup();
+    const client = new QueryClient();
+    const { result } = renderHook(
+      () =>
+        usePrintingRecordActions({
+          printingId: "p1",
+          model,
+          listings: [],
+          canCheck: true,
+          canMap: true,
+        }),
+      { wrapper: wrapper(client) },
+    );
+
+    result.current.applyChip(result.current.chips[0]!);
+    expect(mocks.acceptField.current?.mutate).toHaveBeenCalledWith({
+      printingId: "p1",
+      field: "size",
+      value: "oversized",
+      source: "provider",
+    });
   });
 });

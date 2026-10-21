@@ -9,6 +9,12 @@ export const adminKeys = {
   reviewQueue: ["admin", "review-queue"] as const,
   workspace: ["admin", "workspace"] as const,
   workspaceQueue: ["admin", "workspace", "queue"] as const,
+  workspaceSameDifference: (params: {
+    provider: string;
+    field: string;
+    value: string;
+    currentValue?: string;
+  }) => ["admin", "workspace", "same-difference", params] as const,
   workspaceRecords: Object.assign(
     (params: { kind: string; q?: string; limit?: number; cursor?: string }) =>
       ["admin", "workspace", "records", params] as const,

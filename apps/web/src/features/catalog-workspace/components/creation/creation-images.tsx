@@ -26,7 +26,7 @@ function ThumbFrame({ src, alt }: { src: string | null; alt: string }) {
   );
 }
 
-export function DraftImageThumb({ image }: { image: DraftImage }) {
+function DraftImageThumb({ image }: { image: DraftImage }) {
   return image.kind === "file" ? (
     <FileThumb file={image.file} alt={image.file.name} />
   ) : (

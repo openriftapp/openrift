@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ListEntry } from "@/features/catalog-workspace/lib/owner-items";
 import { workspaceQueueFixture } from "@/features/catalog-workspace/lib/workspace-queue.fixture";
-import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
+import { useWorkspaceSkipStore } from "@/features/catalog-workspace/stores/workspace-skip-store";
 import { createStoreResetter } from "@/test/store-helpers";
 
 const router = vi.hoisted(() => ({
@@ -44,9 +44,11 @@ vi.mock("@/features/catalog-workspace/lib/workspace-queries", () => ({
     queryKey: ["admin", "workspace", "queue", "all"],
     queryFn: () => workspaceQueueFixture,
   }),
-  workspaceRecordsQueryOptions: (input: unknown) => ({
-    queryKey: ["admin", "workspace", "records", input],
+  workspaceRecordsInfiniteQueryOptions: (input: unknown) => ({
+    queryKey: ["admin", "workspace", "records", "infinite", input],
     queryFn: () => ({ rows: [], nextCursor: null }),
+    initialPageParam: undefined,
+    getNextPageParam: () => undefined,
   }),
 }));
 
@@ -67,10 +69,10 @@ function entry(key: string, linkable = true): ListEntry {
   };
 }
 
-let resetActions: () => void;
+let resetSkips: () => void;
 
 beforeEach(() => {
-  resetActions = createStoreResetter(useWorkspaceActionsStore);
+  resetSkips = createStoreResetter(useWorkspaceSkipStore);
   router.navigate.mockReset();
   router.params = {};
   router.search = {};
@@ -78,7 +80,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  resetActions();
+  resetSkips();
 });
 
 describe("planQueueStep", () => {
@@ -179,7 +181,7 @@ describe("useQueueNavigation", () => {
     await waitFor(() => expect(result.current.position).not.toBeNull());
 
     act(() => result.current.skipToEnd());
-    expect(useWorkspaceActionsStore.getState().skipped.card).toEqual(["card:jinx-loose-cannon"]);
+    expect(useWorkspaceSkipStore.getState().skipped.card).toEqual(["card:jinx-loose-cannon"]);
     expect(router.navigate).toHaveBeenCalledWith({
       to: "/admin/workspace/cards/$cardSlug",
       params: { cardSlug: "yasuo-unforgiven" },

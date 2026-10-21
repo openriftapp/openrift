@@ -71,6 +71,7 @@ describe("sectionAllowsRequest", () => {
       "/api/admin/v1/sets",
       "/api/admin/v1/catalog/workspace/queue",
       "/api/admin/v1/catalog/workspace/records",
+      "/api/admin/v1/catalog/workspace/same-difference",
     ])("allows GET %s", (path) => {
       expect(sectionAllowsRequest("card-review", "GET", path)).toBe(true);
     });
@@ -191,6 +192,7 @@ describe("sectionAllowsRequest", () => {
       ["POST", "/api/admin/v1/cards/errata/upload"],
       ["POST", "/api/admin/v1/cards/upload"],
       ["POST", "/api/admin/v1/cards/by-provider/some-provider/check"],
+      ["POST", "/api/admin/v1/catalog/workspace/same-difference/discard"],
       ["DELETE", "/api/admin/v1/cards/by-provider/some-provider"],
       ["DELETE", "/api/admin/v1/cards/printing-images/some-id"],
       ["POST", "/api/admin/v1/cards/printing-images/some-id/unrehost"],
@@ -252,6 +254,13 @@ describe("sectionAllowsRequest", () => {
       );
       expect(
         sectionAllowsRequest("custom-tags", "GET", "/api/admin/v1/catalog/workspace/records"),
+      ).toBe(false);
+      expect(
+        sectionAllowsRequest(
+          "printing-desk",
+          "GET",
+          "/api/admin/v1/catalog/workspace/same-difference",
+        ),
       ).toBe(false);
     });
 

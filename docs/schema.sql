@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict tWRwrlqZAMtMzHdZo0b0xLVFGPXw00fsyYlkHagsP7acwceF2F9c9NwIEZdRqTd
+\restrict wSSxYu971dfjcUtea9A7tkePVUpFUAGOngxsGA3HphyCCJ0bseSA5AgAy9JFA8W
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -1202,6 +1202,9 @@ CREATE TABLE public.candidate_printings (
     uploaded_at timestamp with time zone DEFAULT now() NOT NULL,
     image_fingerprint text,
     image_fingerprint_url text,
+    released_at date,
+    release_precision public.release_precision,
+    announced_at date,
     CONSTRAINT candidate_printings_size_check CHECK ((size <> ''::text)),
     CONSTRAINT chk_candidate_printings_extra_data_shape CHECK (((extra_data IS NULL) OR (jsonb_typeof(extra_data) = 'object'::text))),
     CONSTRAINT chk_candidate_printings_no_empty_art_variant CHECK ((art_variant <> ''::text)),
@@ -1219,6 +1222,8 @@ CREATE TABLE public.candidate_printings (
     CONSTRAINT chk_candidate_printings_no_empty_set_id CHECK ((set_id <> ''::text)),
     CONSTRAINT chk_candidate_printings_no_empty_set_name CHECK ((set_name <> ''::text)),
     CONSTRAINT chk_candidate_printings_public_code_not_empty CHECK ((public_code <> ''::text)),
+    CONSTRAINT chk_candidate_printings_release_period_start CHECK (((released_at IS NULL) OR (release_precision = 'day'::public.release_precision) OR ((release_precision = 'month'::public.release_precision) AND (EXTRACT(day FROM released_at) = (1)::numeric)) OR ((release_precision = 'quarter'::public.release_precision) AND (EXTRACT(day FROM released_at) = (1)::numeric) AND (EXTRACT(month FROM released_at) = ANY (ARRAY[(1)::numeric, (4)::numeric, (7)::numeric, (10)::numeric]))) OR ((release_precision = 'year'::public.release_precision) AND (EXTRACT(doy FROM released_at) = (1)::numeric)))),
+    CONSTRAINT chk_candidate_printings_release_precision CHECK (((released_at IS NULL) = (release_precision IS NULL))),
     CONSTRAINT chk_candidate_printings_short_code_not_empty CHECK ((short_code <> ''::text))
 );
 
@@ -10777,5 +10782,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict tWRwrlqZAMtMzHdZo0b0xLVFGPXw00fsyYlkHagsP7acwceF2F9c9NwIEZdRqTd
+\unrestrict wSSxYu971dfjcUtea9A7tkePVUpFUAGOngxsGA3HphyCCJ0bseSA5AgAy9JFA8W
 

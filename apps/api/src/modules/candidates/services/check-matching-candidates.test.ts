@@ -143,6 +143,29 @@ describe("checkMatchingCandidates", () => {
     expect(result).toEqual({ cardsChecked: 0, printingsChecked: 2 });
   });
 
+  it("leaves a printing unchecked when only its source release date differs", async () => {
+    const live = { ...livePrinting, releasedAt: null, releasePrecision: null, announcedAt: null };
+    const { repos, checkCandidatePrintingsByIds } = makeRepos(
+      [],
+      [
+        {
+          id: "release",
+          candidate: {
+            ...live,
+            releasedAt: "2026-11-01",
+            releasePrecision: "month",
+            imageUrl: null,
+          },
+          live,
+        },
+        { id: "same", candidate: { ...live, imageUrl: null }, live },
+      ],
+    );
+    const result = await checkMatchingCandidates(repos, NOW);
+    expect(checkCandidatePrintingsByIds).toHaveBeenCalledWith(["same"], NOW);
+    expect(result).toEqual({ cardsChecked: 0, printingsChecked: 1 });
+  });
+
   it("checks a printing whose image lives at a new URL when its fingerprint matches a live image", async () => {
     const { repos, checkCandidatePrintingsByIds } = makeRepos(
       [],

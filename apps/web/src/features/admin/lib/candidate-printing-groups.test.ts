@@ -34,6 +34,9 @@ function candidate(id: string, shortCode = "OGN-001"): CandidatePrintingResponse
     language: null,
     printedName: null,
     printedYear: null,
+    releasedAt: null,
+    releasePrecision: null,
+    announcedAt: null,
     checkedAt: null,
   };
 }

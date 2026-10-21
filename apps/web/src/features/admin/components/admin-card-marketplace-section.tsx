@@ -1,3 +1,4 @@
+import { computeProductSuggestions } from "@openrift/shared/marketplace-suggestions";
 import { pluralize } from "@openrift/shared/strings";
 import type {
   AdminMarketplaceName,
@@ -29,7 +30,6 @@ import type { MarketplaceHandlers } from "./marketplace-product-entries";
 import { collectStrongMappings, collectWeakMappings } from "./marketplace-product-entries";
 import { MarketplaceProductsTable } from "./marketplace-products-table";
 import { PrintingPairNamesContext } from "./printing-pair-names";
-import { computeProductSuggestions } from "./suggest-mapping";
 
 export function AdminCardMarketplaceSection({
   cardId,

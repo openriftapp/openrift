@@ -83,7 +83,10 @@ export function marketplaceMappingCardsRepo(db: Db) {
      * `cardIdentifier` accepts UUID or slug so callers don't have to serialize
      * a slug → id lookup before this query.
      */
-    allCardsWithPrintingsUnified(cardIdentifier?: string) {
+    allCardsWithPrintingsUnified(cardIdentifier?: string | string[]) {
+      if (Array.isArray(cardIdentifier) && cardIdentifier.length === 0) {
+        return Promise.resolve([]);
+      }
       let query = joinFaceImage(
         db
           .selectFrom("cards as c")
@@ -129,7 +132,9 @@ export function marketplaceMappingCardsRepo(db: Db) {
         "mp.language as sourceLanguage",
         "mp.finish as productFinish",
       ]);
-      if (cardIdentifier !== undefined) {
+      if (Array.isArray(cardIdentifier)) {
+        query = query.where("c.id", "in", cardIdentifier);
+      } else if (typeof cardIdentifier === "string") {
         query = query.where((eb) =>
           eb.or([
             eb(sql<string>`c.id::text`, "=", cardIdentifier),
@@ -149,6 +154,21 @@ export function marketplaceMappingCardsRepo(db: Db) {
           .orderBy("p.printingId")
           .execute()
       );
+    },
+
+    allCardNames() {
+      return db
+        .selectFrom("cards as c")
+        .select(["c.id as cardId", "c.name as cardName"])
+        .where((eb) =>
+          eb.exists(
+            eb
+              .selectFrom("printingSidesOrdered as p")
+              .select("p.printingId")
+              .whereRef("p.cardId", "=", "c.id"),
+          ),
+        )
+        .execute();
     },
 
     async assignableCards() {

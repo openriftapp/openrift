@@ -256,6 +256,27 @@ describe("groupDetail and groupEntry", () => {
     const [group] = groupOwnerItems([item({})]);
     expect(groupEntry(group!).code).toBeUndefined();
   });
+
+  it("reads an unmatched listing as its marketplace and opens it under Printings › New", () => {
+    const [group] = groupOwnerItems([
+      item({
+        owner: "printing",
+        segment: "new",
+        ownerId: "listing:cardmarket:812:foil",
+        cardSlug: null,
+        cardName: "Jinx Loose Cannon",
+        label: "#812 foil",
+        reason: "listing",
+        provider: "Cardmarket",
+      }),
+    ]);
+    const entry = groupEntry(group!);
+    expect(entry.detail).toBe("Listing · Cardmarket");
+    expect(entry.target).toEqual({
+      kind: "printing-new",
+      candidatePrintingId: "listing:cardmarket:812:foil",
+    });
+  });
 });
 
 describe("queueStats", () => {

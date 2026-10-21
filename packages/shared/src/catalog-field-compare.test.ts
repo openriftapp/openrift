@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { differingFields, hasFieldValue, sameFieldValue } from "./catalog-field-compare.js";
+import {
+  COMPARABLE_PRINTING_FIELDS,
+  differingFields,
+  hasFieldValue,
+  sameFieldValue,
+} from "./catalog-field-compare.js";
 
 describe("hasFieldValue", () => {
   it("rejects null, undefined, the empty string and the empty array", () => {
@@ -61,5 +66,20 @@ describe("differingFields", () => {
 
   it("treats a live value the proposal lacks as no difference", () => {
     expect(differingFields(["artist"], { artist: "Someone" }, {})).toEqual([]);
+  });
+
+  it("compares the release fields of a printing", () => {
+    const live = { releasedAt: "2026-11-20", releasePrecision: "day", announcedAt: null };
+    const proposed = {
+      releasedAt: "2026-11-01",
+      releasePrecision: "month",
+      announcedAt: "2026-10-18",
+    };
+    expect(differingFields(COMPARABLE_PRINTING_FIELDS, live, proposed)).toEqual([
+      "releasedAt",
+      "releasePrecision",
+      "announcedAt",
+    ]);
+    expect(differingFields(COMPARABLE_PRINTING_FIELDS, live, { ...live })).toEqual([]);
   });
 });

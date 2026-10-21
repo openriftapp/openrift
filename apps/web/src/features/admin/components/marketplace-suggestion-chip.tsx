@@ -1,3 +1,5 @@
+import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
+import { STRONG_MATCH_THRESHOLD } from "@openrift/shared/marketplace-suggestions";
 import type { UnifiedMappingPrintingResponse } from "@openrift/shared/types/api/admin";
 import { WandSparklesIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -6,8 +8,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 
 import { PrintingLabel } from "./marketplace-printing-label";
-import type { ProductSuggestion } from "./suggest-mapping";
-import { STRONG_MATCH_THRESHOLD } from "./suggest-mapping";
 
 export function SuggestionChip({
   suggestion,

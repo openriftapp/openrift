@@ -3,6 +3,7 @@ import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { listUnassignedListings } from "../../marketplace/services/unassigned-listings.js";
 import { buildWorkspaceQueue } from "../services/workspace-queue.js";
 import { listWorkspaceRecords } from "../services/workspace-records.js";
 
@@ -15,6 +16,7 @@ export const adminCatalogWorkspaceRouter = {
       userId: context.userId,
       owner: input.owner,
       now: new Date(),
+      loadListings: () => listUnassignedListings(context.repos),
     }),
   ),
 

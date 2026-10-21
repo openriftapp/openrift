@@ -96,6 +96,9 @@ export function buildUserSubmissionCard(
       // The contribution form doesn't ask for the printed year; only provider
       // uploads carry it.
       printed_year: null,
+      released_at: null,
+      release_precision: null,
+      announced_at: null,
       printing_id: printing.printing_id ?? null,
     };
   });

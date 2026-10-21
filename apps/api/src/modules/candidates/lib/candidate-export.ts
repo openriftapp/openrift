@@ -61,6 +61,9 @@ export async function buildExport(repo: Repo) {
         language: p.language,
         printed_name: p.printedName,
         printed_year: p.printedYear,
+        released_at: p.releasedAt,
+        release_precision: p.releasePrecision,
+        announced_at: p.announcedAt,
         // Exported so the private candidate generators can use this document as
         // the canonical printing reference (finish enrichment keys on
         // short_code + language + markers).

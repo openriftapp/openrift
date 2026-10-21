@@ -91,3 +91,33 @@ export function formatReleasePeriod(release: SetRelease | undefined): string {
   }
   return formatDay(releasedAt);
 }
+
+const RELEASE_INPUT = /^(?<year>\d{4})(?:-(?<month>\d{2})(?:-(?<day>\d{2}))?)?$/u;
+const PRECISION_WIDTH: Record<ReleasePrecision, number> = { day: 0, month: 1, quarter: 2, year: 3 };
+
+/** Snaps to the period start; a missing precision follows the input's shape. Null when the
+ * date is malformed or the precision is finer than the input. */
+export function parseReleaseInput(
+  value: string | null,
+  precision: ReleasePrecision | null,
+): SetRelease | null {
+  if (value === null) {
+    return precision === null ? { releasedAt: null, precision: null } : null;
+  }
+  const groups = RELEASE_INPUT.exec(value)?.groups;
+  if (groups?.year === undefined) {
+    return null;
+  }
+  const releasedAt = `${groups.year}-${groups.month ?? "01"}-${groups.day ?? "01"}`;
+  const parsed = new Date(`${releasedAt}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== releasedAt) {
+    return null;
+  }
+  const implied: ReleasePrecision =
+    groups.day === undefined ? (groups.month === undefined ? "year" : "month") : "day";
+  const resolved = precision ?? implied;
+  if (PRECISION_WIDTH[resolved] < PRECISION_WIDTH[implied]) {
+    return null;
+  }
+  return normalizeToPeriodStart({ releasedAt, precision: resolved });
+}

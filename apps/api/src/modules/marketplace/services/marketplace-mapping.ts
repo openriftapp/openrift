@@ -127,13 +127,15 @@ export function buildCardIndex(
   return { cardGroups, cardNames };
 }
 
-function matchStagedProducts(
-  uniqueStaged: StagingRow[],
-  cardGroups: Map<string, CardGroup>,
+export function matchStagedProducts<
+  T extends Pick<StagingRow, "externalId" | "finish" | "language" | "productName">,
+>(
+  uniqueStaged: T[],
+  cardGroups: Pick<ReadonlySet<string>, "has">,
   cardNames: CardIndex["cardNames"],
   overrideMap: Map<string, { cardId: string }>,
 ) {
-  const stagedByCard = new Map<string, StagingRow[]>();
+  const stagedByCard = new Map<string, T[]>();
   const matchedStagingKeys = new Set<string>();
 
   for (const row of uniqueStaged) {

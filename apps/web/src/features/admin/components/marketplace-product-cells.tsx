@@ -1,5 +1,6 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDayTime } from "@openrift/shared/format-date";
+import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
 import { formatCents } from "@openrift/shared/money";
 import { formatPrintingLabel } from "@openrift/shared/printing-label";
 import type {
@@ -33,7 +34,6 @@ import { AssignToPrintingButton, RowActions } from "./marketplace-row-actions";
 import { SuggestionChip } from "./marketplace-suggestion-chip";
 import { ProductLink } from "./price-mappings-utils";
 import { usePrintingPairNames } from "./printing-pair-names";
-import type { ProductSuggestion } from "./suggest-mapping";
 
 type CellProps = AdminCellSlotProps<MarketplaceTableRow>;
 

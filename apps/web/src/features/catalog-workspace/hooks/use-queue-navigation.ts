@@ -8,7 +8,7 @@ import type {
   WorkspaceTarget,
 } from "@/features/catalog-workspace/lib/owner-items";
 import { selectedKeyFromParams, stepIndex } from "@/features/catalog-workspace/lib/owner-items";
-import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
+import { useWorkspaceSkipStore } from "@/features/catalog-workspace/stores/workspace-skip-store";
 
 type Navigate = ReturnType<typeof useNavigate>;
 
@@ -64,7 +64,7 @@ export function navigateToTarget(
   }
 }
 
-export function navigateToOwnerList(navigate: Navigate, owner: WorkspaceOwner): void {
+function navigateToOwnerList(navigate: Navigate, owner: WorkspaceOwner): void {
   if (owner === "card") {
     void navigate({ to: "/admin/workspace/cards", search: true });
   } else if (owner === "face") {
@@ -98,7 +98,7 @@ export function useQueueNavigation(owner: WorkspaceOwner): {
   const navigate = useNavigate();
   const params: WorkspaceRouteParams = useParams({ strict: false });
   const { view, listAllowed, entries } = useWorkspaceEntries(owner);
-  const skip = useWorkspaceActionsStore((state) => state.skip);
+  const skip = useWorkspaceSkipStore((state) => state.skip);
 
   const currentKey = selectedKeyFromParams(params);
   const linkable = entries.filter((entry) => entry.target !== null);

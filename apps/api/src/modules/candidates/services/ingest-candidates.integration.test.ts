@@ -58,6 +58,9 @@ function printing(input: PrintingInput): IngestPrinting {
     language: null,
     printed_name: null,
     printed_year: null,
+    released_at: null,
+    release_precision: null,
+    announced_at: null,
     ...input,
     external_id: input.external_id ?? input.short_code,
   };

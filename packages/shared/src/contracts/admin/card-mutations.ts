@@ -8,6 +8,7 @@ import {
   setFieldRules,
 } from "@openrift/shared/db-field-rules";
 import { diffValueSchema, printingSideSchema } from "@openrift/shared/response-schemas";
+import { parseReleaseInput } from "@openrift/shared/set-release";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
@@ -142,6 +143,9 @@ export const ACCEPT_PRINTING_FIELDS = [
   "language",
   "printedName",
   "printedYear",
+  "releasedAt",
+  "releasePrecision",
+  "announcedAt",
   "comment",
 ] as const;
 
@@ -223,32 +227,46 @@ const skippedPrintingSchema = z.object({ shortCode: z.string(), reason: z.string
 // bad cards skip gracefully.
 const nullStr = z.string().nullable().optional().default(null);
 
-export const ingestPrintingSchema = z.object({
-  short_code: z.string(),
-  set_id: nullStr,
-  set_name: nullStr,
-  rarity: nullStr,
-  art_variant: nullStr,
-  is_signed: z.boolean().optional().default(false),
-  is_overnumbered: z.boolean().optional().default(false),
-  marker_slugs: z.array(z.string().min(1)).optional().default([]),
-  distribution_channel_slugs: z.array(z.string().min(1)).optional().default([]),
-  finish: nullStr,
-  size: nullStr,
-  artist: nullStr,
-  public_code: nullStr,
-  printed_rules_text: nullStr,
-  printed_effect_text: nullStr,
-  image_url: nullStr,
-  flavor_text: nullStr,
-  external_id: z.string(),
-  extra_data: z.unknown().nullable().optional().default(null),
-  language: nullStr,
-  printed_name: nullStr,
-  // `printings.printed_year` is a smallint; an out-of-range value would
-  // otherwise only surface as an opaque insert error.
-  printed_year: printingFieldRules.printedYear.optional().default(null),
-});
+export const ingestPrintingSchema = z
+  .object({
+    short_code: z.string(),
+    set_id: nullStr,
+    set_name: nullStr,
+    rarity: nullStr,
+    art_variant: nullStr,
+    is_signed: z.boolean().optional().default(false),
+    is_overnumbered: z.boolean().optional().default(false),
+    marker_slugs: z.array(z.string().min(1)).optional().default([]),
+    distribution_channel_slugs: z.array(z.string().min(1)).optional().default([]),
+    finish: nullStr,
+    size: nullStr,
+    artist: nullStr,
+    public_code: nullStr,
+    printed_rules_text: nullStr,
+    printed_effect_text: nullStr,
+    image_url: nullStr,
+    flavor_text: nullStr,
+    external_id: z.string(),
+    extra_data: z.unknown().nullable().optional().default(null),
+    language: nullStr,
+    printed_name: nullStr,
+    // `printings.printed_year` is a smallint; an out-of-range value would
+    // otherwise only surface as an opaque insert error.
+    printed_year: printingFieldRules.printedYear.optional().default(null),
+    // `YYYY`, `YYYY-MM` or `YYYY-MM-DD`; a missing precision follows the date's shape.
+    released_at: nullStr,
+    release_precision: printingFieldRules.releasePrecision.optional().default(null),
+    announced_at: printingFieldRules.announcedAt.optional().default(null),
+  })
+  .superRefine((printing, ctx) => {
+    if (parseReleaseInput(printing.released_at, printing.release_precision) === null) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["released_at"],
+        message: "Use YYYY, YYYY-MM or YYYY-MM-DD, no finer than release_precision.",
+      });
+    }
+  });
 
 const ingestCardFieldsObject = z.object({
   name: candidateCardFieldRules.name,

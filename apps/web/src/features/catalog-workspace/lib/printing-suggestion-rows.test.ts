@@ -12,6 +12,7 @@ import {
 import {
   buildPrintingSuggestions,
   listingSuggestionsForPrinting,
+  printingCompareGroups,
 } from "./printing-suggestion-rows";
 
 const CONTEXT = { costKeywords: [], setTotals: {} };
@@ -153,5 +154,78 @@ describe("listingSuggestionsForPrinting", () => {
     const result = listingSuggestionsForPrinting(entries, suggestions, keyOf, "p1");
 
     expect(result.map((entry) => entry.product.externalId)).toEqual([2, 1]);
+  });
+});
+
+describe("printingCompareGroups", () => {
+  it("lists this printing's checked and open candidates and leaves others out", () => {
+    const source = makeCandidateCard({ provider: "provider-a" });
+    const open = makeCandidatePrinting({ candidateCardId: source.id, printingId: "p1" });
+    const checked = makeCandidatePrinting({
+      candidateCardId: source.id,
+      printingId: "p1",
+      checkedAt: "2026-10-20T10:00:00.000Z",
+    });
+    const other = makeCandidatePrinting({ candidateCardId: source.id, printingId: "p2" });
+    const detail = makeAdminCardDetail({
+      sources: [source],
+      printings: [makeAdminPrinting({ id: "p1" }), makeAdminPrinting({ id: "p2" })],
+      candidatePrintings: [open, checked, other],
+    });
+
+    const groups = printingCompareGroups([detail], "p1");
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.candidates.map((row) => row.id)).toEqual([open.id, checked.id]);
+  });
+
+  it("drops candidates from hidden providers", () => {
+    const shown = makeCandidateCard({ provider: "provider-a" });
+    const hidden = makeCandidateCard({ provider: "provider-b" });
+    const detail = makeAdminCardDetail({
+      sources: [shown, hidden],
+      printings: [makeAdminPrinting({ id: "p1" })],
+      candidatePrintings: [
+        makeCandidatePrinting({ candidateCardId: shown.id, printingId: "p1" }),
+        makeCandidatePrinting({ candidateCardId: hidden.id, printingId: "p1" }),
+      ],
+    });
+
+    const groups = printingCompareGroups([detail], "p1", new Set(["provider-b"]));
+
+    expect(groups[0]?.candidates.map((row) => row.candidateCardId)).toEqual([shown.id]);
+  });
+
+  it("splits a double-faced printing into one group per face, front first", () => {
+    const front = makeAdminPrinting({ id: "p1", faceId: "f1", side: 1, shortCode: "OGN-001" });
+    const back = makeAdminPrinting({ id: "p1", faceId: "f2", side: 2, shortCode: "OGN-001b" });
+    const source = makeCandidateCard({ provider: "provider-a" });
+    const frontRow = makeCandidatePrinting({
+      candidateCardId: source.id,
+      printingId: "p1",
+      shortCode: "OGN-001",
+    });
+    const backRow = makeCandidatePrinting({
+      candidateCardId: source.id,
+      printingId: "p1",
+      shortCode: "OGN-001b",
+    });
+    const detail = makeAdminCardDetail({
+      sources: [source],
+      printings: [back, front],
+      candidatePrintings: [frontRow, backRow],
+    });
+
+    const groups = printingCompareGroups([detail, detail], "p1");
+
+    expect(groups.map((group) => group.face.faceId)).toEqual(["f1", "f2"]);
+    expect(groups.map((group) => group.candidates.map((row) => row.id))).toEqual([
+      [frontRow.id],
+      [backRow.id],
+    ]);
+  });
+
+  it("returns nothing when no detail carries the printing", () => {
+    expect(printingCompareGroups([makeAdminCardDetail()], "p1")).toEqual([]);
   });
 });

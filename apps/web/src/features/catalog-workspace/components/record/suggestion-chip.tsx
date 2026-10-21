@@ -22,6 +22,7 @@ export function SuggestionChip({
   onReject,
   onReply,
   menu,
+  bulk,
   pending = false,
 }: {
   tone: "source" | "contributor";
@@ -34,6 +35,7 @@ export function SuggestionChip({
   onReject?: () => void;
   onReply?: () => void;
   menu?: ReactNode;
+  bulk?: ReactNode;
   pending?: boolean;
 }) {
   const isContributor = tone === "contributor";
@@ -85,6 +87,7 @@ export function SuggestionChip({
           </DropdownMenu>
         )}
       </span>
+      {bulk}
     </div>
   );
 }

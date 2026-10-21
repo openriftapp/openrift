@@ -57,6 +57,9 @@ export interface CandidatePrintingsTable {
   language: string | null;
   printedName: string | null;
   printedYear: number | null;
+  releasedAt: string | null;
+  releasePrecision: "day" | "month" | "quarter" | "year" | null;
+  announcedAt: string | null;
 
   checkedAt: ColumnType<Date | null, Date | null | undefined, Date | null>;
   uploadedAt: ColumnType<Date, Date | undefined, Date>;

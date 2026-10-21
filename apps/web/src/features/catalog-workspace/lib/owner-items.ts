@@ -64,7 +64,7 @@ export interface ListEntry {
   target: WorkspaceTarget | null;
 }
 
-export const OWNER_ORDER: readonly WorkspaceOwner[] = ["card", "face", "printing"];
+const OWNER_ORDER: readonly WorkspaceOwner[] = ["card", "face", "printing"];
 
 export const OWNER_LABELS: Record<WorkspaceOwner, string> = {
   card: "Cards",

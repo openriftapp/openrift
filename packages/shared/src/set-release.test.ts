@@ -7,6 +7,7 @@ import {
   isReleasedAnywhere,
   isReleasedIn,
   normalizeToPeriodStart,
+  parseReleaseInput,
   releasePeriodEnd,
 } from "./set-release.js";
 import type { SetRelease } from "./set-release.js";
@@ -189,5 +190,57 @@ describe("formatReleasePeriod", () => {
   it("falls back to TBA when undated or absent", () => {
     expect(formatReleasePeriod({ releasedAt: null, precision: null })).toBe("TBA");
     expect(formatReleasePeriod(undefined)).toBe("TBA");
+  });
+});
+
+describe("parseReleaseInput", () => {
+  it("returns an empty release for no date and no precision", () => {
+    expect(parseReleaseInput(null, null)).toEqual({ releasedAt: null, precision: null });
+  });
+
+  it("takes the precision from the input's shape", () => {
+    expect(parseReleaseInput("2026-11-20", null)).toEqual({
+      releasedAt: "2026-11-20",
+      precision: "day",
+    });
+    expect(parseReleaseInput("2026-11", null)).toEqual({
+      releasedAt: "2026-11-01",
+      precision: "month",
+    });
+    expect(parseReleaseInput("2026", null)).toEqual({
+      releasedAt: "2026-01-01",
+      precision: "year",
+    });
+  });
+
+  it("snaps a full date to the start of a coarser given precision", () => {
+    expect(parseReleaseInput("2026-11-20", "month")).toEqual({
+      releasedAt: "2026-11-01",
+      precision: "month",
+    });
+    expect(parseReleaseInput("2026-05", "quarter")).toEqual({
+      releasedAt: "2026-04-01",
+      precision: "quarter",
+    });
+    expect(parseReleaseInput("2026-05-14", "year")).toEqual({
+      releasedAt: "2026-01-01",
+      precision: "year",
+    });
+  });
+
+  it("rejects a precision finer than the input", () => {
+    expect(parseReleaseInput("2026-11", "day")).toBeNull();
+    expect(parseReleaseInput("2026", "month")).toBeNull();
+  });
+
+  it("rejects a precision without a date", () => {
+    expect(parseReleaseInput(null, "month")).toBeNull();
+  });
+
+  it("rejects malformed and impossible dates", () => {
+    expect(parseReleaseInput("2026-13", null)).toBeNull();
+    expect(parseReleaseInput("2026-02-30", null)).toBeNull();
+    expect(parseReleaseInput("20261120", null)).toBeNull();
+    expect(parseReleaseInput("Nov 2026", null)).toBeNull();
   });
 });

@@ -56,6 +56,7 @@ import {
 } from "@/features/catalog-workspace/components/record/record-pane";
 import { SourceStrip } from "@/features/catalog-workspace/components/record/source-strip";
 import { SuggestionChip } from "@/features/catalog-workspace/components/record/suggestion-chip";
+import { SameDifferenceLine } from "@/features/catalog-workspace/components/same-difference-line";
 import {
   cardRecordScope,
   useCardRecordActions,
@@ -80,6 +81,7 @@ import {
   discardLabel,
   enterDifferenceCount,
   enterProviders,
+  sameDifferenceInput,
 } from "@/features/catalog-workspace/lib/suggestion-rows";
 import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
 import { useEnumOrders } from "@/hooks/use-enums";
@@ -439,6 +441,7 @@ function CardRecordBody({
 
   function sourceChip(suggestion: FieldSuggestion, value: string) {
     const source = detail.sources.find((entry) => entry.id === suggestion.candidateRowId);
+    const bulkInput = isAdmin ? sameDifferenceInput(suggestion) : null;
     return (
       <SuggestionChip
         key={suggestion.key}
@@ -450,6 +453,15 @@ function CardRecordBody({
         onUse={() => applySuggestion(suggestion)}
         onDiscard={isAdmin ? () => discardSuggestion(suggestion) : undefined}
         discardLabel={discardLabel(suggestion)}
+        bulk={
+          bulkInput === null ? undefined : (
+            <SameDifferenceLine
+              input={bulkInput}
+              sourceLabel={suggestion.sourceLabel}
+              value={value}
+            />
+          )
+        }
         menu={
           isAdmin && source ? (
             <DropdownMenuItem

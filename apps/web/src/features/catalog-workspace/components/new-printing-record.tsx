@@ -3,6 +3,7 @@ import type {
   AdminCardDetailResponse,
   AdminPrintingResponse,
 } from "@openrift/shared/types/api/admin";
+import { isListingOwnerId } from "@openrift/shared/workspace-listing-key";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
@@ -33,6 +34,7 @@ import { useUpdateDeskPrinting } from "@/features/admin/hooks/use-printing-desk"
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { unlinkedGroupCandidates } from "@/features/admin/lib/candidate-groups";
 import { CreationPanel } from "@/features/catalog-workspace/components/creation/creation-panel";
+import { ListingRecord } from "@/features/catalog-workspace/components/listing-record";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
   RecordHeader,
@@ -63,6 +65,14 @@ import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/wor
 import { errorText } from "@/lib/error-text";
 
 export function NewPrintingRecord({ candidatePrintingId }: { candidatePrintingId: string }) {
+  return isListingOwnerId(candidatePrintingId) ? (
+    <ListingRecord ownerId={candidatePrintingId} />
+  ) : (
+    <NewCandidatePrintingRecord candidatePrintingId={candidatePrintingId} />
+  );
+}
+
+function NewCandidatePrintingRecord({ candidatePrintingId }: { candidatePrintingId: string }) {
   const { data: queue, isPending } = useQuery(workspaceQueueQueryOptions());
   const item = queue?.items.find(
     (entry) => entry.owner === "printing" && entry.ownerId === candidatePrintingId,

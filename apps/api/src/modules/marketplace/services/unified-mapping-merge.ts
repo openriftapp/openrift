@@ -252,6 +252,23 @@ export async function buildUnifiedMappingsResponse(
     seenCardIds.add(row.cardId);
     allCardsForMatching.push({ cardId: row.cardId, cardName: row.cardName });
   }
+  return await buildUnifiedMappingsFromRows(
+    repos,
+    configs,
+    getMappingOverview,
+    unifiedRows,
+    allCardsForMatching,
+  );
+}
+
+/** `unifiedRows` may cover a subset of cards; `allCardsForMatching` must still list every card. */
+export async function buildUnifiedMappingsFromRows(
+  repos: Repos,
+  configs: MarketplaceConfigs,
+  getMappingOverview: GetMappingOverview,
+  unifiedRows: UnifiedCardRow[],
+  allCardsForMatching: { cardId: string; cardName: string }[],
+): Promise<UnifiedMappingsResponse> {
   const results = await overviewsByMarketplace(
     (config) =>
       getMappingOverview(repos, config, {

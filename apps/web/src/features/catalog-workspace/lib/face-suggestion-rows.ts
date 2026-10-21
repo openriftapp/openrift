@@ -161,6 +161,19 @@ export function providerOf(detail: AdminCardDetailResponse, candidateCardId: str
   return detail.sources.find((source) => source.id === candidateCardId)?.provider ?? "Source";
 }
 
+export function submitterNameOf(
+  details: readonly AdminCardDetailResponse[],
+  candidateCardId: string,
+): string | null {
+  for (const detail of details) {
+    const source = detail.sources.find((entry) => entry.id === candidateCardId);
+    if (source !== undefined) {
+      return source.submittedByName;
+    }
+  }
+  return null;
+}
+
 /**
  * A candidate printing carries no side, so a printing with this card on both faces is
  * split by short code, the way the API picks the face for an accepted image.

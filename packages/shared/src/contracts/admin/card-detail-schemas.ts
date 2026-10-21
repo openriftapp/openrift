@@ -9,6 +9,8 @@ import { z } from "zod";
  */
 export const fallbackArtModeSchema = z.enum(["auto", "pinned", "none"]);
 
+const releasePrecisionSchema = z.enum(["day", "month", "quarter", "year"]);
+
 export const cardErrataSchema = z.object({
   announcementId: z.string().nullable(),
   correctedRulesText: z.string().nullable(),
@@ -91,6 +93,9 @@ export const candidatePrintingResponseSchema = z.object({
   language: z.string().nullable(),
   printedName: z.string().nullable(),
   printedYear: z.number().nullable(),
+  releasedAt: z.string().nullable(),
+  releasePrecision: releasePrecisionSchema.nullable(),
+  announcedAt: z.string().nullable(),
   checkedAt: z.string().nullable(),
 });
 
@@ -157,6 +162,9 @@ export const adminPrintingResponseSchema = z.object({
   printedYear: z.number().nullable(),
   language: z.string(),
   comment: z.string().nullable(),
+  releasedAt: z.string().nullable(),
+  releasePrecision: releasePrecisionSchema.nullable(),
+  announcedAt: z.string().nullable(),
   expectedPrintingId: z.string(),
   canonicalRank: z.number(),
   fallbackArtMode: fallbackArtModeSchema,

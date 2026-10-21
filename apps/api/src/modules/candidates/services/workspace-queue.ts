@@ -5,6 +5,7 @@ import type {
 
 import type { Repos } from "../../../deps.js";
 import type { AdminAccess } from "../../../middleware/require-admin.js";
+import type { UnassignedListings } from "../../marketplace/lib/unassigned-listings.js";
 import { reviewableProviderScope } from "../lib/card-review-scope.js";
 import type { WorkspaceQueueEntry } from "../lib/workspace-presenters.js";
 import {
@@ -57,13 +58,21 @@ function startOfUtcDay(now: Date): Date {
 
 export async function buildWorkspaceQueue(
   repos: WorkspaceRepos,
-  options: { access: AdminAccess | null; userId: string; owner?: WorkspaceOwner; now: Date },
+  options: {
+    access: AdminAccess | null;
+    userId: string;
+    owner?: WorkspaceOwner;
+    now: Date;
+    loadListings?: () => Promise<UnassignedListings>;
+  },
 ): Promise<WorkspaceQueueResponse> {
   const { access, userId } = options;
   const scope = await reviewableProviderScope(access, repos.providerSettings);
   const inScope = (provider: string): boolean => scope === null || scope.has(provider);
+  const listingsPromise = access?.isAdmin === true ? options.loadListings?.() : undefined;
 
   const [
+    listings,
     cardDifferences,
     drafts,
     linkedPrintings,
@@ -73,6 +82,7 @@ export async function buildWorkspaceQueue(
     costKeywords,
     doneToday,
   ] = await Promise.all([
+    listingsPromise,
     repos.workspaceQueue.uncheckedCardDifferences(),
     repos.workspaceQueue.newCardDrafts(),
     repos.workspaceQueue.uncheckedLinkedPrintings(),
@@ -105,6 +115,7 @@ export async function buildWorkspaceQueue(
       createdAt: row.createdAt,
     })),
     costKeywords,
+    listings,
   });
 
   if (isDeskOnly(access)) {

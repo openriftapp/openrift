@@ -34,6 +34,9 @@ const LIVE_PRINTING: ComparablePrintingValues = {
   language: "EN",
   printedName: null,
   printedYear: null,
+  releasedAt: "2026-11-01",
+  releasePrecision: "month",
+  announcedAt: null,
 };
 
 function sources(over: Partial<WorkspaceQueueSources> = {}): WorkspaceQueueSources {
@@ -132,6 +135,27 @@ describe("buildWorkspaceQueueEntries", () => {
         },
         printingIds: ["printing-1"],
       },
+    ]);
+  });
+
+  it("puts a release-date-only difference in the open Printings queue", () => {
+    const entries = buildWorkspaceQueueEntries(
+      sources({
+        linkedPrintings: [
+          linked(
+            {},
+            { releasedAt: "2026-11-14", releasePrecision: "day", announcedAt: "2026-10-01" },
+          ),
+        ],
+      }),
+    );
+    expect(entries.map((entry) => entry.item)).toEqual([
+      expect.objectContaining({
+        owner: "printing",
+        segment: "open",
+        ownerId: "printing-1",
+        fields: ["releasedAt", "releasePrecision", "announcedAt"],
+      }),
     ]);
   });
 
@@ -392,6 +416,106 @@ describe("buildWorkspaceQueueEntries", () => {
         sources({ submissions: [{ ...submission, cardSlug: null }] }),
       );
       expect(entries).toEqual([]);
+    });
+  });
+
+  describe("listings", () => {
+    const listing = {
+      marketplace: "cardmarket" as const,
+      externalId: 812,
+      finish: "foil",
+      language: null,
+      productName: "Jinx Loose Cannon",
+      createdAt: T1,
+    };
+    const suggested = {
+      ...listing,
+      printingId: "printing-1",
+      printingLabel: "OGN-030 foil EN",
+      cardSlug: "jinx-loose-cannon",
+      cardName: "Jinx, Loose Cannon",
+      score: 150,
+      strength: "strong" as const,
+    };
+
+    it("puts a suggested listing on its printing's Open queue", () => {
+      const entries = buildWorkspaceQueueEntries(
+        sources({ listings: { suggested: [suggested], unmatched: [] } }),
+      );
+      expect(entries).toEqual([
+        {
+          item: {
+            id: "printing:listing:printing-1:cardmarket",
+            owner: "printing",
+            segment: "open",
+            ownerId: "printing-1",
+            reason: "listing",
+            cardSlug: "jinx-loose-cannon",
+            cardName: "Jinx, Loose Cannon",
+            label: "OGN-030 foil EN",
+            provider: "Cardmarket",
+            isContributor: false,
+            decisions: 1,
+            fields: ["listing"],
+            createdAt: T1.toISOString(),
+          },
+          printingIds: ["printing-1"],
+        },
+      ]);
+    });
+
+    it("folds two listings from one marketplace on a printing into one item", () => {
+      const entries = buildWorkspaceQueueEntries(
+        sources({
+          listings: {
+            suggested: [suggested, { ...suggested, externalId: 813, createdAt: T2 }],
+            unmatched: [],
+          },
+        }),
+      );
+      expect(entries.map((entry) => entry.item.id)).toEqual([
+        "printing:listing:printing-1:cardmarket",
+      ]);
+      expect(entries[0]?.item.createdAt).toBe(T1.toISOString());
+    });
+
+    it("puts an unsuggested listing on the printing New queue under its SKU key", () => {
+      const entries = buildWorkspaceQueueEntries(
+        sources({
+          listings: {
+            suggested: [],
+            unmatched: [
+              { ...listing, card: null },
+              {
+                ...listing,
+                marketplace: "cardtrader",
+                finish: "normal",
+                language: "FR",
+                card: { slug: "jinx-loose-cannon", name: "Jinx, Loose Cannon" },
+              },
+            ],
+          },
+        }),
+      );
+      expect(entries.map((entry) => entry.item)).toMatchObject([
+        {
+          owner: "printing",
+          segment: "new",
+          ownerId: "listing:cardmarket:812:foil",
+          cardSlug: null,
+          cardName: "Jinx Loose Cannon",
+          label: "#812 foil",
+          provider: "Cardmarket",
+          fields: [],
+        },
+        {
+          ownerId: "listing:cardtrader:812:normal:FR",
+          cardSlug: "jinx-loose-cannon",
+          cardName: "Jinx, Loose Cannon",
+          label: "#812 normal FR",
+          provider: "CardTrader",
+        },
+      ]);
     });
   });
 });

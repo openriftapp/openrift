@@ -16,6 +16,7 @@ import {
   discardLabel,
   formatSuggestionValue,
   primaryLabel,
+  submitterNameOf,
 } from "./face-suggestion-rows";
 
 const CONTEXT = { costKeywords: [], setTotals: {} };
@@ -332,5 +333,21 @@ describe("formatSuggestionValue", () => {
   it("says Empty for a missing value and formats booleans", () => {
     expect(formatSuggestionValue("artist", "", labels)).toBe("Empty");
     expect(formatSuggestionValue("isSigned", true, labels)).toBe("Yes");
+  });
+});
+
+describe("submitterNameOf", () => {
+  it("finds the contributor's name on whichever card holds the proposal", () => {
+    const first = makeAdminCardDetail({ sources: [makeCandidateCard({ provider: "provider-a" })] });
+    const proposal = makeCandidateCard({ submittedByName: "Poro Keeper" });
+    const second = makeAdminCardDetail({ sources: [proposal] });
+    expect(submitterNameOf([first, second], proposal.id)).toBe("Poro Keeper");
+  });
+
+  it("returns null for an unknown source or a nameless submitter", () => {
+    const nameless = makeCandidateCard({ submittedByName: null });
+    const detail = makeAdminCardDetail({ sources: [nameless] });
+    expect(submitterNameOf([detail], nameless.id)).toBeNull();
+    expect(submitterNameOf([detail], "missing")).toBeNull();
   });
 });

@@ -4,6 +4,7 @@ import {
   hasFieldValue,
   sameFieldValue,
 } from "@openrift/shared/catalog-field-compare";
+import type { WorkspaceSameDifferenceInput } from "@openrift/shared/contracts/admin/catalog-workspace-bulk";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import type {
   AdminCardDetailResponse,
@@ -13,9 +14,9 @@ import type {
 import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
 import { CARD_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 
-export type SuggestionTone = "source" | "contributor";
+type SuggestionTone = "source" | "contributor";
 
-export const MAX_SUGGESTION_HOTKEY = 9;
+const MAX_SUGGESTION_HOTKEY = 9;
 
 export interface FieldSuggestion {
   key: string;
@@ -38,7 +39,7 @@ export interface SuggestionRow {
   suggestions: FieldSuggestion[];
 }
 
-export interface SourceDifferences {
+interface SourceDifferences {
   key: string;
   label: string;
   tone: SuggestionTone;
@@ -187,6 +188,19 @@ export function discardLabel(suggestion: FieldSuggestion): string {
   return suggestion.rowDifferences <= 1
     ? "Discard"
     : `Discard ${suggestion.rowDifferences} from ${suggestion.sourceLabel}`;
+}
+
+export function sameDifferenceInput(
+  suggestion: FieldSuggestion,
+): WorkspaceSameDifferenceInput | null {
+  if (suggestion.tone !== "source") {
+    return null;
+  }
+  return {
+    provider: suggestion.sourceKey,
+    field: suggestion.field,
+    value: JSON.stringify(suggestion.value),
+  };
 }
 
 export function suggestionByHotkey(

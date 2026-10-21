@@ -158,9 +158,10 @@ export function QueueHeader({
   ];
   const reasonItems = [
     { value: ANY, label: "Any reason" },
-    ...workspaceReasonSchema.options
-      .filter((reason) => reason !== "listing")
-      .map((reason) => ({ value: reason, label: REASON_LABELS[reason] })),
+    ...workspaceReasonSchema.options.map((reason) => ({
+      value: reason,
+      label: REASON_LABELS[reason],
+    })),
   ];
   const isQueue = view !== "all";
 

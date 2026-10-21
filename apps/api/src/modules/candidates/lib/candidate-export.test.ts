@@ -188,7 +188,7 @@ describe("buildExport", () => {
     expect(result[0]!.printings[0]!.size).toBe("standard");
   });
 
-  it("exports printed_year so it round-trips back through the upload", async () => {
+  it("exports printed_year and release dates so they round-trip back through the upload", async () => {
     const repo = createMockRepo({
       exportCards: vi.fn().mockResolvedValue([
         {
@@ -223,6 +223,9 @@ describe("buildExport", () => {
           printedEffectText: null,
           flavorText: null,
           printedYear: 2025,
+          releasedAt: "2026-11-01",
+          releasePrecision: "month",
+          announcedAt: "2026-10-01",
           originalUrl: null,
           rehostedUrl: null,
           imageId: null,
@@ -232,7 +235,12 @@ describe("buildExport", () => {
 
     const result = await buildExport(repo);
 
-    expect(result[0]!.printings[0]!.printed_year).toBe(2025);
+    expect(result[0]!.printings[0]).toMatchObject({
+      printed_year: 2025,
+      released_at: "2026-11-01",
+      release_precision: "month",
+      announced_at: "2026-10-01",
+    });
   });
 
   it("prefers originalUrl over rehostedUrl for image_url", async () => {

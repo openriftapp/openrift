@@ -5,7 +5,7 @@ import type {
   WorkspaceRecordsInput,
   WorkspaceRecordsResponse,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
-import { queryOptions } from "@tanstack/react-query";
+import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
@@ -34,10 +34,12 @@ export function workspaceQueueQueryOptions(owner?: WorkspaceOwner) {
   });
 }
 
-export function workspaceRecordsQueryOptions(input: WorkspaceRecordsInput) {
-  return queryOptions({
-    queryKey: adminKeys.workspaceRecords(input),
-    queryFn: () => fetchWorkspaceRecords({ data: input }),
+export function workspaceRecordsInfiniteQueryOptions(input: Omit<WorkspaceRecordsInput, "cursor">) {
+  return infiniteQueryOptions({
+    queryKey: [...adminKeys.workspaceRecords.prefix, "infinite", input] as const,
+    queryFn: ({ pageParam }) => fetchWorkspaceRecords({ data: { ...input, cursor: pageParam } }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
     staleTime: 60 * 1000,
   });
 }
