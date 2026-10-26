@@ -195,10 +195,11 @@ export async function loadCatalogTail(queryClient: QueryClient): Promise<void> {
     if (queryClient.getQueryData<CatalogResponse>(catalogKeys.all) !== current) {
       return;
     }
-    // A tail from another catalog state would drop or duplicate printings; the next
-    // primary refetch schedules a matching one.
+    // A tail from another catalog state would drop or duplicate printings. The refetched
+    // primary schedules a matching one.
     const tailVersion = versionFromEtag(tailResponse.headers.get("etag"));
     if (tailVersion !== null && meta.version !== null && tailVersion !== meta.version) {
+      await queryClient.invalidateQueries({ queryKey: catalogKeys.all });
       return;
     }
     const merged: CatalogResponse = {

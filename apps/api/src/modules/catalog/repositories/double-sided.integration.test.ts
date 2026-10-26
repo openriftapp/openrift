@@ -772,4 +772,41 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
         .execute(),
     ).rejects.toThrow();
   });
+
+  it("gives a printing created with a new face that face's id", async () => {
+    const printingId = await mutations.upsertPrinting(sideValues("Bird", "DST-T43"));
+    const printing = await db
+      .selectFrom("printings")
+      .select("face1Id")
+      .where("id", "=", printingId)
+      .executeTakeFirstOrThrow();
+    expect(printing.face1Id).toBe(printingId);
+  });
+
+  it("refuses to pair faces of two languages", async () => {
+    await expect(
+      db
+        .transaction()
+        .execute((trx) =>
+          catalogMutationsRepo(trx).upsertPrinting(
+            { ...sideValues("Bird", "DST-T41"), language: "FR" },
+            faceIds["DST-T05"]!,
+          ),
+        ),
+    ).rejects.toThrow("both faces of a printing must share one language");
+  });
+
+  it("refuses a language edit on one face of a pair", async () => {
+    const printingId = await mutations.upsertPrinting(
+      sideValues("Brush", "DST-T42"),
+      faceIds["DST-T10"]!,
+    );
+    await expect(
+      db
+        .transaction()
+        .execute((trx) =>
+          trx.updateTable("faces").set({ language: "FR" }).where("id", "=", printingId).execute(),
+        ),
+    ).rejects.toThrow("both faces of a printing must share one language");
+  });
 });

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict AJ9Ybb0UKqZJI6OiCvs8Sr9hoKc5ju7UO7yUffJ96RbQipOg2uetaUu8xyKamSh
+\restrict EnwUMjuzXLLdVzWXKuTeEZVPwrE5ZUyidEc5vL7HVjPPHgji7hue8TdAkyRlllS
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -114,13 +114,16 @@ CREATE FUNCTION public.assert_organization_has_owner() RETURNS trigger
 --
 
 CREATE FUNCTION public.bump_catalog_versions(scopes text[]) RETURNS void
-    LANGUAGE sql
+    LANGUAGE plpgsql
     AS $$
+  BEGIN
+    PERFORM 1 FROM catalog_versions ORDER BY scope FOR UPDATE;
     UPDATE catalog_versions
        SET version = greatest(version + 1, (extract(epoch FROM clock_timestamp()) * 1000)::bigint),
            bumped_by = pg_current_xact_id()
      WHERE scope = ANY (scopes)
-       AND bumped_by IS DISTINCT FROM pg_current_xact_id()
+       AND bumped_by IS DISTINCT FROM pg_current_xact_id();
+  END
   $$;
 
 
@@ -218,6 +221,28 @@ CREATE FUNCTION public.check_deck_card_printing() RETURNS trigger
 
 
 --
+-- Name: check_face_pair_language(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.check_face_pair_language() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+  BEGIN
+    IF EXISTS (
+      SELECT 1 FROM printings p
+      JOIN faces f1 ON f1.id = p.face1_id
+      JOIN faces f2 ON f2.id = p.face2_id
+      WHERE (p.face1_id = NEW.id OR p.face2_id = NEW.id) AND f1.language <> f2.language
+    ) THEN
+      RAISE EXCEPTION 'both faces of a printing must share one language'
+        USING ERRCODE = 'check_violation';
+    END IF;
+    RETURN NULL;
+  END
+  $$;
+
+
+--
 -- Name: check_printing_pair_language(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -226,13 +251,8 @@ CREATE FUNCTION public.check_printing_pair_language() RETURNS trigger
     AS $$
   BEGIN
     IF EXISTS (
-      SELECT 1 FROM printings p
-      JOIN faces f1 ON f1.id = p.face1_id
-      JOIN faces f2 ON f2.id = p.face2_id
-      WHERE f1.language <> f2.language
-        AND (CASE WHEN TG_TABLE_NAME = 'faces'
-                  THEN NEW.id IN (p.face1_id, p.face2_id)
-                  ELSE p.id = NEW.id END)
+      SELECT 1 FROM faces f1, faces f2
+      WHERE f1.id = NEW.face1_id AND f2.id = NEW.face2_id AND f1.language <> f2.language
     ) THEN
       RAISE EXCEPTION 'both faces of a printing must share one language'
         USING ERRCODE = 'check_violation';
@@ -8148,14 +8168,7 @@ CREATE TRIGGER site_settings_set_updated_at BEFORE UPDATE ON public.site_setting
 -- Name: art_variants trg_art_variants_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_art_variants_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.art_variants DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
-
-
---
--- Name: art_variants trg_art_variants_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_art_variants_catalog_version_truncate AFTER TRUNCATE ON public.art_variants FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
+CREATE CONSTRAINT TRIGGER trg_art_variants_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.art_variants DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8180,24 +8193,10 @@ CREATE CONSTRAINT TRIGGER trg_card_bans_catalog_version AFTER INSERT OR DELETE O
 
 
 --
--- Name: card_bans trg_card_bans_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_card_bans_catalog_version_truncate AFTER TRUNCATE ON public.card_bans FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
 -- Name: card_card_types trg_card_card_types_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE CONSTRAINT TRIGGER trg_card_card_types_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.card_card_types DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
--- Name: card_card_types trg_card_card_types_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_card_card_types_catalog_version_truncate AFTER TRUNCATE ON public.card_card_types FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8208,24 +8207,10 @@ CREATE CONSTRAINT TRIGGER trg_card_custom_tags_catalog_version AFTER INSERT OR D
 
 
 --
--- Name: card_custom_tags trg_card_custom_tags_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_card_custom_tags_catalog_version_truncate AFTER TRUNCATE ON public.card_custom_tags FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('content');
-
-
---
 -- Name: card_domains trg_card_domains_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE CONSTRAINT TRIGGER trg_card_domains_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.card_domains DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
--- Name: card_domains trg_card_domains_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_card_domains_catalog_version_truncate AFTER TRUNCATE ON public.card_domains FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8236,24 +8221,10 @@ CREATE CONSTRAINT TRIGGER trg_card_errata_catalog_version AFTER INSERT OR DELETE
 
 
 --
--- Name: card_errata trg_card_errata_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_card_errata_catalog_version_truncate AFTER TRUNCATE ON public.card_errata FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
 -- Name: card_name_aliases trg_card_name_aliases_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE CONSTRAINT TRIGGER trg_card_name_aliases_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.card_name_aliases DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('content');
-
-
---
--- Name: card_name_aliases trg_card_name_aliases_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_card_name_aliases_catalog_version_truncate AFTER TRUNCATE ON public.card_name_aliases FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('content');
 
 
 --
@@ -8267,14 +8238,7 @@ CREATE TRIGGER trg_card_name_aliases_norm_name BEFORE INSERT OR UPDATE OF norm_n
 -- Name: card_sizes trg_card_sizes_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_card_sizes_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.card_sizes DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
-
-
---
--- Name: card_sizes trg_card_sizes_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_card_sizes_catalog_version_truncate AFTER TRUNCATE ON public.card_sizes FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
+CREATE CONSTRAINT TRIGGER trg_card_sizes_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.card_sizes DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8292,24 +8256,10 @@ CREATE CONSTRAINT TRIGGER trg_card_super_types_catalog_version AFTER INSERT OR D
 
 
 --
--- Name: card_super_types trg_card_super_types_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_card_super_types_catalog_version_truncate AFTER TRUNCATE ON public.card_super_types FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
 -- Name: card_tokens trg_card_tokens_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE CONSTRAINT TRIGGER trg_card_tokens_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.card_tokens DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
--- Name: card_tokens trg_card_tokens_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_card_tokens_catalog_version_truncate AFTER TRUNCATE ON public.card_tokens FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8323,14 +8273,7 @@ CREATE TRIGGER trg_card_trades_card BEFORE INSERT OR UPDATE OF card_id, printing
 -- Name: card_types trg_card_types_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_card_types_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.card_types DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
-
-
---
--- Name: card_types trg_card_types_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_card_types_catalog_version_truncate AFTER TRUNCATE ON public.card_types FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
+CREATE CONSTRAINT TRIGGER trg_card_types_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.card_types DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8345,13 +8288,6 @@ CREATE TRIGGER trg_card_types_protect_well_known BEFORE DELETE OR UPDATE ON publ
 --
 
 CREATE CONSTRAINT TRIGGER trg_cards_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.cards DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
--- Name: cards trg_cards_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_cards_catalog_version_truncate AFTER TRUNCATE ON public.cards FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8373,13 +8309,6 @@ CREATE TRIGGER trg_conditions_protect_well_known BEFORE DELETE OR UPDATE ON publ
 --
 
 CREATE CONSTRAINT TRIGGER trg_custom_tags_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.custom_tags DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('content');
-
-
---
--- Name: custom_tags trg_custom_tags_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_custom_tags_catalog_version_truncate AFTER TRUNCATE ON public.custom_tags FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('content');
 
 
 --
@@ -8411,24 +8340,10 @@ CREATE CONSTRAINT TRIGGER trg_distribution_channels_catalog_version AFTER INSERT
 
 
 --
--- Name: distribution_channels trg_distribution_channels_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_distribution_channels_catalog_version_truncate AFTER TRUNCATE ON public.distribution_channels FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
 -- Name: domains trg_domains_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_domains_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.domains DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
-
-
---
--- Name: domains trg_domains_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_domains_catalog_version_truncate AFTER TRUNCATE ON public.domains FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
+CREATE CONSTRAINT TRIGGER trg_domains_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.domains DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8446,24 +8361,10 @@ CREATE CONSTRAINT TRIGGER trg_errata_announcements_catalog_version AFTER INSERT 
 
 
 --
--- Name: errata_announcements trg_errata_announcements_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_errata_announcements_catalog_version_truncate AFTER TRUNCATE ON public.errata_announcements FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
 -- Name: face_images trg_face_images_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_face_images_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.face_images DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
-
-
---
--- Name: face_images trg_face_images_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_face_images_catalog_version_truncate AFTER TRUNCATE ON public.face_images FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
+CREATE CONSTRAINT TRIGGER trg_face_images_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.face_images DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8474,17 +8375,10 @@ CREATE CONSTRAINT TRIGGER trg_faces_catalog_version AFTER INSERT OR DELETE OR UP
 
 
 --
--- Name: faces trg_faces_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_faces_catalog_version_truncate AFTER TRUNCATE ON public.faces FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
 -- Name: faces trg_faces_pair_language; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_faces_pair_language AFTER UPDATE OF language ON public.faces DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.check_printing_pair_language();
+CREATE CONSTRAINT TRIGGER trg_faces_pair_language AFTER UPDATE OF language ON public.faces DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.check_face_pair_language();
 
 
 --
@@ -8498,14 +8392,7 @@ CREATE TRIGGER trg_faces_resort_printings AFTER UPDATE OF short_code ON public.f
 -- Name: finishes trg_finishes_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_finishes_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.finishes DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
-
-
---
--- Name: finishes trg_finishes_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_finishes_catalog_version_truncate AFTER TRUNCATE ON public.finishes FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
+CREATE CONSTRAINT TRIGGER trg_finishes_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.finishes DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8523,13 +8410,6 @@ CREATE CONSTRAINT TRIGGER trg_formats_catalog_version AFTER INSERT OR DELETE OR 
 
 
 --
--- Name: formats trg_formats_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_formats_catalog_version_truncate AFTER TRUNCATE ON public.formats FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
 -- Name: graders trg_graders_protect_well_known; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -8544,38 +8424,17 @@ CREATE CONSTRAINT TRIGGER trg_image_files_catalog_version AFTER INSERT OR DELETE
 
 
 --
--- Name: image_files trg_image_files_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_image_files_catalog_version_truncate AFTER TRUNCATE ON public.image_files FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
 -- Name: keyword_translations trg_keyword_translations_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_keyword_translations_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.keyword_translations DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
-
-
---
--- Name: keyword_translations trg_keyword_translations_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_keyword_translations_catalog_version_truncate AFTER TRUNCATE ON public.keyword_translations FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
+CREATE CONSTRAINT TRIGGER trg_keyword_translations_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.keyword_translations DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
 -- Name: keywords trg_keywords_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_keywords_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.keywords DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
-
-
---
--- Name: keywords trg_keywords_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_keywords_catalog_version_truncate AFTER TRUNCATE ON public.keywords FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
+CREATE CONSTRAINT TRIGGER trg_keywords_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.keywords DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8589,14 +8448,7 @@ CREATE TRIGGER trg_keywords_protect_well_known BEFORE DELETE OR UPDATE ON public
 -- Name: languages trg_languages_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_languages_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.languages DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
-
-
---
--- Name: languages trg_languages_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_languages_catalog_version_truncate AFTER TRUNCATE ON public.languages FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
+CREATE CONSTRAINT TRIGGER trg_languages_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.languages DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8611,13 +8463,6 @@ CREATE TRIGGER trg_languages_protect_well_known BEFORE DELETE OR UPDATE ON publi
 --
 
 CREATE CONSTRAINT TRIGGER trg_markers_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.markers DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
--- Name: markers trg_markers_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_markers_catalog_version_truncate AFTER TRUNCATE ON public.markers FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8652,14 +8497,7 @@ CREATE TRIGGER trg_prevent_nonempty_collection_delete BEFORE DELETE ON public.co
 -- Name: printing_citations trg_printing_citations_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_printing_citations_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.printing_citations DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
-
-
---
--- Name: printing_citations trg_printing_citations_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_printing_citations_catalog_version_truncate AFTER TRUNCATE ON public.printing_citations FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
+CREATE CONSTRAINT TRIGGER trg_printing_citations_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.printing_citations DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8670,24 +8508,10 @@ CREATE CONSTRAINT TRIGGER trg_printing_distribution_channels_catalog_version AFT
 
 
 --
--- Name: printing_distribution_channels trg_printing_distribution_channels_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_printing_distribution_channels_catalog_version_truncate AFTER TRUNCATE ON public.printing_distribution_channels FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
 -- Name: printings trg_printings_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE CONSTRAINT TRIGGER trg_printings_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.printings DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
--- Name: printings trg_printings_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_printings_catalog_version_truncate AFTER TRUNCATE ON public.printings FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8715,14 +8539,7 @@ CREATE TRIGGER trg_printings_release_deck_cards AFTER UPDATE OF face1_id, face2_
 -- Name: rarities trg_rarities_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_rarities_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.rarities DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
-
-
---
--- Name: rarities trg_rarities_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_rarities_catalog_version_truncate AFTER TRUNCATE ON public.rarities FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
+CREATE CONSTRAINT TRIGGER trg_rarities_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.rarities DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -8751,13 +8568,6 @@ CREATE TRIGGER trg_rebalance_organization_owner BEFORE DELETE ON public.users FO
 --
 
 CREATE CONSTRAINT TRIGGER trg_set_releases_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.set_releases DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
--- Name: set_releases trg_set_releases_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_set_releases_catalog_version_truncate AFTER TRUNCATE ON public.set_releases FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -9237,13 +9047,6 @@ CREATE CONSTRAINT TRIGGER trg_sets_catalog_version AFTER INSERT OR DELETE OR UPD
 
 
 --
--- Name: sets trg_sets_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_sets_catalog_version_truncate AFTER TRUNCATE ON public.sets FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
-
-
---
 -- Name: friend_groups trg_snapshot_deleted_group_names; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -9261,14 +9064,7 @@ CREATE TRIGGER trg_snapshot_deleted_user_names BEFORE DELETE ON public.users FOR
 -- Name: super_types trg_super_types_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_super_types_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.super_types DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
-
-
---
--- Name: super_types trg_super_types_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_super_types_catalog_version_truncate AFTER TRUNCATE ON public.super_types FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
+CREATE CONSTRAINT TRIGGER trg_super_types_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.super_types DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -9282,28 +9078,14 @@ CREATE TRIGGER trg_super_types_protect_well_known BEFORE DELETE OR UPDATE ON pub
 -- Name: tag_categories trg_tag_categories_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_tag_categories_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.tag_categories DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
-
-
---
--- Name: tag_categories trg_tag_categories_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_tag_categories_catalog_version_truncate AFTER TRUNCATE ON public.tag_categories FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
+CREATE CONSTRAINT TRIGGER trg_tag_categories_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.tag_categories DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
 -- Name: tag_definitions trg_tag_definitions_catalog_version; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER trg_tag_definitions_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.tag_definitions DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
-
-
---
--- Name: tag_definitions trg_tag_definitions_catalog_version_truncate; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_tag_definitions_catalog_version_truncate AFTER TRUNCATE ON public.tag_definitions FOR EACH STATEMENT EXECUTE FUNCTION public.trg_bump_catalog_versions('response');
+CREATE CONSTRAINT TRIGGER trg_tag_definitions_catalog_version AFTER INSERT OR DELETE OR UPDATE ON public.tag_definitions DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_bump_catalog_versions('response', 'content');
 
 
 --
@@ -11348,5 +11130,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict AJ9Ybb0UKqZJI6OiCvs8Sr9hoKc5ju7UO7yUffJ96RbQipOg2uetaUu8xyKamSh
+\unrestrict EnwUMjuzXLLdVzWXKuTeEZVPwrE5ZUyidEc5vL7HVjPPHgji7hue8TdAkyRlllS
 

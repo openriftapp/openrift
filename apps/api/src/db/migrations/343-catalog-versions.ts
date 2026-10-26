@@ -75,7 +75,6 @@ const UP = [
   END
   $fn$`,
 
-  // Deferred to commit, so the counter row is locked only while committing.
   ...TABLE_SCOPES.flatMap(([table, scopes]) => [
     `CREATE CONSTRAINT TRIGGER trg_${table}_catalog_version
       AFTER INSERT OR UPDATE OR DELETE ON ${table}

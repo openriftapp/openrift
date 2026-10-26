@@ -191,6 +191,7 @@ describe("split fetch + tail merge", () => {
 
     const current = queryClient.getQueryData<CatalogResponse>(catalogKeys.all);
     expect(Object.keys((current as CatalogResponse).printings)).toEqual(["p1"]);
+    expect(queryClient.getQueryState(catalogKeys.all)?.isInvalidated).toBe(true);
   });
 
   it("no-ops on a catalog entry without split metadata (SSR/full path)", async () => {

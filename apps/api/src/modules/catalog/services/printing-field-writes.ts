@@ -22,6 +22,23 @@ type WriteRepos = Pick<
 
 const TYPOGRAPHY_TEXT_FIELDS = new Set(["printedRulesText", "printedEffectText"]);
 
+// The inputs of `mv_printing_foil_twins` and `mv_printing_sides_canonical_rank`.
+const CATALOG_VIEW_FIELDS: ReadonlySet<AcceptPrintingField> = new Set([
+  "shortCode",
+  "setId",
+  "artVariant",
+  "isSigned",
+  "isOvernumbered",
+  "markerSlugs",
+  "finish",
+  "size",
+  "language",
+]);
+
+export function changesCatalogViews(field: AcceptPrintingField): boolean {
+  return CATALOG_VIEW_FIELDS.has(field);
+}
+
 interface ReleaseWrite {
   releasedAt: string | null;
   releasePrecision: ReleasePrecision | null;

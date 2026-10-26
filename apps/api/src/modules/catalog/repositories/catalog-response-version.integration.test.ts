@@ -11,11 +11,11 @@ const ctx = createDbContext("a0000000-0042-4000-a000-000000000001");
 /**
  * `catalogResponseVersion` is the ETag of `GET /catalog`, cached `immutable, max-age=1y`.
  * Nothing in the type system ties it to `assembleCatalogResponse`'s source tables: a field
- * sourced from a new table needs a version trigger (migration 343) and a case here.
+ * sourced from a new table needs a version trigger (migrations 343, 345) and a case here.
  *
- * Each case mutates and re-reads the token inside one rolled-back transaction: the
- * integration database is shared across files and never reset. The version triggers are
- * deferred to commit, so the cases fire them early with `SET CONSTRAINTS ALL IMMEDIATE`.
+ * Each case mutates and re-reads the token inside one rolled-back transaction that holds
+ * the version rows, so other files' commits cannot move it. Version triggers are deferred
+ * to commit; the cases fire them early with `SET CONSTRAINTS ALL IMMEDIATE`.
  */
 class RollbackError extends Error {
   override name = "RollbackError";
@@ -28,6 +28,7 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
     let result!: T;
     try {
       await db.transaction().execute(async (trx: Transaction<Database>) => {
+        await sql`SELECT 1 FROM catalog_versions ORDER BY scope FOR UPDATE`.execute(trx);
         result = await fn(trx);
         throw new RollbackError();
       });
@@ -309,11 +310,14 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
   const AHEAD = "Pacific/Kiritimati"; // UTC+14
   const BEHIND = "Pacific/Midway"; // UTC-11
 
-  function tokenInZone(zone: string, read: "response" | "rule"): Promise<string> {
+  function tokensInZones(read: "response" | "rule"): Promise<[string, string]> {
     return inRolledBackTx(async (trx) => {
-      await sql.raw(`SET LOCAL TIME ZONE '${zone}'`).execute(trx);
       const repo = catalogRepo(trx);
-      return read === "response" ? repo.catalogResponseVersion() : repo.catalogContentVersion();
+      const tokenIn = async (zone: string) => {
+        await sql.raw(`SET LOCAL TIME ZONE '${zone}'`).execute(trx);
+        return read === "response" ? repo.catalogResponseVersion() : repo.catalogContentVersion();
+      };
+      return [await tokenIn(AHEAD), await tokenIn(BEHIND)];
     });
   }
 
@@ -332,13 +336,15 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
   // ETag must not move across midnight, or every client's year-long `immutable`
   // entry is discarded daily for bytes that did not change.
   it("does not fold the calendar date into the response token", async () => {
-    expect(await tokenInZone(AHEAD, "response")).toBe(await tokenInZone(BEHIND, "response"));
+    const [ahead, behind] = await tokensInZones("response");
+    expect(ahead).toBe(behind);
   });
 
   // The rule memo does guard a date-derived value (`setReleased`), so its token
   // must still move.
   it("still folds the calendar date into the rule token", async () => {
-    expect(await tokenInZone(AHEAD, "rule")).not.toBe(await tokenInZone(BEHIND, "rule"));
+    const [ahead, behind] = await tokensInZones("rule");
+    expect(ahead).not.toBe(behind);
   });
 
   // The counterweight to every assertion above: a token that rolled on any

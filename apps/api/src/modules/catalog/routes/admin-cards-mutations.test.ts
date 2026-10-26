@@ -1006,6 +1006,19 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
     });
     expect(res.status).toBe(204);
     expect(mockMut.updatePrintingFieldById).toHaveBeenCalledWith(PRINTING_ID, "artist", "Alice", 1);
+    expect(mockRefreshCatalogViews).not.toHaveBeenCalled();
+  });
+
+  it("refreshes the catalog views after a field the foil twins and ranks read", async () => {
+    mockMut.updatePrintingFieldById.mockResolvedValue(undefined);
+
+    const res = await app.request(`/api/admin/v1/cards/printing/${PRINTING_ID}/accept-field`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "finish", value: "foil" }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockRefreshCatalogViews).toHaveBeenCalledTimes(1);
   });
 
   it("files the audit event under the edited face's card", async () => {

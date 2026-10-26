@@ -3,11 +3,7 @@ export interface Versioned<T> {
   value: T;
 }
 
-/**
- * Like {@link createContentAddressedCache}, but also returns the version the
- * value was loaded under. The version is probed before the load starts, so a
- * concurrent write can only pair a newer value with an older version.
- */
+/** Returns the version probed before the load, so a concurrent write can only make the value newer than it. */
 export function createVersionedCache<T>(
   load: () => Promise<T>,
   getVersion: () => Promise<string>,

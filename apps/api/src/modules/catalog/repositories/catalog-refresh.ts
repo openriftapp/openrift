@@ -3,10 +3,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 
-/**
- * Catalog reads join the materialized views, so a refresh changes the response
- * after the write that triggered it has already bumped the version.
- */
+/** Catalog reads join these views, so a refresh changes them after the write's own bump. */
 async function bumpCatalogVersions(db: Kysely<Database>): Promise<void> {
   await sql`SELECT bump_catalog_versions(ARRAY['response', 'content'])`.execute(db);
 }

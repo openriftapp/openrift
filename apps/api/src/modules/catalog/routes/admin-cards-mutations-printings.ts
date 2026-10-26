@@ -16,6 +16,7 @@ import { relinkCandidatePrintings } from "../../candidates/services/relink-candi
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { acceptPrinting, deletePrinting } from "../services/printing-admin.js";
 import {
+  changesCatalogViews,
   normalizePrintingFieldValue,
   writePrintingField,
 } from "../services/printing-field-writes.js";
@@ -103,6 +104,9 @@ export const adminCardMutationsPrintingsRouter = {
       value: normalizedValue,
       side,
     });
+    if (changesCatalogViews(field)) {
+      await context.repos.catalog.refreshCatalogViews();
+    }
 
     await auditEvent(auditValue);
   }),
