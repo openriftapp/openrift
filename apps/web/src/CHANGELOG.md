@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-26
+
+### Other
+
+- fix(Cards): **Double-sided token printings agree** — whether a token printing counts as the standard one is now the same in the card browser and on the card's own page.
+
 ## 2026-10-20
 
 ### Highlights

@@ -124,7 +124,7 @@ describe("useCards", () => {
 
   it("fetches and returns catalog data", async () => {
     (fetch as ReturnType<typeof vi.fn>).mockImplementation(() =>
-      Promise.resolve({ ok: true, json: () => Promise.resolve(CATALOG_RESPONSE) }),
+      Promise.resolve(Response.json(CATALOG_RESPONSE)),
     );
 
     const queryClient = new QueryClient({

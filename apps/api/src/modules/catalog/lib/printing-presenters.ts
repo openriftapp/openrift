@@ -220,13 +220,17 @@ export function presentSide(
 export function presentPrintingFields(
   row: SideRow,
   decorations: Pick<PrintingDecorations, "channelsByPrinting" | "citationsByPrinting">,
-): Pick<CatalogPrintingResponse, "size" | "comment" | "distributionChannels" | "citations"> {
+): Pick<
+  CatalogPrintingResponse,
+  "size" | "comment" | "distributionChannels" | "citations" | "hasFoilTwin"
+> {
   const citations = decorations.citationsByPrinting.get(row.printingId);
   return {
     size: row.size,
     comment: row.comment,
     distributionChannels: decorations.channelsByPrinting.get(row.printingId) ?? [],
     ...(citations === undefined ? {} : { citations }),
+    ...(row.hasFoilTwin ? { hasFoilTwin: true as const } : {}),
   };
 }
 

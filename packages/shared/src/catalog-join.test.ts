@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { catalogRefResolver, joinCatalog, joinCatalogPrintings } from "./catalog-join";
+import {
+  catalogRefResolver,
+  catalogValueSides,
+  joinCatalog,
+  joinCatalogPrintings,
+} from "./catalog-join";
+import { PRINTING_LEVEL_FIELDS } from "./catalog-printing-fields.js";
 import { makeCatalogReference } from "./test-factories.js";
 import type { CatalogResponse } from "./types/api/catalog.js";
 
@@ -77,11 +83,11 @@ function catalog(overrides: Partial<CatalogResponse> = {}): CatalogResponse {
 const GOLD_ID = "00000000-0000-0000-0000-000000000002";
 
 describe("joinCatalog foil twins", () => {
-  it("derives hasFoilTwin from the joined printings", () => {
+  it("passes the server's hasFoilTwin through", () => {
     const { printings } = joinCatalog(
       catalog({
         printings: {
-          "printing-normal": printingValue(),
+          "printing-normal": printingValue({ hasFoilTwin: true }),
           "printing-foil": printingValue({ finish: "foil" }),
         },
       }),
@@ -90,6 +96,36 @@ describe("joinCatalog foil twins", () => {
       ["printing-normal", true],
       ["printing-foil", undefined],
     ]);
+  });
+});
+
+describe("catalogValueSides", () => {
+  it("gives side 2 exactly the printing-level fields of side 1 plus its own face fields", () => {
+    const {
+      size: _size,
+      comment: _comment,
+      distributionChannels: _channels,
+      ...goldFace
+    } = printingValue({ cardId: GOLD_ID, shortCode: "SET1-T05" });
+    const value = printingValue({
+      hasFoilTwin: true,
+      comment: "Bundle exclusive",
+      citations: [{ id: "c1", label: "Source", sourceUrl: null }],
+      fallbackArtMode: "none",
+      side2: { ...goldFace, faceId: "face-gold" },
+    });
+    const { side2, faceId: _faceId, ...side1 } = value;
+    const [, second] = catalogValueSides("printing-1", value);
+    const inherited = Object.keys(second!).filter((key) => !(key in side2!));
+    expect(inherited.toSorted()).toEqual(
+      PRINTING_LEVEL_FIELDS.filter((key) => key in side1).toSorted(),
+    );
+    expect(second).not.toHaveProperty("fallbackArtMode");
+  });
+
+  it("defaults side 1's faceId to the printing id", () => {
+    const [first] = catalogValueSides("printing-1", printingValue());
+    expect(first!.faceId).toBe("printing-1");
   });
 });
 

@@ -11,10 +11,11 @@ const ctx = createDbContext("a0000000-0042-4000-a000-000000000001");
 /**
  * `catalogResponseVersion` is the ETag of `GET /catalog`, cached `immutable, max-age=1y`.
  * Nothing in the type system ties it to `assembleCatalogResponse`'s source tables: a field
- * sourced from a new table must be added to both the token and this suite.
+ * sourced from a new table needs a version trigger (migration 343) and a case here.
  *
  * Each case mutates and re-reads the token inside one rolled-back transaction: the
- * integration database is shared across files and never reset.
+ * integration database is shared across files and never reset. The version triggers are
+ * deferred to commit, so the cases fire them early with `SET CONSTRAINTS ALL IMMEDIATE`.
  */
 class RollbackError extends Error {
   override name = "RollbackError";
@@ -45,8 +46,13 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
       for (const statement of statements) {
         await sql.raw(statement).execute(trx);
       }
+      await fireDeferredTriggers(trx);
       return { before, after: await repo.catalogResponseVersion() };
     });
+  }
+
+  function fireDeferredTriggers(trx: Transaction<Database>) {
+    return sql`SET CONSTRAINTS ALL IMMEDIATE`.execute(trx);
   }
 
   /** Rows affected by `statements`, so a vacuous no-op can't pass silently. */
@@ -158,6 +164,32 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
     },
     { table: "card_domains", why: "card.domains", statements: [dropOne("card_domains")] },
     {
+      table: "card_card_types",
+      why: "card.types",
+      statements: [
+        `INSERT INTO card_card_types (card_id, type_slug, position)
+         SELECT c.id, t.slug, 99 FROM cards c CROSS JOIN card_types t
+          WHERE NOT EXISTS (
+            SELECT 1 FROM card_card_types x WHERE x.card_id = c.id AND x.type_slug = t.slug
+          )
+          LIMIT 1`,
+      ],
+    },
+    {
+      table: "card_tokens",
+      why: "card.tokenCardIds",
+      statements: [
+        `INSERT INTO card_tokens (card_id, token_card_id)
+         SELECT a.id, b.id FROM cards a CROSS JOIN cards b
+          WHERE a.id <> b.id
+            AND NOT EXISTS (
+              SELECT 1 FROM card_tokens x WHERE x.card_id = a.id AND x.token_card_id = b.id
+            )
+          LIMIT 1`,
+      ],
+    },
+    { table: "formats", why: "card.bans formatName", statements: [relabel("formats", "name")] },
+    {
       table: "card_super_types",
       why: "card.superTypes",
       statements: [dropOne("card_super_types")],
@@ -246,6 +278,26 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
     expect(after).toBe(before);
   });
 
+  it("is stable when an update rewrites a row with its own values", async () => {
+    const noop = [
+      `UPDATE rarities SET label = label WHERE ctid = (SELECT ctid FROM rarities LIMIT 1)`,
+    ];
+    expect(await affectedRows(noop)).toBe(1);
+
+    const { before, after } = await tokenAround(noop);
+    expect(after).toBe(before);
+  });
+
+  it("rolls when the catalog views are refreshed", async () => {
+    const { before, after } = await inRolledBackTx(async (trx) => {
+      const repo = catalogRepo(trx);
+      const tokenBefore = await repo.catalogResponseVersion();
+      await repo.refreshCardAggregates();
+      return { before: tokenBefore, after: await repo.catalogResponseVersion() };
+    });
+    expect(after).not.toBe(before);
+  });
+
   // These two zones are always 25 hours apart, so they never share a calendar date.
   const AHEAD = "Pacific/Kiritimati"; // UTC+14
   const BEHIND = "Pacific/Midway"; // UTC-11
@@ -316,6 +368,7 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
       for (const statement of ADD_CUSTOM_TAG) {
         await sql.raw(statement).execute(trx);
       }
+      await fireDeferredTriggers(trx);
       return { before: tokenBefore, after: await repo.catalogContentVersion() };
     });
     expect(after).not.toBe(before);

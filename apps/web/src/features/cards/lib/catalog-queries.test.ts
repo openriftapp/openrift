@@ -144,6 +144,55 @@ describe("split fetch + tail merge", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  function stubResponses(...responses: { body: unknown; etag: string }[]): string[] {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        calls.push(String(url));
+        const next = responses[calls.length - 1];
+        return Promise.resolve(Response.json(next?.body, { headers: { ETag: `"${next?.etag}"` } }));
+      }),
+    );
+    return calls;
+  }
+
+  it("requests the tail at the version the primary was served under", async () => {
+    setPreferredLanguages(["EN"]);
+    const calls = stubResponses(
+      { body: wireCatalog({ p1: { language: "EN" } }), etag: "v-served-4" },
+      {
+        body: { printings: wireCatalog({ p2: { language: "SC" } }).printings },
+        etag: "v-served-4",
+      },
+    );
+    seedCatalogVersion("v-requested-4");
+
+    const queryClient = new QueryClient();
+    await queryClient.query(catalogQueryOptions);
+    await loadCatalogTail(queryClient);
+
+    expect(calls[1]).toContain("v=v-served-4");
+    const merged = queryClient.getQueryData<CatalogResponse>(catalogKeys.all);
+    expect(Object.keys((merged as CatalogResponse).printings).toSorted()).toEqual(["p1", "p2"]);
+  });
+
+  it("drops a tail served from another catalog version", async () => {
+    setPreferredLanguages(["EN"]);
+    stubResponses(
+      { body: wireCatalog({ p1: { language: "EN" } }), etag: "v-test-5" },
+      { body: { printings: wireCatalog({ p2: { language: "SC" } }).printings }, etag: "v-newer-5" },
+    );
+    seedCatalogVersion("v-test-5");
+
+    const queryClient = new QueryClient();
+    await queryClient.query(catalogQueryOptions);
+    await loadCatalogTail(queryClient);
+
+    const current = queryClient.getQueryData<CatalogResponse>(catalogKeys.all);
+    expect(Object.keys((current as CatalogResponse).printings)).toEqual(["p1"]);
+  });
+
   it("no-ops on a catalog entry without split metadata (SSR/full path)", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);

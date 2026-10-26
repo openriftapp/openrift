@@ -339,3 +339,9 @@ export interface CardTokensTable {
   tokenCardId: string;
   source: Generated<(typeof CARD_TOKEN_SOURCES)[number]>;
 }
+
+export interface CatalogVersionsTable {
+  scope: ColumnType<"response" | "content", never, never>;
+  version: ColumnType<string, never, never>;
+  bumpedBy: ColumnType<string | null, never, never>;
+}

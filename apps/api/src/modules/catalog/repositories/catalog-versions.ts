@@ -1,113 +1,31 @@
-import type { Kysely, RawBuilder } from "kysely";
+import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 
-const CATALOG_SHAPE_VERSION = "6";
+const CATALOG_SHAPE_VERSION = "7";
 
 /**
- * Excludes the current date; only {@link catalogContentVersion} folds that in.
- * Timestamps are pinned to UTC: `timestamptz::text` renders in the session
- * time zone otherwise, so instances would compute different tokens for identical data.
+ * Migration 343 lists which tables bump which scope. A table a catalog read
+ * starts depending on must get the trigger there too.
  */
-const STORED_CATALOG_AGGREGATES = sql<string>`
-      ${sql.lit(CATALOG_SHAPE_VERSION)} || '|' ||
-      coalesce((SELECT count(*) FROM cards)::text, '') || ':' ||
-      coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM cards)::text, '') || '|' ||
-      coalesce((SELECT count(*) FROM printings)::text, '') || ':' ||
-      coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM printings)::text, '') || '|' ||
-      coalesce((SELECT count(*) FROM faces)::text, '') || ':' ||
-      coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM faces)::text, '') || '|' ||
-      coalesce((SELECT count(*) FROM sets)::text, '') || ':' ||
-      coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM sets)::text, '') || '|' ||
-      coalesce((SELECT md5(string_agg(id::text || ':' || banned_at::text || ':' || coalesce(unbanned_at::text, '') || ':' || coalesce(reason, ''), ',' ORDER BY id)) FROM card_bans), '') || '|' ||
-      coalesce((SELECT md5(string_agg(card_id::text || ':' || coalesce(announcement_id::text, '') || ':' || coalesce(corrected_rules_text, '') || ':' || coalesce(corrected_effect_text, '') || ':' || coalesce(source, '') || ':' || coalesce(source_url, '') || ':' || coalesce(effective_date::text, ''), ',' ORDER BY card_id)) FROM card_errata), '') || '|' ||
-      coalesce((SELECT md5(string_agg(id::text || ':' || name || ':' || published_on::text || ':' || url, ',' ORDER BY id)) FROM errata_announcements), '') || '|' ||
-      coalesce((SELECT count(*) FROM markers)::text, '') || ':' ||
-      coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM markers)::text, '') || '|' ||
-      coalesce((SELECT count(*) FROM distribution_channels)::text, '') || ':' ||
-      coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM distribution_channels)::text, '') || '|' ||
-      coalesce((SELECT count(*) FROM printing_distribution_channels)::text, '') || '|' ||
-      coalesce((SELECT md5(string_agg(card_id::text || ':' || domain_slug || ':' || ordinal::text, ',' ORDER BY card_id, domain_slug)) FROM card_domains), '') || '|' ||
-      coalesce((SELECT md5(string_agg(card_id::text || ':' || super_type_slug, ',' ORDER BY card_id, super_type_slug)) FROM card_super_types), '') || '|' ||
-      coalesce((SELECT count(*) FROM set_releases)::text, '') || ':' ||
-      coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM set_releases)::text, '') || '|' ||
-      coalesce((SELECT count(*) FROM image_files)::text, '') || ':' ||
-      coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM image_files)::text, '')
-`;
-
-const REFERENCE_TABLES = [
-  "card_types",
-  "super_types",
-  "domains",
-  "rarities",
-  "finishes",
-  "art_variants",
-  "card_sizes",
-  "languages",
-  "keywords",
-  "keyword_translations",
-  "tag_categories",
-  "tag_definitions",
-];
-
-const REFERENCE_AGGREGATES = sql.join(
-  REFERENCE_TABLES.map(
-    (table) =>
-      sql`coalesce((SELECT md5(string_agg(t::text, ',' ORDER BY t::text)) FROM ${sql.raw(table)} t), '')`,
-  ),
-  sql` || '|' || `,
-);
-
-/** Custom tags are not part of `/catalog`, only of the rule catalog that {@link catalogContentVersion} keys. */
-const CUSTOM_TAG_AGGREGATES = sql<string>`
-      coalesce((SELECT md5(string_agg(card_id::text || ':' || custom_tag_id::text, ',' ORDER BY card_id, custom_tag_id)) FROM card_custom_tags), '') || '|' ||
-      coalesce((SELECT count(*) FROM custom_tags)::text, '') || ':' ||
-      coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM custom_tags)::text, '')
-`;
-
-async function hashedToken(db: Kysely<Database>, expression: RawBuilder<string>): Promise<string> {
-  const result = await sql<{ token: string }>`SELECT md5(${expression}) AS token`.execute(db);
-  return result.rows[0]?.token ?? "";
-}
-
 export function catalogVersionsRepo(db: Kysely<Database>) {
   return {
-    /**
-     * Domain/super-type/custom-tag junction tables, `card_bans` and the errata tables have no `updated_at`, and an in-place edit leaves `count(*)` unchanged, so they are content-hashed.
-     * Includes `current_date` for `setReleased`'s derived flag; {@link catalogResponseVersion} must not inherit it.
-     */
-    catalogContentVersion(): Promise<string> {
-      return hashedToken(
-        db,
-        sql`${STORED_CATALOG_AGGREGATES} || '|' || ${CUSTOM_TAG_AGGREGATES} || '|' || current_date::text`,
-      );
+    /** Includes `current_date` for `setReleased`'s derived flag; {@link catalogResponseVersion} must not inherit it. */
+    async catalogContentVersion(): Promise<string> {
+      const result = await sql<{ token: string }>`
+        SELECT md5(${sql.lit(CATALOG_SHAPE_VERSION)} || '|' || version::text || '|' || current_date::text) AS token
+          FROM catalog_versions WHERE scope = 'content'
+      `.execute(db);
+      return result.rows[0]?.token ?? "";
     },
 
-    /**
-     * `printing_distribution_channels` and `printing_citations` have no `updated_at`, so they are content-hashed.
-     * Any new `CatalogResponse` field must be added to this token or the `immutable` ETag goes stale. Excludes `current_date`.
-     */
     async catalogResponseVersion(): Promise<string> {
-      const [storedToken, result] = await Promise.all([
-        hashedToken(db, STORED_CATALOG_AGGREGATES),
-        sql<{ token: string }>`
-          SELECT md5(
-            coalesce((SELECT count(*) FROM face_images)::text, '') || ':' ||
-            coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM face_images)::text, '') || '|' ||
-            coalesce((SELECT md5(string_agg(
-              printing_id::text || ':' || channel_id::text || ':' || coalesce(distribution_note, ''),
-              ',' ORDER BY printing_id, channel_id
-            )) FROM printing_distribution_channels), '') || '|' ||
-            coalesce((SELECT md5(string_agg(
-              id::text || ':' || label || ':' || coalesce(source_url, '') || ':' || sort_order::text,
-              ',' ORDER BY id
-            )) FROM printing_citations), '') || '|' ||
-            ${REFERENCE_AGGREGATES}
-          ) AS token
-        `.execute(db),
-      ]);
-      return `${storedToken}${result.rows[0]?.token ?? ""}`;
+      const result = await sql<{ token: string }>`
+        SELECT md5(${sql.lit(CATALOG_SHAPE_VERSION)} || '|' || version::text) AS token
+          FROM catalog_versions WHERE scope = 'response'
+      `.execute(db);
+      return result.rows[0]?.token ?? "";
     },
   };
 }

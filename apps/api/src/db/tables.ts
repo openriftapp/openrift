@@ -28,6 +28,7 @@ import type {
   CardSuperTypesTable,
   CardTokensTable,
   CardsTable,
+  CatalogVersionsTable,
   CustomTagCategoriesTable,
   CustomTagsTable,
   DistributionChannelsTable,
@@ -410,6 +411,7 @@ export interface Database {
   cardSuperTypes: CardSuperTypesTable;
   cardCardTypes: CardCardTypesTable;
   cardTokens: CardTokensTable;
+  catalogVersions: CatalogVersionsTable;
 
   printingEvents: PrintingEventsTable;
 

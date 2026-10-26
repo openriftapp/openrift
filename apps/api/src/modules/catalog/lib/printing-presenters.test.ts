@@ -132,6 +132,22 @@ describe("buildPrintingsResponse", () => {
     expect(second!.citations).toEqual([citation("c-1")]);
   });
 
+  it("sends hasFoilTwin only when the printing has one", () => {
+    const [twinned, single] = buildPrintingsResponse(
+      [printingRow("p-1", { hasFoilTwin: true }), printingRow("p-2", { hasFoilTwin: false })],
+      [],
+      {
+        channels: [],
+        markerBySlug: MARKERS,
+        channelsByPrinting: NO_CHANNELS,
+        citationsByPrinting: new Map(),
+      },
+    );
+
+    expect(twinned!.hasFoilTwin).toBe(true);
+    expect(Object.hasOwn(single!, "hasFoilTwin")).toBe(false);
+  });
+
   it("still resolves markers, channels, and images alongside citations", () => {
     const link: PrintingDistributionChannel = {
       channel: {

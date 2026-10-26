@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createContentAddressedCache } from "./content-addressed-cache.js";
+import { createContentAddressedCache, createVersionedCache } from "./content-addressed-cache.js";
 
 describe("createContentAddressedCache", () => {
   it("assembles once and reuses the memo while the version is unchanged", async () => {
@@ -115,5 +115,20 @@ describe("createContentAddressedCache", () => {
     );
 
     await expect(cache()).rejects.toThrow("probe down");
+  });
+});
+
+describe("createVersionedCache", () => {
+  it("returns the version probed before the load, not one read after it", async () => {
+    let version = "v1";
+    const cache = createVersionedCache(
+      async () => {
+        version = "v2";
+        return "body-loaded-under-v1";
+      },
+      async () => version,
+    );
+
+    await expect(cache()).resolves.toEqual({ version: "v1", value: "body-loaded-under-v1" });
   });
 });

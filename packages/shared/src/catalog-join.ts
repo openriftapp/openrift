@@ -1,11 +1,13 @@
 import { splitCardBans } from "./card-ban.js";
+import { PRINTING_LEVEL_FIELDS } from "./catalog-printing-fields.js";
+import type { PrintingLevelField } from "./catalog-printing-fields.js";
 import { todayUtc } from "./format-date.js";
 import { isReleasedIn } from "./set-release.js";
-import { withFoilTwins } from "./standard.js";
 import type {
   CatalogPrintingChannelRef,
   CatalogPrintingResponse,
   CatalogResponse,
+  CatalogResponsePrintingValue,
 } from "./types/api/catalog.js";
 import type {
   Card,
@@ -75,6 +77,26 @@ export function catalogRefResolver(
   };
 }
 
+export type CatalogValueSide = Omit<CatalogResponsePrintingValue, "side2" | "faceId"> & {
+  faceId: string;
+};
+
+/** A `/catalog` value as its sides. Side 2 takes only the printing-level fields from side 1. */
+export function catalogValueSides(
+  printingId: string,
+  value: CatalogResponsePrintingValue,
+): CatalogValueSide[] {
+  const { side2, faceId, ...rest } = value;
+  const first = { ...rest, faceId: faceId ?? printingId };
+  if (side2 === undefined) {
+    return [first];
+  }
+  const printingFields = Object.fromEntries(
+    PRINTING_LEVEL_FIELDS.filter((key) => key in rest).map((key) => [key, rest[key]]),
+  ) as Pick<CatalogResponsePrintingValue, PrintingLevelField>;
+  return [first, { ...printingFields, ...side2 }];
+}
+
 /**
  * The browser and the API both run `filterCards` over this result, so it has
  * to produce identical rows on both sides.
@@ -91,10 +113,8 @@ export function joinCatalog(catalog: CatalogResponse): {
   const resolve = catalogRefResolver(catalog);
 
   const printings: Printing[] = [];
-  for (const [printingId, { side2, ...value }] of Object.entries(catalog.printings)) {
-    // The fallback-art keys are omitted for `auto`, so side 2 must not inherit side 1's.
-    const { fallbackArtMode: _mode, fallbackImageId: _image, ...physical } = value;
-    const sides = side2 === undefined ? [value] : [value, { ...physical, ...side2 }];
+  for (const [printingId, value] of Object.entries(catalog.printings)) {
+    const sides = catalogValueSides(printingId, value);
     const cards = sides.map((side) => cardsById[side.cardId]);
     sides.forEach((side, index) => {
       const set = setsById.get(side.setId);
@@ -111,11 +131,10 @@ export function joinCatalog(catalog: CatalogResponse): {
         distributionChannels: resolve.channels(side.distributionChannels),
         printingId,
         side: index === 0 ? 1 : 2,
-        faceId: side.faceId ?? printingId,
         ...(other && otherCard
           ? {
               otherSide: {
-                faceId: other.faceId ?? printingId,
+                faceId: other.faceId,
                 cardId: other.cardId,
                 cardName: otherCard.name,
                 cardSlug: otherCard.slug,
@@ -130,7 +149,7 @@ export function joinCatalog(catalog: CatalogResponse): {
       });
     });
   }
-  return { cardsById, printings: withFoilTwins(printings) };
+  return { cardsById, printings };
 }
 
 /** Joins side entries from an array endpoint, which already carry their pairing. */
@@ -154,7 +173,7 @@ export function joinPrintingSides(
       });
     }
   }
-  return withFoilTwins(printings);
+  return printings;
 }
 
 export function joinCatalogPrintings(catalog: CatalogResponse): Printing[] {

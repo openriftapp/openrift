@@ -1,9 +1,14 @@
 import type { KeepPriorityOrders } from "@openrift/shared/list-rule-eval";
+import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../db/tables.js";
 import type { Repos } from "../../deps.js";
-import { createContentAddressedCache } from "../../lib/content-addressed-cache.js";
+import type { Versioned } from "../../lib/content-addressed-cache.js";
+import {
+  createContentAddressedCache,
+  createVersionedCache,
+} from "../../lib/content-addressed-cache.js";
 import { artVariantsRepo } from "./repositories/art-variants.js";
 import { canonicalPrintingsRepo } from "./repositories/canonical-printings.js";
 import { cardBansRepo } from "./repositories/card-bans.js";
@@ -30,7 +35,7 @@ import { setsRepo } from "./repositories/sets.js";
 import { superTypesRepo } from "./repositories/super-types.js";
 import { tagCategoryRepo } from "./repositories/tag-categories.js";
 import { tagDefinitionsRepo } from "./repositories/tag-definitions.js";
-import { assembleRuleCatalog } from "./services/catalog-assembly.js";
+import { assembleCatalogResponse, assembleRuleCatalog } from "./services/catalog-assembly.js";
 import type { RuleCatalog } from "./services/catalog-assembly.js";
 
 export interface CatalogRepos {
@@ -41,6 +46,7 @@ export interface CatalogRepos {
   cardTypes: ReturnType<typeof cardTypesRepo>;
   canonicalPrintings: ReturnType<typeof canonicalPrintingsRepo>;
   catalog: ReturnType<typeof catalogRepo>;
+  catalogResponse: { current: () => Promise<Versioned<CatalogResponse>> };
   catalogDeleteGuards: ReturnType<typeof catalogDeleteGuardsRepo>;
   catalogMutations: ReturnType<typeof catalogMutationsRepo>;
   domains: ReturnType<typeof domainsRepo>;
@@ -65,6 +71,7 @@ export interface CatalogRepos {
 export interface CatalogRuleSources {
   enums: ReturnType<typeof enumsRepo>;
   assembleCatalog: () => Promise<RuleCatalog>;
+  catalogResponse: () => Promise<Versioned<CatalogResponse>>;
   enumOrders: () => Promise<KeepPriorityOrders>;
 }
 
@@ -75,6 +82,10 @@ export function createCatalogRuleSources(
   const assembleCatalog = createContentAddressedCache(
     () => assembleRuleCatalog(resolveRepos()),
     () => catalogRepo(db).catalogContentVersion(),
+  );
+  const catalogResponse = createVersionedCache(
+    () => assembleCatalogResponse(resolveRepos()),
+    () => catalogRepo(db).catalogResponseVersion(),
   );
 
   const enums = enumsRepo(db);
@@ -98,6 +109,7 @@ export function createCatalogRuleSources(
   return {
     enums: cachedEnums,
     assembleCatalog,
+    catalogResponse,
     enumOrders: () => cachedEnums.keepPriorityOrders(),
   };
 }
@@ -114,6 +126,7 @@ export function createCatalogRepos(
     cardTypes: cardTypesRepo(db),
     canonicalPrintings: canonicalPrintingsRepo(db),
     catalog: catalogRepo(db),
+    catalogResponse: { current: sources.catalogResponse },
     catalogDeleteGuards: catalogDeleteGuardsRepo(db),
     catalogMutations: catalogMutationsRepo(db),
     domains: domainsRepo(db),

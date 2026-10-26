@@ -211,6 +211,7 @@ export async function writeCatalogSync(
   await sql`REFRESH MATERIALIZED VIEW mv_card_aggregates`.execute(database);
   await sql`REFRESH MATERIALIZED VIEW mv_printing_sides_canonical_rank`.execute(database);
   await sql`REFRESH MATERIALIZED VIEW mv_printing_foil_twins`.execute(database);
+  await sql`SELECT bump_catalog_versions(ARRAY['response', 'content'])`.execute(database);
 }
 
 export async function writeRulesSync(database: Kysely<Database>, rows: RulesSync): Promise<void> {

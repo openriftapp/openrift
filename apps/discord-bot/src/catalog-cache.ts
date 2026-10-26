@@ -1,8 +1,7 @@
 import type { CardStatLabels } from "@openrift/shared/card-stat-line";
-import { catalogRefResolver } from "@openrift/shared/catalog-join";
+import { catalogRefResolver, catalogValueSides } from "@openrift/shared/catalog-join";
 import { enumLabelsFromInit } from "@openrift/shared/enum-label";
 import type { VariantLabelEnumLabels } from "@openrift/shared/printing-label";
-import { withFoilTwins } from "@openrift/shared/standard";
 import type {
   CatalogResponse,
   CatalogResponseCardValue,
@@ -23,7 +22,6 @@ export type CatalogPrinting = Omit<
   side: 1 | 2;
   markers: Marker[];
   distributionChannels: PrintingDistributionChannel[];
-  hasFoilTwin?: true;
   otherSide?: { cardName: string; shortCode: string };
 };
 
@@ -55,23 +53,15 @@ export function buildSnapshot(
   const cards = Object.entries(catalog.cards).map(([id, card]) => ({ id, ...card }));
   const resolve = catalogRefResolver(catalog);
   const allSides: CatalogPrinting[] = [];
-  for (const [printingId, { side2, ...wire }] of Object.entries(catalog.printings)) {
-    const printing = {
-      ...wire,
-      markers: resolve.markers(wire.markers),
-      distributionChannels: resolve.channels(wire.distributionChannels),
-    };
-    const sides: CatalogPrinting[] = [{ ...printing, printingId, side: 1 }];
-    if (side2 !== undefined) {
-      // The fallback-art keys are omitted for `auto`, so side 2 must not inherit side 1's.
-      const { fallbackArtMode: _mode, fallbackImageId: _image, ...physical } = printing;
-      sides.push({
-        ...physical,
-        ...side2,
-        markers: resolve.markers(side2.markers),
-        printingId,
-        side: 2,
-      });
+  for (const [printingId, value] of Object.entries(catalog.printings)) {
+    const sides: CatalogPrinting[] = catalogValueSides(printingId, value).map((side, index) => ({
+      ...side,
+      markers: resolve.markers(side.markers),
+      distributionChannels: resolve.channels(side.distributionChannels),
+      printingId,
+      side: index === 0 ? 1 : 2,
+    }));
+    if (sides.length === 2) {
       const [front, back] = sides as [CatalogPrinting, CatalogPrinting];
       front.otherSide = {
         cardName: catalog.cards[back.cardId]?.name ?? "",
@@ -85,7 +75,7 @@ export function buildSnapshot(
     allSides.push(...sides);
   }
   const printingsByCardId = new Map<string, CatalogPrinting[]>();
-  for (const side of withFoilTwins(allSides)) {
+  for (const side of allSides) {
     const list = printingsByCardId.get(side.cardId) ?? [];
     // A card on both sides is one printing of that card.
     if (!list.some((listed) => listed.printingId === side.printingId)) {

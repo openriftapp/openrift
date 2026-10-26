@@ -5,7 +5,6 @@ import { implement } from "@orpc/server";
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import {
-  assembleCatalogResponse,
   catalogPrintingsExcept,
   filterCatalogByLanguages,
   parseLanguageCodes,
@@ -19,10 +18,7 @@ const os = implement(catalogContract).$context<ApiContext>().use(requireUser);
  */
 export const catalogRouter = {
   catalog: os.catalog.handler(async ({ context, input }): Promise<CatalogResponse> => {
-    const [catalog, version] = await Promise.all([
-      assembleCatalogResponse(context.repos),
-      context.repos.catalog.catalogResponseVersion(),
-    ]);
+    const { version, value: catalog } = await context.repos.catalogResponse.current();
     context.response.etag = version;
     return filterCatalogByLanguages(
       catalog,
@@ -31,10 +27,7 @@ export const catalogRouter = {
   }),
 
   printings: os.printings.handler(async ({ context, input }): Promise<CatalogPrintingsResponse> => {
-    const [catalog, version] = await Promise.all([
-      assembleCatalogResponse(context.repos),
-      context.repos.catalog.catalogResponseVersion(),
-    ]);
+    const { version, value: catalog } = await context.repos.catalogResponse.current();
     context.response.etag = version;
     return catalogPrintingsExcept(catalog, parseLanguageCodes(input.exceptLangs));
   }),

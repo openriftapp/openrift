@@ -524,9 +524,10 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
           .values(faceValues)
           .returning("id")
           .executeTakeFirstOrThrow();
+        // Sharing the face's id lets `/catalog` omit `faceId` for this printing.
         const result = await db
           .insertInto("printings")
-          .values({ face1Id: inserted.id, face2Id: secondFaceId, size })
+          .values({ id: inserted.id, face1Id: inserted.id, face2Id: secondFaceId, size })
           .returning("id")
           .executeTakeFirstOrThrow();
         return result.id;

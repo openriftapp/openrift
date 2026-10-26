@@ -75,6 +75,7 @@ type CatalogPrintingRow = Pick<
   | "comment"
   | "fallbackArtMode"
   | "canonicalRank"
+  | "hasFoilTwin"
 > & {
   printingId: string;
   side: PrintingSide;
@@ -118,10 +119,13 @@ const SIDE_COLUMNS = [
   "s.markerSlugs",
   "s.comment",
   "s.canonicalRank",
+  "s.hasFoilTwin",
   "s.fallbackArtMode",
   fallbackImageId("s"),
 ] as const;
 
+// `idx_face_images_active` allows one active image per face, so `imageId` equals the
+// other side's `images[0]`, which `joinCatalog` reads for the same field.
 const OTHER_SIDE = sql<PrintingOtherSide | null>`(
   SELECT json_strip_nulls(json_build_object(
     'faceId', ofc.id,

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { PrintingLevelField } from "./catalog-printing-fields.js";
 import { ERROR_CODES } from "./error-codes.js";
 import type { ErrorCode } from "./error-codes.js";
 import { isAllowedLinkUrl } from "./link-hosts.js";
@@ -236,17 +237,8 @@ export const printingOtherSideSchema = z.object({
   imageId: imageIdSchema.optional(),
 });
 
-// One entry per printed side: a double-sided printing appears twice, once per side.
-export const catalogPrintingResponseSchema = z.object({
-  printingId: z.string().meta({ examples: ["019cfc3b-03d3-7dac-86c9-27900cd43727"] }),
-  side: printingSideSchema.meta({ examples: [1] }),
+export const catalogFaceFieldsSchema = z.object({
   faceId: z.string().meta({ examples: ["019cfc3b-03d3-7dac-86c9-27900cd43727"] }),
-  otherSide: printingOtherSideSchema.optional(),
-  // Card detail only: the browse payload is one row per printing of every card.
-  slug: z
-    .string()
-    .optional()
-    .meta({ examples: ["en-ogn-202-foil-promo-standard"] }),
   shortCode: z.string().meta({ examples: ["OGN-202"] }),
   setId: z.string().meta({ examples: ["019cfc3b-0369-7890-a450-7859471cc3f6"] }),
   rarity: raritySchema,
@@ -254,14 +246,7 @@ export const catalogPrintingResponseSchema = z.object({
   isSigned: z.boolean().meta({ examples: [false] }),
   isOvernumbered: z.boolean().meta({ examples: [false] }),
   markers: z.array(markerSchema).meta({ examples: [[]] }),
-  distributionChannels: z.array(printingDistributionChannelSchema).meta({ examples: [[]] }),
-  // Key omitted entirely when the list is empty; read as `printing.citations ?? []`.
-  citations: z
-    .array(printingCitationSchema)
-    .optional()
-    .meta({ examples: [[]] }),
   finish: finishSchema,
-  size: cardSizeSchema,
   images: z.array(printingImageSchema),
   artist: z.string().meta({ examples: ["Kudos Productions"] }),
   publicCode: z.string().meta({ examples: ["OGN-202/298"] }),
@@ -287,10 +272,6 @@ export const catalogPrintingResponseSchema = z.object({
     .nullable()
     .meta({ examples: [2025] }),
   language: z.string().meta({ examples: ["EN"] }),
-  comment: z
-    .string()
-    .nullable()
-    .meta({ examples: [null] }),
   canonicalRank: z
     .number()
     .int()
@@ -307,6 +288,39 @@ export const catalogPrintingResponseSchema = z.object({
     .meta({ examples: ["019cfc3b-03d3-7dac-86c9-27900cd43727"] }),
   cardId: z.string().meta({ examples: ["019cfc3b-0389-744b-837c-792fd586300e"] }),
 });
+
+export const catalogPrintingFieldsSchema = z.object({
+  // Card detail only: the browse payload is one row per printing of every card.
+  slug: z
+    .string()
+    .optional()
+    .meta({ examples: ["en-ogn-202-foil-promo-standard"] }),
+  size: cardSizeSchema,
+  comment: z
+    .string()
+    .nullable()
+    .meta({ examples: [null] }),
+  distributionChannels: z.array(printingDistributionChannelSchema).meta({ examples: [[]] }),
+  // Key omitted entirely when the list is empty; read as `printing.citations ?? []`.
+  citations: z
+    .array(printingCitationSchema)
+    .optional()
+    .meta({ examples: [[]] }),
+  hasFoilTwin: z
+    .literal(true)
+    .optional()
+    .meta({ examples: [true] }),
+} satisfies Record<PrintingLevelField, z.ZodType>);
+
+// One entry per printed side: a double-sided printing appears twice, once per side.
+export const catalogPrintingResponseSchema = z
+  .object({
+    printingId: z.string().meta({ examples: ["019cfc3b-03d3-7dac-86c9-27900cd43727"] }),
+    side: printingSideSchema.meta({ examples: [1] }),
+    otherSide: printingOtherSideSchema.optional(),
+  })
+  .extend(catalogFaceFieldsSchema.shape)
+  .extend(catalogPrintingFieldsSchema.shape);
 
 export const copyLinkSchema = z.object({
   url: z.url({ protocol: /^https?$/u }).max(500),

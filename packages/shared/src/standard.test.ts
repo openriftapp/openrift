@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  fallbackArtDifferences,
-  findStandardArtFallback,
-  isStandardPrinting,
-  withFoilTwins,
-} from "./standard.js";
+import { fallbackArtDifferences, findStandardArtFallback, isStandardPrinting } from "./standard.js";
 import { makePrinting as stubPrinting } from "./test-factories.js";
 import type { Marker, Printing } from "./types/catalog.js";
 
@@ -320,70 +315,5 @@ describe("fallbackArtDifferences", () => {
 
   it("ignores foil finishes", () => {
     expect(fallbackArtDifferences(makePrinting({ finish: "foil" }), makePrinting())).toEqual([]);
-  });
-});
-
-describe("withFoilTwins", () => {
-  const normal = makePrinting({ printingId: "p-normal", finish: "normal" });
-  const foil = makePrinting({ printingId: "p-foil", finish: "foil" });
-  const twinIds = (sides: Printing[]) =>
-    withFoilTwins(sides)
-      .filter((side) => side.hasFoilTwin === true)
-      .map((side) => side.printingId);
-
-  it("marks a non-foil printing whose foil counterpart exists", () => {
-    expect(twinIds([normal, foil])).toEqual(["p-normal"]);
-  });
-
-  it("never marks the foil printing itself", () => {
-    expect(twinIds([foil])).toEqual([]);
-  });
-
-  it("leaves a non-foil printing without a foil counterpart unmarked", () => {
-    expect(twinIds([normal])).toEqual([]);
-  });
-
-  it.each<[string, Partial<Printing>]>([
-    ["language", { language: "FR" }],
-    ["size", { size: "oversized" }],
-    ["art variant", { artVariant: "altart" }],
-    ["signature", { isSigned: true }],
-    ["overnumbering", { isOvernumbered: true }],
-    ["markers", { markers: [aMarker] }],
-    ["short code", { shortCode: "SET1-002" }],
-  ])("needs the foil to match on %s", (_label, override) => {
-    expect(
-      twinIds([normal, makePrinting({ printingId: "p-foil", finish: "foil", ...override })]),
-    ).toEqual([]);
-  });
-
-  it("compares a double-faced printing side for side and marks both sides", () => {
-    const back = { side: 2 as const, cardId: "card-back", shortCode: "SET1-T01" };
-    const sides = [
-      normal,
-      makePrinting({ printingId: "p-normal", finish: "normal", ...back }),
-      foil,
-      makePrinting({ printingId: "p-foil", finish: "foil", ...back }),
-    ];
-    expect(twinIds(sides)).toEqual(["p-normal", "p-normal"]);
-  });
-
-  it("does not pair a double-faced printing with a single-faced foil", () => {
-    const sides = [
-      normal,
-      makePrinting({ printingId: "p-normal", finish: "normal", side: 2, cardId: "card-back" }),
-      foil,
-    ];
-    expect(twinIds(sides)).toEqual([]);
-  });
-
-  it("counts a foil back side as a foil printing", () => {
-    const sides = [
-      normal,
-      makePrinting({ printingId: "p-foil", finish: "normal" }),
-      makePrinting({ printingId: "p-foil", finish: "foil", side: 2, cardId: "card-back" }),
-      makePrinting({ printingId: "p-normal", finish: "normal", side: 2, cardId: "card-back" }),
-    ];
-    expect(twinIds(sides)).toEqual(["p-normal", "p-normal"]);
   });
 });

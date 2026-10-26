@@ -6,7 +6,6 @@ import type {
 import { productsContract } from "@openrift/shared/contracts/products";
 import { todayUtc } from "@openrift/shared/format-date";
 import { isReleasedIn } from "@openrift/shared/set-release";
-import { withFoilTwins } from "@openrift/shared/standard";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -54,21 +53,20 @@ function enrichProductDetail(response: ProductDetailResponse): EnrichedProductDe
   const setById = new Map(response.sets.map((set) => [set.id, set]));
   const today = todayUtc();
   const cardsById = joinCatalogCards(response.cards, today);
-  const joined: Printing[] = [];
+  const printings: Printing[] = [];
   for (const wire of response.printings) {
     const set = setById.get(wire.setId);
     const card = cardsById[wire.cardId];
     if (!set || !card) {
       continue;
     }
-    joined.push({
+    printings.push({
       ...wire,
       setSlug: set.slug,
       setReleased: isReleasedIn(set.releases, wire.language, today),
       card,
     });
   }
-  const printings = withFoilTwins(joined);
   const printingsById: Record<string, Printing> = {};
   for (const printing of printings) {
     if (printing.side === 1 || printingsById[printing.printingId] === undefined) {

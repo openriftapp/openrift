@@ -109,57 +109,6 @@ export function isStandardPrinting(printing: StandardCheckFields): boolean {
   return finish === WellKnown.finish.NORMAL && printing.hasFoilTwin !== true;
 }
 
-type FoilTwinFields = Pick<
-  Printing,
-  | "printingId"
-  | "cardId"
-  | "shortCode"
-  | "language"
-  | "artVariant"
-  | "isSigned"
-  | "isOvernumbered"
-  | "markers"
-  | "finish"
-  | "size"
->;
-
-/**
- * Mirrors `mv_printing_foil_twins`: a printing with no foil side has a twin when a
- * same-size printing with a foil side matches it side for side, finish aside.
- */
-export function withFoilTwins<T extends FoilTwinFields>(
-  sides: readonly T[],
-): (T & { hasFoilTwin?: true })[] {
-  const groups = [...Map.groupBy(sides, (side) => side.printingId).values()];
-  const identity = (group: readonly T[]) =>
-    JSON.stringify([
-      group[0]?.size,
-      ...group.map((side) => [
-        side.cardId,
-        side.shortCode,
-        side.language,
-        side.artVariant,
-        side.isSigned,
-        side.isOvernumbered,
-        side.markers.map((marker) => marker.slug),
-      ]),
-    ]);
-  const hasFoilSide = (group: readonly T[]) =>
-    group.some((side) => side.finish === WellKnown.finish.FOIL);
-
-  const foilIdentities = new Set(
-    groups.filter((group) => hasFoilSide(group)).map((group) => identity(group)),
-  );
-  const twinned = new Set(
-    groups
-      .filter((group) => !hasFoilSide(group) && foilIdentities.has(identity(group)))
-      .map((group) => group[0]?.printingId),
-  );
-  return sides.map((side) =>
-    twinned.has(side.printingId) ? { ...side, hasFoilTwin: true as const } : side,
-  );
-}
-
 export interface StandardArtFallback<T = Printing> {
   printing: T | null;
   image: PrintingImage;

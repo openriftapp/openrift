@@ -2,7 +2,6 @@ import { splitCardBans } from "@openrift/shared/card-ban";
 import { cardsContract } from "@openrift/shared/contracts/cards";
 import { todayUtc } from "@openrift/shared/format-date";
 import { isReleasedIn } from "@openrift/shared/set-release";
-import { withFoilTwins } from "@openrift/shared/standard";
 import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { queryOptions } from "@tanstack/react-query";
@@ -44,18 +43,16 @@ function enrichCardDetail(response: CardDetailResponse): EnrichedCardDetail {
   // per-user language axis on top via `sortByLanguageAndCanonicalRank`.
   const today = todayUtc();
   const card = splitCardBans(response.card, today);
-  const printings: Printing[] = withFoilTwins(
-    response.printings.map((p) => {
-      const set = setsById.get(p.setId);
-      return {
-        ...p,
-        setSlug: set?.slug ?? "",
-        // If set is missing from the payload, default setReleased to true.
-        setReleased: set ? isReleasedIn(set.releases, p.language, today) : true,
-        card,
-      };
-    }),
-  );
+  const printings: Printing[] = response.printings.map((p) => {
+    const set = setsById.get(p.setId);
+    return {
+      ...p,
+      setSlug: set?.slug ?? "",
+      // If set is missing from the payload, default setReleased to true.
+      setReleased: set ? isReleasedIn(set.releases, p.language, today) : true,
+      card,
+    };
+  });
   return {
     card,
     printings,

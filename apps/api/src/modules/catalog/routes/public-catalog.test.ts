@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
+import { assembleCatalogResponse } from "../services/catalog-assembly.js";
 import { catalogRouter } from "./public-catalog";
 
 const mockCatalogRepo = {
@@ -56,15 +57,22 @@ const mockPrintingCitationsRepo = {
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
-  c.set("repos", {
+  const repos = {
     catalog: mockCatalogRepo,
+    catalogResponse: {
+      current: async () => ({
+        version: await mockCatalogRepo.catalogResponseVersion(),
+        value: await assembleCatalogResponse(repos as never),
+      }),
+    },
     distributionChannels: mockDistributionChannelsRepo,
     printingCitations: mockPrintingCitationsRepo,
     enums: mockEnumsRepo,
     keywords: mockKeywordsRepo,
     tagCategories: mockTagCategoriesRepo,
     tagDefinitions: mockTagDefinitionsRepo,
-  } as never);
+  };
+  c.set("repos", repos as never);
   await next();
 });
 registerRouterForTest(app, catalogRouter);

@@ -1,6 +1,7 @@
 import { enumRowSchema, keywordEntrySchema } from "@openrift/shared/contracts/init";
 import {
   catalogCardResponseSchema,
+  catalogFaceFieldsSchema,
   catalogPrintingResponseSchema,
   catalogSetResponseSchema,
   distributionChannelSchema,
@@ -22,32 +23,9 @@ export const catalogPrintingChannelRefSchema = z.object({
     .meta({ examples: ["Top 8"] }),
 });
 
-export const catalogPrintingSide2Schema = catalogPrintingResponseSchema
-  .pick({
-    faceId: true,
-    cardId: true,
-    setId: true,
-    shortCode: true,
-    rarity: true,
-    artVariant: true,
-    isSigned: true,
-    isOvernumbered: true,
-    markers: true,
-    finish: true,
-    images: true,
-    artist: true,
-    publicCode: true,
-    printedRulesText: true,
-    printedEffectText: true,
-    flavorText: true,
-    printedName: true,
-    printedYear: true,
-    language: true,
-    canonicalRank: true,
-    fallbackArtMode: true,
-    fallbackImageId: true,
-  })
-  .extend({ markers: catalogMarkerSlugsSchema });
+export const catalogPrintingSide2Schema = catalogFaceFieldsSchema.extend({
+  markers: catalogMarkerSlugsSchema,
+});
 
 // The value carries side 1, whose `faceId` is omitted when it equals the printing id. A
 // double-sided printing adds its second side as `side2`.

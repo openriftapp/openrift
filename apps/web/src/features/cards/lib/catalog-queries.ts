@@ -164,10 +164,11 @@ async function fetchCatalogFromEdge(langs: string[] | null): Promise<CatalogResp
   const url = catalogFetchUrl(globalThis.location.origin, version, langs ?? undefined);
   const res = await fetchCatalogResponse(url);
   const catalog = (await res.json()) as CatalogResponse;
+  const servedVersion = versionFromEtag(res.headers.get("etag")) ?? version;
   const pendingTailLangs = langs !== null && !hasPrintingsOutside(catalog, langs) ? langs : null;
-  catalogPartsMeta.set(catalog, { version, pendingTailLangs });
-  if (version !== null && pendingTailLangs === null) {
-    lastCompleteCatalog = { version, data: catalog };
+  catalogPartsMeta.set(catalog, { version: servedVersion, pendingTailLangs });
+  if (servedVersion !== null && pendingTailLangs === null) {
+    lastCompleteCatalog = { version: servedVersion, data: catalog };
   }
   return catalog;
 }
@@ -192,6 +193,12 @@ export async function loadCatalogTail(queryClient: QueryClient): Promise<void> {
     // The catalog rolled under us (a refetch replaced the entry): the newer
     // primary schedules its own tail, so this one just stands down.
     if (queryClient.getQueryData<CatalogResponse>(catalogKeys.all) !== current) {
+      return;
+    }
+    // A tail from another catalog state would drop or duplicate printings; the next
+    // primary refetch schedules a matching one.
+    const tailVersion = versionFromEtag(tailResponse.headers.get("etag"));
+    if (tailVersion !== null && meta.version !== null && tailVersion !== meta.version) {
       return;
     }
     const merged: CatalogResponse = {
