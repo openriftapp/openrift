@@ -2,7 +2,11 @@ import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-wo
 import { Link, Outlet, useChildMatches, useNavigate, useParams } from "@tanstack/react-router";
 import { ArrowLeftIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon } from "lucide-react";
 
-import { PageTopBarIconButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
+import {
+  PageDescription,
+  PageTopBarIconButton,
+  PageTopBarPrimaryButton,
+} from "@/components/layout/page-top-bar";
 import { Spinner } from "@/components/ui/spinner";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { EmptyQueue } from "@/features/catalog-workspace/components/empty-queue";
@@ -75,7 +79,7 @@ function NewButton({ owner, canCreate }: { owner: WorkspaceOwner; canCreate: boo
     return null;
   }
   return owner === "card" ? (
-    <PageTopBarPrimaryButton render={<Link to="/admin/cards/create" />}>
+    <PageTopBarPrimaryButton render={<Link to="/admin/workspace/cards/create" />}>
       <PlusIcon />
       New card
     </PageTopBarPrimaryButton>
@@ -86,6 +90,13 @@ function NewButton({ owner, canCreate }: { owner: WorkspaceOwner; canCreate: boo
     </PageTopBarPrimaryButton>
   );
 }
+
+const TABLE_DESCRIPTIONS: Record<WorkspaceOwner, string> = {
+  card: "Gameplay identity: name, types, domains, stats and rules text. Printed details sit on faces, physical cards on printings.",
+  printing:
+    "Physical cards: one or two faces, a size, a channel and release dates. Owned, priced and traded as one unit.",
+  face: "Every printed face. Images and printed details are edited here.",
+};
 
 function RecordPlaceholder({ owner }: { owner: WorkspaceOwner }) {
   return (
@@ -145,6 +156,12 @@ export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
       owner={owner}
       view={view}
       desk={isDesk && owner === "printing"}
+      isAdmin={role === "admin"}
+      hint={
+        view === "all" && hasRecord
+          ? `${records.entries.length.toLocaleString()} ${OWNER_LABELS[owner].toLowerCase()} · the table returns when you close the record`
+          : undefined
+      }
       counts={queue.counts}
       allCount={records.total}
       search={search}
@@ -170,11 +187,12 @@ export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
       <>
         {topBar}
         <div className="space-y-3">
+          <PageDescription>{TABLE_DESCRIPTIONS[owner]}</PageDescription>
           <div className="max-w-xl">{header}</div>
           {loading ? (
             <LoadState error={records.error} pending={records.isPending} />
           ) : (
-            <RecordsTable records={records} deskMode={search.desk ?? "mine"} />
+            <RecordsTable records={records} deskMode={search.desk ?? "mine"} role={role} />
           )}
         </div>
       </>

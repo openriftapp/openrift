@@ -37,4 +37,12 @@ describe("workspaceSearchSchema", () => {
       collapsed: true,
     });
   });
+
+  it("keeps table filters and desk controls and drops unknown values", () => {
+    expect(
+      workspaceSearchSchema.parse({ filter: "no-image", status: "released", deskSort: "card" }),
+    ).toEqual({ filter: "no-image", status: "released", deskSort: "card" });
+    const search = workspaceSearchSchema.parse({ filter: "x", status: "y", deskSort: "z" });
+    expect(search).toEqual({});
+  });
 });

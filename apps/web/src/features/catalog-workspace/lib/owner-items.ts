@@ -8,8 +8,13 @@ import type {
 } from "@openrift/shared/contracts/admin/catalog-workspace";
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
 import { ENGLISH_DATE_WORDS, formatRelativeTime } from "@openrift/shared/format-date";
+import { pluralize } from "@openrift/shared/strings";
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 
+import {
+  CARD_FIELD_LABELS,
+  PRINTING_FIELD_LABELS,
+} from "@/features/admin/lib/catalog-field-labels";
 import { deskPrintingCodes, deskPrintingName } from "@/features/admin/lib/desk-face-options";
 
 import type { WorkspaceSearch, WorkspaceSort } from "./workspace-search";
@@ -46,6 +51,8 @@ export interface OwnerGroup {
   reasons: WorkspaceReason[];
   providers: string[];
   isContributor: boolean;
+  contributorOnly: boolean;
+  fields: string[];
   decisions: number;
   oldestAt: string;
   newestAt: string;
@@ -201,6 +208,8 @@ export function groupOwnerItems(items: readonly WorkspaceQueueItem[]): OwnerGrou
         reasons: [item.reason],
         providers: provider === null ? [] : [provider],
         isContributor: item.isContributor,
+        contributorOnly: item.isContributor,
+        fields: [...new Set(item.fields)],
         decisions: item.decisions,
         oldestAt: item.createdAt,
         newestAt: item.createdAt,
@@ -215,6 +224,12 @@ export function groupOwnerItems(items: readonly WorkspaceQueueItem[]): OwnerGrou
       existing.providers.push(provider);
     }
     existing.isContributor ||= item.isContributor;
+    existing.contributorOnly &&= item.isContributor;
+    for (const field of item.fields) {
+      if (!existing.fields.includes(field)) {
+        existing.fields.push(field);
+      }
+    }
     existing.decisions += item.decisions;
     if (item.createdAt < existing.oldestAt) {
       existing.oldestAt = item.createdAt;
@@ -226,6 +241,16 @@ export function groupOwnerItems(items: readonly WorkspaceQueueItem[]): OwnerGrou
   return [...groups.values()];
 }
 
+function groupMatchesSource(
+  group: OwnerGroup,
+  search: Pick<WorkspaceSearch, "provider" | "reason">,
+): boolean {
+  return (
+    (search.provider === undefined || group.providers.includes(search.provider)) &&
+    (search.reason === undefined || group.reasons.includes(search.reason))
+  );
+}
+
 export function filterGroups(
   groups: readonly OwnerGroup[],
   search: Pick<WorkspaceSearch, "q" | "provider" | "reason">,
@@ -233,10 +258,23 @@ export function filterGroups(
   const query = search.q?.trim() ?? "";
   return groups.filter(
     (group) =>
-      (search.provider === undefined || group.providers.includes(search.provider)) &&
-      (search.reason === undefined || group.reasons.includes(search.reason)) &&
+      groupMatchesSource(group, search) &&
       (query === "" || matchesCardQuery(query, [group.cardName, group.label])),
   );
+}
+
+function hasSourceFilter(search: Pick<WorkspaceSearch, "provider" | "reason">): boolean {
+  return search.provider !== undefined || search.reason !== undefined;
+}
+
+export function rowMatchesSource(
+  group: OwnerGroup | undefined,
+  search: Pick<WorkspaceSearch, "provider" | "reason">,
+): boolean {
+  if (!hasSourceFilter(search)) {
+    return true;
+  }
+  return group !== undefined && groupMatchesSource(group, search);
 }
 
 export function sortGroups(
@@ -265,7 +303,50 @@ export function sortGroups(
   ];
 }
 
+const EXTRA_FIELD_LABELS: Record<string, string> = {
+  rulesText: "Rules text",
+  effectText: "Effect text",
+  printedRulesText: "Printed rules",
+  printedEffectText: "Printed effect",
+  flavorText: "Flavor text",
+  keywords: "Keywords",
+};
+
+const NON_FIELD_KEYS: ReadonlySet<string> = new Set(["listing"]);
+
+const FIELD_LABELS: Record<string, string> = {
+  ...PRINTING_FIELD_LABELS,
+  ...CARD_FIELD_LABELS,
+  ...EXTRA_FIELD_LABELS,
+};
+
+export function fieldLabel(field: string): string {
+  const known = FIELD_LABELS[field];
+  if (known !== undefined) {
+    return known;
+  }
+  const words = field
+    .replaceAll(/(?<lower>[a-z0-9])(?<upper>[A-Z])/gu, "$<lower> $<upper>")
+    .toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+function detailFields(fields: readonly string[]): string[] {
+  return fields.filter((field) => !NON_FIELD_KEYS.has(field));
+}
+
+function fieldsSummary(fields: readonly string[]): string {
+  return fields
+    .map((field, index) => (index === 0 ? fieldLabel(field) : fieldLabel(field).toLowerCase()))
+    .join(" · ");
+}
+
 export function groupDetail(group: OwnerGroup): string {
+  const fields = detailFields(group.fields);
+  if (fields.length > 0) {
+    const summary = fieldsSummary(fields);
+    return group.contributorOnly ? `${summary} (contributor)` : summary;
+  }
   const reasons = group.reasons.map((reason) => REASON_LABELS[reason]).join(" · ");
   return group.providers.length === 0 ? reasons : `${reasons} · ${group.providers.join(", ")}`;
 }
@@ -281,6 +362,58 @@ export function groupEntry(group: OwnerGroup): ListEntry {
     draft: group.segment === "new",
     target: group.target,
   };
+}
+
+export function groupsByKey(groups: readonly OwnerGroup[]): Map<string, OwnerGroup> {
+  return new Map(groups.map((group) => [group.key, group]));
+}
+
+type OpenBadgeVariant = "warning" | "violet" | "neutral" | "info";
+
+export interface OpenBadge {
+  label: string;
+  variant: OpenBadgeVariant;
+}
+
+const MAX_FIELD_BADGES = 3;
+
+export function cardOpenBadges(
+  row: CandidateCardSummaryResponse,
+  group: OwnerGroup | undefined,
+): OpenBadge[] {
+  const badges: OpenBadge[] = [];
+  if (row.cardSlug === null) {
+    badges.push({
+      label: `${row.candidateCount} ${pluralize(row.candidateCount, "source")}`,
+      variant: "neutral",
+    });
+    if (row.uncheckedTrustedProviders.length > 0) {
+      badges.push({ label: "Trusted", variant: "info" });
+    }
+  }
+  const fields = group === undefined || group.contributorOnly ? [] : detailFields(group.fields);
+  for (const field of fields.slice(0, MAX_FIELD_BADGES)) {
+    badges.push({ label: `${fieldLabel(field)} differs`, variant: "warning" });
+  }
+  if (fields.length > MAX_FIELD_BADGES) {
+    badges.push({ label: `+${fields.length - MAX_FIELD_BADGES} more`, variant: "warning" });
+  }
+  const fromSources = row.uncheckedCardCount + row.uncheckedPrintingCount;
+  if (fields.length === 0 && row.cardSlug !== null && fromSources > 0) {
+    badges.push({ label: `${fromSources} from sources`, variant: "warning" });
+  }
+  if (row.pendingSubmissions > 0) {
+    badges.push({
+      label: `${row.pendingSubmissions} ${pluralize(row.pendingSubmissions, "proposal")}`,
+      variant: "violet",
+    });
+  }
+  return badges;
+}
+
+export function cardSummaryKey(row: CandidateCardSummaryResponse): string {
+  const target = cardSummaryTarget(row);
+  return target ? targetKey(target) : `card-row:${row.name}`;
 }
 
 export function queueStats(groups: readonly OwnerGroup[]): {
@@ -387,7 +520,7 @@ export function cardSummaryTarget(row: CandidateCardSummaryResponse): WorkspaceT
   return row.normalizedName === "" ? null : { kind: "card-new", name: row.normalizedName };
 }
 
-export function cardSummaryOpen(row: CandidateCardSummaryResponse): number {
+function cardSummaryOpen(row: CandidateCardSummaryResponse): number {
   return row.uncheckedCardCount + row.uncheckedPrintingCount + row.pendingSubmissions;
 }
 
@@ -395,7 +528,7 @@ export function cardSummaryEntry(row: CandidateCardSummaryResponse): ListEntry {
   const target = cardSummaryTarget(row);
   const open = cardSummaryOpen(row);
   return {
-    key: target ? targetKey(target) : `card-row:${row.name}`,
+    key: cardSummaryKey(row),
     title: row.name,
     detail: row.cardSlug === null ? "New card" : (row.setSlugs.at(0) ?? ""),
     decisions: open > 0 ? open : undefined,

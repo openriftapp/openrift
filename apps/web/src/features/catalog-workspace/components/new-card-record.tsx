@@ -2,7 +2,6 @@ import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submis
 import { pluralize } from "@openrift/shared/strings";
 import type {
   AdminCardDetailResponse,
-  CandidatePrintingResponse,
   UnmatchedCardDetailResponse,
 } from "@openrift/shared/types/api/admin";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,6 +12,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,11 +38,11 @@ import {
 } from "@/features/admin/lib/accept-card-validation";
 import { adminCardDetailQueryOptions } from "@/features/admin/lib/admin-card-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import { buildPrintingGroups } from "@/features/admin/lib/candidate-printing-groups";
 import { buildSourceSubmitters } from "@/features/admin/lib/candidate-submitter";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAdminCardSearch } from "@/features/cards/hooks/use-card-search";
 import { CreationPanel } from "@/features/catalog-workspace/components/creation/creation-panel";
+import { FieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
   RecordBanner,
@@ -50,37 +50,19 @@ import {
   RecordPane,
   RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
+import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
-import type { CreationDraft } from "@/features/catalog-workspace/lib/creation-draft";
+import type { CreationDraft, DraftCard } from "@/features/catalog-workspace/lib/creation-draft";
+import { toAcceptInput } from "@/features/catalog-workspace/lib/creation-draft";
+import type { NewCardGroup } from "@/features/catalog-workspace/lib/new-card-groups";
 import {
-  draftFromNewCard,
-  toAcceptInput,
-  validateDraft,
-} from "@/features/catalog-workspace/lib/creation-draft";
+  checkedGroupKeys,
+  isDraftComplete,
+  runInSequence,
+  seedNewCardGroups,
+} from "@/features/catalog-workspace/lib/new-card-groups";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
-
-function firstCandidate(
-  detail: UnmatchedCardDetailResponse,
-  compareProviders: (a: string, b: string) => number,
-): { candidate: CandidatePrintingResponse; provider: string; groupIds: string[] } | undefined {
-  const providerOf = new Map(detail.sources.map((source) => [source.id, source.provider]));
-  const [group] = buildPrintingGroups(detail.candidatePrintingGroups, detail.candidatePrintings);
-  const candidates = group?.candidates ?? detail.candidatePrintings.slice(0, 1);
-  const [candidate] = candidates.toSorted((a, b) =>
-    compareProviders(
-      providerOf.get(a.candidateCardId) ?? "",
-      providerOf.get(b.candidateCardId) ?? "",
-    ),
-  );
-  return candidate === undefined
-    ? undefined
-    : {
-        candidate,
-        provider: providerOf.get(candidate.candidateCardId) ?? "",
-        groupIds: candidates.map((entry) => entry.id),
-      };
-}
 
 function nameHead(name: string): string {
   return name.split(",")[0]?.trim() ?? name;
@@ -89,6 +71,7 @@ function nameHead(name: string): string {
 export function NewCardRecord({ name }: { name: string }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const navigation = useQueueNavigation("card");
   const { data: access } = useAdminAccess();
   const isAdmin = access?.isAdmin === true;
   const scope = [
@@ -110,7 +93,11 @@ export function NewCardRecord({ name }: { name: string }) {
 
   const [edits, setEdits] = useState<Record<string, unknown> | null>(null);
   const [cardIdEdit, setCardIdEdit] = useState<string | null>(null);
-  const [draftEdit, setDraftEdit] = useState<CreationDraft | null>(null);
+  const [editingCardId, setEditingCardId] = useState(false);
+  const [groupEdits, setGroupEdits] = useState<ReadonlyMap<string, CreationDraft>>(new Map());
+  const [picks, setPicks] = useState<ReadonlyMap<string, boolean>>(new Map());
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+  const [acceptPending, setAcceptPending] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [mergeSearch, setMergeSearch] = useState("");
   const [mergeTarget, setMergeTarget] = useState("");
@@ -125,36 +112,31 @@ export function NewCardRecord({ name }: { name: string }) {
     : {};
   const activeCard = edits ?? preseeded;
   const cardId = (cardIdEdit ?? detail?.defaultCardId ?? "").trim();
-  const seed = detail ? firstCandidate(detail, sortByProviderOrder(providerSettings)) : undefined;
-  const seededDraft = draftFromNewCard(
-    {
-      slug: cardId,
-      name: typeof activeCard.name === "string" ? activeCard.name : displayName,
-      summary: `${sources.length} ${pluralize(sources.length, "source")}`,
-    },
-    seed?.candidate,
-    seed?.provider ?? "",
-  );
-  const draft =
-    draftEdit ??
-    (seed === undefined ? seededDraft : { ...seededDraft, candidatePrintingIds: seed.groupIds });
-  const printingReady =
-    draft.faces.length > 0 &&
-    draft.candidatePrintingIds.length > 0 &&
-    validateDraft(draft).length === 0;
+  const newCard: DraftCard = {
+    mode: "new",
+    slug: cardId,
+    name: typeof activeCard.name === "string" ? activeCard.name : displayName,
+    summary: `${sources.length} ${pluralize(sources.length, "source")}`,
+  };
+  const groups: NewCardGroup[] = (
+    detail ? seedNewCardGroups(detail, sortByProviderOrder(providerSettings), newCard) : []
+  ).map((group) => {
+    const edit = groupEdits.get(group.key);
+    return edit === undefined ? group : { ...group, draft: { ...edit, card: newCard } };
+  });
+  const checked = new Set(checkedGroupKeys(groups, picks));
+  const focused = groups.find((group) => group.key === focusKey) ?? groups.at(0);
+  const busy = acceptPending || acceptNewCard.isPending || acceptPrintingGroup.isPending;
   const canAccept = hasRequiredActiveFields(activeCard) && cardId.length > 0;
   const providerRows = sources.filter((source) => source.provider !== USER_SUBMISSION_PROVIDER);
-  const groupCount = detail
-    ? buildPrintingGroups(detail.candidatePrintingGroups, detail.candidatePrintings).length
-    : 0;
-  const remainingGroups = Math.max(0, groupCount - (printingReady ? 1 : 0));
+  const remainingGroups = groups.length - checked.size;
 
   function openCard(cardSlug: string) {
     accepting.current = false;
     void navigate({ to: "/admin/workspace/cards/$cardSlug", params: { cardSlug }, search: true });
   }
 
-  async function acceptPrinting(cardSlug: string) {
+  async function acceptPrintings(cardSlug: string, chosen: readonly NewCardGroup[]) {
     let fresh: AdminCardDetailResponse | null = null;
     try {
       fresh = (await queryClient.query(
@@ -165,16 +147,25 @@ export function NewCardRecord({ name }: { name: string }) {
     }
     const cardUuid = fresh?.card?.id;
     if (cardUuid === undefined) {
-      openCard(cardSlug);
+      toast.error(
+        "The card was created, but its printings were not accepted. They stay under Printings, New.",
+        PERSISTENT_ERROR_TOAST,
+      );
       return;
     }
-    acceptPrintingGroup.mutate(toAcceptInput(draft, cardUuid), {
-      onSettled: () => openCard(cardSlug),
-    });
+    const failures = await runInSequence(chosen, (group) =>
+      acceptPrintingGroup.mutateAsync(toAcceptInput(group.draft, cardUuid)),
+    );
+    if (failures.length > 0) {
+      toast.error(
+        `Not accepted: ${failures.map((failure) => failure.item.label).join(", ")}. ${failures.length === 1 ? "It stays" : "They stay"} under Printings, New.`,
+        PERSISTENT_ERROR_TOAST,
+      );
+    }
   }
 
-  function acceptAsNew() {
-    if (!canAccept || acceptNewCard.isPending || accepting.current) {
+  async function acceptAsNew() {
+    if (!canAccept || busy || accepting.current) {
       return;
     }
     const cardFields = { id: cardId, ...activeCard } as AcceptNewCardBody["cardFields"];
@@ -184,21 +175,24 @@ export function NewCardRecord({ name }: { name: string }) {
       return;
     }
     accepting.current = true;
-    acceptNewCard.mutate(
-      { name, cardFields },
-      {
-        onError: () => {
-          accepting.current = false;
-        },
-        onSuccess: () => {
-          if (printingReady) {
-            void acceptPrinting(cardId);
-            return;
-          }
-          openCard(cardId);
-        },
-      },
-    );
+    setAcceptPending(true);
+    try {
+      await acceptNewCard.mutateAsync({ name, cardFields });
+    } catch {
+      accepting.current = false;
+      setAcceptPending(false);
+      return;
+    }
+    const chosen = groups.filter((group) => checked.has(group.key));
+    if (chosen.length > 0) {
+      await acceptPrintings(cardId, chosen);
+    }
+    setAcceptPending(false);
+    openCard(cardId);
+  }
+
+  function editGroup(key: string, draft: CreationDraft) {
+    setGroupEdits(new Map(groupEdits).set(key, draft));
   }
 
   function ignoreDraft() {
@@ -214,7 +208,7 @@ export function NewCardRecord({ name }: { name: string }) {
 
   useRegisterRecordActions({
     primary: { label: "Next", run: () => Promise.resolve() },
-    accept: acceptAsNew,
+    accept: () => acceptAsNew(),
     ignore: isAdmin && providerRows.length > 0 ? ignoreDraft : undefined,
   });
 
@@ -232,6 +226,9 @@ export function NewCardRecord({ name }: { name: string }) {
       badges={<Badge variant="violet">New</Badge>}
       actions={
         <>
+          <Button variant="ghost" size="sm" onClick={() => navigation.skipToEnd()}>
+            Skip to end <Kbd>S</Kbd>
+          </Button>
           {isAdmin && providerRows.length > 0 && (
             <Button variant="outline" disabled={ignoreSource.isPending} onClick={ignoreDraft}>
               Ignore
@@ -243,11 +240,7 @@ export function NewCardRecord({ name }: { name: string }) {
               Merge into existing…
             </Button>
           )}
-          <Button
-            disabled={!canAccept}
-            pending={acceptNewCard.isPending || acceptPrintingGroup.isPending}
-            onClick={acceptAsNew}
-          >
+          <Button disabled={!canAccept} pending={busy} onClick={() => void acceptAsNew()}>
             Accept as new card
             <Kbd>A</Kbd>
           </Button>
@@ -261,11 +254,11 @@ export function NewCardRecord({ name }: { name: string }) {
       header={header}
       banner={
         <RecordBanner>
-          {printingReady
-            ? "Accepting creates the card and what is listed under “What gets created”."
-            : "Accepting creates the card. Fill in the face under “What gets created” to add its printing in the same step."}
+          {checked.size > 0
+            ? `Accepting creates the card and the ${checked.size} ticked ${pluralize(checked.size, "printing")} under “What gets created”.`
+            : "Accepting creates the card. Tick a complete printing under “What gets created” to add it in the same step."}
           {remainingGroups > 0 &&
-            ` ${remainingGroups} other ${pluralize(remainingGroups, "printing")} from sources ${remainingGroups === 1 ? "stays" : "stay"} under Printings, New.`}
+            ` ${remainingGroups} unticked ${pluralize(remainingGroups, "printing")} ${remainingGroups === 1 ? "stays" : "stay"} under Printings, New.`}
           {!canAccept && " Pick name, types and domains first."}
         </RecordBanner>
       }
@@ -323,22 +316,68 @@ export function NewCardRecord({ name }: { name: string }) {
       </RecordSection>
 
       <RecordSection title="What gets created">
-        <div className="mb-3 flex flex-wrap items-end gap-2">
-          <div className="space-y-1">
-            <Label htmlFor="new-card-id">Card ID</Label>
-            <Input
-              id="new-card-id"
-              value={cardIdEdit ?? detail.defaultCardId}
-              onChange={(event) => setCardIdEdit(event.target.value)}
-              className="w-48 font-mono"
-            />
-          </div>
-        </div>
-        <CreationPanel
-          draft={draft}
-          onChange={setDraftEdit}
-          disabled={acceptNewCard.isPending || acceptPrintingGroup.isPending}
+        <FieldRow
+          label="Card ID"
+          value={<span className="font-mono">{cardId}</span>}
+          onEdit={() => setEditingCardId(true)}
+          editing={
+            editingCardId ? (
+              <Input
+                aria-label="Card ID"
+                value={cardIdEdit ?? detail.defaultCardId}
+                onChange={(event) => setCardIdEdit(event.target.value)}
+                onBlur={() => setEditingCardId(false)}
+                className="w-48 font-mono"
+                // oxlint-disable-next-line jsx-a11y/no-autofocus -- opened by its Edit button, focus follows the click
+                autoFocus
+              />
+            ) : undefined
+          }
         />
+        {groups.length === 0 ? (
+          <p className="text-muted-foreground mt-2">
+            No source lists a printing. Add one under Printings after accepting.
+          </p>
+        ) : (
+          <div className="mt-2 mb-3 flex flex-col">
+            {groups.map((group) => {
+              const complete = isDraftComplete(group.draft);
+              const id = `new-card-group-${group.key}`;
+              return (
+                <div
+                  key={group.key}
+                  className="flex flex-wrap items-center gap-2.5 border-t py-1.5"
+                >
+                  <Checkbox
+                    id={id}
+                    checked={checked.has(group.key)}
+                    disabled={!complete || busy}
+                    onCheckedChange={(value) => setPicks(new Map(picks).set(group.key, value))}
+                  />
+                  <Label htmlFor={id} className="flex-1">
+                    {group.label}
+                  </Label>
+                  {!complete && <Badge variant="warning">Incomplete</Badge>}
+                  <Button
+                    variant={focused?.key === group.key ? "secondary" : "outline"}
+                    size="sm"
+                    onClick={() => setFocusKey(group.key)}
+                  >
+                    {focused?.key === group.key ? "Editing" : "Edit"}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {focused !== undefined && (
+          <CreationPanel
+            key={focused.key}
+            draft={focused.draft}
+            onChange={(draft) => editGroup(focused.key, draft)}
+            disabled={busy}
+          />
+        )}
       </RecordSection>
 
       <Dialog open={mergeOpen} onOpenChange={setMergeOpen}>

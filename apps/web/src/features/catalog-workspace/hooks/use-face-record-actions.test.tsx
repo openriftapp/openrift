@@ -1,8 +1,10 @@
-import { renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, renderHook } from "@testing-library/react";
+import { toast } from "sonner";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { RecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { buildFaceSuggestions } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
 import {
   makeAdminCardDetail,
   makeAdminPrinting,
@@ -10,15 +12,23 @@ import {
   makeCandidatePrinting,
   resetIdCounter,
 } from "@/test/factories";
+import { createStoreResetter } from "@/test/store-helpers";
 
 function mutation() {
-  return { mutate: vi.fn(), mutateAsync: vi.fn(async () => {}), isPending: false };
+  return {
+    mutate: vi.fn((_input: unknown, options?: { onSuccess?: () => void }) =>
+      options?.onSuccess?.(),
+    ),
+    mutateAsync: vi.fn(async () => {}),
+    isPending: false,
+  };
 }
 
 const mocks = vi.hoisted(() => ({
   acceptField: { current: null as ReturnType<typeof mutation> | null },
   checkCandidate: { current: null as ReturnType<typeof mutation> | null },
   checkAll: { current: null as ReturnType<typeof mutation> | null },
+  uncheck: { current: null as ReturnType<typeof mutation> | null },
   setImage: { current: null as ReturnType<typeof mutation> | null },
   acceptSubmission: { current: null as ReturnType<typeof mutation> | null },
   rejectSubmission: { current: null as ReturnType<typeof mutation> | null },
@@ -34,7 +44,9 @@ vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
   },
   useCheckCandidatePrinting: () => mocks.checkCandidate.current,
   useCheckAllCandidatePrintings: () => mocks.checkAll.current,
+  useUncheckCandidatePrinting: () => mocks.uncheck.current,
 }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => ({
   useSetCandidatePrintingImage: () => mocks.setImage.current,
 }));
@@ -82,11 +94,20 @@ function setup(options: { contributor?: boolean } = {}) {
   return { model: buildFaceSuggestions(detail, "face-1", CONTEXT), candidate, source };
 }
 
+let resetStore: () => void;
+
+afterEach(() => {
+  resetStore();
+});
+
 beforeEach(() => {
   resetIdCounter();
+  resetStore = createStoreResetter(useWorkspaceSelectionStore);
+  vi.mocked(toast.success).mockClear();
   mocks.acceptField.current = mutation();
   mocks.checkCandidate.current = mutation();
   mocks.checkAll.current = mutation();
+  mocks.uncheck.current = mutation();
   mocks.setImage.current = mutation();
   mocks.acceptSubmission.current = mutation();
   mocks.rejectSubmission.current = mutation();
@@ -190,6 +211,82 @@ describe("useFaceRecordActions", () => {
       candidateCardId: source.id,
       note: null,
     });
+  });
+
+  it("Discard pushes an undo that unchecks the row, with an Undo toast", async () => {
+    const { model, candidate } = setup();
+    const { result } = renderHook(() =>
+      useFaceRecordActions({ cardSlug: "OGN-001", model, canCheck: true, enabled: true }),
+    );
+
+    act(() => result.current.discard(candidate.id));
+
+    expect(mocks.checkCandidate.current?.mutate).toHaveBeenCalledWith(
+      candidate.id,
+      expect.anything(),
+    );
+    expect(toast.success).toHaveBeenCalledWith(
+      "Discarded 2 suggestions from provider-a",
+      expect.objectContaining({ action: expect.objectContaining({ label: "Undo (Z)" }) }),
+    );
+    const entry = useWorkspaceSelectionStore.getState().popUndo();
+    await entry?.undo();
+    expect(mocks.uncheck.current?.mutateAsync).toHaveBeenCalledWith(candidate.id);
+  });
+
+  it("the toast Undo removes its own entry and runs once", async () => {
+    const { model, candidate } = setup();
+    const { result } = renderHook(() =>
+      useFaceRecordActions({ cardSlug: "OGN-001", model, canCheck: true, enabled: true }),
+    );
+    act(() => result.current.discard(candidate.id));
+    const [[, options]] = vi.mocked(toast.success).mock.calls as unknown as [
+      [string, { action: { onClick: () => void } }],
+    ];
+
+    options.action.onClick();
+    options.action.onClick();
+    await Promise.resolve();
+
+    expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);
+    expect(mocks.uncheck.current?.mutateAsync).toHaveBeenCalledOnce();
+  });
+
+  it("Enter pushes one undo that unchecks every discarded row", async () => {
+    const { model, candidate } = setup();
+    renderHook(() =>
+      useFaceRecordActions({ cardSlug: "OGN-001", model, canCheck: true, enabled: true }),
+    );
+
+    await mocks.registered.current?.primary?.run();
+    const entry = useWorkspaceSelectionStore.getState().popUndo();
+    expect(entry?.label).toBe("Discarded 2 suggestions from provider-a");
+    await entry?.undo();
+    expect(mocks.uncheck.current?.mutateAsync).toHaveBeenCalledWith(candidate.id);
+  });
+
+  it("disables Enter while a contributor proposal is unanswered", () => {
+    const { model } = setup({ contributor: true });
+    const { result } = renderHook(() =>
+      useFaceRecordActions({ cardSlug: "OGN-001", model, canCheck: true, enabled: true }),
+    );
+    expect(result.current.contributorOpen).toBe(true);
+    expect(mocks.registered.current?.primary?.disabled).toBe(true);
+  });
+
+  it("keeps Enter open when the contributor row proposes nothing on this face", () => {
+    const { model: base } = setup({ contributor: true });
+    const model = {
+      ...base,
+      suggestions: [],
+      sourceImages: [],
+      sources: base.sources.map((source) => ({ ...source, differences: 0 })),
+    };
+    const { result } = renderHook(() =>
+      useFaceRecordActions({ cardSlug: "OGN-001", model, canCheck: true, enabled: true }),
+    );
+    expect(result.current.contributorOpen).toBe(false);
+    expect(mocks.registered.current?.primary?.disabled).toBe(false);
   });
 
   it("offers nothing while disabled", () => {

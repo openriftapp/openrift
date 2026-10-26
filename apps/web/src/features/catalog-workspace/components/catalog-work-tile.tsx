@@ -87,7 +87,7 @@ export function CatalogWorkTile() {
   const allStats = queueStats(groups);
 
   return (
-    <Card className="sm:col-span-2">
+    <Card>
       <CardHeader>
         <CardTitle className="text-muted-foreground flex items-center gap-1.5">
           <InboxIcon className="size-4" />
@@ -97,8 +97,14 @@ export function CatalogWorkTile() {
       <CardContent className="space-y-3">
         {error === null ? (
           <p className="text-muted-foreground text-sm">
-            {allStats.decisions} decisions · {totals.new} new records · {data?.doneToday ?? 0} done
-            today
+            {allStats.decisions} decisions · {totals.new} new records ·{" "}
+            {role === "desk" ? (
+              `${data?.doneToday ?? 0} done today`
+            ) : (
+              <Link to="/admin/workspace/today" className="underline-offset-4 hover:underline">
+                {data?.doneToday ?? 0} done today ›
+              </Link>
+            )}
           </p>
         ) : (
           <p className="text-muted-foreground text-sm">The work queue could not be loaded.</p>

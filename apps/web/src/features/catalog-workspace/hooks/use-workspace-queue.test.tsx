@@ -104,7 +104,7 @@ vi.mock("@/features/catalog-workspace/lib/workspace-queries", () => ({
   }),
 }));
 
-const { resolveView, useWorkspaceQueue, useWorkspaceRecords } =
+const { filterDeskTable, recordFilterFor, resolveView, useWorkspaceQueue, useWorkspaceRecords } =
   await import("./use-workspace-queue");
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -278,5 +278,95 @@ describe("useWorkspaceRecords", () => {
     expect(result.current.kind).toBe("desk");
     expect(state.deskModes).toEqual(["all"]);
     expect(state.recordsInputs).toEqual([]);
+  });
+
+  it("sends a type filter that fits the table and drops one that does not", async () => {
+    state.search = { filter: "promo" };
+    const printings = renderHook(() => useWorkspaceRecords("printing", true), { wrapper });
+    await waitFor(() => expect(printings.result.current.isPending).toBe(false));
+    const faces = renderHook(() => useWorkspaceRecords("face", true), { wrapper });
+    await waitFor(() => expect(faces.result.current.isPending).toBe(false));
+    expect(state.recordsInputs).toMatchObject([
+      { kind: "printing", filter: "promo" },
+      { kind: "face", filter: undefined },
+    ]);
+  });
+
+  it("keeps only All rows with open work for the picked reason", async () => {
+    state.search = { reason: "contributor-proposal" };
+    const { result } = renderHook(() => useWorkspaceRecords("card", true), { wrapper });
+    await waitFor(() =>
+      expect(result.current.entries.map((entry) => entry.key)).toEqual(["card:yasuo-unforgiven"]),
+    );
+  });
+});
+
+describe("recordFilterFor", () => {
+  it("accepts only the filters of the table", () => {
+    expect(recordFilterFor("printing", "mine")).toBe("mine");
+    expect(recordFilterFor("face", "mine")).toBeUndefined();
+    expect(recordFilterFor("face", "substitute")).toBe("substitute");
+    expect(recordFilterFor("desk", "promo")).toBeUndefined();
+    expect(recordFilterFor("printing", undefined)).toBeUndefined();
+  });
+});
+
+describe("filterDeskTable", () => {
+  function deskRow(overrides: Record<string, unknown>) {
+    return {
+      printingId: "p",
+      cardName: "Garen, Rugged",
+      cardSlug: "garen-rugged",
+      shortCode: "OGN-160",
+      publicCode: "OGN-160p",
+      language: "en",
+      finish: "foil",
+      imageCount: 1,
+      secondSide: null,
+      releasedAt: "2026-01-01",
+      releasePrecision: "day",
+      updatedAt: "2026-10-01T00:00:00.000Z",
+      ...overrides,
+    } as unknown as Parameters<typeof filterDeskTable>[0][number];
+  }
+
+  const rows = [
+    deskRow({ printingId: "a", shortCode: "OGN-007", updatedAt: "2026-10-03T00:00:00.000Z" }),
+    deskRow({ printingId: "b", imageCount: 0, releasedAt: "2099-01-01" }),
+    deskRow({
+      printingId: "c",
+      shortCode: "UNL-T02",
+      secondSide: {
+        cardName: "Brush",
+        cardSlug: "brush",
+        shortCode: "UNL-T03",
+        publicCode: "UNL-T03",
+      },
+      updatedAt: "2026-10-05T00:00:00.000Z",
+    }),
+  ];
+
+  it("sorts by last update unless told otherwise", () => {
+    expect(filterDeskTable(rows, {}).map((row) => row.printingId)).toEqual(["c", "a", "b"]);
+    expect(filterDeskTable(rows, { deskSort: "code" }).map((row) => row.printingId)).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+  });
+
+  it("narrows to double-sided printings or printings without images", () => {
+    expect(filterDeskTable(rows, { filter: "double-sided" }).map((row) => row.printingId)).toEqual([
+      "c",
+    ]);
+    expect(filterDeskTable(rows, { filter: "no-image" }).map((row) => row.printingId)).toEqual([
+      "b",
+    ]);
+  });
+
+  it("filters by status", () => {
+    expect(filterDeskTable(rows, { status: "announced" }).map((row) => row.printingId)).toEqual([
+      "b",
+    ]);
   });
 });

@@ -153,6 +153,38 @@ export function discardLabel(
     : `${base} (also settles ${elsewhere})`;
 }
 
+export const ADMIN_ONLY_DISCARD = "Only an admin discards source suggestions.";
+export const ADMIN_ONLY_REPLY = "Only an admin replies to contributors.";
+
+export function discardedLabel(
+  sources: readonly SuggestionSource[],
+  candidatePrintingIds: readonly string[],
+): string {
+  const picked = sources.filter((source) =>
+    candidatePrintingIds.includes(source.candidatePrintingId),
+  );
+  const differences = picked.reduce((sum, source) => sum + source.differences, 0);
+  const providers = [...new Set(picked.map((source) => source.provider))];
+  const from = providers.length === 0 ? "" : ` from ${providers.join(", ")}`;
+  return differences === 0
+    ? `Discarded ${picked.length} ${pluralize(picked.length, "source")}${from}`
+    : `Discarded ${differences} ${pluralize(differences, "suggestion")}${from}`;
+}
+
+export function faceCompareCandidates(
+  detail: AdminCardDetailResponse,
+  faceId: string,
+  hiddenProviders: ReadonlySet<string> = new Set(),
+): CandidatePrintingResponse[] {
+  const sourceIds = new Set(detail.sources.map((source) => source.id));
+  return detail.candidatePrintings.filter(
+    (candidate) =>
+      sourceIds.has(candidate.candidateCardId) &&
+      !hiddenProviders.has(providerOf(detail, candidate.candidateCardId)) &&
+      candidateBelongsToFace(candidate, faceId, detail.printings),
+  );
+}
+
 export function primaryLabel(discardCount: number): string {
   return discardCount === 0 ? "Next" : `Discard ${discardCount} & next`;
 }

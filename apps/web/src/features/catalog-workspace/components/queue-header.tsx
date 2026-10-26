@@ -1,5 +1,9 @@
-import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-workspace";
+import type {
+  WorkspaceOwner,
+  WorkspaceRecordFilter,
+} from "@openrift/shared/contracts/admin/catalog-workspace";
 import { workspaceReasonSchema } from "@openrift/shared/contracts/admin/catalog-workspace";
+import { Link } from "@tanstack/react-router";
 
 import { Kbd } from "@/components/ui/kbd";
 import {
@@ -11,7 +15,10 @@ import {
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
+import { BatchButton } from "@/features/catalog-workspace/components/batch-dialogs";
+import type { BatchKind } from "@/features/catalog-workspace/hooks/use-workspace-batch";
 import type { WorkspaceSearchState } from "@/features/catalog-workspace/hooks/use-workspace-queue";
+import { RECORD_FILTERS } from "@/features/catalog-workspace/hooks/use-workspace-queue";
 import type { DeskMode } from "@/features/catalog-workspace/lib/owner-items";
 import {
   compactAge,
@@ -19,7 +26,11 @@ import {
   SORT_LABELS,
 } from "@/features/catalog-workspace/lib/owner-items";
 import type { WorkspaceView } from "@/features/catalog-workspace/lib/workspace-search";
-import { WORKSPACE_SORTS } from "@/features/catalog-workspace/lib/workspace-search";
+import {
+  DESK_SORTS,
+  DESK_STATUSES,
+  WORKSPACE_SORTS,
+} from "@/features/catalog-workspace/lib/workspace-search";
 
 const ANY = "__any__";
 
@@ -28,10 +39,42 @@ const DESK_SEGMENTS: { value: DeskMode; label: string }[] = [
   { value: "promos", label: "All promos" },
 ];
 
+const FILTER_LABELS: Record<WorkspaceRecordFilter, string> = {
+  promo: "Promos",
+  "double-sided": "Double-sided",
+  "no-image": "No image",
+  mine: "Added by me",
+  substitute: "Substitute image",
+  shared: "Shared",
+};
+
+const DESK_STATUS_ITEMS = [
+  { value: ANY, label: "Any status" },
+  ...DESK_STATUSES.map((value) => ({
+    value,
+    label: value === "announced" ? "Announced" : "Released",
+  })),
+];
+
+const DESK_SORT_LABELS: Record<(typeof DESK_SORTS)[number], string> = {
+  code: "By code",
+  card: "By card name",
+  updated: "Last updated",
+  release: "Available from",
+};
+
+const BATCH_KINDS: Record<WorkspaceOwner, readonly BatchKind[]> = {
+  card: ["trusted-cards"],
+  printing: ["trusted-printings", "suggested-listings"],
+  face: [],
+};
+
 export interface QueueHeaderProps {
   owner: WorkspaceOwner;
   view: WorkspaceView;
   desk: boolean;
+  isAdmin: boolean;
+  hint?: string;
   counts: { open: number; new: number };
   allCount: number | null;
   search: WorkspaceSearchState;
@@ -103,6 +146,39 @@ function DeskSegmentControl({
   );
 }
 
+function TypeFilterChips({
+  filters,
+  active,
+  activeCount,
+  onSearchChange,
+}: {
+  filters: readonly WorkspaceRecordFilter[];
+  active: WorkspaceRecordFilter | undefined;
+  activeCount: number | null;
+  onSearchChange: (patch: Partial<WorkspaceSearchState>) => void;
+}) {
+  return (
+    <ToggleGroup
+      variant="outline"
+      size="sm"
+      spacing={0}
+      value={active === undefined ? [] : [active]}
+      aria-label="Show only"
+      onValueChange={([next]) => {
+        onSearchChange({ filter: filters.find((filter) => filter === next) });
+      }}
+    >
+      {filters.map((filter) => (
+        <ToggleGroupItem key={filter} value={filter}>
+          {filter === active && activeCount !== null
+            ? `${FILTER_LABELS[filter]} ${activeCount.toLocaleString()}`
+            : FILTER_LABELS[filter]}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
+  );
+}
+
 function FilterSelect({
   label,
   value,
@@ -138,6 +214,8 @@ export function QueueHeader({
   owner,
   view,
   desk,
+  isAdmin,
+  hint,
   counts,
   allCount,
   search,
@@ -164,6 +242,14 @@ export function QueueHeader({
     })),
   ];
   const isQueue = view !== "all";
+  const filterKind = desk ? "desk" : owner;
+  const filters = view === "all" && filterKind !== "card" ? RECORD_FILTERS[filterKind] : [];
+  const activeFilter = filters.find((filter) => filter === search.filter);
+  const deskSortItems = DESK_SORTS.map((value) => ({
+    value,
+    label: `Sort: ${DESK_SORT_LABELS[value]}`,
+  }));
+  const batchKinds = isAdmin && view === "new" ? BATCH_KINDS[owner] : [];
 
   return (
     <div className="flex flex-col gap-2 border-b px-3 pb-3">
@@ -179,10 +265,26 @@ export function QueueHeader({
           owner={owner}
           view={view}
           counts={counts}
-          allCount={allCount}
+          allCount={activeFilter === undefined ? allCount : null}
           onSearchChange={onSearchChange}
         />
       )}
+      {filters.length > 0 && (
+        <TypeFilterChips
+          filters={filters}
+          active={activeFilter}
+          activeCount={allCount}
+          onSearchChange={onSearchChange}
+        />
+      )}
+      {batchKinds.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {batchKinds.map((kind) => (
+            <BatchButton key={kind} kind={kind} />
+          ))}
+        </div>
+      )}
+      {hint !== undefined && <p className="text-muted-foreground text-sm">{hint}</p>}
       {isQueue && (
         <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
           <span>
@@ -195,23 +297,46 @@ export function QueueHeader({
               <strong>{compactAge(stats.oldestAt)}</strong>
             </span>
           )}
-          <span>
-            <strong>{doneToday}</strong> <span className="text-muted-foreground">done today</span>
-          </span>
+          <Link to="/admin/workspace/today" className="hover:underline">
+            <strong>{doneToday}</strong> <span className="text-muted-foreground">done today ›</span>
+          </Link>
         </p>
       )}
       <div className="flex flex-wrap items-center gap-1.5">
-        {isQueue && (
+        {desk && (
           <>
             <FilterSelect
+              label="Status"
+              value={search.status ?? ANY}
+              items={DESK_STATUS_ITEMS}
+              onChange={(next) =>
+                onSearchChange({ status: DESK_STATUSES.find((value) => value === next) })
+              }
+            />
+            <FilterSelect
               label="Sort"
-              value={search.order ?? "oldest"}
-              items={sortItems}
+              value={search.deskSort ?? "updated"}
+              items={deskSortItems}
               onChange={(next) => {
-                const order = WORKSPACE_SORTS.find((value) => value === next);
-                onSearchChange({ order: order === "oldest" ? undefined : order });
+                const deskSort = DESK_SORTS.find((value) => value === next);
+                onSearchChange({ deskSort: deskSort === "updated" ? undefined : deskSort });
               }}
             />
+          </>
+        )}
+        {isQueue && (
+          <FilterSelect
+            label="Sort"
+            value={search.order ?? "oldest"}
+            items={sortItems}
+            onChange={(next) => {
+              const order = WORKSPACE_SORTS.find((value) => value === next);
+              onSearchChange({ order: order === "oldest" ? undefined : order });
+            }}
+          />
+        )}
+        {!desk && (
+          <>
             <FilterSelect
               label="Source"
               value={search.provider ?? ANY}

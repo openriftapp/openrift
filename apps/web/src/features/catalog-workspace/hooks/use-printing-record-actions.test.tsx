@@ -2,12 +2,14 @@ import type { StagedProductResponse } from "@openrift/shared/types/api/admin";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { toast } from "sonner";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { toastFieldAccepted } from "@/features/admin/lib/accept-undo";
 import type { RecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import type { ListingSuggestion } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { buildPrintingSuggestions } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
+import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
 import {
   makeAdminCardDetail,
   makeAdminPrinting,
@@ -15,6 +17,7 @@ import {
   makeCandidatePrinting,
   resetIdCounter,
 } from "@/test/factories";
+import { createStoreResetter } from "@/test/store-helpers";
 
 function mutation() {
   return { mutate: vi.fn(), mutateAsync: vi.fn(async () => {}), isPending: false };
@@ -23,6 +26,7 @@ function mutation() {
 const mocks = vi.hoisted(() => ({
   acceptField: { current: null as ReturnType<typeof mutation> | null },
   checkAll: { current: null as ReturnType<typeof mutation> | null },
+  uncheck: { current: null as ReturnType<typeof mutation> | null },
   save: { current: null as ReturnType<typeof mutation> | null },
   ignore: { current: null as ReturnType<typeof mutation> | null },
   generic: { current: null as ReturnType<typeof mutation> | null },
@@ -33,7 +37,9 @@ vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
   useAcceptPrintingField: () => mocks.acceptField.current,
   useCheckCandidatePrinting: () => mocks.generic.current,
   useCheckAllCandidatePrintings: () => mocks.checkAll.current,
+  useUncheckCandidatePrinting: () => mocks.uncheck.current,
 }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 vi.mock("@/features/admin/hooks/use-catalog-review", () => ({
   useAcceptSubmission: () => mocks.generic.current,
   useRejectSubmission: () => mocks.generic.current,
@@ -81,10 +87,18 @@ function wrapper(client: QueryClient) {
   };
 }
 
+let resetStore: () => void;
+
+afterEach(() => {
+  resetStore();
+});
+
 beforeEach(() => {
   resetIdCounter();
+  resetStore = createStoreResetter(useWorkspaceSelectionStore);
   mocks.acceptField.current = mutation();
   mocks.checkAll.current = mutation();
+  mocks.uncheck.current = mutation();
   mocks.save.current = mutation();
   mocks.ignore.current = mutation();
   mocks.generic.current = mutation();
@@ -116,6 +130,40 @@ describe("usePrintingRecordActions", () => {
 
     await mocks.registered.current?.primary?.run();
     expect(mocks.checkAll.current?.mutateAsync).toHaveBeenCalledWith({ extraIds: [candidate.id] });
+    const entry = useWorkspaceSelectionStore.getState().popUndo();
+    await entry?.undo();
+    expect(mocks.uncheck.current?.mutateAsync).toHaveBeenCalledWith(candidate.id);
+  });
+
+  it("Discard pushes an undo that unchecks the row", async () => {
+    const { model, candidate } = setup();
+    mocks.generic.current = {
+      ...mutation(),
+      mutate: vi.fn((_input: unknown, options?: { onSuccess?: () => void }) =>
+        options?.onSuccess?.(),
+      ),
+    };
+    const client = new QueryClient();
+    const { result } = renderHook(
+      () =>
+        usePrintingRecordActions({
+          printingId: "p1",
+          model,
+          listings: [],
+          canCheck: true,
+          canMap: true,
+        }),
+      { wrapper: wrapper(client) },
+    );
+
+    result.current.discard(candidate.id);
+    expect(toast.success).toHaveBeenCalledWith(
+      "Discarded 1 suggestion from provider-a",
+      expect.anything(),
+    );
+    const entry = useWorkspaceSelectionStore.getState().popUndo();
+    await entry?.undo();
+    expect(mocks.uncheck.current?.mutateAsync).toHaveBeenCalledWith(candidate.id);
   });
 
   it("maps the listing with the number key and refreshes the queue once it settles", () => {

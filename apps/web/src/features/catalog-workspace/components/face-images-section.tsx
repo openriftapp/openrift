@@ -56,6 +56,10 @@ import { RecordSection } from "@/features/catalog-workspace/components/record/re
 import { SuggestionChip } from "@/features/catalog-workspace/components/record/suggestion-chip";
 import type { FaceChip } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import type { FaceSuggestionModel } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import {
+  ADMIN_ONLY_DISCARD,
+  ADMIN_ONLY_REPLY,
+} from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
 
@@ -209,10 +213,12 @@ export function FaceImagesSection({
                 onUse={() => onUse(chip)}
                 onDiscard={isContributor || !isAdmin ? undefined : () => onDiscard(candidate.id)}
                 discardLabel={discardLabelOf(candidate.id, provider)}
+                discardDisabledReason={isContributor ? undefined : ADMIN_ONLY_DISCARD}
                 onReject={isContributor ? () => onReject(candidate.candidateCardId) : undefined}
                 onReply={
                   isContributor && isAdmin ? () => onReply(candidate.candidateCardId) : undefined
                 }
+                replyDisabledReason={isContributor ? ADMIN_ONLY_REPLY : undefined}
                 menu={
                   isContributor ? undefined : (
                     <DropdownMenuItem

@@ -177,7 +177,7 @@ export function useCardRecordActions({
           disabled: contributorOpen || isPending,
           run: discardRemaining,
         }
-      : { label: "Next", run: () => Promise.resolve() },
+      : { label: "Next", disabled: contributorOpen, run: () => Promise.resolve() },
     useSuggestion: (hotkey) => {
       const suggestion = suggestionByHotkey(model?.suggestions ?? [], hotkey);
       if (suggestion !== undefined && !isPending) {

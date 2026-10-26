@@ -2,6 +2,7 @@ import { adminCatalogWorkspaceContract } from "@openrift/shared/contracts/admin/
 import type {
   WorkspaceOwner,
   WorkspaceQueueResponse,
+  WorkspaceRecordRow,
   WorkspaceRecordsInput,
   WorkspaceRecordsResponse,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
@@ -42,4 +43,22 @@ export function workspaceRecordsInfiniteQueryOptions(input: Omit<WorkspaceRecord
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     staleTime: 60 * 1000,
   });
+}
+
+export async function fetchAllWorkspaceRecords(
+  input: Omit<WorkspaceRecordsInput, "cursor">,
+  loaded: readonly WorkspaceRecordsResponse[] = [],
+): Promise<WorkspaceRecordRow[]> {
+  const rows = loaded.flatMap((page) => page.rows);
+  let cursor: string | null | undefined =
+    loaded.length === 0 ? undefined : (loaded.at(-1)?.nextCursor ?? null);
+  while (cursor !== null) {
+    // oxlint-disable-next-line no-await-in-loop -- each page needs the previous page's cursor
+    const page: WorkspaceRecordsResponse = await fetchWorkspaceRecords({
+      data: { ...input, cursor },
+    });
+    rows.push(...page.rows);
+    cursor = page.nextCursor;
+  }
+  return rows;
 }

@@ -13,7 +13,9 @@ import {
   buildFaceSuggestions,
   candidateBelongsToFace,
   describeElsewhere,
+  discardedLabel,
   discardLabel,
+  faceCompareCandidates,
   formatSuggestionValue,
   primaryLabel,
   submitterNameOf,
@@ -349,5 +351,80 @@ describe("submitterNameOf", () => {
     const detail = makeAdminCardDetail({ sources: [nameless] });
     expect(submitterNameOf([detail], nameless.id)).toBeNull();
     expect(submitterNameOf([detail], "missing")).toBeNull();
+  });
+});
+
+describe("discardedLabel", () => {
+  const sources = [
+    {
+      candidatePrintingId: "c1",
+      candidateCardId: "s1",
+      provider: "Provider A",
+      isContributor: false,
+      differences: 2,
+      elsewhere: null,
+    },
+    {
+      candidatePrintingId: "c2",
+      candidateCardId: "s2",
+      provider: "Provider B",
+      isContributor: false,
+      differences: 0,
+      elsewhere: null,
+    },
+  ];
+
+  it("counts the suggestions of the discarded rows and names their providers", () => {
+    expect(discardedLabel(sources, ["c1"])).toBe("Discarded 2 suggestions from Provider A");
+    expect(discardedLabel(sources, ["c1", "c2"])).toBe(
+      "Discarded 2 suggestions from Provider A, Provider B",
+    );
+  });
+
+  it("counts sources when the discarded rows differ nowhere on this record", () => {
+    expect(discardedLabel(sources, ["c2"])).toBe("Discarded 1 source from Provider B");
+  });
+
+  it("drops the provider part for unknown rows", () => {
+    expect(discardedLabel(sources, ["missing"])).toBe("Discarded 0 sources");
+  });
+});
+
+describe("faceCompareCandidates", () => {
+  it("keeps checked and open rows of the face and drops hidden providers and other faces", () => {
+    const shown = makeCandidateCard({ provider: "provider-a" });
+    const hidden = makeCandidateCard({ provider: "provider-hidden" });
+    const front = makeAdminPrinting({ id: "p1", side: 1, faceId: "f1", shortCode: "UNL-T02" });
+    const back = makeAdminPrinting({ id: "p1", side: 2, faceId: "f2", shortCode: "UNL-T03" });
+    const open = makeCandidatePrinting({
+      candidateCardId: shown.id,
+      printingId: "p1",
+      shortCode: "UNL-T02",
+    });
+    const checked = makeCandidatePrinting({
+      candidateCardId: shown.id,
+      printingId: "p1",
+      shortCode: "UNL-T02",
+      checkedAt: "2026-10-01T00:00:00.000Z",
+    });
+    const otherFace = makeCandidatePrinting({
+      candidateCardId: shown.id,
+      printingId: "p1",
+      shortCode: "UNL-T03",
+    });
+    const hiddenRow = makeCandidatePrinting({
+      candidateCardId: hidden.id,
+      printingId: "p1",
+      shortCode: "UNL-T02",
+    });
+    const detail = makeAdminCardDetail({
+      sources: [shown, hidden],
+      printings: [front, back],
+      candidatePrintings: [open, checked, otherFace, hiddenRow],
+    });
+
+    expect(
+      faceCompareCandidates(detail, "f1", new Set(["provider-hidden"])).map((row) => row.id),
+    ).toEqual([open.id, checked.id]);
   });
 });

@@ -1,20 +1,27 @@
 import type {
   WorkspaceOwner,
+  WorkspaceRecordFilter,
   WorkspaceRecordRow,
+  WorkspaceRecordsResponse,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
+import { WORKSPACE_RECORD_FILTERS } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useSearch } from "@tanstack/react-router";
 
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useAdminCardListWhen } from "@/features/admin/hooks/use-admin-card-queries";
+import { filterDeskPrintings, sortDeskPrintings } from "@/features/admin/lib/printing-desk-filter";
 import { deskPrintingsQueryOptions } from "@/features/admin/lib/printing-desk-queries";
 import type {
   DeskMode,
+  DeskRow,
   ListEntry,
+  OwnerGroup,
   WorkspaceRole,
 } from "@/features/catalog-workspace/lib/owner-items";
 import {
   cardSummaryEntry,
+  cardSummaryKey,
   deskEntry,
   distinctProviders,
   filterCardSummaries,
@@ -22,9 +29,11 @@ import {
   filterGroups,
   groupEntry,
   groupOwnerItems,
+  groupsByKey,
   ownersForRole,
   queueStats,
   recordEntry,
+  rowMatchesSource,
   segmentCounts,
   sortGroups,
   visibleQueueItems,
@@ -43,6 +52,37 @@ import { useWorkspaceSkipStore } from "@/features/catalog-workspace/stores/works
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 
 const RECORDS_PAGE_SIZE = 500;
+
+export const RECORD_FILTERS: Record<
+  "face" | "printing" | "desk",
+  readonly WorkspaceRecordFilter[]
+> = {
+  ...WORKSPACE_RECORD_FILTERS,
+  desk: ["double-sided", "no-image"],
+};
+
+export function recordFilterFor(
+  kind: "face" | "printing" | "desk",
+  filter: WorkspaceRecordFilter | undefined,
+): WorkspaceRecordFilter | undefined {
+  return filter !== undefined && RECORD_FILTERS[kind].includes(filter) ? filter : undefined;
+}
+
+export function filterDeskTable(
+  rows: readonly DeskRow[],
+  search: Pick<WorkspaceSearchState, "q" | "status" | "deskSort" | "filter">,
+): DeskRow[] {
+  const filter = recordFilterFor("desk", search.filter);
+  const matching = filterDeskPrintings(filterDeskRows(rows, search.q), {
+    query: "",
+    status: search.status ?? "any",
+  }).filter(
+    (row) =>
+      (filter !== "double-sided" || row.secondSide !== null) &&
+      (filter !== "no-image" || row.imageCount === 0),
+  );
+  return sortDeskPrintings(matching, search.deskSort ?? "updated");
+}
 
 const NO_SKIPS: string[] = [];
 
@@ -102,15 +142,20 @@ export function useWorkspaceQueue(owner: WorkspaceOwner) {
     items,
     groups,
     entries: groups.map((group) => groupEntry(group)),
+    ownerGroups,
     counts: segmentCounts(ownerGroups),
     stats: queueStats(segmentGroups),
-    providers: distinctProviders(segmentGroups),
+    providers: distinctProviders(view === "all" ? ownerGroups : segmentGroups),
     doneToday: query.data?.doneToday ?? 0,
   };
 }
 
 interface RecordsCommon {
   entries: ListEntry[];
+  groups: ReadonlyMap<string, OwnerGroup>;
+  source: Pick<WorkspaceSearch, "provider" | "reason">;
+  query: { kind: "face" | "printing"; q?: string; filter?: WorkspaceRecordFilter };
+  pages: readonly WorkspaceRecordsResponse[];
   total: number | null;
   hasMore: boolean;
   isLoadingMore: boolean;
@@ -137,51 +182,70 @@ export function useWorkspaceRecords(
   const deskMode = search.desk ?? "mine";
   const isDesk = role === "desk" && owner === "printing";
 
+  const recordKind = owner === "face" ? "face" : "printing";
+  const query = {
+    kind: recordKind,
+    q,
+    filter: recordFilterFor(recordKind, search.filter),
+  } as const;
+
+  const queue = useQuery({ ...workspaceQueueQueryOptions(), enabled: enabled && role !== "none" });
+  const groups = groupsByKey(
+    groupOwnerItems(
+      visibleQueueItems(queue.data?.items ?? [], role).filter((item) => item.owner === owner),
+    ),
+  );
   const cards = useAdminCardListWhen(enabled && owner === "card");
   const records = useInfiniteQuery({
-    ...workspaceRecordsInfiniteQueryOptions({
-      kind: owner === "face" ? "face" : "printing",
-      q,
-      limit: RECORDS_PAGE_SIZE,
-    }),
+    ...workspaceRecordsInfiniteQueryOptions({ ...query, limit: RECORDS_PAGE_SIZE }),
     enabled: enabled && owner !== "card" && !isDesk,
   });
   const desk = useQuery({
     ...deskPrintingsQueryOptions(deskMode === "promos" ? "all" : "mine"),
     enabled: enabled && isDesk,
   });
+  const source = { provider: search.provider, reason: search.reason };
+  const common = { groups, source, query, pages: [] as WorkspaceRecordsResponse[] };
 
   if (owner === "card") {
-    const rows = filterCardSummaries(cards.data ?? [], q);
+    const rows = filterCardSummaries(cards.data ?? [], q).filter((row) =>
+      rowMatchesSource(groups.get(cardSummaryKey(row)), search),
+    );
     return {
       kind: "card" as const,
       rows,
       entries: rows.map((row) => cardSummaryEntry(row)),
       total: cards.data?.length ?? null,
+      ...common,
       ...NO_MORE,
       isPending: enabled && cards.isPending,
       error: cards.error,
     };
   }
   if (isDesk) {
-    const rows = filterDeskRows(desk.data?.printings ?? [], q);
+    const rows = filterDeskTable(desk.data?.printings ?? [], search);
     return {
       kind: "desk" as const,
       rows,
       entries: rows.map((row) => deskEntry(row)),
-      total: desk.data?.printings.length ?? null,
+      total: desk.data ? rows.length : null,
+      ...common,
       ...NO_MORE,
       isPending: enabled && desk.isPending,
       error: desk.error,
     };
   }
-  const rows = records.data?.pages.flatMap((page) => page.rows) ?? [];
-  const recordOwner = owner === "face" ? "face" : "printing";
+  const pages = records.data?.pages ?? [];
+  const rows = pages
+    .flatMap((page) => page.rows)
+    .filter((row) => rowMatchesSource(groups.get(recordEntry(recordKind, row).key), search));
   return {
-    kind: recordOwner,
+    kind: recordKind,
     rows,
-    entries: rows.map((row) => recordEntry(recordOwner, row)),
-    total: records.data ? rows.length : null,
+    entries: rows.map((row) => recordEntry(recordKind, row)),
+    total: records.data ? (pages[0]?.total ?? rows.length) : null,
+    ...common,
+    pages,
     hasMore: records.hasNextPage,
     isLoadingMore: records.isFetchingNextPage,
     loadMore: () => {

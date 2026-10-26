@@ -10,6 +10,7 @@ import { reviewableProviderScope } from "../lib/card-review-scope.js";
 import type { WorkspaceQueueEntry } from "../lib/workspace-presenters.js";
 import {
   buildWorkspaceQueueEntries,
+  startOfUtcDay,
   toWorkspaceQueueResponse,
 } from "../lib/workspace-presenters.js";
 
@@ -50,10 +51,6 @@ function deskVisible(entry: WorkspaceQueueEntry, allowed: ReadonlySet<string>): 
     return item.segment === "open" && touchesAllowed;
   }
   return item.owner === "face" && item.reason === "new-image" && touchesAllowed;
-}
-
-function startOfUtcDay(now: Date): Date {
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
 export async function buildWorkspaceQueue(

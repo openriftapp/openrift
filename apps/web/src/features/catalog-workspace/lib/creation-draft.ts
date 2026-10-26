@@ -150,16 +150,6 @@ function emptyPrintingFields(defaults: Partial<DraftPrintingFields> = {}): Draft
   };
 }
 
-function emptyDraft(target: CreationTarget = "desk"): CreationDraft {
-  return {
-    target,
-    card: null,
-    faces: [{ mode: "new", fields: emptyFaceFields(), images: [] }],
-    printing: emptyPrintingFields(),
-    candidatePrintingIds: [],
-  };
-}
-
 function faceFieldsFromDeskRow(row: DeskPrintingRow): DraftFaceFields {
   const codeTba = isTbaCode(row.publicCode);
   return emptyFaceFields({
@@ -335,18 +325,6 @@ export function draftFromCandidatePrinting(
     }),
     candidatePrintingIds: [candidate.id],
   };
-}
-
-export function draftFromNewCard(
-  card: { slug: string; name: string; summary: string },
-  candidate: CandidatePrintingResponse | undefined,
-  sourceLabel: string,
-): CreationDraft {
-  const newCard: DraftCard = { mode: "new", ...card };
-  if (!candidate) {
-    return { ...emptyDraft("accept"), card: newCard };
-  }
-  return draftFromCandidatePrinting(newCard, candidate, sourceLabel);
 }
 
 function faceIssues(face: DraftFace, index: number, draft: CreationDraft): DraftIssue[] {

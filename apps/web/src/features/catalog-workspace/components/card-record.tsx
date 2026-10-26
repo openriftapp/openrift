@@ -2,7 +2,7 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import { formatRelativeTime } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse, AdminCardResponse } from "@openrift/shared/types/api/admin";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRightIcon,
@@ -30,7 +30,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { AdminCardMarketplaceSection } from "@/features/admin/components/admin-card-marketplace-section";
 import { CardBansSection } from "@/features/admin/components/card-bans-section";
 import { useCardDetailData } from "@/features/admin/components/card-detail-shared";
 import { CardErrataSection } from "@/features/admin/components/card-errata-section";
@@ -42,12 +41,17 @@ import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useDeleteCard, useRenameCard } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
 import { useIgnoreCandidateCard } from "@/features/admin/hooks/use-ignored-candidates";
+import { auditEventsQueryOptions } from "@/features/admin/lib/admin-audit-queries";
 import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
 import { buildAttentionSubmissions } from "@/features/admin/lib/attention-items";
 import { pairNamesByPrinting } from "@/features/admin/lib/face-rows";
+import { filterHistoryEvents } from "@/features/admin/lib/history-events";
 import { printingKindLabel } from "@/features/admin/lib/printing-summary";
+import { useCardBans } from "@/features/cards/hooks/use-card-bans";
+import { CardListingsSection } from "@/features/catalog-workspace/components/card-listings-section";
 import { CompareSourcesDialog } from "@/features/catalog-workspace/components/compare-sources-dialog";
 import { FieldRow } from "@/features/catalog-workspace/components/record/field-row";
+import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
   RecordBanner,
   RecordHeader,
@@ -61,7 +65,13 @@ import {
   cardRecordScope,
   useCardRecordActions,
 } from "@/features/catalog-workspace/hooks/use-card-record-actions";
+import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
+import type { RecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
+import {
+  bansErrataSummary,
+  historySummary,
+} from "@/features/catalog-workspace/lib/card-record-summaries";
 import {
   buildFaceTree,
   CARD_RECORD_FIELDS,
@@ -127,7 +137,7 @@ function bannerText(model: CardSuggestions, canCheck: boolean, contributorOpen: 
   return (
     <>
       {enter}
-      {contributorOpen && canCheck && (
+      {contributorOpen && (
         <>
           {" "}
           <strong>Answer the contributor proposal first.</strong>
@@ -347,6 +357,7 @@ interface CardRecordBodyProps {
   model: CardSuggestions;
   submissions: readonly AttentionSubmission[];
   isAdmin: boolean;
+  primary: NonNullable<RecordActions["primary"]>;
   record: Omit<ReturnType<typeof useCardRecordActions>, "actions">;
 }
 
@@ -357,9 +368,16 @@ function CardRecordBody({
   model,
   submissions,
   isAdmin,
+  primary,
   record,
 }: CardRecordBodyProps) {
   const navigate = useNavigate();
+  const navigation = useQueueNavigation("card");
+  const { data: bans } = useCardBans(isAdmin ? card.id : "");
+  const historyEvents = useInfiniteQuery({
+    ...auditEventsQueryOptions({ search: cardSlug }),
+    enabled: isAdmin,
+  });
   const scope = cardRecordScope(cardSlug);
   const { providerSettings, candidateCardFields, markers } = useCardDetailData(scope);
   const { labels } = useEnumOrders();
@@ -375,12 +393,25 @@ function CardRecordBody({
   const waitingSince = cardWaitingSince(items, cardSlug);
   const markerLabels = Object.fromEntries(markers.map((entry) => [entry.slug, entry.label]));
   const rowsByField = new Map<string, SuggestionRow>(model.rows.map((row) => [row.field, row]));
-  const fieldDefs =
-    view === "all"
-      ? CARD_RECORD_FIELDS
-      : CARD_RECORD_FIELDS.filter(
-          (def) => (rowsByField.get(def.field)?.suggestions.length ?? 0) > 0,
-        );
+  const differingDefs = CARD_RECORD_FIELDS.filter(
+    (def) => (rowsByField.get(def.field)?.suggestions.length ?? 0) > 0,
+  );
+  const showsAll = view === "all" || differingDefs.length === 0;
+  const fieldDefs = showsAll ? CARD_RECORD_FIELDS : differingDefs;
+  const loadedHistory = filterHistoryEvents(
+    historyEvents.data?.pages.flatMap((page) => page.items) ?? [],
+    { slug: cardSlug, name: card.name },
+    "all",
+  );
+
+  async function primaryAndNext() {
+    try {
+      await primary.run();
+    } catch {
+      return;
+    }
+    navigation.goNext();
+  }
   const submissionById = new Map(submissions.map((entry) => [entry.candidateCardId, entry]));
   const cardValues = card as unknown as Record<string, unknown>;
 
@@ -414,6 +445,7 @@ function CardRecordBody({
         onUse={() => applySuggestion(suggestion)}
         onReject={submission ? () => setDialog({ kind: "reject", submission }) : undefined}
         onReply={isAdmin && submission ? () => setDialog({ kind: "reply", submission }) : undefined}
+        replyDisabledReason={isAdmin ? undefined : "Only admins can reply"}
         menu={
           submission ? (
             <>
@@ -453,6 +485,7 @@ function CardRecordBody({
         onUse={() => applySuggestion(suggestion)}
         onDiscard={isAdmin ? () => discardSuggestion(suggestion) : undefined}
         discardLabel={discardLabel(suggestion)}
+        discardDisabledReason={isAdmin ? undefined : "Only admins can discard source suggestions"}
         bulk={
           bulkInput === null ? undefined : (
             <SameDifferenceLine
@@ -509,6 +542,22 @@ function CardRecordBody({
             Public page
             <ArrowUpRightIcon />
           </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Moves this card to the end of the list"
+            onClick={() => navigation.skipToEnd()}
+          >
+            Skip to end <Kbd>S</Kbd>
+          </Button>
+          <Button
+            size="sm"
+            disabled={primary.disabled === true || isPending}
+            onClick={() => void primaryAndNext()}
+          >
+            {primary.label}
+            <Kbd>↵</Kbd>
+          </Button>
           {isAdmin && (
             <CardMenu card={card} cardSlug={cardSlug} expectedCardId={detail.expectedCardId} />
           )}
@@ -560,11 +609,9 @@ function CardRecordBody({
             />
           );
         })}
-        {view === "differences" && (
+        {!showsAll && (
           <p className="text-muted-foreground mt-2 text-sm">
-            {fieldDefs.length === 0
-              ? "Every source agrees with the card."
-              : `${model.agreedLabels.length} ${pluralize(model.agreedLabels.length, "field")} agree: ${listFormat(model.agreedLabels.map((label) => label.toLowerCase()))}.`}
+            {`${model.agreedLabels.length} ${pluralize(model.agreedLabels.length, "field")} agree: ${listFormat(model.agreedLabels.map((label) => label.toLowerCase()))}.`}
           </p>
         )}
       </RecordSection>
@@ -579,18 +626,10 @@ function CardRecordBody({
       />
 
       {isAdmin && (
-        <RecordSection title="Marketplace listings">
-          <AdminCardMarketplaceSection
-            cardId={cardSlug}
-            pairNames={pairNamesByPrinting(detail.printings, card.name)}
-            onOpenPrinting={(printingId) =>
-              void navigate({
-                to: "/admin/workspace/printings/$printingId",
-                params: { printingId },
-              })
-            }
-          />
-        </RecordSection>
+        <CardListingsSection
+          cardSlug={cardSlug}
+          pairNames={pairNamesByPrinting(detail.printings, card.name)}
+        />
       )}
 
       {isAdmin && (
@@ -598,7 +637,7 @@ function CardRecordBody({
           title="Bans & errata"
           collapsible
           defaultOpen={false}
-          summary={card.errata === null ? "No errata" : "Errata on file"}
+          summary={bansErrataSummary(bans?.length, card.errata !== null)}
         >
           <div className="space-y-8">
             <CardBansSection cardId={card.id} />
@@ -608,7 +647,12 @@ function CardRecordBody({
       )}
 
       {isAdmin && (
-        <RecordSection title="History" collapsible defaultOpen={false}>
+        <RecordSection
+          title="History"
+          collapsible
+          defaultOpen={false}
+          summary={historySummary(loadedHistory)}
+        >
           <CardHistorySection
             cardSlug={cardSlug}
             cardName={card.name}
@@ -684,6 +728,7 @@ export function CardRecord({ cardSlug }: { cardSlug: string }) {
     canCheck: isAdmin,
   });
   useRegisterRecordActions(actions);
+  const primary = actions.primary ?? { label: "Next", run: () => Promise.resolve() };
 
   const card = detail?.card ?? null;
   if (isError) {
@@ -716,6 +761,7 @@ export function CardRecord({ cardSlug }: { cardSlug: string }) {
       model={model}
       submissions={submissions}
       isAdmin={isAdmin}
+      primary={primary}
       record={record}
     />
   );

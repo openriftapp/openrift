@@ -3,8 +3,10 @@ import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/ad
 import { describe, expect, it } from "vitest";
 
 import {
+  cardOpenBadges,
   cardSummaryEntry,
   compactAge,
+  fieldLabel,
   filterCardSummaries,
   filterGroups,
   groupDetail,
@@ -16,6 +18,7 @@ import {
   ownersForRole,
   queueStats,
   recordEntry,
+  rowMatchesSource,
   segmentCounts,
   selectedKeyFromParams,
   sortGroups,
@@ -276,6 +279,100 @@ describe("groupDetail and groupEntry", () => {
       kind: "printing-new",
       candidatePrintingId: "listing:cardmarket:812:foil",
     });
+  });
+});
+
+describe("field details", () => {
+  it("merges the fields of every item on one card in first-seen order", () => {
+    const [group] = groupOwnerItems([
+      item({ fields: ["name", "might"] }),
+      item({ id: "b", provider: "provider-b", fields: ["might", "rulesText"] }),
+    ]);
+    expect(group?.fields).toEqual(["name", "might", "rulesText"]);
+    expect(groupDetail(group!)).toBe("Name · might · rules text");
+  });
+
+  it("marks a card whose only open items are contributor proposals", () => {
+    const [group] = groupOwnerItems([
+      item({
+        reason: "contributor-proposal",
+        provider: "contributors",
+        isContributor: true,
+        fields: ["rulesText"],
+      }),
+    ]);
+    expect(groupDetail(group!)).toBe("Rules text (contributor)");
+  });
+
+  it("drops the contributor mark once a source item joins", () => {
+    const [group] = groupOwnerItems([
+      item({ isContributor: true, reason: "contributor-proposal", fields: ["tags"] }),
+      item({ id: "b", fields: ["energy"] }),
+    ]);
+    expect(group?.contributorOnly).toBe(false);
+    expect(groupDetail(group!)).toBe("Tags · energy");
+  });
+
+  it("reads printing field labels and splits unknown field names", () => {
+    expect(fieldLabel("distributionChannelSlugs")).toBe("Distribution");
+    expect(fieldLabel("someNewField")).toBe("Some new field");
+  });
+});
+
+describe("cardOpenBadges", () => {
+  it("names each differing field and the proposals", () => {
+    const [group] = groupOwnerItems([item({ fields: ["might"] })]);
+    expect(
+      cardOpenBadges(summary({ uncheckedCardCount: 1, pendingSubmissions: 1 }), group),
+    ).toEqual([
+      { label: "Might differs", variant: "warning" },
+      { label: "1 proposal", variant: "violet" },
+    ]);
+  });
+
+  it("caps the field badges", () => {
+    const [group] = groupOwnerItems([
+      item({ fields: ["name", "might", "energy", "power", "tags"] }),
+    ]);
+    const labels = cardOpenBadges(summary({}), group).map((badge) => badge.label);
+    expect(labels).toEqual(["Name differs", "Might differs", "Energy differs", "+2 more"]);
+  });
+
+  it("counts source rows when the queue has no fields for the card", () => {
+    expect(cardOpenBadges(summary({ uncheckedCardCount: 2 }), undefined)).toEqual([
+      { label: "2 from sources", variant: "warning" },
+    ]);
+  });
+
+  it("shows sources and trust on a draft", () => {
+    const draft = summary({
+      cardSlug: null,
+      candidateCount: 3,
+      uncheckedTrustedProviders: ["provider-a"],
+    });
+    expect(cardOpenBadges(draft, undefined).map((badge) => badge.label)).toEqual([
+      "3 sources",
+      "Trusted",
+    ]);
+  });
+
+  it("shows nothing for a settled card", () => {
+    expect(cardOpenBadges(summary({}), undefined)).toEqual([]);
+  });
+});
+
+describe("rowMatchesSource", () => {
+  const [group] = groupOwnerItems([item({})]);
+
+  it("keeps every row without a source or reason filter", () => {
+    expect(rowMatchesSource(undefined, {})).toBe(true);
+  });
+
+  it("keeps only rows with matching open work", () => {
+    expect(rowMatchesSource(group, { provider: "provider-a" })).toBe(true);
+    expect(rowMatchesSource(group, { provider: "provider-b" })).toBe(false);
+    expect(rowMatchesSource(group, { reason: "new-image" })).toBe(false);
+    expect(rowMatchesSource(undefined, { reason: "source-difference" })).toBe(false);
   });
 });
 

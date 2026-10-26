@@ -1,5 +1,11 @@
 import type { ComparablePrintingField } from "@openrift/shared/catalog-field-compare";
-import type { DeskImage, DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
+import type {
+  DeskImage,
+  DeskPrintingRow,
+  DeskReleasePrecision,
+  DeskUpdateInput,
+} from "@openrift/shared/contracts/admin/printing-desk";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDay } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import {
@@ -8,7 +14,11 @@ import {
 } from "@openrift/shared/marketplace-suggestions";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import type { ReleasePrecision } from "@openrift/shared/set-release";
-import { formatReleasePeriod, parseReleaseInput } from "@openrift/shared/set-release";
+import {
+  formatReleasePeriod,
+  normalizeToPeriodStart,
+  parseReleaseInput,
+} from "@openrift/shared/set-release";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +27,7 @@ import {
   ChevronRightIcon,
   CopyIcon,
   EllipsisVerticalIcon,
+  ExternalLinkIcon,
   Share2Icon,
   Trash2Icon,
 } from "lucide-react";
@@ -26,17 +37,26 @@ import { Suspense, useState } from "react";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { collectEntries } from "@/features/admin/components/marketplace-product-entries";
 import { PrintingCitationsEditor } from "@/features/admin/components/printing-citations-editor";
-import { PrintingDeskEditFields } from "@/features/admin/components/printing-desk-form-page";
-import { DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
+import { PrintingDeskChannelPicker } from "@/features/admin/components/printing-desk-channel-picker";
+import { DeskSegmented, DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { SendNoteDialog } from "@/features/admin/components/send-note-dialog";
 import { SideSearch } from "@/features/admin/components/side-search";
@@ -50,6 +70,7 @@ import {
   useDeskPrinting,
   useRemoveDeskSecondSide,
   useSetDeskSecondSide,
+  useUpdateDeskPrinting,
 } from "@/features/admin/hooks/use-printing-desk";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { deskPrintingName } from "@/features/admin/lib/desk-face-options";
@@ -62,7 +83,7 @@ import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-sett
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
 import { PrintingCompareSourcesDialog } from "@/features/catalog-workspace/components/compare-sources-dialog";
-import { PrintingHistoryList } from "@/features/catalog-workspace/components/face-record";
+import { WorkspaceHistorySection } from "@/features/catalog-workspace/components/face-record";
 import { FieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
@@ -78,6 +99,8 @@ import type { PrintingChip } from "@/features/catalog-workspace/hooks/use-printi
 import { usePrintingRecordActions } from "@/features/catalog-workspace/hooks/use-printing-record-actions";
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import {
+  ADMIN_ONLY_DISCARD,
+  ADMIN_ONLY_REPLY,
   discardLabel,
   formatSuggestionValue,
   primaryLabel,
@@ -87,8 +110,18 @@ import {
   buildPrintingSuggestions,
   listingSuggestionsForPrinting,
 } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
+import { useEnumOrders } from "@/hooks/use-enums";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { errorText } from "@/lib/error-text";
+
+type PrintingField = "channel" | "size" | "announced" | "release" | "comment";
+type DeskPatch = Omit<DeskUpdateInput, "printingId" | "side">;
+
+const PRECISION_OPTIONS = [
+  { value: "day", label: "Day" },
+  { value: "month", label: "Month" },
+  { value: "year", label: "Year" },
+] as const satisfies readonly { value: DeskReleasePrecision; label: string }[];
 
 export function PrintingRecord({ printingId }: { printingId: string }) {
   const { data: access, isPending } = useAdminAccess();
@@ -141,8 +174,7 @@ function PrintingRecordBody({
   const costKeywords = useCostKeywords();
   const labels = useValueLabels();
   const navigation = useQueueNavigation("printing");
-  const queryClient = useQueryClient();
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState<PrintingField | null>(null);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [compareOpen, setCompareOpen] = useState(false);
 
@@ -265,6 +297,7 @@ function PrintingRecordBody({
               ? undefined
               : () => actions.discard(suggestion.candidate.id)
           }
+          discardDisabledReason={suggestion.isContributor ? undefined : ADMIN_ONLY_DISCARD}
           discardLabel={discardLabel(
             sourceById.get(suggestion.candidate.id)?.differences ?? 0,
             suggestion.provider,
@@ -280,6 +313,7 @@ function PrintingRecordBody({
               ? () => setReplyTo(suggestion.candidate.candidateCardId)
               : undefined
           }
+          replyDisabledReason={suggestion.isContributor ? ADMIN_ONLY_REPLY : undefined}
         />
       );
     });
@@ -289,6 +323,12 @@ function PrintingRecordBody({
     (chips) => chips !== undefined,
   );
   const availableFromChips = releaseChips.length === 0 ? undefined : releaseChips;
+  const editOf = (field: PrintingField) =>
+    printing.canEdit && editing === null ? () => setEditing(field) : undefined;
+  const editorOf = (field: PrintingField) =>
+    editing === field ? (
+      <PrintingFieldEditor printing={printing} field={field} onDone={() => setEditing(null)} />
+    ) : undefined;
 
   return (
     <RecordPane
@@ -299,6 +339,15 @@ function PrintingRecordBody({
           badges={<DeskStatusBadge row={printing} />}
           actions={
             <>
+              <Link
+                to="/cards/$cardSlug/{-$printingSlug}"
+                params={{ cardSlug: printing.cardSlug, printingSlug: printing.slug }}
+                target="_blank"
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+              >
+                Public page
+                <ExternalLinkIcon />
+              </Link>
               {canDesk && postSlides === null && (
                 <Button variant="ghost" size="sm" disabled>
                   <Share2Icon />
@@ -349,22 +398,14 @@ function PrintingRecordBody({
               face={face}
               images={data.images}
               faceCount={faces.length}
+              isAdmin={isAdmin}
             />
           ))}
           {faces.length === 1 && printing.canEdit && <AddFace printing={printing} />}
         </div>
       </RecordSection>
 
-      <RecordSection
-        title="Printing fields"
-        actions={
-          printing.canEdit && !editing ? (
-            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-              Edit
-            </Button>
-          ) : undefined
-        }
-      >
+      <RecordSection title="Printing fields">
         {canReview && (
           <SourceStrip
             sources={model.sources.map((source) => ({
@@ -376,68 +417,64 @@ function PrintingRecordBody({
             onCompare={() => setCompareOpen(true)}
           />
         )}
-        {editing ? (
-          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-            <PrintingDeskEditFields
-              printingId={printingId}
-              scope="printing"
-              onSaved={() => {
-                setEditing(false);
-                void queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
-              }}
-              onCancel={() => setEditing(false)}
-            />
-          </Suspense>
-        ) : (
-          <div>
-            <FieldRow
-              label="Channel"
-              value={formatSuggestionValue(
-                "distributionChannelSlugs",
-                printing.distributionChannelSlugs,
-                labels,
-              )}
-              suggestions={chipsFor("distributionChannelSlugs")}
-            />
-            <FieldRow
-              label="Size"
-              value={formatSuggestionValue("size", printing.size, labels)}
-              suggestions={chipsFor("size")}
-            />
-            <FieldRow
-              label="Announced on"
-              value={printing.announcedAt === null ? "Not set" : formatDay(printing.announcedAt)}
-              suggestions={chipsFor("announcedAt")}
-            />
-            <FieldRow
-              label="Available from"
-              value={deskPrintingPeriod(printing)}
-              suggestions={availableFromChips}
-            />
-            <FieldRow
-              label="Comment"
-              value={
-                printing.comment === null || printing.comment.length === 0
-                  ? "None"
-                  : printing.comment
-              }
-            />
-            {!printing.canEdit && (
-              <p className="text-muted-foreground pt-2 text-sm">
-                Not a promo. Only an admin changes this printing.
-              </p>
+        <div>
+          <FieldRow
+            label="Channel"
+            value={formatSuggestionValue(
+              "distributionChannelSlugs",
+              printing.distributionChannelSlugs,
+              labels,
             )}
-          </div>
-        )}
+            onEdit={editOf("channel")}
+            editing={editorOf("channel")}
+            suggestions={chipsFor("distributionChannelSlugs")}
+          />
+          <FieldRow
+            label="Size"
+            value={formatSuggestionValue("size", printing.size, labels)}
+            onEdit={editOf("size")}
+            editing={editorOf("size")}
+            suggestions={chipsFor("size")}
+          />
+          <FieldRow
+            label="Announced on"
+            value={printing.announcedAt === null ? "Not set" : formatDay(printing.announcedAt)}
+            onEdit={editOf("announced")}
+            editing={editorOf("announced")}
+            suggestions={chipsFor("announcedAt")}
+          />
+          <FieldRow
+            label="Available from"
+            value={deskPrintingPeriod(printing)}
+            onEdit={editOf("release")}
+            editing={editorOf("release")}
+            suggestions={availableFromChips}
+          />
+          <FieldRow
+            label="Comment"
+            value={
+              printing.comment === null || printing.comment.length === 0 ? "None" : printing.comment
+            }
+            onEdit={editOf("comment")}
+            editing={editorOf("comment")}
+          />
+          {!printing.canEdit && (
+            <p className="text-muted-foreground pt-2 text-sm">
+              Not a promo. Only an admin changes this printing.
+            </p>
+          )}
+        </div>
       </RecordSection>
 
       {isAdmin && (
         <RecordSection
-          title="Marketplace"
-          summary={
-            listingChips.length > 0 ? (
-              <Badge variant="warning">{listingChips.length} to map</Badge>
-            ) : undefined
+          title={
+            <span className="inline-flex flex-wrap items-center gap-2">
+              Marketplace
+              {listingChips.length > 0 && (
+                <Badge variant="warning">{listingChips.length} to map</Badge>
+              )}
+            </span>
           }
         >
           {listingChips.map((chip) => (
@@ -474,11 +511,7 @@ function PrintingRecordBody({
         </RecordSection>
       )}
 
-      {isAdmin && (
-        <RecordSection title="History" collapsible defaultOpen={false}>
-          <PrintingHistoryList printingId={printingId} />
-        </RecordSection>
-      )}
+      {(canReview || printing.canEdit) && <WorkspaceHistorySection target={{ printingId }} />}
       {compareOpen && (
         <PrintingCompareSourcesDialog
           open
@@ -560,11 +593,13 @@ function FaceSummary({
   face,
   images,
   faceCount,
+  isAdmin,
 }: {
   printing: DeskPrintingRow;
   face: PrintingFace;
   images: DeskImage[];
   faceCount: number;
+  isAdmin: boolean;
 }) {
   const queryClient = useQueryClient();
   const removeFace = useRemoveDeskSecondSide();
@@ -621,11 +656,23 @@ function FaceSummary({
           <Link
             to="/admin/workspace/faces/$cardSlug/$faceId"
             params={{ cardSlug: face.cardSlug, faceId: face.faceId }}
+            state={{ workspaceFromPrintingId: printing.printingId }}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
             Open face
             <ChevronRightIcon />
           </Link>
+          {canChange && isAdmin && face.position === 1 && (
+            <Link
+              to="/admin/cards/$cardSlug/printings/create"
+              params={{ cardSlug: printing.cardSlug }}
+              search={{ duplicateFrom: printing.printingId }}
+              title="Face 1 defines the printing, so it cannot be swapped. Duplicate the printing with the other face first."
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              Replace…
+            </Link>
+          )}
           {canChange && face.position === 2 && (
             <Button variant="outline" size="sm" onClick={() => setReplacing(true)}>
               Replace…
@@ -751,5 +798,136 @@ function PrintingActionsMenu({ printing }: { printing: DeskPrintingRow }) {
         }
       />
     </>
+  );
+}
+
+function PrintingFieldEditor({
+  printing,
+  field,
+  onDone,
+}: {
+  printing: DeskPrintingRow;
+  field: PrintingField;
+  onDone: () => void;
+}) {
+  const update = useUpdateDeskPrinting();
+  const { orders, labels } = useEnumOrders();
+  const [channels, setChannels] = useState<string[]>([...printing.distributionChannelSlugs]);
+  const [size, setSize] = useState(printing.size);
+  const [announcedAt, setAnnouncedAt] = useState(printing.announcedAt);
+  const [releasedAt, setReleasedAt] = useState(printing.releasedAt);
+  const [precision, setPrecision] = useState<DeskReleasePrecision>(
+    printing.releasePrecision === "quarter" ? "month" : (printing.releasePrecision ?? "day"),
+  );
+  const [comment, setComment] = useState(printing.comment ?? "");
+
+  function patch(): DeskPatch {
+    switch (field) {
+      case "channel": {
+        return { distributionChannelSlugs: channels };
+      }
+      case "size": {
+        return { size };
+      }
+      case "announced": {
+        return { announcedAt };
+      }
+      case "release": {
+        const release =
+          releasedAt === null
+            ? { releasedAt: null, precision: null }
+            : normalizeToPeriodStart({ releasedAt, precision });
+        return { releasedAt: release.releasedAt, releasePrecision: release.precision };
+      }
+      case "comment": {
+        const trimmed = comment.trim();
+        return { comment: trimmed.length > 0 ? trimmed : null };
+      }
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      {field === "channel" && (
+        <Suspense fallback={<Skeleton className="h-9 w-full" />}>
+          <PrintingDeskChannelPicker value={channels} onChange={setChannels} />
+        </Suspense>
+      )}
+      {field === "size" && (
+        <Select
+          items={orders.cardSizes.map((slug) => ({
+            value: slug,
+            label: enumLabel(labels.cardSizes, slug),
+          }))}
+          value={size}
+          onValueChange={(value) => {
+            if (value !== null) {
+              setSize(value);
+            }
+          }}
+        >
+          <SelectTrigger aria-label="Size" className="w-full sm:w-56">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {orders.cardSizes.map((slug) => (
+              <SelectItem key={slug} value={slug}>
+                {enumLabel(labels.cardSizes, slug)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+      {field === "announced" && (
+        <DatePicker
+          className="w-44"
+          value={announcedAt}
+          onValueChange={setAnnouncedAt}
+          onClear={() => setAnnouncedAt(null)}
+        />
+      )}
+      {field === "release" && (
+        <div className="flex flex-wrap items-center gap-2">
+          <DatePicker
+            className="w-44"
+            value={releasedAt}
+            onValueChange={setReleasedAt}
+            onClear={() => setReleasedAt(null)}
+          />
+          <DeskSegmented
+            ariaLabel="How exact the date is"
+            value={precision}
+            onChange={setPrecision}
+            options={PRECISION_OPTIONS}
+          />
+        </div>
+      )}
+      {field === "comment" && (
+        <Textarea
+          aria-label="Comment"
+          value={comment}
+          onChange={(event) => setComment(event.target.value)}
+        />
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          disabled={update.isPending}
+          onClick={() =>
+            update.mutate({ printingId: printing.printingId, ...patch() }, { onSuccess: onDone })
+          }
+        >
+          Save
+        </Button>
+        <Button variant="ghost" size="sm" disabled={update.isPending} onClick={onDone}>
+          Cancel
+        </Button>
+      </div>
+      {update.error !== null && (
+        <p className="text-destructive text-sm">
+          {errorText(update.error, "Could not save the field.")}
+        </p>
+      )}
+    </div>
   );
 }

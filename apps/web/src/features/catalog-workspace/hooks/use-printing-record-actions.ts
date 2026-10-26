@@ -2,11 +2,7 @@ import { isAcceptPrintingField } from "@openrift/shared/contracts/admin/card-mut
 import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
 import { useQueryClient } from "@tanstack/react-query";
 
-import {
-  useAcceptPrintingField,
-  useCheckAllCandidatePrintings,
-  useCheckCandidatePrinting,
-} from "@/features/admin/hooks/use-admin-card-mutations";
+import { useAcceptPrintingField } from "@/features/admin/hooks/use-admin-card-mutations";
 import {
   useAcceptSubmission,
   useRejectSubmission,
@@ -17,6 +13,7 @@ import {
 } from "@/features/admin/hooks/use-unified-mappings";
 import { toastFieldAccepted } from "@/features/admin/lib/accept-undo";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { useCandidateDiscards } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import type { FieldSuggestion } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import { primaryLabel } from "@/features/catalog-workspace/lib/face-suggestion-rows";
@@ -59,8 +56,7 @@ export function usePrintingRecordActions({
   const queryClient = useQueryClient();
   const scope = [adminKeys.cards.all, adminKeys.printingDesk.all, adminKeys.workspace];
   const acceptField = useAcceptPrintingField(scope);
-  const checkCandidate = useCheckCandidatePrinting(scope);
-  const checkAll = useCheckAllCandidatePrintings(scope);
+  const discards = useCandidateDiscards(scope, model.sources);
   const acceptSubmission = useAcceptSubmission();
   const rejectSubmission = useRejectSubmission();
   const save: Record<AdminMarketplaceName, ReturnType<typeof useUnifiedSaveMappings>> = {
@@ -80,8 +76,7 @@ export function usePrintingRecordActions({
   const enterIds = canCheck ? model.enterCandidateIds : [];
   const pending =
     acceptField.isPending ||
-    checkCandidate.isPending ||
-    checkAll.isPending ||
+    discards.pending ||
     acceptSubmission.isPending ||
     rejectSubmission.isPending;
 
@@ -167,9 +162,7 @@ export function usePrintingRecordActions({
   }
 
   async function runPrimary() {
-    if (enterIds.length > 0) {
-      await checkAll.mutateAsync({ extraIds: enterIds });
-    }
+    await discards.discardAll(enterIds);
   }
 
   useRegisterRecordActions({
@@ -191,7 +184,7 @@ export function usePrintingRecordActions({
     applyChip,
     mapListing,
     ignoreListing,
-    discard: (candidatePrintingId: string) => checkCandidate.mutate(candidatePrintingId),
+    discard: discards.discard,
     reject: (candidateCardId: string) =>
       rejectSubmission.mutate({ candidateCardId, note: null }, { onSettled: settleCards }),
     runPrimary,

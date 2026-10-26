@@ -1,9 +1,11 @@
 import { isAcceptPrintingField } from "@openrift/shared/contracts/admin/card-mutations";
+import { toast } from "sonner";
 
 import {
   useAcceptPrintingField,
   useCheckAllCandidatePrintings,
   useCheckCandidatePrinting,
+  useUncheckCandidatePrinting,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useSetCandidatePrintingImage } from "@/features/admin/hooks/use-admin-image-mutations";
 import {
@@ -20,9 +22,15 @@ import type {
   FaceSuggestionModel,
   FieldSuggestion,
   SourceImageCandidate,
+  SuggestionSource,
   ValueLabels,
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
-import { primaryLabel } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import {
+  discardedLabel,
+  primaryLabel,
+} from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/stores/workspace-selection-store";
+import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 
 export function useValueLabels(): ValueLabels {
@@ -38,6 +46,63 @@ export function useValueLabels(): ValueLabels {
     languages,
     markers: Object.fromEntries(markerData.markers.map((marker) => [marker.slug, marker.label])),
     channels: Object.fromEntries(buildChannelBreadcrumbsBySlug(channelData.distributionChannels)),
+  };
+}
+
+function useAnnounceUndo(): (entry: WorkspaceUndoEntry) => void {
+  const pushUndo = useWorkspaceSelectionStore((state) => state.pushUndo);
+  const removeUndo = useWorkspaceSelectionStore((state) => state.removeUndo);
+  return (entry) => {
+    pushUndo(entry);
+    toast.success(entry.label, {
+      action: {
+        label: "Undo (Z)",
+        onClick: () => {
+          if (removeUndo(entry)) {
+            void entry.undo();
+          }
+        },
+      },
+    });
+  };
+}
+
+export function useCandidateDiscards(
+  scope: readonly (readonly unknown[])[],
+  sources: readonly SuggestionSource[],
+) {
+  const checkCandidate = useCheckCandidatePrinting(scope);
+  const checkAll = useCheckAllCandidatePrintings(scope);
+  const uncheckCandidate = useUncheckCandidatePrinting(scope);
+  const pushUndo = useWorkspaceSelectionStore((state) => state.pushUndo);
+  const announce = useAnnounceUndo();
+
+  const uncheckAll = async (ids: readonly string[]) => {
+    await Promise.all(ids.map((id) => uncheckCandidate.mutateAsync(id)));
+  };
+
+  function discard(candidatePrintingId: string) {
+    checkCandidate.mutate(candidatePrintingId, {
+      onSuccess: () =>
+        announce({
+          label: discardedLabel(sources, [candidatePrintingId]),
+          undo: () => uncheckAll([candidatePrintingId]),
+        }),
+    });
+  }
+
+  async function discardAll(ids: readonly string[]) {
+    if (ids.length === 0) {
+      return;
+    }
+    await checkAll.mutateAsync({ extraIds: [...ids] });
+    pushUndo({ label: discardedLabel(sources, ids), undo: () => uncheckAll(ids) });
+  }
+
+  return {
+    discard,
+    discardAll,
+    pending: checkCandidate.isPending || checkAll.isPending || uncheckCandidate.isPending,
   };
 }
 
@@ -73,18 +138,20 @@ export function useFaceRecordActions({
 }) {
   const scope = [adminKeys.cards.detail(cardSlug), adminKeys.cards.list, adminKeys.workspace];
   const acceptField = useAcceptPrintingField(scope);
-  const checkCandidate = useCheckCandidatePrinting(scope);
-  const checkAll = useCheckAllCandidatePrintings(scope);
+  const discards = useCandidateDiscards(scope, model?.sources ?? []);
   const setCandidateImage = useSetCandidatePrintingImage(scope);
   const acceptSubmission = useAcceptSubmission({ cardSlug });
   const rejectSubmission = useRejectSubmission({ cardSlug });
 
   const chips = enabled && model !== null ? faceChips(model) : [];
   const enterIds = enabled && canCheck && model !== null ? model.enterCandidateIds : [];
+  const contributorOpen =
+    enabled &&
+    model !== null &&
+    model.sources.some((source) => source.isContributor && source.differences > 0);
   const pending =
     acceptField.isPending ||
-    checkCandidate.isPending ||
-    checkAll.isPending ||
+    discards.pending ||
     setCandidateImage.isPending ||
     acceptSubmission.isPending ||
     rejectSubmission.isPending;
@@ -158,24 +225,22 @@ export function useFaceRecordActions({
     }
   }
 
-  function discard(candidatePrintingId: string) {
-    checkCandidate.mutate(candidatePrintingId);
-  }
-
   function reject(candidateCardId: string) {
     rejectSubmission.mutate({ candidateCardId, note: null });
   }
 
   async function runPrimary() {
-    if (enterIds.length > 0) {
-      await checkAll.mutateAsync({ extraIds: enterIds });
-    }
+    await discards.discardAll(enterIds);
   }
 
   useRegisterRecordActions({
     primary:
       enabled && canCheck
-        ? { label: primaryLabel(enterIds.length), disabled: pending, run: runPrimary }
+        ? {
+            label: primaryLabel(enterIds.length),
+            disabled: pending || contributorOpen,
+            run: runPrimary,
+          }
         : undefined,
     useSuggestion: (n) => {
       const chip = chips[n - 1];
@@ -189,8 +254,9 @@ export function useFaceRecordActions({
     chips,
     enterCount: enterIds.length,
     pending,
+    contributorOpen,
     applyChip,
-    discard,
+    discard: discards.discard,
     reject,
     runPrimary,
   };

@@ -72,6 +72,9 @@ describe("sectionAllowsRequest", () => {
       "/api/admin/v1/catalog/workspace/queue",
       "/api/admin/v1/catalog/workspace/records",
       "/api/admin/v1/catalog/workspace/same-difference",
+      "/api/admin/v1/catalog/workspace/uploads",
+      "/api/admin/v1/catalog/workspace/decisions",
+      "/api/admin/v1/catalog/workspace/history",
     ])("allows GET %s", (path) => {
       expect(sectionAllowsRequest("card-review", "GET", path)).toBe(true);
     });
@@ -193,6 +196,12 @@ describe("sectionAllowsRequest", () => {
       ["POST", "/api/admin/v1/cards/upload"],
       ["POST", "/api/admin/v1/cards/by-provider/some-provider/check"],
       ["POST", "/api/admin/v1/catalog/workspace/same-difference/discard"],
+      ["GET", "/api/admin/v1/catalog/workspace/batch/trusted-cards"],
+      ["POST", "/api/admin/v1/catalog/workspace/batch/trusted-cards"],
+      ["GET", "/api/admin/v1/catalog/workspace/batch/trusted-printings"],
+      ["POST", "/api/admin/v1/catalog/workspace/batch/trusted-printings"],
+      ["GET", "/api/admin/v1/catalog/workspace/batch/suggested-listings"],
+      ["POST", "/api/admin/v1/catalog/workspace/batch/suggested-listings"],
       ["DELETE", "/api/admin/v1/cards/by-provider/some-provider"],
       ["DELETE", "/api/admin/v1/cards/printing-images/some-id"],
       ["POST", "/api/admin/v1/cards/printing-images/some-id/unrehost"],
@@ -234,19 +243,34 @@ describe("sectionAllowsRequest", () => {
       "/api/admin/v1/distribution-channels",
       "/api/admin/v1/catalog/workspace/queue",
       "/api/admin/v1/catalog/workspace/records",
+      "/api/admin/v1/catalog/workspace/history",
     ])("allows GET %s", (path) => {
       expect(sectionAllowsRequest("printing-desk", "GET", path)).toBe(true);
     });
 
-    it.each(["/api/admin/v1/catalog/workspace/queue", "/api/admin/v1/catalog/workspace/records"])(
-      "rejects writes to %s for both review sections",
-      (path) => {
-        for (const method of ["POST", "PATCH", "DELETE"]) {
-          expect(sectionAllowsRequest("printing-desk", method, path)).toBe(false);
-          expect(sectionAllowsRequest("card-review", method, path)).toBe(false);
-        }
-      },
-    );
+    it.each([
+      "/api/admin/v1/catalog/workspace/uploads",
+      "/api/admin/v1/catalog/workspace/decisions",
+      "/api/admin/v1/catalog/workspace/batch/trusted-cards",
+      "/api/admin/v1/catalog/workspace/batch/trusted-printings",
+      "/api/admin/v1/catalog/workspace/batch/suggested-listings",
+    ])("rejects %s", (path) => {
+      expect(sectionAllowsRequest("printing-desk", "GET", path)).toBe(false);
+      expect(sectionAllowsRequest("printing-desk", "POST", path)).toBe(false);
+    });
+
+    it.each([
+      "/api/admin/v1/catalog/workspace/queue",
+      "/api/admin/v1/catalog/workspace/records",
+      "/api/admin/v1/catalog/workspace/uploads",
+      "/api/admin/v1/catalog/workspace/decisions",
+      "/api/admin/v1/catalog/workspace/history",
+    ])("rejects writes to %s for both review sections", (path) => {
+      for (const method of ["POST", "PATCH", "DELETE"]) {
+        expect(sectionAllowsRequest("printing-desk", method, path)).toBe(false);
+        expect(sectionAllowsRequest("card-review", method, path)).toBe(false);
+      }
+    });
 
     it("rejects the workspace endpoints for unrelated sections", () => {
       expect(sectionAllowsRequest("products", "GET", "/api/admin/v1/catalog/workspace/queue")).toBe(

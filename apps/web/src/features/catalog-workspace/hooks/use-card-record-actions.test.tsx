@@ -167,6 +167,16 @@ describe("useCardRecordActions", () => {
     expect(result.current.actions.primary?.disabled).toBe(true);
   });
 
+  it("disables Next for users who cannot check while a contributor proposal is open", () => {
+    const { result } = setup(
+      [makeCandidateCard({ ...source(), provider: "usersubmission", might: 2 })],
+      false,
+    );
+
+    expect(result.current.actions.primary?.label).toBe("Next");
+    expect(result.current.actions.primary?.disabled).toBe(true);
+  });
+
   it("gives plain Next to users who cannot check", async () => {
     const { result } = setup([source({ might: 3 })], false);
 

@@ -10,7 +10,7 @@ import type {
   WorkspaceQueueItem,
   WorkspaceQueueResponse,
   WorkspaceReason,
-  WorkspaceRecordKind,
+  WorkspaceEvent,
   WorkspaceRecordRow,
   WorkspaceSegment,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
@@ -29,7 +29,11 @@ import type {
   WorkspaceLinkedPrintingRow,
   WorkspaceNewPrintingRow,
 } from "../repositories/workspace-queue.js";
-import type { WorkspaceRecordDbRow } from "../repositories/workspace-records.js";
+import type {
+  WorkspaceEventRow,
+  WorkspaceFaceRecordDbRow,
+  WorkspacePrintingRecordDbRow,
+} from "../repositories/workspace-records.js";
 
 interface WorkspaceSubmissionRow {
   id: string;
@@ -373,12 +377,8 @@ export interface DeskRecordScope {
   createdIds: ReadonlySet<string>;
 }
 
-export function toWorkspaceRecordRow(
-  row: WorkspaceRecordDbRow,
-  kind: WorkspaceRecordKind,
-  desk?: DeskRecordScope,
-): WorkspaceRecordRow {
-  const base = {
+function recordBase(row: WorkspaceFaceRecordDbRow | WorkspacePrintingRecordDbRow) {
+  return {
     id: row.id,
     cardSlug: row.cardSlug,
     cardName: row.cardName,
@@ -389,16 +389,55 @@ export function toWorkspaceRecordRow(
     imageUrl: row.imageUrl,
     updatedAt: row.updatedAt.toISOString(),
   };
-  if (kind === "face") {
-    return { ...base, printingCount: row.count };
-  }
+}
+
+export function toWorkspacePrintingRow(
+  row: WorkspacePrintingRecordDbRow,
+  desk?: DeskRecordScope,
+): WorkspaceRecordRow {
+  const printing = {
+    ...recordBase(row),
+    faceCount: row.faceCount,
+    publicCode: row.publicCode,
+    isDoubleSided: row.isDoubleSided,
+    imageCount: row.imageCount,
+    markers: row.markers,
+    channelLabel: row.channelLabel,
+    status: row.status,
+  };
   if (desk === undefined) {
-    return { ...base, faceCount: row.count };
+    return printing;
   }
   return {
-    ...base,
-    faceCount: row.count,
+    ...printing,
     isPromo: desk.promoIds.has(row.id),
     createdByMe: desk.createdIds.has(row.id),
   };
+}
+
+export function toWorkspaceFaceRow(row: WorkspaceFaceRecordDbRow): WorkspaceRecordRow {
+  return {
+    ...recordBase(row),
+    printingCount: row.printingCount,
+    artist: row.artist,
+    rarity: row.rarity,
+    artVariant: row.artVariant,
+    imageState: row.imageState,
+  };
+}
+
+export function toWorkspaceEvent(row: WorkspaceEventRow): WorkspaceEvent {
+  return {
+    id: row.id,
+    action: row.action,
+    label: row.entityLabel ?? row.cardSlug ?? row.entityId ?? "",
+    entityType: row.entityType,
+    entityId: row.entityId,
+    cardSlug: row.cardSlug,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+export function startOfUtcDay(now: Date): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }

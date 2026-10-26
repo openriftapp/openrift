@@ -1,6 +1,8 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { COMPARABLE_PRINTING_FIELDS } from "@openrift/shared/catalog-field-compare";
+import type { WorkspaceEvent } from "@openrift/shared/contracts/admin/catalog-workspace";
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
+import { formatRelativeTime } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
 import { pluralize } from "@openrift/shared/strings";
@@ -9,22 +11,32 @@ import type {
   AdminPrintingResponse,
 } from "@openrift/shared/types/api/admin";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { ChevronRightIcon } from "lucide-react";
+import { Link, useLocation } from "@tanstack/react-router";
+import {
+  ArrowLeftIcon,
+  ChevronRightIcon,
+  CopyIcon,
+  EllipsisVerticalIcon,
+  SquareArrowOutUpRightIcon,
+} from "lucide-react";
 import { Suspense, useState } from "react";
+import { toast } from "sonner";
 
-import { ShowMoreButton } from "@/components/show-more-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { CardList } from "@/components/ui/card-list";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { HistoryRow } from "@/features/admin/components/card-history-section";
 import { PrintingDeskEditFields } from "@/features/admin/components/printing-desk-form-page";
+import { DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { SendNoteDialog } from "@/features/admin/components/send-note-dialog";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
-import { useAuditEvents } from "@/features/admin/hooks/use-admin-audit";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
 import { useDeskCardPrintings, useDeskPrinting } from "@/features/admin/hooks/use-printing-desk";
 import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
@@ -33,6 +45,7 @@ import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels
 import { printingPairName } from "@/features/admin/lib/face-rows";
 import { printingFaces } from "@/features/admin/lib/printing-faces";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
+import { FaceCompareSourcesDialog } from "@/features/catalog-workspace/components/compare-sources-dialog";
 import {
   DeskFaceImagesSection,
   FaceImagesSection,
@@ -54,15 +67,27 @@ import {
 } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useQueueNavigation } from "@/features/catalog-workspace/hooks/use-queue-navigation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
+import type { WorkspaceHistoryTarget } from "@/features/catalog-workspace/hooks/use-workspace-history";
+import { useWorkspaceHistory } from "@/features/catalog-workspace/hooks/use-workspace-history";
 import {
+  ADMIN_ONLY_DISCARD,
+  ADMIN_ONLY_REPLY,
   buildFaceSuggestions,
   discardLabel,
   formatSuggestionValue,
   primaryLabel,
   submitterNameOf,
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
-import { useUserId } from "@/hooks/use-session";
+
+declare module "@tanstack/react-router" {
+  interface HistoryState {
+    workspaceFromPrintingId?: string;
+  }
+}
+
+const CONTRIBUTOR_FIRST = "Use or reject the contributor proposal first.";
 
 const FACE_FIELDS = COMPARABLE_PRINTING_FIELDS.filter((field) => !isPrintingLevelField(field));
 
@@ -104,8 +129,8 @@ function ReviewFaceRecord({
   const [showAll, setShowAll] = useState(false);
   const [editing, setEditing] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [compareOpen, setCompareOpen] = useState(false);
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
   const providerSettings = providerData.providerSettings;
   const hiddenProviders = new Set(
@@ -149,9 +174,7 @@ function ReviewFaceRecord({
   const fieldChips = actions.chips.filter(
     (chip): chip is Extract<FaceChip, { kind: "field" }> => chip.kind === "field",
   );
-  const contributorWaiting = actions.chips.some((chip) =>
-    chip.kind === "image" ? chip.image.isContributor : chip.suggestion.isContributor,
-  );
+  const contributorWaiting = actions.contributorOpen;
   const enterProviders = [
     ...new Set(
       model.sources
@@ -195,11 +218,18 @@ function ReviewFaceRecord({
                 Skip to end <Kbd>S</Kbd>
               </Button>
               {isAdmin && (
-                <Button size="sm" disabled={actions.pending} onClick={() => void primaryAndNext()}>
-                  {primaryLabel(actions.enterCount)}
-                  <Kbd>↵</Kbd>
-                </Button>
+                <span title={contributorWaiting ? CONTRIBUTOR_FIRST : undefined}>
+                  <Button
+                    size="sm"
+                    disabled={actions.pending || contributorWaiting}
+                    onClick={() => void primaryAndNext()}
+                  >
+                    {primaryLabel(actions.enterCount)}
+                    <Kbd>↵</Kbd>
+                  </Button>
+                </span>
               )}
+              <FaceActionsMenu cardSlug={cardSlug} faceId={faceId} />
             </>
           }
         />
@@ -209,7 +239,7 @@ function ReviewFaceRecord({
           <RecordBanner>
             {actions.enterCount > 0 &&
               `Enter discards ${actions.enterCount} ${pluralize(actions.enterCount, "source")} (${enterProviders.join(", ")}) and opens the next face. `}
-            {contributorWaiting && "Use or reject the contributor proposal first."}
+            {contributorWaiting && CONTRIBUTOR_FIRST}
           </RecordBanner>
         ) : undefined
       }
@@ -262,13 +292,7 @@ function ReviewFaceRecord({
             differences: source.differences,
             trusted: trusted.has(source.provider),
           }))}
-          onCompare={() =>
-            void navigate({
-              to: "/admin/cards/$cardSlug",
-              params: { cardSlug },
-              search: { section: "printings", face: faceId },
-            })
-          }
+          onCompare={() => setCompareOpen(true)}
         />
         {editing ? (
           <Suspense fallback={<Skeleton className="h-64 w-full" />}>
@@ -318,6 +342,9 @@ function ReviewFaceRecord({
                                   ? undefined
                                   : () => actions.discard(suggestion.candidate.id)
                               }
+                              discardDisabledReason={
+                                suggestion.isContributor ? undefined : ADMIN_ONLY_DISCARD
+                              }
                               discardLabel={discardLabelOf(
                                 suggestion.candidate.id,
                                 suggestion.provider,
@@ -331,6 +358,9 @@ function ReviewFaceRecord({
                                 suggestion.isContributor && isAdmin
                                   ? () => setReplyTo(suggestion.candidate.candidateCardId)
                                   : undefined
+                              }
+                              replyDisabledReason={
+                                suggestion.isContributor ? ADMIN_ONLY_REPLY : undefined
                               }
                             />
                           );
@@ -368,12 +398,19 @@ function ReviewFaceRecord({
 
       <FacePrintingsSection printings={model.printings} cardName={detail.displayName} />
 
-      {isAdmin && (
-        <RecordSection title="History" collapsible defaultOpen={false}>
-          {model.printings.map((printing) => (
-            <PrintingHistoryList key={printing.id} printingId={printing.id} />
-          ))}
-        </RecordSection>
+      <WorkspaceHistorySection target={{ faceId }} />
+      {compareOpen && (
+        <FaceCompareSourcesDialog
+          open
+          onOpenChange={setCompareOpen}
+          cardSlug={cardSlug}
+          faceId={faceId}
+          detail={detail}
+          providerSettings={providerSettings}
+          hiddenProviders={hiddenProviders}
+          costKeywords={costKeywords}
+          isAdmin={isAdmin}
+        />
       )}
       <SendNoteDialog
         candidateCardId={replyTo}
@@ -399,7 +436,7 @@ function FacePrintingsSection({
     <RecordSection title="On printings">
       <ul className="space-y-1">
         {printings.map((printing) => (
-          <li key={printing.id}>
+          <li key={printing.id} className="flex flex-wrap items-center gap-2">
             <Link
               to="/admin/workspace/printings/$printingId"
               params={{ printingId: printing.id }}
@@ -410,6 +447,7 @@ function FacePrintingsSection({
                 {formatPrintingCode(printing.publicCode)}
               </span>
             </Link>
+            <DeskStatusBadge row={printing} />
           </li>
         ))}
       </ul>
@@ -420,54 +458,114 @@ function FacePrintingsSection({
   );
 }
 
-export function PrintingHistoryList({ printingId }: { printingId: string }) {
-  const userId = useUserId();
-  const events = useAuditEvents({ search: printingId });
-  const rows = (events.data?.pages.flatMap((page) => page.items) ?? []).filter(
-    (event) => event.entityType === "printing" && event.entityId === printingId,
-  );
+function FaceActionsMenu({ cardSlug, faceId }: { cardSlug: string; faceId: string }) {
+  const { copy } = useCopyToClipboard();
 
-  if (events.isPending) {
-    return <Skeleton className="h-16 w-full" />;
-  }
-  if (events.isError) {
-    return <p className="text-muted-foreground text-sm">The change log could not be loaded.</p>;
-  }
+  const copyId = async () => {
+    if (await copy(faceId)) {
+      toast.success("Copied the face ID");
+    } else {
+      toast.error("Could not copy the face ID");
+    }
+  };
 
   return (
-    <div className="space-y-2">
-      {rows.length > 0 ? (
-        <CardList>
-          {rows.map((event) => (
-            <HistoryRow key={event.id} event={event} userId={userId} context={{}} />
-          ))}
-        </CardList>
-      ) : (
-        !events.hasNextPage && (
-          <p className="text-muted-foreground text-sm">Nothing has happened here yet.</p>
-        )
-      )}
-      {events.hasNextPage && (
-        <ShowMoreButton
-          className="mt-0"
-          pending={events.isFetchingNextPage}
-          onClick={() => void events.fetchNextPage()}
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+        <EllipsisVerticalIcon />
+        <span className="sr-only">Face actions</span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem
+          render={<Link to="/admin/workspace/cards/$cardSlug" params={{ cardSlug }} />}
         >
-          {events.isFetchingNextPage ? "Looking further back" : "Load more"}
-        </ShowMoreButton>
-      )}
-    </div>
+          <SquareArrowOutUpRightIcon />
+          Open card
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => void copyId()}>
+          <CopyIcon />
+          Copy face ID
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
-function pickDeskRow(rows: readonly DeskPrintingRow[], faceId: string): DeskPrintingRow | null {
+export function WorkspaceHistorySection({
+  target,
+  summary,
+}: {
+  target: WorkspaceHistoryTarget;
+  summary?: string;
+}) {
+  const history = useWorkspaceHistory(target);
+  return (
+    <RecordSection
+      title="History"
+      collapsible
+      defaultOpen={false}
+      summary={summary ?? history.summary}
+    >
+      <WorkspaceHistoryList
+        events={history.events}
+        isPending={history.isPending}
+        isError={history.isError}
+      />
+    </RecordSection>
+  );
+}
+
+function WorkspaceHistoryList({
+  events,
+  isPending,
+  isError,
+}: {
+  events: readonly WorkspaceEvent[];
+  isPending: boolean;
+  isError: boolean;
+}) {
+  if (isPending) {
+    return <Skeleton className="h-16 w-full" />;
+  }
+  if (isError) {
+    return <p className="text-muted-foreground text-sm">The change log could not be loaded.</p>;
+  }
+  if (events.length === 0) {
+    return <p className="text-muted-foreground text-sm">Nothing has happened here yet.</p>;
+  }
+  return (
+    <ul className="space-y-1">
+      {events.map((event) => (
+        <li key={event.id} className="flex flex-wrap items-baseline gap-x-3">
+          <span className="min-w-0 flex-1">{event.label}</span>
+          <span className="text-muted-foreground text-sm">
+            {formatRelativeTime(event.createdAt)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function pickDeskRow(
+  rows: readonly DeskPrintingRow[],
+  faceId: string,
+  fromPrintingId?: string,
+): DeskPrintingRow | null {
+  const from = rows.find((row) => row.printingId === fromPrintingId);
+  if (from !== undefined) {
+    return from;
+  }
   const onFace = rows.filter((row) => row.faceId === faceId);
   return onFace.find((row) => row.canEdit) ?? onFace[0] ?? null;
 }
 
 function DeskFaceRecord({ cardSlug, faceId }: { cardSlug: string; faceId: string }) {
   const { data } = useDeskCardPrintings(cardSlug);
-  const row = pickDeskRow(data.printings, faceId);
+  const fromPrintingId = useLocation({
+    select: (location) => location.state.workspaceFromPrintingId,
+  });
+  const row = pickDeskRow(data.printings, faceId, fromPrintingId);
   useRegisterRecordActions({});
 
   if (row === null) {
@@ -475,10 +573,18 @@ function DeskFaceRecord({ cardSlug, faceId }: { cardSlug: string; faceId: string
       <p className="text-muted-foreground p-4">This face is not on a printing you can open.</p>
     );
   }
-  return <DeskFaceBody printingId={row.printingId} faceId={faceId} />;
+  return <DeskFaceBody printingId={row.printingId} faceId={faceId} cardRows={data.printings} />;
 }
 
-function DeskFaceBody({ printingId, faceId }: { printingId: string; faceId: string }) {
+function DeskFaceBody({
+  printingId,
+  faceId,
+  cardRows,
+}: {
+  printingId: string;
+  faceId: string;
+  cardRows: readonly DeskPrintingRow[];
+}) {
   const { data } = useDeskPrinting(printingId, 1);
   const labels = useValueLabels();
   const queryClient = useQueryClient();
@@ -493,6 +599,19 @@ function DeskFaceBody({ printingId, faceId }: { printingId: string; faceId: stri
   const canEdit = printing.canEdit;
   const landscape = getOrientation([printing.cardType]) === "landscape";
   const pairName = faces.map((entry) => entry.cardName).join(" // ");
+  const editableIds = new Set(cardRows.filter((row) => row.canEdit).map((row) => row.printingId));
+  const onPrintings = [
+    {
+      printingId,
+      code: faces.map((entry) => formatPrintingCode(entry.publicCode)).join(" // "),
+      canEdit,
+    },
+    ...face.sharedWith.map((shared) => ({
+      printingId: shared.printingId,
+      code: formatPrintingCode(shared.publicCode),
+      canEdit: editableIds.has(shared.printingId),
+    })),
+  ];
   const fieldRows = [
     { label: "Code", value: formatPrintingCode(face.publicCode) },
     { label: "Set", value: face.setName },
@@ -509,6 +628,16 @@ function DeskFaceBody({ printingId, faceId }: { printingId: string; faceId: stri
     <RecordPane
       header={
         <RecordHeader
+          thumb={
+            <Link
+              to="/admin/workspace/printings/$printingId"
+              params={{ printingId }}
+              aria-label={`Back to ${pairName}`}
+              className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+            >
+              <ArrowLeftIcon />
+            </Link>
+          }
           title={face.cardName}
           subtitle={
             <>
@@ -570,29 +699,26 @@ function DeskFaceBody({ printingId, faceId }: { printingId: string; faceId: stri
 
       <RecordSection title="On printings">
         <ul className="space-y-1">
-          <li className="flex items-center gap-2">
-            <Link
-              to="/admin/workspace/printings/$printingId"
-              params={{ printingId }}
-              className="underline"
-            >
-              {faces.map((entry) => formatPrintingCode(entry.publicCode)).join(" // ")}
-            </Link>
-            {canEdit && <Badge variant="neutral">yours to edit</Badge>}
-          </li>
-          {face.sharedWith.map((shared) => (
-            <li key={shared.printingId}>
+          {onPrintings.map((entry) => (
+            <li key={entry.printingId} className="flex flex-wrap items-center gap-2">
               <Link
                 to="/admin/workspace/printings/$printingId"
-                params={{ printingId: shared.printingId }}
+                params={{ printingId: entry.printingId }}
                 className="underline"
               >
-                {formatPrintingCode(shared.publicCode)}
+                {entry.code}
               </Link>
+              <Badge variant="neutral">
+                {entry.canEdit ? "yours to edit" : "added by an admin"}
+              </Badge>
             </li>
           ))}
         </ul>
       </RecordSection>
+
+      {onPrintings.some((entry) => entry.canEdit) && (
+        <WorkspaceHistorySection target={{ faceId }} summary="Your edits only" />
+      )}
     </RecordPane>
   );
 }

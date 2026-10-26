@@ -8,8 +8,11 @@ import type { WorkspaceQueueSources } from "./workspace-presenters.js";
 import {
   buildWorkspaceQueueEntries,
   linkedPrintingDifferences,
+  startOfUtcDay,
   toWorkspaceQueueResponse,
-  toWorkspaceRecordRow,
+  toWorkspaceEvent,
+  toWorkspaceFaceRow,
+  toWorkspacePrintingRow,
 } from "./workspace-presenters.js";
 
 const T1 = new Date("2026-10-18T09:00:00.000Z");
@@ -566,23 +569,64 @@ describe("toWorkspaceQueueResponse", () => {
   });
 });
 
-describe("toWorkspaceRecordRow", () => {
+describe("toWorkspacePrintingRow", () => {
   const row = {
     id: "printing-1",
     cardSlug: "jinx-loose-cannon",
     cardName: "Jinx, Loose Cannon",
     setName: "Origins",
     shortCode: "OGN-030",
+    publicCode: "OGN-030/298",
     language: "EN",
     finish: "foil",
     imageUrl: null,
-    count: 2,
+    faceCount: 2,
+    isDoubleSided: true,
+    imageCount: 3,
+    markers: ["Promo"],
+    channelLabel: "Organized play › Skirmish",
+    status: "announced" as const,
     updatedAt: T1,
   };
 
-  it("maps a printing row with its face count", () => {
-    expect(toWorkspaceRecordRow(row, "printing")).toEqual({
+  it("maps a printing row with its face count and badges", () => {
+    expect(toWorkspacePrintingRow(row)).toEqual({
       id: "printing-1",
+      cardSlug: "jinx-loose-cannon",
+      cardName: "Jinx, Loose Cannon",
+      setName: "Origins",
+      shortCode: "OGN-030",
+      publicCode: "OGN-030/298",
+      language: "EN",
+      finish: "foil",
+      imageUrl: null,
+      faceCount: 2,
+      isDoubleSided: true,
+      imageCount: 3,
+      markers: ["Promo"],
+      channelLabel: "Organized play › Skirmish",
+      status: "announced",
+      updatedAt: T1.toISOString(),
+    });
+  });
+
+  it("marks promo and own printings for a desk caller", () => {
+    const desk = { promoIds: new Set(["printing-1"]), createdIds: new Set<string>() };
+    expect(toWorkspacePrintingRow(row, desk)).toMatchObject({
+      isPromo: true,
+      createdByMe: false,
+    });
+  });
+
+  it("leaves the desk flags off for a reviewer", () => {
+    expect(toWorkspacePrintingRow(row)).not.toHaveProperty("isPromo");
+  });
+});
+
+describe("toWorkspaceFaceRow", () => {
+  it("maps a face row with its printing count and image state", () => {
+    const row = {
+      id: "face-1",
       cardSlug: "jinx-loose-cannon",
       cardName: "Jinx, Loose Cannon",
       setName: "Origins",
@@ -590,21 +634,63 @@ describe("toWorkspaceRecordRow", () => {
       language: "EN",
       finish: "foil",
       imageUrl: null,
-      faceCount: 2,
-      updatedAt: T1.toISOString(),
+      printingCount: 2,
+      artist: "Kudos Studio",
+      rarity: "rare",
+      artVariant: "normal",
+      imageState: "substitute" as const,
+      updatedAt: T1,
+    };
+    const mapped = toWorkspaceFaceRow(row);
+    expect(mapped).toMatchObject({
+      printingCount: 2,
+      artist: "Kudos Studio",
+      rarity: "rare",
+      artVariant: "normal",
+      imageState: "substitute",
+    });
+    expect(mapped).not.toHaveProperty("faceCount");
+  });
+});
+
+describe("toWorkspaceEvent", () => {
+  const event = {
+    id: "event-1",
+    action: "printing.accept-field",
+    entityType: "printing",
+    entityId: "printing-1",
+    entityLabel: "OGN-030",
+    cardSlug: "jinx-loose-cannon",
+    createdAt: T1,
+  };
+
+  it("labels an event by its entity label", () => {
+    expect(toWorkspaceEvent(event)).toEqual({
+      id: "event-1",
+      action: "printing.accept-field",
+      label: "OGN-030",
+      entityType: "printing",
+      entityId: "printing-1",
+      cardSlug: "jinx-loose-cannon",
+      createdAt: T1.toISOString(),
     });
   });
 
-  it("maps a face row with its printing count", () => {
-    expect(toWorkspaceRecordRow(row, "face")).toMatchObject({ printingCount: 2 });
-    expect(toWorkspaceRecordRow(row, "face")).not.toHaveProperty("faceCount");
+  it("falls back to the card slug, then the entity id", () => {
+    expect(toWorkspaceEvent({ ...event, entityLabel: null }).label).toBe("jinx-loose-cannon");
+    expect(toWorkspaceEvent({ ...event, entityLabel: null, cardSlug: null }).label).toBe(
+      "printing-1",
+    );
+    expect(
+      toWorkspaceEvent({ ...event, entityLabel: null, cardSlug: null, entityId: null }).label,
+    ).toBe("");
   });
+});
 
-  it("marks promo and own printings for a desk caller", () => {
-    const desk = { promoIds: new Set(["printing-1"]), createdIds: new Set<string>() };
-    expect(toWorkspaceRecordRow(row, "printing", desk)).toMatchObject({
-      isPromo: true,
-      createdByMe: false,
-    });
+describe("startOfUtcDay", () => {
+  it("truncates to midnight UTC", () => {
+    expect(startOfUtcDay(new Date("2026-10-21T23:59:59.999Z"))).toEqual(
+      new Date("2026-10-21T00:00:00.000Z"),
+    );
   });
 });

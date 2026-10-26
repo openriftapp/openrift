@@ -11,6 +11,16 @@ import {
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import { cn } from "@/lib/utils";
 
+function DisabledAction({ reason, label }: { reason: string; label: string }) {
+  return (
+    <span title={reason}>
+      <Button variant="outline" size="sm" disabled aria-label={`${label}. ${reason}`}>
+        {label}
+      </Button>
+    </span>
+  );
+}
+
 export function SuggestionChip({
   tone,
   sourceLabel,
@@ -19,8 +29,10 @@ export function SuggestionChip({
   onUse,
   onDiscard,
   discardLabel = "Discard",
+  discardDisabledReason,
   onReject,
   onReply,
+  replyDisabledReason,
   menu,
   bulk,
   pending = false,
@@ -32,8 +44,10 @@ export function SuggestionChip({
   onUse: () => void;
   onDiscard?: () => void;
   discardLabel?: string;
+  discardDisabledReason?: string;
   onReject?: () => void;
   onReply?: () => void;
+  replyDisabledReason?: string;
   menu?: ReactNode;
   bulk?: ReactNode;
   pending?: boolean;
@@ -50,7 +64,11 @@ export function SuggestionChip({
       <Badge variant={isContributor ? "violet" : "info"}>{sourceLabel}</Badge>
       <span className="min-w-0 break-words">{value}</span>
       <span className="ml-auto flex flex-wrap items-center gap-1.5">
-        {onReply !== undefined && (
+        {onReply === undefined ? (
+          replyDisabledReason !== undefined && (
+            <DisabledAction reason={replyDisabledReason} label="Reply" />
+          )
+        ) : (
           <Button variant="outline" size="sm" disabled={pending} onClick={onReply}>
             Reply
           </Button>
@@ -60,7 +78,11 @@ export function SuggestionChip({
             Reject
           </Button>
         )}
-        {onDiscard !== undefined && (
+        {onDiscard === undefined ? (
+          discardDisabledReason !== undefined && (
+            <DisabledAction reason={discardDisabledReason} label={discardLabel} />
+          )
+        ) : (
           <Button variant="outline" size="sm" disabled={pending} onClick={onDiscard}>
             {discardLabel}
           </Button>
