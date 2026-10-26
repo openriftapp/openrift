@@ -205,7 +205,14 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
       "card_sizes",
     ].map((table) => ({ table, why: "enums block", statements: [relabel(table)] })),
     { table: "languages", why: "enums block", statements: [relabel("languages", "name")] },
-    { table: "keywords", why: "keywords block", statements: [relabel("keywords", "color")] },
+    {
+      table: "keywords",
+      why: "keywords block",
+      statements: [
+        `UPDATE keywords SET color = CASE WHEN color = '#123456' THEN '#654321' ELSE '#123456' END
+          WHERE ctid = (SELECT ctid FROM keywords LIMIT 1)`,
+      ],
+    },
     {
       table: "keyword_translations",
       why: "keywords block translations",

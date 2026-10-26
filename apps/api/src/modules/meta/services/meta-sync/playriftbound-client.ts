@@ -58,7 +58,7 @@ export function isRunStopping(error: unknown): boolean {
   );
 }
 
-export interface PlayriftboundQueryIds {
+interface PlayriftboundQueryIds {
   ids: ReadonlyMap<string, string>;
 }
 

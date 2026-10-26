@@ -128,7 +128,7 @@ export function catalogFetchUrl(
   return search === "" ? base : `${base}?${search}`;
 }
 
-export function catalogPrintingsUrl(
+function catalogPrintingsUrl(
   origin: string,
   version: string | null,
   exceptLangs: readonly string[],

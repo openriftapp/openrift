@@ -14,7 +14,7 @@ export function playriftboundFormat(sourceFormat: string | null): string {
     : WellKnown.deckFormat.FREEFORM;
 }
 
-export const ONE_V_ONE = "ONE_V_ONE";
+const ONE_V_ONE = "ONE_V_ONE";
 
 export function isTeamFormat(playerFormat: string | null): boolean {
   return playerFormat !== null && playerFormat !== ONE_V_ONE;
@@ -55,7 +55,7 @@ export interface PlayriftboundEventProjection {
 }
 
 /** The parts array's field order must stay fixed, or unrelated diffs hash as content changes. */
-export function playriftboundContentHash(
+function playriftboundContentHash(
   fields: Omit<PlayriftboundEventProjection, "contentHash">,
 ): string {
   const parts = [
@@ -85,7 +85,7 @@ function longitude(value: unknown): number | null {
   return n !== null && n >= -180 && n <= 180 ? n : null;
 }
 
-export function projectOrganizer(raw: unknown): PlayriftboundOrganizerProjection | null {
+function projectOrganizer(raw: unknown): PlayriftboundOrganizerProjection | null {
   const row = record(raw);
   const id = text(row?.id);
   const name = text(row?.name);
@@ -146,7 +146,7 @@ export function projectSearchResult(raw: unknown): {
   return { event: { ...fields, contentHash: playriftboundContentHash(fields) }, organizer };
 }
 
-export interface PlayriftboundStandingProjection {
+interface PlayriftboundStandingProjection {
   teamId: string;
   playerId: string | null;
   playerName: string;
@@ -170,7 +170,7 @@ export interface PlayriftboundPhaseProjection {
   roundsPlayed: number;
 }
 
-export interface PlayriftboundMatchProjection {
+interface PlayriftboundMatchProjection {
   sourceMatchId: string;
   roundId: string;
   phaseOrder: number;

@@ -30,7 +30,7 @@ export interface PacedHttpOptions {
   refusedError: (message: string) => Error;
 }
 
-export interface PacedRequest {
+interface PacedRequest {
   method?: "GET" | "POST";
   headers?: Record<string, string>;
   body?: string;
