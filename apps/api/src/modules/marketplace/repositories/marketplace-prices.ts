@@ -88,6 +88,7 @@ export function marketplacePricesRepo(db: Kysely<Database>) {
         printingId: string;
         externalId: number;
         marketplace: string;
+        language: string;
       }[]
     > {
       if (printingIds.length === 0) {
@@ -96,10 +97,13 @@ export function marketplacePricesRepo(db: Kysely<Database>) {
       return db
         .selectFrom("marketplaceProductVariants as mpv")
         .innerJoin("marketplaceProducts as mp", "mp.id", "mpv.marketplaceProductId")
+        .innerJoin("printings as p", "p.id", "mpv.printingId")
+        .innerJoin("faces as pf", "pf.id", "p.face1Id")
         .select([
           "mpv.printingId as printingId",
           "mp.externalId as externalId",
           "mp.marketplace as marketplace",
+          "pf.language as language",
         ])
         .where("mpv.printingId", "in", printingIds)
         .execute();

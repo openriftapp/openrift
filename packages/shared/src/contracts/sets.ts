@@ -32,10 +32,16 @@ const setSlugParamSchema = z.object({ setSlug: z.string().min(1) });
 export const setsContract = {
   list: oc
     .route({ method: "GET", path: "/api/v1/sets", tags: ["Sets"] })
-    .meta({ auth: "public", cache: "long", etag: true })
+    .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
     .output(setListResponseSchema),
   detail: oc
-    .route({ method: "GET", path: "/api/v1/sets/{setSlug}", tags: ["Sets"] })
+    .route({
+      method: "GET",
+      path: "/api/v1/sets/{setSlug}",
+      tags: ["Sets"],
+      description:
+        "Internal: one set's slice of `/api/v1/catalog`, so the set page can render on the server without the full catalog. Not part of the developer API.",
+    })
     .meta({ auth: "public", cache: "long", etag: true })
     .input(setSlugParamSchema)
     .errors({ NOT_FOUND: { message: "Set not found" } })

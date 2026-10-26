@@ -386,7 +386,7 @@ describe("buildRulesSync", () => {
 describe("buildPricesSync", () => {
   const TODAY = new Date("2026-05-10T00:00:00.000Z");
   const SECOND_PRINTING_ID = "00000000-0000-7000-8000-000000000012";
-  const missing = { available: false, productId: null };
+  const missing = { available: false, productId: null, url: null };
   const catalog = makeCatalog({
     printings: {
       [PRINTING_ID]: makePrinting(),
@@ -401,13 +401,13 @@ describe("buildPricesSync", () => {
   } as const;
   const infos = {
     [PRINTING_ID]: {
-      tcgplayer: { available: true, productId: 11 },
-      cardmarket: { available: true, productId: 22 },
+      tcgplayer: { available: true, productId: 11, url: null },
+      cardmarket: { available: true, productId: 22, url: null },
       cardtrader: missing,
       cardnexus: missing,
     },
     [SECOND_PRINTING_ID]: {
-      tcgplayer: { available: true, productId: 11 },
+      tcgplayer: { available: true, productId: 11, url: null },
       cardmarket: missing,
       cardtrader: missing,
       cardnexus: missing,

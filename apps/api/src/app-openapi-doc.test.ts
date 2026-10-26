@@ -56,6 +56,26 @@ describe("OpenAPI doc split", () => {
     expect(doc.paths["/api/v1/ingest/deck-check"]?.post?.security).toEqual([{ bearerAuth: [] }]);
   });
 
+  it("developer /api/developers/doc contains only the curated public operations", async () => {
+    const doc = await fetchDoc("/api/developers/doc");
+    expect(doc.info.title).toBe("OpenRift Developer API");
+    expect(Object.keys(doc.paths).toSorted()).toEqual([
+      "/api/v1/cards/{cardSlug}",
+      "/api/v1/catalog",
+      "/api/v1/prices",
+      "/api/v1/prices/marketplace-info",
+      "/api/v1/prices/{printingId}/history",
+      "/api/v1/rules",
+      "/api/v1/rules/versions",
+      "/api/v1/sets",
+    ]);
+    expect(doc.security).toEqual([]);
+    for (const item of Object.values(doc.paths)) {
+      expect(Object.keys(item)).toEqual(["get"]);
+      expect(item.get?.security).toEqual([]);
+    }
+  });
+
   it("admin /api/admin/doc contains only the admin surface", async () => {
     const doc = await fetchDoc("/api/admin/doc");
     const paths = Object.keys(doc.paths);

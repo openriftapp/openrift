@@ -442,10 +442,10 @@ describe("buildCardEmbed", () => {
       printing: snapshot.printingsByCardId.get("card-1")![0],
       snapshot,
       marketplaceInfo: {
-        tcgplayer: { available: true, productId: 582_391 },
-        cardmarket: { available: false, productId: null },
-        cardtrader: { available: true, productId: 99 },
-        cardnexus: { available: false, productId: null },
+        tcgplayer: { available: true, productId: 582_391, url: null },
+        cardmarket: { available: false, productId: null, url: null },
+        cardtrader: { available: true, productId: 99, url: null },
+        cardnexus: { available: false, productId: null, url: null },
       },
       siteUrl: SITE,
     });

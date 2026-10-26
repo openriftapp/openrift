@@ -95,7 +95,7 @@ export const catalogPrintingsResponseSchema = z.object({
 export const catalogContract = {
   catalog: oc
     .route({ method: "GET", path: "/api/v1/catalog", tags: ["Catalog"] })
-    .meta({ auth: "public", cache: "long", etag: true })
+    .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
     .input(catalogInputSchema)
     .output(catalogResponseSchema),
   printings: oc

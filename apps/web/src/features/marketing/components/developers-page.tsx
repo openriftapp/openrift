@@ -1,6 +1,10 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import type { ReactNode } from "react";
 
 import { ProsePage } from "@/components/prose-page";
+import { useHydrated } from "@/hooks/use-hydrated";
+import { getSiteUrl } from "@/lib/site-config";
+import { SOCIAL_LINKS } from "@/lib/social-links";
 import { m } from "@/paraglide/messages.js";
 
 // Paths stay relative to the site origin: getSiteUrl() reads window.location.origin
@@ -9,35 +13,63 @@ function endpoints(): { path: string; description: string }[] {
   return [
     { path: "/api/v1/catalog", description: m.developers_endpoint_catalog() },
     { path: "/api/v1/cards/{cardSlug}", description: m.developers_endpoint_card() },
-    { path: "/api/v1/prices", description: m.developers_endpoint_prices() },
     { path: "/api/v1/sets", description: m.developers_endpoint_sets() },
+    { path: "/api/v1/prices", description: m.developers_endpoint_prices() },
+    {
+      path: "/api/v1/prices/marketplace-info",
+      description: m.developers_endpoint_marketplace_info(),
+    },
+    {
+      path: "/api/v1/prices/{printingId}/history",
+      description: m.developers_endpoint_price_history(),
+    },
     { path: "/api/v1/rules", description: m.developers_endpoint_rules() },
-    { path: "/api/v1/promos", description: m.developers_endpoint_promos() },
-    { path: "/api/v1/products", description: m.developers_endpoint_products() },
+    { path: "/api/v1/rules/versions", description: m.developers_endpoint_rule_versions() },
   ];
 }
 
+const codeMarkup = { code: ({ children }: { children?: ReactNode }) => <code>{children}</code> };
+
+function ExternalLink({ href, children }: { href: string; children?: ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noreferrer">
+      {children}
+    </a>
+  );
+}
+
 export function DevelopersPage() {
+  const hydrated = useHydrated();
+  const origin = hydrated ? getSiteUrl() : "";
+
   return (
     <ProsePage>
       <h1>{m.developers_title()}</h1>
-      <p>{m.developers_intro()}</p>
-
-      <h2>{m.developers_identify_heading()}</h2>
       <p>
-        {m.developers_identify_p_1()} <code>User-Agent</code> {m.developers_identify_p_2()}{" "}
-        <code>MyDeckTool/1.0 (you@example.com)</code>
-        {m.developers_identify_p_3()} <code>User-Agent</code> {m.developers_identify_p_4()}{" "}
-        <code>Origin</code> {m.developers_identify_p_5()}
+        <ParaglideMessage
+          message={m.developers_intro}
+          markup={{
+            link: ({ children }) => (
+              <ExternalLink href={SOCIAL_LINKS.githubRepo}>{children}</ExternalLink>
+            ),
+          }}
+        />
       </p>
 
-      <h2>{m.developers_docs_heading()}</h2>
+      <h2>{m.developers_quickstart_heading()}</h2>
+      <p>{m.developers_quickstart_p()}</p>
+      <pre className="bg-muted mt-3 overflow-x-auto rounded-md p-3 text-sm">
+        <code>{`curl -A "MyDeckTool/1.0 (you@example.com)" ${origin}/api/v1/sets`}</code>
+      </pre>
+      <p>
+        <ParaglideMessage message={m.developers_identify_p} markup={codeMarkup} />
+      </p>
       <p>
         <ParaglideMessage
           message={m.developers_docs_p}
           markup={{
-            link: ({ children }) => <a href="/api/doc">{children}</a>,
-            link2: ({ children }) => <a href="/api/ui">{children}</a>,
+            link: ({ children }) => <a href="/api/developers/doc">{children}</a>,
+            link2: ({ children }) => <a href="/api/developers/ui">{children}</a>,
           }}
         />
       </p>
@@ -61,32 +93,80 @@ export function DevelopersPage() {
           ))}
         </tbody>
       </table>
-      <p>{m.developers_subendpoints_p()}</p>
+      <p>{m.developers_identify_cors_p()}</p>
 
-      <h2>{m.developers_ingest_heading()}</h2>
+      <h2>{m.developers_catalog_heading()}</h2>
+      <p>{m.developers_catalog_shape_p()}</p>
       <p>
-        {m.developers_ingest_p_1()} <code>POST /api/v1/ingest/deck-check</code>
-        {m.developers_ingest_p_2()}{" "}
-        <a href="/help/tournament-decklist-api">{m.developers_ingest_link()}</a>{" "}
-        {m.developers_ingest_p_3()}
+        <ParaglideMessage message={m.developers_catalog_lookup_p} markup={codeMarkup} />
+      </p>
+      <p>
+        <ParaglideMessage
+          message={m.developers_catalog_images_p}
+          markup={{
+            ...codeMarkup,
+            imagepath: () => <code>/media/cards/xx/{"{imageId}-{size}"}.webp</code>,
+          }}
+        />
+      </p>
+      <p>{m.developers_catalog_images_terms_p()}</p>
+
+      <h2>{m.developers_links_heading()}</h2>
+      <p>{m.developers_prices_p()}</p>
+      <p>
+        <ParaglideMessage message={m.developers_links_p} markup={codeMarkup} />
       </p>
 
       <h2>{m.developers_caching_heading()}</h2>
       <p>
-        {m.developers_caching_p_1()}{" "}
-        <code>Cache-Control: public, max-age=3600, stale-while-revalidate=86400</code>
-        {m.developers_caching_p_2()} <code>max-age=300</code> {m.developers_caching_p_3()}{" "}
-        <code>max-age=60</code>
-        {m.developers_caching_p_4()} <code>ETag</code> {m.developers_caching_p_5()}{" "}
-        <code>max-age</code> {m.developers_caching_p_6()} <code>If-None-Match</code>{" "}
-        {m.developers_caching_p_7()}
+        <ParaglideMessage message={m.developers_caching_p} markup={codeMarkup} />
       </p>
+      <pre className="bg-muted mt-3 overflow-x-auto rounded-md p-3 text-sm">
+        <code>
+          {[
+            `$ curl -si -A "MyDeckTool/1.0 (you@example.com)" ${origin}/api/v1/sets`,
+            "HTTP/2 200",
+            "cache-control: public, max-age=3600, stale-while-revalidate=86400",
+            'etag: "ef44dbbc"',
+            "",
+            `$ curl -si -A "MyDeckTool/1.0 (you@example.com)" -H 'If-None-Match: "ef44dbbc"' ${origin}/api/v1/sets`,
+            "HTTP/2 304",
+          ].join("\n")}
+        </code>
+      </pre>
+      <p>
+        <ParaglideMessage message={m.developers_caching_example_p} markup={codeMarkup} />
+      </p>
+      <p>{m.developers_limits_p()}</p>
 
-      <h2>{m.developers_attribution_heading()}</h2>
+      <h2>{m.developers_terms_heading()}</h2>
+      <p>{m.developers_license_p()}</p>
       <p>
         <ParaglideMessage
           message={m.developers_attribution_p}
           markup={{ code: () => <code>/cards/{"{card-slug}"}</code> }}
+        />
+      </p>
+      <p>{m.developers_stability_p()}</p>
+
+      <h2>{m.developers_contact_heading()}</h2>
+      <p>
+        <ParaglideMessage
+          message={m.developers_contribute_p}
+          markup={{ link: ({ children }) => <a href="/contribute">{children}</a> }}
+        />
+      </p>
+      <p>
+        <ParaglideMessage
+          message={m.developers_contact_p}
+          markup={{
+            link: ({ children }) => (
+              <ExternalLink href={SOCIAL_LINKS.githubIssues}>{children}</ExternalLink>
+            ),
+            link2: ({ children }) => (
+              <ExternalLink href={SOCIAL_LINKS.discordInvite}>{children}</ExternalLink>
+            ),
+          }}
         />
       </p>
     </ProsePage>

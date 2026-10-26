@@ -1,7 +1,8 @@
 import { pricesContract } from "@openrift/shared/contracts/prices";
 import { formatDay } from "@openrift/shared/format-date";
+import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
 import type {
-  MarketplaceInfo,
+  MarketplaceLinkInfo,
   MarketplaceInfoResponse,
   PriceHistoryResponse,
   PriceMap,
@@ -16,10 +17,11 @@ import type { ApiContext } from "../../../orpc/context.js";
 
 const os = implement(pricesContract).$context<ApiContext>().use(requireUser);
 
-function emptyMarketplaceInfo(): MarketplaceInfo {
+function emptyMarketplaceInfo(): MarketplaceLinkInfo {
   return {
     available: false,
     productId: null,
+    url: null,
   };
 }
 
@@ -76,9 +78,11 @@ export const pricesRouter = {
         if (!entry) {
           continue;
         }
-        entry[row.marketplace as Marketplace] = {
+        const source = row.marketplace as Marketplace;
+        entry[source] = {
           available: true,
           productId: row.externalId,
+          url: MARKETPLACE_LINKS[source].productUrl(row.externalId, row.language),
         };
       }
 

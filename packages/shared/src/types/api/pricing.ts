@@ -4,6 +4,7 @@ import type {
   cardtraderSnapshotSchema,
   marketplaceInfoResponseSchema,
   marketplaceInfoSchema,
+  marketplaceLinkInfoSchema,
   priceHistoryResponseSchema,
   pricesResponseSchema,
   tcgplayerSnapshotSchema,
@@ -39,6 +40,8 @@ export type CardtraderSnapshot = z.infer<typeof cardtraderSnapshotSchema>;
 export type CardnexusSnapshot = z.infer<typeof cardnexusSnapshotSchema>;
 
 export type MarketplaceInfo = z.infer<typeof marketplaceInfoSchema>;
+
+export type MarketplaceLinkInfo = z.infer<typeof marketplaceLinkInfoSchema>;
 
 export type PriceHistoryResponse = z.infer<typeof priceHistoryResponseSchema>;
 

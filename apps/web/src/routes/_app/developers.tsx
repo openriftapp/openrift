@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_app/developers")({
       siteUrl: getSiteUrl(),
       title: "Developers",
       description:
-        "OpenRift's free public API for Riftbound card data: catalog, cards, sets, prices, rules, promos, and products.",
+        "OpenRift's free public API for Riftbound card data: catalog, cards, sets, prices and rules.",
       path: "/developers",
     }),
   beforeLoad: async ({ context }) => {

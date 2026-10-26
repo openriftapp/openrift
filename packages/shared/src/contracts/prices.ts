@@ -117,6 +117,18 @@ export const marketplaceInfoSchema = z.object({
     .meta({ examples: [582_391] }),
 });
 
+export const marketplaceLinkInfoSchema = marketplaceInfoSchema.extend({
+  url: z
+    .string()
+    .nullable()
+    .meta({
+      examples: [
+        "https://partner.tcgplayer.com/openrift?u=https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F582391",
+      ],
+      description: "Product page link, with OpenRift's referral code where the marketplace has one",
+    }),
+});
+
 const currencyFieldSchema = z.enum(["EUR", "USD"]);
 
 export const priceHistoryResponseSchema = z.object({
@@ -143,20 +155,32 @@ export const marketplaceInfoResponseSchema = z.object({
     .record(
       z.string(),
       z.object({
-        tcgplayer: marketplaceInfoSchema,
-        cardmarket: marketplaceInfoSchema,
-        cardtrader: marketplaceInfoSchema,
-        cardnexus: marketplaceInfoSchema,
+        tcgplayer: marketplaceLinkInfoSchema,
+        cardmarket: marketplaceLinkInfoSchema,
+        cardtrader: marketplaceLinkInfoSchema,
+        cardnexus: marketplaceLinkInfoSchema,
       }),
     )
     .meta({
       examples: [
         {
           "019cfc3b-03d3-7dac-86c9-27900cd43727": {
-            tcgplayer: { available: true, productId: 582_391 },
-            cardmarket: { available: true, productId: 748_215 },
-            cardtrader: { available: false, productId: null },
-            cardnexus: { available: true, productId: 151_160 },
+            tcgplayer: {
+              available: true,
+              productId: 582_391,
+              url: "https://partner.tcgplayer.com/openrift?u=https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F582391",
+            },
+            cardmarket: {
+              available: true,
+              productId: 748_215,
+              url: "https://www.cardmarket.com/en/Riftbound/Products?idProduct=748215&language=1",
+            },
+            cardtrader: { available: false, productId: null, url: null },
+            cardnexus: {
+              available: true,
+              productId: 151_160,
+              url: "https://af.cardnexus.link/7018965/cn/151160",
+            },
           },
         },
       ],
@@ -205,20 +229,20 @@ const marketplaceInfoQuerySchema = z.object({
 export const pricesContract = {
   prices: oc
     .route({ method: "GET", path: "/api/v1/prices", tags: [TAG] })
-    .meta({ auth: "public", cache: "long", etag: true })
+    .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
     .output(pricesResponseSchema),
 
   // The static `marketplace-info` is declared before `:printingId/history` so
   // the oRPC router resolves it ahead of the param route.
   marketplaceInfo: oc
     .route({ method: "GET", path: "/api/v1/prices/marketplace-info", tags: [TAG] })
-    .meta({ auth: "public", cache: "long", etag: true })
+    .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
     .input(marketplaceInfoQuerySchema)
     .output(marketplaceInfoResponseSchema),
 
   history: oc
     .route({ method: "GET", path: "/api/v1/prices/{printingId}/history", tags: [TAG] })
-    .meta({ auth: "public", cache: "long", etag: true })
+    .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
     .input(rangeQuerySchema.extend({ printingId: z.uuid() }))
     .output(priceHistoryResponseSchema),
 };

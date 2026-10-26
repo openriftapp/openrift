@@ -30,25 +30,30 @@ function buildContractRouter(): AnyContractRouter {
 
 type AuthLevel = "public" | "bearer" | undefined;
 
+interface ContractMeta {
+  auth?: AuthLevel;
+  developerApi?: boolean;
+}
+
 interface ContractDef {
   route?: { method?: string; path?: string };
-  meta?: { auth?: AuthLevel };
+  meta?: ContractMeta;
 }
 
 const HTTP_METHODS = ["get", "post", "put", "patch", "delete", "head", "options"] as const;
 
-/** Records each operation's auth level (from `meta`), keyed by `"METHOD /path"`. */
-function collectAuthByOperation(node: unknown, out: Map<string, AuthLevel>): void {
+/** Records each operation's contract `meta`, keyed by `"METHOD /path"`. */
+function collectMetaByOperation(node: unknown, out: Map<string, ContractMeta>): void {
   if (!node || typeof node !== "object") {
     return;
   }
   const def = (node as { "~orpc"?: ContractDef })["~orpc"];
   if (def?.route?.method && def.route.path) {
-    out.set(`${def.route.method} ${def.route.path}`, def.meta?.auth);
+    out.set(`${def.route.method} ${def.route.path}`, def.meta ?? {});
     return;
   }
   for (const value of Object.values(node)) {
-    collectAuthByOperation(value, out);
+    collectMetaByOperation(value, out);
   }
 }
 
@@ -62,9 +67,7 @@ const ADMIN_PATH_PREFIX = "/api/admin/";
  * (fail-closed), `[]` for public reads, `bearerAuth` for the provider push,
  * `adminAuth` for the admin path prefix.
  */
-function applySecurity(doc: OpenAPI.Document, router: AnyContractRouter): void {
-  const authByOperation = new Map<string, AuthLevel>();
-  collectAuthByOperation(router, authByOperation);
+function applySecurity(doc: OpenAPI.Document, metaByOperation: Map<string, ContractMeta>): void {
   doc.security = [{ cookieAuth: [] }];
   for (const [path, item] of Object.entries(doc.paths ?? {})) {
     for (const method of HTTP_METHODS) {
@@ -72,7 +75,7 @@ function applySecurity(doc: OpenAPI.Document, router: AnyContractRouter): void {
       if (!operation) {
         continue;
       }
-      const auth = authByOperation.get(`${method.toUpperCase()} ${path}`);
+      const auth = metaByOperation.get(`${method.toUpperCase()} ${path}`)?.auth;
       if (path.startsWith(ADMIN_PATH_PREFIX)) {
         operation.security = [{ adminAuth: [] }];
       } else if (auth === "public") {
@@ -85,15 +88,43 @@ function applySecurity(doc: OpenAPI.Document, router: AnyContractRouter): void {
   }
 }
 
-// Static for a given build; reused across requests to /api/doc and /api/admin/doc.
-let cachedContractDoc: Promise<OpenAPI.Document> | null = null;
+interface ContractDocument {
+  doc: OpenAPI.Document;
+  metaByOperation: Map<string, ContractMeta>;
+}
 
-export function generateContractOpenAPIDocument(): Promise<OpenAPI.Document> {
+// Static for a given build; reused across requests to every doc endpoint.
+let cachedContractDoc: Promise<ContractDocument> | null = null;
+
+function generateContractDocument(): Promise<ContractDocument> {
   cachedContractDoc ??= (async () => {
     const router = buildContractRouter();
+    const metaByOperation = new Map<string, ContractMeta>();
+    collectMetaByOperation(router, metaByOperation);
     const doc = await generator.generate(router);
-    applySecurity(doc, router);
-    return doc;
+    applySecurity(doc, metaByOperation);
+    return { doc, metaByOperation };
   })();
   return cachedContractDoc;
+}
+
+export async function generateContractOpenAPIDocument(): Promise<OpenAPI.Document> {
+  const { doc } = await generateContractDocument();
+  return doc;
+}
+
+export async function generateDeveloperOpenAPIDocument(): Promise<OpenAPI.Document> {
+  const { doc, metaByOperation } = await generateContractDocument();
+  const paths: Record<string, Record<string, unknown>> = {};
+  for (const [path, item] of Object.entries(doc.paths ?? {})) {
+    const operations = Object.entries(item ?? {}).filter(
+      ([method]) =>
+        (HTTP_METHODS as readonly string[]).includes(method) &&
+        metaByOperation.get(`${method.toUpperCase()} ${path}`)?.developerApi,
+    );
+    if (operations.length > 0) {
+      paths[path] = Object.fromEntries(operations);
+    }
+  }
+  return { ...doc, paths: paths as OpenAPI.PathsObject };
 }

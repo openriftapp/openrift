@@ -417,6 +417,8 @@ export default defineConfig(({ mode, command }) => {
         "/api/health": { target: apiProxyTarget },
         "/api/doc": { target: apiProxyTarget },
         "/api/ui": { target: apiProxyTarget },
+        "/api/developers": { target: apiProxyTarget },
+        "/api/swagger-ui-dist": { target: apiProxyTarget },
       },
     },
   };

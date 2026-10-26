@@ -409,26 +409,40 @@ describe("GET /api/v1/prices/marketplace-info", () => {
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json.infos[printingA]).toEqual({
-      tcgplayer: { available: false, productId: null },
-      cardmarket: { available: false, productId: null },
-      cardtrader: { available: false, productId: null },
-      cardnexus: { available: false, productId: null },
+      tcgplayer: { available: false, productId: null, url: null },
+      cardmarket: { available: false, productId: null, url: null },
+      cardtrader: { available: false, productId: null, url: null },
+      cardnexus: { available: false, productId: null, url: null },
     });
   });
 
-  it("maps sources to per-marketplace productId", async () => {
+  it("maps sources to per-marketplace productId and referral url", async () => {
     mockMarketplaceRepo.sourcesForPrintings.mockResolvedValue([
-      { printingId: printingA, externalId: 12_345, marketplace: "tcgplayer" },
-      { printingId: printingA, externalId: 67_890, marketplace: "cardmarket" },
-      { printingId: printingB, externalId: 11_111, marketplace: "cardtrader" },
+      { printingId: printingA, externalId: 12_345, marketplace: "tcgplayer", language: "EN" },
+      { printingId: printingA, externalId: 67_890, marketplace: "cardmarket", language: "FR" },
+      { printingId: printingB, externalId: 11_111, marketplace: "cardtrader", language: "EN" },
+      { printingId: printingB, externalId: 22_222, marketplace: "cardnexus", language: "EN" },
     ]);
     const res = await app.request(
       `/api/v1/prices/marketplace-info?printings=${printingA},${printingB}`,
     );
     const json = await readJson(res);
-    expect(json.infos[printingA].tcgplayer).toEqual({ available: true, productId: 12_345 });
-    expect(json.infos[printingA].cardmarket).toEqual({ available: true, productId: 67_890 });
-    expect(json.infos[printingB].cardtrader).toEqual({ available: true, productId: 11_111 });
+    expect(json.infos[printingA].tcgplayer).toEqual({
+      available: true,
+      productId: 12_345,
+      url: "https://partner.tcgplayer.com/openrift?u=https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F12345",
+    });
+    expect(json.infos[printingA].cardmarket).toEqual({
+      available: true,
+      productId: 67_890,
+      url: "https://www.cardmarket.com/en/Riftbound/Products?idProduct=67890&language=2",
+    });
+    expect(json.infos[printingB].cardtrader).toEqual({
+      available: true,
+      productId: 11_111,
+      url: "https://www.cardtrader.com/en/cards/11111?share_code=openrift",
+    });
+    expect(json.infos[printingB].cardnexus.url).toBe("https://af.cardnexus.link/7018965/cn/22222");
     expect(json.infos[printingB].tcgplayer.available).toBe(false);
   });
 

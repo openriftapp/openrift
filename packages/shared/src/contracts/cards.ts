@@ -48,7 +48,7 @@ export const cardDetailResponseSchema = z.object({
 export const cardsContract = {
   detail: oc
     .route({ method: "GET", path: "/api/v1/cards/{cardSlug}", tags: ["Cards"] })
-    .meta({ auth: "public", cache: "long", etag: true })
+    .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
     .input(z.object({ cardSlug: z.string().min(1) }))
     .errors({ NOT_FOUND: { message: "Card not found" } })
     .output(cardDetailResponseSchema),

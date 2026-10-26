@@ -102,7 +102,7 @@ export const ruleVersionsListResponseSchema = z.object({
 export const rulesContract = {
   list: oc
     .route({ method: "GET", path: "/api/v1/rules", tags: ["Rules"] })
-    .meta({ auth: "public", cache: "long", etag: true })
+    .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
     .input(
       z.object({
         kind: ruleKindSchema,
@@ -128,7 +128,7 @@ export const rulesContract = {
     .output(ruleNumbersResponseSchema),
   versions: oc
     .route({ method: "GET", path: "/api/v1/rules/versions", tags: ["Rules"] })
-    .meta({ auth: "public", cache: "long", etag: true })
+    .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
     .input(z.object({ kind: ruleKindSchema.optional(), language: languageInput }))
     .output(ruleVersionsListResponseSchema),
 };
