@@ -141,7 +141,7 @@ export const Route = createFileRoute("/_app/cards")({
     const catalogHref = catalogFetchUrl(
       "",
       catalogVersion,
-      preloadLangs.length > 0 ? { langs: preloadLangs } : undefined,
+      preloadLangs.length > 0 ? preloadLangs : undefined,
     );
     return {
       ...head,

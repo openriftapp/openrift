@@ -77,7 +77,7 @@ A fresh database has no cards. `bun db:sync` copies the public data of the OpenR
 
 What it copies:
 
-- **Catalog** from `/api/v1/init` and `/api/v1/catalog`: sets, cards, printings, errata, bans, tokens, tags, custom tags, keywords, markers, distribution channels and image records. Card, set, printing and image ids match the source, so card links and deck codes work the same as on openrift.app.
+- **Catalog** from `/api/v1/init` and `/api/v1/catalog`: sets, cards, printings, errata, bans, tokens, tags, keywords, markers, distribution channels and image records. Card, set, printing and image ids match the source, so card links and deck codes work the same as on openrift.app.
 - **Rules** from `/api/v1/rules/versions` and `/api/v1/rules`: every core and tournament version in every language.
 - **Latest prices** from `/api/v1/prices` and `/api/v1/prices/marketplace-info`: one snapshot per marketplace product. There is no price history.
 

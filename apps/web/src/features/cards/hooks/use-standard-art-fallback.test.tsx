@@ -1,3 +1,4 @@
+import { makeCatalogReference } from "@openrift/shared/test-factories";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -36,8 +37,7 @@ function makeCatalog(printings: Printing[]): CatalogResponse {
     ],
     cards: Object.fromEntries(printings.map((p) => [p.cardId, p.card])),
     printings: Object.fromEntries(printings.map((p) => [p.printingId, toCatalogValue(p)])),
-    totalCopies: 0,
-    customTagAssignments: {},
+    ...makeCatalogReference(),
   } as unknown as CatalogResponse;
 }
 

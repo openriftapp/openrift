@@ -1,7 +1,11 @@
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import { describe, expect, it } from "vitest";
 
-import { filterCatalogResponseByLanguages, parseLanguageCodes } from "./catalog-assembly.js";
+import {
+  catalogPrintingsExcept,
+  filterCatalogByLanguages,
+  parseLanguageCodes,
+} from "./catalog-assembly.js";
 
 describe("parseLanguageCodes", () => {
   it("splits, trims and uppercases the codes", () => {
@@ -26,103 +30,81 @@ function fakeCatalog(): CatalogResponse {
       "p-fr": { language: "FR" },
       "p-sc": { language: "SC" },
     },
-    totalCopies: 42,
-    customTagAssignments: { "OGS-001": ["spicy"] },
   } as unknown as CatalogResponse;
 }
 
-describe("filterCatalogResponseByLanguages", () => {
-  it("returns the catalog untouched when no filter is given", () => {
+describe("filterCatalogByLanguages", () => {
+  it("returns the catalog untouched without langs", () => {
     const catalog = fakeCatalog();
-    expect(filterCatalogResponseByLanguages(catalog, {})).toBe(catalog);
+    expect(filterCatalogByLanguages(catalog)).toBe(catalog);
   });
 
-  it("langs keeps only the listed languages and the full core", () => {
-    const variant = filterCatalogResponseByLanguages(fakeCatalog(), {
-      langs: new Set(["EN"]),
-    });
+  it("keeps only the listed languages and everything else whole", () => {
+    const variant = filterCatalogByLanguages(fakeCatalog(), new Set(["EN"]));
 
     expect(Object.keys(variant.printings)).toEqual(["p-en"]);
     expect(variant.cards).toEqual({ "OGS-001": { name: "Fire Dragon" } });
-    expect(variant.customTagAssignments).toEqual({ "OGS-001": ["spicy"] });
     expect(variant.sets).toHaveLength(1);
-    expect(variant.totalCopies).toBe(42);
   });
 
-  it("langs accepts several codes", () => {
-    const variant = filterCatalogResponseByLanguages(fakeCatalog(), {
-      langs: new Set(["EN", "SC"]),
-    });
+  it("accepts several codes", () => {
+    const variant = filterCatalogByLanguages(fakeCatalog(), new Set(["EN", "SC"]));
 
     expect(Object.keys(variant.printings).toSorted()).toEqual(["p-en", "p-sc"]);
   });
 
-  it("exceptLangs returns the complement with the core emptied but sets kept", () => {
-    const variant = filterCatalogResponseByLanguages(fakeCatalog(), {
-      exceptLangs: new Set(["EN"]),
-    });
-
-    expect(Object.keys(variant.printings).toSorted()).toEqual(["p-fr", "p-sc"]);
-    expect(variant.cards).toEqual({});
-    expect(variant.customTagAssignments).toEqual({});
-    expect(variant.sets).toHaveLength(1);
-    expect(variant.totalCopies).toBe(42);
-  });
-
-  it("the two halves partition the printings exactly", () => {
-    const langs = new Set(["EN"]);
-    const head = filterCatalogResponseByLanguages(fakeCatalog(), { langs });
-    const tail = filterCatalogResponseByLanguages(fakeCatalog(), { exceptLangs: langs });
-
-    expect([...Object.keys(head.printings), ...Object.keys(tail.printings)].toSorted()).toEqual(
-      Object.keys(fakeCatalog().printings).toSorted(),
-    );
-  });
-
   it("matches codes case-insensitively", () => {
-    const variant = filterCatalogResponseByLanguages(
+    const variant = filterCatalogByLanguages(
       {
         ...fakeCatalog(),
         printings: { "p-lower": { language: "en" } },
       } as unknown as CatalogResponse,
-      { langs: parseLanguageCodes("En") },
+      parseLanguageCodes("En"),
     );
 
     expect(Object.keys(variant.printings)).toEqual(["p-lower"]);
   });
 
   it("an unknown code matches nothing rather than erroring", () => {
-    const variant = filterCatalogResponseByLanguages(fakeCatalog(), {
-      langs: new Set(["XX"]),
-    });
+    const variant = filterCatalogByLanguages(fakeCatalog(), new Set(["XX"]));
 
     expect(variant.printings).toEqual({});
     expect(variant.cards).toEqual({ "OGS-001": { name: "Fire Dragon" } });
-  });
-
-  it("an unknown code in exceptLangs excludes nothing", () => {
-    const variant = filterCatalogResponseByLanguages(fakeCatalog(), {
-      exceptLangs: new Set(["XX"]),
-    });
-
-    expect(Object.keys(variant.printings)).toHaveLength(3);
-  });
-
-  it("an empty code set keeps nothing for langs and everything for exceptLangs", () => {
-    const none = filterCatalogResponseByLanguages(fakeCatalog(), { langs: new Set() });
-    const all = filterCatalogResponseByLanguages(fakeCatalog(), { exceptLangs: new Set() });
-
-    expect(none.printings).toEqual({});
-    expect(Object.keys(all.printings)).toHaveLength(3);
   });
 
   it("does not mutate the input catalog", () => {
     const catalog = fakeCatalog();
     const before = structuredClone(catalog);
 
-    filterCatalogResponseByLanguages(catalog, { langs: new Set(["EN"]) });
-    filterCatalogResponseByLanguages(catalog, { exceptLangs: new Set(["EN"]) });
+    filterCatalogByLanguages(catalog, new Set(["EN"]));
+    catalogPrintingsExcept(catalog, new Set(["EN"]));
 
     expect(catalog).toEqual(before);
+  });
+});
+
+describe("catalogPrintingsExcept", () => {
+  it("returns only the printings outside the codes", () => {
+    const tail = catalogPrintingsExcept(fakeCatalog(), new Set(["EN"]));
+
+    expect(Object.keys(tail)).toEqual(["printings"]);
+    expect(Object.keys(tail.printings).toSorted()).toEqual(["p-fr", "p-sc"]);
+  });
+
+  it("partitions the printings exactly with the langs variant", () => {
+    const langs = new Set(["EN"]);
+    const head = filterCatalogByLanguages(fakeCatalog(), langs);
+    const tail = catalogPrintingsExcept(fakeCatalog(), langs);
+
+    expect([...Object.keys(head.printings), ...Object.keys(tail.printings)].toSorted()).toEqual(
+      Object.keys(fakeCatalog().printings).toSorted(),
+    );
+  });
+
+  it("excludes nothing for an unknown or empty code set", () => {
+    expect(
+      Object.keys(catalogPrintingsExcept(fakeCatalog(), new Set(["XX"])).printings),
+    ).toHaveLength(3);
+    expect(Object.keys(catalogPrintingsExcept(fakeCatalog(), new Set()).printings)).toHaveLength(3);
   });
 });

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { customTagsQueryOptions } from "@/features/cards/lib/custom-tags-queries";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { CollectionPending } from "@/features/collections/components/collection-pending";
 import { seoHead } from "@/lib/seo";
@@ -13,6 +14,7 @@ export const Route = createFileRoute("/_app/_authenticated/collections/stats")({
     await Promise.all([
       getCollectionsCollection(context.queryClient, context.userId).preload(),
       context.queryClient.query({ ...publicSetListQueryOptions, staleTime: "static" }),
+      context.queryClient.query({ ...customTagsQueryOptions, staleTime: "static" }),
     ]);
   },
   pendingComponent: CollectionPending,

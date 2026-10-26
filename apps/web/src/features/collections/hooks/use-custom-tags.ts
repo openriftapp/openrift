@@ -3,7 +3,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
+import { customTagsKeys } from "@/features/cards/lib/cards-query-keys";
 import {
   adminCustomTagCategoriesQueryOptions,
   adminCustomTagsQueryOptions,
@@ -152,7 +152,7 @@ const clearCustomTagCardsFn = createServerFn({ method: "POST" })
 export function useClearCustomTagCards() {
   return useMutationWithInvalidation({
     mutationFn: (id: string) => clearCustomTagCardsFn({ data: { id } }),
-    invalidates: [adminKeys.customTags, adminKeys.cardCustomTags.prefix, catalogKeys.all],
+    invalidates: [adminKeys.customTags, adminKeys.cardCustomTags.prefix, customTagsKeys.all],
   });
 }
 
@@ -188,7 +188,7 @@ const setCardCustomTagsFn = createServerFn({ method: "POST" })
 export function useSetCardCustomTags(cardId: string) {
   return useMutationWithInvalidation({
     mutationFn: (customTagIds: string[]) => setCardCustomTagsFn({ data: { cardId, customTagIds } }),
-    invalidates: [adminKeys.cardCustomTags(cardId), adminKeys.customTags],
+    invalidates: [adminKeys.cardCustomTags(cardId), adminKeys.customTags, customTagsKeys.all],
   });
 }
 
@@ -211,6 +211,6 @@ export function useAddCardsToCustomTag() {
   return useMutationWithInvalidation({
     mutationFn: (vars: { tagId: string; cardIds: string[] }) =>
       addCardsToCustomTagFn({ data: vars }),
-    invalidates: [adminKeys.customTags, adminKeys.cardCustomTags.prefix, catalogKeys.all],
+    invalidates: [adminKeys.customTags, adminKeys.cardCustomTags.prefix, customTagsKeys.all],
   });
 }

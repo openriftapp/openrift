@@ -4,6 +4,7 @@ import type {
   CatalogPrintingSideValue,
 } from "@openrift/shared/types/api/catalog";
 import type {
+  DistributionChannel,
   DistributionChannelKind,
   Marker,
   PrintingCitation,
@@ -12,8 +13,12 @@ import type {
 } from "@openrift/shared/types/catalog";
 
 import type { Repos } from "../../../deps.js";
+import { toDistributionChannel } from "./reference-presenters.js";
+
+export type PresentedSide = Omit<CatalogPrintingSideValue, "markers"> & { markers: Marker[] };
 
 interface PrintingDecorations {
+  channels: DistributionChannel[];
   markerBySlug: Map<string, Marker>;
   channelsByPrinting: Map<string, PrintingDistributionChannel[]>;
   citationsByPrinting: Map<string, PrintingCitation[]>;
@@ -99,7 +104,12 @@ export async function loadPrintingDecorations(
     }
   }
 
-  return { markerBySlug, channelsByPrinting, citationsByPrinting };
+  return {
+    channels: allChannels.map((channel) => toDistributionChannel(channel)),
+    markerBySlug,
+    channelsByPrinting,
+    citationsByPrinting,
+  };
 }
 
 /** Wire invariant: `fallbackArtMode: "pinned"` always arrives with a `fallbackImageId`. */
@@ -125,12 +135,6 @@ export function toCatalogPrintingImage(row: {
     imageId: row.imageId,
     ...(row.credit === null ? {} : { credit: row.credit }),
   };
-}
-
-function resolveFoilTwin(row: {
-  hasFoilTwin: boolean;
-}): Pick<CatalogPrintingResponse, "hasFoilTwin"> {
-  return row.hasFoilTwin ? { hasFoilTwin: true } : {};
 }
 
 /** Skips slugs missing from the map (defensive for stale denormalized data). */
@@ -187,7 +191,7 @@ export function presentSide(
   row: SideRow,
   images: readonly PrintingImageRow[],
   markerBySlug: ReadonlyMap<string, Marker>,
-): CatalogPrintingSideValue {
+): PresentedSide {
   return {
     faceId: row.faceId,
     cardId: row.cardId,
@@ -216,15 +220,11 @@ export function presentSide(
 export function presentPrintingFields(
   row: SideRow,
   decorations: Pick<PrintingDecorations, "channelsByPrinting" | "citationsByPrinting">,
-): Pick<
-  CatalogPrintingResponse,
-  "size" | "comment" | "hasFoilTwin" | "distributionChannels" | "citations"
-> {
+): Pick<CatalogPrintingResponse, "size" | "comment" | "distributionChannels" | "citations"> {
   const citations = decorations.citationsByPrinting.get(row.printingId);
   return {
     size: row.size,
     comment: row.comment,
-    ...resolveFoilTwin(row),
     distributionChannels: decorations.channelsByPrinting.get(row.printingId) ?? [],
     ...(citations === undefined ? {} : { citations }),
   };

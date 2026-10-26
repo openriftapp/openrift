@@ -1,11 +1,16 @@
 import { initContract } from "@openrift/shared/contracts/init";
 import type { InitResponse } from "@openrift/shared/types/api/init";
-import type { KeywordEntry } from "@openrift/shared/types/api/keyword";
-import type { CustomTag, DistributionChannel } from "@openrift/shared/types/catalog";
 import { implement } from "@orpc/server";
 
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import {
+  toDistributionChannel,
+  toEnumRows,
+  toKeywordEntries,
+  toTagCategoryMap,
+} from "../../catalog/lib/reference-presenters.js";
+import { toPublicCustomTag } from "../../collections/lib/custom-tag-presenters.js";
 
 const os = implement(initContract).$context<ApiContext>().use(requireUser);
 
@@ -49,24 +54,6 @@ export const initRouter = {
       tagDefinitions.listAll(),
     ]);
 
-    const keywordsMap: Record<string, KeywordEntry> = {};
-    for (const row of keywordRows) {
-      keywordsMap[row.name] = {
-        color: row.color,
-        darkText: row.darkText,
-        costKeyword: row.costKeyword,
-        cardModifier: row.cardModifier,
-      };
-    }
-
-    for (const translation of translations) {
-      const entry = keywordsMap[translation.keywordName];
-      if (entry) {
-        entry.translations ??= {};
-        entry.translations[translation.language] = translation.label;
-      }
-    }
-
     // Listing keys explicitly keeps this checked against InitResponse["enums"];
     // folding over Object.entries would need an index-signature cast.
     const strippedEnums: InitResponse["enums"] = {
@@ -85,38 +72,14 @@ export const initRouter = {
       markers: enumData.markers,
     };
 
-    const channelsResponse: DistributionChannel[] = channelRows.map((row) => ({
-      id: row.id,
-      slug: row.slug,
-      label: row.label,
-      description: row.description,
-      kind: row.kind,
-      parentId: row.parentId,
-      childrenLabel: row.childrenLabel,
-    }));
-
-    const customTagsResponse: CustomTag[] = customTagRows.map((row) => ({
-      id: row.id,
-      slug: row.slug,
-      label: row.label,
-      category: row.category,
-      categoryLabel: row.categoryLabel,
-      description: row.description,
-      sortOrder: row.sortOrder,
-    }));
-
     return {
       enums: strippedEnums,
-      keywords: keywordsMap,
-      distributionChannels: channelsResponse,
-      customTags: customTagsResponse,
+      keywords: toKeywordEntries(keywordRows, translations),
+      distributionChannels: channelRows.map((row) => toDistributionChannel(row)),
+      customTags: customTagRows.map((row) => toPublicCustomTag(row)),
       championIdentifierTags,
-      tagCategories: tagCategoryRows.map((row) => ({
-        slug: row.slug,
-        label: row.label,
-        sortOrder: row.sortOrder,
-      })),
-      tagCategoryMap: Object.fromEntries(tagDefinitionRows.map((row) => [row.tag, row.category])),
+      tagCategories: toEnumRows(tagCategoryRows),
+      tagCategoryMap: toTagCategoryMap(tagDefinitionRows),
     };
   }),
 };

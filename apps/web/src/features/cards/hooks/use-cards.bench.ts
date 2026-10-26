@@ -110,6 +110,8 @@ function buildFixture(): Printing[] {
     }
     printings.push({
       ...raw,
+      markers: [],
+      distributionChannels: [],
       printingId: `printing-${i}`,
       side: 1,
       faceId: `printing-${i}`,

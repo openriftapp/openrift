@@ -1,4 +1,8 @@
-import { makeCatalogCard, makeCatalogPrinting } from "@openrift/shared/test-factories";
+import {
+  makeCatalogCard,
+  makeCatalogPrinting,
+  makeCatalogReference,
+} from "@openrift/shared/test-factories";
 import type { CatalogResponse, CatalogSetResponse } from "@openrift/shared/types/api/catalog";
 import type { InitResponse } from "@openrift/shared/types/api/init";
 import type { PricesResponse } from "@openrift/shared/types/api/pricing";
@@ -20,16 +24,21 @@ export function makeCard(overrides: Partial<CatalogCard> = {}): CatalogCard {
 }
 
 export function makePrinting(overrides: Partial<CatalogPrinting> = {}): CatalogPrinting {
-  return makeCatalogPrinting({
-    shortCode: "OGN-202",
-    rarity: "Epic",
-    images: [{ imageId: "0197f00d00aa" }],
-    artist: "Kudos Productions",
-    publicCode: "OGN-202/298",
-    printedYear: 2025,
-    canonicalRank: 1,
-    ...overrides,
-  });
+  const { markers = [], distributionChannels = [], ...rest } = overrides;
+  return {
+    ...makeCatalogPrinting({
+      shortCode: "OGN-202",
+      rarity: "Epic",
+      images: [{ imageId: "0197f00d00aa" }],
+      artist: "Kudos Productions",
+      publicCode: "OGN-202/298",
+      printedYear: 2025,
+      canonicalRank: 1,
+      ...rest,
+    }),
+    markers,
+    distributionChannels,
+  };
 }
 
 export function makeSet(overrides: Partial<CatalogSetResponse> = {}): CatalogSetResponse {
@@ -48,14 +57,32 @@ export function makeCatalogResponse(
   printings: CatalogPrinting[],
   sets: CatalogSetResponse[] = [makeSet()],
 ): CatalogResponse {
+  const markers = new Map(printings.flatMap((p) => p.markers).map((m) => [m.slug, m]));
+  const channels = new Map(
+    printings
+      .flatMap((p) => p.distributionChannels)
+      .map((link) => [link.channel.slug, link.channel]),
+  );
   return {
     sets,
     cards: Object.fromEntries(cards.map(({ id, ...card }) => [id, card])),
     printings: Object.fromEntries(
-      printings.map(({ printingId: id, ...printing }) => [id, printing]),
+      printings.map(({ printingId: id, side: _side, otherSide: _other, ...printing }) => [
+        id,
+        {
+          ...printing,
+          markers: printing.markers.map((marker) => marker.slug),
+          distributionChannels: printing.distributionChannels.map((link) => ({
+            channel: link.channel.slug,
+            ...(link.distributionNote === null ? {} : { note: link.distributionNote }),
+          })),
+        },
+      ]),
     ),
-    totalCopies: printings.length,
-    customTagAssignments: {},
+    ...makeCatalogReference({
+      markers: [...markers.values()],
+      distributionChannels: [...channels.values()],
+    }),
   };
 }
 

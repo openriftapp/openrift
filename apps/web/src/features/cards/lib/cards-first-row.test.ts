@@ -1,3 +1,4 @@
+import { makeCatalogReference } from "@openrift/shared/test-factories";
 import type {
   CatalogResponse,
   CatalogResponseCardValue,
@@ -77,7 +78,7 @@ function makeCatalog(
   printings: Record<string, CatalogResponsePrintingValue>,
   sets: CatalogSetResponse[] = [makeSet("set-ogn", "OGN")],
 ): CatalogResponse {
-  return { sets, cards, printings, totalCopies: 0, customTagAssignments: {} };
+  return { sets, cards, printings, ...makeCatalogReference() };
 }
 
 const NO_FILTERS: FilterSearch = {};

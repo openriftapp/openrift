@@ -1,3 +1,4 @@
+import { makeCatalogReference } from "@openrift/shared/test-factories";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { InitResponse } from "@openrift/shared/types/api/init";
 import { describe, expect, it } from "vitest";
@@ -85,14 +86,8 @@ function makePrinting(): CatalogPrinting {
     artVariant: "normal",
     isSigned: false,
     isOvernumbered: false,
-    markers: [{ id: "m", slug: "promo", label: "Promo", description: null }],
-    distributionChannels: [
-      {
-        channel: channel(CHILD_CHANNEL_ID, "child-night", PARENT_CHANNEL_ID),
-        distributionNote: "Top 8",
-        ancestorLabels: ["parent-night"],
-      },
-    ],
+    markers: ["promo"],
+    distributionChannels: [{ channel: "child-night", note: "Top 8" }],
     citations: [{ id: "00000000-0000-7000-8000-000000000008", label: "Unboxing", sourceUrl: null }],
     finish: "normal",
     size: "standard",
@@ -156,8 +151,7 @@ function makeCatalog(overrides: Partial<CatalogResponse> = {}): CatalogResponse 
     printings: {
       [PRINTING_ID]: makePrinting(),
     },
-    totalCopies: 0,
-    customTagAssignments: { [CARD_ID]: ["removal", "unknown-tag"] },
+    ...makeCatalogReference(),
     ...overrides,
   };
 }
@@ -304,24 +298,15 @@ describe("buildCatalogSync", () => {
     ]);
   });
 
-  it("derives custom tag categories and drops assignments to unknown tags", () => {
+  it("maps tag definitions and leaves custom tags out", () => {
     const rows = buildCatalogSync(makeInit(), makeCatalog());
 
-    expect(rows.customTagCategories).toEqual([
-      { slug: "function", label: "Function", sortOrder: 0 },
-    ]);
-    expect(rows.customTags).toEqual([
-      expect.objectContaining({ slug: "removal", categorySlug: "function" }),
-    ]);
-    expect(rows.cardCustomTags).toEqual([{ cardId: CARD_ID, customTagSlug: "removal" }]);
     expect(rows.tagDefinitions).toEqual([{ tag: "Testland", categorySlug: "region" }]);
+    expect(Object.keys(rows).filter((key) => key.toLowerCase().includes("customtag"))).toEqual([]);
   });
 
   it("returns empty catalog tables for an empty catalog", () => {
-    const rows = buildCatalogSync(
-      makeInit(),
-      makeCatalog({ sets: [], cards: {}, printings: {}, customTagAssignments: {} }),
-    );
+    const rows = buildCatalogSync(makeInit(), makeCatalog({ sets: [], cards: {}, printings: {} }));
 
     expect(rows.cards).toEqual([]);
     expect(rows.printings).toEqual([]);

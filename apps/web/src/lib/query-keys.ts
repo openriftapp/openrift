@@ -16,6 +16,7 @@ export const serverCacheKeys = {
   init: ["server-cache", "init"] as const,
   prices: ["server-cache", "prices"] as const,
   catalog: ["server-cache", "catalog"] as const,
+  customTags: ["server-cache", "custom-tags"] as const,
   featureFlags: ["server-cache", "feature-flags"] as const,
   siteSettings: ["server-cache", "site-settings"] as const,
   landingSummary: ["server-cache", "landing-summary"] as const,

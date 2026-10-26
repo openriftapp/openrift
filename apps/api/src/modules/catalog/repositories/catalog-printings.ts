@@ -79,8 +79,6 @@ type CatalogPrintingRow = Pick<
   printingId: string;
   side: PrintingSide;
   faceId: string;
-  /** See {@link Printing.hasFoilTwin}; from `mv_printing_foil_twins`. */
-  hasFoilTwin: boolean;
   /**
    * The pinned substitute's *servable* image id: the raw
    * `fallback_image_file_id` resolved through the same rehosted-or-nothing rule
@@ -120,7 +118,6 @@ const SIDE_COLUMNS = [
   "s.markerSlugs",
   "s.comment",
   "s.canonicalRank",
-  "s.hasFoilTwin",
   "s.fallbackArtMode",
   fallbackImageId("s"),
 ] as const;
@@ -190,14 +187,6 @@ export function catalogPrintingsRepo(db: Kysely<Database>) {
 
     printingImages(): Promise<CatalogPrintingImageRow[]> {
       return selectPrintingImages(db).execute();
-    },
-
-    async totalCopies(): Promise<number> {
-      const result = await db
-        .selectFrom("copies")
-        .select(sql<string>`COUNT(*)`.as("count"))
-        .executeTakeFirstOrThrow();
-      return Number(result.count);
     },
 
     getPrintingById(id: string): Promise<Pick<Selectable<PrintingsTable>, "id"> | undefined> {

@@ -49,6 +49,7 @@ import { collectionValueHistoryRouter } from "../modules/collections/routes/auth
 import { collectionsRouter } from "../modules/collections/routes/authenticated-collections.js";
 import { copiesRouter } from "../modules/collections/routes/authenticated-copies.js";
 import { publicCollectionsRouter } from "../modules/collections/routes/public-collections.js";
+import { customTagsRouter } from "../modules/collections/routes/public-custom-tags.js";
 import { adminDeckFormatsRouter } from "../modules/decks/routes/admin-deck-formats.js";
 import { adminDeckZonesRouter } from "../modules/decks/routes/admin-deck-zones.js";
 import { adminFormatsRouter } from "../modules/decks/routes/admin-formats.js";
@@ -220,6 +221,7 @@ const apiRouter = {
   userShareRouter,
   cardsRouter,
   catalogRouter,
+  customTagsRouter,
   publicCollectionsRouter,
   deckCheckClaimRouter,
   deckCheckIngestRouter,

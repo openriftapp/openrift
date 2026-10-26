@@ -1,13 +1,12 @@
-import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
+import type { CustomTagsResponse } from "@openrift/shared/types/api/custom-tags";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { catalogQueryOptions } from "@/features/cards/lib/catalog-queries";
+import { customTagsQueryOptions } from "@/features/cards/lib/custom-tags-queries";
 
-/** Shares the underlying `/catalog` fetch with `useCards()` via a separate `select`, no extra network call. */
 export function useCustomTagAssignments(): Record<string, readonly string[]> {
   const { data } = useSuspenseQuery({
-    ...catalogQueryOptions,
-    select: (catalog: CatalogResponse) => catalog.customTagAssignments,
+    ...customTagsQueryOptions,
+    select: (response: CustomTagsResponse) => response.assignments,
   });
   return data;
 }

@@ -34,11 +34,16 @@ type LoaderFn = (ctx: {
   location: { href: string };
 }) => Promise<void>;
 
+const queried: (readonly unknown[])[] = [];
+
 function runLoader(deckId: string, session: SessionUser): Promise<void> {
   return (Route.options.loader as unknown as LoaderFn)({
     context: {
       queryClient: {
-        query: (options) => Promise.resolve(options.queryKey[0] === "session" ? session : {}),
+        query: (options) => {
+          queried.push(options.queryKey);
+          return Promise.resolve(options.queryKey[0] === "session" ? session : {});
+        },
       },
     },
     params: { deckId },
@@ -57,6 +62,7 @@ async function thrownBy(promise: Promise<void>): Promise<unknown> {
 
 describe("/decks/$deckId loader", () => {
   beforeEach(() => {
+    queried.length = 0;
     isLocalDeck.mockReturnValue(false);
     deckInStore.mockReset();
     deckInStore.mockReturnValue(true);
@@ -111,5 +117,11 @@ describe("/decks/$deckId loader", () => {
 
     expect(isNotFound(thrown)).toBe(true);
     expect(refreshDeckStores).toHaveBeenCalledOnce();
+  });
+
+  it("loads the custom tag assignments the deck rules read", async () => {
+    isLocalDeck.mockReturnValue(true);
+    await runLoader(DECK_ID, null);
+    expect(queried).toContainEqual(["custom-tags"]);
   });
 });

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { joinCatalog, joinCatalogPrintings } from "./catalog-join";
+import { catalogRefResolver, joinCatalog, joinCatalogPrintings } from "./catalog-join";
+import { makeCatalogReference } from "./test-factories.js";
 import type { CatalogResponse } from "./types/api/catalog.js";
 
 const CARD_ID = "00000000-0000-0000-0000-000000000001";
@@ -68,13 +69,29 @@ function catalog(overrides: Partial<CatalogResponse> = {}): CatalogResponse {
     ],
     cards: { [CARD_ID]: card() },
     printings: { "printing-1": printingValue() },
-    totalCopies: 0,
-    customTagAssignments: {},
+    ...makeCatalogReference(),
     ...overrides,
   } as CatalogResponse;
 }
 
 const GOLD_ID = "00000000-0000-0000-0000-000000000002";
+
+describe("joinCatalog foil twins", () => {
+  it("derives hasFoilTwin from the joined printings", () => {
+    const { printings } = joinCatalog(
+      catalog({
+        printings: {
+          "printing-normal": printingValue(),
+          "printing-foil": printingValue({ finish: "foil" }),
+        },
+      }),
+    );
+    expect(printings.map((p) => [p.printingId, p.hasFoilTwin])).toEqual([
+      ["printing-normal", true],
+      ["printing-foil", undefined],
+    ]);
+  });
+});
 
 describe("joinCatalogPrintings double-sided", () => {
   function doubleSided(side2CardId: string) {
@@ -277,5 +294,74 @@ describe("joinCatalog", () => {
     );
     expect(printings[0]!.card).toBe(cardsById[CARD_ID]);
     expect(printings[1]!.card).toBe(cardsById[CARD_ID]);
+  });
+});
+
+const PROMO = { id: "m-1", slug: "promo", label: "Promo", description: null };
+
+function channelDef(id: string, slug: string, label: string, parentId: string | null) {
+  return {
+    id,
+    slug,
+    label,
+    description: null,
+    kind: "event" as const,
+    parentId,
+    childrenLabel: null,
+  };
+}
+
+const ROOT = channelDef("ch-root", "events", "Events", null);
+const MID = channelDef("ch-mid", "nexus-night", "Nexus Night", "ch-root");
+const LEAF = channelDef("ch-leaf", "top-8", "Top 8", "ch-mid");
+
+describe("catalogRefResolver", () => {
+  const resolve = catalogRefResolver({ markers: [PROMO], distributionChannels: [ROOT, MID, LEAF] });
+
+  it("resolves marker slugs in order and drops unknown ones", () => {
+    expect(resolve.markers(["promo", "retired"])).toEqual([PROMO]);
+  });
+
+  it("resolves a channel with its note and ancestor labels, root first", () => {
+    expect(resolve.channels([{ channel: "top-8", note: "Season 1" }])).toEqual([
+      { channel: LEAF, distributionNote: "Season 1", ancestorLabels: ["Events", "Nexus Night"] },
+    ]);
+  });
+
+  it("gives a channel without a note a null note and a root no ancestors", () => {
+    expect(resolve.channels([{ channel: "events" }])).toEqual([
+      { channel: ROOT, distributionNote: null, ancestorLabels: [] },
+    ]);
+  });
+
+  it("drops a reference to an unknown channel", () => {
+    expect(resolve.channels([{ channel: "gone" }])).toEqual([]);
+  });
+
+  it("stops walking a parent cycle", () => {
+    const a = channelDef("a", "a", "A", "b");
+    const b = channelDef("b", "b", "B", "a");
+    const cyclic = catalogRefResolver({ markers: [], distributionChannels: [a, b] });
+    expect(cyclic.channels([{ channel: "a" }])[0]?.ancestorLabels).toHaveLength(32);
+  });
+});
+
+describe("joinCatalog references", () => {
+  it("joins printings with resolved markers and channels", () => {
+    const { printings } = joinCatalog(
+      catalog({
+        printings: {
+          "printing-1": printingValue({
+            markers: ["promo"],
+            distributionChannels: [{ channel: "nexus-night", note: "Top 8" }],
+          }),
+        },
+        ...makeCatalogReference({ markers: [PROMO], distributionChannels: [ROOT, MID] }),
+      }),
+    );
+    expect(printings[0]?.markers).toEqual([PROMO]);
+    expect(printings[0]?.distributionChannels).toEqual([
+      { channel: MID, distributionNote: "Top 8", ancestorLabels: ["Events"] },
+    ]);
   });
 });

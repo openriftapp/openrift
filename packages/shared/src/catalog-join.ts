@@ -1,8 +1,20 @@
 import { splitCardBans } from "./card-ban.js";
 import { todayUtc } from "./format-date.js";
 import { isReleasedIn } from "./set-release.js";
-import type { CatalogPrintingResponse, CatalogResponse } from "./types/api/catalog.js";
-import type { Card, CardBan, Printing } from "./types/catalog.js";
+import { withFoilTwins } from "./standard.js";
+import type {
+  CatalogPrintingChannelRef,
+  CatalogPrintingResponse,
+  CatalogResponse,
+} from "./types/api/catalog.js";
+import type {
+  Card,
+  CardBan,
+  DistributionChannel,
+  Marker,
+  Printing,
+  PrintingDistributionChannel,
+} from "./types/catalog.js";
 
 export function joinCatalogCards<T extends { bans: CardBan[] }>(
   cards: Record<string, T>,
@@ -13,6 +25,54 @@ export function joinCatalogCards<T extends { bans: CardBan[] }>(
     joined[id] = splitCardBans(value, today);
   }
   return joined;
+}
+
+export interface CatalogRefResolver {
+  markers: (slugs: readonly string[]) => Marker[];
+  channels: (refs: readonly CatalogPrintingChannelRef[]) => PrintingDistributionChannel[];
+}
+
+/** Resolves the slugs `/catalog` printings carry against the catalog's own definitions. Unknown slugs are dropped. */
+export function catalogRefResolver(
+  catalog: Pick<CatalogResponse, "markers" | "distributionChannels">,
+): CatalogRefResolver {
+  const markerBySlug = new Map(catalog.markers.map((marker) => [marker.slug, marker]));
+  const channelBySlug = new Map(
+    catalog.distributionChannels.map((channel) => [channel.slug, channel]),
+  );
+  const channelById = new Map(catalog.distributionChannels.map((channel) => [channel.id, channel]));
+  const ancestorsById = new Map<string, string[]>();
+  const ancestorLabels = (channel: DistributionChannel): string[] => {
+    const cached = ancestorsById.get(channel.id);
+    if (cached) {
+      return cached;
+    }
+    const labels: string[] = [];
+    let parent = channel.parentId === null ? undefined : channelById.get(channel.parentId);
+    // Bounded like the server walk, so a cycle in the data cannot hang the join.
+    for (let depth = 0; parent && depth < 32; depth += 1) {
+      labels.unshift(parent.label);
+      parent = parent.parentId === null ? undefined : channelById.get(parent.parentId);
+    }
+    ancestorsById.set(channel.id, labels);
+    return labels;
+  };
+  return {
+    markers: (slugs) => slugs.flatMap((slug) => markerBySlug.get(slug) ?? []),
+    channels: (refs) =>
+      refs.flatMap((ref) => {
+        const channel = channelBySlug.get(ref.channel);
+        return channel
+          ? [
+              {
+                channel,
+                distributionNote: ref.note ?? null,
+                ancestorLabels: ancestorLabels(channel),
+              },
+            ]
+          : [];
+      }),
+  };
 }
 
 /**
@@ -28,6 +88,7 @@ export function joinCatalog(catalog: CatalogResponse): {
   // bans, cannot land on opposite sides of a midnight that passes mid-join.
   const today = todayUtc();
   const cardsById: Record<string, Card> = joinCatalogCards(catalog.cards, today);
+  const resolve = catalogRefResolver(catalog);
 
   const printings: Printing[] = [];
   for (const [printingId, { side2, ...value }] of Object.entries(catalog.printings)) {
@@ -46,6 +107,8 @@ export function joinCatalog(catalog: CatalogResponse): {
       const otherImageId = other?.images[0]?.imageId;
       printings.push({
         ...side,
+        markers: resolve.markers(side.markers),
+        distributionChannels: resolve.channels(side.distributionChannels),
         printingId,
         side: index === 0 ? 1 : 2,
         faceId: side.faceId ?? printingId,
@@ -67,7 +130,7 @@ export function joinCatalog(catalog: CatalogResponse): {
       });
     });
   }
-  return { cardsById, printings };
+  return { cardsById, printings: withFoilTwins(printings) };
 }
 
 /** Joins side entries from an array endpoint, which already carry their pairing. */
@@ -91,7 +154,7 @@ export function joinPrintingSides(
       });
     }
   }
-  return printings;
+  return withFoilTwins(printings);
 }
 
 export function joinCatalogPrintings(catalog: CatalogResponse): Printing[] {

@@ -1,3 +1,4 @@
+import { makeCatalogReference } from "@openrift/shared/test-factories";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { DeckCatalogSubset } from "@openrift/shared/types/api/deck";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -57,8 +58,7 @@ const FULL_CATALOG = {
       return [id, value];
     }),
   ),
-  totalCopies: 0,
-  customTagAssignments: {},
+  ...makeCatalogReference(),
 } as unknown as CatalogResponse;
 
 function renderDescription(text: string, options?: { seedCatalog?: boolean }) {

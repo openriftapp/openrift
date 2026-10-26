@@ -1,5 +1,6 @@
 import { joinCatalogPrintings } from "@openrift/shared/catalog-join";
 import type {
+  CatalogPrintingsResponse,
   CatalogResponse,
   CatalogResponseCardValue,
   CatalogResponsePrintingValue,
@@ -7,21 +8,23 @@ import type {
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import type { Repos } from "../../../deps.js";
+import type { PresentedSide } from "../lib/printing-presenters.js";
 import {
   loadPrintingDecorations,
   presentPrintingFields,
   presentSide,
   sideImageKey,
 } from "../lib/printing-presenters.js";
+import { toEnumRows, toKeywordEntries, toTagCategoryMap } from "../lib/reference-presenters.js";
 
 /**
- * Assembles the full catalog (cards + printings + sets) server-side. One
- * assembly backs both the public `/catalog` route and dynamic list-rule
+ * Assembles the full catalog (cards, printings, sets and the reference data
+ * their slugs name) server-side. One assembly backs both the public `/catalog` route and dynamic list-rule
  * evaluation, which needs a server-side `Printing[]` to run `filterCards`
  * against.
  */
 export async function assembleCatalogResponse(repos: Repos): Promise<CatalogResponse> {
-  const { catalog } = repos;
+  const { catalog, enums, keywords, tagCategories, tagDefinitions } = repos;
 
   const [
     sets,
@@ -30,8 +33,11 @@ export async function assembleCatalogResponse(repos: Repos): Promise<CatalogResp
     imageRows,
     banRows,
     errataRows,
-    totalCopies,
-    customTagAssignmentsMap,
+    enumData,
+    keywordRows,
+    keywordTranslations,
+    tagCategoryRows,
+    tagDefinitionRows,
   ] = await Promise.all([
     catalog.sets(),
     catalog.cards(),
@@ -39,8 +45,11 @@ export async function assembleCatalogResponse(repos: Repos): Promise<CatalogResp
     catalog.printingImages(),
     catalog.cardBans(),
     catalog.cardErrata(),
-    catalog.totalCopies(),
-    repos.customTags.assignmentsByCard(),
+    enums.all(),
+    keywords.listAll(),
+    keywords.listAllTranslations(),
+    tagCategories.listAll(),
+    tagDefinitions.listAll(),
   ]);
 
   const decorations = await loadPrintingDecorations(repos, [
@@ -77,17 +86,29 @@ export async function assembleCatalogResponse(repos: Repos): Promise<CatalogResp
   }
 
   const imagesBySide = Map.groupBy(imageRows, sideImageKey);
+  // The wire names markers by slug; resolving them first drops slugs with no marker row.
+  const toWireSide = ({ markers, ...side }: PresentedSide) => ({
+    ...side,
+    markers: markers.map((marker) => marker.slug),
+  });
   const presentRowSide = (row: (typeof printingRows)[number]) =>
-    presentSide(row, imagesBySide.get(sideImageKey(row)) ?? [], decorations.markerBySlug);
+    toWireSide(
+      presentSide(row, imagesBySide.get(sideImageKey(row)) ?? [], decorations.markerBySlug),
+    );
 
   const printings: Record<string, CatalogResponsePrintingValue> = {};
   for (const row of printingRows) {
     if (row.side === 1) {
       const { faceId, ...side } = presentRowSide(row);
+      const { distributionChannels, ...fields } = presentPrintingFields(row, decorations);
       printings[row.printingId] = {
         ...side,
         ...(faceId === row.printingId ? {} : { faceId }),
-        ...presentPrintingFields(row, decorations),
+        ...fields,
+        distributionChannels: distributionChannels.map(({ channel, distributionNote }) => ({
+          channel: channel.slug,
+          ...(distributionNote === null ? {} : { note: distributionNote }),
+        })),
       };
     }
   }
@@ -98,12 +119,31 @@ export async function assembleCatalogResponse(repos: Repos): Promise<CatalogResp
     }
   }
 
+  const keywordEntries = toKeywordEntries(keywordRows, keywordTranslations);
   return {
     sets,
     cards,
     printings,
-    totalCopies,
-    customTagAssignments: Object.fromEntries(customTagAssignmentsMap),
+    markers: [...decorations.markerBySlug.values()],
+    distributionChannels: decorations.channels,
+    enums: {
+      cardTypes: toEnumRows(enumData.cardTypes),
+      superTypes: toEnumRows(enumData.superTypes),
+      domains: toEnumRows(enumData.domains),
+      rarities: toEnumRows(enumData.rarities),
+      finishes: toEnumRows(enumData.finishes),
+      artVariants: toEnumRows(enumData.artVariants),
+      cardSizes: toEnumRows(enumData.cardSizes),
+      languages: toEnumRows(enumData.languages),
+    },
+    keywords: Object.fromEntries(
+      Object.entries(keywordEntries).map(([name, { color: _color, darkText: _dark, ...entry }]) => [
+        name,
+        entry,
+      ]),
+    ),
+    tagCategories: toEnumRows(tagCategoryRows),
+    tagCategoryMap: toTagCategoryMap(tagDefinitionRows),
   };
 }
 
@@ -123,16 +163,6 @@ export function parseLanguageCodes(csv: string): Set<string> {
   return codes;
 }
 
-/**
- * Which printings a catalog variant keeps, as normalized code sets (see
- * {@link parseLanguageCodes}). The two are mutually exclusive, which the
- * contract enforces; both absent means the full catalog.
- */
-export interface CatalogLanguageFilter {
-  langs?: ReadonlySet<string>;
-  exceptLangs?: ReadonlySet<string>;
-}
-
 function pickPrintingsByLanguage(
   printings: Record<string, CatalogResponsePrintingValue>,
   keep: (language: string) => boolean,
@@ -147,49 +177,36 @@ function pickPrintingsByLanguage(
 }
 
 /**
- * Derives a language-split variant of an assembled catalog (see the
- * `catalogContract` doc for why the split exists). `langs` keeps the full core
- * plus the printings in those languages; `exceptLangs` returns the complement
- * and empties `cards` + `customTagAssignments`, so a client that already holds
- * the core does not download it a second time. `sets` is kept either way, which
- * costs 3KB and leaves the tail response self-contained.
- *
- * Pure: the input is never mutated, so the assembly it came from stays safe to
- * share or memoize across requests. With no filter, returns the input itself.
+ * The catalog with only the printings in `langs` (see {@link parseLanguageCodes}),
+ * everything else whole. Pure, so the memoized assembly is never mutated.
  */
-export function filterCatalogResponseByLanguages(
+export function filterCatalogByLanguages(
   catalog: CatalogResponse,
-  filter: CatalogLanguageFilter,
+  langs?: ReadonlySet<string>,
 ): CatalogResponse {
-  const { langs, exceptLangs } = filter;
-  if (langs) {
-    return {
-      ...catalog,
-      printings: pickPrintingsByLanguage(catalog.printings, (language) => langs.has(language)),
-    };
+  if (!langs) {
+    return catalog;
   }
-  if (exceptLangs) {
-    return {
-      sets: catalog.sets,
-      cards: {},
-      printings: pickPrintingsByLanguage(
-        catalog.printings,
-        (language) => !exceptLangs.has(language),
-      ),
-      totalCopies: catalog.totalCopies,
-      customTagAssignments: {},
-    };
-  }
-  return catalog;
+  return {
+    ...catalog,
+    printings: pickPrintingsByLanguage(catalog.printings, (language) => langs.has(language)),
+  };
+}
+
+export function catalogPrintingsExcept(
+  catalog: CatalogResponse,
+  exceptLangs: ReadonlySet<string>,
+): CatalogPrintingsResponse {
+  return {
+    printings: pickPrintingsByLanguage(catalog.printings, (language) => !exceptLangs.has(language)),
+  };
 }
 
 /**
  * The bundle a dynamic list rule needs to evaluate server-side: the flat
  * `Printing[]` plus the card→custom-tag-slug map. The map is required for
  * any rule filtering on `customTagSlugs` — `filterCards` reads tags only from
- * this lookup, so without it those dimensions silently match nothing. Both are
- * assembled from the same catalog read, so they share one content-version token
- * and never drift from each other.
+ * this lookup, so without it those dimensions silently match nothing.
  */
 export interface RuleCatalog {
   printings: Printing[];
@@ -197,9 +214,12 @@ export interface RuleCatalog {
 }
 
 export async function assembleRuleCatalog(repos: Repos): Promise<RuleCatalog> {
-  const response = await assembleCatalogResponse(repos);
+  const [response, assignments] = await Promise.all([
+    assembleCatalogResponse(repos),
+    repos.customTags.assignmentsByCard(),
+  ]);
   return {
     printings: joinCatalogPrintings(response),
-    customTagAssignments: response.customTagAssignments,
+    customTagAssignments: Object.fromEntries(assignments),
   };
 }

@@ -1,6 +1,7 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
+import { customTagsQueryOptions } from "@/features/cards/lib/custom-tags-queries";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { DeckPending } from "@/features/decks/components/deck-pending";
 import { requireSession, sessionQueryOptions } from "@/lib/auth-session";
@@ -51,7 +52,10 @@ export const Route = createFileRoute("/_app/decks/$deckId")({
       });
     }
     if (isLocalDeck(params.deckId)) {
-      await context.queryClient.query({ ...initQueryOptions, staleTime: "static" });
+      await Promise.all([
+        context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
+        context.queryClient.query({ ...customTagsQueryOptions, staleTime: "static" }),
+      ]);
       return;
     }
     const { userId } = await requireSession({ context, location });
@@ -61,6 +65,7 @@ export const Route = createFileRoute("/_app/decks/$deckId")({
       getDecksCollection(context.queryClient, userId).preload(),
       getDeckCardsCollection(context.queryClient, userId).preload(),
       context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
+      context.queryClient.query({ ...customTagsQueryOptions, staleTime: "static" }),
     ]);
     if (!deckInStore(context.queryClient, userId, params.deckId)) {
       // A variant, a clone or another device's deck reaches the store with the next read.

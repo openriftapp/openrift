@@ -170,24 +170,6 @@ export async function writeCatalogSync(
       ["tag"],
     );
 
-    await upsertChunked(trx, "customTagCategories", rows.customTagCategories, ["slug"]);
-    const customTagCategoryIds = bySlug(
-      await trx.selectFrom("customTagCategories").select(["id", "slug"]).execute(),
-    );
-    await upsertChunked(
-      trx,
-      "customTags",
-      rows.customTags.map(({ categorySlug, ...row }) => ({
-        ...row,
-        categoryId: resolve(customTagCategoryIds, categorySlug, "custom tag category"),
-      })),
-      ["slug"],
-      ["id"],
-    );
-    const customTagIds = bySlug(
-      await trx.selectFrom("customTags").select(["id", "slug"]).execute(),
-    );
-
     const setIds = rows.sets.map((set) => set.id as string);
     const cardIds = rows.cards.map((card) => card.id as string);
     const faceIds = rows.faces.map((face) => face.id as string);
@@ -202,16 +184,6 @@ export async function writeCatalogSync(
     await replaceChildren(trx, "cardTokens", "cardId", cardIds, rows.cardTokens);
     await replaceChildren(trx, "cardErrata", "cardId", cardIds, rows.cardErrata);
     await replaceChildren(trx, "cardBans", "cardId", cardIds, rows.cardBans);
-    await replaceChildren(
-      trx,
-      "cardCustomTags",
-      "cardId",
-      cardIds,
-      rows.cardCustomTags.map(({ cardId, customTagSlug }) => ({
-        cardId,
-        customTagId: resolve(customTagIds, customTagSlug, "custom tag"),
-      })),
-    );
     await upsertChunked(trx, "imageFiles", rows.imageFiles, ["id"]);
     await upsertChunked(trx, "faces", rows.faces, ["id"]);
     await replaceChildren(trx, "faceImages", "faceId", faceIds, rows.faceImages);

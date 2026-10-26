@@ -33,7 +33,7 @@ const describedEnumRowSchema = enumRowSchema.extend({
     .meta({ examples: ["Promo stamp around the rarity symbol"] }),
 });
 
-const customTagSchema = z.object({
+export const publicCustomTagSchema = z.object({
   id: z.string().meta({ examples: ["019d4999-4219-72f6-b7bb-64004e1b1bff"] }),
   slug: z.string().meta({ examples: ["bandle-city"] }),
   label: z.string().meta({ examples: ["Bandle City"] }),
@@ -64,7 +64,7 @@ export const initResponseSchema = z.object({
   }),
   keywords: z.record(z.string(), keywordEntrySchema),
   distributionChannels: z.array(distributionChannelSchema).meta({ examples: [[]] }),
-  customTags: z.array(customTagSchema).meta({ examples: [[]] }),
+  customTags: z.array(publicCustomTagSchema).meta({ examples: [[]] }),
   championIdentifierTags: z.array(z.string()).meta({ examples: [["Garen", "Karma", "Yasuo"]] }),
   tagCategories: z.array(enumRowSchema).meta({
     examples: [[{ slug: "region", label: "Region", sortOrder: 0 }]],

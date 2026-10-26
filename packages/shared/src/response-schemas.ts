@@ -123,7 +123,7 @@ export const catalogSetResponseSchema = z.object({
   setType: z.enum(["main", "supplemental"]).meta({ examples: ["main"] }),
 });
 
-const markerSchema = z.object({
+export const markerSchema = z.object({
   id: z.string().meta({ examples: ["019cfc3b-0369-7000-8000-000000000001"] }),
   slug: z.string().meta({ examples: ["promo"] }),
   label: z.string().meta({ examples: ["Promo"] }),
@@ -262,11 +262,6 @@ export const catalogPrintingResponseSchema = z.object({
     .meta({ examples: [[]] }),
   finish: finishSchema,
   size: cardSizeSchema,
-  // Absent when false; read it as `=== true`.
-  hasFoilTwin: z
-    .literal(true)
-    .optional()
-    .meta({ examples: [true] }),
   images: z.array(printingImageSchema),
   artist: z.string().meta({ examples: ["Kudos Productions"] }),
   publicCode: z.string().meta({ examples: ["OGN-202/298"] }),

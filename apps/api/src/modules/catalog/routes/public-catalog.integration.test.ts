@@ -236,32 +236,27 @@ describe.skipIf(!ctx)("Catalog route (integration)", () => {
         expect(json.sets.length).toBeGreaterThan(0);
       });
 
-      it("?exceptLangs=EN returns only non-EN printings and an empty cards map", async () => {
-        const res = await app.fetch(req("GET", "/catalog?exceptLangs=EN"));
+      it("/catalog/printings?exceptLangs=EN returns only non-EN printings", async () => {
+        const res = await app.fetch(req("GET", "/catalog/printings?exceptLangs=EN"));
         expect(res.status).toBe(200);
 
         const json = await readJson(res);
         const languages = languagesOf(json);
         expect(languages.length).toBeGreaterThan(0);
         expect(languages).not.toContain("EN");
-        expect(json.cards).toEqual({});
-        expect(json.customTagAssignments).toEqual({});
-        expect(json.sets.length).toBeGreaterThan(0);
+        expect(Object.keys(json)).toEqual(["printings"]);
       });
 
       it("the two halves partition the unsplit catalog's printings", async () => {
         const full = await readJson(await app.fetch(req("GET", "/catalog")));
         const head = await readJson(await app.fetch(req("GET", "/catalog?langs=EN")));
-        const tail = await readJson(await app.fetch(req("GET", "/catalog?exceptLangs=EN")));
+        const tail = await readJson(
+          await app.fetch(req("GET", "/catalog/printings?exceptLangs=EN")),
+        );
 
         expect([...Object.keys(head.printings), ...Object.keys(tail.printings)].toSorted()).toEqual(
           Object.keys(full.printings).toSorted(),
         );
-      });
-
-      it("rejects langs and exceptLangs together with 400", async () => {
-        const res = await app.fetch(req("GET", "/catalog?langs=EN&exceptLangs=SC"));
-        expect(res.status).toBe(400);
       });
 
       it("without either param the catalog spans several languages", async () => {
@@ -309,13 +304,16 @@ describe.skipIf(!ctx)("Catalog route (integration)", () => {
 
       const variant = await app.fetch(req("GET", `/catalog?v=${bareTag}&langs=EN`));
       expect(variant.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable");
+
+      const tail = await app.fetch(req("GET", `/catalog/printings?v=${bareTag}&exceptLangs=EN`));
+      expect(tail.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable");
     });
 
     it("gives every language variant of one catalog state the same ETag", async () => {
       const [full, head, tail] = await Promise.all([
         app.fetch(req("GET", "/catalog")),
         app.fetch(req("GET", "/catalog?langs=EN")),
-        app.fetch(req("GET", "/catalog?exceptLangs=EN")),
+        app.fetch(req("GET", "/catalog/printings?exceptLangs=EN")),
       ]);
       const tag = full.headers.get("ETag");
       expect(tag).toBeTruthy();

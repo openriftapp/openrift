@@ -1,4 +1,5 @@
 import type { CustomTagResponse } from "@openrift/shared/types/api/admin";
+import type { CustomTag } from "@openrift/shared/types/catalog";
 
 interface CustomTagRow {
   id: string;
@@ -26,5 +27,17 @@ export function toCustomTag(row: CustomTagRow, cardCount: number): CustomTagResp
     cardCount,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export function toPublicCustomTag(row: CustomTagRow): CustomTag {
+  return {
+    id: row.id,
+    slug: row.slug,
+    label: row.label,
+    category: row.category,
+    categoryLabel: row.categoryLabel,
+    description: row.description,
+    sortOrder: row.sortOrder,
   };
 }

@@ -1,6 +1,7 @@
 import { isAllowedLinkUrl } from "@openrift/shared/link-hosts";
 import { createFileRoute } from "@tanstack/react-router";
 
+import { customTagsQueryOptions } from "@/features/cards/lib/custom-tags-queries";
 import { DeckPending } from "@/features/decks/components/deck-pending";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
@@ -52,6 +53,7 @@ export const Route = createFileRoute("/_app/decks/import")({
       await import("@/features/decks/lib/local-decks-collection");
     await Promise.all([
       context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
+      context.queryClient.query({ ...customTagsQueryOptions, staleTime: "static" }),
       preloadLocalDecks(),
     ]);
     if (deps.replaceDeckId && !isLocalDeck(deps.replaceDeckId)) {

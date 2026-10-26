@@ -4,6 +4,7 @@
  */
 
 import type {
+  CatalogResponse,
   CatalogResponseCardValue,
   CatalogResponsePrintingValue,
 } from "./types/api/catalog.js";
@@ -24,6 +25,30 @@ function defined<T extends object>(overrides: T): T {
   return Object.fromEntries(
     Object.entries(overrides).filter(([, value]) => value !== undefined),
   ) as T;
+}
+
+/** The `/catalog` reference blocks, empty. */
+export function makeCatalogReference(
+  partial: Partial<Omit<CatalogResponse, "sets" | "cards" | "printings">> = {},
+): Omit<CatalogResponse, "sets" | "cards" | "printings"> {
+  return {
+    markers: [],
+    distributionChannels: [],
+    enums: {
+      cardTypes: [],
+      superTypes: [],
+      domains: [],
+      rarities: [],
+      finishes: [],
+      artVariants: [],
+      cardSizes: [],
+      languages: [],
+    },
+    keywords: {},
+    tagCategories: [],
+    tagCategoryMap: {},
+    ...partial,
+  };
 }
 
 /** A card with neutral defaults. Override only the fields under test. */
@@ -101,10 +126,19 @@ export function makeCatalogPrinting(
 export function makePrinting(
   partial: Omit<Partial<Printing>, "card"> & { card?: Partial<Card> } = {},
 ): Printing {
-  const { card, setSlug, setReleased, ...printing } = defined(partial);
+  const {
+    card,
+    setSlug,
+    setReleased,
+    markers = [],
+    distributionChannels = [],
+    ...printing
+  } = defined(partial);
   const fixture = makeCatalogPrinting(printing);
   return {
     ...fixture,
+    markers,
+    distributionChannels,
     faceId: fixture.faceId ?? fixture.printingId,
     setSlug: setSlug ?? "set-alpha",
     setReleased: setReleased ?? true,

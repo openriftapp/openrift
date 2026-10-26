@@ -4,8 +4,10 @@ import type {
 } from "@openrift/shared/contracts/cards";
 import type {
   catalogCardResponseValueSchema,
+  catalogPrintingChannelRefSchema,
   catalogPrintingResponseValueSchema,
   catalogPrintingSide2Schema,
+  catalogPrintingsResponseSchema,
   catalogResponseSchema,
 } from "@openrift/shared/contracts/catalog";
 import type { landingSummaryResponseSchema } from "@openrift/shared/contracts/landing-summary";
@@ -35,8 +37,10 @@ export type CatalogPrintingResponse = z.infer<typeof catalogPrintingResponseSche
 export type CatalogResponseCardValue = z.infer<typeof catalogCardResponseValueSchema>;
 export type CatalogResponsePrintingValue = z.infer<typeof catalogPrintingResponseValueSchema>;
 export type CatalogPrintingSideValue = z.infer<typeof catalogPrintingSide2Schema>;
+export type CatalogPrintingChannelRef = z.infer<typeof catalogPrintingChannelRefSchema>;
 
 export type CatalogResponse = z.infer<typeof catalogResponseSchema>;
+export type CatalogPrintingsResponse = z.infer<typeof catalogPrintingsResponseSchema>;
 
 export type CardDetailResponse = z.infer<typeof cardDetailResponseSchema>;
 

@@ -72,6 +72,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
     setId,
     cardId: "card-1",
     language,
+    markers: [],
   });
   const releases = {
     EN: { releasedAt: "2025-01-01", precision: "day" },

@@ -74,16 +74,23 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
   const dropOne = (table: string) =>
     `DELETE FROM ${table} WHERE ctid = (SELECT ctid FROM ${table} LIMIT 1)`;
 
-  // custom_tags / card_custom_tags are absent from the seed, so the mutation
-  // that exercises them has to create the rows. That is also the realistic
-  // case: an admin introducing a tag must roll the token.
+  // custom_tags is absent from the seed, so the probe has to create the rows.
   const ADD_CUSTOM_TAG = [
     `INSERT INTO custom_tag_categories (id, slug, label)
      VALUES ('a0000000-0042-4000-a000-0000000000c1', 'probe-cat', 'Probe Category')`,
     `INSERT INTO custom_tags (id, slug, label, category_id)
      VALUES ('a0000000-0042-4000-a000-0000000000c2', 'probe-tag', 'Probe Tag',
              'a0000000-0042-4000-a000-0000000000c1')`,
+    `INSERT INTO card_custom_tags (card_id, custom_tag_id)
+     SELECT id, 'a0000000-0042-4000-a000-0000000000c2' FROM cards LIMIT 1`,
   ];
+
+  const relabel = (table: string, column = "label") =>
+    `UPDATE ${table} SET ${column} = ${column} || ' (probe)'
+      WHERE ctid = (SELECT ctid FROM ${table} LIMIT 1)`;
+
+  const ADD_TAG_CATEGORY = `INSERT INTO tag_categories (id, slug, label)
+     VALUES ('a0000000-0042-4000-a000-0000000000f1', 'probe-category', 'Probe Category')`;
 
   // printing_citations is empty in the seed, so the mutation has to create the
   // row — which is also the realistic case: an admin citing a promo's source
@@ -149,22 +156,37 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
                  'https://example.test/probe-errata')`,
       ],
     },
-    { table: "copies", why: "totalCopies", statements: [dropOne("copies")] },
     { table: "card_domains", why: "card.domains", statements: [dropOne("card_domains")] },
     {
       table: "card_super_types",
       why: "card.superTypes",
       statements: [dropOne("card_super_types")],
     },
-    { table: "custom_tags", why: "customTagAssignments", statements: ADD_CUSTOM_TAG },
     { table: "printing_citations", why: "printing.citations", statements: ADD_CITATION },
+    ...[
+      "card_types",
+      "super_types",
+      "domains",
+      "rarities",
+      "finishes",
+      "art_variants",
+      "card_sizes",
+    ].map((table) => ({ table, why: "enums block", statements: [relabel(table)] })),
+    { table: "languages", why: "enums block", statements: [relabel("languages", "name")] },
+    { table: "keywords", why: "keywords block", statements: [relabel("keywords", "color")] },
     {
-      table: "card_custom_tags",
-      why: "customTagAssignments",
+      table: "keyword_translations",
+      why: "keywords block translations",
+      statements: [relabel("keyword_translations")],
+    },
+    { table: "tag_categories", why: "tagCategories block", statements: [ADD_TAG_CATEGORY] },
+    {
+      table: "tag_definitions",
+      why: "tagCategoryMap block",
       statements: [
-        ...ADD_CUSTOM_TAG,
-        `INSERT INTO card_custom_tags (card_id, custom_tag_id)
-         SELECT id, 'a0000000-0042-4000-a000-0000000000c2' FROM cards LIMIT 1`,
+        ADD_TAG_CATEGORY,
+        `INSERT INTO tag_definitions (tag, category_id)
+         VALUES ('Probe Tag', 'a0000000-0042-4000-a000-0000000000f1')`,
       ],
     },
   ];
@@ -272,5 +294,30 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
 
     const { before, after } = await tokenAround(refresh);
     expect(after).toBe(before);
+  });
+
+  it("does not roll when a copy is added or removed", async () => {
+    const remove = [dropOne("copies")];
+    expect(await affectedRows(remove)).toBeGreaterThan(0);
+
+    const { before, after } = await tokenAround(remove);
+    expect(after).toBe(before);
+  });
+
+  it("does not roll when a custom tag is assigned", async () => {
+    const { before, after } = await tokenAround(ADD_CUSTOM_TAG);
+    expect(after).toBe(before);
+  });
+
+  it("rolls the rule token when a custom tag is assigned", async () => {
+    const { before, after } = await inRolledBackTx(async (trx) => {
+      const repo = catalogRepo(trx);
+      const tokenBefore = await repo.catalogContentVersion();
+      for (const statement of ADD_CUSTOM_TAG) {
+        await sql.raw(statement).execute(trx);
+      }
+      return { before: tokenBefore, after: await repo.catalogContentVersion() };
+    });
+    expect(after).not.toBe(before);
   });
 });

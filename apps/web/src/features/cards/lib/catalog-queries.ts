@@ -1,6 +1,6 @@
 import { joinCatalog, joinCatalogCards, joinPrintingSides } from "@openrift/shared/catalog-join";
 import { indexByPrinting, indexBySideKey } from "@openrift/shared/printing-side";
-import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
+import type { CatalogPrintingsResponse, CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { DeckCatalogSubset } from "@openrift/shared/types/api/deck";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { context, propagation } from "@opentelemetry/api";
@@ -114,22 +114,31 @@ export function normalizeCatalogLangs(langs: readonly string[]): string[] {
 export function catalogFetchUrl(
   origin: string,
   version: string | null,
-  langs?: { langs: readonly string[] } | { exceptLangs: readonly string[] },
+  langs?: readonly string[],
 ): string {
   const params = new URLSearchParams();
   if (version !== null) {
     params.set("v", version);
   }
   if (langs !== undefined) {
-    if ("langs" in langs) {
-      params.set("langs", langs.langs.join(","));
-    } else {
-      params.set("exceptLangs", langs.exceptLangs.join(","));
-    }
+    params.set("langs", langs.join(","));
   }
   const search = params.toString();
   const base = `${origin}/api/v1/catalog`;
   return search === "" ? base : `${base}?${search}`;
+}
+
+export function catalogPrintingsUrl(
+  origin: string,
+  version: string | null,
+  exceptLangs: readonly string[],
+): string {
+  const params = new URLSearchParams();
+  if (version !== null) {
+    params.set("v", version);
+  }
+  params.set("exceptLangs", exceptLangs.join(","));
+  return `${origin}/api/v1/catalog/printings?${params.toString()}`;
 }
 
 // Detects a full response served for a variant request (deploy skew: an
@@ -152,11 +161,7 @@ async function fetchCatalogFromEdge(langs: string[] | null): Promise<CatalogResp
   if (version !== null && lastCompleteCatalog?.version === version) {
     return lastCompleteCatalog.data;
   }
-  const url = catalogFetchUrl(
-    globalThis.location.origin,
-    version,
-    langs === null ? undefined : { langs },
-  );
+  const url = catalogFetchUrl(globalThis.location.origin, version, langs ?? undefined);
   const res = await fetchCatalogResponse(url);
   const catalog = (await res.json()) as CatalogResponse;
   const pendingTailLangs = langs !== null && !hasPrintingsOutside(catalog, langs) ? langs : null;
@@ -181,11 +186,9 @@ export async function loadCatalogTail(queryClient: QueryClient): Promise<void> {
   }
   tailInFlight = true;
   try {
-    const url = catalogFetchUrl(globalThis.location.origin, meta.version, {
-      exceptLangs: pending,
-    });
+    const url = catalogPrintingsUrl(globalThis.location.origin, meta.version, pending);
     const tailResponse = await fetchCatalogResponse(url);
-    const tail = (await tailResponse.json()) as CatalogResponse;
+    const tail = (await tailResponse.json()) as CatalogPrintingsResponse;
     // The catalog rolled under us (a refetch replaced the entry): the newer
     // primary schedules its own tail, so this one just stands down.
     if (queryClient.getQueryData<CatalogResponse>(catalogKeys.all) !== current) {
@@ -269,8 +272,21 @@ const NO_CATALOG: CatalogResponse = {
   sets: [],
   cards: {},
   printings: {},
-  totalCopies: 0,
-  customTagAssignments: {},
+  markers: [],
+  distributionChannels: [],
+  enums: {
+    cardTypes: [],
+    superTypes: [],
+    domains: [],
+    rarities: [],
+    finishes: [],
+    artVariants: [],
+    cardSizes: [],
+    languages: [],
+  },
+  keywords: {},
+  tagCategories: [],
+  tagCategoryMap: {},
 };
 
 // A resolved stand-in so the unconditional useSuspenseQuery below never fetches or suspends.

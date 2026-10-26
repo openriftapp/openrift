@@ -42,8 +42,6 @@ export interface CatalogSync {
   })[];
   tagCategories: Row<"tagCategories">[];
   tagDefinitions: { tag: string; categorySlug: string }[];
-  customTagCategories: Row<"customTagCategories">[];
-  customTags: (Omit<Row<"customTags">, "categoryId"> & { categorySlug: string })[];
   sets: Row<"sets">[];
   setReleases: Row<"setReleases">[];
   cards: Row<"cards">[];
@@ -53,7 +51,6 @@ export interface CatalogSync {
   cardTokens: Row<"cardTokens">[];
   cardErrata: Row<"cardErrata">[];
   cardBans: Row<"cardBans">[];
-  cardCustomTags: { cardId: string; customTagSlug: string }[];
   imageFiles: Row<"imageFiles">[];
   faces: Row<"faces">[];
   faceImages: Row<"faceImages">[];
@@ -125,7 +122,7 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
       printing.cardId,
       printing.shortCode,
       printing.finish,
-      printing.markers.map((marker) => marker.slug).toSorted(),
+      printing.markers.toSorted(),
       printing.language,
     ]);
     const faceId = faceIdByIdentity.get(identity) ?? printingId;
@@ -139,18 +136,6 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
     ],
   );
   const faceSides = [...new Map(sides.map((side) => [side.faceId, side])).values()];
-  const customTagsBySlug = new Map(init.customTags.map((tag) => [tag.slug, tag]));
-  const customTagCategories = new Map<string, Row<"customTagCategories">>();
-  for (const tag of init.customTags) {
-    if (!customTagCategories.has(tag.category)) {
-      customTagCategories.set(tag.category, {
-        slug: tag.category,
-        label: tag.categoryLabel,
-        sortOrder: customTagCategories.size,
-      });
-    }
-  }
-
   const formats = new Map<string, Row<"formats">>();
   for (const [, card] of cards) {
     for (const ban of card.bans) {
@@ -222,15 +207,6 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
       tag,
       categorySlug,
     })),
-    customTagCategories: [...customTagCategories.values()],
-    customTags: init.customTags.map((tag) => ({
-      id: tag.id,
-      slug: tag.slug,
-      label: tag.label,
-      description: tag.description,
-      sortOrder: tag.sortOrder,
-      categorySlug: tag.category,
-    })),
     sets: catalog.sets.map((set, index) => ({
       id: set.id,
       slug: set.slug,
@@ -295,11 +271,6 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
         reason: ban.reason,
       })),
     ),
-    cardCustomTags: Object.entries(catalog.customTagAssignments).flatMap(([cardId, slugs]) =>
-      slugs
-        .filter((slug) => customTagsBySlug.has(slug))
-        .map((customTagSlug) => ({ cardId, customTagSlug })),
-    ),
     imageFiles: [...imageFiles.values()],
     faces: faceSides.map((printing) => ({
       id: printing.faceId,
@@ -310,7 +281,7 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
       artVariant: printing.artVariant as ArtVariant,
       isSigned: printing.isSigned,
       isOvernumbered: printing.isOvernumbered,
-      markerSlugs: printing.markers.map((marker) => marker.slug),
+      markerSlugs: printing.markers,
       finish: printing.finish as Finish,
       artist: printing.artist,
       publicCode: printing.publicCode,
@@ -340,8 +311,8 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
     printingDistributionChannels: printings.flatMap(([printingId, printing]) =>
       printing.distributionChannels.map((entry) => ({
         printingId,
-        channelSlug: entry.channel.slug,
-        distributionNote: entry.distributionNote,
+        channelSlug: entry.channel,
+        distributionNote: entry.note ?? null,
       })),
     ),
     printingCitations: printings.flatMap(([printingId, printing]) =>

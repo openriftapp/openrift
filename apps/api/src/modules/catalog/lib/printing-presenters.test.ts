@@ -97,6 +97,7 @@ describe("buildPrintingsResponse", () => {
     const citations = new Map([["p-1", [citation("c-1"), citation("c-2")]]]);
 
     const [printing] = buildPrintingsResponse([printingRow("p-1")], [], {
+      channels: [],
       markerBySlug: MARKERS,
       channelsByPrinting: NO_CHANNELS,
       citationsByPrinting: citations,
@@ -107,6 +108,7 @@ describe("buildPrintingsResponse", () => {
 
   it("omits the key entirely for an uncited printing", () => {
     const [printing] = buildPrintingsResponse([printingRow("p-1")], [], {
+      channels: [],
       markerBySlug: MARKERS,
       channelsByPrinting: NO_CHANNELS,
       citationsByPrinting: new Map(),
@@ -120,6 +122,7 @@ describe("buildPrintingsResponse", () => {
     const citations = new Map([["p-2", [citation("c-1")]]]);
 
     const [first, second] = buildPrintingsResponse([printingRow("p-1"), printingRow("p-2")], [], {
+      channels: [],
       markerBySlug: MARKERS,
       channelsByPrinting: NO_CHANNELS,
       citationsByPrinting: citations,
@@ -148,6 +151,7 @@ describe("buildPrintingsResponse", () => {
       [printingRow("p-1")],
       [{ printingId: "p-1", side: 1, imageId: "img-1", credit: null } as never],
       {
+        channels: [],
         markerBySlug: MARKERS,
         channelsByPrinting: new Map([["p-1", [link]]]),
         citationsByPrinting: new Map([["p-1", [citation("c-1")]]]),

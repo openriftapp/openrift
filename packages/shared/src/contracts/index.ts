@@ -72,6 +72,7 @@ export * from "./collection-value-history.js";
 export * from "./collections.js";
 export * from "./contact-methods.js";
 export * from "./copies.js";
+export * from "./custom-tags.js";
 export * from "./deck-check-claim.js";
 export * from "./deck-check-ingest.js";
 export * from "./deck-check-keys.js";

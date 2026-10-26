@@ -1,12 +1,13 @@
 import { catalogContract } from "@openrift/shared/contracts/catalog";
-import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
+import type { CatalogPrintingsResponse, CatalogResponse } from "@openrift/shared/types/api/catalog";
 import { implement } from "@orpc/server";
 
 import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import {
   assembleCatalogResponse,
-  filterCatalogResponseByLanguages,
+  catalogPrintingsExcept,
+  filterCatalogByLanguages,
   parseLanguageCodes,
 } from "../services/catalog-assembly.js";
 
@@ -23,10 +24,18 @@ export const catalogRouter = {
       context.repos.catalog.catalogResponseVersion(),
     ]);
     context.response.etag = version;
-    return filterCatalogResponseByLanguages(catalog, {
-      langs: input.langs === undefined ? undefined : parseLanguageCodes(input.langs),
-      exceptLangs:
-        input.exceptLangs === undefined ? undefined : parseLanguageCodes(input.exceptLangs),
-    });
+    return filterCatalogByLanguages(
+      catalog,
+      input.langs === undefined ? undefined : parseLanguageCodes(input.langs),
+    );
+  }),
+
+  printings: os.printings.handler(async ({ context, input }): Promise<CatalogPrintingsResponse> => {
+    const [catalog, version] = await Promise.all([
+      assembleCatalogResponse(context.repos),
+      context.repos.catalog.catalogResponseVersion(),
+    ]);
+    context.response.etag = version;
+    return catalogPrintingsExcept(catalog, parseLanguageCodes(input.exceptLangs));
   }),
 };

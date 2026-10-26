@@ -13,7 +13,6 @@ const mockCatalogRepo = {
   printingImages: vi.fn(() => Promise.resolve([] as unknown[])),
   cardBans: vi.fn(() => Promise.resolve([])),
   cardErrata: vi.fn(() => Promise.resolve([])),
-  totalCopies: vi.fn(() => Promise.resolve(0)),
   markersList: vi.fn(() => Promise.resolve([])),
   catalogResponseVersion: vi.fn(() => Promise.resolve("test-catalog-version")),
 };
@@ -23,12 +22,36 @@ const mockDistributionChannelsRepo = {
   listAll: vi.fn(() => Promise.resolve([])),
 };
 
-const mockPrintingCitationsRepo = {
-  listForPrintingIds: vi.fn(() => Promise.resolve([] as Record<string, unknown>[])),
+const emptyEnums = {
+  cardTypes: [],
+  superTypes: [],
+  domains: [],
+  rarities: [],
+  finishes: [],
+  artVariants: [],
+  cardSizes: [],
+  deckFormats: [],
+  deckZones: [],
+  conditions: [],
+  graders: [],
+  languages: [],
+  markers: [],
 };
 
-const mockCustomTagsRepo = {
-  assignmentsByCard: vi.fn(() => Promise.resolve(new Map<string, string[]>())),
+const mockEnumsRepo = {
+  all: vi.fn(() => Promise.resolve(emptyEnums as Record<string, unknown[]>)),
+};
+
+const mockKeywordsRepo = {
+  listAll: vi.fn(() => Promise.resolve([] as unknown[])),
+  listAllTranslations: vi.fn(() => Promise.resolve([] as unknown[])),
+};
+
+const mockTagCategoriesRepo = { listAll: vi.fn(() => Promise.resolve([] as unknown[])) };
+const mockTagDefinitionsRepo = { listAll: vi.fn(() => Promise.resolve([] as unknown[])) };
+
+const mockPrintingCitationsRepo = {
+  listForPrintingIds: vi.fn(() => Promise.resolve([] as Record<string, unknown>[])),
 };
 
 const app = new Hono<{ Variables: Variables }>();
@@ -37,7 +60,10 @@ app.use("*", async (c, next) => {
     catalog: mockCatalogRepo,
     distributionChannels: mockDistributionChannelsRepo,
     printingCitations: mockPrintingCitationsRepo,
-    customTags: mockCustomTagsRepo,
+    enums: mockEnumsRepo,
+    keywords: mockKeywordsRepo,
+    tagCategories: mockTagCategoriesRepo,
+    tagDefinitions: mockTagDefinitionsRepo,
   } as never);
   await next();
 });
@@ -109,7 +135,6 @@ function seedDefaults(overrides?: {
   cards?: unknown[];
   printings?: unknown[];
   printingImages?: unknown[];
-  totalCopies?: number;
 }) {
   mockCatalogRepo.sets.mockResolvedValue(overrides?.sets ?? [dbSet]);
   mockCatalogRepo.cards.mockResolvedValue(overrides?.cards ?? [dbCard]);
@@ -117,10 +142,14 @@ function seedDefaults(overrides?: {
   mockCatalogRepo.printingImages.mockResolvedValue(overrides?.printingImages ?? [dbImage]);
   mockCatalogRepo.cardBans.mockResolvedValue([]);
   mockCatalogRepo.cardErrata.mockResolvedValue([]);
-  mockCatalogRepo.totalCopies.mockResolvedValue(overrides?.totalCopies ?? 42);
   mockCatalogRepo.markersList.mockResolvedValue([]);
   mockDistributionChannelsRepo.listForPrintingIds.mockResolvedValue([]);
-  mockCustomTagsRepo.assignmentsByCard.mockResolvedValue(new Map());
+  mockDistributionChannelsRepo.listAll.mockResolvedValue([]);
+  mockEnumsRepo.all.mockResolvedValue(emptyEnums);
+  mockKeywordsRepo.listAll.mockResolvedValue([]);
+  mockKeywordsRepo.listAllTranslations.mockResolvedValue([]);
+  mockTagCategoriesRepo.listAll.mockResolvedValue([]);
+  mockTagDefinitionsRepo.listAll.mockResolvedValue([]);
 }
 
 describe("GET /api/v1/catalog", () => {
@@ -131,7 +160,6 @@ describe("GET /api/v1/catalog", () => {
     mockCatalogRepo.printingImages.mockReset();
     mockCatalogRepo.cardBans.mockReset();
     mockCatalogRepo.cardErrata.mockReset();
-    mockCatalogRepo.totalCopies.mockReset();
     seedDefaults();
   });
 
@@ -142,6 +170,93 @@ describe("GET /api/v1/catalog", () => {
     expect(json.sets).toHaveLength(1);
     expect(Object.keys(json.printings)).toHaveLength(1);
     expect(Object.keys(json.cards)).toHaveLength(1);
+  });
+
+  it("carries the catalog and its reference blocks, nothing else", async () => {
+    const res = await app.request("/api/v1/catalog");
+    const json = await readJson(res);
+    expect(Object.keys(json).toSorted()).toEqual([
+      "cards",
+      "distributionChannels",
+      "enums",
+      "keywords",
+      "markers",
+      "printings",
+      "sets",
+      "tagCategories",
+      "tagCategoryMap",
+    ]);
+  });
+
+  it("names a printing's markers by slug and defines them once", async () => {
+    const promo = { id: "m-1", slug: "promo", label: "Promo", description: null };
+    mockCatalogRepo.markersList.mockResolvedValue([promo] as never);
+    mockCatalogRepo.printings.mockResolvedValue([
+      { ...dbPrintingRow, markerSlugs: ["promo", "retired"] },
+    ]);
+    const json = await readJson(await app.request("/api/v1/catalog"));
+    expect(json.printings["OGS-001:rare:normal:"].markers).toEqual(["promo"]);
+    expect(json.markers).toEqual([promo]);
+  });
+
+  it("references a printing's channels by slug with the note only when set", async () => {
+    const channel = {
+      id: "ch-1",
+      slug: "nexus-night",
+      label: "Nexus Night",
+      description: null,
+      kind: "event",
+      parentId: null,
+      childrenLabel: null,
+    };
+    const link = {
+      printingId: "OGS-001:rare:normal:",
+      channelId: channel.id,
+      channelSlug: channel.slug,
+      channelLabel: channel.label,
+      channelDescription: null,
+      channelKind: "event",
+      channelParentId: null,
+      channelChildrenLabel: null,
+    };
+    mockDistributionChannelsRepo.listAll.mockResolvedValue([channel] as never);
+    mockDistributionChannelsRepo.listForPrintingIds.mockResolvedValue([
+      { ...link, distributionNote: "Top 8" },
+      { ...link, distributionNote: null },
+    ] as never);
+    const json = await readJson(await app.request("/api/v1/catalog"));
+    expect(json.printings["OGS-001:rare:normal:"].distributionChannels).toEqual([
+      { channel: "nexus-night", note: "Top 8" },
+      { channel: "nexus-night" },
+    ]);
+    expect(json.distributionChannels).toEqual([channel]);
+  });
+
+  it("sends enums, keywords and tag categories without styling", async () => {
+    mockEnumsRepo.all.mockResolvedValue({
+      ...emptyEnums,
+      domains: [{ slug: "fury", label: "Fury", sortOrder: 0, color: "#b32117", isWellKnown: true }],
+    });
+    mockKeywordsRepo.listAll.mockResolvedValue([
+      { name: "Shield", color: "#4488ff", darkText: true, costKeyword: false, cardModifier: true },
+    ]);
+    mockKeywordsRepo.listAllTranslations.mockResolvedValue([
+      { keywordName: "Shield", language: "FR", label: "Bouclier" },
+    ]);
+    mockTagCategoriesRepo.listAll.mockResolvedValue([
+      { id: "tc-1", slug: "region", label: "Region", sortOrder: 0, description: null },
+    ]);
+    mockTagDefinitionsRepo.listAll.mockResolvedValue([
+      { tag: "Ionia", categoryId: "tc-1", category: "region" },
+    ]);
+    const json = await readJson(await app.request("/api/v1/catalog"));
+    expect(json.enums.domains).toEqual([{ slug: "fury", label: "Fury", sortOrder: 0 }]);
+    expect(json.enums).not.toHaveProperty("deckZones");
+    expect(json.keywords).toEqual({
+      Shield: { costKeyword: false, cardModifier: true, translations: { FR: "Bouclier" } },
+    });
+    expect(json.tagCategories).toEqual([{ slug: "region", label: "Region", sortOrder: 0 }]);
+    expect(json.tagCategoryMap).toEqual({ Ionia: "region" });
   });
 
   it("returns sets as { id, slug, name } objects", async () => {
@@ -335,7 +450,6 @@ describe("GET /api/v1/catalog", () => {
 
     function seedTwoLanguages(): void {
       seedDefaults({ printings: [dbPrintingRow, scPrintingRow], printingImages: [] });
-      mockCustomTagsRepo.assignmentsByCard.mockResolvedValue(new Map([["OGS-001", ["spicy"]]]));
     }
 
     it("langs returns only that language's printings, with the core intact", async () => {
@@ -346,9 +460,7 @@ describe("GET /api/v1/catalog", () => {
       const json = await readJson(res);
       expect(Object.keys(json.printings)).toEqual(["OGS-001:rare:normal:"]);
       expect(Object.keys(json.cards)).toHaveLength(1);
-      expect(json.customTagAssignments).toEqual({ "OGS-001": ["spicy"] });
       expect(json.sets).toHaveLength(1);
-      expect(json.totalCopies).toBe(42);
     });
 
     it("langs matches case-insensitively and accepts several codes", async () => {
@@ -358,21 +470,26 @@ describe("GET /api/v1/catalog", () => {
       expect(Object.keys(json.printings)).toHaveLength(2);
     });
 
-    it("exceptLangs returns the complement with cards and tags emptied", async () => {
+    it("/catalog/printings returns only the printings outside exceptLangs", async () => {
       seedTwoLanguages();
-      const res = await app.request("/api/v1/catalog?exceptLangs=EN");
+      const res = await app.request("/api/v1/catalog/printings?exceptLangs=EN");
       expect(res.status).toBe(200);
 
       const json = await readJson(res);
+      expect(Object.keys(json)).toEqual(["printings"]);
       expect(Object.keys(json.printings)).toEqual(["OGS-001:rare:normal::SC"]);
-      expect(json.cards).toEqual({});
-      expect(json.customTagAssignments).toEqual({});
-      expect(json.sets).toHaveLength(1);
     });
 
-    it("rejects langs and exceptLangs together with 400", async () => {
+    it("/catalog/printings carries the catalog's ETag", async () => {
       seedTwoLanguages();
-      const res = await app.request("/api/v1/catalog?langs=EN&exceptLangs=SC");
+      const head = await app.request("/api/v1/catalog?langs=EN");
+      const tail = await app.request("/api/v1/catalog/printings?exceptLangs=EN");
+      expect(tail.headers.get("etag")).toBe(head.headers.get("etag"));
+    });
+
+    it("/catalog/printings requires exceptLangs", async () => {
+      seedTwoLanguages();
+      const res = await app.request("/api/v1/catalog/printings");
       expect(res.status).toBe(400);
     });
 

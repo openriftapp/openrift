@@ -1,3 +1,4 @@
+import { makeCatalogReference } from "@openrift/shared/test-factories";
 import type {
   CatalogResponse,
   CatalogResponseCardValue,
@@ -108,8 +109,7 @@ const CATALOG_RESPONSE: CatalogResponse = {
       cardId: CARD_B_ID,
     }),
   },
-  totalCopies: 150,
-  customTagAssignments: {},
+  ...makeCatalogReference(),
 };
 
 describe("useCards", () => {
@@ -142,7 +142,6 @@ describe("useCards", () => {
         setType: "main",
       },
     ]);
-    expect(raw.totalCopies).toBe(150);
   });
 
   it("enrichCatalog joins card data onto printings and restores ids", () => {

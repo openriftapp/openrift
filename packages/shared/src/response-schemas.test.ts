@@ -123,21 +123,14 @@ describe("catalogPrintingResponseSchema", () => {
     expect(catalogPrintingResponseSchema.parse(validPrinting)).toEqual(validPrinting);
   });
 
-  it("accepts the optional foil-twin, citation and fallback keys", () => {
+  it("accepts the optional citation and fallback keys", () => {
     const enriched = {
       ...validPrinting,
-      hasFoilTwin: true,
       citations: [{ id: "c1", label: "Launch party unboxing", sourceUrl: null }],
       fallbackArtMode: "pinned",
       fallbackImageId: "019cfc3b-03d3-7dac-86c9-27900cd43727",
     };
     expect(catalogPrintingResponseSchema.parse(enriched)).toEqual(enriched);
-  });
-
-  it("rejects an explicit false for the omit-when-absent foil twin", () => {
-    expect(
-      catalogPrintingResponseSchema.safeParse({ ...validPrinting, hasFoilTwin: false }).success,
-    ).toBe(false);
   });
 
   it("rejects a fractional printed year", () => {

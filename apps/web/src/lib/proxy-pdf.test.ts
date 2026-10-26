@@ -1,3 +1,4 @@
+import { makeCatalogReference } from "@openrift/shared/test-factories";
 import type {
   CatalogResponse,
   CatalogResponsePrintingValue,
@@ -27,9 +28,15 @@ function toCatalogPrinting(
     card: _card,
     setSlug: _setSlug,
     setReleased: _setReleased,
+    markers,
+    distributionChannels,
     ...rest
   } = printing;
-  return rest;
+  return {
+    ...rest,
+    markers: markers.map((marker) => marker.slug),
+    distributionChannels: distributionChannels.map((link) => ({ channel: link.channel.slug })),
+  };
 }
 
 function buildCatalog(
@@ -45,8 +52,7 @@ function buildCatalog(
       }),
     ),
     printings: Object.fromEntries(printings.map((p) => [p.printingId, toCatalogPrinting(p)])),
-    totalCopies: printings.length,
-    customTagAssignments: {},
+    ...makeCatalogReference({ markers: printings.flatMap((p) => p.markers) }),
   };
 }
 

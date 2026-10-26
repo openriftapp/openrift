@@ -2,6 +2,7 @@ import { joinCatalogCards } from "@openrift/shared/catalog-join";
 import { setsContract } from "@openrift/shared/contracts/sets";
 import { todayUtc } from "@openrift/shared/format-date";
 import { isReleasedIn } from "@openrift/shared/set-release";
+import { withFoilTwins } from "@openrift/shared/standard";
 import type { SetDetailResponse, SetListResponse } from "@openrift/shared/types/api/catalog";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { queryOptions } from "@tanstack/react-query";
@@ -38,19 +39,21 @@ interface EnrichedSetDetail {
 function enrichSetDetail(response: SetDetailResponse): EnrichedSetDetail {
   const today = todayUtc();
   const cards = joinCatalogCards(response.cards, today);
-  const printings: Printing[] = response.printings.flatMap((p) => {
-    const card = cards[p.cardId];
-    return card
-      ? [
-          {
-            ...p,
-            setSlug: response.set.slug,
-            setReleased: isReleasedIn(response.set.releases, p.language, today),
-            card,
-          },
-        ]
-      : [];
-  });
+  const printings: Printing[] = withFoilTwins(
+    response.printings.flatMap((p) => {
+      const card = cards[p.cardId];
+      return card
+        ? [
+            {
+              ...p,
+              setSlug: response.set.slug,
+              setReleased: isReleasedIn(response.set.releases, p.language, today),
+              card,
+            },
+          ]
+        : [];
+    }),
+  );
   return { set: response.set, printings, cards };
 }
 

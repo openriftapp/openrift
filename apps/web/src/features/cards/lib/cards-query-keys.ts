@@ -5,6 +5,10 @@ export const catalogKeys = {
   none: ["catalog", "none"] as const,
 } as const;
 
+export const customTagsKeys = {
+  all: ["custom-tags"] as const,
+} as const;
+
 export const pricesKeys = {
   all: ["prices"] as const,
 } as const;

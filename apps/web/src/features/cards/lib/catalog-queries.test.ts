@@ -1,3 +1,4 @@
+import { makeCatalogReference } from "@openrift/shared/test-factories";
 // @vitest-environment jsdom
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import { QueryClient } from "@tanstack/react-query";
@@ -23,9 +24,13 @@ function wireCatalog(
   return {
     sets: [],
     cards: {},
-    printings,
-    totalCopies: 0,
-    customTagAssignments: {},
+    printings: Object.fromEntries(
+      Object.entries(printings).map(([id, printing]) => [
+        id,
+        { markers: [], distributionChannels: [], ...printing },
+      ]),
+    ),
+    ...makeCatalogReference(),
     ...overrides,
   } as CatalogResponse;
 }
@@ -93,7 +98,7 @@ describe("split fetch + tail merge", () => {
   it("fetches the primary variant, merges the tail, then no-ops on a second call", async () => {
     setPreferredLanguages(["EN"]);
     const primary = wireCatalog({ p1: { language: "EN" } });
-    const tail = wireCatalog({ p2: { language: "SC" } });
+    const tail = { printings: wireCatalog({ p2: { language: "SC" } }).printings };
     const calls: string[] = [];
     vi.stubGlobal(
       "fetch",
@@ -114,7 +119,9 @@ describe("split fetch + tail merge", () => {
     expect(calls[0]).toContain("v=v-test-1");
 
     await loadCatalogTail(queryClient);
+    expect(calls[1]).toContain("/api/v1/catalog/printings?");
     expect(calls[1]).toContain("exceptLangs=EN");
+    expect(calls[1]).toContain("v=v-test-1");
     const merged = queryClient.getQueryData<CatalogResponse>(catalogKeys.all);
     expect(merged).toBeDefined();
     expect(Object.keys((merged as CatalogResponse).printings).toSorted()).toEqual(["p1", "p2"]);

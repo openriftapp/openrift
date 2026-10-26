@@ -1,5 +1,6 @@
 import { getAvailableFilters } from "@openrift/shared/filters-available";
 import { priceLookupFromMap } from "@openrift/shared/price-lookup";
+import { makeCatalogReference } from "@openrift/shared/test-factories";
 import type {
   CatalogResponse,
   CatalogResponseCardValue,
@@ -84,7 +85,7 @@ function makeCatalog(
   printings: Record<string, CatalogResponsePrintingValue>,
   sets: CatalogSetResponse[] = [makeSet("set-ogn", "OGN")],
 ): CatalogResponse {
-  return { sets, cards, printings, totalCopies: 0, customTagAssignments: {} };
+  return { sets, cards, printings, ...makeCatalogReference() };
 }
 
 const ORDERS: EnumOrders = {
@@ -257,10 +258,11 @@ describe("extractCardCounts", () => {
     const promo = { id: "m-promo", slug: "promo", label: "Promo", description: null };
     const cards = { "card-1": makeCard(), "card-2": makeCard() };
     const printings = {
-      "p-1": makePrinting({ cardId: "card-1", shortCode: "OGN-001", markers: [promo] }),
+      "p-1": makePrinting({ cardId: "card-1", shortCode: "OGN-001", markers: ["promo"] }),
       "p-2": makePrinting({ cardId: "card-2", shortCode: "OGN-002" }),
     };
-    const counts = extractCardCounts(makeCatalog(cards, printings), NO_PRICES, {
+    const catalog = { ...makeCatalog(cards, printings), markers: [promo] };
+    const counts = extractCardCounts(catalog, NO_PRICES, {
       markers: ["promo"],
     });
 
