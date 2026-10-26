@@ -3,7 +3,7 @@ import type {
   AdminCardDetailResponse,
   AdminPrintingResponse,
 } from "@openrift/shared/types/api/admin";
-import { isListingOwnerId } from "@openrift/shared/workspace-listing-key";
+import { isListingOwnerId, parseListingCardOwnerId } from "@openrift/shared/workspace-listing-key";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
@@ -33,6 +33,7 @@ import { useIgnoreCandidatePrinting } from "@/features/admin/hooks/use-ignored-c
 import { useUpdateDeskPrinting } from "@/features/admin/hooks/use-printing-desk";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { unlinkedGroupCandidates } from "@/features/admin/lib/candidate-groups";
+import { CardListingsRecord } from "@/features/catalog-workspace/components/card-listings-record";
 import { CreationPanel } from "@/features/catalog-workspace/components/creation/creation-panel";
 import { ListingRecord } from "@/features/catalog-workspace/components/listing-record";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
@@ -65,6 +66,9 @@ import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/wor
 import { errorText } from "@/lib/error-text";
 
 export function NewPrintingRecord({ candidatePrintingId }: { candidatePrintingId: string }) {
+  if (parseListingCardOwnerId(candidatePrintingId) !== null) {
+    return <CardListingsRecord ownerId={candidatePrintingId} />;
+  }
   return isListingOwnerId(candidatePrintingId) ? (
     <ListingRecord ownerId={candidatePrintingId} />
   ) : (

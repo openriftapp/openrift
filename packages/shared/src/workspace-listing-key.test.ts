@@ -1,6 +1,29 @@
 import { describe, expect, it } from "vitest";
 
-import { isListingOwnerId, listingOwnerId, parseListingOwnerId } from "./workspace-listing-key.js";
+import {
+  isListingOwnerId,
+  listingCardOwnerId,
+  listingOwnerId,
+  parseListingCardOwnerId,
+  parseListingOwnerId,
+} from "./workspace-listing-key.js";
+
+describe("listingCardOwnerId", () => {
+  it("round-trips a card slug", () => {
+    expect(parseListingCardOwnerId(listingCardOwnerId("jinx-loose-cannon"))).toBe(
+      "jinx-loose-cannon",
+    );
+  });
+
+  it("is not a listing SKU key", () => {
+    expect(isListingOwnerId(listingCardOwnerId("jinx-loose-cannon"))).toBe(false);
+  });
+
+  it("rejects other keys and an empty slug", () => {
+    expect(parseListingCardOwnerId("listing:cardmarket:12:foil")).toBeNull();
+    expect(parseListingCardOwnerId("listing-card:")).toBeNull();
+  });
+});
 
 describe("listingOwnerId", () => {
   it("leaves the language off a language-aggregate SKU", () => {

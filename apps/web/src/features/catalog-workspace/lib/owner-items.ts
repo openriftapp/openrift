@@ -1,5 +1,6 @@
 import { matchesCardQuery } from "@openrift/shared/card-search";
 import type {
+  WorkspaceListingVariant,
   WorkspaceOwner,
   WorkspaceQueueItem,
   WorkspaceReason,
@@ -53,6 +54,7 @@ export interface OwnerGroup {
   isContributor: boolean;
   contributorOnly: boolean;
   fields: string[];
+  variants: WorkspaceListingVariant[];
   decisions: number;
   oldestAt: string;
   newestAt: string;
@@ -210,6 +212,7 @@ export function groupOwnerItems(items: readonly WorkspaceQueueItem[]): OwnerGrou
         isContributor: item.isContributor,
         contributorOnly: item.isContributor,
         fields: [...new Set(item.fields)],
+        variants: item.variants ?? [],
         decisions: item.decisions,
         oldestAt: item.createdAt,
         newestAt: item.createdAt,
@@ -230,6 +233,7 @@ export function groupOwnerItems(items: readonly WorkspaceQueueItem[]): OwnerGrou
         existing.fields.push(field);
       }
     }
+    existing.variants.push(...(item.variants ?? []));
     existing.decisions += item.decisions;
     if (item.createdAt < existing.oldestAt) {
       existing.oldestAt = item.createdAt;
@@ -341,7 +345,23 @@ function fieldsSummary(fields: readonly string[]): string {
     .join(" · ");
 }
 
+const MAX_VARIANTS = 3;
+
+export function listingVariantsText(variants: readonly WorkspaceListingVariant[]): string {
+  const total = variants.reduce((sum, variant) => sum + variant.count, 0);
+  const shown = variants
+    .slice(0, MAX_VARIANTS)
+    .map((variant) =>
+      [variant.language, variant.finish, `×${variant.count}`].filter(Boolean).join(" "),
+    );
+  const more = variants.length > MAX_VARIANTS ? ", …" : "";
+  return `${total} ${pluralize(total, "listing")} · ${shown.join(", ")}${more}`;
+}
+
 export function groupDetail(group: OwnerGroup): string {
+  if (group.variants.length > 0) {
+    return listingVariantsText(group.variants);
+  }
   const fields = detailFields(group.fields);
   if (fields.length > 0) {
     const summary = fieldsSummary(fields);
@@ -351,11 +371,19 @@ export function groupDetail(group: OwnerGroup): string {
   return group.providers.length === 0 ? reasons : `${reasons} · ${group.providers.join(", ")}`;
 }
 
+function entryCode(group: OwnerGroup): string | undefined {
+  if (group.owner === "card" || group.label === group.cardName) {
+    return undefined;
+  }
+  const titled = `${group.cardName} · `;
+  return group.label.startsWith(titled) ? group.label.slice(titled.length) : group.label;
+}
+
 export function groupEntry(group: OwnerGroup): ListEntry {
   return {
     key: group.key,
     title: group.cardName,
-    code: group.owner === "card" || group.label === group.cardName ? undefined : group.label,
+    code: entryCode(group),
     detail: groupDetail(group),
     createdAt: group.oldestAt,
     decisions: group.decisions,

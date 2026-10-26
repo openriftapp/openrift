@@ -227,6 +227,7 @@ export function draftFromBasePrinting(
   card: { id: string; slug: string; name: string },
   base: DeskPrintingRow | undefined,
   defaults: { language: string; finish: string; size: string },
+  overrides: { finish?: string } = {},
 ): CreationDraft {
   const fields = base
     ? {
@@ -240,7 +241,9 @@ export function draftFromBasePrinting(
   return {
     target: "desk",
     card: { mode: "existing", ...card },
-    faces: [{ mode: "new", fields: { ...fields, language: defaults.language }, images: [] }],
+    faces: [
+      { mode: "new", fields: { ...fields, language: defaults.language, ...overrides }, images: [] },
+    ],
     printing: emptyPrintingFields({ size: base?.size ?? defaults.size }),
     basePrintingId: base?.printingId,
     candidatePrintingIds: [],

@@ -182,6 +182,15 @@ describe("buildWorkspaceQueue", () => {
           createdAt: T1,
           card: null,
         },
+        ...[10, 11].map((externalId) => ({
+          marketplace: "cardtrader",
+          externalId,
+          finish: "foil",
+          language: "FR",
+          productName: "Jinx, Loose Cannon",
+          createdAt: T1,
+          card: { slug: "jinx-loose-cannon", name: "Jinx, Loose Cannon" },
+        })),
       ],
     });
     const response = await buildWorkspaceQueue(makeRepos() as unknown as WorkspaceRepos, {
@@ -193,7 +202,8 @@ describe("buildWorkspaceQueue", () => {
     });
     expect(ids(response)).toContain("printing:listing:base:tcgplayer");
     expect(ids(response)).toContain("printing:listing:listing:cardnexus:9:foil:EN");
-    expect(response.counts.printing).toEqual({ open: 4, new: 1, oldestAt: T1.toISOString() });
+    expect(ids(response)).toContain("printing:listing:listing-card:jinx-loose-cannon");
+    expect(response.counts.printing).toEqual({ open: 4, new: 2, oldestAt: T1.toISOString() });
   });
 
   it("never loads listings for a card-review or desk holder", async () => {

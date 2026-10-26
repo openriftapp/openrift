@@ -482,19 +482,17 @@ describe("buildWorkspaceQueueEntries", () => {
       expect(entries[0]?.item.createdAt).toBe(T1.toISOString());
     });
 
-    it("puts an unsuggested listing on the printing New queue under its SKU key", () => {
+    it("puts a listing that matches no card on the printing New queue under its SKU key", () => {
       const entries = buildWorkspaceQueueEntries(
         sources({
           listings: {
             suggested: [],
             unmatched: [
-              { ...listing, card: null },
               {
                 ...listing,
-                marketplace: "cardtrader",
-                finish: "normal",
+                productName: "Riftbound Promo Pack Vol. 2",
                 language: "FR",
-                card: { slug: "jinx-loose-cannon", name: "Jinx, Loose Cannon" },
+                card: null,
               },
             ],
           },
@@ -504,19 +502,83 @@ describe("buildWorkspaceQueueEntries", () => {
         {
           owner: "printing",
           segment: "new",
-          ownerId: "listing:cardmarket:812:foil",
+          ownerId: "listing:cardmarket:812:foil:FR",
           cardSlug: null,
-          cardName: "Jinx Loose Cannon",
-          label: "#812 foil",
+          cardName: "Riftbound Promo Pack Vol. 2",
+          label: "Riftbound Promo Pack Vol. 2 · foil FR",
           provider: "Cardmarket",
+          decisions: 1,
           fields: [],
         },
+      ]);
+    });
+
+    it("folds a card's unmatched listings into one item counting its missing variants", () => {
+      const card = { slug: "jinx-loose-cannon", name: "Jinx, Loose Cannon" };
+      const at = (externalId: number, over: object) => ({
+        ...listing,
+        externalId,
+        card,
+        createdAt: T2,
+        ...over,
+      });
+      const entries = buildWorkspaceQueueEntries(
+        sources({
+          listings: {
+            suggested: [],
+            unmatched: [
+              at(1, { marketplace: "cardtrader", language: "FR" }),
+              at(2, { marketplace: "cardnexus", language: "FR", createdAt: T1 }),
+              at(3, { marketplace: "cardtrader", language: "SC", finish: "normal" }),
+              at(4, { marketplace: "cardtrader", language: "FR" }),
+            ],
+          },
+        }),
+      );
+      expect(entries).toEqual([
         {
-          ownerId: "listing:cardtrader:812:normal:FR",
-          cardSlug: "jinx-loose-cannon",
-          cardName: "Jinx, Loose Cannon",
-          label: "#812 normal FR",
-          provider: "CardTrader",
+          item: {
+            id: "printing:listing:listing-card:jinx-loose-cannon",
+            owner: "printing",
+            segment: "new",
+            ownerId: "listing-card:jinx-loose-cannon",
+            reason: "listing",
+            cardSlug: "jinx-loose-cannon",
+            cardName: "Jinx, Loose Cannon",
+            label: "Jinx, Loose Cannon",
+            provider: null,
+            isContributor: false,
+            decisions: 2,
+            fields: [],
+            variants: [
+              { language: "FR", finish: "foil", count: 3 },
+              { language: "SC", finish: "normal", count: 1 },
+            ],
+            createdAt: T1.toISOString(),
+          },
+          printingIds: [],
+        },
+      ]);
+    });
+
+    it("names the marketplace when every listing of a card comes from one", () => {
+      const card = { slug: "jinx-loose-cannon", name: "Jinx, Loose Cannon" };
+      const entries = buildWorkspaceQueueEntries(
+        sources({
+          listings: {
+            suggested: [],
+            unmatched: [
+              { ...listing, card },
+              { ...listing, externalId: 813, card },
+            ],
+          },
+        }),
+      );
+      expect(entries.map((entry) => entry.item)).toMatchObject([
+        {
+          provider: "Cardmarket",
+          decisions: 1,
+          variants: [{ language: null, finish: "foil", count: 2 }],
         },
       ]);
     });

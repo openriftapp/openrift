@@ -13,6 +13,7 @@ import {
   groupEntry,
   groupOwnerItems,
   itemTarget,
+  listingVariantsText,
   nextQueue,
   oldestItem,
   ownersForRole,
@@ -267,18 +268,64 @@ describe("groupDetail and groupEntry", () => {
         segment: "new",
         ownerId: "listing:cardmarket:812:foil",
         cardSlug: null,
-        cardName: "Jinx Loose Cannon",
-        label: "#812 foil",
+        cardName: "Riftbound Promo Pack Vol. 2",
+        label: "Riftbound Promo Pack Vol. 2 · foil",
         reason: "listing",
         provider: "Cardmarket",
       }),
     ]);
     const entry = groupEntry(group!);
+    expect(entry.title).toBe("Riftbound Promo Pack Vol. 2");
+    expect(entry.code).toBe("foil");
     expect(entry.detail).toBe("Listing · Cardmarket");
     expect(entry.target).toEqual({
       kind: "printing-new",
       candidatePrintingId: "listing:cardmarket:812:foil",
     });
+  });
+
+  it("reads a card's unmatched listings as their variant breakdown", () => {
+    const [group] = groupOwnerItems([
+      item({
+        owner: "printing",
+        segment: "new",
+        ownerId: "listing-card:seraphine-not-alone",
+        cardSlug: "seraphine-not-alone",
+        cardName: "Seraphine, Not Alone",
+        label: "Seraphine, Not Alone",
+        reason: "listing",
+        provider: null,
+        decisions: 2,
+        variants: [
+          { language: "FR", finish: "foil", count: 4 },
+          { language: "SC", finish: "normal", count: 3 },
+        ],
+      }),
+    ]);
+    const entry = groupEntry(group!);
+    expect(entry.title).toBe("Seraphine, Not Alone");
+    expect(entry.code).toBeUndefined();
+    expect(entry.detail).toBe("7 listings · FR foil ×4, SC normal ×3");
+    expect(entry.decisions).toBe(2);
+  });
+});
+
+describe("listingVariantsText", () => {
+  it("shows the first three variants and elides the rest", () => {
+    expect(
+      listingVariantsText([
+        { language: "FR", finish: "foil", count: 4 },
+        { language: "SC", finish: "normal", count: 3 },
+        { language: null, finish: "foil", count: 2 },
+        { language: "KR", finish: "foil", count: 2 },
+      ]),
+    ).toBe("11 listings · FR foil ×4, SC normal ×3, foil ×2, …");
+  });
+
+  it("uses the singular for one listing", () => {
+    expect(listingVariantsText([{ language: "FR", finish: "foil", count: 1 }])).toBe(
+      "1 listing · FR foil ×1",
+    );
   });
 });
 

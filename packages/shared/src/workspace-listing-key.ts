@@ -40,3 +40,14 @@ export function parseListingOwnerId(ownerId: string): ListingSku | null {
     language: language ?? null,
   };
 }
+
+const CARD_PREFIX = "listing-card";
+
+export function listingCardOwnerId(cardSlug: string): string {
+  return `${CARD_PREFIX}:${cardSlug}`;
+}
+
+export function parseListingCardOwnerId(ownerId: string): string | null {
+  const slug = ownerId.startsWith(`${CARD_PREFIX}:`) ? ownerId.slice(CARD_PREFIX.length + 1) : "";
+  return slug === "" ? null : slug;
+}

@@ -25,6 +25,13 @@ export const workspaceSearchSchema = z.object({
   deskSort: z.enum(DESK_SORTS).optional().catch(undefined),
 });
 
+export const printingPrefillSearchSchema = z.object({
+  card: z.string().min(1).optional().catch(undefined),
+  language: z.string().min(1).optional().catch(undefined),
+  finish: z.string().min(1).optional().catch(undefined),
+});
+
+export type PrintingPrefill = z.infer<typeof printingPrefillSearchSchema>;
 export type WorkspaceView = (typeof WORKSPACE_VIEWS)[number];
 export type WorkspaceSort = (typeof WORKSPACE_SORTS)[number];
 export type WorkspaceSearch = z.infer<typeof workspaceSearchSchema>;

@@ -265,7 +265,7 @@ function ListingBody({ sku, item }: { sku: ListingSku; item: WorkspaceQueueItem 
   );
 }
 
-function PrintingPicker({
+export function PrintingPicker({
   disabled,
   onPick,
 }: {

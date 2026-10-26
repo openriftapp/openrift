@@ -1,7 +1,7 @@
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Suspense, useState } from "react";
 
@@ -45,10 +45,13 @@ import {
   toDeskCreateInput,
   validateDraft,
 } from "@/features/catalog-workspace/lib/creation-draft";
+import type { PrintingPrefill } from "@/features/catalog-workspace/lib/workspace-search";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
+
+const routeApi = getRouteApi("/_app/_authenticated/admin/workspace/printings/create");
 
 const IMAGE_SCOPE = [
   adminKeys.printingDesk.all,
@@ -322,11 +325,13 @@ function DraftEditor({
 function PickedCard({
   cardSlug,
   duplicate,
+  prefill,
   onChangeCard,
   onCancel,
 }: {
   cardSlug: string;
   duplicate: boolean;
+  prefill: Pick<PrintingPrefill, "language" | "finish">;
   onChangeCard: () => void;
   onCancel: () => void;
 }) {
@@ -366,17 +371,24 @@ function PickedCard({
     );
   }
 
-  const language = defaultCardLanguage(
-    rows.map((row) => row.language),
-    preferred,
-  );
+  const language =
+    prefill.language ??
+    defaultCardLanguage(
+      rows.map((row) => row.language),
+      preferred,
+    );
   const initialDraft =
     copyFrom === null
-      ? draftFromBasePrinting(card, basePrintingForLanguage(rows, language), {
-          language,
-          finish: orders.finishes[0] ?? "",
-          size: orders.cardSizes[0] ?? "",
-        })
+      ? draftFromBasePrinting(
+          card,
+          basePrintingForLanguage(rows, language),
+          {
+            language,
+            finish: prefill.finish ?? orders.finishes[0] ?? "",
+            size: orders.cardSizes[0] ?? "",
+          },
+          prefill.finish === undefined ? {} : { finish: prefill.finish },
+        )
       : draftFromDeskPrinting(card, copyFrom);
 
   return (
@@ -401,7 +413,8 @@ const PENDING_STEPS = [
 
 export function ManualPrintingRecord() {
   const navigate = useNavigate();
-  const [cardSlug, setCardSlug] = useState<string | null>(null);
+  const prefill = routeApi.useSearch();
+  const [cardSlug, setCardSlug] = useState<string | null>(prefill.card ?? null);
   const [duplicate, setDuplicate] = useState(false);
 
   function cancel() {
@@ -415,6 +428,7 @@ export function ManualPrintingRecord() {
           key={`${cardSlug}:${String(duplicate)}`}
           cardSlug={cardSlug}
           duplicate={duplicate}
+          prefill={cardSlug === prefill.card ? prefill : {}}
           onChangeCard={() => setCardSlug(null)}
           onCancel={cancel}
         />

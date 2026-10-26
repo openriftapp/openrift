@@ -220,6 +220,17 @@ describe("draftFromBasePrinting", () => {
     expect(draft.faces[0]?.fields.setId).toBe("");
     expect(draft.printing.size).toBe("standard");
   });
+
+  it("takes a prefilled finish over the base face's finish", () => {
+    const draft = draftFromBasePrinting(
+      CARD,
+      deskRow({ finish: "normal" }),
+      { language: "FR", finish: "normal", size: "standard" },
+      { finish: "foil" },
+    );
+
+    expect(draft.faces[0]?.fields).toMatchObject({ language: "FR", finish: "foil" });
+  });
 });
 
 describe("draftFromDeskPrinting", () => {

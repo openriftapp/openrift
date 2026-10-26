@@ -1,6 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import { WORKSPACE_SORTS, workspaceSearchSchema } from "./workspace-search";
+import {
+  printingPrefillSearchSchema,
+  WORKSPACE_SORTS,
+  workspaceSearchSchema,
+} from "./workspace-search";
+
+describe("printingPrefillSearchSchema", () => {
+  it("keeps a card, language and finish", () => {
+    expect(
+      printingPrefillSearchSchema.parse({
+        card: "seraphine-not-alone",
+        language: "FR",
+        finish: "foil",
+      }),
+    ).toEqual({ card: "seraphine-not-alone", language: "FR", finish: "foil" });
+  });
+
+  it("leaves a plain create link without a prefill", () => {
+    expect(printingPrefillSearchSchema.parse({})).toEqual({});
+  });
+
+  it("drops empty and non-string values", () => {
+    expect(printingPrefillSearchSchema.parse({ card: "", language: 3, finish: null })).toEqual({});
+  });
+});
 
 describe("workspaceSearchSchema", () => {
   it("leaves the segment unset by default", () => {

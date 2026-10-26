@@ -18,10 +18,13 @@ import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submis
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
 import { normalizeProvidedPrintingRecord } from "@openrift/shared/printing-value-normalize";
-import { listingOwnerId } from "@openrift/shared/workspace-listing-key";
+import { listingCardOwnerId, listingOwnerId } from "@openrift/shared/workspace-listing-key";
 
 import { classifyAgainstLive } from "../../../lib/image-fingerprint.js";
-import type { UnassignedListings } from "../../marketplace/lib/unassigned-listings.js";
+import type {
+  UnassignedListings,
+  UnmatchedListing,
+} from "../../marketplace/lib/unassigned-listings.js";
 import type {
   WorkspaceCardDifferenceRow,
   WorkspaceDraftRow,
@@ -318,14 +321,16 @@ export function buildWorkspaceQueueEntries(sources: WorkspaceQueueSources): Work
     );
   }
 
-  for (const listing of sources.listings?.unmatched ?? []) {
+  const unmatched = sources.listings?.unmatched ?? [];
+  for (const listing of unmatched) {
+    if (listing.card !== null) {
+      continue;
+    }
     collector.add(
       itemBase("printing", "new", "listing", listingOwnerId(listing), null, {
-        cardSlug: listing.card?.slug ?? null,
-        cardName: listing.card?.name ?? listing.productName,
-        label: [`#${listing.externalId}`, listing.finish, listing.language]
-          .filter(Boolean)
-          .join(" "),
+        cardSlug: null,
+        cardName: listing.productName,
+        label: `${listing.productName} · ${variantText(listing)}`,
         provider: marketplaceLabel(listing.marketplace),
         isContributor: false,
       }),
@@ -334,7 +339,51 @@ export function buildWorkspaceQueueEntries(sources: WorkspaceQueueSources): Work
     );
   }
 
-  return collector.entries();
+  return [...collector.entries(), ...cardListingEntries(unmatched)];
+}
+
+function variantText(variant: { finish: string; language: string | null }): string {
+  return [variant.finish, variant.language].filter(Boolean).join(" ");
+}
+
+function cardListingEntries(listings: readonly UnmatchedListing[]): WorkspaceQueueEntry[] {
+  const byCard = Map.groupBy(
+    listings.filter((listing) => listing.card !== null),
+    (listing) => listing.card?.slug ?? "",
+  );
+  return [...byCard].map(([cardSlug, rows]) => {
+    const variants = [...Map.groupBy(rows, (row) => `${row.language ?? ""}|${row.finish}`).values()]
+      .map((group) => ({
+        language: group[0]?.language ?? null,
+        finish: group[0]?.finish ?? "",
+        count: group.length,
+      }))
+      .toSorted(
+        (a, b) =>
+          b.count - a.count ||
+          (a.language ?? "").localeCompare(b.language ?? "") ||
+          a.finish.localeCompare(b.finish),
+      );
+    const [only, ...others] = new Set(rows.map((row) => row.marketplace));
+    const oldest = Math.min(...rows.map((row) => row.createdAt.getTime()));
+    const cardName = rows[0]?.card?.name ?? cardSlug;
+    return {
+      item: {
+        ...itemBase("printing", "new", "listing", listingCardOwnerId(cardSlug), null, {
+          cardSlug,
+          cardName,
+          label: cardName,
+          provider: only !== undefined && others.length === 0 ? marketplaceLabel(only) : null,
+          isContributor: false,
+        }),
+        decisions: variants.length,
+        fields: [],
+        variants,
+        createdAt: new Date(oldest).toISOString(),
+      },
+      printingIds: [],
+    };
+  });
 }
 
 function ownerCounts(items: readonly WorkspaceQueueItem[]): WorkspaceOwnerCounts {

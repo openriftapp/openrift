@@ -20,6 +20,12 @@ export const workspaceReasonSchema = z.enum([
   "listing",
 ]);
 
+export const workspaceListingVariantSchema = z.object({
+  language: z.string().nullable(),
+  finish: z.string(),
+  count: z.number().int().min(1),
+});
+
 export const workspaceQueueItemSchema = z.object({
   id: z.string(),
   owner: workspaceOwnerSchema,
@@ -33,6 +39,7 @@ export const workspaceQueueItemSchema = z.object({
   isContributor: z.boolean(),
   decisions: z.number().int().min(0),
   fields: z.array(z.string()),
+  variants: z.array(workspaceListingVariantSchema).optional(),
   createdAt: isoDateTime,
 });
 
@@ -197,6 +204,7 @@ export type AdminCatalogWorkspaceContract = typeof adminCatalogWorkspaceContract
 export type WorkspaceOwner = z.infer<typeof workspaceOwnerSchema>;
 export type WorkspaceSegment = z.infer<typeof workspaceSegmentSchema>;
 export type WorkspaceReason = z.infer<typeof workspaceReasonSchema>;
+export type WorkspaceListingVariant = z.infer<typeof workspaceListingVariantSchema>;
 export type WorkspaceQueueItem = z.infer<typeof workspaceQueueItemSchema>;
 export type WorkspaceOwnerCounts = z.infer<typeof workspaceOwnerCountsSchema>;
 export type WorkspaceQueueInput = z.input<typeof workspaceQueueInputSchema>;
