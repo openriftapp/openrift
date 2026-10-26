@@ -5,6 +5,7 @@ import type { ApiErrorResponse } from "@openrift/shared/types/api/error";
 import * as Sentry from "@sentry/bun";
 import { isAPIError } from "better-auth/api";
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { rateLimiter } from "hono-rate-limiter";
 import { cors } from "hono/cors";
 import { etag } from "hono/etag";
@@ -53,12 +54,10 @@ import { renderPoolStats } from "./modules/system/services/render-pool.js";
 import { mountDeckCheckIngestMiddleware } from "./modules/tournaments/routes/public-deck-check-ingest.js";
 import { mapAuthError } from "./modules/users/lib/better-auth-error.js";
 import { unsubscribeOneClickRoute } from "./modules/users/routes/public-unsubscribe-one-click.js";
-import {
-  generateContractOpenAPIDocument,
-  generateDeveloperOpenAPIDocument,
-} from "./openapi-doc.js";
+import { buildAdminDoc, buildDeveloperDoc, buildPublicDoc } from "./openapi-doc.js";
 import { ETAG_PATHS, immutableWhenVersionMatches } from "./orpc/cache-policy.js";
 import { buildApiContext } from "./orpc/context.js";
+import { orpcErrorResponse } from "./orpc/error-body.js";
 import { createApiHandler } from "./orpc/router.js";
 import type { Auth, Config, Variables } from "./types.js";
 
@@ -79,6 +78,13 @@ const authRateLimit = rateLimiter<{ Variables: Variables }>({
   standardHeaders: "draft-6",
   keyGenerator: (c) => c.req.header("x-real-ip") ?? "unknown",
 });
+
+/** The origin a browser reached the API through; undefined when no proxy forwarded the scheme. */
+function publicOrigin(c: Context): string | undefined {
+  const proto = c.req.header("x-forwarded-proto");
+  const host = c.req.header("host");
+  return proto && host ? `${proto}://${host}` : undefined;
+}
 
 const rateLimitedAuthPrefixes = [
   "/api/auth/sign-in",
@@ -162,10 +168,7 @@ export function createApp(deps: AppDeps) {
 
   app.notFound((c) => {
     if (c.req.path.startsWith("/api/")) {
-      return c.json(
-        { error: "Not found", code: ERROR_CODES.NOT_FOUND } satisfies ApiErrorResponse,
-        404,
-      );
+      return orpcErrorResponse(c, ERROR_CODES.NOT_FOUND, "Not found");
     }
     return c.text("Not Found", 404);
   });
@@ -305,86 +308,11 @@ export function createApp(deps: AppDeps) {
   app.get("/api/auth/*", (c) => auth.handler(c.req.raw));
   app.post("/api/auth/*", (c) => auth.handler(c.req.raw));
 
-  const ADMIN_DOC_PREFIX = "/api/admin/";
-  const filterPaths = <TDoc extends { paths?: Record<string, unknown> }>(
-    doc: TDoc,
-    keep: (path: string) => boolean,
-  ): TDoc => ({
-    ...doc,
-    paths: Object.fromEntries(Object.entries(doc.paths ?? {}).filter(([path]) => keep(path))),
-  });
-
-  const publicDocInfo = {
-    title: "OpenRift API",
-    version: "1.0.0",
-    description: [
-      "**Authentication:** This API uses session cookies (Better Auth).",
-      "Auth endpoints are not in this spec, they are proxied from `/api/auth/*`.",
-      "Admin endpoints live in a separate spec at `/api/admin/doc`.",
-      "",
-      "To try authenticated endpoints in Swagger UI: sign in via the web app,",
-      "then open this page on the API origin in the same browser.",
-    ].join("\n"),
-  } as const;
-  const adminDocInfo = {
-    title: "OpenRift Admin API",
-    version: "1.0.0",
-    description: "Admin-only operations, mounted under `/api/admin/v1` (require an admin session).",
-  } as const;
-  const developerDocInfo = {
-    title: "OpenRift Developer API",
-    version: "1.0.0",
-    description: [
-      "Free, public Riftbound card data. No key or sign-in needed.",
-      "Send a `User-Agent` with your project's name and a way to reach you.",
-      "Guide, caching and terms: `/developers` on this site.",
-    ].join("\n"),
-  } as const;
-
-  const buildDoc = async (info: { title: string; version: string; description: string }) => {
-    const contractDoc = await generateContractOpenAPIDocument();
-    return {
-      ...contractDoc,
-      openapi: "3.1.0",
-      info,
-      components: {
-        ...contractDoc.components,
-        securitySchemes: {
-          ...contractDoc.components?.securitySchemes,
-          cookieAuth: { type: "apiKey", in: "cookie", name: "better-auth.session_token" },
-          bearerAuth: { type: "http", scheme: "bearer" },
-          // Same cookie as cookieAuth; the requireAdmin middleware on /api/admin/v1/* enforces the role.
-          adminAuth: {
-            type: "apiKey",
-            in: "cookie",
-            name: "better-auth.session_token",
-            description: "Session cookie of a user with the admin role.",
-          },
-        },
-      },
-    };
-  };
-
-  app.get("/api/doc", async (c) => {
-    const doc = await buildDoc(publicDocInfo);
-    return c.json(filterPaths(doc, (path) => !path.startsWith(ADMIN_DOC_PREFIX)));
-  });
+  app.get("/api/doc", async (c) => c.json(await buildPublicDoc()));
   // Admin doc + UI are intentionally public (no requireAdmin in front): every operation
   // under /api/admin/v1 is still gated by the admin middleware on that sub-app.
-  app.get("/api/admin/doc", async (c) => {
-    const doc = await buildDoc(adminDocInfo);
-    return c.json(filterPaths(doc, (path) => path.startsWith(ADMIN_DOC_PREFIX)));
-  });
-  app.get("/api/developers/doc", async (c) => {
-    const doc = await generateDeveloperOpenAPIDocument();
-    return c.json({
-      ...doc,
-      openapi: "3.1.0",
-      info: developerDocInfo,
-      security: [],
-      components: { ...doc.components, securitySchemes: {} },
-    });
-  });
+  app.get("/api/admin/doc", async (c) => c.json(await buildAdminDoc()));
+  app.get("/api/developers/doc", async (c) => c.json(await buildDeveloperDoc(publicOrigin(c))));
   // baseUrl must not point at the default jsDelivr CDN: the site CSP blocks it.
   app.get("/api/ui", swaggerUI({ url: "/api/doc", baseUrl: SWAGGER_ASSETS_BASE_URL }));
   app.get("/api/admin/ui", swaggerUI({ url: "/api/admin/doc", baseUrl: SWAGGER_ASSETS_BASE_URL }));

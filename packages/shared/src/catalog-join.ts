@@ -16,6 +16,7 @@ import type {
   Marker,
   Printing,
   PrintingDistributionChannel,
+  PrintingSide,
 } from "./types/catalog.js";
 
 export function joinCatalogCards<T extends { bans: CardBan[] }>(
@@ -97,11 +98,28 @@ export function catalogValueSides(
   return [first, { ...printingFields, ...side2 }];
 }
 
+export function printingValueSides(
+  printings: Record<string, CatalogResponsePrintingValue>,
+): (CatalogValueSide & { printingId: string; side: PrintingSide })[] {
+  return Object.entries(printings).flatMap(([printingId, value]) =>
+    catalogValueSides(printingId, value).map((side, index) => ({
+      ...side,
+      printingId,
+      side: index === 0 ? (1 as const) : (2 as const),
+    })),
+  );
+}
+
+type CatalogSlice = Pick<
+  CatalogResponse,
+  "sets" | "cards" | "printings" | "markers" | "distributionChannels"
+>;
+
 /**
  * The browser and the API both run `filterCards` over this result, so it has
  * to produce identical rows on both sides.
  */
-export function joinCatalog(catalog: CatalogResponse): {
+export function joinCatalog(catalog: CatalogSlice): {
   cardsById: Record<string, Card>;
   printings: Printing[];
 } {

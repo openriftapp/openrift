@@ -264,9 +264,9 @@ describe.skipIf(!ctx)("Prices routes (integration)", () => {
     });
   });
 
-  describe("GET /prices/:printingId/history", () => {
+  describe("GET /prices/:printingId", () => {
     it("returns history with both tcgplayer and cardmarket data", async () => {
-      const res = await app.fetch(req("GET", `/prices/${printingId}/history`));
+      const res = await app.fetch(req("GET", `/prices/${printingId}`));
       expect(res.status).toBe(200);
 
       const json = await readJson(res);
@@ -282,22 +282,14 @@ describe.skipIf(!ctx)("Prices routes (integration)", () => {
       expect(json.cardmarket.snapshots.length).toBeGreaterThanOrEqual(1);
     });
 
-    it("returns available: false for non-existent printing", async () => {
+    it("returns 404 for a non-existent printing", async () => {
       const fakeId = "00000000-0000-0000-0000-000000000000";
-      const res = await app.fetch(req("GET", `/prices/${fakeId}/history`));
-      expect(res.status).toBe(200);
-
-      const json = await readJson(res);
-      expect(json.tcgplayer.available).toBe(false);
-      expect(json.tcgplayer.productId).toBeNull();
-      expect(json.tcgplayer.snapshots).toHaveLength(0);
-      expect(json.cardmarket.available).toBe(false);
-      expect(json.cardmarket.productId).toBeNull();
-      expect(json.cardmarket.snapshots).toHaveLength(0);
+      const res = await app.fetch(req("GET", `/prices/${fakeId}`));
+      expect(res.status).toBe(404);
     });
 
     it("returns available: false for printing with no marketplace sources", async () => {
-      const res = await app.fetch(req("GET", `/prices/${printingNoSourceId}/history`));
+      const res = await app.fetch(req("GET", `/prices/${printingNoSourceId}`));
       expect(res.status).toBe(200);
 
       const json = await readJson(res);
@@ -306,35 +298,35 @@ describe.skipIf(!ctx)("Prices routes (integration)", () => {
     });
 
     it("default range is 30d — excludes snapshots older than 30 days", async () => {
-      const res = await app.fetch(req("GET", `/prices/${printingId}/history`));
+      const res = await app.fetch(req("GET", `/prices/${printingId}`));
       const json = await readJson(res);
 
       expect(json.tcgplayer.snapshots.length).toBe(2);
     });
 
     it("range=7d filters to only recent snapshots", async () => {
-      const res = await app.fetch(req("GET", `/prices/${printingId}/history?range=7d`));
+      const res = await app.fetch(req("GET", `/prices/${printingId}?range=7d`));
       const json = await readJson(res);
 
       expect(json.tcgplayer.snapshots.length).toBe(1);
     });
 
     it("range=90d includes snapshots up to 90 days old", async () => {
-      const res = await app.fetch(req("GET", `/prices/${printingId}/history?range=90d`));
+      const res = await app.fetch(req("GET", `/prices/${printingId}?range=90d`));
       const json = await readJson(res);
 
       expect(json.tcgplayer.snapshots.length).toBe(3);
     });
 
     it("range=all returns all snapshots", async () => {
-      const res = await app.fetch(req("GET", `/prices/${printingId}/history?range=all`));
+      const res = await app.fetch(req("GET", `/prices/${printingId}?range=all`));
       const json = await readJson(res);
 
       expect(json.tcgplayer.snapshots.length).toBe(4);
     });
 
     it("tcgplayer snapshots have correct shape", async () => {
-      const res = await app.fetch(req("GET", `/prices/${printingId}/history?range=7d`));
+      const res = await app.fetch(req("GET", `/prices/${printingId}?range=7d`));
       const json = await readJson(res);
 
       const snap = json.tcgplayer.snapshots[0];
@@ -347,7 +339,7 @@ describe.skipIf(!ctx)("Prices routes (integration)", () => {
     });
 
     it("cardmarket snapshots have correct shape", async () => {
-      const res = await app.fetch(req("GET", `/prices/${printingId}/history?range=7d`));
+      const res = await app.fetch(req("GET", `/prices/${printingId}?range=7d`));
       const json = await readJson(res);
 
       const snap = json.cardmarket.snapshots[0];
@@ -360,7 +352,7 @@ describe.skipIf(!ctx)("Prices routes (integration)", () => {
     });
 
     it("cardtrader snapshots carry zeroLow and low", async () => {
-      const res = await app.fetch(req("GET", `/prices/${printingId}/history?range=7d`));
+      const res = await app.fetch(req("GET", `/prices/${printingId}?range=7d`));
       const json = await readJson(res);
 
       expect(json.cardtrader.available).toBe(true);
@@ -375,14 +367,14 @@ describe.skipIf(!ctx)("Prices routes (integration)", () => {
     });
 
     it("returns Cache-Control header", async () => {
-      const res = await app.fetch(req("GET", `/prices/${printingId}/history`));
+      const res = await app.fetch(req("GET", `/prices/${printingId}`));
       expect(res.headers.get("Cache-Control")).toBe(
         "public, max-age=3600, stale-while-revalidate=86400",
       );
     });
 
     it("snapshots are ordered chronologically (ascending)", async () => {
-      const res = await app.fetch(req("GET", `/prices/${printingId}/history?range=all`));
+      const res = await app.fetch(req("GET", `/prices/${printingId}?range=all`));
       const json = await readJson(res);
 
       const dates = json.tcgplayer.snapshots.map((s: { date: string }) => s.date);

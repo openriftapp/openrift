@@ -1,3 +1,4 @@
+import { cardtraderSnapshotSchema } from "@openrift/shared/contracts/prices";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -13,10 +14,12 @@ const mockCatalogRepo = {
 
 const mockMarketplaceRepo = {
   latestPrices: vi.fn(() => Promise.resolve([] as object[])),
+  latestPricesForPrintings: vi.fn((..._args: string[][]) => Promise.resolve([] as object[])),
   sourcesForPrinting: vi.fn(() => Promise.resolve([] as object[])),
   sourcesForPrintings: vi.fn((..._args: Parameters<Repos["marketplace"]["sourcesForPrintings"]>) =>
     Promise.resolve([] as object[]),
   ),
+  sourcesForAllPrintings: vi.fn(() => Promise.resolve([] as object[])),
   snapshots: vi.fn((..._args: Parameters<Repos["marketplace"]["snapshots"]>) =>
     Promise.resolve([] as object[]),
   ),
@@ -33,36 +36,38 @@ app.use("*", async (c, next) => {
 });
 registerRouterForTest(app, pricesRouter);
 
+const PRINTING_A = "a0000000-0001-4000-a000-000000000001";
+const PRINTING_B = "a0000000-0001-4000-a000-000000000002";
+
 const dbPrice = {
-  printingId: "a0000000-0001-4000-a000-000000000001",
+  printingId: PRINTING_A,
   marketplace: "tcgplayer",
   marketCents: 275,
   recordedAt: new Date("2026-03-01"),
 };
 
 const dbPriceFoil = {
-  printingId: "a0000000-0001-4000-a000-000000000002",
+  printingId: PRINTING_B,
   marketplace: "tcgplayer",
   marketCents: 800,
   recordedAt: new Date("2026-03-01"),
 };
 
-const dbPrinting = {
-  id: "a0000000-0001-4000-a000-000000000001",
-  slug: "a0000000-0001-4000-a000-000000000001",
-};
+const dbPrinting = { id: PRINTING_A, slug: PRINTING_A };
 
 const dbMarketplaceSource = {
   variantId: "ms-tcg-1",
   externalId: 12_345,
   marketplace: "tcgplayer",
-  printingId: "a0000000-0001-4000-a000-000000000001",
+  printingId: PRINTING_A,
+  language: "EN",
 };
 const dbMarketplaceSourceCM = {
   variantId: "ms-cm-1",
   externalId: 67_890,
   marketplace: "cardmarket",
-  printingId: "a0000000-0001-4000-a000-000000000001",
+  printingId: PRINTING_A,
+  language: "FR",
 };
 
 const dbSnapshot = {
@@ -73,13 +78,11 @@ const dbSnapshot = {
   lowCents: 200,
 };
 
-// Kept for non-browser consumers.
+const UNAVAILABLE = { available: false, productId: null, url: null };
+
 describe("GET /api/v1/prices", () => {
   beforeEach(() => {
     mockMarketplaceRepo.latestPrices.mockReset().mockResolvedValue([dbPrice, dbPriceFoil]);
-    mockCatalogRepo.getPrintingById.mockReset();
-    mockMarketplaceRepo.sourcesForPrinting.mockReset();
-    mockMarketplaceRepo.snapshots.mockReset();
   });
 
   it("returns 200 with PricesResponse structure", async () => {
@@ -87,46 +90,25 @@ describe("GET /api/v1/prices", () => {
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json.prices).toBeDefined();
+    expect(json.currencies.tcgplayer).toBe("USD");
   });
 
-  it("emits market_cents as integer cents", async () => {
+  it("emits market_cents as integer cents, one entry per printing", async () => {
     const res = await app.request("/api/v1/prices");
     const json = await readJson(res);
-    expect(json.prices["a0000000-0001-4000-a000-000000000001"]).toEqual({ tcgplayer: 275 });
-  });
-
-  it("returns one entry per printing", async () => {
-    const res = await app.request("/api/v1/prices");
-    const json = await readJson(res);
-    expect(json.prices["a0000000-0001-4000-a000-000000000001"]).toEqual({ tcgplayer: 275 });
-    expect(json.prices["a0000000-0001-4000-a000-000000000002"]).toEqual({ tcgplayer: 800 });
+    expect(json.prices[PRINTING_A]).toEqual({ tcgplayer: 275 });
+    expect(json.prices[PRINTING_B]).toEqual({ tcgplayer: 800 });
   });
 
   it("groups multiple marketplaces under the same printing", async () => {
     mockMarketplaceRepo.latestPrices.mockResolvedValue([
-      {
-        printingId: "a0000000-0001-4000-a000-000000000001",
-        marketplace: "tcgplayer",
-        marketCents: 100,
-      },
-      {
-        printingId: "a0000000-0001-4000-a000-000000000001",
-        marketplace: "cardmarket",
-        marketCents: 200,
-      },
-      {
-        printingId: "a0000000-0001-4000-a000-000000000001",
-        marketplace: "cardtrader",
-        marketCents: 300,
-      },
+      { printingId: PRINTING_A, marketplace: "tcgplayer", marketCents: 100 },
+      { printingId: PRINTING_A, marketplace: "cardmarket", marketCents: 200 },
+      { printingId: PRINTING_A, marketplace: "cardtrader", marketCents: 300 },
     ]);
     const res = await app.request("/api/v1/prices");
     const json = await readJson(res);
-    expect(json.prices["a0000000-0001-4000-a000-000000000001"]).toEqual({
-      tcgplayer: 100,
-      cardmarket: 200,
-      cardtrader: 300,
-    });
+    expect(json.prices[PRINTING_A]).toEqual({ tcgplayer: 100, cardmarket: 200, cardtrader: 300 });
   });
 
   it("returns empty prices when no rows exist", async () => {
@@ -137,150 +119,114 @@ describe("GET /api/v1/prices", () => {
   });
 });
 
-describe("GET /api/v1/prices/:printingId/history", () => {
+describe("GET /api/v1/prices/:printingId", () => {
   beforeEach(() => {
-    mockMarketplaceRepo.latestPrices.mockReset();
     mockCatalogRepo.getPrintingById.mockReset().mockResolvedValue(dbPrinting);
+    mockMarketplaceRepo.latestPricesForPrintings.mockReset().mockResolvedValue([dbPrice]);
     mockMarketplaceRepo.sourcesForPrinting
+      .mockReset()
+      .mockResolvedValue([dbMarketplaceSource, dbMarketplaceSourceCM]);
+    mockMarketplaceRepo.sourcesForPrintings
       .mockReset()
       .mockResolvedValue([dbMarketplaceSource, dbMarketplaceSourceCM]);
     mockMarketplaceRepo.snapshots.mockReset().mockResolvedValue([dbSnapshot]);
   });
 
-  it("returns 200 with PriceHistoryResponse structure", async () => {
-    const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-000000000001/history");
+  it("returns every marketplace with its link, currency, price and snapshots", async () => {
+    const res = await app.request(`/api/v1/prices/${PRINTING_A}`);
     expect(res.status).toBe(200);
     const json = await readJson(res);
-    expect(json.tcgplayer).toBeDefined();
-    expect(json.cardmarket).toBeDefined();
-    expect(json.cardtrader).toBeDefined();
+    expect(json.tcgplayer).toEqual({
+      available: true,
+      productId: 12_345,
+      url: "https://partner.tcgplayer.com/openrift?u=https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F12345",
+      currency: "USD",
+      price: 275,
+      snapshots: [{ date: "2026-03-01", market: 275, low: 200 }],
+    });
+    expect(json.cardmarket).toMatchObject({
+      available: true,
+      productId: 67_890,
+      url: "https://www.cardmarket.com/en/Riftbound/Products?idProduct=67890&language=2",
+      currency: "EUR",
+      price: null,
+    });
+    expect(json.cardtrader).toEqual({
+      ...UNAVAILABLE,
+      currency: "EUR",
+      price: null,
+      snapshots: [],
+    });
+    expect(json.cardnexus).toEqual({ ...UNAVAILABLE, currency: "EUR", price: null, snapshots: [] });
   });
 
-  it("returns tcgplayer data with available + productId", async () => {
-    const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-000000000001/history");
-    const json = await readJson(res);
-    expect(json.tcgplayer.available).toBe(true);
-    expect(json.tcgplayer.productId).toBe(12_345);
-  });
-
-  it("returns cardmarket data with available + productId", async () => {
-    const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-000000000001/history");
-    const json = await readJson(res);
-    expect(json.cardmarket.available).toBe(true);
-    expect(json.cardmarket.productId).toBe(67_890);
-  });
-
-  it("emits snapshot prices as integer cents and trims unused fields", async () => {
-    const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-000000000001/history");
-    const json = await readJson(res);
-    expect(json.tcgplayer.snapshots).toHaveLength(1);
-    expect(json.tcgplayer.snapshots[0].market).toBe(275);
-    expect(json.tcgplayer.snapshots[0].low).toBe(200);
-    expect(json.tcgplayer.snapshots[0].mid).toBeUndefined();
-    expect(json.tcgplayer.snapshots[0].high).toBeUndefined();
-  });
-
-  it("formats snapshot date as YYYY-MM-DD", async () => {
-    const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-000000000001/history");
-    const json = await readJson(res);
-    expect(json.tcgplayer.snapshots[0].date).toBe("2026-03-01");
-  });
-
-  it("returns unavailable sources for non-existent printing", async () => {
+  it("returns 404 for an unknown printing", async () => {
     mockCatalogRepo.getPrintingById.mockResolvedValue(undefined);
-    const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-ffffffffffff/history");
-    expect(res.status).toBe(200);
+    const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-ffffffffffff");
+    expect(res.status).toBe(404);
     const json = await readJson(res);
-    expect(json.tcgplayer.available).toBe(false);
-    expect(json.tcgplayer.snapshots).toEqual([]);
-    expect(json.cardmarket.available).toBe(false);
-    expect(json.cardmarket.snapshots).toEqual([]);
+    expect(json).toMatchObject({ defined: true, code: "NOT_FOUND" });
+    expect(mockMarketplaceRepo.snapshots).not.toHaveBeenCalled();
   });
 
-  it("returns unavailable when no marketplace sources exist", async () => {
+  it("returns unavailable marketplaces when no sources exist", async () => {
     mockMarketplaceRepo.sourcesForPrinting.mockResolvedValue([]);
+    mockMarketplaceRepo.sourcesForPrintings.mockResolvedValue([]);
     mockMarketplaceRepo.snapshots.mockResolvedValue([]);
-    const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-000000000001/history");
+    const res = await app.request(`/api/v1/prices/${PRINTING_A}`);
     const json = await readJson(res);
-    expect(json.tcgplayer.available).toBe(false);
-    expect(json.tcgplayer.productId).toBeNull();
-    expect(json.cardmarket.available).toBe(false);
-    expect(json.cardmarket.productId).toBeNull();
+    expect(json.tcgplayer).toMatchObject({ ...UNAVAILABLE, price: 275, snapshots: [] });
+    expect(json.cardmarket).toMatchObject({ ...UNAVAILABLE, snapshots: [] });
   });
 
-  it("accepts range query parameter", async () => {
-    const res = await app.request(
-      "/api/v1/prices/a0000000-0001-4000-a000-000000000001/history?range=7d",
-    );
-    expect(res.status).toBe(200);
+  it("defaults to a 30d cutoff and uses null for 'all'", async () => {
+    await app.request(`/api/v1/prices/${PRINTING_A}`);
+    expect(mockMarketplaceRepo.snapshots.mock.calls[0]?.[1]).toBeInstanceOf(Date);
+    mockMarketplaceRepo.snapshots.mockClear();
+    await app.request(`/api/v1/prices/${PRINTING_A}?range=all`);
+    expect(mockMarketplaceRepo.snapshots.mock.calls[0]?.[1]).toBeNull();
   });
 
-  it("rejects invalid range parameter with 400", async () => {
-    const res = await app.request(
-      "/api/v1/prices/a0000000-0001-4000-a000-000000000001/history?range=invalid",
-    );
+  it("accepts the 7d and 90d ranges and rejects anything else with 400", async () => {
+    const week = await app.request(`/api/v1/prices/${PRINTING_A}?range=7d`);
+    const quarter = await app.request(`/api/v1/prices/${PRINTING_A}?range=90d`);
+    expect([week.status, quarter.status]).toEqual([200, 200]);
+    const res = await app.request(`/api/v1/prices/${PRINTING_A}?range=invalid`);
     expect(res.status).toBe(400);
+    const json = await readJson(res);
+    expect(json.data.issues).toEqual([{ path: "range", message: expect.any(String) }]);
   });
 
-  it("defaults to 30d range when no range parameter is provided", async () => {
-    const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-000000000001/history");
-    expect(res.status).toBe(200);
-    const cutoffArg = mockMarketplaceRepo.snapshots.mock.calls[0]?.[1];
-    expect(cutoffArg).toBeInstanceOf(Date);
+  it("rejects a non-UUID printingId with 400 and no schema internals", async () => {
+    const res = await app.request("/api/v1/prices/not-a-uuid");
+    expect(res.status).toBe(400);
+    const json = await readJson(res);
+    expect(json.data.issues).toEqual([{ path: "printingId", message: "Invalid UUID" }]);
+    expect(JSON.stringify(json)).not.toContain("pattern");
   });
 
-  it("uses null cutoff for 'all' range", async () => {
-    const res = await app.request(
-      "/api/v1/prices/a0000000-0001-4000-a000-000000000001/history?range=all",
-    );
-    expect(res.status).toBe(200);
-    const cutoffArg = mockMarketplaceRepo.snapshots.mock.calls[0]?.[1];
-    expect(cutoffArg).toBeNull();
-  });
-
-  it("accepts 90d range parameter", async () => {
-    const res = await app.request(
-      "/api/v1/prices/a0000000-0001-4000-a000-000000000001/history?range=90d",
-    );
-    expect(res.status).toBe(200);
-  });
-
-  it("returns cardtrader data when cardtrader source exists (low-only snapshot)", async () => {
+  it("returns cardtrader snapshots with zeroLow and low, skipping days with neither", async () => {
     const ctSource = {
       variantId: "ms-ct-1",
       externalId: 99_999,
       marketplace: "cardtrader",
-      printingId: "a0000000-0001-4000-a000-000000000001",
+      printingId: PRINTING_A,
+      language: "EN",
     };
-    mockMarketplaceRepo.sourcesForPrinting.mockResolvedValue([
-      dbMarketplaceSource,
-      dbMarketplaceSourceCM,
-      ctSource,
+    mockMarketplaceRepo.sourcesForPrinting.mockResolvedValue([ctSource]);
+    mockMarketplaceRepo.sourcesForPrintings.mockResolvedValue([ctSource]);
+    mockMarketplaceRepo.snapshots.mockResolvedValue([
+      { recordedAt: new Date("2026-03-01"), marketCents: null, zeroLowCents: null, lowCents: 150 },
+      { recordedAt: new Date("2026-03-02"), marketCents: null, zeroLowCents: null, lowCents: null },
     ]);
-    const ctSnapshot = {
-      id: "snap-ct-1",
-      variantId: "ms-ct-1",
-      recordedAt: new Date("2026-03-01"),
-      marketCents: null,
-      zeroLowCents: null,
-      lowCents: 150,
-    };
-    mockMarketplaceRepo.snapshots.mockImplementation(async (variantId: string) => {
-      if (variantId === "ms-ct-1") {
-        return [ctSnapshot];
-      }
-      if (variantId === "ms-tcg-1") {
-        return [dbSnapshot];
-      }
-      return [dbSnapshot];
-    });
-    const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-000000000001/history");
+    const res = await app.request(`/api/v1/prices/${PRINTING_A}`);
     const json = await readJson(res);
-    expect(json.cardtrader.available).toBe(true);
-    expect(json.cardtrader.productId).toBe(99_999);
-    expect(json.cardtrader.snapshots).toHaveLength(1);
-    expect(json.cardtrader.snapshots[0].low).toBe(150);
-    expect(json.cardtrader.snapshots[0].market).toBeUndefined();
+    expect(json.cardtrader).toMatchObject({
+      available: true,
+      productId: 99_999,
+      url: "https://www.cardtrader.com/en/cards/99999?share_code=openrift",
+      snapshots: [{ date: "2026-03-01", zeroLow: null, low: 150 }],
+    });
   });
 
   it("returns CardNexus snapshots as the low listing and skips days without one", async () => {
@@ -288,170 +234,129 @@ describe("GET /api/v1/prices/:printingId/history", () => {
       variantId: "ms-cn-1",
       externalId: 151_160,
       marketplace: "cardnexus",
-      printingId: "a0000000-0001-4000-a000-000000000001",
+      printingId: PRINTING_A,
+      language: "EN",
     };
     mockMarketplaceRepo.sourcesForPrinting.mockResolvedValue([cnSource]);
-    mockMarketplaceRepo.snapshots.mockImplementation(async (variantId: string) =>
-      variantId === "ms-cn-1"
-        ? [
-            { recordedAt: new Date("2026-10-01"), marketCents: null, lowCents: 37 },
-            { recordedAt: new Date("2026-10-02"), marketCents: null, lowCents: null },
-          ]
-        : [],
-    );
-    const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-000000000001/history");
+    mockMarketplaceRepo.sourcesForPrintings.mockResolvedValue([cnSource]);
+    mockMarketplaceRepo.snapshots.mockResolvedValue([
+      { recordedAt: new Date("2026-10-01"), marketCents: null, lowCents: 37 },
+      { recordedAt: new Date("2026-10-02"), marketCents: null, lowCents: null },
+    ]);
+    const res = await app.request(`/api/v1/prices/${PRINTING_A}`);
     const json = await readJson(res);
     expect(json.cardnexus).toEqual({
       available: true,
       productId: 151_160,
+      url: "https://af.cardnexus.link/7018965/cn/151160",
       currency: "EUR",
+      price: null,
       snapshots: [{ date: "2026-10-01", low: 37 }],
     });
   });
 
-  it("returns unavailable cardtrader when no source exists", async () => {
-    mockMarketplaceRepo.sourcesForPrinting.mockResolvedValue([dbMarketplaceSource]);
-    const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-000000000001/history");
+  it("returns Cardmarket's avg as market and its low listing as low, falling back to market", async () => {
+    mockMarketplaceRepo.snapshots.mockImplementation(async (variantId: string) =>
+      variantId === "ms-cm-1"
+        ? [
+            { recordedAt: new Date("2026-03-02"), marketCents: 300, lowCents: 150 },
+            { recordedAt: new Date("2026-03-03"), marketCents: 300, lowCents: null },
+            { recordedAt: new Date("2026-03-04"), marketCents: null, lowCents: null },
+          ]
+        : [dbSnapshot],
+    );
+    const res = await app.request(`/api/v1/prices/${PRINTING_A}`);
     const json = await readJson(res);
-    expect(json.cardtrader.available).toBe(false);
-    expect(json.cardtrader.productId).toBeNull();
-    expect(json.cardtrader.snapshots).toEqual([]);
-  });
-
-  it("returns Cardmarket's avg as market and its low listing as low", async () => {
-    const cmSnapshot = {
-      id: "snap-cm-1",
-      variantId: "ms-cm-1",
-      recordedAt: new Date("2026-03-02"),
-      marketCents: 300,
-      lowCents: 150,
-    };
-    mockMarketplaceRepo.snapshots.mockImplementation(async (variantId: string) => {
-      if (variantId === "ms-cm-1") {
-        return [cmSnapshot];
-      }
-      return [dbSnapshot];
-    });
-    const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-000000000001/history");
-    const json = await readJson(res);
-    expect(json.cardmarket.snapshots[0].market).toBe(300);
-    expect(json.cardmarket.snapshots[0].low).toBe(150);
-    expect(json.cardmarket.snapshots[0].trend).toBeUndefined();
-    expect(json.cardmarket.snapshots[0].avg1).toBeUndefined();
-    expect(json.cardmarket.snapshots[0].date).toBe("2026-03-02");
-  });
-
-  it("falls back to marketCents for Cardmarket when lowCents is null", async () => {
-    const cmSnapshot = {
-      id: "snap-cm-2",
-      variantId: "ms-cm-1",
-      recordedAt: new Date("2026-03-03"),
-      marketCents: 300,
-      lowCents: null,
-    };
-    mockMarketplaceRepo.snapshots.mockImplementation(async (variantId: string) => {
-      if (variantId === "ms-cm-1") {
-        return [cmSnapshot];
-      }
-      return [dbSnapshot];
-    });
-    const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-000000000001/history");
-    const json = await readJson(res);
-    expect(json.cardmarket.snapshots[0].market).toBe(300);
-    expect(json.cardmarket.snapshots[0].low).toBeNull();
-  });
-
-  it("skips Cardmarket snapshots with neither low nor market price", async () => {
-    const cmSnapshot = {
-      id: "snap-cm-3",
-      variantId: "ms-cm-1",
-      recordedAt: new Date("2026-03-04"),
-      marketCents: null,
-      lowCents: null,
-    };
-    mockMarketplaceRepo.snapshots.mockImplementation(async (variantId: string) => {
-      if (variantId === "ms-cm-1") {
-        return [cmSnapshot];
-      }
-      return [dbSnapshot];
-    });
-    const res = await app.request("/api/v1/prices/a0000000-0001-4000-a000-000000000001/history");
-    const json = await readJson(res);
-    expect(json.cardmarket.snapshots).toEqual([]);
-  });
-
-  it("rejects non-UUID printingId with 400", async () => {
-    const res = await app.request("/api/v1/prices/not-a-uuid/history");
-    expect(res.status).toBe(400);
+    expect(json.cardmarket.snapshots).toEqual([
+      { date: "2026-03-02", market: 300, low: 150 },
+      { date: "2026-03-03", market: 300, low: null },
+    ]);
   });
 });
 
-describe("GET /api/v1/prices/marketplace-info", () => {
-  const printingA = "a0000000-0001-4000-a000-000000000001";
-  const printingB = "a0000000-0001-4000-a000-000000000002";
-
+describe("GET /api/v1/prices/links", () => {
   beforeEach(() => {
     mockMarketplaceRepo.sourcesForPrintings.mockReset().mockResolvedValue([]);
+    mockMarketplaceRepo.sourcesForAllPrintings.mockReset().mockResolvedValue([]);
   });
 
-  it("rejects missing printings query with 400", async () => {
-    const res = await app.request("/api/v1/prices/marketplace-info");
+  it("rejects an empty printings query with 400", async () => {
+    const res = await app.request("/api/v1/prices/links?printings=");
     expect(res.status).toBe(400);
   });
 
   it("rejects invalid uuid with 400", async () => {
-    const res = await app.request("/api/v1/prices/marketplace-info?printings=not-a-uuid");
+    const res = await app.request("/api/v1/prices/links?printings=not-a-uuid");
     expect(res.status).toBe(400);
   });
 
-  it("returns unavailable slots when no sources exist", async () => {
-    const res = await app.request(`/api/v1/prices/marketplace-info?printings=${printingA}`);
+  it("returns unavailable slots for a requested printing with no sources", async () => {
+    const res = await app.request(`/api/v1/prices/links?printings=${PRINTING_A}`);
     expect(res.status).toBe(200);
     const json = await readJson(res);
-    expect(json.infos[printingA]).toEqual({
-      tcgplayer: { available: false, productId: null, url: null },
-      cardmarket: { available: false, productId: null, url: null },
-      cardtrader: { available: false, productId: null, url: null },
-      cardnexus: { available: false, productId: null, url: null },
+    expect(json.links[PRINTING_A]).toEqual({
+      tcgplayer: UNAVAILABLE,
+      cardmarket: UNAVAILABLE,
+      cardtrader: UNAVAILABLE,
+      cardnexus: UNAVAILABLE,
     });
+    expect(mockMarketplaceRepo.sourcesForAllPrintings).not.toHaveBeenCalled();
   });
 
   it("maps sources to per-marketplace productId and referral url", async () => {
     mockMarketplaceRepo.sourcesForPrintings.mockResolvedValue([
-      { printingId: printingA, externalId: 12_345, marketplace: "tcgplayer", language: "EN" },
-      { printingId: printingA, externalId: 67_890, marketplace: "cardmarket", language: "FR" },
-      { printingId: printingB, externalId: 11_111, marketplace: "cardtrader", language: "EN" },
-      { printingId: printingB, externalId: 22_222, marketplace: "cardnexus", language: "EN" },
+      { printingId: PRINTING_A, externalId: 12_345, marketplace: "tcgplayer", language: "EN" },
+      { printingId: PRINTING_A, externalId: 67_890, marketplace: "cardmarket", language: "FR" },
+      { printingId: PRINTING_B, externalId: 11_111, marketplace: "cardtrader", language: "EN" },
+      { printingId: PRINTING_B, externalId: 22_222, marketplace: "cardnexus", language: "EN" },
     ]);
-    const res = await app.request(
-      `/api/v1/prices/marketplace-info?printings=${printingA},${printingB}`,
-    );
+    const res = await app.request(`/api/v1/prices/links?printings=${PRINTING_A},${PRINTING_B}`);
     const json = await readJson(res);
-    expect(json.infos[printingA].tcgplayer).toEqual({
+    expect(json.links[PRINTING_A].tcgplayer).toEqual({
       available: true,
       productId: 12_345,
       url: "https://partner.tcgplayer.com/openrift?u=https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F12345",
     });
-    expect(json.infos[printingA].cardmarket).toEqual({
+    expect(json.links[PRINTING_A].cardmarket).toEqual({
       available: true,
       productId: 67_890,
       url: "https://www.cardmarket.com/en/Riftbound/Products?idProduct=67890&language=2",
     });
-    expect(json.infos[printingB].cardtrader).toEqual({
+    expect(json.links[PRINTING_B].cardtrader).toEqual({
       available: true,
       productId: 11_111,
       url: "https://www.cardtrader.com/en/cards/11111?share_code=openrift",
     });
-    expect(json.infos[printingB].cardnexus.url).toBe("https://af.cardnexus.link/7018965/cn/22222");
-    expect(json.infos[printingB].tcgplayer.available).toBe(false);
+    expect(json.links[PRINTING_B].cardnexus.url).toBe("https://af.cardnexus.link/7018965/cn/22222");
+    expect(json.links[PRINTING_B].tcgplayer).toEqual(UNAVAILABLE);
   });
 
   it("dedupes repeated printing ids before querying", async () => {
-    mockMarketplaceRepo.sourcesForPrintings.mockResolvedValue([]);
-    await app.request(
-      `/api/v1/prices/marketplace-info?printings=${printingA},${printingA},${printingB}`,
-    );
+    await app.request(`/api/v1/prices/links?printings=${PRINTING_A},${PRINTING_A},${PRINTING_B}`);
     const ids = mockMarketplaceRepo.sourcesForPrintings.mock.calls[0]?.[0] as string[] | undefined;
-    expect(ids).toEqual([printingA, printingB]);
+    expect(ids).toEqual([PRINTING_A, PRINTING_B]);
+  });
+
+  it("returns every printing with a source when printings is omitted", async () => {
+    mockMarketplaceRepo.sourcesForAllPrintings.mockResolvedValue([
+      { printingId: PRINTING_B, externalId: 11_111, marketplace: "cardtrader", language: "EN" },
+    ]);
+    const res = await app.request("/api/v1/prices/links");
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(Object.keys(json.links)).toEqual([PRINTING_B]);
+    expect(json.links[PRINTING_B].cardtrader.productId).toBe(11_111);
+    expect(json.links[PRINTING_B].tcgplayer).toEqual(UNAVAILABLE);
+    expect(mockMarketplaceRepo.sourcesForPrintings).not.toHaveBeenCalled();
+  });
+});
+
+describe("price schemas", () => {
+  it("keeps the CardTrader snapshot to its own fields", () => {
+    expect(Object.keys(cardtraderSnapshotSchema.shape).toSorted()).toEqual([
+      "date",
+      "low",
+      "zeroLow",
+    ]);
   });
 });

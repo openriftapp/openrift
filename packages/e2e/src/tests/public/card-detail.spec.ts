@@ -91,7 +91,19 @@ async function fetchCardDetailOrNull(slug: string): Promise<CardDetailFixture | 
   if (!res.ok) {
     return null;
   }
-  return (await res.json()) as CardDetailFixture;
+  const json = (await res.json()) as Omit<CardDetailFixture, "printings"> & {
+    printings: Record<string, Omit<PrintingFixture, "id" | "markers"> & { markers: string[] }>;
+    markers: PrintingFixture["markers"];
+  };
+  const markerBySlug = new Map(json.markers.map((marker) => [marker.slug, marker]));
+  return {
+    ...json,
+    printings: Object.entries(json.printings).map(([id, printing]) => ({
+      ...printing,
+      id,
+      markers: printing.markers.flatMap((markerSlug) => markerBySlug.get(markerSlug) ?? []),
+    })),
+  };
 }
 
 async function fetchCardDetail(slug: string): Promise<CardDetailFixture> {

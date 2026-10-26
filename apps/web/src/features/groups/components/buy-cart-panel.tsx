@@ -28,7 +28,7 @@ import {
 import { TextLink } from "@/components/ui/text-link";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { useMarketplaceInfo } from "@/features/cards/hooks/use-marketplace-info";
+import { useMarketplaceLinks } from "@/features/cards/hooks/use-marketplace-links";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { frontImageId, printingDisplayName } from "@/features/cards/lib/card-meta";
 import { useMarkOrdered } from "@/features/groups/hooks/use-mark-ordered";
@@ -185,7 +185,7 @@ function HandoffButton({
   const { copy } = useCopyToClipboard();
   const { printingsById } = useCards();
   const directCart = marketplace === "tcgplayer" || marketplace === "cardnexus";
-  const { data: marketplaceInfo } = useMarketplaceInfo(
+  const { data: marketplaceInfo } = useMarketplaceLinks(
     directCart ? items.map((item) => item.printingId) : [],
   );
   const lines = cartCardLines(items, nameOf);
@@ -193,7 +193,7 @@ function HandoffButton({
 
   if (directCart) {
     const productIdOf = (printingId: string) =>
-      marketplaceInfo?.infos[printingId]?.[marketplace].productId;
+      marketplaceInfo?.links[printingId]?.[marketplace].productId;
     let href: string;
     let sendLines: readonly { quantity: number }[];
     let unlisted: readonly BuyCartItem[];

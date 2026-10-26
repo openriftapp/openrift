@@ -2,11 +2,10 @@ import type {
   cardmarketSnapshotSchema,
   cardnexusSnapshotSchema,
   cardtraderSnapshotSchema,
-  marketplaceInfoResponseSchema,
-  marketplaceInfoSchema,
-  marketplaceLinkInfoSchema,
-  priceHistoryResponseSchema,
+  marketplaceLinkSchema,
+  marketplaceLinksResponseSchema,
   pricesResponseSchema,
+  printingPricesResponseSchema,
   tcgplayerSnapshotSchema,
 } from "@openrift/shared/contracts/prices";
 import type { z } from "zod";
@@ -39,13 +38,13 @@ export type CardtraderSnapshot = z.infer<typeof cardtraderSnapshotSchema>;
 
 export type CardnexusSnapshot = z.infer<typeof cardnexusSnapshotSchema>;
 
-export type MarketplaceInfo = z.infer<typeof marketplaceInfoSchema>;
+export type MarketplaceLink = z.infer<typeof marketplaceLinkSchema>;
 
-export type MarketplaceLinkInfo = z.infer<typeof marketplaceLinkInfoSchema>;
+export type PrintingPricesResponse = z.infer<typeof printingPricesResponseSchema>;
 
-export type PriceHistoryResponse = z.infer<typeof priceHistoryResponseSchema>;
+export type MarketplaceLinksResponse = z.infer<typeof marketplaceLinksResponseSchema>;
 
-export type MarketplaceInfoResponse = z.infer<typeof marketplaceInfoResponseSchema>;
+export type PrintingMarketplaceLinks = MarketplaceLinksResponse["links"][string];
 
 export type AnySnapshot =
   | TcgplayerSnapshot

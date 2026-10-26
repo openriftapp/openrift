@@ -101,13 +101,24 @@ export const ruleVersionsListResponseSchema = z.object({
 
 export const rulesContract = {
   list: oc
-    .route({ method: "GET", path: "/api/v1/rules", tags: ["Rules"] })
+    .route({
+      method: "GET",
+      path: "/api/v1/rules",
+      tags: ["Rules"],
+      operationId: "listRules",
+      summary: "The rules of one version",
+      description:
+        "Every rule of the core or tournament rules, in document order, for one version and language. The latest version unless `version` is given; an older version also lists what changed in it.",
+    })
     .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
     .input(
       z.object({
-        kind: ruleKindSchema,
-        version: z.string().optional(),
-        language: languageInput,
+        kind: ruleKindSchema.meta({ description: "Which rulebook." }),
+        version: z
+          .string()
+          .optional()
+          .meta({ description: "A version from `/rules/versions`. Defaults to the latest." }),
+        language: languageInput.meta({ description: "Defaults to English." }),
       }),
     )
     .output(rulesListResponseSchema),
@@ -127,9 +138,22 @@ export const rulesContract = {
     .input(z.object({ kind: ruleKindSchema, version: z.string() }))
     .output(ruleNumbersResponseSchema),
   versions: oc
-    .route({ method: "GET", path: "/api/v1/rules/versions", tags: ["Rules"] })
+    .route({
+      method: "GET",
+      path: "/api/v1/rules/versions",
+      tags: ["Rules"],
+      operationId: "listRuleVersions",
+      summary: "Every rules version",
+      description:
+        "Every version of the core and tournament rules, oldest first, with the languages each one is available in.",
+    })
     .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
-    .input(z.object({ kind: ruleKindSchema.optional(), language: languageInput }))
+    .input(
+      z.object({
+        kind: ruleKindSchema.optional().meta({ description: "Omit it for both rulebooks." }),
+        language: languageInput.meta({ description: "Defaults to English." }),
+      }),
+    )
     .output(ruleVersionsListResponseSchema),
 };
 

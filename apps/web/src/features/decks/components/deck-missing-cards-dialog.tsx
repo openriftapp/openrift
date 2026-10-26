@@ -25,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetailOverlay } from "@/features/cards/components/card-detail-overlay";
 import { RarityIcon } from "@/features/cards/components/rarity-icon";
-import { useMarketplaceInfo } from "@/features/cards/hooks/use-marketplace-info";
+import { useMarketplaceLinks } from "@/features/cards/hooks/use-marketplace-links";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
 import {
   missingCardsToListEntries,
@@ -161,10 +161,10 @@ function MissingCardsDialogBody({
   });
   const rowPrintingIds = rowPrintings.map((printing) => printing.id);
 
-  const { data: marketplaceInfo } = useMarketplaceInfo(open ? rowPrintingIds : []);
+  const { data: marketplaceInfo } = useMarketplaceLinks(open ? rowPrintingIds : []);
 
   const linkFor = (card: CardOwnership, printing: CardOwnership["displayPrinting"]): string => {
-    const info = printing ? marketplaceInfo?.infos[printing.id]?.[marketplace] : undefined;
+    const info = printing ? marketplaceInfo?.links[printing.id]?.[marketplace] : undefined;
     if (printing && info?.available && info.productId !== null) {
       return meta.productUrl(info.productId, printing.language);
     }

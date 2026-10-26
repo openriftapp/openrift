@@ -8,13 +8,7 @@ import type {
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import type { Repos } from "../../../deps.js";
-import type { PresentedSide } from "../lib/printing-presenters.js";
-import {
-  loadPrintingDecorations,
-  presentPrintingFields,
-  presentSide,
-  sideImageKey,
-} from "../lib/printing-presenters.js";
+import { loadPrintingDecorations, presentPrintingValues } from "../lib/printing-presenters.js";
 import { toEnumRows, toKeywordEntries, toTagCategoryMap } from "../lib/reference-presenters.js";
 
 /**
@@ -85,39 +79,7 @@ export async function assembleCatalogResponse(repos: Repos): Promise<CatalogResp
     };
   }
 
-  const imagesBySide = Map.groupBy(imageRows, sideImageKey);
-  // The wire names markers by slug; resolving them first drops slugs with no marker row.
-  const toWireSide = ({ markers, ...side }: PresentedSide) => ({
-    ...side,
-    markers: markers.map((marker) => marker.slug),
-  });
-  const presentRowSide = (row: (typeof printingRows)[number]) =>
-    toWireSide(
-      presentSide(row, imagesBySide.get(sideImageKey(row)) ?? [], decorations.markerBySlug),
-    );
-
-  const printings: Record<string, CatalogResponsePrintingValue> = {};
-  for (const row of printingRows) {
-    if (row.side === 1) {
-      const { faceId, ...side } = presentRowSide(row);
-      const { distributionChannels, ...fields } = presentPrintingFields(row, decorations);
-      printings[row.printingId] = {
-        ...side,
-        ...(faceId === row.printingId ? {} : { faceId }),
-        ...fields,
-        distributionChannels: distributionChannels.map(({ channel, distributionNote }) => ({
-          channel: channel.slug,
-          ...(distributionNote === null ? {} : { note: distributionNote }),
-        })),
-      };
-    }
-  }
-  for (const row of printingRows) {
-    const printing = printings[row.printingId];
-    if (row.side === 2 && printing) {
-      printing.side2 = presentRowSide(row);
-    }
-  }
+  const printings = presentPrintingValues(printingRows, imageRows, decorations);
 
   const keywordEntries = toKeywordEntries(keywordRows, keywordTranslations);
   return {

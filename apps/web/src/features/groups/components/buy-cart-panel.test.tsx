@@ -30,10 +30,10 @@ vi.mock("@/features/cards/hooks/use-cards", () => ({
 vi.mock("@/features/cards/hooks/use-prices", () => ({
   usePrices: () => ({ get: (printingId: string) => (printingId === "p-1" ? 38 : undefined) }),
 }));
-vi.mock("@/features/cards/hooks/use-marketplace-info", () => ({
-  useMarketplaceInfo: () => ({
+vi.mock("@/features/cards/hooks/use-marketplace-links", () => ({
+  useMarketplaceLinks: () => ({
     data: {
-      infos: {
+      links: {
         "p-1": {
           tcgplayer: { available: true, productId: 652_993 },
           cardmarket: { available: false, productId: null },

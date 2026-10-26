@@ -97,13 +97,13 @@ describe("CardThumbnail siblings", () => {
       />,
     );
     const closedSrcs = [...container.querySelectorAll("img")].map((img) => img.getAttribute("src"));
-    expect(closedSrcs).toContain("/media/cards/aa/RB1-001-image-id-aa-400w.webp");
-    expect(closedSrcs).not.toContain("/media/cards/aa/RB1-001-foil-image-id-aa-400w.webp");
+    expect(closedSrcs).toContain("/media/cards/RB1-001-image-id-aa-400w.webp");
+    expect(closedSrcs).not.toContain("/media/cards/RB1-001-foil-image-id-aa-400w.webp");
     expect(queryStandin(container)).not.toBeNull();
 
     hoverTile(container);
     const srcs = [...container.querySelectorAll("img")].map((img) => img.getAttribute("src"));
-    expect(srcs).toContain("/media/cards/aa/RB1-001-foil-image-id-aa-400w.webp");
+    expect(srcs).toContain("/media/cards/RB1-001-foil-image-id-aa-400w.webp");
   });
 
   it("spines each fanned sibling with its code and what sets it apart", () => {
@@ -232,8 +232,8 @@ describe("CardThumbnail siblings", () => {
     );
     hoverTile(container);
     const srcs = [...container.querySelectorAll("img")].map((img) => img.getAttribute("src"));
-    expect(srcs).toContain("/media/cards/aa/RB1-001-image-id-aa-400w.webp");
-    expect(srcs).not.toContain("/media/cards/aa/RB1-001-foil-image-id-aa-400w.webp");
+    expect(srcs).toContain("/media/cards/RB1-001-image-id-aa-400w.webp");
+    expect(srcs).not.toContain("/media/cards/RB1-001-foil-image-id-aa-400w.webp");
   });
 
   it("renders placeholder art (not a bare gray box) for imageless siblings on hover", () => {

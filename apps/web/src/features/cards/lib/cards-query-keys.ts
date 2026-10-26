@@ -47,6 +47,6 @@ export const priceHistoryKeys = {
     ["priceHistory", printingId, range] as const,
 } as const;
 
-export const marketplaceInfoKeys = {
-  byPrintings: (printingIds: readonly string[]) => ["marketplaceInfo", printingIds] as const,
+export const marketplaceLinksKeys = {
+  byPrintings: (printingIds: readonly string[]) => ["marketplaceLinks", printingIds] as const,
 } as const;

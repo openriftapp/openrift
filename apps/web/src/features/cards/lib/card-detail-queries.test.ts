@@ -19,6 +19,10 @@ vi.mock("@/lib/server-cache", async () => {
 const { serverCache } = await import("@/lib/server-cache");
 const { cardDetailQueryOptions } = await import("./card-detail-queries");
 
+function requestUrl(input: string | Request): string {
+  return input instanceof Request ? input.url : String(input);
+}
+
 describe("cardDetailQueryOptions", () => {
   beforeEach(() => {
     serverCache.clear();
@@ -30,14 +34,14 @@ describe("cardDetailQueryOptions", () => {
   });
 
   it("throws Error('NOT_FOUND') when the API returns 404", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
+    const fetchMock = vi.fn((_input: string | Request) =>
+      Promise.resolve(
         Response.json(
           { defined: true, code: "NOT_FOUND", status: 404, message: "Not Found" },
           { status: 404 },
         ),
-      );
+      ),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     const { queryFn } = cardDetailQueryOptions("does-not-exist");
@@ -47,32 +51,47 @@ describe("cardDetailQueryOptions", () => {
       (queryFn as () => Promise<unknown>)(),
     ).rejects.toThrow("NOT_FOUND");
 
-    // oRPC's fetch link may call fetch(url, init) or fetch(request); read the
-    // URL from whichever shape it used.
-    const [first] = fetchMock.mock.calls[0] as [string | Request];
-    const calledUrl = first instanceof Request ? first.url : String(first);
-    expect(calledUrl).toBe("http://localhost:3000/api/v1/cards/does-not-exist");
+    const urls = fetchMock.mock.calls.map((call) => requestUrl(call[0]));
+    expect(urls).toContain("http://localhost:3000/api/v1/cards/does-not-exist");
   });
 
-  it("returns the parsed payload on 200", async () => {
-    const payload = { card: { id: "x", slug: "x" }, printings: [], sets: [], prices: {} };
-    const fetchMock = vi.fn().mockResolvedValueOnce(Response.json(payload));
+  it("merges the detail and the related strip into one payload on 200", async () => {
+    const detail = {
+      card: { id: "x", slug: "x" },
+      cards: {},
+      printings: {},
+      sets: [],
+      markers: [],
+      distributionChannels: [],
+      products: [],
+    };
+    const related = [{ slug: "yasuo-windrider" }];
+    const fetchMock = vi.fn((input: string | Request) =>
+      Promise.resolve(Response.json(requestUrl(input).endsWith("/related") ? { related } : detail)),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     const { queryFn } = cardDetailQueryOptions("x");
     const result = await (queryFn as () => Promise<unknown>)();
-    expect(result).toEqual(payload);
+    expect(result).toEqual({ ...detail, related });
+    const urls = fetchMock.mock.calls.map((call) => requestUrl(call[0])).toSorted();
+    expect(urls).toEqual([
+      "http://localhost:3000/api/v1/cards/x",
+      "http://localhost:3000/api/v1/cards/x/related",
+    ]);
   });
 });
 
 describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
-  const card = { id: "card-1", slug: "ezreal", bans: [] };
-  const printing = (id: string, setId: string, language = "EN") => ({
-    id,
+  const card = { id: "card-1", slug: "ezreal", name: "Ezreal", bans: [] };
+  const printing = (setId: string, language = "EN") => ({
     setId,
     cardId: "card-1",
     language,
     markers: [],
+    distributionChannels: [],
+    images: [],
+    canonicalRank: 1,
   });
   const releases = {
     EN: { releasedAt: "2025-01-01", precision: "day" },
@@ -84,13 +103,22 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
     name,
     quantity,
   });
+  const slice = { cards: {}, markers: [], distributionChannels: [], related: [] };
 
   const runSelect = (response: unknown) => {
     const { select } = cardDetailQueryOptions("ezreal");
     expect(select).toBeDefined();
     return (select as (r: unknown) => ReturnType<typeof Object>)(response) as {
-      card: unknown;
-      printings: { id: string; setSlug: string; setReleased: boolean; card: unknown }[];
+      card: { id: string; bans: unknown[]; upcomingBans: unknown[] };
+      printings: {
+        printingId: string;
+        side: number;
+        setSlug: string;
+        setReleased: boolean;
+        card: { id?: string; slug: string };
+        markers: { slug: string }[];
+        otherSide?: { cardSlug: string };
+      }[];
       productsByPrinting: ReadonlyMap<string, { slug: string; quantity: number }[]>;
       related: { slug: string }[];
     };
@@ -98,8 +126,9 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
 
   it("groups products by printing id", () => {
     const result = runSelect({
+      ...slice,
       card,
-      printings: [printing("p1", "s1"), printing("p2", "s1")],
+      printings: { p1: printing("s1"), p2: printing("s1") },
       sets: [{ id: "s1", slug: "ogn", releases }],
       products: [
         product("p1", "prerift-ezreal", "Pre-Rift Kit", 2),
@@ -119,8 +148,9 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
 
   it("omits printings that are in no product", () => {
     const result = runSelect({
+      ...slice,
       card,
-      printings: [printing("p1", "s1")],
+      printings: { p1: printing("s1") },
       sets: [{ id: "s1", slug: "ogn", releases }],
       products: [],
     });
@@ -132,8 +162,9 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
   it("preserves the API's product order within a printing", () => {
     // The API orders by product name; grouping must not reshuffle.
     const result = runSelect({
+      ...slice,
       card,
-      printings: [printing("p1", "s1")],
+      printings: { p1: printing("s1") },
       sets: [{ id: "s1", slug: "ogn", releases }],
       products: [
         product("p1", "arcane-box", "Arcane Box Set", 1),
@@ -149,23 +180,116 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
     ]);
   });
 
-  it("falls back to an empty setSlug when the printing's set is missing", () => {
+  it("joins printings the way the catalog store does: printing id, side, set and card", () => {
     const result = runSelect({
+      ...slice,
       card,
-      printings: [printing("p1", "s1"), printing("p2", "missing-set")],
+      printings: { p1: printing("s1") },
+      sets: [{ id: "s1", slug: "ogn", releases }],
+      products: [],
+    });
+
+    expect(result.printings).toHaveLength(1);
+    expect(result.printings[0]).toMatchObject({
+      printingId: "p1",
+      side: 1,
+      setSlug: "ogn",
+      setReleased: true,
+      card: { slug: "ezreal" },
+    });
+    expect(result.card).toMatchObject({ id: "card-1", slug: "ezreal", upcomingBans: [] });
+  });
+
+  it("drops a printing whose set is missing from the payload", () => {
+    const result = runSelect({
+      ...slice,
+      card,
+      printings: { p1: printing("s1"), p2: printing("missing-set") },
       sets: [{ id: "s1", slug: "ogn", releases: {} }],
       products: [],
     });
 
-    expect(result.printings[0]).toMatchObject({ setSlug: "ogn", setReleased: false });
-    expect(result.printings[1]).toMatchObject({ setSlug: "", setReleased: true });
+    expect(result.printings.map((p) => p.printingId)).toEqual(["p1"]);
+  });
+
+  it("resolves marker slugs against the payload's markers", () => {
+    const promo = { id: "m1", slug: "promo", label: "Promo", description: null };
+    const result = runSelect({
+      ...slice,
+      markers: [promo],
+      card,
+      printings: { p1: { ...printing("s1"), markers: ["promo", "gone"] } },
+      sets: [{ id: "s1", slug: "ogn", releases }],
+      products: [],
+    });
+
+    expect(result.printings[0]?.markers).toEqual([promo]);
+  });
+
+  it("keeps only this card's face of a double-sided printing, with the other card as `otherSide`", () => {
+    const result = runSelect({
+      ...slice,
+      cards: { "card-2": { slug: "gold", name: "Gold", bans: [] } },
+      card,
+      printings: {
+        p1: {
+          ...printing("s1"),
+          side2: { ...printing("s1"), cardId: "card-2", faceId: "face-2" },
+        },
+      },
+      sets: [{ id: "s1", slug: "ogn", releases }],
+      products: [],
+    });
+
+    expect(result.printings.map((p) => [p.side, p.card.slug, p.otherSide?.cardSlug])).toEqual([
+      [1, "ezreal", "gold"],
+    ]);
+  });
+
+  it("keeps the second face when this card is side 2 of the printing", () => {
+    const result = runSelect({
+      ...slice,
+      cards: { "card-2": { slug: "gold", name: "Gold", bans: [] } },
+      card,
+      printings: {
+        p1: {
+          ...printing("s1"),
+          cardId: "card-2",
+          side2: { ...printing("s1"), faceId: "face-2" },
+        },
+      },
+      sets: [{ id: "s1", slug: "ogn", releases }],
+      products: [],
+    });
+
+    expect(result.printings.map((p) => [p.side, p.card.slug, p.otherSide?.cardSlug])).toEqual([
+      [2, "ezreal", "gold"],
+    ]);
+  });
+
+  it("keeps both faces when the printing shows this card on each", () => {
+    const result = runSelect({
+      ...slice,
+      card,
+      printings: {
+        p1: { ...printing("s1"), side2: { ...printing("s1"), faceId: "face-2" } },
+      },
+      sets: [{ id: "s1", slug: "ogn", releases }],
+      products: [],
+    });
+
+    expect(result.printings.map((p) => [p.side, p.otherSide?.cardSlug])).toEqual([
+      [1, "ezreal"],
+      [2, "ezreal"],
+    ]);
   });
 
   it("passes related cards through unchanged", () => {
     const related = [{ slug: "yasuo-windrider" }, { slug: "yasuo-remorseful" }];
     const result = runSelect({
+      ...slice,
       card,
-      printings: [],
+      printings: {},
       sets: [],
       products: [],
       related,
@@ -176,8 +300,9 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
 
   it("resolves setReleased per printing language", () => {
     const result = runSelect({
+      ...slice,
       card,
-      printings: [printing("p1", "s1", "EN"), printing("p2", "s1", "FR")],
+      printings: { p1: printing("s1", "EN"), p2: printing("s1", "FR") },
       sets: [{ id: "s1", slug: "ogn", releases }],
       products: [],
     });
@@ -195,13 +320,15 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
     };
     const scheduled = { formatId: "2v2", formatName: "2v2", bannedAt: "2099-01-01", reason: null };
     const result = runSelect({
+      ...slice,
       card: { ...card, bans: [current, scheduled] },
-      printings: [printing("p1", "s1")],
+      printings: { p1: printing("s1") },
       sets: [{ id: "s1", slug: "ogn", releases }],
       products: [],
     });
 
-    expect(result.card).toMatchObject({ bans: [current], upcomingBans: [scheduled] });
-    expect(result.printings[0]!.card).toBe(result.card);
+    expect(result.card.bans).toEqual([current]);
+    expect(result.card.upcomingBans).toEqual([scheduled]);
+    expect(result.printings[0]?.card).toMatchObject({ bans: [current] });
   });
 });

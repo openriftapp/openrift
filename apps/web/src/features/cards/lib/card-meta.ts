@@ -2,13 +2,15 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageUrl } from "@openrift/shared/image-url";
 import { preferredPrinting } from "@openrift/shared/printing-select";
-import type {
-  CardDetailResponse,
-  CatalogPrintingResponse,
-} from "@openrift/shared/types/api/catalog";
+import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import { formatPrice, formatPriceEur } from "@/lib/format";
+
+type MetaPrinting = Pick<
+  Printing,
+  "printingId" | "side" | "slug" | "language" | "canonicalRank" | "images" | "printedRulesText"
+>;
 
 const META_DESCRIPTION_LIMIT = 155;
 
@@ -35,15 +37,14 @@ export function buildCardPriceLine(offers: readonly CardMarketplaceOffer[]): str
 
 // Mirrors the page component's own preferredPrinting call, so the SSR
 // og:image/description matches what a fresh visitor lands on.
-export function pickCardMetaPrinting<T extends CatalogPrintingResponse>(
+export function pickCardMetaPrinting<T extends MetaPrinting>(
   printings: readonly T[],
   languageOrder: readonly string[],
 ): T | undefined {
   if (printings.length === 0) {
     return undefined;
   }
-  // preferredPrinting only reads fields CatalogPrintingResponse has (never
-  // the Printing-only setSlug/card), so this structural cast is safe.
+  // preferredPrinting only reads `language` and `canonicalRank`, so this structural cast is safe.
   return (
     (preferredPrinting(printings as unknown as Printing[], languageOrder) as T | undefined) ??
     printings[0]
@@ -57,7 +58,7 @@ export function pickCardMetaPrinting<T extends CatalogPrintingResponse>(
  * `?printingId=` links still carry.
  */
 /** `side` picks between the sides of a printing that shows the card on both. */
-export function resolveCardMetaPrinting<T extends CatalogPrintingResponse>(
+export function resolveCardMetaPrinting<T extends MetaPrinting>(
   printings: readonly T[],
   printingRef: string | undefined,
   languageOrder: readonly string[],
@@ -79,7 +80,7 @@ export function resolveCardMetaPrinting<T extends CatalogPrintingResponse>(
 // macros and markdown emphasis don't leak into unfurls.
 export function buildCardMetaDescription(
   card: CardDetailResponse["card"],
-  printing: CatalogPrintingResponse | undefined,
+  printing: Pick<MetaPrinting, "printedRulesText"> | undefined,
   labels?: { domains?: Record<string, string>; cardTypes?: Record<string, string> },
   offers?: readonly CardMarketplaceOffer[],
 ): string {
@@ -153,7 +154,7 @@ export function printingArt(printing: Printing | undefined): PrintingArt {
 }
 
 export function getCardFrontImageFullUrl(
-  printing: CatalogPrintingResponse | undefined,
+  printing: Pick<MetaPrinting, "images"> | undefined,
 ): string | undefined {
   const id = frontImageId(printing);
   return id ? imageUrl(id, "full") : undefined;

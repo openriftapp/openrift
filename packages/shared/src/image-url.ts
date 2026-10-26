@@ -4,7 +4,12 @@
  */
 export type ImageVariant = "120w" | "240w" | "400w" | "full";
 
-/** Directory prefix is the UUID's last 2 hex chars, matching the rehoster's on-disk layout. */
+/** The public form; nginx and the dev server map it onto the sharded on-disk layout (see `imageShardDir`). */
 export function imageUrl(imageId: string, variant: ImageVariant): string {
-  return `/media/cards/${imageId.slice(-2)}/${imageId}-${variant}.webp`;
+  return `/media/cards/${imageId}-${variant}.webp`;
+}
+
+/** Directory prefix under `media/cards/`: the id's last 2 hex chars, matching the rehoster's on-disk layout. */
+export function imageShardDir(imageId: string): string {
+  return imageId.slice(-2);
 }

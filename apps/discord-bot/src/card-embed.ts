@@ -10,7 +10,7 @@ import {
   findStandardArtFallback,
 } from "@openrift/shared/standard";
 import { truncateWithEllipsis } from "@openrift/shared/strings";
-import type { MarketplaceInfoResponse } from "@openrift/shared/types/api/pricing";
+import type { PrintingMarketplaceLinks } from "@openrift/shared/types/api/pricing";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 import type { APIEmbed, APIEmbedField } from "discord.js";
@@ -30,7 +30,7 @@ export interface CardEmbedInput {
   card: CatalogCard;
   printing: CatalogPrinting | undefined;
   snapshot: CatalogSnapshot;
-  marketplaceInfo?: MarketplaceInfoResponse["infos"][string];
+  marketplaceInfo?: PrintingMarketplaceLinks;
   siteUrl: string;
   tradelists?: TradelistHolders | null;
 }

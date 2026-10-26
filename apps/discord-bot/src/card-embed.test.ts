@@ -157,7 +157,7 @@ describe("buildCardEmbed", () => {
     });
     expect(embed.title).toBe("Jinx, Rebel");
     expect(embed.url).toBe(`${SITE}/cards/jinx-rebel`);
-    expect(embed.image?.url).toBe(`${SITE}/media/cards/aa/0197f00d00aa-full.webp`);
+    expect(embed.image?.url).toBe(`${SITE}/media/cards/0197f00d00aa-full.webp`);
     expect(embed.footer?.text).toBe("OGN-202/298 · Origins");
   });
 
@@ -485,7 +485,7 @@ describe("buildCardEmbed", () => {
       snapshot,
       siteUrl: SITE,
     });
-    expect(embed.image?.url).toBe(`${SITE}/media/cards/aa/0197f00d00aa-full.webp`);
+    expect(embed.image?.url).toBe(`${SITE}/media/cards/0197f00d00aa-full.webp`);
     expect(embed.description).toContain("*Standard-printing artwork shown (differs: Signed)*");
   });
 
@@ -507,7 +507,7 @@ describe("buildCardEmbed", () => {
       snapshot,
       siteUrl: SITE,
     });
-    expect(embed.image?.url).toBe(`${SITE}/media/cards/aa/0197f00d00aa-full.webp`);
+    expect(embed.image?.url).toBe(`${SITE}/media/cards/0197f00d00aa-full.webp`);
     expect(embed.description).toBe("*Standard-printing artwork shown*");
   });
 
@@ -535,7 +535,7 @@ describe("buildCardEmbed", () => {
       snapshot,
       siteUrl: SITE,
     });
-    expect(embed.image?.url).toBe(`${SITE}/media/cards/aa/0197f00d00aa-full.webp`);
+    expect(embed.image?.url).toBe(`${SITE}/media/cards/0197f00d00aa-full.webp`);
     expect(embed.description).toBe("*Substitute artwork shown*");
   });
 

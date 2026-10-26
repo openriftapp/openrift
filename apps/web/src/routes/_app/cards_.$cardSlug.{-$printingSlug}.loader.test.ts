@@ -23,9 +23,13 @@ const PRICES = {
 
 const CARD_DETAIL = {
   card: { id: "card-1", slug: "inferna", name: "Inferna", types: ["unit"] },
-  printings: [{ printingId: "p-en", side: 1, setId: "set-1", slug: "en-ogn-202-normal-standard" }],
+  cards: {},
+  printings: { "p-en": { setId: "set-1", slug: "en-ogn-202-normal-standard" } },
   sets: [],
+  markers: [],
+  distributionChannels: [],
   products: [],
+  related: [],
 };
 
 const INIT = { enums: { languages: [{ slug: "EN", sortOrder: 0 }], domains: [], cardTypes: [] } };

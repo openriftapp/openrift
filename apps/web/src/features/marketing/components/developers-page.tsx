@@ -2,6 +2,8 @@ import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { ReactNode } from "react";
 
 import { ProsePage } from "@/components/prose-page";
+import { DEVELOPER_ENDPOINT_PATHS } from "@/features/marketing/lib/developer-endpoints";
+import type { DeveloperEndpointPath } from "@/features/marketing/lib/developer-endpoints";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { getSiteUrl } from "@/lib/site-config";
 import { SOCIAL_LINKS } from "@/lib/social-links";
@@ -9,23 +11,22 @@ import { m } from "@/paraglide/messages.js";
 
 // Paths stay relative to the site origin: getSiteUrl() reads window.location.origin
 // on the client and can mismatch the SSR value, causing a hydration error.
+const ENDPOINT_DESCRIPTIONS: Record<DeveloperEndpointPath, () => string> = {
+  "/api/v1/catalog": m.developers_endpoint_catalog,
+  "/api/v1/cards/{cardSlug}": m.developers_endpoint_card,
+  "/api/v1/sets": m.developers_endpoint_sets,
+  "/api/v1/prices": m.developers_endpoint_prices,
+  "/api/v1/prices/{printingId}": m.developers_endpoint_printing_prices,
+  "/api/v1/prices/links": m.developers_endpoint_links,
+  "/api/v1/rules": m.developers_endpoint_rules,
+  "/api/v1/rules/versions": m.developers_endpoint_rule_versions,
+};
+
 function endpoints(): { path: string; description: string }[] {
-  return [
-    { path: "/api/v1/catalog", description: m.developers_endpoint_catalog() },
-    { path: "/api/v1/cards/{cardSlug}", description: m.developers_endpoint_card() },
-    { path: "/api/v1/sets", description: m.developers_endpoint_sets() },
-    { path: "/api/v1/prices", description: m.developers_endpoint_prices() },
-    {
-      path: "/api/v1/prices/marketplace-info",
-      description: m.developers_endpoint_marketplace_info(),
-    },
-    {
-      path: "/api/v1/prices/{printingId}/history",
-      description: m.developers_endpoint_price_history(),
-    },
-    { path: "/api/v1/rules", description: m.developers_endpoint_rules() },
-    { path: "/api/v1/rules/versions", description: m.developers_endpoint_rule_versions() },
-  ];
+  return DEVELOPER_ENDPOINT_PATHS.map((path) => ({
+    path,
+    description: ENDPOINT_DESCRIPTIONS[path](),
+  }));
 }
 
 const codeMarkup = { code: ({ children }: { children?: ReactNode }) => <code>{children}</code> };
@@ -105,7 +106,7 @@ export function DevelopersPage() {
           message={m.developers_catalog_images_p}
           markup={{
             ...codeMarkup,
-            imagepath: () => <code>/media/cards/xx/{"{imageId}-{size}"}.webp</code>,
+            imagepath: () => <code>/media/cards/{"{imageId}-{size}"}.webp</code>,
           }}
         />
       </p>

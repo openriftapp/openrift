@@ -2,7 +2,7 @@ import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-nam
 import type { CardSearchIndex } from "@openrift/shared/card-search";
 import { buildCardIndex, findCard, searchCards } from "@openrift/shared/card-search";
 import { parsePiltoverDeckCode } from "@openrift/shared/deck-code";
-import type { MarketplaceInfoResponse } from "@openrift/shared/types/api/pricing";
+import type { PrintingMarketplaceLinks } from "@openrift/shared/types/api/pricing";
 import { isDefinedError, safe } from "@orpc/client";
 import type {
   AutocompleteInteraction,
@@ -198,15 +198,15 @@ function ruleIndexFor(cache: RulesCache): RuleIndex | null {
 async function marketplaceInfoFor(
   api: ApiClients,
   printingId: string | undefined,
-): Promise<MarketplaceInfoResponse["infos"][string] | undefined> {
+): Promise<PrintingMarketplaceLinks | undefined> {
   if (!printingId) {
     return undefined;
   }
   try {
-    const response = await api.prices.marketplaceInfo({ printings: printingId });
-    return response.infos[printingId];
+    const response = await api.prices.links({ printings: printingId });
+    return response.links[printingId];
   } catch (error) {
-    log.error({ err: error }, "marketplace-info lookup failed");
+    log.error({ err: error }, "marketplace links lookup failed");
     return undefined;
   }
 }

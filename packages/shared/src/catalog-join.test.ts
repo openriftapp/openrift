@@ -5,6 +5,7 @@ import {
   catalogValueSides,
   joinCatalog,
   joinCatalogPrintings,
+  printingValueSides,
 } from "./catalog-join";
 import { PRINTING_LEVEL_FIELDS } from "./catalog-printing-fields.js";
 import { makeCatalogReference } from "./test-factories.js";
@@ -379,6 +380,25 @@ describe("catalogRefResolver", () => {
     const b = channelDef("b", "b", "B", "a");
     const cyclic = catalogRefResolver({ markers: [], distributionChannels: [a, b] });
     expect(cyclic.channels([{ channel: "a" }])[0]?.ancestorLabels).toHaveLength(32);
+  });
+});
+
+describe("printingValueSides", () => {
+  it("flattens each value into rows that name their printing and side, with no card join", () => {
+    const rows = printingValueSides({
+      "printing-1": printingValue({ slug: "en-set1-001-normal" }),
+      "printing-2": printingValue({
+        faceId: "face-a",
+        side2: { ...printingValue(), faceId: "face-b", cardId: "card-2", markers: [] },
+      }),
+    });
+    expect(rows.map((row) => [row.printingId, row.side, row.faceId])).toEqual([
+      ["printing-1", 1, "printing-1"],
+      ["printing-2", 1, "face-a"],
+      ["printing-2", 2, "face-b"],
+    ]);
+    expect(rows[0]?.slug).toBe("en-set1-001-normal");
+    expect(rows[2]).not.toHaveProperty("side2");
   });
 });
 

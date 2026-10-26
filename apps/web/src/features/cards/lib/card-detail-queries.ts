@@ -1,8 +1,6 @@
-import { splitCardBans } from "@openrift/shared/card-ban";
+import { joinCatalog } from "@openrift/shared/catalog-join";
 import { cardsContract } from "@openrift/shared/contracts/cards";
-import { todayUtc } from "@openrift/shared/format-date";
-import { isReleasedIn } from "@openrift/shared/set-release";
-import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
+import type { CardDetailRelatedCard, CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -13,13 +11,20 @@ import { serverCache } from "@/lib/server-cache";
 import { orNotFound } from "@/lib/server-fns/api-error";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
-function loadCardDetail(cardSlug: string): Promise<CardDetailResponse> {
-  return orNotFound(apiOrpcClient(cardsContract).detail({ cardSlug }));
+export type CardDetailPayload = CardDetailResponse & { related: CardDetailRelatedCard[] };
+
+async function loadCardDetail(cardSlug: string): Promise<CardDetailPayload> {
+  const client = apiOrpcClient(cardsContract);
+  const [detail, { related }] = await Promise.all([
+    orNotFound(client.detail({ cardSlug })),
+    orNotFound(client.related({ cardSlug })),
+  ]);
+  return { ...detail, related };
 }
 
 const fetchCardDetail = createServerFn({ method: "GET" })
   .validator((input: { cardSlug: string; fresh?: boolean }) => input)
-  .handler(({ data }): Promise<CardDetailResponse> => {
+  .handler(({ data }): Promise<CardDetailPayload> => {
     if (data.fresh) {
       return loadCardDetail(data.cardSlug);
     }
@@ -29,33 +34,32 @@ const fetchCardDetail = createServerFn({ method: "GET" })
     });
   });
 
+export function ownFaces<T extends { cardId: string }>(rows: readonly T[], cardId: string): T[] {
+  return rows.filter((row) => row.cardId === cardId);
+}
+
 interface EnrichedCardDetail {
-  card: CardDetailResponse["card"] & Pick<Card, "upcomingBans">;
+  card: Card & { id: string };
   printings: Printing[];
   sets: CardDetailResponse["sets"];
   productsByPrinting: ReadonlyMap<string, CardDetailResponse["products"]>;
-  related: CardDetailResponse["related"];
+  related: CardDetailRelatedCard[];
 }
 
-function enrichCardDetail(response: CardDetailResponse): EnrichedCardDetail {
-  const setsById = new Map(response.sets.map((s) => [s.id, s]));
-  // Printings carry `canonicalRank` from the DB view; consumers layer the
-  // per-user language axis on top via `sortByLanguageAndCanonicalRank`.
-  const today = todayUtc();
-  const card = splitCardBans(response.card, today);
-  const printings: Printing[] = response.printings.map((p) => {
-    const set = setsById.get(p.setId);
-    return {
-      ...p,
-      setSlug: set?.slug ?? "",
-      // If set is missing from the payload, default setReleased to true.
-      setReleased: set ? isReleasedIn(set.releases, p.language, today) : true,
-      card,
-    };
+function enrichCardDetail(response: CardDetailPayload): EnrichedCardDetail {
+  const { id, ...cardValue } = response.card;
+  const { cardsById, printings } = joinCatalog({
+    sets: response.sets,
+    cards: { ...response.cards, [id]: cardValue },
+    printings: response.printings,
+    markers: response.markers,
+    distributionChannels: response.distributionChannels,
   });
+  // oxlint-disable-next-line typescript/no-non-null-assertion -- joined from `cardValue` one line up
+  const card = { ...cardsById[id]!, id };
   return {
     card,
-    printings,
+    printings: ownFaces(printings, id),
     sets: response.sets,
     // The API sends products flat (one row per printing+product) already
     // ordered by product name; grouping preserves that order per printing.

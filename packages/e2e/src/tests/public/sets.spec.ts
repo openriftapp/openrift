@@ -57,7 +57,13 @@ async function fetchCardDetail(slug: string): Promise<CardDetailFixture> {
   if (!res.ok) {
     throw new Error(`Card detail ${slug} fetch failed: ${res.status}`);
   }
-  return (await res.json()) as CardDetailFixture;
+  const json = (await res.json()) as Omit<CardDetailFixture, "printings"> & {
+    printings: Record<string, { setId: string }>;
+  };
+  return {
+    ...json,
+    printings: Object.entries(json.printings).map(([id, printing]) => ({ ...printing, id })),
+  };
 }
 
 async function readJsonLdScripts(page: Page) {

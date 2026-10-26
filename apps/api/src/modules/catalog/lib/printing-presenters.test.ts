@@ -7,6 +7,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildPrintingsResponse,
+  presentPrintingValues,
+  referencedChannels,
+  referencedMarkers,
   resolveFallbackArt,
   resolveMarkers,
   toCatalogPrintingImage,
@@ -196,5 +199,126 @@ describe("toCatalogPrintingImage", () => {
       imageId: "img-1",
       credit: "gamesnight",
     });
+  });
+});
+
+describe("presentPrintingValues", () => {
+  const channel = {
+    id: "ch-1",
+    slug: "launch-party",
+    label: "Launch Party",
+    description: null,
+    kind: "event" as const,
+    parentId: null,
+    childrenLabel: null,
+  };
+  const link: PrintingDistributionChannel = {
+    channel,
+    distributionNote: "Handed out at the door",
+    ancestorLabels: [],
+  };
+  const decorations = {
+    channels: [channel],
+    markerBySlug: MARKERS,
+    channelsByPrinting: new Map([["p-1", [link]]]),
+    citationsByPrinting: new Map([["p-1", [citation("c-1")]]]),
+  };
+  const bare = { ...decorations, channelsByPrinting: NO_CHANNELS, citationsByPrinting: new Map() };
+
+  it("keys by printing id, drops the identity fields and names markers and channels by slug", () => {
+    const values = presentPrintingValues(
+      [printingRow("p-1", { slug: "en-ogn-202-foil-standard", hasFoilTwin: true })],
+      [{ printingId: "p-1", side: 1, imageId: "img-1", credit: null } as never],
+      decorations,
+    );
+
+    expect(Object.keys(values)).toEqual(["p-1"]);
+    const value = values["p-1"]!;
+    expect(value).not.toHaveProperty("printingId");
+    expect(value).not.toHaveProperty("side");
+    expect(value).not.toHaveProperty("faceId");
+    expect(value).toMatchObject({
+      slug: "en-ogn-202-foil-standard",
+      markers: ["promo"],
+      distributionChannels: [{ channel: "launch-party", note: "Handed out at the door" }],
+      images: [{ imageId: "img-1" }],
+      citations: [citation("c-1")],
+      hasFoilTwin: true,
+    });
+  });
+
+  it("keeps faceId only when it differs from the printing id and nests side 2", () => {
+    const values = presentPrintingValues(
+      [
+        printingRow("p-2", { faceId: "face-1", otherSide: { faceId: "face-2" } }),
+        printingRow("p-2", { side: 2, faceId: "face-2", cardId: "card-2", markerSlugs: [] }),
+      ],
+      [],
+      bare,
+    );
+
+    const value = values["p-2"]!;
+    expect(value.faceId).toBe("face-1");
+    expect(value.side2).toMatchObject({ faceId: "face-2", cardId: "card-2", markers: [] });
+    expect(value.side2).not.toHaveProperty("slug");
+  });
+
+  it("ignores a side 2 row whose side 1 is missing", () => {
+    expect(
+      presentPrintingValues([printingRow("p-3", { side: 2, faceId: "face-2" })], [], bare),
+    ).toEqual({});
+  });
+});
+
+describe("referencedMarkers", () => {
+  it("returns the named markers in catalog order and skips the rest", () => {
+    const signed: Marker = { id: "m-2", slug: "signed", label: "Signed", description: null };
+    const unused: Marker = { id: "m-3", slug: "unused", label: "Unused", description: null };
+    const markerBySlug = new Map([
+      ["promo", MARKER],
+      ["signed", signed],
+      ["unused", unused],
+    ]);
+    expect(
+      referencedMarkers([{ markerSlugs: ["signed"] }, { markerSlugs: ["promo", "gone"] }], {
+        markerBySlug,
+      }),
+    ).toEqual([MARKER, signed]);
+  });
+});
+
+describe("referencedChannels", () => {
+  const parent = {
+    id: "ch-parent",
+    slug: "events",
+    label: "Events",
+    description: null,
+    kind: "event" as const,
+    parentId: null,
+    childrenLabel: null,
+  };
+  const child = {
+    ...parent,
+    id: "ch-child",
+    slug: "nexus-night",
+    label: "Nexus Night",
+    parentId: "ch-parent",
+  };
+  const other = { ...parent, id: "ch-other", slug: "starter", label: "Starter" };
+
+  it("returns the named channels with their ancestors, in catalog order", () => {
+    const channels = referencedChannels(["p-1", "p-none"], {
+      channels: [other, parent, child],
+      channelsByPrinting: new Map([
+        ["p-1", [{ channel: child, distributionNote: null, ancestorLabels: ["Events"] }]],
+      ]),
+    });
+    expect(channels.map((c) => c.slug)).toEqual(["events", "nexus-night"]);
+  });
+
+  it("returns nothing for printings with no channel", () => {
+    expect(
+      referencedChannels(["p-1"], { channels: [parent], channelsByPrinting: NO_CHANNELS }),
+    ).toEqual([]);
   });
 });

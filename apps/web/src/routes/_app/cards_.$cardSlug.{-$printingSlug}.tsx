@@ -1,7 +1,7 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { printingValueSides } from "@openrift/shared/catalog-join";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { priceLookupFromMap } from "@openrift/shared/price-lookup";
-import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { PricesResponse } from "@openrift/shared/types/api/pricing";
 import { ALL_MARKETPLACES, MARKETPLACE_CURRENCY } from "@openrift/shared/types/pricing";
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
@@ -9,7 +9,8 @@ import { z } from "zod";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
+import { cardDetailQueryOptions, ownFaces } from "@/features/cards/lib/card-detail-queries";
+import type { CardDetailPayload } from "@/features/cards/lib/card-detail-queries";
 import type { CardMarketplaceOffer } from "@/features/cards/lib/card-meta";
 import {
   buildCardMetaDescription,
@@ -30,7 +31,7 @@ const cardDetailSearchSchema = z.object({
 });
 
 interface CardDetailLoaderData {
-  data: CardDetailResponse;
+  data: CardDetailPayload;
   languageOrder: readonly string[];
   domainLabels: Record<string, string>;
   cardTypeLabels: Record<string, string>;
@@ -59,7 +60,7 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
     // Read from the live params and search, not loaderData: loaderDeps is empty
     // (see above), so loaderData never carries the per-variant printing.
     const metaPrinting = resolveCardMetaPrinting(
-      data.printings,
+      ownFaces(printingValueSides(data.printings), data.card.id),
       match.params.printingSlug ?? match.search.printingId,
       loaded.languageOrder,
       match.search.side,
@@ -110,7 +111,7 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
     };
   },
   loader: async ({ context, params }): Promise<CardDetailLoaderData> => {
-    let data: CardDetailResponse;
+    let data: CardDetailPayload;
     let init: Awaited<ReturnType<typeof initQueryOptions.queryFn & object>>;
     try {
       // select: undefined keeps the raw response; the enriched shape drops fields
@@ -133,7 +134,7 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
     // language-preferred fallback: a 200 keeps the dead URL in search indexes.
     if (
       params.printingSlug !== undefined &&
-      !data.printings.some((printing) => printing.slug === params.printingSlug)
+      !Object.values(data.printings).some((printing) => printing.slug === params.printingSlug)
     ) {
       throw redirect({
         to: "/cards/$cardSlug/{-$printingSlug}",
@@ -164,8 +165,8 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
     const priceLookup = priceLookupFromMap(pricesResponse.prices);
     const marketplaceOffers = MARKETPLACE_OFFER_CONFIG.flatMap(({ key, seller, currency }) => {
       // priceLookup returns major units (cents are converted at this boundary).
-      const prices = data.printings
-        .map((printing) => priceLookup.get(printing.printingId, key))
+      const prices = Object.keys(data.printings)
+        .map((printingId) => priceLookup.get(printingId, key))
         .filter((price): price is number => price !== undefined && price > 0);
       if (prices.length === 0) {
         return [];

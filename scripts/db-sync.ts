@@ -21,7 +21,7 @@ import { createDb } from "../apps/api/src/db/connect.js";
 import { catalogResponseSchema } from "../packages/shared/src/contracts/catalog.js";
 import { initResponseSchema } from "../packages/shared/src/contracts/init.js";
 import {
-  marketplaceInfoResponseSchema,
+  marketplaceLinksResponseSchema,
   pricesResponseSchema,
 } from "../packages/shared/src/contracts/prices.js";
 import {
@@ -32,8 +32,6 @@ import { createLogger } from "../packages/shared/src/logger.js";
 import { requireEnv } from "./env.js";
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
-// The API caps `/prices/marketplace-info` at 200 printings per request.
-const INFO_BATCH_SIZE = 200;
 const FETCH_CONCURRENCY = 5;
 
 const log = createLogger("db:sync");
@@ -149,20 +147,11 @@ async function sync(database: ReturnType<typeof createDb>["db"]): Promise<void> 
   await writeRulesSync(database, ruleRows);
   log.info(`Rules: ${ruleRows.ruleVersions.length} versions, ${ruleRows.rules.length} rules`);
 
-  const prices = await fetchJson("/api/v1/prices", pricesResponseSchema);
-  const pricedIds = Object.keys(prices.prices);
-  const batches: string[][] = [];
-  for (let start = 0; start < pricedIds.length; start += INFO_BATCH_SIZE) {
-    batches.push(pricedIds.slice(start, start + INFO_BATCH_SIZE));
-  }
-  const infoResponses = await mapLimited(batches, (batch) =>
-    fetchJson(
-      `/api/v1/prices/marketplace-info?printings=${batch.join(",")}`,
-      marketplaceInfoResponseSchema,
-    ),
-  );
-  const infos = Object.assign({}, ...infoResponses.map((response) => response.infos));
-  const priceRows = buildPricesSync(prices, infos, catalog, new Date());
+  const [prices, { links }] = await Promise.all([
+    fetchJson("/api/v1/prices", pricesResponseSchema),
+    fetchJson("/api/v1/prices/links", marketplaceLinksResponseSchema),
+  ]);
+  const priceRows = buildPricesSync(prices, links, catalog, new Date());
   await writePricesSync(database, priceRows);
   log.info(`Prices: ${priceRows.products.length} marketplace products`);
 }

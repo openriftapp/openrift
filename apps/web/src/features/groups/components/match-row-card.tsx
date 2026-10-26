@@ -5,7 +5,7 @@ import { sideKey } from "@openrift/shared/printing-side";
 import { setIndexById, UNKNOWN_SET_INDEX } from "@openrift/shared/set-order";
 import type { CardTradeResponse, CardTradeStatus } from "@openrift/shared/types/api/card-trade";
 import type { FriendGroupMatchRow } from "@openrift/shared/types/api/friend-group";
-import type { MarketplaceInfo } from "@openrift/shared/types/api/pricing";
+import type { MarketplaceLink } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { EyeOffIcon } from "lucide-react";
@@ -20,7 +20,7 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetailNameButton } from "@/features/cards/components/card-detail-opener";
 import { PrintingHoverPreview } from "@/features/cards/components/printing-hover-preview";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { useMarketplaceInfo } from "@/features/cards/hooks/use-marketplace-info";
+import { useMarketplaceLinks } from "@/features/cards/hooks/use-marketplace-links";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import type { CatalogPosition } from "@/features/cards/lib/catalog-position";
 import { compareCatalogPosition } from "@/features/cards/lib/catalog-position";
@@ -360,7 +360,7 @@ function MatchRow({
   liveTrade,
 }: {
   match: DirectedMatch;
-  marketplaceInfos: Record<Marketplace, MarketplaceInfo> | null;
+  marketplaceInfos: Record<Marketplace, MarketplaceLink> | null;
   liveTrade?: CardTradeResponse;
 }) {
   const incoming = match.direction === "incoming";
@@ -534,7 +534,7 @@ function MatchTradeRowGroup({
   liveTradeByKey,
 }: {
   group: MatchTradeGroup;
-  infosByPrinting: Record<string, Record<Marketplace, MarketplaceInfo>>;
+  infosByPrinting: Record<string, Record<Marketplace, MarketplaceLink>>;
   liveTradeByKey: Map<string, CardTradeResponse>;
 }) {
   const expanded = useMatchVariantsFoldStore((state) => state.expanded.has(group.foldId));
@@ -655,7 +655,7 @@ function MatchGroupItem({
   liveTradeByKey,
 }: {
   group: MatchTradeGroup;
-  infosByPrinting: Record<string, Record<Marketplace, MarketplaceInfo>>;
+  infosByPrinting: Record<string, Record<Marketplace, MarketplaceLink>>;
   liveTradeByKey: Map<string, CardTradeResponse>;
 }) {
   if (group.variants.length > 1) {
@@ -781,7 +781,7 @@ function MatchPersonRow({
   hidePending,
 }: {
   match: DirectedMatch;
-  marketplaceInfos: Record<Marketplace, MarketplaceInfo> | null;
+  marketplaceInfos: Record<Marketplace, MarketplaceLink> | null;
   liveTrade?: CardTradeResponse;
   onHide?: () => void;
   hidePending?: boolean;
@@ -851,7 +851,7 @@ export function MatchPersonList({
   const { labels } = useEnumOrders();
   const liveTradeByKey = useLiveTradeByKey(rows, groupSlug);
   const printingIds = [...new Set(rows.map((row) => row.printingId))];
-  const { data: marketplaceInfo } = useMarketplaceInfo(printingIds);
+  const { data: marketplaceInfo } = useMarketplaceLinks(printingIds);
   const matches = aggregateMatches(
     resolveMatchRows(rows, cardsById, printingsById, sets, labels, groupSlug, printingsByCardId),
   ).map((match): DirectedMatch => ({ ...match, direction }));
@@ -862,7 +862,7 @@ export function MatchPersonList({
         <MatchPersonRow
           key={`${match.groupSlug}:${match.buyEntryId}:${match.counterpartyListId}:${match.printingId}`}
           match={match}
-          marketplaceInfos={marketplaceInfo?.infos[match.printingId] ?? null}
+          marketplaceInfos={marketplaceInfo?.links[match.printingId] ?? null}
           liveTrade={liveTradeByKey.get(
             liveTradeKey(match.groupSlug, match.counterpartyUserId, match.printingId),
           )}
@@ -880,7 +880,7 @@ export function MatchTradeList({ incoming, outgoing, groupSlug }: MatchTradeList
   const liveTradeByKey = useLiveTradeByKey([...incoming, ...outgoing], groupSlug);
 
   const printingIds = [...new Set([...incoming, ...outgoing].map((row) => row.printingId))];
-  const { data: marketplaceInfo } = useMarketplaceInfo(printingIds);
+  const { data: marketplaceInfo } = useMarketplaceLinks(printingIds);
 
   const incomingRows = aggregateMatches(
     resolveMatchRows(
@@ -907,7 +907,7 @@ export function MatchTradeList({ incoming, outgoing, groupSlug }: MatchTradeList
   const groups = groupTradeMatches([...incomingRows, ...outgoingRows]).toSorted(
     compareMatchTradeGroups,
   );
-  const infosByPrinting = marketplaceInfo?.infos ?? {};
+  const infosByPrinting = marketplaceInfo?.links ?? {};
 
   return (
     <div className="@container flex flex-col gap-2">

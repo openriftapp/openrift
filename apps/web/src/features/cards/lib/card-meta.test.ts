@@ -232,7 +232,7 @@ describe("getCardFrontImageFullUrl", () => {
       ],
     };
     expect(getCardFrontImageFullUrl(printingWithImages)).toBe(
-      "/media/cards/bb/019d6c25-b081-74b3-a901-64da4ae0bbbb-full.webp",
+      "/media/cards/019d6c25-b081-74b3-a901-64da4ae0bbbb-full.webp",
     );
   });
 

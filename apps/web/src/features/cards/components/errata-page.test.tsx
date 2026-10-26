@@ -153,7 +153,7 @@ describe("ErrataPage", () => {
     const fan = [...container.querySelectorAll("[aria-hidden='true'] img")].map((img) =>
       img.getAttribute("src"),
     );
-    expect(fan).toEqual(["/media/cards/on/img-astral-heron-400w.webp"]);
+    expect(fan).toEqual(["/media/cards/img-astral-heron-400w.webp"]);
   });
 
   it("lists unannounced changes last with their source", () => {

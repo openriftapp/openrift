@@ -1,6 +1,7 @@
 import type {
   cardDetailRelatedCardSchema,
   cardDetailResponseSchema,
+  cardRelatedResponseSchema,
 } from "@openrift/shared/contracts/cards";
 import type {
   catalogCardResponseValueSchema,
@@ -45,6 +46,8 @@ export type CatalogPrintingsResponse = z.infer<typeof catalogPrintingsResponseSc
 export type CardDetailResponse = z.infer<typeof cardDetailResponseSchema>;
 
 export type CardDetailRelatedCard = z.infer<typeof cardDetailRelatedCardSchema>;
+
+export type CardRelatedResponse = z.infer<typeof cardRelatedResponseSchema>;
 
 export type SetListEntry = z.infer<typeof setListEntrySchema>;
 

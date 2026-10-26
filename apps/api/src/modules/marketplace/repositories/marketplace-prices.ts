@@ -5,6 +5,28 @@ import { sql } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import type { MarketplaceProductPricesTable } from "../../../db/tables/marketplace.js";
 
+export interface MarketplaceSourceRow {
+  printingId: string;
+  externalId: number;
+  marketplace: string;
+  /** The printing's own language, which the Cardmarket link filters by. */
+  language: string;
+}
+
+function selectSources(db: Kysely<Database>) {
+  return db
+    .selectFrom("marketplaceProductVariants as mpv")
+    .innerJoin("marketplaceProducts as mp", "mp.id", "mpv.marketplaceProductId")
+    .innerJoin("printings as p", "p.id", "mpv.printingId")
+    .innerJoin("faces as pf", "pf.id", "p.face1Id")
+    .select([
+      "mpv.printingId as printingId",
+      "mp.externalId as externalId",
+      "mp.marketplace as marketplace",
+      "pf.language as language",
+    ]);
+}
+
 /**
  * Price queries read from `mv_daily_printing_prices` and its latest-day
  * derivative `mv_latest_printing_prices`, both refreshed after each
@@ -83,30 +105,15 @@ export function marketplacePricesRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    sourcesForPrintings(printingIds: string[]): Promise<
-      {
-        printingId: string;
-        externalId: number;
-        marketplace: string;
-        language: string;
-      }[]
-    > {
+    sourcesForPrintings(printingIds: string[]): Promise<MarketplaceSourceRow[]> {
       if (printingIds.length === 0) {
         return Promise.resolve([]);
       }
-      return db
-        .selectFrom("marketplaceProductVariants as mpv")
-        .innerJoin("marketplaceProducts as mp", "mp.id", "mpv.marketplaceProductId")
-        .innerJoin("printings as p", "p.id", "mpv.printingId")
-        .innerJoin("faces as pf", "pf.id", "p.face1Id")
-        .select([
-          "mpv.printingId as printingId",
-          "mp.externalId as externalId",
-          "mp.marketplace as marketplace",
-          "pf.language as language",
-        ])
-        .where("mpv.printingId", "in", printingIds)
-        .execute();
+      return selectSources(db).where("mpv.printingId", "in", printingIds).execute();
+    },
+
+    sourcesForAllPrintings(): Promise<MarketplaceSourceRow[]> {
+      return selectSources(db).execute();
     },
 
     /**

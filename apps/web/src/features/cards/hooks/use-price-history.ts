@@ -1,6 +1,6 @@
 import { pricesContract } from "@openrift/shared/contracts/prices";
 import { centsToDollars } from "@openrift/shared/money";
-import type { PriceHistoryResponse } from "@openrift/shared/types/api/pricing";
+import type { PrintingPricesResponse } from "@openrift/shared/types/api/pricing";
 import type { TimeRange } from "@openrift/shared/types/pricing";
 import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -9,29 +9,30 @@ import { priceHistoryKeys } from "@/features/cards/lib/cards-query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
-const fetchPriceHistoryFn = createServerFn({ method: "GET" })
+const fetchPrintingPricesFn = createServerFn({ method: "GET" })
   .validator((input: { printingId: string; range: TimeRange }) => input)
   .middleware([withCookies])
-  .handler(({ context, data }): Promise<PriceHistoryResponse> =>
-    apiOrpcClient(pricesContract, context.cookie).history({
+  .handler(({ context, data }): Promise<PrintingPricesResponse> =>
+    apiOrpcClient(pricesContract, context.cookie).printing({
       printingId: data.printingId,
       range: data.range,
     }),
   );
 
+type PriceHistory = PrintingPricesResponse;
+
 export function usePriceHistory(printingId: string | null, range: TimeRange = "30d") {
   return useQuery({
     queryKey: priceHistoryKeys.byPrinting(printingId ?? "", range),
     queryFn: () =>
-      fetchPriceHistoryFn({
+      fetchPrintingPricesFn({
         // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- guarded by enabled: Boolean(printingId)
         data: { printingId: printingId!, range },
       }),
-    // Snapshot prices are integer cents on the wire; convert to major
-    // units here so the charts keep working in the same unit as before.
-    select: (data): PriceHistoryResponse => ({
+    select: (data): PriceHistory => ({
       tcgplayer: {
         ...data.tcgplayer,
+        price: centsToDollars(data.tcgplayer.price),
         snapshots: data.tcgplayer.snapshots.map((s) => ({
           date: s.date,
           market: centsToDollars(s.market),
@@ -40,6 +41,7 @@ export function usePriceHistory(printingId: string | null, range: TimeRange = "3
       },
       cardmarket: {
         ...data.cardmarket,
+        price: centsToDollars(data.cardmarket.price),
         snapshots: data.cardmarket.snapshots.map((s) => ({
           date: s.date,
           market: centsToDollars(s.market),
@@ -48,6 +50,7 @@ export function usePriceHistory(printingId: string | null, range: TimeRange = "3
       },
       cardtrader: {
         ...data.cardtrader,
+        price: centsToDollars(data.cardtrader.price),
         snapshots: data.cardtrader.snapshots.map((s) => ({
           date: s.date,
           zeroLow: centsToDollars(s.zeroLow),
@@ -56,6 +59,7 @@ export function usePriceHistory(printingId: string | null, range: TimeRange = "3
       },
       cardnexus: {
         ...data.cardnexus,
+        price: centsToDollars(data.cardnexus.price),
         snapshots: data.cardnexus.snapshots.map((s) => ({
           date: s.date,
           low: centsToDollars(s.low),

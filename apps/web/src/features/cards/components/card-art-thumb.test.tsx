@@ -44,8 +44,7 @@ describe("CardArtThumb", () => {
     const { container } = render(<CardArtThumb imageId="0123456789abcdef" variant="400w" />);
 
     const img = container.querySelector("img");
-    // imageUrl prefixes the dir with the last 2 hex chars of the id.
-    expect(img?.getAttribute("src")).toBe("/media/cards/ef/0123456789abcdef-400w.webp");
+    expect(img?.getAttribute("src")).toBe("/media/cards/0123456789abcdef-400w.webp");
   });
 
   it("prefers an explicit src over imageId", () => {

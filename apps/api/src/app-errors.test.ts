@@ -137,13 +137,17 @@ describe("onError handler", () => {
     expect(json.error).toBe("Invalid JSON in request body");
   });
 
-  it("returns a JSON 404 envelope for unmatched API routes", async () => {
+  it("returns the oRPC error envelope for unmatched API routes", async () => {
     const res = await app.fetch(new Request("http://localhost/api/v1/does-not-exist"));
     expect(res.status).toBe(404);
     expect(res.headers.get("content-type")).toContain("application/json");
     const json = (await readJson(res)) as Record<string, unknown>;
-    expect(json.code).toBe("NOT_FOUND");
-    expect(json.error).toBe("Not found");
+    expect(json).toEqual({
+      defined: false,
+      code: "NOT_FOUND",
+      status: 404,
+      message: "Not found",
+    });
   });
 
   it("still 404s a HEAD on an unmatched API route", async () => {

@@ -1,8 +1,10 @@
 import type {
   CardDetailResponse,
-  CatalogPrintingResponse,
+  CatalogResponsePrintingValue,
 } from "@openrift/shared/types/api/catalog";
 import { describe, expect, it } from "vitest";
+
+import type { CardDetailPayload } from "@/features/cards/lib/card-detail-queries";
 
 import { Route } from "./cards_.$cardSlug.{-$printingSlug}";
 
@@ -27,11 +29,8 @@ const card: CardDetailResponse["card"] = {
   bans: [],
 };
 
-function makePrinting(id: string, language: string, frontImageId: string): CatalogPrintingResponse {
+function makePrinting(language: string, frontImageId: string): CatalogResponsePrintingValue {
   return {
-    printingId: id,
-    side: 1,
-    faceId: id,
     slug: `${language.toLowerCase()}-ogn-202-normal-standard`,
     cardId: "card-1",
     setId: "set-1",
@@ -58,8 +57,8 @@ function makePrinting(id: string, language: string, frontImageId: string): Catal
   };
 }
 
-const en = makePrinting("p-en", "EN", "front-en");
-const ja = makePrinting("p-ja", "JA", "front-ja");
+const en = makePrinting("EN", "front-en");
+const ja = makePrinting("JA", "front-ja");
 
 interface HeadMeta {
   property?: string;
@@ -88,15 +87,19 @@ function runHeadFull(
   printingRef?: string,
   marketplaceOffers: MarketplaceOffer[] = [],
   from: "path" | "search" = "search",
+  printings: Record<string, CatalogResponsePrintingValue> = { "p-en": en, "p-ja": ja },
 ) {
   const loaderData = {
     data: {
       card,
-      printings: [en, ja],
+      cards: {},
+      printings,
       sets: [],
+      markers: [],
+      distributionChannels: [],
       products: [],
       related: [],
-    } satisfies CardDetailResponse,
+    } satisfies CardDetailPayload,
     languageOrder: ["EN", "DE", "JA"] as const,
     domainLabels: { fury: "Fury" },
     cardTypeLabels: { unit: "Unit" },
@@ -122,28 +125,46 @@ function ogImage(meta: HeadMeta[]): string | undefined {
 
 describe("/cards/$cardSlug SSR head", () => {
   it("uses the pinned printing's art for og:image when ?printingId= is set", () => {
-    expect(ogImage(runHead("p-ja"))).toContain("/media/cards/ja/front-ja-full.webp");
+    expect(ogImage(runHead("p-ja"))).toContain("/media/cards/front-ja-full.webp");
   });
 
   it("sets twitter:image to the pinned printing's art too", () => {
     const meta = runHead("p-ja");
     expect(meta.find((entry) => entry.name === "twitter:image")?.content).toContain(
-      "/media/cards/ja/front-ja-full.webp",
+      "/media/cards/front-ja-full.webp",
     );
   });
 
   it("falls back to the EN-preferred printing when no ?printingId= is present", () => {
-    expect(ogImage(runHead(undefined))).toContain("/media/cards/en/front-en-full.webp");
+    expect(ogImage(runHead(undefined))).toContain("/media/cards/front-en-full.webp");
   });
 
   it("falls back to the EN-preferred printing when ?printingId= matches no printing", () => {
-    expect(ogImage(runHead("does-not-exist"))).toContain("/media/cards/en/front-en-full.webp");
+    expect(ogImage(runHead("does-not-exist"))).toContain("/media/cards/front-en-full.webp");
   });
 
   it("picks the printing named by the path segment", () => {
     expect(ogImage(runHead("ja-ogn-202-normal-standard", "path"))).toContain(
-      "/media/cards/ja/front-ja-full.webp",
+      "/media/cards/front-ja-full.webp",
     );
+  });
+
+  it("uses this card's face when it is side 2 of a double-sided printing", () => {
+    const {
+      slug: _slug,
+      size: _size,
+      comment: _comment,
+      distributionChannels: _channels,
+      ...face
+    } = makePrinting("EN", "own-face");
+    const token: CatalogResponsePrintingValue = {
+      ...makePrinting("EN", "other-face"),
+      slug: "en-ogn-t05-normal-standard",
+      cardId: "card-2",
+      side2: { ...face, faceId: "face-2", cardId: "card-1" },
+    };
+    const meta = runHeadFull("en-ogn-t05-normal-standard", [], "path", { "p-tok": token }).meta;
+    expect(ogImage(meta)).toContain("/media/cards/own-face-full.webp");
   });
 
   it("canonicalises a printing path to the bare card URL", () => {

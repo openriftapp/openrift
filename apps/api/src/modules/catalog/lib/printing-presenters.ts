@@ -2,6 +2,7 @@ import type {
   CatalogCardResponse,
   CatalogPrintingResponse,
   CatalogPrintingSideValue,
+  CatalogResponsePrintingValue,
 } from "@openrift/shared/types/api/catalog";
 import type {
   DistributionChannel,
@@ -232,6 +233,74 @@ export function presentPrintingFields(
     ...(citations === undefined ? {} : { citations }),
     ...(row.hasFoilTwin ? { hasFoilTwin: true as const } : {}),
   };
+}
+
+export function presentPrintingValues(
+  printingRows: readonly (SideRow & { slug?: string })[],
+  imageRows: readonly PrintingImageRow[],
+  decorations: PrintingDecorations,
+): Record<string, CatalogResponsePrintingValue> {
+  const imagesBySide = Map.groupBy(imageRows, sideImageKey);
+  // The wire names markers by slug; resolving them first drops slugs with no marker row.
+  const toWireSide = ({ markers, ...side }: PresentedSide) => ({
+    ...side,
+    markers: markers.map((marker) => marker.slug),
+  });
+  const presentRowSide = (row: SideRow) =>
+    toWireSide(
+      presentSide(row, imagesBySide.get(sideImageKey(row)) ?? [], decorations.markerBySlug),
+    );
+
+  const printings: Record<string, CatalogResponsePrintingValue> = {};
+  for (const row of printingRows) {
+    if (row.side === 1) {
+      const { faceId, ...side } = presentRowSide(row);
+      const { distributionChannels, ...fields } = presentPrintingFields(row, decorations);
+      printings[row.printingId] = {
+        ...side,
+        ...(faceId === row.printingId ? {} : { faceId }),
+        ...(row.slug === undefined ? {} : { slug: row.slug }),
+        ...fields,
+        distributionChannels: distributionChannels.map(({ channel, distributionNote }) => ({
+          channel: channel.slug,
+          ...(distributionNote === null ? {} : { note: distributionNote }),
+        })),
+      };
+    }
+  }
+  for (const row of printingRows) {
+    const printing = printings[row.printingId];
+    if (row.side === 2 && printing) {
+      printing.side2 = presentRowSide(row);
+    }
+  }
+  return printings;
+}
+
+export function referencedMarkers(
+  printingRows: readonly Pick<SideRow, "markerSlugs">[],
+  decorations: Pick<PrintingDecorations, "markerBySlug">,
+): Marker[] {
+  const slugs = new Set(printingRows.flatMap((row) => row.markerSlugs));
+  return [...decorations.markerBySlug.values()].filter((marker) => slugs.has(marker.slug));
+}
+
+export function referencedChannels(
+  printingIds: readonly string[],
+  decorations: Pick<PrintingDecorations, "channels" | "channelsByPrinting">,
+): DistributionChannel[] {
+  const byId = new Map(decorations.channels.map((channel) => [channel.id, channel]));
+  const keep = new Set<string>();
+  for (const printingId of printingIds) {
+    for (const link of decorations.channelsByPrinting.get(printingId) ?? []) {
+      let cursor: DistributionChannel | undefined = byId.get(link.channel.id);
+      for (let depth = 0; cursor && !keep.has(cursor.id) && depth < 32; depth += 1) {
+        keep.add(cursor.id);
+        cursor = cursor.parentId === null ? undefined : byId.get(cursor.parentId);
+      }
+    }
+  }
+  return decorations.channels.filter((channel) => keep.has(channel.id));
 }
 
 export function buildPrintingsResponse(

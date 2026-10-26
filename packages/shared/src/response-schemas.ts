@@ -275,7 +275,11 @@ export const catalogFaceFieldsSchema = z.object({
   canonicalRank: z
     .number()
     .int()
-    .meta({ examples: [1] }),
+    .meta({
+      examples: [1],
+      description:
+        "Sort key. On `/catalog` it orders every face in the catalog; on `/cards/{cardSlug}` it orders that card's faces and is only comparable among them.",
+    }),
   // Omitted for the `auto` default; emitted only together with a servable
   // `fallbackImageId`, so a client never has to handle one without the other.
   fallbackArtMode: z
@@ -294,7 +298,10 @@ export const catalogPrintingFieldsSchema = z.object({
   slug: z
     .string()
     .optional()
-    .meta({ examples: ["en-ogn-202-foil-promo-standard"] }),
+    .meta({
+      examples: ["en-ogn-202-foil-promo-standard"],
+      description: "The printing's URL segment. Only on `/cards/{cardSlug}`.",
+    }),
   size: cardSizeSchema,
   comment: z
     .string()
@@ -305,11 +312,14 @@ export const catalogPrintingFieldsSchema = z.object({
   citations: z
     .array(printingCitationSchema)
     .optional()
-    .meta({ examples: [[]] }),
+    .meta({ examples: [[]], description: "Omitted when empty." }),
   hasFoilTwin: z
     .literal(true)
     .optional()
-    .meta({ examples: [true] }),
+    .meta({
+      examples: [true],
+      description: "Present, and `true`, when a foil printing with the same faces exists.",
+    }),
 } satisfies Record<PrintingLevelField, z.ZodType>);
 
 // One entry per printed side: a double-sided printing appears twice, once per side.

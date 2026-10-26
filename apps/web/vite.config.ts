@@ -38,11 +38,16 @@ function serveMediaPlugin(fallbackOrigin?: string): Plugin {
     name: "serve-media",
     configureServer(server) {
       server.middlewares.use("/media", (req, res, _next) => {
-        const filePath = path.join(mediaDir, req.url?.split("?")[0] ?? "");
+        // Same mapping as nginx: a public card image URL has no shard directory.
+        const urlPath = (req.url?.split("?")[0] ?? "").replace(
+          /^\/cards\/(?<id>[0-9a-f-]*(?<shard>[0-9a-f]{2}))-(?<variant>[0-9a-z]+)\.webp$/u,
+          "/cards/$<shard>/$<id>-$<variant>.webp",
+        );
+        const filePath = path.join(mediaDir, urlPath);
         if (!existsSync(filePath)) {
           if (fallbackOrigin) {
             res.statusCode = 302;
-            res.setHeader("Location", `${fallbackOrigin}/media${req.url ?? ""}`);
+            res.setHeader("Location", `${fallbackOrigin}/media${urlPath}`);
             res.end();
             return;
           }

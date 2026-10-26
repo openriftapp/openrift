@@ -2,6 +2,7 @@ import { createLogger } from "@openrift/shared/logger";
 import { describe, expect, it } from "vitest";
 
 import { createApp } from "./app.js";
+import { developerOperations } from "./openapi-doc.js";
 
 const mockAuth = {
   handler: () => new Response("ok"),
@@ -30,7 +31,14 @@ interface DocShape {
   paths: Record<string, Record<string, { security?: unknown } | undefined>>;
   info: { title: string };
   security?: unknown;
-  components?: { securitySchemes?: Record<string, unknown> };
+  components?: { securitySchemes?: Record<string, unknown>; schemas?: Record<string, unknown> };
+}
+
+interface DeveloperOperation {
+  operationId?: string;
+  summary?: string;
+  description?: string;
+  responses?: Record<string, { content?: Record<string, { schema?: unknown }> } | undefined>;
 }
 
 async function fetchDoc(path: string): Promise<DocShape> {
@@ -56,24 +64,75 @@ describe("OpenAPI doc split", () => {
     expect(doc.paths["/api/v1/ingest/deck-check"]?.post?.security).toEqual([{ bearerAuth: [] }]);
   });
 
-  it("developer /api/developers/doc contains only the curated public operations", async () => {
+  it("developer /api/developers/doc contains exactly the contracts flagged developerApi", async () => {
     const doc = await fetchDoc("/api/developers/doc");
     expect(doc.info.title).toBe("OpenRift Developer API");
-    expect(Object.keys(doc.paths).toSorted()).toEqual([
-      "/api/v1/cards/{cardSlug}",
-      "/api/v1/catalog",
-      "/api/v1/prices",
-      "/api/v1/prices/marketplace-info",
-      "/api/v1/prices/{printingId}/history",
-      "/api/v1/rules",
-      "/api/v1/rules/versions",
-      "/api/v1/sets",
-    ]);
+    const operations = Object.entries(doc.paths).flatMap(([path, item]) =>
+      Object.keys(item).map((method) => `${method.toUpperCase()} ${path}`),
+    );
+    expect(operations.toSorted()).toEqual(developerOperations().toSorted());
+    expect(operations).toContain("GET /api/v1/cards/{cardSlug}");
+    expect(operations).not.toContain("GET /api/v1/cards/{cardSlug}/related");
     expect(doc.security).toEqual([]);
     for (const item of Object.values(doc.paths)) {
       expect(Object.keys(item)).toEqual(["get"]);
       expect(item.get?.security).toEqual([]);
     }
+  });
+
+  it("developer operations carry an operationId, a summary and a description", async () => {
+    const doc = await fetchDoc("/api/developers/doc");
+    for (const [path, item] of Object.entries(doc.paths)) {
+      const operation = item.get as DeveloperOperation;
+      expect(operation.operationId, path).toMatch(/^[a-z][A-Za-z]+$/u);
+      expect(operation.summary, path).toBeTruthy();
+      expect(operation.description, path).toBeTruthy();
+    }
+  });
+
+  it("developer operations with parameters declare a 400 against the shared Error schema", async () => {
+    const doc = await fetchDoc("/api/developers/doc");
+    const card = doc.paths["/api/v1/cards/{cardSlug}"]?.get as DeveloperOperation;
+    expect(card.responses?.["400"]).toEqual({
+      description: expect.stringContaining("data.issues"),
+      content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
+    });
+    const prices = doc.paths["/api/v1/prices"]?.get as DeveloperOperation;
+    expect(prices.responses?.["400"]).toBeUndefined();
+  });
+
+  it("names the shared shapes as components and refs them from responses", async () => {
+    const doc = await fetchDoc("/api/developers/doc");
+    const schemas = doc.components?.schemas ?? {};
+    for (const name of ["Card", "CatalogCard", "Printing", "Set", "Rule", "RuleVersion", "Error"]) {
+      expect(schemas, name).toHaveProperty(name);
+    }
+    const catalog = doc.paths["/api/v1/catalog"]?.get as DeveloperOperation;
+    const body = catalog.responses?.["200"]?.content?.["application/json"]?.schema;
+    expect(JSON.stringify(body)).toContain('"$ref":"#/components/schemas/Printing"');
+    expect(JSON.stringify(body)).toContain('"$ref":"#/components/schemas/CatalogCard"');
+  });
+
+  it("marks the single card type as deprecated in favour of types", async () => {
+    const doc = await fetchDoc("/api/developers/doc");
+    const card = doc.components?.schemas?.Card as {
+      properties: Record<string, { deprecated?: boolean }>;
+    };
+    expect(card.properties.type?.deprecated).toBe(true);
+    expect(card.properties.types?.deprecated).toBeUndefined();
+  });
+
+  it("sets servers from the forwarded origin and omits it otherwise", async () => {
+    const forwarded = await app.fetch(
+      new Request("http://localhost/api/developers/doc", {
+        headers: { host: "openrift.example", "x-forwarded-proto": "https" },
+      }),
+    );
+    expect(((await forwarded.json()) as { servers?: unknown }).servers).toEqual([
+      { url: "https://openrift.example" },
+    ]);
+    const direct = await fetchDoc("/api/developers/doc");
+    expect((direct as { servers?: unknown }).servers).toBeUndefined();
   });
 
   it("admin /api/admin/doc contains only the admin surface", async () => {

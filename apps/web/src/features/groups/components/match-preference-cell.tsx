@@ -1,4 +1,4 @@
-import type { MarketplaceInfo } from "@openrift/shared/types/api/pricing";
+import type { MarketplaceLink } from "@openrift/shared/types/api/pricing";
 import type {
   EffectiveTradePreference,
   TradePricePref,
@@ -27,7 +27,7 @@ const PREF_TO_MARKETPLACE: Record<TradePricePref, Marketplace | null> = {
 interface MatchPreferenceCellProps {
   label: string;
   pref: EffectiveTradePreference;
-  marketplaceInfos: Record<Marketplace, MarketplaceInfo> | null;
+  marketplaceInfos: Record<Marketplace, MarketplaceLink> | null;
   searchQuery: string;
 }
 
@@ -95,7 +95,7 @@ export function MatchPreferenceText({
 
 function renderPrice(
   pref: EffectiveTradePreference,
-  marketplaceInfos: Record<Marketplace, MarketplaceInfo> | null,
+  marketplaceInfos: Record<Marketplace, MarketplaceLink> | null,
   searchQuery: string,
   linkText?: string,
 ) {

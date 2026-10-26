@@ -85,7 +85,7 @@ describe("buildNewPrintingPayloads", () => {
     const payloads = buildNewPrintingPayloads(events, APP_BASE_URL);
 
     expect(payloads[0]!.embeds[0]!.image?.url).toBe(
-      "https://openrift.app/media/cards/cd/019d6c25-b081-74b3-a901-64da4ae0abcd-400w.webp",
+      "https://openrift.app/media/cards/019d6c25-b081-74b3-a901-64da4ae0abcd-400w.webp",
     );
   });
 

@@ -1,11 +1,24 @@
 // oxlint-disable-next-line no-restricted-imports -- the document enumerates every contract, so the barrel is the point here; apps/api runs unbundled on Bun.
 import * as contracts from "@openrift/shared/contracts";
+import {
+  catalogCardResponseValueSchema,
+  catalogPrintingResponseValueSchema,
+  catalogPrintingSide2Schema,
+} from "@openrift/shared/contracts/catalog";
+import { marketplaceLinkSchema } from "@openrift/shared/contracts/prices";
+import { ruleResponseSchema, ruleVersionResponseSchema } from "@openrift/shared/contracts/rules";
+import {
+  catalogCardResponseSchema,
+  catalogSetResponseSchema,
+  distributionChannelSchema,
+  markerSchema,
+} from "@openrift/shared/response-schemas";
 import type { AnyContractRouter } from "@orpc/contract";
 import type { OpenAPI } from "@orpc/openapi";
 import { OpenAPIGenerator } from "@orpc/openapi";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 
-// This is the only OpenAPI document the API produces. A few plain Hono
+// These are the only OpenAPI documents the API produces. A few plain Hono
 // endpoints (health, Sentry tunnel, share/list image generators, email
 // unsubscribe) don't serve typed JSON and are excluded on purpose.
 
@@ -57,6 +70,14 @@ function collectMetaByOperation(node: unknown, out: Map<string, ContractMeta>): 
   }
 }
 
+export function developerOperations(): string[] {
+  const metaByOperation = new Map<string, ContractMeta>();
+  collectMetaByOperation(buildContractRouter(), metaByOperation);
+  return [...metaByOperation.entries()]
+    .filter(([, meta]) => meta.developerApi)
+    .map(([operation]) => operation);
+}
+
 // Admin operations aren't gated by contract meta; they're gated by the
 // requireAdmin Hono middleware on the /api/admin/v1/* prefix (see app.ts).
 // Stamp the admin security marker by path instead, mirroring that mount.
@@ -88,6 +109,36 @@ function applySecurity(doc: OpenAPI.Document, metaByOperation: Map<string, Contr
   }
 }
 
+const COMMON_SCHEMAS = {
+  Card: { schema: catalogCardResponseSchema, strategy: "output" },
+  CatalogCard: { schema: catalogCardResponseValueSchema, strategy: "output" },
+  Printing: { schema: catalogPrintingResponseValueSchema, strategy: "output" },
+  PrintingSide: { schema: catalogPrintingSide2Schema, strategy: "output" },
+  Set: { schema: catalogSetResponseSchema, strategy: "output" },
+  Marker: { schema: markerSchema, strategy: "output" },
+  DistributionChannel: { schema: distributionChannelSchema, strategy: "output" },
+  MarketplaceLink: { schema: marketplaceLinkSchema, strategy: "output" },
+  Rule: { schema: ruleResponseSchema, strategy: "output" },
+  RuleVersion: { schema: ruleVersionResponseSchema, strategy: "output" },
+  Error: { error: "UndefinedError" },
+} as const;
+
+const ERROR_SCHEMA_REF = "#/components/schemas/Error";
+
+/** ADR-037 keeps `type` as `types[0]`; the zod converter has no deprecation channel, so it is stamped here. */
+function markDeprecatedCardType(doc: OpenAPI.Document): void {
+  for (const name of ["Card", "CatalogCard"]) {
+    const schema = doc.components?.schemas?.[name] as
+      | { properties?: Record<string, Record<string, unknown>> }
+      | undefined;
+    const type = schema?.properties?.type;
+    if (type) {
+      type.deprecated = true;
+      type.description = "Always `types[0]`. Read `types`; a card can have more than one type.";
+    }
+  }
+}
+
 interface ContractDocument {
   doc: OpenAPI.Document;
   metaByOperation: Map<string, ContractMeta>;
@@ -101,19 +152,124 @@ function generateContractDocument(): Promise<ContractDocument> {
     const router = buildContractRouter();
     const metaByOperation = new Map<string, ContractMeta>();
     collectMetaByOperation(router, metaByOperation);
-    const doc = await generator.generate(router);
+    const doc = await generator.generate(router, { commonSchemas: COMMON_SCHEMAS });
     applySecurity(doc, metaByOperation);
+    markDeprecatedCardType(doc);
     return { doc, metaByOperation };
   })();
   return cachedContractDoc;
 }
 
-export async function generateContractOpenAPIDocument(): Promise<OpenAPI.Document> {
-  const { doc } = await generateContractDocument();
-  return doc;
+interface DocInfo {
+  title: string;
+  version: string;
+  description: string;
 }
 
-export async function generateDeveloperOpenAPIDocument(): Promise<OpenAPI.Document> {
+const publicDocInfo: DocInfo = {
+  title: "OpenRift API",
+  version: "1.0.0",
+  description: [
+    "**Authentication:** This API uses session cookies (Better Auth).",
+    "Auth endpoints are not in this spec, they are proxied from `/api/auth/*`.",
+    "Admin endpoints live in a separate spec at `/api/admin/doc`.",
+    "",
+    "To try authenticated endpoints in Swagger UI: sign in via the web app,",
+    "then open this page on the API origin in the same browser.",
+  ].join("\n"),
+};
+
+const adminDocInfo: DocInfo = {
+  title: "OpenRift Admin API",
+  version: "1.0.0",
+  description: "Admin-only operations, mounted under `/api/admin/v1` (require an admin session).",
+};
+
+const developerDocInfo: DocInfo = {
+  title: "OpenRift Developer API",
+  version: "1.0.0",
+  description: [
+    "Free, public Riftbound card data. No key or sign-in needed.",
+    "Send a `User-Agent` with your project's name and a way to reach you.",
+    "",
+    "Every error is `{ defined, code, status, message, data }`. A rejected",
+    "input is a `400` whose `data.issues` lists each field as `{ path, message }`.",
+    "",
+    "Guide, caching and terms: `/developers` on this site.",
+  ].join("\n"),
+};
+
+const securitySchemes = {
+  cookieAuth: { type: "apiKey", in: "cookie", name: "better-auth.session_token" },
+  bearerAuth: { type: "http", scheme: "bearer" },
+  adminAuth: {
+    type: "apiKey",
+    in: "cookie",
+    name: "better-auth.session_token",
+    description: "Session cookie of a user with the admin role.",
+  },
+} as const;
+
+function filterPaths(doc: OpenAPI.Document, keep: (path: string) => boolean): OpenAPI.Document {
+  return {
+    ...doc,
+    paths: Object.fromEntries(
+      Object.entries(doc.paths ?? {}).filter(([path]) => keep(path)),
+    ) as OpenAPI.PathsObject,
+  };
+}
+
+async function buildSessionDoc(
+  info: DocInfo,
+  keep: (path: string) => boolean,
+): Promise<OpenAPI.Document> {
+  const { doc } = await generateContractDocument();
+  return filterPaths(
+    {
+      ...doc,
+      openapi: "3.1.0",
+      info,
+      components: {
+        ...doc.components,
+        securitySchemes: { ...doc.components?.securitySchemes, ...securitySchemes },
+      },
+    },
+    keep,
+  );
+}
+
+export function buildPublicDoc(): Promise<OpenAPI.Document> {
+  return buildSessionDoc(publicDocInfo, (path) => !path.startsWith(ADMIN_PATH_PREFIX));
+}
+
+export function buildAdminDoc(): Promise<OpenAPI.Document> {
+  return buildSessionDoc(adminDocInfo, (path) => path.startsWith(ADMIN_PATH_PREFIX));
+}
+
+type OperationObject = Record<string, unknown> & {
+  parameters?: unknown[];
+  responses?: Record<string, unknown>;
+};
+
+/** Every parameterised operation can reject its input; the generator only knows the contract's declared errors. */
+function withBadRequestResponse(operation: OperationObject): OperationObject {
+  if (!operation.parameters?.length || operation.responses?.["400"]) {
+    return operation;
+  }
+  return {
+    ...operation,
+    responses: {
+      ...operation.responses,
+      400: {
+        description:
+          "Invalid input. `data.issues` lists each rejected field as `{ path, message }`.",
+        content: { "application/json": { schema: { $ref: ERROR_SCHEMA_REF } } },
+      },
+    },
+  };
+}
+
+export async function buildDeveloperDoc(serverUrl?: string): Promise<OpenAPI.Document> {
   const { doc, metaByOperation } = await generateContractDocument();
   const paths: Record<string, Record<string, unknown>> = {};
   for (const [path, item] of Object.entries(doc.paths ?? {})) {
@@ -123,8 +279,21 @@ export async function generateDeveloperOpenAPIDocument(): Promise<OpenAPI.Docume
         metaByOperation.get(`${method.toUpperCase()} ${path}`)?.developerApi,
     );
     if (operations.length > 0) {
-      paths[path] = Object.fromEntries(operations);
+      paths[path] = Object.fromEntries(
+        operations.map(([method, operation]) => [
+          method,
+          withBadRequestResponse(operation as OperationObject),
+        ]),
+      );
     }
   }
-  return { ...doc, paths: paths as OpenAPI.PathsObject };
+  return {
+    ...doc,
+    openapi: "3.1.0",
+    info: developerDocInfo,
+    ...(serverUrl === undefined ? {} : { servers: [{ url: serverUrl }] }),
+    security: [],
+    paths: paths as OpenAPI.PathsObject,
+    components: { ...doc.components, securitySchemes: {} },
+  };
 }

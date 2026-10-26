@@ -219,8 +219,8 @@ describe("MetaEventHeader champion plate", () => {
   it("stands the winner's legend card beside the plate and blurs it behind the band", () => {
     const { container } = renderHeader({ champion: winner });
     expect(cardArt(container)).toEqual([
-      "/media/cards/uo/img-yasuo-400w.webp",
-      "/media/cards/uo/img-yasuo-240w.webp",
+      "/media/cards/img-yasuo-400w.webp",
+      "/media/cards/img-yasuo-240w.webp",
     ]);
   });
 

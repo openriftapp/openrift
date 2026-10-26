@@ -41,6 +41,7 @@ const marketplaceCurrenciesSchema = z
 
 export const pricesResponseSchema = z.object({
   prices: z.record(z.string(), marketplacePriceMapSchema).meta({
+    description: "Keyed by printing id. A marketplace is absent when it has no price.",
     examples: [
       {
         "019cfc3b-03d3-7dac-86c9-27900cd43727": {
@@ -93,11 +94,6 @@ export const cardtraderSnapshotSchema = z.object({
     .int()
     .nullable()
     .meta({ examples: [390], description: "Integer cents (EUR)" }),
-  cardnexus: z
-    .number()
-    .int()
-    .optional()
-    .meta({ examples: [370], description: "Integer cents (EUR)" }),
 });
 
 export const cardnexusSnapshotSchema = z.object({
@@ -109,15 +105,12 @@ export const cardnexusSnapshotSchema = z.object({
     .meta({ examples: [370], description: "Integer cents (EUR)" }),
 });
 
-export const marketplaceInfoSchema = z.object({
+export const marketplaceLinkSchema = z.object({
   available: z.boolean().meta({ examples: [true] }),
   productId: z
     .number()
     .nullable()
-    .meta({ examples: [582_391] }),
-});
-
-export const marketplaceLinkInfoSchema = marketplaceInfoSchema.extend({
+    .meta({ examples: [582_391], description: "The marketplace's own product id" }),
   url: z
     .string()
     .nullable()
@@ -131,37 +124,48 @@ export const marketplaceLinkInfoSchema = marketplaceInfoSchema.extend({
 
 const currencyFieldSchema = z.enum(["EUR", "USD"]);
 
-export const priceHistoryResponseSchema = z.object({
-  tcgplayer: marketplaceInfoSchema.extend({
+const currentPriceSchema = z
+  .number()
+  .int()
+  .nullable()
+  .meta({ examples: [452], description: "Today's price in integer cents, null when unpriced" });
+
+export const printingPricesResponseSchema = z.object({
+  tcgplayer: marketplaceLinkSchema.extend({
     currency: currencyFieldSchema,
+    price: currentPriceSchema,
     snapshots: z.array(tcgplayerSnapshotSchema),
   }),
-  cardmarket: marketplaceInfoSchema.extend({
+  cardmarket: marketplaceLinkSchema.extend({
     currency: currencyFieldSchema,
+    price: currentPriceSchema,
     snapshots: z.array(cardmarketSnapshotSchema),
   }),
-  cardtrader: marketplaceInfoSchema.extend({
+  cardtrader: marketplaceLinkSchema.extend({
     currency: currencyFieldSchema,
+    price: currentPriceSchema,
     snapshots: z.array(cardtraderSnapshotSchema),
   }),
-  cardnexus: marketplaceInfoSchema.extend({
+  cardnexus: marketplaceLinkSchema.extend({
     currency: currencyFieldSchema,
+    price: currentPriceSchema,
     snapshots: z.array(cardnexusSnapshotSchema),
   }),
 });
 
-export const marketplaceInfoResponseSchema = z.object({
-  infos: z
+export const marketplaceLinksResponseSchema = z.object({
+  links: z
     .record(
       z.string(),
       z.object({
-        tcgplayer: marketplaceLinkInfoSchema,
-        cardmarket: marketplaceLinkInfoSchema,
-        cardtrader: marketplaceLinkInfoSchema,
-        cardnexus: marketplaceLinkInfoSchema,
+        tcgplayer: marketplaceLinkSchema,
+        cardmarket: marketplaceLinkSchema,
+        cardtrader: marketplaceLinkSchema,
+        cardnexus: marketplaceLinkSchema,
       }),
     )
     .meta({
+      description: "Keyed by printing id.",
       examples: [
         {
           "019cfc3b-03d3-7dac-86c9-27900cd43727": {
@@ -189,62 +193,103 @@ export const marketplaceInfoResponseSchema = z.object({
 
 const TAG = "Prices";
 
-const MARKETPLACE_INFO_MAX_PRINTINGS = 200;
+const MARKETPLACE_LINKS_MAX_PRINTINGS = 200;
 
 const rangeQuerySchema = z.object({
-  range: z.enum(Object.keys(TIME_RANGE_DAYS) as [TimeRange, ...TimeRange[]]).default("30d"),
+  range: z
+    .enum(Object.keys(TIME_RANGE_DAYS) as [TimeRange, ...TimeRange[]])
+    .default("30d")
+    .meta({ description: "How far back `snapshots` reach." }),
 });
 
-// Mirrors the API-side `marketplaceInfoQuerySchema`; keep the two in sync.
-const marketplaceInfoQuerySchema = z.object({
-  printings: z.string().transform((value, ctx) => {
-    const ids = value
-      .split(",")
-      .map((id) => id.trim())
-      .filter(Boolean);
-    if (ids.length === 0) {
-      ctx.addIssue({ code: "custom", message: "printings must not be empty" });
-      return z.NEVER;
-    }
-    if (ids.length > MARKETPLACE_INFO_MAX_PRINTINGS) {
-      ctx.addIssue({
-        code: "custom",
-        message: `printings must be at most ${MARKETPLACE_INFO_MAX_PRINTINGS} ids`,
-      });
-      return z.NEVER;
-    }
-    const uuid = z.uuid();
-    for (const id of ids) {
-      const parsed = uuid.safeParse(id);
-      if (!parsed.success) {
-        ctx.addIssue({ code: "custom", message: `invalid uuid: ${id}` });
+const marketplaceLinksQuerySchema = z.object({
+  printings: z
+    .string()
+    .optional()
+    .meta({
+      description: `Comma-separated printing ids, at most ${MARKETPLACE_LINKS_MAX_PRINTINGS}. Omit it for every printing that has a marketplace product.`,
+      examples: ["019cfc3b-03d3-7dac-86c9-27900cd43727"],
+    })
+    .transform((value, ctx) => {
+      if (value === undefined) {
+        return value;
+      }
+      const ids = value
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
+      if (ids.length === 0) {
+        ctx.addIssue({ code: "custom", message: "printings must not be empty" });
         return z.NEVER;
       }
-    }
-    return [...new Set(ids)];
-  }),
+      if (ids.length > MARKETPLACE_LINKS_MAX_PRINTINGS) {
+        ctx.addIssue({
+          code: "custom",
+          message: `printings must be at most ${MARKETPLACE_LINKS_MAX_PRINTINGS} ids`,
+        });
+        return z.NEVER;
+      }
+      const uuid = z.uuid();
+      for (const id of ids) {
+        const parsed = uuid.safeParse(id);
+        if (!parsed.success) {
+          ctx.addIssue({ code: "custom", message: `invalid uuid: ${id}` });
+          return z.NEVER;
+        }
+      }
+      return [...new Set(ids)];
+    }),
 });
 
-/** `history` reports an unknown printing as `available: false` (200), not a 404. */
+const printingIdParam = z.uuid().meta({
+  description: "A printing id from `/catalog`.",
+  examples: ["019cfc3b-03d3-7dac-86c9-27900cd43727"],
+});
+
+// The static `links` is declared before `{printingId}` so the oRPC router
+// resolves it ahead of the param route.
 export const pricesContract = {
   prices: oc
-    .route({ method: "GET", path: "/api/v1/prices", tags: [TAG] })
+    .route({
+      method: "GET",
+      path: "/api/v1/prices",
+      tags: [TAG],
+      operationId: "listPrices",
+      summary: "Today's price of every printing",
+      description:
+        "One price per marketplace per printing, in integer cents of that marketplace's currency (see `currencies`). TCGplayer's market price, the lowest listing on Cardmarket and CardNexus, and the lowest CardTrader Zero listing on CardTrader. Updated once a day.",
+    })
     .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
     .output(pricesResponseSchema),
 
-  // The static `marketplace-info` is declared before `:printingId/history` so
-  // the oRPC router resolves it ahead of the param route.
-  marketplaceInfo: oc
-    .route({ method: "GET", path: "/api/v1/prices/marketplace-info", tags: [TAG] })
+  links: oc
+    .route({
+      method: "GET",
+      path: "/api/v1/prices/links",
+      tags: [TAG],
+      operationId: "listMarketplaceLinks",
+      summary: "Store links per printing",
+      description:
+        "Each marketplace's product id and a ready-made product page link for the given printings, or for every printing when `printings` is omitted. Links to TCGplayer, CardTrader and CardNexus carry OpenRift's referral code.",
+    })
     .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
-    .input(marketplaceInfoQuerySchema)
-    .output(marketplaceInfoResponseSchema),
+    .input(marketplaceLinksQuerySchema)
+    .output(marketplaceLinksResponseSchema),
 
-  history: oc
-    .route({ method: "GET", path: "/api/v1/prices/{printingId}/history", tags: [TAG] })
+  printing: oc
+    .route({
+      method: "GET",
+      path: "/api/v1/prices/{printingId}",
+      tags: [TAG],
+      operationId: "getPrintingPrices",
+      summary: "One printing's prices, links and history",
+      description:
+        "Today's price, the store link and the daily price history of one printing on every marketplace. A marketplace the printing is not sold on comes back as `available: false` with empty snapshots.",
+    })
     .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
-    .input(rangeQuerySchema.extend({ printingId: z.uuid() }))
-    .output(priceHistoryResponseSchema),
+    .input(rangeQuerySchema.extend({ printingId: printingIdParam }))
+    .errors({ NOT_FOUND: { message: "Printing not found" } })
+    .output(printingPricesResponseSchema),
 };
 
 export type PricesContract = typeof pricesContract;

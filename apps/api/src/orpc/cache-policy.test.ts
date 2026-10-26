@@ -84,7 +84,7 @@ describe("immutableWhenVersionMatches", () => {
 describe("ETAG_PATHS", () => {
   it("derives the etag paths from the contracts in Hono :param form", () => {
     expect(ETAG_PATHS).toContain("/api/v1/cards/:cardSlug");
-    expect(ETAG_PATHS).toContain("/api/v1/prices/:printingId/history");
+    expect(ETAG_PATHS).toContain("/api/v1/prices/:printingId");
     expect(ETAG_PATHS).toContain("/api/v1/sets/:setSlug");
     expect(ETAG_PATHS).toContain("/api/v1/catalog");
     expect(ETAG_PATHS).not.toContain("/api/v1/site-settings");

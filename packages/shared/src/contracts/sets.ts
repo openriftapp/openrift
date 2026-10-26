@@ -31,7 +31,15 @@ const setSlugParamSchema = z.object({ setSlug: z.string().min(1) });
 
 export const setsContract = {
   list: oc
-    .route({ method: "GET", path: "/api/v1/sets", tags: ["Sets"] })
+    .route({
+      method: "GET",
+      path: "/api/v1/sets",
+      tags: ["Sets"],
+      operationId: "listSets",
+      summary: "Every set",
+      description:
+        "Every set with its release dates per language, its card and printing counts, and a cover image id.",
+    })
     .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
     .output(setListResponseSchema),
   detail: oc
