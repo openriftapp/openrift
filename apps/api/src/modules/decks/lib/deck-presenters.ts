@@ -1,3 +1,4 @@
+import { primaryCardType } from "@openrift/shared/card-primary-type";
 import { descriptionSnippet } from "@openrift/shared/description-snippet";
 import type {
   DeckCardResponse,
@@ -145,7 +146,6 @@ export function toPublicDeckCard(
   cardMeta: {
     name: string;
     slug: string;
-    type: CardType;
     types: CardType[];
     superTypes: SuperType[];
     domains: Domain[];
@@ -171,7 +171,7 @@ export function toPublicDeckCard(
     preferredPrintingId: deckCard.preferredPrintingId,
     cardName: cardMeta.name,
     cardSlug: cardMeta.slug,
-    cardType: cardMeta.type,
+    cardType: primaryCardType(cardMeta.types),
     cardTypes: cardMeta.types as PublicDeckCardResponse["cardTypes"],
     superTypes: cardMeta.superTypes,
     domains: cardMeta.domains,

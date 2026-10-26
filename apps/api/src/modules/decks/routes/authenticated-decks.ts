@@ -94,16 +94,16 @@ async function validateDeckPlan(
   }
 
   const rows = await catalog.cardsByIds(allIds);
-  const typeById = new Map(rows.map((row) => [row.id, row.type]));
+  const typesById = new Map(rows.map((row) => [row.id, row.types]));
   for (const id of allIds) {
-    if (!typeById.has(id)) {
+    if (!typesById.has(id)) {
       throw new AppError(400, ERROR_CODES.BAD_REQUEST, `Unknown card: ${id}`);
     }
   }
   // The opponent card may be any type — no Legend constraint. Only battlefields
   // are type-checked, since they must come from the deck's battlefield zone.
   for (const id of new Set(battlefieldIds)) {
-    if (typeById.get(id) !== WellKnown.cardType.BATTLEFIELD) {
+    if (!typesById.get(id)?.includes(WellKnown.cardType.BATTLEFIELD)) {
       throw new AppError(400, ERROR_CODES.BAD_REQUEST, `Card ${id} is not a Battlefield`);
     }
   }

@@ -1,4 +1,5 @@
 import type {
+  CardType,
   MetaCreditVisibility,
   MetaEventTier,
   MetaListStatus,
@@ -7,7 +8,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import type { Repos } from "../../../deps.js";
 import { createRepos } from "../../../deps.js";
-import { createDbContext } from "../../../test/integration-context.js";
+import { createDbContext, insertCards } from "../../../test/integration-context.js";
 import { promoteMetaEvent } from "../services/meta-promote.js";
 import type { MetaArchivedDeckInput, MetaDeckCardInput } from "./meta-decks.js";
 import type { MetaEventIndexOrder } from "./meta-event-index.js";
@@ -85,14 +86,17 @@ async function seedUser(
 async function seedCard(
   name: string,
   normName: string,
-  type: string,
+  type: CardType,
   tags: string[] = [],
 ): Promise<string> {
-  const [card] = await ctx!.db
-    .insertInto("cards")
-    .values({ name, slug: normName, type, normName, keywords: [], tags })
-    .returning("id")
-    .execute();
+  const [card] = await insertCards(ctx!.db, {
+    name,
+    slug: normName,
+    types: [type],
+    normName,
+    keywords: [],
+    tags,
+  });
   createdCardIds.push(card!.id);
   return card!.id;
 }

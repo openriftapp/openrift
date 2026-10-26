@@ -8,7 +8,6 @@ import type {
 import type {
   ArtVariant,
   CardSize,
-  CardType,
   FallbackArtMode,
   Finish,
   Rarity,
@@ -44,7 +43,6 @@ export interface CardsTable {
   slug: string;
   name: string;
   normName: Generated<string>;
-  type: CardType;
   might: number | null;
   energy: number | null;
   power: number | null;

@@ -18,7 +18,7 @@ import type {
   SourceFacts,
   StandingFacts,
 } from "./meta-promote-shared.js";
-import { legacyIdentityOf } from "./meta-promote-shared.js";
+import { unkeyedIdentityOf } from "./meta-promote-shared.js";
 
 /** One standings row after folding, with the live row it already resolves to. */
 interface MergedStanding {
@@ -28,14 +28,14 @@ interface MergedStanding {
 
 /**
  * Folds two mirrors' standings for one player; the later source wins each
- * field it publishes, but identity, legacyIdentity, and the deck stay pinned.
+ * field it publishes, but identity, unkeyedIdentity, and the deck stay pinned.
  */
 function foldStanding(under: StandingFacts, over: StandingFacts): StandingFacts {
   const uvsgamesPlayerId = over.uvsgamesPlayerId ?? under.uvsgamesPlayerId;
   const withDeck = over.sourceDeckId === null ? under : over;
   return {
     identity: under.identity,
-    legacyIdentity: under.legacyIdentity,
+    unkeyedIdentity: under.unkeyedIdentity,
     uvsgamesPlayerId,
     playerName: uvsgamesPlayerId === null ? (over.playerName ?? under.playerName) : null,
     rank: over.rank,
@@ -114,10 +114,10 @@ export async function promoteStandings(
   cardIndex: CardNameIndex,
 ): Promise<void> {
   const existing = await repos.meta.rawStandingsForEvent(metaEventId);
-  const byLegacy = new Map(
+  const byUnkeyed = new Map(
     existing
       .filter((row) => row.sourceIdentity === null)
-      .map((row) => [legacyIdentityOf(row.uvsgamesPlayerId, row.playerName), row]),
+      .map((row) => [unkeyedIdentityOf(row.uvsgamesPlayerId, row.playerName), row]),
   );
   const links = await repos.metaPlayerLinks.forEvent(metaEventId);
   const merged = foldStandings(collected, existing, links);
@@ -148,13 +148,13 @@ export async function promoteStandings(
       unresolved.add(standing.legendName);
     }
 
-    // A legacy row can be claimed by one standing per pass; two providers sharing
-    // a legacy identity must not both stamp it, or the loser duplicates next promote.
+    // An unkeyed row can be claimed by one standing per pass; two providers sharing
+    // an unkeyed identity must not both stamp it, or the loser duplicates next promote.
     let existingRow = resolved;
     if (existingRow === null) {
-      existingRow = byLegacy.get(standing.legacyIdentity) ?? null;
+      existingRow = byUnkeyed.get(standing.unkeyedIdentity) ?? null;
       if (existingRow !== null) {
-        byLegacy.delete(standing.legacyIdentity);
+        byUnkeyed.delete(standing.unkeyedIdentity);
       }
     }
     const deck = buildDeck(

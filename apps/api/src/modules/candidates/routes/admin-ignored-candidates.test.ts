@@ -160,16 +160,16 @@ describe("DELETE /api/admin/v1/ignored-candidates/printing-links", () => {
     vi.resetAllMocks();
   });
 
-  it("returns 204 and drops the override, wildcard provider included", async () => {
+  it("returns 204 and drops the override", async () => {
     mockCandidateCards.deletePrintingLinkOverride.mockResolvedValue(undefined);
     const res = await app.request("/api/admin/v1/ignored-candidates/printing-links", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "", externalId: "OGN-197b", finish: "" }),
+      body: JSON.stringify({ provider: "test-provider", externalId: "OGN-197b", finish: "" }),
     });
     expect(res.status).toBe(204);
     expect(mockCandidateCards.deletePrintingLinkOverride).toHaveBeenCalledWith({
-      provider: "",
+      provider: "test-provider",
       externalId: "OGN-197b",
       finish: "",
     });

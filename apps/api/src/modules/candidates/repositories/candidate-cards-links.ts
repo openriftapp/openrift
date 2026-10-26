@@ -18,9 +18,7 @@ async function deletePins(
           eb.and([
             eb("externalId", "=", row.externalId),
             eb("finish", "=", row.finish ?? ""),
-            // The '' wildcard row would keep re-pinning this candidate on
-            // the next ingest, so an unlink removes it too.
-            eb("provider", "in", [row.provider, ""]),
+            eb("provider", "=", row.provider),
           ]),
         ),
       ),

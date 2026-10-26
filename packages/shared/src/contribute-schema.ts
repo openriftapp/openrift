@@ -31,7 +31,7 @@ export const contributionCardSchema = z
     name: cardFieldRules.name,
     external_id: communityId,
     // Legacy single-type field; kept so existing contribution files stay valid.
-    type: cardFieldRules.type.nullable().optional(),
+    type: z.string().min(1).nullable().optional(),
     // Ordered card types; wins over `type` when both are present.
     types: cardFieldRules.types.optional(),
     super_types: cardFieldRules.superTypes.optional(),

@@ -22,7 +22,7 @@ describe("sortCards", () => {
       cardId: "SET1-003",
       card: {
         name: "Charlie",
-        type: "unit",
+        types: ["unit"],
         superTypes: [],
         domains: [],
         energy: 5,
@@ -41,7 +41,7 @@ describe("sortCards", () => {
       cardId: "SET1-001",
       card: {
         name: "Alpha",
-        type: "unit",
+        types: ["unit"],
         superTypes: [],
         domains: [],
         energy: 2,
@@ -60,7 +60,7 @@ describe("sortCards", () => {
       cardId: "SET1-002",
       card: {
         name: "Bravo",
-        type: "unit",
+        types: ["unit"],
         superTypes: [],
         domains: [],
         energy: 2,
@@ -93,7 +93,6 @@ describe("sortCards", () => {
       cardId: "SET1-004",
       card: {
         name: "Emperor of the Sands",
-        type: "legend",
         types: ["legend"],
         superTypes: [],
         domains: [],
@@ -196,7 +195,7 @@ describe("sortCards", () => {
         cardId: "c3",
         card: {
           name: "Zeta",
-          type: "unit",
+          types: ["unit"],
           superTypes: [],
           domains: [],
           energy: 1,
@@ -214,7 +213,7 @@ describe("sortCards", () => {
         cardId: "c1",
         card: {
           name: "Alpha",
-          type: "unit",
+          types: ["unit"],
           superTypes: [],
           domains: [],
           energy: 1,
@@ -232,7 +231,7 @@ describe("sortCards", () => {
         cardId: "c2",
         card: {
           name: "Bravo",
-          type: "unit",
+          types: ["unit"],
           superTypes: [],
           domains: [],
           energy: 1,
@@ -259,7 +258,7 @@ describe("sortCards", () => {
           cardId: "e",
           card: {
             name: "Expensive",
-            type: "unit",
+            types: ["unit"],
             superTypes: [],
             domains: [],
             energy: null,
@@ -277,7 +276,7 @@ describe("sortCards", () => {
         cardId: "n",
         card: {
           name: "No Price",
-          type: "unit",
+          types: ["unit"],
           superTypes: [],
           domains: [],
           energy: null,
@@ -294,7 +293,7 @@ describe("sortCards", () => {
           cardId: "c",
           card: {
             name: "Cheap",
-            type: "unit",
+            types: ["unit"],
             superTypes: [],
             domains: [],
             energy: null,
@@ -323,7 +322,7 @@ describe("sortCards", () => {
             cardId: "b",
             card: {
               name: "Bravo",
-              type: "unit",
+              types: ["unit"],
               superTypes: [],
               domains: [],
               energy: null,
@@ -343,7 +342,7 @@ describe("sortCards", () => {
             cardId: "a",
             card: {
               name: "Alpha",
-              type: "unit",
+              types: ["unit"],
               superTypes: [],
               domains: [],
               energy: null,
@@ -369,7 +368,7 @@ describe("sortCards", () => {
           cardId: "z",
           card: {
             name: "Zed",
-            type: "unit",
+            types: ["unit"],
             superTypes: [],
             domains: [],
             energy: null,
@@ -386,7 +385,7 @@ describe("sortCards", () => {
           cardId: "a",
           card: {
             name: "Amy",
-            type: "unit",
+            types: ["unit"],
             superTypes: [],
             domains: [],
             energy: null,
@@ -410,7 +409,7 @@ describe("sortCards", () => {
           cardId: "n",
           card: {
             name: "No Price",
-            type: "unit",
+            types: ["unit"],
             superTypes: [],
             domains: [],
             energy: null,
@@ -428,7 +427,7 @@ describe("sortCards", () => {
             cardId: "m",
             card: {
               name: "Mid Price",
-              type: "unit",
+              types: ["unit"],
               superTypes: [],
               domains: [],
               energy: null,
@@ -448,7 +447,7 @@ describe("sortCards", () => {
             cardId: "h",
             card: {
               name: "High Price",
-              type: "unit",
+              types: ["unit"],
               superTypes: [],
               domains: [],
               energy: null,
@@ -474,7 +473,7 @@ describe("sortCards", () => {
           cardId: "n",
           card: {
             name: "No Energy",
-            type: "spell",
+            types: ["spell"],
             superTypes: [],
             domains: [],
             energy: null,
@@ -491,7 +490,7 @@ describe("sortCards", () => {
           cardId: "h",
           card: {
             name: "High Energy",
-            type: "unit",
+            types: ["unit"],
             superTypes: [],
             domains: [],
             energy: 8,
@@ -508,7 +507,7 @@ describe("sortCards", () => {
           cardId: "l",
           card: {
             name: "Low Energy",
-            type: "unit",
+            types: ["unit"],
             superTypes: [],
             domains: [],
             energy: 1,
@@ -532,7 +531,7 @@ describe("sortCards", () => {
           cardId: "a",
           card: {
             name: "Alpha",
-            type: "unit",
+            types: ["unit"],
             superTypes: [],
             domains: [],
             energy: null,
@@ -549,7 +548,7 @@ describe("sortCards", () => {
           cardId: "b",
           card: {
             name: "Bravo",
-            type: "unit",
+            types: ["unit"],
             superTypes: [],
             domains: [],
             energy: null,
@@ -577,7 +576,7 @@ describe("sortCards", () => {
           cardId: "n",
           card: {
             name: "No Energy",
-            type: "spell",
+            types: ["spell"],
             superTypes: [],
             domains: [],
             energy: null,
@@ -593,7 +592,7 @@ describe("sortCards", () => {
           cardId: "l",
           card: {
             name: "Low Energy",
-            type: "unit",
+            types: ["unit"],
             superTypes: [],
             domains: [],
             energy: 1,
@@ -617,7 +616,7 @@ describe("sortCards", () => {
           cardId: "z",
           card: {
             name: "Zeta Null",
-            type: "spell",
+            types: ["spell"],
             superTypes: [],
             domains: [],
             energy: null,
@@ -634,7 +633,7 @@ describe("sortCards", () => {
           cardId: "a",
           card: {
             name: "Alpha Null",
-            type: "spell",
+            types: ["spell"],
             superTypes: [],
             domains: [],
             energy: null,
@@ -650,7 +649,7 @@ describe("sortCards", () => {
           cardId: "h",
           card: {
             name: "High Energy",
-            type: "unit",
+            types: ["unit"],
             superTypes: [],
             domains: [],
             energy: 8,

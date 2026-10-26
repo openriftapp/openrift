@@ -58,7 +58,6 @@ export function deckCheckCatalogRepo(db: Kysely<Database>) {
         {
           id: string;
           name: string;
-          type: string;
           types: string[];
           superTypes: string[];
           domains: string[];
@@ -78,7 +77,6 @@ export function deckCheckCatalogRepo(db: Kysely<Database>) {
         .select([
           "c.id",
           "c.name",
-          "c.type",
           "mca.types",
           "mca.superTypes",
           "mca.domains",
@@ -95,7 +93,6 @@ export function deckCheckCatalogRepo(db: Kysely<Database>) {
           {
             id: row.id,
             name: row.name,
-            type: row.type,
             types: row.types,
             superTypes: row.superTypes ?? [],
             domains: row.domains ?? [],

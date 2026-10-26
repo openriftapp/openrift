@@ -6,8 +6,8 @@ import {
   createDbContext,
   deletePrintingsByFace,
   deletePrintingsById,
+  insertCards,
   insertPrintings,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { acceptPrinting, updatePrintingMarkers } from "./printing-admin.js";
 
@@ -56,23 +56,18 @@ describe.skipIf(!ctx)("updatePrintingMarkers (integration)", () => {
       .execute();
     setId = setRow!.id;
 
-    const [cardRow] = await db
-      .insertInto("cards")
-      .values({
-        slug: CARD_SLUG,
-        name: "Printing Admin Test Card",
-        type: "unit",
-        might: null,
-        energy: 1,
-        power: null,
-        mightBonus: null,
-        keywords: [],
-        tags: [],
-      })
-      .returning("id")
-      .execute();
+    const [cardRow] = await insertCards(db, {
+      slug: CARD_SLUG,
+      name: "Printing Admin Test Card",
+      types: ["unit"],
+      might: null,
+      energy: 1,
+      power: null,
+      mightBonus: null,
+      keywords: [],
+      tags: [],
+    });
     cardId = cardRow!.id;
-    await syncCardCardTypes(db);
 
     await db.insertInto("cardDomains").values({ cardId, domainSlug: "fury", ordinal: 0 }).execute();
 
@@ -207,23 +202,18 @@ describe.skipIf(!ctx)("acceptPrinting requireNew (integration)", () => {
       .execute();
     setId = setRow!.id;
 
-    const [cardRow] = await db
-      .insertInto("cards")
-      .values({
-        slug: CARD_SLUG,
-        name: "Printing Admin Require-New Card",
-        type: "unit",
-        might: null,
-        energy: 1,
-        power: null,
-        mightBonus: null,
-        keywords: [],
-        tags: [],
-      })
-      .returning("id")
-      .execute();
+    const [cardRow] = await insertCards(db, {
+      slug: CARD_SLUG,
+      name: "Printing Admin Require-New Card",
+      types: ["unit"],
+      might: null,
+      energy: 1,
+      power: null,
+      mightBonus: null,
+      keywords: [],
+      tags: [],
+    });
     cardId = cardRow!.id;
-    await syncCardCardTypes(db);
 
     await db.insertInto("cardDomains").values({ cardId, domainSlug: "fury", ordinal: 0 }).execute();
 

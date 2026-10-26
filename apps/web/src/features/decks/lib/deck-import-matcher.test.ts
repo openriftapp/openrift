@@ -20,15 +20,15 @@ describe("matchDeckEntries", () => {
     const printings = [
       stubPrinting({
         shortCode: "OGN-001",
-        card: { name: "The Boss", type: "legend", tags: ["Sett"] },
+        card: { name: "The Boss", types: ["legend"], tags: ["Sett"] },
       }),
       stubPrinting({
         shortCode: "OGN-002",
-        card: { name: "Sett, Kingpin", type: "legend", tags: ["Sett", "Ionia"] },
+        card: { name: "Sett, Kingpin", types: ["legend"], tags: ["Sett", "Ionia"] },
       }),
       stubPrinting({
         shortCode: "OGN-003",
-        card: { name: "Pit Rookie", type: "unit", tags: [] },
+        card: { name: "Pit Rookie", types: ["unit"], tags: [] },
       }),
     ];
 
@@ -84,7 +84,7 @@ describe("matchDeckEntries", () => {
       printingId: "printing-en",
       shortCode: "OGN-001",
       language: "EN",
-      card: { name: "Test Card", type: "unit" },
+      card: { name: "Test Card", types: ["unit"] },
     });
     const scPrinting = stubPrinting({
       printingId: "printing-sc",
@@ -125,7 +125,7 @@ describe("matchDeckEntries", () => {
       const printing = stubPrinting({
         shortCode: "OGN-007",
         publicCode: "OGN-007/298",
-        card: { name: "Public Card", type: "unit" },
+        card: { name: "Public Card", types: ["unit"] },
       });
       const entries: DeckImportEntry[] = [
         { shortCode: "OGN-007/298", quantity: 1, sourceSlot: "mainDeck", rawFields: {} },
@@ -154,24 +154,32 @@ describe("matchDeckEntries", () => {
     const catalog = [
       stubPrinting({
         shortCode: "RB-001",
-        card: { name: "Kai'Sa, Daughter of the Void", type: "legend", tags: ["Kai'Sa"] },
+        card: { name: "Kai'Sa, Daughter of the Void", types: ["legend"], tags: ["Kai'Sa"] },
       }),
-      stubPrinting({ shortCode: "RB-002", card: { name: "Fury Rune", type: "rune" } }),
-      stubPrinting({ shortCode: "RB-003", card: { name: "Iron Ballista", type: "unit" } }),
+      stubPrinting({ shortCode: "RB-002", card: { name: "Fury Rune", types: ["rune"] } }),
+      stubPrinting({ shortCode: "RB-003", card: { name: "Iron Ballista", types: ["unit"] } }),
       stubPrinting({
         shortCode: "RB-004",
-        card: { name: "Ekko, Recurrent", type: "unit", superTypes: ["champion"], tags: ["Ekko"] },
+        card: {
+          name: "Ekko, Recurrent",
+          types: ["unit"],
+          superTypes: ["champion"],
+          tags: ["Ekko"],
+        },
       }),
       stubPrinting({
         shortCode: "RB-005",
         card: {
           name: "Kai'Sa, Survivor",
-          type: "unit",
+          types: ["unit"],
           superTypes: ["champion"],
           tags: ["Kai'Sa"],
         },
       }),
-      stubPrinting({ shortCode: "RB-006", card: { name: "Altar to Unity", type: "battlefield" } }),
+      stubPrinting({
+        shortCode: "RB-006",
+        card: { name: "Altar to Unity", types: ["battlefield"] },
+      }),
     ];
 
     it("assigns Legend cards to legend zone", () => {
@@ -214,16 +222,21 @@ describe("matchDeckEntries", () => {
 
   describe("champion auto-assignment", () => {
     const catalog = [
-      stubPrinting({ shortCode: "RB-003", card: { name: "Iron Ballista", type: "unit" } }),
+      stubPrinting({ shortCode: "RB-003", card: { name: "Iron Ballista", types: ["unit"] } }),
       stubPrinting({
         shortCode: "RB-004",
-        card: { name: "Ekko, Recurrent", type: "unit", superTypes: ["champion"], tags: ["Ekko"] },
+        card: {
+          name: "Ekko, Recurrent",
+          types: ["unit"],
+          superTypes: ["champion"],
+          tags: ["Ekko"],
+        },
       }),
       stubPrinting({
         shortCode: "RB-005",
         card: {
           name: "Kai'Sa, Survivor",
-          type: "unit",
+          types: ["unit"],
           superTypes: ["champion"],
           tags: ["Kai'Sa"],
         },

@@ -79,7 +79,7 @@ export function PrintingDeskCardPage({ cardSlug }: { cardSlug: string }) {
 function CardHeaderPanel({ card, base }: { card: DeskCard; base: DeskPrintingRow | undefined }) {
   const { labels } = useEnumOrders();
   const meta = [
-    enumLabel(labels.cardTypes, card.type),
+    card.types.map((type) => enumLabel(labels.cardTypes, type)).join(" "),
     card.domains.map((domain) => enumLabel(labels.domains, domain)).join(" · "),
     base?.setName,
   ].filter((part): part is string => Boolean(part));

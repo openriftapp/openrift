@@ -125,20 +125,6 @@ const COMMON_SCHEMAS = {
 
 const ERROR_SCHEMA_REF = "#/components/schemas/Error";
 
-/** ADR-037 keeps `type` as `types[0]`; the zod converter has no deprecation channel, so it is stamped here. */
-function markDeprecatedCardType(doc: OpenAPI.Document): void {
-  for (const name of ["Card", "CatalogCard"]) {
-    const schema = doc.components?.schemas?.[name] as
-      | { properties?: Record<string, Record<string, unknown>> }
-      | undefined;
-    const type = schema?.properties?.type;
-    if (type) {
-      type.deprecated = true;
-      type.description = "Always `types[0]`. Read `types`; a card can have more than one type.";
-    }
-  }
-}
-
 interface ContractDocument {
   doc: OpenAPI.Document;
   metaByOperation: Map<string, ContractMeta>;
@@ -154,7 +140,6 @@ function generateContractDocument(): Promise<ContractDocument> {
     collectMetaByOperation(router, metaByOperation);
     const doc = await generator.generate(router, { commonSchemas: COMMON_SCHEMAS });
     applySecurity(doc, metaByOperation);
-    markDeprecatedCardType(doc);
     return { doc, metaByOperation };
   })();
   return cachedContractDoc;

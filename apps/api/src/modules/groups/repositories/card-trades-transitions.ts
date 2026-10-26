@@ -159,31 +159,23 @@ export function cardTradeTransitionsRepo(db: Kysely<Database>) {
       return Number(result.numUpdatedRows);
     },
 
-    /**
-     * `completed` must stay in the status guard, matching `assertSettleable`: legacy rows
-     * can reach `completed` with a side still outstanding.
-     */
     async setGiverSyncApplied(id: string): Promise<number> {
       const result = await db
         .updateTable("cardTrades")
         .set({ giverSyncAppliedAt: sql`now()` })
         .where("id", "=", id)
-        .where("status", "in", ["reserved", "completed"])
+        .where("status", "=", "reserved")
         .where("giverSyncAppliedAt", "is", null)
         .executeTakeFirst();
       return Number(result.numUpdatedRows);
     },
 
-    /**
-     * Records the receiver resolved their side's sync. Same status window as
-     * {@link setGiverSyncApplied}.
-     */
     async setReceiverSyncApplied(id: string): Promise<number> {
       const result = await db
         .updateTable("cardTrades")
         .set({ receiverSyncAppliedAt: sql`now()` })
         .where("id", "=", id)
-        .where("status", "in", ["reserved", "completed"])
+        .where("status", "=", "reserved")
         .where("receiverSyncAppliedAt", "is", null)
         .executeTakeFirst();
       return Number(result.numUpdatedRows);

@@ -42,8 +42,6 @@ export const deckCheckIngestResultResponseSchema = z.object({
   entriesUnchanged: z.number().int().nonnegative(),
   entriesWithdrawn: z.number().int().nonnegative(),
   checksInvalidated: z.number().int().nonnegative(),
-  // Deprecated: always 0, kept so existing provider integrations keep parsing.
-  entriesIgnored: z.number().int().nonnegative(),
   entries: z.array(deckCheckIngestEntryResultSchema),
 });
 

@@ -129,7 +129,6 @@ describe("buildEntryAdvisories", () => {
   interface StubCardDetail {
     id: string;
     name: string;
-    type: string;
     types: string[];
     superTypes: string[];
     domains: string[];
@@ -172,7 +171,6 @@ describe("buildEntryAdvisories", () => {
         {
           id: "legend-karma",
           name: "Karma",
-          type: "legend",
           types: ["legend"],
           superTypes: [],
           domains: [],
@@ -185,7 +183,6 @@ describe("buildEntryAdvisories", () => {
         {
           id: "sig-daisy",
           name: "Daisy!",
-          type: "unit",
           types: ["unit"],
           superTypes: ["signature"],
           domains: [],
@@ -243,7 +240,6 @@ describe("buildEntryAdvisories", () => {
         {
           id: "legend-karma",
           name: "Karma",
-          type: "legend",
           types: ["legend"],
           superTypes: [],
           domains: [],

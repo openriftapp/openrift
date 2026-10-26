@@ -16,6 +16,7 @@ import { priceLookupFromMap } from "./price-lookup.js";
 import { makePrinting as stubPrinting } from "./test-factories.js";
 import type { TradePreference } from "./types/api/trade-preferences.js";
 import type { Printing } from "./types/catalog.js";
+import type { CardType } from "./types/enums.js";
 import { listRulesSchema, MAX_LIST_RULES, ruleQuantitySchema } from "./types/list-rule.js";
 import type { ListRule } from "./types/list-rule.js";
 import { EMPTY_CARD_FILTERS } from "./types/search.js";
@@ -30,7 +31,7 @@ function filters(overrides: Partial<CardFilters> = {}): CardFilters {
 function makePrinting(
   id: string,
   cardId: string,
-  overrides: Partial<Printing> & { type?: string; keywords?: string[] } = {},
+  overrides: Partial<Printing> & { type?: CardType; keywords?: string[] } = {},
 ): Printing {
   const { type, keywords, ...printing } = overrides;
   return stubPrinting({
@@ -41,7 +42,7 @@ function makePrinting(
     card: {
       slug: cardId,
       name: `Card ${cardId}`,
-      type,
+      ...(type ? { types: [type] } : {}),
       domains: ["fury"],
       energy: 1,
       might: 1,

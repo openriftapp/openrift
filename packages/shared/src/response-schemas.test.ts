@@ -23,7 +23,6 @@ const validCard = {
   id: "019cfc3b-0389-744b-837c-792fd586300e",
   slug: "jinx-rebel",
   name: "Jinx, Rebel",
-  type: "Unit",
   types: ["Unit"],
   superTypes: ["Champion"],
   domains: ["Chaos"],

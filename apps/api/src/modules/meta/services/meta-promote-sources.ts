@@ -25,7 +25,7 @@ import type {
 } from "./meta-promote-shared.js";
 import {
   createMetaSourceContext,
-  legacyIdentityOf,
+  unkeyedIdentityOf,
   UnmappableFormatError,
 } from "./meta-promote-shared.js";
 
@@ -88,7 +88,7 @@ async function uvsgamesFacts(
       .filter((row) => row.rank !== null)
       .map((row) => ({
         identity: uvsgamesStandingIdentity(row),
-        legacyIdentity: legacyIdentityOf(row.uvsgamesPlayerId, row.playerName),
+        unkeyedIdentity: unkeyedIdentityOf(row.uvsgamesPlayerId, row.playerName),
         uvsgamesPlayerId: row.uvsgamesPlayerId,
         // A row the source keys by user id is rendered under that player's
         // current name, so the archive stores no snapshot of it.
@@ -152,7 +152,7 @@ async function playloltcgFacts(
       .filter((row) => row.rank !== null)
       .map((row) => ({
         identity: `p${row.playerKey}`,
-        legacyIdentity: legacyIdentityOf(null, row.playerName),
+        unkeyedIdentity: unkeyedIdentityOf(null, row.playerName),
         uvsgamesPlayerId: null,
         playerName: row.playerName,
         rank: row.rank as number,
@@ -212,7 +212,7 @@ async function topdeckFacts(
       .filter((row) => row.rank !== null)
       .map((row) => ({
         identity: `t${row.playerKey}`,
-        legacyIdentity: legacyIdentityOf(null, row.playerName),
+        unkeyedIdentity: unkeyedIdentityOf(null, row.playerName),
         uvsgamesPlayerId: null,
         playerName: row.playerName,
         rank: row.rank as number,
@@ -282,7 +282,7 @@ async function playriftboundFacts(
     },
     standings: standings.map((row) => ({
       identity: playriftboundStandingIdentity(row),
-      legacyIdentity: legacyIdentityOf(null, row.playerName),
+      unkeyedIdentity: unkeyedIdentityOf(null, row.playerName),
       uvsgamesPlayerId: null,
       playerName: row.playerName,
       rank: row.rank as number,

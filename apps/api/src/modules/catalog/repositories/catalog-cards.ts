@@ -55,7 +55,6 @@ const CARD_COLUMNS = [
   "cards.id",
   "cards.slug",
   "cards.name",
-  "cards.type",
   "cards.might",
   "cards.energy",
   "cards.power",

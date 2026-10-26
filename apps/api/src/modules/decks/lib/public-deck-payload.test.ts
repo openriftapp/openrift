@@ -49,7 +49,6 @@ function cardRow(id: string, tokenCardIds: string[] = []) {
     id,
     name: "Kennen",
     slug: "kennen",
-    type: "unit",
     types: ["unit"],
     superTypes: [],
     domains: ["fury"],

@@ -48,7 +48,7 @@ export interface MetaPromotedEventFacts extends Record<string, unknown> {
 /** One standings row as a source published it, plus the identity promotion files it under. */
 export interface StandingFacts extends Record<string, unknown> {
   identity: string;
-  legacyIdentity: string;
+  unkeyedIdentity: string;
   uvsgamesPlayerId: number | null;
   playerName: string | null;
   rank: number;
@@ -110,8 +110,8 @@ export function normalizedName(name: string | null): string {
   return (name ?? "").trim().toLowerCase();
 }
 
-/** The identity promotes before `source_identity` existed derived from live columns. */
-export function legacyIdentityOf(
+/** Matches a row stored without `source_identity` (added by hand or from a submission) by its player id or name. */
+export function unkeyedIdentityOf(
   uvsgamesPlayerId: number | null,
   playerName: string | null,
 ): string {

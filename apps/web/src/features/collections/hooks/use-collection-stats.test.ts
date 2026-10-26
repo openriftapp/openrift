@@ -455,12 +455,12 @@ describe("computeCompletion", () => {
   it("computes copies mode with type-based targets", () => {
     const legend = stubStack({
       copyCount: 1,
-      card: { slug: "hero", type: "legend" },
+      card: { slug: "hero", types: ["legend"] },
       setId: "set-1",
     });
     const unit = stubStack({
       copyCount: 2,
-      card: { slug: "soldier", type: "unit" },
+      card: { slug: "soldier", types: ["unit"] },
       setId: "set-1",
     });
 
@@ -487,7 +487,7 @@ describe("computeCompletion", () => {
     // Must route through the same getPlaysetSize the deck builder uses.
     const uniqueRelic = stubStack({
       copyCount: 1,
-      card: { slug: "relic", type: "unit", keywords: ["Unique"] },
+      card: { slug: "relic", types: ["unit"], keywords: ["Unique"] },
       setId: "set-1",
     });
 
@@ -507,9 +507,9 @@ describe("computeCompletion", () => {
   });
 
   it("leaves runes and Other out of copies mode", () => {
-    const rune = stubStack({ copyCount: 1, card: { slug: "fury-rune", type: "rune" } });
-    const other = stubStack({ copyCount: 1, card: { slug: "oddity", type: "other" } });
-    const unit = stubStack({ copyCount: 2, card: { slug: "soldier", type: "unit" } });
+    const rune = stubStack({ copyCount: 1, card: { slug: "fury-rune", types: ["rune"] } });
+    const other = stubStack({ copyCount: 1, card: { slug: "oddity", types: ["other"] } });
+    const unit = stubStack({ copyCount: 2, card: { slug: "soldier", types: ["unit"] } });
     const input = {
       stacks: [rune, other, unit],
       scopedPrintings: [rune.printing, other.printing, unit.printing],
@@ -534,10 +534,14 @@ describe("computeCompletion", () => {
     // The rune shares a row with the unit, so it drops out of the sum only.
     const rune = stubStack({
       copyCount: 3,
-      card: { slug: "fury-rune", type: "rune" },
+      card: { slug: "fury-rune", types: ["rune"] },
       setId: "s1",
     });
-    const unit = stubStack({ copyCount: 1, card: { slug: "soldier", type: "unit" }, setId: "s1" });
+    const unit = stubStack({
+      copyCount: 1,
+      card: { slug: "soldier", types: ["unit"] },
+      setId: "s1",
+    });
 
     const entries = computeCompletion({
       stacks: [rune, unit],
@@ -556,7 +560,7 @@ describe("computeCompletion", () => {
   it("caps owned copies at target in copies mode", () => {
     const unit = stubStack({
       copyCount: 5,
-      card: { slug: "soldier", type: "unit" },
+      card: { slug: "soldier", types: ["unit"] },
       setId: "set-1",
     });
 
@@ -605,7 +609,7 @@ describe("computeCompletion", () => {
 
   it("renders display labels (not slugs) for domain/rarity/type group rows", () => {
     const stack = stubStack({
-      card: { slug: "a", domains: ["fury"] as Domain[], type: "unit" },
+      card: { slug: "a", domains: ["fury"] as Domain[], types: ["unit"] },
       rarity: "common",
       setId: "set-1",
     });
@@ -877,7 +881,7 @@ describe("matchesScope", () => {
   });
 
   it("filters by card type", () => {
-    const printing = stubPrinting({ card: { type: "unit" } });
+    const printing = stubPrinting({ card: { types: ["unit"] } });
     expect(matchesScope(printing, { types: ["unit"] })).toBe(true);
     expect(matchesScope(printing, { types: ["spell"] })).toBe(false);
   });
@@ -922,7 +926,7 @@ describe("matchesScope", () => {
 
   it("rejects a card when any of its domains or types is excluded", () => {
     const printing = stubPrinting({
-      card: { domains: ["fury", "calm"] as Domain[], type: "unit" },
+      card: { domains: ["fury", "calm"] as Domain[], types: ["unit"] },
     });
     expect(matchesScope(printing, { domainsExclude: ["calm"] })).toBe(false);
     expect(matchesScope(printing, { domainsExclude: ["mind"] })).toBe(true);

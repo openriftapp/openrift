@@ -447,7 +447,7 @@ export const CardThumbnail = memo(function CardThumbnail({
       ? printing.printedName
       : legendDisplayName(printing.card);
   const frontImage = printing.images[0] ?? null;
-  // Reads printing.card.type directly, not card.type: coupling this to the derived
+  // Reads printing.card.types directly, not card.types: coupling this to the derived
   // `card` object would block React Compiler from memoizing it and its JSX.
   const orientation = getOrientation(printing.card.types);
   const thumbnailUrl = showImages && frontImage ? imageUrl(frontImage.imageId, "400w") : null;

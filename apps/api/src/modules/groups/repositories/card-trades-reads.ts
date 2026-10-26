@@ -18,8 +18,7 @@ function actionNeededPredicates(userId: string) {
     (t.receiver_user_id = ${userId} and t.initiator = 'giver')
     or (t.giver_user_id = ${userId} and t.initiator = 'receiver')
   ))`;
-  // `completed` must stay: legacy rows can be completed with a side still outstanding.
-  const awaitingSettle = sql<boolean>`(t.status in ('reserved', 'completed') and (
+  const awaitingSettle = sql<boolean>`(t.status = 'reserved' and (
     (t.giver_user_id = ${userId} and t.giver_sync_applied_at is null)
     or (t.receiver_user_id = ${userId} and t.receiver_sync_applied_at is null)
   ))`;

@@ -176,9 +176,9 @@ describe("resolveProxyCards", () => {
   });
 
   it("composes with sortCardsLikeSidebar to print cards in sidebar order", () => {
-    const legend = stubCard({ slug: "RB1-L", name: "legend", type: "legend" });
-    const mainSpell = stubCard({ slug: "RB1-S", name: "Bolt", type: "spell", energy: 1 });
-    const mainUnit = stubCard({ slug: "RB1-U", name: "Warrior", type: "unit", energy: 3 });
+    const legend = stubCard({ slug: "RB1-L", name: "legend", types: ["legend"] });
+    const mainSpell = stubCard({ slug: "RB1-S", name: "Bolt", types: ["spell"], energy: 1 });
+    const mainUnit = stubCard({ slug: "RB1-U", name: "Warrior", types: ["unit"], energy: 3 });
     const printings = [
       stubPrinting({ cardId: "card-legend", setId: "set-o", card: legend }),
       stubPrinting({ cardId: "card-spell", setId: "set-o", card: mainSpell }),

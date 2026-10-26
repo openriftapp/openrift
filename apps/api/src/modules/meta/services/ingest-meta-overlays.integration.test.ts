@@ -4,11 +4,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import type { Repos } from "../../../deps.js";
 import { createRepos } from "../../../deps.js";
-import {
-  createDbContext,
-  seedTestUser,
-  syncCardCardTypes,
-} from "../../../test/integration-context.js";
+import { createDbContext, insertCards, seedTestUser } from "../../../test/integration-context.js";
 import { ingestMetaOverlays, playerSourceKey } from "./ingest-meta-overlays.js";
 
 // Prefixes all fixtures with IMO- / imo- under its own provider so this file's rows
@@ -30,38 +26,33 @@ if (ctx) {
   submitterId = submitter.id;
   createdUserIds.push(submitter.id);
 
-  const seededCards = await db
-    .insertInto("cards")
-    .values([
-      {
-        name: "IMO Spell",
-        slug: "imo-spell",
-        type: "spell",
-        normName: "imospell",
-        keywords: [],
-        tags: [],
-      },
-      {
-        name: "IMO Champion",
-        slug: "imo-champion",
-        type: "unit",
-        normName: "imochampion",
-        keywords: [],
-        tags: [],
-      },
-      {
-        name: "IMO Legend",
-        slug: "imo-legend",
-        type: "legend",
-        normName: "imolegend",
-        keywords: [],
-        tags: [],
-      },
-    ])
-    .returning(["id", "slug"])
-    .execute();
+  const seededCards = await insertCards(db, [
+    {
+      name: "IMO Spell",
+      slug: "imo-spell",
+      types: ["spell"],
+      normName: "imospell",
+      keywords: [],
+      tags: [],
+    },
+    {
+      name: "IMO Champion",
+      slug: "imo-champion",
+      types: ["unit"],
+      normName: "imochampion",
+      keywords: [],
+      tags: [],
+    },
+    {
+      name: "IMO Legend",
+      slug: "imo-legend",
+      types: ["legend"],
+      normName: "imolegend",
+      keywords: [],
+      tags: [],
+    },
+  ]);
   createdCardIds.push(...seededCards.map((card) => card.id));
-  await syncCardCardTypes(db);
 
   afterAll(async () => {
     await db.deleteFrom("metaEventPlayerOverlays").where("provider", "=", PROVIDER).execute();

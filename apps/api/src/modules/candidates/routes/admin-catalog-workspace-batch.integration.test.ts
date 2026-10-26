@@ -3,9 +3,9 @@ import { afterAll, describe, expect, it } from "vitest";
 import {
   adminReq,
   createTestContext,
+  insertCard,
   refreshCardAggregates,
   seedTestUser,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
@@ -48,23 +48,18 @@ if (adminCtx) {
     .onConflict((oc) => oc.column("provider").doNothing())
     .execute();
 
-  const card = await db
-    .insertInto("cards")
-    .values({
-      slug: "wsbt-poro-herder",
-      name: "WSBT Poro Herder",
-      type: "unit",
-      might: 2,
-      energy: 2,
-      power: 1,
-      mightBonus: null,
-      keywords: [],
-      tags: [],
-    })
-    .returning("id")
-    .executeTakeFirstOrThrow();
+  const card = await insertCard(db, {
+    slug: "wsbt-poro-herder",
+    name: "WSBT Poro Herder",
+    types: ["unit"],
+    might: 2,
+    energy: 2,
+    power: 1,
+    mightBonus: null,
+    keywords: [],
+    tags: [],
+  });
   cardIds.push(card.id);
-  await syncCardCardTypes(db);
 
   const candidateCard = (name: string, externalId: string) => ({
     provider: TRUSTED,

@@ -21,7 +21,7 @@ describe("getAvailableFilters", () => {
       cardId: "1",
       card: {
         name: "Test",
-        type: "spell",
+        types: ["spell"],
         superTypes: ["basic"],
         domains: ["mind", "chaos"],
         energy: 2,
@@ -41,7 +41,7 @@ describe("getAvailableFilters", () => {
       cardId: "2",
       card: {
         name: "Test2",
-        type: "unit",
+        types: ["unit"],
         superTypes: ["champion"],
         domains: ["fury"],
         energy: 5,
@@ -61,7 +61,7 @@ describe("getAvailableFilters", () => {
       cardId: "3",
       card: {
         name: "Test3",
-        type: "unit",
+        types: ["unit"],
         superTypes: [],
         domains: ["colorless"],
         energy: 3,
@@ -234,7 +234,7 @@ describe("getAvailableFilters", () => {
         cardId: "null-stats",
         card: {
           name: "Null Stats",
-          type: "spell",
+          types: ["spell"],
           superTypes: [],
           domains: [],
           energy: null,
@@ -275,7 +275,7 @@ describe("getAvailableFilters", () => {
         cardId: "1",
         card: {
           name: "A",
-          type: "unit",
+          types: ["unit"],
           superTypes: [],
           domains: ["fury", "mind"],
           energy: null,
@@ -291,7 +291,7 @@ describe("getAvailableFilters", () => {
         cardId: "2",
         card: {
           name: "B",
-          type: "unit",
+          types: ["unit"],
           superTypes: [],
           domains: ["mind", "chaos"],
           energy: null,

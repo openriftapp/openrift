@@ -173,24 +173,6 @@ describe("resolvePrintingLink", () => {
     );
   });
 
-  it("scopes an override to its provider, with '' as the legacy wildcard", () => {
-    const index = makeIndex({
-      linkOverrides: [
-        { externalId: "ext-1", finish: "normal", provider: "", printingId: "wildcard-uuid" },
-        {
-          externalId: "ext-1",
-          finish: "normal",
-          provider: "test-provider",
-          printingId: "scoped-uuid",
-        },
-      ],
-    });
-    expect(resolvePrintingLink(index, candidate())).toBe("scoped-uuid");
-    expect(resolvePrintingLink(index, candidate({ provider: "other-provider" }))).toBe(
-      "wildcard-uuid",
-    );
-  });
-
   it("ignores another provider's override and falls back to the key", () => {
     const index = makeIndex({
       linkOverrides: [

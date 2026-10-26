@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict EnwUMjuzXLLdVzWXKuTeEZVPwrE5ZUyidEc5vL7HVjPPHgji7hue8TdAkyRlllS
+\restrict RW36fTchDyOnxxLslnVm4ZPfekeCADBQ3TzVd8xR5hTDk2wAJrrnyZo7iGTOAqA
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -686,28 +686,18 @@ CREATE FUNCTION public.trg_card_card_types_sync() RETURNS trigger
     AS $$
     DECLARE
       affected_card_id uuid;
-      primary_slug text;
     BEGIN
       affected_card_id := COALESCE(NEW.card_id, OLD.card_id);
 
-      -- Card deleted in the same transaction (ON DELETE CASCADE) — nothing to check.
+      -- Card deleted in the same transaction (ON DELETE CASCADE): nothing to check.
       IF NOT EXISTS (SELECT 1 FROM cards WHERE id = affected_card_id) THEN
         RETURN NULL;
       END IF;
 
-      SELECT type_slug INTO primary_slug
-      FROM card_card_types
-      WHERE card_id = affected_card_id
-      ORDER BY position
-      LIMIT 1;
-
-      IF primary_slug IS NULL THEN
+      IF NOT EXISTS (SELECT 1 FROM card_card_types WHERE card_id = affected_card_id) THEN
         RAISE EXCEPTION 'card % must keep at least one card_card_types row (ADR-037)',
           affected_card_id;
       END IF;
-
-      UPDATE cards SET type = primary_slug
-      WHERE id = affected_card_id AND type IS DISTINCT FROM primary_slug;
 
       RETURN NULL;
     END;
@@ -715,16 +705,16 @@ CREATE FUNCTION public.trg_card_card_types_sync() RETURNS trigger
 
 
 --
--- Name: trg_cards_seed_card_types(); Type: FUNCTION; Schema: public; Owner: -
+-- Name: trg_cards_require_card_types(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.trg_cards_seed_card_types() RETURNS trigger
+CREATE FUNCTION public.trg_cards_require_card_types() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
     BEGIN
-      IF NOT EXISTS (SELECT 1 FROM card_card_types WHERE card_id = NEW.id) THEN
-        INSERT INTO card_card_types (card_id, type_slug, position)
-        VALUES (NEW.id, NEW.type, 0);
+      IF EXISTS (SELECT 1 FROM cards WHERE id = NEW.id)
+         AND NOT EXISTS (SELECT 1 FROM card_card_types WHERE card_id = NEW.id) THEN
+        RAISE EXCEPTION 'card % must have at least one card_card_types row (ADR-037)', NEW.id;
       END IF;
       RETURN NULL;
     END;
@@ -1583,7 +1573,6 @@ CREATE TABLE public.cardmarket_sync_state (
 
 CREATE TABLE public.cards (
     name text NOT NULL,
-    type text NOT NULL,
     might integer,
     energy integer,
     power integer,
@@ -3821,7 +3810,8 @@ CREATE TABLE public.printing_link_overrides (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     printing_id uuid NOT NULL,
     provider text NOT NULL,
-    CONSTRAINT chk_plo_no_empty_external_id CHECK ((external_id <> ''::text))
+    CONSTRAINT chk_plo_no_empty_external_id CHECK ((external_id <> ''::text)),
+    CONSTRAINT chk_plo_no_empty_provider CHECK ((provider <> ''::text))
 );
 
 
@@ -8053,10 +8043,10 @@ CREATE TRIGGER card_trade_copies_touch_copy AFTER INSERT OR DELETE ON public.car
 
 
 --
--- Name: cards cards_seed_card_types; Type: TRIGGER; Schema: public; Owner: -
+-- Name: cards cards_require_card_types; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE CONSTRAINT TRIGGER cards_seed_card_types AFTER INSERT ON public.cards DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_cards_seed_card_types();
+CREATE CONSTRAINT TRIGGER cards_require_card_types AFTER INSERT ON public.cards DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_cards_require_card_types();
 
 
 --
@@ -9759,14 +9749,6 @@ ALTER TABLE ONLY public.faces
 
 
 --
--- Name: cards fk_cards_type; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.cards
-    ADD CONSTRAINT fk_cards_type FOREIGN KEY (type) REFERENCES public.card_types(slug);
-
-
---
 -- Name: collection_deckbuilding_prefs fk_collection_deckbuilding_prefs_collection; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -11130,5 +11112,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict EnwUMjuzXLLdVzWXKuTeEZVPwrE5ZUyidEc5vL7HVjPPHgji7hue8TdAkyRlllS
+\unrestrict RW36fTchDyOnxxLslnVm4ZPfekeCADBQ3TzVd8xR5hTDk2wAJrrnyZo7iGTOAqA
 

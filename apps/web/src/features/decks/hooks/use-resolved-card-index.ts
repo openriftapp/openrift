@@ -1,3 +1,4 @@
+import { primaryCardType } from "@openrift/shared/card-primary-type";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import { useCardSearchIndex } from "@/features/cards/hooks/use-search-index";
@@ -11,7 +12,7 @@ export function useResolvedCardIndex(allPrintings: Printing[]) {
     card: {
       cardId: row.printing.cardId,
       cardName: row.name,
-      cardType: row.printing.card.type,
+      cardType: primaryCardType(row.printing.card.types),
       cardTypes: row.printing.card.types,
       superTypes: row.printing.card.superTypes,
       domains: row.printing.card.domains,

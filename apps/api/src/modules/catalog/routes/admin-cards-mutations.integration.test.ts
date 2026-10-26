@@ -4,8 +4,8 @@ import {
   adminReq,
   createTestContext,
   deletePrintingsById,
+  insertCards,
   insertPrintings,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
@@ -41,23 +41,18 @@ if (ctx) {
     .execute();
   setId = setRow!.id;
 
-  const [cardRow] = await db
-    .insertInto("cards")
-    .values({
-      slug: "CSM-001",
-      name: "CSM Test Card",
-      type: "unit",
-      might: null,
-      energy: 2,
-      power: null,
-      mightBonus: null,
-      keywords: ["Flash"],
-      tags: [],
-    })
-    .returning("id")
-    .execute();
+  const [cardRow] = await insertCards(db, {
+    slug: "CSM-001",
+    name: "CSM Test Card",
+    types: ["unit"],
+    might: null,
+    energy: 2,
+    power: null,
+    mightBonus: null,
+    keywords: ["Flash"],
+    tags: [],
+  });
   cardId = cardRow!.id;
-  await syncCardCardTypes(db);
 
   await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", ordinal: 0 }).execute();
 
@@ -653,12 +648,6 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       );
       expect(res.status).toBe(204);
 
-      const row = await db
-        .selectFrom("cards")
-        .select("type")
-        .where("slug", "=", cardSlug)
-        .executeTakeFirstOrThrow();
-      expect(row.type).toBe("spell");
       const junction = await db
         .selectFrom("cardCardTypes")
         .select(["typeSlug", "position"])
@@ -899,14 +888,16 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
 
       const card = await db
         .selectFrom("cards")
-        .select(["slug", "name", "type"])
-        .where("slug", "=", "CSM-NEW-001")
+        .innerJoin("cardCardTypes as cct", "cct.cardId", "cards.id")
+        .select(["cards.slug", "cards.name", "cct.typeSlug"])
+        .where("cards.slug", "=", "CSM-NEW-001")
+        .where("cct.position", "=", 0)
         .executeTakeFirst();
       expect(card).toBeDefined();
       // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
       expect(card!.name).toBe("CSM New Card");
       // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- asserted above
-      expect(card!.type).toBe("spell");
+      expect(card!.typeSlug).toBe("spell");
 
       // Verify alias was created (every accepted card must have at least one)
       const alias = await db

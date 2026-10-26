@@ -14,8 +14,8 @@ import {
 } from "./deck-compare-sources";
 
 const cardsById: Record<string, Card> = {
-  "unit-1": stubCard({ name: "Footsoldier", type: "unit", domains: ["fury"] }),
-  "spell-1": stubCard({ name: "Zap", type: "spell", domains: ["mind"] }),
+  "unit-1": stubCard({ name: "Footsoldier", types: ["unit"], domains: ["fury"] }),
+  "spell-1": stubCard({ name: "Zap", types: ["spell"], domains: ["mind"] }),
 };
 
 function serverDeck(overrides: {

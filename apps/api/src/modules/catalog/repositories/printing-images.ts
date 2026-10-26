@@ -4,6 +4,7 @@ import type { CardFace, FallbackArtMode } from "@openrift/shared/types/enums";
 import type { Kysely, RawBuilder } from "kysely";
 import { sql } from "kysely";
 
+import { cardTypes } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 
 function printingFaceId(printingId: string, face: CardFace): RawBuilder<string | null> {
@@ -66,14 +67,13 @@ export function printingImagesRepo(db: Kysely<Database>) {
       const rows = await db
         .selectFrom("faceImages as pi")
         .innerJoin("faces as f", "f.id", "pi.faceId")
-        .innerJoin("cards as c", "c.id", "f.cardId")
-        .select(["pi.imageFileId", "c.type"])
+        .select(["pi.imageFileId", cardTypes("f.cardId").as("types")])
         .where("pi.imageFileId", "in", [...imageIds])
         .distinct()
         .execute();
       return new Set(
         rows
-          .filter((row) => getOrientation([row.type]) === "landscape")
+          .filter((row) => getOrientation(row.types) === "landscape")
           .map((row) => row.imageFileId),
       );
     },

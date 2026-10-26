@@ -2,6 +2,7 @@ import type { MissingImagePrinting } from "@openrift/shared/contracts/card-submi
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
+import { primaryCardType } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import type {
   CardSubmissionKind,
@@ -339,7 +340,8 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
       const cardRow = cardId
         ? ((await db
             .selectFrom("cards")
-            .select(["slug", "name", "type", "might", "energy", "power", "mightBonus", "tags"])
+            .select(["slug", "name", "might", "energy", "power", "mightBonus", "tags"])
+            .select(primaryCardType("cards.id").as("type"))
             .where("id", "=", cardId)
             .executeTakeFirst()) ?? null)
         : null;

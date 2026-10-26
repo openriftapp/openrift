@@ -36,7 +36,6 @@ function makePrinting(
     card: {
       slug: "test-card",
       name: "Test Card",
-      type: "unit",
       types: ["unit"],
       superTypes: [],
       domains: [],
@@ -305,7 +304,6 @@ describe("matchEntries — Legend colloquial names", () => {
     card: {
       slug: "emperor-of-the-sands",
       name: "Emperor of the Sands",
-      type: "legend",
       types: ["legend"],
       superTypes: [],
       domains: [],

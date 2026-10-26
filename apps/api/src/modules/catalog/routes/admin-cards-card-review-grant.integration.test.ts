@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   adminReq,
   createTestContext,
+  insertCards,
   insertPrintings,
   refreshCardAggregates,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
@@ -64,41 +64,32 @@ if (adminCtx && grantCtx) {
     .execute();
 
   // Matched card with candidates from both providers.
-  const [card1] = await db
-    .insertInto("cards")
-    .values({
-      slug: "CRG-001",
-      name: "CRG Matched Card",
-      type: "unit",
-      might: 2,
-      energy: 2,
-      power: 1,
-      mightBonus: null,
-      keywords: [],
-      tags: [],
-    })
-    .returning("id")
-    .execute();
+  const [card1] = await insertCards(db, {
+    slug: "CRG-001",
+    name: "CRG Matched Card",
+    types: ["unit"],
+    might: 2,
+    energy: 2,
+    power: 1,
+    mightBonus: null,
+    keywords: [],
+    tags: [],
+  });
   card1Id = card1!.id;
 
   // Matched card whose only candidate is from the denied provider.
-  const [card2] = await db
-    .insertInto("cards")
-    .values({
-      slug: "CRG-002",
-      name: "CRG Denied Only Card",
-      type: "spell",
-      might: null,
-      energy: 1,
-      power: null,
-      mightBonus: null,
-      keywords: [],
-      tags: [],
-    })
-    .returning("id")
-    .execute();
+  const [card2] = await insertCards(db, {
+    slug: "CRG-002",
+    name: "CRG Denied Only Card",
+    types: ["spell"],
+    might: null,
+    energy: 1,
+    power: null,
+    mightBonus: null,
+    keywords: [],
+    tags: [],
+  });
   card2Id = card2!.id;
-  await syncCardCardTypes(db);
 
   await db
     .insertInto("cardDomains")

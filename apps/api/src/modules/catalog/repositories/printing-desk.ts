@@ -8,6 +8,7 @@ import type { CardFace } from "@openrift/shared/types/enums";
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
+import { cardTypes, primaryCardType } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import { imageUrlWithOriginal, joinFaceImage } from "../../../repositories/query-helpers.js";
 import type { FullPrintingRow, PrintingUpdate } from "./catalog-mutations.js";
@@ -63,7 +64,7 @@ export interface DeskCardRow {
   id: string;
   slug: string;
   name: string;
-  type: string;
+  types: string[];
   domains: string[];
 }
 
@@ -153,7 +154,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
         "pf.cardId",
         "c.slug as cardSlug",
         "c.name as cardName",
-        "c.type as cardType",
+        primaryCardType("c.id").as("cardType"),
         "pf.setId",
         "s.name as setName",
         "s.slug as setSlug",
@@ -414,7 +415,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
     async getDeskCardBySlug(slug: string): Promise<DeskCardRow | undefined> {
       const card = await db
         .selectFrom("cards")
-        .select(["id", "slug", "name", "type"])
+        .select(["id", "slug", "name", cardTypes("cards.id").as("types")])
         .where("slug", "=", slug)
         .executeTakeFirst();
       if (!card) {
@@ -440,7 +441,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
           "s.printingId",
           "s.cardId",
           "c.name as cardName",
-          "c.type as cardType",
+          primaryCardType("c.id").as("cardType"),
           "s.publicCode",
           "s.finish",
           "s.artist",

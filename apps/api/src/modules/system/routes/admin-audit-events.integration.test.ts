@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   adminReq,
   createTestContext,
+  insertCards,
   seedTestUser,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
@@ -27,23 +27,18 @@ if (adminCtx && grantCtx) {
     .values({ userId: GRANT_HOLDER_ID, section: "card-review" })
     .execute();
 
-  const [card] = await db
-    .insertInto("cards")
-    .values({
-      slug: "AER-001",
-      name: "AER Audit Card",
-      type: "unit",
-      might: 1,
-      energy: 1,
-      power: 1,
-      mightBonus: null,
-      keywords: [],
-      tags: [],
-    })
-    .returning("id")
-    .execute();
+  const [card] = await insertCards(db, {
+    slug: "AER-001",
+    name: "AER Audit Card",
+    types: ["unit"],
+    might: 1,
+    energy: 1,
+    power: 1,
+    mightBonus: null,
+    keywords: [],
+    tags: [],
+  });
   cardId = card!.id;
-  await syncCardCardTypes(db);
   await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", ordinal: 0 }).execute();
   await db.insertInto("cardNameAliases").values({ cardId, normName: "aerauditcard" }).execute();
 }

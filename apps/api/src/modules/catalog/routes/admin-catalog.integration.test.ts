@@ -4,8 +4,8 @@ import {
   adminReq,
   createTestContext,
   deletePrintingsByFace,
+  insertCards,
   insertPrintings,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
@@ -289,22 +289,17 @@ describe.skipIf(!ctx)("Admin catalog routes (integration)", () => {
 
       // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
       const { db: testDb } = ctx!;
-      const [tempCard] = await testDb
-        .insertInto("cards")
-        .values({
-          slug: "CAT-PRINT-001",
-          name: "CAT Print Card",
-          type: "unit",
-          might: null,
-          energy: 1,
-          power: null,
-          mightBonus: null,
-          keywords: [],
-          tags: [],
-        })
-        .returning("id")
-        .execute();
-      await syncCardCardTypes(testDb);
+      const [tempCard] = await insertCards(testDb, {
+        slug: "CAT-PRINT-001",
+        name: "CAT Print Card",
+        types: ["unit"],
+        might: null,
+        energy: 1,
+        power: null,
+        mightBonus: null,
+        keywords: [],
+        tags: [],
+      });
 
       await testDb
         .insertInto("cardDomains")

@@ -247,7 +247,7 @@ ADR-025's push response returned counts only. It now also returns a per-entry ar
 }
 ```
 
-_Update (ADR-033): the field is now `tournamentId` and claim URLs land at `/tournaments/claim/<token>`. The `entriesIgnored` count that edit-takeover added is deprecated (always 0 since ADR-027) but still returned so existing integrations keep parsing._
+_Update (ADR-033): the field is now `tournamentId` and claim URLs land at `/tournaments/claim/<token>`._
 
 This is additive and backward-compatible: a provider that ignores the new field keeps working. It is the second change to ADR-025's ingest contract, after the `openrift:` rejection. Building an absolute `claimUrl` requires `SITE_URL` in the API config (the web app already reads it, the API does not yet), kept an env var rather than hardcoded.
 

@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   createTestContext,
+  insertCards,
   insertPrintings,
   req,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
@@ -28,23 +28,18 @@ if (ctx) {
     .execute();
   setId = setRow!.id;
 
-  const [cardRow] = await db
-    .insertInto("cards")
-    .values({
-      slug: "PRC-001",
-      name: "PRC Price Card",
-      type: "unit",
-      might: null,
-      energy: 3,
-      power: null,
-      mightBonus: null,
-      keywords: [],
-      tags: [],
-    })
-    .returning("id")
-    .execute();
+  const [cardRow] = await insertCards(db, {
+    slug: "PRC-001",
+    name: "PRC Price Card",
+    types: ["unit"],
+    might: null,
+    energy: 3,
+    power: null,
+    mightBonus: null,
+    keywords: [],
+    tags: [],
+  });
   cardId = cardRow!.id;
-  await syncCardCardTypes(db);
 
   await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", ordinal: 0 }).execute();
 

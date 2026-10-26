@@ -5,7 +5,7 @@ import type { PlayloltcgEventStandingsTable } from "../../../db/tables/meta-sour
 import type { MetaEventPlayerOverlaysTable } from "../../../db/tables/meta.js";
 import type { Repos } from "../../../deps.js";
 import { createRepos } from "../../../deps.js";
-import { createDbContext, syncCardCardTypes } from "../../../test/integration-context.js";
+import { createDbContext, insertCards } from "../../../test/integration-context.js";
 import { META_ARCHIVE_USER_ID } from "../repositories/meta-shared.js";
 import { metaRepo } from "../repositories/meta.js";
 import { playerSourceKey } from "./ingest-meta-overlays.js";
@@ -39,21 +39,16 @@ if (ctx) {
   const { db } = ctx;
   repos = createRepos(db);
 
-  const [spell] = await db
-    .insertInto("cards")
-    .values({
-      name: "MPI Spell",
-      slug: "mpi-spell",
-      type: "spell",
-      normName: "mpispell",
-      keywords: [],
-      tags: [],
-    })
-    .returning("id")
-    .execute();
+  const [spell] = await insertCards(db, {
+    name: "MPI Spell",
+    slug: "mpi-spell",
+    types: ["spell"],
+    normName: "mpispell",
+    keywords: [],
+    tags: [],
+  });
   spellCardId = spell!.id;
   createdCardIds.push(spell!.id);
-  await syncCardCardTypes(db);
 
   afterAll(async () => {
     // Events first: `meta_event_players.deck_id` is ON DELETE RESTRICT, so the
@@ -284,23 +279,23 @@ describe.skipIf(!ctx)("promoteMetaEvent", () => {
       );
     });
 
-    it("adopts a row written before the identity column existed instead of duplicating it", async () => {
-      const { metaEventId } = await seedMirroredEvent("mpi-playloltcg-legacy", [TWO_PLAYERS[0]!]);
-      const legacyId = await seedStandingsOnlyPlayer(metaEventId, "MPI Ashe", 9);
+    it("adopts a row stored without a source identity instead of duplicating it", async () => {
+      const { metaEventId } = await seedMirroredEvent("mpi-playloltcg-unkeyed", [TWO_PLAYERS[0]!]);
+      const unkeyedId = await seedStandingsOnlyPlayer(metaEventId, "MPI Ashe", 9);
 
       await promoteMetaEvent(repos, metaEventId);
 
       const after = await repo.rawStandingsForEvent(metaEventId);
       expect(after).toHaveLength(1);
-      expect(after[0]).toMatchObject({ id: legacyId, sourceIdentity: "pu5001", rank: 1 });
+      expect(after[0]).toMatchObject({ id: unkeyedId, sourceIdentity: "pu5001", rank: 1 });
     });
 
-    it("lets only one standing claim a legacy row, so a shared name cannot flip its key", async () => {
-      const { metaEventId } = await seedMirroredEvent("mpi-playloltcg-legacy-shared", [
+    it("lets only one standing claim an unkeyed row, so a shared name cannot flip its key", async () => {
+      const { metaEventId } = await seedMirroredEvent("mpi-playloltcg-unkeyed-shared", [
         { playerKey: "nMPI Twins#1", playerName: "MPI Twins", rank: 3 },
         { playerKey: "nMPI Twins#2", playerName: "MPI Twins", rank: 4 },
       ]);
-      const legacyId = await seedStandingsOnlyPlayer(metaEventId, "MPI Twins", 9);
+      const unkeyedId = await seedStandingsOnlyPlayer(metaEventId, "MPI Twins", 9);
 
       await promoteMetaEvent(repos, metaEventId);
       const first = await repo.rawStandingsForEvent(metaEventId);
@@ -308,7 +303,7 @@ describe.skipIf(!ctx)("promoteMetaEvent", () => {
       const second = await repo.rawStandingsForEvent(metaEventId);
 
       expect(first).toHaveLength(2);
-      expect(first.some((row) => row.id === legacyId)).toBe(true);
+      expect(first.some((row) => row.id === unkeyedId)).toBe(true);
       expect(second.map((row) => row.id).toSorted()).toEqual(first.map((row) => row.id).toSorted());
     });
 

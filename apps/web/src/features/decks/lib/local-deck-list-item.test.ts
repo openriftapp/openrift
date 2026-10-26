@@ -8,16 +8,16 @@ import { stubCard } from "@/test/factories";
 import { localDeckToListItem } from "./local-deck-list-item";
 
 const cardsById: Record<string, Card> = {
-  "legend-1": stubCard({ name: "My Legend", type: "legend", domains: ["fury"] }),
+  "legend-1": stubCard({ name: "My Legend", types: ["legend"], domains: ["fury"] }),
   "champ-1": stubCard({
     name: "My Champ",
-    type: "unit",
+    types: ["unit"],
     superTypes: ["champion"],
     domains: ["fury"],
   }),
-  "unit-1": stubCard({ name: "Footsoldier", type: "unit", domains: ["fury"] }),
-  "spell-1": stubCard({ name: "Zap", type: "spell", domains: ["mind"] }),
-  "rune-1": stubCard({ name: "Rune", type: "rune", domains: ["fury"] }),
+  "unit-1": stubCard({ name: "Footsoldier", types: ["unit"], domains: ["fury"] }),
+  "spell-1": stubCard({ name: "Zap", types: ["spell"], domains: ["mind"] }),
+  "rune-1": stubCard({ name: "Rune", types: ["rune"], domains: ["fury"] }),
 };
 
 const ctx = {

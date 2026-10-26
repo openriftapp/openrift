@@ -11,6 +11,7 @@ import {
 import {
   createDbContext,
   deletePrintingsById,
+  insertCard,
   insertPrinting,
   seedTestUser,
 } from "../../../test/integration-context.js";
@@ -856,21 +857,17 @@ describe.skipIf(!coverCtx)("copies coverPrintingsAcross (integration)", () => {
     image: "rehosted" | "unrehosted" | "none",
   ): Promise<{ printingId: string; imageId: string | null }> {
     counter += 1;
-    const card = await db
-      .insertInto("cards")
-      .values({
-        slug: `cover-itest-${userId.slice(0, 8)}-${counter}`,
-        name: `Cover Test Card ${counter}`,
-        type: "unit",
-        might: 2,
-        energy: 1,
-        power: null,
-        mightBonus: null,
-        keywords: [],
-        tags: [],
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const card = await insertCard(db, {
+      slug: `cover-itest-${userId.slice(0, 8)}-${counter}`,
+      name: `Cover Test Card ${counter}`,
+      types: ["unit"],
+      might: 2,
+      energy: 1,
+      power: null,
+      mightBonus: null,
+      keywords: [],
+      tags: [],
+    });
     cardIds.push(card.id);
     const printing = await insertPrinting(db, {
       cardId: card.id,

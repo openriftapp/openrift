@@ -1,4 +1,5 @@
 import { isBanInEffect } from "@openrift/shared/card-ban";
+import { primaryCardType } from "@openrift/shared/card-primary-type";
 import { validateDeck } from "@openrift/shared/deck-rules";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import type { DeckCheckMatchStatus, ZoneSuggestion } from "@openrift/shared/types/api/deck-check";
@@ -31,7 +32,6 @@ export interface EntryAdvisories {
 
 interface CardDetail {
   name: string;
-  type: string;
   types: string[];
   superTypes: string[];
 }
@@ -169,7 +169,7 @@ export async function buildEntryAdvisories(
           zone: card.zone as DeckZone,
           quantity: card.quantity,
           cardName: detail.name,
-          cardType: detail.type as CardType,
+          cardType: primaryCardType(detail.types as CardType[]),
           cardTypes: detail.types as CardType[],
           superTypes: detail.superTypes as SuperType[],
           domains: detail.domains as Domain[],
@@ -225,8 +225,9 @@ export async function buildEntryAdvisories(
     if (!detail || !countedZones.has(card.zone)) {
       continue;
     }
-    if (!excludedTypes.has(detail.type)) {
-      typeCountMap.set(detail.type, (typeCountMap.get(detail.type) ?? 0) + card.quantity);
+    const [primaryType] = detail.types;
+    if (primaryType !== undefined && !excludedTypes.has(primaryType)) {
+      typeCountMap.set(primaryType, (typeCountMap.get(primaryType) ?? 0) + card.quantity);
     }
     for (const domain of detail.domains) {
       domainCountMap.set(domain, (domainCountMap.get(domain) ?? 0) + card.quantity);

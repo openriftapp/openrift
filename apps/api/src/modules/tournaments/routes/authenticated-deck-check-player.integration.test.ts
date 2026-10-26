@@ -379,9 +379,8 @@ describe.skipIf(!ownerCtx)("deck-check player self-service (integration, ADR-026
           cards: [{ name: CARD_FURY_UNIT.name, quantity: 1, section: "main" }],
         },
       ]);
-      const result = (await readJson(res)) as { entriesUpdated: number; entriesIgnored: number };
+      const result = (await readJson(res)) as { entriesUpdated: number };
       expect(result.entriesUpdated).toBe(1);
-      expect(result.entriesIgnored).toBe(0);
 
       const after = await repos.deckCheck.getEntryByExternalId(eventId, "p-entry-1");
       expect(after?.playerName).toBe("Renamed By Provider");

@@ -113,13 +113,13 @@ describe("OpenAPI doc split", () => {
     expect(JSON.stringify(body)).toContain('"$ref":"#/components/schemas/CatalogCard"');
   });
 
-  it("marks the single card type as deprecated in favour of types", async () => {
+  it("describes card types only as the ordered types list", async () => {
     const doc = await fetchDoc("/api/developers/doc");
-    const card = doc.components?.schemas?.Card as {
-      properties: Record<string, { deprecated?: boolean }>;
-    };
-    expect(card.properties.type?.deprecated).toBe(true);
-    expect(card.properties.types?.deprecated).toBeUndefined();
+    for (const name of ["Card", "CatalogCard"]) {
+      const card = doc.components?.schemas?.[name] as { properties: Record<string, unknown> };
+      expect(card.properties, name).not.toHaveProperty("type");
+      expect(card.properties, name).toHaveProperty("types");
+    }
   });
 
   it("sets servers from the forwarded origin and omits it otherwise", async () => {

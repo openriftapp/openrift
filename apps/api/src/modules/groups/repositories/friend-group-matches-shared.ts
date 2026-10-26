@@ -256,7 +256,7 @@ async function loadPromisedIncoming(
       eb.cast<number>(eb.fn.sum(eb.ref("t.quantity")), "integer").as("quantity"),
     ])
     .where("t.receiverUserId", "in", ownerIds)
-    .where("t.status", "in", ["reserved", "completed"])
+    .where("t.status", "=", "reserved")
     .where("t.receiverSyncAppliedAt", "is", null)
     .groupBy(["t.receiverUserId", "t.printingId", "pc.cardId"])
     .execute();

@@ -62,8 +62,8 @@ describe("groupItemsByField", () => {
   });
 
   it("labels type headers with the display name, not the slug", () => {
-    const unit = item(stubPrinting({ card: { type: "unit" } }));
-    const spell = item(stubPrinting({ card: { type: "spell" } }));
+    const unit = item(stubPrinting({ card: { types: ["unit"] } }));
+    const spell = item(stubPrinting({ card: { types: ["spell"] } }));
 
     const groups = groupItemsByField([unit, spell], "type", ORDERS, LABELS);
 
@@ -72,7 +72,7 @@ describe("groupItemsByField", () => {
 
   it("fans multi-type cards into one section per type", () => {
     const unitGear = item(stubPrinting({ card: { types: ["unit", "gear"] } }));
-    const spell = item(stubPrinting({ card: { type: "spell" } }));
+    const spell = item(stubPrinting({ card: { types: ["spell"] } }));
 
     const groups = groupItemsByField([unitGear, spell], "type", ORDERS, LABELS);
 

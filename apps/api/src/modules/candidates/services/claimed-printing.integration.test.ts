@@ -8,6 +8,7 @@ import { createTransact } from "../../../deps.js";
 import {
   createDbContext,
   deletePrintingsByFace,
+  insertCards,
   insertPrinting,
   seedTestUser,
 } from "../../../test/integration-context.js";
@@ -118,18 +119,14 @@ describe.skipIf(!ctx)("claimed printings on user submissions (integration)", () 
       .execute();
     setId = set!.id;
     for (const name of ["CPS Heimer", "CPS Bird", "CPS Gold"]) {
-      const [card] = await db
-        .insertInto("cards")
-        .values({
-          name,
-          slug: name.toLowerCase().replace(" ", "-"),
-          type: "other",
-          normName: normalizeNameForIdentity(name),
-          keywords: [],
-          tags: [],
-        })
-        .returning("id")
-        .execute();
+      const [card] = await insertCards(db, {
+        name,
+        slug: name.toLowerCase().replace(" ", "-"),
+        types: ["other"],
+        normName: normalizeNameForIdentity(name),
+        keywords: [],
+        tags: [],
+      });
       cardIds[name] = card!.id;
     }
     const base = await insertPrinting(db, {

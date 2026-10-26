@@ -36,7 +36,7 @@ const QUERY = `
          s.slug as set_slug,
          p.public_code as public_code,
          p.language as language,
-         c.type as card_type,
+         (select cct.type_slug from card_card_types cct where cct.card_id = c.id order by cct.position limit 1) as card_type,
          p.art_variant as art_variant,
          p.is_overnumbered as is_overnumbered,
          array_to_string(p.marker_slugs, '+') as markers

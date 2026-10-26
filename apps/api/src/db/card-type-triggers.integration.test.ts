@@ -1,92 +1,65 @@
 import { sql } from "kysely";
 import { afterAll, describe, expect, it } from "vitest";
 
-import { createDbContext } from "../test/integration-context.js";
+import { createDbContext, insertCard } from "../test/integration-context.js";
 
 const ctx = createDbContext("a0000000-0193-4000-a000-000000000001");
 
-/**
- * Deferred constraint triggers guarantee every card keeps at least one
- * `card_card_types` row and that `cards.type` tracks the position-0 slug,
- * even for hand-written SQL that bypasses the repositories.
- */
-describe.skipIf(!ctx)("card type junction triggers (integration, migration 193)", () => {
+const BARE_CARD = {
+  name: "Trigger Bare Card",
+  might: null,
+  energy: null,
+  power: null,
+  mightBonus: null,
+  keywords: [],
+  tags: [],
+};
+
+describe.skipIf(!ctx)("card type junction triggers (integration)", () => {
   const { db } = ctx!;
 
-  const createdSlugs = ["TRG193-BARE", "TRG193-MULTI"];
+  const createdSlugs = ["TRG193-BARE", "TRG193-MULTI", "TRG193-SINGLE"];
 
   afterAll(async () => {
     // card_card_types rows cascade with the card
     await db.deleteFrom("cards").where("slug", "in", createdSlugs).execute();
   });
 
-  it("seeds the junction from cards.type when a bare INSERT skips it", async () => {
-    const [card] = await db
-      .insertInto("cards")
-      .values({
-        slug: "TRG193-BARE",
-        name: "Trigger Bare Card",
-        type: "unit",
-        might: null,
-        energy: null,
-        power: null,
-        mightBonus: null,
-        keywords: [],
-        tags: [],
-      })
-      .returning("id")
-      .execute();
+  it("rejects a card inserted without any junction row", async () => {
+    await expect(
+      db
+        .insertInto("cards")
+        .values({ ...BARE_CARD, slug: "TRG193-BARE" })
+        .execute(),
+    ).rejects.toThrow(/must have at least one card_card_types row/u);
 
-    const junction = await db
-      .selectFrom("cardCardTypes")
-      .select(["typeSlug", "position"])
-      .where("cardId", "=", card!.id)
-      .execute();
-    expect(junction).toEqual([{ typeSlug: "unit", position: 0 }]);
+    const row = await db
+      .selectFrom("cards")
+      .select("id")
+      .where("slug", "=", "TRG193-BARE")
+      .executeTakeFirst();
+    expect(row).toBeUndefined();
   });
 
-  it("does not double-seed when card and junction are written in one transaction", async () => {
-    const cardId = await db.transaction().execute(async (trx) => {
-      const [card] = await trx
-        .insertInto("cards")
-        .values({
-          slug: "TRG193-MULTI",
-          name: "Trigger Unit Gear",
-          type: "unit",
-          might: null,
-          energy: null,
-          power: null,
-          mightBonus: null,
-          keywords: [],
-          tags: [],
-        })
-        .returning("id")
-        .execute();
-      await trx
-        .insertInto("cardCardTypes")
-        .values([
-          { cardId: card!.id, typeSlug: "unit", position: 0 },
-          { cardId: card!.id, typeSlug: "gear", position: 1 },
-        ])
-        .execute();
-      return card!.id;
+  it("accepts a card and its ordered types written in one transaction", async () => {
+    const card = await insertCard(db, {
+      ...BARE_CARD,
+      slug: "TRG193-MULTI",
+      name: "Trigger Unit Gear",
+      types: ["unit", "gear"],
     });
 
     const junction = await db
       .selectFrom("cardCardTypes")
       .select("typeSlug")
-      .where("cardId", "=", cardId)
+      .where("cardId", "=", card.id)
       .orderBy("position")
       .execute();
     expect(junction.map((row) => row.typeSlug)).toEqual(["unit", "gear"]);
   });
 
   it("rejects a transaction that leaves a card with zero junction rows", async () => {
-    const card = await db
-      .selectFrom("cards")
-      .select("id")
-      .where("slug", "=", "TRG193-BARE")
-      .executeTakeFirstOrThrow();
+    const card = await insertCard(db, { ...BARE_CARD, slug: "TRG193-SINGLE" });
 
     await expect(
       db.deleteFrom("cardCardTypes").where("cardId", "=", card.id).execute(),
@@ -100,53 +73,18 @@ describe.skipIf(!ctx)("card type junction triggers (integration, migration 193)"
     expect(junction).toHaveLength(1);
   });
 
-  it("re-syncs cards.type to the position-0 slug on a replace flow", async () => {
-    const card = await db
-      .selectFrom("cards")
-      .select("id")
-      .where("slug", "=", "TRG193-MULTI")
-      .executeTakeFirstOrThrow();
-
-    await db.transaction().execute(async (trx) => {
-      await trx.deleteFrom("cardCardTypes").where("cardId", "=", card.id).execute();
-      await trx
-        .insertInto("cardCardTypes")
-        .values([
-          { cardId: card.id, typeSlug: "gear", position: 0 },
-          { cardId: card.id, typeSlug: "unit", position: 1 },
-        ])
-        .execute();
+  it("lets a card delete cascade without a false rejection", async () => {
+    const card = await insertCard(db, {
+      ...BARE_CARD,
+      slug: "TRG193-CASCADE",
+      name: "Trigger Cascade Card",
+      types: ["spell"],
     });
 
-    const row = await db
-      .selectFrom("cards")
-      .select("type")
-      .where("id", "=", card.id)
-      .executeTakeFirstOrThrow();
-    expect(row.type).toBe("gear");
-  });
-
-  it("lets a card delete cascade without a false rejection", async () => {
-    const [card] = await db
-      .insertInto("cards")
-      .values({
-        slug: "TRG193-CASCADE",
-        name: "Trigger Cascade Card",
-        type: "spell",
-        might: null,
-        energy: null,
-        power: null,
-        mightBonus: null,
-        keywords: [],
-        tags: [],
-      })
-      .returning("id")
-      .execute();
-
-    await db.deleteFrom("cards").where("id", "=", card!.id).execute();
+    await db.deleteFrom("cards").where("id", "=", card.id).execute();
 
     const orphaned = await sql<{ count: number }>`
-      SELECT count(*)::int AS count FROM card_card_types WHERE card_id = ${card!.id}
+      SELECT count(*)::int AS count FROM card_card_types WHERE card_id = ${card.id}
     `.execute(db);
     expect(orphaned.rows[0]!.count).toBe(0);
   });

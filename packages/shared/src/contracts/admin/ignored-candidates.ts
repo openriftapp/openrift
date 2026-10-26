@@ -34,7 +34,7 @@ const printingLinkSchema = z.object({
 });
 
 const printingLinkKey = z.object({
-  provider: z.string(),
+  provider: z.string().min(1),
   externalId: z.string().min(1),
   finish: z.string(),
 });

@@ -167,7 +167,7 @@ function LinkProviderCell({ row }: AdminCellSlotProps<PrintingLink>) {
   if (!row) {
     return null;
   }
-  return <Badge variant="outline">{row.provider || "any source"}</Badge>;
+  return <Badge variant="outline">{row.provider}</Badge>;
 }
 
 function LinkFinishCell({ row }: AdminCellSlotProps<PrintingLink>) {
@@ -259,7 +259,7 @@ function PinnedPrintingLinks({ links }: { links: readonly PrintingLink[] }) {
           }),
         confirm: (row) => ({
           title: `Unpin “${row.externalId}”?`,
-          description: `Future uploads from ${row.provider || "any source"} stop linking this row to ${row.shortCode} on their own. The candidates already linked to it stay linked.`,
+          description: `Future uploads from ${row.provider} stop linking this row to ${row.shortCode} on their own. The candidates already linked to it stay linked.`,
         }),
       }}
     />

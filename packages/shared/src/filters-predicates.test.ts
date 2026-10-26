@@ -306,7 +306,7 @@ describe("filterCards predicates", () => {
         cardId: "low",
         card: {
           name: "Low Energy",
-          type: "unit",
+          types: ["unit"],
           superTypes: [],
           domains: [],
           energy: 1,
@@ -329,7 +329,7 @@ describe("filterCards predicates", () => {
         cardId: "high",
         card: {
           name: "High Energy",
-          type: "unit",
+          types: ["unit"],
           superTypes: [],
           domains: [],
           energy: 10,

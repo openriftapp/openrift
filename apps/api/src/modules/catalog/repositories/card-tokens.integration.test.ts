@@ -1,8 +1,10 @@
+import type { CardType } from "@openrift/shared/types/enums";
 import { afterAll, describe, expect, it } from "vitest";
 
 import {
   createDbContext,
   deletePrintingsByFace,
+  insertCards,
   insertPrintings,
   refreshCardAggregates,
 } from "../../../test/integration-context.js";
@@ -20,16 +22,15 @@ let summonerId: string;
 let plainId: string;
 let spritePrintingId: string;
 
-/**
- * The card-type junction is left to a trigger that seeds it from `cards.type`
- * at commit; writing the row here too collides on `card_card_types_pkey`.
- */
-async function seedCard(name: string, type: string, normName: string): Promise<string> {
-  const [card] = await ctx!.db
-    .insertInto("cards")
-    .values({ name, slug: normName, type, normName, keywords: [], tags: [] })
-    .returning("id")
-    .execute();
+async function seedCard(name: string, type: CardType, normName: string): Promise<string> {
+  const [card] = await insertCards(ctx!.db, {
+    name,
+    slug: normName,
+    types: [type],
+    normName,
+    keywords: [],
+    tags: [],
+  });
   return card!.id;
 }
 

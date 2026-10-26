@@ -339,11 +339,6 @@ function deriveActionNeeded(
   if (status === "reserved") {
     return viewerSyncAppliedAt === null ? "settle" : null;
   }
-  // Only legacy rows that finished before partial settles existed can be
-  // `completed` with a side still outstanding; they keep their settle action.
-  if (status === "completed") {
-    return viewerSyncAppliedAt === null ? "settle" : null;
-  }
   return null;
 }
 

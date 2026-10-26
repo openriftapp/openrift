@@ -4,9 +4,9 @@ import { createRepos } from "../../../deps.js";
 import { CARD_FURY_UNIT } from "../../../test/fixtures/constants.js";
 import {
   createTestContext,
+  insertCard,
   refreshCardAggregates,
   req,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
@@ -112,33 +112,27 @@ describe.skipIf(!ownerCtx)("deck-check ingest push (integration, ADR-033)", () =
 
     // Two cards sharing a name make a name lookup ambiguous.
     for (const slug of ["dc-ingest-ambiguous-a", "dc-ingest-ambiguous-b"]) {
-      const row = await db
-        .insertInto("cards")
-        .values({
-          slug,
-          name: "Ambiguous Twin",
-          type: "unit",
-          might: null,
-          energy: 2,
-          power: null,
-          mightBonus: null,
-          keywords: [],
-          tags: [],
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
+      const row = await insertCard(db, {
+        slug,
+        name: "Ambiguous Twin",
+        types: ["unit"],
+        might: null,
+        energy: 2,
+        power: null,
+        mightBonus: null,
+        keywords: [],
+        tags: [],
+      });
       ambiguousCardIds.push(row.id);
     }
     // Resolution ranks against the catalog index, which reads through
     // `mv_card_aggregates`. A bare insert is invisible to it until the junction
     // is mirrored and the view is refreshed, exactly as it is to the catalog.
-    await syncCardCardTypes(db);
     await refreshCardAggregates(db);
   });
 
   afterAll(async () => {
     await db.deleteFrom("friendGroups").where("id", "=", groupId).execute();
-    await syncCardCardTypes(db);
     if (ambiguousCardIds.length > 0) {
       await db.deleteFrom("cards").where("id", "in", ambiguousCardIds).execute();
     }
@@ -368,24 +362,19 @@ describe.skipIf(!ownerCtx)("deck-check ingest push (integration, ADR-033)", () =
   });
 
   it("re-resolves unmatched lines once the card exists in the catalog", async () => {
-    const inserted = await db
-      .insertInto("cards")
-      .values({
-        slug: "dc-ingest-late-addition",
-        name: "Totally Unknown Card",
-        type: "unit",
-        might: null,
-        energy: 1,
-        power: null,
-        mightBonus: null,
-        keywords: [],
-        tags: [],
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const inserted = await insertCard(db, {
+      slug: "dc-ingest-late-addition",
+      name: "Totally Unknown Card",
+      types: ["unit"],
+      might: null,
+      energy: 1,
+      power: null,
+      mightBonus: null,
+      keywords: [],
+      tags: [],
+    });
     // The card enters the catalog (and so the resolver's index) only once the
     // junction is mirrored and the aggregates view is refreshed.
-    await syncCardCardTypes(db);
     await refreshCardAggregates(db);
 
     try {
@@ -409,7 +398,6 @@ describe.skipIf(!ownerCtx)("deck-check ingest push (integration, ADR-033)", () =
         .set({ resolvedCardId: null, matchStatus: "unmatched" })
         .where("resolvedCardId", "=", inserted.id)
         .execute();
-      await syncCardCardTypes(db);
       await db.deleteFrom("cards").where("id", "=", inserted.id).execute();
     }
   });

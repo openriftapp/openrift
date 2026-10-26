@@ -20,12 +20,10 @@ function makeSet(
 }
 
 function makeCard(overrides: Partial<CatalogResponseCardValue> = {}): CatalogResponseCardValue {
-  const type = overrides.type ?? overrides.types?.[0] ?? "unit";
   return {
     slug: "test-card",
     name: "Test Card",
-    type,
-    types: [type],
+    types: ["unit"],
     superTypes: [],
     domains: [],
     tokenCardIds: [],
@@ -153,8 +151,8 @@ describe("extractFirstRow", () => {
 
   it("includes battlefields (the live grid shows them too)", () => {
     const cards = {
-      "unit-card": makeCard({ type: "unit" }),
-      "bf-card": makeCard({ type: "battlefield" }),
+      "unit-card": makeCard({ types: ["unit"] }),
+      "bf-card": makeCard({ types: ["battlefield"] }),
     };
     const printings = {
       "p-bf": makePrinting({ cardId: "bf-card", shortCode: "OGN-100" }),
@@ -223,14 +221,14 @@ describe("extractFirstRow", () => {
   });
 
   it("flags battlefields as rotated so the SSR preview can rotate the landscape art", () => {
-    const cards = { "bf-card": makeCard({ type: "battlefield" }) };
+    const cards = { "bf-card": makeCard({ types: ["battlefield"] }) };
     const printings = { "p-bf": makePrinting({ cardId: "bf-card", shortCode: "OGN-100" }) };
     const [card] = extractFirstRow(makeCatalog(cards, printings), NO_FILTERS, 1);
     expect(card?.rotated).toBe(true);
   });
 
   it("leaves portrait card types unrotated", () => {
-    const cards = { "unit-card": makeCard({ type: "unit" }) };
+    const cards = { "unit-card": makeCard({ types: ["unit"] }) };
     const printings = { "p-unit": makePrinting({ cardId: "unit-card" }) };
     const [card] = extractFirstRow(makeCatalog(cards, printings), NO_FILTERS, 1);
     expect(card?.rotated).toBe(false);

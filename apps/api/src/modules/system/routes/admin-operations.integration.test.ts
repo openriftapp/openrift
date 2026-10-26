@@ -7,8 +7,8 @@ import {
   adminReq,
   createTestContext,
   createUnauthenticatedTestContext,
+  insertCards,
   insertPrintings,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
@@ -83,22 +83,17 @@ async function seedMarketplaceData(marketplace: Marketplace) {
     .returning("id")
     .execute();
 
-  const [card] = await db
-    .insertInto("cards")
-    .values({
-      slug: `OPS-${marketplace}-${suffix}`,
-      name: `OPS ${marketplace} Card ${suffix}`,
-      type: "unit",
-      might: null,
-      energy: 2,
-      power: null,
-      mightBonus: null,
-      keywords: [],
-      tags: [],
-    })
-    .returning("id")
-    .execute();
-  await syncCardCardTypes(db);
+  const [card] = await insertCards(db, {
+    slug: `OPS-${marketplace}-${suffix}`,
+    name: `OPS ${marketplace} Card ${suffix}`,
+    types: ["unit"],
+    might: null,
+    energy: 2,
+    power: null,
+    mightBonus: null,
+    keywords: [],
+    tags: [],
+  });
 
   await db
     .insertInto("cardDomains")

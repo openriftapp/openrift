@@ -1,4 +1,5 @@
 import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/card-name";
+import { primaryCardType } from "@openrift/shared/card-primary-type";
 import type {
   CardResolution,
   CardSearchIndex,
@@ -87,7 +88,7 @@ function cardFromPrinting(printing: Printing): ResolvedCard {
   return {
     cardId: printing.cardId,
     cardName: legendDisplayName(printing.card),
-    cardType: printing.card.type,
+    cardType: primaryCardType(printing.card.types),
     cardTypes: printing.card.types,
     superTypes: printing.card.superTypes,
     domains: printing.card.domains,

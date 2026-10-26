@@ -3,15 +3,17 @@
  */
 
 import { createLogger } from "@openrift/shared/logger";
-import type { Insertable, Kysely } from "kysely";
+import type { CardType } from "@openrift/shared/types/enums";
+import type { Insertable, Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
 import { createApp } from "../app.js";
 import { createDb } from "../db/connect.js";
 import type { Database } from "../db/tables.js";
-import type { FacesTable, PrintingsTable } from "../db/tables/catalog.js";
+import type { CardsTable, FacesTable, PrintingsTable } from "../db/tables/catalog.js";
 import type { Services } from "../deps.js";
 import type { Io } from "../io.js";
+import { inTransaction } from "../repositories/query-helpers.js";
 
 export type { Io } from "../io.js";
 export type { Services } from "../deps.js";
@@ -202,6 +204,45 @@ export async function insertPrintings(
   return inserted;
 }
 
+/** `types` defaults to `["unit"]`; a card cannot commit without one. */
+export type TestCardValues = Insertable<CardsTable> & { types?: CardType[] };
+
+export function insertCards(
+  db: Db,
+  values: TestCardValues | readonly TestCardValues[],
+): Promise<Selectable<CardsTable>[]> {
+  return inTransaction(db, async (trx) => {
+    const inserted: Selectable<CardsTable>[] = [];
+    for (const { types = ["unit"], ...card } of Array.isArray(values) ? values : [values]) {
+      const row = await trx
+        .insertInto("cards")
+        .values(card)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+      await trx
+        .insertInto("cardCardTypes")
+        .values(
+          types.map((typeSlug: CardType, position: number) => ({
+            cardId: row.id,
+            typeSlug,
+            position,
+          })),
+        )
+        .execute();
+      inserted.push(row);
+    }
+    return inserted;
+  });
+}
+
+export async function insertCard(db: Db, value: TestCardValues): Promise<Selectable<CardsTable>> {
+  const [inserted] = await insertCards(db, value);
+  if (!inserted) {
+    throw new Error("card insert returned no row");
+  }
+  return inserted;
+}
+
 export async function insertPrinting(
   db: Db,
   value: TestPrintingValues,
@@ -262,14 +303,4 @@ export async function deletePrintingsByFace(
     .where((eb) => eb.or([eb("face1Id", "in", faceIds), eb("face2Id", "in", faceIds)]))
     .execute();
   await db.deleteFrom("faces").where("id", "in", faceIds).execute();
-}
-
-/** Call before refreshing the MV when inserting cards directly (bypassing the repos),
- *  or the missing junction rows can 500 another file's catalog test. */
-export async function syncCardCardTypes(db: Db): Promise<void> {
-  await sql`
-    INSERT INTO card_card_types (card_id, type_slug, position)
-    SELECT id, type, 0 FROM cards
-    ON CONFLICT (card_id, type_slug) DO NOTHING
-  `.execute(db);
 }

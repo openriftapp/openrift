@@ -3,6 +3,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import {
   createDbContext,
   deletePrintingsByFace,
+  insertCards,
   insertPrintings,
   refreshCardAggregates,
 } from "../../../test/integration-context.js";
@@ -20,11 +21,14 @@ let unannouncedId: string;
 let announcementId: string;
 
 async function seedCard(name: string, slug: string): Promise<string> {
-  const [card] = await ctx!.db
-    .insertInto("cards")
-    .values({ name, slug, type: "unit", normName: slug, keywords: [], tags: [] })
-    .returning("id")
-    .execute();
+  const [card] = await insertCards(ctx!.db, {
+    name,
+    slug,
+    types: ["unit"],
+    normName: slug,
+    keywords: [],
+    tags: [],
+  });
   return card!.id;
 }
 

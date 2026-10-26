@@ -4,10 +4,10 @@ import {
   adminReq,
   createTestContext,
   deletePrintingsById,
+  insertCard,
   insertPrinting,
   refreshCardAggregates,
   seedTestUser,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
@@ -94,23 +94,18 @@ if (adminCtx) {
     .executeTakeFirstOrThrow();
   setId = set.id;
 
-  const card = await db
-    .insertInto("cards")
-    .values({
-      slug: "wsq-poro-keeper",
-      name: "WSQ Poro Keeper",
-      type: "unit",
-      might: 2,
-      energy: 2,
-      power: 1,
-      mightBonus: null,
-      keywords: [],
-      tags: [],
-    })
-    .returning("id")
-    .executeTakeFirstOrThrow();
+  const card = await insertCard(db, {
+    slug: "wsq-poro-keeper",
+    name: "WSQ Poro Keeper",
+    types: ["unit"],
+    might: 2,
+    energy: 2,
+    power: 1,
+    mightBonus: null,
+    keywords: [],
+    tags: [],
+  });
   cardId = card.id;
-  await syncCardCardTypes(db);
 
   const face = {
     cardId,

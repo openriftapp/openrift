@@ -22,7 +22,6 @@ const baseCard: CardDetailResponse["card"] = {
   id: "card-1",
   slug: "brazen-buccaneer",
   name: "Brazen Buccaneer",
-  type: "unit",
   types: ["unit"],
   superTypes: [],
   domains: ["fury"],
@@ -84,7 +83,6 @@ describe("buildCardMetaDescription", () => {
   it("joins all types for a multi-type card", () => {
     const unitGear: CardDetailResponse["card"] = {
       ...baseCard,
-      type: "unit",
       types: ["unit", "gear"],
     };
     expect(buildCardMetaDescription(unitGear, makePrinting(null), labels)).toBe(
@@ -319,7 +317,7 @@ describe("printingArt", () => {
   it("flags battlefield art as landscape", () => {
     const printing = stubPrinting({
       images: [{ imageId: "bf-id" }],
-      card: { type: "battlefield", types: ["battlefield"] },
+      card: { types: ["battlefield"] },
     });
     expect(printingArt(printing)).toEqual({ imageId: "bf-id", landscape: true });
   });

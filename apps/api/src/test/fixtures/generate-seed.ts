@@ -114,7 +114,7 @@ const setReleases = await sql<Record<string, unknown>[]>`
 `;
 
 const cards = await sql<Record<string, unknown>[]>`
-  SELECT DISTINCT c.id, c.slug, c.name, c.type,
+  SELECT DISTINCT c.id, c.slug, c.name,
     c.might, c.energy, c.power, c.might_bonus, c.keywords,
     c.tags, c.norm_name
   FROM cards c
@@ -533,7 +533,12 @@ interface CardRow {
   id: string;
   slug: string;
   name: string;
-  type: string;
+}
+
+interface CardTypeRow {
+  card_id: string;
+  type_slug: string;
+  position: number;
 }
 
 interface CardDomainRow {
@@ -545,6 +550,14 @@ interface CardDomainRow {
 const typedPrintings = printings as unknown as PrintingRow[];
 const typedCards = cards as unknown as CardRow[];
 const typedCardDomains = cardDomains as unknown as CardDomainRow[];
+const typedCardTypes = cardCardTypes as unknown as CardTypeRow[];
+
+const typesByCardId = Map.groupBy(typedCardTypes, (t) => t.card_id);
+function getCardTypes(cardId: string): string[] {
+  return (typesByCardId.get(cardId) ?? [])
+    .toSorted((a, b) => a.position - b.position)
+    .map((t) => t.type_slug);
+}
 
 const domainsByCardId = Map.groupBy(typedCardDomains, (d) => d.card_id);
 function getCardDomains(cardId: string): string[] {
@@ -572,7 +585,7 @@ export const CARDS = {
 ${typedCards
   .map(
     (c) =>
-      `  ${JSON.stringify(c.slug)}: { id: ${JSON.stringify(c.id)}, slug: ${JSON.stringify(c.slug)}, name: ${JSON.stringify(c.name)}, type: ${JSON.stringify(c.type)}, domains: ${JSON.stringify(getCardDomains(c.id))} },`,
+      `  ${JSON.stringify(c.slug)}: { id: ${JSON.stringify(c.id)}, slug: ${JSON.stringify(c.slug)}, name: ${JSON.stringify(c.name)}, types: ${JSON.stringify(getCardTypes(c.id))}, domains: ${JSON.stringify(getCardDomains(c.id))} },`,
   )
   .join("\n")}
 } as const;

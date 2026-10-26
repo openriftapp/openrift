@@ -18,7 +18,6 @@ function card(overrides: Partial<CatalogResponse["cards"][string]> = {}) {
   return {
     slug: "SET1-001",
     name: "Test Card",
-    type: "unit",
     types: ["unit"],
     superTypes: [],
     domains: ["fury"],

@@ -615,13 +615,8 @@ describe("toCardTradeResponse", () => {
     expect(toCardTradeResponse(row, OTHER_ID).actionNeeded).toBe("settle");
   });
 
-  it("keeps the settle action on a completed trade with an unsettled side", () => {
-    const row = tradeRow({ status: "completed" });
-    expect(toCardTradeResponse(row, VIEWER_ID).actionNeeded).toBe("settle");
-  });
-
   it("leaves a closed trade with nothing to do", () => {
-    for (const status of ["declined", "cancelled", "expired"] as const) {
+    for (const status of ["completed", "declined", "cancelled", "expired"] as const) {
       expect(toCardTradeResponse(tradeRow({ status }), VIEWER_ID).actionNeeded).toBeNull();
     }
   });

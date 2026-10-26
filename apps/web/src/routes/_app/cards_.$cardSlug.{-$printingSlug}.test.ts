@@ -12,7 +12,6 @@ const card: CardDetailResponse["card"] = {
   id: "card-1",
   slug: "inferna",
   name: "Inferna",
-  type: "unit",
   types: ["unit"],
   superTypes: [],
   domains: ["fury"],

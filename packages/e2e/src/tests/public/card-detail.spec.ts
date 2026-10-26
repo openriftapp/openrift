@@ -51,7 +51,7 @@ interface CardFixture {
   id: string;
   slug: string;
   name: string;
-  type: string;
+  types: string[];
   energy: number | null;
   power: number | null;
   might: number | null;
@@ -155,7 +155,8 @@ function buildExpectedDescription(detail: CardDetailFixture, priceLine: string |
   const parts: string[] = [];
   const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
   const domains = card.domains.length > 0 ? card.domains.map(capitalize).join("/") : null;
-  const typeLine = domains ? `${domains} ${capitalize(card.type)}` : capitalize(card.type);
+  const typeLabel = card.types.map(capitalize).join(" ");
+  const typeLine = domains ? `${domains} ${typeLabel}` : typeLabel;
   parts.push(`${card.name} is a ${typeLine} card from Riftbound.`);
   if (priceLine) {
     parts.push(priceLine);

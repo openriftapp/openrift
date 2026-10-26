@@ -3,7 +3,7 @@ import type { CatalogPrintingSideValue, CatalogResponse } from "@openrift/shared
 import type { InitResponse } from "@openrift/shared/types/api/init";
 import type { MarketplaceLinksResponse, PricesResponse } from "@openrift/shared/types/api/pricing";
 import type { RulesListResponse, RuleVersionResponse } from "@openrift/shared/types/api/rules";
-import type { ArtVariant, CardSize, CardType, Finish, Rarity } from "@openrift/shared/types/enums";
+import type { ArtVariant, CardSize, Finish, Rarity } from "@openrift/shared/types/enums";
 import type { Insertable } from "kysely";
 
 import type { Database } from "./tables.js";
@@ -227,7 +227,6 @@ export function buildCatalogSync(init: InitResponse, catalog: CatalogResponse): 
       id,
       slug: card.slug,
       name: card.name,
-      type: card.type as CardType,
       might: card.might,
       energy: card.energy,
       power: card.power,

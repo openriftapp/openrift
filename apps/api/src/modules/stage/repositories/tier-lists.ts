@@ -21,40 +21,21 @@ export interface SharedTierList {
   ownerEmail: string;
 }
 
-/**
- * Rows written before entries carried a printing, kept only so a board saved
- * then still reads back today.
- */
-export interface LegacyTierListRow {
-  label: string;
-  cardIds?: string[];
+export function normalizeTiers(tiers: TierListRow[]): TierListRow[] {
+  return tiers.map((tier) => ({
+    label: tier.label,
+    cards: tier.cards.map((card) => ({
+      cardId: card.cardId,
+      printingId: card.printingId ?? null,
+    })),
+    // Contract: an absent flag and a false one mean the same thing.
+    ...(tier.unranked === true ? { unranked: true } : {}),
+  }));
 }
 
-/** A legacy `cardIds` row becomes entries pinned to no printing. */
-export function normalizeTiers(tiers: (TierListRow | LegacyTierListRow)[]): TierListRow[] {
-  return tiers.map((tier) => {
-    if ("cards" in tier && Array.isArray(tier.cards)) {
-      return {
-        label: tier.label,
-        cards: tier.cards.map((card) => ({
-          cardId: card.cardId,
-          printingId: card.printingId ?? null,
-        })),
-        // Contract: an absent flag and a false one mean the same thing.
-        ...(tier.unranked === true ? { unranked: true } : {}),
-      };
-    }
-    const legacy = (tier as LegacyTierListRow).cardIds ?? [];
-    return {
-      label: tier.label,
-      cards: legacy.map((cardId) => ({ cardId, printingId: null })),
-    };
-  });
-}
-
-/** Called at each query's single exit point; a new query that skips it returns unnormalized legacy tiers. */
+/** Called at each query's single exit point; a new query that skips it returns unnormalized tiers. */
 function withParsedTiers<Row extends { tiers: TierListRow[] }>(row: Row): Row {
-  return { ...row, tiers: normalizeTiers(row.tiers as (TierListRow | LegacyTierListRow)[]) };
+  return { ...row, tiers: normalizeTiers(row.tiers) };
 }
 
 /**

@@ -52,7 +52,10 @@ async function pickCardByType(type: string): Promise<TestCard> {
   try {
     const rows = (await sql`
       SELECT id, name FROM cards
-      WHERE type = ${type}
+      WHERE (
+          SELECT type_slug FROM card_card_types
+          WHERE card_id = cards.id ORDER BY position LIMIT 1
+        ) = ${type}
         AND name ~ '^[A-Za-z][A-Za-z ]*$'
       ORDER BY name, id
       LIMIT 1

@@ -17,7 +17,6 @@ const allCardsItemSchema = z.object({
   id: z.string(),
   slug: z.string(),
   name: z.string(),
-  type: z.string(),
   types: z.array(z.string()),
   tags: z.array(z.string()),
   setSlugs: z.array(z.string()),

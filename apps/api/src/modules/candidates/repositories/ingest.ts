@@ -140,8 +140,6 @@ export function ingestRepo(db: Db) {
         .execute();
     },
 
-    // `provider` scopes a pin to one source; '' is the legacy wildcard that
-    // applies to every provider.
     allPrintingLinkOverrides(): Promise<
       { externalId: string; finish: string; provider: string; printingId: string }[]
     > {

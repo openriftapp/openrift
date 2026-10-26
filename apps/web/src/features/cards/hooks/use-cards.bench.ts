@@ -56,7 +56,6 @@ function buildFixture(): Printing[] {
     cardById.set(id, {
       slug: id,
       name: `Card ${i}`,
-      type,
       types: [type],
       superTypes: [],
       domains: [pick(DOMAINS, r)],

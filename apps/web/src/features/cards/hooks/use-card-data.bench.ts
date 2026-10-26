@@ -174,7 +174,10 @@ function runTanstackQuery(filters: CardFilters) {
         }
       }
       if (filters.types.length > 0) {
-        builder = builder.where(({ p }) => inArray(p.card.type, filters.types));
+        const [firstType] = filters.types;
+        if (firstType) {
+          builder = builder.where(({ p }) => inArray(firstType, p.card.types));
+        }
       }
       if (filters.languages.length > 0) {
         builder = builder.where(({ p }) => inArray(p.language, filters.languages));

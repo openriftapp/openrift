@@ -78,7 +78,7 @@ export function cardTradeWritesRepo(db: Kysely<Database>) {
         .updateTable("cardTrades")
         .set({ quantity: sql`quantity - ${quantity}` })
         .where("id", "=", id)
-        .where("status", "in", ["reserved", "completed"])
+        .where("status", "=", "reserved")
         .where(settledColumn, "is", null)
         .where("quantity", ">", quantity)
         .executeTakeFirst();

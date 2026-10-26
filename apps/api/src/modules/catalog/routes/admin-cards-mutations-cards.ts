@@ -81,10 +81,10 @@ export const adminCardMutationsCardsRouter = {
 
     const finalValue = normalizeCardFieldValue(field, value);
 
-    // Snapshot before the write for the audit event. domains/superTypes live
-    // only in junction tables — no cheap before-read, so their old is null;
-    // types uses the denormalized cards.type scalar.
+    // Snapshot before the write for the audit event. domains/superTypes have no
+    // cheap before-read, so their old is null.
     const cardBefore = await mut.getFullCardById(cardId);
+    const typesBefore = field === "types" ? await mut.getCardTypesById(cardId) : null;
     const auditEvent = () =>
       recordAdminEvent(context.repos, context.userId, {
         action: "card.accept-field",
@@ -98,7 +98,7 @@ export const adminCardMutationsCardsRouter = {
             : {
                 [field]:
                   field === "types"
-                    ? cardBefore?.type
+                    ? typesBefore
                     : (cardBefore as Record<string, unknown> | undefined)?.[field],
               },
         newValues: { [field]: finalValue },

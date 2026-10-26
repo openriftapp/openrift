@@ -81,8 +81,6 @@ export interface CardErrata {
 export interface Card {
   slug: string;
   name: string;
-  /** Always `types[0]`; kept for single-answer consumers. */
-  type: CardType;
   /** Ordered card types; multi-type cards ("Unit Gear") have more than one. */
   types: CardType[];
   superTypes: SuperType[];

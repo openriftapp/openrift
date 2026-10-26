@@ -297,7 +297,6 @@ function buildCatalog(count: number): { printings: Printing[]; prices: WeakMap<P
     return {
       slug: `card-${i}`,
       name: `Card ${i} ${pickOne(["Dragon", "Hero", "Ghost", "Knight"], r)}`,
-      type,
       types: [type],
       superTypes: [...pickOne(SUPER_TYPES, r)],
       domains: [pickOne(DOMAINS, r), ...(r() > 0.7 ? [pickOne(DOMAINS, r)] : [])],

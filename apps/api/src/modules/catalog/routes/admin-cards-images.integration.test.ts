@@ -4,9 +4,9 @@ import type { Io } from "../../../io.js";
 import {
   adminReq,
   createTestContext,
+  insertCards,
   insertPrintings,
   refreshCardAggregates,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
@@ -75,22 +75,17 @@ if (ctx) {
     .returning("id")
     .execute();
 
-  const [card] = await db
-    .insertInto("cards")
-    .values({
-      slug: "CSI-001",
-      name: "CSI Test Card",
-      type: "unit",
-      might: null,
-      energy: 2,
-      power: null,
-      mightBonus: null,
-      keywords: [],
-      tags: [],
-    })
-    .returning("id")
-    .execute();
-  await syncCardCardTypes(db);
+  const [card] = await insertCards(db, {
+    slug: "CSI-001",
+    name: "CSI Test Card",
+    types: ["unit"],
+    might: null,
+    energy: 2,
+    power: null,
+    mightBonus: null,
+    keywords: [],
+    tags: [],
+  });
 
   await db
     .insertInto("cardDomains")

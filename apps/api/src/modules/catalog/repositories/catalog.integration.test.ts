@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createDbContext } from "../../../test/integration-context.js";
+import { cardHasType } from "../../../db/helpers.js";
+import { createDbContext, insertCard } from "../../../test/integration-context.js";
 import { PRICE_BAND_CENTS } from "./catalog-landing.js";
 import { catalogRepo } from "./catalog.js";
 
@@ -242,7 +243,7 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
       .select(["ci.id as imageId"])
       .where("faceImages.isActive", "=", true)
       .where("ci.rehostedUrl", "is not", null)
-      .where("cards.type", "=", "battlefield")
+      .where(cardHasType("cards.id", "battlefield"))
       .execute();
     const battlefieldImageIds = new Set(battlefieldRows.map((r) => r.imageId));
     for (const thumb of summary.thumbnails) {
@@ -283,7 +284,7 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
       .select(["ci.id as imageId"])
       .where("faceImages.isActive", "=", true)
       .where("ci.rehostedUrl", "is not", null)
-      .where("cards.type", "=", "legend")
+      .where(cardHasType("cards.id", "legend"))
       .where("faces.language", "=", "EN")
       .execute();
     const legendImageIds = new Set(legendRows.map((r) => r.imageId));
@@ -342,21 +343,17 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
       tags: string[];
       domain?: string;
     }): Promise<string> {
-      const row = await db
-        .insertInto("cards")
-        .values({
-          slug: input.slug,
-          name: input.name,
-          type: input.type,
-          might: null,
-          energy: input.energy,
-          power: null,
-          mightBonus: null,
-          keywords: [],
-          tags: input.tags,
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
+      const row = await insertCard(db, {
+        slug: input.slug,
+        name: input.name,
+        types: [input.type],
+        might: null,
+        energy: input.energy,
+        power: null,
+        mightBonus: null,
+        keywords: [],
+        tags: input.tags,
+      });
       seededIds.push(row.id);
       if (input.domain) {
         await db

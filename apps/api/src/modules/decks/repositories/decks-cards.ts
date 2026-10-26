@@ -3,6 +3,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
+import { primaryCardType } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import type { CardsTable } from "../../../db/tables/catalog.js";
 import type { DeckCardsTable } from "../../../db/tables/decks.js";
@@ -58,7 +59,7 @@ export function decksCardsRepo(db: Kysely<Database>) {
           "dc.quantity",
           "dc.preferredPrintingId",
           "c.name as cardName",
-          "c.type as cardType",
+          primaryCardType("c.id").as("cardType"),
           "mca.types as cardTypes",
           "c.tags",
           "c.keywords",
@@ -162,7 +163,7 @@ export function decksCardsRepo(db: Kysely<Database>) {
           "dc.quantity",
           "dc.preferredPrintingId",
           "c.name as cardName",
-          "c.type as cardType",
+          primaryCardType("c.id").as("cardType"),
           "mca.types as cardTypes",
           "mca.domains",
           "mca.superTypes",

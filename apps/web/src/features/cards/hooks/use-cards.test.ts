@@ -39,7 +39,6 @@ const SET_ID = "00000000-0000-0000-0000-000000000099";
 const stubCardValue: CatalogResponseCardValue = {
   slug: "RB1-001",
   name: "Test Card",
-  type: "unit",
   types: ["unit"],
   superTypes: [],
   domains: [],

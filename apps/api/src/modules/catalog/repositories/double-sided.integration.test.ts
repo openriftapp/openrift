@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   createDbContext,
   deletePrintingsByFace,
+  insertCards,
   insertPrinting,
   refreshCardAggregates,
   seedTestUser,
@@ -69,18 +70,14 @@ describe.skipIf(!ctx)("double-sided printings (integration)", () => {
       .execute();
     setId = set!.id;
     for (const name of ["Bird", "Gold", "Brush", "Buff"]) {
-      const [card] = await db
-        .insertInto("cards")
-        .values({
-          name,
-          slug: `dst-${name.toLowerCase()}`,
-          type: "other",
-          normName: `dst-${name.toLowerCase()}`,
-          keywords: [],
-          tags: [],
-        })
-        .returning("id")
-        .execute();
+      const [card] = await insertCards(db, {
+        name,
+        slug: `dst-${name.toLowerCase()}`,
+        types: ["other"],
+        normName: `dst-${name.toLowerCase()}`,
+        keywords: [],
+        tags: [],
+      });
       cardIds[name] = card!.id;
     }
     for (const [card, code] of [

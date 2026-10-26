@@ -26,8 +26,6 @@ const noEmptyJsonb = z
 export const cardFieldRules = {
   slug: z.string().min(1),
   name: z.string().min(1),
-  type: z.string().min(1),
-  /** At least one; first entry mirrors `cards.type`. */
   types: z.array(z.string().min(1)).min(1),
   superTypes: z.array(z.string().min(1)),
   domains: z.array(z.string().min(1)).min(1),

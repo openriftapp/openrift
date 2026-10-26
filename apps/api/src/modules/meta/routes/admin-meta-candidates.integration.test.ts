@@ -1,6 +1,12 @@
+import type { CardType } from "@openrift/shared/types/enums";
 import { afterAll, describe, expect, it } from "vitest";
 
-import { adminReq, createTestContext, seedTestUser } from "../../../test/integration-context.js";
+import {
+  adminReq,
+  createTestContext,
+  insertCards,
+  seedTestUser,
+} from "../../../test/integration-context.js";
 import type { JsonBody } from "../../../test/read-json.js";
 import { readJson } from "../../../test/read-json.js";
 
@@ -24,12 +30,15 @@ let mainCardId: string;
 const createdMetaEventIds: string[] = [];
 const createdCardIds: string[] = [];
 
-async function seedCard(name: string, normName: string, type: string): Promise<string> {
-  const [card] = await ctx!.db
-    .insertInto("cards")
-    .values({ name, slug: normName, type, normName, keywords: [], tags: [] })
-    .returning("id")
-    .execute();
+async function seedCard(name: string, normName: string, type: CardType): Promise<string> {
+  const [card] = await insertCards(ctx!.db, {
+    name,
+    slug: normName,
+    types: [type],
+    normName,
+    keywords: [],
+    tags: [],
+  });
   createdCardIds.push(card!.id);
   return card!.id;
 }

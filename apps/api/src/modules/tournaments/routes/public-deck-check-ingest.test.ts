@@ -36,7 +36,6 @@ const RESULT = {
   entriesUnchanged: 0,
   entriesWithdrawn: 0,
   checksInvalidated: 0,
-  entriesIgnored: 0,
   entries: [],
 };
 

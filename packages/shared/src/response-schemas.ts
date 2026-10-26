@@ -179,7 +179,6 @@ export const catalogCardResponseSchema = z.object({
   id: z.string().meta({ examples: ["019cfc3b-0389-744b-837c-792fd586300e"] }),
   slug: z.string().meta({ examples: ["jinx-rebel"] }),
   name: z.string().meta({ examples: ["Jinx, Rebel"] }),
-  type: cardTypeSchema,
   types: z
     .array(cardTypeSchema)
     .nonempty()

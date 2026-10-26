@@ -25,11 +25,7 @@ export interface CandidateLinkIndex extends CardNameIndex {
   /** The same key plus `|<size>`, for a side shared by a standard and an oversized printing. */
   printingIdBySizedKey: Map<string, string>;
   /**
-   * `"<provider>:<externalId>:<finish>"` to the manually pinned live printing
-   * id. Provider '' is the wildcard for rows that predate provider scoping;
-   * resolution consults the candidate's own provider first, the wildcard
-   * second, so two providers reusing the same external id can't hijack each
-   * other's pins.
+   * `"<provider>:<externalId>:<finish>"` to the manually pinned live printing id.
    */
   printingIdByOverrideKey: Map<string, string>;
 }
@@ -152,10 +148,9 @@ export function resolvePrintingLink(
     claimedPrintingId?: string | null;
   },
 ): string | null {
-  const override =
-    index.printingIdByOverrideKey.get(
-      `${candidate.provider}:${candidate.externalId}:${candidate.finish ?? ""}`,
-    ) ?? index.printingIdByOverrideKey.get(`:${candidate.externalId}:${candidate.finish ?? ""}`);
+  const override = index.printingIdByOverrideKey.get(
+    `${candidate.provider}:${candidate.externalId}:${candidate.finish ?? ""}`,
+  );
   if (override) {
     return override;
   }

@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   createDbContext,
   deletePrintingsById,
+  insertCards,
   insertPrintings,
   seedTestUser,
 } from "../../../test/integration-context.js";
@@ -127,15 +128,12 @@ describe.skipIf(!ctx)("missingImagesForUser (integration)", () => {
         { id: laterSetId, slug: "MIS2", name: "Missing Images Two", sortOrder: 9002 },
       ])
       .execute();
-    await db
-      .insertInto("cards")
-      .values({
-        id: cardId,
-        slug: "missing-images-card",
-        name: "Missing Images Card",
-        type: "unit",
-      })
-      .execute();
+    await insertCards(db, {
+      id: cardId,
+      slug: "missing-images-card",
+      name: "Missing Images Card",
+      types: ["unit"],
+    });
 
     await insertPrintings(db, [
       printing(NO_IMAGE, "MIS-002"),

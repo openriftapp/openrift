@@ -8,8 +8,8 @@ import { printingImagesRepo } from "./printing-images.js";
 describe("printingImagesRepo", () => {
   it("landscapeImageIds keeps only images of landscape cards", async () => {
     const db = createMockDb([
-      { imageFileId: "img-bf", type: "battlefield" },
-      { imageFileId: "img-unit", type: "unit" },
+      { imageFileId: "img-bf", types: ["battlefield"] },
+      { imageFileId: "img-unit", types: ["unit"] },
     ]);
     expect(await printingImagesRepo(db).landscapeImageIds(["img-bf", "img-unit"])).toEqual(
       new Set(["img-bf"]),
@@ -17,7 +17,7 @@ describe("printingImagesRepo", () => {
   });
 
   it("landscapeImageIds skips the query for no ids", async () => {
-    const db = createMockDb([{ imageFileId: "img-bf", type: "battlefield" }]);
+    const db = createMockDb([{ imageFileId: "img-bf", types: ["battlefield"] }]);
     expect(await printingImagesRepo(db).landscapeImageIds([])).toEqual(new Set());
   });
 

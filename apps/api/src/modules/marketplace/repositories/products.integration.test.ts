@@ -1,3 +1,4 @@
+import type { CardType } from "@openrift/shared/types/enums";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createRepos } from "../../../deps.js";
@@ -5,8 +6,8 @@ import { CARDS, OGS_SET, PRINTINGS } from "../../../test/fixtures/constants.js";
 import {
   createDbContext,
   deletePrintingsById,
+  insertCard,
   insertPrinting,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 
 const USER_ID = "a0000000-0197-4000-a000-000000000002";
@@ -108,23 +109,19 @@ describe.skipIf(!ctx)("products repo coverCards (integration)", () => {
   const productIds: string[] = [];
   let counter = 0;
 
-  async function makeCard(name: string, type: string): Promise<string> {
+  async function makeCard(name: string, type: CardType): Promise<string> {
     counter += 1;
-    const card = await db
-      .insertInto("cards")
-      .values({
-        slug: `cover-itest-${counter}`,
-        name,
-        type,
-        might: null,
-        energy: 1,
-        power: null,
-        mightBonus: null,
-        keywords: [],
-        tags: [],
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const card = await insertCard(db, {
+      slug: `cover-itest-${counter}`,
+      name,
+      types: [type],
+      might: null,
+      energy: 1,
+      power: null,
+      mightBonus: null,
+      keywords: [],
+      tags: [],
+    });
     cardIds.push(card.id);
     return card.id;
   }
@@ -205,7 +202,6 @@ describe.skipIf(!ctx)("products repo coverCards (integration)", () => {
     const battlefieldCard = await makeCard("Cover Battlefield", "battlefield");
     const unhostedCard = await makeCard("Cover Unhosted", "unit");
     const inactiveCard = await makeCard("Cover Inactive", "unit");
-    await syncCardCardTypes(db);
 
     legendPrintingId = await makePrinting(legendCard, "rare", "COV-100");
     legendImageId = await addImage(legendPrintingId);

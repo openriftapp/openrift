@@ -4,7 +4,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import type { Database } from "../../../db/tables.js";
 import { UVSGAMES_PROVIDER } from "../../../lib/meta-providers.js";
-import { createDbContext } from "../../../test/integration-context.js";
+import { createDbContext, insertCards } from "../../../test/integration-context.js";
 import type { UvsgamesUpsertInput } from "./uvsgames-events.js";
 import { uvsgamesEventsRepo } from "./uvsgames-events.js";
 
@@ -574,18 +574,14 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
       SEEN,
     );
 
-    const [legend] = await ctx!.db
-      .insertInto("cards")
-      .values({
-        name: "MTC Legend",
-        slug: "mtc-legend",
-        type: "legend",
-        normName: "mtc-legend",
-        keywords: [],
-        tags: [],
-      })
-      .returning("id")
-      .execute();
+    const [legend] = await insertCards(ctx!.db, {
+      name: "MTC Legend",
+      slug: "mtc-legend",
+      types: ["legend"],
+      normName: "mtc-legend",
+      keywords: [],
+      tags: [],
+    });
     createdCardIds.push(legend!.id);
 
     const fetchedAt = new Date("2026-08-21T06:00:00Z");

@@ -3,6 +3,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely, NotNull, Selectable } from "kysely";
 import { sql } from "kysely";
 
+import { primaryCardType } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import type { FacesTable, PrintingsTable } from "../../../db/tables/catalog.js";
 import type { PrintingSidesOrderedView } from "../../../db/tables/views.js";
@@ -292,7 +293,7 @@ export function catalogPrintingsRepo(db: Kysely<Database>) {
             "sets.slug as setSlug",
             "s.publicCode",
             "s.language",
-            "cards.type as cardType",
+            primaryCardType("cards.id").as("cardType"),
             "s.artVariant",
             "s.isOvernumbered",
             "fi.createdAt",

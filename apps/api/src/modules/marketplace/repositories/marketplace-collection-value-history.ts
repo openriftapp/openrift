@@ -38,7 +38,9 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
       }
       if (scope.types?.length) {
         const vals = sql.join(scope.types.map((val) => sql`${val}`));
-        scopeClauses.push(sql`AND c.type IN (${vals})`);
+        scopeClauses.push(
+          sql`AND EXISTS (SELECT 1 FROM card_card_types cct WHERE cct.card_id = c.id AND cct.type_slug IN (${vals}))`,
+        );
       }
       if (scope.rarities?.length) {
         const vals = sql.join(scope.rarities.map((val) => sql`${val}`));
@@ -58,10 +60,8 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
           sql`AND EXISTS (SELECT 1 FROM card_domains cd WHERE cd.card_id = c.id AND cd.domain_slug IN (${vals}))`,
         );
       }
-      // `types` is a single column here, so its exclude is a plain NOT IN;
-      // `domains` is a join table, so one excluded domain on the card rejects
-      // it (matching `noneExcluded` in the web filters and `matchesScope` on
-      // the stats page).
+      // `types` and `domains` are join tables: one excluded value rejects the card,
+      // as in `noneExcluded` (web filters) and `matchesScope` (stats page).
       if (scope.setsExclude?.length) {
         const vals = sql.join(scope.setsExclude.map((val) => sql`${val}`));
         scopeClauses.push(sql`AND s.slug NOT IN (${vals})`);
@@ -72,7 +72,9 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
       }
       if (scope.typesExclude?.length) {
         const vals = sql.join(scope.typesExclude.map((val) => sql`${val}`));
-        scopeClauses.push(sql`AND c.type NOT IN (${vals})`);
+        scopeClauses.push(
+          sql`AND NOT EXISTS (SELECT 1 FROM card_card_types cct WHERE cct.card_id = c.id AND cct.type_slug IN (${vals}))`,
+        );
       }
       if (scope.raritiesExclude?.length) {
         const vals = sql.join(scope.raritiesExclude.map((val) => sql`${val}`));

@@ -1,13 +1,34 @@
 import type { IngestCard, IngestPrinting } from "@openrift/shared/contracts/admin/card-mutations";
+import type { CardType } from "@openrift/shared/types/enums";
+import type { Insertable, Kysely } from "kysely";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import type { Database } from "../../../db/tables.js";
+import type { CardsTable } from "../../../db/tables/catalog.js";
 import { createTransact } from "../../../deps.js";
-import {
-  createTestContext,
-  insertPrinting,
-  syncCardCardTypes,
-} from "../../../test/integration-context.js";
+import { createTestContext, insertPrinting } from "../../../test/integration-context.js";
 import { ingestCandidates } from "./ingest-candidates.js";
+
+function upsertCard(
+  db: Kysely<Database>,
+  type: CardType,
+  values: Insertable<CardsTable>,
+): Promise<{ id: string }> {
+  return db.transaction().execute(async (trx) => {
+    const row = await trx
+      .insertInto("cards")
+      .values(values)
+      .onConflict((oc) => oc.column("slug").doUpdateSet({ name: values.name }))
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("cardCardTypes")
+      .values({ cardId: row.id, typeSlug: type, position: 0 })
+      .onConflict((oc) => oc.doNothing())
+      .execute();
+    return row;
+  });
+}
 
 // A test spells only the fields it asserts on; these helpers fill the rest
 // with the same defaults `ingestCardFieldsSchema` / `ingestPrintingSchema`
@@ -116,22 +137,16 @@ describe.skipIf(!ctx)("ingestCandidates integration", () => {
       .executeTakeFirstOrThrow();
     seedSetId = insertedSet.id;
 
-    const insertedCard = await db
-      .insertInto("cards")
-      .values({
-        slug: "IGT-001",
-        name: "Ingest Alpha",
-        type: "unit",
-        might: 3,
-        energy: 2,
-        power: 1,
-        mightBonus: null,
-        keywords: [],
-        tags: [],
-      })
-      .onConflict((oc) => oc.column("slug").doUpdateSet({ name: "Ingest Alpha" }))
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const insertedCard = await upsertCard(db, "unit", {
+      slug: "IGT-001",
+      name: "Ingest Alpha",
+      might: 3,
+      energy: 2,
+      power: 1,
+      mightBonus: null,
+      keywords: [],
+      tags: [],
+    });
     seedCardId = insertedCard.id;
 
     await db
@@ -139,7 +154,6 @@ describe.skipIf(!ctx)("ingestCandidates integration", () => {
       .values({ cardId: seedCardId, domainSlug: "fury", ordinal: 0 })
       .onConflict((oc) => oc.columns(["cardId", "domainSlug"]).doNothing())
       .execute();
-    await syncCardCardTypes(db);
 
     // uq_printings_identity is DEFERRABLE and so cannot be used as an
     // ON CONFLICT arbiter; do a select-or-insert dance instead.
@@ -174,22 +188,16 @@ describe.skipIf(!ctx)("ingestCandidates integration", () => {
     }
 
     // Seed a second card only reachable via alias (normName won't match)
-    const insertedAliasCard = await db
-      .insertInto("cards")
-      .values({
-        slug: "IGT-002",
-        name: "Ingest Beta Original",
-        type: "spell",
-        might: null,
-        energy: 4,
-        power: null,
-        mightBonus: null,
-        keywords: [],
-        tags: [],
-      })
-      .onConflict((oc) => oc.column("slug").doUpdateSet({ name: "Ingest Beta Original" }))
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const insertedAliasCard = await upsertCard(db, "spell", {
+      slug: "IGT-002",
+      name: "Ingest Beta Original",
+      might: null,
+      energy: 4,
+      power: null,
+      mightBonus: null,
+      keywords: [],
+      tags: [],
+    });
     aliasCardId = insertedAliasCard.id;
 
     await db
@@ -197,7 +205,6 @@ describe.skipIf(!ctx)("ingestCandidates integration", () => {
       .values({ cardId: aliasCardId, domainSlug: "mind", ordinal: 0 })
       .onConflict((oc) => oc.columns(["cardId", "domainSlug"]).doNothing())
       .execute();
-    await syncCardCardTypes(db);
 
     await db
       .insertInto("cardNameAliases")

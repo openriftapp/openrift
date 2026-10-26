@@ -54,13 +54,10 @@ export function makeCatalogReference(
 /** A card with neutral defaults. Override only the fields under test. */
 export function makeCard(partial: Partial<Card> = {}): Card {
   const overrides = defined(partial);
-  // `type` and `types` must agree, so overriding either fixes both.
-  const type = overrides.type ?? overrides.types?.[0] ?? "unit";
   return {
     slug: "test-card",
     name: "Test Card",
-    type,
-    types: [type],
+    types: ["unit"],
     superTypes: [],
     domains: [],
     tokenCardIds: [],

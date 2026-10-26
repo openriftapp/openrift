@@ -1,3 +1,4 @@
+import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import type { CardSubmissionInput } from "@openrift/shared/contracts/card-submissions";
 /* oxlint-disable no-restricted-imports -- api has no @/ alias */
 import { formatCompactUtcStamp } from "@openrift/shared/format-date";
@@ -153,15 +154,12 @@ describe("candidate ingest link parity", () => {
     const built = buildUserSubmissionCard(submission(), USER_ID, formatCompactUtcStamp(NOW));
     const { submission: fromSubmission, batch } = await bothPaths(submission(), {
       printings: [],
-      // '' provider means a pre-scoping legacy row (wildcard, matches any provider).
-      linkOverrides: [
-        {
-          externalId: built.printings[0]!.external_id,
-          finish: "foil",
-          provider: "",
-          printingId: "override-uuid",
-        },
-      ],
+      linkOverrides: [USER_SUBMISSION_PROVIDER, "provider"].map((provider) => ({
+        externalId: built.printings[0]!.external_id,
+        finish: "foil",
+        provider,
+        printingId: "override-uuid",
+      })),
     });
     expect(fromSubmission).toBe("override-uuid");
     expect(batch).toBe(fromSubmission);

@@ -3,8 +3,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import {
   createTestContext,
+  insertCard,
   insertPrintings,
-  syncCardCardTypes,
 } from "../../../../test/integration-context.js";
 import { priceRefreshRepo } from "../../repositories/price-refresh.js";
 import type { PriceUpsertConfig, StagingRow } from "./types.js";
@@ -42,25 +42,20 @@ describe.skipIf(!ctx)("refresh-prices-shared integration", () => {
       .executeTakeFirstOrThrow();
     setId = insertedSet.id;
 
-    const insertedCard = await db
-      .insertInto("cards")
-      .values({
-        slug: cardSlug,
-        name: "UPS Test Card",
-        type: "unit",
-        might: 2,
-        energy: 3,
-        power: 4,
-        mightBonus: null,
-        keywords: [],
-        tags: [],
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const insertedCard = await insertCard(db, {
+      slug: cardSlug,
+      name: "UPS Test Card",
+      types: ["unit"],
+      might: 2,
+      energy: 3,
+      power: 4,
+      mightBonus: null,
+      keywords: [],
+      tags: [],
+    });
     cardId = insertedCard.id;
 
     await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", ordinal: 0 }).execute();
-    await syncCardCardTypes(db);
 
     await db
       .insertInto("marketplaceGroups")

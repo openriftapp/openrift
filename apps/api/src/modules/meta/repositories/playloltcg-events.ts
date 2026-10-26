@@ -1,6 +1,7 @@
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
+import { primaryCardType } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import type { PlayloltcgEventsTable } from "../../../db/tables/meta-sources.js";
 import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
@@ -486,7 +487,12 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
         .innerJoin("cards as c", "c.id", "p.cardId")
         .where("p.language", "=", "SC")
         .where("p.shortCode", "in", [...new Set(shortCodes)])
-        .select(["p.shortCode as shortCode", "c.id as cardId", "c.name as name", "c.type as type"])
+        .select([
+          "p.shortCode as shortCode",
+          "c.id as cardId",
+          "c.name as name",
+          primaryCardType("c.id").as("type"),
+        ])
         .execute();
       // Multiple printings share a short_code (finishes, variants); they are the
       // same card, so the first wins.

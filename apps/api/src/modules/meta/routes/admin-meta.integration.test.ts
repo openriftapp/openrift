@@ -1,14 +1,15 @@
 import { RESERVED_META_EVENT_SLUGS } from "@openrift/shared/contracts/admin/meta-events";
+import type { CardType } from "@openrift/shared/types/enums";
 import { afterAll, describe, expect, it } from "vitest";
 
 import {
   adminReq,
   createTestContext,
   createUnauthenticatedTestContext,
+  insertCards,
   refreshCardAggregates,
   req,
   seedTestUser,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 import { META_ARCHIVE_USER_ID } from "../repositories/meta-shared.js";
@@ -29,12 +30,15 @@ let mainCardId: string;
 const createdEventIds: string[] = [];
 const createdDeckIds: string[] = [];
 
-async function seedCard(name: string, normName: string, type: string): Promise<string> {
-  const [card] = await ctx!.db
-    .insertInto("cards")
-    .values({ name, slug: normName, type, normName, keywords: [], tags: [] })
-    .returning("id")
-    .execute();
+async function seedCard(name: string, normName: string, type: CardType): Promise<string> {
+  const [card] = await insertCards(ctx!.db, {
+    name,
+    slug: normName,
+    types: [type],
+    normName,
+    keywords: [],
+    tags: [],
+  });
   return card!.id;
 }
 
@@ -118,7 +122,6 @@ if (ctx) {
   // which the harness refreshed before these two cards existed. Without the
   // refresh the inner join drops them and the route 500s on the missing
   // enrichment.
-  await syncCardCardTypes(db);
   await refreshCardAggregates(db);
 
   afterAll(async () => {

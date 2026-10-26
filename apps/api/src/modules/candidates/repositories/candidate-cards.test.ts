@@ -389,7 +389,7 @@ describe("candidateCardsRepo", () => {
     const db = createMockDb([]);
     await expect(
       candidateCardsRepo(db).deletePrintingLinkOverride({
-        provider: "",
+        provider: "test-provider",
         externalId: "ext-1",
         finish: "",
       }),

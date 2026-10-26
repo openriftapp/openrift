@@ -595,9 +595,8 @@ export function setTradeQuantity(
   });
 }
 
-/** `completed` is settleable only for rows predating partial settles; none of those has an unresolved sync. */
 function assertSettleable(trade: LiveCardTrade): void {
-  if (trade.status !== "reserved" && trade.status !== "completed") {
+  if (trade.status !== "reserved") {
     throw new AppError(409, ERROR_CODES.CONFLICT, "This trade is no longer open to settle");
   }
 }

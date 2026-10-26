@@ -126,7 +126,7 @@ export const deskCardSchema = z.object({
   id: z.string(),
   slug: z.string(),
   name: z.string(),
-  type: z.string(),
+  types: z.array(z.string()),
   domains: z.array(z.string()),
 });
 

@@ -9,14 +9,14 @@ const PLAYLOL = {
   cardName: "Vengeful Spirit",
 };
 
-const WILDCARD = {
-  provider: "",
+const ANNIE = {
+  provider: "source-b",
   externalId: "OGN-197b",
   shortCode: "OGN-197b",
   cardName: "Annie, Fiery",
 };
 
-const LINKS = [PLAYLOL, WILDCARD];
+const LINKS = [PLAYLOL, ANNIE];
 
 describe("filterPrintingLinks", () => {
   it("returns a copy of every row for a blank query", () => {
@@ -27,9 +27,9 @@ describe("filterPrintingLinks", () => {
 
   it("matches the source, external id, short code and card name", () => {
     expect(filterPrintingLinks(LINKS, "playlol")).toEqual([PLAYLOL]);
-    expect(filterPrintingLinks(LINKS, "OGN-197b")).toEqual([WILDCARD]);
+    expect(filterPrintingLinks(LINKS, "OGN-197b")).toEqual([ANNIE]);
     expect(filterPrintingLinks(LINKS, "ven-r06b")).toEqual([PLAYLOL]);
-    expect(filterPrintingLinks(LINKS, "annie")).toEqual([WILDCARD]);
+    expect(filterPrintingLinks(LINKS, "annie")).toEqual([ANNIE]);
   });
 
   it("ignores case and surrounding whitespace", () => {
@@ -37,7 +37,7 @@ describe("filterPrintingLinks", () => {
   });
 
   it("folds accents and matches each word in any field", () => {
-    expect(filterPrintingLinks(LINKS, "ánnie ogn")).toEqual([WILDCARD]);
+    expect(filterPrintingLinks(LINKS, "ánnie ogn")).toEqual([ANNIE]);
   });
 
   it("returns nothing when no row matches", () => {

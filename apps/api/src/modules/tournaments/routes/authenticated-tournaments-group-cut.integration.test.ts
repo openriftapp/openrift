@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createTestContext, req } from "../../../test/integration-context.js";
+import { createTestContext, insertCard, req } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
 const HOST_ID = crypto.randomUUID();
@@ -199,22 +199,19 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
         image: null,
       })
       .execute();
-    const card = await host.db
-      .insertInto("cards")
-      .values({ slug: LEGEND_SLUG, name: "Loose Cannon", type: "legend", tags: ["Jinx"] })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const card = await insertCard(host.db, {
+      slug: LEGEND_SLUG,
+      name: "Loose Cannon",
+      types: ["legend"],
+      tags: ["Jinx"],
+    });
     legendCardId = card.id;
     for (const key of EXTRA_LEGENDS) {
-      const extra = await host.db
-        .insertInto("cards")
-        .values({
-          slug: `${LEGEND_SLUG}-${key}`,
-          name: `Legend ${key.toUpperCase()}`,
-          type: "legend",
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
+      const extra = await insertCard(host.db, {
+        slug: `${LEGEND_SLUG}-${key}`,
+        name: `Legend ${key.toUpperCase()}`,
+        types: ["legend"],
+      });
       extraLegendIds.set(key, extra.id);
     }
   });

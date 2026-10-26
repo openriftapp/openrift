@@ -1,6 +1,7 @@
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
+import { primaryCardType } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import type { TopdeckEventsTable } from "../../../db/tables/meta-sources.js";
 import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
@@ -371,7 +372,7 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
             "p.shortCode as shortCode",
             "c.id as cardId",
             "c.name as name",
-            "c.type as type",
+            primaryCardType("c.id").as("type"),
           ])
           .execute();
         // Multiple printings share a short_code (finishes, variants); they are

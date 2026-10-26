@@ -271,6 +271,16 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       return db.selectFrom("cards").selectAll().where("id", "=", id).executeTakeFirst();
     },
 
+    async getCardTypesById(cardId: string): Promise<string[]> {
+      const rows = await db
+        .selectFrom("cardCardTypes")
+        .select("typeSlug")
+        .where("cardId", "=", cardId)
+        .orderBy("position")
+        .execute();
+      return rows.map((row) => row.typeSlug);
+    },
+
     getPrintingCardIdByComposite(
       shortCode: string,
       finish: Finish,
@@ -414,10 +424,6 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       });
     },
 
-    /**
-     * Replaces a card's types, keeping the denormalized `cards.type` scalar in
-     * sync with the first type.
-     */
     async replaceCardTypesById(cardId: string, types: string[]): Promise<void> {
       if (types.length === 0) {
         throw new Error("A card must have at least one type");
@@ -432,7 +438,6 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
           .insertInto("cardCardTypes")
           .values(types.map((type, index) => ({ cardId, typeSlug: type, position: index })))
           .execute();
-        await trx.updateTable("cards").set({ type: types[0] }).where("id", "=", cardId).execute();
       });
     },
 
@@ -624,8 +629,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       },
       normalizedName: string,
     ): Promise<string> {
-      const [primaryType] = cardFields.types;
-      if (primaryType === undefined) {
+      if (cardFields.types.length === 0) {
         throw new Error("A card must have at least one type");
       }
       const { id: cardUuid } = await db
@@ -633,7 +637,6 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
         .values({
           slug: cardFields.id,
           name: cardFields.name,
-          type: primaryType,
           might: cardFields.might ?? null,
           energy: cardFields.energy ?? null,
           power: cardFields.power ?? null,
@@ -644,7 +647,6 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
         .returning("id")
         .executeTakeFirstOrThrow();
 
-      // Position 0 mirrors cards.type.
       await db
         .insertInto("cardCardTypes")
         .values(

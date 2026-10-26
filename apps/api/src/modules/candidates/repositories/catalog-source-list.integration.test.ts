@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   createDbContext,
   deletePrintingsById,
+  insertCards,
   insertPrintings,
   seedTestUser,
 } from "../../../test/integration-context.js";
@@ -187,10 +188,7 @@ describe.skipIf(!ctx)("catalog source list queries (integration)", () => {
       ])
       .execute();
 
-    await db
-      .insertInto("cards")
-      .values({ id: CARD_ID, slug: "cl51-fixture", name: CARD_NAME, type: "unit" })
-      .execute();
+    await insertCards(db, { id: CARD_ID, slug: "cl51-fixture", name: CARD_NAME, types: ["unit"] });
 
     await insertPrintings(db, [
       printing(P_FIRST, SET_FIRST, "CL51A-001", "EN"),

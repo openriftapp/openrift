@@ -31,7 +31,6 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           | "slug"
           | "name"
           | "normName"
-          | "type"
           | "might"
           | "energy"
           | "power"
@@ -52,7 +51,6 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           "cards.slug",
           "cards.name",
           "cards.normName",
-          "cards.type",
           "cards.might",
           "cards.energy",
           "cards.power",

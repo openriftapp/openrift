@@ -67,7 +67,6 @@ function stub(overrides: Partial<Printing> = {}): Printing {
     card: {
       slug: "OGS-001",
       name: "",
-      type: "unit",
       types: ["unit"],
       superTypes: [],
       domains: [],

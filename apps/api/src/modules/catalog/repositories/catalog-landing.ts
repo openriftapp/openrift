@@ -2,6 +2,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely, NotNull } from "kysely";
 import { sql } from "kysely";
 
+import { cardHasType } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import { imageId } from "../../../repositories/query-helpers.js";
 
@@ -99,7 +100,7 @@ export function catalogLandingRepo(db: Kysely<Database>) {
           ])
           .where("fi.isActive", "=", true)
           .where(sql`${imageId("ci")}`, "is not", null)
-          .where("cards.type", "!=", WellKnown.cardType.BATTLEFIELD)
+          .where((eb) => eb.not(cardHasType("cards.id", WellKnown.cardType.BATTLEFIELD)))
           // EN only: the landing hero shows these large, and mixed-language
           // card faces read as noise to first-time visitors.
           .where("s.language", "=", WellKnown.language.EN)
@@ -145,7 +146,7 @@ export function catalogLandingRepo(db: Kysely<Database>) {
         .select([imageId("ci").as("imageId"), "cards.id as cardId"])
         .where("fi.isActive", "=", true)
         .where(sql`${imageId("ci")}`, "is not", null)
-        .where("cards.type", "=", WellKnown.cardType.LEGEND)
+        .where(cardHasType("cards.id", WellKnown.cardType.LEGEND))
         // EN only, for the same reason the general sample is EN only: mixed
         // language faces read as noise in a miniature.
         .where("f.language", "=", WellKnown.language.EN)
@@ -204,7 +205,10 @@ export function catalogLandingRepo(db: Kysely<Database>) {
           JOIN face_images pi ON pi.face_id = p.face_id AND pi.is_active
           JOIN image_files f ON f.id = pi.image_file_id AND f.rehosted_url IS NOT NULL
           WHERE p.language = ${WellKnown.language.EN}
-            AND c.type <> ${WellKnown.cardType.BATTLEFIELD}
+            AND NOT EXISTS (
+              SELECT 1 FROM card_card_types cct
+              WHERE cct.card_id = c.id AND cct.type_slug = ${WellKnown.cardType.BATTLEFIELD}
+            )
         ),
         sections AS (
           SELECT cp.id, cp.path, count(DISTINCT chp.printing_id)::int AS printing_count,

@@ -123,7 +123,6 @@ function makeCatalog(overrides: Partial<CatalogResponse> = {}): CatalogResponse 
       [CARD_ID]: {
         slug: "test-unit",
         name: "Test Unit",
-        type: "unit",
         types: ["unit"],
         superTypes: [],
         domains: ["fury", "calm"],

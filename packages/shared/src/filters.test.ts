@@ -18,7 +18,7 @@ describe("filterCards", () => {
       cardId: "SET1-001",
       card: {
         name: "Fire Dragon",
-        type: "unit",
+        types: ["unit"],
         superTypes: ["champion"],
         domains: ["fury"],
         energy: 5,
@@ -48,7 +48,7 @@ describe("filterCards", () => {
       cardId: "SET1-002",
       card: {
         name: "Ice Golem",
-        type: "unit",
+        types: ["unit"],
         superTypes: [],
         domains: ["calm"],
         energy: 3,
@@ -78,7 +78,7 @@ describe("filterCards", () => {
       cardId: "SET2-001",
       card: {
         name: "Mind Weaver",
-        type: "spell",
+        types: ["spell"],
         superTypes: ["basic"],
         domains: ["mind", "chaos"],
         energy: 2,
@@ -264,7 +264,7 @@ describe("filterCards", () => {
     const unitGear = makePrinting({
       printingId: "p-dual",
       cardId: "c-dual",
-      card: { name: "Hexcore Carrier", type: "unit", types: ["unit", "gear"] },
+      card: { name: "Hexcore Carrier", types: ["unit", "gear"] },
     });
     const all = [...printings, unitGear];
     const byUnit = filterCards(all, emptyFilters({ types: ["unit"] }));
@@ -375,7 +375,7 @@ describe("filterCards", () => {
         cardId: "s",
         card: {
           name: "Signed Card",
-          type: "unit",
+          types: ["unit"],
           superTypes: [],
           domains: [],
           energy: null,
@@ -392,7 +392,7 @@ describe("filterCards", () => {
         cardId: "u",
         card: {
           name: "Unsigned Card",
-          type: "unit",
+          types: ["unit"],
           superTypes: [],
           domains: [],
           energy: null,
@@ -461,7 +461,7 @@ describe("filterCards", () => {
         cardId: "p",
         card: {
           name: "Promo Card",
-          type: "unit",
+          types: ["unit"],
           superTypes: [],
           domains: [],
           energy: null,
@@ -478,7 +478,7 @@ describe("filterCards", () => {
         cardId: "r",
         card: {
           name: "Regular Card",
-          type: "unit",
+          types: ["unit"],
           superTypes: [],
           domains: [],
           energy: null,
@@ -508,7 +508,7 @@ describe("filterCards", () => {
           cardId: "c",
           card: {
             name: "Cheap Card",
-            type: "unit",
+            types: ["unit"],
             superTypes: [],
             domains: [],
             energy: null,
@@ -527,7 +527,7 @@ describe("filterCards", () => {
           cardId: "e",
           card: {
             name: "Expensive Card",
-            type: "unit",
+            types: ["unit"],
             superTypes: [],
             domains: [],
             energy: null,
@@ -545,7 +545,7 @@ describe("filterCards", () => {
         cardId: "n",
         card: {
           name: "No Price Card",
-          type: "unit",
+          types: ["unit"],
           superTypes: [],
           domains: [],
           energy: null,
@@ -609,7 +609,7 @@ describe("filterCards", () => {
         cardId: "nt",
         card: {
           name: "No Text Card",
-          type: "unit",
+          types: ["unit"],
           superTypes: [],
           domains: [],
           energy: null,
@@ -674,7 +674,7 @@ describe("filterCards", () => {
         cardId: "ne",
         card: {
           name: "No Energy Card",
-          type: "spell",
+          types: ["spell"],
           superTypes: [],
           domains: [],
           energy: null,
@@ -697,7 +697,7 @@ describe("filterCards", () => {
         cardId: "nm",
         card: {
           name: "No Might Card",
-          type: "spell",
+          types: ["spell"],
           superTypes: [],
           domains: [],
           energy: 3,
@@ -720,7 +720,7 @@ describe("filterCards", () => {
         cardId: "np",
         card: {
           name: "No Power Card",
-          type: "spell",
+          types: ["spell"],
           superTypes: [],
           domains: [],
           energy: 3,
@@ -821,7 +821,7 @@ describe("filterCards", () => {
         cardId: "et",
         card: {
           name: "Effect Only",
-          type: "unit",
+          types: ["unit"],
           superTypes: [],
           domains: [],
           energy: null,

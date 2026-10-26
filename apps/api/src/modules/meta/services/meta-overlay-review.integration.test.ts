@@ -1,3 +1,4 @@
+import type { CardType } from "@openrift/shared/types/enums";
 import { afterAll, describe, expect, it } from "vitest";
 
 import type { Repos } from "../../../deps.js";
@@ -6,9 +7,9 @@ import { AppError } from "../../../errors.js";
 import {
   createDbContext,
   deletePrintingsById,
+  insertCards,
   insertPrintings,
   seedTestUser,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { META_ARCHIVE_USER_ID } from "../repositories/meta-shared.js";
 import { metaRepo } from "../repositories/meta.js";
@@ -62,12 +63,19 @@ if (ctx) {
   otherAdminId = other.id;
   createdUserIds.push(other.id);
 
-  const seedCard = async (name: string, normName: string, type = "spell"): Promise<string> => {
-    const [card] = await db
-      .insertInto("cards")
-      .values({ name, slug: normName, type, normName, keywords: [], tags: [] })
-      .returning("id")
-      .execute();
+  const seedCard = async (
+    name: string,
+    normName: string,
+    type: CardType = "spell",
+  ): Promise<string> => {
+    const [card] = await insertCards(db, {
+      name,
+      slug: normName,
+      types: [type],
+      normName,
+      keywords: [],
+      tags: [],
+    });
     createdCardIds.push(card!.id);
     return card!.id;
   };
@@ -76,7 +84,6 @@ if (ctx) {
   addedCardId = await seedCard("MOR Added Spell", "moraddedspell");
   legendCardId = await seedCard("MOR Legend", "morlegend", "legend");
   championCardId = await seedCard("MOR Champion", "morchampion", "unit");
-  await syncCardCardTypes(db);
 
   const [set] = await db
     .insertInto("sets")

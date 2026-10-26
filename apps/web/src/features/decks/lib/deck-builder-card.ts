@@ -1,3 +1,4 @@
+import { primaryCardType } from "@openrift/shared/card-primary-type";
 import type { DeckCard } from "@openrift/shared/deck-rules";
 import {
   copyLimitFor,
@@ -337,7 +338,7 @@ export function catalogCardToDeckBuilderCard(cardId: string, card: Card): DeckBu
     quantity: 1,
     preferredPrintingId: null,
     cardName: card.name,
-    cardType: card.type,
+    cardType: primaryCardType(card.types),
     cardTypes: card.types,
     superTypes: card.superTypes,
     domains: card.domains,
@@ -366,7 +367,7 @@ export function toDeckBuilderCard(
     quantity: deckCard.quantity,
     preferredPrintingId: deckCard.preferredPrintingId,
     cardName: card.name,
-    cardType: card.type,
+    cardType: primaryCardType(card.types),
     cardTypes: card.types,
     superTypes: card.superTypes,
     domains: card.domains,

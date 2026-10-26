@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   adminReq,
   createTestContext,
+  insertCards,
   insertPrintings,
   refreshCardAggregates,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
@@ -30,23 +30,18 @@ if (ctx) {
     .execute();
   setId = setRow!.id;
 
-  const [cardRow] = await db
-    .insertInto("cards")
-    .values({
-      slug: "UNM-001",
-      name: "UNM Alpha Card",
-      type: "unit",
-      might: null,
-      energy: 3,
-      power: null,
-      mightBonus: null,
-      keywords: [],
-      tags: [],
-    })
-    .returning("id")
-    .execute();
+  const [cardRow] = await insertCards(db, {
+    slug: "UNM-001",
+    name: "UNM Alpha Card",
+    types: ["unit"],
+    might: null,
+    energy: 3,
+    power: null,
+    mightBonus: null,
+    keywords: [],
+    tags: [],
+  });
   cardId = cardRow!.id;
-  await syncCardCardTypes(db);
 
   await db.insertInto("cardDomains").values({ cardId, domainSlug: "mind", ordinal: 0 }).execute();
 
@@ -69,23 +64,18 @@ if (ctx) {
   });
   printingId = printingRow!.id;
 
-  const [secondCardRow] = await db
-    .insertInto("cards")
-    .values({
-      slug: "UNM-002",
-      name: "UNM Beta Card",
-      type: "spell",
-      might: null,
-      energy: 1,
-      power: null,
-      mightBonus: null,
-      keywords: [],
-      tags: [],
-    })
-    .returning("id")
-    .execute();
+  const [secondCardRow] = await insertCards(db, {
+    slug: "UNM-002",
+    name: "UNM Beta Card",
+    types: ["spell"],
+    might: null,
+    energy: 1,
+    power: null,
+    mightBonus: null,
+    keywords: [],
+    tags: [],
+  });
   secondCardId = secondCardRow!.id;
-  await syncCardCardTypes(db);
 
   await db
     .insertInto("cardDomains")

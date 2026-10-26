@@ -60,7 +60,7 @@ export function DevelopersPage() {
       <h2>{m.developers_quickstart_heading()}</h2>
       <p>{m.developers_quickstart_p()}</p>
       <pre className="bg-muted mt-3 overflow-x-auto rounded-md p-3 text-sm">
-        <code>{`curl -A "MyDeckTool/1.0 (you@example.com)" ${origin}/api/v1/sets`}</code>
+        <code>{`curl -A "MyDeckTool/1.0 (you@example.com)" -o catalog.json ${origin}/api/v1/catalog`}</code>
       </pre>
       <p>
         <ParaglideMessage message={m.developers_identify_p} markup={codeMarkup} />
@@ -106,7 +106,11 @@ export function DevelopersPage() {
           message={m.developers_catalog_images_p}
           markup={{
             ...codeMarkup,
-            imagepath: () => <code>/media/cards/{"{imageId}-{size}"}.webp</code>,
+            imagepath: () => (
+              <code>
+                {origin}/media/cards/{"{imageId}-{size}"}.webp
+              </code>
+            ),
           }}
         />
       </p>

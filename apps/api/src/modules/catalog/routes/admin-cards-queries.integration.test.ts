@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   adminReq,
   createTestContext,
+  insertCards,
   insertPrintings,
   refreshCardAggregates,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
@@ -33,69 +33,54 @@ if (ctx) {
     .execute();
   setId = set!.id;
 
-  const [card1] = await db
-    .insertInto("cards")
-    .values({
-      slug: "CSQ-001",
-      name: "CSQ Test Card",
-      type: "unit",
-      might: null,
-      energy: 2,
-      power: null,
-      mightBonus: null,
-      keywords: ["Flash"],
-      tags: [],
-      comment: "Curator note on the card.",
-    })
-    .returning("id")
-    .execute();
+  const [card1] = await insertCards(db, {
+    slug: "CSQ-001",
+    name: "CSQ Test Card",
+    types: ["unit"],
+    might: null,
+    energy: 2,
+    power: null,
+    mightBonus: null,
+    keywords: ["Flash"],
+    tags: [],
+    comment: "Curator note on the card.",
+  });
   card1Id = card1!.id;
-  await syncCardCardTypes(db);
 
   await db
     .insertInto("cardDomains")
     .values({ cardId: card1Id, domainSlug: "mind", ordinal: 0 })
     .execute();
 
-  const [card2] = await db
-    .insertInto("cards")
-    .values({
-      slug: "CSQ-002",
-      name: "CSQ Another Card",
-      type: "spell",
-      might: null,
-      energy: 1,
-      power: null,
-      mightBonus: null,
-      keywords: [],
-      tags: [],
-    })
-    .returning("id")
-    .execute();
-  await syncCardCardTypes(db);
+  const [card2] = await insertCards(db, {
+    slug: "CSQ-002",
+    name: "CSQ Another Card",
+    types: ["spell"],
+    might: null,
+    energy: 1,
+    power: null,
+    mightBonus: null,
+    keywords: [],
+    tags: [],
+  });
 
   await db
     .insertInto("cardDomains")
     .values({ cardId: card2!.id, domainSlug: "calm", ordinal: 0 })
     .execute();
 
-  const [card3] = await db
-    .insertInto("cards")
-    .values({
-      slug: "CSQ-003",
-      name: "CSQ No Image Card",
-      type: "unit",
-      might: 3,
-      energy: 4,
-      power: 1,
-      mightBonus: null,
-      keywords: [],
-      tags: [],
-    })
-    .returning("id")
-    .execute();
+  const [card3] = await insertCards(db, {
+    slug: "CSQ-003",
+    name: "CSQ No Image Card",
+    types: ["unit"],
+    might: 3,
+    energy: 4,
+    power: 1,
+    mightBonus: null,
+    keywords: [],
+    tags: [],
+  });
   card3Id = card3!.id;
-  await syncCardCardTypes(db);
 
   await db
     .insertInto("cardDomains")
@@ -363,7 +348,7 @@ describe.skipIf(!ctx)("Card-sources query routes (integration)", () => {
       expect(sorted[2].name).toBe("CSQ Test Card");
     });
 
-    it("returns correct shape (id, slug, name, type, types, tags, setSlugs, shortCodes)", async () => {
+    it("returns correct shape (id, slug, name, types, tags, setSlugs, shortCodes)", async () => {
       const res = await app.fetch(adminReq("GET", "/cards/all-cards"));
       const json = await readJson(res);
 
@@ -372,7 +357,6 @@ describe.skipIf(!ctx)("Card-sources query routes (integration)", () => {
       expect(csqCard.id).toBeTypeOf("string");
       expect(csqCard.slug).toBeTypeOf("string");
       expect(csqCard.name).toBeTypeOf("string");
-      expect(csqCard.type).toBeTypeOf("string");
       expect(csqCard.types).toEqual(["unit"]);
       expect(Array.isArray(csqCard.setSlugs)).toBe(true);
       expect(Array.isArray(csqCard.shortCodes)).toBe(true);
@@ -383,7 +367,6 @@ describe.skipIf(!ctx)("Card-sources query routes (integration)", () => {
         "shortCodes",
         "slug",
         "tags",
-        "type",
         "types",
       ]);
     });

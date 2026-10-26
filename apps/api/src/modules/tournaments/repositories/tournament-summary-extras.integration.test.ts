@@ -5,6 +5,7 @@ import { OGS_SET } from "../../../test/fixtures/constants.js";
 import {
   createDbContext,
   deletePrintingsById,
+  insertCard,
   insertPrinting,
 } from "../../../test/integration-context.js";
 
@@ -99,21 +100,17 @@ describe.skipIf(!ctx)("tournament summary extras (integration)", () => {
 
   async function makeLegend(): Promise<{ cardId: string; printingId: string }> {
     counter += 1;
-    const card = await db
-      .insertInto("cards")
-      .values({
-        slug: `extras-itest-${counter}`,
-        name: `Extras Legend ${counter}`,
-        type: "legend",
-        might: null,
-        energy: 1,
-        power: null,
-        mightBonus: null,
-        keywords: [],
-        tags: [],
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const card = await insertCard(db, {
+      slug: `extras-itest-${counter}`,
+      name: `Extras Legend ${counter}`,
+      types: ["legend"],
+      might: null,
+      energy: 1,
+      power: null,
+      mightBonus: null,
+      keywords: [],
+      tags: [],
+    });
     cardIds.push(card.id);
     const printing = await insertPrinting(db, {
       cardId: card.id,

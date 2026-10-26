@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   createDbContext,
   deletePrintingsByFace,
+  insertCards,
   insertPrinting,
   seedTestUser,
 } from "../../../test/integration-context.js";
@@ -77,18 +78,14 @@ describe.skipIf(!ctx)("pair merge (integration)", () => {
       .execute();
     setId = set!.id;
     for (const name of ["Bird", "Gold", "Brush"]) {
-      const [card] = await db
-        .insertInto("cards")
-        .values({
-          name,
-          slug: `pmg-${name.toLowerCase()}`,
-          type: "other",
-          normName: `pmg-${name.toLowerCase()}`,
-          keywords: [],
-          tags: [],
-        })
-        .returning("id")
-        .execute();
+      const [card] = await insertCards(db, {
+        name,
+        slug: `pmg-${name.toLowerCase()}`,
+        types: ["other"],
+        normName: `pmg-${name.toLowerCase()}`,
+        keywords: [],
+        tags: [],
+      });
       cardIds[name] = card!.id;
     }
     await seedSide("Bird", "PMG-T01");

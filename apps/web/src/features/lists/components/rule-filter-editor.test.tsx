@@ -59,7 +59,6 @@ const printing = (id: string, language: string) => ({
   card: {
     slug: `card-${id}`,
     name: `Card ${id}`,
-    type: "unit",
     types: ["unit"],
     superTypes: [],
     domains: ["fury"],

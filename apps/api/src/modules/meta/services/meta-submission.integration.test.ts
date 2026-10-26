@@ -3,11 +3,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import type { Transact } from "../../../deps.js";
 import { createTransact } from "../../../deps.js";
-import {
-  createDbContext,
-  seedTestUser,
-  syncCardCardTypes,
-} from "../../../test/integration-context.js";
+import { createDbContext, insertCards, seedTestUser } from "../../../test/integration-context.js";
 import { metaRepo } from "../repositories/meta.js";
 import { submitMetaDeck } from "./meta-submission.js";
 
@@ -31,20 +27,15 @@ if (ctx) {
   submitterId = submitter.id;
   createdUserIds.push(submitter.id);
 
-  const [spell] = await db
-    .insertInto("cards")
-    .values({
-      name: "MSI Spell",
-      slug: "msi-spell",
-      type: "spell",
-      normName: "msispell",
-      keywords: [],
-      tags: [],
-    })
-    .returning("id")
-    .execute();
+  const [spell] = await insertCards(db, {
+    name: "MSI Spell",
+    slug: "msi-spell",
+    types: ["spell"],
+    normName: "msispell",
+    keywords: [],
+    tags: [],
+  });
   createdCardIds.push(spell!.id);
-  await syncCardCardTypes(db);
 
   const event = await metaRepo(db).createEvent({
     slug: "msi-summoner-skirmish",

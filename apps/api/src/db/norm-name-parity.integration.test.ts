@@ -2,7 +2,7 @@ import { normalizeNameForIdentity } from "@openrift/shared/card-name";
 import { sql } from "kysely";
 import { describe, expect, it } from "vitest";
 
-import { createDbContext } from "../test/integration-context.js";
+import { createDbContext, insertCards } from "../test/integration-context.js";
 
 const ctx = createDbContext("a0000000-0193-4000-a000-000000000002");
 
@@ -86,20 +86,17 @@ describe.skipIf(!ctx)("norm_name TS/SQL parity (integration, migration 214)", ()
 
     try {
       for (const [i, name] of names.entries()) {
-        await db
-          .insertInto("cards")
-          .values({
-            slug: slugs[i]!,
-            name,
-            type: "unit",
-            might: null,
-            energy: null,
-            power: null,
-            mightBonus: null,
-            keywords: [],
-            tags: [],
-          })
-          .execute();
+        await insertCards(db, {
+          slug: slugs[i]!,
+          name,
+          types: ["unit"],
+          might: null,
+          energy: null,
+          power: null,
+          mightBonus: null,
+          keywords: [],
+          tags: [],
+        });
       }
 
       const inserted = await db

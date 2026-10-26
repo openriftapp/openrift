@@ -27,12 +27,10 @@ function makeSet(id: string, slug: string): CatalogSetResponse {
 }
 
 function makeCard(overrides: Partial<CatalogResponseCardValue> = {}): CatalogResponseCardValue {
-  const type = overrides.type ?? overrides.types?.[0] ?? "unit";
   return {
     slug: "test-card",
     name: "Test Card",
-    type,
-    types: [type],
+    types: ["unit"],
     superTypes: [],
     domains: [],
     tokenCardIds: [],
@@ -103,8 +101,14 @@ const NO_PRICES: PricesResponse = { prices: {}, currencies: MARKETPLACE_CURRENCY
 describe("extractCatalogFacets", () => {
   it("returns facets shape derived from the catalog", () => {
     const cards = {
-      "card-1": makeCard({ type: "unit", domains: ["body"], might: 3, energy: 2, power: 4 }),
-      "card-2": makeCard({ type: "spell", domains: ["mind"], might: null, energy: 5, power: null }),
+      "card-1": makeCard({ types: ["unit"], domains: ["body"], might: 3, energy: 2, power: 4 }),
+      "card-2": makeCard({
+        types: ["spell"],
+        domains: ["mind"],
+        might: null,
+        energy: 5,
+        power: null,
+      }),
     };
     const printings = {
       "p-1": makePrinting({ cardId: "card-1", rarity: "common", finish: "normal" }),
@@ -239,8 +243,8 @@ describe("extractCardCounts", () => {
 
   it("filteredCount drops when URL filters narrow the catalog", () => {
     const cards = {
-      "card-unit": makeCard({ type: "unit" }),
-      "card-spell": makeCard({ type: "spell" }),
+      "card-unit": makeCard({ types: ["unit"] }),
+      "card-spell": makeCard({ types: ["spell"] }),
     };
     const printings = {
       "p-1": makePrinting({ cardId: "card-unit", shortCode: "OGN-001" }),
@@ -275,7 +279,7 @@ describe("extractCatalogFacets ↔ useCardData parity", () => {
   it("returns the same value the client-side path computes for default-marketplace users", () => {
     const cards = {
       "card-unit": makeCard({
-        type: "unit",
+        types: ["unit"],
         domains: ["body", "mind"],
         might: 4,
         energy: 3,
@@ -283,7 +287,7 @@ describe("extractCatalogFacets ↔ useCardData parity", () => {
         superTypes: ["champion"],
       }),
       "card-spell": makeCard({
-        type: "spell",
+        types: ["spell"],
         domains: ["calm"],
         might: null,
         energy: 1,

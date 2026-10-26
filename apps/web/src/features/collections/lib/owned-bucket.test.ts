@@ -74,7 +74,7 @@ describe("applyOwnedBucketFilter", () => {
   });
 
   it("respects per-card-type playset sizes when bucketing", () => {
-    const legend = stubPrinting({ card: { type: "legend", keywords: [] } });
+    const legend = stubPrinting({ card: { types: ["legend"], keywords: [] } });
 
     const fullResult = applyOwnedBucketFilter([legend], ["full"], { [legend.printingId]: 1 });
     const extraResult = applyOwnedBucketFilter([legend], ["extra"], { [legend.printingId]: 1 });

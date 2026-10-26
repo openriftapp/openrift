@@ -5,9 +5,9 @@ import type { Io } from "../../../io.js";
 import {
   createDbContext,
   deletePrintingsByFace,
+  insertCards,
   insertPrintings,
   seedTestUser,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { catalogDeleteGuardsRepo } from "../repositories/catalog-delete-guards.js";
 import { catalogMutationsRepo } from "../repositories/catalog-mutations.js";
@@ -44,23 +44,18 @@ describe.skipIf(!ctx)("deleteCard (integration)", () => {
       .execute();
     setId = setRow!.id;
 
-    const [cardRow] = await db
-      .insertInto("cards")
-      .values({
-        slug: CARD_SLUG,
-        name: "Card Admin Test Card",
-        type: "unit",
-        might: null,
-        energy: 1,
-        power: null,
-        mightBonus: null,
-        keywords: [],
-        tags: [],
-      })
-      .returning("id")
-      .execute();
+    const [cardRow] = await insertCards(db, {
+      slug: CARD_SLUG,
+      name: "Card Admin Test Card",
+      types: ["unit"],
+      might: null,
+      energy: 1,
+      power: null,
+      mightBonus: null,
+      keywords: [],
+      tags: [],
+    });
     cardId = cardRow!.id;
-    await syncCardCardTypes(db);
     await db.insertInto("cardDomains").values({ cardId, domainSlug: "fury", ordinal: 0 }).execute();
     await db
       .insertInto("cardNameAliases")

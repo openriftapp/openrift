@@ -3,6 +3,7 @@ import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
 import { makePrinting } from "@openrift/shared/test-factories";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
+import type { CardType } from "@openrift/shared/types/enums";
 import type { ListRule } from "@openrift/shared/types/list-rule";
 import { EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
 import type { CardFilters } from "@openrift/shared/types/search";
@@ -106,7 +107,7 @@ function filters(overrides: Partial<CardFilters> = {}): CardFilters {
 function makeCatalogPrinting(
   id: string,
   cardId: string,
-  overrides: { type?: string; keywords?: string[]; artVariant?: string } = {},
+  overrides: { type?: CardType; keywords?: string[]; artVariant?: string } = {},
 ): Printing {
   return makePrinting({
     printingId: id,
@@ -117,7 +118,7 @@ function makeCatalogPrinting(
     card: {
       slug: cardId,
       name: `Card ${cardId}`,
-      type: overrides.type,
+      ...(overrides.type ? { types: [overrides.type] } : {}),
       domains: ["fury"],
       energy: 1,
       might: 1,

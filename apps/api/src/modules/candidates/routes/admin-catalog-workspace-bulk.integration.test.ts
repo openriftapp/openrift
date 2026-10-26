@@ -3,9 +3,9 @@ import { afterAll, describe, expect, it } from "vitest";
 import {
   adminReq,
   createTestContext,
+  insertCard,
   refreshCardAggregates,
   seedTestUser,
-  syncCardCardTypes,
 } from "../../../test/integration-context.js";
 import { readJson } from "../../../test/read-json.js";
 
@@ -69,24 +69,19 @@ if (adminCtx) {
     ["wsb-poro-rider", "WSB Poro Rider"],
     ["wsb-poro-snack", "WSB Poro Snack"],
   ] as const) {
-    const card = await db
-      .insertInto("cards")
-      .values({
-        slug,
-        name,
-        type: "unit",
-        might: 2,
-        energy: 2,
-        power: 1,
-        mightBonus: null,
-        keywords: [],
-        tags: [],
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    const card = await insertCard(db, {
+      slug,
+      name,
+      types: ["unit"],
+      might: 2,
+      energy: 2,
+      power: 1,
+      mightBonus: null,
+      keywords: [],
+      tags: [],
+    });
     cardIds.push(card.id);
   }
-  await syncCardCardTypes(db);
 
   const candidateCard = (provider: string, name: string, externalId: string, might: number) => ({
     provider,
