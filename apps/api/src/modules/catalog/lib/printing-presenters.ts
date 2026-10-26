@@ -16,7 +16,7 @@ import type {
 import type { Repos } from "../../../deps.js";
 import { toDistributionChannel } from "./reference-presenters.js";
 
-export type PresentedSide = Omit<CatalogPrintingSideValue, "markers"> & { markers: Marker[] };
+type PresentedSide = Omit<CatalogPrintingSideValue, "markers"> & { markers: Marker[] };
 
 interface PrintingDecorations {
   channels: DistributionChannel[];
@@ -184,11 +184,11 @@ export function buildCardsResponse(
   );
 }
 
-export function sideImageKey(row: { printingId: string; side: number }): string {
+function sideImageKey(row: { printingId: string; side: number }): string {
   return `${row.printingId}:${row.side}`;
 }
 
-export function presentSide(
+function presentSide(
   row: SideRow,
   images: readonly PrintingImageRow[],
   markerBySlug: ReadonlyMap<string, Marker>,
@@ -218,7 +218,7 @@ export function presentSide(
   };
 }
 
-export function presentPrintingFields(
+function presentPrintingFields(
   row: SideRow,
   decorations: Pick<PrintingDecorations, "channelsByPrinting" | "citationsByPrinting">,
 ): Pick<
