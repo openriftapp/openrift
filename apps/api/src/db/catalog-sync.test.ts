@@ -416,7 +416,7 @@ describe("buildPricesSync", () => {
 
   it("puts the headline in the column the price view reads", () => {
     const rows = buildPricesSync(
-      { prices: { [PRINTING_ID]: { tcgplayer: 450, cardmarket: 380 } }, currencies, stale: {} },
+      { prices: { [PRINTING_ID]: { tcgplayer: 450, cardmarket: 380 } }, currencies },
       infos,
       catalog,
       TODAY,
@@ -436,27 +436,11 @@ describe("buildPricesSync", () => {
     ]);
   });
 
-  it("dates a stale price back by its stale age", () => {
-    const rows = buildPricesSync(
-      {
-        prices: { [PRINTING_ID]: { tcgplayer: 450 } },
-        currencies,
-        stale: { [PRINTING_ID]: { tcgplayer: 3 } },
-      },
-      infos,
-      catalog,
-      TODAY,
-    );
-
-    expect(rows.prices[0]?.recordedAt).toEqual(new Date("2026-05-07T00:00:00.000Z"));
-  });
-
   it("shares one product between printings with the same SKU", () => {
     const rows = buildPricesSync(
       {
         prices: { [PRINTING_ID]: { tcgplayer: 450 }, [SECOND_PRINTING_ID]: { tcgplayer: 450 } },
         currencies,
-        stale: {},
       },
       infos,
       catalog,
@@ -478,7 +462,6 @@ describe("buildPricesSync", () => {
           "00000000-0000-7000-8000-0000000000ff": { tcgplayer: 100 },
         },
         currencies,
-        stale: {},
       },
       infos,
       catalog,

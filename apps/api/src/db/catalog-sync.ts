@@ -368,8 +368,6 @@ const MARKETPLACES = ["tcgplayer", "cardmarket", "cardtrader", "cardnexus"] as c
 // mv_daily_printing_prices reads market cents for these and low cents for the rest.
 const MARKET_HEADLINE = new Set<string>(["tcgplayer", "cardnexus"]);
 
-const DAY_MS = 86_400_000;
-
 const SYNC_GROUP_ID = 0;
 
 export interface PricesSync {
@@ -413,10 +411,9 @@ export function buildPricesSync(
           finish: printing.finish,
           language: printing.language,
         });
-        const staleDays = prices.stale[printingId]?.[marketplace] ?? 0;
         priceRows.set(skuKey, {
           skuKey,
-          recordedAt: new Date(today.getTime() - staleDays * DAY_MS),
+          recordedAt: today,
           ...(MARKET_HEADLINE.has(marketplace) ? { marketCents: cents } : { lowCents: cents }),
         });
       }

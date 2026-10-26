@@ -15,17 +15,10 @@ import type { MarketplaceProductPricesTable } from "../../../db/tables/marketpla
  */
 export function marketplacePricesRepo(db: Kysely<Database>) {
   return {
-    /**
-     * `lastSeen` is the day the price was observed, not the day it was read.
-     * The pipeline writes a snapshot only when a marketplace returns data, so
-     * a delisted card keeps its final price indefinitely and looks current.
-     */
-    latestPrices(): Promise<
-      { printingId: string; marketplace: string; marketCents: number; lastSeen: string }[]
-    > {
+    latestPrices(): Promise<{ printingId: string; marketplace: string; marketCents: number }[]> {
       return db
         .selectFrom("mvLatestPrintingPrices")
-        .select(["printingId", "marketplace", "headlineCents as marketCents", "lastSeen"])
+        .select(["printingId", "marketplace", "headlineCents as marketCents"])
         .execute();
     },
 

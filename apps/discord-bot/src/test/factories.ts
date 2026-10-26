@@ -139,14 +139,10 @@ export function makeInitResponse(): InitResponse {
   };
 }
 
-export function makePricesResponse(
-  prices: PricesResponse["prices"] = {},
-  stale: PricesResponse["stale"] = {},
-): PricesResponse {
+export function makePricesResponse(prices: PricesResponse["prices"] = {}): PricesResponse {
   return {
     prices,
     currencies: { tcgplayer: "USD", cardmarket: "EUR", cardtrader: "EUR", cardnexus: "EUR" },
-    stale,
   };
 }
 

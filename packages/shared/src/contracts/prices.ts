@@ -39,29 +39,6 @@ const marketplaceCurrenciesSchema = z
     examples: [{ tcgplayer: "USD", cardmarket: "EUR", cardtrader: "EUR", cardnexus: "EUR" }],
   });
 
-const staleAgeMapSchema = z.object({
-  tcgplayer: z
-    .number()
-    .int()
-    .optional()
-    .meta({ examples: [29], description: "Days since seen" }),
-  cardmarket: z
-    .number()
-    .int()
-    .optional()
-    .meta({ examples: [29], description: "Days since seen" }),
-  cardtrader: z
-    .number()
-    .int()
-    .optional()
-    .meta({ examples: [29], description: "Days since seen" }),
-  cardnexus: z
-    .number()
-    .int()
-    .optional()
-    .meta({ examples: [29], description: "Days since seen" }),
-});
-
 export const pricesResponseSchema = z.object({
   prices: z.record(z.string(), marketplacePriceMapSchema).meta({
     examples: [
@@ -76,9 +53,6 @@ export const pricesResponseSchema = z.object({
     ],
   }),
   currencies: marketplaceCurrenciesSchema,
-  stale: z.record(z.string(), staleAgeMapSchema).meta({
-    examples: [{ "019cfc3b-03d3-7dac-86c9-27900cd43727": { cardtrader: 29 } }],
-  }),
 });
 
 export const tcgplayerSnapshotSchema = z.object({

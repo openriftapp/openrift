@@ -44,8 +44,6 @@ export function marketplaceCarriesLanguage(marketplace: Marketplace, language: s
   return carried === null || carried.has(language);
 }
 
-export const PRICE_STALE_AFTER_DAYS = 7;
-
 export const TIME_RANGE_DAYS = {
   "7d": 7,
   "30d": 30,

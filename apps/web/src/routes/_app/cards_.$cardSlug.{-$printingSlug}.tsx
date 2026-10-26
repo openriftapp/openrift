@@ -159,7 +159,7 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
               staleTime: "static",
             });
     } catch {
-      pricesResponse = { prices: {}, currencies: MARKETPLACE_CURRENCY, stale: {} };
+      pricesResponse = { prices: {}, currencies: MARKETPLACE_CURRENCY };
     }
     const priceLookup = priceLookupFromMap(pricesResponse.prices);
     const marketplaceOffers = MARKETPLACE_OFFER_CONFIG.flatMap(({ key, seller, currency }) => {

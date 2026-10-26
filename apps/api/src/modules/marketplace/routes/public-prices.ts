@@ -7,11 +7,7 @@ import type {
   PriceMap,
   PricesResponse,
 } from "@openrift/shared/types/api/pricing";
-import {
-  MARKETPLACE_CURRENCY,
-  PRICE_STALE_AFTER_DAYS,
-  TIME_RANGE_DAYS,
-} from "@openrift/shared/types/pricing";
+import { MARKETPLACE_CURRENCY, TIME_RANGE_DAYS } from "@openrift/shared/types/pricing";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { implement } from "@orpc/server";
 
@@ -25,14 +21,6 @@ function emptyMarketplaceInfo(): MarketplaceInfo {
     available: false,
     productId: null,
   };
-}
-
-/**
- * Whole days between two `YYYY-MM-DD` days, never negative. Both sides parse at UTC midnight to avoid timezone drift.
- */
-function daysBetween(from: string, to: string): number {
-  const ms = Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`);
-  return Math.max(0, Math.round(ms / 86_400_000));
 }
 
 /**
@@ -50,10 +38,6 @@ export const pricesRouter = {
     const rows = await marketplace.latestPrices();
 
     const prices: PriceMap = {};
-    const stale: PricesResponse["stale"] = {};
-    // Age against the freshest observation, not the wall clock: the cron pipeline's "today" can lag real time by hours.
-    const newest = rows.reduce((max, row) => (row.lastSeen > max ? row.lastSeen : max), "");
-
     for (const row of rows) {
       let entry = prices[row.printingId];
       if (!entry) {
@@ -61,14 +45,9 @@ export const pricesRouter = {
         prices[row.printingId] = entry;
       }
       entry[row.marketplace as Marketplace] = row.marketCents;
-
-      const age = daysBetween(row.lastSeen, newest);
-      if (age > PRICE_STALE_AFTER_DAYS) {
-        (stale[row.printingId] ??= {})[row.marketplace as Marketplace] = age;
-      }
     }
 
-    return { prices, currencies: MARKETPLACE_CURRENCY, stale };
+    return { prices, currencies: MARKETPLACE_CURRENCY };
   }),
 
   /**
