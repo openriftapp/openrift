@@ -69,7 +69,6 @@ export function DevelopersPage() {
         <ParaglideMessage
           message={m.developers_docs_p}
           markup={{
-            link: ({ children }) => <a href="/api/developers/doc">{children}</a>,
             link2: ({ children }) => <a href="/api/developers/ui">{children}</a>,
           }}
         />
