@@ -2,7 +2,7 @@
 
 The scanner at `/scan` identifies Riftbound cards through the phone or webcam camera and adds them to a collection. Recognition runs entirely in the browser: the server ships a set of models and a precomputed index of the catalogue, and every camera frame is processed on the device. Camera frames never leave the device, and there is no per-scan cost. Verification compares each candidate with its card image from the site, the same image the card browser shows, so scanning offline works only for cards whose images are already cached.
 
-This document describes the pipeline that ships, why each stage exists, and how changes are measured. The models are trained separately and are not part of this repository; everything that runs them is.
+Model training is not part of this repository. Everything that runs the models is.
 
 ## Goals
 
@@ -49,6 +49,18 @@ The recognition code lives in `packages/shared/src/scan/` and has no browser dep
 
 Reference renders for verification are the regular card images the rest of the site uses, fetched on demand and cached in memory (256 at most).
 
+## Models
+
+All three models use an ImageNet-pretrained MobileNetV3-Small backbone. Each takes RGB in 0..1, with ImageNet normalisation inside the graph.
+
+| Model          | Input                  | Head                                                                                                        | Outputs                                                                                         | Training loss                                                            |
+| -------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Card detector  | 224 × 320              | Light FPN over strides 8, 16 and 32, upsampled to stride 4, two depthwise-separable blocks with 32 channels | Corner heatmap and card mask at stride 4, card-present score from the pooled stride-32 features | CenterNet focal loss on corners, BCE + Dice on the mask, BCE on presence |
+| Board detector | 384 × 384, letterboxed | Same FPN with 48 channels, CenterNet-style head                                                             | Centre heatmap, corner heatmap, and 8 corner-offset channels per centre cell, all at stride 4   | Focal loss on both heatmaps, L1 on the offsets at centres                |
+| Card encoder   | 192 × 192              | Global average pool, linear 576 → 256, batch norm, L2 normalisation                                         | Unit-length 256-float embedding                                                                 | ArcFace over artwork classes (scale 32, margin 0.3)                      |
+
+The detector heads use depthwise-separable convolutions because full 3 × 3 convolutions at stride 4 took about 80% of the compute. The ArcFace margin head is training-only and is not exported. The app reads only the card detector's corner heatmap and presence score. The mask output is unused.
+
 ## The frame pipeline
 
 The app has two modes. **Scan** processes frames continuously and adds a card once it is sure. **Tap** reads every card on one full-resolution still per tap (see Tap reads below), and falls back to one framed card when that still holds none. Both run the same pipeline:
@@ -75,13 +87,11 @@ camera frame (848 px long side)
 6. Printing ──────────── name band, then code strip, then stamp ──► printing or picker
 ```
 
-Each stage is described below with the constants that ship.
-
 ### 1. Finding the card
 
 The user holds the card inside an on-screen guide: a card-shaped rectangle 70% of the frame height (at most 90% of its width), centred. The **card detector** sees a 224 × 320 window around the guide, 25% larger than it, and outputs a corner heatmap at stride 4 plus a "card present" score. When the score is at least 0.5, the four strongest heatmap peaks (at least 4 cells apart) become the card's corners.
 
-**Edge snap** (`edge-snap.ts`) tightens the detector's corners: each side samples 24 points along its normal, moves to the strongest nearby image edge (search radius 4% of the side, at least 3 px), drops outliers, and refits; the corners become the intersections of the refitted sides. A tight outline matters for the later stages, which compare pixels at fixed card positions.
+**Edge snap** (`edge-snap.ts`) tightens the detector's corners: each side samples 24 points along its normal, moves to the strongest nearby image edge (search radius 4% of the side, at least 3 px), drops outliers, and refits. The corners become the intersections of the refitted sides. A tight outline matters for the later stages, which compare pixels at fixed card positions.
 
 When the card detector finds nothing, the guide rectangle itself is tried as the outline. Ahead of it, the **board detector** (a 384 × 384 letterboxed view of the whole frame, centre heatmap plus per-centre corner offsets) may add up to two outlines centred in the guide: whole cards covering at least 30% of the guide, scored 0.5 or more, and either landscape or one of several cards in view. This is how a battlefield lying sideways is found. When the board detector adds nothing, it skips the next 7 frames.
 
@@ -93,7 +103,7 @@ Blurred crops are dropped before any model runs. The focus score is the variance
 
 ### 3. Ranking by embedding
 
-The rectified card is resized to 192 × 192 and run through the **encoder**, a small network trained with an ArcFace objective to map every photo of one artwork close to that artwork's render and far from every other. Its output is a unit-length 256-float vector. The bank holds one vector per reference render, so ranking is one dot product per reference, about 3,660 per query.
+The rectified card is resized to 192 × 192 and embedded by the **encoder** (see Models). The bank holds one vector per reference render, so ranking is one dot product per reference, about 3,660 per query.
 
 Orientation is searched lazily:
 
@@ -106,7 +116,7 @@ The output is a shortlist of the 2 nearest references.
 
 ### 4. Verifying
 
-An embedding ranks; it cannot reject. A nearest neighbour always exists, and a card that is missing from the catalogue, half covered, or photographed at a bad angle still lands close to _something_. A scanner that trusts its top match therefore adds wrong cards whenever it is unsure. Verification is the stage that says no.
+Nearest-neighbour ranking always returns a match, also for a card that is missing from the catalogue, half covered, or photographed at a bad angle. Verification rejects those.
 
 `aligned-verify.ts` compares the rectified card against each shortlisted reference render directly:
 
@@ -124,16 +134,16 @@ rectified card              reference render
 
 - Both images are reduced to 40 × 56 grey thumbnails.
 - 10 × 10 patches at a 5 px stride are each correlated (zero-mean, normalised) at every shift within ±2 px, and the best shift counts. The shift absorbs the residual misalignment the outline leaves.
-- Patches without texture on either side carry no evidence and are skipped. Glare and plain borders produce exactly these. At least a third of the patches must be textured, or the frame gives no score.
+- Patches without texture on either side, such as glare and plain borders, are skipped. At least a third of the patches must be textured, or the frame gives no score.
 - The score is the median over patches, so a finger or a reflection over part of the card does not sink a correct match.
 
 A frame has a **winner** only when the best reference scores at least 0.6 and beats the best reference of any _other_ artwork by at least 0.15. When the margin is too small the frame is **refused**. A reference that fails to load (a network error, as opposed to a missing image) voids the frame if it could have changed the outcome, so a missing rival never lets a wrong winner through.
 
 ### 5. Locking
 
-One frame is never enough. Each winner is recorded on a track for its artwork, and a track **locks** once its run of agreeing frames reaches weight 3:
+Each winner is recorded on a track for its artwork, and a track **locks** once its run of agreeing frames reaches weight 3:
 
-- A frame's weight runs from 1 at a score of 0.6 to 2 at 0.95 and above. A clear, sharp view locks in two frames; a marginal one needs three.
+- A frame's weight runs from 1 at a score of 0.6 to 2 at 0.95 and above. A clear, sharp view locks in two frames. A marginal one needs three.
 - A run survives gaps of up to 6 frames, so a frame of motion blur mid-aim does not restart it.
 - In Tap mode a single verified frame locks.
 
@@ -141,9 +151,9 @@ A lock vibrates the phone for 50 ms, plays a short sound where the browser allow
 
 ### 6. Resolving the printing
 
-The bank groups references by **artwork**: the set, name and art variant, with every language and promo variant of that artwork in one group. The bank build merges two kinds of artwork that no image can tell apart, both only between cards of the same name and type. Near-identical renders reused across sets (basic runes, for example) merge when their embeddings lie within 0.05 cosine distance. Reprints that show the same illustration with a new crop or colour grading merge when their renders score 0.85 or more against each other with the verifier below. Within an artwork, the printing is a separate problem: an English and a French copy, or a regular and a promo copy, share the illustration and differ only in small regions of text.
+The bank groups references by **artwork**: the set, name and art variant, with every language and promo variant of that artwork in one group. The bank build merges two kinds of artwork that no image can tell apart, both only between cards of the same name and type. Near-identical renders reused across sets (basic runes, for example) merge when their embeddings lie within 0.05 cosine distance. Reprints that show the same illustration with a new crop or colour grading merge when their renders score 0.85 or more against each other with the verifier below. Printings within one artwork, such as an English and a French copy or a regular and a promo copy, share the illustration and differ only in small text regions.
 
-Card text is compared as pixels, never read. The card font is licensed, so the scanner does not render or OCR it; it correlates regions of the photo against the same regions of each printing's reference render. Three regions are tried in order, each only among the printings the previous one could not separate:
+Card text is compared as pixels and never read, because the card font is licensed. Each region of the photo is correlated against the same region of each printing's reference render. Three regions are tried in order, each only among the printings the previous one could not separate:
 
 | Stage | Region                                    | Separates                       | Min score | Min margin                        |
 | ----- | ----------------------------------------- | ------------------------------- | --------- | --------------------------------- |
@@ -151,7 +161,7 @@ Card text is compared as pixels, never read. The card font is licensed, so the s
 | Code  | Collector-code strip, bottom left         | Sets, collector numbers, promos | 0.55      | 0.15                              |
 | Stamp | Stamp area, bottom centre                 | Stamped variants of one code    | 0.55      | 0.15 (0.40 to pick a stamped one) |
 
-Each stage runs a **tournament**: the winner must clear the minimum score and beat every distinguishable rival by the margin. Margins are computed on a difference mask, the pixels where the two rival renders disagree after aligning them to each other. Whole-band correlation does not work here: a wrong printing correlated 0.905 with a photo while the right one, misaligned by one pixel, scored 0.826. The mask compares only the pixels that tell the two apart.
+Each stage runs a **tournament**: the winner must clear the minimum score and beat every distinguishable rival by the margin. Margins are computed on a difference mask, the pixels where the two rival renders disagree after aligning them to each other. Whole-band correlation fails here: a wrong printing correlated 0.905 with a photo while the right one, misaligned by one pixel, scored 0.826.
 
 A printing is accepted after two frames agree. After 8 attempts without agreement the scanner stops trying, and the card goes into the list with its artwork known and its printing left to the user's picker, which offers only that artwork's printings. Landscape battlefields have no printing bands yet and always use the picker when they have several printings.
 
@@ -159,16 +169,16 @@ A printing is accepted after two frames agree. After 8 attempts without agreemen
 
 - **Any rotation.** Quad canonicalisation puts the long axis vertical, and the embedding search covers the 180° pair. The previous winner's rotation is tried first, so a stack scanned the same way up pays for one rotation per frame.
 - **Battlefields.** Landscape renders are stored turned 90° left in the bank and in the verifier's references, the same way the photo of a sideways battlefield unwarps.
-- **Rotated camera buffers.** Some Android devices deliver the camera image rotated relative to the screen. Once two consecutive verified winners agree on a non-upright rotation, the frame grab pre-rotates every frame. Battlefield winners never trigger this, since a landscape reference always reports a quarter turn; letting them drive it once rotated the frame in an endless loop.
+- **Rotated camera buffers.** Some Android devices deliver the camera image rotated relative to the screen. Once two consecutive verified winners agree on a non-upright rotation, the frame grab pre-rotates every frame. Battlefield winners never trigger this, since a landscape reference always reports a quarter turn. When they did, the frame rotated in an endless loop.
 
 ## Copies and stacks
 
-Scanning several copies of one card is the common case: a playset, or a pile of commons. The scanner must count each copy once, and must not count one copy twice because the user held it a little long.
+Scanning several copies of one card, such as a playset or a pile of commons, is common. Each copy counts once, also when the user holds it in view for a while.
 
 - **Empty guide.** After two frames in which the guide holds no recognisable card, every locked track re-arms, and the next copy can lock.
 - **Placement watcher.** Cards dealt onto a pile never leave an empty guide. The page compares 16 × 22 thumbnails of the guide region on every camera frame, mean-subtracted so a change in exposure does not register as motion. Motion followed by 2 settled frames (and at least 3 disturbed ones) counts as a new card placed, and re-arms the tracks. A 0.5 s hold after placement keeps the next lock from reading the card as it lands.
-- **Relock guard.** An artwork already in the list is added again only after the guide went properly empty, a different card was added in between, or a placement was seen. A shaky hand cannot produce any of these.
-- **Catch-up.** When a placement is seen but no lock follows, its settled frame is kept (3 at most) and re-run once the guide is free. A strong result (score 75 or more, 30 points ahead of the runner-up) is added; anything weaker is shown to the user with the closest artworks to pick from.
+- **Relock guard.** An artwork already in the list is added again only after the guide was empty for two frames, a different card was added in between, or a placement was seen. A shaky hand cannot produce any of these.
+- **Catch-up.** When a placement is seen but no lock follows, its settled frame is kept (3 at most) and re-run once the guide is free. A strong result (score 75 or more, 30 points ahead of the runner-up) is added. Anything weaker is shown to the user with the closest artworks to pick from.
 
 The Identify button bypasses all of these and runs a full search on the current frame, which is also how a user adds another copy of the card still in hand.
 
@@ -180,15 +190,15 @@ On every device, five frames without a plausible match in Scan mode put the sess
 
 ## Runtime
 
-- All three models run in onnxruntime-web's WASM backend inside a dedicated Web Worker, so the camera preview and the UI stay responsive. Frame buffers move to the worker as transferables.
+- All three models run in onnxruntime-web's WASM backend inside a dedicated Web Worker. Frame buffers move to the worker as transferables.
 - The runtime uses up to 4 threads when the page is cross-origin isolated, otherwise 1.
 - Sessions are created with `graphOptimizationLevel: "basic"`. The full optimisation level made session creation several times slower without speeding up inference.
-- The bank is a small binary container (`embed-format.ts`, magic `RFEB`, version 2) with fp16 vectors and a flag recording the landscape convention it was built with.
+- The bank is a binary container (`embed-format.ts`, magic `RFEB`, version 2) with fp16 vectors and a flag recording the landscape convention it was built with.
 - Bank and label files are content-hashed and served with immutable caching. The manifest names the current pair, so a rebuild reaches clients on their next load.
 
 ## Adding new cards
 
-The detectors find "a card" and know nothing about which one, so they need nothing for a new set. After a set lands in the catalogue:
+The detectors are card-agnostic and need no update for a new set. After a set lands in the catalogue:
 
 1. An admin runs **Rebuild bank** (the `scan.rebuild_bank` job). It embeds every active front render, groups artworks, and writes a new bank and label file.
 2. Clients pick up the new files through the manifest.
@@ -197,11 +207,11 @@ The encoder was trained on the artworks in the catalogue at the time, and embeds
 
 ## Measuring changes
 
-Every change to the scanner is measured on recorded clips before it ships. The tooling is in `scripts/scan/` (see [its README](../scripts/scan/README.md)); the clips themselves are recordings of real cards and are not part of this repository.
+Every change to the scanner is measured on recorded clips before it ships. The tooling is in `scripts/scan/` (see [its README](../scripts/scan/README.md)). The clips are recordings of real cards and are not part of this repository.
 
 - **Recording.** The admin page `/admin/scan` records a camera session together with a log of every frame the phone processed and every decision it made.
 - **Truth.** Each clip has a hand-checked truth file: which cards, how many copies, and which printings.
-- **Replay.** `run-clips.ts` replays each clip through the same session plans and the same frame loop (`apps/web/src/features/scan/lib/scan-loop.ts`) the app uses, on the frames the phone actually processed, and prints where the replay decided differently from the phone. `run-boards.ts` scores tap reads on photos and on stills extracted from the recordings.
+- **Replay.** `run-clips.ts` replays each clip through the same session plans and the same frame loop (`apps/web/src/features/scan/lib/scan-loop.ts`) the app uses, on the frames the phone processed, and prints where the replay decided differently from the phone. `run-boards.ts` scores tap reads on photos and on stills extracted from the recordings.
 - **Gate.** `compare-runs.ts` fails a candidate that finds fewer cards or printings than the baseline on any clip, or that is more than 25% slower on a single-card clip.
 
 The score that matters first is **wrong locks**. A change that finds more cards but adds one wrong card does not ship.
@@ -210,12 +220,12 @@ Results on the single-card clips as of October 2026: **114 of 116 cards found, 0
 
 ## Tried and dropped
 
-These were built or measured, and lost. They are listed so they are not tried again without new evidence.
+Each was built or measured and did worse. Do not retry one without new evidence.
 
 - **OCR and perceptual hashes.** The first scanner read the card name and compared image hashes. Replayed on the clips, it named the right card in 0 to 10% of frames and kept naming wrong cards. Reading text also runs into the font licence.
 - **A general-purpose image encoder** (MobileCLIP-S0, 512 dimensions). Worked, but took about 100 ms per image on an iPhone and 920 ms on a 2016 Android phone. The trained encoder takes about 5 ms and 55 ms, and ranks well enough for a 2-deep shortlist where MobileCLIP needed 8. The bank format and distance gates still support it (`gatesForEmbedDim`).
 - **An int8 MobileCLIP.** Slower than fp32 in the WASM runtime (80 vs 58 ms per image), and its embeddings drifted far from the fp32 ones (cosine 0.44).
-- **Keypoint matching (ORB) for verification**, and OpenCV with it. It needed a 3.3 MB WASM library, cost 0.5 to 2 s per frame on old phones, and dropped below its match floor on low-texture cards whenever glare or blur hit a frame. Patch correlation on rectified thumbnails replaced it, and OpenCV left the app.
+- **Keypoint matching (ORB) for verification**, and OpenCV with it. It needed a 3.3 MB WASM library, cost 0.5 to 2 s per frame on old phones, and dropped below its match floor on low-texture cards whenever glare or blur hit a frame. Patch correlation on rectified thumbnails replaced it, and OpenCV was removed.
 - **Classical rectangle fitting** for finding the card. It only searched rectangles up to about the frame's short side, so a close-up card got an outline of its printed inner frame. Replaced by the learned detectors.
 - **Whole-band correlation for printings.** See the 0.905 vs 0.826 example above.
 - **Small colour fingerprints** (a downscaled colour grid per card, compared by cosine similarity). Measured as a matcher on the same clips, they cannot reject: wrong matches scored 0.81 to 0.99 and right ones 0.90 to 0.99, so no threshold separates them.
