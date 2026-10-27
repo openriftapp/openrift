@@ -181,7 +181,7 @@ describe.skipIf(!ctx)("Catalog route (integration)", () => {
       expect(annie).toBeDefined();
       expect(annie.id).toBeUndefined();
       expect(annie.name).toBe("Annie, Fiery");
-      expect(annie.type).toBe("unit");
+      expect(annie.types).toEqual(["unit"]);
       expect(annie.superTypes).toContain("champion");
       expect(annie.domains).toContain("fury");
     });

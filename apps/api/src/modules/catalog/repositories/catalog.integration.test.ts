@@ -63,11 +63,12 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
     expect(first).toHaveProperty("id");
     expect(first).toHaveProperty("slug");
     expect(first).toHaveProperty("name");
-    expect(first).toHaveProperty("type");
+    expect(first).toHaveProperty("types");
     expect(first).toHaveProperty("superTypes");
     expect(first).toHaveProperty("domains");
     expect(first).toHaveProperty("keywords");
     expect(first).not.toHaveProperty("normName");
+    expect(first).not.toHaveProperty("type");
     expect(first).not.toHaveProperty("createdAt");
 
     const names = cards.map((c) => c.name);
