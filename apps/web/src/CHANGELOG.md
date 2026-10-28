@@ -4,6 +4,7 @@
 
 ### Other
 
+- feat(Cards): **Flip double-sided cards** — the card image shows its other side peeking out behind it, and a button on the card turns it over to that side.
 - feat(Contribute): **Suggest a better image** — a printing that already has an image now links to the image form, which shows the current image and asks what is wrong with it.
 - feat(Cards): **One correction menu** — "Suggest a correction" on a card is now a dropdown for the card's details, the printing's details or its image.
 - fix(Contribute): **Readable card preview hints** — the Energy, Power, Might and Might bonus hints on the contribute preview no longer cut off their labels.

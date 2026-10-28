@@ -1,41 +1,30 @@
-import { imageUrl } from "@openrift/shared/image-url";
 import type { Printing, PrintingOtherSide } from "@openrift/shared/types/catalog";
+import type { ReactNode } from "react";
 
-import { Pressable } from "@/components/ui/pressable";
+import { DoubleSidedFlip } from "@/features/cards/components/double-sided-flip";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { m } from "@/paraglide/messages.js";
 
 export function CardDetailOtherSide({
   printing,
   otherSide,
   onSelect,
+  children,
 }: {
   printing: Printing;
   otherSide: PrintingOtherSide;
   onSelect: (printing: Printing) => void;
+  children: ReactNode;
 }) {
   const { printingsByCardId } = useCards();
   const entry = printingsByCardId
     .get(otherSide.cardId)
     ?.find((p) => p.printingId === printing.printingId && p.side !== printing.side);
   if (!entry) {
-    return null;
+    return children;
   }
   return (
-    <Pressable
-      onClick={() => onSelect(entry)}
-      className="text-muted-foreground hover:text-foreground flex items-center gap-3 text-left text-sm"
-    >
-      {otherSide.imageId && (
-        <img
-          src={imageUrl(otherSide.imageId, "120w")}
-          alt=""
-          width={48}
-          height={67}
-          className="w-12 shrink-0 rounded-md"
-        />
-      )}
-      {m.cards_printing_double_sided({ name: otherSide.cardName })}
-    </Pressable>
+    <DoubleSidedFlip key={printing.cardId} otherSide={otherSide} onFlip={() => onSelect(entry)}>
+      {children}
+    </DoubleSidedFlip>
   );
 }

@@ -106,14 +106,19 @@ export function CardDetail({
     />
   ) : null;
   const text = <CardDetailText printing={printing} onKeywordClick={onKeywordClick} />;
-  const otherSide =
+  const cardArt = <CardDetailArt printing={printing} showImages={showImages} />;
+  const art =
     printing.otherSide && onSelectPrinting ? (
       <CardDetailOtherSide
         printing={printing}
         otherSide={printing.otherSide}
         onSelect={onSelectPrinting}
-      />
-    ) : null;
+      >
+        {cardArt}
+      </CardDetailOtherSide>
+    ) : (
+      cardArt
+    );
 
   if (layout === "modal") {
     return (
@@ -129,8 +134,7 @@ export function CardDetail({
 
         <div className="grid gap-5 @2xl:grid-cols-[340px_minmax(0,1fr)]">
           <div className="space-y-3">
-            <CardDetailArt printing={printing} showImages={showImages} />
-            {otherSide}
+            {art}
             {hasNav && (
               <div className="flex items-center justify-between gap-2">
                 <Button
@@ -236,8 +240,7 @@ export function CardDetail({
         {hasBans && <BanAlert bans={card.bans} upcoming={false} />}
         {hasUpcomingBans && <BanAlert bans={card.upcomingBans} upcoming />}
 
-        <CardDetailArt printing={printing} showImages={showImages} />
-        {otherSide}
+        {art}
 
         <div className="flex items-start gap-2">
           {hasNav && (
