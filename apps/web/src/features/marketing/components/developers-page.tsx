@@ -143,13 +143,15 @@ export function DevelopersPage() {
       </p>
       <p>{m.developers_limits_p()}</p>
 
-      <h2>{m.developers_terms_heading()}</h2>
+      <h2>{m.developers_attribution_heading()}</h2>
       <p>
         <ParaglideMessage
           message={m.developers_attribution_p}
           markup={{ code: () => <code>/cards/{"{card-slug}"}</code> }}
         />
       </p>
+
+      <h2>{m.developers_terms_heading()}</h2>
       <p>{m.developers_license_p()}</p>
       <p>{m.developers_stability_p()}</p>
 
