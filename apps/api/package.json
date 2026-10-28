@@ -34,7 +34,7 @@
     "hono-rate-limiter": "0.5.4",
     "kysely": "0.29.7",
     "kysely-postgres-js": "5.0.1",
-    "nodemailer": "10.1.3",
+    "nodemailer": "10.1.4",
     "onnxruntime-node": "1.30.0",
     "postgres": "3.4.9",
     "prom-client": "15.1.3",
