@@ -3,7 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
-import { cardPlaceholderRegions } from "@/features/cards/lib/card-placeholder-regions";
+import {
+  cardPlaceholderRegions,
+  placeholderLabelFontSize,
+} from "@/features/cards/lib/card-placeholder-regions";
 import { ContributePreviewHotspots } from "@/features/contribute/components/contribute-preview-hotspots";
 
 const ALL_FIELDS: Record<PlaceholderField, true> = {
@@ -59,6 +62,25 @@ describe("cardPlaceholderRegions", () => {
       expect(region.y + region.height).toBeLessThanOrEqual(CARD_HEIGHT_CQW);
     }
   });
+
+  it("keeps the default label size when the label fits", () => {
+    const rules = cardPlaceholderRegions().find(
+      (region) => region.field === "printing.printedRulesText",
+    );
+
+    expect(rules && placeholderLabelFontSize(rules)).toBe(3.5);
+  });
+
+  it("shrinks a label that would overflow its rect", () => {
+    const energy = cardPlaceholderRegions().find((region) => region.field === "card.energy");
+    if (!energy) {
+      throw new Error("energy region missing");
+    }
+    const size = placeholderLabelFontSize(energy);
+
+    expect(size).toBeLessThan(3.5);
+    expect(energy.label.length * size * 0.6).toBeLessThanOrEqual(energy.width);
+  });
 });
 
 describe("ContributePreviewHotspots", () => {
@@ -75,6 +97,15 @@ describe("ContributePreviewHotspots", () => {
     expect(screen.getByRole("button", { name: "Jump to Card name" })).toBeInTheDocument();
     expect(screen.getByText("Energy")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add Energy" })).toBeInTheDocument();
+  });
+
+  it("shows an icon with a hover title in place of the label for stat regions", () => {
+    renderHotspots();
+    const power = screen.getByRole("button", { name: "Add Power" });
+
+    expect(power).toHaveTextContent("");
+    expect(power).toHaveAttribute("title", "Power");
+    expect(screen.getByRole("button", { name: "Add Might bonus" })).toHaveTextContent("+");
   });
 
   it("reports the field behind a clicked region", async () => {

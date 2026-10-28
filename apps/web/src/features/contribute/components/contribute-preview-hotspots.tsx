@@ -1,8 +1,12 @@
 import type { ReactElement } from "react";
 
+import { CardIcon } from "@/components/card-icon";
 import { Pressable } from "@/components/ui/pressable";
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
-import { cardPlaceholderRegions } from "@/features/cards/lib/card-placeholder-regions";
+import {
+  cardPlaceholderRegions,
+  placeholderLabelFontSize,
+} from "@/features/cards/lib/card-placeholder-regions";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -38,6 +42,7 @@ export function ContributePreviewHotspots({
             onFocus={() => onHover(region.field)}
             onPointerEnter={() => onHover(region.field)}
             onPointerLeave={() => onHover(null)}
+            title={!isFilled && region.icon ? region.label : undefined}
             style={{
               left: `${region.x}cqw`,
               top: `${region.y}cqw`,
@@ -53,11 +58,20 @@ export function ContributePreviewHotspots({
               isActive && "ring-primary bg-primary/25 ring-2",
             )}
           >
-            {!isFilled && (
-              <span className="truncate px-[1cqw] text-[3.5cqw] leading-none text-white/80">
-                {region.label}
-              </span>
-            )}
+            {!isFilled &&
+              (region.icon ? (
+                <span className="flex items-center text-[3.5cqw] leading-none font-bold text-white/80">
+                  {region.iconPrefix}
+                  <CardIcon src={region.icon} className="size-[4cqw]" />
+                </span>
+              ) : (
+                <span
+                  className="truncate px-[1cqw] leading-none text-white/80"
+                  style={{ fontSize: `${placeholderLabelFontSize(region)}cqw` }}
+                >
+                  {region.label}
+                </span>
+              ))}
           </Pressable>
         );
       })}

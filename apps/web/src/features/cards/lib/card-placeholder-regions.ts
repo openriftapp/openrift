@@ -24,6 +24,18 @@ export interface PlaceholderRegion {
   y: number;
   width: number;
   height: number;
+  icon?: string;
+  iconPrefix?: string;
+}
+
+const LABEL_FONT_CQW = 3.5;
+const LABEL_CHAR_WIDTH_EM = 0.6;
+const LABEL_PADDING_CQW = 2;
+
+/** @returns The label font size in cqw, shrunk so the label fits the rect's width. */
+export function placeholderLabelFontSize(region: PlaceholderRegion): number {
+  const fit = (region.width - LABEL_PADDING_CQW) / (region.label.length * LABEL_CHAR_WIDTH_EM);
+  return Math.min(LABEL_FONT_CQW, fit);
 }
 
 // These rects mirror the absolute positions in card-placeholder-image.tsx and have to move with them.
@@ -84,6 +96,7 @@ export function cardPlaceholderRegions(): readonly PlaceholderRegion[] {
       y: 20.3,
       width: 6,
       height: 17.5,
+      icon: "/images/power.svg",
     },
     {
       field: "card.energy",
@@ -100,6 +113,7 @@ export function cardPlaceholderRegions(): readonly PlaceholderRegion[] {
       y: 7.7,
       width: 16,
       height: 9,
+      icon: "/images/might.svg",
     },
     {
       field: "card.mightBonus",
@@ -108,6 +122,8 @@ export function cardPlaceholderRegions(): readonly PlaceholderRegion[] {
       y: 108,
       width: 12,
       height: 5,
+      icon: "/images/might.svg",
+      iconPrefix: "+",
     },
     {
       field: "printing.publicCode",
