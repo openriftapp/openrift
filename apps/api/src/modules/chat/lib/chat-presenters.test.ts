@@ -118,18 +118,18 @@ describe("chatCardLine", () => {
 describe("chatMissLine", () => {
   it("names the query and links a pre-filled card search", () => {
     expect(chatMissLine("vicktor", SITE)).toBe(
-      'No Riftbound card found for "vicktor". Try https://openrift.app/cards?search=vicktor',
+      'No Riftbound card found for "vicktor". Try https://openrift.app/cards?q=vicktor',
     );
   });
 
   it("percent-encodes a query with spaces, so the link survives being pasted", () => {
     expect(chatMissLine("doran's shield", SITE)).toContain(
-      `search=${encodeURIComponent("doran's shield")}`,
+      `q=${encodeURIComponent("doran's shield")}`,
     );
   });
 
   it("escapes a query that tries to break out of the search param", () => {
-    expect(chatMissLine("a&b=c", SITE)).toContain("search=a%26b%3Dc");
+    expect(chatMissLine("a&b=c", SITE)).toContain("q=a%26b%3Dc");
   });
 
   it("collapses whitespace so a pasted newline cannot split the message", () => {

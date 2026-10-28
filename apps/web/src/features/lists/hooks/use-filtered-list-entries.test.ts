@@ -128,7 +128,7 @@ describe("useFilteredListEntries", () => {
   it("drops entries whose card does not match the search text", () => {
     const entries = [printingEntry("e-1", viNormal), printingEntry("e-2", jinx)];
 
-    const { result } = renderFiltered(entries, { search: "Jinx" });
+    const { result } = renderFiltered(entries, { q: "Jinx" });
 
     expect(result.current.hasActiveFilters).toBe(true);
     expect(idsOf(result.current.filteredEntries)).toEqual(["e-2"]);
@@ -145,7 +145,7 @@ describe("useFilteredListEntries", () => {
   it("filters a card-kind entry through the card's first catalog printing", () => {
     const entries = [cardEntry("e-1", "card-vi", "Vi"), cardEntry("e-2", "card-jinx", "Jinx")];
 
-    const { result } = renderFiltered(entries, { search: "Vi" });
+    const { result } = renderFiltered(entries, { q: "Vi" });
 
     expect(idsOf(result.current.filteredEntries)).toEqual(["e-1"]);
   });
@@ -157,7 +157,7 @@ describe("useFilteredListEntries", () => {
       copyEntry("e-3", jinx),
     ];
 
-    const { result } = renderFiltered(entries, { search: "Vi" });
+    const { result } = renderFiltered(entries, { q: "Vi" });
 
     expect(idsOf(result.current.filteredEntries)).toEqual(["e-1", "e-2"]);
   });
@@ -169,7 +169,7 @@ describe("useFilteredListEntries", () => {
       printingEntry("e-3", jinx),
     ];
 
-    const { result } = renderFiltered(entries, { search: "Gold" });
+    const { result } = renderFiltered(entries, { q: "Gold" });
 
     expect(idsOf(result.current.filteredEntries)).toEqual(["e-1", "e-2"]);
   });
@@ -177,7 +177,7 @@ describe("useFilteredListEntries", () => {
   it("drops entries whose printing is missing from the catalog", () => {
     const entries = [printingEntry("e-1", jinx, "p-gone"), printingEntry("e-2", jinx)];
 
-    const { result } = renderFiltered(entries, { search: "Jinx" });
+    const { result } = renderFiltered(entries, { q: "Jinx" });
 
     expect(idsOf(result.current.filteredEntries)).toEqual(["e-2"]);
   });
@@ -185,7 +185,7 @@ describe("useFilteredListEntries", () => {
   it("returns nothing when the filters match no entry on the list", () => {
     const entries = [printingEntry("e-1", viNormal)];
 
-    const { result } = renderFiltered(entries, { search: "Ekko" });
+    const { result } = renderFiltered(entries, { q: "Ekko" });
 
     expect(result.current.filteredEntries).toEqual([]);
   });

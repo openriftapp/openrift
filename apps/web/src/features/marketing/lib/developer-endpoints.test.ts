@@ -2,6 +2,7 @@ import { cardsContract } from "@openrift/shared/contracts/cards";
 import { catalogContract } from "@openrift/shared/contracts/catalog";
 import { pricesContract } from "@openrift/shared/contracts/prices";
 import { rulesContract } from "@openrift/shared/contracts/rules";
+import { searchContract } from "@openrift/shared/contracts/search";
 import { setsContract } from "@openrift/shared/contracts/sets";
 import { describe, expect, it } from "vitest";
 
@@ -27,6 +28,7 @@ describe("DEVELOPER_ENDPOINT_PATHS", () => {
       setsContract,
       pricesContract,
       rulesContract,
+      searchContract,
     ].flatMap((contract) => developerPaths(contract));
     expect([...DEVELOPER_ENDPOINT_PATHS].toSorted()).toEqual(flagged.toSorted());
   });

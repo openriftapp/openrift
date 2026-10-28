@@ -53,7 +53,7 @@ export function useCardDetailNavigation({
       applyTagFilter(tag);
       onDismiss();
     } else {
-      onSearchAndClose(`t:"${tag}"`);
+      onSearchAndClose(`otag:"${tag}"`);
     }
   };
 
@@ -68,7 +68,7 @@ export function useCardDetailNavigation({
     }
   };
 
-  const handleKeywordClick = (keyword: string) => onSearchAndClose(`k:${keyword}`);
+  const handleKeywordClick = (keyword: string) => onSearchAndClose(`kw:${keyword}`);
 
   // useGridKeyboardNav listens on the window and can't reach inside a focus-trapped
   // dialog, so this overlay carries its own left/right/up/down handling.

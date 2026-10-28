@@ -3,6 +3,7 @@ import { getOrientation } from "@openrift/shared/card-orientation";
 import { filterCards } from "@openrift/shared/filters";
 import { sortCards } from "@openrift/shared/filters-sort";
 import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select";
+import { parseSearchQuery } from "@openrift/shared/search-query/parse";
 import { setIndexById, UNKNOWN_SET_INDEX } from "@openrift/shared/set-order";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
@@ -52,15 +53,22 @@ export function extractFirstRow(
   limit: number,
   viewDefaults: SurfaceViewPrefs = VIEW_SURFACE_CONFIGS.cards.defaults,
 ): FirstRowCard[] {
-  const view = search.view === "printings" ? "printings" : SSR_DEFAULT_VIEW;
+  const directives = parseSearchQuery(search.q ?? "").directives;
+  const requestedView = directives.unique === "prints" ? "printings" : search.view;
+  const view =
+    directives.unique === "cards"
+      ? "cards"
+      : requestedView === "printings"
+        ? "printings"
+        : SSR_DEFAULT_VIEW;
   const groupBy = (search.groupBy ?? viewDefaults.groupBy) as GroupByField;
-  const requestedSort = (search.sort ?? viewDefaults.sort) as SortOption;
+  const requestedSort = (directives.order ?? search.sort ?? viewDefaults.sort) as SortOption;
   // sortCards needs rarityOrder for "rarity" and a price lookup for "price";
   // the SSR pipeline has neither, so fall back to "id" (shortCode) for those.
   const sortBy: SortOption =
     requestedSort === "rarity" || requestedSort === "price" ? "id" : requestedSort;
   const sortDir: "asc" | "desc" =
-    (search.sortDir ?? viewDefaults.sortDir) === "desc" ? "desc" : "asc";
+    (directives.direction ?? search.sortDir ?? viewDefaults.sortDir) === "desc" ? "desc" : "asc";
 
   const { allPrintings, sets } = enrichCatalog(catalog);
   const ordered = sortByLanguageAndCanonicalRank(allPrintings, SSR_USER_LANGUAGES);

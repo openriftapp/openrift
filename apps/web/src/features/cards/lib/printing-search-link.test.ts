@@ -34,6 +34,6 @@ describe("printingCollectionSearch", () => {
       printingCollectionSearch(
         stubPrinting({ shortCode: "OGN", otherSide: recruit, finish: "foil", language: "FR" }),
       ),
-    ).toEqual({ search: "id:OGN-271", view: "printings", finishes: ["foil"], languages: ["FR"] });
+    ).toEqual({ q: "cn:OGN-271", view: "printings", finishes: ["foil"], languages: ["FR"] });
   });
 });

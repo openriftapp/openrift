@@ -1,4 +1,5 @@
 import { labelMap } from "@openrift/shared/collections";
+import { formatSearchSlug } from "@openrift/shared/search-query/keys";
 import type { ColoredEnumRow, EnumRow } from "@openrift/shared/types/api/init";
 import type { CustomTag, DistributionChannel } from "@openrift/shared/types/catalog";
 import type { DeckZone, EnumOrders } from "@openrift/shared/types/enums";
@@ -71,6 +72,27 @@ export function useDeckFormatList(): {
   return {
     formats: rows.map((row) => ({ slug: row.slug, label: row.label })),
     labels: Object.fromEntries(rows.map((row) => [row.slug, row.label])),
+  };
+}
+
+/** Ban formats (`f:` and `banned:` in search), not the deck builder's formats. */
+export function useFormatList(): {
+  names: string[];
+  ids: string[];
+  labels: Record<string, string>;
+} {
+  const { data } = useSuspenseQuery(initQueryOptions);
+  const rows = sorted(data.enums.formats ?? []);
+  const names = rows.map((row) => formatSearchSlug(row.label));
+  return {
+    names,
+    ids: rows.map((row) => row.slug),
+    labels: Object.fromEntries(
+      rows.flatMap((row, index) => [
+        [row.slug, row.label],
+        [names[index] as string, row.label],
+      ]),
+    ),
   };
 }
 

@@ -11,6 +11,7 @@ import {
   PrinterIcon,
   PuzzleIcon,
   ScaleIcon,
+  SearchIcon,
   SwordsIcon,
   UsersIcon,
   WebhookIcon,
@@ -53,6 +54,17 @@ export const helpArticles = new Map<string, HelpArticle>([
       description: "What a card, a printing, and a copy are, and how the three levels connect.",
       icon: LayersIcon,
       component: () => import("@/features/marketing/components/articles/cards-printings-copies"),
+    },
+  ],
+  [
+    "search-syntax",
+    {
+      slug: "search-syntax",
+      title: "Search Syntax",
+      description:
+        "Narrow the card search with keys like t:unit, d:fury and e<=3, combine them with or and parentheses, and exclude with a minus.",
+      icon: SearchIcon,
+      component: () => import("@/features/marketing/components/articles/search-syntax"),
     },
   ],
   [
@@ -201,6 +213,10 @@ const ARTICLE_LABELS: Record<string, () => { title: string; description: string 
   "cards-printings-copies": () => ({
     title: m.help_article_cards_printings_copies_title(),
     description: m.help_article_cards_printings_copies_description(),
+  }),
+  "search-syntax": () => ({
+    title: m.help_article_search_syntax_title(),
+    description: m.help_article_search_syntax_description(),
   }),
   collections: () => ({
     title: m.help_article_collections_title(),

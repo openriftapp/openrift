@@ -57,6 +57,7 @@ export const initResponseSchema = z.object({
     cardSizes: z.array(enumRowSchema),
     deckFormats: z.array(enumRowSchema),
     deckZones: z.array(enumRowSchema),
+    formats: z.array(enumRowSchema),
     conditions: z.array(enumRowSchema),
     graders: z.array(enumRowSchema),
     languages: z.array(coloredEnumRowSchema),

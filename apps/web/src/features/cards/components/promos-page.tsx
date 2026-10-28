@@ -162,6 +162,9 @@ function PromosBrowser() {
   };
   const initialMatches = filterCards(activePrintings, cardFilters, {
     getPrice: (p) => display.prices.get(p.printingId, display.favoriteMarketplace),
+    priceLookup: display.prices,
+    getOwnedCount: (p) => ownedCountByPrinting?.[p.printingId],
+    rarityOrder: enumOrders.rarities,
   });
   const matchedPrintings =
     !ownedFilterActive || !isLoggedIn || !ownedCountByPrinting

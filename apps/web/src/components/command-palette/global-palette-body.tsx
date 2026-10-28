@@ -123,7 +123,7 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
       return;
     }
     if (row.kind === "searchCards") {
-      void navigate({ to: "/cards", search: { search: row.query } });
+      void navigate({ to: "/cards", search: { q: row.query } });
       return;
     }
     void navigate({ to: "/rules/$kind", params: { kind: "core" }, search: { q: row.query } });

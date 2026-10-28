@@ -29,7 +29,7 @@ INSERT INTO card_types (slug, label, sort_order, is_well_known) VALUES
   ('spell', 'Spell', 3, FALSE),
   ('gear', 'Gear', 4, TRUE),
   ('battlefield', 'Battlefield', 5, TRUE),
-  ('other', 'Other', 6, FALSE)
+  ('other', 'Other', 6, TRUE)
   ON CONFLICT (slug) DO UPDATE SET label = EXCLUDED.label, sort_order = EXCLUDED.sort_order, is_well_known = EXCLUDED.is_well_known;
 
 INSERT INTO super_types (slug, label, sort_order, is_well_known) VALUES

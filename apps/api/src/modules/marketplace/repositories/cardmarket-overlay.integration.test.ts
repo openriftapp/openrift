@@ -238,7 +238,7 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
       rules: [
         {
           kind: "wish",
-          filter: { ...EMPTY_CARD_FILTERS, search: "Fury Rune", searchScope: ["name"] },
+          filter: { ...EMPTY_CARD_FILTERS, search: "Fury Rune" },
           quantity: { mode: "fixed", n: 6 },
           excludeIds: [],
           netOwned: true,

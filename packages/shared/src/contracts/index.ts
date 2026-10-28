@@ -109,6 +109,7 @@ export * from "./public-user-share.js";
 export * from "./rules.js";
 export * from "./scan-reports.js";
 export * from "./scan.js";
+export * from "./search.js";
 export * from "./sets.js";
 export * from "./site-settings.js";
 export * from "./sitemap.js";

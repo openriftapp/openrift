@@ -125,6 +125,7 @@ export function makeInitResponse(): InitResponse {
         { slug: "main", label: "Main Deck", sortOrder: 5 },
         { slug: "sideboard", label: "Sideboard", sortOrder: 6 },
       ],
+      formats: [],
       conditions: [],
       graders: [],
       languages: [],

@@ -21,19 +21,6 @@ export const ALL_SEARCH_FIELDS: SearchField[] = [
   "id",
 ];
 
-export const DEFAULT_SEARCH_SCOPE: SearchField[] = [...ALL_SEARCH_FIELDS];
-
-export const SEARCH_PREFIX_MAP: Record<string, SearchField> = {
-  n: "name",
-  d: "cardText",
-  k: "keywords",
-  t: "tags",
-  a: "artist",
-  f: "flavorText",
-  ty: "type",
-  id: "id",
-};
-
 export const GROUP_BY_FIELDS = [
   "none",
   "set",
@@ -94,9 +81,6 @@ const stringArray = () => z.array(z.string()).default(() => []);
 
 export const cardFiltersSchema = z.object({
   search: z.string().default(""),
-  searchScope: z
-    .array(z.enum(ALL_SEARCH_FIELDS as [SearchField, ...SearchField[]]))
-    .default(() => [...DEFAULT_SEARCH_SCOPE]),
   sets: stringArray(),
   languages: stringArray(),
   rarities: stringArray(),
@@ -145,7 +129,6 @@ export type CardFilters = z.infer<typeof cardFiltersSchema>;
 // never gets forgotten at a call site.
 export const EMPTY_CARD_FILTERS: CardFilters = {
   search: "",
-  searchScope: [...DEFAULT_SEARCH_SCOPE],
   sets: [],
   languages: [],
   rarities: [],

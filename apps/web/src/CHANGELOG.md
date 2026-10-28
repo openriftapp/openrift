@@ -5,9 +5,14 @@
 ### Highlights
 
 - feat(Developers): **Public API** — the new Developers page, linked in the footer, documents a free API for the card catalog, sets, prices and rules. Tools can call it from their own server or straight from a website.
+- feat(Cards): **Search syntax with keys** — queries like t:unit d:fury e<=3 usd<5 work in the search box, which suggests keys as you type and spells out each clause.
+- feat(Cards): **Plain words search card names** — card numbers like OGN-202 still work, card text now needs o:, tags otag: and flavor text ft:, and an empty result offers the card text search. Old links still open the same search.
 
 ### Other
 
+- feat(Cards): **Plain printings filter** — the Standard printing filter is now called Plain, so it no longer reads like a format.
+- feat(Developers): **Search endpoints** — the API takes the same search syntax at /api/v1/search, with a name lookup and a random card next to it.
+- feat(App): **/search in the Discord bot** — runs a search with the same syntax and replies with up to ten cards and a link to the full result.
 - feat(Cards): **Flip double-sided cards** — a button on the card image turns it over to its other side.
 - feat(Contribute): **Suggest a better image** — a printing that already has an image now links to the image form, which shows the current image and asks what is wrong with it.
 - feat(Cards): **One correction menu** — "Suggest a correction" on a card is now a dropdown for the card's details, the printing's details or its image.

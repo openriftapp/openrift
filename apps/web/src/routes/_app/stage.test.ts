@@ -34,8 +34,8 @@ function runGuard(search: Record<string, unknown>, session: SessionUser, href = 
 
 describe("/stage filter search", () => {
   it("validates the shared filter search params", () => {
-    expect(validateSearch.parse({ search: "ekko", sets: ["ogn"], sort: "name" })).toMatchObject({
-      search: "ekko",
+    expect(validateSearch.parse({ q: "ekko", sets: ["ogn"], sort: "name" })).toMatchObject({
+      q: "ekko",
       sets: ["ogn"],
       sort: "name",
     });

@@ -24,6 +24,7 @@ interface SearchInputProps {
   leading?: ReactNode;
   /** Right-aligned trailing text, e.g. a `"12 / 40 decks"` result count. */
   trailing?: ReactNode;
+  action?: ReactNode;
   className?: string;
   inputRef?: Ref<HTMLInputElement>;
   onFocus?: () => void;
@@ -35,6 +36,8 @@ interface SearchInputProps {
    * signals are watched.
    */
   onBackspaceEmpty?: () => void;
+  suggestionsId?: string;
+  activeSuggestionId?: string;
 }
 
 /**
@@ -52,12 +55,15 @@ export function SearchInput({
   "aria-label": ariaLabel,
   leading,
   trailing,
+  action,
   className,
   inputRef,
   onFocus,
   onBlur,
   onKeyDown,
   onBackspaceEmpty,
+  suggestionsId,
+  activeSuggestionId,
 }: SearchInputProps) {
   const clear = onClear ?? (() => onValueChange(""));
   const hasLeading = leading !== undefined && leading !== null;
@@ -108,14 +114,18 @@ export function SearchInput({
         onFocus={onFocus}
         onBlur={onBlur}
         onKeyDown={handleKeyDown}
+        aria-autocomplete={suggestionsId === undefined ? undefined : "list"}
+        aria-controls={suggestionsId}
+        aria-activedescendant={activeSuggestionId}
       />
-      {(trailing !== undefined || value) && (
+      {(trailing !== undefined || value || action !== undefined) && (
         // has-[>button]:mr-0 cancels the addon's negative pull (meant for padded ghost
         // InputGroupButtons) — the bare chip X otherwise sits almost flush against the group border
         <InputGroupAddon align="inline-end" className="has-[>button]:mr-0">
           {trailing !== undefined && (
             <span className="pointer-events-none text-xs font-normal">{trailing}</span>
           )}
+          {action}
           {value && (
             <ChipRemoveButton className="ml-0" onClick={clear} aria-label={m.cards_clear_search()}>
               <XIcon className="size-3.5" />

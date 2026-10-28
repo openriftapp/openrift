@@ -35,7 +35,7 @@ async function typeSearch(page: Page, query: string): Promise<Locator> {
     await search.click();
     await search.fill("");
     await search.pressSequentially(query, { delay: 30 });
-    await expect(page).toHaveURL(/[?&]search=/u, { timeout: 2000 });
+    await expect(page).toHaveURL(/[?&]q=/u, { timeout: 2000 });
   }).toPass({ timeout: 15_000 });
   return search;
 }

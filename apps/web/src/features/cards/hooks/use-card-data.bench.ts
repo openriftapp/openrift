@@ -143,7 +143,6 @@ const SCENARIOS = {
   complex: {
     ...emptyFilters(),
     search: "hero",
-    searchScope: ["name"],
     domains: ["chaos", "order"],
     energy: { min: 2, max: 6 },
     might: { min: 0, max: 5 },

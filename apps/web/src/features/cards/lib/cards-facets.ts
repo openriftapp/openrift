@@ -21,7 +21,7 @@ import type {
 } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import type { PresenceDimension, PresenceState } from "@openrift/shared/types/search";
-import { DEFAULT_SEARCH_SCOPE, EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
+import { EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
 import { createServerFn } from "@tanstack/react-start";
 
 import { enrichCatalog, readCatalogFromServerCache } from "@/features/cards/lib/catalog-queries";
@@ -99,8 +99,7 @@ function presenceFromSearch(
 export function searchToFilters(search: FilterSearch) {
   return {
     ...EMPTY_CARD_FILTERS,
-    search: search.search ?? "",
-    searchScope: [...DEFAULT_SEARCH_SCOPE],
+    search: search.q ?? "",
     sets: search.sets ?? [],
     languages: search.languages ?? [],
     rarities: (search.rarities ?? []) as Rarity[],
@@ -163,7 +162,7 @@ export function extractCardCounts(
   const lookup = priceLookupFromMap(prices.prices);
   const getPrice = (printing: Printing) => lookup.get(printing.printingId, SSR_MARKETPLACE);
   const filters = searchToFilters(search);
-  const filtered = filterCards(allPrintings, filters, { getPrice });
+  const filtered = filterCards(allPrintings, filters, { getPrice, priceLookup: lookup });
 
   const totalCards =
     view === "cards"
@@ -323,6 +322,7 @@ export const fetchCardFilterCounts = createServerFn({ method: "GET" })
     const counts = computeFilterCounts(allPrintings, searchToFilters(data), {
       countBy: view === "cards" ? "card" : "printing",
       getPrice,
+      priceLookup: lookup,
     });
     return toWireFilterCounts(counts);
   });

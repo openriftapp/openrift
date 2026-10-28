@@ -1,3 +1,4 @@
+import { parseSearchQuery } from "@openrift/shared/search-query/parse";
 import type {
   ArtVariant,
   CardSize,
@@ -23,7 +24,6 @@ import { cycleIncludeExclude } from "@/features/cards/lib/filter-cycle";
 import { toFilterState } from "@/features/cards/lib/filter-dimensions";
 import { isPrintingsOnlyGrouping } from "@/features/cards/lib/group-by-field";
 import type { FilterSearch, OwnedBucket } from "@/features/cards/lib/search-schemas";
-import { useSearchScopeStore } from "@/features/cards/stores/search-scope-store";
 import { useSurfaceViewDefaults, useViewPrefsWriter } from "@/hooks/use-view-prefs";
 import { trackEvent } from "@/lib/analytics";
 import { useDisplayStore } from "@/stores/display-store";
@@ -113,7 +113,6 @@ export function useFilterValues() {
     viewDefaults.groupBy,
     viewDefaults.groupDir,
   );
-  const searchScope = useSearchScopeStore((s) => s.scope);
 
   // Built inline, not via a helper: passing the whole filterState object into
   // a helper call makes React Compiler treat it as maybe-mutated, which stops
@@ -140,7 +139,6 @@ export function useFilterValues() {
 
   const filters = {
     search: filterState.search,
-    searchScope,
     sets: filterState.sets,
     languages: filterState.languages,
     rarities: filterState.rarities as Rarity[],
@@ -193,9 +191,16 @@ export function useFilterValues() {
     price: filters.price,
   };
 
-  const sortBy = filterState.sort as SortOption;
-  const sortDir = filterState.sortDir as SortDirection;
-  const view = filterState.view as "cards" | "printings" | "copies";
+  const directives = parseSearchQuery(filterState.search).directives;
+  const sortBy = (directives.order ?? filterState.sort) as SortOption;
+  const sortDir = (directives.direction ?? filterState.sortDir) as SortDirection;
+  const view = (
+    directives.unique === "cards"
+      ? "cards"
+      : directives.unique === "prints"
+        ? "printings"
+        : filterState.view
+  ) as "cards" | "printings" | "copies";
   const groupBy = filterState.groupBy as GroupByField;
   const groupDir = filterState.groupDir as SortDirection;
 
@@ -266,7 +271,6 @@ export function useFilterValues() {
     hasActiveFilters,
     hasClearableFilters,
     filterState,
-    searchScope,
   };
 }
 
@@ -288,9 +292,6 @@ export function useFilterActions() {
     viewDefaults.groupDir,
   );
   const router = useRouter();
-  const toggleSearchField = useSearchScopeStore((s) => s.toggleField);
-  const selectAllSearchFields = useSearchScopeStore((s) => s.selectAll);
-  const selectOnlySearchField = useSearchScopeStore((s) => s.selectOnly);
 
   const updateSearch = (patch: Partial<FilterSearch>) => {
     void router.navigate({
@@ -304,7 +305,7 @@ export function useFilterActions() {
 
   const clearAllFilters = () => {
     updateSearch({
-      search: undefined,
+      q: undefined,
       sets: undefined,
       // Language is intentionally preserved when clearing filters.
       rarities: undefined,
@@ -361,7 +362,7 @@ export function useFilterActions() {
   };
 
   const setSearch = (search: string) => {
-    updateSearch({ search: search || undefined });
+    updateSearch({ q: search || undefined });
   };
 
   const toggleArrayFilter = (key: ArrayKey, value: string) => {
@@ -568,9 +569,6 @@ export function useFilterActions() {
     setGroupBy,
     setGroupDir,
     clearAllFilters,
-    toggleSearchField,
-    selectAllSearchFields,
-    selectOnlySearchField,
   };
 }
 

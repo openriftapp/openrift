@@ -54,7 +54,6 @@ export function makePrinting(
 export function emptyFilters(overrides: Partial<CardFilters> = {}): CardFilters {
   return {
     ...EMPTY_CARD_FILTERS,
-    searchScope: ["name"],
     ...overrides,
   };
 }

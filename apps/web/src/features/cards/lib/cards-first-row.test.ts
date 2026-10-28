@@ -306,7 +306,7 @@ describe("extractFirstRow", () => {
         "p-fury": makePrinting({ cardId: "card-fury", shortCode: "OGN-001" }),
         "p-other": makePrinting({ cardId: "card-other", shortCode: "OGN-002" }),
       };
-      const result = extractFirstRow(makeCatalog(cards, printings), { search: "fury" }, 10);
+      const result = extractFirstRow(makeCatalog(cards, printings), { q: "fury" }, 10);
       expect(result.map((r) => r.printingId)).toEqual(["p-fury"]);
     });
 

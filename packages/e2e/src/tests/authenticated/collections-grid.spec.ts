@@ -326,12 +326,10 @@ test.describe("collections grid", () => {
       });
     });
 
-    test("?search=Annie narrows to Annie; clearing the search restores Garen", async ({
-      browser,
-    }) => {
+    test("?q=Annie narrows to Annie; clearing the search restores Garen", async ({ browser }) => {
       await withSignedInContext(state.user, browser, async (context) => {
         const page = await context.newPage();
-        await page.goto("/collections?search=Annie");
+        await page.goto("/collections?q=Annie");
 
         await expect(page.getByText("Annie, Fiery")).toBeVisible({ timeout: 15_000 });
         await expect(page.getByText("Garen, Rugged")).toBeHidden();
@@ -363,7 +361,7 @@ test.describe("collections grid", () => {
     test("Ctrl+K palette finds cards outside the URL search filter", async ({ browser }) => {
       await withSignedInContext(state.user, browser, async (context) => {
         const page = await context.newPage();
-        await page.goto(`/collections/${state.inboxId}?search=Garen`);
+        await page.goto(`/collections/${state.inboxId}?q=Garen`);
 
         await expect(page.getByText("Garen, Rugged")).toBeVisible({ timeout: 15_000 });
         await expect(page.getByText("Annie, Fiery")).toBeHidden();

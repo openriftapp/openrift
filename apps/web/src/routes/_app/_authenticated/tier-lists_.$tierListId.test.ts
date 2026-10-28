@@ -13,8 +13,8 @@ const validateSearch = Route.options.validateSearch as unknown as {
 
 describe("/tier-lists/$tierListId filter search", () => {
   it("validates the shared filter search params", () => {
-    expect(validateSearch.parse({ search: "ekko", sets: ["ogn"], sort: "name" })).toMatchObject({
-      search: "ekko",
+    expect(validateSearch.parse({ q: "ekko", sets: ["ogn"], sort: "name" })).toMatchObject({
+      q: "ekko",
       sets: ["ogn"],
       sort: "name",
     });

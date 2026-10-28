@@ -109,9 +109,7 @@ export function OwnedCollectionsPopover({
                 <Link
                   to="/collections/$collectionId"
                   params={{ collectionId: entry.collectionId }}
-                  search={
-                    isPrintingsView ? printingCollectionSearch(printing) : { search: cardName }
-                  }
+                  search={isPrintingsView ? printingCollectionSearch(printing) : { q: cardName }}
                   className={cn(
                     "flex items-center justify-between rounded-md px-2 py-1.5 text-sm",
                     "hover:bg-muted transition-colors",

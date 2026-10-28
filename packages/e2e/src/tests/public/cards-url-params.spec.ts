@@ -9,12 +9,19 @@ import { scrollUntilVisible } from "../../helpers/virtualized.js";
 const LOAD_TIMEOUT = 15_000;
 
 test.describe("card browser URL params", () => {
-  test("?search= pre-fills the search input and filters the grid", async ({ page }) => {
-    await page.goto("/cards?search=Garen");
+  test("?q= pre-fills the search input and filters the grid", async ({ page }) => {
+    await page.goto("/cards?q=Garen");
 
     await expect(page.getByPlaceholder(/search/iu)).toHaveValue("Garen", { timeout: LOAD_TIMEOUT });
     await scrollUntilVisible(page, cardImage(page, "Garen, Rugged"));
     await expect(cardImage(page, "Annie, Fiery").first()).not.toBeVisible();
+  });
+
+  test("a legacy ?search= link redirects to ?q= with its prefixes renamed", async ({ page }) => {
+    await page.goto("/cards?search=ty%3Aunit");
+
+    await expect(page).toHaveURL(/[?&]q=t(?:%3A|:)unit/u, { timeout: LOAD_TIMEOUT });
+    await expect(page.getByPlaceholder(/search/iu)).toHaveValue("t:unit");
   });
 
   test("?sets=<known slug> keeps matching cards visible", async ({ page }) => {

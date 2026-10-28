@@ -10,9 +10,9 @@ import {
   notExcluded,
   overlaps,
 } from "./filters-predicates.js";
-import { matchesSearch, parseSearchTerms } from "./filters-search.js";
 import type { FilterCardsOptions } from "./filters-shared.js";
 import { EMPTY_STRINGS } from "./filters-shared.js";
+import { searchPredicate } from "./search-query/evaluate.js";
 import { isStandardPrinting } from "./standard.js";
 import type { Printing } from "./types/catalog.js";
 import type { CardFilters } from "./types/search.js";
@@ -27,8 +27,8 @@ export function filterCards(
   // Persisted list rules re-hydrate via a bare JSON.parse, so an older rule may
   // lack a newer dimension's key; backfill or the first predicate to read it throws.
   const filters: CardFilters = { ...EMPTY_CARD_FILTERS, ...rawFilters };
-  const terms = filters.search ? parseSearchTerms(filters.search) : [];
-  const hasPrefixes = terms.some((t) => t.field !== null);
+  const matchesQuery = searchPredicate(filters.search);
+  const hasQuery = filters.search.trim() !== "";
   const getPrice = options.getPrice;
   const presence = filters.presence;
 
@@ -136,12 +136,6 @@ export function filterCards(
     if (presence.tags && (presence.tags === "any") !== card.tags.length > 0) {
       return false;
     }
-    return matchesSearch(
-      printing,
-      terms,
-      hasPrefixes,
-      filters.searchScope,
-      options.keywordReverseMap,
-    );
+    return !hasQuery || matchesQuery(printing, options);
   });
 }

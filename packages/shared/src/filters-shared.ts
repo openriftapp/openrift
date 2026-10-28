@@ -1,11 +1,6 @@
-import type { Printing } from "./types/catalog.js";
+import type { SearchContext } from "./search-query/evaluate.js";
 
-export interface FilterCardsOptions {
-  keywordReverseMap?: Map<string, string>;
-  /** Defaults to a no-op returning `undefined`, so the price filter only matches priceless printings. */
-  getPrice?: (printing: Printing) => number | undefined;
-  customTagAssignments?: Record<string, readonly string[]>;
-}
+export type FilterCardsOptions = SearchContext;
 
 export const EMPTY_STRINGS: readonly string[] = [];
 

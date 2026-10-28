@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
+import { SearchAlternativeHint } from "@/features/cards/components/search-alternative-hint";
 import { m } from "@/paraglide/messages.js";
 
 /** Shows a connectivity error when nothing loaded, or a no-results hint when filters excluded everything. */
@@ -33,6 +34,8 @@ export function CardViewerEmptyState({
       icon={SearchXIcon}
       title={m.cards_grid_no_results_title()}
       description={noResultsDescription ?? m.cards_grid_no_results_description()}
-    />
+    >
+      <SearchAlternativeHint />
+    </EmptyState>
   );
 }

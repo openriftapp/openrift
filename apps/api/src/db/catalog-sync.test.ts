@@ -40,6 +40,7 @@ function makeInit(overrides: Partial<InitResponse> = {}): InitResponse {
       cardSizes: [reference],
       deckFormats: [reference],
       deckZones: [reference],
+      formats: [],
       conditions: [reference],
       graders: [reference],
       languages: [{ slug: "EN", label: "English", sortOrder: 0, color: null }],

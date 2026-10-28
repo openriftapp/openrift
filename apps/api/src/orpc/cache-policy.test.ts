@@ -1,3 +1,4 @@
+import { searchContract } from "@openrift/shared/contracts/search";
 import type { Context, Next } from "hono";
 import { describe, expect, it } from "vitest";
 
@@ -135,5 +136,28 @@ describe("cacheControlInterceptor", () => {
 
   it("leaves cacheControl undefined for an uncacheable procedure", () => {
     expect(run({}, true).context.cacheControl).toBeUndefined();
+  });
+});
+
+describe("search endpoints", () => {
+  const meta = (procedure: keyof typeof searchContract) =>
+    searchContract[procedure]["~orpc"].meta as CacheMeta;
+
+  it("cache search and name lookups for an hour with an ETag", () => {
+    expect(resolveCacheControl(meta("search"), false)).toBe(LONG);
+    expect(resolveCacheControl(meta("named"), false)).toBe(LONG);
+    expect(ETAG_PATHS).toContain("/api/v1/search");
+    expect(ETAG_PATHS).toContain("/api/v1/search/named");
+  });
+
+  it("never lets a shared cache keep a random card", () => {
+    expect(resolveCacheControl(meta("random"), false)).toBe("private, no-cache");
+    expect(ETAG_PATHS).not.toContain("/api/v1/search/random");
+  });
+
+  it("opens all three to browsers", () => {
+    expect(DEVELOPER_API_PATHS).toEqual(
+      expect.arrayContaining(["/api/v1/search", "/api/v1/search/named", "/api/v1/search/random"]),
+    );
   });
 });

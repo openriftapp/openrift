@@ -55,7 +55,7 @@ export function chatCardLine(card: ChatCard, labels: CardStatLabels, siteUrl?: s
 
 export function chatMissLine(query: string, siteUrl?: string): string {
   const safe = truncateWithEllipsis(oneLine(query), QUERY_LIMIT);
-  const tail = siteUrl ? ` Try ${siteUrl}/cards?search=${encodeURIComponent(safe)}` : "";
+  const tail = siteUrl ? ` Try ${siteUrl}/cards?q=${encodeURIComponent(safe)}` : "";
   return `No Riftbound card found for "${safe}".${tail}`;
 }
 

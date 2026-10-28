@@ -258,6 +258,42 @@ describe("joinCatalogPrintings", () => {
     );
     expect(joined.find((p) => p.printingId === "en")?.setReleased).toBe(true);
     expect(joined.find((p) => p.printingId === "fr")?.setReleased).toBe(false);
+    expect(joined.find((p) => p.printingId === "en")?.setReleasedAt).toBe("2020-01-01");
+    expect(joined.find((p) => p.printingId === "fr")?.setReleasedAt).toBe("2999-01-01");
+  });
+
+  it("records the card's sets and languages and marks later sets as reprints", () => {
+    const later = "00000000-0000-0000-0000-0000000000b2";
+    const joined = joinCatalogPrintings(
+      catalog({
+        sets: [
+          {
+            id: SET_ID,
+            slug: "OGN",
+            name: "Origins",
+            releases: { EN: { releasedAt: "2025-10-31", precision: "day" } },
+            setType: "main",
+          },
+          {
+            id: later,
+            slug: "SFD",
+            name: "Spiritforged",
+            releases: { EN: { releasedAt: "2026-02-13", precision: "day" } },
+            setType: "main",
+          },
+        ],
+        printings: {
+          first: printingValue({ language: "EN" }),
+          again: printingValue({ setId: later, language: "FR", shortCode: "SFD-001" }),
+        },
+      } as Partial<CatalogResponse>),
+    );
+    const first = joined.find((p) => p.printingId === "first");
+    const again = joined.find((p) => p.printingId === "again");
+    expect(first?.cardSetSlugs).toEqual(["OGN", "SFD"]);
+    expect(first?.cardLanguages).toEqual(["EN", "FR"]);
+    expect(first?.isReprint).toBeUndefined();
+    expect(again?.isReprint).toBe(true);
   });
 
   it("treats a language with no release entry as unreleased", () => {
@@ -265,6 +301,7 @@ describe("joinCatalogPrintings", () => {
       catalog({ printings: { de: printingValue({ language: "DE" }) } } as Partial<CatalogResponse>),
     );
     expect(joined[0]!.setReleased).toBe(false);
+    expect(joined[0]!.setReleasedAt).toBeUndefined();
   });
 
   it("drops a printing whose set is absent from the payload", () => {

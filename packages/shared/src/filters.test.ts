@@ -114,29 +114,26 @@ describe("filterCards", () => {
     expect(result).toHaveLength(1);
   });
 
-  it("searches across all scope fields when multiple scopes set", () => {
-    const result = filterCards(
-      printings,
-      emptyFilters({ search: "warrior", searchScope: ["name", "tags"] }),
-    );
+  it("searches tags with otag:", () => {
+    const result = filterCards(printings, emptyFilters({ search: "otag:warrior" }));
     expect(result).toHaveLength(1);
     expect(result[0]!.card.name).toBe("Fire Dragon");
   });
 
   it("prefixed search targets specific field", () => {
-    const result = filterCards(printings, emptyFilters({ search: "k:shield" }));
+    const result = filterCards(printings, emptyFilters({ search: "kw:shield" }));
     expect(result).toHaveLength(1);
     expect(result[0]!.card.name).toBe("Fire Dragon");
   });
 
-  it("un-prefixed terms search all fields when mixed with prefixed terms", () => {
-    const result = filterCards(printings, emptyFilters({ search: "k:freeze golem" }));
+  it("bare words keep the search scope when mixed with keyed terms", () => {
+    const result = filterCards(printings, emptyFilters({ search: "kw:freeze golem" }));
     expect(result).toHaveLength(1);
     expect(result[0]!.card.name).toBe("Ice Golem");
   });
 
   it("all search terms must match (AND semantics)", () => {
-    const result = filterCards(printings, emptyFilters({ search: "n:fire n:golem" }));
+    const result = filterCards(printings, emptyFilters({ search: "fire golem" }));
     expect(result).toHaveLength(0);
   });
 
@@ -147,25 +144,25 @@ describe("filterCards", () => {
   });
 
   it("search by id prefix matches shortCode", () => {
-    const result = filterCards(printings, emptyFilters({ search: "id:SET2" }));
+    const result = filterCards(printings, emptyFilters({ search: "cn:SET2" }));
     expect(result).toHaveLength(1);
     expect(result[0]!.card.name).toBe("Mind Weaver");
   });
 
   it("search by card text prefix matches description", () => {
-    const result = filterCards(printings, emptyFilters({ search: "d:fiery" }));
+    const result = filterCards(printings, emptyFilters({ search: "o:fiery" }));
     expect(result).toHaveLength(1);
     expect(result[0]!.card.name).toBe("Fire Dragon");
   });
 
   it("search by card text prefix matches effect", () => {
-    const result = filterCards(printings, emptyFilters({ search: "d:draw" }));
+    const result = filterCards(printings, emptyFilters({ search: "o:draw" }));
     expect(result).toHaveLength(1);
     expect(result[0]!.card.name).toBe("Mind Weaver");
   });
 
   it("search by tags prefix", () => {
-    const result = filterCards(printings, emptyFilters({ search: "t:psychic" }));
+    const result = filterCards(printings, emptyFilters({ search: "otag:psychic" }));
     expect(result).toHaveLength(1);
     expect(result[0]!.card.name).toBe("Mind Weaver");
   });
@@ -622,7 +619,7 @@ describe("filterCards", () => {
         },
       }),
     ];
-    const result = filterCards(nullTextCard, emptyFilters({ search: "d:something" }));
+    const result = filterCards(nullTextCard, emptyFilters({ search: "o:something" }));
     expect(result).toHaveLength(0);
   });
 
@@ -840,20 +837,22 @@ describe("filterCards", () => {
         },
       }),
     ];
-    const result = filterCards(cards, emptyFilters({ search: "d:unique" }));
+    const result = filterCards(cards, emptyFilters({ search: "o:unique" }));
     expect(result).toHaveLength(1);
   });
 
-  it("bare search respects searchScope when no prefixes are used", () => {
-    const result = filterCards(printings, emptyFilters({ search: "alice", searchScope: ["name"] }));
+  it("bare search skips the artist field", () => {
+    const result = filterCards(printings, emptyFilters({ search: "alice" }));
     expect(result).toHaveLength(0);
   });
 
-  it("bare search with artist in scope matches artist field", () => {
-    const result = filterCards(
-      printings,
-      emptyFilters({ search: "alice", searchScope: ["artist"] }),
-    );
+  it("bare search treats a code-shaped word as a card number", () => {
+    const result = filterCards(printings, emptyFilters({ search: "set2-001" }));
+    expect(result.map((printing) => printing.shortCode)).toEqual(["SET2-001a"]);
+  });
+
+  it("finds the artist with a:", () => {
+    const result = filterCards(printings, emptyFilters({ search: "a:alice" }));
     expect(result).toHaveLength(1);
     expect(result[0]!.card.name).toBe("Fire Dragon");
   });

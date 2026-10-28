@@ -5,6 +5,8 @@ import { computeFilterCounts } from "@openrift/shared/filters-counts";
 import { sortCards } from "@openrift/shared/filters-sort";
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
 import { countPrintings, sideKey } from "@openrift/shared/printing-side";
+import { sortByPreference } from "@openrift/shared/search-query/evaluate";
+import { parseSearchQuery } from "@openrift/shared/search-query/parse";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { DistributionChannel, Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -220,6 +222,9 @@ export function useCatalogFilterMeta({
         countBy: view === "cards" ? "card" : "printing",
         keywordReverseMap,
         getPrice,
+        priceLookup: lookup,
+        getOwnedCount: (p: Printing) => ownedCountByPrinting?.[p.printingId],
+        rarityOrder: orders.rarities,
         customTagAssignments,
       })
     : EMPTY_FILTER_COUNTS;
@@ -291,6 +296,9 @@ export function useCardData({
   let filteredCards = filterCards(allPrintings, filters, {
     keywordReverseMap,
     getPrice,
+    priceLookup: lookup,
+    getOwnedCount: (p: Printing) => ownedCountByPrinting?.[p.printingId],
+    rarityOrder: orders.rarities,
     customTagAssignments,
   });
 
@@ -317,8 +325,14 @@ export function useCardData({
 
   // Cards view collapses printings into one tile per card, or per
   // (cardId, set)/(cardId, rarity) when grouped by set/rarity.
+  const prefer = parseSearchQuery(filters.search).directives.prefer;
   const displayCards =
-    view === "cards" ? dedupeToCardsViewTiles(filteredCards, groupBy) : filteredCards;
+    view === "cards"
+      ? dedupeToCardsViewTiles(
+          prefer ? sortByPreference(filteredCards, prefer, lookup) : filteredCards,
+          groupBy,
+        )
+      : filteredCards;
 
   const printingsByCardId = Map.groupBy(filteredCards, (p) => p.cardId);
 

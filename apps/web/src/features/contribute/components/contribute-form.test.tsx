@@ -52,6 +52,7 @@ const INIT_RESPONSE: InitResponse = {
     cardSizes: [{ slug: "standard", label: "Standard", sortOrder: 0 }],
     deckFormats: [],
     deckZones: [],
+    formats: [],
     conditions: [],
     graders: [],
     languages: [{ slug: "EN", label: "English", sortOrder: 0, color: null }],

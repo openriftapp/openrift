@@ -339,7 +339,7 @@ describe("FilterBadgeSections — hiddenSections gating", () => {
     expect(queryByText("Signed")).not.toBeNull();
   });
 
-  it("renders the Standard flag when non-standard printings exist and it isn't hidden", () => {
+  it("renders the Plain flag when non-plain printings exist and it isn't hidden", () => {
     setupBadgeHooks();
     const { queryAllByText } = render(
       <FilterChipSections
@@ -347,10 +347,10 @@ describe("FilterBadgeSections — hiddenSections gating", () => {
         hiddenSections={new Set(["owned"])}
       />,
     );
-    expect(queryAllByText("Standard").length).toBeGreaterThan(0);
+    expect(queryAllByText("Plain").length).toBeGreaterThan(0);
   });
 
-  it("hides the Standard flag when the standard section is hidden", () => {
+  it("hides the Plain flag when the standard section is hidden", () => {
     setupBadgeHooks();
     const { queryByText } = render(
       <FilterChipSections
@@ -358,7 +358,7 @@ describe("FilterBadgeSections — hiddenSections gating", () => {
         hiddenSections={new Set(["owned", "standard"])}
       />,
     );
-    expect(queryByText("Standard")).toBeNull();
+    expect(queryByText("Plain")).toBeNull();
     expect(queryByText("Signed")).not.toBeNull();
   });
 

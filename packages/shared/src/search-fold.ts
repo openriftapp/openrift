@@ -48,7 +48,7 @@ export function squashForSearch(text: string): string {
 
 /**
  * Keyed by catalogue string, not query input, so the cache saturates instead
- * of growing unbounded; query terms are folded eagerly in `parseSearchTerms`.
+ * of growing unbounded; query terms are folded eagerly in `toSearchTerm`.
  */
 const foldCache = new Map<string, string>();
 const squashCache = new Map<string, string>();

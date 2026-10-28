@@ -18,6 +18,12 @@ const ARTICLES: { slug: string; title: string; description: string }[] = [
     description: "What a card, a printing, and a copy are, and how the three levels connect.",
   },
   {
+    slug: "search-syntax",
+    title: "Search Syntax",
+    description:
+      "Narrow the card search with keys like t:unit, d:fury and e<=3, combine them with or and parentheses, and exclude with a minus.",
+  },
+  {
     slug: "collections",
     title: "Managing Your Collection",
     description:

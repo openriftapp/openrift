@@ -1,3 +1,4 @@
+import { translateLegacyQuery } from "@openrift/shared/search-query/legacy";
 /* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then, unicorn/prefer-top-level-await -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
 import { GROUP_BY_FIELDS, SORT_DIRECTIONS, SORT_OPTIONS } from "@openrift/shared/types/search";
 import { z } from "zod";
@@ -23,7 +24,7 @@ export type OwnedBucket = "none" | "partial" | "full" | "extra";
  * Routes that don't expose every facet pass `hiddenSections` to the filter UI.
  */
 export const filterSearchSchema = z.object({
-  search: stringField(),
+  q: stringField(),
   sets: stringArray(),
   languages: stringArray(),
   rarities: stringArray(),
@@ -101,7 +102,17 @@ export function cleanedSearchForRedirect<Output extends Record<string, unknown>>
   searchStr: string,
 ): Output | null {
   const parsed = schema.safeParse(search);
-  const cleaned = parsed.success ? parsed.data : ({} as Output);
+  let cleaned = parsed.success ? parsed.data : ({} as Output);
+  const legacy = (search as { search?: unknown }).search;
+  if (
+    schema instanceof z.ZodObject &&
+    "q" in schema.shape &&
+    !("search" in schema.shape) &&
+    (typeof legacy === "string" || typeof legacy === "number") &&
+    (cleaned as { q?: string }).q === undefined
+  ) {
+    cleaned = { ...cleaned, q: translateLegacyQuery(String(legacy)) };
+  }
   const rawKeys = new Set(new URLSearchParams(searchStr).keys());
   const cleanedKeys = new Set(
     Object.entries(cleaned)

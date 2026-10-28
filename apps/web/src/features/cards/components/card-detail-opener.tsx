@@ -53,7 +53,7 @@ export function CardDetailOverlayProvider({
 
   const handleSearchAndClose = (query: string) => {
     setOpenCard(null);
-    void navigate({ to: "/cards", search: { search: query } });
+    void navigate({ to: "/cards", search: { q: query } });
   };
 
   const handleOpenPrintingIdChange = (printingId: string | null) => {

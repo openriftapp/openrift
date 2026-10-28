@@ -21,6 +21,7 @@ function makeWrapper() {
       cardSizes: [{ slug: "standard", label: "Standard", sortOrder: 0 }],
       deckFormats: [],
       deckZones: [],
+      formats: [],
       conditions: [],
       graders: [],
       languages: [{ slug: "EN", label: "English", color: "#1d4ed8", sortOrder: 0 }],

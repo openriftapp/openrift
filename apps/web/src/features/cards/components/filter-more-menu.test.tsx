@@ -392,7 +392,7 @@ describe("FilterMoreMenu", () => {
     expect(actions.cyclePresence).toHaveBeenCalledWith("keywords");
   });
 
-  it("shows and cycles the Standard flag when non-standard printings exist (ADR-034)", async () => {
+  it("shows and cycles the Plain flag when non-plain printings exist (ADR-034)", async () => {
     const user = userEvent.setup();
     const actions = setupHooks();
     render(
@@ -404,7 +404,7 @@ describe("FilterMoreMenu", () => {
       />,
     );
     await user.click(screen.getByRole("button", { name: "More" }));
-    await user.click(await screen.findByRole("menuitem", { name: /Standard/u }));
+    await user.click(await screen.findByRole("menuitem", { name: /Plain/u }));
     expect(actions.toggleStandard).toHaveBeenCalledOnce();
   });
 
@@ -440,7 +440,7 @@ describe("FilterMoreMenu", () => {
     expect(screen.queryByRole("menuitem", { name: /No image yet/u })).not.toBeInTheDocument();
   });
 
-  it("hides the Standard flag when every printing is standard", async () => {
+  it("hides the Plain flag when every printing is plain", async () => {
     const user = userEvent.setup();
     setupHooks();
     render(
@@ -453,7 +453,7 @@ describe("FilterMoreMenu", () => {
     );
     await user.click(screen.getByRole("button", { name: "More" }));
     await screen.findByRole("menu");
-    expect(screen.queryByRole("menuitem", { name: /Standard/u })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: /Plain/u })).not.toBeInTheDocument();
   });
 
   it("keeps the Signed flag out when the Variant unit is top level", async () => {
@@ -502,7 +502,7 @@ describe("FilterMoreMenu", () => {
       />,
     );
     await user.click(screen.getByRole("button", { name: "More" }));
-    expect(await screen.findByRole("menuitem", { name: /Standard/u })).toBeInTheDocument();
+    expect(await screen.findByRole("menuitem", { name: /Plain/u })).toBeInTheDocument();
     expect(screen.queryByText("Markers")).not.toBeInTheDocument();
   });
 

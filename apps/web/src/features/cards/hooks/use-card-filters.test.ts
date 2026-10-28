@@ -16,12 +16,6 @@ vi.mock("@tanstack/react-router", () => ({
   }),
 }));
 
-const mockToggleSearchField = vi.fn();
-vi.mock("@/features/cards/stores/search-scope-store", () => ({
-  useSearchScopeStore: (selector: (s: { scope: string[]; toggleField: () => void }) => unknown) =>
-    selector({ scope: ["name"], toggleField: mockToggleSearchField }),
-}));
-
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 // oxlint-disable-next-line import/first -- must import after vi.mock
@@ -57,7 +51,6 @@ describe("useCardFilters", () => {
   beforeEach(() => {
     mockSearch = defaultSearchState();
     mockNavigate.mockClear();
-    mockToggleSearchField.mockClear();
     useDisplayStore.setState({ defaultCardView: "cards" });
   });
 
@@ -72,7 +65,7 @@ describe("useCardFilters", () => {
   });
 
   it("detects active filters when search is non-empty", () => {
-    mockSearch = { search: "dragon" };
+    mockSearch = { q: "dragon" };
     const { result } = renderHook(() => useCardFilters(), { wrapper });
     expect(result.current.hasActiveFilters).toBe(true);
   });
@@ -107,16 +100,16 @@ describe("useCardFilters", () => {
 
     act(() => result.current.setSearch("dragon"));
 
-    expect(lastNavigateSearch()).toMatchObject({ search: "dragon" });
+    expect(lastNavigateSearch()).toMatchObject({ q: "dragon" });
   });
 
   it("setSearch strips search key for empty string", () => {
-    mockSearch = { search: "old" };
+    mockSearch = { q: "old" };
     const { result } = renderHook(() => useCardFilters(), { wrapper });
 
     act(() => result.current.setSearch(""));
 
-    expect(lastNavigateSearch()).not.toHaveProperty("search");
+    expect(lastNavigateSearch()).not.toHaveProperty("q");
   });
 
   it("toggleArrayFilter adds a value to an empty array", () => {
@@ -231,7 +224,7 @@ describe("useCardFilters", () => {
 
   it("clearAllFilters removes all filter keys from search", () => {
     mockSearch = {
-      search: "test",
+      q: "test",
       sets: ["RB1"],
       energyMin: 2,
       standard: true,
@@ -242,7 +235,7 @@ describe("useCardFilters", () => {
     act(() => result.current.clearAllFilters());
 
     const search = lastNavigateSearch();
-    expect(search).not.toHaveProperty("search");
+    expect(search).not.toHaveProperty("q");
     expect(search).not.toHaveProperty("sets");
     expect(search).not.toHaveProperty("energyMin");
     expect(search).not.toHaveProperty("standard");
@@ -251,7 +244,7 @@ describe("useCardFilters", () => {
 
   it("clearAllFilters preserves the language selection", () => {
     mockSearch = {
-      search: "test",
+      q: "test",
       sets: ["RB1"],
       languages: ["en"],
       languagesEx: ["de"],
@@ -261,7 +254,7 @@ describe("useCardFilters", () => {
     act(() => result.current.clearAllFilters());
 
     const search = lastNavigateSearch();
-    expect(search).not.toHaveProperty("search");
+    expect(search).not.toHaveProperty("q");
     expect(search).not.toHaveProperty("sets");
     expect(search.languages).toEqual(["en"]);
     expect(search.languagesEx).toEqual(["de"]);
@@ -581,16 +574,6 @@ describe("useCardFilters", () => {
     act(() => result.current.setSortDir("desc"));
 
     expect(lastNavigateSearch()).toMatchObject({ sortDir: "desc" });
-  });
-
-  it("exposes searchScope and toggleSearchField from useSearchScope", () => {
-    const { result } = renderHook(() => useCardFilters(), { wrapper });
-
-    expect(result.current.searchScope).toEqual(["name"]);
-
-    act(() => result.current.toggleSearchField("cardText"));
-
-    expect(mockToggleSearchField).toHaveBeenCalledWith("cardText");
   });
 
   it("setView strips key for default view ('cards')", () => {

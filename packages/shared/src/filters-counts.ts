@@ -9,9 +9,9 @@ import {
   notExcluded,
   overlaps,
 } from "./filters-predicates.js";
-import { matchesSearch, parseSearchTerms } from "./filters-search.js";
 import type { BoundsAcc, FilterCardsOptions } from "./filters-shared.js";
 import { bumpBounds, EMPTY_STRINGS, readBounds } from "./filters-shared.js";
+import { searchPredicate } from "./search-query/evaluate.js";
 import { isStandardPrinting } from "./standard.js";
 import type { Printing } from "./types/catalog.js";
 import type { CardFilters, PresenceDimension } from "./types/search.js";
@@ -278,8 +278,8 @@ export function computeFilterCounts(
   options: ComputeFilterCountsOptions,
 ): FilterCounts {
   const filters: CardFilters = { ...EMPTY_CARD_FILTERS, ...rawFilters };
-  const terms = filters.search ? parseSearchTerms(filters.search) : [];
-  const hasPrefixes = terms.some((t) => t.field !== null);
+  const matchesQuery = searchPredicate(filters.search);
+  const hasQuery = filters.search.trim() !== "";
   const getPrice = options.getPrice;
   const byCard = options.countBy === "card";
   // Two entries of one double-sided printing count once, which needs the keyed counters.
@@ -355,11 +355,8 @@ export function computeFilterCounts(
 
   for (const printing of printings) {
     const { card } = printing;
-    // No facet clears search, so a miss can't count anywhere.
-    if (
-      terms.length > 0 &&
-      !matchesSearch(printing, terms, hasPrefixes, filters.searchScope, options.keywordReverseMap)
-    ) {
+    // No facet clears the query, so a miss can't count anywhere.
+    if (hasQuery && !matchesQuery(printing, options)) {
       continue;
     }
 

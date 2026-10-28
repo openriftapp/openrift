@@ -14,6 +14,9 @@ import { m } from "@/paraglide/messages.js";
 const ENDPOINT_DESCRIPTIONS: Record<DeveloperEndpointPath, () => string> = {
   "/api/v1/catalog": m.developers_endpoint_catalog,
   "/api/v1/cards/{cardSlug}": m.developers_endpoint_card,
+  "/api/v1/search": m.developers_endpoint_search,
+  "/api/v1/search/named": m.developers_endpoint_named,
+  "/api/v1/search/random": m.developers_endpoint_random,
   "/api/v1/sets": m.developers_endpoint_sets,
   "/api/v1/prices": m.developers_endpoint_prices,
   "/api/v1/prices/{printingId}": m.developers_endpoint_printing_prices,
@@ -123,6 +126,23 @@ export function DevelopersPage() {
         />
       </p>
       <p>{m.developers_catalog_images_terms_p()}</p>
+
+      <h2>{m.developers_search_heading()}</h2>
+      <p>
+        <ParaglideMessage
+          message={m.developers_search_p}
+          markup={{
+            ...codeMarkup,
+            link: ({ children }) => <a href="/help/search-syntax">{children}</a>,
+          }}
+        />
+      </p>
+      <pre className="bg-muted mt-3 overflow-x-auto rounded-md p-3 text-sm">
+        <code>{`curl -A "MyDeckTool/1.0 (you@example.com)" "${origin}/api/v1/search?q=t%3Aunit%20d%3Afury%20e%3C%3D3&limit=20"`}</code>
+      </pre>
+      <p>
+        <ParaglideMessage message={m.developers_search_details_p} markup={codeMarkup} />
+      </p>
 
       <h2>{m.developers_links_heading()}</h2>
       <p>{m.developers_prices_p()}</p>

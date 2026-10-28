@@ -18,6 +18,7 @@ function makeWrapper() {
       artVariants: [],
       deckFormats: [],
       deckZones: [],
+      formats: [],
       languages: [],
     },
     keywords: {},

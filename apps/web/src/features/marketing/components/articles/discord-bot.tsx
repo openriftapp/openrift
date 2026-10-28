@@ -110,6 +110,13 @@ export default function DiscordBotArticle() {
       </section>
 
       <section>
+        <Heading className="mb-2">{m.help_discord_bot_search_heading()}</Heading>
+        <p className="text-muted-foreground">
+          <ParaglideMessage message={m.help_discord_bot_search} markup={PROSE_MARKUP} />
+        </p>
+      </section>
+
+      <section>
         <Heading className="mb-2">{m.help_discord_bot_mention_heading()}</Heading>
         <p className="text-muted-foreground">
           <ParaglideMessage message={m.help_discord_bot_mention} markup={PROSE_MARKUP} />

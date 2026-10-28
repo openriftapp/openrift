@@ -12,6 +12,7 @@ export function stubInitResponse(enums: Partial<InitResponse["enums"]> = {}): In
       cardSizes: [],
       deckFormats: [],
       deckZones: [],
+      formats: [],
       conditions: [],
       graders: [],
       languages: [],

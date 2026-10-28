@@ -30,15 +30,19 @@ async function preflight(path: string, origin: string): Promise<Response> {
 }
 
 describe("CORS", () => {
-  it.each(["/api/v1/catalog", "/api/v1/cards/annie-fiery", "/api/v1/prices/links"])(
-    "opens developer endpoint %s to any origin without credentials",
-    async (path) => {
-      const res = await preflight(path, "https://deck-tool.example");
-      expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*");
-      expect(res.headers.get("Access-Control-Allow-Credentials")).toBeNull();
-      expect(res.headers.get("Vary") ?? "").not.toContain("Origin");
-    },
-  );
+  it.each([
+    "/api/v1/catalog",
+    "/api/v1/cards/annie-fiery",
+    "/api/v1/prices/links",
+    "/api/v1/search",
+    "/api/v1/search/named",
+    "/api/v1/search/random",
+  ])("opens developer endpoint %s to any origin without credentials", async (path) => {
+    const res = await preflight(path, "https://deck-tool.example");
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(res.headers.get("Access-Control-Allow-Credentials")).toBeNull();
+    expect(res.headers.get("Vary") ?? "").not.toContain("Origin");
+  });
 
   it("refuses unlisted origins on other endpoints", async () => {
     const res = await preflight("/api/v1/feature-flags", "https://deck-tool.example");

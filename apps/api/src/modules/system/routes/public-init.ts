@@ -33,6 +33,7 @@ export const initRouter = {
       catalog,
       tagCategories,
       tagDefinitions,
+      cardBans,
     } = context.repos;
     const [
       enumData,
@@ -43,6 +44,7 @@ export const initRouter = {
       championIdentifierTags,
       tagCategoryRows,
       tagDefinitionRows,
+      formatRows,
     ] = await Promise.all([
       enums.all(),
       keywords.listAll(),
@@ -52,6 +54,7 @@ export const initRouter = {
       catalog.championIdentifierTags(),
       tagCategories.listAll(),
       tagDefinitions.listAll(),
+      cardBans.listFormats(),
     ]);
 
     // Listing keys explicitly keeps this checked against InitResponse["enums"];
@@ -66,6 +69,11 @@ export const initRouter = {
       cardSizes: stripInternal(enumData.cardSizes),
       deckFormats: stripInternal(enumData.deckFormats),
       deckZones: stripInternal(enumData.deckZones),
+      formats: formatRows.map((row, index) => ({
+        slug: row.id,
+        label: row.name,
+        sortOrder: index,
+      })),
       conditions: stripInternal(enumData.conditions),
       graders: stripInternal(enumData.graders),
       languages: stripInternal(enumData.languages),

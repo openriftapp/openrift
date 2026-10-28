@@ -12,6 +12,7 @@ export const WellKnown = {
     BATTLEFIELD: "battlefield",
     UNIT: "unit",
     GEAR: "gear",
+    OTHER: "other",
   },
   keyword: {
     UNIQUE: "Unique",

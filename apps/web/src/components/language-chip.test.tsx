@@ -18,6 +18,7 @@ function makeWrapper() {
       artVariants: [],
       deckFormats: [],
       deckZones: [],
+      formats: [],
       languages: [
         { slug: "EN", label: "English", color: "#1d4ed8", sortOrder: 0, isWellKnown: false },
         { slug: "SC", label: "Chinese", color: null, sortOrder: 1, isWellKnown: false },

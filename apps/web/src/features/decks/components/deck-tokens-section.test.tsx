@@ -36,6 +36,7 @@ const INIT = {
     cardSizes: [enumRow("standard", 0)],
     deckFormats: [enumRow("constructed", 0)],
     deckZones: [enumRow("main", 0)],
+    formats: [],
     conditions: [],
     graders: [],
     languages: [enumRow("EN", 0)],

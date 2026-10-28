@@ -51,6 +51,7 @@ import {
   searchRules,
 } from "./rule-search.js";
 import type { RulesCache } from "./rules-cache.js";
+import { buildSearchEmbed, SEARCH_RESULT_LIMIT, searchErrorText } from "./search-embed.js";
 import type { TradeChannelCache } from "./trade-channels.js";
 import type { ScanIndex } from "./trade-scan.js";
 import { buildScanIndex, buildTradeReply, scanForCards, tradeLine } from "./trade-scan.js";
@@ -114,6 +115,19 @@ const RULE_COMMAND = {
       description: "A rule number (CR 103.1, TR 202), a game term (stun), or search text",
       required: true,
       autocomplete: true,
+    },
+  ],
+} as const;
+
+const SEARCH_COMMAND = {
+  name: "search",
+  description: "Search Riftbound cards with OpenRift's search syntax, like t:unit d:fury e<=3",
+  options: [
+    {
+      type: ApplicationCommandOptionType.String,
+      name: "query",
+      description: "The search, as typed into the OpenRift search box",
+      required: true,
     },
   ],
 } as const;
@@ -330,6 +344,25 @@ async function handleRuleCommand(ctx: BotContext, interaction: ChatInputCommandI
   }
   await interaction.reply({
     embeds: [buildRuleEmbed({ entry, index, siteUrl: ctx.env.siteUrl })],
+  });
+}
+
+async function handleSearchCommand(ctx: BotContext, interaction: ChatInputCommandInteraction) {
+  const query = interaction.options.getString("query", true).trim();
+  await interaction.deferReply();
+  const { error, data } = await safe(
+    ctx.api.search.search({ q: query, limit: SEARCH_RESULT_LIMIT }),
+  );
+  if (error) {
+    const content =
+      isDefinedError(error) && error.code === "BAD_REQUEST"
+        ? searchErrorText(query, error.data.diagnostics)
+        : "Search failed, try again in a moment.";
+    await interaction.editReply({ content });
+    return;
+  }
+  await interaction.editReply({
+    embeds: [buildSearchEmbed({ query, response: data, siteUrl: ctx.env.siteUrl })],
   });
 }
 
@@ -618,6 +651,7 @@ export function createBot(ctx: BotContext): Client {
         CARD_COMMAND,
         DECK_COMMAND,
         RULE_COMMAND,
+        SEARCH_COMMAND,
         ...(ctx.api.discordBot ? [LINK_COMMAND, TRADE_CHANNEL_COMMAND] : []),
       ]);
     } catch (error) {
@@ -656,6 +690,11 @@ export function createBot(ctx: BotContext): Client {
         interaction.commandName === RULE_COMMAND.name
       ) {
         await handleRuleCommand(ctx, interaction);
+      } else if (
+        interaction.isChatInputCommand() &&
+        interaction.commandName === SEARCH_COMMAND.name
+      ) {
+        await handleSearchCommand(ctx, interaction);
       } else if (
         interaction.isChatInputCommand() &&
         interaction.commandName === LINK_COMMAND.name

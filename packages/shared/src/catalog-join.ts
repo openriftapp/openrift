@@ -2,7 +2,8 @@ import { splitCardBans } from "./card-ban.js";
 import { PRINTING_LEVEL_FIELDS } from "./catalog-printing-fields.js";
 import type { PrintingLevelField } from "./catalog-printing-fields.js";
 import { todayUtc } from "./format-date.js";
-import { isReleasedIn } from "./set-release.js";
+import { earliestRelease, isReleasedIn } from "./set-release.js";
+import type { SetReleases } from "./set-release.js";
 import type {
   CatalogPrintingChannelRef,
   CatalogPrintingResponse,
@@ -18,6 +19,38 @@ import type {
   PrintingDistributionChannel,
   PrintingSide,
 } from "./types/catalog.js";
+
+/**
+ * Card-level print facts for search (`in:`, `is:reprint`), from the printings joined together.
+ * A partial catalog only knows the sets and languages it holds.
+ */
+function annotatePrintRuns(
+  printings: Printing[],
+  sets: readonly { id: string; releases: SetReleases }[],
+): void {
+  const firstRelease = new Map(
+    sets.map((set) => [set.id, earliestRelease(set.releases)?.releasedAt ?? undefined]),
+  );
+  for (const sides of Map.groupBy(printings, (printing) => printing.cardId).values()) {
+    const cardSetSlugs = [...new Set(sides.map((printing) => printing.setSlug))];
+    const cardLanguages = [...new Set(sides.map((printing) => printing.language))];
+    const releases = sides.flatMap((printing) => firstRelease.get(printing.setId) ?? []);
+    const first = releases.length > 0 ? releases.toSorted()[0] : undefined;
+    for (const printing of sides) {
+      printing.cardSetSlugs = cardSetSlugs;
+      printing.cardLanguages = cardLanguages;
+      const release = firstRelease.get(printing.setId);
+      if (first !== undefined && release !== undefined && release > first) {
+        printing.isReprint = true;
+      }
+    }
+  }
+}
+
+function releasedAt(releases: SetReleases, language: string): Pick<Printing, "setReleasedAt"> {
+  const date = releases[language]?.releasedAt;
+  return date ? { setReleasedAt: date } : {};
+}
 
 export function joinCatalogCards<T extends { bans: CardBan[] }>(
   cards: Record<string, T>,
@@ -168,10 +201,12 @@ export function joinCatalog(catalog: CatalogSlice): {
           : {}),
         setSlug: set.slug,
         setReleased: isReleasedIn(set.releases, side.language, today),
+        ...releasedAt(set.releases, side.language),
         card,
       });
     });
   }
+  annotatePrintRuns(printings, catalog.sets);
   return { cardsById, printings };
 }
 
@@ -192,10 +227,12 @@ export function joinPrintingSides(
         ...entry,
         setSlug: set.slug,
         setReleased: isReleasedIn(set.releases, entry.language, today),
+        ...releasedAt(set.releases, entry.language),
         card,
       });
     }
   }
+  annotatePrintRuns(printings, sets);
   return printings;
 }
 

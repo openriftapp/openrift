@@ -126,15 +126,19 @@ export function useCollectionCardData({
     collectionPrintings,
     effectiveLanguageOrder,
   );
-  let filteredCards = filterCards(canonicallyOrderedCollection, filters, {
-    keywordReverseMap,
-    getPrice,
-  });
-
   const countByPrintingId: Record<string, number> = {};
   for (const stack of stacks) {
     countByPrintingId[stack.printingId] = stack.copyIds.length;
   }
+  const getOwnedCount = (p: Printing) => countByPrintingId[p.printingId];
+
+  let filteredCards = filterCards(canonicallyOrderedCollection, filters, {
+    keywordReverseMap,
+    getPrice,
+    priceLookup: prices,
+    getOwnedCount,
+    rarityOrder: orders.rarities,
+  });
   // `ownedCardTotalOverride` assigns each box printing its card's full personal
   // playset and buckets per-printing, so a card stocked in several variants
   // isn't double-counted by card-mode aggregation.
@@ -196,6 +200,9 @@ export function useCollectionCardData({
         countBy: view === "cards" ? "card" : "printing",
         keywordReverseMap,
         getPrice,
+        priceLookup: prices,
+        getOwnedCount,
+        rarityOrder: orders.rarities,
       })
     : EMPTY_FILTER_COUNTS;
 

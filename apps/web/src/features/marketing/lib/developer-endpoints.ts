@@ -1,6 +1,9 @@
 export const DEVELOPER_ENDPOINT_PATHS = [
   "/api/v1/catalog",
   "/api/v1/cards/{cardSlug}",
+  "/api/v1/search",
+  "/api/v1/search/named",
+  "/api/v1/search/random",
   "/api/v1/sets",
   "/api/v1/prices",
   "/api/v1/prices/{printingId}",

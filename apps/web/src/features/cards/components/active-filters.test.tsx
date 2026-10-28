@@ -403,26 +403,26 @@ describe("ActiveFilters standard flag + exclude chips (ADR-034)", () => {
     );
   }
 
-  it("renders a Standard chip and clears it on the remove button", async () => {
+  it("renders a Plain chip and clears it on the remove button", async () => {
     const clearStandard = vi.fn();
     setupExcludeHooks({ standard: true }, { clearStandard });
 
     const user = userEvent.setup();
     const { getByText } = render(<ActiveFilters availableFilters={makeAvailable()} />);
 
-    const badge = getByText("Standard").closest("span") ?? getByText("Standard");
+    const badge = getByText("Plain").closest("span") ?? getByText("Plain");
     const removeButton = badge.parentElement?.querySelector("button");
     await user.click(removeButton!);
 
     expect(clearStandard).toHaveBeenCalledOnce();
   });
 
-  it("renders the Standard chip in the include/exclude language when forbidden", () => {
+  it("renders the Plain chip in the include/exclude language when forbidden", () => {
     setupExcludeHooks({ standard: false });
 
     const { getByText } = render(<ActiveFilters availableFilters={makeAvailable()} />);
 
-    const label = getByText("Standard");
+    const label = getByText("Plain");
     expect(label).toBeInTheDocument();
     expect(label).toHaveClass("line-through");
   });

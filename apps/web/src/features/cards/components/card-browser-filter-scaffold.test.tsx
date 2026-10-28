@@ -34,6 +34,9 @@ vi.mock("@/features/cards/components/options-bar", () => ({
 vi.mock("@/features/cards/components/search-bar", () => ({
   SearchBar: () => <div>search-bar-stub</div>,
 }));
+vi.mock("@/features/cards/hooks/use-search-vocabulary", () => ({
+  useSearchVocabulary: () => ({ validation: {}, suggestions: {}, valueLabel: () => "" }),
+}));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import {

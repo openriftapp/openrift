@@ -1,6 +1,4 @@
-import { ALL_SEARCH_FIELDS } from "@openrift/shared/types/search";
-import type { SearchField } from "@openrift/shared/types/search";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import { MultiSelectCombobox } from "@/components/multi-select-combobox";
 import { SearchInput } from "@/components/search-input";
@@ -13,7 +11,7 @@ import {
   SwatchRow,
 } from "@/features/admin/components/design/demo-primitives";
 import type { DesignGroup } from "@/features/admin/components/design/design-sections";
-import { SearchPrefixChip, SearchScopeChip } from "@/features/cards/components/search-scope-menu";
+import { SearchQueryFeedback } from "@/features/cards/components/search-query-feedback";
 
 const GROUPS = {
   searchInput: { id: "search-search-input", title: "SearchInput" },
@@ -23,6 +21,8 @@ const GROUPS = {
 
 export const SEARCH_GROUPS: readonly DesignGroup[] = Object.values(GROUPS);
 
+const DEMO_VOCABULARY = { domain: ["fury", "calm", "mind", "body", "chaos", "order"] };
+
 const REGION_OPTIONS = [
   { value: "piltover", label: "Piltover" },
   { value: "zaun", label: "Zaun" },
@@ -31,21 +31,9 @@ const REGION_OPTIONS = [
   { value: "demacia", label: "Demacia" },
 ];
 
-function toggleDemoScope(scope: SearchField[], field: SearchField): SearchField[] {
-  if (!scope.includes(field)) {
-    return [...scope, field];
-  }
-  const next = scope.filter((entry) => entry !== field);
-  return next.length > 0 ? next : scope;
-}
-
 export function SearchSection() {
   const [plainSearch, setPlainSearch] = useState("");
-  const [scopedSearch, setScopedSearch] = useState("teemo");
-  const [prefixedSearch, setPrefixedSearch] = useState("n:teemo");
-  const [demoScope, setDemoScope] = useState<SearchField[]>(["name", "keywords"]);
-  const [demoScopeOpen, setDemoScopeOpen] = useState(false);
-  const demoSearchRef = useRef<HTMLInputElement>(null);
+  const [prefixedSearch, setPrefixedSearch] = useState("t:unit d:fury e<=3");
   const [regions, setRegions] = useState<string[]>(["piltover"]);
   const [excludedRegions, setExcludedRegions] = useState<string[]>(["zaun"]);
   const [demoTriage, setDemoTriage] = useState("any");
@@ -61,7 +49,7 @@ export function SearchSection() {
     >
       <DemoGroup
         {...GROUPS.searchInput}
-        hint="On a real surface the scope chip only mounts while the scope is narrowed or the empty field is focused, and a typed n:/k: prefix swaps it for the read-only prefix chip."
+        hint="Keyed clauses show as plain-word chips under the field."
       >
         <SwatchRow label="Leading slot">
           <Swatch label="plain">
@@ -72,38 +60,20 @@ export function SearchSection() {
               className="w-56"
             />
           </Swatch>
-          <Swatch label="scope chip">
-            <SearchInput
-              value={scopedSearch}
-              onValueChange={setScopedSearch}
-              inputRef={demoSearchRef}
-              placeholder="Search cards…"
-              leading={
-                <SearchScopeChip
-                  scope={demoScope}
-                  toggleField={(field) =>
-                    setDemoScope((current) => toggleDemoScope(current, field))
-                  }
-                  selectAll={() => setDemoScope([...ALL_SEARCH_FIELDS])}
-                  selectOnly={(field) => setDemoScope([field])}
-                  open={demoScopeOpen}
-                  onOpenChange={setDemoScopeOpen}
-                  inputRef={demoSearchRef}
-                />
-              }
-              trailing="12 / 40 cards"
-              className="w-80"
-            />
-          </Swatch>
-          <Swatch label="prefix chip">
-            <SearchInput
-              value={prefixedSearch}
-              onValueChange={setPrefixedSearch}
-              placeholder="Search cards…"
-              leading={<SearchPrefixChip fields={["name"]} />}
-              trailing="3 / 40 cards"
-              className="w-80"
-            />
+          <Swatch label="query chips">
+            <div className="w-80">
+              <SearchInput
+                value={prefixedSearch}
+                onValueChange={setPrefixedSearch}
+                placeholder="Search cards…"
+                trailing="3 / 40 cards"
+              />
+              <SearchQueryFeedback
+                query={prefixedSearch}
+                vocabulary={DEMO_VOCABULARY}
+                valueLabel={(_key, value) => value}
+              />
+            </div>
           </Swatch>
         </SwatchRow>
       </DemoGroup>

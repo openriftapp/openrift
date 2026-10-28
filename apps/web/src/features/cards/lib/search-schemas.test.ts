@@ -82,4 +82,22 @@ describe("cleanedSearchForRedirect", () => {
     expect(cleaned).not.toBeNull();
     expect(cleaned?.groupBy).toBeUndefined();
   });
+
+  it("moves a legacy search param to q with its prefixes renamed", () => {
+    const search = { ...filterSearchSchema.parse({}), search: "fire d:stun ty:unit" };
+    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, "?search=x");
+    expect(cleaned?.q).toBe("fire o:stun t:unit");
+    expect(cleaned && "search" in cleaned).toBe(false);
+  });
+
+  it("keeps an explicit q over a legacy search param", () => {
+    const search = { ...filterSearchSchema.parse({ q: "garen" }), search: "annie" };
+    const cleaned = cleanedSearchForRedirect(filterSearchSchema, search, "?q=garen&search=annie");
+    expect(cleaned?.q).toBe("garen");
+  });
+
+  it("reads a number-looking legacy search value", () => {
+    const search = { ...filterSearchSchema.parse({}), search: 269 };
+    expect(cleanedSearchForRedirect(filterSearchSchema, search, "?search=269")?.q).toBe("269");
+  });
 });

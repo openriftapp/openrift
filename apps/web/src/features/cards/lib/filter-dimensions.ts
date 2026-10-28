@@ -46,7 +46,7 @@ export function toFilterState(
   defaultGroupDir: SortDirection,
 ) {
   return {
-    search: raw.search ?? "",
+    search: raw.q ?? "",
     sets: raw.sets ?? [],
     languages: raw.languages ?? [],
     rarities: raw.rarities ?? [],

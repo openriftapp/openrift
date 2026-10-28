@@ -51,7 +51,7 @@ export function CommandPalette() {
   const handleSearchAndClose = (query: string) => {
     setOpenCard(null);
     closePalette();
-    void navigate({ to: "/cards", search: { search: query } });
+    void navigate({ to: "/cards", search: { q: query } });
   };
 
   return (

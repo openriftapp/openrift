@@ -199,7 +199,7 @@ function MissingCardsDialogBody({
   const handleSearchAndClose = (query: string) => {
     setDetailPrintingId(null);
     onOpenChange(false);
-    void navigate({ to: "/cards", search: { search: query } });
+    void navigate({ to: "/cards", search: { q: query } });
   };
 
   return (

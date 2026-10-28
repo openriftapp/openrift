@@ -41,6 +41,7 @@ import { catalogRouter } from "../modules/catalog/routes/public-catalog.js";
 import { errataRouter } from "../modules/catalog/routes/public-errata.js";
 import { promosRouter } from "../modules/catalog/routes/public-promos.js";
 import { rulesRouter } from "../modules/catalog/routes/public-rules.js";
+import { searchRouter } from "../modules/catalog/routes/public-search.js";
 import { setsRouter } from "../modules/catalog/routes/public-sets.js";
 import { discordBotRouter } from "../modules/chat/routes/public-discord-bot.js";
 import { adminCustomTagsRouter } from "../modules/collections/routes/admin-custom-tags.js";
@@ -221,6 +222,7 @@ const apiRouter = {
   userShareRouter,
   cardsRouter,
   catalogRouter,
+  searchRouter,
   customTagsRouter,
   publicCollectionsRouter,
   deckCheckClaimRouter,

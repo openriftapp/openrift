@@ -14,6 +14,7 @@ import {
 } from "@/features/cards/components/options-bar";
 import { SearchBar } from "@/features/cards/components/search-bar";
 import { useFilterValues, useStaleGroupByGuard } from "@/features/cards/hooks/use-card-filters";
+import { useSearchVocabulary } from "@/features/cards/hooks/use-search-vocabulary";
 import { resolveTopLevelUnits } from "@/features/cards/lib/filter-sections";
 import { useSmUp } from "@/hooks/use-sm-up";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,8 @@ interface CardBrowserFilterMeta {
 interface CardBrowserFilterContextValue extends CardBrowserFilterMeta {
   topLevelUnits: ReadonlySet<string>;
 }
+
+const EMPTY_LANGUAGES: readonly string[] = [];
 
 const FilterMetaContext = createContext<CardBrowserFilterContextValue | null>(null);
 
@@ -136,12 +139,23 @@ export function BrowserToolbar({
   groupByValue,
 }: BrowserToolbarProps) {
   const { hasActiveFilters } = useFilterValues();
+  const meta = useFilterMeta();
+  const searchVocabulary = useSearchVocabulary(
+    meta.availableFilters,
+    meta.availableLanguages ?? EMPTY_LANGUAGES,
+  );
   // CSS-hiding alone still re-renders every chip on each filter change: unmount desktop chrome below `sm`, don't just hide it.
   const smUp = useSmUp();
   return (
     <>
       <div className={cn("flex items-start gap-2", hasActiveFilters ? "mb-2 sm:mb-3" : "mb-3")}>
-        <SearchBar totalCards={totalCards} filteredCount={filteredCount} />
+        <SearchBar
+          totalCards={totalCards}
+          filteredCount={filteredCount}
+          validationVocabulary={searchVocabulary.validation}
+          suggestionVocabulary={searchVocabulary.suggestions}
+          valueLabel={searchVocabulary.valueLabel}
+        />
         {smUp && (
           <DesktopOptionsBar
             className="hidden sm:flex"

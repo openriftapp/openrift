@@ -5,7 +5,6 @@ import { Component } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
-import { useSearchScopeStore } from "@/features/cards/stores/search-scope-store";
 import { useDisplayStore } from "@/stores/display-store";
 import { stubPrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
@@ -84,11 +83,9 @@ function renderPopover() {
 
 describe("OwnedCollectionsPopover", () => {
   const resetDisplayStore = createStoreResetter(useDisplayStore);
-  const resetSearchScopeStore = createStoreResetter(useSearchScopeStore);
 
   afterEach(() => {
     resetDisplayStore();
-    resetSearchScopeStore();
     linkSearches.length = 0;
     sessionMock.mockReturnValue({ data: { user: { id: "user-1" } } });
     vi.restoreAllMocks();
@@ -124,7 +121,7 @@ describe("OwnedCollectionsPopover", () => {
     await findByText("Binder");
 
     expect(linkSearches.at(-1)).toEqual({
-      search: "id:OGN-001",
+      q: "cn:OGN-001",
       view: "printings",
       finishes: ["normal"],
       languages: ["EN"],
@@ -138,7 +135,7 @@ describe("OwnedCollectionsPopover", () => {
     await userEvent.click(await findByText("2"));
     await findByText("Binder");
 
-    expect(linkSearches.at(-1)).toEqual({ search: "Annie" });
+    expect(linkSearches.at(-1)).toEqual({ q: "Annie" });
   });
 
   it("prefers the provider's view over the display-store default", async () => {
@@ -151,7 +148,7 @@ describe("OwnedCollectionsPopover", () => {
     await findByText("Binder");
 
     expect(linkSearches.at(-1)).toEqual({
-      search: "id:OGN-001",
+      q: "cn:OGN-001",
       view: "printings",
       finishes: ["normal"],
       languages: ["EN"],

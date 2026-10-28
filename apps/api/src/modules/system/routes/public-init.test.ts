@@ -76,6 +76,10 @@ const mockTagDefinitionsRepo = {
   listAll: vi.fn(() => Promise.resolve([] as { tag: string; category: string }[])),
 };
 
+const mockCardBansRepo = {
+  listFormats: vi.fn(() => Promise.resolve([] as { id: string; name: string }[])),
+};
+
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("repos", {
@@ -87,6 +91,7 @@ app.use("*", async (c, next) => {
     catalog: mockCatalogRepo,
     tagCategories: mockTagCategoriesRepo,
     tagDefinitions: mockTagDefinitionsRepo,
+    cardBans: mockCardBansRepo,
     // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
   } as any);
   await next();
@@ -129,6 +134,19 @@ describe("GET /api/v1/init", () => {
     const res = await app.request("/api/v1/init");
     const json = await readJson(res);
     expect(json.enums.cardTypes).toEqual([{ slug: "creature", label: "Creature", sortOrder: 1 }]);
+  });
+
+  it("returns ban formats as enum rows in name order", async () => {
+    mockCardBansRepo.listFormats.mockResolvedValueOnce([
+      { id: "standard", name: "Constructed" },
+      { id: "freeform", name: "Freeform" },
+    ]);
+    const res = await app.request("/api/v1/init");
+    const json = await readJson(res);
+    expect(json.enums.formats).toEqual([
+      { slug: "standard", label: "Constructed", sortOrder: 0 },
+      { slug: "freeform", label: "Freeform", sortOrder: 1 },
+    ]);
   });
 
   it("returns keywords as name-keyed map", async () => {

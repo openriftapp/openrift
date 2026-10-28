@@ -122,7 +122,7 @@ describe("GET /api/v1/chat/card", () => {
 
     expect(res.status).toBe(200);
     expect(await res.text()).toBe(
-      'No Riftbound card found for "teemo". Try https://openrift.app/cards?search=teemo',
+      'No Riftbound card found for "teemo". Try https://openrift.app/cards?q=teemo',
     );
   });
 

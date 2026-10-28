@@ -137,6 +137,13 @@ export interface Printing {
   setId: string;
   setSlug: string;
   setReleased: boolean;
+  /** First day of the set's release in this printing's language. Absent while unannounced. */
+  setReleasedAt?: string;
+  /** Sets and languages any printing of this card appears in. Shared by all of the card's printings. */
+  cardSetSlugs?: readonly string[];
+  cardLanguages?: readonly string[];
+  /** Omitted, never `false`: the card had a printing in an earlier set. */
+  isReprint?: true;
   rarity: Rarity;
   artVariant: ArtVariant;
   isSigned: boolean;

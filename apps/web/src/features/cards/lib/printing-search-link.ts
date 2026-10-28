@@ -14,7 +14,7 @@ export function distinctPrintingCode(printing: {
 
 export function printingCollectionSearch(printing: LinkedPrinting) {
   return {
-    search: `id:${distinctPrintingCode(printing)}`,
+    q: `cn:${distinctPrintingCode(printing)}`,
     view: "printings" as const,
     finishes: [printing.finish],
     languages: [printing.language],

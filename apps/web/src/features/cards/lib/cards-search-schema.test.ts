@@ -5,12 +5,12 @@ import { cardsSearchSchema } from "./cards-search-schema";
 describe("cardsSearchSchema", () => {
   it("strips customTags from parsed search so /cards doesn't filter every card out", () => {
     const parsed = cardsSearchSchema.parse({
-      search: "t:Teemo",
+      q: "t:Teemo",
       types: ["unit"],
       customTags: ["bandle-city", "bilgewater"],
     });
     expect(parsed).not.toHaveProperty("customTags");
-    expect(parsed.search).toBe("t:Teemo");
+    expect(parsed.q).toBe("t:Teemo");
     expect(parsed.types).toEqual(["unit"]);
   });
 
