@@ -11,19 +11,47 @@ export interface VariantLabelPrinting {
   isOvernumbered: boolean;
   markers: readonly { slug: string; label: string }[];
   shortCode?: string;
-  otherSide?: { cardName: string; shortCode: string };
+  cardId?: string;
+  otherSide?: {
+    cardName: string;
+    shortCode: string;
+    cardId?: string;
+    finish?: string;
+    artVariant?: string;
+    isSigned?: boolean;
+    isOvernumbered?: boolean;
+    markers?: readonly { slug: string; label: string }[];
+  };
 }
 
 export interface VariantLabelEnumLabels {
   artVariants: Record<string, string>;
   finishes: Record<string, string>;
   cardSizes: Record<string, string>;
+  flags?: { overnumbered: string; signed: string };
+  onOneSide?: (part: string) => string;
 }
 
 export interface PrintingVariantLabelParts {
   language: string | null;
   rest: string[];
   otherSide: string | null;
+  otherSideIsSelf: boolean;
+}
+
+function otherFaceOf(printing: VariantLabelPrinting): VariantLabelPrinting | undefined {
+  const other = printing.otherSide;
+  if (other?.finish === undefined) {
+    return undefined;
+  }
+  return {
+    ...printing,
+    finish: other.finish,
+    artVariant: other.artVariant ?? printing.artVariant,
+    isSigned: other.isSigned ?? printing.isSigned,
+    isOvernumbered: other.isOvernumbered ?? printing.isOvernumbered,
+    markers: other.markers ?? printing.markers,
+  };
 }
 
 export function formatPrintingVariantLabelParts(
@@ -31,31 +59,48 @@ export function formatPrintingVariantLabelParts(
   siblings: readonly VariantLabelPrinting[] | undefined,
   labels: VariantLabelEnumLabels,
 ): PrintingVariantLabelParts {
+  const otherFace = otherFaceOf(printing);
   const allSame = (fn: (c: VariantLabelPrinting) => unknown) =>
     siblings ? siblings.every((s) => fn(s) === fn(printing)) : false;
+  const sidesDiffer = (fn: (c: VariantLabelPrinting) => unknown) =>
+    otherFace !== undefined && fn(otherFace) !== fn(printing);
+  const shown = (fn: (c: VariantLabelPrinting) => unknown) => !allSame(fn) || sidesDiffer(fn);
 
+  const partsOf = (face: VariantLabelPrinting): string[] => {
+    const parts: string[] = [];
+    if (face.artVariant !== WellKnown.artVariant.NORMAL) {
+      parts.push(enumLabel(labels.artVariants, face.artVariant));
+    }
+    if (face.isOvernumbered) {
+      parts.push(labels.flags?.overnumbered ?? "Overnumbered");
+    }
+    if (face.markers.length > 0 && shown((c) => c.markers.map((m) => m.slug).join("+"))) {
+      parts.push(face.markers.map((m) => m.label).join(" + "));
+    }
+    if (face.finish !== WellKnown.finish.NORMAL && shown((c) => c.finish)) {
+      parts.push(enumLabel(labels.finishes, face.finish));
+    }
+    // Oversized is always labeled, unlike finish/signed/markers: no allSame() check.
+    if (face.size !== WellKnown.cardSize.STANDARD) {
+      parts.push(enumLabel(labels.cardSizes, face.size));
+    }
+    if (face.isSigned && shown((c) => c.isSigned)) {
+      parts.push(labels.flags?.signed ?? "Signed");
+    }
+    return parts;
+  };
+
+  const own = partsOf(printing);
+  const theirs = otherFace ? partsOf(otherFace) : own;
+  const onOneSide = labels.onOneSide ?? ((part: string) => `${part} on one side`);
+  const rest = [
+    ...own.map((part) => (theirs.includes(part) ? part : onOneSide(part))),
+    ...theirs.filter((part) => !own.includes(part)).map((part) => onOneSide(part)),
+  ];
   const language = siblings && !allSame((c) => c.language) ? printing.language : null;
-  const rest: string[] = [];
-  if (printing.artVariant !== WellKnown.artVariant.NORMAL) {
-    rest.push(enumLabel(labels.artVariants, printing.artVariant));
-  }
-  if (printing.isOvernumbered) {
-    rest.push("Overnumbered");
-  }
-  if (printing.finish !== WellKnown.finish.NORMAL && !allSame((c) => c.finish)) {
-    rest.push(enumLabel(labels.finishes, printing.finish));
-  }
-  // Oversized is always labeled, unlike finish/signed/markers: no allSame() check.
-  if (printing.size !== WellKnown.cardSize.STANDARD) {
-    rest.push(enumLabel(labels.cardSizes, printing.size));
-  }
-  if (printing.isSigned && !allSame((c) => c.isSigned)) {
-    rest.push("Signed");
-  }
-  if (printing.markers.length > 0 && !allSame((c) => c.markers.map((m) => m.slug).join("+"))) {
-    rest.push(printing.markers.map((m) => m.label).join(" + "));
-  }
-  return { language, rest, otherSide: otherSideLabel(printing, siblings) };
+  const otherSideIsSelf =
+    printing.cardId !== undefined && printing.otherSide?.cardId === printing.cardId;
+  return { language, rest, otherSide: otherSideLabel(printing, siblings), otherSideIsSelf };
 }
 
 export function otherSideLabel(
@@ -79,12 +124,17 @@ export function formatPrintingVariantLabel(
   printing: VariantLabelPrinting,
   siblings: readonly VariantLabelPrinting[] | undefined,
   labels: VariantLabelEnumLabels,
-  withOtherSide: (name: string) => string = (name) => `with ${name}`,
+  withOtherSide: (name: string, sameCard: boolean) => string = (name, sameCard) =>
+    sameCard ? `${name} on both sides` : `with ${name}`,
 ): string {
-  const { language, rest, otherSide } = formatPrintingVariantLabelParts(printing, siblings, labels);
+  const { language, rest, otherSide, otherSideIsSelf } = formatPrintingVariantLabelParts(
+    printing,
+    siblings,
+    labels,
+  );
   const parts = [...(language ? [`[${language}]`] : []), ...rest];
   if (otherSide) {
-    parts.push(withOtherSide(otherSide));
+    parts.push(withOtherSide(otherSide, otherSideIsSelf));
   }
   return parts.length > 0 ? parts.join(" · ") : "Standard";
 }

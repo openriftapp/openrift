@@ -100,6 +100,28 @@ describe("PrintingPicker", () => {
     expect(row?.tagName).not.toBe("BUTTON");
   });
 
+  it("lists a printing with the same card on both sides once, active from either side", () => {
+    const front = stubPrinting({
+      printingId: "p-buff",
+      cardId: "buff",
+      side: 1,
+      otherSide: {
+        faceId: "face-2",
+        cardId: "buff",
+        cardName: "Buff",
+        cardSlug: "buff",
+        shortCode: "OGN",
+      },
+    });
+    const back = { ...front, side: 2 as const };
+    const { container } = render(
+      <PrintingPicker current={back} printings={[front, back]} onSelect={() => {}} />,
+    );
+    const rows = container.querySelectorAll('[role="button"]');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("prices a row from the favourite marketplace, unlabelled", () => {
     priceGetMock.mockImplementation((_id, marketplace) =>
       marketplace === "cardtrader" ? 4.2 : 9.9,

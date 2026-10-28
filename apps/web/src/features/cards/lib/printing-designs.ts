@@ -31,7 +31,7 @@ export function isSelfPaired(printing: Printing): boolean {
   return printing.otherSide?.cardId === printing.cardId;
 }
 
-function oneEntryPerSelfPairedPrinting(printings: readonly Printing[]): Printing[] {
+export function oneEntryPerSelfPairedPrinting(printings: readonly Printing[]): Printing[] {
   const kept = new Map<string, Printing>();
   for (const printing of printings) {
     if (!isSelfPaired(printing)) {

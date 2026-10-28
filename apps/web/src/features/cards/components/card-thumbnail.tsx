@@ -475,6 +475,8 @@ export const CardThumbnail = memo(function CardThumbnail({
     artVariants: artVariantLabels,
     finishes: finishLabels,
     cardSizes: sizeLabels,
+    flags: { overnumbered: m.cards_flag_overnumbered(), signed: m.cards_flag_signed() },
+    onOneSide: (part: string) => m.cards_printing_part_one_side({ part }),
   };
   const favoritePrice = prices.get(printing.printingId, favoriteMarketplace);
   const isFoilCard = printing.finish === WellKnown.finish.FOIL;
@@ -629,7 +631,7 @@ export const CardThumbnail = memo(function CardThumbnail({
                 {sibling.finish === WellKnown.finish.FOIL && gridFoil && <FoilOverlay active dim />}
                 {showSiblingFaces && (
                   <PrintingSpine
-                    label={`${formatCardId(sibling)} · ${formatPrintingVariantLabel(sibling, siblings, variantLabels, (name) => m.cards_printing_with_side({ name }))}`}
+                    label={`${formatCardId(sibling)} · ${formatPrintingVariantLabel(sibling, siblings, variantLabels, (name, sameCard) => (sameCard ? m.cards_printing_same_both_sides({ name }) : m.cards_printing_with_side({ name })))}`}
                   />
                 )}
               </div>

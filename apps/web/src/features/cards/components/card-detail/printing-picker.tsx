@@ -8,6 +8,10 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { PrintingLanguageTabs } from "@/features/cards/components/printing-language-tabs";
 import { PrintingRowContent } from "@/features/cards/components/printing-row";
 import { usePrices } from "@/features/cards/hooks/use-prices";
+import {
+  isSelectedSide,
+  oneEntryPerSelfPairedPrinting,
+} from "@/features/cards/lib/printing-designs";
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
 import { useLanguageList } from "@/hooks/use-enums";
 import { formatterForMarketplace, priceColorClass } from "@/lib/format";
@@ -40,7 +44,7 @@ export function PrintingPicker({
   return (
     <div className="space-y-2">
       <PrintingLanguageTabs
-        printings={printings}
+        printings={oneEntryPerSelfPairedPrinting(printings)}
         languageOrder={languageOrder.map((entry) => entry.code)}
         activeLanguage={pickedLanguage}
         onLanguageChange={(next) =>
@@ -91,7 +95,7 @@ function PrintingList({
   return (
     <div className="space-y-1">
       {printings.map((p) => {
-        const isActive = sideKey(p) === sideKey(current);
+        const isActive = isSelectedSide(p, sideKey(current));
         return (
           <div
             key={sideKey(p)}

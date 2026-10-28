@@ -234,6 +234,17 @@ export const printingOtherSideSchema = z.object({
   cardSlug: z.string().meta({ examples: ["gold"] }),
   shortCode: z.string().meta({ examples: ["UNL-T05"] }),
   imageId: imageIdSchema.optional(),
+  finish: finishSchema.optional(),
+  artVariant: artVariantSchema.optional(),
+  isSigned: z
+    .boolean()
+    .optional()
+    .meta({ examples: [false] }),
+  isOvernumbered: z
+    .boolean()
+    .optional()
+    .meta({ examples: [false] }),
+  markers: z.array(markerSchema).optional(),
 });
 
 export const catalogFaceFieldsSchema = z.object({

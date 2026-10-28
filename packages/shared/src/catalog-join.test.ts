@@ -194,6 +194,10 @@ describe("joinCatalogPrintings double-sided", () => {
       cardSlug: "gold",
       shortCode: "SET1-T05",
       imageId: "img-gold",
+      finish: "normal",
+      artVariant: "normal",
+      isSigned: false,
+      markers: [],
     });
     expect(gold!.otherSide).toMatchObject({
       faceId: "printing-1",

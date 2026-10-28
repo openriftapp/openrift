@@ -860,7 +860,12 @@ describe("computeDeckBoxPlan sibling printings", () => {
       }),
     );
     expect(plan.siblingPrintingsByCardId.get("card-1")).toEqual([printing]);
-    expect(labelFor(plan, "card-1")).toEqual({ language: null, rest: [], otherSide: null });
+    expect(labelFor(plan, "card-1")).toEqual({
+      language: null,
+      rest: [],
+      otherSide: null,
+      otherSideIsSelf: false,
+    });
   });
 
   it("gathers both printings when a card's copies span two languages", () => {

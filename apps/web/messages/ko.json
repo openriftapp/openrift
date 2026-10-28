@@ -863,6 +863,7 @@
   "cards_flag_oversized": "대형",
   "cards_flag_overnumbered": "번호 초과",
   "cards_printing_same_both_sides": "양면 모두 {name}",
+  "cards_printing_part_one_side": "한쪽 면 {part}",
   "cards_flip_to_other_side": "{name}(으)로 뒤집기",
   "cards_printing_with_side": "{name} 포함",
   "cards_flag_signed": "사인",

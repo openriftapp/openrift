@@ -116,6 +116,11 @@ export interface PrintingOtherSide {
   cardSlug: string;
   shortCode: string;
   imageId?: string;
+  finish?: string;
+  artVariant?: string;
+  isSigned?: boolean;
+  isOvernumbered?: boolean;
+  markers?: Marker[];
 }
 
 /** One printed side of a printing. A double-sided printing is two entries sharing `printingId`. */

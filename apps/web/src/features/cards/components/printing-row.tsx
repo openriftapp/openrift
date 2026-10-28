@@ -9,10 +9,12 @@ import { formatCardId } from "@/lib/format";
 export function PrintingVariantLine({
   printing,
   siblings,
+  hideLanguage,
   className,
 }: {
   printing: Printing;
   siblings?: readonly Printing[];
+  hideLanguage?: boolean;
   className?: string;
 }) {
   const hasMixedRarities = siblings ? new Set(siblings.map((p) => p.rarity)).size > 1 : false;
@@ -22,6 +24,7 @@ export function PrintingVariantLine({
     <PrintingVariantLabel
       printing={printing}
       siblings={siblings}
+      hideLanguage={hideLanguage}
       className={className}
       code={
         <span className="inline-flex items-baseline gap-1">

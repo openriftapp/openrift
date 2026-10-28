@@ -45,7 +45,7 @@ describe("formatPrintingVariantLabel", () => {
       markers: [{ slug: "promo", label: "Promo" }],
     });
     expect(formatPrintingVariantLabel(p, undefined, TEST_LABELS)).toBe(
-      "Alt Art · Foil · Signed · Promo",
+      "Alt Art · Promo · Foil · Signed",
     );
   });
 
@@ -162,6 +162,7 @@ describe("formatPrintingVariantLabelParts", () => {
       language: null,
       rest: [],
       otherSide: null,
+      otherSideIsSelf: false,
     });
   });
 
@@ -173,11 +174,13 @@ describe("formatPrintingVariantLabelParts", () => {
       language: "SC",
       rest: [],
       otherSide: null,
+      otherSideIsSelf: false,
     });
     expect(formatPrintingVariantLabelParts(en, siblings, TEST_LABELS)).toEqual({
       language: "EN",
       rest: [],
       otherSide: null,
+      otherSideIsSelf: false,
     });
   });
 
@@ -188,6 +191,7 @@ describe("formatPrintingVariantLabelParts", () => {
       language: "SC",
       rest: ["Alt Art", "Signed"],
       otherSide: null,
+      otherSideIsSelf: false,
     });
   });
 
@@ -198,6 +202,7 @@ describe("formatPrintingVariantLabelParts", () => {
       language: null,
       rest: ["Alt Art"],
       otherSide: null,
+      otherSideIsSelf: false,
     });
   });
 
@@ -227,6 +232,99 @@ describe("formatPrintingVariantLabelParts", () => {
     const siblings = [ogn, unl];
     expect(formatPrintingVariantLabelParts(ogn, siblings, TEST_LABELS).otherSide).toBe("Sprite");
     expect(formatPrintingVariantLabelParts(unl, siblings, TEST_LABELS).otherSide).toBe("Sprite");
+  });
+
+  it("flags a printing that shows the same card on both sides", () => {
+    const p = stub({
+      cardId: "buff",
+      otherSide: { cardName: "Buff", shortCode: "OGN", cardId: "buff" },
+    });
+    const q = stub({
+      cardId: "buff",
+      otherSide: { cardName: "Recruit", shortCode: "OGN-271", cardId: "recruit" },
+    });
+    expect(formatPrintingVariantLabelParts(p, [p], TEST_LABELS).otherSideIsSelf).toBe(true);
+    expect(formatPrintingVariantLabelParts(q, [q], TEST_LABELS).otherSideIsSelf).toBe(false);
+  });
+
+  it("uses the given flag labels", () => {
+    const p = stub({ isOvernumbered: true, isSigned: true });
+    const labels = { ...TEST_LABELS, flags: { overnumbered: "Surnuméroté", signed: "Signée" } };
+    expect(formatPrintingVariantLabelParts(p, undefined, labels).rest).toEqual([
+      "Surnuméroté",
+      "Signée",
+    ]);
+  });
+
+  it("marks a part only one side has", () => {
+    const p = stub({
+      artVariant: "altart",
+      finish: "foil",
+      cardId: "buff",
+      otherSide: { cardName: "Buff", shortCode: "OGN", cardId: "buff", finish: "normal" },
+    });
+    expect(formatPrintingVariantLabel(p, [p], TEST_LABELS)).toBe(
+      "Alt Art · Foil on one side · Buff on both sides",
+    );
+  });
+
+  it("marks a part only the other side has", () => {
+    const p = stub({
+      otherSide: { cardName: "Recruit", shortCode: "OGN-271", finish: "foil", isSigned: true },
+    });
+    expect(formatPrintingVariantLabelParts(p, [p], TEST_LABELS).rest).toEqual([
+      "Foil on one side",
+      "Signed on one side",
+    ]);
+  });
+
+  it("shows a part both sides share once, without the mark", () => {
+    const p = stub({
+      finish: "foil",
+      otherSide: { cardName: "Recruit", shortCode: "OGN-271", finish: "foil" },
+    });
+    expect(formatPrintingVariantLabelParts(p, undefined, TEST_LABELS).rest).toEqual(["Foil"]);
+  });
+
+  it("keeps a finish every sibling shares when the sides differ in it", () => {
+    const p = stub({
+      finish: "foil",
+      otherSide: { cardName: "Recruit", shortCode: "OGN-271", finish: "normal" },
+    });
+    const sibling = stub({ finish: "foil" });
+    expect(formatPrintingVariantLabelParts(p, [p, sibling], TEST_LABELS).rest).toEqual([
+      "Foil on one side",
+    ]);
+  });
+
+  it("marks a marker only one side has, before the finish", () => {
+    const promo = { slug: "promo", label: "Promo" };
+    const p = stub({
+      finish: "foil",
+      markers: [promo],
+      otherSide: { cardName: "Recruit", shortCode: "OGN-271", finish: "normal", markers: [] },
+    });
+    expect(formatPrintingVariantLabelParts(p, [p], TEST_LABELS).rest).toEqual([
+      "Promo on one side",
+      "Foil on one side",
+    ]);
+  });
+
+  it("assumes the other side's markers when it does not list them", () => {
+    const p = stub({
+      markers: [{ slug: "promo", label: "Promo" }],
+      otherSide: { cardName: "Recruit", shortCode: "OGN-271", finish: "normal" },
+    });
+    expect(formatPrintingVariantLabelParts(p, undefined, TEST_LABELS).rest).toEqual(["Promo"]);
+  });
+
+  it("uses the given one-side wording", () => {
+    const p = stub({
+      finish: "foil",
+      otherSide: { cardName: "Recruit", shortCode: "OGN-271", finish: "normal" },
+    });
+    const labels = { ...TEST_LABELS, onOneSide: (part: string) => `${part} d'un côté` };
+    expect(formatPrintingVariantLabelParts(p, undefined, labels).rest).toEqual(["Foil d'un côté"]);
   });
 
   it("has no other side for a single-sided printing", () => {

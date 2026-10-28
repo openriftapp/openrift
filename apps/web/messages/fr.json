@@ -863,6 +863,7 @@
   "cards_flag_oversized": "Surdimensionnée",
   "cards_flag_overnumbered": "Surnumérotée",
   "cards_printing_same_both_sides": "{name} des deux côtés",
+  "cards_printing_part_one_side": "{part} d'un côté",
   "cards_flip_to_other_side": "Retourner vers {name}",
   "cards_printing_with_side": "avec {name}",
   "cards_flag_signed": "Signée",

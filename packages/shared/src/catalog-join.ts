@@ -157,6 +157,11 @@ export function joinCatalog(catalog: CatalogSlice): {
                 cardName: otherCard.name,
                 cardSlug: otherCard.slug,
                 shortCode: other.shortCode,
+                finish: other.finish,
+                artVariant: other.artVariant,
+                isSigned: other.isSigned,
+                isOvernumbered: other.isOvernumbered,
+                markers: resolve.markers(other.markers),
                 ...(otherImageId === undefined ? {} : { imageId: otherImageId }),
               },
             }

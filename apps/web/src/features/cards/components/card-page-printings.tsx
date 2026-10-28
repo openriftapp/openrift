@@ -1,10 +1,7 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
-import { otherSideLabel } from "@openrift/shared/printing-label";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { WellKnown } from "@openrift/shared/well-known";
-import { PaletteIcon, TagIcon } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import { Suspense } from "react";
 
@@ -13,17 +10,13 @@ import { Heading } from "@/components/heading";
 import { LanguageChip } from "@/components/language-chip";
 import { Pressable } from "@/components/ui/pressable";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
-import { FinishIcon, hasFinishIcon } from "@/features/cards/components/finish-icon";
+import { PrintingVariantLine } from "@/features/cards/components/printing-row";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { PrintingDesign } from "@/features/cards/lib/printing-designs";
-import {
-  groupPrintingDesigns,
-  isSelectedSide,
-  isSelfPaired,
-} from "@/features/cards/lib/printing-designs";
+import { groupPrintingDesigns, isSelectedSide } from "@/features/cards/lib/printing-designs";
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
-import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
+import { useLanguageLabels } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/hooks/use-session";
 import { formatPrice, formatterForMarketplace, priceColorClass } from "@/lib/format";
@@ -112,6 +105,9 @@ function PrintingMatrix({
 }: MatrixProps & { stats?: CellStats }) {
   const languageLabels = useLanguageLabels();
   const leads = designs.map((design) => design.lead);
+  const artists = new Set(
+    designs.flatMap((design) => [...design.byLanguage.values()].map((printing) => printing.artist)),
+  );
   const columns = { "--cols": languages.length } as CSSProperties;
   const cellGrid =
     "grid grid-cols-[repeat(var(--cols),minmax(0,1fr))] gap-2 sm:grid-cols-[repeat(var(--cols),4.5rem)]";
@@ -141,7 +137,7 @@ function PrintingMatrix({
                 hasSelected && "bg-primary/5",
               )}
             >
-              <DesignInfo design={design} leads={leads} />
+              <DesignInfo design={design} leads={leads} showArtist={artists.size > 1} />
               <div className={cellGrid}>
                 {languages.map((language) => {
                   const printing = design.byLanguage.get(language);
@@ -235,63 +231,16 @@ function PrintingCell({
   );
 }
 
-function DesignInfo({ design, leads }: { design: PrintingDesign; leads: Printing[] }) {
+function DesignInfo({
+  design,
+  leads,
+  showArtist,
+}: {
+  design: PrintingDesign;
+  leads: Printing[];
+  showArtist: boolean;
+}) {
   const printing = design.lead;
-  const showArtVariant = printing.artVariant !== WellKnown.artVariant.NORMAL;
-  const { labels } = useEnumOrders();
-
-  const badges: ReactNode[] = [];
-  if (hasFinishIcon(printing.finish)) {
-    badges.push(
-      <span key="finish" className="inline-flex items-center gap-0.5 text-xs">
-        <FinishIcon finish={printing.finish} iconClassName="size-3" />
-        {enumLabel(labels.finishes, printing.finish)}
-      </span>,
-    );
-  }
-  if (showArtVariant) {
-    badges.push(
-      <span key="art" className="text-muted-foreground inline-flex items-center gap-0.5 text-xs">
-        <PaletteIcon className="size-3" />
-        {enumLabel(labels.artVariants, printing.artVariant)}
-      </span>,
-    );
-  }
-  if (printing.markers.length > 0) {
-    badges.push(
-      <span
-        key="markers"
-        className="text-muted-foreground inline-flex items-center gap-0.5 text-xs"
-      >
-        <TagIcon className="size-3" />
-        {printing.markers.map((marker) => marker.label).join(", ")}
-      </span>,
-    );
-  }
-  const otherSide = otherSideLabel(printing, leads);
-  if (otherSide) {
-    badges.push(
-      <span key="double-sided" className="text-muted-foreground text-xs">
-        {isSelfPaired(printing)
-          ? m.cards_printing_same_both_sides({ name: otherSide })
-          : m.cards_printing_with_side({ name: otherSide })}
-      </span>,
-    );
-  }
-  if (printing.isOvernumbered) {
-    badges.push(
-      <span key="overnumbered" className="text-muted-foreground text-xs">
-        {m.cards_flag_overnumbered()}
-      </span>,
-    );
-  }
-  if (printing.isSigned) {
-    badges.push(
-      <span key="signed" className="text-muted-foreground text-xs">
-        {m.cards_flag_signed()}
-      </span>,
-    );
-  }
 
   const channelLabels = [...design.byLanguage.values()].flatMap((member) =>
     member.distributionChannels.map((link) =>
@@ -304,11 +253,10 @@ function DesignInfo({ design, leads }: { design: PrintingDesign; leads: Printing
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <p className="font-semibold">{printing.shortCode}</p>
-        {badges}
-      </div>
-      {printing.artist && (
+      <span className="min-w-0 text-xs">
+        <PrintingVariantLine printing={printing} siblings={leads} hideLanguage />
+      </span>
+      {showArtist && printing.artist && (
         <p className="text-muted-foreground inline-flex items-center gap-1 text-xs">
           <CardIcon src="/images/artist.svg" className="size-3 shrink-0" />
           <span className="truncate">{printing.artist}</span>

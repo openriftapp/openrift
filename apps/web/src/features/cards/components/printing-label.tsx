@@ -42,16 +42,24 @@ export function PrintingVariantLabel({
   siblings,
   code,
   fallback = "Standard",
+  hideLanguage,
   className,
 }: {
   printing: VariantLabelPrinting;
   siblings?: readonly VariantLabelPrinting[];
   code?: ReactNode;
   fallback?: string;
+  hideLanguage?: boolean;
   className?: string;
 }): ReactNode {
   const { labels } = useEnumOrders();
-  const { language, rest, otherSide } = formatPrintingVariantLabelParts(printing, siblings, labels);
+  const parts = formatPrintingVariantLabelParts(printing, siblings, {
+    ...labels,
+    flags: { overnumbered: m.cards_flag_overnumbered(), signed: m.cards_flag_signed() },
+    onOneSide: (part) => m.cards_printing_part_one_side({ part }),
+  });
+  const { rest, otherSide } = parts;
+  const language = hideLanguage ? null : parts.language;
   const isPlain = !language && rest.length === 0 && !otherSide;
   if (isPlain && code === undefined) {
     return fallback;
@@ -67,7 +75,12 @@ export function PrintingVariantLabel({
     pieces.push({ key: part, node: part });
   }
   if (otherSide) {
-    pieces.push({ key: "other-side", node: m.cards_printing_with_side({ name: otherSide }) });
+    pieces.push({
+      key: "other-side",
+      node: parts.otherSideIsSelf
+        ? m.cards_printing_same_both_sides({ name: otherSide })
+        : m.cards_printing_with_side({ name: otherSide }),
+    });
   }
   if (isPlain) {
     pieces.push({ key: "fallback", node: fallback });

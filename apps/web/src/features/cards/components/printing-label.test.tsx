@@ -87,6 +87,57 @@ describe("PrintingVariantLabel", () => {
     expect(container.textContent).toContain("with Buff");
     expect(container.textContent).not.toContain("Standard");
   });
+
+  it("says the card is on both sides when the other side is the same card", () => {
+    const printing = stubPrinting({
+      cardId: "buff",
+      otherSide: {
+        faceId: "face-buff-2",
+        cardId: "buff",
+        cardName: "Buff",
+        cardSlug: "buff",
+        shortCode: "OGN",
+      },
+    });
+    const { container } = render(<PrintingVariantLabel printing={printing} />, {
+      wrapper: makeWrapper(),
+    });
+    expect(container.textContent).toBe("Buff on both sides");
+  });
+
+  it("marks a finish only one side has", () => {
+    const printing = stubPrinting({
+      cardId: "buff",
+      finish: "foil",
+      otherSide: {
+        faceId: "face-buff-2",
+        cardId: "buff",
+        cardName: "Buff",
+        cardSlug: "buff",
+        shortCode: "OGN",
+        finish: "normal",
+      },
+    });
+    const { container } = render(<PrintingVariantLabel printing={printing} />, {
+      wrapper: makeWrapper(),
+    });
+    expect(container.textContent).toBe("Foil on one side·Buff on both sides");
+  });
+
+  it("leaves out the language chip when asked to", () => {
+    const en = stubPrinting({ shortCode: "OGN-001", language: "EN" });
+    const sc = stubPrinting({ shortCode: "OGN-001", language: "SC" });
+    const { container } = render(
+      <PrintingVariantLabel
+        printing={sc}
+        siblings={[en, sc]}
+        code={<span>OGN-001</span>}
+        hideLanguage
+      />,
+      { wrapper: makeWrapper() },
+    );
+    expect(container.querySelector('[title="Chinese"]')).toBeNull();
+  });
 });
 
 describe("ImportPrintingLabel", () => {

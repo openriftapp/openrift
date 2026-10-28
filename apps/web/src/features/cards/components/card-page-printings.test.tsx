@@ -1,0 +1,41 @@
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
+import { stubPrinting } from "@/test/factories";
+
+import { CardPagePrintings } from "./card-page-printings";
+
+vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => false }));
+
+vi.mock("@/hooks/use-enums", () => ({
+  useEnumOrders: () => ({ labels: { finishes: {}, artVariants: {}, cardSizes: {} } }),
+  useLanguageLabels: () => ({ EN: "English" }),
+}));
+
+vi.mock("@/components/language-chip", () => ({
+  LanguageChip: ({ code }: { code: string }) => <span>{code}</span>,
+}));
+
+vi.mock("@/features/cards/components/card-art-thumb", () => ({
+  CardArtThumb: () => null,
+}));
+
+function renderPrintings(artists: string[]) {
+  const printings = artists.map((artist, index) =>
+    stubPrinting({ language: "EN", shortCode: `OGN-${index}`, artist }),
+  );
+  render(<CardPagePrintings printings={printings} selectedSideKey="" onSelect={vi.fn()} />);
+}
+
+describe("CardPagePrintings", () => {
+  it("hides the artist when every printing shares one", () => {
+    renderPrintings(["League Splash Team", "League Splash Team"]);
+    expect(screen.queryByText("League Splash Team")).toBeNull();
+  });
+
+  it("shows each row's artist when the artists differ", () => {
+    renderPrintings(["League Splash Team", "Kudos Productions"]);
+    expect(screen.getByText("League Splash Team")).toBeDefined();
+    expect(screen.getByText("Kudos Productions")).toBeDefined();
+  });
+});

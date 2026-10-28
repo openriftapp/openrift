@@ -109,6 +109,34 @@ describe("buildPrintingsResponse", () => {
     expect(printing!.citations).toHaveLength(2);
   });
 
+  it("resolves the other side's markers", () => {
+    const row = printingRow("p-1", {
+      otherSide: { faceId: "face-2", finish: "normal", markerSlugs: ["promo", "gone"] },
+    });
+
+    const [printing] = buildPrintingsResponse([row], [], {
+      channels: [],
+      markerBySlug: MARKERS,
+      channelsByPrinting: NO_CHANNELS,
+      citationsByPrinting: new Map(),
+    });
+
+    expect(printing!.otherSide).toEqual({ faceId: "face-2", finish: "normal", markers: [MARKER] });
+  });
+
+  it("leaves otherSide out for a row from a read that does not select it", () => {
+    const { otherSide: _otherSide, ...row } = printingRow("p-1") as Record<string, unknown>;
+
+    const [printing] = buildPrintingsResponse([row as never], [], {
+      channels: [],
+      markerBySlug: MARKERS,
+      channelsByPrinting: NO_CHANNELS,
+      citationsByPrinting: new Map(),
+    });
+
+    expect(printing).not.toHaveProperty("otherSide");
+  });
+
   it("omits the key entirely for an uncited printing", () => {
     const [printing] = buildPrintingsResponse([printingRow("p-1")], [], {
       channels: [],

@@ -303,6 +303,13 @@ export function referencedChannels(
   return decorations.channels.filter((channel) => keep.has(channel.id));
 }
 
+function presentOtherSide(
+  { markerSlugs, ...otherSide }: NonNullable<PrintingRow["otherSide"]>,
+  markerBySlug: ReadonlyMap<string, Marker>,
+) {
+  return { ...otherSide, markers: resolveMarkers(markerSlugs, markerBySlug) };
+}
+
 export function buildPrintingsResponse(
   printingRows: readonly PrintingRow[],
   imageRows: readonly PrintingImageRow[],
@@ -312,7 +319,9 @@ export function buildPrintingsResponse(
   return printingRows.map((row) => ({
     printingId: row.printingId,
     side: row.side,
-    ...(row.otherSide === null ? {} : { otherSide: row.otherSide }),
+    ...(row.otherSide
+      ? { otherSide: presentOtherSide(row.otherSide, decorations.markerBySlug) }
+      : {}),
     ...(row.slug === undefined ? {} : { slug: row.slug }),
     ...presentSide(row, imagesBySide.get(sideImageKey(row)) ?? [], decorations.markerBySlug),
     ...presentPrintingFields(row, decorations),

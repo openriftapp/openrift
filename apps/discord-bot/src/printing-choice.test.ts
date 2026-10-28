@@ -132,7 +132,7 @@ describe("printingChoices", () => {
       }),
     ];
     const names = printingChoices(snapshotWith(printings), card, "").map((c) => c.name);
-    expect(names[1]).toBe("OGN-202/298 · Origins · Alt Art · Oversized · Signed · Promo");
+    expect(names[1]).toBe("OGN-202/298 · Origins · Alt Art · Promo · Oversized · Signed");
   });
 
   it("omits the variant label for a card with a single plain printing", () => {

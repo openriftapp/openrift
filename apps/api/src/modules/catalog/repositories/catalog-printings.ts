@@ -90,8 +90,10 @@ type CatalogPrintingRow = Pick<
   fallbackImageId: string | null;
 };
 
+type OtherSideRow = Omit<PrintingOtherSide, "markers"> & { markerSlugs: string[] };
+
 /** Reads that return a subset of sides carry the other side's card, since its row may be missing. */
-type CatalogPrintingSubsetRow = CatalogPrintingRow & { otherSide: PrintingOtherSide | null };
+type CatalogPrintingSubsetRow = CatalogPrintingRow & { otherSide: OtherSideRow | null };
 
 /** Only the card detail read carries the slug; the bulk read is one row per printing of every card. */
 type CatalogPrintingDetailRow = CatalogPrintingSubsetRow & { slug: string };
@@ -127,14 +129,19 @@ const SIDE_COLUMNS = [
 
 // `idx_face_images_active` allows one active image per face, so `imageId` equals the
 // other side's `images[0]`, which `joinCatalog` reads for the same field.
-const OTHER_SIDE = sql<PrintingOtherSide | null>`(
+const OTHER_SIDE = sql<OtherSideRow | null>`(
   SELECT json_strip_nulls(json_build_object(
     'faceId', ofc.id,
     'cardId', oc.id,
     'cardName', oc.name,
     'cardSlug', oc.slug,
     'shortCode', ofc.short_code,
-    'imageId', CASE WHEN oif.rehosted_url IS NOT NULL THEN oif.id END
+    'imageId', CASE WHEN oif.rehosted_url IS NOT NULL THEN oif.id END,
+    'finish', ofc.finish,
+    'artVariant', ofc.art_variant,
+    'isSigned', ofc.is_signed,
+    'isOvernumbered', ofc.is_overnumbered,
+    'markerSlugs', ofc.marker_slugs
   ))
   FROM printings op
   JOIN faces ofc ON ofc.id = CASE WHEN s.position = 1 THEN op.face2_id ELSE op.face1_id END
