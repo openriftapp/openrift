@@ -27,17 +27,22 @@ export function outcomeForCheckedSubmission(
 
 /**
  * A photo cannot be compared against the catalogue the way a field can, so the
- * only evidence that a submitted one was used is an `image_files` row pointing
- * at the upload. The URL is unique to that upload and scoped to this candidate.
+ * evidence that a submitted one was used is an `image_files` row pointing at
+ * it: anywhere for an upload (its URL is unique to this candidate), on the
+ * linked printing for a pasted URL.
  */
 async function submittedImageAttached(repos: Repos, candidateCardId: string): Promise<boolean> {
   const candidateUrls = await repos.cardSubmissions.candidatePrintingImageUrls(candidateCardId);
   const urls = candidateUrls.filter((url) => isSubmissionUploadUrl(url));
-  if (urls.length === 0) {
-    return false;
+  if (urls.length > 0) {
+    const inUse = await repos.printingImages.originalUrlsInUse(urls);
+    if (inUse.size > 0) {
+      return true;
+    }
   }
-  const inUse = await repos.printingImages.originalUrlsInUse(urls);
-  return inUse.size > 0;
+  return candidateUrls.length > urls.length
+    ? repos.cardSubmissions.linkedImageAttached(candidateCardId)
+    : false;
 }
 
 /** Returns the ids of the submissions this call accepted. */

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-28
+
+### Other
+
+- feat(Contribute): **Suggest a better image** — a printing that already has an image now links to the image form, which shows the current image and asks what is wrong with it.
+- fix(Cards): **Printing sources read "Confirmed by"** — the links backing a printing were labelled "Sources" and read like the image's origin.
+
 ## 2026-10-26
 
 ### Other

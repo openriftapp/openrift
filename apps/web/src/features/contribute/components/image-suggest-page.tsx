@@ -29,7 +29,11 @@ export function ImageSuggestPage() {
 
   return (
     <ContributeFormFrame
-      title={m.contribute_page_suggest_image_title()}
+      title={
+        printing.images.length > 0
+          ? m.contribute_page_suggest_better_image_title()
+          : m.contribute_page_suggest_image_title()
+      }
       back={<ContributeBackToCard cardSlug={cardSlug} />}
       lead={
         <>

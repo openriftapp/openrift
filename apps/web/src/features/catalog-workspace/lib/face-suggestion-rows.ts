@@ -77,10 +77,11 @@ export const PRINTING_FIELDS = COMPARABLE_PRINTING_FIELDS.filter((field) =>
 export function candidateHasNewImage(
   candidate: CandidatePrintingResponse,
   ownUrls: ReadonlySet<string | null>,
+  isContributor: boolean,
 ): boolean {
   return (
     hasFieldValue(candidate.imageUrl) &&
-    candidate.imageMatch !== "same" &&
+    (isContributor || candidate.imageMatch !== "same") &&
     !ownUrls.has(candidate.imageUrl)
   );
 }
@@ -283,7 +284,7 @@ export function buildFaceSuggestions(
     const faceCompare = compareCandidate(candidate, row, FACE_FIELDS, context, provider);
     const printingDiffs = compareCandidate(candidate, row, PRINTING_FIELDS, context, provider)
       .suggestions.length;
-    const hasImage = candidateHasNewImage(candidate, ownUrls);
+    const hasImage = candidateHasNewImage(candidate, ownUrls, isContributor);
     if (hasImage) {
       sourceImages.push({ candidate, url: candidate.imageUrl as string, provider, isContributor });
     }

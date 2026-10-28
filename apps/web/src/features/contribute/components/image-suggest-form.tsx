@@ -1,3 +1,4 @@
+import { imageUrl as cardImageUrl } from "@openrift/shared/image-url";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { CameraIcon, CheckCircle2Icon, ImageUpIcon, SendIcon } from "lucide-react";
 import { useState } from "react";
@@ -9,6 +10,7 @@ import { Dropzone } from "@/components/ui/dropzone";
 import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { MissingImagesList } from "@/features/contribute/components/missing-images-list";
 import { useSubmitCard } from "@/features/contribute/hooks/use-card-submission";
 import { useMyMissingImages } from "@/features/contribute/hooks/use-missing-images";
@@ -31,6 +33,7 @@ interface ImageSuggestFormProps {
 
 export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSuggestFormProps) {
   const [imageUrl, setImageUrl] = useState("");
+  const [note, setNote] = useState("");
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [submitted, setSubmitted] = useState(false);
@@ -38,6 +41,7 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
   const upload = useUploadSubmissionImage();
   const submit = useSubmitCard();
 
+  const currentImage = printing.images[0];
   const chosenUrl = uploadedUrl ?? imageUrl.trim();
   const urlError = submitted
     ? chosenUrl === ""
@@ -84,7 +88,7 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
     if (!result.ok) {
       return;
     }
-    submit.mutate(buildSubmissionPayload(state, null));
+    submit.mutate(buildSubmissionPayload(state, currentImage ? note : null));
   }
 
   if (submit.isSuccess) {
@@ -95,7 +99,9 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
           <AlertTitle>{m.contribute_image_success_title()}</AlertTitle>
           <AlertDescription>{m.contribute_submit_success_body()}</AlertDescription>
         </Alert>
-        <MoreMissingImages current={{ printingId: printing.printingId, cardSlug: card.slug }} />
+        {!currentImage && (
+          <MoreMissingImages current={{ printingId: printing.printingId, cardSlug: card.slug }} />
+        )}
       </div>
     );
   }
@@ -108,6 +114,19 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      {currentImage && (
+        <figure className="flex flex-col gap-1.5">
+          <figcaption className="text-sm font-medium">
+            {m.contribute_image_current_label()}
+          </figcaption>
+          <img
+            src={cardImageUrl(currentImage.imageId, "400w")}
+            alt={card.name}
+            className="ring-border max-h-80 w-fit rounded-lg object-contain ring-1"
+          />
+        </figure>
+      )}
+
       <div className="flex flex-col gap-3">
         {uploadedUrl === null ? null : (
           <img
@@ -148,6 +167,19 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
           <p className="text-muted-foreground text-sm">{m.contribute_image_url_hint()}</p>
         )}
       </div>
+
+      {currentImage && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="image-note">{m.contribute_image_note_label()}</Label>
+          <Textarea
+            id="image-note"
+            rows={2}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={m.contribute_image_note_placeholder()}
+          />
+        </div>
+      )}
 
       {submit.isError && (
         <Alert variant="destructive">

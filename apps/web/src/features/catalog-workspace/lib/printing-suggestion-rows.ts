@@ -79,7 +79,8 @@ export function buildPrintingSuggestions(
           ? []
           : imagesOnSide(detail.printingImages, onFace).map((image) => image.originalUrl),
       );
-      const images = onFace !== undefined && candidateHasNewImage(candidate, ownUrls) ? 1 : 0;
+      const images =
+        onFace !== undefined && candidateHasNewImage(candidate, ownUrls, isContributor) ? 1 : 0;
       sources.push({
         candidatePrintingId: candidate.id,
         candidateCardId: candidate.candidateCardId,

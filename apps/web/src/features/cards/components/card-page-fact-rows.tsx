@@ -205,14 +205,14 @@ function FoundInRow({ printing, products }: { printing: Printing; products: Deta
   );
 }
 
-/** "Sources": where the claims about this printing come from. */
+/** "Confirmed by": where the claims about this printing come from. */
 function SourcesRow({ printing }: { printing: Printing }) {
   const citations = printing.citations ?? [];
   if (citations.length === 0) {
     return null;
   }
   return (
-    <FactRow label={m.card_detail_notes_source({ count: citations.length })}>
+    <FactRow label={m.card_detail_notes_confirmed_by()}>
       <Callout variant="inset">
         <PrintingCitationList citations={citations} />
       </Callout>

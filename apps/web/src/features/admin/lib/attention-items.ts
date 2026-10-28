@@ -135,7 +135,7 @@ function primaryImageUrl(detail: AdminCardDetailResponse): string | null {
 }
 
 const IMAGE_CHANGE_LABELS: Record<NonNullable<ImageMatch> | "unknown", string> = {
-  same: "Image",
+  same: "Image (same art)",
   art: "Image (different image)",
   mark: "Image (bottom mark differs)",
   unknown: "Image (not compared yet)",
@@ -217,6 +217,7 @@ function buildLinkedPrintingGroup(
   printing: AdminPrintingResponse,
   images: readonly AdminPrintingImageResponse[],
   accept: AcceptTransforms,
+  isContributor: boolean,
 ): AttentionGroup | null {
   const groupKey = `printing:${candidate.id}`;
   const printedTotal = accept.setTotals[printing.setSlug] ?? null;
@@ -237,15 +238,13 @@ function buildLinkedPrintingGroup(
   if (
     hasFieldValue(candidate.imageUrl) &&
     candidate.imageUrl !== currentImage &&
-    candidate.imageMatch !== "same"
+    (isContributor || candidate.imageMatch !== "same")
   ) {
     changes.push({
       key: `${groupKey}:imageUrl`,
       field: "imageUrl",
       label:
-        currentImage === null
-          ? IMAGE_CHANGE_LABELS.same
-          : IMAGE_CHANGE_LABELS[candidate.imageMatch ?? "unknown"],
+        currentImage === null ? "Image" : IMAGE_CHANGE_LABELS[candidate.imageMatch ?? "unknown"],
       current: displayImageUrl(printing, images),
       proposed: candidate.imageUrl,
       kind: "image",
@@ -395,7 +394,13 @@ export function buildAttentionSubmissions(
         if (!printing) {
           continue;
         }
-        const group = buildLinkedPrintingGroup(candidate, printing, detail.printingImages, accept);
+        const group = buildLinkedPrintingGroup(
+          candidate,
+          printing,
+          detail.printingImages,
+          accept,
+          true,
+        );
         if (group) {
           groups.push(group);
         }
@@ -461,7 +466,13 @@ function buildSourceEntry(
     if (!printing) {
       continue;
     }
-    const group = buildLinkedPrintingGroup(candidate, printing, detail.printingImages, accept);
+    const group = buildLinkedPrintingGroup(
+      candidate,
+      printing,
+      detail.printingImages,
+      accept,
+      false,
+    );
     if (group) {
       groups.push(group);
     }

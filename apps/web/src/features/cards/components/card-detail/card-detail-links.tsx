@@ -1,14 +1,20 @@
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
-import { ExternalLinkIcon, LayersIcon, PencilLineIcon, ShieldIcon } from "lucide-react";
+import {
+  ExternalLinkIcon,
+  ImageUpIcon,
+  LayersIcon,
+  PencilLineIcon,
+  ShieldIcon,
+} from "lucide-react";
 
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
 import { m } from "@/paraglide/messages.js";
 
 /**
- * Escape hatches out of the overlay: the card's own page, the correction form,
- * and the admin view for admins. Not rendered on the standalone card page,
- * which already carries its own top-bar links.
+ * Escape hatches out of the overlay: the card's own page, the correction and
+ * image forms, and the admin view for admins. Not rendered on the standalone
+ * card page, which already carries its own top-bar links.
  */
 export function CardDetailLinks({ card, printing }: { card: Card; printing?: Printing }) {
   const { data: isAdmin } = useIsAdmin();
@@ -39,6 +45,17 @@ export function CardDetailLinks({ card, printing }: { card: Card; printing?: Pri
         >
           <LayersIcon className="size-3" />
           {m.card_detail_link_fix_printing()}
+        </Link>
+      )}
+      {printing && printing.images.length > 0 && (
+        <Link
+          to="/contribute/card/$cardSlug/printing/$printingId/image"
+          params={{ cardSlug: card.slug, printingId: printing.printingId }}
+          search={printing.side === 2 ? { side: 2 } : {}}
+          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
+        >
+          <ImageUpIcon className="size-3" />
+          {m.card_detail_link_suggest_better_image()}
         </Link>
       )}
       {isAdmin && (

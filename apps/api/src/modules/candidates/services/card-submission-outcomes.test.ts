@@ -20,6 +20,7 @@ interface StubOptions {
   currentlyDiffering?: string[];
   candidateImageUrls?: string[];
   urlsInUse?: string[];
+  linkedImageAttached?: boolean;
 }
 
 beforeEach(() => {
@@ -56,6 +57,7 @@ function stubRepos(options: StubOptions = {}) {
       resolve,
       reopen,
       candidatePrintingImageUrls: vi.fn(async () => options.candidateImageUrls ?? []),
+      linkedImageAttached: vi.fn(async () => options.linkedImageAttached ?? false),
     },
     printingImages: {
       originalUrlsInUse: vi.fn(async () => new Set(options.urlsInUse)),
@@ -259,6 +261,44 @@ describe("resolveCheckedSubmissions", () => {
       acceptedCardId: "card-1",
     });
     expect(mockUnlink).not.toHaveBeenCalled();
+  });
+
+  it("accepts a pasted image URL attached to the linked printing", async () => {
+    const { repos, resolve } = stubRepos({
+      pending: [pendingSubmission([])],
+      liveCard: { id: "card-1", slug: "jinx" },
+      candidateImageUrls: ["https://example.test/jinx.png"],
+      linkedImageAttached: true,
+    });
+
+    await resolveCheckedSubmissions(repos, {
+      candidateCardIds: ["cc-1"],
+      adminUserId: ADMIN_ID,
+      now: NOW,
+      io: mockIo,
+    });
+
+    expect(resolve).toHaveBeenCalledWith("sub-1", expect.objectContaining({ status: "accepted" }));
+  });
+
+  it("leaves a pasted image URL that was not attached at already_correct", async () => {
+    const { repos, resolve } = stubRepos({
+      pending: [pendingSubmission([])],
+      liveCard: { id: "card-1", slug: "jinx" },
+      candidateImageUrls: ["https://example.test/jinx.png"],
+    });
+
+    await resolveCheckedSubmissions(repos, {
+      candidateCardIds: ["cc-1"],
+      adminUserId: ADMIN_ID,
+      now: NOW,
+      io: mockIo,
+    });
+
+    expect(resolve).toHaveBeenCalledWith(
+      "sub-1",
+      expect.objectContaining({ status: "already_correct" }),
+    );
   });
 
   it("leaves a photo nothing points at at already_correct", async () => {

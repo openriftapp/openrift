@@ -734,6 +734,7 @@
   "card_detail_link_open_card_page": "打开卡牌页面",
   "card_detail_link_suggest_correction": "提交勘误",
   "card_detail_link_fix_printing": "修正这个印刷版本",
+  "card_detail_link_suggest_better_image": "推荐更好的图片",
   "card_detail_link_admin_view": "管理视图",
   "card_detail_stat_energy": "法力",
   "card_detail_stat_power": "符能",
@@ -759,16 +760,7 @@
   "card_detail_buy_on_marketplace": "在 {marketplace} 购买",
   "card_detail_affiliate_note": "（联盟推广链接）",
   "card_detail_notes_promo": "宣传卡",
-  "card_detail_notes_source": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "来源",
-        "countPlural=*": "来源"
-      }
-    }
-  ],
+  "card_detail_notes_confirmed_by": "确认来源",
   "card_detail_notes_note": "备注",
   "card_detail_printings_title": "印刷版本",
   "card_detail_no_printings": "未找到这张卡的印刷版本。",
@@ -4890,6 +4882,9 @@
   "contribute_image_dropzone_camera": "拍照",
   "contribute_image_url_label": "或粘贴图片链接",
   "contribute_image_url_hint": "任何图片格式都可以（.png、.jpg、.webp、.avif 等）。",
+  "contribute_image_current_label": "当前图片",
+  "contribute_image_note_label": "当前图片有什么问题？（可选）",
+  "contribute_image_note_placeholder": "颜色偏差、模糊、印刷版本不对……",
   "contribute_image_submit": "提交图片建议",
   "contribute_image_all_done": "你的卡牌现在都有图片了。谢谢！",
   "contribute_image_next_title": "选择下一张卡牌",
@@ -4962,6 +4957,7 @@
   "contribute_page_add_printing_lead": "描述你手上这个印刷版本的{#strong}{name}{/strong}。卡牌本身的信息保持不变。",
   "contribute_page_fix_printing_title": "修正这个印刷版本",
   "contribute_page_suggest_image_title": "推荐图片",
+  "contribute_page_suggest_better_image_title": "推荐更好的图片",
   "contribute_page_suggest_image_for": "对应卡牌",
   "contribute_page_fix_lead": "先找到这张卡牌，再告诉我们哪里不对。",
   "contribute_page_image_lead": "有些印刷版本仍显示占位图。一张手边卡牌的手机照片就够了，我们会帮你摆正并裁切。",

@@ -734,6 +734,7 @@
   "card_detail_link_open_card_page": "Kartenseite öffnen",
   "card_detail_link_suggest_correction": "Korrektur vorschlagen",
   "card_detail_link_fix_printing": "Diesen Druck korrigieren",
+  "card_detail_link_suggest_better_image": "Besseres Bild vorschlagen",
   "card_detail_link_admin_view": "Admin-Ansicht",
   "card_detail_stat_energy": "Energie",
   "card_detail_stat_power": "Stärke",
@@ -759,16 +760,7 @@
   "card_detail_buy_on_marketplace": "Kaufen bei {marketplace}",
   "card_detail_affiliate_note": "(Affiliate-Link)",
   "card_detail_notes_promo": "Promo",
-  "card_detail_notes_source": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Quelle",
-        "countPlural=*": "Quellen"
-      }
-    }
-  ],
+  "card_detail_notes_confirmed_by": "Bestätigt durch",
   "card_detail_notes_note": "Notiz",
   "card_detail_printings_title": "Drucke",
   "card_detail_no_printings": "Für diese Karte gibt es keine Drucke.",
@@ -4891,6 +4883,9 @@
   "contribute_image_dropzone_camera": "Foto aufnehmen",
   "contribute_image_url_label": "Oder füg einen Link zu einem Bild ein",
   "contribute_image_url_hint": "Jedes Bildformat funktioniert (.png, .jpg, .webp, .avif, …).",
+  "contribute_image_current_label": "Aktuelles Bild",
+  "contribute_image_note_label": "Was stimmt am aktuellen Bild nicht? (optional)",
+  "contribute_image_note_placeholder": "Farben wirken falsch, unscharf, falscher Druck…",
   "contribute_image_submit": "Bildvorschlag absenden",
   "contribute_image_all_done": "Alle deine Karten haben jetzt Bilder. Danke!",
   "contribute_image_next_title": "Wähl die nächste Karte",
@@ -4963,6 +4958,7 @@
   "contribute_page_add_printing_lead": "Beschreib die Version von {#strong}{name}{/strong}, die du in der Hand hältst. Die Kartendetails bleiben, wie sie sind.",
   "contribute_page_fix_printing_title": "Diesen Druck korrigieren",
   "contribute_page_suggest_image_title": "Bild vorschlagen",
+  "contribute_page_suggest_better_image_title": "Besseres Bild vorschlagen",
   "contribute_page_suggest_image_for": "Für",
   "contribute_page_fix_lead": "Such zuerst die Karte und sag uns dann, was daran falsch ist.",
   "contribute_page_image_lead": "Manche Drucke zeigen noch einen Platzhalter. Ein Handyfoto der Karte in der Hand reicht, wir richten es gerade und schneiden es zu.",

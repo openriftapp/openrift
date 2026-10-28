@@ -93,6 +93,56 @@ describe("buildAttentionSubmissions", () => {
     ]);
   });
 
+  it("keeps a contributor's same-art image for a side that has a photo", () => {
+    const card = makeAdminCard();
+    const printing = makeAdminPrinting();
+    const source = makeCandidateCard({
+      name: card.name,
+      types: card.types,
+      domains: card.domains,
+      might: card.might,
+      energy: card.energy,
+      power: card.power,
+    });
+    const detail = makeAdminCardDetail({
+      card,
+      sources: [source],
+      printings: [printing],
+      printingImages: [
+        {
+          printingId: printing.id,
+          face: "front",
+          originalUrl: "https://cdn.test/skewed.png",
+          rehostedUrl: null,
+          isActive: true,
+        } as AdminPrintingImageResponse,
+      ],
+      candidatePrintings: [
+        makeCandidatePrinting({
+          candidateCardId: source.id,
+          printingId: printing.id,
+          artist: printing.artist,
+          publicCode: printing.publicCode,
+          shortCode: printing.shortCode,
+          setId: printing.setId,
+          rarity: printing.rarity,
+          artVariant: printing.artVariant,
+          finish: printing.finish,
+          size: printing.size,
+          language: printing.language,
+          printedYear: printing.printedYear,
+          imageUrl: "https://cdn.test/corrected.png",
+          imageMatch: "same",
+        }),
+      ],
+    });
+    const [submission] = buildAttentionSubmissions(detail, []);
+    expect(submission?.kind).toBe("image");
+    expect(submission?.groups.flatMap((group) => group.changes.map((c) => c.label))).toEqual([
+      "Image (same art)",
+    ]);
+  });
+
   it("records unchanged fields alongside the changes", () => {
     const card = makeAdminCard({ name: "Lux, Lady of Luminosity", might: 3 });
     const detail = makeAdminCardDetail({

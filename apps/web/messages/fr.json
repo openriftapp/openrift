@@ -734,6 +734,7 @@
   "card_detail_link_open_card_page": "Ouvrir la page de la carte",
   "card_detail_link_suggest_correction": "Suggérer une correction",
   "card_detail_link_fix_printing": "Corriger cette impression",
+  "card_detail_link_suggest_better_image": "Proposer une meilleure image",
   "card_detail_link_admin_view": "Vue admin",
   "card_detail_stat_energy": "Énergie",
   "card_detail_stat_power": "Essence runique",
@@ -759,16 +760,7 @@
   "card_detail_buy_on_marketplace": "Acheter sur {marketplace}",
   "card_detail_affiliate_note": "(lien affilié)",
   "card_detail_notes_promo": "Promo",
-  "card_detail_notes_source": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Source",
-        "countPlural=*": "Sources"
-      }
-    }
-  ],
+  "card_detail_notes_confirmed_by": "Confirmé par",
   "card_detail_notes_note": "Note",
   "card_detail_printings_title": "Impressions",
   "card_detail_no_printings": "Aucune impression trouvée pour cette carte.",
@@ -4891,6 +4883,9 @@
   "contribute_image_dropzone_camera": "Prendre une photo",
   "contribute_image_url_label": "Ou collez un lien vers une image",
   "contribute_image_url_hint": "Tous les formats d'image fonctionnent (.png, .jpg, .webp, .avif, …).",
+  "contribute_image_current_label": "Image actuelle",
+  "contribute_image_note_label": "Qu'est-ce qui ne va pas avec l'image actuelle ? (facultatif)",
+  "contribute_image_note_placeholder": "Couleurs décalées, floue, mauvaise impression…",
   "contribute_image_submit": "Envoyer la proposition d'image",
   "contribute_image_all_done": "Toutes vos cartes ont désormais des images. Merci !",
   "contribute_image_next_title": "Choisissez la carte suivante",
@@ -4963,6 +4958,7 @@
   "contribute_page_add_printing_lead": "Décrivez la version de {#strong}{name}{/strong} que vous avez en main. Les détails de la carte restent inchangés.",
   "contribute_page_fix_printing_title": "Corriger cette impression",
   "contribute_page_suggest_image_title": "Proposer une image",
+  "contribute_page_suggest_better_image_title": "Proposer une meilleure image",
   "contribute_page_suggest_image_for": "Pour",
   "contribute_page_fix_lead": "Trouvez d'abord la carte, puis dites-nous ce qui ne va pas.",
   "contribute_page_image_lead": "Certaines impressions affichent encore un espace réservé. Une photo au téléphone de la carte en main suffit, nous la redressons et la recadrons pour vous.",

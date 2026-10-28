@@ -526,6 +526,29 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
       return rows.map((row) => row.imageUrl as string);
     },
 
+    /** Counts only face images created after the candidate, so a URL that was already live is not a match. */
+    async linkedImageAttached(candidateCardId: string): Promise<boolean> {
+      const row = await db
+        .selectFrom("candidatePrintings as cp")
+        .innerJoin("printings as p", "p.id", "cp.printingId")
+        .innerJoin("faceImages as fi", (join) =>
+          join.on((eb) =>
+            eb.or([
+              eb("fi.faceId", "=", eb.ref("p.face1Id")),
+              eb("fi.faceId", "=", eb.ref("p.face2Id")),
+            ]),
+          ),
+        )
+        .innerJoin("imageFiles as imgf", "imgf.id", "fi.imageFileId")
+        .select("cp.id")
+        .where("cp.candidateCardId", "=", candidateCardId)
+        .whereRef("imgf.originalUrl", "=", "cp.imageUrl")
+        .whereRef("fi.createdAt", ">=", "cp.createdAt")
+        .limit(1)
+        .executeTakeFirst();
+      return row !== undefined;
+    },
+
     async candidateImageUrlsInUse(imageUrls: string[]): Promise<Set<string>> {
       if (imageUrls.length === 0) {
         return new Set();

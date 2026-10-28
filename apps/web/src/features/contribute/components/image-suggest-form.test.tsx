@@ -65,15 +65,19 @@ const printing = stubPrinting({
   publicCode: "OGN-066/298",
   finish: "normal",
   language: "EN",
+  images: [],
   card: { slug: "ahri-alluring", name: "Ahri, Alluring" },
 });
 
-function renderForm() {
+const CURRENT_IMAGE_ID = "019d6c25-b081-74b3-a901-64da4ae01dab";
+const imagedPrinting = { ...printing, images: [{ imageId: CURRENT_IMAGE_ID }] };
+
+function renderForm(target = printing) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(initKeys.all, stubInitResponse(MISSING_IMAGE_ENUMS));
   return render(
     <QueryClientProvider client={client}>
-      <ImageSuggestForm card={printing.card} printing={printing} setSlug="ogn" setName="Origins" />
+      <ImageSuggestForm card={target.card} printing={target} setSlug="ogn" setName="Origins" />
     </QueryClientProvider>,
   );
 }
@@ -208,5 +212,44 @@ describe("ImageSuggestForm", () => {
     renderForm();
 
     expect(screen.getByText("All your cards have images now. Thanks!")).toBeInTheDocument();
+  });
+
+  describe("for a printing that already has an image", () => {
+    it("shows the current image", () => {
+      renderForm(imagedPrinting);
+
+      expect(screen.getByText("Current image")).toBeInTheDocument();
+      expect(screen.getByRole("img", { name: "Ahri, Alluring" }).getAttribute("src")).toContain(
+        CURRENT_IMAGE_ID,
+      );
+    });
+
+    it("sends what is wrong with the current image as the note", async () => {
+      const user = userEvent.setup();
+      renderForm(imagedPrinting);
+
+      await user.type(
+        screen.getByLabelText("Or paste a link to an image"),
+        "https://example.test/card.png",
+      );
+      await user.type(screen.getByLabelText(/What's wrong with the current image/u), "Colors off");
+      await user.click(screen.getByRole("button", { name: /Submit image suggestion/u }));
+
+      expect(submitState.mutate.mock.calls[0]![0].submissionNote).toBe("Colors off");
+    });
+
+    it("does not offer the missing-images run after submitting", () => {
+      submitState.isSuccess = true;
+      missingImages.items = [stubMissingImagePrinting(2, { cardName: "Yasuo, Windchaser" })];
+      renderForm(imagedPrinting);
+
+      expect(screen.queryByText("Yasuo, Windchaser")).not.toBeInTheDocument();
+    });
+  });
+
+  it("asks for no note when the printing has no image", () => {
+    renderForm();
+
+    expect(screen.queryByLabelText(/What's wrong with the current image/u)).not.toBeInTheDocument();
   });
 });

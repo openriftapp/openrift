@@ -5,6 +5,7 @@ import { findStandardArtFallback } from "@openrift/shared/standard";
 import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
+import { ImageUpIcon } from "lucide-react";
 
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { CardPlaceholderImage } from "@/features/cards/components/card-placeholder-image";
@@ -83,6 +84,17 @@ export function CardPageHero({
         />
       ) : (
         heroFallback
+      )}
+      {frontImage && (
+        <Link
+          to="/contribute/card/$cardSlug/printing/$printingId/image"
+          params={{ cardSlug: printing.card.slug, printingId: printing.printingId }}
+          search={printing.side === 2 ? { side: 2 } : {}}
+          className="text-muted-foreground hover:text-foreground mt-3 flex items-center gap-1.5 text-sm"
+        >
+          <ImageUpIcon aria-hidden="true" className="size-4" />
+          {m.card_detail_link_suggest_better_image()}
+        </Link>
       )}
       {printing.otherSide && (
         <Link

@@ -734,6 +734,7 @@
   "card_detail_link_open_card_page": "카드 페이지 열기",
   "card_detail_link_suggest_correction": "수정 제안하기",
   "card_detail_link_fix_printing": "이 인쇄판 수정하기",
+  "card_detail_link_suggest_better_image": "더 나은 이미지 제안하기",
   "card_detail_link_admin_view": "관리자 보기",
   "card_detail_stat_energy": "에너지",
   "card_detail_stat_power": "힘",
@@ -759,16 +760,7 @@
   "card_detail_buy_on_marketplace": "{marketplace}에서 구매",
   "card_detail_affiliate_note": "(제휴 링크)",
   "card_detail_notes_promo": "프로모",
-  "card_detail_notes_source": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "출처",
-        "countPlural=*": "출처"
-      }
-    }
-  ],
+  "card_detail_notes_confirmed_by": "확인 출처",
   "card_detail_notes_note": "참고",
   "card_detail_printings_title": "인쇄판",
   "card_detail_no_printings": "이 카드의 인쇄판을 찾을 수 없습니다.",
@@ -4890,6 +4882,9 @@
   "contribute_image_dropzone_camera": "사진 촬영",
   "contribute_image_url_label": "또는 이미지 링크 붙여넣기",
   "contribute_image_url_hint": "모든 이미지 형식을 지원합니다(.png, .jpg, .webp, .avif, …).",
+  "contribute_image_current_label": "현재 이미지",
+  "contribute_image_note_label": "현재 이미지의 문제점은 무엇인가요? (선택)",
+  "contribute_image_note_placeholder": "색이 이상함, 흐릿함, 다른 인쇄판…",
   "contribute_image_submit": "이미지 제안 보내기",
   "contribute_image_all_done": "보유하신 카드에 모두 이미지가 있습니다. 감사합니다!",
   "contribute_image_next_title": "다음 카드 고르기",
@@ -4962,6 +4957,7 @@
   "contribute_page_add_printing_lead": "가지고 계신 {#strong}{name}{/strong} 버전을 설명해 주세요. 카드 정보는 그대로 유지됩니다.",
   "contribute_page_fix_printing_title": "이 인쇄판 수정하기",
   "contribute_page_suggest_image_title": "이미지 제안하기",
+  "contribute_page_suggest_better_image_title": "더 나은 이미지 제안하기",
   "contribute_page_suggest_image_for": "대상",
   "contribute_page_fix_lead": "먼저 카드를 찾은 다음, 무엇이 잘못되었는지 알려 주세요.",
   "contribute_page_image_lead": "일부 인쇄판은 아직 임시 이미지가 표시됩니다. 손에 든 카드를 휴대폰으로 찍은 사진이면 충분하고, 반듯하게 펴고 잘라 내는 일은 저희가 합니다.",

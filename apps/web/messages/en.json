@@ -734,6 +734,7 @@
   "card_detail_link_open_card_page": "Open card page",
   "card_detail_link_suggest_correction": "Suggest a correction",
   "card_detail_link_fix_printing": "Fix this printing",
+  "card_detail_link_suggest_better_image": "Suggest a better image",
   "card_detail_link_admin_view": "Admin view",
   "card_detail_stat_energy": "Energy",
   "card_detail_stat_power": "Power",
@@ -759,16 +760,7 @@
   "card_detail_buy_on_marketplace": "Buy on {marketplace}",
   "card_detail_affiliate_note": "(affiliate link)",
   "card_detail_notes_promo": "Promo",
-  "card_detail_notes_source": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Source",
-        "countPlural=*": "Sources"
-      }
-    }
-  ],
+  "card_detail_notes_confirmed_by": "Confirmed by",
   "card_detail_notes_note": "Note",
   "card_detail_printings_title": "Printings",
   "card_detail_no_printings": "No printings found for this card.",
@@ -4894,6 +4886,9 @@
   "contribute_image_dropzone_camera": "Take a photo",
   "contribute_image_url_label": "Or paste a link to an image",
   "contribute_image_url_hint": "Any image format works (.png, .jpg, .webp, .avif, …).",
+  "contribute_image_current_label": "Current image",
+  "contribute_image_note_label": "What's wrong with the current image? (optional)",
+  "contribute_image_note_placeholder": "Colors look off, blurry, wrong printing…",
   "contribute_image_submit": "Submit image suggestion",
   "contribute_image_all_done": "All your cards have images now. Thanks!",
   "contribute_image_next_title": "Pick the next card",
@@ -4966,6 +4961,7 @@
   "contribute_page_add_printing_lead": "Describe the version of {#strong}{name}{/strong} you have in hand. The card details stay as they are.",
   "contribute_page_fix_printing_title": "Fix this printing",
   "contribute_page_suggest_image_title": "Suggest an image",
+  "contribute_page_suggest_better_image_title": "Suggest a better image",
   "contribute_page_suggest_image_for": "For",
   "contribute_page_fix_lead": "Find the card first, then tell us what is wrong with it.",
   "contribute_page_image_lead": "Some printings still show a placeholder. A phone photo of the card in hand is enough, we straighten and crop it for you.",

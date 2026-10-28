@@ -295,6 +295,29 @@ describe("buildFaceSuggestions", () => {
     );
   });
 
+  it("offers a contributor's same-art image", () => {
+    const source = makeCandidateCard({ provider: "usersubmission" });
+    const printing = makeAdminPrinting({ id: "printing-1", faceId: "f1" });
+    const same = makeCandidatePrinting({
+      candidateCardId: source.id,
+      printingId: "printing-1",
+      imageUrl: "https://img.example/corrected.png",
+      imageMatch: "same",
+    });
+    const detail = makeAdminCardDetail({
+      sources: [source],
+      printings: [printing],
+      candidatePrintings: [same],
+      printingImages: [image()],
+    });
+
+    const model = buildFaceSuggestions(detail, "f1", CONTEXT);
+
+    expect(model.sourceImages.map((entry) => entry.url)).toEqual([
+      "https://img.example/corrected.png",
+    ]);
+  });
+
   it("reads the face's images from its own side of a double-faced printing", () => {
     const front = makeAdminPrinting({ id: "printing-1", side: 1, faceId: "f1" });
     const back = makeAdminPrinting({ id: "printing-1", side: 2, faceId: "f2" });

@@ -734,6 +734,7 @@
   "card_detail_link_open_card_page": "開啟卡牌頁面",
   "card_detail_link_suggest_correction": "提交修正建議",
   "card_detail_link_fix_printing": "修正這個印刷版本",
+  "card_detail_link_suggest_better_image": "建議更好的圖片",
   "card_detail_link_admin_view": "管理檢視",
   "card_detail_stat_energy": "能量",
   "card_detail_stat_power": "符能",
@@ -759,16 +760,7 @@
   "card_detail_buy_on_marketplace": "在 {marketplace} 購買",
   "card_detail_affiliate_note": "（聯盟連結）",
   "card_detail_notes_promo": "特典卡",
-  "card_detail_notes_source": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "來源",
-        "countPlural=*": "來源"
-      }
-    }
-  ],
+  "card_detail_notes_confirmed_by": "確認來源",
   "card_detail_notes_note": "註記",
   "card_detail_printings_title": "印刷版本",
   "card_detail_no_printings": "找不到這張卡牌的印刷版本。",
@@ -4890,6 +4882,9 @@
   "contribute_image_dropzone_camera": "拍照",
   "contribute_image_url_label": "或貼上圖片連結",
   "contribute_image_url_hint": "任何圖片格式都可以（.png、.jpg、.webp、.avif、…）。",
+  "contribute_image_current_label": "目前圖片",
+  "contribute_image_note_label": "目前圖片有什麼問題？（選填）",
+  "contribute_image_note_placeholder": "顏色偏差、模糊、印刷版本不對……",
   "contribute_image_submit": "送出圖片建議",
   "contribute_image_all_done": "你的卡牌現在都有圖片了。謝謝！",
   "contribute_image_next_title": "選擇下一張卡牌",
@@ -4962,6 +4957,7 @@
   "contribute_page_add_printing_lead": "描述你手上這個 {#strong}{name}{/strong} 的版本。卡牌本身的資料維持不變。",
   "contribute_page_fix_printing_title": "修正這個印刷版本",
   "contribute_page_suggest_image_title": "建議圖片",
+  "contribute_page_suggest_better_image_title": "建議更好的圖片",
   "contribute_page_suggest_image_for": "對象",
   "contribute_page_fix_lead": "請先找到卡牌，再告訴我們哪裡有問題。",
   "contribute_page_image_lead": "有些印刷版本仍顯示預留圖。用手機拍下手上的卡牌就夠了，我們會幫你校正並裁切。",

@@ -69,6 +69,33 @@ describe("CardDetailLinks", () => {
     );
   });
 
+  it("links to the image form for a printing that has an image", () => {
+    render(
+      <CardDetailLinks
+        card={stubCard({ slug: "yasuo" })}
+        printing={stubPrinting({
+          printingId: "p1",
+          images: [{ imageId: "019d6c25-b081-74b3-a901-64da4ae01dab" }],
+          card: { slug: "yasuo" },
+        })}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "Suggest a better image" })).toHaveAttribute(
+      "href",
+      "/contribute/card/yasuo/printing/p1/image",
+    );
+  });
+
+  it("leaves the image link to the missing-image notice when the printing has none", () => {
+    render(
+      <CardDetailLinks
+        card={stubCard({ slug: "yasuo" })}
+        printing={stubPrinting({ printingId: "p1", images: [], card: { slug: "yasuo" } })}
+      />,
+    );
+    expect(screen.queryByRole("link", { name: "Suggest a better image" })).not.toBeInTheDocument();
+  });
+
   it("hides the admin view from non-admins", () => {
     isAdminMock.mockReturnValue(false);
     render(<CardDetailLinks card={stubCard()} />);
