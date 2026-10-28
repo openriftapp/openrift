@@ -800,7 +800,7 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
     }
     await ctx!.db
       .insertInto("metaEventPlayers")
-      .values({ metaEventId: live.get("mtc-cxl-played")!, rank: 1 })
+      .values({ metaEventId: live.get("mtc-cxl-played")!, playerName: "MTC Player", rank: 1 })
       .execute();
     await ctx!.db
       .insertInto("metaEventSources")

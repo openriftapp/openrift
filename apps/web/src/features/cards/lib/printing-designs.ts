@@ -28,7 +28,7 @@ function designKey(printing: Printing): string {
   ].join("|");
 }
 
-export function isSelfPaired(printing: Printing): boolean {
+function isSelfPaired(printing: Printing): boolean {
   return printing.otherSide?.cardId === printing.cardId;
 }
 

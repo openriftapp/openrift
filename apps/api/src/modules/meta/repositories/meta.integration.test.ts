@@ -2240,6 +2240,7 @@ describe.skipIf(!ctx)("metaRepo", () => {
         eventsWithStandings: 1,
         eventsWithDecklists: 1,
         decks: 1,
+        addedLast7Days: 1,
       });
     });
 

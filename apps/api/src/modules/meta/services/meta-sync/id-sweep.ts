@@ -98,7 +98,7 @@ export function gameTypeOf(body: unknown): { type: string | null; isRiftbound: b
   };
 }
 
-export function probeId(deps: MetaSyncDeps, id: number): Promise<ProbeOutcome> {
+function probeId(deps: MetaSyncDeps, id: number): Promise<ProbeOutcome> {
   return probeWith(deps, id, projectCatalogRow);
 }
 
