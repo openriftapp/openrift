@@ -1,4 +1,5 @@
 import type { Popover as PopoverPrimitive } from "@base-ui/react/popover";
+import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
 import { PackageIcon } from "lucide-react";
 import { useContext } from "react";
@@ -12,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { SectionHeading } from "@/components/ui/section-heading";
 import { OwnedVariantBreakdown } from "@/features/cards/components/owned-variant-breakdown";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
-import type { OwnedBreakdownVariant } from "@/features/collections/hooks/use-owned-count";
+import { printingCollectionSearch } from "@/features/cards/lib/printing-search-link";
 import {
   useOwnedCollections,
   useOwnedCollectionsByVariants,
@@ -26,23 +27,25 @@ import { useDisplayStore } from "@/stores/display-store";
 interface OwnedCollectionsPopoverProps {
   printingId: string;
   cardName: string;
-  shortCode: string;
+  printing: Printing;
   count?: number;
-  siblings?: readonly OwnedBreakdownVariant[];
+  siblings?: readonly Printing[];
   totalCount?: number;
   otherSideName?: string;
   align?: PopoverPrimitive.Positioner.Props["align"];
+  badge?: boolean;
 }
 
 export function OwnedCollectionsPopover({
   printingId,
   cardName,
-  shortCode,
+  printing,
   count,
   siblings,
   totalCount,
   otherSideName,
   align = "end",
+  badge,
 }: OwnedCollectionsPopoverProps) {
   const { data: session } = useSession();
   const isAuthenticated = Boolean(session?.user);
@@ -72,13 +75,22 @@ export function OwnedCollectionsPopover({
 
   return (
     <Popover>
-      <PopoverTrigger
-        onClick={(event) => event.stopPropagation()}
-        className={cn(countPillVariants({ variant: "ghost" }), COUNT_PILL_INTERACTIVE)}
-      >
-        <PackageIcon className="size-3" />
-        <CountWithTotal count={totalOwned} totalCount={totalCount} />
-      </PopoverTrigger>
+      {badge ? (
+        <PopoverTrigger
+          onClick={(event) => event.stopPropagation()}
+          className="bg-foreground text-background ring-background text-2xs flex h-4.5 min-w-4.5 cursor-pointer items-center justify-center rounded-full px-1 font-bold tabular-nums ring-2"
+        >
+          ×<CountWithTotal count={totalOwned} totalCount={totalCount} />
+        </PopoverTrigger>
+      ) : (
+        <PopoverTrigger
+          onClick={(event) => event.stopPropagation()}
+          className={cn(countPillVariants({ variant: "ghost" }), COUNT_PILL_INTERACTIVE)}
+        >
+          <PackageIcon className="size-3" />
+          <CountWithTotal count={totalOwned} totalCount={totalCount} />
+        </PopoverTrigger>
+      )}
       <PopoverContent side="bottom" align={align} className="w-60 p-0">
         <div className="px-3 pt-2.5 pb-1">
           <SectionHeading as="h3">{m.card_detail_owned_collections_title()}</SectionHeading>
@@ -98,9 +110,7 @@ export function OwnedCollectionsPopover({
                   to="/collections/$collectionId"
                   params={{ collectionId: entry.collectionId }}
                   search={
-                    isPrintingsView
-                      ? { search: `id:${shortCode}`, view: "printings" }
-                      : { search: cardName }
+                    isPrintingsView ? printingCollectionSearch(printing) : { search: cardName }
                   }
                   className={cn(
                     "flex items-center justify-between rounded-md px-2 py-1.5 text-sm",

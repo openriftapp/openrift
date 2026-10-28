@@ -1,5 +1,4 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
-import { enumLabel } from "@openrift/shared/enum-label";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 
@@ -9,7 +8,6 @@ import { CardDetailNameButton } from "@/features/cards/components/card-detail-op
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { frontImageId, printingDisplayName } from "@/features/cards/lib/card-meta";
 import { tradePrinting } from "@/features/groups/lib/trade-printing";
-import { useEnumOrders } from "@/hooks/use-enums";
 
 import { TradeRowActions } from "./trade-row-actions";
 import type { TradeBadgeState } from "./trade-row-parts";
@@ -34,7 +32,6 @@ export function TradeRow({
   redundantStatus?: TradeBadgeState;
 }) {
   const { cardsById, printingsById, printingsByCardId } = useCards();
-  const { labels } = useEnumOrders();
 
   const card = cardsById[trade.cardId];
   const printing = tradePrinting(trade, printingsByCardId, printingsById);
@@ -88,14 +85,7 @@ export function TradeRow({
             />
           )}
 
-          {printing ? (
-            <CardMetaLine
-              shortCode={printing.shortCode}
-              rarity={printing.rarity}
-              finish={printing.finish}
-              finishLabel={enumLabel(labels.finishes, printing.finish)}
-            />
-          ) : null}
+          {printing ? <CardMetaLine printing={printing} rarity={printing.rarity} /> : null}
 
           <TradeExpiry status={trade.status} expiresAt={trade.expiresAt} />
         </div>

@@ -26,6 +26,7 @@ import {
   rowActivateProps,
   rowControlClick,
 } from "@/features/cards/lib/card-row-interactions";
+import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { useCollections } from "@/features/collections/hooks/use-collections";
 import { useMoveCopies } from "@/features/collections/hooks/use-copies";
 import { DECK_LIST_SECTION_CLASS } from "@/features/decks/components/deck-overview-list";
@@ -532,7 +533,7 @@ function BoxCardThumb({
       domainColors={labels.domainColors}
       rarity={copy?.rarity}
       rarityLabels={labels.rarities}
-      shortCode={copy?.shortCode}
+      shortCode={copy && distinctPrintingCode(copy)}
       loading="lazy"
     />
   );

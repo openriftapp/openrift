@@ -30,6 +30,16 @@ vi.mock("@/features/cards/components/card-browser-layout", () => ({
   CardBrowserLayout: ({ gridSlot }: { gridSlot: ReactNode }) => <div>{gridSlot}</div>,
 }));
 
+vi.mock("@/features/cards/hooks/use-cards", () => ({
+  useCards: () => ({ printingsByCardId: new Map(), printingsById: {}, printingsBySideKey: {} }),
+}));
+
+vi.mock("@/hooks/use-enums", () => ({
+  useEnumOrders: () => ({
+    labels: { artVariants: {}, finishes: {}, cardSizes: {}, rarities: {} },
+  }),
+}));
+
 const { stubPrinting } = await import("@/test/factories");
 const { ProductContentsPreview } = await import("./product-contents-preview");
 
@@ -78,15 +88,15 @@ describe("ProductContentsPreview", () => {
       <ProductContentsPreview printings={PRINTINGS} quantityByPrintingId={QUANTITIES} />,
     );
     expect(getByText("Jinx, Rebel")).toBeTruthy();
-    expect(getByText("OGN-001/298 · ×2")).toBeTruthy();
-    expect(getByText("OGN-002/298 · ×1")).toBeTruthy();
+    expect(getByText("OGN-001/298").closest("div")?.textContent).toMatch(/ · ×2$/u);
+    expect(getByText("OGN-002/298").closest("div")?.textContent).toMatch(/ · ×1$/u);
   });
 
   it("omits the quantity suffix for a printing with no recorded quantity", () => {
     const { getByText } = render(
       <ProductContentsPreview printings={PRINTINGS} quantityByPrintingId={{}} />,
     );
-    expect(getByText("OGN-001/298")).toBeTruthy();
+    expect(getByText("OGN-001/298").closest("div")?.textContent).not.toContain("×");
   });
 
   it("falls back to a placeholder box and keeps the link when a printing has no image", () => {

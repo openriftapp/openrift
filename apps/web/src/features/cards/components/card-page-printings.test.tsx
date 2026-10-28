@@ -29,15 +29,10 @@ function renderPrintings(artists: string[]) {
 }
 
 describe("CardPagePrintings", () => {
-  it("hides the artist when every printing shares one", () => {
-    renderPrintings(["League Splash Team", "League Splash Team"]);
-    expect(screen.queryByText("League Splash Team")).toBeNull();
-  });
-
-  it("shows each row's artist when the artists differ", () => {
+  it("shows no artist on a row", () => {
     renderPrintings(["League Splash Team", "Kudos Productions"]);
-    expect(screen.getAllByText("League Splash Team")).toHaveLength(2);
-    expect(screen.getAllByText("Kudos Productions")).toHaveLength(2);
+    expect(screen.queryByText("League Splash Team")).toBeNull();
+    expect(screen.queryByText("Kudos Productions")).toBeNull();
   });
 
   it("offers the phone layout one row per design with a pill per language", async () => {

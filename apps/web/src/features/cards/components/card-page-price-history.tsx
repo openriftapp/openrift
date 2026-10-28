@@ -9,16 +9,13 @@ import { lazy, Suspense, useState } from "react";
 
 import { Heading } from "@/components/heading";
 import { LanguageChip } from "@/components/language-chip";
-import { MarketplaceIcon } from "@/components/marketplace-icon";
+import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { PricingSection } from "@/features/cards/components/card-detail/pricing";
-import { PriceTrend } from "@/features/cards/components/price-trend";
+import { PriceTable, PriceTablePlaceholder } from "@/features/cards/components/card-detail/pricing";
 import { usePriceHistory } from "@/features/cards/hooks/use-price-history";
-import { TIME_RANGES, timeRangeLabel } from "@/features/cards/lib/price-history-chart-constants";
-import { priceHistoryPoint } from "@/features/cards/lib/price-history-points";
+import { TIME_RANGES } from "@/features/cards/lib/price-history-chart-constants";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { formatPublicCode, formatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -30,11 +27,13 @@ const PriceHistoryChart = lazy(async () => {
 });
 
 export function PriceHistorySection({ printing }: { printing: Printing }) {
+  const hydrated = useHydrated();
+  const marketplaceOrder = useDisplayStore((s) => s.marketplaceOrder);
+  const [source, setSource] = useState<Marketplace>(marketplaceOrder[0]);
   const { data } = usePriceHistory(printing.printingId, "all");
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
   const [range, setRange] = useState<TimeRange>("30d");
-  const marketplaceOrder = useDisplayStore((s) => s.marketplaceOrder);
-  const [source, setSource] = useState<Marketplace>(marketplaceOrder[0]);
+  const [showDaily, setShowDaily] = useState(false);
   const { labels } = useEnumOrders();
 
   const { data: rangeData } = usePriceHistory(printing.printingId, range);
@@ -46,8 +45,54 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
       return mpData?.available && mpData.snapshots.length > 0;
     });
 
-  if (!hasAnyData) {
+  if (data && !hasAnyData) {
     return null;
+  }
+
+  const heading = (
+    <Heading level={2} className="mb-3">
+      {m.card_detail_prices_title()} · {formatPublicCode(printing)}
+      {printing.finish !== WellKnown.finish.NORMAL &&
+        ` ${enumLabel(labels.finishes, printing.finish)}`}
+      {printing.markers.length > 0 &&
+        ` (${printing.markers.map((marker) => marker.label).join(", ")})`}
+      {printing.language !== WellKnown.language.EN && (
+        <>
+          {" "}
+          <LanguageChip code={printing.language} />
+        </>
+      )}
+    </Heading>
+  );
+  const placeholder = <PriceTablePlaceholder selected={source} onSelect={setSource} hideHeading />;
+  const priceTable = (
+    <div className="xl:w-90 xl:shrink-0">
+      {hydrated ? (
+        <Suspense fallback={placeholder}>
+          <PriceTable
+            printing={printing}
+            selected={source}
+            onSelect={setSource}
+            keepEmptyRows
+            hideHeading
+          />
+        </Suspense>
+      ) : (
+        placeholder
+      )}
+    </div>
+  );
+
+  if (!data) {
+    return (
+      <section>
+        {heading}
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+          {priceTable}
+          <Skeleton className="aspect-[2.5/1] w-full rounded-lg xl:flex-1" />
+        </div>
+      </section>
+    );
   }
 
   const allSnapshots = data?.[source]?.snapshots;
@@ -89,117 +134,40 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
     .map(([date, prices]) => ({ date, ...prices }));
 
   const availableMarketplaces = rangeData
-    ? ALL_MARKETPLACES.filter((mp) => rangeData[mp]?.available)
+    ? marketplaceOrder.filter((mp) => rangeData[mp]?.available)
     : [];
 
-  const plottedValues = (rangeData?.[source]?.snapshots ?? []).reduce<number[]>((values, s) => {
-    const { value } = priceHistoryPoint(s);
-    if (value !== null) {
-      values.push(value);
-    }
-    return values;
-  }, []);
-
   return (
-    <div>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <Heading level={2}>
-          {m.card_detail_price_history_title()} · {formatPublicCode(printing)}
-          {printing.finish !== WellKnown.finish.NORMAL &&
-            ` ${enumLabel(labels.finishes, printing.finish)}`}
-          {printing.markers.length > 0 &&
-            ` (${printing.markers.map((marker) => marker.label).join(", ")})`}
-          {printing.language !== WellKnown.language.EN && (
-            <>
-              {" "}
-              <LanguageChip code={printing.language} />
-            </>
-          )}
-        </Heading>
-        <PricingSection printing={printing} range={effectiveRange} />
-      </div>
-
-      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <ToggleGroup
-          variant="outline"
-          size="sm"
-          spacing={0}
-          value={[effectiveRange]}
-          onValueChange={([next]) => {
-            const match = availableRanges.find((tr) => tr.value === next);
-            if (match) {
-              setRange(match.value);
-            }
-          }}
-          aria-label={m.card_detail_time_range()}
-        >
-          {availableRanges.map((tr) => (
-            <ToggleGroupItem key={tr.value} value={tr.value}>
-              {timeRangeLabel(tr)}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-        <span className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
-          {marketplaceLabel(source)}
-          <PriceTrend values={plottedValues} range={effectiveRange} />
-        </span>
-        <ToggleGroup
-          variant="outline"
-          size="sm"
-          spacing={0}
-          value={[source]}
-          onValueChange={([next]) => {
-            const match = marketplaceOrder.find((mp) => mp === next);
-            if (match) {
-              setSource(match);
-            }
-          }}
-          aria-label={m.card_detail_price_source()}
-          className="ml-auto"
-        >
-          {marketplaceOrder.map((mp) => {
-            const available = data?.[mp]?.available ?? false;
-            const label = marketplaceLabel(mp);
-            return (
-              <Tooltip key={mp}>
-                <TooltipTrigger
-                  render={
-                    <ToggleGroupItem
-                      value={mp}
-                      disabled={!available && Boolean(data)}
-                      aria-label={label}
-                    />
-                  }
-                >
-                  <MarketplaceIcon marketplace={mp} />
-                </TooltipTrigger>
-                <TooltipContent>{label}</TooltipContent>
-              </Tooltip>
-            );
-          })}
-        </ToggleGroup>
-      </div>
-
-      <div className="flex flex-col gap-6 xl:flex-row">
-        <div className="min-w-0 xl:flex-1 xl:basis-0">
+    <section>
+      {heading}
+      <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+        {priceTable}
+        <div className="min-w-0 xl:flex-1">
           <Suspense fallback={<Skeleton className="aspect-[2.5/1] w-full rounded-lg" />}>
             <PriceHistoryChart
               printingId={printing.printingId}
               range={effectiveRange}
               onRangeChange={setRange}
               source={source}
-              onSourceChange={setSource}
-              hideControls
               highlightedDate={hoveredDate}
               onDateHover={setHoveredDate}
             />
           </Suspense>
         </div>
-        {tableRows.length > 0 && (
-          // contain-inline-size: without it the table's intrinsic width leaks up the
-          // flex column and widens the page past a phone viewport.
-          <div className="min-w-0 contain-inline-size xl:flex-1 xl:basis-0">
-            <div className="max-h-[400px] overflow-auto">
+      </div>
+      {tableRows.length > 0 && (
+        <div className="mt-4">
+          <ExpandToggle
+            expanded={showDaily}
+            onClick={() => setShowDaily((open) => !open)}
+            className="text-muted-foreground gap-1.5 text-sm"
+          >
+            {m.card_detail_daily_prices()}
+          </ExpandToggle>
+          {showDaily && (
+            // contain-inline-size: without it the table's intrinsic width leaks up the
+            // flex column and widens the page past a phone viewport.
+            <div className="mt-2 max-h-[400px] overflow-auto contain-inline-size">
               <table className="w-full text-sm">
                 <thead className="sticky top-0">
                   <tr className="border-border bg-background border-b">
@@ -207,7 +175,14 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
                       {m.card_detail_price_date()}
                     </th>
                     {availableMarketplaces.map((mp) => (
-                      <th key={mp} scope="col" className="px-3 py-2 text-right font-medium">
+                      <th
+                        key={mp}
+                        scope="col"
+                        className={cn(
+                          "px-3 py-2 text-right font-medium whitespace-nowrap",
+                          mp !== source && "text-muted-foreground",
+                        )}
+                      >
                         {marketplaceLabel(mp)} ({MARKETPLACE_CURRENCY[mp]})
                       </th>
                     ))}
@@ -228,7 +203,13 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
                         const value = row[mp];
                         const fmt = formatterForMarketplace(mp);
                         return (
-                          <td key={mp} className="px-3 py-1.5 text-right tabular-nums">
+                          <td
+                            key={mp}
+                            className={cn(
+                              "px-3 py-1.5 text-right tabular-nums",
+                              mp !== source && "text-muted-foreground",
+                            )}
+                          >
                             {value === undefined ? "—" : fmt(value)}
                           </td>
                         );
@@ -238,9 +219,9 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
-      </div>
-    </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }

@@ -1,25 +1,20 @@
 import { formatDay } from "@openrift/shared/format-date";
-import { marketplaceLabel } from "@openrift/shared/marketplace";
 import type { AnySnapshot } from "@openrift/shared/types/api/pricing";
 import type { Marketplace, TimeRange } from "@openrift/shared/types/pricing";
 import { CircleXIcon } from "lucide-react";
 import { useState } from "react";
 import { Area, CartesianGrid, ComposedChart, Line, ReferenceLine, XAxis, YAxis } from "recharts";
 
-import { MarketplaceIcon } from "@/components/marketplace-icon";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { ChartConfig } from "@/components/ui/chart";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { PriceTrend } from "@/features/cards/components/price-trend";
 import { usePriceHistory } from "@/features/cards/hooks/use-price-history";
 import { TIME_RANGES, timeRangeLabel } from "@/features/cards/lib/price-history-chart-constants";
 import { priceHistoryPoint } from "@/features/cards/lib/price-history-points";
 import { formatterForMarketplace } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
-import { useDisplayStore } from "@/stores/display-store";
 
 function headlineLabel(source: Marketplace): string {
   if (source === "cardtrader") {
@@ -41,9 +36,8 @@ interface PriceHistoryChartProps {
   onRangeChange?: (range: TimeRange) => void;
   highlightedDate?: string | null;
   onDateHover?: (date: string | null) => void;
-  source?: Marketplace;
-  onSourceChange?: (source: Marketplace) => void;
-  hideControls?: boolean;
+  source: Marketplace;
+  ranges?: readonly TimeRange[];
 }
 
 export function PriceHistoryChart({
@@ -52,17 +46,12 @@ export function PriceHistoryChart({
   onRangeChange,
   highlightedDate,
   onDateHover,
-  source: controlledSource,
-  onSourceChange,
-  hideControls,
+  source,
+  ranges,
 }: PriceHistoryChartProps) {
   const [internalRange, setInternalRange] = useState<TimeRange>("30d");
   const range = controlledRange ?? internalRange;
   const setRange = onRangeChange ?? setInternalRange;
-  const marketplaceOrder = useDisplayStore((s) => s.marketplaceOrder);
-  const [internalSource, setInternalSource] = useState<Marketplace>(marketplaceOrder[0]);
-  const source = controlledSource ?? internalSource;
-  const setSource = onSourceChange ?? setInternalSource;
 
   const { data: allData } = usePriceHistory(printingId, "all");
 
@@ -79,7 +68,9 @@ export function PriceHistoryChart({
       : null;
 
   const availableRanges = TIME_RANGES.filter(
-    (tr) => tr.days === 0 || dataSpanDays === null || dataSpanDays >= tr.days,
+    (tr) =>
+      (ranges === undefined || ranges.includes(tr.value)) &&
+      (tr.days === 0 || dataSpanDays === null || dataSpanDays >= tr.days),
   );
 
   const effectiveRange = availableRanges.some((tr) => tr.value === range)
@@ -94,80 +85,30 @@ export function PriceHistoryChart({
   const snapshots = rawSnapshots.map((s) => priceHistoryPoint(s));
 
   const hasLow = snapshots.some((s) => s.low !== null);
-  const plottedValues = snapshots.reduce<number[]>((values, s) => {
-    if (s.value !== null) {
-      values.push(s.value);
-    }
-    return values;
-  }, []);
-
-  const btnSize = "sm" as const;
   const chartConfig = buildChartConfig(source);
 
   return (
-    <div className="space-y-3">
-      {!hideControls && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <ToggleGroup
-            variant="outline"
-            size={btnSize}
-            spacing={0}
-            value={[effectiveRange]}
-            onValueChange={([next]) => {
-              const match = availableRanges.find((tr) => tr.value === next);
-              if (match) {
-                setRange(match.value);
-              }
-            }}
-            aria-label={m.card_detail_time_range()}
-          >
-            {availableRanges.map((tr) => (
-              <ToggleGroupItem key={tr.value} value={tr.value}>
-                {timeRangeLabel(tr)}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-          <span className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
-            {marketplaceLabel(source)}
-            <PriceTrend values={plottedValues} range={effectiveRange} />
-          </span>
-          <ToggleGroup
-            variant="outline"
-            size={btnSize}
-            spacing={0}
-            value={[source]}
-            onValueChange={([next]) => {
-              const match = marketplaceOrder.find((s) => s === next);
-              if (match) {
-                setSource(match);
-              }
-            }}
-            aria-label={m.card_detail_price_source()}
-            className="ml-auto"
-          >
-            {marketplaceOrder.map((s) => {
-              const available = data?.[s]?.available ?? false;
-              const label = marketplaceLabel(s);
-              return (
-                <Tooltip key={s}>
-                  <TooltipTrigger
-                    render={
-                      <ToggleGroupItem
-                        value={s}
-                        disabled={!available && Boolean(data)}
-                        aria-label={label}
-                      />
-                    }
-                  >
-                    <MarketplaceIcon marketplace={s} />
-                  </TooltipTrigger>
-                  <TooltipContent>{label}</TooltipContent>
-                </Tooltip>
-              );
-            })}
-          </ToggleGroup>
-        </div>
-      )}
+    <div className="bg-muted/40 relative rounded-lg p-2">
+      <ToggleGroup
+        variant="outline"
+        size="sm"
+        spacing={0}
+        value={[effectiveRange]}
+        onValueChange={([next]) => {
+          const match = availableRanges.find((tr) => tr.value === next);
+          if (match) {
+            setRange(match.value);
+          }
+        }}
+        aria-label={m.card_detail_time_range()}
+        className="bg-background absolute top-2 right-2 z-10"
+      >
+        {availableRanges.map((tr) => (
+          <ToggleGroupItem key={tr.value} value={tr.value}>
+            {timeRangeLabel(tr)}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
 
       {/* Full chart-height placeholder avoids a layout jump when the history loads. */}
       {isLoading && (
@@ -193,7 +134,7 @@ export function PriceHistoryChart({
         <ChartContainer config={chartConfig} className="aspect-[2.5/1] w-full">
           <ComposedChart
             data={snapshots}
-            margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+            margin={{ top: 36, right: 4, bottom: 0, left: 0 }}
             onMouseMove={(state: Record<string, unknown>) => {
               const activePayload = state?.activePayload as
                 | { payload?: Record<string, unknown> }[]

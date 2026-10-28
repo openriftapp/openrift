@@ -4,6 +4,8 @@ import { Fragment } from "react";
 import { NudgeCallout } from "@/components/nudge-callout";
 import { buttonVariants } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
+import { useCards } from "@/features/cards/hooks/use-cards";
+import { usePrintingVariantText } from "@/features/cards/hooks/use-printing-variant-text";
 import { useMyMissingImages } from "@/features/contribute/hooks/use-missing-images";
 import { m } from "@/paraglide/messages.js";
 import { useOnboardingStore } from "@/stores/onboarding-store";
@@ -14,6 +16,8 @@ export function CollectionMissingImagesCallout() {
   const dismissedPrintings = useOnboardingStore((state) => state.dismissedMissingImagePrintings);
   const dismiss = useOnboardingStore((state) => state.dismissMissingImagesNudge);
   const { data } = useMyMissingImages();
+  const { printingsById, printingsByCardId } = useCards();
+  const variantText = usePrintingVariantText();
 
   const items = data?.items ?? [];
   const count = items.length;
@@ -22,6 +26,10 @@ export function CollectionMissingImagesCallout() {
     return null;
   }
 
+  const describe = (printingId: string, fallback: string) => {
+    const printing = printingsById[printingId];
+    return printing ? variantText(printing, printingsByCardId.get(printing.cardId)) : fallback;
+  };
   const preview = items.slice(0, PREVIEW_LIMIT);
   const rest = count - preview.length;
   const title = m.collections_stats_missing_images_title({ count });
@@ -51,7 +59,7 @@ export function CollectionMissingImagesCallout() {
               />
             }
           >
-            {item.cardName} ({item.shortCode})
+            {item.cardName} ({describe(item.printingId, item.shortCode)})
           </TextLink>
         </Fragment>
       ))}

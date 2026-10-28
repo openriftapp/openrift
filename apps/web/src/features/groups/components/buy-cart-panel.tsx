@@ -1,5 +1,4 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
-import { enumLabel } from "@openrift/shared/enum-label";
 import {
   CARDMARKET_WANTS_URL,
   CARDTRADER_WISHLIST_URL,
@@ -30,6 +29,7 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useMarketplaceLinks } from "@/features/cards/hooks/use-marketplace-links";
 import { usePrices } from "@/features/cards/hooks/use-prices";
+import { usePrintingVariantText } from "@/features/cards/hooks/use-printing-variant-text";
 import { frontImageId, printingDisplayName } from "@/features/cards/lib/card-meta";
 import { useMarkOrdered } from "@/features/groups/hooks/use-mark-ordered";
 import type { BuyCartItem } from "@/features/groups/lib/buy-cart";
@@ -45,7 +45,6 @@ import { tradePrinting } from "@/features/groups/lib/trade-printing";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
 import { BUY_CART_MARKETPLACES, useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { useEnumOrders } from "@/hooks/use-enums";
 import { formatCardmarketWants, formatCardtraderWishlist } from "@/lib/export-text";
 import { formatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -81,7 +80,7 @@ function PrintingPicker({
   onPrintingChange: (printingId: string) => void;
 }) {
   const { printingsByCardId } = useCards();
-  const { labels } = useEnumOrders();
+  const variantText = usePrintingVariantText();
   const printings = uniquePrintings(printingsByCardId.get(item.cardId) ?? []);
   if (!item.key.startsWith("card:") || printings.length < 2) {
     return null;
@@ -90,12 +89,7 @@ function PrintingPicker({
     const price = priceOf(printing.printingId);
     return {
       value: printing.printingId,
-      label: [
-        printing.shortCode,
-        enumLabel(labels.finishes, printing.finish),
-        printing.language,
-        ...(price === null ? [] : [price]),
-      ].join(" · "),
+      label: [variantText(printing, printings), ...(price === null ? [] : [price])].join(" · "),
     };
   });
   return (

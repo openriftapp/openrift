@@ -13,6 +13,7 @@ import { CardTextTokens } from "@/features/cards/components/card-text";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { ErrataDiffSegment } from "@/features/cards/lib/errata-diff";
 import { diffCardText, diffSide, isBlankSegment } from "@/features/cards/lib/errata-diff";
+import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -144,7 +145,7 @@ export function ErrataEntry({ entry, view }: { entry: ErrataEntryData; view: Err
   const note = sourceNote(entry);
   const meta = [
     entry.card.types.map((type) => enumLabel(labels.cardTypes, type)).join(" "),
-    entry.printing?.shortCode,
+    entry.printing && distinctPrintingCode(entry.printing),
   ].filter((part) => part !== undefined && part !== "");
 
   return (

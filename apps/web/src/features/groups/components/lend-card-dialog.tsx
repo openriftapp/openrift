@@ -1,4 +1,3 @@
-import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -22,7 +21,6 @@ import { RadioOptionRow } from "@/components/ui/radio-option-row";
 import { UserAvatar } from "@/components/user-avatar";
 import { CardMetaLine } from "@/features/groups/components/trade-row-parts";
 import { useCreateLoan, useLoanBorrowerOptions } from "@/features/groups/hooks/use-loans";
-import { useEnumOrders } from "@/hooks/use-enums";
 import { m } from "@/paraglide/messages.js";
 
 const FREE_TEXT = "__name__";
@@ -45,7 +43,6 @@ export function LendCardDialog({
   contextCollectionId,
 }: LendCardDialogProps) {
   const { data: options } = useLoanBorrowerOptions(open);
-  const { labels } = useEnumOrders();
   const createLoan = useCreateLoan();
 
   const [quantity, setQuantity] = useState(1);
@@ -87,12 +84,7 @@ export function LendCardDialog({
 
           <div className="flex items-center gap-2">
             <span className="truncate text-sm font-medium">{cardName}</span>
-            <CardMetaLine
-              shortCode={printing.shortCode}
-              rarity={printing.rarity}
-              finish={printing.finish}
-              finishLabel={enumLabel(labels.finishes, printing.finish)}
-            />
+            <CardMetaLine printing={printing} rarity={printing.rarity} />
           </div>
 
           <RadioGroup value={borrower} onValueChange={setBorrower} className="gap-1 py-1">

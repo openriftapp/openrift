@@ -5,6 +5,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
 
 import { CardBrowserLayout } from "@/features/cards/components/card-browser-layout";
+import { CatalogPrintingVariantLine } from "@/features/cards/components/printing-row";
 import { CARD_BORDER_RADIUS, LABEL_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { LANDSCAPE_ROTATION_STYLE, needsCssRotation } from "@/lib/images";
 import { cn } from "@/lib/utils";
@@ -88,8 +89,12 @@ export function ProductContentsPreview({
                   style={{ height: LABEL_HEIGHT, borderRadius: CARD_BORDER_RADIUS }}
                 >
                   <div className="truncate font-medium">{printing.card.name}</div>
-                  <div className="text-muted-foreground truncate">
-                    {printing.publicCode}
+                  <div className="text-muted-foreground flex min-w-0 items-center gap-1">
+                    <CatalogPrintingVariantLine
+                      printing={printing}
+                      publicCode
+                      className="min-w-0 flex-nowrap overflow-hidden"
+                    />
                     {quantityByPrintingId[printing.printingId] === undefined
                       ? null
                       : ` · ×${quantityByPrintingId[printing.printingId]}`}

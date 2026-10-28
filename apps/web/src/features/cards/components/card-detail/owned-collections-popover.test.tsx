@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { useSearchScopeStore } from "@/features/cards/stores/search-scope-store";
 import { useDisplayStore } from "@/stores/display-store";
+import { stubPrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
 const { linkSearches } = vi.hoisted(() => ({ linkSearches: [] as unknown[] }));
@@ -72,7 +73,13 @@ class CatchBoundary extends Component<{ children: ReactNode }, { error: Error | 
 }
 
 function renderPopover() {
-  return <OwnedCollectionsPopover printingId="printing-1" cardName="Annie" shortCode="OGN-001" />;
+  return (
+    <OwnedCollectionsPopover
+      printingId="printing-1"
+      cardName="Annie"
+      printing={stubPrinting({ shortCode: "OGN-001", finish: "normal", language: "EN" })}
+    />
+  );
 }
 
 describe("OwnedCollectionsPopover", () => {
@@ -109,14 +116,19 @@ describe("OwnedCollectionsPopover", () => {
     expect(getByText("2")).toBeTruthy();
   });
 
-  it("links by short code with no provider when the default view is printings", async () => {
+  it("links to the one printing with no provider when the default view is printings", async () => {
     useDisplayStore.getState().setDefaultCardView("printings");
     const { findByText } = render(renderPopover());
 
     await userEvent.click(await findByText("2"));
     await findByText("Binder");
 
-    expect(linkSearches.at(-1)).toEqual({ search: "id:OGN-001", view: "printings" });
+    expect(linkSearches.at(-1)).toEqual({
+      search: "id:OGN-001",
+      view: "printings",
+      finishes: ["normal"],
+      languages: ["EN"],
+    });
   });
 
   it("links by card name with no provider when the default view is cards", async () => {
@@ -138,6 +150,11 @@ describe("OwnedCollectionsPopover", () => {
     await userEvent.click(await findByText("2"));
     await findByText("Binder");
 
-    expect(linkSearches.at(-1)).toEqual({ search: "id:OGN-001", view: "printings" });
+    expect(linkSearches.at(-1)).toEqual({
+      search: "id:OGN-001",
+      view: "printings",
+      finishes: ["normal"],
+      languages: ["EN"],
+    });
   });
 });

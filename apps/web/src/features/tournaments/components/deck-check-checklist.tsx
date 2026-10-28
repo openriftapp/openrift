@@ -23,6 +23,7 @@ import {
 import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { FixCardDialog } from "@/features/tournaments/components/deck-check-entry-dialogs";
 import {
@@ -446,7 +447,7 @@ function ChecklistRow({
         </span>
         {matched ? (
           <span className="text-muted-foreground w-24 shrink-0 text-sm tabular-nums">
-            {printing.shortCode}
+            {distinctPrintingCode(printing)}
           </span>
         ) : null}
         <span

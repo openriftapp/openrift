@@ -8,6 +8,7 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { FoilOverlay } from "@/features/cards/components/foil-overlay";
+import { PullVariantLine } from "@/features/pack-opener/components/pull-variant-line";
 import { packSlotLabel } from "@/features/pack-opener/lib/pack-pull-labels";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { LANDSCAPE_ROTATION_STYLE, needsCssRotation } from "@/lib/images";
@@ -109,7 +110,7 @@ export function PullCard({ pull, image, className, shimmer = true }: PullCardPro
       <div className="mt-1 px-0.5 text-xs">
         <div className="text-foreground truncate">{displayName}</div>
         <div className="text-muted-foreground flex items-center justify-between tabular-nums">
-          <span>{printing.shortCode}</span>
+          <PullVariantLine printing={printing} className="min-w-0 flex-nowrap overflow-hidden" />
           <span>{packSlotLabel(pull, labels.rarities)}</span>
         </div>
       </div>

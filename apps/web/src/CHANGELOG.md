@@ -7,11 +7,13 @@
 - feat(Cards): **Flip double-sided cards** — a button on the card image turns it over to its other side.
 - feat(Contribute): **Suggest a better image** — a printing that already has an image now links to the image form, which shows the current image and asks what is wrong with it.
 - feat(Cards): **One correction menu** — "Suggest a correction" on a card is now a dropdown for the card's details, the printing's details or its image.
-- feat(Cards): **Copy counter under the card image** — the card page's add and remove buttons and wishlist heart now sit right below the image.
+- feat(Cards): **Copy counter above the card image** — the card page's add and remove buttons and wishlist heart now sit right above the image, as in the card detail.
 - fix(Contribute): **Readable card preview hints** — the Energy, Power, Might and Might bonus hints on the contribute preview no longer cut off their labels.
-- feat(Cards): **Language pills on printing rows** — the card detail lists each printing once with a pill per language, and the card page does the same on phones.
+- feat(Cards): **Language pills on printing rows** — the card detail lists each printing once with a pill per language, and the card page does the same on phones. The card detail's add and remove buttons now sit in the same bar as on the card page.
 - fix(Cards): **Matching printing labels** — the card page and the card detail pane now describe each printing the same way, noting a foil or promo that only one side has, and the pane lists a printing with the same card on both sides once.
-- fix(Cards): **Artist only when it differs** — the card page's printings table shows the artist only when the card's printings have more than one.
+- feat(Cards): **Price table with Buy buttons** — the card detail and the card page list each marketplace with its price and a Buy button, and picking a row switches the price chart next to it. On the card page the prices now sit right under the card, and the daily price table folds away under the chart.
+- fix(Cards): **Printings named in full** — collection breakdowns, trades, loans, activity, pack pulls, deck lists and printing pickers now say which printing a copy is (alt art, foil, promo, or the token's other side) instead of just "OGN", and the "In your collections" links open that one printing.
+- fix(Cards): **No artist in the printings table** — the card page's printings table no longer repeats the artist on every row.
 - fix(Cards): **Card page printings table lists each printing once** — a printing with the same card on both sides gets one row, and other-side names show their code when two printings share a name, like "with Recruit (OGN-271)".
 - fix(Cards): **Printing sources read "Confirmed by"** — the links backing a printing were labelled "Sources" and read like the image's origin.
 

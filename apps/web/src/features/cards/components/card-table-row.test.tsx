@@ -1,8 +1,19 @@
 import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { stubPrinting } from "@/test/factories";
 
+vi.mock("@/features/cards/hooks/use-cards", () => ({
+  useCards: () => ({ printingsByCardId: new Map(), printingsById: {}, printingsBySideKey: {} }),
+}));
+
+vi.mock("@/hooks/use-enums", () => ({
+  useEnumOrders: () => ({
+    labels: { artVariants: {}, finishes: {}, cardSizes: {}, rarities: {} },
+  }),
+}));
+
+// oxlint-disable-next-line import/first -- must import after vi.mock
 import { CardTableRow, getCardTableColumns, getCardTableMinWidth } from "./card-table-row";
 
 describe("CardTableRow", () => {

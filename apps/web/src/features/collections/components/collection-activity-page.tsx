@@ -36,7 +36,9 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
+import { PrintingVariantLine } from "@/features/cards/components/printing-row";
 import { RarityIcon } from "@/features/cards/components/rarity-icon";
+import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { useCollectionEvents } from "@/features/collections/hooks/use-collection-events";
 import { useCollections } from "@/features/collections/hooks/use-collections";
@@ -180,6 +182,8 @@ function EventCard({
   });
   const totalPrice = price === undefined ? undefined : price * count;
   const { labels } = useEnumOrders();
+  const { printingsById, printingsByCardId } = useCards();
+  const printing = printingsById[event.printingId];
   const cardTypeLabel = event.cardTypes.map((slug) => enumLabel(labels.cardTypes, slug)).join(" ");
   const superTypeLabels = event.cardSuperTypes.map((slug) => enumLabel(labels.superTypes, slug));
 
@@ -225,7 +229,14 @@ function EventCard({
           <p className="truncate text-sm font-medium">{displayName}</p>
         </div>
         <p className="text-muted-foreground flex items-center gap-1 text-xs">
-          {event.shortCode}
+          {printing ? (
+            <PrintingVariantLine
+              printing={printing}
+              siblings={printingsByCardId.get(printing.cardId)}
+            />
+          ) : (
+            event.shortCode
+          )}
           {typeIconPaths.map((path) => (
             <CardIcon
               key={path}

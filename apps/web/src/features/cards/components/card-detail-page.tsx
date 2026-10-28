@@ -14,7 +14,10 @@ import {
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
-import { CollectionSlot } from "@/features/cards/components/card-page-collection-slot";
+import {
+  CollectionSlot,
+  SignupNudgeSlot,
+} from "@/features/cards/components/card-page-collection-slot";
 import { CardPageFactRows } from "@/features/cards/components/card-page-fact-rows";
 import { CardPageHero } from "@/features/cards/components/card-page-hero";
 import { CardPageInfoTable } from "@/features/cards/components/card-page-info-table";
@@ -103,8 +106,9 @@ export function CardDetailPage() {
             printing={selectedPrinting}
             siblings={printings}
             otherCardSides={data.otherCardSides}
+            top={<CollectionSlot printing={selectedPrinting} siblings={printings} />}
           >
-            <CollectionSlot printing={selectedPrinting} siblings={printings} />
+            <SignupNudgeSlot />
           </CardPageHero>
 
           <div className="flex min-w-0 flex-1 flex-col gap-6">
@@ -117,13 +121,13 @@ export function CardDetailPage() {
           </div>
         </div>
 
+        <PriceHistorySection printing={selectedPrinting} />
+
         <CardPagePrintings
           printings={printings}
           selectedSideKey={sideKey(selectedPrinting)}
           onSelect={selectPrinting}
         />
-
-        <PriceHistorySection printing={selectedPrinting} />
 
         <RelatedCardsSection related={data.related} />
       </div>

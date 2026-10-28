@@ -39,6 +39,7 @@ import { PrintingVariantLabel } from "@/features/cards/components/printing-label
 import { WishlistHeart } from "@/features/cards/components/wishlist-heart";
 import { frontImageId } from "@/features/cards/lib/card-meta";
 import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
+import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
 import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
@@ -398,7 +399,7 @@ function TrayRow({
           domainColors={domainColors}
           rarity={printing.rarity}
           rarityLabels={rarityLabels}
-          shortCode={printing.shortCode}
+          shortCode={distinctPrintingCode(printing)}
           foil={isFoil}
           artClassName="h-10"
           hideMetaOnMobile
@@ -409,7 +410,7 @@ function TrayRow({
             {count > 1 && <CountPill className="shrink-0">×{count}</CountPill>}
           </span>
           <span className="text-muted-foreground flex w-full min-w-0 items-center gap-1.5 text-sm">
-            <span className="shrink-0 font-mono sm:hidden">{printing.shortCode}</span>
+            <span className="shrink-0 font-mono sm:hidden">{distinctPrintingCode(printing)}</span>
             <Button
               variant="outline"
               size="xs"

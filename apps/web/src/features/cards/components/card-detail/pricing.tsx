@@ -2,10 +2,13 @@ import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
 import { snapshotHeadline } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace, TimeRange } from "@openrift/shared/types/pricing";
+import { ArrowUpRightIcon } from "lucide-react";
 
 import { MarketplaceIcon } from "@/components/marketplace-icon";
 import { MarketplaceLink } from "@/components/marketplace-link";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { Pressable } from "@/components/ui/pressable";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePriceHistory } from "@/features/cards/hooks/use-price-history";
 import { usePrices } from "@/features/cards/hooks/use-prices";
@@ -14,14 +17,13 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
-export function PricingSection({
-  printing,
-  range = "30d",
-}: {
-  printing: Printing;
-  /** Which history window backs the fallback price. Defaults to 30 days. */
-  range?: TimeRange;
-}) {
+interface PriceEntry {
+  marketplace: Marketplace;
+  value: number | null;
+  url: string | null;
+}
+
+function usePriceEntries(printing: Printing, range: TimeRange): PriceEntry[] {
   const marketplaceOrder = useDisplayStore((s) => s.marketplaceOrder);
   const { data: history } = usePriceHistory(printing.printingId, range);
   const prices = usePrices();
@@ -36,11 +38,7 @@ export function PricingSection({
   }
 
   // Catalog price is preferred over history since it doesn't wait on history to load.
-  const chips: {
-    marketplace: Marketplace;
-    value: number;
-    url: string | null;
-  }[] = [];
+  const chips: PriceEntry[] = [];
   for (const marketplace of marketplaceOrder) {
     const links = MARKETPLACE_LINKS[marketplace];
     const slice = history?.[marketplace];
@@ -49,93 +47,107 @@ export function PricingSection({
 
     const value = prices.get(printing.printingId, marketplace) ?? latestPrice(marketplace);
 
-    if (value !== null && value !== undefined) {
-      chips.push({ marketplace, value, url });
-    }
+    chips.push({ marketplace, value: value ?? null, url });
   }
 
-  if (chips.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="flex items-center justify-end gap-1.5">
-      <span className="text-muted-foreground text-sm">{m.card_detail_buy_on_label()}</span>
-      {chips.map(({ marketplace, value, url }) => {
-        const links = MARKETPLACE_LINKS[marketplace];
-        return (
-          <PriceChip
-            key={marketplace}
-            marketplace={marketplace}
-            label={links.label}
-            value={value}
-            url={url}
-            formatValue={formatterForMarketplace(marketplace)}
-            isAffiliate={links.isAffiliate}
-          />
-        );
-      })}
-    </div>
-  );
+  return chips;
 }
 
-function PriceChip({
-  marketplace,
-  label,
-  value,
-  url,
-  formatValue = formatPrice,
-  isAffiliate,
-}: {
-  marketplace: Marketplace;
-  label: string;
-  value: number;
-  url: string | null;
-  formatValue?: (v: number) => string;
-  isAffiliate?: boolean;
-}) {
-  const content = (
-    <>
-      <MarketplaceIcon marketplace={marketplace} alt={label} />
-      {formatValue(value)}
-    </>
-  );
+interface PriceTableProps {
+  selected: Marketplace;
+  onSelect: (marketplace: Marketplace) => void;
+  hideHeading?: boolean;
+}
 
-  const variant = "outline" as const;
-  const chipClassName = cn("font-semibold", priceColorClass(value));
+export function PriceTable({
+  printing,
+  keepEmptyRows,
+  ...rowProps
+}: PriceTableProps & { printing: Printing; keepEmptyRows?: boolean }) {
+  const entries = usePriceEntries(printing, "30d");
+  const shown = keepEmptyRows ? entries : entries.filter((entry) => entry.value !== null);
+  if (shown.length === 0) {
+    return null;
+  }
+  return <PriceRows entries={shown} {...rowProps} />;
+}
 
+export function PriceTablePlaceholder(props: PriceTableProps) {
+  const marketplaceOrder = useDisplayStore((s) => s.marketplaceOrder);
+  const entries = marketplaceOrder.map((marketplace) => ({ marketplace, value: null, url: null }));
+  return <PriceRows entries={entries} {...props} />;
+}
+
+function PriceRows({
+  entries,
+  selected,
+  onSelect,
+  hideHeading,
+}: PriceTableProps & { entries: PriceEntry[] }) {
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          url ? (
-            <Button
-              variant={variant}
-              size="sm"
-              render={
-                <MarketplaceLink
-                  marketplace={marketplace}
-                  href={url}
-                  aria-label={m.card_detail_buy_on_marketplace({ marketplace: label })}
-                />
-              }
-              className={chipClassName}
-            />
-          ) : (
-            <span className={cn(buttonVariants({ variant, size: "sm" }), chipClassName)} />
-          )
-        }
-      >
-        {content}
-      </TooltipTrigger>
-      <TooltipContent>
-        {m.card_detail_buy_on_marketplace({ marketplace: label })}
-        {isAffiliate && (
-          <span className="text-muted-foreground ml-1 text-xs">
-            {m.card_detail_affiliate_note()}
-          </span>
-        )}
-      </TooltipContent>
-    </Tooltip>
+    <section className="space-y-2">
+      {!hideHeading && <SectionHeading as="h3">{m.card_detail_prices_title()}</SectionHeading>}
+      <ul className="divide-border overflow-hidden rounded-lg border">
+        {entries.map(({ marketplace, value, url }) => {
+          const links = MARKETPLACE_LINKS[marketplace];
+          const isSelected = marketplace === selected;
+          return (
+            <li
+              key={marketplace}
+              className={cn(
+                "flex h-10 items-center gap-2 border-t pr-1.5 first:border-t-0",
+                isSelected && "bg-muted",
+              )}
+            >
+              <Pressable
+                aria-pressed={isSelected}
+                onClick={() => onSelect(marketplace)}
+                className="flex h-full min-w-0 flex-1 items-center gap-2.5 pl-3 text-left"
+              >
+                <MarketplaceIcon marketplace={marketplace} alt="" />
+                <span className={cn("flex-1 truncate", !isSelected && "text-muted-foreground")}>
+                  {links.label}
+                </span>
+                <span className={cn("font-semibold tabular-nums", priceColorClass(value))}>
+                  {value === null ? formatPrice() : formatterForMarketplace(marketplace)(value)}
+                </span>
+              </Pressable>
+              {url && (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        size="xs"
+                        className="shrink-0"
+                        render={
+                          <MarketplaceLink
+                            marketplace={marketplace}
+                            href={url}
+                            aria-label={m.card_detail_buy_on_marketplace({
+                              marketplace: links.label,
+                            })}
+                          />
+                        }
+                      />
+                    }
+                  >
+                    {m.card_detail_buy()}
+                    <ArrowUpRightIcon />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {m.card_detail_buy_on_marketplace({ marketplace: links.label })}
+                    {links.isAffiliate && (
+                      <span className="text-muted-foreground ml-1 text-xs">
+                        {m.card_detail_affiliate_note()}
+                      </span>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }

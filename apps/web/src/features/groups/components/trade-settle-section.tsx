@@ -1,5 +1,4 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
-import { enumLabel } from "@openrift/shared/enum-label";
 import { sideKey } from "@openrift/shared/printing-side";
 import type {
   CardTradeCopyOptionsResponse,
@@ -47,7 +46,6 @@ import type {
 import { runSettleBatch } from "@/features/groups/lib/trade-settle-batch";
 import { stepSequence } from "@/features/groups/lib/trade-sheet";
 import { talliedCount, useTradeTallyStore } from "@/features/groups/stores/trade-tally-store";
-import { useEnumOrders } from "@/hooks/use-enums";
 import { useRequiredUserId } from "@/hooks/use-session";
 import { languageNameForCode } from "@/lib/language-names";
 import { m } from "@/paraglide/messages.js";
@@ -73,7 +71,6 @@ function TallyRow({
   disabled: boolean;
 }) {
   const { cardsById, printingsById, printingsByCardId } = useCards();
-  const { labels } = useEnumOrders();
   const counts = useTradeTallyStore((state) => state.counts);
   const setCount = useTradeTallyStore((state) => state.setCount);
 
@@ -114,10 +111,9 @@ function TallyRow({
 
         {printing ? (
           <CardMetaLine
-            shortCode={printing.shortCode}
+            printing={printing}
             rarity={printing.rarity}
-            finish={printing.finish}
-            finishLabel={enumLabel(labels.finishes, printing.finish)}
+            hideLanguage
             trailing={
               <span className="text-muted-foreground">
                 · {languageNameForCode(printing.language)}

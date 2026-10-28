@@ -4,21 +4,24 @@ import type { ReactNode } from "react";
 import { PrintingVariantLabel } from "@/features/cards/components/printing-label";
 import { PrintingThumbnail } from "@/features/cards/components/printing-option-content";
 import { RarityIcon } from "@/features/cards/components/rarity-icon";
+import { useCards } from "@/features/cards/hooks/use-cards";
 import { formatCardId } from "@/lib/format";
 
 export function PrintingVariantLine({
   printing,
   siblings,
   hideLanguage,
+  publicCode,
   className,
 }: {
   printing: Printing;
   siblings?: readonly Printing[];
   hideLanguage?: boolean;
+  publicCode?: boolean;
   className?: string;
 }) {
   const hasMixedRarities = siblings ? new Set(siblings.map((p) => p.rarity)).size > 1 : false;
-  const code = formatCardId(printing);
+  const code = publicCode ? printing.publicCode : formatCardId(printing);
 
   return (
     <PrintingVariantLabel
@@ -34,6 +37,29 @@ export function PrintingVariantLine({
           <span className="text-muted-foreground font-mono text-xs">{code}</span>
         </span>
       }
+    />
+  );
+}
+
+export function CatalogPrintingVariantLine({
+  printing,
+  hideLanguage,
+  publicCode,
+  className,
+}: {
+  printing: Printing;
+  hideLanguage?: boolean;
+  publicCode?: boolean;
+  className?: string;
+}) {
+  const { printingsByCardId } = useCards();
+  return (
+    <PrintingVariantLine
+      printing={printing}
+      siblings={printingsByCardId.get(printing.cardId)}
+      hideLanguage={hideLanguage}
+      publicCode={publicCode}
+      className={className}
     />
   );
 }

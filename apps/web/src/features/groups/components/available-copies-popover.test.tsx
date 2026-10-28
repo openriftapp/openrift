@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { stubPrinting } from "@/test/factories";
+
 const { breakdownMock, siblingsMock } = vi.hoisted(() => ({
   breakdownMock: vi.fn(),
   siblingsMock: vi.fn(),
@@ -23,15 +25,17 @@ vi.mock("@/features/collections/hooks/use-owned-count", () => ({
 }));
 
 vi.mock("@/hooks/use-enums", () => ({
-  useEnumOrders: () => ({ labels: { finishes: { normal: "Normal", foil: "Foil" } } }),
+  useEnumOrders: () => ({
+    labels: { finishes: { normal: "Normal", foil: "Foil" }, artVariants: {}, cardSizes: {} },
+  }),
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { AvailableCopiesPopover } from "./available-copies-popover";
 
 const SIBLINGS = [
-  { id: "printing-1", shortCode: "OGN-042", finish: "normal" },
-  { id: "printing-2", shortCode: "OGN-042f", finish: "foil" },
+  stubPrinting({ printingId: "printing-1", shortCode: "OGN-042", finish: "normal" }),
+  stubPrinting({ printingId: "printing-2", shortCode: "OGN-042", finish: "foil" }),
 ];
 
 const BREAKDOWN = [
@@ -39,6 +43,7 @@ const BREAKDOWN = [
     printingId: "printing-1",
     shortCode: "OGN-042",
     finish: "normal",
+    printing: SIBLINGS[0],
     collections: [
       { collectionId: "col-1", collectionName: "Main Binder", count: 3 },
       { collectionId: "col-2", collectionName: "Trade Box", count: 1 },
@@ -46,8 +51,9 @@ const BREAKDOWN = [
   },
   {
     printingId: "printing-2",
-    shortCode: "OGN-042f",
+    shortCode: "OGN-042",
     finish: "foil",
+    printing: SIBLINGS[1],
     collections: [{ collectionId: "col-1", collectionName: "Main Binder", count: 1 }],
   },
 ];
@@ -71,8 +77,7 @@ describe("AvailableCopiesPopover", () => {
     await userEvent.click(getByRole("button", { name: "2 available" }));
 
     expect(await findAllByText("Main Binder")).toHaveLength(2);
-    expect(getByText("OGN-042")).toBeTruthy();
-    expect(getByText("OGN-042f")).toBeTruthy();
+    expect(getByText("Foil")).toBeTruthy();
     expect(getByText("Trade Box")).toBeTruthy();
     expect(getByText("5 total")).toBeTruthy();
   });

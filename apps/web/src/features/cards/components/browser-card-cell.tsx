@@ -107,7 +107,7 @@ export const BrowserCardCell = memo(function BrowserCardCell({
             <OwnedCollectionsPopover
               printingId={displayPrinting.printingId}
               cardName={cardName}
-              shortCode={displayPrinting.shortCode}
+              printing={displayPrinting}
               count={ownedCount}
               totalCount={totalCount}
               siblings={inCardsView ? siblings : undefined}

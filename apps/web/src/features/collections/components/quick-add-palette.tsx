@@ -33,6 +33,7 @@ import {
 import { PrintingRowContent } from "@/features/cards/components/printing-row";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { printingDisplayName } from "@/features/cards/lib/card-meta";
+import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { useQuickAddActions } from "@/features/collections/hooks/use-quick-add-actions";
 import { useQuickAddMoveMode } from "@/features/collections/hooks/use-quick-add-move-mode";
 import { useQuickAddSearch } from "@/features/collections/hooks/use-quick-add-search";
@@ -484,7 +485,7 @@ function PaletteInner({
         {results.map((card, index) => {
           const isSelected = index === selectedIndex && !expandedCardId;
           const isExpanded = expandedCardId === card.cardId;
-          const shortCodes = [...new Set(card.printings.map((p) => p.shortCode))];
+          const shortCodes = [...new Set(card.printings.map((p) => distinctPrintingCode(p)))];
           return (
             <div key={card.cardId}>
               <Pressable

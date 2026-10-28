@@ -1,6 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
-import { enumLabel } from "@openrift/shared/enum-label";
 import { sideKey } from "@openrift/shared/printing-side";
 import { setIndexById, UNKNOWN_SET_INDEX } from "@openrift/shared/set-order";
 import type { CardTradeResponse, CardTradeStatus } from "@openrift/shared/types/api/card-trade";
@@ -173,7 +172,6 @@ interface ResolvedMatchRow extends FriendGroupMatchRow {
   shortCode: string;
   setIndex: number;
   setName: string;
-  finishLabel: string;
   domains: string[];
   printing: Printing | null;
 }
@@ -192,7 +190,6 @@ export function resolveMatchRows(
   cardsById: ReturnType<typeof useCards>["cardsById"],
   printingsById: ReturnType<typeof useCards>["printingsById"],
   sets: ReturnType<typeof useCards>["sets"],
-  labels: ReturnType<typeof useEnumOrders>["labels"],
   fallbackGroupSlug: string,
   printingsByCardId: ReturnType<typeof useCards>["printingsByCardId"],
 ): ResolvedMatchRow[] {
@@ -211,7 +208,6 @@ export function resolveMatchRows(
       shortCode: printing?.shortCode ?? "",
       setIndex: setIndexes.get(row.setId) ?? UNKNOWN_SET_INDEX,
       setName: set?.name ?? row.setId,
-      finishLabel: enumLabel(labels.finishes, row.finish),
       domains: card?.domains ?? [],
       printing,
     };
@@ -223,10 +219,8 @@ export function resolveMatchRows(
 function MatchRowMeta({ match }: { match: DirectedMatch }) {
   return (
     <CardMetaLine
-      shortCode={match.shortCode}
+      printing={match.printing}
       rarity={match.rarity}
-      finish={match.finish}
-      finishLabel={match.finishLabel}
       trailing={
         <>
           <span>· {match.buyQuantity} wanted</span>
@@ -848,12 +842,11 @@ export function MatchPersonList({
   hidePending?: boolean;
 }) {
   const { cardsById, printingsById, printingsByCardId, sets } = useCards();
-  const { labels } = useEnumOrders();
   const liveTradeByKey = useLiveTradeByKey(rows, groupSlug);
   const printingIds = [...new Set(rows.map((row) => row.printingId))];
   const { data: marketplaceInfo } = useMarketplaceLinks(printingIds);
   const matches = aggregateMatches(
-    resolveMatchRows(rows, cardsById, printingsById, sets, labels, groupSlug, printingsByCardId),
+    resolveMatchRows(rows, cardsById, printingsById, sets, groupSlug, printingsByCardId),
   ).map((match): DirectedMatch => ({ ...match, direction }));
 
   return (
@@ -876,33 +869,16 @@ export function MatchPersonList({
 
 export function MatchTradeList({ incoming, outgoing, groupSlug }: MatchTradeListProps) {
   const { cardsById, printingsById, printingsByCardId, sets } = useCards();
-  const { labels } = useEnumOrders();
   const liveTradeByKey = useLiveTradeByKey([...incoming, ...outgoing], groupSlug);
 
   const printingIds = [...new Set([...incoming, ...outgoing].map((row) => row.printingId))];
   const { data: marketplaceInfo } = useMarketplaceLinks(printingIds);
 
   const incomingRows = aggregateMatches(
-    resolveMatchRows(
-      incoming,
-      cardsById,
-      printingsById,
-      sets,
-      labels,
-      groupSlug,
-      printingsByCardId,
-    ),
+    resolveMatchRows(incoming, cardsById, printingsById, sets, groupSlug, printingsByCardId),
   ).map((match): DirectedMatch => ({ ...match, direction: "incoming" }));
   const outgoingRows = aggregateMatches(
-    resolveMatchRows(
-      outgoing,
-      cardsById,
-      printingsById,
-      sets,
-      labels,
-      groupSlug,
-      printingsByCardId,
-    ),
+    resolveMatchRows(outgoing, cardsById, printingsById, sets, groupSlug, printingsByCardId),
   ).map((match): DirectedMatch => ({ ...match, direction: "outgoing" }));
   const groups = groupTradeMatches([...incomingRows, ...outgoingRows]).toSorted(
     compareMatchTradeGroups,

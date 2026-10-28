@@ -1,6 +1,7 @@
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitForElementToBeRemoved } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { PropsWithChildren } from "react";
 import { Suspense } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -53,16 +54,31 @@ describe("CardFooter chart lazy boundary", () => {
     await waitForElementToBeRemoved(skeleton, { timeout: 5000 });
   });
 
-  it("puts the chart above the buy row", async () => {
+  it("lists each marketplace's price above the chart, which names no marketplace itself", async () => {
     const printing = stubPrinting();
-    const { container } = render(<CardFooter printing={printing} />, {
+    render(<CardFooter printing={printing} />, {
       wrapper: makeWrapper({ [printing.printingId]: { cardtrader: 4.5 } }),
     });
-    await screen.findByText("CardTrader", undefined, { timeout: 5000 });
+    await screen.findByText("All", undefined, { timeout: 5000 });
 
-    const text = container.textContent ?? "";
-    expect(text).toContain("Buy on");
-    expect(text.indexOf("CardTrader")).toBeLessThan(text.indexOf("Buy on"));
+    const labels = screen.getAllByText("CardTrader");
+    expect(labels).toHaveLength(1);
+    expect(labels[0]?.closest("li")).not.toBeNull();
+  });
+
+  it("charts the marketplace whose row is picked", async () => {
+    const user = userEvent.setup();
+    const printing = stubPrinting();
+    render(<CardFooter printing={printing} />, {
+      wrapper: makeWrapper({ [printing.printingId]: { cardtrader: 4.5, tcgplayer: 5 } }),
+    });
+    await screen.findAllByText("CardTrader", undefined, { timeout: 5000 });
+
+    const row = screen.getByRole("button", { name: /TCGplayer/u });
+    expect(row).toHaveAttribute("aria-pressed", "false");
+    await user.click(row);
+
+    expect(row).toHaveAttribute("aria-pressed", "true");
   });
 });
 

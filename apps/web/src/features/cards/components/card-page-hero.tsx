@@ -18,11 +18,13 @@ export function CardPageHero({
   printing,
   siblings,
   otherCardSides,
+  top,
   children,
 }: {
   printing: Printing;
   siblings: Printing[];
   otherCardSides: Printing[];
+  top?: ReactNode;
   children?: ReactNode;
 }) {
   const navigate = useNavigate();
@@ -33,6 +35,7 @@ export function CardPageHero({
 
   return (
     <div className="flex shrink-0 flex-col gap-3 md:w-80">
+      {top}
       {otherSide ? (
         <DoubleSidedFlip
           key={sideKey(printing)}

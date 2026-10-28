@@ -7,7 +7,6 @@ import type {
 } from "@openrift/shared/board-state";
 import { PIECE_KINDS } from "@openrift/shared/board-state";
 import { legendDisplayName } from "@openrift/shared/card-name";
-import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { uniquePrintings } from "@openrift/shared/printing-side";
 import type { Card } from "@openrift/shared/types/catalog";
 import { ChevronDownIcon, ShapesIcon } from "lucide-react";
@@ -38,8 +37,10 @@ import { describeZone, pieceName } from "@/features/board-states/lib/board-label
 import { pieceKindForCardTypes } from "@/features/board-states/lib/board-layout";
 import { PLAYER_COLOR } from "@/features/board-states/lib/board-style";
 import { PreferredPrintingThumbnail } from "@/features/cards/components/printing-option-content";
+import { CatalogPrintingVariantLine } from "@/features/cards/components/printing-row";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCatalogCardSearch } from "@/features/cards/hooks/use-catalog-card-search";
+import { usePrintingVariantText } from "@/features/cards/hooks/use-printing-variant-text";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -177,7 +178,7 @@ function CardResult({
         <span className="truncate text-sm">{name}</span>
         {printing ? (
           <span className="text-muted-foreground text-2xs truncate">
-            {formatPrintingCode(printing.publicCode)}
+            <CatalogPrintingVariantLine printing={printing} className="flex-nowrap" />
           </span>
         ) : null}
       </span>
@@ -270,13 +271,14 @@ function GenericPieces({
 function PrintingSelect({ piece, actions }: { piece: BoardPiece; actions: BoardPieceActions }) {
   const { printingsByCardId } = useCards();
   const card = piece.card;
+  const variantText = usePrintingVariantText();
   const printings = card ? uniquePrintings(printingsByCardId.get(card.cardId) ?? []) : [];
   if (!card || printings.length < 2) {
     return null;
   }
   const items = printings.map((printing) => ({
     value: printing.printingId,
-    label: formatPrintingCode(printing.publicCode),
+    label: variantText(printing, printings),
   }));
   return (
     <Label className="flex flex-col items-stretch gap-1">

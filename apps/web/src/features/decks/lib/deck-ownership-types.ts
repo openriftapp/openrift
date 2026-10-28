@@ -5,6 +5,7 @@ export interface OwnershipPrinting {
   sideKey: string;
   language: string;
   shortCode: string;
+  otherSide?: { shortCode: string };
   setId: string;
   rarity: Rarity;
   imageId: string | undefined;

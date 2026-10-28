@@ -1,37 +1,31 @@
-import { enumLabel } from "@openrift/shared/enum-label";
+import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
 
-import { SectionHeading } from "@/components/ui/section-heading";
-import { FinishIcon } from "@/features/cards/components/finish-icon";
+import { PrintingVariantLine } from "@/features/cards/components/printing-row";
+import { printingCollectionSearch } from "@/features/cards/lib/printing-search-link";
 import type { VariantCollectionBreakdownEntry } from "@/features/collections/hooks/use-owned-count";
-import { useEnumOrders } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 
 export function OwnedVariantBreakdown({
   variants,
 }: {
-  variants: readonly VariantCollectionBreakdownEntry[];
+  variants: readonly VariantCollectionBreakdownEntry<Printing>[];
 }) {
-  const { labels } = useEnumOrders();
+  const siblings = variants.map((variant) => variant.printing);
   return (
     <div className="px-1 pb-1">
       {variants.map((variant) => (
         <div key={variant.printingId} className="px-1 pb-1 last:pb-0">
-          <SectionHeading as="h3" className="flex items-center gap-1.5 px-2 pt-1.5 pb-0.5">
-            <span>{variant.shortCode}</span>
-            <FinishIcon
-              finish={variant.finish}
-              title={enumLabel(labels.finishes, variant.finish)}
-              iconClassName="size-3"
-            />
-          </SectionHeading>
+          <h3 className="px-2 pt-1.5 pb-0.5 text-xs">
+            <PrintingVariantLine printing={variant.printing} siblings={siblings} />
+          </h3>
           <ul>
             {variant.collections.map((entry) => (
               <li key={entry.collectionId}>
                 <Link
                   to="/collections/$collectionId"
                   params={{ collectionId: entry.collectionId }}
-                  search={{ search: `id:${variant.shortCode}`, view: "printings" }}
+                  search={printingCollectionSearch(variant.printing)}
                   className={cn(
                     "flex items-center justify-between rounded-md px-2 py-1 text-sm",
                     "hover:bg-muted transition-colors",

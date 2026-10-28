@@ -9,8 +9,14 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
+vi.mock("@/features/cards/hooks/use-cards", () => ({
+  useCards: () => ({ printingsByCardId: new Map(), printingsById: {}, printingsBySideKey: {} }),
+}));
+
 vi.mock("@/hooks/use-enums", () => ({
-  useEnumOrders: () => ({ labels: { rarities: {} } }),
+  useEnumOrders: () => ({
+    labels: { artVariants: {}, finishes: {}, cardSizes: {}, rarities: {} },
+  }),
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock

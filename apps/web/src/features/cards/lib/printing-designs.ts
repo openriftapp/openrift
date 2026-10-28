@@ -11,6 +11,7 @@ interface DesignMember {
   language: string;
   setId: string;
   shortCode: string;
+  otherSide?: { shortCode: string };
 }
 
 function designKey(printing: Printing): string {
@@ -79,7 +80,7 @@ export function groupPrintingDesigns(printings: readonly Printing[]): {
 
 /**
  * `printings` must be in language-preference order.
- * @returns The languages in order of appearance and the designs by set, then short code.
+ * @returns The languages in order of appearance and the designs by set, then short code, then the other side's short code.
  */
 export function groupDesigns<T extends DesignMember>(
   printings: readonly T[],
@@ -116,7 +117,10 @@ export function groupDesigns<T extends DesignMember>(
   const ordered = [...designs.values()].toSorted(
     (a, b) =>
       (setRank.get(a.lead.setId) ?? 0) - (setRank.get(b.lead.setId) ?? 0) ||
-      a.lead.shortCode.localeCompare(b.lead.shortCode, "en", { numeric: true }),
+      a.lead.shortCode.localeCompare(b.lead.shortCode, "en", { numeric: true }) ||
+      (a.lead.otherSide?.shortCode ?? "").localeCompare(b.lead.otherSide?.shortCode ?? "", "en", {
+        numeric: true,
+      }),
   );
   return { languages, designs: ordered };
 }

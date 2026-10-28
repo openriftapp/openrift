@@ -79,6 +79,25 @@ describe("groupPrintingDesigns", () => {
     ]);
   });
 
+  it("orders designs sharing a short code by the other side's short code", () => {
+    const otherSide = (shortCode: string) => ({
+      faceId: `face-${shortCode}`,
+      cardId: shortCode,
+      cardName: shortCode,
+      cardSlug: shortCode,
+      shortCode,
+    });
+
+    expect(
+      groupPrintingDesigns([
+        printing("OGN", "EN", { otherSide: otherSide("OGN-272") }),
+        printing("OGN", "EN", { otherSide: otherSide("OGN-271") }),
+        printing("OGN", "EN", { otherSide: otherSide("OGN-280") }),
+        printing("OGN", "EN", { otherSide: otherSide("OGN-273") }),
+      ]).designs.map((design) => design.lead.otherSide?.shortCode),
+    ).toEqual(["OGN-271", "OGN-272", "OGN-273", "OGN-280"]);
+  });
+
   it("merges a design whose card sits on a different side per language", () => {
     const otherSide = {
       faceId: "face-buff",

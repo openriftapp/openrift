@@ -15,6 +15,16 @@ vi.mock("@tanstack/react-router", () => ({
 
 const missingImages = vi.hoisted(() => ({ items: [] as MissingImagePrinting[] }));
 
+vi.mock("@/features/cards/hooks/use-cards", () => ({
+  useCards: () => ({ printingsByCardId: new Map(), printingsById: {}, printingsBySideKey: {} }),
+}));
+
+vi.mock("@/hooks/use-enums", () => ({
+  useEnumOrders: () => ({
+    labels: { artVariants: {}, finishes: {}, cardSizes: {}, rarities: {} },
+  }),
+}));
+
 vi.mock("@/features/contribute/hooks/use-missing-images", () => ({
   useMyMissingImages: () => ({ data: { items: missingImages.items } }),
 }));

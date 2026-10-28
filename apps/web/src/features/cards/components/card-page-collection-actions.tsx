@@ -2,8 +2,7 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import { useCardDetailActionHost } from "@/features/cards/components/card-detail/card-detail-action-host";
-import { PrintingCountActions } from "@/features/cards/components/printing-count-actions";
-import { WishlistButton } from "@/features/cards/components/wishlist-heart";
+import { CardDetailActions } from "@/features/cards/components/card-detail/card-detail-actions";
 import { useTileOwnedCounts } from "@/features/collections/hooks/use-owned-count";
 import { useUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
@@ -29,32 +28,19 @@ export function CardPageCollectionActions({
 
   return (
     <>
-      <div className="bg-card flex items-center justify-between gap-2 rounded-lg border py-1 pr-1 pl-3">
-        <span className="text-muted-foreground text-sm">{m.cards_label_owned()}</span>
-        <div className="flex items-center gap-2">
-          <div className="w-28">
-            <PrintingCountActions
-              printing={printing}
-              siblings={siblings}
-              count={ownedCount}
-              onIncrement={addCopy}
-              onDecrement={removeCopy}
-              incrementDisabled={!canAdd}
-              addLabel={
-                inbox
-                  ? m.card_detail_add_card_to({ card: cardName, collection: inbox.name })
-                  : undefined
-              }
-            />
-          </div>
-          <WishlistButton
-            entries={wish.entriesForPrinting(printing.cardId, printing.printingId)}
-            cardName={cardName}
-            onAdd={() => setWishTarget(printing)}
-            align="end"
-          />
-        </div>
-      </div>
+      <CardDetailActions
+        printing={printing}
+        siblings={siblings}
+        count={ownedCount}
+        onIncrement={addCopy}
+        onDecrement={removeCopy}
+        incrementDisabled={!canAdd}
+        addLabel={
+          inbox ? m.card_detail_add_card_to({ card: cardName, collection: inbox.name }) : undefined
+        }
+        wishEntries={wish.entriesForPrinting(printing.cardId, printing.printingId)}
+        onAddToWishlist={setWishTarget}
+      />
       {hosts}
     </>
   );

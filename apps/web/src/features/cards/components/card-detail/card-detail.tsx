@@ -125,54 +125,53 @@ export function CardDetail({
     return (
       // No domain tint here: the dialog itself carries it, reaching the popup's rounded edges.
       <div className="@container flex flex-col gap-4">
-        {/* pr-8 keeps the title clear of the dialog's own close button. */}
-        <CardDetailHeading
-          printing={printing}
-          setNumber={setNumber}
-          onTagClick={onTagClick}
-          titleClassName="pr-8"
-        />
+        {/* pr-8 keeps the header clear of the dialog's own close button. */}
+        <div className="flex items-start gap-4 pr-8">
+          <div className="min-w-0 flex-1">
+            <CardDetailHeading printing={printing} setNumber={setNumber} onTagClick={onTagClick} />
+          </div>
+          {hasNav && (
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon-sm"
+                onClick={onPrevCard}
+                disabled={!onPrevCard}
+                aria-label={m.card_detail_prev_card()}
+              >
+                <ChevronLeftIcon className="size-4" />
+              </Button>
+              {navLabel && (
+                <span className="text-muted-foreground text-sm tabular-nums">{navLabel}</span>
+              )}
+              <Button
+                variant="outline"
+                size="icon-sm"
+                onClick={onNextCard}
+                disabled={!onNextCard}
+                aria-label={m.card_detail_next_card()}
+              >
+                <ChevronRightIcon className="size-4" />
+              </Button>
+            </div>
+          )}
+        </div>
 
         <div className="grid gap-5 @2xl:grid-cols-[340px_minmax(0,1fr)]">
           <div className="space-y-3">
+            {actions}
             {art}
-            {hasNav && (
-              <div className="flex items-center justify-between gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={onPrevCard}
-                  disabled={!onPrevCard}
-                  aria-label={m.card_detail_prev_card()}
-                >
-                  <ChevronLeftIcon className="size-4" />
-                </Button>
-                {navLabel && (
-                  <span className="text-muted-foreground text-sm tabular-nums">{navLabel}</span>
-                )}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={onNextCard}
-                  disabled={!onNextCard}
-                  aria-label={m.card_detail_next_card()}
-                >
-                  <ChevronRightIcon className="size-4" />
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <div className="min-w-0 space-y-4">
             {hasBans && <BanAlert bans={card.bans} upcoming={false} />}
             {hasUpcomingBans && <BanAlert bans={card.upcomingBans} upcoming />}
             <CardDetailStats printing={printing} align="start" />
             {text}
             {notes}
             {holdings}
-            {footer}
+          </div>
+
+          <div className="min-w-0 space-y-4">
             {picker}
-            {actions}
+            {footer}
           </div>
         </div>
 
@@ -241,6 +240,8 @@ export function CardDetail({
         {hasBans && <BanAlert bans={card.bans} upcoming={false} />}
         {hasUpcomingBans && <BanAlert bans={card.upcomingBans} upcoming />}
 
+        {actions}
+
         {art}
 
         <div className="flex items-start gap-2">
@@ -280,8 +281,6 @@ export function CardDetail({
         {footer}
 
         {picker}
-
-        {actions}
 
         {onClose && <CardDetailLinks card={card} printing={printing} />}
       </div>

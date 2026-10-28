@@ -249,6 +249,18 @@ describe("PrintingPicker", () => {
       expect(onSelect).toHaveBeenCalledWith(german);
     });
 
+    it("shows no pills when every printing is in one language", () => {
+      const printings = [
+        design("EN"),
+        design("EN", { shortCode: "OGN-002" }),
+        design("EN", { shortCode: "OGN-003" }),
+      ];
+
+      render(<PrintingPicker current={printings[0]!} printings={printings} onSelect={() => {}} />);
+
+      expect(screen.queryByRole("button", { name: "English" })).not.toBeInTheDocument();
+    });
+
     it("keeps a language not present in the taxonomy reachable", () => {
       const printings = [design("EN"), design("XX")];
 

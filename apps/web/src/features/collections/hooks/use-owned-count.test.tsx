@@ -101,12 +101,14 @@ describe("aggregateByVariant", () => {
         printingId: "p1",
         shortCode: "OGN-001",
         finish: "normal",
+        printing: v1,
         collections: [{ collectionId: "c-import", collectionName: "RiftCore Import", count: 6 }],
       },
       {
         printingId: "p2",
         shortCode: "OGN-001p",
         finish: "foil",
+        printing: v2,
         collections: [{ collectionId: "c-inbox", collectionName: "Inbox", count: 2 }],
       },
     ]);
@@ -132,6 +134,7 @@ describe("aggregateByVariant", () => {
         printingId: "p1",
         shortCode: "OGN-001",
         finish: "normal",
+        printing: v1,
         collections: [{ collectionId: "c-import", collectionName: "RiftCore Import", count: 1 }],
       },
     ]);
@@ -169,12 +172,14 @@ describe("aggregateByVariant", () => {
         printingId: "p1",
         shortCode: "OGN-001",
         finish: "normal",
+        printing: v1,
         collections: [{ collectionId: "c-group", collectionName: "", count: 2 }],
       },
       {
         printingId: "p2",
         shortCode: "OGN-001p",
         finish: "foil",
+        printing: v2,
         collections: [{ collectionId: "c-group", collectionName: "", count: 1 }],
       },
     ]);

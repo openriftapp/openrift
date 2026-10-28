@@ -25,6 +25,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { cardHoverProps, rowActivateProps } from "@/features/cards/lib/card-row-interactions";
 import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
+import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { DeckCardGroupHeader } from "@/features/decks/components/deck-card-group-header";
 import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-card-row";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
@@ -660,7 +661,7 @@ export function DeckListRow({
         domainColors={domainColors}
         rarity={rarity}
         rarityLabels={rarityLabels}
-        shortCode={printing?.shortCode}
+        shortCode={printing && distinctPrintingCode(printing)}
         loading="lazy"
         hideMetaOnMobile
       />

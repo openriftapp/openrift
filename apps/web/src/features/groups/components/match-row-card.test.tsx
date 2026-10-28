@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { countTradeSuggestions } from "@/features/groups/lib/trade-derivation";
-import type { EnumLabels } from "@/lib/enum-labels";
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
@@ -80,7 +79,6 @@ function makeMatch(): AggregatedMatch {
     shortCode: "OGN-001",
     setIndex: 3,
     setName: "Origins",
-    finishLabel: "Foil",
     domains: ["fury"],
     printing: null,
     availableCount: 1,
@@ -205,21 +203,10 @@ describe("groupTradeMatches", () => {
 });
 
 describe("resolveMatchRows", () => {
-  const LABELS: EnumLabels = {
-    finishes: { foil: "Foil" },
-    rarities: { common: "Common" },
-    domains: {},
-    cardTypes: {},
-    superTypes: {},
-    artVariants: {},
-    cardSizes: {},
-    conditions: {},
-    graders: {},
-  };
   type ListRow = Parameters<typeof resolveMatchRows>[0][number];
 
   function resolve(rows: ListRow[]) {
-    return resolveMatchRows(rows, {}, {}, [], LABELS, "rift-crew", new Map());
+    return resolveMatchRows(rows, {}, {}, [], "rift-crew", new Map());
   }
 
   function makeListRow(overrides: Partial<ListRow> = {}): ListRow {

@@ -27,6 +27,7 @@ import { CardDetailOverlay } from "@/features/cards/components/card-detail-overl
 import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { useMarketplaceLinks } from "@/features/cards/hooks/use-marketplace-links";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
+import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import {
   missingCardsToListEntries,
   missingCardsToWants,
@@ -64,7 +65,9 @@ function CardIdentity({
   const content = (
     <>
       {printing && <RarityIcon rarity={printing.rarity} labelled className="size-3.5" />}
-      <span className="text-muted-foreground font-mono">{printing?.shortCode ?? "--"}</span>
+      <span className="text-muted-foreground font-mono">
+        {printing ? distinctPrintingCode(printing) : "--"}
+      </span>
       <span>{card.displayName}</span>
     </>
   );
@@ -176,7 +179,7 @@ function MissingCardsDialogBody({
       .map((card) => {
         const printing = card.cheapestPrinting ?? card.displayPrinting;
         const price = card.cheapestPrice ?? card.displayPrice;
-        const code = printing?.shortCode;
+        const code = printing && distinctPrintingCode(printing);
         const cardName = straightenApostrophes(card.cardName);
         const namePart = code ? `${code} ${cardName}` : cardName;
         const priceText = price === undefined ? "" : ` - ${fmt(price * card.shortfall)}`;

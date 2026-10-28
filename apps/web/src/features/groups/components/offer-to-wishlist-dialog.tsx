@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { RadioOptionRow } from "@/components/ui/radio-option-row";
+import { PrintingVariantLine } from "@/features/cards/components/printing-row";
 import { printingDisplayName } from "@/features/cards/lib/card-meta";
 import { useCreateTrade } from "@/features/groups/hooks/use-card-trades";
 import {
@@ -201,7 +202,12 @@ function OfferBody({
             <RadioOptionRow
               key={sideKey(choice.printing)}
               value={String(index)}
-              title={choice.printing.shortCode}
+              title={
+                <PrintingVariantLine
+                  printing={choice.printing}
+                  siblings={choices.map((other) => other.printing)}
+                />
+              }
               meta={
                 <span className="text-muted-foreground text-xs">
                   {m.trades_owned_count({ count: choice.copyIds.length })}

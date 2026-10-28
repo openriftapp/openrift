@@ -11,9 +11,9 @@ import {
   getCardTableColumns,
   getCardTableMinWidth,
 } from "@/features/cards/components/card-table-row";
-import { FinishIcon } from "@/features/cards/components/finish-icon";
 import { PrintingChannelCell } from "@/features/cards/components/printing-channel-cell";
 import { PrintingNotesCell } from "@/features/cards/components/printing-notes-cell";
+import { CatalogPrintingVariantLine } from "@/features/cards/components/printing-row";
 import { StaticCountTableActions } from "@/features/cards/components/static-count-table-actions";
 import { printingArt } from "@/features/cards/lib/card-meta";
 import type { ActionsColumn } from "@/features/collections/lib/collection-table";
@@ -125,9 +125,8 @@ export function PromoMobileCard({
           )}
         </div>
         <div className="space-y-1 text-sm">
-          <div className="text-muted-foreground flex items-center gap-1">
-            <span className="truncate tabular-nums">{printing.publicCode}</span>
-            <FinishIcon finish={printing.finish} className="shrink-0" />
+          <div className="text-muted-foreground min-w-0">
+            <CatalogPrintingVariantLine printing={printing} publicCode />
           </div>
           {showChannel && <PrintingChannelCell channels={printing.distributionChannels} />}
           <PrintingNotesCell

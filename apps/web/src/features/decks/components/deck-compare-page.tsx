@@ -34,6 +34,7 @@ import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import { HoveredCardPreview } from "@/features/cards/components/hovered-card-preview";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
+import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-card-row";
 import type { PastedCompareSource } from "@/features/decks/components/deck-compare-paste-dialog";
 import { DeckComparePasteDialog } from "@/features/decks/components/deck-compare-paste-dialog";
@@ -119,7 +120,7 @@ function SideCell({
         domainColors={display.domainColors}
         rarity={printing?.rarity}
         rarityLabels={display.rarityLabels}
-        shortCode={printing?.shortCode}
+        shortCode={printing && distinctPrintingCode(printing)}
         loading="lazy"
         hideMetaOnMobile
       />

@@ -48,19 +48,19 @@ export function PrintingPicker({
         designs={designs}
         selectedSideKey={sideKey(current)}
         onSelect={onSelect}
-        right={(p) => (
-          <>
-            <OwnedCollectionsPopover
-              printingId={p.printingId}
-              cardName={legendDisplayName(p.card)}
-              shortCode={p.shortCode}
-              count={owned?.totals[p.printingId] ?? 0}
-              totalCount={owned?.allTotals[p.printingId] ?? 0}
-              otherSideName={p.otherSide?.cardName}
-            />
-            <PrintingPrices printing={p} />
-          </>
+        badge={(p) => (
+          <OwnedCollectionsPopover
+            badge
+            align="start"
+            printingId={p.printingId}
+            cardName={legendDisplayName(p.card)}
+            printing={p}
+            count={owned?.totals[p.printingId] ?? 0}
+            totalCount={owned?.allTotals[p.printingId] ?? 0}
+            otherSideName={p.otherSide?.cardName}
+          />
         )}
+        right={(p) => <PrintingPrices printing={p} />}
       />
     </div>
   );

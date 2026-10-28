@@ -1,5 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
-import type { PackPull, PackResult } from "@openrift/shared/pack-opener/types";
+import type { PackPrinting, PackPull, PackResult } from "@openrift/shared/pack-opener/types";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { RowList, RowListItem } from "@/components/ui/row-list";
+import { PullVariantLine } from "@/features/pack-opener/components/pull-variant-line";
 import {
   PACK_RARITY_ORDER,
   compareRarityDesc,
@@ -27,7 +28,7 @@ interface PackStatsProps {
 
 interface NotablePull {
   cardName: string;
-  shortCode: string;
+  printing: PackPrinting;
   rarity: string;
   slotLabel: string;
   value: number | undefined;
@@ -35,7 +36,7 @@ interface NotablePull {
 
 interface UnpricedPull {
   cardName: string;
-  shortCode: string;
+  printing: PackPrinting;
   rarity: string;
 }
 
@@ -77,7 +78,7 @@ export function PackStats({ packs, prices, marketplace }: PackStatsProps) {
             types: pull.printing.cardTypes,
             tags: pull.printing.tags,
           }),
-          shortCode: pull.printing.shortCode,
+          printing: pull.printing,
           rarity,
         });
       }
@@ -160,7 +161,7 @@ function buildNotablePulls(
         types: pull.printing.cardTypes,
         tags: pull.printing.tags,
       }),
-      shortCode: pull.printing.shortCode,
+      printing: pull.printing,
       rarity,
       slotLabel: packSlotLabel(pull, rarityLabels),
       value,
@@ -283,10 +284,13 @@ function NotablePullsList({
       <Heading level={3}>{m.packs_notable_pulls()}</Heading>
       <RowList className="grid gap-x-8 gap-y-2 text-sm md:grid-cols-2">
         {pulls.map((pull, i) => (
-          <RowListItem key={`${pull.shortCode}-${i}`} className="items-baseline justify-between">
+          <RowListItem key={`${pull.printing.id}-${i}`} className="items-baseline justify-between">
             <span className="min-w-0 truncate">
               {pull.cardName}
-              <span className="text-muted-foreground ml-1 font-mono text-xs">{pull.shortCode}</span>
+              <PullVariantLine
+                printing={pull.printing}
+                className="text-muted-foreground ml-1 text-xs"
+              />
             </span>
             <span className="flex shrink-0 items-baseline gap-3 text-xs">
               <span className="text-muted-foreground">{pull.slotLabel}</span>
@@ -313,10 +317,13 @@ function UnpricedPullsList({
       <Heading level={3}>{m.packs_unpriced_title()}</Heading>
       <RowList className="grid gap-x-8 gap-y-2 text-sm md:grid-cols-2">
         {pulls.map((pull, i) => (
-          <RowListItem key={`${pull.shortCode}-${i}`} className="items-baseline justify-between">
+          <RowListItem key={`${pull.printing.id}-${i}`} className="items-baseline justify-between">
             <span className="min-w-0 truncate">
               {pull.cardName}
-              <span className="text-muted-foreground ml-1 font-mono text-xs">{pull.shortCode}</span>
+              <PullVariantLine
+                printing={pull.printing}
+                className="text-muted-foreground ml-1 text-xs"
+              />
             </span>
             <span className="text-muted-foreground shrink-0 text-xs">
               {rarityLabel(pull.rarity)}

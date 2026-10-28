@@ -1,13 +1,15 @@
 import { formatRelativeTime } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import type { CardTradeStatus } from "@openrift/shared/types/api/card-trade";
-import type { Finish, Rarity } from "@openrift/shared/types/enums";
+import type { Printing } from "@openrift/shared/types/catalog";
+import type { Rarity } from "@openrift/shared/types/enums";
 import { ArrowDownLeftIcon, ArrowUpRightIcon, BellIcon, CheckIcon, ClockIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { FinishIcon } from "@/features/cards/components/finish-icon";
+import { PrintingVariantLine } from "@/features/cards/components/printing-row";
 import { RarityIcon } from "@/features/cards/components/rarity-icon";
+import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { tradeStatusLabel } from "@/features/groups/lib/trade-derivation";
 import { DATE_WORDS } from "@/lib/date-words";
@@ -39,23 +41,27 @@ export function TradeDirectionIcon({ incoming }: { incoming: boolean }) {
 }
 
 export function CardMetaLine({
-  shortCode,
+  printing,
   rarity,
-  finish,
-  finishLabel,
+  hideLanguage,
   trailing,
 }: {
-  shortCode: string;
+  printing?: Printing | null;
   rarity: Rarity;
-  finish: Finish;
-  finishLabel: string;
+  hideLanguage?: boolean;
   trailing?: ReactNode;
 }) {
+  const { printingsByCardId } = useCards();
   return (
     <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-      {shortCode ? <span className="font-medium">{shortCode}</span> : null}
       <RarityIcon rarity={rarity} labelled className="size-3.5" />
-      <FinishIcon finish={finish} title={finishLabel} />
+      {printing ? (
+        <PrintingVariantLine
+          printing={printing}
+          siblings={printingsByCardId.get(printing.cardId)}
+          hideLanguage={hideLanguage}
+        />
+      ) : null}
       {trailing}
     </span>
   );

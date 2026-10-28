@@ -12,6 +12,7 @@ import { AFTER_BORDER } from "@/features/cards/components/card-thumbnail";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { rowActivateProps } from "@/features/cards/lib/card-row-interactions";
+import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { DECK_LIST_SECTION_CLASS } from "@/features/decks/components/deck-overview-list";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
@@ -132,7 +133,7 @@ function TokenRow({
         domainColors={domainColors}
         rarity={entry.printing.rarity}
         rarityLabels={rarityLabels}
-        shortCode={entry.printing.shortCode}
+        shortCode={distinctPrintingCode(entry.printing)}
         loading="lazy"
         hideMetaOnMobile
       />

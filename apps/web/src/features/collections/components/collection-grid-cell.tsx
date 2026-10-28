@@ -239,7 +239,7 @@ export const CollectionGridCell = memo(function CollectionGridCell({
           <OwnedCollectionsPopover
             printingId={displayPrinting.printingId}
             cardName={legendDisplayName(displayPrinting.card)}
-            shortCode={displayPrinting.shortCode}
+            printing={displayPrinting}
             count={ownedCount}
             totalCount={totalInCollection}
             otherSideName={displayPrinting.otherSide?.cardName}

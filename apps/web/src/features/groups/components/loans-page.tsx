@@ -1,5 +1,4 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
-import { enumLabel } from "@openrift/shared/enum-label";
 import { formatRelativeTime } from "@openrift/shared/format-date";
 import type { LoanResponse } from "@openrift/shared/types/api/loan";
 import { Link } from "@tanstack/react-router";
@@ -46,14 +45,12 @@ import {
   loanStatusLabel,
   outstandingQuantity,
 } from "@/features/groups/lib/loan-derivation";
-import { useEnumOrders } from "@/hooks/use-enums";
 import { DATE_WORDS } from "@/lib/date-words";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 function LoanRow({ loan }: { loan: LoanResponse }) {
   const { cardsById, printingsById } = useCards();
-  const { labels } = useEnumOrders();
 
   const acknowledge = useAcknowledgeLoan();
   const reject = useRejectLoan();
@@ -117,14 +114,7 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
 
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="truncate font-medium">{quantityLabel}</span>
-          {printing ? (
-            <CardMetaLine
-              shortCode={printing.shortCode}
-              rarity={printing.rarity}
-              finish={printing.finish}
-              finishLabel={enumLabel(labels.finishes, printing.finish)}
-            />
-          ) : null}
+          {printing ? <CardMetaLine printing={printing} rarity={printing.rarity} /> : null}
         </div>
 
         <span className="flex shrink-0 items-center gap-1.5 px-1.5 py-1" title={counterpartyName}>

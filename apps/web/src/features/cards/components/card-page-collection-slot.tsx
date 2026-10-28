@@ -23,22 +23,28 @@ export function CollectionSlot({
   printing: Printing;
   siblings: readonly Printing[];
 }) {
-  const { data: session, isPending } = useSession();
+  const { data: session } = useSession();
   const hydrated = useHydrated();
-  if (isPending) {
-    return null;
-  }
   if (!session?.user) {
-    return <TrackCollectionNudge />;
-  }
-  if (!hydrated) {
     return null;
+  }
+  const placeholder = <div aria-hidden className="bg-card h-10 rounded-lg border" />;
+  if (!hydrated) {
+    return placeholder;
   }
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={placeholder}>
       <CardPageCollectionActions printing={printing} siblings={siblings} />
     </Suspense>
   );
+}
+
+export function SignupNudgeSlot() {
+  const { data: session, isPending } = useSession();
+  if (isPending || session?.user) {
+    return null;
+  }
+  return <TrackCollectionNudge />;
 }
 
 function TrackCollectionNudge() {

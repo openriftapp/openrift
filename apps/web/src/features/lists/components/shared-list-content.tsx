@@ -371,7 +371,7 @@ function SharedListGrid({
           <OwnedCollectionsPopover
             printingId={item.printing.printingId}
             cardName={legendDisplayName(item.printing.card)}
-            shortCode={item.printing.shortCode}
+            printing={item.printing}
             count={ownedCount}
             align="start"
             otherSideName={item.printing.otherSide?.cardName}

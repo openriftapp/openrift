@@ -11,9 +11,9 @@ import { CardIcon } from "@/components/card-icon";
 import { Pressable } from "@/components/ui/pressable";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { FilterIcon } from "@/features/cards/components/filter-icon";
-import { FinishIcon } from "@/features/cards/components/finish-icon";
 import { PrintingChannelCell } from "@/features/cards/components/printing-channel-cell";
 import { PrintingNotesCell } from "@/features/cards/components/printing-notes-cell";
+import { CatalogPrintingVariantLine } from "@/features/cards/components/printing-row";
 import { rowActivateProps } from "@/features/cards/lib/card-row-interactions";
 import type { ActionsColumn } from "@/features/collections/lib/collection-table";
 import { getTypeIconPaths } from "@/lib/icons";
@@ -283,9 +283,8 @@ export function CardTableRow({
         <div className="truncate font-medium" title={cardName}>
           {cardName}
         </div>
-        <div className="text-muted-foreground flex items-center gap-1 text-xs">
-          <span className="truncate tabular-nums">{printing.publicCode}</span>
-          <FinishIcon finish={printing.finish} className="shrink-0" />
+        <div className="text-muted-foreground min-w-0 truncate text-xs">
+          <CatalogPrintingVariantLine printing={printing} publicCode className="flex-nowrap" />
         </div>
       </div>
     ),

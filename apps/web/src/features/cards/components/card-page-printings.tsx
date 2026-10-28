@@ -5,7 +5,6 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import type { CSSProperties, ReactNode } from "react";
 import { Suspense } from "react";
 
-import { CardIcon } from "@/components/card-icon";
 import { Heading } from "@/components/heading";
 import { LanguageChip } from "@/components/language-chip";
 import { Pressable } from "@/components/ui/pressable";
@@ -16,6 +15,7 @@ import { usePrices } from "@/features/cards/hooks/use-prices";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { PrintingDesign } from "@/features/cards/lib/printing-designs";
 import { groupPrintingDesigns, isSelectedSide } from "@/features/cards/lib/printing-designs";
+import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
 import { useLanguageLabels } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -99,37 +99,39 @@ function LivePrintingTable(props: MatrixProps) {
 
 function PrintingTable(props: MatrixProps & { stats?: CellStats }) {
   const { designs, selectedSideKey, onSelect, stats } = props;
-  const artists = new Set(
-    designs.flatMap((design) => [...design.byLanguage.values()].map((printing) => printing.artist)),
-  );
-  const showArtist = artists.size > 1;
   return (
     <>
       <div className="hidden sm:block">
-        <PrintingMatrix {...props} showArtist={showArtist} />
+        <PrintingMatrix {...props} />
       </div>
       <div className="bg-card rounded-xl border px-3 py-2 sm:hidden">
         <PrintingDesignRows
           designs={designs}
           selectedSideKey={selectedSideKey}
           onSelect={onSelect}
-          right={stats && ((printing) => <CompactStats printing={printing} stats={stats} />)}
-          details={(design) => <DesignDetails design={design} showArtist={showArtist} />}
+          badge={stats && ((printing) => <OwnedBadge count={stats.owned?.[printing.printingId]} />)}
+          right={stats && ((printing) => <CompactPrice printing={printing} stats={stats} />)}
+          details={(design) => <DesignDetails design={design} />}
         />
       </div>
     </>
   );
 }
 
-function CompactStats({ printing, stats }: { printing: Printing; stats: CellStats }) {
-  const owned = stats.owned?.[printing.printingId] ?? 0;
+function OwnedBadge({ count = 0 }: { count?: number }) {
+  if (count === 0) {
+    return null;
+  }
   return (
-    <span className="flex shrink-0 items-center gap-2 text-xs font-semibold tabular-nums">
-      {owned > 0 && (
-        <span className="bg-foreground text-background text-2xs flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1">
-          ×{owned}
-        </span>
-      )}
+    <span className="bg-foreground text-background ring-card text-2xs flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 font-bold tabular-nums ring-2">
+      ×{count}
+    </span>
+  );
+}
+
+function CompactPrice({ printing, stats }: { printing: Printing; stats: CellStats }) {
+  return (
+    <span className="shrink-0 text-xs font-semibold tabular-nums">
       {stats.price(printing.printingId)}
     </span>
   );
@@ -141,8 +143,7 @@ function PrintingMatrix({
   selectedSideKey,
   onSelect,
   stats,
-  showArtist,
-}: MatrixProps & { stats?: CellStats; showArtist: boolean }) {
+}: MatrixProps & { stats?: CellStats }) {
   const languageLabels = useLanguageLabels();
   const leads = designs.map((design) => design.lead);
   const columns = { "--cols": languages.length } as CSSProperties;
@@ -174,7 +175,7 @@ function PrintingMatrix({
                 hasSelected && "bg-primary/5",
               )}
             >
-              <DesignInfo design={design} leads={leads} showArtist={showArtist} />
+              <DesignInfo design={design} leads={leads} />
               <div className={cellGrid}>
                 {languages.map((language) => {
                   const printing = design.byLanguage.get(language);
@@ -242,7 +243,7 @@ function PrintingCell({
       <span className="relative">
         <CardArtThumb
           imageId={printing.images[0]?.imageId}
-          alt={`${printing.publicCode}, ${languageLabel}`}
+          alt={`${distinctPrintingCode(printing)}, ${languageLabel}`}
           landscape={getOrientation(printing.card.types) === "landscape"}
           rarity={printing.rarity}
           domains={printing.card.domains}
@@ -268,27 +269,18 @@ function PrintingCell({
   );
 }
 
-function DesignInfo({
-  design,
-  leads,
-  showArtist,
-}: {
-  design: PrintingDesign;
-  leads: Printing[];
-  showArtist: boolean;
-}) {
+function DesignInfo({ design, leads }: { design: PrintingDesign; leads: Printing[] }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1">
       <span className="min-w-0 text-xs">
         <PrintingVariantLine printing={design.lead} siblings={leads} hideLanguage />
       </span>
-      <DesignDetails design={design} showArtist={showArtist} />
+      <DesignDetails design={design} />
     </div>
   );
 }
 
-function DesignDetails({ design, showArtist }: { design: PrintingDesign; showArtist: boolean }) {
-  const { artist } = design.lead;
+function DesignDetails({ design }: { design: PrintingDesign }) {
   const channelLabels = [...design.byLanguage.values()].flatMap((member) =>
     member.distributionChannels.map((link) =>
       link.ancestorLabels.length > 0
@@ -298,15 +290,7 @@ function DesignDetails({ design, showArtist }: { design: PrintingDesign; showArt
   );
   const channelSummary = [...new Set(channelLabels)].join(", ");
 
-  return (
-    <>
-      {showArtist && artist && (
-        <p className="text-muted-foreground inline-flex items-center gap-1 text-xs">
-          <CardIcon src="/images/artist.svg" className="size-3 shrink-0" />
-          <span className="truncate">{artist}</span>
-        </p>
-      )}
-      {channelSummary && <p className="text-muted-foreground truncate text-xs">{channelSummary}</p>}
-    </>
-  );
+  return channelSummary ? (
+    <p className="text-muted-foreground truncate text-xs">{channelSummary}</p>
+  ) : null;
 }

@@ -25,6 +25,7 @@ function toOwnershipPrinting(printing: Printing): OwnershipPrinting {
     sideKey: sideKey(printing),
     language: printing.language,
     shortCode: printing.shortCode,
+    otherSide: printing.otherSide && { shortCode: printing.otherSide.shortCode },
     setId: printing.setId,
     rarity: printing.rarity,
     imageId: printing.images[0]?.imageId,

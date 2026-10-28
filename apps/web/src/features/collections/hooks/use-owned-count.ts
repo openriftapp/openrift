@@ -340,19 +340,22 @@ export interface OwnedBreakdownVariant {
   finish: Finish;
 }
 
-export interface VariantCollectionBreakdownEntry {
+export interface VariantCollectionBreakdownEntry<
+  V extends OwnedBreakdownVariant = OwnedBreakdownVariant,
+> {
   printingId: string;
   shortCode: string;
   finish: Finish;
+  printing: V;
   collections: CopyCollectionBreakdownEntry[];
 }
 
-export function aggregateByVariant(
+export function aggregateByVariant<V extends OwnedBreakdownVariant>(
   copies: readonly CopyResponse[],
-  variants: readonly OwnedBreakdownVariant[],
+  variants: readonly V[],
   collectionNameById: Map<string, string>,
   viewCollectionId?: string,
-): VariantCollectionBreakdownEntry[] {
+): VariantCollectionBreakdownEntry<V>[] {
   const buckets = new Map<string, Map<string, number>>();
   for (const variant of variants) {
     buckets.set(variant.printingId, new Map());
@@ -367,7 +370,7 @@ export function aggregateByVariant(
     }
     bucket.set(copy.collectionId, (bucket.get(copy.collectionId) ?? 0) + 1);
   }
-  const result: VariantCollectionBreakdownEntry[] = [];
+  const result: VariantCollectionBreakdownEntry<V>[] = [];
   // A card on both sides of one printing lists that printing once.
   const listed = new Set<string>();
   for (const variant of variants) {
@@ -388,17 +391,18 @@ export function aggregateByVariant(
       printingId: variant.printingId,
       shortCode: variant.shortCode,
       finish: variant.finish,
+      printing: variant,
       collections,
     });
   }
   return result;
 }
 
-export function useOwnedCollectionsByVariants(
-  variants: readonly OwnedBreakdownVariant[],
+export function useOwnedCollectionsByVariants<V extends OwnedBreakdownVariant>(
+  variants: readonly V[],
   enabled: boolean,
   viewCollectionId?: string,
-): { data: VariantCollectionBreakdownEntry[] | undefined } {
+): { data: VariantCollectionBreakdownEntry<V>[] | undefined } {
   const copiesCollection = useCopiesCollection();
   const collections = useCollectionsList();
 

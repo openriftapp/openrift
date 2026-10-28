@@ -63,7 +63,7 @@ export function PrintingCountActions({
           <OwnedCollectionsPopover
             printingId={printing.printingId}
             cardName={cardName}
-            shortCode={printing.shortCode}
+            printing={printing}
             count={ownedCount}
             totalCount={widerTotal}
             otherSideName={printing.otherSide?.cardName}
