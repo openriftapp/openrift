@@ -170,6 +170,20 @@ describe("playloltcgDeepFetch", () => {
     expect(mirrored[0]?.sourceDeckId).toBeNull();
   });
 
+  it("drops a standings row ranked below 1 and keeps the rest of the field", async () => {
+    const { deps, mirrored } = fakeDeps({
+      standings: [
+        standingsRow({ name: "张三", finalRanking: 1 }),
+        standingsRow({ name: "李四", finalRanking: 0 }),
+      ],
+    });
+
+    const result = await playloltcgDeepFetch(deps, catalogRow(), DETAIL, BUDGET);
+
+    expect(result).toMatchObject({ players: 1, complete: true });
+    expect(mirrored.map((player) => player.playerName)).toEqual(["张三"]);
+  });
+
   it("keys a player on something the source's re-ranking cannot move", async () => {
     const provisional = fakeDeps({
       standings: [

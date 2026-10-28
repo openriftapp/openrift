@@ -315,7 +315,7 @@ export async function playloltcgDeepFetch(
   for (const s of standings) {
     const rank = num(s.finalRanking);
     const rawName = typeof s.name === "string" ? s.name.trim() : "";
-    if (rank === null || rawName === "") {
+    if (rank === null || rank < 1 || rawName === "") {
       continue;
     }
     const playerName = rawName.slice(0, 80);
