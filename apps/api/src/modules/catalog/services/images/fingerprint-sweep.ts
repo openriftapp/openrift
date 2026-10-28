@@ -6,8 +6,8 @@ import type { Logger } from "@openrift/shared/logger";
 import type { Io } from "../../../../io.js";
 import type { candidateCardsRepo } from "../../../candidates/repositories/candidate-cards.js";
 import type { printingImagesRepo } from "../../repositories/printing-images.js";
-import { downloadImage } from "./download.js";
 import { computeCandidateFingerprint, computeImageFingerprint } from "./fingerprint.js";
+import { fetchOriginalImage } from "./original-source.js";
 import { CARD_MEDIA_DIR } from "./paths.js";
 
 export interface FingerprintSweepResult {
@@ -65,7 +65,7 @@ export async function sweepImageFingerprints(
   const candidates = await repos.candidateCards.listPrintingsNeedingFingerprint(limits.candidates);
   for (const candidate of candidates) {
     try {
-      const { buffer } = await downloadImage(io, candidate.imageUrl);
+      const { buffer } = await fetchOriginalImage(io, candidate.imageUrl);
       const fingerprint = await computeCandidateFingerprint(io, buffer, candidate.liveFingerprint);
       await repos.candidateCards.setImageFingerprint(candidate.id, candidate.imageUrl, fingerprint);
       result.candidatesFingerprinted++;

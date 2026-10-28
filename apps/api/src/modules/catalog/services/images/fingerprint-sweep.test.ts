@@ -5,6 +5,9 @@ import { isFingerprintSweepNoop, sweepImageFingerprints } from "./fingerprint-sw
 
 vi.mock("./download.js", () => ({
   downloadImage: vi.fn(async (_io: Io, url: string) => {
+    if (!url.startsWith("https://")) {
+      throw new TypeError("Invalid URL");
+    }
     if (url.includes("broken")) {
       throw new Error("404");
     }
@@ -86,6 +89,20 @@ describe("sweepImageFingerprints", () => {
       "cp1",
       "https://src.example/a.png",
       "fp:https://src.example/a.png:live-fp",
+    );
+    expect(result.candidatesFingerprinted).toBe(1);
+  });
+
+  it("reads a contributor photo upload from disk", async () => {
+    const url = "/media/submissions/01a18225-4ee0-729c-bd9b-6452e5f3eb91.jpg";
+    const { io, repos } = makeDeps([], [{ id: "cp3", imageUrl: url, liveFingerprint: null }]);
+    const result = await sweepImageFingerprints(io, repos as never, log);
+    expect(repos.candidateCards.setImageFingerprint).toHaveBeenCalledWith(
+      "cp3",
+      url,
+      expect.stringMatching(
+        /^fp:.*\/media\/submissions\/01a18225-4ee0-729c-bd9b-6452e5f3eb91\.jpg:null$/u,
+      ),
     );
     expect(result.candidatesFingerprinted).toBe(1);
   });
