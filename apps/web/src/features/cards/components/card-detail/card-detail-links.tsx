@@ -1,14 +1,9 @@
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
-import {
-  ExternalLinkIcon,
-  ImageUpIcon,
-  LayersIcon,
-  PencilLineIcon,
-  ShieldIcon,
-} from "lucide-react";
+import { ChevronDownIcon, ExternalLinkIcon, PencilLineIcon, ShieldIcon } from "lucide-react";
 
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
+import { SuggestCorrectionMenu } from "@/features/cards/components/suggest-correction-menu";
 import { m } from "@/paraglide/messages.js";
 
 /**
@@ -29,35 +24,15 @@ export function CardDetailLinks({ card, printing }: { card: Card; printing?: Pri
         <ExternalLinkIcon className="size-3" />
         {m.card_detail_link_open_card_page()}
       </Link>
-      <Link
-        to="/contribute/card/$cardSlug"
-        params={{ cardSlug: card.slug }}
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
+      <SuggestCorrectionMenu
+        cardSlug={card.slug}
+        printing={printing}
+        triggerClassName="text-muted-foreground hover:text-foreground inline-flex cursor-pointer items-center gap-1 text-xs"
       >
         <PencilLineIcon className="size-3" />
         {m.card_detail_link_suggest_correction()}
-      </Link>
-      {printing && (
-        <Link
-          to="/contribute/card/$cardSlug/printing/$printingId"
-          params={{ cardSlug: card.slug, printingId: printing.printingId }}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
-        >
-          <LayersIcon className="size-3" />
-          {m.card_detail_link_fix_printing()}
-        </Link>
-      )}
-      {printing && printing.images.length > 0 && (
-        <Link
-          to="/contribute/card/$cardSlug/printing/$printingId/image"
-          params={{ cardSlug: card.slug, printingId: printing.printingId }}
-          search={printing.side === 2 ? { side: 2 } : {}}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
-        >
-          <ImageUpIcon className="size-3" />
-          {m.card_detail_link_suggest_better_image()}
-        </Link>
-      )}
+        <ChevronDownIcon className="size-3" />
+      </SuggestCorrectionMenu>
       {isAdmin && (
         <Link
           to="/admin/cards/$cardSlug"

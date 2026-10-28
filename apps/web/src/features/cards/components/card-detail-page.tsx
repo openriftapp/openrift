@@ -2,18 +2,18 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
-import { PencilLineIcon } from "lucide-react";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
+import { ChevronDownIcon, PencilLineIcon } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
 import {
   PageTopBar,
   PageTopBarActions,
   PageTopBarBack,
+  PageTopBarButton,
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
-import { buttonVariants } from "@/components/ui/button";
 import { CollectionSlot } from "@/features/cards/components/card-page-collection-slot";
 import { CardPageFactRows } from "@/features/cards/components/card-page-fact-rows";
 import { CardPageHero } from "@/features/cards/components/card-page-hero";
@@ -22,6 +22,7 @@ import { PriceHistorySection } from "@/features/cards/components/card-page-price
 import { CardPagePrintings } from "@/features/cards/components/card-page-printings";
 import { RelatedCardsSection } from "@/features/cards/components/card-page-related-cards";
 import { ShareLinkButton } from "@/features/cards/components/card-page-share-button";
+import { SuggestCorrectionMenu } from "@/features/cards/components/suggest-correction-menu";
 import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { resolveCardMetaPrinting } from "@/features/cards/lib/card-meta";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
@@ -88,15 +89,15 @@ export function CardDetailPage() {
           <PageTopBarBack to="/cards" aria-label={m.card_detail_all_cards()} />
           <PageTopBarTitle>{legendDisplayName(card)}</PageTopBarTitle>
           <PageTopBarActions>
-            <Link
-              to="/contribute/card/$cardSlug"
-              params={{ cardSlug }}
-              aria-label={m.card_detail_link_suggest_correction()}
-              className={buttonVariants({ variant: "ghost" })}
+            <SuggestCorrectionMenu
+              cardSlug={cardSlug}
+              printing={selectedPrinting}
+              trigger={<PageTopBarButton aria-label={m.card_detail_link_suggest_correction()} />}
             >
               <PencilLineIcon className="size-4" />
               <span className="hidden sm:inline">{m.card_detail_link_suggest_correction()}</span>
-            </Link>
+              <ChevronDownIcon className="size-4" />
+            </SuggestCorrectionMenu>
             <ShareLinkButton cardName={legendDisplayName(card)} />
           </PageTopBarActions>
         </PageTopBar>
