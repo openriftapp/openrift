@@ -107,7 +107,7 @@ function distinctPrintings(printings: Printing[], uniqueCards: boolean): Printin
   });
 }
 
-export function matchCatalog(
+function matchCatalog(
   source: CatalogSearchSource,
   q: string,
 ): { ok: true; printings: Printing[] } | Refusal {
@@ -150,7 +150,7 @@ export function matchCatalog(
   };
 }
 
-export function pageResponse(
+function pageResponse(
   catalog: CatalogResponse,
   printings: readonly Printing[],
   offset: number,
