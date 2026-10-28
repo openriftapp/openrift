@@ -346,7 +346,7 @@ const fetchIgnored = createServerFn({ method: "GET" })
     apiOrpcClient(adminMetaCandidatesContract, context.cookie).listIgnored(),
   );
 
-export interface IgnoredMetaSourceEvent {
+interface IgnoredMetaSourceEvent {
   provider: string;
   externalId: string;
   createdAt: string;
