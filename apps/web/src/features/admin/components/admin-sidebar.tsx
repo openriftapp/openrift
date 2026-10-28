@@ -7,6 +7,7 @@ import {
   ActivityIcon,
   CalendarClockIcon,
   CameraIcon,
+  ChevronRightIcon,
   GaugeIcon,
   SquareDashedIcon,
   CloudIcon,
@@ -36,7 +37,6 @@ import {
   SparklesIcon,
   SwordsIcon,
   MapIcon,
-  SettingsIcon,
   SpellCheckIcon,
   SwatchBookIcon,
   TagIcon,
@@ -44,12 +44,13 @@ import {
   TrophyIcon,
   UsersIcon,
 } from "lucide-react";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   NestedSidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
@@ -82,8 +83,6 @@ const catalogInputPages = [
   { to: "/admin/sets" as const, icon: DatabaseIcon, title: "Sets" },
   { to: "/admin/sources" as const, icon: DatabaseIcon, title: "Sources" },
   { to: "/admin/images" as const, icon: ImageIcon, title: "Images" },
-  { to: "/admin/products" as const, icon: PackageIcon, title: "Products" },
-  { to: "/admin/unmatched" as const, icon: PackageSearchIcon, title: "Unmatched products" },
   { to: "/admin/ignored-sources" as const, icon: BanIcon, title: "Review Decisions" },
 ];
 
@@ -94,7 +93,7 @@ const catalogPages = [
   { to: "/admin/sources" as const, icon: DatabaseIcon, title: "Sources" },
   { to: "/admin/images" as const, icon: ImageIcon, title: "Images" },
   { to: "/admin/ignored-sources" as const, icon: BanIcon, title: "Review Decisions" },
-  { to: "/admin/products" as const, icon: PackageIcon, title: "Products" },
+  { to: "/admin/printing-desk" as const, icon: CameraIcon, title: "Printing Desk" },
 ];
 
 const taxonomyPages = [
@@ -115,37 +114,44 @@ const taxonomyPages = [
 ];
 
 const contentPages = [
-  { to: "/admin/design" as const, icon: SwatchBookIcon, title: "Design" },
-  { to: "/admin/typography-review" as const, icon: SpellCheckIcon, title: "Typography" },
   { to: "/admin/rules" as const, icon: BookOpenIcon, title: "Rules" },
   { to: "/admin/errata" as const, icon: FileWarningIcon, title: "Errata" },
   { to: "/admin/meta" as const, icon: TrophyIcon, title: "Meta Archive" },
   { to: "/admin/board-states" as const, icon: ShapesIcon, title: "Board States" },
 ];
 
-const contributePages = [
-  { to: "/admin/printing-desk" as const, icon: CameraIcon, title: "Printing Desk" },
-];
-
 const marketplacePages = [
   { to: "/admin/marketplace-overview" as const, icon: LayoutDashboardIcon, title: "Overview" },
   { to: "/admin/marketplace-groups" as const, icon: LayersIcon, title: "Groups" },
+  { to: "/admin/products" as const, icon: PackageIcon, title: "Products" },
+  { to: "/admin/unmatched" as const, icon: PackageSearchIcon, title: "Unmatched products" },
   { to: "/admin/ignored-products" as const, icon: BanIcon, title: "Ignored Products" },
 ];
 
-const systemPages = [
+const operationsPages = [
   { to: "/admin/status" as const, icon: ActivityIcon, title: "Status" },
-  { to: "/admin/audit" as const, icon: ScrollTextIcon, title: "Audit Log" },
   { to: "/admin/jobs" as const, icon: CalendarClockIcon, title: "Jobs" },
   { to: "/admin/job-runs" as const, icon: ListChecksIcon, title: "Job Runs" },
   { to: "/admin/printing-events" as const, icon: SendIcon, title: "Printing Events" },
+  { to: "/admin/audit" as const, icon: ScrollTextIcon, title: "Audit Log" },
+  { to: "/admin/cache" as const, icon: CloudIcon, title: "Cache" },
+];
+
+const peoplePages = [
   { to: "/admin/users" as const, icon: UsersIcon, title: "Users" },
-  { to: "/admin/group-banners" as const, icon: ImageIcon, title: "Group Banners" },
   { to: "/admin/organizations" as const, icon: CrownIcon, title: "Organizations" },
+  { to: "/admin/group-banners" as const, icon: ImageIcon, title: "Group Banners" },
+  { to: "/admin/api-keys" as const, icon: KeyRoundIcon, title: "API Keys" },
+];
+
+const configPages = [
   { to: "/admin/feature-flags" as const, icon: FlagIcon, title: "Feature Flags" },
   { to: "/admin/site-settings" as const, icon: GlobeIcon, title: "Site Settings" },
-  { to: "/admin/api-keys" as const, icon: KeyRoundIcon, title: "API Keys" },
-  { to: "/admin/cache" as const, icon: CloudIcon, title: "Cache" },
+];
+
+const devToolPages = [
+  { to: "/admin/design" as const, icon: SwatchBookIcon, title: "Design" },
+  { to: "/admin/typography-review" as const, icon: SpellCheckIcon, title: "Typography" },
   { to: "/admin/scan" as const, icon: CameraIcon, title: "Scan Test" },
   ...(import.meta.env.DEV
     ? [
@@ -155,25 +161,33 @@ const systemPages = [
     : []),
 ];
 
+const sharedGroups = [
+  { label: "Marketplaces", pages: marketplacePages },
+  { label: "Content", pages: contentPages },
+  { label: "Taxonomy", pages: taxonomyPages, collapsible: true },
+  { label: "Operations", pages: operationsPages },
+  { label: "People", pages: peoplePages },
+  { label: "Config", pages: configPages },
+  { label: "Dev Tools", pages: devToolPages, collapsible: true },
+];
+
 const groups = [
   { label: "Overview", pages: overviewPages },
   { label: "Catalog", pages: catalogPages },
-  { label: "Taxonomy", pages: taxonomyPages },
-  { label: "Content", pages: contentPages },
-  { label: "Contribute", pages: contributePages },
-  { label: "Marketplaces", pages: marketplacePages },
-  { label: "System", pages: systemPages },
+  ...sharedGroups,
 ];
 
 const workspaceGroups = [
   { label: "Overview", pages: overviewPages },
-  { label: "Catalog", pages: workspacePages },
+  {
+    label: "Catalog",
+    pages: [
+      ...workspacePages,
+      { to: "/admin/printing-desk" as const, icon: CameraIcon, title: "Printing Desk" },
+    ],
+  },
   { label: "Catalog inputs", pages: catalogInputPages },
-  { label: "Taxonomy", pages: taxonomyPages },
-  { label: "Content", pages: contentPages },
-  { label: "Contribute", pages: contributePages },
-  { label: "Marketplaces", pages: marketplacePages },
-  { label: "System", pages: systemPages },
+  ...sharedGroups,
 ];
 
 // The dashboard is an index route, so its match reports "/admin/" while the link is "/admin".
@@ -208,9 +222,11 @@ export function AdminSidebar() {
     }
     return workspaceQueue.counts[owner].open + workspaceQueue.counts[owner].new;
   };
+  const [openGroups, setOpenGroups] = useState<Partial<Record<string, boolean>>>({});
   const visibleGroups = (workspaceEnabled ? workspaceGroups : groups)
     .map((group) => ({
       ...group,
+      collapsible: "collapsible" in group && group.collapsible,
       pages: isAdmin
         ? group.pages
         : group.pages.filter((page) =>
@@ -222,9 +238,8 @@ export function AdminSidebar() {
   return (
     <NestedSidebar className="ml-safe">
       <SidebarContent>
-        {visibleGroups.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+        {visibleGroups.map((group) => {
+          const menu = (
             <SidebarMenu className="gap-1">
               {group.pages.map((page) => (
                 <SidebarMenuItem key={page.to}>
@@ -248,24 +263,39 @@ export function AdminSidebar() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
-          </SidebarGroup>
-        ))}
+          );
+          if (!group.collapsible) {
+            return (
+              <SidebarGroup key={group.label}>
+                <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+                {menu}
+              </SidebarGroup>
+            );
+          }
+          const open =
+            openGroups[group.label] ?? group.pages.some((page) => isCurrent(currentPath, page.to));
+          return (
+            <Collapsible
+              key={group.label}
+              open={open}
+              onOpenChange={(next) => setOpenGroups((prev) => ({ ...prev, [group.label]: next }))}
+            >
+              <SidebarGroup>
+                <SidebarGroupLabel
+                  className="group hover:bg-sidebar-accent cursor-pointer gap-1.5 transition-colors"
+                  render={<CollapsibleTrigger />}
+                >
+                  <ChevronRightIcon className="size-3! transition-transform group-data-[panel-open]:rotate-90" />
+                  <span className="min-w-0 flex-1 truncate text-left">{group.label}</span>
+                </SidebarGroupLabel>
+                <CollapsibleContent className="overflow-hidden transition-[height] duration-200 data-[ending-style]:h-0 data-[starting-style]:h-0">
+                  {menu}
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+          );
+        })}
       </SidebarContent>
-      {isAdmin && (
-        <SidebarFooter>
-          <SidebarMenu className="gap-1">
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                isActive={currentPath === "/admin/site-settings"}
-                render={<Link to="/admin/site-settings" />}
-              >
-                <SettingsIcon />
-                <span>Settings</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
-      )}
     </NestedSidebar>
   );
 }
