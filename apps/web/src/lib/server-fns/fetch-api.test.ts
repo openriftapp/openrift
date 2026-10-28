@@ -2,10 +2,10 @@ import { context, propagation, trace } from "@opentelemetry/api";
 import { AsyncLocalStorageContextManager } from "@opentelemetry/context-async-hooks";
 import { W3CTraceContextPropagator } from "@opentelemetry/core";
 import {
-  BasicTracerProvider,
+  TracerProvider,
   InMemorySpanExporter,
   SimpleSpanProcessor,
-} from "@opentelemetry/sdk-trace-base";
+} from "@opentelemetry/sdk-trace";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { isApiError } from "./api-error";
@@ -201,8 +201,8 @@ describe("fetchApi", () => {
 
 describe("fetchApi traceparent injection", () => {
   const exporter = new InMemorySpanExporter();
-  const provider = new BasicTracerProvider({
-    spanProcessors: [new SimpleSpanProcessor(exporter)],
+  const provider = new TracerProvider({
+    spanProcessors: [new SimpleSpanProcessor({ exporter })],
   });
   const contextManager = new AsyncLocalStorageContextManager();
 

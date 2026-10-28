@@ -201,9 +201,7 @@ export function useClaimTournamentDeck() {
 /** Dry-run preview shared by the submission and edit flows: never invalidates anything. */
 export function usePreviewTournamentDeck() {
   return useMutation({
-    mutationFn: (
-      vars: ({ token: string } | { entryId: string }) & TournamentDeckSubmissionInput,
-    ) =>
+    mutationFn: (vars: ({ token: string } | { entryId: string }) & TournamentDeckSubmissionInput) =>
       "token" in vars
         ? submitTournamentDeckFn({ data: { ...vars, dryRun: true } })
         : editMyTournamentDeckFn({ data: { ...vars, dryRun: true } }),

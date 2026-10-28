@@ -21,7 +21,7 @@ type DetectorOutputs = Record<string, { data: unknown } | undefined>;
 function outputData(outputs: DetectorOutputs, name: string): Float32Array {
   const data = outputs[name]?.data;
   if (!(data instanceof Float32Array)) {
-    throw new Error(`the detector model returned no "${name}" output`);
+    throw new TypeError(`the detector model returned no "${name}" output`);
   }
   return data;
 }

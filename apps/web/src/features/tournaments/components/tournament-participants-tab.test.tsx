@@ -97,7 +97,7 @@ function renderTab(detail: TournamentDetailResponse = makeDetail()) {
 function missingRegionsBand(): HTMLElement {
   const band = screen.getByText("Missing regions").closest("[data-slot='action-band']");
   if (!(band instanceof HTMLElement)) {
-    throw new Error("missing-regions band not found");
+    throw new TypeError("missing-regions band not found");
   }
   return band;
 }

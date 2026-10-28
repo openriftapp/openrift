@@ -6,36 +6,39 @@
  * server's bundled build (no `node_modules` beside it). Node-only: keep behind a server-only import.
  */
 
+import { context, propagation, trace } from "@opentelemetry/api";
 import { AsyncLocalStorageContextManager } from "@opentelemetry/context-async-hooks";
+import { W3CTraceContextPropagator } from "@opentelemetry/core";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { resourceFromAttributes } from "@opentelemetry/resources";
-import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
-import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
+import { BatchSpanProcessor, TracerProvider } from "@opentelemetry/sdk-trace";
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from "@opentelemetry/semantic-conventions";
 
-let provider: NodeTracerProvider | undefined;
+let provider: TracerProvider | undefined;
 
-export function startTracing(serviceName: string): NodeTracerProvider | undefined {
+export function startTracing(serviceName: string): TracerProvider | undefined {
   const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   if (!endpoint) {
     return undefined;
   }
 
-  provider = new NodeTracerProvider({
+  provider = new TracerProvider({
     resource: resourceFromAttributes({
       [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME ?? serviceName,
       [ATTR_SERVICE_VERSION]: process.env.BUILD_ID ?? "dev",
     }),
     spanProcessors: [
-      new BatchSpanProcessor(
-        new OTLPTraceExporter({
+      new BatchSpanProcessor({
+        exporter: new OTLPTraceExporter({
           // Tempo's OTLP HTTP receiver expects POSTs to /v1/traces.
           url: `${endpoint.replace(/\/$/u, "")}/v1/traces`,
         }),
-      ),
+      }),
     ],
   });
-  provider.register({ contextManager: new AsyncLocalStorageContextManager().enable() });
+  context.setGlobalContextManager(new AsyncLocalStorageContextManager().enable());
+  propagation.setGlobalPropagator(new W3CTraceContextPropagator());
+  trace.setGlobalTracerProvider(provider);
 
   return provider;
 }

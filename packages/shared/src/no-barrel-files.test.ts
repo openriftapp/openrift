@@ -40,12 +40,12 @@ async function listSourceFiles(dir: string): Promise<string[]> {
 }
 
 function isReexportOnly(contents: string): boolean {
-  const withoutComments = contents.replace(COMMENT, "");
+  const withoutComments = contents.replaceAll(COMMENT, "");
   const statements = withoutComments.match(REEXPORT);
   if (!statements) {
     return false;
   }
-  return withoutComments.replace(REEXPORT, "").trim() === "";
+  return withoutComments.replaceAll(REEXPORT, "").trim() === "";
 }
 
 async function sourceRoots(): Promise<string[]> {
@@ -102,7 +102,7 @@ describe("shared re-exports", () => {
     const offenders = await Promise.all(
       files.map(async (file) => {
         const raw = await readFile(file, "utf-8");
-        const contents = raw.replace(COMMENT, "");
+        const contents = raw.replaceAll(COMMENT, "");
         return contents.match(SHARED_REEXPORT) === null ? null : file;
       }),
     );

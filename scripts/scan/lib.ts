@@ -32,7 +32,7 @@ export function outputData(
 ): Float32Array {
   const data = outputs[name]?.data;
   if (!(data instanceof Float32Array)) {
-    throw new Error(`${modelFile} returned no "${name}" output`);
+    throw new TypeError(`${modelFile} returned no "${name}" output`);
   }
   return data;
 }

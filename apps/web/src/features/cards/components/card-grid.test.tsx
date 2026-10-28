@@ -89,7 +89,7 @@ function gridElement(items: CardViewerItem[], setOrder: GroupInfo[]) {
 function rowTop(container: HTMLElement, index: number): number {
   const row = container.querySelector(`[data-index="${index}"]`);
   if (!(row instanceof HTMLElement)) {
-    throw new Error(`virtual row ${index} not rendered`);
+    throw new TypeError(`virtual row ${index} not rendered`);
   }
   const match = /translateY\((?<offset>-?[\d.]+)px\)/u.exec(row.style.transform);
   if (!match?.groups?.offset) {

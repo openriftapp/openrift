@@ -21,8 +21,8 @@ const OPEN_BRACKET = /</gu;
 export function runtimeConfigScript(config: RuntimeConfig): string {
   // oxlint-disable unicorn/prefer-string-raw -- the suggested String.raw rewrite interprets \uXXXX as literal code points, defeating the escape.
   const json = JSON.stringify(config)
-    .replace(OPEN_BRACKET, "\\u003c")
-    .replace(
+    .replaceAll(OPEN_BRACKET, "\\u003c")
+    .replaceAll(
       LINE_TERMINATORS,
       (ch) => `\\u${(ch.codePointAt(0) ?? 0).toString(16).padStart(4, "0")}`,
     );

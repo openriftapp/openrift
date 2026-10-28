@@ -1,19 +1,19 @@
 import { context, trace } from "@opentelemetry/api";
 import { AsyncLocalStorageContextManager } from "@opentelemetry/context-async-hooks";
 import {
-  BasicTracerProvider,
+  TracerProvider,
   InMemorySpanExporter,
   SimpleSpanProcessor,
-} from "@opentelemetry/sdk-trace-base";
-import type { ReadableSpan } from "@opentelemetry/sdk-trace-base";
+} from "@opentelemetry/sdk-trace";
+import type { ReadableSpan } from "@opentelemetry/sdk-trace";
 import type { CompiledQuery, DatabaseConnection, Driver } from "kysely";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { TracingDialect } from "./tracing-dialect.js";
 
 const exporter = new InMemorySpanExporter();
-const provider = new BasicTracerProvider({
-  spanProcessors: [new SimpleSpanProcessor(exporter)],
+const provider = new TracerProvider({
+  spanProcessors: [new SimpleSpanProcessor({ exporter })],
 });
 const contextManager = new AsyncLocalStorageContextManager();
 
