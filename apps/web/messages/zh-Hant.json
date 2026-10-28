@@ -862,7 +862,7 @@
   "cards_clear_all_filters": "清除所有篩選條件",
   "cards_flag_oversized": "特大尺寸",
   "cards_flag_overnumbered": "超編號",
-  "cards_printing_double_sided": "另一面：{name}",
+  "cards_printing_same_both_sides": "兩面均為{name}",
   "cards_flip_to_other_side": "翻到{name}",
   "cards_printing_with_side": "另含{name}",
   "cards_flag_signed": "簽名版",

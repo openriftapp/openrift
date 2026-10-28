@@ -65,14 +65,6 @@ export function DoubleSidedFlip({
   return (
     <div className="pb-5">
       <div className="relative perspective-distant">
-        {backSrc && (
-          <img
-            src={backSrc}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 size-full translate-x-1.5 translate-y-1.5 scale-95 rotate-[2.5deg] rounded-xl object-cover brightness-60"
-          />
-        )}
         <div
           data-testid="double-sided-flipper"
           onTransitionEnd={handleTransitionEnd}

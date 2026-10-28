@@ -4,11 +4,12 @@
 
 ### Other
 
-- feat(Cards): **Flip double-sided cards** — the card image shows its other side peeking out behind it, and a button on the card turns it over to that side.
+- feat(Cards): **Flip double-sided cards** — a button on the card image turns it over to its other side.
 - feat(Contribute): **Suggest a better image** — a printing that already has an image now links to the image form, which shows the current image and asks what is wrong with it.
 - feat(Cards): **One correction menu** — "Suggest a correction" on a card is now a dropdown for the card's details, the printing's details or its image.
 - feat(Cards): **Copy counter under the card image** — the card page's add and remove buttons and wishlist heart now sit right below the image.
 - fix(Contribute): **Readable card preview hints** — the Energy, Power, Might and Might bonus hints on the contribute preview no longer cut off their labels.
+- fix(Cards): **Card page printings table lists each printing once** — a printing with the same card on both sides gets one row, and other-side names show their code when two printings share a name, like "with Recruit (OGN-271)".
 - fix(Cards): **Printing sources read "Confirmed by"** — the links backing a printing were labelled "Sources" and read like the image's origin.
 
 ## 2026-10-26

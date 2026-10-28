@@ -1,7 +1,7 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
-import { sideKey } from "@openrift/shared/printing-side";
+import { otherSideLabel } from "@openrift/shared/printing-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 import { PaletteIcon, TagIcon } from "lucide-react";
@@ -17,7 +17,11 @@ import { FinishIcon, hasFinishIcon } from "@/features/cards/components/finish-ic
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { PrintingDesign } from "@/features/cards/lib/printing-designs";
-import { groupPrintingDesigns } from "@/features/cards/lib/printing-designs";
+import {
+  groupPrintingDesigns,
+  isSelectedSide,
+  isSelfPaired,
+} from "@/features/cards/lib/printing-designs";
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -107,6 +111,7 @@ function PrintingMatrix({
   stats,
 }: MatrixProps & { stats?: CellStats }) {
   const languageLabels = useLanguageLabels();
+  const leads = designs.map((design) => design.lead);
   const columns = { "--cols": languages.length } as CSSProperties;
   const cellGrid =
     "grid grid-cols-[repeat(var(--cols),minmax(0,1fr))] gap-2 sm:grid-cols-[repeat(var(--cols),4.5rem)]";
@@ -125,8 +130,8 @@ function PrintingMatrix({
       </div>
       <ul>
         {designs.map((design) => {
-          const hasSelected = [...design.byLanguage.values()].some(
-            (printing) => sideKey(printing) === selectedSideKey,
+          const hasSelected = [...design.byLanguage.values()].some((printing) =>
+            isSelectedSide(printing, selectedSideKey),
           );
           return (
             <li
@@ -136,7 +141,7 @@ function PrintingMatrix({
                 hasSelected && "bg-primary/5",
               )}
             >
-              <DesignInfo design={design} />
+              <DesignInfo design={design} leads={leads} />
               <div className={cellGrid}>
                 {languages.map((language) => {
                   const printing = design.byLanguage.get(language);
@@ -161,7 +166,7 @@ function PrintingMatrix({
                       key={language}
                       printing={printing}
                       languageLabel={enumLabel(languageLabels, language)}
-                      isSelected={sideKey(printing) === selectedSideKey}
+                      isSelected={isSelectedSide(printing, selectedSideKey)}
                       onSelect={() => onSelect(printing)}
                       stats={stats}
                     />
@@ -230,7 +235,7 @@ function PrintingCell({
   );
 }
 
-function DesignInfo({ design }: { design: PrintingDesign }) {
+function DesignInfo({ design, leads }: { design: PrintingDesign; leads: Printing[] }) {
   const printing = design.lead;
   const showArtVariant = printing.artVariant !== WellKnown.artVariant.NORMAL;
   const { labels } = useEnumOrders();
@@ -263,10 +268,13 @@ function DesignInfo({ design }: { design: PrintingDesign }) {
       </span>,
     );
   }
-  if (printing.otherSide) {
+  const otherSide = otherSideLabel(printing, leads);
+  if (otherSide) {
     badges.push(
       <span key="double-sided" className="text-muted-foreground text-xs">
-        {m.cards_printing_double_sided({ name: printing.otherSide.cardName })}
+        {isSelfPaired(printing)
+          ? m.cards_printing_same_both_sides({ name: otherSide })
+          : m.cards_printing_with_side({ name: otherSide })}
       </span>,
     );
   }

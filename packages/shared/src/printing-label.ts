@@ -58,7 +58,7 @@ export function formatPrintingVariantLabelParts(
   return { language, rest, otherSide: otherSideLabel(printing, siblings) };
 }
 
-function otherSideLabel(
+export function otherSideLabel(
   printing: VariantLabelPrinting,
   siblings: readonly VariantLabelPrinting[] | undefined,
 ): string | null {

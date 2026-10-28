@@ -862,7 +862,7 @@
   "cards_clear_all_filters": "Alle Filter zurücksetzen",
   "cards_flag_oversized": "Übergroß",
   "cards_flag_overnumbered": "Übernummeriert",
-  "cards_printing_double_sided": "Rückseite: {name}",
+  "cards_printing_same_both_sides": "{name} auf beiden Seiten",
   "cards_flip_to_other_side": "Zu {name} umdrehen",
   "cards_printing_with_side": "mit {name}",
   "cards_flag_signed": "Signiert",

@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 export interface PrintingDesign<T = Printing> {
@@ -26,11 +27,40 @@ function designKey(printing: Printing): string {
   ].join("|");
 }
 
+export function isSelfPaired(printing: Printing): boolean {
+  return printing.otherSide?.cardId === printing.cardId;
+}
+
+function oneEntryPerSelfPairedPrinting(printings: readonly Printing[]): Printing[] {
+  const kept = new Map<string, Printing>();
+  for (const printing of printings) {
+    if (!isSelfPaired(printing)) {
+      continue;
+    }
+    const current = kept.get(printing.printingId);
+    if (!current || (current.images.length === 0 && printing.images.length > 0)) {
+      kept.set(printing.printingId, printing);
+    }
+  }
+  return printings.filter(
+    (printing) => !isSelfPaired(printing) || kept.get(printing.printingId) === printing,
+  );
+}
+
+export function isSelectedSide(printing: Printing, selectedSideKey: string): boolean {
+  if (isSelfPaired(printing)) {
+    return (
+      selectedSideKey === printing.printingId || selectedSideKey === `${printing.printingId}:2`
+    );
+  }
+  return sideKey(printing) === selectedSideKey;
+}
+
 export function groupPrintingDesigns(printings: readonly Printing[]): {
   languages: string[];
   designs: PrintingDesign[];
 } {
-  return groupDesigns(printings, designKey);
+  return groupDesigns(oneEntryPerSelfPairedPrinting(printings), designKey);
 }
 
 /**

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { resetIdCounter, stubPrinting } from "@/test/factories";
 
-import { groupPrintingDesigns } from "./printing-designs";
+import { groupPrintingDesigns, isSelectedSide } from "./printing-designs";
 
 beforeEach(() => {
   resetIdCounter();
@@ -112,7 +112,67 @@ describe("groupPrintingDesigns", () => {
     ]);
   });
 
+  it("lists a printing with this card on both sides once, preferring the side with an image", () => {
+    const buffSide = {
+      faceId: "face-buff-foil",
+      cardId: "buff",
+      cardName: "Buff",
+      cardSlug: "buff",
+      shortCode: "OGN-T05",
+    };
+    const image = { imageId: "img-1" };
+    const { designs } = groupPrintingDesigns([
+      printing("OGN-T05", "EN", { printingId: "p1", cardId: "buff", side: 1, otherSide: buffSide }),
+      printing("OGN-T05", "EN", {
+        printingId: "p1",
+        cardId: "buff",
+        side: 2,
+        finish: "foil",
+        images: [image],
+        otherSide: buffSide,
+      }),
+    ]);
+
+    expect(designs).toHaveLength(1);
+    expect(designs[0]?.lead.side).toBe(2);
+  });
+
   it("returns nothing for no printings", () => {
     expect(groupPrintingDesigns([])).toEqual({ languages: [], designs: [] });
+  });
+});
+
+describe("isSelectedSide", () => {
+  const otherSide = (cardId: string) => ({
+    faceId: `face-${cardId}`,
+    cardId,
+    cardName: cardId,
+    cardSlug: cardId,
+    shortCode: "OGN-T05",
+  });
+
+  it("matches either side of a printing with this card on both sides", () => {
+    const entry = printing("OGN-T05", "EN", {
+      printingId: "p1",
+      cardId: "buff",
+      side: 1,
+      otherSide: otherSide("buff"),
+    });
+
+    expect(isSelectedSide(entry, "p1")).toBe(true);
+    expect(isSelectedSide(entry, "p1:2")).toBe(true);
+    expect(isSelectedSide(entry, "p2")).toBe(false);
+  });
+
+  it("matches only its own side when the other side is another card", () => {
+    const entry = printing("OGN-T05", "EN", {
+      printingId: "p1",
+      cardId: "buff",
+      side: 1,
+      otherSide: otherSide("recruit"),
+    });
+
+    expect(isSelectedSide(entry, "p1")).toBe(true);
+    expect(isSelectedSide(entry, "p1:2")).toBe(false);
   });
 });
