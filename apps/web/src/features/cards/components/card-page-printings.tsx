@@ -10,6 +10,7 @@ import { Heading } from "@/components/heading";
 import { LanguageChip } from "@/components/language-chip";
 import { Pressable } from "@/components/ui/pressable";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
+import { PrintingDesignRows } from "@/features/cards/components/printing-design-rows";
 import { PrintingVariantLine } from "@/features/cards/components/printing-row";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
@@ -59,17 +60,17 @@ export function CardPagePrintings({
       <Heading level={2}>{m.cards_page_printings_heading()}</Heading>
       {/* Prices and owned counts have no server snapshot, so they join after hydration. */}
       {hydrated ? (
-        <Suspense fallback={<PrintingMatrix {...props} />}>
-          <LivePrintingMatrix {...props} />
+        <Suspense fallback={<PrintingTable {...props} />}>
+          <LivePrintingTable {...props} />
         </Suspense>
       ) : (
-        <PrintingMatrix {...props} />
+        <PrintingTable {...props} />
       )}
     </section>
   );
 }
 
-function LivePrintingMatrix(props: MatrixProps) {
+function LivePrintingTable(props: MatrixProps) {
   const userId = useUserId();
   const prices = usePrices();
   const marketplaceOrder = useDisplayStore((s) => s.marketplaceOrder);
@@ -93,7 +94,45 @@ function LivePrintingMatrix(props: MatrixProps) {
     );
   };
 
-  return <PrintingMatrix {...props} stats={{ owned: owned?.totals, price }} />;
+  return <PrintingTable {...props} stats={{ owned: owned?.totals, price }} />;
+}
+
+function PrintingTable(props: MatrixProps & { stats?: CellStats }) {
+  const { designs, selectedSideKey, onSelect, stats } = props;
+  const artists = new Set(
+    designs.flatMap((design) => [...design.byLanguage.values()].map((printing) => printing.artist)),
+  );
+  const showArtist = artists.size > 1;
+  return (
+    <>
+      <div className="hidden sm:block">
+        <PrintingMatrix {...props} showArtist={showArtist} />
+      </div>
+      <div className="bg-card rounded-xl border px-3 py-2 sm:hidden">
+        <PrintingDesignRows
+          designs={designs}
+          selectedSideKey={selectedSideKey}
+          onSelect={onSelect}
+          right={stats && ((printing) => <CompactStats printing={printing} stats={stats} />)}
+          details={(design) => <DesignDetails design={design} showArtist={showArtist} />}
+        />
+      </div>
+    </>
+  );
+}
+
+function CompactStats({ printing, stats }: { printing: Printing; stats: CellStats }) {
+  const owned = stats.owned?.[printing.printingId] ?? 0;
+  return (
+    <span className="flex shrink-0 items-center gap-2 text-xs font-semibold tabular-nums">
+      {owned > 0 && (
+        <span className="bg-foreground text-background text-2xs flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1">
+          ×{owned}
+        </span>
+      )}
+      {stats.price(printing.printingId)}
+    </span>
+  );
 }
 
 function PrintingMatrix({
@@ -102,12 +141,10 @@ function PrintingMatrix({
   selectedSideKey,
   onSelect,
   stats,
-}: MatrixProps & { stats?: CellStats }) {
+  showArtist,
+}: MatrixProps & { stats?: CellStats; showArtist: boolean }) {
   const languageLabels = useLanguageLabels();
   const leads = designs.map((design) => design.lead);
-  const artists = new Set(
-    designs.flatMap((design) => [...design.byLanguage.values()].map((printing) => printing.artist)),
-  );
   const columns = { "--cols": languages.length } as CSSProperties;
   const cellGrid =
     "grid grid-cols-[repeat(var(--cols),minmax(0,1fr))] gap-2 sm:grid-cols-[repeat(var(--cols),4.5rem)]";
@@ -137,7 +174,7 @@ function PrintingMatrix({
                 hasSelected && "bg-primary/5",
               )}
             >
-              <DesignInfo design={design} leads={leads} showArtist={artists.size > 1} />
+              <DesignInfo design={design} leads={leads} showArtist={showArtist} />
               <div className={cellGrid}>
                 {languages.map((language) => {
                   const printing = design.byLanguage.get(language);
@@ -240,8 +277,18 @@ function DesignInfo({
   leads: Printing[];
   showArtist: boolean;
 }) {
-  const printing = design.lead;
+  return (
+    <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <span className="min-w-0 text-xs">
+        <PrintingVariantLine printing={design.lead} siblings={leads} hideLanguage />
+      </span>
+      <DesignDetails design={design} showArtist={showArtist} />
+    </div>
+  );
+}
 
+function DesignDetails({ design, showArtist }: { design: PrintingDesign; showArtist: boolean }) {
+  const { artist } = design.lead;
   const channelLabels = [...design.byLanguage.values()].flatMap((member) =>
     member.distributionChannels.map((link) =>
       link.ancestorLabels.length > 0
@@ -252,17 +299,14 @@ function DesignInfo({
   const channelSummary = [...new Set(channelLabels)].join(", ");
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1">
-      <span className="min-w-0 text-xs">
-        <PrintingVariantLine printing={printing} siblings={leads} hideLanguage />
-      </span>
-      {showArtist && printing.artist && (
+    <>
+      {showArtist && artist && (
         <p className="text-muted-foreground inline-flex items-center gap-1 text-xs">
           <CardIcon src="/images/artist.svg" className="size-3 shrink-0" />
-          <span className="truncate">{printing.artist}</span>
+          <span className="truncate">{artist}</span>
         </p>
       )}
       {channelSummary && <p className="text-muted-foreground truncate text-xs">{channelSummary}</p>}
-    </div>
+    </>
   );
 }

@@ -25,6 +25,7 @@ import { ShareLinkButton } from "@/features/cards/components/card-page-share-but
 import { SuggestCorrectionMenu } from "@/features/cards/components/suggest-correction-menu";
 import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { resolveCardMetaPrinting } from "@/features/cards/lib/card-meta";
+import { sortByLanguagePreference } from "@/features/cards/lib/printing-designs";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { cn, PAGE_PADDING, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -38,13 +39,7 @@ export function CardDetailPage() {
   const { data } = useSuspenseQuery(cardDetailQueryOptions(cardSlug));
   const { card, sets } = data;
   const effectiveLanguageOrder = useEffectiveLanguageOrder();
-  const rankByLang = new Map(effectiveLanguageOrder.map((lang, i) => [lang, i]));
-  const unlistedRank = effectiveLanguageOrder.length;
-  const printings = data.printings.toSorted((a, b) => {
-    const aRank = rankByLang.get(a.language) ?? unlistedRank;
-    const bRank = rankByLang.get(b.language) ?? unlistedRank;
-    return aRank - bRank || a.canonicalRank - b.canonicalRank;
-  });
+  const printings = sortByLanguagePreference(data.printings, effectiveLanguageOrder);
   // Derived from the URL, not useState: the route stays mounted across
   // `$cardSlug` changes, and state would keep showing the previous card's printing.
   const selectedPrinting = resolveCardMetaPrinting(

@@ -31,7 +31,7 @@ export function isSelfPaired(printing: Printing): boolean {
   return printing.otherSide?.cardId === printing.cardId;
 }
 
-export function oneEntryPerSelfPairedPrinting(printings: readonly Printing[]): Printing[] {
+function oneEntryPerSelfPairedPrinting(printings: readonly Printing[]): Printing[] {
   const kept = new Map<string, Printing>();
   for (const printing of printings) {
     if (!isSelfPaired(printing)) {
@@ -119,4 +119,17 @@ export function groupDesigns<T extends DesignMember>(
       a.lead.shortCode.localeCompare(b.lead.shortCode, "en", { numeric: true }),
   );
   return { languages, designs: ordered };
+}
+
+export function sortByLanguagePreference(
+  printings: readonly Printing[],
+  languageOrder: readonly string[],
+): Printing[] {
+  const rankByLanguage = new Map(languageOrder.map((language, index) => [language, index]));
+  const unlisted = languageOrder.length;
+  return printings.toSorted(
+    (a, b) =>
+      (rankByLanguage.get(a.language) ?? unlisted) - (rankByLanguage.get(b.language) ?? unlisted) ||
+      a.canonicalRank - b.canonicalRank,
+  );
 }

@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { stubPrinting } from "@/test/factories";
@@ -9,7 +10,7 @@ vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => false }));
 
 vi.mock("@/hooks/use-enums", () => ({
   useEnumOrders: () => ({ labels: { finishes: {}, artVariants: {}, cardSizes: {} } }),
-  useLanguageLabels: () => ({ EN: "English" }),
+  useLanguageLabels: () => ({ EN: "English", FR: "French" }),
 }));
 
 vi.mock("@/components/language-chip", () => ({
@@ -35,7 +36,25 @@ describe("CardPagePrintings", () => {
 
   it("shows each row's artist when the artists differ", () => {
     renderPrintings(["League Splash Team", "Kudos Productions"]);
-    expect(screen.getByText("League Splash Team")).toBeDefined();
-    expect(screen.getByText("Kudos Productions")).toBeDefined();
+    expect(screen.getAllByText("League Splash Team")).toHaveLength(2);
+    expect(screen.getAllByText("Kudos Productions")).toHaveLength(2);
+  });
+
+  it("offers the phone layout one row per design with a pill per language", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    const english = stubPrinting({ setId: "set-1", shortCode: "OGN-1", language: "EN" });
+    const french = stubPrinting({ setId: "set-1", shortCode: "OGN-1", language: "FR" });
+    render(
+      <CardPagePrintings
+        printings={[english, french]}
+        selectedSideKey={english.printingId}
+        onSelect={onSelect}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "French" }));
+
+    expect(onSelect).toHaveBeenCalledWith(french);
   });
 });

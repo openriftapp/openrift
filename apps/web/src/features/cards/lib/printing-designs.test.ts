@@ -8,6 +8,7 @@ import {
   isSelectedSide,
   otherSideOf,
   otherSideSearchSide,
+  sortByLanguagePreference,
 } from "./printing-designs";
 
 beforeEach(() => {
@@ -220,5 +221,27 @@ describe("otherSideSearchSide", () => {
     });
 
     expect(otherSideSearchSide(entry)).toBeUndefined();
+  });
+});
+
+describe("sortByLanguagePreference", () => {
+  it("puts preferred languages first, in preference order", () => {
+    const en = stubPrinting({ language: "EN", canonicalRank: 1 });
+    const fr = stubPrinting({ language: "FR", canonicalRank: 2 });
+    const sc = stubPrinting({ language: "SC", canonicalRank: 3 });
+    expect(sortByLanguagePreference([en, fr, sc], ["SC", "EN"])).toEqual([sc, en, fr]);
+  });
+
+  it("orders within a language, and among unlisted languages, by canonical rank", () => {
+    const late = stubPrinting({ language: "FR", canonicalRank: 9 });
+    const early = stubPrinting({ language: "KR", canonicalRank: 4 });
+    const second = stubPrinting({ language: "EN", canonicalRank: 2 });
+    const first = stubPrinting({ language: "EN", canonicalRank: 1 });
+    expect(sortByLanguagePreference([late, early, second, first], ["EN"])).toEqual([
+      first,
+      second,
+      early,
+      late,
+    ]);
   });
 });

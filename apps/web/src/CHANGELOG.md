@@ -9,6 +9,7 @@
 - feat(Cards): **One correction menu** — "Suggest a correction" on a card is now a dropdown for the card's details, the printing's details or its image.
 - feat(Cards): **Copy counter under the card image** — the card page's add and remove buttons and wishlist heart now sit right below the image.
 - fix(Contribute): **Readable card preview hints** — the Energy, Power, Might and Might bonus hints on the contribute preview no longer cut off their labels.
+- feat(Cards): **Language pills on printing rows** — the card detail lists each printing once with a pill per language, and the card page does the same on phones.
 - fix(Cards): **Matching printing labels** — the card page and the card detail pane now describe each printing the same way, noting a foil or promo that only one side has, and the pane lists a printing with the same card on both sides once.
 - fix(Cards): **Artist only when it differs** — the card page's printings table shows the artist only when the card's printings have more than one.
 - fix(Cards): **Card page printings table lists each printing once** — a printing with the same card on both sides gets one row, and other-side names show their code when two printings share a name, like "with Recruit (OGN-271)".

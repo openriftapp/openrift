@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -31,13 +31,13 @@ vi.mock("@/hooks/use-enums", () => ({
     domainColors: {},
     rarityColors: {},
   }),
-  // Deliberately not alphabetical: the tab-order test proves the picker follows this order.
   useLanguageList: () => [
     { code: "EN", name: "English", color: null },
     { code: "JA", name: "Japanese", color: null },
     { code: "DE", name: "German", color: null },
   ],
   useLanguageLabels: () => ({ EN: "English", JA: "Japanese", DE: "German" }),
+  useLanguageColors: () => ({}),
 }));
 
 const { priceGetMock } = vi.hoisted(() => ({
@@ -197,75 +197,85 @@ describe("PrintingPicker", () => {
     expect(ownedMock).toHaveBeenCalledWith(["p-x"], true, undefined);
   });
 
-  describe("language tabs", () => {
-    it("shows no tabs when every printing shares one language", () => {
-      const printings = [stubPrinting(), stubPrinting()];
+  describe("language pills", () => {
+    function design(language: string, overrides: Parameters<typeof stubPrinting>[0] = {}) {
+      return stubPrinting({ setId: "set-1", shortCode: "OGN-001", language, ...overrides });
+    }
 
-      render(<PrintingPicker current={printings[0]!} printings={printings} onSelect={() => {}} />);
-
-      expect(screen.queryByRole("tab")).not.toBeInTheDocument();
-    });
-
-    it("offers one tab per language, in taxonomy order", () => {
+    it("puts every language of a design on one row, in language order", () => {
       const printings = [
-        stubPrinting({ language: "DE" }),
-        stubPrinting({ language: "EN" }),
-        stubPrinting({ language: "JA" }),
+        design("DE", { canonicalRank: 3 }),
+        design("EN", { canonicalRank: 1 }),
+        design("JA", { canonicalRank: 2 }),
       ];
 
       render(<PrintingPicker current={printings[1]!} printings={printings} onSelect={() => {}} />);
 
-      expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
-        "EN1",
-        "JA1",
-        "DE1",
-      ]);
+      expect(screen.getAllByRole("button", { pressed: true })).toHaveLength(2);
+      expect(
+        screen
+          .getAllByRole("button", { name: /^(?:English|Japanese|German)$/u })
+          .map((pill) => pill.getAttribute("aria-label")),
+      ).toEqual(["English", "Japanese", "German"]);
     });
 
-    it("opens on the shown card's language", () => {
-      const printings = [stubPrinting({ language: "EN" }), stubPrinting({ language: "DE" })];
+    it("marks the shown card's language", () => {
+      const printings = [design("EN"), design("DE")];
 
       render(<PrintingPicker current={printings[1]!} printings={printings} onSelect={() => {}} />);
 
-      expect(screen.getByRole("tab", { selected: true })).toHaveTextContent("DE");
+      expect(screen.getByRole("button", { name: "German" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      expect(screen.getByRole("button", { name: "English" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
     });
 
-    it("shows only the active language's printings", async () => {
+    it("selects the printing of the clicked language", async () => {
       const user = userEvent.setup();
-      const english = stubPrinting({ language: "EN" });
-      const german = stubPrinting({ language: "DE" });
+      const onSelect = vi.fn();
+      const english = design("EN");
+      const german = design("DE");
 
       render(
-        <PrintingPicker current={english} printings={[english, german]} onSelect={() => {}} />,
+        <PrintingPicker current={english} printings={[english, german]} onSelect={onSelect} />,
       );
+      await user.click(screen.getByRole("button", { name: "German" }));
 
-      expect(
-        within(screen.getByRole("tabpanel")).getAllByRole("button", { name: "owned" }),
-      ).toHaveLength(1);
-
-      await user.click(screen.getByRole("tab", { name: /DE/u }));
-
-      expect(screen.getByRole("tab", { selected: true })).toHaveTextContent("DE");
-      expect(
-        within(screen.getByRole("tabpanel")).getAllByRole("button", { name: "owned" }),
-      ).toHaveLength(1);
+      expect(onSelect).toHaveBeenCalledTimes(1);
+      expect(onSelect).toHaveBeenCalledWith(german);
     });
 
     it("keeps a language not present in the taxonomy reachable", () => {
-      const printings = [stubPrinting({ language: "EN" }), stubPrinting({ language: "XX" })];
+      const printings = [design("EN"), design("XX")];
 
       render(<PrintingPicker current={printings[0]!} printings={printings} onSelect={() => {}} />);
 
-      expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["EN1", "XX1"]);
+      expect(screen.getByRole("button", { name: "XX" })).toBeInTheDocument();
     });
 
-    it("falls back to the first tab when the shown card's language has no rows", () => {
-      const current = stubPrinting({ language: "JA" });
-      const printings = [stubPrinting({ language: "EN" }), stubPrinting({ language: "DE" })];
+    it("orders the rows by canonical rank, not by input order", () => {
+      const later = stubPrinting({ printingId: "p-later", canonicalRank: 2 });
+      const earlier = stubPrinting({
+        printingId: "p-earlier",
+        canonicalRank: 1,
+        setId: later.setId,
+        shortCode: later.shortCode,
+        finish: "foil",
+      });
 
-      render(<PrintingPicker current={current} printings={printings} onSelect={() => {}} />);
+      const { container } = render(
+        <PrintingPicker current={later} printings={[later, earlier]} onSelect={() => {}} />,
+      );
 
-      expect(screen.getByRole("tab", { selected: true })).toHaveTextContent("EN");
+      expect(
+        [...container.querySelectorAll<HTMLElement>("[data-printing-id]")].map(
+          (row) => row.dataset.printingId,
+        ),
+      ).toEqual(["p-earlier", "p-later"]);
     });
   });
 });
