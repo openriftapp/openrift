@@ -16,6 +16,7 @@ const captured = vi.hoisted(() => ({
   accept: vi.fn(),
   dismiss: vi.fn(),
   undismiss: vi.fn(),
+  remove: vi.fn(),
   fetchEvent: vi.fn(),
   runSync: vi.fn(),
   toastSuccess: vi.fn(),
@@ -86,6 +87,10 @@ vi.mock("@/features/admin/hooks/use-admin-meta-catalog", () => ({
     isPending: false,
   }),
   useUndismissCatalogEvent: () => ({ mutate: captured.undismiss, isPending: false }),
+  useRemoveCatalogEvent: () => ({
+    mutateAsync: (input: unknown) => Promise.resolve(captured.remove(input)),
+    isPending: false,
+  }),
   useFetchCatalogEvent: () => ({ mutateAsync: captured.fetchEvent, isPending: false }),
   useRunMetaSync: () => ({ mutateAsync: captured.runSync, isPending: false }),
   useMetaSyncSettings: () => ({ data: captured.settings }),
@@ -392,6 +397,21 @@ describe("MetaCatalogPage", () => {
       rowActions("Summoner Skirmish").getByRole("button", { name: /Undismiss/u }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Accept/u })).not.toBeInTheDocument();
+  });
+
+  it("asks before removing an accepted event from /meta, and removes only once confirmed", async () => {
+    const user = userEvent.setup();
+    setResponse([
+      makeRow({ triage: "accepted", metaEventId: "event-1", metaEventSlug: "summoner-skirmish" }),
+    ]);
+    render(<MetaCatalogPage />);
+
+    await user.click(screen.getByRole("button", { name: /Remove/u }));
+    expect(captured.remove).not.toHaveBeenCalled();
+
+    const dialog = await screen.findByRole("alertdialog");
+    await user.click(within(dialog).getByRole("button", { name: "Remove" }));
+    expect(captured.remove).toHaveBeenCalledWith({ externalId: "evt-1" });
   });
 
   it("fetches an accepted event's results on demand and reports what came back", async () => {

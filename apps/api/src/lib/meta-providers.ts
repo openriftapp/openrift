@@ -1,5 +1,7 @@
 export const UVSGAMES_PROVIDER = "uvsgames";
 
+export const UVSGAMES_STATUS_CANCELED = "canceled";
+
 export const PLAYLOLTCG_PROVIDER = "playloltcg";
 
 export const PLAYLOLTCG_STATUS_FINISHED = 5;

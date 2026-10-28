@@ -1,6 +1,6 @@
 import type { UvsgamesCatalogProjection } from "../../lib/uvsgames-catalog.js";
 import { projectCatalogRow } from "../../lib/uvsgames-catalog.js";
-import { autoAcceptCatalogEvents } from "./accept.js";
+import { autoAcceptCatalogEvents, withdrawCancelledCatalogEvents } from "./accept.js";
 import { runCancelRequested, writeRunHeartbeat } from "./crawl-checkpoint.js";
 import type { MetaSyncDeps } from "./deps.js";
 import { clock, errorText, EVENTS_PATH, GAME_SLUG } from "./deps.js";
@@ -53,6 +53,7 @@ export interface MetaCatalogSyncResult extends MetaSyncResultBase {
   templatesRetired: number;
   missingFound: number;
   missingAbsent: number;
+  withdrawn: number;
   skippedRanges: string[];
 }
 
@@ -66,6 +67,7 @@ function emptyResult(): MetaCatalogSyncResult {
     templatesRetired: 0,
     missingFound: 0,
     missingAbsent: 0,
+    withdrawn: 0,
     skippedRanges: [],
   };
 }
@@ -80,6 +82,7 @@ export function isCatalogSyncNoop(result: MetaCatalogSyncResult): boolean {
     result.missing === 0 &&
     result.missingFound === 0 &&
     result.missingAbsent === 0 &&
+    result.withdrawn === 0 &&
     result.autoAccepted === 0 &&
     result.autoHeld === 0
   );
@@ -375,6 +378,7 @@ async function finish(deps: MetaSyncDeps, ctx: CrawlContext): Promise<MetaCatalo
   for (const message of auto.errors) {
     record(ctx, message);
   }
+  ctx.result.withdrawn = await withdrawCancelledCatalogEvents(deps);
   if (!ctx.stopped) {
     const templates = await syncEventTemplates(deps);
     ctx.result.templatesNamed = templates.named;

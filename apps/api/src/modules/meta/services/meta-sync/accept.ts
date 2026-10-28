@@ -2,7 +2,7 @@ import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { uvsgamesEventUrl } from "@openrift/shared/uvsgames-links";
 
 import { AppError } from "../../../../errors.js";
-import { UVSGAMES_PROVIDER } from "../../../../lib/meta-providers.js";
+import { UVSGAMES_PROVIDER, UVSGAMES_STATUS_CANCELED } from "../../../../lib/meta-providers.js";
 import type { MetaAutoAcceptRule, MetaAutoAcceptSettings } from "../../lib/meta-auto-accept.js";
 import { autoAcceptRule } from "../../lib/meta-auto-accept.js";
 import { lifecycleStatus } from "../../lib/meta-recheck-schedule.js";
@@ -108,6 +108,9 @@ async function sweep(
     const rows = await deps.repos.uvsgamesEvents.unacceptedByKeys(page);
     summary.considered += rows.length;
     for (const row of rows) {
+      if (row.displayStatus === UVSGAMES_STATUS_CANCELED) {
+        continue;
+      }
       const rule = autoAcceptRule(vocabulary.settings, {
         name: row.name,
         playerCount: row.playerCount,
@@ -185,4 +188,17 @@ async function tryAutoAccept(
     // One row failing to accept must not stop the sweep over the rest of the page.
     return errorText(error, `Auto-accept "${row.name}" (${row.externalId})`);
   }
+}
+
+export async function withdrawCancelledCatalogEvents(deps: MetaSyncDeps): Promise<number> {
+  const rows = await deps.repos.uvsgamesEvents.withdrawableCancelled();
+  for (const row of rows) {
+    await deps.repos.meta.deleteEvent(row.metaEventId);
+    await deps.repos.metaOverlays.ignoreEvent(UVSGAMES_PROVIDER, row.externalId);
+    deps.log.info(
+      { externalId: row.externalId, metaEventId: row.metaEventId },
+      "Withdrew cancelled catalogue event",
+    );
+  }
+  return rows.length;
 }

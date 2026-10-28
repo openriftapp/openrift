@@ -29,6 +29,11 @@ const ALERT_TARGETS: Record<MetaSyncAlertTarget, AlertDestination> = {
     label: "The missing events",
     target: { tab: "catalogue", triage: "accepted", missing: true },
   },
+  "catalogue-accepted-cancelled": {
+    kind: "link",
+    label: "The cancelled events",
+    target: { tab: "catalogue", triage: "accepted", eventStatus: "canceled" },
+  },
   review: { kind: "link", label: "Review queue", target: { tab: "review" } },
 };
 

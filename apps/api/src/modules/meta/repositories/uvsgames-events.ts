@@ -6,7 +6,11 @@ import type { Database } from "../../../db/tables.js";
 import type { UvsgamesEventsTable } from "../../../db/tables/meta-sources.js";
 import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
-import { normalizeFormatKey, UVSGAMES_PROVIDER } from "../../../lib/meta-providers.js";
+import {
+  normalizeFormatKey,
+  UVSGAMES_PROVIDER,
+  UVSGAMES_STATUS_CANCELED,
+} from "../../../lib/meta-providers.js";
 import { inTransaction, offsetPage } from "../../../repositories/query-helpers.js";
 
 /**
@@ -428,6 +432,50 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       return Number(result.numUpdatedRows ?? 0n);
     },
 
+    async withdrawableCancelled(): Promise<{ externalId: string; metaEventId: string }[]> {
+      return await db
+        .selectFrom("uvsgamesEvents as c")
+        .innerJoin("metaEventSources as src", (join) =>
+          join
+            .on("src.provider", "=", UVSGAMES_PROVIDER)
+            .onRef("src.externalId", "=", "c.externalId"),
+        )
+        .select(["c.externalId", "src.metaEventId"])
+        .where("c.displayStatus", "=", UVSGAMES_STATUS_CANCELED)
+        .where((eb) =>
+          eb.and([
+            eb.not(
+              eb.exists(
+                eb
+                  .selectFrom("ignoredMetaSourceEvents as i")
+                  .select("i.externalId")
+                  .where("i.provider", "=", UVSGAMES_PROVIDER)
+                  .whereRef("i.externalId", "=", "c.externalId"),
+              ),
+            ),
+            eb.not(
+              eb.exists(
+                eb
+                  .selectFrom("metaEventPlayers as p")
+                  .select("p.metaEventId")
+                  .whereRef("p.metaEventId", "=", "src.metaEventId"),
+              ),
+            ),
+            eb.not(
+              eb.exists(
+                eb
+                  .selectFrom("metaEventSources as o")
+                  .select("o.id")
+                  .whereRef("o.metaEventId", "=", "src.metaEventId")
+                  .whereRef("o.id", "!=", "src.id"),
+              ),
+            ),
+          ]),
+        )
+        .orderBy("c.externalId", "asc")
+        .execute();
+    },
+
     async unprobedMissing(limit: number): Promise<string[]> {
       const rows = await db
         .selectFrom("uvsgamesEvents")
@@ -766,6 +814,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       queued: number;
       acceptedAwaitingResults: number;
       acceptedMissing: number;
+      acceptedCancelled: number;
       lastSeenAt: Date | null;
     }> {
       const row = await triagedQuery()
@@ -789,6 +838,9 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
           sql<string>`count(*) filter (where (${accepted}) and c.missing_since is not null)`.as(
             "acceptedMissing",
           ),
+          sql<string>`count(*) filter (where (${accepted}) and c.display_status = ${UVSGAMES_STATUS_CANCELED})`.as(
+            "acceptedCancelled",
+          ),
           eb.fn.max<Date | null>("c.lastSeenAt").as("lastSeenAt"),
         ])
         .executeTakeFirstOrThrow();
@@ -802,6 +854,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
         queued: Number(row.queued),
         acceptedAwaitingResults: Number(row.acceptedAwaitingResults),
         acceptedMissing: Number(row.acceptedMissing),
+        acceptedCancelled: Number(row.acceptedCancelled),
         lastSeenAt: row.lastSeenAt,
       };
     },

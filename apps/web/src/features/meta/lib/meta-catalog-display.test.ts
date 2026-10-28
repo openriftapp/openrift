@@ -429,6 +429,7 @@ function syncStatus(
       oldestDueAt: null,
       acceptedAwaitingResults: 17,
       acceptedMissing: 0,
+      acceptedCancelled: 0,
       lastSeenAt: "2026-08-29T09:00:00.000Z",
       ...catalog,
     },
@@ -585,6 +586,16 @@ describe("metaSyncAlerts", () => {
       id: "accepted-missing",
       message: "2 events live on /meta have disappeared from the source listing.",
       target: "catalogue-accepted-missing",
+    });
+  });
+
+  it("sends the cancelled events the sync kept to the cancelled accepted rows", () => {
+    const alerts = metaSyncAlerts(syncStatus({ acceptedCancelled: 1 }), 0, NOW);
+    expect(alerts.find((alert) => alert.id === "accepted-cancelled")).toEqual({
+      id: "accepted-cancelled",
+      message:
+        "1 event live on /meta was cancelled at the source. The sync keeps a cancelled event that has standings or another source.",
+      target: "catalogue-accepted-cancelled",
     });
   });
 

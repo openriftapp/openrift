@@ -48,6 +48,11 @@ const EXTERNAL_IDS = [
   "mtc-pull-soon",
   "mtc-lock-a",
   "mtc-lock-z",
+  "mtc-cxl-bare",
+  "mtc-cxl-played",
+  "mtc-cxl-cited",
+  "mtc-cxl-dismissed",
+  "mtc-cxl-live",
 ];
 
 const STORE_ID = 990_001;
@@ -771,6 +776,50 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
     expect(overview.acceptedMissing).toBe(before.acceptedMissing + 1);
     expect(overview.missing).toBeGreaterThanOrEqual(overview.acceptedMissing);
   });
+  it("offers only bare, undismissed cancelled events for withdrawal and counts every accepted one", async () => {
+    const before = await repo().syncOverview();
+    const ids = ["mtc-cxl-bare", "mtc-cxl-played", "mtc-cxl-cited", "mtc-cxl-dismissed"];
+    await repo().upsertBatch(
+      [
+        ...ids.map((externalId) =>
+          row({ externalId, contentHash: `h-${externalId}`, displayStatus: "canceled" }),
+        ),
+        row({ externalId: "mtc-cxl-live", contentHash: "h-cxl-live" }),
+      ],
+      SEEN,
+    );
+    const live = new Map<string, string>();
+    for (const externalId of [...ids, "mtc-cxl-live"]) {
+      live.set(externalId, await seedAcceptedEvent(externalId));
+    }
+    await ctx!.db
+      .insertInto("metaEventPlayers")
+      .values({ metaEventId: live.get("mtc-cxl-played")!, rank: 1 })
+      .execute();
+    await ctx!.db
+      .insertInto("metaEventSources")
+      .values({
+        metaEventId: live.get("mtc-cxl-cited")!,
+        provider: null,
+        externalId: null,
+        label: "Standings photo",
+        sourceUrl: null,
+      })
+      .execute();
+    await ctx!.db
+      .insertInto("ignoredMetaSourceEvents")
+      .values({ provider: UVSGAMES_PROVIDER, externalId: "mtc-cxl-dismissed" })
+      .execute();
+
+    const withdrawable = await repo().withdrawableCancelled();
+    const overview = await repo().syncOverview();
+
+    expect(withdrawable.filter((entry) => entry.externalId.startsWith("mtc-"))).toEqual([
+      { externalId: "mtc-cxl-bare", metaEventId: live.get("mtc-cxl-bare") },
+    ]);
+    expect(overview.acceptedCancelled).toBe(before.acceptedCancelled + 3);
+  });
+
   describe("the source's vocabularies", () => {
     const TEMPLATE = "mtc-template-a";
 

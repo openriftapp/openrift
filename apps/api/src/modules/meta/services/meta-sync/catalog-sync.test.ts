@@ -141,6 +141,7 @@ function fakeDeps(
       absent.push(...ids);
       return Promise.resolve();
     },
+    withdrawableCancelled: () => Promise.resolve([]),
     settings: () =>
       Promise.resolve({
         autoAcceptMinPlayers: null,

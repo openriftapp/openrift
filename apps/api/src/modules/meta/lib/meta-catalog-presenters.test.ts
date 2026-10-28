@@ -288,6 +288,7 @@ describe("toMetaSyncCatalog", () => {
     oldestDueAt: new Date("2026-08-01T00:00:00Z"),
     acceptedAwaitingResults: 3,
     acceptedMissing: 1,
+    acceptedCancelled: 2,
     lastSeenAt: new Date("2026-08-20T00:00:00Z"),
   };
 

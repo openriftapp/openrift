@@ -9,6 +9,7 @@ import {
   LayersIcon,
   SlidersHorizontalIcon,
   TagsIcon,
+  Trash2Icon,
   UndoIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -39,6 +40,7 @@ import {
   useAdminMetaCatalog,
   useDismissCatalogEvent,
   useFetchCatalogEvent,
+  useRemoveCatalogEvent,
   useRunMetaSync,
   useUndismissCatalogEvent,
 } from "@/features/admin/hooks/use-admin-meta-catalog";
@@ -253,6 +255,7 @@ function CatalogRowActionsFor({
   const accept = useAcceptCatalogEvent();
   const dismiss = useDismissCatalogEvent();
   const undismiss = useUndismissCatalogEvent();
+  const remove = useRemoveCatalogEvent();
   const fetchEvent = useFetchCatalogEvent();
   const followUp = useAcceptFollowUp();
 
@@ -318,6 +321,16 @@ function CatalogRowActionsFor({
           <DownloadIcon />
           Fetch now
         </Button>
+        <ConfirmActionButton
+          title={`Remove "${row.name}" from /meta?`}
+          description="Deletes the live event with its standings and decks, and dismisses this row so the sync does not accept it again. Undismiss and accept it to bring it back."
+          confirmLabel="Remove"
+          destructive
+          onConfirm={() => remove.mutateAsync({ externalId: row.externalId })}
+        >
+          <Trash2Icon />
+          Remove
+        </ConfirmActionButton>
       </>
     );
   }

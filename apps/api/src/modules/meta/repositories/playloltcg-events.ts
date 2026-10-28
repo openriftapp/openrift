@@ -515,6 +515,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
       queued: number;
       acceptedAwaitingResults: number;
       acceptedMissing: number;
+      acceptedCancelled: number;
       lastSeenAt: Date | null;
     }> {
       // An aggregate FILTER cannot become an anti-join, so `notFetched` here
@@ -566,6 +567,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
         queued: Number(row.queued),
         acceptedAwaitingResults: Number(row.acceptedAwaitingResults),
         acceptedMissing: Number(row.acceptedMissing),
+        acceptedCancelled: 0,
         lastSeenAt: row.lastSeenAt,
       };
     },

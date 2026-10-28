@@ -3,6 +3,7 @@ import type {
   MetaCatalogTriage,
   MetaSource,
 } from "@openrift/shared/contracts/admin/meta-catalog";
+import type { META_CATALOG_DISPLAY_STATUSES } from "@openrift/shared/types/enums";
 
 /** The tab a funnel stage or an alert opens, with its catalogue pre-filter. */
 export interface MetaAdminTarget {
@@ -10,6 +11,7 @@ export interface MetaAdminTarget {
   triage?: MetaCatalogTriage;
   missing?: boolean;
   awaitingResults?: boolean;
+  eventStatus?: (typeof META_CATALOG_DISPLAY_STATUSES)[number];
 }
 
 /** Every catalogue link must name its source; both sources render at once. */

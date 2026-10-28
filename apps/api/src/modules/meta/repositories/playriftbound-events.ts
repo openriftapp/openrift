@@ -497,6 +497,7 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
       queued: number;
       acceptedAwaitingResults: number;
       acceptedMissing: number;
+      acceptedCancelled: number;
       lastSeenAt: Date | null;
     }> {
       const row = await triagedQuery()
@@ -536,6 +537,7 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
         queued: Number(row.queued),
         acceptedAwaitingResults: Number(row.acceptedAwaitingResults),
         acceptedMissing: Number(row.acceptedMissing),
+        acceptedCancelled: 0,
         lastSeenAt: row.lastSeenAt,
       };
     },

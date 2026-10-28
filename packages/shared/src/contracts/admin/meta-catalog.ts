@@ -344,6 +344,7 @@ export const metaSyncStatusSchema = z.object({
     oldestDueAt: isoDateTime.nullable(),
     acceptedAwaitingResults: z.number().int(),
     acceptedMissing: z.number().int(),
+    acceptedCancelled: z.number().int(),
     lastSeenAt: isoDateTime.nullable(),
   }),
   archive: z.object({
@@ -384,8 +385,9 @@ export const metaSyncCancelResultSchema = z.object({
 });
 
 /**
- * The catalogue mirrors the source's own listing; nothing here edits an event.
- * `accept` creates the live event and queues the deep fetch, `dismiss` writes the ignore key.
+ * The catalogue mirrors the source's own listing.
+ * `accept` creates the live event and queues the deep fetch, `dismiss` writes the ignore key,
+ * `remove` deletes the live event and writes the ignore key.
  */
 export const adminMetaCatalogContract = {
   list: authedRoute
@@ -412,6 +414,11 @@ export const adminMetaCatalogContract = {
     .route({ method: "POST", path: `${BASE}/undismiss`, tags: [TAG], successStatus: 204 })
     .input(catalogKeySchema)
     .errors({ NOT_FOUND: { message: "Ignore entry not found" } }),
+
+  remove: authedRoute
+    .route({ method: "POST", path: `${BASE}/remove`, tags: [TAG], successStatus: 204 })
+    .input(catalogKeySchema)
+    .errors({ NOT_FOUND: { message: "Catalogue event not found" } }),
 
   listTemplates: authedRoute
     .route({ method: "GET", path: `${BASE}/templates`, tags: [TAG] })

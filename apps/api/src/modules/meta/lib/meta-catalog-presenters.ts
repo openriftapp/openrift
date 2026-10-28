@@ -112,6 +112,7 @@ export function toMetaSyncCatalog(
     oldestDueAt: isoOrNull(overview.oldestDueAt),
     acceptedAwaitingResults: overview.acceptedAwaitingResults,
     acceptedMissing: overview.acceptedMissing,
+    acceptedCancelled: overview.acceptedCancelled,
     lastSeenAt: isoOrNull(overview.lastSeenAt),
   };
 }

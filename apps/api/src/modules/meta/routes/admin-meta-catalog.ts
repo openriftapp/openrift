@@ -300,6 +300,21 @@ export const adminMetaCatalogRouter = {
     });
   }),
 
+  remove: os.remove.handler(async ({ input, context }) => {
+    const row = await requireRow(context, input.externalId);
+    if (row.metaEventId !== null) {
+      await context.repos.meta.deleteEvent(row.metaEventId);
+    }
+    await context.repos.metaOverlays.ignoreEvent(UVSGAMES_PROVIDER, row.externalId);
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "meta-catalog.remove",
+      entityType: "meta-catalog",
+      entityId: `${UVSGAMES_PROVIDER}:${row.externalId}`,
+      entityLabel: row.name,
+      oldValues: { metaEventId: row.metaEventId, slug: row.metaEventSlug },
+    });
+  }),
+
   listTemplates: os.listTemplates.handler(async ({ context }) => {
     const rows = await context.repos.uvsgamesEvents.listTemplates();
     return { templates: rows.map((row) => toMetaSourceTemplate(row)) };

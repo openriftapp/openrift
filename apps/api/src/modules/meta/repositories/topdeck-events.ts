@@ -397,6 +397,7 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
       oldestDueAt: Date | null;
       acceptedAwaitingResults: number;
       acceptedMissing: number;
+      acceptedCancelled: number;
       lastSeenAt: Date | null;
     }> {
       const row = await triagedQuery()
@@ -425,6 +426,7 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
         oldestDueAt: null,
         acceptedAwaitingResults: 0,
         acceptedMissing: Number(row.acceptedMissing),
+        acceptedCancelled: 0,
         lastSeenAt: row.lastSeenAt,
       };
     },

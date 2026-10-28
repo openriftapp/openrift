@@ -4,7 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Repos, Transact } from "../../../../deps.js";
 import type { UvsgamesListRow } from "../../repositories/uvsgames-events.js";
 import { promoteNewEvent } from "../meta-promote.js";
-import { acceptCatalogEvent, autoAcceptCatalogBacklog, autoAcceptCatalogEvents } from "./accept.js";
+import {
+  acceptCatalogEvent,
+  autoAcceptCatalogBacklog,
+  autoAcceptCatalogEvents,
+  withdrawCancelledCatalogEvents,
+} from "./accept.js";
 import type { MetaSyncDeps } from "./deps.js";
 import type { UvsClient } from "./uvsgames-client.js";
 
@@ -257,6 +262,18 @@ describe("autoAcceptCatalogEvents", () => {
     expect(rechecks.map((write) => write.externalId)).toEqual(["big"]);
   });
 
+  it("never accepts an event the source has cancelled", async () => {
+    const { deps, rechecks } = fakeDeps({
+      settings: { autoAcceptMinPlayers: 64, autoAcceptNotable: false, autoAcceptOfficial: false },
+      unaccepted: [catalogRow({ externalId: "gone", playerCount: 200, displayStatus: "canceled" })],
+    });
+
+    const summary = await autoAcceptCatalogEvents(deps, ["gone"]);
+
+    expect(summary).toEqual({ considered: 1, accepted: 0, held: 0, failed: 0, errors: [] });
+    expect(rechecks).toEqual([]);
+  });
+
   it("holds an event another source already archived at the same store within a day", async () => {
     const { deps, rechecks } = fakeDeps({
       settings: { autoAcceptMinPlayers: 64, autoAcceptNotable: false, autoAcceptOfficial: false },
@@ -356,5 +373,44 @@ describe("autoAcceptCatalogBacklog", () => {
     expect(summary).toEqual({ considered: 2, accepted: 1, held: 0, failed: 0, errors: [] });
     expect(rechecks.map((write) => write.externalId)).toEqual(["old-big"]);
     expect(reads).toContain("newKeys");
+  });
+});
+
+describe("withdrawCancelledCatalogEvents", () => {
+  it("deletes each withdrawable live event and dismisses its catalogue row", async () => {
+    const deleted: string[] = [];
+    const ignored: [string, string][] = [];
+    const deps = {
+      repos: {
+        uvsgamesEvents: {
+          withdrawableCancelled: () =>
+            Promise.resolve([
+              { externalId: "a", metaEventId: "live-a" },
+              { externalId: "b", metaEventId: "live-b" },
+            ]),
+        },
+        meta: {
+          deleteEvent: (id: string) => {
+            deleted.push(id);
+            return Promise.resolve(true);
+          },
+        },
+        metaOverlays: {
+          ignoreEvent: (provider: string, externalId: string) => {
+            ignored.push([provider, externalId]);
+            return Promise.resolve();
+          },
+        },
+      } as unknown as Repos,
+      log: createLogger("test"),
+      now: () => NOW,
+    } as unknown as MetaSyncDeps;
+
+    expect(await withdrawCancelledCatalogEvents(deps)).toBe(2);
+    expect(deleted).toEqual(["live-a", "live-b"]);
+    expect(ignored).toEqual([
+      ["uvsgames", "a"],
+      ["uvsgames", "b"],
+    ]);
   });
 });

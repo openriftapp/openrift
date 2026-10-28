@@ -87,6 +87,7 @@ const mockUvsgamesEvents = {
   updateTemplate: vi.fn(),
   syncOverview: vi.fn(),
   triageCounts: vi.fn(),
+  byKey: vi.fn(),
 };
 
 const mockPlayloltcgEvents = {
@@ -96,7 +97,7 @@ const mockPlayloltcgEvents = {
   syncOverview: vi.fn(),
 };
 
-const mockMeta = { archiveOverview: vi.fn() };
+const mockMeta = { archiveOverview: vi.fn(), deleteEvent: vi.fn() };
 const mockMetaOverlays = { ignoreEvent: vi.fn(), unignoreEvent: vi.fn() };
 
 const mockDeckFormats = { getBySlug: vi.fn() };
@@ -563,6 +564,55 @@ describe("the archive's own passes", () => {
   });
 });
 
+describe("POST /catalogue/remove", () => {
+  it("deletes the live event, dismisses the row and files the audit row", async () => {
+    mockUvsgamesEvents.byKey.mockResolvedValue({
+      externalId: "31337",
+      name: "Summoner Skirmish",
+      metaEventId: "live-1",
+      metaEventSlug: "summoner-skirmish",
+    });
+
+    const res = await post("/remove", { externalId: "31337" });
+
+    expect(res.status).toBe(204);
+    expect(mockMeta.deleteEvent).toHaveBeenCalledWith("live-1");
+    expect(mockMetaOverlays.ignoreEvent).toHaveBeenCalledWith("uvsgames", "31337");
+    expect(mockAdminEvents.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "meta-catalog.remove",
+        entityId: "uvsgames:31337",
+        oldValues: { metaEventId: "live-1", slug: "summoner-skirmish" },
+      }),
+    );
+  });
+
+  it("still dismisses a row whose live event is already gone", async () => {
+    mockUvsgamesEvents.byKey.mockResolvedValue({
+      externalId: "31337",
+      name: "Summoner Skirmish",
+      metaEventId: null,
+      metaEventSlug: null,
+    });
+
+    const res = await post("/remove", { externalId: "31337" });
+
+    expect(res.status).toBe(204);
+    expect(mockMeta.deleteEvent).not.toHaveBeenCalled();
+    expect(mockMetaOverlays.ignoreEvent).toHaveBeenCalledWith("uvsgames", "31337");
+  });
+
+  it("404s a key the mirror does not carry", async () => {
+    mockUvsgamesEvents.byKey.mockResolvedValue(undefined);
+
+    const res = await post("/remove", { externalId: "31337" });
+
+    expect(res.status).toBe(404);
+    expect(mockMeta.deleteEvent).not.toHaveBeenCalled();
+    expect(mockMetaOverlays.ignoreEvent).not.toHaveBeenCalled();
+  });
+});
+
 describe("GET /catalogue/sync", () => {
   const OVERVIEW = {
     total: 4,
@@ -574,6 +624,7 @@ describe("GET /catalogue/sync", () => {
     oldestDueAt: null,
     acceptedAwaitingResults: 1,
     acceptedMissing: 0,
+    acceptedCancelled: 0,
     lastSeenAt: new Date("2026-08-20T00:00:00Z"),
   };
   const COUNTS = { new: 1, accepted: 2, dismissed: 3 };

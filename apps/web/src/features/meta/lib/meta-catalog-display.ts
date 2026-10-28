@@ -261,6 +261,7 @@ export type MetaSyncAlertTarget =
   | "failed-runs"
   | "catalogue-accepted"
   | "catalogue-accepted-missing"
+  | "catalogue-accepted-cancelled"
   | "review";
 
 export interface MetaSyncAlert {
@@ -394,6 +395,14 @@ export function metaSyncAlerts(
       id: "accepted-missing",
       message: `${catalog.acceptedMissing} ${catalog.acceptedMissing === 1 ? "event" : "events"} live on /meta ${catalog.acceptedMissing === 1 ? "has" : "have"} disappeared from the source listing.`,
       target: "catalogue-accepted-missing",
+    });
+  }
+
+  if (catalog.acceptedCancelled > 0) {
+    alerts.push({
+      id: "accepted-cancelled",
+      message: `${catalog.acceptedCancelled} ${catalog.acceptedCancelled === 1 ? "event" : "events"} live on /meta ${catalog.acceptedCancelled === 1 ? "was" : "were"} cancelled at the source. The sync keeps a cancelled event that has standings or another source.`,
+      target: "catalogue-accepted-cancelled",
     });
   }
 

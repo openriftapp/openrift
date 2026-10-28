@@ -86,6 +86,7 @@ const status: MetaSyncStatus = {
     oldestDueAt: null,
     acceptedAwaitingResults: 17,
     acceptedMissing: 0,
+    acceptedCancelled: 0,
     lastSeenAt: "2026-08-29T09:00:00.000Z",
   },
   archive: { events: 480, eventsWithStandings: 420, eventsWithDecklists: 310, decks: 2600 },

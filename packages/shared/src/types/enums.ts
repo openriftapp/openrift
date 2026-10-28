@@ -208,7 +208,12 @@ export type MetaEventSourceFilter = (typeof META_EVENT_SOURCE_FILTERS)[number];
 export const META_CATALOG_TRIAGE = ["new", "accepted", "dismissed"] as const;
 
 /** The source's own status vocabulary, not ours. */
-export const META_CATALOG_DISPLAY_STATUSES = ["upcoming", "inProgress", "complete"] as const;
+export const META_CATALOG_DISPLAY_STATUSES = [
+  "upcoming",
+  "inProgress",
+  "complete",
+  "canceled",
+] as const;
 
 /** 1 registration-open, 2 fully-booked, 3 scheduled, 4 in-progress, 5 finished; the source can report a step outside this. */
 export const PLAYLOLTCG_STATUSES = [1, 2, 3, 4, 5] as const;

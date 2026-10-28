@@ -62,6 +62,7 @@ export type AdminEventAction =
   | "meta-catalog.accept"
   | "meta-catalog.dismiss"
   | "meta-catalog.undismiss"
+  | "meta-catalog.remove"
   | "meta-catalog.settings"
   | "meta-catalog.template"
   | "meta-catalog.format"

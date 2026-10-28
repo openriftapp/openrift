@@ -133,6 +133,20 @@ export function useUndismissCatalogEvent() {
   });
 }
 
+const removeCatalogEventFn = createServerFn({ method: "POST" })
+  .validator((input: { externalId: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminMetaCatalogContract, context.cookie).remove(data);
+  });
+
+export function useRemoveCatalogEvent() {
+  return useMutationWithInvalidation({
+    mutationFn: (vars: { externalId: string }) => removeCatalogEventFn({ data: vars }),
+    invalidates: [...acceptInvalidates, adminKeys.meta.ignoredSources],
+  });
+}
+
 const fetchMetaSourceTemplates = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(({ context }) =>
