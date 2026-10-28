@@ -1,3 +1,5 @@
+import { META_NOTABLE_EVENT_NAMES } from "@openrift/shared/contracts/admin/meta-catalog";
+
 import { stableKey } from "../../../lib/hash.js";
 import { count, instant, record, sourceId, text } from "../../../lib/json-coerce.js";
 import { normalizeFormatKey } from "../../../lib/meta-providers.js";
@@ -17,23 +19,9 @@ export function uvsgamesStandingIdentity(row: {
   return row.uvsgamesPlayerId === null ? `r${row.registrationId}` : `u${row.uvsgamesPlayerId}`;
 }
 
-/**
- * The vocabulary the notable-name auto-accept rule matches on. Lowercase,
- * because the comparison is case-insensitive.
- */
-const NOTABLE_EVENT_NAMES = [
-  "regional",
-  "qualifier",
-  "championship",
-  "invitational",
-  "nationals",
-  "worlds",
-  "circuit",
-] as const;
-
 export function isNotableEventName(name: string): boolean {
   const haystack = name.toLowerCase();
-  return NOTABLE_EVENT_NAMES.some((needle) => haystack.includes(needle));
+  return META_NOTABLE_EVENT_NAMES.some((needle) => haystack.includes(needle));
 }
 
 /**

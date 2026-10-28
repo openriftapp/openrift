@@ -147,6 +147,7 @@ describe("metaEventToDraft", () => {
       location: "Kartenstraße 1, 10115 Berlin, DE",
       playerRowCount: 64,
       deckCount: 8,
+      results: "final",
       sources: [],
     };
     const body = metaEventDraftToBody(metaEventToDraft(event));
@@ -179,6 +180,7 @@ describe("metaEventToDraft", () => {
       location: null,
       playerRowCount: 0,
       deckCount: 0,
+      results: "final",
       sources: [],
     };
     const draft = metaEventToDraft(event);
@@ -204,6 +206,7 @@ describe("metaEventOverlayEdits", () => {
       location: null,
       playerRowCount: 64,
       deckCount: 8,
+      results: "final",
       sources: [],
       ...overrides,
     };

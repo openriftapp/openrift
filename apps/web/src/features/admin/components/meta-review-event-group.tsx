@@ -56,7 +56,7 @@ function EventOverlayCard({ overlay }: { overlay: MetaOverlayQueueRow }) {
       // Reported by the global mutation error toast.
       return;
     }
-    toast.success("Applied.");
+    toast.success(metaEventId === null && isProposal ? "Published as a new event" : "Applied");
   }
 
   async function decline(): Promise<void> {
@@ -66,13 +66,13 @@ function EventOverlayCard({ overlay }: { overlay: MetaOverlayQueueRow }) {
       // Reported by the global mutation error toast.
       return;
     }
-    toast.success("Rejected.");
+    toast.success("Rejected");
   }
 
   return (
     <div className="space-y-3 rounded-md border p-3">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="outline">{isProposal ? "new event" : "event fields"}</Badge>
+        <Badge variant="outline">{isProposal ? "New event" : "Event change"}</Badge>
         <Badge variant={provider.variant}>{provider.label}</Badge>
         {overlay.submissionNote !== null && (
           <span className="text-muted-foreground text-sm italic">{overlay.submissionNote}</span>
@@ -91,15 +91,15 @@ function EventOverlayCard({ overlay }: { overlay: MetaOverlayQueueRow }) {
       <div className="flex flex-wrap items-center gap-2">
         {isProposal ? (
           <ConfirmActionButton
-            title="Mint a new archived event?"
-            description="Nothing links this proposal to an archived event, so accepting mints a second one for this tournament."
-            confirmLabel="Mint a new event"
+            title="Publish as a new event?"
+            description="If this tournament is already published, it ends up on the archive twice. Merge it into the published event instead."
+            confirmLabel="Publish as new"
             onConfirm={() => runAccept(null)}
             disabled={busy}
-            trigger={<Button variant="destructive" size="sm" />}
+            trigger={<Button variant="ghost" size="sm" />}
           >
             <CheckIcon />
-            Accept as new
+            Publish as a new event
           </ConfirmActionButton>
         ) : (
           <Button
@@ -110,11 +110,11 @@ function EventOverlayCard({ overlay }: { overlay: MetaOverlayQueueRow }) {
             }}
           >
             <CheckIcon />
-            Accept
+            Apply
           </Button>
         )}
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           disabled={busy}
           onClick={() => {
@@ -139,20 +139,20 @@ function BulkAcceptButton({ group }: { group: MetaReviewGroup }) {
 
   async function run(): Promise<void> {
     const result = await acceptAll.mutateAsync({ items });
-    toast.success(`Accepted ${result.accepted} ${pluralize(result.accepted, "row")}.`);
+    toast.success(`Applied ${result.accepted} ${pluralize(result.accepted, "row")}`);
   }
 
   return (
     <ConfirmActionButton
-      title={`Accept ${items.length} ready ${pluralize(items.length, "row")}?`}
-      description="Each exact match links to its standings row, every card name is already resolved, and the event is promoted once at the end."
-      confirmLabel="Accept all"
+      title={`Apply ${items.length} ready ${pluralize(items.length, "row")}?`}
+      description="Each one matches a standings row and every card name is known."
+      confirmLabel={`Apply ${items.length}`}
       onConfirm={run}
       disabled={acceptAll.isPending}
       trigger={<Button size="sm" />}
     >
       <CheckIcon />
-      Accept {items.length} ready
+      Apply {items.length} ready
     </ConfirmActionButton>
   );
 }
@@ -184,11 +184,11 @@ function PlayerRows({ players }: { players: MetaOverlayQueueRow[] }) {
     <Table className={ADMIN_TABLE_CLASS}>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-12">Rank</TableHead>
+          <TableHead className="w-12">Finish</TableHead>
           <TableHead>Player</TableHead>
           <TableHead>Standings row</TableHead>
-          <TableHead className="w-32">Cards</TableHead>
-          <TableHead className="w-16">Age</TableHead>
+          <TableHead className="w-32">Decklist</TableHead>
+          <TableHead className="w-28">Waiting since</TableHead>
           <TableHead className="w-56 text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -210,9 +210,7 @@ function PlayerRows({ players }: { players: MetaOverlayQueueRow[] }) {
                 >
                   Show {hidden} more
                 </Button>
-                <span className="text-muted-foreground">
-                  all ready: exact match, every name resolved
-                </span>
+                <span className="text-muted-foreground">all ready to apply</span>
               </span>
             </TableCell>
           </TableRow>
@@ -224,7 +222,7 @@ function PlayerRows({ players }: { players: MetaOverlayQueueRow[] }) {
 
 export function MetaReviewEventGroup({ group }: { group: MetaReviewGroup }) {
   const [expanded, setExpanded] = useState(true);
-  const decklists = group.players.length;
+  const rows = group.players.length;
 
   return (
     <Card className="gap-0 p-0">
@@ -253,22 +251,23 @@ export function MetaReviewEventGroup({ group }: { group: MetaReviewGroup }) {
           );
         })}
         <span className="text-muted-foreground text-sm">
-          {decklists > 0 && `${decklists} ${pluralize(decklists, "decklist")}`}
-          {decklists > 0 && group.corrections.length > 0 && " · "}
+          {rows > 0 && `${rows} standings ${pluralize(rows, "row")}`}
+          {rows > 0 && group.corrections.length > 0 && " · "}
           {group.corrections.length > 0 &&
             `${group.corrections.length} ${pluralize(group.corrections.length, "correction")}`}
         </span>
         <span className="flex items-center gap-1.5">
-          {group.counts.ready > 0 && decklists > 0 && (
-            <Badge variant="success">{group.counts.ready} ready</Badge>
+          {group.counts.ready > 0 && (
+            <Badge variant="success">{group.counts.ready} ready to apply</Badge>
           )}
           {group.counts.needsRow > 0 && (
             <Badge variant="warning">
-              {group.counts.needsRow} {pluralize(group.counts.needsRow, "needs", "need")} a row
+              {group.counts.needsRow} {pluralize(group.counts.needsRow, "needs", "need")} a
+              standings row
             </Badge>
           )}
           {group.counts.unmatched > 0 && (
-            <Badge variant="destructive">{group.counts.unmatched} unmatched</Badge>
+            <Badge variant="destructive">{group.counts.unmatched} with unknown cards</Badge>
           )}
         </span>
         <span className="ml-auto flex items-center gap-1.5">
@@ -277,7 +276,7 @@ export function MetaReviewEventGroup({ group }: { group: MetaReviewGroup }) {
             <Link
               to="/admin/meta/$eventId"
               params={{ eventId: group.metaEventId }}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
+              className={buttonVariants({ variant: "ghost", size: "sm" })}
             >
               Open event
             </Link>

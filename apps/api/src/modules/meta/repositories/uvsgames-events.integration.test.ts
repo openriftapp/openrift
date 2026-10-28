@@ -12,6 +12,12 @@ import { uvsgamesEventsRepo } from "./uvsgames-events.js";
 // this file writes is `mtc-`-prefixed. `meta_sync_settings` is the
 // migration's singleton and is restored in afterAll.
 
+const RULE_OFF = {
+  autoAcceptMinPlayers: null,
+  autoAcceptOfficial: false,
+  autoAcceptNotable: false,
+};
+
 const ctx = createDbContext(crypto.randomUUID());
 
 const EXTERNAL_IDS = [
@@ -53,6 +59,12 @@ const EXTERNAL_IDS = [
   "mtc-cxl-cited",
   "mtc-cxl-dismissed",
   "mtc-cxl-live",
+  "mtc-rule-big",
+  "mtc-rule-unmapped",
+  "mtc-rule-cxl",
+  "mtc-rule-watched",
+  "mtc-rule-notable",
+  "mtc-rule-upcoming",
 ];
 
 const STORE_ID = 990_001;
@@ -141,11 +153,16 @@ afterAll(async () => {
     .execute();
   await ctx.db
     .deleteFrom("uvsgamesEventTemplates")
-    .where("templateId", "in", ["mtc-template-a", "mtc-template-b", "mtc-template-avg"])
+    .where("templateId", "in", [
+      "mtc-template-a",
+      "mtc-template-b",
+      "mtc-template-avg",
+      "mtc-template-rule",
+    ])
     .execute();
   await ctx.db
     .deleteFrom("uvsgamesFormatMappings")
-    .where("sourceFormat", "=", "MTC Sealed")
+    .where("sourceFormat", "in", ["MTC Sealed", "MTC Rule Fmt"])
     .execute();
   await ctx.db
     .deleteFrom("ignoredMetaSourceEvents")
@@ -553,29 +570,6 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
     });
   });
 
-  it("narrows to the accepted rows a deep fetch has never reached", async () => {
-    await repo().upsertBatch(
-      [
-        row({ externalId: "mtc-wait", name: "MTC Waiting", contentHash: "h-wait" }),
-        row({ externalId: "mtc-wait-done", name: "MTC Waiting Done", contentHash: "h-wait-done" }),
-      ],
-      SEEN,
-    );
-    await seedAcceptedEvent("mtc-wait");
-    await seedAcceptedEvent("mtc-wait-done", {
-      fetchedAt: new Date("2026-08-21T06:00:00Z"),
-    });
-
-    const { rows, total } = await repo().list({ awaitingResults: true }, { limit: 200, offset: 0 });
-    const keys = rows.map((entry) => entry.externalId);
-    expect(keys).toContain("mtc-wait");
-    expect(keys).not.toContain("mtc-wait-done");
-    expect(rows.every((entry) => entry.triage === "accepted" && entry.fetchedAt === null)).toBe(
-      true,
-    );
-    expect(total).toBeGreaterThanOrEqual(rows.length);
-  });
-
   it("reports what the deep fetch staged under each row's candidate", async () => {
     await repo().upsertBatch(
       [
@@ -749,7 +743,7 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
       SEEN,
     );
 
-    const overview = await repo().syncOverview(null);
+    const overview = await repo().syncOverview(RULE_OFF);
 
     expect(overview.total).toBeGreaterThan(0);
     expect(overview.queued).toBeGreaterThanOrEqual(1);
@@ -763,7 +757,7 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
   it("counts the accepted events still waiting on results, and those gone from the listing", async () => {
     // Read as a delta: earlier tests in this file leave accepted rows of their
     // own behind, and only the one seeded here is this test's to assert.
-    const before = await repo().syncOverview(null);
+    const before = await repo().syncOverview(RULE_OFF);
 
     await repo().upsertBatch(
       [row({ externalId: "mtc-acc-gone", name: "MTC Accepted Gone", contentHash: "h-acc-gone" })],
@@ -776,14 +770,14 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
       .where("externalId", "=", "mtc-acc-gone")
       .execute();
 
-    const overview = await repo().syncOverview(null);
+    const overview = await repo().syncOverview(RULE_OFF);
 
     expect(overview.acceptedAwaitingResults).toBe(before.acceptedAwaitingResults + 1);
     expect(overview.acceptedMissing).toBe(before.acceptedMissing + 1);
     expect(overview.missing).toBeGreaterThanOrEqual(overview.acceptedMissing);
   });
   it("offers only bare, undismissed cancelled events for withdrawal and counts every accepted one", async () => {
-    const before = await repo().syncOverview(null);
+    const before = await repo().syncOverview(RULE_OFF);
     const ids = ["mtc-cxl-bare", "mtc-cxl-played", "mtc-cxl-cited", "mtc-cxl-dismissed"];
     await repo().upsertBatch(
       [
@@ -818,7 +812,7 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
       .execute();
 
     const withdrawable = await repo().withdrawableCancelled();
-    const overview = await repo().syncOverview(null);
+    const overview = await repo().syncOverview(RULE_OFF);
 
     expect(withdrawable.filter((entry) => entry.externalId.startsWith("mtc-"))).toEqual([
       { externalId: "mtc-cxl-bare", metaEventId: live.get("mtc-cxl-bare") },
@@ -1187,10 +1181,112 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
     });
 
     it("reports when the longest-waiting due recheck became due", async () => {
-      const overview = await repo().syncOverview(null);
+      const overview = await repo().syncOverview(RULE_OFF);
 
       expect(overview.oldestDueAt).toBeInstanceOf(Date);
       expect(overview.oldestDueAt!.getTime()).toBeLessThanOrEqual(Date.now());
+    });
+  });
+
+  describe("auto-publish rule buckets", () => {
+    const filters = { search: "MTC Rule" };
+    const rule = (overrides: Partial<typeof RULE_OFF> = {}) => ({
+      autoAcceptMinPlayers: 16,
+      autoAcceptOfficial: false,
+      autoAcceptNotable: false,
+      ...overrides,
+    });
+
+    async function seed() {
+      await ctx!.db
+        .insertInto("uvsgamesFormatMappings")
+        .values({ sourceFormat: "MTC Rule Fmt", mappedFormat: "constructed" })
+        .onConflict((oc) => oc.column("sourceFormat").doNothing())
+        .execute();
+      await ctx!.db
+        .insertInto("uvsgamesEventTemplates")
+        .values({ templateId: "mtc-template-rule", sourceName: "MTC Rule Template", watched: true })
+        .onConflict((oc) => oc.column("templateId").doNothing())
+        .execute();
+      const mapped = { eventFormat: "mtc-rule FMT" };
+      await repo().upsertBatch(
+        [
+          row({ externalId: "mtc-rule-big", name: "MTC Rule Big", playerCount: 20, ...mapped }),
+          row({
+            externalId: "mtc-rule-unmapped",
+            name: "MTC Rule Unmapped",
+            playerCount: 20,
+            eventFormat: "MTC Rule Unmapped Fmt",
+          }),
+          row({
+            externalId: "mtc-rule-cxl",
+            name: "MTC Rule Cancelled",
+            playerCount: 20,
+            displayStatus: "canceled",
+            ...mapped,
+          }),
+          row({
+            externalId: "mtc-rule-watched",
+            name: "MTC Rule Watched",
+            playerCount: 4,
+            eventConfigurationTemplate: "mtc-template-rule",
+            ...mapped,
+          }),
+          row({
+            externalId: "mtc-rule-notable",
+            name: "MTC Rule Regional",
+            playerCount: 4,
+            ...mapped,
+          }),
+          row({
+            externalId: "mtc-rule-upcoming",
+            name: "MTC Rule Upcoming",
+            playerCount: 40,
+            startAt: new Date("2099-01-01T12:00:00Z"),
+            displayStatus: "upcoming",
+            ...mapped,
+          }),
+        ].map((entry) => ({ ...entry, contentHash: `h-${entry.externalId}` })),
+        SEEN,
+      );
+    }
+
+    it("counts only events the auto-publish job would take", async () => {
+      await seed();
+
+      const sizeOnly = await repo().bucketCounts(filters, rule());
+      expect(sizeOnly).toMatchObject({
+        needsDecision: 1,
+        skippedPast: 4,
+        skippedUpcoming: 1,
+        undecided: 6,
+      });
+
+      const everyRule = await repo().bucketCounts(
+        filters,
+        rule({ autoAcceptOfficial: true, autoAcceptNotable: true }),
+      );
+      expect(everyRule).toMatchObject({ needsDecision: 3, skippedPast: 2 });
+    });
+
+    it("lists exactly the rows a bucket counts", async () => {
+      await seed();
+      const everyRule = rule({ autoAcceptOfficial: true, autoAcceptNotable: true });
+
+      const listed = await repo().list(
+        { ...filters, bucket: { name: "needsDecision", rule: everyRule } },
+        { limit: 50, offset: 0 },
+      );
+
+      expect(listed.rows.map((entry) => entry.externalId).toSorted()).toEqual([
+        "mtc-rule-big",
+        "mtc-rule-notable",
+        "mtc-rule-watched",
+      ]);
+    });
+
+    it("answers no counts when nothing narrows the list", async () => {
+      expect(await repo().bucketCounts({}, rule())).toBeNull();
     });
   });
 });

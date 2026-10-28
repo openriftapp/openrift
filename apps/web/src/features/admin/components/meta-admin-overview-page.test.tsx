@@ -254,8 +254,6 @@ describe("MetaAdminOverviewPage", () => {
     expect(card).toHaveTextContent("3");
     expect(JSON.parse(card.dataset.search ?? "{}")).toMatchObject({
       tab: "catalogue",
-      triage: "new",
-      minPlayers: 16,
       bucket: "needsDecision",
     });
   });
@@ -336,8 +334,8 @@ describe("MetaAdminOverviewPage source detail", () => {
     render(<MetaAdminOverviewPage />);
 
     expect(screen.getByText("39,089 events")).toBeInTheDocument();
-    expect(screen.getByText("skipped, past")).toBeInTheDocument();
-    expect(screen.getByText("collecting results")).toBeInTheDocument();
+    expect(screen.getByText(/skipped, past/u)).toBeInTheDocument();
+    expect(screen.getByText(/collecting results/u)).toBeInTheDocument();
     expect(screen.getByText(/The next starts 2026-10-28 15:30/u)).toBeInTheDocument();
   });
 

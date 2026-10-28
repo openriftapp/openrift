@@ -1,3 +1,4 @@
+import type { AdminMetaSourceState } from "@openrift/shared/contracts/admin/meta";
 import { adminMetaContract } from "@openrift/shared/contracts/admin/meta";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { AdminMetaEvent } from "@openrift/shared/types/api/meta";
@@ -7,15 +8,28 @@ import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
 import { assertExisted, assertFound, assertSlugAvailable } from "../../../lib/assertions.js";
+import {
+  PLAYLOLTCG_PROVIDER,
+  PLAYRIFTBOUND_PROVIDER,
+  TOPDECK_PROVIDER,
+  UVSGAMES_PROVIDER,
+} from "../../../lib/meta-providers.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { assertKnownFormat, validateFormatConfig } from "../../decks/lib/deck-format-validation.js";
 import { classifyMetaEventTier } from "../lib/meta-event-classify.js";
 import { toAdminMetaEvent, toAdminMetaPlayer, toMetaEventSource } from "../lib/meta-presenters.js";
+import {
+  playloltcgSourceState,
+  playriftboundSourceState,
+  topdeckSourceState,
+  uvsgamesSourceState,
+} from "../lib/meta-source-state.js";
 import type { MetaArchivedDeckInput, MetaDeckCardInput } from "../repositories/meta-decks.js";
 import { createMetaEventPlayer } from "../services/meta-event-players.js";
 import type { MetaEventFieldEdit } from "../services/meta-overlay-review.js";
 import { writeEventOverlayFields } from "../services/meta-overlay-review.js";
+import { removeMetaEvent } from "../services/meta-remove.js";
 
 const os = implement(adminMetaContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -125,23 +139,30 @@ export const adminMetaRouter = {
   listEvents: os.listEvents.handler(async ({ input, context }) => {
     const page = input.page ?? 1;
     const limit = input.limit ?? ADMIN_META_EVENT_PAGE_SIZE;
-    const { rows, total } = await context.repos.meta.listEvents(
-      {
-        search: input.search,
-        format: input.format,
-        source: input.source,
-        dateFrom: input.dateFrom,
-        dateTo: input.dateTo,
-        incompleteStandings: input.incompleteStandings,
-        noDecks: input.noDecks,
-      },
-      { limit, offset: (page - 1) * limit },
-      { sort: input.sort, direction: input.direction },
-    );
+    const filters = {
+      search: input.search,
+      format: input.format,
+      tier: input.tier,
+      source: input.source,
+      dateFrom: input.dateFrom,
+      dateTo: input.dateTo,
+      results: input.results,
+      incompleteStandings: input.incompleteStandings,
+      hasDecks: input.hasDecks,
+    };
+    const [{ rows, total }, counts] = await Promise.all([
+      context.repos.meta.listEvents(
+        filters,
+        { limit, offset: (page - 1) * limit },
+        { sort: input.sort, direction: input.direction },
+      ),
+      context.repos.meta.listCounts(filters),
+    ]);
     const sources = await context.repos.meta.sourcesForEvents(rows.map((row) => row.id));
     const sourcesByEvent = Map.groupBy(sources, (source) => source.metaEventId);
     return {
       events: rows.map((row) => toAdminMetaEvent(row, sourcesByEvent.get(row.id) ?? [])),
+      counts,
       total,
       page,
       limit,
@@ -197,7 +218,43 @@ export const adminMetaRouter = {
   }),
 
   deleteEvent: os.deleteEvent.handler(async ({ input, context }): Promise<void> => {
-    assertExisted(await context.repos.meta.deleteEvent(input.id), "Event not found");
+    assertExisted(await removeMetaEvent(context.transact, input.id), "Event not found");
+  }),
+
+  eventSourceStates: os.eventSourceStates.handler(async ({ input, context }) => {
+    const { meta, uvsgamesEvents, playloltcgEvents, topdeckEvents, playriftboundEvents } =
+      context.repos;
+    assertFound(await meta.eventRowById(input.id), "Event not found");
+    const now = new Date();
+    const states: AdminMetaSourceState[] = [];
+    for (const source of await meta.sourcesForEvent(input.id)) {
+      const key = source.externalId;
+      if (key === null) {
+        continue;
+      }
+      if (source.provider === UVSGAMES_PROVIDER) {
+        const row = await uvsgamesEvents.byKey(key);
+        if (row) {
+          states.push(uvsgamesSourceState(row, now));
+        }
+      } else if (source.provider === PLAYLOLTCG_PROVIDER) {
+        const row = await playloltcgEvents.byKey(Number(key));
+        if (row) {
+          states.push(playloltcgSourceState(row, now));
+        }
+      } else if (source.provider === TOPDECK_PROVIDER) {
+        const row = await topdeckEvents.byKey(key);
+        if (row) {
+          states.push(topdeckSourceState(row, now));
+        }
+      } else if (source.provider === PLAYRIFTBOUND_PROVIDER) {
+        const row = await playriftboundEvents.byKey(key);
+        if (row) {
+          states.push(playriftboundSourceState(row, now));
+        }
+      }
+    }
+    return { sources: states };
   }),
 
   eventPlayers: os.eventPlayers.handler(async ({ input, context }) => {

@@ -549,8 +549,24 @@ export const adminMetaCandidatesRouter = os.router({
       linkMetaPlayerOverlay(context.repos, input.id, input.metaEventPlayerId),
   ),
 
-  rejectOverlay: os.rejectOverlay.handler(({ input, context }): Promise<MetaOverlayReviewResult> =>
-    rejectMetaOverlay(context.repos, { kind: input.kind, id: input.id }),
+  rejectOverlay: os.rejectOverlay.handler(
+    async ({ input, context }): Promise<MetaOverlayReviewResult> => {
+      const result = await rejectMetaOverlay(context.repos, { kind: input.kind, id: input.id });
+      if (input.kind === "player") {
+        const submission = await context.repos.metaSubmissions.byPlayerOverlayId(input.id);
+        if (submission?.status === "pending") {
+          await context.repos.metaSubmissions.resolve(submission.id, {
+            status: "rejected",
+            resolvedAt: new Date(),
+            reason: input.reason ?? null,
+            note: input.note ?? null,
+            resolvedByUserId: context.userId,
+            acceptedDeckId: null,
+          });
+        }
+      }
+      return result;
+    },
   ),
 
   eventUploads: os.eventUploads.handler(async ({ input, context }) => ({

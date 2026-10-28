@@ -11,7 +11,7 @@ import { initQueryOptions } from "@/lib/init-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/meta_/$eventId")({
-  head: () => adminSeoHead("Meta Archive Decks"),
+  head: () => adminSeoHead("Published event"),
   loader: async ({ context, params }) => {
     await Promise.all([
       context.queryClient.query({

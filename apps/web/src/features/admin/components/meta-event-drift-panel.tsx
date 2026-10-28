@@ -34,6 +34,7 @@ import {
   useWriteMetaEventOverlayFields,
 } from "@/features/admin/hooks/use-admin-meta-overlays";
 import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
+import { reviewFieldLabel } from "@/features/meta/lib/meta-review-queue";
 import { sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
 import { cn } from "@/lib/utils";
 
@@ -65,13 +66,13 @@ function SourceHeader({ source }: { source: MetaEventDrift["sources"][number] })
       // Reported by the global mutation error toast.
       return;
     }
-    toast.success("Reordered. The event has been promoted again.");
+    toast.success("Reordered. The published event is rebuilt from its sources.");
   }
 
   return (
     <div className="flex items-center gap-1.5">
       <Badge variant={provider.variant}>{provider.label}</Badge>
-      {!source.hasMirror && <span className="text-muted-foreground">no crawler</span>}
+      {!source.hasMirror && <span className="text-muted-foreground">not mirrored</span>}
       <span className="text-muted-foreground tabular-nums">#{source.priority}</span>
       <Button
         size="sm"
@@ -238,10 +239,10 @@ function FieldRow({
       <td className="w-1 py-2.5 pr-1">
         {contested && <span className="bg-warning block size-1.5 rounded-full" aria-hidden />}
       </td>
-      <td className="text-muted-foreground py-2.5 pr-3 font-mono">
+      <td className="text-muted-foreground py-2.5 pr-3">
         <span className="flex items-center gap-1.5">
-          {field.claimedByOverlay && <LockIcon className="size-3" aria-label="Set by an overlay" />}
-          {field.field}
+          {field.claimedByOverlay && <LockIcon className="size-3" aria-label="Set by hand" />}
+          {reviewFieldLabel(field.field)}
         </span>
       </td>
       {field.bySource.map((cell, index) => (
@@ -274,7 +275,7 @@ function FieldRow({
             <>
               <span className="font-medium">{field.live ?? "—"}</span>
               {field.claimedByOverlay ? (
-                <Badge variant="outline">overlay</Badge>
+                <Badge variant="outline">Set by hand</Badge>
               ) : (
                 field.wonBy !== null && <Badge variant="outline">{field.wonBy}</Badge>
               )}
@@ -341,12 +342,12 @@ export function MetaEventDriftPanel({
         ))}
       </div>
       <p className="text-muted-foreground">
-        Promotion applies these lowest number first, so the highest wins a field two of them both
-        publish. Claiming a field writes an overlay, after which no source wins it again.
+        When two sources give a field, the one higher in this order wins. A field set by hand stays
+        as set until you release it.
       </p>
 
       {contested.length === 0 && !showAgreed ? (
-        <p className="text-muted-foreground">Every field agrees with the archive.</p>
+        <p className="text-muted-foreground">Every field matches its sources.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
@@ -361,7 +362,7 @@ export function MetaEventDriftPanel({
                     {sourceProviderDisplay(source.provider ?? source.label).label}
                   </th>
                 ))}
-                <th className="py-2 font-medium">Live</th>
+                <th className="py-2 font-medium">Published</th>
               </tr>
             </thead>
             <tbody>

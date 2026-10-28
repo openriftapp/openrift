@@ -99,16 +99,14 @@ describe("metaSearchSchema", () => {
     const parsed = metaSearchSchema.parse({
       decklists: true,
       missing: false,
-      awaitingResults: true,
       incompleteStandings: false,
-      noDecks: true,
+      hasDecks: true,
     });
     expect(parsed).toMatchObject({
       decklists: true,
       missing: false,
-      awaitingResults: true,
       incompleteStandings: false,
-      noDecks: true,
+      hasDecks: true,
     });
   });
 

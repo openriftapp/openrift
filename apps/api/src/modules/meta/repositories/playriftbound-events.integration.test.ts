@@ -10,6 +10,13 @@ import { playriftboundResultsRepo } from "./playriftbound-results.js";
 // The mirror table has no provider column, so isolation is by key: every
 // tournament id this file writes starts with 99000.
 
+const RULE_OFF = {
+  autoAcceptMinPlayers: null,
+  autoAcceptOfficial: false,
+  autoAcceptNotable: false,
+};
+const RULE_16 = { autoAcceptMinPlayers: 16, autoAcceptOfficial: false, autoAcceptNotable: false };
+
 const ctx = createDbContext(crypto.randomUUID());
 
 const KEYS = {
@@ -285,7 +292,7 @@ describe.skipIf(!ctx)("playriftboundEventsRepo", () => {
   });
 
   it("sorts each event into exactly one overview bucket", async () => {
-    const before = await repo.syncOverview(16);
+    const before = await repo.syncOverview(RULE_16);
     const future = new Date(Date.now() + 7 * 86_400_000);
     const big = { registeredCount: 20 };
     await repo.upsertBatch(
@@ -325,7 +332,7 @@ describe.skipIf(!ctx)("playriftboundEventsRepo", () => {
       checkStage: 0,
     });
 
-    const after = await repo.syncOverview(16);
+    const after = await repo.syncOverview(RULE_16);
 
     expect({
       notStarted: after.notStarted - before.notStarted,
@@ -349,20 +356,20 @@ describe.skipIf(!ctx)("playriftboundEventsRepo", () => {
     expect(after.nextCheckAt).not.toBeNull();
 
     const listed = await repo.list(
-      { bucket: "needsDecision", minPlayers: 16, search: "PRI" },
+      { bucket: { name: "needsDecision", rule: RULE_16 }, search: "PRI" },
       { limit: 500, offset: 0 },
     );
     expect(listed.rows.map((r) => r.tournamentId)).toContain(KEYS.needsDecision);
     expect(listed.rows.map((r) => r.tournamentId)).not.toContain(KEYS.passingNoResults);
 
-    const passing = await repo.passingNoResultsKeys(16);
+    const passing = await repo.passingNoResultsKeys(RULE_16);
     expect(passing).toContain(KEYS.passingNoResults);
     expect(passing).not.toContain(KEYS.needsDecision);
     expect(passing).not.toContain(KEYS.team);
   });
 
   it("passes nothing through the rule while auto-publish is off", async () => {
-    const overview = await repo.syncOverview(null);
+    const overview = await repo.syncOverview(RULE_OFF);
 
     expect(overview.needsDecision).toBe(0);
     expect(overview.passingNoResults).toBe(0);

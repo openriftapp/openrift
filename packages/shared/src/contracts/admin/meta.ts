@@ -1,7 +1,13 @@
+import { metaSubmissionReasonSchema } from "@openrift/shared/response-schemas";
 import { idParamSchema, isoDateTime, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
-import { META_EVENT_OVERLAY_FIELDS, META_PLAYER_OVERLAY_FIELDS } from "../../types/enums.js";
+import { META_RESULTS_STATES } from "../../meta-results.js";
+import {
+  META_CATALOG_PROVIDERS,
+  META_EVENT_OVERLAY_FIELDS,
+  META_PLAYER_OVERLAY_FIELDS,
+} from "../../types/enums.js";
 import { authedRoute } from "../_base.js";
 import {
   adminMetaEventListQuerySchema,
@@ -32,6 +38,20 @@ import {
   metaUploadSchema,
   metaUploadSummarySchema,
 } from "./meta-uploads.js";
+
+const adminMetaSourceStateSchema = z.object({
+  provider: z.enum(META_CATALOG_PROVIDERS),
+  externalId: z.string(),
+  status: z.string().nullable(),
+  cancelled: z.boolean(),
+  missingSince: isoDateTime.nullable(),
+  roundsPlayed: z.number().int().nullable(),
+  roundCount: z.number().int().nullable(),
+  results: z.enum(META_RESULTS_STATES),
+  nextCheckAt: isoDateTime.nullable(),
+  collects: z.boolean(),
+});
+export type AdminMetaSourceState = z.infer<typeof adminMetaSourceStateSchema>;
 
 const TAG = "Admin - Meta archive";
 const OVERLAY_TAG = "Admin - Meta overlays";
@@ -77,6 +97,12 @@ export const adminMetaContract = {
     .route({ method: "DELETE", path: `${BASE}/events/{id}`, tags: [TAG], successStatus: 204 })
     .input(idParamSchema)
     .errors({ NOT_FOUND: { message: "Event not found" } }),
+
+  eventSourceStates: authedRoute
+    .route({ method: "GET", path: `${BASE}/events/{id}/source-states`, tags: [TAG] })
+    .input(idParamSchema)
+    .errors({ NOT_FOUND: { message: "Event not found" } })
+    .output(z.object({ sources: z.array(adminMetaSourceStateSchema) })),
 
   eventPlayers: authedRoute
     .route({ method: "GET", path: `${BASE}/events/{id}/players`, tags: [TAG] })
@@ -309,9 +335,16 @@ export const adminMetaCandidatesContract = {
     .errors({ NOT_FOUND: { message: "Overlay or standings row not found" } })
     .output(metaOverlayReviewResultSchema),
 
+  /** A contributor's row also settles their submission as rejected, with the given reason. */
   rejectOverlay: authedRoute
     .route({ method: "POST", path: `${BASE}/overlays/{kind}/{id}/reject`, tags: [OVERLAY_TAG] })
-    .input(idParamSchema.extend({ kind: z.enum(["event", "player"]) }))
+    .input(
+      idParamSchema.extend({
+        kind: z.enum(["event", "player"]),
+        reason: metaSubmissionReasonSchema.nullable().optional(),
+        note: z.string().trim().min(1).max(2000).nullable().optional(),
+      }),
+    )
     .errors({ NOT_FOUND: { message: "Overlay not found" } })
     .output(metaOverlayReviewResultSchema),
 

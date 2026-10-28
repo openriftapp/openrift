@@ -12,7 +12,7 @@ import { initQueryOptions } from "@/lib/init-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/meta")({
-  head: () => adminSeoHead("Meta Archive"),
+  head: () => adminSeoHead("Meta archive"),
   validateSearch: metaSearchSchema,
   loaderDeps: ({ search }) => ({
     tab: search.tab,
@@ -22,8 +22,10 @@ export const Route = createFileRoute("/_app/_authenticated/admin/meta")({
     liveSource: search.liveSource,
     dateFrom: search.dateFrom,
     dateTo: search.dateTo,
+    liveTier: search.liveTier,
+    liveResults: search.liveResults,
     incompleteStandings: search.incompleteStandings,
-    noDecks: search.noDecks,
+    hasDecks: search.hasDecks,
     liveSort: search.liveSort,
     liveDir: search.liveDir,
   }),

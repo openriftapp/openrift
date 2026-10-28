@@ -1,3 +1,4 @@
+import type { MetaResultsState } from "@openrift/shared/meta-results";
 import type {
   META_EVENT_SORTS,
   MetaEventSourceFilter,
@@ -96,11 +97,30 @@ export interface MetaEventFilters {
   source?: MetaEventSourceFilter;
   dateFrom?: string;
   dateTo?: string;
+  tier?: MetaEventTier;
+  results?: MetaResultsState;
   /** Keeps only events holding fewer standings rows than the reported field. */
   incompleteStandings?: boolean;
-  /** Keeps only events where no standings row carries a decklist. */
-  noDecks?: boolean;
+  hasDecks?: boolean;
 }
+
+export interface MetaEventListCounts {
+  total: number;
+  notStarted: number;
+  collecting: number;
+  final: number;
+  noResults: number;
+  standingsShort: number;
+  manual: number;
+}
+
+/** Mirrors `metaResultsState` from the shared package. */
+const RESULTS_CONDITION: Record<MetaResultsState, RawBuilder<boolean>> = {
+  notStarted: sql<boolean>`meta_events.status = 'upcoming'`,
+  collecting: sql<boolean>`meta_events.status = 'in_progress'`,
+  final: sql<boolean>`meta_events.status = 'complete' and c.player_row_count > 0`,
+  noResults: sql<boolean>`meta_events.status = 'complete' and c.player_row_count = 0`,
+};
 
 /** How one page of the live event list is ordered. Defaults to newest first. */
 export interface MetaEventOrder {
@@ -133,7 +153,12 @@ function eventOrderBy(order: MetaEventOrder) {
 const standingsShort = sql<boolean>`meta_events.player_count is not null
   and c.player_row_count < meta_events.player_count`;
 
-const noDecks = sql<boolean>`c.deck_count = 0`;
+const hasDecks = sql<boolean>`c.deck_count > 0`;
+
+const noProviderSource = sql<boolean>`not exists (
+  select 1 from meta_event_sources src
+   where src.meta_event_id = meta_events.id and src.provider is not null
+)`;
 
 /**
  * The event has a citation from the named provider — or, for `manual`, from no
@@ -184,6 +209,41 @@ export function metaEventsRepo(db: Kysely<Database>) {
       ]);
   }
 
+  function narrowEvents<Q extends ReturnType<typeof eventQuery>>(
+    query: Q,
+    filters: MetaEventFilters,
+  ): Q {
+    let narrowed = query;
+    if (filters.search !== undefined && filters.search.trim() !== "") {
+      const pattern = containsPattern(filters.search.trim());
+      narrowed = narrowed.where((eb) =>
+        eb.or([
+          eb("metaEvents.name", "ilike", pattern),
+          eb("metaEvents.organizer", "ilike", pattern),
+        ]),
+      ) as Q;
+    }
+    if (filters.format !== undefined) {
+      narrowed = narrowed.where("metaEvents.format", "=", filters.format) as Q;
+    }
+    if (filters.tier !== undefined) {
+      narrowed = narrowed.where("metaEvents.tier", "=", filters.tier) as Q;
+    }
+    if (filters.source !== undefined) {
+      narrowed = narrowed.where(sourcedBy(filters.source)) as Q;
+    }
+    if (filters.dateFrom !== undefined) {
+      narrowed = narrowed.where("metaEvents.eventDate", ">=", filters.dateFrom) as Q;
+    }
+    if (filters.dateTo !== undefined) {
+      narrowed = narrowed.where("metaEvents.eventDate", "<=", filters.dateTo) as Q;
+    }
+    if (filters.hasDecks === true) {
+      narrowed = narrowed.where(hasDecks) as Q;
+    }
+    return narrowed;
+  }
+
   return {
     /** Live events with a store in a date window that no citation from `provider` feeds. */
     eventsAtStoresOutside(params: {
@@ -222,35 +282,41 @@ export function metaEventsRepo(db: Kysely<Database>) {
         // ties and keeps a page boundary from repeating or skipping a row.
         .orderBy("metaEvents.slug", "asc");
 
-      if (filters.search !== undefined && filters.search.trim() !== "") {
-        const pattern = containsPattern(filters.search.trim());
-        const matches = (eb: ExpressionBuilder<Database, "metaEvents">) =>
-          eb.or([
-            eb("metaEvents.name", "ilike", pattern),
-            eb("metaEvents.organizer", "ilike", pattern),
-          ]);
-        query = query.where(matches);
-      }
-      if (filters.format !== undefined) {
-        query = query.where("metaEvents.format", "=", filters.format);
-      }
-      if (filters.source !== undefined) {
-        query = query.where(sourcedBy(filters.source));
-      }
-      if (filters.dateFrom !== undefined) {
-        query = query.where("metaEvents.eventDate", ">=", filters.dateFrom);
-      }
-      if (filters.dateTo !== undefined) {
-        query = query.where("metaEvents.eventDate", "<=", filters.dateTo);
+      query = narrowEvents(query, filters);
+      if (filters.results !== undefined) {
+        query = query.where(RESULTS_CONDITION[filters.results]);
       }
       if (filters.incompleteStandings === true) {
         query = query.where(standingsShort);
       }
-      if (filters.noDecks === true) {
-        query = query.where(noDecks);
-      }
 
       return offsetPage(query, page);
+    },
+
+    async listCounts(filters: MetaEventFilters): Promise<MetaEventListCounts> {
+      const count = (condition: RawBuilder<boolean>) =>
+        sql<string>`count(*) filter (where ${condition})`;
+      const row = await narrowEvents(eventQuery(), filters)
+        .clearSelect()
+        .select([
+          sql<string>`count(*)`.as("total"),
+          count(RESULTS_CONDITION.notStarted).as("notStarted"),
+          count(RESULTS_CONDITION.collecting).as("collecting"),
+          count(RESULTS_CONDITION.final).as("final"),
+          count(RESULTS_CONDITION.noResults).as("noResults"),
+          count(standingsShort).as("standingsShort"),
+          count(noProviderSource).as("manual"),
+        ])
+        .executeTakeFirstOrThrow();
+      return {
+        total: Number(row.total),
+        notStarted: Number(row.notStarted),
+        collecting: Number(row.collecting),
+        final: Number(row.final),
+        noResults: Number(row.noResults),
+        standingsShort: Number(row.standingsShort),
+        manual: Number(row.manual),
+      };
     },
 
     eventBySlug(slug: string): Promise<MetaEventWithCounts | undefined> {

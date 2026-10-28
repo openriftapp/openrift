@@ -1,154 +1,24 @@
 import type {
   MetaArchiveJobs,
   MetaCancellableJob,
-  MetaCatalogListResponse,
-  MetaCatalogSort,
-  MetaCatalogSortDirection,
-  MetaCatalogTriage,
   MetaSource,
   MetaSourceFormat,
   MetaSourceTemplate,
-  MetaSyncBucketFilter,
   MetaSyncCancelResult,
   MetaSyncSettings,
   MetaSyncStatus,
   MetaSyncTriggerResult,
 } from "@openrift/shared/contracts/admin/meta-catalog";
 import { adminMetaCatalogContract } from "@openrift/shared/contracts/admin/meta-catalog";
-import type { META_CATALOG_DISPLAY_STATUSES, MetaEventTier } from "@openrift/shared/types/enums";
-import { keepPreviousData, queryOptions, useQuery } from "@tanstack/react-query";
+import type { MetaEventTier } from "@openrift/shared/types/enums";
+import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type { MetaSyncTrigger } from "@/features/admin/lib/meta-admin-triggers";
-import { metaKeys } from "@/features/meta/lib/meta-query-keys";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-
-export const META_CATALOG_PAGE_SIZE = 50;
-
-type MetaCatalogDisplayStatus = (typeof META_CATALOG_DISPLAY_STATUSES)[number];
-
-export interface MetaCatalogQueryParams {
-  page: number;
-  search?: string;
-  triage?: MetaCatalogTriage;
-  displayStatus?: MetaCatalogDisplayStatus;
-  minPlayers?: number;
-  decklistPublished?: boolean;
-  missing?: boolean;
-  bucket?: MetaSyncBucketFilter;
-  awaitingResults?: boolean;
-  dateFrom?: string;
-  dateTo?: string;
-  sort?: MetaCatalogSort;
-  direction?: MetaCatalogSortDirection;
-}
-
-const fetchMetaCatalog = createServerFn({ method: "GET" })
-  .validator((input: MetaCatalogQueryParams) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<MetaCatalogListResponse> =>
-    apiOrpcClient(adminMetaCatalogContract, context.cookie).list({
-      page: data.page,
-      limit: META_CATALOG_PAGE_SIZE,
-      search: data.search,
-      triage: data.triage,
-      displayStatus: data.displayStatus,
-      minPlayers: data.minPlayers,
-      dateFrom: data.dateFrom,
-      dateTo: data.dateTo,
-      sort: data.sort,
-      direction: data.direction,
-      // Query strings coerce "false" to true; an off toggle must be absent, never false.
-      decklistPublished: data.decklistPublished === true ? true : undefined,
-      missing: data.missing === true ? true : undefined,
-      bucket: data.bucket,
-      awaitingResults: data.awaitingResults === true ? true : undefined,
-    }),
-  );
-
-function adminMetaCatalogQueryOptions(params: MetaCatalogQueryParams) {
-  return queryOptions({
-    queryKey: adminKeys.meta.catalogueList(params),
-    queryFn: () => fetchMetaCatalog({ data: params }),
-    placeholderData: keepPreviousData,
-  });
-}
-
-/** Includes the unfiltered triage counts alongside the page. */
-export function useAdminMetaCatalog(params: MetaCatalogQueryParams) {
-  return useQuery(adminMetaCatalogQueryOptions(params));
-}
-
-const acceptCatalogEventFn = createServerFn({ method: "POST" })
-  .validator((input: { externalId: string; format?: string }) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }) =>
-    apiOrpcClient(adminMetaCatalogContract, context.cookie).accept(data),
-  );
-
-/** An accept also creates a live event, its candidate, and a public archive row. */
-const acceptInvalidates = [
-  adminKeys.meta.catalogue,
-  adminKeys.meta.syncStatus.prefix,
-  adminKeys.meta.events,
-  adminKeys.meta.overlays,
-  metaKeys.all,
-] as const;
-
-/** `format` is required only when the source's own format maps to nothing of ours. */
-export function useAcceptCatalogEvent() {
-  return useMutationWithInvalidation({
-    mutationFn: (vars: { externalId: string; format?: string }) =>
-      acceptCatalogEventFn({ data: vars }),
-    invalidates: acceptInvalidates,
-  });
-}
-
-const dismissCatalogEventFn = createServerFn({ method: "POST" })
-  .validator((input: { externalId: string }) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(adminMetaCatalogContract, context.cookie).dismiss(data);
-  });
-
-/** Writes the ignore key for a catalogue row, so triage and ingest both skip it. */
-export function useDismissCatalogEvent() {
-  return useMutationWithInvalidation({
-    mutationFn: (vars: { externalId: string }) => dismissCatalogEventFn({ data: vars }),
-    invalidates: [adminKeys.meta.catalogue, adminKeys.meta.ignoredSources],
-  });
-}
-
-const undismissCatalogEventFn = createServerFn({ method: "POST" })
-  .validator((input: { externalId: string }) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(adminMetaCatalogContract, context.cookie).undismiss(data);
-  });
-
-export function useUndismissCatalogEvent() {
-  return useMutationWithInvalidation({
-    mutationFn: (vars: { externalId: string }) => undismissCatalogEventFn({ data: vars }),
-    invalidates: [adminKeys.meta.catalogue, adminKeys.meta.ignoredSources],
-  });
-}
-
-const removeCatalogEventFn = createServerFn({ method: "POST" })
-  .validator((input: { externalId: string }) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(adminMetaCatalogContract, context.cookie).remove(data);
-  });
-
-export function useRemoveCatalogEvent() {
-  return useMutationWithInvalidation({
-    mutationFn: (vars: { externalId: string }) => removeCatalogEventFn({ data: vars }),
-    invalidates: [...acceptInvalidates, adminKeys.meta.ignoredSources],
-  });
-}
 
 const fetchMetaSourceTemplates = createServerFn({ method: "GET" })
   .middleware([withCookies])
@@ -181,7 +51,7 @@ const updateMetaSourceTemplateFn = createServerFn({ method: "POST" })
 const vocabularyInvalidates = [
   adminKeys.meta.sourceTemplates,
   adminKeys.meta.sourceFormats,
-  adminKeys.meta.catalogue,
+  adminKeys.meta.mirror,
   adminKeys.meta.syncStatus.prefix,
 ] as const;
 
@@ -269,12 +139,7 @@ const rejectPassingNoResultsFn = createServerFn({ method: "POST" })
 export function useRejectPassingNoResults(source: MetaSource) {
   return useMutationWithInvalidation<{ rejected: number }, void>({
     mutationFn: () => rejectPassingNoResultsFn({ data: { source } }),
-    invalidates: [
-      adminKeys.meta.syncStatus.prefix,
-      adminKeys.meta.catalogue,
-      adminKeys.meta.playloltcgCatalogue,
-      adminKeys.meta.playriftboundCatalogue,
-    ],
+    invalidates: [adminKeys.meta.syncStatus.prefix, adminKeys.meta.mirror],
   });
 }
 
@@ -320,9 +185,7 @@ const runMetaSyncFn = createServerFn({ method: "POST" })
 const syncRunInvalidates = [
   adminKeys.meta.syncStatus.prefix,
   adminKeys.meta.archiveJobs,
-  adminKeys.meta.catalogue,
-  adminKeys.meta.playloltcgCatalogue,
-  adminKeys.meta.playriftboundCatalogue,
+  adminKeys.meta.mirror,
   adminKeys.jobRuns,
 ] as const;
 
@@ -333,13 +196,6 @@ export function useRunMetaSync() {
     invalidates: syncRunInvalidates,
   });
 }
-
-const fetchCatalogEventFn = createServerFn({ method: "POST" })
-  .validator((input: { externalId: string }) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<MetaSyncTriggerResult> =>
-    apiOrpcClient(adminMetaCatalogContract, context.cookie).fetchEvent(data),
-  );
 
 const cancelRunFn = createServerFn({ method: "POST" })
   .validator((input: { source: MetaSource; job: MetaCancellableJob }) => input)
@@ -356,13 +212,5 @@ export function useCancelMetaRun(source: MetaSource) {
   return useMutationWithInvalidation<MetaSyncCancelResult, { job: MetaCancellableJob }>({
     mutationFn: (vars) => cancelRunFn({ data: { source, job: vars.job } }),
     invalidates: syncRunInvalidates,
-  });
-}
-
-/** Runs inline, so the result carries the fetch's summary, unlike a scheduled recheck. */
-export function useFetchCatalogEvent() {
-  return useMutationWithInvalidation<MetaSyncTriggerResult, { externalId: string }>({
-    mutationFn: (vars) => fetchCatalogEventFn({ data: vars }),
-    invalidates: acceptInvalidates,
   });
 }

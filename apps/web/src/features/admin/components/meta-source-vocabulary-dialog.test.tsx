@@ -169,22 +169,24 @@ describe("MetaSourceVocabularyDialog", () => {
     open();
 
     expect(
-      screen.getByText(/reaches the live events when the tier rules are reapplied/u),
+      screen.getByText(/reach published events when you reapply tier rules/u),
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Reapply tier rules" }));
 
     expect(captured.runSync).toHaveBeenCalledWith({ trigger: "runRetier" });
   });
 
-  it("shows the stored player-count floor", () => {
+  it("shows the stored player-count floor", async () => {
     captured.settings = syncSettings({ competitivePlayerFloor: 96 });
     open();
+    await userEvent.click(screen.getByRole("tab", { name: "Tier floor" }));
     expect(screen.getByLabelText("Events with at least")).toHaveValue(96);
   });
 
   it("saves an edited floor on the button rather than on every keystroke", async () => {
     const user = userEvent.setup();
     open();
+    await userEvent.click(screen.getByRole("tab", { name: "Tier floor" }));
 
     await user.clear(screen.getByLabelText("Events with at least"));
     await user.type(screen.getByLabelText("Events with at least"), "64");
@@ -198,6 +200,7 @@ describe("MetaSourceVocabularyDialog", () => {
   it("refuses a floor of zero or a blank field", async () => {
     const user = userEvent.setup();
     open();
+    await userEvent.click(screen.getByRole("tab", { name: "Tier floor" }));
 
     await user.clear(screen.getByLabelText("Events with at least"));
 
@@ -205,8 +208,9 @@ describe("MetaSourceVocabularyDialog", () => {
     expect(screen.getByRole("button", { name: "Save floor" })).toBeDisabled();
   });
 
-  it("holds the save while the floor still matches what is stored", () => {
+  it("holds the save while the floor still matches what is stored", async () => {
     open();
+    await userEvent.click(screen.getByRole("tab", { name: "Tier floor" }));
     expect(screen.getByRole("button", { name: "Save floor" })).toBeDisabled();
   });
 
@@ -242,8 +246,9 @@ describe("MetaSourceVocabularyDialog", () => {
     expect(captured.updateTemplate).toHaveBeenCalledWith({ templateId: "tpl-1", watched: false });
   });
 
-  it("shows what the source calls a format beside what it maps to", () => {
+  it("shows what the source calls a format beside what it maps to", async () => {
     open();
+    await userEvent.click(screen.getByRole("tab", { name: "Formats" }));
     expect(screen.getByText("Standard Constructed")).toBeInTheDocument();
     expect(screen.getByLabelText("Format for Standard Constructed")).toHaveTextContent("Standard");
   });
@@ -252,6 +257,7 @@ describe("MetaSourceVocabularyDialog", () => {
     const user = userEvent.setup();
     captured.formats = { formats: [sourceFormat({ mappedFormat: null })] };
     open();
+    await userEvent.click(screen.getByRole("tab", { name: "Formats" }));
 
     await user.click(screen.getByLabelText("Format for Standard Constructed"));
     await user.click(await screen.findByRole("option", { name: "Legacy" }));
@@ -265,6 +271,7 @@ describe("MetaSourceVocabularyDialog", () => {
   it("unmaps a format with a null rather than a slug meaning nothing", async () => {
     const user = userEvent.setup();
     open();
+    await userEvent.click(screen.getByRole("tab", { name: "Formats" }));
 
     await user.click(screen.getByLabelText("Format for Standard Constructed"));
     await user.click(await screen.findByRole("option", { name: "Unmapped" }));
@@ -275,21 +282,23 @@ describe("MetaSourceVocabularyDialog", () => {
     });
   });
 
-  it("says what it is loading before either list lands", () => {
+  it("says what it is loading before either list lands", async () => {
     captured.templates = undefined;
     captured.formats = undefined;
     open();
-    expect(screen.getByText("Loading the templates…")).toBeInTheDocument();
+    expect(screen.getByText("Loading the event types…")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Formats" }));
     expect(screen.getByText("Loading the formats…")).toBeInTheDocument();
   });
 
-  it("points at the sync when a landed list is empty, rather than looking stuck", () => {
+  it("points at the refresh when a landed list is empty, rather than looking stuck", async () => {
     captured.templates = { templates: [] };
     captured.formats = { formats: [] };
     open();
     expect(
-      screen.getByText("No templates yet. Run a catalogue sync to fetch them."),
+      screen.getByText("No event types yet. Refresh mirror reads them from the source."),
     ).toBeInTheDocument();
-    expect(screen.getByText("No crawled event carries a format yet.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Formats" }));
+    expect(screen.getByText("No mirrored event has a format yet.")).toBeInTheDocument();
   });
 });

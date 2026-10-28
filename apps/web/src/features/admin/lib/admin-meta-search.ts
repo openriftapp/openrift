@@ -1,4 +1,5 @@
 import { META_SYNC_BUCKET_FILTERS } from "@openrift/shared/contracts/admin/meta-catalog";
+import { META_RESULTS_STATES } from "@openrift/shared/meta-results";
 import {
   META_CATALOG_DISPLAY_STATUSES,
   META_CATALOG_PROVIDERS,
@@ -8,6 +9,7 @@ import {
   META_EVENT_SORT_DIRECTIONS,
   META_EVENT_SORTS,
   META_EVENT_SOURCE_FILTERS,
+  META_EVENT_TIERS,
   PLAYLOLTCG_STATUSES,
   PLAYRIFTBOUND_FORMATS,
   PLAYRIFTBOUND_TOURNAMENT_TYPES,
@@ -43,15 +45,16 @@ export const metaSearchSchema = z.object({
   decklists: z.boolean().optional(),
   missing: z.boolean().optional(),
   bucket: z.enum(META_SYNC_BUCKET_FILTERS).optional(),
-  awaitingResults: z.boolean().optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   liveFormat: z.string().optional(),
   liveSource: z.enum(META_EVENT_SOURCE_FILTERS).optional(),
+  liveTier: z.enum(META_EVENT_TIERS).optional(),
+  liveResults: z.enum(META_RESULTS_STATES).optional(),
   liveSort: z.enum(META_EVENT_SORTS).optional(),
   liveDir: z.enum(META_EVENT_SORT_DIRECTIONS).optional(),
   incompleteStandings: z.boolean().optional(),
-  noDecks: z.boolean().optional(),
+  hasDecks: z.boolean().optional(),
 });
 
 export type MetaSearch = z.infer<typeof metaSearchSchema>;

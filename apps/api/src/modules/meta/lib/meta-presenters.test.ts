@@ -1000,6 +1000,7 @@ describe("toAdminMetaEvent", () => {
       location: "Kartenstraße 1, 10115 Berlin, DE",
       playerRowCount: 64,
       deckCount: 8,
+      results: "final",
       sources: [],
     });
   });

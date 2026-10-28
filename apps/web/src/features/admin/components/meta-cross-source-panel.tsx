@@ -51,8 +51,8 @@ function SourceHeader({
     }
     toast.success(
       source.contributes
-        ? "Cited only now. The event has been promoted again."
-        : "Reading this source now. The event has been promoted again.",
+        ? "Cited only now. The published event is rebuilt from its sources."
+        : "This source now feeds standings. The published event is rebuilt from its sources.",
     );
   }
 
@@ -272,11 +272,7 @@ export function MetaCrossSourcePanel({
   }
 
   if (data.sources.length === 0) {
-    return (
-      <p className="text-muted-foreground">
-        No crawled source is linked to this event, so there is nothing to match across.
-      </p>
-    );
+    return <p className="text-muted-foreground">No mirrored source is linked to this event.</p>;
   }
 
   const autoLinks = crossSourceAutoLinks(data.rows);
@@ -284,9 +280,9 @@ export function MetaCrossSourcePanel({
   return (
     <div className="space-y-3">
       <p className="text-muted-foreground">
-        A player has no identity that spans two sources, so a second one is credited without being
-        read until every entry below names the live row it is. Then it can contribute, and what it
-        holds that the read source does not — a decklist, a legend, a record — lands on that row.
+        A second source is cited without feeding standings until every entry below is matched to a
+        published row. Then it can add what the first source lacks, such as decklists, legends and
+        records.
       </p>
 
       {data.sources.map((source) => (

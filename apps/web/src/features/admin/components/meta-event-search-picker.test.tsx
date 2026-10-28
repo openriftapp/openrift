@@ -27,6 +27,7 @@ function event(overrides: Partial<AdminMetaEvent> = {}): AdminMetaEvent {
     location: null,
     playerRowCount: 64,
     deckCount: 8,
+    results: "final",
     sources: [],
     ...overrides,
   };

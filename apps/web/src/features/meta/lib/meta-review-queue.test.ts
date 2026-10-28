@@ -1,4 +1,5 @@
 import type { AdminMetaEventCorrection } from "@openrift/shared/contracts/admin/meta-submissions";
+import { formatDay } from "@openrift/shared/format-date";
 import type { MetaOverlayQueueRow, MetaOverlayRowMatch } from "@openrift/shared/types/api/meta";
 import { describe, expect, it } from "vitest";
 
@@ -9,6 +10,8 @@ import {
   groupReviewQueue,
   sumTriageCounts,
   totalTriageCount,
+  reviewFieldLabel,
+  reviewFieldValue,
   triageOverlay,
 } from "./meta-review-queue";
 
@@ -128,9 +131,9 @@ describe("triageOverlay", () => {
     expect(triageOverlay(player({ match: match({ state: "unscored" }) }))).toBe("needsRow");
   });
 
-  it("marks a proposal as a new event and a live-event patch as ready", () => {
+  it("marks a proposal as a new event and a live-event patch as an event change", () => {
     expect(triageOverlay(proposal())).toBe("newEvent");
-    expect(triageOverlay(eventRow())).toBe("ready");
+    expect(triageOverlay(eventRow())).toBe("eventChange");
   });
 });
 
@@ -174,12 +177,14 @@ describe("groupReviewQueue", () => {
     expect(group.eventPatches.map((row) => row.id)).toEqual(["c"]);
     expect(group.corrections).toHaveLength(1);
     expect(group.counts).toEqual({
-      ready: 3,
+      ready: 2,
       needsRow: 0,
       unmatched: 0,
       newEvent: 0,
+      eventChange: 1,
       correction: 1,
     });
+    expect(group.fromContributor).toBe(true);
   });
 
   it("groups a linked row by the event its anchor resolved to", () => {
@@ -193,7 +198,7 @@ describe("groupReviewQueue", () => {
     expect(groups).toHaveLength(1);
   });
 
-  it("keeps a proposal and the rows riding on it together, and puts them first", () => {
+  it("keeps a proposal and the rows riding on it together", () => {
     const groups = groupReviewQueue(
       [
         player({ id: "old", createdAt: "2026-08-01T00:00:00.000Z" }),
@@ -211,12 +216,30 @@ describe("groupReviewQueue", () => {
     );
 
     expect(groups.map((group) => group.name)).toEqual([
-      "Summoner Skirmish Berlin",
       "Summoner Skirmish",
+      "Summoner Skirmish Berlin",
     ]);
-    expect(groups[0]!.proposal?.id).toBe("prop-1");
-    expect(groups[0]!.players.map((row) => row.id)).toEqual(["rider"]);
-    expect(groups[0]!.eventDate).toBe("2026-08-25");
+    expect(groups[1]!.proposal?.id).toBe("prop-1");
+    expect(groups[1]!.players.map((row) => row.id)).toEqual(["rider"]);
+    expect(groups[1]!.eventDate).toBe("2026-08-25");
+  });
+
+  it("puts what a contributor sent ahead of older source rows", () => {
+    const groups = groupReviewQueue(
+      [
+        player({ id: "old", createdAt: "2026-08-01T00:00:00.000Z" }),
+        player({
+          id: "mine",
+          provider: null,
+          metaEventId: "event-2",
+          metaEventName: "Later",
+          createdAt: "2026-08-30T00:00:00.000Z",
+        }),
+      ],
+      [],
+    );
+
+    expect(groups.map((group) => group.name)).toEqual(["Later", "Summoner Skirmish"]);
   });
 
   it("orders live events oldest pending first", () => {
@@ -291,7 +314,14 @@ describe("sumTriageCounts", () => {
       [correction()],
     );
     const counts = sumTriageCounts(groups);
-    expect(counts).toEqual({ ready: 1, needsRow: 0, unmatched: 1, newEvent: 0, correction: 1 });
+    expect(counts).toEqual({
+      ready: 1,
+      needsRow: 0,
+      unmatched: 1,
+      newEvent: 0,
+      eventChange: 0,
+      correction: 1,
+    });
     expect(totalTriageCount(counts)).toBe(3);
   });
 });
@@ -328,5 +358,19 @@ describe("acceptClaimMask", () => {
   it("reports an empty mask when every claim is unticked, which accept refuses", () => {
     const row = player({ changes: CHANGES, cards: [] });
     expect(acceptClaimMask(row, new Set(["playerName", "rank", "listStatus"]))).toEqual([]);
+  });
+});
+
+describe("review field display", () => {
+  it("names a field the way the reviewer reads it", () => {
+    expect(reviewFieldLabel("playerCount")).toBe("Players");
+    expect(reviewFieldLabel("legendCardId")).toBe("Legend");
+    expect(reviewFieldLabel("somethingNew")).toBe("somethingNew");
+  });
+
+  it("reads a date change as days and a cleared value as empty", () => {
+    expect(reviewFieldValue("eventDate", "2026-09-05")).toBe(formatDay("2026-09-05"));
+    expect(reviewFieldValue("organizer", null)).toBe("empty");
+    expect(reviewFieldValue("organizer", "Mythic Goblin")).toBe("Mythic Goblin");
   });
 });

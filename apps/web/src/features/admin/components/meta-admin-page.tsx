@@ -3,13 +3,11 @@ import { getRouteApi } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MetaAdminOverviewPage } from "@/features/admin/components/meta-admin-overview-page";
-import { MetaCatalogPage } from "@/features/admin/components/meta-catalog-page";
 import { MetaEventsPage } from "@/features/admin/components/meta-events-page";
+import { MetaMirrorPage } from "@/features/admin/components/meta-mirror-page";
 import { MetaOverlaysPage } from "@/features/admin/components/meta-overlays-page";
-import { PlayloltcgCatalogPage } from "@/features/admin/components/playloltcg-catalog-page";
-import { PlayriftboundCatalogPage } from "@/features/admin/components/playriftbound-catalog-page";
-import { TopdeckCatalogPage } from "@/features/admin/components/topdeck-catalog-page";
 import { useAdminMetaOverlays } from "@/features/admin/hooks/use-admin-meta-overlays";
+import { useMetaEventCorrections } from "@/features/admin/hooks/use-admin-meta-submissions";
 
 const routeApi = getRouteApi("/_app/_authenticated/admin/meta");
 
@@ -29,7 +27,6 @@ const CLEARED_TABLE_FILTERS = {
   minPlayers: undefined,
   decklists: undefined,
   missing: undefined,
-  awaitingResults: undefined,
   bucket: undefined,
   plStatus: undefined,
   tdFormat: undefined,
@@ -37,10 +34,12 @@ const CLEARED_TABLE_FILTERS = {
   prFormat: undefined,
   liveFormat: undefined,
   liveSource: undefined,
+  liveTier: undefined,
+  liveResults: undefined,
   liveSort: undefined,
   liveDir: undefined,
   incompleteStandings: undefined,
-  noDecks: undefined,
+  hasDecks: undefined,
 } as const;
 
 function tabParam(value: string): (typeof OPT_IN_TABS)[number] | undefined {
@@ -51,11 +50,12 @@ function tabParam(value: string): (typeof OPT_IN_TABS)[number] | undefined {
 // only the active tab's bar is ever portalled into the layout slot.
 export function MetaAdminPage() {
   const { data } = useAdminMetaOverlays();
+  const corrections = useMetaEventCorrections();
   const tab = routeApi.useSearch({ select: (search) => search.tab ?? "sync" });
-  const source = routeApi.useSearch({ select: (search) => search.source ?? "uvsgames" });
   const navigate = routeApi.useNavigate();
 
-  const pendingCount = data.overlays.length;
+  const pendingCount = data.overlays.length + (corrections.data?.items.length ?? 0);
+  const pendingLabel = `${pendingCount}${corrections.data?.hasMore === true ? "+" : ""}`;
 
   return (
     <Tabs
@@ -73,7 +73,7 @@ export function MetaAdminPage() {
         <TabsTrigger value="catalogue">Mirror</TabsTrigger>
         <TabsTrigger value="review">
           Review
-          {pendingCount > 0 && <Badge variant="count">{pendingCount}</Badge>}
+          {pendingCount > 0 && <Badge variant="count">{pendingLabel}</Badge>}
         </TabsTrigger>
         <TabsTrigger value="public">Published</TabsTrigger>
       </TabsList>
@@ -81,10 +81,7 @@ export function MetaAdminPage() {
         <MetaAdminOverviewPage />
       </TabsContent>
       <TabsContent value="catalogue" className="flex min-h-0 flex-1 flex-col">
-        {source === "playloltcg" && <PlayloltcgCatalogPage />}
-        {source === "topdeck" && <TopdeckCatalogPage />}
-        {source === "playriftbound" && <PlayriftboundCatalogPage />}
-        {source === "uvsgames" && <MetaCatalogPage />}
+        <MetaMirrorPage />
       </TabsContent>
       <TabsContent value="review" className="flex min-h-0 flex-1 flex-col">
         <MetaOverlaysPage />

@@ -34,15 +34,15 @@ describe("MetaAutoAcceptDialog", () => {
     render(<MetaAutoAcceptDialog source="uvsgames" onClose={vi.fn()} />);
 
     expect(await screen.findByLabelText("Minimum field size")).toHaveValue(64);
-    expect(screen.getByRole("switch", { name: /notable vocabulary/u })).toBeChecked();
-    expect(screen.getByRole("switch", { name: /template you watch/u })).not.toBeChecked();
+    expect(screen.getByRole("switch", { name: /Publish names with/u })).toBeChecked();
+    expect(screen.getByRole("switch", { name: /watched event types/u })).not.toBeChecked();
   });
 
   it("waits for the stored rules rather than seeding the form with defaults", () => {
     captured.settings = undefined;
     render(<MetaAutoAcceptDialog source="uvsgames" onClose={vi.fn()} />);
 
-    expect(screen.getByText("Loading the rules…")).toBeInTheDocument();
+    expect(screen.getByText("Loading…")).toBeInTheDocument();
     expect(screen.queryByLabelText("Minimum field size")).not.toBeInTheDocument();
   });
 
@@ -53,7 +53,7 @@ describe("MetaAutoAcceptDialog", () => {
     const input = await screen.findByLabelText("Minimum field size");
     await user.clear(input);
     await user.type(input, "128");
-    await user.click(screen.getByRole("button", { name: "Save rules" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(captured.updateSettings).toHaveBeenCalledWith({
       autoAcceptMinPlayers: 128,
@@ -66,8 +66,8 @@ describe("MetaAutoAcceptDialog", () => {
     const user = userEvent.setup();
     render(<MetaAutoAcceptDialog source="uvsgames" onClose={vi.fn()} />);
 
-    await user.click(await screen.findByRole("switch", { name: /template you watch/u }));
-    await user.click(screen.getByRole("button", { name: "Save rules" }));
+    await user.click(await screen.findByRole("switch", { name: /watched event types/u }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(captured.updateSettings).toHaveBeenCalledWith(
       expect.objectContaining({ autoAcceptOfficial: true }),
@@ -78,8 +78,8 @@ describe("MetaAutoAcceptDialog", () => {
     const user = userEvent.setup();
     render(<MetaAutoAcceptDialog source="uvsgames" onClose={vi.fn()} />);
 
-    await user.click(await screen.findByRole("switch", { name: "Field size of at least" }));
-    await user.click(screen.getByRole("button", { name: "Save rules" }));
+    await user.click(await screen.findByRole("switch", { name: "Publish events with at least" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(captured.updateSettings).toHaveBeenCalledWith(
       expect.objectContaining({ autoAcceptMinPlayers: null }),
@@ -93,7 +93,7 @@ describe("MetaAutoAcceptDialog", () => {
     await user.clear(await screen.findByLabelText("Minimum field size"));
 
     expect(screen.getByText("Enter a whole number of players above zero.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save rules" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
   });
 
   it("closes without saving when the form is cancelled", async () => {
@@ -111,30 +111,30 @@ describe("MetaAutoAcceptDialog", () => {
     render(<MetaAutoAcceptDialog source="playloltcg" onClose={vi.fn()} />);
 
     expect(await screen.findByLabelText("Minimum field size")).toBeInTheDocument();
-    expect(screen.queryByRole("switch", { name: /template you watch/u })).not.toBeInTheDocument();
-    expect(screen.queryByRole("switch", { name: /notable vocabulary/u })).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: /watched event types/u })).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: /Publish names with/u })).not.toBeInTheDocument();
   });
 
   it("keeps the hidden template rules as they were stored", async () => {
     const user = userEvent.setup();
     render(<MetaAutoAcceptDialog source="playloltcg" onClose={vi.fn()} />);
 
-    await user.click(await screen.findByRole("button", { name: "Save rules" }));
+    await user.click(await screen.findByRole("button", { name: "Save" }));
 
     expect(captured.updateSettings).toHaveBeenCalledWith(
       expect.objectContaining({ autoAcceptNotable: true, autoAcceptOfficial: false }),
     );
   });
 
-  it("says the threshold reaches the other source, since one row governs both", async () => {
+  it("says the threshold reaches every source, since one row governs them all", async () => {
     render(<MetaAutoAcceptDialog source="playloltcg" onClose={vi.fn()} />);
 
-    expect(await screen.findByText(/also governs UVS Games/u)).toBeInTheDocument();
+    expect(await screen.findByText(/applies to all four sources/u)).toBeInTheDocument();
   });
 
-  it("names the source whose standings an auto-accept publishes", async () => {
+  it("states each source's rule from the stored settings", async () => {
     render(<MetaAutoAcceptDialog source="playloltcg" onClose={vi.fn()} />);
 
-    expect(await screen.findByText(/Play LoL TCG standings/u)).toBeInTheDocument();
+    expect(await screen.findByText("Auto-publish: 64+ players.")).toBeInTheDocument();
   });
 });

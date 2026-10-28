@@ -365,21 +365,6 @@ export function useAdminMetaIgnoredSources() {
   });
 }
 
-const unignoreEventFn = createServerFn({ method: "POST" })
-  .middleware([withCookies])
-  .validator((input: ContractInput<typeof adminMetaCandidatesContract, "unignoreEvent">) => input)
-  .handler(({ context, data }): Promise<void> =>
-    apiOrpcClient(adminMetaCandidatesContract, context.cookie).unignoreEvent(data),
-  );
-
-export function useUnignoreMetaSourceEvent() {
-  return useMutationWithInvalidation({
-    mutationFn: (input: ContractInput<typeof adminMetaCandidatesContract, "unignoreEvent">) =>
-      unignoreEventFn({ data: input }),
-    invalidates: ALL_META_KEYS_WITH_IGNORED,
-  });
-}
-
 const unignorePlayerFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
   .validator((input: ContractInput<typeof adminMetaCandidatesContract, "unignorePlayer">) => input)

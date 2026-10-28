@@ -31,7 +31,7 @@ describe("metaEventsParamsFromSearch", () => {
         dateFrom: "2026-08-01",
         dateTo: "2026-08-30",
         incompleteStandings: true,
-        noDecks: true,
+        hasDecks: true,
         liveSort: "name",
         liveDir: "asc",
       }),
@@ -43,7 +43,7 @@ describe("metaEventsParamsFromSearch", () => {
       dateFrom: "2026-08-01",
       dateTo: "2026-08-30",
       incompleteStandings: true,
-      noDecks: true,
+      hasDecks: true,
       sort: "name",
       direction: "asc",
     });

@@ -1,5 +1,5 @@
 import type { MetaSyncBucketFilter } from "@openrift/shared/contracts/admin/meta-catalog";
-import type { Kysely, Selectable } from "kysely";
+import type { Kysely, RawBuilder, Selectable } from "kysely";
 import { sql } from "kysely";
 
 import { primaryCardType } from "../../../db/helpers.js";
@@ -9,11 +9,18 @@ import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
 import { TOPDECK_PROVIDER } from "../../../lib/meta-providers.js";
 import { offsetPage } from "../../../repositories/query-helpers.js";
-import type { MetaSyncBucketColumns, MetaSyncBuckets } from "./meta-sync-buckets.js";
+import type {
+  MetaAutoPublishRule,
+  MetaSyncBucketColumns,
+  MetaSyncBucketCounts,
+  MetaSyncBuckets,
+} from "./meta-sync-buckets.js";
 import {
-  metaSyncBucketFilter,
+  metaSyncBucketCondition,
+  metaSyncBucketCountSelections,
   metaSyncBucketSelections,
-  passingNoResultsFilter,
+  sizeRulePasses,
+  toMetaSyncBucketCounts,
   toMetaSyncBuckets,
 } from "./meta-sync-buckets.js";
 
@@ -78,7 +85,7 @@ export interface TopdeckListFilters {
   dateFrom?: string;
   dateTo?: string;
   missing?: boolean;
-  bucket?: MetaSyncBucketFilter;
+  bucket?: { name: MetaSyncBucketFilter; rule: MetaAutoPublishRule };
 }
 
 /** How one page of the catalogue is ordered. Defaults to newest events first. */
@@ -161,8 +168,12 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
     startAt: sql<Date | null>`c.start_at`,
     hasResults: sql<SqlBool>`c.player_count > 0`,
     nextCheckAt: sql<Date | null>`null::timestamptz`,
-    players: sql<number | null>`c.player_count`,
-    team: sql<SqlBool>`c.is_team_event`,
+    passes: (rule) =>
+      sizeRulePasses(
+        sql<number | null>`c.player_count`,
+        sql<SqlBool>`c.is_team_event`,
+        rule.autoAcceptMinPlayers,
+      ),
   };
 
   // Absence must be an anti-join here: reading a joined null makes the planner
@@ -193,6 +204,31 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
         stagedDeckCount.as("stagedDeckCount"),
         rivalProvider.as("rivalProvider"),
       ]);
+  }
+
+  function narrowing(filters: TopdeckListFilters): RawBuilder<SqlBool>[] {
+    const conditions: RawBuilder<SqlBool>[] = [];
+    if (filters.search !== undefined && filters.search.trim() !== "") {
+      const like = containsPattern(filters.search.trim());
+      conditions.push(sql<SqlBool>`(c.name ilike ${like} or c.city ilike ${like})`);
+    }
+    if (filters.format !== undefined) {
+      conditions.push(sql<SqlBool>`c.format = ${filters.format}`);
+    }
+    if (filters.minPlayers !== undefined) {
+      conditions.push(sql<SqlBool>`c.player_count >= ${filters.minPlayers}`);
+    }
+    // `start_at` is an instant, so a day bound is a half-open range on it.
+    if (filters.dateFrom !== undefined) {
+      conditions.push(sql<SqlBool>`c.start_at >= ${filters.dateFrom}::date`);
+    }
+    if (filters.dateTo !== undefined) {
+      conditions.push(sql<SqlBool>`c.start_at < (${filters.dateTo}::date + interval '1 day')`);
+    }
+    if (filters.missing === true) {
+      conditions.push(sql<SqlBool>`c.missing_since is not null`);
+    }
+    return conditions;
   }
 
   return {
@@ -310,34 +346,13 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
     ): Promise<{ rows: TopdeckListRow[]; total: number }> {
       const applyFilters = <T extends ReturnType<typeof triagedQuery>>(q: T): T => {
         let base = q;
-        if (filters.search !== undefined && filters.search.trim() !== "") {
-          const like = containsPattern(filters.search.trim());
-          base = base.where((eb) =>
-            eb.or([eb("c.name", "ilike", like), eb("c.city", "ilike", like)]),
-          ) as T;
+        for (const condition of narrowing(filters)) {
+          base = base.where(condition) as T;
         }
-        if (filters.format !== undefined) {
-          base = base.where("c.format", "=", filters.format) as T;
-        }
-        if (filters.minPlayers !== undefined) {
-          base = base.where("c.playerCount", ">=", filters.minPlayers) as T;
-        }
-        // `start_at` is an instant, so a day bound is a half-open range on it.
-        if (filters.dateFrom !== undefined) {
-          base = base.where(sql<SqlBool>`c.start_at >= ${filters.dateFrom}::date`) as T;
-        }
-        if (filters.dateTo !== undefined) {
+        if (filters.bucket !== undefined) {
           base = base.where(
-            sql<SqlBool>`c.start_at < (${filters.dateTo}::date + interval '1 day')`,
+            metaSyncBucketCondition(filters.bucket.name, bucketColumns, filters.bucket.rule),
           ) as T;
-        }
-        if (filters.bucket !== undefined && filters.minPlayers !== undefined) {
-          base = base.where(
-            metaSyncBucketFilter(filters.bucket, bucketColumns, filters.minPlayers),
-          ) as T;
-        }
-        if (filters.missing === true) {
-          base = base.where("c.missingSince", "is not", null) as T;
         }
         if (filters.triage === "new") {
           base = base.where(pagedNew) as T;
@@ -409,7 +424,7 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
     },
 
     /** The three queue counters are always zero, not a stub: one search writes an event's results with the event. */
-    async syncOverview(minPlayers: number | null): Promise<
+    async syncOverview(rule: MetaAutoPublishRule): Promise<
       MetaSyncBuckets & {
         total: number;
         completed: number;
@@ -438,7 +453,7 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
             "acceptedMissing",
           ),
           eb.fn.max<Date | null>("c.lastSeenAt").as("lastSeenAt"),
-          ...metaSyncBucketSelections(bucketColumns, minPlayers),
+          ...metaSyncBucketSelections(bucketColumns, rule),
         ])
         .executeTakeFirstOrThrow();
       return {
@@ -457,12 +472,28 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
       };
     },
 
-    async passingNoResultsKeys(minPlayers: number): Promise<string[]> {
+    async passingNoResultsKeys(rule: MetaAutoPublishRule): Promise<string[]> {
       const rows = await triagedQuery()
         .select(sql<string>`c.tid`.as("key"))
-        .where(passingNoResultsFilter(bucketColumns, minPlayers))
+        .where(metaSyncBucketCondition("passingNoResults", bucketColumns, rule))
         .execute();
       return rows.map((row) => row.key);
+    },
+
+    /** `null` when no filter narrows the list: the sync status already holds these counts. */
+    async bucketCounts(
+      filters: TopdeckListFilters,
+      rule: MetaAutoPublishRule,
+    ): Promise<MetaSyncBucketCounts | null> {
+      const conditions = narrowing(filters);
+      if (conditions.length === 0) {
+        return null;
+      }
+      let query = triagedQuery().select(metaSyncBucketCountSelections(bucketColumns, rule));
+      for (const condition of conditions) {
+        query = query.where(condition);
+      }
+      return toMetaSyncBucketCounts(await query.executeTakeFirstOrThrow());
     },
 
     async triageCounts(): Promise<TopdeckTriageCounts> {

@@ -1,6 +1,6 @@
 import type { MetaSyncBucketFilter } from "@openrift/shared/contracts/admin/meta-catalog";
 import type { MetaEventTier, UvsgamesProbeOutcome } from "@openrift/shared/types/enums";
-import type { Kysely, Selectable, SqlBool } from "kysely";
+import type { Kysely, RawBuilder, Selectable, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
@@ -13,13 +13,20 @@ import {
   UVSGAMES_STATUS_CANCELED,
 } from "../../../lib/meta-providers.js";
 import { inTransaction, offsetPage } from "../../../repositories/query-helpers.js";
-import type { MetaSyncBucketColumns, MetaSyncBuckets } from "./meta-sync-buckets.js";
+import type {
+  MetaAutoPublishRule,
+  MetaSyncBucketColumns,
+  MetaSyncBucketCounts,
+  MetaSyncBuckets,
+} from "./meta-sync-buckets.js";
 import {
-  metaSyncBucketFilter,
+  metaSyncBucketCondition,
+  metaSyncBucketCountSelections,
   metaSyncBucketSelections,
-  passingNoResultsFilter,
+  toMetaSyncBucketCounts,
   toMetaSyncBuckets,
 } from "./meta-sync-buckets.js";
+import { uvsgamesRulePasses } from "./uvsgames-rule.js";
 
 /**
  * Owns one source's crawl bookkeeping; live archive tables stay in `metaRepo`.
@@ -103,8 +110,7 @@ export interface UvsgamesListFilters {
   dateTo?: Date;
   triage?: UvsgamesTriage;
   missing?: boolean;
-  bucket?: MetaSyncBucketFilter;
-  awaitingResults?: boolean;
+  bucket?: { name: MetaSyncBucketFilter; rule: MetaAutoPublishRule };
 }
 
 export interface UvsgamesListOrder {
@@ -220,8 +226,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     startAt: sql<Date | null>`c.start_at`,
     hasResults: sql<SqlBool>`c.display_status = 'complete'`,
     nextCheckAt: sql<Date | null>`ck.next_check_at`,
-    players: sql<number | null>`c.player_count`,
-    team: sql<SqlBool>`false`,
+    passes: uvsgamesRulePasses,
   };
   const triage = sql<UvsgamesTriage>`case
     when i.provider is not null then 'dismissed'
@@ -350,6 +355,35 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
         )
         .execute();
     }
+  }
+
+  function narrowing(filters: UvsgamesListFilters): RawBuilder<SqlBool>[] {
+    const conditions: RawBuilder<SqlBool>[] = [];
+    if (filters.search !== undefined && filters.search.trim() !== "") {
+      const pattern = containsPattern(filters.search.trim());
+      conditions.push(
+        sql<SqlBool>`(c.name ilike ${pattern} or coalesce(s.name, c.store_name) ilike ${pattern})`,
+      );
+    }
+    if (filters.displayStatus !== undefined) {
+      conditions.push(sql<SqlBool>`c.display_status = ${filters.displayStatus}`);
+    }
+    if (filters.decklistPublished === true) {
+      conditions.push(sql<SqlBool>`c.decklist_status = 'PUBLISHED'`);
+    }
+    if (filters.minPlayers !== undefined) {
+      conditions.push(sql<SqlBool>`c.player_count >= ${filters.minPlayers}`);
+    }
+    if (filters.dateFrom !== undefined) {
+      conditions.push(sql<SqlBool>`c.start_at >= ${filters.dateFrom}`);
+    }
+    if (filters.dateTo !== undefined) {
+      conditions.push(sql<SqlBool>`c.start_at <= ${filters.dateTo}`);
+    }
+    if (filters.missing === true) {
+      conditions.push(sql<SqlBool>`c.missing_since is not null`);
+    }
+    return conditions;
   }
 
   function pagedTriagePredicate(state: UvsgamesTriage) {
@@ -776,42 +810,35 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
         // at the same minute), so the key breaks them and keeps paging stable.
         .orderBy("c.externalId", "desc");
 
-      if (filters.search !== undefined && filters.search.trim() !== "") {
-        const pattern = containsPattern(filters.search.trim());
-        query = query.where("c.name", "ilike", pattern);
+      for (const condition of narrowing(filters)) {
+        query = query.where(condition);
       }
-      if (filters.displayStatus !== undefined) {
-        query = query.where("c.displayStatus", "=", filters.displayStatus);
-      }
-      if (filters.decklistPublished === true) {
-        query = query.where("c.decklistStatus", "=", "PUBLISHED");
-      }
-      if (filters.minPlayers !== undefined) {
-        query = query.where("c.playerCount", ">=", filters.minPlayers);
-      }
-      if (filters.dateFrom !== undefined) {
-        query = query.where("c.startAt", ">=", filters.dateFrom);
-      }
-      if (filters.dateTo !== undefined) {
-        query = query.where("c.startAt", "<=", filters.dateTo);
-      }
-      if (filters.bucket !== undefined && filters.minPlayers !== undefined) {
+      if (filters.bucket !== undefined) {
         query = query.where(
-          metaSyncBucketFilter(filters.bucket, bucketColumns, filters.minPlayers),
+          metaSyncBucketCondition(filters.bucket.name, bucketColumns, filters.bucket.rule),
         );
       }
-      if (filters.missing === true) {
-        query = query.where("c.missingSince", "is not", null);
-      }
-      if (filters.awaitingResults === true) {
-        query = query.where(pagedAccepted).where(notFetched);
-      }
       if (filters.triage !== undefined) {
-        const predicate = pagedTriagePredicate(filters.triage);
-        query = query.where(predicate);
+        query = query.where(pagedTriagePredicate(filters.triage));
       }
 
       return offsetPage(query, page);
+    },
+
+    /** `null` when no filter narrows the list: the sync status already holds these counts. */
+    async bucketCounts(
+      filters: UvsgamesListFilters,
+      rule: MetaAutoPublishRule,
+    ): Promise<MetaSyncBucketCounts | null> {
+      const conditions = narrowing(filters);
+      if (conditions.length === 0) {
+        return null;
+      }
+      let query = triagedQuery().select(metaSyncBucketCountSelections(bucketColumns, rule));
+      for (const condition of conditions) {
+        query = query.where(condition);
+      }
+      return toMetaSyncBucketCounts(await query.executeTakeFirstOrThrow());
     },
 
     async triageCounts(): Promise<UvsgamesTriageCounts> {
@@ -831,7 +858,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
 
     // The accepted bucket's problem states are only visible against the candidate link,
     // not off the catalogue alone.
-    async syncOverview(minPlayers: number | null): Promise<
+    async syncOverview(rule: MetaAutoPublishRule): Promise<
       MetaSyncBuckets & {
         total: number;
         completed: number;
@@ -871,7 +898,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
             "acceptedCancelled",
           ),
           eb.fn.max<Date | null>("c.lastSeenAt").as("lastSeenAt"),
-          ...metaSyncBucketSelections(bucketColumns, minPlayers),
+          ...metaSyncBucketSelections(bucketColumns, rule),
         ])
         .executeTakeFirstOrThrow();
       return {
@@ -890,10 +917,10 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       };
     },
 
-    async passingNoResultsKeys(minPlayers: number): Promise<string[]> {
+    async passingNoResultsKeys(rule: MetaAutoPublishRule): Promise<string[]> {
       const rows = await triagedQuery()
         .select(sql<string>`c.external_id`.as("key"))
-        .where(passingNoResultsFilter(bucketColumns, minPlayers))
+        .where(metaSyncBucketCondition("passingNoResults", bucketColumns, rule))
         .execute();
       return rows.map((row) => row.key);
     },

@@ -71,7 +71,7 @@ describe("MetaEventUploadsPanel", () => {
 
     expect(screen.getByText("hartfords-top-decks")).toBeInTheDocument();
     expect(screen.getByText(/37 applied/u)).toBeInTheDocument();
-    expect(screen.getByText(/2 standings rows it minted/u)).toBeInTheDocument();
+    expect(screen.getByText(/2 standings rows added by it/u)).toBeInTheDocument();
   });
 
   it("reverts the whole upload by its source key", async () => {

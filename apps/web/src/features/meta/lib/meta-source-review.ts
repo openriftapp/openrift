@@ -1,4 +1,7 @@
 import type { MetaOverlayQueueRow, MetaUploadBody } from "@openrift/shared/types/api/meta";
+import { META_CATALOG_PROVIDERS } from "@openrift/shared/types/enums";
+
+import { META_SOURCE_LABELS } from "@/features/meta/lib/meta-catalog-display";
 
 /** What a source is called and how its badge is toned. */
 export interface SourceProviderDisplay {
@@ -8,12 +11,19 @@ export interface SourceProviderDisplay {
 
 const USER_SUBMISSION_PROVIDER = "usersubmission";
 
-/** Provider slugs are shown verbatim, except the player's own submission gets a label. */
+/** A mirrored source by its name; an upload's own provider string is shown as given. */
 export function sourceProviderDisplay(provider: string): SourceProviderDisplay {
   if (provider === USER_SUBMISSION_PROVIDER) {
     return { label: "User submission", variant: "violet" };
   }
-  return { label: provider, variant: "outline" };
+  if (provider === "manual") {
+    return { label: "Entered by hand", variant: "outline" };
+  }
+  const mirrored = META_CATALOG_PROVIDERS.find((source) => source === provider);
+  return {
+    label: mirrored === undefined ? provider : META_SOURCE_LABELS[mirrored],
+    variant: "outline",
+  };
 }
 
 export type MetaUploadParseResult =

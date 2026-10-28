@@ -1,3 +1,4 @@
+import type { AdminMetaSourceState } from "@openrift/shared/contracts/admin/meta";
 import { adminMetaContract } from "@openrift/shared/contracts/admin/meta";
 import type { AdminMetaEventList, AdminMetaEventSource } from "@openrift/shared/types/api/meta";
 import type { DeckZone, MetaListStatus } from "@openrift/shared/types/enums";
@@ -103,10 +104,18 @@ const deleteMetaEventFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminMetaContract, context.cookie).deleteEvent({ id: data.id });
   });
 
-export function useDeleteMetaEvent() {
+/** Deletes the event and rejects every mirrored row it was built from. */
+export function useRemoveMetaEvent() {
   return useMutationWithInvalidation({
     mutationFn: (id: string) => deleteMetaEventFn({ data: { id } }),
-    invalidates: (id) => [adminKeys.meta.events, adminKeys.meta.eventPlayers(id), metaKeys.all],
+    invalidates: (id) => [
+      adminKeys.meta.events,
+      adminKeys.meta.eventPlayers(id),
+      adminKeys.meta.mirror,
+      adminKeys.meta.syncStatus.prefix,
+      adminKeys.meta.ignoredSources,
+      metaKeys.all,
+    ],
   });
 }
 
@@ -200,6 +209,20 @@ function adminMetaEventSourcesQueryOptions(eventId: string) {
     queryKey: adminKeys.meta.eventSources(eventId),
     queryFn: () => fetchMetaEventSources({ data: { id: eventId } }),
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+const fetchMetaEventSourceStates = createServerFn({ method: "GET" })
+  .validator((input: { id: string }) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<{ sources: AdminMetaSourceState[] }> =>
+    apiOrpcClient(adminMetaContract, context.cookie).eventSourceStates({ id: data.id }),
+  );
+
+export function useMetaEventSourceStates(eventId: string) {
+  return useQuery({
+    queryKey: adminKeys.meta.eventSourceStates(eventId),
+    queryFn: () => fetchMetaEventSourceStates({ data: { id: eventId } }),
   });
 }
 

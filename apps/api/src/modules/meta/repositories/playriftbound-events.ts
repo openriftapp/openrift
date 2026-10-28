@@ -1,5 +1,5 @@
 import type { MetaSyncBucketFilter } from "@openrift/shared/contracts/admin/meta-catalog";
-import type { Kysely, Selectable } from "kysely";
+import type { Kysely, RawBuilder, Selectable } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
@@ -13,11 +13,18 @@ import type {
   PlayriftboundEventProjection,
   PlayriftboundOrganizerProjection,
 } from "../lib/playriftbound-catalog.js";
-import type { MetaSyncBucketColumns, MetaSyncBuckets } from "./meta-sync-buckets.js";
+import type {
+  MetaAutoPublishRule,
+  MetaSyncBucketColumns,
+  MetaSyncBucketCounts,
+  MetaSyncBuckets,
+} from "./meta-sync-buckets.js";
 import {
-  metaSyncBucketFilter,
+  metaSyncBucketCondition,
+  metaSyncBucketCountSelections,
   metaSyncBucketSelections,
-  passingNoResultsFilter,
+  sizeRulePasses,
+  toMetaSyncBucketCounts,
   toMetaSyncBuckets,
 } from "./meta-sync-buckets.js";
 
@@ -74,8 +81,7 @@ export interface PlayriftboundListFilters {
   dateFrom?: string;
   dateTo?: string;
   missing?: boolean;
-  bucket?: MetaSyncBucketFilter;
-  awaitingResults?: boolean;
+  bucket?: { name: MetaSyncBucketFilter; rule: MetaAutoPublishRule };
 }
 
 /** Defaults to newest events first. */
@@ -133,8 +139,6 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
     else 'new'
   end`;
 
-  const notFetched = sql<SqlBool>`c.results_fetched_at is null`;
-
   const stagedPlayerCount = sql<number>`(
     select count(*)::int from playriftbound_event_standings st
      where st.tournament_id = c.tournament_id
@@ -152,8 +156,12 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
     startAt: sql<Date | null>`c.start_at`,
     hasResults: sql<SqlBool>`coalesce(c.rounds_played, 0) > 0`,
     nextCheckAt: sql<Date | null>`ck.next_check_at`,
-    players: sql<number | null>`c.registered_count`,
-    team: sql<SqlBool>`coalesce(c.player_format <> 'ONE_V_ONE', false)`,
+    passes: (rule) =>
+      sizeRulePasses(
+        sql<number | null>`c.registered_count`,
+        sql<SqlBool>`coalesce(c.player_format <> 'ONE_V_ONE', false)`,
+        rule.autoAcceptMinPlayers,
+      ),
   };
 
   // Absence must be an anti-join here: reading a joined null makes the planner
@@ -182,6 +190,35 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
         stagedMatchCount.as("stagedMatchCount"),
         ...joinedColumns,
       ]);
+  }
+
+  function narrowing(filters: PlayriftboundListFilters): RawBuilder<SqlBool>[] {
+    const conditions: RawBuilder<SqlBool>[] = [];
+    if (filters.search !== undefined && filters.search.trim() !== "") {
+      const like = containsPattern(filters.search.trim());
+      conditions.push(
+        sql<SqlBool>`(c.name ilike ${like} or o.name ilike ${like} or o.city ilike ${like})`,
+      );
+    }
+    if (filters.tournamentType !== undefined) {
+      conditions.push(sql<SqlBool>`c.tournament_type = ${filters.tournamentType}`);
+    }
+    if (filters.format !== undefined) {
+      conditions.push(sql<SqlBool>`c.format = ${filters.format}`);
+    }
+    if (filters.minPlayers !== undefined) {
+      conditions.push(sql<SqlBool>`c.registered_count >= ${filters.minPlayers}`);
+    }
+    if (filters.dateFrom !== undefined) {
+      conditions.push(sql<SqlBool>`c.start_at >= ${filters.dateFrom}::date`);
+    }
+    if (filters.dateTo !== undefined) {
+      conditions.push(sql<SqlBool>`c.start_at < ${filters.dateTo}::date + interval '1 day'`);
+    }
+    if (filters.missing === true) {
+      conditions.push(sql<SqlBool>`c.missing_since is not null`);
+    }
+    return conditions;
   }
 
   return {
@@ -379,43 +416,13 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
     ): Promise<{ rows: PlayriftboundListRow[]; total: number }> {
       const applyFilters = <T extends ReturnType<typeof triagedQuery>>(q: T): T => {
         let base = q;
-        if (filters.search !== undefined && filters.search.trim() !== "") {
-          const like = containsPattern(filters.search.trim());
-          base = base.where((eb) =>
-            eb.or([
-              eb("c.name", "ilike", like),
-              eb("o.name", "ilike", like),
-              eb("o.city", "ilike", like),
-            ]),
-          ) as T;
+        for (const condition of narrowing(filters)) {
+          base = base.where(condition) as T;
         }
-        if (filters.tournamentType !== undefined) {
-          base = base.where("c.tournamentType", "=", filters.tournamentType) as T;
-        }
-        if (filters.format !== undefined) {
-          base = base.where("c.format", "=", filters.format) as T;
-        }
-        if (filters.minPlayers !== undefined) {
-          base = base.where("c.registeredCount", ">=", filters.minPlayers) as T;
-        }
-        if (filters.dateFrom !== undefined) {
-          base = base.where(sql<SqlBool>`c.start_at >= ${filters.dateFrom}::date`) as T;
-        }
-        if (filters.dateTo !== undefined) {
+        if (filters.bucket !== undefined) {
           base = base.where(
-            sql<SqlBool>`c.start_at < ${filters.dateTo}::date + interval '1 day'`,
+            metaSyncBucketCondition(filters.bucket.name, bucketColumns, filters.bucket.rule),
           ) as T;
-        }
-        if (filters.bucket !== undefined && filters.minPlayers !== undefined) {
-          base = base.where(
-            metaSyncBucketFilter(filters.bucket, bucketColumns, filters.minPlayers),
-          ) as T;
-        }
-        if (filters.missing === true) {
-          base = base.where("c.missingSince", "is not", null) as T;
-        }
-        if (filters.awaitingResults === true) {
-          base = base.where(pagedAccepted).where(notFetched) as T;
         }
         if (filters.triage === "new") {
           base = base.where(pagedNew) as T;
@@ -509,7 +516,7 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
       return rows;
     },
 
-    async syncOverview(minPlayers: number | null): Promise<
+    async syncOverview(rule: MetaAutoPublishRule): Promise<
       MetaSyncBuckets & {
         total: number;
         completed: number;
@@ -549,7 +556,7 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
             "acceptedMissing",
           ),
           eb.fn.max<Date | null>("c.lastSeenAt").as("lastSeenAt"),
-          ...metaSyncBucketSelections(bucketColumns, minPlayers),
+          ...metaSyncBucketSelections(bucketColumns, rule),
         ])
         .executeTakeFirstOrThrow();
       return {
@@ -568,12 +575,28 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
       };
     },
 
-    async passingNoResultsKeys(minPlayers: number): Promise<string[]> {
+    async passingNoResultsKeys(rule: MetaAutoPublishRule): Promise<string[]> {
       const rows = await triagedQuery()
         .select(sql<string>`c.tournament_id`.as("key"))
-        .where(passingNoResultsFilter(bucketColumns, minPlayers))
+        .where(metaSyncBucketCondition("passingNoResults", bucketColumns, rule))
         .execute();
       return rows.map((row) => row.key);
+    },
+
+    /** `null` when no filter narrows the list: the sync status already holds these counts. */
+    async bucketCounts(
+      filters: PlayriftboundListFilters,
+      rule: MetaAutoPublishRule,
+    ): Promise<MetaSyncBucketCounts | null> {
+      const conditions = narrowing(filters);
+      if (conditions.length === 0) {
+        return null;
+      }
+      let query = triagedQuery().select(metaSyncBucketCountSelections(bucketColumns, rule));
+      for (const condition of conditions) {
+        query = query.where(condition);
+      }
+      return toMetaSyncBucketCounts(await query.executeTakeFirstOrThrow());
     },
 
     async triageCounts(): Promise<PlayriftboundTriageCounts> {

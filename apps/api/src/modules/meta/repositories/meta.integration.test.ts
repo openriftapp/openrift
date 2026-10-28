@@ -649,13 +649,28 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(rows.map((row) => row.id)).not.toContain(unknownField);
     });
 
-    it("keeps only events where no standings row carries a decklist", async () => {
+    it("keeps only events where some standings row carries a decklist", async () => {
       const { early, late } = await seedPagingSet();
 
-      const { rows } = await repo.listEvents({ noDecks: true }, PAGE);
+      const { rows } = await repo.listEvents({ hasDecks: true }, PAGE);
 
-      expect(rows.map((row) => row.id)).toContain(early);
-      expect(rows.map((row) => row.id)).not.toContain(late);
+      expect(rows.map((row) => row.id)).toContain(late);
+      expect(rows.map((row) => row.id)).not.toContain(early);
+    });
+
+    it("lists exactly the events a results count counts", async () => {
+      await seedPagingSet();
+      const search = "MTA";
+
+      const counts = await repo.listCounts({ search });
+      const finals = await repo.listEvents({ search, results: "final" }, PAGE);
+      const empty = await repo.listEvents({ search, results: "noResults" }, PAGE);
+
+      expect(finals.total).toBe(counts.final);
+      expect(empty.total).toBe(counts.noResults);
+      expect(counts.total).toBe(
+        counts.notStarted + counts.collecting + counts.final + counts.noResults,
+      );
     });
 
     it("orders by a count the event row does not carry", async () => {

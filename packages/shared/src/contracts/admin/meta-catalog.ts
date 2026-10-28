@@ -90,9 +90,47 @@ const metaCatalogCountsSchema = z.object({
   dismissed: z.number().int().nonnegative(),
 });
 
-export const META_SYNC_BUCKET_FILTERS = ["needsDecision", "passingNoResults"] as const;
+/** What the notable-name auto-publish rule matches, case-insensitively, anywhere in the name. */
+export const META_NOTABLE_EVENT_NAMES = [
+  "regional",
+  "qualifier",
+  "championship",
+  "invitational",
+  "nationals",
+  "worlds",
+  "circuit",
+] as const;
+
+export const META_SYNC_BUCKET_FILTERS = [
+  "needsDecision",
+  "passingNoResults",
+  "skippedUpcoming",
+  "skippedPast",
+  "notStarted",
+  "collecting",
+  "final",
+  "noResults",
+] as const;
 export type MetaSyncBucketFilter = (typeof META_SYNC_BUCKET_FILTERS)[number];
 const syncBucketFilterSchema = z.enum(META_SYNC_BUCKET_FILTERS);
+
+const count = z.number().int().nonnegative();
+
+/** Bucket counts under a list's other filters; `null` when none is set, so the sync status's own counts apply. */
+const metaSyncBucketCountsSchema = z.object({
+  needsDecision: count,
+  passingNoResults: count,
+  skippedUpcoming: count,
+  skippedPast: count,
+  notStarted: count,
+  collecting: count,
+  final: count,
+  noResults: count,
+  undecided: count,
+  published: count,
+  rejected: count,
+  total: count,
+});
 
 const metaCatalogListQuerySchema = z.object({
   search: z.string().optional(),
@@ -104,7 +142,6 @@ const metaCatalogListQuerySchema = z.object({
   triage: triageSchema.optional(),
   missing: z.coerce.boolean().optional(),
   bucket: syncBucketFilterSchema.optional(),
-  awaitingResults: z.coerce.boolean().optional(),
   sort: z.enum(META_CATALOG_SORTS).optional(),
   direction: z.enum(META_CATALOG_SORT_DIRECTIONS).optional(),
   page: z.coerce.number().int().min(1).optional(),
@@ -116,7 +153,7 @@ const metaCatalogListResponseSchema = z.object({
   total: z.number().int(),
   page: z.number().int(),
   limit: z.number().int(),
-  counts: metaCatalogCountsSchema,
+  buckets: metaSyncBucketCountsSchema.nullable(),
 });
 
 const catalogKeySchema = z.object({ externalId: z.string().min(1) });
@@ -155,7 +192,6 @@ const playloltcgCatalogListQuerySchema = z.object({
   triage: triageSchema.optional(),
   missing: z.coerce.boolean().optional(),
   bucket: syncBucketFilterSchema.optional(),
-  awaitingResults: z.coerce.boolean().optional(),
   sort: z.enum(META_CATALOG_SORTS).optional(),
   direction: z.enum(META_CATALOG_SORT_DIRECTIONS).optional(),
   page: z.coerce.number().int().min(1).optional(),
@@ -167,7 +203,7 @@ const playloltcgCatalogListResponseSchema = z.object({
   total: z.number().int(),
   page: z.number().int(),
   limit: z.number().int(),
-  counts: metaCatalogCountsSchema,
+  buckets: metaSyncBucketCountsSchema.nullable(),
 });
 
 const playloltcgKeySchema = z.object({ activityShopId: z.number().int() });
@@ -214,7 +250,7 @@ const topdeckCatalogListResponseSchema = z.object({
   total: z.number().int(),
   page: z.number().int(),
   limit: z.number().int(),
-  counts: metaCatalogCountsSchema,
+  buckets: metaSyncBucketCountsSchema.nullable(),
 });
 
 const topdeckKeySchema = z.object({ tid: z.string().min(1) });
@@ -254,7 +290,6 @@ const playriftboundCatalogListQuerySchema = z.object({
   triage: triageSchema.optional(),
   missing: z.coerce.boolean().optional(),
   bucket: syncBucketFilterSchema.optional(),
-  awaitingResults: z.coerce.boolean().optional(),
   sort: z.enum(META_CATALOG_SORTS).optional(),
   direction: z.enum(META_CATALOG_SORT_DIRECTIONS).optional(),
   page: z.coerce.number().int().min(1).optional(),
@@ -266,10 +301,16 @@ const playriftboundCatalogListResponseSchema = z.object({
   total: z.number().int(),
   page: z.number().int(),
   limit: z.number().int(),
-  counts: metaCatalogCountsSchema,
+  buckets: metaSyncBucketCountsSchema.nullable(),
 });
 
 const playriftboundKeySchema = z.object({ tournamentId: z.string().min(1) });
+
+/** One page of mirror rows at most, addressed by the source's own key as text. */
+const bulkKeysSchema = z.object({
+  source: metaSourceSchema,
+  keys: z.array(z.string().min(1)).min(1).max(200),
+});
 
 const acceptCatalogEventSchema = catalogKeySchema.extend({
   format: z.string().min(1).optional(),
@@ -405,8 +446,7 @@ export const metaSyncCancelResultSchema = z.object({
 
 /**
  * The catalogue mirrors the source's own listing.
- * `accept` creates the live event and queues the deep fetch, `dismiss` writes the ignore key,
- * `remove` deletes the live event and writes the ignore key.
+ * `accept` creates the live event and queues the deep fetch, `dismiss` writes the ignore key.
  */
 export const adminMetaCatalogContract = {
   list: authedRoute
@@ -418,8 +458,8 @@ export const adminMetaCatalogContract = {
     .route({ method: "POST", path: `${BASE}/accept`, tags: [TAG] })
     .input(acceptCatalogEventSchema)
     .errors({
-      NOT_FOUND: { message: "Catalogue event not found" },
-      BAD_REQUEST: { message: "This event's format maps to nothing — pick one" },
+      NOT_FOUND: { message: "Mirrored event not found" },
+      BAD_REQUEST: { message: "This event's format maps to nothing. Pick one." },
       CONFLICT: { message: "No free slug available for this event name" },
     })
     .output(acceptedCatalogEventSchema),
@@ -427,17 +467,40 @@ export const adminMetaCatalogContract = {
   dismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/dismiss`, tags: [TAG], successStatus: 204 })
     .input(catalogKeySchema)
-    .errors({ NOT_FOUND: { message: "Catalogue event not found" } }),
+    .errors({ NOT_FOUND: { message: "Mirrored event not found" } }),
 
   undismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/undismiss`, tags: [TAG], successStatus: 204 })
     .input(catalogKeySchema)
     .errors({ NOT_FOUND: { message: "Ignore entry not found" } }),
 
-  remove: authedRoute
-    .route({ method: "POST", path: `${BASE}/remove`, tags: [TAG], successStatus: 204 })
-    .input(catalogKeySchema)
-    .errors({ NOT_FOUND: { message: "Catalogue event not found" } }),
+  /** Undecided rows only; a row that cannot publish without a format pick is skipped. */
+  bulkPublish: authedRoute
+    .route({ method: "POST", path: `${BASE}/bulk/publish`, tags: [TAG] })
+    .input(bulkKeysSchema)
+    .output(z.object({ published: z.array(z.string()), skipped: z.number().int().nonnegative() })),
+
+  /** Undecided rows only. */
+  bulkReject: authedRoute
+    .route({ method: "POST", path: `${BASE}/bulk/reject`, tags: [TAG] })
+    .input(bulkKeysSchema)
+    .output(z.object({ rejected: z.array(z.string()) })),
+
+  bulkRestore: authedRoute
+    .route({ method: "POST", path: `${BASE}/bulk/restore`, tags: [TAG] })
+    .input(bulkKeysSchema)
+    .output(z.object({ restored: z.number().int().nonnegative() })),
+
+  /** Undoes a bulk publish; an event that already has standings stays published. */
+  bulkUnpublish: authedRoute
+    .route({ method: "POST", path: `${BASE}/bulk/unpublish`, tags: [TAG] })
+    .input(bulkKeysSchema)
+    .output(
+      z.object({
+        unpublished: z.number().int().nonnegative(),
+        kept: z.number().int().nonnegative(),
+      }),
+    ),
 
   listTemplates: authedRoute
     .route({ method: "GET", path: `${BASE}/templates`, tags: [TAG] })
@@ -457,7 +520,7 @@ export const adminMetaCatalogContract = {
     .route({ method: "PATCH", path: `${BASE}/formats`, tags: [TAG] })
     .input(metaSourceFormatPatchSchema)
     .errors({
-      NOT_FOUND: { message: "No catalogue event carries this format" },
+      NOT_FOUND: { message: "No mirrored event has this format" },
       BAD_REQUEST: { message: "Unknown deck format" },
     })
     .output(metaSourceFormatSchema),
@@ -578,13 +641,13 @@ export const adminMetaCatalogContract = {
   playloltcgAccept: authedRoute
     .route({ method: "POST", path: `${BASE}/playloltcg/events/accept`, tags: [TAG] })
     .input(playloltcgKeySchema)
-    .errors({ NOT_FOUND: { message: "Catalogue event not found" } })
+    .errors({ NOT_FOUND: { message: "Mirrored event not found" } })
     .output(acceptedCatalogEventSchema),
 
   playloltcgDismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/playloltcg/events/dismiss`, tags: [TAG] })
     .input(playloltcgKeySchema)
-    .errors({ NOT_FOUND: { message: "Catalogue event not found" } }),
+    .errors({ NOT_FOUND: { message: "Mirrored event not found" } }),
 
   playloltcgUndismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/playloltcg/events/undismiss`, tags: [TAG] })
@@ -600,8 +663,8 @@ export const adminMetaCatalogContract = {
     })
     .input(playloltcgKeySchema)
     .errors({
-      NOT_FOUND: { message: "Catalogue event not found" },
-      BAD_REQUEST: { message: "Accept this event before fetching its results" },
+      NOT_FOUND: { message: "Mirrored event not found" },
+      BAD_REQUEST: { message: "Publish this event before collecting its results" },
     })
     .output(metaSyncTriggerResultSchema),
 
@@ -634,13 +697,13 @@ export const adminMetaCatalogContract = {
   topdeckAccept: authedRoute
     .route({ method: "POST", path: `${BASE}/topdeck/events/accept`, tags: [TAG] })
     .input(topdeckKeySchema)
-    .errors({ NOT_FOUND: { message: "Catalogue event not found" } })
+    .errors({ NOT_FOUND: { message: "Mirrored event not found" } })
     .output(acceptedCatalogEventSchema),
 
   topdeckDismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/topdeck/events/dismiss`, tags: [TAG] })
     .input(topdeckKeySchema)
-    .errors({ NOT_FOUND: { message: "Catalogue event not found" } }),
+    .errors({ NOT_FOUND: { message: "Mirrored event not found" } }),
 
   topdeckUndismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/topdeck/events/undismiss`, tags: [TAG] })
@@ -696,13 +759,13 @@ export const adminMetaCatalogContract = {
   playriftboundAccept: authedRoute
     .route({ method: "POST", path: `${BASE}/playriftbound/events/accept`, tags: [TAG] })
     .input(playriftboundKeySchema)
-    .errors({ NOT_FOUND: { message: "Catalogue event not found" } })
+    .errors({ NOT_FOUND: { message: "Mirrored event not found" } })
     .output(acceptedCatalogEventSchema),
 
   playriftboundDismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/playriftbound/events/dismiss`, tags: [TAG] })
     .input(playriftboundKeySchema)
-    .errors({ NOT_FOUND: { message: "Catalogue event not found" } }),
+    .errors({ NOT_FOUND: { message: "Mirrored event not found" } }),
 
   playriftboundUndismiss: authedRoute
     .route({ method: "POST", path: `${BASE}/playriftbound/events/undismiss`, tags: [TAG] })
@@ -718,8 +781,8 @@ export const adminMetaCatalogContract = {
     })
     .input(playriftboundKeySchema)
     .errors({
-      NOT_FOUND: { message: "Catalogue event not found" },
-      BAD_REQUEST: { message: "Accept this event before fetching its results" },
+      NOT_FOUND: { message: "Mirrored event not found" },
+      BAD_REQUEST: { message: "Publish this event before collecting its results" },
     })
     .output(metaSyncTriggerResultSchema),
 
@@ -727,8 +790,8 @@ export const adminMetaCatalogContract = {
     .route({ method: "POST", path: `${BASE}/sync/fetch`, tags: [TAG] })
     .input(catalogKeySchema)
     .errors({
-      NOT_FOUND: { message: "Catalogue event not found" },
-      BAD_REQUEST: { message: "Accept this event before fetching its results" },
+      NOT_FOUND: { message: "Mirrored event not found" },
+      BAD_REQUEST: { message: "Publish this event before collecting its results" },
     })
     .output(metaSyncTriggerResultSchema),
 };

@@ -110,9 +110,13 @@ export function PageTopBarTitle({ onToggleSidebar, children }: PageTopBarTitlePr
     return (
       <>
         {/* font-heading cascades into the Button label (buttonVariants sets weight/size but no family). */}
-        <h1 className="font-heading md:hidden">
-          <Button variant="ghost" className="mr-2 -ml-2.5 gap-1" onClick={onToggleSidebar}>
-            {children}
+        <h1 className="font-heading min-w-0 md:hidden">
+          <Button
+            variant="ghost"
+            className="mr-2 -ml-2.5 max-w-full min-w-0 gap-1"
+            onClick={onToggleSidebar}
+          >
+            <span className="min-w-0 truncate">{children}</span>
             <ChevronDownIcon className="text-muted-foreground size-4" />
           </Button>
         </h1>

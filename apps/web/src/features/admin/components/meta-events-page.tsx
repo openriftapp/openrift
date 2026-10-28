@@ -3,36 +3,55 @@ import { pluralize } from "@openrift/shared/strings";
 import type { AdminMetaEvent } from "@openrift/shared/types/api/meta";
 import { META_EVENT_SORTS } from "@openrift/shared/types/enums";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { LayersIcon } from "lucide-react";
+import { ExternalLinkIcon, PencilIcon } from "lucide-react";
 import { useState } from "react";
 
 import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Pager } from "@/components/ui/pager";
+import { TextLink } from "@/components/ui/text-link";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { MetaEventDialog } from "@/features/admin/components/meta-event-dialog";
-import { EventFilters } from "@/features/admin/components/meta-events-filters";
-import { MetaPublicLinkButton } from "@/features/admin/components/meta-public-link";
-import { useAdminMetaEvents, useDeleteMetaEvent } from "@/features/admin/hooks/use-admin-meta";
+import { EventFilters, EventsRail } from "@/features/admin/components/meta-events-filters";
+import { useAdminMetaEvents, useRemoveMetaEvent } from "@/features/admin/hooks/use-admin-meta";
 import { urlTableSort, useUrlTableFilters } from "@/features/admin/hooks/use-url-table-filters";
 import {
   ADMIN_META_EVENT_PAGE_SIZE,
   META_EVENT_SORT_FALLBACK,
   metaEventsParamsFromSearch,
 } from "@/features/admin/lib/admin-meta-queries";
+import { RESULTS_DISPLAY } from "@/features/admin/lib/meta-mirror-view";
+import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import { sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
 import { useDeckFormatList } from "@/hooks/use-enums";
 
 const routeApi = getRouteApi("/_app/_authenticated/admin/meta");
 
-function NameCell({ row }: AdminCellSlotProps<AdminMetaEvent>) {
+function EventCell({
+  row,
+  formatLabels,
+}: AdminCellSlotProps<AdminMetaEvent> & { formatLabels: Record<string, string> }) {
   if (!row) {
     return null;
   }
-  return <span className="font-medium">{row.name}</span>;
+  const detail = [row.organizer, formatLabels[row.format] ?? row.format]
+    .filter((part) => part !== null)
+    .join(" · ");
+  return (
+    <div className="min-w-48">
+      <TextLink
+        variant="inherit"
+        className="font-medium"
+        render={<Link to="/admin/meta/$eventId" params={{ eventId: row.id }} />}
+      >
+        {row.name}
+      </TextLink>
+      <div className="text-muted-foreground text-xs">{detail}</div>
+    </div>
+  );
 }
 
 function DateCell({ row }: AdminCellSlotProps<AdminMetaEvent>) {
@@ -42,60 +61,54 @@ function DateCell({ row }: AdminCellSlotProps<AdminMetaEvent>) {
   return <span className="tabular-nums">{formatDay(row.eventDate)}</span>;
 }
 
-function FormatCell({
-  row,
-  labels,
-}: AdminCellSlotProps<AdminMetaEvent> & { labels: Record<string, string> }) {
+function TierCell({ row }: AdminCellSlotProps<AdminMetaEvent>) {
   if (!row) {
     return null;
   }
-  return <span className="text-muted-foreground">{labels[row.format] ?? row.format}</span>;
+  return <MetaTierBadge tier={row.tier} />;
 }
 
-function OrganizerCell({ row }: AdminCellSlotProps<AdminMetaEvent>) {
+function ResultsCell({ row }: AdminCellSlotProps<AdminMetaEvent>) {
   if (!row) {
     return null;
   }
-  return (
-    <span className="text-muted-foreground block max-w-48 truncate">{row.organizer ?? "—"}</span>
-  );
+  const results = RESULTS_DISPLAY[row.results];
+  return <Badge variant={results.variant}>{results.label}</Badge>;
 }
 
 function StandingsCell({ row }: AdminCellSlotProps<AdminMetaEvent>) {
   if (!row) {
     return null;
   }
+  const short = row.playerCount !== null && row.playerRowCount < row.playerCount;
   return (
     <span className="tabular-nums">
-      {row.playerRowCount}
+      <span className={short ? "text-warning" : undefined}>{row.playerRowCount}</span>
       {row.playerCount !== null && (
-        <span className="text-muted-foreground"> / {row.playerCount}</span>
+        <span className="text-muted-foreground"> of {row.playerCount}</span>
+      )}
+      {row.deckCount > 0 && (
+        <span className="text-muted-foreground block text-xs">
+          {row.deckCount} {pluralize(row.deckCount, "deck")}
+        </span>
       )}
     </span>
   );
-}
-
-function DeckCountCell({ row }: AdminCellSlotProps<AdminMetaEvent>) {
-  if (!row) {
-    return null;
-  }
-  return <span className="tabular-nums">{row.deckCount}</span>;
 }
 
 function SourcesCell({ row }: AdminCellSlotProps<AdminMetaEvent>) {
   if (!row) {
     return null;
   }
-  if (row.sources.length === 0) {
-    return <span className="text-muted-foreground">—</span>;
+  const providers = row.sources.filter((source) => source.provider !== null);
+  if (providers.length === 0) {
+    return <span className="text-muted-foreground">Entered by hand</span>;
   }
   return (
     <div className="flex flex-wrap gap-1">
-      {row.sources.map((source) => {
+      {providers.map((source) => {
         const provider = sourceProviderDisplay(source.provider ?? "manual");
         return (
-          // Ordered by priority: the last badge is the source that wins a field
-          // two of them both publish.
           <Badge key={source.id} variant={provider.variant}>
             {provider.label}
           </Badge>
@@ -105,7 +118,6 @@ function SourcesCell({ row }: AdminCellSlotProps<AdminMetaEvent>) {
   );
 }
 
-/** Built per render for the reason `catalogColumns` states. */
 function eventColumns(formatLabels: Record<string, string>): AdminColumnDef<AdminMetaEvent>[] {
   return [
     {
@@ -115,8 +127,14 @@ function eventColumns(formatLabels: Record<string, string>): AdminColumnDef<Admi
       sortFirst: "desc",
       cell: <DateCell />,
     },
-    { header: "Name", sortKey: "name", cell: <NameCell /> },
-    { header: "Format", sortKey: "format", cell: <FormatCell labels={formatLabels} /> },
+    {
+      header: "Event",
+      sortKey: "name",
+      wrap: true,
+      cell: <EventCell formatLabels={formatLabels} />,
+    },
+    { header: "Tier", cell: <TierCell /> },
+    { header: "Results", cell: <ResultsCell /> },
     {
       header: "Standings",
       align: "right",
@@ -124,15 +142,6 @@ function eventColumns(formatLabels: Record<string, string>): AdminColumnDef<Admi
       sortFirst: "desc",
       cell: <StandingsCell />,
     },
-    {
-      header: "Decks",
-      align: "right",
-      sortKey: "deckCount",
-      sortFirst: "desc",
-      cell: <DeckCountCell />,
-    },
-    { header: "Organizer", sortKey: "organizer", cell: <OrganizerCell /> },
-    // Not sortable: the count lives in the candidate table, not this endpoint's row.
     { header: "Sources", cell: <SourcesCell /> },
   ];
 }
@@ -146,34 +155,45 @@ function EventRowActions({
   }
   return (
     <>
-      <MetaPublicLinkButton
+      <a
         href={`/meta/${row.slug}`}
-        label="View"
-        ariaLabel={`Open ${row.name} in the public archive`}
-      />
-      <Link
-        to="/admin/meta/$eventId"
-        params={{ eventId: row.id }}
-        className={buttonVariants({ variant: "ghost" })}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`Open ${row.name} on the public archive`}
+        className={buttonVariants({ variant: "ghost", size: "icon" })}
       >
-        <LayersIcon />
-        Standings
-      </Link>
-      <Button variant="ghost" onClick={() => onEdit(row)}>
-        Edit
+        <ExternalLinkIcon />
+      </a>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={`Edit details of ${row.name}`}
+        onClick={() => onEdit(row)}
+      >
+        <PencilIcon />
       </Button>
     </>
   );
 }
 
+function removeDescription(event: AdminMetaEvent): string {
+  const held =
+    event.playerRowCount > 0
+      ? `Deletes its ${event.playerRowCount} ${pluralize(event.playerRowCount, "standing")} and ${event.deckCount} ${pluralize(event.deckCount, "deck")}, permalinks included.`
+      : "Deletes the event page.";
+  const mirrored = event.sources.some((source) => source.provider !== null);
+  return mirrored
+    ? `${held} Its source rows move to Rejected, so no refresh publishes it again.`
+    : `${held} This cannot be undone.`;
+}
+
 type DialogState = { mode: "create" } | { mode: "edit"; event: AdminMetaEvent } | null;
 
-/** Events are edited in a dialog because notes is a 4 000-character markdown field. */
 export function MetaEventsPage() {
   const filters = routeApi.useSearch();
   const { page, applyFilter, goToPage } = useUrlTableFilters(filters);
   const { formats, labels: formatLabels } = useDeckFormatList();
-  const deleteEvent = useDeleteMetaEvent();
+  const removeEvent = useRemoveMetaEvent();
   const [dialog, setDialog] = useState<DialogState>(null);
 
   const { serverSort } = urlTableSort({
@@ -185,50 +205,47 @@ export function MetaEventsPage() {
   });
 
   const { data } = useAdminMetaEvents(metaEventsParamsFromSearch(filters));
-
-  const total = data.total;
-  const totalPages = Math.max(1, Math.ceil(total / ADMIN_META_EVENT_PAGE_SIZE));
-  const columns = eventColumns(formatLabels);
+  const totalPages = Math.max(1, Math.ceil(data.total / ADMIN_META_EVENT_PAGE_SIZE));
 
   return (
     <>
       <AdminPageTopBar
-        title="Meta Archive"
+        title="Published events"
         actions={
           <PageTopBarPrimaryButton onClick={() => setDialog({ mode: "create" })}>
-            Add Event
+            Add event
           </PageTopBarPrimaryButton>
         }
       />
 
-      <AdminTable
-        columns={columns}
-        data={data.events}
-        getRowKey={(event) => event.id}
-        serverSort={serverSort}
-        emptyText="No events match these filters."
-        toolbar={
-          <EventFilters
-            filters={filters}
-            formats={formats}
-            total={total}
-            applyFilter={applyFilter}
+      <div className="space-y-4 pt-3">
+        <EventsRail filters={filters} counts={data.counts} />
+        <div className="min-w-0 space-y-4">
+          <EventFilters filters={filters} formats={formats} applyFilter={applyFilter} />
+          <AdminTable
+            columns={eventColumns(formatLabels)}
+            data={data.events}
+            getRowKey={(event) => event.id}
+            serverSort={serverSort}
+            emptyText="No events in this view."
+            actions={<EventRowActions onEdit={(event) => setDialog({ mode: "edit", event })} />}
+            delete={{
+              onDelete: (event) => removeEvent.mutateAsync(event.id),
+              confirm: (event) => ({
+                title: `Remove "${event.name}" from the archive?`,
+                description: removeDescription(event),
+                confirmLabel: "Remove",
+              }),
+            }}
           />
-        }
-        actions={<EventRowActions onEdit={(event) => setDialog({ mode: "edit", event })} />}
-        delete={{
-          onDelete: (event) => deleteEvent.mutateAsync(event.id),
-          confirm: (event) => ({
-            title: `Delete "${event.name}"?`,
-            description:
-              event.playerRowCount > 0
-                ? `This also deletes the ${event.playerRowCount} archived ${pluralize(event.playerRowCount, "player")} and the ${event.deckCount} ${pluralize(event.deckCount, "deck")} under them, permalinks included. This cannot be undone.`
-                : "This cannot be undone.",
-          }),
-        }}
-      />
-
-      <Pager page={page} totalPages={totalPages} onPageChange={goToPage} label="Archive pages" />
+          <Pager
+            page={page}
+            totalPages={totalPages}
+            onPageChange={goToPage}
+            label="Published pages"
+          />
+        </div>
+      </div>
 
       {dialog && (
         <MetaEventDialog

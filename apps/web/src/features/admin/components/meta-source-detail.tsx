@@ -34,9 +34,9 @@ import {
   JOB_KIND_PREFIX,
   TRIGGER_GROUPS,
 } from "@/features/admin/lib/meta-admin-triggers";
+import { autoPublishRuleSentence } from "@/features/admin/lib/meta-mirror-view";
 import type { MetaRunCell } from "@/features/admin/lib/meta-source-overview";
 import {
-  autoPublishRuleText,
   collectDetail,
   collectKind,
   latestRun,
@@ -143,14 +143,19 @@ function SegmentLegend({ segments }: { segments: Segment[] }) {
   );
 }
 
-function mirrorSegments(
+function mirrorTarget(
   source: MetaSource,
-  status: MetaSyncStatus,
-  minPlayers: number | undefined,
-): Segment[] {
+  view: Pick<MetaSearch, "triage" | "bucket">,
+  label = "Open",
+): Segment["target"] {
+  return {
+    label,
+    search: { tab: "catalogue", source: catalogueSource(source), triage: undefined, ...view },
+  };
+}
+
+function mirrorSegments(source: MetaSource, status: MetaSyncStatus): Segment[] {
   const { catalog, counts } = status;
-  const mirror = { tab: "catalogue" as const, source: catalogueSource(source) };
-  const rule = minPlayers === undefined ? "the rule" : `${minPlayers}+ players`;
   return [
     {
       key: "published",
@@ -158,17 +163,15 @@ function mirrorSegments(
       label: "published",
       description: "On the public archive.",
       colorClass: "bg-primary",
+      target: mirrorTarget(source, { triage: "accepted" }),
     },
     {
       key: "decision",
       count: catalog.needsDecision,
       label: "need a decision",
-      description: `Ran with ${rule} and have results, but were not published.`,
+      description: "Pass the auto-publish rule and have results, but were not published.",
       colorClass: "bg-warning",
-      target: {
-        label: "Decide",
-        search: { ...mirror, triage: "new", minPlayers, bucket: "needsDecision" },
-      },
+      target: mirrorTarget(source, { bucket: "needsDecision" }, "Decide"),
     },
     {
       key: "no-results",
@@ -176,6 +179,7 @@ function mirrorSegments(
       label: "pass the rule, no results",
       description: "The source recorded no rounds. Publishing one would add an empty event.",
       colorClass: "bg-muted-foreground/60",
+      target: mirrorTarget(source, { bucket: "passingNoResults" }),
       action: <RejectPassingButton source={source} count={catalog.passingNoResults} />,
     },
     {
@@ -184,13 +188,15 @@ function mirrorSegments(
       label: "skipped, not started",
       description: "Judged again on every mirror refresh until they start.",
       colorClass: "bg-chart-2",
+      target: mirrorTarget(source, { bucket: "skippedUpcoming" }),
     },
     {
       key: "skipped-past",
       count: catalog.skippedPast,
       label: "skipped, past",
-      description: `Never reached ${rule}. Nothing more happens to them.`,
+      description: "Do not pass the auto-publish rule. Nothing more happens to them.",
       colorClass: "bg-border",
+      target: mirrorTarget(source, { bucket: "skippedPast" }),
     },
     {
       key: "rejected",
@@ -198,19 +204,21 @@ function mirrorSegments(
       label: "rejected",
       description: "Turned down by hand. Refresh mirror never offers them again.",
       colorClass: "bg-destructive/60",
+      target: mirrorTarget(source, { triage: "dismissed" }),
     },
   ];
 }
 
-function resultSegments(status: MetaSyncStatus): Segment[] {
+function resultSegments(source: MetaSource, status: MetaSyncStatus): Segment[] {
   const { catalog } = status;
   return [
     {
       key: "final",
       count: catalog.final,
       label: "final",
-      description: "Standings fetched, no more checks.",
+      description: "Standings collected, no more checks.",
       colorClass: "bg-success",
+      target: mirrorTarget(source, { bucket: "final" }),
     },
     {
       key: "collecting",
@@ -218,6 +226,7 @@ function resultSegments(status: MetaSyncStatus): Segment[] {
       label: "collecting results",
       description: "Started. Checked again while standings can still change.",
       colorClass: "bg-chart-1",
+      target: mirrorTarget(source, { bucket: "collecting" }),
     },
     {
       key: "not-started",
@@ -228,6 +237,7 @@ function resultSegments(status: MetaSyncStatus): Segment[] {
           ? "First check when each one starts."
           : `First check when each one starts. The next starts ${formatDayTime(catalog.firstStartAt)}.`,
       colorClass: "bg-chart-2",
+      target: mirrorTarget(source, { bucket: "notStarted" }),
     },
     {
       key: "no-results",
@@ -235,6 +245,7 @@ function resultSegments(status: MetaSyncStatus): Segment[] {
       label: "no results",
       description: "Started, but the source recorded nothing. No more checks.",
       colorClass: "bg-border",
+      target: mirrorTarget(source, { bucket: "noResults" }),
     },
   ];
 }
@@ -281,7 +292,6 @@ export function MetaSourceDetail({
     (schedules.data?.jobs ?? []).map((job) => [job.kind, job]),
   );
   const label = META_SOURCE_LABELS[source];
-  const minPlayers = settings?.autoAcceptMinPlayers ?? undefined;
 
   const header = (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -344,8 +354,8 @@ export function MetaSourceDetail({
     );
   }
 
-  const mirror = mirrorSegments(source, status, minPlayers);
-  const results = resultSegments(status);
+  const mirror = mirrorSegments(source, status);
+  const results = resultSegments(source, status);
   const refreshEntry = TRIGGER_GROUPS[source].find(
     (entry) => entry.scheduleKey === refreshKind(source),
   );
@@ -370,7 +380,9 @@ export function MetaSourceDetail({
             )}
           </div>
           {settings !== undefined && (
-            <span className="text-muted-foreground text-sm">{autoPublishRuleText(settings)}</span>
+            <span className="text-muted-foreground text-sm">
+              {autoPublishRuleSentence(source, settings)}
+            </span>
           )}
         </CardHeader>
         <CardContent className="space-y-4">

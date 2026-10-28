@@ -1,12 +1,8 @@
 import type {
-  MetaCatalogRow,
   MetaCatalogTriage,
   MetaSource,
   MetaSyncStatus,
   MetaSyncTriggerResult,
-  PlayloltcgCatalogRow,
-  PlayriftboundCatalogRow,
-  TopdeckCatalogRow,
 } from "@openrift/shared/contracts/admin/meta-catalog";
 import { isResumableCheckpoint } from "@openrift/shared/contracts/admin/meta-catalog";
 import { formatRelativeTime } from "@openrift/shared/format-date";
@@ -22,18 +18,6 @@ import type { PlayloltcgStatus, PlayriftboundTournamentType } from "@openrift/sh
 
 import { summarizeRunResult } from "@/features/admin/lib/job-run-display";
 
-export interface MetaCoverageRow {
-  triage: MetaCatalogRow["triage"];
-  displayStatus: string;
-  decklistStatus: string | null;
-  fetchedAt: string | null;
-  stagedPlayerCount: number;
-  stagedLegendCount: number;
-  stagedDeckCount: number;
-  nextCheckAt: string | null;
-  startAt: string | null;
-}
-
 export const META_SOURCE_LABELS: Record<MetaSource, string> = {
   uvsgames: "UVS Games",
   playloltcg: "Play LoL TCG",
@@ -43,7 +27,7 @@ export const META_SOURCE_LABELS: Record<MetaSource, string> = {
 
 export interface CatalogChipDisplay {
   label: string;
-  variant: "warning" | "subtle" | "success" | "neutral" | "outline";
+  variant: "warning" | "subtle" | "success" | "neutral" | "outline" | "destructive" | "info";
 }
 
 const STATUS_DISPLAY: Record<string, CatalogChipDisplay> = {
@@ -56,14 +40,6 @@ const STATUS_DISPLAY: Record<string, CatalogChipDisplay> = {
 export function catalogStatusDisplay(status: string): CatalogChipDisplay {
   return STATUS_DISPLAY[status] ?? { label: status, variant: "outline" };
 }
-
-const PLAYLOLTCG_COVERAGE_STATUS: Record<PlayloltcgStatus, string> = {
-  1: "upcoming",
-  2: "upcoming",
-  3: "upcoming",
-  4: "inProgress",
-  5: "complete",
-};
 
 const PLAYLOLTCG_STATUS_DISPLAY: Record<PlayloltcgStatus, CatalogChipDisplay> = {
   1: { label: "Reg open", variant: "outline" },
@@ -86,40 +62,10 @@ export const PLAYLOLTCG_STATUS_CHOICES = PLAYLOLTCG_STATUSES.map((status) => ({
   label: PLAYLOLTCG_STATUS_DISPLAY[status].label,
 }));
 
-/** The source releases standings and decks in one act, so it publishes no decklist status. */
-export function playloltcgCoverageRow(row: PlayloltcgCatalogRow): MetaCoverageRow {
-  return {
-    triage: row.triage,
-    displayStatus: PLAYLOLTCG_COVERAGE_STATUS[row.status as PlayloltcgStatus] ?? "upcoming",
-    decklistStatus: null,
-    fetchedAt: row.fetchedAt,
-    stagedPlayerCount: row.stagedPlayerCount,
-    stagedLegendCount: row.stagedLegendCount,
-    stagedDeckCount: row.stagedDeckCount,
-    nextCheckAt: row.nextCheckAt,
-    startAt: row.startAt === null ? null : `${row.startAt}T00:00:00.000Z`,
-  };
-}
-
 export const TOPDECK_FORMAT_CHOICES = TOPDECK_FORMATS.map((format) => ({
   value: format,
   label: format,
 }));
-
-/** The search answers about completed tournaments only, so every row is complete. */
-export function topdeckCoverageRow(row: TopdeckCatalogRow): MetaCoverageRow {
-  return {
-    triage: row.triage,
-    displayStatus: "complete",
-    decklistStatus: null,
-    fetchedAt: row.fetchedAt,
-    stagedPlayerCount: row.stagedPlayerCount,
-    stagedLegendCount: row.stagedLegendCount,
-    stagedDeckCount: row.stagedDeckCount,
-    nextCheckAt: null,
-    startAt: row.startAt,
-  };
-}
 
 const PLAYRIFTBOUND_TYPE_LABELS: Record<PlayriftboundTournamentType, string> = {
   LEARN_TO_PLAY: "Learn to Play",
@@ -152,18 +98,6 @@ export const PLAYRIFTBOUND_FORMAT_CHOICES = PLAYRIFTBOUND_FORMATS.map((format) =
   label: playriftboundFormatLabel(format) ?? format,
 }));
 
-/** Round progress as the last fetch saw it; null before any fetch or before round one. */
-export function playriftboundRoundsText(
-  row: Pick<PlayriftboundCatalogRow, "roundCount" | "roundsPlayed" | "roundsFinalized">,
-): string | null {
-  if (row.roundsPlayed === null || row.roundsPlayed === 0) {
-    return null;
-  }
-  const planned = row.roundCount === null ? "" : ` of ${row.roundCount}`;
-  const open = row.roundsPlayed - (row.roundsFinalized ?? 0);
-  return `${row.roundsPlayed}${planned} rounds${open > 0 ? `, ${open} open` : ""}`;
-}
-
 const TRIAGE_DISPLAY: Record<MetaCatalogTriage, CatalogChipDisplay> = {
   new: { label: "Undecided", variant: "warning" },
   accepted: { label: "Published", variant: "success" },
@@ -172,11 +106,6 @@ const TRIAGE_DISPLAY: Record<MetaCatalogTriage, CatalogChipDisplay> = {
 
 export function catalogTriageDisplay(triage: MetaCatalogTriage): CatalogChipDisplay {
   return TRIAGE_DISPLAY[triage];
-}
-
-export function catalogVenueText(row: Pick<MetaCatalogRow, "storeName" | "location">): string {
-  const parts = [row.storeName, row.location].filter((part): part is string => Boolean(part));
-  return parts.length === 0 ? "—" : parts.join(", ");
 }
 
 /** Both ends are UTC, matching how every other ops surface reads a day. */
@@ -215,7 +144,7 @@ export function syncTriggerAnnouncement(
   if (result.status === "running") {
     return {
       title: `${label} started`,
-      description: "It runs in the background; the run list below tracks it.",
+      description: "",
       ok: true,
     };
   }
@@ -294,6 +223,42 @@ export function overlayCountsForProvider(
     pendingReview: rows.length,
     unresolvedCards: rows.reduce((sum, row) => sum + row.unresolvedNames.length, 0),
   };
+}
+
+const EVENT_ERROR = /^Event (?<id>\S+): (?<reason>.+)$/u;
+
+const NAMED_EVENTS = 5;
+
+/**
+ * Names the events a run could not handle, grouped by what went wrong, so the
+ * warning says which event to open. Errors not about one event are quoted.
+ */
+export function runErrorsMessage(job: string, errors: readonly string[]): string {
+  const byReason = new Map<string, string[]>();
+  const other: string[] = [];
+  for (const error of errors) {
+    const match = EVENT_ERROR.exec(error);
+    if (match === null) {
+      other.push(error);
+      continue;
+    }
+    const id = match.groups?.id ?? "";
+    const reason = match.groups?.reason ?? "";
+    byReason.set(reason, [...(byReason.get(reason) ?? []), id]);
+  }
+  const sentences = [...byReason].map(([reason, ids]) => {
+    const named = ids.slice(0, NAMED_EVENTS);
+    const rest = ids.length - named.length;
+    const list = new Intl.ListFormat("en", { type: "conjunction" }).format(
+      rest > 0 ? [...named, `${rest} more`] : named,
+    );
+    return `${job} failed for ${ids.length === 1 ? "event" : "events"} ${list}: ${reason.slice(0, 160)}.`;
+  });
+  const first = other[0];
+  if (first !== undefined) {
+    sentences.push(`${job} reported: ${first.slice(0, 200)}.`);
+  }
+  return sentences.join(" ");
 }
 
 export function metaSyncAlerts(
@@ -385,8 +350,8 @@ export function metaSyncAlerts(
   }
 
   for (const [suffix, job] of [
-    ["_sync", "mirror refresh"],
-    ["_recheck", "Collect results run"],
+    ["_sync", "Refresh mirror"],
+    ["_recheck", "Collect results"],
   ] as const) {
     const latest = [...newestByKind.values()].find((run) => run.kind.endsWith(suffix));
     const errors: unknown =
@@ -394,10 +359,12 @@ export function metaSyncAlerts(
         ? latest.result?.errors
         : undefined;
     if (Array.isArray(errors) && errors.length > 0) {
-      const first: unknown = errors[0];
       alerts.push({
         id: `${suffix.slice(1)}-errors`,
-        message: `The last ${job} reported ${errors.length} ${errors.length === 1 ? "error" : "errors"}.${typeof first === "string" ? ` First: ${first.slice(0, 200)}` : ""}`,
+        message: runErrorsMessage(
+          job,
+          errors.filter((error): error is string => typeof error === "string"),
+        ),
         target: "runs",
       });
     }
@@ -423,7 +390,7 @@ export function metaSyncAlerts(
   if (catalog.acceptedCancelled > 0) {
     alerts.push({
       id: "accepted-cancelled",
-      message: `${catalog.acceptedCancelled} published ${catalog.acceptedCancelled === 1 ? "event was" : "events were"} cancelled at the source. Refresh mirror keeps a cancelled event that has standings or another source.`,
+      message: `${catalog.acceptedCancelled} published ${catalog.acceptedCancelled === 1 ? "event is" : "events are"} cancelled at the source. Refresh mirror withdraws the ones without standings or another source. Remove the rest on their event page.`,
       target: "catalogue-accepted-cancelled",
     });
   }

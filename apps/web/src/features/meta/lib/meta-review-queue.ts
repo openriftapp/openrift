@@ -1,4 +1,5 @@
 import type { AdminMetaEventCorrection } from "@openrift/shared/contracts/admin/meta-submissions";
+import { formatDay } from "@openrift/shared/format-date";
 import type { MetaOverlayQueueRow } from "@openrift/shared/types/api/meta";
 import type { MetaPlayerOverlayField } from "@openrift/shared/types/enums";
 import { META_PLAYER_OVERLAY_FIELDS } from "@openrift/shared/types/enums";
@@ -8,6 +9,7 @@ export const META_REVIEW_TRIAGE = [
   "needsRow",
   "unmatched",
   "newEvent",
+  "eventChange",
   "correction",
 ] as const;
 
@@ -16,11 +18,12 @@ export type MetaReviewTriage = (typeof META_REVIEW_TRIAGE)[number];
 type MetaReviewTriageCounts = Record<MetaReviewTriage, number>;
 
 export const META_REVIEW_TRIAGE_LABELS: Record<MetaReviewTriage, string> = {
-  ready: "Ready",
-  needsRow: "Needs a row",
-  unmatched: "Unmatched cards",
+  ready: "Ready to apply",
+  needsRow: "Need a standings row",
+  unmatched: "Unknown cards",
   newEvent: "New events",
-  correction: "Corrections",
+  eventChange: "Event changes",
+  correction: "Contributor corrections",
 };
 
 interface MetaReviewBulkAcceptItem {
@@ -42,15 +45,16 @@ export interface MetaReviewGroup {
   corrections: AdminMetaEventCorrection[];
   counts: MetaReviewTriageCounts;
   oldestAt: string;
+  fromContributor: boolean;
 }
 
 function emptyTriageCounts(): MetaReviewTriageCounts {
-  return { ready: 0, needsRow: 0, unmatched: 0, newEvent: 0, correction: 0 };
+  return { ready: 0, needsRow: 0, unmatched: 0, newEvent: 0, eventChange: 0, correction: 0 };
 }
 
 export function triageOverlay(row: MetaOverlayQueueRow): Exclude<MetaReviewTriage, "correction"> {
   if (row.kind === "event") {
-    return row.metaEventId === null ? "newEvent" : "ready";
+    return row.metaEventId === null ? "newEvent" : "eventChange";
   }
   if (row.unresolvedNames.length > 0) {
     return "unmatched";
@@ -107,6 +111,7 @@ function emptyGroup(key: string): MetaReviewGroup {
     corrections: [],
     counts: emptyTriageCounts(),
     oldestAt: "",
+    fromContributor: false,
   };
 }
 
@@ -166,6 +171,7 @@ export function groupReviewQueue(
     fillEventFacts(group, row);
     noteProvider(group, row.provider ?? "usersubmission");
     noteOldest(group, row.createdAt);
+    group.fromContributor ||= row.provider === null;
     group.counts[triageOverlay(row)] += 1;
     if (row.kind === "event") {
       if (row.metaEventId === null) {
@@ -193,6 +199,7 @@ export function groupReviewQueue(
     }
     noteProvider(group, "usersubmission");
     noteOldest(group, correction.submission.createdAt);
+    group.fromContributor = true;
     group.counts.correction += 1;
     group.corrections.push(correction);
   }
@@ -203,8 +210,7 @@ export function groupReviewQueue(
 
   return [...groups.values()].toSorted(
     (a, b) =>
-      Number(b.proposal !== null) - Number(a.proposal !== null) ||
-      a.oldestAt.localeCompare(b.oldestAt),
+      Number(b.fromContributor) - Number(a.fromContributor) || a.oldestAt.localeCompare(b.oldestAt),
   );
 }
 
@@ -238,6 +244,45 @@ export function acceptClaimMask(
     kept.push("cards");
   }
   return kept;
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  name: "Name",
+  eventDate: "Date",
+  format: "Format",
+  playerCount: "Players",
+  organizer: "Organizer",
+  notes: "Notes",
+  tier: "Tier",
+  country: "Country",
+  location: "Venue",
+  playerName: "Player",
+  rank: "Finish",
+  rankIsTier: "Bracket finish",
+  wins: "Wins",
+  losses: "Losses",
+  draws: "Draws",
+  matchPoints: "Match points",
+  opponentMatchWinPct: "Opponents' match win rate",
+  legendCardId: "Legend",
+  championCardId: "Champion",
+  listStatus: "Decklist",
+  entryStatus: "Finish state",
+  deckName: "Deck name",
+  cards: "Cards",
+};
+
+/** A change's field as the reviewer reads it; an unknown field shows its own name. */
+export function reviewFieldLabel(field: string): string {
+  return FIELD_LABELS[field] ?? field;
+}
+
+/** Calendar days read as days; every other value is shown as the source sent it. */
+export function reviewFieldValue(field: string, value: string | null): string {
+  if (value === null) {
+    return "empty";
+  }
+  return field === "eventDate" && /^\d{4}-\d{2}-\d{2}$/u.test(value) ? formatDay(value) : value;
 }
 
 export function totalTriageCount(counts: MetaReviewTriageCounts): number {

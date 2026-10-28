@@ -1,9 +1,4 @@
-import type {
-  MetaCatalogRow,
-  MetaSource,
-  MetaSyncTriggerResult,
-} from "@openrift/shared/contracts/admin/meta-catalog";
-import { META_CATALOG_PROVIDERS } from "@openrift/shared/types/enums";
+import type { MetaSyncTriggerResult } from "@openrift/shared/contracts/admin/meta-catalog";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -25,12 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
-import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
-import {
-  META_SOURCE_LABELS,
-  syncTriggerAnnouncement,
-} from "@/features/meta/lib/meta-catalog-display";
+import type { MetaMirrorRow } from "@/features/admin/lib/meta-mirror-rows";
+import { syncTriggerAnnouncement } from "@/features/meta/lib/meta-catalog-display";
 import { useDeckFormatList } from "@/hooks/use-enums";
 
 export function announceSyncTrigger(label: string, result: MetaSyncTriggerResult): void {
@@ -44,52 +35,13 @@ export function announceSyncTrigger(label: string, result: MetaSyncTriggerResult
   toast.error(announcement.title, options);
 }
 
-const SOURCE_OPTIONS = META_CATALOG_PROVIDERS.map((provider) => ({
-  value: provider,
-  label: META_SOURCE_LABELS[provider],
-}));
-
-export function CatalogSourceSelect({
-  source,
-  applyFilter,
-}: {
-  source: MetaSource;
-  applyFilter: (next: Partial<MetaSearch>) => void;
-}) {
-  return (
-    <AdminFilterSelect
-      value={source}
-      onChange={(value) => {
-        const next = META_CATALOG_PROVIDERS.find((provider) => provider === value);
-        if (next === undefined) {
-          return;
-        }
-        applyFilter({
-          source: next === "uvsgames" ? undefined : next,
-          eventStatus: undefined,
-          plStatus: undefined,
-          tdFormat: undefined,
-          prType: undefined,
-          prFormat: undefined,
-          decklists: undefined,
-          awaitingResults: undefined,
-          bucket: undefined,
-        });
-      }}
-      options={SOURCE_OPTIONS}
-      className="w-40"
-      label="Source"
-    />
-  );
-}
-
-export function MetaCatalogAcceptDialog({
+export function MetaMirrorFormatDialog({
   row,
   pending,
   onCancel,
   onConfirm,
 }: {
-  row: MetaCatalogRow | null;
+  row: MetaMirrorRow | null;
   pending: boolean;
   onCancel: () => void;
   onConfirm: (format: string) => void;
@@ -107,19 +59,19 @@ export function MetaCatalogAcceptDialog({
         <DialogHeader>
           <DialogTitle>Which format is &ldquo;{row.name}&rdquo;?</DialogTitle>
           <DialogDescription>
-            {row.eventFormat === null
-              ? "The source published no format for this event, so the archive has nothing to file it under."
-              : `The source calls this "${row.eventFormat}", which maps to none of our formats.`}
+            {row.unmappedFormat === ""
+              ? "The source gives no format for this event."
+              : `The source calls it "${row.unmappedFormat}", which maps to none of our formats.`}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <Label htmlFor="meta-catalog-accept-format">Format</Label>
+          <Label htmlFor="meta-mirror-publish-format">Format</Label>
           <Select
             items={formats.map((entry) => ({ value: entry.slug, label: entry.label }))}
             value={format}
             onValueChange={(next) => setFormat(next ?? "")}
           >
-            <SelectTrigger id="meta-catalog-accept-format" className="w-full">
+            <SelectTrigger id="meta-mirror-publish-format" className="w-full">
               <SelectValue placeholder="Pick a format" />
             </SelectTrigger>
             <SelectContent>

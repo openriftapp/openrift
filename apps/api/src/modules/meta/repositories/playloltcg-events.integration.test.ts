@@ -9,6 +9,12 @@ import { playloltcgEventsRepo } from "./playloltcg-events.js";
 // source's own `activityShopId`s are six-digit, and every row this file
 // writes sits in a 990_0xx block nothing else touches.
 
+const RULE_OFF = {
+  autoAcceptMinPlayers: null,
+  autoAcceptOfficial: false,
+  autoAcceptNotable: false,
+};
+
 const ctx = createDbContext(crypto.randomUUID());
 
 const KEYS = {
@@ -420,14 +426,6 @@ describe.skipIf(!ctx)("playloltcgEventsRepo", () => {
     expect(listed.rows.every((entry) => entry.missingSince !== null)).toBe(true);
   });
 
-  it("keeps only accepted rows whose results were never fetched", async () => {
-    const listed = await repo().list({ awaitingResults: true }, { limit: 50, offset: 0 });
-
-    expect(
-      listed.rows.every((entry) => entry.triage === "accepted" && entry.fetchedAt === null),
-    ).toBe(true);
-  });
-
   it("counts what the mirror staged for each row, so the coverage chips have figures", async () => {
     const stored = await repo().byKey(KEYS.hashed);
 
@@ -505,7 +503,7 @@ describe.skipIf(!ctx)("playloltcgEventsRepo", () => {
   it("counts finished events and fetched ones as separate figures", async () => {
     await seedAcceptedCandidate(KEYS.linked, { fetchedAt: new Date("2026-08-21T06:00:00Z") });
 
-    const overview = await repo().syncOverview(null);
+    const overview = await repo().syncOverview(RULE_OFF);
 
     expect(overview.total).toBeGreaterThanOrEqual(ALL_KEYS.length);
     expect(overview.completed).toBeGreaterThanOrEqual(1);
@@ -515,7 +513,7 @@ describe.skipIf(!ctx)("playloltcgEventsRepo", () => {
   });
 
   it("splits accepted events by whether the mirror holds their standings", async () => {
-    const before = await repo().syncOverview(null);
+    const before = await repo().syncOverview(RULE_OFF);
 
     await repo().upsertBatch(
       [
@@ -529,7 +527,7 @@ describe.skipIf(!ctx)("playloltcgEventsRepo", () => {
     await seedAcceptedCandidate(KEYS.awaitingA);
     await seedAcceptedCandidate(KEYS.awaitingB);
 
-    const after = await repo().syncOverview(null);
+    const after = await repo().syncOverview(RULE_OFF);
 
     expect(after.total - before.total).toBe(3);
     expect(after.decklistPublished - before.decklistPublished).toBe(1);

@@ -1,4 +1,5 @@
 import { adminMetaContract } from "@openrift/shared/contracts/admin/meta";
+import type { MetaResultsState } from "@openrift/shared/meta-results";
 import type {
   AdminMetaEvent,
   AdminMetaEventList,
@@ -8,6 +9,7 @@ import type {
   META_EVENT_SORT_DIRECTIONS,
   META_EVENT_SORTS,
   MetaEventSourceFilter,
+  MetaEventTier,
 } from "@openrift/shared/types/enums";
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -29,8 +31,10 @@ export interface AdminMetaEventQueryParams {
   source?: MetaEventSourceFilter;
   dateFrom?: string;
   dateTo?: string;
+  tier?: MetaEventTier;
+  results?: MetaResultsState;
   incompleteStandings?: boolean;
-  noDecks?: boolean;
+  hasDecks?: boolean;
   sort?: AdminMetaEventSort;
   direction?: AdminMetaEventSortDirection;
 }
@@ -51,8 +55,10 @@ export function metaEventsParamsFromSearch(search: {
   liveSource?: MetaEventSourceFilter;
   dateFrom?: string;
   dateTo?: string;
+  liveTier?: MetaEventTier;
+  liveResults?: MetaResultsState;
   incompleteStandings?: boolean;
-  noDecks?: boolean;
+  hasDecks?: boolean;
   liveSort?: AdminMetaEventSort;
   liveDir?: AdminMetaEventSortDirection;
 }): AdminMetaEventQueryParams {
@@ -63,8 +69,10 @@ export function metaEventsParamsFromSearch(search: {
     source: search.liveSource,
     dateFrom: search.dateFrom,
     dateTo: search.dateTo,
+    tier: search.liveTier,
+    results: search.liveResults,
     incompleteStandings: search.incompleteStandings,
-    noDecks: search.noDecks,
+    hasDecks: search.hasDecks,
     sort: search.liveSort ?? META_EVENT_SORT_FALLBACK.sort,
     direction: search.liveDir ?? META_EVENT_SORT_FALLBACK.direction,
   };
@@ -80,13 +88,15 @@ const fetchMetaEvents = createServerFn({ method: "GET" })
       search: data.search,
       format: data.format,
       source: data.source,
+      tier: data.tier,
+      results: data.results,
       dateFrom: data.dateFrom,
       dateTo: data.dateTo,
       sort: data.sort,
       direction: data.direction,
       // Query strings coerce "false" to true; an off toggle must be absent, never false.
       incompleteStandings: data.incompleteStandings === true ? true : undefined,
-      noDecks: data.noDecks === true ? true : undefined,
+      hasDecks: data.hasDecks === true ? true : undefined,
     }),
   );
 

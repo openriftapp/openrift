@@ -62,8 +62,19 @@ describe("parseMetaUploadFile", () => {
 });
 
 describe("sourceProviderDisplay", () => {
-  it("shows a crawler's provider slug the way the source writes it", () => {
-    expect(sourceProviderDisplay("uvsgames")).toEqual({ label: "uvsgames", variant: "outline" });
+  it("names a mirrored source", () => {
+    expect(sourceProviderDisplay("uvsgames")).toEqual({ label: "UVS Games", variant: "outline" });
+  });
+
+  it("shows an upload's own provider as given", () => {
+    expect(sourceProviderDisplay("tournament-sheet")).toEqual({
+      label: "tournament-sheet",
+      variant: "outline",
+    });
+  });
+
+  it("names a hand-entered citation", () => {
+    expect(sourceProviderDisplay("manual").label).toBe("Entered by hand");
   });
 
   it("names a player's own submission, which is not a source slug at all", () => {

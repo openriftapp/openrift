@@ -199,7 +199,7 @@ describe("autoPublishRuleText", () => {
         autoAcceptOfficial: true,
         autoAcceptNotable: false,
       }),
-    ).toBe("Auto-publish rule: 16+ players, all sources · watched templates (UVS Games)");
+    ).toBe("Auto-publish rule: 16+ players, all sources · watched event types (UVS Games)");
   });
 
   it("says the rule is off when nothing is set", () => {

@@ -113,6 +113,8 @@ export const adminKeys = {
     event: (eventId: string) => ["admin", "meta", "events", eventId] as const,
     eventPlayers: (eventId: string) => ["admin", "meta", "events", eventId, "players"] as const,
     eventSources: (eventId: string) => ["admin", "meta", "events", eventId, "sources"] as const,
+    eventSourceStates: (eventId: string) =>
+      ["admin", "meta", "events", eventId, "source-states"] as const,
     eventUploads: (eventId: string) => ["admin", "meta", "events", eventId, "uploads"] as const,
     crossSource: (eventId: string) => ["admin", "meta", "events", eventId, "cross-source"] as const,
     // Suggestion keys nest under it on purpose, so settling an overlay also
@@ -127,34 +129,10 @@ export const adminKeys = {
       ["admin", "meta", "overlays", overlayId, "submission"] as const,
     eventCorrections: ["admin", "meta", "event-corrections"] as const,
     ignoredSources: ["admin", "meta", "ignored-sources"] as const,
-    // Prefix every filtered page sits under, so accepting or dismissing one
-    // row refetches whichever page is on screen.
-    catalogue: ["admin", "meta", "catalogue"] as const,
-    catalogueList: (params: {
-      page: number;
-      search?: string;
-      triage?: string;
-      displayStatus?: string;
-      minPlayers?: number;
-      decklistPublished?: boolean;
-      missing?: boolean;
-      bucket?: string;
-      dateFrom?: string;
-      dateTo?: string;
-      sort?: string;
-      direction?: string;
-    }) => ["admin", "meta", "catalogue", "list", params] as const,
-    // playloltcg mirrors the catalogue above under its own prefix: a write
-    // to one source must not drop the other's pages.
-    playloltcgCatalogue: ["admin", "meta", "playloltcg", "catalogue"] as const,
-    playloltcgCatalogueList: (params: { page?: number; search?: string; triage?: string }) =>
-      ["admin", "meta", "playloltcg", "catalogue", "list", params] as const,
-    topdeckCatalogue: ["admin", "meta", "topdeck", "catalogue"] as const,
-    topdeckCatalogueList: (params: { page?: number; search?: string; triage?: string }) =>
-      ["admin", "meta", "topdeck", "catalogue", "list", params] as const,
-    playriftboundCatalogue: ["admin", "meta", "playriftbound", "catalogue"] as const,
-    playriftboundCatalogueList: (params: { page?: number; search?: string; triage?: string }) =>
-      ["admin", "meta", "playriftbound", "catalogue", "list", params] as const,
+    // Prefix every source's filtered pages sit under, so a write to one row
+    // refetches whichever page is on screen.
+    mirror: ["admin", "meta", "mirror"] as const,
+    mirrorList: (params: object) => ["admin", "meta", "mirror", "list", params] as const,
     syncSettings: ["admin", "meta", "sync", "settings"] as const,
     archiveJobs: ["admin", "meta", "archive", "jobs"] as const,
     syncStatus: Object.assign(

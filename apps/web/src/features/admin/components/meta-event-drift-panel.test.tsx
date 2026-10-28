@@ -146,9 +146,9 @@ describe("MetaEventDriftPanel", () => {
   it("hides agreeing fields behind a toggle", async () => {
     render(<MetaEventDriftPanel metaEventId="e1" enabled />);
 
-    expect(screen.getByText("Every field agrees with the archive.")).toBeInTheDocument();
+    expect(screen.getByText("Every field matches its sources.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /Show 1 field that agree/u }));
-    expect(screen.getByText("organizer")).toBeInTheDocument();
+    expect(screen.getByText("Organizer")).toBeInTheDocument();
   });
 
   it("offers to hand a claimed field back to the sources", async () => {
@@ -208,7 +208,7 @@ describe("MetaEventDriftPanel", () => {
 
   it("raises a source's priority, since the highest number wins a contested field", async () => {
     render(<MetaEventDriftPanel metaEventId="e1" enabled />);
-    await userEvent.click(screen.getByRole("button", { name: "Raise uvsgames's priority" }));
+    await userEvent.click(screen.getByRole("button", { name: "Raise UVS Games's priority" }));
 
     expect(captured.priorities).toEqual([{ id: "src-1", priority: 6 }]);
   });
@@ -218,8 +218,8 @@ describe("MetaEventDriftPanel", () => {
 
     render(<MetaEventDriftPanel metaEventId="e1" enabled />);
 
-    expect(screen.getByRole("button", { name: "Raise uvsgames's priority" })).toBeDisabled();
-    await userEvent.click(screen.getByRole("button", { name: "Lower uvsgames's priority" }));
+    expect(screen.getByRole("button", { name: "Raise UVS Games's priority" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Lower UVS Games's priority" }));
     expect(captured.priorities).toEqual([{ id: "src-1", priority: 998 }]);
   });
 });

@@ -1,4 +1,5 @@
 import type { MetaSource, MetaSyncSettings } from "@openrift/shared/contracts/admin/meta-catalog";
+import { META_NOTABLE_EVENT_NAMES } from "@openrift/shared/contracts/admin/meta-catalog";
 import { formatDayTime } from "@openrift/shared/format-date";
 import { META_CATALOG_PROVIDERS } from "@openrift/shared/types/enums";
 import { useState } from "react";
@@ -21,6 +22,7 @@ import {
   useMetaSyncSettings,
   useUpdateMetaSyncSettings,
 } from "@/features/admin/hooks/use-admin-meta-catalog";
+import { autoPublishRuleSentence } from "@/features/admin/lib/meta-mirror-view";
 import { META_SOURCE_LABELS } from "@/features/meta/lib/meta-catalog-display";
 
 /** The auto-accept rule form's editable shape. */
@@ -41,24 +43,9 @@ function toDraft(settings: MetaSyncSettings): RulesDraft {
   };
 }
 
-const SOURCE_INTRO: Record<MetaSource, string> = {
-  uvsgames:
-    "When Refresh mirror reads an event matching any rule below, it is published automatically, and its UVS Games standings are fetched and published without review. Events you rejected never auto-publish, whatever they match, and neither do events that look like one another source already archived at the same store within a day.",
-  playloltcg:
-    "When Refresh mirror reads an event matching the rule below, it is published automatically, and its Play LoL TCG standings are fetched and published without review. Events you rejected never auto-publish. This source publishes no event templates, so field size is the only rule it can be judged on.",
-  topdeck:
-    "When Refresh mirror reads an event matching the rule below, it is published automatically, and its TopDeck.gg standings and decklists are published without review. Events you rejected never auto-publish, and neither do team events. This source publishes no event templates, so field size is the only rule it can be judged on.",
-  playriftbound:
-    "When Refresh mirror reads an event matching the rule below, it is published automatically, and its PlayRiftbound standings and pairings are fetched and published without review. Events you rejected never auto-publish, and neither do team events. The rule reads registrations, since the field is only known once the event has run. An event that looks like one another source already archived at the same store within a day waits for review.",
-};
-
-/** The other catalogues the one shared rule also governs. */
-function otherSourceLabels(source: MetaSource): string {
-  const labels = META_CATALOG_PROVIDERS.filter((provider) => provider !== source).map(
-    (provider) => META_SOURCE_LABELS[provider],
-  );
-  return new Intl.ListFormat("en", { type: "conjunction" }).format(labels);
-}
+const notableNames = new Intl.ListFormat("en", { type: "disjunction" }).format(
+  META_NOTABLE_EVENT_NAMES,
+);
 
 function AutoAcceptForm({
   source,
@@ -94,10 +81,23 @@ function AutoAcceptForm({
     <DialogForm onSubmit={save}>
       <DialogHeader>
         <DialogTitle>Auto-publish rule</DialogTitle>
-        <DialogDescription>{SOURCE_INTRO[source]}</DialogDescription>
+        <DialogDescription>
+          Refresh mirror publishes a matching event and collects its results without review.
+          Rejected and cancelled events never publish.
+        </DialogDescription>
       </DialogHeader>
 
       <div className="space-y-4">
+        <dl className="bg-muted grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 rounded-md px-3 py-2 text-sm">
+          {META_CATALOG_PROVIDERS.map((provider) => (
+            <div key={provider} className="contents">
+              <dt className={provider === source ? "font-medium" : "text-muted-foreground"}>
+                {META_SOURCE_LABELS[provider]}
+              </dt>
+              <dd>{autoPublishRuleSentence(provider, settings)}</dd>
+            </div>
+          ))}
+        </dl>
         <div className="flex flex-wrap items-center gap-3">
           <Switch
             id="meta-auto-accept-players"
@@ -106,7 +106,7 @@ function AutoAcceptForm({
               setDraft((prev) => ({ ...prev, minPlayersEnabled: checked }))
             }
           />
-          <Label htmlFor="meta-auto-accept-players">Field size of at least</Label>
+          <Label htmlFor="meta-auto-accept-players">Publish events with at least</Label>
           <Input
             type="number"
             min={1}
@@ -121,10 +121,7 @@ function AutoAcceptForm({
         {draft.minPlayersEnabled && !playerCountValid && (
           <FieldError>Enter a whole number of players above zero.</FieldError>
         )}
-        <p className="text-muted-foreground">
-          Every source uses this threshold, so a change here also governs{" "}
-          {otherSourceLabels(source)}.
-        </p>
+        <p className="text-muted-foreground">The threshold applies to all four sources.</p>
         {source === "uvsgames" && (
           <>
             <div className="flex items-center gap-3">
@@ -136,7 +133,7 @@ function AutoAcceptForm({
                 }
               />
               <Label htmlFor="meta-auto-accept-official">
-                Runs on a template you watch (set those under Templates &amp; formats)
+                Publish watched event types at any size (UVS Games)
               </Label>
             </div>
             <div className="flex items-center gap-3">
@@ -148,17 +145,18 @@ function AutoAcceptForm({
                 }
               />
               <Label htmlFor="meta-auto-accept-notable">
-                Name matches the notable vocabulary (regional, qualifier, championship,
-                invitational)
+                Publish names with {notableNames} (UVS Games)
               </Label>
             </div>
           </>
         )}
         <p className="text-muted-foreground">
-          Refresh mirror applies the rule to the events it reads. Undecided events already in the
-          mirror catch up through Apply auto-publish rule in the Run menu on the Overview tab.
+          A change applies to newly read events. Apply auto-publish rule judges the undecided ones
+          again.
         </p>
-        <p className="text-muted-foreground">Last changed {formatDayTime(settings.updatedAt)}.</p>
+        <p className="text-muted-foreground">
+          Last changed {formatDayTime(settings.updatedAt)} UTC.
+        </p>
       </div>
 
       <DialogFooter>
@@ -166,7 +164,7 @@ function AutoAcceptForm({
           Cancel
         </Button>
         <Button type="submit" disabled={!canSave}>
-          Save rules
+          Save
         </Button>
       </DialogFooter>
     </DialogForm>
@@ -190,7 +188,7 @@ export function MetaAutoAcceptDialog({
             <DialogHeader>
               <DialogTitle>Auto-publish rule</DialogTitle>
             </DialogHeader>
-            <p className="text-muted-foreground">Loading the rules…</p>
+            <p className="text-muted-foreground">Loading…</p>
           </>
         ) : (
           <AutoAcceptForm source={source} settings={data} onClose={onClose} />

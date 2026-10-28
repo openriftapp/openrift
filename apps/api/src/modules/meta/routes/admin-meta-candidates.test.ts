@@ -96,6 +96,7 @@ const TOPDECK_SOURCE_ID = "e0000000-0001-4000-a000-000000000002";
 const mockMetaSubmissions = {
   byPlayerOverlayId: vi.fn(),
   recordAcceptance: vi.fn(),
+  resolve: vi.fn(),
 };
 
 const mockNotifySubmitterOfMetaAcceptance = vi.fn(async () => {});
@@ -1747,5 +1748,49 @@ describe("the cross-mirror review", () => {
 
       expect(response.status).toBe(404);
     });
+  });
+});
+
+describe("POST /overlays/player/:id/reject", () => {
+  const REJECTED_OVERLAY_ID = "a0000000-0001-4000-a000-0000000000f1";
+
+  async function reject(body: Record<string, unknown> = {}) {
+    return await app.request(`/api/admin/v1/meta/overlays/player/${REJECTED_OVERLAY_ID}/reject`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it("settles a contributor's pending submission with the reason given", async () => {
+    mockOverlays.playerOverlayById.mockResolvedValue(
+      playerOverlay({ id: REJECTED_OVERLAY_ID, status: "pending", provider: null }),
+    );
+    mockMetaSubmissions.byPlayerOverlayId.mockResolvedValue(metaSubmission("pending"));
+
+    const res = await reject({ reason: "unverified" });
+
+    expect(res.status).toBe(200);
+    expect(mockOverlays.setPlayerOverlayStatus).toHaveBeenCalledWith(
+      REJECTED_OVERLAY_ID,
+      "rejected",
+      expect.any(Date),
+    );
+    expect(mockMetaSubmissions.resolve).toHaveBeenCalledWith(
+      "sub-1",
+      expect.objectContaining({ status: "rejected", reason: "unverified", note: null }),
+    );
+  });
+
+  it("leaves an already settled submission alone", async () => {
+    mockOverlays.playerOverlayById.mockResolvedValue(
+      playerOverlay({ id: REJECTED_OVERLAY_ID, status: "pending", provider: null }),
+    );
+    mockMetaSubmissions.byPlayerOverlayId.mockResolvedValue(metaSubmission("rejected"));
+    mockMetaSubmissions.resolve.mockClear();
+
+    await reject();
+
+    expect(mockMetaSubmissions.resolve).not.toHaveBeenCalled();
   });
 });

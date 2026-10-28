@@ -177,7 +177,7 @@ export function autoPublishRuleText(settings: {
     ...(settings.autoAcceptMinPlayers === null
       ? []
       : [`${settings.autoAcceptMinPlayers}+ players, all sources`]),
-    ...(settings.autoAcceptOfficial ? ["watched templates (UVS Games)"] : []),
+    ...(settings.autoAcceptOfficial ? ["watched event types (UVS Games)"] : []),
     ...(settings.autoAcceptNotable ? ["notable names (UVS Games)"] : []),
   ];
   return parts.length === 0 ? "Auto-publish is off" : `Auto-publish rule: ${parts.join(" · ")}`;

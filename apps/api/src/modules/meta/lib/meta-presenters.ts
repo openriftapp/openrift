@@ -4,6 +4,7 @@ import type {
   AdminMetaSubmission,
 } from "@openrift/shared/contracts/admin/meta-submissions";
 import { metaLegendSlug, metaPlayerKey } from "@openrift/shared/meta-keys";
+import { metaResultsState } from "@openrift/shared/meta-results";
 import type {
   AdminMetaEvent,
   AdminMetaPlayer,
@@ -714,6 +715,7 @@ export function toAdminMetaEvent(
     location: row.location,
     playerRowCount: row.playerRowCount,
     deckCount: row.deckCount,
+    results: metaResultsState(row.status, row.playerRowCount),
     sources: sources.map((source) => ({
       id: source.id,
       externalId: source.externalId,

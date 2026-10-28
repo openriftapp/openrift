@@ -25,7 +25,8 @@ import {
   useMetaPlayerMatchSuggestions,
 } from "@/features/admin/hooks/use-admin-meta-overlays";
 import { useMetaSubmissionForPlayerOverlay } from "@/features/admin/hooks/use-admin-meta-submissions";
-import { sourceDismissTarget } from "@/features/meta/lib/meta-source-review";
+import { reviewFieldLabel, reviewFieldValue } from "@/features/meta/lib/meta-review-queue";
+import { sourceDismissTarget, sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
 import { useZoneOrder } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 
@@ -51,13 +52,15 @@ export function OverlayChanges({
       <DefinitionList className="gap-y-1">
         {real.map((change) => (
           <div key={change.field} className="contents">
-            <DefinitionTerm className="font-mono text-xs font-normal">
-              {change.field}
+            <DefinitionTerm className="font-normal">
+              {reviewFieldLabel(change.field)}
             </DefinitionTerm>
             <DefinitionDetail className="flex flex-wrap items-baseline gap-2">
-              <span className="text-muted-foreground line-through">{change.from ?? "empty"}</span>
+              <span className="text-muted-foreground line-through">
+                {reviewFieldValue(change.field, change.from)}
+              </span>
               <span aria-hidden>→</span>
-              <span className="font-medium">{change.to ?? "empty"}</span>
+              <span className="font-medium">{reviewFieldValue(change.field, change.to)}</span>
             </DefinitionDetail>
           </div>
         ))}
@@ -72,18 +75,18 @@ export function OverlayChanges({
           <li key={change.field} className="flex flex-wrap items-baseline gap-2">
             <Checkbox
               checked={keep}
-              aria-label={`Claim ${change.field}`}
+              aria-label={`Apply ${reviewFieldLabel(change.field)}`}
               onCheckedChange={() => {
                 onToggle(change.field);
               }}
             />
-            <span className="text-muted-foreground font-mono text-xs">{change.field}</span>
+            <span className="text-muted-foreground">{reviewFieldLabel(change.field)}</span>
             <span className={cn("text-muted-foreground", keep && "line-through")}>
-              {change.from ?? "empty"}
+              {reviewFieldValue(change.field, change.from)}
             </span>
             <span aria-hidden>→</span>
             <span className={keep ? "font-medium" : "text-muted-foreground line-through"}>
-              {change.to ?? "empty"}
+              {reviewFieldValue(change.field, change.to)}
             </span>
           </li>
         );
@@ -189,8 +192,8 @@ export function EventMatches({
     <div className="space-y-2">
       {best === undefined ? (
         <p className="text-muted-foreground text-sm">
-          No archived event within {data.windowDays} {pluralize(data.windowDays, "day")} looks like
-          this one, so accepting mints a new one.
+          No published event within {data.windowDays} {pluralize(data.windowDays, "day")} looks like
+          this one.
         </p>
       ) : (
         <div className="bg-warning-soft flex flex-wrap items-center gap-2 rounded-md px-3 py-2 text-sm">
@@ -208,7 +211,7 @@ export function EventMatches({
             }}
           >
             <CheckIcon />
-            Accept into this
+            Merge into this event
           </Button>
         </div>
       )}
@@ -243,14 +246,13 @@ export function PlayerMatches({ overlay }: { overlay: MetaOverlayQueueRow }) {
       <span className="font-medium">Standings row</span>
       <p className="text-muted-foreground text-sm">
         {linked
-          ? "Linked. Pick another row to move it: the one it leaves is taken back on the next promote, provided this upload is what minted it."
-          : "Not linked to a standings row yet. Pick the row this entry describes, or accepting files a second row beside it."}
+          ? "Linked. Pick another row to move it."
+          : "Pick the standings row this entry describes. Without one, applying adds a second row."}
       </p>
       {isPending && <Skeleton className="h-16 w-full" />}
       {data !== undefined && suggestions.length === 0 && !linked && (
         <p className="text-muted-foreground text-sm">
-          No standings row in this event shares this entry&apos;s name or its finish, so accepting
-          files a new one.
+          No standings row in this event shares this entry&apos;s name or its finish.
         </p>
       )}
       {suggestions.length > 0 && (
@@ -310,8 +312,8 @@ export function DismissSourceKey({ overlay }: { overlay: MetaOverlayQueueRow }) 
 
   const description =
     target.kind === "event"
-      ? `Every crawl and upload skips ${target.provider}'s "${target.externalId}" from now on. You can undo it under Dismissed keys.`
-      : `Every crawl and upload skips ${target.provider}'s "${target.externalId}" in event "${target.eventExternalId}" from now on. You can undo it under Dismissed keys.`;
+      ? `Every refresh and upload skips "${target.externalId}" from now on. Restore it in the Mirror under Rejected.`
+      : `Every refresh and upload skips "${target.externalId}" in event "${target.eventExternalId}" from now on. Restore it under Ignored players.`;
 
   async function dismiss(): Promise<void> {
     if (target === null) {
@@ -333,18 +335,18 @@ export function DismissSourceKey({ overlay }: { overlay: MetaOverlayQueueRow }) 
 
   return (
     <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
-      <span>{target.provider}</span>
+      <span>{sourceProviderDisplay(target.provider).label}</span>
       <span className="font-mono">{target.externalId}</span>
       <ConfirmActionButton
-        title="Dismiss this source key?"
+        title={target.kind === "event" ? "Reject this event at its source?" : "Ignore this player?"}
         description={description}
-        confirmLabel="Dismiss"
+        confirmLabel={target.kind === "event" ? "Reject" : "Ignore"}
         onConfirm={dismiss}
         disabled={ignoreEvent.isPending || ignorePlayer.isPending}
         trigger={<Button variant="link-muted" size="sm" />}
       >
         <ArchiveXIcon />
-        Dismiss this source key
+        {target.kind === "event" ? "Reject at the source" : "Ignore this player"}
       </ConfirmActionButton>
     </div>
   );

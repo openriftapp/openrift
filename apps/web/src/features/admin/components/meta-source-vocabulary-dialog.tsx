@@ -6,7 +6,6 @@ import { formatDay, formatRelativeTime } from "@openrift/shared/format-date";
 import type { MetaEventTier } from "@openrift/shared/types/enums";
 import { useState } from "react";
 
-import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { announceSyncTrigger } from "@/features/admin/components/meta-catalog-shared";
 import type {
   MetaSourceFormatInput,
@@ -194,8 +194,7 @@ function PlayerFloorField() {
           className="w-24"
         />
         <p className="text-muted-foreground min-w-60 flex-1 text-sm">
-          players are competitive whatever their template says. A tier mapping can put an event
-          above this, never below it.
+          players count as Competitive or higher, on every source.
         </p>
         <Button
           type="button"
@@ -233,8 +232,7 @@ function RetierHint() {
   return (
     <div className="bg-muted/40 flex flex-wrap items-center gap-3 rounded-md border px-3 py-2">
       <p className="text-muted-foreground min-w-60 flex-1 text-sm">
-        A tier change is stored here and reaches the live events when the tier rules are reapplied.
-        Run that once you are done editing.
+        Tier changes reach published events when you reapply tier rules.
       </p>
       <Button
         variant="outline"
@@ -255,27 +253,22 @@ function TemplatesSection() {
 
   return (
     <section className="space-y-2">
-      <Heading level={3}>Templates</Heading>
       <p className="text-muted-foreground text-sm">
-        A watched template earns its events a badge on the catalogue, a place in the daily poll, and
-        eligibility for the official auto-accept rule. The tier says how much a template&apos;s
-        events count for on the public meta page, and an unmapped template&apos;s events fall back
-        to a player-count guess. The average counts only events that have already run, since
-        anything from today on is still taking registrations. Names come from the source, refreshed
-        on every sync; a template with only an id is one the source has stopped publishing.
+        Watched event types publish at any size and are checked more often on event day. Avg players
+        counts events that have run. An event type with only an id is one the source no longer
+        names.
       </p>
-      <PlayerFloorField />
       <RetierHint />
       <div className="overflow-x-auto">
         <Table className={ADMIN_TABLE_CLASS}>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-60">Name</TableHead>
+              <TableHead className="w-60">Event type</TableHead>
               <TableHead>Sample event</TableHead>
               <TableHead className="w-20 text-right">Events</TableHead>
               <TableHead className="w-24 text-right">Avg players</TableHead>
-              <TableHead className="w-28">Last run</TableHead>
-              <TableHead className="w-56">Tier</TableHead>
+              <TableHead className="w-28">Latest</TableHead>
+              <TableHead className="w-56">Counts as</TableHead>
               <TableHead className="w-24">Watched</TableHead>
             </TableRow>
           </TableHeader>
@@ -284,8 +277,8 @@ function TemplatesSection() {
               <TableRow>
                 <TableCell colSpan={7} className="text-muted-foreground h-20 text-center">
                   {data === undefined
-                    ? "Loading the templates…"
-                    : "No templates yet. Run a catalogue sync to fetch them."}
+                    ? "Loading the event types…"
+                    : "No event types yet. Refresh mirror reads them from the source."}
                 </TableCell>
               </TableRow>
             )}
@@ -368,10 +361,8 @@ function FormatsSection() {
 
   return (
     <section className="space-y-2">
-      <Heading level={3}>Formats</Heading>
       <p className="text-muted-foreground text-sm">
-        What the source calls a format, and which of ours it means. An unmapped format cannot be
-        accepted without picking one by hand, and never auto-accepts.
+        An event with an unmapped format never auto-publishes and needs a format pick to publish.
       </p>
       <div className="overflow-x-auto">
         <Table className={ADMIN_TABLE_CLASS}>
@@ -388,7 +379,7 @@ function FormatsSection() {
                 <TableCell colSpan={3} className="text-muted-foreground h-20 text-center">
                   {data === undefined
                     ? "Loading the formats…"
-                    : "No crawled event carries a format yet."}
+                    : "No mirrored event has a format yet."}
                 </TableCell>
               </TableRow>
             )}
@@ -413,16 +404,30 @@ export function MetaSourceVocabularyDialog({ onClose }: { onClose: () => void })
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Templates &amp; formats</DialogTitle>
+          <DialogTitle>Event types and formats, UVS Games</DialogTitle>
           <DialogDescription>
-            The crawl finds these; you name them. Changes save as you make them.
+            Names come from the source. You set what they count as. Changes save as you make them.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[70vh] space-y-6 overflow-y-auto">
-          <TemplatesSection />
-          <FormatsSection />
-        </div>
+        <Tabs defaultValue="types" className="min-h-0">
+          <TabsList variant="line">
+            <TabsTrigger value="types">Event types</TabsTrigger>
+            <TabsTrigger value="formats">Formats</TabsTrigger>
+            <TabsTrigger value="floor">Tier floor</TabsTrigger>
+          </TabsList>
+          <div className="max-h-[65vh] overflow-y-auto pt-3">
+            <TabsContent value="types">
+              <TemplatesSection />
+            </TabsContent>
+            <TabsContent value="formats">
+              <FormatsSection />
+            </TabsContent>
+            <TabsContent value="floor">
+              <PlayerFloorField />
+            </TabsContent>
+          </div>
+        </Tabs>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>

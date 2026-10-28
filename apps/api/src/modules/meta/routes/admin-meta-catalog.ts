@@ -37,6 +37,7 @@ import { toPlayloltcgCatalogRow } from "../lib/playloltcg-catalog-presenters.js"
 import { toPlayriftboundCatalogRow } from "../lib/playriftbound-catalog-presenters.js";
 import { toTopdeckCatalogRow } from "../lib/topdeck-catalog-presenters.js";
 import type { UvsgamesListRow } from "../repositories/uvsgames-events.js";
+import { unpublishMetaEvent } from "../services/meta-remove.js";
 import { isRepromoteNoop, repromoteMetaEvents } from "../services/meta-repromote.js";
 import { isRetierNoop, retierMetaEvents } from "../services/meta-retier.js";
 import type {
@@ -188,9 +189,45 @@ function syncDeps(context: ApiContext): MetaSyncDeps {
   });
 }
 
+interface MirrorRowHandle {
+  triage: string;
+  metaEventId: string | null;
+  publish: () => Promise<unknown>;
+}
+
+async function mirrorRow(
+  context: ApiContext,
+  source: MetaSource,
+  key: string,
+): Promise<MirrorRowHandle | undefined> {
+  switch (source) {
+    case "uvsgames": {
+      const row = await context.repos.uvsgamesEvents.byKey(key);
+      return row && { ...row, publish: () => acceptCatalogEvent(syncDeps(context), row, {}) };
+    }
+    case "playloltcg": {
+      const id = Number(key);
+      const row = Number.isSafeInteger(id)
+        ? await context.repos.playloltcgEvents.byKey(id)
+        : undefined;
+      return row && { ...row, publish: () => acceptPlayloltcgEvent(playloltcgDeps(context), row) };
+    }
+    case "topdeck": {
+      const row = await context.repos.topdeckEvents.byKey(key);
+      return row && { ...row, publish: () => acceptTopdeckEvent(topdeckDeps(context), row) };
+    }
+    case "playriftbound": {
+      const row = await context.repos.playriftboundEvents.byKey(key);
+      return (
+        row && { ...row, publish: () => acceptPlayriftboundEvent(playriftboundDeps(context), row) }
+      );
+    }
+  }
+}
+
 async function requireRow(context: ApiContext, externalId: string): Promise<UvsgamesListRow> {
   const row = await context.repos.uvsgamesEvents.byKey(externalId);
-  assertFound(row, "Catalogue event not found");
+  assertFound(row, "Mirrored event not found");
   return row;
 }
 
@@ -233,24 +270,25 @@ export const adminMetaCatalogRouter = {
   list: os.list.handler(async ({ input, context }) => {
     const limit = input.limit ?? DEFAULT_LIMIT;
     const page = input.page ?? 1;
-    const [{ rows, total }, counts, formatMappings, watchedTemplates] = await Promise.all([
+    const rule = await context.repos.uvsgamesEvents.settings();
+    const filters = {
+      search: input.search,
+      displayStatus: input.displayStatus,
+      decklistPublished: input.decklistPublished,
+      minPlayers: input.minPlayers,
+      dateFrom: input.dateFrom === undefined ? undefined : new Date(input.dateFrom),
+      dateTo: input.dateTo === undefined ? undefined : new Date(input.dateTo),
+      triage: input.triage,
+      missing: input.missing,
+      bucket: input.bucket === undefined ? undefined : { name: input.bucket, rule },
+    };
+    const [{ rows, total }, buckets, formatMappings, watchedTemplates] = await Promise.all([
       context.repos.uvsgamesEvents.list(
-        {
-          search: input.search,
-          displayStatus: input.displayStatus,
-          decklistPublished: input.decklistPublished,
-          minPlayers: input.minPlayers,
-          dateFrom: input.dateFrom === undefined ? undefined : new Date(input.dateFrom),
-          dateTo: input.dateTo === undefined ? undefined : new Date(input.dateTo),
-          triage: input.triage,
-          missing: input.missing,
-          bucket: input.bucket,
-          awaitingResults: input.awaitingResults,
-        },
+        filters,
         { limit, offset: (page - 1) * limit },
         { sort: input.sort, direction: input.direction },
       ),
-      context.repos.uvsgamesEvents.triageCounts(),
+      context.repos.uvsgamesEvents.bucketCounts(filters, rule),
       context.repos.uvsgamesEvents.formatMappings(),
       context.repos.uvsgamesEvents.watchedTemplates(),
     ]);
@@ -260,7 +298,7 @@ export const adminMetaCatalogRouter = {
       total,
       page,
       limit,
-      counts,
+      buckets,
     };
   }),
 
@@ -301,19 +339,93 @@ export const adminMetaCatalogRouter = {
     });
   }),
 
-  remove: os.remove.handler(async ({ input, context }) => {
-    const row = await requireRow(context, input.externalId);
-    if (row.metaEventId !== null) {
-      await context.repos.meta.deleteEvent(row.metaEventId);
+  bulkPublish: os.bulkPublish.handler(async ({ input, context }) => {
+    const published: string[] = [];
+    let skipped = 0;
+    for (const key of new Set(input.keys)) {
+      const row = await mirrorRow(context, input.source, key);
+      if (row?.triage !== "new") {
+        skipped++;
+        continue;
+      }
+      try {
+        await row.publish();
+        published.push(key);
+      } catch (error) {
+        // An unmapped format needs a pick per row; the rest of the batch still goes.
+        if (!(error instanceof AppError)) {
+          throw error;
+        }
+        skipped++;
+      }
     }
-    await context.repos.metaOverlays.ignoreEvent(UVSGAMES_PROVIDER, row.externalId);
     await recordAdminEvent(context.repos, context.userId, {
-      action: "meta-catalog.remove",
+      action: "meta-catalog.accept-bulk",
       entityType: "meta-catalog",
-      entityId: `${UVSGAMES_PROVIDER}:${row.externalId}`,
-      entityLabel: row.name,
-      oldValues: { metaEventId: row.metaEventId, slug: row.metaEventSlug },
+      entityId: SOURCE_PROVIDER[input.source],
+      newValues: { published, skipped },
     });
+    return { published, skipped };
+  }),
+
+  bulkReject: os.bulkReject.handler(async ({ input, context }) => {
+    const keys: string[] = [];
+    for (const key of new Set(input.keys)) {
+      const row = await mirrorRow(context, input.source, key);
+      if (row?.triage === "new") {
+        keys.push(key);
+      }
+    }
+    const provider = SOURCE_PROVIDER[input.source];
+    await context.repos.metaOverlays.ignoreEvents(provider, keys);
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "meta-catalog.dismiss-bulk",
+      entityType: "meta-catalog",
+      entityId: provider,
+      newValues: { rejected: keys },
+    });
+    return { rejected: keys };
+  }),
+
+  bulkRestore: os.bulkRestore.handler(async ({ input, context }) => {
+    const provider = SOURCE_PROVIDER[input.source];
+    let restored = 0;
+    for (const key of new Set(input.keys)) {
+      if (await context.repos.metaOverlays.unignoreEvent(provider, key)) {
+        restored++;
+      }
+    }
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "meta-catalog.undismiss-bulk",
+      entityType: "meta-catalog",
+      entityId: provider,
+      newValues: { restored, keys: input.keys },
+    });
+    return { restored };
+  }),
+
+  bulkUnpublish: os.bulkUnpublish.handler(async ({ input, context }) => {
+    let unpublished = 0;
+    let kept = 0;
+    for (const key of new Set(input.keys)) {
+      const row = await mirrorRow(context, input.source, key);
+      if (row?.triage !== "accepted" || row.metaEventId === null) {
+        continue;
+      }
+      const outcome = await unpublishMetaEvent(context.transact, row.metaEventId);
+      if (outcome === "unpublished") {
+        unpublished++;
+      } else if (outcome === "kept") {
+        kept++;
+      }
+    }
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "meta-catalog.unpublish-bulk",
+      entityType: "meta-catalog",
+      entityId: SOURCE_PROVIDER[input.source],
+      newValues: { unpublished, kept, keys: input.keys },
+    });
+    return { unpublished, kept };
   }),
 
   listTemplates: os.listTemplates.handler(async ({ context }) => {
@@ -361,13 +473,13 @@ export const adminMetaCatalogRouter = {
       }
     }
     const existing = await context.repos.uvsgamesEvents.formatByName(input.sourceFormat);
-    assertFound(existing, "No catalogue event carries this format");
+    assertFound(existing, "No mirrored event has this format");
 
     const updated = await context.repos.uvsgamesEvents.setFormatMapping(
       input.sourceFormat,
       input.mappedFormat,
     );
-    assertFound(updated, "No catalogue event carries this format");
+    assertFound(updated, "No mirrored event has this format");
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.format",
       entityType: "meta-catalog-format",
@@ -410,7 +522,7 @@ export const adminMetaCatalogRouter = {
     }[source];
     const settings = await context.repos.uvsgamesEvents.settings();
     const [overview, archive, counts, recent, latest] = await Promise.all([
-      sourceRepo.syncOverview(settings.autoAcceptMinPlayers),
+      sourceRepo.syncOverview(settings),
       context.repos.meta.archiveOverview(SOURCE_PROVIDER[source]),
       sourceRepo.triageCounts(),
       context.repos.jobRuns.listRecentByKinds(jobKindsForSource(source), STATUS_RUN_LIMIT),
@@ -440,9 +552,6 @@ export const adminMetaCatalogRouter = {
 
   rejectPassingNoResults: os.rejectPassingNoResults.handler(async ({ input, context }) => {
     const settings = await context.repos.uvsgamesEvents.settings();
-    if (settings.autoAcceptMinPlayers === null) {
-      return { rejected: 0 };
-    }
     const sourceRepo = {
       uvsgames: context.repos.uvsgamesEvents,
       playloltcg: context.repos.playloltcgEvents,
@@ -450,7 +559,7 @@ export const adminMetaCatalogRouter = {
       playriftbound: context.repos.playriftboundEvents,
     }[input.source];
     const provider = SOURCE_PROVIDER[input.source];
-    const keys = await sourceRepo.passingNoResultsKeys(settings.autoAcceptMinPlayers);
+    const keys = await sourceRepo.passingNoResultsKeys(settings);
     const rejected = await context.repos.metaOverlays.ignoreEvents(provider, keys);
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.dismiss-bulk",
@@ -622,30 +731,31 @@ export const adminMetaCatalogRouter = {
   playloltcgList: os.playloltcgList.handler(async ({ input, context }) => {
     const limit = input.limit ?? DEFAULT_LIMIT;
     const page = input.page ?? 1;
-    const [{ rows, total }, counts] = await Promise.all([
+    const rule = await context.repos.uvsgamesEvents.settings();
+    const filters = {
+      search: input.search,
+      triage: input.triage,
+      status: input.status,
+      minPlayers: input.minPlayers,
+      dateFrom: input.dateFrom,
+      dateTo: input.dateTo,
+      missing: input.missing,
+      bucket: input.bucket === undefined ? undefined : { name: input.bucket, rule },
+    };
+    const [{ rows, total }, buckets] = await Promise.all([
       context.repos.playloltcgEvents.list(
-        {
-          search: input.search,
-          triage: input.triage,
-          status: input.status,
-          minPlayers: input.minPlayers,
-          dateFrom: input.dateFrom,
-          dateTo: input.dateTo,
-          missing: input.missing,
-          bucket: input.bucket,
-          awaitingResults: input.awaitingResults,
-        },
+        filters,
         { limit, offset: (page - 1) * limit },
         { sort: input.sort, direction: input.direction },
       ),
-      context.repos.playloltcgEvents.triageCounts(),
+      context.repos.playloltcgEvents.bucketCounts(filters, rule),
     ]);
-    return { rows: rows.map((row) => toPlayloltcgCatalogRow(row)), total, page, limit, counts };
+    return { rows: rows.map((row) => toPlayloltcgCatalogRow(row)), total, page, limit, buckets };
   }),
 
   playloltcgAccept: os.playloltcgAccept.handler(async ({ input, context }) => {
     const row = await context.repos.playloltcgEvents.byKey(input.activityShopId);
-    assertFound(row, "Catalogue event not found");
+    assertFound(row, "Mirrored event not found");
     const accepted = await acceptPlayloltcgEvent(playloltcgDeps(context), row);
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.accept",
@@ -659,7 +769,7 @@ export const adminMetaCatalogRouter = {
 
   playloltcgDismiss: os.playloltcgDismiss.handler(async ({ input, context }) => {
     const row = await context.repos.playloltcgEvents.byKey(input.activityShopId);
-    assertFound(row, "Catalogue event not found");
+    assertFound(row, "Mirrored event not found");
     await context.repos.metaOverlays.ignoreEvent(PLAYLOLTCG_PROVIDER, String(row.activityShopId));
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.dismiss",
@@ -682,12 +792,12 @@ export const adminMetaCatalogRouter = {
 
   playloltcgFetchEvent: os.playloltcgFetchEvent.handler(async ({ input, context }) => {
     const row = await context.repos.playloltcgEvents.byKey(input.activityShopId);
-    assertFound(row, "Catalogue event not found");
+    assertFound(row, "Mirrored event not found");
     if (row.metaEventId === null) {
       throw new AppError(
         400,
         ERROR_CODES.BAD_REQUEST,
-        "Accept this event before fetching its results.",
+        "Publish this event before collecting its results.",
       );
     }
     return await startJob(context, "meta.playloltcg_event_fetch", playloltcgDeps, (deps) =>
@@ -735,29 +845,31 @@ export const adminMetaCatalogRouter = {
   topdeckList: os.topdeckList.handler(async ({ input, context }) => {
     const limit = input.limit ?? DEFAULT_LIMIT;
     const page = input.page ?? 1;
-    const [{ rows, total }, counts] = await Promise.all([
+    const rule = await context.repos.uvsgamesEvents.settings();
+    const filters = {
+      search: input.search,
+      triage: input.triage,
+      format: input.format,
+      minPlayers: input.minPlayers,
+      dateFrom: input.dateFrom,
+      dateTo: input.dateTo,
+      missing: input.missing,
+      bucket: input.bucket === undefined ? undefined : { name: input.bucket, rule },
+    };
+    const [{ rows, total }, buckets] = await Promise.all([
       context.repos.topdeckEvents.list(
-        {
-          search: input.search,
-          triage: input.triage,
-          format: input.format,
-          minPlayers: input.minPlayers,
-          dateFrom: input.dateFrom,
-          dateTo: input.dateTo,
-          missing: input.missing,
-          bucket: input.bucket,
-        },
+        filters,
         { limit, offset: (page - 1) * limit },
         { sort: input.sort, direction: input.direction },
       ),
-      context.repos.topdeckEvents.triageCounts(),
+      context.repos.topdeckEvents.bucketCounts(filters, rule),
     ]);
-    return { rows: rows.map((row) => toTopdeckCatalogRow(row)), total, page, limit, counts };
+    return { rows: rows.map((row) => toTopdeckCatalogRow(row)), total, page, limit, buckets };
   }),
 
   topdeckAccept: os.topdeckAccept.handler(async ({ input, context }) => {
     const row = await context.repos.topdeckEvents.byKey(input.tid);
-    assertFound(row, "Catalogue event not found");
+    assertFound(row, "Mirrored event not found");
     const accepted = await acceptTopdeckEvent(topdeckDeps(context), row);
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.accept",
@@ -771,7 +883,7 @@ export const adminMetaCatalogRouter = {
 
   topdeckDismiss: os.topdeckDismiss.handler(async ({ input, context }) => {
     const row = await context.repos.topdeckEvents.byKey(input.tid);
-    assertFound(row, "Catalogue event not found");
+    assertFound(row, "Mirrored event not found");
     await context.repos.metaOverlays.ignoreEvent(TOPDECK_PROVIDER, row.tid);
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.dismiss",
@@ -843,31 +955,32 @@ export const adminMetaCatalogRouter = {
   playriftboundList: os.playriftboundList.handler(async ({ input, context }) => {
     const limit = input.limit ?? DEFAULT_LIMIT;
     const page = input.page ?? 1;
-    const [{ rows, total }, counts] = await Promise.all([
+    const rule = await context.repos.uvsgamesEvents.settings();
+    const filters = {
+      search: input.search,
+      triage: input.triage,
+      tournamentType: input.tournamentType,
+      format: input.format,
+      minPlayers: input.minPlayers,
+      dateFrom: input.dateFrom,
+      dateTo: input.dateTo,
+      missing: input.missing,
+      bucket: input.bucket === undefined ? undefined : { name: input.bucket, rule },
+    };
+    const [{ rows, total }, buckets] = await Promise.all([
       context.repos.playriftboundEvents.list(
-        {
-          search: input.search,
-          triage: input.triage,
-          tournamentType: input.tournamentType,
-          format: input.format,
-          minPlayers: input.minPlayers,
-          dateFrom: input.dateFrom,
-          dateTo: input.dateTo,
-          missing: input.missing,
-          bucket: input.bucket,
-          awaitingResults: input.awaitingResults,
-        },
+        filters,
         { limit, offset: (page - 1) * limit },
         { sort: input.sort, direction: input.direction },
       ),
-      context.repos.playriftboundEvents.triageCounts(),
+      context.repos.playriftboundEvents.bucketCounts(filters, rule),
     ]);
-    return { rows: rows.map((row) => toPlayriftboundCatalogRow(row)), total, page, limit, counts };
+    return { rows: rows.map((row) => toPlayriftboundCatalogRow(row)), total, page, limit, buckets };
   }),
 
   playriftboundAccept: os.playriftboundAccept.handler(async ({ input, context }) => {
     const row = await context.repos.playriftboundEvents.byKey(input.tournamentId);
-    assertFound(row, "Catalogue event not found");
+    assertFound(row, "Mirrored event not found");
     const accepted = await acceptPlayriftboundEvent(playriftboundDeps(context), row);
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.accept",
@@ -881,7 +994,7 @@ export const adminMetaCatalogRouter = {
 
   playriftboundDismiss: os.playriftboundDismiss.handler(async ({ input, context }) => {
     const row = await context.repos.playriftboundEvents.byKey(input.tournamentId);
-    assertFound(row, "Catalogue event not found");
+    assertFound(row, "Mirrored event not found");
     await context.repos.metaOverlays.ignoreEvent(PLAYRIFTBOUND_PROVIDER, row.tournamentId);
     await recordAdminEvent(context.repos, context.userId, {
       action: "meta-catalog.dismiss",
@@ -906,12 +1019,12 @@ export const adminMetaCatalogRouter = {
 
   playriftboundFetchEvent: os.playriftboundFetchEvent.handler(async ({ input, context }) => {
     const row = await context.repos.playriftboundEvents.byKey(input.tournamentId);
-    assertFound(row, "Catalogue event not found");
+    assertFound(row, "Mirrored event not found");
     if (row.metaEventId === null) {
       throw new AppError(
         400,
         ERROR_CODES.BAD_REQUEST,
-        "Accept this event before fetching its results.",
+        "Publish this event before collecting its results.",
       );
     }
     return await startJob(context, "meta.playriftbound_event_fetch", playriftboundDeps, (deps) =>
@@ -927,7 +1040,7 @@ export const adminMetaCatalogRouter = {
       throw new AppError(
         400,
         ERROR_CODES.BAD_REQUEST,
-        "Accept this event before fetching its results.",
+        "Publish this event before collecting its results.",
       );
     }
     return await startJob(context, "meta.uvsgames_event_fetch", syncDeps, (deps, runId) =>

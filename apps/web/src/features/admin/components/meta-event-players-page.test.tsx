@@ -35,6 +35,12 @@ vi.mock("@/features/admin/hooks/use-admin-meta", () => ({
       slug: "summoner-skirmish-2026",
       format: "standard",
       playerCount: captured.playerCount,
+      eventDate: "2026-08-15",
+      organizer: null,
+      tier: "local",
+      results: "final",
+      playerRowCount: captured.players.length,
+      sources: [{ id: "src-1", provider: "uvsgames", externalId: "857112", priority: 0 }],
     },
   }),
   useAdminMetaEventPlayers: () => ({ data: { players: captured.players } }),
@@ -50,6 +56,31 @@ vi.mock("@/features/admin/hooks/use-admin-meta-overlays", () => ({
     isPending: false,
   }),
   useMetaEventUploads: () => ({ data: { uploads: [] } }),
+}));
+
+vi.mock("@/features/admin/components/meta-event-source-states", () => ({
+  MetaEventSourceStates: () => <div>Source states</div>,
+  MetaEventCancelledBanner: () => null,
+}));
+
+vi.mock("@/features/admin/components/meta-event-sources-editor", () => ({
+  MetaEventSourcesEditor: () => null,
+}));
+
+vi.mock("@/features/admin/components/meta-event-drift-panel", () => ({
+  MetaEventDriftPanel: () => <div>Field values panel</div>,
+}));
+
+vi.mock("@/features/admin/components/meta-cross-source-panel", () => ({
+  MetaCrossSourcePanel: () => <div>Cross-source panel</div>,
+}));
+
+vi.mock("@/features/admin/components/meta-event-dialog", () => ({
+  MetaEventDialog: () => null,
+}));
+
+vi.mock("@/hooks/use-enums", () => ({
+  useDeckFormatList: () => ({ formats: [], labels: { standard: "Standard" } }),
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
@@ -87,10 +118,10 @@ describe("MetaEventPlayersPage", () => {
     captured.released = [];
   });
 
-  it("keeps a way back to the event list and out to the public page", () => {
+  it("keeps a way back to the published events and out to the public page", () => {
     render(<MetaEventPlayersPage eventId="event-1" />);
 
-    expect(screen.getByLabelText("Back to all events")).toBeInTheDocument();
+    expect(screen.getByLabelText("Back to published events")).toBeInTheDocument();
     expect(
       screen.getByLabelText("Open Summoner Skirmish 2026 in the public archive"),
     ).toHaveAttribute("href", "/meta/summoner-skirmish-2026");
@@ -110,7 +141,7 @@ describe("MetaEventPlayersPage", () => {
   it("marks a row the source published no record for", () => {
     captured.players = [player({ wins: null, losses: null, draws: null })];
     render(<MetaEventPlayersPage eventId="event-1" />);
-    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.getAllByText("Not given").length).toBeGreaterThan(0);
   });
 
   it("flags a partial list on the deck itself", () => {
@@ -138,7 +169,7 @@ describe("MetaEventPlayersPage", () => {
     captured.players = [player({ id: "a", rank: 1 }), player({ id: "b", rank: 3 })];
     captured.playerCount = 4;
     render(<MetaEventPlayersPage eventId="event-1" />);
-    expect(screen.getByText("2 of 4 standings archived")).toBeInTheDocument();
+    expect(screen.getByText("2 of 4 standings")).toBeInTheDocument();
     expect(screen.getByText("Missing 2, 4")).toBeInTheDocument();
   });
 
@@ -146,7 +177,7 @@ describe("MetaEventPlayersPage", () => {
     captured.players = [player({ id: "a", rank: 1 }), player({ id: "b", rank: 2 })];
     captured.playerCount = 2;
     render(<MetaEventPlayersPage eventId="event-1" />);
-    expect(screen.getByText("2 standings archived")).toBeInTheDocument();
+    expect(screen.getByText("2 standings")).toBeInTheDocument();
     expect(screen.queryByText(/Missing/u)).not.toBeInTheDocument();
   });
 
@@ -187,5 +218,21 @@ describe("MetaEventPlayersPage", () => {
     );
 
     expect(captured.released).toEqual([{ id: "p8", field: "cards" }]);
+  });
+
+  it("states where the event is and what its results are in", () => {
+    render(<MetaEventPlayersPage eventId="event-1" />);
+
+    expect(screen.getByText("Published")).toBeInTheDocument();
+    expect(screen.getByText("Final")).toBeInTheDocument();
+    expect(screen.getByText("Standard")).toBeInTheDocument();
+  });
+
+  it("holds the sources and field values on the page, and cross-source only with two sources", () => {
+    render(<MetaEventPlayersPage eventId="event-1" />);
+
+    expect(screen.getByRole("region", { name: "Sources" })).toHaveTextContent("Source states");
+    expect(screen.getByRole("region", { name: "Field values" })).toBeInTheDocument();
+    expect(screen.queryByText("Cross-source panel")).not.toBeInTheDocument();
   });
 });

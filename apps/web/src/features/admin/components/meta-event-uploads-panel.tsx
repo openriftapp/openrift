@@ -42,7 +42,7 @@ function MoveTargets({ eventOverlayId }: { eventOverlayId: string }) {
   if (data.suggestions.length === 0) {
     return (
       <p className="text-muted-foreground">
-        No other archived event within {data.windowDays} days looks like this upload.
+        No other published event within {data.windowDays} days looks like this upload.
       </p>
     );
   }
@@ -77,7 +77,7 @@ function UploadCard({ upload }: { upload: MetaUploadSummary }) {
   const [moveOpen, setMoveOpen] = useState(false);
   const revert = useRevertMetaUpload();
   const provider = sourceProviderDisplay(upload.provider);
-  const summary = `${upload.acceptedPlayers} applied, ${upload.pendingPlayers} still in the queue, ${upload.mintedPlayers} standings ${pluralize(upload.mintedPlayers, "row")} it minted.`;
+  const summary = `${upload.acceptedPlayers} applied, ${upload.pendingPlayers} waiting in Review, ${upload.mintedPlayers} standings ${pluralize(upload.mintedPlayers, "row")} added by it.`;
 
   async function handleRevert(): Promise<void> {
     const result = await revert.mutateAsync({
@@ -106,7 +106,7 @@ function UploadCard({ upload }: { upload: MetaUploadSummary }) {
 
       <ConfirmActionButton
         title={`Revert the ${provider.label} upload?`}
-        description="Every overlay this file wrote is rejected and the event is promoted again, which gives back the fields it claimed and removes the standings rows it minted. Nothing is deleted, so the file can be corrected and accepted again."
+        description="Every change this file made is rejected: the fields it set go back to the sources and the standings rows it added are removed. The file can be corrected and uploaded again."
         confirmLabel="Revert"
         onConfirm={handleRevert}
       >

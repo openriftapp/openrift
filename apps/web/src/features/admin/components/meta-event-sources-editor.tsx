@@ -8,6 +8,7 @@ import {
   useCreateMetaEventSource,
   useDeleteMetaEventSource,
 } from "@/features/admin/hooks/use-admin-meta";
+import { sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
 
 // No provider field: a citation is keyed by (provider, external_id) and owned by its candidate's link.
 export function MetaEventSourcesEditor({ eventId }: { eventId: string }) {
@@ -23,8 +24,8 @@ export function MetaEventSourcesEditor({ eventId }: { eventId: string }) {
       isPending={isPending}
       description={
         <>
-          Every source the event page credits. Linking a candidate writes its provider&apos;s link;
-          add the ones nothing uploaded.
+          Every source the public event page credits. Mirrored sources are linked when the event is
+          published. Add the others here.
         </>
       }
       emptyText="No source links yet, so the event page shows no source line."
@@ -37,13 +38,11 @@ export function MetaEventSourcesEditor({ eventId }: { eventId: string }) {
         citation.provider === null ? null : (
           <Badge variant="neutral">
             <LinkIcon className="size-3" />
-            {citation.provider}
+            {sourceProviderDisplay(citation.provider).label}
           </Badge>
         )
       }
-      lockedReason={(citation) =>
-        citation.provider === null ? null : "Unlink the source to remove"
-      }
+      lockedReason={(citation) => (citation.provider === null ? null : "Mirrored source")}
     />
   );
 }

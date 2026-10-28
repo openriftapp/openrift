@@ -1,7 +1,7 @@
 import { UploadIcon } from "lucide-react";
 import { useState } from "react";
 
-import { PageDescription, PageTopBarButton } from "@/components/layout/page-top-bar";
+import { PageTopBarButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -50,7 +50,7 @@ export function MetaOverlaysPage() {
                 setIgnoredOpen(true);
               }}
             >
-              Dismissed keys
+              Ignored players
             </PageTopBarButton>
             <PageTopBarButton
               onClick={() => {
@@ -58,19 +58,18 @@ export function MetaOverlaysPage() {
               }}
             >
               <UploadIcon />
-              Upload
+              Upload a file
             </PageTopBarButton>
           </>
         }
       />
-      <PageDescription>
-        Corrections and decklists that sources and contributors have proposed, grouped by the event
-        they land on. Accepting one re-promotes its event, so the patch lands and everything else
-        stays as the sources published it.
-      </PageDescription>
-
       {total === 0 ? (
-        <p className="text-muted-foreground">Nothing waiting.</p>
+        <div className="py-10 text-center">
+          <p className="font-medium">Nothing waiting</p>
+          <p className="text-muted-foreground text-sm">
+            Uploads and contributor corrections land here.
+          </p>
+        </div>
       ) : (
         <>
           <ToggleGroup
@@ -97,14 +96,27 @@ export function MetaOverlaysPage() {
           </ToggleGroup>
           {corrections.data?.hasMore === true && (
             <p className="text-muted-foreground text-sm">
-              Only the oldest corrections are shown. Close some out and the rest appear.
+              Showing the 200 oldest contributor corrections.
             </p>
           )}
-          <div className="space-y-3">
-            {shown.map((group) => (
-              <MetaReviewEventGroup key={group.key} group={group} />
+          {[
+            { label: "From contributors", groups: shown.filter((group) => group.fromContributor) },
+            {
+              label: "From sources and uploads, oldest first",
+              groups: shown.filter((group) => !group.fromContributor),
+            },
+          ]
+            .filter((section) => section.groups.length > 0)
+            .map((section) => (
+              <section key={section.label} aria-label={section.label} className="space-y-3">
+                <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                  {section.label}
+                </h2>
+                {section.groups.map((group) => (
+                  <MetaReviewEventGroup key={group.key} group={group} />
+                ))}
+              </section>
             ))}
-          </div>
         </>
       )}
 

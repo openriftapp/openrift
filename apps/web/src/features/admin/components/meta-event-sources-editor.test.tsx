@@ -67,7 +67,7 @@ describe("MetaEventSourcesEditor", () => {
     captured.sources = [providerSource];
     render(<MetaEventSourcesEditor eventId="event-1" />);
     const row = screen.getByRole("listitem");
-    expect(within(row).getByText("Unlink the source to remove")).toBeInTheDocument();
+    expect(within(row).getByText("Mirrored source")).toBeInTheDocument();
   });
 
   it("deletes a hand-entered citation", async () => {

@@ -1,6 +1,7 @@
-import { formatRelativeTime } from "@openrift/shared/format-date";
+import { formatDay } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
 import type { MetaOverlayQueueRow } from "@openrift/shared/types/api/meta";
+import type { MetaSubmissionReason } from "@openrift/shared/types/enums";
 import { CheckIcon, LinkIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -8,6 +9,15 @@ import { toast } from "sonner";
 import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogCancel,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
@@ -18,12 +28,18 @@ import {
   SubmissionLedger,
 } from "@/features/admin/components/meta-review-overlay-detail";
 import { rankLabel } from "@/features/admin/components/meta-review-shared";
+import { SubmissionMessageFields } from "@/features/admin/components/submission-message-fields";
 import {
   useAcceptMetaPlayerOverlay,
   useRejectMetaOverlay,
 } from "@/features/admin/hooks/use-admin-meta-overlays";
 import { acceptClaimMask } from "@/features/meta/lib/meta-review-queue";
 import { sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
+import {
+  metaSubmissionReasonLabels,
+  metaSubmissionReasonSentences,
+  metaSubmissionReasonsFor,
+} from "@/features/meta/lib/meta-submission-copy";
 
 export const PLAYER_ROW_COLUMNS = 6;
 
@@ -56,9 +72,8 @@ function StandingsCell({ overlay }: { overlay: MetaOverlayQueueRow }) {
     case "exact": {
       return (
         <>
-          <Badge variant="success">exact match</Badge>
+          <Badge variant="success">Matches</Badge>
           {target}
-          <span className="text-muted-foreground text-xs">links on accept</span>
         </>
       );
     }
@@ -66,32 +81,31 @@ function StandingsCell({ overlay }: { overlay: MetaOverlayQueueRow }) {
       return (
         <>
           <Badge variant="warning">
-            {match.candidateCount} {pluralize(match.candidateCount, "candidate")}
+            {match.candidateCount} possible {pluralize(match.candidateCount, "row")}
           </Badge>
-          <span className="text-muted-foreground text-xs">pick one below</span>
+          <span className="text-muted-foreground text-xs">Pick one before applying</span>
         </>
       );
     }
     case "none": {
-      return (
-        <>
-          <Badge variant="warning">no row</Badge>
-          <span className="text-muted-foreground text-xs">accepting files a new one</span>
-        </>
-      );
+      return <Badge variant="warning">No matching row</Badge>;
     }
     case "unscored": {
-      return <Badge variant="neutral">accept the event first</Badge>;
+      return <Badge variant="neutral">Publish the event first</Badge>;
     }
   }
 }
 
 function CardsCell({ overlay }: { overlay: MetaOverlayQueueRow }) {
   if (overlay.unresolvedNames.length > 0) {
-    return <Badge variant="destructive">{overlay.unresolvedNames.length} unmatched</Badge>;
+    return (
+      <Badge variant="destructive">
+        {overlay.unresolvedNames.length} unknown {pluralize(overlay.unresolvedNames.length, "card")}
+      </Badge>
+    );
   }
   if (overlay.cards.length === 0) {
-    return <span className="text-muted-foreground">no decklist</span>;
+    return <span className="text-muted-foreground">No decklist</span>;
   }
   return (
     <span className="flex items-center gap-1.5">
@@ -101,11 +115,61 @@ function CardsCell({ overlay }: { overlay: MetaOverlayQueueRow }) {
   );
 }
 
+function RejectContributionDialog({
+  name,
+  pending,
+  onCancel,
+  onConfirm,
+}: {
+  name: string;
+  pending: boolean;
+  onCancel: () => void;
+  onConfirm: (reason: { reason: MetaSubmissionReason | null; note: string }) => void;
+}) {
+  const [reason, setReason] = useState<MetaSubmissionReason | null>("unverified");
+  const [note, setNote] = useState("");
+  return (
+    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Reject {name}?</DialogTitle>
+          <DialogDescription>
+            The contributor sees this outcome on their submission.
+          </DialogDescription>
+        </DialogHeader>
+        <SubmissionMessageFields
+          idPrefix="meta-review-reject"
+          reasonOrder={metaSubmissionReasonsFor("new_list")}
+          reasonLabels={metaSubmissionReasonLabels}
+          reasonSentences={metaSubmissionReasonSentences()}
+          reason={reason}
+          note={note}
+          onReasonChange={setReason}
+          onNoteChange={setNote}
+          allowNoReason
+        />
+        <DialogFooter>
+          <DialogCancel />
+          <Button
+            variant="destructive"
+            pending={pending}
+            disabled={reason === null && note.trim() === ""}
+            onClick={() => onConfirm({ reason, note: note.trim() })}
+          >
+            Reject
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function MetaReviewPlayerRow({ overlay }: { overlay: MetaOverlayQueueRow }) {
   const accept = useAcceptMetaPlayerOverlay();
   const reject = useRejectMetaOverlay();
   const [expanded, setExpanded] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
   // Claims the reviewer unticked in the change list. Empty means the accept
   // sends no mask at all and takes the overlay whole.
   const [dropped, setDropped] = useState<ReadonlySet<string>>(new Set());
@@ -145,18 +209,33 @@ export function MetaReviewPlayerRow({ overlay }: { overlay: MetaOverlayQueueRow 
     void runAccept();
   }
 
-  async function decline(): Promise<void> {
+  async function decline(reason?: { reason: MetaSubmissionReason | null; note: string }) {
+    const input = {
+      kind: "player" as const,
+      id: overlay.id,
+      reason: reason?.reason ?? null,
+      note: reason === undefined || reason.note === "" ? null : reason.note,
+    };
     try {
-      await reject.mutateAsync({ kind: "player", id: overlay.id });
+      await reject.mutateAsync(input);
     } catch {
       // Reported by the global mutation error toast.
       return;
     }
-    toast.success("Rejected.");
+    setRejecting(false);
+    toast.success("Rejected");
   }
 
   return (
     <>
+      {rejecting && (
+        <RejectContributionDialog
+          name={name}
+          pending={reject.isPending}
+          onCancel={() => setRejecting(false)}
+          onConfirm={(picked) => void decline(picked)}
+        />
+      )}
       <TableRow data-state={expanded ? "open" : undefined}>
         <TableCell className="text-muted-foreground w-12 tabular-nums">
           {rankLabel(overlay.rank, overlay.rankIsTier)}
@@ -184,33 +263,37 @@ export function MetaReviewPlayerRow({ overlay }: { overlay: MetaOverlayQueueRow 
         <TableCell className="w-32">
           <CardsCell overlay={overlay} />
         </TableCell>
-        <TableCell className="text-muted-foreground w-16">
-          {formatRelativeTime(new Date(overlay.createdAt))}
+        <TableCell className="text-muted-foreground w-28 tabular-nums">
+          {formatDay(overlay.createdAt)}
         </TableCell>
         <TableCell className="w-56">
           <span className="flex items-center justify-end gap-1.5">
             {state === "unscored" ? null : mints ? (
               <ConfirmActionButton
-                title="File a new standings row?"
-                description={`Nothing links this entry to a standings row, so accepting files a new one. The row the source published stays as it is, and the event ends up with two entries for this finish.${unmatched}`}
-                confirmLabel="File a new row"
+                title="Add as a new standings row?"
+                description={`No standings row matches this entry. If the source already lists this finish, the event ends up with two entries for it.${unmatched}`}
+                confirmLabel="Add as a new row"
                 onConfirm={runAccept}
                 disabled={busy || keepsNothing}
                 trigger={<Button variant="outline" size="sm" />}
               >
                 <CheckIcon />
-                Accept as new row
+                Add as a new row
               </ConfirmActionButton>
             ) : (
               <Button size="sm" onClick={onAccept} disabled={busy || keepsNothing}>
                 <CheckIcon />
-                {confirming ? "Accept without a deck" : "Accept"}
+                {confirming ? "Apply without a deck" : "Apply"}
               </Button>
             )}
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => {
+                if (overlay.provider === null) {
+                  setRejecting(true);
+                  return;
+                }
                 void decline();
               }}
               disabled={busy}
@@ -258,8 +341,8 @@ export function MetaReviewPlayerRow({ overlay }: { overlay: MetaOverlayQueueRow 
                   {kept !== null && (
                     <p className="text-muted-foreground text-sm">
                       {keepsNothing
-                        ? "Nothing left to claim. Reject the row instead."
-                        : `Unticked fields stay with the sources. Accepting claims ${String(kept.length)} ${pluralize(kept.length, "field")}.`}
+                        ? "Nothing left to apply. Reject the row instead."
+                        : `Unticked fields stay as the sources give them. Applying sets ${String(kept.length)} ${pluralize(kept.length, "field")}.`}
                     </p>
                   )}
                 </div>

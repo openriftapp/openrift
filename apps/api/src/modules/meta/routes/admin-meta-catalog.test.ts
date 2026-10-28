@@ -94,13 +94,14 @@ const mockUvsgamesEvents = {
 
 const mockPlayloltcgEvents = {
   list: vi.fn(),
+  bucketCounts: vi.fn(),
   triageCounts: vi.fn(),
   byKey: vi.fn(),
   syncOverview: vi.fn(),
   passingNoResultsKeys: vi.fn(),
 };
 
-const mockMeta = { archiveOverview: vi.fn(), deleteEvent: vi.fn() };
+const mockMeta = { archiveOverview: vi.fn(), deleteEvent: vi.fn(), eventById: vi.fn() };
 const mockMetaOverlays = { ignoreEvent: vi.fn(), ignoreEvents: vi.fn(), unignoreEvent: vi.fn() };
 
 const mockDeckFormats = { getBySlug: vi.fn() };
@@ -122,6 +123,8 @@ app.use("*", async (c, next) => {
     deckFormats: mockDeckFormats,
     adminEvents: mockAdminEvents,
   } as never);
+  c.set("transact", ((fn: (repos: unknown) => unknown) =>
+    fn({ meta: mockMeta, metaOverlays: mockMetaOverlays })) as never);
   c.set("config", {
     metaSync: { baseUrl: "https://example.invalid", playloltcgBaseUrl: "https://example.invalid" },
   } as never);
@@ -132,6 +135,8 @@ app.use("*", async (c, next) => {
 registerRouterForTest(app, adminMetaCatalogRouter);
 
 const BASE = "/api/admin/v1/meta/catalogue";
+
+const RULE_16 = { autoAcceptMinPlayers: 16, autoAcceptOfficial: false, autoAcceptNotable: false };
 
 async function post(path: string, body?: unknown): Promise<Response> {
   return await app.request(`${BASE}${path}`, {
@@ -567,52 +572,83 @@ describe("the archive's own passes", () => {
   });
 });
 
-describe("POST /catalogue/remove", () => {
-  it("deletes the live event, dismisses the row and files the audit row", async () => {
-    mockUvsgamesEvents.byKey.mockResolvedValue({
-      externalId: "31337",
-      name: "Summoner Skirmish",
-      metaEventId: "live-1",
-      metaEventSlug: "summoner-skirmish",
-    });
+describe("bulk mirror actions", () => {
+  const RULE = { autoAcceptMinPlayers: 16, autoAcceptOfficial: false, autoAcceptNotable: false };
 
-    const res = await post("/remove", { externalId: "31337" });
+  function mirrorRow(key: string, triage: string, metaEventId: string | null = null) {
+    return { activityShopId: Number(key), name: `Event ${key}`, triage, metaEventId };
+  }
 
-    expect(res.status).toBe(204);
-    expect(mockMeta.deleteEvent).toHaveBeenCalledWith("live-1");
-    expect(mockMetaOverlays.ignoreEvent).toHaveBeenCalledWith("uvsgames", "31337");
-    expect(mockAdminEvents.insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: "meta-catalog.remove",
-        entityId: "uvsgames:31337",
-        oldValues: { metaEventId: "live-1", slug: "summoner-skirmish" },
-      }),
+  beforeEach(() => {
+    mockPlayloltcgEvents.byKey.mockImplementation((id: number) =>
+      Promise.resolve(
+        {
+          101: mirrorRow("101", "new"),
+          102: mirrorRow("102", "accepted", "live-102"),
+          103: mirrorRow("103", "dismissed"),
+          104: mirrorRow("104", "new"),
+        }[id],
+      ),
     );
   });
 
-  it("still dismisses a row whose live event is already gone", async () => {
-    mockUvsgamesEvents.byKey.mockResolvedValue({
-      externalId: "31337",
-      name: "Summoner Skirmish",
-      metaEventId: null,
-      metaEventSlug: null,
+  it("rejects only the undecided rows of a selection", async () => {
+    mockMetaOverlays.ignoreEvents.mockResolvedValue(2);
+
+    const res = await post("/bulk/reject", {
+      source: "playloltcg",
+      keys: ["101", "102", "103", "104", "999"],
     });
 
-    const res = await post("/remove", { externalId: "31337" });
-
-    expect(res.status).toBe(204);
-    expect(mockMeta.deleteEvent).not.toHaveBeenCalled();
-    expect(mockMetaOverlays.ignoreEvent).toHaveBeenCalledWith("uvsgames", "31337");
+    expect(await readJson(res)).toEqual({ rejected: ["101", "104"] });
+    expect(mockMetaOverlays.ignoreEvents).toHaveBeenCalledWith("playloltcg", ["101", "104"]);
+    expect(mockAdminEvents.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "meta-catalog.dismiss-bulk", entityId: "playloltcg" }),
+    );
   });
 
-  it("404s a key the mirror does not carry", async () => {
-    mockUvsgamesEvents.byKey.mockResolvedValue(undefined);
+  it("publishes the undecided rows and skips the rest", async () => {
+    acceptPlayloltcgEvent.mockResolvedValue({ metaEventId: "live", slug: "live", created: true });
 
-    const res = await post("/remove", { externalId: "31337" });
+    const res = await post("/bulk/publish", { source: "playloltcg", keys: ["101", "102", "104"] });
 
-    expect(res.status).toBe(404);
-    expect(mockMeta.deleteEvent).not.toHaveBeenCalled();
+    expect(await readJson(res)).toEqual({ published: ["101", "104"], skipped: 1 });
+    expect(acceptPlayloltcgEvent).toHaveBeenCalledTimes(2);
+  });
+
+  it("restores every rejected key it was given", async () => {
+    mockMetaOverlays.unignoreEvent.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+
+    const res = await post("/bulk/restore", { source: "topdeck", keys: ["a", "b"] });
+
+    expect(await readJson(res)).toEqual({ restored: 1 });
+    expect(mockMetaOverlays.unignoreEvent).toHaveBeenCalledWith("topdeck", "a");
+  });
+
+  it("unpublishes an event without standings and keeps one that has them", async () => {
+    mockPlayloltcgEvents.byKey.mockImplementation((id: number) =>
+      Promise.resolve(mirrorRow(String(id), "accepted", `live-${id}`)),
+    );
+    mockMeta.eventById.mockImplementation((id: string) =>
+      Promise.resolve({ id, playerRowCount: id === "live-201" ? 0 : 12 }),
+    );
+
+    const res = await post("/bulk/unpublish", { source: "playloltcg", keys: ["201", "202"] });
+
+    expect(await readJson(res)).toEqual({ unpublished: 1, kept: 1 });
+    expect(mockMeta.deleteEvent).toHaveBeenCalledWith("live-201");
+    expect(mockMeta.deleteEvent).not.toHaveBeenCalledWith("live-202");
     expect(mockMetaOverlays.ignoreEvent).not.toHaveBeenCalled();
+  });
+
+  it("passes the stored rule to the reject-all sweep", async () => {
+    mockUvsgamesEvents.settings.mockResolvedValue(RULE);
+    mockPlayloltcgEvents.passingNoResultsKeys.mockResolvedValue([]);
+    mockMetaOverlays.ignoreEvents.mockResolvedValue(0);
+
+    await post("/sync/reject-passing-no-results", { source: "playloltcg" });
+
+    expect(mockPlayloltcgEvents.passingNoResultsKeys).toHaveBeenCalledWith(RULE);
   });
 });
 
@@ -626,7 +662,9 @@ describe("POST /catalogue/sync/reject-passing-no-results", () => {
 
     expect(res.status).toBe(200);
     expect(await readJson(res)).toEqual({ rejected: 2 });
-    expect(mockPlayloltcgEvents.passingNoResultsKeys).toHaveBeenCalledWith(16);
+    expect(mockPlayloltcgEvents.passingNoResultsKeys).toHaveBeenCalledWith(
+      expect.objectContaining({ autoAcceptMinPlayers: 16 }),
+    );
     expect(mockMetaOverlays.ignoreEvents).toHaveBeenCalledWith("playloltcg", ["101", "102"]);
     expect(mockAdminEvents.insert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -635,16 +673,6 @@ describe("POST /catalogue/sync/reject-passing-no-results", () => {
         newValues: { rejected: 2, minPlayers: 16 },
       }),
     );
-  });
-
-  it("rejects nothing while auto-publish is off", async () => {
-    mockUvsgamesEvents.settings.mockResolvedValue({ autoAcceptMinPlayers: null });
-    mockMetaOverlays.ignoreEvents.mockClear();
-
-    const res = await post("/sync/reject-passing-no-results", { source: "playloltcg" });
-
-    expect(await readJson(res)).toEqual({ rejected: 0 });
-    expect(mockMetaOverlays.ignoreEvents).not.toHaveBeenCalled();
   });
 });
 
@@ -699,7 +727,9 @@ describe("GET /catalogue/sync", () => {
     const body = await readJson(res);
     expect(body.catalog.lastSeenAt).toBe("2026-08-20T00:00:00.000Z");
     expect(body.archive).toEqual(ARCHIVE);
-    expect(mockUvsgamesEvents.syncOverview).toHaveBeenCalledWith(16);
+    expect(mockUvsgamesEvents.syncOverview).toHaveBeenCalledWith(
+      expect.objectContaining({ autoAcceptMinPlayers: 16 }),
+    );
     expect(mockPlayloltcgEvents.syncOverview).not.toHaveBeenCalled();
     expect(mockMeta.archiveOverview).toHaveBeenCalledWith("uvsgames");
   });
@@ -801,7 +831,8 @@ describe("playloltcg catalogue", () => {
 
   it("pages the mirror and presents each row with its source URL", async () => {
     mockPlayloltcgEvents.list.mockResolvedValue({ rows: [playloltcgRow()], total: 1 });
-    mockPlayloltcgEvents.triageCounts.mockResolvedValue({ new: 1, accepted: 0, dismissed: 0 });
+    mockPlayloltcgEvents.bucketCounts.mockResolvedValue(null);
+    mockUvsgamesEvents.settings.mockResolvedValue({ autoAcceptMinPlayers: 16 });
 
     const res = await app.request(`${BASE}/playloltcg/events?page=2&limit=10&triage=new`);
 
@@ -887,7 +918,8 @@ describe("playloltcg catalogue", () => {
 
   it("carries every filter and the order down to the mirror query", async () => {
     mockPlayloltcgEvents.list.mockResolvedValue({ rows: [], total: 0 });
-    mockPlayloltcgEvents.triageCounts.mockResolvedValue({ new: 0, accepted: 0, dismissed: 0 });
+    mockPlayloltcgEvents.bucketCounts.mockResolvedValue(null);
+    mockUvsgamesEvents.settings.mockResolvedValue(RULE_16);
 
     const query = [
       "search=nexus",
@@ -896,7 +928,7 @@ describe("playloltcg catalogue", () => {
       "dateFrom=2026-08-01",
       "dateTo=2026-08-31",
       "missing=true",
-      "awaitingResults=true",
+      "bucket=collecting",
       "sort=playerCount",
       "direction=asc",
     ].join("&");
@@ -912,7 +944,7 @@ describe("playloltcg catalogue", () => {
         dateFrom: "2026-08-01",
         dateTo: "2026-08-31",
         missing: true,
-        awaitingResults: true,
+        bucket: { name: "collecting", rule: RULE_16 },
       },
       expect.anything(),
       { sort: "playerCount", direction: "asc" },

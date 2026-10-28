@@ -1,8 +1,6 @@
 import { formatDay } from "@openrift/shared/format-date";
 import { Undo2Icon } from "lucide-react";
-import type { ReactNode } from "react";
 
-import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,139 +12,69 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { RowList, RowListItem } from "@/components/ui/row-list";
-import type {
-  IgnoredMetaSourceEvent,
-  IgnoredMetaSourcePlayer,
-} from "@/features/admin/hooks/use-admin-meta-overlays";
+import type { IgnoredMetaSourcePlayer } from "@/features/admin/hooks/use-admin-meta-overlays";
 import {
   useAdminMetaIgnoredSources,
-  useUnignoreMetaSourceEvent,
   useUnignoreMetaSourcePlayer,
 } from "@/features/admin/hooks/use-admin-meta-overlays";
+import { sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
 
-interface IgnoredRowProps {
-  eventExternalId?: string;
-  externalId: string;
-  provider: string;
-  createdAt: string;
-  onUnignore: () => void;
-  pending: boolean;
-}
-
-function IgnoredRow({
-  eventExternalId,
-  externalId,
-  provider,
-  createdAt,
-  onUnignore,
-  pending,
-}: IgnoredRowProps) {
-  return (
-    <RowListItem className="justify-between">
-      <div className="flex min-w-0 items-center gap-2">
-        <Badge variant="outline">{provider}</Badge>
-        {eventExternalId !== undefined && (
-          <span className="text-muted-foreground truncate font-mono text-sm">
-            {eventExternalId} /
-          </span>
-        )}
-        <span className="truncate font-mono text-sm">{externalId}</span>
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <span className="text-muted-foreground text-sm">{formatDay(createdAt)}</span>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="-mr-2.5"
-          disabled={pending}
-          onClick={onUnignore}
-        >
-          <Undo2Icon />
-          Unignore
-        </Button>
-      </div>
-    </RowListItem>
-  );
-}
-
-interface IgnoredListProps {
-  title: string;
-  emptyText: string;
-  count: number;
-  children: ReactNode;
-}
-
-function IgnoredList({ title, emptyText, count, children }: IgnoredListProps) {
-  return (
-    <section className="space-y-2">
-      <Heading level={3}>{title}</Heading>
-      {count === 0 && <p className="text-muted-foreground text-sm">{emptyText}</p>}
-      <RowList>{children}</RowList>
-    </section>
-  );
-}
-
-/**
- * Ignoring leaves the mirrored row in place; unignoring restores it immediately, without a re-crawl.
- */
 export function MetaIgnoredSourcesDialog({ onClose }: { onClose: () => void }) {
   const { data, isPending } = useAdminMetaIgnoredSources();
-  const unignoreEvent = useUnignoreMetaSourceEvent();
   const unignorePlayer = useUnignoreMetaSourcePlayer();
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Dismissed source keys</DialogTitle>
+          <DialogTitle>Ignored players</DialogTitle>
           <DialogDescription>
-            These keys are skipped by every crawl and every upload. Unignoring one brings it back as
-            it was. A player key covers only its listed event.
+            An ignored player is left out of one event on every refresh and upload.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[60vh] space-y-6 overflow-y-auto">
+        <div className="max-h-[60vh] overflow-y-auto">
           {isPending && <p className="text-muted-foreground text-sm">Loading…</p>}
-          {data && (
-            <>
-              <IgnoredList title="Events" emptyText="No ignored events." count={data.events.length}>
-                {data.events.map((row: IgnoredMetaSourceEvent) => (
-                  <IgnoredRow
-                    key={`${row.provider}\n${row.externalId}`}
-                    provider={row.provider}
-                    externalId={row.externalId}
-                    createdAt={row.createdAt}
-                    pending={unignoreEvent.isPending}
-                    onUnignore={() =>
-                      unignoreEvent.mutate({ provider: row.provider, externalId: row.externalId })
-                    }
-                  />
-                ))}
-              </IgnoredList>
-              <IgnoredList
-                title="Players"
-                emptyText="No ignored players."
-                count={data.players.length}
-              >
-                {data.players.map((row: IgnoredMetaSourcePlayer) => (
-                  <IgnoredRow
-                    key={`${row.provider}\n${row.eventExternalId}\n${row.externalId}`}
-                    provider={row.provider}
-                    eventExternalId={row.eventExternalId}
-                    externalId={row.externalId}
-                    createdAt={row.createdAt}
-                    pending={unignorePlayer.isPending}
-                    onUnignore={() =>
-                      unignorePlayer.mutate({
-                        provider: row.provider,
-                        eventExternalId: row.eventExternalId,
-                        externalId: row.externalId,
-                      })
-                    }
-                  />
-                ))}
-              </IgnoredList>
-            </>
+          {data?.players.length === 0 && (
+            <p className="text-muted-foreground">No player is ignored.</p>
+          )}
+          {data !== undefined && data.players.length > 0 && (
+            <RowList>
+              {data.players.map((row: IgnoredMetaSourcePlayer) => (
+                <RowListItem
+                  key={`${row.provider}\n${row.eventExternalId}\n${row.externalId}`}
+                  className="justify-between"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Badge variant="outline">{sourceProviderDisplay(row.provider).label}</Badge>
+                    <span className="truncate font-mono text-sm">
+                      {row.eventExternalId} / {row.externalId}
+                    </span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-muted-foreground text-sm">
+                      {formatDay(row.createdAt)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="-mr-2.5"
+                      disabled={unignorePlayer.isPending}
+                      onClick={() =>
+                        unignorePlayer.mutate({
+                          provider: row.provider,
+                          eventExternalId: row.eventExternalId,
+                          externalId: row.externalId,
+                        })
+                      }
+                    >
+                      <Undo2Icon />
+                      Restore
+                    </Button>
+                  </div>
+                </RowListItem>
+              ))}
+            </RowList>
           )}
         </div>
 

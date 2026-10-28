@@ -4,7 +4,6 @@ import { META_EVENT_TIERS } from "@openrift/shared/types/enums";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Disclosure } from "@/components/disclosure";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -27,9 +26,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { MetaCrossSourcePanel } from "@/features/admin/components/meta-cross-source-panel";
-import { MetaEventDriftPanel } from "@/features/admin/components/meta-event-drift-panel";
-import { MetaEventSourcesEditor } from "@/features/admin/components/meta-event-sources-editor";
 import { useCreateMetaEvent, useUpdateMetaEvent } from "@/features/admin/hooks/use-admin-meta";
 import { useWriteMetaEventOverlayFields } from "@/features/admin/hooks/use-admin-meta-overlays";
 import type { MetaEventBody, MetaEventDraft } from "@/features/admin/lib/admin-meta-draft";
@@ -62,8 +58,6 @@ export function MetaEventDialog({ event, onClose }: MetaEventDialogProps) {
     event ? metaEventToDraft(event) : { ...EMPTY_META_EVENT_DRAFT, format: formats[0]?.slug ?? "" },
   );
   const [formError, setFormError] = useState("");
-  const [driftOpen, setDriftOpen] = useState(false);
-  const [crossSourceOpen, setCrossSourceOpen] = useState(false);
 
   const isPending = createEvent.isPending || updateEvent.isPending || writeOverlay.isPending;
 
@@ -253,21 +247,6 @@ export function MetaEventDialog({ event, onClose }: MetaEventDialogProps) {
             </Alert>
           )}
         </DialogForm>
-
-        {/* Kept outside the form element: nested there, Enter in a source/drift field would submit the event. */}
-        {event && <MetaEventSourcesEditor eventId={event.id} />}
-
-        {event && (
-          <Disclosure title="Source drift" onOpenChange={setDriftOpen}>
-            <MetaEventDriftPanel metaEventId={event.id} enabled={driftOpen} />
-          </Disclosure>
-        )}
-
-        {event && (
-          <Disclosure title="Cross-source players" onOpenChange={setCrossSourceOpen}>
-            <MetaCrossSourcePanel metaEventId={event.id} enabled={crossSourceOpen} />
-          </Disclosure>
-        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>

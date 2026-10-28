@@ -74,9 +74,25 @@ vi.mock("@/features/admin/hooks/use-admin-meta", async (importOriginal) => ({
   ...(await importOriginal<typeof adminMeta>()),
   useAdminMetaEvents: (params: unknown) => {
     captured.params = params;
-    return { data: { events: captured.events, total: captured.total, page: 1, limit: 50 } };
+    return {
+      data: {
+        events: captured.events,
+        total: captured.total,
+        page: 1,
+        limit: 50,
+        counts: {
+          total: captured.total,
+          notStarted: 0,
+          collecting: 0,
+          final: captured.total,
+          noResults: 0,
+          standingsShort: 0,
+          manual: 0,
+        },
+      },
+    };
   },
-  useDeleteMetaEvent: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useRemoveMetaEvent: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/hooks/use-enums", () => ({
@@ -104,6 +120,7 @@ function event(overrides: Partial<AdminMetaEvent> = {}): AdminMetaEvent {
     location: null,
     playerRowCount: 64,
     deckCount: 12,
+    results: "final",
     sources: [{ id: "src-1", provider: "uvsgames", externalId: "source-1", priority: 0 }],
     ...overrides,
   };
@@ -118,27 +135,27 @@ describe("MetaEventsPage", () => {
     searchStore.seed({});
   });
 
-  it("names each live row's sources, since the link is the citation now", () => {
+  it("names each published event's sources", () => {
     render(<MetaEventsPage />);
 
-    expect(screen.getByText("uvsgames")).toBeInTheDocument();
+    expect(screen.getByText("UVS Games")).toBeInTheDocument();
   });
 
-  it("offers each live row a way out to its public archive page", () => {
+  it("offers each published event a way out to its public page", () => {
     render(<MetaEventsPage />);
     expect(
-      screen.getByLabelText("Open Summoner Skirmish 2026 in the public archive"),
+      screen.getByLabelText("Open Summoner Skirmish 2026 on the public archive"),
     ).toHaveAttribute("href", "/meta/summoner-skirmish-2026");
   });
 
   it("reads the rows held against the field the source reported", () => {
     captured.events = [event({ playerRowCount: 94, playerCount: 128 })];
     render(<MetaEventsPage />);
-    expect(screen.getByText("94").parentElement).toHaveTextContent("94 / 128");
+    expect(screen.getByText("94").parentElement).toHaveTextContent("94 of 128");
   });
 
   it("shows the rows alone when no field size was reported", () => {
-    captured.events = [event({ playerRowCount: 94, playerCount: null })];
+    captured.events = [event({ playerRowCount: 94, playerCount: null, deckCount: 0 })];
     render(<MetaEventsPage />);
     expect(screen.getByText("94").parentElement).toHaveTextContent(/^94$/u);
   });
@@ -153,14 +170,14 @@ describe("MetaEventsPage", () => {
       }),
     ];
     render(<MetaEventsPage />);
-    expect(screen.getByText("uvsgames")).toBeInTheDocument();
+    expect(screen.getByText("UVS Games")).toBeInTheDocument();
     expect(screen.getByText("User submission")).toBeInTheDocument();
   });
 
   it("marks a hand-entered event as having no source at all", () => {
     captured.events = [event({ sources: [] })];
     render(<MetaEventsPage />);
-    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "Entered by hand" })).toBeInTheDocument();
   });
 });
 
@@ -186,7 +203,7 @@ describe("MetaEventsPage filters, as the query they travel to the server in", ()
       liveSource: "playloltcg",
       dateFrom: "2026-01-01",
       dateTo: "2026-12-31",
-      noDecks: true,
+      hasDecks: true,
     });
     render(<MetaEventsPage />);
     expect(captured.params).toMatchObject({
@@ -196,7 +213,7 @@ describe("MetaEventsPage filters, as the query they travel to the server in", ()
       source: "playloltcg",
       dateFrom: "2026-01-01",
       dateTo: "2026-12-31",
-      noDecks: true,
+      hasDecks: true,
     });
   });
 
@@ -205,19 +222,19 @@ describe("MetaEventsPage filters, as the query they travel to the server in", ()
     searchStore.seed({ page: 4 });
     render(<MetaEventsPage />);
 
-    await user.click(screen.getByRole("switch", { name: "No decklists" }));
+    await user.click(screen.getByRole("switch", { name: "Has decklists" }));
 
-    expect(searchStore.get()).toMatchObject({ noDecks: true, page: undefined });
+    expect(searchStore.get()).toMatchObject({ hasDecks: true, page: undefined });
   });
 
   it("leaves an off switch out of the URL rather than spelling it false", async () => {
     const user = userEvent.setup();
-    searchStore.seed({ noDecks: true });
+    searchStore.seed({ hasDecks: true });
     render(<MetaEventsPage />);
 
-    await user.click(screen.getByRole("switch", { name: "No decklists" }));
+    await user.click(screen.getByRole("switch", { name: "Has decklists" }));
 
-    expect(searchStore.get().noDecks).toBeUndefined();
+    expect(searchStore.get().hasDecks).toBeUndefined();
   });
 
   it("reports a header click to the endpoint instead of reordering the page", async () => {
@@ -234,7 +251,7 @@ describe("MetaEventsPage filters, as the query they travel to the server in", ()
     searchStore.seed({ liveSort: "name", liveDir: "desc" });
     render(<MetaEventsPage />);
 
-    await user.click(screen.getByRole("button", { name: "Name" }));
+    await user.click(screen.getByRole("button", { name: "Event" }));
 
     expect(searchStore.get().liveSort).toBeUndefined();
     expect(searchStore.get().liveDir).toBeUndefined();

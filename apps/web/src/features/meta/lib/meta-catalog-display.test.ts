@@ -1,8 +1,4 @@
-import type {
-  MetaSyncStatus,
-  PlayloltcgCatalogRow,
-  TopdeckCatalogRow,
-} from "@openrift/shared/contracts/admin/meta-catalog";
+import type { MetaSyncStatus } from "@openrift/shared/contracts/admin/meta-catalog";
 import type { MetaOverlayQueueRow } from "@openrift/shared/types/api/meta";
 import { describe, expect, it } from "vitest";
 
@@ -11,19 +7,16 @@ import {
   catalogDayBoundary,
   catalogStatusDisplay,
   catalogTriageDisplay,
-  catalogVenueText,
   metaSyncAlerts,
+  runErrorsMessage,
   overlayCountsForProvider,
   PLAYLOLTCG_STATUS_CHOICES,
-  playloltcgCoverageRow,
   playloltcgStatusDisplay,
   PLAYRIFTBOUND_FORMAT_CHOICES,
-  playriftboundRoundsText,
   playriftboundTypeLabel,
   runningRunId,
   syncTriggerAnnouncement,
   TOPDECK_FORMAT_CHOICES,
-  topdeckCoverageRow,
 } from "./meta-catalog-display";
 
 describe("catalogStatusDisplay", () => {
@@ -61,103 +54,6 @@ describe("playloltcgStatusDisplay", () => {
   });
 });
 
-describe("playloltcgCoverageRow", () => {
-  function catalogRow(overrides: Partial<PlayloltcgCatalogRow> = {}): PlayloltcgCatalogRow {
-    return {
-      activityShopId: 4021,
-      name: "Summoner Skirmish",
-      shopName: "Piltover Games",
-      city: "Zaun",
-      status: 5,
-      battleMode: "1v1",
-      playerCount: 32,
-      startAt: "2026-08-15",
-      triage: "accepted",
-      metaEventId: "event-1",
-      metaEventSlug: "summoner-skirmish",
-      fetchedAt: "2026-08-16T00:00:00.000Z",
-      missingSince: null,
-      nextCheckAt: "2026-08-17T00:00:00.000Z",
-      stagedPlayerCount: 32,
-      stagedLegendCount: 30,
-      stagedDeckCount: 8,
-      sourceUrl: "https://example.test/activity/4021",
-      ...overrides,
-    };
-  }
-
-  it("maps the lifecycle onto the three statuses the chips speak", () => {
-    expect(playloltcgCoverageRow(catalogRow({ status: 2 })).displayStatus).toBe("upcoming");
-    expect(playloltcgCoverageRow(catalogRow({ status: 4 })).displayStatus).toBe("inProgress");
-    expect(playloltcgCoverageRow(catalogRow({ status: 5 })).displayStatus).toBe("complete");
-  });
-
-  it("treats a step it does not know as not yet run, rather than as finished", () => {
-    expect(playloltcgCoverageRow(catalogRow({ status: null })).displayStatus).toBe("upcoming");
-    expect(playloltcgCoverageRow(catalogRow({ status: 9 })).displayStatus).toBe("upcoming");
-  });
-
-  it("reads the start as an instant, and keeps a missing day missing", () => {
-    expect(playloltcgCoverageRow(catalogRow()).startAt).toBe("2026-08-15T00:00:00.000Z");
-    expect(playloltcgCoverageRow(catalogRow({ startAt: null })).startAt).toBeNull();
-  });
-
-  it("says nothing about published decklists, which the source never publishes", () => {
-    expect(playloltcgCoverageRow(catalogRow()).decklistStatus).toBeNull();
-  });
-});
-
-describe("topdeckCoverageRow", () => {
-  function catalogRow(overrides: Partial<TopdeckCatalogRow> = {}): TopdeckCatalogRow {
-    return {
-      tid: "summoner-skirmish",
-      name: "Summoner Skirmish",
-      format: "Constructed",
-      city: "Kissimmee",
-      country: "US",
-      playerCount: 32,
-      topCut: 8,
-      isTeamEvent: false,
-      startAt: "2026-08-15T18:00:00.000Z",
-      triage: "accepted",
-      metaEventId: "event-1",
-      metaEventSlug: "summoner-skirmish",
-      fetchedAt: "2026-08-16T00:00:00.000Z",
-      missingSince: null,
-      stagedPlayerCount: 32,
-      stagedLegendCount: 30,
-      stagedDeckCount: 8,
-      rivalProvider: null,
-      sourceUrl: "https://topdeck.gg/event/summoner-skirmish",
-      ...overrides,
-    };
-  }
-
-  it("calls every row complete, since the search answers about finished tournaments", () => {
-    expect(topdeckCoverageRow(catalogRow()).displayStatus).toBe("complete");
-  });
-
-  it("says nothing about a next visit, since this source has no recheck ladder", () => {
-    expect(topdeckCoverageRow(catalogRow()).nextCheckAt).toBeNull();
-  });
-
-  it("says nothing about published decklists, which the source never publishes", () => {
-    expect(topdeckCoverageRow(catalogRow()).decklistStatus).toBeNull();
-  });
-
-  it("passes the start through, since the source already publishes an instant", () => {
-    expect(topdeckCoverageRow(catalogRow()).startAt).toBe("2026-08-15T18:00:00.000Z");
-  });
-
-  it("carries the staged counts the chips read", () => {
-    expect(topdeckCoverageRow(catalogRow())).toMatchObject({
-      stagedPlayerCount: 32,
-      stagedLegendCount: 30,
-      stagedDeckCount: 8,
-    });
-  });
-});
-
 describe("TOPDECK_FORMAT_CHOICES", () => {
   it("offers the source's own format words, since it matches on them", () => {
     expect(TOPDECK_FORMAT_CHOICES.map((choice) => choice.value)).toEqual([
@@ -187,49 +83,10 @@ describe("playriftbound vocabulary", () => {
   });
 });
 
-describe("playriftboundRoundsText", () => {
-  it("says nothing before the first fetch or the first round", () => {
-    expect(
-      playriftboundRoundsText({ roundCount: 4, roundsPlayed: null, roundsFinalized: null }),
-    ).toBeNull();
-    expect(
-      playriftboundRoundsText({ roundCount: 4, roundsPlayed: 0, roundsFinalized: 0 }),
-    ).toBeNull();
-  });
-
-  it("counts rounds against the plan and names the open ones", () => {
-    expect(playriftboundRoundsText({ roundCount: 4, roundsPlayed: 3, roundsFinalized: 2 })).toBe(
-      "3 of 4 rounds, 1 open",
-    );
-    expect(playriftboundRoundsText({ roundCount: null, roundsPlayed: 3, roundsFinalized: 3 })).toBe(
-      "3 rounds",
-    );
-  });
-});
-
 describe("catalogTriageDisplay", () => {
   it("tones the undecided state as the one needing attention", () => {
     expect(catalogTriageDisplay("new")).toEqual({ label: "Undecided", variant: "warning" });
     expect(catalogTriageDisplay("dismissed").variant).toBe("neutral");
-  });
-});
-
-describe("catalogVenueText", () => {
-  it("joins the store and the location", () => {
-    expect(catalogVenueText({ storeName: "Piltover Games", location: "Zaun" })).toBe(
-      "Piltover Games, Zaun",
-    );
-  });
-
-  it("keeps whichever half the source published", () => {
-    expect(catalogVenueText({ storeName: null, location: "Zaun" })).toBe("Zaun");
-    expect(catalogVenueText({ storeName: "Piltover Games", location: null })).toBe(
-      "Piltover Games",
-    );
-  });
-
-  it("falls back to a placeholder when the source published neither", () => {
-    expect(catalogVenueText({ storeName: null, location: null })).toBe("—");
   });
 });
 
@@ -508,7 +365,7 @@ describe("metaSyncAlerts", () => {
     const alerts = metaSyncAlerts(syncStatus({}, { runs }), 0, NOW);
 
     expect(alerts.find((alert) => alert.id === "sync-errors")?.message).toBe(
-      "The last mirror refresh reported 2 errors. First: Event 2: unreadable",
+      "Refresh mirror failed for events 2 and 3: unreadable.",
     );
   });
 
@@ -659,7 +516,7 @@ describe("metaSyncAlerts", () => {
     expect(alerts.find((alert) => alert.id === "accepted-cancelled")).toEqual({
       id: "accepted-cancelled",
       message:
-        "1 published event was cancelled at the source. Refresh mirror keeps a cancelled event that has standings or another source.",
+        "1 published event is cancelled at the source. Refresh mirror withdraws the ones without standings or another source. Remove the rest on their event page.",
       target: "catalogue-accepted-cancelled",
     });
   });
@@ -757,5 +614,32 @@ describe("overlayCountsForProvider", () => {
     ];
 
     expect(overlayCountsForProvider(rows, "uvsgames").unresolvedCards).toBe(3);
+  });
+});
+
+describe("runErrorsMessage", () => {
+  it("names the events of each reason", () => {
+    expect(
+      runErrorsMessage("Collect results", [
+        "Event 771498: detail carried no readable projection",
+        "Event 968571: detail carried no readable projection",
+        "Event 25107: new row violates check constraint",
+      ]),
+    ).toBe(
+      "Collect results failed for events 771498 and 968571: detail carried no readable projection. Collect results failed for event 25107: new row violates check constraint.",
+    );
+  });
+
+  it("shortens a long list of events", () => {
+    const errors = Array.from({ length: 21 }, (_, index) => `Event ${index + 1}: unreadable`);
+    expect(runErrorsMessage("Refresh mirror", errors)).toBe(
+      "Refresh mirror failed for events 1, 2, 3, 4, 5, and 16 more: unreadable.",
+    );
+  });
+
+  it("quotes an error that names no event", () => {
+    expect(runErrorsMessage("Refresh mirror", ["Source answered 503"])).toBe(
+      "Refresh mirror reported: Source answered 503.",
+    );
   });
 });

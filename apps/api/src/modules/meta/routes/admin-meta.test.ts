@@ -23,9 +23,10 @@ const mockMeta = {
   sourcesForEvent: vi.fn(),
   insertEventSource: vi.fn(),
   deleteEventSource: vi.fn(),
+  deleteEvent: vi.fn(),
 };
 
-const mockMetaOverlays = { acceptedPlayerOverlays: vi.fn() };
+const mockMetaOverlays = { acceptedPlayerOverlays: vi.fn(), ignoreEvent: vi.fn() };
 
 const mockUvsgames = { settings: vi.fn() };
 
@@ -49,6 +50,8 @@ app.use("*", async (c, next) => {
     deckFormats: mockDeckFormats,
     customTags: mockCustomTags,
   } as never);
+  c.set("transact", ((fn: (repos: unknown) => unknown) =>
+    fn({ meta: mockMeta, metaOverlays: mockMetaOverlays })) as never);
   await next();
 });
 registerRouterForTest(app, adminMetaRouter);
@@ -574,5 +577,33 @@ describe("DELETE /meta/events/{id}/sources/{sourceId}", () => {
 
     expect(res.status).toBe(404);
     expect(mockMeta.deleteEventSource).not.toHaveBeenCalled();
+  });
+});
+
+describe("DELETE /events/:id", () => {
+  it("removes the event and rejects every mirrored row it was built from", async () => {
+    mockMeta.sourcesForEvent.mockResolvedValue([
+      sourceRow({ provider: "uvsgames", externalId: "857112" }),
+      sourceRow({ id: "other", provider: null, externalId: null }),
+    ]);
+    mockMeta.deleteEvent.mockResolvedValue(true);
+
+    const res = await app.request(`/api/admin/v1/meta/events/${EVENT_ID}`, { method: "DELETE" });
+
+    expect(res.status).toBe(204);
+    expect(mockMeta.deleteEvent).toHaveBeenCalledWith(EVENT_ID);
+    expect(mockMetaOverlays.ignoreEvent).toHaveBeenCalledWith("uvsgames", "857112");
+    expect(mockMetaOverlays.ignoreEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it("404s an event that is already gone, rejecting nothing", async () => {
+    mockMeta.sourcesForEvent.mockResolvedValue([]);
+    mockMeta.deleteEvent.mockResolvedValue(false);
+    mockMetaOverlays.ignoreEvent.mockClear();
+
+    const res = await app.request(`/api/admin/v1/meta/events/${EVENT_ID}`, { method: "DELETE" });
+
+    expect(res.status).toBe(404);
+    expect(mockMetaOverlays.ignoreEvent).not.toHaveBeenCalled();
   });
 });

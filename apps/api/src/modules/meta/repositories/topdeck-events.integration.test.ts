@@ -9,6 +9,12 @@ import { topdeckEventsRepo } from "./topdeck-events.js";
 // The mirror table has no provider column, so isolation is by key: every tid
 // this file writes carries the `tdi-` prefix.
 
+const RULE_OFF = {
+  autoAcceptMinPlayers: null,
+  autoAcceptOfficial: false,
+  autoAcceptNotable: false,
+};
+
 const ctx = createDbContext(crypto.randomUUID());
 
 const KEYS = {
@@ -280,7 +286,7 @@ describe.skipIf(!ctx)("topdeckEventsRepo", () => {
 
   describe("syncOverview", () => {
     it("reports zero for the queue counters, since this source has no queue", async () => {
-      const overview = await repo.syncOverview(null);
+      const overview = await repo.syncOverview(RULE_OFF);
       expect(overview).toMatchObject({ queued: 0, dueRecheck: 0, acceptedAwaitingResults: 0 });
       expect(overview.total).toBeGreaterThan(0);
     });

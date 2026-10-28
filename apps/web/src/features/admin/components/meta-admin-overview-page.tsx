@@ -253,7 +253,7 @@ export function MetaAdminOverviewPage() {
 
   const topBar = (
     <AdminPageTopBar
-      title="Meta Archive"
+      title="Meta archive"
       actions={
         <RefreshCountdownButton
           onRefresh={() => {
@@ -293,7 +293,6 @@ export function MetaAdminOverviewPage() {
     (sum, source) => sum + (queries[source].data?.catalog.needsDecision ?? 0),
     0,
   );
-  const minPlayers = settings.data?.autoAcceptMinPlayers ?? undefined;
 
   return (
     <div className="space-y-4">
@@ -304,18 +303,16 @@ export function MetaAdminOverviewPage() {
         <DecisionCard
           title="Review"
           count={`${reviewCount.toLocaleString()}${corrections.data?.hasMore === true ? "+" : ""}`}
-          caption="Proposed event patches, standings, decklists and user corrections"
+          caption="Contributor corrections, uploaded standings and decklists, and event changes"
           target={{ tab: "review" }}
         />
         <DecisionCard
           title="Needs a decision"
           count={needsDecision.toLocaleString()}
-          caption={`Past events with ${minPlayers ?? "enough"}+ players and results, not published`}
+          caption="Past events that pass the auto-publish rule and have results, not published"
           target={{
             tab: "catalogue",
             source: catalogueSource(decisionSource ?? "uvsgames"),
-            triage: "new",
-            minPlayers,
             bucket: "needsDecision",
           }}
         />

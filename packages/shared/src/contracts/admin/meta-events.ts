@@ -2,6 +2,7 @@ import { deckFormatSchema, metaEventTierSchema } from "@openrift/shared/response
 import { isoDate } from "@openrift/shared/schemas";
 import { z } from "zod";
 
+import { META_RESULTS_STATES } from "../../meta-results.js";
 import {
   META_EVENT_SORT_DIRECTIONS,
   META_EVENT_SORTS,
@@ -61,6 +62,7 @@ export const adminMetaEventSchema = z.object({
   location: z.string().nullable(),
   playerRowCount: z.number().int().nonnegative(),
   deckCount: z.number().int().nonnegative(),
+  results: z.enum(META_RESULTS_STATES),
   sources: z.array(
     z.object({
       id: z.string(),
@@ -77,16 +79,32 @@ export const adminMetaEventListQuerySchema = z.object({
   source: z.enum(META_EVENT_SOURCE_FILTERS).optional(),
   dateFrom: isoDate.optional(),
   dateTo: isoDate.optional(),
+  tier: metaEventTierSchema.optional(),
+  results: z.enum(META_RESULTS_STATES).optional(),
   incompleteStandings: z.coerce.boolean().optional(),
-  noDecks: z.coerce.boolean().optional(),
+  hasDecks: z.coerce.boolean().optional(),
   sort: z.enum(META_EVENT_SORTS).optional(),
   direction: z.enum(META_EVENT_SORT_DIRECTIONS).optional(),
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(200).optional(),
 });
 
+const listCount = z.number().int().nonnegative();
+
+/** Counts under the list's filters except the results state and the gap it views. */
+export const adminMetaEventListCountsSchema = z.object({
+  total: listCount,
+  notStarted: listCount,
+  collecting: listCount,
+  final: listCount,
+  noResults: listCount,
+  standingsShort: listCount,
+  manual: listCount,
+});
+
 export const adminMetaEventListResponseSchema = z.object({
   events: z.array(adminMetaEventSchema),
+  counts: adminMetaEventListCountsSchema,
   total: z.number().int().nonnegative(),
   page: z.number().int(),
   limit: z.number().int(),
