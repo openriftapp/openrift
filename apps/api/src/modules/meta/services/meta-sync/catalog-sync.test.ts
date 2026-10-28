@@ -3,7 +3,10 @@ import { createLogger } from "@openrift/shared/logger";
 import { describe, expect, it } from "vitest";
 
 import type { Repos, Transact } from "../../../../deps.js";
-import type { UvsgamesUpsertInput } from "../../repositories/uvsgames-events.js";
+import type {
+  UvsgamesProbedInput,
+  UvsgamesUpsertInput,
+} from "../../repositories/uvsgames-events.js";
 import { ARCHIVE_START, backfillCatalog, syncCatalog, sliceRange } from "./catalog-sync.js";
 import type { MetaSyncDeps } from "./deps.js";
 import type { UvsClient, UvsPage, UvsQuery } from "./uvsgames-client.js";
@@ -102,10 +105,10 @@ function fakeDeps(
   markMissingCalls: MarkMissingCall[];
   heartbeats: { runId: string; result: Record<string, unknown> }[];
   stored: { value: unknown };
-  refreshed: UvsgamesUpsertInput[];
+  refreshed: UvsgamesProbedInput[];
   absent: string[];
 } {
-  const refreshed: UvsgamesUpsertInput[] = [];
+  const refreshed: UvsgamesProbedInput[] = [];
   const absent: string[] = [];
   const upserted: UvsgamesUpsertInput[] = [];
   const namedTemplates: unknown[] = [];
@@ -133,7 +136,7 @@ function fakeDeps(
       return Promise.resolve(2);
     },
     unprobedMissing: (limit: number) => Promise.resolve(unprobed.slice(0, limit)),
-    refreshFromProbe: (rows: readonly UvsgamesUpsertInput[]) => {
+    refreshFromProbe: (rows: readonly UvsgamesProbedInput[]) => {
       refreshed.push(...rows);
       return Promise.resolve();
     },
@@ -343,6 +346,39 @@ describe("syncCatalog", () => {
     expect(absent).toEqual(["8"]);
     expect(result.missingFound).toBe(1);
     expect(result.missingAbsent).toBe(1);
+  });
+
+  it("stores the status of a dropped row whose lookup lost its start, keeping the mirrored start", async () => {
+    const detail = {
+      ...listingRow(7, "2026-08-18T00:00:00Z"),
+      start_datetime: null,
+      game_type: "RIFTBOUND",
+      display_status: "canceled",
+    };
+    const { client } = fakeClient(() => pageOf([]), { "7": detail });
+    const { deps, refreshed } = fakeDeps(client, WATCHED_TEMPLATES, ["7"]);
+
+    const result = await syncCatalog(deps);
+
+    expect(refreshed).toEqual([
+      expect.objectContaining({ externalId: "7", startAt: null, displayStatus: "canceled" }),
+    ]);
+    expect(result.missingFound).toBe(1);
+    expect(result.errors).toEqual([]);
+  });
+
+  it("keeps probing past answers it cannot use, since the source is not refusing", async () => {
+    const otherGame = { id: 1, game_type: "OTHER" };
+    const ids = Array.from({ length: 25 }, (_, index) => String(index + 1));
+    const details: Record<string, unknown> = Object.fromEntries(ids.map((id) => [id, otherGame]));
+    details["25"] = { ...listingRow(25, "2026-08-18T00:00:00Z"), game_type: "RIFTBOUND" };
+    const { client } = fakeClient(() => pageOf([]), details);
+    const { deps, refreshed } = fakeDeps(client, WATCHED_TEMPLATES, ids);
+
+    const result = await syncCatalog(deps);
+
+    expect(refreshed.map((row) => row.externalId)).toEqual(["25"]);
+    expect(result.errors.some((message) => message.startsWith("Stopped probing"))).toBe(false);
   });
 
   it("leaves a dropped row unprobed when its lookup fails, so the next run retries it", async () => {

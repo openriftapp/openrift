@@ -1,3 +1,4 @@
+import type { MetaSyncBucketFilter } from "@openrift/shared/contracts/admin/meta-catalog";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
@@ -8,6 +9,13 @@ import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
 import { TOPDECK_PROVIDER } from "../../../lib/meta-providers.js";
 import { offsetPage } from "../../../repositories/query-helpers.js";
+import type { MetaSyncBucketColumns, MetaSyncBuckets } from "./meta-sync-buckets.js";
+import {
+  metaSyncBucketFilter,
+  metaSyncBucketSelections,
+  passingNoResultsFilter,
+  toMetaSyncBuckets,
+} from "./meta-sync-buckets.js";
 
 type TopdeckEventRow = Selectable<TopdeckEventsTable>;
 
@@ -70,6 +78,7 @@ export interface TopdeckListFilters {
   dateFrom?: string;
   dateTo?: string;
   missing?: boolean;
+  bucket?: MetaSyncBucketFilter;
 }
 
 /** How one page of the catalogue is ordered. Defaults to newest events first. */
@@ -147,6 +156,14 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
 
   const isNew = sql<SqlBool>`i.provider is null and src.meta_event_id is null`;
   const accepted = sql<SqlBool>`i.provider is null and src.meta_event_id is not null`;
+  const bucketColumns: MetaSyncBucketColumns = {
+    started: sql<SqlBool>`c.start_at <= now()`,
+    startAt: sql<Date | null>`c.start_at`,
+    hasResults: sql<SqlBool>`c.player_count > 0`,
+    nextCheckAt: sql<Date | null>`null::timestamptz`,
+    players: sql<number | null>`c.player_count`,
+    team: sql<SqlBool>`c.is_team_event`,
+  };
 
   // Absence must be an anti-join here: reading a joined null makes the planner
   // sort the whole catalogue before taking one page. Presence reads the join.
@@ -314,6 +331,11 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
             sql<SqlBool>`c.start_at < (${filters.dateTo}::date + interval '1 day')`,
           ) as T;
         }
+        if (filters.bucket !== undefined && filters.minPlayers !== undefined) {
+          base = base.where(
+            metaSyncBucketFilter(filters.bucket, bucketColumns, filters.minPlayers),
+          ) as T;
+        }
         if (filters.missing === true) {
           base = base.where("c.missingSince", "is not", null) as T;
         }
@@ -387,19 +409,21 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
     },
 
     /** The three queue counters are always zero, not a stub: one search writes an event's results with the event. */
-    async syncOverview(): Promise<{
-      total: number;
-      completed: number;
-      decklistPublished: number;
-      missing: number;
-      queued: number;
-      dueRecheck: number;
-      oldestDueAt: Date | null;
-      acceptedAwaitingResults: number;
-      acceptedMissing: number;
-      acceptedCancelled: number;
-      lastSeenAt: Date | null;
-    }> {
+    async syncOverview(minPlayers: number | null): Promise<
+      MetaSyncBuckets & {
+        total: number;
+        completed: number;
+        decklistPublished: number;
+        missing: number;
+        queued: number;
+        dueRecheck: number;
+        oldestDueAt: Date | null;
+        acceptedAwaitingResults: number;
+        acceptedMissing: number;
+        acceptedCancelled: number;
+        lastSeenAt: Date | null;
+      }
+    > {
       const row = await triagedQuery()
         .select((eb) => [
           eb.fn.countAll<string>().as("total"),
@@ -414,9 +438,11 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
             "acceptedMissing",
           ),
           eb.fn.max<Date | null>("c.lastSeenAt").as("lastSeenAt"),
+          ...metaSyncBucketSelections(bucketColumns, minPlayers),
         ])
         .executeTakeFirstOrThrow();
       return {
+        ...toMetaSyncBuckets(row),
         total: Number(row.total),
         completed: Number(row.completed),
         decklistPublished: Number(row.decklistPublished),
@@ -429,6 +455,14 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
         acceptedCancelled: 0,
         lastSeenAt: row.lastSeenAt,
       };
+    },
+
+    async passingNoResultsKeys(minPlayers: number): Promise<string[]> {
+      const rows = await triagedQuery()
+        .select(sql<string>`c.tid`.as("key"))
+        .where(passingNoResultsFilter(bucketColumns, minPlayers))
+        .execute();
+      return rows.map((row) => row.key);
     },
 
     async triageCounts(): Promise<TopdeckTriageCounts> {

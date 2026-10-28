@@ -241,6 +241,31 @@ export function jobRunsRepo(db: Kysely<Database>) {
       return offsetPage(query, params);
     },
 
+    latestByKinds(kinds: string[]): Promise<JobRun[]> {
+      if (kinds.length === 0) {
+        return Promise.resolve([]);
+      }
+      return db
+        .selectFrom("jobRuns")
+        .select([
+          "id",
+          "kind",
+          "trigger",
+          "status",
+          "startedAt",
+          "finishedAt",
+          "durationMs",
+          "errorMessage",
+          "result",
+          "noop",
+        ])
+        .where("kind", "in", kinds)
+        .distinctOn("kind")
+        .orderBy("kind")
+        .orderBy("startedAt", "desc")
+        .execute();
+    },
+
     listRecentByKinds(kinds: string[], limit: number): Promise<JobRun[]> {
       if (kinds.length === 0) {
         return Promise.resolve([]);

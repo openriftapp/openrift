@@ -6,6 +6,7 @@ import { CircleAlertIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MetaToneDot } from "@/features/admin/components/meta-overview-shared";
 import type { MetaAdminTarget } from "@/features/admin/lib/meta-admin-triggers";
 import { catalogueSource, JOB_KIND_PREFIX } from "@/features/admin/lib/meta-admin-triggers";
 import type { MetaSyncAlert, MetaSyncAlertTarget } from "@/features/meta/lib/meta-catalog-display";
@@ -21,7 +22,7 @@ const ALERT_TARGETS: Record<MetaSyncAlertTarget, AlertDestination> = {
   "failed-runs": { kind: "runs", label: "The failed runs", status: "failed" },
   "catalogue-accepted": {
     kind: "link",
-    label: "Accepted events",
+    label: "Published events",
     target: { tab: "catalogue", triage: "accepted" },
   },
   "catalogue-accepted-missing": {
@@ -54,7 +55,12 @@ function AlertAction({ alert, source }: { alert: MetaSyncAlert; source: MetaSour
     <Link
       from="/admin/meta"
       to="/admin/meta"
-      search={(prev) => ({ ...prev, source: catalogueSource(source), ...destination.target })}
+      search={(prev) => ({
+        ...prev,
+        detail: undefined,
+        source: catalogueSource(source),
+        ...destination.target,
+      })}
       className={buttonVariants({ variant: "ghost", size: "sm" })}
     >
       {destination.label}
@@ -68,21 +74,32 @@ export function HealthCard({ alerts }: { alerts: SourcedAlert[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Health</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <MetaToneDot tone={alerts.length === 0 ? "ok" : "warn"} />
+          {alerts.length === 0
+            ? "No warnings"
+            : `${alerts.length} ${alerts.length === 1 ? "warning" : "warnings"}`}
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
-        {alerts.length === 0 && (
-          <p className="text-muted-foreground">Every source looks healthy.</p>
-        )}
-        {alerts.map((alert) => (
-          <div key={`${alert.source}-${alert.id}`} className="flex items-center gap-2">
-            <CircleAlertIcon className="text-destructive size-4 shrink-0" />
-            <Badge variant="neutral">{META_SOURCE_LABELS[alert.source]}</Badge>
-            <span className="flex-1">{alert.message}</span>
-            <AlertAction alert={alert} source={alert.source} />
-          </div>
-        ))}
-      </CardContent>
+      {alerts.length > 0 && (
+        <CardContent className="space-y-2">
+          {alerts.map((alert) => (
+            <div
+              key={`${alert.source}-${alert.id}`}
+              className="flex flex-wrap items-center gap-x-2 gap-y-1"
+            >
+              <CircleAlertIcon className="text-warning size-4 shrink-0" />
+              <Badge variant="neutral">{META_SOURCE_LABELS[alert.source]}</Badge>
+              <span className="order-last w-full min-w-0 sm:order-none sm:w-auto sm:flex-1">
+                {alert.message}
+              </span>
+              <span className="ml-auto sm:ml-0">
+                <AlertAction alert={alert} source={alert.source} />
+              </span>
+            </div>
+          ))}
+        </CardContent>
+      )}
     </Card>
   );
 }

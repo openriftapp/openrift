@@ -1,3 +1,4 @@
+import type { MetaSyncBucketFilter } from "@openrift/shared/contracts/admin/meta-catalog";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
@@ -12,6 +13,13 @@ import type {
   PlayriftboundEventProjection,
   PlayriftboundOrganizerProjection,
 } from "../lib/playriftbound-catalog.js";
+import type { MetaSyncBucketColumns, MetaSyncBuckets } from "./meta-sync-buckets.js";
+import {
+  metaSyncBucketFilter,
+  metaSyncBucketSelections,
+  passingNoResultsFilter,
+  toMetaSyncBuckets,
+} from "./meta-sync-buckets.js";
 
 type PlayriftboundEventRow = Selectable<PlayriftboundEventsTable>;
 
@@ -66,6 +74,7 @@ export interface PlayriftboundListFilters {
   dateFrom?: string;
   dateTo?: string;
   missing?: boolean;
+  bucket?: MetaSyncBucketFilter;
   awaitingResults?: boolean;
 }
 
@@ -138,6 +147,14 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
 
   const isNew = sql<SqlBool>`i.provider is null and src.meta_event_id is null`;
   const accepted = sql<SqlBool>`i.provider is null and src.meta_event_id is not null`;
+  const bucketColumns: MetaSyncBucketColumns = {
+    started: sql<SqlBool>`c.start_at <= now()`,
+    startAt: sql<Date | null>`c.start_at`,
+    hasResults: sql<SqlBool>`coalesce(c.rounds_played, 0) > 0`,
+    nextCheckAt: sql<Date | null>`ck.next_check_at`,
+    players: sql<number | null>`c.registered_count`,
+    team: sql<SqlBool>`coalesce(c.player_format <> 'ONE_V_ONE', false)`,
+  };
 
   // Absence must be an anti-join here: reading a joined null makes the planner
   // sort the whole catalogue before taking one page. Presence reads the join.
@@ -389,6 +406,11 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
             sql<SqlBool>`c.start_at < ${filters.dateTo}::date + interval '1 day'`,
           ) as T;
         }
+        if (filters.bucket !== undefined && filters.minPlayers !== undefined) {
+          base = base.where(
+            metaSyncBucketFilter(filters.bucket, bucketColumns, filters.minPlayers),
+          ) as T;
+        }
         if (filters.missing === true) {
           base = base.where("c.missingSince", "is not", null) as T;
         }
@@ -487,19 +509,21 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
       return rows;
     },
 
-    async syncOverview(): Promise<{
-      total: number;
-      completed: number;
-      decklistPublished: number;
-      missing: number;
-      dueRecheck: number;
-      oldestDueAt: Date | null;
-      queued: number;
-      acceptedAwaitingResults: number;
-      acceptedMissing: number;
-      acceptedCancelled: number;
-      lastSeenAt: Date | null;
-    }> {
+    async syncOverview(minPlayers: number | null): Promise<
+      MetaSyncBuckets & {
+        total: number;
+        completed: number;
+        decklistPublished: number;
+        missing: number;
+        dueRecheck: number;
+        oldestDueAt: Date | null;
+        queued: number;
+        acceptedAwaitingResults: number;
+        acceptedMissing: number;
+        acceptedCancelled: number;
+        lastSeenAt: Date | null;
+      }
+    > {
       const row = await triagedQuery()
         .select((eb) => [
           eb.fn.countAll<string>().as("total"),
@@ -525,9 +549,11 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
             "acceptedMissing",
           ),
           eb.fn.max<Date | null>("c.lastSeenAt").as("lastSeenAt"),
+          ...metaSyncBucketSelections(bucketColumns, minPlayers),
         ])
         .executeTakeFirstOrThrow();
       return {
+        ...toMetaSyncBuckets(row),
         total: Number(row.total),
         completed: Number(row.completed),
         decklistPublished: Number(row.decklistPublished),
@@ -540,6 +566,14 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
         acceptedCancelled: 0,
         lastSeenAt: row.lastSeenAt,
       };
+    },
+
+    async passingNoResultsKeys(minPlayers: number): Promise<string[]> {
+      const rows = await triagedQuery()
+        .select(sql<string>`c.tournament_id`.as("key"))
+        .where(passingNoResultsFilter(bucketColumns, minPlayers))
+        .execute();
+      return rows.map((row) => row.key);
     },
 
     async triageCounts(): Promise<PlayriftboundTriageCounts> {

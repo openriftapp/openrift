@@ -165,9 +165,9 @@ export function playriftboundRoundsText(
 }
 
 const TRIAGE_DISPLAY: Record<MetaCatalogTriage, CatalogChipDisplay> = {
-  new: { label: "New", variant: "warning" },
-  accepted: { label: "Accepted", variant: "success" },
-  dismissed: { label: "Dismissed", variant: "neutral" },
+  new: { label: "Undecided", variant: "warning" },
+  accepted: { label: "Published", variant: "success" },
+  dismissed: { label: "Rejected", variant: "neutral" },
 };
 
 export function catalogTriageDisplay(triage: MetaCatalogTriage): CatalogChipDisplay {
@@ -311,8 +311,8 @@ export function metaSyncAlerts(
       id: "stale-crawl",
       message:
         lastSeen === null
-          ? "A sync cron is registered, but no crawl has ever reached the listing."
-          : `The last crawl activity was ${formatRelativeTime(lastSeen, { now })}, so the mirror is going stale.`,
+          ? "Refresh mirror is scheduled but has never reached the source."
+          : `No mirror refresh has reached the source since ${formatRelativeTime(lastSeen, { now })}.`,
       target: "runs",
     });
   }
@@ -341,7 +341,7 @@ export function metaSyncAlerts(
   if (failed.length > 0) {
     alerts.push({
       id: "failed-runs",
-      message: `${failed.length} sync ${failed.length === 1 ? "run" : "runs"} failed in the last 24 hours.`,
+      message: `${failed.length} ${failed.length === 1 ? "run" : "runs"} failed in the last 24 hours.`,
       target: "failed-runs",
     });
   }
@@ -356,12 +356,15 @@ export function metaSyncAlerts(
       new Date(run.startedAt).getTime() > (lastFullSuccessAt.get(run.kind) ?? 0),
   );
   if (partial.length > 0) {
+    const errors: unknown = partial[0]?.result?.errors;
+    const first: unknown = Array.isArray(errors) ? errors[0] : undefined;
     alerts.push({
       id: "partial-crawls",
-      message: `${partial.length} sync ${partial.length === 1 ? "run" : "runs"} finished without covering the whole window, so part of the listing was not read.`,
+      message: `${partial.length} ${partial.length === 1 ? "run" : "runs"} stopped before covering the whole window, so part of the source's list was not read.${typeof first === "string" ? ` First error: ${first.slice(0, 200)}` : ""}`,
       target: "runs",
     });
   }
+  const partialIds = new Set(partial.map((run) => run.id));
 
   const newestByKind = new Map<string, (typeof runs)[number]>();
   for (const run of runs) {
@@ -376,16 +379,35 @@ export function metaSyncAlerts(
     const reason: unknown = Array.isArray(errors) ? errors[0] : undefined;
     alerts.push({
       id: "refusing-source",
-      message: `The last results fetch stopped after several visits in a row failed, and the next runs pause for 30 minutes.${typeof reason === "string" ? ` First failure: ${reason.slice(0, 200)}` : ""}`,
+      message: `The last Collect results run stopped after several visits in a row failed. The next runs pause for 30 minutes.${typeof reason === "string" ? ` First failure: ${reason.slice(0, 200)}` : ""}`,
       target: "runs",
     });
+  }
+
+  for (const [suffix, job] of [
+    ["_sync", "mirror refresh"],
+    ["_recheck", "Collect results run"],
+  ] as const) {
+    const latest = [...newestByKind.values()].find((run) => run.kind.endsWith(suffix));
+    const errors: unknown =
+      latest?.status === "succeeded" && !partialIds.has(latest.id)
+        ? latest.result?.errors
+        : undefined;
+    if (Array.isArray(errors) && errors.length > 0) {
+      const first: unknown = errors[0];
+      alerts.push({
+        id: `${suffix.slice(1)}-errors`,
+        message: `The last ${job} reported ${errors.length} ${errors.length === 1 ? "error" : "errors"}.${typeof first === "string" ? ` First: ${first.slice(0, 200)}` : ""}`,
+        target: "runs",
+      });
+    }
   }
 
   const oldestDue = catalog.oldestDueAt === null ? null : new Date(catalog.oldestDueAt);
   if (oldestDue !== null && now.getTime() - oldestDue.getTime() > RECHECK_LAG_LIMIT_MS) {
     alerts.push({
       id: "due-rechecks",
-      message: `Rechecks are falling behind: ${catalog.dueRecheck.toLocaleString()} accepted events are due, and the oldest became due ${formatRelativeTime(oldestDue, { now })}.`,
+      message: `${catalog.dueRecheck.toLocaleString()} published events are overdue for result collection. The oldest became due ${formatRelativeTime(oldestDue, { now })}.`,
       target: "catalogue-accepted",
     });
   }
@@ -393,7 +415,7 @@ export function metaSyncAlerts(
   if (catalog.acceptedMissing > 0) {
     alerts.push({
       id: "accepted-missing",
-      message: `${catalog.acceptedMissing} ${catalog.acceptedMissing === 1 ? "event" : "events"} live on /meta ${catalog.acceptedMissing === 1 ? "has" : "have"} disappeared from the source listing.`,
+      message: `${catalog.acceptedMissing} published ${catalog.acceptedMissing === 1 ? "event has" : "events have"} disappeared from the source's list.`,
       target: "catalogue-accepted-missing",
     });
   }
@@ -401,7 +423,7 @@ export function metaSyncAlerts(
   if (catalog.acceptedCancelled > 0) {
     alerts.push({
       id: "accepted-cancelled",
-      message: `${catalog.acceptedCancelled} ${catalog.acceptedCancelled === 1 ? "event" : "events"} live on /meta ${catalog.acceptedCancelled === 1 ? "was" : "were"} cancelled at the source. The sync keeps a cancelled event that has standings or another source.`,
+      message: `${catalog.acceptedCancelled} published ${catalog.acceptedCancelled === 1 ? "event was" : "events were"} cancelled at the source. Refresh mirror keeps a cancelled event that has standings or another source.`,
       target: "catalogue-accepted-cancelled",
     });
   }

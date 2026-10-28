@@ -208,8 +208,8 @@ describe("playriftboundRoundsText", () => {
 });
 
 describe("catalogTriageDisplay", () => {
-  it("tones the untriaged state as the one needing attention", () => {
-    expect(catalogTriageDisplay("new")).toEqual({ label: "New", variant: "warning" });
+  it("tones the undecided state as the one needing attention", () => {
+    expect(catalogTriageDisplay("new")).toEqual({ label: "Undecided", variant: "warning" });
     expect(catalogTriageDisplay("dismissed").variant).toBe("neutral");
   });
 });
@@ -431,9 +431,25 @@ function syncStatus(
       acceptedMissing: 0,
       acceptedCancelled: 0,
       lastSeenAt: "2026-08-29T09:00:00.000Z",
+      notStarted: 0,
+      firstStartAt: null,
+      collecting: 0,
+      nextCheckAt: null,
+      final: 0,
+      noResults: 0,
+      needsDecision: 0,
+      passingNoResults: 0,
+      skippedUpcoming: 0,
+      skippedPast: 0,
       ...catalog,
     },
-    archive: { events: 480, eventsWithStandings: 420, eventsWithDecklists: 310, decks: 2600 },
+    archive: {
+      events: 480,
+      eventsWithStandings: 420,
+      eventsWithDecklists: 310,
+      decks: 2600,
+      addedLast7Days: 0,
+    },
     counts: { new: 30, accepted: 8, dismissed: 4 },
     runs: [],
     schedules: { "meta.uvsgames_sync": true, "meta.uvsgames_recheck": true },
@@ -481,6 +497,55 @@ describe("metaSyncAlerts", () => {
     expect(alertIds(syncStatus())).toEqual([]);
   });
 
+  it("raises the errors the newest mirror refresh reported, with the first one", () => {
+    const runs = [
+      partialRun("2026-08-28T06:00:00.000Z", { errors: ["Event 1: unreadable"] }),
+      partialRun("2026-08-29T06:00:00.000Z", {
+        errors: ["Event 2: unreadable", "Event 3: unreadable"],
+      }),
+    ];
+
+    const alerts = metaSyncAlerts(syncStatus({}, { runs }), 0, NOW);
+
+    expect(alerts.find((alert) => alert.id === "sync-errors")?.message).toBe(
+      "The last mirror refresh reported 2 errors. First: Event 2: unreadable",
+    );
+  });
+
+  it("folds an incomplete refresh's errors into one alert instead of two", () => {
+    const runs = [
+      partialRun("2026-08-29T06:00:00.000Z", {
+        complete: false,
+        errors: ["No stores are known yet."],
+      }),
+    ];
+
+    const alerts = metaSyncAlerts(syncStatus({}, { runs }), 0, NOW);
+
+    expect(alerts.map((alert) => alert.id)).toEqual(["partial-crawls"]);
+    expect(alerts[0]?.message).toContain("First error: No stores are known yet.");
+  });
+
+  it("clears a refresh error once a newer refresh reports none", () => {
+    const runs = [
+      partialRun("2026-08-28T06:00:00.000Z", { errors: ["Event 1: unreadable"] }),
+      partialRun("2026-08-29T06:00:00.000Z", { errors: [] }),
+    ];
+
+    expect(alertIds(syncStatus({}, { runs }))).not.toContain("sync-errors");
+  });
+
+  it("raises the errors the newest Collect results run reported", () => {
+    const runs = [
+      {
+        ...partialRun("2026-08-29T11:50:00.000Z", { errors: ["Event 9: rank below 1"] }),
+        kind: "meta.uvsgames_recheck",
+      },
+    ];
+
+    expect(alertIds(syncStatus({}, { runs }))).toContain("recheck-errors");
+  });
+
   it("raises a mirror no crawl has reached in over a week", () => {
     expect(alertIds(syncStatus({ lastSeenAt: "2026-08-19T00:00:00.000Z" }))).toContain(
       "stale-crawl",
@@ -499,7 +564,7 @@ describe("metaSyncAlerts", () => {
     const runs = [failedRun("2026-08-29T06:00:00.000Z"), failedRun("2026-08-20T06:00:00.000Z")];
     const alerts = metaSyncAlerts(syncStatus({}, { runs }), 0, NOW);
     expect(alerts.find((alert) => alert.id === "failed-runs")?.message).toBe(
-      "1 sync run failed in the last 24 hours.",
+      "1 run failed in the last 24 hours.",
     );
   });
 
@@ -584,7 +649,7 @@ describe("metaSyncAlerts", () => {
     const alerts = metaSyncAlerts(syncStatus({ acceptedMissing: 2 }), 0, NOW);
     expect(alerts.find((alert) => alert.id === "accepted-missing")).toEqual({
       id: "accepted-missing",
-      message: "2 events live on /meta have disappeared from the source listing.",
+      message: "2 published events have disappeared from the source's list.",
       target: "catalogue-accepted-missing",
     });
   });
@@ -594,7 +659,7 @@ describe("metaSyncAlerts", () => {
     expect(alerts.find((alert) => alert.id === "accepted-cancelled")).toEqual({
       id: "accepted-cancelled",
       message:
-        "1 event live on /meta was cancelled at the source. The sync keeps a cancelled event that has standings or another source.",
+        "1 published event was cancelled at the source. Refresh mirror keeps a cancelled event that has standings or another source.",
       target: "catalogue-accepted-cancelled",
     });
   });

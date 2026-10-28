@@ -43,13 +43,13 @@ function toDraft(settings: MetaSyncSettings): RulesDraft {
 
 const SOURCE_INTRO: Record<MetaSource, string> = {
   uvsgames:
-    "When a crawl sees an event matching any rule below, it is accepted automatically: the live event is created and its UVS Games standings are fetched and published without review. Events you dismissed never auto-accept, whatever they match, and neither do events that look like one another source already archived at the same store within a day.",
+    "When Refresh mirror reads an event matching any rule below, it is published automatically, and its UVS Games standings are fetched and published without review. Events you rejected never auto-publish, whatever they match, and neither do events that look like one another source already archived at the same store within a day.",
   playloltcg:
-    "When a crawl sees an event matching the rule below, it is accepted automatically: the live event is created and its Play LoL TCG standings are fetched and published without review. Events you dismissed never auto-accept. This source publishes no event templates, so field size is the only rule it can be judged on.",
+    "When Refresh mirror reads an event matching the rule below, it is published automatically, and its Play LoL TCG standings are fetched and published without review. Events you rejected never auto-publish. This source publishes no event templates, so field size is the only rule it can be judged on.",
   topdeck:
-    "When a crawl sees an event matching the rule below, it is accepted automatically: the live event is created and its TopDeck.gg standings and decklists are published without review. Events you dismissed never auto-accept, and neither do team events. This source publishes no event templates, so field size is the only rule it can be judged on.",
+    "When Refresh mirror reads an event matching the rule below, it is published automatically, and its TopDeck.gg standings and decklists are published without review. Events you rejected never auto-publish, and neither do team events. This source publishes no event templates, so field size is the only rule it can be judged on.",
   playriftbound:
-    "When a crawl sees an event matching the rule below, it is accepted automatically: the live event is created and its PlayRiftbound standings and pairings are fetched and published without review. Events you dismissed never auto-accept, and neither do team events. The rule reads registrations, since the field is only known once the event has run. An event that looks like one another source already archived at the same store within a day waits for review.",
+    "When Refresh mirror reads an event matching the rule below, it is published automatically, and its PlayRiftbound standings and pairings are fetched and published without review. Events you rejected never auto-publish, and neither do team events. The rule reads registrations, since the field is only known once the event has run. An event that looks like one another source already archived at the same store within a day waits for review.",
 };
 
 /** The other catalogues the one shared rule also governs. */
@@ -93,7 +93,7 @@ function AutoAcceptForm({
   return (
     <DialogForm onSubmit={save}>
       <DialogHeader>
-        <DialogTitle>Auto-accept rules</DialogTitle>
+        <DialogTitle>Auto-publish rule</DialogTitle>
         <DialogDescription>{SOURCE_INTRO[source]}</DialogDescription>
       </DialogHeader>
 
@@ -122,7 +122,7 @@ function AutoAcceptForm({
           <FieldError>Enter a whole number of players above zero.</FieldError>
         )}
         <p className="text-muted-foreground">
-          Every catalogue reads this threshold, so a change here also governs{" "}
+          Every source uses this threshold, so a change here also governs{" "}
           {otherSourceLabels(source)}.
         </p>
         {source === "uvsgames" && (
@@ -155,9 +155,8 @@ function AutoAcceptForm({
           </>
         )}
         <p className="text-muted-foreground">
-          Rules are applied as each sync crawls, and a sync only judges the events it just crawled.
-          Events already waiting in the triage list are caught up by the Auto-accept backlog button
-          on the Sync tab.
+          Refresh mirror applies the rule to the events it reads. Undecided events already in the
+          mirror catch up through Apply auto-publish rule in the Run menu on the Overview tab.
         </p>
         <p className="text-muted-foreground">Last changed {formatDayTime(settings.updatedAt)}.</p>
       </div>
@@ -189,7 +188,7 @@ export function MetaAutoAcceptDialog({
         {data === undefined ? (
           <>
             <DialogHeader>
-              <DialogTitle>Auto-accept rules</DialogTitle>
+              <DialogTitle>Auto-publish rule</DialogTitle>
             </DialogHeader>
             <p className="text-muted-foreground">Loading the rules…</p>
           </>

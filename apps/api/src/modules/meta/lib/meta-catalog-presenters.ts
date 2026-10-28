@@ -97,9 +97,11 @@ export function toMetaSyncSettings(row: MetaSyncSettingsRow): MetaSyncSettings {
 type MetaSyncCatalog = MetaSyncStatus["catalog"];
 
 export function toMetaSyncCatalog(
-  overview: Omit<MetaSyncCatalog, "oldestDueAt" | "lastSeenAt"> & {
+  overview: Omit<MetaSyncCatalog, "oldestDueAt" | "lastSeenAt" | "firstStartAt" | "nextCheckAt"> & {
     oldestDueAt: Date | null;
     lastSeenAt: Date | null;
+    firstStartAt: Date | null;
+    nextCheckAt: Date | null;
   },
 ): MetaSyncCatalog {
   return {
@@ -114,5 +116,15 @@ export function toMetaSyncCatalog(
     acceptedMissing: overview.acceptedMissing,
     acceptedCancelled: overview.acceptedCancelled,
     lastSeenAt: isoOrNull(overview.lastSeenAt),
+    notStarted: overview.notStarted,
+    firstStartAt: isoOrNull(overview.firstStartAt),
+    collecting: overview.collecting,
+    nextCheckAt: isoOrNull(overview.nextCheckAt),
+    final: overview.final,
+    noResults: overview.noResults,
+    needsDecision: overview.needsDecision,
+    passingNoResults: overview.passingNoResults,
+    skippedUpcoming: overview.skippedUpcoming,
+    skippedPast: overview.skippedPast,
   };
 }

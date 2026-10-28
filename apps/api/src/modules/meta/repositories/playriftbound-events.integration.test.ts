@@ -20,6 +20,15 @@ const KEYS = {
   results: "990000000000000005",
   due: "990000000000000006",
   unlocated: "990000000000000007",
+  notStarted: "990000000000000011",
+  collecting: "990000000000000012",
+  final: "990000000000000013",
+  noResults: "990000000000000014",
+  needsDecision: "990000000000000015",
+  passingNoResults: "990000000000000016",
+  team: "990000000000000017",
+  skippedUpcoming: "990000000000000018",
+  rejected: "990000000000000019",
 } as const;
 const ALL_KEYS = Object.values(KEYS);
 const ORGANIZER_ID = "pri-organizer-1";
@@ -273,6 +282,90 @@ describe.skipIf(!ctx)("playriftboundEventsRepo", () => {
       roundsFinalized: 3,
       resultsFetchedAt: SEEN,
     });
+  });
+
+  it("sorts each event into exactly one overview bucket", async () => {
+    const before = await repo.syncOverview(16);
+    const future = new Date(Date.now() + 7 * 86_400_000);
+    const big = { registeredCount: 20 };
+    await repo.upsertBatch(
+      [
+        row({ tournamentId: KEYS.notStarted, startAt: future }),
+        row({ tournamentId: KEYS.collecting }),
+        row({ tournamentId: KEYS.final }),
+        row({ tournamentId: KEYS.noResults }),
+        row({ tournamentId: KEYS.needsDecision, ...big }),
+        row({ tournamentId: KEYS.passingNoResults, ...big }),
+        row({ tournamentId: KEYS.team, ...big, playerFormat: "TWO_V_TWO" }),
+        row({ tournamentId: KEYS.skippedUpcoming, startAt: future }),
+        row({ tournamentId: KEYS.rejected, ...big }),
+      ],
+      SEEN,
+    );
+    for (const key of [KEYS.notStarted, KEYS.collecting, KEYS.final, KEYS.noResults]) {
+      await seedAccepted(key);
+    }
+    await db
+      .insertInto("ignoredMetaSourceEvents")
+      .values({ provider: PLAYRIFTBOUND_PROVIDER, externalId: KEYS.rejected })
+      .execute();
+    const played = {
+      structure: "SWISS",
+      matchFormat: "BO1",
+      roundCount: 3,
+      roundsPlayed: 3,
+      roundsFinalized: 3,
+      sourceUpdatedAt: SEEN,
+    };
+    for (const key of [KEYS.final, KEYS.needsDecision, KEYS.team, KEYS.rejected]) {
+      await repo.setDetailFacts(key, played, SEEN);
+    }
+    await repo.setRecheck(KEYS.collecting, {
+      nextCheckAt: new Date(Date.now() + 3_600_000),
+      checkStage: 0,
+    });
+
+    const after = await repo.syncOverview(16);
+
+    expect({
+      notStarted: after.notStarted - before.notStarted,
+      collecting: after.collecting - before.collecting,
+      final: after.final - before.final,
+      noResults: after.noResults - before.noResults,
+      needsDecision: after.needsDecision - before.needsDecision,
+      passingNoResults: after.passingNoResults - before.passingNoResults,
+      skippedUpcoming: after.skippedUpcoming - before.skippedUpcoming,
+      skippedPast: after.skippedPast - before.skippedPast,
+    }).toEqual({
+      notStarted: 1,
+      collecting: 1,
+      final: 1,
+      noResults: 1,
+      needsDecision: 1,
+      passingNoResults: 1,
+      skippedUpcoming: 1,
+      skippedPast: 1,
+    });
+    expect(after.nextCheckAt).not.toBeNull();
+
+    const listed = await repo.list(
+      { bucket: "needsDecision", minPlayers: 16, search: "PRI" },
+      { limit: 500, offset: 0 },
+    );
+    expect(listed.rows.map((r) => r.tournamentId)).toContain(KEYS.needsDecision);
+    expect(listed.rows.map((r) => r.tournamentId)).not.toContain(KEYS.passingNoResults);
+
+    const passing = await repo.passingNoResultsKeys(16);
+    expect(passing).toContain(KEYS.passingNoResults);
+    expect(passing).not.toContain(KEYS.needsDecision);
+    expect(passing).not.toContain(KEYS.team);
+  });
+
+  it("passes nothing through the rule while auto-publish is off", async () => {
+    const overview = await repo.syncOverview(null);
+
+    expect(overview.needsDecision).toBe(0);
+    expect(overview.passingNoResults).toBe(0);
   });
 
   it("re-queues a running event and leaves a finished one on its ladder", async () => {

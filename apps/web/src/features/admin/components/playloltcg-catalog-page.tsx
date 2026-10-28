@@ -162,7 +162,7 @@ function PlayloltcgRowActions({
         onClick={() => onUndismiss(row.activityShopId)}
       >
         <UndoIcon />
-        Undismiss
+        Restore
       </Button>
     );
   }
@@ -202,16 +202,16 @@ function PlayloltcgRowActions({
         onClick={() => onAccept(row.activityShopId)}
       >
         <CheckIcon />
-        Accept
+        Publish
       </Button>
       <ConfirmActionButton
-        title={`Dismiss "${row.name}"?`}
-        description="The event drops out of the new queue and the sync skips it from now on. You can undismiss it later."
-        confirmLabel="Dismiss"
+        title={`Reject "${row.name}"?`}
+        description="Refresh mirror never offers it again. You can restore it later."
+        confirmLabel="Reject"
         onConfirm={() => onDismiss(row.activityShopId)}
       >
         <ArchiveXIcon />
-        Dismiss
+        Reject
       </ConfirmActionButton>
     </>
   );
@@ -253,6 +253,7 @@ export function PlayloltcgCatalogPage() {
     status: filters.plStatus,
     minPlayers: filters.minPlayers,
     missing: filters.missing,
+    bucket: filters.bucket,
     awaitingResults: filters.awaitingResults,
     dateFrom: filters.dateFrom,
     dateTo: filters.dateTo,
@@ -271,7 +272,7 @@ export function PlayloltcgCatalogPage() {
         actions={
           <PageTopBarButton onClick={() => setRulesOpen(true)}>
             <SlidersHorizontalIcon />
-            Auto-accept rules
+            Auto-publish rule
           </PageTopBarButton>
         }
       />
@@ -280,7 +281,7 @@ export function PlayloltcgCatalogPage() {
         data={data?.rows ?? []}
         getRowKey={(row) => String(row.activityShopId)}
         serverSort={serverSort}
-        emptyText={data === undefined ? "Loading the catalogue…" : "No events match these filters."}
+        emptyText={data === undefined ? "Loading the mirror…" : "No events match these filters."}
         toolbar={
           <PlayloltcgCatalogFilters
             filters={filters}
@@ -302,7 +303,7 @@ export function PlayloltcgCatalogPage() {
           />
         }
       />
-      <Pager page={page} totalPages={totalPages} onPageChange={goToPage} label="Catalogue pages" />
+      <Pager page={page} totalPages={totalPages} onPageChange={goToPage} label="Mirror pages" />
 
       {rulesOpen && (
         <MetaAutoAcceptDialog source="playloltcg" onClose={() => setRulesOpen(false)} />

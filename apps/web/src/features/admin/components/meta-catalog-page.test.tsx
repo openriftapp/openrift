@@ -256,7 +256,7 @@ describe("MetaCatalogPage", () => {
     const user = userEvent.setup();
     render(<MetaCatalogPage />);
 
-    await user.click(screen.getByRole("button", { name: /Accept/u }));
+    await user.click(screen.getByRole("button", { name: /Publish/u }));
 
     expect(captured.accept).toHaveBeenCalledWith({ externalId: "evt-1" });
     expect(captured.toastSuccess).toHaveBeenCalledWith(
@@ -270,7 +270,7 @@ describe("MetaCatalogPage", () => {
     setResponse([makeRow({ displayStatus: "complete", decklistStatus: null })]);
     render(<MetaCatalogPage />);
 
-    await user.click(screen.getByRole("button", { name: /Accept/u }));
+    await user.click(screen.getByRole("button", { name: /Publish/u }));
 
     expect(captured.fetchEvent).toHaveBeenCalledWith({ externalId: "evt-1" });
     expect(captured.runSync).not.toHaveBeenCalled();
@@ -285,7 +285,7 @@ describe("MetaCatalogPage", () => {
     setResponse([makeRow({ displayStatus: "complete", decklistStatus: "PUBLISHED" })]);
     render(<MetaCatalogPage />);
 
-    await user.click(screen.getByRole("button", { name: /Accept/u }));
+    await user.click(screen.getByRole("button", { name: /Publish/u }));
 
     expect(captured.runSync).toHaveBeenCalledWith({ trigger: "runRecheck" });
     expect(captured.fetchEvent).not.toHaveBeenCalled();
@@ -306,7 +306,7 @@ describe("MetaCatalogPage", () => {
     setResponse([makeRow({ displayStatus: "complete", decklistStatus: "PUBLISHED" })]);
     render(<MetaCatalogPage />);
 
-    await user.click(screen.getByRole("button", { name: /Accept/u }));
+    await user.click(screen.getByRole("button", { name: /Publish/u }));
 
     expect(captured.toastError).not.toHaveBeenCalled();
   });
@@ -322,7 +322,7 @@ describe("MetaCatalogPage", () => {
     setResponse([makeRow({ displayStatus: "complete", decklistStatus: null })]);
     render(<MetaCatalogPage />);
 
-    await user.click(screen.getByRole("button", { name: /Accept/u }));
+    await user.click(screen.getByRole("button", { name: /Publish/u }));
 
     expect(captured.toastSuccess).not.toHaveBeenCalledWith(
       "Fetch is already running",
@@ -336,7 +336,7 @@ describe("MetaCatalogPage", () => {
     setResponse([makeRow({ displayStatus: "upcoming", decklistStatus: null })]);
     render(<MetaCatalogPage />);
 
-    await user.click(screen.getByRole("button", { name: /Accept/u }));
+    await user.click(screen.getByRole("button", { name: /Publish/u }));
 
     expect(captured.fetchEvent).not.toHaveBeenCalled();
     expect(captured.runSync).not.toHaveBeenCalled();
@@ -355,11 +355,11 @@ describe("MetaCatalogPage", () => {
     ]);
     render(<MetaCatalogPage />);
 
-    await user.click(screen.getByRole("button", { name: /Accept/u }));
+    await user.click(screen.getByRole("button", { name: /Publish/u }));
     const dialog = await screen.findByRole("dialog");
     await user.click(within(dialog).getByRole("combobox"));
     await user.click(await screen.findByRole("option", { name: "Standard" }));
-    await user.click(within(dialog).getByRole("button", { name: "Accept" }));
+    await user.click(within(dialog).getByRole("button", { name: "Publish" }));
 
     expect(captured.accept).toHaveBeenCalledWith({ externalId: "evt-1", format: "standard" });
     expect(captured.runSync).toHaveBeenCalledWith({ trigger: "runRecheck" });
@@ -371,7 +371,7 @@ describe("MetaCatalogPage", () => {
     render(<MetaCatalogPage />);
 
     expect(screen.getByText("Unmapped")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Accept/u }));
+    await user.click(screen.getByRole("button", { name: /Publish/u }));
 
     expect(captured.accept).not.toHaveBeenCalled();
     const dialog = await screen.findByRole("dialog");
@@ -382,11 +382,11 @@ describe("MetaCatalogPage", () => {
     const user = userEvent.setup();
     render(<MetaCatalogPage />);
 
-    await user.click(screen.getByRole("button", { name: /Dismiss/u }));
+    await user.click(screen.getByRole("button", { name: /Reject/u }));
     expect(captured.dismiss).not.toHaveBeenCalled();
 
     const dialog = await screen.findByRole("alertdialog");
-    await user.click(within(dialog).getByRole("button", { name: "Dismiss" }));
+    await user.click(within(dialog).getByRole("button", { name: "Reject" }));
     expect(captured.dismiss).toHaveBeenCalledWith({ externalId: "evt-1" });
   });
 
@@ -394,9 +394,9 @@ describe("MetaCatalogPage", () => {
     setResponse([makeRow({ triage: "dismissed" })]);
     render(<MetaCatalogPage />);
     expect(
-      rowActions("Summoner Skirmish").getByRole("button", { name: /Undismiss/u }),
+      rowActions("Summoner Skirmish").getByRole("button", { name: /Restore/u }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Accept/u })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Publish/u })).not.toBeInTheDocument();
   });
 
   it("asks before removing an accepted event from /meta, and removes only once confirmed", async () => {
@@ -435,7 +435,7 @@ describe("MetaCatalogPage", () => {
     render(<MetaCatalogPage />);
 
     expect(screen.queryByLabelText("Minimum field size")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Auto-accept rules" }));
+    await user.click(screen.getByRole("button", { name: "Auto-publish rule" }));
 
     expect(await screen.findByLabelText("Minimum field size")).toHaveValue(64);
   });
@@ -498,8 +498,8 @@ describe("MetaCatalogPage", () => {
     searchStore.seed({ triage: "accepted" });
     render(<MetaCatalogPage />);
 
-    await user.click(screen.getByLabelText("Triage state"));
-    await user.click(await screen.findByRole("option", { name: /^New/u }));
+    await user.click(screen.getByLabelText("Decision"));
+    await user.click(await screen.findByRole("option", { name: /^Undecided/u }));
 
     expect(searchStore.get().triage).toBeUndefined();
     expect(captured.params).toMatchObject({ triage: "new" });
@@ -509,7 +509,7 @@ describe("MetaCatalogPage", () => {
     const user = userEvent.setup();
     render(<MetaCatalogPage />);
 
-    await user.click(screen.getByLabelText("Triage state"));
+    await user.click(screen.getByLabelText("Decision"));
     await user.click(await screen.findByRole("option", { name: "Any state" }));
 
     expect(searchStore.get()).toMatchObject({ triage: "any" });
@@ -563,7 +563,7 @@ describe("MetaCatalogPage", () => {
 
   it("leaves an untriaged row's coverage blank, since nothing has been fetched", () => {
     render(<MetaCatalogPage />);
-    expect(screen.getByText("New")).toBeInTheDocument();
+    expect(screen.getByText("Undecided")).toBeInTheDocument();
     expect(screen.queryByText("Standings pending")).not.toBeInTheDocument();
   });
 

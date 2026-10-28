@@ -290,20 +290,40 @@ describe("toMetaSyncCatalog", () => {
     acceptedMissing: 1,
     acceptedCancelled: 2,
     lastSeenAt: new Date("2026-08-20T00:00:00Z"),
+    notStarted: 4,
+    firstStartAt: new Date("2026-08-21T15:30:00Z"),
+    collecting: 6,
+    nextCheckAt: new Date("2026-08-20T16:00:00Z"),
+    final: 80,
+    noResults: 2,
+    needsDecision: 1,
+    passingNoResults: 3,
+    skippedUpcoming: 9,
+    skippedPast: 10,
   };
 
-  it("serializes the two timestamps and keeps the counts", () => {
+  it("serializes the timestamps and keeps the counts", () => {
     expect(toMetaSyncCatalog(overview)).toEqual({
       ...overview,
       oldestDueAt: "2026-08-01T00:00:00.000Z",
       lastSeenAt: "2026-08-20T00:00:00.000Z",
+      firstStartAt: "2026-08-21T15:30:00.000Z",
+      nextCheckAt: "2026-08-20T16:00:00.000Z",
     });
   });
 
   it("keeps an empty catalogue's timestamps null", () => {
-    const presented = toMetaSyncCatalog({ ...overview, oldestDueAt: null, lastSeenAt: null });
+    const presented = toMetaSyncCatalog({
+      ...overview,
+      oldestDueAt: null,
+      lastSeenAt: null,
+      firstStartAt: null,
+      nextCheckAt: null,
+    });
 
     expect(presented.oldestDueAt).toBeNull();
     expect(presented.lastSeenAt).toBeNull();
+    expect(presented.firstStartAt).toBeNull();
+    expect(presented.nextCheckAt).toBeNull();
   });
 });

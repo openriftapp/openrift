@@ -90,6 +90,10 @@ const metaCatalogCountsSchema = z.object({
   dismissed: z.number().int().nonnegative(),
 });
 
+export const META_SYNC_BUCKET_FILTERS = ["needsDecision", "passingNoResults"] as const;
+export type MetaSyncBucketFilter = (typeof META_SYNC_BUCKET_FILTERS)[number];
+const syncBucketFilterSchema = z.enum(META_SYNC_BUCKET_FILTERS);
+
 const metaCatalogListQuerySchema = z.object({
   search: z.string().optional(),
   displayStatus: z.enum(META_CATALOG_DISPLAY_STATUSES).optional(),
@@ -99,6 +103,7 @@ const metaCatalogListQuerySchema = z.object({
   dateTo: isoDateTime.optional(),
   triage: triageSchema.optional(),
   missing: z.coerce.boolean().optional(),
+  bucket: syncBucketFilterSchema.optional(),
   awaitingResults: z.coerce.boolean().optional(),
   sort: z.enum(META_CATALOG_SORTS).optional(),
   direction: z.enum(META_CATALOG_SORT_DIRECTIONS).optional(),
@@ -149,6 +154,7 @@ const playloltcgCatalogListQuerySchema = z.object({
   dateTo: isoDate.optional(),
   triage: triageSchema.optional(),
   missing: z.coerce.boolean().optional(),
+  bucket: syncBucketFilterSchema.optional(),
   awaitingResults: z.coerce.boolean().optional(),
   sort: z.enum(META_CATALOG_SORTS).optional(),
   direction: z.enum(META_CATALOG_SORT_DIRECTIONS).optional(),
@@ -196,6 +202,7 @@ const topdeckCatalogListQuerySchema = z.object({
   dateTo: isoDate.optional(),
   triage: triageSchema.optional(),
   missing: z.coerce.boolean().optional(),
+  bucket: syncBucketFilterSchema.optional(),
   sort: z.enum(META_CATALOG_SORTS).optional(),
   direction: z.enum(META_CATALOG_SORT_DIRECTIONS).optional(),
   page: z.coerce.number().int().min(1).optional(),
@@ -246,6 +253,7 @@ const playriftboundCatalogListQuerySchema = z.object({
   dateTo: isoDate.optional(),
   triage: triageSchema.optional(),
   missing: z.coerce.boolean().optional(),
+  bucket: syncBucketFilterSchema.optional(),
   awaitingResults: z.coerce.boolean().optional(),
   sort: z.enum(META_CATALOG_SORTS).optional(),
   direction: z.enum(META_CATALOG_SORT_DIRECTIONS).optional(),
@@ -346,12 +354,23 @@ export const metaSyncStatusSchema = z.object({
     acceptedMissing: z.number().int(),
     acceptedCancelled: z.number().int(),
     lastSeenAt: isoDateTime.nullable(),
+    notStarted: z.number().int(),
+    firstStartAt: isoDateTime.nullable(),
+    collecting: z.number().int(),
+    nextCheckAt: isoDateTime.nullable(),
+    final: z.number().int(),
+    noResults: z.number().int(),
+    needsDecision: z.number().int(),
+    passingNoResults: z.number().int(),
+    skippedUpcoming: z.number().int(),
+    skippedPast: z.number().int(),
   }),
   archive: z.object({
     events: z.number().int(),
     eventsWithStandings: z.number().int(),
     eventsWithDecklists: z.number().int(),
     decks: z.number().int(),
+    addedLast7Days: z.number().int(),
   }),
   counts: metaCatalogCountsSchema,
   runs: z.array(metaSyncRunSchema),
@@ -456,6 +475,11 @@ export const adminMetaCatalogContract = {
     .route({ method: "GET", path: `${BASE}/sync`, tags: [TAG] })
     .input(z.object({ source: metaSourceSchema }))
     .output(metaSyncStatusSchema),
+
+  rejectPassingNoResults: authedRoute
+    .route({ method: "POST", path: `${BASE}/sync/reject-passing-no-results`, tags: [TAG] })
+    .input(z.object({ source: metaSourceSchema }))
+    .output(z.object({ rejected: z.number().int().nonnegative() })),
 
   runSync: authedRoute
     .route({ method: "POST", path: `${BASE}/sync/daily`, tags: [TAG], successStatus: 202 })

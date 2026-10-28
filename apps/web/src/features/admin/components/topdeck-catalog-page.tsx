@@ -154,7 +154,7 @@ function TopdeckRowActions({
     return (
       <Button variant="ghost" size="sm" disabled={busy} onClick={() => onUndismiss(row.tid)}>
         <UndoIcon />
-        Undismiss
+        Restore
       </Button>
     );
   }
@@ -178,16 +178,16 @@ function TopdeckRowActions({
     <>
       <Button variant="ghost" size="sm" disabled={busy} onClick={() => onAccept(row.tid)}>
         <CheckIcon />
-        Accept
+        Publish
       </Button>
       <ConfirmActionButton
-        title={`Dismiss "${row.name}"?`}
-        description="The event drops out of the new queue and the sync skips it from now on. You can undismiss it later."
-        confirmLabel="Dismiss"
+        title={`Reject "${row.name}"?`}
+        description="Refresh mirror never offers it again. You can restore it later."
+        confirmLabel="Reject"
         onConfirm={() => onDismiss(row.tid)}
       >
         <ArchiveXIcon />
-        Dismiss
+        Reject
       </ConfirmActionButton>
     </>
   );
@@ -218,6 +218,7 @@ export function TopdeckCatalogPage() {
     format: filters.tdFormat,
     minPlayers: filters.minPlayers,
     missing: filters.missing,
+    bucket: filters.bucket,
     dateFrom: filters.dateFrom,
     dateTo: filters.dateTo,
     sort,
@@ -235,7 +236,7 @@ export function TopdeckCatalogPage() {
         actions={
           <PageTopBarButton onClick={() => setRulesOpen(true)}>
             <SlidersHorizontalIcon />
-            Auto-accept rules
+            Auto-publish rule
           </PageTopBarButton>
         }
       />
@@ -244,7 +245,7 @@ export function TopdeckCatalogPage() {
         data={data?.rows ?? []}
         getRowKey={(row) => row.tid}
         serverSort={serverSort}
-        emptyText={data === undefined ? "Loading the catalogue…" : "No events match these filters."}
+        emptyText={data === undefined ? "Loading the mirror…" : "No events match these filters."}
         toolbar={
           <TopdeckCatalogFilters
             filters={filters}
@@ -263,7 +264,7 @@ export function TopdeckCatalogPage() {
           />
         }
       />
-      <Pager page={page} totalPages={totalPages} onPageChange={goToPage} label="Catalogue pages" />
+      <Pager page={page} totalPages={totalPages} onPageChange={goToPage} label="Mirror pages" />
 
       {rulesOpen && <MetaAutoAcceptDialog source="topdeck" onClose={() => setRulesOpen(false)} />}
     </>

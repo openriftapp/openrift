@@ -294,7 +294,7 @@ function CatalogRowActionsFor({
         onClick={() => undismiss.mutate({ externalId: row.externalId })}
       >
         <UndoIcon />
-        Undismiss
+        Restore
       </Button>
     );
   }
@@ -344,16 +344,16 @@ function CatalogRowActionsFor({
         onClick={() => void handleAccept()}
       >
         <CheckIcon />
-        Accept
+        Publish
       </Button>
       <ConfirmActionButton
-        title={`Dismiss "${row.name}"?`}
-        description="The event drops out of the new queue and the sync skips it from now on. You can undismiss it later."
-        confirmLabel="Dismiss"
+        title={`Reject "${row.name}"?`}
+        description="Refresh mirror never offers it again. You can restore it later."
+        confirmLabel="Reject"
         onConfirm={() => dismiss.mutateAsync({ externalId: row.externalId })}
       >
         <ArchiveXIcon />
-        Dismiss
+        Reject
       </ConfirmActionButton>
     </>
   );
@@ -398,6 +398,7 @@ export function MetaCatalogPage() {
     minPlayers: filters.minPlayers,
     decklistPublished: filters.decklists,
     missing: filters.missing,
+    bucket: filters.bucket,
     awaitingResults: filters.awaitingResults,
     dateFrom: catalogDayBoundary(filters.dateFrom ?? "", "start"),
     dateTo: catalogDayBoundary(filters.dateTo ?? "", "end"),
@@ -437,7 +438,7 @@ export function MetaCatalogPage() {
             </PageTopBarButton>
             <PageTopBarButton onClick={() => setRulesOpen(true)}>
               <SlidersHorizontalIcon />
-              Auto-accept rules
+              Auto-publish rule
             </PageTopBarButton>
           </>
         }
@@ -448,7 +449,7 @@ export function MetaCatalogPage() {
         data={data?.rows ?? []}
         getRowKey={(row) => row.externalId}
         serverSort={serverSort}
-        emptyText={data === undefined ? "Loading the catalogue…" : "No events match these filters."}
+        emptyText={data === undefined ? "Loading the mirror…" : "No events match these filters."}
         toolbar={
           <CatalogFilters
             filters={filters}
@@ -461,7 +462,7 @@ export function MetaCatalogPage() {
         actions={<CatalogRowActions onPickFormat={setFormatTarget} />}
       />
 
-      <Pager page={page} totalPages={totalPages} onPageChange={goToPage} label="Catalogue pages" />
+      <Pager page={page} totalPages={totalPages} onPageChange={goToPage} label="Mirror pages" />
 
       <MetaCatalogAcceptDialog
         row={formatTarget}

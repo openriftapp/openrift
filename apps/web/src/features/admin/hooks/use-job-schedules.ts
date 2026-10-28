@@ -4,7 +4,7 @@ import type {
   ScheduledJobKind,
 } from "@openrift/shared/contracts/admin/job-schedules";
 import { adminJobSchedulesContract } from "@openrift/shared/contracts/admin/job-schedules";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
@@ -15,6 +15,10 @@ import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 export function useJobSchedules() {
   return useSuspenseQuery(adminJobSchedulesQueryOptions);
+}
+
+export function useJobSchedulesQuery() {
+  return useQuery(adminJobSchedulesQueryOptions);
 }
 
 const SCHEDULE_WRITE_INVALIDATES = [adminKeys.jobSchedules, adminKeys.jobRuns];

@@ -1,10 +1,13 @@
-import type { UvsgamesCatalogProjection } from "../../lib/uvsgames-catalog.js";
+import type {
+  UvsgamesCatalogProjection,
+  UvsgamesProbedProjection,
+} from "../../lib/uvsgames-catalog.js";
 import { projectCatalogRow } from "../../lib/uvsgames-catalog.js";
 import { autoAcceptCatalogEvents, withdrawCancelledCatalogEvents } from "./accept.js";
 import { runCancelRequested, writeRunHeartbeat } from "./crawl-checkpoint.js";
 import type { MetaSyncDeps } from "./deps.js";
 import { clock, errorText, EVENTS_PATH, GAME_SLUG } from "./deps.js";
-import { probeId } from "./id-sweep.js";
+import { probeMirroredId } from "./id-sweep.js";
 import type { MetaSyncResultBase } from "./result.js";
 import { emptyMetaSyncResult } from "./result.js";
 import { syncEventTemplates } from "./templates.js";
@@ -398,7 +401,7 @@ async function probeMissing(deps: MetaSyncDeps, ctx: CrawlContext): Promise<void
     return;
   }
   const ids = await deps.repos.uvsgamesEvents.unprobedMissing(MAX_MISSING_PROBES);
-  const found: UvsgamesCatalogProjection[] = [];
+  const found: UvsgamesProbedProjection[] = [];
   const absent: string[] = [];
   let failures = 0;
   for (const [index, id] of ids.entries()) {
@@ -408,18 +411,19 @@ async function probeMissing(deps: MetaSyncDeps, ctx: CrawlContext): Promise<void
     if (ctx.stopped) {
       break;
     }
-    const outcome = await probeId(deps, Number(id));
+    const outcome = await probeMirroredId(deps, Number(id));
     if (outcome.kind === "event") {
       found.push(outcome.projection);
       failures = 0;
     } else if (outcome.kind === "probe" && outcome.probe.outcome === "absent") {
       absent.push(id);
       failures = 0;
+    } else if (outcome.kind === "probe") {
+      // The source answered, so this is no sign of a block worth stopping for.
+      record(ctx, `Event ${id}: ${outcome.probe.outcome}`);
+      failures = 0;
     } else {
-      record(
-        ctx,
-        outcome.kind === "failed" ? outcome.error : `Event ${id}: ${outcome.probe.outcome}`,
-      );
+      record(ctx, outcome.error);
       failures++;
       if (failures >= MAX_CONSECUTIVE_FAILURES) {
         record(ctx, `Stopped probing missing events after ${failures} failures in a row`);

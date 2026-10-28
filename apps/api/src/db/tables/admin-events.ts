@@ -61,6 +61,7 @@ export type AdminEventAction =
   | "meta-overlays.upload"
   | "meta-catalog.accept"
   | "meta-catalog.dismiss"
+  | "meta-catalog.dismiss-bulk"
   | "meta-catalog.undismiss"
   | "meta-catalog.remove"
   | "meta-catalog.settings"

@@ -1,13 +1,14 @@
 import type {
+  MetaArchiveJobs,
   MetaCancellableJob,
   MetaCatalogListResponse,
   MetaCatalogSort,
   MetaCatalogSortDirection,
   MetaCatalogTriage,
-  MetaArchiveJobs,
   MetaSource,
   MetaSourceFormat,
   MetaSourceTemplate,
+  MetaSyncBucketFilter,
   MetaSyncCancelResult,
   MetaSyncSettings,
   MetaSyncStatus,
@@ -37,6 +38,7 @@ export interface MetaCatalogQueryParams {
   minPlayers?: number;
   decklistPublished?: boolean;
   missing?: boolean;
+  bucket?: MetaSyncBucketFilter;
   awaitingResults?: boolean;
   dateFrom?: string;
   dateTo?: string;
@@ -62,6 +64,7 @@ const fetchMetaCatalog = createServerFn({ method: "GET" })
       // Query strings coerce "false" to true; an off toggle must be absent, never false.
       decklistPublished: data.decklistPublished === true ? true : undefined,
       missing: data.missing === true ? true : undefined,
+      bucket: data.bucket,
       awaitingResults: data.awaitingResults === true ? true : undefined,
     }),
   );
@@ -253,6 +256,25 @@ export function useUpdateMetaSyncSettings() {
   return useMutationWithInvalidation<MetaSyncSettings, MetaSyncSettingsInput>({
     mutationFn: (vars) => updateMetaSyncSettingsFn({ data: vars }),
     invalidates: [adminKeys.meta.syncSettings],
+  });
+}
+
+const rejectPassingNoResultsFn = createServerFn({ method: "POST" })
+  .validator((input: { source: MetaSource }) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<{ rejected: number }> =>
+    apiOrpcClient(adminMetaCatalogContract, context.cookie).rejectPassingNoResults(data),
+  );
+
+export function useRejectPassingNoResults(source: MetaSource) {
+  return useMutationWithInvalidation<{ rejected: number }, void>({
+    mutationFn: () => rejectPassingNoResultsFn({ data: { source } }),
+    invalidates: [
+      adminKeys.meta.syncStatus.prefix,
+      adminKeys.meta.catalogue,
+      adminKeys.meta.playloltcgCatalogue,
+      adminKeys.meta.playriftboundCatalogue,
+    ],
   });
 }
 

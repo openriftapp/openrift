@@ -86,10 +86,10 @@ function store(row: Record<string, unknown>): { id: number | null; name: string 
   };
 }
 
-export function catalogContentHash(fields: Omit<UvsgamesCatalogProjection, "contentHash">): string {
+export function catalogContentHash(fields: Omit<UvsgamesProbedProjection, "contentHash">): string {
   const parts = [
     fields.name,
-    fields.startAt.toISOString(),
+    fields.startAt?.toISOString() ?? "",
     fields.endAtEstimate?.toISOString() ?? "",
     fields.displayStatus,
     fields.decklistStatus ?? "",
@@ -112,6 +112,21 @@ export function catalogContentHash(fields: Omit<UvsgamesCatalogProjection, "cont
  * published.
  */
 export function projectCatalogRow(raw: unknown): UvsgamesCatalogProjection | null {
+  const projection = projectProbedRow(raw);
+  return projection === null || projection.startAt === null
+    ? null
+    : { ...projection, startAt: projection.startAt };
+}
+
+export type UvsgamesProbedProjection = Omit<UvsgamesCatalogProjection, "startAt"> & {
+  startAt: Date | null;
+};
+
+/**
+ * The per-event endpoint drops the start of some cancelled and finished events. Only
+ * for an event already in the mirror, whose stored start then stands.
+ */
+export function projectProbedRow(raw: unknown): UvsgamesProbedProjection | null {
   const row = record(raw);
   if (row === null) {
     return null;
@@ -120,7 +135,7 @@ export function projectCatalogRow(raw: unknown): UvsgamesCatalogProjection | nul
   const name = text(row.name);
   const startAt = instant(row.start_datetime);
   const displayStatus = text(row.display_status);
-  if (externalId === null || name === null || startAt === null || displayStatus === null) {
+  if (externalId === null || name === null || displayStatus === null) {
     return null;
   }
 

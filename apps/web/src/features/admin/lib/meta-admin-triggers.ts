@@ -56,97 +56,97 @@ export interface TriggerEntry {
 }
 
 const AUTO_ACCEPT_DESCRIPTION =
-  "Runs the auto-accept rules over every event still awaiting triage. A sync only judges the events it just crawled, so this is how a rule you just turned on reaches the rest.";
+  "Runs the rule over every mirrored event still undecided. Only needed after changing the rule.";
 
 const AUTO_ACCEPT_CONFIRM = {
-  title: "Auto-accept the whole backlog?",
+  title: "Apply the auto-publish rule?",
   body: (pending: number | null) =>
-    `The current rules run over ${pending === null ? "every event" : `all ${pending.toLocaleString()} events`} awaiting triage, and every match becomes a live archive event. Dismissed events are left alone, but nothing takes an accept back in bulk.`,
-  action: "Run the sweep",
+    `The rule runs over ${pending === null ? "every undecided event" : `all ${pending.toLocaleString()} undecided events`}, and every match is published. Rejected events are left alone. Nothing unpublishes in bulk.`,
+  action: "Apply the rule",
 };
 
 const ID_SWEEP_DESCRIPTION =
   "Asks the source about event ids the listing never returns, which is the only way to reach an unlisted or cancelled event. One request per id, so a run takes a bounded slice and the next one carries on.";
 
 const ID_SWEEP_CONFIRM = {
-  title: "Sweep event ids?",
+  title: "Find unlisted events?",
   body: () =>
     "The sweep spends one request per id, up to 5,000 in a run, against a source the rest of the pipeline asks a few hundred times a week. Nothing is ever asked about twice, so stopping and continuing later costs nothing.",
-  action: "Run the sweep",
+  action: "Probe ids",
 };
 
 export const TRIGGER_GROUPS: Record<MetaSource, TriggerEntry[]> = {
   uvsgames: [
     {
       trigger: "runSync",
-      label: "Sync the catalogue",
-      description: "Crawls the last 7 days and everything upcoming.",
+      label: "Refresh mirror",
+      description: "Re-reads the last 7 days and everything upcoming into the mirror.",
       scheduleKey: "meta.uvsgames_sync",
     },
     {
       trigger: "runAutoAccept",
-      label: "Auto-accept backlog",
+      label: "Apply auto-publish rule",
       description: AUTO_ACCEPT_DESCRIPTION,
       confirm: AUTO_ACCEPT_CONFIRM,
     },
     {
       trigger: "runRecheck",
-      label: "Fetch results",
+      label: "Collect results",
       description:
-        "Re-reads the last three days of the listing, then pulls standings and decklists for due events, important ones first, for up to five minutes.",
+        "Re-reads the last three days of the list, then fetches standings and decklists for published events whose next check is due, important ones first, for up to five minutes.",
       scheduleKey: "meta.uvsgames_recheck",
       stop: {
         job: "recheck",
-        label: "Stop fetching results",
+        label: "Stop collecting results",
         description:
-          "A results fetch is running. Stopping keeps every event it already pulled, and the next run picks up the ones still due.",
+          "Stopping keeps every event it already collected, and the next run picks up the ones still due.",
       },
     },
     {
       trigger: "runIdSweep",
-      label: "Sweep event ids",
+      label: "Find unlisted events",
       description: ID_SWEEP_DESCRIPTION,
       confirm: ID_SWEEP_CONFIRM,
       stop: {
         job: "id_sweep",
-        label: "Stop the id sweep",
+        label: "Stop finding unlisted events",
         description:
-          "A sweep is running. Stopping keeps every id it already decided, and the next run carries on with the ones it has not asked about.",
+          "Stopping keeps every id it already probed, and the next run carries on with the rest.",
       },
     },
   ],
   playloltcg: [
     {
       trigger: "runPlayloltcgSync",
-      label: "Sync the catalogue",
-      description: "Crawls the last 7 days and everything upcoming.",
+      label: "Refresh mirror",
+      description: "Re-reads the last 7 days and everything upcoming into the mirror.",
       scheduleKey: "meta.playloltcg_sync",
     },
     {
       trigger: "runPlayloltcgAutoAccept",
-      label: "Auto-accept backlog",
+      label: "Apply auto-publish rule",
       description: AUTO_ACCEPT_DESCRIPTION,
       confirm: AUTO_ACCEPT_CONFIRM,
     },
     {
       trigger: "runPlayloltcgRecheck",
-      label: "Fetch results",
+      label: "Collect results",
       description:
-        "Re-reads the last three days of the listing, then pulls standings and decklists for due events, important ones first, for up to five minutes.",
+        "Re-reads the last three days of the list, then fetches standings and decklists for published events whose next check is due, important ones first, for up to five minutes.",
       scheduleKey: "meta.playloltcg_recheck",
     },
   ],
   topdeck: [
     {
       trigger: "runTopdeckSync",
-      label: "Sync the catalogue",
+      label: "Refresh mirror",
       description:
-        "Reads the last 30 days of each format, with standings and decklists. There is no separate results fetch: one search carries them.",
+        "Re-reads the last 30 days of each format. Standings and decklists come in the same pass, so there is no Collect results job.",
       scheduleKey: "meta.topdeck_sync",
     },
     {
       trigger: "runTopdeckAutoAccept",
-      label: "Auto-accept backlog",
+      label: "Apply auto-publish rule",
       description: AUTO_ACCEPT_DESCRIPTION,
       confirm: AUTO_ACCEPT_CONFIRM,
     },
@@ -154,22 +154,22 @@ export const TRIGGER_GROUPS: Record<MetaSource, TriggerEntry[]> = {
   playriftbound: [
     {
       trigger: "runPlayriftboundSync",
-      label: "Sync the catalogue",
+      label: "Refresh mirror",
       description:
-        "Searches around every known store for events from the last 7 days to two weeks ahead. Areas with no known store need the discovery sweep.",
+        "Re-reads events around every known store, from 7 days back to 2 weeks ahead. Only stores Find stores has found are covered.",
       scheduleKey: "meta.playriftbound_sync",
     },
     {
       trigger: "runPlayriftboundAutoAccept",
-      label: "Auto-accept backlog",
+      label: "Apply auto-publish rule",
       description: AUTO_ACCEPT_DESCRIPTION,
       confirm: AUTO_ACCEPT_CONFIRM,
     },
     {
       trigger: "runPlayriftboundRecheck",
-      label: "Fetch results",
+      label: "Collect results",
       description:
-        "Re-queues the events running now, then checks each due event for changes and pulls standings and pairings for the ones that moved, important ones first, for up to five minutes.",
+        "Re-queues the events running now, then fetches standings and pairings for published events that changed, important ones first, for up to five minutes.",
       scheduleKey: "meta.playriftbound_recheck",
     },
   ],
@@ -183,20 +183,21 @@ export const BACKFILL_TRIGGERS_BY_SOURCE: Record<
     idle: [
       {
         trigger: "runBackfill",
-        label: "Full backfill",
-        description: "Crawls the source's full history, resuming where the last run stopped.",
+        label: "Mirror full history",
+        description:
+          "Reads every event the source has listed, resuming where the last run stopped.",
       },
     ],
     resumable: [
       {
         trigger: "runBackfill",
-        label: "Continue backfill",
+        label: "Mirror full history: continue",
         description: "Picks up where the last one stopped.",
       },
       {
         trigger: "restartBackfill",
-        label: "Backfill from scratch",
-        description: "The same crawl from day one, ignoring the resume point.",
+        label: "Mirror full history: from scratch",
+        description: "Starts again from the oldest event, ignoring the resume point.",
       },
     ],
   },
@@ -204,20 +205,21 @@ export const BACKFILL_TRIGGERS_BY_SOURCE: Record<
     idle: [
       {
         trigger: "runPlayloltcgBackfill",
-        label: "Full backfill",
-        description: "Crawls the source's full history, resuming where the last run stopped.",
+        label: "Mirror full history",
+        description:
+          "Reads every event the source has listed, resuming where the last run stopped.",
       },
     ],
     resumable: [
       {
         trigger: "runPlayloltcgBackfill",
-        label: "Continue backfill",
+        label: "Mirror full history: continue",
         description: "Picks up where the last one stopped.",
       },
       {
         trigger: "restartPlayloltcgBackfill",
-        label: "Backfill from scratch",
-        description: "The same crawl from day one, ignoring the resume point.",
+        label: "Mirror full history: from scratch",
+        description: "Starts again from the oldest event, ignoring the resume point.",
       },
     ],
   },
@@ -225,20 +227,21 @@ export const BACKFILL_TRIGGERS_BY_SOURCE: Record<
     idle: [
       {
         trigger: "runTopdeckBackfill",
-        label: "Full backfill",
-        description: "Crawls the source's full history, resuming where the last run stopped.",
+        label: "Mirror full history",
+        description:
+          "Reads every event the source has listed, resuming where the last run stopped.",
       },
     ],
     resumable: [
       {
         trigger: "runTopdeckBackfill",
-        label: "Continue backfill",
+        label: "Mirror full history: continue",
         description: "Picks up where the last one stopped.",
       },
       {
         trigger: "restartTopdeckBackfill",
-        label: "Backfill from scratch",
-        description: "The same crawl from day one, ignoring the resume point.",
+        label: "Mirror full history: from scratch",
+        description: "Starts again from the oldest event, ignoring the resume point.",
       },
     ],
   },
@@ -246,21 +249,21 @@ export const BACKFILL_TRIGGERS_BY_SOURCE: Record<
     idle: [
       {
         trigger: "runPlayriftboundBackfill",
-        label: "Discovery sweep",
+        label: "Find stores",
         description:
-          "Searches the whole inhabited map for stores with events, about 10,000 searches. The source keeps no history before October 2026.",
+          "Searches the whole map for stores with events, so Refresh mirror knows where to look. About 10,000 searches.",
       },
     ],
     resumable: [
       {
         trigger: "runPlayriftboundBackfill",
-        label: "Continue sweep",
+        label: "Find stores: continue",
         description: "Picks up at the area the last one stopped at.",
       },
       {
         trigger: "restartPlayriftboundBackfill",
-        label: "Sweep from scratch",
-        description: "The same sweep from the first area, ignoring the resume point.",
+        label: "Find stores: from scratch",
+        description: "Starts again from the first area, ignoring the resume point.",
       },
     ],
   },
@@ -285,18 +288,18 @@ export const ARCHIVE_TRIGGERS: TriggerEntry[] = [
     trigger: "runRetier",
     label: "Reapply tier rules",
     description:
-      "Files every event under the current template mappings and moves the ones whose tier changed. Run this after editing tier mappings in Templates & formats.",
+      "Applies the current template mappings to every published event. Run it after editing tier mappings in Templates & formats.",
   },
   {
     trigger: "runRepromote",
-    label: "Re-promote everything",
+    label: "Rebuild published events",
     description:
-      "Rebuilds every archived event from its sources and accepted overlays. The general repair, for a rule the tier pass cannot see. It takes several minutes.",
+      "Rewrites every published event from its mirrored source data and accepted overlays. Takes several minutes.",
     confirm: {
-      title: "Re-promote the whole archive?",
+      title: "Rebuild every published event?",
       body: () =>
-        "Every event is rebuilt from its mirrors and its accepted overlays. Nothing a reviewer accepted is lost, but the pass reads and writes the whole archive and takes several minutes.",
-      action: "Run the repair",
+        "Every published event is rewritten from its mirrored source data and accepted overlays. Nothing a reviewer accepted is lost. The pass takes several minutes.",
+      action: "Rebuild",
     },
   },
 ];

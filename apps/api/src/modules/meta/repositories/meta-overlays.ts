@@ -571,6 +571,19 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
         .execute();
     },
 
+    async ignoreEvents(provider: string, externalIds: readonly string[]): Promise<number> {
+      let inserted = 0;
+      for (const batch of rowBatches(externalIds.map((externalId) => ({ provider, externalId })))) {
+        const result = await db
+          .insertInto("ignoredMetaSourceEvents")
+          .values(batch)
+          .onConflict((oc) => oc.columns(["provider", "externalId"]).doNothing())
+          .executeTakeFirst();
+        inserted += Number(result.numInsertedOrUpdatedRows ?? 0);
+      }
+      return inserted;
+    },
+
     async unignoreEvent(provider: string, externalId: string): Promise<boolean> {
       const result = await db
         .deleteFrom("ignoredMetaSourceEvents")

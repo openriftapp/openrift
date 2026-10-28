@@ -1,3 +1,4 @@
+import type { MetaSyncBucketFilter } from "@openrift/shared/contracts/admin/meta-catalog";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
 
@@ -8,6 +9,13 @@ import { keyBatches, rowBatches } from "../../../lib/bind-batches.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
 import { PLAYLOLTCG_PROVIDER, PLAYLOLTCG_STATUS_FINISHED } from "../../../lib/meta-providers.js";
 import { offsetPage } from "../../../repositories/query-helpers.js";
+import type { MetaSyncBucketColumns, MetaSyncBuckets } from "./meta-sync-buckets.js";
+import {
+  metaSyncBucketFilter,
+  metaSyncBucketSelections,
+  passingNoResultsFilter,
+  toMetaSyncBuckets,
+} from "./meta-sync-buckets.js";
 
 type PlayloltcgEventRow = Selectable<PlayloltcgEventsTable>;
 
@@ -91,6 +99,7 @@ export interface PlayloltcgListFilters {
   dateFrom?: string;
   dateTo?: string;
   missing?: boolean;
+  bucket?: MetaSyncBucketFilter;
   awaitingResults?: boolean;
 }
 
@@ -172,6 +181,14 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
 
   const isNew = sql<SqlBool>`i.provider is null and src.meta_event_id is null`;
   const accepted = sql<SqlBool>`i.provider is null and src.meta_event_id is not null`;
+  const bucketColumns: MetaSyncBucketColumns = {
+    started: sql<SqlBool>`c.start_at <= current_date`,
+    startAt: sql<Date | null>`c.start_at::timestamptz`,
+    hasResults: sql<SqlBool>`c.status = ${PLAYLOLTCG_STATUS_FINISHED}`,
+    nextCheckAt: sql<Date | null>`ck.next_check_at`,
+    players: sql<number | null>`c.player_count`,
+    team: sql<SqlBool>`false`,
+  };
 
   // Absence must be an anti-join here: reading a joined null makes the planner
   // sort the whole catalogue before taking one page. Presence reads the join.
@@ -377,6 +394,11 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
         if (filters.dateTo !== undefined) {
           base = base.where("c.startAt", "<=", filters.dateTo) as T;
         }
+        if (filters.bucket !== undefined && filters.minPlayers !== undefined) {
+          base = base.where(
+            metaSyncBucketFilter(filters.bucket, bucketColumns, filters.minPlayers),
+          ) as T;
+        }
         if (filters.missing === true) {
           base = base.where("c.missingSince", "is not", null) as T;
         }
@@ -505,19 +527,21 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
       return map;
     },
 
-    async syncOverview(): Promise<{
-      total: number;
-      completed: number;
-      decklistPublished: number;
-      missing: number;
-      dueRecheck: number;
-      oldestDueAt: Date | null;
-      queued: number;
-      acceptedAwaitingResults: number;
-      acceptedMissing: number;
-      acceptedCancelled: number;
-      lastSeenAt: Date | null;
-    }> {
+    async syncOverview(minPlayers: number | null): Promise<
+      MetaSyncBuckets & {
+        total: number;
+        completed: number;
+        decklistPublished: number;
+        missing: number;
+        dueRecheck: number;
+        oldestDueAt: Date | null;
+        queued: number;
+        acceptedAwaitingResults: number;
+        acceptedMissing: number;
+        acceptedCancelled: number;
+        lastSeenAt: Date | null;
+      }
+    > {
       // An aggregate FILTER cannot become an anti-join, so `notFetched` here
       // would probe the mirror once per catalogue row. Pre-aggregate instead.
       const row = await triagedQuery()
@@ -555,9 +579,11 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
             "acceptedMissing",
           ),
           eb.fn.max<Date | null>("c.lastSeenAt").as("lastSeenAt"),
+          ...metaSyncBucketSelections(bucketColumns, minPlayers),
         ])
         .executeTakeFirstOrThrow();
       return {
+        ...toMetaSyncBuckets(row),
         total: Number(row.total),
         completed: Number(row.completed),
         decklistPublished: Number(row.decklistPublished),
@@ -570,6 +596,14 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
         acceptedCancelled: 0,
         lastSeenAt: row.lastSeenAt,
       };
+    },
+
+    async passingNoResultsKeys(minPlayers: number): Promise<string[]> {
+      const rows = await triagedQuery()
+        .select(sql<string>`c.activity_shop_id::text`.as("key"))
+        .where(passingNoResultsFilter(bucketColumns, minPlayers))
+        .execute();
+      return rows.map((row) => row.key);
     },
 
     async triageCounts(): Promise<PlayloltcgTriageCounts> {

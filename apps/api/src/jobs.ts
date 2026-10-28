@@ -300,7 +300,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
     }),
     defineJob(log, {
       kind: "meta.uvsgames_sync",
-      title: "UVS Games event sync",
+      title: "UVS Games: refresh mirror",
       description: "Reads the UVS Games event list and queues anything new for a full fetch.",
       suggestedSchedule: "0 6 * * *",
       execute: (runId, jobLog) => syncCatalog(metaDeps(jobLog), runId),
@@ -308,7 +308,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
     }),
     defineJob(log, {
       kind: "meta.uvsgames_recheck",
-      title: "UVS Games event recheck",
+      title: "UVS Games: collect results",
       description:
         "Re-fetches queued UVS Games events until their results are published. Once an hour it also re-reads the last three days of the listing.",
       suggestedSchedule: "*/10 * * * *",
@@ -318,7 +318,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
     }),
     defineJob(log, {
       kind: "meta.playloltcg_sync",
-      title: "PlayLoLTCG event sync",
+      title: "PlayLoLTCG: refresh mirror",
       description: "Reads the PlayLoLTCG event list and queues anything new for a full fetch.",
       suggestedSchedule: "0 7 * * *",
       skipCronTick: async () => {
@@ -334,7 +334,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
     }),
     defineJob(log, {
       kind: "meta.playloltcg_recheck",
-      title: "PlayLoLTCG event recheck",
+      title: "PlayLoLTCG: collect results",
       description:
         "Re-fetches queued PlayLoLTCG events until their results are published. Once an hour it also re-reads the last three days of the listing.",
       suggestedSchedule: "*/10 * * * *",
@@ -356,7 +356,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
     }),
     defineJob(log, {
       kind: "meta.topdeck_sync",
-      title: "Topdeck event sync",
+      title: "Topdeck: refresh mirror",
       description:
         "Reads the last month of Topdeck tournaments, with their standings and decklists.",
       suggestedSchedule: "30 7 * * *",
@@ -366,7 +366,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
     }),
     defineJob(log, {
       kind: "meta.playriftbound_sync",
-      title: "PlayRiftbound event sync",
+      title: "PlayRiftbound: refresh mirror",
       description:
         "Searches around every known PlayRiftbound store for events from the last week to two weeks ahead.",
       suggestedSchedule: "0 8 * * *",
@@ -383,7 +383,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
     }),
     defineJob(log, {
       kind: "meta.playriftbound_recheck",
-      title: "PlayRiftbound event recheck",
+      title: "PlayRiftbound: collect results",
       description:
         "Re-fetches queued PlayRiftbound events whenever the source reports a change, until they finish. Once an hour it also re-queues the events running now.",
       suggestedSchedule: "*/10 * * * *",

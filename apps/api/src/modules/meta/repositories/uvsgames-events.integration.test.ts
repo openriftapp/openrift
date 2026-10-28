@@ -308,13 +308,19 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
     const unprobed = await repo().unprobedMissing(10_000);
     expect(unprobed).toEqual(expect.arrayContaining(["mtc-unlisted", "mtc-deleted"]));
 
+    const before = await repo().byKey("mtc-unlisted");
+    const startBefore = before?.startAt;
     await repo().refreshFromProbe([
-      row({ externalId: "mtc-unlisted", displayStatus: "canceled", contentHash: "hash-2" }),
+      {
+        ...row({ externalId: "mtc-unlisted", displayStatus: "canceled", contentHash: "hash-2" }),
+        startAt: null,
+      },
     ]);
     await repo().markProbeAbsent(["mtc-deleted"]);
 
     const unlisted = await repo().byKey("mtc-unlisted");
     expect(unlisted).toMatchObject({ displayStatus: "canceled", missingProbe: "found" });
+    expect(unlisted?.startAt).toEqual(startBefore);
     expect(unlisted?.missingSince?.getTime()).toBe(at.getTime());
     expect(unlisted?.lastSeenAt.getTime()).toBe(SEEN.getTime());
     const deleted = await repo().byKey("mtc-deleted");
@@ -743,7 +749,7 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
       SEEN,
     );
 
-    const overview = await repo().syncOverview();
+    const overview = await repo().syncOverview(null);
 
     expect(overview.total).toBeGreaterThan(0);
     expect(overview.queued).toBeGreaterThanOrEqual(1);
@@ -757,7 +763,7 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
   it("counts the accepted events still waiting on results, and those gone from the listing", async () => {
     // Read as a delta: earlier tests in this file leave accepted rows of their
     // own behind, and only the one seeded here is this test's to assert.
-    const before = await repo().syncOverview();
+    const before = await repo().syncOverview(null);
 
     await repo().upsertBatch(
       [row({ externalId: "mtc-acc-gone", name: "MTC Accepted Gone", contentHash: "h-acc-gone" })],
@@ -770,14 +776,14 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
       .where("externalId", "=", "mtc-acc-gone")
       .execute();
 
-    const overview = await repo().syncOverview();
+    const overview = await repo().syncOverview(null);
 
     expect(overview.acceptedAwaitingResults).toBe(before.acceptedAwaitingResults + 1);
     expect(overview.acceptedMissing).toBe(before.acceptedMissing + 1);
     expect(overview.missing).toBeGreaterThanOrEqual(overview.acceptedMissing);
   });
   it("offers only bare, undismissed cancelled events for withdrawal and counts every accepted one", async () => {
-    const before = await repo().syncOverview();
+    const before = await repo().syncOverview(null);
     const ids = ["mtc-cxl-bare", "mtc-cxl-played", "mtc-cxl-cited", "mtc-cxl-dismissed"];
     await repo().upsertBatch(
       [
@@ -812,7 +818,7 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
       .execute();
 
     const withdrawable = await repo().withdrawableCancelled();
-    const overview = await repo().syncOverview();
+    const overview = await repo().syncOverview(null);
 
     expect(withdrawable.filter((entry) => entry.externalId.startsWith("mtc-"))).toEqual([
       { externalId: "mtc-cxl-bare", metaEventId: live.get("mtc-cxl-bare") },
@@ -1181,7 +1187,7 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
     });
 
     it("reports when the longest-waiting due recheck became due", async () => {
-      const overview = await repo().syncOverview();
+      const overview = await repo().syncOverview(null);
 
       expect(overview.oldestDueAt).toBeInstanceOf(Date);
       expect(overview.oldestDueAt!.getTime()).toBeLessThanOrEqual(Date.now());

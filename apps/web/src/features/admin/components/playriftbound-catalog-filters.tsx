@@ -12,7 +12,11 @@ import { AdminFilterSelect, AdminFilterSwitch } from "@/features/admin/component
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
 import { CatalogSourceSelect } from "@/features/admin/components/meta-catalog-shared";
 import type { TriageCounts } from "@/features/admin/components/meta-triage-filter";
-import { ANY, TriageFilterSelect } from "@/features/admin/components/meta-triage-filter";
+import {
+  ANY,
+  BucketFilterChip,
+  TriageFilterSelect,
+} from "@/features/admin/components/meta-triage-filter";
 import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
 import {
   PLAYRIFTBOUND_FORMAT_CHOICES,
@@ -70,6 +74,12 @@ export function PlayriftboundCatalogFilters({
           counts={counts}
           onChange={(next) => applyFilter({ triage: next })}
         />
+        {filters.bucket !== undefined && (
+          <BucketFilterChip
+            bucket={filters.bucket}
+            onRemove={() => applyFilter({ bucket: undefined })}
+          />
+        )}
         <AdminFilterSelect
           value={filters.prType ?? ANY}
           onChange={(value) => applyFilter({ prType: typeParam(value) })}

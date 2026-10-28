@@ -9,7 +9,11 @@ import { AdminFilterSelect, AdminFilterSwitch } from "@/features/admin/component
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
 import { CatalogSourceSelect } from "@/features/admin/components/meta-catalog-shared";
 import type { TriageCounts } from "@/features/admin/components/meta-triage-filter";
-import { ANY, TriageFilterSelect } from "@/features/admin/components/meta-triage-filter";
+import {
+  ANY,
+  BucketFilterChip,
+  TriageFilterSelect,
+} from "@/features/admin/components/meta-triage-filter";
 import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
 import { catalogStatusDisplay } from "@/features/meta/lib/meta-catalog-display";
 import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
@@ -51,10 +55,9 @@ export function CatalogFilters({
   return (
     <div className="space-y-3">
       <PageDescription>
-        Every Riftbound event uvsgames lists, as of the last sync. Accept an event to publish it on
-        /meta: this creates its public event page and fetches its standings and any published
-        decklists. Dismiss the ones /meta should never carry; they stay hidden even if uvsgames
-        updates them.
+        Every Riftbound event uvsgames lists, as of the last mirror refresh. Publishing an event
+        creates its page on /meta and fetches its standings and any published decklists. A rejected
+        event stays off /meta even if uvsgames updates it.
       </PageDescription>
       <div className="flex flex-wrap items-center gap-2">
         <CatalogSourceSelect source={filters.source ?? "uvsgames"} applyFilter={applyFilter} />
@@ -69,6 +72,12 @@ export function CatalogFilters({
           counts={counts}
           onChange={(next) => applyFilter({ triage: next })}
         />
+        {filters.bucket !== undefined && (
+          <BucketFilterChip
+            bucket={filters.bucket}
+            onRemove={() => applyFilter({ bucket: undefined })}
+          />
+        )}
         <AdminFilterSelect
           value={filters.eventStatus ?? ANY}
           onChange={(value) => applyFilter({ eventStatus: catalogStatusParam(value) })}

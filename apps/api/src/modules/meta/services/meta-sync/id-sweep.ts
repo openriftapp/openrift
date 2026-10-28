@@ -1,5 +1,8 @@
-import type { UvsgamesCatalogProjection } from "../../lib/uvsgames-catalog.js";
-import { projectCatalogRow } from "../../lib/uvsgames-catalog.js";
+import type {
+  UvsgamesCatalogProjection,
+  UvsgamesProbedProjection,
+} from "../../lib/uvsgames-catalog.js";
+import { projectCatalogRow, projectProbedRow } from "../../lib/uvsgames-catalog.js";
 import type { UvsgamesIdProbeInput } from "../../repositories/uvsgames-events.js";
 import { autoAcceptCatalogEvents } from "./accept.js";
 import { runCancelRequested, writeRunHeartbeat } from "./crawl-checkpoint.js";
@@ -81,8 +84,8 @@ function record(ctx: SweepContext, message: string): void {
 }
 
 /** A failure isn't a probe: it stays undecided so the next run retries it. */
-export type ProbeOutcome =
-  | { kind: "event"; projection: UvsgamesCatalogProjection }
+export type ProbeOutcome<P = UvsgamesCatalogProjection> =
+  | { kind: "event"; projection: P }
   | { kind: "probe"; probe: UvsgamesIdProbeInput }
   | { kind: "failed"; error: string };
 
@@ -95,7 +98,22 @@ export function gameTypeOf(body: unknown): { type: string | null; isRiftbound: b
   };
 }
 
-export async function probeId(deps: MetaSyncDeps, id: number): Promise<ProbeOutcome> {
+export function probeId(deps: MetaSyncDeps, id: number): Promise<ProbeOutcome> {
+  return probeWith(deps, id, projectCatalogRow);
+}
+
+export function probeMirroredId(
+  deps: MetaSyncDeps,
+  id: number,
+): Promise<ProbeOutcome<UvsgamesProbedProjection>> {
+  return probeWith(deps, id, projectProbedRow);
+}
+
+async function probeWith<P>(
+  deps: MetaSyncDeps,
+  id: number,
+  project: (body: unknown) => P | null,
+): Promise<ProbeOutcome<P>> {
   let body: unknown;
   try {
     body = await deps.client.get<unknown>(`/api/v2/events/${id}/`);
@@ -110,7 +128,7 @@ export async function probeId(deps: MetaSyncDeps, id: number): Promise<ProbeOutc
   if (!game.isRiftbound) {
     return { kind: "probe", probe: { externalId: id, outcome: "other_game", gameType: game.type } };
   }
-  const projection = projectCatalogRow(body);
+  const projection = project(body);
   if (projection === null) {
     return { kind: "probe", probe: { externalId: id, outcome: "unreadable", gameType: game.type } };
   }

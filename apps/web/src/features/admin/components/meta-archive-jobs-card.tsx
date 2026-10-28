@@ -1,106 +1,125 @@
-import type { MetaSyncStatus } from "@openrift/shared/contracts/admin/meta-catalog";
-import { formatDayTime, formatRelativeTime } from "@openrift/shared/format-date";
-import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { JobStatusBadge } from "@/features/admin/components/job-status-badge";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ExpandToggle } from "@/components/ui/expand-toggle";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { announceSyncTrigger } from "@/features/admin/components/meta-catalog-shared";
-import { TriggerRow } from "@/features/admin/components/meta-triggers-card";
+import { MetaRunCellView } from "@/features/admin/components/meta-overview-shared";
 import { useMetaArchiveJobs, useRunMetaSync } from "@/features/admin/hooks/use-admin-meta-catalog";
 import { summarizeRunResult } from "@/features/admin/lib/job-run-display";
-import type { MetaSyncTrigger } from "@/features/admin/lib/meta-admin-triggers";
+import type { TriggerEntry } from "@/features/admin/lib/meta-admin-triggers";
 import {
   ARCHIVE_KIND_BY_TRIGGER,
   ARCHIVE_TRIGGERS,
 } from "@/features/admin/lib/meta-admin-triggers";
+import { latestRun } from "@/features/admin/lib/meta-source-overview";
 import { runningRunId } from "@/features/meta/lib/meta-catalog-display";
 
-// These re-derive live rows from mirrors already held; neither belongs to a source.
+// These re-derive published events from mirrors already held; neither belongs to a source.
 export function ArchiveJobsCard() {
   const { data } = useMetaArchiveJobs();
   const runs = data?.runs ?? [];
   const run = useRunMetaSync();
-  const [lastOutcome, setLastOutcome] = useState("");
+  const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState<TriggerEntry | null>(null);
 
-  const pending = run.isPending ? run.variables?.trigger : undefined;
   const anyRunning = ARCHIVE_TRIGGERS.some(
     (entry) => runningRunId(runs, ARCHIVE_KIND_BY_TRIGGER[entry.trigger] ?? "") !== null,
   );
 
-  async function start(trigger: MetaSyncTrigger, label: string) {
+  async function start(entry: TriggerEntry) {
+    setConfirming(null);
     let result;
     try {
-      result = await run.mutateAsync({ trigger });
+      result = await run.mutateAsync({ trigger: entry.trigger });
     } catch {
       // Reported by the global mutation error toast.
       return;
     }
-    announceSyncTrigger(label, result);
-    setLastOutcome(`${label}: ${result.status.replace("_", " ")}`);
+    announceSyncTrigger(entry.label, result);
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Reapply the archive&apos;s rules</CardTitle>
+        <ExpandToggle
+          expanded={open}
+          onClick={() => setOpen(!open)}
+          className="text-base font-medium"
+        >
+          Archive maintenance
+        </ExpandToggle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="text-muted-foreground text-sm">
-          Editing a tier mapping stores it and stops there. These passes are what carry a mapping or
-          a rule change onto the live events, and both run in the background.
-        </p>
-        {ARCHIVE_TRIGGERS.map((entry) => (
-          <TriggerRow
-            key={entry.trigger}
-            entry={entry}
-            schedules={{}}
-            pending={pending === entry.trigger}
-            disabled={run.isPending || anyRunning}
-            pendingTriage={null}
-            onStart={() => start(entry.trigger, entry.label)}
-          />
-        ))}
-        {anyRunning && (
-          <p className="text-muted-foreground text-sm">
-            A pass is running. The buttons come back when it finishes.
-          </p>
-        )}
-        {lastOutcome !== "" && <p className="text-muted-foreground">{lastOutcome}</p>}
-        <ArchiveRunLine runs={runs} />
-      </CardContent>
-    </Card>
-  );
-}
-
-function ArchiveRunLine({ runs }: { runs: MetaSyncStatus["runs"] }) {
-  const latest = runs[0];
-  return (
-    <div className="text-muted-foreground flex flex-wrap items-center gap-2">
-      {latest === undefined ? (
-        <span>Neither pass has run yet.</span>
-      ) : (
-        <>
-          <span className="font-mono">{latest.kind}</span>
-          <JobStatusBadge status={latest.status} />
-          <span title={formatDayTime(latest.startedAt)}>
-            {formatRelativeTime(latest.startedAt, { seconds: true })}
-          </span>
-          {latest.errorMessage === null ? (
-            <span>{summarizeRunResult(latest.result)}</span>
-          ) : (
-            <span>{latest.errorMessage}</span>
-          )}
-        </>
+      {open && (
+        <CardContent>
+          <Table>
+            <TableBody>
+              {ARCHIVE_TRIGGERS.map((entry) => {
+                const last = latestRun(runs, ARCHIVE_KIND_BY_TRIGGER[entry.trigger] ?? "");
+                return (
+                  <TableRow key={entry.trigger}>
+                    <TableCell className="max-w-md whitespace-normal">
+                      <div className="font-medium">{entry.label}</div>
+                      <div className="text-muted-foreground">{entry.description}</div>
+                    </TableCell>
+                    <TableCell>
+                      {last !== undefined && (
+                        <MetaRunCellView
+                          cell={{
+                            tone:
+                              last.status === "failed"
+                                ? "bad"
+                                : last.status === "running"
+                                  ? "running"
+                                  : "ok",
+                            at: last.startedAt,
+                            detail: last.errorMessage ?? summarizeRunResult(last.result),
+                          }}
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={anyRunning || run.isPending}
+                        pending={run.isPending && run.variables?.trigger === entry.trigger}
+                        onClick={() => {
+                          if (entry.confirm === undefined) {
+                            void start(entry);
+                          } else {
+                            setConfirming(entry);
+                          }
+                        }}
+                      >
+                        Run
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
       )}
-      <Link
-        to="/admin/job-runs"
-        search={{}}
-        className={buttonVariants({ variant: "ghost", size: "sm" })}
-      >
-        All runs
-      </Link>
-    </div>
+      {confirming?.confirm !== undefined && (
+        <ConfirmActionDialog
+          open
+          onOpenChange={(next) => {
+            if (!next) {
+              setConfirming(null);
+            }
+          }}
+          title={confirming.confirm.title}
+          description={confirming.confirm.body(null)}
+          confirmLabel={confirming.confirm.action}
+          destructive={false}
+          isPending={run.isPending}
+          onConfirm={() => void start(confirming)}
+        />
+      )}
+    </Card>
   );
 }

@@ -73,6 +73,7 @@ export function CatalogSourceSelect({
           prFormat: undefined,
           decklists: undefined,
           awaitingResults: undefined,
+          bucket: undefined,
         });
       }}
       options={SOURCE_OPTIONS}
@@ -133,7 +134,7 @@ export function MetaCatalogAcceptDialog({
         <DialogFooter>
           <DialogCancel />
           <Button disabled={format === ""} pending={pending} onClick={() => onConfirm(format)}>
-            Accept
+            Publish
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -17,6 +17,7 @@ const OPT_IN_TABS = ["catalogue", "review", "public"] as const;
 
 const CLEARED_TABLE_FILTERS = {
   source: undefined,
+  detail: undefined,
   page: undefined,
   q: undefined,
   dateFrom: undefined,
@@ -29,6 +30,7 @@ const CLEARED_TABLE_FILTERS = {
   decklists: undefined,
   missing: undefined,
   awaitingResults: undefined,
+  bucket: undefined,
   plStatus: undefined,
   tdFormat: undefined,
   prType: undefined,
@@ -67,13 +69,13 @@ export function MetaAdminPage() {
       className="flex min-h-0 flex-1 flex-col"
     >
       <TabsList variant="line">
-        <TabsTrigger value="sync">Sync</TabsTrigger>
-        <TabsTrigger value="catalogue">Catalogue</TabsTrigger>
+        <TabsTrigger value="sync">Overview</TabsTrigger>
+        <TabsTrigger value="catalogue">Mirror</TabsTrigger>
         <TabsTrigger value="review">
           Review
           {pendingCount > 0 && <Badge variant="count">{pendingCount}</Badge>}
         </TabsTrigger>
-        <TabsTrigger value="public">Public</TabsTrigger>
+        <TabsTrigger value="public">Published</TabsTrigger>
       </TabsList>
       <TabsContent value="sync" className="flex min-h-0 flex-1 flex-col">
         <MetaAdminOverviewPage />

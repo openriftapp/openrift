@@ -1,6 +1,10 @@
-import type { MetaCatalogTriage } from "@openrift/shared/contracts/admin/meta-catalog";
+import type {
+  MetaCatalogTriage,
+  MetaSyncBucketFilter,
+} from "@openrift/shared/contracts/admin/meta-catalog";
 import { META_CATALOG_TRIAGE } from "@openrift/shared/types/enums";
 
+import { FilterChip } from "@/components/ui/filter-chip";
 import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
 import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
 import { catalogTriageDisplay } from "@/features/meta/lib/meta-catalog-display";
@@ -50,7 +54,28 @@ export function TriageFilterSelect({
       onChange={(value) => onChange(triageParam(value))}
       options={options}
       className="w-44"
-      label="Triage state"
+      label="Decision"
+    />
+  );
+}
+
+const BUCKET_LABELS: Record<MetaSyncBucketFilter, string> = {
+  needsDecision: "Needs a decision",
+  passingNoResults: "Passes the rule, no results",
+};
+
+export function BucketFilterChip({
+  bucket,
+  onRemove,
+}: {
+  bucket: MetaSyncBucketFilter;
+  onRemove: () => void;
+}) {
+  return (
+    <FilterChip
+      label={BUCKET_LABELS[bucket]}
+      onRemove={onRemove}
+      removeLabel={`Remove filter: ${BUCKET_LABELS[bucket]}`}
     />
   );
 }

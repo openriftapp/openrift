@@ -244,6 +244,7 @@ export const adminMetaCatalogRouter = {
           dateTo: input.dateTo === undefined ? undefined : new Date(input.dateTo),
           triage: input.triage,
           missing: input.missing,
+          bucket: input.bucket,
           awaitingResults: input.awaitingResults,
         },
         { limit, offset: (page - 1) * limit },
@@ -407,12 +408,18 @@ export const adminMetaCatalogRouter = {
       topdeck: context.repos.topdeckEvents,
       playriftbound: context.repos.playriftboundEvents,
     }[source];
-    const [overview, archive, counts, runs] = await Promise.all([
-      sourceRepo.syncOverview(),
+    const settings = await context.repos.uvsgamesEvents.settings();
+    const [overview, archive, counts, recent, latest] = await Promise.all([
+      sourceRepo.syncOverview(settings.autoAcceptMinPlayers),
       context.repos.meta.archiveOverview(SOURCE_PROVIDER[source]),
       sourceRepo.triageCounts(),
       context.repos.jobRuns.listRecentByKinds(jobKindsForSource(source), STATUS_RUN_LIMIT),
+      // A daily job falls out of the recent list behind a day of 10-minute rechecks.
+      context.repos.jobRuns.latestByKinds(jobKindsForSource(source)),
     ]);
+    const runs = [...new Map([...recent, ...latest].map((run) => [run.id, run])).values()].toSorted(
+      (a, b) => b.startedAt.getTime() - a.startedAt.getTime(),
+    );
     return {
       catalog: toMetaSyncCatalog(overview),
       archive,
@@ -429,6 +436,29 @@ export const adminMetaCatalogRouter = {
           context.scheduler?.isEnabled("meta.playriftbound_recheck") ?? false,
       },
     };
+  }),
+
+  rejectPassingNoResults: os.rejectPassingNoResults.handler(async ({ input, context }) => {
+    const settings = await context.repos.uvsgamesEvents.settings();
+    if (settings.autoAcceptMinPlayers === null) {
+      return { rejected: 0 };
+    }
+    const sourceRepo = {
+      uvsgames: context.repos.uvsgamesEvents,
+      playloltcg: context.repos.playloltcgEvents,
+      topdeck: context.repos.topdeckEvents,
+      playriftbound: context.repos.playriftboundEvents,
+    }[input.source];
+    const provider = SOURCE_PROVIDER[input.source];
+    const keys = await sourceRepo.passingNoResultsKeys(settings.autoAcceptMinPlayers);
+    const rejected = await context.repos.metaOverlays.ignoreEvents(provider, keys);
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "meta-catalog.dismiss-bulk",
+      entityType: "meta-catalog",
+      entityId: provider,
+      newValues: { rejected, minPlayers: settings.autoAcceptMinPlayers },
+    });
+    return { rejected };
   }),
 
   runSync: os.runSync.handler(({ context }) => runScheduledJob(context, "meta.uvsgames_sync")),
@@ -602,6 +632,7 @@ export const adminMetaCatalogRouter = {
           dateFrom: input.dateFrom,
           dateTo: input.dateTo,
           missing: input.missing,
+          bucket: input.bucket,
           awaitingResults: input.awaitingResults,
         },
         { limit, offset: (page - 1) * limit },
@@ -714,6 +745,7 @@ export const adminMetaCatalogRouter = {
           dateFrom: input.dateFrom,
           dateTo: input.dateTo,
           missing: input.missing,
+          bucket: input.bucket,
         },
         { limit, offset: (page - 1) * limit },
         { sort: input.sort, direction: input.direction },
@@ -822,6 +854,7 @@ export const adminMetaCatalogRouter = {
           dateFrom: input.dateFrom,
           dateTo: input.dateTo,
           missing: input.missing,
+          bucket: input.bucket,
           awaitingResults: input.awaitingResults,
         },
         { limit, offset: (page - 1) * limit },

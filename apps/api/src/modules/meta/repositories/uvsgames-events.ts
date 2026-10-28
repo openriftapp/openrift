@@ -1,3 +1,4 @@
+import type { MetaSyncBucketFilter } from "@openrift/shared/contracts/admin/meta-catalog";
 import type { MetaEventTier, UvsgamesProbeOutcome } from "@openrift/shared/types/enums";
 import type { Kysely, Selectable, SqlBool } from "kysely";
 import { sql } from "kysely";
@@ -12,6 +13,13 @@ import {
   UVSGAMES_STATUS_CANCELED,
 } from "../../../lib/meta-providers.js";
 import { inTransaction, offsetPage } from "../../../repositories/query-helpers.js";
+import type { MetaSyncBucketColumns, MetaSyncBuckets } from "./meta-sync-buckets.js";
+import {
+  metaSyncBucketFilter,
+  metaSyncBucketSelections,
+  passingNoResultsFilter,
+  toMetaSyncBuckets,
+} from "./meta-sync-buckets.js";
 
 /**
  * Owns one source's crawl bookkeeping; live archive tables stay in `metaRepo`.
@@ -39,6 +47,9 @@ export interface UvsgamesUpsertInput {
   eventConfigurationTemplate: string | null;
   contentHash: string;
 }
+
+/** A `null` start keeps the mirrored one. */
+export type UvsgamesProbedInput = Omit<UvsgamesUpsertInput, "startAt"> & { startAt: Date | null };
 
 export interface UvsgamesIdProbeInput {
   externalId: number;
@@ -92,6 +103,7 @@ export interface UvsgamesListFilters {
   dateTo?: Date;
   triage?: UvsgamesTriage;
   missing?: boolean;
+  bucket?: MetaSyncBucketFilter;
   awaitingResults?: boolean;
 }
 
@@ -203,6 +215,14 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
 
   const dismissed = sql<SqlBool>`i.provider is not null`;
   const accepted = sql<SqlBool>`i.provider is null and src.meta_event_id is not null`;
+  const bucketColumns: MetaSyncBucketColumns = {
+    started: sql<SqlBool>`c.start_at <= now()`,
+    startAt: sql<Date | null>`c.start_at`,
+    hasResults: sql<SqlBool>`c.display_status = 'complete'`,
+    nextCheckAt: sql<Date | null>`ck.next_check_at`,
+    players: sql<number | null>`c.player_count`,
+    team: sql<SqlBool>`false`,
+  };
   const triage = sql<UvsgamesTriage>`case
     when i.provider is not null then 'dismissed'
     when src.meta_event_id is not null then 'accepted'
@@ -308,7 +328,9 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
 
   // Store rows must exist before the events that reference them. A repeated
   // name updates the store in place, so renames propagate.
-  async function upsertStores(rows: readonly UvsgamesUpsertInput[]): Promise<void> {
+  async function upsertStores(
+    rows: readonly Pick<UvsgamesUpsertInput, "storeId" | "storeName">[],
+  ): Promise<void> {
     const stores = [
       ...new Map(
         rows
@@ -491,14 +513,14 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
 
     // Leaves `missing_since` and `last_seen_at` alone: the listing still omits
     // the row, and clearing them would re-flag and re-probe it every crawl.
-    async refreshFromProbe(rows: readonly UvsgamesUpsertInput[]): Promise<void> {
+    async refreshFromProbe(rows: readonly UvsgamesProbedInput[]): Promise<void> {
       await upsertStores(rows);
       for (const row of rows) {
         await db
           .updateTable("uvsgamesEvents")
-          .set({
+          .set((eb) => ({
             name: row.name,
-            startAt: row.startAt,
+            startAt: row.startAt ?? eb.ref("startAt"),
             endAtEstimate: row.endAtEstimate,
             displayStatus: row.displayStatus,
             decklistStatus: row.decklistStatus,
@@ -512,7 +534,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
             eventConfigurationTemplate: row.eventConfigurationTemplate,
             contentHash: row.contentHash,
             missingProbe: "found",
-          })
+          }))
           .where("externalId", "=", row.externalId)
           .where("missingSince", "is not", null)
           .execute();
@@ -773,6 +795,11 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       if (filters.dateTo !== undefined) {
         query = query.where("c.startAt", "<=", filters.dateTo);
       }
+      if (filters.bucket !== undefined && filters.minPlayers !== undefined) {
+        query = query.where(
+          metaSyncBucketFilter(filters.bucket, bucketColumns, filters.minPlayers),
+        );
+      }
       if (filters.missing === true) {
         query = query.where("c.missingSince", "is not", null);
       }
@@ -804,19 +831,21 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
 
     // The accepted bucket's problem states are only visible against the candidate link,
     // not off the catalogue alone.
-    async syncOverview(): Promise<{
-      total: number;
-      completed: number;
-      decklistPublished: number;
-      missing: number;
-      dueRecheck: number;
-      oldestDueAt: Date | null;
-      queued: number;
-      acceptedAwaitingResults: number;
-      acceptedMissing: number;
-      acceptedCancelled: number;
-      lastSeenAt: Date | null;
-    }> {
+    async syncOverview(minPlayers: number | null): Promise<
+      MetaSyncBuckets & {
+        total: number;
+        completed: number;
+        decklistPublished: number;
+        missing: number;
+        dueRecheck: number;
+        oldestDueAt: Date | null;
+        queued: number;
+        acceptedAwaitingResults: number;
+        acceptedMissing: number;
+        acceptedCancelled: number;
+        lastSeenAt: Date | null;
+      }
+    > {
       const row = await triagedQuery()
         .select((eb) => [
           eb.fn.countAll<string>().as("total"),
@@ -842,9 +871,11 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
             "acceptedCancelled",
           ),
           eb.fn.max<Date | null>("c.lastSeenAt").as("lastSeenAt"),
+          ...metaSyncBucketSelections(bucketColumns, minPlayers),
         ])
         .executeTakeFirstOrThrow();
       return {
+        ...toMetaSyncBuckets(row),
         total: Number(row.total),
         completed: Number(row.completed),
         decklistPublished: Number(row.decklistPublished),
@@ -857,6 +888,14 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
         acceptedCancelled: Number(row.acceptedCancelled),
         lastSeenAt: row.lastSeenAt,
       };
+    },
+
+    async passingNoResultsKeys(minPlayers: number): Promise<string[]> {
+      const rows = await triagedQuery()
+        .select(sql<string>`c.external_id`.as("key"))
+        .where(passingNoResultsFilter(bucketColumns, minPlayers))
+        .execute();
+      return rows.map((row) => row.key);
     },
 
     // Display name updates on conflict, so a rename reaches every standings row filed under that id.

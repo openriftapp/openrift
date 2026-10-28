@@ -8,7 +8,11 @@ import { AdminFilterSelect, AdminFilterSwitch } from "@/features/admin/component
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
 import { CatalogSourceSelect } from "@/features/admin/components/meta-catalog-shared";
 import type { TriageCounts } from "@/features/admin/components/meta-triage-filter";
-import { ANY, TriageFilterSelect } from "@/features/admin/components/meta-triage-filter";
+import {
+  ANY,
+  BucketFilterChip,
+  TriageFilterSelect,
+} from "@/features/admin/components/meta-triage-filter";
 import type { MetaSearch } from "@/features/admin/lib/admin-meta-search";
 import { TOPDECK_FORMAT_CHOICES } from "@/features/meta/lib/meta-catalog-display";
 import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
@@ -55,6 +59,12 @@ export function TopdeckCatalogFilters({
           counts={counts}
           onChange={(next) => applyFilter({ triage: next })}
         />
+        {filters.bucket !== undefined && (
+          <BucketFilterChip
+            bucket={filters.bucket}
+            onRemove={() => applyFilter({ bucket: undefined })}
+          />
+        )}
         <AdminFilterSelect
           value={filters.tdFormat ?? ANY}
           onChange={(value) => applyFilter({ tdFormat: value === ANY ? undefined : value })}

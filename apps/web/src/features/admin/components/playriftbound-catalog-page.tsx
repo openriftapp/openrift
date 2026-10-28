@@ -78,7 +78,7 @@ function TypeCell({ row }: AdminCellSlotProps<PlayriftboundCatalogRow>) {
       {type !== null && <Badge variant="outline">{type}</Badge>}
       {format !== null && <Badge variant="subtle">{format}</Badge>}
       {row.playerFormat !== null && row.playerFormat !== "ONE_V_ONE" && (
-        <Badge variant="warning" title="Team events are never auto-accepted">
+        <Badge variant="warning" title="Team events are never auto-published">
           Team
         </Badge>
       )}
@@ -199,7 +199,7 @@ function PlayriftboundRowActions({
         onClick={() => onUndismiss(row.tournamentId)}
       >
         <UndoIcon />
-        Undismiss
+        Restore
       </Button>
     );
   }
@@ -229,16 +229,16 @@ function PlayriftboundRowActions({
     <>
       <Button variant="ghost" size="sm" disabled={busy} onClick={() => onAccept(row.tournamentId)}>
         <CheckIcon />
-        Accept
+        Publish
       </Button>
       <ConfirmActionButton
-        title={`Dismiss "${row.name}"?`}
-        description="The event drops out of the new queue and the sync skips it from now on. You can undismiss it later."
-        confirmLabel="Dismiss"
+        title={`Reject "${row.name}"?`}
+        description="Refresh mirror never offers it again. You can restore it later."
+        confirmLabel="Reject"
         onConfirm={() => onDismiss(row.tournamentId)}
       >
         <ArchiveXIcon />
-        Dismiss
+        Reject
       </ConfirmActionButton>
     </>
   );
@@ -281,6 +281,7 @@ export function PlayriftboundCatalogPage() {
     format: filters.prFormat,
     minPlayers: filters.minPlayers,
     missing: filters.missing,
+    bucket: filters.bucket,
     awaitingResults: filters.awaitingResults,
     dateFrom: filters.dateFrom,
     dateTo: filters.dateTo,
@@ -299,7 +300,7 @@ export function PlayriftboundCatalogPage() {
         actions={
           <PageTopBarButton onClick={() => setRulesOpen(true)}>
             <SlidersHorizontalIcon />
-            Auto-accept rules
+            Auto-publish rule
           </PageTopBarButton>
         }
       />
@@ -308,7 +309,7 @@ export function PlayriftboundCatalogPage() {
         data={data?.rows ?? []}
         getRowKey={(row) => row.tournamentId}
         serverSort={serverSort}
-        emptyText={data === undefined ? "Loading the catalogue…" : "No events match these filters."}
+        emptyText={data === undefined ? "Loading the mirror…" : "No events match these filters."}
         toolbar={
           <PlayriftboundCatalogFilters
             filters={filters}
@@ -330,7 +331,7 @@ export function PlayriftboundCatalogPage() {
           />
         }
       />
-      <Pager page={page} totalPages={totalPages} onPageChange={goToPage} label="Catalogue pages" />
+      <Pager page={page} totalPages={totalPages} onPageChange={goToPage} label="Mirror pages" />
 
       {rulesOpen && (
         <MetaAutoAcceptDialog source="playriftbound" onClose={() => setRulesOpen(false)} />

@@ -47,6 +47,7 @@ export function metaArchiveRepo(db: Kysely<Database>) {
       eventsWithStandings: number;
       eventsWithDecklists: number;
       decks: number;
+      addedLast7Days: number;
     }> {
       // When a provider is given, count only events that provider's citation
       // links, so the per-source funnel's "Published" is the archive this source
@@ -85,6 +86,9 @@ export function metaArchiveRepo(db: Kysely<Database>) {
                   where src.meta_event_id = p.meta_event_id and src.provider = ${provider}
                 )
               )`.as("decks"),
+          sql<string>`count(*) filter (where date_trunc('milliseconds', e.created_at) > now() - interval '7 days')`.as(
+            "addedLast7Days",
+          ),
         ])
         .executeTakeFirstOrThrow();
       return {
@@ -92,6 +96,7 @@ export function metaArchiveRepo(db: Kysely<Database>) {
         eventsWithStandings: Number(row.eventsWithStandings),
         eventsWithDecklists: Number(row.eventsWithDecklists),
         decks: Number(row.decks),
+        addedLast7Days: Number(row.addedLast7Days),
       };
     },
 

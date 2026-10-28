@@ -138,6 +138,7 @@ export const adminKeys = {
       minPlayers?: number;
       decklistPublished?: boolean;
       missing?: boolean;
+      bucket?: string;
       dateFrom?: string;
       dateTo?: string;
       sort?: string;

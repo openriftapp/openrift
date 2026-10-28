@@ -2,6 +2,7 @@ import type {
   MetaCatalogSort,
   MetaCatalogSortDirection,
   MetaCatalogTriage,
+  MetaSyncBucketFilter,
   MetaSyncTriggerResult,
   PlayloltcgCatalogListResponse,
 } from "@openrift/shared/contracts/admin/meta-catalog";
@@ -25,6 +26,7 @@ export interface PlayloltcgCatalogParams {
   dateFrom?: string;
   dateTo?: string;
   missing?: boolean;
+  bucket?: MetaSyncBucketFilter;
   awaitingResults?: boolean;
   sort?: MetaCatalogSort;
   direction?: MetaCatalogSortDirection;
@@ -49,6 +51,7 @@ const fetchPlayloltcgCatalog = createServerFn({ method: "GET" })
       direction: data.direction,
       // Query strings coerce "false" to true; an off toggle must be absent, never false.
       missing: data.missing === true ? true : undefined,
+      bucket: data.bucket,
       awaitingResults: data.awaitingResults === true ? true : undefined,
     }),
   );

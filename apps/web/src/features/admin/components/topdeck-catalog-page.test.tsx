@@ -190,7 +190,7 @@ describe("TopdeckCatalogPage", () => {
 
   it("accepts a row by its source key", async () => {
     render(<TopdeckCatalogPage />);
-    await userEvent.click(rowActions("Summoner Skirmish").getByRole("button", { name: "Accept" }));
+    await userEvent.click(rowActions("Summoner Skirmish").getByRole("button", { name: "Publish" }));
     expect(captured.accept).toHaveBeenCalledWith({ tid: "summoner-skirmish-2026" });
   });
 
@@ -198,8 +198,8 @@ describe("TopdeckCatalogPage", () => {
     setResponse([makeRow({ triage: "dismissed" })]);
     render(<TopdeckCatalogPage />);
     const actions = rowActions("Summoner Skirmish");
-    expect(actions.getByRole("button", { name: "Undismiss" })).toBeInTheDocument();
-    expect(actions.queryByRole("button", { name: "Accept" })).not.toBeInTheDocument();
+    expect(actions.getByRole("button", { name: "Restore" })).toBeInTheDocument();
+    expect(actions.queryByRole("button", { name: "Publish" })).not.toBeInTheDocument();
   });
 
   it("carries the source's own format word into the query when one is filtered on", () => {

@@ -78,6 +78,7 @@ const mockJobRuns = {
   requestCancel: vi.fn(),
   getLatestForResume: vi.fn(),
   listRecentByKinds: vi.fn(),
+  latestByKinds: vi.fn(),
 };
 
 const mockUvsgamesEvents = {
@@ -88,6 +89,7 @@ const mockUvsgamesEvents = {
   syncOverview: vi.fn(),
   triageCounts: vi.fn(),
   byKey: vi.fn(),
+  settings: vi.fn(),
 };
 
 const mockPlayloltcgEvents = {
@@ -95,10 +97,11 @@ const mockPlayloltcgEvents = {
   triageCounts: vi.fn(),
   byKey: vi.fn(),
   syncOverview: vi.fn(),
+  passingNoResultsKeys: vi.fn(),
 };
 
 const mockMeta = { archiveOverview: vi.fn(), deleteEvent: vi.fn() };
-const mockMetaOverlays = { ignoreEvent: vi.fn(), unignoreEvent: vi.fn() };
+const mockMetaOverlays = { ignoreEvent: vi.fn(), ignoreEvents: vi.fn(), unignoreEvent: vi.fn() };
 
 const mockDeckFormats = { getBySlug: vi.fn() };
 const mockScheduler = { runNow: vi.fn(), isEnabled: vi.fn(() => false) };
@@ -613,6 +616,38 @@ describe("POST /catalogue/remove", () => {
   });
 });
 
+describe("POST /catalogue/sync/reject-passing-no-results", () => {
+  it("rejects the source's events that pass the rule without results, and audits the count", async () => {
+    mockUvsgamesEvents.settings.mockResolvedValue({ autoAcceptMinPlayers: 16 });
+    mockPlayloltcgEvents.passingNoResultsKeys.mockResolvedValue(["101", "102"]);
+    mockMetaOverlays.ignoreEvents.mockResolvedValue(2);
+
+    const res = await post("/sync/reject-passing-no-results", { source: "playloltcg" });
+
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ rejected: 2 });
+    expect(mockPlayloltcgEvents.passingNoResultsKeys).toHaveBeenCalledWith(16);
+    expect(mockMetaOverlays.ignoreEvents).toHaveBeenCalledWith("playloltcg", ["101", "102"]);
+    expect(mockAdminEvents.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "meta-catalog.dismiss-bulk",
+        entityId: "playloltcg",
+        newValues: { rejected: 2, minPlayers: 16 },
+      }),
+    );
+  });
+
+  it("rejects nothing while auto-publish is off", async () => {
+    mockUvsgamesEvents.settings.mockResolvedValue({ autoAcceptMinPlayers: null });
+    mockMetaOverlays.ignoreEvents.mockClear();
+
+    const res = await post("/sync/reject-passing-no-results", { source: "playloltcg" });
+
+    expect(await readJson(res)).toEqual({ rejected: 0 });
+    expect(mockMetaOverlays.ignoreEvents).not.toHaveBeenCalled();
+  });
+});
+
 describe("GET /catalogue/sync", () => {
   const OVERVIEW = {
     total: 4,
@@ -626,13 +661,31 @@ describe("GET /catalogue/sync", () => {
     acceptedMissing: 0,
     acceptedCancelled: 0,
     lastSeenAt: new Date("2026-08-20T00:00:00Z"),
+    notStarted: 1,
+    firstStartAt: null,
+    collecting: 0,
+    nextCheckAt: null,
+    final: 1,
+    noResults: 0,
+    needsDecision: 0,
+    passingNoResults: 0,
+    skippedUpcoming: 0,
+    skippedPast: 1,
   };
   const COUNTS = { new: 1, accepted: 2, dismissed: 3 };
-  const ARCHIVE = { events: 2, eventsWithStandings: 1, eventsWithDecklists: 1, decks: 5 };
+  const ARCHIVE = {
+    events: 2,
+    eventsWithStandings: 1,
+    eventsWithDecklists: 1,
+    decks: 5,
+    addedLast7Days: 1,
+  };
 
   beforeEach(() => {
     mockJobRuns.listRecentByKinds.mockResolvedValue([]);
     mockMeta.archiveOverview.mockResolvedValue(ARCHIVE);
+    mockJobRuns.latestByKinds.mockResolvedValue([]);
+    mockUvsgamesEvents.settings.mockResolvedValue({ autoAcceptMinPlayers: 16 });
     mockUvsgamesEvents.syncOverview.mockResolvedValue(OVERVIEW);
     mockUvsgamesEvents.triageCounts.mockResolvedValue(COUNTS);
     mockPlayloltcgEvents.syncOverview.mockResolvedValue(OVERVIEW);
@@ -646,9 +699,31 @@ describe("GET /catalogue/sync", () => {
     const body = await readJson(res);
     expect(body.catalog.lastSeenAt).toBe("2026-08-20T00:00:00.000Z");
     expect(body.archive).toEqual(ARCHIVE);
-    expect(mockUvsgamesEvents.syncOverview).toHaveBeenCalled();
+    expect(mockUvsgamesEvents.syncOverview).toHaveBeenCalledWith(16);
     expect(mockPlayloltcgEvents.syncOverview).not.toHaveBeenCalled();
     expect(mockMeta.archiveOverview).toHaveBeenCalledWith("uvsgames");
+  });
+
+  it("keeps each job's newest run even when rechecks fill the recent list", async () => {
+    const at = (iso: string) => ({
+      trigger: "cron",
+      status: "succeeded",
+      finishedAt: null,
+      durationMs: null,
+      errorMessage: null,
+      result: null,
+      noop: null,
+      startedAt: new Date(iso),
+    });
+    const recheck = { id: "r-1", kind: "meta.uvsgames_recheck", ...at("2026-10-28T14:50:00Z") };
+    const sync = { id: "s-1", kind: "meta.uvsgames_sync", ...at("2026-10-28T06:00:00Z") };
+    mockJobRuns.listRecentByKinds.mockResolvedValue([recheck]);
+    mockJobRuns.latestByKinds.mockResolvedValue([sync, recheck]);
+
+    const res = await app.request(`${BASE}/sync?source=uvsgames`);
+
+    const body = await readJson(res);
+    expect(body.runs.map((run: { id: string }) => run.id)).toEqual(["r-1", "s-1"]);
   });
 
   it("switches both the mirror and the archive slice to the named source", async () => {

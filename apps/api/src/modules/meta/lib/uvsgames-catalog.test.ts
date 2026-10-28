@@ -5,6 +5,7 @@ import {
   isNotableEventName,
   mapSourceFormat,
   projectCatalogRow,
+  projectProbedRow,
   projectTemplateRows,
   venueLocalDay,
 } from "./uvsgames-catalog.js";
@@ -30,6 +31,22 @@ function listingRow(overrides: Record<string, unknown> = {}): Record<string, unk
     ...overrides,
   };
 }
+
+describe("projectProbedRow", () => {
+  it("keeps an event whose start the source dropped, with no start", () => {
+    const projection = projectProbedRow(listingRow({ start_datetime: null }));
+
+    expect(projection).toMatchObject({ externalId: "4821", startAt: null });
+  });
+
+  it("still drops a row with no identity", () => {
+    expect(projectProbedRow(listingRow({ id: null }))).toBeNull();
+  });
+
+  it("is what the listing projection refuses when the start is missing", () => {
+    expect(projectCatalogRow(listingRow({ start_datetime: null }))).toBeNull();
+  });
+});
 
 describe("projectCatalogRow", () => {
   it("reads the format from gameplay_format alone, never the junk event_format field", () => {

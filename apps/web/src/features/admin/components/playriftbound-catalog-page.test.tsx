@@ -194,7 +194,7 @@ describe("PlayriftboundCatalogPage", () => {
   it("accepts a row by its tournament id", async () => {
     render(<PlayriftboundCatalogPage />);
     await userEvent.click(
-      rowActions("Bandle City Summoner").getByRole("button", { name: "Accept" }),
+      rowActions("Bandle City Summoner").getByRole("button", { name: "Publish" }),
     );
     expect(captured.accept).toHaveBeenCalledWith({ tournamentId: "117000000000000001" });
   });
@@ -212,8 +212,8 @@ describe("PlayriftboundCatalogPage", () => {
     setResponse([makeRow({ triage: "dismissed" })]);
     render(<PlayriftboundCatalogPage />);
     const actions = rowActions("Bandle City Summoner");
-    expect(actions.getByRole("button", { name: "Undismiss" })).toBeInTheDocument();
-    expect(actions.queryByRole("button", { name: "Accept" })).not.toBeInTheDocument();
+    expect(actions.getByRole("button", { name: "Restore" })).toBeInTheDocument();
+    expect(actions.queryByRole("button", { name: "Publish" })).not.toBeInTheDocument();
   });
 
   it("carries the type and format filters into the query", () => {

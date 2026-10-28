@@ -1,3 +1,4 @@
+import { META_SYNC_BUCKET_FILTERS } from "@openrift/shared/contracts/admin/meta-catalog";
 import {
   META_CATALOG_DISPLAY_STATUSES,
   META_CATALOG_PROVIDERS,
@@ -21,6 +22,7 @@ import { z } from "zod";
 export const metaSearchSchema = z.object({
   tab: z.enum(["catalogue", "review", "public"]).optional(),
   source: z.enum(META_CATALOG_PROVIDERS).optional(),
+  detail: z.enum(META_CATALOG_PROVIDERS).optional(),
   page: z.coerce.number().int().positive().optional(),
   q: z.string().optional(),
   triage: z.union([z.enum(META_CATALOG_TRIAGE), z.literal("any")]).optional(),
@@ -40,6 +42,7 @@ export const metaSearchSchema = z.object({
   minPlayers: z.coerce.number().int().min(0).optional(),
   decklists: z.boolean().optional(),
   missing: z.boolean().optional(),
+  bucket: z.enum(META_SYNC_BUCKET_FILTERS).optional(),
   awaitingResults: z.boolean().optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),

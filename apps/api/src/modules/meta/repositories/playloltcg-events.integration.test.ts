@@ -505,7 +505,7 @@ describe.skipIf(!ctx)("playloltcgEventsRepo", () => {
   it("counts finished events and fetched ones as separate figures", async () => {
     await seedAcceptedCandidate(KEYS.linked, { fetchedAt: new Date("2026-08-21T06:00:00Z") });
 
-    const overview = await repo().syncOverview();
+    const overview = await repo().syncOverview(null);
 
     expect(overview.total).toBeGreaterThanOrEqual(ALL_KEYS.length);
     expect(overview.completed).toBeGreaterThanOrEqual(1);
@@ -515,7 +515,7 @@ describe.skipIf(!ctx)("playloltcgEventsRepo", () => {
   });
 
   it("splits accepted events by whether the mirror holds their standings", async () => {
-    const before = await repo().syncOverview();
+    const before = await repo().syncOverview(null);
 
     await repo().upsertBatch(
       [
@@ -529,7 +529,7 @@ describe.skipIf(!ctx)("playloltcgEventsRepo", () => {
     await seedAcceptedCandidate(KEYS.awaitingA);
     await seedAcceptedCandidate(KEYS.awaitingB);
 
-    const after = await repo().syncOverview();
+    const after = await repo().syncOverview(null);
 
     expect(after.total - before.total).toBe(3);
     expect(after.decklistPublished - before.decklistPublished).toBe(1);

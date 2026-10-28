@@ -189,7 +189,7 @@ describe("PlayloltcgCatalogPage", () => {
     setResponse([makeRow(), makeRow({ activityShopId: 5510, name: "Noxus Open" })]);
     render(<PlayloltcgCatalogPage />);
 
-    await user.click(rowActions("Noxus Open").getByRole("button", { name: "Accept" }));
+    await user.click(rowActions("Noxus Open").getByRole("button", { name: "Publish" }));
 
     expect(captured.accept).toHaveBeenCalledWith({ activityShopId: 5510 });
   });
@@ -198,11 +198,11 @@ describe("PlayloltcgCatalogPage", () => {
     const user = userEvent.setup();
     render(<PlayloltcgCatalogPage />);
 
-    await user.click(screen.getByRole("button", { name: /Dismiss/u }));
+    await user.click(screen.getByRole("button", { name: /Reject/u }));
     expect(captured.dismiss).not.toHaveBeenCalled();
 
     const dialog = await screen.findByRole("alertdialog");
-    await user.click(within(dialog).getByRole("button", { name: "Dismiss" }));
+    await user.click(within(dialog).getByRole("button", { name: "Reject" }));
     expect(captured.dismiss).toHaveBeenCalledWith({ activityShopId: 4021 });
   });
 
@@ -227,8 +227,8 @@ describe("PlayloltcgCatalogPage", () => {
   it("offers nothing to accept on a row that has already been taken", () => {
     setResponse([makeRow({ triage: "accepted" })]);
     render(<PlayloltcgCatalogPage />);
-    expect(screen.getByText("Accepted")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Accept/u })).not.toBeInTheDocument();
+    expect(screen.getByText("Published")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Publish/u })).not.toBeInTheDocument();
   });
 
   it("offers an undismiss on a dismissed row, and nothing to accept", async () => {
@@ -236,9 +236,9 @@ describe("PlayloltcgCatalogPage", () => {
     setResponse([makeRow({ triage: "dismissed" })]);
     render(<PlayloltcgCatalogPage />);
 
-    expect(screen.getByText("Dismissed")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Accept/u })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Undismiss/u }));
+    expect(screen.getByText("Rejected")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Publish/u })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Restore/u }));
 
     expect(captured.undismiss).toHaveBeenCalledWith({ activityShopId: 4021 });
   });
@@ -264,8 +264,8 @@ describe("PlayloltcgCatalogPage", () => {
     searchStore.seed({ triage: "accepted" });
     render(<PlayloltcgCatalogPage />);
 
-    await user.click(screen.getByLabelText("Triage state"));
-    await user.click(await screen.findByRole("option", { name: /^New/u }));
+    await user.click(screen.getByLabelText("Decision"));
+    await user.click(await screen.findByRole("option", { name: /^Undecided/u }));
 
     expect(searchStore.get().triage).toBeUndefined();
     expect(captured.params).toMatchObject({ triage: "new" });
@@ -275,7 +275,7 @@ describe("PlayloltcgCatalogPage", () => {
     const user = userEvent.setup();
     render(<PlayloltcgCatalogPage />);
 
-    await user.click(screen.getByLabelText("Triage state"));
+    await user.click(screen.getByLabelText("Decision"));
     await user.click(await screen.findByRole("option", { name: "Any state" }));
 
     expect(searchStore.get()).toMatchObject({ triage: "any" });
@@ -286,9 +286,9 @@ describe("PlayloltcgCatalogPage", () => {
     const user = userEvent.setup();
     render(<PlayloltcgCatalogPage />);
 
-    await user.click(screen.getByLabelText("Triage state"));
+    await user.click(screen.getByLabelText("Decision"));
 
-    expect(await screen.findByRole("option", { name: "New (7)" })).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: "Undecided (7)" })).toBeInTheDocument();
   });
 
   it("drops a search into the URL rather than keeping it to itself", async () => {
@@ -323,8 +323,8 @@ describe("PlayloltcgCatalogPage", () => {
     await user.click(screen.getByRole("button", { name: "Next page" }));
     expect(captured.params).toMatchObject({ page: 2 });
 
-    await user.click(screen.getByLabelText("Triage state"));
-    await user.click(await screen.findByRole("option", { name: /^Accepted/u }));
+    await user.click(screen.getByLabelText("Decision"));
+    await user.click(await screen.findByRole("option", { name: /^Published/u }));
 
     expect(searchStore.get().page).toBeUndefined();
     expect(captured.params).toMatchObject({ page: 1, triage: "accepted" });
@@ -400,6 +400,6 @@ describe("PlayloltcgCatalogPage", () => {
   it("says the catalogue is loading before the first page lands", () => {
     captured.response = undefined;
     render(<PlayloltcgCatalogPage />);
-    expect(screen.getByText("Loading the catalogue…")).toBeInTheDocument();
+    expect(screen.getByText("Loading the mirror…")).toBeInTheDocument();
   });
 });

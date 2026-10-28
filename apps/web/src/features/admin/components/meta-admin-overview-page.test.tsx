@@ -1,42 +1,54 @@
-import type { MetaSyncStatus } from "@openrift/shared/contracts/admin/meta-catalog";
-import type { MetaOverlayQueueRow } from "@openrift/shared/types/api/meta";
+import type { MetaSource, MetaSyncStatus } from "@openrift/shared/contracts/admin/meta-catalog";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const captured = vi.hoisted(() => ({
-  status: null as unknown,
-  playloltcgStatus: null as unknown,
-  topdeckStatus: null as unknown,
+  statuses: {} as Partial<Record<string, unknown>>,
+  search: {} as Record<string, unknown>,
   overlays: [] as unknown[],
-  prevSearch: {} as Record<string, unknown>,
+  corrections: { items: [] as unknown[], hasMore: false },
+  schedules: [] as unknown[],
   run: vi.fn(),
-  cancelRun: vi.fn(),
-  archiveRuns: [] as unknown[],
-  toastSuccess: vi.fn(),
-  toastError: vi.fn(),
+  cancel: vi.fn(),
+  reject: vi.fn(),
 }));
 
-vi.mock("sonner", () => ({
-  toast: { success: captured.toastSuccess, error: captured.toastError },
-}));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children, search, to }: { children?: ReactNode; search?: unknown; to?: string }) => (
+  Link: ({ children, search }: { children?: ReactNode; search?: unknown }) => (
     <a
-      href={to ?? "/admin/meta"}
+      href="/admin/meta"
       data-search={JSON.stringify(
         typeof search === "function"
-          ? (search as (prev: Record<string, unknown>) => unknown)(captured.prevSearch)
+          ? (search as (prev: Record<string, unknown>) => unknown)({})
           : search,
       )}
     >
       {children}
     </a>
   ),
-  useNavigate: () => vi.fn(),
+  getRouteApi: () => ({
+    useSearch: ({ select }: { select: (search: Record<string, unknown>) => unknown }) =>
+      select(captured.search),
+  }),
   createLink: (component: unknown) => component,
+}));
+
+vi.mock("@/components/ui/dropdown-menu", () => ({
+  DropdownMenu: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  DropdownMenuContent: ({ children }: { children?: ReactNode }) => (
+    <div role="menu">{children}</div>
+  ),
+  DropdownMenuItem: ({ children, onClick }: { children?: ReactNode; onClick?: () => void }) => (
+    <button type="button" role="menuitem" onClick={onClick}>
+      {children}
+    </button>
+  ),
+  DropdownMenuSeparator: () => null,
 }));
 
 vi.mock("@/features/admin/components/admin-page-top-bar", () => ({
@@ -46,583 +58,353 @@ vi.mock("@/features/admin/components/admin-page-top-bar", () => ({
 vi.mock("@/features/admin/hooks/use-admin-meta-catalog", () => ({
   SYNC_STATUS_POLL_MS: 15_000,
   useMetaSyncStatus: (source: string) => ({
-    data:
-      { playloltcg: captured.playloltcgStatus, topdeck: captured.topdeckStatus }[source] ??
-      (source === "uvsgames" ? captured.status : undefined),
+    data: captured.statuses[source],
     refetch: vi.fn(),
     isFetching: false,
     dataUpdatedAt: 0,
   }),
-  useRunMetaSync: () => ({ mutateAsync: captured.run, isPending: false, variables: undefined }),
-  useMetaArchiveJobs: () => ({ data: { runs: captured.archiveRuns } }),
-  useCancelMetaRun: () => ({
-    mutateAsync: captured.cancelRun,
-    isPending: false,
-    variables: undefined,
+  useMetaSyncSettings: () => ({
+    data: {
+      autoAcceptMinPlayers: 16,
+      autoAcceptNotable: false,
+      autoAcceptOfficial: false,
+      competitivePlayerFloor: 32,
+      updatedAt: "2026-08-01T00:00:00.000Z",
+    },
   }),
+  useRunMetaSync: () => ({ mutateAsync: captured.run, isPending: false, variables: undefined }),
+  useCancelMetaRun: () => ({ mutate: captured.cancel, isPending: false }),
+  useMetaArchiveJobs: () => ({ data: { runs: [] } }),
+  useRejectPassingNoResults: () => ({ mutate: captured.reject, isPending: false }),
 }));
 
 vi.mock("@/features/admin/hooks/use-admin-meta-overlays", () => ({
   useAdminMetaOverlays: () => ({ data: { overlays: captured.overlays } }),
 }));
 
-vi.mock("@/hooks/use-enums", () => ({
-  useDeckFormatList: () => ({ formats: [], labels: {} }),
+vi.mock("@/features/admin/hooks/use-admin-meta-submissions", () => ({
+  useMetaEventCorrections: () => ({ data: captured.corrections }),
+}));
+
+vi.mock("@/features/admin/hooks/use-job-schedules", () => ({
+  useJobSchedulesQuery: () => ({ data: { jobs: captured.schedules } }),
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
-import { MetaAdminOverviewPage, MetaSourceSyncSection } from "./meta-admin-overview-page";
+import { MetaAdminOverviewPage } from "./meta-admin-overview-page";
 
-const NOW = new Date("2026-08-29T12:00:00.000Z");
+const NOW = new Date("2026-10-28T15:00:00.000Z");
 
-const status: MetaSyncStatus = {
-  catalog: {
-    total: 266_000,
-    completed: 190_000,
-    decklistPublished: 1200,
-    missing: 12,
-    queued: 40,
-    dueRecheck: 3,
-    oldestDueAt: null,
-    acceptedAwaitingResults: 17,
-    acceptedMissing: 0,
-    acceptedCancelled: 0,
-    lastSeenAt: "2026-08-29T09:00:00.000Z",
-  },
-  archive: { events: 480, eventsWithStandings: 420, eventsWithDecklists: 310, decks: 2600 },
-  counts: { new: 30, accepted: 8, dismissed: 4 },
-  runs: [
-    {
-      id: "run-1",
-      kind: "meta.uvsgames_sync",
-      trigger: "cron",
-      status: "succeeded",
-      startedAt: "2026-08-29T08:00:00.000Z",
-      finishedAt: "2026-08-29T08:04:00.000Z",
-      durationMs: 240_000,
-      errorMessage: null,
-      result: { pages: 250, upserted: 1200 },
-    },
-    {
-      id: "run-2",
-      kind: "meta.uvsgames_recheck",
-      trigger: "admin",
-      status: "failed",
-      startedAt: "2026-08-28T08:00:00.000Z",
-      finishedAt: "2026-08-28T08:00:02.000Z",
-      durationMs: 2000,
-      errorMessage: "Upstream returned 503",
-      result: null,
-    },
-  ],
-  schedules: {
-    "meta.uvsgames_sync": false,
-    "meta.uvsgames_recheck": true,
-    "meta.playloltcg_sync": true,
-    "meta.playloltcg_recheck": true,
-  },
-};
+type Run = MetaSyncStatus["runs"][number];
 
-function runningRun(kind: string): MetaSyncStatus["runs"][number] {
+function run(kind: string, overrides: Partial<Run> = {}): Run {
   return {
-    id: "run-7",
+    id: `run-${kind}`,
     kind,
-    trigger: "admin",
-    status: "running",
-    startedAt: "2026-08-29T11:00:00.000Z",
-    finishedAt: null,
-    durationMs: null,
+    trigger: "cron",
+    status: "succeeded",
+    startedAt: "2026-10-28T14:50:00.000Z",
+    finishedAt: "2026-10-28T14:51:00.000Z",
+    durationMs: 60_000,
     errorMessage: null,
     result: null,
-  };
-}
-
-function overlay(overrides: Partial<MetaOverlayQueueRow> = {}): MetaOverlayQueueRow {
-  return {
-    id: "overlay-1",
-    kind: "player",
-    status: "pending",
-    provider: "uvsgames",
-    sourceEventExternalId: "evt-1",
-    sourcePlayerExternalId: "evt-1-p1",
-    metaEventPlayerId: "row-1",
-    metaEventId: "event-1",
-    metaEventName: "Summoner Skirmish",
-    eventOverlayId: null,
-    metaEventSlug: null,
-    eventDate: null,
-    eventFormat: null,
-    rank: null,
-    rankIsTier: null,
-    match: null,
-    proposedName: null,
-    playerName: "Ashe Main",
-    submittedBy: "user-1",
-    submissionNote: null,
-    changes: [],
-    cards: [],
-    unresolvedNames: [],
-    createdAt: "2026-08-20T00:00:00.000Z",
     ...overrides,
   };
 }
 
-function stage(label: string) {
-  return screen.getByRole("link", { name: new RegExp(label, "u") });
+function status(
+  source: MetaSource,
+  catalog: Partial<MetaSyncStatus["catalog"]> = {},
+  runs: Run[] = [],
+): MetaSyncStatus {
+  return {
+    catalog: {
+      total: 39_089,
+      completed: 6006,
+      decklistPublished: 0,
+      missing: 0,
+      queued: 669,
+      dueRecheck: 0,
+      oldestDueAt: null,
+      acceptedAwaitingResults: 303,
+      acceptedMissing: 0,
+      acceptedCancelled: 0,
+      lastSeenAt: "2026-10-28T12:00:00.000Z",
+      notStarted: 303,
+      firstStartAt: "2026-10-28T15:30:00.000Z",
+      collecting: 366,
+      nextCheckAt: "2026-10-28T15:30:00.000Z",
+      final: 6181,
+      noResults: 92,
+      needsDecision: 0,
+      passingNoResults: 60,
+      skippedUpcoming: 8209,
+      skippedPast: 23_878,
+      ...catalog,
+    },
+    archive: {
+      events: 6942,
+      eventsWithStandings: 6181,
+      eventsWithDecklists: 0,
+      decks: 0,
+      addedLast7Days: 432,
+    },
+    counts: { new: 32_147, accepted: 6942, dismissed: 0 },
+    runs: runs.length > 0 ? runs : [run(`meta.${source}_sync`, { result: { inserted: 270 } })],
+    schedules: { [`meta.${source}_sync`]: true, [`meta.${source}_recheck`]: true },
+  };
 }
 
-function statusWith(overrides: Partial<MetaSyncStatus["catalog"]>): MetaSyncStatus {
-  return { ...status, catalog: { ...status.catalog, ...overrides } };
+function row(name: string) {
+  const link = screen.getByRole("link", { name });
+  const element = link.closest("tr");
+  if (element === null) {
+    throw new Error(`No row for ${name}`);
+  }
+  return within(element);
 }
-
-describe("MetaSourceSyncSection", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.useFakeTimers({ shouldAdvanceTime: true, now: NOW });
-    captured.prevSearch = {};
-    captured.status = status;
-    captured.playloltcgStatus = status;
-    captured.topdeckStatus = status;
-    captured.overlays = [overlay(), overlay({ id: "overlay-2" })];
-    captured.run.mockResolvedValue({
-      status: "running",
-      runId: "run-9",
-      message: null,
-      result: null,
-    });
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("counts each pipeline stage, review from the queue rather than the status", () => {
-    render(<MetaSourceSyncSection source="uvsgames" />);
-
-    expect(stage("Untriaged")).toHaveTextContent("30");
-    expect(stage("Untriaged")).toHaveTextContent("of 266,000 catalogued");
-    expect(stage("Awaiting results")).toHaveTextContent("17");
-    expect(stage("Needs review")).toHaveTextContent("2");
-    expect(stage("Needs review")).toHaveTextContent("0 unmatched card names");
-    expect(stage("Published")).toHaveTextContent("480");
-    expect(stage("Published")).toHaveTextContent("2,600 decks · 310 of 1,200 events with lists");
-  });
-
-  it("counts only the overlays the open source's tab is about", () => {
-    captured.overlays = [
-      overlay(),
-      overlay({ id: "overlay-2", provider: "playloltcg", unresolvedNames: ["A"] }),
-      overlay({ id: "overlay-3", provider: null }),
-    ];
-
-    render(<MetaSourceSyncSection source="uvsgames" />);
-
-    // The playloltcg-provider overlay belongs to the other tab; the null-provider one shows on both.
-    expect(stage("Needs review")).toHaveTextContent("2");
-    expect(stage("Needs review")).toHaveTextContent("0 unmatched card names");
-  });
-
-  it("sends a stage straight to the rows it counted", () => {
-    render(<MetaSourceSyncSection source="uvsgames" />);
-
-    expect(stage("Untriaged")).toHaveAttribute("data-search", JSON.stringify({ tab: "catalogue" }));
-    expect(stage("Awaiting results")).toHaveAttribute(
-      "data-search",
-      JSON.stringify({ tab: "catalogue", triage: "accepted", awaitingResults: true }),
-    );
-    expect(stage("Needs review")).toHaveAttribute("data-search", JSON.stringify({ tab: "review" }));
-  });
-
-  it("names its own source on every catalogue link, whatever the URL carries", () => {
-    render(<MetaSourceSyncSection source="playloltcg" />);
-
-    expect(stage("Untriaged")).toHaveAttribute(
-      "data-search",
-      JSON.stringify({ source: "playloltcg", tab: "catalogue" }),
-    );
-  });
-
-  it("keeps one quiet mirror line instead of a comparison row", () => {
-    render(<MetaSourceSyncSection source="uvsgames" />);
-    expect(
-      screen.getByText(/Mirror: 266,000 events, 190,000 ran, last crawl/u),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/at uvsgames/u)).not.toBeInTheDocument();
-  });
-
-  it("keeps finding events and fetching their results on separate buttons", async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    render(<MetaSourceSyncSection source="uvsgames" />);
-
-    await user.click(screen.getByRole("button", { name: /Sync the catalogue/u }));
-    expect(captured.run.mock.calls).toEqual([[{ trigger: "runSync" }]]);
-
-    await user.click(screen.getByRole("button", { name: /^Fetch results/u }));
-    expect(captured.run.mock.calls).toEqual([
-      [{ trigger: "runSync" }],
-      [{ trigger: "runRecheck" }],
-    ]);
-  });
-
-  it("runs the playloltcg source on its own buttons", async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    render(<MetaSourceSyncSection source="playloltcg" />);
-
-    await user.click(screen.getByRole("button", { name: /Sync the catalogue/u }));
-    expect(captured.run).toHaveBeenCalledWith({ trigger: "runPlayloltcgSync" });
-
-    await user.click(screen.getByRole("button", { name: /^Fetch results/u }));
-    expect(captured.run).toHaveBeenCalledWith({ trigger: "runPlayloltcgRecheck" });
-  });
-
-  it("sweeps the backlog from each source's own auto-accept button", async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    const view = render(<MetaSourceSyncSection source="uvsgames" />);
-
-    await user.click(screen.getByRole("button", { name: /Auto-accept backlog/u }));
-    await user.click(screen.getByRole("button", { name: /Run the sweep/u }));
-    expect(captured.run).toHaveBeenCalledWith({ trigger: "runAutoAccept" });
-
-    view.rerender(<MetaSourceSyncSection source="playloltcg" />);
-    await user.click(screen.getByRole("button", { name: /Auto-accept backlog/u }));
-    await user.click(screen.getByRole("button", { name: /Run the sweep/u }));
-    expect(captured.run).toHaveBeenCalledWith({ trigger: "runPlayloltcgAutoAccept" });
-  });
-
-  it("says how many events a backlog sweep would run over before it starts one", async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    render(<MetaSourceSyncSection source="uvsgames" />);
-
-    await user.click(screen.getByRole("button", { name: /Auto-accept backlog/u }));
-
-    expect(screen.getByText(/all 30 events awaiting triage/u)).toBeInTheDocument();
-    expect(captured.run).not.toHaveBeenCalled();
-  });
-
-  it("says a crawl started rather than claiming it finished", async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    render(<MetaSourceSyncSection source="uvsgames" />);
-
-    await user.click(screen.getByRole("button", { name: /Sync the catalogue/u }));
-
-    expect(captured.run).toHaveBeenCalledWith({ trigger: "runSync" });
-    expect(captured.toastSuccess).toHaveBeenCalledWith(
-      "Sync the catalogue started",
-      expect.objectContaining({ description: expect.stringContaining("background") }),
-    );
-    expect(screen.getByText("Sync the catalogue: running")).toBeInTheDocument();
-  });
-
-  it("shows the backfill inline, no accordion", () => {
-    render(<MetaSourceSyncSection source="uvsgames" />);
-
-    expect(screen.getByRole("button", { name: /Sync the catalogue/u })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Full backfill/u })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Maintenance" })).not.toBeInTheDocument();
-  });
-
-  it("offers to stop a backfill only while one is running", () => {
-    render(<MetaSourceSyncSection source="uvsgames" />);
-
-    expect(screen.queryByRole("button", { name: /Stop the backfill/u })).not.toBeInTheDocument();
-  });
-
-  it("stops a running backfill and says which run it flagged", async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    captured.status = {
-      ...status,
-      runs: [
-        {
-          id: "run-9",
-          kind: "meta.uvsgames_backfill",
-          trigger: "admin",
-          status: "running",
-          startedAt: "2026-08-29T11:00:00.000Z",
-          finishedAt: null,
-          durationMs: null,
-          errorMessage: null,
-          result: null,
-        },
-      ],
-    };
-    captured.cancelRun.mockResolvedValue({ runId: "run-9", cancelRequested: true });
-    render(<MetaSourceSyncSection source="uvsgames" />);
-
-    expect(screen.queryByRole("button", { name: /Full backfill/u })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Continue backfill/u })).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /Stop the backfill/u }));
-
-    expect(captured.cancelRun).toHaveBeenCalledWith({ job: "backfill" });
-    expect(screen.getByText("Full backfill: stopping at run run-9")).toBeInTheDocument();
-  });
-
-  it("stops a running recheck from the button that started it", async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    captured.status = { ...status, runs: [runningRun("meta.uvsgames_recheck")] };
-    captured.cancelRun.mockResolvedValue({ runId: "run-7", cancelRequested: true });
-    render(<MetaSourceSyncSection source="uvsgames" />);
-
-    expect(screen.queryByRole("button", { name: /^Fetch results/u })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Stop fetching results/u }));
-
-    expect(captured.cancelRun).toHaveBeenCalledWith({ job: "recheck" });
-    expect(screen.getByText("Fetch results: stopping at run run-7")).toBeInTheDocument();
-  });
-
-  it("offers no Stop for a playloltcg recheck, which never reads the flag", () => {
-    captured.playloltcgStatus = { ...status, runs: [runningRun("meta.playloltcg_recheck")] };
-    render(<MetaSourceSyncSection source="playloltcg" />);
-
-    expect(screen.getByRole("button", { name: /^Fetch results/u })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Stop fetching/u })).not.toBeInTheDocument();
-  });
-
-  it("offers continue and start-over once a backfill stopped partway", () => {
-    captured.status = {
-      ...status,
-      runs: [
-        {
-          id: "run-9",
-          kind: "meta.uvsgames_backfill",
-          trigger: "admin",
-          status: "succeeded",
-          startedAt: "2026-08-29T11:00:00.000Z",
-          finishedAt: "2026-08-29T11:20:00.000Z",
-          durationMs: 1_200_000,
-          errorMessage: null,
-          result: {
-            complete: false,
-            cancelRequested: true,
-            rows: 120_000,
-            coveredThrough: "2026-04-06T13:00:00.000Z",
-          },
-        },
-      ],
-    };
-    render(<MetaSourceSyncSection source="uvsgames" />);
-
-    expect(
-      screen.getByText(/was stopped and covered events through 2026-04-06 13:00/u),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Continue backfill/u })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Backfill from scratch/u })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Full backfill/u })).not.toBeInTheDocument();
-  });
-
-  it("answers a trigger that is already in flight instead of looking like it worked", async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    captured.run.mockResolvedValue({
-      status: "already_running",
-      runId: "run-8",
-      message: null,
-      result: null,
-    });
-    render(<MetaSourceSyncSection source="uvsgames" />);
-
-    await user.click(screen.getByRole("button", { name: /Full backfill/u }));
-
-    expect(captured.toastError).toHaveBeenCalledWith(
-      "Full backfill is already running",
-      expect.anything(),
-    );
-    expect(screen.getByText("Full backfill: already running")).toBeInTheDocument();
-  });
-
-  it("marks the crawls this deployment has no cron for", () => {
-    captured.status = {
-      ...status,
-      schedules: { ...status.schedules, "meta.uvsgames_recheck": false },
-    };
-    render(<MetaSourceSyncSection source="uvsgames" />);
-
-    expect(screen.getAllByText("cron disabled")).toHaveLength(2);
-  });
-
-  it("says what the last run did instead of repeating the run history", () => {
-    render(<MetaSourceSyncSection source="uvsgames" />);
-
-    expect(screen.getByText("meta.uvsgames_sync")).toBeInTheDocument();
-    expect(screen.getByText("250 pages · 1,200 upserted")).toBeInTheDocument();
-    expect(screen.queryByText("Upstream returned 503")).not.toBeInTheDocument();
-  });
-
-  it("sends the reader to this source's runs on the central table", () => {
-    render(<MetaSourceSyncSection source="playloltcg" />);
-
-    const link = screen.getByRole("link", { name: "All runs" });
-    expect(link).toHaveAttribute("href", "/admin/job-runs");
-    expect(link).toHaveAttribute("data-search", JSON.stringify({ runPrefix: "meta.playloltcg_" }));
-  });
-});
 
 describe("MetaAdminOverviewPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true, now: NOW });
-    captured.prevSearch = {};
-    captured.status = status;
-    // Only uvsgames answers by default, so one source's alerts are unambiguous.
-    captured.playloltcgStatus = undefined;
-    captured.topdeckStatus = undefined;
+    captured.search = {};
     captured.overlays = [];
-    captured.archiveRuns = [];
+    captured.corrections = { items: [], hasMore: false };
+    captured.schedules = [];
+    captured.statuses = {
+      uvsgames: status("uvsgames"),
+      playloltcg: status("playloltcg"),
+      topdeck: status("topdeck"),
+      playriftbound: status("playriftbound"),
+    };
+    captured.run.mockResolvedValue({ status: "running", runId: "r", message: null, result: null });
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it("says so plainly when neither source is in trouble", () => {
-    captured.status = statusWith({ acceptedMissing: 0, dueRecheck: 3 });
-    captured.playloltcgStatus = captured.status;
+  it("shows one row per source with what the last mirror refresh did", () => {
     render(<MetaAdminOverviewPage />);
 
-    expect(screen.getByText("Every source looks healthy.")).toBeInTheDocument();
+    const playriftbound = row("PlayRiftbound");
+    expect(playriftbound.getByText("6,942")).toBeInTheDocument();
+    expect(playriftbound.getByText("+432 in 7 days")).toBeInTheDocument();
+    expect(playriftbound.getByText("270 new")).toBeInTheDocument();
+    expect(playriftbound.getByText("2026-10-28 14:50 · 270 new")).toBeInTheDocument();
+    expect(playriftbound.getByText("first 2026-10-28 15:30")).toBeInTheDocument();
+    expect(playriftbound.getByText("366")).toBeInTheDocument();
   });
 
-  it("raises the events that vanished from the source and the unmatched card names", () => {
-    captured.status = statusWith({ acceptedMissing: 2 });
-    captured.overlays = [overlay({ unresolvedNames: ["A", "B", "C", "D", "E"] })];
+  it("shows the next check while nothing is overdue", () => {
     render(<MetaAdminOverviewPage />);
 
-    expect(
-      screen.getByText("2 events live on /meta have disappeared from the source listing."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("5 card names across staged decks match no live card."),
-    ).toBeInTheDocument();
+    expect(row("PlayRiftbound").getByText("next 2026-10-28 15:30")).toBeInTheDocument();
   });
 
-  it("lands the missing-event alert on the missing rows, not every accepted one", () => {
-    captured.status = statusWith({
-      acceptedMissing: 2,
-      dueRecheck: 60,
-      oldestDueAt: "2026-08-01T00:00:00.000Z",
+  it("shows the overdue count and its age once the queue falls behind", () => {
+    captured.statuses.playloltcg = status("playloltcg", {
+      dueRecheck: 123,
+      oldestDueAt: "2026-10-27T21:00:00.000Z",
     });
+
     render(<MetaAdminOverviewPage />);
 
-    expect(screen.getByRole("link", { name: "The missing events" })).toHaveAttribute(
-      "data-search",
-      JSON.stringify({ tab: "catalogue", triage: "accepted", missing: true }),
-    );
-    expect(screen.getByRole("link", { name: "Accepted events" })).toHaveAttribute(
-      "data-search",
-      JSON.stringify({ tab: "catalogue", triage: "accepted" }),
-    );
+    const playloltcg = row("Play LoL TCG");
+    expect(playloltcg.getByText("123")).toHaveClass("text-warning");
+    expect(playloltcg.getByText("oldest 18h ago")).toBeInTheDocument();
   });
 
-  it("raises rechecks that have fallen hours behind", () => {
-    captured.status = statusWith({ dueRecheck: 25_033, oldestDueAt: "2026-08-01T00:00:00.000Z" });
+  it("marks result columns n/a for a source whose refresh carries the results", () => {
     render(<MetaAdminOverviewPage />);
 
-    expect(
-      screen.getByText(
-        "Rechecks are falling behind: 25,033 accepted events are due, and the oldest became due 4w ago.",
-      ),
-    ).toBeInTheDocument();
+    expect(row("TopDeck.gg").getAllByText("n/a")).toHaveLength(2);
+    expect(row("PlayRiftbound").queryByText("n/a")).not.toBeInTheDocument();
   });
 
-  it("raises a mirror that has stopped being crawled", () => {
-    captured.status = statusWith({ lastSeenAt: "2026-08-01T00:00:00.000Z" });
-    render(<MetaAdminOverviewPage />);
-
-    expect(screen.getByText(/The last crawl activity was 4w ago/u)).toBeInTheDocument();
-  });
-
-  it("says which source each alert is about, and sends it to that source's rows", () => {
-    captured.status = statusWith({ acceptedMissing: 2 });
-    captured.playloltcgStatus = statusWith({ acceptedMissing: 3 });
-    render(<MetaAdminOverviewPage />);
-
-    const rows = screen
-      .getAllByText(/have disappeared from the source listing/u)
-      .map((message) => message.parentElement!);
-    expect(rows).toHaveLength(2);
-    expect(within(rows[0]!).getByText("UVS Games")).toBeInTheDocument();
-    expect(within(rows[1]!).getByText("Play LoL TCG")).toBeInTheDocument();
-
-    const [uvsgames, playloltcg] = screen.getAllByRole("link", { name: "The missing events" });
-    expect(uvsgames).toHaveAttribute(
-      "data-search",
-      JSON.stringify({ tab: "catalogue", triage: "accepted", missing: true }),
-    );
-    expect(playloltcg).toHaveAttribute(
-      "data-search",
-      JSON.stringify({
-        source: "playloltcg",
-        tab: "catalogue",
-        triage: "accepted",
-        missing: true,
+  it("shows a refresh that read nothing by its first error", () => {
+    captured.statuses.playriftbound = status("playriftbound", {}, [
+      run("meta.playriftbound_sync", {
+        result: { rows: 0, inserted: 0, errors: ["No stores are known yet."] },
       }),
-    );
-  });
+    ]);
 
-  it("lands the stale-crawl alert on every run of the source", () => {
-    captured.status = statusWith({ lastSeenAt: null });
     render(<MetaAdminOverviewPage />);
 
-    expect(screen.getByRole("link", { name: "Recent runs" })).toHaveAttribute(
-      "data-search",
-      JSON.stringify({ runPrefix: "meta.uvsgames_" }),
-    );
+    expect(row("PlayRiftbound").getAllByText("No stores are known yet.").length).toBeGreaterThan(0);
   });
 
-  it("lands the failure alert on the failed runs alone", () => {
-    captured.status = {
-      ...status,
-      runs: [{ ...status.runs[1]!, startedAt: "2026-08-29T11:00:00.000Z" }],
-    };
+  it("counts review items from overlays and corrections, and flags a truncated list", () => {
+    captured.overlays = [{ id: "o-1" }, { id: "o-2" }];
+    captured.corrections = { items: [{ id: "c-1" }], hasMore: true };
+
     render(<MetaAdminOverviewPage />);
 
-    expect(screen.getByRole("link", { name: "The failed runs" })).toHaveAttribute(
-      "data-search",
-      JSON.stringify({ runPrefix: "meta.uvsgames_", runStatus: "failed" }),
-    );
+    expect(screen.getByRole("link", { name: /^Review/u })).toHaveTextContent("3+");
   });
 
-  it("holds a section for each source, whichever one is having a bad day", () => {
+  it("sums the events that need a decision and links to the first source holding some", () => {
+    captured.statuses.uvsgames = status("uvsgames", { needsDecision: 2 });
+    captured.statuses.topdeck = status("topdeck", { needsDecision: 1 });
+
     render(<MetaAdminOverviewPage />);
 
-    expect(screen.getByRole("region", { name: "UVS Games" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Play LoL TCG" })).toBeInTheDocument();
+    const card = screen.getByRole("link", { name: /^Needs a decision/u });
+    expect(card).toHaveTextContent("3");
+    expect(JSON.parse(card.dataset.search ?? "{}")).toMatchObject({
+      tab: "catalogue",
+      triage: "new",
+      minPlayers: 16,
+      bucket: "needsDecision",
+    });
   });
 
-  it("gives the archive its own section, because neither pass belongs to a source", () => {
+  it("says there are no warnings when every source is healthy", () => {
     render(<MetaAdminOverviewPage />);
 
-    expect(screen.getByRole("region", { name: "The archive" })).toBeInTheDocument();
+    expect(screen.getByText("No warnings")).toBeInTheDocument();
   });
 
-  it("starts the tier pass as a job rather than waiting on it", async () => {
+  it("counts a failed run as a warning", () => {
+    captured.statuses.uvsgames = status("uvsgames", {}, [
+      run("meta.uvsgames_recheck", { status: "failed", errorMessage: "Upstream returned 503" }),
+    ]);
+
+    render(<MetaAdminOverviewPage />);
+
+    expect(screen.getByText("1 warning")).toBeInTheDocument();
+    expect(screen.getByText("1 run failed in the last 24 hours.")).toBeInTheDocument();
+  });
+
+  it("runs a job from the Run menu", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    captured.run.mockResolvedValue({ status: "running", runId: "run-9" });
     render(<MetaAdminOverviewPage />);
 
-    await user.click(screen.getByRole("button", { name: "Reapply tier rules" }));
+    await user.click(row("PlayRiftbound").getByRole("menuitem", { name: "Collect results" }));
 
-    expect(captured.run).toHaveBeenCalledWith({ trigger: "runRetier" });
+    expect(captured.run).toHaveBeenCalledWith({ trigger: "runPlayriftboundRecheck" });
   });
 
-  it("asks before the whole-archive repair, which reads and writes everything", async () => {
+  it("asks before applying the auto-publish rule to the backlog", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    captured.run.mockResolvedValue({ status: "running", runId: "run-9" });
     render(<MetaAdminOverviewPage />);
 
-    await user.click(screen.getByRole("button", { name: "Re-promote everything" }));
+    await user.click(
+      row("PlayRiftbound").getByRole("menuitem", { name: "Apply auto-publish rule" }),
+    );
     expect(captured.run).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Run the repair" }));
-    expect(captured.run).toHaveBeenCalledWith({ trigger: "runRepromote" });
+    await user.click(screen.getByRole("button", { name: "Apply the rule" }));
+    expect(captured.run).toHaveBeenCalledWith({ trigger: "runPlayriftboundAutoAccept" });
   });
 
-  it("holds both archive buttons while either pass is running", () => {
-    captured.archiveRuns = [{ id: "run-1", kind: "meta.repromote", status: "running" }];
+  it("offers to stop a job that is running instead of starting it again", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    captured.statuses.uvsgames = status("uvsgames", {}, [
+      run("meta.uvsgames_recheck", { status: "running", finishedAt: null }),
+    ]);
+
     render(<MetaAdminOverviewPage />);
 
-    // Both passes walk the same rows, and the tier scan would read a live tier
-    // the repair is halfway through rewriting.
-    expect(screen.getByRole("button", { name: "Reapply tier rules" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Re-promote everything" })).toBeDisabled();
+    const uvsgames = row("UVS Games");
+    expect(uvsgames.queryByRole("menuitem", { name: "Collect results" })).not.toBeInTheDocument();
+    await user.click(uvsgames.getByRole("menuitem", { name: "Stop collecting results" }));
+    expect(captured.cancel).toHaveBeenCalledWith({ job: "recheck" });
+  });
+});
+
+describe("MetaAdminOverviewPage source detail", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true, now: NOW });
+    captured.search = { detail: "playriftbound" };
+    captured.statuses = { playriftbound: status("playriftbound") };
+    captured.schedules = [
+      {
+        kind: "meta.playriftbound_recheck",
+        schedule: "*/10 * * * *",
+        nextRun: "2026-10-28T15:00:00.000Z",
+      },
+    ];
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("splits the mirror and the published events into their buckets", () => {
+    render(<MetaAdminOverviewPage />);
+
+    expect(screen.getByText("39,089 events")).toBeInTheDocument();
+    expect(screen.getByText("skipped, past")).toBeInTheDocument();
+    expect(screen.getByText("collecting results")).toBeInTheDocument();
+    expect(screen.getByText(/The next starts 2026-10-28 15:30/u)).toBeInTheDocument();
+  });
+
+  it("rejects the events that pass the rule without results only after confirming", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<MetaAdminOverviewPage />);
+
+    await user.click(screen.getByRole("button", { name: "Reject all" }));
+    expect(captured.reject).not.toHaveBeenCalled();
+    expect(screen.getByText("Reject 60 events?")).toBeInTheDocument();
+
+    const dialog = screen.getByRole("alertdialog");
+    await user.click(within(dialog).getByRole("button", { name: "Reject all" }));
+    expect(captured.reject).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs a job from its own row", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<MetaAdminOverviewPage />);
+
+    const collect = screen.getByText("Collect results", { selector: "div" }).closest("tr");
+    if (collect === null) {
+      throw new Error("No Collect results row");
+    }
+    await user.click(within(collect).getByRole("button", { name: "Run" }));
+
+    expect(captured.run).toHaveBeenCalledWith({ trigger: "runPlayriftboundRecheck" });
+  });
+
+  it("offers Continue and From scratch for a history crawl that stopped early", () => {
+    captured.statuses.playriftbound = status("playriftbound", {}, [
+      run("meta.playriftbound_backfill", {
+        result: { complete: false, cancelRequested: true, rows: 10, coveredThrough: "12" },
+      }),
+    ]);
+
+    render(<MetaAdminOverviewPage />);
+
+    const history = screen.getByText("Find stores", { selector: "div" }).closest("tr");
+    if (history === null) {
+      throw new Error("No Find stores row");
+    }
+    expect(within(history).getByRole("button", { name: "Continue" })).toBeInTheDocument();
+    expect(within(history).getByRole("button", { name: "From scratch" })).toBeInTheDocument();
+  });
+
+  it("swaps Run for Stop on a job that is running", () => {
+    captured.statuses.playriftbound = status("playriftbound", {}, [
+      run("meta.playriftbound_backfill", { status: "running", finishedAt: null }),
+    ]);
+
+    render(<MetaAdminOverviewPage />);
+
+    const history = screen.getByText("Find stores", { selector: "div" }).closest("tr");
+    if (history === null) {
+      throw new Error("No Find stores row");
+    }
+    expect(within(history).getByRole("button", { name: "Stop" })).toBeInTheDocument();
+  });
+
+  it("lists each job with its schedule, or Manual when it has none", () => {
+    render(<MetaAdminOverviewPage />);
+
+    const collect = screen.getByText("Collect results", { selector: "div" }).closest("tr");
+    const findStores = screen.getByText("Find stores", { selector: "div" }).closest("tr");
+    expect(collect).toHaveTextContent("*/10 * * * *");
+    expect(collect).toHaveTextContent("2026-10-28 15:00");
+    expect(findStores).toHaveTextContent("Manual");
   });
 });

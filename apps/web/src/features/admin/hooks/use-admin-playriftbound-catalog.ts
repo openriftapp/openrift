@@ -2,6 +2,7 @@ import type {
   MetaCatalogSort,
   MetaCatalogSortDirection,
   MetaCatalogTriage,
+  MetaSyncBucketFilter,
   MetaSyncTriggerResult,
   PlayriftboundCatalogListResponse,
 } from "@openrift/shared/contracts/admin/meta-catalog";
@@ -29,6 +30,7 @@ export interface PlayriftboundCatalogParams {
   dateFrom?: string;
   dateTo?: string;
   missing?: boolean;
+  bucket?: MetaSyncBucketFilter;
   awaitingResults?: boolean;
   sort?: MetaCatalogSort;
   direction?: MetaCatalogSortDirection;
@@ -54,6 +56,7 @@ const fetchPlayriftboundCatalog = createServerFn({ method: "GET" })
       direction: data.direction,
       // Query strings coerce "false" to true; an off toggle must be absent, never false.
       missing: data.missing === true ? true : undefined,
+      bucket: data.bucket,
       awaitingResults: data.awaitingResults === true ? true : undefined,
     }),
   );

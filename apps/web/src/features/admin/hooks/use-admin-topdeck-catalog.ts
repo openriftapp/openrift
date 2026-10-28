@@ -2,6 +2,7 @@ import type {
   MetaCatalogSort,
   MetaCatalogSortDirection,
   MetaCatalogTriage,
+  MetaSyncBucketFilter,
   TopdeckCatalogListResponse,
 } from "@openrift/shared/contracts/admin/meta-catalog";
 import { adminMetaCatalogContract } from "@openrift/shared/contracts/admin/meta-catalog";
@@ -23,6 +24,7 @@ export interface TopdeckCatalogParams {
   dateFrom?: string;
   dateTo?: string;
   missing?: boolean;
+  bucket?: MetaSyncBucketFilter;
   sort?: MetaCatalogSort;
   direction?: MetaCatalogSortDirection;
 }
@@ -46,6 +48,7 @@ const fetchTopdeckCatalog = createServerFn({ method: "GET" })
       direction: data.direction,
       // Query strings coerce "false" to true; an off toggle must be absent, never false.
       missing: data.missing === true ? true : undefined,
+      bucket: data.bucket,
     }),
   );
 

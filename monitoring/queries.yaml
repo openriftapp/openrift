@@ -45,6 +45,12 @@ meta_recheck_queue:
       count(*) FILTER (WHERE next_check_at <= now()) AS due,
       coalesce(extract(epoch FROM now() - min(next_check_at) FILTER (WHERE next_check_at <= now())), 0) AS oldest_due_age_seconds
     FROM playloltcg_event_checks
+    UNION ALL
+    SELECT
+      'playriftbound' AS provider,
+      count(*) FILTER (WHERE next_check_at <= now()) AS due,
+      coalesce(extract(epoch FROM now() - min(next_check_at) FILTER (WHERE next_check_at <= now())), 0) AS oldest_due_age_seconds
+    FROM playriftbound_event_checks
   metrics:
     - provider:
         usage: "LABEL"

@@ -280,7 +280,7 @@ describe.skipIf(!ctx)("topdeckEventsRepo", () => {
 
   describe("syncOverview", () => {
     it("reports zero for the queue counters, since this source has no queue", async () => {
-      const overview = await repo.syncOverview();
+      const overview = await repo.syncOverview(null);
       expect(overview).toMatchObject({ queued: 0, dueRecheck: 0, acceptedAwaitingResults: 0 });
       expect(overview.total).toBeGreaterThan(0);
     });
