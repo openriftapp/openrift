@@ -4,7 +4,6 @@ import "./instrument.server.mjs";
 // oxlint-disable-next-line import/no-unassigned-import -- side-effect instrumentation bootstrap
 import "./tracing.server";
 import type { SetListResponse, SitemapDataResponse } from "@openrift/shared/types/api/catalog";
-import type { FeatureFlagsResponse } from "@openrift/shared/types/api/feature-flags";
 import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 
 import { helpArticleList } from "./features/marketing/components/articles";
@@ -64,33 +63,18 @@ function buildProdRobotsTxt(): string {
   ].join("\n");
 }
 
-// A failed fetch degrades to all flags off; the sitemap still builds.
-async function fetchGlobalFeatureFlags(): Promise<Record<string, boolean>> {
-  try {
-    const data = await fetchApiJson<FeatureFlagsResponse>({
-      errorTitle: "Couldn't load feature flags",
-      path: "/api/v1/feature-flags",
-    });
-    return data.flags;
-  } catch {
-    return {};
-  }
-}
-
 async function sitemapInput(): Promise<SitemapInput> {
-  const [data, flags, sets] = await Promise.all([
+  const [data, sets] = await Promise.all([
     fetchApiJson<SitemapDataResponse>({
       errorTitle: "Couldn't load sitemap data",
       path: "/api/v1/sitemap-data",
     }),
-    fetchGlobalFeatureFlags(),
     fetchApiJson<SetListResponse>({ errorTitle: "Couldn't load sets", path: "/api/v1/sets" }),
   ]);
   return {
     siteUrl: getSiteUrl(),
     deployDate: DEPLOY_DATE,
     data,
-    flags,
     eras: deriveSetEras(sets.sets),
     helpArticles: helpArticleList,
   };

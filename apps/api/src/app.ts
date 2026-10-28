@@ -14,7 +14,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { Kysely } from "kysely";
 import { z } from "zod";
 
-import { matchOrigin } from "./cors.js";
+import { matchOrigin, pathMatcher } from "./cors.js";
 import type { Database } from "./db/tables.js";
 import type { Services } from "./deps.js";
 import { createRepos, createServices, createTransact } from "./deps.js";
@@ -55,7 +55,11 @@ import { mountDeckCheckIngestMiddleware } from "./modules/tournaments/routes/pub
 import { mapAuthError } from "./modules/users/lib/better-auth-error.js";
 import { unsubscribeOneClickRoute } from "./modules/users/routes/public-unsubscribe-one-click.js";
 import { buildAdminDoc, buildDeveloperDoc, buildPublicDoc } from "./openapi-doc.js";
-import { ETAG_PATHS, immutableWhenVersionMatches } from "./orpc/cache-policy.js";
+import {
+  DEVELOPER_API_PATHS,
+  ETAG_PATHS,
+  immutableWhenVersionMatches,
+} from "./orpc/cache-policy.js";
 import { buildApiContext } from "./orpc/context.js";
 import { orpcErrorResponse } from "./orpc/error-body.js";
 import { createApiHandler } from "./orpc/router.js";
@@ -85,6 +89,8 @@ function publicOrigin(c: Context): string | undefined {
   const host = c.req.header("host");
   return proto && host ? `${proto}://${host}` : undefined;
 }
+
+const isDeveloperApiPath = pathMatcher(DEVELOPER_API_PATHS);
 
 const rateLimitedAuthPrefixes = [
   "/api/auth/sign-in",
@@ -184,13 +190,17 @@ export function createApp(deps: AppDeps) {
   app.get("/metrics", printMetrics);
 
   // CORS runs first so preflight OPTIONS requests are handled before any other work.
-  app.use(
-    "/api/*",
-    cors({
-      credentials: true,
-      origin: (origin) => matchOrigin(origin, config.corsOrigin),
-      exposeHeaders: ["X-Build-Id", "X-Api-Format"],
-    }),
+  // Developer endpoints are open to any site without credentials: Cloudflare ignores
+  // `Vary: Origin`, so an echoed per-origin header would be cached for every caller.
+  const exposeHeaders = ["X-Build-Id", "X-Api-Format"];
+  const credentialedCors = cors({
+    credentials: true,
+    origin: (origin) => matchOrigin(origin, config.corsOrigin),
+    exposeHeaders,
+  });
+  const publicCors = cors({ exposeHeaders });
+  app.use("/api/*", (c, next) =>
+    isDeveloperApiPath(c.req.path) ? publicCors(c, next) : credentialedCors(c, next),
   );
 
   app.use("/api/*", versionHeadersMiddleware(config.buildId));

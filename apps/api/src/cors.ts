@@ -39,3 +39,14 @@ export function isLocalDevOrigin(origin: string): boolean {
     /^172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/u.test(host)
   );
 }
+
+export function pathMatcher(paths: readonly string[]): (path: string) => boolean {
+  const patterns = paths.map(
+    (path) =>
+      new RegExp(
+        `^${path.replaceAll(/[.+?^$()[\]\\|]/gu, String.raw`\$&`).replaceAll(/\{[^}]+\}/gu, "[^/]+")}$`,
+        "u",
+      ),
+  );
+  return (path) => patterns.some((pattern) => pattern.test(path));
+}

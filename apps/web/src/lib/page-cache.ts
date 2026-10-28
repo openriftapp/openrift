@@ -30,6 +30,7 @@ const EXACT_PATHS = new Set([
   "/support",
   "/legal-notice",
   "/glossary",
+  "/developers",
 ]);
 const PREFIX_PATHS = [
   "/cards/",

@@ -5,7 +5,6 @@ import { siDiscord, siGithub } from "simple-icons";
 
 import { BrandGlyph } from "@/components/ui/brand-glyph";
 import { OrnamentRule } from "@/components/ui/ornament";
-import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { COMMIT_HASH } from "@/lib/env";
 import { isOfficialInstance, OFFICIAL_HOST } from "@/lib/official-host";
 import { getOperatorLinks } from "@/lib/operator-links";
@@ -14,7 +13,6 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 export function Footer({ className }: { className?: string }) {
-  const developersEnabled = useFeatureEnabled("developers");
   const official = isOfficialInstance();
   const operatorLinks = getOperatorLinks();
   return (
@@ -57,14 +55,10 @@ export function Footer({ className }: { className?: string }) {
           {m.footer_support_us()}
         </Link>
         <span aria-hidden="true"> · </span>
-        {developersEnabled && (
-          <>
-            <Link to="/developers" className="hover:text-muted-foreground">
-              {m.footer_developers()}
-            </Link>
-            <span aria-hidden="true"> · </span>
-          </>
-        )}
+        <Link to="/developers" className="hover:text-muted-foreground">
+          {m.footer_developers()}
+        </Link>
+        <span aria-hidden="true"> · </span>
         <a
           href={SOCIAL_LINKS.discordInvite}
           target="_blank"

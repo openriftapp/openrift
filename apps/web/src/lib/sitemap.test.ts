@@ -23,7 +23,6 @@ function input(overrides: Partial<SitemapInput> = {}): SitemapInput {
   return {
     siteUrl: "https://example.test",
     deployDate: "2026-09-04",
-    flags: {},
     helpArticles: [
       { slug: "getting-started" },
       { slug: "flagged-article", featureFlag: "someFlag" },
@@ -111,10 +110,9 @@ describe("sitemapSectionFiles", () => {
     expect(paths).toContain("/sets/set-0");
   });
 
-  it("drops flag-gated static pages while their flag is off", () => {
+  it("lists the developers page", () => {
     const [file] = sitemapSectionFiles("site", input());
-    const paths = file!.map((url) => url.path);
-    expect(paths).not.toContain("/developers");
+    expect(file!.map((url) => url.path)).toContain("/developers");
   });
 
   it("lists each language's latest rules version with its lang param", () => {

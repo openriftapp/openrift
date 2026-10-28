@@ -61,10 +61,6 @@ const KNOWN_FLAGS: KnownFlag[] = [
     description: "Show the How to Play Riftbound help article",
   },
   {
-    key: "developers",
-    description: "Show the public API docs page (/developers), its footer link, and sitemap entry",
-  },
-  {
     key: "board-states",
     description: "Show board states (/board-states), their header link, and the editor",
   },

@@ -16,7 +16,6 @@ interface StaticPage {
   path: string;
   priority: string;
   changefreq: string;
-  featureFlag?: string;
 }
 
 const STATIC_PAGES: StaticPage[] = [
@@ -33,7 +32,7 @@ const STATIC_PAGES: StaticPage[] = [
   { path: "/rules", priority: "0.5", changefreq: "monthly" },
   { path: "/help", priority: "0.4", changefreq: "monthly" },
   { path: "/changelog", priority: "0.3", changefreq: "weekly" },
-  { path: "/developers", priority: "0.3", changefreq: "monthly", featureFlag: "developers" },
+  { path: "/developers", priority: "0.3", changefreq: "monthly" },
   { path: "/legal-notice", priority: "0.1", changefreq: "yearly" },
   { path: "/privacy-policy", priority: "0.1", changefreq: "yearly" },
 ];
@@ -50,7 +49,6 @@ export interface SitemapInput {
   siteUrl: string;
   deployDate: string;
   data: SitemapDataResponse;
-  flags: Record<string, boolean>;
   eras: readonly MetaEra[];
   helpArticles: readonly HelpArticle[];
 }
@@ -63,12 +61,9 @@ function isSection(value: string): value is SitemapSection {
   return (SECTIONS as readonly string[]).includes(value);
 }
 
-function siteUrls({ deployDate, data, flags, helpArticles }: SitemapInput): SitemapUrl[] {
+function siteUrls({ deployDate, data, helpArticles }: SitemapInput): SitemapUrl[] {
   const urls: SitemapUrl[] = [];
   for (const page of STATIC_PAGES) {
-    if (page.featureFlag !== undefined && flags[page.featureFlag] !== true) {
-      continue;
-    }
     urls.push({ ...page, lastmod: deployDate });
   }
   for (const article of helpArticles) {

@@ -2,6 +2,10 @@
 
 ## 2026-10-28
 
+### Highlights
+
+- feat(Developers): **Public API** — the new Developers page, linked in the footer, documents a free API for the card catalog, sets, prices and rules. Tools can call it from their own server or straight from a website.
+
 ### Other
 
 - feat(Cards): **Flip double-sided cards** — a button on the card image turns it over to its other side.

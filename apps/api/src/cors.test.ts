@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isLocalDevOrigin, matchOrigin } from "./cors";
+import { isLocalDevOrigin, matchOrigin, pathMatcher } from "./cors";
 
 describe("matchOrigin", () => {
   it("returns origin when allowed is undefined", () => {
@@ -102,5 +102,24 @@ describe("isLocalDevOrigin", () => {
   it("returns false for malformed origins", () => {
     expect(isLocalDevOrigin("not a url")).toBe(false);
     expect(isLocalDevOrigin("")).toBe(false);
+  });
+});
+
+describe("pathMatcher", () => {
+  const matches = pathMatcher(["/api/v1/catalog", "/api/v1/cards/{cardSlug}"]);
+
+  it("matches a literal path exactly", () => {
+    expect(matches("/api/v1/catalog")).toBe(true);
+    expect(matches("/api/v1/catalog/printings")).toBe(false);
+  });
+
+  it("matches one segment per param", () => {
+    expect(matches("/api/v1/cards/annie-fiery")).toBe(true);
+    expect(matches("/api/v1/cards/annie-fiery/extra")).toBe(false);
+    expect(matches("/api/v1/cards/")).toBe(false);
+  });
+
+  it("matches nothing for an empty list", () => {
+    expect(pathMatcher([])("/api/v1/catalog")).toBe(false);
   });
 });

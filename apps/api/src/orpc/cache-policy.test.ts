@@ -3,7 +3,12 @@ import { describe, expect, it } from "vitest";
 
 import { cacheControlInterceptor } from "./cache-control-interceptor.js";
 import type { CacheMeta } from "./cache-policy.js";
-import { ETAG_PATHS, immutableWhenVersionMatches, resolveCacheControl } from "./cache-policy.js";
+import {
+  DEVELOPER_API_PATHS,
+  ETAG_PATHS,
+  immutableWhenVersionMatches,
+  resolveCacheControl,
+} from "./cache-policy.js";
 import type { ApiContext } from "./context.js";
 
 const LONG = "public, max-age=3600, stale-while-revalidate=86400";
@@ -89,6 +94,15 @@ describe("ETAG_PATHS", () => {
     expect(ETAG_PATHS).toContain("/api/v1/catalog");
     expect(ETAG_PATHS).not.toContain("/api/v1/site-settings");
     expect(ETAG_PATHS).not.toContain("/api/v1/decks/share/:token");
+  });
+});
+
+describe("DEVELOPER_API_PATHS", () => {
+  it("derives the developer API paths from the contracts in OpenAPI form", () => {
+    expect(DEVELOPER_API_PATHS).toContain("/api/v1/catalog");
+    expect(DEVELOPER_API_PATHS).toContain("/api/v1/cards/{cardSlug}");
+    expect(DEVELOPER_API_PATHS).toContain("/api/v1/prices/links");
+    expect(DEVELOPER_API_PATHS).not.toContain("/api/v1/feature-flags");
   });
 });
 

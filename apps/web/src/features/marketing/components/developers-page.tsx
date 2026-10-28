@@ -93,7 +93,16 @@ export function DevelopersPage() {
           ))}
         </tbody>
       </table>
-      <p>{m.developers_identify_cors_p()}</p>
+      <p>
+        <ParaglideMessage
+          message={m.developers_identify_cors_p}
+          markup={{
+            link: ({ children }) => (
+              <ExternalLink href={SOCIAL_LINKS.discordInvite}>{children}</ExternalLink>
+            ),
+          }}
+        />
+      </p>
 
       <h2>{m.developers_catalog_heading()}</h2>
       <p>{m.developers_catalog_shape_p()}</p>

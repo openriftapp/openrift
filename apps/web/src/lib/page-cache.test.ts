@@ -33,6 +33,11 @@ describe("applyPageCacheControl", () => {
     expect(result.headers.get("Cache-Control")).toBe(PUBLIC);
   });
 
+  it("caches the developers page", () => {
+    const result = applyPageCacheControl(getRequest("/developers"), htmlResponse());
+    expect(result.headers.get("Cache-Control")).toBe(PUBLIC);
+  });
+
   it("emits the same public cache headers on the homepage", () => {
     const result = applyPageCacheControl(getRequest("/"), htmlResponse());
     expect(result.headers.get("Cache-Control")).toBe(PUBLIC);
