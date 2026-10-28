@@ -1,99 +1,27 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
-import { enumLabel } from "@openrift/shared/enum-label";
-import type {
-  AdminCardDetailResponse,
-  AdminPrintingResponse,
-} from "@openrift/shared/types/api/admin";
-import { WellKnown } from "@openrift/shared/well-known";
+import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { Link } from "@tanstack/react-router";
 import { CheckCheckIcon, PencilIcon } from "lucide-react";
 
 import { Heading } from "@/components/heading";
-import { LanguageChip } from "@/components/language-chip";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { CardList } from "@/components/ui/card-list";
 import { Pressable } from "@/components/ui/pressable";
+import { AdminPrintingMatrix } from "@/features/admin/components/admin-printing-matrix";
 import { renderLabeledValue } from "@/features/admin/components/candidate-cell-display";
 import type {
   CandidateCardFieldKey,
   FieldDef,
 } from "@/features/admin/components/candidate-field-defs";
-import { PrintingLanguageHeader } from "@/features/admin/components/printing-language-header";
 import {
   useCheckAllCandidatePrintings,
   useCheckCandidateCard,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import type { CardReviewNavSearch } from "@/features/admin/hooks/use-card-review-navigation";
-import { useMarkers } from "@/features/admin/hooks/use-markers";
-import { usePrintingsByLanguage } from "@/features/admin/hooks/use-printings-by-language";
 import { hasValue } from "@/features/admin/lib/candidate-cell-values";
 import { firstPrintingSetLabel } from "@/features/admin/lib/card-overview";
-import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
-import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
 import type { OverviewSourceGroup } from "@/features/admin/lib/source-groups";
-import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
-import { RarityIcon } from "@/features/cards/components/rarity-icon";
-import { useEnumOrders } from "@/hooks/use-enums";
-
-interface TileLabels {
-  finishes: Record<string, string>;
-  markers: Record<string, string>;
-  cardSizes: Record<string, string>;
-}
-
-function idParts(printing: AdminPrintingResponse, labels: TileLabels): string {
-  const parts = [
-    enumLabel(labels.finishes, printing.finish),
-    ...printing.markerSlugs.map((slug) => enumLabel(labels.markers, slug)),
-  ];
-  if (printing.size !== WellKnown.cardSize.STANDARD) {
-    parts.push(enumLabel(labels.cardSizes, printing.size));
-  }
-  return parts.join(" · ");
-}
-
-function PrintingTile({
-  printing,
-  detail,
-  labels,
-  landscape,
-  onOpen,
-}: {
-  printing: AdminPrintingResponse;
-  detail: AdminCardDetailResponse;
-  labels: TileLabels;
-  landscape: boolean;
-  onOpen: (printingId: string) => void;
-}) {
-  const image = imagesOnSide(detail.printingImages, printing).find(
-    (candidate) => candidate.isActive,
-  );
-
-  return (
-    <Pressable
-      className="hover:bg-muted/50 w-full space-y-1.5 rounded-md p-1.5"
-      title={`Open ${printing.shortCode} in Fields & faces`}
-      onClick={() => onOpen(printing.id)}
-    >
-      <CardArtThumb
-        src={image === undefined ? null : printingImageDisplayUrl(image)}
-        alt={printing.shortCode}
-        landscape={landscape}
-        rarity={printing.rarity}
-        className="w-full"
-      />
-      <span className="flex items-center gap-1.5 text-sm">
-        <LanguageChip code={printing.language} />
-        <span className="truncate">{printing.shortCode}</span>
-      </span>
-      <span className="text-muted-foreground flex items-center gap-1 text-xs">
-        <RarityIcon rarity={printing.rarity} labelled className="size-3.5" />
-        <span className="truncate">{idParts(printing, labels)}</span>
-      </span>
-    </Pressable>
-  );
-}
 
 export function CardOverviewSection({
   detail,
@@ -120,18 +48,10 @@ export function CardOverviewSection({
   onOpenPrinting: (printingId: string) => void;
   onOpenAttention: () => void;
 }) {
-  const { labels: enumLabels } = useEnumOrders();
-  const { data: markersData } = useMarkers();
-  const tileLabels: TileLabels = {
-    finishes: enumLabels.finishes,
-    cardSizes: enumLabels.cardSizes,
-    markers: Object.fromEntries(markersData.markers.map((marker) => [marker.slug, marker.label])),
-  };
   const checkSource = useCheckCandidateCard(invalidates);
   const checkPrintings = useCheckAllCandidatePrintings(invalidates);
 
   const filled = cardFields.filter((field) => !field.readOnly && hasValue(card[field.key]));
-  const byLanguage = usePrintingsByLanguage(detail.printings);
   const landscape = getOrientation(detail.card?.types ?? []) === "landscape";
   function checkGroup(group: OverviewSourceGroup) {
     for (const candidateCardId of group.candidateCardIds) {
@@ -186,26 +106,10 @@ export function CardOverviewSection({
           <Heading level={3}>
             Printings{detail.printings.length > 0 ? ` (${detail.printings.length})` : ""}
           </Heading>
-          {byLanguage.length === 0 ? (
+          {detail.printings.length === 0 ? (
             <p className="text-muted-foreground text-sm">No printings yet.</p>
           ) : (
-            byLanguage.map(({ language, printings }) => (
-              <div key={language} className="flex flex-col gap-2">
-                <PrintingLanguageHeader code={language} />
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,24rem),24rem))] items-start gap-2">
-                  {printings.map((printing) => (
-                    <PrintingTile
-                      key={printing.id}
-                      printing={printing}
-                      detail={detail}
-                      labels={tileLabels}
-                      landscape={landscape}
-                      onOpen={onOpenPrinting}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))
+            <AdminPrintingMatrix detail={detail} landscape={landscape} onOpen={onOpenPrinting} />
           )}
         </section>
       </div>

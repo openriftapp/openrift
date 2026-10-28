@@ -109,12 +109,12 @@ describe("CardOverviewSection", () => {
     expect(screen.queryByRole("link", { name: "Edit Might" })).toBeNull();
   });
 
-  it("opens the printing a tile names", async () => {
+  it("opens the printing a cell names", async () => {
     const onOpenPrinting = vi.fn();
     const user = userEvent.setup();
     renderSection({ onOpenPrinting });
 
-    await user.click(screen.getByTitle("Open UNL-131 in Fields & faces"));
+    await user.click(screen.getByRole("button", { name: /^UNL-131, /u }));
 
     expect(onOpenPrinting).toHaveBeenCalledWith("p-1");
   });
