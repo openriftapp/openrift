@@ -142,12 +142,17 @@ function PrintingMatrix({
                   const printing = design.byLanguage.get(language);
                   if (!printing) {
                     return (
-                      <span key={language} className="flex justify-center py-1">
+                      <span key={language} className="flex flex-col items-center gap-1 py-1">
                         <span
                           aria-hidden
                           className="aspect-card w-11 border border-dashed"
                           style={{ borderRadius: CARD_BORDER_RADIUS }}
                         />
+                        {stats && (
+                          <span className="text-muted-foreground/60 text-xs font-semibold tabular-nums">
+                            {formatPrice()}
+                          </span>
+                        )}
                       </span>
                     );
                   }
