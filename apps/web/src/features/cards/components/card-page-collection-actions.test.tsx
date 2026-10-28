@@ -56,7 +56,7 @@ vi.mock("@/features/lists/components/wishlist-picker-host", () => ({
 
 vi.mock("@/features/cards/components/card-detail/owned-collections-popover", () => ({
   OwnedCollectionsPopover: ({ count, totalCount }: { count: number; totalCount: number }) => (
-    <span>{`breakdown ${count}/${totalCount}`}</span>
+    <span>{`breakdown ${count}${totalCount === undefined ? "" : `/${totalCount}`}`}</span>
   ),
 }));
 
@@ -72,7 +72,7 @@ vi.mock("@/features/collections/components/annotated-dispose-dialog", () => ({
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
-import { CardPageCollectionActions, ownedSummary } from "./card-page-collection-actions";
+import { CardPageCollectionActions } from "./card-page-collection-actions";
 
 const printing = stubPrinting({ printingId: "printing-1", cardId: "card-1" });
 const sibling = stubPrinting({ printingId: "printing-2", cardId: "card-1", finish: "foil" });
@@ -92,25 +92,6 @@ function stubActions(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
-
-describe("ownedSummary", () => {
-  it("says nothing is owned when the whole card is at zero", () => {
-    expect(ownedSummary(0, 0)).toBe("You don't own this card yet.");
-  });
-
-  it("points at the other printings when only they have copies", () => {
-    expect(ownedSummary(0, 3)).toBe("You own 3 of this card, none of this printing.");
-  });
-
-  it("reports both figures when the printing is part of a larger holding", () => {
-    expect(ownedSummary(2, 5)).toBe("You own 2 of this printing, 5 of this card.");
-  });
-
-  it("drops the card figure when it matches the printing", () => {
-    expect(ownedSummary(4, 4)).toBe("You own 4 copies of this printing.");
-    expect(ownedSummary(1, 1)).toBe("You own 1 copy of this printing.");
-  });
-});
 
 describe("CardPageCollectionActions", () => {
   beforeEach(() => {
@@ -139,11 +120,11 @@ describe("CardPageCollectionActions", () => {
     expect(handleQuickAdd).toHaveBeenCalledWith(printing);
   });
 
-  it("shows the printing count next to the card total", () => {
+  it("shows the printing count without the card total", () => {
     render(<CardPageCollectionActions printing={printing} siblings={[printing, sibling]} />);
 
-    expect(screen.getByText("You own 2 of this printing, 5 of this card.")).toBeInTheDocument();
-    expect(screen.getByText("breakdown 2/5")).toBeInTheDocument();
+    expect(screen.getByText("Owned")).toBeInTheDocument();
+    expect(screen.getByText("breakdown 2")).toBeInTheDocument();
   });
 
   it("hides the minus while the printing has no copies to remove", () => {
@@ -151,7 +132,6 @@ describe("CardPageCollectionActions", () => {
     render(<CardPageCollectionActions printing={printing} siblings={[printing]} />);
 
     expect(screen.queryByRole("button", { name: /^Remove/u })).not.toBeInTheDocument();
-    expect(screen.getByText("You don't own this card yet.")).toBeInTheDocument();
   });
 
   it("removes silently when the copies sit in one collection", async () => {

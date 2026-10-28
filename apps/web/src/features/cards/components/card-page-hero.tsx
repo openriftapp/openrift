@@ -5,6 +5,7 @@ import { findStandardArtFallback } from "@openrift/shared/standard";
 import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Link, useNavigate } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { CardPlaceholderImage } from "@/features/cards/components/card-placeholder-image";
@@ -16,10 +17,12 @@ export function CardPageHero({
   card,
   printing,
   siblings,
+  children,
 }: {
   card: CardDetailResponse["card"];
   printing: Printing;
   siblings: Printing[];
+  children?: ReactNode;
 }) {
   const navigate = useNavigate();
   const frontImage = printing.images[0];
@@ -86,7 +89,7 @@ export function CardPageHero({
   const otherSide = printing.otherSide;
 
   return (
-    <div className="shrink-0 md:w-80">
+    <div className="flex shrink-0 flex-col gap-3 md:w-80">
       {otherSide ? (
         <DoubleSidedFlip
           key={printing.cardId}
@@ -110,6 +113,7 @@ export function CardPageHero({
       ) : (
         heroImage
       )}
+      {children}
     </div>
   );
 }

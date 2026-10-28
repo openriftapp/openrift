@@ -807,20 +807,6 @@
   "card_detail_chart_zero": "零",
   "card_detail_chart_error": "無法載入價格紀錄。",
   "card_detail_chart_empty": "這個時間範圍內沒有價格資料。",
-  "card_detail_copies_title": "你的持有",
-  "card_detail_own_none": "你還沒有這張卡牌。",
-  "card_detail_own_other_printing": "你有 {total} 張這張卡牌，但沒有這個印刷版本。",
-  "card_detail_own_partial": "你有 {count} 張這個印刷版本，這張卡牌共 {total} 張。",
-  "card_detail_own": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "你有 1 張這個印刷版本。",
-        "countPlural=*": "你有 {count} 張這個印刷版本。"
-      }
-    }
-  ],
   "card_detail_remove_card": "移除 {card}",
   "card_detail_add_card_to": "將 {card} 加入 {collection}",
   "card_detail_add_card": "加入 {card}",

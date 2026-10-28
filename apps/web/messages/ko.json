@@ -807,20 +807,6 @@
   "card_detail_chart_zero": "0",
   "card_detail_chart_error": "가격 추이를 불러오지 못했습니다.",
   "card_detail_chart_empty": "이 기간에는 가격 데이터가 없습니다.",
-  "card_detail_copies_title": "보유 수량",
-  "card_detail_own_none": "아직 이 카드를 보유하고 있지 않습니다.",
-  "card_detail_own_other_printing": "이 카드를 {total}장 보유하고 있지만, 이 인쇄판은 없습니다.",
-  "card_detail_own_partial": "이 인쇄판을 {count}장, 이 카드를 통틀어 {total}장 보유하고 있습니다.",
-  "card_detail_own": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "이 인쇄판을 1장 보유하고 있습니다.",
-        "countPlural=*": "이 인쇄판을 {count}장 보유하고 있습니다."
-      }
-    }
-  ],
   "card_detail_remove_card": "{card} 삭제",
   "card_detail_add_card_to": "{card}을(를) {collection}에 추가",
   "card_detail_add_card": "{card} 추가",

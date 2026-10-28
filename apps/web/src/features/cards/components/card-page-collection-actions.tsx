@@ -1,27 +1,12 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { PackageIcon } from "lucide-react";
 
-import { SectionHeading } from "@/components/ui/section-heading";
 import { useCardDetailActionHost } from "@/features/cards/components/card-detail/card-detail-action-host";
 import { PrintingCountActions } from "@/features/cards/components/printing-count-actions";
 import { WishlistButton } from "@/features/cards/components/wishlist-heart";
 import { useTileOwnedCounts } from "@/features/collections/hooks/use-owned-count";
 import { useUserId } from "@/hooks/use-session";
 import { m } from "@/paraglide/messages.js";
-
-export function ownedSummary(ownedCount: number, cardTotal: number): string {
-  if (cardTotal === 0) {
-    return m.card_detail_own_none();
-  }
-  if (ownedCount === 0) {
-    return m.card_detail_own_other_printing({ total: cardTotal });
-  }
-  if (cardTotal > ownedCount) {
-    return m.card_detail_own_partial({ count: ownedCount, total: cardTotal });
-  }
-  return m.card_detail_own({ count: ownedCount });
-}
 
 // Every count here comes from a live query with no server snapshot; the card
 // page is full-SSR, so this must only ever be mounted behind `useHydrated()`.
@@ -39,45 +24,37 @@ export function CardPageCollectionActions({
     useCardDetailActionHost({ printingsByCardId, enabled });
 
   const siblingIds = siblings.map((sibling) => sibling.printingId);
-  const {
-    count: ownedCount,
-    totalCount,
-    total: cardTotal,
-  } = useTileOwnedCounts(printing.printingId, siblingIds, enabled);
+  const { count: ownedCount } = useTileOwnedCounts(printing.printingId, siblingIds, enabled);
   const cardName = legendDisplayName(printing.card);
 
   return (
     <>
-      <section className="flex flex-col gap-2">
-        <SectionHeading icon={PackageIcon}>{m.card_detail_copies_title()}</SectionHeading>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <p className="text-muted-foreground text-sm">{ownedSummary(ownedCount, cardTotal)}</p>
-          <div className="flex shrink-0 items-center gap-2">
-            <WishlistButton
-              entries={wish.entriesForPrinting(printing.cardId, printing.printingId)}
-              cardName={cardName}
-              onAdd={() => setWishTarget(printing)}
-              align="end"
+      <div className="bg-card flex items-center justify-between gap-2 rounded-lg border py-1 pr-1 pl-3">
+        <span className="text-muted-foreground text-sm">{m.cards_label_owned()}</span>
+        <div className="flex items-center gap-2">
+          <div className="w-28">
+            <PrintingCountActions
+              printing={printing}
+              siblings={siblings}
+              count={ownedCount}
+              onIncrement={addCopy}
+              onDecrement={removeCopy}
+              incrementDisabled={!canAdd}
+              addLabel={
+                inbox
+                  ? m.card_detail_add_card_to({ card: cardName, collection: inbox.name })
+                  : undefined
+              }
             />
-            <div className="w-28">
-              <PrintingCountActions
-                printing={printing}
-                siblings={siblings}
-                count={ownedCount}
-                totalCount={totalCount}
-                onIncrement={addCopy}
-                onDecrement={removeCopy}
-                incrementDisabled={!canAdd}
-                addLabel={
-                  inbox
-                    ? m.card_detail_add_card_to({ card: cardName, collection: inbox.name })
-                    : undefined
-                }
-              />
-            </div>
           </div>
+          <WishlistButton
+            entries={wish.entriesForPrinting(printing.cardId, printing.printingId)}
+            cardName={cardName}
+            onAdd={() => setWishTarget(printing)}
+            align="end"
+          />
         </div>
-      </section>
+      </div>
       {hosts}
     </>
   );

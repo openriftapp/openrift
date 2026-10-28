@@ -807,20 +807,6 @@
   "card_detail_chart_zero": "零",
   "card_detail_chart_error": "无法加载价格历史。",
   "card_detail_chart_empty": "这个时间范围内没有价格数据。",
-  "card_detail_copies_title": "你拥有的张数",
-  "card_detail_own_none": "你还没有这张卡。",
-  "card_detail_own_other_printing": "你拥有 {total} 张这张卡，但没有这个印刷版本。",
-  "card_detail_own_partial": "你拥有 {count} 张这个印刷版本，这张卡共 {total} 张。",
-  "card_detail_own": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "你拥有 1 张这个印刷版本。",
-        "countPlural=*": "你拥有 {count} 张这个印刷版本。"
-      }
-    }
-  ],
   "card_detail_remove_card": "移除{card}",
   "card_detail_add_card_to": "将{card}加入{collection}",
   "card_detail_add_card": "添加{card}",

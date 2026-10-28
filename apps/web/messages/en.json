@@ -807,20 +807,6 @@
   "card_detail_chart_zero": "Zero",
   "card_detail_chart_error": "Failed to load price history.",
   "card_detail_chart_empty": "No price data available for this time range.",
-  "card_detail_copies_title": "Your copies",
-  "card_detail_own_none": "You don't own this card yet.",
-  "card_detail_own_other_printing": "You own {total} of this card, none of this printing.",
-  "card_detail_own_partial": "You own {count} of this printing, {total} of this card.",
-  "card_detail_own": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "You own 1 copy of this printing.",
-        "countPlural=*": "You own {count} copies of this printing."
-      }
-    }
-  ],
   "card_detail_remove_card": "Remove {card}",
   "card_detail_add_card_to": "Add {card} to {collection}",
   "card_detail_add_card": "Add {card}",

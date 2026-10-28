@@ -807,20 +807,6 @@
   "card_detail_chart_zero": "Zero",
   "card_detail_chart_error": "Preisverlauf konnte nicht geladen werden.",
   "card_detail_chart_empty": "Für diesen Zeitraum gibt es keine Preisdaten.",
-  "card_detail_copies_title": "Deine Exemplare",
-  "card_detail_own_none": "Du besitzt diese Karte noch nicht.",
-  "card_detail_own_other_printing": "Du besitzt {total} dieser Karte, aber keines aus diesem Druck.",
-  "card_detail_own_partial": "Du besitzt {count} aus diesem Druck, {total} dieser Karte.",
-  "card_detail_own": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Du besitzt 1 Exemplar aus diesem Druck.",
-        "countPlural=*": "Du besitzt {count} Exemplare aus diesem Druck."
-      }
-    }
-  ],
   "card_detail_remove_card": "{card} entfernen",
   "card_detail_add_card_to": "{card} zu {collection} hinzufügen",
   "card_detail_add_card": "{card} hinzufügen",

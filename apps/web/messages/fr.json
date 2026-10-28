@@ -807,20 +807,6 @@
   "card_detail_chart_zero": "Zero",
   "card_detail_chart_error": "Échec du chargement de l'historique des prix.",
   "card_detail_chart_empty": "Aucune donnée de prix pour cette période.",
-  "card_detail_copies_title": "Vos exemplaires",
-  "card_detail_own_none": "Vous ne possédez pas encore cette carte.",
-  "card_detail_own_other_printing": "Vous possédez {total} de cette carte, aucune de cette impression.",
-  "card_detail_own_partial": "Vous possédez {count} de cette impression, {total} de cette carte.",
-  "card_detail_own": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Vous possédez 1 exemplaire de cette impression.",
-        "countPlural=*": "Vous possédez {count} exemplaires de cette impression."
-      }
-    }
-  ],
   "card_detail_remove_card": "Retirer {card}",
   "card_detail_add_card_to": "Ajouter {card} à {collection}",
   "card_detail_add_card": "Ajouter {card}",
