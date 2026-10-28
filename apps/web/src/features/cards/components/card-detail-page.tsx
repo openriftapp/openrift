@@ -104,7 +104,11 @@ export function CardDetailPage() {
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING_NO_TOP, "flex flex-col gap-10 pt-3")}>
         <div className="flex flex-col gap-8 md:flex-row">
-          <CardPageHero card={card} printing={selectedPrinting} siblings={printings}>
+          <CardPageHero
+            printing={selectedPrinting}
+            siblings={printings}
+            otherCardSides={data.otherCardSides}
+          >
             <CollectionSlot printing={selectedPrinting} siblings={printings} />
           </CardPageHero>
 

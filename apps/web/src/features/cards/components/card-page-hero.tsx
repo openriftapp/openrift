@@ -1,8 +1,8 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { imageUrl } from "@openrift/shared/image-url";
+import { sideKey } from "@openrift/shared/printing-side";
 import { findStandardArtFallback } from "@openrift/shared/standard";
-import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
@@ -12,23 +12,80 @@ import { CardPlaceholderImage } from "@/features/cards/components/card-placehold
 import { DoubleSidedFlip } from "@/features/cards/components/double-sided-flip";
 import { FallbackArtBadges } from "@/features/cards/components/fallback-art-badges";
 import { SuggestImageNotice } from "@/features/cards/components/suggest-image-notice";
+import { otherSideOf, otherSideSearchSide } from "@/features/cards/lib/printing-designs";
 
 export function CardPageHero({
-  card,
   printing,
   siblings,
+  otherCardSides,
   children,
 }: {
-  card: CardDetailResponse["card"];
   printing: Printing;
   siblings: Printing[];
+  otherCardSides: Printing[];
   children?: ReactNode;
 }) {
   const navigate = useNavigate();
+  const otherSide = printing.otherSide;
+  const allSides = [...siblings, ...otherCardSides];
+  const otherSidePrinting = otherSide ? otherSideOf(printing, allSides) : undefined;
+  const heroArt = <HeroArt printing={printing} siblings={siblings} priority />;
+
+  return (
+    <div className="flex shrink-0 flex-col gap-3 md:w-80">
+      {otherSide ? (
+        <DoubleSidedFlip
+          key={sideKey(printing)}
+          otherSide={otherSide}
+          back={
+            otherSidePrinting && (
+              <HeroArt
+                printing={otherSidePrinting}
+                siblings={allSides.filter((side) => side.cardId === otherSidePrinting.cardId)}
+              />
+            )
+          }
+          onFlip={() =>
+            void navigate({
+              to: "/cards/$cardSlug/{-$printingSlug}",
+              params: { cardSlug: otherSide.cardSlug, printingSlug: printing.slug },
+              search: { side: otherSideSearchSide(printing) },
+            })
+          }
+          renderLink={(pill) => (
+            <Link
+              to="/cards/$cardSlug/{-$printingSlug}"
+              params={{ cardSlug: otherSide.cardSlug, printingSlug: printing.slug }}
+              search={{ side: otherSideSearchSide(printing) }}
+              {...pill}
+            />
+          )}
+        >
+          {heroArt}
+        </DoubleSidedFlip>
+      ) : (
+        heroArt
+      )}
+      {children}
+    </div>
+  );
+}
+
+function HeroArt({
+  printing,
+  siblings,
+  priority,
+}: {
+  printing: Printing;
+  siblings: Printing[];
+  priority?: boolean;
+}) {
+  const { card } = printing;
   const frontImage = printing.images[0];
   const isLandscape = getOrientation(card.types) === "landscape";
   const heroWidth = isLandscape ? 558 : 400;
   const heroHeight = isLandscape ? 400 : 558;
+  const fetchPriority = priority ? "high" : undefined;
   const heroPlaceholder = (
     <CardPlaceholderImage
       name={card.name}
@@ -59,7 +116,7 @@ export function CardPageHero({
         sizes="(min-width: 768px) 320px, 100vw"
         width={heroWidth}
         height={heroHeight}
-        fetchPriority="high"
+        fetchPriority={fetchPriority}
         alt={legendDisplayName(card)}
         className="w-full rounded-xl"
         fallback={heroPlaceholder}
@@ -71,49 +128,19 @@ export function CardPageHero({
     heroPlaceholder
   );
 
-  const heroImage = frontImage ? (
+  return frontImage ? (
     <ImgWithFallback
       src={imageUrl(frontImage.imageId, "400w")}
       srcSet={`${imageUrl(frontImage.imageId, "400w")} 400w, ${imageUrl(frontImage.imageId, "full")} 800w`}
       sizes="(min-width: 768px) 320px, 100vw"
       width={heroWidth}
       height={heroHeight}
-      fetchPriority="high"
+      fetchPriority={fetchPriority}
       alt={legendDisplayName(card)}
       className="w-full rounded-xl"
       fallback={heroFallback}
     />
   ) : (
     heroFallback
-  );
-  const otherSide = printing.otherSide;
-
-  return (
-    <div className="flex shrink-0 flex-col gap-3 md:w-80">
-      {otherSide ? (
-        <DoubleSidedFlip
-          key={printing.cardId}
-          otherSide={otherSide}
-          onFlip={() =>
-            void navigate({
-              to: "/cards/$cardSlug/{-$printingSlug}",
-              params: { cardSlug: otherSide.cardSlug, printingSlug: printing.slug },
-            })
-          }
-          renderLink={(pill) => (
-            <Link
-              to="/cards/$cardSlug/{-$printingSlug}"
-              params={{ cardSlug: otherSide.cardSlug, printingSlug: printing.slug }}
-              {...pill}
-            />
-          )}
-        >
-          {heroImage}
-        </DoubleSidedFlip>
-      ) : (
-        heroImage
-      )}
-      {children}
-    </div>
   );
 }

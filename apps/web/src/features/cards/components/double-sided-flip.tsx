@@ -1,4 +1,3 @@
-import { imageUrl } from "@openrift/shared/image-url";
 import type { PrintingOtherSide } from "@openrift/shared/types/catalog";
 import { RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
@@ -18,14 +17,19 @@ interface PillProps {
 
 const PILL_CLASS = "absolute right-3 bottom-0 z-10 translate-y-1/2 pr-3.5 pl-3";
 
-/** `onFlip` runs once the turn finishes. `renderLink` makes the pill a link that keeps modified clicks. */
+/**
+ * `back` is the face the card turns to, and `onFlip` runs once the turn finishes.
+ * `renderLink` makes the pill a link that keeps modified clicks.
+ */
 export function DoubleSidedFlip({
   otherSide,
+  back,
   onFlip,
   renderLink,
   children,
 }: {
   otherSide: PrintingOtherSide;
+  back?: ReactNode;
   onFlip: () => void;
   renderLink?: (pill: PillProps) => ReactElement;
   children: ReactNode;
@@ -39,7 +43,6 @@ export function DoubleSidedFlip({
       {otherSide.cardName}
     </>
   );
-  const backSrc = otherSide.imageId ? imageUrl(otherSide.imageId, "400w") : undefined;
 
   function handleClick(event: MouseEvent) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
@@ -49,7 +52,7 @@ export function DoubleSidedFlip({
     if (flipped) {
       return;
     }
-    if (reducedMotion || !backSrc) {
+    if (reducedMotion || !back) {
       onFlip();
       return;
     }
@@ -74,12 +77,10 @@ export function DoubleSidedFlip({
           )}
         >
           <div className="backface-hidden">{children}</div>
-          {backSrc && (
-            <img
-              src={backSrc}
-              alt=""
-              className="absolute inset-0 size-full rotate-y-180 rounded-xl object-contain backface-hidden"
-            />
+          {back && (
+            <div inert className="absolute inset-0 rotate-y-180 backface-hidden">
+              {back}
+            </div>
           )}
         </div>
         {renderLink ? (

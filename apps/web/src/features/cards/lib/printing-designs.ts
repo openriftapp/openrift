@@ -47,6 +47,20 @@ function oneEntryPerSelfPairedPrinting(printings: readonly Printing[]): Printing
   );
 }
 
+export function otherSideOf<T extends Pick<Printing, "printingId" | "side">>(
+  printing: T,
+  candidates: readonly T[],
+): T | undefined {
+  return candidates.find(
+    (candidate) => candidate.printingId === printing.printingId && candidate.side !== printing.side,
+  );
+}
+
+/** The card page's `?side=` for the other side: only a card on both sides needs one. */
+export function otherSideSearchSide(printing: Printing): 2 | undefined {
+  return isSelfPaired(printing) && printing.side === 1 ? 2 : undefined;
+}
+
 export function isSelectedSide(printing: Printing, selectedSideKey: string): boolean {
   if (isSelfPaired(printing)) {
     return (

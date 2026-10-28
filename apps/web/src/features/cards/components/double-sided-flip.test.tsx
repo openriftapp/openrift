@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import type { PrintingOtherSide } from "@openrift/shared/types/catalog";
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { DoubleSidedFlip } from "./double-sided-flip";
@@ -17,10 +18,10 @@ const otherSide: PrintingOtherSide = {
   imageId: "019d6c25-b081-74b3-a901-64da4ae0abcd",
 };
 
-function renderFlip(side: PrintingOtherSide = otherSide) {
+function renderFlip(back: ReactNode = <span>Recruit placeholder</span>) {
   const onFlip = vi.fn();
   render(
-    <DoubleSidedFlip otherSide={side} onFlip={onFlip}>
+    <DoubleSidedFlip otherSide={otherSide} back={back} onFlip={onFlip}>
       <span>Buff</span>
     </DoubleSidedFlip>,
   );
@@ -77,6 +78,7 @@ describe("DoubleSidedFlip", () => {
     render(
       <DoubleSidedFlip
         otherSide={otherSide}
+        back={<span>Recruit placeholder</span>}
         onFlip={onFlip}
         renderLink={({ children, ...pill }) => (
           <a href="/cards/recruit" {...pill}>
@@ -93,8 +95,16 @@ describe("DoubleSidedFlip", () => {
     expect(screen.getByTestId("double-sided-flipper").className).toContain("rotate-y-180");
   });
 
-  it("switches sides at once when the other side has no image", () => {
-    const { onFlip } = renderFlip({ ...otherSide, imageId: undefined });
+  it("turns to a back face without an image file", () => {
+    const { onFlip, flipper } = renderFlip(<span>Recruit placeholder</span>);
+    expect(screen.getByText("Recruit placeholder").closest("[inert]")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Flip to Recruit" }));
+    expect(flipper.className).toContain("rotate-y-180");
+    expect(onFlip).not.toHaveBeenCalled();
+  });
+
+  it("switches sides at once when there is no back face to show", () => {
+    const { onFlip } = renderFlip(null);
     fireEvent.click(screen.getByRole("button", { name: "Flip to Recruit" }));
     expect(onFlip).toHaveBeenCalledTimes(1);
   });

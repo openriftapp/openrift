@@ -112,6 +112,7 @@ export function CardDetail({
       <CardDetailOtherSide
         printing={printing}
         otherSide={printing.otherSide}
+        showImages={showImages}
         onSelect={onSelectPrinting}
       >
         {cardArt}

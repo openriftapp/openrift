@@ -3,7 +3,12 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { resetIdCounter, stubPrinting } from "@/test/factories";
 
-import { groupPrintingDesigns, isSelectedSide } from "./printing-designs";
+import {
+  groupPrintingDesigns,
+  isSelectedSide,
+  otherSideOf,
+  otherSideSearchSide,
+} from "./printing-designs";
 
 beforeEach(() => {
   resetIdCounter();
@@ -174,5 +179,46 @@ describe("isSelectedSide", () => {
 
     expect(isSelectedSide(entry, "p1")).toBe(true);
     expect(isSelectedSide(entry, "p1:2")).toBe(false);
+  });
+});
+
+describe("otherSideOf", () => {
+  it("finds the other side of the same printing", () => {
+    const front = printing("OGN-T05", "EN", { printingId: "p1", side: 1 });
+    const back = printing("OGN-T05", "EN", { printingId: "p1", side: 2 });
+    const unrelated = printing("OGN-T06", "EN", { printingId: "p2", side: 2 });
+
+    expect(otherSideOf(front, [unrelated, front, back])).toBe(back);
+    expect(otherSideOf(back, [front, back])).toBe(front);
+    expect(otherSideOf(front, [front, unrelated])).toBeUndefined();
+  });
+});
+
+describe("otherSideSearchSide", () => {
+  const buffSide = {
+    faceId: "face-buff",
+    cardId: "buff",
+    cardName: "Buff",
+    cardSlug: "buff",
+    shortCode: "OGN-T05",
+  };
+
+  it("asks for side 2 from side 1 of a printing with this card on both sides", () => {
+    const entry = (side: 1 | 2) =>
+      printing("OGN-T05", "EN", { printingId: "p1", cardId: "buff", side, otherSide: buffSide });
+
+    expect(otherSideSearchSide(entry(1))).toBe(2);
+    expect(otherSideSearchSide(entry(2))).toBeUndefined();
+  });
+
+  it("asks for no side when the other side is another card", () => {
+    const entry = printing("OGN-T05", "EN", {
+      printingId: "p1",
+      cardId: "buff",
+      side: 1,
+      otherSide: { ...buffSide, cardId: "recruit", cardSlug: "recruit" },
+    });
+
+    expect(otherSideSearchSide(entry)).toBeUndefined();
   });
 });

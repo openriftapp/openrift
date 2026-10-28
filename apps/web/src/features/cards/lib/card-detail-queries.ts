@@ -41,6 +41,7 @@ export function ownFaces<T extends { cardId: string }>(rows: readonly T[], cardI
 interface EnrichedCardDetail {
   card: Card & { id: string };
   printings: Printing[];
+  otherCardSides: Printing[];
   sets: CardDetailResponse["sets"];
   productsByPrinting: ReadonlyMap<string, CardDetailResponse["products"]>;
   related: CardDetailRelatedCard[];
@@ -60,6 +61,7 @@ function enrichCardDetail(response: CardDetailPayload): EnrichedCardDetail {
   return {
     card,
     printings: ownFaces(printings, id),
+    otherCardSides: printings.filter((printing) => printing.cardId !== id),
     sets: response.sets,
     // The API sends products flat (one row per printing+product) already
     // ordered by product name; grouping preserves that order per printing.

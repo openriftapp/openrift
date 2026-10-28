@@ -119,6 +119,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
         markers: { slug: string }[];
         otherSide?: { cardSlug: string };
       }[];
+      otherCardSides: { side: number; card: { slug: string } }[];
       productsByPrinting: ReadonlyMap<string, { slug: string; quantity: number }[]>;
       related: { slug: string }[];
     };
@@ -226,7 +227,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
     expect(result.printings[0]?.markers).toEqual([promo]);
   });
 
-  it("keeps only this card's face of a double-sided printing, with the other card as `otherSide`", () => {
+  it("keeps only this card's face of a double-sided printing, with the other card's face apart", () => {
     const result = runSelect({
       ...slice,
       cards: { "card-2": { slug: "gold", name: "Gold", bans: [] } },
@@ -244,6 +245,7 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
     expect(result.printings.map((p) => [p.side, p.card.slug, p.otherSide?.cardSlug])).toEqual([
       [1, "ezreal", "gold"],
     ]);
+    expect(result.otherCardSides.map((p) => [p.side, p.card.slug])).toEqual([[2, "gold"]]);
   });
 
   it("keeps the second face when this card is side 2 of the printing", () => {
