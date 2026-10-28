@@ -79,13 +79,6 @@ const WORKSPACE_OWNERS: Partial<Record<string, WorkspaceOwner>> = {
   "/admin/workspace/faces": "face",
 };
 
-const catalogInputPages = [
-  { to: "/admin/sets" as const, icon: DatabaseIcon, title: "Sets" },
-  { to: "/admin/sources" as const, icon: DatabaseIcon, title: "Sources" },
-  { to: "/admin/images" as const, icon: ImageIcon, title: "Images" },
-  { to: "/admin/ignored-sources" as const, icon: BanIcon, title: "Review Decisions" },
-];
-
 const catalogPages = [
   { to: REVIEW_PATH, icon: InboxIcon, title: "Review" },
   { to: "/admin/sets" as const, icon: DatabaseIcon, title: "Sets" },
@@ -179,14 +172,8 @@ const groups = [
 
 const workspaceGroups = [
   { label: "Overview", pages: overviewPages },
-  {
-    label: "Catalog",
-    pages: [
-      ...workspacePages,
-      { to: "/admin/printing-desk" as const, icon: CameraIcon, title: "Printing Desk" },
-    ],
-  },
-  { label: "Catalog inputs", pages: catalogInputPages },
+  { label: "Workspace", pages: workspacePages },
+  { label: "Catalog", pages: catalogPages },
   ...sharedGroups,
 ];
 
@@ -209,7 +196,7 @@ export function AdminSidebar() {
   const isAdmin = access?.isAdmin === true;
   const sections = access?.sections ?? [];
   const canReview = isAdmin || sections.includes("card-review");
-  const { data: reviewQueue } = useReviewQueueWhen(canReview && !workspaceEnabled);
+  const { data: reviewQueue } = useReviewQueueWhen(canReview);
   const { data: workspaceQueue } = useQuery({
     ...workspaceQueueQueryOptions(),
     enabled: workspaceEnabled && canReview,
