@@ -65,7 +65,7 @@ export interface PlayloltcgClient {
 
 /** The WAF answers a burst with a 403 or an HTML interstitial, never JSON. */
 function isWafBlock(status: number, text: string): boolean {
-  return status === 403 || text.trimStart().startsWith("<") || text.includes("WAF");
+  return status === 403 || text.trimStart().startsWith("<");
 }
 
 /** The source's envelope. `code === 0` is success; `result` shape varies by endpoint. */

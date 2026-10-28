@@ -85,6 +85,17 @@ describe("createPlayloltcgClient", () => {
     expect(client.requests).toBe(2);
   });
 
+  it("reads a JSON page whose player names happen to contain WAF", async () => {
+    const { client } = harness([
+      () => json({ code: 0, result: [{ name: "召唤师MKBvWAFh", finalRanking: 237 }] }),
+    ]);
+
+    const page = await client.postList("/xcx/activityUser/pageForActivityDetail", {});
+
+    expect(page.items).toEqual([{ name: "召唤师MKBvWAFh", finalRanking: 237 }]);
+    expect(client.blocked).toBe(false);
+  });
+
   it("names the refused url, status and response body in the block", async () => {
     const { client } = harness([html, html]);
 

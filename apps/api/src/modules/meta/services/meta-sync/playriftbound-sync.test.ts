@@ -2,6 +2,7 @@ import { createLogger } from "@openrift/shared/logger";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Repos, Transact } from "../../../../deps.js";
+import type { PlayriftboundOrganizerProjection } from "../../lib/playriftbound-catalog.js";
 import { cellOf } from "../../lib/playriftbound-catalog.js";
 import type {
   PlayriftboundListRow,
@@ -45,17 +46,14 @@ const BERLIN = { latitude: 52.52, longitude: 13.4 };
 
 function node(id: string, startsAt: string, organizerId = "org-1") {
   return {
-    organizer: {
-      id: organizerId,
-      name: "Bandle City Games",
-      physicalAddress: { latitude: HANNOVER.latitude, longitude: HANNOVER.longitude },
-    },
+    organizer: { id: organizerId, isFavorited: null, name: "Bandle City Games" },
     tournament: {
       id,
       name: `Nexus Night ${id}`,
       startsAt,
       registrantCounts: [{ status: "REGISTERED", count: 8 }],
       config: { tournamentType: "NEXUS_NIGHT", format: "CONSTRUCTED", playerFormat: "ONE_V_ONE" },
+      tournamentLocation: { latitude: HANNOVER.latitude, longitude: HANNOVER.longitude },
     },
   };
 }
@@ -76,6 +74,7 @@ function fakeDeps(options: {
 }) {
   const searches: SearchCall[] = [];
   const upserted: PlayriftboundUpsertInput[] = [];
+  const organizers: PlayriftboundOrganizerProjection[] = [];
   const missing: unknown[] = [];
   const rechecks: { tournamentId: string; nextCheckAt: Date | null; checkStage: number }[] = [];
   const cleared: string[] = [];
@@ -117,7 +116,10 @@ function fakeDeps(options: {
   const repos = {
     playriftboundEvents: {
       organizerCoordinates: () => Promise.resolve(options.organizers ?? []),
-      upsertOrganizers: () => Promise.resolve(),
+      upsertOrganizers: (rows: PlayriftboundOrganizerProjection[]) => {
+        organizers.push(...rows);
+        return Promise.resolve();
+      },
       upsertBatch: (rows: PlayriftboundUpsertInput[]) => {
         upserted.push(...rows);
         return Promise.resolve({
@@ -184,6 +186,7 @@ function fakeDeps(options: {
     deps,
     searches,
     upserted,
+    organizers,
     missing,
     rechecks,
     cleared,
@@ -238,6 +241,15 @@ describe("syncPlayriftboundCatalog", () => {
     await syncPlayriftboundCatalog(deps);
     expect(searches.map((s) => s.after)).toEqual([null, "c1", null, "c1"]);
     expect(upserted.map((row) => row.tournamentId)).toEqual(["1", "2", "3"]);
+  });
+
+  it("stores each organizer at its tournament's venue, so the next run has an area to search", async () => {
+    const { deps, organizers } = fakeDeps({
+      organizers: [HANNOVER],
+      pages: () => ({ nodes: [node("1", "2026-10-19T15:00:00Z")], next: null }),
+    });
+    await syncPlayriftboundCatalog(deps);
+    expect(organizers).toEqual([expect.objectContaining({ id: "org-1", ...HANNOVER })]);
   });
 
   it("marks rows missing only after every area was read", async () => {

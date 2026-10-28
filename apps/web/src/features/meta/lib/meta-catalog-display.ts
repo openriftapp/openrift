@@ -375,7 +375,7 @@ export function metaSyncAlerts(
     const reason: unknown = Array.isArray(errors) ? errors[0] : undefined;
     alerts.push({
       id: "refusing-source",
-      message: `The last results fetch stopped because the source refused several visits in a row, and the next runs pause for 30 minutes.${typeof reason === "string" ? ` First refusal: ${reason.slice(0, 200)}` : ""}`,
+      message: `The last results fetch stopped after several visits in a row failed, and the next runs pause for 30 minutes.${typeof reason === "string" ? ` First failure: ${reason.slice(0, 200)}` : ""}`,
       target: "runs",
     });
   }

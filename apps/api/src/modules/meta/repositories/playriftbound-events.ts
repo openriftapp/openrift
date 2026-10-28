@@ -169,28 +169,37 @@ export function playriftboundEventsRepo(db: Kysely<Database>) {
 
   return {
     async upsertOrganizers(organizers: readonly PlayriftboundOrganizerProjection[]): Promise<void> {
-      const unique = [...new Map(organizers.map((row) => [row.id, row])).values()];
-      for (const batch of rowBatches(unique)) {
+      const byId = new Map<string, PlayriftboundOrganizerProjection>();
+      for (const row of organizers) {
+        if (row.latitude !== null || (byId.get(row.id)?.latitude ?? null) === null) {
+          byId.set(row.id, row);
+        }
+      }
+      for (const batch of rowBatches([...byId.values()])) {
         await db
           .insertInto("playriftboundOrganizers")
           .values(batch)
           .onConflict((oc) =>
             oc
               .column("id")
-              .doUpdateSet((eb) => ({
-                name: eb.ref("excluded.name"),
-                city: eb.ref("excluded.city"),
-                adminArea: eb.ref("excluded.adminArea"),
-                address: eb.ref("excluded.address"),
-                latitude: eb.ref("excluded.latitude"),
-                longitude: eb.ref("excluded.longitude"),
-              }))
+              .doUpdateSet({
+                name: sql`excluded.name`,
+                city: sql`coalesce(excluded.city, playriftbound_organizers.city)`,
+                adminArea: sql`coalesce(excluded.admin_area, playriftbound_organizers.admin_area)`,
+                address: sql`coalesce(excluded.address, playriftbound_organizers.address)`,
+                latitude: sql`coalesce(excluded.latitude, playriftbound_organizers.latitude)`,
+                longitude: sql`coalesce(excluded.longitude, playriftbound_organizers.longitude)`,
+              })
               .where(
                 sql<SqlBool>`(playriftbound_organizers.name, playriftbound_organizers.city,
                   playriftbound_organizers.admin_area, playriftbound_organizers.address,
                   playriftbound_organizers.latitude, playriftbound_organizers.longitude)
-                is distinct from (excluded.name, excluded.city, excluded.admin_area,
-                  excluded.address, excluded.latitude, excluded.longitude)`,
+                is distinct from (excluded.name,
+                  coalesce(excluded.city, playriftbound_organizers.city),
+                  coalesce(excluded.admin_area, playriftbound_organizers.admin_area),
+                  coalesce(excluded.address, playriftbound_organizers.address),
+                  coalesce(excluded.latitude, playriftbound_organizers.latitude),
+                  coalesce(excluded.longitude, playriftbound_organizers.longitude))`,
               ),
           )
           .execute();

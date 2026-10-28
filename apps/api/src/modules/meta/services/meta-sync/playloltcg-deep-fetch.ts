@@ -81,27 +81,30 @@ export async function readPlayloltcgDetail(
   }
 }
 
-/**
- * The source never reports a row total. A full page means keep paging
- * until the cursor stops advancing, not the last page.
- */
+// No row total, so a short page is the end. A page starting below the last rank means `pageNum`
+// is ignored again (the source once paged by `startFinalRanking`); ties may straddle a page.
 async function readStandings(
   deps: PlayloltcgSyncDeps,
   activityShopId: number,
   errors: string[],
 ): Promise<Record<string, unknown>[] | null> {
   const rows: Record<string, unknown>[] = [];
-  let cursor: number | null = null;
-  for (let guard = 0; guard < MAX_STANDINGS_PAGES; guard++) {
+  let lastRank = 0;
+  for (let pageNum = 1; pageNum <= MAX_STANDINGS_PAGES; pageNum++) {
     let body;
     try {
       body = await deps.client.postList<Record<string, unknown>>(
         "/xcx/activityUser/pageForActivityDetail",
-        { pageNum: 1, pageSize: STANDINGS_PAGE_SIZE, activityShopId, startFinalRanking: cursor },
+        { pageNum, pageSize: STANDINGS_PAGE_SIZE, activityShopId },
       );
     } catch (error) {
       rethrowIfBlocked(error);
-      errors.push(`Event ${activityShopId} standings after rank ${cursor ?? 0}: ${failure(error)}`);
+      errors.push(`Event ${activityShopId} standings after rank ${lastRank}: ${failure(error)}`);
+      return null;
+    }
+    const first = num(body.items[0]?.finalRanking);
+    if (pageNum > 1 && body.items.length > 0 && (first === null || first < lastRank)) {
+      errors.push(`Event ${activityShopId} standings stopped advancing at rank ${lastRank}.`);
       return null;
     }
     rows.push(...body.items);
@@ -109,11 +112,11 @@ async function readStandings(
       return rows;
     }
     const last = num(body.items.at(-1)?.finalRanking);
-    if (last === null || (cursor !== null && last <= cursor)) {
-      errors.push(`Event ${activityShopId} standings stopped advancing at rank ${cursor ?? 0}.`);
+    if (last === null) {
+      errors.push(`Event ${activityShopId} standings stopped advancing at rank ${lastRank}.`);
       return null;
     }
-    cursor = last;
+    lastRank = last;
   }
   errors.push(`Event ${activityShopId} standings exceeded ${MAX_STANDINGS_PAGES} pages.`);
   return null;

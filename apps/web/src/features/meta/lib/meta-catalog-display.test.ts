@@ -560,7 +560,7 @@ describe("metaSyncAlerts", () => {
     const alerts = metaSyncAlerts(syncStatus({}, { runs: [backedOff] }), 0, NOW);
 
     expect(alerts.find((alert) => alert.id === "refusing-source")?.message).toContain(
-      "First refusal: Event 5184 standings after rank 0",
+      "First failure: Event 5184 standings after rank 0",
     );
   });
 

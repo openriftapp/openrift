@@ -14,14 +14,16 @@ import {
 
 const ORGANIZER = {
   id: "019f0000-0000-7000-8000-000000000001",
+  isFavorited: null,
   name: "Bandle City Games",
-  physicalAddress: {
-    city: "Bandle City",
-    adminArea1: "BC",
-    formattedAddress: "1 Yordle Lane, 12345 Bandle City, Germany",
-    latitude: 52.37,
-    longitude: 9.73,
-  },
+};
+
+const VENUE = {
+  city: "Bandle City",
+  adminArea1: "BC",
+  formattedAddress: "1 Yordle Lane, 12345 Bandle City, Germany",
+  latitude: 52.37,
+  longitude: 9.73,
 };
 
 function searchNode(overrides: Record<string, unknown> = {}) {
@@ -44,6 +46,7 @@ function searchNode(overrides: Record<string, unknown> = {}) {
         playerFormat: "ONE_V_ONE",
         participantCapacity: 16,
       },
+      tournamentLocation: VENUE,
       ...overrides,
     },
   };
@@ -75,6 +78,17 @@ describe("projectSearchResult", () => {
       address: "1 Yordle Lane, 12345 Bandle City, Germany",
       latitude: 52.37,
       longitude: 9.73,
+    });
+  });
+
+  it("leaves the organizer's address empty for a tournament without a venue", () => {
+    const projected = projectSearchResult(searchNode({ tournamentLocation: null }));
+    expect(projected?.organizer).toMatchObject({
+      id: ORGANIZER.id,
+      city: null,
+      address: null,
+      latitude: null,
+      longitude: null,
     });
   });
 

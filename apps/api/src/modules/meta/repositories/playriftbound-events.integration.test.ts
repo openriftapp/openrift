@@ -107,6 +107,30 @@ describe.skipIf(!ctx)("playriftboundEventsRepo", () => {
     expect(points).toContainEqual({ latitude: 52.37, longitude: 9.73 });
   });
 
+  it("keeps an organizer's known address when a later row has no venue", async () => {
+    const unlocated = {
+      id: ORGANIZER_ID,
+      name: "PRI Bandle City Games",
+      city: null,
+      adminArea: null,
+      address: null,
+      latitude: null,
+      longitude: null,
+    };
+    await repo.upsertOrganizers([
+      { ...unlocated, city: "Bandle City", latitude: 52.37, longitude: 9.73 },
+      unlocated,
+    ]);
+    await repo.upsertOrganizers([unlocated]);
+
+    const stored = await db
+      .selectFrom("playriftboundOrganizers")
+      .select(["city", "latitude", "longitude"])
+      .where("id", "=", ORGANIZER_ID)
+      .executeTakeFirstOrThrow();
+    expect(stored).toEqual({ city: "Bandle City", latitude: 52.37, longitude: 9.73 });
+  });
+
   it("inserts a new row, then costs an unchanged one only a last-seen write", async () => {
     const first = await repo.upsertBatch([row()], SEEN);
     const later = new Date(SEEN.getTime() + 60_000);

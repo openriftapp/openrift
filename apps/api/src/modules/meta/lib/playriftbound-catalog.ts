@@ -85,14 +85,18 @@ function longitude(value: unknown): number | null {
   return n !== null && n >= -180 && n <= 180 ? n : null;
 }
 
-function projectOrganizer(raw: unknown): PlayriftboundOrganizerProjection | null {
+/** The search's organizer carries no address; the tournament's venue stands in for the store's. */
+function projectOrganizer(
+  raw: unknown,
+  location: unknown,
+): PlayriftboundOrganizerProjection | null {
   const row = record(raw);
   const id = text(row?.id);
   const name = text(row?.name);
   if (row === null || id === null || name === null) {
     return null;
   }
-  const address = record(row.physicalAddress);
+  const address = record(location);
   return {
     id,
     name: name.slice(0, 200),
@@ -125,7 +129,7 @@ export function projectSearchResult(raw: unknown): {
   if (tournament === null || tournamentId === null || name === null || startAt === null) {
     return null;
   }
-  const organizer = projectOrganizer(node?.organizer);
+  const organizer = projectOrganizer(node?.organizer, tournament.tournamentLocation);
   const config = record(tournament.config);
   const fee = record(tournament.entryFee);
   const fields = {

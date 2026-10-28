@@ -62,24 +62,25 @@ function catalogRow(overrides: Partial<PlayloltcgListRow> = {}): PlayloltcgListR
 interface Harness {
   deps: PlayloltcgSyncDeps;
   deckRequests: number[];
-  standingsCursors: (number | null)[];
+  standingsPages: number[];
   mirrored: Record<string, unknown>[];
   storedDecklists: { row: Record<string, unknown>; cards: Record<string, unknown>[] }[];
 }
 
 /**
- * The source returns a bare array with no total; `pageNum` is ignored, the
- * only cursor is `startFinalRanking`.
+ * The source returns a bare array with no total and pages by `pageNum`;
+ * `startFinalRanking` is ignored.
  */
 function fakeDeps(options: {
   standings: Record<string, unknown>[] | Error;
+  ignorePageNum?: boolean;
   decks?: Record<number, Record<string, unknown>[]>;
   deckErrors?: Record<number, Error>;
   heldDecks?: string[];
   heldLines?: Map<string, { zone: string; quantity: number; cardName: string }[]>;
 }): Harness {
   const deckRequests: number[] = [];
-  const standingsCursors: (number | null)[] = [];
+  const standingsPages: number[] = [];
   const mirrored: Record<string, unknown>[] = [];
   const storedDecklists: { row: Record<string, unknown>; cards: Record<string, unknown>[] }[] = [];
 
@@ -95,11 +96,11 @@ function fakeDeps(options: {
             new PlayloltcgRefusedError(`playloltcg code 500 for ${path}: 网络繁忙，请稍后再试`),
           );
         }
-        const cursor = typeof body.startFinalRanking === "number" ? body.startFinalRanking : null;
-        standingsCursors.push(cursor);
-        const items = options.standings
-          .filter((row) => Number(row.finalRanking) > (cursor ?? 0))
-          .slice(0, Number(body.pageSize));
+        const pageNum = Number(body.pageNum);
+        standingsPages.push(pageNum);
+        const pageSize = Number(body.pageSize);
+        const offset = options.ignorePageNum === true ? 0 : (pageNum - 1) * pageSize;
+        const items = options.standings.slice(offset, offset + pageSize);
         return Promise.resolve({ items: items as T[], total: null });
       }
       if (path === DECK_PATH) {
@@ -143,7 +144,7 @@ function fakeDeps(options: {
     log: createLogger("test"),
     now: () => NOW,
   };
-  return { deps, deckRequests, standingsCursors, mirrored, storedDecklists };
+  return { deps, deckRequests, standingsPages, mirrored, storedDecklists };
 }
 
 const BUDGET = 10_000;
@@ -272,25 +273,51 @@ describe("playloltcgDeepFetch", () => {
     const rows = Array.from({ length: 2400 }, (_, index) =>
       standingsRow({ name: `选手${index}`, finalRanking: index + 1 }),
     );
-    const { deps, mirrored, standingsCursors } = fakeDeps({ standings: rows });
+    const { deps, mirrored, standingsPages } = fakeDeps({ standings: rows });
 
     const result = await playloltcgDeepFetch(deps, catalogRow(), DETAIL, BUDGET);
 
     expect(result.players).toBe(2400);
     expect(mirrored).toHaveLength(2400);
-    expect(standingsCursors).toHaveLength(121);
-    expect(standingsCursors.slice(0, 3)).toEqual([null, 20, 40]);
+    expect(standingsPages).toHaveLength(121);
+    expect(standingsPages.slice(0, 3)).toEqual([1, 2, 3]);
+  });
+
+  it("keeps a tie that straddles a page boundary", async () => {
+    const rows = Array.from({ length: 30 }, (_, index) =>
+      standingsRow({ name: `选手${index}`, finalRanking: index === 20 ? 20 : index + 1 }),
+    );
+    const { deps, mirrored } = fakeDeps({ standings: rows });
+
+    const result = await playloltcgDeepFetch(deps, catalogRow(), DETAIL, BUDGET);
+
+    expect(result.errors).toEqual([]);
+    expect(mirrored).toHaveLength(30);
+  });
+
+  it("writes nothing when the source hands back the first page again", async () => {
+    const rows = Array.from({ length: 45 }, (_, index) =>
+      standingsRow({ name: `选手${index}`, finalRanking: index + 1 }),
+    );
+    const { deps, mirrored } = fakeDeps({ standings: rows, ignorePageNum: true });
+
+    const result = await playloltcgDeepFetch(deps, catalogRow(), DETAIL, BUDGET);
+
+    expect(mirrored).toEqual([]);
+    expect(result.errors).toContain(
+      `Event ${ACTIVITY_SHOP_ID} standings stopped advancing at rank 20.`,
+    );
   });
 
   it("spends one request on a field that fits in a page", async () => {
     const rows = Array.from({ length: 16 }, (_, index) =>
       standingsRow({ name: `选手${index}`, finalRanking: index + 1 }),
     );
-    const { deps, standingsCursors } = fakeDeps({ standings: rows });
+    const { deps, standingsPages } = fakeDeps({ standings: rows });
 
     await playloltcgDeepFetch(deps, catalogRow(), DETAIL, BUDGET);
 
-    expect(standingsCursors).toEqual([null]);
+    expect(standingsPages).toEqual([1]);
   });
 
   it("reads every deck a field submitted when the budget allows", async () => {
