@@ -55,14 +55,14 @@ export function CardPageInfoTable({
   leftRows.push(
     [
       m.card_detail_info_language(),
-      <span key="language" className="inline-flex items-center gap-1.5">
+      <span key="language" className="flex items-center gap-1.5">
         <LanguageChip code={printing.language} />
         {enumLabel(languageLabels, printing.language)}
       </span>,
     ],
     [
       m.card_detail_info_rarity(),
-      <span key="rarity" className="inline-flex items-center gap-1.5">
+      <span key="rarity" className="flex items-center gap-1.5">
         <span className="inline-flex w-4 shrink-0 justify-center">
           <RarityIcon rarity={printing.rarity} />
         </span>
@@ -71,7 +71,7 @@ export function CardPageInfoTable({
     ],
     [
       m.card_detail_info_finish(),
-      <span key="finish" className="inline-flex items-center gap-1.5">
+      <span key="finish" className="flex items-center gap-1.5">
         <FinishIcon finish={printing.finish} className="w-4 shrink-0 justify-center" />
         {enumLabel(labels.finishes, printing.finish)}
       </span>,
@@ -80,7 +80,7 @@ export function CardPageInfoTable({
   if (printing.artVariant !== WellKnown.artVariant.NORMAL) {
     leftRows.push([
       m.card_detail_info_art_variant(),
-      <span key="art" className="inline-flex items-center gap-1">
+      <span key="art" className="flex items-center gap-1">
         <PaletteIcon className="size-3.5" />
         {enumLabel(labels.artVariants, printing.artVariant)}
       </span>,
@@ -95,7 +95,7 @@ export function CardPageInfoTable({
   if (printing.artist) {
     leftRows.push([
       m.card_detail_info_artist(),
-      <span key="artist" className="inline-flex items-center gap-1.5">
+      <span key="artist" className="flex items-center gap-1.5">
         <span className="inline-flex w-4 shrink-0 justify-center">
           <CardIcon src="/images/artist.svg" />
         </span>
@@ -159,7 +159,7 @@ export function CardPageInfoTable({
 
 function InfoList({ rows }: { rows: InfoTableRow[] }) {
   return (
-    <DefinitionList className="grid-cols-[6rem_minmax(0,1fr)] content-start">
+    <DefinitionList className="grid-cols-[6rem_minmax(0,1fr)] content-start items-start">
       {rows.map(([label, value]) => (
         <Fragment key={label}>
           <DefinitionTerm>{label}</DefinitionTerm>
@@ -181,12 +181,14 @@ function TypeValue({
 }) {
   const iconPaths = getTypeIconPaths(types, superTypes);
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className="inline-flex w-4 shrink-0 justify-center gap-0.5">
-        {iconPaths.map((path) => (
-          <CardIcon key={path} src={path} className="size-4" />
-        ))}
-      </span>
+    <span className="flex items-center gap-1.5">
+      {iconPaths.length > 0 && (
+        <span className="inline-flex w-4 shrink-0 justify-center gap-0.5">
+          {iconPaths.map((path) => (
+            <CardIcon key={path} src={path} className="size-4" />
+          ))}
+        </span>
+      )}
       {typeLabel}
     </span>
   );
@@ -194,9 +196,9 @@ function TypeValue({
 
 function DomainList({ domains, labels }: { domains: string[]; labels: Record<string, string> }) {
   return (
-    <span className="inline-flex flex-wrap items-center gap-1.5">
+    <span className="flex flex-wrap items-center gap-1.5">
       {domains.map((domain) => (
-        <span key={domain} className="inline-flex items-center gap-1">
+        <span key={domain} className="flex items-center gap-1">
           <FilterIcon category="domains" value={domain} className="size-4" />
           {labels[domain]}
         </span>
@@ -207,7 +209,7 @@ function DomainList({ domains, labels }: { domains: string[]; labels: Record<str
 
 function MightValue({ value, bonus = false }: { value: number; bonus?: boolean }) {
   return (
-    <span className={cn("inline-flex items-center gap-1", bonus && "font-semibold")}>
+    <span className={cn("flex items-center gap-1", bonus && "font-semibold")}>
       <CardIcon src="/images/might.svg" className="size-4" />
       {bonus ? `+${value}` : value}
     </span>
@@ -220,7 +222,7 @@ function PowerValue({ power, domains }: { power: number; domains: string[] }) {
     return <span>{power}</span>;
   }
   return (
-    <span className="inline-flex items-center gap-0.5">
+    <span className="flex h-5 items-center gap-0.5">
       {Array.from({ length: power }, (_, index) => (
         <FilterIcon key={index} category="domains" value={primaryDomain} className="size-4" />
       ))}
