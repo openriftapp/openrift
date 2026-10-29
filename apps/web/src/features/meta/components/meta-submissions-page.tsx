@@ -97,7 +97,7 @@ export function MetaSubmissionsPage() {
           <PageTopBarBack to="/meta" />
           <PageTopBarTitle>{m.meta_submissions_title()}</PageTopBarTitle>
           <PageTopBarActions>
-            <Link to="/meta/submit" className={buttonVariants()}>
+            <Link rel="nofollow" to="/meta/submit" className={buttonVariants()}>
               {m.meta_contribute_send_decklist()}
             </Link>
           </PageTopBarActions>
@@ -122,7 +122,7 @@ export function MetaSubmissionsPage() {
             title={m.meta_submissions_empty_title()}
             description={m.meta_submissions_empty_description()}
           >
-            <Link to="/meta/submit" className={buttonVariants()}>
+            <Link rel="nofollow" to="/meta/submit" className={buttonVariants()}>
               {m.meta_contribute_send_decklist()}
             </Link>
           </EmptyState>

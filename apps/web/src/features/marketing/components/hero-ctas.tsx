@@ -8,6 +8,7 @@ export function HeroCtas({ className }: { className?: string }) {
     <div className={cn("my-3 flex flex-wrap items-center justify-center gap-3", className)}>
       <HeroCta to="/cards">{m.collections_activity_browse_cards()}</HeroCta>
       <HeroCta
+        rel="nofollow"
         to="/signup"
         search={{ redirect: undefined, email: undefined }}
         variant="outline"

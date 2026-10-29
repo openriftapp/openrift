@@ -49,6 +49,7 @@ function MetaDeckNotice({
           {isLoggedIn && ` ${m.meta_deck_incomplete_collection_note()}`}
         </span>
         <Link
+          rel="nofollow"
           to="/meta/$slug/submit"
           params={{ slug: eventSlug }}
           search={search}
@@ -154,6 +155,7 @@ export function MetaDeckPage({ token }: { token: string }) {
             className="ml-auto text-sm"
             render={
               <Link
+                rel="nofollow"
                 to="/meta/$slug/submit"
                 params={{ slug: data.meta.event.slug }}
                 search={metaSubmitSearchForPlayer(entry, "correction")}

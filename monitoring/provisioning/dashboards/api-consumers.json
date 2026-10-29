@@ -30,7 +30,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (client) (count_over_time({container=\"openrift-proxy-1\"} | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<referer>\" \"<ua>\" <_>` | path=~\"/api/(v1/|doc|ui).*\" | label_format client=`{{ if hasPrefix \"Mozilla/\" .ua }}(browsers){{ else }}{{ .ua }}{{ end }}` [$__interval]))",
+          "expr": "sum by (client) (count_over_time({container=\"openrift-proxy-1\"} |= \" /api/\" | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<referer>\" \"<ua>\" <_>` | path=~\"/api/(v1/|doc|ui).*\" | label_format client=`{{ if hasPrefix \"Mozilla/\" .ua }}(browsers){{ else }}{{ .ua }}{{ end }}` [$__interval]))",
           "legendFormat": "{{client}}",
           "refId": "A"
         }
@@ -93,7 +93,7 @@
       },
       "targets": [
         {
-          "expr": "topk(20, sum by (ua) (count_over_time({container=\"openrift-proxy-1\"} | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<referer>\" \"<ua>\" <_>` | path=~\"/api/(v1/|doc|ui).*\" | ua !~ \"Mozilla/.*\" [$__range])))",
+          "expr": "topk(20, sum by (ua) (count_over_time({container=\"openrift-proxy-1\"} |= \" /api/\" | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<referer>\" \"<ua>\" <_>` | path=~\"/api/(v1/|doc|ui).*\" | ua !~ \"Mozilla/.*\" [$__range])))",
           "legendFormat": "{{ua}}",
           "refId": "A",
           "queryType": "instant",
@@ -161,7 +161,7 @@
       },
       "targets": [
         {
-          "expr": "topk(20, sum by (origin) (count_over_time({container=\"openrift-proxy-1\"} | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<_>\" \"<_>\" \"<_>\" <_> uht=<_> \"<origin>\" \"<_>\"` | path=~\"/api/(v1/|doc|ui).*\" | origin != \"-\" | origin != \"https://openrift.app\" [$__range])))",
+          "expr": "topk(20, sum by (origin) (count_over_time({container=\"openrift-proxy-1\"} |= \" /api/\" | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<_>\" \"<_>\" \"<_>\" <_> uht=<_> \"<origin>\" \"<_>\"` | path=~\"/api/(v1/|doc|ui).*\" | origin != \"-\" | origin != \"https://openrift.app\" [$__range])))",
           "legendFormat": "{{origin}}",
           "refId": "A",
           "queryType": "instant",
@@ -221,7 +221,7 @@
     },
     {
       "title": "Non-browser requests by endpoint",
-      "description": "What the non-browser clients are actually fetching (query strings stripped).",
+      "description": "What the non-browser clients are fetching (query strings stripped, card slugs, share codes and long ids collapsed).",
       "type": "table",
       "datasource": {
         "type": "loki",
@@ -229,7 +229,7 @@
       },
       "targets": [
         {
-          "expr": "topk(25, sum by (ua, endpoint) (count_over_time({container=\"openrift-proxy-1\"} | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<referer>\" \"<ua>\" <_>` | path=~\"/api/(v1/|doc|ui).*\" | ua !~ \"Mozilla/.*\" | label_format endpoint=`{{ regexReplaceAll \"\\\\?.*\" .path \"\" }}` [$__range])))",
+          "expr": "topk(25, sum by (ua, endpoint) (count_over_time({container=\"openrift-proxy-1\"} |= \" /api/\" | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<referer>\" \"<ua>\" <_>` | path=~\"/api/(v1/|doc|ui).*\" | ua !~ \"Mozilla/.*\" | label_format endpoint=`{{ regexReplaceAll \"/[A-Za-z0-9_-]*[0-9][A-Za-z0-9_-]{15,}\" (regexReplaceAll \"^/api/v1/decks/share/[^/]+\" (regexReplaceAll \"^/api/v1/cards/[^/]+\" (regexReplaceAll \"\\\\?.*\" .path \"\") \"/api/v1/cards/:slug\") \"/api/v1/decks/share/:code\") \"/:id\" }}` [$__range])))",
           "legendFormat": "{{ua}} {{endpoint}}",
           "refId": "A",
           "queryType": "instant",

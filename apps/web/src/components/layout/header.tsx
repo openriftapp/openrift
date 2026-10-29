@@ -29,6 +29,7 @@ import latestMilestone from "virtual:latest-milestone";
 import type { NavFlags } from "@/components/layout/nav-items";
 import {
   badgeAriaLabel,
+  keepsSearch,
   SignInRequiredDialog,
   visibleMoreSections,
   visiblePrimaryItems,
@@ -149,6 +150,7 @@ function DesktopPrimaryItem({
   onLockedClick: (key: LockedFeatureKey) => void;
 }) {
   const lockedKey = item.lockedKey;
+  const keepSearch = useLocation({ select: (location) => keepsSearch(item, location.pathname) });
   if (lockedKey && !isLoggedIn) {
     return (
       <NavigationMenuLink
@@ -164,7 +166,7 @@ function DesktopPrimaryItem({
   const badgeCount = item.badge ? badges[item.badge] : 0;
   return (
     <NavigationMenuLink
-      render={<Link to={item.to} search={item.keepSearch ? (prev) => prev : undefined} />}
+      render={<Link to={item.to} search={keepSearch ? (prev) => prev : undefined} />}
       className={DESKTOP_NAV_ITEM_CLASS}
     >
       {item.label}
@@ -445,6 +447,7 @@ function UserMenu({
     <div className="flex items-center gap-2">
       {!user && (
         <Link
+          rel="nofollow"
           to="/login"
           search={{ redirect: signInRedirect, email: undefined }}
           className={buttonVariants({ size: "sm" })}
@@ -483,6 +486,7 @@ function MobileNavItem({
   onLockedClick: (key: LockedFeatureKey) => void;
 }) {
   const lockedKey = item.lockedKey;
+  const keepSearch = useLocation({ select: (location) => keepsSearch(item, location.pathname) });
   const rowClass = cn(MOBILE_NAV_ITEM_CLASS, compact && "py-2.5");
   const icon = <item.icon className="text-muted-foreground size-5" />;
   if (lockedKey && !isLoggedIn) {
@@ -502,7 +506,7 @@ function MobileNavItem({
   return (
     <SheetClose
       nativeButton={false}
-      render={<Link to={item.to} search={item.keepSearch ? (prev) => prev : undefined} />}
+      render={<Link to={item.to} search={keepSearch ? (prev) => prev : undefined} />}
       className={rowClass}
     >
       {icon}

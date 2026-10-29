@@ -26,10 +26,11 @@ export function SignedOutAuthButtons({
   const search = { redirect: location.href, email: undefined };
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Link to="/login" search={search} className={buttonVariants()}>
+      <Link rel="nofollow" to="/login" search={search} className={buttonVariants()}>
         {signInLabel ?? m.common_sign_in()}
       </Link>
       <Link
+        rel="nofollow"
         to="/signup"
         search={search}
         className={buttonVariants({ variant: "ghost" })}

@@ -362,6 +362,7 @@ export function DeckHero({
                     )}
                     {showSignIn && (
                       <Link
+                        rel="nofollow"
                         {...signIn}
                         className={buttonVariants({
                           variant: "outline",

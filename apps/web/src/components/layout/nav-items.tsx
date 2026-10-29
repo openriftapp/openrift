@@ -300,6 +300,10 @@ export function visibleMoreSections(opts: {
   return sections.filter((section) => section.items.length > 0);
 }
 
+export function keepsSearch(item: NavItemConfig, pathname: string): boolean {
+  return item.keepSearch === true && pathname === item.to;
+}
+
 export function badgeAriaLabel(badge: keyof NavBadgeCounts, count: number): string {
   if (badge === "loans") {
     return m.nav_badge_loans({ count });
@@ -336,6 +340,7 @@ export function SignInRequiredDialog({
           </DialogHeader>
           <DialogFooter>
             <Link
+              rel="nofollow"
               to="/login"
               search={{ redirect: feature.to, email: undefined }}
               className={buttonVariants({ variant: "ghost" })}
@@ -344,6 +349,7 @@ export function SignInRequiredDialog({
               {m.common_sign_in()}
             </Link>
             <Link
+              rel="nofollow"
               to="/signup"
               search={{ redirect: feature.to, email: undefined }}
               className={buttonVariants({ variant: "default" })}

@@ -142,7 +142,7 @@ export function PlayerClaimPage({ token }: { token: string }) {
                     : m.tournaments_claim_claim_spot()}
                 </Button>
               ) : (
-                <Link {...signIn} className={buttonVariants()}>
+                <Link rel="nofollow" {...signIn} className={buttonVariants()}>
                   {m.tournaments_claim_sign_in_to_claim()}
                 </Link>
               )}

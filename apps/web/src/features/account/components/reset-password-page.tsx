@@ -205,6 +205,7 @@ export function ResetPasswordPage() {
 
         <p className="text-muted-foreground text-center text-sm">
           <Link
+            rel="nofollow"
             to="/login"
             search={{ redirect: undefined, email: email.trim() || undefined }}
             className="underline underline-offset-2"

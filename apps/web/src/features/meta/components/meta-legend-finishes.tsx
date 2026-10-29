@@ -59,6 +59,7 @@ function ListLink({ finish, canSubmit }: { finish: MetaLegendFinish; canSubmit: 
       className="font-medium whitespace-nowrap"
       render={
         <Link
+          rel="nofollow"
           to="/meta/$slug/submit"
           params={{ slug: finish.event.slug }}
           search={metaSubmitSearchForPlayer(finish)}
