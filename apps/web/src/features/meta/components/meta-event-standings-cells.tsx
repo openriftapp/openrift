@@ -218,6 +218,7 @@ export function DeckCell({
       className={cn("font-medium whitespace-nowrap", className)}
       render={
         <Link
+          rel="nofollow"
           to="/meta/$slug/submit"
           params={{ slug }}
           search={metaSubmitSearchForPlayer({ ...player, playerId: player.id })}

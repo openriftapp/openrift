@@ -233,7 +233,9 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
         {missing !== null && <span>{missing}</span>}
         <MetaContributors contributors={data.meta.contributors} className="text-xs" />
         {!copyToMyDecks.isLoggedIn && (
-          <TextLink render={<Link {...signIn} />}>{m.meta_deck_preview_sign_in_compare()}</TextLink>
+          <TextLink render={<Link rel="nofollow" {...signIn} />}>
+            {m.meta_deck_preview_sign_in_compare()}
+          </TextLink>
         )}
         <span className="ml-auto" />
         <span className="flex items-center gap-1.5">

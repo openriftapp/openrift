@@ -86,6 +86,7 @@ function ListLink({
       className="font-medium whitespace-nowrap"
       render={
         <Link
+          rel="nofollow"
           to="/meta/$slug/submit"
           params={{ slug: finish.event.slug }}
           search={metaSubmitSearchForPlayer({ ...finish, playerName })}

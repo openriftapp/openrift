@@ -390,7 +390,7 @@ function ForgotPasswordLink({
     <TextLink
       variant="muted"
       className={className}
-      render={<Link to="/reset-password" search={{ email }} />}
+      render={<Link rel="nofollow" to="/reset-password" search={{ email }} />}
     >
       {m.auth_forgot_password()}
     </TextLink>
@@ -407,6 +407,7 @@ function SignupLink({
   const email = useWatch({ control, name: "email" });
   return (
     <Link
+      rel="nofollow"
       to="/signup"
       search={{ redirect: redirectTo, email: email || undefined }}
       onClick={() => trackSignupCta("login-form")}

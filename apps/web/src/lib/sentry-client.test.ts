@@ -226,6 +226,17 @@ describe("initClientSentry", () => {
     expect(initMock).not.toHaveBeenCalled();
   });
 
+  test("does not init for a known crawler", () => {
+    vi.spyOn(globalThis.navigator, "userAgent", "get").mockReturnValue(
+      "meta-externalagent/1.1 (+https://developers.facebook.com/docs/sharing/webmasters/crawler)",
+    );
+
+    initClientSentry({} as Parameters<typeof initClientSentry>[0]);
+
+    expect(initMock).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
   test("reports the deployment environment from the inlined config", () => {
     globalThis.__OPENRIFT_CONFIG__ = {
       sentryDsn: "https://key@example.ingest.sentry.io/1",

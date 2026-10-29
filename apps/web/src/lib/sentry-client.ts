@@ -13,6 +13,7 @@ import type { ErrorInfo } from "react";
 import { getAppDiagnostics } from "./app-diagnostics";
 import { COMMIT_HASH, PROD } from "./env";
 import { drainHydrationErrors } from "./hydration-error-buffer";
+import { isKnownBot } from "./known-bot";
 import { CHUNK_LOAD_ERROR_PATTERN, STALE_SERVER_FN_ERROR_PATTERN } from "./stale-bundle-reload";
 
 type TanstackRouter = Parameters<typeof tanstackRouterBrowserTracingIntegration>[0];
@@ -68,7 +69,7 @@ export function enrichEvent(event: SentryErrorEvent, hint: SentryEventHint): Sen
 
 export function initClientSentry(router: TanstackRouter): void {
   // Skip in local dev: HMR/Fast Refresh noise would drown out real issues.
-  if (!PROD) {
+  if (!PROD || isKnownBot(globalThis.navigator?.userAgent)) {
     return;
   }
   const dsn = globalThis.__OPENRIFT_CONFIG__?.sentryDsn;

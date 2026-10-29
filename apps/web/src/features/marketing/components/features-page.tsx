@@ -112,6 +112,7 @@ function ClosingBlock({ signedOut }: { signedOut: boolean }) {
           <HeroCta to="/cards">{m.collections_activity_browse_cards()}</HeroCta>
           {signedOut && (
             <HeroCta
+              rel="nofollow"
               to="/signup"
               search={{ redirect: undefined, email: undefined }}
               variant="outline"

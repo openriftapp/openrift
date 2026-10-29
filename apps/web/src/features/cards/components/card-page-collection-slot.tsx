@@ -53,6 +53,7 @@ function TrackCollectionNudge() {
     <div className="bg-card flex flex-col items-start gap-2 rounded-lg border px-3 py-2.5">
       <p className="text-muted-foreground text-sm">{m.card_detail_nudge_text()}</p>
       <Link
+        rel="nofollow"
         to="/signup"
         search={search}
         className={buttonVariants({ variant: "outline", size: "sm" })}

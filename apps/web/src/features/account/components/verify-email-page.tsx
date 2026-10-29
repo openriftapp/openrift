@@ -106,6 +106,7 @@ export function VerifyEmailPage() {
         </Field>
         <p className="text-muted-foreground text-center text-sm">
           <Link
+            rel="nofollow"
             to="/login"
             search={{ redirect: redirectTo, email: undefined }}
             className="underline underline-offset-2"

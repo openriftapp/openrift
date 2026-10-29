@@ -165,7 +165,7 @@ function LoginLink({
 }) {
   const email = useWatch({ control, name: "email" });
   return (
-    <Link to="/login" search={{ redirect: redirectTo, email: email || undefined }}>
+    <Link rel="nofollow" to="/login" search={{ redirect: redirectTo, email: email || undefined }}>
       {m.common_sign_in()}
     </Link>
   );

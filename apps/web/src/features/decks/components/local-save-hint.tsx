@@ -13,7 +13,7 @@ import { m } from "@/paraglide/messages.js";
 function SignInLink({ children }: { children?: ReactNode }) {
   const signIn = useSignInSearch();
   return (
-    <TextLink variant="muted" className="font-medium" render={<Link {...signIn} />}>
+    <TextLink variant="muted" className="font-medium" render={<Link rel="nofollow" {...signIn} />}>
       {children}
     </TextLink>
   );

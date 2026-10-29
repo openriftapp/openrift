@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { signInRedirectFor } from "./header";
 import {
+  keepsSearch,
   navItemVisible,
   primaryNavItems,
   visibleMoreSections,
@@ -140,5 +141,22 @@ describe("signInRedirectFor", () => {
 
   it("keeps a nested path under an excluded prefix", () => {
     expect(signInRedirectFor({ pathname: "/decks/abc", href: "/decks/abc" })).toBe("/decks/abc");
+  });
+});
+
+describe("keepsSearch", () => {
+  const cards = primaryNavItems().find((item) => item.to === "/cards");
+  const meta = primaryNavItems().find((item) => item.to === "/meta");
+
+  it("keeps the card filters when Cards is clicked on /cards", () => {
+    expect(cards && keepsSearch(cards, "/cards")).toBe(true);
+  });
+
+  it("drops the login page's redirect param when Cards is clicked on /login", () => {
+    expect(cards && keepsSearch(cards, "/login")).toBe(false);
+  });
+
+  it("never keeps the search for items without keepSearch", () => {
+    expect(meta && keepsSearch(meta, "/meta")).toBe(false);
   });
 });

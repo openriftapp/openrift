@@ -45,7 +45,7 @@ export function StageOutputBlock({
                 message={m.stage_output_obs_signin}
                 markup={{
                   link: ({ children }) => (
-                    <TextLink variant="muted" render={<Link {...signIn} />}>
+                    <TextLink variant="muted" render={<Link rel="nofollow" {...signIn} />}>
                       {children}
                     </TextLink>
                   ),

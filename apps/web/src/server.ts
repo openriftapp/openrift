@@ -9,6 +9,7 @@ import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 import { helpArticleList } from "./features/marketing/components/articles";
 import { deriveSetEras } from "./features/meta/lib/meta-scope";
 import { isIndexableRequest, NOINDEX_ROBOTS_TXT, withNoindex } from "./lib/indexing";
+import { isBotBlockedPath, isKnownBot } from "./lib/known-bot";
 import {
   browserLocaleForPageRequest,
   localeEntryRedirect,
@@ -57,6 +58,8 @@ function buildProdRobotsTxt(): string {
     "Disallow: /signup",
     "Disallow: /reset-password",
     "Disallow: /verify-email",
+    "Disallow: /meta/submit",
+    "Disallow: /meta/*/submit",
     "",
     `Sitemap: ${getSiteUrl()}${SITEMAP_INDEX_PATH}`,
     "",
@@ -132,6 +135,12 @@ export default createServerEntry({
       } catch {
         return new Response("Sitemap generation failed", { status: 500 });
       }
+    }
+    if (isBotBlockedPath(url.pathname) && isKnownBot(request.headers.get("user-agent"))) {
+      return new Response("Forbidden", {
+        status: 403,
+        headers: { "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow" },
+      });
     }
     const localeEntry = localeEntryRedirect(request);
     if (localeEntry !== null) {

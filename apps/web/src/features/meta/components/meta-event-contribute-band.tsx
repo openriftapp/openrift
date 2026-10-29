@@ -36,6 +36,7 @@ export function MetaEventContributeBand({
       action={
         userId === null ? (
           <Link
+            rel="nofollow"
             to="/login"
             search={{ redirect: `/meta/${slug}/submit`, email: undefined }}
             className={buttonVariants()}
@@ -43,7 +44,12 @@ export function MetaEventContributeBand({
             {m.meta_event_contribute_sign_in()}
           </Link>
         ) : (
-          <Link to="/meta/$slug/submit" params={{ slug }} className={buttonVariants()}>
+          <Link
+            rel="nofollow"
+            to="/meta/$slug/submit"
+            params={{ slug }}
+            className={buttonVariants()}
+          >
             {m.meta_event_contribute_add()}
           </Link>
         )

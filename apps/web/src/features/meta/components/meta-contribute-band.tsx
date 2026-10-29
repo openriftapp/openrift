@@ -36,7 +36,7 @@ export function MetaContributeBand() {
       title={m.meta_contribute_title()}
       description={m.meta_contribute_description()}
       action={
-        <Link to="/meta/submit" className={buttonVariants()}>
+        <Link rel="nofollow" to="/meta/submit" className={buttonVariants()}>
           {m.meta_contribute_send_decklist()}
         </Link>
       }
