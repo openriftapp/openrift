@@ -10,21 +10,12 @@ import {
   sortByProviderOrder,
 } from "@/features/admin/components/card-detail-shared";
 
-export function ImagePreview({
-  url,
-  alt,
-  resolution,
-  setResolution,
-  imgError,
-  setImgError,
-}: {
-  url: string | null;
-  alt: string;
-  resolution: string | null;
-  setResolution: (v: string | null) => void;
-  imgError: boolean;
-  setImgError: (v: boolean) => void;
-}) {
+export function ImagePreview({ url, alt }: { url: string | null; alt: string }) {
+  const [loaded, setLoaded] = useState<{ url: string; resolution: string } | null>(null);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const imgError = url !== null && failedUrl === url;
+  const resolution = loaded && loaded.url === url ? loaded.resolution : null;
+
   return (
     <div className="relative">
       {url && !imgError ? (
@@ -35,9 +26,9 @@ export function ImagePreview({
             className="w-full rounded-md border object-contain"
             onLoad={(e) => {
               const img = e.currentTarget;
-              setResolution(`${img.naturalWidth}×${img.naturalHeight}`);
+              setLoaded({ url, resolution: `${img.naturalWidth}×${img.naturalHeight}` });
             }}
-            onError={() => setImgError(true)}
+            onError={() => setFailedUrl(url)}
           />
         </a>
       ) : url && imgError ? (
@@ -54,7 +45,7 @@ export function ImagePreview({
           No image
         </div>
       )}
-      {resolution && url && !imgError && (
+      {resolution && !imgError && (
         <span className="absolute right-1.5 bottom-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-white">
           {resolution}
         </span>
@@ -78,9 +69,6 @@ export function GroupImagePreview({
   const [selectedId, setSelectedId] = useState<string | null>(
     () => sourceImages[0]?.candidatePrintingId ?? null,
   );
-  const [resolution, setResolution] = useState<string | null>(null);
-  const [imgError, setImgError] = useState(false);
-
   const firstSourceImage = sourceImages.at(0);
   if (!firstSourceImage) {
     return null;
@@ -95,8 +83,6 @@ export function GroupImagePreview({
         value={selected.candidatePrintingId}
         onValueChange={(value) => {
           setSelectedId(value as string);
-          setResolution(null);
-          setImgError(false);
         }}
       >
         <TabsList variant="line" className="h-auto flex-wrap">
@@ -108,14 +94,7 @@ export function GroupImagePreview({
         </TabsList>
       </Tabs>
 
-      <ImagePreview
-        url={selected.url}
-        alt="source"
-        resolution={resolution}
-        setResolution={setResolution}
-        imgError={imgError}
-        setImgError={setImgError}
-      />
+      <ImagePreview url={selected.url} alt="source" />
       <a
         href={selected.url}
         target="_blank"

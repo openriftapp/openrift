@@ -120,8 +120,6 @@ export function PrintingImageSwitcher({
   });
 
   const [selectedId, setSelectedId] = useState<string | null>(() => sortedImages[0]?.id ?? null);
-  const [resolution, setResolution] = useState<string | null>(null);
-  const [imgError, setImgError] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [straightening, setStraightening] = useState(false);
   const [urlValue, setUrlValue] = useState("");
@@ -140,14 +138,7 @@ export function PrintingImageSwitcher({
 
   return (
     <div className="w-full max-w-96 shrink-0 space-y-2">
-      <ImagePreview
-        url={effectiveUrl}
-        alt={printingLabel}
-        resolution={resolution}
-        setResolution={setResolution}
-        imgError={imgError}
-        setImgError={setImgError}
-      />
+      <ImagePreview url={effectiveUrl} alt={printingLabel} />
       {(effectiveImage || isAdmin) && (
         <div className="flex min-h-6 flex-wrap items-center gap-1">
           {effectiveImage && (
@@ -330,8 +321,6 @@ export function PrintingImageSwitcher({
           value={effectiveImage ? [effectiveImage.id] : []}
           onValueChange={([next]) => {
             setSelectedId(next ?? null);
-            setResolution(null);
-            setImgError(false);
           }}
         >
           {sortedImages.map((img) => (
