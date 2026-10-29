@@ -551,6 +551,7 @@ export async function buildRuleEvalContexts(
   const ruleCatalog = needsCatalog && providers ? await providers.assembleCatalog() : null;
   const catalog = ruleCatalog?.printings ?? [];
   const customTagAssignments = ruleCatalog?.customTagAssignments;
+  const vocabulary = ruleCatalog?.vocabulary;
 
   // Reference orders for trade-rule keep/offer ranking, fetched once so the
   // matcher picks the exact same copies the owner sees on their list page — a
@@ -582,6 +583,7 @@ export async function buildRuleEvalContexts(
         catalog,
         customTagAssignments,
         priceLookup,
+        vocabulary,
       })) {
         printingScope.add(id);
       }
@@ -600,6 +602,7 @@ export async function buildRuleEvalContexts(
     customTagAssignments,
     enumOrders,
     priceLookup,
+    vocabulary,
   });
 }
 

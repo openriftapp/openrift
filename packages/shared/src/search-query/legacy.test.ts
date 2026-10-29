@@ -5,7 +5,7 @@ import { translateLegacyQuery } from "./legacy.js";
 describe("translateLegacyQuery", () => {
   it.each([
     ["d:stun", "o:stun"],
-    ["t:demacia", "otag:demacia"],
+    ["t:demacia", "tag:demacia"],
     ["f:revenge", "ft:revenge"],
     ["id:ogn-001", "cn:ogn-001"],
     ["ty:unit", "t:unit"],

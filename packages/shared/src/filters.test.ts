@@ -114,8 +114,8 @@ describe("filterCards", () => {
     expect(result).toHaveLength(1);
   });
 
-  it("searches tags with otag:", () => {
-    const result = filterCards(printings, emptyFilters({ search: "otag:warrior" }));
+  it("searches tags with tag:", () => {
+    const result = filterCards(printings, emptyFilters({ search: "tag:warrior" }));
     expect(result).toHaveLength(1);
     expect(result[0]!.card.name).toBe("Fire Dragon");
   });
@@ -143,8 +143,8 @@ describe("filterCards", () => {
     expect(result[0]!.card.name).toBe("Fire Dragon");
   });
 
-  it("search by id prefix matches shortCode", () => {
-    const result = filterCards(printings, emptyFilters({ search: "cn:SET2" }));
+  it("matches a whole collector code, variant letter optional", () => {
+    const result = filterCards(printings, emptyFilters({ search: "cn:SET2-001" }));
     expect(result).toHaveLength(1);
     expect(result[0]!.card.name).toBe("Mind Weaver");
   });
@@ -162,7 +162,7 @@ describe("filterCards", () => {
   });
 
   it("search by tags prefix", () => {
-    const result = filterCards(printings, emptyFilters({ search: "otag:psychic" }));
+    const result = filterCards(printings, emptyFilters({ search: "tag:psychic" }));
     expect(result).toHaveLength(1);
     expect(result[0]!.card.name).toBe("Mind Weaver");
   });

@@ -69,7 +69,7 @@ export function deckZoneFilterPreset(
           customTags: formatTagSlugs,
         },
         clearStatRanges: false,
-        search: legendTag ? `otag:${legendTag}` : "",
+        search: legendTag ? `tag:${legendTag}` : "",
       };
     }
     case WellKnown.deckZone.RUNES: {

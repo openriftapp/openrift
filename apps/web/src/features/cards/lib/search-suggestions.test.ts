@@ -47,7 +47,7 @@ describe("searchSuggestions", () => {
 
   it("suggests fixed values for is:, has: and directives", () => {
     expect(labels("is:fo")).toEqual(["foil"]);
-    expect(labels("order:e")).toEqual(["energy"]);
+    expect(labels("order:e")).toEqual(["energy", "eur"]);
   });
 
   it("drops the value already typed in full", () => {

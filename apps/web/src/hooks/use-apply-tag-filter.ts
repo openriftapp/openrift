@@ -5,7 +5,7 @@ import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 
 /**
  * Returns null outside a `FilterSearchProvider`; callers must then fall back
- * to a quoted `otag:"…"` search.
+ * to a quoted `tag:"…"` search.
  */
 export function useApplyTagFilter(): ((tag: string) => void) | null {
   const filterSearch = useContext(FilterSearchProvider);

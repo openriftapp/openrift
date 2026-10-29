@@ -1,4 +1,5 @@
 import type { SortCardsOptions } from "@openrift/shared/filters-sort";
+import type { SearchOrder } from "@openrift/shared/search-query/keys";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -38,12 +39,13 @@ export function computePriceRanges(
 }
 
 export interface PriceSortInput {
-  sortBy: SortOption;
+  sortBy: SortOption | SearchOrder;
   sortDir: SortCardsOptions["sortDir"];
   /** Catalog sets in catalog order, for the cross-set card-ID tiebreaker. */
   sets: SortCardsOptions["sets"];
   getPrice: NonNullable<SortCardsOptions["getPrice"]>;
   rarityOrder: SortCardsOptions["rarityOrder"];
+  prices?: PriceLookup;
   /**
    * Present only in cards view, where one tile stands in for several
    * printings. Null in printings view, where each tile has its own price.
@@ -56,8 +58,12 @@ export interface PriceSortInput {
  * direction: dearest first when descending, cheapest first when ascending.
  */
 export function buildSortCardsOptions(input: PriceSortInput): SortCardsOptions {
-  const { sortBy, sortDir, sets, getPrice, rarityOrder, priceRangeByCardId } = input;
+  const { sortBy, sortDir, sets, getPrice, rarityOrder, prices, priceRangeByCardId } = input;
   const sortOptions: SortCardsOptions = { sortDir, sets };
+  if ((sortBy === "usd" || sortBy === "eur") && prices) {
+    sortOptions.getMarketPrice = (printing, marketplace) =>
+      prices.get(printing.printingId, marketplace);
+  }
   if (sortBy === "price" && priceRangeByCardId) {
     sortOptions.getPrice = (printing) => {
       const range = priceRangeByCardId.get(printing.cardId);

@@ -1,3 +1,5 @@
+import type { SearchOrder } from "@openrift/shared/search-query/keys";
+import { resolveDirection } from "@openrift/shared/search-query/keys";
 import { parseSearchQuery } from "@openrift/shared/search-query/parse";
 import type {
   ArtVariant,
@@ -192,12 +194,16 @@ export function useFilterValues() {
   };
 
   const directives = parseSearchQuery(filterState.search).directives;
-  const sortBy = (directives.order ?? filterState.sort) as SortOption;
-  const sortDir = (directives.direction ?? filterState.sortDir) as SortDirection;
+  const sortBy: SearchOrder = directives.order ?? (filterState.sort as SortOption);
+  const sortDir: SortDirection =
+    directives.order === undefined && directives.direction === undefined
+      ? (filterState.sortDir as SortDirection)
+      : resolveDirection(sortBy, directives.direction);
+  // The grid has no per-illustration view; unique:art shows every printing.
   const view = (
     directives.unique === "cards"
       ? "cards"
-      : directives.unique === "prints"
+      : directives.unique === "prints" || directives.unique === "art"
         ? "printings"
         : filterState.view
   ) as "cards" | "printings" | "copies";

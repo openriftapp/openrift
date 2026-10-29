@@ -64,6 +64,25 @@ describe("useCardFilters", () => {
     expect(result.current.hasActiveFilters).toBe(false);
   });
 
+  it("sorts by an order: directive, newest and priciest first under auto", () => {
+    mockSearch = { q: "t:legend order:usd", sortDir: "asc" };
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
+    expect(result.current.sortBy).toBe("usd");
+    expect(result.current.sortDir).toBe("desc");
+  });
+
+  it("keeps an explicit direction: over auto", () => {
+    mockSearch = { q: "order:usd direction:asc" };
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
+    expect(result.current.sortDir).toBe("asc");
+  });
+
+  it("shows every printing for unique:art", () => {
+    mockSearch = { q: "garen unique:art" };
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
+    expect(result.current.view).toBe("printings");
+  });
+
   it("detects active filters when search is non-empty", () => {
     mockSearch = { q: "dragon" };
     const { result } = renderHook(() => useCardFilters(), { wrapper });

@@ -1,8 +1,10 @@
 import { legendDisplayName } from "./card-name.js";
 import { orderIndex } from "./filters-shared.js";
+import type { SearchOrder } from "./search-query/keys.js";
 import type { SetOrderInfo } from "./set-order.js";
 import { setIndexById, UNKNOWN_SET_INDEX } from "./set-order.js";
 import type { Printing } from "./types/catalog.js";
+import type { Marketplace } from "./types/pricing.js";
 import type { SortDirection, SortOption } from "./types/search.js";
 
 /** Nulls always sort to the end; the tiebreaker (card ID) is always ascending. */
@@ -39,10 +41,26 @@ function idComparator(sets?: readonly SetOrderInfo[]): (a: Printing, b: Printing
   return (a, b) => indexOf(a) - indexOf(b) || a.shortCode.localeCompare(b.shortCode);
 }
 
+function compareTextWithFallback(
+  a: Printing,
+  b: Printing,
+  getValue: (p: Printing) => string | null | undefined,
+  dir: 1 | -1,
+  byId: (a: Printing, b: Printing) => number,
+): number {
+  const va = getValue(a);
+  const vb = getValue(b);
+  if (!va || !vb) {
+    return (va ? 0 : 1) - (vb ? 0 : 1) || byId(a, b);
+  }
+  return dir * va.localeCompare(vb) || byId(a, b);
+}
+
 export interface SortCardsOptions {
   sortDir?: SortDirection;
   /** Without it, all printings appear price-less and fall back to shortCode order. */
   getPrice?: (p: Printing) => number | null | undefined;
+  getMarketPrice?: (p: Printing, marketplace: Marketplace) => number | null | undefined;
   rarityOrder?: readonly string[];
   /** Also used as every other sort's tiebreaker when supplied, in place of the short code's alphabetical prefix. */
   sets?: readonly SetOrderInfo[];
@@ -50,7 +68,7 @@ export interface SortCardsOptions {
 
 export function sortCards(
   printings: Printing[],
-  sortBy: SortOption,
+  sortBy: SortOption | SearchOrder,
   options: SortCardsOptions = {},
 ): Printing[] {
   const dir: 1 | -1 = options.sortDir === "desc" ? -1 : 1;
@@ -68,8 +86,28 @@ export function sortCards(
     }
     return printings.toSorted((a, b) => dir * byId(a, b));
   }
-  if (sortBy === "energy") {
-    return printings.toSorted((a, b) => compareWithFallback(a, b, (p) => p.card.energy, dir, byId));
+  if (sortBy === "set") {
+    return printings.toSorted((a, b) => dir * byId(a, b));
+  }
+  if (sortBy === "energy" || sortBy === "power" || sortBy === "might") {
+    return printings.toSorted((a, b) =>
+      compareWithFallback(a, b, (p) => p.card[sortBy], dir, byId),
+    );
+  }
+  if (sortBy === "released") {
+    return printings.toSorted((a, b) =>
+      compareTextWithFallback(a, b, (p) => p.setReleasedAt, dir, byId),
+    );
+  }
+  if (sortBy === "artist") {
+    return printings.toSorted((a, b) => compareTextWithFallback(a, b, (p) => p.artist, dir, byId));
+  }
+  if (sortBy === "usd" || sortBy === "eur") {
+    const marketplace: Marketplace = sortBy === "usd" ? "tcgplayer" : "cardmarket";
+    const getMarketPrice = options.getMarketPrice;
+    return printings.toSorted((a, b) =>
+      compareWithFallback(a, b, (p) => getMarketPrice?.(p, marketplace), dir, byId),
+    );
   }
   if (sortBy === "rarity") {
     if (!options.rarityOrder) {

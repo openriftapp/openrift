@@ -4,6 +4,7 @@ import type { ListEntryDetailResponse } from "@openrift/shared/types/api/list";
 
 import { useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { collectListPrintings } from "@/features/lists/lib/list-entries";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
@@ -26,6 +27,7 @@ export function useFilteredListEntries(
   const keywordReverseMap = useKeywordReverseMap();
   const prices = usePrices();
   const favoriteMarketplace = useDisplayStore((state) => state.marketplaceOrder[0]);
+  const vocabulary = useCatalogSearchVocabulary();
 
   const { listPrintings, entriesBySideKey } = collectListPrintings(
     entries,
@@ -37,6 +39,7 @@ export function useFilteredListEntries(
   const kept = filterCards(listPrintings, filters, {
     keywordReverseMap,
     getPrice: (printing) => prices.get(printing.printingId, favoriteMarketplace),
+    vocabulary,
   });
 
   return {

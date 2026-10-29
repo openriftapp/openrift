@@ -687,4 +687,63 @@ describe("sortCards", () => {
   it("throws when sortBy is 'rarity' but no rarityOrder is supplied", () => {
     expect(() => sortCards([makePrinting()], "rarity")).toThrow(/rarityOrder/u);
   });
+
+  describe("search orders", () => {
+    const first = makePrinting({
+      printingId: "a",
+      shortCode: "SET1-001",
+      artist: "Zed Studio",
+      setReleasedAt: "2025-10-31",
+      card: { name: "A", might: 2, power: null },
+    });
+    const second = makePrinting({
+      printingId: "b",
+      shortCode: "SET1-002",
+      artist: "Alpha Studio",
+      setReleasedAt: "2026-02-13",
+      card: { name: "B", might: 5, power: 1 },
+    });
+    const third = makePrinting({
+      printingId: "c",
+      shortCode: "SET1-003",
+      artist: "",
+      card: { name: "C", might: null, power: 2 },
+    });
+    const ids = (sorted: ReturnType<typeof sortCards>) =>
+      sorted.map((printing) => printing.printingId);
+
+    it("sorts by might and power with missing values last", () => {
+      expect(ids(sortCards([first, second, third], "might", { sortDir: "desc" }))).toEqual([
+        "b",
+        "a",
+        "c",
+      ]);
+      expect(ids(sortCards([third, second, first], "power"))).toEqual(["b", "c", "a"]);
+    });
+
+    it("sorts by artist and release date with missing values last", () => {
+      expect(ids(sortCards([first, second, third], "artist"))).toEqual(["b", "a", "c"]);
+      expect(ids(sortCards([third, first, second], "released", { sortDir: "desc" }))).toEqual([
+        "b",
+        "a",
+        "c",
+      ]);
+    });
+
+    it("sorts by one marketplace's price", () => {
+      const prices: Record<string, number> = { a: 3, b: 1 };
+      expect(
+        ids(
+          sortCards([first, second, third], "usd", {
+            getMarketPrice: (printing, marketplace) =>
+              marketplace === "tcgplayer" ? prices[printing.printingId] : undefined,
+          }),
+        ),
+      ).toEqual(["b", "a", "c"]);
+    });
+
+    it("sorts by set like the collector order", () => {
+      expect(ids(sortCards([third, first, second], "set"))).toEqual(["a", "b", "c"]);
+    });
+  });
 });

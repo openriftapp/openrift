@@ -83,6 +83,29 @@ describe("evaluateListRule — wish", () => {
     expect(out.every((e) => e.kind === "printing" && e.quantity === 1)).toBe(true);
   });
 
+  it("matches nothing for a search with an unknown key instead of widening", () => {
+    const rule: ListRule = {
+      kind: "wish",
+      filter: filters({ search: "cost:3 t:legend" }),
+      quantity: { mode: "fixed", n: 1 },
+      excludeIds: [],
+    };
+    expect(evaluateListRule(rule, "printing", { catalog })).toEqual([]);
+  });
+
+  it("resolves a set name in the search and matches nothing for an unknown one", () => {
+    const vocabulary = { set: [{ value: "set-alpha", names: ["Alpha Set"] }] };
+    const rule = (search: string): ListRule => ({
+      kind: "wish",
+      filter: filters({ search }),
+      quantity: { mode: "fixed", n: 1 },
+      excludeIds: [],
+    });
+    const ctx = { catalog, vocabulary };
+    expect(evaluateListRule(rule('s:"alpha set"'), "printing", ctx)).toHaveLength(3);
+    expect(evaluateListRule(rule("s:zzz"), "printing", ctx)).toEqual([]);
+  });
+
   it("printing kind honors excludeIds (printing ids)", () => {
     const rule: ListRule = {
       kind: "wish",

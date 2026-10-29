@@ -4,7 +4,7 @@ const RENAMED: Record<string, string> = {
   n: "",
   d: "o",
   k: "kw",
-  t: "otag",
+  t: "tag",
   a: "a",
   f: "ft",
   ty: "t",

@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { useCardSelection } from "@/features/cards/hooks/use-card-selection";
+import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
 import type {
   CardRowClickModifiers,
   ListBulkAction,
@@ -124,9 +125,10 @@ export function useListEntryBrowserSelection({
   const moveEntries = useMoveListEntries();
   const bulkRemove = useBulkRemoveListEntries();
   const updateList = useUpdateList();
+  const vocabulary = useCatalogSearchVocabulary();
 
   const handleExcludeFromRule = (target: RuleExcludeTarget) => {
-    const next = excludeEntryFromRules(rules, target, allPrintings);
+    const next = excludeEntryFromRules(rules, target, allPrintings, vocabulary);
     if (!next) {
       return;
     }

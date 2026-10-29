@@ -20,11 +20,13 @@ export type SearchKeyId =
   | "banned"
   | "usd"
   | "eur"
+  | "usdfoil"
+  | "eurfoil"
   | "price"
   | "is"
   | "not"
   | "has"
-  | "otag"
+  | "tag"
   | "marker"
   | "channel"
   | "ctag"
@@ -82,21 +84,55 @@ export const IS_VALUES = [
   "promo",
   "reprint",
   "firstprint",
+  "nonfoil",
+  "variant",
 ] as const;
 
 export type IsValue = (typeof IS_VALUES)[number];
 
+export const IS_ALIASES: Readonly<Record<string, IsValue>> = {
+  alternate: "altart",
+  alt: "altart",
+};
+
 export const HAS_VALUES = ["errata", "image", "marker", "keyword", "tag"] as const;
 
-export const ORDER_VALUES = ["name", "energy", "rarity", "price", "id"] as const;
+export const ORDER_VALUES = [
+  "name",
+  "id",
+  "set",
+  "released",
+  "rarity",
+  "energy",
+  "power",
+  "might",
+  "artist",
+  "usd",
+  "eur",
+  "price",
+] as const;
+
+export type SearchOrder = (typeof ORDER_VALUES)[number];
 
 export const PREFER_VALUES = ["oldest", "newest", "usd-low", "eur-low"] as const;
 
 export type PreferValue = (typeof PREFER_VALUES)[number];
 
-export const DIRECTION_VALUES = ["asc", "desc"] as const;
+export const DIRECTION_VALUES = ["asc", "desc", "auto"] as const;
 
-export const UNIQUE_VALUES = ["cards", "prints"] as const;
+export function resolveDirection(
+  order: SearchOrder,
+  direction?: (typeof DIRECTION_VALUES)[number],
+): "asc" | "desc" {
+  if (direction === "asc" || direction === "desc") {
+    return direction;
+  }
+  return order === "usd" || order === "eur" || order === "price" || order === "released"
+    ? "desc"
+    : "asc";
+}
+
+export const UNIQUE_VALUES = ["cards", "prints", "art"] as const;
 
 export const SEARCH_KEYS: readonly SearchKeyDefinition[] = [
   { id: "type", aliases: ["t", "type"], kind: "text", field: "type" },
@@ -105,7 +141,7 @@ export const SEARCH_KEYS: readonly SearchKeyDefinition[] = [
   { id: "domain", aliases: ["d", "domain"], kind: "set" },
   { id: "energy", aliases: ["e", "energy"], kind: "number" },
   { id: "might", aliases: ["m", "might"], kind: "number" },
-  { id: "power", aliases: ["p", "power"], kind: "number" },
+  { id: "power", aliases: ["p", "power", "pow"], kind: "number" },
   { id: "rarity", aliases: ["r", "rarity"], kind: "ordered" },
   { id: "set", aliases: ["s", "set"], kind: "enum" },
   { id: "number", aliases: ["cn", "number"], kind: "code", field: "id" },
@@ -116,11 +152,13 @@ export const SEARCH_KEYS: readonly SearchKeyDefinition[] = [
   { id: "banned", aliases: ["banned"], kind: "flag" },
   { id: "usd", aliases: ["usd"], kind: "number" },
   { id: "eur", aliases: ["eur"], kind: "number" },
+  { id: "usdfoil", aliases: ["usdfoil"], kind: "number" },
+  { id: "eurfoil", aliases: ["eurfoil"], kind: "number" },
   { id: "price", aliases: ["price"], kind: "number" },
   { id: "is", aliases: ["is"], kind: "flag" },
   { id: "not", aliases: ["not"], kind: "flag" },
   { id: "has", aliases: ["has"], kind: "flag" },
-  { id: "otag", aliases: ["otag"], kind: "text", field: "tags" },
+  { id: "tag", aliases: ["tag"], kind: "text", field: "tags" },
   { id: "marker", aliases: ["marker"], kind: "enum" },
   { id: "channel", aliases: ["channel"], kind: "enum" },
   { id: "ctag", aliases: ["ctag"], kind: "enum" },
@@ -133,6 +171,18 @@ export const SEARCH_KEYS: readonly SearchKeyDefinition[] = [
   { id: "in", aliases: ["in"], kind: "enum" },
   { id: "prefer", aliases: ["prefer"], kind: "directive" },
 ];
+
+export const FOREIGN_KEY_HINTS: Readonly<Record<string, string>> = {
+  cost: "e",
+  mv: "e",
+  cmc: "e",
+  manavalue: "e",
+  text: "o",
+  num: "cn",
+  c: "d",
+  color: "d",
+  identity: "d",
+};
 
 const KEY_BY_ALIAS = new Map(
   SEARCH_KEYS.flatMap((definition) => definition.aliases.map((alias) => [alias, definition])),

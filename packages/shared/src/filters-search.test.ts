@@ -69,12 +69,18 @@ describe("filterCards search folding", () => {
       expect(names({ search })).toEqual(["Doran’s Shield"]);
     });
 
-    it.each([["kaisa"], ["kai'sa"], ["Kai'Sa, Survivor"], ["kaisa survivor"], ["kaisasurvivor"]])(
-      "finds Kai’Sa, Survivor by %s",
-      (search) => {
-        expect(names({ search })).toEqual(["Kai’Sa, Survivor"]);
-      },
-    );
+    it.each([
+      ["kaisa"],
+      ["kai'sa"],
+      ["Kai'Sa, Survivor"],
+      ["kaisa survivor"],
+      ["kaisasurvivor"],
+      ['"kai\'sa"'],
+      ['!"Kai\'Sa, Survivor"'],
+      ["'kai sa'"],
+    ])("finds Kai’Sa, Survivor by %s", (search) => {
+      expect(names({ search })).toEqual(["Kai’Sa, Survivor"]);
+    });
 
     it("matches a localized printed name typed with an ASCII comma", () => {
       // Stored with the fullwidth comma U+FF0C, which NFKD folds to ",".
@@ -135,7 +141,7 @@ describe("filterCards search folding", () => {
     });
 
     it("finds a tag with a curly apostrophe typed straight", () => {
-      expect(names({ search: "otag:kha'zix" })).toEqual(["Doran’s Shield"]);
+      expect(names({ search: "tag:kha'zix" })).toEqual(["Doran’s Shield"]);
     });
 
     it("finds a short code typed without the hyphen", () => {

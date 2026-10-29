@@ -27,7 +27,7 @@ export function filterCards(
   // Persisted list rules re-hydrate via a bare JSON.parse, so an older rule may
   // lack a newer dimension's key; backfill or the first predicate to read it throws.
   const filters: CardFilters = { ...EMPTY_CARD_FILTERS, ...rawFilters };
-  const matchesQuery = searchPredicate(filters.search);
+  const matchesQuery = searchPredicate(filters.search, options.vocabulary, options.strict);
   const hasQuery = filters.search.trim() !== "";
   const getPrice = options.getPrice;
   const presence = filters.presence;

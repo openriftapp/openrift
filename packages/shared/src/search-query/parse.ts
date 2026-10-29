@@ -1,8 +1,14 @@
-import type { SortDirection, SortOption } from "../types/search.js";
-import type { PreferValue, SearchKeyDefinition, SearchKeyId, SearchOperator } from "./keys.js";
+import type {
+  PreferValue,
+  SearchKeyDefinition,
+  SearchKeyId,
+  SearchOperator,
+  SearchOrder,
+} from "./keys.js";
 import {
   DIRECTION_VALUES,
   HAS_VALUES,
+  IS_ALIASES,
   IS_VALUES,
   operatorsFor,
   ORDER_VALUES,
@@ -30,7 +36,8 @@ export type QueryNode =
       value: string;
       span: SearchSpan;
     }
-  | { kind: "invalid"; span: SearchSpan };
+  | { kind: "invalid"; span: SearchSpan }
+  | { kind: "ignored"; span: SearchSpan };
 
 type SearchDiagnosticCode =
   | "unknownKey"
@@ -38,6 +45,7 @@ type SearchDiagnosticCode =
   | "badValue"
   | "emptyValue"
   | "unknownValue"
+  | "ambiguousValue"
   | "unbalancedParen"
   | "emptyGroup"
   | "danglingOr"
@@ -59,9 +67,9 @@ export interface SearchClause {
   span: SearchSpan;
 }
 
-interface SearchDirectives {
-  order?: SortOption;
-  direction?: SortDirection;
+export interface SearchDirectives {
+  order?: SearchOrder;
+  direction?: (typeof DIRECTION_VALUES)[number];
   unique?: (typeof UNIQUE_VALUES)[number];
   prefer?: PreferValue;
 }
@@ -72,6 +80,8 @@ export interface ParsedSearchQuery {
   directives: SearchDirectives;
   diagnostics: SearchDiagnostic[];
 }
+
+const QUOTES = new Set(['"', "'"]);
 
 const CLAUSE_HEAD = /(?<alias>[a-z]+)(?<operator>!=|<=|>=|:|=|<|>)/iuy;
 const DATE_VALUE = /^\d{4}(?:-\d{2}(?:-\d{2})?)?$/u;
@@ -217,7 +227,7 @@ class Parser {
       }
       return { kind: "exact", value, span };
     }
-    if (char === '"') {
+    if (QUOTES.has(char as string)) {
       const value = this.readValue();
       return value.trim() === "" ? null : { kind: "text", value, span: { start, end: this.pos } };
     }
@@ -230,7 +240,7 @@ class Parser {
       const definition = searchKeyByAlias(alias);
       if (definition) {
         this.pos += whole.length;
-        const quoted = this.raw[this.pos] === '"';
+        const quoted = QUOTES.has(this.raw[this.pos] as string);
         const read = this.readValue();
         // "t:spell, t:unit" reads naturally as a list; no unquoted value ends in a comma.
         const value = quoted ? read : read.replace(/,+$/u, "");
@@ -243,10 +253,11 @@ class Parser {
           negated,
         );
       }
-      const word = this.readValue();
+      this.pos += whole.length;
+      this.readValue();
       const span = { start, end: this.pos };
       this.diagnostics.push({ code: "unknownKey", severity: "warning", span, key: alias });
-      return { kind: "text", value: word, span };
+      return { kind: "ignored", span };
     }
 
     const word = this.readValue();
@@ -254,8 +265,9 @@ class Parser {
   }
 
   private readValue(): string {
-    if (this.raw[this.pos] === '"') {
-      const close = this.raw.indexOf('"', this.pos + 1);
+    const quote = this.raw[this.pos] as string;
+    if (QUOTES.has(quote)) {
+      const close = this.raw.indexOf(quote, this.pos + 1);
       const end = close === -1 ? this.raw.length : close;
       const value = this.raw.slice(this.pos + 1, end);
       this.pos = close === -1 ? end : end + 1;
@@ -298,14 +310,24 @@ class Parser {
           : null
         : normalizeValue(definition, value);
     if (normalized === null) {
+      if (definition.kind === "flag" || definition.kind === "directive") {
+        this.diagnostics.push({
+          code: "unknownValue",
+          severity: "warning",
+          span,
+          key: alias,
+          value,
+        });
+        return definition.kind === "flag" ? { kind: "ignored", span } : null;
+      }
       this.diagnostics.push({ code: "badValue", severity: "error", span, key: alias, value });
       return { kind: "invalid", span };
     }
     if (definition.kind === "directive") {
       if (definition.id === "order") {
-        this.directives.order = normalized as SortOption;
+        this.directives.order = normalized as SearchOrder;
       } else if (definition.id === "direction") {
-        this.directives.direction = normalized as SortDirection;
+        this.directives.direction = normalized as SearchDirectives["direction"];
       } else if (definition.id === "prefer") {
         this.directives.prefer = normalized as PreferValue;
       } else {
@@ -337,7 +359,8 @@ function normalizeValue(definition: SearchKeyDefinition, value: string): string 
     case "flag": {
       if (definition.id === "is" || definition.id === "not") {
         const folded = value.replaceAll("-", "");
-        return (IS_VALUES as readonly string[]).includes(folded) ? folded : null;
+        const canonical = IS_ALIASES[folded] ?? folded;
+        return (IS_VALUES as readonly string[]).includes(canonical) ? canonical : null;
       }
       if (definition.id === "has") {
         return (HAS_VALUES as readonly string[]).includes(value) ? value : null;
@@ -392,6 +415,31 @@ export function parseSearchQuery(raw: string): ParsedSearchQuery {
   }
   PARSE_CACHE.set(raw, parsed);
   return parsed;
+}
+
+export function pruneIgnored(node: QueryNode | null): QueryNode | null {
+  if (!node) {
+    return null;
+  }
+  switch (node.kind) {
+    case "and":
+    case "or": {
+      return combine(
+        node.kind,
+        node.children.flatMap((child) => pruneIgnored(child) ?? []),
+      );
+    }
+    case "not": {
+      const child = pruneIgnored(node.child);
+      return child ? { kind: "not", child } : null;
+    }
+    case "ignored": {
+      return null;
+    }
+    default: {
+      return node;
+    }
+  }
 }
 
 export function countQueryNodes(node: QueryNode | null): number {

@@ -1,4 +1,6 @@
 import { joinCatalogPrintings } from "@openrift/shared/catalog-join";
+import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
+import { catalogSearchVocabulary } from "@openrift/shared/search-query/vocabulary";
 import type {
   CatalogPrintingsResponse,
   CatalogResponse,
@@ -173,15 +175,28 @@ export function catalogPrintingsExcept(
 export interface RuleCatalog {
   printings: Printing[];
   customTagAssignments: Record<string, readonly string[]>;
+  vocabulary: SearchVocabulary;
 }
 
 export async function assembleRuleCatalog(repos: Repos): Promise<RuleCatalog> {
-  const [response, assignments] = await Promise.all([
+  const [response, assignments, formats] = await Promise.all([
     assembleCatalogResponse(repos),
     repos.customTags.assignmentsByCard(),
+    repos.cardBans.listFormats(),
   ]);
+  const printings = joinCatalogPrintings(response);
   return {
-    printings: joinCatalogPrintings(response),
+    printings,
     customTagAssignments: Object.fromEntries(assignments),
+    vocabulary: catalogSearchVocabulary({
+      printings,
+      sets: response.sets,
+      formats,
+      enums: {
+        ...response.enums,
+        markers: response.markers,
+        channels: response.distributionChannels,
+      },
+    }),
   };
 }

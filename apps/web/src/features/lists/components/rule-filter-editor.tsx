@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { cycleIncludeExclude } from "@/features/cards/lib/filter-cycle";
 import { presenceLabel, presenceToFlagState } from "@/features/cards/lib/presence-filter";
@@ -131,6 +132,7 @@ export function RuleFilterEditor({
   const languageLabels = useLanguageLabels();
   const { all: customTags } = useCustomTagList();
   const prices = usePrices();
+  const vocabulary = useCatalogSearchVocabulary();
   const customTagAssignments = useCustomTagAssignments();
   const marketplaceOrder = useDisplayStore((state) => state.marketplaceOrder);
   const shownMarketplace = priceMarketplace ?? marketplaceOrder[0];
@@ -311,7 +313,7 @@ export function RuleFilterEditor({
         filterCards(
           allPrintings,
           { ...value, price: { min: null, max: null } },
-          { customTagAssignments },
+          { customTagAssignments, strict: true, vocabulary },
         ).filter((printing) => prices.get(printing.printingId, shownMarketplace) === undefined),
       )
     : 0;

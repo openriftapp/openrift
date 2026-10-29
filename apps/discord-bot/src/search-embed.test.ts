@@ -1,7 +1,12 @@
 import type { SearchResponse } from "@openrift/shared/contracts/search";
 import { describe, expect, it } from "vitest";
 
-import { buildSearchEmbed, searchErrorText, searchPageUrl } from "./search-embed";
+import {
+  buildSearchEmbed,
+  emptySearchResponse,
+  searchErrorText,
+  searchPageUrl,
+} from "./search-embed";
 
 const SITE = "https://openrift.test";
 
@@ -19,6 +24,7 @@ function response(total: number, names: string[]): SearchResponse {
     printings,
     cards,
     sets: [],
+    warnings: [],
   };
 }
 
@@ -47,6 +53,16 @@ describe("buildSearchEmbed", () => {
     expect(embed.description).toBe("Nothing matches.");
   });
 
+  it("shows what the API ignored in the footer", () => {
+    const embed = buildSearchEmbed({
+      query: "cost:3",
+      response: emptySearchResponse(['Invalid expression "cost:3" was ignored.']),
+      siteUrl: SITE,
+    });
+    expect(embed.description).toBe("Nothing matches.");
+    expect(embed.footer).toEqual({ text: 'Invalid expression "cost:3" was ignored.' });
+  });
+
   it("uses the singular for one result", () => {
     expect(
       buildSearchEmbed({ query: "x", response: response(1, ["Jinx"]), siteUrl: SITE }).title,
@@ -55,14 +71,9 @@ describe("buildSearchEmbed", () => {
 });
 
 describe("searchErrorText", () => {
-  it("lists each problem in words", () => {
-    expect(
-      searchErrorText("d:purple e<=x", [
-        { code: "badValue", key: "e", value: "x" },
-        { code: "unknownValue", key: "domain", value: "purple" },
-      ]),
-    ).toBe(
-      "Couldn't run “d:purple e<=x”:\n- “x” doesn't work with e:\n- No domain called “purple”",
+  it("lists each problem the API names", () => {
+    expect(searchErrorText("e<=x", ['"e<=x" has a value "e" cannot take.'])).toBe(
+      'Couldn\'t run “e<=x”:\n- "e<=x" has a value "e" cannot take.',
     );
   });
 });

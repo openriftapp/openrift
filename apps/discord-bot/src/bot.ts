@@ -51,7 +51,12 @@ import {
   searchRules,
 } from "./rule-search.js";
 import type { RulesCache } from "./rules-cache.js";
-import { buildSearchEmbed, SEARCH_RESULT_LIMIT, searchErrorText } from "./search-embed.js";
+import {
+  buildSearchEmbed,
+  emptySearchResponse,
+  SEARCH_RESULT_LIMIT,
+  searchErrorText,
+} from "./search-embed.js";
 import type { TradeChannelCache } from "./trade-channels.js";
 import type { ScanIndex } from "./trade-scan.js";
 import { buildScanIndex, buildTradeReply, scanForCards, tradeLine } from "./trade-scan.js";
@@ -354,9 +359,21 @@ async function handleSearchCommand(ctx: BotContext, interaction: ChatInputComman
     ctx.api.search.search({ q: query, limit: SEARCH_RESULT_LIMIT }),
   );
   if (error) {
+    if (isDefinedError(error) && error.code === "NOT_FOUND") {
+      await interaction.editReply({
+        embeds: [
+          buildSearchEmbed({
+            query,
+            response: emptySearchResponse(error.data.warnings),
+            siteUrl: ctx.env.siteUrl,
+          }),
+        ],
+      });
+      return;
+    }
     const content =
       isDefinedError(error) && error.code === "BAD_REQUEST"
-        ? searchErrorText(query, error.data.diagnostics)
+        ? searchErrorText(query, error.data.warnings)
         : "Search failed, try again in a moment.";
     await interaction.editReply({ content });
     return;

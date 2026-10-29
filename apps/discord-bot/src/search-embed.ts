@@ -36,43 +36,23 @@ export function buildSearchEmbed({
     title: `${response.total} ${response.total === 1 ? "result" : "results"} for ${query}`,
     url: searchPageUrl(siteUrl, query),
     description: response.total === 0 ? "Nothing matches." : [...lines, "", footer].join("\n"),
+    ...(response.warnings.length > 0 ? { footer: { text: response.warnings.join("\n") } } : {}),
   };
 }
 
-interface Diagnostic {
-  code: string;
-  key?: string;
-  value?: string;
+export function emptySearchResponse(warnings: string[]): SearchResponse {
+  return {
+    total: 0,
+    nextCursor: null,
+    printingIds: [],
+    printings: {},
+    cards: {},
+    sets: [],
+    warnings,
+  };
 }
 
-function describe(diagnostic: Diagnostic): string {
-  const key = diagnostic.key ? `${diagnostic.key}:` : "";
-  switch (diagnostic.code) {
-    case "unknownValue": {
-      return `No ${diagnostic.key} called “${diagnostic.value}”`;
-    }
-    case "badValue": {
-      return `“${diagnostic.value}” doesn't work with ${key}`;
-    }
-    case "badOperator": {
-      return `${key} doesn't support that comparison`;
-    }
-    case "unsupportedKey": {
-      return `${key} only works on the website`;
-    }
-    case "unbalancedParen": {
-      return "Unmatched parenthesis";
-    }
-    case "tooComplex": {
-      return "The query is too long";
-    }
-    default: {
-      return `Problem with the query (${diagnostic.code})`;
-    }
-  }
-}
-
-export function searchErrorText(query: string, diagnostics: readonly Diagnostic[]): string {
-  const problems = diagnostics.map((diagnostic) => `- ${describe(diagnostic)}`).join("\n");
+export function searchErrorText(query: string, warnings: readonly string[]): string {
+  const problems = warnings.map((warning) => `- ${warning}`).join("\n");
   return `Couldn't run “${query}”:\n${problems}`;
 }

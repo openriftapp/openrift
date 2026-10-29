@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { countQueryNodes, parseSearchQuery } from "./parse.js";
+import { countQueryNodes, parseSearchQuery, pruneIgnored } from "./parse.js";
 
 describe("parseSearchQuery", () => {
   it("returns no tree for an empty or blank query", () => {
@@ -132,7 +132,61 @@ describe("parseSearchQuery", () => {
 
   it("reads prefer: as a directive", () => {
     expect(parseSearchQuery("prefer:usd-low").directives).toEqual({ prefer: "usd-low" });
-    expect(parseSearchQuery("prefer:best").diagnostics[0]).toMatchObject({ code: "badValue" });
+    expect(parseSearchQuery("prefer:best").diagnostics[0]).toMatchObject({
+      code: "unknownValue",
+      severity: "warning",
+    });
+  });
+
+  it("reads is: aliases as their canonical value", () => {
+    expect(parseSearchQuery("is:alternate").clauses[0]?.value).toBe("altart");
+    expect(parseSearchQuery("is:alt").clauses[0]?.value).toBe("altart");
+    expect(parseSearchQuery("is:nonfoil").clauses[0]?.value).toBe("nonfoil");
+    expect(parseSearchQuery("is:variant").clauses[0]?.value).toBe("variant");
+  });
+
+  it("reads pow as power", () => {
+    expect(parseSearchQuery("pow>=2").clauses[0]).toMatchObject({ key: "power", value: "2" });
+  });
+
+  it("reads tag: as the tag key", () => {
+    expect(parseSearchQuery("tag:noxus").clauses[0]).toMatchObject({ key: "tag", value: "noxus" });
+  });
+
+  it("reads the display directives", () => {
+    expect(parseSearchQuery("order:usd direction:auto unique:art").directives).toEqual({
+      order: "usd",
+      direction: "auto",
+      unique: "art",
+    });
+  });
+
+  describe("single quotes", () => {
+    it("quote a value", () => {
+      expect(parseSearchQuery("o:'deal 3'").clauses[0]?.value).toBe("deal 3");
+    });
+
+    it("quote a bare phrase", () => {
+      expect(parseSearchQuery("'arcane comet'").root).toMatchObject({
+        kind: "text",
+        value: "arcane comet",
+      });
+    });
+
+    it("leave an apostrophe inside a word alone", () => {
+      expect(parseSearchQuery("kai'sa").root).toMatchObject({ kind: "text", value: "kai'sa" });
+    });
+
+    it("stay literal inside a double-quoted value", () => {
+      expect(parseSearchQuery(`!"Kai'Sa, Survivor"`).root).toMatchObject({
+        kind: "exact",
+        value: "Kai'Sa, Survivor",
+      });
+    });
+
+    it("run to the end when unclosed", () => {
+      expect(parseSearchQuery("o:'draw a").clauses[0]?.value).toBe("draw a");
+    });
   });
 
   it("normalizes a hyphenated is value", () => {
@@ -140,9 +194,9 @@ describe("parseSearchQuery", () => {
   });
 
   describe("diagnostics", () => {
-    it("warns about an unknown key and searches the token as text", () => {
+    it("ignores an unknown key with a warning", () => {
       const parsed = parseSearchQuery("foo:bar");
-      expect(parsed.root).toMatchObject({ kind: "text", value: "foo:bar" });
+      expect(parsed.root).toEqual({ kind: "ignored", span: { start: 0, end: 7 } });
       expect(parsed.diagnostics).toEqual([
         { code: "unknownKey", severity: "warning", span: { start: 0, end: 7 }, key: "foo" },
       ]);
@@ -160,12 +214,24 @@ describe("parseSearchQuery", () => {
       expect(parsed.diagnostics[0]).toMatchObject({ code: "badOperator" });
     });
 
-    it("flags an unknown is value", () => {
-      expect(parseSearchQuery("is:shiny").diagnostics[0]).toMatchObject({ code: "badValue" });
+    it("ignores an unknown is value with a warning", () => {
+      const parsed = parseSearchQuery("is:shiny");
+      expect(parsed.root).toMatchObject({ kind: "ignored" });
+      expect(parsed.diagnostics[0]).toMatchObject({ code: "unknownValue", severity: "warning" });
     });
 
-    it("flags an unknown directive value", () => {
-      expect(parseSearchQuery("order:color").diagnostics[0]).toMatchObject({ code: "badValue" });
+    it("ignores an unknown directive value with a warning", () => {
+      const parsed = parseSearchQuery("order:color");
+      expect(parsed.directives).toEqual({});
+      expect(parsed.diagnostics[0]).toMatchObject({ code: "unknownValue", severity: "warning" });
+    });
+
+    it("keeps the rest of the query around an ignored clause", () => {
+      expect(pruneIgnored(parseSearchQuery("cost:3 t:unit").root)).toMatchObject({
+        kind: "clause",
+        key: "type",
+      });
+      expect(pruneIgnored(parseSearchQuery("-zz:x or (is:shiny)").root)).toBeNull();
     });
 
     it("ignores a key with no value yet", () => {

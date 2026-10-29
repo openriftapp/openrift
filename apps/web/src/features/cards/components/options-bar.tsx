@@ -1,7 +1,7 @@
 import type { AvailableFilters } from "@openrift/shared/filters-available";
 import type { FilterCounts } from "@openrift/shared/filters-counts";
 import type { GroupByField, SortOption } from "@openrift/shared/types/search";
-import { GROUP_BY_FIELDS } from "@openrift/shared/types/search";
+import { GROUP_BY_FIELDS, isSortOption } from "@openrift/shared/types/search";
 import {
   CopyIcon,
   LayoutGridIcon,
@@ -276,7 +276,7 @@ function useOptionsBarState() {
   };
 
   return {
-    sortBy,
+    sortBy: isSortOption(sortBy) ? sortBy : "id",
     sortDir,
     setSortBy,
     setSortDir,

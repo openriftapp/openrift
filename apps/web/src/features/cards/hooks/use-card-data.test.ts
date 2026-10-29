@@ -19,6 +19,10 @@ const TEST_ORDERS = {
   languages: ["EN"],
 };
 
+vi.mock("@/features/cards/hooks/use-catalog-search-vocabulary", () => ({
+  useCatalogSearchVocabulary: () => ({}),
+}));
+
 vi.mock("@/hooks/use-enums", () => ({
   useEnumOrders: () => ({ orders: TEST_ORDERS, labels: {} }),
 }));

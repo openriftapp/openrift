@@ -27,6 +27,10 @@ vi.mock("@/features/collections/hooks/use-stacked-copies", () => ({
   useStackedCopies: () => ({ collectionIdByCopyId: new Map<string, string>(), ...mockStacks() }),
 }));
 
+vi.mock("@/features/cards/hooks/use-catalog-search-vocabulary", () => ({
+  useCatalogSearchVocabulary: () => ({}),
+}));
+
 vi.mock("@/hooks/use-enums", () => ({
   useEnumOrders: () => ({ orders: TEST_ORDERS, labels: {} }),
 }));

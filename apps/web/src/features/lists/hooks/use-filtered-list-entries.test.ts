@@ -53,6 +53,10 @@ vi.mock("@/hooks/use-keyword-reverse-map", () => ({
   useKeywordReverseMap: () => new Map<string, string[]>(),
 }));
 
+vi.mock("@/features/cards/hooks/use-catalog-search-vocabulary", () => ({
+  useCatalogSearchVocabulary: () => ({}),
+}));
+
 vi.mock("@/features/cards/hooks/use-prices", () => ({
   usePrices: () => ({ get: () => undefined }),
 }));

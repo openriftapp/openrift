@@ -4,6 +4,7 @@ import type { FilterCardsOptions } from "../filters-shared.js";
 import { emptyFilters, makePrinting } from "../filters-test-helpers.js";
 import { filterCards } from "../filters.js";
 import type { Printing } from "../types/catalog.js";
+import type { SearchVocabulary } from "./bind.js";
 import { searchPredicate, sortByPreference } from "./evaluate.js";
 
 const garen = makePrinting({
@@ -153,7 +154,70 @@ describe("search query evaluation", () => {
   it("supports exact and negated text operators", () => {
     expect(names("kw=shield")).toEqual(["Garen, Rugged"]);
     expect(names("kw=shi")).toEqual([]);
-    expect(names("otag!=demacia")).toEqual(["Annie, Fiery", "Buff", "Recruit"]);
+    expect(names("tag!=demacia")).toEqual(["Annie, Fiery", "Buff", "Recruit"]);
+  });
+
+  it("matches tags with t:, as the type line lists them", () => {
+    expect(names("t:demacia")).toEqual(["Garen, Rugged"]);
+    expect(names("t!=demacia")).toEqual(["Annie, Fiery", "Buff", "Recruit"]);
+    expect(names("tag:demacia")).toEqual(["Garen, Rugged"]);
+    expect(names("tag:unit")).toEqual([]);
+  });
+
+  describe("ignored clauses", () => {
+    it("drop an unknown key and keep the rest", () => {
+      expect(names("cost:3 t:spell")).toEqual(["Annie, Fiery"]);
+      expect(names("-zz:foo t:spell")).toEqual(["Annie, Fiery"]);
+    });
+
+    it("drop an unknown is: value", () => {
+      expect(names("is:shiny t:spell")).toEqual(["Annie, Fiery"]);
+    });
+
+    it("match nothing when strict", () => {
+      expect(names("cost:3 t:spell", all, { ...options, strict: true })).toEqual([]);
+    });
+  });
+
+  describe("with a vocabulary", () => {
+    const vocabulary: SearchVocabulary = {
+      domain: ["fury", "calm", "mind", "body", "chaos", "order", "colorless"],
+      rarity: ["common", "uncommon", "rare", "epic", "showcase"],
+      set: [
+        { value: "OGN", names: ["Origins"] },
+        { value: "SFD", names: ["Spiritforged"] },
+      ],
+      lang: ["EN", "FR"],
+    };
+    const withVocabulary = { ...options, vocabulary };
+
+    it("resolves a set name to its code", () => {
+      expect(names("s:spiritforged", all, withVocabulary)).toEqual(["Annie, Fiery"]);
+      expect(names("set:SPIRITFORGED", all, withVocabulary)).toEqual(["Annie, Fiery"]);
+    });
+
+    it("resolves a value prefix that names one value", () => {
+      expect(names("r:e", all, withVocabulary)).toEqual(["Annie, Fiery"]);
+      expect(names("d:fu", all, withVocabulary)).toEqual(["Garen, Rugged", "Annie, Fiery"]);
+      expect(names("d<=fu,ch", all, withVocabulary)).toEqual([
+        "Garen, Rugged",
+        "Annie, Fiery",
+        "Buff",
+      ]);
+    });
+
+    it("ignores an ambiguous prefix or an unknown value", () => {
+      expect(names("d:c t:spell", all, withVocabulary)).toEqual(["Annie, Fiery"]);
+      expect(names("s:zzz t:spell", all, withVocabulary)).toEqual(["Annie, Fiery"]);
+    });
+
+    it("matches nothing for an unknown value when strict", () => {
+      expect(names("s:zzz", all, { ...withVocabulary, strict: true })).toEqual([]);
+    });
+
+    it("accepts lang:any", () => {
+      expect(names("lang:any", all, withVocabulary)).toHaveLength(4);
+    });
   });
 
   describe("domains", () => {
@@ -185,6 +249,23 @@ describe("search query evaluation", () => {
     it("compares the numeric part of the code", () => {
       expect(names("cn>=300")).toEqual(["Buff", "Recruit"]);
       expect(names("cn<20")).toEqual(["Garen, Rugged", "Annie, Fiery"]);
+    });
+
+    it("matches the whole number, never part of it", () => {
+      expect(names("cn:1")).toEqual(["Garen, Rugged"]);
+      expect(names("cn:300")).toEqual(["Buff"]);
+      expect(names("cn:30")).toEqual([]);
+      expect(names("cn:ogn-001")).toEqual(["Garen, Rugged"]);
+      expect(names("cn!=1")).toEqual(["Annie, Fiery", "Buff", "Recruit"]);
+    });
+
+    it("matches a variant letter with or without it", () => {
+      const altart = makePrinting({ shortCode: "OGN-120a", card: { name: "Alt" } });
+      const rune = makePrinting({ shortCode: "SFD-R01", card: { name: "Rune" } });
+      expect(names("cn:120", [altart, rune])).toEqual(["Alt"]);
+      expect(names("cn:120a", [altart, rune])).toEqual(["Alt"]);
+      expect(names("cn:r01", [altart, rune])).toEqual(["Rune"]);
+      expect(names("cn:1", [altart, rune])).toEqual([]);
     });
   });
 
@@ -222,13 +303,18 @@ describe("search query evaluation", () => {
 
   describe("numbers", () => {
     it("compares stats", () => {
-      expect(names("e<=3")).toEqual(["Garen, Rugged", "Recruit"]);
+      expect(names("e<=3")).toEqual(["Garen, Rugged", "Buff", "Recruit"]);
       expect(names("e:5")).toEqual(["Annie, Fiery"]);
       expect(names("m>=4")).toEqual(["Garen, Rugged"]);
-      expect(names("p!=1")).toEqual(["Annie, Fiery"]);
+      expect(names("p!=1")).toEqual(["Annie, Fiery", "Buff", "Recruit"]);
     });
 
-    it("never matches a missing stat, but its negation does", () => {
+    it("counts a missing energy or power cost as 0", () => {
+      expect(names("e:0")).toEqual(["Buff"]);
+      expect(names("p:0")).toEqual(["Buff", "Recruit"]);
+    });
+
+    it("never matches a missing might, but its negation does", () => {
       expect(names("m>=0")).toEqual(["Garen, Rugged", "Recruit"]);
       expect(names("-m>=0")).toEqual(["Annie, Fiery", "Buff"]);
     });
@@ -236,6 +322,11 @@ describe("search query evaluation", () => {
     it("reads usd from TCGplayer and eur from Cardmarket", () => {
       expect(names("usd<1")).toEqual(["Garen, Rugged"]);
       expect(names("eur>=18")).toEqual(["Annie, Fiery"]);
+    });
+
+    it("reads usdfoil and eurfoil from foil printings only", () => {
+      expect(names("usdfoil>=1")).toEqual(["Annie, Fiery"]);
+      expect(names("eurfoil<1")).toEqual([]);
     });
 
     it("reads price from the favorite marketplace", () => {
@@ -308,12 +399,23 @@ describe("search query evaluation", () => {
       expect(names("banned:constructed")).toEqual(["Annie, Fiery"]);
       expect(names("banned:standard")).toEqual(["Annie, Fiery"]);
     });
+
+    it("counts Constructed bans as 2v2 bans", () => {
+      expect(names("banned:2v2")).toEqual(["Annie, Fiery"]);
+      expect(names("f:2v2")).toEqual(["Garen, Rugged"]);
+    });
   });
 
   describe("flags", () => {
     it("matches is: values", () => {
       expect(names("is:foil")).toEqual(["Annie, Fiery"]);
       expect(names("is:altart")).toEqual(["Annie, Fiery"]);
+    });
+
+    it("matches is: aliases", () => {
+      expect(names("is:alternate")).toEqual(["Annie, Fiery"]);
+      expect(names("is:variant")).toEqual(["Annie, Fiery"]);
+      expect(names("is:nonfoil")).toEqual(["Garen, Rugged", "Buff", "Recruit"]);
     });
 
     it("treats not: as a negated is:", () => {

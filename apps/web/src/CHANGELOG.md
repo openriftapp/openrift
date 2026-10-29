@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-10-29
+
+### Highlights
+
+- feat(Cards): **Unknown search terms are skipped** — a key or value the search doesn't know is left out with a note under the box, and keys from other card search tools get a hint for the one to use here.
+- feat(Cards): **Search syntax guide rewritten** — the help article goes through every key section by section, with example searches that each find real cards.
+
+### Other
+
+- feat(Cards): **Tags with t: and tag:** — t:noxus now finds Noxus cards next to card types, and tag: searches tags only in place of otag:.
+- feat(Cards): **More search keys** — pow, usdfoil, eurfoil, is:nonfoil, is:alternate, is:variant, set names, prefixes like r:e, single quotes and more order: sorts work.
+- feat(Cards): **Costless cards count as 0** — e:0 and p:0 now include legends, runes, battlefields and other cards without a cost.
+- feat(Cards): **2v2 bans include Constructed** — banned:2v2 and f:2v2 now count every card banned in Constructed too.
+- feat(Developers): **Search API defaults** — results are English printings sorted by name, unique, order and dir work as URL parameters, and /search/named takes a set.
+- feat(Developers): **Search API errors and warnings** — skipped terms come back in warnings, a search without matches returns 404, and an ambiguous fuzzy name says so.
+- fix(Cards): **Whole card numbers** — cn:120 matches card 120 and its variants, no longer OGS-012/024 because the digits line up.
+
 ## 2026-10-28
 
 ### Highlights

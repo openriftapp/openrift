@@ -25,7 +25,7 @@ describe("deckZoneFilterPreset", () => {
     const preset = deckZoneFilterPreset(WellKnown.deckZone.CHAMPION, [legend], "constructed", null);
 
     expect(preset.arrayFilters.superTypes).toEqual([WellKnown.superType.CHAMPION]);
-    expect(preset.search).toBe("otag:yasuo");
+    expect(preset.search).toBe("tag:yasuo");
     expect(preset.clearStatRanges).toBe(false);
   });
 

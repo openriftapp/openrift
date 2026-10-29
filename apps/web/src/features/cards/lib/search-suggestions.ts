@@ -78,7 +78,9 @@ export function searchSuggestions(
     if (!definition) {
       return null;
     }
-    const values = FIXED_VALUES[definition.id] ?? vocabulary[definition.id] ?? [];
+    const values = (FIXED_VALUES[definition.id] ?? vocabulary[definition.id] ?? []).map((value) =>
+      typeof value === "string" ? value : value.value,
+    );
     const unquoted = partialRaw.replace(/^"/u, "");
     const listed = definition.id === "domain" ? unquoted.lastIndexOf(",") + 1 : 0;
     const before = unquoted.slice(0, listed);

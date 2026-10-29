@@ -114,6 +114,14 @@ describe("buildSortCardsOptions", () => {
     expect(options.getPrice?.(stubPrinting({ cardId: "c1" }))).toBe(11);
   });
 
+  it("reads one marketplace for order:usd and order:eur, whatever the favorite", () => {
+    const prices = stubPriceLookup({ p1: { tcgplayer: 5, cardmarket: 4 } });
+    const options = build({ sortBy: "eur", prices });
+
+    expect(options.getMarketPrice?.(stubPrinting({ printingId: "p1" }), "cardmarket")).toBe(4);
+    expect(build({ sortBy: "price", prices }).getMarketPrice).toBeUndefined();
+  });
+
   it("falls back to the printing's own price when its card has no range", () => {
     const options = build();
 

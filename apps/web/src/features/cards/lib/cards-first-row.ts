@@ -3,7 +3,10 @@ import { getOrientation } from "@openrift/shared/card-orientation";
 import { filterCards } from "@openrift/shared/filters";
 import { sortCards } from "@openrift/shared/filters-sort";
 import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select";
+import type { SearchOrder } from "@openrift/shared/search-query/keys";
+import { resolveDirection } from "@openrift/shared/search-query/keys";
 import { parseSearchQuery } from "@openrift/shared/search-query/parse";
+import { catalogSearchVocabulary } from "@openrift/shared/search-query/vocabulary";
 import { setIndexById, UNKNOWN_SET_INDEX } from "@openrift/shared/set-order";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
@@ -54,7 +57,8 @@ export function extractFirstRow(
   viewDefaults: SurfaceViewPrefs = VIEW_SURFACE_CONFIGS.cards.defaults,
 ): FirstRowCard[] {
   const directives = parseSearchQuery(search.q ?? "").directives;
-  const requestedView = directives.unique === "prints" ? "printings" : search.view;
+  const requestedView =
+    directives.unique === "prints" || directives.unique === "art" ? "printings" : search.view;
   const view =
     directives.unique === "cards"
       ? "cards"
@@ -62,18 +66,29 @@ export function extractFirstRow(
         ? "printings"
         : SSR_DEFAULT_VIEW;
   const groupBy = (search.groupBy ?? viewDefaults.groupBy) as GroupByField;
-  const requestedSort = (directives.order ?? search.sort ?? viewDefaults.sort) as SortOption;
-  // sortCards needs rarityOrder for "rarity" and a price lookup for "price";
+  const requestedSort: SearchOrder =
+    directives.order ?? ((search.sort ?? viewDefaults.sort) as SortOption);
+  // sortCards needs rarityOrder for "rarity" and a price lookup for the price sorts;
   // the SSR pipeline has neither, so fall back to "id" (shortCode) for those.
-  const sortBy: SortOption =
-    requestedSort === "rarity" || requestedSort === "price" ? "id" : requestedSort;
+  const sortBy: SearchOrder = ["rarity", "price", "usd", "eur"].includes(requestedSort)
+    ? "id"
+    : requestedSort;
   const sortDir: "asc" | "desc" =
-    (directives.direction ?? search.sortDir ?? viewDefaults.sortDir) === "desc" ? "desc" : "asc";
+    directives.order === undefined && directives.direction === undefined
+      ? (search.sortDir ?? viewDefaults.sortDir) === "desc"
+        ? "desc"
+        : "asc"
+      : resolveDirection(requestedSort, directives.direction);
 
   const { allPrintings, sets } = enrichCatalog(catalog);
   const ordered = sortByLanguageAndCanonicalRank(allPrintings, SSR_USER_LANGUAGES);
   const filters = searchToFilters(search);
-  const filtered = filterCards(ordered, filters);
+  const vocabulary = catalogSearchVocabulary({
+    printings: allPrintings,
+    sets,
+    enums: catalog.enums,
+  });
+  const filtered = filterCards(ordered, filters, { vocabulary });
 
   let displayCards = filtered;
   if (view === "cards") {

@@ -1,10 +1,11 @@
 import type { SearchKeyId, SearchOperator } from "@openrift/shared/search-query/keys";
-import { searchKey } from "@openrift/shared/search-query/keys";
+import { FOREIGN_KEY_HINTS, searchKey } from "@openrift/shared/search-query/keys";
 import type {
   QueryNode,
   SearchClause,
   SearchDiagnostic,
 } from "@openrift/shared/search-query/parse";
+import { pruneIgnored } from "@openrift/shared/search-query/parse";
 
 import { m } from "@/paraglide/messages.js";
 
@@ -61,6 +62,12 @@ export function searchKeyLabel(key: SearchKeyId): string {
     case "eur": {
       return m.search_key_eur();
     }
+    case "usdfoil": {
+      return m.search_key_usdfoil();
+    }
+    case "eurfoil": {
+      return m.search_key_eurfoil();
+    }
     case "price": {
       return m.search_key_price();
     }
@@ -73,8 +80,8 @@ export function searchKeyLabel(key: SearchKeyId): string {
     case "has": {
       return m.search_key_has();
     }
-    case "otag": {
-      return m.search_key_otag();
+    case "tag": {
+      return m.search_key_tag();
     }
     case "marker": {
       return m.search_key_marker();
@@ -172,7 +179,8 @@ function describeNode(node: QueryNode, valueLabel: SearchValueLabeler, nested: b
     case "text": {
       return m.search_clause_word({ value: node.value });
     }
-    case "invalid": {
+    case "invalid":
+    case "ignored": {
       return m.search_clause_word({ value: "…" });
     }
     case "not": {
@@ -212,10 +220,11 @@ export function describeQueryChips(
   root: QueryNode | null,
   valueLabel: SearchValueLabeler,
 ): { id: string; text: string }[] {
-  if (!root) {
+  const kept = pruneIgnored(root);
+  if (!kept) {
     return [];
   }
-  const terms = root.kind === "and" ? root.children : [root];
+  const terms = kept.kind === "and" ? kept.children : [kept];
   return terms.flatMap((term, index) =>
     hasKeyedTerm(term) ? [{ id: String(index), text: describeNode(term, valueLabel, false) }] : [],
   );
@@ -226,7 +235,16 @@ export function describeDiagnostic(diagnostic: SearchDiagnostic): string | null 
   const value = diagnostic.value ?? "";
   switch (diagnostic.code) {
     case "unknownKey": {
-      return m.search_diagnostic_unknown_key({ key: typed });
+      const hint = FOREIGN_KEY_HINTS[(diagnostic.key ?? "").toLowerCase()];
+      return hint
+        ? m.search_diagnostic_unknown_key_hint({ key: typed, hint: `${hint}:` })
+        : m.search_diagnostic_unknown_key({ key: typed });
+    }
+    case "ambiguousValue": {
+      return m.search_diagnostic_ambiguous_value({
+        key: searchKeyLabel(diagnostic.key as SearchKeyId),
+        value,
+      });
     }
     case "badValue": {
       return m.search_diagnostic_bad_value({ key: typed, value });

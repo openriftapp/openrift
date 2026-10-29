@@ -6,6 +6,7 @@ import { sortCards } from "@openrift/shared/filters-sort";
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
 import { countPrintings, sideKey } from "@openrift/shared/printing-side";
 import { sortByPreference } from "@openrift/shared/search-query/evaluate";
+import type { SearchOrder } from "@openrift/shared/search-query/keys";
 import { parseSearchQuery } from "@openrift/shared/search-query/parse";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { DistributionChannel, Printing } from "@openrift/shared/types/catalog";
@@ -14,6 +15,7 @@ import type { CardFilters, GroupByField, SortOption } from "@openrift/shared/typ
 import { EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
 import { useDeferredValue } from "react";
 
+import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
 import { buildSortCardsOptions, computePriceRanges } from "@/features/cards/lib/card-price-sort";
 import { cardsViewTileKey, dedupeToCardsViewTiles } from "@/features/cards/lib/card-tiles";
 import type { OwnedBucket } from "@/features/cards/lib/search-schemas";
@@ -31,7 +33,7 @@ interface UseCardDataParams {
   ownedFilter?: readonly OwnedBucket[];
   ownedCountMin?: number | null;
   ownedCountMax?: number | null;
-  sortBy: SortOption;
+  sortBy: SortOption | SearchOrder;
   sortDir: "asc" | "desc";
   view: "cards" | "printings";
   groupBy?: GroupByField;
@@ -164,6 +166,7 @@ export function useCatalogFilterMeta({
   "use memo";
 
   const { orders } = useEnumOrders();
+  const vocabulary = useCatalogSearchVocabulary();
 
   // All four inputs must defer together, or the counts transiently mix old
   // and new filter state.
@@ -225,6 +228,7 @@ export function useCatalogFilterMeta({
         priceLookup: lookup,
         getOwnedCount: (p: Printing) => ownedCountByPrinting?.[p.printingId],
         rarityOrder: orders.rarities,
+        vocabulary,
         customTagAssignments,
       })
     : EMPTY_FILTER_COUNTS;
@@ -257,6 +261,7 @@ export function useCardData({
   "use memo";
 
   const { orders } = useEnumOrders();
+  const vocabulary = useCatalogSearchVocabulary();
 
   const meta = useCatalogFilterMeta({
     allPrintings,
@@ -299,6 +304,7 @@ export function useCardData({
     priceLookup: lookup,
     getOwnedCount: (p: Printing) => ownedCountByPrinting?.[p.printingId],
     rarityOrder: orders.rarities,
+    vocabulary,
     customTagAssignments,
   });
 
@@ -345,6 +351,7 @@ export function useCardData({
     sets,
     getPrice,
     rarityOrder: orders.rarities,
+    prices: lookup,
     priceRangeByCardId,
   });
   const sortedCards = sortCards(displayCards, sortBy, sortOptions);

@@ -54,6 +54,7 @@ export async function resolveGiverPrintingSupply(
       {
         catalog: ruleCatalog?.printings ?? [],
         customTagAssignments: ruleCatalog?.customTagAssignments,
+        vocabulary: ruleCatalog?.vocabulary,
         priceLookup,
       },
     )) {
@@ -65,6 +66,7 @@ export async function resolveGiverPrintingSupply(
     ownedCopies:
       hasRules && providers ? await providers.ownedCopies(scope.giverUserId, [...giverScope]) : [],
     customTagAssignments: ruleCatalog?.customTagAssignments,
+    vocabulary: ruleCatalog?.vocabulary,
     // Keep the nicer copies, offer the plainer — same order the owner's list
     // page uses, so surfaced and matched copies never diverge.
     enumOrders: hasRules && providers ? await providers.enumOrders() : undefined,
@@ -197,6 +199,7 @@ async function resolveTradelistHoldersForCard(
           catalog: ruleCatalog?.printings ?? [],
           ownedCopies: ownedCopiesByOwner.get(list.ownerUserId) ?? [],
           customTagAssignments: ruleCatalog?.customTagAssignments,
+          vocabulary: ruleCatalog?.vocabulary,
           enumOrders,
           priceLookup,
         },

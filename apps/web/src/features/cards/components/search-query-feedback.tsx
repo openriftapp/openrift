@@ -1,5 +1,5 @@
 import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
-import { bindSearchQuery } from "@openrift/shared/search-query/bind";
+import { resolveSearchQuery } from "@openrift/shared/search-query/bind";
 import { searchKey } from "@openrift/shared/search-query/keys";
 import { parseSearchQuery } from "@openrift/shared/search-query/parse";
 
@@ -19,22 +19,20 @@ interface SearchQueryFeedbackProps {
 }
 
 export function SearchQueryFeedback({ query, vocabulary, valueLabel }: SearchQueryFeedbackProps) {
-  const parsed = parseSearchQuery(query);
-  const directives = parsed.clauses
+  const resolved = resolveSearchQuery(parseSearchQuery(query), vocabulary);
+  const directives = resolved.clauses
     .filter((clause) => searchKey(clause.key).kind === "directive")
     .map((clause) => ({
       id: `directive-${clause.span.start}`,
       text: describeClause(clause, valueLabel),
     }));
-  const problems = [...parsed.diagnostics, ...bindSearchQuery(parsed, vocabulary)].flatMap(
-    (diagnostic) => {
-      const text = describeDiagnostic(diagnostic);
-      return text === null
-        ? []
-        : [{ id: `${diagnostic.code}-${diagnostic.span.start}`, text, tone: diagnostic.severity }];
-    },
-  );
-  const chips = [...describeQueryChips(parsed.root, valueLabel), ...directives];
+  const problems = resolved.diagnostics.flatMap((diagnostic) => {
+    const text = describeDiagnostic(diagnostic);
+    return text === null
+      ? []
+      : [{ id: `${diagnostic.code}-${diagnostic.span.start}`, text, tone: diagnostic.severity }];
+  });
+  const chips = [...describeQueryChips(resolved.root, valueLabel), ...directives];
 
   if (chips.length === 0 && problems.length === 0) {
     return null;

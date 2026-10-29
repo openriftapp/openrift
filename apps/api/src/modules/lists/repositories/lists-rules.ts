@@ -8,6 +8,7 @@ import type {
   ManualEntryRow,
   OwnedCopyRow,
 } from "@openrift/shared/list-rule-eval";
+import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
 import type { ListKind } from "@openrift/shared/types/api/list";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -30,6 +31,7 @@ export interface ListRuleProviders {
   assembleCatalog: () => Promise<{
     printings: Printing[];
     customTagAssignments: Record<string, readonly string[]>;
+    vocabulary?: SearchVocabulary;
   }>;
   /**
    * The given user's personally-owned copies, narrowed to `printingIds`.
@@ -126,7 +128,7 @@ export function listRulesRepo(db: Kysely<Database>, providers?: ListRuleProvider
           : undefined,
       ]);
       const manualByList = Map.groupBy(manualRows, (row) => row.listId);
-      const { printings: catalog, customTagAssignments } = catalogData;
+      const { printings: catalog, customTagAssignments, vocabulary } = catalogData;
 
       for (const list of ruleLists) {
         const manual = (manualByList.get(list.id) ?? []).map((row) => toRawManualEntryRow(row));
@@ -138,6 +140,7 @@ export function listRulesRepo(db: Kysely<Database>, providers?: ListRuleProvider
             ownedCopies: ownedByOwner.get(list.userId) ?? [],
             customTagAssignments,
             enumOrders,
+            vocabulary,
             priceLookup,
           },
           list.ruleCombine,
@@ -251,7 +254,11 @@ async function expandAndEnrich(
     return manual;
   }
 
-  const { printings: catalog, customTagAssignments } = await providers.assembleCatalog();
+  const {
+    printings: catalog,
+    customTagAssignments,
+    vocabulary,
+  } = await providers.assembleCatalog();
   // Loaded before the copy scope below — the scope must see the same prices as
   // the evaluation, or copy loading would drift from what the rules match.
   const priceLookup = rules.some((rule) => ruleFiltersOnPrice(rule))
@@ -264,7 +271,12 @@ async function expandAndEnrich(
   const ownedCopies = needsCopies
     ? await providers.ownedCopies(
         listRow.userId,
-        ownedCopyPrintingScope(rules, kind, { catalog, customTagAssignments, priceLookup }),
+        ownedCopyPrintingScope(rules, kind, {
+          catalog,
+          customTagAssignments,
+          priceLookup,
+          vocabulary,
+        }),
       )
     : [];
   // Trade rules rank owned copies by niceness (keep the nicer, offer the
@@ -279,6 +291,7 @@ async function expandAndEnrich(
       ownedCopies,
       customTagAssignments,
       enumOrders,
+      vocabulary,
       priceLookup,
     },
     listRow.ruleCombine,

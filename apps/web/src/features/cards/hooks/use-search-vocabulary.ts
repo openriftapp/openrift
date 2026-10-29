@@ -3,6 +3,7 @@ import type { AvailableFilters } from "@openrift/shared/filters-available";
 import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
 import type { SearchKeyId } from "@openrift/shared/search-query/keys";
 
+import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
 import type { SearchValueLabeler } from "@/features/cards/lib/search-clause-labels";
 import { useEnumOrders, useFormatList, useLanguageLabels } from "@/hooks/use-enums";
 
@@ -12,6 +13,8 @@ interface SearchVocabularies {
   valueLabel: SearchValueLabeler;
 }
 
+const NO_VOCABULARY: SearchVocabulary = {};
+
 export function useSearchVocabulary(
   availableFilters: AvailableFilters,
   availableLanguages: readonly string[],
@@ -19,25 +22,22 @@ export function useSearchVocabulary(
   const { labels } = useEnumOrders();
   const languageLabels = useLanguageLabels();
   const formats = useFormatList();
+  // Without the catalog (promos) the grid filters without one, so no value reads as left out.
+  const validation = useCatalogSearchVocabulary() ?? NO_VOCABULARY;
 
-  const validation: SearchVocabulary = {
+  const suggestions: SearchVocabulary = {
     domain: availableFilters.domains,
     rarity: availableFilters.rarities,
     set: availableFilters.sets,
-    lang: availableLanguages,
+    lang: [...availableLanguages, "any"],
     in: [...availableFilters.sets, ...availableLanguages],
     marker: availableFilters.markers.map((marker) => marker.slug),
     channel: availableFilters.distributionChannels.map((channel) => channel.slug),
-    format: [...formats.names, ...formats.ids],
-    banned: [...formats.names, ...formats.ids],
-  };
-  const suggestions: SearchVocabulary = {
-    ...validation,
     format: formats.names,
     banned: formats.names,
     type: [...availableFilters.types, ...availableFilters.superTypes],
     keyword: availableFilters.keywords,
-    otag: availableFilters.tags,
+    tag: availableFilters.tags,
   };
 
   const valueLabel = (key: SearchKeyId, value: string): string => {

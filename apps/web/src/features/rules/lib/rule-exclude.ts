@@ -1,4 +1,5 @@
 import { filterCards } from "@openrift/shared/filters";
+import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
 import type { ListEntryDetailResponse, ListKind } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { ListRule } from "@openrift/shared/types/list-rule";
@@ -29,8 +30,9 @@ function wishRuleMatches(
   filter: CardFilters,
   target: RuleExcludeTarget,
   catalog: Printing[],
+  vocabulary?: SearchVocabulary,
 ): boolean {
-  const matched = filterCards(catalog, filter);
+  const matched = filterCards(catalog, filter, { strict: true, vocabulary });
   if (target.kind === "card") {
     return matched.some((printing) => printing.cardId === target.cardId);
   }
@@ -45,12 +47,17 @@ export function excludeEntryFromRules(
   rules: ListRule[],
   target: RuleExcludeTarget,
   catalog: Printing[],
+  vocabulary?: SearchVocabulary,
 ): ListRule[] | null {
   let changed = false;
   const next = rules.map((rule): ListRule => {
     if (rule.kind === "wish") {
       const id = target.kind === "card" ? target.cardId : target.printingId;
-      if (!id || rule.excludeIds.includes(id) || !wishRuleMatches(rule.filter, target, catalog)) {
+      if (
+        !id ||
+        rule.excludeIds.includes(id) ||
+        !wishRuleMatches(rule.filter, target, catalog, vocabulary)
+      ) {
         return rule;
       }
       changed = true;

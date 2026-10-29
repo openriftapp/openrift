@@ -1,4 +1,5 @@
 import { ownedTotalsByCard } from "@openrift/shared/printing-side";
+import type { SearchOrder } from "@openrift/shared/search-query/keys";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -24,7 +25,7 @@ const EMPTY_SORTED_CARDS: Printing[] = [];
 interface UseCollectionGridDataParams {
   collectionId?: string;
   filters: ReturnType<typeof useFilterValues>["filters"];
-  sortBy: SortOption;
+  sortBy: SortOption | SearchOrder;
   sortDir: SortDirection;
   view: "cards" | "printings" | "copies";
   groupBy: GroupByField;

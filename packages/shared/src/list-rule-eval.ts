@@ -1,6 +1,7 @@
 import { filterCards } from "./filters.js";
 import { getPlaysetSize } from "./playset.js";
 import { indexByPrinting } from "./printing-side.js";
+import type { SearchVocabulary } from "./search-query/bind.js";
 import { isStandardPrinting } from "./standard.js";
 import type { EntrySource, ListKind } from "./types/api/list.js";
 import type { PriceLookup } from "./types/api/pricing.js";
@@ -63,6 +64,7 @@ export interface RuleEvalContext {
   customTagAssignments?: Record<string, readonly string[]>;
   enumOrders?: KeepPriorityOrders;
   priceLookup?: PriceLookup;
+  vocabulary?: SearchVocabulary;
 }
 
 function rulePriceResolver(
@@ -116,6 +118,8 @@ function wishRuleTargets(
 ): WishRuleTargets {
   const matched = filterCards(ctx.catalog, rule.filter, {
     customTagAssignments: ctx.customTagAssignments,
+    strict: true,
+    vocabulary: ctx.vocabulary,
     getPrice: rulePriceResolver(rule, ctx),
   });
   const excluded = new Set(rule.excludeIds);
@@ -165,6 +169,8 @@ function wishRuleTargets(
   };
   const relaxed = filterCards(ctx.catalog, netFilter, {
     customTagAssignments: ctx.customTagAssignments,
+    strict: true,
+    vocabulary: ctx.vocabulary,
     getPrice: relaxPrice ? undefined : rulePriceResolver(rule, ctx),
   });
   const netPrintings = new Map<string, Set<string>>();
@@ -334,6 +340,8 @@ export function ownedCopyPrintingScope(
     if (rule.kind === "trade") {
       for (const printing of filterCards(ctx.catalog, rule.filter, {
         customTagAssignments: ctx.customTagAssignments,
+        strict: true,
+        vocabulary: ctx.vocabulary,
         getPrice: rulePriceResolver(rule, ctx),
       })) {
         scope.add(printing.printingId);
@@ -370,6 +378,8 @@ function tradeRulePools(
   const passing = new Set(
     filterCards(ctx.catalog, rule.filter, {
       customTagAssignments: ctx.customTagAssignments,
+      strict: true,
+      vocabulary: ctx.vocabulary,
       getPrice: rulePriceResolver(rule, ctx),
     }).map((printing) => `${printing.printingId}:${printing.cardId}`),
   );

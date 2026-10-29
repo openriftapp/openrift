@@ -97,6 +97,10 @@ vi.mock("@/hooks/use-enums", () => ({
   useLanguageLabels: () => ({ en: "English", de: "German" }),
 }));
 
+vi.mock("@/features/cards/hooks/use-catalog-search-vocabulary", () => ({
+  useCatalogSearchVocabulary: () => undefined,
+}));
+
 vi.mock("@/features/cards/hooks/use-prices", () => ({
   usePrices: () => ({ get: () => undefined, has: () => false }),
 }));

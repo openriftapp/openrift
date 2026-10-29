@@ -4,6 +4,7 @@ import { computeFilterCounts } from "@openrift/shared/filters-counts";
 import { sortCards } from "@openrift/shared/filters-sort";
 import { sortByLanguageAndCanonicalRank } from "@openrift/shared/printing-select";
 import { countPrintings, sideKey, uniquePrintings } from "@openrift/shared/printing-side";
+import type { SearchOrder } from "@openrift/shared/search-query/keys";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { DistributionChannel, Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
@@ -13,6 +14,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { useDeferredValue } from "react";
 
 import { EMPTY_FILTER_COUNTS } from "@/features/cards/hooks/use-card-data";
+import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
 import { buildSortCardsOptions, computePriceRanges } from "@/features/cards/lib/card-price-sort";
 import { dedupeToCardsViewTiles } from "@/features/cards/lib/card-tiles";
 import type { OwnedBucket } from "@/features/cards/lib/search-schemas";
@@ -30,7 +32,7 @@ import type { GroupInfo } from "@/lib/card-group-types";
 interface UseCollectionCardDataParams {
   collectionId?: string;
   filters: CardFilters;
-  sortBy: SortOption;
+  sortBy: SortOption | SearchOrder;
   sortDir: "asc" | "desc";
   view: "cards" | "printings";
   groupBy: GroupByField;
@@ -80,6 +82,7 @@ export function useCollectionCardData({
   "use memo";
   const { stacks, totalCopies, collectionIdByCopyId, isReady } = useStackedCopies(collectionId);
   const { orders } = useEnumOrders();
+  const vocabulary = useCatalogSearchVocabulary();
   const defaultEffectiveLanguageOrder = useEffectiveLanguageOrder();
 
   // Deferred inputs for the facet counts only, so a filter change doesn't
@@ -138,6 +141,7 @@ export function useCollectionCardData({
     priceLookup: prices,
     getOwnedCount,
     rarityOrder: orders.rarities,
+    vocabulary,
   });
   // `ownedCardTotalOverride` assigns each box printing its card's full personal
   // playset and buckets per-printing, so a card stocked in several variants
@@ -203,6 +207,7 @@ export function useCollectionCardData({
         priceLookup: prices,
         getOwnedCount,
         rarityOrder: orders.rarities,
+        vocabulary,
       })
     : EMPTY_FILTER_COUNTS;
 
@@ -220,6 +225,7 @@ export function useCollectionCardData({
     sets,
     getPrice,
     rarityOrder: orders.rarities,
+    prices,
     priceRangeByCardId,
   });
   const sortedCards = sortCards(displayCards, sortBy, sortOptions);

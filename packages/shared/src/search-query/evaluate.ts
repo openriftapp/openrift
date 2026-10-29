@@ -5,10 +5,12 @@ import type { PriceLookup } from "../types/api/pricing.js";
 import type { Printing } from "../types/catalog.js";
 import type { SearchField } from "../types/search.js";
 import { WellKnown } from "../well-known.js";
+import type { SearchVocabulary } from "./bind.js";
+import { resolveSearchQuery } from "./bind.js";
 import type { IsValue, PreferValue, SearchKeyId, SearchOperator } from "./keys.js";
 import { formatSearchSlug, looksLikeCardNumber, searchKey } from "./keys.js";
 import type { QueryNode } from "./parse.js";
-import { parseSearchQuery } from "./parse.js";
+import { parseSearchQuery, pruneIgnored } from "./parse.js";
 
 export interface SearchContext {
   keywordReverseMap?: Map<string, string>;
@@ -19,6 +21,8 @@ export interface SearchContext {
   customTagAssignments?: Record<string, readonly string[]>;
   getOwnedCount?: (printing: Printing) => number | undefined;
   rarityOrder?: readonly string[];
+  vocabulary?: SearchVocabulary;
+  strict?: boolean;
 }
 
 type SearchPredicate = (printing: Printing, context: SearchContext) => boolean;
@@ -156,6 +160,27 @@ function cardNumberPart(printing: Printing): number | null {
   return match?.groups?.digits === undefined ? null : Number(match.groups.digits);
 }
 
+function collectorNumbers(printing: Printing): { full: string; base: string } {
+  const code = printing.shortCode.toLowerCase();
+  const dash = code.indexOf("-");
+  const full = dash === -1 ? code : code.slice(dash + 1);
+  return { full, base: full.replace(/(?<=\d)[a-z*]+$/u, "") };
+}
+
+function collectorNumberMatches(printing: Printing, value: string): boolean {
+  const wanted = value.toLowerCase().replaceAll(/[^a-z0-9*]/gu, "");
+  const { full, base } = collectorNumbers(printing);
+  if (/^\d+$/u.test(wanted)) {
+    return /^\d+$/u.test(base) && Number(base) === Number(wanted);
+  }
+  if (wanted === full || wanted === base) {
+    return true;
+  }
+  const squashed = printing.shortCode.toLowerCase().replaceAll(/[^a-z0-9*]/gu, "");
+  const prefix = squashed.slice(0, squashed.length - full.length);
+  return wanted === squashed || wanted === prefix + base;
+}
+
 function rarityPredicate(operator: SearchOperator, value: string): SearchPredicate {
   if (operator === ":" || operator === "=" || operator === "!=") {
     return slugListPredicate((printing) => [printing.rarity], operator, value);
@@ -219,6 +244,12 @@ function isPredicate(value: IsValue): SearchPredicate {
     case "firstprint": {
       return (printing) => printing.isReprint !== true;
     }
+    case "nonfoil": {
+      return (printing) => printing.finish === WellKnown.finish.NORMAL;
+    }
+    case "variant": {
+      return (printing) => !isStandardPrinting(printing);
+    }
   }
 }
 
@@ -242,9 +273,15 @@ function hasPredicate(value: string): SearchPredicate {
   }
 }
 
+const TWO_V_TWO = WellKnown.banFormat.TWO_V_TWO.toLowerCase();
+
+/** 2v2 records only its own extra bans; everything banned in Constructed is banned there too. */
 function isBannedIn(printing: Printing, format: string): boolean {
   return printing.card.bans.some(
-    (ban) => ban.formatId.toLowerCase() === format || formatSearchSlug(ban.formatName) === format,
+    (ban) =>
+      ban.formatId.toLowerCase() === format ||
+      formatSearchSlug(ban.formatName) === format ||
+      (format === TWO_V_TWO && ban.formatId === WellKnown.banFormat.CONSTRUCTED),
   );
 }
 
@@ -257,16 +294,38 @@ function isDeckable(printing: Printing): boolean {
   );
 }
 
+function typePredicate(operator: SearchOperator, value: string): SearchPredicate {
+  const term = toSearchTerm(value);
+  if (!term) {
+    return MATCH_ALL;
+  }
+  const positive = operator === "!=" ? ":" : operator;
+  const types = textPredicate("type", positive, term);
+  const tags = textPredicate("tags", positive, term);
+  const either: SearchPredicate = (printing, context) =>
+    types(printing, context) || tags(printing, context);
+  return operator === "!=" ? (printing, context) => !either(printing, context) : either;
+}
+
 function clausePredicate(
   key: SearchKeyId,
   operator: SearchOperator,
   value: string,
 ): SearchPredicate {
   const definition = searchKey(key);
-  if (definition.kind === "code" && operator !== ":" && operator !== "=" && operator !== "!=") {
+  if (definition.kind === "code") {
+    if (operator === "!=") {
+      return (printing) => !collectorNumberMatches(printing, value);
+    }
+    if (operator === ":" || operator === "=") {
+      return (printing) => collectorNumberMatches(printing, value);
+    }
     return numberPredicate((printing) => cardNumberPart(printing), operator, Number(value));
   }
-  if ((definition.kind === "text" || definition.kind === "code") && definition.field) {
+  if (key === "type") {
+    return typePredicate(operator, value);
+  }
+  if (definition.kind === "text" && definition.field) {
     const term = toSearchTerm(value);
     return term ? textPredicate(definition.field, operator, term) : MATCH_ALL;
   }
@@ -282,7 +341,9 @@ function clausePredicate(
       return slugListPredicate((printing) => [printing.setSlug], operator, value);
     }
     case "lang": {
-      return slugListPredicate((printing) => [printing.language], operator, value);
+      return value === "any"
+        ? MATCH_ALL
+        : slugListPredicate((printing) => [printing.language], operator, value);
     }
     case "in": {
       return slugListPredicate(
@@ -315,14 +376,15 @@ function clausePredicate(
         value,
       );
     }
+    // A card without a cost costs 0, as a land's mana value is 0. Might stays absent.
     case "energy": {
-      return numberPredicate((printing) => printing.card.energy, operator, number);
+      return numberPredicate((printing) => printing.card.energy ?? 0, operator, number);
     }
     case "might": {
       return numberPredicate((printing) => printing.card.might, operator, number);
     }
     case "power": {
-      return numberPredicate((printing) => printing.card.power, operator, number);
+      return numberPredicate((printing) => printing.card.power ?? 0, operator, number);
     }
     case "usd": {
       return numberPredicate(
@@ -334,6 +396,18 @@ function clausePredicate(
     case "eur": {
       return numberPredicate(
         (printing, context) => context.priceLookup?.get(printing.printingId, "cardmarket"),
+        operator,
+        number,
+      );
+    }
+    case "usdfoil":
+    case "eurfoil": {
+      const marketplace = key === "usdfoil" ? "tcgplayer" : "cardmarket";
+      return numberPredicate(
+        (printing, context) =>
+          printing.finish === WellKnown.finish.FOIL
+            ? context.priceLookup?.get(printing.printingId, marketplace)
+            : undefined,
         operator,
         number,
       );
@@ -393,21 +467,25 @@ function textTermPredicate(value: string): SearchPredicate {
   return (printing) => printingMatchesField(printing, "name", term);
 }
 
-export function compileQuery(node: QueryNode | null): SearchPredicate {
+export function compileQuery(root: QueryNode | null, strict = false): SearchPredicate {
+  return compileNode(strict ? root : pruneIgnored(root));
+}
+
+function compileNode(node: QueryNode | null): SearchPredicate {
   if (!node) {
     return MATCH_ALL;
   }
   switch (node.kind) {
     case "and": {
-      const children = node.children.map((child) => compileQuery(child));
+      const children = node.children.map((child) => compileNode(child));
       return (printing, context) => children.every((child) => child(printing, context));
     }
     case "or": {
-      const children = node.children.map((child) => compileQuery(child));
+      const children = node.children.map((child) => compileNode(child));
       return (printing, context) => children.some((child) => child(printing, context));
     }
     case "not": {
-      const child = compileQuery(node.child);
+      const child = compileNode(node.child);
       return (printing, context) => !child(printing, context);
     }
     case "text": {
@@ -419,25 +497,40 @@ export function compileQuery(node: QueryNode | null): SearchPredicate {
     case "clause": {
       return clausePredicate(node.key, node.operator, node.value);
     }
-    case "invalid": {
+    case "invalid":
+    case "ignored": {
       return MATCH_NONE;
     }
   }
 }
 
-const COMPILED = new Map<string, SearchPredicate>();
+const COMPILED = new WeakMap<SearchVocabulary, Map<string, SearchPredicate>>();
+const NO_VOCABULARY: SearchVocabulary = {};
 const COMPILED_LIMIT = 200;
 
-export function searchPredicate(raw: string): SearchPredicate {
-  const cached = COMPILED.get(raw);
+export function searchPredicate(
+  raw: string,
+  vocabulary?: SearchVocabulary,
+  strict = false,
+): SearchPredicate {
+  const vocabularyKey = vocabulary ?? NO_VOCABULARY;
+  let byQuery = COMPILED.get(vocabularyKey);
+  if (!byQuery) {
+    byQuery = new Map();
+    COMPILED.set(vocabularyKey, byQuery);
+  }
+  const cacheKey = `${strict ? "strict" : "lenient"}:${raw}`;
+  const cached = byQuery.get(cacheKey);
   if (cached) {
     return cached;
   }
-  const predicate = raw.trim() === "" ? MATCH_ALL : compileQuery(parseSearchQuery(raw).root);
-  if (COMPILED.size >= COMPILED_LIMIT) {
-    COMPILED.clear();
+  const parsed = parseSearchQuery(raw);
+  const root = vocabulary ? resolveSearchQuery(parsed, vocabulary).root : parsed.root;
+  const predicate = raw.trim() === "" ? MATCH_ALL : compileQuery(root, strict);
+  if (byQuery.size >= COMPILED_LIMIT) {
+    byQuery.clear();
   }
-  COMPILED.set(raw, predicate);
+  byQuery.set(cacheKey, predicate);
   return predicate;
 }
 

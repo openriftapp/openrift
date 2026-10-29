@@ -94,8 +94,14 @@ describe("SearchBar query chips", () => {
   it("flags an unknown key and a malformed value", () => {
     setup({ search: "foo:bar e<=x" });
 
-    expect(screen.getByText("Unknown key “foo:”, searched as text")).toBeInTheDocument();
+    expect(screen.getByText("Unknown key “foo:”, ignored")).toBeInTheDocument();
     expect(screen.getByText("“x” doesn't work with e:")).toBeInTheDocument();
+  });
+
+  it("names the key to use for a key from another search tool", () => {
+    setup({ search: "cost:3 t:unit" });
+
+    expect(screen.getByText("Unknown key “cost:”, ignored. Use e: here")).toBeInTheDocument();
   });
 
   it("warns about a value outside the vocabulary", () => {
@@ -109,7 +115,7 @@ describe("SearchBar query chips", () => {
       <SearchBar totalCards={40} filteredCount={0} validationVocabulary={{ domain: ["fury"] }} />,
     );
 
-    expect(screen.getByText("No domain called “purple”")).toBeInTheDocument();
+    expect(screen.getByText("No domain called “purple”, ignored")).toBeInTheDocument();
   });
 
   it("links to the syntax help from the field", () => {

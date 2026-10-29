@@ -53,7 +53,7 @@ export function useCardDetailNavigation({
       applyTagFilter(tag);
       onDismiss();
     } else {
-      onSearchAndClose(`otag:"${tag}"`);
+      onSearchAndClose(`tag:"${tag}"`);
     }
   };
 

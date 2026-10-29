@@ -2,6 +2,7 @@ import { evaluateListRule, evaluateListRules, expandList } from "@openrift/share
 import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { useCollections } from "@/features/collections/hooks/use-collections";
 import { useCopies } from "@/features/collections/hooks/use-copies";
@@ -52,12 +53,14 @@ export function CopyRuleEditor({
 
   const serialized = serializeRules(rules, kind);
   const priceLookup = usePrices();
+  const vocabulary = useCatalogSearchVocabulary();
   const ctx = {
     catalog: allPrintings,
     ownedCopies: copies ? ownedCopiesFromCopyList(copies, printingsById) : [],
     customTagAssignments,
     enumOrders,
     priceLookup,
+    vocabulary,
   };
   // Undefined while copies load; the UI shows no count, never a misleading zero.
   const perRuleCounts = copies
@@ -110,7 +113,8 @@ export function CardRuleEditor({
   // (which reads `get()`), so the React Compiler tracks it as a dependency.
   const serialized = serializeRules(rules, kind);
   const priceLookup = usePrices();
-  const ctx = { catalog: allPrintings, ownedCopies, customTagAssignments, priceLookup };
+  const vocabulary = useCatalogSearchVocabulary();
+  const ctx = { catalog: allPrintings, ownedCopies, customTagAssignments, priceLookup, vocabulary };
   const perRuleCounts = serialized.map((rule) => evaluateListRule(rule, kind, ctx).length);
   const previewCount =
     rules.length > 0

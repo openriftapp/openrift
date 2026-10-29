@@ -5,6 +5,7 @@ import type { FilterCounts } from "@openrift/shared/filters-counts";
 import { computeFilterCounts } from "@openrift/shared/filters-counts";
 import { priceLookupFromMap } from "@openrift/shared/price-lookup";
 import { countPrintings } from "@openrift/shared/printing-side";
+import { catalogSearchVocabulary } from "@openrift/shared/search-query/vocabulary";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
 import type { InitResponse } from "@openrift/shared/types/api/init";
 import type { PricesResponse } from "@openrift/shared/types/api/pricing";
@@ -143,6 +144,12 @@ export function searchToFilters(search: FilterSearch) {
   };
 }
 
+/** Formats come from /init, which the SSR pass does not read, so `f:` values pass through as typed. */
+function ssrSearchVocabulary(catalog: CatalogResponse) {
+  const { allPrintings, sets } = enrichCatalog(catalog);
+  return catalogSearchVocabulary({ printings: allPrintings, sets, enums: catalog.enums });
+}
+
 export interface CardCounts {
   totalCards: number;
   filteredCount: number;
@@ -162,7 +169,11 @@ export function extractCardCounts(
   const lookup = priceLookupFromMap(prices.prices);
   const getPrice = (printing: Printing) => lookup.get(printing.printingId, SSR_MARKETPLACE);
   const filters = searchToFilters(search);
-  const filtered = filterCards(allPrintings, filters, { getPrice, priceLookup: lookup });
+  const filtered = filterCards(allPrintings, filters, {
+    getPrice,
+    priceLookup: lookup,
+    vocabulary: ssrSearchVocabulary(catalog),
+  });
 
   const totalCards =
     view === "cards"
@@ -321,6 +332,7 @@ export const fetchCardFilterCounts = createServerFn({ method: "GET" })
     const view = data.view ?? SSR_DEFAULT_VIEW;
     const counts = computeFilterCounts(allPrintings, searchToFilters(data), {
       countBy: view === "cards" ? "card" : "printing",
+      vocabulary: ssrSearchVocabulary(catalog),
       getPrice,
       priceLookup: lookup,
     });

@@ -3,24 +3,39 @@ import {
   catalogPrintingResponseValueSchema,
 } from "@openrift/shared/contracts/catalog";
 import { catalogSetResponseSchema } from "@openrift/shared/response-schemas";
+import { DIRECTION_VALUES, ORDER_VALUES, UNIQUE_VALUES } from "@openrift/shared/search-query/keys";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-const SEARCH_QUERY_MAX_CHARS = 500;
+const SEARCH_QUERY_MAX_CHARS = 1000;
 const SEARCH_PAGE_MAX = 200;
 export const SEARCH_PAGE_DEFAULT = 100;
 const NAME_MAX_CHARS = 200;
 
+const searchQuerySchema = z
+  .string()
+  .min(1)
+  .max(SEARCH_QUERY_MAX_CHARS)
+  .meta({
+    examples: ["t:unit d:fury e<=3"],
+    description:
+      "The query, in the syntax the site's search box takes (see the Search syntax help article). Printings are English unless the query has `lang:`; `lang:any` searches every language. `price`, `owned` and `ctag:` depend on a signed-in viewer and are refused.",
+  });
+
 export const searchInputSchema = z.object({
-  q: z
-    .string()
-    .min(1)
-    .max(SEARCH_QUERY_MAX_CHARS)
-    .meta({
-      examples: ["t:unit d:fury e<=3"],
-      description:
-        "The query, in the syntax the site's search box takes (see the Search syntax help article). `order:`, `direction:` and `unique:` inside it set the sort and whether one printing per card is returned. `price`, `owned` and `ctag:` depend on a signed-in viewer and are refused.",
-    }),
+  q: searchQuerySchema,
+  unique: z.enum(UNIQUE_VALUES).optional().meta({
+    description:
+      "`cards` (default) returns one printing per card, `prints` every printing, `art` one printing per illustration. `unique:` in the query wins.",
+  }),
+  order: z.enum(ORDER_VALUES).optional().meta({
+    description:
+      "Sort order, `name` when omitted. `price` is an alias of `usd`. `order:` in the query wins.",
+  }),
+  dir: z.enum(DIRECTION_VALUES).optional().meta({
+    description:
+      "`auto` (default) sorts `usd`, `eur` and `released` highest first and everything else A to Z. `direction:` in the query wins.",
+  }),
   cursor: z.string().optional().meta({
     description: "The `nextCursor` of the previous page. Omit it for the first page.",
   }),
@@ -33,8 +48,15 @@ export const searchInputSchema = z.object({
     .meta({ description: `Results per page, ${SEARCH_PAGE_DEFAULT} when omitted.` }),
 });
 
+const warningsSchema = z.array(z.string()).meta({
+  description:
+    "Parts of the query that were ignored, as sentences. An unknown key or value is left out and the rest of the query still runs.",
+});
+
 export const searchResponseSchema = z.object({
-  total: z.number().meta({ description: "Matching printings, or cards with `unique:cards`." }),
+  total: z
+    .number()
+    .meta({ description: "Matching printings, or cards with `unique:cards`, or illustrations." }),
   nextCursor: z.string().nullable().meta({ description: "Null on the last page." }),
   printingIds: z.array(z.string()).meta({
     description: "This page's printings in result order. Look each one up in `printings`.",
@@ -44,16 +66,28 @@ export const searchResponseSchema = z.object({
   sets: z
     .array(catalogSetResponseSchema)
     .meta({ description: "The sets this page's printings belong to." }),
+  warnings: warningsSchema,
 });
 
 const searchDiagnosticSchema = z.object({
-  code: z.string().meta({ examples: ["unknownValue"] }),
+  code: z.string().meta({ examples: ["badValue"] }),
   severity: z.enum(["warning", "error"]),
   start: z.number().meta({ description: "Character offset into `q` where the problem starts." }),
   end: z.number().meta({ description: "Character offset where it ends, exclusive." }),
   key: z.string().optional(),
   value: z.string().optional(),
 });
+
+const searchErrors = {
+  BAD_REQUEST: {
+    message: "The query has errors",
+    data: z.object({ diagnostics: z.array(searchDiagnosticSchema), warnings: warningsSchema }),
+  },
+  NOT_FOUND: {
+    message: "Your query didn't match any cards",
+    data: z.object({ warnings: warningsSchema }),
+  },
+};
 
 export const searchContract = {
   search: oc
@@ -64,15 +98,10 @@ export const searchContract = {
       operationId: "searchCards",
       summary: "Search cards with a query",
       description:
-        "Runs a search query against the catalog and returns one page of printings in the `/catalog` shape, with the cards and sets they reference. Bare words match card names, and a word shaped like a card number (`OGN-202`) also matches card numbers. Other fields need their key, like `o:` for card text. Results are one printing per card. Add `unique:prints` for every printing, and `prefer:` to choose which printing represents a card. Marker and distribution channel slugs are defined in `/catalog`. A query with an error (an unknown value, a malformed number, a refused key) returns 400 with the problems in `data.diagnostics`.",
+        "Runs a search query against the catalog and returns one page of printings in the `/catalog` shape, with the cards and sets they reference. Bare words match card names, and a word shaped like a card number (`OGN-202`) also matches card numbers. Other fields need their key, like `o:` for card text. An unknown key or value is ignored and named in `warnings`. A query that matches nothing returns 404. A query with an error (a malformed number, a refused key, nothing left after ignoring) returns 400 with the problems in `data.diagnostics` and `data.warnings`, and the first one in `message`.",
     })
     .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
-    .errors({
-      BAD_REQUEST: {
-        message: "The query has errors",
-        data: z.object({ diagnostics: z.array(searchDiagnosticSchema) }),
-      },
-    })
+    .errors(searchErrors)
     .input(searchInputSchema)
     .output(searchResponseSchema),
   named: oc
@@ -83,10 +112,15 @@ export const searchContract = {
       operationId: "getNamedCard",
       summary: "One card by name",
       description:
-        "Every printing of one card, in the `/api/v1/search` shape. `exact` matches a full card name (case, accents and punctuation ignored); `fuzzy` returns the best match for a partial or misspelled name, the way the Discord bot resolves names. Pass one of the two.",
+        "Every printing of one card, in the `/api/v1/search` shape. `exact` matches a full card name (case, accents and punctuation ignored); `fuzzy` matches a partial or misspelled name, and returns 404 with `data.type` `ambiguous` when more than one card fits equally well. Pass one of the two. `set` limits the printings to one set, by code or name.",
     })
     .meta({ auth: "public", developerApi: true, cache: "long", etag: true })
-    .errors({ NOT_FOUND: { message: "No card matches that name" } })
+    .errors({
+      NOT_FOUND: {
+        message: "No card matches that name",
+        data: z.object({ type: z.enum(["not_found", "ambiguous"]) }),
+      },
+    })
     .input(
       z
         .object({
@@ -102,6 +136,12 @@ export const searchContract = {
             .max(NAME_MAX_CHARS)
             .optional()
             .meta({ examples: ["jinx reb"] }),
+          set: z
+            .string()
+            .min(1)
+            .max(NAME_MAX_CHARS)
+            .optional()
+            .meta({ examples: ["OGN"] }),
         })
         .refine((input) => (input.exact === undefined) !== (input.fuzzy === undefined), {
           message: "Pass exactly one of exact or fuzzy.",
@@ -119,14 +159,8 @@ export const searchContract = {
         "One random card, as one printing in the `/api/v1/search` shape, optionally limited by a search query in the same syntax.",
     })
     .meta({ auth: "public", developerApi: true, cache: "revalidate" })
-    .errors({
-      BAD_REQUEST: {
-        message: "The query has errors",
-        data: z.object({ diagnostics: z.array(searchDiagnosticSchema) }),
-      },
-      NOT_FOUND: { message: "No card matches the query" },
-    })
-    .input(z.object({ q: searchInputSchema.shape.q.optional() }))
+    .errors(searchErrors)
+    .input(z.object({ q: searchQuerySchema.optional() }))
     .output(searchResponseSchema),
 };
 

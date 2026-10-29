@@ -278,7 +278,7 @@ export function computeFilterCounts(
   options: ComputeFilterCountsOptions,
 ): FilterCounts {
   const filters: CardFilters = { ...EMPTY_CARD_FILTERS, ...rawFilters };
-  const matchesQuery = searchPredicate(filters.search);
+  const matchesQuery = searchPredicate(filters.search, options.vocabulary, options.strict);
   const hasQuery = filters.search.trim() !== "";
   const getPrice = options.getPrice;
   const byCard = options.countBy === "card";

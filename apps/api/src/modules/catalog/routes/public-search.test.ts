@@ -108,6 +108,7 @@ describe("GET /api/v1/search", () => {
       printings: { "jinx-1": catalog.printings["jinx-1"] },
       cards: { jinx: catalog.cards.jinx },
       sets: catalog.sets,
+      warnings: [],
     });
     expect(mockMarketplace.latestPrices).not.toHaveBeenCalled();
   });
@@ -126,8 +127,35 @@ describe("GET /api/v1/search", () => {
     expect(json.code).toBe("BAD_REQUEST");
     expect(json.data.diagnostics.map((diagnostic: { code: string }) => diagnostic.code)).toEqual([
       "badValue",
-      "unknownValue",
     ]);
+    expect(json.message).toBe('"e<=x" has a value "e" cannot take.');
+    expect(json.data.warnings).toEqual([
+      '"e<=x" has a value "e" cannot take.',
+      'Invalid expression "d:purple" was ignored. Unknown value "purple" for "domain".',
+    ]);
+  });
+
+  it("answers 404 with the warnings for a query that matches nothing", async () => {
+    const res = await app.request(`/api/v1/search?q=${encodeURIComponent("e>=9 zz:top")}`);
+    expect(res.status).toBe(404);
+    const json = await readJson(res);
+    expect(json.code).toBe("NOT_FOUND");
+    expect(json.data.warnings).toEqual([
+      'Invalid expression "zz:top" was ignored. Unknown keyword "zz".',
+    ]);
+  });
+
+  it("takes unique, order and dir as URL parameters", async () => {
+    const res = await app.request(
+      `/api/v1/search?q=${encodeURIComponent("t:unit")}&order=energy&dir=desc`,
+    );
+    const json = await readJson(res);
+    expect(json.printingIds).toEqual(["garen-1", "jinx-1"]);
+  });
+
+  it("loads prices for an order parameter that reads them", async () => {
+    await app.request(`/api/v1/search?q=${encodeURIComponent("t:unit")}&order=usd`);
+    expect(mockMarketplace.latestPrices).toHaveBeenCalledOnce();
   });
 
   it("returns one random card", async () => {
@@ -142,6 +170,8 @@ describe("GET /api/v1/search", () => {
     expect(json.printingIds).toEqual(["garen-1"]);
     const missing = await app.request("/api/v1/search/named?exact=Nobody");
     expect(missing.status).toBe(404);
+    const missingJson = await readJson(missing);
+    expect(missingJson.data).toEqual({ type: "not_found" });
   });
 
   it("needs exactly one of exact and fuzzy", async () => {

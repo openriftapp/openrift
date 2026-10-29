@@ -41,6 +41,10 @@ export const SORT_OPTIONS = ["id", "name", "energy", "rarity", "price"] as const
 
 export type SortOption = (typeof SORT_OPTIONS)[number];
 
+export function isSortOption(value: string): value is SortOption {
+  return (SORT_OPTIONS as readonly string[]).includes(value);
+}
+
 export const SORT_DIRECTIONS = ["asc", "desc"] as const;
 
 export type SortDirection = (typeof SORT_DIRECTIONS)[number];
