@@ -10,7 +10,11 @@ import { isHydrationSettled, markHydrationSettled } from "./lib/app-diagnostics"
 import { bufferHydrationError } from "./lib/hydration-error-buffer";
 import type { HydrationErrorPhase } from "./lib/hydration-error-buffer";
 import { initStaleBundleWatcher, initVisibilityVersionCheck } from "./lib/stale-bundle";
-import { initChunkErrorReloader, reloadIfUncaughtBareThrow } from "./lib/stale-bundle-reload";
+import {
+  initChunkErrorReloader,
+  reloadIfChunkLoadError,
+  reloadIfUncaughtBareThrow,
+} from "./lib/stale-bundle-reload";
 import { initInstallPromptCapture } from "./stores/install-store";
 
 if (import.meta.env.DEV && import.meta.env.VITE_DEVTOOLS) {
@@ -29,6 +33,9 @@ function reportHydrationError(
   const label = duringHydration ? "hydration" : "render";
   // oxlint-disable-next-line no-console -- deliberate prod diagnostic for render/hydration errors
   console.error(`[${label}:${phase}]`, error, errorInfo.componentStack ?? "(no component stack)");
+  if (reloadIfChunkLoadError(error)) {
+    return;
+  }
   if (import.meta.env.PROD) {
     bufferHydrationError({
       phase,

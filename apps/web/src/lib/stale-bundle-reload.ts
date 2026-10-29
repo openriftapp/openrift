@@ -162,6 +162,21 @@ export function reloadIfStaleServerFnError(error: unknown): boolean {
   return true;
 }
 
+// React wraps a render-time import failure in its own error and hands it to
+// the root callbacks, which never reach initChunkErrorReloader's listeners.
+export function reloadIfChunkLoadError(error: unknown): boolean {
+  let current = error;
+  for (let depth = 0; depth < 5 && current !== undefined && current !== null; depth++) {
+    const message = errorMessage(current);
+    if (CHUNK_LOAD_ERROR_PATTERN.test(message)) {
+      reloadOnce(`chunk load error: ${message}`);
+      return true;
+    }
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return false;
+}
+
 // `throw undefined` (or null, or empty string) escapes React error boundaries
 // and produces a white page.
 function isSameOriginBareThrow(event: ErrorEvent): boolean {

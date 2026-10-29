@@ -6,6 +6,7 @@ import {
   forceReload,
   isStaleServerFnError,
   markNewVersionAvailable,
+  reloadIfChunkLoadError,
   reloadIfStaleServerFnError,
   reloadIfUncaughtBareThrow,
   scheduleReloadFlagClear,
@@ -164,6 +165,44 @@ describe("isStaleServerFnError / reloadIfStaleServerFnError", () => {
 
   it("reports unhandled and does not reload for unrelated errors", () => {
     expect(reloadIfStaleServerFnError(new Error("network down"))).toBe(false);
+    expect(reloadSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("reloadIfChunkLoadError", () => {
+  it("reloads for a chunk-load error React wrapped as the cause of its recovery error", () => {
+    const chunkError = new TypeError(
+      "Failed to fetch dynamically imported module: https://example.test/assets/_app-abc.js",
+    );
+    const wrapper = new Error("There was an error during concurrent rendering", {
+      cause: chunkError,
+    });
+
+    expect(reloadIfChunkLoadError(wrapper)).toBe(true);
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("reloads for an unwrapped chunk-load error", () => {
+    expect(reloadIfChunkLoadError(new Error("Importing a module script failed."))).toBe(true);
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to the notifier once the automatic reload has been spent", () => {
+    const chunkError = new TypeError("Failed to fetch dynamically imported module: x");
+    reloadIfChunkLoadError(chunkError);
+
+    expect(reloadIfChunkLoadError(chunkError)).toBe(true);
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(notifierSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns false for a wrapper whose cause is an unrelated error", () => {
+    const wrapper = new Error("There was an error during concurrent rendering", {
+      cause: new Error("real bug"),
+    });
+
+    expect(reloadIfChunkLoadError(wrapper)).toBe(false);
+    expect(reloadIfChunkLoadError(undefined)).toBe(false);
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 });
