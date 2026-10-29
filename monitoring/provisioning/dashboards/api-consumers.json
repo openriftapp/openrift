@@ -22,7 +22,7 @@
   "panels": [
     {
       "title": "API requests by client",
-      "description": "External requests to /api/v1, /api/doc, and /api/ui from the nginx proxy access log. Browser User-Agents are collapsed into one (browsers) bucket; everything else (scripts, tools, bots) keeps its User-Agent. Server-side calls from the web container bypass the proxy and are not counted.",
+      "description": "External requests to /api/v1, /api/doc and /api/ui from the nginx proxy access log, grouped by User-Agent category: browsers, crawlers and link previews, generic HTTP tools (curl, node, python-requests, ...) and identified apps (everything else). The tables below list individual User-Agents. Server-side calls from the web container bypass the proxy and are not counted.",
       "type": "timeseries",
       "datasource": {
         "type": "loki",
@@ -30,7 +30,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (client) (count_over_time({container=\"openrift-proxy-1\"} |= \" /api/\" | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<referer>\" \"<ua>\" <_>` | path=~\"/api/(v1/|doc|ui).*\" | label_format client=`{{ if hasPrefix \"Mozilla/\" .ua }}(browsers){{ else }}{{ .ua }}{{ end }}` [$__interval]))",
+          "expr": "sum by (client) (count_over_time({container=\"openrift-proxy-1\"} |= \" /api/\" | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<referer>\" \"<ua>\" <_>` | path=~\"/api/(v1/|doc|ui).*\" | label_format client=`{{ if gt (count \"(?i)bot[/;-]|crawler|spider|externalagent|externalhit|externalfetcher|chatgpt-user|claude-user|inspectiontool|headless|lighthouse|whatsapp|networkingextension\" .ua) 0 }}(crawlers & previews){{ else if hasPrefix \"Mozilla/\" .ua }}(browsers){{ else if gt (count \"^(curl|Wget|python-|python/|aiohttp|httpx|node|undici|Bun|Deno|axios|got|okhttp|Go-http-client|Java/|Apache-HttpClient|libwww-perl|PostmanRuntime|Insomnia|RestSharp|Dart|Microsoft\\\\.Data\\\\.Mashup|PowerShell|reqwest|colly|Ruby|PHP|GuzzleHttp|-$|x$)\" .ua) 0 }}(generic tools){{ else }}(identified apps){{ end }}` [$__interval]))",
           "legendFormat": "{{client}}",
           "refId": "A"
         }
@@ -69,11 +69,15 @@
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": ["sum"],
+          "sortBy": "Total",
+          "sortDesc": true
         },
         "tooltip": {
-          "mode": "multi"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "gridPos": {
@@ -93,7 +97,7 @@
       },
       "targets": [
         {
-          "expr": "topk(20, sum by (ua) (count_over_time({container=\"openrift-proxy-1\"} |= \" /api/\" | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<referer>\" \"<ua>\" <_>` | path=~\"/api/(v1/|doc|ui).*\" | ua !~ \"Mozilla/.*\" [$__range])))",
+          "expr": "topk(500, sum by (ua) (count_over_time({container=\"openrift-proxy-1\"} |= \" /api/\" | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<referer>\" \"<ua>\" <_>` | path=~\"/api/(v1/|doc|ui).*\" | ua !~ \"Mozilla/.*\" [$__range])))",
           "legendFormat": "{{ua}}",
           "refId": "A",
           "queryType": "instant",
@@ -161,7 +165,7 @@
       },
       "targets": [
         {
-          "expr": "topk(20, sum by (origin) (count_over_time({container=\"openrift-proxy-1\"} |= \" /api/\" | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<_>\" \"<_>\" \"<_>\" <_> uht=<_> \"<origin>\" \"<_>\"` | path=~\"/api/(v1/|doc|ui).*\" | origin != \"-\" | origin != \"https://openrift.app\" [$__range])))",
+          "expr": "topk(500, sum by (origin) (count_over_time({container=\"openrift-proxy-1\"} |= \" /api/\" | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<_>\" \"<_>\" \"<_>\" <_> uht=<_> \"<origin>\" \"<_>\"` | path=~\"/api/(v1/|doc|ui).*\" | origin != \"-\" | origin != \"https://openrift.app\" [$__range])))",
           "legendFormat": "{{origin}}",
           "refId": "A",
           "queryType": "instant",
@@ -221,7 +225,7 @@
     },
     {
       "title": "Non-browser requests by endpoint",
-      "description": "What the non-browser clients are fetching (query strings stripped, card slugs, share codes and long ids collapsed).",
+      "description": "What the non-browser clients are fetching (query strings stripped, path ids and slugs collapsed to :id).",
       "type": "table",
       "datasource": {
         "type": "loki",
@@ -229,7 +233,7 @@
       },
       "targets": [
         {
-          "expr": "topk(25, sum by (ua, endpoint) (count_over_time({container=\"openrift-proxy-1\"} |= \" /api/\" | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<referer>\" \"<ua>\" <_>` | path=~\"/api/(v1/|doc|ui).*\" | ua !~ \"Mozilla/.*\" | label_format endpoint=`{{ regexReplaceAll \"/[A-Za-z0-9_-]*[0-9][A-Za-z0-9_-]{15,}\" (regexReplaceAll \"^/api/v1/decks/share/[^/]+\" (regexReplaceAll \"^/api/v1/cards/[^/]+\" (regexReplaceAll \"\\\\?.*\" .path \"\") \"/api/v1/cards/:slug\") \"/api/v1/decks/share/:code\") \"/:id\" }}` [$__range])))",
+          "expr": "topk(25, sum by (ua, endpoint) (count_over_time({container=\"openrift-proxy-1\"} |= \" /api/\" | pattern `<_> - - [<_>] \"<_> <path> <_>\" <_> <_> \"<referer>\" \"<ua>\" <_>` | path=~\"/api/(v1/|doc|ui).*\" | ua !~ \"Mozilla/.*\" | label_format endpoint=`{{ regexReplaceAll \"/[A-Za-z0-9_-]*[0-9][A-Za-z0-9_-]{15,}\" (regexReplaceAll \"^/api/v1/(decks/share|collections/share|lists/share|meta/decks|meta/events|meta/legends|meta/players|decks|cards|sets|products)/[^/]+\" (regexReplaceAll \"\\\\?.*\" .path \"\") \"/api/v1/${1}/:id\") \"/:id\" }}` [$__range])))",
           "legendFormat": "{{ua}} {{endpoint}}",
           "refId": "A",
           "queryType": "instant",
