@@ -2,6 +2,7 @@ import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
 import type { SearchKeyDefinition, SearchKeyId } from "@openrift/shared/search-query/keys";
 import {
   DIRECTION_VALUES,
+  FOREIGN_KEY_HINTS,
   HAS_VALUES,
   IS_VALUES,
   ORDER_VALUES,
@@ -33,6 +34,8 @@ const FIXED_VALUES: Partial<Record<SearchKeyId, readonly string[]>> = {
   unique: UNIQUE_VALUES,
   prefer: PREFER_VALUES,
 };
+
+const MIN_HINT_LENGTH = 3;
 
 const CLAUSE_HEAD = /^(?<alias>[a-z]+)(?<operator>!=|<=|>=|:|=|<|>)(?<partial>.*)$/iu;
 
@@ -110,6 +113,19 @@ export function searchSuggestions(
     if (alias) {
       const insert = keyInsert(alias, definition);
       suggestions.push({ kind: "key", label: insert, insert, key: definition.id });
+    }
+  }
+  if (lower.length >= MIN_HINT_LENGTH) {
+    for (const [word, alias] of Object.entries(FOREIGN_KEY_HINTS)) {
+      const definition = searchKeyByAlias(alias);
+      if (
+        definition &&
+        word.startsWith(lower) &&
+        !suggestions.some((suggestion) => suggestion.key === definition.id)
+      ) {
+        const insert = keyInsert(alias, definition);
+        suggestions.push({ kind: "key", label: insert, insert, key: definition.id });
+      }
     }
   }
   return suggestions.length > 0 ? { start, end, suggestions: suggestions.slice(0, limit) } : null;

@@ -178,10 +178,23 @@ export const FOREIGN_KEY_HINTS: Readonly<Record<string, string>> = {
   cmc: "e",
   manavalue: "e",
   text: "o",
+  rules: "o",
+  ability: "o",
+  effect: "o",
   num: "cn",
   c: "d",
   color: "d",
+  colour: "d",
+  faction: "d",
   identity: "d",
+  edition: "s",
+  expansion: "s",
+  illustrator: "a",
+  flavour: "ft",
+  language: "lang",
+  sort: "order",
+  release: "date",
+  released: "date",
 };
 
 const KEY_BY_ALIAS = new Map(

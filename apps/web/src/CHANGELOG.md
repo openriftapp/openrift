@@ -11,6 +11,7 @@
 
 - feat(Cards): **Tags with t: and tag:** — t:noxus now finds Noxus cards next to card types, and tag: searches tags only in place of otag:.
 - feat(Cards): **More search keys** — pow, usdfoil, eurfoil, is:nonfoil, is:alternate, is:variant, set names, prefixes like r:e, single quotes and more order: sorts work.
+- feat(Cards): **Keys suggested from plain words** — typing text, cost, color, edition or sort in the search box now suggests o:, e:, d:, s: or order:.
 - feat(Cards): **Costless cards count as 0** — e:0 and p:0 now include legends, runes, battlefields and other cards without a cost.
 - feat(Cards): **2v2 bans include Constructed** — banned:2v2 and f:2v2 now count every card banned in Constructed too.
 - feat(Developers): **Search API defaults** — results are English printings sorted by name, unique, order and dir work as URL parameters, and /search/named takes a set.

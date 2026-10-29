@@ -28,6 +28,22 @@ describe("searchSuggestions", () => {
     expect(labels("ener")).toEqual(["energy"]);
   });
 
+  it("suggests a key for a common word that names it", () => {
+    expect(labels("text")).toEqual(["o:"]);
+    expect(labels("cos")).toEqual(["e"]);
+    expect(labels("illus")).toEqual(["a:"]);
+  });
+
+  it("suggests a key once when an alias and a common word both match it", () => {
+    expect(labels("lan")).toEqual(["lang:"]);
+    expect(labels("fla")).toEqual(["flavor:"]);
+  });
+
+  it("ignores common words below three letters", () => {
+    expect(labels("e")).toEqual(["e", "eur", "eurfoil"]);
+    expect(labels("te")).toBeUndefined();
+  });
+
   it("suggests no keys for a word no alias starts with", () => {
     expect(labels("garen")).toBeUndefined();
   });
