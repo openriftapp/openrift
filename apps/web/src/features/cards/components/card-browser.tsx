@@ -327,7 +327,7 @@ export function CardBrowser() {
       }
     >
       <PackageIcon className="size-4" />
-      <span className="hidden sm:inline">{m.cards_grid_owned_count_label()}</span>
+      <span>{m.cards_grid_owned_count_label()}</span>
     </Toggle>
   ) : null;
 
@@ -351,7 +351,7 @@ export function CardBrowser() {
         <CardDetailActions
           printing={printing}
           siblings={detailPanePrintingsByCardId.get(printing.cardId)}
-          showCount={canAdd}
+          incrementDisabled={!hasAddTarget}
           wishEntries={wish.entriesForPrinting(printing.cardId, printing.printingId)}
           onAddToWishlist={setWishTarget}
         />

@@ -16,6 +16,7 @@
 - feat(Cards): **2v2 bans include Constructed** — banned:2v2 and f:2v2 now count every card banned in Constructed too.
 - feat(Developers): **Search API defaults** — results are English printings sorted by name, unique, order and dir work as URL parameters, and /search/named takes a set.
 - feat(Developers): **Search API errors and warnings** — skipped terms come back in warnings, a search without matches returns 404, and an ambiguous fuzzy name says so.
+- fix(Cards): **Owned count in the card pane** — hiding owned counts on the grid no longer hides them in the card pane, and the toggle is labelled on phones.
 - fix(Cards): **Whole card numbers** — cn:120 matches card 120 and its variants, no longer OGS-012/024 because the digits line up.
 
 ## 2026-10-28

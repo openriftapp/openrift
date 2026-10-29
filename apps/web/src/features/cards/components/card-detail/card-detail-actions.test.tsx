@@ -41,35 +41,9 @@ describe("CardDetailActions", () => {
     expect(screen.getByRole("button", { name: "Wishlist Chaos Rune" })).toBeInTheDocument();
   });
 
-  it("labels the stepper as owned, and drops the label without it", () => {
-    const { rerender } = render(
-      <CardDetailActions printing={printingX} wishEntries={[]} onAddToWishlist={() => {}} />,
-    );
+  it("labels the stepper as owned", () => {
+    render(<CardDetailActions printing={printingX} wishEntries={[]} onAddToWishlist={() => {}} />);
     expect(screen.getByText("Owned")).toBeInTheDocument();
-
-    rerender(
-      <CardDetailActions
-        printing={printingX}
-        showCount={false}
-        wishEntries={[]}
-        onAddToWishlist={() => {}}
-      />,
-    );
-    expect(screen.queryByText("Owned")).not.toBeInTheDocument();
-  });
-
-  it("keeps the wishlist button when the stepper is hidden", () => {
-    render(
-      <CardDetailActions
-        printing={printingX}
-        showCount={false}
-        wishEntries={[]}
-        onAddToWishlist={() => {}}
-      />,
-    );
-
-    expect(screen.queryByTestId("stepper")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Wishlist Chaos Rune" })).toBeInTheDocument();
   });
 
   it("scopes the stepper to a collection and widens it over siblings", () => {
