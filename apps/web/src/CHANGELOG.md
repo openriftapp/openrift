@@ -8,6 +8,7 @@
 
 ### Other
 
+- fix(Cards): **Steady card window** — the card detail window now stays anchored near the top while you step through cards with the arrows, so the arrows and close button stop jumping.
 - feat(Decks): **Turn off unowned card fading** — the new Highlight owned toggle in the deck builder's card browser shows cards you don't own at full strength when switched off.
 
 ## 2026-10-29

@@ -48,7 +48,7 @@ export function CardDetailDialogShell({
       }}
     >
       <DialogContent
-        className="sm:max-w-[860px]"
+        className="top-[8dvh] max-h-[calc(100dvh-8dvh-1rem)] translate-y-0 sm:max-w-[860px]"
         style={style}
         onKeyDown={onKeyDown}
         showCloseButton={false}
