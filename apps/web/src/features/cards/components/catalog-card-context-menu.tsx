@@ -46,7 +46,7 @@ export function CatalogCardContextMenu({
             render={
               <Link
                 to="/cards/$cardSlug/{-$printingSlug}"
-                params={{ cardSlug: printing.card.slug }}
+                params={{ cardSlug: printing.card.slug, printingSlug: printing.slug }}
               />
             }
           >

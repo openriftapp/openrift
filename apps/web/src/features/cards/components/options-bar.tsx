@@ -108,18 +108,24 @@ export function DetailPaneToggle({
   }
   const label = paneDocked ? m.cards_detail_pane_hide() : m.cards_detail_pane_show();
   return (
-    <Toggle
-      variant="control"
-      size={compact ? "sm" : "default"}
-      pressed={paneDocked}
-      onPressedChange={handlePressedChange}
-      className={cn(compact && "gap-1.5 text-xs", className)}
-      title={label}
-      aria-label={label}
-    >
-      <PanelRightIcon className={compact ? undefined : "size-4"} />
-      {compact && m.cards_detail_pane_label()}
-    </Toggle>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Toggle
+            variant="control"
+            size={compact ? "sm" : "default"}
+            pressed={paneDocked}
+            onPressedChange={handlePressedChange}
+            className={cn(compact && "gap-1.5 text-xs", className)}
+            aria-label={label}
+          />
+        }
+      >
+        <PanelRightIcon className={compact ? undefined : "size-4"} />
+        {compact && m.cards_detail_pane_label()}
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }
 

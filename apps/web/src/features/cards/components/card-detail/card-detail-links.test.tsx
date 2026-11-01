@@ -20,16 +20,19 @@ vi.mock("@tanstack/react-router", async () => {
       ...rest
     }: {
       to: string;
-      params?: { cardSlug: string; printingId?: string };
+      params?: { cardSlug: string; printingId?: string; printingSlug?: string };
       search?: unknown;
       children?: ReactNode;
     }) => (
       <a
         {...rest}
         href={(params
-          ? to.replace("$cardSlug", params.cardSlug).replace("$printingId", params.printingId ?? "")
+          ? to
+              .replace("$cardSlug", params.cardSlug)
+              .replace("$printingId", params.printingId ?? "")
+              .replace("{-$printingSlug}", params.printingSlug ?? "")
           : to
-        ).replaceAll(/\/\{-\$[^}]+\}/gu, "")}
+        ).replace(/\/$/u, "")}
       >
         {children}
       </a>
@@ -42,7 +45,7 @@ vi.mock("@/features/admin/hooks/use-admin", () => ({
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
-import { CardDetailLinks } from "./card-detail-links";
+import { CardDetailLinks, CardPageButton } from "./card-detail-links";
 
 async function openCorrectionMenu() {
   await userEvent.setup().click(screen.getByRole("button", { name: "Suggest a correction" }));
@@ -65,6 +68,26 @@ describe("CardDetailLinks", () => {
       "href",
       "/contribute/card/yasuo",
     );
+  });
+
+  it("links the footer card page link to the shown printing", () => {
+    render(
+      <CardDetailLinks
+        card={stubCard({ slug: "yasuo" })}
+        printing={stubPrinting({ slug: "yasuo-ogn-1-en", card: { slug: "yasuo" } })}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Open card page" })).toHaveAttribute(
+      "href",
+      "/cards/yasuo/yasuo-ogn-1-en",
+    );
+  });
+
+  it("omits the footer card page link when the header carries it", () => {
+    render(<CardDetailLinks card={stubCard()} hideCardPage />);
+
+    expect(screen.queryByRole("link", { name: "Open card page" })).not.toBeInTheDocument();
   });
 
   it("offers the printing and image forms for a printing that has an image", async () => {
@@ -119,6 +142,22 @@ describe("CardDetailLinks", () => {
     expect(screen.getByRole("link", { name: "Admin view" })).toHaveAttribute(
       "href",
       "/admin/cards/yasuo",
+    );
+  });
+});
+
+describe("CardPageButton", () => {
+  it("links to the card page of the shown printing", () => {
+    render(
+      <CardPageButton
+        card={stubCard({ slug: "yasuo" })}
+        printing={stubPrinting({ slug: "yasuo-ogn-1-en", card: { slug: "yasuo" } })}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Card page" })).toHaveAttribute(
+      "href",
+      "/cards/yasuo/yasuo-ogn-1-en",
     );
   });
 });

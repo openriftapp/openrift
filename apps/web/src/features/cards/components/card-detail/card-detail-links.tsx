@@ -2,28 +2,52 @@ import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
 import { ChevronDownIcon, ExternalLinkIcon, PencilLineIcon, ShieldIcon } from "lucide-react";
 
+import { buttonVariants } from "@/components/ui/button";
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
 import { SuggestCorrectionMenu } from "@/features/cards/components/suggest-correction-menu";
 import { m } from "@/paraglide/messages.js";
+
+export function CardPageButton({ card, printing }: { card: Card; printing?: Printing }) {
+  return (
+    <Link
+      to="/cards/$cardSlug/{-$printingSlug}"
+      params={{ cardSlug: card.slug, printingSlug: printing?.slug }}
+      className={buttonVariants({ variant: "outline", size: "sm" })}
+    >
+      <ExternalLinkIcon />
+      {m.card_detail_card_page()}
+    </Link>
+  );
+}
 
 /**
  * Escape hatches out of the overlay: the card's own page, the correction and
  * image forms, and the admin view for admins. Not rendered on the standalone
  * card page, which already carries its own top-bar links.
  */
-export function CardDetailLinks({ card, printing }: { card: Card; printing?: Printing }) {
+export function CardDetailLinks({
+  card,
+  printing,
+  hideCardPage,
+}: {
+  card: Card;
+  printing?: Printing;
+  hideCardPage?: boolean;
+}) {
   const { data: isAdmin } = useIsAdmin();
 
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-      <Link
-        to="/cards/$cardSlug/{-$printingSlug}"
-        params={{ cardSlug: card.slug }}
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
-      >
-        <ExternalLinkIcon className="size-3" />
-        {m.card_detail_link_open_card_page()}
-      </Link>
+      {!hideCardPage && (
+        <Link
+          to="/cards/$cardSlug/{-$printingSlug}"
+          params={{ cardSlug: card.slug, printingSlug: printing?.slug }}
+          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
+        >
+          <ExternalLinkIcon className="size-3" />
+          {m.card_detail_link_open_card_page()}
+        </Link>
+      )}
       <SuggestCorrectionMenu
         cardSlug={card.slug}
         printing={printing}

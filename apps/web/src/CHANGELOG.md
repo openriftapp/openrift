@@ -5,6 +5,7 @@
 ### Highlights
 
 - feat(Cards): **Card text and tag matches** — a search of plain words now links to the cards that have those words in their text or tags, also when some card names match.
+- feat(Cards): **Card page and dock buttons** — the card window header now has a Card page button that opens the printing you're viewing and a button to dock the window beside the grid.
 
 ### Other
 

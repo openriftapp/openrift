@@ -1,9 +1,10 @@
 import type { CardBan, Printing } from "@openrift/shared/types/catalog";
-import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, PanelRightIcon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getDomainTintStyle } from "@/lib/domain";
 import { formatPublicCode } from "@/lib/format";
@@ -12,7 +13,7 @@ import { m } from "@/paraglide/messages.js";
 
 import { CardDetailArt } from "./card-detail-art";
 import { CardDetailHeading } from "./card-detail-heading";
-import { CardDetailLinks } from "./card-detail-links";
+import { CardDetailLinks, CardPageButton } from "./card-detail-links";
 import { CardDetailOtherSide } from "./card-detail-other-side";
 import { CardDetailStats } from "./card-detail-stats";
 import { CardDetailText } from "./card-detail-text";
@@ -45,7 +46,7 @@ interface CardDetailProps {
   collectionId?: string;
   actions?: ReactNode;
   navLabel?: string;
-  footerSlot?: ReactNode;
+  onDock?: () => void;
 }
 
 function BanAlert({ bans, upcoming }: { bans: CardBan[]; upcoming: boolean }) {
@@ -84,7 +85,7 @@ export function CardDetail({
   collectionId,
   actions,
   navLabel,
-  footerSlot,
+  onDock,
 }: CardDetailProps) {
   const { card } = printing;
   const domainColors = useDomainColors();
@@ -131,31 +132,51 @@ export function CardDetail({
           <div className="min-w-0 flex-1">
             <CardDetailHeading printing={printing} setNumber={setNumber} onTagClick={onTagClick} />
           </div>
-          {hasNav && (
-            <div className="flex shrink-0 items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon-sm"
-                onClick={onPrevCard}
-                disabled={!onPrevCard}
-                aria-label={m.card_detail_prev_card()}
-              >
-                <ChevronLeftIcon className="size-4" />
-              </Button>
-              {navLabel && (
-                <span className="text-muted-foreground text-sm tabular-nums">{navLabel}</span>
-              )}
-              <Button
-                variant="outline"
-                size="icon-sm"
-                onClick={onNextCard}
-                disabled={!onNextCard}
-                aria-label={m.card_detail_next_card()}
-              >
-                <ChevronRightIcon className="size-4" />
-              </Button>
-            </div>
-          )}
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <CardPageButton card={card} printing={printing} />
+            {onDock && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
+                      onClick={onDock}
+                      aria-label={m.cards_detail_dock_action()}
+                    />
+                  }
+                >
+                  <PanelRightIcon className="size-4" />
+                </TooltipTrigger>
+                <TooltipContent>{m.cards_detail_dock_action()}</TooltipContent>
+              </Tooltip>
+            )}
+            {hasNav && (
+              <>
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={onPrevCard}
+                  disabled={!onPrevCard}
+                  aria-label={m.card_detail_prev_card()}
+                >
+                  <ChevronLeftIcon className="size-4" />
+                </Button>
+                {navLabel && (
+                  <span className="text-muted-foreground text-sm tabular-nums">{navLabel}</span>
+                )}
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={onNextCard}
+                  disabled={!onNextCard}
+                  aria-label={m.card_detail_next_card()}
+                >
+                  <ChevronRightIcon className="size-4" />
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="grid gap-5 @2xl:grid-cols-[340px_minmax(0,1fr)]">
@@ -176,9 +197,8 @@ export function CardDetail({
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <CardDetailLinks card={card} printing={printing} />
-          {footerSlot}
+        <div className="mt-4">
+          <CardDetailLinks card={card} printing={printing} hideCardPage />
         </div>
       </div>
     );

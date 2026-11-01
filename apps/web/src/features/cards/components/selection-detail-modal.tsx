@@ -2,8 +2,6 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { lazy, useRef } from "react";
 import type { ReactNode } from "react";
 
-import { Pressable } from "@/components/ui/pressable";
-import { textLinkVariants } from "@/components/ui/text-link";
 import { CardDetailDialogShell } from "@/features/cards/components/card-detail/card-detail-shells";
 import {
   closeOverlayHistoryEntry,
@@ -14,7 +12,6 @@ import { useSelectionDetail } from "@/features/cards/hooks/use-selection-detail"
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { getDomainTintStyle } from "@/lib/domain";
-import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
 
@@ -120,14 +117,7 @@ export function SelectionDetailModal({
         actions={actions?.(selectedCard)}
         collectionId={collectionId}
         navLabel={navLabel}
-        footerSlot={
-          <span className="text-muted-foreground text-xs">
-            {m.cards_detail_dock_prompt()}{" "}
-            <Pressable onClick={handleDock} className={textLinkVariants({ variant: "muted" })}>
-              {m.cards_detail_dock_action()}
-            </Pressable>
-          </span>
-        }
+        onDock={handleDock}
       />
     </CardDetailDialogShell>
   );

@@ -61,11 +61,11 @@ vi.mock("@/features/cards/components/card-detail/card-detail", () => ({
   CardDetail: ({
     navLabel,
     actions,
-    footerSlot,
+    onDock,
   }: {
     navLabel?: string;
     actions?: ReactNode;
-    footerSlot?: ReactNode;
+    onDock?: () => void;
   }) => (
     <div>
       <div>Card detail stub</div>
@@ -77,7 +77,7 @@ vi.mock("@/features/cards/components/card-detail/card-detail", () => ({
           EN
         </button>
       </div>
-      {footerSlot}
+      <button type="button" aria-label="Dock beside the grid" onClick={onDock} />
     </div>
   ),
 }));
@@ -157,17 +157,26 @@ describe("SelectionDetailModal", () => {
     expect(await screen.findByText("2 / 3")).toBeInTheDocument();
   });
 
-  it("docks the pane and keeps the card when the footer link is used", async () => {
+  it("docks the pane and keeps the card from the header dock button", async () => {
     const user = userEvent.setup();
     const items = [stubCardViewerItem()];
     selectFirst(items);
     renderModal(items);
 
-    await user.click(await screen.findByRole("button", { name: "Dock it beside the grid" }));
+    await user.click(await screen.findByRole("button", { name: "Dock beside the grid" }));
 
     expect(useDisplayStore.getState().paneDocked).toBe(true);
     expect(useSelectionStore.getState().selectedCard).toBe(items[0]!.printing);
     expect(useSelectionStore.getState().detailOpen).toBe(true);
+  });
+
+  it("no longer shows the footer dock prompt", async () => {
+    const items = [stubCardViewerItem()];
+    selectFirst(items);
+    renderModal(items);
+    await screen.findByText("Card detail stub");
+
+    expect(screen.queryByText("Want this to stay open?")).not.toBeInTheDocument();
   });
 
   it("renders the surface's action row for the shown card", async () => {
