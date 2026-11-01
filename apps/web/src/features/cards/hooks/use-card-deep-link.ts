@@ -14,6 +14,7 @@ interface Options {
 /**
  * `resetScroll: false`: TanStack Router's scroll-restoration otherwise fires
  * `window.scrollTo(0, 0)` and wipes out CardGrid's scroll-to-selected-card.
+ * Selects after the replace commits; an earlier overlay push leaves `printingId` in the entry under it.
  */
 export function useCardDeepLink({ linkedPrintingId, printingsById, items }: Options) {
   const navigate = useNavigate();
@@ -28,12 +29,15 @@ export function useCardDeepLink({ linkedPrintingId, printingsById, items }: Opti
       return;
     }
     handled.current = true;
-    useSelectionStore.getState().selectCard(printing, items, "printing");
-    void navigate({
-      to: ".",
-      search: ({ printingId: _printingId, ...rest }) => rest,
-      replace: true,
-      resetScroll: false,
-    });
+    const selectAfterCleanup = async () => {
+      await navigate({
+        to: ".",
+        search: ({ printingId: _printingId, ...rest }) => rest,
+        replace: true,
+        resetScroll: false,
+      });
+      useSelectionStore.getState().selectCard(printing, items, "printing");
+    };
+    void selectAfterCleanup();
   }, [linkedPrintingId, printingsById, items, navigate]);
 }

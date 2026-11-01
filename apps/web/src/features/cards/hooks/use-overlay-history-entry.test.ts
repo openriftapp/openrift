@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 describe("useOverlayHistoryEntry", () => {
-  it("pushes an entry flagged with the overlay's key", () => {
+  it("pushes an entry flagged with the overlay's key and as an overlay entry", () => {
     renderHook(() =>
       useOverlayHistoryEntry({ active: true, stateKey: "cardDetail", onPop: vi.fn() }),
     );
@@ -35,7 +35,11 @@ describe("useOverlayHistoryEntry", () => {
     expect(navigateMock).toHaveBeenCalledTimes(1);
     const options = navigateMock.mock.calls[0]?.[0];
     expect(options.href).toBe("/decks/share/abc?view=grid");
-    expect(options.state({ __TSR_index: 0 })).toEqual({ __TSR_index: 0, cardDetail: true });
+    expect(options.state({ __TSR_index: 0 })).toEqual({
+      __TSR_index: 0,
+      cardDetail: true,
+      overlayEntry: true,
+    });
   });
 
   it("passes resetScroll: false so opening the overlay does not jump the page to the top", () => {
@@ -104,6 +108,7 @@ describe("useOverlayHistoryEntry", () => {
     expect(options.state({ __TSR_index: 0 })).toEqual({
       __TSR_index: 0,
       missingCardDetail: true,
+      overlayEntry: true,
     });
   });
 });

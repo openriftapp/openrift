@@ -361,7 +361,7 @@ export function CardGrid({
     virtualizerRef.current.measure(),
   );
 
-  useScopeEffect(`${columns} ${selectedItemId ?? ""}`, () => {
+  useScopeEffect(columns, () => {
     const anchor = selectedItemId ?? topVisibleCardRef.current;
     if (anchor) {
       scrollToCard(anchor);

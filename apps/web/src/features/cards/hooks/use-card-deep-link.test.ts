@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSelectionStore } from "@/stores/selection-store";
@@ -19,6 +19,7 @@ beforeEach(() => {
   resetStore = createStoreResetter(useSelectionStore);
   resetIdCounter();
   navigateMock.mockReset();
+  navigateMock.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -26,7 +27,7 @@ afterEach(() => {
 });
 
 describe("useCardDeepLink", () => {
-  it("selects the linked printing and strips the param from the URL", () => {
+  it("selects the linked printing and strips the param from the URL", async () => {
     const item = stubCardViewerItem({ printingId: "p1" });
     renderHook(() =>
       useCardDeepLink({
@@ -36,8 +37,30 @@ describe("useCardDeepLink", () => {
       }),
     );
 
-    expect(useSelectionStore.getState().selectedCard?.printingId).toBe("p1");
     expect(navigateMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(useSelectionStore.getState().selectedCard?.printingId).toBe("p1"));
+  });
+
+  it("selects only after the URL replace has committed, so the overlay entry is pushed over the clean URL", async () => {
+    let commit = () => {};
+    navigateMock.mockReturnValue(
+      // oxlint-disable-next-line promise/avoid-new -- the test holds the navigation open to control when it commits
+      new Promise<void>((resolve) => {
+        commit = resolve;
+      }),
+    );
+    const item = stubCardViewerItem({ printingId: "p1" });
+    renderHook(() =>
+      useCardDeepLink({
+        linkedPrintingId: "p1",
+        printingsById: { p1: item.printing },
+        items: [item],
+      }),
+    );
+
+    expect(useSelectionStore.getState().selectedCard).toBeNull();
+    commit();
+    await waitFor(() => expect(useSelectionStore.getState().selectedCard?.printingId).toBe("p1"));
   });
 
   it("passes resetScroll: false so the router does not wipe the CardGrid scroll (regression)", () => {

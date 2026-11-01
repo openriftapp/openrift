@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
@@ -61,7 +61,29 @@ const resetGridFocusStore = createStoreResetter(useGridFocusStore);
 afterEach(() => {
   resetDisplayStore();
   resetGridFocusStore();
+  vi.restoreAllMocks();
+  setWindowScrollY(0);
 });
+
+function setWindowScrollY(y: number) {
+  Object.defineProperty(globalThis, "scrollY", { value: y, writable: true, configurable: true });
+  Object.defineProperty(globalThis, "pageYOffset", {
+    value: y,
+    writable: true,
+    configurable: true,
+  });
+}
+
+function scrollWindowTo(y: number) {
+  act(() => {
+    setWindowScrollY(y);
+    globalThis.dispatchEvent(new Event("scroll"));
+  });
+}
+
+function spyOnWindowScroll() {
+  return vi.spyOn(globalThis, "scrollTo").mockImplementation(() => {});
+}
 
 function makeSet(index: number): GroupInfo {
   return { id: `set-${index}`, slug: `SET${index}`, name: `Set ${index}`, setType: "main" };
@@ -73,7 +95,7 @@ function makeItems(setId: string, count: number): CardViewerItem[] {
   );
 }
 
-function gridElement(items: CardViewerItem[], setOrder: GroupInfo[]) {
+function gridElement(items: CardViewerItem[], setOrder: GroupInfo[], selectedItemId?: string) {
   return (
     <CardGrid
       items={items}
@@ -82,6 +104,7 @@ function gridElement(items: CardViewerItem[], setOrder: GroupInfo[]) {
       setOrder={setOrder}
       groupBy="set"
       stickyOffset={0}
+      selectedItemId={selectedItemId}
     />
   );
 }
@@ -127,5 +150,35 @@ describe("CardGrid virtual row positioning", () => {
     expect(rowTop(container, 1)).toBe(CARDS_ROW_HEIGHT + GAP);
     expect(rowTop(container, 2)).toBe((CARDS_ROW_HEIGHT + GAP) * 2);
     expect(rowTop(container, 3)).toBe((CARDS_ROW_HEIGHT + GAP) * 3);
+  });
+});
+
+describe("CardGrid scroll on selection changes", () => {
+  const set = makeSet(1);
+  const items = makeItems(set.id, 30);
+  const itemAt = (index: number) => items[index]?.id ?? "";
+
+  it("does not scroll the page when the selection clears with the top row cut off", () => {
+    const { rerender } = render(gridElement(items, [set], itemAt(COLUMNS)));
+    scrollWindowTo(Math.round(CARDS_ROW_HEIGHT / 2));
+    const scrollTo = spyOnWindowScroll();
+
+    rerender(gridElement(items, [set]));
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("follows a selection stepped out of view, then stays put when the selection clears", () => {
+    const { rerender } = render(gridElement(items, [set], itemAt(COLUMNS)));
+    const scrollTo = spyOnWindowScroll();
+
+    rerender(gridElement(items, [set], itemAt(COLUMNS * 6)));
+    expect(scrollTo).toHaveBeenCalled();
+
+    scrollWindowTo((CARDS_ROW_HEIGHT + GAP) * 6);
+    scrollTo.mockClear();
+    rerender(gridElement(items, [set]));
+
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 });

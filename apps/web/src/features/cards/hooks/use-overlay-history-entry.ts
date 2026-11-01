@@ -33,7 +33,7 @@ export function useOverlayHistoryEntry({
     }
     void router.navigate({
       href: router.latestLocation.href,
-      state: (prev) => ({ ...prev, [stateKey]: true }),
+      state: (prev) => ({ ...prev, [stateKey]: true, overlayEntry: true }),
       resetScroll: false,
     });
     const handlePop = () => onPopRef.current();

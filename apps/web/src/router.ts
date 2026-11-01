@@ -7,6 +7,7 @@ import { NotFoundFallback } from "./components/error-message";
 import { RoutePending } from "./components/route-pending";
 import { setDiagnosticsSources } from "./lib/app-diagnostics";
 import { createQueryClient } from "./lib/query-client";
+import { shouldRestoreScroll, trackScrollRestorationSource } from "./lib/scroll-restoration";
 import { initVersionStaleNavigationReload } from "./lib/stale-bundle-reload";
 import { routeTree } from "./routeTree.gen";
 
@@ -24,7 +25,7 @@ export function getRouter() {
     defaultErrorComponent: RouterErrorFallback,
     defaultNotFoundComponent: NotFoundFallback,
     defaultPendingComponent: RoutePending,
-    scrollRestoration: true,
+    scrollRestoration: shouldRestoreScroll,
   });
 
   setupRouterSsrQueryIntegration({ router, queryClient, wrapQueryClient: true });
@@ -36,6 +37,7 @@ export function getRouter() {
       initClientSentry(router);
     })();
     initVersionStaleNavigationReload(router);
+    trackScrollRestorationSource(router);
   }
 
   return router;
