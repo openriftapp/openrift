@@ -788,6 +788,20 @@
   "card_detail_notes_confirmed_by": "Confirmed by",
   "card_detail_notes_note": "Note",
   "card_detail_printings_title": "Printings",
+  "card_detail_all_printings": "All printings ({count})",
+  "cards_printings_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} printing",
+        "countPlural=*": "{count} printings"
+      }
+    }
+  ],
+  "card_detail_lightbox_artist": "Art by {artist}",
+  "card_detail_lightbox_back": "Back: {name}",
+  "card_detail_lightbox_position": "{index} of {count}",
   "card_detail_no_printings": "No printings found for this card.",
   "card_detail_all_cards": "All cards",
   "card_detail_share": "Share",

@@ -1,7 +1,11 @@
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 
-export type OverlayHistoryKey = "cardDetail" | "missingCardDetail" | "paletteCardDetail";
+export type OverlayHistoryKey =
+  | "cardDetail"
+  | "missingCardDetail"
+  | "paletteCardDetail"
+  | "printingLightbox";
 
 interface OverlayHistoryEntryOptions {
   active: boolean;
@@ -36,7 +40,12 @@ export function useOverlayHistoryEntry({
       state: (prev) => ({ ...prev, [stateKey]: true, overlayEntry: true }),
       resetScroll: false,
     });
-    const handlePop = () => onPopRef.current();
+    // A pop that lands on an entry still carrying this key closed an overlay stacked above this one.
+    const handlePop = () => {
+      if (!hasOverlayHistoryEntry(stateKey)) {
+        onPopRef.current();
+      }
+    };
     globalThis.addEventListener("popstate", handlePop);
     return () => globalThis.removeEventListener("popstate", handlePop);
   }, [active, router, stateKey]);

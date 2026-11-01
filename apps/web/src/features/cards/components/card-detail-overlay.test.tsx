@@ -256,6 +256,7 @@ describe("CardDetailOverlay", () => {
     const { onOpenPrintingIdChange } = renderOverlay(printings, printings[0]!.printingId);
     await screen.findByText(`showing ${printings[0]!.printingId}`);
 
+    history.replaceState(null, "");
     globalThis.dispatchEvent(new PopStateEvent("popstate"));
 
     expect(onOpenPrintingIdChange).toHaveBeenCalledWith(null);

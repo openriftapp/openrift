@@ -51,7 +51,6 @@ const baseDisplay: CardThumbnailDisplay = {
   finishLabels: {},
   sizeLabels: {},
   rarityLabels: {},
-  artVariantLabels: {},
   prices: EMPTY_PRICE_LOOKUP,
   favoriteMarketplace: "cardtrader",
   compactFmt: String,
@@ -107,7 +106,7 @@ describe("CardThumbnail siblings", () => {
     expect(srcs).toContain("/media/cards/RB1-001-foil-image-id-aa-400w.webp");
   });
 
-  it("spines each fanned sibling with its code and what sets it apart", () => {
+  it("labels no fanned sibling with its code or variant", () => {
     const front = makePrintingWithImage("RB1-001");
     const sibling = stubPrinting({
       card: { slug: "RB1-001" },
@@ -124,10 +123,69 @@ describe("CardThumbnail siblings", () => {
         display={{ ...baseDisplay, coarsePointer: false, finishLabels: { foil: "Foil" } }}
       />,
     );
-    expect(container.textContent).not.toContain("RB1-001F");
 
     hoverTile(container);
-    expect(container.textContent).toContain("RB1-001F · Foil");
+    expect(container.textContent).not.toContain("RB1-001F");
+    expect(container.textContent).not.toContain("Foil");
+  });
+
+  it("selects a fanned sibling when it is clicked", () => {
+    const front = makePrintingWithImage("RB1-001");
+    const sibling = makePrintingWithImage("RB1-001-foil");
+    const onSiblingClick = vi.fn();
+    const { container } = render(
+      <CardThumbnail
+        printing={front}
+        onClick={() => {}}
+        onSiblingClick={onSiblingClick}
+        showImages
+        siblings={[front, sibling]}
+        display={baseDisplay}
+      />,
+    );
+    const layer = container.querySelector(".origin-bottom")?.parentElement;
+    if (!layer) {
+      throw new Error("sibling layer not found");
+    }
+
+    fireEvent.click(layer);
+
+    expect(onSiblingClick).toHaveBeenCalledWith(sibling);
+  });
+
+  it("counts the printings in the meta row on coarse-pointer devices", () => {
+    const front = makePrintingWithImage("RB1-001");
+    const siblings = [
+      front,
+      makePrintingWithImage("RB1-001-a"),
+      makePrintingWithImage("RB1-001-b"),
+    ];
+    const { getByTitle } = render(
+      <CardThumbnail
+        printing={front}
+        onClick={() => {}}
+        showImages
+        siblings={siblings}
+        display={{ ...baseDisplay, coarsePointer: true }}
+      />,
+    );
+
+    expect(getByTitle("3 printings").textContent).toContain("3");
+  });
+
+  it("shows no printing count for a card with one printing", () => {
+    const front = makePrintingWithImage("RB1-001");
+    const { container } = render(
+      <CardThumbnail
+        printing={front}
+        onClick={() => {}}
+        showImages
+        siblings={[front]}
+        display={baseDisplay}
+      />,
+    );
+
+    expect(container.querySelector('[data-slot="count-pill"]')).toBeNull();
   });
 
   it("clears the pending fan timer when unmounted mid-hover", () => {
@@ -173,25 +231,6 @@ describe("CardThumbnail siblings", () => {
     const cover = queryFanCover(container);
     expect(cover).not.toBeNull();
     expect(cover?.getAttribute("style")).toContain("--fan");
-  });
-
-  it("hides sibling spines while the fan is closed", () => {
-    const front = makePrintingWithImage("RB1-001");
-    const sibling = makePrintingWithImage("RB1-001-foil");
-    const { container } = render(
-      <CardThumbnail
-        printing={front}
-        onClick={() => {}}
-        showImages
-        siblings={[front, sibling]}
-        display={{ ...baseDisplay, coarsePointer: false }}
-      />,
-    );
-
-    hoverTile(container);
-    const spine = container.querySelector(".z-20.justify-end");
-    expect(spine).not.toBeNull();
-    expect(spine?.getAttribute("style")).toContain("opacity: var(--fan, 0)");
   });
 
   it("shows at most five stacked edges while the fan is closed", () => {

@@ -69,6 +69,16 @@ describe("useOverlayHistoryEntry", () => {
     expect(onPop).toHaveBeenCalledTimes(1);
   });
 
+  it("stays open when the pop only closed an overlay stacked above it", () => {
+    const onPop = vi.fn();
+    renderHook(() => useOverlayHistoryEntry({ active: true, stateKey: "cardDetail", onPop }));
+    history.replaceState({ cardDetail: true }, "");
+
+    globalThis.dispatchEvent(new PopStateEvent("popstate"));
+
+    expect(onPop).not.toHaveBeenCalled();
+  });
+
   it("uses the newest onPop without pushing a second entry", () => {
     const first = vi.fn();
     const second = vi.fn();

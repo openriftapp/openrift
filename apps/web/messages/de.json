@@ -788,6 +788,20 @@
   "card_detail_notes_confirmed_by": "Bestätigt durch",
   "card_detail_notes_note": "Notiz",
   "card_detail_printings_title": "Drucke",
+  "card_detail_all_printings": "Alle Drucke ({count})",
+  "cards_printings_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Druck",
+        "countPlural=*": "{count} Drucke"
+      }
+    }
+  ],
+  "card_detail_lightbox_artist": "Illustration: {artist}",
+  "card_detail_lightbox_back": "Rückseite: {name}",
+  "card_detail_lightbox_position": "{index} von {count}",
   "card_detail_no_printings": "Für diese Karte gibt es keine Drucke.",
   "card_detail_all_cards": "Alle Karten",
   "card_detail_share": "Teilen",

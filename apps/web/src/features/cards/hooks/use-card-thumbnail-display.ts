@@ -20,7 +20,6 @@ export interface CardThumbnailDisplay {
   finishLabels: Record<string, string>;
   sizeLabels: Record<string, string>;
   rarityLabels: Record<string, string>;
-  artVariantLabels: Record<string, string>;
   prices: PriceLookup;
   favoriteMarketplace: Marketplace;
   compactFmt: (n: number) => string;
@@ -49,7 +48,6 @@ export function useCardThumbnailDisplay(): CardThumbnailDisplay {
     finishLabels: labels.finishes,
     sizeLabels: labels.cardSizes,
     rarityLabels: labels.rarities,
-    artVariantLabels: labels.artVariants,
     prices,
     favoriteMarketplace,
     compactFmt: compactFormatterForMarketplace(favoriteMarketplace),

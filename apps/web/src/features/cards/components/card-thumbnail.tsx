@@ -3,8 +3,7 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
-import { formatPrintingVariantLabel } from "@openrift/shared/printing-label";
-import { sideKey } from "@openrift/shared/printing-side";
+import { sideKey, uniquePrintings } from "@openrift/shared/printing-side";
 import type { StandardArtFallback } from "@openrift/shared/standard";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Domain, Rarity } from "@openrift/shared/types/enums";
@@ -24,7 +23,7 @@ import { useCardTilt } from "@/features/cards/hooks/use-card-tilt";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { getDomainGradientStyle } from "@/lib/domain";
-import { formatCardId, priceColorClass } from "@/lib/format";
+import { priceColorClass } from "@/lib/format";
 import { LANDSCAPE_ROTATION_STYLE, needsCssRotation } from "@/lib/images";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -88,20 +87,6 @@ export function CornerRibbon({
       >
         {children}
       </div>
-    </div>
-  );
-}
-
-function PrintingSpine({ label }: { label: string }) {
-  return (
-    <div
-      className="@container pointer-events-none absolute inset-0 z-20 flex items-start justify-end overflow-hidden"
-      style={{ opacity: "var(--fan, 0)", transition: "opacity 200ms ease-out" }}
-    >
-      {/* cqw: on a vertical span, cqi resolves against the container's block axis. */}
-      <span className="rotate-180 p-[3cqw] text-[4cqw] leading-none font-semibold tracking-wide text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.9)] [writing-mode:vertical-rl]">
-        {label}
-      </span>
     </div>
   );
 }
@@ -350,6 +335,10 @@ function fallbackArtStep(printing: Printing, fallback: StandardArtFallback | nul
   };
 }
 
+function siblingFallbackArt(fallback: StandardArtFallback | null) {
+  return fallback === null ? null : { imageId: fallback.image.imageId, overlay: null };
+}
+
 interface CardThumbnailProps {
   printing: Printing;
   onClick: (printing: Printing, event?: ReactMouseEvent) => void;
@@ -516,17 +505,9 @@ export const CardThumbnail = memo(function CardThumbnail({
     finishLabels,
     sizeLabels,
     rarityLabels,
-    artVariantLabels,
     prices,
     favoriteMarketplace,
   } = display;
-  const variantLabels = {
-    artVariants: artVariantLabels,
-    finishes: finishLabels,
-    cardSizes: sizeLabels,
-    flags: { overnumbered: m.cards_flag_overnumbered(), signed: m.cards_flag_signed() },
-    onOneSide: (part: string) => m.cards_printing_part_one_side({ part }),
-  };
   const favoritePrice = prices.get(printing.printingId, favoriteMarketplace);
   const isFoilCard = printing.finish === WellKnown.finish.FOIL;
   const finishTitle = enumLabel(finishLabels, printing.finish);
@@ -660,14 +641,13 @@ export const CardThumbnail = memo(function CardThumbnail({
                     promoLabel={promoMarkerLabel(sibling)}
                     card={displayCard(sibling)}
                     showFoil={false}
-                    fallbackArt={fallbackArtStep(
-                      sibling,
+                    fallbackArt={siblingFallbackArt(
                       showImages ? display.getFallbackArt(sibling) : null,
                     )}
                   />
                 )}
                 {showSiblingFaces && (
-                  // z-[1]: above the face, below the ::after border (z-10) and spine (z-20).
+                  // z-[1]: above the face, below the ::after border (z-10).
                   <div
                     aria-hidden="true"
                     className="pointer-events-none absolute inset-0 z-[1] bg-black"
@@ -678,11 +658,6 @@ export const CardThumbnail = memo(function CardThumbnail({
                   />
                 )}
                 {sibling.finish === WellKnown.finish.FOIL && gridFoil && <FoilOverlay active dim />}
-                {showSiblingFaces && (
-                  <PrintingSpine
-                    label={`${formatCardId(sibling)} · ${formatPrintingVariantLabel(sibling, siblings, variantLabels, (name, sameCard) => (sameCard ? m.cards_printing_same_both_sides({ name }) : m.cards_printing_with_side({ name })))}`}
-                  />
-                )}
               </div>
             </div>
           </div>
@@ -783,6 +758,7 @@ export const CardThumbnail = memo(function CardThumbnail({
       bans={banDisplay === "label" ? printing.card.bans : undefined}
       hasRulesDeviation={printing.card.errata !== null}
       printingComment={printing.comment}
+      printingCount={otherPrintings.length > 0 ? uniquePrintings(siblings ?? []).length : undefined}
       price={priceNode}
     />
   );

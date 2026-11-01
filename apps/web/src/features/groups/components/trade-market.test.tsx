@@ -128,7 +128,6 @@ vi.mock("@/features/cards/hooks/use-card-thumbnail-display", () => ({
     finishLabels: {},
     sizeLabels: {},
     rarityLabels: {},
-    artVariantLabels: {},
     prices: { get: () => undefined },
     favoriteMarketplace: "cardtrader",
     compactFmt: String,

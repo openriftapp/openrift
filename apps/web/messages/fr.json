@@ -788,6 +788,20 @@
   "card_detail_notes_confirmed_by": "Confirmé par",
   "card_detail_notes_note": "Note",
   "card_detail_printings_title": "Impressions",
+  "card_detail_all_printings": "Toutes les impressions ({count})",
+  "cards_printings_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} impression",
+        "countPlural=*": "{count} impressions"
+      }
+    }
+  ],
+  "card_detail_lightbox_artist": "Illustration : {artist}",
+  "card_detail_lightbox_back": "Verso : {name}",
+  "card_detail_lightbox_position": "{index} sur {count}",
   "card_detail_no_printings": "Aucune impression trouvée pour cette carte.",
   "card_detail_all_cards": "Toutes les cartes",
   "card_detail_share": "Partager",

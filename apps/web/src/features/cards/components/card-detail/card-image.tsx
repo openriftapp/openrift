@@ -20,6 +20,7 @@ export function CardImage({
   showImages,
   showFoil,
   showShimmer,
+  sizes = "(min-width: 768px) 376px, 100vw",
 }: {
   innerRef: React.RefCallback<HTMLElement>;
   printing: Printing;
@@ -27,6 +28,7 @@ export function CardImage({
   showImages?: boolean;
   showFoil: boolean;
   showShimmer: boolean;
+  sizes?: string;
 }) {
   const { card } = printing;
   const getFallbackArt = useStandardArtFallback();
@@ -100,7 +102,7 @@ export function CardImage({
                     ref={coverCachedResult}
                     src={shown.src}
                     srcSet={`${imageUrl(shown.imageId, "400w")} 400w, ${imageUrl(shown.imageId, "full")} 800w`}
-                    sizes="(min-width: 768px) 376px, 100vw"
+                    sizes={sizes}
                     width={558}
                     height={400}
                     fetchPriority="high"
@@ -115,7 +117,7 @@ export function CardImage({
                   ref={coverCachedResult}
                   src={shown.src}
                   srcSet={`${imageUrl(shown.imageId, "400w")} 400w, ${imageUrl(shown.imageId, "full")} 800w`}
-                  sizes="(min-width: 768px) 376px, 100vw"
+                  sizes={sizes}
                   width={400}
                   height={558}
                   fetchPriority="high"

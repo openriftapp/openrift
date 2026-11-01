@@ -1,9 +1,10 @@
 import type { CardBan } from "@openrift/shared/types/catalog";
 import type { Rarity } from "@openrift/shared/types/enums";
 import { LOW_RARITIES, WellKnown } from "@openrift/shared/well-known";
-import { TriangleAlertIcon } from "lucide-react";
+import { LayersIcon, TriangleAlertIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { CountPill } from "@/components/ui/count-pill";
 import { InfoHint } from "@/components/ui/info-hint";
 import { FinishIcon } from "@/features/cards/components/finish-icon";
 import { getFilterIconPath } from "@/lib/icons";
@@ -22,6 +23,7 @@ interface CardMetaLabelProps {
   bans?: CardBan[];
   hasRulesDeviation?: boolean;
   printingComment?: string | null;
+  printingCount?: number;
   className?: string;
   price?: ReactNode;
 }
@@ -38,6 +40,7 @@ export function CardMetaLabel({
   bans,
   hasRulesDeviation,
   printingComment,
+  printingCount,
   className,
   price,
 }: CardMetaLabelProps) {
@@ -55,6 +58,16 @@ export function CardMetaLabel({
       <div className="text-muted-foreground flex min-h-4 items-center justify-between gap-1 text-xs">
         <span className="truncate font-medium">{shortCode}</span>
         <span className="flex shrink-0 items-center gap-1">
+          {printingCount !== undefined && printingCount > 1 && (
+            <CountPill
+              title={m.cards_printings_count({ count: printingCount })}
+              className="h-4 gap-0.5 px-1.5 py-0 leading-none"
+            >
+              <LayersIcon aria-hidden="true" className="size-3" />
+              <span aria-hidden="true">{printingCount}</span>
+              <span className="sr-only">{m.cards_printings_count({ count: printingCount })}</span>
+            </CountPill>
+          )}
           {rarityIconPath && (
             <img
               src={rarityIconPath}
