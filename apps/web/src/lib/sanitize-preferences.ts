@@ -198,6 +198,11 @@ export function sanitizeFrostedBars(data: unknown, fallback: boolean): boolean {
   return typeof raw === "boolean" ? raw : fallback;
 }
 
+export function sanitizeDeckHighlightOwned(data: unknown, fallback: boolean): boolean {
+  const raw = asRecord(data).deckHighlightOwned;
+  return typeof raw === "boolean" ? raw : fallback;
+}
+
 /** Stored as a step index, not a pixel width, so widening the ladder later can't strand a saved value between two steps. */
 export function sanitizeTierTileStep(data: unknown, stepCount: number, fallback: number): number {
   const raw = asRecord(data).tierTileStep;

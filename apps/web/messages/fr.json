@@ -2599,6 +2599,8 @@
   "decks_editor_overview": "Vue d’ensemble",
   "decks_editor_owned": "possédées",
   "decks_editor_owned_count": "{count} possédées",
+  "decks_editor_highlight_owned": "Mettre en avant possédées",
+  "decks_editor_highlight_owned_title": "Estomper les cartes que vous ne possédez pas",
   "decks_editor_pinned_printing": "Impression épinglée",
   "decks_editor_power": "Essence runique {power}",
   "decks_editor_power_with_domains": "Essence runique {power} ({domains})",

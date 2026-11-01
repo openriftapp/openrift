@@ -2599,6 +2599,8 @@
   "decks_editor_overview": "总览",
   "decks_editor_owned": "已拥有",
   "decks_editor_owned_count": "已拥有{count}张",
+  "decks_editor_highlight_owned": "突出已拥有",
+  "decks_editor_highlight_owned_title": "淡化未拥有的卡牌",
   "decks_editor_pinned_printing": "已固定的印刷版本",
   "decks_editor_power": "符能{power}",
   "decks_editor_power_with_domains": "符能{power}（{domains}）",

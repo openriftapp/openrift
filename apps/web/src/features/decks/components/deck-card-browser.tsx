@@ -7,8 +7,10 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
+import { PackageCheckIcon } from "lucide-react";
 import { Suspense, useDeferredValue } from "react";
 
+import { Toggle } from "@/components/ui/toggle";
 import { BrowserCardViewer } from "@/features/cards/components/browser-card-viewer";
 import {
   BrowserToolbar,
@@ -307,6 +309,8 @@ function DeckOverviewForEditor({
 function DeckCardBrowserInner({ deckId }: { deckId: string }) {
   const { data: deckDetail } = useDeckDetail(deckId);
   const showImages = useDisplayStore((state) => state.showImages);
+  const highlightOwned = useDisplayStore((state) => state.deckHighlightOwned);
+  const toggleHighlightOwned = useDisplayStore((state) => state.toggleDeckHighlightOwned);
   const isMobile = useIsMobile();
   const { allPrintings, sets } = useCards();
   const channels = useChannelRegistry();
@@ -589,7 +593,7 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
         view={view}
         onClick={isMobile ? handleQuickAdd : handleCardClick}
         priceRange={priceRangeByCardId?.get(cardId)}
-        dimmed={ownedCount === 0 && deckQty === 0}
+        dimmed={highlightOwned && ownedCount === 0 && deckQty === 0}
         highlighted={deckQty > 0}
         banDisplay={isCustomRegion ? "none" : "overlay"}
         dragData={{
@@ -616,6 +620,19 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
       filteredCount={sortedCards.length}
       mobileDoneLabel={
         hasActiveFilters ? m.decks_editor_show_cards({ count: sortedCards.length }) : undefined
+      }
+      extras={
+        ownedCounts ? (
+          <Toggle
+            variant="control"
+            pressed={highlightOwned}
+            onPressedChange={toggleHighlightOwned}
+            title={m.decks_editor_highlight_owned_title()}
+          >
+            <PackageCheckIcon className="size-4" />
+            <span>{m.decks_editor_highlight_owned()}</span>
+          </Toggle>
+        ) : null
       }
     />
   );

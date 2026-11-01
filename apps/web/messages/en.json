@@ -2599,6 +2599,8 @@
   "decks_editor_overview": "Overview",
   "decks_editor_owned": "owned",
   "decks_editor_owned_count": "{count} owned",
+  "decks_editor_highlight_owned": "Highlight owned",
+  "decks_editor_highlight_owned_title": "Fade cards you don't own",
   "decks_editor_pinned_printing": "Pinned printing",
   "decks_editor_power": "Power {power}",
   "decks_editor_power_with_domains": "Power {power} ({domains})",

@@ -2599,6 +2599,8 @@
   "decks_editor_overview": "Übersicht",
   "decks_editor_owned": "im Besitz",
   "decks_editor_owned_count": "{count} im Besitz",
+  "decks_editor_highlight_owned": "Besitz hervorheben",
+  "decks_editor_highlight_owned_title": "Karten, die du nicht besitzt, abblenden",
   "decks_editor_pinned_printing": "Angehefteter Druck",
   "decks_editor_power": "Stärke {power}",
   "decks_editor_power_with_domains": "Stärke {power} ({domains})",

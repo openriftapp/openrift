@@ -14,6 +14,7 @@ import type { DisplayMode, DisplayOverrides, MetaDeckView } from "@/lib/sanitize
 import {
   NULL_OVERRIDES,
   sanitizeCardsShowCounts,
+  sanitizeDeckHighlightOwned,
   sanitizeDisplayMode,
   sanitizeFiltersExpanded,
   sanitizeFrostedBars,
@@ -73,6 +74,8 @@ interface DisplayState extends DisplayPreferences {
   setFiltersExpanded: (value: boolean) => void;
   cardsShowCounts: boolean;
   toggleCardsShowCounts: () => void;
+  deckHighlightOwned: boolean;
+  toggleDeckHighlightOwned: () => void;
   displayMode: DisplayMode;
   setDisplayMode: (value: "grid" | "table") => void;
   metaDeckView: MetaDeckView;
@@ -187,6 +190,9 @@ export const useDisplayStore = create<DisplayState>()(
       setFiltersExpanded: (value) => set({ filtersExpanded: value }),
       cardsShowCounts: true,
       toggleCardsShowCounts: () => set((state) => ({ cardsShowCounts: !state.cardsShowCounts })),
+      deckHighlightOwned: true,
+      toggleDeckHighlightOwned: () =>
+        set((state) => ({ deckHighlightOwned: !state.deckHighlightOwned })),
       displayMode: "grid" as const,
       setDisplayMode: (value) => set({ displayMode: value }),
       metaDeckView: "list" as const,
@@ -206,6 +212,7 @@ export const useDisplayStore = create<DisplayState>()(
         maxColumns: state.maxColumns,
         filtersExpanded: state.filtersExpanded,
         cardsShowCounts: state.cardsShowCounts,
+        deckHighlightOwned: state.deckHighlightOwned,
         displayMode: state.displayMode,
         metaDeckView: state.metaDeckView,
         paneDocked: state.paneDocked,
@@ -221,6 +228,7 @@ export const useDisplayStore = create<DisplayState>()(
           maxColumns: safe.maxColumns ?? current.maxColumns,
           filtersExpanded: sanitizeFiltersExpanded(persisted, current.filtersExpanded),
           cardsShowCounts: sanitizeCardsShowCounts(persisted, current.cardsShowCounts),
+          deckHighlightOwned: sanitizeDeckHighlightOwned(persisted, current.deckHighlightOwned),
           displayMode: sanitizeDisplayMode(persisted, current.displayMode),
           metaDeckView: sanitizeMetaDeckView(persisted, current.metaDeckView),
           paneDocked: sanitizePaneDocked(persisted, current.paneDocked),

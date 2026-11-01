@@ -2599,6 +2599,8 @@
   "decks_editor_overview": "개요",
   "decks_editor_owned": "보유",
   "decks_editor_owned_count": "{count}장 보유",
+  "decks_editor_highlight_owned": "보유 카드 강조",
+  "decks_editor_highlight_owned_title": "보유하지 않은 카드를 흐리게 표시",
   "decks_editor_pinned_printing": "고정한 인쇄판",
   "decks_editor_power": "힘 {power}",
   "decks_editor_power_with_domains": "힘 {power} ({domains})",

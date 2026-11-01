@@ -203,6 +203,7 @@ describe("useDisplayStore", () => {
       store.setMaxColumns(4);
       store.setFiltersExpanded(true);
       store.toggleCardsShowCounts();
+      store.toggleDeckHighlightOwned();
       store.setMetaDeckView("grid");
 
       useDisplayStore.getState().reset();
@@ -211,6 +212,7 @@ describe("useDisplayStore", () => {
       expect(state.maxColumns).toBe(4);
       expect(state.filtersExpanded).toBe(true);
       expect(state.cardsShowCounts).toBe(false);
+      expect(state.deckHighlightOwned).toBe(false);
       expect(state.metaDeckView).toBe("grid");
     });
   });
@@ -276,6 +278,14 @@ describe("useDisplayStore", () => {
       expect(useDisplayStore.getState().cardsShowCounts).toBe(false);
       useDisplayStore.getState().toggleCardsShowCounts();
       expect(useDisplayStore.getState().cardsShowCounts).toBe(true);
+    });
+
+    it("toggleDeckHighlightOwned starts on and flips", () => {
+      expect(useDisplayStore.getState().deckHighlightOwned).toBe(true);
+      useDisplayStore.getState().toggleDeckHighlightOwned();
+      expect(useDisplayStore.getState().deckHighlightOwned).toBe(false);
+      useDisplayStore.getState().toggleDeckHighlightOwned();
+      expect(useDisplayStore.getState().deckHighlightOwned).toBe(true);
     });
 
     it("setDisplayMode toggles between grid and table", () => {

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   sanitizeCardsShowCounts,
+  sanitizeDeckHighlightOwned,
   sanitizeDisplayMode,
   sanitizeMetaDeckView,
   sanitizeFiltersExpanded,
@@ -314,6 +315,19 @@ describe("sanitizePaneDocked", () => {
 
   it("leaves blobs written before the pane became opt-in on the default", () => {
     expect(sanitizePaneDocked({ displayMode: "grid", filtersExpanded: true }, false)).toBe(false);
+  });
+});
+
+describe("sanitizeDeckHighlightOwned", () => {
+  it("keeps a stored boolean", () => {
+    expect(sanitizeDeckHighlightOwned({ deckHighlightOwned: false }, true)).toBe(false);
+    expect(sanitizeDeckHighlightOwned({ deckHighlightOwned: true }, false)).toBe(true);
+  });
+
+  it("falls back for a non-boolean, a missing key or a non-object blob", () => {
+    expect(sanitizeDeckHighlightOwned({ deckHighlightOwned: "off" }, true)).toBe(true);
+    expect(sanitizeDeckHighlightOwned({ cardsShowCounts: false }, true)).toBe(true);
+    expect(sanitizeDeckHighlightOwned(null, true)).toBe(true);
   });
 });
 
