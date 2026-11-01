@@ -570,8 +570,27 @@
   "cards_grid_load_error_description": "可能無法連上伺服器。",
   "cards_grid_no_results_title": "找不到卡牌",
   "cards_grid_no_results_description": "請試著調整篩選條件。",
-  "cards_search_hint_text": "一般字詞只搜尋卡牌名稱。要找卡牌文字嗎？",
-  "cards_search_hint_try": "搜尋 {query}",
+  "cards_search_hint_text": "一般字詞只搜尋卡牌名稱。",
+  "cards_search_alternative_text": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 張卡牌的文字包含「{words}」",
+        "countPlural=*": "{count} 張卡牌的文字包含「{words}」"
+      }
+    }
+  ],
+  "cards_search_alternative_tag": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 張卡牌帶有「{tag}」標籤",
+        "countPlural=*": "{count} 張卡牌帶有「{tag}」標籤"
+      }
+    }
+  ],
   "cards_wish_on_your_list": "在你的願望清單上",
   "cards_wish_on_your_lists": "在你的願望清單上",
   "cards_wish_on_your_lists_wanted": "{lists}，想要 {count} 張",

@@ -1,32 +1,31 @@
-import { useRouter } from "@tanstack/react-router";
-import { useContext } from "react";
+import { Link } from "@tanstack/react-router";
 
-import { Button } from "@/components/ui/button";
-import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
-import { searchAlternative } from "@/features/cards/lib/search-alternative";
+import { buttonVariants } from "@/components/ui/button";
+import { useFilterMetaOptional } from "@/features/cards/components/card-browser-filter-scaffold";
+import {
+  alternativeLabel,
+  alternativeSearch,
+} from "@/features/cards/components/search-alternative-links";
 import { m } from "@/paraglide/messages.js";
 
 export function SearchAlternativeHint() {
-  const search = useContext(FilterSearchProvider);
-  const router = useRouter();
-  const alternative = search?.q ? searchAlternative(search.q) : null;
-  if (!alternative) {
+  const alternatives = useFilterMetaOptional()?.searchAlternatives ?? [];
+  if (alternatives.length === 0) {
     return null;
   }
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-2">
       <p className="text-muted-foreground">{m.cards_search_hint_text()}</p>
-      <Button
-        variant="outline"
-        onClick={() =>
-          void router.navigate({
-            to: ".",
-            search: (prev: Record<string, unknown>) => ({ ...prev, q: alternative }),
-          })
-        }
-      >
-        {m.cards_search_hint_try({ query: alternative })}
-      </Button>
+      {alternatives.map((alternative) => (
+        <Link
+          key={alternative.kind}
+          to="."
+          search={alternativeSearch(alternative.query)}
+          className={buttonVariants({ variant: "outline" })}
+        >
+          {alternativeLabel(alternative)}
+        </Link>
+      ))}
     </div>
   );
 }

@@ -63,6 +63,7 @@ export function useListEntryBrowserData({
     setDisplayLabel: listSetDisplayLabel,
     totalUniqueCards: listTotalUniqueCards,
     filteredCount: listFilteredCount,
+    searchAlternatives: listSearchAlternatives,
   } = useCardData({
     allPrintings: listPrintings,
     sets,
@@ -90,6 +91,7 @@ export function useListEntryBrowserData({
     setDisplayLabel: catalogSetDisplayLabel,
     totalUniqueCards: catalogTotalUniqueCards,
     filteredCount: catalogFilteredCount,
+    searchAlternatives: catalogSearchAlternatives,
   } = useCardData({
     allPrintings,
     sets,
@@ -117,6 +119,7 @@ export function useListEntryBrowserData({
   const setDisplayLabel = showLibrary ? catalogSetDisplayLabel : listSetDisplayLabel;
   const totalUniqueCards = showLibrary ? catalogTotalUniqueCards : listTotalUniqueCards;
   const filteredCount = showLibrary ? catalogFilteredCount : listFilteredCount;
+  const searchAlternatives = showLibrary ? catalogSearchAlternatives : listSearchAlternatives;
 
   const userLanguages = useDisplayStore((state) => state.languages);
   const userScopedPrintingsByCardId = filterPrintingsByLanguages(printingsByCardId, userLanguages);
@@ -154,6 +157,7 @@ export function useListEntryBrowserData({
     setDisplayLabel,
     totalUniqueCards,
     filteredCount,
+    searchAlternatives,
     userScopedPrintingsByCardId,
     items,
     entryByItemId,

@@ -570,8 +570,27 @@
   "cards_grid_load_error_description": "Le serveur est peut-être injoignable.",
   "cards_grid_no_results_title": "Aucune carte trouvée",
   "cards_grid_no_results_description": "Ajustez vos filtres.",
-  "cards_search_hint_text": "Les mots simples ne cherchent que dans les noms de cartes. Vous cherchez du texte de carte ?",
-  "cards_search_hint_try": "Chercher {query}",
+  "cards_search_hint_text": "Les mots simples ne cherchent que dans les noms de cartes.",
+  "cards_search_alternative_text": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte contient « {words} » dans son texte",
+        "countPlural=*": "{count} cartes contiennent « {words} » dans leur texte"
+      }
+    }
+  ],
+  "cards_search_alternative_tag": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte avec le tag « {tag} »",
+        "countPlural=*": "{count} cartes avec le tag « {tag} »"
+      }
+    }
+  ],
   "cards_wish_on_your_list": "Sur votre liste de souhaits",
   "cards_wish_on_your_lists": "Sur vos listes de souhaits",
   "cards_wish_on_your_lists_wanted": "{lists}, {count} recherchées",

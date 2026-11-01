@@ -2,6 +2,7 @@ import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
 import { resolveSearchQuery } from "@openrift/shared/search-query/bind";
 import { searchKey } from "@openrift/shared/search-query/keys";
 import { parseSearchQuery } from "@openrift/shared/search-query/parse";
+import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import type { SearchValueLabeler } from "@/features/cards/lib/search-clause-labels";
@@ -16,9 +17,15 @@ interface SearchQueryFeedbackProps {
   query: string;
   vocabulary: SearchVocabulary;
   valueLabel: SearchValueLabeler;
+  children?: ReactNode;
 }
 
-export function SearchQueryFeedback({ query, vocabulary, valueLabel }: SearchQueryFeedbackProps) {
+export function SearchQueryFeedback({
+  query,
+  vocabulary,
+  valueLabel,
+  children,
+}: SearchQueryFeedbackProps) {
   const resolved = resolveSearchQuery(parseSearchQuery(query), vocabulary);
   const directives = resolved.clauses
     .filter((clause) => searchKey(clause.key).kind === "directive")
@@ -34,7 +41,7 @@ export function SearchQueryFeedback({ query, vocabulary, valueLabel }: SearchQue
   });
   const chips = [...describeQueryChips(resolved.root, valueLabel), ...directives];
 
-  if (chips.length === 0 && problems.length === 0) {
+  if (chips.length === 0 && problems.length === 0 && !children) {
     return null;
   }
 
@@ -60,6 +67,7 @@ export function SearchQueryFeedback({ query, vocabulary, valueLabel }: SearchQue
           {problem.text}
         </Badge>
       ))}
+      {children}
     </div>
   );
 }

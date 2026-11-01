@@ -16,6 +16,7 @@ import { SearchBar } from "@/features/cards/components/search-bar";
 import { useFilterValues, useStaleGroupByGuard } from "@/features/cards/hooks/use-card-filters";
 import { useSearchVocabulary } from "@/features/cards/hooks/use-search-vocabulary";
 import { resolveTopLevelUnits } from "@/features/cards/lib/filter-sections";
+import type { SearchAlternative } from "@/features/cards/lib/search-alternative";
 import { useSmUp } from "@/hooks/use-sm-up";
 import { cn } from "@/lib/utils";
 import { useDisplayStore } from "@/stores/display-store";
@@ -28,6 +29,7 @@ interface CardBrowserFilterMeta {
   hiddenSections?: ReadonlySet<string>;
   visibleCustomTagCategories?: ReadonlySet<string>;
   ownedCountMax?: number;
+  searchAlternatives?: readonly SearchAlternative[];
 }
 
 interface CardBrowserFilterContextValue extends CardBrowserFilterMeta {
@@ -155,6 +157,7 @@ export function BrowserToolbar({
           validationVocabulary={searchVocabulary.validation}
           suggestionVocabulary={searchVocabulary.suggestions}
           valueLabel={searchVocabulary.valueLabel}
+          searchAlternatives={meta.searchAlternatives}
         />
         {smUp && (
           <DesktopOptionsBar

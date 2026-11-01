@@ -437,6 +437,37 @@ describe("useCardData", () => {
   });
 });
 
+describe("useCardData search alternatives", () => {
+  it("offers the tag search for a plain word that only tags match", () => {
+    const named = stubPrinting({ card: { name: "Noxian Fervor", tags: [] } });
+    const tagged = stubPrinting({ card: { name: "Darius", tags: ["Noxus"] } });
+    const params = {
+      ...baseParams(),
+      allPrintings: [named, tagged],
+      filters: { ...emptyFilters(), search: "noxus" },
+    };
+
+    const { result } = renderHook(() => useCardData(params));
+
+    expect(result.current.searchAlternatives).toEqual([
+      { kind: "tag", query: "tag:noxus", label: "Noxus", count: 1 },
+    ]);
+  });
+
+  it("keeps the other filters on the alternative searches", () => {
+    const tagged = stubPrinting({ rarity: "rare", card: { name: "Darius", tags: ["Noxus"] } });
+    const params = {
+      ...baseParams(),
+      allPrintings: [tagged],
+      filters: { ...emptyFilters(), search: "noxus", rarities: ["common"] },
+    };
+
+    const { result } = renderHook(() => useCardData(params));
+
+    expect(result.current.searchAlternatives).toEqual([]);
+  });
+});
+
 describe("useCardData owned counts on double-sided printings", () => {
   const bird = stubPrinting({ printingId: "pair", side: 1, cardId: "bird", shortCode: "T-001" });
   const gold = stubPrinting({ printingId: "pair", side: 2, cardId: "gold", shortCode: "T-005" });

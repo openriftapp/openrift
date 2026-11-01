@@ -106,6 +106,7 @@ export function useCollectionGridData({
     ownedCountMax: collectionOwnedCountMax,
     setDisplayLabel: collectionSetDisplayLabel,
     isReady: copiesReady,
+    searchAlternatives: collectionSearchAlternatives,
   } = useCollectionCardData({
     collectionId,
     filters,
@@ -137,6 +138,7 @@ export function useCollectionGridData({
     priceRangeByCardId: catalogPriceRangeByCardId,
     totalUniqueCards: catalogTotalUniqueCards,
     setDisplayLabel: catalogSetDisplayLabel,
+    searchAlternatives: catalogSearchAlternatives,
   } = useCardData({
     allPrintings,
     sets,
@@ -185,6 +187,7 @@ export function useCollectionGridData({
   );
   const totalUniqueCards = showLibrary ? catalogTotalUniqueCards : collectionTotalUniqueCards;
   const setDisplayLabel = showLibrary ? catalogSetDisplayLabel : collectionSetDisplayLabel;
+  const searchAlternatives = showLibrary ? catalogSearchAlternatives : collectionSearchAlternatives;
   const ownedCountBound = showLibrary
     ? maxOwnedCount(
         allPrintings,
@@ -227,6 +230,7 @@ export function useCollectionGridData({
     detailPanePrintingsByCardId,
     totalUniqueCards,
     setDisplayLabel,
+    searchAlternatives,
     ownedCountBound,
     selectableCopyIds,
     stacks,

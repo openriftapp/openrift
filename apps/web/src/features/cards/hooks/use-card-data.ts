@@ -18,6 +18,8 @@ import { useDeferredValue } from "react";
 import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
 import { buildSortCardsOptions, computePriceRanges } from "@/features/cards/lib/card-price-sort";
 import { cardsViewTileKey, dedupeToCardsViewTiles } from "@/features/cards/lib/card-tiles";
+import type { SearchAlternative } from "@/features/cards/lib/search-alternative";
+import { findSearchAlternatives } from "@/features/cards/lib/search-alternative";
 import type { OwnedBucket } from "@/features/cards/lib/search-schemas";
 import {
   applyOwnedBucketFilter,
@@ -108,6 +110,7 @@ function buildOwnedCounts(
 }
 
 const EMPTY_PRINTINGS_MAP = new Map<string, Printing[]>();
+const NO_SEARCH_ALTERNATIVES: SearchAlternative[] = [];
 const NO_OP_LABEL = (slug: string) => slug;
 const EMPTY_OWNED_FILTER: readonly OwnedBucket[] = [];
 
@@ -290,6 +293,7 @@ export function useCardData({
       ownedCounts: undefined,
       totalUniqueCards: 0,
       filteredCount: 0,
+      searchAlternatives: NO_SEARCH_ALTERNATIVES,
     };
   }
 
@@ -298,36 +302,39 @@ export function useCardData({
 
   // allPrintings arrives pre-sorted (userLanguageRank, canonicalRank); the
   // dedup/group below relies on filterCards preserving that order.
-  let filteredCards = filterCards(allPrintings, filters, {
-    keywordReverseMap,
-    getPrice,
-    priceLookup: lookup,
-    getOwnedCount: (p: Printing) => ownedCountByPrinting?.[p.printingId],
-    rarityOrder: orders.rarities,
-    vocabulary,
-    customTagAssignments,
-  });
-
-  if (ownedCountByPrinting) {
-    const bucketBy = view === "printings" ? "printing" : "card";
-    if (ownedFilter && ownedFilter.length > 0) {
-      filteredCards = applyOwnedBucketFilter(
-        filteredCards,
-        ownedFilter,
-        ownedCountByPrinting,
-        bucketBy,
-      );
+  const matchPrintings = (search: string): Printing[] => {
+    let matched = filterCards(
+      allPrintings,
+      { ...filters, search },
+      {
+        keywordReverseMap,
+        getPrice,
+        priceLookup: lookup,
+        getOwnedCount: (p: Printing) => ownedCountByPrinting?.[p.printingId],
+        rarityOrder: orders.rarities,
+        vocabulary,
+        customTagAssignments,
+      },
+    );
+    if (ownedCountByPrinting) {
+      const bucketBy = view === "printings" ? "printing" : "card";
+      if (ownedFilter && ownedFilter.length > 0) {
+        matched = applyOwnedBucketFilter(matched, ownedFilter, ownedCountByPrinting, bucketBy);
+      }
+      if ((ownedCountMin ?? null) !== null || (ownedCountMax ?? null) !== null) {
+        matched = applyOwnedCountFilter(
+          matched,
+          ownedCountMin ?? null,
+          ownedCountMax ?? null,
+          ownedCountByPrinting,
+          bucketBy,
+        );
+      }
     }
-    if ((ownedCountMin ?? null) !== null || (ownedCountMax ?? null) !== null) {
-      filteredCards = applyOwnedCountFilter(
-        filteredCards,
-        ownedCountMin ?? null,
-        ownedCountMax ?? null,
-        ownedCountByPrinting,
-        bucketBy,
-      );
-    }
-  }
+    return matched;
+  };
+  const filteredCards = matchPrintings(filters.search);
+  const searchAlternatives = findSearchAlternatives(filters.search, filteredCards, matchPrintings);
 
   // Cards view collapses printings into one tile per card, or per
   // (cardId, set)/(cardId, rarity) when grouped by set/rarity.
@@ -380,5 +387,6 @@ export function useCardData({
     ownedCounts,
     totalUniqueCards,
     filteredCount,
+    searchAlternatives,
   };
 }

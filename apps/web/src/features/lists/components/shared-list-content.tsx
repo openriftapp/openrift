@@ -286,6 +286,7 @@ function SharedListGrid({
     setDisplayLabel,
     totalUniqueCards,
     filteredCount,
+    searchAlternatives,
   } = useCardData({
     allPrintings: listPrintings,
     sets,
@@ -465,6 +466,7 @@ function SharedListGrid({
   return (
     <FilterSearchProvider value={{ ...filterSearch, view }}>
       <CardBrowserFilterProvider
+        searchAlternatives={searchAlternatives}
         availableFilters={availableFilters}
         availableLanguages={availableLanguages}
         filterCounts={filterCounts}

@@ -147,27 +147,33 @@ export function CardBrowser() {
   // stays stable across +/- clicks and sortedCards → items → groups don't churn.
   const ownedCountForCardData = ownedFilterActive ? ownedCountByPrinting : undefined;
 
-  const { sortedCards, printingsByCardId, priceRangeByCardId, totalUniqueCards, filteredCount } =
-    useCardData({
-      allPrintings,
-      sets,
-      filters,
-      ownedFilter: filters.ownedFilter,
-      ownedCountMin: filters.ownedCountMin,
-      ownedCountMax: filters.ownedCountMax,
-      sortBy,
-      sortDir,
-      view,
-      groupBy,
-      ownedCountByPrinting: ownedCountForCardData,
-      favoriteMarketplace: display.favoriteMarketplace,
-      prices: display.prices,
-      // Meta comes from the useCatalogFilterMeta call below; enabling it here
-      // too would run computeFilterCounts twice per filter change.
-      metaEnabled: false,
-      keywordReverseMap,
-      channels,
-    });
+  const {
+    sortedCards,
+    printingsByCardId,
+    priceRangeByCardId,
+    totalUniqueCards,
+    filteredCount,
+    searchAlternatives,
+  } = useCardData({
+    allPrintings,
+    sets,
+    filters,
+    ownedFilter: filters.ownedFilter,
+    ownedCountMin: filters.ownedCountMin,
+    ownedCountMax: filters.ownedCountMax,
+    sortBy,
+    sortDir,
+    view,
+    groupBy,
+    ownedCountByPrinting: ownedCountForCardData,
+    favoriteMarketplace: display.favoriteMarketplace,
+    prices: display.prices,
+    // Meta comes from the useCatalogFilterMeta call below; enabling it here
+    // too would run computeFilterCounts twice per filter change.
+    metaEnabled: false,
+    keywordReverseMap,
+    channels,
+  });
 
   // Scoped only by the language filter, not the grid's other content filters,
   // so the detail-pane picker still lists every printing of the clicked card.
@@ -371,6 +377,7 @@ export function CardBrowser() {
   return (
     <>
       <CardBrowserFilterProvider
+        searchAlternatives={searchAlternatives}
         availableFilters={filterMeta.availableFilters}
         availableLanguages={filterMeta.availableLanguages}
         filterCounts={filterMeta.filterCounts}

@@ -570,8 +570,27 @@
   "cards_grid_load_error_description": "Der Server ist möglicherweise nicht erreichbar.",
   "cards_grid_no_results_title": "Keine Karten gefunden",
   "cards_grid_no_results_description": "Passe deine Filter an.",
-  "cards_search_hint_text": "Einfache Wörter durchsuchen nur Kartennamen. Suchst du Kartentext?",
-  "cards_search_hint_try": "{query} suchen",
+  "cards_search_hint_text": "Einfache Wörter durchsuchen nur Kartennamen.",
+  "cards_search_alternative_text": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Karte hat „{words}“ im Kartentext",
+        "countPlural=*": "{count} Karten haben „{words}“ im Kartentext"
+      }
+    }
+  ],
+  "cards_search_alternative_tag": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Karte mit dem Tag „{tag}“",
+        "countPlural=*": "{count} Karten mit dem Tag „{tag}“"
+      }
+    }
+  ],
   "cards_wish_on_your_list": "Auf deiner Wunschliste",
   "cards_wish_on_your_lists": "Auf deinen Wunschlisten",
   "cards_wish_on_your_lists_wanted": "{lists}, {count} gesucht",

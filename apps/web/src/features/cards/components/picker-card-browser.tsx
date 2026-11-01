@@ -87,6 +87,7 @@ export function PickerCardBrowser({
     setDisplayLabel,
     totalUniqueCards,
     filteredCount,
+    searchAlternatives,
   } = useCardData({
     allPrintings,
     sets,
@@ -152,6 +153,7 @@ export function PickerCardBrowser({
 
   return (
     <CardBrowserFilterProvider
+      searchAlternatives={searchAlternatives}
       availableFilters={availableFilters}
       availableLanguages={availableLanguages}
       filterCounts={filterCounts}

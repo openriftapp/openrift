@@ -369,6 +369,7 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
     ownedCounts,
     totalUniqueCards,
     setDisplayLabel,
+    searchAlternatives,
   } = useCardData({
     allPrintings,
     sets,
@@ -649,6 +650,7 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
 
   return (
     <CardBrowserFilterProvider
+      searchAlternatives={searchAlternatives}
       availableFilters={availableFilters}
       availableLanguages={availableLanguages}
       setDisplayLabel={setDisplayLabel}

@@ -115,6 +115,7 @@ export function ListEntryBrowser({
     setDisplayLabel,
     totalUniqueCards,
     filteredCount,
+    searchAlternatives,
     userScopedPrintingsByCardId,
     items,
     entryByItemId,
@@ -313,6 +314,7 @@ export function ListEntryBrowser({
     <FilterSearchProvider value={{ ...filterSearch, view }}>
       {renderTopBar(selectActions)}
       <CardBrowserFilterProvider
+        searchAlternatives={searchAlternatives}
         availableFilters={availableFilters}
         availableLanguages={availableLanguages}
         filterCounts={filterCounts}

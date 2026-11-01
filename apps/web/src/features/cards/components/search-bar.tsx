@@ -6,12 +6,14 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { SearchInput } from "@/components/search-input";
 import { TextLink } from "@/components/ui/text-link";
+import { SearchAlternativeLinks } from "@/features/cards/components/search-alternative-links";
 import { SearchQueryFeedback } from "@/features/cards/components/search-query-feedback";
 import {
   SearchSuggestionList,
   suggestionOptionId,
 } from "@/features/cards/components/search-suggestion-list";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
+import type { SearchAlternative } from "@/features/cards/lib/search-alternative";
 import type { SearchValueLabeler } from "@/features/cards/lib/search-clause-labels";
 import type { SearchSuggestion } from "@/features/cards/lib/search-suggestions";
 import { applySuggestion, searchSuggestions } from "@/features/cards/lib/search-suggestions";
@@ -25,6 +27,7 @@ interface SearchBarProps {
   validationVocabulary?: SearchVocabulary;
   suggestionVocabulary?: SearchVocabulary;
   valueLabel?: SearchValueLabeler;
+  searchAlternatives?: readonly SearchAlternative[];
 }
 
 const NO_VOCABULARY: SearchVocabulary = {};
@@ -36,6 +39,7 @@ export function SearchBar({
   validationVocabulary = NO_VOCABULARY,
   suggestionVocabulary = NO_VOCABULARY,
   valueLabel = RAW_VALUE,
+  searchAlternatives,
 }: SearchBarProps) {
   const { filterState, hasActiveFilters, view } = useFilterValues();
   const { setSearch } = useFilterActions();
@@ -133,6 +137,12 @@ export function SearchBar({
       : String(totalCards);
 
   const showSuggestions = suggestions !== null && suggestions.suggestions.length > 0;
+  // An empty result lists them in the empty state.
+  const showAlternatives =
+    searchAlternatives !== undefined &&
+    searchAlternatives.length > 0 &&
+    filteredCount > 0 &&
+    localSearch === filterState.search;
 
   return (
     <div className="min-w-0 flex-1">
@@ -191,7 +201,9 @@ export function SearchBar({
           query={localSearch}
           vocabulary={validationVocabulary}
           valueLabel={valueLabel}
-        />
+        >
+          {showAlternatives && <SearchAlternativeLinks alternatives={searchAlternatives} />}
+        </SearchQueryFeedback>
       )}
     </div>
   );

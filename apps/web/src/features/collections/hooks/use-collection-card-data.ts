@@ -17,6 +17,7 @@ import { EMPTY_FILTER_COUNTS } from "@/features/cards/hooks/use-card-data";
 import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
 import { buildSortCardsOptions, computePriceRanges } from "@/features/cards/lib/card-price-sort";
 import { dedupeToCardsViewTiles } from "@/features/cards/lib/card-tiles";
+import { findSearchAlternatives } from "@/features/cards/lib/search-alternative";
 import type { OwnedBucket } from "@/features/cards/lib/search-schemas";
 import { useStackedCopies } from "@/features/collections/hooks/use-stacked-copies";
 import {
@@ -135,14 +136,6 @@ export function useCollectionCardData({
   }
   const getOwnedCount = (p: Printing) => countByPrintingId[p.printingId];
 
-  let filteredCards = filterCards(canonicallyOrderedCollection, filters, {
-    keywordReverseMap,
-    getPrice,
-    priceLookup: prices,
-    getOwnedCount,
-    rarityOrder: orders.rarities,
-    vocabulary,
-  });
   // `ownedCardTotalOverride` assigns each box printing its card's full personal
   // playset and buckets per-printing, so a card stocked in several variants
   // isn't double-counted by card-mode aggregation.
@@ -159,25 +152,41 @@ export function useCollectionCardData({
     ownedFilterCounts = countByPrintingId;
     ownedFilterBucketBy = "card";
   }
+  const filterOptions = {
+    keywordReverseMap,
+    getPrice,
+    priceLookup: prices,
+    getOwnedCount,
+    rarityOrder: orders.rarities,
+    vocabulary,
+  };
   // Owned-bucket narrowing must run before the Copies slider bound below.
-  if (ownedFilter && ownedFilter.length > 0) {
-    filteredCards = applyOwnedBucketFilter(
-      filteredCards,
-      ownedFilter,
-      ownedFilterCounts,
-      ownedFilterBucketBy,
-    );
-  }
-  const ownedCountUpperBound = maxOwnedCount(filteredCards, ownedFilterCounts, ownedFilterBucketBy);
-  if ((ownedCountMin ?? null) !== null || (ownedCountMax ?? null) !== null) {
-    filteredCards = applyOwnedCountFilter(
-      filteredCards,
-      ownedCountMin ?? null,
-      ownedCountMax ?? null,
-      ownedFilterCounts,
-      ownedFilterBucketBy,
-    );
-  }
+  const narrowByOwnedBucket = (cards: Printing[]) =>
+    ownedFilter && ownedFilter.length > 0
+      ? applyOwnedBucketFilter(cards, ownedFilter, ownedFilterCounts, ownedFilterBucketBy)
+      : cards;
+  const narrowByOwnedCount = (cards: Printing[]) =>
+    (ownedCountMin ?? null) !== null || (ownedCountMax ?? null) !== null
+      ? applyOwnedCountFilter(
+          cards,
+          ownedCountMin ?? null,
+          ownedCountMax ?? null,
+          ownedFilterCounts,
+          ownedFilterBucketBy,
+        )
+      : cards;
+  const bucketedCards = narrowByOwnedBucket(
+    filterCards(canonicallyOrderedCollection, filters, filterOptions),
+  );
+  const ownedCountUpperBound = maxOwnedCount(bucketedCards, ownedFilterCounts, ownedFilterBucketBy);
+  const filteredCards = narrowByOwnedCount(bucketedCards);
+  const searchAlternatives = findSearchAlternatives(filters.search, filteredCards, (search) =>
+    narrowByOwnedCount(
+      narrowByOwnedBucket(
+        filterCards(canonicallyOrderedCollection, { ...filters, search }, filterOptions),
+      ),
+    ),
+  );
 
   // Narrow the counting universe by the owned filters before computeFilterCounts
   // does leave-one-out over the remaining dimensions.
@@ -260,5 +269,6 @@ export function useCollectionCardData({
     ownedCountMax: ownedCountUpperBound,
     setDisplayLabel,
     isReady,
+    searchAlternatives,
   };
 }

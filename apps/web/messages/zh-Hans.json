@@ -570,8 +570,27 @@
   "cards_grid_load_error_description": "服务器可能无法访问。",
   "cards_grid_no_results_title": "未找到卡牌",
   "cards_grid_no_results_description": "试着调整筛选条件。",
-  "cards_search_hint_text": "普通词语只搜索卡牌名称。要找卡牌文字吗？",
-  "cards_search_hint_try": "搜索 {query}",
+  "cards_search_hint_text": "普通词语只搜索卡牌名称。",
+  "cards_search_alternative_text": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 张卡牌的文字包含“{words}”",
+        "countPlural=*": "{count} 张卡牌的文字包含“{words}”"
+      }
+    }
+  ],
+  "cards_search_alternative_tag": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 张卡牌带有“{tag}”标签",
+        "countPlural=*": "{count} 张卡牌带有“{tag}”标签"
+      }
+    }
+  ],
   "cards_wish_on_your_list": "在你的心愿单上",
   "cards_wish_on_your_lists": "在你的心愿单上",
   "cards_wish_on_your_lists_wanted": "{lists}，想要 {count} 张",

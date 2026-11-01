@@ -120,6 +120,7 @@ export function CollectionGrid({
     detailPanePrintingsByCardId,
     totalUniqueCards,
     setDisplayLabel,
+    searchAlternatives,
     ownedCountBound,
     selectableCopyIds,
     collectionIdByCopyId,
@@ -382,6 +383,7 @@ export function CollectionGrid({
         </>
       ) : (
         <CardBrowserFilterProvider
+          searchAlternatives={searchAlternatives}
           availableFilters={availableFilters}
           availableLanguages={availableLanguages}
           filterCounts={filterCounts}

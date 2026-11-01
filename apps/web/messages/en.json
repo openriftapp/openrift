@@ -570,8 +570,27 @@
   "cards_grid_load_error_description": "The server may be unreachable.",
   "cards_grid_no_results_title": "No cards found",
   "cards_grid_no_results_description": "Try adjusting your filters.",
-  "cards_search_hint_text": "Plain words only search card names. Looking for card text?",
-  "cards_search_hint_try": "Search {query}",
+  "cards_search_hint_text": "Plain words only search card names.",
+  "cards_search_alternative_text": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} card has “{words}” in its text",
+        "countPlural=*": "{count} cards have “{words}” in their text"
+      }
+    }
+  ],
+  "cards_search_alternative_tag": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} card tagged “{tag}”",
+        "countPlural=*": "{count} cards tagged “{tag}”"
+      }
+    }
+  ],
   "cards_wish_on_your_list": "On your wishlist",
   "cards_wish_on_your_lists": "On your wishlists",
   "cards_wish_on_your_lists_wanted": "{lists}, {count} wanted",

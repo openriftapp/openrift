@@ -44,6 +44,7 @@ import {
   flattenChannelSections,
 } from "@/features/cards/lib/promo-sections";
 import { publicPromoListQueryOptions } from "@/features/cards/lib/public-promos-queries";
+import { findSearchAlternatives } from "@/features/cards/lib/search-alternative";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
 import { applyOwnedBucketFilter } from "@/features/collections/lib/owned-bucket";
 import { useEnumOrders, useLanguageList } from "@/hooks/use-enums";
@@ -160,16 +161,27 @@ function PromosBrowser() {
     languages: [activeLanguage],
     price: priceFilterEnabled ? ranges.price : { min: null, max: null },
   };
-  const initialMatches = filterCards(activePrintings, cardFilters, {
-    getPrice: (p) => display.prices.get(p.printingId, display.favoriteMarketplace),
-    priceLookup: display.prices,
-    getOwnedCount: (p) => ownedCountByPrinting?.[p.printingId],
-    rarityOrder: enumOrders.rarities,
-  });
-  const matchedPrintings =
-    !ownedFilterActive || !isLoggedIn || !ownedCountByPrinting
-      ? initialMatches
-      : applyOwnedBucketFilter(initialMatches, filters.ownedFilter, ownedCountByPrinting);
+  const matchPrintings = (search: string) => {
+    const matches = filterCards(
+      activePrintings,
+      { ...cardFilters, search },
+      {
+        getPrice: (p) => display.prices.get(p.printingId, display.favoriteMarketplace),
+        priceLookup: display.prices,
+        getOwnedCount: (p) => ownedCountByPrinting?.[p.printingId],
+        rarityOrder: enumOrders.rarities,
+      },
+    );
+    return !ownedFilterActive || !isLoggedIn || !ownedCountByPrinting
+      ? matches
+      : applyOwnedBucketFilter(matches, filters.ownedFilter, ownedCountByPrinting);
+  };
+  const matchedPrintings = matchPrintings(cardFilters.search);
+  const searchAlternatives = findSearchAlternatives(
+    cardFilters.search,
+    matchedPrintings,
+    matchPrintings,
+  );
   const grouping = asPromoGrouping(filterState.groupBy);
 
   const selectionItems: CardViewerItem[] = matchedPrintings.map((printing) => ({
@@ -277,6 +289,7 @@ function PromosBrowser() {
       </PageHero>
       <div className={cn(PAGE_PADDING_NO_TOP, "pt-3")}>
         <CardBrowserFilterProvider
+          searchAlternatives={searchAlternatives}
           availableFilters={availableFilters}
           setDisplayLabel={setDisplayLabel}
           hiddenSections={hiddenWithOwned}

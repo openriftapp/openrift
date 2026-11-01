@@ -570,8 +570,27 @@
   "cards_grid_load_error_description": "서버에 연결할 수 없습니다.",
   "cards_grid_no_results_title": "카드를 찾을 수 없습니다",
   "cards_grid_no_results_description": "필터를 조정해 보세요.",
-  "cards_search_hint_text": "일반 단어는 카드 이름만 검색합니다. 카드 텍스트를 찾으시나요?",
-  "cards_search_hint_try": "{query} 검색",
+  "cards_search_hint_text": "일반 단어는 카드 이름만 검색합니다.",
+  "cards_search_alternative_text": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "카드 텍스트에 “{words}” 포함: {count}장",
+        "countPlural=*": "카드 텍스트에 “{words}” 포함: {count}장"
+      }
+    }
+  ],
+  "cards_search_alternative_tag": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "“{tag}” 태그: {count}장",
+        "countPlural=*": "“{tag}” 태그: {count}장"
+      }
+    }
+  ],
   "cards_wish_on_your_list": "위시리스트에 있음",
   "cards_wish_on_your_lists": "위시리스트에 있음",
   "cards_wish_on_your_lists_wanted": "{lists}, {count}장 희망",

@@ -1,7 +1,19 @@
 import { looksLikeCardNumber } from "@openrift/shared/search-query/keys";
 import { parseSearchQuery } from "@openrift/shared/search-query/parse";
+import type { Printing } from "@openrift/shared/types/catalog";
 
-export function searchAlternative(query: string): string | null {
+export type SearchAlternativeKind = "text" | "tag";
+
+export interface SearchAlternative {
+  kind: SearchAlternativeKind;
+  query: string;
+  label: string;
+  count: number;
+}
+
+const ALTERNATIVE_KEYS: Record<SearchAlternativeKind, string> = { text: "o", tag: "tag" };
+
+function plainWords(query: string): string[] | null {
   const { root } = parseSearchQuery(query);
   if (!root) {
     return null;
@@ -17,6 +29,51 @@ export function searchAlternative(query: string): string | null {
   if (words.every((word) => looksLikeCardNumber(word))) {
     return null;
   }
-  const text = words.join(" ");
-  return /\s/u.test(text) ? `o:"${text}"` : `o:${text}`;
+  return words;
+}
+
+function keyedQuery(key: string, words: readonly string[]): string {
+  return words.map((word) => (/\s/u.test(word) ? `${key}:"${word}"` : `${key}:${word}`)).join(" ");
+}
+
+function tagLabel(words: readonly string[], matches: readonly Printing[]): string {
+  const tags = new Map<string, string>();
+  for (const printing of matches) {
+    for (const tag of printing.card.tags) {
+      tags.set(tag.toLowerCase(), tag);
+    }
+  }
+  return words.map((word) => tags.get(word.toLowerCase()) ?? word).join(" ");
+}
+
+/**
+ * Card text and tag searches for a query of plain words, each kept only when it
+ * finds a card the plain search did not. `count` is in cards, whatever the view.
+ */
+export function findSearchAlternatives(
+  query: string,
+  current: readonly Printing[],
+  search: (query: string) => readonly Printing[],
+): SearchAlternative[] {
+  const words = plainWords(query);
+  if (!words) {
+    return [];
+  }
+  const shown = new Set(current.map((printing) => printing.cardId));
+  const alternatives: SearchAlternative[] = [];
+  for (const kind of ["text", "tag"] as const) {
+    const alternativeQuery = keyedQuery(ALTERNATIVE_KEYS[kind], words);
+    const matches = search(alternativeQuery);
+    const cardIds = new Set(matches.map((printing) => printing.cardId));
+    if (![...cardIds].some((cardId) => !shown.has(cardId))) {
+      continue;
+    }
+    alternatives.push({
+      kind,
+      query: alternativeQuery,
+      label: kind === "tag" ? tagLabel(words, matches) : words.join(" "),
+      count: cardIds.size,
+    });
+  }
+  return alternatives;
 }

@@ -2,6 +2,10 @@
 
 ## 2026-11-01
 
+### Highlights
+
+- feat(Cards): **Card text and tag matches** — a search of plain words now links to the cards that have those words in their text or tags, also when some card names match.
+
 ### Other
 
 - feat(Decks): **Turn off unowned card fading** — the new Highlight owned toggle in the deck builder's card browser shows cards you don't own at full strength when switched off.

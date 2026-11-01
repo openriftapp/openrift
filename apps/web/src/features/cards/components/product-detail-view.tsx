@@ -270,6 +270,7 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
     setDisplayLabel,
     totalUniqueCards,
     filteredCount,
+    searchAlternatives,
   } = useCardData({
     allPrintings: productPrintings,
     sets,
@@ -353,6 +354,7 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
 
   return (
     <CardBrowserFilterProvider
+      searchAlternatives={searchAlternatives}
       availableFilters={availableFilters}
       availableLanguages={availableLanguages}
       filterCounts={filterCounts}

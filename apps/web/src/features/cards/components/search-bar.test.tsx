@@ -3,6 +3,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { SearchAlternative } from "@/features/cards/lib/search-alternative";
+
 const { mockUseFilterValues, mockUseFilterActions, mockTrackEvent } = vi.hoisted(() => ({
   mockUseFilterValues: vi.fn(),
   mockUseFilterActions: vi.fn(),
@@ -22,10 +24,18 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({
     to: _to,
     params: _params,
+    search,
     children,
     ...props
-  }: React.ComponentProps<"a"> & { to?: string; params?: unknown }) => (
-    <a {...props} href="/help/search-syntax">
+  }: React.ComponentProps<"a"> & { to?: string; params?: unknown; search?: unknown }) => (
+    <a
+      {...props}
+      href={
+        typeof search === "function"
+          ? `?q=${(search as (prev: object) => { q: string })({}).q}`
+          : "/help/search-syntax"
+      }
+    >
       {children}
     </a>
   ),
@@ -37,9 +47,13 @@ import { SearchBar } from "./search-bar";
 function setup({
   search = "",
   suggestionVocabulary,
+  searchAlternatives,
+  filteredCount = 12,
 }: {
   search?: string;
   suggestionVocabulary?: SearchVocabulary;
+  searchAlternatives?: SearchAlternative[];
+  filteredCount?: number;
 } = {}) {
   const actions = { setSearch: vi.fn() };
   mockUseFilterValues.mockReturnValue({
@@ -49,7 +63,12 @@ function setup({
   });
   mockUseFilterActions.mockReturnValue(actions);
   render(
-    <SearchBar totalCards={40} filteredCount={12} suggestionVocabulary={suggestionVocabulary} />,
+    <SearchBar
+      totalCards={40}
+      filteredCount={filteredCount}
+      suggestionVocabulary={suggestionVocabulary}
+      searchAlternatives={searchAlternatives}
+    />,
   );
   return actions;
 }
@@ -210,5 +229,31 @@ describe("SearchBar suggestions", () => {
     await user.keyboard("{Escape}");
 
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+});
+
+describe("SearchBar search alternatives", () => {
+  const alternatives: SearchAlternative[] = [
+    { kind: "text", query: "o:noxus", label: "noxus", count: 1 },
+    { kind: "tag", query: "tag:noxus", label: "Noxus", count: 61 },
+  ];
+
+  it("links to the card text and tag searches under a plain-word query", () => {
+    setup({ search: "noxus", searchAlternatives: alternatives });
+
+    expect(screen.getByRole("link", { name: "1 card has “noxus” in its text" })).toHaveAttribute(
+      "href",
+      "?q=o:noxus",
+    );
+    expect(screen.getByRole("link", { name: "61 cards tagged “Noxus”" })).toHaveAttribute(
+      "href",
+      "?q=tag:noxus",
+    );
+  });
+
+  it("leaves an empty result to the empty state", () => {
+    setup({ search: "noxus", searchAlternatives: alternatives, filteredCount: 0 });
+
+    expect(screen.queryByRole("link", { name: /tagged/u })).not.toBeInTheDocument();
   });
 });

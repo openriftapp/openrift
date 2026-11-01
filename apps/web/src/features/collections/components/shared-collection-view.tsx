@@ -201,6 +201,7 @@ function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }
     setDisplayLabel,
     totalUniqueCards,
     filteredCount,
+    searchAlternatives,
   } = useCardData({
     allPrintings: collectionPrintings,
     sets,
@@ -306,6 +307,7 @@ function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }
 
   return (
     <CardBrowserFilterProvider
+      searchAlternatives={searchAlternatives}
       availableFilters={availableFilters}
       availableLanguages={availableLanguages}
       filterCounts={filterCounts}
