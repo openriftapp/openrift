@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getDomainTintStyle } from "@/lib/domain";
 import { formatPublicCode } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { CardDetailArt } from "./card-detail-art";
@@ -185,7 +186,10 @@ export function CardDetail({
 
   return (
     <div
-      className="bg-background overflow-y-auto rounded-lg md:px-3"
+      className={cn(
+        "bg-background overflow-y-auto rounded-lg md:px-3",
+        onClose && "md:overflow-visible",
+      )}
       style={getDomainTintStyle(card.domains, domainColors)}
     >
       {onClose && (
@@ -216,14 +220,20 @@ export function CardDetail({
         </div>
       )}
 
-      <div className="relative hidden md:block md:pt-4 md:pb-4">
+      <div
+        className={cn(
+          "relative hidden md:block md:pt-4 md:pb-4",
+          onClose && "bg-background/80 sticky top-0 z-10 backdrop-blur-lg md:-mx-3 md:px-3",
+        )}
+        style={onClose ? getDomainTintStyle(card.domains, domainColors) : undefined}
+      >
         {onClose && (
           <Button
             variant="ghost"
             size="icon-sm"
             onClick={onClose}
             aria-label={m.card_detail_close()}
-            className="absolute top-4 right-0"
+            className="absolute top-4 right-3"
           >
             <XIcon className="size-4" />
           </Button>

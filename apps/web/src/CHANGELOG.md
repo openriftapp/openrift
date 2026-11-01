@@ -9,6 +9,7 @@
 ### Other
 
 - fix(Cards): **Steady card window** — the card detail window now stays anchored near the top while you step through cards with the arrows, so the arrows and close button stop jumping.
+- fix(Cards): **Close button stays visible** — the docked card panel keeps its title and close button in view while you scroll.
 - feat(Decks): **Turn off unowned card fading** — the new Highlight owned toggle in the deck builder's card browser shows cards you don't own at full strength when switched off.
 - fix(Cards): **Page stays put when closing a card** — closing the card details window no longer scrolls the card list, also after stepping through cards with the arrow keys or opening a shared card link.
 
