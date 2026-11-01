@@ -7,18 +7,20 @@ import { useEffect, useId, useRef, useState } from "react";
 import { SearchInput } from "@/components/search-input";
 import { TextLink } from "@/components/ui/text-link";
 import { SearchAlternativeLinks } from "@/features/cards/components/search-alternative-links";
-import { SearchQueryFeedback } from "@/features/cards/components/search-query-feedback";
 import {
   SearchSuggestionList,
   suggestionOptionId,
 } from "@/features/cards/components/search-suggestion-list";
+import { SearchTermChips } from "@/features/cards/components/search-term-chips";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import type { SearchAlternative } from "@/features/cards/lib/search-alternative";
 import type { SearchValueLabeler } from "@/features/cards/lib/search-clause-labels";
+import { describeSearchTerms } from "@/features/cards/lib/search-clause-labels";
 import type { SearchSuggestion } from "@/features/cards/lib/search-suggestions";
 import { applySuggestion, searchSuggestions } from "@/features/cards/lib/search-suggestions";
 import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 import { trackEvent } from "@/lib/analytics";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 interface SearchBarProps {
@@ -137,6 +139,7 @@ export function SearchBar({
       : String(totalCards);
 
   const showSuggestions = suggestions !== null && suggestions.suggestions.length > 0;
+  const searchTerms = describeSearchTerms(localSearch, validationVocabulary, valueLabel);
   // An empty result lists them in the empty state.
   const showAlternatives =
     searchAlternatives !== undefined &&
@@ -196,14 +199,26 @@ export function SearchBar({
           />
         )}
       </div>
-      {!showSuggestions && (
-        <SearchQueryFeedback
-          query={localSearch}
-          vocabulary={validationVocabulary}
-          valueLabel={valueLabel}
+      {!showSuggestions && (searchTerms.length > 0 || showAlternatives) && (
+        // Below sm the active-filters row carries the term chips.
+        <div
+          className={cn(
+            "mt-1 flex flex-wrap items-center gap-1",
+            !showAlternatives && "hidden sm:flex",
+          )}
         >
+          <div className="hidden sm:contents">
+            <SearchTermChips
+              query={localSearch}
+              terms={searchTerms}
+              onQueryChange={(value) => {
+                updateQuery(value, value.length);
+                setSearch(value);
+              }}
+            />
+          </div>
           {showAlternatives && <SearchAlternativeLinks alternatives={searchAlternatives} />}
-        </SearchQueryFeedback>
+        </div>
       )}
     </div>
   );

@@ -18,7 +18,7 @@ import {
 } from "./keys.js";
 
 /** Character offsets into the raw query, end exclusive. */
-interface SearchSpan {
+export interface SearchSpan {
   start: number;
   end: number;
 }
@@ -76,6 +76,7 @@ export interface SearchDirectives {
 
 export interface ParsedSearchQuery {
   root: QueryNode | null;
+  terms: SearchSpan[];
   clauses: SearchClause[];
   directives: SearchDirectives;
   diagnostics: SearchDiagnostic[];
@@ -93,6 +94,7 @@ class Parser {
   readonly clauses: SearchClause[] = [];
   readonly directives: SearchDirectives = {};
   readonly diagnostics: SearchDiagnostic[] = [];
+  readonly terms: SearchSpan[] = [];
 
   private readonly raw: string;
 
@@ -140,6 +142,7 @@ class Parser {
   }
 
   private parseOr(negated: boolean): QueryNode | null {
+    const firstTerm = this.terms.length;
     const branches: QueryNode[] = [];
     const first = this.parseAnd(negated);
     if (first) {
@@ -159,6 +162,11 @@ class Parser {
         });
       }
     }
+    const lastTerm = this.terms.at(-1);
+    if (this.depth === 0 && branches.length > 1 && lastTerm) {
+      const start = this.terms[firstTerm]?.start ?? lastTerm.start;
+      this.terms.splice(firstTerm, Infinity, { start, end: lastTerm.end });
+    }
     return combine("or", branches);
   }
 
@@ -172,7 +180,11 @@ class Parser {
       if (this.depth === 0 && this.raw[this.pos] === ")") {
         break;
       }
+      const start = this.pos;
       const node = this.parseUnary(negated);
+      if (this.depth === 0) {
+        this.terms.push({ start, end: this.pos });
+      }
       if (node) {
         items.push(node);
       }
@@ -406,6 +418,7 @@ export function parseSearchQuery(raw: string): ParsedSearchQuery {
   const root = parser.parse();
   const parsed: ParsedSearchQuery = {
     root,
+    terms: parser.terms,
     clauses: parser.clauses,
     directives: parser.directives,
     diagnostics: parser.diagnostics,

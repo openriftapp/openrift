@@ -34,6 +34,23 @@ describe("FilterChip", () => {
     expect(screen.getByText("Calm")).toHaveClass("line-through");
   });
 
+  it("tints a warning or error tone", () => {
+    const { container, rerender } = render(
+      <FilterChip label="zz:x" tone="warning" onRemove={vi.fn()} removeLabel="Remove zz:x" />,
+    );
+    expect(container.firstElementChild).toHaveClass("text-warning");
+    rerender(<FilterChip label="e:x" tone="error" onRemove={vi.fn()} removeLabel="Remove e:x" />);
+    expect(container.firstElementChild).toHaveClass("text-destructive");
+    expect(container.firstElementChild).not.toHaveAttribute("data-excluded");
+  });
+
+  it("lets a long label wrap", () => {
+    const { container } = render(
+      <FilterChip label="a long term" wrap onRemove={vi.fn()} removeLabel="Remove" />,
+    );
+    expect(container.firstElementChild).toHaveClass("whitespace-normal", "h-auto");
+  });
+
   it("leaves an included value unmarked", () => {
     const { container } = render(
       <FilterChip label="Calm" onRemove={vi.fn()} removeLabel="Remove Calm" />,

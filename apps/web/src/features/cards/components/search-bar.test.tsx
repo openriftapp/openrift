@@ -104,6 +104,18 @@ describe("SearchBar query chips", () => {
     expect(screen.getByText("not (type contains “spell” or “fire”)")).toBeInTheDocument();
   });
 
+  it("removes one term from the query through its chip", async () => {
+    const user = userEvent.setup();
+    const actions = setup({ search: "jinx (d:calm or d:mind) e<=3" });
+
+    await user.click(
+      screen.getByRole("button", { name: "Remove (d:calm or d:mind) from the search" }),
+    );
+
+    expect(actions.setSearch).toHaveBeenCalledWith("jinx e<=3");
+    expect(screen.getByRole("textbox")).toHaveValue("jinx e<=3");
+  });
+
   it("shows no chips for a plain-word query", () => {
     setup({ search: "teemo" });
 

@@ -1,11 +1,15 @@
+import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
+import { resolveSearchQuery } from "@openrift/shared/search-query/bind";
+import { searchTermSpan } from "@openrift/shared/search-query/edit";
 import type { SearchKeyId, SearchOperator } from "@openrift/shared/search-query/keys";
 import { FOREIGN_KEY_HINTS, searchKey } from "@openrift/shared/search-query/keys";
 import type {
   QueryNode,
   SearchClause,
   SearchDiagnostic,
+  SearchSpan,
 } from "@openrift/shared/search-query/parse";
-import { pruneIgnored } from "@openrift/shared/search-query/parse";
+import { parseSearchQuery, pruneIgnored } from "@openrift/shared/search-query/parse";
 
 import { m } from "@/paraglide/messages.js";
 
@@ -216,18 +220,52 @@ function hasKeyedTerm(node: QueryNode): boolean {
   }
 }
 
-export function describeQueryChips(
-  root: QueryNode | null,
+export interface SearchTermChip {
+  id: string;
+  text: string;
+  span: SearchSpan;
+  tone: "term" | "warning" | "error";
+}
+
+export function describeSearchTerms(
+  query: string,
+  vocabulary: SearchVocabulary,
   valueLabel: SearchValueLabeler,
-): { id: string; text: string }[] {
-  const kept = pruneIgnored(root);
-  if (!kept) {
-    return [];
-  }
-  const terms = kept.kind === "and" ? kept.children : [kept];
-  return terms.flatMap((term, index) =>
-    hasKeyedTerm(term) ? [{ id: String(index), text: describeNode(term, valueLabel, false) }] : [],
-  );
+): SearchTermChip[] {
+  const resolved = resolveSearchQuery(parseSearchQuery(query), vocabulary);
+  const kept = pruneIgnored(resolved.root);
+  const nodes = kept ? (kept.kind === "and" ? kept.children : [kept]) : [];
+  const terms = nodes.flatMap((node): SearchTermChip[] => {
+    if (!hasKeyedTerm(node)) {
+      return [];
+    }
+    const span = searchTermSpan(node, resolved.terms);
+    return [
+      { id: `term-${span.start}`, text: describeNode(node, valueLabel, false), span, tone: "term" },
+    ];
+  });
+  const directives = resolved.clauses
+    .filter((clause) => searchKey(clause.key).kind === "directive")
+    .map((clause): SearchTermChip => ({
+      id: `directive-${clause.span.start}`,
+      text: describeClause(clause, valueLabel),
+      span: clause.span,
+      tone: "term",
+    }));
+  const problems = resolved.diagnostics.flatMap((diagnostic): SearchTermChip[] => {
+    const text = describeDiagnostic(diagnostic);
+    return text === null
+      ? []
+      : [
+          {
+            id: `${diagnostic.code}-${diagnostic.span.start}`,
+            text,
+            span: diagnostic.span,
+            tone: diagnostic.severity,
+          },
+        ];
+  });
+  return [...terms, ...directives, ...problems].toSorted((a, b) => a.span.start - b.span.start);
 }
 
 export function describeDiagnostic(diagnostic: SearchDiagnostic): string | null {

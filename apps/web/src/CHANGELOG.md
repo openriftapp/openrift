@@ -8,6 +8,7 @@
 - feat(Cards): **Card text and tag matches** — a search of plain words now links to the cards that have those words in their text or tags, also when some card names match.
 - feat(Cards): **Card page and dock buttons** — the card window header now has a Card page button that opens the printing you're viewing and a button to dock the window beside the grid.
 - feat(Cards): **Cards open in new tabs** — middle-click or Ctrl-click (Cmd-click on Mac) a card in the browser to open its page in a new tab, and the right-click menu can open or copy the link.
+- feat(Cards): **Removable search terms** — each search term shows as a chip with its own remove button, so you can drop one part of a long search without retyping it.
 
 ### Other
 

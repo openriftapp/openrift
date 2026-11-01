@@ -132,6 +132,7 @@ export function resolveSearchQuery(
 
   return {
     root: parsed.root ? rewrite(parsed.root) : null,
+    terms: parsed.terms,
     clauses,
     directives: parsed.directives,
     diagnostics: [...parsed.diagnostics, ...diagnostics],

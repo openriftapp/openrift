@@ -267,6 +267,57 @@ describe("ActiveFilters custom tags", () => {
   });
 });
 
+describe("ActiveFilters search terms", () => {
+  afterEach(() => {
+    mockUseFilterValues.mockReset();
+    mockUseFilterActions.mockReset();
+    mockUseEnumOrders.mockReset();
+    mockUseCustomTagList.mockReset();
+    mockUseDisplayStore.mockReset();
+  });
+
+  function setupSearch(search: string) {
+    setupHooks({ customTags: [], selectedCustomTagSlugs: [] });
+    mockUseFilterValues.mockReturnValue({
+      filterState: { ...EMPTY_FILTER_STATE, search },
+      ranges: NULL_RANGES,
+    });
+    const setSearch = vi.fn();
+    mockUseFilterActions.mockReturnValue({ ...mockUseFilterActions(), setSearch });
+    return setSearch;
+  }
+
+  it("shows a chip per keyed term and removes that term from the query", async () => {
+    const user = userEvent.setup();
+    const setSearch = setupSearch("jinx t:unit -(d:fury or d:calm)");
+    const { getByText, getByRole } = render(<ActiveFilters availableFilters={makeAvailable()} />);
+
+    expect(getByText("type contains “unit”")).toBeInTheDocument();
+    expect(getByText("not (domain: fury or domain: calm)")).toBeInTheDocument();
+    await user.click(getByRole("button", { name: "Remove -(d:fury or d:calm) from the search" }));
+
+    expect(setSearch).toHaveBeenCalledWith("jinx t:unit");
+  });
+
+  it("removes a flagged term through its warning chip", async () => {
+    const user = userEvent.setup();
+    const setSearch = setupSearch("t:unit zz:x");
+    const { getByText, getByRole } = render(<ActiveFilters availableFilters={makeAvailable()} />);
+
+    expect(getByText("Unknown key “zz:”, ignored")).toBeInTheDocument();
+    await user.click(getByRole("button", { name: "Remove zz:x from the search" }));
+
+    expect(setSearch).toHaveBeenCalledWith("t:unit");
+  });
+
+  it("renders nothing for a plain-word search", () => {
+    setupSearch("jinx");
+    const { container } = render(<ActiveFilters availableFilters={makeAvailable()} />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+});
+
 describe("ActiveFilters copies range", () => {
   afterEach(() => {
     mockUseFilterValues.mockReset();

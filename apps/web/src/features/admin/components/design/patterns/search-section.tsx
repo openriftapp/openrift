@@ -11,7 +11,8 @@ import {
   SwatchRow,
 } from "@/features/admin/components/design/demo-primitives";
 import type { DesignGroup } from "@/features/admin/components/design/design-sections";
-import { SearchQueryFeedback } from "@/features/cards/components/search-query-feedback";
+import { SearchTermChips } from "@/features/cards/components/search-term-chips";
+import { describeSearchTerms } from "@/features/cards/lib/search-clause-labels";
 
 const GROUPS = {
   searchInput: { id: "search-search-input", title: "SearchInput" },
@@ -33,7 +34,7 @@ const REGION_OPTIONS = [
 
 export function SearchSection() {
   const [plainSearch, setPlainSearch] = useState("");
-  const [prefixedSearch, setPrefixedSearch] = useState("t:unit d:fury e<=3");
+  const [prefixedSearch, setPrefixedSearch] = useState("t:unit (d:fury or o:stun) e<=3 zz:x");
   const [regions, setRegions] = useState<string[]>(["piltover"]);
   const [excludedRegions, setExcludedRegions] = useState<string[]>(["zaun"]);
   const [demoTriage, setDemoTriage] = useState("any");
@@ -49,7 +50,7 @@ export function SearchSection() {
     >
       <DemoGroup
         {...GROUPS.searchInput}
-        hint="Keyed clauses show as plain-word chips under the field."
+        hint="Each keyed term shows as a plain-word chip under the field; its × removes the term from the query."
       >
         <SwatchRow label="Leading slot">
           <Swatch label="plain">
@@ -68,11 +69,17 @@ export function SearchSection() {
                 placeholder="Search cards…"
                 trailing="3 / 40 cards"
               />
-              <SearchQueryFeedback
-                query={prefixedSearch}
-                vocabulary={DEMO_VOCABULARY}
-                valueLabel={(_key, value) => value}
-              />
+              <div className="mt-1 flex flex-wrap items-center gap-1">
+                <SearchTermChips
+                  query={prefixedSearch}
+                  terms={describeSearchTerms(
+                    prefixedSearch,
+                    DEMO_VOCABULARY,
+                    (_key, value) => value,
+                  )}
+                  onQueryChange={setPrefixedSearch}
+                />
+              </div>
             </div>
           </Swatch>
         </SwatchRow>

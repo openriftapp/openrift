@@ -1,15 +1,19 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { AvailableFilters } from "@openrift/shared/filters-available";
+import type { SearchVocabulary } from "@openrift/shared/search-query/bind";
 import type { PresenceDimension, RangeKey } from "@openrift/shared/types/search";
 import { XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { FilterIcon } from "@/features/cards/components/filter-icon";
+import { SearchTermChips } from "@/features/cards/components/search-term-chips";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
 import { ownedBucketLabel } from "@/features/cards/lib/filter-dimensions";
 import { presenceLabel } from "@/features/cards/lib/presence-filter";
+import type { SearchValueLabeler } from "@/features/cards/lib/search-clause-labels";
+import { describeSearchTerms } from "@/features/cards/lib/search-clause-labels";
 import { groupTagsByCategory } from "@/features/collections/lib/tag-category-groups";
 import { useCustomTagList, useEnumOrders, useTagCategories } from "@/hooks/use-enums";
 import { formatDomainFilterLabel } from "@/lib/domain";
@@ -37,17 +41,25 @@ interface ActiveFiltersProps {
   setDisplayLabel?: (code: string) => string;
   hiddenSections?: ReadonlySet<string>;
   ownedCountMax?: number;
+  searchVocabulary?: SearchVocabulary;
+  searchValueLabel?: SearchValueLabeler;
 }
+
+const NO_VOCABULARY: SearchVocabulary = {};
+const RAW_VALUE: SearchValueLabeler = (_key, value) => value;
 
 export function ActiveFilters({
   availableFilters,
   setDisplayLabel,
   hiddenSections,
   ownedCountMax,
+  searchVocabulary = NO_VOCABULARY,
+  searchValueLabel = RAW_VALUE,
 }: ActiveFiltersProps) {
   const { labels } = useEnumOrders();
   const { all: allCustomTags } = useCustomTagList();
   const { filterState, ranges } = useFilterValues();
+  const searchTerms = describeSearchTerms(filterState.search, searchVocabulary, searchValueLabel);
   const {
     toggleArrayFilter,
     setRange,
@@ -323,7 +335,7 @@ export function ActiveFilters({
   );
 
   const hasVisibleContent =
-    filterState.search !== "" ||
+    searchTerms.length > 0 ||
     filterGroups.length > 0 ||
     excludeGroups.length > 0 ||
     (!customTagsHidden && customTagGroups.length > 0) ||
@@ -347,15 +359,12 @@ export function ActiveFilters({
   return (
     <div className="mb-3 flex items-center gap-2">
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
-        {filterState.search && (
-          <div className="flex items-center gap-1">
-            <span className="text-muted-foreground hidden text-xs sm:inline">
-              {m.cards_filter_active_search_label()}
-            </span>
-            <FilterChip
-              label={<>&ldquo;{filterState.search}&rdquo;</>}
-              removeLabel={m.cards_filter_clear_search()}
-              onRemove={() => setSearch("")}
+        {searchTerms.length > 0 && (
+          <div className="flex min-w-0 flex-wrap items-center gap-1">
+            <SearchTermChips
+              query={filterState.search}
+              terms={searchTerms}
+              onQueryChange={setSearch}
             />
           </div>
         )}

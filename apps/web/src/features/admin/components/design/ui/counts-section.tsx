@@ -117,6 +117,28 @@ export function CountsSection() {
             removeLabel="Remove excluded Champion"
           />
         </DemoRow>
+        <DemoRow label="Tones and wrapping">
+          <FilterChip
+            label="Unknown key “zz:”, ignored"
+            tone="warning"
+            onRemove={() => setChips((current) => [...current])}
+            removeLabel="Remove zz:x"
+          />
+          <FilterChip
+            label="“x” doesn't work with e:"
+            tone="error"
+            onRemove={() => setChips((current) => [...current])}
+            removeLabel="Remove e:x"
+          />
+          <div className="w-56">
+            <FilterChip
+              wrap
+              label="card text contains “buff” or (card text contains “stun” and type: Spell)"
+              onRemove={() => setChips((current) => [...current])}
+              removeLabel="Remove the or-group"
+            />
+          </div>
+        </DemoRow>
       </DemoGroup>
     </DemoSection>
   );

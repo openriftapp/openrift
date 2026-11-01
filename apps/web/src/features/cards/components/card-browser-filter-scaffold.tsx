@@ -101,6 +101,10 @@ function BrowserMobileFilters() {
 
 export function BrowserActiveFilters() {
   const meta = useFilterMeta();
+  const searchVocabulary = useSearchVocabulary(
+    meta.availableFilters,
+    meta.availableLanguages ?? EMPTY_LANGUAGES,
+  );
   // Mirrors the compact filter bar's `hidden sm:flex`: the bar already
   // surfaces every filter inline from sm up, so the chip strip is redundant there.
   return (
@@ -110,6 +114,8 @@ export function BrowserActiveFilters() {
         setDisplayLabel={meta.setDisplayLabel}
         hiddenSections={meta.hiddenSections}
         ownedCountMax={meta.ownedCountMax}
+        searchVocabulary={searchVocabulary.validation}
+        searchValueLabel={searchVocabulary.valueLabel}
       />
     </div>
   );
