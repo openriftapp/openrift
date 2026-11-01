@@ -201,7 +201,7 @@ test.describe("sets", () => {
       await page.goto(`/sets/${knownSet.slug}`);
       await page.waitForLoadState("networkidle");
 
-      const tile = page.getByRole("button", { name: firstCard.name }).first();
+      const tile = page.getByRole("link", { name: firstCard.name }).first();
       await expect(tile).toBeVisible({ timeout: 10_000 });
 
       await tile.click();

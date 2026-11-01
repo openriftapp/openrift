@@ -2,6 +2,7 @@ import { centsToDollars } from "@openrift/shared/money";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { PublicCollectionDetailResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
+import { useRouter } from "@tanstack/react-router";
 import { PackageIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Suspense, useState } from "react";
@@ -32,6 +33,7 @@ import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbna
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
+import { cardPageHref } from "@/features/cards/lib/card-page-href";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
@@ -161,6 +163,7 @@ function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }
   const channels = useChannelRegistry();
   const keywordReverseMap = useKeywordReverseMap();
   const isMobile = useIsMobile();
+  const router = useRouter();
   const { data: session } = useSession();
   const isLoggedIn = Boolean(session?.user);
   const { data: viewerOwnedByPrinting } = useOwnedCount(isLoggedIn);
@@ -265,6 +268,7 @@ function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }
         showImages={showImages}
         view={view}
         onClick={handleCardClick}
+        href={cardPageHref(router, item.printing)}
         siblings={view === "cards" ? printingsByCardId.get(cardId) : undefined}
         priceRange={priceRangeByCardId?.get(cardId)}
         strip={

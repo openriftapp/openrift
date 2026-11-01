@@ -2,7 +2,7 @@ import type { ProductDetailResponse } from "@openrift/shared/contracts/products"
 import { imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { Suspense, useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
@@ -34,6 +34,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
+import { cardPageHref } from "@/features/cards/lib/card-page-href";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
 import type { EnrichedProductDetail } from "@/features/cards/lib/products-queries";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
@@ -238,6 +239,7 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
   const channels = useChannelRegistry();
   const keywordReverseMap = useKeywordReverseMap();
   const isMobile = useIsMobile();
+  const router = useRouter();
   const { data: session } = useSession();
   const isLoggedIn = Boolean(session?.user);
   const { data: viewerOwnedByPrinting } = useOwnedCount(isLoggedIn);
@@ -325,6 +327,7 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
       showImages={showImages}
       view="printings"
       onClick={handleCardClick}
+      href={cardPageHref(router, item.printing)}
       strip={<CardCountStrip count={quantityByPrintingId[item.printing.printingId] ?? 0} />}
     />
   );

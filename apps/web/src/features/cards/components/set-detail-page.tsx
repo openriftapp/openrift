@@ -3,7 +3,7 @@ import { deduplicateByCard } from "@openrift/shared/printing-select";
 import { countPrintings, sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Link, useNavigate, getRouteApi } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter, getRouteApi } from "@tanstack/react-router";
 
 import {
   PAGE_HERO_EYEBROW_CLASS,
@@ -35,6 +35,7 @@ export function SetDetailPage() {
   const { setSlug } = routeApi.useParams();
   const { data } = useSuspenseQuery(publicSetDetailQueryOptions(setSlug));
   const navigate = useNavigate();
+  const router = useRouter();
   const showImages = useDisplayStore((s) => s.showImages);
   const display = useCardThumbnailDisplay();
   const effectiveLanguageOrder = useEffectiveLanguageOrder();
@@ -47,11 +48,13 @@ export function SetDetailPage() {
     )
     .slice(0, 3);
 
-  const handleCardClick = (printing: Printing) => {
-    void navigate({
+  const cardPage = (printing: Printing) =>
+    ({
       to: "/cards/$cardSlug/{-$printingSlug}",
       params: { cardSlug: printing.card.slug },
-    });
+    }) as const;
+  const handleCardClick = (printing: Printing) => {
+    void navigate(cardPage(printing));
   };
 
   return (
@@ -100,6 +103,7 @@ export function SetDetailPage() {
               key={sideKey(printing)}
               printing={printing}
               onClick={handleCardClick}
+              href={router.buildLocation(cardPage(printing)).href}
               showImages={showImages}
               display={display}
               sizes={SETS_CARD_SIZES}

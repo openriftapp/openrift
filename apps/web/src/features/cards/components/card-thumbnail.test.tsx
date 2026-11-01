@@ -752,3 +752,68 @@ describe("CardThumbnail ban ribbons", () => {
     expect(container.textContent).not.toContain("Ban incoming");
   });
 });
+
+describe("CardThumbnail card page link", () => {
+  const href = "/cards/annie-fiery?printingId=printing-1";
+
+  function renderLinked() {
+    const onClick = vi.fn();
+    const utils = render(
+      <CardThumbnail
+        printing={makePrintingWithImage("annie-fiery")}
+        onClick={onClick}
+        showImages
+        display={baseDisplay}
+        href={href}
+      />,
+      { wrapper: makeWrapper() },
+    );
+    return { onClick, link: utils.getByRole("link") };
+  }
+
+  it("renders the image as a link to the card page", () => {
+    const { link } = renderLinked();
+    expect(link.getAttribute("href")).toBe(href);
+  });
+
+  it("runs onClick and prevents navigation on a plain click", () => {
+    const { link, onClick } = renderLinked();
+    const notPrevented = fireEvent.click(link);
+    expect(notPrevented).toBe(false);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["ctrl", { ctrlKey: true }],
+    ["meta", { metaKey: true }],
+    ["shift", { shiftKey: true }],
+    ["middle", { button: 1 }],
+  ])("leaves a %s click to the browser", (_label, init) => {
+    const { link, onClick } = renderLinked();
+    let preventedByApp: boolean | undefined;
+    // Runs after React's root listener; the preventDefault only stops jsdom's unimplemented navigation.
+    const record = (event: Event) => {
+      preventedByApp = event.defaultPrevented;
+      event.preventDefault();
+    };
+    globalThis.addEventListener("click", record);
+    fireEvent.click(link, init);
+    globalThis.removeEventListener("click", record);
+    expect(preventedByApp).toBe(false);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("keeps the image a button without an href", () => {
+    const { queryByRole, getByRole } = render(
+      <CardThumbnail
+        printing={makePrintingWithImage("annie-fiery")}
+        onClick={() => {}}
+        showImages
+        display={baseDisplay}
+      />,
+      { wrapper: makeWrapper() },
+    );
+    expect(queryByRole("link")).toBeNull();
+    expect(getByRole("button")).toBeInTheDocument();
+  });
+});

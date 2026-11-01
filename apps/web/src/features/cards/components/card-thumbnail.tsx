@@ -9,7 +9,7 @@ import type { StandardArtFallback } from "@openrift/shared/standard";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Domain, Rarity } from "@openrift/shared/types/enums";
 import { WellKnown, isBaseBanFormat } from "@openrift/shared/well-known";
-import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
+import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { memo, useEffect, useRef, useState } from "react";
 
 import { MarketplaceIcon } from "@/components/marketplace-icon";
@@ -286,7 +286,7 @@ function CardImageContent({
     />
   );
   // Empty alt marks decorative sibling faces, so the placeholder's role="img" label
-  // doesn't pollute the accessible name of the parent button they sit inside.
+  // doesn't pollute the accessible name of the parent control they sit inside.
   const placeholder =
     alt === "" ? <div aria-hidden="true">{drawnPlaceholder}</div> : drawnPlaceholder;
   return (
@@ -373,6 +373,54 @@ interface CardThumbnailProps {
   banDisplay?: "label" | "overlay" | "none";
   belowLabel?: ReactNode;
   imageOverlay?: ReactNode;
+  href?: string;
+}
+
+function isPlainPrimaryClick(event: ReactMouseEvent): boolean {
+  return event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey;
+}
+
+function ImageTarget({
+  href,
+  draggable,
+  onClick,
+  className,
+  style,
+  children,
+}: {
+  href: string | undefined;
+  draggable: false | undefined;
+  onClick: (event: ReactMouseEvent) => void;
+  className: string;
+  style: CSSProperties;
+  children: ReactNode;
+}) {
+  if (href === undefined) {
+    return (
+      <Pressable className={className} style={style} onClick={onClick}>
+        {children}
+      </Pressable>
+    );
+  }
+  return (
+    <a
+      href={href}
+      draggable={draggable}
+      className={cn(
+        "focus-visible:ring-ring/50 cursor-pointer focus-visible:ring-2 focus-visible:outline-none",
+        className,
+      )}
+      style={style}
+      onClick={(event) => {
+        if (isPlainPrimaryClick(event)) {
+          event.preventDefault();
+          onClick(event);
+        }
+      }}
+    >
+      {children}
+    </a>
+  );
 }
 
 // Only mounted when dragData is passed, so callers without drag pay zero @dnd-kit cost.
@@ -440,6 +488,7 @@ export const CardThumbnail = memo(function CardThumbnail({
   banDisplay = "label",
   belowLabel,
   imageOverlay,
+  href,
 }: CardThumbnailProps) {
   const card = displayCard(printing);
   const displayName =
@@ -640,12 +689,14 @@ export const CardThumbnail = memo(function CardThumbnail({
         );
       })}
       <ImageShell>
-        <Pressable
+        <ImageTarget
           className={cn(
             "bg-muted aspect-card relative block w-full overflow-hidden",
             dimmed && "opacity-50",
           )}
           style={{ borderRadius: CARD_BORDER_RADIUS }}
+          href={href}
+          draggable={dragData ? false : undefined}
           onClick={(event) => onClick(printing, event)}
         >
           <CardImageContent
@@ -663,7 +714,7 @@ export const CardThumbnail = memo(function CardThumbnail({
             showFoil={isFoilCard && gridFoil}
             fallbackArt={fallbackArt}
           />
-        </Pressable>
+        </ImageTarget>
         {banDim}
         {ribbon}
         {imageOverlay}
@@ -786,7 +837,7 @@ export const CardThumbnail = memo(function CardThumbnail({
     <>
       {selectionGlow}
       {flashOverlay}
-      {/* Outside the Pressable: interactive `aboveCard` strips must not nest in a button. */}
+      {/* Outside the image target: interactive `aboveCard` strips must not nest in a button or link. */}
       {aboveCard}
       {printing.images.length > 0 ? (
         imageSection

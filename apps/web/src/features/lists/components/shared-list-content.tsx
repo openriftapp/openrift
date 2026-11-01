@@ -6,6 +6,7 @@ import type {
   PublicListDetailResponse,
 } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
+import { useRouter } from "@tanstack/react-router";
 import { HandshakeIcon, HeartIcon, ListIcon, XIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 
@@ -32,6 +33,7 @@ import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbna
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { FilterSearchProvider, useFilterSearch } from "@/features/cards/hooks/use-filter-search";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
+import { cardPageHref } from "@/features/cards/lib/card-page-href";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
 import { useCopies } from "@/features/collections/hooks/use-copies";
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
@@ -166,6 +168,7 @@ function SharedListGrid({
   const channels = useChannelRegistry();
   const keywordReverseMap = useKeywordReverseMap();
   const isMobile = useIsMobile();
+  const router = useRouter();
   const [requestPrinting, setRequestPrinting] = useState<Printing | null>(null);
   const [offerTarget, setOfferTarget] = useState<{
     choices: OfferablePrintingChoice[];
@@ -412,6 +415,7 @@ function SharedListGrid({
         showImages={showImages}
         view={dataView}
         onClick={handleCardClick}
+        href={cardPageHref(router, item.printing)}
         siblings={siblings}
         priceRange={priceRangeByCardId?.get(cardId)}
         strip={strip}

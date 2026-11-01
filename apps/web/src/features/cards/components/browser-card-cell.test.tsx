@@ -1,3 +1,4 @@
+import type * as ReactRouter from "@tanstack/react-router";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement, ReactNode } from "react";
@@ -14,6 +15,11 @@ const printingX = stubPrinting({ printingId: "p-x", cardId, card: { name: "Chaos
 const printingY = stubPrinting({ printingId: "p-y", cardId, card: { name: "Chaos Rune" } });
 
 let ownedByPrinting: Record<string, number> = {};
+
+vi.mock("@tanstack/react-router", async (importOriginal) => ({
+  ...(await importOriginal<typeof ReactRouter>()),
+  useRouter: () => ({ buildLocation: () => ({ href: "/cards/stub" }) }),
+}));
 
 vi.mock("@/features/collections/hooks/use-owned-count", () => ({
   useTileOwnedCounts: (printingId: string, siblingIds: readonly string[] | undefined) => {

@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { ContextMenuSeparator } from "@/components/ui/context-menu";
 import { CardContextMenu, CardMenuItem } from "@/features/cards/components/card-context-menu";
+import { CardPageLinkItems } from "@/features/cards/components/card-page-link-items";
 import {
   dispatchAddToWishlist,
   dispatchIncrement,
@@ -52,6 +53,7 @@ export function CatalogCardContextMenu({
           >
             {m.cards_context_open_card_page()}
           </CardMenuItem>
+          <CardPageLinkItems printing={printing} />
         </>
       }
     >

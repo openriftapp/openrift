@@ -15,6 +15,7 @@ export interface CardCellProps {
 
   onClick: (printing: Printing, event?: ReactMouseEvent) => void;
   onSiblingClick?: (printing: Printing) => void;
+  href?: string;
 
   strip?: ReactNode;
 
@@ -43,6 +44,7 @@ export function CardCell({
   view,
   onClick,
   onSiblingClick,
+  href,
   strip,
   siblings,
   priceRange,
@@ -77,6 +79,7 @@ export function CardCell({
       dragData={dragData}
       dragId={dragId}
       aboveCard={strip}
+      href={href}
     />
   );
 

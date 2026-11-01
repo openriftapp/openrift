@@ -1,5 +1,6 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import type { Printing } from "@openrift/shared/types/catalog";
+import { useRouter } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { memo } from "react";
 
@@ -10,6 +11,7 @@ import { CatalogCardContextMenu } from "@/features/cards/components/catalog-card
 import { WishlistButton } from "@/features/cards/components/wishlist-heart";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCellDisplayState } from "@/features/cards/hooks/use-cell-display-state";
+import { cardPageHref } from "@/features/cards/lib/card-page-href";
 import {
   dispatchAddToWishlist,
   dispatchDecrement,
@@ -65,6 +67,7 @@ export const BrowserCardCell = memo(function BrowserCardCell({
   wishEntries,
   inCardsView,
 }: BrowserCardCellProps) {
+  const router = useRouter();
   const { displayPrinting, isSelected, isFlashing } = useCellDisplayState({
     printing,
     itemId,
@@ -153,6 +156,7 @@ export const BrowserCardCell = memo(function BrowserCardCell({
       view={view}
       onClick={dispatchRowClick}
       onSiblingClick={dispatchSiblingClick}
+      href={cardPageHref(router, displayPrinting)}
       siblings={inCardsView ? siblings : undefined}
       priceRange={priceRange}
       dimmed={showStrip && cardTotal === 0}

@@ -1,5 +1,6 @@
 import type { PublicListDetailResponse } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
+import type * as ReactRouter from "@tanstack/react-router";
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -13,6 +14,11 @@ const printingOffList = stubPrinting({ printingId: "printing-2", cardId: "card-1
 function mutationStub() {
   return { mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false, variables: undefined };
 }
+
+vi.mock("@tanstack/react-router", async (importOriginal) => ({
+  ...(await importOriginal<typeof ReactRouter>()),
+  useRouter: () => ({ buildLocation: () => ({ href: "/cards/stub" }) }),
+}));
 
 vi.mock("@/hooks/use-hydrated", () => ({
   useHydrated: () => true,
