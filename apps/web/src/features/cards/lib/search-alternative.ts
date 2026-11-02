@@ -1,3 +1,4 @@
+import { foldForSearch } from "@openrift/shared/search-fold";
 import { looksLikeCardNumber } from "@openrift/shared/search-query/keys";
 import { parseSearchQuery } from "@openrift/shared/search-query/parse";
 import type { Printing } from "@openrift/shared/types/catalog";
@@ -37,13 +38,15 @@ function keyedQuery(key: string, words: readonly string[]): string {
 }
 
 function tagLabel(words: readonly string[], matches: readonly Printing[]): string {
-  const tags = new Map<string, string>();
-  for (const printing of matches) {
-    for (const tag of printing.card.tags) {
-      tags.set(tag.toLowerCase(), tag);
-    }
-  }
-  return words.map((word) => tags.get(word.toLowerCase()) ?? word).join(" ");
+  const tags = [...new Set(matches.flatMap((printing) => printing.card.tags))];
+  return words
+    .map((word) => {
+      const folded = foldForSearch(word);
+      const exact = tags.find((tag) => foldForSearch(tag) === folded);
+      const containing = tags.filter((tag) => foldForSearch(tag).includes(folded));
+      return exact ?? (containing.length === 1 ? containing[0] : undefined) ?? word;
+    })
+    .join(" ");
 }
 
 /**

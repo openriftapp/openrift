@@ -8,8 +8,13 @@ import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 
 import { helpArticleList } from "./features/marketing/components/articles";
 import { deriveSetEras } from "./features/meta/lib/meta-scope";
-import { isIndexableRequest, NOINDEX_ROBOTS_TXT, withNoindex } from "./lib/indexing";
-import { isBotBlockedPath, isKnownBot } from "./lib/known-bot";
+import {
+  buildProdRobotsTxt,
+  isIndexableRequest,
+  NOINDEX_ROBOTS_TXT,
+  withNoindex,
+} from "./lib/indexing";
+import { botBlockedResponse } from "./lib/known-bot";
 import {
   browserLocaleForPageRequest,
   localeEntryRedirect,
@@ -34,36 +39,6 @@ const DEPLOY_DATE = new Date().toISOString().slice(0, 10);
 function getSiteUrl(): string {
   // Must stay in sync with runtime-config.ts.
   return process.env.SITE_URL ?? "http://localhost:5173";
-}
-
-function buildProdRobotsTxt(): string {
-  return [
-    "User-agent: *",
-    "Allow: /",
-    "",
-    "# Share pages are unlisted via a noindex meta tag on the page itself.",
-    "# Crawling must stay allowed so engines can see that tag — a robots block",
-    "# alone would leave externally-linked share URLs indexable.",
-    "Allow: /collections/share/",
-    "Allow: /decks/share/",
-    "",
-    "# Authenticated-only routes (not useful to crawlers)",
-    "Disallow: /collections",
-    "Disallow: /decks",
-    "Disallow: /profile",
-    "Disallow: /admin",
-    "",
-    "# Auth flows",
-    "Disallow: /login",
-    "Disallow: /signup",
-    "Disallow: /reset-password",
-    "Disallow: /verify-email",
-    "Disallow: /meta/submit",
-    "Disallow: /meta/*/submit",
-    "",
-    `Sitemap: ${getSiteUrl()}${SITEMAP_INDEX_PATH}`,
-    "",
-  ].join("\n");
 }
 
 async function sitemapInput(): Promise<SitemapInput> {
@@ -116,7 +91,7 @@ export default createServerEntry({
       return new Response("ok", { status: 200 });
     }
     if (url.pathname === "/robots.txt") {
-      return new Response(indexable ? buildProdRobotsTxt() : NOINDEX_ROBOTS_TXT, {
+      return new Response(indexable ? buildProdRobotsTxt(getSiteUrl()) : NOINDEX_ROBOTS_TXT, {
         headers: {
           "Content-Type": "text/plain; charset=utf-8",
           "Cache-Control": "public, max-age=3600",
@@ -136,11 +111,9 @@ export default createServerEntry({
         return new Response("Sitemap generation failed", { status: 500 });
       }
     }
-    if (isBotBlockedPath(url.pathname) && isKnownBot(request.headers.get("user-agent"))) {
-      return new Response("Forbidden", {
-        status: 403,
-        headers: { "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow" },
-      });
+    const botBlocked = botBlockedResponse(request);
+    if (botBlocked !== null) {
+      return botBlocked;
     }
     const localeEntry = localeEntryRedirect(request);
     if (localeEntry !== null) {

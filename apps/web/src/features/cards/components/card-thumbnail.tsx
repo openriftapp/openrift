@@ -3,11 +3,12 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
-import { sideKey, uniquePrintings } from "@openrift/shared/printing-side";
+import { sideKey } from "@openrift/shared/printing-side";
 import type { StandardArtFallback } from "@openrift/shared/standard";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Domain, Rarity } from "@openrift/shared/types/enums";
 import { WellKnown, isBaseBanFormat } from "@openrift/shared/well-known";
+import { useRouter } from "@tanstack/react-router";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { memo, useEffect, useRef, useState } from "react";
 
@@ -21,6 +22,7 @@ import { SuggestImageNotice } from "@/features/cards/components/suggest-image-no
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCardTilt } from "@/features/cards/hooks/use-card-tilt";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
+import { groupPrintingDesigns } from "@/features/cards/lib/printing-designs";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { getDomainGradientStyle } from "@/lib/domain";
 import { priceColorClass } from "@/lib/format";
@@ -369,21 +371,16 @@ function isPlainPrimaryClick(event: ReactMouseEvent): boolean {
   return event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey;
 }
 
-function ImageTarget({
-  href,
-  draggable,
-  onClick,
-  className,
-  style,
-  children,
-}: {
+interface ImageTargetProps {
   href: string | undefined;
   draggable: false | undefined;
-  onClick: (event: ReactMouseEvent) => void;
+  onClick: (event?: ReactMouseEvent) => void;
   className: string;
   style: CSSProperties;
   children: ReactNode;
-}) {
+}
+
+function ImageTarget({ href, onClick, className, style, children, draggable }: ImageTargetProps) {
   if (href === undefined) {
     return (
       <Pressable className={className} style={style} onClick={onClick}>
@@ -391,6 +388,57 @@ function ImageTarget({
       </Pressable>
     );
   }
+  return (
+    <ImageLink
+      href={href}
+      draggable={draggable}
+      onClick={onClick}
+      className={className}
+      style={style}
+    >
+      {children}
+    </ImageLink>
+  );
+}
+
+function ImageLink({
+  href,
+  draggable,
+  onClick,
+  className,
+  style,
+  children,
+}: ImageTargetProps & { href: string }) {
+  const router = useRouter();
+  const preloadTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  useEffect(
+    () => () => {
+      if (preloadTimer.current) {
+        clearTimeout(preloadTimer.current);
+      }
+    },
+    [],
+  );
+  const cancelPreload = () => {
+    if (preloadTimer.current) {
+      clearTimeout(preloadTimer.current);
+      preloadTimer.current = null;
+    }
+  };
+  const preload = async () => {
+    preloadTimer.current = null;
+    try {
+      await router.preloadRoute({ to: ".", href });
+    } catch {
+      // a failed preload only loses the head start
+    }
+  };
+  const schedulePreload = () => {
+    if (!preloadTimer.current) {
+      preloadTimer.current = setTimeout(() => void preload(), router.options.defaultPreloadDelay);
+    }
+  };
+
   return (
     <a
       href={href}
@@ -406,6 +454,16 @@ function ImageTarget({
           onClick(event);
         }
       }}
+      onKeyDown={(event) => {
+        if (event.key === " " && !event.repeat) {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      onMouseEnter={schedulePreload}
+      onFocus={schedulePreload}
+      onMouseLeave={cancelPreload}
+      onBlur={cancelPreload}
     >
       {children}
     </a>
@@ -758,7 +816,9 @@ export const CardThumbnail = memo(function CardThumbnail({
       bans={banDisplay === "label" ? printing.card.bans : undefined}
       hasRulesDeviation={printing.card.errata !== null}
       printingComment={printing.comment}
-      printingCount={otherPrintings.length > 0 ? uniquePrintings(siblings ?? []).length : undefined}
+      printingCount={
+        otherPrintings.length > 0 ? groupPrintingDesigns(siblings ?? []).designs.length : undefined
+      }
       price={priceNode}
     />
   );

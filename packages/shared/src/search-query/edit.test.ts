@@ -59,6 +59,34 @@ describe("removeSearchSpan", () => {
     expect(removeSearchSpan("jinx -zz:x", { start: 6, end: 10 })).toBe("jinx");
   });
 
+  it("takes the or that would be left between two branches", () => {
+    expect(removeSearchSpan("t:unit or zz:x or d:fury", { start: 10, end: 14 })).toBe(
+      "t:unit or d:fury",
+    );
+  });
+
+  it("takes an or left dangling at either end of the chain", () => {
+    expect(removeSearchSpan("t:unit or zz:x", { start: 10, end: 14 })).toBe("t:unit");
+    expect(removeSearchSpan("zz:x or t:unit", { start: 0, end: 4 })).toBe("t:unit");
+    expect(removeSearchSpan("(t:unit or zz:x) d:fury", { start: 11, end: 15 })).toBe(
+      "(t:unit) d:fury",
+    );
+  });
+
+  it("keeps a leading or, which the parser reads as a plain word", () => {
+    expect(removeSearchSpan("or zz:x", { start: 3, end: 7 })).toBe("or");
+  });
+
+  it("keeps an or that still joins two branches", () => {
+    expect(removeSearchSpan("a or zz:x b", { start: 5, end: 9 })).toBe("a or b");
+  });
+
+  it("removes brackets the removal leaves empty", () => {
+    expect(removeSearchSpan("(zz:y) t:unit", { start: 1, end: 5 })).toBe("t:unit");
+    expect(removeSearchSpan("x -(zz:y)", { start: 4, end: 8 })).toBe("x");
+    expect(removeSearchSpan("((zz:y)) x", { start: 2, end: 6 })).toBe("x");
+  });
+
   it("does not pad against brackets", () => {
     expect(removeSearchSpan("(o:buff zz:x) t:unit", { start: 8, end: 12 })).toBe("(o:buff) t:unit");
     expect(removeSearchSpan("(zz:x o:buff)", { start: 1, end: 5 })).toBe("(o:buff)");

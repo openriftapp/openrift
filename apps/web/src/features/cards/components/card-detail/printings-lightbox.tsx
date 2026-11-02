@@ -149,15 +149,9 @@ function LightboxContent({
     event.preventDefault();
     const all = tiles();
     const active = document.activeElement;
-    const current = active instanceof HTMLElement ? all.indexOf(active) : -1;
-    const step = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1;
-    const target =
-      event.key === "Home"
-        ? 0
-        : event.key === "End"
-          ? all.length - 1
-          : Math.min(all.length - 1, Math.max(0, current + step));
-    const tile = all[target];
+    const current = all.findIndex((tile) => tile.closest("[data-lightbox-cell]")?.contains(active));
+    const fromOutsideTiles = current === -1 && event.key.startsWith("Arrow");
+    const tile = all[fromOutsideTiles ? position : lightboxKeyTarget(event.key, all, current)];
     tile?.focus();
     tile?.scrollIntoView({ block: "nearest", inline: "center" });
   };
@@ -219,6 +213,42 @@ function LightboxContent({
   );
 }
 
+export function lightboxKeyTarget(
+  key: string,
+  tiles: readonly Pick<HTMLElement, "offsetTop" | "offsetLeft" | "offsetWidth">[],
+  current: number,
+): number {
+  const last = tiles.length - 1;
+  if (key === "Home") {
+    return 0;
+  }
+  if (key === "End") {
+    return last;
+  }
+  const step = key === "ArrowLeft" || key === "ArrowUp" ? -1 : 1;
+  const from = tiles[current];
+  if ((key === "ArrowUp" || key === "ArrowDown") && from) {
+    const center = (tile: (typeof tiles)[number]) => tile.offsetLeft + tile.offsetWidth / 2;
+    const rows = tiles.filter((tile) =>
+      step === 1 ? tile.offsetTop > from.offsetTop : tile.offsetTop < from.offsetTop,
+    );
+    if (rows.length > 0) {
+      const rowTop =
+        step === 1
+          ? Math.min(...rows.map((tile) => tile.offsetTop))
+          : Math.max(...rows.map((tile) => tile.offsetTop));
+      const row = rows.filter((tile) => tile.offsetTop === rowTop);
+      const distances = row.map((tile) => Math.abs(center(tile) - center(from)));
+      const nearest = row[distances.indexOf(Math.min(...distances))];
+      return nearest ? tiles.indexOf(nearest) : current;
+    }
+    if (tiles.some((tile) => tile.offsetTop !== from.offsetTop)) {
+      return current;
+    }
+  }
+  return Math.min(last, Math.max(0, current + step));
+}
+
 function LightboxTile({
   group,
   leads,
@@ -271,7 +301,10 @@ function LightboxTile({
   );
 
   return (
-    <div className={cn("flex shrink-0 snap-center flex-col gap-2 text-sm", TILE_WIDTH_CLASS)}>
+    <div
+      data-lightbox-cell=""
+      className={cn("flex shrink-0 snap-center flex-col gap-2 text-sm", TILE_WIDTH_CLASS)}
+    >
       {other && backEntry && flipTarget ? (
         <DoubleSidedFlip
           key={String(showBack)}

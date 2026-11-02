@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isIndexableRequest, withNoindex } from "./indexing";
+import { buildProdRobotsTxt, isIndexableRequest, withNoindex } from "./indexing";
 
 describe("isIndexableRequest", () => {
   it("indexes the official host", () => {
@@ -36,5 +36,25 @@ describe("withNoindex", () => {
     expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
     expect(response.headers.get("Cache-Control")).toBe("private, no-cache");
     expect(await response.text()).toBe("<html></html>");
+  });
+});
+
+describe("buildProdRobotsTxt", () => {
+  it("disallows the auth and contribution flows", () => {
+    const lines = buildProdRobotsTxt("https://example.com").split("\n");
+    expect(lines).toEqual(
+      expect.arrayContaining([
+        "Disallow: /login",
+        "Disallow: /signup",
+        "Disallow: /meta/submit",
+        "Disallow: /meta/*/submit",
+      ]),
+    );
+  });
+
+  it("points at the sitemap index on the given site", () => {
+    expect(buildProdRobotsTxt("https://example.com")).toContain(
+      "Sitemap: https://example.com/sitemap.xml",
+    );
   });
 });

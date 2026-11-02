@@ -40,6 +40,18 @@ describe("findSearchAlternatives", () => {
     expect(run("noxus")).toEqual([{ kind: "tag", query: "tag:noxus", label: "Noxus", count: 1 }]);
   });
 
+  it("names the tag a partial word matches", () => {
+    expect(run("noxu")).toEqual([{ kind: "tag", query: "tag:noxu", label: "Noxus", count: 1 }]);
+  });
+
+  it("keeps the typed word when it matches several tags", () => {
+    catalog.push(stubPrinting({ card: { name: "Swain", tags: ["Noxian"] } }));
+    const [tag] = findSearchAlternatives("nox", [], () =>
+      catalog.filter((printing) => printing.card.tags.some((t) => t.startsWith("Nox"))),
+    ).filter((alternative) => alternative.kind === "tag");
+    expect(tag?.label).toBe("nox");
+  });
+
   it("skips an alternative whose cards are all shown already", () => {
     expect(run("poro")).toEqual([]);
   });

@@ -8,7 +8,7 @@
 - feat(Cards): **Card text and tag matches** — a search of plain words now links to the cards that have those words in their text or tags, also when some card names match.
 - feat(Cards): **Card page and dock buttons** — the card window header now has a Card page button that opens the printing you're viewing and a button to dock the window beside the grid.
 - feat(Cards): **Cards open in new tabs** — middle-click or Ctrl-click (Cmd-click on Mac) a card in the browser to open its page in a new tab, and the right-click menu can open or copy the link.
-- feat(Cards): **Removable search terms** — each search term shows as a chip with its own remove button, so you can drop one part of a long search without retyping it.
+- feat(Cards): **Removable search terms** — each keyed search term, such as `t:unit` or `e<=3`, shows as a chip with its own remove button, so you can drop one part of a long search without retyping it.
 
 ### Other
 
@@ -16,6 +16,7 @@
 - fix(Cards): **Close button stays visible** — the docked card panel keeps its title and close button in view while you scroll.
 - feat(Decks): **Turn off unowned card fading** — the new Highlight owned toggle in the deck builder's card browser shows cards you don't own at full strength when switched off.
 - fix(Cards): **Page stays put when closing a card** — closing the card details window no longer scrolls the card list, also after stepping through cards with the arrow keys or opening a shared card link.
+- fix(Cards): **Clean Cards link from the sign-in page** — the Cards menu link on the sign-in page no longer carries the sign-in redirect into the card browser's address.
 
 ## 2026-10-29
 

@@ -7,6 +7,13 @@ export type OverlayHistoryKey =
   | "paletteCardDetail"
   | "printingLightbox";
 
+let lastEntryToken = Date.now();
+
+function newEntryToken(): number {
+  lastEntryToken += 1;
+  return lastEntryToken;
+}
+
 interface OverlayHistoryEntryOptions {
   active: boolean;
   stateKey: OverlayHistoryKey;
@@ -35,14 +42,15 @@ export function useOverlayHistoryEntry({
     if (!active) {
       return;
     }
+    const token = newEntryToken();
     void router.navigate({
       href: router.latestLocation.href,
-      state: (prev) => ({ ...prev, [stateKey]: true, overlayEntry: true }),
+      state: (prev) => ({ ...prev, [stateKey]: token, overlayEntry: true }),
       resetScroll: false,
     });
-    // A pop that lands on an entry still carrying this key closed an overlay stacked above this one.
+    // A pop that lands on an entry still carrying our token closed an overlay stacked above this one.
     const handlePop = () => {
-      if (!hasOverlayHistoryEntry(stateKey)) {
+      if ((history.state as Record<string, unknown> | null)?.[stateKey] !== token) {
         onPopRef.current();
       }
     };

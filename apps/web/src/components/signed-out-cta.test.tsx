@@ -59,6 +59,15 @@ describe("SignedOutAuthButtons", () => {
     );
   });
 
+  it("keeps crawlers from following either link", () => {
+    render(<SignedOutAuthButtons source="test" />);
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("rel", "nofollow");
+    expect(screen.getByRole("link", { name: "Create an account" })).toHaveAttribute(
+      "rel",
+      "nofollow",
+    );
+  });
+
   it("tracks a click on the sign-up link with its source", () => {
     render(<SignedOutAuthButtons source="group-join" />);
     fireEvent.click(screen.getByRole("link", { name: "Create an account" }));

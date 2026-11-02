@@ -195,6 +195,7 @@ describe("initClientSentry", () => {
 
   afterEach(() => {
     globalThis.__OPENRIFT_CONFIG__ = undefined;
+    vi.restoreAllMocks();
   });
 
   test("ignores transport-noise fetch failures from all three engines", () => {
@@ -234,7 +235,6 @@ describe("initClientSentry", () => {
     initClientSentry({} as Parameters<typeof initClientSentry>[0]);
 
     expect(initMock).not.toHaveBeenCalled();
-    vi.restoreAllMocks();
   });
 
   test("reports the deployment environment from the inlined config", () => {

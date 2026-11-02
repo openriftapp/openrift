@@ -5,13 +5,15 @@ import { ChevronDownIcon, ExternalLinkIcon, PencilLineIcon, ShieldIcon } from "l
 import { buttonVariants } from "@/components/ui/button";
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
 import { SuggestCorrectionMenu } from "@/features/cards/components/suggest-correction-menu";
+import { cardPageSearch } from "@/features/cards/lib/card-page-href";
 import { m } from "@/paraglide/messages.js";
 
 export function CardPageButton({ card, printing }: { card: Card; printing?: Printing }) {
   return (
     <Link
       to="/cards/$cardSlug/{-$printingSlug}"
-      params={{ cardSlug: card.slug, printingSlug: printing?.slug }}
+      params={{ cardSlug: card.slug, printingSlug: undefined }}
+      search={printing && cardPageSearch(printing)}
       className={buttonVariants({ variant: "outline", size: "sm" })}
     >
       <ExternalLinkIcon />
@@ -41,7 +43,8 @@ export function CardDetailLinks({
       {!hideCardPage && (
         <Link
           to="/cards/$cardSlug/{-$printingSlug}"
-          params={{ cardSlug: card.slug, printingSlug: printing?.slug }}
+          params={{ cardSlug: card.slug, printingSlug: undefined }}
+          search={printing && cardPageSearch(printing)}
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
         >
           <ExternalLinkIcon className="size-3" />

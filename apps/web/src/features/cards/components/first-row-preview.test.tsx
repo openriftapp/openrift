@@ -35,8 +35,18 @@ vi.mock("@/features/cards/components/options-bar", () => ({
 vi.mock("@/features/cards/components/compact-filter-bar", () => ({
   CompactFilterBar: () => <div data-testid="compact-filter-bar" />,
 }));
+const { activeFiltersProps, valueLabel } = vi.hoisted(() => ({
+  activeFiltersProps: vi.fn(),
+  valueLabel: (_key: string, value: string) => value.toUpperCase(),
+}));
 vi.mock("@/features/cards/components/active-filters", () => ({
-  ActiveFilters: () => null,
+  ActiveFilters: (props: unknown) => {
+    activeFiltersProps(props);
+    return null;
+  },
+}));
+vi.mock("@/features/cards/hooks/use-search-vocabulary", () => ({
+  useSearchVocabulary: () => ({ validation: {}, suggestions: {}, valueLabel }),
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
@@ -125,6 +135,15 @@ describe("FirstRowPreview", () => {
     const { container } = renderPreview();
     expect(container.firstChild).not.toBeNull();
     expect(container.querySelectorAll("img")).toHaveLength(0);
+  });
+
+  it("labels the mobile search chips like the live page, without catalog validation", () => {
+    mockUseLoaderData.mockReturnValue(makeLoaderData({ firstRow: [] }));
+    activeFiltersProps.mockClear();
+    renderPreview();
+    const props = activeFiltersProps.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(props.searchValueLabel).toBe(valueLabel);
+    expect(props.searchVocabulary).toBeUndefined();
   });
 
   it("marks only the first image as fetchpriority=high", () => {

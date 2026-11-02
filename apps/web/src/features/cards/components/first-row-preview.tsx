@@ -1,4 +1,5 @@
 import { enumLabel } from "@openrift/shared/enum-label";
+import type { AvailableFilters } from "@openrift/shared/filters-available";
 import { imageUrl } from "@openrift/shared/image-url";
 import { sideKey } from "@openrift/shared/printing-side";
 import { getRouteApi } from "@tanstack/react-router";
@@ -20,6 +21,7 @@ import {
   SSR_RESPONSIVE_GRID_COLS,
   SSR_RESPONSIVE_GRID_GAP,
 } from "@/features/cards/hooks/use-responsive-columns";
+import { useSearchVocabulary } from "@/features/cards/hooks/use-search-vocabulary";
 import { LABEL_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { fromWireFacets, fromWireFilterCounts } from "@/features/cards/lib/cards-facets";
 import { DEFAULT_TOP_LEVEL_UNITS } from "@/features/cards/lib/filter-sections";
@@ -51,6 +53,25 @@ function visibilityForIndex(i: number): string {
     return "hidden @min-[1600px]/grid:block";
   }
   return "hidden @min-[1920px]/grid:block";
+}
+
+function PreviewActiveFilters({
+  availableFilters,
+  availableLanguages,
+  setDisplayLabel,
+}: {
+  availableFilters: AvailableFilters;
+  availableLanguages: readonly string[];
+  setDisplayLabel: (slug: string) => string;
+}) {
+  const { valueLabel } = useSearchVocabulary(availableFilters, availableLanguages);
+  return (
+    <ActiveFilters
+      availableFilters={availableFilters}
+      setDisplayLabel={setDisplayLabel}
+      searchValueLabel={valueLabel}
+    />
+  );
 }
 
 /**
@@ -99,7 +120,11 @@ export function FirstRowPreview() {
             topLevelUnits={DEFAULT_TOP_LEVEL_UNITS}
           />
           <div className="contents sm:hidden">
-            <ActiveFilters availableFilters={availableFilters} setDisplayLabel={setDisplayLabel} />
+            <PreviewActiveFilters
+              availableFilters={availableFilters}
+              availableLanguages={availableLanguages}
+              setDisplayLabel={setDisplayLabel}
+            />
           </div>
         </>
       }

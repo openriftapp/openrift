@@ -15,7 +15,23 @@ vi.mock("@tanstack/react-router", async () => {
   const actual = await vi.importActual<typeof ReactRouter>("@tanstack/react-router");
   return {
     ...actual,
-    Link: ({ children }: { children?: ReactNode }) => <a href="/cards/stub">{children}</a>,
+    Link: ({
+      children,
+      params,
+      search,
+      ...rest
+    }: {
+      children?: ReactNode;
+      params: { cardSlug: string; printingSlug?: string };
+      search?: { printingId?: string };
+    }) => (
+      <a
+        {...rest}
+        href={`/cards/${params.cardSlug}${params.printingSlug ? `/${params.printingSlug}` : ""}${search?.printingId ? `?printingId=${search.printingId}` : ""}`}
+      >
+        {children}
+      </a>
+    ),
     useRouter: () => ({
       buildLocation: () => ({ href: "/cards/annie-fiery?printingId=printing-1" }),
     }),
@@ -39,6 +55,12 @@ async function openMenu() {
 }
 
 describe("CatalogCardContextMenu link items", () => {
+  it("opens the shown printing's card page", async () => {
+    await openMenu();
+    const item = await screen.findByRole("menuitem", { name: "Open card page" });
+    expect(item).toHaveAttribute("href", "/cards/annie-fiery?printingId=printing-1");
+  });
+
   it("opens the printing's card page in a new tab", async () => {
     await openMenu();
     const item = await screen.findByRole("menuitem", { name: "Open in new tab" });

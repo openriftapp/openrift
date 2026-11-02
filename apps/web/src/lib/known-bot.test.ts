@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { isBotBlockedPath, isKnownBot } from "./known-bot";
+import { botBlockedResponse, isBotBlockedPath, isKnownBot } from "./known-bot";
 
 describe("isKnownBot", () => {
   test.each([
@@ -55,5 +55,30 @@ describe("isBotBlockedPath", () => {
     "/loginx",
   ])("allows %s", (pathname) => {
     expect(isBotBlockedPath(pathname)).toBe(false);
+  });
+});
+
+describe("botBlockedResponse", () => {
+  const googlebot = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
+  const firefox =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:159.0) Gecko/20100101 Firefox/159.0";
+
+  function request(path: string, userAgent: string): Request {
+    return new Request(`https://example.com${path}`, { headers: { "user-agent": userAgent } });
+  }
+
+  test("refuses a known bot on an auth page without caching or indexing the refusal", () => {
+    const response = botBlockedResponse(request("/login?redirect=%2Fcards", googlebot));
+    expect(response?.status).toBe(403);
+    expect(response?.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(response?.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
+  });
+
+  test("lets a browser through to an auth page", () => {
+    expect(botBlockedResponse(request("/login", firefox))).toBeNull();
+  });
+
+  test("lets a known bot through to other pages", () => {
+    expect(botBlockedResponse(request("/cards", googlebot))).toBeNull();
   });
 });

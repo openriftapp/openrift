@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { stubPrinting } from "@/test/factories";
 
-import { PrintingsLightbox } from "./printings-lightbox";
+import { lightboxKeyTarget, PrintingsLightbox } from "./printings-lightbox";
 
 const routerStub = { navigate: vi.fn(), latestLocation: { href: "/cards" } };
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
@@ -140,5 +140,40 @@ describe("PrintingsLightbox", () => {
     expect(document.activeElement).toBe(screen.getByRole("button", { name: /OGN-119a/u }));
     expect(onWindowKey).not.toHaveBeenCalled();
     globalThis.removeEventListener("keydown", onWindowKey);
+  });
+});
+
+describe("lightboxKeyTarget", () => {
+  const tile = (offsetLeft: number, offsetTop: number) => ({
+    offsetLeft,
+    offsetTop,
+    offsetWidth: 100,
+  });
+  const oneRow = [tile(0, 0), tile(100, 0), tile(200, 0)];
+  const wrapped = [tile(0, 0), tile(100, 0), tile(200, 0), tile(50, 300), tile(150, 300)];
+
+  it("steps one tile along a single row with every arrow key", () => {
+    expect(lightboxKeyTarget("ArrowRight", oneRow, 0)).toBe(1);
+    expect(lightboxKeyTarget("ArrowDown", oneRow, 1)).toBe(2);
+    expect(lightboxKeyTarget("ArrowUp", oneRow, 1)).toBe(0);
+  });
+
+  it("stops at either end", () => {
+    expect(lightboxKeyTarget("ArrowLeft", oneRow, 0)).toBe(0);
+    expect(lightboxKeyTarget("ArrowRight", oneRow, 2)).toBe(2);
+  });
+
+  it("moves to the nearest tile in the next or previous row once the tiles wrap", () => {
+    expect(lightboxKeyTarget("ArrowDown", wrapped, 2)).toBe(4);
+    expect(lightboxKeyTarget("ArrowUp", wrapped, 3)).toBe(0);
+  });
+
+  it("stays put on ArrowDown in the last row of a wrapped grid", () => {
+    expect(lightboxKeyTarget("ArrowDown", wrapped, 4)).toBe(4);
+  });
+
+  it("jumps to the ends with Home and End", () => {
+    expect(lightboxKeyTarget("Home", wrapped, 3)).toBe(0);
+    expect(lightboxKeyTarget("End", wrapped, 0)).toBe(4);
   });
 });

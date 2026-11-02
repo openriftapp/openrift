@@ -233,8 +233,9 @@ export function describeSearchTerms(
   valueLabel: SearchValueLabeler,
 ): SearchTermChip[] {
   const resolved = resolveSearchQuery(parseSearchQuery(query), vocabulary);
-  const kept = pruneIgnored(resolved.root);
-  const nodes = kept ? (kept.kind === "and" ? kept.children : [kept]) : [];
+  const root = resolved.root;
+  const topLevel = root ? (root.kind === "and" ? root.children : [root]) : [];
+  const nodes = topLevel.flatMap((node) => pruneIgnored(node) ?? []);
   const terms = nodes.flatMap((node): SearchTermChip[] => {
     if (!hasKeyedTerm(node)) {
       return [];

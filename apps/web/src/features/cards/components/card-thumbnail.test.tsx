@@ -13,10 +13,13 @@ import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumb
 import { stubPrinting } from "@/test/factories";
 
 // No router in these tests, so swap the "Suggest image" Link for a plain span.
+const { preloadRoute } = vi.hoisted(() => ({ preloadRoute: vi.fn(async () => undefined) }));
+
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, className }: { children: ReactNode; className?: string }) => (
     <span className={className}>{children}</span>
   ),
+  useRouter: () => ({ preloadRoute, options: { defaultPreloadDelay: 50 } }),
 }));
 
 function makeWrapper() {
@@ -157,8 +160,8 @@ describe("CardThumbnail siblings", () => {
     const front = makePrintingWithImage("RB1-001");
     const siblings = [
       front,
-      makePrintingWithImage("RB1-001-a"),
-      makePrintingWithImage("RB1-001-b"),
+      { ...makePrintingWithImage("RB1-001-a"), shortCode: "RB1-001a" },
+      { ...makePrintingWithImage("RB1-001-b"), shortCode: "RB1-001b" },
     ];
     const { getByTitle } = render(
       <CardThumbnail
@@ -171,6 +174,27 @@ describe("CardThumbnail siblings", () => {
     );
 
     expect(getByTitle("3 printings").textContent).toContain("3");
+  });
+
+  it("counts a design printed in several languages once, like the card detail", () => {
+    const front = makePrintingWithImage("RB1-001");
+    const siblings = [
+      front,
+      { ...front, printingId: "zh", language: "ZH" },
+      { ...front, printingId: "foil", finish: "foil" },
+      { ...front, printingId: "foil-zh", finish: "foil", language: "ZH" },
+    ];
+    const { getByTitle } = render(
+      <CardThumbnail
+        printing={front}
+        onClick={() => {}}
+        showImages
+        siblings={siblings}
+        display={{ ...baseDisplay, coarsePointer: true }}
+      />,
+    );
+
+    expect(getByTitle("2 printings").textContent).toContain("2");
   });
 
   it("shows no printing count for a card with one printing", () => {
@@ -840,6 +864,34 @@ describe("CardThumbnail card page link", () => {
     globalThis.removeEventListener("click", record);
     expect(preventedByApp).toBe(false);
     expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("opens the detail on Space", () => {
+    const { link, onClick } = renderLinked();
+    const notPrevented = fireEvent.keyDown(link, { key: " " });
+    expect(notPrevented).toBe(false);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("preloads the card page after hovering past the preload delay", () => {
+    vi.useFakeTimers();
+    preloadRoute.mockClear();
+    const { link } = renderLinked();
+    fireEvent.mouseEnter(link);
+    vi.advanceTimersByTime(50);
+    vi.useRealTimers();
+    expect(preloadRoute).toHaveBeenCalledWith({ to: ".", href });
+  });
+
+  it("skips the preload when the pointer leaves before the delay", () => {
+    vi.useFakeTimers();
+    preloadRoute.mockClear();
+    const { link } = renderLinked();
+    fireEvent.mouseEnter(link);
+    fireEvent.mouseLeave(link);
+    vi.advanceTimersByTime(50);
+    vi.useRealTimers();
+    expect(preloadRoute).not.toHaveBeenCalled();
   });
 
   it("keeps the image a button without an href", () => {

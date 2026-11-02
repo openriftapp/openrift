@@ -37,7 +37,7 @@ describe("useOverlayHistoryEntry", () => {
     expect(options.href).toBe("/decks/share/abc?view=grid");
     expect(options.state({ __TSR_index: 0 })).toEqual({
       __TSR_index: 0,
-      cardDetail: true,
+      cardDetail: expect.any(Number),
       overlayEntry: true,
     });
   });
@@ -72,11 +72,24 @@ describe("useOverlayHistoryEntry", () => {
   it("stays open when the pop only closed an overlay stacked above it", () => {
     const onPop = vi.fn();
     renderHook(() => useOverlayHistoryEntry({ active: true, stateKey: "cardDetail", onPop }));
-    history.replaceState({ cardDetail: true }, "");
+    const ownState = navigateMock.mock.calls[0]?.[0].state({});
+    history.replaceState(ownState, "");
 
     globalThis.dispatchEvent(new PopStateEvent("popstate"));
 
     expect(onPop).not.toHaveBeenCalled();
+  });
+
+  it("closes when the pop lands on an entry another overlay left its key on", () => {
+    const onPop = vi.fn();
+    history.replaceState({ cardDetail: 1, overlayEntry: true }, "");
+    renderHook(() => useOverlayHistoryEntry({ active: true, stateKey: "cardDetail", onPop }));
+    const ownState = navigateMock.mock.calls[0]?.[0].state(history.state);
+    expect(ownState.cardDetail).not.toBe(history.state.cardDetail);
+
+    globalThis.dispatchEvent(new PopStateEvent("popstate"));
+
+    expect(onPop).toHaveBeenCalledTimes(1);
   });
 
   it("uses the newest onPop without pushing a second entry", () => {
@@ -117,7 +130,7 @@ describe("useOverlayHistoryEntry", () => {
     const options = navigateMock.mock.calls[0]?.[0];
     expect(options.state({ __TSR_index: 0 })).toEqual({
       __TSR_index: 0,
-      missingCardDetail: true,
+      missingCardDetail: expect.any(Number),
       overlayEntry: true,
     });
   });

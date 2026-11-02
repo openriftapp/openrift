@@ -14,3 +14,16 @@ export function isKnownBot(userAgent: string | null | undefined): boolean {
 export function isBotBlockedPath(pathname: string): boolean {
   return BOT_BLOCKED_PATH_PATTERN.test(pathname);
 }
+
+export function botBlockedResponse(request: Request): Response | null {
+  if (!isBotBlockedPath(new URL(request.url).pathname)) {
+    return null;
+  }
+  if (!isKnownBot(request.headers.get("user-agent"))) {
+    return null;
+  }
+  return new Response("Forbidden", {
+    status: 403,
+    headers: { "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow" },
+  });
+}

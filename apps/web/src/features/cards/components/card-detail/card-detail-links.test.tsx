@@ -8,6 +8,13 @@ import { stubCard, stubPrinting } from "@/test/factories";
 
 const { isAdminMock } = vi.hoisted(() => ({ isAdminMock: vi.fn(() => false) }));
 
+function searchString(search?: Record<string, string | number | undefined>): string {
+  const entries = Object.entries(search ?? {}).filter(([, value]) => value !== undefined);
+  return entries.length > 0
+    ? `?${new URLSearchParams(entries.map(([k, v]) => [k, String(v)]))}`
+    : "";
+}
+
 vi.mock("@tanstack/react-router", async () => {
   const actual = await vi.importActual<typeof ReactRouter>("@tanstack/react-router");
   return {
@@ -15,24 +22,24 @@ vi.mock("@tanstack/react-router", async () => {
     Link: ({
       to,
       params,
-      search: _search,
+      search,
       children,
       ...rest
     }: {
       to: string;
       params?: { cardSlug: string; printingId?: string; printingSlug?: string };
-      search?: unknown;
+      search?: Record<string, string | number | undefined>;
       children?: ReactNode;
     }) => (
       <a
         {...rest}
-        href={(params
+        href={`${(params
           ? to
               .replace("$cardSlug", params.cardSlug)
               .replace("$printingId", params.printingId ?? "")
               .replace("{-$printingSlug}", params.printingSlug ?? "")
           : to
-        ).replace(/\/$/u, "")}
+        ).replace(/\/$/u, "")}${searchString(search)}`}
       >
         {children}
       </a>
@@ -74,13 +81,13 @@ describe("CardDetailLinks", () => {
     render(
       <CardDetailLinks
         card={stubCard({ slug: "yasuo" })}
-        printing={stubPrinting({ slug: "yasuo-ogn-1-en", card: { slug: "yasuo" } })}
+        printing={stubPrinting({ printingId: "printing-1", card: { slug: "yasuo" } })}
       />,
     );
 
     expect(screen.getByRole("link", { name: "Open card page" })).toHaveAttribute(
       "href",
-      "/cards/yasuo/yasuo-ogn-1-en",
+      "/cards/yasuo?printingId=printing-1",
     );
   });
 
@@ -151,13 +158,13 @@ describe("CardPageButton", () => {
     render(
       <CardPageButton
         card={stubCard({ slug: "yasuo" })}
-        printing={stubPrinting({ slug: "yasuo-ogn-1-en", card: { slug: "yasuo" } })}
+        printing={stubPrinting({ printingId: "printing-1", card: { slug: "yasuo" } })}
       />,
     );
 
     expect(screen.getByRole("link", { name: "Card page" })).toHaveAttribute(
       "href",
-      "/cards/yasuo/yasuo-ogn-1-en",
+      "/cards/yasuo?printingId=printing-1",
     );
   });
 });

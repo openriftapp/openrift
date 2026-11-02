@@ -29,6 +29,19 @@ describe("describeSearchTerms", () => {
     ]);
   });
 
+  it("keeps an or-chain with an ignored branch as one term", () => {
+    const terms = describeSearchTerms("t:unit e<=3 or zz:x", {}, RAW).filter(
+      (chip) => chip.tone === "term",
+    );
+    expect(terms).toHaveLength(1);
+    expect(terms[0]?.span).toEqual({ start: 0, end: 19 });
+  });
+
+  it("gives every chip its own id", () => {
+    const ids = describeSearchTerms("zz:x or t:unit e<=3", {}, RAW).map((chip) => chip.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it("skips plain words", () => {
     expect(chips("jinx rebel")).toEqual([]);
     expect(chips("jinx t:unit").map((chip) => chip.source)).toEqual(["t:unit"]);

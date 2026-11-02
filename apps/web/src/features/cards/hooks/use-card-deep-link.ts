@@ -19,6 +19,14 @@ interface Options {
 export function useCardDeepLink({ linkedPrintingId, printingsById, items }: Options) {
   const navigate = useNavigate();
   const handled = useRef(false);
+  const mounted = useRef(false);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!linkedPrintingId || handled.current) {
@@ -30,13 +38,19 @@ export function useCardDeepLink({ linkedPrintingId, printingsById, items }: Opti
     }
     handled.current = true;
     const selectAfterCleanup = async () => {
-      await navigate({
-        to: ".",
-        search: ({ printingId: _printingId, ...rest }) => rest,
-        replace: true,
-        resetScroll: false,
-      });
-      useSelectionStore.getState().selectCard(printing, items, "printing");
+      try {
+        await navigate({
+          to: ".",
+          search: ({ printingId: _printingId, ...rest }) => rest,
+          replace: true,
+          resetScroll: false,
+        });
+      } catch {
+        // the card still opens when the URL cleanup fails
+      }
+      if (mounted.current) {
+        useSelectionStore.getState().selectCard(printing, items, "printing");
+      }
     };
     void selectAfterCleanup();
   }, [linkedPrintingId, printingsById, items, navigate]);

@@ -63,6 +63,45 @@ describe("useCardDeepLink", () => {
     await waitFor(() => expect(useSelectionStore.getState().selectedCard?.printingId).toBe("p1"));
   });
 
+  it("selects nothing when the page unmounts before the URL replace commits", async () => {
+    let commit = () => {};
+    navigateMock.mockReturnValue(
+      // oxlint-disable-next-line promise/avoid-new -- the test holds the navigation open to control when it commits
+      new Promise<void>((resolve) => {
+        commit = resolve;
+      }),
+    );
+    const item = stubCardViewerItem({ printingId: "p1" });
+    const { unmount } = renderHook(() =>
+      useCardDeepLink({
+        linkedPrintingId: "p1",
+        printingsById: { p1: item.printing },
+        items: [item],
+      }),
+    );
+
+    unmount();
+    commit();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(useSelectionStore.getState().selectedCard).toBeNull();
+  });
+
+  it("still selects the printing when the URL replace fails", async () => {
+    navigateMock.mockRejectedValue(new Error("navigation aborted"));
+    const item = stubCardViewerItem({ printingId: "p1" });
+    renderHook(() =>
+      useCardDeepLink({
+        linkedPrintingId: "p1",
+        printingsById: { p1: item.printing },
+        items: [item],
+      }),
+    );
+
+    await waitFor(() => expect(useSelectionStore.getState().selectedCard?.printingId).toBe("p1"));
+  });
+
   it("passes resetScroll: false so the router does not wipe the CardGrid scroll (regression)", () => {
     const item = stubCardViewerItem({ printingId: "p1" });
     renderHook(() =>
