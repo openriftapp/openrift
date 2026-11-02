@@ -42,10 +42,10 @@ describe.skipIf(!ctx)("userPreferencesRepo (integration)", () => {
     expect(result.showImages).toBe(false);
   });
 
-  it("upsert replaces a whole top-level key rather than deep-merging it", async () => {
+  it("upsert merges email channels one level deep, keeping channels the patch omits", async () => {
     await repo.upsert(userId, { emailNotifications: { tradeMatches: true, tradeStatus: false } });
-    const replaced = await repo.upsert(userId, { emailNotifications: { tradeMatches: false } });
-    expect(replaced.emailNotifications).toEqual({ tradeMatches: false });
+    const merged = await repo.upsert(userId, { emailNotifications: { tradeMatches: false } });
+    expect(merged.emailNotifications).toEqual({ tradeMatches: false, tradeStatus: false });
   });
 
   it("upsert removes a key sent as null and leaves the rest alone", async () => {

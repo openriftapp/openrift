@@ -134,8 +134,12 @@ describe.skipIf(!ctx)("friendGroupDiscordLinksRepo (integration)", () => {
     );
 
     expect(results.filter((result) => result.status === "rejected")).toEqual([]);
-    const links = await repo.listLinks(group.id);
-    const pending = links.filter((link) => link.code !== null);
+    const pending = await db
+      .selectFrom("friendGroupDiscordLinks")
+      .select("id")
+      .where("groupId", "=", group.id)
+      .where("code", "is not", null)
+      .execute();
     expect(pending).toHaveLength(1);
   });
 

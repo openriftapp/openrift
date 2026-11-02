@@ -245,7 +245,7 @@ describe.skipIf(!ctx)("trade-status emails (integration)", () => {
 
   it("leaves a fresh burst queued on a timed cadence (not yet due)", async () => {
     await repos.userPreferences.upsert(RECEIVER_ID, {
-      emailNotifications: { tradeRequestCadence: "30min" },
+      emailNotifications: { tradeStatus: true, tradeRequestCadence: "30min" },
     });
     const group = await setupMatch();
     const { first } = await requestBoth(group);
