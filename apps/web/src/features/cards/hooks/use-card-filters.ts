@@ -19,12 +19,14 @@ import type {
   SortOption,
 } from "@openrift/shared/types/search";
 import { useRouter } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { use, useEffect, useRef } from "react";
 
 import { useFilterSearch } from "@/features/cards/hooks/use-filter-search";
 import { cycleIncludeExclude } from "@/features/cards/lib/filter-cycle";
 import { toFilterState } from "@/features/cards/lib/filter-dimensions";
 import { isPrintingsOnlyGrouping } from "@/features/cards/lib/group-by-field";
+import { QueryFilterContext } from "@/features/cards/lib/query-filter-context";
+import { absorbQueryFilters, showQueryFilters } from "@/features/cards/lib/query-filters";
 import type { FilterSearch, OwnedBucket } from "@/features/cards/lib/search-schemas";
 import { useSurfaceViewDefaults, useViewPrefsWriter } from "@/hooks/use-view-prefs";
 import { trackEvent } from "@/lib/analytics";
@@ -115,6 +117,16 @@ export function useFilterValues() {
     viewDefaults.groupBy,
     viewDefaults.groupDir,
   );
+  const queryFilterOptions = use(QueryFilterContext);
+  const shownQuery = showQueryFilters(raw, queryFilterOptions);
+  const shownState = toFilterState(
+    shownQuery.search,
+    defaultView,
+    viewDefaults.sort,
+    viewDefaults.sortDir,
+    viewDefaults.groupBy,
+    viewDefaults.groupDir,
+  );
 
   // Built inline, not via a helper: passing the whole filterState object into
   // a helper call makes React Compiler treat it as maybe-mutated, which stops
@@ -187,10 +199,10 @@ export function useFilterValues() {
   };
 
   const ranges: Record<RangeKey, { min: number | null; max: number | null }> = {
-    energy: filters.energy,
-    might: filters.might,
-    power: filters.power,
-    price: filters.price,
+    energy: { min: shownState.energyMin, max: shownState.energyMax },
+    might: { min: shownState.mightMin, max: shownState.mightMax },
+    power: { min: shownState.powerMin, max: shownState.powerMax },
+    price: { min: shownState.priceMin, max: shownState.priceMax },
   };
 
   const directives = parseSearchQuery(filterState.search).directives;
@@ -276,7 +288,8 @@ export function useFilterValues() {
     groupDir,
     hasActiveFilters,
     hasClearableFilters,
-    filterState,
+    filterState: shownState,
+    queryFilterSpans: shownQuery.spans,
   };
 }
 
@@ -298,13 +311,17 @@ export function useFilterActions() {
     viewDefaults.groupDir,
   );
   const router = useRouter();
+  const queryFilterOptions = use(QueryFilterContext);
 
   const updateSearch = (patch: Partial<FilterSearch>) => {
     void router.navigate({
       to: ".",
       search: (prev) =>
         Object.fromEntries(
-          Object.entries({ ...prev, ...patch }).filter(([, v]) => v !== undefined),
+          Object.entries({
+            ...absorbQueryFilters(prev, Object.keys(patch), queryFilterOptions),
+            ...patch,
+          }).filter(([, v]) => v !== undefined),
         ),
     });
   };
@@ -375,7 +392,8 @@ export function useFilterActions() {
     trackEvent("filter-apply", { type: key });
     void router.navigate({
       to: ".",
-      search: (prev) => {
+      search: (latest) => {
+        const prev = absorbQueryFilters(latest, [key], queryFilterOptions);
         const current = (prev[key as keyof typeof prev] as string[] | undefined) ?? [];
         const next = current.includes(value)
           ? current.filter((v) => v !== value)
@@ -407,7 +425,8 @@ export function useFilterActions() {
     trackEvent("filter-apply", { type: includeKey });
     void router.navigate({
       to: ".",
-      search: (prev) => {
+      search: (latest) => {
+        const prev = absorbQueryFilters(latest, [includeKey, excludeKey], queryFilterOptions);
         const include = (prev[includeKey as keyof typeof prev] as string[] | undefined) ?? [];
         const exclude = (prev[excludeKey as keyof typeof prev] as string[] | undefined) ?? [];
         const { included: nextInclude, excluded: nextExclude } = cycleIncludeExclude(
@@ -478,8 +497,19 @@ export function useFilterActions() {
     key: "signed" | "overnumbered" | "banned" | "errata" | "noImage" | "standard",
   ) => {
     trackEvent("filter-apply", { type: key });
-    const current = filterState[key];
-    updateSearch({ [key]: current === null ? true : current === true ? false : undefined });
+    void router.navigate({
+      to: ".",
+      search: (latest) => {
+        const prev = absorbQueryFilters(latest, [key], queryFilterOptions);
+        const state = prev[key];
+        return Object.fromEntries(
+          Object.entries({
+            ...prev,
+            [key]: state === undefined ? true : state === true ? false : undefined,
+          }).filter(([, entry]) => entry !== undefined),
+        );
+      },
+    });
   };
   const toggleSigned = () => toggleFlag("signed");
   const toggleOvernumbered = () => toggleFlag("overnumbered");
@@ -502,8 +532,8 @@ export function useFilterActions() {
   };
   const cyclePresence = (dimension: PresenceDimension) => {
     trackEvent("filter-apply", { type: "presence" });
-    const current = filterState[PRESENCE_PARAMS[dimension]];
-    const next = current === null ? "any" : current === "any" ? "none" : undefined;
+    const current = showQueryFilters(raw, queryFilterOptions).search[PRESENCE_PARAMS[dimension]];
+    const next = current === undefined ? "any" : current === "any" ? "none" : undefined;
     applyPresence(dimension, next);
   };
   const clearPresence = (dimension: PresenceDimension) =>

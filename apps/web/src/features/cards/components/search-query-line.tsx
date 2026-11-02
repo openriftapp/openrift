@@ -22,9 +22,11 @@ export function SearchQueryLine({
   valueLabel,
   alternatives = [],
 }: SearchQueryLineProps) {
-  const { filterState } = useFilterValues();
+  const { filterState, queryFilterSpans } = useFilterValues();
   const { setSearch } = useFilterActions();
-  const terms = showTerms ? describeSearchTerms(filterState.search, vocabulary, valueLabel) : [];
+  const terms = showTerms
+    ? describeSearchTerms(filterState.search, vocabulary, valueLabel, queryFilterSpans)
+    : [];
   const shownAlternatives = filteredCount > 0 ? alternatives : [];
 
   if (terms.length === 0 && shownAlternatives.length === 0) {

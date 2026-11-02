@@ -2,6 +2,10 @@
 
 ## 2026-11-02
 
+### Highlights
+
+- feat(Cards): **Search terms light up filters** — a typed term like `d:fury` or `is:foil` now shows on its filter button, and clicking that filter moves the term out of the search box.
+
 ### Other
 
 - fix(Cards): **All printings returns to the card** — picking or closing in the All printings view after opening it from a card's fan now returns to the card detail, and the picked printing lights up in the Printings list.

@@ -19,6 +19,10 @@ vi.mock("@tanstack/react-router", () => ({
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 // oxlint-disable-next-line import/first -- must import after vi.mock
+import { QueryFilterContext } from "@/features/cards/lib/query-filter-context";
+// oxlint-disable-next-line import/first -- must import after vi.mock
+import type { QueryFilterOptions } from "@/features/cards/lib/query-filters";
+// oxlint-disable-next-line import/first -- must import after vi.mock
 import { useDisplayStore } from "@/stores/display-store";
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
@@ -855,5 +859,104 @@ describe("useStaleGroupByGuard", () => {
     rerender();
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("query clauses shown on the filter buttons", () => {
+  const queryFilters: QueryFilterOptions = {
+    vocabulary: { domain: ["fury", "calm"] },
+    visible: new Set(["domains", "signed", "markers", "energy"]),
+    values: { domains: ["fury", "calm"], markers: ["promo-stamp"] },
+    nullableRanges: new Set(),
+  };
+
+  function queryWrapper({ children }: { children: ReactNode }) {
+    return createElement(
+      QueryFilterContext,
+      { value: queryFilters },
+      createElement(FilterSearchProvider, { value: mockSearch }, children),
+    );
+  }
+
+  beforeEach(() => {
+    mockNavigate.mockClear();
+    useDisplayStore.setState({ defaultCardView: "cards" });
+  });
+
+  it("lights the button but filters by the query alone", () => {
+    mockSearch = { q: "d:fury e>=2" };
+    const { result } = renderHook(() => useCardFilters(), { wrapper: queryWrapper });
+
+    expect(result.current.filterState.domains).toEqual(["fury"]);
+    expect(result.current.ranges.energy).toEqual({ min: 2, max: null });
+    expect(result.current.queryFilterSpans).toHaveLength(2);
+    expect(result.current.filters.domains).toEqual([]);
+    expect(result.current.filters.energy).toEqual({ min: null, max: null });
+  });
+
+  it("moves the clause into the buttons before cycling a value", () => {
+    mockSearch = { q: "jinx d:fury" };
+    const { result } = renderHook(() => useCardFilters(), { wrapper: queryWrapper });
+
+    act(() => result.current.cycleArrayFilter("domains", "domainsEx", "fury"));
+
+    const search = lastNavigateSearch();
+    expect(search).toMatchObject({ q: "jinx", domainsEx: ["fury"] });
+    expect(search).not.toHaveProperty("domains");
+  });
+
+  it("adds a second value next to the absorbed one", () => {
+    mockSearch = { q: "d:fury" };
+    const { result } = renderHook(() => useCardFilters(), { wrapper: queryWrapper });
+
+    act(() => result.current.cycleArrayFilter("domains", "domainsEx", "calm"));
+
+    const search = lastNavigateSearch();
+    expect(search).toMatchObject({ domains: ["fury", "calm"] });
+    expect(search).not.toHaveProperty("q");
+  });
+
+  it("removes a lit value through its chip", () => {
+    mockSearch = { q: "d:fury jinx" };
+    const { result } = renderHook(() => useCardFilters(), { wrapper: queryWrapper });
+
+    act(() => result.current.toggleArrayFilter("domains", "fury"));
+
+    const search = lastNavigateSearch();
+    expect(search).toMatchObject({ q: "jinx" });
+    expect(search).not.toHaveProperty("domains");
+  });
+
+  it("cycles a flag from the query's state", () => {
+    mockSearch = { q: "is:signed" };
+    const { result } = renderHook(() => useCardFilters(), { wrapper: queryWrapper });
+
+    act(() => result.current.toggleSigned());
+
+    const search = lastNavigateSearch();
+    expect(search).toMatchObject({ signed: false });
+    expect(search).not.toHaveProperty("q");
+  });
+
+  it("cycles presence from the query's state", () => {
+    mockSearch = { q: "is:promo" };
+    const { result } = renderHook(() => useCardFilters(), { wrapper: queryWrapper });
+
+    act(() => result.current.cyclePresence("markers"));
+
+    const search = lastNavigateSearch();
+    expect(search).toMatchObject({ markersPresence: "none" });
+    expect(search).not.toHaveProperty("q");
+  });
+
+  it("clears a range typed into the query", () => {
+    mockSearch = { q: "e>=2" };
+    const { result } = renderHook(() => useCardFilters(), { wrapper: queryWrapper });
+
+    act(() => result.current.setRange("energy", null, null));
+
+    const search = lastNavigateSearch();
+    expect(search).not.toHaveProperty("q");
+    expect(search).not.toHaveProperty("energyMin");
   });
 });

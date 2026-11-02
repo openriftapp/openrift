@@ -299,6 +299,27 @@ describe("ActiveFilters search terms", () => {
     expect(setSearch).toHaveBeenCalledWith("jinx t:unit");
   });
 
+  it("shows a term the filter buttons carry as its filter chip only", async () => {
+    const user = userEvent.setup();
+    setupSearch("d:fury t:unit");
+    const toggleArrayFilter = vi.fn();
+    mockUseFilterValues.mockReturnValue({
+      filterState: { ...EMPTY_FILTER_STATE, search: "d:fury t:unit", domains: ["fury"] },
+      ranges: NULL_RANGES,
+      queryFilterSpans: [{ start: 0, end: 6 }],
+    });
+    mockUseFilterActions.mockReturnValue({ ...mockUseFilterActions(), toggleArrayFilter });
+    const { getByText, queryByText, getByRole } = render(
+      <ActiveFilters availableFilters={makeAvailable()} />,
+    );
+
+    expect(queryByText("domain: fury")).not.toBeInTheDocument();
+    expect(getByText("type contains “unit”")).toBeInTheDocument();
+    await user.click(getByRole("button", { name: /Remove .*fury/u }));
+
+    expect(toggleArrayFilter).toHaveBeenCalledWith("domains", "fury");
+  });
+
   it("removes a flagged term through its warning chip", async () => {
     const user = userEvent.setup();
     const setSearch = setupSearch("t:unit zz:x");

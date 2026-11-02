@@ -37,6 +37,9 @@ vi.mock("@/features/cards/components/search-bar", () => ({
 vi.mock("@/features/cards/components/search-query-line", () => ({
   SearchQueryLine: () => <div>search-query-line-stub</div>,
 }));
+vi.mock("@/features/cards/hooks/use-query-filter-options", () => ({
+  useQueryFilterOptions: () => null,
+}));
 vi.mock("@/features/cards/hooks/use-search-vocabulary", () => ({
   useSearchVocabulary: () => ({ validation: {}, suggestions: {}, valueLabel: () => "" }),
 }));

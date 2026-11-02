@@ -58,8 +58,13 @@ export function ActiveFilters({
 }: ActiveFiltersProps) {
   const { labels } = useEnumOrders();
   const { all: allCustomTags } = useCustomTagList();
-  const { filterState, ranges } = useFilterValues();
-  const searchTerms = describeSearchTerms(filterState.search, searchVocabulary, searchValueLabel);
+  const { filterState, ranges, queryFilterSpans } = useFilterValues();
+  const searchTerms = describeSearchTerms(
+    filterState.search,
+    searchVocabulary,
+    searchValueLabel,
+    queryFilterSpans,
+  );
   const {
     toggleArrayFilter,
     setRange,

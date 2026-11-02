@@ -42,6 +42,13 @@ describe("describeSearchTerms", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it("leaves out terms the filter buttons already show", () => {
+    const ids = describeSearchTerms("d:fury -r:rare e<=3", {}, RAW, [{ start: 7, end: 14 }]).map(
+      (chip) => chip.id,
+    );
+    expect(ids).toEqual(["term-0", "term-15"]);
+  });
+
   it("skips plain words", () => {
     expect(chips("jinx rebel")).toEqual([]);
     expect(chips("jinx t:unit").map((chip) => chip.source)).toEqual(["t:unit"]);

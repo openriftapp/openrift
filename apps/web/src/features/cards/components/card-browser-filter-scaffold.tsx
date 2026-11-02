@@ -15,8 +15,10 @@ import {
 import { SearchBar } from "@/features/cards/components/search-bar";
 import { SearchQueryLine } from "@/features/cards/components/search-query-line";
 import { useFilterValues, useStaleGroupByGuard } from "@/features/cards/hooks/use-card-filters";
+import { useQueryFilterOptions } from "@/features/cards/hooks/use-query-filter-options";
 import { useSearchVocabulary } from "@/features/cards/hooks/use-search-vocabulary";
 import { resolveTopLevelUnits } from "@/features/cards/lib/filter-sections";
+import { QueryFilterContext } from "@/features/cards/lib/query-filter-context";
 import type { SearchAlternative } from "@/features/cards/lib/search-alternative";
 import { useSmUp } from "@/hooks/use-sm-up";
 import { cn } from "@/lib/utils";
@@ -65,7 +67,12 @@ export function CardBrowserFilterProvider({ children, ...meta }: CardBrowserFilt
   useStaleGroupByGuard();
   const topLevelFilters = useDisplayStore((state) => state.topLevelFilters);
   const topLevelUnits = resolveTopLevelUnits(topLevelFilters);
-  return <FilterMetaContext value={{ ...meta, topLevelUnits }}>{children}</FilterMetaContext>;
+  const queryFilters = useQueryFilterOptions(meta);
+  return (
+    <FilterMetaContext value={{ ...meta, topLevelUnits }}>
+      <QueryFilterContext value={queryFilters}>{children}</QueryFilterContext>
+    </FilterMetaContext>
+  );
 }
 
 function BrowserCompactFilters() {

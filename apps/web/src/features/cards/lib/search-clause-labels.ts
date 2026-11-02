@@ -231,6 +231,7 @@ export function describeSearchTerms(
   query: string,
   vocabulary: SearchVocabulary,
   valueLabel: SearchValueLabeler,
+  shownByFilters: readonly SearchSpan[] = [],
 ): SearchTermChip[] {
   const resolved = resolveSearchQuery(parseSearchQuery(query), vocabulary);
   const root = resolved.root;
@@ -241,6 +242,9 @@ export function describeSearchTerms(
       return [];
     }
     const span = searchTermSpan(node, resolved.terms);
+    if (shownByFilters.some((shown) => shown.start === span.start)) {
+      return [];
+    }
     return [
       { id: `term-${span.start}`, text: describeNode(node, valueLabel, false), span, tone: "term" },
     ];
