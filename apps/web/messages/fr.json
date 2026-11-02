@@ -7954,6 +7954,8 @@
   "tournaments_org_remove_member_description": "Supprimer {name} de cette organisation ? Cette personne perdra l'accès à ses tournois.",
   "tournaments_org_removing": "Suppression…",
   "developers_title": "API Riftbound",
+  "developers_pill_free": "Gratuit",
+  "developers_pill_no_key": "Sans clé d'API",
   "developers_intro": "L'API Riftbound gratuite d'OpenRift renvoie le catalogue des cartes, les prix et les règles en JSON, sans clé. C'est la même API qui fait tourner OpenRift, et vous pouvez l'utiliser pour créer vos propres outils. Si ce que vous développez a sa place dans OpenRift, le code est open source sur {#link}GitHub{/link} et les pull requests sont les bienvenues.",
   "developers_docs_p": "Pour la référence complète, consultez {#link2}Swagger UI{/link2}.",
   "developers_read_heading": "Points de terminaison",

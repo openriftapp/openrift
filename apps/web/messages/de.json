@@ -7954,6 +7954,8 @@
   "tournaments_org_remove_member_description": "{name} aus dieser Organisation entfernen? Der Zugriff auf ihre Turniere geht damit verloren.",
   "tournaments_org_removing": "Wird entfernt…",
   "developers_title": "Riftbound-API",
+  "developers_pill_free": "Kostenlos",
+  "developers_pill_no_key": "Kein API-Schlüssel",
   "developers_intro": "Die kostenlose Riftbound-API von OpenRift liefert den Kartenkatalog, Preise und Regeln als JSON, ganz ohne Schlüssel. Es ist dieselbe API, auf der OpenRift läuft, und du kannst sie für deine eigenen Tools nutzen. Wenn das, was du baust, auch zu OpenRift selbst passen würde: Der Code ist Open Source auf {#link}GitHub{/link}, und Pull Requests sind sehr willkommen.",
   "developers_docs_p": "Die vollständige Referenz findest du in der {#link2}Swagger UI{/link2}.",
   "developers_read_heading": "Endpunkte",

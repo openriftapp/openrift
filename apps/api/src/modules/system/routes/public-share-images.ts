@@ -18,6 +18,7 @@ import { jsonError, pngResponse } from "../../../lib/http-response.js";
 import { shareUrlFromOrigin, siteHostFromOrigin } from "../../../lib/site-url.js";
 import type { Variables } from "../../../types.js";
 import { buildCardShareInput } from "../../catalog/services/card-share-input.js";
+import { buildDevelopersImageInput } from "../../catalog/services/developers-image-input.js";
 import { buildCollectionShareInput } from "../../collections/services/collection-image.js";
 import {
   buildDeckImageCards,
@@ -43,6 +44,8 @@ const IMAGE_CACHE_CONTROL = "public, immutable, max-age=31536000";
 
 /** Card images carry prices, which refresh daily; their URLs have no version. */
 const CARD_IMAGE_CACHE_CONTROL = "public, max-age=86400";
+
+const DEVELOPERS_IMAGE_CACHE_CONTROL = "public, max-age=86400";
 
 const MAX_RENDER_CARD_ROWS = 300;
 
@@ -387,6 +390,17 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
     });
 
     return pngResponse(png, IMAGE_CACHE_CONTROL);
+  })
+
+  .get("/developers/image.png", shareImageRateLimit, async (c) => {
+    const { value: catalog } = await c.get("repos").catalogResponse.current();
+    const png = await renderImage({
+      kind: "developers",
+      input: buildDevelopersImageInput(catalog, siteHostFromOrigin(c.get("config").siteOrigin)),
+      scale: c.req.query("size") === "hq" ? 2 : 1,
+    });
+
+    return pngResponse(png, DEVELOPERS_IMAGE_CACHE_CONTROL);
   })
 
   // Browser-local decks have no server row or session; saved decks use the

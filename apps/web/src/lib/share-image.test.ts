@@ -11,6 +11,7 @@ import {
   deckImageFromCardsUrl,
   deckOwnerImageUrl,
   deckShareImageUrl,
+  developersShareImageUrl,
   downloadImageFromPost,
   downloadImageFromUrl,
   listOwnerImageUrl,
@@ -80,6 +81,14 @@ describe("listShareImageUrl", () => {
   it("builds an absolute /api/v1 list image URL with the version param", () => {
     expect(listShareImageUrl("https://openrift.app", "tok123", 42)).toBe(
       "https://openrift.app/api/v1/lists/share/tok123/image.png?v=42",
+    );
+  });
+});
+
+describe("developersShareImageUrl", () => {
+  it("builds the unversioned developers image URL", () => {
+    expect(developersShareImageUrl("https://openrift.app")).toBe(
+      "https://openrift.app/api/v1/developers/image.png",
     );
   });
 });

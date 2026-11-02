@@ -9,9 +9,11 @@
 
 ### Other
 
-- fix(Cards): **All printings returns to the card** — picking or closing in the All printings view after opening it from a card's fan now returns to the card detail, and the picked printing lights up in the Printings list.
+- feat(App): **Riftbound API page refresh** — the developers page opens with a live API response wired to its card, and pasted links show the same picture.
+- feat(App): **Wider help articles** — help articles now use the same width as the help overview.
 - feat(Cards): **All printings in every language** — the All printings view opens in the language of the printing you are looking at, language pills switch it to another language or to all of them, and a table view lays out every printing by language with prices. The button now sits in the Printings header, on the card page too.
 - feat(Cards): **Share a card with a preview image** — Share on a card page opens a dialog with the link to copy, your device's share menu where it has one, a QR code, and a downloadable image of the card with its current prices. The link always points at the printing you are looking at, and pasting it into a chat app shows the same image.
+- fix(Cards): **All printings returns to the card** — picking or closing in the All printings view after opening it from a card's fan now returns to the card detail, and the picked printing lights up in the Printings list.
 - fix(Cards): **Filters stay put while you search** — search term chips and the card text and tag links now sit below the filters, so the filter bar no longer jumps as you type.
 - fix(Decks): **Fast deck edits save reliably** — editing a deck's cards or folders in quick succession no longer fails to save with an error, and making two variants primary at once leaves exactly one primary.
 - fix(Trades): **Offers stay within what you have** — two offers or requests for the same card created at once can no longer promise more copies than the giver has, and leaving a group keeps a trade one side already settled so the other side can finish it.

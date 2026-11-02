@@ -57,6 +57,9 @@ const mockCardErrataRepo = {
   announcements: vi.fn(),
   listEntries: vi.fn(),
 };
+const mockCatalogResponse = {
+  current: vi.fn(),
+};
 
 const app = new Hono<{ Variables: Variables }>()
   .use("*", async (c, next) => {
@@ -70,6 +73,7 @@ const app = new Hono<{ Variables: Variables }>()
       catalog: mockCatalogRepo,
       meta: mockMetaRepo,
       cardErrata: mockCardErrataRepo,
+      catalogResponse: mockCatalogResponse,
     } as never);
     c.set("io", {} as never);
     c.set("config", { siteOrigin: "https://openrift.app" } as never);
@@ -790,6 +794,37 @@ describe("GET /api/v1/errata/image.png", () => {
       ],
       cardCount: 5,
       updateCount: 2,
+      siteHost: "openrift.app",
+    });
+  });
+});
+
+describe("GET /api/v1/developers/image.png", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("renders the catalog stats with a one-day cache", async () => {
+    mockCatalogResponse.current.mockResolvedValue({
+      version: "v1",
+      value: {
+        sets: [{ id: "s1" }],
+        cards: {},
+        printings: {},
+      },
+    });
+
+    const res = await getImage("/api/v1/developers/image.png?size=hq");
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("image/png");
+    expect(res.headers.get("Cache-Control")).toBe("public, max-age=86400");
+    const [job] = jobsOfKind("developers");
+    expect(job?.scale).toBe(2);
+    expect(job?.input).toEqual({
+      showcase: null,
+      backdropImageIds: [],
+      stats: { cards: 0, printings: 0, sets: 1, languages: 0 },
       siteHost: "openrift.app",
     });
   });

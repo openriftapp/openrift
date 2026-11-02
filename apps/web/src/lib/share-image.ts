@@ -33,6 +33,10 @@ export function errataShareImageUrl(siteUrl: string, version: number): string {
   return `${siteUrl}${API_BASE}/errata/image.png?v=${version}`;
 }
 
+export function developersShareImageUrl(siteUrl: string): string {
+  return `${siteUrl}${API_BASE}/developers/image.png`;
+}
+
 export type ShareImageOptions = Pick<ShareImageQuery, "size" | "aspect" | "qr">;
 
 export function cardShareImageUrl(

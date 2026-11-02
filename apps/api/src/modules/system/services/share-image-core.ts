@@ -90,6 +90,18 @@ async function loadFonts(io: Io): Promise<SatoriFont[]> {
       weight: 700,
       style: "normal",
     },
+    {
+      name: "Chakra Petch",
+      data: await read("ChakraPetch-Bold.ttf"),
+      weight: 700,
+      style: "normal",
+    },
+    {
+      name: "JetBrains Mono",
+      data: await read("JetBrainsMono-Regular.ttf"),
+      weight: 400,
+      style: "normal",
+    },
   ];
   return cachedFonts;
 }

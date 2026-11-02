@@ -13,3 +13,7 @@ export const DEVELOPER_ENDPOINT_PATHS = [
 ] as const;
 
 export type DeveloperEndpointPath = (typeof DEVELOPER_ENDPOINT_PATHS)[number];
+
+// The hero's connector lines are placed on this printing's frame layout.
+export const SHOWCASE_CARD_SLUG = "annie-fiery";
+export const SHOWCASE_PUBLIC_CODE = "OGS-001/024";

@@ -7953,6 +7953,8 @@
   "tournaments_org_remove_member_description": "确定要把 {name} 移出本组织吗？他们将失去对该组织赛事的访问权限。",
   "tournaments_org_removing": "正在移除…",
   "developers_title": "Riftbound API",
+  "developers_pill_free": "免费",
+  "developers_pill_no_key": "无需 API 密钥",
   "developers_intro": "OpenRift 的免费 Riftbound API 以 JSON 格式提供卡牌目录、价格和规则，无需密钥。它就是驱动 OpenRift 的同一个 API，你也可以用它来开发自己的工具。如果你正在开发的东西也适合放进 OpenRift 本身，代码已在 {#link}GitHub{/link} 上开源，非常欢迎提交 pull request。",
   "developers_docs_p": "完整参考请查看 {#link2}Swagger UI{/link2}。",
   "developers_read_heading": "端点",

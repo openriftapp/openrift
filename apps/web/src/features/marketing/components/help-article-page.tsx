@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { Suspense, lazy } from "react";
 
 import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";
@@ -14,21 +14,25 @@ const ARTICLE_CONTENT: Record<string, ComponentType> = Object.fromEntries(
   [...helpArticles].map(([slug, entry]) => [slug, lazy(entry.component)]),
 );
 
-export function HelpArticlePage({ article }: { article: HelpArticle }) {
-  const ArticleContent = ARTICLE_CONTENT[article.slug];
-  const { title } = helpArticleLabels(article);
-
+export function HelpPageLayout({ title, children }: { title: string; children: ReactNode }) {
   return (
     <>
       <TopBarBreadcrumbBar
         segments={[{ label: m.help_breadcrumb_help(), link: <Link to="/help" /> }]}
         title={title}
       />
-      <div className={cn(PAGE_WIDTH.capped, "flex-1 pt-3", PAGE_PADDING_NO_TOP)}>
-        <div className="mx-auto max-w-prose">
-          <Suspense>{ArticleContent && <ArticleContent />}</Suspense>
-        </div>
-      </div>
+      <div className={cn(PAGE_WIDTH.capped, "flex-1 pt-3", PAGE_PADDING_NO_TOP)}>{children}</div>
     </>
+  );
+}
+
+export function HelpArticlePage({ article }: { article: HelpArticle }) {
+  const ArticleContent = ARTICLE_CONTENT[article.slug];
+  const { title } = helpArticleLabels(article);
+
+  return (
+    <HelpPageLayout title={title}>
+      <Suspense>{ArticleContent && <ArticleContent />}</Suspense>
+    </HelpPageLayout>
   );
 }

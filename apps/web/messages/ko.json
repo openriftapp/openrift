@@ -7953,6 +7953,8 @@
   "tournaments_org_remove_member_description": "{name}님을 이 조직에서 제외할까요? 조직의 대회에 더 이상 접근할 수 없게 됩니다.",
   "tournaments_org_removing": "제외 중…",
   "developers_title": "Riftbound API",
+  "developers_pill_free": "무료",
+  "developers_pill_no_key": "API 키 불필요",
   "developers_intro": "OpenRift의 무료 Riftbound API는 카드 카탈로그, 가격, 규칙을 JSON으로 제공하며 키가 필요 없습니다. OpenRift를 구동하는 바로 그 API이며, 여러분도 직접 도구를 만드는 데 사용할 수 있습니다. 만들고 있는 것이 OpenRift 자체에 어울린다면, 코드는 {#link}GitHub{/link}에 오픈 소스로 공개되어 있으며 풀 리퀘스트를 언제든 환영합니다.",
   "developers_docs_p": "전체 레퍼런스는 {#link2}Swagger UI{/link2}에서 볼 수 있습니다.",
   "developers_read_heading": "엔드포인트",
