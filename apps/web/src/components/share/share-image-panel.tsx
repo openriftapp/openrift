@@ -31,7 +31,7 @@ function defaultScale(aspect: ShareImageAspect, scales: readonly number[]): numb
 }
 
 /** The surface being shared; picks the phrasing of the QR toggle and the share copy. */
-export type ShareNoun = "lists" | "list" | "deck" | "collection" | "tier-list";
+export type ShareNoun = "lists" | "list" | "deck" | "collection" | "tier-list" | "card";
 
 const QR_TOGGLE_LABEL: Record<ShareNoun, () => string> = {
   lists: () => m.share_image_qr_toggle_lists(),
@@ -39,6 +39,7 @@ const QR_TOGGLE_LABEL: Record<ShareNoun, () => string> = {
   deck: () => m.share_image_qr_toggle_deck(),
   collection: () => m.share_image_qr_toggle_collection(),
   "tier-list": () => m.share_image_qr_toggle_tier_list(),
+  card: () => m.share_image_qr_toggle_card(),
 };
 
 export interface ShareImagePanelProps {

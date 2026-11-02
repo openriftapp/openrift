@@ -32,4 +32,24 @@ describe("SharePanel", () => {
     renderPanel(null);
     expect(screen.queryByRole("link", { name: "Open" })).not.toBeInTheDocument();
   });
+
+  it("shows only the caller's actions and the unfurl note for a link that cannot be stopped", () => {
+    render(
+      <SharePanel
+        noun="card"
+        link={{
+          url: "https://openrift.app/cards/blazing-scorcher/ogn-001-en",
+          label: "Share link",
+          unfurls: true,
+          actions: <span>native share</span>,
+        }}
+        qrFilenameBase="ogn-001-en"
+      />,
+    );
+    expect(screen.getByText("native share")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Open" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Stop sharing" })).not.toBeInTheDocument();
+    expect(screen.getByText(/shows a preview image/u)).toBeInTheDocument();
+    expect(screen.queryByText(/Anyone with this link/u)).not.toBeInTheDocument();
+  });
 });

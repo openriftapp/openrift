@@ -5,6 +5,7 @@ import { REVOKE_DELAY_MS } from "./download";
 import {
   boardStateShareImageUrl,
   bundleShareImageUrl,
+  cardShareImageUrl,
   collectionOwnerImageUrl,
   collectionShareImageUrl,
   deckImageFromCardsUrl,
@@ -55,6 +56,23 @@ describe("shareImageVersion", () => {
     const earlier = shareImageVersion("2026-06-09T00:00:00.000Z");
     const later = shareImageVersion("2026-06-09T00:00:01.000Z");
     expect(later).toBeGreaterThan(earlier);
+  });
+});
+
+describe("cardShareImageUrl", () => {
+  it("builds the printing image URL without a version", () => {
+    expect(cardShareImageUrl("https://openrift.app", "blazing-scorcher", "en-ogn-001")).toBe(
+      "https://openrift.app/api/v1/cards/blazing-scorcher/en-ogn-001/image.png",
+    );
+  });
+
+  it("falls back to the bare card image and carries the render options", () => {
+    expect(
+      cardShareImageUrl("https://openrift.app", "blazing-scorcher", undefined, {
+        size: "hq",
+        qr: false,
+      }),
+    ).toBe("https://openrift.app/api/v1/cards/blazing-scorcher/image.png?size=hq&qr=0");
   });
 });
 

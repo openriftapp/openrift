@@ -35,6 +35,19 @@ export function errataShareImageUrl(siteUrl: string, version: number): string {
 
 export type ShareImageOptions = Pick<ShareImageQuery, "size" | "aspect" | "qr">;
 
+export function cardShareImageUrl(
+  siteUrl: string,
+  cardSlug: string,
+  printingSlug?: string,
+  options: Omit<ShareImageOptions, "aspect"> = {},
+): string {
+  const printingPath = printingSlug === undefined ? "" : `/${encodeURIComponent(printingSlug)}`;
+  return withParams(
+    `${siteUrl}${API_BASE}/cards/${encodeURIComponent(cardSlug)}${printingPath}/image.png`,
+    shareImageQueryParams(options),
+  );
+}
+
 export interface ShareImageRenderChoice {
   aspect: ShareImageQuery["aspect"];
   scale: number;

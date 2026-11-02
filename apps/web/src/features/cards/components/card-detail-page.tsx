@@ -25,12 +25,14 @@ import { CardPageInfoTable } from "@/features/cards/components/card-page-info-ta
 import { PriceHistorySection } from "@/features/cards/components/card-page-price-history";
 import { CardPagePrintings } from "@/features/cards/components/card-page-printings";
 import { RelatedCardsSection } from "@/features/cards/components/card-page-related-cards";
-import { ShareLinkButton } from "@/features/cards/components/card-page-share-button";
+import { ShareCardButton } from "@/features/cards/components/card-page-share-button";
 import { SuggestCorrectionMenu } from "@/features/cards/components/suggest-correction-menu";
 import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { resolveCardMetaPrinting } from "@/features/cards/lib/card-meta";
+import { cardShareUrl } from "@/features/cards/lib/card-share-url";
 import { sortByLanguagePreference } from "@/features/cards/lib/printing-designs";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
+import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_PADDING, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -97,7 +99,12 @@ export function CardDetailPage() {
               <span className="hidden sm:inline">{m.card_detail_link_suggest_correction()}</span>
               <ChevronDownIcon className="size-4" />
             </SuggestCorrectionMenu>
-            <ShareLinkButton cardName={legendDisplayName(card)} />
+            <ShareCardButton
+              cardName={legendDisplayName(card)}
+              cardSlug={cardSlug}
+              printingSlug={selectedPrinting.slug}
+              url={cardShareUrl(getSiteUrl(), cardSlug, selectedPrinting.slug, side)}
+            />
           </PageTopBarActions>
         </PageTopBar>
       </PageTopBarSticky>

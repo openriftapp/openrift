@@ -1,4 +1,5 @@
 import { compareCardDisplayName, legendDisplayName } from "@openrift/shared/card-name";
+import { labelMap } from "@openrift/shared/collections";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import {
   aspectFromQuery,
@@ -16,6 +17,7 @@ import { assertFound } from "../../../lib/assertions.js";
 import { jsonError, pngResponse } from "../../../lib/http-response.js";
 import { shareUrlFromOrigin, siteHostFromOrigin } from "../../../lib/site-url.js";
 import type { Variables } from "../../../types.js";
+import { buildCardShareInput } from "../../catalog/services/card-share-input.js";
 import { buildCollectionShareInput } from "../../collections/services/collection-image.js";
 import {
   buildDeckImageCards,
@@ -38,6 +40,9 @@ import type { ShareImageCard, ShareImageOptions } from "../services/share-image.
 
 /** Long immutable cache: the `?v=` version makes each URL content-addressed. */
 const IMAGE_CACHE_CONTROL = "public, immutable, max-age=31536000";
+
+/** Card images carry prices, which refresh daily; their URLs have no version. */
+const CARD_IMAGE_CACHE_CONTROL = "public, max-age=86400";
 
 const MAX_RENDER_CARD_ROWS = 300;
 
@@ -107,7 +112,63 @@ function dedupeCards(cards: readonly ShareImageCard[]): ShareImageCard[] {
   return [...byKey.values()];
 }
 
+async function cardImage(
+  c: Context<{ Variables: Variables }>,
+  cardSlug: string,
+  printingSlug?: string,
+): Promise<Response> {
+  const { catalog, enums, marketplace } = c.get("repos");
+  const config = c.get("config");
+
+  const card = await catalog.cardBySlug(cardSlug);
+  assertFound(card, "Not found");
+  const printings = await catalog.printingsByCardId(card.id);
+  const printingIds = [...new Set(printings.map((printing) => printing.printingId))];
+  const [images, sets, prices, enumRows] = await Promise.all([
+    catalog.printingImagesByPrintingIds(printingIds),
+    catalog.setsByIds([...new Set(printings.map((printing) => printing.setId))]),
+    marketplace.latestPricesForPrintings(printingIds),
+    enums.all(),
+  ]);
+
+  const path =
+    printingSlug === undefined ? `/cards/${cardSlug}` : `/cards/${cardSlug}/${printingSlug}`;
+  const input = buildCardShareInput({
+    card,
+    printings,
+    images,
+    sets,
+    prices,
+    labels: {
+      domains: labelMap(enumRows.domains),
+      superTypes: labelMap(enumRows.superTypes),
+      cardTypes: labelMap(enumRows.cardTypes),
+      rarities: labelMap(enumRows.rarities),
+    },
+    printingSlug,
+    siteHost: siteHostFromOrigin(config.siteOrigin),
+    shareUrl: shareUrlFromOrigin(config.siteOrigin, path),
+  });
+  assertFound(input, "Not found");
+
+  const png = await renderImage({
+    kind: "card",
+    input,
+    scale: c.req.query("size") === "hq" ? 2 : 1,
+    qr: qrFromQuery(c.req.query("qr")),
+  });
+  return pngResponse(png, CARD_IMAGE_CACHE_CONTROL);
+}
+
 export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
+  .get("/cards/:cardSlug/image.png", shareImageRateLimit, (c) =>
+    cardImage(c, c.req.param("cardSlug")),
+  )
+
+  .get("/cards/:cardSlug/:printingSlug/image.png", shareImageRateLimit, (c) =>
+    cardImage(c, c.req.param("cardSlug"), c.req.param("printingSlug")),
+  )
+
   .get("/lists/share/:token/image.png", shareImageRateLimit, async (c) => {
     const { lists, canonicalPrintings } = c.get("repos");
     const config = c.get("config");

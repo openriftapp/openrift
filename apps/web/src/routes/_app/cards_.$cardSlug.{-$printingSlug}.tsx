@@ -22,6 +22,7 @@ import { initQueryOptions } from "@/lib/init-queries";
 import { effectiveLanguageOrder } from "@/lib/language-order";
 import { breadcrumbJsonLd, productJsonLd, seoHead, toAbsoluteUrl } from "@/lib/seo";
 import { isNotFoundSentinel } from "@/lib/server-fns/api-error";
+import { cardShareImageUrl } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
 
@@ -86,7 +87,7 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
       title: `${cardName} - ${titleSuffix}`,
       description,
       path: cardPath,
-      ogImage: imageUrl,
+      ogImage: cardShareImageUrl(siteUrl, data.card.slug, metaPrinting?.slug),
       ogType: "product",
     });
 

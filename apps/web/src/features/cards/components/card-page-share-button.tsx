@@ -1,43 +1,70 @@
-import { CheckIcon, Share2Icon } from "lucide-react";
-import { toast } from "sonner";
+import { Share2Icon } from "lucide-react";
+import { useState } from "react";
 
 import { PageTopBarButton } from "@/components/layout/page-top-bar";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { ShareDialog } from "@/components/share/share-dialog";
+import { Button } from "@/components/ui/button";
+import { cardShareImageUrl } from "@/lib/share-image";
+import { getSiteUrl } from "@/lib/site-config";
 import { m } from "@/paraglide/messages.js";
 
-export function ShareLinkButton({ cardName }: { cardName: string }) {
-  const { copied, copy } = useCopyToClipboard();
+interface ShareCardButtonProps {
+  cardName: string;
+  cardSlug: string;
+  printingSlug?: string;
+  url: string;
+}
 
-  const handleShare = async () => {
-    if (typeof globalThis === "undefined" || !globalThis.location) {
-      return;
-    }
-    const url = globalThis.location.href;
+export function ShareCardButton({ cardName, cardSlug, printingSlug, url }: ShareCardButtonProps) {
+  const filenameBase = printingSlug ?? cardSlug;
+  const [open, setOpen] = useState(false);
+  const canNativeShare =
+    open && typeof navigator !== "undefined" && typeof navigator.share === "function";
 
-    if (typeof navigator.share === "function") {
-      try {
-        await navigator.share({ title: cardName, url });
-        return;
-      } catch (error) {
-        // AbortError: user dismissed the share sheet; stay silent.
-        if (error instanceof Error && error.name === "AbortError") {
-          return;
-        }
-      }
-    }
-
-    if (!(await copy(url))) {
-      toast.error(m.card_detail_share_failed());
+  const nativeShare = async () => {
+    try {
+      await navigator.share({ title: cardName, url });
+    } catch {
+      // Rejects when the viewer dismisses the sheet; the link stays copyable in the dialog.
     }
   };
 
   return (
-    <PageTopBarButton
-      onClick={() => void handleShare()}
-      aria-label={m.card_detail_share_link_aria()}
-    >
-      {copied ? <CheckIcon className="size-4" /> : <Share2Icon className="size-4" />}
-      {copied ? m.common_copied() : m.card_detail_share()}
-    </PageTopBarButton>
+    <>
+      <PageTopBarButton onClick={() => setOpen(true)}>
+        <Share2Icon className="size-4" />
+        {m.card_detail_share()}
+      </PageTopBarButton>
+      <ShareDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={m.card_detail_share_dialog_title({ name: cardName })}
+        noun="card"
+        link={{
+          url,
+          label: m.card_detail_share_link_aria(),
+          unfurls: true,
+          actions: canNativeShare ? (
+            <Button variant="outline" onClick={() => void nativeShare()}>
+              <Share2Icon />
+              {m.card_detail_share_native()}
+            </Button>
+          ) : undefined,
+        }}
+        image={{
+          title: cardName,
+          filenameBase,
+          buildUrl: (choice) =>
+            cardShareImageUrl(getSiteUrl(), cardSlug, printingSlug, {
+              size: choice.scale >= 2 ? "hq" : undefined,
+              qr: choice.qr,
+            }),
+          aspects: ["landscape"],
+          qrNoun: "card",
+          qrAvailable: true,
+        }}
+        qrFilenameBase={filenameBase}
+      />
+    </>
   );
 }

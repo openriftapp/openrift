@@ -1,4 +1,5 @@
 import { defaultIo } from "../../../io.js";
+import { renderCardShareImage } from "../../catalog/services/card-share-image.js";
 import { renderErrataImage } from "../../catalog/services/errata-image.js";
 import { renderDeckImage } from "../../decks/services/deck-image.js";
 import { renderBoardStateImage } from "../../stage/services/board-state-image.js";
@@ -20,6 +21,9 @@ function render(job: RenderJob): Promise<Buffer> {
   }
   if (job.kind === "errata") {
     return renderErrataImage(defaultIo, job.input, job.scale);
+  }
+  if (job.kind === "card") {
+    return renderCardShareImage(defaultIo, job.input, job.scale, job.qr);
   }
   return renderShareImage(defaultIo, job.input, job.scale, job.options);
 }

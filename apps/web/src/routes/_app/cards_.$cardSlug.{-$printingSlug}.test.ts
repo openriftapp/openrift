@@ -123,32 +123,38 @@ function ogImage(meta: HeadMeta[]): string | undefined {
 }
 
 describe("/cards/$cardSlug SSR head", () => {
-  it("uses the pinned printing's art for og:image when ?printingId= is set", () => {
-    expect(ogImage(runHead("p-ja"))).toContain("/media/cards/front-ja-full.webp");
+  it("uses the pinned printing's share image for og:image when ?printingId= is set", () => {
+    expect(ogImage(runHead("p-ja"))).toBe(
+      "http://localhost:5173/api/v1/cards/inferna/ja-ogn-202-normal-standard/image.png",
+    );
   });
 
-  it("sets twitter:image to the pinned printing's art too", () => {
+  it("sets twitter:image to the pinned printing's share image too", () => {
     const meta = runHead("p-ja");
     expect(meta.find((entry) => entry.name === "twitter:image")?.content).toContain(
-      "/media/cards/front-ja-full.webp",
+      "/cards/inferna/ja-ogn-202-normal-standard/image.png",
     );
   });
 
   it("falls back to the EN-preferred printing when no ?printingId= is present", () => {
-    expect(ogImage(runHead(undefined))).toContain("/media/cards/front-en-full.webp");
+    expect(ogImage(runHead(undefined))).toContain(
+      "/cards/inferna/en-ogn-202-normal-standard/image.png",
+    );
   });
 
   it("falls back to the EN-preferred printing when ?printingId= matches no printing", () => {
-    expect(ogImage(runHead("does-not-exist"))).toContain("/media/cards/front-en-full.webp");
+    expect(ogImage(runHead("does-not-exist"))).toContain(
+      "/cards/inferna/en-ogn-202-normal-standard/image.png",
+    );
   });
 
   it("picks the printing named by the path segment", () => {
     expect(ogImage(runHead("ja-ogn-202-normal-standard", "path"))).toContain(
-      "/media/cards/front-ja-full.webp",
+      "/cards/inferna/ja-ogn-202-normal-standard/image.png",
     );
   });
 
-  it("uses this card's face when it is side 2 of a double-sided printing", () => {
+  it("names the double-sided printing where this card is side 2", () => {
     const {
       slug: _slug,
       size: _size,
@@ -163,7 +169,7 @@ describe("/cards/$cardSlug SSR head", () => {
       side2: { ...face, faceId: "face-2", cardId: "card-1" },
     };
     const meta = runHeadFull("en-ogn-t05-normal-standard", [], "path", { "p-tok": token }).meta;
-    expect(ogImage(meta)).toContain("/media/cards/own-face-full.webp");
+    expect(ogImage(meta)).toContain("/cards/inferna/en-ogn-t05-normal-standard/image.png");
   });
 
   it("canonicalises a printing path to the bare card URL", () => {

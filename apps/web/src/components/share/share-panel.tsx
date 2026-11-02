@@ -20,6 +20,7 @@ const QR_LABEL: Record<ShareNoun, () => string> = {
   deck: () => m.share_qr_label_deck(),
   collection: () => m.share_qr_label_collection(),
   "tier-list": () => m.share_qr_label_tier_list(),
+  card: () => m.share_qr_label_card(),
 };
 
 export const SHARE_DIALOG_DESCRIPTION: Record<ShareNoun, () => string> = {
@@ -28,19 +29,21 @@ export const SHARE_DIALOG_DESCRIPTION: Record<ShareNoun, () => string> = {
   deck: () => m.share_dialog_description_deck(),
   collection: () => m.share_dialog_description_collection(),
   "tier-list": () => m.share_dialog_description_tier_list(),
+  card: () => m.share_dialog_description_card(),
 };
 
 interface SharePanelLink {
   url: string | null;
   label: string;
   /** Completes "Anyone with this link can …". */
-  exposes: string;
+  exposes?: string;
   /** The link resolves to a preview image when pasted into a chat app. */
   unfurls?: boolean;
-  onCreate: () => void;
+  onCreate?: () => void;
   creating?: boolean;
-  onStop: () => void;
+  onStop?: () => void;
   stopping?: boolean;
+  actions?: ReactNode;
 }
 
 interface SharePanelText {
@@ -163,11 +166,11 @@ export function SharePanel({
           {url === null ? (
             <>
               <p className="text-muted-foreground text-sm">
-                {m.share_link_create_intro({ exposes: link.exposes })}
+                {m.share_link_create_intro({ exposes: link.exposes ?? "" })}
               </p>
               <Button
                 className="self-start"
-                onClick={() => link.onCreate()}
+                onClick={() => link.onCreate?.()}
                 disabled={link.creating}
               >
                 <LinkIcon />
@@ -182,30 +185,43 @@ export function SharePanel({
                 hideQr
                 actions={
                   <>
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={buttonVariants({ variant: "outline" })}
-                    >
-                      <ExternalLinkIcon />
-                      {m.share_open_link()}
-                    </a>
-                    <Button
-                      variant="destructive"
-                      onClick={() => setConfirmStopOpen(true)}
-                      disabled={link.stopping}
-                    >
-                      <Trash2Icon />
-                      {m.share_stop_sharing()}
-                    </Button>
+                    {link.actions}
+                    {link.onStop === undefined ? null : (
+                      <>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={buttonVariants({ variant: "outline" })}
+                        >
+                          <ExternalLinkIcon />
+                          {m.share_open_link()}
+                        </a>
+                        <Button
+                          variant="destructive"
+                          onClick={() => setConfirmStopOpen(true)}
+                          disabled={link.stopping}
+                        >
+                          <Trash2Icon />
+                          {m.share_stop_sharing()}
+                        </Button>
+                      </>
+                    )}
                   </>
                 }
               />
-              <p className="text-muted-foreground text-sm">
-                {m.share_link_active_note({ exposes: link.exposes })}
-                {link.unfurls === true ? ` ${m.share_link_unfurl_note()}` : ""}
-              </p>
+              {link.exposes === undefined && link.unfurls !== true ? null : (
+                <p className="text-muted-foreground text-sm">
+                  {[
+                    link.exposes === undefined
+                      ? null
+                      : m.share_link_active_note({ exposes: link.exposes }),
+                    link.unfurls === true ? m.share_link_unfurl_note() : null,
+                  ]
+                    .filter((part) => part !== null)
+                    .join(" ")}
+                </p>
+              )}
             </>
           )}
           {linkNote}
@@ -250,7 +266,7 @@ export function SharePanel({
           pendingLabel={m.share_stop_pending()}
           isPending={link.stopping ?? false}
           onConfirm={() => {
-            link.onStop();
+            link.onStop?.();
             setConfirmStopOpen(false);
           }}
         />
