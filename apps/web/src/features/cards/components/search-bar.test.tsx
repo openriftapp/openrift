@@ -3,8 +3,6 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { SearchAlternative } from "@/features/cards/lib/search-alternative";
-
 const { mockUseFilterValues, mockUseFilterActions, mockTrackEvent } = vi.hoisted(() => ({
   mockUseFilterValues: vi.fn(),
   mockUseFilterActions: vi.fn(),
@@ -24,18 +22,10 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({
     to: _to,
     params: _params,
-    search,
     children,
     ...props
-  }: React.ComponentProps<"a"> & { to?: string; params?: unknown; search?: unknown }) => (
-    <a
-      {...props}
-      href={
-        typeof search === "function"
-          ? `?q=${(search as (prev: object) => { q: string })({}).q}`
-          : "/help/search-syntax"
-      }
-    >
+  }: React.ComponentProps<"a"> & { to?: string; params?: unknown }) => (
+    <a {...props} href="/help/search-syntax">
       {children}
     </a>
   ),
@@ -47,13 +37,9 @@ import { SearchBar } from "./search-bar";
 function setup({
   search = "",
   suggestionVocabulary,
-  searchAlternatives,
-  filteredCount = 12,
 }: {
   search?: string;
   suggestionVocabulary?: SearchVocabulary;
-  searchAlternatives?: SearchAlternative[];
-  filteredCount?: number;
 } = {}) {
   const actions = { setSearch: vi.fn() };
   mockUseFilterValues.mockReturnValue({
@@ -63,12 +49,7 @@ function setup({
   });
   mockUseFilterActions.mockReturnValue(actions);
   render(
-    <SearchBar
-      totalCards={40}
-      filteredCount={filteredCount}
-      suggestionVocabulary={suggestionVocabulary}
-      searchAlternatives={searchAlternatives}
-    />,
+    <SearchBar totalCards={40} filteredCount={12} suggestionVocabulary={suggestionVocabulary} />,
   );
   return actions;
 }
@@ -88,67 +69,7 @@ describe("SearchBar", () => {
   });
 });
 
-describe("SearchBar query chips", () => {
-  it("describes each keyed clause in plain words", () => {
-    setup({ search: "t:unit e<=3 -kw:shield" });
-
-    expect(screen.getByText("type contains “unit”")).toBeInTheDocument();
-    expect(screen.getByText("energy ≤ 3")).toBeInTheDocument();
-    expect(screen.getByText("not keyword contains “shield”")).toBeInTheDocument();
-  });
-
-  it("keeps an or group in one chip", () => {
-    setup({ search: "(d:calm or d:mind) -(t:spell or fire)" });
-
-    expect(screen.getByText("domain: calm or domain: mind")).toBeInTheDocument();
-    expect(screen.getByText("not (type contains “spell” or “fire”)")).toBeInTheDocument();
-  });
-
-  it("removes one term from the query through its chip", async () => {
-    const user = userEvent.setup();
-    const actions = setup({ search: "jinx (d:calm or d:mind) e<=3" });
-
-    await user.click(
-      screen.getByRole("button", { name: "Remove (d:calm or d:mind) from the search" }),
-    );
-
-    expect(actions.setSearch).toHaveBeenCalledWith("jinx e<=3");
-    expect(screen.getByRole("textbox")).toHaveValue("jinx e<=3");
-  });
-
-  it("shows no chips for a plain-word query", () => {
-    setup({ search: "teemo" });
-
-    expect(screen.queryByRole("list", { name: "Search terms" })).not.toBeInTheDocument();
-  });
-
-  it("flags an unknown key and a malformed value", () => {
-    setup({ search: "foo:bar e<=x" });
-
-    expect(screen.getByText("Unknown key “foo:”, ignored")).toBeInTheDocument();
-    expect(screen.getByText("“x” doesn't work with e:")).toBeInTheDocument();
-  });
-
-  it("names the key to use for a key from another search tool", () => {
-    setup({ search: "cost:3 t:unit" });
-
-    expect(screen.getByText("Unknown key “cost:”, ignored. Use e: here")).toBeInTheDocument();
-  });
-
-  it("warns about a value outside the vocabulary", () => {
-    mockUseFilterValues.mockReturnValue({
-      filterState: { search: "d:purple" },
-      hasActiveFilters: true,
-      view: "cards",
-    });
-    mockUseFilterActions.mockReturnValue({ setSearch: vi.fn() });
-    render(
-      <SearchBar totalCards={40} filteredCount={0} validationVocabulary={{ domain: ["fury"] }} />,
-    );
-
-    expect(screen.getByText("No domain called “purple”, ignored")).toBeInTheDocument();
-  });
-
+describe("SearchBar syntax help", () => {
   it("links to the syntax help from the field", () => {
     setup();
 
@@ -195,19 +116,6 @@ describe("SearchBar suggestions", () => {
     expect(screen.getByRole("textbox")).toHaveValue("d:fury ");
   });
 
-  it("hides the clause chips while the suggestion list is open", async () => {
-    const user = userEvent.setup();
-    setup({ suggestionVocabulary: { type: ["unit"] } });
-
-    await user.click(screen.getByRole("textbox"));
-    await user.keyboard("t:uni");
-    expect(screen.getByRole("listbox")).toBeInTheDocument();
-    expect(screen.queryByText("type contains “uni”")).not.toBeInTheDocument();
-
-    await user.keyboard("{Escape}");
-    expect(screen.getByText("type contains “uni”")).toBeInTheDocument();
-  });
-
   it("lets Tab leave the field while only key suggestions show", async () => {
     const user = userEvent.setup();
     setup();
@@ -241,31 +149,5 @@ describe("SearchBar suggestions", () => {
     await user.keyboard("{Escape}");
 
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
-  });
-});
-
-describe("SearchBar search alternatives", () => {
-  const alternatives: SearchAlternative[] = [
-    { kind: "text", query: "o:noxus", label: "noxus", count: 1 },
-    { kind: "tag", query: "tag:noxus", label: "Noxus", count: 61 },
-  ];
-
-  it("links to the card text and tag searches under a plain-word query", () => {
-    setup({ search: "noxus", searchAlternatives: alternatives });
-
-    expect(screen.getByRole("link", { name: "1 card has “noxus” in its text" })).toHaveAttribute(
-      "href",
-      "?q=o:noxus",
-    );
-    expect(screen.getByRole("link", { name: "61 cards tagged “Noxus”" })).toHaveAttribute(
-      "href",
-      "?q=tag:noxus",
-    );
-  });
-
-  it("leaves an empty result to the empty state", () => {
-    setup({ search: "noxus", searchAlternatives: alternatives, filteredCount: 0 });
-
-    expect(screen.queryByRole("link", { name: /tagged/u })).not.toBeInTheDocument();
   });
 });

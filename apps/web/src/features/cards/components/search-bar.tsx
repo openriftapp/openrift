@@ -6,42 +6,29 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { SearchInput } from "@/components/search-input";
 import { TextLink } from "@/components/ui/text-link";
-import { SearchAlternativeLinks } from "@/features/cards/components/search-alternative-links";
 import {
   SearchSuggestionList,
   suggestionOptionId,
 } from "@/features/cards/components/search-suggestion-list";
-import { SearchTermChips } from "@/features/cards/components/search-term-chips";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
-import type { SearchAlternative } from "@/features/cards/lib/search-alternative";
-import type { SearchValueLabeler } from "@/features/cards/lib/search-clause-labels";
-import { describeSearchTerms } from "@/features/cards/lib/search-clause-labels";
 import type { SearchSuggestion } from "@/features/cards/lib/search-suggestions";
 import { applySuggestion, searchSuggestions } from "@/features/cards/lib/search-suggestions";
 import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 import { trackEvent } from "@/lib/analytics";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 interface SearchBarProps {
   totalCards: number;
   filteredCount: number;
-  validationVocabulary?: SearchVocabulary;
   suggestionVocabulary?: SearchVocabulary;
-  valueLabel?: SearchValueLabeler;
-  searchAlternatives?: readonly SearchAlternative[];
 }
 
 const NO_VOCABULARY: SearchVocabulary = {};
-const RAW_VALUE: SearchValueLabeler = (_key, value) => value;
 
 export function SearchBar({
   totalCards,
   filteredCount,
-  validationVocabulary = NO_VOCABULARY,
   suggestionVocabulary = NO_VOCABULARY,
-  valueLabel = RAW_VALUE,
-  searchAlternatives,
 }: SearchBarProps) {
   const { filterState, hasActiveFilters, view } = useFilterValues();
   const { setSearch } = useFilterActions();
@@ -139,13 +126,6 @@ export function SearchBar({
       : String(totalCards);
 
   const showSuggestions = suggestions !== null && suggestions.suggestions.length > 0;
-  const searchTerms = describeSearchTerms(localSearch, validationVocabulary, valueLabel);
-  // An empty result lists them in the empty state.
-  const showAlternatives =
-    searchAlternatives !== undefined &&
-    searchAlternatives.length > 0 &&
-    filteredCount > 0 &&
-    localSearch === filterState.search;
 
   return (
     <div className="min-w-0 flex-1">
@@ -199,27 +179,6 @@ export function SearchBar({
           />
         )}
       </div>
-      {!showSuggestions && (searchTerms.length > 0 || showAlternatives) && (
-        // Below sm the active-filters row carries the term chips.
-        <div
-          className={cn(
-            "mt-1 flex flex-wrap items-center gap-1",
-            !showAlternatives && "hidden sm:flex",
-          )}
-        >
-          <div className="hidden sm:contents">
-            <SearchTermChips
-              query={localSearch}
-              terms={searchTerms}
-              onQueryChange={(value) => {
-                updateQuery(value, value.length);
-                setSearch(value);
-              }}
-            />
-          </div>
-          {showAlternatives && <SearchAlternativeLinks alternatives={searchAlternatives} />}
-        </div>
-      )}
     </div>
   );
 }

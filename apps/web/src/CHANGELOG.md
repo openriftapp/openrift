@@ -4,6 +4,7 @@
 
 ### Other
 
+- fix(Cards): **Filters stay put while you search** — search term chips and the card text and tag links now sit below the filters, so the filter bar no longer jumps as you type.
 - fix(Decks): **Fast deck edits save reliably** — editing a deck's cards or folders in quick succession no longer fails to save with an error, and making two variants primary at once leaves exactly one primary.
 - fix(Trades): **Offers stay within what you have** — two offers or requests for the same card created at once can no longer promise more copies than the giver has, and leaving a group keeps a trade one side already settled so the other side can finish it.
 - fix(Groups): **Shop limit holds** — adding shops to a group from two tabs at once can no longer go past the limit.

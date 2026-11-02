@@ -13,6 +13,7 @@ import {
   MobileOptionsDrawer,
 } from "@/features/cards/components/options-bar";
 import { SearchBar } from "@/features/cards/components/search-bar";
+import { SearchQueryLine } from "@/features/cards/components/search-query-line";
 import { useFilterValues, useStaleGroupByGuard } from "@/features/cards/hooks/use-card-filters";
 import { useSearchVocabulary } from "@/features/cards/hooks/use-search-vocabulary";
 import { resolveTopLevelUnits } from "@/features/cards/lib/filter-sections";
@@ -160,10 +161,7 @@ export function BrowserToolbar({
         <SearchBar
           totalCards={totalCards}
           filteredCount={filteredCount}
-          validationVocabulary={searchVocabulary.validation}
           suggestionVocabulary={searchVocabulary.suggestions}
-          valueLabel={searchVocabulary.valueLabel}
-          searchAlternatives={meta.searchAlternatives}
         />
         {smUp && (
           <DesktopOptionsBar
@@ -193,6 +191,13 @@ export function BrowserToolbar({
         </MobileOptionsDrawer>
       </div>
       {smUp && <BrowserCompactFilters />}
+      <SearchQueryLine
+        filteredCount={filteredCount}
+        showTerms={smUp}
+        vocabulary={searchVocabulary.validation}
+        valueLabel={searchVocabulary.valueLabel}
+        alternatives={meta.searchAlternatives}
+      />
       <BrowserActiveFilters />
     </>
   );

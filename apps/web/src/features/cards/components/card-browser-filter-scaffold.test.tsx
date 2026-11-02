@@ -34,6 +34,9 @@ vi.mock("@/features/cards/components/options-bar", () => ({
 vi.mock("@/features/cards/components/search-bar", () => ({
   SearchBar: () => <div>search-bar-stub</div>,
 }));
+vi.mock("@/features/cards/components/search-query-line", () => ({
+  SearchQueryLine: () => <div>search-query-line-stub</div>,
+}));
 vi.mock("@/features/cards/hooks/use-search-vocabulary", () => ({
   useSearchVocabulary: () => ({ validation: {}, suggestions: {}, valueLabel: () => "" }),
 }));
@@ -71,6 +74,15 @@ describe("BrowserToolbar", () => {
     renderInProvider(<BrowserToolbar totalCards={10} filteredCount={10} />);
     expect(screen.getByText("compact-filter-bar-stub")).toBeInTheDocument();
     expect(screen.getByText("mobile-filter-content-stub")).toBeInTheDocument();
+  });
+
+  it("puts the query line below the compact bar so the bar never moves", () => {
+    setDisplayState();
+    mockUseFilterValues.mockReturnValue({ hasActiveFilters: true });
+    renderInProvider(<BrowserToolbar totalCards={10} filteredCount={10} />);
+    const bar = screen.getByText("compact-filter-bar-stub");
+    const line = screen.getByText("search-query-line-stub");
+    expect(bar.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("renders the active-filters strip in its own sticky tier so it pins with the search row", () => {

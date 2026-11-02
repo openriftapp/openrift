@@ -50,7 +50,7 @@ export function SearchSection() {
     >
       <DemoGroup
         {...GROUPS.searchInput}
-        hint="Each keyed term shows as a plain-word chip under the field; its × removes the term from the query."
+        hint="Each keyed term shows as a plain-word chip; card browsers put the chips below the filter bar. Its × removes the term from the query."
       >
         <SwatchRow label="Leading slot">
           <Swatch label="plain">
