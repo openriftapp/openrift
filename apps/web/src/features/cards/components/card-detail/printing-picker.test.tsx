@@ -72,8 +72,20 @@ vi.mock("./owned-collections-popover", () => ({
   ),
 }));
 
+const { lightboxPrintingsMock, catalogMock } = vi.hoisted(() => ({
+  lightboxPrintingsMock: vi.fn(),
+  catalogMock: { printingsByCardId: new Map<string, unknown[]>() },
+}));
+
 vi.mock("./printings-lightbox", () => ({
-  PrintingsLightbox: () => <span data-testid="printings-lightbox" />,
+  PrintingsLightbox: ({ printings }: { printings: unknown[] }) => {
+    lightboxPrintingsMock(printings);
+    return <span data-testid="printings-lightbox" />;
+  },
+}));
+
+vi.mock("@/features/cards/hooks/use-cards", () => ({
+  useCards: () => catalogMock,
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
@@ -86,6 +98,7 @@ describe("PrintingPicker", () => {
     ownedMock.mockClear();
     ownedMock.mockReturnValue({ data: undefined });
     usePrintingLightboxStore.setState({ pickedSideKey: null });
+    catalogMock.printingsByCardId = new Map();
   });
 
   it("does not nest a <button> inside another <button>", () => {
@@ -210,6 +223,17 @@ describe("PrintingPicker", () => {
 
     const header = screen.getByRole("heading", { name: "Printings" }).parentElement;
     expect(header?.querySelector('[data-testid="printings-lightbox"]')).not.toBeNull();
+  });
+
+  it("hands the lightbox every language of the card, beyond the listed ones", () => {
+    const english = stubPrinting({ printingId: "p-en", cardId: "card-1", language: "EN" });
+    const korean = stubPrinting({ printingId: "p-kr", cardId: "card-1", language: "KR" });
+    catalogMock.printingsByCardId = new Map([["card-1", [english, korean]]]);
+
+    render(<PrintingPicker current={english} printings={[english]} onSelect={() => {}} />);
+
+    expect(lightboxPrintingsMock).toHaveBeenLastCalledWith([english, korean]);
+    expect(screen.queryByText("KR")).toBeNull();
   });
 
   it("highlights the row picked in the lightbox until its animation ends", () => {

@@ -1,10 +1,9 @@
-import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing, PrintingOtherSide } from "@openrift/shared/types/catalog";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { resetIdCounter, stubPrinting } from "@/test/factories";
 
-import { lightboxPrintings, lightboxPrintingsInLanguage } from "./lightbox-printings";
+import { lightboxPrintingsInLanguage, withCatalogPrintings } from "./lightbox-printings";
 
 beforeEach(() => {
   resetIdCounter();
@@ -31,44 +30,18 @@ function back(cardId: string, cardName: string, imageId?: string): PrintingOther
   };
 }
 
-describe("lightboxPrintings", () => {
-  it("shows every printing, also those that share an image", () => {
-    const normal = printing("OGN-001", "img-a", { finish: "normal" });
-    const foil = printing("OGN-001", "img-a", { finish: "foil" });
-    const promo = printing("OGN-001", "img-b", {
-      finish: "foil",
-      markers: [{ id: "m-1", slug: "promo", label: "Promo", description: null }],
-    });
-
-    expect(lightboxPrintings([normal, foil, promo])).toEqual([normal, foil, promo]);
-  });
-
-  it("shows one printing per design and prefers the first language", () => {
+describe("withCatalogPrintings", () => {
+  it("adds the catalog's printings the given list lacks, after it", () => {
     const en = printing("OGN-119", "img-en", { language: "EN" });
     const kr = printing("OGN-119", "img-kr", { language: "KR" });
 
-    expect(lightboxPrintings([en, kr])).toEqual([en]);
+    expect(withCatalogPrintings([en], [kr, en])).toEqual([en, kr]);
   });
 
-  it("shows the selected language member of its design", () => {
-    const en = printing("OGN-119", "img-en", { language: "EN" });
-    const kr = printing("OGN-119", "img-kr", { language: "KR" });
-
-    expect(lightboxPrintings([en, kr], sideKey(kr))).toEqual([kr]);
-  });
-
-  it("prefers a language member with an image over an imageless lead", () => {
-    const fr = printing("OGN-119", null, { language: "FR" });
+  it("keeps the given list when the catalog has nothing for the card", () => {
     const en = printing("OGN-119", "img-en", { language: "EN" });
 
-    expect(lightboxPrintings([fr, en])).toEqual([en]);
-  });
-
-  it("keeps double-sided printings with different backs apart", () => {
-    const withGold = printing("UNL-T02", "img-bird", { otherSide: back("gold", "Gold", "img-g") });
-    const withBuff = printing("UNL-T02", "img-bird", { otherSide: back("buff", "Buff", "img-b") });
-
-    expect(lightboxPrintings([withGold, withBuff])).toHaveLength(2);
+    expect(withCatalogPrintings([en], [])).toEqual([en]);
   });
 });
 
@@ -91,6 +64,20 @@ describe("lightboxPrintingsInLanguage", () => {
     const kr = printing("OGN-119", "img-kr", { language: "KR" });
 
     expect(lightboxPrintingsInLanguage([en, enPromo, kr], "KR")).toEqual([kr]);
+  });
+
+  it("shows every printing, also those that share an image", () => {
+    const normal = printing("OGN-001", "img-a", { finish: "normal" });
+    const foil = printing("OGN-001", "img-a", { finish: "foil" });
+
+    expect(lightboxPrintingsInLanguage([normal, foil], "EN")).toEqual([normal, foil]);
+  });
+
+  it("keeps double-sided printings with different backs apart", () => {
+    const withGold = printing("UNL-T02", "img-bird", { otherSide: back("gold", "Gold", "img-g") });
+    const withBuff = printing("UNL-T02", "img-bird", { otherSide: back("buff", "Buff", "img-b") });
+
+    expect(lightboxPrintingsInLanguage([withGold, withBuff])).toHaveLength(2);
   });
 
   it("shows every language's printing of each design without a language", () => {

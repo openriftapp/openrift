@@ -27,10 +27,7 @@ import {
   useOverlayHistoryEntry,
 } from "@/features/cards/hooks/use-overlay-history-entry";
 import { usePrintingVariantText } from "@/features/cards/hooks/use-printing-variant-text";
-import {
-  lightboxPrintings,
-  lightboxPrintingsInLanguage,
-} from "@/features/cards/lib/lightbox-printings";
+import { lightboxPrintingsInLanguage } from "@/features/cards/lib/lightbox-printings";
 import {
   groupPrintingDesigns,
   isSelectedSide,
@@ -40,6 +37,7 @@ import {
 import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { useLanguageLabels } from "@/hooks/use-enums";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -73,8 +71,7 @@ export function PrintingsLightbox({
   const requestedSideKey = usePrintingLightboxStore((state) => state.requestedSideKey);
   const shownSideKey = sideKey(printing);
   const sorted = sortByLanguagePreference(printings, languageOrder);
-  const tiles = lightboxPrintings(sorted, shownSideKey);
-  const hasTiles = tiles.length > 1;
+  const hasTiles = lightboxPrintingsInLanguage(sorted).length > 1;
 
   useEffect(() => {
     if (requestedSideKey !== null && requestedSideKey === shownSideKey) {
@@ -142,7 +139,8 @@ function LightboxContent({
   const [language, setLanguage] = useState<string | undefined>(() =>
     languages.includes(printing.language) ? printing.language : undefined,
   );
-  const [view, setView] = useState<"cards" | "table">("cards");
+  const isMobile = useIsMobile();
+  const [view, setView] = useState<"cards" | "table">(() => (isMobile ? "cards" : "table"));
   const tiles = lightboxPrintingsInLanguage(printings, view === "table" ? undefined : language);
   const selectedKey = sideKey(printing);
   const selectedIndex = (shown: readonly Printing[]) =>

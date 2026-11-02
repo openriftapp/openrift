@@ -5,7 +5,9 @@ import type { Printing } from "@openrift/shared/types/catalog";
 
 import { SectionHeading } from "@/components/ui/section-heading";
 import { PrintingDesignRows } from "@/features/cards/components/printing-design-rows";
+import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
+import { withCatalogPrintings } from "@/features/cards/lib/lightbox-printings";
 import {
   groupPrintingDesigns,
   sortByLanguagePreference,
@@ -38,6 +40,7 @@ export function PrintingPicker({
   const languageOrder = useEffectiveLanguageOrder();
   const pickedSideKey = usePrintingLightboxStore((state) => state.pickedSideKey);
   const clearPicked = usePrintingLightboxStore((state) => state.clearPicked);
+  const { printingsByCardId } = useCards();
   const { designs } = groupPrintingDesigns(sortByLanguagePreference(printings, languageOrder));
   // One query for the whole list: a popover per row would each subscribe to
   // the entire copies collection.
@@ -53,7 +56,7 @@ export function PrintingPicker({
         <SectionHeading as="h3">{m.card_detail_printings_title()}</SectionHeading>
         <PrintingsLightbox
           printing={current}
-          printings={printings}
+          printings={withCatalogPrintings(printings, printingsByCardId.get(current.cardId) ?? [])}
           showImages={showImages}
           onSelect={onSelect}
         />

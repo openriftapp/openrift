@@ -59,7 +59,11 @@ vi.mock("@/features/cards/components/card-page-printings", () => ({
   ),
 }));
 
+const viewport = vi.hoisted(() => ({ mobile: true }));
+vi.mock("@/hooks/use-is-mobile", () => ({ useIsMobile: () => viewport.mobile }));
+
 beforeEach(() => {
+  viewport.mobile = true;
   routerStub.navigate.mockReset();
   usePrintingLightboxStore.setState({ requestedSideKey: null, pickedSideKey: null });
 });
@@ -93,6 +97,13 @@ describe("PrintingsLightbox", () => {
     renderLightbox([normal]);
 
     expect(screen.queryByRole("button", { name: /All printings/u })).toBeNull();
+  });
+
+  it("shows the button for one design printed in two languages", () => {
+    const krNormal = printing("OGN-119", "img-kr", { finish: "normal", language: "KR" });
+    renderLightbox([normal, krNormal]);
+
+    expect(screen.getByRole("button", { name: "All printings" })).toBeTruthy();
   });
 
   it("shows the button for more than one printing", () => {
@@ -156,6 +167,17 @@ describe("PrintingsLightbox", () => {
     await screen.findByRole("dialog");
 
     expect(screen.queryByRole("group", { name: "Language" })).toBeNull();
+  });
+
+  it("opens in the table on desktop", async () => {
+    viewport.mobile = false;
+    renderLightbox([normal, foil, alt]);
+
+    await userEvent.click(screen.getByRole("button", { name: "All printings" }));
+    await screen.findByRole("dialog");
+
+    expect(screen.getByRole("list", { name: "Printing matrix" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Table" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("switches to the table of every language and selects from it", async () => {
