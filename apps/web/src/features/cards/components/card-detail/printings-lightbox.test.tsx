@@ -93,6 +93,33 @@ describe("PrintingsLightbox", () => {
     expect(screen.getAllByRole("button", { pressed: true })).toHaveLength(1);
   });
 
+  it("opens in the shown printing's language and switches tiles with the language select", async () => {
+    const krNormal = printing("OGN-119", "img-kr", { finish: "normal", language: "KR" });
+    renderLightbox([normal, foil, alt, krNormal]);
+
+    await userEvent.click(screen.getByRole("button", { name: "All printings (3)" }));
+    const dialog = await screen.findByRole("dialog");
+    const language = screen.getByRole("combobox", { name: "Language" });
+    expect(language.textContent).toContain("EN");
+    expect(dialog.querySelectorAll("[data-lightbox-tile]")).toHaveLength(3);
+
+    await userEvent.click(language);
+    await userEvent.click(await screen.findByRole("option", { name: "KR" }));
+
+    expect(dialog.querySelectorAll("[data-lightbox-tile]")).toHaveLength(1);
+    expect(dialog.querySelector("img")?.getAttribute("src")).toBe("/img-kr.webp");
+    expect(dialog.textContent).toContain("1 printing");
+  });
+
+  it("hides the language select when every printing shares a language", async () => {
+    renderLightbox([normal, foil, alt]);
+
+    await userEvent.click(screen.getByRole("button", { name: "All printings (3)" }));
+    await screen.findByRole("dialog");
+
+    expect(screen.queryByRole("combobox", { name: "Language" })).toBeNull();
+  });
+
   it("selects the clicked tile's printing and closes", async () => {
     const onSelect = renderLightbox([normal, foil, alt]);
 

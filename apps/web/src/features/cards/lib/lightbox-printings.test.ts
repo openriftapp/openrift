@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { resetIdCounter, stubPrinting } from "@/test/factories";
 
-import { lightboxPrintings } from "./lightbox-printings";
+import { lightboxPrintings, lightboxPrintingsInLanguage } from "./lightbox-printings";
 
 beforeEach(() => {
   resetIdCounter();
@@ -69,5 +69,27 @@ describe("lightboxPrintings", () => {
     const withBuff = printing("UNL-T02", "img-bird", { otherSide: back("buff", "Buff", "img-b") });
 
     expect(lightboxPrintings([withGold, withBuff])).toHaveLength(2);
+  });
+});
+
+describe("lightboxPrintingsInLanguage", () => {
+  it("shows each design's member in the chosen language", () => {
+    const en = printing("OGN-119", "img-en", { language: "EN" });
+    const kr = printing("OGN-119", "img-kr", { language: "KR" });
+    const enAlt = printing("OGN-119a", "img-en-alt", { language: "EN", artVariant: "altart" });
+    const krAlt = printing("OGN-119a", "img-kr-alt", { language: "KR", artVariant: "altart" });
+
+    expect(lightboxPrintingsInLanguage([en, kr, enAlt, krAlt], "KR")).toEqual([kr, krAlt]);
+  });
+
+  it("leaves out designs without a printing in the chosen language", () => {
+    const en = printing("OGN-119", "img-en", { language: "EN" });
+    const enPromo = printing("OGN-119", "img-promo", {
+      language: "EN",
+      markers: [{ id: "m-1", slug: "promo", label: "Promo", description: null }],
+    });
+    const kr = printing("OGN-119", "img-kr", { language: "KR" });
+
+    expect(lightboxPrintingsInLanguage([en, enPromo, kr], "KR")).toEqual([kr]);
   });
 });

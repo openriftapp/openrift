@@ -802,6 +802,7 @@
   "card_detail_lightbox_artist": "插畫：{artist}",
   "card_detail_lightbox_back": "背面：{name}",
   "card_detail_lightbox_position": "{index} / {count}",
+  "card_detail_lightbox_language_aria": "語言",
   "card_detail_no_printings": "找不到這張卡牌的印刷版本。",
   "card_detail_all_cards": "所有卡牌",
   "card_detail_share": "分享",

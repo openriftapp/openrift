@@ -1,4 +1,5 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { GalleryHorizontalIcon, XIcon } from "lucide-react";
@@ -14,6 +15,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Pressable } from "@/components/ui/pressable";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DoubleSidedFlip } from "@/features/cards/components/double-sided-flip";
 import { PrintingVariantLine } from "@/features/cards/components/printing-row";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -22,14 +30,19 @@ import {
   useOverlayHistoryEntry,
 } from "@/features/cards/hooks/use-overlay-history-entry";
 import { usePrintingVariantText } from "@/features/cards/hooks/use-printing-variant-text";
-import { lightboxPrintings } from "@/features/cards/lib/lightbox-printings";
 import {
+  lightboxPrintings,
+  lightboxPrintingsInLanguage,
+} from "@/features/cards/lib/lightbox-printings";
+import {
+  groupPrintingDesigns,
   isSelectedSide,
   otherSideOf,
   sortByLanguagePreference,
 } from "@/features/cards/lib/printing-designs";
 import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
+import { useLanguageLabels } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -62,7 +75,8 @@ export function PrintingsLightbox({
   useOverlayHistoryEntry({ active: open, stateKey: HISTORY_KEY, onPop: () => setOpen(false) });
   const requestedSideKey = usePrintingLightboxStore((state) => state.requestedSideKey);
   const shownSideKey = sideKey(printing);
-  const tiles = lightboxPrintings(sortByLanguagePreference(printings, languageOrder), shownSideKey);
+  const sorted = sortByLanguagePreference(printings, languageOrder);
+  const tiles = lightboxPrintings(sorted, shownSideKey);
   const hasTiles = tiles.length > 1;
 
   useEffect(() => {
@@ -102,7 +116,7 @@ export function PrintingsLightbox({
         {open && (
           <LightboxContent
             printing={printing}
-            tiles={tiles}
+            printings={sorted}
             showImages={showImages}
             onSelect={handleSelect}
           />
@@ -114,23 +128,42 @@ export function PrintingsLightbox({
 
 function LightboxContent({
   printing,
-  tiles,
+  printings,
   showImages,
   onSelect,
 }: {
   printing: Printing;
-  tiles: Printing[];
+  printings: Printing[];
   showImages?: boolean;
   onSelect: (printing: Printing) => void;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const languageLabels = useLanguageLabels();
+  const { languages } = groupPrintingDesigns(printings);
+  const [language, setLanguage] = useState(() =>
+    languages.includes(printing.language) ? printing.language : (languages[0] ?? ""),
+  );
+  const tiles = lightboxPrintingsInLanguage(printings, language);
   const selectedKey = sideKey(printing);
-  const [position, setPosition] = useState(() =>
+  const selectedIndex = (shown: readonly Printing[]) =>
     Math.max(
       0,
-      tiles.findIndex((tile) => isSelectedSide(tile, selectedKey)),
-    ),
-  );
+      shown.findIndex((tile) => isSelectedSide(tile, selectedKey)),
+    );
+  const [position, setPosition] = useState(() => selectedIndex(tiles));
+  const languageItems = languages.map((code) => ({
+    value: code,
+    label: enumLabel(languageLabels, code),
+  }));
+
+  const handleLanguageChange = (next: string | null) => {
+    if (!next || next === language) {
+      return;
+    }
+    setLanguage(next);
+    setPosition(selectedIndex(lightboxPrintingsInLanguage(printings, next)));
+    scrollerRef.current?.scrollTo({ left: 0, top: 0 });
+  };
   const columnStyle = { "--tile-columns": columnsFor(tiles.length) } as CSSProperties;
 
   const tileElements = () => [
@@ -143,7 +176,10 @@ function LightboxContent({
     }
     // useGridKeyboardNav listens on window and the detail dialog on its popup; neither may see these.
     event.stopPropagation();
-    if (!NAV_KEYS.has(event.key)) {
+    const target = event.target instanceof Element ? event.target : null;
+    const fromLanguageSelect =
+      !event.currentTarget.contains(target) || target?.closest("[data-lightbox-language]");
+    if (!NAV_KEYS.has(event.key) || fromLanguageSelect) {
       return;
     }
     event.preventDefault();
@@ -182,6 +218,24 @@ function LightboxContent({
           <DialogTitle className="truncate">{legendDisplayName(printing.card)}</DialogTitle>
           <DialogDescription>{m.cards_printings_count({ count: tiles.length })}</DialogDescription>
         </div>
+        {languages.length > 1 && (
+          <Select items={languageItems} value={language} onValueChange={handleLanguageChange}>
+            <SelectTrigger
+              size="sm"
+              data-lightbox-language=""
+              aria-label={m.card_detail_lightbox_language_aria()}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="dark">
+              {languageItems.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <DialogClose
           render={<Button variant="ghost" size="icon-sm" />}
           aria-label={m.common_close()}

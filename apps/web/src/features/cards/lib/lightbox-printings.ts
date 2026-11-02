@@ -27,3 +27,14 @@ export function lightboxPrintings(
     return shown ? [shown] : [];
   });
 }
+
+/** `printings` must be in language-preference order. */
+export function lightboxPrintingsInLanguage(
+  printings: readonly Printing[],
+  language: string,
+): Printing[] {
+  return groupPrintingDesigns(printings).designs.flatMap((design) => {
+    const member = design.byLanguage.get(language);
+    return member ? [member] : [];
+  });
+}

@@ -802,6 +802,7 @@
   "card_detail_lightbox_artist": "Art by {artist}",
   "card_detail_lightbox_back": "Back: {name}",
   "card_detail_lightbox_position": "{index} of {count}",
+  "card_detail_lightbox_language_aria": "Language",
   "card_detail_no_printings": "No printings found for this card.",
   "card_detail_all_cards": "All cards",
   "card_detail_share": "Share",
