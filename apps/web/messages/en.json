@@ -673,7 +673,7 @@
   "errata_faq_source_question": "Where does this list come from?",
   "errata_faq_source_answer": "Riot's errata announcements, each linked above its cards. Changes Riot made without a post are listed at the end.",
   "errata_missing_title": "Missing an erratum?",
-  "errata_missing_body": "The card data is maintained by one person. Help us fill in the gaps.",
+  "errata_missing_body": "The card data is maintained by one person. Help fill in the gaps.",
   "errata_missing_cta": "Report a wording change",
   "errata_card_page_aria": "{name} card page",
   "sets_supplemental": "Supplemental Sets",

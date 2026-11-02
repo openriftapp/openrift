@@ -673,7 +673,7 @@
   "errata_faq_source_question": "D'où vient cette liste ?",
   "errata_faq_source_answer": "Les annonces d'errata de Riot, chacune liée au-dessus de ses cartes. Les modifications faites sans article sont listées à la fin.",
   "errata_missing_title": "Un erratum manque ?",
-  "errata_missing_body": "Les données des cartes sont tenues par une seule personne. Aidez-nous à combler les manques.",
+  "errata_missing_body": "Les données des cartes sont tenues par une seule personne. Aidez à combler les manques.",
   "errata_missing_cta": "Signaler une modification de texte",
   "errata_card_page_aria": "Page de la carte {name}",
   "sets_supplemental": "Sets complémentaires",

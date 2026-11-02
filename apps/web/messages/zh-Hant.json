@@ -673,7 +673,7 @@
   "errata_faq_source_question": "這份列表從何而來？",
   "errata_faq_source_answer": "來自 Riot 的勘誤公告，每則公告的連結都在其卡牌上方。Riot 未發文就做的修改列在最後。",
   "errata_missing_title": "缺少某條勘誤？",
-  "errata_missing_body": "卡牌資料由一個人維護。歡迎幫我們補全缺漏。",
+  "errata_missing_body": "卡牌資料由一個人維護。歡迎幫忙補全缺漏。",
   "errata_missing_cta": "回報文字修改",
   "errata_card_page_aria": "{name} 卡牌頁面",
   "sets_supplemental": "補充套組",
