@@ -166,6 +166,7 @@ export async function sendTournamentLists(
   args: SendTournamentListsArgs,
 ): Promise<SendTournamentListsResult> {
   return await transact(async (repos) => {
+    await repos.meta.lockTournamentLists(args.uvsgamesEventId);
     const target = await loadTournamentListTarget(repos, args.uvsgamesEventId);
     if (target === null) {
       throw new AppError(

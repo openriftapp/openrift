@@ -4,6 +4,7 @@ import type { Kysely, Selectable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { StagePresetsTable } from "../../../db/tables/stage.js";
+import { lockKey } from "../../../repositories/query-helpers.js";
 
 /** A preset row with its `config` jsonb parsed. */
 export type StagePresetRow = Selectable<StagePresetsTable>;
@@ -39,6 +40,11 @@ export function stagePresetsRepo(db: Kysely<Database>) {
         .where("userId", "=", userId)
         .executeTakeFirst();
       return row;
+    },
+
+    /** Call inside a transaction. */
+    async lockCap(userId: string): Promise<void> {
+      await lockKey(db, `stage-presets:${userId}`);
     },
 
     async countForUser(userId: string): Promise<number> {

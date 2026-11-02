@@ -108,7 +108,7 @@ describe("enableShare", () => {
   });
 
   it("mints and writes a token for an unshared row", async () => {
-    const write = vi.fn(async (token: string) => ({ token }));
+    const write = vi.fn(async (token: string) => ({ shareToken: token }));
     const result = await enableShare({
       read: async () => ({ shareToken: null, isPublic: false }),
       write,
@@ -119,13 +119,21 @@ describe("enableShare", () => {
   });
 
   it("replaces a token left on a revoked row", async () => {
-    const write = vi.fn(async () => ({}));
+    const write = vi.fn(async (token: string) => ({ shareToken: token }));
     const result = await enableShare({
       read: async () => ({ shareToken: "staleToken12", isPublic: false }),
       write,
     });
     expect(result.shareToken).not.toBe("staleToken12");
     expect(write).toHaveBeenCalledOnce();
+  });
+
+  it("returns the token a concurrent enable stored first", async () => {
+    const result = await enableShare({
+      read: async () => ({ shareToken: null, isPublic: false }),
+      write: async () => ({ shareToken: "winnerTok123" }),
+    });
+    expect(result).toEqual({ shareToken: "winnerTok123", isPublic: true });
   });
 
   it("throws 404 when the row is not the caller's", async () => {

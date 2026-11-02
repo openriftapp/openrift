@@ -574,6 +574,20 @@ export function deckCheckEntriesRepo(db: Kysely<Database>) {
       return row ? materializePlayerEntry(row) : undefined;
     },
 
+    /** Call inside a transaction. */
+    async lockIngest(tournamentId: string): Promise<void> {
+      await sql`select pg_advisory_xact_lock(hashtext(${`deck-check-ingest:${tournamentId}`}))`.execute(
+        db,
+      );
+    },
+
+    /** Call inside a transaction. */
+    async lockSelfSubmission(tournamentId: string, userId: string): Promise<void> {
+      await sql`select pg_advisory_xact_lock(hashtext(${`deck-check-self-submit:${tournamentId}:${userId}`}))`.execute(
+        db,
+      );
+    },
+
     async getLinkedEntryForUser(
       tournamentId: string,
       userId: string,

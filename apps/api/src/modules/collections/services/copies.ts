@@ -218,13 +218,13 @@ export async function moveCopies(
   assertFound(target, "Target collection not found");
 
   await transact(async (trxRepos) => {
+    if (!(await trxRepos.collections.lockAsMoveTarget(toCollectionId))) {
+      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Target collection not found");
+    }
+    await trxRepos.copies.lockByIds(copyIds);
     const copies = await loadWritableCopies(trxRepos, userId, copyIds);
 
     if (target.groupId !== null) {
-      // Lock the rows first so a concurrent trade-accept serializes against this
-      // move. Without the lock the guard below could pass, the pin lands in the
-      // gap, and the copy still ends up group-owned while reserved.
-      await trxRepos.copies.lockByIds(copyIds);
       const reserved = await trxRepos.cardTrades.filterReservedCopyIds(copyIds);
       if (reserved.length > 0) {
         throw new AppError(

@@ -69,6 +69,16 @@ describe("createMediaUploadStore", () => {
     expect(afterReset.status).toBe("ok");
   });
 
+  it("holds the limit when uploads arrive at the same time", async () => {
+    const store = makeStore(undefined, 2);
+    const args = { userId: "u-burst", buffer: Buffer.from("raw"), now: NOW };
+
+    const results = await Promise.all([1, 2, 3, 4].map(() => store.save(io, args)));
+
+    expect(results.filter((result) => result.status === "ok")).toHaveLength(2);
+    expect(results.filter((result) => result.status === "rate_limited")).toHaveLength(2);
+  });
+
   it("does not count a rejected upload against the limit", async () => {
     const encode = vi.fn<Encode>(async () => encoded);
     encode.mockResolvedValueOnce(null);

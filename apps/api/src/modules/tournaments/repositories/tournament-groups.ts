@@ -362,6 +362,14 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
       results: { playerId: string; placement: number }[],
     ): Promise<void> {
       await inTransaction(db, async (trx) => {
+        await trx
+          .selectFrom("podRounds as r")
+          .innerJoin("pods as p", "p.roundId", "r.id")
+          .select("r.id")
+          .where("p.id", "=", podId)
+          .forShare("r")
+          .execute();
+        await trx.selectFrom("pods").select("id").where("id", "=", podId).forUpdate().execute();
         for (const { playerId, placement } of results) {
           await trx
             .updateTable("podMembers")

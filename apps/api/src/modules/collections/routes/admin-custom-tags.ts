@@ -56,13 +56,16 @@ export const adminCustomTagsRouter = {
     if (await repo.getBySlug(slug)) {
       throw errors.CONFLICT({ message: `Custom tag "${slug}" already exists` });
     }
-    const maxSortOrder = await repo.getMaxSortOrder(categoryId);
-    const created = await repo.create({
-      slug,
-      label,
-      categoryId,
-      description,
-      sortOrder: maxSortOrder + 1,
+    const created = await context.transact(async ({ customTags }) => {
+      await customTags.lockSortOrder(categoryId);
+      const maxSortOrder = await customTags.getMaxSortOrder(categoryId);
+      return customTags.create({
+        slug,
+        label,
+        categoryId,
+        description,
+        sortOrder: maxSortOrder + 1,
+      });
     });
     return { tag: toCustomTag(created, 0) };
   }),

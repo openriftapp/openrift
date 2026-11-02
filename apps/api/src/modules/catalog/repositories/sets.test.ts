@@ -154,15 +154,16 @@ describe("setsRepo", () => {
     await expect(setsRepo(db).upsert("NEW", "New Set")).resolves.toBeUndefined();
   });
 
-  it("upsert issues a single conflict-tolerant insert", async () => {
+  it("upsert issues one conflict-tolerant insert under the sort-order lock", async () => {
     const { db, queries } = createRecordingDb();
 
     await setsRepo(db).upsert("NEW", "New Set");
 
-    expect(queries).toHaveLength(1);
-    expect(queries[0]).toMatch(/^insert into "sets"/u);
-    expect(queries[0]).toContain('on conflict ("slug") do nothing');
-    expect(queries[0]).toContain("coalesce((select max(sort_order) from sets), 0) + 1");
-    expect(queries[0]).not.toContain("select id from");
+    expect(queries).toHaveLength(2);
+    expect(queries[0]).toContain("pg_advisory_xact_lock");
+    expect(queries[1]).toMatch(/^insert into "sets"/u);
+    expect(queries[1]).toContain('on conflict ("slug") do nothing');
+    expect(queries[1]).toContain("coalesce((select max(sort_order) from sets), 0) + 1");
+    expect(queries[1]).not.toContain("select id from");
   });
 });

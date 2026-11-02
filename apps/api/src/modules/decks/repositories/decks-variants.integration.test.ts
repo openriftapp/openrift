@@ -381,6 +381,28 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
       expect(reloadedCopy.isPrimary).toBe(true);
     });
 
+    it("keeps one primary when two siblings are promoted at once", async () => {
+      const source = await makeDeck("DV Promote Race");
+      const first = await copyOf(source.id, {});
+      const second = await copyOf(source.id, {});
+
+      const results = await Promise.allSettled([
+        decks.promoteToPrimary(first.id, userId),
+        decks.promoteToPrimary(second.id, userId),
+        decks.promoteToPrimary(source.id, userId),
+      ]);
+
+      expect(results.filter((result) => result.status === "rejected")).toEqual([]);
+      const { familyId } = await reload(source.id);
+      const primaries = await db
+        .selectFrom("decks")
+        .select("id")
+        .where("familyId", "=", familyId)
+        .where("isPrimary", "=", true)
+        .execute();
+      expect(primaries).toHaveLength(1);
+    });
+
     it("keeps exactly one primary when the target already is the primary", async () => {
       const source = await makeDeck("DV Promote Primary");
       await copyOf(source.id, {});

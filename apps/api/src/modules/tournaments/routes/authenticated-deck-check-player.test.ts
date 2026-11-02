@@ -142,6 +142,8 @@ function makeRepos() {
     getEntryForPlayerByTournament: stub<any>(undefined),
     getEventById: stub<any>(undefined),
     getEventBySubmissionToken: stub<any>(undefined),
+    lockSelfSubmission: stub<any>(undefined),
+    participantHasDeck: stub(false),
     getLinkedEntryForUser: stub<any>(undefined),
     getEntryForUpdate: stub<any>(undefined),
     getEntryByExternalId: stub<any>(undefined),
@@ -159,6 +161,7 @@ function makeRepos() {
   const tournaments = {
     getParticipantByUser: stub<any>(undefined),
     resolveOrCreateParticipant: stub({ id: "participant-new" }),
+    lockParticipant: stub(true),
     getParticipantByClaimToken: stub<any>(undefined),
     linkParticipantByClaimTokenIfUnclaimed: stub<any>(undefined),
   };
@@ -903,12 +906,17 @@ describe("GET /deck-check/submissions/{token} (submissionPage)", () => {
 });
 
 describe("POST /deck-check/submissions/{token} (submitToToken / persistSubmission)", () => {
+  function linkEntry(repos: ReturnType<typeof makeRepos>, row: unknown) {
+    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(row);
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue(row);
+  }
+
   it("creates a fresh self-submitted entry when the caller has nothing linked yet", async () => {
     const repos = makeRepos();
     repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
       deckEvent({ groupName: "Noxus Locals" }),
     );
-    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(undefined);
+    linkEntry(repos, undefined);
     repos.deckCheck.getEntryByExternalId.mockResolvedValue(undefined);
     repos.deckCheck.getUserAccount.mockResolvedValue({
       id: USER_ID,
@@ -946,7 +954,7 @@ describe("POST /deck-check/submissions/{token} (submitToToken / persistSubmissio
     repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
       deckEvent({ groupName: "Noxus Locals" }),
     );
-    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(undefined);
+    linkEntry(repos, undefined);
     repos.deckCheck.getEntryByExternalId.mockResolvedValue(undefined);
     repos.deckCheck.getUserAccount.mockResolvedValue({
       id: USER_ID,
@@ -980,7 +988,7 @@ describe("POST /deck-check/submissions/{token} (submitToToken / persistSubmissio
       deckEvent({ groupName: "Noxus Locals" }),
     );
     const linked = entryRow({ state: "editable" });
-    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(linked);
+    linkEntry(repos, linked);
     repos.deckCheck.updateEntry.mockImplementation((_id: string, patch: Record<string, unknown>) =>
       Promise.resolve({ ...linked, ...patch }),
     );
@@ -1010,7 +1018,7 @@ describe("POST /deck-check/submissions/{token} (submitToToken / persistSubmissio
       deckEvent({ groupName: "Noxus Locals", listLockMode: "at_deadline" }),
     );
     const linked = entryRow({ state: "submitted" });
-    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(linked);
+    linkEntry(repos, linked);
     repos.deckCheck.updateEntry.mockImplementation((_id: string, patch: Record<string, unknown>) =>
       Promise.resolve({ ...linked, ...patch }),
     );
@@ -1031,7 +1039,7 @@ describe("POST /deck-check/submissions/{token} (submitToToken / persistSubmissio
     repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
       deckEvent({ groupName: "Noxus Locals" }),
     );
-    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(entryRow({ state: "withdrawn" }));
+    linkEntry(repos, entryRow({ state: "withdrawn" }));
 
     const res = await makeApp(repos).fetch(
       req("POST", `/submissions/${TOKEN}`, {
@@ -1049,7 +1057,7 @@ describe("POST /deck-check/submissions/{token} (submitToToken / persistSubmissio
     repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
       deckEvent({ groupName: "Noxus Locals" }),
     );
-    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(entryRow({ state: "checked" }));
+    linkEntry(repos, entryRow({ state: "checked" }));
 
     const res = await makeApp(repos).fetch(
       req("POST", `/submissions/${TOKEN}`, {
@@ -1064,12 +1072,54 @@ describe("POST /deck-check/submissions/{token} (submitToToken / persistSubmissio
     );
   });
 
+  it("409s a first submission when a judge entered a deck for the spot meanwhile", async () => {
+    const repos = makeRepos();
+    repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
+      deckEvent({ groupName: "Noxus Locals" }),
+    );
+    linkEntry(repos, undefined);
+    repos.deckCheck.getUserAccount.mockResolvedValue({
+      id: "u",
+      name: "Player",
+      email: "player@test.com",
+      riotId: null,
+    });
+    repos.deckCheck.participantHasDeck.mockResolvedValue(true);
+
+    const res = await makeApp(repos).fetch(
+      req("POST", `/submissions/${TOKEN}`, {
+        cards: [{ name: "Card", quantity: 1, section: "main" }],
+      }),
+    );
+
+    expect(res.status).toBe(409);
+    expect(repos.deckCheck.createEntry).not.toHaveBeenCalled();
+  });
+
+  it("409s a resubmit when a judge approved the entry while it was being read", async () => {
+    const repos = makeRepos();
+    repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
+      deckEvent({ groupName: "Noxus Locals" }),
+    );
+    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(entryRow({ state: "submitted" }));
+    repos.deckCheck.getEntryForUpdate.mockResolvedValue(entryRow({ state: "approved" }));
+
+    const res = await makeApp(repos).fetch(
+      req("POST", `/submissions/${TOKEN}`, {
+        cards: [{ name: "Card", quantity: 1, section: "main" }],
+      }),
+    );
+
+    expect(res.status).toBe(409);
+    expect(repos.deckCheck.replaceEntryCards).not.toHaveBeenCalled();
+  });
+
   it("409s replacing a submitted linked entry in on_submit mode", async () => {
     const repos = makeRepos();
     repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
       deckEvent({ groupName: "Noxus Locals", listLockMode: "on_submit" }),
     );
-    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(entryRow({ state: "submitted" }));
+    linkEntry(repos, entryRow({ state: "submitted" }));
 
     const res = await makeApp(repos).fetch(
       req("POST", `/submissions/${TOKEN}`, {
@@ -1089,7 +1139,7 @@ describe("POST /deck-check/submissions/{token} (submitToToken / persistSubmissio
     repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
       deckEvent({ groupName: "Noxus Locals" }),
     );
-    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(undefined);
+    linkEntry(repos, undefined);
     repos.deckCheck.getEntryByExternalId.mockResolvedValue(entryRow({ claimedUserId: null }));
 
     const res = await makeApp(repos).fetch(
@@ -1109,7 +1159,7 @@ describe("POST /deck-check/submissions/{token} (submitToToken / persistSubmissio
     repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
       deckEvent({ groupName: "Noxus Locals" }),
     );
-    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(undefined);
+    linkEntry(repos, undefined);
     repos.deckCheck.getEntryByExternalId.mockResolvedValue(undefined);
     repos.deckCheck.getUserAccount.mockResolvedValue(undefined);
 
@@ -1130,7 +1180,7 @@ describe("POST /deck-check/submissions/{token} (submitToToken / persistSubmissio
     repos.deckCheck.getEventBySubmissionToken.mockResolvedValue(
       deckEvent({ groupName: "Noxus Locals", status: "archived" }),
     );
-    repos.deckCheck.getLinkedEntryForUser.mockResolvedValue(undefined);
+    linkEntry(repos, undefined);
 
     const res = await makeApp(repos).fetch(
       req("POST", `/submissions/${TOKEN}`, {

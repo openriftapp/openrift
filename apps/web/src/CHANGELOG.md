@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-11-02
+
+### Other
+
+- fix(Decks): **Fast deck edits save reliably** — editing a deck's cards or folders in quick succession no longer fails to save with an error, and making two variants primary at once leaves exactly one primary.
+- fix(Trades): **Offers stay within what you have** — two offers or requests for the same card created at once can no longer promise more copies than the giver has, and leaving a group keeps a trade one side already settled so the other side can finish it.
+- fix(Groups): **Shop limit holds** — adding shops to a group from two tabs at once can no longer go past the limit.
+- fix(App): **Upload and preset limits hold** — photo uploads sent at the same time and stage presets saved at once now respect the daily and preset limits, and new folders, lists, collections and contact methods created at the same time keep their order.
+- fix(Tournaments): **Failed re-roll keeps the round** — a re-roll the pairing rejects now leaves the existing round in place.
+- fix(Lists): **Moving list entries counts once** — a double-clicked move into a list that already holds the card adds the quantity once.
+- fix(App): **One link per share** — sharing the same deck, collection, list, board or tier list from two tabs at once hands out one working link.
+- fix(Trades): **Trades stay consistent when both sides act at once** — a trade can no longer be cancelled while the other side is settling it, and accepting a request while its quantity changes reserves the new quantity.
+- fix(Tournaments): **Consistent roster changes** — approving and denying the same join request, dissolving a team while the next round is paired, adding the same organization member twice, and a judge entering a deck while the player submits one no longer conflict.
+- fix(Tournaments): **Safe round edits during reporting** — editing, re-rolling or finalizing a round, or moving players between groups, now waits for results being reported, so a reported result is no longer lost, and a double-clicked edit, re-roll or deck list submission no longer fails.
+- fix(App): **Overlay keeps every quick press** — pushing a card and hiding the OBS overlay in quick succession now applies both.
+- fix(Groups): **No errors on double-clicked group actions** — creating or renaming a group, transferring ownership, linking a Discord server, and saving which contacts you share now handle a double click or a second tab cleanly.
+- fix(Collection): **Steadier collection actions** — deleting a collection while cards are being added, moving a card that is being deleted, and the first marketplace order from two tabs no longer fail with an error.
+- fix(App): **Resubmitting a card works** — sending a card submission twice within the same minute no longer fails.
+- fix(Account): **Email settings keep every toggle** — switching several email notifications quickly, or unsubscribing from a mail while changing settings, no longer undoes one of the changes.
+
 ## 2026-11-01
 
 ### Highlights

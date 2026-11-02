@@ -57,16 +57,19 @@ export const adminDistributionChannelsRouter = {
     const existing = await repo.getBySlug(slug);
     assertSlugAvailable(existing, slug, "Distribution channel");
     const resolvedParentId = parentId ?? null;
-    const maxSortOrder = await repo.getMaxSortOrderForParent(resolvedParentId);
-    const created = await repo
-      .create({
-        slug,
-        label,
-        description,
-        kind,
-        parentId: resolvedParentId,
-        childrenLabel: childrenLabel ?? null,
-        sortOrder: maxSortOrder + 1,
+    const created = await context
+      .transact(async ({ distributionChannels }) => {
+        await distributionChannels.lockSortOrder(resolvedParentId);
+        const maxSortOrder = await distributionChannels.getMaxSortOrderForParent(resolvedParentId);
+        return distributionChannels.create({
+          slug,
+          label,
+          description,
+          kind,
+          parentId: resolvedParentId,
+          childrenLabel: childrenLabel ?? null,
+          sortOrder: maxSortOrder + 1,
+        });
       })
       .catch((error: unknown) => {
         throw asHierarchyConflict(error, (message) => errors.CONFLICT({ message }));
@@ -93,8 +96,15 @@ export const adminDistributionChannelsRouter = {
     try {
       if (parentChanged) {
         const parentId = body.parentId ?? null;
-        const maxSortOrder = await repo.getMaxSortOrderForParent(parentId);
-        await repo.update(id, { ...updates, parentId, sortOrder: maxSortOrder + 1 });
+        await context.transact(async ({ distributionChannels }) => {
+          await distributionChannels.lockSortOrder(parentId);
+          const maxSortOrder = await distributionChannels.getMaxSortOrderForParent(parentId);
+          await distributionChannels.update(id, {
+            ...updates,
+            parentId,
+            sortOrder: maxSortOrder + 1,
+          });
+        });
       } else {
         await repo.update(id, updates);
       }

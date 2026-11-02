@@ -2,12 +2,21 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { lockKey } from "../../../repositories/query-helpers.js";
+
+const supplyKey = (groupId: string, giverUserId: string, printingId: string): string =>
+  `trade-supply:${groupId}:${giverUserId}:${printingId}`;
 
 /**
  * Status transitions and the timestamp writes that accompany them.
  */
 export function cardTradeTransitionsRepo(db: Kysely<Database>) {
   return {
+    /** Call inside a transaction. */
+    async lockSupply(groupId: string, giverUserId: string, printingId: string): Promise<void> {
+      await lockKey(db, supplyKey(groupId, giverUserId, printingId));
+    },
+
     async expirePending(): Promise<{ expired: number }> {
       const result = await db
         .updateTable("cardTrades")
@@ -25,10 +34,8 @@ export function cardTradeTransitionsRepo(db: Kysely<Database>) {
     },
 
     /**
-     * Cancels the departing member's live (pending/reserved) trades in this
-     * group and releases their reserved copies. Runs inside the caller's
-     * transaction (the leave or kick handler), so `db` here is the
-     * transaction-bound repo.
+     * Cancels the departing member's unsettled live trades in this group and
+     * releases their copies. Runs in the caller's transaction.
      */
     async cancelForDepartingMember(groupId: string, userId: string): Promise<void> {
       const trades = await db
@@ -37,6 +44,10 @@ export function cardTradeTransitionsRepo(db: Kysely<Database>) {
         .where("groupId", "=", groupId)
         .where((eb) => eb.or([eb("giverUserId", "=", userId), eb("receiverUserId", "=", userId)]))
         .where("status", "in", ["pending", "reserved"])
+        .where("giverSyncAppliedAt", "is", null)
+        .where("receiverSyncAppliedAt", "is", null)
+        .orderBy("id")
+        .forUpdate()
         .execute();
       if (trades.length === 0) {
         return;

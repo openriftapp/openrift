@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createRepos, createTransact } from "../../../deps.js";
+import { createTransact } from "../../../deps.js";
 import { PRINTING_1 } from "../../../test/fixtures/constants.js";
 import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
 import { friendGroupsRepo } from "../repositories/friend-groups.js";
@@ -20,7 +20,6 @@ const ctx = createDbContext(GIVER_ID);
 describe.skipIf(!ctx)("acceptTrade vs createLoan cross-claim race (integration)", () => {
   // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { db } = ctx!;
-  const repos = createRepos(db);
   const transact = createTransact(db);
   const groupsRepo = friendGroupsRepo(db);
 
@@ -117,7 +116,7 @@ describe.skipIf(!ctx)("acceptTrade vs createLoan cross-claim race (integration)"
       .execute();
     await groupsRepo.share(group.id, tradeList.id, GIVER_ID);
 
-    const trade = await createTrade(repos, {
+    const trade = await createTrade(transact, {
       callerUserId: RECEIVER_ID,
       groupSlug: group.slug,
       counterpartyUserId: GIVER_ID,

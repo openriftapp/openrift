@@ -41,7 +41,7 @@ const os = implement(cardTradesContract).$context<ApiContext>().use(requireAuthe
 export const cardTradesRouter = {
   create: os.create.handler(({ input, context }): Promise<CardTradeResponse> => {
     const { createTrade } = context.services;
-    return createTrade(context.repos, {
+    return createTrade(context.transact, {
       callerUserId: context.userId,
       groupSlug: input.groupSlug,
       counterpartyUserId: input.counterpartyUserId,

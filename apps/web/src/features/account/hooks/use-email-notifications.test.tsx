@@ -128,7 +128,7 @@ describe("useEmailNotifications", () => {
     expect(calls.some((call) => call.method !== "GET")).toBe(false);
   });
 
-  it("PATCHes the whole object, preserving the sibling channel", async () => {
+  it("PATCHes only the toggled channel", async () => {
     const { calls } = stubFetch({ emailNotifications: { tradeRequests: false } });
     const { result } = renderHook(() => useEmailNotifications(), { wrapper: wrap() });
 
@@ -137,12 +137,10 @@ describe("useEmailNotifications", () => {
 
     await waitFor(() => expect(calls.some((call) => call.method !== "GET")).toBe(true));
     const patch = calls.find((call) => call.method !== "GET");
-    expect(patch?.body).toEqual({
-      emailNotifications: { tradeRequests: false, tradeMatches: true },
-    });
+    expect(patch?.body).toEqual({ emailNotifications: { tradeMatches: true } });
   });
 
-  it("PATCHes a cadence change while preserving the channel toggles", async () => {
+  it("PATCHes only the cadence", async () => {
     const { calls } = stubFetch({ emailNotifications: { tradeMatches: true } });
     const { result } = renderHook(() => useEmailNotifications(), { wrapper: wrap() });
 
@@ -151,8 +149,6 @@ describe("useEmailNotifications", () => {
 
     await waitFor(() => expect(calls.some((call) => call.method !== "GET")).toBe(true));
     const patch = calls.find((call) => call.method !== "GET");
-    expect(patch?.body).toEqual({
-      emailNotifications: { tradeMatches: true, tradeRequestCadence: "instant" },
-    });
+    expect(patch?.body).toEqual({ emailNotifications: { tradeRequestCadence: "instant" } });
   });
 });

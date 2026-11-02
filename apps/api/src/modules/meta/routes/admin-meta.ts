@@ -14,6 +14,7 @@ import {
   TOPDECK_PROVIDER,
   UVSGAMES_PROVIDER,
 } from "../../../lib/meta-providers.js";
+import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { assertKnownFormat, validateFormatConfig } from "../../decks/lib/deck-format-validation.js";
@@ -135,6 +136,17 @@ const ADMIN_META_EVENT_PAGE_SIZE = 50;
  * `list` on write bodies: absent leaves it alone, an object sets it, null clears it.
  * Archived decks are created here, not through the deck builder, and stamp the synthetic owner and public flag inside the repo's transaction.
  */
+async function rejectTakenEventSlug<T>(slug: string, write: () => Promise<T>): Promise<T> {
+  try {
+    return await write();
+  } catch (error) {
+    if (isUniqueViolationOn(error, "uq_meta_events_slug")) {
+      throw new AppError(409, ERROR_CODES.CONFLICT, `Event "${slug}" already exists`);
+    }
+    throw error;
+  }
+}
+
 export const adminMetaRouter = {
   listEvents: os.listEvents.handler(async ({ input, context }) => {
     const page = input.page ?? 1;
@@ -185,20 +197,22 @@ export const adminMetaRouter = {
 
     // The row is minted with identity and NOT NULL columns only; what the admin
     // typed is claimed via overlay, not written directly.
-    const row = await meta.createEvent({
-      slug: input.slug,
-      name: input.name,
-      eventDate: input.eventDate,
-      format: input.format,
-      playerCount: null,
-      organizer: null,
-      notes: null,
-      tier:
-        input.tier ??
-        classifyMetaEventTier({ playerCount: input.playerCount ?? null }, competitivePlayerFloor),
-      country: null,
-      location: null,
-    });
+    const row = await rejectTakenEventSlug(input.slug, () =>
+      meta.createEvent({
+        slug: input.slug,
+        name: input.name,
+        eventDate: input.eventDate,
+        format: input.format,
+        playerCount: null,
+        organizer: null,
+        notes: null,
+        tier:
+          input.tier ??
+          classifyMetaEventTier({ playerCount: input.playerCount ?? null }, competitivePlayerFloor),
+        country: null,
+        location: null,
+      }),
+    );
 
     await writeEventOverlayFields(context.repos, row.id, creationEdits(input), context.userId);
     const promoted = await meta.eventById(row.id);
@@ -214,7 +228,12 @@ export const adminMetaRouter = {
     if (clash && clash.id !== input.id) {
       throw new AppError(409, ERROR_CODES.CONFLICT, `Event "${input.slug}" already exists`);
     }
-    assertExisted(await meta.updateEvent(input.id, { slug: input.slug }), "Event not found");
+    assertExisted(
+      await rejectTakenEventSlug(input.slug, () =>
+        meta.updateEvent(input.id, { slug: input.slug }),
+      ),
+      "Event not found",
+    );
   }),
 
   deleteEvent: os.deleteEvent.handler(async ({ input, context }): Promise<void> => {

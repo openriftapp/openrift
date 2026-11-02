@@ -85,4 +85,13 @@ describe.skipIf(!ctx)("uvsgamesResultsRepo", () => {
     const stored = await repo.standings(EXTERNAL_ID);
     expect(stored).toHaveLength(1);
   });
+
+  it("lets two overlapping fetches of one event both write", async () => {
+    const results = await Promise.allSettled(
+      [1, 2, 3, 4].map(() => repo.replaceStandings(EXTERNAL_ID, [standing(0), standing(1)])),
+    );
+
+    expect(results.filter((result) => result.status === "rejected")).toEqual([]);
+    expect(await repo.standings(EXTERNAL_ID)).toHaveLength(2);
+  });
 });

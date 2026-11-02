@@ -12,7 +12,7 @@ import {
   selectShareState,
   updateShareRow,
 } from "../../../repositories/query-helpers.js";
-import { lockFamilies } from "./decks-shared.js";
+import { lockFamilies, lockUserFamilies } from "./decks-shared.js";
 
 /**
  * The jsonb columns are required, not optional, so `"links" in updates`
@@ -160,6 +160,7 @@ export function decksCoreRepo(db: Kysely<Database>) {
      */
     deleteByIdForUser(id: string, userId: string): Promise<boolean> {
       return inTransaction(db, async (trx) => {
+        await lockUserFamilies(trx, userId);
         // Peek the family without a lock, then lock the whole family in id
         // order (target included). Locking the target row first and the
         // family second would deadlock two concurrent deletes of siblings.

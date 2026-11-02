@@ -432,6 +432,8 @@ export function listEntriesRepo(db: Kysely<Database>) {
         .where("le.listId", "=", listId)
         .where("le.userId", "=", userId)
         .where("le.id", "in", [...entryIds])
+        .orderBy("le.id")
+        .forUpdate("le")
         .execute();
     },
 

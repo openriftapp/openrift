@@ -23,7 +23,7 @@ import type {
 } from "../../../db/tables/meta.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
-import { inTransaction, offsetPage } from "../../../repositories/query-helpers.js";
+import { inTransaction, lockKey, offsetPage } from "../../../repositories/query-helpers.js";
 
 export type MetaEventMatchRow = Selectable<MetaEventMatchesTable>;
 
@@ -338,6 +338,24 @@ export function metaEventsRepo(db: Kysely<Database>) {
         .execute();
     },
 
+    /**
+     * Runs `run` while holding an advisory lock on `key`, so two promotions of one
+     * event (or one source) never interleave. `run` keeps using its own connections.
+     */
+    withPromoteLock<T>(key: string, run: () => Promise<T>): Promise<T> {
+      return inTransaction(db, async (trx) => {
+        await lockKey(trx, `meta-promote:${key}`);
+        return run();
+      });
+    },
+
+    /** Call inside a transaction. */
+    async lockTournamentLists(uvsgamesEventId: string): Promise<void> {
+      await sql`select pg_advisory_xact_lock(hashtext(${`tournament-lists:${uvsgamesEventId}`}))`.execute(
+        db,
+      );
+    },
+
     /** The row's own columns, without the standings counts {@link eventById} joins for. */
     eventRowById(id: string): Promise<MetaEventRow | undefined> {
       return db.selectFrom("metaEvents").selectAll().where("id", "=", id).executeTakeFirst();
@@ -619,13 +637,17 @@ export function metaEventsRepo(db: Kysely<Database>) {
      */
     deleteEvent(id: string): Promise<boolean> {
       return inTransaction(db, async (trx) => {
-        const deckRows = await trx
+        await lockKey(trx, `meta-promote:event:${id}`);
+        const players = await trx
           .selectFrom("metaEventPlayers")
           .select("deckId")
           .where("metaEventId", "=", id)
-          .where("deckId", "is not", null)
-          .$narrowType<{ deckId: string }>()
+          .orderBy("id")
+          .forUpdate()
           .execute();
+        const deckRows = players.flatMap((player) =>
+          player.deckId === null ? [] : [{ deckId: player.deckId }],
+        );
 
         const result = await trx.deleteFrom("metaEvents").where("id", "=", id).executeTakeFirst();
         if ((result.numDeletedRows ?? 0n) === 0n) {

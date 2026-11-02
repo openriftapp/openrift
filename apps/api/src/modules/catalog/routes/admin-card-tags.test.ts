@@ -11,6 +11,7 @@ const mockCatRepo = {
   getBySlug: vi.fn(),
   getById: vi.fn(),
   getMaxSortOrder: vi.fn(),
+  lockSortOrder: vi.fn(async () => undefined),
   create: vi.fn(),
   update: vi.fn(),
   deleteById: vi.fn(),
@@ -38,6 +39,7 @@ app.use("*", async (c, next) => {
     tagDefinitions: mockDefRepo,
     catalog: mockCatalog,
   } as never);
+  c.set("transact", ((fn: (r: unknown) => unknown) => fn(c.get("repos"))) as never);
   await next();
 });
 registerRouterForTest(app, adminCardTagsRouter);

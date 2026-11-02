@@ -4,6 +4,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
+import { lockKey } from "../../../repositories/query-helpers.js";
 
 export interface GroupShopRow {
   source: GroupShopSource;
@@ -289,6 +290,11 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
         listPlayriftboundShops(groupId),
       ]);
       return [...uvsgames, ...playriftbound].toSorted(byName);
+    },
+
+    /** Call inside a transaction. */
+    async lockShops(groupId: string): Promise<void> {
+      await lockKey(db, `group-shops:${groupId}`);
     },
 
     async countShops(groupId: string): Promise<number> {

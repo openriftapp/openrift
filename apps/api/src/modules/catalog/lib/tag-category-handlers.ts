@@ -20,6 +20,7 @@ interface TagCategoryRepo {
   getById: (id: string) => Promise<TagCategoryRow | undefined>;
   getBySlug: (slug: string) => Promise<unknown>;
   getMaxSortOrder: () => Promise<number>;
+  lockSortOrder: () => Promise<void>;
   create: (values: {
     slug: string;
     label: string;
@@ -68,8 +69,12 @@ export function createTagCategoryHandlers(config: TagCategoryHandlersConfig): Ta
       const repo = repoOf(context);
       const { slug, label, description } = input;
       assertSlugAvailable(await repo.getBySlug(slug), slug, "Category");
-      const maxSortOrder = await repo.getMaxSortOrder();
-      const created = await repo.create({ slug, label, description, sortOrder: maxSortOrder + 1 });
+      const created = await context.transact(async (trxRepos) => {
+        const trxRepo = repoOf({ ...context, repos: trxRepos });
+        await trxRepo.lockSortOrder();
+        const maxSortOrder = await trxRepo.getMaxSortOrder();
+        return trxRepo.create({ slug, label, description, sortOrder: maxSortOrder + 1 });
+      });
       return { category: toTagCategoryResponse(created, 0) };
     },
 

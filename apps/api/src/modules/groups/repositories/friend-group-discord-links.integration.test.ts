@@ -95,6 +95,50 @@ describe.skipIf(!ctx)("friendGroupDiscordLinksRepo (integration)", () => {
     ).toEqual({ status: "unknown-code" });
   });
 
+  it("links a guild to one of two groups redeeming it at once and tells the other", async () => {
+    const [first, second] = await Promise.all([createGroup(), createGroup()]);
+    for (const group of [first, second]) {
+      await repo.createPendingLink({
+        groupId: group.id,
+        createdByUserId: OWNER_ID,
+        code: `race-${group.id}`,
+        codeExpiresAt: futureExpiry(),
+      });
+    }
+
+    const guildId = `guild-race-${first.id}`;
+    const results = await Promise.allSettled(
+      [first, second].map((group) =>
+        repo.redeemCode({ code: `race-${group.id}`, guildId, guildName: null }),
+      ),
+    );
+
+    expect(results.filter((result) => result.status === "rejected")).toEqual([]);
+    const statuses = results.map((result) =>
+      result.status === "fulfilled" ? result.value.status : "rejected",
+    );
+    expect(statuses.toSorted()).toEqual(["guild-taken", "linked"]);
+  });
+
+  it("leaves one pending code when two are requested at once", async () => {
+    const group = await createGroup();
+    const results = await Promise.allSettled(
+      [1, 2, 3, 4].map((attempt) =>
+        repo.createPendingLink({
+          groupId: group.id,
+          createdByUserId: OWNER_ID,
+          code: `burst-${attempt}-${group.id}`,
+          codeExpiresAt: futureExpiry(),
+        }),
+      ),
+    );
+
+    expect(results.filter((result) => result.status === "rejected")).toEqual([]);
+    const links = await repo.listLinks(group.id);
+    const pending = links.filter((link) => link.code !== null);
+    expect(pending).toHaveLength(1);
+  });
+
   it("replaces the previous pending code on regenerate", async () => {
     const group = await createGroup();
     await repo.createPendingLink({

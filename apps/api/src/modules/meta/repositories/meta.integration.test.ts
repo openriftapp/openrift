@@ -2529,6 +2529,41 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(after?.shareToken).toBe(before?.shareToken);
     });
 
+    it("lets concurrent list writes for one player all succeed with one deck", async () => {
+      const eventId = await seedEvent(repo, "mta-concurrent-list");
+      const playerId = await seedDecklessPlayer(repo, eventId, {
+        playerName: "MTA Concurrent",
+        rank: 1,
+      });
+      const lists = Array.from({ length: 6 }, (_, index) => ({
+        name: "MTA Concurrent Deck",
+        format: FORMAT,
+        formatConfig: null,
+        cards: [
+          {
+            cardId: spellCardId,
+            zone: "main" as const,
+            quantity: index % 2 === 0 ? 1 : 2,
+            preferredPrintingId: null,
+          },
+        ],
+        listStatus: "partial" as const,
+      }));
+
+      const results = await Promise.allSettled(
+        lists.map((list) => repo.setPlayerDeck(playerId, list, "mtaconcurrnt")),
+      );
+
+      expect(results.filter((result) => result.status === "rejected")).toEqual([]);
+      const deckIds = new Set(
+        results.flatMap((result) =>
+          result.status === "fulfilled" && result.value ? [result.value.deckId] : [],
+        ),
+      );
+      createdDeckIds.push(...deckIds);
+      expect(deckIds.size).toBe(1);
+    });
+
     it("rewrites nothing when the same list is written again", async () => {
       const eventId = await seedEvent(repo, "mta-rewrite-same-list");
       const opts = { playerName: "MTA Unchanged", rank: 1 };

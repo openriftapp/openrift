@@ -422,11 +422,18 @@ describe.skipIf(!ownerCtx)("deck-check player self-service (integration, ADR-026
         .where("id", "=", STRANGER_ID)
         .execute();
 
-      const first = await strangerApp.fetch(
-        req("POST", `/deck-check/submissions/${submissionToken}`, { deckId: strangerDeckId }),
-      );
-      expect(first.status).toBe(200);
+      const [first, doubled] = await Promise.all([
+        strangerApp.fetch(
+          req("POST", `/deck-check/submissions/${submissionToken}`, { deckId: strangerDeckId }),
+        ),
+        strangerApp.fetch(
+          req("POST", `/deck-check/submissions/${submissionToken}`, { deckId: strangerDeckId }),
+        ),
+      ]);
+      expect([first.status, doubled.status]).toEqual([200, 200]);
       const firstBody = (await readJson(first)) as { entryId: string };
+      const doubledBody = (await readJson(doubled)) as { entryId: string };
+      expect(doubledBody.entryId).toBe(firstBody.entryId);
 
       const entry = await repos.deckCheck.getEntryByExternalId(eventId, `openrift:${STRANGER_ID}`);
       expect(entry?.id).toBe(firstBody.entryId);

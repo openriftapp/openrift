@@ -684,6 +684,7 @@ export function metaDecksRepo(db: Kysely<Database>) {
           .selectFrom("metaEventPlayers")
           .select(["deckId", "listStatus"])
           .where("id", "=", playerId)
+          .forUpdate()
           .executeTakeFirst();
         if (!player) {
           return;

@@ -1,7 +1,7 @@
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { inTransaction, reorderBySortOrder } from "../../../repositories/query-helpers.js";
+import { inTransaction, lockKey, reorderBySortOrder } from "../../../repositories/query-helpers.js";
 
 type DistributionChannelKind = "event" | "product";
 
@@ -38,6 +38,11 @@ export function distributionChannelsRepo(db: Kysely<Database>) {
         .selectAll()
         .where("slug", "=", slug)
         .executeTakeFirst();
+    },
+
+    /** Call inside a transaction. */
+    async lockSortOrder(parentId: string | null): Promise<void> {
+      await lockKey(db, `sort:distribution-channels:${parentId ?? "root"}`);
     },
 
     async getMaxSortOrderForParent(parentId: string | null): Promise<number> {
@@ -183,6 +188,12 @@ export function distributionChannelsRepo(db: Kysely<Database>) {
       links: readonly { channelId: string; distributionNote?: string | null }[],
     ): Promise<void> {
       const run = async (trx: Kysely<Database>): Promise<void> => {
+        await trx
+          .selectFrom("printings")
+          .select("id")
+          .where("id", "=", printingId)
+          .forUpdate()
+          .execute();
         await trx
           .deleteFrom("printingDistributionChannels")
           .where("printingId", "=", printingId)

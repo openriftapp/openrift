@@ -597,11 +597,14 @@ export const tournamentsRouter = {
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
       assertParticipantsOpen(tournament);
-      const participant = await loadParticipant(repos, input.id, input.participantId);
-      if (participant.status !== "requested") {
-        throw errors.CONFLICT({ message: "Only a pending request can be approved" });
-      }
-      await repos.tournaments.updateParticipant(input.participantId, { status: "active" });
+      await context.transact(async (trxRepos) => {
+        await trxRepos.tournaments.lockParticipant(input.participantId);
+        const participant = await loadParticipant(trxRepos, input.id, input.participantId);
+        if (participant.status !== "requested") {
+          throw errors.CONFLICT({ message: "Only a pending request can be approved" });
+        }
+        await trxRepos.tournaments.updateParticipant(input.participantId, { status: "active" });
+      });
       return buildParticipantList(repos, input.id);
     },
   ),
@@ -612,11 +615,14 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      const participant = await loadParticipant(repos, input.id, input.participantId);
-      if (participant.status !== "requested") {
-        throw errors.CONFLICT({ message: "Only a pending request can be denied" });
-      }
-      await repos.tournaments.deleteParticipant(input.participantId);
+      await context.transact(async (trxRepos) => {
+        await trxRepos.tournaments.lockParticipant(input.participantId);
+        const participant = await loadParticipant(trxRepos, input.id, input.participantId);
+        if (participant.status !== "requested") {
+          throw errors.CONFLICT({ message: "Only a pending request can be denied" });
+        }
+        await trxRepos.tournaments.deleteParticipant(input.participantId);
+      });
       return buildParticipantList(repos, input.id);
     },
   ),
@@ -724,16 +730,19 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      const team = await repos.podTournaments.getTeam(input.teamId);
-      if (!team || team.tournamentId !== input.id) {
-        throw new AppError(404, ERROR_CODES.NOT_FOUND, "Team not found");
-      }
-      // A team that has played is part of the recorded rounds; standings and
-      // rematch history would silently degrade if it fell apart.
-      if (await repos.podTournaments.teamHasMemberships(input.teamId)) {
-        throw errors.CONFLICT({ message: "A team that has played a round cannot be dissolved" });
-      }
-      await repos.podTournaments.dissolveTeam(input.teamId);
+      await context.transact(async (trxRepos) => {
+        await trxRepos.tournaments.lockRounds(input.id);
+        const team = await trxRepos.podTournaments.getTeam(input.teamId);
+        if (!team || team.tournamentId !== input.id) {
+          throw new AppError(404, ERROR_CODES.NOT_FOUND, "Team not found");
+        }
+        // A team that has played is part of the recorded rounds; standings and
+        // rematch history would silently degrade if it fell apart.
+        if (await trxRepos.podTournaments.teamHasMemberships(input.teamId)) {
+          throw errors.CONFLICT({ message: "A team that has played a round cannot be dissolved" });
+        }
+        await trxRepos.podTournaments.dissolveTeam(input.teamId);
+      });
       return buildParticipantList(repos, input.id);
     },
   ),
@@ -769,7 +778,7 @@ export const tournamentsRouter = {
       await requireManage(repos, tournament, userId);
       await (isGroupCut(tournament)
         ? generateGroupCutRound(repos, tournament)
-        : pairNextRound(repos, tournament, input.byes));
+        : context.transact((trxRepos) => pairNextRound(trxRepos, tournament, input.byes)));
       return podRunDetailById(repos, input.id);
     },
   ),
@@ -814,7 +823,7 @@ export const tournamentsRouter = {
       const repos = context.repos;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, context.userId);
-      await replaceGroupSeats(repos, tournament, input.groups);
+      await context.transact((trxRepos) => replaceGroupSeats(trxRepos, tournament, input.groups));
       return podRunDetailById(repos, input.id);
     },
   ),
@@ -824,7 +833,9 @@ export const tournamentsRouter = {
       const repos = context.repos;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, context.userId);
-      await replaceCutRoundPairing(repos, tournament, input.roundNumber, input.pods);
+      await context.transact((trxRepos) =>
+        replaceCutRoundPairing(trxRepos, tournament, input.roundNumber, input.pods),
+      );
       return podRunDetailById(repos, input.id);
     },
   ),
@@ -836,7 +847,9 @@ export const tournamentsRouter = {
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
       assertCutRoundEditable(tournament, input.roundNumber);
-      await replaceRoundPairing(repos, tournament, input.roundNumber, input.pods, input.byes);
+      await context.transact((trxRepos) =>
+        replaceRoundPairing(trxRepos, tournament, input.roundNumber, input.pods, input.byes),
+      );
       return podRunDetailById(repos, input.id);
     },
   ),
@@ -847,9 +860,11 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      await (isGroupCut(tournament)
-        ? rerollGroupCutRound(repos, tournament, input.roundNumber)
-        : rerollRoundEngine(repos, tournament, input.roundNumber));
+      await context.transact(async (trxRepos) => {
+        await (isGroupCut(tournament)
+          ? rerollGroupCutRound(trxRepos, tournament, input.roundNumber)
+          : rerollRoundEngine(trxRepos, tournament, input.roundNumber));
+      });
       return podRunDetailById(repos, input.id);
     },
   ),
@@ -861,8 +876,10 @@ export const tournamentsRouter = {
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
       assertCutRoundEditable(tournament, input.roundNumber);
-      await finalizeRoundEngine(repos, tournament, input.roundNumber);
-      await completeAfterFinal(repos, tournament, input.roundNumber);
+      await context.transact(async (trxRepos) => {
+        await finalizeRoundEngine(trxRepos, tournament, input.roundNumber);
+        await completeAfterFinal(trxRepos, tournament, input.roundNumber);
+      });
       return podRunDetailById(repos, input.id);
     },
   ),
@@ -873,9 +890,11 @@ export const tournamentsRouter = {
       const userId = context.userId;
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
-      await submitPodResult(repos, tournament.id, input.podId, input.results, {
-        allowFinalized: true,
-      });
+      await context.transact((trxRepos) =>
+        submitPodResult(trxRepos, tournament.id, input.podId, input.results, {
+          allowFinalized: true,
+        }),
+      );
       return podRunDetailById(repos, input.id);
     },
   ),

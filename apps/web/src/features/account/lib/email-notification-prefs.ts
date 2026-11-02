@@ -1,5 +1,4 @@
 import type {
-  EmailNotificationChannel,
   EmailNotificationPreference,
   TradeRequestEmailCadence,
 } from "@openrift/shared/types/api/preferences";
@@ -44,17 +43,3 @@ export function resolveEmailNotificationGates(
 }
 
 /** The server merge replaces the whole object, so unchanged keys must be carried over. */
-export function buildEmailNotificationPatch(
-  current: EmailNotificationPreference | undefined,
-  channel: EmailNotificationChannel,
-  value: boolean,
-): EmailNotificationPreference {
-  return { ...current, [channel]: value };
-}
-
-export function buildTradeRequestCadencePatch(
-  current: EmailNotificationPreference | undefined,
-  cadence: TradeRequestEmailCadence,
-): EmailNotificationPreference {
-  return { ...current, tradeRequestCadence: cadence };
-}

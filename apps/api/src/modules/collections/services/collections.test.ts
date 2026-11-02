@@ -24,6 +24,7 @@ function createMockRepos(
 
   const repos = {
     collections: {
+      lockById: vi.fn(async () => {}),
       listCopiesInCollection,
       moveCopiesBetweenCollections,
       deleteByIdForUser,

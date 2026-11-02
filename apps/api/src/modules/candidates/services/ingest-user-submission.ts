@@ -11,6 +11,7 @@ import type {
  * candidate card with a per-submission-unique `external_id` and never deletes.
  * Payload mapping and link resolution are shared with candidate-fields.ts / candidate-links.ts.
  */
+import { formatCompactUtcStamp } from "@openrift/shared/format-date";
 import { shortCodeFromPublicCode } from "@openrift/shared/printing-code";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Insertable } from "kysely";
@@ -55,6 +56,10 @@ export interface UserSubmissionCard extends Omit<IngestCard, "printings"> {
  * disambiguator, finish and language so multiple printings in one submission
  * stay distinct.
  */
+export function submissionStamp(now: Date): string {
+  return `${formatCompactUtcStamp(now)}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
 export function buildUserSubmissionCard(
   input: CardSubmissionInput,
   userId: string,

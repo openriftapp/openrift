@@ -1,8 +1,13 @@
-import type { OverlayBoard, OverlayChannelResponse } from "@openrift/shared/contracts/overlay";
+import type {
+  OverlayBoard,
+  OverlayChannelResponse,
+  OverlayPayload,
+} from "@openrift/shared/contracts/overlay";
 import { overlayContract } from "@openrift/shared/contracts/overlay";
 import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
+import { assertFound } from "../../../lib/assertions.js";
 import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -42,85 +47,80 @@ function clampReveal(board: OverlayBoard, revealCount: number): number {
   return Math.min(Math.max(revealCount, 0), total);
 }
 
-/**
- * Every write merges onto the current payload; fields the caller doesn't send stay unchanged.
- * `ensureChannel` runs first on every write, so setPayload's `undefined` return here is unreachable
- * and falls back to the channel already held.
- */
+async function updatePayload(
+  context: ApiContext & { userId: string },
+  build: (payload: OverlayPayload) => OverlayPayload | null,
+): Promise<OverlayChannelResponse> {
+  await ensureChannel(context.repos, context.userId);
+  return context.transact(async (trxRepos) => {
+    const channel = await trxRepos.overlayChannels.getByUserId(context.userId, {
+      forUpdate: true,
+    });
+    assertFound(channel, "Overlay channel not found");
+    const payload = build(channel.payload);
+    if (!payload) {
+      return toOverlayChannel(channel);
+    }
+    const updated = await trxRepos.overlayChannels.setPayload(context.userId, payload);
+    return toOverlayChannel(updated ?? channel);
+  });
+}
+
+/** Fields the caller doesn't send stay unchanged. */
 export const overlayRouter = {
   get: os.get.handler(async ({ context }): Promise<OverlayChannelResponse> =>
     toOverlayChannel(await ensureChannel(context.repos, context.userId)),
   ),
 
-  push: os.push.handler(async ({ context, input }): Promise<OverlayChannelResponse> => {
-    const channel = await ensureChannel(context.repos, context.userId);
-    const updated = await context.repos.overlayChannels.setPayload(context.userId, {
-      ...applyOverlaySettings(channel.payload, input),
+  push: os.push.handler(({ context, input }): Promise<OverlayChannelResponse> =>
+    updatePayload(context, (payload) => ({
+      ...applyOverlaySettings(payload, input),
       printingId: input.printingId,
       // Pushing a card clears the board: only one occupies the corner at a time.
       board: null,
-    });
-    return toOverlayChannel(updated ?? channel);
-  }),
-
-  pushBoard: os.pushBoard.handler(async ({ context, input }): Promise<OverlayChannelResponse> => {
-    const channel = await ensureChannel(context.repos, context.userId);
-    const updated = await context.repos.overlayChannels.setPayload(context.userId, {
-      ...channel.payload,
-      printingId: null,
-      board: { ...input.board, revealCount: clampReveal(input.board, input.board.revealCount) },
-    });
-    return toOverlayChannel(updated ?? channel);
-  }),
-
-  setBoardReveal: os.setBoardReveal.handler(
-    async ({ context, input }): Promise<OverlayChannelResponse> => {
-      const channel = await ensureChannel(context.repos, context.userId);
-      const board = channel.payload.board;
-      // No board to step: a stale reveal control returns the channel unchanged.
-      if (!board) {
-        return toOverlayChannel(channel);
-      }
-      const updated = await context.repos.overlayChannels.setPayload(context.userId, {
-        ...channel.payload,
-        board: { ...board, revealCount: clampReveal(board, input.revealCount) },
-      });
-      return toOverlayChannel(updated ?? channel);
-    },
+    })),
   ),
 
-  setHidden: os.setHidden.handler(async ({ context, input }): Promise<OverlayChannelResponse> => {
-    const channel = await ensureChannel(context.repos, context.userId);
-    // Hidden only toggles visibility; the underlying card/board stays set.
-    const updated = await context.repos.overlayChannels.setPayload(context.userId, {
-      ...channel.payload,
-      hidden: input.hidden,
-    });
-    return toOverlayChannel(updated ?? channel);
-  }),
+  pushBoard: os.pushBoard.handler(({ context, input }): Promise<OverlayChannelResponse> =>
+    updatePayload(context, (payload) => ({
+      ...payload,
+      printingId: null,
+      board: { ...input.board, revealCount: clampReveal(input.board, input.board.revealCount) },
+    })),
+  ),
 
-  clear: os.clear.handler(async ({ context }): Promise<OverlayChannelResponse> => {
-    const channel = await ensureChannel(context.repos, context.userId);
-    // Clears card/board/hidden but leaves dressing (corner, scale, plate, QR)
-    // untouched; hidden must reset too or the next segment's first push lands unseen.
-    const updated = await context.repos.overlayChannels.setPayload(context.userId, {
-      ...channel.payload,
+  setBoardReveal: os.setBoardReveal.handler(({ context, input }): Promise<OverlayChannelResponse> =>
+    updatePayload(context, (payload) => {
+      const board = payload.board;
+      // No board to step: a stale reveal control returns the channel unchanged.
+      if (!board) {
+        return null;
+      }
+      return {
+        ...payload,
+        board: { ...board, revealCount: clampReveal(board, input.revealCount) },
+      };
+    }),
+  ),
+
+  // Hidden only toggles visibility; the underlying card/board stays set.
+  setHidden: os.setHidden.handler(({ context, input }): Promise<OverlayChannelResponse> =>
+    updatePayload(context, (payload) => ({ ...payload, hidden: input.hidden })),
+  ),
+
+  // Clears card/board/hidden but leaves dressing (corner, scale, plate, QR)
+  // untouched; hidden must reset too or the next segment's first push lands unseen.
+  clear: os.clear.handler(({ context }): Promise<OverlayChannelResponse> =>
+    updatePayload(context, (payload) => ({
+      ...payload,
       printingId: null,
       board: null,
       hidden: false,
-    });
-    return toOverlayChannel(updated ?? channel);
-  }),
+    })),
+  ),
 
-  updateSettings: os.updateSettings.handler(
-    async ({ context, input }): Promise<OverlayChannelResponse> => {
-      const channel = await ensureChannel(context.repos, context.userId);
-      const updated = await context.repos.overlayChannels.setPayload(
-        context.userId,
-        applyOverlaySettings(channel.payload, input),
-      );
-      return toOverlayChannel(updated ?? channel);
-    },
+  updateSettings: os.updateSettings.handler(({ context, input }): Promise<OverlayChannelResponse> =>
+    updatePayload(context, (payload) => applyOverlaySettings(payload, input)),
   ),
 
   enableToken: os.enableToken.handler(async ({ context }): Promise<OverlayChannelResponse> => {

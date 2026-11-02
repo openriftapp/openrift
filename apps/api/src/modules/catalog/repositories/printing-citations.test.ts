@@ -37,6 +37,7 @@ describe("printingCitationsRepo", () => {
   describe("insert", () => {
     it("appends past the printing's current maximum sort order", async () => {
       const { db, queries, parameters } = createRecordingDb([
+        [],
         [{ sortOrder: 4 }],
         [
           {
@@ -55,14 +56,16 @@ describe("printingCitationsRepo", () => {
         sourceUrl: null,
       });
 
-      expect(queries[0]).toContain('order by "sort_order" desc');
-      expect(queries[1]).toContain('insert into "printing_citations"');
-      expect(parameters[1]).toContain(5);
+      expect(queries[0]).toContain("pg_advisory_xact_lock");
+      expect(queries[1]).toContain('order by "sort_order" desc');
+      expect(queries[2]).toContain('insert into "printing_citations"');
+      expect(parameters[2]).toContain(5);
       expect(row.id).toBe("citation-1");
     });
 
     it("starts a printing's first citation at zero", async () => {
       const { db, parameters } = createRecordingDb([
+        [],
         [],
         [
           {
@@ -81,7 +84,7 @@ describe("printingCitationsRepo", () => {
         sourceUrl: null,
       });
 
-      expect(parameters[1]).toContain(0);
+      expect(parameters[2]).toContain(0);
     });
   });
 

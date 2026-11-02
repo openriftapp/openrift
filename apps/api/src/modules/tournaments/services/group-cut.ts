@@ -125,6 +125,7 @@ export async function replaceGroupSeats(
   groups: readonly { label: string; playerIds: readonly string[] }[],
 ): Promise<void> {
   assertGroupCutRun(tournament);
+  await repos.tournaments.lockRounds(tournament.id);
   const { players, roundRows } = await loadState(repos, tournament);
   const context = await loadGroupCutContext(repos, tournament, players, roundRows);
   if (context.groups.length === 0) {
@@ -445,6 +446,8 @@ export async function rerollGroupCutRound(
   tournament: Tournament,
   roundNumber: number,
 ): Promise<void> {
+  await repos.tournaments.lockRounds(tournament.id);
+  await repos.podTournaments.getRoundByNumber(tournament.id, roundNumber, { forUpdate: true });
   const { players, roundRows } = await loadState(repos, tournament);
   const rows = roundRows.find((entry) => entry.round.roundNumber === roundNumber);
   assertFound(rows, "Round not found");
@@ -495,6 +498,8 @@ export async function replaceCutRoundPairing(
   if (!isGroupCut(tournament) || isGroupStageRound(roundNumber)) {
     throw badRequest("Only cut rounds can be edited here.");
   }
+  await repos.tournaments.lockRounds(tournament.id);
+  await repos.podTournaments.getRoundByNumber(tournament.id, roundNumber, { forUpdate: true });
   const { roundRows } = await loadState(repos, tournament);
   const rows = roundRows.find((entry) => entry.round.roundNumber === roundNumber);
   assertFound(rows, "Round not found");

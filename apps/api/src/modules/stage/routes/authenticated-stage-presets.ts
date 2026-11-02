@@ -32,22 +32,24 @@ export const stagePresetsRouter = {
 
   create: os.create.handler(async ({ input, context, errors }): Promise<StagePreset> => {
     const conflict = (message: string) => errors.CONFLICT({ message });
-    // Check-then-act: a race landing a twenty-first preset is a cosmetic overrun.
-    const count = await context.repos.stagePresets.countForUser(context.userId);
-    if (count >= MAX_STAGE_PRESETS) {
-      throw conflict(`You can keep at most ${MAX_STAGE_PRESETS} presets. Delete one to make room.`);
-    }
-
-    let row;
-    try {
-      // The contract's `.trim()` already normalized the name.
-      row = await context.repos.stagePresets.create(context.userId, {
-        name: input.name,
-        config: input.config,
-      });
-    } catch (error) {
-      rethrowPresetError(error, conflict);
-    }
+    const row = await context.transact(async ({ stagePresets: presets }) => {
+      await presets.lockCap(context.userId);
+      const count = await presets.countForUser(context.userId);
+      if (count >= MAX_STAGE_PRESETS) {
+        throw conflict(
+          `You can keep at most ${MAX_STAGE_PRESETS} presets. Delete one to make room.`,
+        );
+      }
+      try {
+        // The contract's `.trim()` already normalized the name.
+        return await presets.create(context.userId, {
+          name: input.name,
+          config: input.config,
+        });
+      } catch (error) {
+        rethrowPresetError(error, conflict);
+      }
+    });
     return toStagePreset(row);
   }),
 

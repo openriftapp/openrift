@@ -107,7 +107,10 @@ export const friendGroupsMembersRouter = {
       throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Target must already be a member");
     }
 
-    await friendGroups.transferOwnership(ctx.group.id, viewerId, targetUserId);
+    const transferred = await friendGroups.transferOwnership(ctx.group.id, viewerId, targetUserId);
+    if (!transferred) {
+      throw new AppError(409, ERROR_CODES.CONFLICT, "You no longer own this group");
+    }
   }),
 
   updateRole: os.updateRole.handler(

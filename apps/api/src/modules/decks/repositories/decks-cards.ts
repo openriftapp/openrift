@@ -183,7 +183,7 @@ export function decksCardsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    async replaceCards(
+    replaceCards(
       deckId: string,
       cards: {
         cardId: string;
@@ -191,8 +191,17 @@ export function decksCardsRepo(db: Kysely<Database>) {
         quantity: number;
         preferredPrintingId: string | null;
       }[],
-    ): Promise<void> {
-      await inTransaction(db, async (trx) => {
+    ): Promise<boolean> {
+      return inTransaction(db, async (trx) => {
+        const deck = await trx
+          .selectFrom("decks")
+          .select("id")
+          .where("id", "=", deckId)
+          .forUpdate()
+          .executeTakeFirst();
+        if (!deck) {
+          return false;
+        }
         await trx.deleteFrom("deckCards").where("deckId", "=", deckId).execute();
 
         if (cards.length > 0) {
@@ -207,6 +216,7 @@ export function decksCardsRepo(db: Kysely<Database>) {
           .set({ updatedAt: sql`now()` })
           .where("id", "=", deckId)
           .execute();
+        return true;
       });
     },
   };

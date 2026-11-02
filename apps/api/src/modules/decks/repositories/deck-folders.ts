@@ -3,7 +3,11 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { DeckFoldersTable } from "../../../db/tables/decks.js";
-import { inTransaction, reorderBySortOrder } from "../../../repositories/query-helpers.js";
+import {
+  inTransaction,
+  reorderBySortOrder,
+  withKeyLock,
+} from "../../../repositories/query-helpers.js";
 
 export type DeckFolderWithCount = Selectable<DeckFoldersTable> & { deckCount: number };
 
@@ -26,16 +30,18 @@ export function deckFoldersRepo(db: Kysely<Database>) {
     // Throws a 23505 unique violation on `uq_deck_folders_user_name` when the
     // user already has a folder by that name; the route maps it to a 409.
     create(userId: string, name: string): Promise<DeckFolderWithCount> {
-      return db
-        .insertInto("deckFolders")
-        .values({
-          userId,
-          name,
-          sortOrder: sql<number>`coalesce((select max(sort_order) + 1 from deck_folders where user_id = ${userId}), 0)`,
-        })
-        .returningAll()
-        .returning(deckCountExpr.as("deckCount"))
-        .executeTakeFirstOrThrow();
+      return withKeyLock(db, `sort:deck-folders:${userId}`, (trx) =>
+        trx
+          .insertInto("deckFolders")
+          .values({
+            userId,
+            name,
+            sortOrder: sql<number>`coalesce((select max(sort_order) + 1 from deck_folders where user_id = ${userId}), 0)`,
+          })
+          .returningAll()
+          .returning(deckCountExpr.as("deckCount"))
+          .executeTakeFirstOrThrow(),
+      );
     },
 
     // Undefined when the id is taken, so a replayed create reads the existing folder.
@@ -44,18 +50,20 @@ export function deckFoldersRepo(db: Kysely<Database>) {
       name: string,
       id: string,
     ): Promise<DeckFolderWithCount | undefined> {
-      return db
-        .insertInto("deckFolders")
-        .values({
-          id,
-          userId,
-          name,
-          sortOrder: sql<number>`coalesce((select max(sort_order) + 1 from deck_folders where user_id = ${userId}), 0)`,
-        })
-        .onConflict((oc) => oc.column("id").doNothing())
-        .returningAll()
-        .returning(deckCountExpr.as("deckCount"))
-        .executeTakeFirst();
+      return withKeyLock(db, `sort:deck-folders:${userId}`, (trx) =>
+        trx
+          .insertInto("deckFolders")
+          .values({
+            id,
+            userId,
+            name,
+            sortOrder: sql<number>`coalesce((select max(sort_order) + 1 from deck_folders where user_id = ${userId}), 0)`,
+          })
+          .onConflict((oc) => oc.column("id").doNothing())
+          .returningAll()
+          .returning(deckCountExpr.as("deckCount"))
+          .executeTakeFirst(),
+      );
     },
 
     // Raises the same unique violation as `create` on a name collision.
@@ -95,6 +103,7 @@ export function deckFoldersRepo(db: Kysely<Database>) {
     // Unknown or unowned ids are dropped by the insert's ownership filter.
     async setForDeck(deckId: string, userId: string, folderIds: readonly string[]): Promise<void> {
       await inTransaction(db, async (trx) => {
+        await trx.selectFrom("decks").select("id").where("id", "=", deckId).forUpdate().execute();
         await trx
           .deleteFrom("deckFolderEntries")
           .where("deckId", "=", deckId)

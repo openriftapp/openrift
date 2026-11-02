@@ -19,12 +19,14 @@ const mockCollectionsRepo = {
   updateById: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   getIdAndName: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   exists: vi.fn(() => Promise.resolve(undefined as object | undefined)),
+  lockById: vi.fn(() => Promise.resolve()),
   listCopiesInCollection: vi.fn(() => Promise.resolve([] as object[])),
   moveCopiesBetweenCollections: vi.fn(() => Promise.resolve()),
   deleteByIdForUser: vi.fn(() => Promise.resolve()),
   deleteById: vi.fn(() => Promise.resolve()),
   setShareTokenById: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   nextPersonalSortOrder: vi.fn(() => Promise.resolve(0)),
+  lockSortOrder: vi.fn(async () => undefined),
   idForPurpose: vi.fn(() => Promise.resolve(undefined as string | undefined)),
   reorderPersonal: vi.fn(() => Promise.resolve()),
 };
@@ -75,15 +77,16 @@ const USER_ID = "a0000000-0001-4000-a000-000000000001";
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
-  c.set("transact", (() => {}) as never);
-  c.set("repos", {
+  const repos = {
     collections: mockCollectionsRepo,
     copies: mockCopiesRepo,
     decks: mockDecksRepo,
     marketplace: mockMarketplaceRepo,
     userPreferences: mockUserPreferencesRepo,
     friendGroups: mockFriendGroupsRepo,
-  } as never);
+  };
+  c.set("transact", ((fn: (r: unknown) => unknown) => fn(repos)) as never);
+  c.set("repos", repos as never);
   c.set("services", {
     ensureInbox: mockEnsureInbox,
   } as never);
@@ -283,6 +286,36 @@ describe("POST /api/v1/collections", () => {
     expect(json.id).toBe(dbCollection.id);
     expect(json.copyCount).toBe(3);
     expect(mockCollectionsRepo.createUnlessIdTaken).not.toHaveBeenCalled();
+  });
+
+  it("returns the winner when a concurrent create took the purpose first", async () => {
+    mockCollectionsRepo.idForPurpose
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(dbCollection.id);
+    mockCollectionsRepo.createUnlessIdTaken.mockRejectedValueOnce(
+      Object.assign(new Error("duplicate"), {
+        code: "23505",
+        constraint_name: "uq_collections_user_purpose",
+      }),
+    );
+    mockCollectionsRepo.listAccessibleForUser.mockResolvedValueOnce([
+      {
+        ...dbCollection,
+        purpose: "marketplace_orders",
+        groupSlug: null,
+        groupName: null,
+        viewerCanAdmin: true,
+        copyCount: 0,
+      },
+    ]);
+    const res = await app.request("/api/v1/collections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Ordered (Marketplace)", purpose: "marketplace_orders" }),
+    });
+    expect(res.status).toBe(201);
+    const json = await readJson(res);
+    expect(json.id).toBe(dbCollection.id);
   });
 
   it("creates a shared collection when groupSlug is provided and the user is a member", async () => {
@@ -590,8 +623,11 @@ describe("POST /api/v1/collections/:id/share", () => {
 
   it("returns 200 with a fresh share token and isPublic=true", async () => {
     mockCollectionsRepo.getAccessForUser.mockResolvedValue(access(dbCollection));
-    const shared = { ...dbCollection, isPublic: true, shareToken: "will-be-replaced" };
-    mockCollectionsRepo.setShareTokenById.mockResolvedValue(shared);
+    mockCollectionsRepo.setShareTokenById.mockImplementation(async (...args: unknown[]) => ({
+      ...dbCollection,
+      isPublic: true,
+      shareToken: args[1] as string,
+    }));
     const res = await app.request(`/api/v1/collections/${dbCollection.id}/share`, {
       method: "POST",
     });

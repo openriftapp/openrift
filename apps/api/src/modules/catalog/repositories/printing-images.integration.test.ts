@@ -20,7 +20,15 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
     if (createdImageIds.length > 0) {
       await db.deleteFrom("faceImages").where("id", "in", createdImageIds).execute();
     }
-    await db.deleteFrom("imageFiles").where("originalUrl", "in", [DEDUPE_URL, RACE_URL]).execute();
+    await db
+      .deleteFrom("imageFiles")
+      .where("originalUrl", "in", [
+        DEDUPE_URL,
+        RACE_URL,
+        "https://example.com/race-main-a.jpg",
+        "https://example.com/race-main-b.jpg",
+      ])
+      .execute();
     await db
       .updateTable("faceImages")
       .set({ isActive: true })
@@ -36,6 +44,27 @@ describe.skipIf(!ctx)("faceImagesRepo (integration)", () => {
     );
     expect(imageId).not.toBeNull();
     createdImageIds.push(imageId!);
+  });
+
+  it("insertImage leaves one active image when two main images land at once", async () => {
+    const results = await Promise.allSettled([
+      repo.insertImage(seedPrintingId, "https://example.com/race-main-a.jpg", "main"),
+      repo.insertImage(seedPrintingId, "https://example.com/race-main-b.jpg", "main"),
+    ]);
+
+    expect(results.filter((result) => result.status === "rejected")).toEqual([]);
+    for (const result of results) {
+      if (result.status === "fulfilled" && result.value) {
+        createdImageIds.push(result.value);
+      }
+    }
+    const active = await db
+      .selectFrom("faceImages")
+      .select("id")
+      .where("faceId", "=", seedPrintingId)
+      .where("isActive", "=", true)
+      .execute();
+    expect(active).toHaveLength(1);
   });
 
   it("insertImage returns null when imageUrl is null", async () => {

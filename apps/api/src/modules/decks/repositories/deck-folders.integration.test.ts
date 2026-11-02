@@ -47,6 +47,15 @@ describe.skipIf(!ctx)("deckFoldersRepo", () => {
   const db = ctx!.db;
   const repo = deckFoldersRepo(db);
 
+  it("gives folders created at the same time distinct sort orders", async () => {
+    const created = await Promise.all(
+      [1, 2, 3, 4].map((index) => repo.create(otherUserId, `DF Burst ${index}`)),
+    );
+
+    const orders = created.map((folder) => folder.sortOrder);
+    expect(new Set(orders).size).toBe(orders.length);
+  });
+
   it("creates a folder with the id the caller supplies and skips a replay of it", async () => {
     const id = crypto.randomUUID();
 
@@ -92,6 +101,20 @@ describe.skipIf(!ctx)("deckFoldersRepo", () => {
 
     const byDeck = await repo.folderIdsByDeckIds([deckB], userId);
     expect(byDeck.get(deckB)).toEqual([two.id]);
+  });
+
+  it("lets concurrent membership replaces of one deck all succeed", async () => {
+    const one = await repo.create(userId, "DF Concurrent One");
+    const two = await repo.create(userId, "DF Concurrent Two");
+    await repo.setForDeck(deckB, userId, [one.id]);
+
+    const results = await Promise.allSettled(
+      Array.from({ length: 8 }, (_, index) =>
+        repo.setForDeck(deckB, userId, index % 2 === 0 ? [one.id] : [one.id, two.id]),
+      ),
+    );
+
+    expect(results.filter((result) => result.status === "rejected")).toEqual([]);
   });
 
   it("clears membership on an empty id list", async () => {

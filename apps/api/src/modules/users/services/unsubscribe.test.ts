@@ -129,13 +129,13 @@ describe("applyUnsubscribe", () => {
     expect(upsert).not.toHaveBeenCalled();
   });
 
-  it("flips the named channel off and preserves the sibling channel", async () => {
+  it("writes only the named channel, so a concurrent toggle of another channel survives", async () => {
     const token = signUnsubscribeToken(SECRET, USER_ID, "tradeRequests");
     const { repos, upsert } = makeRepos({ tradeMatches: true, tradeRequests: true });
     const result = await applyUnsubscribe(repos, SECRET, token);
     expect(result).toEqual({ channel: "tradeRequests", channelLabel: "trade-request emails" });
     expect(upsert).toHaveBeenCalledWith(USER_ID, {
-      emailNotifications: { tradeMatches: true, tradeRequests: false },
+      emailNotifications: { tradeRequests: false },
     });
   });
 

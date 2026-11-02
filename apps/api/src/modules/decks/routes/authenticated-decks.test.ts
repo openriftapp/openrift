@@ -23,7 +23,7 @@ const mockRepo = {
   cardsWithDetails: vi.fn(() => Promise.resolve([] as object[])),
   getIdAndFormat: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   exists: vi.fn(() => Promise.resolve(undefined as object | undefined)),
-  replaceCards: vi.fn(() => Promise.resolve()),
+  replaceCards: vi.fn(() => Promise.resolve(true)),
   cloneDeck: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   getShareState: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   setShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
@@ -659,7 +659,7 @@ describe("DELETE /api/v1/decks/:id", () => {
 describe("PUT /api/v1/decks/:id/cards", () => {
   beforeEach(() => {
     mockRepo.getIdAndFormat.mockReset();
-    mockRepo.replaceCards.mockReset();
+    mockRepo.replaceCards.mockReset().mockResolvedValue(true);
   });
 
   it("returns 200 with updated cards when replaced successfully", async () => {
@@ -844,7 +844,7 @@ describe("PUT /api/v1/decks/:id/cards — returned cards", () => {
 
   it("returns the replaced cards from cardsForDeck", async () => {
     mockRepo.getIdAndFormat.mockResolvedValue({ id: DECK_ID, format: "freeform" });
-    mockRepo.replaceCards.mockResolvedValue(undefined);
+    mockRepo.replaceCards.mockResolvedValue(true);
     mockRepo.cardsForDeck.mockResolvedValue([dbDeckCard]);
     const res = await app.request(`/api/v1/decks/${DECK_ID}/cards`, {
       method: "PUT",
@@ -862,7 +862,7 @@ describe("PUT /api/v1/decks/:id/cards — returned cards", () => {
 
   it("calls replaceCards with the card data", async () => {
     mockRepo.getIdAndFormat.mockResolvedValue({ id: DECK_ID, format: "freeform" });
-    mockRepo.replaceCards.mockResolvedValue(undefined);
+    mockRepo.replaceCards.mockResolvedValue(true);
     mockRepo.cardsForDeck.mockResolvedValue([]);
     const cards = [
       { cardId: "c0000000-0001-4000-a000-000000000001", zone: "main", quantity: 4 },
@@ -877,6 +877,19 @@ describe("PUT /api/v1/decks/:id/cards — returned cards", () => {
       DECK_ID,
       cards.map((card) => ({ ...card, preferredPrintingId: null })),
     );
+  });
+
+  it("returns 404 when the deck is deleted while its cards are being replaced", async () => {
+    mockRepo.getIdAndFormat.mockResolvedValue({ id: DECK_ID, format: "freeform" });
+    mockRepo.replaceCards.mockResolvedValue(false);
+    const res = await app.request(`/api/v1/decks/${DECK_ID}/cards`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cards: [{ cardId: "c0000000-0001-4000-a000-000000000001", zone: "main", quantity: 1 }],
+      }),
+    });
+    expect(res.status).toBe(404);
   });
 
   it("returns 400 when a preferred printing does not show its card", async () => {

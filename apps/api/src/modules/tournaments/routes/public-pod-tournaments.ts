@@ -88,9 +88,11 @@ export const publicPodTournamentsRouter = {
       if (tournament.reportToken !== input.token) {
         throw errors.FORBIDDEN({ message: "This link is follow-only" });
       }
-      await submitPodResult(repos, tournament.id, input.podId, input.results, {
-        allowFinalized: false,
-      });
+      await context.transact((trxRepos) =>
+        submitPodResult(trxRepos, tournament.id, input.podId, input.results, {
+          allowFinalized: false,
+        }),
+      );
       return buildReport(repos, tournament, true);
     },
   ),
@@ -106,12 +108,14 @@ export const publicPodTournamentsRouter = {
       if (tournament.reportToken !== input.token) {
         throw errors.FORBIDDEN({ message: "This link is follow-only" });
       }
-      await submitPodPlayerResult(
-        repos,
-        tournament.id,
-        input.podId,
-        input.playerId,
-        input.gamePoints,
+      await context.transact((trxRepos) =>
+        submitPodPlayerResult(
+          trxRepos,
+          tournament.id,
+          input.podId,
+          input.playerId,
+          input.gamePoints,
+        ),
       );
       return buildReport(repos, tournament, true);
     },

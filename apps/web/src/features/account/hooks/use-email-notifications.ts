@@ -9,11 +9,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { preferencesKeys } from "@/features/account/lib/account-query-keys";
 import type { EmailNotificationGates } from "@/features/account/lib/email-notification-prefs";
-import {
-  buildEmailNotificationPatch,
-  buildTradeRequestCadencePatch,
-  resolveEmailNotificationGates,
-} from "@/features/account/lib/email-notification-prefs";
+import { resolveEmailNotificationGates } from "@/features/account/lib/email-notification-prefs";
 import { preferencesQueryOptions } from "@/features/account/lib/preferences-queries";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/hooks/use-session";
@@ -41,7 +37,7 @@ export interface UseEmailNotificationsResult {
 
 /**
  * Shares the `/preferences` query cache with the display-preferences sync.
- * Each toggle PATCHes the whole `emailNotifications` object to preserve the sibling channel.
+ * Each toggle PATCHes only its own key; the server merges it into the stored channels.
  */
 export function useEmailNotifications(): UseEmailNotificationsResult {
   const userId = useUserId();
@@ -63,7 +59,7 @@ export function useEmailNotifications(): UseEmailNotificationsResult {
       }
       queryClient.setQueryData<UserPreferencesResponse>(queryKey, (previous) => ({
         ...previous,
-        emailNotifications: next,
+        emailNotifications: { ...previous?.emailNotifications, ...next },
       }));
     },
   });
@@ -77,20 +73,10 @@ export function useEmailNotifications(): UseEmailNotificationsResult {
     isLoading: hydrated && Boolean(userId) && isPending,
     isSaving: mutation.isPending,
     setChannel: (channel, value) => {
-      // Ignore the click until the saved value is known, or the PATCH would
-      // build from `undefined` and drop the sibling channel.
-      if (data === undefined) {
-        return;
-      }
-      mutation.mutate(buildEmailNotificationPatch(data.emailNotifications, channel, value));
+      mutation.mutate({ [channel]: value });
     },
     setCadence: (cadence) => {
-      // Same guard as setChannel: wait for the saved object before merging so we
-      // don't drop the sibling toggles.
-      if (data === undefined) {
-        return;
-      }
-      mutation.mutate(buildTradeRequestCadencePatch(data.emailNotifications, cadence));
+      mutation.mutate({ tradeRequestCadence: cadence });
     },
   };
 }

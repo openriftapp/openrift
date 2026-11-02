@@ -30,11 +30,13 @@ const mockPodTournamentsRepo = {
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
-  c.set("repos", {
+  const repos = {
     tournaments: mockTournamentsRepo,
     podTournaments: mockPodTournamentsRepo,
     // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
-  } as any);
+  } as any;
+  c.set("repos", repos);
+  c.set("transact", ((fn: (trxRepos: unknown) => unknown) => fn(repos)) as never);
   await next();
 });
 registerRouterForTest(app, publicPodTournamentsRouter);

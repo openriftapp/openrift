@@ -351,6 +351,14 @@ export async function createSelfSubmittedEntry(
     // account above and keeps their existing status.
     status: "requested",
   });
+  await repos.tournaments.lockParticipant(participant.id);
+  if (await repos.deckCheck.participantHasDeck(participant.id)) {
+    throw new AppError(
+      409,
+      ERROR_CODES.CONFLICT,
+      "A judge already entered a deck for your spot. Contact a judge.",
+    );
+  }
   const entry = await repos.deckCheck.createEntry({
     tournamentId: event.id,
     participantId: participant.id,

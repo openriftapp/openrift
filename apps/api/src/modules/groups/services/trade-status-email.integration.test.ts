@@ -171,7 +171,7 @@ describe.skipIf(!ctx)("trade-status emails (integration)", () => {
   }
 
   async function requestBoth(group: { slug: string }): Promise<{ first: string; second: string }> {
-    const first = await createTrade(repos, {
+    const first = await createTrade(transact, {
       callerUserId: RECEIVER_ID,
       groupSlug: group.slug,
       counterpartyUserId: GIVER_ID,
@@ -179,7 +179,7 @@ describe.skipIf(!ctx)("trade-status emails (integration)", () => {
       printingId: PRINTING_1.id,
       quantity: 1,
     });
-    const second = await createTrade(repos, {
+    const second = await createTrade(transact, {
       callerUserId: RECEIVER_ID,
       groupSlug: group.slug,
       counterpartyUserId: GIVER_ID,

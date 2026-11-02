@@ -987,6 +987,32 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
     expect(locked.status).toBe(400);
   });
 
+  it("applies a double-submitted seat edit once, with every group seated", async () => {
+    const id = await createTournament({ name: "Seat Edit Twice", cutSize: 4 });
+    await addPlayers(id, 8);
+    const generated = await host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
+    expect(generated.status).toBe(200);
+    const beforeState = await run(id);
+    const [a, b] = beforeState.groupStage!.groups;
+    const swapped = [
+      { label: a!.label, playerIds: [b!.playerIds[0]!, ...a!.playerIds.slice(1)] },
+      { label: b!.label, playerIds: [a!.playerIds[0]!, ...b!.playerIds.slice(1)] },
+    ];
+
+    const edits = await Promise.all([
+      host.app.fetch(req("PUT", `/tournaments/${id}/groups`, { groups: swapped })),
+      host.app.fetch(req("PUT", `/tournaments/${id}/groups`, { groups: swapped })),
+    ]);
+
+    expect(edits.map((res) => res.status)).toEqual([200, 200]);
+    const after = await run(id);
+    expect(after.groupStage!.groups.map((group) => group.playerIds)).toEqual(
+      swapped.map((group) => group.playerIds),
+    );
+    const roundOne = after.rounds.find((round) => round.roundNumber === 1)!;
+    expect(roundOne.pods.flatMap((pod) => pod.members)).toHaveLength(8);
+  });
+
   it("clears the seeds and leaves no orphan pods when the cut is re-rolled", async () => {
     const id = await createTournament({ name: "Reroll Cut", cutSize: 4 });
     await addPlayers(id, 8);

@@ -12,6 +12,7 @@ const mockRepo = {
   getById: vi.fn(),
   getBySlug: vi.fn(),
   getMaxSortOrderForParent: vi.fn(),
+  lockSortOrder: vi.fn(async () => undefined),
   update: vi.fn(),
   hasChildren: vi.fn(),
   countInUse: vi.fn(),
@@ -25,6 +26,7 @@ const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
   c.set("repos", { distributionChannels: mockRepo } as never);
+  c.set("transact", ((fn: (r: unknown) => unknown) => fn(c.get("repos"))) as never);
   await next();
 });
 registerRouterForTest(app, adminDistributionChannelsRouter);

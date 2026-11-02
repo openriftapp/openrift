@@ -178,6 +178,38 @@ describe.skipIf(!ctx)("cross-mirror player links", () => {
     });
   });
 
+  describe("metaPlayerLinks.putMany", () => {
+    it("swaps the rows two links point at in one write", async () => {
+      const { metaEventId } = await seedTwoMirrors("mcs-swap", [
+        { playerKey: "a", playerName: "MCS Ashe", rank: 1 },
+        { playerKey: "b", playerName: "MCS Jinx", rank: 2 },
+      ]);
+      const players = await repo.adminPlayersForEvent(metaEventId);
+      const ashe = players.find((player) => player.playerName === "MCS Ashe")?.id ?? "";
+      const jinx = players.find((player) => player.playerName === "MCS Jinx")?.id ?? "";
+      await repos.metaPlayerLinks.putMany([
+        { metaEventId, provider: "topdeck", sourceIdentity: "ta", metaEventPlayerId: ashe },
+        { metaEventId, provider: "topdeck", sourceIdentity: "tb", metaEventPlayerId: jinx },
+      ]);
+
+      await repos.metaPlayerLinks.putMany([
+        { metaEventId, provider: "topdeck", sourceIdentity: "ta", metaEventPlayerId: jinx },
+        { metaEventId, provider: "topdeck", sourceIdentity: "tb", metaEventPlayerId: ashe },
+      ]);
+
+      const links = await db
+        .selectFrom("metaPlayerLinks")
+        .select(["sourceIdentity", "metaEventPlayerId"])
+        .where("metaEventId", "=", metaEventId)
+        .orderBy("sourceIdentity")
+        .execute();
+      expect(links).toEqual([
+        { sourceIdentity: "ta", metaEventPlayerId: jinx },
+        { sourceIdentity: "tb", metaEventPlayerId: ashe },
+      ]);
+    });
+  });
+
   describe("setMetaEventSourceContributes", () => {
     it("refuses to read a mirror while any of its entries is undecided", async () => {
       const { metaEventId, topdeckSourceId } = await seedTwoMirrors("mcs-gate", [

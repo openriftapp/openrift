@@ -4,7 +4,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { SetsTable } from "../../../db/tables/catalog.js";
-import { reorderBySortOrder } from "../../../repositories/query-helpers.js";
+import { reorderBySortOrder, withKeyLock } from "../../../repositories/query-helpers.js";
 
 export function setsRepo(db: Kysely<Database>) {
   return {
@@ -53,28 +53,26 @@ export function setsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    /**
-     * Atomically inserts a set if its slug doesn't already exist.
-     * Computes sortOrder inline (max + 1) to avoid a check-then-insert race.
-     */
     async createIfNotExists(values: {
       slug: string;
       name: string;
       printedTotal: number | null;
       setType: "main" | "supplemental";
     }): Promise<string | null> {
-      const result = await db
-        .insertInto("sets")
-        .values({
-          slug: values.slug,
-          name: values.name,
-          printedTotal: values.printedTotal,
-          setType: values.setType,
-          sortOrder: sql<number>`coalesce((select max(sort_order) from sets), 0) + 1`,
-        })
-        .onConflict((oc) => oc.column("slug").doNothing())
-        .returning("id")
-        .executeTakeFirst();
+      const result = await withKeyLock(db, "sort:sets", (trx) =>
+        trx
+          .insertInto("sets")
+          .values({
+            slug: values.slug,
+            name: values.name,
+            printedTotal: values.printedTotal,
+            setType: values.setType,
+            sortOrder: sql<number>`coalesce((select max(sort_order) from sets), 0) + 1`,
+          })
+          .onConflict((oc) => oc.column("slug").doNothing())
+          .returning("id")
+          .executeTakeFirst(),
+      );
 
       return result?.id ?? null;
     },
@@ -197,21 +195,19 @@ export function setsRepo(db: Kysely<Database>) {
       });
     },
 
-    /**
-     * `sort_order` has no unique constraint: two ingests naming different new
-     * sets can tie on `max(sort_order)`, which the admin reorder fixes.
-     */
     async upsert(slug: string, name: string): Promise<void> {
-      await db
-        .insertInto("sets")
-        .values({
-          slug,
-          name,
-          printedTotal: 0,
-          sortOrder: sql<number>`coalesce((select max(sort_order) from sets), 0) + 1`,
-        })
-        .onConflict((oc) => oc.column("slug").doNothing())
-        .execute();
+      await withKeyLock(db, "sort:sets", (trx) =>
+        trx
+          .insertInto("sets")
+          .values({
+            slug,
+            name,
+            printedTotal: 0,
+            sortOrder: sql<number>`coalesce((select max(sort_order) from sets), 0) + 1`,
+          })
+          .onConflict((oc) => oc.column("slug").doNothing())
+          .execute(),
+      );
     },
   };
 }

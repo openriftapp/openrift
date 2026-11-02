@@ -64,20 +64,32 @@ export function createMediaUploadStore(options: {
         uploadTimesByUser.set(userId, recent);
         return { status: "rate_limited", limit: options.dailyLimit };
       }
-
-      const encoded = await options.encode(io, buffer);
-      if (!encoded) {
-        return { status: "not_an_image" };
-      }
-
-      const name = `${uuidv7()}.${encoded.ext}`;
-      await io.fs.mkdir(dir, { recursive: true });
-      await io.fs.writeFile(join(dir, name), encoded.data);
-
-      recent.push(now.getTime());
+      const slot = now.getTime();
+      recent.push(slot);
       uploadTimesByUser.set(userId, recent);
+      const release = () => {
+        const current = uploadTimesByUser.get(userId) ?? [];
+        const index = current.indexOf(slot);
+        if (index !== -1) {
+          current.splice(index, 1);
+        }
+      };
 
-      return { status: "ok", url: `${urlPrefix}${name}` };
+      try {
+        const encoded = await options.encode(io, buffer);
+        if (!encoded) {
+          release();
+          return { status: "not_an_image" };
+        }
+
+        const name = `${uuidv7()}.${encoded.ext}`;
+        await io.fs.mkdir(dir, { recursive: true });
+        await io.fs.writeFile(join(dir, name), encoded.data);
+        return { status: "ok", url: `${urlPrefix}${name}` };
+      } catch (error) {
+        release();
+        throw error;
+      }
     },
     async remove(io, url) {
       // oxlint-disable-next-line no-empty-function -- swallow missing-file errors

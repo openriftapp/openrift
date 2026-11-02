@@ -96,6 +96,7 @@ function harness(options: HarnessOptions = {}) {
     },
     uvsgamesResults: { namedStandings: vi.fn().mockResolvedValue(STANDINGS) },
     meta: {
+      lockTournamentLists: vi.fn().mockResolvedValue(undefined),
       eventBySourceKey: vi
         .fn()
         .mockResolvedValue(

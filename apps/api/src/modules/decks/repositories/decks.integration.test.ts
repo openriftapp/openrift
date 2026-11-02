@@ -268,6 +268,34 @@ describe.skipIf(!ctx)("decksRepo (integration)", () => {
     expect(cards).toEqual([]);
   });
 
+  it("keeps the first live share token when two enables race", async () => {
+    const deckId = createdDeckIds[1]!;
+    await repo.setShareToken(deckId, userId, null, false);
+
+    const [first, second] = await Promise.all([
+      repo.setShareToken(deckId, userId, "raceTokenAAA", true),
+      repo.setShareToken(deckId, userId, "raceTokenBBB", true),
+    ]);
+
+    expect(first?.shareToken).toBe(second?.shareToken);
+    await repo.setShareToken(deckId, userId, null, false);
+  });
+
+  it("lets concurrent replaces of the same deck's cards all succeed", async () => {
+    const deckId = createdDeckIds[0]!;
+    const cards = [
+      { cardId: seedCardId, zone: "main" as const, quantity: 3, preferredPrintingId: null },
+    ];
+    await repo.replaceCards(deckId, cards);
+
+    const results = await Promise.allSettled(
+      Array.from({ length: 8 }, () => repo.replaceCards(deckId, cards)),
+    );
+
+    expect(results.filter((result) => result.status === "rejected")).toEqual([]);
+    expect(await repo.cardsWithDetails(deckId, userId)).toHaveLength(1);
+  });
+
   it("stamps the deck when a card row alone changes, as an admin printing deletion does", async () => {
     const deckId = createdDeckIds[0]!;
     await repo.replaceCards(deckId, [

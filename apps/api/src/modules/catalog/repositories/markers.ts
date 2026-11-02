@@ -2,7 +2,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { reorderBySortOrder } from "../../../repositories/query-helpers.js";
+import { lockKey, reorderBySortOrder } from "../../../repositories/query-helpers.js";
 
 export function markersRepo(db: Kysely<Database>) {
   return {
@@ -23,6 +23,11 @@ export function markersRepo(db: Kysely<Database>) {
         return Promise.resolve([]);
       }
       return db.selectFrom("markers").selectAll().where("slug", "in", slugs).execute();
+    },
+
+    /** Call inside a transaction. */
+    async lockSortOrder(): Promise<void> {
+      await lockKey(db, "sort:markers");
     },
 
     async getMaxSortOrder(): Promise<number> {

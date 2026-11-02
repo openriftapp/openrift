@@ -12,6 +12,7 @@ import type {
   TournamentStatus,
 } from "@openrift/shared/types/api/tournament";
 import type { Kysely } from "kysely";
+import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { Tournament } from "./tournaments-shared.js";
@@ -101,6 +102,14 @@ export function tournamentsCoreRepo(db: Kysely<Database>) {
         .where("id", "=", id)
         .executeTakeFirst();
       return row;
+    },
+
+    /**
+     * Call inside a transaction: serializes round edits of one tournament. Same key as
+     * the group-stage writers' lock in tournament-groups.ts, so the two exclude each other.
+     */
+    async lockRounds(id: string): Promise<void> {
+      await sql`select pg_advisory_xact_lock(hashtext(${id}))`.execute(db);
     },
 
     async listForGroup(groupId: string): Promise<Tournament[]> {

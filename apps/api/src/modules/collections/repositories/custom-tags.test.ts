@@ -10,13 +10,14 @@ describe("customTagsRepo.setForCard", () => {
     await customTagsRepo(db).setForCard("card-1", ["tag-a", "tag-b"]);
 
     expect(events).toEqual(["begin", "commit"]);
-    expect(queries).toHaveLength(2);
-    expect(queries[0]).toContain('delete from "card_custom_tags"');
-    expect(queries[1]).toContain('insert into "card_custom_tags"');
+    expect(queries).toHaveLength(3);
+    expect(queries[0]).toContain("for update");
+    expect(queries[1]).toContain('delete from "card_custom_tags"');
+    expect(queries[2]).toContain('insert into "card_custom_tags"');
   });
 
   it("rolls back when the insert fails, leaving the old tags in place", async () => {
-    const { db, events } = createRecordingDb([[], new Error("unique violation")]);
+    const { db, events } = createRecordingDb([[], [], new Error("unique violation")]);
 
     await expect(customTagsRepo(db).setForCard("card-1", ["tag-a"])).rejects.toThrow(
       "unique violation",
@@ -29,8 +30,8 @@ describe("customTagsRepo.setForCard", () => {
 
     await customTagsRepo(db).setForCard("card-1", []);
 
-    expect(queries).toHaveLength(1);
-    expect(queries[0]).toContain('delete from "card_custom_tags"');
+    expect(queries).toHaveLength(2);
+    expect(queries[1]).toContain('delete from "card_custom_tags"');
     expect(events).toEqual(["begin", "commit"]);
   });
 

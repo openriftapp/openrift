@@ -2,6 +2,7 @@ import { collectionsContract } from "@openrift/shared/contracts/collections";
 import type {
   ClearCollectionResponse,
   CollectionListResponse,
+  CollectionPurpose,
   CollectionResponse,
   CollectionShareResponse,
   CopyListResponse,
@@ -14,6 +15,7 @@ import type { Updateable } from "kysely";
 import type { CollectionsTable } from "../../../db/tables/collections.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { keysetPage } from "../../../lib/keyset-cursor.js";
+import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { enableShare } from "../../../lib/share-token.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -103,30 +105,50 @@ export const collectionsRouter = {
     // name ordering in `listAccessibleForUser`). Personal collections get
     // appended to the user's list via max+1.
     const purpose = groupId ? null : (input.purpose ?? null);
+    const purposeCollection = async (wanted: CollectionPurpose) => {
+      const existingId = await collections.idForPurpose(userId, wanted);
+      if (existingId === undefined) {
+        return;
+      }
+      const accessible = await collections.listAccessibleForUser(userId);
+      const [existing] = await presentCollections(
+        context.repos,
+        userId,
+        accessible.filter((collection) => collection.id === existingId),
+      );
+      assertFound(existing, "Collection not found");
+      return existing;
+    };
     if (purpose !== null) {
-      const existingId = await collections.idForPurpose(userId, purpose);
-      if (existingId !== undefined) {
-        const accessible = await collections.listAccessibleForUser(userId);
-        const [existing] = await presentCollections(
-          context.repos,
-          userId,
-          accessible.filter((collection) => collection.id === existingId),
-        );
-        assertFound(existing, "Collection not found");
+      const existing = await purposeCollection(purpose);
+      if (existing) {
         return existing;
       }
     }
-    const sortOrder = groupId ? 0 : await collections.nextPersonalSortOrder(userId);
-    const row = await collections.createUnlessIdTaken({
-      id: input.id,
-      userId: groupId ? null : userId,
-      groupId,
-      name: input.name,
-      description: input.description ?? null,
-      isInbox: false,
-      sortOrder,
-      purpose,
-    });
+    let row;
+    try {
+      row = await context.transact(async ({ collections: trxCollections }) => {
+        await trxCollections.lockSortOrder(userId);
+        return trxCollections.createUnlessIdTaken({
+          id: input.id,
+          userId: groupId ? null : userId,
+          groupId,
+          name: input.name,
+          description: input.description ?? null,
+          isInbox: false,
+          sortOrder: groupId ? 0 : await trxCollections.nextPersonalSortOrder(userId),
+          purpose,
+        });
+      });
+    } catch (error) {
+      if (purpose !== null && isUniqueViolationOn(error, "uq_collections_user_purpose")) {
+        const existing = await purposeCollection(purpose);
+        if (existing) {
+          return existing;
+        }
+      }
+      throw error;
+    }
     if (!row) {
       const accessible = await collections.listAccessibleForUser(userId);
       // Membership is not ownership: a visible group collection is not this caller's create.
@@ -224,11 +246,14 @@ export const collectionsRouter = {
     }
 
     if (collection.groupId) {
-      const copies = await repos.collections.listCopiesInCollection(input.id);
-      if (copies.length > 0) {
-        throw errors.CONFLICT({ message: "Empty the shared collection before deleting it" });
-      }
-      await repos.collections.deleteById(input.id);
+      await transact(async (trxRepos) => {
+        await trxRepos.collections.lockById(input.id);
+        const copies = await trxRepos.collections.listCopiesInCollection(input.id);
+        if (copies.length > 0) {
+          throw errors.CONFLICT({ message: "Empty the shared collection before deleting it" });
+        }
+        await trxRepos.collections.deleteById(input.id);
+      });
       return;
     }
 

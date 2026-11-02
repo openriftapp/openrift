@@ -223,20 +223,23 @@ export const tournamentDeckCheckRouter = {
         `Unknown deck section: ${input.section}`,
       );
     }
-    const existing = await repos.deckCheck.listCardsForEntry(entry.id);
     const resolutions = await resolveDeckCheckCards(repos, [{ name: input.name }]);
     const resolution = resolutions.get(cardResolutionKey(input.name)) ?? {
       resolvedCardId: null,
       resolvedPrintingId: null,
       matchStatus: "unmatched" as const,
     };
-    await repos.deckCheck.addEntryCard(entry.id, {
-      sortOrder: (existing.at(-1)?.sortOrder ?? -1) + 1,
-      rawName: input.name,
-      section: input.section,
-      zone,
-      quantity: input.quantity,
-      ...resolution,
+    await context.transact(async ({ deckCheck }) => {
+      await deckCheck.lockCardOrder(entry.id);
+      const existing = await deckCheck.listCardsForEntry(entry.id);
+      await deckCheck.addEntryCard(entry.id, {
+        sortOrder: (existing.at(-1)?.sortOrder ?? -1) + 1,
+        rawName: input.name,
+        section: input.section,
+        zone,
+        quantity: input.quantity,
+        ...resolution,
+      });
     });
     await recomputeEntryHash(repos, entry.id);
     const reloaded = await loadEntry(repos, event, input.entryId);

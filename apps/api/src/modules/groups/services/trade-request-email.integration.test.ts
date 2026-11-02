@@ -1,7 +1,7 @@
 import { createLogger } from "@openrift/shared/logger";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createRepos } from "../../../deps.js";
+import { createRepos, createTransact } from "../../../deps.js";
 import type { EmailDeps } from "../../../email.js";
 import { PRINTING_1 } from "../../../test/fixtures/constants.js";
 import { createDbContext } from "../../../test/integration-context.js";
@@ -20,6 +20,7 @@ const ctx = createDbContext(GIVER_ID);
 describe.skipIf(!ctx)("trade-request email (integration)", () => {
   const { db } = ctx!;
   const repos = createRepos(db);
+  const transact = createTransact(db);
   const groupsRepo = friendGroupsRepo(db);
   const createdGroupIds: string[] = [];
 
@@ -167,7 +168,7 @@ describe.skipIf(!ctx)("trade-request email (integration)", () => {
 
   function requestAsReceiver(group: { slug: string }, deps?: EmailDeps) {
     return createTrade(
-      repos,
+      transact,
       {
         callerUserId: RECEIVER_ID,
         groupSlug: group.slug,
@@ -182,7 +183,7 @@ describe.skipIf(!ctx)("trade-request email (integration)", () => {
 
   function offerAsGiver(group: { slug: string }, deps?: EmailDeps) {
     return createTrade(
-      repos,
+      transact,
       {
         callerUserId: GIVER_ID,
         groupSlug: group.slug,

@@ -111,6 +111,27 @@ describe.skipIf(!ctx)("Preferences routes (integration)", () => {
       const fetchedJson = parsePrefs(await readJson(fetched));
       expect((fetchedJson.emailNotifications as { tradeStatus?: boolean }).tradeStatus).toBe(false);
     });
+
+    it.skipIf(!emailPrefCtx)("keeps both of two channel toggles sent at once", async () => {
+      // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
+      const emailApp = emailPrefCtx!.app;
+      const responses = await Promise.all([
+        emailApp.fetch(
+          req("PATCH", "/preferences", { emailNotifications: { tradeMatches: true } }),
+        ),
+        emailApp.fetch(
+          req("PATCH", "/preferences", { emailNotifications: { tradeRequests: false } }),
+        ),
+      ]);
+      expect(responses.map((res) => res.status)).toEqual([200, 200]);
+
+      const fetched = parsePrefs(await readJson(await emailApp.fetch(req("GET", "/preferences"))));
+      expect(fetched.emailNotifications).toMatchObject({
+        tradeStatus: false,
+        tradeMatches: true,
+        tradeRequests: false,
+      });
+    });
   });
 
   describe("auth enforcement", () => {

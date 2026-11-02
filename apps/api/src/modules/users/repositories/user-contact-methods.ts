@@ -3,7 +3,7 @@ import type { Kysely, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { reorderBySortOrder } from "../../../repositories/query-helpers.js";
+import { reorderBySortOrder, withKeyLock } from "../../../repositories/query-helpers.js";
 
 /** All writes are scoped by `userId` so a caller can only touch their own rows. */
 export function userContactMethodsRepo(db: Kysely<Database>) {
@@ -19,18 +19,20 @@ export function userContactMethodsRepo(db: Kysely<Database>) {
     },
 
     /** Appends a method after the user's existing ones. */
-    async create(userId: string, type: ContactMethodType, value: string): Promise<ContactMethod> {
-      const next = await db
-        .selectFrom("userContactMethods")
-        .select((eb) => eb.fn.coalesce(eb.fn.max("sortOrder"), eb.lit(-1)).as("maxOrder"))
-        .where("userId", "=", userId)
-        .executeTakeFirstOrThrow();
+    create(userId: string, type: ContactMethodType, value: string): Promise<ContactMethod> {
+      return withKeyLock(db, `sort:contact-methods:${userId}`, async (trx) => {
+        const next = await trx
+          .selectFrom("userContactMethods")
+          .select((eb) => eb.fn.coalesce(eb.fn.max("sortOrder"), eb.lit(-1)).as("maxOrder"))
+          .where("userId", "=", userId)
+          .executeTakeFirstOrThrow();
 
-      return db
-        .insertInto("userContactMethods")
-        .values({ userId, type, value, sortOrder: Number(next.maxOrder) + 1 })
-        .returning(["id", "type", "value"])
-        .executeTakeFirstOrThrow();
+        return trx
+          .insertInto("userContactMethods")
+          .values({ userId, type, value, sortOrder: Number(next.maxOrder) + 1 })
+          .returning(["id", "type", "value"])
+          .executeTakeFirstOrThrow();
+      });
     },
 
     /** Returns `undefined` if the user owns no such method. */

@@ -7,7 +7,7 @@ import type {
   TopdeckEventStandingsTable,
 } from "../../../db/tables/meta-sources.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
-import { inTransaction } from "../../../repositories/query-helpers.js";
+import { inTransaction, lockKey } from "../../../repositories/query-helpers.js";
 
 export type TopdeckStandingRow = Selectable<TopdeckEventStandingsTable>;
 export type TopdeckDecklistCardRow = Selectable<TopdeckDecklistCardsTable>;
@@ -30,6 +30,7 @@ export function topdeckResultsRepo(db: Kysely<Database>) {
       rows: readonly Insertable<TopdeckEventStandingsTable>[],
     ): Promise<void> {
       await inTransaction(db, async (trx) => {
+        await lockKey(trx, `topdeck-event:${tid}`);
         await trx.deleteFrom("topdeckEventStandings").where("tid", "=", tid).execute();
         for (const batch of rowBatches(rows)) {
           await trx.insertInto("topdeckEventStandings").values(batch).execute();

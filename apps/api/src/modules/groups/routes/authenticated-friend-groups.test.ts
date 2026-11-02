@@ -290,6 +290,28 @@ describe("friend-groups route", () => {
     expect(res.status).toBe(409);
   });
 
+  it("POST / answers 409 when a concurrent create takes the slug after the check", async () => {
+    const { app } = makeApp({
+      friendGroups: {
+        getBySlug: vi.fn(() => Promise.resolve(undefined)),
+        createWithOwner: vi.fn(() =>
+          Promise.reject(
+            Object.assign(new Error("duplicate"), {
+              code: "23505",
+              constraint_name: "friend_groups_slug_key",
+            }),
+          ),
+        ),
+      },
+    });
+    const res = await app.request("/api/v1/friend-groups", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slug: "playgroup", name: "Tuesday Crew" }),
+    });
+    expect(res.status).toBe(409);
+  });
+
   it("POST / rejects a reserved slug with 400", async () => {
     const { app } = makeApp({});
     const res = await app.request("/api/v1/friend-groups", {
@@ -718,6 +740,22 @@ describe("friend-groups route", () => {
       body: JSON.stringify({ userId: USER_ID }),
     });
     expect(res.status).toBe(400);
+  });
+
+  it("POST /{slug}/transfer-ownership answers 409 when a concurrent transfer won", async () => {
+    const { app } = makeApp({
+      friendGroups: {
+        getBySlug: vi.fn(() => Promise.resolve(group)),
+        getMembership: vi.fn(() => Promise.resolve(ownerMembership)),
+        transferOwnership: vi.fn(() => Promise.resolve(false)),
+      },
+    });
+    const res = await app.request("/api/v1/friend-groups/playgroup/transfer-ownership", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ userId: OTHER_ID }),
+    });
+    expect(res.status).toBe(409);
   });
 
   it("POST /{slug}/transfer-ownership rejects non-member targets", async () => {

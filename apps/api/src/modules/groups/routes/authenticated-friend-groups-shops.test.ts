@@ -40,6 +40,7 @@ function makeApp(overrides: {
   };
   const friendGroupShops = {
     listShops: vi.fn(() => Promise.resolve([])),
+    lockShops: vi.fn(() => Promise.resolve()),
     countShops: vi.fn(() => Promise.resolve(0)),
     searchShops: vi.fn(() => Promise.resolve([])),
     linkShop: vi.fn(() => Promise.resolve()),
@@ -52,7 +53,9 @@ function makeApp(overrides: {
   const app = new Hono<{ Variables: Variables }>();
   app.use("*", async (c, next) => {
     c.set("user", { id: USER_ID } as never);
-    c.set("repos", { friendGroups, friendGroupShops } as never);
+    const repos = { friendGroups, friendGroupShops };
+    c.set("repos", repos as never);
+    c.set("transact", ((fn: (r: unknown) => unknown) => fn(repos)) as never);
     await next();
   });
   registerRouterForTest(app as never, friendGroupsShopsRouter);
@@ -244,6 +247,7 @@ describe("friend-group shops route", () => {
       body: JSON.stringify({ shopKey: "uvsgames:42" }),
     });
     expect(res.status).toBe(409);
+    expect(friendGroupShops.lockShops).toHaveBeenCalledBefore(friendGroupShops.countShops);
     expect(friendGroupShops.linkShop).not.toHaveBeenCalled();
   });
 

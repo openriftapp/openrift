@@ -42,12 +42,12 @@ export function overlayChannelsRepo(db: Kysely<Database>) {
   }
 
   return {
-    async getByUserId(userId: string): Promise<OverlayChannel | undefined> {
-      const row = await db
-        .selectFrom("overlayChannels")
-        .selectAll()
-        .where("userId", "=", userId)
-        .executeTakeFirst();
+    async getByUserId(
+      userId: string,
+      options?: { forUpdate?: boolean },
+    ): Promise<OverlayChannel | undefined> {
+      const query = db.selectFrom("overlayChannels").selectAll().where("userId", "=", userId);
+      const row = await (options?.forUpdate ? query.forUpdate() : query).executeTakeFirst();
       return row ? toChannel(row) : undefined;
     },
 

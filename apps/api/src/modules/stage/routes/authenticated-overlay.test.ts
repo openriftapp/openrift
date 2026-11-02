@@ -52,7 +52,9 @@ const mockRepo = {
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
-  c.set("repos", { overlayChannels: mockRepo } as never);
+  const repos = { overlayChannels: mockRepo };
+  c.set("repos", repos as never);
+  c.set("transact", ((fn: (r: unknown) => unknown) => fn(repos)) as never);
   await next();
 });
 registerRouterForTest(app, overlayRouter);

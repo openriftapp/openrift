@@ -340,6 +340,29 @@ describe.skipIf(!ctx)("Lists routes (integration)", () => {
       expect(destDetail.entries[0]).toMatchObject({ kind: "card", quantity: 3 });
     });
 
+    it("applies a double-clicked merge move once", async () => {
+      const source = await createList("Move twice source", "wish", "card");
+      const dest = await createList("Move twice dest", "wish", "card");
+      await app.fetch(
+        req("POST", `/lists/${dest}/entries`, { cardId: CARD_FURY_UNIT.id, quantity: 2 }),
+      );
+      const createRes = await app.fetch(
+        req("POST", `/lists/${source}/entries`, { cardId: CARD_FURY_UNIT.id, quantity: 3 }),
+      );
+      const created = (await readJson(createRes)) as { id: string };
+      const body = { toListId: dest, entryIds: [created.id] };
+
+      const responses = await Promise.all([
+        app.fetch(req("POST", `/lists/${source}/entries/move`, body)),
+        app.fetch(req("POST", `/lists/${source}/entries/move`, body)),
+      ]);
+
+      expect(responses.map((res) => res.status)).toEqual([200, 200]);
+      const destRes = await app.fetch(req("GET", `/lists/${dest}`));
+      const destDetail = (await readJson(destRes)) as { entries: { quantity: number }[] };
+      expect(destDetail.entries.map((entry) => entry.quantity)).toEqual([5]);
+    });
+
     it("merges quantities when the destination already has an entry for the same card", async () => {
       const source = await createList("Move merge source", "wish", "card");
       const dest = await createList("Move merge dest", "wish", "card");

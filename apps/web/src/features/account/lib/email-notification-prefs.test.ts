@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  buildEmailNotificationPatch,
-  buildTradeRequestCadencePatch,
-  resolveEmailNotificationGates,
-} from "./email-notification-prefs";
+import { resolveEmailNotificationGates } from "./email-notification-prefs";
 
 describe("resolveEmailNotificationGates", () => {
   it("applies per-setting defaults when the key is absent", () => {
@@ -85,47 +81,5 @@ describe("resolveEmailNotificationGates", () => {
     expect(
       resolveEmailNotificationGates({ tradeRequestCadence: "30min" }).tradeRequestCadence,
     ).toBe("30min");
-  });
-});
-
-describe("buildTradeRequestCadencePatch", () => {
-  it("sets the cadence when there is no prior object", () => {
-    expect(buildTradeRequestCadencePatch(undefined, "instant")).toEqual({
-      tradeRequestCadence: "instant",
-    });
-  });
-
-  it("preserves the channel toggles while changing the cadence", () => {
-    expect(
-      buildTradeRequestCadencePatch(
-        { tradeRequests: false, tradeMatches: true, tradeRequestCadence: "5min" },
-        "60min",
-      ),
-    ).toEqual({ tradeRequests: false, tradeMatches: true, tradeRequestCadence: "60min" });
-  });
-});
-
-describe("buildEmailNotificationPatch", () => {
-  it("sets the channel when there is no prior object", () => {
-    expect(buildEmailNotificationPatch(undefined, "tradeMatches", true)).toEqual({
-      tradeMatches: true,
-    });
-  });
-
-  it("preserves the sibling channel's explicit value", () => {
-    expect(buildEmailNotificationPatch({ tradeRequests: false }, "tradeMatches", true)).toEqual({
-      tradeRequests: false,
-      tradeMatches: true,
-    });
-  });
-
-  it("overwrites only the named channel", () => {
-    expect(
-      buildEmailNotificationPatch(
-        { tradeMatches: true, tradeRequests: true },
-        "tradeMatches",
-        false,
-      ),
-    ).toEqual({ tradeMatches: false, tradeRequests: true });
   });
 });

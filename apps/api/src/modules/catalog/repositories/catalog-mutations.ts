@@ -62,6 +62,10 @@ const FACE_FIELDS = new Set<string>([
 export type FullPrintingRow = Selectable<PrintingsTable> &
   Omit<Selectable<FacesTable>, "id" | "createdAt" | "updatedAt" | "comment">;
 
+async function lockCard(trx: Kysely<Database>, cardId: string): Promise<void> {
+  await trx.selectFrom("cards").select("id").where("id", "=", cardId).forUpdate().execute();
+}
+
 export function selectFullPrintings(db: Kysely<Database>, side: 1 | 2 = 1) {
   return db
     .selectFrom("printings as p")
@@ -408,6 +412,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       // validator let through) would leave the delete committed and the card
       // stripped of all its domains.
       await inTransaction(db, async (trx) => {
+        await lockCard(trx, cardId);
         await trx.deleteFrom("cardDomains").where("cardId", "=", cardId).execute();
         if (domains.length > 0) {
           await trx
@@ -433,6 +438,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       // and outside a transaction each statement commits on its own — the bare
       // delete would be rejected before the insert runs.
       await inTransaction(db, async (trx) => {
+        await lockCard(trx, cardId);
         await trx.deleteFrom("cardCardTypes").where("cardId", "=", cardId).execute();
         await trx
           .insertInto("cardCardTypes")
@@ -444,6 +450,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
     async replaceCardSuperTypesById(cardId: string, superTypes: string[]): Promise<void> {
       // Same transactional pairing as replaceCardDomainsById above.
       await inTransaction(db, async (trx) => {
+        await lockCard(trx, cardId);
         await trx.deleteFrom("cardSuperTypes").where("cardId", "=", cardId).execute();
         if (superTypes.length > 0) {
           await trx

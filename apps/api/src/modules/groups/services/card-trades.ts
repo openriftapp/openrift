@@ -164,10 +164,22 @@ async function assertRequestableCopies(
 }
 
 export async function createTrade(
-  repos: Repos,
+  transact: Transact,
   input: CreateTradeInput,
   emailDeps?: EmailDeps,
 ): Promise<CardTradeResponse> {
+  const created = await transact((trxRepos) => createTradeLocked(trxRepos, input));
+  return transact(async (repos) => {
+    // Best-effort (the helper swallows its own errors) so a mail failure can
+    // never fail the trade — the bell stays the source of truth.
+    if (emailDeps !== undefined) {
+      await sendTradeRequestEmail(repos, created, emailDeps);
+    }
+    return reloadDto(repos, created.id, input.callerUserId);
+  });
+}
+
+async function createTradeLocked(repos: Repos, input: CreateTradeInput): Promise<LiveCardTrade> {
   const {
     callerUserId,
     groupSlug,
@@ -212,12 +224,51 @@ export async function createTrade(
   if (!primaryMatch) {
     throw new AppError(409, ERROR_CODES.CONFLICT, "That card is no longer available to trade");
   }
+  await repos.cardTrades.lockSupply(group.id, giverUserId, printingId);
+  return createCheckedTrade(repos, {
+    groupId: group.id,
+    callerUserId,
+    giverUserId,
+    receiverUserId,
+    role,
+    printingId,
+    quantity,
+    copyIds,
+    primaryMatch,
+  });
+}
+
+async function createCheckedTrade(
+  repos: Repos,
+  args: {
+    groupId: string;
+    callerUserId: string;
+    giverUserId: string;
+    receiverUserId: string;
+    role: CardTradeRole;
+    printingId: string;
+    quantity: number;
+    copyIds: string[] | undefined;
+    primaryMatch: { cardId: string; buyEntryId: string | null; buyQuantity: number };
+  },
+): Promise<LiveCardTrade> {
+  const {
+    groupId,
+    callerUserId,
+    giverUserId,
+    receiverUserId,
+    role,
+    printingId,
+    quantity,
+    copyIds,
+  } = args;
+  const { primaryMatch } = args;
   const { buyEntryId: receiverWishEntryId, buyQuantity: demandQuantity } = primaryMatch;
 
   // Must run before the supply check: its own pending offer holds the copy,
   // which would pass the supply check and mask this one.
   const existing = await repos.cardTrades.getLiveTrade(
-    group.id,
+    groupId,
     giverUserId,
     receiverUserId,
     printingId,
@@ -226,7 +277,7 @@ export async function createTrade(
     throw new AppError(409, ERROR_CODES.CONFLICT, "A live trade for this card already exists");
   }
 
-  await assertSupplyAvailable(repos, group.id, giverUserId, printingId, quantity);
+  await assertSupplyAvailable(repos, groupId, giverUserId, printingId, quantity);
   // Never trade more than the wanting side wants — over-trading would
   // over-credit copies and drive the wishlist negative on sync.
   const raisesWish = role === "receiver" && receiverWishEntryId !== null;
@@ -242,7 +293,7 @@ export async function createTrade(
 
   if (copyIds !== undefined) {
     await assertRequestableCopies(repos, {
-      groupId: group.id,
+      groupId,
       giverUserId,
       printingId,
       quantity,
@@ -255,7 +306,7 @@ export async function createTrade(
   let created: LiveCardTrade;
   try {
     created = await repos.cardTrades.create({
-      groupId: group.id,
+      groupId,
       giverUserId,
       receiverUserId,
       initiator: role,
@@ -280,14 +331,7 @@ export async function createTrade(
   if (role === "receiver" && receiverWishEntryId !== null && quantity > demandQuantity) {
     await repos.lists.raiseEntryQuantityTo(receiverWishEntryId, receiverUserId, quantity);
   }
-
-  // Best-effort (the helper swallows its own errors) so a mail failure can
-  // never fail the trade — the bell stays the source of truth.
-  if (emailDeps !== undefined) {
-    await sendTradeRequestEmail(repos, created, emailDeps);
-  }
-
-  return reloadDto(repos, created.id, callerUserId);
+  return created;
 }
 
 /**
@@ -421,7 +465,9 @@ export function acceptTrade(
   chosenCopyIds?: string[],
 ): Promise<CardTradeResponse> {
   return transact(async (trxRepos) => {
-    const { trade, role } = await loadTradeForParty(trxRepos, tradeId, byUserId);
+    const { trade, role } = await loadTradeForParty(trxRepos, tradeId, byUserId, {
+      forUpdate: true,
+    });
     assertTradeStatus(trade, "pending", "This trade is no longer pending");
     assertRecipient(trade, role, "accept");
 
@@ -517,7 +563,9 @@ export function cancelTrade(
   byUserId: string,
 ): Promise<CardTradeResponse> {
   return transact(async (trxRepos) => {
-    const { trade, role } = await loadTradeForParty(trxRepos, tradeId, byUserId);
+    const { trade, role } = await loadTradeForParty(trxRepos, tradeId, byUserId, {
+      forUpdate: true,
+    });
     if (trade.status === "pending") {
       if (role !== trade.initiator) {
         throw new AppError(
@@ -559,12 +607,15 @@ export function setTradeQuantity(
     if (quantity < 1) {
       throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Quantity must be at least 1");
     }
-    const { trade, role } = await loadTradeForParty(trxRepos, tradeId, byUserId);
+    const { trade, role } = await loadTradeForParty(trxRepos, tradeId, byUserId, {
+      forUpdate: true,
+    });
     assertTradeStatus(trade, "pending", "This request can no longer be changed");
     if (role !== trade.initiator) {
       throw new AppError(403, ERROR_CODES.FORBIDDEN, "Only the initiator can change this request");
     }
 
+    await trxRepos.cardTrades.lockSupply(trade.groupId, trade.giverUserId, trade.printingId);
     await assertSupplyAvailable(
       trxRepos,
       trade.groupId,

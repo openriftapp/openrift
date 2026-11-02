@@ -68,6 +68,11 @@ describe.skipIf(!ctx)("userContactMethodsRepo (integration)", () => {
     const byUser = await groups.getRevealedContactsForMembers(GROUP_ID);
     expect(byUser.get(userId)?.map((method) => method.id)).toEqual([revealedId]);
 
+    const overlapping = await Promise.allSettled(
+      [1, 2, 3, 4].map(() => groups.setRevealedContacts(GROUP_ID, userId, [revealedId])),
+    );
+    expect(overlapping.filter((result) => result.status === "rejected")).toEqual([]);
+
     await groups.setRevealedContacts(GROUP_ID, userId, []);
     const cleared = await groups.getRevealedContactsForMembers(GROUP_ID);
     expect(cleared.get(userId)).toBeUndefined();

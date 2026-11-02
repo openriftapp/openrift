@@ -6,6 +6,7 @@ import {
   buildUserSubmissionCard,
   inferSubmissionKind,
   ingestUserSubmission,
+  submissionStamp,
 } from "./ingest-user-submission.js";
 
 const USER_ID = "11111111-2222-3333-4444-555555555555";
@@ -45,6 +46,17 @@ function submission(overrides: Partial<CardSubmissionInput> = {}): CardSubmissio
     ...overrides,
   };
 }
+
+describe("submissionStamp", () => {
+  it("gives two submissions in the same minute different card keys", () => {
+    const now = new Date("2026-07-02T09:00:30Z");
+    const first = submissionStamp(now);
+    const second = submissionStamp(now);
+
+    expect(first.startsWith("20260702-0900-")).toBe(true);
+    expect(first).not.toBe(second);
+  });
+});
 
 describe("buildUserSubmissionCard", () => {
   it("mints the card external_id as <slug>--<dateStamp>--<userId>", () => {

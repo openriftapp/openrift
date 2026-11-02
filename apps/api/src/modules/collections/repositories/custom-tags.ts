@@ -2,7 +2,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import { inTransaction } from "../../../repositories/query-helpers.js";
+import { inTransaction, lockKey } from "../../../repositories/query-helpers.js";
 
 function selectWithCategory(db: Kysely<Database>) {
   return db
@@ -47,6 +47,11 @@ export function customTagsRepo(db: Kysely<Database>) {
         return Promise.resolve([]);
       }
       return selectWithCategory(db).where("ct.slug", "in", slugs).execute();
+    },
+
+    /** Call inside a transaction. */
+    async lockSortOrder(categoryId: string): Promise<void> {
+      await lockKey(db, `sort:custom-tags:${categoryId}`);
     },
 
     async getMaxSortOrder(categoryId: string): Promise<number> {
@@ -155,6 +160,7 @@ export function customTagsRepo(db: Kysely<Database>) {
 
     async setForCard(cardId: string, customTagIds: readonly string[]): Promise<void> {
       const run = async (trx: Kysely<Database>): Promise<void> => {
+        await trx.selectFrom("cards").select("id").where("id", "=", cardId).forUpdate().execute();
         await trx.deleteFrom("cardCustomTags").where("cardId", "=", cardId).execute();
         if (customTagIds.length === 0) {
           return;

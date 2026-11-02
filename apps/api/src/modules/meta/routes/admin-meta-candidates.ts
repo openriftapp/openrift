@@ -344,11 +344,10 @@ async function queueRows(
 
 export const adminMetaCandidatesRouter = os.router({
   upload: os.upload.handler(async ({ input, context }) => {
-    const result = await ingestMetaOverlays(
-      context.repos,
-      input.provider,
-      input.events,
-      context.userId,
+    const result = await context.transact((trxRepos) =>
+      trxRepos.meta.withPromoteLock(`overlay-upload:${input.provider}`, () =>
+        ingestMetaOverlays(trxRepos, input.provider, input.events, context.userId),
+      ),
     );
 
     // Counts only — the detail arrays are unbounded.

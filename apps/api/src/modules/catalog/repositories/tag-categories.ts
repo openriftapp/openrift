@@ -2,6 +2,7 @@ import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { lockKey } from "../../../repositories/query-helpers.js";
 
 /** The two category tables share one shape; `tagTable` is the tag table whose `category_id` points at it. */
 export interface TagCategoryTables {
@@ -28,6 +29,11 @@ export function tagCategoryRepo(db: Kysely<Database>, tables: TagCategoryTables)
 
     getBySlug(slug: string) {
       return db.selectFrom(table).selectAll().where("slug", "=", slug).executeTakeFirst();
+    },
+
+    /** Call inside a transaction. */
+    async lockSortOrder(): Promise<void> {
+      await lockKey(db, `sort:${tables.table}`);
     },
 
     async getMaxSortOrder(): Promise<number> {

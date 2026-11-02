@@ -5,7 +5,11 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { CollectionsTable, CopiesTable } from "../../../db/tables/collections.js";
-import { reorderBySortOrder } from "../../../repositories/query-helpers.js";
+import {
+  keepLiveShareToken,
+  lockKey,
+  reorderBySortOrder,
+} from "../../../repositories/query-helpers.js";
 
 interface CollectionWithCount extends Selectable<CollectionsTable> {
   copyCount: number;
@@ -201,6 +205,11 @@ export function collectionsRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
+    /** Call inside a transaction. */
+    async lockSortOrder(userId: string): Promise<void> {
+      await lockKey(db, `sort:collections:${userId}`);
+    },
+
     async nextPersonalSortOrder(userId: string): Promise<number> {
       const row = await db
         .selectFrom("collections")
@@ -310,6 +319,27 @@ export function collectionsRepo(db: Kysely<Database>) {
         .execute();
     },
 
+    /** Call inside a transaction. */
+    async lockById(collectionId: string): Promise<void> {
+      await db
+        .selectFrom("collections")
+        .select("id")
+        .where("id", "=", collectionId)
+        .forUpdate()
+        .execute();
+    },
+
+    /** Call inside a transaction. */
+    async lockAsMoveTarget(collectionId: string): Promise<boolean> {
+      const row = await db
+        .selectFrom("collections")
+        .select("id")
+        .where("id", "=", collectionId)
+        .forShare()
+        .executeTakeFirst();
+      return row !== undefined;
+    },
+
     listCopiesInCollection(
       collectionId: string,
     ): Promise<Pick<Selectable<CopiesTable>, "id" | "printingId">[]> {
@@ -374,7 +404,11 @@ export function collectionsRepo(db: Kysely<Database>) {
     ): Promise<Selectable<CollectionsTable> | undefined> {
       return db
         .updateTable("collections")
-        .set({ shareToken, isPublic, updatedAt: sql`now()` })
+        .set({
+          shareToken: keepLiveShareToken(shareToken, isPublic),
+          isPublic,
+          updatedAt: sql`now()`,
+        })
         .where("id", "=", id)
         .returningAll()
         .executeTakeFirst();

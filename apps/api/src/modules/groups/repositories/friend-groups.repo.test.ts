@@ -142,10 +142,17 @@ describe("friendGroupsRepo", () => {
 
   it("transferOwnership demotes then promotes in one transaction", async () => {
     const { db, events } = createRecordingDb([{ numAffectedRows: 1n }, [{ user_id: "u1" }]]);
-    await expect(
-      friendGroupsRepo(db).transferOwnership("grp-1", "u-owner", "u1"),
-    ).resolves.toBeUndefined();
+    await expect(friendGroupsRepo(db).transferOwnership("grp-1", "u-owner", "u1")).resolves.toBe(
+      true,
+    );
     expect(events).toEqual(["begin", "commit"]);
+  });
+
+  it("transferOwnership reports a caller who no longer owns the group", async () => {
+    const { db } = createRecordingDb([{ numAffectedRows: 0n }]);
+    await expect(friendGroupsRepo(db).transferOwnership("grp-1", "u-owner", "u1")).resolves.toBe(
+      false,
+    );
   });
 
   it("transferOwnership rolls back when the target is not a member", async () => {

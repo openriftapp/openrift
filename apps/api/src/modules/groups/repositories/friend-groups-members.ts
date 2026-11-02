@@ -123,6 +123,13 @@ export function friendGroupMembersRepo(db: Kysely<Database>) {
     ): Promise<void> {
       await inTransaction(db, async (trx) => {
         await trx
+          .selectFrom("friendGroupMembers")
+          .select("userId")
+          .where("groupId", "=", groupId)
+          .where("userId", "=", userId)
+          .forUpdate()
+          .execute();
+        await trx
           .deleteFrom("friendGroupMemberContacts")
           .where("groupId", "=", groupId)
           .where("userId", "=", userId)
@@ -162,15 +169,18 @@ export function friendGroupMembersRepo(db: Kysely<Database>) {
      * group in between — the transaction rolls back and the owner keeps the
      * group.
      */
-    async transferOwnership(groupId: string, fromUserId: string, toUserId: string): Promise<void> {
-      await inTransaction(db, async (trx) => {
-        await trx
+    transferOwnership(groupId: string, fromUserId: string, toUserId: string): Promise<boolean> {
+      return inTransaction(db, async (trx) => {
+        const demoted = await trx
           .updateTable("friendGroupMembers")
           .set({ role: "admin" })
           .where("groupId", "=", groupId)
           .where("userId", "=", fromUserId)
           .where("role", "=", "owner")
-          .execute();
+          .executeTakeFirst();
+        if (Number(demoted.numUpdatedRows) === 0) {
+          return false;
+        }
 
         await trx
           .updateTable("friendGroupMembers")
@@ -184,6 +194,7 @@ export function friendGroupMembersRepo(db: Kysely<Database>) {
                 `Cannot transfer ownership of group ${groupId}: user ${toUserId} is not a member`,
               ),
           );
+        return true;
       });
     },
   };

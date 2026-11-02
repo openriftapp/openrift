@@ -197,12 +197,14 @@ export function organizationsRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    async addMember(orgId: string, userId: string, role: OrganizationRole): Promise<void> {
-      await db
+    async addMember(orgId: string, userId: string, role: OrganizationRole): Promise<boolean> {
+      const inserted = await db
         .insertInto("organizationMembers")
         .values({ orgId, userId, role })
-        .onConflict((oc) => oc.columns(["orgId", "userId"]).doUpdateSet({ role }))
-        .execute();
+        .onConflict((oc) => oc.columns(["orgId", "userId"]).doNothing())
+        .returning("userId")
+        .executeTakeFirst();
+      return inserted !== undefined;
     },
 
     async updateMemberRole(orgId: string, userId: string, role: OrganizationRole): Promise<void> {

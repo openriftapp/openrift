@@ -410,8 +410,9 @@ export const decksRouter = {
     const deck = await decks.getIdAndFormat(input.id, userId);
     assertFound(deck, "Not found");
 
+    let replaced;
     try {
-      await decks.replaceCards(
+      replaced = await decks.replaceCards(
         input.id,
         input.cards.map((card) => ({
           cardId: card.cardId,
@@ -430,6 +431,7 @@ export const decksRouter = {
       }
       throw error;
     }
+    assertExisted(replaced, "Not found");
 
     const cardRows = await decks.cardsForDeck(input.id, userId);
     return { cards: cardRows.map((r) => toDeckCard(r)) };

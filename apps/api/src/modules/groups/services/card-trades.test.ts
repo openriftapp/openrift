@@ -288,6 +288,7 @@ function supplyRepos(supplyByGroup: Record<string, string[]>, pending: Pending[]
       giverPrintingSupply,
     },
     cardTrades: {
+      lockSupply: vi.fn(async () => undefined),
       getLiveTrade: vi.fn(async () => undefined),
       listPendingForGiverPrinting,
       create,
@@ -316,7 +317,7 @@ function runCreate(
   quantity: number,
   copyIds?: string[],
 ): Promise<unknown> {
-  return createTrade(repos, {
+  return createTrade(mockTransact(repos), {
     callerUserId: role === "giver" ? "giver-1" : "receiver-1",
     groupSlug: GROUP.slug,
     counterpartyUserId: role === "giver" ? "receiver-1" : "giver-1",
@@ -370,6 +371,16 @@ describe("createTrade supply accounting", () => {
     await runCreate(repos, "receiver", 1);
 
     expect(listPendingForGiverPrinting).toHaveBeenCalledWith("giver-1", "printing-1");
+    expect(create).toHaveBeenCalled();
+  });
+
+  it("takes the giver's supply lock before checking supply and creating the offer", async () => {
+    const { repos, create, listPendingForGiverPrinting } = supplyRepos({ [GROUP.id]: ["copy-1"] });
+
+    await runCreate(repos, "receiver", 1);
+
+    expect(repos.cardTrades.lockSupply).toHaveBeenCalledWith(GROUP.id, "giver-1", "printing-1");
+    expect(repos.cardTrades.lockSupply).toHaveBeenCalledBefore(listPendingForGiverPrinting);
     expect(create).toHaveBeenCalled();
   });
 
@@ -447,7 +458,7 @@ describe("createTrade on a double-sided printing", () => {
       { ...MATCH_ROW, cardId: "card-2", buyEntryId: "wish-2", buyQuantity: 1 },
     ] as never);
 
-    await createTrade(repos, {
+    await createTrade(mockTransact(repos), {
       callerUserId: "receiver-1",
       groupSlug: GROUP.slug,
       counterpartyUserId: "giver-1",
@@ -467,7 +478,7 @@ describe("createTrade on a printing wish from the second side", () => {
   it("binds the printing wish when no row names the requested card", async () => {
     const { repos, create } = supplyRepos({ [GROUP.id]: ["copy-1"] });
 
-    await createTrade(repos, {
+    await createTrade(mockTransact(repos), {
       callerUserId: "receiver-1",
       groupSlug: GROUP.slug,
       counterpartyUserId: "giver-1",

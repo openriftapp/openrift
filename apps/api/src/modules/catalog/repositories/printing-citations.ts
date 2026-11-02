@@ -1,6 +1,7 @@
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { withKeyLock } from "../../../repositories/query-helpers.js";
 
 const CITATION_COLUMNS = ["id", "printingId", "label", "sourceUrl", "sortOrder"] as const;
 
@@ -31,25 +32,27 @@ export function printingCitationsRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    async insert(data: { printingId: string; label: string; sourceUrl: string | null }) {
-      const last = await db
-        .selectFrom("printingCitations")
-        .select("sortOrder")
-        .where("printingId", "=", data.printingId)
-        .orderBy("sortOrder", "desc")
-        .limit(1)
-        .executeTakeFirst();
+    insert(data: { printingId: string; label: string; sourceUrl: string | null }) {
+      return withKeyLock(db, `sort:printing-citations:${data.printingId}`, async (trx) => {
+        const last = await trx
+          .selectFrom("printingCitations")
+          .select("sortOrder")
+          .where("printingId", "=", data.printingId)
+          .orderBy("sortOrder", "desc")
+          .limit(1)
+          .executeTakeFirst();
 
-      return db
-        .insertInto("printingCitations")
-        .values({
-          printingId: data.printingId,
-          label: data.label,
-          sourceUrl: data.sourceUrl,
-          sortOrder: last === undefined ? 0 : last.sortOrder + 1,
-        })
-        .returning(CITATION_COLUMNS)
-        .executeTakeFirstOrThrow();
+        return trx
+          .insertInto("printingCitations")
+          .values({
+            printingId: data.printingId,
+            label: data.label,
+            sourceUrl: data.sourceUrl,
+            sortOrder: last === undefined ? 0 : last.sortOrder + 1,
+          })
+          .returning(CITATION_COLUMNS)
+          .executeTakeFirstOrThrow();
+      });
     },
 
     /**

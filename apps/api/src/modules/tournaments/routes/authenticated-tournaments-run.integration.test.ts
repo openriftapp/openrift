@@ -162,6 +162,88 @@ describe.skipIf(!ready)("Tournament running surface (integration)", () => {
     }
   });
 
+  it("keeps the round when a re-roll fails validation", async () => {
+    const id = await createPodTournament(host, { name: "Failed Reroll", host: { type: "user" } });
+    await host.db
+      .insertInto("tournamentParticipants")
+      .values(
+        ["A", "B", "C", "D"].map((name) => ({
+          tournamentId: id,
+          displayName: name,
+          status: "active" as const,
+        })),
+      )
+      .execute();
+    const paired = await host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
+    expect(paired.status).toBe(200);
+    await host.db
+      .insertInto("tournamentParticipants")
+      .values({ tournamentId: id, displayName: "E", status: "active" })
+      .execute();
+
+    const reroll = await host.app.fetch(req("POST", `/tournaments/${id}/rounds/1/reroll`));
+
+    expect(reroll.status).toBe(400);
+    const pods = await host.db
+      .selectFrom("pods as p")
+      .innerJoin("podRounds as r", "r.id", "p.roundId")
+      .select("p.id")
+      .where("r.tournamentId", "=", id)
+      .where("r.roundNumber", "=", 1)
+      .execute();
+    expect(pods).toHaveLength(1);
+  });
+
+  it("serializes concurrent pairing edits and re-rolls of one round", async () => {
+    const id = await createPodTournament(host, {
+      name: "Concurrent Edits",
+      host: { type: "user" },
+      pairingStyle: "swiss",
+    });
+    const rows = await host.db
+      .insertInto("tournamentParticipants")
+      .values(
+        ["A", "B", "C", "D"].map((name) => ({
+          tournamentId: id,
+          displayName: name,
+          status: "active" as const,
+        })),
+      )
+      .returning("id")
+      .execute();
+    const [a, b, c, d] = rows.map((row) => row.id) as [string, string, string, string];
+    const paired = await host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
+    expect(paired.status).toBe(200);
+
+    const edits = await Promise.all(
+      Array.from({ length: 6 }, async (_, index) =>
+        host.app.fetch(
+          req("PUT", `/tournaments/${id}/rounds/1/pairing`, {
+            pods:
+              index % 2 === 0
+                ? [
+                    { size: 2, playerIds: [a, b] },
+                    { size: 2, playerIds: [c, d] },
+                  ]
+                : [
+                    { size: 2, playerIds: [a, c] },
+                    { size: 2, playerIds: [b, d] },
+                  ],
+            byes: [],
+          }),
+        ),
+      ),
+    );
+    expect(edits.map((res) => res.status)).toEqual(Array.from({ length: 6 }, () => 200));
+
+    const rerolls = await Promise.all(
+      Array.from({ length: 4 }, async () =>
+        host.app.fetch(req("POST", `/tournaments/${id}/rounds/1/reroll`)),
+      ),
+    );
+    expect(rerolls.map((res) => res.status)).toEqual(Array.from({ length: 4 }, () => 200));
+  });
+
   it("lets the org owner and judge run an org-hosted tournament (no owner-only 403)", async () => {
     const id = await createPodTournament(orgOwner, {
       name: "Org Run",

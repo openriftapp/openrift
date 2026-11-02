@@ -9,7 +9,7 @@ import type {
   UvsgamesEventStandingsTable,
 } from "../../../db/tables/meta-sources.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
-import { inTransaction } from "../../../repositories/query-helpers.js";
+import { inTransaction, lockKey } from "../../../repositories/query-helpers.js";
 
 /**
  * Keyed by the source's own ids, in the source's own vocabulary (unmapped
@@ -76,6 +76,7 @@ export function uvsgamesResultsRepo(db: Kysely<Database>) {
       rows: readonly Insertable<UvsgamesEventStandingsTable>[],
     ): Promise<void> {
       await inTransaction(db, async (trx) => {
+        await lockKey(trx, `uvsgames-event:${externalId}`);
         await trx
           .deleteFrom("uvsgamesEventStandings")
           .where("externalId", "=", externalId)
@@ -100,6 +101,7 @@ export function uvsgamesResultsRepo(db: Kysely<Database>) {
       rows: readonly Insertable<UvsgamesEventPhasesTable>[],
     ): Promise<void> {
       await inTransaction(db, async (trx) => {
+        await lockKey(trx, `uvsgames-event:${externalId}`);
         await trx.deleteFrom("uvsgamesEventPhases").where("externalId", "=", externalId).execute();
         for (const batch of rowBatches(rows)) {
           await trx.insertInto("uvsgamesEventPhases").values(batch).execute();
@@ -135,6 +137,7 @@ export function uvsgamesResultsRepo(db: Kysely<Database>) {
       rows: readonly Insertable<UvsgamesEventMatchesTable>[],
     ): Promise<void> {
       await inTransaction(db, async (trx) => {
+        await lockKey(trx, `uvsgames-event:${externalId}`);
         await trx
           .deleteFrom("uvsgamesEventMatches")
           .where("externalId", "=", externalId)

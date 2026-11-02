@@ -1,6 +1,5 @@
 import { cardSubmissionsContract } from "@openrift/shared/contracts/card-submissions";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
-import { formatCompactUtcStamp } from "@openrift/shared/format-date";
 import { implement } from "@orpc/server";
 import type { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
@@ -13,6 +12,7 @@ import type { Variables } from "../../../types.js";
 import { toCardSubmissionStatus } from "../lib/card-submission-presenters.js";
 import {
   buildUserSubmissionCard,
+  submissionStamp,
   ingestUserSubmission,
 } from "../services/ingest-user-submission.js";
 import { saveSubmissionUpload } from "../services/submission-uploads.js";
@@ -60,8 +60,7 @@ export const cardSubmissionsRouter = {
 
   submit: os.submit.handler(async ({ input, context, errors }): Promise<{ ok: true }> => {
     const now = new Date();
-    const dateStamp = formatCompactUtcStamp(now);
-    const card = buildUserSubmissionCard(input, context.userId, dateStamp);
+    const card = buildUserSubmissionCard(input, context.userId, submissionStamp(now));
 
     const result = await ingestUserSubmission(context.transact, {
       userId: context.userId,

@@ -57,19 +57,22 @@ export const friendGroupsShopsRouter = {
     assertFound(key, "Shop not found");
     const exists = await context.repos.friendGroupShops.storeExists(key.source, key.storeId);
     assertExisted(exists, "Shop not found");
-    const count = await context.repos.friendGroupShops.countShops(ctx.group.id);
-    if (count >= MAX_SHOPS_PER_GROUP) {
-      throw new AppError(
-        409,
-        ERROR_CODES.CONFLICT,
-        `A group can follow at most ${MAX_SHOPS_PER_GROUP} shops`,
-      );
-    }
-    await context.repos.friendGroupShops.linkShop({
-      groupId: ctx.group.id,
-      source: key.source,
-      storeId: key.storeId,
-      addedByUserId: context.userId,
+    await context.transact(async (trxRepos) => {
+      await trxRepos.friendGroupShops.lockShops(ctx.group.id);
+      const count = await trxRepos.friendGroupShops.countShops(ctx.group.id);
+      if (count >= MAX_SHOPS_PER_GROUP) {
+        throw new AppError(
+          409,
+          ERROR_CODES.CONFLICT,
+          `A group can follow at most ${MAX_SHOPS_PER_GROUP} shops`,
+        );
+      }
+      await trxRepos.friendGroupShops.linkShop({
+        groupId: ctx.group.id,
+        source: key.source,
+        storeId: key.storeId,
+        addedByUserId: context.userId,
+      });
     });
   }),
 

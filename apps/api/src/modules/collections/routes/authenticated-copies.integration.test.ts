@@ -198,6 +198,26 @@ describe.skipIf(!ctx)("Copies routes (integration)", () => {
       );
       expect(res.status).toBe(400);
     });
+
+    it("moves into a collection being deleted without a 500, and keeps the copy", async () => {
+      const created = await app.fetch(req("POST", "/collections", { name: "Doomed Target" }));
+      const doomedId = ((await readJson(created)) as { id: string }).id;
+
+      const [move, remove] = await Promise.all([
+        app.fetch(req("POST", "/copies/move", { copyIds: [copyIds[1]], toCollectionId: doomedId })),
+        app.fetch(req("DELETE", `/collections/${doomedId}`)),
+      ]);
+
+      expect([200, 204, 404]).toContain(move.status);
+      expect(remove.status).toBeLessThan(300);
+      const copy = await db
+        .selectFrom("copies")
+        .select("collectionId")
+        .where("id", "=", copyIds[1]!)
+        .executeTakeFirst();
+      expect(copy).toBeDefined();
+      expect(copy?.collectionId).not.toBe(doomedId);
+    });
   });
 
   describe("POST /copies/update", () => {

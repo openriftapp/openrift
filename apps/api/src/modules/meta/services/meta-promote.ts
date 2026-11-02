@@ -3,6 +3,7 @@ import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { Repos } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
+import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { loadCardNameIndex } from "../../candidates/services/candidate-links.js";
 import { metaEventSlugCandidates } from "../lib/meta-event-naming.js";
 import type { MetaEventOverlayPatch } from "../lib/meta-overlay-apply.js";
@@ -49,7 +50,17 @@ export async function createMetaPromoteContext(repos: Repos): Promise<MetaPromot
  * Rebuilds one live event from its linked mirrors and accepted overlays.
  * Idempotent, safe to run at any time and as often as needed.
  */
-export async function promoteMetaEvent(
+export function promoteMetaEvent(
+  repos: Repos,
+  metaEventId: string,
+  context?: MetaPromoteContext,
+): Promise<MetaPromoteResult> {
+  return repos.meta.withPromoteLock(`event:${metaEventId}`, () =>
+    promoteMetaEventLocked(repos, metaEventId, context),
+  );
+}
+
+async function promoteMetaEventLocked(
   repos: Repos,
   metaEventId: string,
   context?: MetaPromoteContext,
@@ -175,7 +186,21 @@ function sameEventFacts(live: MetaPromotedEventFacts, next: MetaPromotedEventFac
  * Mints a live event for a source key that has none. The citation writes
  * first, since promotion reads `meta_event_sources` to know what to promote from.
  */
-export async function promoteNewEvent(
+export function promoteNewEvent(
+  repos: Repos,
+  provider: string | null,
+  externalId: string | null,
+  seed: { name: string; eventDate: string; format: string; sourceUrl: string | null },
+): Promise<{ metaEventId: string; slug: string; created: boolean }> {
+  if (provider === null || externalId === null) {
+    return promoteNewEventLocked(repos, provider, externalId, seed);
+  }
+  return repos.meta.withPromoteLock(`source:${provider}:${externalId}`, () =>
+    promoteNewEventLocked(repos, provider, externalId, seed),
+  );
+}
+
+async function promoteNewEventLocked(
   repos: Repos,
   provider: string | null,
   externalId: string | null,
@@ -194,19 +219,7 @@ export async function promoteNewEvent(
     }
   }
 
-  const slug = await resolveEventSlug(repos, seed.name, seed.eventDate);
-  const created = await repos.meta.createEvent({
-    slug,
-    name: seed.name,
-    eventDate: seed.eventDate,
-    format: seed.format,
-    playerCount: null,
-    organizer: null,
-    notes: null,
-    tier: "local",
-    country: null,
-    location: null,
-  });
+  const { created, slug } = await createEventWithFreshSlug(repos, seed);
 
   await repos.meta.insertEventSource({
     metaEventId: created.id,
@@ -217,6 +230,34 @@ export async function promoteNewEvent(
   });
   await promoteMetaEvent(repos, created.id);
   return { metaEventId: created.id, slug, created: true };
+}
+
+async function createEventWithFreshSlug(
+  repos: Repos,
+  seed: { name: string; eventDate: string; format: string },
+): Promise<{ created: { id: string }; slug: string }> {
+  for (let attempt = 1; ; attempt++) {
+    const slug = await resolveEventSlug(repos, seed.name, seed.eventDate);
+    try {
+      const created = await repos.meta.createEvent({
+        slug,
+        name: seed.name,
+        eventDate: seed.eventDate,
+        format: seed.format,
+        playerCount: null,
+        organizer: null,
+        notes: null,
+        tier: "local",
+        country: null,
+        location: null,
+      });
+      return { created, slug };
+    } catch (error) {
+      if (attempt >= 3 || !isUniqueViolationOn(error, "uq_meta_events_slug")) {
+        throw error;
+      }
+    }
+  }
 }
 
 function mintSlugId(): string {

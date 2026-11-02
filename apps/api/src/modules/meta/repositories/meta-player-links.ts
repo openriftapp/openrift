@@ -34,6 +34,23 @@ export function metaPlayerLinksRepo(db: Kysely<Database>) {
         return;
       }
       await inTransaction(db, async (trx) => {
+        // Detach the rewritten links first: swapping two links' rows would otherwise hit
+        // uq_meta_player_links_row on the first upsert, since a unique index is not deferrable.
+        await trx
+          .updateTable("metaPlayerLinks")
+          .set({ metaEventPlayerId: null })
+          .where((eb) =>
+            eb.or(
+              inputs.map((input) =>
+                eb.and([
+                  eb("metaEventId", "=", input.metaEventId),
+                  eb("provider", "=", input.provider),
+                  eb("sourceIdentity", "=", input.sourceIdentity),
+                ]),
+              ),
+            ),
+          )
+          .execute();
         for (const input of inputs) {
           await trx
             .insertInto("metaPlayerLinks")

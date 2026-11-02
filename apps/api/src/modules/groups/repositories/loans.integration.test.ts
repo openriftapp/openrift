@@ -614,7 +614,7 @@ describe.skipIf(!ctx)("loansRepo (integration)", () => {
     const loanedCopyId = loanedPins[0]!;
 
     await expect(
-      createTrade(repos, {
+      createTrade(transact, {
         callerUserId: BORROWER_ID,
         groupSlug: group.slug,
         counterpartyUserId: LENDER_ID,
@@ -624,7 +624,7 @@ describe.skipIf(!ctx)("loansRepo (integration)", () => {
       }),
     ).rejects.toMatchObject({ status: 409 });
 
-    const trade = await createTrade(repos, {
+    const trade = await createTrade(transact, {
       callerUserId: BORROWER_ID,
       groupSlug: group.slug,
       counterpartyUserId: LENDER_ID,

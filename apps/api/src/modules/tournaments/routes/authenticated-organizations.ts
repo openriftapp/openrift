@@ -67,7 +67,10 @@ export const organizationsRouter = {
       if (existing) {
         throw new AppError(409, ERROR_CODES.CONFLICT, "User is already a member");
       }
-      await repos.organizations.addMember(org.id, targetUser.id, input.role);
+      const added = await repos.organizations.addMember(org.id, targetUser.id, input.role);
+      if (!added) {
+        throw new AppError(409, ERROR_CODES.CONFLICT, "User is already a member");
+      }
       return buildDetail(repos, org, context.userId);
     },
   ),

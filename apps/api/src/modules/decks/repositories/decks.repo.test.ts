@@ -103,18 +103,24 @@ describe("decksRepo", () => {
   });
 
   it("replaceCards deletes and re-inserts cards in a transaction", async () => {
-    const db = createMockDb([]);
+    const db = createMockDb([{ id: "d-1" }]);
     const repo = decksRepo(db);
     await expect(
       repo.replaceCards("d-1", [
         { cardId: "c-1", zone: "main", quantity: 4, preferredPrintingId: null },
       ]),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(true);
   });
 
   it("replaceCards handles empty cards array", async () => {
+    const db = createMockDb([{ id: "d-1" }]);
+    const repo = decksRepo(db);
+    await expect(repo.replaceCards("d-1", [])).resolves.toBe(true);
+  });
+
+  it("replaceCards reports a deck that no longer exists", async () => {
     const db = createMockDb([]);
     const repo = decksRepo(db);
-    await expect(repo.replaceCards("d-1", [])).resolves.toBeUndefined();
+    await expect(repo.replaceCards("d-1", [])).resolves.toBe(false);
   });
 });

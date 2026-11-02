@@ -113,6 +113,23 @@ export async function currentSafeXid(db: Kysely<Database>): Promise<string> {
 }
 
 /** Reuses an enclosing transaction, since Kysely rejects a nested one. */
+/** Call inside a transaction. */
+export async function lockKey(db: Kysely<Database>, key: string): Promise<void> {
+  await sql`select pg_advisory_xact_lock(hashtext(${key}))`.execute(db);
+}
+
+/** Runs `run` in a transaction that holds the lock on `key`; `run` must use `trx`. */
+export function withKeyLock<T>(
+  db: Kysely<Database>,
+  key: string,
+  run: (trx: Kysely<Database>) => Promise<T>,
+): Promise<T> {
+  return inTransaction(db, async (trx) => {
+    await lockKey(trx, key);
+    return run(trx);
+  });
+}
+
 export function inTransaction<T>(
   db: Kysely<Database>,
   run: (trx: Kysely<Database>) => Promise<T>,
@@ -395,9 +412,20 @@ function shareUpdate(
 ) {
   return db
     .updateTable(table as "lists")
-    .set({ shareToken, isPublic })
+    .set({ shareToken: keepLiveShareToken(shareToken, isPublic), isPublic })
     .where("id", "=", id)
     .where("userId", "=", userId);
+}
+
+/** Enabling keeps a token that is already live. */
+export function keepLiveShareToken(
+  shareToken: string | null,
+  isPublic: boolean,
+): string | null | RawBuilder<string> {
+  if (!isPublic || shareToken === null) {
+    return shareToken;
+  }
+  return sql<string>`CASE WHEN is_public AND share_token IS NOT NULL THEN share_token ELSE ${shareToken} END`;
 }
 
 /** Revoking must clear `shareToken`, not just `isPublic`, or the old link still resolves. */

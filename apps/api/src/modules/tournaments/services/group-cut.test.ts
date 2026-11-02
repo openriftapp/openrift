@@ -72,6 +72,7 @@ function mockRepos(input: MockInput) {
     podTournaments: {
       listPlayers: vi.fn(async () => input.players),
       loadRounds: mocks.loadRounds,
+      getRoundByNumber: vi.fn(async () => undefined),
     },
     tournamentGroups: {
       listGroups: vi.fn(async () => input.groups ?? []),
@@ -90,7 +91,10 @@ function mockRepos(input: MockInput) {
       clearSeeds: mocks.clearSeeds,
       setWalkoverResult: mocks.setWalkoverResult,
     },
-    tournaments: { updateSettings: vi.fn(async () => undefined) },
+    tournaments: {
+      updateSettings: vi.fn(async () => undefined),
+      lockRounds: vi.fn(async () => undefined),
+    },
   } as unknown as Repos;
   return { repos, ...mocks };
 }

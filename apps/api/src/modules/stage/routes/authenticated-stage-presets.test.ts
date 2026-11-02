@@ -35,6 +35,7 @@ const mockRepo = {
   listForUser: vi.fn(),
   getByIdForUser: vi.fn(),
   countForUser: vi.fn(),
+  lockCap: vi.fn(async () => undefined),
   create: vi.fn(),
   update: vi.fn(),
   deleteByIdForUser: vi.fn(),
@@ -44,6 +45,7 @@ const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
   c.set("repos", { stagePresets: mockRepo } as never);
+  c.set("transact", ((fn: (r: unknown) => unknown) => fn(c.get("repos"))) as never);
   await next();
 });
 registerRouterForTest(app, stagePresetsRouter);

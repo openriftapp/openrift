@@ -671,6 +671,7 @@ export function metaPlayersRepo(db: Kysely<Database>) {
           .selectFrom("metaEventPlayers")
           .select("deckId")
           .where("id", "=", playerId)
+          .forUpdate()
           .executeTakeFirst();
         if (!player) {
           return false;

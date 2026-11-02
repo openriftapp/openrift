@@ -9,6 +9,7 @@ import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
 import { assertExisted, assertFound } from "../../../lib/assertions.js";
+import { isUniqueViolationOn } from "../../../lib/pg-errors.js";
 import { withUniqueShareToken } from "../../../lib/share-token.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -26,6 +27,17 @@ import {
   toShare,
 } from "../lib/friend-group-presenters.js";
 import { hasRole, loadGroupBySlug, loadGroupForMember, requireRole } from "../lib/group-access.js";
+
+async function rejectTakenSlug<T>(write: () => Promise<T>): Promise<T> {
+  try {
+    return await write();
+  } catch (error) {
+    if (isUniqueViolationOn(error, "friend_groups_slug_key")) {
+      throw new AppError(409, ERROR_CODES.CONFLICT, "Slug already in use");
+    }
+    throw error;
+  }
+}
 
 const os = implement(friendGroupsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -51,18 +63,20 @@ export const friendGroupsCoreRouter = {
       throw new AppError(409, ERROR_CODES.CONFLICT, "Slug already in use");
     }
 
-    const group = await withUniqueShareToken(
-      (code) =>
-        friendGroups.createWithOwner(
-          {
-            slug: input.slug,
-            name: input.name,
-            description: input.description ?? null,
-            code: input.generateCode ? code : null,
-          },
-          userId,
-        ),
-      { constraint: "uq_friend_groups_code" },
+    const group = await rejectTakenSlug(() =>
+      withUniqueShareToken(
+        (code) =>
+          friendGroups.createWithOwner(
+            {
+              slug: input.slug,
+              name: input.name,
+              description: input.description ?? null,
+              code: input.generateCode ? code : null,
+            },
+            userId,
+          ),
+        { constraint: "uq_friend_groups_code" },
+      ),
     );
     return toGroup(group, true);
   }),
@@ -194,16 +208,18 @@ export const friendGroupsCoreRouter = {
       }
     }
 
-    const patched = await friendGroups.update(ctx.group.id, {
-      slug: body.slug,
-      // A rename keeps the old slug as a lookup alias so bookmarks and
-      // in-flight trade emails keep resolving.
-      ...(isRename ? { previousSlug: ctx.group.slug } : {}),
-      name: body.name,
-      description: body.description ?? undefined,
-      bannerPosition: body.bannerPosition,
-      updatedAt: new Date(),
-    });
+    const patched = await rejectTakenSlug(() =>
+      friendGroups.update(ctx.group.id, {
+        slug: body.slug,
+        // A rename keeps the old slug as a lookup alias so bookmarks and
+        // in-flight trade emails keep resolving.
+        ...(isRename ? { previousSlug: ctx.group.slug } : {}),
+        name: body.name,
+        description: body.description ?? undefined,
+        bannerPosition: body.bannerPosition,
+        updatedAt: new Date(),
+      }),
+    );
     assertFound(patched, "Group not found");
     return toGroup(patched, true);
   }),

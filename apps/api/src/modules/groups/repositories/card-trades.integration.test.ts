@@ -268,7 +268,7 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
   }
 
   function request(group: { slug: string }, quantity: number) {
-    return createTrade(repos, {
+    return createTrade(transact, {
       callerUserId: RECEIVER_ID,
       groupSlug: group.slug,
       counterpartyUserId: GIVER_ID,
@@ -280,7 +280,7 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
 
   /** The giver's "I have this, want it?" offer, so the initiator is the giver. */
   function offer(group: { slug: string }, toUserId: string, quantity: number) {
-    return createTrade(repos, {
+    return createTrade(transact, {
       callerUserId: GIVER_ID,
       groupSlug: group.slug,
       counterpartyUserId: toUserId,
@@ -400,7 +400,7 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     const { group } = await setupRuleMatch(1);
     expect(await availableForReceiver(group.id)).toBe(1);
 
-    const trade = await createTrade(repos, {
+    const trade = await createTrade(transact, {
       callerUserId: GIVER_ID,
       groupSlug: group.slug,
       counterpartyUserId: RECEIVER_ID,
@@ -470,7 +470,7 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
       .execute();
     await groupsRepo.share(group.id, tradeList.id, GIVER_ID);
 
-    const tradeForReceiver = await createTrade(repos, {
+    const tradeForReceiver = await createTrade(transact, {
       callerUserId: RECEIVER_ID,
       groupSlug: group.slug,
       counterpartyUserId: GIVER_ID,
@@ -478,7 +478,7 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
       printingId: PRINTING_1.id,
       quantity: 1,
     });
-    const tradeForOutsider = await createTrade(repos, {
+    const tradeForOutsider = await createTrade(transact, {
       callerUserId: OUTSIDER_ID,
       groupSlug: group.slug,
       counterpartyUserId: GIVER_ID,
@@ -909,6 +909,22 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     expect(await availableForReceiver(group.id)).toBe(1);
   });
 
+  it("leaving keeps a trade one side already settled, so the other side can finish it", async () => {
+    const { group } = await setupMatch(1);
+    const trade = await request(group, 1);
+    await acceptTrade(transact, trade.id, GIVER_ID);
+    await db
+      .updateTable("cardTrades")
+      .set({ giverSyncAppliedAt: new Date() })
+      .where("id", "=", trade.id)
+      .execute();
+
+    await repos.cardTrades.cancelForDepartingMember(group.id, RECEIVER_ID);
+
+    const row = await repos.cardTrades.getById(trade.id);
+    expect(row?.status).toBe("reserved");
+  });
+
   it("action-needed counts a pending request for the recipient, not its initiator", async () => {
     const { group } = await setupMatch(1);
     const trade = await request(group, 1);
@@ -964,7 +980,7 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     // A second request on top, which only the giver has to answer. It comes from
     // a third member because `uq_card_trades_live` is keyed on giver + receiver +
     // printing, so the same receiver cannot stack one on their reserved trade.
-    await createTrade(repos, {
+    await createTrade(transact, {
       callerUserId: OUTSIDER_ID,
       groupSlug: group.slug,
       counterpartyUserId: GIVER_ID,
@@ -1002,7 +1018,7 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
 
     await groupsRepo.addMember(group.id, OUTSIDER_ID, "member");
     await shareWish(group.id, OUTSIDER_ID, 1);
-    await createTrade(repos, {
+    await createTrade(transact, {
       callerUserId: OUTSIDER_ID,
       groupSlug: group.slug,
       counterpartyUserId: GIVER_ID,
@@ -1054,7 +1070,7 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     // Two members ask for the same single copy. Both requests stand; the giver
     // picks which one to accept.
     const fromReceiver = await request(group, 1);
-    const fromOutsider = await createTrade(repos, {
+    const fromOutsider = await createTrade(transact, {
       callerUserId: OUTSIDER_ID,
       groupSlug: group.slug,
       counterpartyUserId: GIVER_ID,

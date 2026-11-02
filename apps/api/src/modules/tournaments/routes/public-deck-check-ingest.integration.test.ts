@@ -195,6 +195,17 @@ describe.skipIf(!ownerCtx)("deck-check ingest push (integration, ADR-033)", () =
     expect(secondResult.entriesUnchanged).toBe(1);
   });
 
+  it("creates one entry when a push is retried while the first is still running", async () => {
+    const entry = entryPayload({ externalId: "entry-retried", playerName: "R. Etry" });
+    const [first, retry] = await Promise.all([push([entry]), push([entry])]);
+
+    expect([first.status, retry.status]).toEqual([200, 200]);
+    const results = (await Promise.all([readJson(first), readJson(retry)])) as {
+      entriesCreated: number;
+    }[];
+    expect(results.map((result) => result.entriesCreated).toSorted()).toEqual([0, 1]);
+  });
+
   it("resolves matched, ambiguous, and unmatched lines against the catalog", async () => {
     const res = await push([
       entryPayload({

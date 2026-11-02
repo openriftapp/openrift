@@ -39,8 +39,11 @@ export const adminMarkersRouter = {
     const { slug, label, description } = input;
     const existing = await repo.getBySlug(slug);
     assertSlugAvailable(existing, slug, "Marker");
-    const maxSortOrder = await repo.getMaxSortOrder();
-    const created = await repo.create({ slug, label, description, sortOrder: maxSortOrder + 1 });
+    const created = await context.transact(async ({ markers }) => {
+      await markers.lockSortOrder();
+      const maxSortOrder = await markers.getMaxSortOrder();
+      return markers.create({ slug, label, description, sortOrder: maxSortOrder + 1 });
+    });
     return { marker: toMarkerResponse(created) };
   }),
 

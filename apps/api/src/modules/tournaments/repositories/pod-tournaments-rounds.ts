@@ -142,13 +142,29 @@ export function podRoundsRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    getRoundByNumber(tournamentId: string, roundNumber: number): Promise<PodRound | undefined> {
-      return db
+    /** `forUpdate` only holds inside a transaction. */
+    getRoundByNumber(
+      tournamentId: string,
+      roundNumber: number,
+      options?: { forUpdate?: boolean },
+    ): Promise<PodRound | undefined> {
+      const query = db
         .selectFrom("podRounds")
         .selectAll()
         .where("tournamentId", "=", tournamentId)
-        .where("roundNumber", "=", roundNumber)
-        .executeTakeFirst();
+        .where("roundNumber", "=", roundNumber);
+      return (options?.forUpdate ? query.forUpdate() : query).executeTakeFirst();
+    },
+
+    /** Call inside a transaction. */
+    async lockRoundOfPod(podId: string): Promise<void> {
+      await db
+        .selectFrom("podRounds as r")
+        .innerJoin("pods as p", "p.roundId", "r.id")
+        .select("r.id")
+        .where("p.id", "=", podId)
+        .forShare("r")
+        .execute();
     },
 
     createRound(
@@ -263,6 +279,7 @@ export function podRoundsRepo(db: Kysely<Database>) {
       results: { playerId: string; placement: number; gamePoints: number }[],
     ): Promise<void> {
       await inTransaction(db, async (trx) => {
+        await trx.selectFrom("pods").select("id").where("id", "=", podId).forUpdate().execute();
         for (const { playerId, placement, gamePoints } of results) {
           await trx
             .updateTable("podMembers")

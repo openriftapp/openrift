@@ -59,7 +59,7 @@ export interface ShareStateView {
  */
 export async function enableShare(handlers: {
   read: () => Promise<ShareStateView | undefined>;
-  write: (token: string) => Promise<unknown>;
+  write: (token: string) => Promise<{ shareToken: string | null } | undefined>;
 }): Promise<{ shareToken: string; isPublic: true }> {
   const existing = await handlers.read();
   assertFound(existing, "Not found");
@@ -69,7 +69,7 @@ export async function enableShare(handlers: {
   const shareToken = await withUniqueShareToken(async (candidate) => {
     const updated = await handlers.write(candidate);
     assertFound(updated, "Not found");
-    return candidate;
+    return updated.shareToken ?? candidate;
   });
   return { shareToken, isPublic: true };
 }

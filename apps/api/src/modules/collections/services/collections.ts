@@ -25,6 +25,7 @@ export async function deleteCollection(
   const { collectionId, collectionName, moveCopiesTo, targetName, userId } = opts;
 
   await transact(async (trxRepos) => {
+    await trxRepos.collections.lockById(collectionId);
     const copies = await trxRepos.collections.listCopiesInCollection(collectionId);
 
     if (copies.length > 0) {

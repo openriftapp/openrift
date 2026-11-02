@@ -2,7 +2,7 @@ import { createLogger } from "@openrift/shared/logger";
 import { sql } from "kysely";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createRepos } from "../../../deps.js";
+import { createRepos, createTransact } from "../../../deps.js";
 import type { EmailDeps } from "../../../email.js";
 import { PRINTING_1, PRINTING_2 } from "../../../test/fixtures/constants.js";
 import { createDbContext } from "../../../test/integration-context.js";
@@ -22,6 +22,7 @@ const ctx = createDbContext(GIVER_ID);
 describe.skipIf(!ctx)("trade-request coalescing (integration)", () => {
   const { db } = ctx!;
   const repos = createRepos(db);
+  const transact = createTransact(db);
   const groupsRepo = friendGroupsRepo(db);
   const createdGroupIds: string[] = [];
   const log = createLogger("test", "silent");
@@ -164,7 +165,7 @@ describe.skipIf(!ctx)("trade-request coalescing (integration)", () => {
 
   function requestAsReceiver(group: { slug: string }, printingId: string, deps: EmailDeps) {
     return createTrade(
-      repos,
+      transact,
       {
         callerUserId: RECEIVER_ID,
         groupSlug: group.slug,

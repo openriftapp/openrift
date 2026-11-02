@@ -30,6 +30,12 @@ export function friendGroupDiscordLinksRepo(db: Kysely<Database>) {
       // rows rejects whichever loser slips through anyway.
       const run = async (trx: typeof db): Promise<DiscordLink> => {
         await trx
+          .selectFrom("friendGroups")
+          .select("id")
+          .where("id", "=", values.groupId)
+          .forUpdate()
+          .execute();
+        await trx
           .deleteFrom("friendGroupDiscordLinks")
           .where((eb) =>
             eb.or([
@@ -65,7 +71,10 @@ export function friendGroupDiscordLinksRepo(db: Kysely<Database>) {
         if (!pending) {
           return { status: "unknown-code" };
         }
-        // Locked too: a concurrent redeem for the same guild must wait here.
+        // A row lock cannot hold a guild that has no row yet, so redeems for one guild queue here.
+        await sql`select pg_advisory_xact_lock(hashtext(${`discord-guild:${values.guildId}`}))`.execute(
+          trx,
+        );
         const existing = await trx
           .selectFrom("friendGroupDiscordLinks")
           .selectAll()

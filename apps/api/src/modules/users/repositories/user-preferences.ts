@@ -70,15 +70,16 @@ export function userPreferencesRepo(db: Kysely<Database>) {
         }
       }
 
+      // A key never appears in both `patch` and `removedKeys`.
+      const merged = sql<UserPreferencesResponse>`(user_preferences.data || excluded.data) - ${removedKeys}::text[]`;
+      const data =
+        patch.emailNotifications === undefined
+          ? merged
+          : sql<UserPreferencesResponse>`jsonb_set(${merged}, '{emailNotifications}', coalesce(user_preferences.data -> 'emailNotifications', '{}'::jsonb) || (excluded.data -> 'emailNotifications'))`;
       const row = await db
         .insertInto("userPreferences")
         .values({ userId, data: patch })
-        .onConflict((oc) =>
-          oc.column("userId").doUpdateSet({
-            // A key never appears in both `patch` and `removedKeys`.
-            data: sql`(user_preferences.data || excluded.data) - ${removedKeys}::text[]`,
-          }),
-        )
+        .onConflict((oc) => oc.column("userId").doUpdateSet({ data }))
         .returningAll()
         .executeTakeFirstOrThrow();
 

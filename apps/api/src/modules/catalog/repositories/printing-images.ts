@@ -6,6 +6,7 @@ import { sql } from "kysely";
 
 import { cardTypes } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
+import { inTransaction } from "../../../repositories/query-helpers.js";
 
 function printingFaceId(printingId: string, face: CardFace): RawBuilder<string | null> {
   return sql<string | null>`(
@@ -38,6 +39,16 @@ export function printingImagesRepo(db: Kysely<Database>) {
       throw new Error(`printing ${printingId} has no ${face} side`);
     }
     return row.faceId;
+  }
+
+  async function deactivateFace(conn: Kysely<Database>, faceId: string): Promise<void> {
+    await conn.selectFrom("faces").select("id").where("id", "=", faceId).forUpdate().execute();
+    await conn
+      .updateTable("faceImages")
+      .set({ isActive: false })
+      .where("faceId", "=", faceId)
+      .where("isActive", "=", true)
+      .execute();
   }
 
   /** `ON CONFLICT`'s `where` must match `idx_image_files_original_url`'s partial predicate. */
@@ -280,13 +291,9 @@ export function printingImagesRepo(db: Kysely<Database>) {
       return row.face2Id === faceId ? "back" : "front";
     },
 
+    /** Call inside a transaction. */
     async deactivateActiveFace(printingId: string, face: CardFace = "front"): Promise<void> {
-      await db
-        .updateTable("faceImages")
-        .set({ isActive: false })
-        .where("faceId", "=", await requireFaceId(printingId, face))
-        .where("isActive", "=", true)
-        .execute();
+      await deactivateFace(db, await requireFaceId(printingId, face));
     },
 
     /** The side of the linked printing whose card the candidate names; front when neither does. */
@@ -320,21 +327,19 @@ export function printingImagesRepo(db: Kysely<Database>) {
       }
 
       const imageFileId = await findOrCreateImageFile(imageUrl);
+      const faceId = await requireFaceId(printingId, face);
 
-      if (mode === "main") {
-        await this.deactivateActiveFace(printingId, face);
-      }
-
-      const row = await db
-        .insertInto("faceImages")
-        .values({
-          faceId: await requireFaceId(printingId, face),
-          imageFileId,
-          isActive: mode === "main",
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
-      return row.id;
+      return inTransaction(db, async (trx) => {
+        if (mode === "main") {
+          await deactivateFace(trx, faceId);
+        }
+        const row = await trx
+          .insertInto("faceImages")
+          .values({ faceId, imageFileId, isActive: mode === "main" })
+          .returning("id")
+          .executeTakeFirstOrThrow();
+        return row.id;
+      });
     },
 
     async insertUploadedImage(values: {
@@ -345,31 +350,33 @@ export function printingImagesRepo(db: Kysely<Database>) {
       face?: CardFace;
       credit?: string;
     }): Promise<void> {
-      const face = values.face ?? "front";
-      if (values.mode === "main") {
-        await this.deactivateActiveFace(values.printingId, face);
-      }
+      const faceId = await requireFaceId(values.printingId, values.face ?? "front");
+      await inTransaction(db, async (trx) => {
+        if (values.mode === "main") {
+          await deactivateFace(trx, faceId);
+        }
 
-      // The image_files id must equal values.id (= the file path basename):
-      // regenerateFromOrig derives the on-disk lookup path from image_file.id.
-      await db
-        .insertInto("imageFiles")
-        .values({
-          id: values.id,
-          rehostedUrl: values.rehostedUrl,
-          credit: values.credit ?? null,
-        })
-        .execute();
+        // The image_files id must equal values.id (= the file path basename):
+        // regenerateFromOrig derives the on-disk lookup path from image_file.id.
+        await trx
+          .insertInto("imageFiles")
+          .values({
+            id: values.id,
+            rehostedUrl: values.rehostedUrl,
+            credit: values.credit ?? null,
+          })
+          .execute();
 
-      await db
-        .insertInto("faceImages")
-        .values({
-          id: values.id,
-          faceId: await requireFaceId(values.printingId, face),
-          isActive: values.mode === "main",
-          imageFileId: values.id,
-        })
-        .execute();
+        await trx
+          .insertInto("faceImages")
+          .values({
+            id: values.id,
+            faceId,
+            isActive: values.mode === "main",
+            imageFileId: values.id,
+          })
+          .execute();
+      });
     },
 
     async clearAllRehostedUrls(): Promise<number> {

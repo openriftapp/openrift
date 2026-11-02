@@ -10,13 +10,14 @@ describe("distributionChannelsRepo.setForPrinting", () => {
     await distributionChannelsRepo(db).setForPrinting("printing-1", [{ channelId: "channel-a" }]);
 
     expect(events).toEqual(["begin", "commit"]);
-    expect(queries).toHaveLength(2);
-    expect(queries[0]).toContain('delete from "printing_distribution_channels"');
-    expect(queries[1]).toContain('insert into "printing_distribution_channels"');
+    expect(queries).toHaveLength(3);
+    expect(queries[0]).toContain("for update");
+    expect(queries[1]).toContain('delete from "printing_distribution_channels"');
+    expect(queries[2]).toContain('insert into "printing_distribution_channels"');
   });
 
   it("rolls back when the insert fails, keeping the old channels", async () => {
-    const { db, events } = createRecordingDb([[], new Error("foreign key violation")]);
+    const { db, events } = createRecordingDb([[], [], new Error("foreign key violation")]);
 
     await expect(
       distributionChannelsRepo(db).setForPrinting("printing-1", [{ channelId: "channel-a" }]),
@@ -29,8 +30,8 @@ describe("distributionChannelsRepo.setForPrinting", () => {
 
     await distributionChannelsRepo(db).setForPrinting("printing-1", []);
 
-    expect(queries).toHaveLength(1);
-    expect(queries[0]).toContain('delete from "printing_distribution_channels"');
+    expect(queries).toHaveLength(2);
+    expect(queries[1]).toContain('delete from "printing_distribution_channels"');
     expect(events).toEqual(["begin", "commit"]);
   });
 

@@ -81,6 +81,7 @@ export async function ingestDeckCheckPush(
 ): Promise<DeckCheckIngestResultResponse> {
   const event = await repos.deckCheck.getEventForHost(host, payload.tournamentId);
   assertFound(event, "Unknown tournament id. Create the deck-check tournament in OpenRift first.");
+  await repos.deckCheck.lockIngest(event.id);
   if (event.status === "archived") {
     throw new AppError(
       409,

@@ -4,7 +4,7 @@ import type { Database } from "../../../db/tables.js";
 import type { DecksTable } from "../../../db/tables/decks.js";
 import { inTransaction } from "../../../repositories/query-helpers.js";
 import { createsCycle } from "./deck-lineage.js";
-import { lockFamilies } from "./decks-shared.js";
+import { lockFamilies, lockUserFamilies } from "./decks-shared.js";
 
 export function decksFamiliesRepo(db: Kysely<Database>) {
   return {
@@ -20,6 +20,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       input: { name?: string },
     ): Promise<Selectable<DecksTable> | undefined> {
       return inTransaction(db, async (trx) => {
+        await lockUserFamilies(trx, userId);
         const source = await trx
           .selectFrom("decks")
           .selectAll()
@@ -175,6 +176,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       input: { otherDeckId: string; markAsPreviousVersion?: boolean },
     ): Promise<Selectable<DecksTable> | "not-found" | "invalid"> {
       return inTransaction(db, async (trx) => {
+        await lockUserFamilies(trx, userId);
         if (id === input.otherDeckId) {
           return "invalid" as const;
         }
@@ -274,6 +276,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       userId: string,
     ): Promise<Selectable<DecksTable> | "not-found" | "no-family"> {
       return inTransaction(db, async (trx) => {
+        await lockUserFamilies(trx, userId);
         const departing = await trx
           .selectFrom("decks")
           .select(["id", "familyId", "isPrimary", "predecessorDeckId"])
@@ -350,6 +353,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       predecessorDeckId: string | null,
     ): Promise<Selectable<DecksTable> | "not-found" | "invalid"> {
       return inTransaction(db, async (trx) => {
+        await lockUserFamilies(trx, userId);
         if (id === predecessorDeckId) {
           return "invalid" as const;
         }
@@ -408,6 +412,7 @@ export function decksFamiliesRepo(db: Kysely<Database>) {
       userId: string,
     ): Promise<Selectable<DecksTable> | "not-found" | "no-family"> {
       return inTransaction(db, async (trx) => {
+        await lockUserFamilies(trx, userId);
         const target = await trx
           .selectFrom("decks")
           .select(["id", "familyId"])

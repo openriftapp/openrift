@@ -54,6 +54,7 @@ const mockOverlays = {
 };
 
 const mockMeta = {
+  withPromoteLock: vi.fn((_key: string, run: () => Promise<unknown>) => run()),
   eventById: vi.fn(),
   eventsByIds: vi.fn(),
   playerById: vi.fn(),

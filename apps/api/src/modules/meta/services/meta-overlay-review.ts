@@ -348,21 +348,23 @@ export async function writeEventOverlayFields(
   }
   const fields = [...new Set(edits.map((edit) => edit.field))];
 
-  const existing = await repos.metaOverlays.adminEditOverlay(metaEventId, authorUserId);
-  await (existing === undefined
-    ? repos.metaOverlays.insertEventOverlay({
-        metaEventId,
-        claimedFields: fields,
-        status: "accepted",
-        acceptedAt: now,
-        submittedByUserId: authorUserId,
-        ...columns,
-      })
-    : repos.metaOverlays.updateEventOverlay(existing.id, {
-        claimedFields: [...new Set([...existing.claimedFields, ...fields])],
-        acceptedAt: now,
-        ...columns,
-      }));
+  await repos.meta.withPromoteLock(`admin-edit:${metaEventId}:${authorUserId}`, async () => {
+    const existing = await repos.metaOverlays.adminEditOverlay(metaEventId, authorUserId);
+    await (existing === undefined
+      ? repos.metaOverlays.insertEventOverlay({
+          metaEventId,
+          claimedFields: fields,
+          status: "accepted",
+          acceptedAt: now,
+          submittedByUserId: authorUserId,
+          ...columns,
+        })
+      : repos.metaOverlays.updateEventOverlay(existing.id, {
+          claimedFields: [...new Set([...existing.claimedFields, ...fields])],
+          acceptedAt: now,
+          ...columns,
+        }));
+  });
   await promoteMetaEvent(repos, metaEventId);
   return { metaEventId, created: false };
 }
@@ -623,30 +625,38 @@ export async function writeMetaPlayerOverlayFields(
     return { metaEventId, created: false };
   }
 
-  const existing = await repos.metaOverlays.adminPlayerEditOverlay(metaEventPlayerId, authorUserId);
-  await (existing === undefined
-    ? repos.metaOverlays.insertPlayerOverlay(
-        {
-          metaEventPlayerId,
-          metaEventId: null,
-          eventOverlayId: null,
-          claimedFields: claimed,
-          status: "accepted",
-          acceptedAt: now,
-          submittedByUserId: authorUserId,
-          ...columns,
-        } as Insertable<MetaEventPlayerOverlaysTable>,
-        lines ?? [],
-      )
-    : repos.metaOverlays.updatePlayerOverlay(
-        existing.id,
-        {
-          claimedFields: [...new Set([...existing.claimedFields, ...claimed])],
-          acceptedAt: now,
-          ...columns,
-        },
-        lines,
-      ));
+  await repos.meta.withPromoteLock(
+    `admin-player-edit:${metaEventPlayerId}:${authorUserId}`,
+    async () => {
+      const existing = await repos.metaOverlays.adminPlayerEditOverlay(
+        metaEventPlayerId,
+        authorUserId,
+      );
+      await (existing === undefined
+        ? repos.metaOverlays.insertPlayerOverlay(
+            {
+              metaEventPlayerId,
+              metaEventId: null,
+              eventOverlayId: null,
+              claimedFields: claimed,
+              status: "accepted",
+              acceptedAt: now,
+              submittedByUserId: authorUserId,
+              ...columns,
+            } as Insertable<MetaEventPlayerOverlaysTable>,
+            lines ?? [],
+          )
+        : repos.metaOverlays.updatePlayerOverlay(
+            existing.id,
+            {
+              claimedFields: [...new Set([...existing.claimedFields, ...claimed])],
+              acceptedAt: now,
+              ...columns,
+            },
+            lines,
+          ));
+    },
+  );
 
   await promoteMetaEvent(repos, metaEventId);
   if (edits.list !== null && edits.list?.name !== undefined) {

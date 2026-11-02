@@ -4,7 +4,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { DeckCheckEntryCardsTable } from "../../../db/tables/tournaments.js";
-import { inTransaction } from "../../../repositories/query-helpers.js";
+import { inTransaction, lockKey } from "../../../repositories/query-helpers.js";
 
 export type DeckCheckEntryCard = Selectable<DeckCheckEntryCardsTable> & {
   resolvedPrintingId: string | null;
@@ -43,6 +43,11 @@ export interface CardResolution {
 
 export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
   return {
+    /** Call inside a transaction; the split in moveCardCopies takes the same key. */
+    async lockCardOrder(entryId: string): Promise<void> {
+      await lockKey(db, `sort:deck-check-cards:${entryId}`);
+    },
+
     listCardsForEntry(entryId: string): Promise<DeckCheckEntryCard[]> {
       return db
         .selectFrom("deckCheckEntryCards")
@@ -228,6 +233,7 @@ export function deckCheckEntryCardsRepo(db: Kysely<Database>) {
           .where("id", "=", cardId)
           .where("entryId", "=", entryId)
           .execute();
+        await lockKey(trx, `sort:deck-check-cards:${entryId}`);
         const last = await trx
           .selectFrom("deckCheckEntryCards")
           .select("sortOrder")

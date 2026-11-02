@@ -91,12 +91,9 @@ export async function applyUnsubscribe(
   if (decoded === null) {
     return null;
   }
-  const context = await repos.userPreferences.getEmailNotificationContext(decoded.userId);
-  const next: EmailNotificationPreference = {
-    ...context?.emailNotifications,
-    [decoded.channel]: false,
-  };
-  await repos.userPreferences.upsert(decoded.userId, { emailNotifications: next });
+  await repos.userPreferences.upsert(decoded.userId, {
+    emailNotifications: { [decoded.channel]: false },
+  });
   return {
     channel: decoded.channel,
     channelLabel: EMAIL_NOTIFICATION_CHANNEL_LABELS[decoded.channel],

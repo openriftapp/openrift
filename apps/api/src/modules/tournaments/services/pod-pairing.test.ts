@@ -49,6 +49,7 @@ function reposFor(createRound: () => Promise<unknown>): Repos {
     },
     tournaments: {
       updateSettings: vi.fn(async () => undefined),
+      lockRounds: vi.fn(async () => undefined),
     },
   } as unknown as Repos;
 }
@@ -68,6 +69,7 @@ function reposWithSnapshot(players: TeamSnapshotPlayer[]) {
     },
     tournaments: {
       updateSettings: vi.fn(async () => undefined),
+      lockRounds: vi.fn(async () => undefined),
     },
   } as unknown as Repos;
   return { repos, createRound };
@@ -305,6 +307,7 @@ describe("submitPodResult 2v2 team results", () => {
             ["b2", "B"],
           ]),
         })),
+        lockRoundOfPod: vi.fn(async () => undefined),
         setPodResult,
       },
     } as unknown as Repos;
@@ -394,6 +397,7 @@ describe("submitPodPlayerResult 2v2 self-reporting", () => {
             ["b2", "B"],
           ]),
         })),
+        lockRoundOfPod: vi.fn(async () => undefined),
         setMemberGamePoints,
       },
     } as unknown as Repos;

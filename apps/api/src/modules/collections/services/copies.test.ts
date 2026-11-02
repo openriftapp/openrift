@@ -55,6 +55,7 @@ function createMockRepos(overrides: {
   ];
   const repos = {
     collections: {
+      lockAsMoveTarget: () => Promise.resolve(overrides.targetCollection !== undefined),
       ensureInbox: () => Promise.resolve(overrides.inboxId ?? "inbox-id"),
       filterWritableByViewer: (ids: readonly string[]) => {
         const writable = new Set<string>(overrides.writableCollections);
@@ -350,6 +351,54 @@ describe("moveCopies", () => {
     ).rejects.toThrow("One or more copies not found");
   });
 
+  it("locks the copies before reading them, also for a personal target", async () => {
+    const repos = createMockRepos({
+      writableCollections: ["col-1"],
+      targetCollection: { id: "col-2", name: "Target" },
+      collections: [{ id: "col-2", name: "Target" }],
+      fetchedCopies: [
+        { id: "copy-1", printingId: "p-1", collectionId: "col-1", collectionName: "Source" },
+      ],
+    });
+    const order: string[] = [];
+    const { lockByIds, listWithCollectionContext } = repos.copies;
+    repos.copies.lockByIds = vi.fn(async (ids: string[]) => {
+      order.push("lock");
+      return lockByIds(ids);
+    });
+    repos.copies.listWithCollectionContext = vi.fn(
+      async (...args: Parameters<typeof listWithCollectionContext>) => {
+        order.push("read");
+        return listWithCollectionContext(...args);
+      },
+    );
+
+    await moveCopies(repos, mockTransact(repos), "user-1", ["copy-1"], "col-2");
+
+    expect(order.slice(0, 2)).toEqual(["lock", "read"]);
+  });
+
+  it("locks the target collection before the copies, and 404s a target deleted meanwhile", async () => {
+    const repos = createMockRepos({
+      writableCollections: ["col-1"],
+      targetCollection: { id: "col-2", name: "Target" },
+      collections: [{ id: "col-2", name: "Target" }],
+      fetchedCopies: [
+        { id: "copy-1", printingId: "p-1", collectionId: "col-1", collectionName: "Source" },
+      ],
+    });
+    const lockAsMoveTarget = vi.fn(async () => false);
+    repos.collections.lockAsMoveTarget = lockAsMoveTarget;
+    const lockByIds = vi.fn(async (ids: string[]) => ids);
+    repos.copies.lockByIds = lockByIds;
+
+    await expect(
+      moveCopies(repos, mockTransact(repos), "user-1", ["copy-1"], "col-2"),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(lockAsMoveTarget).toHaveBeenCalledWith("col-2");
+    expect(lockByIds).not.toHaveBeenCalled();
+  });
+
   it("moves a reserved copy between the owner's own collections", async () => {
     const repos = createMockRepos({
       writableCollections: ["col-1"],
@@ -548,6 +597,7 @@ describe("copy mutations sweep unfillable pending trades", () => {
     const markAutoCancelled = vi.fn(() => Promise.resolve(1));
     const repos = {
       collections: {
+        lockAsMoveTarget: () => Promise.resolve(true),
         filterWritableByViewer: (ids: readonly string[]) => Promise.resolve([...ids]),
         listIdNameGroupByIds: () =>
           Promise.resolve([{ id: "col-2", name: "Target", groupId: null }]),

@@ -7,7 +7,7 @@ import type {
   PlayriftboundEventStandingsTable,
 } from "../../../db/tables/meta-sources.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
-import { inTransaction } from "../../../repositories/query-helpers.js";
+import { inTransaction, lockKey } from "../../../repositories/query-helpers.js";
 
 // This source publishes standings and pairings but no decklists, so it has no deck tables.
 
@@ -57,6 +57,7 @@ export function playriftboundResultsRepo(db: Kysely<Database>) {
     /** Wholesale: one detail response is the whole event, and standings re-rank every round. */
     async replaceResults(tournamentId: string, results: PlayriftboundResults): Promise<void> {
       await inTransaction(db, async (trx) => {
+        await lockKey(trx, `playriftbound-event:${tournamentId}`);
         await trx
           .deleteFrom("playriftboundEventStandings")
           .where("tournamentId", "=", tournamentId)

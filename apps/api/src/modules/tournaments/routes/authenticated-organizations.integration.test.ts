@@ -14,6 +14,7 @@ const OWNER_ID = crypto.randomUUID();
 const MANAGER_ID = crypto.randomUUID();
 const OUTSIDER_ID = crypto.randomUUID();
 const EXTRA_ID = crypto.randomUUID();
+const RACE_ID = crypto.randomUUID();
 
 const adminCtx = createTestContext(ADMIN_ID, `test-${ADMIN_ID}@test.com`);
 const ownerCtx = createTestContext(OWNER_ID, `test-${OWNER_ID}@test.com`);
@@ -21,7 +22,7 @@ const managerCtx = createTestContext(MANAGER_ID, `test-${MANAGER_ID}@test.com`);
 const outsiderCtx = createTestContext(OUTSIDER_ID, `test-${OUTSIDER_ID}@test.com`);
 const extraCtx = createTestContext(EXTRA_ID, `test-${EXTRA_ID}@test.com`);
 
-const ALL_IDS = [ADMIN_ID, OWNER_ID, MANAGER_ID, OUTSIDER_ID, EXTRA_ID];
+const ALL_IDS = [ADMIN_ID, OWNER_ID, MANAGER_ID, OUTSIDER_ID, EXTRA_ID, RACE_ID];
 
 // Mirrors the seed email assigned in beforeAll.
 const emailFor = (userId: string) => `test-${userId}@test.com`;
@@ -42,6 +43,7 @@ describe.skipIf(!adminCtx || !ownerCtx || !managerCtx || !outsiderCtx || !extraC
       await seedTestUser(admin.db, { id: MANAGER_ID });
       await seedTestUser(admin.db, { id: OUTSIDER_ID });
       await seedTestUser(admin.db, { id: EXTRA_ID });
+      await seedTestUser(admin.db, { id: RACE_ID });
     });
 
     afterAll(async () => {
@@ -183,6 +185,32 @@ describe.skipIf(!adminCtx || !ownerCtx || !managerCtx || !outsiderCtx || !extraC
         }),
       );
       expect(unknown.status).toBe(404);
+    });
+
+    it("adds a member once when two managers add them at once, keeping the first role", async () => {
+      const [asJudge, asManager] = await Promise.all([
+        owner.app.fetch(
+          req("POST", `/organizations/${orgId}/members`, {
+            email: emailFor(RACE_ID),
+            role: "judge",
+          }),
+        ),
+        owner.app.fetch(
+          req("POST", `/organizations/${orgId}/members`, {
+            email: emailFor(RACE_ID),
+            role: "manager",
+          }),
+        ),
+      ]);
+
+      expect([asJudge.status, asManager.status].toSorted()).toEqual([200, 409]);
+      const stored = await admin.db
+        .selectFrom("organizationMembers")
+        .select("role")
+        .where("orgId", "=", orgId)
+        .where("userId", "=", RACE_ID)
+        .executeTakeFirstOrThrow();
+      expect(stored.role).toBe(asJudge.status === 200 ? "judge" : "manager");
     });
 
     it("lets an owner change a member's role and guards the last owner", async () => {

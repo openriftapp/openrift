@@ -153,6 +153,29 @@ beforeEach(() => {
 });
 
 describe("POST /meta/events", () => {
+  it("answers 409 when a concurrent create takes the slug after the check", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(undefined);
+    mockMeta.createEvent.mockRejectedValue(
+      Object.assign(new Error("duplicate"), {
+        code: "23505",
+        constraint_name: "uq_meta_events_slug",
+      }),
+    );
+
+    const res = await app.request("/api/admin/v1/meta/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        slug: "summoner-skirmish-2026",
+        name: "Summoner Skirmish",
+        eventDate: "2026-08-01",
+        format: "constructed",
+      }),
+    });
+
+    expect(res.status).toBe(409);
+  });
+
   it("creates an event without any attribution column", async () => {
     mockMeta.eventBySlug.mockResolvedValue(undefined);
     mockMeta.createEvent.mockResolvedValue(eventRow());

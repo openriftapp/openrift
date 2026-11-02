@@ -219,7 +219,9 @@ async function persistSubmission(
   cardRows: NewDeckCheckEntryCard[],
   consent: PlayerSharingConsent,
 ): Promise<DeckCheckEntry> {
-  const linked = await repos.deckCheck.getLinkedEntryForUser(event.id, userId);
+  await repos.deckCheck.lockSelfSubmission(event.id, userId);
+  const found = await repos.deckCheck.getLinkedEntryForUser(event.id, userId);
+  const linked = found && (await repos.deckCheck.getEntryForUpdate(event.id, found.id));
   if (linked) {
     if (linked.state === "withdrawn") {
       throw new AppError(

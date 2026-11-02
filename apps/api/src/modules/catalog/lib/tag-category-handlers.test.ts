@@ -8,13 +8,16 @@ const repo = {
   getById: vi.fn(),
   getBySlug: vi.fn(),
   getMaxSortOrder: vi.fn(),
+  lockSortOrder: vi.fn(async () => undefined),
   create: vi.fn(),
   update: vi.fn(),
   deleteById: vi.fn(),
   isInUse: vi.fn(),
 };
 const listTags = vi.fn();
-const context = {} as ApiContext;
+const context = {
+  transact: (fn: (repos: unknown) => unknown) => fn({}),
+} as unknown as ApiContext;
 
 const handlers = createTagCategoryHandlers({
   repo: () => repo,

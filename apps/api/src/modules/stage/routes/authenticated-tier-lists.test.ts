@@ -298,7 +298,10 @@ describe("DELETE /tier-lists/{id}", () => {
 describe("sharing", () => {
   it("mints a token the first time a list is shared", async () => {
     mockTierListsRepo.getShareState.mockResolvedValue({ shareToken: null, isPublic: false });
-    mockTierListsRepo.setShare.mockResolvedValue({ shareToken: "token", isPublic: true });
+    mockTierListsRepo.setShare.mockImplementation(async (...args: unknown[]) => ({
+      shareToken: args[2] as string,
+      isPublic: true,
+    }));
 
     const { status, body } = await request(`/tier-lists/${LIST_ID}/share`, { method: "POST" });
 

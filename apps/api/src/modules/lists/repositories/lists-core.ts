@@ -5,7 +5,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { ListsTable } from "../../../db/tables/lists.js";
-import { reorderBySortOrder } from "../../../repositories/query-helpers.js";
+import { reorderBySortOrder, withKeyLock } from "../../../repositories/query-helpers.js";
 
 export interface ListWithCount extends Selectable<ListsTable> {
   entryCount: number;
@@ -87,15 +87,17 @@ export function listsCoreRepo(db: Kysely<Database>) {
      */
     create(values: NewListValues): Promise<Selectable<ListsTable>> {
       const { rules, ...rest } = values;
-      return db
-        .insertInto("lists")
-        .values({
-          ...rest,
-          rules: rules ?? [],
-          sortOrder: sql<number>`coalesce((select max(sort_order) + 1 from lists where user_id = ${values.userId} and intent = ${values.intent}), 0)`,
-        })
-        .returningAll()
-        .executeTakeFirstOrThrow();
+      return withKeyLock(db, `sort:lists:${values.userId}:${values.intent}`, (trx) =>
+        trx
+          .insertInto("lists")
+          .values({
+            ...rest,
+            rules: rules ?? [],
+            sortOrder: sql<number>`coalesce((select max(sort_order) + 1 from lists where user_id = ${values.userId} and intent = ${values.intent}), 0)`,
+          })
+          .returningAll()
+          .executeTakeFirstOrThrow(),
+      );
     },
 
     /**
