@@ -2,7 +2,7 @@ import { looksLikeCardNumber } from "@openrift/shared/search-query/keys";
 import { parseSearchQuery } from "@openrift/shared/search-query/parse";
 import type { Printing } from "@openrift/shared/types/catalog";
 
-export type SearchAlternativeKind = "text" | "tag";
+type SearchAlternativeKind = "text" | "tag";
 
 export interface SearchAlternative {
   kind: SearchAlternativeKind;

@@ -135,7 +135,7 @@ const OPERATOR_SYMBOLS: Record<SearchOperator, string> = {
 
 export type SearchValueLabeler = (key: SearchKeyId, value: string) => string;
 
-export function describeClause(clause: SearchClause, valueLabel: SearchValueLabeler): string {
+function describeClause(clause: SearchClause, valueLabel: SearchValueLabeler): string {
   const definition = searchKey(clause.key);
   const key = searchKeyLabel(clause.key);
   const value = valueLabel(clause.key, clause.value);
@@ -268,7 +268,7 @@ export function describeSearchTerms(
   return [...terms, ...directives, ...problems].toSorted((a, b) => a.span.start - b.span.start);
 }
 
-export function describeDiagnostic(diagnostic: SearchDiagnostic): string | null {
+function describeDiagnostic(diagnostic: SearchDiagnostic): string | null {
   const typed = `${diagnostic.key ?? ""}:`;
   const value = diagnostic.value ?? "";
   switch (diagnostic.code) {
