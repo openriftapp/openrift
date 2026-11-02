@@ -6,73 +6,20 @@ import { imageUrl } from "@openrift/shared/image-url";
 import { Link } from "@tanstack/react-router";
 import { InfoIcon } from "lucide-react";
 
-import { Eyebrow } from "@/components/heading";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { TextLink } from "@/components/ui/text-link";
-import { CardTextTokens } from "@/features/cards/components/card-text";
+import type { ErrataTextChange } from "@/features/cards/components/errata-diff-pane";
+import { ErrataPane } from "@/features/cards/components/errata-diff-pane";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
-import type { ErrataDiffSegment } from "@/features/cards/lib/errata-diff";
-import { diffCardText, diffSide, isBlankSegment } from "@/features/cards/lib/errata-diff";
+import { diffCardText } from "@/features/cards/lib/errata-diff";
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 export type ErrataView = "side" | "inline";
 
-function DiffText({ segments }: { segments: ErrataDiffSegment[] }) {
-  return (
-    <p className="leading-relaxed">
-      {segments.map((segment, index) => {
-        const content = <CardTextTokens tokens={segment.tokens} />;
-        const italic = segment.italic && "italic";
-        if (segment.status === "same" || isBlankSegment(segment)) {
-          // oxlint-disable-next-line react/no-array-index-key -- segments have no identity beyond their position
-          return (
-            <span key={index} className={cn(italic)}>
-              {content}
-            </span>
-          );
-        }
-        if (segment.status === "added") {
-          return (
-            // oxlint-disable-next-line react/no-array-index-key -- segments have no identity beyond their position
-            <ins
-              key={index}
-              className={cn(
-                "bg-warning-soft decoration-warning rounded-xs underline decoration-2 underline-offset-2",
-                italic,
-              )}
-            >
-              {content}
-            </ins>
-          );
-        }
-        return (
-          // oxlint-disable-next-line react/no-array-index-key -- segments have no identity beyond their position
-          <del
-            key={index}
-            className={cn(
-              "text-muted-foreground decoration-destructive line-through decoration-2",
-              italic,
-            )}
-          >
-            {content}
-          </del>
-        );
-      })}
-    </p>
-  );
-}
-
-interface TextChange {
-  key: string;
-  label: string | null;
-  segments: ErrataDiffSegment[];
-}
-
-function textChanges(entry: ErrataEntryData): TextChange[] {
-  const changes: TextChange[] = [];
+function textChanges(entry: ErrataEntryData): ErrataTextChange[] {
+  const changes: ErrataTextChange[] = [];
   if (entry.correctedRulesText !== null) {
     changes.push({
       key: "rules",
@@ -88,45 +35,6 @@ function textChanges(entry: ErrataEntryData): TextChange[] {
     });
   }
   return changes;
-}
-
-function Pane({
-  title,
-  tone,
-  changes,
-  side,
-}: {
-  title: string;
-  tone: "printed" | "updated";
-  changes: TextChange[];
-  side: "printed" | "corrected" | null;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex min-w-0 flex-col gap-1.5 rounded-lg px-3.5 py-3",
-        tone === "printed" ? "bg-muted/60" : "bg-card ring-warning/40 ring-1",
-      )}
-    >
-      <Eyebrow
-        as="p"
-        className={cn(
-          "mb-0 text-xs",
-          tone === "printed" ? "text-muted-foreground" : "text-warning",
-        )}
-      >
-        {title}
-      </Eyebrow>
-      {changes.map((change) => (
-        <div key={change.key}>
-          {change.label !== null && (
-            <p className="text-muted-foreground text-xs font-medium">{change.label}</p>
-          )}
-          <DiffText segments={side === null ? change.segments : diffSide(change.segments, side)} />
-        </div>
-      ))}
-    </div>
-  );
 }
 
 function sourceNote(entry: ErrataEntryData): string | null {
@@ -216,8 +124,13 @@ export function ErrataEntry({ entry, view }: { entry: ErrataEntryData; view: Err
         )}
         {view === "side" ? (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-            <Pane title={m.errata_pane_printed()} tone="printed" changes={changes} side="printed" />
-            <Pane
+            <ErrataPane
+              title={m.errata_pane_printed()}
+              tone="printed"
+              changes={changes}
+              side="printed"
+            />
+            <ErrataPane
               title={m.errata_pane_updated()}
               tone="updated"
               changes={changes}
@@ -225,7 +138,12 @@ export function ErrataEntry({ entry, view }: { entry: ErrataEntryData; view: Err
             />
           </div>
         ) : (
-          <Pane title={m.errata_pane_updated()} tone="updated" changes={changes} side={null} />
+          <ErrataPane
+            title={m.errata_pane_updated()}
+            tone="updated"
+            changes={changes}
+            side={null}
+          />
         )}
       </div>
     </article>

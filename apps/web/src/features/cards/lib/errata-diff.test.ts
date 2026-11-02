@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ErrataDiffSegment } from "./errata-diff";
-import { diffCardText, diffSide, isBlankSegment } from "./errata-diff";
+import { diffCardText, diffSide, isBlankSegment, markCorrected } from "./errata-diff";
 
 function render(segments: ErrataDiffSegment[]): string {
   return segments
@@ -82,6 +82,36 @@ describe("diffSide", () => {
 
   it("drops removals from the corrected side", () => {
     expect(render(diffSide(segments, "corrected"))).toBe("{+the+} next card");
+  });
+});
+
+describe("markCorrected", () => {
+  function marked(printed: string, corrected: string): string {
+    return markCorrected(diffCardText(printed, corrected))
+      .map((segment) => (segment.status === "gap" ? "^" : render([segment])))
+      .join("");
+  }
+
+  it("marks a replacement by its new words only", () => {
+    expect(marked("discard a card as a cost", "discard 1 as a cost")).toBe(
+      "discard {+1+} as a cost",
+    );
+  });
+
+  it("leaves a gap where words were only removed", () => {
+    expect(marked("Your other friendly units", "Your other units")).toBe("Your other^ units");
+  });
+
+  it("leaves a gap for a removal at the end", () => {
+    expect(marked("Deal 3 to a unit here.", "Deal 3 to a unit.")).toBe("Deal 3 to a unit^.");
+  });
+
+  it("keeps pure additions as they are", () => {
+    expect(marked("Your units", "Your other units")).toBe("Your {+other+} units");
+  });
+
+  it("passes unchanged text through", () => {
+    expect(marked("Draw a card.", "Draw a card.")).toBe("Draw a card.");
   });
 });
 

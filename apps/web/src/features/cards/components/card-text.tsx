@@ -47,10 +47,24 @@ export function CardText({
   );
 }
 
-export function CardTextTokens({ tokens }: { tokens: CardTextToken[] }) {
+export function CardTextTokens({
+  tokens,
+  onKeywordClick,
+  interactive = false,
+}: {
+  tokens: CardTextToken[];
+  onKeywordClick?: (keyword: string) => void;
+  interactive?: boolean;
+}) {
   const styles = useKeywordStyles();
   const reverseMap = useKeywordReverseMap();
-  return renderTokens(tokens, styles, undefined, false, reverseMap);
+  return renderTokens(
+    tokens,
+    styles,
+    interactive ? onKeywordClick : undefined,
+    interactive,
+    reverseMap,
+  );
 }
 
 function renderTokens(

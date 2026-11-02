@@ -5,6 +5,7 @@
 ### Highlights
 
 - feat(Cards): **Search terms light up filters** — a typed term like `d:fury` or `is:foil` now shows on its filter button, and clicking that filter moves the term out of the search box.
+- feat(Cards): **Errata marked in the card text** — reworded and removed words are marked in the card text, and tapping one compares the printed and updated wording.
 
 ### Other
 

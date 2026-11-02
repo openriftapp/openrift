@@ -171,3 +171,49 @@ export function diffSide(
   const hidden: ErrataDiffStatus = side === "printed" ? "added" : "removed";
   return segments.filter((segment) => segment.status !== hidden);
 }
+
+export type ErrataMarkedSegment = ErrataDiffSegment | { status: "gap" };
+
+function endsWithSpace(segment: ErrataMarkedSegment | undefined): boolean {
+  if (segment === undefined || segment.status === "gap") {
+    return false;
+  }
+  const last = segment.tokens.at(-1);
+  return last?.type === "text" && /\s$/u.test(last.value);
+}
+
+function trimTrailingSpace(tokens: CardTextToken[]): CardTextToken[] {
+  const last = tokens.at(-1);
+  if (last?.type !== "text") {
+    return tokens;
+  }
+  return [...tokens.slice(0, -1), { type: "text", value: last.value.trimEnd() }];
+}
+
+export function markCorrected(segments: readonly ErrataDiffSegment[]): ErrataMarkedSegment[] {
+  const marked: ErrataMarkedSegment[] = [];
+  for (const [index, segment] of segments.entries()) {
+    if (segment.status !== "removed") {
+      if (!(isBlankSegment(segment) && endsWithSpace(marked.at(-1)))) {
+        marked.push(segment);
+      }
+      continue;
+    }
+    if (isBlankSegment(segment)) {
+      continue;
+    }
+    const next = segments.slice(index + 1).find((later) => !isBlankSegment(later));
+    if (next?.status === "added") {
+      continue;
+    }
+    const last = marked.at(-1);
+    if (last !== undefined && last.status !== "gap" && endsWithSpace(last)) {
+      marked.pop();
+      if (!isBlankSegment(last)) {
+        marked.push({ ...last, tokens: trimTrailingSpace(last.tokens) });
+      }
+    }
+    marked.push({ status: "gap" });
+  }
+  return marked;
+}
