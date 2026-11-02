@@ -257,7 +257,7 @@ export function CardDetail({
       <div
         className={cn(
           "relative hidden md:block md:pt-4 md:pb-4",
-          onClose && "bg-background/80 sticky top-0 z-10 backdrop-blur-lg md:-mx-3 md:px-3",
+          onClose && "bg-background sticky top-0 z-10 md:-mx-3 md:px-3",
         )}
         style={onClose ? getDomainTintStyle(card.domains, domainColors) : undefined}
       >
@@ -280,7 +280,7 @@ export function CardDetail({
         />
       </div>
 
-      <div className="space-y-4 p-4 md:p-0 md:pb-4">
+      <div className={cn("space-y-4 p-4 md:p-0 md:pb-4", onClose && "md:pt-2")}>
         {hasBans && <BanAlert bans={card.bans} upcoming={false} />}
         {hasUpcomingBans && <BanAlert bans={card.upcomingBans} upcoming />}
 

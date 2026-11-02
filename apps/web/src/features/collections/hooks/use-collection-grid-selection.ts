@@ -6,6 +6,7 @@ import { useEffect } from "react";
 
 import { cardsViewTileKey, splitsCardIntoTiles } from "@/features/cards/lib/card-tiles";
 import type { CollectionContextAction } from "@/features/cards/stores/card-row-actions-store";
+import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
 import { buildOnDecrement } from "@/features/collections/hooks/collection-decrement";
 import type { useQuickAddActions } from "@/features/collections/hooks/use-quick-add-actions";
@@ -133,6 +134,7 @@ export function useCollectionGridSelection({
   };
 
   const handleSiblingClick = (printing: Printing) => {
+    usePrintingLightboxStore.getState().request(sideKey(printing));
     handleGridCardClick(printing);
     useSiblingOverrideStore
       .getState()

@@ -14,12 +14,15 @@ export function Pane({
   return (
     <aside
       className={cn(
-        "sticky top-(--sticky-top) hidden max-h-[calc(100vh-var(--sticky-top))] w-[400px] shrink-0 overflow-y-auto pt-3",
+        "sticky top-(--sticky-top) hidden max-h-[calc(100vh-var(--sticky-top))] w-[400px] shrink-0 pt-3",
         className,
       )}
       data-testid={testId}
     >
-      {children}
+      {/* The top gap stays outside the scroller, so sticky headers rest where they stick. */}
+      <div className="max-h-[calc(100vh-var(--sticky-top)-0.75rem)] overflow-y-auto">
+        {children}
+      </div>
     </aside>
   );
 }

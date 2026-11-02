@@ -18,6 +18,7 @@ import type {
   ListBulkAction,
 } from "@/features/cards/stores/card-row-actions-store";
 import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
+import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
 import { useCopyListMemberships, useDisposeCopies } from "@/features/collections/hooks/use-copies";
 import { useRowActionHandlers } from "@/features/collections/hooks/use-row-action-handlers";
@@ -216,6 +217,7 @@ export function useListEntryBrowserSelection({
   }, [gridSelectedId]);
 
   const handleSiblingClick = (printing: Printing) => {
+    usePrintingLightboxStore.getState().request(sideKey(printing));
     handleCardClick(printing);
     useSiblingOverrideStore.getState().setOverride("list", printing.cardId, sideKey(printing));
   };

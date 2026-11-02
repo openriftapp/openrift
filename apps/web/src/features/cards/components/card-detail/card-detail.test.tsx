@@ -27,7 +27,7 @@ describe("CardDetail desktop header", () => {
 
     const closeButtons = screen.getAllByRole("button", { name: "Close card details" });
     const header = closeButtons.at(-1)?.parentElement;
-    expect(header).toHaveClass("sticky", "top-0", "z-10", "backdrop-blur-lg", "md:-mx-3");
+    expect(header).toHaveClass("bg-background", "sticky", "top-0", "z-10", "md:-mx-3");
   });
 
   it("scrolls with the content without a close button", () => {

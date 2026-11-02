@@ -6,6 +6,7 @@ import { Fragment, memo, useEffect, useLayoutEffect, useRef, useState } from "re
 import { OrnamentRule } from "@/components/ui/ornament";
 import { Pressable } from "@/components/ui/pressable";
 import { useAdminSettings } from "@/features/admin/hooks/use-admin-settings";
+import { useFollowSelection } from "@/features/cards/hooks/use-follow-selection";
 import { useResponsiveColumns } from "@/features/cards/hooks/use-responsive-columns";
 import { useStickyHeader } from "@/features/cards/hooks/use-sticky-header";
 import {
@@ -324,12 +325,16 @@ export function CardGrid({
     }
   };
 
+  const followSelection = useFollowSelection();
   useScopeEffect(selectedItemId, (itemId) => {
+    const follow = followSelection(itemId);
     if (!itemId) {
       useGridFocusStore.getState().setFlashCardId(null);
       return;
     }
-    scrollToCard(itemId);
+    if (follow) {
+      scrollToCard(itemId);
+    }
     useGridFocusStore.getState().setFlashCardId(itemId);
     const timer = setTimeout(() => useGridFocusStore.getState().setFlashCardId(null), 800);
     return () => clearTimeout(timer);

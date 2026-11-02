@@ -1,3 +1,4 @@
+import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type * as ReactRouter from "@tanstack/react-router";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -5,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { stubPrinting } from "@/test/factories";
 
 import { lightboxKeyTarget, PrintingsLightbox } from "./printings-lightbox";
@@ -39,6 +41,7 @@ vi.mock("./card-detail-art", () => ({
 
 beforeEach(() => {
   routerStub.navigate.mockReset();
+  usePrintingLightboxStore.setState({ requestedSideKey: null });
 });
 
 function printing(shortCode: string, imageId: string, overrides: Partial<Printing> = {}) {
@@ -66,8 +69,8 @@ function renderLightbox(printings: Printing[], onSelect = vi.fn()) {
 }
 
 describe("PrintingsLightbox", () => {
-  it("hides the button when every printing shares one image", () => {
-    renderLightbox([normal, foil]);
+  it("hides the button for a single printing", () => {
+    renderLightbox([normal]);
 
     expect(screen.queryByRole("button", { name: /All printings/u })).toBeNull();
   });
@@ -78,7 +81,7 @@ describe("PrintingsLightbox", () => {
     expect(screen.getByRole("button", { name: "All printings (3)" })).toBeTruthy();
   });
 
-  it("merges same-image printings into one tile that lists the finishes", async () => {
+  it("shows a tile for every printing, also when printings share an image", async () => {
     renderLightbox([normal, foil, alt]);
 
     await userEvent.click(screen.getByRole("button", { name: "All printings (3)" }));
@@ -86,9 +89,8 @@ describe("PrintingsLightbox", () => {
     const dialog = await screen.findByRole("dialog");
     expect(dialog.textContent).toContain("Ahri, Inquisitive");
     expect(dialog.textContent).toContain("3 printings");
-    expect(dialog.querySelectorAll("[data-lightbox-tile]")).toHaveLength(2);
-    expect(dialog.textContent).toContain("Normal, Foil");
-    expect(screen.getByRole("button", { name: "OGN-119", pressed: true })).toBeTruthy();
+    expect(dialog.querySelectorAll("[data-lightbox-tile]")).toHaveLength(3);
+    expect(screen.getAllByRole("button", { pressed: true })).toHaveLength(1);
   });
 
   it("selects the clicked tile's printing and closes", async () => {
@@ -133,13 +135,29 @@ describe("PrintingsLightbox", () => {
     renderLightbox([normal, foil, alt]);
 
     await userEvent.click(screen.getByRole("button", { name: "All printings (3)" }));
-    const first = await screen.findByRole("button", { name: "OGN-119", pressed: true });
+    const first = await screen.findByRole("button", { pressed: true });
     first.focus();
     fireEvent.keyDown(first, { key: "ArrowRight" });
 
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: /OGN-119a/u }));
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "OGN-119 · Foil" }));
     expect(onWindowKey).not.toHaveBeenCalled();
     globalThis.removeEventListener("keydown", onWindowKey);
+  });
+
+  it("opens on a request for the shown printing and consumes it", async () => {
+    usePrintingLightboxStore.getState().request(sideKey(normal));
+    renderLightbox([normal, foil, alt]);
+
+    expect(await screen.findByRole("dialog", { name: "Ahri, Inquisitive" })).toBeTruthy();
+    expect(usePrintingLightboxStore.getState().requestedSideKey).toBeNull();
+  });
+
+  it("ignores a request for another printing", () => {
+    usePrintingLightboxStore.getState().request(sideKey(alt));
+    renderLightbox([normal, foil, alt]);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(usePrintingLightboxStore.getState().requestedSideKey).toBe(sideKey(alt));
   });
 });
 

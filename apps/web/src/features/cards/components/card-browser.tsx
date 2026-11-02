@@ -24,6 +24,7 @@ import { useFilterCountsVisible } from "@/features/cards/hooks/use-filter-counts
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { splitsCardIntoTiles, tileSiblings } from "@/features/cards/lib/card-tiles";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
+import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
 import { AnnotatedDisposeDialog } from "@/features/collections/components/annotated-dispose-dialog";
 import { QuickAddPalette } from "@/features/collections/components/quick-add-palette";
@@ -233,6 +234,7 @@ export function CardBrowser() {
   };
 
   const handleSiblingClick = (printing: Printing) => {
+    usePrintingLightboxStore.getState().request(sideKey(printing));
     handleGridCardClick(printing);
     useSiblingOverrideStore.getState().setOverride("cards", printing.cardId, sideKey(printing));
   };

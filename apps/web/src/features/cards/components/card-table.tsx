@@ -7,6 +7,7 @@ import { Fragment, cloneElement, memo, useEffect, useRef, useState } from "react
 import { Button } from "@/components/ui/button";
 import { OrnamentRule } from "@/components/ui/ornament";
 import { SelectionRowMark } from "@/components/ui/selection-mark";
+import { useFollowSelection } from "@/features/cards/hooks/use-follow-selection";
 import { useStickyHeader } from "@/features/cards/hooks/use-sticky-header";
 import type { VRow } from "@/features/cards/lib/card-grid-types";
 import { buildGroups } from "@/features/cards/lib/card-groups";
@@ -16,6 +17,7 @@ import { useCardRowActionsStore } from "@/features/cards/stores/card-row-actions
 import type { ActionsColumn } from "@/features/collections/lib/collection-table";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useHeaderHeight } from "@/hooks/use-header-height";
+import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useWindowScrollMargin } from "@/hooks/use-window-scroll-margin";
 import type { GroupInfo } from "@/lib/card-group-types";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
@@ -238,8 +240,9 @@ export function CardTable({
     headerHeight: CARD_TABLE_HEADER_HEIGHT,
   });
 
-  useEffect(() => {
-    if (!selectedItemId) {
+  const followSelection = useFollowSelection();
+  useScopeEffect(selectedItemId, () => {
+    if (!followSelection(selectedItemId)) {
       return;
     }
     const rows = virtualRowsRef.current;
@@ -263,7 +266,7 @@ export function CardTable({
       }
     }
     virtualizerRef.current.scrollToIndex(rowIndex, { align: "start" });
-  }, [selectedItemId]);
+  });
 
   // Reads only from mirror refs so React Compiler keeps this reference stable
   // across scroll-driven re-renders; GroupStickyLabel's onSelect prop stays intact.

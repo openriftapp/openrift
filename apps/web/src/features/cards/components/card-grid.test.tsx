@@ -168,7 +168,26 @@ describe("CardGrid scroll on selection changes", () => {
     expect(scrollTo).not.toHaveBeenCalled();
   });
 
-  it("follows a selection stepped out of view, then stays put when the selection clears", () => {
+  it("keeps the grid still while the modal steps out of view", () => {
+    const { rerender } = render(gridElement(items, [set], itemAt(COLUMNS)));
+    const scrollTo = spyOnWindowScroll();
+
+    rerender(gridElement(items, [set], itemAt(COLUMNS * 6)));
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("scrolls to a card opened out of view", () => {
+    const { rerender } = render(gridElement(items, [set]));
+    const scrollTo = spyOnWindowScroll();
+
+    rerender(gridElement(items, [set], itemAt(COLUMNS * 6)));
+
+    expect(scrollTo).toHaveBeenCalled();
+  });
+
+  it("follows the docked pane out of view, then stays put when the selection clears", () => {
+    useDisplayStore.setState({ paneDocked: true });
     const { rerender } = render(gridElement(items, [set], itemAt(COLUMNS)));
     const scrollTo = spyOnWindowScroll();
 
