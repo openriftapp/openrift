@@ -14,6 +14,7 @@ import {
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
+import { PrintingsLightbox } from "@/features/cards/components/card-detail/printings-lightbox";
 import {
   CollectionSlot,
   SignupNudgeSlot,
@@ -127,6 +128,14 @@ export function CardDetailPage() {
           printings={printings}
           selectedSideKey={sideKey(selectedPrinting)}
           onSelect={selectPrinting}
+          headerAction={
+            <PrintingsLightbox
+              printing={selectedPrinting}
+              printings={printings}
+              showImages
+              onSelect={selectPrinting}
+            />
+          }
         />
 
         <RelatedCardsSection related={data.related} />

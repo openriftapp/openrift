@@ -3,12 +3,13 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { CSSProperties, ReactNode } from "react";
-import { Suspense } from "react";
+import { Suspense, useEffect, useRef } from "react";
 
 import { Heading } from "@/components/heading";
 import { LanguageChip } from "@/components/language-chip";
 import { Pressable } from "@/components/ui/pressable";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
+import { CardDetailArt } from "@/features/cards/components/card-detail/card-detail-art";
 import { PrintingDesignRows } from "@/features/cards/components/printing-design-rows";
 import { PrintingVariantLine } from "@/features/cards/components/printing-row";
 import { usePrices } from "@/features/cards/hooks/use-prices";
@@ -16,6 +17,7 @@ import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { PrintingDesign } from "@/features/cards/lib/printing-designs";
 import { groupPrintingDesigns, isSelectedSide } from "@/features/cards/lib/printing-designs";
 import { distinctPrintingCode } from "@/features/cards/lib/printing-search-link";
+import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
 import { useLanguageLabels } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -30,6 +32,10 @@ interface MatrixProps {
   designs: PrintingDesign[];
   selectedSideKey: string;
   onSelect: (printing: Printing) => void;
+  highlightSideKey?: string | null;
+  onHighlightEnd?: () => void;
+  large?: boolean;
+  showImages?: boolean;
 }
 
 interface CellStats {
@@ -41,12 +47,16 @@ export function CardPagePrintings({
   printings,
   selectedSideKey,
   onSelect,
+  headerAction,
 }: {
   printings: Printing[];
   selectedSideKey: string;
   onSelect: (printing: Printing) => void;
+  headerAction?: ReactNode;
 }) {
   const hydrated = useHydrated();
+  const pickedSideKey = usePrintingLightboxStore((state) => state.pickedSideKey);
+  const clearPicked = usePrintingLightboxStore((state) => state.clearPicked);
   if (printings.length === 0) {
     return null;
   }
@@ -54,14 +64,21 @@ export function CardPagePrintings({
     ...groupPrintingDesigns(printings),
     selectedSideKey,
     onSelect,
+    highlightSideKey: pickedSideKey,
+    onHighlightEnd: clearPicked,
   };
   return (
     <section className="flex flex-col gap-4">
-      <Heading level={2}>{m.cards_page_printings_heading()}</Heading>
+      <div className="flex items-center justify-between gap-2">
+        <Heading level={2}>{m.cards_page_printings_heading()}</Heading>
+        {headerAction}
+      </div>
       {/* Prices and owned counts have no server snapshot, so they join after hydration. */}
       {hydrated ? (
         <Suspense fallback={<PrintingTable {...props} />}>
-          <LivePrintingTable {...props} />
+          <LiveStats designs={props.designs}>
+            {(stats) => <PrintingTable {...props} stats={stats} />}
+          </LiveStats>
         </Suspense>
       ) : (
         <PrintingTable {...props} />
@@ -70,11 +87,45 @@ export function CardPagePrintings({
   );
 }
 
-function LivePrintingTable(props: MatrixProps) {
+/** `printings` must be in language-preference order. */
+export function PrintingLanguageMatrix({
+  printings,
+  selectedSideKey,
+  onSelect,
+  showImages,
+}: {
+  printings: Printing[];
+  selectedSideKey: string;
+  onSelect: (printing: Printing) => void;
+  showImages?: boolean;
+}) {
+  const props: MatrixProps = {
+    ...groupPrintingDesigns(printings),
+    selectedSideKey,
+    onSelect,
+    large: true,
+    showImages,
+  };
+  return (
+    <Suspense fallback={<PrintingMatrix {...props} />}>
+      <LiveStats designs={props.designs}>
+        {(stats) => <PrintingMatrix {...props} stats={stats} />}
+      </LiveStats>
+    </Suspense>
+  );
+}
+
+function LiveStats({
+  designs,
+  children,
+}: {
+  designs: PrintingDesign[];
+  children: (stats: CellStats) => ReactNode;
+}) {
   const userId = useUserId();
   const prices = usePrices();
   const marketplaceOrder = useDisplayStore((s) => s.marketplaceOrder);
-  const printingIds = props.designs.flatMap((design) =>
+  const printingIds = designs.flatMap((design) =>
     [...design.byLanguage.values()].map((printing) => printing.printingId),
   );
   const { data: owned } = useOwnedCountsForPrintings(printingIds, Boolean(userId));
@@ -94,11 +145,11 @@ function LivePrintingTable(props: MatrixProps) {
     );
   };
 
-  return <PrintingTable {...props} stats={{ owned: owned?.totals, price }} />;
+  return children({ owned: owned?.totals, price });
 }
 
 function PrintingTable(props: MatrixProps & { stats?: CellStats }) {
-  const { designs, selectedSideKey, onSelect, stats } = props;
+  const { designs, selectedSideKey, onSelect, highlightSideKey, onHighlightEnd, stats } = props;
   return (
     <>
       <div className="hidden sm:block">
@@ -108,6 +159,8 @@ function PrintingTable(props: MatrixProps & { stats?: CellStats }) {
         <PrintingDesignRows
           designs={designs}
           selectedSideKey={selectedSideKey}
+          highlightSideKey={highlightSideKey}
+          onHighlightEnd={onHighlightEnd}
           onSelect={onSelect}
           badge={stats && ((printing) => <OwnedBadge count={stats.owned?.[printing.printingId]} />)}
           right={stats && ((printing) => <CompactPrice printing={printing} stats={stats} />)}
@@ -142,13 +195,21 @@ function PrintingMatrix({
   designs,
   selectedSideKey,
   onSelect,
+  highlightSideKey,
+  onHighlightEnd,
+  large,
+  showImages,
   stats,
 }: MatrixProps & { stats?: CellStats }) {
   const languageLabels = useLanguageLabels();
   const leads = designs.map((design) => design.lead);
   const columns = { "--cols": languages.length } as CSSProperties;
-  const cellGrid =
-    "grid grid-cols-[repeat(var(--cols),minmax(0,1fr))] gap-2 sm:grid-cols-[repeat(var(--cols),4.5rem)]";
+  const cellGrid = cn(
+    "grid grid-cols-[repeat(var(--cols),minmax(0,1fr))]",
+    large
+      ? "gap-3 sm:w-[min(calc(var(--cols)*18rem),calc(100vw-22rem))] sm:shrink-0"
+      : "gap-2 sm:grid-cols-[repeat(var(--cols),4.5rem)]",
+  );
 
   return (
     <div className="bg-card overflow-hidden rounded-xl border" style={columns}>
@@ -181,14 +242,25 @@ function PrintingMatrix({
                   const printing = design.byLanguage.get(language);
                   if (!printing) {
                     return (
-                      <span key={language} className="flex flex-col items-center gap-1 py-1">
+                      <span
+                        key={language}
+                        className={cn("flex flex-col items-center gap-1 py-1", large && "w-full")}
+                      >
                         <span
                           aria-hidden
-                          className="aspect-card w-11 border border-dashed"
+                          className={cn(
+                            "aspect-card border border-dashed",
+                            large ? "w-full" : "w-11",
+                          )}
                           style={{ borderRadius: CARD_BORDER_RADIUS }}
                         />
                         {stats && (
-                          <span className="text-muted-foreground/60 text-xs font-semibold tabular-nums">
+                          <span
+                            className={cn(
+                              "text-muted-foreground/60 font-semibold tabular-nums",
+                              large ? "text-sm" : "text-xs",
+                            )}
+                          >
                             {formatPrice()}
                           </span>
                         )}
@@ -201,7 +273,15 @@ function PrintingMatrix({
                       printing={printing}
                       languageLabel={enumLabel(languageLabels, language)}
                       isSelected={isSelectedSide(printing, selectedSideKey)}
+                      highlighted={
+                        highlightSideKey !== undefined &&
+                        highlightSideKey !== null &&
+                        isSelectedSide(printing, highlightSideKey)
+                      }
+                      onHighlightEnd={onHighlightEnd}
                       onSelect={() => onSelect(printing)}
+                      large={large}
+                      showImages={showImages}
                       stats={stats}
                     />
                   );
@@ -219,41 +299,78 @@ function PrintingCell({
   printing,
   languageLabel,
   isSelected,
+  highlighted,
+  onHighlightEnd,
   onSelect,
+  large,
+  showImages,
   stats,
 }: {
   printing: Printing;
   languageLabel: string;
   isSelected: boolean;
+  highlighted: boolean;
+  onHighlightEnd?: () => void;
   onSelect: () => void;
+  large?: boolean;
+  showImages?: boolean;
   stats?: CellStats;
 }) {
+  const cellRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (highlighted) {
+      cellRef.current?.scrollIntoView({ block: "nearest" });
+    }
+  }, [highlighted]);
   const owned = stats?.owned?.[printing.printingId] ?? 0;
   const dimmed = stats?.owned !== undefined && owned === 0 && !isSelected;
   return (
     <Pressable
+      ref={cellRef}
       onClick={onSelect}
       aria-pressed={isSelected}
       data-printing-id={printing.printingId}
+      data-highlighted={highlighted || undefined}
+      aria-label={large ? `${distinctPrintingCode(printing)}, ${languageLabel}` : undefined}
+      onAnimationEnd={(event) => {
+        if (highlighted && event.target === event.currentTarget) {
+          onHighlightEnd?.();
+        }
+      }}
       className={cn(
         "flex flex-col items-center gap-1 rounded-md py-1 transition-colors",
+        large && "w-full px-1",
         isSelected ? "bg-primary/10" : "hover:bg-muted/50",
+        highlighted && "animate-printing-picked",
       )}
     >
-      <span className="relative">
-        <CardArtThumb
-          imageId={printing.images[0]?.imageId}
-          alt={`${distinctPrintingCode(printing)}, ${languageLabel}`}
-          landscape={getOrientation(printing.card.types) === "landscape"}
-          rarity={printing.rarity}
-          domains={printing.card.domains}
-          className={cn(
-            "w-11",
+      <span
+        className={cn(
+          "relative",
+          large && [
+            "block w-full rounded-[5%/3.6%]",
             isSelected && "ring-primary ring-offset-card ring-2 ring-offset-2",
             dimmed && "opacity-60",
-          )}
-          loading="lazy"
-        />
+          ],
+        )}
+      >
+        {large ? (
+          <CardDetailArt printing={printing} showImages={showImages} disableTilt sizes="18rem" />
+        ) : (
+          <CardArtThumb
+            imageId={printing.images[0]?.imageId}
+            alt={`${distinctPrintingCode(printing)}, ${languageLabel}`}
+            landscape={getOrientation(printing.card.types) === "landscape"}
+            rarity={printing.rarity}
+            domains={printing.card.domains}
+            className={cn(
+              "w-11",
+              isSelected && "ring-primary ring-offset-card ring-2 ring-offset-2",
+              dimmed && "opacity-60",
+            )}
+            loading="lazy"
+          />
+        )}
         {owned > 0 && (
           <span className="bg-foreground text-background ring-card text-2xs absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 font-semibold ring-2">
             ×{owned}
@@ -261,7 +378,7 @@ function PrintingCell({
         )}
       </span>
       {stats && (
-        <span className="text-xs font-semibold tabular-nums">
+        <span className={cn("font-semibold tabular-nums", large ? "text-sm" : "text-xs")}>
           {stats.price(printing.printingId)}
         </span>
       )}

@@ -10,6 +10,7 @@ import {
   groupPrintingDesigns,
   sortByLanguagePreference,
 } from "@/features/cards/lib/printing-designs";
+import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { formatterForMarketplace, priceColorClass } from "@/lib/format";
@@ -18,20 +19,25 @@ import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 import { OwnedCollectionsPopover } from "./owned-collections-popover";
+import { PrintingsLightbox } from "./printings-lightbox";
 
 export function PrintingPicker({
   current,
   printings,
   onSelect,
   collectionId,
+  showImages,
 }: {
   current: Printing;
   printings: Printing[];
   onSelect: (printing: Printing) => void;
+  showImages?: boolean;
   /** Scopes each row's owned count to one collection; the wider total still shows. */
   collectionId?: string;
 }) {
   const languageOrder = useEffectiveLanguageOrder();
+  const pickedSideKey = usePrintingLightboxStore((state) => state.pickedSideKey);
+  const clearPicked = usePrintingLightboxStore((state) => state.clearPicked);
   const { designs } = groupPrintingDesigns(sortByLanguagePreference(printings, languageOrder));
   // One query for the whole list: a popover per row would each subscribe to
   // the entire copies collection.
@@ -43,10 +49,20 @@ export function PrintingPicker({
 
   return (
     <div className="space-y-2">
-      <SectionHeading as="h3">{m.card_detail_printings_title()}</SectionHeading>
+      <div className="flex items-center justify-between gap-2">
+        <SectionHeading as="h3">{m.card_detail_printings_title()}</SectionHeading>
+        <PrintingsLightbox
+          printing={current}
+          printings={printings}
+          showImages={showImages}
+          onSelect={onSelect}
+        />
+      </div>
       <PrintingDesignRows
         designs={designs}
         selectedSideKey={sideKey(current)}
+        highlightSideKey={pickedSideKey}
+        onHighlightEnd={clearPicked}
         onSelect={onSelect}
         badge={(p) => (
           <OwnedCollectionsPopover

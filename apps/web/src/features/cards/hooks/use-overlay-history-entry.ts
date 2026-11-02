@@ -14,6 +14,31 @@ function newEntryToken(): number {
   return lastEntryToken;
 }
 
+let queueTail: Promise<void> | null = null;
+let queued = 0;
+
+async function runQueued(previous: Promise<void> | null, push: () => Promise<void>): Promise<void> {
+  if (previous) {
+    await previous;
+  }
+  try {
+    await push();
+  } catch {
+    // a failed navigation must not block the overlays queued behind it
+  } finally {
+    queued -= 1;
+    if (queued === 0) {
+      queueTail = null;
+    }
+  }
+}
+
+// The router folds a navigation started while another is in flight into one history entry.
+function queuePush(push: () => Promise<void>): void {
+  queued += 1;
+  queueTail = runQueued(queueTail, push);
+}
+
 interface OverlayHistoryEntryOptions {
   active: boolean;
   stateKey: OverlayHistoryKey;
@@ -43,10 +68,16 @@ export function useOverlayHistoryEntry({
       return;
     }
     const token = newEntryToken();
-    void router.navigate({
-      href: router.latestLocation.href,
-      state: (prev) => ({ ...prev, [stateKey]: token, overlayEntry: true }),
-      resetScroll: false,
+    let cancelled = false;
+    queuePush(async () => {
+      if (cancelled) {
+        return;
+      }
+      await router.navigate({
+        href: router.latestLocation.href,
+        state: (prev) => ({ ...prev, [stateKey]: token, overlayEntry: true }),
+        resetScroll: false,
+      });
     });
     // A pop that lands on an entry still carrying our token closed an overlay stacked above this one.
     const handlePop = () => {
@@ -55,7 +86,10 @@ export function useOverlayHistoryEntry({
       }
     };
     globalThis.addEventListener("popstate", handlePop);
-    return () => globalThis.removeEventListener("popstate", handlePop);
+    return () => {
+      cancelled = true;
+      globalThis.removeEventListener("popstate", handlePop);
+    };
   }, [active, router, stateKey]);
 }
 
@@ -63,11 +97,19 @@ export function useOverlayHistoryEntry({
  * Closes an overlay by popping the entry {@link useOverlayHistoryEntry} pushed.
  * Falls back to the caller's own close when that entry is already gone.
  */
-export function closeOverlayHistoryEntry(stateKey: OverlayHistoryKey, close: () => void): void {
+export function closeOverlayHistoryEntry(
+  stateKey: OverlayHistoryKey,
+  close: () => void,
+  afterClose?: () => void,
+): void {
   if (hasOverlayHistoryEntry(stateKey)) {
+    if (afterClose) {
+      globalThis.addEventListener("popstate", afterClose, { once: true });
+    }
     history.back();
   } else {
     close();
+    afterClose?.();
   }
 }
 

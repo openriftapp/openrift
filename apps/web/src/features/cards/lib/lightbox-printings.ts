@@ -28,12 +28,18 @@ export function lightboxPrintings(
   });
 }
 
-/** `printings` must be in language-preference order. */
+/**
+ * `printings` must be in language-preference order.
+ * @returns Every language's printing of each design when `language` is omitted.
+ */
 export function lightboxPrintingsInLanguage(
   printings: readonly Printing[],
-  language: string,
+  language?: string,
 ): Printing[] {
   return groupPrintingDesigns(printings).designs.flatMap((design) => {
+    if (language === undefined) {
+      return [...design.byLanguage.values()];
+    }
     const member = design.byLanguage.get(language);
     return member ? [member] : [];
   });

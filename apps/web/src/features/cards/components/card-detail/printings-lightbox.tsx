@@ -2,10 +2,12 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { GalleryHorizontalIcon, XIcon } from "lucide-react";
+import { GalleryHorizontalIcon, TableIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent } from "react";
 
+import { LanguageChip } from "@/components/language-chip";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,13 +17,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Pressable } from "@/components/ui/pressable";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { PrintingLanguageMatrix } from "@/features/cards/components/card-page-printings";
 import { DoubleSidedFlip } from "@/features/cards/components/double-sided-flip";
 import { PrintingVariantLine } from "@/features/cards/components/printing-row";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -93,18 +90,20 @@ export function PrintingsLightbox({
 
   const close = () => closeOverlayHistoryEntry(HISTORY_KEY, () => setOpen(false));
   const handleSelect = (picked: Printing) => {
-    onSelect(picked);
-    close();
+    usePrintingLightboxStore.getState().pick(sideKey(picked));
+    closeOverlayHistoryEntry(
+      HISTORY_KEY,
+      () => setOpen(false),
+      () => onSelect(picked),
+    );
   };
 
   return (
     <>
-      <div className="flex justify-center">
-        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-          <GalleryHorizontalIcon />
-          {m.card_detail_all_printings({ count: tiles.length })}
-        </Button>
-      </div>
+      <Button variant="ghost" size="xs" onClick={() => setOpen(true)}>
+        <GalleryHorizontalIcon />
+        {m.card_detail_all_printings()}
+      </Button>
       <Dialog
         open={open}
         onOpenChange={(next) => {
@@ -140,10 +139,11 @@ function LightboxContent({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const languageLabels = useLanguageLabels();
   const { languages } = groupPrintingDesigns(printings);
-  const [language, setLanguage] = useState(() =>
-    languages.includes(printing.language) ? printing.language : (languages[0] ?? ""),
+  const [language, setLanguage] = useState<string | undefined>(() =>
+    languages.includes(printing.language) ? printing.language : undefined,
   );
-  const tiles = lightboxPrintingsInLanguage(printings, language);
+  const [view, setView] = useState<"cards" | "table">("cards");
+  const tiles = lightboxPrintingsInLanguage(printings, view === "table" ? undefined : language);
   const selectedKey = sideKey(printing);
   const selectedIndex = (shown: readonly Printing[]) =>
     Math.max(
@@ -151,13 +151,9 @@ function LightboxContent({
       shown.findIndex((tile) => isSelectedSide(tile, selectedKey)),
     );
   const [position, setPosition] = useState(() => selectedIndex(tiles));
-  const languageItems = languages.map((code) => ({
-    value: code,
-    label: enumLabel(languageLabels, code),
-  }));
 
-  const handleLanguageChange = (next: string | null) => {
-    if (!next || next === language) {
+  const handleLanguageChange = (next?: string) => {
+    if (next === language) {
       return;
     }
     setLanguage(next);
@@ -176,10 +172,7 @@ function LightboxContent({
     }
     // useGridKeyboardNav listens on window and the detail dialog on its popup; neither may see these.
     event.stopPropagation();
-    const target = event.target instanceof Element ? event.target : null;
-    const fromLanguageSelect =
-      !event.currentTarget.contains(target) || target?.closest("[data-lightbox-language]");
-    if (!NAV_KEYS.has(event.key) || fromLanguageSelect) {
+    if (view === "table" || !NAV_KEYS.has(event.key)) {
       return;
     }
     event.preventDefault();
@@ -213,29 +206,63 @@ function LightboxContent({
       onKeyDown={handleKeyDown}
       className="dark text-foreground fixed inset-0 top-0 left-0 flex h-dvh max-h-none w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none bg-black/90 p-0 shadow-none ring-0 sm:max-w-none"
     >
-      <div className="flex items-center gap-3 px-4 pt-3 pb-2 sm:px-6">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3 pb-2 sm:px-6">
         <div className="min-w-0 flex-1 space-y-1">
           <DialogTitle className="truncate">{legendDisplayName(printing.card)}</DialogTitle>
           <DialogDescription>{m.cards_printings_count({ count: tiles.length })}</DialogDescription>
         </div>
-        {languages.length > 1 && (
-          <Select items={languageItems} value={language} onValueChange={handleLanguageChange}>
-            <SelectTrigger
-              size="sm"
-              data-lightbox-language=""
-              aria-label={m.card_detail_lightbox_language_aria()}
+        {view === "cards" && languages.length > 1 && (
+          <div
+            role="group"
+            aria-label={m.card_detail_lightbox_language_aria()}
+            className="order-last flex basis-full flex-wrap justify-center gap-1.5 sm:order-none sm:basis-auto sm:justify-end"
+          >
+            <Pressable
+              aria-pressed={language === undefined}
+              onClick={() => handleLanguageChange()}
+              className="rounded-full"
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="dark">
-              {languageItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <Badge
+                variant="outline"
+                className={cn("text-2xs h-4 px-1.5", language !== undefined && "opacity-60")}
+              >
+                {m.common_all()}
+              </Badge>
+            </Pressable>
+            {languages.map((code) => (
+              <Pressable
+                key={code}
+                aria-pressed={code === language}
+                aria-label={enumLabel(languageLabels, code)}
+                onClick={() => handleLanguageChange(code)}
+                className="rounded-full"
+              >
+                <LanguageChip code={code} className={cn(code !== language && "opacity-60")} />
+              </Pressable>
+            ))}
+          </div>
         )}
+        <ToggleGroup
+          aria-label={m.cards_display_mode()}
+          variant="control"
+          size="sm"
+          spacing={0}
+          value={[view]}
+          onValueChange={([next]) => {
+            if (next === "cards" || next === "table") {
+              setView(next);
+            }
+          }}
+        >
+          <ToggleGroupItem value="cards" className="gap-1.5 text-xs">
+            <GalleryHorizontalIcon />
+            {m.card_detail_lightbox_view_images()}
+          </ToggleGroupItem>
+          <ToggleGroupItem value="table" className="gap-1.5 text-xs">
+            <TableIcon />
+            {m.cards_table()}
+          </ToggleGroupItem>
+        </ToggleGroup>
         <DialogClose
           render={<Button variant="ghost" size="icon-sm" />}
           aria-label={m.common_close()}
@@ -243,26 +270,41 @@ function LightboxContent({
           <XIcon />
         </DialogClose>
       </div>
-      <div
-        ref={scrollerRef}
-        onScroll={handleScroll}
-        style={columnStyle}
-        className="relative flex min-h-0 flex-1 snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden overscroll-contain px-6 pt-4 pb-4 sm:flex-wrap sm:content-start sm:justify-center sm:gap-6 sm:overflow-x-hidden sm:overflow-y-auto"
-      >
-        {tiles.map((tile) => (
-          <LightboxTile
-            key={sideKey(tile)}
-            printing={tile}
-            siblings={tiles}
-            selected={isSelectedSide(tile, selectedKey)}
-            showImages={showImages}
-            onSelect={onSelect}
-          />
-        ))}
-      </div>
-      <p className="text-muted-foreground pb-4 text-center text-sm tabular-nums sm:hidden">
-        {m.card_detail_lightbox_position({ index: position + 1, count: tiles.length })}
-      </p>
+      {view === "table" ? (
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-6 sm:px-6">
+          <div className="mx-auto w-full sm:w-fit sm:max-w-full">
+            <PrintingLanguageMatrix
+              printings={printings}
+              selectedSideKey={selectedKey}
+              onSelect={onSelect}
+              showImages={showImages}
+            />
+          </div>
+        </div>
+      ) : (
+        <>
+          <div
+            ref={scrollerRef}
+            onScroll={handleScroll}
+            style={columnStyle}
+            className="relative flex min-h-0 flex-1 snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden overscroll-contain px-6 pt-4 pb-4 sm:flex-wrap sm:content-start sm:justify-center sm:gap-6 sm:overflow-x-hidden sm:overflow-y-auto"
+          >
+            {tiles.map((tile) => (
+              <LightboxTile
+                key={sideKey(tile)}
+                printing={tile}
+                siblings={tiles}
+                selected={isSelectedSide(tile, selectedKey)}
+                showImages={showImages}
+                onSelect={onSelect}
+              />
+            ))}
+          </div>
+          <p className="text-muted-foreground pb-4 text-center text-sm tabular-nums sm:hidden">
+            {m.card_detail_lightbox_position({ index: position + 1, count: tiles.length })}
+          </p>
+        </>
+      )}
     </DialogContent>
   );
 }

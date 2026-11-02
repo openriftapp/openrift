@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { usePrintingLightboxStore } from "./printing-lightbox-store";
 
 beforeEach(() => {
-  usePrintingLightboxStore.setState({ requestedSideKey: null });
+  usePrintingLightboxStore.setState({ requestedSideKey: null, pickedSideKey: null });
 });
 
 describe("usePrintingLightboxStore", () => {
@@ -25,5 +25,13 @@ describe("usePrintingLightboxStore", () => {
     usePrintingLightboxStore.getState().clear();
 
     expect(usePrintingLightboxStore.getState().requestedSideKey).toBeNull();
+  });
+
+  it("records and clears the printing picked in the lightbox", () => {
+    usePrintingLightboxStore.getState().pick("printing-1");
+    expect(usePrintingLightboxStore.getState().pickedSideKey).toBe("printing-1");
+
+    usePrintingLightboxStore.getState().clearPicked();
+    expect(usePrintingLightboxStore.getState().pickedSideKey).toBeNull();
   });
 });

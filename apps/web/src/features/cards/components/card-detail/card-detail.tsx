@@ -21,7 +21,6 @@ import { CardFooter } from "./card-footer";
 import { CardHoldingsSection } from "./card-holdings-section";
 import { PrintingNotesSection } from "./printing-notes-section";
 import { PrintingPicker } from "./printing-picker";
-import { PrintingsLightbox } from "./printings-lightbox";
 
 /**
  * Which arrangement the detail renders in. `pane` is the single-column stack
@@ -106,11 +105,12 @@ export function CardDetail({
       printings={printings}
       onSelect={onSelectPrinting}
       collectionId={collectionId}
+      showImages={showImages}
     />
   ) : null;
   const text = <CardDetailText printing={printing} onKeywordClick={onKeywordClick} />;
   const cardArt = <CardDetailArt printing={printing} showImages={showImages} />;
-  const sideArt =
+  const art =
     printing.otherSide && onSelectPrinting ? (
       <CardDetailOtherSide
         printing={printing}
@@ -123,19 +123,6 @@ export function CardDetail({
     ) : (
       cardArt
     );
-  const art = (
-    <>
-      {sideArt}
-      {hasPicker && (
-        <PrintingsLightbox
-          printing={printing}
-          printings={printings}
-          showImages={showImages}
-          onSelect={onSelectPrinting}
-        />
-      )}
-    </>
-  );
 
   if (layout === "modal") {
     return (

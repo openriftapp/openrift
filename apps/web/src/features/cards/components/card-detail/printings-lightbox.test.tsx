@@ -1,7 +1,7 @@
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type * as ReactRouter from "@tanstack/react-router";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -39,9 +39,29 @@ vi.mock("./card-detail-art", () => ({
   ),
 }));
 
+vi.mock("@/features/cards/components/card-page-printings", () => ({
+  PrintingLanguageMatrix: ({
+    printings: shown,
+    onSelect,
+  }: {
+    printings: Printing[];
+    onSelect: (printing: Printing) => void;
+  }) => (
+    <ul aria-label="Printing matrix">
+      {shown.map((entry) => (
+        <li key={entry.printingId}>
+          <button type="button" onClick={() => onSelect(entry)}>
+            {`cell ${entry.language} ${entry.shortCode} ${entry.finish}`}
+          </button>
+        </li>
+      ))}
+    </ul>
+  ),
+}));
+
 beforeEach(() => {
   routerStub.navigate.mockReset();
-  usePrintingLightboxStore.setState({ requestedSideKey: null });
+  usePrintingLightboxStore.setState({ requestedSideKey: null, pickedSideKey: null });
 });
 
 function printing(shortCode: string, imageId: string, overrides: Partial<Printing> = {}) {
@@ -75,58 +95,94 @@ describe("PrintingsLightbox", () => {
     expect(screen.queryByRole("button", { name: /All printings/u })).toBeNull();
   });
 
-  it("shows the button with the Printings section's count", () => {
+  it("shows the button for more than one printing", () => {
     renderLightbox([normal, foil, alt]);
 
-    expect(screen.getByRole("button", { name: "All printings (3)" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "All printings" })).toBeTruthy();
   });
 
   it("shows a tile for every printing, also when printings share an image", async () => {
     renderLightbox([normal, foil, alt]);
 
-    await userEvent.click(screen.getByRole("button", { name: "All printings (3)" }));
+    await userEvent.click(screen.getByRole("button", { name: "All printings" }));
 
     const dialog = await screen.findByRole("dialog");
     expect(dialog.textContent).toContain("Ahri, Inquisitive");
     expect(dialog.textContent).toContain("3 printings");
     expect(dialog.querySelectorAll("[data-lightbox-tile]")).toHaveLength(3);
-    expect(screen.getAllByRole("button", { pressed: true })).toHaveLength(1);
+    expect(dialog.querySelectorAll('[data-lightbox-tile][aria-pressed="true"]')).toHaveLength(1);
   });
 
-  it("opens in the shown printing's language and switches tiles with the language select", async () => {
+  it("opens in the shown printing's language and switches tiles with the language pills", async () => {
     const krNormal = printing("OGN-119", "img-kr", { finish: "normal", language: "KR" });
     renderLightbox([normal, foil, alt, krNormal]);
 
-    await userEvent.click(screen.getByRole("button", { name: "All printings (3)" }));
+    await userEvent.click(screen.getByRole("button", { name: "All printings" }));
     const dialog = await screen.findByRole("dialog");
-    const language = screen.getByRole("combobox", { name: "Language" });
-    expect(language.textContent).toContain("EN");
+    const languages = screen.getByRole("group", { name: "Language" });
+    expect(within(languages).getByRole("button", { name: "EN" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(dialog.querySelectorAll("[data-lightbox-tile]")).toHaveLength(3);
 
-    await userEvent.click(language);
-    await userEvent.click(await screen.findByRole("option", { name: "KR" }));
+    await userEvent.click(within(languages).getByRole("button", { name: "KR" }));
 
     expect(dialog.querySelectorAll("[data-lightbox-tile]")).toHaveLength(1);
     expect(dialog.querySelector("img")?.getAttribute("src")).toBe("/img-kr.webp");
     expect(dialog.textContent).toContain("1 printing");
   });
 
-  it("hides the language select when every printing shares a language", async () => {
+  it("shows every language's printings with the All pill", async () => {
+    const krNormal = printing("OGN-119", "img-kr", { finish: "normal", language: "KR" });
+    renderLightbox([normal, foil, alt, krNormal]);
+
+    await userEvent.click(screen.getByRole("button", { name: "All printings" }));
+    const dialog = await screen.findByRole("dialog");
+    const languages = screen.getByRole("group", { name: "Language" });
+    await userEvent.click(within(languages).getByRole("button", { name: "All" }));
+
+    expect(dialog.querySelectorAll("[data-lightbox-tile]")).toHaveLength(4);
+    expect(within(languages).getByRole("button", { name: "All" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("hides the language pills when every printing shares a language", async () => {
     renderLightbox([normal, foil, alt]);
 
-    await userEvent.click(screen.getByRole("button", { name: "All printings (3)" }));
+    await userEvent.click(screen.getByRole("button", { name: "All printings" }));
     await screen.findByRole("dialog");
 
-    expect(screen.queryByRole("combobox", { name: "Language" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Language" })).toBeNull();
+  });
+
+  it("switches to the table of every language and selects from it", async () => {
+    const krNormal = printing("OGN-119", "img-kr", { finish: "normal", language: "KR" });
+    const onSelect = renderLightbox([normal, foil, alt, krNormal]);
+
+    await userEvent.click(screen.getByRole("button", { name: "All printings" }));
+    await screen.findByRole("dialog");
+    await userEvent.click(screen.getByRole("button", { name: "Table" }));
+
+    expect(screen.getByRole("list", { name: "Printing matrix" })).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "Language" })).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "cell KR OGN-119 normal" }));
+
+    expect(onSelect).toHaveBeenCalledWith(krNormal);
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("selects the clicked tile's printing and closes", async () => {
     const onSelect = renderLightbox([normal, foil, alt]);
 
-    await userEvent.click(screen.getByRole("button", { name: "All printings (3)" }));
+    await userEvent.click(screen.getByRole("button", { name: "All printings" }));
     await userEvent.click(await screen.findByRole("button", { name: /OGN-119a/u }));
 
     expect(onSelect).toHaveBeenCalledWith(alt);
+    expect(usePrintingLightboxStore.getState().pickedSideKey).toBe(sideKey(alt));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
@@ -146,7 +202,7 @@ describe("PrintingsLightbox", () => {
       </Dialog>,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "All printings (3)" }));
+    await userEvent.click(screen.getByRole("button", { name: "All printings" }));
     expect(await screen.findByRole("dialog", { name: "Ahri, Inquisitive" })).toBeTruthy();
 
     await userEvent.keyboard("{Escape}");
@@ -161,8 +217,12 @@ describe("PrintingsLightbox", () => {
     globalThis.addEventListener("keydown", onWindowKey);
     renderLightbox([normal, foil, alt]);
 
-    await userEvent.click(screen.getByRole("button", { name: "All printings (3)" }));
-    const first = await screen.findByRole("button", { pressed: true });
+    await userEvent.click(screen.getByRole("button", { name: "All printings" }));
+    const dialog = await screen.findByRole("dialog");
+    const first = dialog.querySelector<HTMLElement>('[data-lightbox-tile][aria-pressed="true"]');
+    if (!first) {
+      throw new Error("no selected tile");
+    }
     first.focus();
     fireEvent.keyDown(first, { key: "ArrowRight" });
 

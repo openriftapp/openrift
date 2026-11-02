@@ -1,6 +1,7 @@
 import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
+import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 
 import { LanguageChip } from "@/components/language-chip";
@@ -15,6 +16,8 @@ import { cn } from "@/lib/utils";
 
 interface RowProps {
   selectedSideKey: string;
+  highlightSideKey?: string | null;
+  onHighlightEnd?: () => void;
   onSelect: (printing: Printing) => void;
   badge?: (printing: Printing) => ReactNode;
   right?: (printing: Printing) => ReactNode;
@@ -49,20 +52,41 @@ function DesignRow({
   leads,
   showLanguages,
   selectedSideKey,
+  highlightSideKey,
+  onHighlightEnd,
   onSelect,
   badge,
   right,
   details,
 }: RowProps & { design: PrintingDesign; leads: Printing[]; showLanguages: boolean }) {
   const languageLabels = useLanguageLabels();
+  const rowRef = useRef<HTMLDivElement>(null);
   const members = [...design.byLanguage.values()];
   const selected = members.find((member) => isSelectedSide(member, selectedSideKey));
   const shown = selected ?? design.lead;
+  const highlighted =
+    selected !== undefined &&
+    highlightSideKey !== undefined &&
+    highlightSideKey !== null &&
+    isSelectedSide(selected, highlightSideKey);
+
+  useEffect(() => {
+    if (highlighted) {
+      rowRef.current?.scrollIntoView({ block: "nearest" });
+    }
+  }, [highlighted]);
 
   return (
     <div
+      ref={rowRef}
       // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- can't use <button>; the row holds the language pills and the caller's controls, and nested buttons are invalid HTML
       role="button"
+      data-highlighted={highlighted || undefined}
+      onAnimationEnd={(event) => {
+        if (highlighted && event.target === event.currentTarget) {
+          onHighlightEnd?.();
+        }
+      }}
       tabIndex={0}
       aria-pressed={selected !== undefined}
       data-printing-id={shown.printingId}
@@ -76,6 +100,7 @@ function DesignRow({
       className={cn(
         "-mx-2.5 flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left transition-colors",
         selected ? "bg-muted ring-border ring-1" : "hover:bg-muted/50",
+        highlighted && "animate-printing-picked",
       )}
     >
       <span className="relative shrink-0">

@@ -92,4 +92,12 @@ describe("lightboxPrintingsInLanguage", () => {
 
     expect(lightboxPrintingsInLanguage([en, enPromo, kr], "KR")).toEqual([kr]);
   });
+
+  it("shows every language's printing of each design without a language", () => {
+    const en = printing("OGN-119", "img-en", { language: "EN" });
+    const kr = printing("OGN-119", "img-kr", { language: "KR" });
+    const enAlt = printing("OGN-119a", "img-en-alt", { language: "EN", artVariant: "altart" });
+
+    expect(lightboxPrintingsInLanguage([en, kr, enAlt])).toEqual([en, kr, enAlt]);
+  });
 });

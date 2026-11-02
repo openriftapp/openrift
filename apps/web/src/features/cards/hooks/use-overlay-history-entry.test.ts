@@ -17,6 +17,15 @@ vi.mock("@tanstack/react-router", () => ({
   useRouter: () => routerStub,
 }));
 
+function deferred() {
+  let finish = () => {};
+  // oxlint-disable-next-line promise/avoid-new -- a navigation the test finishes by hand
+  const promise = new Promise<void>((resolve) => {
+    finish = () => resolve();
+  });
+  return { promise, resolve: finish };
+}
+
 beforeEach(() => {
   navigateMock.mockReset();
   history.replaceState(null, "");
@@ -121,6 +130,41 @@ describe("useOverlayHistoryEntry", () => {
     expect(onPop).not.toHaveBeenCalled();
   });
 
+  it("waits for an overlay's entry to land before pushing the next one", async () => {
+    const firstNavigation = deferred();
+    navigateMock.mockImplementationOnce(() => firstNavigation.promise);
+    renderHook(() =>
+      useOverlayHistoryEntry({ active: true, stateKey: "cardDetail", onPop: vi.fn() }),
+    );
+    renderHook(() =>
+      useOverlayHistoryEntry({ active: true, stateKey: "printingLightbox", onPop: vi.fn() }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+
+    firstNavigation.resolve();
+    await vi.waitFor(() => expect(navigateMock).toHaveBeenCalledTimes(2));
+    expect(navigateMock.mock.calls[1]?.[0].state({})).toHaveProperty("printingLightbox");
+  });
+
+  it("drops a queued entry when its overlay closed before the push", async () => {
+    const firstNavigation = deferred();
+    navigateMock.mockImplementationOnce(() => firstNavigation.promise);
+    renderHook(() =>
+      useOverlayHistoryEntry({ active: true, stateKey: "cardDetail", onPop: vi.fn() }),
+    );
+    const { unmount } = renderHook(() =>
+      useOverlayHistoryEntry({ active: true, stateKey: "printingLightbox", onPop: vi.fn() }),
+    );
+
+    unmount();
+    firstNavigation.resolve();
+    await firstNavigation.promise;
+    await Promise.resolve();
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps two overlays on one page apart", () => {
     const onPop = vi.fn();
     renderHook(() =>
@@ -156,6 +200,29 @@ describe("closeOverlayHistoryEntry", () => {
 
     expect(back).not.toHaveBeenCalled();
     expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs afterClose only once the pop has landed", () => {
+    vi.spyOn(history, "back").mockImplementation(() => {});
+    const afterClose = vi.fn();
+    history.pushState({ cardDetail: true }, "");
+
+    closeOverlayHistoryEntry("cardDetail", vi.fn(), afterClose);
+    expect(afterClose).not.toHaveBeenCalled();
+
+    globalThis.dispatchEvent(new PopStateEvent("popstate"));
+    globalThis.dispatchEvent(new PopStateEvent("popstate"));
+    expect(afterClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs afterClose right after a direct close", () => {
+    const close = vi.fn();
+    const afterClose = vi.fn();
+
+    closeOverlayHistoryEntry("cardDetail", close, afterClose);
+
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(afterClose).toHaveBeenCalledTimes(1);
   });
 
   it("ignores another overlay's entry", () => {

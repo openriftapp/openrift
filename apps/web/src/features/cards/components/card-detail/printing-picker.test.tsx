@@ -1,7 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { sideKey } from "@openrift/shared/printing-side";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { usePrintingLightboxStore } from "@/features/cards/stores/printing-lightbox-store";
 import { stubPrinting } from "@/test/factories";
 
 vi.mock("@tanstack/react-router", () => ({
@@ -70,6 +72,10 @@ vi.mock("./owned-collections-popover", () => ({
   ),
 }));
 
+vi.mock("./printings-lightbox", () => ({
+  PrintingsLightbox: () => <span data-testid="printings-lightbox" />,
+}));
+
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { PrintingPicker } from "./printing-picker";
 
@@ -79,6 +85,7 @@ describe("PrintingPicker", () => {
     priceGetMock.mockReturnValue(undefined);
     ownedMock.mockClear();
     ownedMock.mockReturnValue({ data: undefined });
+    usePrintingLightboxStore.setState({ pickedSideKey: null });
   });
 
   it("does not nest a <button> inside another <button>", () => {
@@ -195,6 +202,43 @@ describe("PrintingPicker", () => {
     render(<PrintingPicker current={printing} printings={[printing]} onSelect={() => {}} />);
 
     expect(ownedMock).toHaveBeenCalledWith(["p-x"], true, undefined);
+  });
+
+  it("puts the All printings button in the Printings header", () => {
+    const printing = stubPrinting();
+    render(<PrintingPicker current={printing} printings={[printing]} onSelect={() => {}} />);
+
+    const header = screen.getByRole("heading", { name: "Printings" }).parentElement;
+    expect(header?.querySelector('[data-testid="printings-lightbox"]')).not.toBeNull();
+  });
+
+  it("highlights the row picked in the lightbox until its animation ends", () => {
+    const picked = stubPrinting({ printingId: "p-picked", shortCode: "OGN-001" });
+    const other = stubPrinting({ printingId: "p-other", shortCode: "OGN-002" });
+    usePrintingLightboxStore.setState({ pickedSideKey: sideKey(picked) });
+    const { container } = render(
+      <PrintingPicker current={picked} printings={[picked, other]} onSelect={() => {}} />,
+    );
+
+    const highlighted = container.querySelectorAll("[data-highlighted]");
+    expect(highlighted).toHaveLength(1);
+    expect(highlighted[0]).toHaveAttribute("data-printing-id", "p-picked");
+
+    fireEvent.animationEnd(highlighted[0] as Element);
+
+    expect(usePrintingLightboxStore.getState().pickedSideKey).toBeNull();
+    expect(container.querySelector("[data-highlighted]")).toBeNull();
+  });
+
+  it("leaves the rows alone when the picked printing is not the shown one", () => {
+    const shown = stubPrinting({ printingId: "p-shown", shortCode: "OGN-001" });
+    const other = stubPrinting({ printingId: "p-other", shortCode: "OGN-002" });
+    usePrintingLightboxStore.setState({ pickedSideKey: sideKey(other) });
+    const { container } = render(
+      <PrintingPicker current={shown} printings={[shown, other]} onSelect={() => {}} />,
+    );
+
+    expect(container.querySelector("[data-highlighted]")).toBeNull();
   });
 
   describe("language pills", () => {
