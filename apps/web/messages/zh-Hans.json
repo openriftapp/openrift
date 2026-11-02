@@ -769,6 +769,7 @@
   "card_detail_errata_mark_removed": "已被勘误删除的文本，与印刷文本对比",
   "card_detail_errata_removed_here": "此处删除了文本",
   "card_detail_errata_rules": "规则文本",
+  "card_detail_errata_source": "来源：",
   "card_detail_image_credit": "图片来源：{credit}",
   "card_detail_ban_title": "自 {date} 起在 {format} 中被禁用",
   "card_detail_ban_other_format": "仅适用于 {format} 赛制。该卡在其他构筑赛制中仍可使用。",

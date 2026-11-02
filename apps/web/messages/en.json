@@ -769,6 +769,7 @@
   "card_detail_errata_mark_removed": "Text removed by errata, compare with the printed text",
   "card_detail_errata_removed_here": "text removed here",
   "card_detail_errata_rules": "Rules text",
+  "card_detail_errata_source": "Source:",
   "card_detail_image_credit": "Image credit: {credit}",
   "card_detail_ban_title": "Banned in {format} since {date}",
   "card_detail_ban_other_format": "Applies to {format} play only. The card stays legal in other constructed play.",

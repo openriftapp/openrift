@@ -153,13 +153,16 @@ function ErrataComparison({
         );
       })}
       <p className="text-muted-foreground flex flex-wrap gap-x-1.5 text-xs">
-        {errata.sourceUrl ? (
-          <TextLink variant="muted" href={errata.sourceUrl} target="_blank" rel="noreferrer">
-            {errata.source}
-          </TextLink>
-        ) : (
-          <span>{errata.source}</span>
-        )}
+        <span>
+          {m.card_detail_errata_source()}{" "}
+          {errata.sourceUrl ? (
+            <TextLink variant="muted" href={errata.sourceUrl} target="_blank" rel="noreferrer">
+              {errata.source}
+            </TextLink>
+          ) : (
+            errata.source
+          )}
+        </span>
         <span aria-hidden>&middot;</span>
         <TextLink variant="muted" render={<Link to="/errata" hash={cardSlug} />}>
           {m.card_detail_errata_all()}
@@ -202,62 +205,64 @@ export function ErrataScope({
   }
 
   return (
-    <ErrataMobileContext value={isMobile}>
-      {isMobile ? (
-        <Drawer showSwipeHandle>
-          {children}
-          <DrawerContent>
-            <div className="flex min-h-0 flex-col gap-3 overflow-y-auto px-4 pt-1 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <div>
+      <ErrataMobileContext value={isMobile}>
+        {isMobile ? (
+          <Drawer showSwipeHandle>
+            {children}
+            <DrawerContent>
+              <div className="flex min-h-0 flex-col gap-3 overflow-y-auto px-4 pt-1 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                <ErrataComparison
+                  cardSlug={cardSlug}
+                  errata={errata}
+                  changes={changes}
+                  lang={lang}
+                  title={
+                    <div className="flex items-center justify-between gap-2">
+                      <DrawerTitle>
+                        <ErrataHeading errata={errata} />
+                      </DrawerTitle>
+                      <DrawerClose
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="-mr-3 size-11"
+                            aria-label={m.common_close()}
+                          />
+                        }
+                      >
+                        <XIcon />
+                      </DrawerClose>
+                    </div>
+                  }
+                />
+              </div>
+            </DrawerContent>
+          </Drawer>
+        ) : (
+          <Popover>
+            {children}
+            <PopoverContent
+              side="bottom"
+              align="start"
+              className="max-h-(--available-height) w-[min(24rem,calc(100vw-2rem))] gap-3 overflow-y-auto p-3"
+            >
               <ErrataComparison
                 cardSlug={cardSlug}
                 errata={errata}
                 changes={changes}
                 lang={lang}
                 title={
-                  <div className="flex items-center justify-between gap-2">
-                    <DrawerTitle>
-                      <ErrataHeading errata={errata} />
-                    </DrawerTitle>
-                    <DrawerClose
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="-mr-3 size-11"
-                          aria-label={m.common_close()}
-                        />
-                      }
-                    >
-                      <XIcon />
-                    </DrawerClose>
-                  </div>
+                  <PopoverTitle>
+                    <ErrataHeading errata={errata} />
+                  </PopoverTitle>
                 }
               />
-            </div>
-          </DrawerContent>
-        </Drawer>
-      ) : (
-        <Popover>
-          {children}
-          <PopoverContent
-            side="bottom"
-            align="start"
-            className="max-h-(--available-height) w-[min(24rem,calc(100vw-2rem))] gap-3 overflow-y-auto p-3"
-          >
-            <ErrataComparison
-              cardSlug={cardSlug}
-              errata={errata}
-              changes={changes}
-              lang={lang}
-              title={
-                <PopoverTitle>
-                  <ErrataHeading errata={errata} />
-                </PopoverTitle>
-              }
-            />
-          </PopoverContent>
-        </Popover>
-      )}
-    </ErrataMobileContext>
+            </PopoverContent>
+          </Popover>
+        )}
+      </ErrataMobileContext>
+    </div>
   );
 }

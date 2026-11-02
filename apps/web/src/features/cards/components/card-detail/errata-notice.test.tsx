@@ -89,6 +89,20 @@ describe("ErrataCardText", () => {
     );
   });
 
+  it("keeps the open popover's focus guards inside one wrapper", async () => {
+    const user = userEvent.setup();
+    const { container } = renderText(
+      "discard a card as an additional cost.",
+      "discard 1 as an additional cost.",
+    );
+
+    await user.click(screen.getByRole("button", { name: /Changed by errata/u }));
+    await screen.findByRole("dialog");
+
+    expect(container.childElementCount).toBe(1);
+    expect(screen.getByText("Source:", { exact: false })).toBeInTheDocument();
+  });
+
   it("marks the spot where words were removed", async () => {
     const user = userEvent.setup();
     renderText("Your other friendly units get +1.", "Your other units get +1.");

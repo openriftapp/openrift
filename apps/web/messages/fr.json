@@ -769,6 +769,7 @@
   "card_detail_errata_mark_removed": "Texte retiré par un erratum, comparer avec le texte imprimé",
   "card_detail_errata_removed_here": "texte retiré ici",
   "card_detail_errata_rules": "Texte de règles",
+  "card_detail_errata_source": "Source :",
   "card_detail_image_credit": "Crédit image : {credit}",
   "card_detail_ban_title": "Interdite en {format} depuis {date}",
   "card_detail_ban_other_format": "S'applique uniquement au format {format}. La carte reste légale dans les autres formats construits.",

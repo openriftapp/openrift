@@ -769,6 +769,7 @@
   "card_detail_errata_mark_removed": "Durch Errata entfernter Text, mit dem gedruckten Text vergleichen",
   "card_detail_errata_removed_here": "hier entfernter Text",
   "card_detail_errata_rules": "Regeltext",
+  "card_detail_errata_source": "Quelle:",
   "card_detail_image_credit": "Bildnachweis: {credit}",
   "card_detail_ban_title": "Verboten in {format} seit {date}",
   "card_detail_ban_other_format": "Gilt nur für {format}. In anderen Constructed-Formaten bleibt die Karte legal.",
