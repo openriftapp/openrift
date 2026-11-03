@@ -183,6 +183,12 @@ describe("countActiveFilterDimensions", () => {
     expect(countActiveFilterDimensions(active, everything)).toBe(4);
   });
 
+  it("counts marker presence under the Promo unit, not under Markers", () => {
+    const active = state({ markers: ["alpha"], markersPresence: "any" });
+    expect(countActiveFilterDimensions(active, (unit) => unit === "markers")).toBe(1);
+    expect(countActiveFilterDimensions(active, (unit) => unit === "promo")).toBe(1);
+  });
+
   it("counts a set range once per range, not once per bound", () => {
     const active = state({ energyMin: 1, energyMax: 3, priceMin: 5 });
     expect(countActiveFilterDimensions(active, everything)).toBe(2);

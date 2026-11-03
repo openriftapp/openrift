@@ -8,17 +8,24 @@ export interface TagCategoryGroup {
 
 export const UNCLASSIFIED_TAG_GROUP = "__other";
 
+export function tagGroupOf(
+  categories: readonly { slug: string }[],
+  categoryByTag: ReadonlyMap<string, string>,
+): (tag: string) => string {
+  // A category no longer in the list (deleted, deploy skew) falls back to Other.
+  const known = new Set(categories.map((category) => category.slug));
+  return (tag) => {
+    const category = categoryByTag.get(tag);
+    return category !== undefined && known.has(category) ? category : UNCLASSIFIED_TAG_GROUP;
+  };
+}
+
 export function groupTagsByCategory(
   tags: readonly string[],
   categories: readonly { slug: string; label: string }[],
   categoryByTag: ReadonlyMap<string, string>,
 ): TagCategoryGroup[] {
-  // A category no longer in the list (deleted, deploy skew) falls back to Other.
-  const known = new Set(categories.map((category) => category.slug));
-  const byCategory = Map.groupBy(tags, (tag) => {
-    const category = categoryByTag.get(tag);
-    return category !== undefined && known.has(category) ? category : UNCLASSIFIED_TAG_GROUP;
-  });
+  const byCategory = Map.groupBy(tags, tagGroupOf(categories, categoryByTag));
   const groups: TagCategoryGroup[] = [];
   for (const category of categories) {
     const inCategory = byCategory.get(category.slug) ?? [];

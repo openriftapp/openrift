@@ -4,7 +4,7 @@ import type { PresenceDimension, SortDirection } from "@openrift/shared/types/se
 
 import { oversizeState } from "@/features/cards/lib/oversize-filter";
 import type { PresenceParamValue } from "@/features/cards/lib/presence-filter";
-import { presenceLabel } from "@/features/cards/lib/presence-filter";
+import { presenceLabel, presenceToFlagState } from "@/features/cards/lib/presence-filter";
 import type { FilterSearch, OwnedBucket } from "@/features/cards/lib/search-schemas";
 import { m } from "@/paraglide/messages.js";
 
@@ -266,6 +266,15 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
     activeLabels: (s) => flagLabels(s.standard, m.cards_filter_flag_standard()),
   },
   {
+    key: "promo",
+    unit: "promo",
+    section: "promo",
+    hasContent: ({ availableFilters }) => availableFilters.markers.length > 0,
+    activeCount: (s) => setCount(s.markersPresence),
+    activeLabels: (s) =>
+      flagLabels(presenceToFlagState(s.markersPresence), m.cards_filter_flag_promo()),
+  },
+  {
     key: "energy",
     unit: "stats",
     section: "energy",
@@ -295,11 +304,8 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
     unit: "markers",
     section: "markers",
     hasContent: ({ availableFilters }) => availableFilters.markers.length > 0,
-    activeCount: (s) => s.markers.length + s.markersEx.length + setCount(s.markersPresence),
-    activeLabels: (s, l) => [
-      ...valueLabels(s.markers, s.markersEx, l.marker),
-      ...presenceLabels("markers", s.markersPresence),
-    ],
+    activeCount: (s) => s.markers.length + s.markersEx.length,
+    activeLabels: (s, l) => valueLabels(s.markers, s.markersEx, l.marker),
   },
   {
     key: "cardSizes",

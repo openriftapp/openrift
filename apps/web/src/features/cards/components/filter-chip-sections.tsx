@@ -85,10 +85,12 @@ export function FilterChipSections({
   const showErrata = shows("errata");
   const showNoImage = shows("noImage");
   const showStandard = shows("standard");
+  const showPromo = shows("promo");
   const showFlags = showOvernumbered || showSigned || showBanned || showErrata || showNoImage;
 
   if (
     !showStandard &&
+    !showPromo &&
     !showMarkers &&
     !showOversize &&
     !showChannels &&
@@ -114,6 +116,22 @@ export function FilterChipSections({
           state={filterState.standard}
           count={filterCounts?.flags.standard}
           onClick={toggleStandard}
+          triggerStyle={triggerStyle}
+        />
+      ),
+    });
+  }
+  if (showPromo) {
+    const promoState = presenceToFlagState(filterState.markersPresence);
+    entries.push({
+      key: "promo",
+      label: m.cards_filter_flag_promo(),
+      node: (
+        <FlagBadge
+          label={m.cards_filter_flag_promo()}
+          state={promoState}
+          count={presenceFlagCount(filterCounts?.presence.markers, promoState)}
+          onClick={() => cyclePresence("markers")}
           triggerStyle={triggerStyle}
         />
       ),

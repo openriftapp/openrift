@@ -16,7 +16,10 @@ interface RefOptions {
 }
 
 interface RefCountableDimension {
-  key: Exclude<keyof FilterCounts, "flags" | "ranges" | "presence">;
+  key: Exclude<
+    keyof FilterCounts,
+    "flags" | "ranges" | "presence" | "tagGroups" | "customTagGroups"
+  >;
   filterField: keyof CardFilters;
   excludeField?: keyof CardFilters;
   values: (printing: Printing) => readonly string[];

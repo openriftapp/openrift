@@ -9,6 +9,7 @@ export const HIDDEN_FILTER_SECTIONS = new Set([
   "noImage",
   "superTypes",
   "markers",
+  "promo",
   "channels",
   "energy",
   "might",

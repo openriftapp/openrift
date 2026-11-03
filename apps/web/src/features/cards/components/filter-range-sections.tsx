@@ -64,12 +64,14 @@ export function FilterRangeSections({
   ownedCountMax,
   scope = "all",
   labelClassName,
+  valueClassName: valueClassNameOverride,
   units,
 }: Omit<FilterPanelContentProps, "setDisplayLabel"> & {
   // Only consulted in the default scope="all" mode; explicit scopes already picked their rows.
   units?: ReadonlySet<string>;
   scope?: "all" | "stats" | "price" | "copies";
   labelClassName?: string;
+  valueClassName?: string;
 }) {
   const { ranges, filterState } = useFilterValues();
   const { setRange, setOwnedCountRange } = useFilterActions();
@@ -96,7 +98,7 @@ export function FilterRangeSections({
             ];
   const showCopies = (scope === "all" || scope === "copies") && showRangeUnit("owned");
 
-  const valueClassName = scope === "stats" ? "w-4" : undefined;
+  const valueClassName = valueClassNameOverride ?? (scope === "stats" ? "w-4" : undefined);
 
   return (
     <>
@@ -112,6 +114,7 @@ export function FilterRangeSections({
             selectedMax={filterState.ownedCountMax}
             onChange={(min, max) => setOwnedCountRange(min, max)}
             labelClassName={labelClassName}
+            valueClassName={valueClassName}
           />
         )}
       {sections.map(({ key, label, ...rest }) => {

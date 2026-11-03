@@ -26,6 +26,7 @@ import {
 } from "@/features/cards/hooks/use-filter-dimensions";
 import { clusterLabelsFit, occupiesRowWidth } from "@/features/cards/lib/cluster-label-fit";
 import { filterDimension, ownedBuckets } from "@/features/cards/lib/filter-dimensions";
+import { presenceFlagCount, presenceToFlagState } from "@/features/cards/lib/presence-filter";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatDomainFilterLabel } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
@@ -429,7 +430,7 @@ export function CompactFilterBar({
 }: CompactFilterBarProps) {
   const { labels } = useEnumOrders();
   const { filterState, hasClearableFilters } = useFilterValues();
-  const { cycleArrayFilter, toggleStandard, clearAllFilters } = useFilterActions();
+  const { cycleArrayFilter, toggleStandard, cyclePresence, clearAllFilters } = useFilterActions();
   const visibleDimensions = useVisibleFilterDimensions({
     availableFilters,
     availableLanguages,
@@ -439,11 +440,14 @@ export function CompactFilterBar({
   });
   const shows = (key: string) =>
     visibleDimensions.has(key) && topLevelUnits.has(filterDimension(key).unit);
-  // Standard and Owned each render their own bar-level chip above; excluded
-  // here so neither is drawn twice by the trailing chip sections.
+  // Standard, Promo and Owned each render their own bar-level chip above;
+  // excluded here so none is drawn twice by the trailing chip sections.
   const chipSectionUnits = new Set(
-    [...topLevelUnits].filter((unit) => unit !== "standard" && unit !== "owned"),
+    [...topLevelUnits].filter(
+      (unit) => unit !== "standard" && unit !== "promo" && unit !== "owned",
+    ),
   );
+  const promoState = presenceToFlagState(filterState.markersPresence);
   const { barRef, measureRef, labelsFit } = useClusterLabelsFit();
   const domainCluster = (showLabels: boolean) =>
     shows("domains") ? (
@@ -582,6 +586,15 @@ export function CompactFilterBar({
             state={filterState.standard}
             count={filterCounts?.flags.standard}
             onClick={toggleStandard}
+            triggerStyle="button"
+          />
+        )}
+        {shows("promo") && (
+          <FlagBadge
+            label={m.cards_filter_flag_promo()}
+            state={promoState}
+            count={presenceFlagCount(filterCounts?.presence.markers, promoState)}
+            onClick={() => cyclePresence("markers")}
             triggerStyle="button"
           />
         )}

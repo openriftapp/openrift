@@ -9,6 +9,7 @@
 
 ### Other
 
+- feat(Cards): **Promo filter** — a Promo toggle in the filter bar shows every printing with a marker, the same as `is:promo`. The More menu gathers its toggles in one section, lines up its rows and sliders, shows how many cards have any value on each menu like Region or Keywords, and keeps the menu's name next to what you picked.
 - feat(App): **Riftbound API page refresh** — the developers page opens with a live API response wired to its card, and pasted links show the same picture.
 - feat(App): **Wider help articles** — help articles now use the same width as the help overview.
 - feat(Cards): **All printings in every language** — the All printings view shows every language a card was printed in, also those your language filter hides. It opens as a table of every printing by language with prices on desktop and as large images on phones, where language pills pick a language or all of them. The button now sits in the Printings header, on the card page too, and shows for any card with more than one printing.

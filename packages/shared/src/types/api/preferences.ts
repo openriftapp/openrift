@@ -254,6 +254,7 @@ export const PREFERENCE_DEFAULTS: ResolvedPreferences = {
     "types",
     "superTypes",
     "variant",
+    "promo",
     "stats",
   ],
   countExcludedCollections: false,

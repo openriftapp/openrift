@@ -41,6 +41,8 @@ export interface FilterCounts {
     standard: number;
   };
   presence: Record<PresenceDimension, { any: number; none: number }>;
+  tagGroups?: Map<string, number>;
+  customTagGroups?: Map<string, number>;
   ranges: {
     energy: { min: number; max: number; hasNullStat: boolean };
     might: { min: number; max: number; hasNullStat: boolean };
@@ -51,10 +53,15 @@ export interface FilterCounts {
 
 interface ComputeFilterCountsOptions extends FilterCardsOptions {
   countBy: "printing" | "card";
+  tagGroup?: (tag: string) => string;
+  customTagGroup?: (slug: string) => string | undefined;
 }
 
 interface CountableDimension {
-  key: Exclude<keyof FilterCounts, "flags" | "ranges" | "presence">;
+  key: Exclude<
+    keyof FilterCounts,
+    "flags" | "ranges" | "presence" | "tagGroups" | "customTagGroups"
+  >;
   filterField: keyof CardFilters;
   excludeField?: keyof CardFilters;
   scalar?: (printing: Printing) => string;
@@ -268,6 +275,41 @@ function bumpCardSet(byValue: Map<string, Set<number>>, value: string, card: num
   }
 }
 
+interface GroupCounter {
+  counts: Map<string, number>;
+  cardIds: Map<string, Set<number>> | null;
+}
+
+function bumpGroups(
+  counter: GroupCounter,
+  values: readonly string[],
+  groupOf: (value: string) => string | undefined,
+  card: number,
+): void {
+  const seen: string[] = [];
+  for (const value of values) {
+    const group = groupOf(value);
+    if (group === undefined || seen.includes(group)) {
+      continue;
+    }
+    seen.push(group);
+    if (counter.cardIds) {
+      bumpCardSet(counter.cardIds, group, card);
+    } else {
+      counter.counts.set(group, (counter.counts.get(group) ?? 0) + 1);
+    }
+  }
+}
+
+function readGroups(counter: GroupCounter): Map<string, number> {
+  if (counter.cardIds) {
+    for (const [group, ids] of counter.cardIds) {
+      counter.counts.set(group, ids.size);
+    }
+  }
+  return counter.counts;
+}
+
 /**
  * Each dimension's count ignores its own current selection so multi-select
  * still widens results (e.g. picking `language=EN` doesn't zero other languages).
@@ -320,6 +362,13 @@ export function computeFilterCounts(
   const presenceCounters = Object.fromEntries(
     PRESENCE_DIMENSIONS.map((d) => [d, { any: makeCounter(keyed), none: makeCounter(keyed) }]),
   ) as Record<PresenceDimension, { any: MatchCounter; none: MatchCounter }>;
+  const { tagGroup, customTagGroup } = options;
+  const tagGroupCounter: GroupCounter | null = tagGroup
+    ? { counts: new Map(), cardIds: keyed ? new Map() : null }
+    : null;
+  const customTagGroupCounter: GroupCounter | null = customTagGroup
+    ? { counts: new Map(), cardIds: keyed ? new Map() : null }
+    : null;
   const statBounds = {
     energy: { min: Infinity, max: -Infinity, any: false } as BoundsAcc,
     might: { min: Infinity, max: -Infinity, any: false } as BoundsAcc,
@@ -635,6 +684,12 @@ export function computeFilterCounts(
       const target = presenceCounters[dimension];
       bumpCounter(has ? target.any : target.none, cardIndex);
     }
+    if (tagGroup && tagGroupCounter && (fail & ~PRESENCE_CLEARS.tags) === 0) {
+      bumpGroups(tagGroupCounter, card.tags, tagGroup, cardIndex);
+    }
+    if (customTagGroup && customTagGroupCounter && (fail & ~PRESENCE_CLEARS.customTags) === 0) {
+      bumpGroups(customTagGroupCounter, customTagSlugs, customTagGroup, cardIndex);
+    }
   }
 
   const result = {
@@ -659,6 +714,12 @@ export function computeFilterCounts(
       price: readBounds(priceBounds),
     },
   } as FilterCounts;
+  if (tagGroupCounter) {
+    result.tagGroups = readGroups(tagGroupCounter);
+  }
+  if (customTagGroupCounter) {
+    result.customTagGroups = readGroups(customTagGroupCounter);
+  }
   for (const [i, dim] of COUNTABLE_DIMENSIONS.entries()) {
     const cardIds = dimCardIds[i];
     if (cardIds) {

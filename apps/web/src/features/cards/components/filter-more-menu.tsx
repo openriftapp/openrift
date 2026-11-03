@@ -8,13 +8,9 @@ import { MultiSelectCombobox } from "@/components/multi-select-combobox";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FilterRangeSections } from "@/features/cards/components/filter-range-sections";
@@ -76,7 +72,7 @@ function FlagMenuItem({
       <span className="flex-1">
         {label}
         {count !== undefined && (
-          <span className="text-muted-foreground text-2xs ml-1.5 tabular-nums">({count})</span>
+          <span className="text-muted-foreground text-2xs ml-1.5 tabular-nums">{count}</span>
         )}
       </span>
       {state !== null && (
@@ -88,64 +84,14 @@ function FlagMenuItem({
   );
 }
 
+function groupCount(counts: Map<string, number> | undefined, group: string): number | undefined {
+  return counts === undefined ? undefined : (counts.get(group) ?? 0);
+}
+
 interface DimensionOption {
   value: string;
   label: string;
   count?: number;
-}
-
-// Above this option count, a menu submenu can't host a working search field,
-// so the dimension renders as a combobox instead.
-const SEARCH_THRESHOLD = 8;
-
-function DimensionSubmenu({
-  label,
-  options,
-  selected,
-  onToggle,
-}: {
-  label: string;
-  options: readonly DimensionOption[];
-  selected: string[];
-  onToggle: (value: string) => void;
-}) {
-  if (options.length === 0) {
-    return null;
-  }
-  const activeCount = options.filter((option) => selected.includes(option.value)).length;
-  return (
-    <DropdownMenuSub>
-      <DropdownMenuSubTrigger openOnHover={false}>
-        <span className="flex-1">{label}</span>
-        {activeCount > 0 && (
-          <span className="text-muted-foreground tabular-nums">({activeCount})</span>
-        )}
-      </DropdownMenuSubTrigger>
-      <DropdownMenuSubContent>
-        {options.map((option) => (
-          <DropdownMenuCheckboxItem
-            key={option.value}
-            checked={selected.includes(option.value)}
-            onCheckedChange={() => onToggle(option.value)}
-          >
-            <span className="min-w-0 flex-1 break-words whitespace-normal">
-              {option.label}
-              {option.count !== undefined && (
-                <span
-                  className={cn(
-                    "text-muted-foreground text-2xs ml-1.5 tabular-nums",
-                    option.count === 0 && "opacity-50",
-                  )}
-                >
-                  ({option.count})
-                </span>
-              )}
-            </span>
-          </DropdownMenuCheckboxItem>
-        ))}
-      </DropdownMenuSubContent>
-    </DropdownMenuSub>
-  );
 }
 
 function MoreDimension({
@@ -153,24 +99,23 @@ function MoreDimension({
   options,
   included,
   onIncludeChange,
-  onIncludeToggle,
   excluded,
   onCycle,
   searchPlaceholder,
   emptyText,
   flag,
+  anyCount,
 }: {
   label: string;
   options: readonly DimensionOption[];
   included: string[];
   onIncludeChange?: (next: string[]) => void;
-  onIncludeToggle?: (value: string) => void;
   excluded?: string[];
   onCycle?: (value: string) => void;
   searchPlaceholder: string;
   emptyText: string;
-  /** Only honoured on the combobox path (exclude-capable dimensions), not the submenu. */
   flag?: { label: string; state: boolean | null; count?: number; onToggle: () => void };
+  anyCount?: number;
 }) {
   if (options.length === 0) {
     return null;
@@ -180,30 +125,21 @@ function MoreDimension({
   );
   const facetedCounts = counts.size > 0 ? counts : undefined;
   const excludeCapable = excluded !== undefined && onCycle !== undefined;
-  if (excludeCapable || options.length > SEARCH_THRESHOLD || onIncludeToggle === undefined) {
-    return (
-      <MultiSelectCombobox
-        triggerStyle="menu"
-        label={label}
-        options={options}
-        selected={included}
-        onChange={excludeCapable ? undefined : onIncludeChange}
-        excluded={excludeCapable ? excluded : undefined}
-        onCycle={excludeCapable ? onCycle : undefined}
-        searchPlaceholder={searchPlaceholder}
-        emptyText={emptyText}
-        counts={facetedCounts}
-        flags={flag ? [flag] : undefined}
-        flagPosition="top"
-      />
-    );
-  }
   return (
-    <DimensionSubmenu
+    <MultiSelectCombobox
+      triggerStyle="menu"
       label={label}
       options={options}
       selected={included}
-      onToggle={onIncludeToggle}
+      onChange={excludeCapable ? undefined : onIncludeChange}
+      excluded={excludeCapable ? excluded : undefined}
+      onCycle={excludeCapable ? onCycle : undefined}
+      searchPlaceholder={searchPlaceholder}
+      emptyText={emptyText}
+      counts={facetedCounts}
+      flags={flag ? [flag] : undefined}
+      flagPosition="top"
+      anyCount={anyCount}
     />
   );
 }
@@ -224,7 +160,7 @@ function RangeSliderBlock({
   return (
     // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- the wrapper only guards keydown bubbling; the focusable controls are its slider children
     <div
-      className="hover:bg-muted focus-within:bg-muted flex flex-col gap-1.5 rounded-md px-1.5 py-1.5"
+      className="hover:bg-muted focus-within:bg-muted flex flex-col gap-3 rounded-md px-2 py-1.5"
       // Stops the menu's roving-focus keydown handling so the slider's own arrow/Home/End keys work.
       onKeyDown={(event) => event.stopPropagation()}
     >
@@ -235,6 +171,7 @@ function RangeSliderBlock({
         hiddenSections={hiddenSections}
         ownedCountMax={ownedCountMax}
         labelClassName="text-inherit text-sm font-normal"
+        valueClassName="w-10"
       />
     </div>
   );
@@ -255,7 +192,6 @@ export function FilterMoreMenu({
   const {
     setArrayFilter,
     cycleArrayFilter,
-    toggleArrayFilter,
     toggleSigned,
     toggleOvernumbered,
     cyclePresence,
@@ -351,6 +287,17 @@ export function FilterMoreMenu({
     />
   ) : null;
 
+  const promoState = presenceToFlagState(filterState.markersPresence);
+  const promoNode = shows("promo") ? (
+    <FlagMenuItem
+      key="promo"
+      label={m.cards_filter_flag_promo()}
+      state={promoState}
+      count={presenceFlagCount(filterCounts?.presence.markers, promoState)}
+      onToggle={() => cyclePresence("markers")}
+    />
+  ) : null;
+
   const showOversizeNode = shows("cardSizes");
   const oversizeState_ = oversizeState(filterState.cardSizes);
   const oversizeNode = showOversizeNode ? (
@@ -438,6 +385,7 @@ export function FilterMoreMenu({
               label: categoryLabel.toLowerCase(),
             })}
             emptyText={m.cards_filter_no_match({ label: categoryLabel.toLowerCase() })}
+            anyCount={groupCount(filterCounts?.customTagGroups, category)}
           />
         );
       })
@@ -463,6 +411,7 @@ export function FilterMoreMenu({
               label: group.label.toLowerCase(),
             })}
             emptyText={m.cards_filter_no_match({ label: group.label.toLowerCase() })}
+            anyCount={groupCount(filterCounts?.tagGroups, group.slug)}
           />
         );
       })
@@ -474,7 +423,6 @@ export function FilterMoreMenu({
       options={ownedBuckets().map((bucket) => ({ value: bucket.value, label: bucket.label }))}
       included={filterState.owned}
       onIncludeChange={(next) => setArrayFilter("owned", next)}
-      onIncludeToggle={(value) => toggleArrayFilter("owned", value)}
       searchPlaceholder={m.cards_filter_search_owned()}
       emptyText={m.cards_filter_no_options_match()}
     />
@@ -510,7 +458,6 @@ export function FilterMoreMenu({
         dropdownRow("types"),
         dropdownRow("superTypes"),
         variantNode,
-        standardNode,
         statsNode,
       ],
     },
@@ -518,16 +465,27 @@ export function FilterMoreMenu({
       id: "dimensions",
       items: [
         dropdownRow("markers"),
-        oversizeNode,
         dropdownRow("channels"),
+        dropdownRow("keywords"),
         ...customTagNodes,
         customTagsPresenceNode,
         ...tagNodes,
         tagsPresenceNode,
-        dropdownRow("keywords"),
       ],
     },
-    { id: "flags", items: [overnumberedNode, signedNode, bannedNode, errataNode, noImageNode] },
+    {
+      id: "flags",
+      items: [
+        standardNode,
+        promoNode,
+        oversizeNode,
+        overnumberedNode,
+        signedNode,
+        bannedNode,
+        errataNode,
+        noImageNode,
+      ],
+    },
     { id: "market", items: [ownedNode, copiesNode, priceNode] },
   ]
     .map((block) => ({ id: block.id, items: block.items.filter(Boolean) }))

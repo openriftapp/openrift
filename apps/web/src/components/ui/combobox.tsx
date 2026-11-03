@@ -134,7 +134,8 @@ function ComboboxItem({ className, children, ...props }: ComboboxPrimitive.Item.
       data-slot="combobox-item"
       className={cn(
         // custom: bg-muted highlight — --accent resolves to --primary, so the scaffold's accent wash paints the brand color at full strength
-        "data-highlighted:bg-muted data-highlighted:text-foreground relative flex w-full cursor-default items-center gap-2 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        // custom: py-1.5 pl-2 rows — the DropdownMenuItem row rhythm, so pickers and menus line up
+        "data-highlighted:bg-muted data-highlighted:text-foreground relative flex w-full cursor-default items-center gap-2 rounded-md py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}

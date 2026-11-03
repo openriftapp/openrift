@@ -286,6 +286,72 @@ describe("computeFilterCounts", () => {
     });
   });
 
+  describe("tag group counts", () => {
+    const groupOf = (tag: string) => (tag === "Piltover" || tag === "Zaun" ? "region" : "species");
+    const groupSample = [
+      makePrinting({
+        printingId: "g1",
+        cardId: "c1",
+        card: { slug: "c1", tags: ["Piltover", "Zaun", "Yordle"] },
+      }),
+      makePrinting({ printingId: "g2", cardId: "c1", card: { slug: "c1", tags: ["Piltover"] } }),
+      makePrinting({ printingId: "g3", cardId: "c3", card: { slug: "c3", tags: ["Yordle"] } }),
+      makePrinting({ printingId: "g4", cardId: "c4", card: { slug: "c4", tags: [] } }),
+    ];
+
+    it("counts a match once per group even with several tags in it", () => {
+      const counts = computeFilterCounts(groupSample, emptyFilters(), {
+        countBy: "printing",
+        tagGroup: groupOf,
+      });
+      expect(counts.tagGroups).toEqual(
+        new Map([
+          ["region", 2],
+          ["species", 2],
+        ]),
+      );
+    });
+
+    it("counts distinct cards in card mode", () => {
+      const counts = computeFilterCounts(groupSample, emptyFilters(), {
+        countBy: "card",
+        tagGroup: groupOf,
+      });
+      expect(counts.tagGroups?.get("region")).toBe(1);
+      expect(counts.tagGroups?.get("species")).toBe(2);
+    });
+
+    it("ignores tag selections and respects other filters", () => {
+      const counts = computeFilterCounts(
+        groupSample,
+        emptyFilters({ tags: ["Yordle"], presence: { tags: "any" }, sets: ["nope"] }),
+        { countBy: "printing", tagGroup: groupOf },
+      );
+      expect(counts.tagGroups?.size).toBe(0);
+      const widened = computeFilterCounts(
+        groupSample,
+        emptyFilters({ tags: ["Yordle"], presence: { tags: "none" } }),
+        { countBy: "printing", tagGroup: groupOf },
+      );
+      expect(widened.tagGroups?.get("region")).toBe(2);
+    });
+
+    it("counts custom tag categories and skips slugs without one", () => {
+      const counts = computeFilterCounts(groupSample, emptyFilters(), {
+        countBy: "card",
+        customTagAssignments: { c1: ["deck-a", "loose"], c3: ["deck-b"] },
+        customTagGroup: (slug) => (slug.startsWith("deck-") ? "decks" : undefined),
+      });
+      expect(counts.customTagGroups).toEqual(new Map([["decks", 2]]));
+    });
+
+    it("leaves the group maps out when no resolver is passed", () => {
+      const counts = computeFilterCounts(groupSample, emptyFilters(), { countBy: "printing" });
+      expect(counts.tagGroups).toBeUndefined();
+      expect(counts.customTagGroups).toBeUndefined();
+    });
+  });
+
   describe("presence counts", () => {
     const presenceSample = [
       makePrinting({

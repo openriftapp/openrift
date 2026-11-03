@@ -27,6 +27,10 @@ vi.mock("@/hooks/use-enums", () => ({
   useEnumOrders: () => ({ orders: TEST_ORDERS, labels: {} }),
 }));
 
+vi.mock("@/features/cards/hooks/use-tag-group-resolvers", () => ({
+  useTagGroupResolvers: () => ({ tagGroup: () => "other", customTagGroup: () => undefined }),
+}));
+
 const { useCardData } = await import("./use-card-data");
 
 beforeEach(() => {

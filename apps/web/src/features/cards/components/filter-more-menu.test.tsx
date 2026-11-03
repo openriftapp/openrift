@@ -307,7 +307,7 @@ describe("FilterMoreMenu", () => {
     await user.click(screen.getByRole("button", { name: "More" }));
     expect(await screen.findByRole("menuitem", { name: /Signed/u })).toBeInTheDocument();
     expect(screen.getByText("Markers")).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Owned" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Owned" })).toBeInTheDocument();
     await user.click(screen.getByText("Markers"));
     expect(await screen.findByRole("option", { name: /Has any marker/u })).toBeInTheDocument();
   });
@@ -327,7 +327,7 @@ describe("FilterMoreMenu", () => {
     );
     await user.click(screen.getByRole("button", { name: "More" }));
     await user.click(await screen.findByText("Markers"));
-    expect(await screen.findByRole("option", { name: /Foil.*\(5\)/u })).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /Foil.*5/u })).toBeInTheDocument();
   });
 
   it("renders a long dimension as a searchable combobox row, not a submenu", async () => {
@@ -358,9 +358,9 @@ describe("FilterMoreMenu", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("keeps a short include-only dimension as a submenu", async () => {
+  it("opens Owned in the same picker as the other rows, without a search field", async () => {
     const user = userEvent.setup();
-    setupHooks();
+    const actions = setupHooks();
     render(
       <FilterMoreMenu
         availableFilters={makeAvailable()}
@@ -369,10 +369,10 @@ describe("FilterMoreMenu", () => {
       />,
     );
     await user.click(screen.getByRole("button", { name: "More" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Owned" }));
-    expect(
-      await screen.findByRole("menuitemcheckbox", { name: /Full Playset/u }),
-    ).toBeInTheDocument();
+    await user.click(await screen.findByRole("combobox", { name: "Owned" }));
+    await user.click(await screen.findByRole("option", { name: /Full Playset/u }));
+    expect(document.querySelector("[data-slot=input-group]")).toHaveClass("sr-only");
+    expect(actions.setArrayFilter).toHaveBeenCalledWith("owned", expect.any(Array));
   });
 
   it("cycles a folded presence flag when its combobox option is clicked", async () => {
@@ -390,6 +390,42 @@ describe("FilterMoreMenu", () => {
     await user.click(await screen.findByText("Keywords"));
     await user.click(await screen.findByRole("option", { name: /Has any keyword/u }));
     expect(actions.cyclePresence).toHaveBeenCalledWith("keywords");
+  });
+
+  it("cycles marker presence from the Promo row when Promo is not top-level", async () => {
+    const user = userEvent.setup();
+    const actions = setupHooks();
+    render(
+      <FilterMoreMenu
+        availableFilters={makeAvailable({
+          markers: [{ id: "marker-foil", slug: "foil", label: "Foil", description: "" }],
+        })}
+        filterCounts={makeFilterCounts()}
+        activeCount={0}
+        topLevelUnits={new Set([...DEFAULT_TOP].filter((unit) => unit !== "promo"))}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "More" }));
+    await user.click(await screen.findByRole("menuitem", { name: /Promo.*3/u }));
+    expect(actions.cyclePresence).toHaveBeenCalledWith("markers");
+  });
+
+  it("leaves Promo out of the menu while it sits in the top bar", async () => {
+    const user = userEvent.setup();
+    setupHooks();
+    render(
+      <FilterMoreMenu
+        availableFilters={makeAvailable({
+          markers: [{ id: "marker-foil", slug: "foil", label: "Foil", description: "" }],
+        })}
+        filterCounts={makeFilterCounts()}
+        activeCount={0}
+        topLevelUnits={DEFAULT_TOP}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "More" }));
+    await screen.findByText("Markers");
+    expect(screen.queryByRole("menuitem", { name: /Promo/u })).not.toBeInTheDocument();
   });
 
   it("shows and cycles the Plain flag when non-plain printings exist (ADR-034)", async () => {

@@ -247,9 +247,20 @@ describe("MultiSelectCombobox flag rows", () => {
 const MARKER_OPTIONS = [
   { value: "promo", label: "Promo" },
   { value: "judge", label: "Judge" },
-] as const;
+  ...["a", "b", "c", "d", "e", "f", "g"].map((suffix) => ({
+    value: `event-${suffix}`,
+    label: `Event ${suffix.toUpperCase()}`,
+  })),
+];
 
-function renderInMenu() {
+function renderInMenu(
+  overrides: {
+    selected?: string[];
+    excluded?: string[];
+    anyCount?: number;
+    options?: readonly { value: string; label: string }[];
+  } = {},
+) {
   const onCycle = vi.fn();
   render(
     <DropdownMenu>
@@ -260,10 +271,11 @@ function renderInMenu() {
           triggerStyle="menu"
           label="Markers"
           searchPlaceholder="Search markers…"
-          options={MARKER_OPTIONS}
-          selected={[]}
-          excluded={[]}
+          options={overrides.options ?? MARKER_OPTIONS}
+          selected={overrides.selected ?? []}
+          excluded={overrides.excluded ?? []}
           onCycle={onCycle}
+          anyCount={overrides.anyCount}
         />
       </DropdownMenuContent>
     </DropdownMenu>,
@@ -272,6 +284,49 @@ function renderInMenu() {
 }
 
 describe("MultiSelectCombobox inside a dropdown menu", () => {
+  async function openTrigger(overrides: Parameters<typeof renderInMenu>[0]) {
+    const user = userEvent.setup();
+    renderInMenu(overrides);
+    await user.click(screen.getByRole("button", { name: "More" }));
+    return screen.findByRole("combobox");
+  }
+
+  it("drops the search field from a short menu picker and still picks with the keyboard", async () => {
+    const user = userEvent.setup();
+    const { onCycle } = renderInMenu({ options: MARKER_OPTIONS.slice(0, 2) });
+
+    await user.click(screen.getByRole("button", { name: "More" }));
+    await user.click(await screen.findByText("Markers"));
+    await screen.findByRole("option", { name: "Judge" });
+
+    expect(
+      screen.getByPlaceholderText("Search markers…").closest("[data-slot=input-group]"),
+    ).toHaveClass("sr-only");
+    await user.keyboard("{ArrowDown}{Enter}");
+    expect(onCycle).toHaveBeenCalledExactlyOnceWith("promo");
+  });
+
+  it("shows the any-count next to the label while nothing is picked", async () => {
+    const trigger = await openTrigger({ anyCount: 812 });
+    expect(trigger).toHaveTextContent("Markers812");
+  });
+
+  it("keeps the label and swaps the any-count for a single picked value", async () => {
+    const trigger = await openTrigger({ selected: ["judge"], anyCount: 812 });
+    expect(trigger).toHaveTextContent("MarkersJudge");
+    expect(trigger).not.toHaveTextContent("812");
+  });
+
+  it("summarises several picked values as a count", async () => {
+    const trigger = await openTrigger({ selected: ["judge", "promo"] });
+    expect(trigger).toHaveTextContent("Markers2 selected");
+  });
+
+  it("signs the summary once a value is excluded", async () => {
+    const trigger = await openTrigger({ selected: ["promo"], excluded: ["judge"] });
+    expect(trigger).toHaveTextContent("Markers+Promo, −Judge");
+  });
+
   it("types the search query into the combobox input, not the menu's typeahead", async () => {
     const user = userEvent.setup();
     renderInMenu();

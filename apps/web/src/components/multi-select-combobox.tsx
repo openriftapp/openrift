@@ -54,7 +54,10 @@ export interface MultiSelectComboboxProps {
   placeholder?: string;
   triggerClassName?: string;
   triggerSize?: "sm" | "default";
+  anyCount?: number;
 }
+
+const MENU_SEARCH_THRESHOLD = 8;
 
 interface MultiSelectFlag {
   label: string;
@@ -133,6 +136,7 @@ export function MultiSelectCombobox({
   fitContent,
   placeholder,
   triggerClassName,
+  anyCount,
   triggerSize = "sm",
 }: MultiSelectComboboxProps) {
   const hasGroups = (groups?.length ?? 0) > 0;
@@ -160,6 +164,9 @@ export function MultiSelectCombobox({
       counts: group.counts,
     })),
   ];
+
+  const optionTotal = sections.reduce((total, section) => total + section.options.length, 0);
+  const searchable = triggerStyle !== "menu" || optionTotal > MENU_SEARCH_THRESHOLD;
 
   const items: string[] = [];
   const idMeta = new Map<string, { section: Section; option: MultiSelectOption }>();
@@ -257,6 +264,11 @@ export function MultiSelectCombobox({
           ? `${label} (${totalCount})`
           : m.cards_filter_n_selected({ count: totalCount })
     : (placeholder ?? label);
+  const menuSummary = hasExclude
+    ? signedSummary()
+    : totalCount === 1
+      ? labelFor(singleId)
+      : m.cards_filter_n_selected({ count: totalCount });
 
   const [query, setQuery] = useState("");
   const needle = query.trim().toLowerCase();
@@ -339,15 +351,24 @@ export function MultiSelectCombobox({
     >
       {triggerStyle === "menu" ? (
         <ComboboxTrigger
+          aria-label={isActive ? `${label}: ${menuSummary}` : label}
           render={
             // oxlint-disable-next-line jsx-a11y/control-has-associated-label, react/forbid-elements -- bespoke menu-item-row trigger; matches DropdownMenu item styling, no primitive covers it yet; label injected as ComboboxTrigger children below
             <button
               type="button"
-              className="hover:bg-muted hover:text-foreground focus:bg-muted focus:text-foreground data-popup-open:bg-muted data-popup-open:text-foreground flex w-full cursor-default items-center gap-1.5 rounded-md px-1.5 py-1 text-sm outline-hidden select-none [&>svg:last-of-type]:hidden"
+              className="hover:bg-muted hover:text-foreground focus:bg-muted focus:text-foreground data-popup-open:bg-muted data-popup-open:text-foreground flex w-full cursor-default items-center gap-1.5 rounded-md px-2 py-1.5 text-sm outline-hidden select-none [&>svg:last-of-type]:hidden"
             />
           }
         >
-          <span className="min-w-0 flex-1 text-left">{triggerLabel}</span>
+          <span className="shrink-0 text-left">
+            {label}
+            {!isActive && anyCount !== undefined && (
+              <span className="text-muted-foreground text-2xs ml-1.5 tabular-nums">{anyCount}</span>
+            )}
+          </span>
+          <span className="text-muted-foreground min-w-0 flex-1 truncate text-right">
+            {isActive && menuSummary}
+          </span>
           <ChevronRightIcon className="ml-auto size-4 shrink-0" />
         </ComboboxTrigger>
       ) : triggerStyle === "button" ? (
@@ -383,7 +404,9 @@ export function MultiSelectCombobox({
         // claims every keystroke and preventDefaults it before it reaches the input.
         onKeyDown={(event) => event.stopPropagation()}
       >
+        {/* Hidden, not removed: list keyboard navigation runs through the focused input. */}
         <ComboboxInput
+          className={searchable ? undefined : "sr-only"}
           placeholder={searchPlaceholder}
           showTrigger={false}
           onKeyDownCapture={(event) => {
@@ -394,7 +417,7 @@ export function MultiSelectCombobox({
             }
           }}
         />
-        <ComboboxEmpty>{emptyText}</ComboboxEmpty>
+        {searchable && <ComboboxEmpty>{emptyText}</ComboboxEmpty>}
         <ComboboxList
           className={cn(fitContent && "max-h-[calc(var(--available-height)---spacing(9))]")}
         >
@@ -415,7 +438,7 @@ export function MultiSelectCombobox({
                           entry.count === 0 && "opacity-50",
                         )}
                       >
-                        ({entry.count})
+                        {entry.count}
                       </span>
                     )}
                   </span>
@@ -482,7 +505,7 @@ export function MultiSelectCombobox({
                         count === 0 && "opacity-50",
                       )}
                     >
-                      ({count})
+                      {count}
                     </span>
                   )}
                 </span>

@@ -440,6 +440,7 @@ describe("ActiveFilters standard flag + exclude chips (ADR-034)", () => {
     actions: {
       toggleArrayFilter?: ReturnType<typeof vi.fn>;
       clearStandard?: ReturnType<typeof vi.fn>;
+      clearPresence?: ReturnType<typeof vi.fn>;
     } = {},
   ) {
     mockUseFilterValues.mockReturnValue({
@@ -451,7 +452,7 @@ describe("ActiveFilters standard flag + exclude chips (ADR-034)", () => {
       setRange: vi.fn(),
       setOwnedCountRange: vi.fn(),
       clearSigned: vi.fn(),
-      clearPresence: vi.fn(),
+      clearPresence: actions.clearPresence ?? vi.fn(),
       clearBanned: vi.fn(),
       clearErrata: vi.fn(),
       clearStandard: actions.clearStandard ?? vi.fn(),
@@ -487,6 +488,20 @@ describe("ActiveFilters standard flag + exclude chips (ADR-034)", () => {
     await user.click(removeButton!);
 
     expect(clearStandard).toHaveBeenCalledOnce();
+  });
+
+  it("labels the marker presence chip Promo and clears it as marker presence", async () => {
+    const clearPresence = vi.fn();
+    setupExcludeHooks({ markersPresence: "any" }, { clearPresence });
+
+    const user = userEvent.setup();
+    const { getByText } = render(<ActiveFilters availableFilters={makeAvailable()} />);
+
+    const badge = getByText("Promo").closest("span") ?? getByText("Promo");
+    const removeButton = badge.parentElement?.querySelector("button");
+    await user.click(removeButton!);
+
+    expect(clearPresence).toHaveBeenCalledWith("markers");
   });
 
   it("renders the Plain chip in the include/exclude language when forbidden", () => {

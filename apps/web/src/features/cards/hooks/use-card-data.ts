@@ -16,6 +16,7 @@ import { EMPTY_CARD_FILTERS } from "@openrift/shared/types/search";
 import { useDeferredValue } from "react";
 
 import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
+import { useTagGroupResolvers } from "@/features/cards/hooks/use-tag-group-resolvers";
 import { buildSortCardsOptions, computePriceRanges } from "@/features/cards/lib/card-price-sort";
 import { cardsViewTileKey, dedupeToCardsViewTiles } from "@/features/cards/lib/card-tiles";
 import type { SearchAlternative } from "@/features/cards/lib/search-alternative";
@@ -170,6 +171,7 @@ export function useCatalogFilterMeta({
 
   const { orders } = useEnumOrders();
   const vocabulary = useCatalogSearchVocabulary();
+  const { tagGroup, customTagGroup } = useTagGroupResolvers();
 
   // All four inputs must defer together, or the counts transiently mix old
   // and new filter state.
@@ -233,6 +235,8 @@ export function useCatalogFilterMeta({
         rarityOrder: orders.rarities,
         vocabulary,
         customTagAssignments,
+        tagGroup,
+        customTagGroup,
       })
     : EMPTY_FILTER_COUNTS;
   const availableLanguages = [...new Set(allPrintings.map((p) => p.language))];

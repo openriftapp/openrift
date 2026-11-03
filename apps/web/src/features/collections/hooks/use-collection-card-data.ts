@@ -15,6 +15,7 @@ import { useDeferredValue } from "react";
 
 import { EMPTY_FILTER_COUNTS } from "@/features/cards/hooks/use-card-data";
 import { useCatalogSearchVocabulary } from "@/features/cards/hooks/use-catalog-search-vocabulary";
+import { useTagGroupResolvers } from "@/features/cards/hooks/use-tag-group-resolvers";
 import { buildSortCardsOptions, computePriceRanges } from "@/features/cards/lib/card-price-sort";
 import { dedupeToCardsViewTiles } from "@/features/cards/lib/card-tiles";
 import { findSearchAlternatives } from "@/features/cards/lib/search-alternative";
@@ -84,6 +85,7 @@ export function useCollectionCardData({
   const { stacks, totalCopies, collectionIdByCopyId, isReady } = useStackedCopies(collectionId);
   const { orders } = useEnumOrders();
   const vocabulary = useCatalogSearchVocabulary();
+  const { tagGroup, customTagGroup } = useTagGroupResolvers();
   const defaultEffectiveLanguageOrder = useEffectiveLanguageOrder();
 
   // Deferred inputs for the facet counts only, so a filter change doesn't
@@ -217,6 +219,8 @@ export function useCollectionCardData({
         getOwnedCount,
         rarityOrder: orders.rarities,
         vocabulary,
+        tagGroup,
+        customTagGroup,
       })
     : EMPTY_FILTER_COUNTS;
 

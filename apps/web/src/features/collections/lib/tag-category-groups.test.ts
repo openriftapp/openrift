@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { groupTagsByCategory, UNCLASSIFIED_TAG_GROUP } from "./tag-category-groups";
+import { groupTagsByCategory, tagGroupOf, UNCLASSIFIED_TAG_GROUP } from "./tag-category-groups";
 
 const CATEGORIES = [
   { slug: "region", label: "Region" },
@@ -61,5 +61,21 @@ describe("groupTagsByCategory", () => {
     expect(groups).toEqual([
       { slug: UNCLASSIFIED_TAG_GROUP, label: "Other tags", tags: ["Ionia"] },
     ]);
+  });
+});
+
+describe("tagGroupOf", () => {
+  it("maps a tag to its category and an unmapped tag to Other", () => {
+    const groupOf = tagGroupOf(CATEGORIES, CATEGORY_BY_TAG);
+    expect(groupOf("Noxus")).toBe("region");
+    expect(groupOf("Teemo")).toBe(UNCLASSIFIED_TAG_GROUP);
+  });
+
+  it("sends a tag whose category is no longer listed to Other", () => {
+    const groupOf = tagGroupOf(
+      CATEGORIES.filter((category) => category.slug !== "species"),
+      CATEGORY_BY_TAG,
+    );
+    expect(groupOf("Poro")).toBe(UNCLASSIFIED_TAG_GROUP);
   });
 });

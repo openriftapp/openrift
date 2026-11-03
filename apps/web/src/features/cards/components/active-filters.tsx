@@ -548,7 +548,9 @@ export function ActiveFilters({
           value === null ? null : (
             <FlagChip
               key={dimension}
-              label={presenceLabel(dimension)}
+              label={
+                dimension === "markers" ? m.cards_filter_flag_promo() : presenceLabel(dimension)
+              }
               state={value === "any"}
               onClear={() => clearPresence(dimension)}
             />

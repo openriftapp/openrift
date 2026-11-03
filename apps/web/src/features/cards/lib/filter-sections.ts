@@ -18,6 +18,7 @@ export const FILTER_PLACEMENT_UNITS: readonly FilterPlacementUnit[] = [
   { key: "superTypes", sections: ["superTypes"] },
   { key: "variant", sections: ["artVariants", "finishes", "overnumbered", "signed"] },
   { key: "standard", sections: ["standard"] },
+  { key: "promo", sections: ["promo"] },
   { key: "stats", sections: ["energy", "power", "might"] },
   { key: "markers", sections: ["markers"] },
   { key: "cardSizes", sections: ["cardSizes"] },
@@ -57,6 +58,9 @@ export function placementUnitLabel(key: string): string {
     }
     case "standard": {
       return m.cards_filter_unit_standard();
+    }
+    case "promo": {
+      return m.cards_filter_unit_promo();
     }
     case "stats": {
       return m.cards_filter_unit_stats();
