@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-03
+
+### Highlights
+
+- feat(Cards): **All printings opens in place** — the card detail panel, dialog or phone sheet grows to a table of every printing with the language header pinned while you scroll, and a pick shrinks it back with the new art in view. On desktop the card page shows that table with large images right in its Printings section.
+
+### Other
+
+- feat(Cards): **Printings outside your filters** — the card detail's Printings list can show the printings your filters hide, and does on its own when the one you are looking at is one of them.
+
 ## 2026-11-02
 
 ### Highlights

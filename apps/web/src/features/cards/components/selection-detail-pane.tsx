@@ -1,12 +1,17 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 import { Pane } from "@/components/layout/panes";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  PrintingsHostProvider,
+  usePrintingsHostState,
+} from "@/features/cards/components/card-detail/printings-host";
 import { useSelectionDetail } from "@/features/cards/hooks/use-selection-detail";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -38,6 +43,9 @@ export function SelectionDetailPane({
   const closeDetail = useSelectionStore((s) => s.closeDetail);
   const paneDocked = useDisplayStore((s) => s.paneDocked);
   const setPaneDocked = useDisplayStore((s) => s.setPaneDocked);
+  const { expanded, host, slotRef } = usePrintingsHostState();
+  const [pane, setPane] = useState<HTMLElement | null>(null);
+  const grownWidth = useGrownWidth(pane);
 
   // Closes the panel, not just the card: undocking alone would hand the
   // still-selected card to the modal.
@@ -66,28 +74,58 @@ export function SelectionDetailPane({
   }
 
   return (
-    <Pane className="@md:block">
-      {selectedCard ? (
-        <Suspense fallback={<CardDetailSkeleton />}>
-          <CardDetail
-            printing={selectedCard}
-            onClose={handleClose}
-            showImages={showImages}
-            onPrevCard={handlePrevCard}
-            onNextCard={handleNextCard}
-            onTagClick={handleTagClick}
-            onKeywordClick={handleKeywordClick}
-            printings={siblingPrintings}
-            onSelectPrinting={handleSelectPrinting}
-            actions={actions?.(selectedCard)}
-            collectionId={collectionId}
-          />
-        </Suspense>
-      ) : (
-        <PaneEmptyState />
-      )}
+    // The sticky pane is its own stacking context, so only a z-index here lifts the grown slot over selected tiles.
+    <Pane ref={setPane} className={cn("@md:block", expanded && "z-30")}>
+      <div inert={expanded}>
+        <PrintingsHostProvider host={host}>
+          {selectedCard ? (
+            <Suspense fallback={<CardDetailSkeleton />}>
+              <CardDetail
+                printing={selectedCard}
+                onClose={handleClose}
+                showImages={showImages}
+                onPrevCard={handlePrevCard}
+                onNextCard={handleNextCard}
+                onTagClick={handleTagClick}
+                onKeywordClick={handleKeywordClick}
+                printings={siblingPrintings}
+                onSelectPrinting={handleSelectPrinting}
+                actions={actions?.(selectedCard)}
+                collectionId={collectionId}
+              />
+            </Suspense>
+          ) : (
+            <PaneEmptyState />
+          )}
+        </PrintingsHostProvider>
+      </div>
+      <div
+        ref={slotRef}
+        style={{ width: expanded ? grownWidth : undefined }}
+        className={cn(
+          "bg-background absolute top-3 right-0 z-40 flex h-[calc(100vh-var(--sticky-top)-0.75rem)] w-full flex-col transition-[width] duration-300 ease-out",
+          !expanded && "invisible",
+        )}
+      />
     </Pane>
   );
+}
+
+function useGrownWidth(pane: HTMLElement | null): number | undefined {
+  const [width, setWidth] = useState<number>();
+  useEffect(() => {
+    const row = pane?.parentElement;
+    if (!pane || !row) {
+      return;
+    }
+    const observer = new ResizeObserver(() =>
+      setWidth(pane.getBoundingClientRect().right - row.getBoundingClientRect().left),
+    );
+    observer.observe(row);
+    observer.observe(pane);
+    return () => observer.disconnect();
+  }, [pane]);
+  return width;
 }
 
 function PaneEmptyState() {

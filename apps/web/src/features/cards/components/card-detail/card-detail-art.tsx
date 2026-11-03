@@ -17,11 +17,13 @@ export function CardDetailArt({
   showImages,
   disableTilt,
   sizes,
+  loading,
 }: {
   printing: Printing;
   showImages?: boolean;
   disableTilt?: boolean;
   sizes?: string;
+  loading?: "lazy";
 }) {
   const { card } = printing;
   const orientation = getOrientation(card.types);
@@ -55,6 +57,7 @@ export function CardDetailArt({
         showFoil={showFoil}
         showShimmer={showShimmer}
         sizes={sizes}
+        loading={loading}
       />
     </div>
   );

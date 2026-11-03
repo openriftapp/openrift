@@ -21,6 +21,7 @@ export function CardImage({
   showFoil,
   showShimmer,
   sizes = "(min-width: 768px) 376px, 100vw",
+  loading,
 }: {
   innerRef: React.RefCallback<HTMLElement>;
   printing: Printing;
@@ -29,6 +30,7 @@ export function CardImage({
   showFoil: boolean;
   showShimmer: boolean;
   sizes?: string;
+  loading?: "lazy";
 }) {
   const { card } = printing;
   const getFallbackArt = useStandardArtFallback();
@@ -105,7 +107,8 @@ export function CardImage({
                     sizes={sizes}
                     width={558}
                     height={400}
-                    fetchPriority="high"
+                    loading={loading}
+                    fetchPriority={loading ? "auto" : "high"}
                     alt={legendDisplayName(card)}
                     className="size-full object-cover"
                     onLoad={() => setImgLoaded(true)}
@@ -120,7 +123,8 @@ export function CardImage({
                   sizes={sizes}
                   width={400}
                   height={558}
-                  fetchPriority="high"
+                  loading={loading}
+                  fetchPriority={loading ? "auto" : "high"}
                   alt={legendDisplayName(card)}
                   className={cn(
                     "absolute inset-0 block w-full transition-opacity duration-300",

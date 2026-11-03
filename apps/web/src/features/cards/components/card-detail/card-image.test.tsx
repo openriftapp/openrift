@@ -191,4 +191,27 @@ describe("CardImage hero (responsive image)", () => {
     const priority = img.getAttribute("fetchpriority") ?? img.getAttribute("fetchPriority");
     expect(priority).toBe("high");
   });
+
+  it("defers a lazy image without raising its priority", () => {
+    const printing = stubPrinting({
+      images: [stubFrontImage],
+      card: { name: "Lazy Card" },
+    });
+    const { getByAltText } = render(
+      <CardImage
+        innerRef={noopRef}
+        printing={printing}
+        orientation="portrait"
+        showImages
+        showFoil={false}
+        showShimmer={false}
+        loading="lazy"
+      />,
+      { wrapper: makeWrapper() },
+    );
+    const img = getByAltText("Lazy Card");
+    expect(img).toHaveAttribute("loading", "lazy");
+    const priority = img.getAttribute("fetchpriority") ?? img.getAttribute("fetchPriority");
+    expect(priority).toBe("auto");
+  });
 });

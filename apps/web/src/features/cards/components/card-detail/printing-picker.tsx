@@ -2,7 +2,9 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
+import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { PrintingDesignRows } from "@/features/cards/components/printing-design-rows";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -41,11 +43,17 @@ export function PrintingPicker({
   const pickedSideKey = usePrintingLightboxStore((state) => state.pickedSideKey);
   const clearPicked = usePrintingLightboxStore((state) => state.clearPicked);
   const { printingsByCardId } = useCards();
-  const { designs } = groupPrintingDesigns(sortByLanguagePreference(printings, languageOrder));
+  const [revealedCardId, setRevealedCardId] = useState<string>();
+  const revealed = revealedCardId === current.cardId;
+  const allPrintings = withCatalogPrintings(printings, printingsByCardId.get(current.cardId) ?? []);
+  const hiddenCount = allPrintings.length - printings.length;
+  const currentHidden = !printings.some((p) => sideKey(p) === sideKey(current));
+  const listed = revealed || currentHidden ? allPrintings : printings;
+  const { designs } = groupPrintingDesigns(sortByLanguagePreference(listed, languageOrder));
   // One query for the whole list: a popover per row would each subscribe to
   // the entire copies collection.
   const { data: owned } = useOwnedCountsForPrintings(
-    printings.map((p) => p.printingId),
+    listed.map((p) => p.printingId),
     true,
     collectionId,
   );
@@ -56,7 +64,7 @@ export function PrintingPicker({
         <SectionHeading as="h3">{m.card_detail_printings_title()}</SectionHeading>
         <PrintingsLightbox
           printing={current}
-          printings={withCatalogPrintings(printings, printingsByCardId.get(current.cardId) ?? [])}
+          printings={allPrintings}
           showImages={showImages}
           onSelect={onSelect}
         />
@@ -81,6 +89,17 @@ export function PrintingPicker({
         )}
         right={(p) => <PrintingPrices printing={p} />}
       />
+      {hiddenCount > 0 && !currentHidden && (
+        <Button
+          variant="ghost"
+          size="xs"
+          onClick={() => setRevealedCardId(revealed ? undefined : current.cardId)}
+        >
+          {revealed
+            ? m.card_detail_printings_hide_hidden()
+            : m.card_detail_printings_show_hidden({ count: hiddenCount })}
+        </Button>
+      )}
     </div>
   );
 }

@@ -792,6 +792,9 @@
   "card_detail_notes_note": "참고",
   "card_detail_printings_title": "인쇄판",
   "card_detail_all_printings": "모든 인쇄판",
+  "card_detail_lightbox_show_overview": "전체 보기",
+  "card_detail_printings_show_hidden": "필터 밖의 {count}개 보기",
+  "card_detail_printings_hide_hidden": "필터 밖의 인쇄판 숨기기",
   "cards_printings_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -802,11 +805,8 @@
       }
     }
   ],
-  "card_detail_lightbox_artist": "일러스트: {artist}",
   "card_detail_lightbox_back": "뒷면: {name}",
   "card_detail_lightbox_position": "{index} / {count}",
-  "card_detail_lightbox_view_images": "이미지",
-  "card_detail_lightbox_language_aria": "언어",
   "card_detail_no_printings": "이 카드의 인쇄판을 찾을 수 없습니다.",
   "card_detail_all_cards": "전체 카드",
   "card_detail_share": "공유",

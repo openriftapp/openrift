@@ -792,6 +792,9 @@
   "card_detail_notes_note": "备注",
   "card_detail_printings_title": "印刷版本",
   "card_detail_all_printings": "全部印刷版本",
+  "card_detail_lightbox_show_overview": "显示总览",
+  "card_detail_printings_show_hidden": "显示筛选之外的 {count} 个",
+  "card_detail_printings_hide_hidden": "隐藏筛选之外的印刷版本",
   "cards_printings_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -802,11 +805,8 @@
       }
     }
   ],
-  "card_detail_lightbox_artist": "插画：{artist}",
   "card_detail_lightbox_back": "背面：{name}",
   "card_detail_lightbox_position": "{index} / {count}",
-  "card_detail_lightbox_view_images": "图片",
-  "card_detail_lightbox_language_aria": "语言",
   "card_detail_no_printings": "未找到这张卡的印刷版本。",
   "card_detail_all_cards": "全部卡牌",
   "card_detail_share": "分享",

@@ -236,6 +236,65 @@ describe("PrintingPicker", () => {
     expect(screen.queryByText("KR")).toBeNull();
   });
 
+  it("lists every printing when the shown one is outside the filters", () => {
+    const english = stubPrinting({ printingId: "p-en", cardId: "card-1", language: "EN" });
+    const japanese = stubPrinting({ printingId: "p-ja", cardId: "card-1", language: "JA" });
+    catalogMock.printingsByCardId = new Map([["card-1", [english, japanese]]]);
+
+    render(<PrintingPicker current={japanese} printings={[english]} onSelect={() => {}} />);
+
+    expect(ownedMock).toHaveBeenLastCalledWith(["p-en", "p-ja"], true, undefined);
+    expect(screen.queryByRole("button", { name: /outside your filters/u })).toBeNull();
+  });
+
+  it("reveals the printings outside the filters on request and hides them again", async () => {
+    const english = stubPrinting({ printingId: "p-en", cardId: "card-1", language: "EN" });
+    const japanese = stubPrinting({ printingId: "p-ja", cardId: "card-1", language: "JA" });
+    catalogMock.printingsByCardId = new Map([["card-1", [english, japanese]]]);
+
+    render(<PrintingPicker current={english} printings={[english]} onSelect={() => {}} />);
+    expect(ownedMock).toHaveBeenLastCalledWith(["p-en"], true, undefined);
+
+    await userEvent.click(screen.getByRole("button", { name: "Show 1 outside your filters" }));
+    expect(ownedMock).toHaveBeenLastCalledWith(["p-en", "p-ja"], true, undefined);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Hide printings outside your filters" }),
+    );
+    expect(ownedMock).toHaveBeenLastCalledWith(["p-en"], true, undefined);
+  });
+
+  it("hides the revealed printings again on the next card", async () => {
+    const english = stubPrinting({ printingId: "p-en", cardId: "card-1", language: "EN" });
+    const japanese = stubPrinting({ printingId: "p-ja", cardId: "card-1", language: "JA" });
+    const nextEnglish = stubPrinting({ printingId: "p2-en", cardId: "card-2", language: "EN" });
+    const nextJapanese = stubPrinting({ printingId: "p2-ja", cardId: "card-2", language: "JA" });
+    catalogMock.printingsByCardId = new Map([
+      ["card-1", [english, japanese]],
+      ["card-2", [nextEnglish, nextJapanese]],
+    ]);
+
+    const { rerender } = render(
+      <PrintingPicker current={english} printings={[english]} onSelect={() => {}} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Show 1 outside your filters" }));
+    rerender(
+      <PrintingPicker current={nextEnglish} printings={[nextEnglish]} onSelect={() => {}} />,
+    );
+
+    expect(ownedMock).toHaveBeenLastCalledWith(["p2-en"], true, undefined);
+    expect(screen.getByRole("button", { name: "Show 1 outside your filters" })).toBeTruthy();
+  });
+
+  it("offers no reveal when the filters hide nothing", () => {
+    const english = stubPrinting({ printingId: "p-en", cardId: "card-1", language: "EN" });
+    catalogMock.printingsByCardId = new Map([["card-1", [english]]]);
+
+    render(<PrintingPicker current={english} printings={[english]} onSelect={() => {}} />);
+
+    expect(screen.queryByRole("button", { name: /outside your filters/u })).toBeNull();
+  });
+
   it("highlights the row picked in the lightbox until its animation ends", () => {
     const picked = stubPrinting({ printingId: "p-picked", shortCode: "OGN-001" });
     const other = stubPrinting({ printingId: "p-other", shortCode: "OGN-002" });

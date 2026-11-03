@@ -1,5 +1,5 @@
 import { XIcon } from "lucide-react";
-import { Suspense } from "react";
+import { Suspense, useRef } from "react";
 import type { CSSProperties, KeyboardEventHandler, ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,10 @@ import {
 } from "@/components/ui/drawer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CardDetailSkeleton } from "@/features/cards/components/selection-detail-pane";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
+
+import { PrintingsHostProvider, usePrintingsHostState } from "./printings-host";
 
 interface CardDetailShellProps {
   open?: boolean;
@@ -38,6 +41,7 @@ export function CardDetailDialogShell({
   children,
   after,
 }: CardDetailShellProps & { onKeyDown?: KeyboardEventHandler<HTMLDivElement> }) {
+  const { expanded, host, slotRef } = usePrintingsHostState();
   return (
     <Dialog
       open={open}
@@ -48,7 +52,11 @@ export function CardDetailDialogShell({
       }}
     >
       <DialogContent
-        className="top-[8dvh] max-h-[calc(100dvh-8dvh-1rem)] translate-y-0 sm:max-w-[860px]"
+        className={cn(
+          "top-[8dvh] max-h-[calc(100dvh-8dvh-1rem)] translate-y-0 transition-[top,max-width,max-height] duration-300 ease-out sm:max-w-[860px]",
+          expanded &&
+            "top-8 h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] overflow-hidden sm:max-w-[calc(100vw-4rem)]",
+        )}
         style={style}
         onKeyDown={onKeyDown}
         showCloseButton={false}
@@ -64,8 +72,16 @@ export function CardDetailDialogShell({
           <DialogTitle>{m.cards_detail_title()}</DialogTitle>
           <DialogDescription>{m.cards_detail_description()}</DialogDescription>
         </DialogHeader>
-        <Suspense fallback={<CardDetailModalSkeleton />}>{children}</Suspense>
-        {after}
+        <div inert={expanded} className="contents">
+          <PrintingsHostProvider host={host}>
+            <Suspense fallback={<CardDetailModalSkeleton />}>{children}</Suspense>
+          </PrintingsHostProvider>
+          {after}
+        </div>
+        <div
+          ref={slotRef}
+          className={cn("bg-popover absolute inset-0 z-40", !expanded && "hidden")}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -78,6 +94,8 @@ export function CardDetailDrawerShell({
   children,
   after,
 }: CardDetailShellProps) {
+  const detailRef = useRef<HTMLDivElement>(null);
+  const { expanded, host, slotRef } = usePrintingsHostState(detailRef);
   return (
     <Drawer
       open={open}
@@ -97,8 +115,25 @@ export function CardDetailDrawerShell({
           <DrawerTitle>{m.cards_detail_title()}</DrawerTitle>
           <DrawerDescription>{m.cards_detail_description()}</DrawerDescription>
         </DrawerHeader>
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <Suspense fallback={<CardDetailSkeleton />}>{children}</Suspense>
+        {/* overflow-clip: focusing a tile scrolls an overflow-hidden ancestor, which would offset the slide. */}
+        <div className="flex min-h-0 flex-1 overflow-clip">
+          <div
+            className={cn(
+              "flex w-[200%] shrink-0 transition-transform duration-300 ease-out",
+              expanded && "-translate-x-1/2",
+            )}
+          >
+            <div
+              ref={detailRef}
+              inert={expanded}
+              className="flex min-h-0 w-1/2 flex-col overflow-y-auto"
+            >
+              <PrintingsHostProvider host={host}>
+                <Suspense fallback={<CardDetailSkeleton />}>{children}</Suspense>
+              </PrintingsHostProvider>
+            </div>
+            <div ref={slotRef} inert={!expanded} className="flex min-h-0 w-1/2 flex-col" />
+          </div>
         </div>
         {after}
       </DrawerContent>

@@ -792,6 +792,9 @@
   "card_detail_notes_note": "Note",
   "card_detail_printings_title": "Printings",
   "card_detail_all_printings": "All printings",
+  "card_detail_lightbox_show_overview": "Show overview",
+  "card_detail_printings_show_hidden": "Show {count} outside your filters",
+  "card_detail_printings_hide_hidden": "Hide printings outside your filters",
   "cards_printings_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -802,11 +805,8 @@
       }
     }
   ],
-  "card_detail_lightbox_artist": "Art by {artist}",
   "card_detail_lightbox_back": "Back: {name}",
   "card_detail_lightbox_position": "{index} of {count}",
-  "card_detail_lightbox_view_images": "Images",
-  "card_detail_lightbox_language_aria": "Language",
   "card_detail_no_printings": "No printings found for this card.",
   "card_detail_all_cards": "All cards",
   "card_detail_share": "Share",
