@@ -30,7 +30,7 @@ import { useDisplayStore } from "@/stores/display-store";
 interface MatrixProps {
   languages: string[];
   designs: PrintingDesign[];
-  selectedSideKey: string;
+  selectedSideKey?: string;
   onSelect: (printing: Printing) => void;
   highlightSideKey?: string | null;
   onHighlightEnd?: () => void;
@@ -60,7 +60,7 @@ export function CardPagePrintings({
   if (printings.length === 0) {
     return null;
   }
-  const props: MatrixProps = {
+  const props = {
     ...groupPrintingDesigns(printings),
     selectedSideKey,
     onSelect,
@@ -90,18 +90,15 @@ export function CardPagePrintings({
 /** `printings` must be in language-preference order. */
 export function PrintingLanguageMatrix({
   printings,
-  selectedSideKey,
   onSelect,
   showImages,
 }: {
   printings: Printing[];
-  selectedSideKey: string;
   onSelect: (printing: Printing) => void;
   showImages?: boolean;
 }) {
   const props: MatrixProps = {
     ...groupPrintingDesigns(printings),
-    selectedSideKey,
     onSelect,
     large: true,
     showImages,
@@ -148,7 +145,7 @@ function LiveStats({
   return children({ owned: owned?.totals, price });
 }
 
-function PrintingTable(props: MatrixProps & { stats?: CellStats }) {
+function PrintingTable(props: MatrixProps & { selectedSideKey: string; stats?: CellStats }) {
   const { designs, selectedSideKey, onSelect, highlightSideKey, onHighlightEnd, stats } = props;
   return (
     <>
@@ -225,9 +222,11 @@ function PrintingMatrix({
       </div>
       <ul>
         {designs.map((design) => {
-          const hasSelected = [...design.byLanguage.values()].some((printing) =>
-            isSelectedSide(printing, selectedSideKey),
-          );
+          const hasSelected =
+            selectedSideKey !== undefined &&
+            [...design.byLanguage.values()].some((printing) =>
+              isSelectedSide(printing, selectedSideKey),
+            );
           return (
             <li
               key={design.key}
@@ -272,7 +271,9 @@ function PrintingMatrix({
                       key={language}
                       printing={printing}
                       languageLabel={enumLabel(languageLabels, language)}
-                      isSelected={isSelectedSide(printing, selectedSideKey)}
+                      isSelected={
+                        selectedSideKey !== undefined && isSelectedSide(printing, selectedSideKey)
+                      }
                       highlighted={
                         highlightSideKey !== undefined &&
                         highlightSideKey !== null &&
@@ -323,7 +324,6 @@ function PrintingCell({
     }
   }, [highlighted]);
   const owned = stats?.owned?.[printing.printingId] ?? 0;
-  const dimmed = stats?.owned !== undefined && owned === 0 && !isSelected;
   return (
     <Pressable
       ref={cellRef}
@@ -350,7 +350,6 @@ function PrintingCell({
           large && [
             "block w-full rounded-[5%/3.6%]",
             isSelected && "ring-primary ring-offset-card ring-2 ring-offset-2",
-            dimmed && "opacity-60",
           ],
         )}
       >
@@ -366,7 +365,6 @@ function PrintingCell({
             className={cn(
               "w-11",
               isSelected && "ring-primary ring-offset-card ring-2 ring-offset-2",
-              dimmed && "opacity-60",
             )}
             loading="lazy"
           />

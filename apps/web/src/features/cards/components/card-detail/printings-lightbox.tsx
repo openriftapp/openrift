@@ -273,7 +273,6 @@ function LightboxContent({
           <div className="mx-auto w-full sm:w-fit sm:max-w-full">
             <PrintingLanguageMatrix
               printings={printings}
-              selectedSideKey={selectedKey}
               onSelect={onSelect}
               showImages={showImages}
             />
