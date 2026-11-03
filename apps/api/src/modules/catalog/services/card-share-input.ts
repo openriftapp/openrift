@@ -19,7 +19,7 @@ export interface CardShareImageInput {
   shareUrl?: string;
 }
 
-export const CARD_SHARE_MARKETPLACES: readonly Marketplace[] = ["tcgplayer", "cardtrader"];
+const CARD_SHARE_MARKETPLACES: readonly Marketplace[] = ["tcgplayer", "cardtrader"];
 
 const MAX_OTHER_IMAGES = 4;
 

@@ -14,7 +14,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 
-export type QueryFilterFamily =
+type QueryFilterFamily =
   | "sets"
   | "languages"
   | "rarities"
