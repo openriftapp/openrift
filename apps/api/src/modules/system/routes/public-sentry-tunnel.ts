@@ -31,16 +31,17 @@ export const sentryTunnelRoute = new Hono<{ Variables: Variables }>().post(
       return c.body(null, 413);
     }
 
-    const text = new TextDecoder().decode(body);
-    const newlineIdx = text.indexOf("\n");
+    const bytes = new Uint8Array(body);
+    const newlineIdx = bytes.indexOf(0x0a);
     if (newlineIdx === -1) {
       return c.body(null, 400);
     }
 
+    let header: Record<string, unknown>;
     let envelopeDsn: URL;
     try {
-      const header = JSON.parse(text.slice(0, newlineIdx)) as { dsn?: string };
-      if (!header.dsn) {
+      header = JSON.parse(new TextDecoder().decode(bytes.subarray(0, newlineIdx)));
+      if (typeof header.dsn !== "string" || !header.dsn) {
         return c.body(null, 400);
       }
       envelopeDsn = new URL(header.dsn);
@@ -61,18 +62,40 @@ export const sentryTunnelRoute = new Hono<{ Variables: Variables }>().post(
       headers["content-encoding"] = encoding;
     }
 
-    void forwardEnvelope(fetch, envelopeDsn.host, projectId, headers, body);
+    const forwarded = withForwardedFor(header, bytes, newlineIdx, c.req.header("x-real-ip"));
+    void forwardEnvelope(fetch, envelopeDsn.host, projectId, headers, forwarded);
 
     return c.body(null, 200);
   },
 );
+
+// Relay reads the client address from the envelope header's `forwarded_for`;
+// without it every browser event geolocates to our server.
+function withForwardedFor(
+  header: Record<string, unknown>,
+  bytes: Uint8Array<ArrayBuffer>,
+  newlineIdx: number,
+  clientIp?: string,
+): Uint8Array<ArrayBuffer> {
+  if (!clientIp) {
+    return bytes;
+  }
+  const headerLine = new TextEncoder().encode(
+    JSON.stringify({ ...header, forwarded_for: clientIp }),
+  );
+  const rest = bytes.subarray(newlineIdx);
+  const out = new Uint8Array(headerLine.length + rest.length);
+  out.set(headerLine);
+  out.set(rest, headerLine.length);
+  return out;
+}
 
 async function forwardEnvelope(
   fetch: Fetch,
   ingestHost: string,
   projectId: string,
   headers: Record<string, string>,
-  body: ArrayBuffer,
+  body: Uint8Array<ArrayBuffer>,
 ): Promise<void> {
   try {
     const upstream = await fetch(`https://${ingestHost}/api/${projectId}/envelope/`, {

@@ -51,8 +51,30 @@ describe("POST /api/v1/sentry-tunnel", () => {
     expect((init.headers as Record<string, string>)["content-type"]).toBe(
       "application/x-sentry-envelope",
     );
-    const forwardedBody = await new Response(init.body as ArrayBuffer).text();
+    const forwardedBody = await new Response(init.body as Uint8Array<ArrayBuffer>).text();
     expect(forwardedBody).toBe(body);
+  });
+
+  it("adds the client IP from X-Real-IP to the envelope header as forwarded_for", async () => {
+    mockFetch.mockResolvedValue(new Response(null, { status: 200 }));
+    const app = buildApp(ALLOWED_DSN);
+    const [headerLine, ...items] = envelope(ALLOWED_DSN).split("\n");
+    const body = [headerLine, ...items, JSON.stringify({ message: "größe ✓" })].join("\n");
+
+    await app.request("/api/v1/sentry-tunnel", {
+      method: "POST",
+      headers: { "content-type": "application/x-sentry-envelope", "x-real-ip": "203.0.113.7" },
+      body,
+    });
+
+    const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const forwardedText = await new Response(init.body as Uint8Array<ArrayBuffer>).text();
+    const [forwardedHeader, ...forwardedItems] = forwardedText.split("\n");
+    expect(JSON.parse(forwardedHeader ?? "")).toEqual({
+      ...JSON.parse(headerLine ?? ""),
+      forwarded_for: "203.0.113.7",
+    });
+    expect(forwardedItems).toEqual(body.split("\n").slice(1));
   });
 
   it("does not reflect upstream response headers (e.g. Set-Cookie) to the client", async () => {
