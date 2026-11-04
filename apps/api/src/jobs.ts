@@ -57,6 +57,7 @@ import {
   syncPlayriftboundCatalog,
   syncTopdeckCatalog,
 } from "./modules/meta/services/meta-sync/index.js";
+import { REBUILD_SCAN_BANK_KIND, rebuildScanBank } from "./modules/scan/services/scan-bank.js";
 import {
   extractWatermark,
   postChangelogToDiscord,
@@ -400,6 +401,21 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
           rearm: isFirstTickOfHour(new Date()),
         }),
       classifyNoop: isPlayriftboundRecheckNoop,
+    }),
+    defineJob(log, {
+      kind: REBUILD_SCAN_BANK_KIND,
+      title: "Scan bank rebuild",
+      description:
+        "Rebuilds the scanner's card bank when card images, card details or the encoder changed since the last build.",
+      suggestedSchedule: "0 5 * * *",
+      execute: async (_runId, jobLog) => {
+        const prior = await repos.jobRuns.getLatestForResume(REBUILD_SCAN_BANK_KIND);
+        return await rebuildScanBank(
+          { repos, io: defaultIo, log: jobLog, encoderFile: config.scan.encoderFile },
+          { previousResult: prior?.result },
+        );
+      },
+      classifyNoop: (result) => result.unchanged,
     }),
   ];
 }

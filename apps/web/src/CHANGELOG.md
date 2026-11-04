@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-04
+
+### Highlights
+
+- fix(Collection): **Scanner finds new cards** — the scanner now learns newly added cards within a day, so cards from the latest sets are recognised again.
+
+### Other
+
+- fix(Collection): **Scanner search shows your languages** — searching for a card the scanner missed lists only printings in your languages and marks each row's language when you read several.
+
 ## 2026-11-03
 
 ### Highlights

@@ -8,6 +8,7 @@ import { Pressable } from "@/components/ui/pressable";
 import { PrintingRowContent } from "@/features/cards/components/printing-row";
 import { useCardSearch } from "@/features/cards/hooks/use-card-search";
 import { m } from "@/paraglide/messages.js";
+import { useDisplayStore } from "@/stores/display-store";
 
 const MAX_RESULTS = 20;
 const MIN_QUERY_LENGTH = 1;
@@ -19,27 +20,40 @@ interface ScanIdentifySearchProps {
 
 export function ScanIdentifySearch({ allPrintings, onPick }: ScanIdentifySearchProps) {
   const [query, setQuery] = useState("");
+  const languages = useDisplayStore((state) => state.languages);
+
+  const printings = useMemo(
+    () =>
+      languages.length === 0
+        ? allPrintings
+        : allPrintings.filter((printing) => languages.includes(printing.language)),
+    [allPrintings, languages],
+  );
+  const siblingsByCardId = useMemo(
+    () => Map.groupBy(printings, (printing) => printing.cardId),
+    [printings],
+  );
 
   const searchable = useMemo(
     () =>
-      allPrintings.map((printing) => ({
+      printings.map((printing) => ({
         id: sideKey(printing),
         slug: printing.shortCode,
         name: legendDisplayName(printing.card),
         altNames: cardSearchAltNames(printing.card, [printing.printedName]),
         printing,
       })),
-    [allPrintings],
+    [printings],
   );
   const codesByRowId = useMemo(
     () =>
       new Map(
-        allPrintings.map((printing) => [
+        printings.map((printing) => [
           sideKey(printing),
           [{ shortCode: printing.shortCode, publicCode: printing.publicCode }],
         ]),
       ),
-    [allPrintings],
+    [printings],
   );
 
   const results = useCardSearch(searchable, query, codesByRowId, MAX_RESULTS, MIN_QUERY_LENGTH);
@@ -63,7 +77,11 @@ export function ScanIdentifySearch({ allPrintings, onPick }: ScanIdentifySearchP
             className="hover:bg-muted flex w-full items-center rounded-md px-2 py-1.5"
             onClick={() => onPick(row.printing)}
           >
-            <PrintingRowContent printing={row.printing} name={row.name} />
+            <PrintingRowContent
+              printing={row.printing}
+              siblings={siblingsByCardId.get(row.printing.cardId)}
+              name={row.name}
+            />
           </Pressable>
         ))}
       </div>

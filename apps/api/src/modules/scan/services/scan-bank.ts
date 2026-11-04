@@ -50,9 +50,11 @@ export function scanArtKey(
 }
 
 export interface ScanBankBuildResult {
+  unchanged: boolean;
   entryCount: number;
   skipped: number;
   bankHash: string;
+  inputHash: string;
   durationMs: number;
 }
 
@@ -61,6 +63,31 @@ interface ScanBankDeps {
   io: Io;
   log: Logger;
   encoderFile: string;
+}
+
+interface RebuildOptions {
+  previousResult?: unknown;
+}
+
+export function scanBankInputHash(
+  references: readonly ScanReferenceRow[],
+  encoderFile: string,
+): string {
+  const hash = createHash("sha256").update(`${EMBED_BANK_VERSION}\n${encoderFile}\n`);
+  for (const row of references) {
+    hash.update(`${JSON.stringify(row)}\n`);
+  }
+  return hash.digest("hex").slice(0, 16);
+}
+
+function previousBuildOf(result: unknown): { inputHash: string; skipped: number } | null {
+  if (typeof result !== "object" || result === null) {
+    return null;
+  }
+  const { inputHash, skipped } = result as Record<string, unknown>;
+  return typeof inputHash === "string" && typeof skipped === "number"
+    ? { inputHash, skipped }
+    : null;
 }
 
 /** Bank and query preprocessing must stay identical (flattened onto mid grey). */
@@ -88,7 +115,10 @@ function renderPath(imageId: string): string {
  * Renders are embedded in the canonical frame (landscape rotated 90° left),
  * the frame every served encoder is trained in.
  */
-export async function rebuildScanBank(deps: ScanBankDeps): Promise<ScanBankBuildResult> {
+export async function rebuildScanBank(
+  deps: ScanBankDeps,
+  options: RebuildOptions = {},
+): Promise<ScanBankBuildResult> {
   const startedAt = Date.now();
   const { repos, io, log, encoderFile } = deps;
 
@@ -101,6 +131,25 @@ export async function rebuildScanBank(deps: ScanBankDeps): Promise<ScanBankBuild
 
   const references = await repos.catalog.scanReferences();
   const previous = await repos.scanIndex.get();
+  const inputHash = scanBankInputHash(references, encoderFile);
+
+  const previousBuild = previousBuildOf(options.previousResult);
+  if (
+    previous !== null &&
+    previousBuild !== null &&
+    previousBuild.inputHash === inputHash &&
+    previousBuild.skipped === 0
+  ) {
+    log.info({ inputHash }, "Scan bank inputs unchanged; skipping rebuild");
+    return {
+      unchanged: true,
+      entryCount: previous.entryCount,
+      skipped: 0,
+      bankHash: previous.bankHash,
+      inputHash,
+      durationMs: Date.now() - startedAt,
+    };
+  }
 
   // onnxruntime-node is imported lazily so the API boots without touching the
   // native runtime; only the rebuild pays for it.
@@ -234,9 +283,11 @@ export async function rebuildScanBank(deps: ScanBankDeps): Promise<ScanBankBuild
   await pruneGenerations(io, log, [bankHash, previous?.bankHash]);
 
   const result = {
+    unchanged: false,
     entryCount: keys.length,
     skipped,
     bankHash,
+    inputHash,
     durationMs: Date.now() - startedAt,
   };
   log.info(result, "Scan bank rebuilt");

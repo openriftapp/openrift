@@ -32,6 +32,7 @@ export const SCHEDULED_JOB_KINDS = [
   "meta.topdeck_sync",
   "meta.playriftbound_sync",
   "meta.playriftbound_recheck",
+  "scan.rebuild_bank",
 ] as const;
 
 export const scheduledJobKindSchema = z.enum(SCHEDULED_JOB_KINDS);

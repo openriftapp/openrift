@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Io } from "../../../io.js";
 import type { ScanReferenceRow } from "../../catalog/repositories/catalog-printings.js";
-import { rebuildScanBank, scanArtKey } from "./scan-bank.js";
+import { rebuildScanBank, scanArtKey, scanBankInputHash } from "./scan-bank.js";
 
 const embedding = vi.hoisted(() => ({ dim: 4, axisOf: (row: number) => row }));
 
@@ -138,6 +138,106 @@ async function rebuildArtKeys(
   );
   return Object.fromEntries(artKeys);
 }
+
+function skipDeps(rows: ScanReferenceRow[], index: { bankHash: string } | null) {
+  const writeFile = vi.fn(async () => {});
+  const io = {
+    fs: {
+      stat: vi.fn(async () => ({})),
+      readFile: vi.fn(async (file: string) => Buffer.from(file)),
+      mkdir: vi.fn(async () => {}),
+      writeFile,
+      readdir: vi.fn(async () => []),
+      unlink: vi.fn(async () => {}),
+    },
+    sharp: () => {
+      const chain = {
+        flatten: () => chain,
+        raw: () => chain,
+        toColourspace: () => chain,
+        ensureAlpha: () => chain,
+        toBuffer: async () => ({ data: texture(1), info: { width: 80, height: 112 } }),
+      };
+      return chain;
+    },
+  } as unknown as Io;
+  const repos = {
+    catalog: { scanReferences: async () => rows },
+    scanIndex: {
+      get: async () => (index ? { ...index, entryCount: rows.length } : null),
+      put: vi.fn(async () => {}),
+    },
+  };
+  const deps = {
+    repos: repos as unknown as Parameters<typeof rebuildScanBank>[0]["repos"],
+    io,
+    log: { info: vi.fn(), warn: vi.fn() } as unknown as Logger,
+    encoderFile: "encoder.onnx",
+  };
+  return { deps, writeFile };
+}
+
+describe("rebuildScanBank change detection", () => {
+  const rows = [reference("img-vi", "origins", "Vi")];
+  const inputHash = scanBankInputHash(rows, "encoder.onnx");
+
+  it("skips the build when inputs match the previous build and nothing was skipped", async () => {
+    const { deps, writeFile } = skipDeps(rows, { bankHash: "old" });
+
+    const result = await rebuildScanBank(deps, { previousResult: { inputHash, skipped: 0 } });
+
+    expect(result).toMatchObject({ unchanged: true, bankHash: "old", inputHash, entryCount: 1 });
+    expect(writeFile).not.toHaveBeenCalled();
+  });
+
+  it("rebuilds when a reference row changed", async () => {
+    const { deps, writeFile } = skipDeps([reference("img-vi-new", "origins", "Vi")], {
+      bankHash: "old",
+    });
+
+    const result = await rebuildScanBank(deps, { previousResult: { inputHash, skipped: 0 } });
+
+    expect(result.unchanged).toBe(false);
+    expect(writeFile).toHaveBeenCalled();
+  });
+
+  it("rebuilds when the encoder changed", async () => {
+    const { deps } = skipDeps(rows, { bankHash: "old" });
+
+    const result = await rebuildScanBank(
+      { ...deps, encoderFile: "encoder-v2.onnx" },
+      { previousResult: { inputHash, skipped: 0 } },
+    );
+
+    expect(result.unchanged).toBe(false);
+  });
+
+  it("rebuilds when the previous build skipped renders", async () => {
+    const { deps } = skipDeps(rows, { bankHash: "old" });
+
+    const result = await rebuildScanBank(deps, { previousResult: { inputHash, skipped: 2 } });
+
+    expect(result.unchanged).toBe(false);
+  });
+
+  it("rebuilds when no bank exists yet", async () => {
+    const { deps } = skipDeps(rows, null);
+
+    const result = await rebuildScanBank(deps, { previousResult: { inputHash, skipped: 0 } });
+
+    expect(result.unchanged).toBe(false);
+  });
+
+  it("rebuilds when the previous result predates input hashing", async () => {
+    const { deps } = skipDeps(rows, { bankHash: "old" });
+
+    const result = await rebuildScanBank(deps, {
+      previousResult: { skipped: 0, bankHash: "old", entryCount: 1 },
+    });
+
+    expect(result).toMatchObject({ unchanged: false, inputHash });
+  });
+});
 
 describe("rebuildScanBank", () => {
   afterEach(() => {

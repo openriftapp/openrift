@@ -200,7 +200,7 @@ On every device, five frames without a plausible match in Scan mode put the sess
 
 The detectors are card-agnostic and need no update for a new set. After a set lands in the catalogue:
 
-1. An admin runs **Rebuild bank** (the `scan.rebuild_bank` job). It embeds every active front render, groups artworks, and writes a new bank and label file.
+1. The `scan.rebuild_bank` job rebuilds the bank. It runs daily when scheduled and skips the build when the reference rows and encoder match the previous build and that build skipped no renders. **Rebuild bank** in admin always builds. A build embeds every active front render, groups artworks, and writes a new bank and label file.
 2. Clients pick up the new files through the manifest.
 
 The encoder was trained on the artworks in the catalogue at the time, and embeds new artworks with the same weights. Verification checks every lock against the render itself, so a weaker ranking for unseen art costs recall, never correctness. When recall on a new set drops on the bench, the encoder is retrained.
