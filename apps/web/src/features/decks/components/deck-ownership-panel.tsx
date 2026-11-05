@@ -90,48 +90,29 @@ function PriceBlock({ data, marketplace }: { data: DeckOwnershipData; marketplac
     data.missingAsDisplayedValueCents > data.missingValueCents;
 
   return (
-    <div
-      className={cn(
-        "grid items-center gap-x-3 gap-y-1 text-sm",
-        showMissing ? "grid-cols-[1fr_auto_auto]" : "grid-cols-[1fr_auto]",
-      )}
-    >
+    <div className="space-y-1 text-sm">
       <div className="text-muted-foreground flex items-center gap-1.5 pb-0.5 text-xs">
         <MarketplaceIcon marketplace={marketplace} />
         {m.decks_overview_marketplace_prices({ marketplace: MARKETPLACE_META[marketplace].label })}
       </div>
-      <span />
-      {showMissing && (
-        <span className="text-muted-foreground pb-0.5 text-right text-xs">
-          {m.decks_overview_price_missing_column()}
-        </span>
-      )}
-
-      <PriceRow
-        label={m.decks_overview_deck_value()}
-        value={fmt(data.deckValueCents)}
-        missing={showMissing ? fmt(data.missingValueCents) : undefined}
-      />
+      <PriceRow label={m.decks_overview_deck_value()} value={fmt(data.deckValueCents)} />
       {showSplit && (
         <>
-          <PriceRow
-            label={m.decks_overview_main_deck()}
-            value={fmt(data.mainValueCents)}
-            missing={showMissing ? fmt(data.missingMainValueCents) : undefined}
-            indent
-          />
+          <PriceRow label={m.decks_overview_main_deck()} value={fmt(data.mainValueCents)} indent />
           <PriceRow
             label={m.decks_overview_sideboard()}
             value={fmt(data.sideboardValueCents)}
-            missing={showMissing ? fmt(data.missingSideboardValueCents) : undefined}
             indent
           />
         </>
       )}
+      {showMissing && (
+        <PriceRow label={m.decks_import_missing_cost()} value={fmt(data.missingValueCents)} />
+      )}
       {showAsShown && (
         <PriceRow
           label={m.decks_overview_price_as_shown()}
-          missing={fmt(data.missingAsDisplayedValueCents)}
+          value={fmt(data.missingAsDisplayedValueCents)}
           indent
         />
       )}
@@ -139,24 +120,11 @@ function PriceBlock({ data, marketplace }: { data: DeckOwnershipData; marketplac
   );
 }
 
-// Cells are direct grid children so every row's figures line up in the same columns.
-function PriceRow({
-  label,
-  value,
-  missing,
-  indent,
-}: {
-  label: string;
-  value?: string;
-  missing?: string;
-  indent?: boolean;
-}) {
-  const cellClass = cn("text-right font-medium tabular-nums", indent && "text-xs");
+function PriceRow({ label, value, indent }: { label: string; value: string; indent?: boolean }) {
   return (
-    <>
-      <span className={cn("text-muted-foreground", indent && "pl-3 text-xs")}>{label}</span>
-      <span className={cellClass}>{value}</span>
-      {missing !== undefined && <span className={cellClass}>{missing}</span>}
-    </>
+    <div className={cn("flex items-center justify-between gap-3", indent && "pl-3 text-xs")}>
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right font-medium tabular-nums">{value}</span>
+    </div>
   );
 }

@@ -1719,13 +1719,13 @@
   "collections_import_deck_desc_text": "每行一张卡，格式为“数量 名称”，可选带上“Legend:”这样的区域标题。若没有标题，卡牌会按类型自动归入各区域。",
   "collections_import_deck_desc_tts": "以空格分隔的短代码清单（例如 OGN-001），供{#link}Tabletop Simulator mod{/link}使用。",
   "collections_import_deck_replace_preview_title": "替换预览",
-  "collections_import_deck_cards_parsed": [
+  "decks_import_entries_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "已解析{count}张卡牌",
-        "countPlural=*": "已解析{count}张卡牌"
+        "countPlural=one": "{count}个条目",
+        "countPlural=*": "{count}个条目"
       }
     }
   ],
@@ -2947,6 +2947,7 @@
   "decks_import_created_toast": "已导入卡组“{name}”，共{count}张牌。",
   "decks_import_sign_in_hint": "导入后登录，即可看到其中哪些你已经拥有。",
   "decks_import_view_prices": "· 查看价格",
+  "decks_import_missing_cost": "缺少卡牌的费用",
   "decks_odds_add_group": "添加",
   "decks_odds_card_groups": "卡牌分组",
   "decks_odds_choose_rows": "选择概率行",

@@ -64,6 +64,10 @@
 - feat(Cards): **Tidier promo groups** — each promo group shows when it was announced with a link to the announcement, and the quoted text folds to two lines with a Read more toggle; the per-card Promo pill is gone.
 - fix(Cards): **Promos page side-scroll** — the promos page no longer scrolls a few pixels sideways on phones.
 
+### Other
+
+- feat(Decks): **Clearer deck import preview** — the preview shows entry and card counts under the title, lists deck value and the cost of missing cards as labelled rows, and insets the row dividers.
+
 ## 2026-11-04
 
 ### Highlights

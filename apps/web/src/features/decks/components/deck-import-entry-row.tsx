@@ -184,7 +184,10 @@ export function DeckImportEntryRow({
     <AccordionItem
       id={deckImportRowId(index)}
       value={String(index)}
-      className={cn(isSkipped && "opacity-40")}
+      className={cn(
+        "after:bg-border relative border-y-0! after:absolute after:inset-x-4 after:bottom-0 after:h-px last:after:hidden",
+        isSkipped && "opacity-40",
+      )}
     >
       {/* Whole row is the trigger only when folded: rows that keep their
           controls can't do this, or the buttons and zone select would end

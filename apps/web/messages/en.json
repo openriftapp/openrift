@@ -1719,13 +1719,13 @@
   "collections_import_deck_desc_text": "One card per line as \"quantity name\", with optional zone headers like \"Legend:\". Without headers, cards are sorted into zones by type.",
   "collections_import_deck_desc_tts": "A space-separated list of short codes (e.g. OGN-001) used by the {#link}Tabletop Simulator mod{/link}.",
   "collections_import_deck_replace_preview_title": "Replace Preview",
-  "collections_import_deck_cards_parsed": [
+  "decks_import_entries_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "{count} card parsed",
-        "countPlural=*": "{count} cards parsed"
+        "countPlural=one": "{count} entry",
+        "countPlural=*": "{count} entries"
       }
     }
   ],
@@ -2948,6 +2948,7 @@
   "decks_import_created_toast": "Imported deck \"{name}\" with {count} cards.",
   "decks_import_sign_in_hint": "Sign in after importing to see which of these you already own.",
   "decks_import_view_prices": "· view prices",
+  "decks_import_missing_cost": "Cost of missing cards",
   "decks_odds_add_group": "Add",
   "decks_odds_card_groups": "Card groups",
   "decks_odds_choose_rows": "Choose odds rows",

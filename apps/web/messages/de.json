@@ -1719,13 +1719,13 @@
   "collections_import_deck_desc_text": "Eine Karte pro Zeile als \"Anzahl Name\", optional mit Zonen-Überschriften wie \"Legend:\". Ohne Überschriften werden Karten nach Typ in Zonen einsortiert.",
   "collections_import_deck_desc_tts": "Eine durch Leerzeichen getrennte Liste von Kurzcodes (z. B. OGN-001), verwendet vom {#link}Tabletop Simulator Mod{/link}.",
   "collections_import_deck_replace_preview_title": "Ersetzungs-Vorschau",
-  "collections_import_deck_cards_parsed": [
+  "decks_import_entries_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "{count} Karte gelesen",
-        "countPlural=*": "{count} Karten gelesen"
+        "countPlural=one": "{count} Eintrag",
+        "countPlural=*": "{count} Einträge"
       }
     }
   ],
@@ -2947,6 +2947,7 @@
   "decks_import_created_toast": "Deck „{name}“ mit {count} Karten importiert.",
   "decks_import_sign_in_hint": "Melde dich nach dem Import an, um zu sehen, welche davon du schon besitzt.",
   "decks_import_view_prices": "· Preise ansehen",
+  "decks_import_missing_cost": "Kosten fehlender Karten",
   "decks_odds_add_group": "Hinzufügen",
   "decks_odds_card_groups": "Kartengruppen",
   "decks_odds_choose_rows": "Zeilen für Wahrscheinlichkeiten wählen",

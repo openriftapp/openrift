@@ -1719,13 +1719,13 @@
   "collections_import_deck_desc_text": "Une carte par ligne au format \"quantité nom\", avec des en-têtes de zone facultatifs comme \"Legend:\". Sans en-têtes, les cartes sont réparties en zones selon leur type.",
   "collections_import_deck_desc_tts": "Une liste de codes courts séparés par des espaces (par ex. OGN-001) utilisée par le {#link}mod Tabletop Simulator{/link}.",
   "collections_import_deck_replace_preview_title": "Aperçu du remplacement",
-  "collections_import_deck_cards_parsed": [
+  "decks_import_entries_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "{count} carte analysée",
-        "countPlural=*": "{count} cartes analysées"
+        "countPlural=one": "{count} entrée",
+        "countPlural=*": "{count} entrées"
       }
     }
   ],
@@ -2948,6 +2948,7 @@
   "decks_import_created_toast": "Deck « {name} » importé avec {count} cartes.",
   "decks_import_sign_in_hint": "Connectez-vous après l'import pour voir lesquelles vous possédez déjà.",
   "decks_import_view_prices": "· voir les prix",
+  "decks_import_missing_cost": "Coût des cartes manquantes",
   "decks_odds_add_group": "Ajouter",
   "decks_odds_card_groups": "Groupes de cartes",
   "decks_odds_choose_rows": "Choisir les lignes de probabilités",
