@@ -15,7 +15,7 @@ type MetaLegendCounts = MetaLegendDetailResponse["counts"];
 
 function FactCounters({ counts }: { counts: MetaLegendCounts }) {
   return (
-    <div className="flex flex-wrap gap-x-9 gap-y-3">
+    <div className="grid grid-cols-3 gap-x-4 sm:flex sm:flex-wrap sm:gap-x-9 sm:gap-y-3">
       <StatFigure value={formatCount(counts.wins)} label={m.meta_legend_hero_event_wins()} />
       <StatFigure value={formatCount(counts.finishes)} label={m.meta_legend_hero_finishes()} />
       <StatFigure value={formatCount(counts.decklists)} label={m.meta_legend_hero_decklists()} />
@@ -41,9 +41,9 @@ export function MetaLegendHero({
         className="absolute inset-0"
         style={deckGlowStyle(legend.domains, domainColors)}
       />
-      <MetaHeroArt imageId={legend.imageId} alt={champion} />
+      <MetaHeroArt imageId={legend.imageId} alt={champion} fullWidthOnPhone />
 
-      <div className="relative flex flex-col gap-3 p-5 pr-[45%] sm:pr-[38%]">
+      <div className="relative flex flex-col gap-3 p-5 sm:pr-[38%]">
         <div className="flex flex-col gap-1">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
             {/* h2: the page's h1 is the champion in the top bar. */}

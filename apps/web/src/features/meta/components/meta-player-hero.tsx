@@ -15,11 +15,13 @@ import { m } from "@/paraglide/messages.js";
 
 function FactCounters({ counts }: { counts: MetaPlayerCounts }) {
   return (
-    <div className="flex flex-wrap gap-x-9 gap-y-3">
+    <div className="grid grid-cols-3 gap-x-4 gap-y-3 sm:flex sm:flex-wrap sm:gap-x-9">
       <StatFigure value={formatCount(counts.eventWins)} label={m.meta_player_hero_event_wins()} />
       <StatFigure value={formatCount(counts.topEights)} label={m.meta_player_hero_top_eights()} />
       <StatFigure value={formatCount(counts.finishes)} label={m.meta_legend_hero_finishes()} />
-      <StatFigure value={formatCount(counts.decklists)} label={m.meta_legend_hero_decklists()} />
+      {counts.decklists > 0 && (
+        <StatFigure value={formatCount(counts.decklists)} label={m.meta_legend_hero_decklists()} />
+      )}
     </div>
   );
 }
@@ -58,11 +60,11 @@ function FactsLine({ facts }: { facts: MetaPlayerFacts }) {
   }
 
   return (
-    <p className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
+    <p className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm sm:gap-x-2">
       {parts.map((part, index) => (
         <Fragment key={part.key}>
           {index > 0 && (
-            <span aria-hidden className="text-muted-foreground/60">
+            <span aria-hidden className="text-muted-foreground/60 hidden sm:inline">
               ·
             </span>
           )}
@@ -94,9 +96,9 @@ export function MetaPlayerHero({
         className="absolute inset-0"
         style={deckGlowStyle(topLegend?.domains ?? [], domainColors)}
       />
-      <MetaHeroArt imageId={topLegend?.imageId ?? null} alt={champion ?? ""} />
+      <MetaHeroArt imageId={topLegend?.imageId ?? null} alt={champion ?? ""} fullWidthOnPhone />
 
-      <div className="relative flex flex-col gap-3 p-5 pr-[45%] sm:pr-[38%]">
+      <div className="relative flex flex-col gap-3 p-5 sm:pr-[38%]">
         <div className="flex flex-col gap-1">
           {/* h2: the page's h1 is the player's name in the top bar. */}
           <h2 className="font-heading text-2xl font-bold">{name}</h2>

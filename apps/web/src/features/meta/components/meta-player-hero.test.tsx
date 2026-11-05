@@ -84,4 +84,10 @@ describe("MetaPlayerHero", () => {
     expect(screen.queryByText(/Last seen/u)).not.toBeInTheDocument();
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
+
+  it("hides the decklists count when there are none", () => {
+    render(<MetaPlayerHero name="Renata" facts={FACTS} counts={{ ...COUNTS, decklists: 0 }} />);
+    expect(screen.queryByText("decklists")).not.toBeInTheDocument();
+    expect(screen.getByText("archived finishes")).toBeInTheDocument();
+  });
 });

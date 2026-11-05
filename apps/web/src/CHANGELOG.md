@@ -85,6 +85,7 @@
 
 ### Other
 
+- fix(Meta): **Meta headers fit phones** — the legend and player headers uses the full card width on phones, with the art fading behind the text and the three counts in one aligned row. The player header hides an empty decklists count.
 - fix(Collection): **Scanner search shows your languages** — searching for a card the scanner missed lists only printings in your languages and marks each row's language when you read several.
 
 ## 2026-11-03
