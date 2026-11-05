@@ -30,6 +30,10 @@
 
 - fix(App): **Landing page fits phones** — the feature sections no longer cut off their text, and the scanner preview keeps each card's status and price inside the frame.
 
+### Other
+
+- fix(App): **Page titles no longer cut short** — page titles in the top bar, such as Statistics or Zones, show in full on phones and only shorten when the buttons beside them need the room.
+
 ## 2026-11-04
 
 ### Highlights

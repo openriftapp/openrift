@@ -104,6 +104,18 @@ describe("PageTopBarTitle", () => {
     expect(onToggleSidebar).toHaveBeenCalledTimes(1);
   });
 
+  it("lets the dropdown title take its full width and shrink only under pressure", () => {
+    const { getByRole } = render(
+      <PageTopBarTitle onToggleSidebar={vi.fn()}>Statistics</PageTopBarTitle>,
+    );
+    const button = getByRole("button", { name: "Statistics" });
+    expect(button.closest("h1")?.className).toContain("flex");
+    expect(button.classList.contains("shrink")).toBe(true);
+    expect(button.classList.contains("shrink-0")).toBe(false);
+    expect(button.className).not.toContain("max-w-full");
+    expect(button.querySelector("span")?.className).toContain("truncate");
+  });
+
   it("renders a plain heading without a toggle handler", () => {
     const { container, queryByRole } = render(<PageTopBarTitle>Cards</PageTopBarTitle>);
     expect(queryByRole("button")).toBeNull();
