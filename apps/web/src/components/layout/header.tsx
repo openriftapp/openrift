@@ -9,7 +9,6 @@ import {
   EllipsisVerticalIcon,
   HeartIcon,
   LanguagesIcon,
-  LockIcon,
   LogOutIcon,
   MenuIcon,
   MoonIcon,
@@ -31,6 +30,7 @@ import {
   badgeAriaLabel,
   keepsSearch,
   SignInRequiredDialog,
+  splitTabletNav,
   visibleMoreSections,
   visiblePrimaryItems,
 } from "@/components/layout/nav-items";
@@ -49,7 +49,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Kbd } from "@/components/ui/kbd";
 import {
   NavigationMenu,
@@ -103,7 +102,7 @@ function LogoLink({ className }: { className?: string }) {
   return (
     <Link
       to="/cards"
-      className={cn("flex items-center gap-2", className)}
+      className={cn("flex shrink-0 items-center gap-2", className)}
       onClick={(e) => {
         if (isHome) {
           e.preventDefault();
@@ -156,10 +155,9 @@ function DesktopPrimaryItem({
       <NavigationMenuLink
         // oxlint-disable-next-line jsx-a11y/control-has-associated-label, react/forbid-elements -- bare render slot; NavigationMenuLink owns all styling and provides the label as children
         render={<button type="button" onClick={() => onLockedClick(lockedKey)} />}
-        className={cn(DESKTOP_NAV_ITEM_CLASS, "gap-1.5")}
+        className={DESKTOP_NAV_ITEM_CLASS}
       >
         {item.label}
-        <LockIcon className="text-muted-foreground size-3.5" />
       </NavigationMenuLink>
     );
   }
@@ -227,7 +225,6 @@ function DesktopMoreItem({
         render={<button type="button" onClick={() => onLockedClick(lockedKey)} />}
       >
         {content}
-        <LockIcon className="text-muted-foreground ml-auto size-3.5 self-center" />
       </NavigationMenuLink>
     );
   }
@@ -249,11 +246,20 @@ function DesktopNav({
   badges: NavBadgeCounts;
   onLockedClick: (key: LockedFeatureKey) => void;
 }) {
+  const primary = visiblePrimaryItems({ flags, mobile: false, badges });
+  const { overflow } = splitTabletNav(primary);
+  const overflowBadgeCount = overflow.reduce(
+    (sum, item) => sum + (item.badge ? badges[item.badge] : 0),
+    0,
+  );
   return (
     <NavigationMenu>
       <NavigationMenuList className="gap-1">
-        {visiblePrimaryItems({ flags, mobile: false, badges }).map((item) => (
-          <NavigationMenuItem key={item.to}>
+        {primary.map((item) => (
+          <NavigationMenuItem
+            key={item.to}
+            className={cn(overflow.includes(item) && "hidden lg:block")}
+          >
             <DesktopPrimaryItem
               item={item}
               isLoggedIn={isLoggedIn}
@@ -265,15 +271,35 @@ function DesktopNav({
         <NavigationMenuItem>
           <NavigationMenuTrigger className="text-muted-foreground hover:text-foreground focus:text-foreground data-popup-open:text-foreground">
             {m.layout_header_more()}
+            {overflowBadgeCount > 0 && (
+              <Badge
+                variant="count"
+                aria-label={m.layout_header_section_attention({ section: m.layout_header_more() })}
+                className="ml-1.5 lg:hidden"
+              >
+                {overflowBadgeCount > 9 ? "9+" : overflowBadgeCount}
+              </Badge>
+            )}
           </NavigationMenuTrigger>
           <NavigationMenuContent>
             {/* CSS columns pack the sections side by side; break-inside-avoid
                 keeps each section whole so a group never splits mid-column. */}
             <div className="w-[34rem] columns-2 gap-2 p-2">
               {visibleMoreSections({ flags, mobile: false, badges }).map((section) => (
-                <section key={section.label} className="mb-3 break-inside-avoid last:mb-0">
+                <section key={section.id} className="mb-3 break-inside-avoid last:mb-0">
                   <NavigationMenuLabel>{section.label}</NavigationMenuLabel>
                   <ul className="grid gap-1">
+                    {section.id === "organize" &&
+                      overflow.map((item) => (
+                        <li key={item.to} className="lg:hidden">
+                          <DesktopMoreItem
+                            item={item}
+                            isLoggedIn={isLoggedIn}
+                            badges={badges}
+                            onLockedClick={onLockedClick}
+                          />
+                        </li>
+                      ))}
                     {section.items.map((item) => (
                       <li key={item.to}>
                         <DesktopMoreItem
@@ -349,7 +375,89 @@ function LanguageSubmenu({ isLoggedIn }: { isLoggedIn: boolean }) {
   );
 }
 
-function UserMenuItems({ isLoggedIn }: { isLoggedIn: boolean }) {
+function HelpSubmenu() {
+  const hydrated = useHydrated();
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger className="md:hidden">
+        <CircleHelpIcon className="size-4" />
+        {m.layout_header_help()}
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent>
+        <DropdownMenuItem render={<Link to="/help" />}>
+          <CircleHelpIcon className="size-4" />
+          {m.layout_header_help_articles()}
+        </DropdownMenuItem>
+        <DropdownMenuItem render={<Link to="/changelog" />}>
+          <SparklesIcon className="size-4" />
+          {m.layout_header_whats_new()}
+        </DropdownMenuItem>
+        {hydrated && !isStandaloneDisplay() && (
+          <DropdownMenuItem render={<Link to="/install" />}>
+            <SmartphoneIcon className="size-4" />
+            {m.nav_get_app()}
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem
+          // oxlint-disable-next-line jsx-a11y/anchor-has-content, jsx-a11y/control-has-associated-label -- content is provided as children of DropdownMenuItem
+          render={<a href={SOCIAL_LINKS.githubNewIssue} target="_blank" rel="noreferrer" />}
+        >
+          <BrandGlyph icon={siGithub} fallback={ExternalLinkIcon} />
+          {m.layout_header_report_bug()}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          // oxlint-disable-next-line jsx-a11y/anchor-has-content, jsx-a11y/control-has-associated-label -- content is provided as children of DropdownMenuItem
+          render={<a href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer" />}
+        >
+          <BrandGlyph icon={siDiscord} fallback={ExternalLinkIcon} />
+          {m.layout_header_ask_discord()}
+        </DropdownMenuItem>
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
+  );
+}
+
+function ContributeSubmenu({
+  isLoggedIn,
+  onLockedClick,
+}: {
+  isLoggedIn: boolean;
+  onLockedClick: (key: LockedFeatureKey) => void;
+}) {
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger className="lg:hidden">
+        <PencilLineIcon className="size-4" />
+        {m.layout_header_contribute()}
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent>
+        {isLoggedIn ? (
+          <DropdownMenuItem render={<Link to="/contribute" />}>
+            <PencilLineIcon className="size-4" />
+            {m.layout_header_card_data()}
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={() => onLockedClick("contribute")}>
+            <PencilLineIcon className="size-4" />
+            {m.layout_header_card_data()}
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem render={<Link to="/support" />}>
+          <HeartIcon className="size-4" />
+          {m.layout_header_support()}
+        </DropdownMenuItem>
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
+  );
+}
+
+function UserMenuItems({
+  isLoggedIn,
+  onLockedClick,
+}: {
+  isLoggedIn: boolean;
+  onLockedClick: (key: LockedFeatureKey) => void;
+}) {
   const theme = useThemeStore((s) => s.theme);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const darkMode = theme === "dark";
@@ -390,7 +498,11 @@ function UserMenuItems({ isLoggedIn }: { isLoggedIn: boolean }) {
           {m.layout_header_admin()}
         </DropdownMenuItem>
       )}
-      {isLoggedIn && <DropdownMenuSeparator />}
+      {isLoggedIn && <DropdownMenuSeparator className="lg:hidden" />}
+      <HelpSubmenu />
+      <ContributeSubmenu isLoggedIn={isLoggedIn} onLockedClick={onLockedClick} />
+      <DropdownMenuSeparator className="lg:hidden" />
+      {isLoggedIn && <DropdownMenuSeparator className="hidden lg:block" />}
       {!isLoggedIn && (
         <DropdownMenuItem onClick={toggleTheme}>
           {darkMode ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
@@ -411,13 +523,17 @@ function UserMenuItems({ isLoggedIn }: { isLoggedIn: boolean }) {
 
 // Signing in from one of these bounces through an auth page or the marketing
 // page, so they carry no redirect and fall through to the post-sign-in default.
-const NO_SIGN_IN_REDIRECT: ReadonlySet<string> = new Set([
-  "/",
+const AUTH_PAGES: ReadonlySet<string> = new Set([
   "/login",
   "/signup",
   "/reset-password",
   "/verify-email",
 ]);
+const NO_SIGN_IN_REDIRECT: ReadonlySet<string> = new Set(["/", ...AUTH_PAGES]);
+
+export function showsSignInButton(pathname: string): boolean {
+  return !AUTH_PAGES.has(pathname);
+}
 
 /** Picks the `redirect` the header's Sign in button carries from the current location. */
 export function signInRedirectFor(location: {
@@ -430,12 +546,15 @@ export function signInRedirectFor(location: {
 function UserMenu({
   session,
   isPending,
+  onLockedClick,
 }: {
   session: ReturnType<typeof useSession>["data"];
   isPending: boolean;
+  onLockedClick: (key: LockedFeatureKey) => void;
 }) {
   const isLoggedIn = Boolean(session?.user);
   const signInRedirect = useLocation({ select: signInRedirectFor });
+  const showSignIn = useLocation({ select: (location) => showsSignInButton(location.pathname) });
 
   if (isPending) {
     return <div className="size-8" />;
@@ -445,7 +564,7 @@ function UserMenu({
 
   return (
     <div className="flex items-center gap-2">
-      {!user && (
+      {!user && showSignIn && (
         <Link
           rel="nofollow"
           to="/login"
@@ -461,7 +580,7 @@ function UserMenu({
         >
           <UserMenuTrigger user={user} />
         </DropdownMenuTrigger>
-        <UserMenuItems isLoggedIn={isLoggedIn} />
+        <UserMenuItems isLoggedIn={isLoggedIn} onLockedClick={onLockedClick} />
       </DropdownMenu>
     </div>
   );
@@ -470,25 +589,30 @@ function UserMenu({
 // Same active-state treatment as DESKTOP_NAV_ITEM_CLASS: background for
 // hover only, text emphasis for the active route.
 const MOBILE_NAV_ITEM_CLASS =
-  "text-muted-foreground hover:bg-muted hover:text-foreground flex items-center gap-3 rounded-lg px-3 py-3.5 text-base data-[status=active]:font-semibold data-[status=active]:text-foreground";
+  "text-muted-foreground hover:bg-muted hover:text-foreground flex items-center gap-3 rounded-lg px-3 py-2.5 text-base data-[status=active]:font-semibold data-[status=active]:text-foreground";
+
+const MOBILE_NAV_CELL_CLASS =
+  "text-muted-foreground hover:bg-muted hover:text-foreground flex h-11 min-w-0 items-center gap-2 rounded-lg px-2.5 text-left text-sm leading-tight data-[status=active]:font-semibold data-[status=active]:text-foreground";
 
 function MobileNavItem({
   item,
-  compact,
+  cell,
   isLoggedIn,
   badges,
   onLockedClick,
 }: {
   item: NavItemConfig;
-  compact?: boolean;
+  cell?: boolean;
   isLoggedIn: boolean;
   badges: NavBadgeCounts;
   onLockedClick: (key: LockedFeatureKey) => void;
 }) {
   const lockedKey = item.lockedKey;
   const keepSearch = useLocation({ select: (location) => keepsSearch(item, location.pathname) });
-  const rowClass = cn(MOBILE_NAV_ITEM_CLASS, compact && "py-2.5");
-  const icon = <item.icon className="text-muted-foreground size-5" />;
+  const rowClass = cell ? MOBILE_NAV_CELL_CLASS : MOBILE_NAV_ITEM_CLASS;
+  const icon = (
+    <item.icon className={cn("text-muted-foreground shrink-0", cell ? "size-4" : "size-5")} />
+  );
   if (lockedKey && !isLoggedIn) {
     return (
       <SheetClose
@@ -498,7 +622,6 @@ function MobileNavItem({
       >
         {icon}
         {item.label}
-        <LockIcon className="text-muted-foreground ml-auto size-4" />
       </SheetClose>
     );
   }
@@ -535,44 +658,24 @@ function MobileNavSection({
   badges: NavBadgeCounts;
   onLockedClick: (key: LockedFeatureKey) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const hiddenBadgeCount = expanded
-    ? 0
-    : section.items.reduce((sum, item) => sum + (item.badge ? badges[item.badge] : 0), 0);
-
   return (
-    <div className="mt-2 flex flex-col gap-1">
-      <ExpandToggle
-        expanded={expanded}
-        chevronPosition="end"
-        chevronClassName="size-3.5"
-        onClick={() => setExpanded((prev) => !prev)}
-        className="text-muted-foreground hover:text-foreground w-full justify-between rounded-lg px-3 py-2 text-xs font-medium tracking-wide uppercase"
-      >
-        <span className="flex items-center gap-2">
-          {section.label}
-          {hiddenBadgeCount > 0 && (
-            <Badge
-              variant="count"
-              aria-label={m.layout_header_section_attention({ section: section.label })}
-            >
-              {hiddenBadgeCount > 9 ? "9+" : hiddenBadgeCount}
-            </Badge>
-          )}
-        </span>
-      </ExpandToggle>
-      {expanded &&
-        section.items.map((item) => (
+    <section className="mt-2">
+      <h3 className="text-muted-foreground px-3 pb-1 text-xs font-medium tracking-wide uppercase">
+        {section.label}
+      </h3>
+      <div className="grid grid-cols-2 gap-1">
+        {section.items.map((item) => (
           <MobileNavItem
             key={item.to}
             item={item}
-            compact
+            cell
             isLoggedIn={isLoggedIn}
             badges={badges}
             onLockedClick={onLockedClick}
           />
         ))}
-    </div>
+      </div>
+    </section>
   );
 }
 
@@ -619,7 +722,7 @@ function MobileNav({
           ))}
           {visibleMoreSections({ flags, mobile: true, badges }).map((section) => (
             <MobileNavSection
-              key={section.label}
+              key={section.id}
               section={section}
               isLoggedIn={isLoggedIn}
               badges={badges}
@@ -646,8 +749,7 @@ function MobileNav({
           >
             <BrandGlyph icon={siDiscord} fallback={ExternalLinkIcon} />
             {m.layout_header_join_discord()}
-          </a>
-          <p className="text-muted-foreground text-xs">{m.layout_header_tagline()}</p>
+          </a>{" "}
         </SheetFooter>
       </SheetContent>
     </Sheet>
@@ -718,7 +820,10 @@ function HelpPopover() {
     hydrated && milestoneBannerDecision(latestMilestone, dismissedDate) === "show";
   return (
     <Popover>
-      <PopoverTrigger render={<Button variant="ghost" size="sm" />} className="gap-1.5">
+      <PopoverTrigger
+        render={<Button variant="ghost" size="sm" />}
+        className="hidden gap-1.5 md:inline-flex"
+      >
         <CircleHelpIcon className="size-4" />
         <span className="sr-only lg:not-sr-only">{m.layout_header_help()}</span>
       </PopoverTrigger>
@@ -782,7 +887,10 @@ function ContributePopover({
 }) {
   return (
     <Popover>
-      <PopoverTrigger render={<Button variant="ghost" size="sm" />} className="gap-1.5">
+      <PopoverTrigger
+        render={<Button variant="ghost" size="sm" />}
+        className="hidden gap-1.5 lg:inline-flex"
+      >
         <PencilLineIcon className="size-4" />
         <span className="sr-only lg:not-sr-only">{m.layout_header_contribute()}</span>
       </PopoverTrigger>
@@ -810,7 +918,6 @@ function ContributePopover({
               label={m.layout_header_card_data()}
               description={m.layout_header_card_data_description()}
             />
-            <LockIcon className="text-muted-foreground ml-auto size-3.5 self-center" />
           </PopoverClose>
         )}
         <InternalPopoverRow
@@ -838,7 +945,7 @@ function HeaderSearchButton() {
     >
       <SearchIcon className="size-4" />
       <span className="hidden lg:inline">{m.layout_header_search()}</span>
-      <Kbd className="hidden lg:inline-flex">Ctrl K</Kbd>
+      <Kbd className="hidden xl:inline-flex">Ctrl K</Kbd>
     </Button>
   );
 }
@@ -895,7 +1002,7 @@ export function Header() {
           <HeaderSearchButton />
           <HelpPopover />
           <ContributePopover isLoggedIn={isLoggedIn} onLockedClick={setLockedFeature} />
-          <UserMenu session={session} isPending={isPending} />
+          <UserMenu session={session} isPending={isPending} onLockedClick={setLockedFeature} />
         </div>
       </div>
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-05
+
+### Highlights
+
+- feat(App): **Phone menu shows every page** — the slide-out menu lists the Play, Organize and Explore pages open in two columns, so nothing hides behind a collapsed heading.
+- fix(App): **Header fits on tablets** — the top bar no longer runs off the screen edge on tablets, where Groups now sits under More, phones find Help and Contribute in the three-dot menu, and the sign-in pages drop the extra Sign in button.
+
 ## 2026-11-04
 
 ### Highlights

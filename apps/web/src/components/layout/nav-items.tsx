@@ -94,6 +94,7 @@ function lockedFeatures(): Record<
 }
 
 export interface NavSectionConfig {
+  id: "play" | "organize" | "create" | "explore";
   label: string;
   items: NavItemConfig[];
 }
@@ -118,13 +119,21 @@ export function primaryNavItems(): NavItemConfig[] {
     // Only here, not also under Explore: the mobile sheet renders both lists,
     // so an entry in each would show up twice.
     { label: m.nav_meta(), to: "/meta", icon: TrendingUpIcon },
-    { label: m.nav_groups(), to: "/groups", icon: UsersIcon, lockedKey: "groups", badge: "groups" },
+    {
+      label: m.nav_groups(),
+      to: "/groups",
+      icon: UsersIcon,
+      lockedKey: "groups",
+      badge: "groups",
+      description: m.nav_groups_description(),
+    },
   ];
 }
 
 export function moreNavSections(): NavSectionConfig[] {
   return [
     {
+      id: "play",
       label: m.nav_section_play(),
       items: [
         {
@@ -156,6 +165,7 @@ export function moreNavSections(): NavSectionConfig[] {
       ],
     },
     {
+      id: "organize",
       label: m.nav_section_organize(),
       items: [
         {
@@ -194,6 +204,7 @@ export function moreNavSections(): NavSectionConfig[] {
       ],
     },
     {
+      id: "create",
       label: m.nav_section_create(),
       items: [
         {
@@ -214,6 +225,7 @@ export function moreNavSections(): NavSectionConfig[] {
       ],
     },
     {
+      id: "explore",
       label: m.nav_section_explore(),
       items: [
         {
@@ -290,14 +302,21 @@ export function visibleMoreSections(opts: {
   flags: NavFlags;
   mobile: boolean;
   badges?: NavBadgeCounts;
-}): { label: string; items: NavItemConfig[] }[] {
+}): NavSectionConfig[] {
   const sections = moreNavSections().map((section) => ({
-    label: section.label,
+    ...section,
     items: section.items.filter(
       (item) => navItemVisible(item, opts) && !isPromoted(item, opts.badges),
     ),
   }));
   return sections.filter((section) => section.items.length > 0);
+}
+
+export function splitTabletNav(
+  items: NavItemConfig[],
+  limit = 4,
+): { bar: NavItemConfig[]; overflow: NavItemConfig[] } {
+  return { bar: items.slice(0, limit), overflow: items.slice(limit) };
 }
 
 export function keepsSearch(item: NavItemConfig, pathname: string): boolean {

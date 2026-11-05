@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { signInRedirectFor } from "./header";
+import { showsSignInButton, signInRedirectFor } from "./header";
 import {
   keepsSearch,
   navItemVisible,
   primaryNavItems,
+  splitTabletNav,
   visibleMoreSections,
   visiblePrimaryItems,
 } from "./nav-items";
@@ -118,6 +119,47 @@ describe("visiblePrimaryItems", () => {
     const primary = visiblePrimaryItems({ flags: flagsOn, mobile: false, badges });
     expect(primary.map((i) => i.to)).not.toContain("/loans");
     expect(organize(false, badges)).toContain("/loans");
+  });
+});
+
+describe("splitTabletNav", () => {
+  const noBadges = { groups: 0, trades: 0, loans: 0 };
+  const split = (badges: typeof noBadges) => {
+    const { bar, overflow } = splitTabletNav(
+      visiblePrimaryItems({ flags: flagsOn, mobile: false, badges }),
+    );
+    return { bar: bar.map((i) => i.to), overflow: overflow.map((i) => i.to) };
+  };
+
+  it("keeps the first four links in the tablet bar and moves Groups under More", () => {
+    expect(split(noBadges)).toEqual({
+      bar: ["/cards", "/collections", "/decks", "/meta"],
+      overflow: ["/groups"],
+    });
+  });
+
+  it("moves a promoted Trades link under More too", () => {
+    expect(split({ ...noBadges, trades: 1 }).overflow).toEqual(["/groups", "/trades"]);
+  });
+
+  it("returns no overflow when every link fits", () => {
+    const items = primaryNavItems().slice(0, 2);
+    expect(splitTabletNav(items).overflow).toEqual([]);
+    expect(splitTabletNav(items).bar).toEqual(items);
+  });
+});
+
+describe("showsSignInButton", () => {
+  it("hides the button on the sign-in, sign-up, reset and verify pages", () => {
+    for (const pathname of ["/login", "/signup", "/reset-password", "/verify-email"]) {
+      expect(showsSignInButton(pathname)).toBe(false);
+    }
+  });
+
+  it("shows the button everywhere else, the landing page included", () => {
+    for (const pathname of ["/", "/cards", "/login-help"]) {
+      expect(showsSignInButton(pathname)).toBe(true);
+    }
   });
 });
 
