@@ -50,6 +50,10 @@
 
 - fix(App): **Chapter tabs fit on phones** — the five chapter tabs on the features page now share the width with an icon above each label, and no tab shows as current until you reach its chapter.
 
+### Other
+
+- fix(Cards): **Search syntax on phones** — example queries no longer break across lines, and the section list is a row of tappable pills.
+
 ## 2026-11-04
 
 ### Highlights
