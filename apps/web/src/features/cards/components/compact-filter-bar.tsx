@@ -552,15 +552,20 @@ export function CompactFilterBar({
         {domainCluster(labelsFit)}
         {rarityCluster(labelsFit)}
         {/* The clusters as they'd render with labels on; used only to measure the width labels would need. */}
+        {/* The clip box keeps the off-screen strip from widening the page. */}
         <div
-          ref={measureRef}
           data-label-fit-measure=""
           aria-hidden="true"
           inert
-          className="invisible absolute top-0 left-0 flex flex-nowrap gap-1.5"
+          className="pointer-events-none absolute inset-0 overflow-hidden"
         >
-          {domainCluster(true)}
-          {rarityCluster(true)}
+          <div
+            ref={measureRef}
+            className="invisible absolute top-0 left-0 flex flex-nowrap gap-1.5"
+          >
+            {domainCluster(true)}
+            {rarityCluster(true)}
+          </div>
         </div>
         {shows("types") && (
           <FilterValueDropdown dimension="types" triggerStyle="button" {...dropdownProps} />

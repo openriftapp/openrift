@@ -69,6 +69,39 @@ describe("SearchBar", () => {
   });
 });
 
+describe("SearchBar count", () => {
+  function renderCount(search: string) {
+    mockUseFilterValues.mockReturnValue({
+      filterState: { search },
+      hasActiveFilters: search !== "",
+      view: "cards",
+    });
+    mockUseFilterActions.mockReturnValue({ setSearch: vi.fn() });
+    render(<SearchBar totalCards={40} filteredCount={search ? 12 : 40} countInPlaceholder />);
+  }
+
+  it("puts the total in the placeholder when asked to", () => {
+    renderCount("");
+
+    expect(screen.getByPlaceholderText("Search 40 cards")).toBeInTheDocument();
+    expect(screen.queryByText("40 cards")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the trailing filtered count while a query narrows the list", () => {
+    renderCount("teemo");
+
+    expect(screen.getByPlaceholderText("Search…")).toBeInTheDocument();
+    expect(screen.getByText("12 / 40 cards")).toBeInTheDocument();
+  });
+
+  it("keeps the trailing count by default", () => {
+    setup();
+
+    expect(screen.getByPlaceholderText("Search…")).toBeInTheDocument();
+    expect(screen.getByText("40 cards")).toBeInTheDocument();
+  });
+});
+
 describe("SearchBar syntax help", () => {
   it("links to the syntax help from the field", () => {
     setup();

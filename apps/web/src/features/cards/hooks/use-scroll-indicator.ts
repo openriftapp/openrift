@@ -152,6 +152,10 @@ export function useScrollIndicator({
       }
 
       globalThis.clearTimeout(hideTimerRef.current);
+      if (globalThis.scrollY < contentStart - 1) {
+        setIndicator((prev) => (prev.visible ? { ...prev, visible: false } : prev));
+        return;
+      }
       dragTopRef.current = indicatorTop;
       setIndicator((prev) => {
         const sameCard = prev.cardId === firstItem.printing.shortCode;

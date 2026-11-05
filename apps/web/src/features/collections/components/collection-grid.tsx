@@ -325,6 +325,7 @@ export function CollectionGrid({
         currentCollection={currentCollection}
         mode={mode}
         view={view}
+        cardCount={isEmpty ? 0 : view === "copies" ? totalCopies : totalUniqueCards}
         favoriteMarketplace={favoriteMarketplace}
         addTarget={addTarget}
         isEmpty={isEmpty}

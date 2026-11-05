@@ -139,6 +139,8 @@ interface BrowserToolbarProps {
   hideDisplayModeToggle?: boolean;
   groupByOptions?: { value: string; label: string }[];
   groupByValue?: string;
+  countInPlaceholder?: boolean;
+  wrapControls?: boolean;
 }
 
 /** Standard card-browser toolbar: search bar, sort/group/view/display/columns
@@ -153,6 +155,8 @@ export function BrowserToolbar({
   hideDisplayModeToggle,
   groupByOptions,
   groupByValue,
+  countInPlaceholder,
+  wrapControls,
 }: BrowserToolbarProps) {
   const { hasActiveFilters } = useFilterValues();
   const meta = useFilterMeta();
@@ -164,11 +168,19 @@ export function BrowserToolbar({
   const smUp = useSmUp();
   return (
     <>
-      <div className={cn("flex items-start gap-2", hasActiveFilters ? "mb-2 sm:mb-3" : "mb-3")}>
+      <div
+        className={cn(
+          "flex items-start gap-2",
+          wrapControls && "flex-wrap",
+          hasActiveFilters ? "mb-2 sm:mb-3" : "mb-3",
+        )}
+      >
         <SearchBar
           totalCards={totalCards}
           filteredCount={filteredCount}
           suggestionVocabulary={searchVocabulary.suggestions}
+          countInPlaceholder={countInPlaceholder}
+          className={wrapControls ? "flex-[1_1_12rem]" : undefined}
         />
         {smUp && (
           <DesktopOptionsBar

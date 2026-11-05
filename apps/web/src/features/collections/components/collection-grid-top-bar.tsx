@@ -5,7 +5,15 @@ import { CollectionTopBar } from "@/features/collections/components/collection-t
 import { aggregatePersonalCollectionValue } from "@/features/collections/lib/collection-value";
 import { useCollectionOverlayStore } from "@/features/collections/stores/collection-overlay-store";
 import { formatterForMarketplace } from "@/lib/format";
+import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
+
+function countLabelFor(view: "cards" | "printings" | "copies", count: number): string {
+  if (view === "copies") {
+    return m.common_copies({ count });
+  }
+  return view === "printings" ? m.common_printings({ count }) : m.common_cards({ count });
+}
 
 interface CollectionGridTopBarProps {
   title: string;
@@ -13,6 +21,7 @@ interface CollectionGridTopBarProps {
   currentCollection: CollectionResponse | undefined;
   mode: "browse" | "select";
   view: "cards" | "printings" | "copies";
+  cardCount: number;
   favoriteMarketplace: Marketplace;
   addTarget: string | undefined;
   isEmpty: boolean;
@@ -31,6 +40,7 @@ export function CollectionGridTopBar({
   currentCollection,
   mode,
   view,
+  cardCount,
   favoriteMarketplace,
   addTarget,
   isEmpty,
@@ -62,6 +72,7 @@ export function CollectionGridTopBar({
       homeDecks={currentCollection?.homeDecks ?? []}
       onToggleSidebar={onToggleSidebar}
       mode={mode}
+      countLabel={cardCount > 0 ? countLabelFor(view, cardCount) : undefined}
       valueCents={valueCents}
       unpricedCount={unpricedCount}
       formatValue={formatValue}

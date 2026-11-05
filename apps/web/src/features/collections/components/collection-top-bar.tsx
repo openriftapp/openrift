@@ -33,6 +33,7 @@ import { SelectModeActions } from "@/features/cards/components/select-mode-actio
 import { CollectionValueSummary } from "@/features/collections/components/collection-value-summary";
 import { deckBoxLabel } from "@/features/decks/lib/deck-box-label";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 interface CollectionTopBarProps {
@@ -40,6 +41,7 @@ interface CollectionTopBarProps {
   homeDecks: { id: string; name: string }[];
   onToggleSidebar: () => void;
   mode: "browse" | "select";
+  countLabel?: string;
   valueCents: number | null | undefined;
   unpricedCount: number | null | undefined;
   formatValue: (value: number) => string;
@@ -68,6 +70,7 @@ export function CollectionTopBar({
   homeDecks,
   onToggleSidebar,
   mode,
+  countLabel,
   valueCents,
   unpricedCount,
   formatValue,
@@ -95,34 +98,43 @@ export function CollectionTopBar({
   const shareInBar = canShare && mode === "browse";
   const boxLabel = deckBoxLabel(homeDecks);
   const singleHomeDeck = homeDecks.length === 1 ? homeDecks[0] : undefined;
+  const hasValue = Boolean(valueCents);
 
   return (
-    <PageTopBar>
-      <div className="flex min-w-0 flex-1 items-baseline gap-2">
-        <PageTopBarTitle onToggleSidebar={onToggleSidebar}>{title}</PageTopBarTitle>
+    <PageTopBar className="h-auto lg:h-8">
+      <div className="flex min-w-0 flex-1 flex-col lg:flex-row lg:items-baseline lg:gap-2">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <PageTopBarTitle onToggleSidebar={onToggleSidebar}>{title}</PageTopBarTitle>
 
-        {boxLabel && (
-          <Badge variant="neutral" className="shrink-0 gap-1">
-            <BoxIcon className="size-3" />
-            {singleHomeDeck ? (
-              <TextLink
-                variant="inherit"
-                className="max-w-32 truncate"
-                render={<Link to="/decks/$deckId" params={{ deckId: singleHomeDeck.id }} />}
-              >
-                {boxLabel}
-              </TextLink>
-            ) : (
-              <span className="max-w-32 truncate">{boxLabel}</span>
-            )}
-          </Badge>
+          {boxLabel && (
+            <Badge variant="neutral" className="shrink-0 gap-1">
+              <BoxIcon className="size-3" />
+              {singleHomeDeck ? (
+                <TextLink
+                  variant="inherit"
+                  className="max-w-32 truncate"
+                  render={<Link to="/decks/$deckId" params={{ deckId: singleHomeDeck.id }} />}
+                >
+                  {boxLabel}
+                </TextLink>
+              ) : (
+                <span className="max-w-32 truncate">{boxLabel}</span>
+              )}
+            </Badge>
+          )}
+        </div>
+
+        {(countLabel || hasValue) && (
+          <p className="text-muted-foreground flex min-w-0 items-baseline gap-1 text-xs md:pl-9 lg:pl-0">
+            {countLabel && <span className="shrink-0">{countLabel}</span>}
+            {countLabel && hasValue && <span aria-hidden="true">·</span>}
+            <CollectionValueSummary
+              valueCents={valueCents}
+              unpricedCount={unpricedCount}
+              formatValue={formatValue}
+            />
+          </p>
         )}
-
-        <CollectionValueSummary
-          valueCents={valueCents}
-          unpricedCount={unpricedCount}
-          formatValue={formatValue}
-        />
       </div>
 
       <PageTopBarActions>
@@ -135,11 +147,10 @@ export function CollectionTopBar({
                     <Link
                       to="/scan"
                       aria-label={m.collections_topbar_scan_cards()}
-                      className={buttonVariants({
-                        variant: "ghost",
-                        size: "icon",
-                        className: "sm:hidden",
-                      })}
+                      className={cn(
+                        buttonVariants({ variant: "ghost", size: "icon" }),
+                        "lg:hidden",
+                      )}
                     />
                   }
                 >
@@ -149,7 +160,7 @@ export function CollectionTopBar({
               </Tooltip>
               <Link
                 to="/scan"
-                className={buttonVariants({ variant: "ghost", className: "hidden sm:flex" })}
+                className={cn(buttonVariants({ variant: "ghost" }), "hidden lg:inline-flex")}
               >
                 <CameraIcon className="size-4" />
                 {m.collections_topbar_scan()}
@@ -161,11 +172,11 @@ export function CollectionTopBar({
               <PageTopBarIconButton
                 onClick={onQuickAdd}
                 aria-label={m.collections_topbar_quick_add()}
-                className="sm:hidden"
+                className="lg:hidden"
               >
                 <SquarePlusIcon className="size-4" />
               </PageTopBarIconButton>
-              <PageTopBarButton onClick={onQuickAdd} className="hidden sm:flex">
+              <PageTopBarButton onClick={onQuickAdd} className="hidden lg:inline-flex">
                 <SquarePlusIcon className="size-4" />
                 {m.collections_topbar_quick_add()}
               </PageTopBarButton>
@@ -179,17 +190,18 @@ export function CollectionTopBar({
             onEnterSelect={onEnterSelect}
             onExitSelect={onExitSelect}
             onSelectAll={onSelectAll}
+            labelsFrom="lg"
           />
           {shareInBar && (
             <>
               <PageTopBarIconButton
                 onClick={onShare}
                 aria-label={m.collections_topbar_share()}
-                className="sm:hidden"
+                className="lg:hidden"
               >
                 <Share2Icon className="size-4" />
               </PageTopBarIconButton>
-              <PageTopBarButton onClick={onShare} className="hidden sm:flex">
+              <PageTopBarButton onClick={onShare} className="hidden lg:inline-flex">
                 <Share2Icon className="size-4" />
                 {m.collections_topbar_share()}
               </PageTopBarButton>

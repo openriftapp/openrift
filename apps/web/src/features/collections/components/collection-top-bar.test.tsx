@@ -42,6 +42,8 @@ function renderTopBar(
     canDelete?: boolean;
     canImport?: boolean;
     mode?: "browse" | "select";
+    countLabel?: string;
+    valueCents?: number;
     onEdit?: () => void;
     onDelete?: () => void;
     onShare?: () => void;
@@ -108,6 +110,30 @@ describe("CollectionTopBar", () => {
 
     expect(screen.getAllByRole("link", { name: /scan/iu }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: /scan/iu })).not.toBeInTheDocument();
+  });
+
+  it("hides the labelled Scan link below lg without a competing display class", () => {
+    renderTopBar();
+
+    const labelled = screen.getByRole("link", { name: "Scan" });
+    const classes = labelled.className.split(" ");
+    expect(classes).toContain("hidden");
+    expect(classes).not.toContain("inline-flex");
+    expect(classes).not.toContain("flex");
+  });
+
+  it("shows the card count and value on one line", () => {
+    renderTopBar({ countLabel: "23 cards" });
+
+    expect(screen.getByText("23 cards")).toBeInTheDocument();
+    expect(screen.getByText("12.34 €")).toBeInTheDocument();
+  });
+
+  it("leaves the count line out when there is neither a count nor a value", () => {
+    renderTopBar({ valueCents: 0 });
+
+    expect(screen.queryByText("·")).not.toBeInTheDocument();
+    expect(screen.queryByText(/€/u)).not.toBeInTheDocument();
   });
 
   it("drops both while the empty state carries its own", () => {

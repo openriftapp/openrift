@@ -107,6 +107,8 @@ export function CollectionGridToolbar({
           : undefined
       }
       groupByValue={groupBy}
+      countInPlaceholder
+      wrapControls
     />
   );
 }

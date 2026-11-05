@@ -15,20 +15,32 @@ import type { SearchSuggestion } from "@/features/cards/lib/search-suggestions";
 import { applySuggestion, searchSuggestions } from "@/features/cards/lib/search-suggestions";
 import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 import { trackEvent } from "@/lib/analytics";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 interface SearchBarProps {
   totalCards: number;
   filteredCount: number;
   suggestionVocabulary?: SearchVocabulary;
+  countInPlaceholder?: boolean;
+  className?: string;
 }
 
 const NO_VOCABULARY: SearchVocabulary = {};
+
+function unitCount(view: string, count: number): string {
+  if (view === "cards") {
+    return m.common_cards({ count });
+  }
+  return view === "copies" ? m.common_copies({ count }) : m.common_printings({ count });
+}
 
 export function SearchBar({
   totalCards,
   filteredCount,
   suggestionVocabulary = NO_VOCABULARY,
+  countInPlaceholder,
+  className,
 }: SearchBarProps) {
   const { filterState, hasActiveFilters, view } = useFilterValues();
   const { setSearch } = useFilterActions();
@@ -58,7 +70,11 @@ export function SearchBar({
     onCommit: commitSearch,
   });
 
-  const placeholder = m.cards_browser_search_placeholder();
+  const isFiltered = hasActiveFilters && filteredCount !== totalCards;
+  const countInField = countInPlaceholder && !isFiltered;
+  const placeholder = countInField
+    ? m.cards_browser_search_placeholder_count({ items: unitCount(view, totalCards) })
+    : m.cards_browser_search_placeholder();
 
   const suggestions =
     searchFocused && !suggestionsDismissed
@@ -120,15 +136,12 @@ export function SearchBar({
     }
   };
 
-  const cardCountLabel =
-    hasActiveFilters && filteredCount !== totalCards
-      ? `${filteredCount} / ${totalCards}`
-      : String(totalCards);
+  const cardCountLabel = isFiltered ? `${filteredCount} / ${totalCards}` : String(totalCards);
 
   const showSuggestions = suggestions !== null && suggestions.suggestions.length > 0;
 
   return (
-    <div className="min-w-0 flex-1">
+    <div className={cn("min-w-0 flex-1", className)}>
       <div className="relative">
         <SearchInput
           className="w-full"
@@ -142,7 +155,7 @@ export function SearchBar({
             setSearch("");
           }}
           placeholder={placeholder}
-          trailing={`${cardCountLabel} ${unitLabel}`}
+          trailing={countInField ? undefined : `${cardCountLabel} ${unitLabel}`}
           action={
             <TextLink
               variant="muted"

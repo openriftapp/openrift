@@ -22,6 +22,7 @@
 ### Other
 
 - fix(Decks): **Gear group label** — deck type groups and stats now say "Gear" instead of "Gears".
+- fix(Collection): **Tidier collection header on phones** — the title and value no longer get cut off, Scan shows once, and the welcome note is one line with a link to the full guide.
 
 ## 2026-11-04
 

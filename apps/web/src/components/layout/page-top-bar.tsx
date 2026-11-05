@@ -110,10 +110,11 @@ export function PageTopBarTitle({ onToggleSidebar, children }: PageTopBarTitlePr
     return (
       <>
         {/* font-heading cascades into the Button label (buttonVariants sets weight/size but no family). */}
-        <h1 className="font-heading min-w-0 md:hidden">
+        {/* Flex shrink caps the button; a max-w-full ignores its negative margin and clips the label. */}
+        <h1 className="font-heading flex min-w-0 md:hidden">
           <Button
             variant="ghost"
-            className="mr-2 -ml-2.5 max-w-full min-w-0 gap-1"
+            className="mr-2 -ml-2.5 min-w-0 shrink gap-1"
             onClick={onToggleSidebar}
           >
             <span className="min-w-0 truncate">{children}</span>
