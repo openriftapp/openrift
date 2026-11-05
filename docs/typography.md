@@ -21,6 +21,7 @@ The app chrome has a display face — **Chakra Petch**, exposed as `--font-headi
 
 - **Page titles** — `PageTopBarTitle` and `Heading` levels 1-2 apply it already; using those primitives is the normal path. Don't add `font-heading` to a hand-rolled heading that should be one of these components instead.
 - **Section h2s in long-form content** (help articles, legal/privacy prose, the rules version comments) sit on the same `text-lg font-semibold` tier as `Heading` level 2 and carry the face too — via `Heading` in article components, or the `prose-h1:`/`prose-h2:` modifiers in `ProsePage` (see rule 6).
+- **`SectionHeading`** (the uppercase in-page section label, both sizes) is `font-heading font-semibold tracking-wide uppercase`; its count stays in the body face.
 - **Hero wordmark and hero CTAs** on the landing page.
 - **Big display numerals** (2xl and larger), opt-in per spot — the landing stats, the /errata hero stats, the collection stats tiles, the friend-group and tournament overview counters, the match-tracker score, and the rank marks (`RankBand`) that lead standings and finish lists. Tabular data (prices, table counts) stays on the default face.
 

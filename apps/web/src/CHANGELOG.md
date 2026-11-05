@@ -14,6 +14,10 @@
 - feat(Decks): **One style for zone add slots** — empty and unfinished zones show the same slim strip, with a plus wherever a tap adds cards.
 - fix(Decks): **Deck view controls on tablets** — the sort, view and options controls sit on their own row under the tabs, so the deck page no longer scrolls sideways.
 
+### Other
+
+- feat(App): **Section headings in the display face** — the small uppercase section labels across the app now use the same heading font as page titles.
+
 ## 2026-11-04
 
 ### Highlights

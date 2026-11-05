@@ -42,7 +42,7 @@ export function SectionHeading({
     <>
       {children}
       {count === undefined ? null : (
-        <span className="text-muted-foreground/60 ml-1.5 tabular-nums">{count}</span>
+        <span className="text-muted-foreground/60 ml-1.5 font-sans tabular-nums">{count}</span>
       )}
     </>
   );
@@ -50,7 +50,7 @@ export function SectionHeading({
     <Tag
       data-slot="section-heading"
       className={cn(
-        "font-medium tracking-wide uppercase",
+        "font-heading font-semibold tracking-wide uppercase",
         size === "default" ? "text-muted-foreground text-sm" : "text-muted-foreground/70 text-2xs",
         icon !== undefined && "flex items-center gap-2.5",
         className,
