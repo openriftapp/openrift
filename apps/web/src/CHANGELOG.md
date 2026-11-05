@@ -82,6 +82,10 @@
 - feat(Meta): **Empty eras explain themselves** — when the selected era has no results on file, the archive, events and legends pages say so and offer "Show all eras" or "Pick an era", and the archive drops its zero counts.
 - feat(Packs): **Pack opener options** — Foil shimmer and Auto-reveal are switch rows above the Open button on every screen, Language and Packs share a row on phones, and the reveal hint says "Tap a card" on touch screens.
 
+### Other
+
+- fix(App): **Counts read "1 card"** — counts of one no longer say "1 cards", and on touch screens the lending page says to press and hold a card instead of right-clicking it.
+
 ## 2026-11-04
 
 ### Highlights

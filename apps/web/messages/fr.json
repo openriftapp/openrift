@@ -564,7 +564,16 @@
   "cards_grid_hide_owned_count": "Masquer le nombre possédé",
   "cards_grid_show_owned_count": "Afficher le nombre possédé",
   "cards_grid_owned_count_label": "Possédées",
-  "cards_grid_show_n_cards": "Afficher {count} cartes",
+  "cards_grid_show_n_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Afficher {count} carte",
+        "countPlural=*": "Afficher {count} cartes"
+      }
+    }
+  ],
   "cards_grid_show_n_printings": "Afficher {count} impressions",
   "cards_grid_load_error_title": "Impossible de charger les cartes",
   "cards_grid_load_error_description": "Le serveur est peut-être injoignable.",
@@ -1175,7 +1184,16 @@
   "collections_cell_remove": "Retirer {name}",
   "collections_cell_take_copy_of": "Prendre un exemplaire de {name}",
   "collections_cell_variants_and_collections": "Variantes et collections pour {name}",
-  "collections_drag_cards_plural": "{count} cartes",
+  "collections_drag_cards_plural": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte",
+        "countPlural=*": "{count} cartes"
+      }
+    }
+  ],
   "collections_drag_copies_plural": "{count} exemplaires",
   "collections_drag_printings_plural": "{count} impressions",
   "collections_fallback_title": "Collection",
@@ -1190,7 +1208,16 @@
   "collections_grid_hide_library": "Masquer la bibliothèque",
   "collections_grid_no_wanted": "Rien de vos listes de souhaits ne se trouve dans cette boîte pour le moment.",
   "collections_grid_select_card": "Sélectionner la carte",
-  "collections_grid_show_cards": "Afficher {count} cartes",
+  "collections_grid_show_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Afficher {count} carte",
+        "countPlural=*": "Afficher {count} cartes"
+      }
+    }
+  ],
   "collections_grid_show_library": "Afficher toute la bibliothèque",
   "collections_grid_show_printings": "Afficher {count} impressions",
   "collections_grid_wanted": "Recherchées",
@@ -1955,9 +1982,36 @@
   "lists_entry_take_off": "Retirer de la liste",
   "lists_entry_hide_library": "Masquer la bibliothèque",
   "lists_entry_show_library": "Afficher toute la bibliothèque",
-  "lists_entry_show_cards": "Afficher {count} cartes",
-  "lists_entry_show_copies": "Afficher {count} exemplaires",
-  "lists_entry_show_printings": "Afficher {count} impressions",
+  "lists_entry_show_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Afficher {count} carte",
+        "countPlural=*": "Afficher {count} cartes"
+      }
+    }
+  ],
+  "lists_entry_show_copies": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Afficher {count} exemplaire",
+        "countPlural=*": "Afficher {count} exemplaires"
+      }
+    }
+  ],
+  "lists_entry_show_printings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Afficher {count} impression",
+        "countPlural=*": "Afficher {count} impressions"
+      }
+    }
+  ],
   "lists_entry_decrease_quantity": "Diminuer la quantité",
   "lists_entry_increase_quantity": "Augmenter la quantité",
   "lists_entry_remove_from_list": "Retirer de la liste",
@@ -3528,6 +3582,7 @@
   "loans_stat_oldest": "Plus ancien prêt",
   "loans_empty_title": "Rien de prêté pour le moment",
   "loans_empty_description": "Prêtez une carte à un ami et OpenRift retient qui l'a. Pour en prêter une, faites un clic droit dessus dans une collection et choisissez « Prêter à un ami ».",
+  "loans_empty_description_touch": "Prêtez une carte à un ami et OpenRift retient qui l'a. Pour en prêter une, appuyez longuement dessus dans une collection et choisissez « Prêter à un ami ».",
   "loans_empty_cta": "Ouvrir vos collections",
   "loans_group_attention": "Demande votre attention",
   "loans_group_lent": "Prêtées",

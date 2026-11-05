@@ -564,7 +564,16 @@
   "cards_grid_hide_owned_count": "隐藏拥有数量",
   "cards_grid_show_owned_count": "显示拥有数量",
   "cards_grid_owned_count_label": "拥有",
-  "cards_grid_show_n_cards": "显示 {count} 张卡",
+  "cards_grid_show_n_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "显示 {count} 张卡",
+        "countPlural=*": "显示 {count} 张卡"
+      }
+    }
+  ],
   "cards_grid_show_n_printings": "显示 {count} 个印刷版本",
   "cards_grid_load_error_title": "无法加载卡牌",
   "cards_grid_load_error_description": "服务器可能无法访问。",
@@ -1175,7 +1184,16 @@
   "collections_cell_remove": "移除{name}",
   "collections_cell_take_copy_of": "取走一张{name}",
   "collections_cell_variants_and_collections": "{name}的变体与收藏",
-  "collections_drag_cards_plural": "{count}张卡牌",
+  "collections_drag_cards_plural": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count}张卡牌",
+        "countPlural=*": "{count}张卡牌"
+      }
+    }
+  ],
   "collections_drag_copies_plural": "{count}张实体卡",
   "collections_drag_printings_plural": "{count}个印刷版本",
   "collections_fallback_title": "收藏",
@@ -1190,7 +1208,16 @@
   "collections_grid_hide_library": "隐藏卡牌库",
   "collections_grid_no_wanted": "这个盒子里暂时没有你心愿单上的卡牌。",
   "collections_grid_select_card": "选择卡牌",
-  "collections_grid_show_cards": "显示{count}张卡牌",
+  "collections_grid_show_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "显示{count}张卡牌",
+        "countPlural=*": "显示{count}张卡牌"
+      }
+    }
+  ],
   "collections_grid_show_library": "显示整个卡牌库",
   "collections_grid_show_printings": "显示{count}个印刷版本",
   "collections_grid_wanted": "想要",
@@ -1955,9 +1982,36 @@
   "lists_entry_take_off": "移出清单",
   "lists_entry_hide_library": "隐藏卡牌库",
   "lists_entry_show_library": "显示整个卡牌库",
-  "lists_entry_show_cards": "显示{count}张卡牌",
-  "lists_entry_show_copies": "显示{count}张实体卡",
-  "lists_entry_show_printings": "显示{count}个印刷版本",
+  "lists_entry_show_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "显示{count}张卡牌",
+        "countPlural=*": "显示{count}张卡牌"
+      }
+    }
+  ],
+  "lists_entry_show_copies": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "显示{count}张实体卡",
+        "countPlural=*": "显示{count}张实体卡"
+      }
+    }
+  ],
+  "lists_entry_show_printings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "显示{count}个印刷版本",
+        "countPlural=*": "显示{count}个印刷版本"
+      }
+    }
+  ],
   "lists_entry_decrease_quantity": "减少数量",
   "lists_entry_increase_quantity": "增加数量",
   "lists_entry_remove_from_list": "从清单中移除",
@@ -3527,6 +3581,7 @@
   "loans_stat_oldest": "最早的借出",
   "loans_empty_title": "目前没有借出的卡牌",
   "loans_empty_description": "把卡牌借给朋友，OpenRift 会记住它在谁手里。要借出一张卡，请在收藏中右键点击它并选择“借给朋友”。",
+  "loans_empty_description_touch": "把卡牌借给朋友，OpenRift 会记住它在谁手里。要借出一张卡，请在收藏中长按它并选择“借给朋友”。",
   "loans_empty_cta": "打开我的收藏",
   "loans_group_attention": "需要你处理",
   "loans_group_lent": "已借出",

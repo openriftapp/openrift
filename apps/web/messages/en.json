@@ -564,7 +564,16 @@
   "cards_grid_hide_owned_count": "Hide owned count",
   "cards_grid_show_owned_count": "Show owned count",
   "cards_grid_owned_count_label": "Owned",
-  "cards_grid_show_n_cards": "Show {count} cards",
+  "cards_grid_show_n_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Show {count} card",
+        "countPlural=*": "Show {count} cards"
+      }
+    }
+  ],
   "cards_grid_show_n_printings": "Show {count} printings",
   "cards_grid_load_error_title": "Couldn't load cards",
   "cards_grid_load_error_description": "The server may be unreachable.",
@@ -1175,7 +1184,16 @@
   "collections_cell_remove": "Remove {name}",
   "collections_cell_take_copy_of": "Take a copy of {name}",
   "collections_cell_variants_and_collections": "Variants and collections for {name}",
-  "collections_drag_cards_plural": "{count} cards",
+  "collections_drag_cards_plural": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} card",
+        "countPlural=*": "{count} cards"
+      }
+    }
+  ],
   "collections_drag_copies_plural": "{count} copies",
   "collections_drag_printings_plural": "{count} printings",
   "collections_fallback_title": "Collection",
@@ -1190,7 +1208,16 @@
   "collections_grid_hide_library": "Hide library",
   "collections_grid_no_wanted": "Nothing from your wishlists is in this box right now.",
   "collections_grid_select_card": "Select card",
-  "collections_grid_show_cards": "Show {count} cards",
+  "collections_grid_show_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Show {count} card",
+        "countPlural=*": "Show {count} cards"
+      }
+    }
+  ],
   "collections_grid_show_library": "Show whole library",
   "collections_grid_show_printings": "Show {count} printings",
   "collections_grid_wanted": "Wanted",
@@ -1955,9 +1982,36 @@
   "lists_entry_take_off": "Take off list",
   "lists_entry_hide_library": "Hide library",
   "lists_entry_show_library": "Show whole library",
-  "lists_entry_show_cards": "Show {count} cards",
-  "lists_entry_show_copies": "Show {count} copies",
-  "lists_entry_show_printings": "Show {count} printings",
+  "lists_entry_show_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Show {count} card",
+        "countPlural=*": "Show {count} cards"
+      }
+    }
+  ],
+  "lists_entry_show_copies": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Show {count} copy",
+        "countPlural=*": "Show {count} copies"
+      }
+    }
+  ],
+  "lists_entry_show_printings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Show {count} printing",
+        "countPlural=*": "Show {count} printings"
+      }
+    }
+  ],
   "lists_entry_decrease_quantity": "Decrease quantity",
   "lists_entry_increase_quantity": "Increase quantity",
   "lists_entry_remove_from_list": "Remove from list",
@@ -3533,6 +3587,7 @@
   "loans_stat_oldest": "Oldest loan",
   "loans_empty_title": "Nothing lent out right now",
   "loans_empty_description": "Lend a card to a friend and OpenRift remembers who has it. To lend one, right-click it in a collection and choose “Lend to a friend”.",
+  "loans_empty_description_touch": "Lend a card to a friend and OpenRift remembers who has it. To lend one, press and hold it in a collection and choose “Lend to a friend”.",
   "loans_empty_cta": "Open your collections",
   "loans_group_attention": "Needs your attention",
   "loans_group_lent": "Lent out",

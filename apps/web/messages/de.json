@@ -564,7 +564,16 @@
   "cards_grid_hide_owned_count": "Besitzanzahl ausblenden",
   "cards_grid_show_owned_count": "Besitzanzahl anzeigen",
   "cards_grid_owned_count_label": "Besitz",
-  "cards_grid_show_n_cards": "{count} Karten anzeigen",
+  "cards_grid_show_n_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Karte anzeigen",
+        "countPlural=*": "{count} Karten anzeigen"
+      }
+    }
+  ],
   "cards_grid_show_n_printings": "{count} Drucke anzeigen",
   "cards_grid_load_error_title": "Karten konnten nicht geladen werden",
   "cards_grid_load_error_description": "Der Server ist möglicherweise nicht erreichbar.",
@@ -1175,7 +1184,16 @@
   "collections_cell_remove": "{name} entfernen",
   "collections_cell_take_copy_of": "Ein Exemplar von {name} nehmen",
   "collections_cell_variants_and_collections": "Varianten und Sammlungen für {name}",
-  "collections_drag_cards_plural": "{count} Karten",
+  "collections_drag_cards_plural": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Karte",
+        "countPlural=*": "{count} Karten"
+      }
+    }
+  ],
   "collections_drag_copies_plural": "{count} Exemplare",
   "collections_drag_printings_plural": "{count} Drucke",
   "collections_fallback_title": "Sammlung",
@@ -1190,7 +1208,16 @@
   "collections_grid_hide_library": "Bibliothek ausblenden",
   "collections_grid_no_wanted": "Aus deinen Wunschlisten ist gerade nichts in dieser Box.",
   "collections_grid_select_card": "Karte auswählen",
-  "collections_grid_show_cards": "{count} Karten anzeigen",
+  "collections_grid_show_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Karte anzeigen",
+        "countPlural=*": "{count} Karten anzeigen"
+      }
+    }
+  ],
   "collections_grid_show_library": "Ganze Bibliothek anzeigen",
   "collections_grid_show_printings": "{count} Drucke anzeigen",
   "collections_grid_wanted": "Gesucht",
@@ -1955,9 +1982,36 @@
   "lists_entry_take_off": "Von Liste nehmen",
   "lists_entry_hide_library": "Bibliothek ausblenden",
   "lists_entry_show_library": "Ganze Bibliothek zeigen",
-  "lists_entry_show_cards": "{count} Karten zeigen",
-  "lists_entry_show_copies": "{count} Exemplare zeigen",
-  "lists_entry_show_printings": "{count} Drucke zeigen",
+  "lists_entry_show_cards": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Karte zeigen",
+        "countPlural=*": "{count} Karten zeigen"
+      }
+    }
+  ],
+  "lists_entry_show_copies": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Exemplar zeigen",
+        "countPlural=*": "{count} Exemplare zeigen"
+      }
+    }
+  ],
+  "lists_entry_show_printings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Druck zeigen",
+        "countPlural=*": "{count} Drucke zeigen"
+      }
+    }
+  ],
   "lists_entry_decrease_quantity": "Anzahl verringern",
   "lists_entry_increase_quantity": "Anzahl erhöhen",
   "lists_entry_remove_from_list": "Von Liste entfernen",
@@ -3527,6 +3581,7 @@
   "loans_stat_oldest": "Ältester Verleih",
   "loans_empty_title": "Gerade ist nichts verliehen",
   "loans_empty_description": "Leih einem Freund eine Karte und OpenRift merkt sich, wer sie hat. Zum Verleihen klickst du sie in einer Sammlung mit der rechten Maustaste an und wählst „An einen Freund verleihen“.",
+  "loans_empty_description_touch": "Leih einem Freund eine Karte und OpenRift merkt sich, wer sie hat. Zum Verleihen hältst du sie in einer Sammlung gedrückt und wählst „An einen Freund verleihen“.",
   "loans_empty_cta": "Sammlungen öffnen",
   "loans_group_attention": "Braucht deine Aufmerksamkeit",
   "loans_group_lent": "Verliehen",

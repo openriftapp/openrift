@@ -45,6 +45,7 @@ import {
   loanStatusLabel,
   outstandingQuantity,
 } from "@/features/groups/lib/loan-derivation";
+import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { DATE_WORDS } from "@/lib/date-words";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -344,6 +345,7 @@ function LoanGroup({ heading, loans }: { heading: string; loans: LoanResponse[] 
 
 export function LoansPage() {
   const { data } = useLoans();
+  const coarsePointer = useCoarsePointer();
 
   const loans = data?.items ?? [];
   const attention: LoanResponse[] = [];
@@ -392,7 +394,9 @@ export function LoansPage() {
             className="py-12"
             icon={HandHeartIcon}
             title={m.loans_empty_title()}
-            description={m.loans_empty_description()}
+            description={
+              coarsePointer ? m.loans_empty_description_touch() : m.loans_empty_description()
+            }
           >
             <Link to="/collections" className={buttonVariants()}>
               {m.loans_empty_cta()}
