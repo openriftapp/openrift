@@ -217,7 +217,7 @@ services:
   # stdout via the Docker socket, parses pino JSON, and ships to Loki with
   # trace_id as structured metadata for Tempo ↔ Loki pivots. UI on :12345.
   alloy:
-    image: grafana/alloy:v1.21.2
+    image: grafana/alloy:v1.21.3
     command:
       - "run"
       - "--server.http.listen-addr=0.0.0.0:12345"
