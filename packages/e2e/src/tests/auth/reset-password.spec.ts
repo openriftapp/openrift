@@ -302,7 +302,7 @@ test.describe("reset password", () => {
 
       await waitForHydration(page);
       await page.locator("#password").fill(newPassword);
-      await page.getByRole("button", { name: /login/iu }).click();
+      await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page).not.toHaveURL(/\/login/u, { timeout: 15_000 });
     });
@@ -332,7 +332,7 @@ test.describe("reset password", () => {
       await waitForHydration(page);
 
       await page.locator("#password").fill(oldPassword);
-      await page.getByRole("button", { name: /login/iu }).click();
+      await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page.getByText("Invalid email or password")).toBeVisible({ timeout: 10_000 });
     });

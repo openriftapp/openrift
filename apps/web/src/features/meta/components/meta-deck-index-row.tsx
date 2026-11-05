@@ -20,10 +20,10 @@ import { m } from "@/paraglide/messages.js";
 
 // Shared by the rows and the sort header above them; keep both in sync.
 export const DECK_INDEX_GRID =
-  "grid grid-cols-[minmax(4.5rem,max-content)_2.75rem_11rem_10rem_minmax(0,1fr)_2.75rem_4rem_10.5rem] items-center gap-x-3.5";
+  "grid grid-cols-[4.5rem_2.75rem_11rem_10rem_minmax(0,1fr)_2.75rem_4rem_10.5rem] items-center gap-x-3.5";
 
 export const DECK_INDEX_GROUPED_GRID =
-  "grid grid-cols-[minmax(4.5rem,max-content)_2.75rem_minmax(0,1fr)_minmax(0,1fr)_4rem_10.5rem] items-center gap-x-3.5";
+  "grid grid-cols-[4.5rem_2.75rem_minmax(0,1fr)_minmax(0,1fr)_4rem_10.5rem] items-center gap-x-3.5";
 
 function Finish({ deck, fieldSize }: { deck: MetaDeckSummary; fieldSize: number | null }) {
   return (
@@ -32,7 +32,7 @@ function Finish({ deck, fieldSize }: { deck: MetaDeckSummary; fieldSize: number 
       text={formatRank(deck.rank, deck.rankIsTier)}
       label={fieldSize === null ? null : m.meta_deck_of_field({ count: fieldSize })}
       filled={false}
-      className="min-w-18 shrink-0"
+      className="w-18 shrink-0"
     />
   );
 }

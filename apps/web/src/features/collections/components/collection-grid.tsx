@@ -119,6 +119,7 @@ export function CollectionGrid({
     printingsByCardId,
     detailPanePrintingsByCardId,
     totalUniqueCards,
+    ownedUniqueCards,
     setDisplayLabel,
     searchAlternatives,
     ownedCountBound,
@@ -325,7 +326,7 @@ export function CollectionGrid({
         currentCollection={currentCollection}
         mode={mode}
         view={view}
-        cardCount={isEmpty ? 0 : view === "copies" ? totalCopies : totalUniqueCards}
+        cardCount={isEmpty ? 0 : view === "copies" ? totalCopies : ownedUniqueCards}
         favoriteMarketplace={favoriteMarketplace}
         addTarget={addTarget}
         isEmpty={isEmpty}

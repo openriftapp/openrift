@@ -81,8 +81,8 @@ export function DesktopRow({
         token !== null && "cursor-pointer",
       )}
     >
-      <TableCell className="flex min-w-24 shrink-0 items-center justify-center self-stretch px-2 py-1.5">
-        <RankCell player={player} cutSize={cutSize} className="min-w-16" />
+      <TableCell className="flex w-24 shrink-0 items-center justify-center self-stretch px-2 py-1.5">
+        <RankCell player={player} cutSize={cutSize} className="w-20" />
       </TableCell>
       {columns.legend && (
         <TableCell className="w-64 shrink-0">
@@ -152,8 +152,8 @@ export function PhoneRow({
       )}
     >
       <div className="flex">
-        <div className="flex min-w-18 shrink-0 items-center py-2">
-          <RankCell player={player} cutSize={cutSize} className="min-w-14" />
+        <div className="flex w-20 shrink-0 items-center py-2">
+          <RankCell player={player} cutSize={cutSize} className="w-20" />
         </div>
         <div className="flex min-w-0 flex-1 items-center gap-2.5 py-2 pr-1 pl-2.5">
           {columns.legend && (

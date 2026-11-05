@@ -621,6 +621,7 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
       totalCards={totalUniqueCards}
       filteredCount={sortedCards.length}
       countBelowOnPhone
+      tallOnPhone
       mobileDoneLabel={
         hasActiveFilters ? m.decks_editor_show_cards({ count: sortedCards.length }) : undefined
       }

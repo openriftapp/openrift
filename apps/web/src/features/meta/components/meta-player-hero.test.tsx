@@ -85,6 +85,14 @@ describe("MetaPlayerHero", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
+  it("lays four stats out in two phone columns and three in one row", () => {
+    const { rerender } = render(<MetaPlayerHero name="Renata" facts={FACTS} counts={COUNTS} />);
+    const row = () => screen.getByText("event wins").closest(".grid");
+    expect(row()).toHaveClass("grid-cols-2");
+    rerender(<MetaPlayerHero name="Renata" facts={FACTS} counts={{ ...COUNTS, decklists: 0 }} />);
+    expect(row()).toHaveClass("grid-cols-3");
+  });
+
   it("hides the decklists count when there are none", () => {
     render(<MetaPlayerHero name="Renata" facts={FACTS} counts={{ ...COUNTS, decklists: 0 }} />);
     expect(screen.queryByText("decklists")).not.toBeInTheDocument();

@@ -12,7 +12,7 @@ import { Pressable } from "@/components/ui/pressable";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { GroupedThumbs } from "@/features/decks/components/deck-grouped-thumbs";
 import { StackPile } from "@/features/decks/components/deck-stack-pile";
-import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
+import { DeckZoneHeader, ZONE_ADD_STRIP_CLASS } from "@/features/decks/components/deck-zone-header";
 import { ZoneThumb } from "@/features/decks/components/deck-zone-thumbs";
 import { useDeckZoneDrop } from "@/features/decks/hooks/use-deck-zone-drop";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
@@ -36,8 +36,6 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 const MAX_UNKNOWN_SLOTS = 3;
-const ZONE_STRIP_CLASS =
-  "flex h-auto w-full items-center justify-center gap-2 rounded-md px-3 py-4 text-center font-normal whitespace-normal";
 
 function UnknownSlots({ count, isLandscape }: { count: number; isLandscape: boolean }) {
   const slots = count <= MAX_UNKNOWN_SLOTS ? count : 1;
@@ -135,12 +133,12 @@ export function ZoneTile({
 
   const canAdd = !readOnly && onClick !== undefined;
   const emptyStrip = canAdd ? (
-    <Button type="button" variant="dashed" onClick={onClick} className={ZONE_STRIP_CLASS}>
+    <Button type="button" variant="dashed" onClick={onClick} className={ZONE_ADD_STRIP_CLASS}>
       <PlusIcon className="size-4" />
       <span>{emptyHint}</span>
     </Button>
   ) : (
-    <div className={cn(ZONE_STRIP_CLASS, "text-muted-foreground border border-dashed")}>
+    <div className={cn(ZONE_ADD_STRIP_CLASS, "text-muted-foreground border border-dashed text-sm")}>
       {readOnly ? zoneEmptyReadOnlyLabel(zone) : emptyHint}
     </div>
   );
@@ -151,7 +149,7 @@ export function ZoneTile({
         variant="dashed"
         onClick={onClick}
         aria-label={m.decks_overview_zone_add_to({ zone: label })}
-        className={ZONE_STRIP_CLASS}
+        className={ZONE_ADD_STRIP_CLASS}
       >
         <PlusIcon className="size-4" />
         <span>{m.decks_overview_zone_add_cards()}</span>

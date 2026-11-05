@@ -20,7 +20,6 @@ import type { DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import type { DeckOverviewSort } from "@/features/decks/lib/deck-overview-list-sort";
 import type { DeckOverviewDisplayMode } from "@/features/decks/stores/deck-overview-view-store";
 import { useDeckOverviewViewStore } from "@/features/decks/stores/deck-overview-view-store";
-import { useSmUp } from "@/hooks/use-sm-up";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -144,7 +143,6 @@ export function DeckOverviewViewControls({
     (state) => state.setPreferOwnedPrintings,
   );
 
-  const smUp = useSmUp();
   const hasThumbnails = displayMode !== "list";
 
   // Shared by both clusters: it's the one view control that stays on the row
@@ -272,40 +270,34 @@ export function DeckOverviewViewControls({
   ));
 
   if (compact) {
-    const toggleInDrawer = !smUp;
     return (
-      <>
-        {!toggleInDrawer && displayModeToggle}
-        <MobileOptionsDrawer>
-          {toggleInDrawer && (
-            <div className="flex min-w-0 items-center gap-2">
-              <p className="text-muted-foreground w-18 text-xs font-medium">
-                {m.decks_overview_display_mode()}
-              </p>
-              {displayModeToggle}
-            </div>
-          )}
-          {hasThumbnails && (
-            <div className="flex min-w-0 items-center gap-2">
-              <p className="text-muted-foreground w-18 text-xs font-medium">
-                {m.decks_overview_columns()}
-              </p>
-              <ColumnControls
-                compact
-                maxColumns={columnOverride}
-                autoColumns={autoColumns}
-                minColumns={minColumns}
-                maxColumnsLimit={maxColumnsLimit}
-                onMaxColumnsChange={setColumns}
-              />
-            </div>
-          )}
-          <DeckOrderingControl compact ordering={ordering} />
-          {optionSwitchRows.length > 0 && (
-            <div className="flex flex-col gap-4 pt-4">{optionSwitchRows}</div>
-          )}
-        </MobileOptionsDrawer>
-      </>
+      <MobileOptionsDrawer>
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="text-muted-foreground w-18 text-xs font-medium">
+            {m.decks_overview_display_mode()}
+          </p>
+          {displayModeToggle}
+        </div>
+        {hasThumbnails && (
+          <div className="flex min-w-0 items-center gap-2">
+            <p className="text-muted-foreground w-18 text-xs font-medium">
+              {m.decks_overview_columns()}
+            </p>
+            <ColumnControls
+              compact
+              maxColumns={columnOverride}
+              autoColumns={autoColumns}
+              minColumns={minColumns}
+              maxColumnsLimit={maxColumnsLimit}
+              onMaxColumnsChange={setColumns}
+            />
+          </div>
+        )}
+        <DeckOrderingControl compact ordering={ordering} />
+        {optionSwitchRows.length > 0 && (
+          <div className="flex flex-col gap-4 pt-4">{optionSwitchRows}</div>
+        )}
+      </MobileOptionsDrawer>
     );
   }
 

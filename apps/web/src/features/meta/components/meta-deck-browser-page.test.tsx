@@ -207,7 +207,9 @@ describe("MetaDeckBrowserPage", () => {
     expect(screen.getByRole("heading", { name: "Archived decks" })).toBeInTheDocument();
     expect(seen(META_DECKS_DESCRIPTION)).toBe(true);
     expect(seen("Nova")).toBe(false);
-    expect(screen.queryByRole("button", { name: "Best list per legend" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Show only the best list per legend" }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders the page the API served, as rows", () => {
@@ -443,7 +445,7 @@ describe("MetaDeckBrowserPage", () => {
 
   it("offers every archived list one click away", async () => {
     render(<MetaDeckBrowserPage />);
-    const best = screen.getByRole("button", { name: "Best list per legend" });
+    const best = screen.getByRole("button", { name: "Show only the best list per legend" });
     expect(best).toHaveAttribute("aria-pressed", "true");
     await userEvent.click(best);
     expect(lastSearch()({})).toEqual({ all: true });
@@ -489,7 +491,7 @@ describe("MetaDeckBrowserPage", () => {
     const row = screen.getByRole("group", { name: "Phone toolbar" });
     expect(row).toContainElement(screen.getByRole("combobox", { name: "Sort" }));
     expect(row).toContainElement(screen.getByRole("button", { name: "Grid" }));
-    const best = screen.getByRole("button", { name: "Best list per legend" });
+    const best = screen.getByRole("button", { name: "Show only the best list per legend" });
     expect(screen.getByRole("group", { name: "Phone chips" })).toContainElement(best);
     expect(screen.getAllByRole("combobox", { name: "Sort" })).toHaveLength(1);
     expect(screen.getByRole("combobox", { name: "Sort" })).toHaveAttribute("data-size", "default");

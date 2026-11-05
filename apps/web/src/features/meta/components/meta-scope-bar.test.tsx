@@ -74,13 +74,51 @@ describe("MetaScopeBar on a phone", () => {
     expect(within(dialog).getByText("Premier")).toBeInTheDocument();
   });
 
-  it("opens the filters drawer at the era control when the page asks for the era picker", async () => {
+  it("opens the filters drawer on the era list when the page asks for the era picker", async () => {
     const onEraPickerOpenChange = vi.fn();
-    const { user } = renderBar({ eraPickerOpen: true, onEraPickerOpenChange });
+    const { setScope, user } = renderBar({ eraPickerOpen: true, onEraPickerOpenChange });
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByLabelText("Era")).toHaveTextContent("Proving Grounds");
-    await user.click(within(dialog).getByRole("button", { name: "Done" }));
+    expect(within(dialog).getByLabelText("Era")).toHaveTextContent("Era: Proving Grounds");
+    await user.click(await option("Origins"));
+    expect(setScope).toHaveBeenCalledWith({ era: "origins", from: undefined, to: undefined });
     expect(onEraPickerOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("keeps the drawer open after the era list closes", async () => {
+    const { rerender, user } = renderBar({ eraPickerOpen: true, onEraPickerOpenChange: vi.fn() });
+    await user.click(await option("Origins"));
+    rerender(
+      <MetaScopeBar
+        scope={{}}
+        setScope={vi.fn()}
+        clearScope={vi.fn()}
+        eras={ERAS}
+        eraPickerOpen={false}
+      />,
+    );
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Done" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("names the era in the drawer the way the bar does", async () => {
+    const { user } = renderBar({ scope: { era: ERA_ALL } });
+    await user.click(screen.getByRole("button", { name: "Filters" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByLabelText("Era")).toHaveTextContent("All eras");
+  });
+
+  it("shows the default era in the strip without a remove button", () => {
+    renderBar();
+    expect(screen.getByText("Era: Proving Grounds")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Remove Era/u })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Filters" })).not.toHaveTextContent(/\d/u);
+  });
+
+  it("lets a picked era be removed from the strip", async () => {
+    const { setScope, user } = renderBar({ scope: { era: "origins" } });
+    await user.click(screen.getByRole("button", { name: "Remove Era Origins" }));
+    expect(setScope).toHaveBeenCalledWith({ era: undefined, from: undefined, to: undefined });
   });
 
   it("lists the picks as removable chips under the search", async () => {
@@ -104,7 +142,7 @@ describe("MetaScopeBar on a phone", () => {
     expect(clearScope).toHaveBeenCalled();
   });
 
-  it("shows no strip while nothing is narrowed", () => {
+  it("offers no clear-all while nothing is narrowed", () => {
     renderBar();
     expect(screen.queryByRole("button", { name: "Clear all filters" })).not.toBeInTheDocument();
   });

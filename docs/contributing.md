@@ -206,7 +206,7 @@ Numbers on player surfaces go through `formatCount`, `formatMoney` and the `form
 
 | Function                | Output                                                | Use for                                                                      |
 | ----------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `formatDay`             | `2026-08-15`                                          | A calendar day, in UTC. The default for anything dated.                      |
+| `formatDay`             | `2026-08-15`                                          | A calendar day, in UTC. The default for rows, tables and metadata.           |
 | `formatMonth`           | `2026-08`                                             | A month, in UTC.                                                             |
 | `formatDayTime`         | `2026-08-15 23:59`                                    | An instant in UTC, for admin and ops surfaces.                               |
 | `formatDayLocal`        | `2026-08-15`                                          | The day an instant fell on for **this viewer**.                              |
@@ -221,8 +221,9 @@ Numbers on player surfaces go through `formatCount`, `formatMoney` and the `form
 | `dateLeafPartsUtc`      | `AUG` / `15`                                          | The same tile for a day that belongs to an event, not to the viewer.         |
 | `formatReleasePeriod`   | `2026-08-15` / `2026-08` / `2026-Q2` / `2026` / `TBA` | A set release, at whatever precision is known.                               |
 
-Two rules decide which one you want:
+Three rules decide which one you want:
 
+- **Prose spells the day, rows stay ISO.** A day inside a sentence, a label or a lead line on a player surface ("Announced Oct 6, 2025", a release date, a chart tooltip) uses `formatShortDayYear`. Table cells, list rows and dense metadata keep `formatDay`, which sorts and aligns. Chart axes use `formatShortDay` and add the year when the range spans more than one calendar year.
 - **A calendar day is always the UTC day.** A day has no timezone of its own, so the app picks one and states it. `formatDayLocal` is the exception, for when the day is the viewer's own (grouping an activity feed into days as they lived them) rather than a property of the data.
 - **An instant renders in UTC for ops, and on the viewer's clock for players.** Admin tables use `formatDayTime`, where the reader knows the server is UTC. Anything a player reads as a wall clock (a submission deadline, a tournament start) uses `formatDayTimeLocal`, because being two hours wrong about a deadline is a real bug.
 

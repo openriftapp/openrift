@@ -136,8 +136,6 @@ export function computeDeckOwnership(
   let mainValueCents = 0;
   let sideboardValueCents = 0;
   let missingValueCents = 0;
-  let missingMainValueCents = 0;
-  let missingSideboardValueCents = 0;
   let missingAsDisplayedValueCents = 0;
 
   const valued: {
@@ -342,10 +340,8 @@ export function computeDeckOwnership(
       deckValueCents += value;
       if (row.zone === WellKnown.deckZone.SIDEBOARD) {
         sideboardValueCents += value;
-        missingSideboardValueCents += missing;
       } else {
         mainValueCents += value;
-        missingMainValueCents += missing;
       }
       missingValueCents += missing;
     }
@@ -376,8 +372,6 @@ export function computeDeckOwnership(
     sideboardValueCents: hasPrices ? sideboardValueCents : undefined,
     asDisplayedValueCents: hasPrices ? asDisplayedValueCents : undefined,
     missingValueCents: hasPrices ? missingValueCents : undefined,
-    missingMainValueCents: hasPrices ? missingMainValueCents : undefined,
-    missingSideboardValueCents: hasPrices ? missingSideboardValueCents : undefined,
     missingAsDisplayedValueCents: hasPrices ? missingAsDisplayedValueCents : undefined,
     missingCards,
   };

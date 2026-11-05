@@ -281,16 +281,15 @@ export function PodCard({
             <span className="flex shrink-0 items-center gap-2 tabular-nums">
               {pointsFigure}
               {lead.gamePoints === null ? null : (
-                <Badge
-                  variant={winner ? "subtle" : "neutral"}
+                <span
                   className={cn(
-                    "font-heading size-8 rounded-md text-sm tabular-nums",
-                    winner && "bg-primary/25 ring-primary/60 font-bold ring-1 ring-inset",
+                    "w-6 text-right text-sm tabular-nums",
+                    winner ? "font-semibold" : "text-muted-foreground",
                   )}
                   title={m.tournaments_pod_game_points_title({ points: lead.gamePoints })}
                 >
                   {lead.gamePoints}
-                </Badge>
+                </span>
               )}
               {scoreAction}
             </span>

@@ -1,9 +1,8 @@
 import type { DeckFormat } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
-import { InfoIcon, XIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { IntroBanner } from "@/components/intro-banner";
 import { Callout } from "@/components/ui/callout";
 import { TextLink } from "@/components/ui/text-link";
 import { m } from "@/paraglide/messages.js";
@@ -28,21 +27,12 @@ export function DeckBuilderIntroBanner({
   onDismiss: () => void;
 }) {
   return (
-    <Callout className="flex flex-col gap-2.5 p-3">
-      <div className="flex items-center gap-2">
-        <InfoIcon className="text-primary size-5 shrink-0" />
-        <p className="flex-1 font-medium">{m.decks_intro_title()}</p>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          onClick={onDismiss}
-          aria-label={m.layout_intro_dismiss()}
-          className="text-muted-foreground"
-        >
-          <XIcon className="size-4" />
-        </Button>
-      </div>
+    <IntroBanner
+      title={m.decks_intro_title()}
+      lead={m.decks_intro_lead()}
+      onDismiss={onDismiss}
+      bodyClassName="mx-auto max-w-5xl"
+    >
       <ol className="grid grid-cols-2 gap-1.5 @lg:grid-cols-4">
         {introStepTitles(format).map((title, index) => (
           <li key={title}>
@@ -55,12 +45,11 @@ export function DeckBuilderIntroBanner({
           </li>
         ))}
       </ol>
-      <p className="text-muted-foreground text-sm">
-        {m.decks_intro_lead()}{" "}
+      <p>
         <TextLink render={<Link to="/help/$slug" params={{ slug: "deck-building" }} />}>
           {m.decks_intro_read_guide()}
         </TextLink>
       </p>
-    </Callout>
+    </IntroBanner>
   );
 }

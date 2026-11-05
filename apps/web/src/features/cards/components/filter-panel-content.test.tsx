@@ -259,6 +259,30 @@ describe("FilterRangeSections", () => {
     expect(stacked.getByText("2–5")).not.toBeNull();
     expect(stacked.getByText("Any")).not.toBeNull();
   });
+
+  it("updates the stacked summary with the live slider value before the change commits", async () => {
+    const user = userEvent.setup();
+    setupHooks();
+    mockUseFilterValues.mockReturnValue({
+      ranges: { ...NULL_RANGES, energy: { min: 2, max: 5 } },
+      filterState: { ownedCountMin: null, ownedCountMax: null },
+    });
+    const { container, getByText, queryByText } = render(
+      <LabelledRowLayoutContext value="stacked">
+        <FilterRangeSections
+          availableFilters={makeAvailable()}
+          filterCounts={makeFilterCounts()}
+          scope="stats"
+          hiddenSections={new Set(["might", "power"])}
+        />
+      </LabelledRowLayoutContext>,
+    );
+    const lowThumb = container.querySelector<HTMLInputElement>('input[type="range"]');
+    lowThumb?.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(getByText("3–5")).not.toBeNull();
+    expect(queryByText("2–5")).toBeNull();
+  });
 });
 
 interface BadgeFilterState {
@@ -469,12 +493,12 @@ describe("FilterBadgeSections — hiddenSections gating", () => {
     );
     expect(getByText("OGN")).not.toBeNull();
     expect(queryByText("OGS")).toBeNull();
-    const more = getByRole("button", { name: "+ 2 more" });
+    const more = getByRole("button", { name: "+2 more" });
     expect(more).toHaveAttribute("aria-expanded", "false");
     await user.click(more);
     expect(getByText("OGS")).not.toBeNull();
     expect(getByText("ARC")).not.toBeNull();
-    await user.click(getByRole("button", { name: "Show fewer" }));
+    await user.click(getByRole("button", { name: "Show less" }));
     expect(queryByText("OGS")).toBeNull();
   });
 
@@ -491,7 +515,7 @@ describe("FilterBadgeSections — hiddenSections gating", () => {
     );
     expect(getByText("ARC")).not.toBeNull();
     expect(queryByText("OGS")).toBeNull();
-    expect(getByRole("button", { name: "+ 1 more" })).not.toBeNull();
+    expect(getByRole("button", { name: "+1 more" })).not.toBeNull();
   });
 
   it("renders one tags dropdown per category, plus Other for unclassified", () => {

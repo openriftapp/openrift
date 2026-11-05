@@ -39,13 +39,12 @@ export function zoneEmptyReadOnlyLabel(zone: DeckZone): string {
   return labels[zone];
 }
 
-/** `null` for runes, which auto-fill from the legend and have no add action. */
-export function zoneAddLabel(zone: DeckZone): string | null {
-  const labels: Record<DeckZone, string | null> = {
+export function zoneAddLabel(zone: DeckZone): string {
+  const labels: Record<DeckZone, string> = {
     legend: m.decks_zone_add_legend(),
     "legend-options": m.decks_zone_add_legend_options(),
     champion: m.decks_zone_add_champion(),
-    runes: null,
+    runes: m.decks_zone_add_runes(),
     battlefield: m.decks_zone_add_battlefield(),
     main: m.decks_zone_add_main(),
     sideboard: m.decks_zone_add_sideboard(),

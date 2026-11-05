@@ -1,5 +1,7 @@
 import { NONE } from "@openrift/shared/types/search";
 
+import { m } from "@/paraglide/messages.js";
+
 /** Label for an active numeric range filter, handling the NONE sentinel and open-ended bounds. */
 export function rangeBadgeLabel(
   min: number | null,
@@ -10,22 +12,28 @@ export function rangeBadgeLabel(
 ): string {
   const resolvedMin = min ?? availableMin;
   const resolvedMax = max ?? availableMax;
-  const fmtNone = (value: number) => (value === NONE ? "None" : formatValue(value));
+  const fmtNone = (value: number) =>
+    value === NONE ? m.cards_filter_range_none() : formatValue(value);
 
   if (resolvedMin === NONE && resolvedMax === NONE) {
-    return "None";
+    return m.cards_filter_range_none();
   }
   if (resolvedMin === NONE) {
-    return max === null ? "≥None" : `None–${formatValue(resolvedMax)}`;
+    return max === null
+      ? m.cards_filter_range_at_least({ value: m.cards_filter_range_none() })
+      : m.cards_filter_range_between({
+          min: m.cards_filter_range_none(),
+          max: formatValue(resolvedMax),
+        });
   }
   if (resolvedMin === resolvedMax) {
     return formatValue(resolvedMin);
   }
   if (min !== null && max !== null) {
-    return `${fmtNone(resolvedMin)}–${fmtNone(resolvedMax)}`;
+    return m.cards_filter_range_between({ min: fmtNone(resolvedMin), max: fmtNone(resolvedMax) });
   }
   if (min === null) {
-    return `≤${fmtNone(resolvedMax)}`;
+    return m.cards_filter_range_at_most({ value: fmtNone(resolvedMax) });
   }
-  return `≥${fmtNone(resolvedMin)}`;
+  return m.cards_filter_range_at_least({ value: fmtNone(resolvedMin) });
 }

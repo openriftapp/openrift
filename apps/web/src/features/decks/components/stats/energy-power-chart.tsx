@@ -1,5 +1,4 @@
 import { enumLabel } from "@openrift/shared/enum-label";
-import { useState } from "react";
 import { Bar, BarChart, Cell, LabelList, XAxis } from "recharts";
 
 import type { ChartConfig } from "@/components/ui/chart";
@@ -29,7 +28,6 @@ interface EnergyPowerChartProps {
   powerStacks: DomainCombo[];
   averagePower: number | null;
   singleColor?: boolean;
-  revealDomainsOnHover?: boolean;
   showTotals?: boolean;
   footnote?: string;
 }
@@ -42,7 +40,6 @@ interface SingleChartProps {
   metric: "energy" | "power";
   minAxisMax: number;
   singleColor?: boolean;
-  revealDomainsOnHover?: boolean;
   showTotals?: boolean;
   onBarClick?: (value: number) => void;
   focusValue?: number | null;
@@ -170,7 +167,6 @@ function SingleChart({
   metric,
   minAxisMax,
   singleColor,
-  revealDomainsOnHover,
   showTotals,
   onBarClick,
   focusValue,
@@ -178,7 +174,6 @@ function SingleChart({
 }: SingleChartProps) {
   const domainColors = useDomainColors();
   const { labels } = useEnumOrders();
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   if (data.length === 0) {
     return null;
   }
@@ -283,17 +278,7 @@ function SingleChart({
         config={chartConfig}
         className={cn("aspect-auto h-28 w-full", onBarClick && "cursor-pointer")}
       >
-        <BarChart
-          data={chartData}
-          margin={chartMargin}
-          onClick={handleChartClick}
-          onMouseMove={
-            revealDomainsOnHover
-              ? (state) => setHoverIndex(activeRowIndex(state as ChartClickState, chartData.length))
-              : undefined
-          }
-          onMouseLeave={revealDomainsOnHover ? () => setHoverIndex(null) : undefined}
-        >
+        <BarChart data={chartData} margin={chartMargin} onClick={handleChartClick}>
           <GradientDefs stacks={stacks} colors={domainColors} />
           <XAxis dataKey="value" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
           <ChartTooltip
@@ -321,17 +306,13 @@ function SingleChart({
               }
               isAnimationActive={false}
             >
-              {chartData.map((row, rowIndex) => (
+              {chartData.map((row) => (
                 // oxlint-disable-next-line typescript/no-deprecated -- recharts 3 deprecates Cell for removal in 4.0; the replacement threads per-datum opacity through the custom shape, which needs a visual check
                 <Cell
                   key={String(row.value)}
                   fillOpacity={columnOpacity(String(row.value))}
                   // `fill={undefined}` overrides the Bar's fill and paints SVG-default black, so this stays a concrete color.
-                  fill={
-                    revealDomainsOnHover && hoverIndex !== rowIndex
-                      ? "var(--color-primary)"
-                      : comboFill(stack, domainColors)
-                  }
+                  fill={comboFill(stack, domainColors)}
                 />
               ))}
               {showTotals && index === stacks.length - 1 && (
@@ -350,7 +331,6 @@ export function EnergyChart({
   stacks,
   average,
   singleColor,
-  revealDomainsOnHover,
   footnote,
   showTotals,
   onBarClick,
@@ -361,7 +341,6 @@ export function EnergyChart({
   stacks: DomainCombo[];
   average: number | null;
   singleColor?: boolean;
-  revealDomainsOnHover?: boolean;
   footnote?: string;
   showTotals?: boolean;
   onBarClick?: (value: number) => void;
@@ -381,7 +360,6 @@ export function EnergyChart({
         metric="energy"
         minAxisMax={8}
         singleColor={singleColor}
-        revealDomainsOnHover={revealDomainsOnHover}
         showTotals={showTotals}
         onBarClick={onBarClick}
         focusValue={focusValue}
@@ -436,7 +414,6 @@ export function EnergyPowerChart({
   powerStacks,
   averagePower,
   singleColor,
-  revealDomainsOnHover,
   showTotals,
   footnote,
 }: EnergyPowerChartProps) {
@@ -450,7 +427,6 @@ export function EnergyPowerChart({
         stacks={energyStacks}
         average={averageEnergy}
         singleColor={singleColor}
-        revealDomainsOnHover={revealDomainsOnHover}
         showTotals={showTotals}
         footnote={footnote}
       />

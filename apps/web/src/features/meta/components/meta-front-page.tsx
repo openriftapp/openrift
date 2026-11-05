@@ -1,4 +1,4 @@
-import { formatDayMonthYear } from "@openrift/shared/format-date";
+import { formatShortDayYear } from "@openrift/shared/format-date";
 import type { MetaEventSummary } from "@openrift/shared/types/api/meta";
 import type { MetaEventTier } from "@openrift/shared/types/enums";
 import { Link, getRouteApi } from "@tanstack/react-router";
@@ -19,7 +19,6 @@ import { buttonVariants } from "@/components/ui/button";
 import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
 import { DateLeaf } from "@/components/ui/date-leaf";
-import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { RowList, RowListLink } from "@/components/ui/row-list";
 import { TextLink } from "@/components/ui/text-link";
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
@@ -274,6 +273,7 @@ export function MetaFrontPage() {
     local: local.events.length > 0 && metaFrontSectionShown(filters, "local"),
   };
   const hasResults = shown.premier || shown.competitive || shown.local;
+  const frontFiltered = (search.q ?? "").trim() !== "" || search.decks === true;
   const showActivity =
     !isScopeCustomized(search) && search.decks !== true && (search.q ?? "").trim() === "";
   const hasRail = upcoming.events.length > 0 || (showActivity && activityData.items.length > 0);
@@ -286,7 +286,7 @@ export function MetaFrontPage() {
         title={m.meta_front_title()}
         lead={
           counts.latestResultDate
-            ? m.meta_front_lead({ date: formatDayMonthYear(counts.latestResultDate, DATE_WORDS) })
+            ? m.meta_front_lead({ date: formatShortDayYear(counts.latestResultDate, DATE_WORDS) })
             : undefined
         }
       >
@@ -347,11 +347,14 @@ export function MetaFrontPage() {
 
             {facets.totals.events === 0 ? (
               <>
-                <Empty>
-                  <EmptyHeader>
-                    <EmptyDescription>{m.meta_front_no_match()}</EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
+                <MetaScopeEmpty
+                  scope={search}
+                  eras={eras}
+                  setScope={setScope}
+                  onPickEra={() => setEraPickerOpen(true)}
+                  fallback={m.meta_front_no_match()}
+                  filtered={frontFiltered}
+                />
                 <MetaContributeBand />
               </>
             ) : (
@@ -447,6 +450,7 @@ export function MetaFrontPage() {
                         setScope={setScope}
                         onPickEra={() => setEraPickerOpen(true)}
                         fallback={m.meta_front_scope_empty()}
+                        filtered={frontFiltered}
                       />
                     )}
                     <ResultlessNote count={facets.holdings.resultless} search={search} />

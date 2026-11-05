@@ -29,9 +29,9 @@ export function AuthFormCard({
   const split = layout === "split";
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="sm:bg-card overflow-hidden bg-transparent p-0 shadow-none ring-0 sm:ring-1">
+      <Card className="sm:bg-card overflow-hidden bg-transparent p-0 ring-0 sm:ring-1">
         <CardContent className={cn("grid p-0", split && "md:grid-cols-2")}>
-          <div className="p-6 md:p-8">
+          <div className="sm:p-6 md:p-8">
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
                 <img

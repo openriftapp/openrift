@@ -36,13 +36,16 @@ function numeralSizeClass(length: number, crowned: boolean): string {
   if (crowned) {
     return "text-lg";
   }
-  if (length <= 4) {
+  if (length <= 3) {
     return "text-2xl";
   }
-  if (length === 5) {
+  if (length === 4) {
     return "text-lg";
   }
-  return "text-base";
+  if (length === 5) {
+    return "text-base";
+  }
+  return "text-sm";
 }
 
 export function rankBandTone(rank: number, filled: boolean): RankBandTone {

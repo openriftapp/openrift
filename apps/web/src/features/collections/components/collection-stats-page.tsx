@@ -20,6 +20,7 @@ import { MostExpensivePrintings } from "@/features/collections/components/collec
 import { StatsHeroStats } from "@/features/collections/components/collection-stats-hero";
 import {
   StatsEmptyState,
+  StatsNoMatchState,
   StatsSkeleton,
 } from "@/features/collections/components/collection-stats-placeholders";
 import { CollectionStatsToolbar } from "@/features/collections/components/collection-stats-toolbar";
@@ -31,6 +32,7 @@ import {
   useScopeFromFilters,
 } from "@/features/collections/hooks/use-stats-scope";
 import type { CompletionCountMode, CompletionGroupBy } from "@/features/collections/lib/stat-types";
+import { statsBody } from "@/features/collections/lib/stats-empty";
 import { EnergyPowerChart } from "@/features/decks/components/stats/energy-power-chart";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
@@ -48,6 +50,8 @@ export function CollectionStatsPage() {
   const liveScope = useScopeFromFilters();
   const scope = useDeferredValue(liveScope);
   const stats = useCollectionStats(collectionId, scope);
+  const filterCount = Object.values(liveScope).filter((value) => value !== undefined).length;
+  const body = statsBody(stats.isReady, stats.totalCopies, filterCount);
   const priceHistoryEnabled = useFeatureEnabled("price-history");
   const { orders } = useEnumOrders();
 
@@ -79,7 +83,7 @@ export function CollectionStatsPage() {
     <div className={cn(PAGE_WIDTH.capped, "pt-3")}>
       {topBarPortal}
 
-      {!(stats.isReady && collectionScope === "all" && stats.totalCopies === 0) && (
+      {!(body === "empty" && collectionScope === "all") && (
         <CollectionStatsToolbar
           collectionScope={collectionScope}
           onCollectionScopeChange={setCollectionScope}
@@ -87,10 +91,7 @@ export function CollectionStatsPage() {
           onGroupByChange={setGroupBy}
           countMode={countMode}
           onCountModeChange={setCountMode}
-          activeCount={
-            Object.values(liveScope).filter((value) => value !== undefined).length +
-            Number(collectionScope !== "all")
-          }
+          activeCount={filterCount + Number(collectionScope !== "all")}
           filters={
             <div className="overflow-hidden">
               <CompactFilterBar
@@ -107,8 +108,10 @@ export function CollectionStatsPage() {
       )}
 
       {stats.isReady ? (
-        stats.totalCopies === 0 ? (
+        body === "empty" ? (
           <StatsEmptyState />
+        ) : body === "no-match" ? (
+          <StatsNoMatchState />
         ) : (
           <div className="space-y-10">
             <section className="space-y-4">

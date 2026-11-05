@@ -100,7 +100,7 @@ export function FirstRowPreview() {
             <SearchBar totalCards={counts.totalCards} filteredCount={counts.filteredCount} />
             <DesktopOptionsBar className="hidden sm:flex" />
             <DisplayOptionsPopover className="hidden sm:inline-flex" />
-            <MobileOptionsDrawer className="sm:hidden">
+            <MobileOptionsDrawer showReset className="sm:hidden">
               <MobileOptionsContent />
               <MobileFilterContent
                 availableFilters={availableFilters}

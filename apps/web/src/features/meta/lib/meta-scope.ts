@@ -289,6 +289,12 @@ export function isScopeCustomized(scope: MetaScope, defaultEra?: string): boolea
   });
 }
 
+export function hasScopeFacets(scope: MetaScope): boolean {
+  return META_SCOPE_FACETS.some(
+    (facet) => scope[facet] !== undefined || scope[`${facet}Ex`] !== undefined,
+  );
+}
+
 /**
  * Whether a scope holds back any of the archive, defaults included: with a
  * default era and format, the unnarrowed page is already a slice.

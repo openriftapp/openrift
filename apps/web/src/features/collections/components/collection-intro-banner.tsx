@@ -1,10 +1,18 @@
 import { Link } from "@tanstack/react-router";
-import { InfoIcon, XIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Callout } from "@/components/ui/callout";
+import { IntroBanner } from "@/components/intro-banner";
 import { TextLink } from "@/components/ui/text-link";
+import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { m } from "@/paraglide/messages.js";
+
+function introLine(showLibrary: boolean, coarsePointer: boolean): string {
+  if (!showLibrary) {
+    return m.collections_intro_line_owned();
+  }
+  return coarsePointer
+    ? m.collections_intro_line_library()
+    : m.collections_intro_line_library_click();
+}
 
 export function CollectionIntroBanner({
   showLibrary,
@@ -13,27 +21,20 @@ export function CollectionIntroBanner({
   showLibrary: boolean;
   onDismiss: () => void;
 }) {
+  const coarsePointer = useCoarsePointer();
   return (
-    <Callout className="mb-3 flex items-start gap-2 py-2 pr-2 pl-3">
-      <InfoIcon className="text-primary mt-1 size-4 shrink-0" />
-      <p className="min-w-0 flex-1 py-0.5">
-        <span className="text-muted-foreground">
-          {showLibrary ? m.collections_intro_line_library() : m.collections_intro_line_owned()}
-        </span>{" "}
-        <TextLink render={<Link to="/help/$slug" params={{ slug: "collections" }} />}>
-          {m.collections_intro_how_it_works()}
-        </TextLink>
-      </p>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        onClick={onDismiss}
-        aria-label={m.layout_intro_dismiss()}
-        className="text-muted-foreground shrink-0"
-      >
-        <XIcon className="size-4" />
-      </Button>
-    </Callout>
+    <IntroBanner
+      className="mb-3"
+      title={m.collections_intro_title()}
+      lead={
+        <>
+          {introLine(showLibrary, coarsePointer)}{" "}
+          <TextLink render={<Link to="/help/$slug" params={{ slug: "collections" }} />}>
+            {m.collections_intro_how_it_works()}
+          </TextLink>
+        </>
+      }
+      onDismiss={onDismiss}
+    />
   );
 }

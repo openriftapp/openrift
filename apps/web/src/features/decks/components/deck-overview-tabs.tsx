@@ -33,7 +33,7 @@ export function TabStrip({
   // a portal target and must never duplicate.
   const inlineTrailing = isMobile ? (trailingMobile ?? trailing) : trailing;
   return (
-    <div className="flex h-10 items-end gap-6 border-b md:max-lg:h-auto md:max-lg:flex-wrap md:max-lg:gap-y-2 md:max-lg:border-b-0">
+    <div className="flex h-10 items-end gap-3 border-b md:gap-6 md:max-lg:h-auto md:max-lg:flex-wrap md:max-lg:gap-y-2 md:max-lg:border-b-0">
       <Tabs
         value={tab}
         onValueChange={(value) => onTabChange(value as DeckOverviewTab)}
@@ -48,7 +48,7 @@ export function TabStrip({
           <TabsTrigger value="test">{m.decks_overview_tab_test()}</TabsTrigger>
           {showPlanTab && <TabsTrigger value="plan">{m.decks_overview_tab_plan()}</TabsTrigger>}
           {showBoxTab && <TabsTrigger value="box">{m.decks_overview_tab_box()}</TabsTrigger>}
-          {showStatsTab && <TabsTrigger value="stats">{m.decks_stats_title()}</TabsTrigger>}
+          {showStatsTab && <TabsTrigger value="stats">{m.decks_overview_tab_stats()}</TabsTrigger>}
         </TabsList>
       </Tabs>
       {inlineTrailing && (

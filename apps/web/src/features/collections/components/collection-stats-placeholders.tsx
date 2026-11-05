@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ChartBarIcon, SearchIcon } from "lucide-react";
+import { ChartBarIcon, FilterIcon, SearchIcon } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
@@ -33,5 +33,16 @@ export function StatsEmptyState() {
         {m.collections_stats_empty_action()}
       </Link>
     </EmptyState>
+  );
+}
+
+export function StatsNoMatchState() {
+  return (
+    <EmptyState
+      className="py-20"
+      icon={FilterIcon}
+      title={m.cards_grid_no_results_title()}
+      description={m.cards_grid_no_results_description()}
+    />
   );
 }

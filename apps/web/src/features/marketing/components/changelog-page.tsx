@@ -13,6 +13,7 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Code } from "@/components/ui/code";
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { TextLink } from "@/components/ui/text-link";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -40,12 +41,12 @@ function SkewedBadge({ text, color }: { text: string; color: string }) {
   );
 }
 
-function InlineCode({ text }: { text: string }) {
+function MessageText({ text }: { text: string }) {
   return text.split("`").map((part, i) =>
     i % 2 === 1 ? (
-      <code key={i} className="bg-muted rounded-sm px-1 py-0.5 font-mono whitespace-nowrap">
+      <Code key={i} className="whitespace-nowrap">
         {part}
-      </code>
+      </Code>
     ) : (
       part
     ),
@@ -65,17 +66,17 @@ function EntryItem({ entry }: { entry: ChangelogEntry }) {
             {entry.area}
           </span>
         )}
-        <span className="col-span-2 block pl-11 sm:inline sm:pl-0">
+        <span className="col-start-2 block sm:inline">
           {entry.title ? (
             <>
               <span className="font-semibold">{entry.title}:</span>
               <span className="text-muted-foreground">
                 {" "}
-                <InlineCode text={entry.message} />
+                <MessageText text={entry.message} />
               </span>
             </>
           ) : (
-            <InlineCode text={entry.message} />
+            <MessageText text={entry.message} />
           )}
         </span>
       </span>
@@ -91,7 +92,9 @@ function MilestoneCard({ entry }: { entry: ChangelogEntry }) {
           <MilestoneIcon token={entry.icon} className="text-primary size-4" />
           {entry.title}
         </CardTitle>
-        <CardDescription>{entry.message}</CardDescription>
+        <CardDescription>
+          <MessageText text={entry.message} />
+        </CardDescription>
       </CardHeader>
     </Card>
   );
@@ -99,7 +102,7 @@ function MilestoneCard({ entry }: { entry: ChangelogEntry }) {
 
 function PhoneDayHeading({ date }: { date: string }) {
   return (
-    <h2 className="pb-2 text-base font-medium sm:hidden">
+    <h2 className="pb-2 text-lg font-semibold sm:hidden">
       <time dateTime={date}>{changelogDayLabel(date)}</time>
     </h2>
   );

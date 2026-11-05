@@ -142,7 +142,7 @@ export function PeopleSection() {
                 text={demo.text}
                 label={demo.label}
                 filled={demo.filled}
-                className="min-w-16"
+                className="w-16"
               />
             </Swatch>
           ))}

@@ -891,7 +891,7 @@ describe("computeDeckOwnership", () => {
     expect(result.deckValueCents).toBe(38);
   });
 
-  it("splits missing value into main deck and sideboard", () => {
+  it("sums missing value across main deck and sideboard", () => {
     const deckCards = [
       stubDeckBuilderCard({ cardId: "l", quantity: 1, zone: "legend" }),
       stubDeckBuilderCard({ cardId: "a", quantity: 3, zone: "main" }),
@@ -917,8 +917,6 @@ describe("computeDeckOwnership", () => {
       EN_FIRST,
     );
 
-    expect(result.missingMainValueCents).toBe(8);
-    expect(result.missingSideboardValueCents).toBe(6);
     expect(result.missingValueCents).toBe(14);
   });
 

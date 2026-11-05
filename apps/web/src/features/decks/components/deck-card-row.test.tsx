@@ -12,6 +12,8 @@ vi.mock("@/hooks/use-domain-colors", () => ({
 vi.mock("@/hooks/use-enums", () => ({
   useEnumOrders: () => ({ labels: { domains: { fury: "Fury", calm: "Calm" } } }),
 }));
+const pointer = vi.hoisted(() => ({ coarse: false }));
+vi.mock("@/hooks/use-coarse-pointer", () => ({ useCoarsePointer: () => pointer.coarse }));
 
 const COLORS = { fury: "#cb212d", calm: "#16aa71", colorless: "#737373" };
 
@@ -110,6 +112,53 @@ describe("CardControls", () => {
     expect(
       screen.getByRole("button", { name: "Add one copy of Iron Ballista" }),
     ).toBeInTheDocument();
+  });
+
+  function renderControls(controlMode: "quantity" | "remove-only", coarse: boolean) {
+    pointer.coarse = coarse;
+    const { container } = render(
+      <CardControls
+        controlMode={controlMode}
+        cardName="Iron Ballista"
+        quantity={2}
+        countWidthClass="w-4"
+        onIncrement={() => {}}
+        onDecrement={() => {}}
+        onRemove={() => {}}
+      />,
+    );
+    pointer.coarse = false;
+    return container;
+  }
+
+  it("reveals the stepper on hover for a mouse", () => {
+    const stepper = renderControls("quantity", false).querySelector(
+      '[data-slot="inline-count-stepper"]',
+    );
+    expect(stepper?.className).toContain("[&>button]:hidden");
+    expect(stepper?.className).not.toContain("[&>button]:size-9");
+  });
+
+  it("keeps an enlarged stepper visible on touch at any width", () => {
+    const stepper = renderControls("quantity", true).querySelector(
+      '[data-slot="inline-count-stepper"]',
+    );
+    expect(stepper?.className).toContain("[&>button]:size-9");
+    expect(stepper?.className).not.toMatch(/(?:^|\s)(?:\w+:)?\[&>button\]:hidden/u);
+  });
+
+  it("hides the remove button until hover for a mouse", () => {
+    renderControls("remove-only", false);
+    const remove = screen.getByRole("button", { name: "Remove from deck" });
+    expect(remove.parentElement?.className).toContain("hidden");
+    expect(remove.className).toContain("size-5");
+  });
+
+  it("keeps an enlarged remove button visible on touch", () => {
+    renderControls("remove-only", true);
+    const remove = screen.getByRole("button", { name: "Remove from deck" });
+    expect(remove.parentElement?.className).toBe("contents");
+    expect(remove.className).toContain("size-9");
   });
 });
 

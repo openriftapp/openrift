@@ -142,6 +142,7 @@ interface BrowserToolbarProps {
   countInPlaceholder?: boolean;
   wrapControls?: boolean;
   countBelowOnPhone?: boolean;
+  tallOnPhone?: boolean;
 }
 
 /** Standard card-browser toolbar: search bar, sort/group/view/display/columns
@@ -159,6 +160,7 @@ export function BrowserToolbar({
   countInPlaceholder,
   wrapControls,
   countBelowOnPhone,
+  tallOnPhone,
 }: BrowserToolbarProps) {
   const { hasActiveFilters } = useFilterValues();
   const meta = useFilterMeta();
@@ -183,6 +185,7 @@ export function BrowserToolbar({
           suggestionVocabulary={searchVocabulary.suggestions}
           countInPlaceholder={countInPlaceholder}
           className={wrapControls ? "flex-[1_1_12rem]" : undefined}
+          inputClassName={tallOnPhone ? "max-sm:h-11" : undefined}
           countBelow={countBelowOnPhone && !smUp}
         />
         {smUp && (
@@ -201,7 +204,11 @@ export function BrowserToolbar({
             hideDisplayModeToggle={hideDisplayModeToggle}
           />
         )}
-        <MobileOptionsDrawer doneLabel={mobileDoneLabel} className="sm:hidden">
+        <MobileOptionsDrawer
+          doneLabel={mobileDoneLabel}
+          showReset
+          className={cn("sm:hidden", tallOnPhone && "size-11")}
+        >
           <MobileOptionsContent
             showCopies={showCopies}
             hideViewToggle={hideViewToggle}

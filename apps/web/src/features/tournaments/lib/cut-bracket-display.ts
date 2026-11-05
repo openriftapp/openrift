@@ -81,7 +81,7 @@ export function defaultBracketRound(
 ): number | undefined {
   const first = columns[0]?.roundNumber;
   if (completed) {
-    return first;
+    return columns.at(-1)?.roundNumber;
   }
   const byRoundNumber = new Map(rounds.map((round) => [round.roundNumber, round]));
   const drawn = columns.filter((column) => byRoundNumber.has(column.roundNumber));

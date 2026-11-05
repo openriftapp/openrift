@@ -12,6 +12,7 @@ import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { cardHoverProps, rowActivateProps } from "@/features/cards/lib/card-row-interactions";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckCardDragData } from "@/features/decks/lib/deck-dnd-data";
+import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -138,19 +139,19 @@ export function CardControls({
   onDecrement?: (event: React.MouseEvent) => void;
   onRemove?: () => void;
 }) {
+  const coarsePointer = useCoarsePointer();
+
   if (controlMode === "none") {
     return null;
   }
 
   if (controlMode === "remove-only") {
-    // Collapsed out of layout until hover so the name sits flush-left; always
-    // shown on touch, where there is no hover.
     return (
-      <span className="contents md:hidden md:group-hover/card:contents">
+      <span className={coarsePointer ? "contents" : "hidden group-hover/card:contents"}>
         <Button
           variant="ghost"
           size="icon-sm"
-          className="max-sm:border-border size-5 shrink-0 max-sm:size-9 max-sm:border"
+          className={cn("shrink-0", coarsePointer ? "border-border size-9 border" : "size-5")}
           onClick={(event) => {
             event.stopPropagation();
             onRemove?.();
@@ -166,7 +167,11 @@ export function CardControls({
   return (
     <InlineCountStepper
       size="xs"
-      className="max-sm:[&>button]:border-border max-sm:gap-1.5 max-sm:[&>button]:size-9 max-sm:[&>button]:border md:[&>button]:hidden md:group-hover/card:[&>button]:inline-flex"
+      className={
+        coarsePointer
+          ? "[&>button]:border-border gap-1.5 [&>button]:size-9 [&>button]:border"
+          : "[&>button]:hidden group-hover/card:[&>button]:inline-flex"
+      }
       count={<span className={cn("block text-right", countWidthClass)}>{quantity}×</span>}
       decrementLabel={m.decks_editor_remove_one_copy({ card: cardName })}
       incrementLabel={m.decks_editor_add_one_copy({ card: cardName })}

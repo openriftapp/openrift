@@ -46,7 +46,7 @@ export function UserProfileHeader({
   const { owner, groupsInCommon, contactMethods } = data;
   const groupsLabel = groupsInCommonLabel(groupsInCommon.map((group) => group.name));
   return (
-    <Card className="gap-4 p-4 sm:p-6">
+    <Card className="gap-4 p-4 sm:p-5">
       <div className="flex items-center gap-4">
         <UserAvatar
           name={owner.displayName}

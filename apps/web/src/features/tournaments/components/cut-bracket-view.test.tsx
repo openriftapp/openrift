@@ -129,13 +129,10 @@ describe("CutBracketView", () => {
     expect(shownRound(container)).toContain("Final");
   });
 
-  it("opens a completed event on the first round", () => {
+  it("opens a completed event on the final", () => {
     const { container } = renderBracket([semifinals, openFinal], true);
-    expect(screen.getByRole("button", { name: "Semifinals" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    expect(shownRound(container)).toContain("SF 1");
+    expect(screen.getByRole("button", { name: "Final" })).toHaveAttribute("aria-pressed", "true");
+    expect(shownRound(container)).toContain("Final");
   });
 
   it("switches rounds from the pills and keeps the pressed pill selected", async () => {

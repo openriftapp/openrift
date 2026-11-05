@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { InfoHint } from "@/components/ui/info-hint";
+import { StatFigure } from "@/components/ui/stat-figure";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { SECTION_SCROLL_MARGIN } from "@/features/decks/components/deck-overview-tabs";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
@@ -61,10 +62,7 @@ function RateStrip({ items }: { items: RateItem[] }) {
               { label: m.decks_odds_going_first(), value: item.first },
               { label: m.decks_odds_going_second(), value: item.second },
             ].map((rate) => (
-              <div key={rate.label} className="flex flex-col">
-                <span className="font-heading text-lg font-bold tabular-nums">{rate.value}</span>
-                <span className="text-muted-foreground text-xs">{rate.label}</span>
-              </div>
+              <StatFigure key={rate.label} value={rate.value} label={rate.label} />
             ))}
           </div>
         </div>
@@ -244,9 +242,7 @@ export function DeckStatsBand({
         stacks={stats.energyCurveStacks}
         average={stats.averageEnergy}
         singleColor
-        footnote={
-          coarsePointer ? m.decks_stats_footnote_energy_touch() : m.decks_stats_footnote_energy()
-        }
+        footnote={coarsePointer ? m.decks_stats_about_hint_touch() : m.decks_stats_about_hint()}
         showTotals
         onBarClick={(value) => applyStatsFocus({ kind: "energy", value })}
         focusValue={statsFocus?.kind === "energy" ? statsFocus.value : null}

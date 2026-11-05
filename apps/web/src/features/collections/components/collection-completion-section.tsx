@@ -18,6 +18,7 @@ import {
   computeCompletion,
   filterByScope,
 } from "@/features/collections/hooks/use-collection-stats";
+import { formatOverallCompletion } from "@/features/collections/lib/completion-percent";
 import { omitZeroCompletion } from "@/features/collections/lib/completion-visibility";
 import type { CompletionCountMode, CompletionGroupBy } from "@/features/collections/lib/stat-types";
 import { buildMissingSearch } from "@/features/collections/lib/stats-missing-search";
@@ -44,7 +45,7 @@ function CompletionTotalRow({ entries }: { entries: CompletionEntry[] }) {
           {formatCount(totalOwned)} / {formatCount(totalAll)}
         </span>
         <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums">
-          {percent.toFixed(1)}%
+          {formatOverallCompletion(totalOwned, totalAll)}
         </span>
         <span className="w-3.5 shrink-0" />
       </div>

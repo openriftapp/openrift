@@ -174,7 +174,7 @@ export function DeckImportPreviewStep({
       </PageTopBarSticky>
       <ImportPreviewStack className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
         <PageDescription>
-          {m.decks_import_entries_count({ count: matchedEntries.length })} &middot;{" "}
+          {m.decks_import_entries_count({ count: importableCount })} &middot;{" "}
           {m.common_cards({ count: totalCards })}
           {sourceNote ? ` (${sourceNote})` : null}
         </PageDescription>

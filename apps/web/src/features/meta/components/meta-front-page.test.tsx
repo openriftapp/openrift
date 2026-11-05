@@ -496,7 +496,7 @@ describe("MetaFrontPage", () => {
 
     render(<MetaFrontPage />);
 
-    expect(screen.getByText(/Results through 30 September 2026/u)).toBeInTheDocument();
+    expect(screen.getByText(/Results through Sep 30, 2026/u)).toBeInTheDocument();
   });
 
   it("offers the ledger only once a signed-in visitor has sent something", () => {

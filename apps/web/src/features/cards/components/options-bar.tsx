@@ -398,10 +398,12 @@ function currentPathname(): string {
 
 export function MobileOptionsDrawer({
   doneLabel,
+  showReset,
   children,
   className,
 }: {
   doneLabel?: string;
+  showReset?: boolean;
   children?: ReactNode;
   className?: string;
 }) {
@@ -464,7 +466,7 @@ export function MobileOptionsDrawer({
         <DrawerHeader className="bg-popover flex-row items-center justify-between border-b px-4 pt-1 pb-2">
           <DrawerTitle>{m.cards_options()}</DrawerTitle>
           <DrawerDescription className="sr-only">{m.cards_options_description()}</DrawerDescription>
-          <DrawerResetButton />
+          {showReset && <DrawerResetButton />}
         </DrawerHeader>
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-3 pb-4">
           <LabelledRowLayoutContext value="stacked">{children}</LabelledRowLayoutContext>

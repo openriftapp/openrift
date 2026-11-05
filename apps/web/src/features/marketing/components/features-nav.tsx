@@ -230,14 +230,16 @@ export function FeaturesChipNav({ chapters }: { chapters: FeatureChapter[] }) {
               aria-current={isActive ? "true" : undefined}
               style={{ "--chip-clip": cornerClip(CHIP_CUT) } as CSSProperties}
               className={cn(
-                "flex flex-col items-center gap-1 border-b-2 px-1 py-1.5 text-xs transition-colors sm:shrink-0 sm:flex-row sm:gap-1.5 sm:border-b-0 sm:px-3 sm:text-sm sm:whitespace-nowrap sm:[clip-path:var(--chip-clip)]",
+                "flex min-w-0 flex-col items-center gap-1 border-b-2 px-1 py-1.5 text-xs transition-colors sm:shrink-0 sm:flex-row sm:gap-1.5 sm:border-b-0 sm:px-3 sm:text-sm sm:whitespace-nowrap sm:[clip-path:var(--chip-clip)]",
                 isActive
                   ? "border-border-accent text-primary sm:bg-muted sm:dark:bg-muted sm:text-foreground font-medium"
                   : "text-muted-foreground hover:text-foreground border-transparent",
               )}
             >
               <Icon className="size-4 shrink-0" />
-              <span>{chapter.title}</span>
+              <span className="max-w-full text-center break-words hyphens-auto">
+                {chapter.title}
+              </span>
             </a>
           );
         })}

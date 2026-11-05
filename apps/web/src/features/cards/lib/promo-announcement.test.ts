@@ -56,4 +56,34 @@ describe("parsePromoAnnouncement", () => {
   it("drops an impossible calendar date", () => {
     expect(parsePromoAnnouncement("Announced 2025-13-40.").date).toBeNull();
   });
+
+  it("keeps an inner quoted phrase followed by whitespace inside the quote", () => {
+    const result = parsePromoAnnouncement(
+      'Announced [2025-10-06](https://example.com/a). "Shout "Demacia" at the counter for a pack." Done.',
+    );
+    expect(result.quote).toBe('Shout "Demacia" at the counter for a pack.');
+    expect(result.note).toBe("Done.");
+  });
+
+  it("keeps quote marks in the note after the quote", () => {
+    const result = parsePromoAnnouncement(
+      'Announced 2025-10-06. "Hello." See "Summoner Skirmish" rules.',
+    );
+    expect(result.quote).toBe("Hello.");
+    expect(result.note).toBe('See "Summoner Skirmish" rules.');
+  });
+
+  it("treats an unclosed quote as part of the note", () => {
+    const result = parsePromoAnnouncement('Announced 2025-10-06. "Hello there');
+    expect(result.quote).toBeNull();
+    expect(result.note).toBe('"Hello there');
+  });
+
+  it("keeps a closing parenthesis inside the announcement URL", () => {
+    const result = parsePromoAnnouncement(
+      'Announced [2025-10-06](https://example.com/wiki/Arcane_(event)). "Hello."',
+    );
+    expect(result.url).toBe("https://example.com/wiki/Arcane_(event)");
+    expect(result.quote).toBe("Hello.");
+  });
 });

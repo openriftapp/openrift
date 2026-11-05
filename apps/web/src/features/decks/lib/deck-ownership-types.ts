@@ -51,8 +51,6 @@ export interface DeckOwnershipData {
   sideboardValueCents: number | undefined;
   asDisplayedValueCents: number | undefined;
   missingValueCents: number | undefined;
-  missingMainValueCents: number | undefined;
-  missingSideboardValueCents: number | undefined;
   missingAsDisplayedValueCents: number | undefined;
   missingCards: CardOwnership[];
 }

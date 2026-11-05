@@ -103,9 +103,18 @@ describe("defaultBracketRound", () => {
     status: "finalized" as const,
   });
 
-  it("picks the first round of a completed event", () => {
+  it("opens a completed event on its final", () => {
     const rounds = [finalized(4), finalized(5), finalized(6)];
-    expect(defaultBracketRound(buildBracketColumns(rounds, 8), rounds, true)).toBe(4);
+    expect(defaultBracketRound(buildBracketColumns(rounds, 8), rounds, true)).toBe(6);
+  });
+
+  it("opens a completed event on its final even when a round is still marked open", () => {
+    const rounds = [finalized(4), makeRound(5, [1, 2]), finalized(6)];
+    expect(defaultBracketRound(buildBracketColumns(rounds, 8), rounds, true)).toBe(6);
+  });
+
+  it("has no round to open for a completed event without a bracket", () => {
+    expect(defaultBracketRound([], [], true)).toBeUndefined();
   });
 
   it("picks the round that takes results", () => {

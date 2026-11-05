@@ -38,7 +38,7 @@ function ClampedQuote({ text }: { text: string }) {
           aria-expanded={expanded}
           onClick={() => setExpanded(!expanded)}
         >
-          {expanded ? m.promos_show_less() : m.promos_read_more()}
+          {expanded ? m.common_show_less() : m.promos_read_more()}
         </Button>
       )}
     </blockquote>

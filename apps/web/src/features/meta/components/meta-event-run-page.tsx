@@ -24,6 +24,7 @@ import { useDomainColors } from "@/hooks/use-domain-colors";
 import { bracketRoundLabel, bracketRoundShortLabel } from "@/lib/bracket-round-label";
 import { deckGlowStyle } from "@/lib/domain";
 import { formatCount } from "@/lib/format";
+import { heroStatRowClass } from "@/lib/hero-stat-row";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -307,9 +308,13 @@ export function MetaEventRunPage() {
             className="absolute inset-0"
             style={deckGlowStyle(player.legend?.domains ?? [], domainColors)}
           />
-          <MetaHeroArt imageId={player.legend?.imageId ?? null} alt={champion ?? ""} />
+          <MetaHeroArt
+            imageId={player.legend?.imageId ?? null}
+            alt={champion ?? ""}
+            fullWidthOnPhone
+          />
 
-          <div className="relative flex flex-col gap-3 p-5 pr-[45%] sm:pr-[38%]">
+          <div className="relative flex flex-col gap-3 p-4 sm:p-5 sm:pr-[38%]">
             <div className="flex flex-col gap-1">
               <Eyebrow variant="gold" as="p">
                 {player.rank === 1 ? m.meta_run_title_win() : m.meta_run_title()}
@@ -334,7 +339,7 @@ export function MetaEventRunPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-x-9 gap-y-3">
+            <div className={heroStatRowClass(record === null ? 2 : 3)}>
               <StatFigure
                 value={formatRank(player.rank, player.rankIsTier)}
                 label={m.meta_run_of_players({ count: fieldSize })}
@@ -362,7 +367,7 @@ export function MetaEventRunPage() {
                   params={{ key: player.playerKey }}
                   className={buttonVariants({ variant: "ghost" })}
                 >
-                  Every finish by {player.playerName}
+                  {m.meta_event_run_every_finish({ player: player.playerName })}
                   <ChevronRightIcon />
                 </Link>
               )}

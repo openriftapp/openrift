@@ -225,7 +225,7 @@ export function RulesSettingsSheet({ label, children }: { label: string; childre
           <Button
             type="button"
             variant="outline"
-            className="text-muted-foreground shrink-0 lg:hidden"
+            className="text-muted-foreground shrink-0 md:hidden"
           />
         }
       >
@@ -305,7 +305,7 @@ export function RulesSearchBar({
       placeholder={placeholder}
       aria-label={m.rules_search_placeholder()}
       trailing={trailing}
-      className="min-w-0 flex-1 lg:min-w-[200px]"
+      className="min-w-0 flex-1 md:min-w-[200px]"
     />
   );
 }

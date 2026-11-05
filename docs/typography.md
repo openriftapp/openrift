@@ -33,7 +33,7 @@ Everything else — body copy, buttons, form labels, inputs, tables, badges, dro
 
 One narrow exception sits above the Hero size: a **display numeral** — a single number meant to be read at a glance from across a room, not body or heading text. Two uses today: the match-tracker scorepad, where the score scales with the card from `text-4xl` up to `text-9xl` (`scoreSizeClass` in `apps/web/src/features/match-tracker/lib/match-layout.ts`), and the reference a sent scan report prints for the user to read out (`text-4xl font-bold`, `apps/web/src/features/scan/components/scan-report-page.tsx`). Display numerals carry `font-heading`. This is deliberately not a general-purpose tier: don't reach for `text-6xl`+ on ordinary headings or copy. If you have a new display-numeral case, add it here.
 
-Rank marks (`RankBand` in `apps/web/src/components/ui/rank-band.tsx`) are the one display numeral that steps down. A place of up to four characters ("12th") is `text-2xl`, five characters ("172nd") and a crowned winner are `text-lg`, and anything longer ("1234th") is `text-base`. The chip has a minimum width from its caller and grows to fit a longer place.
+Rank marks (`RankBand` in `apps/web/src/components/ui/rank-band.tsx`) are the one display numeral that steps down. A place of up to three characters ("8th") is `text-2xl`, four characters ("12th") and a crowned winner are `text-lg`, five ("172nd") is `text-base`, and anything longer ("1234th") is `text-sm`. The caller gives the chip a fixed width sized for the widest realistic place on that surface (`w-16` in finish lists), so chips line up from row to row.
 
 ## Rules
 

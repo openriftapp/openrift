@@ -179,6 +179,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
       variant="control"
       size={size}
       aria-pressed={!filters.showAll}
+      aria-label={m.meta_browser_best_per_legend_aria()}
       onClick={() => filters.setShowAll(!filters.showAll)}
     >
       {m.meta_browser_best_per_legend()}
@@ -199,6 +200,9 @@ function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
         setScope={filters.setScope}
         onPickEra={() => setEraPickerOpen(true)}
         fallback={m.meta_browser_no_match()}
+        filtered={
+          filters.events.length > 0 || filters.legends.length > 0 || filters.maxRank !== null
+        }
       />
     ) : (
       <Empty className={className}>
@@ -620,14 +624,14 @@ export function MetaDeckBrowserPage() {
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, "px-safe pt-3 pb-6")}>
-        <p className="text-muted-foreground min-h-5 text-sm tabular-nums">
+        <PageDescription className="pb-4">{m.meta_decks_page_description()}</PageDescription>
+        <p className="text-muted-foreground mb-3 min-h-lh tabular-nums">
           {count === undefined
             ? null
             : count.onPage === null
               ? `${metaShownLabel(count.matched, count.archive, "decks")} · ${m.meta_count_events({ count: count.events })}`
               : m.meta_shown_decks_page({ shown: count.onPage })}
         </p>
-        <PageDescription className="pt-2 pb-4">{m.meta_decks_page_description()}</PageDescription>
 
         {hydrated ? (
           <Suspense fallback={<MetaDeckBrowserFallback />}>

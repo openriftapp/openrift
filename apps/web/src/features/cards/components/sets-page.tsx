@@ -1,6 +1,5 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
-import { isReleased } from "@openrift/shared/set-release";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -24,11 +23,14 @@ import {
   otherReleases,
   primaryRelease,
   releaseDateText,
+  releaseStatusText,
   setsOverviewSentence,
 } from "@/features/cards/lib/set-hero-copy";
 import { useLanguageLabels } from "@/hooks/use-enums";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
+import { useDisplayStore } from "@/stores/display-store";
 
 function SetCover({ set }: { set: SetListEntry }) {
   if (set.coverImageId) {
@@ -61,29 +63,23 @@ function SetCover({ set }: { set: SetListEntry }) {
   );
 }
 
-function ReleaseDate({ set }: { set: SetListEntry }) {
+function ReleaseDate({ set, languages }: { set: SetListEntry; languages: readonly string[] }) {
   const languageLabels = useLanguageLabels();
-  const primary = primaryRelease(set.releases);
-  const others = otherReleases(set.releases);
-  const released = primary !== undefined && isReleased(primary.release);
+  const primary = primaryRelease(set.releases, languages);
+  const others = otherReleases(set.releases, languages);
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
       <span className="flex items-center gap-1.5">
         <CalendarIcon className="size-3.5 shrink-0" />
-        {primary === undefined
-          ? m.sets_release_tba()
-          : (released ? m.sets_released_on : m.sets_releases_on)({
-              date: releaseDateText(primary.release),
-            })}
+        {primary === undefined ? m.sets_release_tba() : releaseStatusText(primary.release)}
       </span>
       {others.length > 0 && (
         <Popover>
           <PopoverTrigger
             render={
               <Button
-                variant="ghost"
-                size="xs"
-                className="text-muted-foreground relative z-10 -mx-1 h-5 px-1"
+                variant="link-muted"
+                className="relative z-10 h-auto p-0 pointer-coarse:-my-3 pointer-coarse:py-3"
               />
             }
           >
@@ -123,8 +119,17 @@ function SetCounts({ set }: { set: SetListEntry }) {
   );
 }
 
+const SSR_CARD_LANGUAGES: readonly string[] = ["EN"];
+
+function useCardLanguages(): readonly string[] {
+  const hydrated = useHydrated();
+  const languages = useDisplayStore((state) => state.languages);
+  return hydrated && languages.length > 0 ? languages : SSR_CARD_LANGUAGES;
+}
+
 function HeroSetCard({ set }: { set: SetListEntry }) {
-  const upcoming = isSetUpcoming(set);
+  const languages = useCardLanguages();
+  const upcoming = isSetUpcoming(set, languages);
   return (
     <Card className={cn(cardLinkVariants(), "relative h-full flex-row gap-0 py-0")}>
       <div className="relative w-28 shrink-0 sm:w-36">
@@ -145,7 +150,7 @@ function HeroSetCard({ set }: { set: SetListEntry }) {
         </div>
         <div className="text-muted-foreground flex flex-col gap-1 text-sm">
           <SetCounts set={set} />
-          <ReleaseDate set={set} />
+          <ReleaseDate set={set} languages={languages} />
         </div>
       </div>
     </Card>

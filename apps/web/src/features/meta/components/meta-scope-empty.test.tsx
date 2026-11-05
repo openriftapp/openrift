@@ -9,7 +9,7 @@ const eras = [
   { id: "set-a", label: "Set A", from: "2026-01-01", to: "2026-05-31" },
 ];
 
-function setup(scope: { era?: string }) {
+function setup(scope: { era?: string; formats?: string[] }, filtered?: boolean) {
   const setScope = vi.fn();
   const onPickEra = vi.fn();
   render(
@@ -19,6 +19,7 @@ function setup(scope: { era?: string }) {
       setScope={setScope}
       onPickEra={onPickEra}
       fallback="Nothing here."
+      filtered={filtered}
     />,
   );
   return { setScope, onPickEra };
@@ -48,6 +49,18 @@ describe("MetaScopeEmpty", () => {
 
   it("keeps the plain sentence when the scope is all time", () => {
     setup({ era: "all" });
+    expect(screen.getByText("Nothing here.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Show all eras" })).toBeNull();
+  });
+
+  it("keeps the plain sentence when a search or filter narrows the era", () => {
+    setup({}, true);
+    expect(screen.getByText("Nothing here.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Show all eras" })).toBeNull();
+  });
+
+  it("keeps the plain sentence when a scope facet narrows the era", () => {
+    setup({ formats: ["sealed"] });
     expect(screen.getByText("Nothing here.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Show all eras" })).toBeNull();
   });

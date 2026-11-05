@@ -7,6 +7,9 @@ import { OrnamentRule } from "@/components/ui/ornament";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { cn } from "@/lib/utils";
 
+export const ZONE_ADD_STRIP_CLASS =
+  "flex h-auto min-h-9 w-full items-center justify-start gap-2 rounded-md px-2.5 py-1.5 text-left font-normal whitespace-normal sm:min-h-8";
+
 /**
  * Height is fixed so a taller trailing element can't stretch one zone's
  * header past the others.

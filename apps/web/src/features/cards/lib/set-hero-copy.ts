@@ -53,23 +53,11 @@ export function groupReleases(releases: SetReleases): ReleaseGroup[] {
   return groups;
 }
 
-function releaseWhen(release: SetRelease): string {
-  const { releasedAt, precision } = release;
-  if (releasedAt === null || precision === null) {
-    return "";
-  }
-  if (precision === "day") {
-    return m.release_when_day({ date: formatShortDayYear(releasedAt, DATE_WORDS) });
-  }
-  const year = releasedAt.slice(0, 4);
-  if (precision === "month") {
-    return m.release_when_period({ date: formatMonthYear(releasedAt, DATE_WORDS) });
-  }
-  if (precision === "quarter") {
-    const quarter = Math.floor((Number(releasedAt.slice(5, 7)) - 1) / 3) + 1;
-    return m.release_when_period({ date: `Q${quarter} ${year}` });
-  }
-  return m.release_when_period({ date: year });
+function quarterLabel(releasedAt: string): string {
+  return m.release_quarter({
+    quarter: String(Math.floor((Number(releasedAt.slice(5, 7)) - 1) / 3) + 1),
+    year: releasedAt.slice(0, 4),
+  });
 }
 
 export function releaseDateText(release: SetRelease): string {
@@ -83,11 +71,29 @@ export function releaseDateText(release: SetRelease): string {
   if (precision === "month") {
     return formatMonthYear(releasedAt, DATE_WORDS);
   }
-  const year = releasedAt.slice(0, 4);
   if (precision === "quarter") {
-    return `Q${Math.floor((Number(releasedAt.slice(5, 7)) - 1) / 3) + 1} ${year}`;
+    return quarterLabel(releasedAt);
   }
-  return year;
+  return releasedAt.slice(0, 4);
+}
+
+function releaseWhen(release: SetRelease): string {
+  if (release.releasedAt === null || release.precision === null) {
+    return "";
+  }
+  const date = releaseDateText(release);
+  return release.precision === "day"
+    ? m.release_when_day({ date })
+    : m.release_when_period({ date });
+}
+
+export function releaseStatusText(release: SetRelease, today = todayUtc()): string {
+  const date = releaseDateText(release);
+  const released = isReleased(release, today);
+  if (release.precision === "day") {
+    return released ? m.sets_released_on({ date }) : m.sets_releases_on({ date });
+  }
+  return released ? m.sets_released_in({ date }) : m.sets_releases_in({ date });
 }
 
 export interface LanguageRelease {
@@ -106,24 +112,47 @@ function datedReleases(releases: SetReleases): LanguageRelease[] {
     );
 }
 
-export function primaryRelease(releases: SetReleases): LanguageRelease | undefined {
+export function primaryRelease(
+  releases: SetReleases,
+  languages: readonly string[] = ["EN"],
+): LanguageRelease | undefined {
   const dated = datedReleases(releases);
+  for (const language of languages) {
+    const match = dated.find((entry) => entry.language === language);
+    if (match) {
+      return match;
+    }
+  }
   return dated.find((entry) => entry.language === "EN") ?? dated.at(0);
 }
 
-export function otherReleases(releases: SetReleases): LanguageRelease[] {
-  const primary = primaryRelease(releases);
-  return datedReleases(releases).filter((entry) => entry.language !== primary?.language);
+export function otherReleases(
+  releases: SetReleases,
+  languages: readonly string[] = ["EN"],
+): LanguageRelease[] {
+  const primary = primaryRelease(releases, languages);
+  const others = datedReleases(releases).filter((entry) => entry.language !== primary?.language);
+  const allSame = others.every(
+    (entry) =>
+      entry.release.releasedAt === primary?.release.releasedAt &&
+      entry.release.precision === primary?.release.precision,
+  );
+  return allSame ? [] : others;
 }
 
 export function isSetUpcoming(
   set: Pick<SetListEntry, "cardCount" | "releases">,
+  languages: readonly string[] = ["EN"],
   today = todayUtc(),
 ): boolean {
-  if (set.cardCount === 0) {
-    return true;
+  const own = datedReleases(set.releases).filter((entry) => languages.includes(entry.language));
+  if (own.length > 0) {
+    return !own.some((entry) => isReleased(entry.release, today));
   }
-  return primaryRelease(set.releases) !== undefined && !isReleasedAnywhere(set.releases, today);
+  if (isReleasedAnywhere(set.releases, today)) {
+    return false;
+  }
+  return primaryRelease(set.releases) !== undefined || set.cardCount === 0;
 }
 
 function listFormat(items: string[]): string {

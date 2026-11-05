@@ -6,43 +6,49 @@
 
 - feat(App): **Phone menu shows every page** — the slide-out menu lists the Play, Organize and Explore pages open in two columns, so nothing hides behind a collapsed heading.
 - feat(Decks): **Decks fit on phones** — shared, meta and your own decks stack their zones on a phone, with stats on their own tab and view settings behind one button.
-- feat(Decks): **Phone deck editor at a glance** — the editor opens as a list on phones with a stats summary on top, and grid cards get their count buttons above the card.
-- fix(App): **Header fits on tablets** — the top bar no longer runs off the screen edge on tablets, where Groups now sits under More, phones find Help and Contribute in the three-dot menu, and the sign-in pages drop the extra Sign in button.
+- feat(Decks): **Phone deck editor at a glance** — the editor opens as a list on phones with a stats summary on top, and touch screens always show the count buttons.
+- fix(App): **Header fits on tablets** — the top bar no longer runs off the screen on tablets, and Help and Contribute move into the account menu when space runs short.
 - fix(Decks): **Replace-import shows the new cards** — importing a list over a deck now shows its cards right away instead of an empty deck until you reload.
 
 ### Other
 
-- feat(App): **Section headings in the display face** — the small uppercase section labels across the app now use the same heading font as page titles.
-- feat(App): **Quieter rank chips** — standings, finish lists and brackets mark the top three with tinted chips and keep the crown on 1st, and event standings on phones now line up with the rest of the page.
-- feat(Cards): **Roomier phone filter drawer** — filters use the full width, extra sets fold away until you need them, and Reset stays at the top.
-- feat(Cards): **Tidier promo groups** — each promo group shows when it was announced, such as "Announced Oct 6, 2025", with a link to the announcement, and the quoted text folds to two lines with a Read more toggle, and the per-card Promo pill is gone.
-- feat(Rules): **Compact rules toolbar on phones** — version, language and changes now sit behind one button, so the pinned toolbar is a single row and the rules start higher on the page.
-- feat(Decks): **Clearer deck import preview** — the preview shows entry and card counts under the title, lists deck value and the cost of missing cards as labelled rows, and insets the row dividers.
-- feat(Decks): **Clearer deck stats** — the turn-1 and curve-out odds are labelled going first and going second, the Energy, Power and Types charts share one bar color with a count per bar, and touch screens say tap.
-- feat(Decks): **Compact deck intro** — the new-deck intro is now a short title row with the four steps in a grid and a link to the full guide.
+- feat(App): **Section headings in the display face** — section labels across the app, settings groups and the phone menu included, now use the heading font of page titles.
+- feat(App): **Rank chips line up** — standings, finish lists and brackets mark the top three with tinted chips, keep the crown on 1st and line up from row to row.
+- feat(App): **Plainer locked pages** — pages that need an account no longer carry a lock icon in the menus, and the sign-in pages drop the extra Sign in button.
+- feat(Cards): **Roomier phone filter drawer** — filters use the full width, extra sets fold away until you need them, and range filters show their values while you drag.
+- feat(Cards): **Tidier promo groups** — each promo group shows when it was announced, such as "Announced Oct 6, 2025", and its quote folds to two lines behind Read more.
+- feat(Cards): **Clearer set cards** — each set shows one release date such as "Released Oct 31, 2025", other dates behind "+N languages", and upcoming sets are marked.
+- feat(Cards): **Sign in from a card page** — the sign-up panel on a card page now has a Sign in link for players who already have an account.
+- feat(Collection): **Collection welcome note** — the note on your collection has a title, a link to the full guide, and says tap or click to match your device.
+- feat(Rules): **Compact rules toolbar** — on phones and small tablets, version, language and changes sit behind one button, and version notes start folded.
+- feat(Decks): **Clearer deck import preview** — the preview counts the entries and cards it will import and lists deck value and the cost of missing cards as labelled rows.
+- feat(Decks): **Clearer deck stats** — the turn-1 and curve-out odds are labelled going first and going second, and the charts share one bar color with a count per bar.
+- feat(Decks): **Deck builder intro** — the new-deck intro lists the four steps in a grid and links to the full guide.
+- feat(Decks): **Deck zone list redesign** — rows show a thin domain stripe with the count controls at the end, card types get headings, and every zone ends in one slim add strip.
+- feat(Decks): **Compact deck rows on phones** — each deck on the Decks page is now a short row with a small legend thumbnail, name, counts, format and last update.
 - feat(Meta): **Compact archived decks toolbar** — on phones, filters, sort and layout share one row with the active filters below it, so the first decks show sooner.
-- feat(Meta): **Era filter names the era** — the era filter now reads "Era: Origins" or "All eras", so the active scope is clear at a glance.
-- feat(Packs): **Pack opener options** — Foil shimmer and Auto-reveal are switch rows above the Open button on every screen, Language and Packs share a row on phones, and the reveal hint says "Tap a card" on touch screens.
-- feat(Decks): **Deck zone list redesign** — rows show a thin domain stripe with the count controls at the end, card types get their own headings, every zone you fill by hand ends in the same slim add strip, and on phones the zones open as a full-width sheet.
-- feat(Decks): **Compact deck rows on phones** — each deck on the Decks page is now a short row with a small legend thumbnail, name, legend, card counts, format and last update, so several decks fit on one screen.
-- feat(Cards): **Clearer set cards** — each set shows one short release date such as "Oct 31, 2025" with the other languages behind a "+N languages" button, upcoming sets are marked, and sets without art get a code tile.
-- feat(Meta): **Empty eras explain themselves** — when the selected era has no results on file, the archive, events, legends and archived decks pages say so and offer "Show all eras" or "Pick an era", which opens the era filter.
+- feat(Meta): **Era filter names the era** — the era filter reads "Era: Origins" or "All eras" on every screen, and on phones "Pick an era" opens the era list directly.
+- feat(Meta): **Empty eras explain themselves** — when the era has no results on file, the archive, events, legends and archived decks pages say so and offer "Show all eras".
+- feat(Packs): **Pack opener options** — Foil shimmer and Auto-reveal are switch rows above the Open button, and the reveal hint says "Tap a card" on touch screens.
+- feat(Trades): **Trade counts as pills** — trade tabs hint that they scroll sideways, and the counts on tabs, buy filters and people filters show as pills.
 - fix(App): **Landing page fits phones** — the feature sections no longer cut off their text, and the scanner preview keeps each card's status and price inside the frame.
 - fix(App): **Page titles no longer cut short** — page titles in the top bar, such as Statistics or Zones, show in full on phones and only shorten when the buttons beside them need the room.
-- fix(App): **Changelog reads better on phones** — each day gets a short heading such as "Nov 4", the type and area tags sit above the entry text, and code snippets no longer split across lines.
-- fix(App): **Chapter tabs fit on phones** — the five chapter tabs on the features page now share the width with an icon above each label, and no tab shows as current until you reach its chapter.
+- fix(App): **Changelog reads better on phones** — each day gets a short heading such as "Nov 4", the tags sit above the entry text, and code snippets no longer split across lines.
+- fix(App): **Chapter tabs fit on phones** — the five chapter tabs on the features page share the width with an icon above each label, and none shows as current until you reach it.
 - fix(App): **Counts read "1 card"** — counts of one no longer say "1 cards", and on touch screens the lending page says to press and hold a card instead of right-clicking it.
-- fix(Account): **Cleaner phone sign-in** — on a phone the sign-in and sign-up forms sit directly on the page without a card frame, and the sign-in button now says "Sign in".
+- fix(Account): **Cleaner phone sign-in** — on a phone the sign-in and sign-up forms sit directly on the page without a card frame, and the button now says "Sign in".
 - fix(Cards): **Search syntax on phones** — example queries no longer break across lines, and the section list is a row of tappable pills.
 - fix(Cards): **Promos page side-scroll** — the promos page no longer scrolls a few pixels sideways on phones.
-- fix(Cards): **Tidier price rows and chart** — marketplace names and prices now line up in a column, and the price chart shows short dates such as "Oct 6" that fit a phone, keeps its last date inside the chart and labels the current price at the end of the line.
-- fix(Collection): **Tidier collection header on phones** — the title and value no longer get cut off, Scan shows once, and the welcome note is one line with a link to the full guide.
-- fix(Collection): **Readable stats page on phones** — the filters fold into one button, completion rows show the name, count and percent above a full-width bar, sets you own nothing of are hidden, and the page no longer scrolls sideways.
+- fix(Cards): **Tidier price rows and chart** — prices line up in a column, and the chart uses short dates such as "Oct 6", adds the year across years and labels the current price.
+- fix(Collection): **Tidier collection header on phones** — the title and value no longer get cut off, Scan shows once, and the card count beside the value is always your own.
+- fix(Collection): **Readable stats page on phones** — filters open in a bottom sheet that names the picked collection, completion rows show a full-width bar, and empty groups are hidden.
 - fix(Decks): **Deck view controls on tablets** — the sort, view and options controls sit on their own row under the tabs, so the deck page no longer scrolls sideways.
 - fix(Decks): **Gear group label** — deck type groups and stats now say "Gear" instead of "Gears".
-- fix(Decks): **Deck card search fits on phones** — the search field keeps its full placeholder, the card count sits under it and Highlight owned is a compact icon button.
-- fix(Meta): **Event search placeholder fits on phones** — the archived-event count now sits under the search field on narrow screens instead of cutting off the placeholder.
-- fix(Tournaments): **Readable top-cut bracket on phones** — the report page lists one round at a time with full player names and scores, and a completed event no longer asks for games won or offers result edits.
+- fix(Decks): **Deck card search fits on phones** — the search field keeps its full placeholder, the card count sits under it, and Highlight owned is a compact icon button.
+- fix(Meta): **Meta headers fit phones** — the legend, player and event headers use the full card width on phones, with the art behind the text and the counts in an aligned grid.
+- fix(Meta): **Shown counts in one place** — the "N of M shown" line sits above the filters on the archived decks, legends and events pages alike.
+- fix(Groups): **Tidier shared profiles** — the avatar, name, stats and copy-link button sit together in one card, and the profile settings name each section once.
+- fix(Tournaments): **Readable top-cut bracket on phones** — the report page lists one round at a time with full names and scores, opening on the final once the event is done.
 
 ## 2026-11-04
 
@@ -52,8 +58,6 @@
 
 ### Other
 
-- fix(Meta): **Meta headers fit phones** — the legend and player headers uses the full card width on phones, with the art fading behind the text and the three counts in one aligned row. The player header hides an empty decklists count.
-- fix(Groups): **Tidier shared profiles** — a profile without a banner no longer shows an empty block, and the avatar, name, stats and copy-link button now sit together in one card.
 - fix(Collection): **Scanner search shows your languages** — searching for a card the scanner missed lists only printings in your languages and marks each row's language when you read several.
 
 ## 2026-11-03

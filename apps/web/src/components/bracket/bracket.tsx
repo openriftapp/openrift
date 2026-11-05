@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 
 const FINAL_GLOW = accentGlow(12);
 
+const MARK_SLOT = "flex h-11 w-16 shrink-0 items-center justify-center";
+
 export function BracketColumns({
   columnCount,
   children,
@@ -87,11 +89,11 @@ export function BracketSeatRow({
         winner ? "font-semibold" : "text-muted-foreground",
       )}
     >
-      {mark ?? <span className="w-14 shrink-0" />}
+      {mark ?? <span className={MARK_SLOT} />}
       <div className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5">
         <span className="min-w-0 flex-1 truncate">{name}</span>
         {children}
-        <span className="font-heading w-6 text-right tabular-nums">{score}</span>
+        <span className="w-6 text-right tabular-nums">{score}</span>
       </div>
     </div>
   );
@@ -99,23 +101,21 @@ export function BracketSeatRow({
 
 export function BracketRankMark({ rank, text }: { rank: number; text: string }) {
   return (
-    <span className="flex min-w-14 shrink-0 items-center justify-center py-1.5">
-      <RankBand rank={rank} text={text} crownOnly className="min-w-11" />
+    <span className={MARK_SLOT}>
+      <RankBand rank={rank} text={text} crownOnly className="w-14" />
     </span>
   );
 }
 
 export function BracketSeedMark({ children }: { children: ReactNode }) {
-  return <span className="flex w-14 shrink-0 items-center justify-center">{children}</span>;
+  return <span className={MARK_SLOT}>{children}</span>;
 }
 
 export function BracketEmptySeat({ children }: { children: ReactNode }) {
   return (
-    <div
-      data-slot="bracket-seat"
-      className="text-muted-foreground flex items-center px-3 py-2.5 text-sm not-last:border-b"
-    >
-      {children}
+    <div data-slot="bracket-seat" className="text-muted-foreground flex text-sm not-last:border-b">
+      <span className={MARK_SLOT} />
+      <span className="flex min-w-0 flex-1 items-center px-3 py-2.5">{children}</span>
     </div>
   );
 }

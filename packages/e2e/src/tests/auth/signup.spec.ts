@@ -54,8 +54,6 @@ test.describe("signup page", () => {
     test("has a sign-in link pointing to /login", async ({ page }) => {
       await page.goto("/signup");
 
-      // The header also has a "Sign in" link; scope to the body form's
-      // "Already have an account? Sign in" link.
       const signInLink = page
         .getByText(/Already have an account/iu)
         .getByRole("link", { name: /sign in/iu });
@@ -123,7 +121,6 @@ test.describe("signup page", () => {
       const typed = `typed-${Date.now()}@test.com`;
       await page.getByLabel("Email").fill(typed);
 
-      // Scope to the body form link; the header "Sign in" doesn't carry params.
       const signInLink = page
         .getByText(/Already have an account/iu)
         .getByRole("link", { name: /sign in/iu });
@@ -139,7 +136,6 @@ test.describe("signup page", () => {
       await page.goto("/signup?redirect=%2Fcards");
       await waitForHydration(page);
 
-      // Scope to the body form link; the header "Sign in" doesn't carry params.
       const signInLink = page
         .getByText(/Already have an account/iu)
         .getByRole("link", { name: /sign in/iu });

@@ -3,8 +3,13 @@ import type { Virtualizer } from "@tanstack/react-virtual";
 import { useScrollIndicator } from "@/features/cards/hooks/use-scroll-indicator";
 import type { VRow } from "@/features/cards/lib/card-grid-types";
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
-import { STICKY_SURFACE, STICKY_SURFACE_POPOVER } from "@/lib/sticky-surface";
+import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import { cn } from "@/lib/utils";
+
+const INDICATOR_CHIP = cn(
+  STICKY_SURFACE,
+  "inline-flex items-center rounded-lg font-mono font-medium whitespace-nowrap ring-1 select-none",
+);
 
 interface ScrollIndicatorProps {
   virtualRows: VRow[];
@@ -98,8 +103,8 @@ export function ScrollIndicator({
           <div
             ref={badgeRef}
             className={cn(
-              STICKY_SURFACE,
-              "font-heading inline-flex items-center rounded-lg font-semibold tracking-wide whitespace-nowrap shadow-sm ring-1 select-none",
+              INDICATOR_CHIP,
+              "shadow-sm",
               coarsePointer ? "px-4 py-1.5 text-sm" : "px-3.5 py-1 text-sm",
               indicator.dragging ? "ring-primary cursor-grabbing" : "ring-border/70 cursor-grab",
             )}
@@ -136,8 +141,8 @@ export function ScrollIndicator({
             <div className="flex items-center gap-1.5">
               <div
                 className={cn(
-                  STICKY_SURFACE_POPOVER,
-                  "text-popover-foreground/70 ring-border/50 rounded-md font-mono font-medium whitespace-nowrap ring-1 select-none",
+                  INDICATOR_CHIP,
+                  "text-muted-foreground ring-border/50",
                   coarsePointer ? "px-3 py-1.5 text-sm" : "px-2.5 py-1 text-xs",
                 )}
               >

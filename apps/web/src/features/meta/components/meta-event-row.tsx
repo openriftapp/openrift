@@ -59,7 +59,7 @@ export function MetaFinishRow({
         text={formatRank(finish.rank, finish.rankIsTier)}
         filled={false}
         crownOnly
-        className="min-w-12 shrink-0"
+        className="w-14 shrink-0"
       />
       {showArt && (
         <CardArtThumb

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { createContext, use } from "react";
 
+import { SectionHeading } from "@/components/ui/section-heading";
 import { cn } from "@/lib/utils";
 
 export const LabelledRowLayoutContext = createContext<"inline" | "stacked">("inline");
@@ -23,14 +24,9 @@ export function LabelledRow({
     return (
       <div data-slot="labelled-row" className={cn("flex min-w-0 flex-col gap-1.5", className)}>
         <div className="flex min-h-5 items-center justify-between gap-2">
-          <p
-            className={cn(
-              "text-muted-foreground text-xs font-medium tracking-wide uppercase",
-              labelClassName,
-            )}
-          >
+          <SectionHeading as="h3" className={labelClassName}>
             {label}
-          </p>
+          </SectionHeading>
           {aside}
         </div>
         {children}

@@ -88,7 +88,6 @@ import { useDeckOverviewViewStore } from "@/features/decks/stores/deck-overview-
 import { useChampionIdentifierTags, useEnumOrders } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { useSmUp } from "@/hooks/use-sm-up";
 import { m } from "@/paraglide/messages.js";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 
@@ -202,9 +201,7 @@ export function DeckOverview({
   // or a stored "list" pref flips the tree after hydration and trips a mismatch.
   const hydrated = useHydrated();
   const homeCollection = useHomeCollection(deck.collectionId);
-  const isMobile = useIsMobile();
-  const smUp = useSmUp();
-  const phone = !smUp;
+  const phone = useIsMobile();
   const storedDisplayMode = useDeckOverviewViewStore((state) => state.displayMode);
   const displayModePicked = useDeckOverviewViewStore((state) => state.displayModePicked);
   const storedColumns = useDeckOverviewViewStore((state) => state.columns);
@@ -628,7 +625,7 @@ export function DeckOverview({
         />
       )}
 
-      {showOverviewContent && !isMobile && (
+      {showOverviewContent && !phone && (
         <DeckStatsBand
           cards={cards}
           stats={stats}
@@ -725,7 +722,7 @@ export function DeckOverview({
         </div>
       )}
 
-      {((showOverviewContent && isMobile && !phone) || activeTab === "stats") && (
+      {activeTab === "stats" && (
         <DeckStatsBand
           cards={cards}
           stats={stats}
@@ -736,8 +733,7 @@ export function DeckOverview({
           enumOrders={enumOrders}
           statsFocus={statsFocus}
           applyStatsFocus={applyStatsFocus}
-          statsOpen={activeTab === "stats" || statsOpen}
-          onStatsOpenChange={activeTab === "stats" ? undefined : setStatsOpen}
+          statsOpen
         />
       )}
     </div>

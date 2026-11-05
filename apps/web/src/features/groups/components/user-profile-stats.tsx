@@ -5,6 +5,7 @@ import type { ComponentType, SVGProps } from "react";
 import { StatFigure } from "@/components/ui/stat-figure";
 import { bestFinishHint, contributionsHint } from "@/features/groups/lib/user-profile-copy";
 import { formatCount } from "@/lib/format";
+import { heroStatRowClass } from "@/lib/hero-stat-row";
 import { m } from "@/paraglide/messages.js";
 
 interface StatEntry {
@@ -69,7 +70,7 @@ export function UserProfileStats({ stats }: { stats: PublicUserProfileStats }) {
     );
   }
   return (
-    <div className="flex flex-wrap gap-x-10 gap-y-4">
+    <div className={heroStatRowClass(entries.length)}>
       {entries.map((entry) => (
         <StatFigure
           key={entry.key}

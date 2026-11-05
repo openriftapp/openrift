@@ -1,8 +1,8 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { matchesCardQuery } from "@openrift/shared/card-search";
 import { Link } from "@tanstack/react-router";
-import { ChevronLeftIcon, ChevronRightIcon, ShoppingCartIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ShoppingCartIcon } from "lucide-react";
+import { useState } from "react";
 
 import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ import { CardThumbnail } from "@/features/cards/components/card-thumbnail";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
+import { ScrollFadeStrip } from "@/features/groups/components/scroll-fade-strip";
 import {
   HiddenSuggestions,
   PeopleFilter,
@@ -132,56 +133,6 @@ function BuyAllCallout({
         </Button>
       )}
     </Callout>
-  );
-}
-
-function ScrollFadeStrip({ children }: { children: React.ReactNode }) {
-  const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
-  const [edges, setEdges] = useState({ start: false, end: false });
-
-  useEffect(() => {
-    if (!scroller) {
-      return;
-    }
-    const update = () => {
-      const maxScroll = scroller.scrollWidth - scroller.clientWidth;
-      setEdges({ start: scroller.scrollLeft > 1, end: scroller.scrollLeft < maxScroll - 1 });
-    };
-    update();
-    scroller.addEventListener("scroll", update, { passive: true });
-    const observer = new ResizeObserver(update);
-    observer.observe(scroller);
-    if (scroller.firstElementChild) {
-      observer.observe(scroller.firstElementChild);
-    }
-    return () => {
-      scroller.removeEventListener("scroll", update);
-      observer.disconnect();
-    };
-  }, [scroller]);
-
-  return (
-    <div className="relative shadow-[inset_0_-1px_0_var(--color-border)]">
-      <div ref={setScroller} className="no-scrollbar overflow-x-auto pb-px">
-        {children}
-      </div>
-      {edges.start ? (
-        <div
-          aria-hidden="true"
-          className="from-background pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center bg-linear-to-r to-transparent"
-        >
-          <ChevronLeftIcon className="text-muted-foreground size-4" />
-        </div>
-      ) : null}
-      {edges.end ? (
-        <div
-          aria-hidden="true"
-          className="from-background pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-linear-to-l to-transparent"
-        >
-          <ChevronRightIcon className="text-muted-foreground size-4" />
-        </div>
-      ) : null}
-    </div>
   );
 }
 

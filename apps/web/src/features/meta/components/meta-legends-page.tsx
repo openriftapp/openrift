@@ -64,7 +64,7 @@ function Rank({ rank, rankIsTier }: { rank: number; rankIsTier: boolean }) {
       rank={rank}
       text={formatRank(rank, rankIsTier)}
       filled={false}
-      className="min-w-16 shrink-0"
+      className="w-16 shrink-0"
     />
   );
 }
@@ -262,10 +262,10 @@ export function MetaLegendsPage() {
       </PageTopBarSticky>
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe pt-3 pb-6")}>
-        <p className="text-muted-foreground pb-1 tabular-nums">
+        <PageDescription className="pb-4">{m.meta_legends_page_description()}</PageDescription>
+        <p className="text-muted-foreground mb-3 min-h-lh tabular-nums">
           {metaShownLabel(entries.length, data.archiveTotal, "legends")}
         </p>
-        <PageDescription className="pb-4">{m.meta_legends_page_description()}</PageDescription>
 
         {data.archiveTotal === 0 ? (
           <EmptyState
@@ -297,6 +297,7 @@ export function MetaLegendsPage() {
                   setScope={setScope}
                   onPickEra={() => setEraPickerOpen(true)}
                   fallback={m.meta_legends_no_match()}
+                  filtered={(search.q ?? "").trim() !== ""}
                 />
               ) : (
                 <RowList className="flex flex-col">

@@ -156,7 +156,7 @@ export function MetaEventsPage() {
           />
         ) : (
           <>
-            <p className="text-muted-foreground mb-3 tabular-nums">
+            <p className="text-muted-foreground mb-3 min-h-lh tabular-nums">
               {metaShownLabel(matched, counts.totalEvents, "events")}
             </p>
             <MetaScopeBar
@@ -235,6 +235,13 @@ export function MetaEventsPage() {
                   setScope={setScope}
                   onPickEra={() => setEraPickerOpen(true)}
                   fallback={matched === 0 ? m.meta_events_no_match() : m.meta_page_past_end()}
+                  filtered={
+                    matched > 0 ||
+                    (search.q ?? "").trim() !== "" ||
+                    narrowed !== undefined ||
+                    search.playersMin !== undefined ||
+                    search.playersMax !== undefined
+                  }
                 />
               ) : (
                 <EventList key={listKey} events={events} />

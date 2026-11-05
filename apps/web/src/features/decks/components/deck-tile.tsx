@@ -277,7 +277,7 @@ export function DeckTile({
       </div>
 
       {variantToggle && (
-        <div className="bg-background/60 absolute top-2 left-2 z-10 rounded-md backdrop-blur-sm">
+        <div className="bg-background/60 absolute top-2 left-2 z-10 rounded-md backdrop-blur-sm max-sm:hidden">
           {variantToggle}
         </div>
       )}
@@ -385,6 +385,7 @@ export function DeckTile({
         </div>
 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:hidden">
+          {variantToggle}
           {isLocal && <LocalDeckBadge className="text-2xs" />}
           <DeckFormatBadge
             format={deck.format}

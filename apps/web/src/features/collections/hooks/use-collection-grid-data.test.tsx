@@ -96,3 +96,19 @@ describe("useCollectionGridData deferred grid", () => {
     expect(result.current.sortedCards).toBe(SORTED);
   });
 });
+
+describe("useCollectionGridData owned count", () => {
+  it("reports the collection's own card count in library mode", () => {
+    const { result } = renderHook(() => useCollectionGridData({ ...params(), showLibrary: true }));
+
+    expect(result.current.totalUniqueCards).toBe(0);
+    expect(result.current.ownedUniqueCards).toBe(SORTED.length);
+  });
+
+  it("matches the collection count outside library mode", () => {
+    const { result } = renderHook(() => useCollectionGridData(params()));
+
+    expect(result.current.ownedUniqueCards).toBe(SORTED.length);
+    expect(result.current.totalUniqueCards).toBe(SORTED.length);
+  });
+});

@@ -61,6 +61,7 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SectionHeading } from "@/components/ui/section-heading";
 import {
   Sheet,
   SheetClose,
@@ -521,14 +522,15 @@ function UserMenuItems({
   );
 }
 
-// Signing in from one of these bounces through an auth page or the marketing
-// page, so they carry no redirect and fall through to the post-sign-in default.
+// The header hides its Sign in button on these pages.
 const AUTH_PAGES: ReadonlySet<string> = new Set([
   "/login",
   "/signup",
   "/reset-password",
   "/verify-email",
 ]);
+// Signing in from one of these bounces through an auth page or the marketing
+// page, so they carry no redirect and fall through to the post-sign-in default.
 const NO_SIGN_IN_REDIRECT: ReadonlySet<string> = new Set(["/", ...AUTH_PAGES]);
 
 export function showsSignInButton(pathname: string): boolean {
@@ -660,9 +662,9 @@ function MobileNavSection({
 }) {
   return (
     <section className="mt-2">
-      <h3 className="text-muted-foreground px-3 pb-1 text-xs font-medium tracking-wide uppercase">
+      <SectionHeading as="h3" className="px-3 pb-1">
         {section.label}
-      </h3>
+      </SectionHeading>
       <div className="grid grid-cols-2 gap-1">
         {section.items.map((item) => (
           <MobileNavItem
@@ -749,7 +751,7 @@ function MobileNav({
           >
             <BrandGlyph icon={siDiscord} fallback={ExternalLinkIcon} />
             {m.layout_header_join_discord()}
-          </a>{" "}
+          </a>
         </SheetFooter>
       </SheetContent>
     </Sheet>
@@ -944,7 +946,7 @@ function HeaderSearchButton() {
       className="text-muted-foreground gap-1.5"
     >
       <SearchIcon className="size-4" />
-      <span className="hidden lg:inline">{m.layout_header_search()}</span>
+      <span className="hidden xl:inline">{m.layout_header_search()}</span>
       <Kbd className="hidden xl:inline-flex">Ctrl K</Kbd>
     </Button>
   );

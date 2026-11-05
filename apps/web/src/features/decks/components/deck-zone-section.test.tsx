@@ -82,10 +82,23 @@ describe("DeckZoneSection", () => {
     expect(onActivate).not.toHaveBeenCalled();
   });
 
-  it("shows the rune auto-fill hint as plain text with no add strip", () => {
-    renderSection({ zone: "runes" });
-    expect(screen.getByText("Auto-fills from your Legend").closest("button")).toBeNull();
-    expect(screen.queryByRole("button", { name: /Auto-fills/u })).toBeNull();
+  it("shows the rune auto-fill hint on the add strip of an empty runes zone", () => {
+    const onActivate = vi.fn();
+    renderSection({ zone: "runes", onActivate });
+    fireEvent.click(screen.getByRole("button", { name: "Auto-fills from your Legend" }));
+    expect(onActivate).toHaveBeenCalledOnce();
+  });
+
+  it("swaps the rune hint for an add strip once runes are in", () => {
+    const onAdd = vi.fn();
+    renderSection({
+      zone: "runes",
+      cards: [stubDeckBuilderCard({ cardName: "Fury Rune", cardType: "rune", quantity: 6 })],
+      onAdd,
+    });
+    expect(screen.queryByText("Auto-fills from your Legend")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Add runes" }));
+    expect(onAdd).toHaveBeenCalledOnce();
   });
 
   it("labels the gear group without a plural s", () => {

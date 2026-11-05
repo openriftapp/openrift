@@ -26,8 +26,8 @@ import {
   PORTRAIT_THUMB_CLASS,
   PORTRAIT_THUMB_STYLE,
 } from "@/features/decks/lib/deck-thumb-metrics";
+import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { useSmUp } from "@/hooks/use-sm-up";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -226,8 +226,9 @@ export function ZoneThumb({
   onCardClick?: (card: CardOpenTarget) => void;
 }) {
   const isMobile = useIsMobile();
-  const smUp = useSmUp();
-  const stepAbove = !readOnly && !smUp;
+  const coarsePointer = useCoarsePointer();
+  const controlsAlwaysVisible = isMobile || coarsePointer;
+  const stepAbove = !readOnly && isMobile && STEPPER_ZONES.has(zone);
   const enableDrag = !readOnly && !isMobile && DRAG_SOURCE_ZONES.has(zone);
   const editable = !readOnly;
   const displayName = legendDisplayName({
@@ -308,7 +309,7 @@ export function ZoneThumb({
         <span
           className={cn(
             "bg-background/90 text-foreground absolute leading-tight font-medium tabular-nums",
-            editable && (isMobile ? "hidden" : "group-hover/thumb:hidden"),
+            editable && (controlsAlwaysVisible ? "hidden" : "group-hover/thumb:hidden"),
           )}
           // 11px floor: 10% of a narrow thumb would shrink below readability.
           style={{
@@ -343,7 +344,7 @@ export function ZoneThumb({
           zone={zone}
           addRoom={addRoom ?? 0}
           perCopy={copyIndex !== null && copyIndex !== undefined}
-          alwaysVisible={isMobile}
+          alwaysVisible={controlsAlwaysVisible}
         />
       )}
       {band && <OwnershipBand quantity={card.quantity} band={band} />}

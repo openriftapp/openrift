@@ -31,4 +31,12 @@ describe("rangeBadgeLabel", () => {
   it("applies the formatter to both bounds", () => {
     expect(rangeBadgeLabel(2, 4, 0, 10, (value) => `$${value}`)).toBe("$2–$4");
   });
+
+  it("labels a NONE lower bound with an open upper bound", () => {
+    expect(rangeBadgeLabel(NONE, null, NONE, 10)).toBe("≥None");
+  });
+
+  it("labels a NONE upper bound of a closed range", () => {
+    expect(rangeBadgeLabel(2, NONE, 0, 10)).toBe("2–None");
+  });
 });

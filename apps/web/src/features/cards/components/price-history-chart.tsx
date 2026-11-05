@@ -1,4 +1,4 @@
-import { formatDay } from "@openrift/shared/format-date";
+import { formatShortDayYear } from "@openrift/shared/format-date";
 import type { AnySnapshot } from "@openrift/shared/types/api/pricing";
 import type { Marketplace, TimeRange } from "@openrift/shared/types/pricing";
 import { CircleXIcon } from "lucide-react";
@@ -24,9 +24,12 @@ import { TIME_RANGES, timeRangeLabel } from "@/features/cards/lib/price-history-
 import { priceHistoryPoint } from "@/features/cards/lib/price-history-points";
 import {
   formatTickDate,
+  lastValueLabelPosition,
   lastValuePoint,
+  spansYears,
   tickAnchor,
 } from "@/features/cards/lib/price-history-ticks";
+import { DATE_WORDS } from "@/lib/date-words";
 import { formatterForMarketplace } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 
@@ -99,6 +102,7 @@ export function PriceHistoryChart({
   const snapshots = rawSnapshots.map((s) => priceHistoryPoint(s));
 
   const lastPoint = lastValuePoint(snapshots);
+  const tickWithYear = spansYears(snapshots);
   const hasLow = snapshots.some((s) => s.low !== null);
   const chartConfig = buildChartConfig(source);
 
@@ -193,9 +197,10 @@ export function PriceHistoryChart({
                   className="fill-muted-foreground"
                   textAnchor={tickAnchor(props.index, props.visibleTicksCount)}
                 >
-                  {formatTickDate(props.payload.value)}
+                  {formatTickDate(props.payload.value, tickWithYear)}
                 </text>
               )}
+              tickFormatter={(value: string) => formatTickDate(value, tickWithYear)}
               interval="preserveStartEnd"
               minTickGap={24}
               axisLine={false}
@@ -218,7 +223,7 @@ export function PriceHistoryChart({
                       typeof point === "object" && point !== null && "date" in point
                         ? point.date
                         : undefined;
-                    return typeof date === "string" ? formatDay(date) : null;
+                    return typeof date === "string" ? formatShortDayYear(date, DATE_WORDS) : null;
                   }}
                   formatter={(value, name) =>
                     typeof value === "number" ? (
@@ -259,7 +264,7 @@ export function PriceHistoryChart({
                 strokeWidth={1.5}
                 label={{
                   value: currencyFormatter(lastPoint.value),
-                  position: "top",
+                  position: lastValueLabelPosition(snapshots, lastPoint.value),
                   offset: 6,
                   fontSize: 11,
                   fontWeight: 600,

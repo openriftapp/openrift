@@ -105,9 +105,9 @@ export function PackOpenerPage() {
   return (
     <>
       <PackOpenerHero lead={m.packs_hero_lead()}>
-        <div className="mt-3 grid w-full grid-cols-2 gap-4 md:grid-cols-3">
+        <div className="mt-3 grid w-full grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
           <SetPickerField
-            className="col-span-2 md:col-span-1"
+            className="sm:col-span-2 md:col-span-1"
             sets={mainSets}
             value={setSlug}
             onChange={(slug) => {
@@ -129,7 +129,7 @@ export function PackOpenerPage() {
             onChoiceChange={setCountChoice}
             onCustomChange={setCustomCount}
           />
-          <div className="col-span-2 flex flex-col gap-2 md:col-span-3 md:max-w-sm">
+          <div className="flex flex-col gap-2 sm:col-span-2 md:col-span-3 md:max-w-sm">
             <SwitchRow label={m.packs_toggle_shimmer()} checked={shimmer} onChange={setShimmer} />
             <SwitchRow
               label={m.packs_toggle_auto_reveal()}
@@ -339,7 +339,7 @@ function OpenAction({
   const openable = isPoolOpenable(pool);
 
   return (
-    <div className="col-span-2 md:col-span-3">
+    <div className="sm:col-span-2 md:col-span-3">
       <Button
         size="default"
         className="w-full md:w-auto"

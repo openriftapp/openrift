@@ -1,3 +1,4 @@
+import type { DeckZone } from "@openrift/shared/types/enums";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -9,7 +10,7 @@ const actions = vi.hoisted(() => ({
   setQuantity: vi.fn(),
 }));
 
-vi.mock("@/hooks/use-sm-up", () => ({ useSmUp: () => false }));
+vi.mock("@/hooks/use-is-mobile", () => ({ useIsMobile: () => true }));
 vi.mock("@/features/decks/hooks/use-deck-builder", () => ({
   useDeckBuilderActions: () => actions,
 }));
@@ -25,13 +26,13 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function renderEditableThumb(addRoom: number) {
-  const card = stubDeckBuilderCard({ cardName: "Stacked Deck", quantity: 2, zone: "main" });
+function renderEditableThumb(addRoom: number, zone: DeckZone = "main") {
+  const card = stubDeckBuilderCard({ cardName: "Stacked Deck", quantity: 2, zone });
   render(
     <ZoneThumb
       deckId="deck-1"
       card={card}
-      zone="main"
+      zone={zone}
       addRoom={addRoom}
       thumbnail="https://example.test/stacked-deck.webp"
       isLandscape={false}
@@ -55,4 +56,20 @@ describe("ZoneThumb on a phone", () => {
     const add = screen.getByRole("button", { name: "Add one copy of Stacked Deck" });
     expect((add as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it.each(["legend", "champion", "battlefield"] as const)(
+    "drops the stepper on the single-card %s zone and keeps the remove button",
+    (zone) => {
+      const card = renderEditableThumb(1, zone);
+      expect(screen.queryByRole("button", { name: "Add one copy of Stacked Deck" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Remove one copy of Stacked Deck" })).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Remove Stacked Deck" }));
+      expect(actions.setQuantity).toHaveBeenCalledWith(
+        card.cardId,
+        zone,
+        0,
+        card.preferredPrintingId,
+      );
+    },
+  );
 });

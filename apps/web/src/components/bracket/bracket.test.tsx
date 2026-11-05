@@ -83,7 +83,7 @@ describe("BracketSeatRow", () => {
   it("keeps an empty mark column when no mark is given", () => {
     render(<BracketSeatRow winner={false} name="Garen" score="–" />);
     const seat = screen.getByText("Garen").closest("[data-slot=bracket-seat]");
-    expect(seat?.firstElementChild).toHaveClass("w-14");
+    expect(seat?.firstElementChild).toHaveClass("w-16", "h-11");
     expect(seat?.firstElementChild).toBeEmptyDOMElement();
   });
 
@@ -98,11 +98,41 @@ describe("BracketSeatRow", () => {
     );
     expect(screen.getByText("1st")).toHaveClass("sr-only");
   });
+
+  it("gives place, seed and empty marks one slot size so seats line up", () => {
+    render(
+      <>
+        <BracketSeatRow
+          winner
+          mark={<BracketRankMark rank={5} text="5th" />}
+          name="Ashe"
+          score={2}
+        />
+        <BracketSeatRow
+          winner={false}
+          mark={<BracketSeedMark>#4</BracketSeedMark>}
+          name="Sett"
+          score={0}
+        />
+        <BracketSeatRow winner={false} name="Garen" score="–" />
+        <BracketEmptySeat>Winner of SF 1</BracketEmptySeat>
+      </>,
+    );
+    const slots = [...document.querySelectorAll("[data-slot=bracket-seat]")].map(
+      (seat) => seat.firstElementChild?.className,
+    );
+    expect(new Set(slots).size).toBe(1);
+    expect(slots[0]).toContain("w-16");
+    expect(slots[0]).toContain("h-11");
+    expect(document.querySelector("[data-slot=rank-band]")).toHaveClass("w-14");
+  });
 });
 
 describe("BracketEmptySeat", () => {
   it("renders its placeholder text", () => {
     render(<BracketEmptySeat>Winner of SF 1</BracketEmptySeat>);
-    expect(screen.getByText("Winner of SF 1")).toHaveClass("text-muted-foreground");
+    expect(screen.getByText("Winner of SF 1").closest("[data-slot=bracket-seat]")).toHaveClass(
+      "text-muted-foreground",
+    );
   });
 });

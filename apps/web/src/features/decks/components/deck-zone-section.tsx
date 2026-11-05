@@ -16,7 +16,7 @@ import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { DeckCardGroupHeader } from "@/features/decks/components/deck-card-group-header";
 import { DeckCardPrintingMenu } from "@/features/decks/components/deck-card-printing-menu";
 import { DeckCardRow } from "@/features/decks/components/deck-card-row";
-import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
+import { DeckZoneHeader, ZONE_ADD_STRIP_CLASS } from "@/features/decks/components/deck-zone-header";
 import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { lockedReasonText } from "@/features/decks/hooks/use-deck-ownership";
 import { useDeckZoneDrop } from "@/features/decks/hooks/use-deck-zone-drop";
@@ -325,22 +325,16 @@ export function DeckZoneSection({
           ) : (
             <div className="flex flex-col gap-0.5">{cards.map((card) => renderCardRow(card))}</div>
           )}
-          {addLabel === null ? (
-            <p className="text-muted-foreground px-1 text-sm max-sm:text-base">
-              {zoneEmptyHint(zone, format)}
-            </p>
-          ) : (
-            <Button
-              type="button"
-              variant="dashed"
-              data-slot="deck-zone-add-strip"
-              className="h-auto min-h-9 w-full justify-start gap-2 rounded-md px-2.5 py-1.5 text-left font-normal whitespace-normal max-sm:text-base sm:min-h-8"
-              onClick={onAdd ?? activateZone}
-            >
-              <PlusIcon className="size-4" />
-              <span>{isEmpty ? zoneEmptyHint(zone, format) : addLabel}</span>
-            </Button>
-          )}
+          <Button
+            type="button"
+            variant="dashed"
+            data-slot="deck-zone-add-strip"
+            className={ZONE_ADD_STRIP_CLASS}
+            onClick={onAdd ?? activateZone}
+          >
+            <PlusIcon className="size-4" />
+            <span>{isEmpty ? zoneEmptyHint(zone, format) : addLabel}</span>
+          </Button>
         </>
       )}
     </div>

@@ -199,11 +199,6 @@ function RangeFilterSection({
     />
   );
   const renderValue = (value: number): ReactNode => (value === NONE ? noneIcon : fmt(value));
-  const summary =
-    selectedMin === null && selectedMax === null
-      ? m.cards_filter_placeholder_any()
-      : rangeBadgeLabel(selectedMin, selectedMax, availableMin, availableMax, fmt);
-
   const sMin = logarithmic ? 0 : sliderMin;
   const sMax = logarithmic ? LOG_STEPS : availableMax;
   const sStep = logarithmic ? 1 : step;
@@ -258,20 +253,28 @@ function RangeFilterSection({
     [],
   );
 
-  const commit = (values: [number, number]) => {
-    const [newMin, newMax] = values;
+  const toRange = ([newMin, newMax]: [number, number]): [number | null, number | null] => {
     const atLeftEdge = newMin === sMin;
     const atRightEdge = newMax === sMax;
     if (atLeftEdge && atRightEdge) {
-      onChange(null, null);
-      return;
+      return [null, null];
     }
-    const realMin = fromSlider(newMin);
-    const realMax = fromSlider(newMax);
-    const minVal = atLeftEdge ? (hasNone ? NONE : null) : realMin;
-    const maxVal = atRightEdge ? null : realMax;
+    const minVal = atLeftEdge ? (hasNone ? NONE : null) : fromSlider(newMin);
+    const maxVal = atRightEdge ? null : fromSlider(newMax);
+    return [minVal, maxVal];
+  };
+
+  const commit = (values: [number, number]) => {
+    const [minVal, maxVal] = toRange(values);
     onChange(minVal, maxVal);
   };
+
+  const [summaryMin, summaryMax] =
+    dragValue === null || isDegenerate ? [selectedMin, selectedMax] : toRange(dragValue);
+  const summary =
+    summaryMin === null && summaryMax === null
+      ? m.cards_filter_placeholder_any()
+      : rangeBadgeLabel(summaryMin, summaryMax, availableMin, availableMax, fmt);
 
   const scheduleCommit = (values: [number, number]) => {
     pendingCommitRef.current = values;

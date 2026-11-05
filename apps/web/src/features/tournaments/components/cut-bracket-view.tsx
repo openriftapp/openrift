@@ -69,13 +69,13 @@ export function CutBracketView({
   const roundByNumber = new Map(rounds.map((round) => [round.roundNumber, round]));
 
   return (
-    <div data-slot="cut-bracket-list" className="flex flex-col gap-3 lg:overflow-x-auto">
+    <div data-slot="cut-bracket-list" className="flex flex-col gap-3 md:overflow-x-auto">
       {columns.length > 1 ? (
         <ToggleGroup
           variant="outline"
           size="sm"
           aria-label={m.tournaments_cut_round_picker_aria()}
-          className="flex-wrap lg:hidden"
+          className="flex-wrap md:hidden"
           value={selectedRound === undefined ? [] : [String(selectedRound)]}
           onValueChange={(next) => {
             const value = next[0];
@@ -85,17 +85,13 @@ export function CutBracketView({
           }}
         >
           {columns.map((column) => (
-            <ToggleGroupItem
-              key={column.roundNumber}
-              value={String(column.roundNumber)}
-              className="data-pressed:border-primary data-pressed:bg-primary data-pressed:text-primary-foreground data-pressed:hover:bg-primary/80 rounded-full"
-            >
+            <ToggleGroupItem key={column.roundNumber} value={String(column.roundNumber)}>
               {column.label}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
       ) : null}
-      <div className="flex flex-col gap-4 lg:min-w-max lg:flex-row lg:items-start">
+      <div className="flex flex-col gap-4 md:min-w-max md:flex-row md:items-start">
         {columns.map((column) => {
           const round = roundByNumber.get(column.roundNumber);
           return (
@@ -103,11 +99,11 @@ export function CutBracketView({
               key={column.roundNumber}
               data-slot="cut-bracket-round"
               className={cn(
-                "flex-col gap-3 lg:flex lg:w-72 lg:shrink-0",
+                "flex-col gap-3 md:flex md:w-72 md:shrink-0",
                 column.roundNumber === selectedRound ? "flex" : "hidden",
               )}
             >
-              <SectionHeading as="h3" size="sm" className="hidden lg:block">
+              <SectionHeading as="h3" size="sm" className="hidden md:block">
                 {column.label}
               </SectionHeading>
               {column.matches.map((match) => {

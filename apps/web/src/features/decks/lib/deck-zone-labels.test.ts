@@ -9,7 +9,12 @@ import type { DeckFormat } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { describe, expect, it } from "vitest";
 
-import { zoneEmptyHint, zoneEmptyHints, zoneEmptyReadOnlyLabel } from "./deck-zone-labels";
+import {
+  zoneAddLabel,
+  zoneEmptyHint,
+  zoneEmptyHints,
+  zoneEmptyReadOnlyLabel,
+} from "./deck-zone-labels";
 
 describe("zoneLabel", () => {
   it("returns the canonical descriptive label for known zones", () => {
@@ -138,6 +143,19 @@ describe("zoneEmptyReadOnlyLabel", () => {
       const label = zoneEmptyReadOnlyLabel(zone as keyof typeof ZONE_LABELS);
       expect(label).toBeTruthy();
       expect(label).not.toBe("Empty");
+    }
+  });
+});
+
+describe("zoneAddLabel", () => {
+  it("names the add action for each zone", () => {
+    expect(zoneAddLabel(WellKnown.deckZone.MAIN)).toBe("Add to main deck");
+    expect(zoneAddLabel(WellKnown.deckZone.RUNES)).toBe("Add runes");
+  });
+
+  it("covers every labelled zone", () => {
+    for (const zone of Object.keys(ZONE_LABELS)) {
+      expect(zoneAddLabel(zone as keyof typeof ZONE_LABELS)).toBeTruthy();
     }
   });
 });

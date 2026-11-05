@@ -73,6 +73,17 @@ describe("MetaLegendHero", () => {
     expect(screen.getByText("decklists")).toBeInTheDocument();
   });
 
+  it("hides the decklists count when there are none", () => {
+    render(<MetaLegendHero legend={legend} counts={{ wins: 5, finishes: 214, decklists: 0 }} />);
+    expect(screen.queryByText("decklists")).not.toBeInTheDocument();
+    expect(screen.getByText("archived finishes")).toBeInTheDocument();
+  });
+
+  it("lays its stats out in three phone columns", () => {
+    render(<MetaLegendHero legend={legend} counts={{ wins: 5, finishes: 214, decklists: 38 }} />);
+    expect(screen.getByText("event wins").closest(".grid")).toHaveClass("grid-cols-3");
+  });
+
   it("shows no percentage, share or rate anywhere", () => {
     const { container } = render(
       <MetaLegendHero legend={legend} counts={{ wins: 5, finishes: 214, decklists: 38 }} />,

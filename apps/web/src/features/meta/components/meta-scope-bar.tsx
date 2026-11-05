@@ -117,6 +117,7 @@ export function MetaScopeBar({
   }
   eraItems[ERA_CUSTOM] = m.meta_scope_era_custom();
   const eraValue = scope.era ?? defaultEra ?? defaultEraId(eras) ?? ERA_ALL;
+  const eraShown = eraValue in eraItems ? eraValue : ERA_ALL;
   const eraChipLabel = (value: string) =>
     value === ERA_ALL || value === ERA_CUSTOM
       ? eraItems[value]
@@ -184,8 +185,17 @@ export function MetaScopeBar({
   ].filter((view) => view.show && (showTier || view.facet !== "tiers"));
 
   const active = isScopeCustomized(scope, defaultEra) || extrasActive;
-  const strip = activeStrip(scope, eras, facets, defaultEra, facetDefaults);
-  const activeCount = strip.length + activeChips.length;
+  const strip = activeStrip(scope, facets, facetDefaults);
+  const eraNarrowed = scope.era !== undefined && scope.era !== defaultEra;
+  const eraRange = [scope.from, scope.to].filter(Boolean).join(" – ") || m.meta_scope_era_custom();
+  const eraStripLabel = scope.era === ERA_CUSTOM ? eraRange : eraChipLabel(eraShown);
+  const eraName = scope.era === ERA_CUSTOM ? eraRange : (eraItems[eraShown] ?? eraShown);
+  const activeCount = strip.length + activeChips.length + (eraNarrowed ? 1 : 0);
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [eraSelectOpen, setEraSelectOpen] = useState(false);
+  const [drawerSettled, setDrawerSettled] = useState(false);
+  const phoneEraPicking = !smUp && eraPickerOpen === true;
 
   const datePickers = scope.era === ERA_CUSTOM && (
     <>
@@ -214,8 +224,15 @@ export function MetaScopeBar({
           {!smUp && (
             <ScopeDrawer
               count={activeCount}
-              eraPickerOpen={eraPickerOpen === true}
-              onEraPickerOpenChange={onEraPickerOpenChange}
+              open={drawerOpen || phoneEraPicking}
+              onOpenChangeComplete={setDrawerSettled}
+              onOpenChange={(next) => {
+                setDrawerOpen(next);
+                if (!next) {
+                  setEraSelectOpen(false);
+                  onEraPickerOpenChange?.(false);
+                }
+              }}
             >
               <LabelledRow label={m.meta_scope_era()}>
                 <div className="flex flex-1 flex-wrap items-center gap-1.5">
@@ -226,6 +243,15 @@ export function MetaScopeBar({
                     items={eraItems}
                     counts={eraCountMap}
                     onValueChange={setEra}
+                    renderValue={eraChipLabel}
+                    open={eraSelectOpen || (phoneEraPicking && drawerSettled)}
+                    onOpenChange={(next) => {
+                      setEraSelectOpen(next);
+                      if (!next && phoneEraPicking) {
+                        setDrawerOpen(true);
+                        onEraPickerOpenChange?.(false);
+                      }
+                    }}
                   />
                   {datePickers}
                 </div>
@@ -287,9 +313,21 @@ export function MetaScopeBar({
         </div>
       )}
 
-      {!smUp && (active || phoneStripLead !== undefined) && (
+      {!smUp && (
         <div className="flex flex-wrap items-center gap-1 sm:hidden">
           {phoneStripLead}
+          {eraNarrowed ? (
+            <FilterChip
+              label={eraStripLabel}
+              removeLabel={m.cards_filter_remove_value({
+                label: m.meta_scope_era(),
+                value: eraName,
+              })}
+              onRemove={() => setScope({ era: undefined, from: undefined, to: undefined })}
+            />
+          ) : (
+            <Badge variant="secondary">{eraStripLabel}</Badge>
+          )}
           {strip.map((chip) => (
             <FilterChip
               key={chip.key}
@@ -338,26 +376,10 @@ interface StripChip {
 
 function activeStrip(
   scope: MetaScope,
-  eras: readonly MetaEra[],
   facets: readonly FacetView[],
-  defaultEra: string | undefined,
   defaults: ScopeFacetDefaults | undefined,
 ): StripChip[] {
   const chips: StripChip[] = [];
-  if (scope.era !== undefined && scope.era !== defaultEra) {
-    const label =
-      scope.era === ERA_ALL
-        ? m.meta_scope_era_all()
-        : scope.era === ERA_CUSTOM
-          ? [scope.from, scope.to].filter(Boolean).join(" – ") || m.meta_scope_era_custom()
-          : (eras.find((era) => era.id === scope.era)?.label ?? scope.era);
-    chips.push({
-      key: "era",
-      group: m.meta_scope_era(),
-      label,
-      patch: { era: undefined, from: undefined, to: undefined },
-    });
-  }
   for (const view of facets) {
     const explicit = scope[view.facet] !== undefined || scope[`${view.facet}Ex`] !== undefined;
     if (!explicit) {
@@ -389,29 +411,28 @@ function activeStrip(
 
 function ScopeDrawer({
   count,
-  eraPickerOpen,
-  onEraPickerOpenChange,
+  open,
+  onOpenChange,
+  onOpenChangeComplete,
   children,
 }: {
   count: number;
-  eraPickerOpen: boolean;
-  onEraPickerOpenChange?: (open: boolean) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onOpenChangeComplete: (open: boolean) => void;
   children: ReactNode;
 }) {
   const [openedOnce, setOpenedOnce] = useState(false);
-  const [triggered, setTriggered] = useState(false);
-  const open = triggered || eraPickerOpen;
   return (
     <Drawer
       showSwipeHandle
       open={open}
+      onOpenChangeComplete={onOpenChangeComplete}
       onOpenChange={(next) => {
-        setTriggered(next);
         if (next) {
           setOpenedOnce(true);
-        } else {
-          onEraPickerOpenChange?.(false);
         }
+        onOpenChange(next);
       }}
     >
       <DrawerTrigger

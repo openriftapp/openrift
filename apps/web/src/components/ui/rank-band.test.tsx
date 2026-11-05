@@ -40,30 +40,34 @@ describe("RankBand", () => {
     ]);
   });
 
-  it("steps a long place down a size and keeps a short one full size", () => {
+  it("steps each place down a numeral tier so it fits a fixed chip", () => {
     render(
       <>
-        <RankBand rank={172} text="172nd" filled={false} />
-        <RankBand rank={4} text="4th" filled={false} />
+        <RankBand rank={4} text="4th" filled={false} className="w-16" />
+        <RankBand rank={99} text="99th" filled={false} className="w-16" />
+        <RankBand rank={172} text="172nd" filled={false} className="w-16" />
+        <RankBand rank={1234} text="1234th" filled={false} className="w-16" />
       </>,
     );
 
-    expect(screen.getByText("172nd")).toHaveClass("text-lg");
-    expect(screen.getByText("172nd")).not.toHaveClass("text-2xl");
     expect(screen.getByText("4th")).toHaveClass("text-2xl");
+    expect(screen.getByText("99th")).toHaveClass("text-lg");
+    expect(screen.getByText("99th")).not.toHaveClass("text-2xl");
+    expect(screen.getByText("172nd")).toHaveClass("text-base");
+    expect(screen.getByText("1234th")).toHaveClass("text-sm", "tabular-nums", "whitespace-nowrap");
   });
 
-  it("prints a four-digit place whole in a chip that grows past its minimum width", () => {
-    render(<RankBand rank={1234} text="1234th" filled={false} className="min-w-16" />);
+  it("takes its width from the caller without a minimum of its own", () => {
+    render(<RankBand rank={12} text="12th" filled={false} className="w-16" />);
 
-    expect(band()).toHaveTextContent(/^1234th$/u);
-    expect(screen.getByText("1234th")).toHaveClass(
-      "text-base",
-      "tabular-nums",
-      "whitespace-nowrap",
-    );
-    expect(band()).toHaveClass("min-w-16", "px-1.5");
-    expect(band().className).not.toMatch(/(?<start>^|\s)(?<cls>w-|max-w-|@container)/u);
+    expect(band()).toHaveClass("w-16", "px-1.5");
+    expect(band().className).not.toMatch(/(?<start>^|\s)min-w-/u);
+  });
+
+  it("prints a crowned winner a tier down to leave room for the crown", () => {
+    render(<RankBand rank={1} text="1st" filled={false} />);
+
+    expect(screen.getByText("1st")).toHaveClass("text-lg");
   });
 
   it("tints the podium chips and outlines every other place", () => {

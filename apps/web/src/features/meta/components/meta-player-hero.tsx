@@ -11,11 +11,12 @@ import { useDomainColors } from "@/hooks/use-domain-colors";
 import { countryName } from "@/lib/country";
 import { deckGlowStyle } from "@/lib/domain";
 import { formatCount } from "@/lib/format";
+import { heroStatRowClass } from "@/lib/hero-stat-row";
 import { m } from "@/paraglide/messages.js";
 
 function FactCounters({ counts }: { counts: MetaPlayerCounts }) {
   return (
-    <div className="grid grid-cols-3 gap-x-4 gap-y-3 sm:flex sm:flex-wrap sm:gap-x-9">
+    <div className={heroStatRowClass(counts.decklists > 0 ? 4 : 3)}>
       <StatFigure value={formatCount(counts.eventWins)} label={m.meta_player_hero_event_wins()} />
       <StatFigure value={formatCount(counts.topEights)} label={m.meta_player_hero_top_eights()} />
       <StatFigure value={formatCount(counts.finishes)} label={m.meta_legend_hero_finishes()} />
@@ -98,7 +99,7 @@ export function MetaPlayerHero({
       />
       <MetaHeroArt imageId={topLegend?.imageId ?? null} alt={champion ?? ""} fullWidthOnPhone />
 
-      <div className="relative flex flex-col gap-3 p-5 sm:pr-[38%]">
+      <div className="relative flex flex-col gap-3 p-4 sm:p-5 sm:pr-[38%]">
         <div className="flex flex-col gap-1">
           {/* h2: the page's h1 is the player's name in the top bar. */}
           <h2 className="font-heading text-2xl font-bold">{name}</h2>

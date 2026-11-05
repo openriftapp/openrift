@@ -8,6 +8,7 @@ import { PageDescription, PageTopBar, PageTopBarSticky } from "@/components/layo
 import { TopBarBreadcrumbTrail } from "@/components/layout/top-bar-breadcrumb";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import { CountPill } from "@/components/ui/count-pill";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { IconChip } from "@/components/ui/icon-chip";
 import { SelectionMark } from "@/components/ui/selection-mark";
@@ -177,7 +178,7 @@ export function BuyPage() {
               {filters.map((entry) => (
                 <ToggleGroupItem key={entry.value} value={entry.value}>
                   {entry.label}
-                  <span className="text-muted-foreground tabular-nums">{entry.count}</span>
+                  <CountPill>{entry.count}</CountPill>
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>

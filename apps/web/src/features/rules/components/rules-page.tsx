@@ -303,7 +303,7 @@ function RulesContent({
           className={cn(
             PAGE_TOP_BAR_GEOMETRY,
             isToolbarStuck && STICKY_SURFACE,
-            "px-safe mx-safe-neg z-20 mb-4 flex items-center gap-2 lg:flex-wrap",
+            "px-safe mx-safe-neg z-20 mb-4 flex items-center gap-2 md:flex-wrap",
           )}
         >
           <PageTocMobileTrigger
@@ -315,7 +315,7 @@ function RulesContent({
             placeholder={m.rules_search_placeholder_count({ count: formatCount(rules.length) })}
             trailing={ruleCountLabel}
           />
-          <div className="hidden lg:contents">{renderSettings()}</div>
+          <div className="hidden md:contents">{renderSettings()}</div>
           <RulesSettingsSheet
             label={rulesSettingsLabel(
               currentVersion ?? { version, documentVersion: null },

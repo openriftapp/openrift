@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import type { MetaEra, MetaScope } from "@/features/meta/lib/meta-scope";
-import { defaultEraId, ERA_ALL, ERA_CUSTOM } from "@/features/meta/lib/meta-scope";
+import { defaultEraId, ERA_ALL, ERA_CUSTOM, hasScopeFacets } from "@/features/meta/lib/meta-scope";
 import { m } from "@/paraglide/messages.js";
 
 /** The set era the scope narrows to, or undefined for all time, a custom range or no eras yet. */
@@ -23,6 +23,7 @@ export function MetaScopeEmpty({
   setScope,
   onPickEra,
   fallback,
+  filtered,
   className,
 }: {
   scope: MetaScope;
@@ -30,9 +31,10 @@ export function MetaScopeEmpty({
   setScope: (patch: Partial<MetaScope>) => void;
   onPickEra: () => void;
   fallback: ReactNode;
+  filtered?: boolean;
   className?: string;
 }) {
-  const era = activeEra(scope, eras);
+  const era = filtered || hasScopeFacets(scope) ? undefined : activeEra(scope, eras);
   if (era === undefined) {
     return (
       <Empty className={className}>

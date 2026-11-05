@@ -10,6 +10,7 @@ import {
   deriveSetEras,
   ERA_ALL,
   ERA_CUSTOM,
+  hasScopeFacets,
   isScopeCustomized,
   isScopeRestricting,
   metaEventFilterQuery,
@@ -232,6 +233,18 @@ describe("scopeWithDefaultEra", () => {
 
   it("leaves an era the URL names alone", () => {
     expect(scopeWithDefaultEra({ era: "origins" }, ERA_ALL)).toEqual({ era: "origins" });
+  });
+});
+
+describe("hasScopeFacets", () => {
+  it("ignores the era and date bounds", () => {
+    expect(hasScopeFacets({})).toBe(false);
+    expect(hasScopeFacets({ era: "set-a", from: "2026-01-01", to: "2026-02-01" })).toBe(false);
+  });
+
+  it("sees an included or excluded facet", () => {
+    expect(hasScopeFacets({ formats: ["sealed"] })).toBe(true);
+    expect(hasScopeFacets({ countriesEx: ["DE"] })).toBe(true);
   });
 });
 

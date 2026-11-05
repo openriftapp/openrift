@@ -229,6 +229,7 @@ export function useCollectionGridData({
     printingsByCardId,
     detailPanePrintingsByCardId,
     totalUniqueCards,
+    ownedUniqueCards: collectionTotalUniqueCards,
     setDisplayLabel,
     searchAlternatives,
     ownedCountBound,

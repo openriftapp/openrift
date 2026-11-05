@@ -4,6 +4,7 @@ import { ChevronRightIcon, EyeOffIcon } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CountPill } from "@/components/ui/count-pill";
 import { SectionHeading } from "@/components/ui/section-heading";
 import {
   Select,
@@ -94,7 +95,7 @@ export function PeopleFilter({
             size="sm"
           />
           {person.name ?? m.trades_member_fallback()}
-          <span className="text-muted-foreground tabular-nums">{person.cardCount}</span>
+          <CountPill>{person.cardCount}</CountPill>
         </ToggleGroupItem>
       ))}
     </ToggleGroup>

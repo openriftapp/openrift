@@ -4,6 +4,7 @@ import { BookmarkPlusIcon } from "lucide-react";
 import { lazy, Suspense } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { TextLink } from "@/components/ui/text-link";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useSession } from "@/hooks/use-session";
 import { useSignInSearch } from "@/hooks/use-sign-in-search";
@@ -67,14 +68,9 @@ function TrackCollectionNudge() {
       </Link>
       <p className="text-muted-foreground text-center text-sm">
         {m.auth_signup_have_account()}{" "}
-        <Link
-          rel="nofollow"
-          to="/login"
-          search={search}
-          className="text-foreground underline underline-offset-2"
-        >
+        <TextLink render={<Link rel="nofollow" to="/login" search={search} />}>
           {m.common_sign_in()}
-        </Link>
+        </TextLink>
       </p>
     </div>
   );

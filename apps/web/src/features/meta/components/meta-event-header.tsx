@@ -33,6 +33,7 @@ import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { formatCount } from "@/lib/format";
+import { heroStatRowClass } from "@/lib/hero-stat-row";
 import { m } from "@/paraglide/messages.js";
 
 /** Every citation is printed, never collapsed behind a "+2 more". */
@@ -167,6 +168,8 @@ export function MetaEventHeader({
     }
   }
 
+  const statCount = 2 + (event.playerCount === null ? 0 : 1) + (cutLineRecord === null ? 0 : 1);
+
   return (
     <Card className="relative gap-0 py-0">
       {artId !== null && (
@@ -176,7 +179,7 @@ export function MetaEventHeader({
         />
       )}
 
-      <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+      <div className="relative flex flex-col gap-5 p-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:p-5">
         <div className="flex min-w-0 flex-1 flex-col gap-5">
           <div className="flex items-center gap-3">
             <DateLeaf at={event.eventDate} clock="utc" showYear />
@@ -204,7 +207,7 @@ export function MetaEventHeader({
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-x-9 gap-y-3">
+          <div className={heroStatRowClass(statCount)}>
             {event.playerCount !== null && (
               <StatFigure
                 value={formatCount(event.playerCount)}
