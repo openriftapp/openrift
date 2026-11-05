@@ -3,8 +3,6 @@ import { useState } from "react";
 
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { InfoHint } from "@/components/ui/info-hint";
-import { StatStrip } from "@/components/ui/stat-strip";
-import type { StatStripItem } from "@/components/ui/stat-strip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { SECTION_SCROLL_MARGIN } from "@/features/decks/components/deck-overview-tabs";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
@@ -33,10 +31,47 @@ import { cardMatchesStatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import { turnOnePlayChances } from "@/features/decks/lib/deck-stats-summary";
 import type { StatsLens } from "@/features/decks/stores/deck-builder-ui-store";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
+import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import type { useEnumOrders } from "@/hooks/use-enums";
 import { useMeasuredWidth } from "@/hooks/use-measured-width";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
+
+interface RateItem {
+  key: string;
+  title: string;
+  hint: string;
+  first: string;
+  second: string;
+}
+
+function RateStrip({ items }: { items: RateItem[] }) {
+  return (
+    <div className="flex flex-wrap gap-x-8 gap-y-3">
+      {items.map((item) => (
+        <div key={item.key} className="flex flex-col gap-1">
+          <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
+            {item.title}
+            <InfoHint label={item.title} side="bottom">
+              {item.hint}
+            </InfoHint>
+          </span>
+          <div className="flex gap-5">
+            {[
+              { label: m.decks_odds_going_first(), value: item.first },
+              { label: m.decks_odds_going_second(), value: item.second },
+            ].map((rate) => (
+              <div key={rate.label} className="flex flex-col">
+                <span className="font-heading text-lg font-bold tabular-nums">{rate.value}</span>
+                <span className="text-muted-foreground text-xs">{rate.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 type OwnedPrinting = ReturnType<DeckOwnershipData["ownedPrintingByCardId"]["get"]>;
 
@@ -107,6 +142,7 @@ export function DeckStatsBand({
       ? buildOwnershipRows(focusedCards, ownershipSegmentsByCardKey)
       : undefined;
 
+  const coarsePointer = useCoarsePointer();
   const [statsChartsEl, setStatsChartsEl] = useState<HTMLDivElement | null>(null);
   const statsChartsWidth = useMeasuredWidth(statsChartsEl);
   const rarityLensAvailable = rarityRows !== undefined && rarityRows.length > 0;
@@ -143,7 +179,7 @@ export function DeckStatsBand({
       <TypeBreakdown
         data={stats.typeBreakdown}
         domains={stats.typeBreakdownDomains}
-        revealDomainsOnHover
+        singleColor
         showTotals
         onBarClick={(value) => applyStatsFocus({ kind: "type", value })}
         footnote={hasMultiTypeCards ? m.decks_stats_footnote_multi_type() : undefined}
@@ -207,8 +243,10 @@ export function DeckStatsBand({
         data={stats.energyCurve}
         stacks={stats.energyCurveStacks}
         average={stats.averageEnergy}
-        revealDomainsOnHover
-        footnote={m.decks_stats_footnote_energy()}
+        singleColor
+        footnote={
+          coarsePointer ? m.decks_stats_footnote_energy_touch() : m.decks_stats_footnote_energy()
+        }
         showTotals
         onBarClick={(value) => applyStatsFocus({ kind: "energy", value })}
         focusValue={statsFocus?.kind === "energy" ? statsFocus.value : null}
@@ -222,6 +260,7 @@ export function DeckStatsBand({
         data={stats.powerCurve}
         stacks={stats.powerCurveStacks}
         average={stats.averagePower}
+        singleColor
         showTotals
         onBarClick={(value) => applyStatsFocus({ kind: "power", value })}
         focusValue={statsFocus?.kind === "power" ? statsFocus.value : null}
@@ -302,20 +341,15 @@ export function DeckStatsBand({
   const turnOne = turnOnePlayChances(cards, enumLabels.cardTypes);
   const curveOutFirst = curveOutRate(cards, { goingSecond: false });
   const curveOutSecond = curveOutRate(cards, { goingSecond: true });
-  const headlineItems: StatStripItem[] = [
+  const headlineItems: RateItem[] = [
     ...(turnOne
       ? [
           {
             key: "turn-one",
-            value: `${formatChancePct(turnOne.first)} · ${formatChancePct(turnOne.second)}`,
-            label: (
-              <span className="inline-flex items-center gap-1">
-                {m.decks_stats_turn_one_play_label()}
-                <InfoHint label={m.decks_stats_turn_one_play_label()} side="bottom">
-                  {m.decks_stats_turn_one_play_hint()}
-                </InfoHint>
-              </span>
-            ),
+            title: m.decks_stats_turn_one_play_label(),
+            hint: m.decks_stats_turn_one_play_hint(),
+            first: formatChancePct(turnOne.first),
+            second: formatChancePct(turnOne.second),
           },
         ]
       : []),
@@ -323,15 +357,10 @@ export function DeckStatsBand({
       ? [
           {
             key: "curve-out",
-            value: `${formatChancePct(curveOutFirst)} · ${formatChancePct(curveOutSecond)}`,
-            label: (
-              <span className="inline-flex items-center gap-1">
-                {m.decks_stats_curve_out_label()}
-                <InfoHint label={m.decks_stats_curve_out_label()} side="bottom">
-                  {m.decks_stats_curve_out_hint()}
-                </InfoHint>
-              </span>
-            ),
+            title: m.decks_stats_curve_out_label(),
+            hint: m.decks_stats_curve_out_hint(),
+            first: formatChancePct(curveOutFirst),
+            second: formatChancePct(curveOutSecond),
           },
         ]
       : []),
@@ -362,12 +391,12 @@ export function DeckStatsBand({
         }
       >
         <InfoHint label={m.decks_stats_about_label()} side="bottom">
-          {m.decks_stats_about_hint()}
+          {coarsePointer ? m.decks_stats_about_hint_touch() : m.decks_stats_about_hint()}
         </InfoHint>
       </DeckZoneHeader>
       {statsOpen && (
         <div className="flex flex-col gap-6">
-          <StatStrip items={headlineItems} />
+          <RateStrip items={headlineItems} />
           {statsCharts}
         </div>
       )}

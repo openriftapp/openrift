@@ -68,6 +68,10 @@
 
 - feat(Decks): **Clearer deck import preview** — the preview shows entry and card counts under the title, lists deck value and the cost of missing cards as labelled rows, and insets the row dividers.
 
+### Other
+
+- feat(Decks): **Clearer deck stats** — the turn-1 and curve-out odds are labelled going first and going second, the Energy, Power and Types charts share one bar color with a count per bar, and touch screens say tap.
+
 ## 2026-11-04
 
 ### Highlights

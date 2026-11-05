@@ -88,14 +88,14 @@ function DeckStatsBody({ stats }: { stats: ReturnType<typeof useDeckStats> }) {
         powerData={stats.powerCurve}
         powerStacks={stats.powerCurveStacks}
         averagePower={stats.averagePower}
-        revealDomainsOnHover
+        singleColor
         showTotals
         footnote={m.decks_stats_footnote_main_only()}
       />
       <TypeBreakdown
         data={stats.typeBreakdown}
         domains={stats.typeBreakdownDomains}
-        revealDomainsOnHover
+        singleColor
         showTotals
       />
     </div>
