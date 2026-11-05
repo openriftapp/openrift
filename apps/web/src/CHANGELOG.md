@@ -59,6 +59,11 @@
 
 - fix(Account): **Cleaner phone sign-in** — on a phone the sign-in and sign-up forms sit directly on the page without a card frame, and the sign-in button now says "Sign in".
 
+### Other
+
+- feat(Cards): **Tidier promo groups** — each promo group shows when it was announced with a link to the announcement, and the quoted text folds to two lines with a Read more toggle; the per-card Promo pill is gone.
+- fix(Cards): **Promos page side-scroll** — the promos page no longer scrolls a few pixels sideways on phones.
+
 ## 2026-11-04
 
 ### Highlights

@@ -61,7 +61,11 @@ const RIBBON_TONE = {
   caution: "bg-warning text-warning-foreground",
 } as const;
 
-const RIBBON_CLIP_STYLE = { clipPath: `inset(0 round ${CARD_BORDER_RADIUS})` } as const;
+// contain: paint keeps the rotated band out of the page's scrollable overflow, which clip-path alone does not.
+const RIBBON_CLIP_STYLE = {
+  clipPath: `inset(0 round ${CARD_BORDER_RADIUS})`,
+  contain: "paint",
+} as const;
 
 /** The one diagonal corner label a card may carry: banned, ban incoming, or unreleased. */
 export function CornerRibbon({

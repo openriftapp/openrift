@@ -1,7 +1,7 @@
 import { LinkIcon } from "lucide-react";
 
-import { MarkdownText } from "@/components/markdown-text";
 import { OrnamentRule } from "@/components/ui/ornament";
+import { PromoChannelIntro } from "@/features/cards/components/promo-channel-intro";
 import { m } from "@/paraglide/messages.js";
 
 export function SectionDivider({
@@ -32,9 +32,7 @@ export function SectionDivider({
           )}
         </div>
       </OrnamentRule>
-      {description && (
-        <MarkdownText text={description} links="any" className="text-muted-foreground text-sm" />
-      )}
+      {description && <PromoChannelIntro description={description} />}
     </div>
   );
 }
