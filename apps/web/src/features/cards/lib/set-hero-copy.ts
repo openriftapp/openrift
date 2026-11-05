@@ -1,6 +1,6 @@
 import { formatDayMonthYear, formatMonthYear, todayUtc } from "@openrift/shared/format-date";
 import type { SetRelease, SetReleases } from "@openrift/shared/set-release";
-import { isReleased } from "@openrift/shared/set-release";
+import { isReleased, isReleasedAnywhere } from "@openrift/shared/set-release";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
 
 import { DATE_WORDS } from "@/lib/date-words";
@@ -70,6 +70,60 @@ function releaseWhen(release: SetRelease): string {
     return m.release_when_period({ date: `Q${quarter} ${year}` });
   }
   return m.release_when_period({ date: year });
+}
+
+export function releaseDateText(release: SetRelease): string {
+  const { releasedAt, precision } = release;
+  if (releasedAt === null || precision === null) {
+    return "";
+  }
+  if (precision === "day") {
+    return formatDayMonthYear(releasedAt, DATE_WORDS);
+  }
+  if (precision === "month") {
+    return formatMonthYear(releasedAt, DATE_WORDS);
+  }
+  const year = releasedAt.slice(0, 4);
+  if (precision === "quarter") {
+    return `Q${Math.floor((Number(releasedAt.slice(5, 7)) - 1) / 3) + 1} ${year}`;
+  }
+  return year;
+}
+
+export interface LanguageRelease {
+  language: string;
+  release: SetRelease;
+}
+
+function datedReleases(releases: SetReleases): LanguageRelease[] {
+  return Object.entries(releases)
+    .filter(([, release]) => release.releasedAt !== null && release.precision !== null)
+    .map(([language, release]) => ({ language, release }))
+    .toSorted(
+      (a, b) =>
+        (a.release.releasedAt ?? "").localeCompare(b.release.releasedAt ?? "") ||
+        a.language.localeCompare(b.language),
+    );
+}
+
+export function primaryRelease(releases: SetReleases): LanguageRelease | undefined {
+  const dated = datedReleases(releases);
+  return dated.find((entry) => entry.language === "EN") ?? dated.at(0);
+}
+
+export function otherReleases(releases: SetReleases): LanguageRelease[] {
+  const primary = primaryRelease(releases);
+  return datedReleases(releases).filter((entry) => entry.language !== primary?.language);
+}
+
+export function isSetUpcoming(
+  set: Pick<SetListEntry, "cardCount" | "releases">,
+  today = todayUtc(),
+): boolean {
+  if (set.cardCount === 0) {
+    return true;
+  }
+  return primaryRelease(set.releases) !== undefined && !isReleasedAnywhere(set.releases, today);
 }
 
 function listFormat(items: string[]): string {

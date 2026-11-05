@@ -677,6 +677,21 @@
   "errata_missing_cta": "Wortlautänderung melden",
   "errata_card_page_aria": "Kartenseite von {name}",
   "sets_supplemental": "Ergänzende Sets",
+  "sets_released_on": "Erschienen am {date}",
+  "sets_releases_on": "Erscheint {date}",
+  "sets_release_tba": "Erscheinungsdatum noch offen",
+  "sets_upcoming": "Demnächst",
+  "sets_no_cards_yet": "Noch keine Karten enthüllt",
+  "sets_more_languages": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "+{count} Sprache",
+        "countPlural=*": "+{count} Sprachen"
+      }
+    }
+  ],
   "sets_open_in_browser": "Im Kartenbrowser öffnen",
   "release_when_day": "am {date}",
   "release_when_period": "im {date}",

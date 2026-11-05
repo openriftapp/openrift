@@ -677,6 +677,21 @@
   "errata_missing_cta": "Report a wording change",
   "errata_card_page_aria": "{name} card page",
   "sets_supplemental": "Supplemental Sets",
+  "sets_released_on": "Released {date}",
+  "sets_releases_on": "Releases {date}",
+  "sets_release_tba": "Release date to be announced",
+  "sets_upcoming": "Upcoming",
+  "sets_no_cards_yet": "No cards revealed yet",
+  "sets_more_languages": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "+{count} language",
+        "countPlural=*": "+{count} languages"
+      }
+    }
+  ],
   "sets_open_in_browser": "Open in card browser",
   "release_when_day": "on {date}",
   "release_when_period": "in {date}",

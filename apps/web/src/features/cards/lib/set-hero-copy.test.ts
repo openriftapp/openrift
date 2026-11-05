@@ -5,6 +5,10 @@ import {
   cardLanguageForLocale,
   cardLanguageName,
   groupReleases,
+  isSetUpcoming,
+  otherReleases,
+  primaryRelease,
+  releaseDateText,
   setReleaseSentence,
   setsOverviewSentence,
 } from "./set-hero-copy";
@@ -174,5 +178,62 @@ describe("cardLanguageForLocale", () => {
     expect(cardLanguageForLocale("fr")).toBe("FR");
     expect(cardLanguageForLocale("zh-Hant")).toBe("TC");
     expect(cardLanguageForLocale("de")).toBe("EN");
+  });
+});
+
+describe("primaryRelease", () => {
+  it("prefers the English release over an earlier one", () => {
+    const releases = {
+      SC: { releasedAt: "2025-08-01", precision: "day" as const },
+      EN: { releasedAt: "2025-10-31", precision: "day" as const },
+    };
+    expect(primaryRelease(releases)?.language).toBe("EN");
+    expect(otherReleases(releases).map((entry) => entry.language)).toEqual(["SC"]);
+  });
+
+  it("falls back to the earliest dated release", () => {
+    const releases = {
+      EN: { releasedAt: null, precision: null },
+      FR: { releasedAt: "2026-05-29", precision: "day" as const },
+      KR: { releasedAt: "2026-01-01", precision: "day" as const },
+    };
+    expect(primaryRelease(releases)?.language).toBe("KR");
+    expect(otherReleases(releases).map((entry) => entry.language)).toEqual(["FR"]);
+  });
+
+  it("is undefined without a dated release", () => {
+    expect(primaryRelease({})).toBeUndefined();
+    expect(otherReleases({})).toEqual([]);
+  });
+});
+
+describe("releaseDateText", () => {
+  it("shows the date at the precision it is known to", () => {
+    expect(releaseDateText({ releasedAt: "2025-10-31", precision: "day" })).toBe("31 October 2025");
+    expect(releaseDateText({ releasedAt: "2026-04-01", precision: "quarter" })).toBe("Q2 2026");
+    expect(releaseDateText({ releasedAt: "2026-01-01", precision: "year" })).toBe("2026");
+  });
+});
+
+describe("isSetUpcoming", () => {
+  it("is true for a set with no cards", () => {
+    expect(isSetUpcoming({ cardCount: 0, releases: {} }, TODAY)).toBe(true);
+  });
+
+  it("is true while every dated release is in the future", () => {
+    const releases = { EN: { releasedAt: "2027-01-01", precision: "day" as const } };
+    expect(isSetUpcoming({ cardCount: 12, releases }, TODAY)).toBe(true);
+  });
+
+  it("is false once any release has passed", () => {
+    const releases = {
+      EN: { releasedAt: "2027-01-01", precision: "day" as const },
+      SC: { releasedAt: "2026-01-01", precision: "day" as const },
+    };
+    expect(isSetUpcoming({ cardCount: 12, releases }, TODAY)).toBe(false);
+  });
+
+  it("is false for a set with cards and no dates", () => {
+    expect(isSetUpcoming({ cardCount: 12, releases: {} }, TODAY)).toBe(false);
   });
 });

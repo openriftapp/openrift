@@ -677,6 +677,21 @@
   "errata_missing_cta": "回報文字修改",
   "errata_card_page_aria": "{name} 卡牌頁面",
   "sets_supplemental": "補充套組",
+  "sets_released_on": "{date}發售",
+  "sets_releases_on": "{date}發售",
+  "sets_release_tba": "發售日期待公布",
+  "sets_upcoming": "即將推出",
+  "sets_no_cards_yet": "尚未公開卡牌",
+  "sets_more_languages": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "+{count}種語言",
+        "countPlural=*": "+{count}種語言"
+      }
+    }
+  ],
   "sets_open_in_browser": "在卡牌瀏覽器中開啟",
   "release_when_day": "於{date}",
   "release_when_period": "於{date}",

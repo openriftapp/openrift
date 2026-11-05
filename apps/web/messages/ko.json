@@ -677,6 +677,21 @@
   "errata_missing_cta": "문구 변경 제보하기",
   "errata_card_page_aria": "{name} 카드 페이지",
   "sets_supplemental": "보충 세트",
+  "sets_released_on": "{date} 출시",
+  "sets_releases_on": "{date} 출시 예정",
+  "sets_release_tba": "출시일 미정",
+  "sets_upcoming": "출시 예정",
+  "sets_no_cards_yet": "아직 공개된 카드 없음",
+  "sets_more_languages": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "+{count}개 언어",
+        "countPlural=*": "+{count}개 언어"
+      }
+    }
+  ],
   "sets_open_in_browser": "카드 브라우저에서 열기",
   "release_when_day": "{date}에",
   "release_when_period": "{date}에",

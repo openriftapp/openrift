@@ -1,5 +1,6 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import { imageUrl } from "@openrift/shared/image-url";
-import { formatReleasePeriod } from "@openrift/shared/set-release";
+import { isReleased } from "@openrift/shared/set-release";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -8,66 +9,146 @@ import { CalendarIcon, LayersIcon } from "lucide-react";
 
 import { Heading } from "@/components/heading";
 import { PageHero, PageHeroCardFan } from "@/components/layout/page-hero";
-import { CardLink } from "@/components/ui/card-link";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { cardLinkVariants } from "@/components/ui/card-link";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
+import { OrnamentRule } from "@/components/ui/ornament";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
-import { setsOverviewSentence } from "@/features/cards/lib/set-hero-copy";
+import {
+  isSetUpcoming,
+  otherReleases,
+  primaryRelease,
+  releaseDateText,
+  setsOverviewSentence,
+} from "@/features/cards/lib/set-hero-copy";
+import { useLanguageLabels } from "@/hooks/use-enums";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-// Sorted by language code (not viewer preference) so server and client render identically.
-function releaseLabels(set: SetListEntry): string[] {
-  return Object.keys(set.releases)
-    .toSorted()
-    .map((language) => `${language} ${formatReleasePeriod(set.releases[language])}`);
+function SetCover({ set }: { set: SetListEntry }) {
+  if (set.coverImageId) {
+    return (
+      <>
+        <div className="aspect-card bg-muted" />
+        {/* fallback null: the spacer above already matches the no-cover tile. */}
+        <ImgWithFallback
+          src={imageUrl(set.coverImageId, "400w")}
+          srcSet={`${imageUrl(set.coverImageId, "400w")} 400w, ${imageUrl(set.coverImageId, "full")} 800w`}
+          sizes="144px"
+          alt={set.name}
+          loading="lazy"
+          className="absolute inset-0 size-full object-cover"
+          style={{ borderRadius: `${CARD_BORDER_RADIUS} 0 0 ${CARD_BORDER_RADIUS}` }}
+          fallback={null}
+        />
+      </>
+    );
+  }
+  return (
+    <div
+      aria-hidden="true"
+      className="aspect-card bg-muted/30 flex flex-col items-center justify-center gap-2 px-3"
+    >
+      <OrnamentRule fade="tips" className="w-full" />
+      <span className="font-heading text-2xl font-semibold tracking-wide">{set.slug}</span>
+      <OrnamentRule fade="tips" className="w-full" />
+    </div>
+  );
+}
+
+function ReleaseDate({ set }: { set: SetListEntry }) {
+  const languageLabels = useLanguageLabels();
+  const primary = primaryRelease(set.releases);
+  const others = otherReleases(set.releases);
+  const released = primary !== undefined && isReleased(primary.release);
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+      <span className="flex items-center gap-1.5">
+        <CalendarIcon className="size-3.5 shrink-0" />
+        {primary === undefined
+          ? m.sets_release_tba()
+          : (released ? m.sets_released_on : m.sets_releases_on)({
+              date: releaseDateText(primary.release),
+            })}
+      </span>
+      {others.length > 0 && (
+        <Popover>
+          <PopoverTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="xs"
+                className="text-muted-foreground relative z-10 -mx-1 h-5 px-1"
+              />
+            }
+          >
+            {m.sets_more_languages({ count: others.length })}
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-auto min-w-48 gap-1.5">
+            {others.map(({ language, release }) => (
+              <div key={language} className="flex justify-between gap-4">
+                <span className="text-muted-foreground">{enumLabel(languageLabels, language)}</span>
+                <span className="tabular-nums">{releaseDateText(release)}</span>
+              </div>
+            ))}
+          </PopoverContent>
+        </Popover>
+      )}
+    </div>
+  );
+}
+
+function SetCounts({ set }: { set: SetListEntry }) {
+  if (set.cardCount === 0) {
+    return (
+      <span className="flex items-center gap-1.5">
+        <LayersIcon className="size-3.5 shrink-0" />
+        {m.sets_no_cards_yet()}
+      </span>
+    );
+  }
+  return (
+    <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+      <span className="flex items-center gap-1.5 whitespace-nowrap">
+        <LayersIcon className="size-3.5 shrink-0" />
+        {m.common_cards({ count: set.cardCount })}
+      </span>
+      <span className="whitespace-nowrap">{m.common_printings({ count: set.printingCount })}</span>
+    </span>
+  );
 }
 
 function HeroSetCard({ set }: { set: SetListEntry }) {
+  const upcoming = isSetUpcoming(set);
   return (
-    <CardLink
-      render={<Link to="/sets/$setSlug" params={{ setSlug: set.slug }} />}
-      className="flex-row gap-0 py-0"
-    >
+    <Card className={cn(cardLinkVariants(), "relative h-full flex-row gap-0 py-0")}>
       <div className="relative w-28 shrink-0 sm:w-36">
-        {set.coverImageId ? (
-          <>
-            <div className="aspect-card bg-muted" />
-            {/* fallback null: the spacer above already matches the no-cover tile. */}
-            <ImgWithFallback
-              src={imageUrl(set.coverImageId, "400w")}
-              srcSet={`${imageUrl(set.coverImageId, "400w")} 400w, ${imageUrl(set.coverImageId, "full")} 800w`}
-              sizes="144px"
-              alt={set.name}
-              loading="lazy"
-              className="absolute inset-0 size-full object-cover"
-              style={{ borderRadius: `${CARD_BORDER_RADIUS} 0 0 ${CARD_BORDER_RADIUS}` }}
-              fallback={null}
-            />
-          </>
-        ) : (
-          <div className="aspect-card bg-muted" />
-        )}
+        <SetCover set={set} />
       </div>
       <div className="flex min-w-0 flex-col justify-center gap-1 p-4">
-        <Heading className="truncate">{set.name}</Heading>
-        <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-          <span className="flex items-center gap-1.5">
-            <LayersIcon className="size-3.5" />
-            {m.common_cards({ count: set.cardCount })}
-            {", "}
-            {m.common_printings({ count: set.printingCount })}
-          </span>
-          {releaseLabels(set).map((label, index) => (
-            <span key={label} className="flex items-center gap-1.5">
-              {index === 0 && <CalendarIcon className="size-3.5" />}
-              {label}
-            </span>
-          ))}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <Heading className="truncate">
+            <Link
+              to="/sets/$setSlug"
+              params={{ setSlug: set.slug }}
+              className="focus-visible:after:ring-ring/50 rounded-lg no-underline outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-2"
+            >
+              {set.name}
+            </Link>
+          </Heading>
+          {upcoming && <Badge variant="subtle">{m.sets_upcoming()}</Badge>}
+        </div>
+        <div className="text-muted-foreground flex flex-col gap-1 text-sm">
+          <SetCounts set={set} />
+          <ReleaseDate set={set} />
         </div>
       </div>
-    </CardLink>
+    </Card>
   );
 }
 
