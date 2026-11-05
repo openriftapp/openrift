@@ -56,10 +56,12 @@ export function TierListIndexPage() {
         title={m.tier_lists_page_title()}
         lead={m.tier_lists_hero_lead({ rows: MAX_TIER_ROWS, cards: MAX_TIER_LIST_CARDS })}
       >
-        <Button className="mt-3" onClick={() => setCreateOpen(true)}>
-          <PlusIcon />
-          {m.tier_lists_new()}
-        </Button>
+        {tierLists.length > 0 && (
+          <Button className="mt-3" onClick={() => setCreateOpen(true)}>
+            <PlusIcon />
+            {m.tier_lists_new()}
+          </Button>
+        )}
       </PageHero>
 
       <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING_NO_TOP, "pt-3")}>

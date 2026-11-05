@@ -23,11 +23,13 @@ export function TournamentsListPage() {
       <PageTopBarSticky width="capped">
         <PageTopBar>
           <PageTopBarTitle>{m.nav_tournaments()}</PageTopBarTitle>
-          <PageTopBarActions>
-            <Link to="/tournaments/new" className={buttonVariants()}>
-              <PlusIcon /> {m.tournaments_list_new()}
-            </Link>
-          </PageTopBarActions>
+          {data.items.length > 0 && (
+            <PageTopBarActions>
+              <Link to="/tournaments/new" className={buttonVariants()}>
+                <PlusIcon /> {m.tournaments_list_new()}
+              </Link>
+            </PageTopBarActions>
+          )}
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-6 pt-3", PAGE_PADDING_NO_TOP)}>
