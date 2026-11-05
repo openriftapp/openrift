@@ -407,6 +407,7 @@ function EventSearchBox({
       onValueChange={setValue}
       placeholder={m.meta_events_search_placeholder()}
       trailing={shown}
+      wrapTrailing
     />
   );
 }

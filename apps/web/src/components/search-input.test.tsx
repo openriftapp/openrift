@@ -158,4 +158,27 @@ describe("SearchInput", () => {
 
     expect(onBackspaceEmpty).not.toHaveBeenCalled();
   });
+
+  it("with wrapTrailing, renders trailing inline and under the field, each hidden by breakpoint", () => {
+    render(
+      <SearchInput
+        value=""
+        onValueChange={() => {}}
+        placeholder="Find"
+        trailing="3 of 9"
+        wrapTrailing
+      />,
+    );
+
+    const copies = screen.getAllByText("3 of 9");
+    expect(copies).toHaveLength(2);
+    expect(copies.some((el) => el.className.includes("sm:hidden"))).toBe(true);
+    expect(copies.some((el) => el.className.includes("max-sm:hidden"))).toBe(true);
+  });
+
+  it("without wrapTrailing, renders trailing once, inline", () => {
+    render(<SearchInput value="" onValueChange={() => {}} placeholder="Find" trailing="3 of 9" />);
+
+    expect(screen.getAllByText("3 of 9")).toHaveLength(1);
+  });
 });

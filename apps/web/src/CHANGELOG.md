@@ -34,6 +34,10 @@
 
 - fix(App): **Page titles no longer cut short** — page titles in the top bar, such as Statistics or Zones, show in full on phones and only shorten when the buttons beside them need the room.
 
+### Other
+
+- fix(Meta): **Event search placeholder fits on phones** — the archived-event count now sits under the search field on narrow screens instead of cutting off the placeholder.
+
 ## 2026-11-04
 
 ### Highlights

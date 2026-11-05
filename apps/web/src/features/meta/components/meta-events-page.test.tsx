@@ -245,7 +245,7 @@ describe("MetaEventsPage", () => {
 
   it("counts what the archive holds in the top bar", () => {
     renderPage([event({ id: "a" }), event({ id: "b", name: "Nexus Night" })]);
-    expect(screen.getByText("2 archived events")).toBeDefined();
+    expect(screen.getAllByText("2 archived events").length).toBeGreaterThan(0);
   });
 
   it("says how many of the archive a narrowed view is showing", () => {
@@ -254,7 +254,7 @@ describe("MetaEventsPage", () => {
       matched: 1,
       totalEvents: 2,
     });
-    expect(screen.getByText("1 of 2 archived events")).toBeDefined();
+    expect(screen.getAllByText("1 of 2 archived events").length).toBeGreaterThan(0);
     expect(rowNames()).toEqual(["Nexus Night"]);
   });
 
@@ -409,7 +409,7 @@ describe("MetaEventsPage", () => {
       matched: 2,
       totalEvents: 6266,
     });
-    expect(screen.getByText("2 of 6,266 archived events")).toBeDefined();
+    expect(screen.getAllByText("2 of 6,266 archived events").length).toBeGreaterThan(0);
   });
 
   it("asks for the era the scope names rather than the whole archive", () => {
@@ -432,7 +432,7 @@ describe("MetaEventsPage", () => {
 
     expect(captured.queries.at(-1)).toMatchObject({ holds: "decks" });
     expect(screen.getAllByText("With lists").length).toBeGreaterThan(0);
-    expect(screen.getByText("1 of 2 archived events")).toBeDefined();
+    expect(screen.getAllByText("1 of 2 archived events").length).toBeGreaterThan(0);
   });
 
   it("narrows to events with decklists from its own toggle", async () => {
