@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   CARD_HEIGHT_RATIO,
   nameStripBand,
+  phoneZoneCardWidth,
   smallZoneGridStyles,
   stackStripGeometry,
 } from "@/features/decks/lib/deck-overview-geometry";
@@ -123,5 +124,31 @@ describe("smallZoneGridStyles", () => {
     const styles = smallZoneGridStyles(1, false);
     expect(styles.runes).toEqual({ gridColumn: "span 1 / span 1" });
     expect(styles.battlefield).toEqual({ gridColumn: "1 / -1" });
+  });
+});
+
+describe("phoneZoneCardWidth", () => {
+  it("fits four main-deck cards per row with the grid gap between them", () => {
+    expect(phoneZoneCardWidth(WellKnown.deckZone.MAIN, 366)).toBe(87);
+  });
+
+  it("fits three legend and champion cards per row", () => {
+    expect(phoneZoneCardWidth(WellKnown.deckZone.LEGEND, 366)).toBe(118);
+    expect(phoneZoneCardWidth(WellKnown.deckZone.CHAMPION, 366)).toBe(118);
+  });
+
+  it("sizes battlefields so two rotated cards fill the row", () => {
+    const width = phoneZoneCardWidth(WellKnown.deckZone.BATTLEFIELD, 366);
+    expect(width).toBe(128);
+    expect(2 * ((width * 88) / 63) + 6).toBeLessThanOrEqual(366);
+  });
+
+  it("takes a different per-row count for the other portrait zones", () => {
+    expect(phoneZoneCardWidth(WellKnown.deckZone.MAIN, 366, 3)).toBe(118);
+    expect(phoneZoneCardWidth(WellKnown.deckZone.BATTLEFIELD, 366, 3)).toBe(128);
+  });
+
+  it("never returns a negative width for a collapsed container", () => {
+    expect(phoneZoneCardWidth(WellKnown.deckZone.MAIN, 0)).toBe(0);
   });
 });

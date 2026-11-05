@@ -49,6 +49,7 @@ import { DeckTestBench } from "@/features/decks/components/deck-test-bench";
 import { DeckTokensSection } from "@/features/decks/components/deck-tokens-section";
 import { FormatConfigCard } from "@/features/decks/components/format-config-card";
 import { DeckStatsBand } from "@/features/decks/components/stats/deck-stats-band";
+import { DeckStatsSummary } from "@/features/decks/components/stats/deck-stats-summary";
 import { useDeckStats } from "@/features/decks/hooks/use-deck-stats";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toRuleEngineCard } from "@/features/decks/lib/deck-builder-card";
@@ -65,6 +66,7 @@ import {
 } from "@/features/decks/lib/deck-overview-derive";
 import {
   DECK_GRID_GAP,
+  phoneZoneCardWidth,
   SMALL_ZONES,
   smallZoneGridStyles,
   UNMEASURED_CARD_WIDTH,
@@ -86,6 +88,7 @@ import { useDeckOverviewViewStore } from "@/features/decks/stores/deck-overview-
 import { useChampionIdentifierTags, useEnumOrders } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useSmUp } from "@/hooks/use-sm-up";
 import { m } from "@/paraglide/messages.js";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 
@@ -200,7 +203,10 @@ export function DeckOverview({
   const hydrated = useHydrated();
   const homeCollection = useHomeCollection(deck.collectionId);
   const isMobile = useIsMobile();
+  const smUp = useSmUp();
+  const phone = !smUp;
   const storedDisplayMode = useDeckOverviewViewStore((state) => state.displayMode);
+  const displayModePicked = useDeckOverviewViewStore((state) => state.displayModePicked);
   const storedColumns = useDeckOverviewViewStore((state) => state.columns);
   const storedPreferOwned = useDeckOverviewViewStore((state) => state.preferOwnedPrintings);
   const storedShowAllCopies = useDeckOverviewViewStore((state) => state.showAllCopies);
@@ -217,7 +223,11 @@ export function DeckOverview({
   const setStatsOpen = useDeckOverviewViewStore((state) => state.setStatsOpen);
   const storedShowBands = useDeckOverviewViewStore((state) => state.showOwnershipBands);
   const storedShowPrices = useDeckOverviewViewStore((state) => state.showPrices);
-  const displayMode = hydrated ? storedDisplayMode : "grid";
+  const displayMode = hydrated
+    ? phone && !readOnly && !displayModePicked
+      ? "list"
+      : storedDisplayMode
+    : "grid";
   const statsOpen = hydrated ? storedStatsOpen : true;
   const showAllCopies = hydrated && storedShowAllCopies;
   const showAllRuneCopies = hydrated && storedShowAllRuneCopies;
@@ -237,7 +247,21 @@ export function DeckOverview({
       ? `${Math.floor((containerWidth - (columns - 1) * DECK_GRID_GAP) / columns)}px`
       : UNMEASURED_CARD_WIDTH;
   const cardWidthStyle = { "--deck-card-w": cardWidth } as React.CSSProperties;
-  const tileColumns = measured ? columns : 1;
+  const tileColumns = measured && !phone ? columns : 1;
+  const phoneAutoColumns = readOnly ? 4 : 3;
+  const phoneMaxColumns = Math.max(physicalMax, 4);
+  const phoneZoneStyle = (zone: DeckZone): React.CSSProperties | undefined => {
+    if (!phone || !measured || containerWidth <= 0) {
+      return undefined;
+    }
+    const perRow =
+      columnOverride === null || SMALL_ZONES.includes(zone)
+        ? phoneAutoColumns
+        : Math.min(columnOverride, phoneMaxColumns);
+    return {
+      "--deck-card-w": `${phoneZoneCardWidth(zone, containerWidth, perRow)}px`,
+    } as React.CSSProperties;
+  };
   const smallZoneTemplateStyle: React.CSSProperties = {
     gridTemplateColumns: `repeat(${tileColumns}, minmax(0, 1fr))`,
   };
@@ -344,6 +368,10 @@ export function DeckOverview({
     const isSame =
       statsFocus !== null && statsFocus.kind === focus.kind && statsFocus.value === focus.value;
     setStatsFocus(isSame ? null : focus);
+    // On a phone the cards live on another tab; show the focused deck.
+    if (phone && !isSame) {
+      setTab("overview");
+    }
   };
   const focusOpeningChance = statsFocus ? statsFocusOpeningChance(cards, statsFocus) : null;
   // A stale "plan" (e.g. after switching to a local deck) falls back to the deck view.
@@ -353,7 +381,8 @@ export function DeckOverview({
     tab === "overview" ||
     tab === "test" ||
     (tab === "plan" && showPlanTab) ||
-    (tab === "box" && showBoxTab);
+    (tab === "box" && showBoxTab) ||
+    (tab === "stats" && phone);
   const activeTab = tabAvailable ? tab : "overview";
   const [planActionsSlot, setPlanActionsSlot] = useState<HTMLDivElement | null>(null);
   const showOverviewContent = activeTab === "overview";
@@ -377,9 +406,9 @@ export function DeckOverview({
         displayMode={displayMode}
         ordering={ordering}
         columnOverride={columnOverride}
-        autoColumns={autoColumns}
+        autoColumns={phone ? phoneAutoColumns : autoColumns}
         minColumns={physicalMin}
-        maxColumnsLimit={physicalMax}
+        maxColumnsLimit={phone ? phoneMaxColumns : physicalMax}
         showAllCopies={showAllCopies}
         showAllRuneCopies={showAllRuneCopies}
         showBands={showBands}
@@ -419,7 +448,7 @@ export function DeckOverview({
       zoneViolations={violations.filter(
         (violation) => violation.zone === zone && !violation.cardId,
       )}
-      style={style}
+      style={{ ...style, ...phoneZoneStyle(zone) }}
       onClick={onZoneClick ? () => onZoneClick(zone) : undefined}
       onHoverCard={onHoverCard}
       getThumbnail={resolveThumbnail}
@@ -480,6 +509,7 @@ export function DeckOverview({
         heading={heroHeading}
         lead={heroLead}
         actions={heroActions}
+        stackOnPhone={readOnly}
         footer={variantRailSlot}
       />
       {notice}
@@ -488,6 +518,7 @@ export function DeckOverview({
         onTabChange={setTab}
         showPlanTab={showPlanTab}
         showBoxTab={showBoxTab}
+        showStatsTab={phone}
         trailingMobile={
           activeTab === "overview" ? (
             renderViewControls(true)
@@ -508,6 +539,14 @@ export function DeckOverview({
           ) : undefined
         }
       />
+      {showOverviewContent && phone && !readOnly && (
+        <DeckStatsSummary
+          cards={cards}
+          stats={stats}
+          cardTypeLabels={enumLabels.cardTypes}
+          onShowAll={() => setTab("stats")}
+        />
+      )}
       {showOverviewContent && (
         <FormatConfigCard
           deckId={deck.id}
@@ -686,7 +725,7 @@ export function DeckOverview({
         </div>
       )}
 
-      {showOverviewContent && isMobile && (
+      {((showOverviewContent && isMobile && !phone) || activeTab === "stats") && (
         <DeckStatsBand
           cards={cards}
           stats={stats}
@@ -697,8 +736,8 @@ export function DeckOverview({
           enumOrders={enumOrders}
           statsFocus={statsFocus}
           applyStatsFocus={applyStatsFocus}
-          statsOpen={statsOpen}
-          onStatsOpenChange={setStatsOpen}
+          statsOpen={activeTab === "stats" || statsOpen}
+          onStatsOpenChange={activeTab === "stats" ? undefined : setStatsOpen}
         />
       )}
     </div>

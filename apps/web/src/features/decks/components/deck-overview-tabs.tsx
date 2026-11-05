@@ -16,6 +16,7 @@ export function TabStrip({
   onTabChange,
   showPlanTab,
   showBoxTab,
+  showStatsTab,
   trailing,
   trailingMobile,
 }: {
@@ -23,6 +24,7 @@ export function TabStrip({
   onTabChange: (tab: DeckOverviewTab) => void;
   showPlanTab: boolean;
   showBoxTab: boolean;
+  showStatsTab?: boolean;
   trailing?: React.ReactNode;
   trailingMobile?: React.ReactNode;
 }) {
@@ -31,21 +33,28 @@ export function TabStrip({
   // a portal target and must never duplicate.
   const inlineTrailing = isMobile ? (trailingMobile ?? trailing) : trailing;
   return (
-    <div className="flex h-10 items-end gap-6 border-b">
+    <div className="flex h-10 items-end gap-6 border-b md:max-lg:h-auto md:max-lg:flex-wrap md:max-lg:gap-y-2 md:max-lg:border-b-0">
       <Tabs
         value={tab}
         onValueChange={(value) => onTabChange(value as DeckOverviewTab)}
-        className="-mb-px"
+        className="-mb-px md:max-lg:mb-0 md:max-lg:h-10 md:max-lg:basis-full md:max-lg:justify-end md:max-lg:border-b"
       >
-        <TabsList variant="line" aria-label={m.decks_overview_tabs_label()}>
+        <TabsList
+          variant="line"
+          aria-label={m.decks_overview_tabs_label()}
+          className="md:max-lg:-mb-px"
+        >
           <TabsTrigger value="overview">{m.decks_overview_tab_deck()}</TabsTrigger>
           <TabsTrigger value="test">{m.decks_overview_tab_test()}</TabsTrigger>
           {showPlanTab && <TabsTrigger value="plan">{m.decks_overview_tab_plan()}</TabsTrigger>}
           {showBoxTab && <TabsTrigger value="box">{m.decks_overview_tab_box()}</TabsTrigger>}
+          {showStatsTab && <TabsTrigger value="stats">{m.decks_stats_title()}</TabsTrigger>}
         </TabsList>
       </Tabs>
       {inlineTrailing && (
-        <div className="ml-auto flex items-center gap-2 pb-1.5">{inlineTrailing}</div>
+        <div className="ml-auto flex items-center gap-2 pb-1.5 md:max-lg:ml-0">
+          {inlineTrailing}
+        </div>
       )}
     </div>
   );

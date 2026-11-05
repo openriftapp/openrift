@@ -3258,11 +3258,11 @@
   "decks_stats_turn_one_play_label": "1턴 플레이",
   "decks_stats_type_axis": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": ["input count", "input type", "local countPlural = count: plural"],
+      "selectors": ["countPlural", "type"],
       "match": {
-        "countPlural=one": "{label} {count}장",
-        "countPlural=*": "{label} {count}장"
+        "countPlural=one, type=*": "{label} {count}장",
+        "countPlural=*, type=*": "{label} {count}장"
       }
     }
   ],
@@ -3456,6 +3456,7 @@
   "decks_editor_timeout_save": "덱 카드 저장",
   "decks_stats_about_label": "이 통계 안내",
   "decks_stats_about_hint": "주 덱을 기준으로 집계합니다. 막대를 클릭하면 해당 카드를 볼 수 있습니다.",
+  "decks_stats_all": "전체 통계",
   "decks_zone_edit_aria": "{label} 편집",
   "common_share_gone_title": "이 공유 링크는 더 이상 작동하지 않습니다",
   "common_browse_cards": "카드 둘러보기",

@@ -57,6 +57,7 @@ interface DeckHeroProps {
   lead?: React.ReactNode;
   actions?: React.ReactNode;
   footer?: React.ReactNode;
+  stackOnPhone?: boolean;
 }
 
 const CHIP_CLASS =
@@ -169,6 +170,7 @@ export function DeckHero({
   lead,
   actions,
   footer,
+  stackOnPhone,
 }: DeckHeroProps) {
   const domainColors = useDomainColors();
   const signIn = useSignInSearch();
@@ -262,7 +264,12 @@ export function DeckHero({
         position={cover?.position ?? 20}
         domains={legendDomains}
       />
-      <div className="relative flex items-center gap-4 p-4 sm:gap-6 sm:p-5">
+      <div
+        className={cn(
+          "relative flex items-center gap-4 p-4 sm:gap-6 sm:p-5",
+          stackOnPhone && "flex-col items-stretch sm:flex-row sm:items-center",
+        )}
+      >
         {lead}
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           {heading ?? (
@@ -367,7 +374,7 @@ export function DeckHero({
                         className={buttonVariants({
                           variant: "outline",
                           size: "xs",
-                          className: chipButtonClass(),
+                          className: chipButtonClass(stackOnPhone ? "max-sm:hidden" : undefined),
                         })}
                       >
                         <LogInIcon className="size-3" />
@@ -480,9 +487,38 @@ export function DeckHero({
                 )}
               </div>
 
-              {actions && <div className="flex flex-wrap items-center gap-2 pt-1.5">{actions}</div>}
+              {actions && (
+                <div
+                  className={cn(
+                    "flex flex-wrap items-center gap-2 pt-1.5",
+                    stackOnPhone && "max-sm:grid max-sm:grid-cols-[1fr_auto]",
+                  )}
+                >
+                  {actions}
+                </div>
+              )}
+              {stackOnPhone && showSignIn && totalCards > 0 && (
+                <Link
+                  rel="nofollow"
+                  {...signIn}
+                  className={buttonVariants({
+                    variant: "outline",
+                    size: "xs",
+                    className: chipButtonClass("self-start sm:hidden"),
+                  })}
+                >
+                  <LogInIcon className="size-3" />
+                  {m.decks_overview_hero_sign_in()}
+                </Link>
+              )}
             </div>
-            <div className={cn("relative shrink-0 sm:hidden", actions ? "h-28 w-34" : "h-24 w-28")}>
+            <div
+              className={cn(
+                "relative shrink-0 sm:hidden",
+                actions ? "h-28 w-34" : "h-24 w-28",
+                stackOnPhone && "hidden",
+              )}
+            >
               {fanSlots}
             </div>
           </div>

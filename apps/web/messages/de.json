@@ -3258,11 +3258,11 @@
   "decks_stats_turn_one_play_label": "Zug-1-Spielzug",
   "decks_stats_type_axis": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": ["input count", "input type", "local countPlural = count: plural"],
+      "selectors": ["countPlural", "type"],
       "match": {
-        "countPlural=one": "{count} {label}",
-        "countPlural=*": "{count} {label}"
+        "countPlural=one, type=*": "{count} {label}",
+        "countPlural=*, type=*": "{count} {label}"
       }
     }
   ],
@@ -3456,6 +3456,7 @@
   "decks_editor_timeout_save": "Deckkarten speichern",
   "decks_stats_about_label": "Über diese Statistiken",
   "decks_stats_about_hint": "Zählt das Hauptdeck. Klicke auf einen Balken, um die Karten zu sehen.",
+  "decks_stats_all": "Alle Statistiken",
   "decks_zone_edit_aria": "{label} bearbeiten",
   "common_share_gone_title": "Dieser Teilen-Link funktioniert nicht mehr",
   "common_browse_cards": "Karten durchstöbern",

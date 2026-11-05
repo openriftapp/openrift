@@ -16,7 +16,6 @@ import { useDeckStats } from "@/features/decks/hooks/use-deck-stats";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { curveOutRate } from "@/features/decks/lib/deck-curve-out";
 import { formatChancePct } from "@/features/decks/lib/deck-draw-odds";
-import { oddsGroupPresets, oddsGroupRow } from "@/features/decks/lib/deck-odds-groups";
 import { NO_CARDS } from "@/features/decks/lib/deck-overview-derive";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
@@ -31,6 +30,7 @@ import {
 } from "@/features/decks/lib/deck-stat-lenses";
 import type { StatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import { cardMatchesStatsFocus } from "@/features/decks/lib/deck-stats-focus";
+import { turnOnePlayChances } from "@/features/decks/lib/deck-stats-summary";
 import type { StatsLens } from "@/features/decks/stores/deck-builder-ui-store";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import type { useEnumOrders } from "@/hooks/use-enums";
@@ -64,7 +64,7 @@ export function DeckStatsBand({
   applyStatsFocus: (focus: StatsFocus) => void;
   /** Hydration-gated by the host; SSR always renders the band open. Keep the gate there, not here. */
   statsOpen: boolean;
-  onStatsOpenChange: (open: boolean) => void;
+  onStatsOpenChange?: (open: boolean) => void;
 }) {
   const hasMultiTypeCards = cards.some(
     (card) =>
@@ -299,21 +299,15 @@ export function DeckStatsBand({
     </div>
   );
 
-  const presets = oddsGroupPresets(cards, enumLabels.cardTypes);
-  const turnOneFirst = presets.find((preset) => preset.key === "turn-one-first");
-  const turnOneSecond = presets.find((preset) => preset.key === "turn-one-second");
-  const turnOneFirstChance = turnOneFirst ? oddsGroupRow(cards, turnOneFirst).openingChance : null;
-  const turnOneSecondChance = turnOneSecond
-    ? oddsGroupRow(cards, turnOneSecond).openingChance
-    : null;
+  const turnOne = turnOnePlayChances(cards, enumLabels.cardTypes);
   const curveOutFirst = curveOutRate(cards, { goingSecond: false });
   const curveOutSecond = curveOutRate(cards, { goingSecond: true });
   const headlineItems: StatStripItem[] = [
-    ...(turnOneFirstChance !== null && turnOneSecondChance !== null
+    ...(turnOne
       ? [
           {
             key: "turn-one",
-            value: `${formatChancePct(turnOneFirstChance)} · ${formatChancePct(turnOneSecondChance)}`,
+            value: `${formatChancePct(turnOne.first)} · ${formatChancePct(turnOne.second)}`,
             label: (
               <span className="inline-flex items-center gap-1">
                 {m.decks_stats_turn_one_play_label()}
@@ -357,12 +351,14 @@ export function DeckStatsBand({
         label={m.decks_stats_title()}
         labelClassName="group-hover/zone-label:text-foreground transition-colors"
         labelRender={
-          <ExpandToggle
-            expanded={statsOpen}
-            chevronClassName="size-3.5"
-            onClick={() => onStatsOpenChange(!statsOpen)}
-            className="group/zone-label flex-1"
-          />
+          onStatsOpenChange ? (
+            <ExpandToggle
+              expanded={statsOpen}
+              chevronClassName="size-3.5"
+              onClick={() => onStatsOpenChange(!statsOpen)}
+              className="group/zone-label flex-1"
+            />
+          ) : undefined
         }
       >
         <InfoHint label={m.decks_stats_about_label()} side="bottom">

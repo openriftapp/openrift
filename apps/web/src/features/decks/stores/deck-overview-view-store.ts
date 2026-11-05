@@ -12,6 +12,7 @@ const MAX_PERSISTED_COLUMNS = 24;
 
 interface DeckOverviewViewState {
   displayMode: DeckOverviewDisplayMode;
+  displayModePicked: boolean;
   setDisplayMode: (displayMode: DeckOverviewDisplayMode) => void;
   columns: number | null;
   setColumns: (columns: number | null) => void;
@@ -67,7 +68,8 @@ export const useDeckOverviewViewStore = create<DeckOverviewViewState>()(
   persist(
     (set) => ({
       displayMode: "grid",
-      setDisplayMode: (displayMode) => set({ displayMode }),
+      displayModePicked: false,
+      setDisplayMode: (displayMode) => set({ displayMode, displayModePicked: true }),
       columns: null,
       setColumns: (columns) => set({ columns }),
       preferOwnedPrintings: false,
@@ -97,6 +99,7 @@ export const useDeckOverviewViewStore = create<DeckOverviewViewState>()(
       // defaults per field, never load junk view state.
       merge: mergeFields<DeckOverviewViewState>({
         displayMode: pickEnum(DISPLAY_MODES),
+        displayModePicked: pickBoolean,
         columns: pickColumnCount,
         preferOwnedPrintings: pickBoolean,
         showAllCopies: pickBoolean,

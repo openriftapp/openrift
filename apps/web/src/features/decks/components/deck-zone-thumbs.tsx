@@ -1,12 +1,14 @@
 import { useDraggable } from "@dnd-kit/core";
 import { legendDisplayName } from "@openrift/shared/card-name";
 import type { DeckZone } from "@openrift/shared/types/enums";
-import { ImageOffIcon, PinIcon, XIcon } from "lucide-react";
+import { ImageOffIcon, LayersIcon, MinusIcon, PinIcon, PlusIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { CountPill } from "@/components/ui/count-pill";
 import { InlineCountStepper } from "@/components/ui/inline-count-stepper";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { CardStrip, StripIconButton } from "@/features/cards/components/card-strip";
 import { AFTER_BORDER, CornerRibbon } from "@/features/cards/components/card-thumbnail";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
@@ -25,6 +27,7 @@ import {
   PORTRAIT_THUMB_STYLE,
 } from "@/features/decks/lib/deck-thumb-metrics";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useSmUp } from "@/hooks/use-sm-up";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -134,6 +137,63 @@ function ThumbEditControls({
   );
 }
 
+function ThumbStepStrip({
+  deckId,
+  card,
+  zone,
+  addRoom,
+  perCopy,
+}: {
+  deckId: string;
+  card: DeckBuilderCard;
+  zone: DeckZone;
+  addRoom: number;
+  perCopy: boolean;
+}) {
+  const { addCard, removeCard } = useDeckBuilderActions(deckId);
+  const cardName = legendDisplayName({
+    name: card.cardName,
+    types: card.cardTypes,
+    tags: card.tags,
+  });
+  const canAdd = !perCopy && addRoom > 0;
+  return (
+    <CardStrip
+      left={
+        <StripIconButton
+          className="text-muted-foreground"
+          aria-label={m.decks_editor_remove_one_copy({ card: cardName })}
+          onClick={() => removeCard(card.cardId, zone, card.preferredPrintingId)}
+        >
+          <MinusIcon />
+        </StripIconButton>
+      }
+      center={
+        perCopy ? undefined : (
+          <CountPill
+            variant="primary"
+            title={m.decks_editor_in_deck_count({ count: card.quantity })}
+          >
+            <LayersIcon className="size-3" aria-hidden />
+            <span>{card.quantity}</span>
+            <span className="sr-only">{m.decks_editor_in_deck()}</span>
+          </CountPill>
+        )
+      }
+      right={
+        <StripIconButton
+          className={canAdd ? "text-muted-foreground" : "text-muted-foreground/30"}
+          disabled={!canAdd}
+          aria-label={m.decks_editor_add_one_copy({ card: cardName })}
+          onClick={() => addCard(card, zone, 1)}
+        >
+          <PlusIcon />
+        </StripIconButton>
+      }
+    />
+  );
+}
+
 export function ZoneThumb({
   deckId,
   card,
@@ -166,6 +226,8 @@ export function ZoneThumb({
   onCardClick?: (card: CardOpenTarget) => void;
 }) {
   const isMobile = useIsMobile();
+  const smUp = useSmUp();
+  const stepAbove = !readOnly && !smUp;
   const enableDrag = !readOnly && !isMobile && DRAG_SOURCE_ZONES.has(zone);
   const editable = !readOnly;
   const displayName = legendDisplayName({
@@ -274,7 +336,7 @@ export function ZoneThumb({
           {priceText}
         </span>
       )}
-      {editable && (
+      {editable && !stepAbove && (
         <ThumbEditControls
           deckId={deckId}
           card={card}
@@ -292,9 +354,27 @@ export function ZoneThumb({
     return thumbBody;
   }
 
-  return (
+  const menuThumb = (
     <DeckCardPrintingMenu deckId={deckId} card={card}>
       {thumbBody}
     </DeckCardPrintingMenu>
+  );
+  if (!stepAbove) {
+    return menuThumb;
+  }
+  return (
+    <div
+      style={isLandscape ? LANDSCAPE_THUMB_STYLE : PORTRAIT_THUMB_STYLE}
+      className="isolate flex max-w-full shrink-0 flex-col"
+    >
+      <ThumbStepStrip
+        deckId={deckId}
+        card={card}
+        zone={zone}
+        addRoom={addRoom ?? 0}
+        perCopy={copyIndex !== null && copyIndex !== undefined}
+      />
+      {menuThumb}
+    </div>
   );
 }

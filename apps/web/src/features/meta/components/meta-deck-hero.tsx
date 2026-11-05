@@ -23,7 +23,7 @@ export function MetaDeckFinish({ meta }: { meta: MetaDeckContext }) {
   const record = formatRecord(meta.wins, meta.losses, meta.draws);
   const field = meta.event.playerCount;
   return (
-    <div className="flex shrink-0 flex-col items-start gap-1 self-center pr-2 sm:pr-3">
+    <div className="flex shrink-0 items-center gap-3 self-start sm:flex-col sm:items-start sm:gap-1 sm:self-center sm:pr-3">
       <Eyebrow variant="gold" as="span">
         {m.meta_filter_finish()}
       </Eyebrow>
@@ -35,6 +35,7 @@ export function MetaDeckFinish({ meta }: { meta: MetaDeckContext }) {
           </span>
         }
         label={field === null ? null : m.meta_run_of_players({ count: field })}
+        className="max-sm:flex-row max-sm:items-baseline max-sm:gap-2"
       >
         {record !== null && (
           <span className="text-muted-foreground text-xs tabular-nums">{record}</span>

@@ -20,6 +20,7 @@ import type { DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import type { DeckOverviewSort } from "@/features/decks/lib/deck-overview-list-sort";
 import type { DeckOverviewDisplayMode } from "@/features/decks/stores/deck-overview-view-store";
 import { useDeckOverviewViewStore } from "@/features/decks/stores/deck-overview-view-store";
+import { useSmUp } from "@/hooks/use-sm-up";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -143,6 +144,7 @@ export function DeckOverviewViewControls({
     (state) => state.setPreferOwnedPrintings,
   );
 
+  const smUp = useSmUp();
   const hasThumbnails = displayMode !== "list";
 
   // Shared by both clusters: it's the one view control that stays on the row
@@ -270,10 +272,19 @@ export function DeckOverviewViewControls({
   ));
 
   if (compact) {
+    const toggleInDrawer = !smUp;
     return (
       <>
-        {displayModeToggle}
+        {!toggleInDrawer && displayModeToggle}
         <MobileOptionsDrawer>
+          {toggleInDrawer && (
+            <div className="flex min-w-0 items-center gap-2">
+              <p className="text-muted-foreground w-18 text-xs font-medium">
+                {m.decks_overview_display_mode()}
+              </p>
+              {displayModeToggle}
+            </div>
+          )}
           {hasThumbnails && (
             <div className="flex min-w-0 items-center gap-2">
               <p className="text-muted-foreground w-18 text-xs font-medium">
@@ -324,6 +335,21 @@ export function DeckOverviewViewControls({
         <TooltipContent>{m.decks_overview_display_options()}</TooltipContent>
       </Tooltip>
       <PopoverContent align="end" className="w-72 gap-4">
+        {hasThumbnails && (
+          <div className="hidden min-w-0 items-center gap-2 md:max-lg:flex">
+            <p className="text-muted-foreground w-18 text-xs font-medium">
+              {m.decks_overview_columns()}
+            </p>
+            <ColumnControls
+              compact
+              maxColumns={columnOverride}
+              autoColumns={autoColumns}
+              minColumns={minColumns}
+              maxColumnsLimit={maxColumnsLimit}
+              onMaxColumnsChange={setColumns}
+            />
+          </div>
+        )}
         {optionSwitchRows}
       </PopoverContent>
     </Popover>
@@ -332,13 +358,15 @@ export function DeckOverviewViewControls({
   return (
     <div className="flex items-center gap-2">
       {hasThumbnails && (
-        <ColumnControls
-          maxColumns={columnOverride}
-          autoColumns={autoColumns}
-          minColumns={minColumns}
-          maxColumnsLimit={maxColumnsLimit}
-          onMaxColumnsChange={setColumns}
-        />
+        <div className="contents md:max-lg:hidden">
+          <ColumnControls
+            maxColumns={columnOverride}
+            autoColumns={autoColumns}
+            minColumns={minColumns}
+            maxColumnsLimit={maxColumnsLimit}
+            onMaxColumnsChange={setColumns}
+          />
+        </div>
       )}
       <DeckOrderingControl ordering={ordering} />
       {displayModeToggle}

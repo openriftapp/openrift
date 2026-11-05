@@ -27,6 +27,12 @@ describe("useDeckOverviewViewStore", () => {
     expect(useDeckOverviewViewStore.getState().displayMode).toBe("grid");
   });
 
+  it("marks the display mode as picked only once the viewer chooses one", () => {
+    expect(useDeckOverviewViewStore.getState().displayModePicked).toBe(false);
+    useDeckOverviewViewStore.getState().setDisplayMode("grid");
+    expect(useDeckOverviewViewStore.getState().displayModePicked).toBe(true);
+  });
+
   it("defaults to the default sort, ascending", () => {
     expect(useDeckOverviewViewStore.getState().sortBy).toBe("default");
     expect(useDeckOverviewViewStore.getState().sortDir).toBe("asc");

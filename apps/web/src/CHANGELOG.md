@@ -6,6 +6,13 @@
 
 - feat(App): **Phone menu shows every page** — the slide-out menu lists the Play, Organize and Explore pages open in two columns, so nothing hides behind a collapsed heading.
 - fix(App): **Header fits on tablets** — the top bar no longer runs off the screen edge on tablets, where Groups now sits under More, phones find Help and Contribute in the three-dot menu, and the sign-in pages drop the extra Sign in button.
+- feat(Decks): **Decks fit on phones** — shared, meta and your own decks stack their zones on a phone, with stats on their own tab and view settings behind one button.
+- feat(Decks): **Phone deck editor at a glance** — the editor opens as a list on phones with a stats summary on top, and grid cards get their count buttons above the card.
+
+### Other
+
+- feat(Decks): **One style for zone add slots** — empty and unfinished zones show the same slim strip, with a plus wherever a tap adds cards.
+- fix(Decks): **Deck view controls on tablets** — the sort, view and options controls sit on their own row under the tabs, so the deck page no longer scrolls sideways.
 
 ## 2026-11-04
 

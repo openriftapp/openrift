@@ -3258,11 +3258,12 @@
   "decks_stats_turn_one_play_label": "Turn-1 play",
   "decks_stats_type_axis": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": ["input count", "input type", "local countPlural = count: plural"],
+      "selectors": ["countPlural", "type"],
       "match": {
-        "countPlural=one": "{count} {label}",
-        "countPlural=*": "{count} {label}s"
+        "countPlural=one, type=*": "{count} {label}",
+        "countPlural=*, type=gear": "{count} {label}",
+        "countPlural=*, type=*": "{count} {label}s"
       }
     }
   ],
@@ -3459,6 +3460,7 @@
   "decks_editor_timeout_save": "Save deck cards",
   "decks_stats_about_label": "About these stats",
   "decks_stats_about_hint": "Counts the main deck. Click a bar to see its cards.",
+  "decks_stats_all": "All stats",
   "decks_zone_edit_aria": "Edit {label}",
   "common_share_gone_title": "This share link no longer works",
   "common_browse_cards": "Browse cards",

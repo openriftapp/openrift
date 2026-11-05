@@ -3,7 +3,7 @@ import { create } from "zustand";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 
-export type DeckOverviewTab = "overview" | "plan" | "test" | "box";
+export type DeckOverviewTab = "overview" | "plan" | "test" | "box" | "stats";
 
 export type StatsLens = "types" | "rarity" | "ownership";
 

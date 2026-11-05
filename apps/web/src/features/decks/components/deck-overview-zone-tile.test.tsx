@@ -1,6 +1,6 @@
 import type { DeckZone } from "@openrift/shared/types/enums";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { stubDeckBuilderCard } from "@/test/factories";
 
@@ -17,6 +17,8 @@ vi.mock("@/features/decks/components/deck-stack-pile", () => ({
   StackPile: () => <div>pile</div>,
 }));
 
+afterEach(cleanup);
+
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { ZoneTile } from "./deck-overview-zone-tile";
 
@@ -25,11 +27,19 @@ function renderZone({
   cards = [],
   expected,
   unknownCount,
+  label = "Battlefields",
+  emptyHint = "Choose 3 unique Battlefield cards",
+  readOnly = true,
+  onClick,
 }: {
   zone?: DeckZone;
   cards?: ReturnType<typeof stubDeckBuilderCard>[];
   expected?: number;
   unknownCount?: number;
+  label?: string;
+  emptyHint?: string;
+  readOnly?: boolean;
+  onClick?: () => void;
 }) {
   render(
     <ZoneTile
@@ -45,18 +55,19 @@ function renderZone({
       groupBy="none"
       stacked={false}
       zone={zone}
-      label="Battlefields"
+      label={label}
       cards={cards}
       allCards={cards}
       expected={expected}
-      emptyHint="Choose 3 unique Battlefield cards"
+      emptyHint={emptyHint}
       unknownCount={unknownCount}
       zoneViolations={[]}
       format="constructed"
       getThumbnail={() => undefined}
       collapsedZones={new Set()}
       onToggleCollapsed={vi.fn()}
-      readOnly
+      readOnly={readOnly}
+      onClick={onClick}
     />,
   );
 }
@@ -97,5 +108,64 @@ describe("ZoneTile unknown slots", () => {
     renderZone({ expected: 3 });
     expect(screen.getByText("No Battlefields")).toBeDefined();
     expect(screen.queryByText("Unknown")).toBeNull();
+  });
+});
+
+describe("ZoneTile add strips", () => {
+  it("gives an empty legend the same slim add strip as any other zone", () => {
+    const onClick = vi.fn();
+    renderZone({
+      zone: "legend",
+      label: "Legend",
+      emptyHint: "Choose a Legend",
+      expected: 1,
+      readOnly: false,
+      onClick,
+    });
+    screen.getByRole("button", { name: "Choose a Legend" }).click();
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it("offers to add runes when the editor wires a click", () => {
+    renderZone({
+      zone: "runes",
+      label: "Runes",
+      emptyHint: "Auto-fills from your Legend",
+      expected: 12,
+      readOnly: false,
+      onClick: vi.fn(),
+    });
+    expect(screen.getByRole("button", { name: "Auto-fills from your Legend" })).toBeDefined();
+  });
+
+  it("shows an empty read-only legend as a label without an add action", () => {
+    renderZone({ zone: "legend", label: "Legend", emptyHint: "Choose a Legend", expected: 1 });
+    expect(screen.queryByRole("button", { name: "Choose a Legend" })).toBeNull();
+    expect(screen.getByText("No Legend picked")).toBeDefined();
+  });
+
+  it("puts an add strip below the cards of a zone that is not full", () => {
+    const onClick = vi.fn();
+    renderZone({
+      cards: [stubDeckBuilderCard({ zone: "battlefield", cardName: "Ionian Cliffside" })],
+      expected: 3,
+      readOnly: false,
+      onClick,
+    });
+    screen.getByRole("button", { name: "Add cards to Battlefields" }).click();
+    expect(onClick).toHaveBeenCalledOnce();
+    expect(screen.getByText("Add cards")).toBeDefined();
+  });
+
+  it("drops the add strip once the zone is full", () => {
+    renderZone({
+      cards: [
+        stubDeckBuilderCard({ zone: "battlefield", cardName: "Ionian Cliffside", quantity: 3 }),
+      ],
+      expected: 3,
+      readOnly: false,
+      onClick: vi.fn(),
+    });
+    expect(screen.queryByRole("button", { name: "Add cards to Battlefields" })).toBeNull();
   });
 });

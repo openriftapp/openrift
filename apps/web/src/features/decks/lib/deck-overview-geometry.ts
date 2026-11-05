@@ -102,6 +102,25 @@ export function stackStripGeometry(
   };
 }
 
+const PHONE_CARDS_PER_ROW: Partial<Record<DeckZone, number>> = {
+  [WellKnown.deckZone.LEGEND]: 3,
+  [WellKnown.deckZone.LEGEND_OPTIONS]: 3,
+  [WellKnown.deckZone.CHAMPION]: 3,
+  [WellKnown.deckZone.BATTLEFIELD]: 2,
+};
+/** Card width in px for a zone on a phone, where each zone fills its own row. */
+export function phoneZoneCardWidth(
+  zone: DeckZone,
+  containerWidth: number,
+  defaultPerRow = 4,
+): number {
+  const perRow = PHONE_CARDS_PER_ROW[zone] ?? defaultPerRow;
+  const slot = (containerWidth - (perRow - 1) * DECK_GRID_GAP) / perRow;
+  // Landscape thumbs render at width * 88/63, so the row count applies to that.
+  const width = LANDSCAPE_ZONES.has(zone) ? (slot * 63) / 88 : slot;
+  return Math.max(0, Math.floor(width));
+}
+
 export function smallZoneGridStyles(
   columns: number,
   stackedBattlefield: boolean,

@@ -3258,11 +3258,11 @@
   "decks_stats_turn_one_play_label": "首回合行动",
   "decks_stats_type_axis": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": ["input count", "input type", "local countPlural = count: plural"],
+      "selectors": ["countPlural", "type"],
       "match": {
-        "countPlural=one": "{count}张{label}",
-        "countPlural=*": "{count}张{label}"
+        "countPlural=one, type=*": "{count}张{label}",
+        "countPlural=*, type=*": "{count}张{label}"
       }
     }
   ],
@@ -3456,6 +3456,7 @@
   "decks_editor_timeout_save": "保存卡组卡牌",
   "decks_stats_about_label": "关于这些统计",
   "decks_stats_about_hint": "统计主牌堆。点击柱状条可查看对应卡牌。",
+  "decks_stats_all": "全部统计",
   "decks_zone_edit_aria": "编辑{label}",
   "common_share_gone_title": "此分享链接已失效",
   "common_browse_cards": "浏览卡牌",

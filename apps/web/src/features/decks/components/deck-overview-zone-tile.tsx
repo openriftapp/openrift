@@ -36,10 +36,8 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 const MAX_UNKNOWN_SLOTS = 3;
-const SINGLE_CARD_ZONES = new Set<DeckZone>([
-  WellKnown.deckZone.LEGEND,
-  WellKnown.deckZone.CHAMPION,
-]);
+const ZONE_STRIP_CLASS =
+  "flex h-auto w-full items-center justify-center gap-2 rounded-md px-3 py-4 text-center font-normal whitespace-normal";
 
 function UnknownSlots({ count, isLandscape }: { count: number; isLandscape: boolean }) {
   const slots = count <= MAX_UNKNOWN_SLOTS ? count : 1;
@@ -134,6 +132,31 @@ export function ZoneTile({
   const groups = GROUPED_ZONES.has(zone) ? groupCards(cards) : null;
   const unknownSlots =
     unknownCount > 0 ? <UnknownSlots count={unknownCount} isLandscape={isLandscape} /> : null;
+
+  const canAdd = !readOnly && onClick !== undefined;
+  const emptyStrip = canAdd ? (
+    <Button type="button" variant="dashed" onClick={onClick} className={ZONE_STRIP_CLASS}>
+      <PlusIcon className="size-4" />
+      <span>{emptyHint}</span>
+    </Button>
+  ) : (
+    <div className={cn(ZONE_STRIP_CLASS, "text-muted-foreground border border-dashed")}>
+      {readOnly ? zoneEmptyReadOnlyLabel(zone) : emptyHint}
+    </div>
+  );
+  const addStrip =
+    canAdd && !isEmpty && expected !== undefined && quantity < expected ? (
+      <Button
+        type="button"
+        variant="dashed"
+        onClick={onClick}
+        aria-label={m.decks_overview_zone_add_to({ zone: label })}
+        className={ZONE_STRIP_CLASS}
+      >
+        <PlusIcon className="size-4" />
+        <span>{m.decks_overview_zone_add_cards()}</span>
+      </Button>
+    ) : null;
 
   const { dropRef, isOver, dropDisabled } = useDeckZoneDrop({
     id: `overview-zone-${zone}`,
@@ -244,48 +267,8 @@ export function ZoneTile({
       {collapsed ? null : isEmpty ? (
         unknownSlots ? (
           <div className="flex flex-wrap items-center gap-1.5">{unknownSlots}</div>
-        ) : SINGLE_CARD_ZONES.has(zone) ? (
-          onClick && !readOnly ? (
-            <Button
-              type="button"
-              variant="dashed"
-              onClick={onClick}
-              aria-label={m.decks_zone_edit_aria({ label })}
-              style={isLandscape ? LANDSCAPE_THUMB_STYLE : PORTRAIT_THUMB_STYLE}
-              className={cn(
-                isLandscape ? LANDSCAPE_THUMB_CLASS : PORTRAIT_THUMB_CLASS,
-                "h-auto shrink-0 flex-col gap-2 rounded-md px-2 text-xs font-normal whitespace-normal",
-              )}
-            >
-              <PlusIcon className="size-4" />
-              <span>{emptyHint}</span>
-            </Button>
-          ) : (
-            <div
-              style={isLandscape ? LANDSCAPE_THUMB_STYLE : PORTRAIT_THUMB_STYLE}
-              className={cn(
-                isLandscape ? LANDSCAPE_THUMB_CLASS : PORTRAIT_THUMB_CLASS,
-                "text-muted-foreground flex shrink-0 items-center justify-center rounded-md border border-dashed px-2 text-center text-xs",
-              )}
-            >
-              {readOnly ? zoneEmptyReadOnlyLabel(zone) : emptyHint}
-            </div>
-          )
-        ) : zone === WellKnown.deckZone.RUNES || readOnly || !onClick ? (
-          <div className="text-muted-foreground flex items-center justify-center rounded-md border border-dashed px-3 py-4 text-center">
-            {readOnly ? zoneEmptyReadOnlyLabel(zone) : emptyHint}
-          </div>
         ) : (
-          <Button
-            type="button"
-            variant="dashed"
-            onClick={onClick}
-            aria-label={m.decks_overview_zone_edit({ zone: label })}
-            className="h-auto w-full gap-2 rounded-md px-3 py-4 font-normal"
-          >
-            <PlusIcon className="size-4" />
-            <span>{emptyHint}</span>
-          </Button>
+          emptyStrip
         )
       ) : stacked && isLandscape && cards.length > 1 ? (
         <div className="flex flex-wrap items-start gap-1.5">
@@ -302,26 +285,6 @@ export function ZoneTile({
             readOnly={readOnly}
             onCardClick={onCardClick}
           />
-          {!readOnly &&
-            onClick !== undefined &&
-            expected !== undefined &&
-            quantity > 0 &&
-            quantity < expected && (
-              <Button
-                type="button"
-                variant="dashed"
-                onClick={onClick}
-                aria-label={m.decks_overview_zone_add_to({ zone: label })}
-                style={LANDSCAPE_THUMB_STYLE}
-                className={cn(
-                  LANDSCAPE_THUMB_CLASS,
-                  "h-auto shrink-0 flex-col gap-1 rounded-md font-normal",
-                )}
-              >
-                <PlusIcon className="size-4" />
-                <span className="text-muted-foreground text-xs">{m.decks_overview_add()}</span>
-              </Button>
-            )}
           {unknownSlots}
         </div>
       ) : groups ? (
@@ -373,29 +336,10 @@ export function ZoneTile({
               />
             );
           })}
-          {!readOnly &&
-            onClick !== undefined &&
-            expected !== undefined &&
-            quantity > 0 &&
-            quantity < expected && (
-              <Button
-                type="button"
-                variant="dashed"
-                onClick={onClick}
-                aria-label={m.decks_overview_zone_add_to({ zone: label })}
-                style={isLandscape ? LANDSCAPE_THUMB_STYLE : PORTRAIT_THUMB_STYLE}
-                className={cn(
-                  isLandscape ? LANDSCAPE_THUMB_CLASS : PORTRAIT_THUMB_CLASS,
-                  "h-auto shrink-0 flex-col gap-1 rounded-md font-normal",
-                )}
-              >
-                <PlusIcon className="size-4" />
-                <span className="text-muted-foreground text-xs">{m.decks_overview_add()}</span>
-              </Button>
-            )}
           {unknownSlots}
         </div>
       )}
+      {!collapsed && !groups && addStrip}
     </div>
   );
 }
