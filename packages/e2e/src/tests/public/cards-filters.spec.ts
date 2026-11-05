@@ -104,6 +104,8 @@ test.describe("card filters (mobile drawer)", () => {
       await expect(drawer.locator("p", { hasText: new RegExp(`^${label}$`, "u") })).toBeVisible();
     }
 
+    await expect(drawerBadge(drawer, /^Proving Grounds/u)).toHaveCount(0);
+    await drawer.getByRole("button", { name: /^\+ \d+ more$/u }).dispatchEvent("click");
     await expect(drawerBadge(drawer, /^Proving Grounds/u)).toBeVisible();
     await expect(drawerBadge(drawer, /^Fury/u)).toBeVisible();
     await expect(drawerBadge(drawer, /^Unit/u)).toBeVisible();

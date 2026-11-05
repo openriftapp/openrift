@@ -86,6 +86,7 @@ export function FilterBadgeSections({
           onCycle={(v) => cycleArrayFilter("sets", "setsEx", v)}
           displayLabel={setDisplayLabel}
           secondaryOptions={availableFilters.supplementalSets}
+          collapsible={availableFilters.supplementalSets}
           counts={filterCounts?.sets}
           wide
         />

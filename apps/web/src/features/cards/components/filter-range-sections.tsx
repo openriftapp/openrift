@@ -3,14 +3,15 @@ import type { RangeKey } from "@openrift/shared/types/search";
 import { NONE } from "@openrift/shared/types/search";
 import { CircleSlashIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { Slider } from "@/components/ui/slider";
 import type { FilterPanelContentProps } from "@/features/cards/components/filter-panel-content";
-import { LabelledRow } from "@/features/cards/components/labelled-row";
+import { LabelledRow, LabelledRowLayoutContext } from "@/features/cards/components/labelled-row";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { compactFormatterForMarketplace } from "@/lib/format";
+import { rangeBadgeLabel } from "@/lib/range-label";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -98,7 +99,7 @@ export function FilterRangeSections({
             ];
   const showCopies = (scope === "all" || scope === "copies") && showRangeUnit("owned");
 
-  const valueClassName = valueClassNameOverride ?? (scope === "stats" ? "w-4" : undefined);
+  const valueClassName = valueClassNameOverride ?? (scope === "stats" ? "w-8" : undefined);
 
   return (
     <>
@@ -189,16 +190,19 @@ function RangeFilterSection({
   const resolvedMin = selectedMin ?? defaultMin;
   const resolvedMax = selectedMax ?? availableMax;
   const fmt = formatValue ?? String;
-  const renderValue = (value: number): ReactNode =>
-    value === NONE ? (
-      <CircleSlashIcon
-        className="inline-block size-3 align-[-0.1875em]"
-        role="img"
-        aria-label={m.cards_filter_range_none()}
-      />
-    ) : (
-      fmt(value)
-    );
+  const stacked = use(LabelledRowLayoutContext) === "stacked";
+  const noneIcon = (
+    <CircleSlashIcon
+      className="inline-block size-3 align-[-0.1875em]"
+      role="img"
+      aria-label={m.cards_filter_range_none()}
+    />
+  );
+  const renderValue = (value: number): ReactNode => (value === NONE ? noneIcon : fmt(value));
+  const summary =
+    selectedMin === null && selectedMax === null
+      ? m.cards_filter_placeholder_any()
+      : rangeBadgeLabel(selectedMin, selectedMax, availableMin, availableMax, fmt);
 
   const sMin = logarithmic ? 0 : sliderMin;
   const sMax = logarithmic ? LOG_STEPS : availableMax;
@@ -285,15 +289,22 @@ function RangeFilterSection({
   };
 
   return (
-    <LabelledRow label={label} labelClassName={labelClassName}>
+    <LabelledRow
+      label={label}
+      labelClassName={labelClassName}
+      aside={
+        stacked && <span className="text-muted-foreground text-xs tabular-nums">{summary}</span>
+      }
+    >
       <div className="flex flex-1 items-center gap-1">
         <span
           className={cn(
-            "text-2xs text-muted-foreground shrink-0 text-right tabular-nums",
+            "text-2xs text-muted-foreground shrink-0 text-right whitespace-nowrap tabular-nums",
             valueClassName,
           )}
         >
-          {renderValue(displayMin)}
+          {displayMin === NONE && <>{noneIcon} </>}
+          {fmt(displayMin === NONE ? availableMin : displayMin)}
         </span>
         <Slider
           min={renderSliderMin}

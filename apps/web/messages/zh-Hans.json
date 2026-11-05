@@ -1072,6 +1072,7 @@
   "cards_filter_owned_none": "无",
   "cards_filter_owned_partial": "部分齐全",
   "cards_filter_placeholder_any": "任意",
+  "cards_filter_show_more": "+ 另外{count}项",
   "cards_filter_presence_channels": "含任意发行渠道",
   "cards_filter_presence_custom_tags": "含任意自定义标签",
   "cards_filter_presence_keywords": "含任意关键词",

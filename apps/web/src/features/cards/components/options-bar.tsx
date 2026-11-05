@@ -31,7 +31,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ColumnControls } from "@/features/cards/components/column-controls";
-import { LabelledRow } from "@/features/cards/components/labelled-row";
+import { LabelledRow, LabelledRowLayoutContext } from "@/features/cards/components/labelled-row";
 import { SortGroupControls } from "@/features/cards/components/sort-group-controls";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { isCopiesOnlyGrouping } from "@/features/cards/lib/group-by-collection";
@@ -461,20 +461,37 @@ export function MobileOptionsDrawer({
         className="pb-4 data-ending-style:duration-250"
         keepMounted={openedOnce || idlePremounted}
       >
-        <DrawerHeader className="sr-only">
+        <DrawerHeader className="bg-popover flex-row items-center justify-between border-b px-4 pt-1 pb-2">
           <DrawerTitle>{m.cards_options()}</DrawerTitle>
-          <DrawerDescription>{m.cards_options_description()}</DrawerDescription>
+          <DrawerDescription className="sr-only">{m.cards_options_description()}</DrawerDescription>
+          <DrawerResetButton />
         </DrawerHeader>
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-2 pb-4">
-          {children}
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-3 pb-4">
+          <LabelledRowLayoutContext value="stacked">{children}</LabelledRowLayoutContext>
         </div>
-        <DrawerFooter>
+        <DrawerFooter className="border-t pt-3">
           <DrawerClose render={<Button className="w-full" />}>
             {doneLabel ?? m.common_done()}
           </DrawerClose>
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
+  );
+}
+
+function DrawerResetButton() {
+  const { hasClearableFilters } = useFilterValues();
+  const { clearAllFilters } = useFilterActions();
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="-mr-2"
+      disabled={!hasClearableFilters}
+      onClick={clearAllFilters}
+    >
+      {m.common_reset()}
+    </Button>
   );
 }
 

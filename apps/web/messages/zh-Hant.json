@@ -1072,6 +1072,7 @@
   "cards_filter_owned_none": "無",
   "cards_filter_owned_partial": "部分收齊",
   "cards_filter_placeholder_any": "不限",
+  "cards_filter_show_more": "+ 另外 {count} 個",
   "cards_filter_presence_channels": "具有任一發行通路",
   "cards_filter_presence_custom_tags": "具有任一自訂標籤",
   "cards_filter_presence_keywords": "具有任一關鍵字",

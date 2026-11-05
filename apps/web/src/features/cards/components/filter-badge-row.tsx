@@ -1,10 +1,14 @@
 import { MinusIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 
 import { CardIcon } from "@/components/card-icon";
 import { Badge } from "@/components/ui/badge";
+import { Pressable } from "@/components/ui/pressable";
 import { LabelledRow } from "@/features/cards/components/labelled-row";
+import { collapseFilterOptions } from "@/features/cards/lib/collapse-filter-options";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function FilterSection({
   label,
@@ -20,6 +24,7 @@ export function FilterSection({
   wide,
   children,
   trailing,
+  collapsible,
 }: {
   label: string;
   children?: ReactNode;
@@ -36,10 +41,28 @@ export function FilterSection({
   wide?: boolean;
   /** Extra control(s) appended after the badges (e.g. the Signed flag in Art Variant). */
   trailing?: ReactNode;
+  collapsible?: ReadonlySet<string>;
 }) {
+  const [expanded, setExpanded] = useState(false);
   if (!children && !trailing && (!options || options.length === 0)) {
     return null;
   }
+  const allOptions = options ?? [];
+  const { visible, hiddenCount } = collapseFilterOptions(allOptions, collapsible ?? new Set(), [
+    ...(selected ?? []),
+    ...(excluded ?? []),
+  ]);
+  const collapsed = hiddenCount > 0 && !expanded;
+  const foldToggle =
+    hiddenCount > 0 ? (
+      <Badge
+        variant="outline"
+        className="text-muted-foreground border-dashed"
+        render={<Pressable aria-expanded={expanded} onClick={() => setExpanded(!expanded)} />}
+      >
+        {collapsed ? m.cards_filter_show_more({ count: hiddenCount }) : m.common_show_fewer()}
+      </Badge>
+    ) : null;
 
   return (
     <LabelledRow label={label} className={cn(wide && "lg:col-span-2")}>
@@ -47,7 +70,7 @@ export function FilterSection({
         <div className="flex flex-1 flex-wrap gap-1">{children}</div>
       ) : (
         <FilterBadgeGrid
-          options={options ?? []}
+          options={collapsed ? visible : allOptions}
           selected={selected}
           excluded={excluded}
           onToggle={onToggle}
@@ -56,7 +79,12 @@ export function FilterSection({
           displayLabel={displayLabel}
           secondaryOptions={secondaryOptions}
           counts={counts}
-          trailing={trailing}
+          trailing={
+            <>
+              {trailing}
+              {foldToggle}
+            </>
+          }
         />
       )}
     </LabelledRow>

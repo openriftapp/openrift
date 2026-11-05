@@ -47,6 +47,8 @@ import { FilterBadgeSections } from "./filter-badge-sections";
 import { FilterChipSections } from "./filter-chip-sections";
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { FilterRangeSections } from "./filter-range-sections";
+// oxlint-disable-next-line import/first -- must import after vi.mock
+import { LabelledRowLayoutContext } from "./labelled-row";
 
 const NULL_RANGES = {
   energy: { min: null, max: null },
@@ -216,6 +218,46 @@ describe("FilterRangeSections", () => {
     );
     expect(queryByText("Price")).toBeNull();
     expect(queryByText("Energy")).not.toBeNull();
+  });
+
+  it("shows the lowest stat value next to the no-value mark when nulls are in range", () => {
+    setupHooks();
+    const { getAllByRole, getAllByText } = render(
+      <FilterRangeSections
+        availableFilters={makeAvailable()}
+        filterCounts={makeFilterCounts({ energy: { min: 1, max: 7, hasNullStat: true } })}
+        scope="stats"
+        hiddenSections={new Set(["might", "power"])}
+      />,
+    );
+    expect(getAllByRole("img", { name: "None" })).toHaveLength(1);
+    expect(getAllByText("1")).toHaveLength(1);
+    expect(getAllByText("7")).toHaveLength(1);
+  });
+
+  it("summarises the range on the label line only in the stacked layout", () => {
+    setupHooks();
+    mockUseFilterValues.mockReturnValue({
+      ranges: { ...NULL_RANGES, energy: { min: 2, max: 5 } },
+      filterState: { ownedCountMin: null, ownedCountMax: null },
+    });
+    const props = {
+      availableFilters: makeAvailable(),
+      filterCounts: makeFilterCounts(),
+      scope: "stats" as const,
+      hiddenSections: new Set(["might"]),
+    };
+    const inline = render(<FilterRangeSections {...props} />);
+    expect(inline.queryByText("Any")).toBeNull();
+    inline.unmount();
+
+    const stacked = render(
+      <LabelledRowLayoutContext value="stacked">
+        <FilterRangeSections {...props} />
+      </LabelledRowLayoutContext>,
+    );
+    expect(stacked.getByText("2–5")).not.toBeNull();
+    expect(stacked.getByText("Any")).not.toBeNull();
   });
 });
 
@@ -411,6 +453,45 @@ describe("FilterBadgeSections — hiddenSections gating", () => {
     expect(orphanedBadge).not.toBeNull();
     await user.click(orphanedBadge);
     expect(cycleArrayFilter).toHaveBeenCalledWith("sets", "setsEx", "ORPHANED");
+  });
+
+  it("folds supplemental sets behind a more chip that expands in place", async () => {
+    const user = userEvent.setup();
+    setupBadgeHooks();
+    const { getByRole, getByText, queryByText } = render(
+      <FilterBadgeSections
+        availableFilters={makeAvailable({
+          sets: ["OGN", "SFD", "OGS", "ARC"],
+          supplementalSets: new Set(["OGS", "ARC"]),
+        })}
+        hiddenSections={new Set(["owned"])}
+      />,
+    );
+    expect(getByText("OGN")).not.toBeNull();
+    expect(queryByText("OGS")).toBeNull();
+    const more = getByRole("button", { name: "+ 2 more" });
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    await user.click(more);
+    expect(getByText("OGS")).not.toBeNull();
+    expect(getByText("ARC")).not.toBeNull();
+    await user.click(getByRole("button", { name: "Show fewer" }));
+    expect(queryByText("OGS")).toBeNull();
+  });
+
+  it("keeps a selected supplemental set visible while the section is folded", () => {
+    setupBadgeHooks({ sets: ["ARC"] });
+    const { getByRole, getByText, queryByText } = render(
+      <FilterBadgeSections
+        availableFilters={makeAvailable({
+          sets: ["OGN", "OGS", "ARC"],
+          supplementalSets: new Set(["OGS", "ARC"]),
+        })}
+        hiddenSections={new Set(["owned"])}
+      />,
+    );
+    expect(getByText("ARC")).not.toBeNull();
+    expect(queryByText("OGS")).toBeNull();
+    expect(getByRole("button", { name: "+ 1 more" })).not.toBeNull();
   });
 
   it("renders one tags dropdown per category, plus Other for unclassified", () => {

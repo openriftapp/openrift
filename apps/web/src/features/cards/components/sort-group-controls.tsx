@@ -84,7 +84,10 @@ function BadgeRow<TValue extends string>({
   action?: ReactNode;
 }) {
   return (
-    <LabelledRow label={label}>
+    <LabelledRow
+      label={label}
+      aside={action && <span className="shrink-0 self-center">{action}</span>}
+    >
       <div className="flex flex-1 flex-wrap gap-1">
         {options.map((option) => {
           const isSelected = option.value === value;
@@ -100,7 +103,6 @@ function BadgeRow<TValue extends string>({
           );
         })}
       </div>
-      {action && <span className="shrink-0 self-center">{action}</span>}
     </LabelledRow>
   );
 }

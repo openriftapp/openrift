@@ -1072,6 +1072,7 @@
   "cards_filter_owned_none": "없음",
   "cards_filter_owned_partial": "일부 플레이세트",
   "cards_filter_placeholder_any": "전체",
+  "cards_filter_show_more": "+ {count}개 더",
   "cards_filter_presence_channels": "유통 채널이 있는 카드",
   "cards_filter_presence_custom_tags": "사용자 태그가 있는 카드",
   "cards_filter_presence_keywords": "키워드가 있는 카드",

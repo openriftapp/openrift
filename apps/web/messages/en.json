@@ -1072,6 +1072,7 @@
   "cards_filter_owned_none": "None",
   "cards_filter_owned_partial": "Partial Playset",
   "cards_filter_placeholder_any": "Any",
+  "cards_filter_show_more": "+ {count} more",
   "cards_filter_presence_channels": "Has any distribution channel",
   "cards_filter_presence_custom_tags": "Has any custom tag",
   "cards_filter_presence_keywords": "Has any keyword",

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -12,6 +12,16 @@ vi.mock("@/hooks/use-is-mobile", () => ({
   useIsMobile: () => false,
 }));
 
+const { mockClearAllFilters, mockFilterValues } = vi.hoisted(() => ({
+  mockClearAllFilters: vi.fn(),
+  mockFilterValues: { hasClearableFilters: false },
+}));
+
+vi.mock("@/features/cards/hooks/use-card-filters", () => ({
+  useFilterValues: () => mockFilterValues,
+  useFilterActions: () => ({ clearAllFilters: mockClearAllFilters }),
+}));
+
 const { DetailPaneToggle, MobileOptionsDrawer } = await import("./options-bar");
 
 const resetSelectionStore = createStoreResetter(useSelectionStore);
@@ -22,6 +32,8 @@ beforeEach(() => {
   resetSelectionStore();
   resetDisplayStore();
   resetFilterDrawerStore();
+  mockClearAllFilters.mockReset();
+  mockFilterValues.hasClearableFilters = false;
 });
 
 afterEach(() => {
@@ -88,5 +100,26 @@ describe("MobileOptionsDrawer", () => {
     render(<MobileOptionsDrawer>Filters</MobileOptionsDrawer>);
 
     expect(screen.queryByRole("dialog", { name: "Options" })).not.toBeInTheDocument();
+  });
+
+  it("clears every filter from the header Reset button", async () => {
+    const user = userEvent.setup();
+    mockFilterValues.hasClearableFilters = true;
+    render(<MobileOptionsDrawer>Filters</MobileOptionsDrawer>);
+    await user.click(screen.getByRole("button", { name: "Options" }));
+    const dialog = await screen.findByRole("dialog", { name: "Options" });
+
+    await user.click(within(dialog).getByRole("button", { name: "Reset" }));
+
+    expect(mockClearAllFilters).toHaveBeenCalledOnce();
+  });
+
+  it("disables Reset when no filter can be cleared", async () => {
+    const user = userEvent.setup();
+    render(<MobileOptionsDrawer>Filters</MobileOptionsDrawer>);
+    await user.click(screen.getByRole("button", { name: "Options" }));
+    const dialog = await screen.findByRole("dialog", { name: "Options" });
+
+    expect(within(dialog).getByRole("button", { name: "Reset" })).toBeDisabled();
   });
 });
