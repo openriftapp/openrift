@@ -3,7 +3,16 @@ import type { AnySnapshot } from "@openrift/shared/types/api/pricing";
 import type { Marketplace, TimeRange } from "@openrift/shared/types/pricing";
 import { CircleXIcon } from "lucide-react";
 import { useState } from "react";
-import { Area, CartesianGrid, ComposedChart, Line, ReferenceLine, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  CartesianGrid,
+  ComposedChart,
+  Line,
+  ReferenceDot,
+  ReferenceLine,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { ChartConfig } from "@/components/ui/chart";
@@ -13,6 +22,11 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { usePriceHistory } from "@/features/cards/hooks/use-price-history";
 import { TIME_RANGES, timeRangeLabel } from "@/features/cards/lib/price-history-chart-constants";
 import { priceHistoryPoint } from "@/features/cards/lib/price-history-points";
+import {
+  formatTickDate,
+  lastValuePoint,
+  tickAnchor,
+} from "@/features/cards/lib/price-history-ticks";
 import { formatterForMarketplace } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 
@@ -84,6 +98,7 @@ export function PriceHistoryChart({
   const rawSnapshots: AnySnapshot[] = sourceData?.snapshots ?? [];
   const snapshots = rawSnapshots.map((s) => priceHistoryPoint(s));
 
+  const lastPoint = lastValuePoint(snapshots);
   const hasLow = snapshots.some((s) => s.low !== null);
   const chartConfig = buildChartConfig(source);
 
@@ -134,7 +149,7 @@ export function PriceHistoryChart({
         <ChartContainer config={chartConfig} className="aspect-[2.5/1] w-full">
           <ComposedChart
             data={snapshots}
-            margin={{ top: 36, right: 4, bottom: 0, left: 0 }}
+            margin={{ top: 40, right: 12, bottom: 0, left: 0 }}
             onMouseMove={(state: Record<string, unknown>) => {
               const activePayload = state?.activePayload as
                 | { payload?: Record<string, unknown> }[]
@@ -163,9 +178,26 @@ export function PriceHistoryChart({
             )}
             <XAxis
               dataKey="date"
-              tickFormatter={formatDay}
-              tick={{ fontSize: 11 }}
-              interval={Math.max(0, Math.ceil(snapshots.length / 4) - 1)}
+              tick={(props: {
+                x: number | string;
+                y: number | string;
+                index: number;
+                visibleTicksCount: number;
+                payload: { value: string };
+              }) => (
+                <text
+                  x={props.x}
+                  y={props.y}
+                  dy={12}
+                  fontSize={11}
+                  className="fill-muted-foreground"
+                  textAnchor={tickAnchor(props.index, props.visibleTicksCount)}
+                >
+                  {formatTickDate(props.payload.value)}
+                </text>
+              )}
+              interval="preserveStartEnd"
+              minTickGap={24}
               axisLine={false}
               tickLine={false}
             />
@@ -217,6 +249,25 @@ export function PriceHistoryChart({
               connectNulls
               isAnimationActive={false}
             />
+            {lastPoint !== undefined && lastPoint.value !== null && (
+              <ReferenceDot
+                x={lastPoint.date}
+                y={lastPoint.value}
+                r={3}
+                fill="var(--color-value)"
+                stroke="var(--background)"
+                strokeWidth={1.5}
+                label={{
+                  value: currencyFormatter(lastPoint.value),
+                  position: "top",
+                  offset: 6,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  fill: "var(--color-value)",
+                  textAnchor: "end",
+                }}
+              />
+            )}
             {hasLow && (
               <Line
                 dataKey="low"

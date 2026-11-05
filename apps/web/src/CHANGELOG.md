@@ -92,6 +92,10 @@
 - feat(App): **Quieter rank chips** — standings, finish lists and brackets mark the top three with tinted chips and keep the crown on 1st, and event standings on phones now line up with the rest of the page.
 - fix(Tournaments): **Readable top-cut bracket on phones** — the report page lists one round at a time with full player names and scores, and a completed event no longer asks for games won or offers result edits.
 
+### Other
+
+- fix(Cards): **Tidier price rows and chart** — marketplace names and prices now line up in a column, and the price chart shows short dates that fit a phone, keeps its last date inside the chart and labels the current price at the end of the line.
+
 ## 2026-11-04
 
 ### Highlights

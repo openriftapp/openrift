@@ -104,7 +104,9 @@ function PriceRows({
                 onClick={() => onSelect(marketplace)}
                 className="flex h-full min-w-0 flex-1 items-center gap-2.5 pl-3 text-left"
               >
-                <MarketplaceIcon marketplace={marketplace} alt="" />
+                <span className="flex w-5 shrink-0 items-center justify-center">
+                  <MarketplaceIcon marketplace={marketplace} alt="" />
+                </span>
                 <span className={cn("flex-1 truncate", !isSelected && "text-muted-foreground")}>
                   {links.label}
                 </span>
