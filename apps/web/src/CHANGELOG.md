@@ -46,6 +46,10 @@
 
 - fix(App): **Changelog reads better on phones** — each day gets a short heading, the type and area tags sit above the entry text, and code snippets no longer split across lines.
 
+### Other
+
+- fix(App): **Chapter tabs fit on phones** — the five chapter tabs on the features page now share the width with an icon above each label, and no tab shows as current until you reach its chapter.
+
 ## 2026-11-04
 
 ### Highlights

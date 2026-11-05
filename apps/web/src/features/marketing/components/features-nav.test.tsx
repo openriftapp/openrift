@@ -116,6 +116,15 @@ describe("useActiveChapter", () => {
     expect(result.current).toBe("play");
   });
 
+  it("stays on the first chapter when a later divider reads above the line first", () => {
+    mountDividers(CHAPTER_IDS);
+    const { result } = renderHook(() => useActiveChapter(CHAPTER_IDS));
+
+    scroll({ build: ABOVE_LINE });
+
+    expect(result.current).toBeNull();
+  });
+
   it("ignores chapter ids that have no divider on the page", () => {
     mountDividers(["collect"]);
     const { result } = renderHook(() => useActiveChapter(["collect", "missing"]));
@@ -199,14 +208,13 @@ describe("smoothAnchorClick", () => {
     expect(vi.mocked(window.scrollTo).mock.lastCall).toEqual([0, 1000]);
   });
 
-  it("jumps straight to the target when the viewer prefers reduced motion", () => {
+  it("jumps to the target without animating when the viewer prefers reduced motion", () => {
     reducedMotion = true;
     mountTarget("chapter-collect", 1000);
 
     smoothAnchorClick(clickEvent("#chapter-collect"));
 
-    expect(rafCalls).toBe(0);
-    expect(window.scrollTo).toHaveBeenCalledExactlyOnceWith(0, 1000);
+    expect(vi.mocked(window.scrollTo).mock.calls[0]).toEqual([0, 1000]);
   });
 
   it("keeps the browser default for modified clicks", () => {

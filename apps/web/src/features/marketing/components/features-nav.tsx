@@ -1,4 +1,4 @@
-import type { MouseEvent } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 import { useEffect, useState } from "react";
 
 import { usePageTopBarHeight } from "@/components/layout/page-top-bar";
@@ -44,6 +44,29 @@ function animateScrollTo(target: HTMLElement) {
   scrollFrame = requestAnimationFrame(step);
 }
 
+// Reduced motion jumps once, then re-reads the destination until it holds:
+// content-visibility sections above the target render in after the jump.
+function jumpScrollTo(target: HTMLElement) {
+  cancelAnimationFrame(scrollFrame);
+  window.scrollTo(0, scrollDestination(target));
+  let frames = 0;
+  let stable = 0;
+  function step() {
+    const destination = scrollDestination(target);
+    if (Math.abs(destination - window.scrollY) < 1) {
+      stable += 1;
+    } else {
+      stable = 0;
+      window.scrollTo(0, destination);
+    }
+    frames += 1;
+    if (stable < 5 && frames < 90) {
+      scrollFrame = requestAnimationFrame(step);
+    }
+  }
+  scrollFrame = requestAnimationFrame(step);
+}
+
 // Hand-animated: browsers silently disable native smooth scroll under OS
 // animation settings, and `scroll-behavior: smooth` on the root would also
 // smooth the router's scroll restoration.
@@ -62,7 +85,7 @@ export function smoothAnchorClick(event: MouseEvent<HTMLAnchorElement>) {
   event.preventDefault();
   history.pushState(null, "", hash);
   if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    window.scrollTo(0, scrollDestination(target));
+    jumpScrollTo(target);
     return;
   }
   animateScrollTo(target);
@@ -70,8 +93,8 @@ export function smoothAnchorClick(event: MouseEvent<HTMLAnchorElement>) {
 
 const CHIP_CUT = 8;
 
-// Recomputes the last-passed divider from live rects on every call; must not
-// cache which divider triggered it.
+// Recomputes the last-passed divider from live rects on every call and stops at the first one
+// below the line: content-visibility sections estimate their height, so order can invert.
 export function useActiveChapter(chapterIds: string[]): string | null {
   const [activeId, setActiveId] = useState<string | null>(null);
   const chapterKey = chapterIds.join(" ");
@@ -92,9 +115,10 @@ export function useActiveChapter(chapterIds: string[]): string | null {
       const line = window.innerHeight * READING_LINE;
       let reached: string | null = null;
       for (const divider of dividers) {
-        if (divider.element.getBoundingClientRect().top <= line) {
-          reached = divider.id;
+        if (divider.element.getBoundingClientRect().top > line) {
+          break;
         }
+        reached = divider.id;
       }
       setActiveId(reached);
     }
@@ -112,7 +136,15 @@ export function useActiveChapter(chapterIds: string[]): string | null {
     for (const divider of dividers) {
       observer.observe(divider.element);
     }
-    return () => observer.disconnect();
+    // Layout shifts from content-visibility sections moving a divider across
+    // the line do not always cross the observer's threshold.
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
   }, [chapterKey]);
 
   return activeId;
@@ -183,7 +215,7 @@ export function FeaturesChipNav({ chapters }: { chapters: FeatureChapter[] }) {
         ref={setScroller}
         className={cn(
           PAGE_WIDTH.capped,
-          "px-safe flex [scrollbar-width:none] gap-2 overflow-x-auto",
+          "px-safe grid grid-cols-5 sm:flex sm:[scrollbar-width:none] sm:gap-2 sm:overflow-x-auto",
         )}
       >
         {chapters.map((chapter) => {
@@ -196,12 +228,12 @@ export function FeaturesChipNav({ chapters }: { chapters: FeatureChapter[] }) {
               href={`#${chapterAnchor(chapter.id)}`}
               onClick={smoothAnchorClick}
               aria-current={isActive ? "true" : undefined}
-              style={{ clipPath: cornerClip(CHIP_CUT) }}
+              style={{ "--chip-clip": cornerClip(CHIP_CUT) } as CSSProperties}
               className={cn(
-                "flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-sm whitespace-nowrap transition-colors",
+                "flex flex-col items-center gap-1 border-b-2 px-1 py-1.5 text-xs transition-colors sm:shrink-0 sm:flex-row sm:gap-1.5 sm:border-b-0 sm:px-3 sm:text-sm sm:whitespace-nowrap sm:[clip-path:var(--chip-clip)]",
                 isActive
-                  ? "bg-muted dark:bg-muted text-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "border-border-accent text-primary sm:bg-muted sm:dark:bg-muted sm:text-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground border-transparent",
               )}
             >
               <Icon className="size-4 shrink-0" />
