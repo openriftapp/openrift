@@ -1,13 +1,14 @@
 import { legendDisplayName } from "@openrift/shared/card-name";
 import { matchesCardQuery } from "@openrift/shared/card-search";
 import { Link } from "@tanstack/react-router";
-import { ShoppingCartIcon } from "lucide-react";
-import { useState } from "react";
+import { ChevronLeftIcon, ChevronRightIcon, ShoppingCartIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import { CountPill } from "@/components/ui/count-pill";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import {
   Select,
@@ -134,6 +135,56 @@ function BuyAllCallout({
   );
 }
 
+function ScrollFadeStrip({ children }: { children: React.ReactNode }) {
+  const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
+  const [edges, setEdges] = useState({ start: false, end: false });
+
+  useEffect(() => {
+    if (!scroller) {
+      return;
+    }
+    const update = () => {
+      const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+      setEdges({ start: scroller.scrollLeft > 1, end: scroller.scrollLeft < maxScroll - 1 });
+    };
+    update();
+    scroller.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(scroller);
+    if (scroller.firstElementChild) {
+      observer.observe(scroller.firstElementChild);
+    }
+    return () => {
+      scroller.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, [scroller]);
+
+  return (
+    <div className="relative shadow-[inset_0_-1px_0_var(--color-border)]">
+      <div ref={setScroller} className="no-scrollbar overflow-x-auto pb-px">
+        {children}
+      </div>
+      {edges.start ? (
+        <div
+          aria-hidden="true"
+          className="from-background pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center bg-linear-to-r to-transparent"
+        >
+          <ChevronLeftIcon className="text-muted-foreground size-4" />
+        </div>
+      ) : null}
+      {edges.end ? (
+        <div
+          aria-hidden="true"
+          className="from-background pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-linear-to-l to-transparent"
+        >
+          <ChevronRightIcon className="text-muted-foreground size-4" />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function TradeMarket() {
   const userId = useRequiredUserId();
   const { printingsById, printingsByCardId } = useCards();
@@ -247,18 +298,16 @@ export function TradeMarket() {
   return (
     <section className="flex flex-col gap-4">
       <Tabs className="gap-4" value={tab} onValueChange={(value) => setTab(value as MarketTab)}>
-        <div className="no-scrollbar overflow-x-auto pb-px shadow-[inset_0_-1px_0_var(--color-border)]">
+        <ScrollFadeStrip>
           <TabsList variant="line" className="justify-start">
             {tabs.map((entry) => (
               <TabsTrigger key={entry.value} value={entry.value} className="flex-none">
                 {entry.label}
-                {entry.count === null ? null : (
-                  <span className="text-muted-foreground tabular-nums">{entry.count}</span>
-                )}
+                {entry.count === null ? null : <CountPill>{entry.count}</CountPill>}
               </TabsTrigger>
             ))}
           </TabsList>
-        </div>
+        </ScrollFadeStrip>
 
         <div className="flex flex-wrap items-center gap-2">
           <SearchInput
