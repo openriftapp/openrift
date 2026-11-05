@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
 import { ContactMethodChips } from "@/features/groups/components/contact-method-chips";
+import { UserProfileStats } from "@/features/groups/components/user-profile-stats";
 import { groupsInCommonLabel, lastActiveLabel } from "@/features/groups/lib/user-profile-copy";
 import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
@@ -45,16 +46,15 @@ export function UserProfileHeader({
   const { owner, groupsInCommon, contactMethods } = data;
   const groupsLabel = groupsInCommonLabel(groupsInCommon.map((group) => group.name));
   return (
-    <Card className="gap-0 py-0">
-      <div aria-hidden className="bg-muted/40 h-28 bg-[image:var(--hero-glow)] sm:h-36" />
-      <div className="-mt-10 flex flex-col gap-4 px-4 pb-5 sm:-mt-11 sm:flex-row sm:items-end sm:px-6">
+    <Card className="gap-4 p-4 sm:p-6">
+      <div className="flex items-center gap-4">
         <UserAvatar
           name={owner.displayName}
           gravatarHash={owner.gravatarHash}
           size="lg"
-          className="ring-card size-20 ring-4 sm:size-24 [&_[data-slot=avatar-fallback]]:text-2xl"
+          className="size-16 sm:size-20 [&_[data-slot=avatar-fallback]]:text-2xl"
         />
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:pb-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <Heading level={1}>{owner.displayName}</Heading>
             {owner.isContributor ? (
@@ -64,38 +64,41 @@ export function UserProfileHeader({
               </Badge>
             ) : null}
           </div>
-          {owner.bio ? <p className="text-muted-foreground">{owner.bio}</p> : null}
-          <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <div className="text-muted-foreground text-sm">
             <MetaItem icon={CalendarIcon}>
               {m.user_profile_member_since({
                 date: formatMonthYear(owner.memberSince, DATE_WORDS),
               })}
             </MetaItem>
-            {owner.lastActive ? (
-              <MetaItem icon={ClockIcon}>{lastActiveLabel(owner.lastActive)}</MetaItem>
-            ) : null}
-            {owner.riotId ? <MetaItem icon={SwordsIcon}>{owner.riotId}</MetaItem> : null}
-            {groupsLabel ? <MetaItem icon={UsersIcon}>{groupsLabel}</MetaItem> : null}
           </div>
-          {contactMethods.length > 0 ? (
-            <div className="mt-1 flex flex-col gap-1.5">
-              <ContactMethodChips methods={contactMethods} />
-              {owner.isViewer ? (
-                <span className="text-muted-foreground text-xs">
-                  {m.user_profile_contacts_note()}
-                </span>
-              ) : null}
-            </div>
+        </div>
+      </div>
+      {owner.bio ? <p className="text-muted-foreground">{owner.bio}</p> : null}
+      {owner.lastActive || owner.riotId || groupsLabel ? (
+        <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          {owner.lastActive ? (
+            <MetaItem icon={ClockIcon}>{lastActiveLabel(owner.lastActive)}</MetaItem>
+          ) : null}
+          {owner.riotId ? <MetaItem icon={SwordsIcon}>{owner.riotId}</MetaItem> : null}
+          {groupsLabel ? <MetaItem icon={UsersIcon}>{groupsLabel}</MetaItem> : null}
+        </div>
+      ) : null}
+      {contactMethods.length > 0 ? (
+        <div className="flex flex-col gap-1.5">
+          <ContactMethodChips methods={contactMethods} />
+          {owner.isViewer ? (
+            <span className="text-muted-foreground text-xs">{m.user_profile_contacts_note()}</span>
           ) : null}
         </div>
-        <div className="sm:pb-1">
-          <CopyTextButton
-            value={shareUrl}
-            label={m.user_profile_copy_link()}
-            icon={LinkIcon}
-            normalizeLineBreaks={false}
-          />
-        </div>
+      ) : null}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <UserProfileStats stats={data.stats} />
+        <CopyTextButton
+          value={shareUrl}
+          label={m.user_profile_copy_link()}
+          icon={LinkIcon}
+          normalizeLineBreaks={false}
+        />
       </div>
     </Card>
   );

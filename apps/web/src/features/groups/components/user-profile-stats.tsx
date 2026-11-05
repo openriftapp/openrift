@@ -15,7 +15,6 @@ interface StatEntry {
   hint: string | null;
 }
 
-/** Zero counts are left out; a profile with nothing to count shows no strip at all. */
 export function UserProfileStats({ stats }: { stats: PublicUserProfileStats }) {
   const entries: StatEntry[] = [];
   if (stats.collection !== null && stats.collection.copies > 0) {
@@ -58,6 +57,16 @@ export function UserProfileStats({ stats }: { stats: PublicUserProfileStats }) {
   }
   if (entries.length === 0) {
     return null;
+  }
+  const [only] = entries;
+  if (entries.length === 1 && only) {
+    return (
+      <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
+        <span className="text-muted-foreground">{only.label}</span>
+        <span className="font-semibold tabular-nums">{formatCount(only.value)}</span>
+        {only.hint ? <span className="text-muted-foreground">· {only.hint}</span> : null}
+      </p>
+    );
   }
   return (
     <div className="flex flex-wrap gap-x-10 gap-y-4">

@@ -13,7 +13,6 @@ import { UserProfileHeader } from "@/features/groups/components/user-profile-hea
 import { UserProfileListTile } from "@/features/groups/components/user-profile-list-tile";
 import { UserProfileOverlap } from "@/features/groups/components/user-profile-overlap";
 import { UserProfilePreviewFan } from "@/features/groups/components/user-profile-preview-fan";
-import { UserProfileStats } from "@/features/groups/components/user-profile-stats";
 import { usePublicUserBundle } from "@/features/groups/hooks/use-user-share";
 import { useUserId } from "@/hooks/use-session";
 import { getSiteUrl } from "@/lib/site-config";
@@ -50,7 +49,6 @@ export function SharedUserBundlePage() {
   return (
     <div className={cn(PAGE_PADDING, PAGE_WIDTH.capped, "flex flex-col gap-6 py-4")}>
       <UserProfileHeader data={data} shareUrl={`${getSiteUrl()}/users/share/${token}`} />
-      <UserProfileStats stats={data.stats} />
       {isEmpty ? (
         <EmptyState
           icon={HeartIcon}
