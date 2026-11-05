@@ -45,6 +45,7 @@ import {
 } from "@/features/decks/lib/decks-write";
 import type { LocalDeck } from "@/features/decks/lib/local-deck";
 import { updateLocalDeck } from "@/features/decks/lib/local-decks-collection";
+import { resetDeckDraft } from "@/features/decks/stores/deck-draft-store";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { useRequiredUserId, useUserId } from "@/hooks/use-session";
@@ -298,6 +299,7 @@ export function useSaveDeckCards() {
       const collection = getDeckCardsCollection(queryClient, userId);
       await collection.preload();
       await applyDeckCards(collection, deckId, cards, { queryClient, userId }).when("settled");
+      resetDeckDraft(queryClient, userId, deckId);
     },
   });
 }

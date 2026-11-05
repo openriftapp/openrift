@@ -8,6 +8,7 @@
 - fix(App): **Header fits on tablets** — the top bar no longer runs off the screen edge on tablets, where Groups now sits under More, phones find Help and Contribute in the three-dot menu, and the sign-in pages drop the extra Sign in button.
 - feat(Decks): **Decks fit on phones** — shared, meta and your own decks stack their zones on a phone, with stats on their own tab and view settings behind one button.
 - feat(Decks): **Phone deck editor at a glance** — the editor opens as a list on phones with a stats summary on top, and grid cards get their count buttons above the card.
+- fix(Decks): **Replace-import shows the new cards** — importing a list over a deck now shows its cards right away instead of an empty deck until you reload.
 
 ### Other
 

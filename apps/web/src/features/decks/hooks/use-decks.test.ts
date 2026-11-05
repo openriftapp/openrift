@@ -44,8 +44,16 @@ vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => hydrated }));
 
 const { getDeckCardsCollection, getDecksCollection } =
   await import("@/features/decks/lib/decks-collection");
-const { useCreateDeck, useDeckCardsFor, useDeckDetail, useDeckList, useDeleteDeck } =
-  await import("./use-decks");
+const { getDeckDraftHydrated, hydrateDeckDraft } =
+  await import("@/features/decks/stores/deck-draft-store");
+const {
+  useCreateDeck,
+  useDeckCardsFor,
+  useDeckDetail,
+  useDeckList,
+  useDeleteDeck,
+  useSaveDeckCards,
+} = await import("./use-decks");
 
 describe("useDeleteDeck", () => {
   afterEach(() => {
@@ -314,6 +322,72 @@ describe("a deck read from the stores", () => {
 
     const remaining = getDeckCardsCollection(client, "user-1").toArray;
     expect(remaining.map((row) => row.deckId)).toEqual([OTHER_ID]);
+  });
+});
+
+describe("useSaveDeckCards", () => {
+  const DECK_ID = "0191a9c4-2f3e-7c1d-9b4a-3f0c6d2e8a11";
+  const importedCard = {
+    cardId: "card-a",
+    zone: WellKnown.deckZone.MAIN,
+    quantity: 3,
+    preferredPrintingId: null,
+  };
+  let client: QueryClient;
+  let saveStatus: number;
+
+  beforeEach(async () => {
+    saveStatus = 200;
+    vi.stubGlobal("location", { origin: "http://localhost" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: Request) => {
+        const path = new URL(input.url).pathname;
+        if (input.method === "PUT" && path === `/api/v1/decks/${DECK_ID}/cards`) {
+          return Promise.resolve(Response.json({ cards: [importedCard] }, { status: saveStatus }));
+        }
+        if (path === "/api/v1/deck-cards") {
+          return Promise.resolve(Response.json({ items: [], syncedXid: "1000" }));
+        }
+        return Promise.resolve(Response.json({ items: [] }));
+      }),
+    );
+    client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    await getDeckCardsCollection(client, "user-1").preload();
+    hydrateDeckDraft(client, "user-1", DECK_ID, []);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    client.clear();
+  });
+
+  function renderSave() {
+    return renderHook(() => useSaveDeckCards(), {
+      wrapper: ({ children }: { children: React.ReactNode }) =>
+        createElement(QueryClientProvider, { client }, children),
+    }).result;
+  }
+
+  it("makes the editor reload its draft after replacing a deck's cards", async () => {
+    const result = renderSave();
+
+    await result.current.mutateAsync({ deckId: DECK_ID, cards: [importedCard] });
+
+    expect(getDeckDraftHydrated(client, "user-1", DECK_ID)).toBe(false);
+  });
+
+  it("keeps the editor's draft when the save fails", async () => {
+    saveStatus = 500;
+    const result = renderSave();
+
+    await expect(
+      result.current.mutateAsync({ deckId: DECK_ID, cards: [importedCard] }),
+    ).rejects.toThrow();
+
+    expect(getDeckDraftHydrated(client, "user-1", DECK_ID)).toBe(true);
   });
 });
 
