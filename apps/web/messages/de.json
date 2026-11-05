@@ -2607,7 +2607,15 @@
   "decks_editor_group_no_energy": "Keine Energiekosten",
   "decks_editor_group_not_owned": "Nicht im Besitz",
   "decks_editor_group_owned": "Im Besitz",
-  "decks_editor_group_type": "{type}",
+  "decks_editor_group_type": [
+    {
+      "declarations": ["input type", "input slug"],
+      "selectors": ["slug"],
+      "match": {
+        "slug=*": "{type}"
+      }
+    }
+  ],
   "decks_editor_hide_archived": "Archivierte ausblenden",
   "decks_editor_hint_add": "hinzufügen",
   "decks_editor_hint_back": "zurück",
@@ -2706,6 +2714,13 @@
   "decks_editor_zones_heading": "Deck-Zonen",
   "decks_editor_zones_short": "Zonen",
   "decks_zone_champion_alt": "Champion",
+  "decks_zone_add_legend": "Legende hinzufügen",
+  "decks_zone_add_legend_options": "Weitere Legenden hinzufügen",
+  "decks_zone_add_champion": "Champion hinzufügen",
+  "decks_zone_add_battlefield": "Schlachtfelder hinzufügen",
+  "decks_zone_add_main": "Zum Hauptdeck hinzufügen",
+  "decks_zone_add_sideboard": "Zum Sideboard hinzufügen",
+  "decks_zone_add_overflow": "Zu Overflow hinzufügen",
   "decks_zone_empty_battlefield": "Wähle 3 verschiedene Schlachtfeld-Karten",
   "decks_zone_empty_battlefield_single": "Wähle eine Schlachtfeld-Karte",
   "decks_zone_empty_champion": "Wähle einen passenden Auserwählten Champion",
@@ -3239,7 +3254,15 @@
   "decks_stats_focus_owned_other": "Karten in einem anderen Druck im Besitz",
   "decks_stats_focus_power": "Karten mit {value} Power",
   "decks_stats_focus_rarity": "Karten der Seltenheit {label}",
-  "decks_stats_focus_type": "{label}",
+  "decks_stats_focus_type": [
+    {
+      "declarations": ["input label", "input slug"],
+      "selectors": ["slug"],
+      "match": {
+        "slug=*": "{label}"
+      }
+    }
+  ],
   "decks_stats_footnote_collection": "Zählt das Hauptdeck gegen deine Sammlung.",
   "decks_stats_footnote_energy": "Zählt nur das Hauptdeck. Klicke auf einen Balken, um seine Karten zu sehen.",
   "decks_stats_footnote_main_only": "Zählt nur das Hauptdeck.",

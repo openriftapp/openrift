@@ -74,7 +74,10 @@ export function statsFocusLabel(
       return m.decks_stats_focus_power({ value: focus.value });
     }
     case "type": {
-      return m.decks_stats_focus_type({ label: enumLabel(typeLabels, focus.value) });
+      return m.decks_stats_focus_type({
+        label: enumLabel(typeLabels, focus.value),
+        slug: focus.value,
+      });
     }
     case "rarity": {
       return m.decks_stats_focus_rarity({ label: enumLabel(rarityLabels, focus.value) });

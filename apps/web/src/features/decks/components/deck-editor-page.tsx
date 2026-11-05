@@ -5,7 +5,7 @@ import { isZoneShown, requiredZoneProgress } from "@openrift/shared/deck-zones";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { useQueryClient } from "@tanstack/react-query";
-import { CornerLeftUpIcon, XIcon } from "lucide-react";
+import { CornerLeftUpIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -15,12 +15,6 @@ import {
   PageTopBarHeightContext,
   usePageTopBarHeight,
 } from "@/components/layout/page-top-bar";
-import {
-  SectionHeader,
-  SectionHeaderActions,
-  SectionHeaderTitle,
-} from "@/components/section-header";
-import { Button } from "@/components/ui/button";
 import {
   NestedSidebar,
   SidebarContent,
@@ -43,6 +37,7 @@ import { DeckEditorTopBar } from "@/features/decks/components/deck-editor-top-ba
 import { DeckMobileDock } from "@/features/decks/components/deck-mobile-dock";
 import { useDeckUndoShortcuts } from "@/features/decks/components/deck-undo-controls";
 import { DeckVariantRail } from "@/features/decks/components/deck-variant-rail";
+import { DeckZoneDrawer } from "@/features/decks/components/deck-zone-drawer";
 import { DeckZonePanel } from "@/features/decks/components/deck-zone-panel";
 import { useDeckCards, useDeckViolations } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckDraftHydrated, useDeckSaveStatus } from "@/features/decks/hooks/use-deck-draft";
@@ -71,24 +66,6 @@ import { useSelectionStore } from "@/stores/selection-store";
 
 interface DeckEditorPageProps {
   deckId: string;
-}
-
-function MobileSidebarHeader() {
-  const { setOpenMobile } = useSidebar();
-
-  return (
-    <SectionHeader className="items-center p-4 md:hidden">
-      <SectionHeaderTitle level={3} as="h2">
-        {m.decks_editor_zones_heading()}
-      </SectionHeaderTitle>
-      <SectionHeaderActions>
-        <Button variant="ghost" size="icon-sm" onClick={() => setOpenMobile(false)}>
-          <XIcon />
-          <span className="sr-only">{m.common_close()}</span>
-        </Button>
-      </SectionHeaderActions>
-    </SectionHeader>
-  );
 }
 
 export function DeckEditorPage({ deckId }: DeckEditorPageProps) {
@@ -327,6 +304,34 @@ function DeckEditorContent({
         }
       : null;
 
+  const handleZoneAdd = (zone: DeckZone) => {
+    if (zone !== activeZone) {
+      handleZoneClick(zone);
+    } else if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
+  const handleOverviewClick = () => {
+    setActiveZone(null);
+    setOverviewTab("overview");
+  };
+
+  const zonePanel = (inDrawer: boolean) => (
+    <DeckZonePanel
+      deckId={deckId}
+      onZoneClick={handleZoneClick}
+      onZoneAdd={handleZoneAdd}
+      onOverviewClick={handleOverviewClick}
+      onHoverCard={setHoveredSidebar}
+      ownershipData={ownershipData}
+      hideStats={activeZone === null}
+      hideIdentityHeader={inDrawer}
+      overviewShowing={activeZone === null}
+      deckItems={deckItems}
+    />
+  );
+
   const zoneCount = totalQuantity(deckCards.filter((card) => card.zone === activeZone));
   const totalCards = totalQuantity(deckCards);
   const requiredCounts = requiredZoneProgress(deckCards, data.deck.format);
@@ -365,30 +370,21 @@ function DeckEditorContent({
       />
       <DeckDndContext deckId={deckId}>
         <div ref={containerRef} className={cn(PAGE_WIDTH.full, "px-safe relative flex gap-4")}>
-          <NestedSidebar
-            className="w-(--sidebar-width)!"
-            extraOffset="calc(0.75rem + 2rem + 0.75rem)"
-            style={{ "--sidebar-width": "18rem" } as React.CSSProperties}
-          >
-            <MobileSidebarHeader />
-            <SidebarContent>
-              <div className="p-4">
-                <DeckZonePanel
-                  deckId={deckId}
-                  onZoneClick={handleZoneClick}
-                  onOverviewClick={() => {
-                    setActiveZone(null);
-                    setOverviewTab("overview");
-                  }}
-                  onHoverCard={setHoveredSidebar}
-                  ownershipData={ownershipData}
-                  hideStats={activeZone === null}
-                  overviewShowing={activeZone === null}
-                  deckItems={deckItems}
-                />
-              </div>
-            </SidebarContent>
-          </NestedSidebar>
+          {isMobile ? (
+            <DeckZoneDrawer deckId={deckId} onOverviewClick={handleOverviewClick}>
+              {zonePanel(true)}
+            </DeckZoneDrawer>
+          ) : (
+            <NestedSidebar
+              className="w-(--sidebar-width)!"
+              extraOffset="calc(0.75rem + 2rem + 0.75rem)"
+              style={{ "--sidebar-width": "18rem" } as React.CSSProperties}
+            >
+              <SidebarContent>
+                <div className="p-4">{zonePanel(false)}</div>
+              </SidebarContent>
+            </NestedSidebar>
+          )}
 
           <HoveredCardPreview
             hoveredCard={hoveredCard}

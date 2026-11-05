@@ -2607,7 +2607,15 @@
   "decks_editor_group_no_energy": "에너지 비용 없음",
   "decks_editor_group_not_owned": "미보유",
   "decks_editor_group_owned": "보유",
-  "decks_editor_group_type": "{type}",
+  "decks_editor_group_type": [
+    {
+      "declarations": ["input type", "input slug"],
+      "selectors": ["slug"],
+      "match": {
+        "slug=*": "{type}"
+      }
+    }
+  ],
   "decks_editor_hide_archived": "보관 항목 숨기기",
   "decks_editor_hint_add": "추가",
   "decks_editor_hint_back": "뒤로",
@@ -2706,6 +2714,13 @@
   "decks_editor_zones_heading": "덱 구역",
   "decks_editor_zones_short": "구역",
   "decks_zone_champion_alt": "챔피언",
+  "decks_zone_add_legend": "전설 추가",
+  "decks_zone_add_legend_options": "추가 전설 추가",
+  "decks_zone_add_champion": "챔피언 추가",
+  "decks_zone_add_battlefield": "전장 추가",
+  "decks_zone_add_main": "메인 덱에 추가",
+  "decks_zone_add_sideboard": "보조 덱에 추가",
+  "decks_zone_add_overflow": "오버플로에 추가",
   "decks_zone_empty_battlefield": "서로 다른 전장 카드 3장을 고르세요",
   "decks_zone_empty_battlefield_single": "전장 카드를 한 장 고르세요",
   "decks_zone_empty_champion": "어울리는 선발 챔피언을 고르세요",
@@ -3239,7 +3254,15 @@
   "decks_stats_focus_owned_other": "다른 인쇄판으로 보유한 카드",
   "decks_stats_focus_power": "힘 {value} 카드",
   "decks_stats_focus_rarity": "{label} 카드",
-  "decks_stats_focus_type": "{label}",
+  "decks_stats_focus_type": [
+    {
+      "declarations": ["input label", "input slug"],
+      "selectors": ["slug"],
+      "match": {
+        "slug=*": "{label}"
+      }
+    }
+  ],
   "decks_stats_footnote_collection": "주 덱을 내 컬렉션과 대조해 셉니다.",
   "decks_stats_footnote_energy": "주 덱을 셉니다. 막대를 클릭하면 해당 카드를 볼 수 있습니다.",
   "decks_stats_footnote_main_only": "주 덱만 셉니다.",

@@ -120,6 +120,7 @@ describe("statsFocusLabel", () => {
     expect(statsFocusLabel({ kind: "energy", value: 2 }, {}, {})).toBe("2-energy cards");
     expect(statsFocusLabel({ kind: "power", value: 1 }, {}, {})).toBe("1-power cards");
     expect(statsFocusLabel({ kind: "type", value: "unit" }, { unit: "Unit" }, {})).toBe("Units");
+    expect(statsFocusLabel({ kind: "type", value: "gear" }, { gear: "Gear" }, {})).toBe("Gear");
     expect(
       statsFocusLabel({ kind: "rarity", value: "rare", cardKeys: new Set() }, {}, { rare: "Rare" }),
     ).toBe("Rare cards");

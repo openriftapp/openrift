@@ -87,7 +87,7 @@ function buildGroups(
     const grouped = Map.groupBy(cards, (card) => card.cardType);
     return orderedTypeKeys(grouped).map((type) => ({
       key: type,
-      label: m.decks_editor_group_type({ type: enumLabel(ctx.typeLabels, type) }),
+      label: m.decks_editor_group_type({ type: enumLabel(ctx.typeLabels, type), slug: type }),
       cards: grouped.get(type) ?? [],
     }));
   }

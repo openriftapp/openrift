@@ -1,8 +1,17 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { CardControls, PowerDomainIcon, PowerPips } from "./deck-card-row";
+import { stubDeckBuilderCard } from "@/test/factories";
+
+import { CardControls, DeckCardRow, PowerDomainIcon, PowerPips } from "./deck-card-row";
+
+vi.mock("@/hooks/use-domain-colors", () => ({
+  useDomainColors: () => ({ fury: "#cb212d", calm: "#16aa71", colorless: "#737373" }),
+}));
+vi.mock("@/hooks/use-enums", () => ({
+  useEnumOrders: () => ({ labels: { domains: { fury: "Fury", calm: "Calm" } } }),
+}));
 
 const COLORS = { fury: "#cb212d", calm: "#16aa71", colorless: "#737373" };
 
@@ -101,5 +110,59 @@ describe("CardControls", () => {
     expect(
       screen.getByRole("button", { name: "Add one copy of Iron Ballista" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("DeckCardRow", () => {
+  function renderRow(overrides: Parameters<typeof stubDeckBuilderCard>[0] = {}) {
+    return render(
+      <DeckCardRow
+        card={stubDeckBuilderCard({
+          cardName: "Iron Ballista",
+          quantity: 2,
+          energy: 3,
+          power: 1,
+          domains: ["fury"],
+          ...overrides,
+        })}
+        shortfall={1}
+        onIncrement={() => {}}
+        onDecrement={() => {}}
+      />,
+    );
+  }
+
+  function stripeStyle(container: HTMLElement): string {
+    return (
+      container.querySelector('[data-slot="deck-card-domain-stripe"]')?.getAttribute("style") ?? ""
+    );
+  }
+
+  it("paints one domain colour down the whole stripe", () => {
+    const style = stripeStyle(renderRow().container);
+    expect(style).toContain("rgb(203, 33, 45) 50%, rgb(203, 33, 45) 50%");
+  });
+
+  it("splits the stripe between both domains of a two-domain card", () => {
+    const style = stripeStyle(renderRow({ domains: ["fury", "calm"] }).container);
+    expect(style).toContain("rgb(203, 33, 45) 50%, rgb(22, 170, 113) 50%");
+  });
+
+  it("orders energy, name, power, shortfall, then the quantity controls", () => {
+    renderRow();
+    const energy = screen.getByRole("img", { name: "Energy 3" });
+    const name = screen.getByText("Iron Ballista");
+    const power = screen.getByRole("img", { name: "Power 1 (Fury)" });
+    const shortfall = screen.getByText("1/2");
+    const decrement = screen.getByRole("button", { name: "Remove one copy of Iron Ballista" });
+    const increment = screen.getByRole("button", { name: "Add one copy of Iron Ballista" });
+    const sequence = [energy, name, power, shortfall, decrement, increment];
+    for (const [earlier, later] of sequence
+      .slice(0, -1)
+      .map((node, index): [HTMLElement, HTMLElement] => [node, sequence[index + 1] ?? node])) {
+      expect(
+        earlier.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
   });
 });

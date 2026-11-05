@@ -17,6 +17,11 @@
 ### Other
 
 - feat(App): **Section headings in the display face** — the small uppercase section labels across the app now use the same heading font as page titles.
+- feat(Decks): **Deck zone list redesign** — rows show a thin domain stripe with the count controls at the end, card types get their own headings, each zone you fill by hand ends in an add button, and on phones the zones open as a full-width sheet.
+
+### Other
+
+- fix(Decks): **Gear group label** — deck type groups and stats now say "Gear" instead of "Gears".
 
 ## 2026-11-04
 

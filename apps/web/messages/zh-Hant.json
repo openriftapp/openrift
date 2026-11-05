@@ -2607,7 +2607,15 @@
   "decks_editor_group_no_energy": "無能量費用",
   "decks_editor_group_not_owned": "未擁有",
   "decks_editor_group_owned": "已擁有",
-  "decks_editor_group_type": "{type}",
+  "decks_editor_group_type": [
+    {
+      "declarations": ["input type", "input slug"],
+      "selectors": ["slug"],
+      "match": {
+        "slug=*": "{type}"
+      }
+    }
+  ],
   "decks_editor_hide_archived": "隱藏已封存",
   "decks_editor_hint_add": "新增",
   "decks_editor_hint_back": "返回",
@@ -2706,6 +2714,13 @@
   "decks_editor_zones_heading": "牌組區域",
   "decks_editor_zones_short": "區域",
   "decks_zone_champion_alt": "英雄",
+  "decks_zone_add_legend": "加入傳奇牌",
+  "decks_zone_add_legend_options": "加入額外傳奇牌",
+  "decks_zone_add_champion": "加入英雄",
+  "decks_zone_add_battlefield": "加入戰場牌",
+  "decks_zone_add_main": "加入主牌組",
+  "decks_zone_add_sideboard": "加入備牌",
+  "decks_zone_add_overflow": "加入溢位區",
   "decks_zone_empty_battlefield": "選擇 3 張不重複的戰場牌",
   "decks_zone_empty_battlefield_single": "選擇一張戰場牌",
   "decks_zone_empty_champion": "選擇一名相符的指定英雄",
@@ -3239,7 +3254,15 @@
   "decks_stats_focus_owned_other": "以其他印刷版本擁有的卡牌",
   "decks_stats_focus_power": "{value} 符能的卡牌",
   "decks_stats_focus_rarity": "{label}卡牌",
-  "decks_stats_focus_type": "{label}",
+  "decks_stats_focus_type": [
+    {
+      "declarations": ["input label", "input slug"],
+      "selectors": ["slug"],
+      "match": {
+        "slug=*": "{label}"
+      }
+    }
+  ],
   "decks_stats_footnote_collection": "以主牌堆對照你的收藏計算。",
   "decks_stats_footnote_energy": "只計算主牌堆。點選長條可查看其中的卡牌。",
   "decks_stats_footnote_main_only": "只計算主牌堆。",

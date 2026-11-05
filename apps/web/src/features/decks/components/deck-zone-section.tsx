@@ -1,18 +1,19 @@
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import { copyLimitFor, totalQuantity } from "@openrift/shared/deck-rules";
 import { ZONE_LABELS, zoneExpected } from "@openrift/shared/deck-zones";
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { AlertTriangleIcon, BanIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 
-import { CardIcon } from "@/components/card-icon";
 import { Button } from "@/components/ui/button";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pressable } from "@/components/ui/pressable";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
+import { DeckCardGroupHeader } from "@/features/decks/components/deck-card-group-header";
 import { DeckCardPrintingMenu } from "@/features/decks/components/deck-card-printing-menu";
 import { DeckCardRow } from "@/features/decks/components/deck-card-row";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
@@ -28,11 +29,11 @@ import {
   TYPE_GROUP_ORDER,
 } from "@/features/decks/lib/deck-card-order";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
-import { zoneEmptyHint } from "@/features/decks/lib/deck-zone-labels";
+import { zoneAddLabel, zoneEmptyHint } from "@/features/decks/lib/deck-zone-labels";
 import { useBorrowedLenders } from "@/features/groups/hooks/use-loans";
 import { borrowedReasonText } from "@/features/groups/lib/loan-derivation";
+import { useEnumOrders } from "@/hooks/use-enums";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
-import { getTypeIconPath, getTypeIconPaths } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -61,6 +62,7 @@ interface DeckZoneSectionProps {
   isActive: boolean;
   shiftHeld?: boolean;
   onActivate: () => void;
+  onAdd?: () => void;
   onHoverCard?: HoverHandler;
   deckItems: CardViewerItem[];
 }
@@ -74,6 +76,7 @@ export function DeckZoneSection({
   isActive,
   shiftHeld,
   onActivate,
+  onAdd,
   onHoverCard,
   deckItems,
 }: DeckZoneSectionProps) {
@@ -87,6 +90,7 @@ export function DeckZoneSection({
   const isFreeform = format === WellKnown.deckFormat.FREEFORM;
   const { getPreferredPrinting } = usePreferredPrinting();
   const { data: borrowedLenders } = useBorrowedLenders();
+  const { labels } = useEnumOrders();
 
   // Champion counts toward the 3-copy limit too; overflow is excluded since
   // it is a free parking zone with no copy cap.
@@ -141,6 +145,7 @@ export function DeckZoneSection({
   const isSingleCard = SINGLE_CARD_ZONES.has(zone) && !isFreeform;
   const isUniqueOnly = UNIQUE_ONLY_ZONES.has(zone) && !isFreeform;
   const isGrouped = GROUPED_ZONES.has(zone);
+  const addLabel = zoneAddLabel(zone);
 
   const renderCardRow = (card: DeckBuilderCard) => {
     const entry = ownership?.byCardZone.get(`${card.cardId}:${zone}`);
@@ -197,17 +202,21 @@ export function DeckZoneSection({
 
     return TYPE_GROUP_ORDER.filter((type) => grouped.has(type)).map((type) => {
       const group = (grouped.get(type) ?? []).toSorted(compareGroupedCards);
-      const groupQty = totalQuantity(group);
-      const typeIconPath = getTypeIconPath(type, []);
       return (
-        <div key={type} className="flex">
-          <div className="flex w-7 shrink-0 flex-col items-center pt-1.5">
-            {typeIconPath && <CardIcon src={typeIconPath} alt={type} className="size-3.5" />}
-            <span className="text-muted-foreground text-2xs">{groupQty}</span>
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            {group.map((card) => renderCardRow(card))}
-          </div>
+        <div key={type} className="flex flex-col gap-0.5">
+          <DeckCardGroupHeader
+            group={{
+              key: type,
+              label: m.decks_editor_group_type({
+                type: enumLabel(labels.cardTypes, type),
+                slug: type,
+              }),
+              cards: group,
+            }}
+            groupBy="type"
+            className="px-1 pb-0.5 font-semibold"
+          />
+          {group.map((card) => renderCardRow(card))}
         </div>
       );
     });
@@ -229,18 +238,7 @@ export function DeckZoneSection({
       {/* Two separate controls, never nested: the chevron collapses the
           section, the label opens the zone in the main area. */}
       <DeckZoneHeader
-        label={
-          <>
-            {zoneLabel}
-            <PlusIcon
-              data-slot="deck-zone-add-icon"
-              className={cn(
-                "ml-1 inline-block size-3.5 align-middle opacity-50 transition-opacity group-hover/zone-label:opacity-100 group-focus-visible/zone-label:opacity-100",
-                isActive && "opacity-100",
-              )}
-            />
-          </>
-        }
+        label={zoneLabel}
         className="gap-1.5"
         leading={
           <ExpandToggle
@@ -320,41 +318,31 @@ export function DeckZoneSection({
         )}
       </DeckZoneHeader>
 
-      {open &&
-        (cards.length === 0 ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            className="text-muted-foreground h-auto w-full justify-start rounded-md py-1 text-left font-normal whitespace-normal"
-            onClick={activateZone}
-          >
-            {zoneEmptyHint(zone, format)}
-          </Button>
-        ) : isGrouped ? (
-          <div className="flex flex-col gap-1.5">{renderGroupedCards()}</div>
-        ) : (
-          <div className="flex flex-col gap-0.5">
-            {cards.map((card) => {
-              const typeIconPaths = getTypeIconPaths(card.cardTypes, card.superTypes);
-              return (
-                <div key={getDeckCardKey(card)} className="flex">
-                  <div className="flex w-7 shrink-0 flex-wrap items-center justify-center gap-0.5">
-                    {typeIconPaths.map((path) => (
-                      <CardIcon
-                        key={path}
-                        src={path}
-                        alt={card.cardTypes.join(" ")}
-                        className="size-3.5"
-                      />
-                    ))}
-                  </div>
-                  <div className="min-w-0 flex-1">{renderCardRow(card)}</div>
-                </div>
-              );
-            })}
-          </div>
-        ))}
+      {open && (
+        <>
+          {isEmpty ? null : isGrouped ? (
+            <div className="flex flex-col gap-2">{renderGroupedCards()}</div>
+          ) : (
+            <div className="flex flex-col gap-0.5">{cards.map((card) => renderCardRow(card))}</div>
+          )}
+          {addLabel === null ? (
+            <p className="text-muted-foreground px-1 text-sm max-sm:text-base">
+              {zoneEmptyHint(zone, format)}
+            </p>
+          ) : (
+            <Button
+              type="button"
+              variant="dashed"
+              data-slot="deck-zone-add-strip"
+              className="h-auto min-h-9 w-full justify-start gap-2 rounded-md px-2.5 py-1.5 text-left font-normal whitespace-normal max-sm:text-base sm:min-h-8"
+              onClick={onAdd ?? activateZone}
+            >
+              <PlusIcon className="size-4" />
+              <span>{isEmpty ? zoneEmptyHint(zone, format) : addLabel}</span>
+            </Button>
+          )}
+        </>
+      )}
     </div>
   );
 }

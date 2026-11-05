@@ -154,13 +154,40 @@ function PanelIdentityHeader({
   );
 }
 
+export function DeckZonePanelHeader({
+  deckId,
+  onOverviewClick,
+}: {
+  deckId: string;
+  onOverviewClick?: () => void;
+}) {
+  const cards = useDeckCards(deckId);
+  const { data: deckDetail } = useDeckDetail(deckId);
+  const violations = useDeckViolations(
+    deckId,
+    deckDetail.deck.format,
+    deckDetail.deck.formatConfig,
+  );
+  return (
+    <PanelIdentityHeader
+      name={deckDetail.deck.name}
+      format={deckDetail.deck.format}
+      cards={cards}
+      violationCount={violations.length}
+      onOverviewClick={onOverviewClick}
+    />
+  );
+}
+
 interface DeckZonePanelProps {
   deckId: string;
   onZoneClick?: (zone: DeckZone) => void;
+  onZoneAdd?: (zone: DeckZone) => void;
   onOverviewClick?: () => void;
   onHoverCard?: HoverHandler;
   ownershipData?: DeckOwnershipData;
   hideStats?: boolean;
+  hideIdentityHeader?: boolean;
   overviewShowing?: boolean;
   deckItems: CardViewerItem[];
 }
@@ -168,10 +195,12 @@ interface DeckZonePanelProps {
 export function DeckZonePanel({
   deckId,
   onZoneClick,
+  onZoneAdd,
   onOverviewClick,
   onHoverCard,
   ownershipData,
   hideStats,
+  hideIdentityHeader,
   overviewShowing,
   deckItems,
 }: DeckZonePanelProps) {
@@ -192,13 +221,15 @@ export function DeckZonePanel({
   return (
     // gap-4 must clear the drop ring a section grows to while a card hovers over it.
     <div className="flex flex-col gap-4">
-      <PanelIdentityHeader
-        name={deckDetail.deck.name}
-        format={deckDetail.deck.format}
-        cards={cards}
-        violationCount={violations.length}
-        onOverviewClick={onOverviewClick}
-      />
+      {!hideIdentityHeader && (
+        <PanelIdentityHeader
+          name={deckDetail.deck.name}
+          format={deckDetail.deck.format}
+          cards={cards}
+          violationCount={violations.length}
+          onOverviewClick={onOverviewClick}
+        />
+      )}
       {onOverviewClick && !overviewShowing && (
         <Button
           variant="outline"
@@ -221,6 +252,7 @@ export function DeckZonePanel({
           isActive={activeZone === zone}
           shiftHeld={shiftHeld}
           onActivate={() => onZoneClick?.(zone)}
+          onAdd={onZoneAdd ? () => onZoneAdd(zone) : undefined}
           onHoverCard={onHoverCard}
           deckItems={deckItems}
         />

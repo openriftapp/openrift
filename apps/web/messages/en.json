@@ -2607,7 +2607,16 @@
   "decks_editor_group_no_energy": "No energy cost",
   "decks_editor_group_not_owned": "Not owned",
   "decks_editor_group_owned": "Owned",
-  "decks_editor_group_type": "{type}s",
+  "decks_editor_group_type": [
+    {
+      "declarations": ["input type", "input slug"],
+      "selectors": ["slug"],
+      "match": {
+        "slug=gear": "{type}",
+        "slug=*": "{type}s"
+      }
+    }
+  ],
   "decks_editor_hide_archived": "Hide archived",
   "decks_editor_hint_add": "add",
   "decks_editor_hint_back": "back",
@@ -2706,6 +2715,13 @@
   "decks_editor_zones_heading": "Deck Zones",
   "decks_editor_zones_short": "Zones",
   "decks_zone_champion_alt": "Champion",
+  "decks_zone_add_legend": "Add a legend",
+  "decks_zone_add_legend_options": "Add extra legends",
+  "decks_zone_add_champion": "Add a champion",
+  "decks_zone_add_battlefield": "Add battlefields",
+  "decks_zone_add_main": "Add to main deck",
+  "decks_zone_add_sideboard": "Add to sideboard",
+  "decks_zone_add_overflow": "Add to overflow",
   "decks_zone_empty_battlefield": "Choose 3 unique Battlefield cards",
   "decks_zone_empty_battlefield_single": "Choose a Battlefield card",
   "decks_zone_empty_champion": "Pick a matching Chosen Champion",
@@ -3239,7 +3255,16 @@
   "decks_stats_focus_owned_other": "Cards owned in another printing",
   "decks_stats_focus_power": "{value}-power cards",
   "decks_stats_focus_rarity": "{label} cards",
-  "decks_stats_focus_type": "{label}s",
+  "decks_stats_focus_type": [
+    {
+      "declarations": ["input label", "input slug"],
+      "selectors": ["slug"],
+      "match": {
+        "slug=gear": "{label}",
+        "slug=*": "{label}s"
+      }
+    }
+  ],
   "decks_stats_footnote_collection": "Counts the main deck against your collection.",
   "decks_stats_footnote_energy": "Counts the main deck. Click a bar to see its cards.",
   "decks_stats_footnote_main_only": "Counts the main deck only.",

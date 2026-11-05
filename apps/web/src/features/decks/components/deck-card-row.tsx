@@ -15,7 +15,7 @@ import type { DeckCardDragData } from "@/features/decks/lib/deck-dnd-data";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { getDomainColor, getDomainGradientStyle } from "@/lib/domain";
+import { getDomainColor } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -150,7 +150,7 @@ export function CardControls({
         <Button
           variant="ghost"
           size="icon-sm"
-          className="size-5 shrink-0"
+          className="max-sm:border-border size-5 shrink-0 max-sm:size-9 max-sm:border"
           onClick={(event) => {
             event.stopPropagation();
             onRemove?.();
@@ -166,7 +166,7 @@ export function CardControls({
   return (
     <InlineCountStepper
       size="xs"
-      className="md:[&>button]:hidden md:group-hover/card:[&>button]:inline-flex"
+      className="max-sm:[&>button]:border-border max-sm:gap-1.5 max-sm:[&>button]:size-9 max-sm:[&>button]:border md:[&>button]:hidden md:group-hover/card:[&>button]:inline-flex"
       count={<span className={cn("block text-right", countWidthClass)}>{quantity}×</span>}
       decrementLabel={m.decks_editor_remove_one_copy({ card: cardName })}
       incrementLabel={m.decks_editor_add_one_copy({ card: cardName })}
@@ -233,17 +233,28 @@ export function DeckCardRow({
   const countDigits = String(maxQuantity ?? card.quantity).length;
   const countWidthClass = countDigits >= 3 ? "w-9" : countDigits === 2 ? "w-7" : "w-4";
 
-  const domainTint = getDomainGradientStyle(card.domains, "40", domainColors);
+  const stripeTop = getDomainColor(card.domains[0], domainColors);
+  const stripeBottom = getDomainColor(card.domains[1] ?? card.domains[0], domainColors);
+  const stripe = (
+    <span
+      aria-hidden
+      data-slot="deck-card-domain-stripe"
+      className="absolute inset-y-0 left-0 w-1"
+      style={{ background: `linear-gradient(to bottom, ${stripeTop} 50%, ${stripeBottom} 50%)` }}
+    />
+  );
 
   const baseClass = cn(
-    "group/card flex items-center gap-1.5 rounded-md px-1 py-1 text-sm",
+    "group/card relative flex min-h-13 items-center gap-1.5 overflow-hidden rounded-md py-1 pr-1 pl-2.5 text-sm sm:min-h-0",
+    hasViolation ? "bg-destructive/10" : "bg-muted/40",
     dimmed && "opacity-50",
-    hasViolation && "bg-destructive/10",
     isDragging && card.quantity === 1 && "opacity-40",
   );
 
   const content = (
     <>
+      {stripe}
+
       {hasViolation && (
         <Tooltip>
           <TooltipTrigger className="shrink-0">
@@ -253,18 +264,16 @@ export function DeckCardRow({
         </Tooltip>
       )}
 
-      <CardControls
-        controlMode={controlMode}
-        cardName={cardName}
-        quantity={displayQuantity}
-        countWidthClass={countWidthClass}
-        shiftHeld={shiftHeld}
-        onIncrement={onIncrement}
-        onDecrement={onDecrement}
-        onRemove={onRemove}
-      />
+      {card.energy !== null && <EnergyGlyph value={card.energy} />}
 
       <span className="min-w-0 flex-1 truncate text-left">{cardName}</span>
+
+      <PowerPips
+        power={card.power}
+        domains={card.domains}
+        colors={domainColors}
+        domainLabels={labels.domains}
+      />
 
       {shortfall !== undefined && shortfall > 0 && (
         <Tooltip>
@@ -302,14 +311,16 @@ export function DeckCardRow({
         </Tooltip>
       )}
 
-      <PowerPips
-        power={card.power}
-        domains={card.domains}
-        colors={domainColors}
-        domainLabels={labels.domains}
+      <CardControls
+        controlMode={controlMode}
+        cardName={cardName}
+        quantity={displayQuantity}
+        countWidthClass={countWidthClass}
+        shiftHeld={shiftHeld}
+        onIncrement={onIncrement}
+        onDecrement={onDecrement}
+        onRemove={onRemove}
       />
-
-      {card.energy !== null && <EnergyGlyph value={card.energy} />}
     </>
   );
 
@@ -325,8 +336,7 @@ export function DeckCardRow({
         {...hoverProps}
       >
         <div
-          className={cn(baseClass, "hover:bg-muted/50 w-full cursor-pointer")}
-          style={domainTint}
+          className={cn(baseClass, "hover:bg-muted/70 w-full cursor-pointer")}
           onContextMenu={onContextMenu}
           {...rowActivateProps(onClick)}
         >
@@ -340,7 +350,6 @@ export function DeckCardRow({
     <div
       ref={enableDrag ? setNodeRef : undefined}
       className={cn(baseClass, enableDrag && "cursor-grab active:cursor-grabbing")}
-      style={domainTint}
       onContextMenu={onContextMenu}
       {...dragProps}
       {...hoverProps}

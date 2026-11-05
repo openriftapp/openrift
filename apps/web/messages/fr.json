@@ -2607,7 +2607,16 @@
   "decks_editor_group_no_energy": "Aucun coût en énergie",
   "decks_editor_group_not_owned": "Non possédée",
   "decks_editor_group_owned": "Possédée",
-  "decks_editor_group_type": "{type}s",
+  "decks_editor_group_type": [
+    {
+      "declarations": ["input type", "input slug"],
+      "selectors": ["slug"],
+      "match": {
+        "slug=gear": "{type}",
+        "slug=*": "{type}s"
+      }
+    }
+  ],
   "decks_editor_hide_archived": "Masquer les archivés",
   "decks_editor_hint_add": "ajouter",
   "decks_editor_hint_back": "retour",
@@ -2706,6 +2715,13 @@
   "decks_editor_zones_heading": "Zones du deck",
   "decks_editor_zones_short": "Zones",
   "decks_zone_champion_alt": "Champion",
+  "decks_zone_add_legend": "Ajouter une Légende",
+  "decks_zone_add_legend_options": "Ajouter des Légendes supplémentaires",
+  "decks_zone_add_champion": "Ajouter un Champion",
+  "decks_zone_add_battlefield": "Ajouter des Champs de bataille",
+  "decks_zone_add_main": "Ajouter au deck principal",
+  "decks_zone_add_sideboard": "Ajouter à la réserve",
+  "decks_zone_add_overflow": "Ajouter à l’Overflow",
   "decks_zone_empty_battlefield": "Choisissez 3 cartes Champ de bataille différentes",
   "decks_zone_empty_battlefield_single": "Choisissez une carte Champ de bataille",
   "decks_zone_empty_champion": "Choisissez un Champion élu compatible",
@@ -3239,7 +3255,15 @@
   "decks_stats_focus_owned_other": "Cartes possédées dans une autre impression",
   "decks_stats_focus_power": "Cartes à {value} essence runique",
   "decks_stats_focus_rarity": "Cartes de rareté {label}",
-  "decks_stats_focus_type": "{label}",
+  "decks_stats_focus_type": [
+    {
+      "declarations": ["input label", "input slug"],
+      "selectors": ["slug"],
+      "match": {
+        "slug=*": "{label}"
+      }
+    }
+  ],
   "decks_stats_footnote_collection": "Compte le deck principal face à votre collection.",
   "decks_stats_footnote_energy": "Compte le deck principal. Cliquez sur une barre pour voir ses cartes.",
   "decks_stats_footnote_main_only": "Compte le deck principal uniquement.",

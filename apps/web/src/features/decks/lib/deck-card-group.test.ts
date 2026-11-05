@@ -25,7 +25,7 @@ describe("groupDeckCards", () => {
     ];
     const groups = groupDeckCards(cards, "type", "asc", ctx);
     expect(groups.map((group) => group.key)).toEqual(["unit", "spell", "gear", "rune"]);
-    expect(groups.map((group) => group.label)).toEqual(["Units", "Spells", "Gears", "Runes"]);
+    expect(groups.map((group) => group.label)).toEqual(["Units", "Spells", "Gear", "Runes"]);
   });
 
   it("groups by energy ascending with costless cards last", () => {

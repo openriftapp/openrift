@@ -2607,7 +2607,15 @@
   "decks_editor_group_no_energy": "无法力费用",
   "decks_editor_group_not_owned": "未拥有",
   "decks_editor_group_owned": "已拥有",
-  "decks_editor_group_type": "{type}",
+  "decks_editor_group_type": [
+    {
+      "declarations": ["input type", "input slug"],
+      "selectors": ["slug"],
+      "match": {
+        "slug=*": "{type}"
+      }
+    }
+  ],
   "decks_editor_hide_archived": "隐藏已归档",
   "decks_editor_hint_add": "添加",
   "decks_editor_hint_back": "返回",
@@ -2706,6 +2714,13 @@
   "decks_editor_zones_heading": "卡组区域",
   "decks_editor_zones_short": "区域",
   "decks_zone_champion_alt": "英雄",
+  "decks_zone_add_legend": "添加传奇",
+  "decks_zone_add_legend_options": "添加额外传奇",
+  "decks_zone_add_champion": "添加英雄",
+  "decks_zone_add_battlefield": "添加战场",
+  "decks_zone_add_main": "添加到主卡组",
+  "decks_zone_add_sideboard": "添加到备牌",
+  "decks_zone_add_overflow": "添加到暂存区",
   "decks_zone_empty_battlefield": "选择3张不同的战场牌",
   "decks_zone_empty_battlefield_single": "选择一张战场牌",
   "decks_zone_empty_champion": "选择一名匹配的选定英雄",
@@ -3239,7 +3254,15 @@
   "decks_stats_focus_owned_other": "以其他印刷版本拥有的卡牌",
   "decks_stats_focus_power": "{value} 符能卡牌",
   "decks_stats_focus_rarity": "{label}卡牌",
-  "decks_stats_focus_type": "{label}",
+  "decks_stats_focus_type": [
+    {
+      "declarations": ["input label", "input slug"],
+      "selectors": ["slug"],
+      "match": {
+        "slug=*": "{label}"
+      }
+    }
+  ],
   "decks_stats_footnote_collection": "以主牌堆对照你的收藏统计。",
   "decks_stats_footnote_energy": "只统计主牌堆。点击柱子查看其中的卡牌。",
   "decks_stats_footnote_main_only": "只统计主牌堆。",
