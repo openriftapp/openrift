@@ -3557,6 +3557,7 @@
   "decks_test_bench_empty": "Füge Karten zum Main Deck hinzu, um Starthände zu testen.",
   "decks_meta_in_box": "in {box}",
   "decks_meta_stored_in_box": "Aufbewahrt in {box}",
+  "decks_meta_updated": "Aktualisiert {date}",
   "decks_format_tag_noun_region_plural": "Regionen",
   "decks_format_tag_none_picked": "Keine {nounPlural} gewählt",
   "decks_format_tag_none_available": "Keine {nounPlural} verfügbar",

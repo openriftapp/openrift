@@ -83,6 +83,18 @@ function PlaceholderPreviewCard({
   );
 }
 
+function LegendThumbPlaceholder() {
+  return (
+    <div
+      aria-hidden="true"
+      className="border-muted-foreground/25 bg-background/40 flex h-[96px] items-center justify-center rounded-md border border-dashed"
+      style={{ aspectRatio: "var(--aspect-card)" }}
+    >
+      <CardIcon src="/images/types/legend.svg" className="text-muted-foreground/70 size-6" />
+    </div>
+  );
+}
+
 // Also reused by the deck-check checker hero.
 export function FannedPreview({
   legendImage,
@@ -249,7 +261,7 @@ export function DeckTile({
     <div
       className={cn(
         cardLinkVariants(),
-        "ring-border group relative flex flex-col overflow-hidden rounded-lg ring-1 hover:bg-transparent data-[archived=true]:opacity-60",
+        "ring-border group relative flex flex-row overflow-hidden rounded-lg ring-1 hover:bg-transparent data-[archived=true]:opacity-60 sm:flex-col",
         // An anchor can't contain the menu and badges here, so the name's
         // ::after link stretches over the tile, and the ring follows it.
         "has-[a:focus-visible]:ring-ring/50 has-[a:focus-visible]:ring-2",
@@ -270,20 +282,43 @@ export function DeckTile({
         </div>
       )}
 
-      <FannedPreview
-        legendImage={legendImage}
-        championImage={championImage}
-        coverImage={coverImage}
-        coverPosition={deck.coverPosition}
-        gradientStyle={
+      <div className="max-sm:hidden">
+        <FannedPreview
+          legendImage={legendImage}
+          championImage={championImage}
+          coverImage={coverImage}
+          coverPosition={deck.coverPosition}
+          gradientStyle={
+            legendDomains && legendDomains.length > 0
+              ? getDomainGradientStyle(legendDomains, "40", domainColors)
+              : undefined
+          }
+        />
+      </div>
+
+      <div
+        className="bg-muted/30 flex w-20 shrink-0 items-center justify-center sm:hidden"
+        style={
           legendDomains && legendDomains.length > 0
             ? getDomainGradientStyle(legendDomains, "40", domainColors)
             : undefined
         }
-      />
+      >
+        {legendImage ? (
+          <CardPreviewImage
+            image={legendImage}
+            alt={m.decks_list_placeholder_legend()}
+            sizes="72px"
+            className="h-[96px] rounded-md object-cover shadow-md"
+            fallback={<LegendThumbPlaceholder />}
+          />
+        ) : (
+          <LegendThumbPlaceholder />
+        )}
+      </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <div className="min-w-0">
+      <div className="flex min-w-0 flex-1 flex-col gap-2 p-4 max-sm:min-h-[120px] max-sm:justify-center max-sm:gap-1 max-sm:px-3 max-sm:pt-2 max-sm:pb-3.5">
+        <div className="min-w-0 max-sm:pr-8">
           <div className="flex items-center gap-1.5">
             {deck.isPinned && (
               <PinIcon
@@ -314,6 +349,11 @@ export function DeckTile({
             tagSummary={tagSummary}
             className="mt-0.5"
           />
+          <DeckFolderChips
+            folderIds={item.folderIds}
+            folderLabels={folderLabels}
+            className="mt-1 sm:hidden"
+          />
           {deck.descriptionSnippet && (
             <p className="text-muted-foreground/80 mt-0.5 truncate text-xs">
               {deck.descriptionSnippet}
@@ -332,7 +372,7 @@ export function DeckTile({
               <span className="text-muted-foreground text-2xs ml-1 truncate">{typeSummary}</span>
             )}
           </span>
-          <span className="flex shrink-0 items-center gap-1">
+          <span className="flex shrink-0 items-center gap-1 max-sm:hidden">
             {isLocal && <LocalDeckBadge className="text-2xs" />}
             <DeckFormatBadge
               format={deck.format}
@@ -344,11 +384,29 @@ export function DeckTile({
           </span>
         </div>
 
-        <DeckFolderChips folderIds={item.folderIds} folderLabels={folderLabels} />
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:hidden">
+          {isLocal && <LocalDeckBadge className="text-2xs" />}
+          <DeckFormatBadge
+            format={deck.format}
+            totalCards={totalCards}
+            requiredProgress={requiredProgress}
+            requiredTotal={requiredTotal}
+            isValid={isValid}
+          />
+          <DeckMetaLine item={item} />
+        </div>
 
-        {domainDistribution.length > 0 && <DeckDomainBar distribution={domainDistribution} />}
+        <div className="max-sm:hidden">
+          <DeckFolderChips folderIds={item.folderIds} folderLabels={folderLabels} />
+        </div>
 
-        <DeckMetaLine item={item} className="mt-auto pt-1" />
+        {domainDistribution.length > 0 && (
+          <div className="max-sm:absolute max-sm:inset-x-0 max-sm:bottom-0 max-sm:*:rounded-none">
+            <DeckDomainBar distribution={domainDistribution} />
+          </div>
+        )}
+
+        <DeckMetaLine item={item} className="mt-auto pt-1 max-sm:hidden" />
       </div>
     </div>
   );

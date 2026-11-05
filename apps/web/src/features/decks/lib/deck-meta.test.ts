@@ -67,7 +67,7 @@ describe("deckMetaParts", () => {
       "2026-08-09",
     ]);
     expect(part(parts, "missing").warn).toBe(true);
-    expect(part(parts, "updated").inlineText).toBe("updated 2026-08-09");
+    expect(part(parts, "updated").inlineText).toBe("Updated 2026-08-09");
   });
 
   it("names the box it is stored in, with the full phrase on hover", () => {

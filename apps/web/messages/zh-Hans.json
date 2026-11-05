@@ -3557,6 +3557,7 @@
   "decks_test_bench_empty": "向主牌堆添加卡牌，即可测试起手牌。",
   "decks_meta_in_box": "位于{box}",
   "decks_meta_stored_in_box": "存放在{box}",
+  "decks_meta_updated": "更新于 {date}",
   "decks_format_tag_noun_region_plural": "地区",
   "decks_format_tag_none_picked": "未选择{nounPlural}",
   "decks_format_tag_none_available": "没有可用的{nounPlural}",

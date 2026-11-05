@@ -3557,6 +3557,7 @@
   "decks_test_bench_empty": "先把卡牌加入主牌堆，才能測試起始手牌。",
   "decks_meta_in_box": "位於{box}",
   "decks_meta_stored_in_box": "存放於{box}",
+  "decks_meta_updated": "更新於 {date}",
   "decks_format_tag_noun_region_plural": "地區",
   "decks_format_tag_none_picked": "尚未選擇{nounPlural}",
   "decks_format_tag_none_available": "沒有可用的{nounPlural}",

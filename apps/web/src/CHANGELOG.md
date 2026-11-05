@@ -95,6 +95,7 @@
 ### Other
 
 - fix(Cards): **Tidier price rows and chart** — marketplace names and prices now line up in a column, and the price chart shows short dates that fit a phone, keeps its last date inside the chart and labels the current price at the end of the line.
+- feat(Decks): **Compact deck rows on phones** — each deck on the Decks page is now a short row with a small legend thumbnail, name, legend, card counts, format and last update, so several decks fit on one screen.
 
 ## 2026-11-04
 

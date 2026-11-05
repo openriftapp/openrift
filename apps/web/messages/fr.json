@@ -3558,6 +3558,7 @@
   "decks_test_bench_empty": "Ajoutez des cartes au deck principal pour tester des mains de départ.",
   "decks_meta_in_box": "dans {box}",
   "decks_meta_stored_in_box": "Rangé dans {box}",
+  "decks_meta_updated": "Mis à jour le {date}",
   "decks_format_tag_noun_region_plural": "régions",
   "decks_format_tag_none_picked": "Aucun choix de {nounPlural}",
   "decks_format_tag_none_available": "Pas de {nounPlural} disponibles",

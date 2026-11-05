@@ -46,7 +46,7 @@ export function deckMetaParts(
     {
       key: "updated",
       text: updatedDate,
-      inlineText: `updated ${updatedDate}`,
+      inlineText: m.decks_meta_updated({ date: updatedDate }),
       title: updatedDate === createdDate ? undefined : `Created ${createdDate}`,
     },
   ];

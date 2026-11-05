@@ -3563,6 +3563,7 @@
   "decks_test_bench_empty": "Add cards to the main deck to test opening hands.",
   "decks_meta_in_box": "in {box}",
   "decks_meta_stored_in_box": "Stored in {box}",
+  "decks_meta_updated": "Updated {date}",
   "decks_format_tag_noun_region_plural": "regions",
   "decks_format_tag_none_picked": "No {nounPlural} picked",
   "decks_format_tag_none_available": "No {nounPlural} available",
