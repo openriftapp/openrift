@@ -63,7 +63,7 @@ function Rank({ rank, rankIsTier }: { rank: number; rankIsTier: boolean }) {
       rank={rank}
       text={formatRank(rank, rankIsTier)}
       filled={false}
-      className="w-16 shrink-0 rounded-md"
+      className="min-w-16 shrink-0"
     />
   );
 }

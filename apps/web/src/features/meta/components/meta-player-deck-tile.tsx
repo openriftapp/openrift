@@ -31,7 +31,7 @@ export function MetaPlayerDeckTile({
       className={cn("h-full gap-0 py-0", rankBandRingClass(rankBandTone(deck.rank, true)))}
     >
       <RankBand
-        layout="inline"
+        layout="band"
         rank={deck.rank}
         text={formatRank(deck.rank, deck.rankIsTier)}
         label={finishBracketLabel(deck.rank, deck.rankIsTier, null)}

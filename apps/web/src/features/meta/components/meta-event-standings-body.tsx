@@ -104,7 +104,7 @@ export function PhoneStandings({
   return (
     <ul
       ref={containerRef}
-      className="relative -mx-3 block md:hidden [&>li+li]:border-t"
+      className="relative block md:hidden [&>li+li]:border-t"
       style={{ height }}
     >
       {rows.map(({ player, slot }) => (

@@ -9,11 +9,11 @@ function band(): HTMLElement {
 
 describe("RankBand", () => {
   it("crowns the winner beside the printed finish and its label", () => {
-    render(<RankBand rank={1} text="1" label="Winner" />);
+    render(<RankBand rank={1} text="1st" label="Winner" />);
 
     expect(band()).toHaveAttribute("data-tone", "gold");
     expect(band().querySelector("svg")).not.toBeNull();
-    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.getByText("1st")).toBeInTheDocument();
     expect(screen.getByText("Winner")).toBeInTheDocument();
   });
 
@@ -40,7 +40,7 @@ describe("RankBand", () => {
     ]);
   });
 
-  it("lets a long place step down a size in a narrow slot and keeps a short one full size", () => {
+  it("steps a long place down a size and keeps a short one full size", () => {
     render(
       <>
         <RankBand rank={172} text="172nd" filled={false} />
@@ -53,18 +53,40 @@ describe("RankBand", () => {
     expect(screen.getByText("4th")).toHaveClass("text-2xl");
   });
 
-  it("prints a four-digit place at body size however wide the column is", () => {
-    render(<RankBand rank={2050} text="2050th" filled={false} className="w-24" />);
+  it("prints a four-digit place whole in a chip that grows past its minimum width", () => {
+    render(<RankBand rank={1234} text="1234th" filled={false} className="min-w-16" />);
 
-    expect(screen.getByText("2050th")).toHaveClass("text-base");
-    expect(screen.getByText("2050th")).not.toHaveClass("text-2xl");
+    expect(band()).toHaveTextContent(/^1234th$/u);
+    expect(screen.getByText("1234th")).toHaveClass(
+      "text-base",
+      "tabular-nums",
+      "whitespace-nowrap",
+    );
+    expect(band()).toHaveClass("min-w-16", "px-1.5");
+    expect(band().className).not.toMatch(/(?<start>^|\s)(?<cls>w-|max-w-|@container)/u);
   });
 
-  it("gives a crowned winner's place the room to stay full size in a wide column", () => {
-    render(<RankBand rank={1} text="1st" filled={false} />);
+  it("tints the podium chips and outlines every other place", () => {
+    render(
+      <>
+        <RankBand rank={1} text="1st" filled={false} />
+        <RankBand rank={4} text="4th" filled={false} />
+      </>,
+    );
+    const [first, fourth] = [...document.querySelectorAll("[data-slot=rank-band]")];
 
+    expect(first).toHaveClass("bg-amber-500/16", "border-amber-500/60");
+    expect(first?.querySelector("svg")).not.toBeNull();
+    expect(screen.getByText("1st")).toBeInTheDocument();
+    expect(fourth).toHaveClass("border-border", "text-muted-foreground");
+    expect(fourth).not.toHaveClass("bg-muted");
+  });
+
+  it("keeps the solid medal fill on a tile band", () => {
+    render(<RankBand rank={1} text="1st" label="Winner" layout="band" />);
+
+    expect(band()).toHaveClass("bg-amber-500");
     expect(screen.getByText("1st")).toHaveClass("text-2xl");
-    expect(screen.getByText("1st")).toHaveClass("@max-[3.75rem]:text-lg");
   });
 
   it("fills a finish past the podium only when asked", () => {

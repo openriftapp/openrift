@@ -13,6 +13,7 @@ import {
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
+import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { PAGER_SCROLL_TARGET, Pager } from "@/components/ui/pager";
 import { RowList, RowListLink } from "@/components/ui/row-list";
@@ -59,6 +60,7 @@ import { scopeKey } from "@/features/meta/lib/meta-scope";
 import { isCostFilterActive } from "@/features/meta/lib/meta-standings-cost";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useSession } from "@/hooks/use-session";
+import { useSmUp } from "@/hooks/use-sm-up";
 import type { MetaDeckView } from "@/lib/sanitize-preferences";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -83,6 +85,15 @@ function highest(
 
 const DECK_LIST_ID = "meta-deck-list";
 
+type ControlSize = "sm" | "default";
+
+interface DeckCount {
+  matched: number;
+  archive: number;
+  events: number;
+  onPage: number | null;
+}
+
 function MetaDeckBrowserFallback() {
   return (
     <div className="flex flex-col gap-3">
@@ -99,11 +110,7 @@ function MetaDeckBrowserFallback() {
  * The API pages and narrows the archive. Cost and value are priced in the
  * browser, so those two filters and their sorts work on the page on screen.
  */
-function MetaDeckBrowser({
-  onCount,
-}: {
-  onCount: (matched: number, archive: number, onPage: number | null) => void;
-}) {
+function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
   const filters = useMetaDeckFilters();
   const eras = useMetaEras();
   const narrowing = metaDeckQueryFromFilters(filters, eras);
@@ -118,6 +125,7 @@ function MetaDeckBrowser({
   const marketplace = useDisplayStore((state) => state.marketplaceOrder[0]);
   const view = useDisplayStore((state) => state.metaDeckView);
   const setView = useDisplayStore((state) => state.setMetaDeckView);
+  const smUp = useSmUp();
   const [costs, setCosts] = useState<ReadonlyMap<string, MetaDeckCost>>();
 
   const signedIn = Boolean(session?.user);
@@ -139,10 +147,11 @@ function MetaDeckBrowser({
   const grouped = filters.sort === "date";
   const total = data.total;
   const archiveTotal = data.archiveTotal;
+  const eventCount = data.eventCount;
   const onPage = costActive ? decks.length : null;
   useEffect(() => {
-    onCount(total, archiveTotal, onPage);
-  }, [onCount, total, archiveTotal, onPage]);
+    onCount({ matched: total, archive: archiveTotal, events: eventCount, onPage });
+  }, [onCount, total, archiveTotal, eventCount, onPage]);
 
   const cost = {
     ready: costs !== undefined,
@@ -152,6 +161,32 @@ function MetaDeckBrowser({
     maxToComplete: highest(costs, (entry) => entry.toComplete),
     maxValue: highest(costs, (entry) => entry.value),
   };
+
+  const sortSelect = (size: ControlSize, className: string) => (
+    <SortSelect
+      sort={filters.sort}
+      direction={filters.direction}
+      onChange={(sort, direction) => filters.setSort(sort, direction)}
+      size={size}
+      className={className}
+    />
+  );
+  const bestToggle = (size: "xs" | "sm") => (
+    <Button
+      type="button"
+      variant="control"
+      size={size}
+      aria-pressed={!filters.showAll}
+      onClick={() => filters.setShowAll(!filters.showAll)}
+    >
+      {m.meta_browser_best_per_legend()}
+    </Button>
+  );
+  const sortHint = isBrowserDeckSort(filters.sort) && (
+    <p className={cn("text-muted-foreground text-2xs", !smUp && "mt-2")}>
+      {m.meta_sort_page_only()}
+    </p>
+  );
 
   const handlePageChange = (next: number) => filters.setPage(next);
   const handlePerPageChange = (next: MetaPageSizeValue) => filters.setPerPage(next);
@@ -180,45 +215,31 @@ function MetaDeckBrowser({
         />
       </Suspense>
 
-      <MetaDeckFilterControls facets={facets} eras={eras} cost={cost} />
-
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <ViewToggle view={view} onChange={setView} />
-        <ToggleGroup
-          variant="outline"
-          size="sm"
-          spacing={0}
-          value={[filters.showAll ? "all" : "best"]}
-          onValueChange={([next]) => {
-            if (next === "best" || next === "all") {
-              filters.setShowAll(next === "all");
-            }
-          }}
-          aria-label={m.meta_browser_lists_shown()}
-        >
-          <ToggleGroupItem value="best">{m.meta_browser_best_per_legend()}</ToggleGroupItem>
-          <ToggleGroupItem value="all">{m.meta_browser_every_list()}</ToggleGroupItem>
-        </ToggleGroup>
-        <p className="text-muted-foreground text-sm tabular-nums">
-          {onPage === null ? (
+      <MetaDeckFilterControls
+        facets={facets}
+        eras={eras}
+        cost={cost}
+        phoneToolbar={
+          smUp ? undefined : (
             <>
-              {m.meta_count_decks({ count: total })} ·{" "}
-              {m.meta_count_events({ count: data.eventCount })}
+              {sortSelect("default", "w-auto min-w-0 flex-1")}
+              <ViewToggle view={view} onChange={setView} size="default" />
             </>
-          ) : (
-            m.meta_shown_decks_page({ shown: onPage })
-          )}
-        </p>
-        {isBrowserDeckSort(filters.sort) && (
-          <p className="text-muted-foreground text-2xs">{m.meta_sort_page_only()}</p>
-        )}
-        <SortSelect
-          sort={filters.sort}
-          direction={filters.direction}
-          onChange={(sort, direction) => filters.setSort(sort, direction)}
-          className="ml-auto"
-        />
-      </div>
+          )
+        }
+        phoneStripLead={smUp ? undefined : bestToggle("xs")}
+      />
+
+      {smUp ? (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <ViewToggle view={view} onChange={setView} size="sm" />
+          {bestToggle("sm")}
+          {sortHint}
+          {sortSelect("sm", "ml-auto")}
+        </div>
+      ) : (
+        sortHint
+      )}
 
       <div id={DECK_LIST_ID} className={PAGER_SCROLL_TARGET}>
         {view === "list" ? (
@@ -334,14 +355,16 @@ function NoMatches({ pastEnd }: { pastEnd: boolean }) {
 function ViewToggle({
   view,
   onChange,
+  size,
 }: {
   view: MetaDeckView;
   onChange: (view: MetaDeckView) => void;
+  size: ControlSize;
 }) {
   return (
     <ToggleGroup
       variant="outline"
-      size="sm"
+      size={size}
       spacing={0}
       value={[view]}
       onValueChange={([next]) => {
@@ -370,11 +393,13 @@ function SortSelect({
   sort,
   direction,
   onChange,
+  size,
   className,
 }: {
   sort: MetaDeckSort;
   direction: MetaDeckSortDirection;
   onChange: (sort: MetaDeckSort, direction: MetaDeckSortDirection) => void;
+  size: ControlSize;
   className?: string;
 }) {
   const items: Record<string, string> = {};
@@ -396,7 +421,11 @@ function SortSelect({
       }}
       items={items}
     >
-      <SelectTrigger size="sm" className={cn("w-48", className)} aria-label={m.meta_browser_sort()}>
+      <SelectTrigger
+        size={size}
+        className={cn("w-48", className)}
+        aria-label={m.meta_browser_sort()}
+      >
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -564,12 +593,15 @@ function DeckGrid({ decks, summaries, costs, marketplace, grouped }: DeckListPro
 
 export function MetaDeckBrowserPage() {
   const hydrated = useHydrated();
-  const [count, setCount] = useState<{ matched: number; archive: number; onPage: number | null }>();
-  const onCount = (matched: number, archive: number, onPage: number | null) => {
+  const [count, setCount] = useState<DeckCount>();
+  const onCount = (next: DeckCount) => {
     setCount((prev) =>
-      prev?.matched === matched && prev.archive === archive && prev.onPage === onPage
+      prev?.matched === next.matched &&
+      prev.archive === next.archive &&
+      prev.events === next.events &&
+      prev.onPage === next.onPage
         ? prev
-        : { matched, archive, onPage },
+        : next,
     );
   };
 
@@ -579,17 +611,17 @@ export function MetaDeckBrowserPage() {
         <PageTopBar>
           <PageTopBarBack to="/meta" aria-label={m.meta_back_to_archive_aria()} />
           <PageTopBarTitle>{m.meta_browser_title()}</PageTopBarTitle>
-          {count !== undefined && (
-            <span className="text-muted-foreground shrink-0 tabular-nums">
-              {count.onPage === null
-                ? metaShownLabel(count.matched, count.archive, "decks")
-                : m.meta_shown_decks_page({ shown: count.onPage })}
-            </span>
-          )}
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, "px-safe pt-3 pb-6")}>
-        <PageDescription className="pb-4">{m.meta_decks_page_description()}</PageDescription>
+        <p className="text-muted-foreground min-h-5 text-sm tabular-nums">
+          {count === undefined
+            ? null
+            : count.onPage === null
+              ? `${metaShownLabel(count.matched, count.archive, "decks")} · ${m.meta_count_events({ count: count.events })}`
+              : m.meta_shown_decks_page({ shown: count.onPage })}
+        </p>
+        <PageDescription className="pt-2 pb-4">{m.meta_decks_page_description()}</PageDescription>
 
         {hydrated ? (
           <Suspense fallback={<MetaDeckBrowserFallback />}>

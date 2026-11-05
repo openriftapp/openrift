@@ -6,9 +6,17 @@ import { cn } from "@/lib/utils";
 
 type RankBandTone = "gold" | "silver" | "bronze" | "muted" | "plain";
 
-type RankBandLayout = "stacked" | "inline";
+type RankBandLayout = "chip" | "band";
 
-const TONE_CLASS: Record<RankBandTone, string> = {
+const CHIP_TONE_CLASS: Record<RankBandTone, string> = {
+  gold: "border-amber-500/60 bg-amber-500/16 text-amber-700 dark:text-amber-300",
+  silver: "border-zinc-400/60 bg-zinc-400/16 text-zinc-700 dark:text-zinc-200",
+  bronze: "border-amber-700/60 bg-amber-700/16 text-amber-800 dark:text-orange-300",
+  muted: "border-border bg-muted text-muted-foreground",
+  plain: "border-border text-muted-foreground",
+};
+
+const BAND_TONE_CLASS: Record<RankBandTone, string> = {
   gold: "bg-amber-500 text-amber-950",
   silver: "bg-zinc-400 text-zinc-900",
   bronze: "bg-amber-700 text-amber-50",
@@ -24,33 +32,15 @@ const RING_CLASS: Record<RankBandTone, string> = {
   plain: "ring-border",
 };
 
-const LAYOUT_CLASS: Record<RankBandLayout, string> = {
-  stacked: "flex-col justify-center gap-1 px-1 py-1.5",
-  inline: "justify-between gap-2 px-3 py-1.5",
-};
-
-function numeralBoxClass(layout: RankBandLayout, crowned: boolean): string {
-  if (layout === "inline") {
-    return crowned ? "w-18 shrink-0" : "w-14 shrink-0";
-  }
-  return crowned ? "w-full max-w-18 justify-center" : "w-full max-w-14 justify-center";
-}
-
 function numeralSizeClass(length: number, crowned: boolean): string {
   if (crowned) {
-    return "text-2xl @max-[3.75rem]:text-lg @max-[3.25rem]:text-base";
+    return "text-lg";
   }
-  if (length <= 2) {
+  if (length <= 4) {
     return "text-2xl";
   }
-  if (length === 3) {
-    return "text-2xl @max-[2.5rem]:text-lg @max-[1.875rem]:text-base";
-  }
-  if (length === 4) {
-    return "text-2xl @max-[3.5rem]:text-lg @max-[2.75rem]:text-base";
-  }
   if (length === 5) {
-    return "text-lg @max-[3.25rem]:text-base";
+    return "text-lg";
   }
   return "text-base";
 }
@@ -77,7 +67,7 @@ export function RankBand({
   text,
   label,
   filled = true,
-  layout = "stacked",
+  layout = "chip",
   crownOnly = false,
   className,
 }: {
@@ -92,29 +82,35 @@ export function RankBand({
   const tone = rankBandTone(rank, filled);
   const bareCrown = rank === 1 && crownOnly;
   const crowned = rank === 1 && !crownOnly;
+  const chip = layout === "chip";
 
   return (
     <div
       data-slot="rank-band"
       data-tone={tone}
-      className={cn("flex items-center", LAYOUT_CLASS[layout], TONE_CLASS[tone], className)}
+      data-layout={layout}
+      className={cn(
+        "flex items-center",
+        chip
+          ? cn("flex-col justify-center gap-1 rounded-md border px-1.5 py-1", CHIP_TONE_CLASS[tone])
+          : cn("justify-between gap-2 px-3 py-1.5", BAND_TONE_CLASS[tone]),
+        className,
+      )}
     >
-      <div className={cn("@container flex", numeralBoxClass(layout, crowned))}>
-        <span
-          className={cn(
-            "font-heading flex items-center gap-1.5 leading-none font-bold whitespace-nowrap tabular-nums",
-            numeralSizeClass(text.length, crowned),
-          )}
-        >
-          {rank === 1 && (
-            <CrownIcon
-              aria-hidden
-              className={cn("fill-current", bareCrown ? "size-6" : "size-5")}
-            />
-          )}
-          {bareCrown ? <span className="sr-only">{text}</span> : text}
-        </span>
-      </div>
+      <span
+        className={cn(
+          "font-heading flex items-center gap-1 leading-none font-bold whitespace-nowrap tabular-nums",
+          chip ? cn("h-6", numeralSizeClass(text.length, crowned)) : "text-2xl",
+        )}
+      >
+        {rank === 1 && (
+          <CrownIcon
+            aria-hidden
+            className={cn("fill-current", bareCrown ? "size-5" : chip ? "size-4" : "size-5")}
+          />
+        )}
+        {bareCrown ? <span className="sr-only">{text}</span> : text}
+      </span>
       {label !== undefined && label !== null && (
         <span className="text-2xs font-semibold tracking-wider whitespace-nowrap uppercase">
           {label}

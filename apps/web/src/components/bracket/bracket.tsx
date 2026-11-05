@@ -98,7 +98,11 @@ export function BracketSeatRow({
 }
 
 export function BracketRankMark({ rank, text }: { rank: number; text: string }) {
-  return <RankBand rank={rank} text={text} crownOnly className="w-14 shrink-0" />;
+  return (
+    <span className="flex min-w-14 shrink-0 items-center justify-center py-1.5">
+      <RankBand rank={rank} text={text} crownOnly className="min-w-11" />
+    </span>
+  );
 }
 
 export function BracketSeedMark({ children }: { children: ReactNode }) {

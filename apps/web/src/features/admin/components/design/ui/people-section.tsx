@@ -40,11 +40,11 @@ const PODIUM_SEATS: PodiumSeat[] = [
 ];
 
 const RANK_BAND_DEMOS = [
-  { rank: 1, text: "1", label: "Winner", filled: true },
-  { rank: 2, text: "2", label: "Finalist", filled: true },
-  { rank: 3, text: "3", label: "Top 4", filled: true },
-  { rank: 6, text: "6th", label: "Top 8", filled: true },
-  { rank: 12, text: "12th", label: null, filled: false },
+  { rank: 1, text: "1st", label: "Winner", filled: true },
+  { rank: 2, text: "2nd", label: "Finalist", filled: true },
+  { rank: 3, text: "3rd", label: "Top 4", filled: true },
+  { rank: 4, text: "4th", label: "Top 8", filled: true },
+  { rank: 1234, text: "1234th", label: null, filled: false },
 ];
 
 const LEGEND_FINISHES = [
@@ -132,7 +132,7 @@ export function PeopleSection() {
 
       <DemoGroup
         {...GROUPS.rankBand}
-        hint="Denser lists pass filled={false} and print every finish outside the cut as a bare numeral."
+        hint="Podium places are tinted chips, the rest outlined; filled={false} drops the fill outside the cut. The chip grows with the place. The band layout heads a finish tile."
       >
         <SwatchRow label="Finishes">
           {RANK_BAND_DEMOS.map((demo) => (
@@ -142,16 +142,16 @@ export function PeopleSection() {
                 text={demo.text}
                 label={demo.label}
                 filled={demo.filled}
-                className="w-24 rounded-md"
+                className="min-w-16"
               />
             </Swatch>
           ))}
-          <Swatch label="inline" colors>
+          <Swatch label="band" colors>
             <RankBand
               rank={1}
-              text="1"
+              text="1st"
               label="Winner"
-              layout="inline"
+              layout="band"
               className="w-52 rounded-md"
             />
           </Swatch>

@@ -86,6 +86,11 @@
 
 - fix(App): **Counts read "1 card"** — counts of one no longer say "1 cards", and on touch screens the lending page says to press and hold a card instead of right-clicking it.
 
+### Other
+
+- feat(Meta): **Compact archived decks toolbar** — on phones, filters, sort and layout share one row with the active filters below it, so the first decks show sooner.
+- feat(App): **Quieter rank chips** — standings, finish lists and brackets mark the top three with tinted chips and keep the crown on 1st, and event standings on phones now line up with the rest of the page.
+
 ## 2026-11-04
 
 ### Highlights

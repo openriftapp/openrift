@@ -34,7 +34,7 @@ function Rank({ finish }: { finish: MetaPlayerFinish }) {
       rank={finish.rank}
       text={formatRank(finish.rank, finish.rankIsTier)}
       filled={false}
-      className="w-16 shrink-0 rounded-md"
+      className="min-w-16 shrink-0"
     />
   );
 }

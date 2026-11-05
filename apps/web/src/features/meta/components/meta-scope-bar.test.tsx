@@ -99,6 +99,17 @@ describe("MetaScopeBar on a phone", () => {
     renderBar();
     expect(screen.queryByRole("button", { name: "Clear all filters" })).not.toBeInTheDocument();
   });
+
+  it("puts the surface's toolbar beside the filters button and keeps its strip lead with nothing narrowed", () => {
+    renderBar({
+      phoneToolbar: <span>Sort here</span>,
+      phoneStripLead: <span>Best list here</span>,
+    });
+    const filters = screen.getByRole("button", { name: "Filters" });
+    expect(filters.parentElement).toContainElement(screen.getByText("Sort here"));
+    expect(screen.getByText("Best list here")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Clear all filters" })).not.toBeInTheDocument();
+  });
 });
 
 describe("MetaScopeBar", () => {

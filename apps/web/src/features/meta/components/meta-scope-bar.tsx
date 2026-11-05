@@ -63,6 +63,8 @@ export interface MetaScopeBarProps extends MetaScopeControls {
   search?: ReactNode;
   extras?: ReactNode;
   extrasActive?: boolean;
+  phoneToolbar?: ReactNode;
+  phoneStripLead?: ReactNode;
   activeChips?: readonly MetaScopeActiveChip[];
   facetDefaults?: ScopeFacetDefaults;
   facetCounts?: Partial<ScopeFacetCounts>;
@@ -91,6 +93,8 @@ export function MetaScopeBar({
   search,
   extras,
   extrasActive = false,
+  phoneToolbar,
+  phoneStripLead,
   activeChips = [],
   facetDefaults,
   facetCounts,
@@ -228,6 +232,7 @@ export function MetaScopeBar({
               )}
             </ScopeDrawer>
           )}
+          {!smUp && phoneToolbar}
         </div>
       )}
 
@@ -267,8 +272,9 @@ export function MetaScopeBar({
         </div>
       )}
 
-      {!smUp && active && (
+      {!smUp && (active || phoneStripLead !== undefined) && (
         <div className="flex flex-wrap items-center gap-1 sm:hidden">
+          {phoneStripLead}
           {strip.map((chip) => (
             <FilterChip
               key={chip.key}
@@ -290,15 +296,17 @@ export function MetaScopeBar({
               onRemove={() => chip.onRemove()}
             />
           ))}
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            className="text-muted-foreground"
-            onClick={clearScope}
-          >
-            {m.cards_clear_all_filters()}
-          </Button>
+          {active && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              className="text-muted-foreground"
+              onClick={clearScope}
+            >
+              {m.cards_clear_all_filters()}
+            </Button>
+          )}
         </div>
       )}
     </div>

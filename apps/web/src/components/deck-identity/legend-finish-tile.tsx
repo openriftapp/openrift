@@ -34,7 +34,7 @@ export function LegendFinishTile({
       size="sm"
       className={cn("h-full gap-0 py-0", rankBandRingClass(rankBandTone(rank, true)))}
     >
-      <RankBand layout="inline" rank={rank} text={rankText} label={rankLabel} />
+      <RankBand layout="band" rank={rank} text={rankText} label={rankLabel} />
       <div className="flex items-stretch gap-3 p-3">
         {imageId === null ? null : (
           <ImgWithFallback

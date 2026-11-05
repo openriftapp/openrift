@@ -16,6 +16,7 @@ const captured = vi.hoisted(() => ({
   signedIn: false,
   costs: undefined as Map<string, MetaDeckCost> | undefined,
   hydrated: true,
+  smUp: true,
   query: {} as Record<string, unknown>,
 }));
 
@@ -92,6 +93,7 @@ vi.mock("@/features/meta/hooks/use-meta-eras", () => ({
   useMetaEras: () => [{ id: "vendetta", label: "Vendetta", from: "2026-08-01", to: null }],
 }));
 vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => captured.hydrated }));
+vi.mock("@/hooks/use-sm-up", () => ({ useSmUp: () => captured.smUp }));
 vi.mock("@/features/meta/hooks/use-meta-deck-costs", () => ({
   useMetaDeckCosts: () => captured.costs,
 }));
@@ -107,7 +109,24 @@ vi.mock("@/components/layout/page-top-bar", () => ({
   PageTopBarTitle: ({ children }: { children?: React.ReactNode }) => <h1>{children}</h1>,
 }));
 
-vi.mock("@/features/meta/components/meta-scope-bar", () => ({ MetaScopeBar: () => null }));
+vi.mock("@/features/meta/components/meta-scope-bar", () => ({
+  MetaScopeBar: ({
+    phoneToolbar,
+    phoneStripLead,
+  }: {
+    phoneToolbar?: React.ReactNode;
+    phoneStripLead?: React.ReactNode;
+  }) => (
+    <>
+      <div role="group" aria-label="Phone toolbar">
+        {phoneToolbar}
+      </div>
+      <div role="group" aria-label="Phone chips">
+        {phoneStripLead}
+      </div>
+    </>
+  ),
+}));
 vi.mock("@/features/decks/components/deck-tile", () => ({ FannedPreview: () => null }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
@@ -168,10 +187,11 @@ describe("MetaDeckBrowserPage", () => {
     captured.signedIn = false;
     captured.costs = undefined;
     captured.hydrated = true;
+    captured.smUp = true;
     useDisplayStore.setState({ metaDeckView: "list" });
   });
 
-  const seen = (text: string) => screen.queryAllByText(text).length > 0;
+  const seen = (text: string | RegExp) => screen.queryAllByText(text).length > 0;
 
   const lastSearch = () =>
     navigate.mock.calls.at(-1)?.[0].search as (
@@ -184,14 +204,14 @@ describe("MetaDeckBrowserPage", () => {
     expect(screen.getByRole("heading", { name: "Archived decks" })).toBeInTheDocument();
     expect(seen(META_DECKS_DESCRIPTION)).toBe(true);
     expect(seen("Nova")).toBe(false);
-    expect(screen.queryByRole("button", { name: "Every list" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Best list per legend" })).not.toBeInTheDocument();
   });
 
   it("renders the page the API served, as rows", () => {
     render(<MetaDeckBrowserPage />);
     expect(seen("Nova")).toBe(true);
     expect(seen("Ekko")).toBe(true);
-    expect(seen("2 decks · 1 event")).toBe(true);
+    expect(seen(/ · 1 event$/u)).toBe(true);
     expect(screen.getByRole("button", { name: "List" })).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -251,19 +271,19 @@ describe("MetaDeckBrowserPage", () => {
     expect(screen.queryByRole("navigation", { name: "Deck pages" })).toBeNull();
   });
 
-  it("counts what the filter matched against the whole archive in the top bar", () => {
+  it("counts what the filter matched against the whole archive under the title", () => {
     captured.total = 60;
     captured.archiveTotal = 6266;
     render(<MetaDeckBrowserPage />);
-    expect(seen("60 of 6,266 archived decks")).toBe(true);
+    expect(seen(/^60 of 6,266 archived decks · /u)).toBe(true);
   });
 
-  it("counts the filtered set in the toolbar line, not the page on screen", () => {
+  it("counts the events the filtered decks come from on the same line", () => {
     captured.total = 60;
     captured.eventCount = 7;
     captured.archiveTotal = 6266;
     render(<MetaDeckBrowserPage />);
-    expect(seen("60 decks · 7 events")).toBe(true);
+    expect(seen("60 of 6,266 archived decks · 7 events")).toBe(true);
   });
 
   it("reads as none of the archive when the filter matched no deck", () => {
@@ -272,8 +292,7 @@ describe("MetaDeckBrowserPage", () => {
     captured.eventCount = 0;
     captured.archiveTotal = 6266;
     render(<MetaDeckBrowserPage />);
-    expect(seen("0 of 6,266 archived decks")).toBe(true);
-    expect(seen("0 decks · 0 events")).toBe(true);
+    expect(seen("0 of 6,266 archived decks · 0 events")).toBe(true);
   });
 
   it("counts the decks left on screen once a cost bound narrows the page", () => {
@@ -287,9 +306,9 @@ describe("MetaDeckBrowserPage", () => {
       ["eighth", { owned: 4, needed: 40, value: 120, toComplete: 95 }],
     ]);
     render(<MetaDeckBrowserPage />);
-    expect(screen.getAllByText("1 deck on this page").length).toBe(2);
-    expect(seen("60 of 6,266 archived decks")).toBe(false);
-    expect(seen("60 decks · 7 events")).toBe(false);
+    expect(screen.getAllByText("1 deck on this page").length).toBe(1);
+    expect(seen(/6,266 archived decks/u)).toBe(false);
+    expect(seen(/7 events/u)).toBe(false);
   });
 
   it("counts the page the same way under a value bound alone", () => {
@@ -302,8 +321,8 @@ describe("MetaDeckBrowserPage", () => {
       ["eighth", { owned: undefined, needed: 40, value: 60, toComplete: undefined }],
     ]);
     render(<MetaDeckBrowserPage />);
-    expect(screen.getAllByText("1 deck on this page").length).toBe(2);
-    expect(seen("60 decks · 7 events")).toBe(false);
+    expect(screen.getAllByText("1 deck on this page").length).toBe(1);
+    expect(seen(/7 events/u)).toBe(false);
   });
 
   it("counts none on the page when a cost bound leaves nothing to show", () => {
@@ -317,9 +336,9 @@ describe("MetaDeckBrowserPage", () => {
       ["eighth", { owned: 4, needed: 40, value: 120, toComplete: 95 }],
     ]);
     render(<MetaDeckBrowserPage />);
-    expect(screen.getAllByText("0 decks on this page").length).toBe(2);
+    expect(screen.getAllByText("0 decks on this page").length).toBe(1);
     expect(seen("No decks match these filters.")).toBe(true);
-    expect(seen("60 decks · 7 events")).toBe(false);
+    expect(seen(/7 events/u)).toBe(false);
   });
 
   it("keeps the archive counts when the sideboard toggle is the only priced option on", () => {
@@ -330,8 +349,8 @@ describe("MetaDeckBrowserPage", () => {
     captured.archiveTotal = 6266;
     captured.costs = new Map([["winner", { owned: 40, needed: 40, value: 120, toComplete: 0 }]]);
     render(<MetaDeckBrowserPage />);
-    expect(seen("60 of 6,266 archived decks")).toBe(true);
-    expect(seen("60 decks · 7 events")).toBe(true);
+    expect(seen(/^60 of 6,266 archived decks · /u)).toBe(true);
+    expect(seen("60 of 6,266 archived decks · 7 events")).toBe(true);
   });
 
   it("pages through the archive from the numbered pager", async () => {
@@ -388,7 +407,9 @@ describe("MetaDeckBrowserPage", () => {
 
   it("offers every archived list one click away", async () => {
     render(<MetaDeckBrowserPage />);
-    await userEvent.click(screen.getByRole("button", { name: "Every list" }));
+    const best = screen.getByRole("button", { name: "Best list per legend" });
+    expect(best).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(best);
     expect(lastSearch()({})).toEqual({ all: true });
   });
 
@@ -424,6 +445,21 @@ describe("MetaDeckBrowserPage", () => {
     expect(screen.queryByRole("button", { name: "Sort by value" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "List" }));
     expect(useDisplayStore.getState().metaDeckView).toBe("list");
+  });
+
+  it("hands sort and layout to the filters row on a phone, and the best-list toggle to the chip row", async () => {
+    captured.smUp = false;
+    render(<MetaDeckBrowserPage />);
+    const row = screen.getByRole("group", { name: "Phone toolbar" });
+    expect(row).toContainElement(screen.getByRole("combobox", { name: "Sort" }));
+    expect(row).toContainElement(screen.getByRole("button", { name: "Grid" }));
+    const best = screen.getByRole("button", { name: "Best list per legend" });
+    expect(screen.getByRole("group", { name: "Phone chips" })).toContainElement(best);
+    expect(screen.getAllByRole("combobox", { name: "Sort" })).toHaveLength(1);
+    expect(screen.getByRole("combobox", { name: "Sort" })).toHaveAttribute("data-size", "default");
+    expect(screen.getByRole("group", { name: "Layout" })).toHaveAttribute("data-size", "default");
+    await userEvent.click(best);
+    expect(lastSearch()({})).toEqual({ all: true });
   });
 
   it("counts the reader's own cards on each row once the collection is in", () => {

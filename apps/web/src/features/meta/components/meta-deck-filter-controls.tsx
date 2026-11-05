@@ -1,4 +1,5 @@
 import type { MetaDeckFacetsResponse } from "@openrift/shared/types/api/meta";
+import type { ReactNode } from "react";
 
 import { MultiSelectCombobox } from "@/components/multi-select-combobox";
 import {
@@ -27,10 +28,14 @@ export function MetaDeckFilterControls({
   facets,
   eras,
   cost,
+  phoneToolbar,
+  phoneStripLead,
 }: {
   facets: MetaDeckFacetsResponse;
   eras: readonly MetaEra[];
   cost: MetaDeckCostFilterData;
+  phoneToolbar?: ReactNode;
+  phoneStripLead?: ReactNode;
 }) {
   const filters = useMetaDeckFilters();
 
@@ -49,6 +54,32 @@ export function MetaDeckFilterControls({
     valueMax: filters.valueRange.max,
   });
 
+  const facetChips = (
+    facet: "legends" | "events",
+    selected: readonly string[],
+    onChange: (values: string[]) => void,
+  ) =>
+    selected.map((value) => ({
+      key: `${facet}:${value}`,
+      label: facets[facet].find((entry) => entry.value === value)?.label ?? value,
+      onRemove: () => onChange(selected.filter((entry) => entry !== value)),
+    }));
+  const finishLabel = filters.maxRank === null ? undefined : finishItems[String(filters.maxRank)];
+  const costActive =
+    (cost.withCollection && filters.maxCost !== null) ||
+    filters.valueRange.min !== null ||
+    filters.valueRange.max !== null;
+  const activeChips = [
+    ...facetChips("legends", filters.legends, filters.setLegends),
+    ...facetChips("events", filters.events, filters.setEvents),
+    ...(finishLabel === undefined
+      ? []
+      : [{ key: "finish", label: finishLabel, onRemove: () => filters.setMaxRank(null) }]),
+    ...(costActive
+      ? [{ key: "cost", label: m.meta_cost_trigger(), onRemove: () => filters.clearCostFilters() }]
+      : []),
+  ];
+
   return (
     <MetaScopeBar
       scope={filters.scope}
@@ -58,6 +89,9 @@ export function MetaDeckFilterControls({
       countries={metaEventCountries(facets.countries, filters.scope)}
       facetDefaults={DECK_SCOPE_DEFAULTS}
       extrasActive={extrasActive}
+      activeChips={activeChips}
+      phoneToolbar={phoneToolbar}
+      phoneStripLead={phoneStripLead}
       extras={
         <>
           {(facets.legends.length > 1 || filters.legends.length > 0) && (
