@@ -7,8 +7,6 @@ import { TracingDialect } from "./tracing-dialect.js";
 
 export function createDb(connectionString: string) {
   const innerDialect = new PostgresJSDialect({
-    // postgres.js 3.4.9 can hang queries forever after a connection drops (porsager/postgres#1208).
-    // Runbook and patch: docs/deployment.md "Known issues"; remove once a release ships #1209.
     postgres: postgres(connectionString, {
       // Explicit so a postgres.js default change can't shift pool size silently.
       max: 20,

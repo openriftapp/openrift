@@ -9,8 +9,6 @@ export function createVersionedCache<T>(
   getVersion: () => Promise<string>,
 ): () => Promise<Versioned<T>> {
   let cached: { version: string; value: Promise<T> } | null = null;
-  // A getVersion() that never settles pins this for every later caller, as a hung postgres.js
-  // query did (porsager/postgres#1208). See docs/deployment.md "Known issues".
   let inflightProbe: Promise<string> | null = null;
 
   const probeVersion = async (): Promise<string> => {
