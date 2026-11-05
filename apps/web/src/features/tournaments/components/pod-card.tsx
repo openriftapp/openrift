@@ -14,8 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconChip } from "@/components/ui/icon-chip";
 import { Input } from "@/components/ui/input";
+import { UserAvatar } from "@/components/user-avatar";
 import { formatRank } from "@/features/meta/lib/meta-format";
 import { PlayerChip } from "@/features/tournaments/components/player-chip";
+import { RegionBadge } from "@/features/tournaments/components/region-badge";
 import { isWalkoverPod } from "@/features/tournaments/lib/group-cut-units";
 import { formatScore } from "@/features/tournaments/lib/standings-display";
 import { groupPodMembersByTeam, teamDisplayName } from "@/features/tournaments/lib/team-display";
@@ -96,6 +98,7 @@ export function PodCard({
   canEnter,
   crossGroup = false,
   title,
+  layout = "row",
   renderMemberLeading,
   renderMemberBadge,
   onSubmit,
@@ -116,6 +119,7 @@ export function PodCard({
   /** The paired 3-player groups' shared match. */
   crossGroup?: boolean;
   title?: string;
+  layout?: "row" | "stacked";
   /** Rendered before the player's face; the bracket puts the seed pill here. */
   renderMemberLeading?: (playerId: string) => ReactNode;
   renderMemberBadge?: (playerId: string) => ReactNode;
@@ -132,6 +136,7 @@ export function PodCard({
   const enteredCount = pod.members.filter((member) => member.gamePoints !== null).length;
   const walkover = isWalkoverPod(pod);
   const penaltySummary = pod.penalty ? podPenaltySummary(pod.penalty) : null;
+  const stacked = layout === "stacked";
 
   async function handleSubmit(results: PodResultEntry[]) {
     setSaving(true);
@@ -179,6 +184,121 @@ export function PodCard({
     const name = teamDisplayName(members.map((member) => member.displayName));
     const region = regionByPlayer?.get(lead.playerId);
     const solo = members.length === 1;
+    const scoreEntry =
+      selfEntry && scoringPlayerId === lead.playerId ? (
+        <span className="flex items-center gap-1.5">
+          <Input
+            type="number"
+            min={0}
+            inputMode="numeric"
+            // oxlint-disable-next-line jsx-a11y/no-autofocus -- the input appears from the tapped "Add score" button; focusing it is the point of the tap
+            autoFocus
+            value={scoreDraft}
+            onChange={(event) => setScoreDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                void handleSaveScore();
+              }
+            }}
+            aria-label={m.tournaments_pod_game_points_aria({ name })}
+            className="h-7 w-16 tabular-nums"
+          />
+          <Button
+            size="icon-sm"
+            onClick={() => void handleSaveScore()}
+            disabled={saving || parsePoints(scoreDraft) === null}
+            aria-label={m.tournaments_pod_save_score_aria({ name })}
+          >
+            <CheckIcon />
+          </Button>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            onClick={() => setScoringPlayerId(null)}
+            disabled={saving}
+            aria-label={m.tournaments_pod_cancel_score_aria()}
+          >
+            <XIcon />
+          </Button>
+        </span>
+      ) : null;
+    const pointsFigure =
+      lead.points === null ? null : (
+        <span
+          className={cn("font-semibold", stacked && "text-muted-foreground")}
+          title={m.tournaments_pod_round_points_title({ points: formatScore(lead.points) })}
+        >
+          +{formatScore(lead.points)}
+        </span>
+      );
+    const scoreAction = selfEntry ? (
+      lead.gamePoints === null ? (
+        <Button variant="secondary" size="xs" onClick={() => startScoring(lead)}>
+          {m.tournaments_pod_add_score()}
+        </Button>
+      ) : (
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={() => startScoring(lead)}
+          aria-label={m.tournaments_pod_edit_score_aria({ name })}
+        >
+          <PencilIcon />
+        </Button>
+      )
+    ) : null;
+
+    if (stacked) {
+      const winner = lead.placement === 1;
+      const notes = renderMemberBadge?.(lead.playerId);
+      return (
+        <li key={lead.teamId ?? lead.playerId} className="flex items-center gap-2">
+          {renderMemberLeading?.(lead.playerId)}
+          <UserAvatar
+            name={name}
+            image={solo ? lead.image : null}
+            gravatarHash={solo ? lead.gravatarHash : null}
+            size="sm"
+            className="shrink-0"
+          />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="flex min-w-0 items-center gap-2">
+              <span
+                data-slot="bracket-seat-name"
+                className={cn("truncate", winner ? "font-semibold" : "font-medium")}
+              >
+                {name}
+              </span>
+              {region ? <RegionBadge region={region} /> : null}
+            </span>
+            {notes ? (
+              <span className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs">
+                {notes}
+              </span>
+            ) : null}
+          </div>
+          {scoreEntry ?? (
+            <span className="flex shrink-0 items-center gap-2 tabular-nums">
+              {pointsFigure}
+              {lead.gamePoints === null ? null : (
+                <Badge
+                  variant={winner ? "subtle" : "neutral"}
+                  className={cn(
+                    "font-heading size-8 rounded-md text-sm tabular-nums",
+                    winner && "bg-primary/25 ring-primary/60 font-bold ring-1 ring-inset",
+                  )}
+                  title={m.tournaments_pod_game_points_title({ points: lead.gamePoints })}
+                >
+                  {lead.gamePoints}
+                </Badge>
+              )}
+              {scoreAction}
+            </span>
+          )}
+        </li>
+      );
+    }
+
     return (
       <li key={lead.teamId ?? lead.playerId} className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
@@ -205,70 +325,12 @@ export function PodCard({
             {renderMemberBadge?.(lead.playerId)}
           </PlayerChip>
         </div>
-        {selfEntry && scoringPlayerId === lead.playerId ? (
-          <span className="flex items-center gap-1.5">
-            <Input
-              type="number"
-              min={0}
-              inputMode="numeric"
-              // oxlint-disable-next-line jsx-a11y/no-autofocus -- the input appears from the tapped "Add score" button; focusing it is the point of the tap
-              autoFocus
-              value={scoreDraft}
-              onChange={(event) => setScoreDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  void handleSaveScore();
-                }
-              }}
-              aria-label={m.tournaments_pod_game_points_aria({ name })}
-              className="h-7 w-16 tabular-nums"
-            />
-            <Button
-              size="icon-sm"
-              onClick={() => void handleSaveScore()}
-              disabled={saving || parsePoints(scoreDraft) === null}
-              aria-label={m.tournaments_pod_save_score_aria({ name })}
-            >
-              <CheckIcon />
-            </Button>
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              onClick={() => setScoringPlayerId(null)}
-              disabled={saving}
-              aria-label={m.tournaments_pod_cancel_score_aria()}
-            >
-              <XIcon />
-            </Button>
-          </span>
-        ) : (
+        {scoreEntry ?? (
           // shrink-0: without it a long name squeezes this cluster
           // until the numbers wrap mid-figure.
           <span className="flex shrink-0 items-center gap-2 tabular-nums">
-            {lead.points !== null && (
-              <span
-                className="font-semibold"
-                title={m.tournaments_pod_round_points_title({ points: formatScore(lead.points) })}
-              >
-                +{formatScore(lead.points)}
-              </span>
-            )}
-            {selfEntry ? (
-              lead.gamePoints === null ? (
-                <Button variant="secondary" size="xs" onClick={() => startScoring(lead)}>
-                  {m.tournaments_pod_add_score()}
-                </Button>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => startScoring(lead)}
-                  aria-label={m.tournaments_pod_edit_score_aria({ name })}
-                >
-                  <PencilIcon />
-                </Button>
-              )
-            ) : null}
+            {pointsFigure}
+            {scoreAction}
           </span>
         )}
       </li>

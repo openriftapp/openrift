@@ -6,16 +6,23 @@ import type {
   PodScoringScheme,
 } from "@openrift/shared/types/api/pod-tournament";
 import type { TournamentMatchFormat } from "@openrift/shared/types/api/tournament";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { BracketMatch } from "@/features/tournaments/lib/cut-bracket-display";
-import { buildBracketColumns, isHigherSeed } from "@/features/tournaments/lib/cut-bracket-display";
+import {
+  buildBracketColumns,
+  defaultBracketRound,
+  isHigherSeed,
+} from "@/features/tournaments/lib/cut-bracket-display";
 import { cutMatchShortLabel } from "@/features/tournaments/lib/group-cut-display";
 import { groupLabelByPlayer } from "@/features/tournaments/lib/group-cut-units";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { legendsByPlayer } from "@/features/tournaments/lib/player-run";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 import { PodCard } from "./pod-card";
@@ -37,6 +44,7 @@ export function CutBracketView({
   canEnterResult,
   onSubmitResult,
   onSubmitPlayerResult,
+  completed = false,
 }: {
   rounds: PodRoundResponse[];
   cutSize: CutSize;
@@ -48,8 +56,11 @@ export function CutBracketView({
   canEnterResult: (round: PodRoundResponse, pod: PodResponse) => boolean;
   onSubmitResult: (podId: string, results: PodResultEntry[]) => Promise<void>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<void>;
+  completed?: boolean;
 }) {
   const columns = buildBracketColumns(rounds, cutSize);
+  const [pickedRound, setPickedRound] = useState<number | null>(null);
+  const selectedRound = pickedRound ?? defaultBracketRound(columns, rounds, completed);
   const seedByPlayer = new Map(
     groupStage.ranking.flatMap((row) => (row.seed === null ? [] : [[row.playerId, row.seed]])),
   );
@@ -58,13 +69,45 @@ export function CutBracketView({
   const roundByNumber = new Map(rounds.map((round) => [round.roundNumber, round]));
 
   return (
-    <div className="overflow-x-auto">
-      <div className="flex min-w-max items-start gap-4">
+    <div data-slot="cut-bracket-list" className="flex flex-col gap-3 lg:overflow-x-auto">
+      {columns.length > 1 ? (
+        <ToggleGroup
+          variant="outline"
+          size="sm"
+          aria-label={m.tournaments_cut_round_picker_aria()}
+          className="flex-wrap lg:hidden"
+          value={selectedRound === undefined ? [] : [String(selectedRound)]}
+          onValueChange={(next) => {
+            const value = next[0];
+            if (value !== undefined) {
+              setPickedRound(Number(value));
+            }
+          }}
+        >
+          {columns.map((column) => (
+            <ToggleGroupItem
+              key={column.roundNumber}
+              value={String(column.roundNumber)}
+              className="data-pressed:border-primary data-pressed:bg-primary data-pressed:text-primary-foreground data-pressed:hover:bg-primary/80 rounded-full"
+            >
+              {column.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      ) : null}
+      <div className="flex flex-col gap-4 lg:min-w-max lg:flex-row lg:items-start">
         {columns.map((column) => {
           const round = roundByNumber.get(column.roundNumber);
           return (
-            <div key={column.roundNumber} className="flex w-72 shrink-0 flex-col gap-3">
-              <SectionHeading as="h3" size="sm">
+            <div
+              key={column.roundNumber}
+              data-slot="cut-bracket-round"
+              className={cn(
+                "flex-col gap-3 lg:flex lg:w-72 lg:shrink-0",
+                column.roundNumber === selectedRound ? "flex" : "hidden",
+              )}
+            >
+              <SectionHeading as="h3" size="sm" className="hidden lg:block">
                 {column.label}
               </SectionHeading>
               {column.matches.map((match) => {
@@ -95,6 +138,7 @@ export function CutBracketView({
                     warningsExpanded={false}
                     nameById={new Map()}
                     canEnter={canEnterResult(round, pod)}
+                    layout="stacked"
                     title={m.tournaments_cut_match_table_label({
                       match: cutMatchShortLabel(cutSize, column.roundNumber, match.podNumber),
                       number: match.podNumber,
@@ -106,7 +150,10 @@ export function CutBracketView({
                       <MemberNotes
                         groupLabel={groupByPlayer.get(playerId)}
                         legend={legendByPlayer.get(playerId)}
-                        chooser={isHigherSeed(pod, playerId, seedByPlayer)}
+                        chooser={
+                          pod.resultStatus !== "reported" &&
+                          isHigherSeed(pod, playerId, seedByPlayer)
+                        }
                       />
                     )}
                     onSubmit={onSubmitResult}

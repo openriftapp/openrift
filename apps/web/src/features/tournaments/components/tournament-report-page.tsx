@@ -7,6 +7,7 @@ import {
   useSubmitTournamentReportResult,
 } from "@/features/tournaments/hooks/use-tournament-run";
 import { cutRounds } from "@/features/tournaments/lib/cut-bracket-display";
+import { reportAcceptsResults, reportCanEdit } from "@/features/tournaments/lib/tournament-display";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { m } from "@/paraglide/messages.js";
 
@@ -23,8 +24,9 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
     ? new Map(data.standings.map((row) => [row.playerId, row.region]))
     : undefined;
   const swiss = data.pairingStyle === "swiss";
-  const hasOpenRound = data.rounds.some((round) => round.status === "reporting");
+  const showEntryHint = reportAcceptsResults(data);
   const canSubmit = data.canSubmit;
+  const canEdit = reportCanEdit(data);
   const groupStage = data.groupStage;
 
   async function submit(podId: string, results: { playerId: string; gamePoints: number }[]) {
@@ -49,7 +51,7 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
     const bracketRounds = cutRounds(data.rounds);
     return (
       <div className="flex flex-col gap-6">
-        {canSubmit ? (
+        {showEntryHint ? (
           <p className="text-muted-foreground text-sm">{m.tournaments_report_enter_games_won()}</p>
         ) : null}
         {bracketRounds.length > 0 && !canSubmit ? (
@@ -67,9 +69,10 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
             matchFormat={data.matchFormat}
             winPoints={data.winPoints}
             drawPoints={data.drawPoints}
-            canEnterResult={(round) => canSubmit && round.status === "reporting"}
+            completed={data.status === "completed"}
+            canEnterResult={(round) => canEdit && round.status === "reporting"}
             onSubmitResult={submit}
-            onSubmitPlayerResult={canSubmit ? submitPlayer : undefined}
+            onSubmitPlayerResult={canEdit ? submitPlayer : undefined}
           />
         ) : null}
         <GroupStageSections
@@ -79,11 +82,11 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
           matchFormat={data.matchFormat}
           winPoints={data.winPoints}
           drawPoints={data.drawPoints}
-          canEnterResult={canSubmit}
+          canEnterResult={canEdit}
           onSubmitResult={submit}
-          onSubmitPlayerResult={canSubmit ? submitPlayer : undefined}
+          onSubmitPlayerResult={canEdit ? submitPlayer : undefined}
           onStartUnit={
-            canSubmit && data.groupsSelfPaced
+            canEdit && data.groupsSelfPaced
               ? (unit) =>
                   void runReportedMutation(() =>
                     startGroupRound.mutateAsync({ groupId: unit.groups[0]?.id ?? "" }),
@@ -98,7 +101,7 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
 
   return (
     <div className="flex flex-col gap-4">
-      {hasOpenRound && canSubmit ? (
+      {showEntryHint ? (
         <p className="text-muted-foreground text-sm">
           {data.playMode === "2v2"
             ? m.tournaments_report_enter_team_games_won()
@@ -117,9 +120,9 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
         drawPoints={data.drawPoints}
         regionByPlayer={regionByPlayer}
         showPenalty={false}
-        canEnterResult={(round) => canSubmit && round.status === "reporting"}
+        canEnterResult={(round) => canEdit && round.status === "reporting"}
         onSubmitResult={submit}
-        onSubmitPlayerResult={canSubmit ? submitPlayer : undefined}
+        onSubmitPlayerResult={canEdit ? submitPlayer : undefined}
         emptyMessage={m.tournaments_report_no_rounds()}
       />
     </div>

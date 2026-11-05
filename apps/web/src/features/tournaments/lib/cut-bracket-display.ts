@@ -73,3 +73,20 @@ export function isHigherSeed(
   const own = seedByPlayer.get(playerId);
   return own !== undefined && seeds.length > 0 && own === Math.min(...seeds);
 }
+
+export function defaultBracketRound(
+  columns: readonly BracketColumn[],
+  rounds: readonly PodRoundResponse[],
+  completed: boolean,
+): number | undefined {
+  const first = columns[0]?.roundNumber;
+  if (completed) {
+    return first;
+  }
+  const byRoundNumber = new Map(rounds.map((round) => [round.roundNumber, round]));
+  const drawn = columns.filter((column) => byRoundNumber.has(column.roundNumber));
+  const open = drawn.findLast(
+    (column) => byRoundNumber.get(column.roundNumber)?.status === "reporting",
+  );
+  return open?.roundNumber ?? drawn.at(-1)?.roundNumber ?? first;
+}

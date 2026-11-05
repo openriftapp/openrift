@@ -90,6 +90,7 @@
 
 - feat(Meta): **Compact archived decks toolbar** — on phones, filters, sort and layout share one row with the active filters below it, so the first decks show sooner.
 - feat(App): **Quieter rank chips** — standings, finish lists and brackets mark the top three with tinted chips and keep the crown on 1st, and event standings on phones now line up with the rest of the page.
+- fix(Tournaments): **Readable top-cut bracket on phones** — the report page lists one round at a time with full player names and scores, and a completed event no longer asks for games won or offers result edits.
 
 ## 2026-11-04
 

@@ -8936,6 +8936,7 @@
   "tournaments_standings_show_latest": "顯示最新名次",
   "tournaments_cut_top_heading": "前 {size} 強",
   "tournaments_cut_chooses_starter": "選擇先手",
+  "tournaments_cut_round_picker_aria": "淘汰賽輪次",
   "tournaments_cut_walkover_win": "勝",
   "tournaments_group_col_gw": "GW%",
   "tournaments_group_col_mw": "MW%",

@@ -25,6 +25,8 @@ import {
   parseScheduleInput,
   partitionTournaments,
   primaryViewerRole,
+  reportAcceptsResults,
+  reportCanEdit,
   tournamentContextLabel,
 } from "./tournament-display";
 
@@ -492,5 +494,41 @@ describe("rounds choice", () => {
       const { pairingStyle, matchFormat, format } = pairingFromRoundsChoice(item.value);
       expect(roundsChoiceFor(pairingStyle, matchFormat, format)).toBe(item.value);
     }
+  });
+});
+
+describe("reportCanEdit", () => {
+  it("allows edits only on a running event with a submit link", () => {
+    expect(reportCanEdit({ canSubmit: true, status: "running" })).toBe(true);
+    expect(reportCanEdit({ canSubmit: true, status: "completed" })).toBe(false);
+    expect(reportCanEdit({ canSubmit: false, status: "running" })).toBe(false);
+  });
+});
+
+describe("reportAcceptsResults", () => {
+  const open = [{ status: "finalized" }, { status: "reporting" }];
+
+  it("is true for a running event with an open round", () => {
+    expect(reportAcceptsResults({ canSubmit: true, status: "running", rounds: open })).toBe(true);
+  });
+
+  it("is false once the event is completed, even with a round left open", () => {
+    expect(reportAcceptsResults({ canSubmit: true, status: "completed", rounds: open })).toBe(
+      false,
+    );
+  });
+
+  it("is false between rounds", () => {
+    expect(
+      reportAcceptsResults({
+        canSubmit: true,
+        status: "running",
+        rounds: [{ status: "finalized" }],
+      }),
+    ).toBe(false);
+  });
+
+  it("is false for a view-only link", () => {
+    expect(reportAcceptsResults({ canSubmit: false, status: "running", rounds: open })).toBe(false);
   });
 });

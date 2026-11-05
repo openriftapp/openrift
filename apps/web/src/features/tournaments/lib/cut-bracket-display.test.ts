@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildBracketColumns,
   cutRounds,
+  defaultBracketRound,
   groupStageRounds,
   isHigherSeed,
 } from "./cut-bracket-display";
@@ -93,5 +94,31 @@ describe("isHigherSeed", () => {
   it("is false for an unseeded player", () => {
     expect(isHigherSeed(pod, "Jinx", new Map([["Ashe", 4]]))).toBe(false);
     expect(isHigherSeed(pod, "Jinx", new Map())).toBe(false);
+  });
+});
+
+describe("defaultBracketRound", () => {
+  const finalized = (roundNumber: number) => ({
+    ...makeRound(roundNumber, [1]),
+    status: "finalized" as const,
+  });
+
+  it("picks the first round of a completed event", () => {
+    const rounds = [finalized(4), finalized(5), finalized(6)];
+    expect(defaultBracketRound(buildBracketColumns(rounds, 8), rounds, true)).toBe(4);
+  });
+
+  it("picks the round that takes results", () => {
+    const rounds = [finalized(4), makeRound(5, [1, 2])];
+    expect(defaultBracketRound(buildBracketColumns(rounds, 8), rounds, false)).toBe(5);
+  });
+
+  it("falls back to the latest drawn round when none is open", () => {
+    const rounds = [finalized(4), finalized(5)];
+    expect(defaultBracketRound(buildBracketColumns(rounds, 8), rounds, false)).toBe(5);
+  });
+
+  it("falls back to the first round before the cut is drawn", () => {
+    expect(defaultBracketRound(buildBracketColumns([], 8), [], false)).toBe(4);
   });
 });

@@ -9143,6 +9143,7 @@
   "tournaments_standings_show_latest": "Show latest standings",
   "tournaments_cut_top_heading": "Top {size}",
   "tournaments_cut_chooses_starter": "chooses starter",
+  "tournaments_cut_round_picker_aria": "Bracket round",
   "tournaments_cut_walkover_win": "W",
   "tournaments_group_col_gw": "GW%",
   "tournaments_group_col_mw": "MW%",

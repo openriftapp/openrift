@@ -335,3 +335,15 @@ export function primaryViewerRole(
   }
   return null;
 }
+
+export function reportCanEdit(report: { canSubmit: boolean; status: string }): boolean {
+  return report.canSubmit && report.status === "running";
+}
+
+export function reportAcceptsResults(report: {
+  canSubmit: boolean;
+  status: string;
+  rounds: readonly { status: string }[];
+}): boolean {
+  return reportCanEdit(report) && report.rounds.some((round) => round.status === "reporting");
+}

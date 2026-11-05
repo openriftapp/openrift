@@ -8937,6 +8937,7 @@
   "tournaments_standings_show_latest": "Aktuelle Tabelle anzeigen",
   "tournaments_cut_top_heading": "Top {size}",
   "tournaments_cut_chooses_starter": "bestimmt den Startspieler",
+  "tournaments_cut_round_picker_aria": "Runde im Bracket",
   "tournaments_cut_walkover_win": "S",
   "tournaments_group_col_gw": "GW%",
   "tournaments_group_col_mw": "MW%",

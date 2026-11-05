@@ -8936,6 +8936,7 @@
   "tournaments_standings_show_latest": "최신 순위 보기",
   "tournaments_cut_top_heading": "상위 {size}",
   "tournaments_cut_chooses_starter": "선공 선택",
+  "tournaments_cut_round_picker_aria": "브래킷 라운드",
   "tournaments_cut_walkover_win": "승",
   "tournaments_group_col_gw": "게임 승률",
   "tournaments_group_col_mw": "경기 승률",
