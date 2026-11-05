@@ -1850,6 +1850,7 @@
   "collections_stats_expensive_title": "Teuerste Drucke",
   "collections_stats_completion_overall": "Gesamt",
   "collections_stats_completion_no_data": "Keine Daten",
+  "collections_stats_completion_all_zero": "In dieser Ansicht ist noch nichts gesammelt",
   "collections_stats_completion_supplemental": "Ergänzend",
   "collections_stats_completion_browse_missing": "{count} fehlende ansehen",
   "collections_stats_value_range_label": "Zeitraum",

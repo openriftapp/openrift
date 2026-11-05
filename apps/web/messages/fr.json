@@ -1850,6 +1850,7 @@
   "collections_stats_expensive_title": "Impressions les plus chères",
   "collections_stats_completion_overall": "Global",
   "collections_stats_completion_no_data": "Aucune donnée",
+  "collections_stats_completion_all_zero": "Rien de collecté dans cette vue pour l'instant",
   "collections_stats_completion_supplemental": "Supplémentaire",
   "collections_stats_completion_browse_missing": "Voir les {count} manquantes",
   "collections_stats_value_range_label": "Période",

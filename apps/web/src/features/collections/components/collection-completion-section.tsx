@@ -18,6 +18,7 @@ import {
   computeCompletion,
   filterByScope,
 } from "@/features/collections/hooks/use-collection-stats";
+import { omitZeroCompletion } from "@/features/collections/lib/completion-visibility";
 import type { CompletionCountMode, CompletionGroupBy } from "@/features/collections/lib/stat-types";
 import { buildMissingSearch } from "@/features/collections/lib/stats-missing-search";
 import { useDomainColors } from "@/hooks/use-domain-colors";
@@ -34,22 +35,24 @@ function CompletionTotalRow({ entries }: { entries: CompletionEntry[] }) {
   const percent = totalAll > 0 ? (totalOwned / totalAll) * 100 : 0;
 
   return (
-    <div className="mb-4 flex items-center gap-3 py-1.5">
-      <span className="flex w-36 shrink-0 items-center text-sm font-semibold sm:w-48">
-        {m.collections_stats_completion_overall()}
-      </span>
-      <ProgressPrimitive.Root value={Math.min(percent, 100)} className="flex-1">
+    <div className="mb-4 py-1.5">
+      <div className="flex items-center gap-2 text-sm">
+        <span className="min-w-0 flex-1 truncate font-semibold">
+          {m.collections_stats_completion_overall()}
+        </span>
+        <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+          {formatCount(totalOwned)} / {formatCount(totalAll)}
+        </span>
+        <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums">
+          {percent.toFixed(1)}%
+        </span>
+        <span className="w-3.5 shrink-0" />
+      </div>
+      <ProgressPrimitive.Root value={Math.min(percent, 100)} className="mt-1.5 w-full">
         <ProgressTrack className="h-1.5">
           <ProgressIndicator className="rounded-full" />
         </ProgressTrack>
       </ProgressPrimitive.Root>
-      <span className="text-muted-foreground w-20 shrink-0 text-right text-xs tabular-nums">
-        {formatCount(totalOwned)} / {formatCount(totalAll)}
-      </span>
-      <span className="w-12 shrink-0 text-right text-xs font-semibold tabular-nums">
-        {percent.toFixed(1)}%
-      </span>
-      <span className="w-3.5 shrink-0" />
     </div>
   );
 }
@@ -68,14 +71,40 @@ function CompletionRow({
   const missing = entry.total - entry.owned;
 
   return (
-    <div className="flex items-center gap-3 py-1.5">
-      <span className="flex w-36 shrink-0 items-center gap-1.5 truncate text-sm font-medium sm:w-48">
-        {iconCategory && (
-          <FilterIcon category={iconCategory} value={entry.key} className="size-4 shrink-0" />
+    <div className="py-1.5">
+      <div className="flex items-center gap-2 text-sm">
+        <span className="flex min-w-0 flex-1 items-center gap-1.5 font-medium">
+          {iconCategory && (
+            <FilterIcon category={iconCategory} value={entry.key} className="size-4 shrink-0" />
+          )}
+          <span className="truncate">{entry.label}</span>
+        </span>
+        <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+          {entry.owned} / {entry.total}
+        </span>
+        <span className="w-10 shrink-0 text-right text-xs font-medium tabular-nums">
+          {entry.percent.toFixed(0)}%
+        </span>
+        {missingSearch ? (
+          <Link
+            to="/cards"
+            search={missingSearch}
+            title={m.collections_stats_completion_browse_missing({ count: missing })}
+            className={cn(
+              "shrink-0",
+              missing > 0
+                ? "text-muted-foreground hover:text-foreground"
+                : "pointer-events-none invisible",
+            )}
+            tabIndex={missing > 0 ? undefined : -1}
+          >
+            <ExternalLinkIcon className="size-3.5" />
+          </Link>
+        ) : (
+          <span className="w-3.5 shrink-0" />
         )}
-        {entry.label}
-      </span>
-      <div className="bg-muted h-1.5 flex-1 overflow-hidden rounded-full">
+      </div>
+      <div className="bg-muted mt-1.5 h-1.5 w-full overflow-hidden rounded-full">
         <div
           className={cn("h-full rounded-full transition-all", !barColor && "bg-primary")}
           style={{
@@ -84,30 +113,6 @@ function CompletionRow({
           }}
         />
       </div>
-      <span className="text-muted-foreground w-20 shrink-0 text-right text-xs tabular-nums">
-        {entry.owned} / {entry.total}
-      </span>
-      <span className="w-12 shrink-0 text-right text-xs font-medium tabular-nums">
-        {entry.percent.toFixed(0)}%
-      </span>
-      {missingSearch ? (
-        <Link
-          to="/cards"
-          search={missingSearch}
-          title={m.collections_stats_completion_browse_missing({ count: missing })}
-          className={cn(
-            "shrink-0",
-            missing > 0
-              ? "text-muted-foreground hover:text-foreground"
-              : "pointer-events-none invisible",
-          )}
-          tabIndex={missing > 0 ? undefined : -1}
-        >
-          <ExternalLinkIcon className="size-3.5" />
-        </Link>
-      ) : (
-        <span className="w-3.5 shrink-0" />
-      )}
     </div>
   );
 }
@@ -150,13 +155,14 @@ export function CompletionSection({
     },
   });
 
+  const visibleEntries = omitZeroCompletion(entries);
   const mainEntries =
     groupBy === "set"
-      ? entries.filter((entry) => entry.setType === WellKnown.setType.MAIN)
-      : entries;
+      ? visibleEntries.filter((entry) => entry.setType === WellKnown.setType.MAIN)
+      : visibleEntries;
   const supplementalEntries =
     groupBy === "set"
-      ? entries.filter((entry) => entry.setType === WellKnown.setType.SUPPLEMENTAL)
+      ? visibleEntries.filter((entry) => entry.setType === WellKnown.setType.SUPPLEMENTAL)
       : [];
 
   function rowBarColor(key: string): string | undefined {
@@ -179,7 +185,11 @@ export function CompletionSection({
 
       {mainEntries.length === 0 && supplementalEntries.length === 0 ? (
         <Empty>
-          <EmptyDescription>{m.collections_stats_completion_no_data()}</EmptyDescription>
+          <EmptyDescription>
+            {entries.length === 0
+              ? m.collections_stats_completion_no_data()
+              : m.collections_stats_completion_all_zero()}
+          </EmptyDescription>
         </Empty>
       ) : (
         <>

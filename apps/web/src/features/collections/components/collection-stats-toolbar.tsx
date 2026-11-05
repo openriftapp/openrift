@@ -1,3 +1,8 @@
+import { FilterIcon } from "lucide-react";
+import type { ReactNode } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -80,6 +85,8 @@ export function CollectionStatsToolbar({
   onGroupByChange,
   countMode,
   onCountModeChange,
+  activeCount,
+  filters,
 }: {
   collectionScope: string;
   onCollectionScopeChange: (value: string) => void;
@@ -87,56 +94,76 @@ export function CollectionStatsToolbar({
   onGroupByChange: (value: CompletionGroupBy) => void;
   countMode: CompletionCountMode;
   onCountModeChange: (value: CompletionCountMode) => void;
+  activeCount: number;
+  filters: ReactNode;
 }) {
   const groupByChoices = groupByOptions();
   const countModeChoices = countModeOptions();
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-2">
-      <CollectionSelector value={collectionScope} onChange={onCollectionScopeChange} />
-      <div className="ml-auto flex flex-wrap items-center gap-2">
-        <ToggleGroup
-          variant="outline"
-          spacing={0}
-          value={[groupBy]}
-          onValueChange={([next]) => {
-            const option = groupByChoices.find((entry) => entry.value === next);
-            if (option) {
-              onGroupByChange(option.value);
-            }
-          }}
-          aria-label={m.collections_stats_group_by_label()}
+    <div className="mb-6 flex flex-wrap items-center gap-2">
+      <Popover>
+        <PopoverTrigger render={<Button variant="outline" />}>
+          <FilterIcon />
+          {m.cards_filters()}
+          {activeCount > 0 && (
+            <span className="bg-primary text-primary-foreground rounded-full px-1.5 text-xs tabular-nums">
+              {activeCount}
+            </span>
+          )}
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          className="max-h-[80vh] w-[min(92vw,44rem)] gap-4 overflow-y-auto"
         >
-          {groupByChoices.map((option) => (
-            <ToggleGroupItem key={option.value} value={option.value}>
-              {option.label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-        <TooltipProvider>
-          <ToggleGroup
-            variant="outline"
-            spacing={0}
-            value={[countMode]}
-            onValueChange={([next]) => {
-              const option = countModeChoices.find((entry) => entry.value === next);
-              if (option) {
-                onCountModeChange(option.value);
-              }
-            }}
-            aria-label={m.collections_stats_count_mode_label()}
-          >
-            {countModeChoices.map((option) => (
-              <Tooltip key={option.value}>
-                <TooltipTrigger render={<ToggleGroupItem value={option.value} />}>
-                  {option.label}
-                </TooltipTrigger>
-                <TooltipContent>{option.tooltip}</TooltipContent>
-              </Tooltip>
-            ))}
-          </ToggleGroup>
-        </TooltipProvider>
-      </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <CollectionSelector value={collectionScope} onChange={onCollectionScopeChange} />
+            <TooltipProvider>
+              <ToggleGroup
+                variant="outline"
+                spacing={0}
+                value={[countMode]}
+                onValueChange={([next]) => {
+                  const option = countModeChoices.find((entry) => entry.value === next);
+                  if (option) {
+                    onCountModeChange(option.value);
+                  }
+                }}
+                aria-label={m.collections_stats_count_mode_label()}
+              >
+                {countModeChoices.map((option) => (
+                  <Tooltip key={option.value}>
+                    <TooltipTrigger render={<ToggleGroupItem value={option.value} />}>
+                      {option.label}
+                    </TooltipTrigger>
+                    <TooltipContent>{option.tooltip}</TooltipContent>
+                  </Tooltip>
+                ))}
+              </ToggleGroup>
+            </TooltipProvider>
+          </div>
+          {filters}
+        </PopoverContent>
+      </Popover>
+      <ToggleGroup
+        variant="outline"
+        spacing={0}
+        value={[groupBy]}
+        onValueChange={([next]) => {
+          const option = groupByChoices.find((entry) => entry.value === next);
+          if (option) {
+            onGroupByChange(option.value);
+          }
+        }}
+        aria-label={m.collections_stats_group_by_label()}
+        className="w-full sm:ml-auto sm:w-auto"
+      >
+        {groupByChoices.map((option) => (
+          <ToggleGroupItem key={option.value} value={option.value} className="flex-1 sm:flex-none">
+            {option.label}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
     </div>
   );
 }

@@ -1850,6 +1850,7 @@
   "collections_stats_expensive_title": "最昂貴的印刷版本",
   "collections_stats_completion_overall": "整體",
   "collections_stats_completion_no_data": "無資料",
+  "collections_stats_completion_all_zero": "此檢視中還沒有收集到任何卡牌",
   "collections_stats_completion_supplemental": "補充套組",
   "collections_stats_completion_browse_missing": "瀏覽缺少的 {count} 張",
   "collections_stats_value_range_label": "時間範圍",

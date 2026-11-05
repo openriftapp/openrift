@@ -1850,6 +1850,7 @@
   "collections_stats_expensive_title": "가장 비싼 인쇄판",
   "collections_stats_completion_overall": "전체",
   "collections_stats_completion_no_data": "데이터 없음",
+  "collections_stats_completion_all_zero": "이 보기에는 아직 모은 카드가 없습니다",
   "collections_stats_completion_supplemental": "보충 세트",
   "collections_stats_completion_browse_missing": "없는 카드 {count}장 둘러보기",
   "collections_stats_value_range_label": "기간",

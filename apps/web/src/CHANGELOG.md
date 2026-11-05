@@ -71,6 +71,7 @@
 ### Other
 
 - feat(Decks): **Clearer deck stats** — the turn-1 and curve-out odds are labelled going first and going second, the Energy, Power and Types charts share one bar color with a count per bar, and touch screens say tap.
+- fix(Collection): **Readable stats page on phones** — the filters fold into one button, completion rows show the name, count and percent above a full-width bar, sets you own nothing of are hidden, and the page no longer scrolls sideways.
 
 ## 2026-11-04
 

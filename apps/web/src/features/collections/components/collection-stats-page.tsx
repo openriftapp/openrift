@@ -79,24 +79,32 @@ export function CollectionStatsPage() {
     <div className={cn(PAGE_WIDTH.capped, "pt-3")}>
       {topBarPortal}
 
-      <CollectionStatsToolbar
-        collectionScope={collectionScope}
-        onCollectionScopeChange={setCollectionScope}
-        groupBy={groupBy}
-        onGroupByChange={setGroupBy}
-        countMode={countMode}
-        onCountModeChange={setCountMode}
-      />
-      {/* `flex` unhides the bar below sm: this page has no mobile filter
-          drawer, so the chips just wrap there. */}
-      <CompactFilterBar
-        className="mb-8 flex"
-        availableFilters={availableFilters}
-        availableLanguages={availableLanguages}
-        setDisplayLabel={setDisplayLabel}
-        hiddenSections={HIDDEN_FILTER_SECTIONS}
-        topLevelUnits={topLevelUnits}
-      />
+      {!(stats.isReady && collectionScope === "all" && stats.totalCopies === 0) && (
+        <CollectionStatsToolbar
+          collectionScope={collectionScope}
+          onCollectionScopeChange={setCollectionScope}
+          groupBy={groupBy}
+          onGroupByChange={setGroupBy}
+          countMode={countMode}
+          onCountModeChange={setCountMode}
+          activeCount={
+            Object.values(liveScope).filter((value) => value !== undefined).length +
+            Number(collectionScope !== "all")
+          }
+          filters={
+            <div className="overflow-hidden">
+              <CompactFilterBar
+                className="mb-0 flex"
+                availableFilters={availableFilters}
+                availableLanguages={availableLanguages}
+                setDisplayLabel={setDisplayLabel}
+                hiddenSections={HIDDEN_FILTER_SECTIONS}
+                topLevelUnits={topLevelUnits}
+              />
+            </div>
+          }
+        />
+      )}
 
       {stats.isReady ? (
         stats.totalCopies === 0 ? (

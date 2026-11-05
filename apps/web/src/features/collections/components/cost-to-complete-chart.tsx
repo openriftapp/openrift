@@ -531,6 +531,8 @@ export function CostToCompleteChart({
             dataKey="cost"
             type="number"
             domain={[0, "dataMax"]}
+            tickCount={3}
+            interval="preserveStartEnd"
             tickFormatter={(value: number) => formatPrice(value)}
             tick={{ fontSize: 11 }}
             axisLine={false}

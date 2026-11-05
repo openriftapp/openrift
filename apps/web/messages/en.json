@@ -1850,6 +1850,7 @@
   "collections_stats_expensive_title": "Most Expensive Printings",
   "collections_stats_completion_overall": "Overall",
   "collections_stats_completion_no_data": "No data",
+  "collections_stats_completion_all_zero": "Nothing collected in this view yet",
   "collections_stats_completion_supplemental": "Supplemental",
   "collections_stats_completion_browse_missing": "Browse {count} missing",
   "collections_stats_value_range_label": "Time range",
