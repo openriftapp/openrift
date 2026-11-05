@@ -3,7 +3,7 @@ import type { Virtualizer } from "@tanstack/react-virtual";
 import { useScrollIndicator } from "@/features/cards/hooks/use-scroll-indicator";
 import type { VRow } from "@/features/cards/lib/card-grid-types";
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
-import { STICKY_SURFACE_POPOVER } from "@/lib/sticky-surface";
+import { STICKY_SURFACE, STICKY_SURFACE_POPOVER } from "@/lib/sticky-surface";
 import { cn } from "@/lib/utils";
 
 interface ScrollIndicatorProps {
@@ -98,10 +98,10 @@ export function ScrollIndicator({
           <div
             ref={badgeRef}
             className={cn(
-              STICKY_SURFACE_POPOVER,
-              "text-popover-foreground inline-flex items-center rounded-md font-mono font-medium whitespace-nowrap shadow-md ring-1 select-none",
-              coarsePointer ? "px-5 py-2 text-base" : "px-5 py-2 text-sm",
-              indicator.dragging ? "ring-primary cursor-grabbing" : "ring-primary/60 cursor-grab",
+              STICKY_SURFACE,
+              "font-heading inline-flex items-center rounded-lg font-semibold tracking-wide whitespace-nowrap shadow-sm ring-1 select-none",
+              coarsePointer ? "px-4 py-1.5 text-sm" : "px-3.5 py-1 text-sm",
+              indicator.dragging ? "ring-primary cursor-grabbing" : "ring-border/70 cursor-grab",
             )}
           >
             <span ref={cardIdRef}>{indicator.cardId || "\u00A0"}</span>
