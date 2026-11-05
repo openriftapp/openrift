@@ -57,7 +57,6 @@ interface DeckHeroProps {
   lead?: React.ReactNode;
   actions?: React.ReactNode;
   footer?: React.ReactNode;
-  stackOnPhone?: boolean;
 }
 
 const CHIP_CLASS =
@@ -170,7 +169,6 @@ export function DeckHero({
   lead,
   actions,
   footer,
-  stackOnPhone,
 }: DeckHeroProps) {
   const domainColors = useDomainColors();
   const signIn = useSignInSearch();
@@ -256,6 +254,7 @@ export function DeckHero({
   );
 
   const backdropThumb = cover?.thumbnail ?? legendThumb;
+  const hasBanner = backdropThumb !== undefined && backdropThumb !== "";
 
   return (
     <Card className="relative gap-0 py-0">
@@ -264,10 +263,22 @@ export function DeckHero({
         position={cover?.position ?? 20}
         domains={legendDomains}
       />
+      {hasBanner && (
+        <div aria-hidden="true" className="absolute inset-x-0 top-0 h-44 sm:hidden">
+          <img
+            src={backdropThumb}
+            alt=""
+            draggable={false}
+            style={{ objectPosition: `50% ${cover?.position ?? 20}%` }}
+            className="h-full w-full object-cover"
+          />
+          <div className="via-card/85 to-card absolute inset-0 bg-linear-to-b from-transparent from-25% via-75%" />
+        </div>
+      )}
       <div
         className={cn(
-          "relative flex items-center gap-4 p-4 sm:gap-6 sm:p-5",
-          stackOnPhone && "flex-col items-stretch sm:flex-row sm:items-center",
+          "relative flex flex-col items-stretch gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5",
+          hasBanner && "max-sm:pt-28",
         )}
       >
         {lead}
@@ -374,7 +385,7 @@ export function DeckHero({
                         className={buttonVariants({
                           variant: "outline",
                           size: "xs",
-                          className: chipButtonClass(stackOnPhone ? "max-sm:hidden" : undefined),
+                          className: chipButtonClass("max-sm:hidden"),
                         })}
                       >
                         <LogInIcon className="size-3" />
@@ -491,13 +502,13 @@ export function DeckHero({
                 <div
                   className={cn(
                     "flex flex-wrap items-center gap-2 pt-1.5",
-                    stackOnPhone && "max-sm:grid max-sm:grid-cols-[1fr_auto]",
+                    "max-sm:grid max-sm:grid-cols-[1fr_auto]",
                   )}
                 >
                   {actions}
                 </div>
               )}
-              {stackOnPhone && showSignIn && totalCards > 0 && (
+              {showSignIn && totalCards > 0 && (
                 <Link
                   rel="nofollow"
                   {...signIn}
@@ -511,15 +522,6 @@ export function DeckHero({
                   {m.decks_overview_hero_sign_in()}
                 </Link>
               )}
-            </div>
-            <div
-              className={cn(
-                "relative shrink-0 sm:hidden",
-                actions ? "h-28 w-34" : "h-24 w-28",
-                stackOnPhone && "hidden",
-              )}
-            >
-              {fanSlots}
             </div>
           </div>
         </div>

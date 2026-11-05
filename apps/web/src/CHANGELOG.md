@@ -7,6 +7,7 @@
 - feat(App): **Phone menu shows every page** — the slide-out menu lists the Play, Organize and Explore pages open in two columns, so nothing hides behind a collapsed heading.
 - feat(Decks): **Decks fit on phones** — shared, meta and your own decks stack their zones on a phone, with stats on their own tab and view settings behind one button.
 - feat(Decks): **Phone deck editor at a glance** — the editor opens as a list on phones with a stats summary on top, and touch screens always show the count buttons.
+- feat(Decks): **Art banner on deck pages** — on phones, your decks and shared decks open with the legend art across the top and the title over it.
 - fix(App): **Header fits on tablets** — the top bar no longer runs off the screen on tablets, and Help and Contribute move into the account menu when space runs short.
 - fix(Decks): **Replace-import shows the new cards** — importing a list over a deck now shows its cards right away instead of an empty deck until you reload.
 
@@ -24,13 +25,14 @@
 - feat(Decks): **Clearer deck import preview** — the preview counts the entries and cards it will import and lists deck value and the cost of missing cards as labelled rows.
 - feat(Decks): **Clearer deck stats** — the turn-1 and curve-out odds are labelled going first and going second, and the charts share one bar color with a count per bar.
 - feat(Decks): **Deck builder intro** — the new-deck intro lists the four steps in a grid and links to the full guide.
-- feat(Decks): **Deck zone list redesign** — rows show a thin domain stripe with the count controls at the end, card types get headings, and every zone ends in one slim add strip.
+- feat(Decks): **Deck zone list redesign** — rows keep their domain tint with the count controls at the end, card types get headings, and every zone ends in one slim add strip.
 - feat(Decks): **Compact deck rows on phones** — each deck on the Decks page is now a short row with a small legend thumbnail, name, counts, format and last update.
 - feat(Meta): **Compact archived decks toolbar** — on phones, filters, sort and layout share one row with the active filters below it, so the first decks show sooner.
 - feat(Meta): **Era filter names the era** — the era filter reads "Era: Origins" or "All eras" on every screen, and on phones "Pick an era" opens the era list directly.
 - feat(Meta): **Empty eras explain themselves** — when the era has no results on file, the archive, events, legends and archived decks pages say so and offer "Show all eras".
 - feat(Packs): **Pack opener options** — Foil shimmer and Auto-reveal are switch rows above the Open button, and the reveal hint says "Tap a card" on touch screens.
 - feat(Trades): **Trade counts as pills** — trade tabs hint that they scroll sideways, and the counts on tabs, buy filters and people filters show as pills.
+- fix(Decks): **Version track on phones** — versions sit closer together, the changes between them show on the line, and the track opens centered on the deck you are viewing.
 - fix(App): **Landing page fits phones** — the feature sections no longer cut off their text, and the scanner preview keeps each card's status and price inside the frame.
 - fix(App): **Page titles no longer cut short** — page titles in the top bar, such as Statistics or Zones, show in full on phones and only shorten when the buttons beside them need the room.
 - fix(App): **Changelog reads better on phones** — each day gets a short heading such as "Nov 4", the tags sit above the entry text, and code snippets no longer split across lines.

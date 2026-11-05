@@ -105,6 +105,14 @@ describe("DeckVariantRail", () => {
     expect(screen.getByText("+0")).toBeInTheDocument();
   });
 
+  it("centres the step diff on the line, clear of the dates under the dots", async () => {
+    renderRail();
+    const chip = await screen.findByText("−0");
+    const chipSlot = chip.closest("button")?.parentElement;
+    const currentDot = screen.getByRole("button", { name: /open deck/u });
+    expect(chipSlot?.style.top).toBe(currentDot.style.top);
+  });
+
   it("follows later edits to the open deck's cards", async () => {
     renderRail();
     await screen.findByText("−0");

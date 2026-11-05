@@ -5,7 +5,7 @@ import type { Card } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
 import { ArrowRightIcon, GitBranchIcon, GitCompareArrowsIcon, PlusIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -19,6 +19,8 @@ import type { DeckDiff, DeckDiffEntry } from "@/features/decks/lib/deck-diff";
 import { deckDiffCardsFrom, diffDecks } from "@/features/decks/lib/deck-diff";
 import type { RailEdge, RailLayout, RailNode } from "@/features/decks/lib/deck-variant-rail";
 import { buildRailLayout } from "@/features/decks/lib/deck-variant-rail";
+import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useScrollEdges } from "@/hooks/use-scroll-edges";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -30,21 +32,26 @@ import { DeckVariantCreateDialog } from "./deck-variant-create-dialog";
 
 const MAX_RAIL_NODES = 6;
 const SLOT_WIDTH = 168;
+const PHONE_SLOT_WIDTH = 132;
 const DOT_SIZE = 8;
 const LABEL_GAP = 8;
 const DATE_GAP = 4;
 const LABEL_LINE_HEIGHT = 16;
-const COUNTS_GAP_Y = LABEL_LINE_HEIGHT / 2 + 5;
 const LABEL_MARGIN_X = 12;
-const LABEL_WIDTH = SLOT_WIDTH - LABEL_MARGIN_X;
-const PAD_X = LABEL_WIDTH / 2;
-const TRAILING_X = LABEL_WIDTH / 2;
 const LANE_TOP_Y = DOT_SIZE / 2 + LABEL_GAP + LABEL_LINE_HEIGHT;
 const LANE_GAP = DOT_SIZE + DATE_GAP + LABEL_LINE_HEIGHT + LABEL_GAP + LABEL_LINE_HEIGHT;
-const LANE_BOTTOM_PAD = Math.max(
-  DOT_SIZE / 2 + DATE_GAP + LABEL_LINE_HEIGHT,
-  COUNTS_GAP_Y + LABEL_LINE_HEIGHT / 2,
-);
+const LANE_BOTTOM_PAD = DOT_SIZE / 2 + DATE_GAP + LABEL_LINE_HEIGHT;
+
+interface RailGeometry {
+  slotWidth: number;
+  labelWidth: number;
+  padX: number;
+}
+
+function railGeometry(slotWidth: number): RailGeometry {
+  const labelWidth = slotWidth - LABEL_MARGIN_X;
+  return { slotWidth, labelWidth, padX: labelWidth / 2 };
+}
 
 const CHIP_BASE = "rounded-md px-1.5 font-mono text-2xs font-bold tabular-nums";
 const ADD_CHIP = "bg-success-soft text-success";
@@ -71,23 +78,27 @@ function chipLabel(entry: DeckDiffEntry): string {
   return `${entry.ours}→${entry.theirs}`;
 }
 
-function nodeX(node: { x: number }): number {
-  return PAD_X + node.x * SLOT_WIDTH;
+function nodeX(node: { x: number }, geometry: RailGeometry): number {
+  return geometry.padX + node.x * geometry.slotWidth;
 }
 
 function laneY(lane: number): number {
   return LANE_TOP_Y + lane * LANE_GAP;
 }
 
-function edgePath(edge: RailEdge, byId: ReadonlyMap<string, RailNode>): string | null {
+function edgePath(
+  edge: RailEdge,
+  byId: ReadonlyMap<string, RailNode>,
+  geometry: RailGeometry,
+): string | null {
   const from = byId.get(edge.fromId);
   const to = byId.get(edge.toId);
   if (!from || !to) {
     return null;
   }
-  const x1 = nodeX(from);
+  const x1 = nodeX(from, geometry);
   const y1 = laneY(from.lane);
-  const x2 = nodeX(to);
+  const x2 = nodeX(to, geometry);
   const y2 = laneY(to.lane);
   if (from.lane === to.lane) {
     return `M ${x1} ${y1} L ${x2} ${y2}`;
@@ -99,13 +110,17 @@ function edgePath(edge: RailEdge, byId: ReadonlyMap<string, RailNode>): string |
 function edgeCountsPosition(
   edge: RailEdge,
   byId: ReadonlyMap<string, RailNode>,
+  geometry: RailGeometry,
 ): { left: number; top: number } | null {
   const from = byId.get(edge.fromId);
   const to = byId.get(edge.toId);
   if (!from || !to) {
     return null;
   }
-  return { left: (nodeX(from) + nodeX(to)) / 2, top: laneY(to.lane) + COUNTS_GAP_Y };
+  return {
+    left: (nodeX(from, geometry) + nodeX(to, geometry)) / 2,
+    top: (laneY(from.lane) + laneY(to.lane)) / 2,
+  };
 }
 
 // Both ends must be loaded before a count means anything; a half-loaded edge draws nothing.
@@ -348,14 +363,14 @@ function RailNodePopover({
   );
 }
 
-function RailNodeLabel({ node }: { node: RailNode }) {
+function RailNodeLabel({ node, width }: { node: RailNode; width: number }) {
   return (
     <span
       className={cn(
         "text-2xs absolute bottom-full left-1/2 mb-2 flex -translate-x-1/2 items-center justify-center gap-1.5",
         node.isCurrent ? "text-foreground font-medium" : "text-muted-foreground",
       )}
-      style={{ width: LABEL_WIDTH }}
+      style={{ width }}
     >
       <span className="truncate">{node.label}</span>
       {node.isDraft && (
@@ -393,6 +408,10 @@ function RailDot({ isCurrent }: { isCurrent: boolean }) {
 function VariantRailBody({ deckId }: { deckId: string }) {
   const { cardsById } = useCards();
   const { data: items } = useDecks();
+  const phone = useIsMobile();
+  const geometry = railGeometry(phone ? PHONE_SLOT_WIDTH : SLOT_WIDTH);
+  const { ref: edgesRef, edges: scrollEdges } = useScrollEdges();
+  const currentX = useRef<number | null>(null);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createTarget, setCreateTarget] = useState<{ id: string; name: string } | null>(null);
@@ -430,14 +449,21 @@ function VariantRailBody({ deckId }: { deckId: string }) {
   const currentNode = layout.nodes.find((node) => node.isCurrent);
   const ghost = currentNode ? { x: currentNode.x + 1, lane: currentNode.lane } : null;
   const maxX = layout.nodes.reduce((widest, node) => Math.max(widest, node.x), ghost?.x ?? 0);
-  const width = PAD_X + maxX * SLOT_WIDTH + TRAILING_X;
+  const width = geometry.padX * 2 + maxX * geometry.slotWidth;
   const compareFrom = defaultCompareFrom(layout, members, deckId);
   const createTargetId = createTarget?.id ?? deckId;
   const createTargetName = createTarget?.name ?? openDeckName;
 
   return (
-    <div className="flex items-start gap-2 px-1">
+    <div className="relative flex items-start gap-2 px-1">
       <nav
+        ref={(element) => {
+          edgesRef(element);
+          if (element && currentNode && currentX.current !== currentNode.x) {
+            currentX.current = currentNode.x;
+            element.scrollLeft = nodeX(currentNode, geometry) - element.clientWidth / 2;
+          }
+        }}
         aria-label={m.decks_dialog_rail_nav_label()}
         // overflow-y must be stated: left at `visible` next to a set `overflow-x`,
         // CSS promotes it to `auto` and a hair of vertical overflow shows a scrollbar.
@@ -453,7 +479,7 @@ function VariantRailBody({ deckId }: { deckId: string }) {
             fill="none"
           >
             {layout.edges.map((edge) => {
-              const path = edgePath(edge, nodesById);
+              const path = edgePath(edge, nodesById, geometry);
               if (!path) {
                 return null;
               }
@@ -469,9 +495,9 @@ function VariantRailBody({ deckId }: { deckId: string }) {
             })}
             {currentNode && ghost && (
               <line
-                x1={nodeX(currentNode)}
+                x1={nodeX(currentNode, geometry)}
                 y1={laneY(currentNode.lane)}
-                x2={nodeX(ghost)}
+                x2={nodeX(ghost, geometry)}
                 y2={laneY(ghost.lane)}
                 className="stroke-border"
                 strokeWidth={2}
@@ -482,7 +508,7 @@ function VariantRailBody({ deckId }: { deckId: string }) {
           </svg>
 
           {layout.edges.map((edge) => {
-            const position = edgeCountsPosition(edge, nodesById);
+            const position = edgeCountsPosition(edge, nodesById, geometry);
             const counts = edgeCounts(cardsByDeck, cardsById, edge);
             if (!position || !counts) {
               return null;
@@ -510,7 +536,7 @@ function VariantRailBody({ deckId }: { deckId: string }) {
           })}
 
           {layout.nodes.map((node) => {
-            const position = { left: nodeX(node), top: laneY(node.lane) };
+            const position = { left: nodeX(node, geometry), top: laneY(node.lane) };
             if (node.isCurrent) {
               return (
                 <Popover key={node.id}>
@@ -519,7 +545,7 @@ function VariantRailBody({ deckId }: { deckId: string }) {
                     className="focus-visible:ring-ring group absolute -translate-x-1/2 -translate-y-1/2 rounded-full focus-visible:ring-2 focus-visible:outline-none"
                     style={position}
                   >
-                    <RailNodeLabel node={node} />
+                    <RailNodeLabel node={node} width={geometry.labelWidth} />
                     <RailDot isCurrent />
                     <RailNodeDate updatedAt={updatedById.get(node.id)} />
                   </PopoverTrigger>
@@ -539,7 +565,7 @@ function VariantRailBody({ deckId }: { deckId: string }) {
                   className="focus-visible:ring-ring group absolute -translate-x-1/2 -translate-y-1/2 rounded-full focus-visible:ring-2 focus-visible:outline-none"
                   style={position}
                 >
-                  <RailNodeLabel node={node} />
+                  <RailNodeLabel node={node} width={geometry.labelWidth} />
                   <RailDot isCurrent={false} />
                   <RailNodeDate updatedAt={updatedById.get(node.id)} />
                 </PopoverTrigger>
@@ -564,7 +590,7 @@ function VariantRailBody({ deckId }: { deckId: string }) {
                     size="icon-sm"
                     aria-label={m.decks_dialog_variant_create_title()}
                     className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed"
-                    style={{ left: nodeX(ghost), top: laneY(ghost.lane) }}
+                    style={{ left: nodeX(ghost, geometry), top: laneY(ghost.lane) }}
                     onClick={() => handleCreate({ id: deckId, name: openDeckName })}
                   />
                 }
@@ -576,6 +602,18 @@ function VariantRailBody({ deckId }: { deckId: string }) {
           )}
         </div>
       </nav>
+      {scrollEdges.start && (
+        <div
+          aria-hidden="true"
+          className="from-card pointer-events-none absolute inset-y-0 left-0 w-8 bg-linear-to-r to-transparent"
+        />
+      )}
+      {scrollEdges.end && (
+        <div
+          aria-hidden="true"
+          className="from-card pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l to-transparent"
+        />
+      )}
 
       <DeckVariantCreateDialog
         deckId={createTargetId}

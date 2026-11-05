@@ -314,6 +314,7 @@ function RulesContent({
           <RulesSearchBar
             placeholder={m.rules_search_placeholder_count({ count: formatCount(rules.length) })}
             trailing={ruleCountLabel}
+            className="max-sm:order-first"
           />
           <div className="hidden md:contents">{renderSettings()}</div>
           <RulesSettingsSheet

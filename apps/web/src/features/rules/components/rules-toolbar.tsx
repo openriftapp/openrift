@@ -245,9 +245,11 @@ export function RulesSettingsSheet({ label, children }: { label: string; childre
 export function RulesSearchBar({
   placeholder,
   trailing,
+  className,
 }: {
   placeholder: string;
   trailing?: string;
+  className?: string;
 }) {
   const urlQuery = useSearch({ strict: false, select: (search) => search.q });
   const urlValue = typeof urlQuery === "string" ? urlQuery : "";
@@ -305,7 +307,7 @@ export function RulesSearchBar({
       placeholder={placeholder}
       aria-label={m.rules_search_placeholder()}
       trailing={trailing}
-      className="min-w-0 flex-1 md:min-w-[200px]"
+      className={cn("min-w-0 flex-1 md:min-w-[200px]", className)}
     />
   );
 }

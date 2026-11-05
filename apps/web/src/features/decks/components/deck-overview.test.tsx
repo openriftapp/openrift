@@ -47,9 +47,7 @@ vi.mock("@/features/cards/components/options-bar", () => ({
   MobileOptionsDrawer: () => null,
 }));
 vi.mock("@/features/decks/components/deck-hero", () => ({
-  DeckHero: ({ stackOnPhone }: { stackOnPhone?: boolean }) => (
-    <div data-testid="deck-hero" data-stack-on-phone={String(Boolean(stackOnPhone))} />
-  ),
+  DeckHero: () => <div data-testid="deck-hero" />,
 }));
 vi.mock("@/features/decks/components/deck-overview-list", () => ({
   DeckOverviewList: () => <div>card list</div>,
@@ -158,16 +156,6 @@ describe("DeckOverview on a phone", () => {
     fireEvent.click(screen.getByRole("button", { name: "energy bar" }));
     expect(useDeckBuilderUiStore.getState().overviewTab).toBe("overview");
     expect(screen.getByRole("button", { name: "Show all cards" })).toBeInTheDocument();
-  });
-
-  it("stacks the hero only for a read-only deck", () => {
-    renderOverview({ phone: true, readOnly: true });
-    expect(screen.getByTestId("deck-hero")).toHaveAttribute("data-stack-on-phone", "true");
-  });
-
-  it("leaves an editable deck's hero unstacked", () => {
-    renderOverview({ phone: true });
-    expect(screen.getByTestId("deck-hero")).toHaveAttribute("data-stack-on-phone", "false");
   });
 });
 

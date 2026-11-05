@@ -136,14 +136,14 @@ describe("CardControls", () => {
       '[data-slot="inline-count-stepper"]',
     );
     expect(stepper?.className).toContain("[&>button]:hidden");
-    expect(stepper?.className).not.toContain("[&>button]:size-9");
+    expect(stepper?.className).not.toContain("[&>button]:size-8");
   });
 
   it("keeps an enlarged stepper visible on touch at any width", () => {
     const stepper = renderControls("quantity", true).querySelector(
       '[data-slot="inline-count-stepper"]',
     );
-    expect(stepper?.className).toContain("[&>button]:size-9");
+    expect(stepper?.className).toContain("[&>button]:size-8");
     expect(stepper?.className).not.toMatch(/(?:^|\s)(?:\w+:)?\[&>button\]:hidden/u);
   });
 
@@ -158,7 +158,7 @@ describe("CardControls", () => {
     renderControls("remove-only", true);
     const remove = screen.getByRole("button", { name: "Remove from deck" });
     expect(remove.parentElement?.className).toBe("contents");
-    expect(remove.className).toContain("size-9");
+    expect(remove.className).toContain("size-8");
   });
 });
 
@@ -181,20 +181,18 @@ describe("DeckCardRow", () => {
     );
   }
 
-  function stripeStyle(container: HTMLElement): string {
-    return (
-      container.querySelector('[data-slot="deck-card-domain-stripe"]')?.getAttribute("style") ?? ""
-    );
+  function rowStyle(container: HTMLElement): string {
+    return container.querySelector(String.raw`.group\/card`)?.getAttribute("style") ?? "";
   }
 
-  it("paints one domain colour down the whole stripe", () => {
-    const style = stripeStyle(renderRow().container);
-    expect(style).toContain("rgb(203, 33, 45) 50%, rgb(203, 33, 45) 50%");
+  it("tints the row in its domain colour", () => {
+    expect(rowStyle(renderRow().container)).toContain("background-color");
   });
 
-  it("splits the stripe between both domains of a two-domain card", () => {
-    const style = stripeStyle(renderRow({ domains: ["fury", "calm"] }).container);
-    expect(style).toContain("rgb(203, 33, 45) 50%, rgb(22, 170, 113) 50%");
+  it("blends both domains across a two-domain card's row", () => {
+    expect(rowStyle(renderRow({ domains: ["fury", "calm"] }).container)).toContain(
+      "linear-gradient(90deg",
+    );
   });
 
   it("orders energy, name, power, shortfall, then the quantity controls", () => {

@@ -506,7 +506,6 @@ export function DeckOverview({
         heading={heroHeading}
         lead={heroLead}
         actions={heroActions}
-        stackOnPhone={readOnly}
         footer={variantRailSlot}
       />
       {notice}
