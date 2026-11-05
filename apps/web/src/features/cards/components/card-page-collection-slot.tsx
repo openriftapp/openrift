@@ -1,5 +1,6 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
+import { BookmarkPlusIcon } from "lucide-react";
 import { lazy, Suspense } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -50,17 +51,31 @@ export function SignupNudgeSlot() {
 function TrackCollectionNudge() {
   const { search } = useSignInSearch();
   return (
-    <div className="bg-card flex flex-col items-start gap-2 rounded-lg border px-3 py-2.5">
-      <p className="text-muted-foreground text-sm">{m.card_detail_nudge_text()}</p>
+    <div className="bg-primary/10 border-primary/30 flex flex-col gap-3 rounded-lg border p-4">
+      <div className="flex items-start gap-3">
+        <BookmarkPlusIcon className="text-primary mt-0.5 size-5 shrink-0" aria-hidden />
+        <p className="text-sm">{m.card_detail_nudge_text()}</p>
+      </div>
       <Link
         rel="nofollow"
         to="/signup"
         search={search}
-        className={buttonVariants({ variant: "outline", size: "sm" })}
+        className={buttonVariants({ className: "h-11 w-full" })}
         onClick={() => trackSignupCta("card-page")}
       >
         {m.card_detail_nudge_signup()}
       </Link>
+      <p className="text-muted-foreground text-center text-sm">
+        {m.auth_signup_have_account()}{" "}
+        <Link
+          rel="nofollow"
+          to="/login"
+          search={search}
+          className="text-foreground underline underline-offset-2"
+        >
+          {m.common_sign_in()}
+        </Link>
+      </p>
     </div>
   );
 }
