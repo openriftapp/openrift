@@ -16,6 +16,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { TextLink } from "@/components/ui/text-link";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { changelogDayLabel } from "@/features/marketing/lib/changelog-day";
 import type { ChangelogView } from "@/features/marketing/lib/changelog-search-schema";
 import { MilestoneIcon } from "@/features/marketing/lib/milestone-icons";
 import { DATE_WORDS } from "@/lib/date-words";
@@ -39,27 +40,44 @@ function SkewedBadge({ text, color }: { text: string; color: string }) {
   );
 }
 
+function InlineCode({ text }: { text: string }) {
+  return text.split("`").map((part, i) =>
+    i % 2 === 1 ? (
+      <code key={i} className="bg-muted rounded-sm px-1 py-0.5 font-mono whitespace-nowrap">
+        {part}
+      </code>
+    ) : (
+      part
+    ),
+  );
+}
+
 function EntryItem({ entry }: { entry: ChangelogEntry }) {
   return (
-    <li className="flex items-baseline gap-2 text-sm">
+    <li className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 text-sm sm:flex sm:items-baseline">
       <SkewedBadge
         text={entry.type}
         color={entry.type === "feat" ? "bg-[#24705f]" : "bg-[#cd346f]"}
       />
-      <span>
+      <span className="contents sm:block">
         {entry.area && (
-          <span className="bg-muted text-muted-foreground text-2xs mr-1.5 rounded-md px-1.5 py-0.5 font-medium tracking-wide whitespace-nowrap uppercase">
+          <span className="bg-muted text-muted-foreground text-2xs col-start-2 row-start-1 justify-self-start rounded-md px-1.5 py-0.5 font-medium tracking-wide whitespace-nowrap uppercase sm:mr-1.5">
             {entry.area}
           </span>
         )}
-        {entry.title ? (
-          <>
-            <span className="font-semibold">{entry.title}:</span>
-            <span className="text-muted-foreground"> {entry.message}</span>
-          </>
-        ) : (
-          entry.message
-        )}
+        <span className="col-span-2 block pl-11 sm:inline sm:pl-0">
+          {entry.title ? (
+            <>
+              <span className="font-semibold">{entry.title}:</span>
+              <span className="text-muted-foreground">
+                {" "}
+                <InlineCode text={entry.message} />
+              </span>
+            </>
+          ) : (
+            <InlineCode text={entry.message} />
+          )}
+        </span>
       </span>
     </li>
   );
@@ -79,6 +97,14 @@ function MilestoneCard({ entry }: { entry: ChangelogEntry }) {
   );
 }
 
+function PhoneDayHeading({ date }: { date: string }) {
+  return (
+    <h2 className="pb-2 text-base font-medium sm:hidden">
+      <time dateTime={date}>{changelogDayLabel(date)}</time>
+    </h2>
+  );
+}
+
 function TimelineRow({
   date,
   isLast,
@@ -90,7 +116,7 @@ function TimelineRow({
 }) {
   return (
     <li id={date} className="flex scroll-mt-32 gap-4">
-      <div className="flex w-11 shrink-0 flex-col items-center gap-2 self-stretch">
+      <div className="hidden w-11 shrink-0 flex-col items-center gap-2 self-stretch sm:flex">
         {/* <time> keeps the ISO day machine-readable (assistive tech, feed
             readers, the e2e test) while the leaf shows the parts. */}
         <time dateTime={date} title={formatRelativeDay(date, undefined, DATE_WORDS)}>
@@ -98,7 +124,10 @@ function TimelineRow({
         </time>
         {!isLast && <span aria-hidden="true" className="bg-border-accent/60 w-px flex-1" />}
       </div>
-      <div className={cn("min-w-0 flex-1 pb-6", isLast && "pb-0")}>{children}</div>
+      <div className={cn("min-w-0 flex-1 pb-6", isLast && "pb-0")}>
+        <PhoneDayHeading date={date} />
+        {children}
+      </div>
     </li>
   );
 }
@@ -205,7 +234,11 @@ export function ChangelogPage({ view }: { view: ChangelogView }) {
       <div className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
         <p className="text-muted-foreground pb-4">
           <ParaglideMessage
-            message={m.marketing_changelog_intro}
+            message={
+              view === "milestones"
+                ? m.marketing_changelog_intro
+                : m.marketing_changelog_intro_everything
+            }
             markup={{
               link: ({ children }) => (
                 <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">

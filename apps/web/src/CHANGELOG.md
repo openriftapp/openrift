@@ -42,6 +42,10 @@
 
 - fix(Decks): **Deck card search fits on phones** — the search field keeps its full placeholder, the card count sits under it and Highlight owned is a compact icon button.
 
+### Other
+
+- fix(App): **Changelog reads better on phones** — each day gets a short heading, the type and area tags sit above the entry text, and code snippets no longer split across lines.
+
 ## 2026-11-04
 
 ### Highlights
