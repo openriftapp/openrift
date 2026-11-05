@@ -8796,6 +8796,10 @@
   "meta_run_organizer_note": "이 페이지의 모든 경기는 대회 주최자가 공개한 결과입니다.",
   "meta_cost_include_sideboard": "보조 덱도 포함",
   "meta_front_scope_empty": "이 범위에는 아직 기록된 결과가 없습니다.",
+  "meta_scope_empty_title": "이 시대에는 기록이 없습니다",
+  "meta_scope_empty_description": "{era}에는 아직 기록된 결과가 없습니다.",
+  "meta_scope_empty_show_all": "모든 시대 보기",
+  "meta_scope_empty_pick": "시대 선택",
   "meta_front_resultless": [
     {
       "declarations": [

@@ -12,13 +12,13 @@ import {
 } from "@/components/layout/page-top-bar";
 import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
-import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { RankBand } from "@/components/ui/rank-band";
 import { RowList, RowListLink } from "@/components/ui/row-list";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { DomainIcon } from "@/features/cards/components/domain-icon";
 import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
+import { MetaScopeEmpty } from "@/features/meta/components/meta-scope-empty";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import { useMetaLegends } from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
@@ -256,13 +256,13 @@ export function MetaLegendsPage() {
         <PageTopBar>
           <PageTopBarBack to="/meta" aria-label={m.meta_back_to_archive_aria()} />
           <PageTopBarTitle>{m.meta_legends_title()}</PageTopBarTitle>
-          <span className="text-muted-foreground shrink-0 tabular-nums">
-            {metaShownLabel(entries.length, data.archiveTotal, "legends")}
-          </span>
         </PageTopBar>
       </PageTopBarSticky>
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe pt-3 pb-6")}>
+        <p className="text-muted-foreground pb-1 tabular-nums">
+          {metaShownLabel(entries.length, data.archiveTotal, "legends")}
+        </p>
         <PageDescription className="pb-4">{m.meta_legends_page_description()}</PageDescription>
 
         {data.archiveTotal === 0 ? (
@@ -286,11 +286,13 @@ export function MetaLegendsPage() {
             <div className="mt-4 text-sm">
               <SortHeader sort={sort} direction={direction} onSort={setSort} />
               {entries.length === 0 ? (
-                <Empty className="py-10">
-                  <EmptyHeader>
-                    <EmptyDescription>{m.meta_legends_no_match()}</EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
+                <MetaScopeEmpty
+                  className="py-10"
+                  scope={search}
+                  eras={eras}
+                  setScope={setScope}
+                  fallback={m.meta_legends_no_match()}
+                />
               ) : (
                 <RowList className="flex flex-col">
                   {entries.map((entry) => (

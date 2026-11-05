@@ -11,11 +11,19 @@ export function MetaArchiveCounts({
   playerResultCount: number;
   deckCount: number;
 }) {
+  const tiles = [
+    { count: eventCount, label: m.meta_counts_archived_events() },
+    { count: playerResultCount, label: m.meta_counts_player_results() },
+    { count: deckCount, label: m.meta_counts_decklists() },
+  ].filter((tile) => tile.count > 0);
+  if (tiles.length === 0) {
+    return null;
+  }
   return (
     <div className="flex flex-wrap gap-x-10 gap-y-4 sm:gap-x-12">
-      <StatFigure value={formatCount(eventCount)} label={m.meta_counts_archived_events()} />
-      <StatFigure value={formatCount(playerResultCount)} label={m.meta_counts_player_results()} />
-      <StatFigure value={formatCount(deckCount)} label={m.meta_counts_decklists()} />
+      {tiles.map((tile) => (
+        <StatFigure key={tile.label} value={formatCount(tile.count)} label={tile.label} />
+      ))}
     </div>
   );
 }

@@ -8797,6 +8797,10 @@
   "meta_run_organizer_note": "Jede Partie auf dieser Seite ist das vom Turnierveranstalter veröffentlichte Ergebnis.",
   "meta_cost_include_sideboard": "Sideboard mitzählen",
   "meta_front_scope_empty": "Für diesen Bereich sind noch keine Ergebnisse hinterlegt.",
+  "meta_scope_empty_title": "Für diese Ära ist nichts hinterlegt",
+  "meta_scope_empty_description": "Für {era} sind noch keine Ergebnisse hinterlegt.",
+  "meta_scope_empty_show_all": "Alle Ären anzeigen",
+  "meta_scope_empty_pick": "Ära wählen",
   "meta_front_resultless": [
     {
       "declarations": [

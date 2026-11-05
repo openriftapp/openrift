@@ -77,6 +77,10 @@
 
 - feat(Decks): **Compact deck intro** — the new-deck intro is now a short title row with the four steps in a grid and a link to the full guide.
 
+### Other
+
+- feat(Meta): **Empty eras explain themselves** — when the selected era has no results on file, the archive, events and legends pages say so and offer "Show all eras" or "Pick an era", and the archive drops its zero counts.
+
 ## 2026-11-04
 
 ### Highlights

@@ -9003,6 +9003,10 @@
   "meta_run_organizer_note": "Every match on this page is the result published by the tournament organizer.",
   "meta_cost_include_sideboard": "Count the sideboard too",
   "meta_front_scope_empty": "No results on file for this scope yet.",
+  "meta_scope_empty_title": "Nothing on file for this era",
+  "meta_scope_empty_description": "{era} has no results on file yet.",
+  "meta_scope_empty_show_all": "Show all eras",
+  "meta_scope_empty_pick": "Pick an era",
   "meta_front_resultless": [
     {
       "declarations": [

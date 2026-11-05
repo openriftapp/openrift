@@ -8798,6 +8798,10 @@
   "meta_run_organizer_note": "Chaque match de cette page correspond au résultat publié par l'organisateur du tournoi.",
   "meta_cost_include_sideboard": "Compter aussi la réserve",
   "meta_front_scope_empty": "Aucun résultat enregistré pour cette sélection.",
+  "meta_scope_empty_title": "Rien d'enregistré pour cette ère",
+  "meta_scope_empty_description": "Aucun résultat enregistré pour {era} pour l'instant.",
+  "meta_scope_empty_show_all": "Afficher toutes les ères",
+  "meta_scope_empty_pick": "Choisir une ère",
   "meta_front_resultless": [
     {
       "declarations": [

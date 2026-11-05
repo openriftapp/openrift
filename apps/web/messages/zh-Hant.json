@@ -8796,6 +8796,10 @@
   "meta_run_organizer_note": "本頁每一場比賽都是賽事主辦方公布的結果。",
   "meta_cost_include_sideboard": "也計入備牌",
   "meta_front_scope_empty": "這個範圍目前還沒有成績。",
+  "meta_scope_empty_title": "此時代目前沒有記錄",
+  "meta_scope_empty_description": "{era}目前還沒有成績。",
+  "meta_scope_empty_show_all": "顯示所有時代",
+  "meta_scope_empty_pick": "選擇時代",
   "meta_front_resultless": [
     {
       "declarations": [

@@ -8796,6 +8796,10 @@
   "meta_run_organizer_note": "本页的每一场比赛都是赛事主办方公布的结果。",
   "meta_cost_include_sideboard": "也计入备牌",
   "meta_front_scope_empty": "此范围暂无成绩记录。",
+  "meta_scope_empty_title": "此时代暂无记录",
+  "meta_scope_empty_description": "{era}暂无成绩记录。",
+  "meta_scope_empty_show_all": "显示所有时代",
+  "meta_scope_empty_pick": "选择时代",
   "meta_front_resultless": [
     {
       "declarations": [

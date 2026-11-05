@@ -30,6 +30,7 @@ import { MetaDecklistsToggle } from "@/features/meta/components/meta-decklists-t
 import { MetaEventRow } from "@/features/meta/components/meta-event-row";
 import { MetaFrontEventBlock } from "@/features/meta/components/meta-front-event-block";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
+import { MetaScopeEmpty } from "@/features/meta/components/meta-scope-empty";
 import { MetaUpcomingRow } from "@/features/meta/components/meta-upcoming-row";
 import {
   useMetaActivity,
@@ -436,11 +437,12 @@ export function MetaFrontPage() {
                         )}
                       </>
                     ) : (
-                      <Empty>
-                        <EmptyHeader>
-                          <EmptyDescription>{m.meta_front_scope_empty()}</EmptyDescription>
-                        </EmptyHeader>
-                      </Empty>
+                      <MetaScopeEmpty
+                        scope={search}
+                        eras={eras}
+                        setScope={setScope}
+                        fallback={m.meta_front_scope_empty()}
+                      />
                     )}
                     <ResultlessNote count={facets.holdings.resultless} search={search} />
                   </div>

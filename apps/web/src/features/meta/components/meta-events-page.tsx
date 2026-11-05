@@ -12,7 +12,6 @@ import {
 } from "@/components/layout/page-top-bar";
 import { SearchInput } from "@/components/search-input";
 import { Button } from "@/components/ui/button";
-import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { PAGER_SCROLL_TARGET, Pager } from "@/components/ui/pager";
 import { RowList } from "@/components/ui/row-list";
@@ -31,6 +30,7 @@ import {
 } from "@/features/meta/components/meta-event-index-row";
 import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
 import { MetaScopeBar, ScopeSelect } from "@/features/meta/components/meta-scope-bar";
+import { MetaScopeEmpty } from "@/features/meta/components/meta-scope-empty";
 import {
   useMetaCounts,
   useMetaEventDayCounts,
@@ -154,14 +154,11 @@ export function MetaEventsPage() {
           />
         ) : (
           <>
+            <p className="text-muted-foreground mb-3 tabular-nums">
+              {metaShownLabel(matched, counts.totalEvents, "events")}
+            </p>
             <MetaScopeBar
-              search={
-                <EventSearchBox
-                  urlValue={search.q ?? ""}
-                  onCommit={commitQuery}
-                  shown={metaShownLabel(matched, counts.totalEvents, "events")}
-                />
-              }
+              search={<EventSearchBox urlValue={search.q ?? ""} onCommit={commitQuery} />}
               scope={search}
               setScope={setScope}
               clearScope={clearScope}
@@ -227,13 +224,13 @@ export function MetaEventsPage() {
             <div className={cn("mt-4 text-sm", PAGER_SCROLL_TARGET)} id={EVENT_LIST_ID}>
               <SortHeader sort={sort} direction={direction} onSort={setSort} />
               {events.length === 0 ? (
-                <Empty className="py-10">
-                  <EmptyHeader>
-                    <EmptyDescription>
-                      {matched === 0 ? m.meta_events_no_match() : m.meta_page_past_end()}
-                    </EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
+                <MetaScopeEmpty
+                  className="py-10"
+                  scope={search}
+                  eras={eras}
+                  setScope={setScope}
+                  fallback={matched === 0 ? m.meta_events_no_match() : m.meta_page_past_end()}
+                />
               ) : (
                 <EventList key={listKey} events={events} />
               )}
@@ -394,11 +391,9 @@ function playersSummary(min: number | undefined, max: number | undefined): strin
 function EventSearchBox({
   urlValue,
   onCommit,
-  shown,
 }: {
   urlValue: string;
   onCommit: (value: string) => void;
-  shown: string;
 }) {
   const [value, setValue] = useSearchUrlSync({ urlValue, onCommit });
   return (
@@ -406,8 +401,6 @@ function EventSearchBox({
       value={value}
       onValueChange={setValue}
       placeholder={m.meta_events_search_placeholder()}
-      trailing={shown}
-      wrapTrailing
     />
   );
 }
