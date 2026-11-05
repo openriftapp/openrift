@@ -63,7 +63,7 @@ export function FeatureShowcase({
         <Reveal key={feature.title}>
           <Link
             to={feature.to}
-            className="hover:bg-background/60 group grid items-center gap-8 rounded-2xl p-4 transition-colors sm:p-6 lg:grid-cols-2 lg:gap-14"
+            className="hover:bg-background/60 group grid grid-cols-1 items-center gap-8 rounded-2xl p-4 transition-colors sm:p-6 lg:grid-cols-2 lg:gap-14"
           >
             <div className={cn("flex flex-col gap-4", index % 2 === 1 && "lg:order-2")}>
               <Heading level={1} as="h2">

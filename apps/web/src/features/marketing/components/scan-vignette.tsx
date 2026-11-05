@@ -85,30 +85,32 @@ function TrayRow({
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate font-medium">{card.name}</span>
         <span className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-sm">
-          <span className="font-mono sm:hidden">{card.shortCode}</span>
+          <span className="shrink-0 font-mono sm:hidden">{card.shortCode}</span>
           <span className="truncate">{variant}</span>
         </span>
       </span>
-      {ownedBefore === 0 ? (
-        <span
-          className="text-foreground shrink-0 text-sm font-medium"
-          title={m.scan_tray_row_new_title()}
-        >
-          {m.scan_tray_row_new()}
-        </span>
-      ) : (
-        <span
-          className="text-muted-foreground shrink-0 text-sm tabular-nums"
-          title={m.scan_tray_row_owned_title()}
-        >
-          {m.scan_tray_row_owned({ count: ownedBefore })}
-        </span>
-      )}
-      {card.price !== null && (
-        <span className="shrink-0 text-sm font-medium tabular-nums">
-          {formatPriceEur(card.price)}
-        </span>
-      )}
+      <span className="flex shrink-0 flex-col items-end sm:flex-row sm:items-center sm:gap-3">
+        {ownedBefore === 0 ? (
+          <span
+            className="text-foreground shrink-0 text-sm font-medium"
+            title={m.scan_tray_row_new_title()}
+          >
+            {m.scan_tray_row_new()}
+          </span>
+        ) : (
+          <span
+            className="text-muted-foreground shrink-0 text-sm tabular-nums"
+            title={m.scan_tray_row_owned_title()}
+          >
+            {m.scan_tray_row_owned({ count: ownedBefore })}
+          </span>
+        )}
+        {card.price !== null && (
+          <span className="shrink-0 text-sm font-medium tabular-nums">
+            {formatPriceEur(card.price)}
+          </span>
+        )}
+      </span>
     </li>
   );
 }

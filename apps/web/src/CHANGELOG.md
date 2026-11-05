@@ -26,6 +26,10 @@
 - feat(Cards): **Roomier phone filter drawer** — filters use the full width, extra sets fold away until you need them, and Reset stays at the top.
 - feat(Rules): **Compact rules toolbar on phones** — version, language and changes now sit behind one button, so the pinned toolbar is a single row and the rules start higher on the page.
 
+### Other
+
+- fix(App): **Landing page fits phones** — the feature sections no longer cut off their text, and the scanner preview keeps each card's status and price inside the frame.
+
 ## 2026-11-04
 
 ### Highlights
