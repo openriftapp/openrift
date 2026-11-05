@@ -27,7 +27,7 @@
     "@opentelemetry/exporter-trace-otlp-http": "0.300.0",
     "@opentelemetry/resources": "3.0.0",
     "@opentelemetry/sdk-trace": "3.0.0",
-    "@opentelemetry/semantic-conventions": "1.43.0",
+    "@opentelemetry/semantic-conventions": "1.44.0",
     "@orpc/contract": "1.16.1",
     "@piltoverarchive/riftbound-deck-codes": "1.5.0",
     "mdast-util-from-markdown": "2.1.0",
