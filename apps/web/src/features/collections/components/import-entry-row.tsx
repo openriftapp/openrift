@@ -204,7 +204,7 @@ function VariantPicker({
         ]),
       )}
     >
-      <SelectTrigger size="sm" className="h-7 w-auto text-xs">
+      <SelectTrigger size="sm" className="w-auto text-xs">
         <SelectValue placeholder={m.collections_import_pick_printing_placeholder()} />
       </SelectTrigger>
       <SelectContent ref={popupRef} className="w-auto">

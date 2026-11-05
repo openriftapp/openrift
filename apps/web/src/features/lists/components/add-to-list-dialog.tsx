@@ -205,7 +205,6 @@ export function AddToListDialog({
                   ? m.lists_add_tradelist_name_placeholder()
                   : m.lists_add_organize_name_placeholder()
               }
-              className="h-8"
             />
             <Button type="submit" size="sm" disabled={!newName.trim() || disableAdd}>
               {m.common_create()}

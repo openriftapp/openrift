@@ -95,3 +95,18 @@ describe("pending", () => {
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
   });
 });
+
+describe("control sizes", () => {
+  it.each([
+    ["default", "h-(--control-h)"],
+    ["icon", "size-(--control-h)"],
+    ["sm", "h-(--control-h-sm)"],
+    ["icon-sm", "size-(--control-h-sm)"],
+  ] as const)("sizes %s from the touch-aware control height", (size, expected) => {
+    expect(buttonVariants({ size }).split(/\s+/u)).toContain(expected);
+  });
+
+  it("keeps xs fixed for buttons inside list rows", () => {
+    expect(buttonVariants({ size: "xs" }).split(/\s+/u)).toContain("h-6");
+  });
+});

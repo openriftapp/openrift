@@ -203,8 +203,8 @@ function ComboboxChips({
     <ComboboxPrimitive.Chips
       data-slot="combobox-chips"
       className={cn(
-        // custom: ring-2 focus/invalid rings — app-wide focus width (scaffold ships ring-3)
-        "border-input focus-within:border-ring focus-within:ring-ring/50 has-aria-invalid:border-destructive has-aria-invalid:ring-destructive/20 bg-foreground/5 dark:has-aria-invalid:border-destructive/50 dark:has-aria-invalid:ring-destructive/40 flex min-h-8 flex-wrap items-center gap-1 rounded-lg border bg-clip-padding px-2.5 py-1 text-sm transition-colors focus-within:ring-2 has-aria-invalid:ring-2 has-data-[slot=combobox-chip]:px-1",
+        // custom: ring-2 focus/invalid rings — app-wide focus width (scaffold ships ring-3); touch-aware min-h-(--control-h)
+        "border-input focus-within:border-ring focus-within:ring-ring/50 has-aria-invalid:border-destructive has-aria-invalid:ring-destructive/20 bg-foreground/5 dark:has-aria-invalid:border-destructive/50 dark:has-aria-invalid:ring-destructive/40 flex min-h-(--control-h) flex-wrap items-center gap-1 rounded-lg border bg-clip-padding px-2.5 py-1 text-sm transition-colors focus-within:ring-2 has-aria-invalid:ring-2 has-data-[slot=combobox-chip]:px-1",
         className,
       )}
       {...props}

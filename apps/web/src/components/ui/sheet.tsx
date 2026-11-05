@@ -68,7 +68,7 @@ function SheetContent({
               <Button
                 variant="ghost"
                 className="absolute top-[calc(0.75rem+env(safe-area-inset-top,0px))] right-3 group-data-[side=bottom]/sheet-content:top-3"
-                size="icon-sm"
+                size="icon" // custom: full control size, the sheet's only way out on touch
               />
             }
           >

@@ -154,7 +154,7 @@ describe("MetaDeckCostFilter", () => {
     it("renders a chip control naming the empty filter", () => {
       renderFilter({ trigger: "control" });
       const control = screen.getByRole("button", { name: "Cost: Any" });
-      expect(control).toHaveClass("h-7");
+      expect(control).toHaveClass("h-(--control-h-sm)");
       expect(control).not.toHaveAttribute("data-active");
       expect(control).toHaveTextContent("CostAny");
     });

@@ -332,7 +332,7 @@ export function RuleFilterEditor({
       inputMode="decimal"
       min={0}
       step="0.01"
-      className="h-8 w-20"
+      className="w-20"
       placeholder={bound === "min" ? m.lists_rule_price_min() : m.lists_rule_price_max()}
       aria-label={bound === "min" ? m.lists_rule_price_min_aria() : m.lists_rule_price_max_aria()}
       value={value.price[bound] ?? ""}
@@ -419,7 +419,7 @@ export function RuleFilterEditor({
         }}
       >
         <Input
-          className="h-8 w-44"
+          className="w-44"
           placeholder={m.lists_rule_search_text_placeholder()}
           value={value.search}
           onChange={(event) => {

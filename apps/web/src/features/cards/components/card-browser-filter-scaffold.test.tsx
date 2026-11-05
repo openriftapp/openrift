@@ -42,11 +42,7 @@ vi.mock("@/features/cards/components/options-bar", () => ({
   ),
 }));
 vi.mock("@/features/cards/components/search-bar", () => ({
-  SearchBar: ({ inputClassName }: { inputClassName?: string }) => (
-    <div data-testid="search-bar" className={inputClassName}>
-      search-bar-stub
-    </div>
-  ),
+  SearchBar: () => <div data-testid="search-bar">search-bar-stub</div>,
 }));
 vi.mock("@/features/cards/components/search-query-line", () => ({
   SearchQueryLine: () => <div>search-query-line-stub</div>,
@@ -91,22 +87,6 @@ describe("BrowserToolbar", () => {
     renderInProvider(<BrowserToolbar totalCards={10} filteredCount={10} />);
     expect(screen.getByText("compact-filter-bar-stub")).toBeInTheDocument();
     expect(screen.getByText("mobile-filter-content-stub")).toBeInTheDocument();
-  });
-
-  it("keeps the default control height on phones unless asked", () => {
-    setDisplayState();
-    mockUseFilterValues.mockReturnValue({ hasActiveFilters: false });
-    renderInProvider(<BrowserToolbar totalCards={10} filteredCount={10} />);
-    expect(screen.getByTestId("search-bar").className).toBe("");
-    expect(screen.getByTestId("mobile-options-drawer").className).toBe("sm:hidden");
-  });
-
-  it("makes the search box and options trigger 44px tall on phones when asked", () => {
-    setDisplayState();
-    mockUseFilterValues.mockReturnValue({ hasActiveFilters: false });
-    renderInProvider(<BrowserToolbar totalCards={10} filteredCount={10} tallOnPhone />);
-    expect(screen.getByTestId("search-bar")).toHaveClass("max-sm:h-11");
-    expect(screen.getByTestId("mobile-options-drawer")).toHaveClass("sm:hidden", "size-11");
   });
 
   it("puts the query line below the compact bar so the bar never moves", () => {

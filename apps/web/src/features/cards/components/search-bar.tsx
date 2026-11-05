@@ -24,7 +24,6 @@ interface SearchBarProps {
   suggestionVocabulary?: SearchVocabulary;
   countInPlaceholder?: boolean;
   className?: string;
-  inputClassName?: string;
   countBelow?: boolean;
 }
 
@@ -43,7 +42,6 @@ export function SearchBar({
   suggestionVocabulary = NO_VOCABULARY,
   countInPlaceholder,
   className,
-  inputClassName,
   countBelow,
 }: SearchBarProps) {
   const { filterState, hasActiveFilters, view } = useFilterValues();
@@ -148,7 +146,7 @@ export function SearchBar({
     <div className={cn("min-w-0 flex-1", className)}>
       <div className="relative">
         <SearchInput
-          className={cn("w-full", inputClassName)}
+          className="w-full"
           inputRef={inputRef}
           value={localSearch}
           onValueChange={(value) => {

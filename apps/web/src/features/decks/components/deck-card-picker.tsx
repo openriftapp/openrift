@@ -173,7 +173,7 @@ export function CardPicker({
         setResetKey((key) => key + 1);
       }}
       placeholder={placeholder}
-      className="h-8"
+      className="h-(--control-h)"
     />
   );
 }

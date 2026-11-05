@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 /** Shared trigger styling so the icon reads the same in both variants. */
-const TRIGGER_CLASS = "text-muted-foreground hover:text-foreground cursor-default";
+const TRIGGER_CLASS =
+  "relative text-muted-foreground hover:text-foreground cursor-default after:absolute after:-inset-2 pointer-coarse:after:-inset-3";
 
 /**
  * The (i) affordance that sits next to a field label and reveals a sentence of

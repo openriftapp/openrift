@@ -292,7 +292,7 @@ function MatchupEditor({
             onChange={(event) => onChange({ opponentLabel: event.target.value })}
             placeholder={m.decks_plan_build_placeholder()}
             maxLength={120}
-            className="h-8 w-full"
+            className="w-full"
           />
         </div>
       </div>

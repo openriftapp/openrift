@@ -42,7 +42,6 @@ export function Pager({
       <Button
         variant="outline"
         size="icon"
-        className="size-8"
         disabled={page <= 1}
         onClick={() => goTo(page - 1)}
         aria-label={m.pager_previous_page()}
@@ -59,7 +58,7 @@ export function Pager({
             key={item}
             variant={item === page ? "default" : "outline"}
             size="icon"
-            className="size-8 font-mono"
+            className="font-mono"
             aria-current={item === page ? "page" : undefined}
             onClick={() => goTo(item)}
           >
@@ -70,7 +69,6 @@ export function Pager({
       <Button
         variant="outline"
         size="icon"
-        className="size-8"
         disabled={page >= totalPages}
         onClick={() => goTo(page + 1)}
         aria-label={m.pager_next_page()}

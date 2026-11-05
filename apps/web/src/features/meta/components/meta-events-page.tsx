@@ -333,7 +333,7 @@ function PlayersChip({
       inputMode="numeric"
       min={0}
       step={1}
-      className="h-8 w-20"
+      className="w-20"
       placeholder={key === "playersMin" ? m.meta_events_players_min() : m.meta_events_players_max()}
       aria-label={
         key === "playersMin" ? m.meta_events_players_min_aria() : m.meta_events_players_max_aria()

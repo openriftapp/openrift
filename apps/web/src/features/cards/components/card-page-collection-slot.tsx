@@ -61,7 +61,7 @@ function TrackCollectionNudge() {
         rel="nofollow"
         to="/signup"
         search={search}
-        className={buttonVariants({ className: "h-11 w-full" })}
+        className={buttonVariants({ className: "w-full" })}
         onClick={() => trackSignupCta("card-page")}
       >
         {m.card_detail_nudge_signup()}

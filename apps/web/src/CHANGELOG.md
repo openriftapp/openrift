@@ -8,6 +8,7 @@
 - feat(Decks): **Decks fit on phones** — shared, meta and your own decks stack their zones on a phone, with stats on their own tab and view settings behind one button.
 - feat(Decks): **Phone deck editor at a glance** — the editor opens as a list on phones with a stats summary on top, and touch screens always show the count buttons.
 - feat(Decks): **Art banner on deck pages** — on phones, your decks and shared decks open with the legend art across the top and the title over it.
+- feat(App): **Touch-sized controls** — buttons, fields, tabs and menus grow to 44px on touch screens, and small icons such as chip remove buttons get larger tap areas.
 - fix(App): **Header fits on tablets** — the top bar no longer runs off the screen on tablets, and Help and Contribute move into the account menu when space runs short.
 - fix(Decks): **Replace-import shows the new cards** — importing a list over a deck now shows its cards right away instead of an empty deck until you reload.
 

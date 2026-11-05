@@ -121,7 +121,7 @@ function MenuButton({ onClick, className }: { onClick: () => void; className?: s
   return (
     <Button
       variant="ghost"
-      size="icon-sm"
+      size="icon"
       aria-label={m.layout_header_open_menu()}
       className={className}
       onClick={onClick}
@@ -559,7 +559,7 @@ function UserMenu({
   const showSignIn = useLocation({ select: (location) => showsSignInButton(location.pathname) });
 
   if (isPending) {
-    return <div className="size-8" />;
+    return <div className="size-(--control-h)" />;
   }
 
   const user = session?.user;
@@ -578,7 +578,7 @@ function UserMenu({
       )}
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<Button variant="ghost" size="icon-sm" aria-label={m.layout_header_menu()} />}
+          render={<Button variant="ghost" size="icon" aria-label={m.layout_header_menu()} />}
         >
           <UserMenuTrigger user={user} />
         </DropdownMenuTrigger>
@@ -940,10 +940,9 @@ function HeaderSearchButton() {
   return (
     <Button
       variant="ghost"
-      size="sm"
       aria-label={m.layout_header_search()}
       onClick={openPalette}
-      className="text-muted-foreground gap-1.5"
+      className="text-muted-foreground gap-1.5 max-xl:w-(--control-h) max-xl:px-0"
     >
       <SearchIcon className="size-4" />
       <span className="hidden xl:inline">{m.layout_header_search()}</span>

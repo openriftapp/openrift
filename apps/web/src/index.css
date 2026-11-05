@@ -57,6 +57,17 @@ body,
 }
 
 :root {
+  --control-h: 2rem;
+  --control-h-sm: 1.75rem;
+}
+@media (pointer: coarse) {
+  :root {
+    --control-h: 2.75rem;
+    --control-h-sm: 2.25rem;
+  }
+}
+
+:root {
   --board-card-w: 5.5rem;
 }
 @media (min-width: 40rem) {

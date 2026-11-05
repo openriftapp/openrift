@@ -93,7 +93,7 @@ export function PrintingPicker({
       {hiddenCount > 0 && !currentHidden && (
         <Button
           variant="dashed"
-          className="h-11 w-full justify-between px-3"
+          className="w-full justify-between px-3"
           aria-expanded={revealed}
           onClick={() => setRevealedCardId(revealed ? undefined : current.cardId)}
         >

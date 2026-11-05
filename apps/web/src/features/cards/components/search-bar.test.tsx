@@ -67,22 +67,6 @@ describe("SearchBar", () => {
 
     expect(actions.setSearch).toHaveBeenCalledWith("");
   });
-
-  it("sizes the input group with the caller's class", () => {
-    mockUseFilterValues.mockReturnValue({
-      filterState: { search: "" },
-      hasActiveFilters: false,
-      view: "cards",
-    });
-    mockUseFilterActions.mockReturnValue({ setSearch: vi.fn() });
-    const { container } = render(
-      <SearchBar totalCards={40} filteredCount={40} inputClassName="max-sm:h-11" />,
-    );
-    expect(container.querySelector('[data-slot="input-group"]')).toHaveClass(
-      "w-full",
-      "max-sm:h-11",
-    );
-  });
 });
 
 describe("SearchBar count", () => {

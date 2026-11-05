@@ -44,19 +44,21 @@ const buttonVariants = cva(
         "glass-pill": "bg-background/60 ring-border/70 rounded-full shadow-sm ring-1 backdrop-blur",
       },
       size: {
+        // custom: control heights come from --control-h / --control-h-sm (index.css), which grow on touch
         default:
-          "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
+          "h-(--control-h) gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         // custom: smaller corner-cut and the rounded-md token radius for the compact size (see btn-corner-cut)
         xs: "[--btn-cut:5px] h-6 gap-1 rounded-md px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
         // custom: smaller corner-cut and the rounded-md token radius for the compact size (see btn-corner-cut)
-        sm: "[--btn-cut:5px] h-7 gap-1 rounded-md px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
+        sm: "[--btn-cut:5px] h-(--control-h-sm) gap-1 rounded-md px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
         lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        icon: "size-8",
+        icon: "size-(--control-h)", // custom: touch-aware control height
         // custom: smaller corner-cut and the rounded-md token radius for the compact size (see btn-corner-cut)
         "icon-xs":
           "[--btn-cut:5px] size-6 rounded-md in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
         // custom: smaller corner-cut and the rounded-md token radius for the compact size (see btn-corner-cut)
-        "icon-sm": "[--btn-cut:5px] size-7 rounded-md in-data-[slot=button-group]:rounded-lg",
+        "icon-sm":
+          "[--btn-cut:5px] size-(--control-h-sm) rounded-md in-data-[slot=button-group]:rounded-lg",
         "icon-lg": "size-9",
       },
     },

@@ -621,7 +621,6 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
       totalCards={totalUniqueCards}
       filteredCount={sortedCards.length}
       countBelowOnPhone
-      tallOnPhone
       mobileDoneLabel={
         hasActiveFilters ? m.decks_editor_show_cards({ count: sortedCards.length }) : undefined
       }
@@ -635,7 +634,7 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
                   pressed={highlightOwned}
                   onPressedChange={toggleHighlightOwned}
                   aria-label={m.decks_editor_highlight_owned()}
-                  className="size-11 sm:h-8 sm:w-auto"
+                  className="max-sm:w-(--control-h) max-sm:px-0"
                 />
               }
             >

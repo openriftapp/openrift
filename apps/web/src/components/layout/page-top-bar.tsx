@@ -74,7 +74,9 @@ export function PageDescription({ className, children, ...props }: ComponentProp
 
 /** Must be wrapped in an element styled with {@link PAGE_TOP_BAR_STICKY} (or a portal slot that already applies it). */
 export function PageTopBar({ children, className }: PageTopBarProps) {
-  return <div className={cn("flex h-8 items-center text-sm", className)}>{children}</div>;
+  return (
+    <div className={cn("flex h-(--control-h) items-center text-sm", className)}>{children}</div>
+  );
 }
 
 const BackAnchor = forwardRef<HTMLAnchorElement, AnchorHTMLAttributes<HTMLAnchorElement>>(

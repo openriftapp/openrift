@@ -278,7 +278,7 @@ function CardSearch({
     <CardSearchDropdown
       ariaLabel={m.collections_import_search_cards_aria()}
       placeholder={m.collections_import_search_cards_placeholder()}
-      className="h-8 w-full sm:h-7 sm:w-44"
+      className="h-(--control-h) w-full sm:h-(--control-h-sm) sm:w-44"
       results={results}
       onSearch={setQuery}
       onSelect={(_id, result) => onSelect(result.card)}

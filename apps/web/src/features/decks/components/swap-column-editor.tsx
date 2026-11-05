@@ -27,7 +27,7 @@ function SwapQuantityField({
 }) {
   const { inputProps } = useNumericDraft({ display: String(value), onCommit: onChange });
   return (
-    <div className="border-input dark:bg-input/30 focus-within:border-ring focus-within:ring-ring/50 flex h-8 w-14 shrink-0 items-center justify-center rounded-lg border bg-transparent px-1 py-1 text-base transition-colors focus-within:ring-2 md:text-sm">
+    <div className="border-input dark:bg-input/30 focus-within:border-ring focus-within:ring-ring/50 flex h-(--control-h) w-14 shrink-0 items-center justify-center rounded-lg border bg-transparent px-1 py-1 text-base transition-colors focus-within:ring-2 md:text-sm">
       <input
         type="number"
         min={1}
