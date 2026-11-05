@@ -2,6 +2,7 @@ import { legendDisplayName } from "@openrift/shared/card-name";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { sideKey } from "@openrift/shared/printing-side";
 import type { Printing } from "@openrift/shared/types/catalog";
+import { ChevronDownIcon, ListFilterIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -91,13 +92,18 @@ export function PrintingPicker({
       />
       {hiddenCount > 0 && !currentHidden && (
         <Button
-          variant="ghost"
-          size="xs"
+          variant="dashed"
+          className="h-11 w-full justify-between px-3"
+          aria-expanded={revealed}
           onClick={() => setRevealedCardId(revealed ? undefined : current.cardId)}
         >
-          {revealed
-            ? m.card_detail_printings_hide_hidden()
-            : m.card_detail_printings_show_hidden({ count: hiddenCount })}
+          <ListFilterIcon />
+          <span className="flex-1 text-left">
+            {revealed
+              ? m.card_detail_printings_hide_hidden()
+              : m.card_detail_printings_show_hidden({ count: hiddenCount })}
+          </span>
+          <ChevronDownIcon className={cn("transition-transform", revealed && "rotate-180")} />
         </Button>
       )}
     </div>
