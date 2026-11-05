@@ -38,6 +38,10 @@
 
 - fix(Meta): **Event search placeholder fits on phones** — the archived-event count now sits under the search field on narrow screens instead of cutting off the placeholder.
 
+### Other
+
+- fix(Decks): **Deck card search fits on phones** — the search field keeps its full placeholder, the card count sits under it and Highlight owned is a compact icon button.
+
 ## 2026-11-04
 
 ### Highlights

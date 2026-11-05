@@ -100,6 +100,18 @@ describe("SearchBar count", () => {
     expect(screen.getByPlaceholderText("Search…")).toBeInTheDocument();
     expect(screen.getByText("40 cards")).toBeInTheDocument();
   });
+
+  it("puts the count under the field when countBelow is set", () => {
+    mockUseFilterValues.mockReturnValue({
+      filterState: { search: "" },
+      hasActiveFilters: false,
+      view: "cards",
+    });
+    mockUseFilterActions.mockReturnValue({ setSearch: vi.fn() });
+    render(<SearchBar totalCards={40} filteredCount={40} countBelow />);
+
+    expect(screen.getByText("40 cards").tagName).toBe("P");
+  });
 });
 
 describe("SearchBar syntax help", () => {

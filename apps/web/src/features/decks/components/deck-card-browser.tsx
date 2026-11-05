@@ -11,6 +11,7 @@ import { PackageCheckIcon } from "lucide-react";
 import { Suspense, useDeferredValue } from "react";
 
 import { Toggle } from "@/components/ui/toggle";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BrowserCardViewer } from "@/features/cards/components/browser-card-viewer";
 import {
   BrowserToolbar,
@@ -619,20 +620,29 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
     <BrowserToolbar
       totalCards={totalUniqueCards}
       filteredCount={sortedCards.length}
+      countBelowOnPhone
       mobileDoneLabel={
         hasActiveFilters ? m.decks_editor_show_cards({ count: sortedCards.length }) : undefined
       }
       extras={
         ownedCounts ? (
-          <Toggle
-            variant="control"
-            pressed={highlightOwned}
-            onPressedChange={toggleHighlightOwned}
-            title={m.decks_editor_highlight_owned_title()}
-          >
-            <PackageCheckIcon className="size-4" />
-            <span>{m.decks_editor_highlight_owned()}</span>
-          </Toggle>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Toggle
+                  variant="control"
+                  pressed={highlightOwned}
+                  onPressedChange={toggleHighlightOwned}
+                  aria-label={m.decks_editor_highlight_owned()}
+                  className="size-11 sm:h-8 sm:w-auto"
+                />
+              }
+            >
+              <PackageCheckIcon className="size-4" />
+              <span className="hidden sm:inline">{m.decks_editor_highlight_owned()}</span>
+            </TooltipTrigger>
+            <TooltipContent>{m.decks_editor_highlight_owned_title()}</TooltipContent>
+          </Tooltip>
         ) : null
       }
     />

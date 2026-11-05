@@ -141,6 +141,7 @@ interface BrowserToolbarProps {
   groupByValue?: string;
   countInPlaceholder?: boolean;
   wrapControls?: boolean;
+  countBelowOnPhone?: boolean;
 }
 
 /** Standard card-browser toolbar: search bar, sort/group/view/display/columns
@@ -157,6 +158,7 @@ export function BrowserToolbar({
   groupByValue,
   countInPlaceholder,
   wrapControls,
+  countBelowOnPhone,
 }: BrowserToolbarProps) {
   const { hasActiveFilters } = useFilterValues();
   const meta = useFilterMeta();
@@ -181,6 +183,7 @@ export function BrowserToolbar({
           suggestionVocabulary={searchVocabulary.suggestions}
           countInPlaceholder={countInPlaceholder}
           className={wrapControls ? "flex-[1_1_12rem]" : undefined}
+          countBelow={countBelowOnPhone && !smUp}
         />
         {smUp && (
           <DesktopOptionsBar

@@ -24,6 +24,7 @@ interface SearchBarProps {
   suggestionVocabulary?: SearchVocabulary;
   countInPlaceholder?: boolean;
   className?: string;
+  countBelow?: boolean;
 }
 
 const NO_VOCABULARY: SearchVocabulary = {};
@@ -41,6 +42,7 @@ export function SearchBar({
   suggestionVocabulary = NO_VOCABULARY,
   countInPlaceholder,
   className,
+  countBelow,
 }: SearchBarProps) {
   const { filterState, hasActiveFilters, view } = useFilterValues();
   const { setSearch } = useFilterActions();
@@ -155,7 +157,7 @@ export function SearchBar({
             setSearch("");
           }}
           placeholder={placeholder}
-          trailing={countInField ? undefined : `${cardCountLabel} ${unitLabel}`}
+          trailing={countInField || countBelow ? undefined : `${cardCountLabel} ${unitLabel}`}
           action={
             <TextLink
               variant="muted"
@@ -192,6 +194,9 @@ export function SearchBar({
           />
         )}
       </div>
+      {countBelow && (
+        <p className="text-muted-foreground mt-1 text-xs">{`${cardCountLabel} ${unitLabel}`}</p>
+      )}
     </div>
   );
 }
