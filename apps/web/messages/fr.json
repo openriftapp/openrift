@@ -3330,6 +3330,7 @@
   "packs_no_pool": "Aucun pool",
   "packs_revealed": "Booster révélé.",
   "packs_click_to_reveal": "Cliquez sur une carte pour la révéler.",
+  "packs_tap_to_reveal": "Touchez une carte pour la révéler.",
   "packs_reveal_all": "Tout révéler",
   "packs_reveal_card_aria": "Révéler la carte {number}",
   "packs_pack_count": [

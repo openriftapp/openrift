@@ -3329,6 +3329,7 @@
   "packs_no_pool": "풀 없음",
   "packs_revealed": "팩을 모두 공개했습니다.",
   "packs_click_to_reveal": "카드를 클릭하면 공개됩니다.",
+  "packs_tap_to_reveal": "카드를 탭하면 공개됩니다.",
   "packs_reveal_all": "전부 공개",
   "packs_reveal_card_aria": "{number}번 카드 공개",
   "packs_pack_count": [

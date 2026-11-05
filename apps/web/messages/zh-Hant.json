@@ -3329,6 +3329,7 @@
   "packs_no_pool": "無卡池",
   "packs_revealed": "整包已翻開。",
   "packs_click_to_reveal": "點選卡牌即可翻開。",
+  "packs_tap_to_reveal": "輕點卡牌即可翻開。",
   "packs_reveal_all": "全部翻開",
   "packs_reveal_card_aria": "翻開第 {number} 張卡牌",
   "packs_pack_count": [

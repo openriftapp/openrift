@@ -3332,6 +3332,7 @@
   "packs_no_pool": "No pool",
   "packs_revealed": "Pack revealed.",
   "packs_click_to_reveal": "Click a card to reveal it.",
+  "packs_tap_to_reveal": "Tap a card to reveal it.",
   "packs_reveal_all": "Reveal all",
   "packs_reveal_card_aria": "Reveal card {number}",
   "packs_pack_count": [

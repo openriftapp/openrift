@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { CardBack } from "@/features/decks/components/card-back";
 import { PullCard } from "@/features/pack-opener/components/pull-card";
+import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { m } from "@/paraglide/messages.js";
 
 interface PackRevealProps {
@@ -42,6 +43,7 @@ export function PackReveal({
     setRevealed((current) => current.map(() => true));
   }
 
+  const coarsePointer = useCoarsePointer();
   const allRevealed = revealed.every(Boolean);
   useEffect(() => {
     if (allRevealed) {
@@ -53,7 +55,11 @@ export function PackReveal({
     <div>
       <div className="mb-3 flex items-center justify-between">
         <p className="text-muted-foreground text-sm">
-          {allRevealed ? m.packs_revealed() : m.packs_click_to_reveal()}
+          {allRevealed
+            ? m.packs_revealed()
+            : coarsePointer
+              ? m.packs_tap_to_reveal()
+              : m.packs_click_to_reveal()}
         </p>
         {!allRevealed && (
           <Button variant="outline" size="sm" onClick={revealAll}>

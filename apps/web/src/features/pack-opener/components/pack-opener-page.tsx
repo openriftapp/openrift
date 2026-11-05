@@ -11,7 +11,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { PackagePlusIcon, SparklesIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { PageHero } from "@/components/layout/page-hero";
@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Toggle } from "@/components/ui/toggle";
+import { Switch } from "@/components/ui/switch";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import {
   publicSetDetailQueryOptions,
@@ -105,8 +105,9 @@ export function PackOpenerPage() {
   return (
     <>
       <PackOpenerHero lead={m.packs_hero_lead()}>
-        <div className="mt-3 grid w-full gap-4 md:grid-cols-[1fr_1fr_1fr_auto]">
+        <div className="mt-3 grid w-full grid-cols-2 gap-4 md:grid-cols-3">
           <SetPickerField
+            className="col-span-2 md:col-span-1"
             sets={mainSets}
             value={setSlug}
             onChange={(slug) => {
@@ -128,19 +129,18 @@ export function PackOpenerPage() {
             onChoiceChange={setCountChoice}
             onCustomChange={setCustomCount}
           />
+          <div className="col-span-2 flex flex-col gap-2 md:col-span-3 md:max-w-sm">
+            <SwitchRow label={m.packs_toggle_shimmer()} checked={shimmer} onChange={setShimmer} />
+            <SwitchRow
+              label={m.packs_toggle_auto_reveal()}
+              checked={autoReveal}
+              onChange={setAutoReveal}
+            />
+          </div>
           <OpenAction setSlug={setSlug} language={language} count={count} onOpened={setPacks} />
         </div>
       </PackOpenerHero>
       <div className={cn(PAGE_PADDING_NO_TOP, "flex flex-col gap-8 pt-3")}>
-        <div className="flex justify-end gap-2">
-          <ToggleField label={m.packs_toggle_shimmer()} checked={shimmer} onChange={setShimmer} />
-          <ToggleField
-            label={m.packs_toggle_auto_reveal()}
-            checked={autoReveal}
-            onChange={setAutoReveal}
-          />
-        </div>
-
         {packs.length === 1 && packs[0] && (
           <SinglePackResult
             pack={packs[0]}
@@ -176,7 +176,7 @@ function PackOpenerHero({ lead, children }: { lead?: string; children?: ReactNod
   );
 }
 
-function ToggleField({
+function SwitchRow({
   label,
   checked,
   onChange,
@@ -185,24 +185,28 @@ function ToggleField({
   checked: boolean;
   onChange: (value: boolean) => void;
 }) {
+  const id = useId();
   return (
-    <Toggle variant="outline" pressed={checked} onPressedChange={onChange}>
-      {label}
-    </Toggle>
+    <div className="flex min-h-11 items-center justify-between gap-3">
+      <Label htmlFor={id}>{label}</Label>
+      <Switch id={id} checked={checked} onCheckedChange={onChange} />
+    </div>
   );
 }
 
 function SetPickerField({
+  className,
   sets,
   value,
   onChange,
 }: {
+  className?: string;
   sets: SetListEntry[];
   value: string;
   onChange: (slug: string) => void;
 }) {
   return (
-    <div className="space-y-1">
+    <div className={cn("space-y-1", className)}>
       <Label>{m.packs_field_set()}</Label>
       <Select value={value} onValueChange={(val) => val && onChange(val as string)}>
         <SelectTrigger className="w-full">
@@ -335,10 +339,7 @@ function OpenAction({
   const openable = isPoolOpenable(pool);
 
   return (
-    <div className="space-y-1">
-      <Label aria-hidden="true" className="invisible select-none">
-        &nbsp;
-      </Label>
+    <div className="col-span-2 md:col-span-3">
       <Button
         size="default"
         className="w-full md:w-auto"

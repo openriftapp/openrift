@@ -3329,6 +3329,7 @@
   "packs_no_pool": "Kein Pool",
   "packs_revealed": "Booster aufgedeckt.",
   "packs_click_to_reveal": "Klick eine Karte an, um sie aufzudecken.",
+  "packs_tap_to_reveal": "Tippe eine Karte an, um sie aufzudecken.",
   "packs_reveal_all": "Alle aufdecken",
   "packs_reveal_card_aria": "Karte {number} aufdecken",
   "packs_pack_count": [
