@@ -29,7 +29,7 @@ export function AuthFormCard({
   const split = layout === "split";
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden p-0">
+      <Card className="sm:bg-card overflow-hidden bg-transparent p-0 shadow-none ring-0 sm:ring-1">
         <CardContent className={cn("grid p-0", split && "md:grid-cols-2")}>
           <div className="p-6 md:p-8">
             <FieldGroup>
@@ -80,7 +80,7 @@ export function SocialAuthButtons({ redirectTo }: { redirectTo?: string }) {
 
   return (
     <>
-      <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
+      <FieldSeparator className="sm:*:data-[slot=field-separator-content]:bg-card">
         {m.auth_or_continue_with()}
       </FieldSeparator>
       <Field className="grid grid-cols-2 gap-4">

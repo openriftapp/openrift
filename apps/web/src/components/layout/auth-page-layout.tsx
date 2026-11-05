@@ -11,7 +11,7 @@ export function AuthPageLayout({
   size?: "md" | "2xl";
 }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center p-3">
+    <div className="flex flex-1 flex-col items-center justify-center p-4 sm:p-3">
       <div className={cn("w-full max-w-sm", size === "2xl" ? "md:max-w-2xl" : "md:max-w-md")}>
         {children}
       </div>

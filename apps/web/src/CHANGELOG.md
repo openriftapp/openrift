@@ -55,6 +55,10 @@
 - fix(Cards): **Search syntax on phones** — example queries no longer break across lines, and the section list is a row of tappable pills.
 - feat(Cards): **Clearer set cards** — each set shows one release date with the other languages behind a "+N languages" button, upcoming sets are marked, and sets without art get a code tile.
 
+### Other
+
+- fix(Account): **Cleaner phone sign-in** — on a phone the sign-in and sign-up forms sit directly on the page without a card frame, and the sign-in button now says "Sign in".
+
 ## 2026-11-04
 
 ### Highlights

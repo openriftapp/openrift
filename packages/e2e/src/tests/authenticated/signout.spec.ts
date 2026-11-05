@@ -58,7 +58,7 @@ async function loginViaForm(page: Page, email: string, password: string) {
   );
   await page.locator("#email").fill(email);
   await page.locator("#password").fill(password);
-  await page.getByRole("button", { name: /login/iu }).click();
+  await page.getByRole("button", { name: /^sign in$/iu }).click();
   await expect(page).not.toHaveURL(/\/login/u, { timeout: 15_000 });
 }
 

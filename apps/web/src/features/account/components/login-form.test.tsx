@@ -218,7 +218,7 @@ describe("LoginForm", () => {
 
     await user.type(activeEmailInput(), "vi@example.com");
     await user.type(screen.getByLabelText("Password", { selector: "input" }), "hunter2hunter2");
-    await user.click(screen.getByRole("button", { name: "Login" }));
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     await user.click(screen.getByRole("button", { name: "Send a verification code" }));
 
@@ -240,7 +240,7 @@ describe("LoginForm", () => {
 
     await user.type(activeEmailInput(), "vi@example.com");
     await user.type(screen.getByLabelText("Password", { selector: "input" }), "hunter2hunter2");
-    await user.click(screen.getByRole("button", { name: "Login" }));
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
     await user.click(screen.getByRole("button", { name: "Send a verification code" }));
 
     expect(screen.getByText(/Too many requests/u)).toBeInTheDocument();

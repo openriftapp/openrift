@@ -469,7 +469,7 @@
   "auth_login_title": "Welcome back",
   "auth_login_subtitle": "Sign in to your OpenRift account",
   "auth_login_no_account": "Don't have an account?",
-  "auth_login_submit": "Login",
+  "auth_login_submit": "Sign in",
   "auth_signing_in": "Signing in…",
   "auth_signin_failed": "Could not sign in. Please try again.",
   "auth_tab_password": "Password",

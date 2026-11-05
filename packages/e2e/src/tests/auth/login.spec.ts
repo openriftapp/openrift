@@ -12,7 +12,7 @@ test.describe("login page", () => {
       await expect(page.getByText("Welcome back")).toBeVisible();
       await expect(page.locator("#email")).toBeVisible();
       await expect(page.locator("#password")).toBeVisible();
-      await expect(page.getByRole("button", { name: /login/iu })).toBeVisible();
+      await expect(page.getByRole("button", { name: /^sign in$/iu })).toBeVisible();
     });
 
     test("shows error for invalid credentials", async ({ page }) => {
@@ -21,7 +21,7 @@ test.describe("login page", () => {
 
       await page.locator("#email").fill("nonexistent@test.com");
       await page.locator("#password").fill("WrongPassword123!");
-      await page.getByRole("button", { name: /login/iu }).click();
+      await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page.getByText("Invalid email or password")).toBeVisible({ timeout: 10_000 });
     });
@@ -41,7 +41,7 @@ test.describe("login page", () => {
 
       await page.locator("#email").fill(email);
       await page.locator("#password").fill(password);
-      await page.getByRole("button", { name: /login/iu }).click();
+      await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page).not.toHaveURL(/\/login/u, { timeout: 15_000 });
     });
@@ -52,7 +52,7 @@ test.describe("login page", () => {
 
       await page.locator("#email").fill("not-an-email");
       await page.locator("#password").fill("Whatever1!");
-      await page.getByRole("button", { name: /login/iu }).click();
+      await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page.getByText("Please enter a valid email address.")).toBeVisible();
     });
@@ -62,7 +62,7 @@ test.describe("login page", () => {
       await waitForHydration(page);
 
       await page.locator("#email").fill("someone@test.com");
-      await page.getByRole("button", { name: /login/iu }).click();
+      await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page.getByText("Password is required.")).toBeVisible();
     });
@@ -80,7 +80,7 @@ test.describe("login page", () => {
 
       await page.locator("#email").fill(email);
       await page.locator("#password").fill(password);
-      await page.getByRole("button", { name: /login/iu }).click();
+      await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page.getByText(/Please verify your email/iu)).toBeVisible({ timeout: 10_000 });
 
@@ -138,7 +138,7 @@ test.describe("login page", () => {
 
       await page.locator("#email").fill(email);
       await page.locator("#password").fill(password);
-      await page.getByRole("button", { name: /login/iu }).click();
+      await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page).toHaveURL(/\/collections/u, { timeout: 15_000 });
     });
@@ -158,7 +158,7 @@ test.describe("login page", () => {
 
       await page.locator("#email").fill(email);
       await page.locator("#password").fill(password);
-      await page.getByRole("button", { name: /login/iu }).click();
+      await page.getByRole("button", { name: /^sign in$/iu }).click();
 
       await expect(page).toHaveURL(/\/collections/u, { timeout: 15_000 });
     });
@@ -379,7 +379,7 @@ test.describe("login page", () => {
       await expect(page.getByRole("link", { name: /forgot your password/iu })).toBeFocused();
 
       await page.keyboard.press("Tab");
-      await expect(page.getByRole("button", { name: /login/iu })).toBeFocused();
+      await expect(page.getByRole("button", { name: /^sign in$/iu })).toBeFocused();
     });
   });
 });
