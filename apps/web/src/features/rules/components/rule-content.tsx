@@ -2,14 +2,17 @@ import { isRuleLanguage } from "@openrift/shared/rules";
 import type { HastNode } from "@openrift/shared/rules-markdown";
 import type { RuleLanguage } from "@openrift/shared/types/api/rules";
 import { Link } from "@tanstack/react-router";
+import { useId, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { flushSync } from "react-dom";
 
 import { Callout } from "@/components/ui/callout";
+import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { TextLink } from "@/components/ui/text-link";
 import { diffRuleMarkdown, diffRuleSide } from "@/features/rules/lib/rules-markdown-diff";
 import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 // Tournament penalty labels — matched as literal `[Label]` strings inside rule
 // bodies and styled on the status tokens by severity.
@@ -158,14 +161,28 @@ function RuleMarkdownSpan({
 }
 
 export function VersionComments({ html }: { html: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const contentId = useId();
   return (
-    <Callout className="mb-4">
-      <div
-        className="rule-comments"
-        // oxlint-disable-next-line react/no-danger -- server-rendered through the allowlist serializer in @openrift/shared/rules-html
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
-    </Callout>
+    <div className="mb-4">
+      <ExpandToggle
+        expanded={expanded}
+        aria-controls={contentId}
+        onClick={() => setExpanded((open) => !open)}
+        className="text-muted-foreground hover:text-foreground text-sm"
+      >
+        {m.rules_version_note()}
+      </ExpandToggle>
+      {expanded && (
+        <Callout id={contentId} className="mt-2">
+          <div
+            className="rule-comments"
+            // oxlint-disable-next-line react/no-danger -- server-rendered through the allowlist serializer in @openrift/shared/rules-html
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        </Callout>
+      )}
+    </div>
   );
 }
 

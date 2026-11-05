@@ -34,7 +34,7 @@ vi.mock("@tanstack/react-router", () => ({
   createLink: (Component: unknown) => Component,
 }));
 
-const { InlineDiff, handleRuleHtmlClick } = await import("./rule-content");
+const { InlineDiff, VersionComments, handleRuleHtmlClick } = await import("./rule-content");
 
 function RuleHtml({ html, navigate }: { html: string; navigate?: (href: string) => void }) {
   return (
@@ -199,5 +199,20 @@ describe("delegated rule link clicks", () => {
     fireEvent.click(screen.getByRole("link", { name: "Flash" }));
 
     expect(navigate).not.toHaveBeenCalled();
+  });
+});
+
+describe("VersionComments", () => {
+  it("starts collapsed and expands to the full note", () => {
+    render(<VersionComments html="<p>Takes effect 2026-10-16.</p>" />);
+    const toggle = screen.getByRole("button", { name: "Note" });
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Takes effect 2026-10-16.")).toBeNull();
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Takes effect 2026-10-16.")).toBeInTheDocument();
   });
 });

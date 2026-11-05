@@ -10,3 +10,16 @@ export function ruleVersionLabel(entry: VersionNaming): string {
 export function ruleVersionLabels(versions: readonly VersionNaming[]): Map<string, string> {
   return new Map(versions.map((entry) => [entry.version, ruleVersionLabel(entry)]));
 }
+
+export function rulesSettingsLabel(
+  entry: Pick<RuleVersionResponse, "version" | "documentVersion">,
+  language: string,
+  showLanguage: boolean,
+): string {
+  const version = entry.documentVersion || entry.version;
+  if (!showLanguage) {
+    return version;
+  }
+  const code = language.split("-")[0] ?? language;
+  return `${version} ${code.toUpperCase()}`;
+}

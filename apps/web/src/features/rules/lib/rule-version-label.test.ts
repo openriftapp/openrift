@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ruleVersionLabel, ruleVersionLabels } from "./rule-version-label";
+import { ruleVersionLabel, ruleVersionLabels, rulesSettingsLabel } from "./rule-version-label";
 
 function entry(
   version: string,
@@ -37,5 +37,23 @@ describe("ruleVersionLabels", () => {
     ]);
     expect(labels.get("2026-03-30")).toBe("1.3 · Unleashed (2026-03-30)");
     expect(labels.get("2026-04-29")).toBe("2026-04-29");
+  });
+});
+
+describe("rulesSettingsLabel", () => {
+  it("pairs the document version with the upper-case language code", () => {
+    expect(rulesSettingsLabel(entry("2026-10-09", "1.5"), "en", true)).toBe("1.5 EN");
+  });
+
+  it("drops the script subtag from the language code", () => {
+    expect(rulesSettingsLabel(entry("2026-10-09", "1.5"), "zh-Hans", true)).toBe("1.5 ZH");
+  });
+
+  it("falls back to the version date when there is no document version", () => {
+    expect(rulesSettingsLabel(entry("2026-04-29"), "fr", true)).toBe("2026-04-29 FR");
+  });
+
+  it("leaves the language out when it cannot be switched", () => {
+    expect(rulesSettingsLabel(entry("2026-10-09", "1.5"), "en", false)).toBe("1.5");
   });
 });

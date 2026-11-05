@@ -13,18 +13,11 @@ import { PageToc, PageTocMobileTrigger } from "@/components/layout/page-toc";
 import type { PageTocItem } from "@/components/layout/page-toc";
 import { PAGE_TOP_BAR_GEOMETRY } from "@/components/layout/page-top-bar";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { featuredBoardStatesQueryOptions } from "@/features/board-states/lib/board-states-queries";
 import { useRuleVersions, useRulesAtVersion } from "@/features/rules/hooks/use-rules";
 import { buildRuleExamplesMap } from "@/features/rules/lib/rule-examples";
 import { ruleHtmlToText } from "@/features/rules/lib/rule-text";
-import { ruleVersionLabels } from "@/features/rules/lib/rule-version-label";
+import { ruleVersionLabels, rulesSettingsLabel } from "@/features/rules/lib/rule-version-label";
 import {
   buildChangeKindMap,
   computeAncestorsByRule,
@@ -51,6 +44,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsStuck } from "@/hooks/use-is-stuck";
 import { useMeasuredHeight } from "@/hooks/use-measured-height";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
+import { formatCount } from "@/lib/format";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -59,7 +53,14 @@ import { useRuleCardPreview } from "./rule-card-preview";
 import { handleRuleHtmlClick, VersionComments } from "./rule-content";
 import { RuleRow } from "./rule-row";
 import { ChangesSummary } from "./rules-changes-summary";
-import { ChangesViewToggle, KindTabs, RulesLanguageSelect, RulesSearchBar } from "./rules-toolbar";
+import {
+  ChangesViewToggle,
+  KindTabs,
+  RulesLanguageSelect,
+  RulesSearchBar,
+  RulesSettingsSheet,
+  RulesVersionSelect,
+} from "./rules-toolbar";
 
 function buildRulesTocItems(rules: RuleEntry[]): PageTocItem[] {
   return rules
@@ -249,8 +250,31 @@ function RulesContent({
   const tocItems = buildRulesTocItems(rules);
   const ruleCountLabel =
     searchResult === null
-      ? m.rules_count({ count: rules.length })
+      ? undefined
       : m.rules_count_filtered({ matched: searchResult.matchSet.size, count: rules.length });
+
+  const renderSettings = (triggerClassName?: string) => (
+    <>
+      <RulesLanguageSelect
+        kind={kind}
+        language={language}
+        languages={versionsData.languages}
+        versionLanguages={currentVersion?.languages ?? [language]}
+        className={triggerClassName}
+      />
+      <RulesVersionSelect
+        kind={kind}
+        language={language}
+        version={version}
+        items={versionItems}
+        fallbackLabel={versionLabels.get(version)}
+        className={triggerClassName}
+      />
+      {!isSearching && (
+        <ChangesViewToggle kind={kind} hasPreviousVersion={previousVersion !== null} />
+      )}
+    </>
+  );
 
   const stats = [
     ...(currentVersion?.documentVersion
@@ -279,7 +303,7 @@ function RulesContent({
           className={cn(
             PAGE_TOP_BAR_GEOMETRY,
             isToolbarStuck && STICKY_SURFACE,
-            "px-safe mx-safe-neg z-20 mb-4 flex flex-wrap items-center gap-2",
+            "px-safe mx-safe-neg z-20 mb-4 flex items-center gap-2 lg:flex-wrap",
           )}
         >
           <PageTocMobileTrigger
@@ -287,45 +311,20 @@ function RulesContent({
             className="sm:w-auto sm:gap-1.5 sm:px-2.5"
             labelClassName="hidden sm:inline"
           />
-          <RulesSearchBar trailing={ruleCountLabel} />
-          <RulesLanguageSelect
-            kind={kind}
-            language={language}
-            languages={versionsData.languages}
-            versionLanguages={currentVersion?.languages ?? [language]}
+          <RulesSearchBar
+            placeholder={m.rules_search_placeholder_count({ count: formatCount(rules.length) })}
+            trailing={ruleCountLabel}
           />
-          {versions.length > 1 ? (
-            <Select
-              items={versionItems}
-              value={version}
-              onValueChange={(nextVersion) => {
-                if (typeof nextVersion !== "string" || nextVersion === version) {
-                  return;
-                }
-                void navigate({
-                  to: "/rules/$kind/$version",
-                  params: { kind, version: nextVersion },
-                  search: { lang: language },
-                });
-              }}
-            >
-              <SelectTrigger className="text-muted-foreground" aria-label={m.rules_version_label()}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {versionItems.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <span className="text-muted-foreground text-sm">{versionLabels.get(version)}</span>
-          )}
-          {!isSearching && (
-            <ChangesViewToggle kind={kind} hasPreviousVersion={previousVersion !== null} />
-          )}
+          <div className="hidden lg:contents">{renderSettings()}</div>
+          <RulesSettingsSheet
+            label={rulesSettingsLabel(
+              currentVersion ?? { version, documentVersion: null },
+              language,
+              versionsData.languages.length > 1,
+            )}
+          >
+            {renderSettings("w-full")}
+          </RulesSettingsSheet>
         </div>
 
         {isEmpty ? (

@@ -1,10 +1,19 @@
 import { isRuleLanguage } from "@openrift/shared/rules";
 import type { RuleKind, RuleLanguage } from "@openrift/shared/types/api/rules";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { FileClockIcon } from "lucide-react";
+import { ChevronDownIcon, FileClockIcon } from "lucide-react";
 import { useState } from "react";
+import type { ReactNode } from "react";
 
 import { SearchInput } from "@/components/search-input";
+import { Button } from "@/components/ui/button";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import {
   Select,
   SelectContent,
@@ -24,6 +33,7 @@ import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useSearchUrlSync } from "@/hooks/use-search-url-sync";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 export function ChangesViewToggle({
@@ -78,11 +88,13 @@ export function RulesLanguageSelect({
   language,
   languages,
   versionLanguages,
+  className,
 }: {
   kind: RuleKind;
   language: RuleLanguage;
   languages: readonly RuleLanguage[];
   versionLanguages: readonly RuleLanguage[];
+  className?: string;
 }) {
   const navigate = useNavigate();
   if (languages.length < 2) {
@@ -104,7 +116,10 @@ export function RulesLanguageSelect({
         }
       }}
     >
-      <SelectTrigger className="text-muted-foreground" aria-label={m.rules_language_label()}>
+      <SelectTrigger
+        className={cn("text-muted-foreground", className)}
+        aria-label={m.rules_language_label()}
+      >
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -151,7 +166,89 @@ export function KindTabs({ kind }: { kind: RuleKind | "glossary" }) {
   );
 }
 
-export function RulesSearchBar({ trailing }: { trailing: string }) {
+export function RulesVersionSelect({
+  kind,
+  language,
+  version,
+  items,
+  fallbackLabel,
+  className,
+}: {
+  kind: RuleKind;
+  language: RuleLanguage;
+  version: string;
+  items: readonly { value: string; label: string | undefined }[];
+  fallbackLabel: string | undefined;
+  className?: string;
+}) {
+  const navigate = useNavigate();
+  if (items.length < 2) {
+    return <span className="text-muted-foreground text-sm">{fallbackLabel}</span>;
+  }
+  return (
+    <Select
+      items={items}
+      value={version}
+      onValueChange={(nextVersion) => {
+        if (typeof nextVersion !== "string" || nextVersion === version) {
+          return;
+        }
+        void navigate({
+          to: "/rules/$kind/$version",
+          params: { kind, version: nextVersion },
+          search: { lang: language },
+        });
+      }}
+    >
+      <SelectTrigger
+        className={cn("text-muted-foreground", className)}
+        aria-label={m.rules_version_label()}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {items.map((item) => (
+          <SelectItem key={item.value} value={item.value}>
+            {item.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+export function RulesSettingsSheet({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <Drawer showSwipeHandle>
+      <DrawerTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            className="text-muted-foreground shrink-0 lg:hidden"
+          />
+        }
+      >
+        <span className="sr-only">{m.rules_settings_title()}</span> {label}
+        <ChevronDownIcon data-icon="inline-end" />
+      </DrawerTrigger>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle>{m.rules_settings_title()}</DrawerTitle>
+        </DrawerHeader>
+        <div className="flex flex-col items-start gap-3 px-4 pb-6">{children}</div>
+      </DrawerContent>
+    </Drawer>
+  );
+}
+
+export function RulesSearchBar({
+  placeholder,
+  trailing,
+}: {
+  placeholder: string;
+  trailing?: string;
+}) {
   const urlQuery = useSearch({ strict: false, select: (search) => search.q });
   const urlValue = typeof urlQuery === "string" ? urlQuery : "";
   const setQuery = useRulesSearchStore((state) => state.setQuery);
@@ -205,9 +302,10 @@ export function RulesSearchBar({ trailing }: { trailing: string }) {
     <SearchInput
       value={draft}
       onValueChange={setDraft}
-      placeholder={m.rules_search_placeholder()}
+      placeholder={placeholder}
+      aria-label={m.rules_search_placeholder()}
       trailing={trailing}
-      className="min-w-[200px] flex-1"
+      className="min-w-0 flex-1 lg:min-w-[200px]"
     />
   );
 }

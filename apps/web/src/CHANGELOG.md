@@ -24,6 +24,7 @@
 - fix(Decks): **Gear group label** — deck type groups and stats now say "Gear" instead of "Gears".
 - fix(Collection): **Tidier collection header on phones** — the title and value no longer get cut off, Scan shows once, and the welcome note is one line with a link to the full guide.
 - feat(Cards): **Roomier phone filter drawer** — filters use the full width, extra sets fold away until you need them, and Reset stays at the top.
+- feat(Rules): **Compact rules toolbar on phones** — version, language and changes now sit behind one button, so the pinned toolbar is a single row and the rules start higher on the page.
 
 ## 2026-11-04
 
