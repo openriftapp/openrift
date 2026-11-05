@@ -1,10 +1,9 @@
-import { dateLeafPartsUtc } from "@openrift/shared/format-date";
+import { formatShortDay } from "@openrift/shared/format-date";
 
 import { DATE_WORDS } from "@/lib/date-words";
 
 export function formatTickDate(date: string): string {
-  const { month, day } = dateLeafPartsUtc(date, DATE_WORDS);
-  return month === "" ? "" : `${month} ${day}`;
+  return formatShortDay(date, DATE_WORDS);
 }
 
 export function tickAnchor(index: number, count: number): "start" | "middle" | "end" {

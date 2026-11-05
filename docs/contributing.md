@@ -213,6 +213,8 @@ Numbers on player surfaces go through `formatCount`, `formatMoney` and the `form
 | `formatTimeLocal`       | `14:30`                                               | Time of day for this viewer, under a day heading.                            |
 | `formatDayTimeLocal`    | `2026-08-15 14:30`                                    | An instant on the viewer's own clock.                                        |
 | `formatWeekdayDayLocal` | `Thursday, 11 September`                              | A day heading in a list the viewer reads as their own week.                  |
+| `formatShortDay`        | `Oct 6`                                               | A UTC day in a tight spot where the year is implied (chart ticks).           |
+| `formatShortDayYear`    | `Oct 6, 2025`                                         | A UTC day spelled for players, with a short month.                           |
 | `formatRelativeTime`    | `3h ago` / `in 3h`                                    | A gap from now, either direction. `{ seconds }` and `{ compound }` widen it. |
 | `formatRelativeDay`     | `Yesterday` … `2026-01-15`                            | A day relative to today, falling back to `formatDay`.                        |
 | `dateLeafParts`         | `AUG` / `15`                                          | The calendar-leaf tile for an instant, on the viewer's clock.                |

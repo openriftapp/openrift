@@ -74,6 +74,15 @@ describe("MetaScopeBar on a phone", () => {
     expect(within(dialog).getByText("Premier")).toBeInTheDocument();
   });
 
+  it("opens the filters drawer at the era control when the page asks for the era picker", async () => {
+    const onEraPickerOpenChange = vi.fn();
+    const { user } = renderBar({ eraPickerOpen: true, onEraPickerOpenChange });
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByLabelText("Era")).toHaveTextContent("Proving Grounds");
+    await user.click(within(dialog).getByRole("button", { name: "Done" }));
+    expect(onEraPickerOpenChange).toHaveBeenCalledWith(false);
+  });
+
   it("lists the picks as removable chips under the search", async () => {
     const { setScope, user } = renderBar({ scope: { tiers: ["premier"], countriesEx: ["de"] } });
     expect(screen.getByText("Premier")).toBeInTheDocument();
@@ -113,15 +122,28 @@ describe("MetaScopeBar on a phone", () => {
 });
 
 describe("MetaScopeBar", () => {
-  it("opens on the current set rather than all time", () => {
+  it("opens on the current set rather than all eras, naming it as the era", () => {
     renderBar();
-    expect(screen.getByLabelText("Era")).toHaveTextContent("Proving Grounds");
+    expect(screen.getByLabelText("Era")).toHaveTextContent("Era: Proving Grounds");
+  });
+
+  it("reports a trigger click while the page holds the picker closed", async () => {
+    const onEraPickerOpenChange = vi.fn();
+    const { user } = renderBar({ eraPickerOpen: false, onEraPickerOpenChange });
+    await user.click(screen.getByLabelText("Era"));
+    expect(onEraPickerOpenChange).toHaveBeenCalledWith(true);
+  });
+
+  it("opens the era list when the page asks for the picker", async () => {
+    const onEraPickerOpenChange = vi.fn();
+    renderBar({ eraPickerOpen: true, onEraPickerOpenChange });
+    expect(await option("Origins")).toBeInTheDocument();
   });
 
   it("offers every era plus the custom range", async () => {
     const { user } = renderBar();
     await user.click(screen.getByLabelText("Era"));
-    for (const label of ["All time", "Proving Grounds", "Origins", "Custom range"]) {
+    for (const label of ["All eras", "Proving Grounds", "Origins", "Custom range"]) {
       expect(await option(label)).toBeInTheDocument();
     }
   });
@@ -136,21 +158,21 @@ describe("MetaScopeBar", () => {
   it("writes the all-time sentinel, since an absent era means the current set", async () => {
     const { setScope, user } = renderBar({ scope: { era: "origins" } });
     await user.click(screen.getByLabelText("Era"));
-    await user.click(await option("All time"));
+    await user.click(await option("All eras"));
     expect(setScope).toHaveBeenCalledWith({ era: ERA_ALL, from: undefined, to: undefined });
   });
 
-  it("shows all time after picking it off the default era", async () => {
+  it("shows all eras after picking it off the default era", async () => {
     const { user } = renderBar({ scope: { era: ERA_ALL } });
-    expect(screen.getByLabelText("Era")).toHaveTextContent("All time");
+    expect(screen.getByLabelText("Era")).toHaveTextContent("All eras");
     await user.click(screen.getByLabelText("Era"));
-    expect(await option("All time")).toBeInTheDocument();
+    expect(await option("All eras")).toBeInTheDocument();
   });
 
-  it("shows all time for a bookmarked era that no longer exists, not the dead slug", () => {
+  it("shows all eras for a bookmarked era that no longer exists, not the dead slug", () => {
     renderBar({ scope: { era: "retired-set" } });
     const trigger = screen.getByLabelText("Era");
-    expect(trigger).toHaveTextContent("All time");
+    expect(trigger).toHaveTextContent("All eras");
     expect(trigger).not.toHaveTextContent("retired-set");
   });
 

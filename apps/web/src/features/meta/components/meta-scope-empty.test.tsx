@@ -11,8 +11,17 @@ const eras = [
 
 function setup(scope: { era?: string }) {
   const setScope = vi.fn();
-  render(<MetaScopeEmpty scope={scope} eras={eras} setScope={setScope} fallback="Nothing here." />);
-  return setScope;
+  const onPickEra = vi.fn();
+  render(
+    <MetaScopeEmpty
+      scope={scope}
+      eras={eras}
+      setScope={setScope}
+      onPickEra={onPickEra}
+      fallback="Nothing here."
+    />,
+  );
+  return { setScope, onPickEra };
 }
 
 describe("MetaScopeEmpty", () => {
@@ -24,17 +33,17 @@ describe("MetaScopeEmpty", () => {
   });
 
   it("switches to all eras", async () => {
-    const setScope = setup({ era: "set-a" });
+    const { setScope } = setup({ era: "set-a" });
     expect(screen.getByText("Set A has no results on file yet.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Show all eras" }));
     expect(setScope).toHaveBeenCalledWith({ era: "all", from: undefined, to: undefined });
   });
 
-  it("opens the era list and picks one", async () => {
-    const setScope = setup({});
+  it("hands Pick an era to the scope bar's picker", async () => {
+    const { setScope, onPickEra } = setup({});
     await userEvent.click(screen.getByRole("button", { name: "Pick an era" }));
-    await userEvent.click(await screen.findByRole("menuitem", { name: "Set A" }));
-    expect(setScope).toHaveBeenCalledWith({ era: "set-a", from: undefined, to: undefined });
+    expect(onPickEra).toHaveBeenCalledTimes(1);
+    expect(setScope).not.toHaveBeenCalled();
   });
 
   it("keeps the plain sentence when the scope is all time", () => {

@@ -1,4 +1,4 @@
-import { formatDayMonthYear } from "@openrift/shared/format-date";
+import { formatShortDayYear } from "@openrift/shared/format-date";
 import { useEffect, useRef, useState } from "react";
 
 import { MarkdownText } from "@/components/markdown-text";
@@ -51,7 +51,7 @@ export function PromoChannelIntro({ description }: { description: string }) {
     <div className="flex flex-col gap-1.5">
       {(date || url) && (
         <p className="text-muted-foreground text-xs">
-          {date && m.promos_announced({ date: formatDayMonthYear(date, DATE_WORDS) })}
+          {date && m.promos_announced({ date: formatShortDayYear(date, DATE_WORDS) })}
           {date && url && " · "}
           {url && (
             <TextLink variant="muted" href={url} target="_blank" rel="noreferrer">

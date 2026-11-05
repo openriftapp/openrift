@@ -36,6 +36,7 @@ import {
 } from "@/features/meta/components/meta-deck-index-row";
 import { MetaEventHeading } from "@/features/meta/components/meta-event-row";
 import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
+import { MetaScopeEmpty } from "@/features/meta/components/meta-scope-empty";
 import { useMetaDeckFacets, useMetaDecks } from "@/features/meta/hooks/use-meta";
 import { useMetaDeckFilters } from "@/features/meta/hooks/use-meta-deck-filters";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
@@ -127,6 +128,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
   const setView = useDisplayStore((state) => state.setMetaDeckView);
   const smUp = useSmUp();
   const [costs, setCosts] = useState<ReadonlyMap<string, MetaDeckCost>>();
+  const [eraPickerOpen, setEraPickerOpen] = useState(false);
 
   const signedIn = Boolean(session?.user);
   // A priced bound narrows the page in the browser, so an emptied page is not
@@ -188,6 +190,26 @@ function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
     </p>
   );
 
+  const emptyState = (className: string) =>
+    total === 0 ? (
+      <MetaScopeEmpty
+        className={className}
+        scope={filters.scope}
+        eras={eras}
+        setScope={filters.setScope}
+        onPickEra={() => setEraPickerOpen(true)}
+        fallback={m.meta_browser_no_match()}
+      />
+    ) : (
+      <Empty className={className}>
+        <EmptyHeader>
+          <EmptyDescription>
+            {costActive ? m.meta_browser_no_match() : m.meta_page_past_end()}
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+
   const handlePageChange = (next: number) => filters.setPage(next);
   const handlePerPageChange = (next: MetaPageSizeValue) => filters.setPerPage(next);
 
@@ -228,6 +250,8 @@ function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
           )
         }
         phoneStripLead={smUp ? undefined : bestToggle("xs")}
+        eraPickerOpen={eraPickerOpen}
+        onEraPickerOpenChange={setEraPickerOpen}
       />
 
       {smUp ? (
@@ -251,7 +275,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
               onSort={(column) => filters.sortBy(column)}
             />
             {decks.length === 0 ? (
-              <NoMatches pastEnd={total > 0 && !costActive} />
+              emptyState("py-10")
             ) : (
               <DeckList
                 key={listKey}
@@ -264,13 +288,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (count: DeckCount) => void }) {
             )}
           </div>
         ) : decks.length === 0 ? (
-          <Empty className="mt-6">
-            <EmptyHeader>
-              <EmptyDescription>
-                {total > 0 && !costActive ? m.meta_page_past_end() : m.meta_browser_no_match()}
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
+          emptyState("mt-6")
         ) : (
           <div className="mt-6">
             <DeckGrid
@@ -337,18 +355,6 @@ function DeckPageSizePicker({
         ))}
       </SelectContent>
     </Select>
-  );
-}
-
-function NoMatches({ pastEnd }: { pastEnd: boolean }) {
-  return (
-    <Empty className="py-10">
-      <EmptyHeader>
-        <EmptyDescription>
-          {pastEnd ? m.meta_page_past_end() : m.meta_browser_no_match()}
-        </EmptyDescription>
-      </EmptyHeader>
-    </Empty>
   );
 }
 

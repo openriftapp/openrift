@@ -1,6 +1,7 @@
 import { formatDay } from "@openrift/shared/format-date";
 import { Link, getRouteApi } from "@tanstack/react-router";
 import { SwordsIcon } from "lucide-react";
+import { useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import {
@@ -235,6 +236,7 @@ export function MetaLegendsPage() {
     void navigate({ search: (prev) => nextScopeSearch(prev, patch), replace: true });
   };
 
+  const [eraPickerOpen, setEraPickerOpen] = useState(false);
   const setScope = (patch: Partial<MetaScope>) => setSearchParams(patch);
   const clearScope = () => setSearchParams({ ...CLEARED_SCOPE, q: undefined });
   const setSort = (column: MetaLegendIndexSort) => {
@@ -278,6 +280,8 @@ export function MetaLegendsPage() {
               search={<LegendSearchBox urlValue={search.q ?? ""} onCommit={commitQuery} />}
               scope={search}
               setScope={setScope}
+              eraPickerOpen={eraPickerOpen}
+              onEraPickerOpenChange={setEraPickerOpen}
               clearScope={clearScope}
               eras={eras}
               countries={countries}
@@ -291,6 +295,7 @@ export function MetaLegendsPage() {
                   scope={search}
                   eras={eras}
                   setScope={setScope}
+                  onPickEra={() => setEraPickerOpen(true)}
                   fallback={m.meta_legends_no_match()}
                 />
               ) : (

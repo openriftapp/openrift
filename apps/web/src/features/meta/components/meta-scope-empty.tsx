@@ -3,19 +3,13 @@ import type { ReactNode } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import type { MetaEra, MetaScope } from "@/features/meta/lib/meta-scope";
 import { defaultEraId, ERA_ALL, ERA_CUSTOM } from "@/features/meta/lib/meta-scope";
 import { m } from "@/paraglide/messages.js";
 
 /** The set era the scope narrows to, or undefined for all time, a custom range or no eras yet. */
-export function activeEra(scope: MetaScope, eras: readonly MetaEra[]): MetaEra | undefined {
+function activeEra(scope: MetaScope, eras: readonly MetaEra[]): MetaEra | undefined {
   const id = scope.era ?? defaultEraId(eras);
   if (id === undefined || id === ERA_ALL || id === ERA_CUSTOM) {
     return undefined;
@@ -27,12 +21,14 @@ export function MetaScopeEmpty({
   scope,
   eras,
   setScope,
+  onPickEra,
   fallback,
   className,
 }: {
   scope: MetaScope;
   eras: readonly MetaEra[];
   setScope: (patch: Partial<MetaScope>) => void;
+  onPickEra: () => void;
   fallback: ReactNode;
   className?: string;
 }) {
@@ -57,21 +53,9 @@ export function MetaScopeEmpty({
         <Button onClick={() => setScope({ era: ERA_ALL, from: undefined, to: undefined })}>
           {m.meta_scope_empty_show_all()}
         </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="outline" />}>
-            {m.meta_scope_empty_pick()}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="center">
-            {eras.map((option) => (
-              <DropdownMenuItem
-                key={option.id}
-                onClick={() => setScope({ era: option.id, from: undefined, to: undefined })}
-              >
-                {option.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button variant="outline" onClick={onPickEra}>
+          {m.meta_scope_empty_pick()}
+        </Button>
       </div>
     </EmptyState>
   );

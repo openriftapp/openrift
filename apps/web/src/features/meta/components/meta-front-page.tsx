@@ -10,6 +10,7 @@ import {
   TrophyIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { Heading } from "@/components/heading";
@@ -244,6 +245,7 @@ export function MetaFrontPage() {
   const { data: counts } = useMetaCounts();
   const { data: activityData } = useMetaActivity();
 
+  const [eraPickerOpen, setEraPickerOpen] = useState(false);
   const setScope = (patch: Partial<MetaScope>) => {
     void navigate({ search: (prev) => nextScopeSearch(prev, patch) });
   };
@@ -301,6 +303,8 @@ export function MetaFrontPage() {
                 search={<MetaArchiveSearch value={search.q ?? ""} onCommit={setQuery} />}
                 scope={search}
                 setScope={setScope}
+                eraPickerOpen={eraPickerOpen}
+                onEraPickerOpenChange={setEraPickerOpen}
                 clearScope={clearScope}
                 eras={eras}
                 countries={metaEventCountries(
@@ -441,6 +445,7 @@ export function MetaFrontPage() {
                         scope={search}
                         eras={eras}
                         setScope={setScope}
+                        onPickEra={() => setEraPickerOpen(true)}
                         fallback={m.meta_front_scope_empty()}
                       />
                     )}

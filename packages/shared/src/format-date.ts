@@ -24,6 +24,21 @@ const MONTH_ABBREVIATIONS = [
   "DEC",
 ] as const;
 
+const MONTH_SHORT_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
 const MONTH_NAMES = [
   "January",
   "February",
@@ -53,10 +68,13 @@ const WEEKDAY_NAMES = [
 export interface DateWords {
   monthName: (monthIndex: number) => string;
   monthAbbreviation: (monthIndex: number) => string;
+  monthShortName: (monthIndex: number) => string;
   weekdayName: (weekdayIndex: number) => string;
   monthYear: (month: string, year: number) => string;
   dayMonthYear: (day: number, month: string, year: number) => string;
   weekdayDay: (weekday: string, day: number, month: string) => string;
+  monthDay: (day: number, month: string) => string;
+  monthDayYear: (day: number, month: string, year: number) => string;
   justNow: () => string;
   underAMinuteAhead: () => string;
   seconds: (count: number) => string;
@@ -80,10 +98,13 @@ export interface DateWords {
 export const ENGLISH_DATE_WORDS: DateWords = {
   monthName: (index) => MONTH_NAMES[index] ?? "",
   monthAbbreviation: (index) => MONTH_ABBREVIATIONS[index] ?? "",
+  monthShortName: (index) => MONTH_SHORT_NAMES[index] ?? "",
   weekdayName: (index) => WEEKDAY_NAMES[index] ?? "",
   monthYear: (month, year) => `${month} ${year}`,
   dayMonthYear: (day, month, year) => `${day} ${month} ${year}`,
   weekdayDay: (weekday, day, month) => `${weekday}, ${day} ${month}`,
+  monthDay: (day, month) => `${month} ${day}`,
+  monthDayYear: (day, month, year) => `${month} ${day}, ${year}`,
   justNow: () => "just now",
   underAMinuteAhead: () => "in <1m",
   seconds: (count) => `${count}s`,
@@ -162,6 +183,34 @@ export function formatDayMonthYear(
   return words.dayMonthYear(
     date.getUTCDate(),
     words.monthName(date.getUTCMonth()),
+    date.getUTCFullYear(),
+  );
+}
+
+/** `Oct 6`, the UTC day with a short month and no year. */
+export function formatShortDay(
+  input: Date | string,
+  words: DateWords = ENGLISH_DATE_WORDS,
+): string {
+  const date = toDate(input);
+  if (date === null) {
+    return "";
+  }
+  return words.monthDay(date.getUTCDate(), words.monthShortName(date.getUTCMonth()));
+}
+
+/** `Oct 6, 2025`, the UTC day with a short month. */
+export function formatShortDayYear(
+  input: Date | string,
+  words: DateWords = ENGLISH_DATE_WORDS,
+): string {
+  const date = toDate(input);
+  if (date === null) {
+    return "";
+  }
+  return words.monthDayYear(
+    date.getUTCDate(),
+    words.monthShortName(date.getUTCMonth()),
     date.getUTCFullYear(),
   );
 }

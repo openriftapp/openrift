@@ -1,4 +1,4 @@
-import { formatDayMonthYear, formatMonthYear, todayUtc } from "@openrift/shared/format-date";
+import { formatMonthYear, formatShortDayYear, todayUtc } from "@openrift/shared/format-date";
 import type { SetRelease, SetReleases } from "@openrift/shared/set-release";
 import { isReleased, isReleasedAnywhere } from "@openrift/shared/set-release";
 import type { SetListEntry } from "@openrift/shared/types/api/catalog";
@@ -59,7 +59,7 @@ function releaseWhen(release: SetRelease): string {
     return "";
   }
   if (precision === "day") {
-    return m.release_when_day({ date: formatDayMonthYear(releasedAt, DATE_WORDS) });
+    return m.release_when_day({ date: formatShortDayYear(releasedAt, DATE_WORDS) });
   }
   const year = releasedAt.slice(0, 4);
   if (precision === "month") {
@@ -78,7 +78,7 @@ export function releaseDateText(release: SetRelease): string {
     return "";
   }
   if (precision === "day") {
-    return formatDayMonthYear(releasedAt, DATE_WORDS);
+    return formatShortDayYear(releasedAt, DATE_WORDS);
   }
   if (precision === "month") {
     return formatMonthYear(releasedAt, DATE_WORDS);

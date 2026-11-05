@@ -30,12 +30,16 @@ export function MetaDeckFilterControls({
   cost,
   phoneToolbar,
   phoneStripLead,
+  eraPickerOpen,
+  onEraPickerOpenChange,
 }: {
   facets: MetaDeckFacetsResponse;
   eras: readonly MetaEra[];
   cost: MetaDeckCostFilterData;
   phoneToolbar?: ReactNode;
   phoneStripLead?: ReactNode;
+  eraPickerOpen?: boolean;
+  onEraPickerOpenChange?: (open: boolean) => void;
 }) {
   const filters = useMetaDeckFilters();
 
@@ -92,6 +96,8 @@ export function MetaDeckFilterControls({
       activeChips={activeChips}
       phoneToolbar={phoneToolbar}
       phoneStripLead={phoneStripLead}
+      eraPickerOpen={eraPickerOpen}
+      onEraPickerOpenChange={onEraPickerOpenChange}
       extras={
         <>
           {(facets.legends.length > 1 || filters.legends.length > 0) && (

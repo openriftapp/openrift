@@ -32,6 +32,21 @@ const MONTH_ABBREVIATIONS = [
   m.date_month_short_12,
 ];
 
+const MONTH_SHORT_NAMES = [
+  m.date_month_abbr_1,
+  m.date_month_abbr_2,
+  m.date_month_abbr_3,
+  m.date_month_abbr_4,
+  m.date_month_abbr_5,
+  m.date_month_abbr_6,
+  m.date_month_abbr_7,
+  m.date_month_abbr_8,
+  m.date_month_abbr_9,
+  m.date_month_abbr_10,
+  m.date_month_abbr_11,
+  m.date_month_abbr_12,
+];
+
 const WEEKDAY_NAMES = [
   m.date_weekday_0,
   m.date_weekday_1,
@@ -45,10 +60,13 @@ const WEEKDAY_NAMES = [
 export const DATE_WORDS: DateWords = {
   monthName: (index) => MONTH_NAMES[index]?.() ?? "",
   monthAbbreviation: (index) => MONTH_ABBREVIATIONS[index]?.() ?? "",
+  monthShortName: (index) => MONTH_SHORT_NAMES[index]?.() ?? "",
   weekdayName: (index) => WEEKDAY_NAMES[index]?.() ?? "",
   monthYear: (month, year) => m.date_month_year({ month, year }),
   dayMonthYear: (day, month, year) => m.date_day_month_year({ day, month, year }),
   weekdayDay: (weekday, day, month) => m.date_weekday_day({ weekday, day, month }),
+  monthDay: (day, month) => m.date_month_day({ day, month }),
+  monthDayYear: (day, month, year) => m.date_month_day_year({ day, month, year }),
   justNow: () => m.date_just_now(),
   underAMinuteAhead: () => m.date_under_a_minute_ahead(),
   seconds: (count) => m.date_unit_seconds({ count }),

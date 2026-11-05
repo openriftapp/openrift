@@ -71,7 +71,7 @@ describe("setReleaseSentence", () => {
         },
         TODAY,
       ),
-    ).toBe("Released in Simplified Chinese on 1 August 2025 and in English on 31 October 2025.");
+    ).toBe("Released in Simplified Chinese on Aug 1, 2025 and in English on Oct 31, 2025.");
   });
 
   it("puts upcoming releases in their own sentence", () => {
@@ -83,7 +83,7 @@ describe("setReleaseSentence", () => {
         },
         TODAY,
       ),
-    ).toBe("Released in English on 31 July 2026. Releases in French on 23 October 2026.");
+    ).toBe("Released in English on Jul 31, 2026. Releases in French on Oct 23, 2026.");
   });
 
   it("words month, quarter and year releases as periods", () => {
@@ -131,13 +131,13 @@ describe("setsOverviewSentence", () => {
 
   it("names the newest set and the next one with its reveal progress", () => {
     expect(setsOverviewSentence([origins, vendetta, radiance, legacy], TODAY)).toBe(
-      "Vendetta is the newest set. Radiance releases on 23 October 2026, and 66 of its 167 cards are listed so far.",
+      "Vendetta is the newest set. Radiance releases on Oct 23, 2026, and 66 of its 167 cards are listed so far.",
     );
   });
 
   it("drops the progress once every card is listed", () => {
     expect(setsOverviewSentence([vendetta, { ...radiance, cardCount: 167 }], TODAY)).toBe(
-      "Vendetta is the newest set. Radiance releases on 23 October 2026.",
+      "Vendetta is the newest set. Radiance releases on Oct 23, 2026.",
     );
   });
 
@@ -165,7 +165,7 @@ describe("setsOverviewSentence", () => {
     });
 
     expect(setsOverviewSentence([vendetta, chineseFirst], TODAY, "EN")).toBe(
-      "Vendetta is the newest set. Radiance releases on 23 October 2026.",
+      "Vendetta is the newest set. Radiance releases on Oct 23, 2026.",
     );
     expect(setsOverviewSentence([vendetta, chineseFirst], TODAY, "SC")).toBe(
       "Radiance is the newest set.",
@@ -209,7 +209,7 @@ describe("primaryRelease", () => {
 
 describe("releaseDateText", () => {
   it("shows the date at the precision it is known to", () => {
-    expect(releaseDateText({ releasedAt: "2025-10-31", precision: "day" })).toBe("31 October 2025");
+    expect(releaseDateText({ releasedAt: "2025-10-31", precision: "day" })).toBe("Oct 31, 2025");
     expect(releaseDateText({ releasedAt: "2026-04-01", precision: "quarter" })).toBe("Q2 2026");
     expect(releaseDateText({ releasedAt: "2026-01-01", precision: "year" })).toBe("2026");
   });

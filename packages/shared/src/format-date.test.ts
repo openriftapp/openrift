@@ -13,6 +13,8 @@ import {
   formatFileStamp,
   formatTimeLocal,
   formatDayMonthYear,
+  formatShortDay,
+  formatShortDayYear,
   formatMonth,
   formatMonthYear,
   formatRelativeDay,
@@ -92,6 +94,28 @@ describe("formatDayMonthYear", () => {
 
   it("returns an empty string for unparseable input", () => {
     expect(formatDayMonthYear("nope")).toBe("");
+  });
+});
+
+describe("formatShortDay", () => {
+  it("renders the UTC day with a short month", () => {
+    expect(formatShortDay("2025-10-06")).toBe("Oct 6");
+    expect(formatShortDay("2025-12-31T23:30:00.000Z")).toBe("Dec 31");
+  });
+
+  it("returns an empty string for unparseable input", () => {
+    expect(formatShortDay("nope")).toBe("");
+  });
+});
+
+describe("formatShortDayYear", () => {
+  it("renders the UTC day with a short month and the year", () => {
+    expect(formatShortDayYear("2025-10-06")).toBe("Oct 6, 2025");
+    expect(formatShortDayYear("2026-01-01T00:30:00.000Z")).toBe("Jan 1, 2026");
+  });
+
+  it("returns an empty string for unparseable input", () => {
+    expect(formatShortDayYear("nope")).toBe("");
   });
 });
 
@@ -339,6 +363,8 @@ describe("injected date words", () => {
     ago: (time) => `${time} BACK`,
     monthName: (index) => `MONTH${index}`,
     lastWeek: () => "LAST WEEK",
+    monthShortName: (index) => `M${index}`,
+    monthDayYear: (day, month, year) => `${day}. ${month} ${year}`,
   };
 
   it("builds every relative form from the supplied words", () => {
@@ -346,6 +372,8 @@ describe("injected date words", () => {
     expect(formatRelativeDay("2026-06-01", NOW, shouting)).toBe("LAST WEEK");
     expect(formatMonthYear("2026-03-01", shouting)).toBe("MONTH2 2026");
     expect(formatDayMonthYear("2026-03-01", shouting)).toBe("1 MONTH2 2026");
+    expect(formatShortDay("2026-03-01", shouting)).toBe("M2 1");
+    expect(formatShortDayYear("2026-03-01", shouting)).toBe("1. M2 2026");
   });
 });
 

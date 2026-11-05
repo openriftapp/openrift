@@ -24,7 +24,6 @@ interface SearchInputProps {
   leading?: ReactNode;
   /** Right-aligned trailing text, e.g. a `"12 / 40 decks"` result count. */
   trailing?: ReactNode;
-  wrapTrailing?: boolean;
   action?: ReactNode;
   className?: string;
   inputRef?: Ref<HTMLInputElement>;
@@ -56,7 +55,6 @@ export function SearchInput({
   "aria-label": ariaLabel,
   leading,
   trailing,
-  wrapTrailing,
   action,
   className,
   inputRef,
@@ -100,9 +98,7 @@ export function SearchInput({
     assignRef(inputRef, input);
   };
 
-  const below = wrapTrailing && trailing !== undefined;
-
-  const group = (
+  return (
     <InputGroup className={className}>
       <InputGroupAddon className={cn(hasLeading && "max-w-[50%]")}>
         <SearchIcon className="shrink-0" />
@@ -125,16 +121,9 @@ export function SearchInput({
       {(trailing !== undefined || value || action !== undefined) && (
         // has-[>button]:mr-0 cancels the addon's negative pull (meant for padded ghost
         // InputGroupButtons) — the bare chip X otherwise sits almost flush against the group border
-        <InputGroupAddon
-          align="inline-end"
-          className={cn("has-[>button]:mr-0", below && "max-sm:not-has-[>button]:hidden")}
-        >
+        <InputGroupAddon align="inline-end" className="has-[>button]:mr-0">
           {trailing !== undefined && (
-            <span
-              className={cn("pointer-events-none text-xs font-normal", below && "max-sm:hidden")}
-            >
-              {trailing}
-            </span>
+            <span className="pointer-events-none text-xs font-normal">{trailing}</span>
           )}
           {action}
           {value && (
@@ -145,16 +134,6 @@ export function SearchInput({
         </InputGroupAddon>
       )}
     </InputGroup>
-  );
-
-  if (!below) {
-    return group;
-  }
-  return (
-    <div className="max-sm:min-w-0 max-sm:flex-1 sm:contents">
-      {group}
-      <p className="text-muted-foreground mt-1 text-xs sm:hidden">{trailing}</p>
-    </div>
   );
 }
 

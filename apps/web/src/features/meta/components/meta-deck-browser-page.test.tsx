@@ -113,11 +113,14 @@ vi.mock("@/features/meta/components/meta-scope-bar", () => ({
   MetaScopeBar: ({
     phoneToolbar,
     phoneStripLead,
+    eraPickerOpen,
   }: {
     phoneToolbar?: React.ReactNode;
     phoneStripLead?: React.ReactNode;
+    eraPickerOpen?: boolean;
   }) => (
     <>
+      {eraPickerOpen === true && <p>Era picker open</p>}
       <div role="group" aria-label="Phone toolbar">
         {phoneToolbar}
       </div>
@@ -269,6 +272,39 @@ describe("MetaDeckBrowserPage", () => {
 
     expect(screen.getByLabelText("Decks per page")).toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Deck pages" })).toBeNull();
+  });
+
+  it("explains an empty era and opens the scope bar's era picker", async () => {
+    captured.decks = [];
+    captured.total = 0;
+    render(<MetaDeckBrowserPage />);
+
+    expect(screen.getByText("Vendetta has no results on file yet.")).toBeInTheDocument();
+    expect(screen.queryByText("Era picker open")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Pick an era" }));
+    expect(screen.getByText("Era picker open")).toBeInTheDocument();
+  });
+
+  it("switches an empty era to all eras through the URL", async () => {
+    captured.decks = [];
+    captured.total = 0;
+    render(<MetaDeckBrowserPage />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Show all eras" }));
+    const update = navigate.mock.calls.at(-1)?.[0] as {
+      search: (prev: Record<string, unknown>) => Record<string, unknown>;
+    };
+    expect(update.search({ page: 3 })).toEqual({ era: "all" });
+  });
+
+  it("keeps the plain sentence for a page past the end", () => {
+    captured.decks = [];
+    captured.total = 12;
+    captured.search = { page: 9 };
+    render(<MetaDeckBrowserPage />);
+
+    expect(screen.queryByRole("button", { name: "Pick an era" })).toBeNull();
+    expect(screen.getByText("This page is past the end of the results.")).toBeInTheDocument();
   });
 
   it("counts what the filter matched against the whole archive under the title", () => {
@@ -517,8 +553,9 @@ describe("MetaDeckBrowserPage", () => {
     expect(screen.queryByRole("link", { name: "Kennen" })).not.toBeInTheDocument();
   });
 
-  it("says so when nothing matches", () => {
+  it("says so when nothing matches across all eras", () => {
     captured.decks = [];
+    captured.search = { era: "all" };
     render(<MetaDeckBrowserPage />);
     expect(seen("No decks match these filters.")).toBe(true);
   });

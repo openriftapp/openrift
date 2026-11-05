@@ -4,11 +4,11 @@ import { formatTickDate, lastValuePoint, tickAnchor } from "./price-history-tick
 
 describe("formatTickDate", () => {
   it("renders a short UTC day", () => {
-    expect(formatTickDate("2026-10-06")).toMatch(/^OCT 6$/iu);
+    expect(formatTickDate("2026-10-06")).toBe("Oct 6");
   });
 
   it("keeps the UTC day for an instant near midnight", () => {
-    expect(formatTickDate("2026-01-01T00:30:00Z")).toMatch(/^JAN 1$/iu);
+    expect(formatTickDate("2026-01-01T00:30:00Z")).toBe("Jan 1");
   });
 
   it("returns an empty string for bad input", () => {

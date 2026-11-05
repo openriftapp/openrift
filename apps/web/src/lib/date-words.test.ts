@@ -3,6 +3,8 @@ import {
   formatMonthYear,
   formatRelativeDay,
   formatRelativeTime,
+  formatShortDay,
+  formatShortDayYear,
   formatWeekdayDayLocal,
 } from "@openrift/shared/format-date";
 import { afterEach, describe, expect, it } from "vitest";
@@ -26,6 +28,8 @@ describe("DATE_WORDS", () => {
     ).toBe("3h ago");
     expect(formatMonthYear("2026-03-01", DATE_WORDS)).toBe("March 2026");
     expect(dateLeafPartsUtc("2026-08-01", DATE_WORDS).month).toBe("AUG");
+    expect(formatShortDay("2025-10-06", DATE_WORDS)).toBe("Oct 6");
+    expect(formatShortDayYear("2025-10-06", DATE_WORDS)).toBe("Oct 6, 2025");
   });
 
   it("follows the active locale at call time", () => {
@@ -46,6 +50,13 @@ describe("DATE_WORDS", () => {
       "Freitag, 11. September",
     );
     expect(formatRelativeDay("2026-06-05", NOW, DATE_WORDS)).toBe("vor 3 Tagen");
+    expect(formatShortDay("2025-10-06", DATE_WORDS)).toBe("6. Okt.");
+    expect(formatShortDayYear("2025-03-06", DATE_WORDS)).toBe("6. März 2025");
+  });
+
+  it("orders the short day year-first in Korean", () => {
+    overwriteGetLocale(() => "ko");
+    expect(formatShortDayYear("2025-10-06", DATE_WORDS)).toBe("2025년 10월 6일");
   });
 
   it("puts the French relative marker before the time", () => {

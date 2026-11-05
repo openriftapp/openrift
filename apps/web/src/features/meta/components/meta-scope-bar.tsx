@@ -73,6 +73,8 @@ export interface MetaScopeBarProps extends MetaScopeControls {
   /** The era an absent `era` param stands for, when the surface's default is not the current set. */
   defaultEra?: string;
   showTier?: boolean;
+  eraPickerOpen?: boolean;
+  onEraPickerOpenChange?: (open: boolean) => void;
   className?: string;
 }
 
@@ -102,6 +104,8 @@ export function MetaScopeBar({
   eraCounts: eraCountMap,
   defaultEra,
   showTier = true,
+  eraPickerOpen,
+  onEraPickerOpenChange,
   className,
 }: MetaScopeBarProps) {
   const { formats } = useDeckFormatList();
@@ -113,6 +117,10 @@ export function MetaScopeBar({
   }
   eraItems[ERA_CUSTOM] = m.meta_scope_era_custom();
   const eraValue = scope.era ?? defaultEra ?? defaultEraId(eras) ?? ERA_ALL;
+  const eraChipLabel = (value: string) =>
+    value === ERA_ALL || value === ERA_CUSTOM
+      ? eraItems[value]
+      : m.meta_scope_era_chip({ era: eraItems[value] ?? value });
   const setEra = (next: string) =>
     // Leaving the custom range clears from/to; it does not re-apply hidden dates.
     setScope(
@@ -204,7 +212,11 @@ export function MetaScopeBar({
         <div className="flex items-center gap-2">
           {search}
           {!smUp && (
-            <ScopeDrawer count={activeCount}>
+            <ScopeDrawer
+              count={activeCount}
+              eraPickerOpen={eraPickerOpen === true}
+              onEraPickerOpenChange={onEraPickerOpenChange}
+            >
               <LabelledRow label={m.meta_scope_era()}>
                 <div className="flex flex-1 flex-wrap items-center gap-1.5">
                   <ScopeSelect
@@ -245,6 +257,9 @@ export function MetaScopeBar({
             items={eraItems}
             counts={eraCountMap}
             onValueChange={setEra}
+            renderValue={eraChipLabel}
+            open={eraPickerOpen}
+            onOpenChange={onEraPickerOpenChange}
           />
           {datePickers}
           {facets.map((view) => (
@@ -372,10 +387,33 @@ function activeStrip(
   return chips;
 }
 
-function ScopeDrawer({ count, children }: { count: number; children: ReactNode }) {
+function ScopeDrawer({
+  count,
+  eraPickerOpen,
+  onEraPickerOpenChange,
+  children,
+}: {
+  count: number;
+  eraPickerOpen: boolean;
+  onEraPickerOpenChange?: (open: boolean) => void;
+  children: ReactNode;
+}) {
   const [openedOnce, setOpenedOnce] = useState(false);
+  const [triggered, setTriggered] = useState(false);
+  const open = triggered || eraPickerOpen;
   return (
-    <Drawer showSwipeHandle onOpenChange={(open) => open && setOpenedOnce(true)}>
+    <Drawer
+      showSwipeHandle
+      open={open}
+      onOpenChange={(next) => {
+        setTriggered(next);
+        if (next) {
+          setOpenedOnce(true);
+        } else {
+          onEraPickerOpenChange?.(false);
+        }
+      }}
+    >
       <DrawerTrigger
         render={<Button variant="outline" size="icon" className="relative shrink-0" />}
         aria-label={m.cards_filters()}
@@ -387,7 +425,10 @@ function ScopeDrawer({ count, children }: { count: number; children: ReactNode }
           </Badge>
         )}
       </DrawerTrigger>
-      <DrawerContent className="pb-4 data-ending-style:duration-250" keepMounted={openedOnce}>
+      <DrawerContent
+        className="pb-4 data-ending-style:duration-250"
+        keepMounted={openedOnce || open}
+      >
         <DrawerHeader className="sr-only">
           <DrawerTitle>{m.cards_filters()}</DrawerTitle>
           <DrawerDescription>{m.meta_scope_filters_description()}</DrawerDescription>
@@ -464,6 +505,9 @@ export function ScopeSelect({
   counts,
   className,
   onValueChange,
+  renderValue,
+  open,
+  onOpenChange,
 }: {
   label: string;
   value: string;
@@ -472,13 +516,24 @@ export function ScopeSelect({
   counts?: Map<string, number>;
   className?: string;
   onValueChange: (value: string) => void;
+  renderValue?: (value: string) => ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const shown = value in items ? value : fallback;
   return (
     // BaseUI passes null on clear; map it to fallback.
-    <Select value={shown} onValueChange={(next) => onValueChange(next ?? fallback)} items={items}>
+    <Select
+      value={shown}
+      onValueChange={(next) => onValueChange(next ?? fallback)}
+      items={items}
+      open={open}
+      onOpenChange={onOpenChange === undefined ? undefined : (next) => onOpenChange(next)}
+    >
       <SelectTrigger size="sm" className={cn("font-medium", className)} aria-label={label}>
-        <SelectValue />
+        <SelectValue>
+          {renderValue === undefined ? undefined : (selected: string) => renderValue(selected)}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {Object.entries(items).map(([itemValue, itemLabel]) => (

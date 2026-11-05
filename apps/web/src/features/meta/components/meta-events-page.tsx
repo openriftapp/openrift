@@ -2,6 +2,7 @@ import { META_PAGE_SIZES } from "@openrift/shared/contracts/meta";
 import type { MetaEventSummary } from "@openrift/shared/types/api/meta";
 import { getRouteApi } from "@tanstack/react-router";
 import { TrophyIcon } from "lucide-react";
+import { useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import {
@@ -105,6 +106,7 @@ export function MetaEventsPage() {
     });
   };
 
+  const [eraPickerOpen, setEraPickerOpen] = useState(false);
   const setScope = (patch: Partial<MetaScope>) => setSearchParams(patch);
   const clearScope = () =>
     setSearchParams({
@@ -161,6 +163,8 @@ export function MetaEventsPage() {
               search={<EventSearchBox urlValue={search.q ?? ""} onCommit={commitQuery} />}
               scope={search}
               setScope={setScope}
+              eraPickerOpen={eraPickerOpen}
+              onEraPickerOpenChange={setEraPickerOpen}
               clearScope={clearScope}
               eras={eras}
               countries={metaEventCountries(
@@ -229,6 +233,7 @@ export function MetaEventsPage() {
                   scope={search}
                   eras={eras}
                   setScope={setScope}
+                  onPickEra={() => setEraPickerOpen(true)}
                   fallback={matched === 0 ? m.meta_events_no_match() : m.meta_page_past_end()}
                 />
               ) : (
