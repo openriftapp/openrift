@@ -135,6 +135,13 @@ export function FilterPlacementSection() {
 }
 
 export function FilterCustomizeControl({ className }: { className?: string }) {
+  if (!useFilterMetaOptional()) {
+    return null;
+  }
+  return <FilterCustomizePopover className={className} />;
+}
+
+function FilterCustomizePopover({ className }: { className?: string }) {
   const placement = useFilterPlacement();
   if (!placement) {
     return null;

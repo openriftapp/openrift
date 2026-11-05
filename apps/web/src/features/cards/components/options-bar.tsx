@@ -26,7 +26,6 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { SectionHeading } from "@/components/ui/section-heading";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -466,7 +465,10 @@ export function MobileOptionsDrawer({
         <DrawerHeader className="bg-popover flex-row items-center justify-between border-b px-4 pt-1 pb-2">
           <DrawerTitle>{m.cards_options()}</DrawerTitle>
           <DrawerDescription className="sr-only">{m.cards_options_description()}</DrawerDescription>
-          {showReset && <DrawerResetButton />}
+          <div className="flex items-center gap-1">
+            <FilterCustomizeControl />
+            {showReset && <DrawerResetButton />}
+          </div>
         </DrawerHeader>
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-3 pb-4">
           <LabelledRowLayoutContext value="stacked">{children}</LabelledRowLayoutContext>
@@ -587,23 +589,17 @@ export function MobileFilterContent({
 }) {
   return (
     <div className="flex flex-col gap-4 pt-4">
-      <div className="flex items-center justify-between">
-        <SectionHeading>{m.cards_filters()}</SectionHeading>
-        <FilterCustomizeControl />
-      </div>
-      <div className="flex flex-col gap-4">
-        <FilterPanelContent
-          availableFilters={availableFilters}
-          availableLanguages={availableLanguages}
-          setDisplayLabel={setDisplayLabel}
-          hiddenSections={hiddenSections}
-          visibleCustomTagCategories={visibleCustomTagCategories}
-          filterOverrides={filterOverrides}
-          filterCounts={filterCounts}
-          ownedCountMax={ownedCountMax}
-          topLevelUnits={topLevelUnits}
-        />
-      </div>
+      <FilterPanelContent
+        availableFilters={availableFilters}
+        availableLanguages={availableLanguages}
+        setDisplayLabel={setDisplayLabel}
+        hiddenSections={hiddenSections}
+        visibleCustomTagCategories={visibleCustomTagCategories}
+        filterOverrides={filterOverrides}
+        filterCounts={filterCounts}
+        ownedCountMax={ownedCountMax}
+        topLevelUnits={topLevelUnits}
+      />
     </div>
   );
 }
